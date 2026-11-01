@@ -55,7 +55,7 @@ open on the feature instead, and chapters, audio and subtitles are still availab
 player's own controls.
 
 Menu buttons make the disc's own sounds, pages play their transitions, and menus that move on by
-themselves after a while now do. Region, parental limits and country are in **Settings → Transcoding**.
+themselves after a while now do. Region, parental limits and country are in **Settings → Playback & discs**.
 A disc can forbid seeking or skipping at some points, as on a disc player; to ignore that, turn off
 **Disc restrictions** in the player's viewing settings.
 
@@ -91,7 +91,7 @@ Many commercial Blu-rays write their menus in Java. To show them:
 1. Install any Java 8 or newer on the server, with its graphics libraries. [Eclipse
    Temurin](https://adoptium.net) is a free build of OpenJDK. On Linux avoid "headless" packages
    only if they lack `java.desktop`, and install `fontconfig`. In Docker, add both to the image.
-2. In **Settings → Transcoding**, turn on **Run Blu-ray Java menus**. The page shows which Java it
+2. In **Settings → Playback & discs**, turn on **Run Blu-ray Java menus**. The page shows which Java it
    found; set **Java location** if it found none.
 3. Insert the disc.
 

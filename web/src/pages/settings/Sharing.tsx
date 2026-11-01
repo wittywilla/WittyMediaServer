@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { type ShareLink } from '../../gallery'
 import { toast, useApp } from '../../state'
+import { LoadError } from '../../components/common'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui'
 import LegalNote from '../../components/LegalNote'
 
@@ -11,7 +12,7 @@ import LegalNote from '../../components/LegalNote'
 function ServerSharing() {
   const st = useServerSettings()
   const { s, set, on } = st
-  if (!s) return null
+  if (!s) return st.failed ? <LoadError what="This page" onRetry={st.retry} /> : null
   return (
     <>
       <Section title="Uploads" desc="Adults can add pictures and videos to Photos and Vertical videos libraries from their devices. Files are saved in an Uploads folder inside the library's first folder and never replace anything.">
@@ -72,9 +73,9 @@ export default function SharingSettings() {
   return (
     <>
       <PageHead title="Sharing & photos" desc="Who can add to this server, and what can be seen from outside it." />
-      <LegalNote kind="sharing" className="set-legal" />
       {user?.isAdmin && <ServerSharing />}
       <Links />
+      <LegalNote kind="sharing" className="set-legal" />
     </>
   )
 }

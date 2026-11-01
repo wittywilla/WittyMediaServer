@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes } from 'react-router-dom'
-import { api, fmtRuntime, mediaUrl } from '../../api'
+import { fmtDateTime, api, fmtRuntime, mediaUrl } from '../../api'
 import { ChooseFolderButton } from '../../components/FolderPicker'
 import { IconEdit, IconPlus, IconRefresh, IconTrash, IconTv } from '../../icons'
 import { toast, useApp } from '../../state'
@@ -30,11 +30,11 @@ function Overview() {
     <>
       <PageHead title="Channels & tuners" desc="Always-on TV channels made from your library, and live TV from tuners and IPTV, side by side in one guide."
         actions={<Link className="btn" to="/tv"><IconTv /> Open the guide</Link>} />
-      <LegalNote kind="tv" className="set-legal" />
       <LibraryChannels />
       <Tuners />
       <GuideSources />
       <Options />
+      <LegalNote kind="tv" className="set-legal" />
     </>
   )
 }
@@ -371,7 +371,7 @@ function GuideSources() {
             <li key={s.id} className="tvs-item">
               <div className="tvs-item-text">
                 <b>{s.name}</b>
-                <span>{s.lastFetch ? `${s.programmes} listings · read ${new Date(s.lastFetch * 1000).toLocaleString()}` : 'Not read yet'}</span>
+                <span>{s.lastFetch ? `${s.programmes} listings · read ${fmtDateTime(s.lastFetch * 1000)}` : 'Not read yet'}</span>
                 {s.lastError && <span className="tvs-error" role="alert">{s.lastError}</span>}
               </div>
               <button className="btn sm ghost" onClick={() => void refresh(s)} aria-label={`Read ${s.name} again`}><IconRefresh /></button>

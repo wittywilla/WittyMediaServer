@@ -44,8 +44,8 @@ export default function Profiles() {
           {restricted
             ? <p className="muted">This profile's password and limits are managed by the adults of this server.</p>
             : <form className="field-row" onSubmit={(e) => { e.preventDefault(); changePw() }}>
-                <input className="input" type="password" autoComplete="current-password" aria-label="Current password" placeholder="Current password" value={curpw} onChange={(e) => setCurpw(e.target.value)} />
-                <input className="input" type="password" autoComplete="new-password" aria-label="New password" placeholder="New password" value={mypw} onChange={(e) => setMypw(e.target.value)} />
+                <label className="field-label">Current password<input className="input" type="password" autoComplete="current-password" value={curpw} onChange={(e) => setCurpw(e.target.value)} /></label>
+                <label className="field-label">New password<input className="input" type="password" autoComplete="new-password" value={mypw} onChange={(e) => setMypw(e.target.value)} /></label>
                 <button className="btn" disabled={mypw.length < 8 || !curpw}>Change password</button>
               </form>}
         </div>
@@ -59,7 +59,7 @@ export default function Profiles() {
               <div className="list-item" key={u.id}>
                 <Avatar name={u.name} />
                 <div className="grow">
-                  <b>{u.name}</b> <span className={'pill kind-' + u.kind}>{u.isAdmin ? 'Admin' : KIND_LABEL[u.kind]}</span>
+                  <b>{u.name}</b> <span className={'pill kind-' + u.kind}>{u.isAdmin ? 'Administrator' : KIND_LABEL[u.kind]}</span>
                   <div className="sub">{u.isAdmin ? 'No limits' : summary(u)}</div>
                 </div>
                 {!u.isAdmin && u.id !== user!.id && <button className="btn sm" onClick={() => setEditing(u)}>Limits</button>}

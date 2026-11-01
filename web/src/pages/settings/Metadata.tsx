@@ -3,6 +3,7 @@ import { api } from '../../api'
 import { IconDown, IconEdit, IconPlug, IconPlus, IconTrash, IconUp } from '../../icons'
 import { toast } from '../../state'
 import { GameSourcesSettings } from '../GameMeta'
+import { LoadError } from '../../components/common'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui'
 import LegalNote from '../../components/LegalNote'
 
@@ -18,12 +19,11 @@ const NO_KEY = 'No API key needed'
 export default function MetadataSettings() {
   const st = useServerSettings()
   const { s, set, on } = st
-  if (!s) return null
+  if (!s) return st.failed ? <LoadError what="This page" onRetry={st.retry} /> : null
   return (
     <>
-      <PageHead title="Media Indexers and Metadata Agents"
+      <PageHead title="Metadata agents"
         desc="Where titles, posters, plots and ratings come from. Information inside your files and NFO files always comes first; then your custom agents, in order; then the built-in agents." />
-      <LegalNote kind="webResults" className="set-legal" />
 
       <Section title="Built-in agents" desc="Agents marked “No API key needed” work straight away. The others need a free key from their website.">
         <Row label="TVmaze" badge={NO_KEY} desc="TV shows: episode titles, plots, posters and stills. Used until you add a TheTVDB key. Data shared under CC BY-SA 4.0.">
@@ -75,6 +75,7 @@ export default function MetadataSettings() {
           <Switch label="Save next to media" checked={on('saveMetadata', '0')} onChange={(v) => set('saveMetadata', v ? '1' : '0')} />
         </Row>
       </Section>
+      <LegalNote kind="webResults" className="set-legal" />
       <SaveBar {...st} />
     </>
   )

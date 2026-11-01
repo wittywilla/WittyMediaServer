@@ -59,7 +59,7 @@ var explainRules = []explainRule{
 		"Try again. If it keeps failing, check the connection, and reinstall the module from Settings, Modules."}},
 	{regexp.MustCompile(`(?i)(core|cores?\b).*(load|missing|not found|failed|no such)|the runner failed|game runner|wittyplay-host|runner .*(crash|exit|invalid)|libretro|retro_load`), Explanation{"game-runner", "The game couldn't run",
 		"The emulator core is missing or stopped, or it doesn't like this game file.",
-		"Check the core is installed in Settings, Gaming, and that the game file works in another emulator. The lines above show what the core said."}},
+		"Check the core is installed in Settings, Consoles & cores, and that the game file works in another emulator. The lines above show what the core said."}},
 	{regexp.MustCompile(`(?i)tuner|no signal|tune failed|no tuner|channel lock`), Explanation{"tuner", "The tuner had a problem",
 		"A tuner didn't answer, is in use, or found no signal on this channel.",
 		"Check the tuner is on and reachable, and that another program isn't using it. Settings, Live TV can scan again."}},

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
-import { Spinner } from '../../components/common'
+import { LoadError, Spinner } from '../../components/common'
 import LegalNote from '../../components/LegalNote'
 import { toast, useApp } from '../../state'
 import type { RigView } from '../Rigs'
@@ -29,27 +29,30 @@ export default function CouchSettings() {
   const [settings, setSettings] = useState<Record<string, string> | null>(null)
   const [rigs, setRigs] = useState<RigView[] | null>(null)
   const { refreshLibraries } = useApp()
-  const loadRigs = () => api.get<RigView[]>('/rigs').then(setRigs).catch((e) => toast(e.message))
-  useEffect(() => {
-    api.get<Status>('/couch').then(setSt).catch((e) => toast(e.message))
-    api.get<Record<string, string>>('/settings').then(setSettings).catch(() => {})
+  const [failed, setFailed] = useState(false)
+  const loadRigs = () => api.get<RigView[]>('/rigs').then(setRigs).catch(() => setFailed(true))
+  const loadAll = () => {
+    setFailed(false)
+    api.get<Status>('/couch').then(setSt).catch(() => setFailed(true))
+    api.get<Record<string, string>>('/settings').then(setSettings).catch(() => setFailed(true))
     loadRigs()
-  }, [])
+  }
+  useEffect(loadAll, [])
   const put = async (patch: Record<string, string>) => {
     try { setSettings(await api.put<Record<string, string>>('/settings', patch)); toast('Saved') } catch (e: any) { toast(e.message) }
   }
   const changed = () => { loadRigs(); void refreshLibraries() }
+  if (failed && (!st || !settings || !rigs)) return <LoadError what="This page" onRetry={loadAll} />
   if (!st || !settings || !rigs) return <Spinner />
   const on = (k: string) => settings[k] === '1'
   const shared = rigs.filter((r) => r.address !== '127.0.0.1' && r.address !== 'localhost' && r.address !== '::1')
   return (
     <>
-      <PageHead title="Game PCs" desc="WittyCouch is a Moonlight client in the page: people play the games on any PC running Sunshine, in their browser, through this server." />
-      <LegalNote kind="thirdPartyServer" className="set-legal" />
-      <Section title="This server" desc="Playing in the page needs a separate program, WittyCouch Host, built on Moonlight’s own code.">
+      <PageHead title="Game PCs" desc="People can play the games on any PC running Sunshine, right here in their browser, through this server. This feature is called WittyCouch." />
+      <Section title="This server" desc="Playing in the page needs a separate program, WittyCouch Host.">
         {st.ready
           ? <p>WittyCouch Host is installed and working.</p>
-          : <div className="rig-warn" role="status">
+          : <div className="rig-note" role="status">
               <p><b>WittyCouch Host isn’t installed on this server.</b> People can add and pair PCs, and the Moonlight app still works, but they can’t play in the page until it is.</p>
               <p>It’s GPL-3.0 software: its source comes with it, and it runs as a program of its own beside this one, which stays Apache-2.0. Put <code>wittycouch-host</code> beside this server, or in the <code>wittycouch/bin</code> folder in its data folder. Releases will be at <a href="https://github.com/wittywilla/WittyCouchHost" target="_blank" rel="noreferrer noopener">its own project</a>.</p>
             </div>}
@@ -95,6 +98,7 @@ export default function CouchSettings() {
       <Section title="Built on">
         <Credits list={st.credits} />
       </Section>
+      <LegalNote kind="thirdPartyServer" className="set-legal" />
     </>
   )
 }

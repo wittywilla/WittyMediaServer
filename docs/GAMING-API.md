@@ -120,7 +120,7 @@ The server picks H.264 if your offer has it and VP8 otherwise. Send `"prefer": "
 stack for the smallest receive buffer it allows (`playoutDelayHint`, `jitterBufferTarget`, or the same on
 your platform). Latency is the point.
 
-Out of your home network, WebRTC needs a route to the server's UDP port. Admins set that up in Settings, Gaming.
+Out of your home network, WebRTC needs a route to the server's UDP port. Admins set that up in Settings, Consoles & cores.
 If it fails, the WebSocket modes work anywhere HTTP does.
 
 ### WebSocket

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl, type Item } from '../api'
-import { BackLink, EmptyState, Placeholder, Spinner } from '../components/common'
+import { BackLink, EmptyState, LoadError, Placeholder, Spinner } from '../components/common'
 import LegalNote from '../components/LegalNote'
 import { IconGamepad, IconPlay } from '../icons'
 import { toast, useApp } from '../state'
@@ -17,11 +17,11 @@ type Host = { id: number; name: string; address: string; port?: number; paired: 
 type App = { id: number; title: string; hasArt: boolean; isDesktop?: boolean }
 type Found = { name: string; address: string; port: number; added: boolean }
 type Pairing = { state: string; pin?: string; message?: string }
-type Status = { allowed: boolean; ready: boolean; program?: boolean }
+type Status = { allowed: boolean; ready: boolean; program?: boolean; failed?: boolean }
 
 export function useCouchStatus() {
   const [st, setSt] = useState<Status | null>(null)
-  useEffect(() => { api.get<Status>('/couch').then(setSt).catch(() => setSt({ allowed: false, ready: false })) }, [])
+  useEffect(() => { api.get<Status>('/couch').then(setSt).catch(() => setSt({ allowed: false, ready: false, failed: true })) }, [])
   return st
 }
 
@@ -29,9 +29,9 @@ function NotReady({ st }: { st: Status }) {
   const { user } = useApp()
   if (st.ready) return null
   return (
-    <div className="rig-warn" role="status">
+    <div className="rig-note" role="status">
       <strong>Playing here needs a separate program on this server.</strong>{' '}
-      {user?.isAdmin ? <>It’s a GPL-3.0 program built on Moonlight’s own code, installed separately. <Link to="/settings/couch">See Settings, Game PCs.</Link></> : 'Ask whoever runs this server to install it. You can still add and pair your PCs.'}
+      {user?.isAdmin ? <>It’s installed separately, and has a license of its own. <Link to="/settings/couch">See Settings, Game PCs.</Link></> : 'Ask whoever runs this server to install it. You can still add and pair your PCs.'}
     </div>
   )
 }
@@ -58,12 +58,12 @@ export default function CouchPage() {
     setFinding(true)
     try { setFound(await api.get<Found[]>('/couch/find')) } catch (e: any) { toast(e.message) } finally { setFinding(false) }
   }
+  if (st?.failed) return <LoadError what="Game PCs" onRetry={() => window.location.reload()} />
   if (st && !st.allowed) return <EmptyState icon={<IconGamepad />} title="This isn’t turned on for this account" text="Ask whoever runs this server." />
   return (
     <>
       <div className="toolbar"><h1>Game PCs</h1></div>
       <p className="muted">Play the games on any PC running Sunshine, here in your browser. It might be yours, or a friend’s. Each PC pairs once, with a PIN typed on that PC, and your pairings are yours alone.</p>
-      <LegalNote kind="thirdPartyServer" />
       {st && <NotReady st={st} />}
       {!hosts ? <Spinner /> : hosts.length > 0 && (
         <ul className="ml-hosts">
@@ -79,7 +79,7 @@ export default function CouchPage() {
       )}
       <section className="rig-method" aria-label="Add a PC">
         <h2>Add a PC</h2>
-        <div className="rig-row-actions"><button className="btn" disabled={finding} onClick={find}>{finding ? 'Looking…' : 'Find PCs on the network'}</button></div>
+        <div className="rig-row-actions"><button className="btn primary" disabled={finding} onClick={find}>{finding ? 'Looking…' : 'Find PCs on the network'}</button></div>
         {found && (found.length === 0
           ? <p className="muted">None answered. Type its address instead.</p>
           : <ul className="rig-found">{found.map((f) => <li key={f.address}><span><b>{f.name}</b> <span className="muted">{f.address}</span></span>{f.added ? <span className="muted">Already added</span> : <button className="btn sm" disabled={adding} onClick={() => add(f.port && f.port !== 47989 ? `${f.address}:${f.port}` : f.address)}>Add</button>}</li>)}</ul>)}
@@ -95,6 +95,7 @@ export default function CouchPage() {
           <p className="muted">Connecting to a PC over the internet needs its owner to have opened its ports, which puts it on the internet: a private network such as Tailscale is safer.</p>
         </details>
       </section>
+      <LegalNote kind="thirdPartyServer" />
     </>
   )
 }
@@ -150,7 +151,6 @@ export function CouchHostPage() {
   return (
     <div className="game-page">
       <BackLink to="/couch" label="Game PCs" />
-      <LegalNote kind="thirdPartyServer" />
       <div className="toolbar"><h1>{host.name}</h1><div className="grow" />{!sure && <button className="btn sm ghost" onClick={() => setSure(true)}>Remove</button>}</div>
       {sure && (
         <div className="rig-warn" role="alert">
@@ -198,6 +198,7 @@ export function CouchHostPage() {
           {hidden > 0 && <p><button className="btn sm ghost" onClick={() => setShowAll(true)}>Show the PC’s desktop too</button></p>}
         </>
       ) : !appsError && <Spinner />)}
+      <LegalNote kind="thirdPartyServer" />
     </div>
   )
 }

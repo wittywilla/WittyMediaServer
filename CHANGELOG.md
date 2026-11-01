@@ -57,6 +57,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   at the right speed. Stations using HLS resume first time. Setting every keyboard button at once makes one profile. A
   refused cheat isn't shown as added, and one Esc no longer loses an edited settings file. Games no longer put a sign-in in
   the WebSocket address over HTTPS.
+- **Design audit:** a page that can't load now says so, with Try again, rather than looking empty. On narrower screens,
+  Settings is a menu of its own with each item explained, and every page has a way back to it. The phone's tab bar says
+  where each button goes. Pages carry one legal note, at their foot. *Gaming* is now *Consoles & cores*, *Games* is
+  *My game settings*, and the disc options moved from Transcoding to *Playback & discs*. There's an **Automatic** theme
+  that follows the device, the crash notice can be dismissed, and small controls are easier to tap.
 - **Reset this server:** *Settings → Reset* puts a server back as it was first installed, after warnings, your
   password and typing RESET. It keeps a copy you can bring back from the same page, unless you choose to delete
   everything. Media files are never touched. `wms reset` does the same when you can't sign in.

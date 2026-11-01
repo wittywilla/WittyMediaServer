@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, type Item, type Show } from '../api'
-import { EmptyState, ItemCard, ShowCard, SkeletonGrid, Spinner } from '../components/common'
+import { EmptyState, LoadError, ItemCard, ShowCard, SkeletonGrid, Spinner } from '../components/common'
 import { useApp } from '../state'
 import { IconRefresh, IconSortDown, IconSortUp, IconTv } from '../icons'
 import { toast } from '../state'
@@ -58,6 +58,8 @@ function VideoLibrary() {
   const [scan, setScan] = useState<any>(null)
   const listKey = `${id}|${sort}|${desc}|${genre}|${network}|${shelf}|${isShows}`
   const shownKey = useRef('')
+  const [failed, setFailed] = useState(false)
+  const [retry, setRetry] = useState(0)
   const listUrl = () => {
     const filter = shelf === 'discs' ? '&kind=disc' : shelf ? `&kind=disc&discContent=${shelf}` : ''
     return `/items?library=${id}&sort=${sort}&desc=${desc ? 1 : 0}&genre=${encodeURIComponent(genre)}${filter}&limit=${PAGE}`
@@ -66,22 +68,23 @@ function VideoLibrary() {
   useEffect(() => {
     // A rescan refreshes the list in place; the spinner is for a different list.
     if (shownKey.current !== listKey) { setItems(null); setShows(null); shownKey.current = listKey }
+    setFailed(false)
     if (isShows) {
       api.get<{ items: Item[] }>(`/items?library=${id}&kind=disc&sort=title`).then((r) => setShowDiscs(r.items)).catch(() => setShowDiscs([]))
       api.get<{ shows: Show[]; total: number }>(`/shows?library=${id}&sort=${sort}&desc=${desc ? 1 : 0}&genre=${encodeURIComponent(genre)}&network=${encodeURIComponent(network)}`)
-        .then((r) => { setShows(r.shows); setItems([]); setTotal(r.total) })
+        .then((r) => { setShows(r.shows); setItems([]); setTotal(r.total) }).catch(() => setFailed(true))
       api.get<string[]>(`/shows/genres?library=${id}`).then(setGenres).catch(() => {})
       api.get<{ name: string; shows: number }[]>(`/shows/networks?library=${id}`).then(setNetworks).catch(() => {})
       return
     }
     api.get<{ items: Item[]; total: number }>(listUrl())
-      .then((r) => { if (shownKey.current === listKey) { setItems(r.items); setTotal(r.total) } })
+      .then((r) => { if (shownKey.current === listKey) { setItems(r.items); setTotal(r.total) } }).catch(() => setFailed(true))
     Promise.all([
       api.get<{ total: number }>(`/items?library=${id}&kind=disc&limit=1`),
       api.get<{ total: number }>(`/items?library=${id}&kind=disc&discContent=tv&limit=1`),
     ]).then(([a, t]) => setDiscCount({ all: a.total, tv: t.total })).catch(() => {})
     api.get<string[]>(`/genres?library=${id}`).then(setGenres).catch(() => {})
-  }, [id, sort, desc, genre, network, shelf, scan?.done, isShows])
+  }, [id, sort, desc, genre, network, shelf, scan?.done, isShows, retry])
 
   useEffect(() => {
     let t: any
@@ -125,7 +128,7 @@ function VideoLibrary() {
     <>
       <div className="toolbar">
         <h1>{lib.name}</h1>
-        <span className="count">{total} {isShows ? (total === 1 ? 'show' : 'shows') : total === 1 ? 'item' : 'items'}</span>
+        {items && <span className="count">{total} {isShows ? (total === 1 ? 'show' : 'shows') : total === 1 ? 'title' : 'titles'}</span>}
         <div className="grow" />
         <select className="select" value={sort} aria-label="Sort by" onChange={(e) => set('sort', e.target.value)}>
           <option value="title">Title</option><option value="added">Date added</option><option value="year">Year</option>
@@ -154,7 +157,7 @@ function VideoLibrary() {
           {genres.map((g) => <button key={g} className={'chip' + (genre === g ? ' active' : '')} onClick={() => set('genre', g)}>{g}</button>)}
         </div>
       )}
-      {!items ? <SkeletonGrid /> : isShows
+      {!items ? (failed ? <LoadError what="This library" onRetry={() => setRetry((n) => n + 1)} /> : <SkeletonGrid />) : isShows
         ? (shows && shows.length > 0
           ? <>
               <div className="grid">{shows.map((s) => <ShowCard key={s.id} show={s} />)}</div>

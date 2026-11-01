@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { api, ApiError, getToken, serverBase, type GameConsole } from '../../api'
+import { fmtDateTime, api, ApiError, getToken, serverBase, type GameConsole } from '../../api'
 import { Spinner } from '../../components/common'
 import LegalNote from '../../components/LegalNote'
 import { toast } from '../../state'
 import { getConsoles } from '../Games'
 import { Row, Section, Switch } from './ui'
 
-// Settings, Gaming: an administrator's own cores and consoles. A core is a program
+// Settings, Consoles & cores: an administrator's own cores and consoles. A core is a program
 // that runs on the server, so the page says so before anything else, asks for the
 // password, shows what the test-load found, and is plain about what nobody has checked.
 // The server enforces all of it (internal/server/api_games_custom.go); this page only
@@ -300,6 +300,7 @@ function AddCoreDialog({ status, replaces, onClose, onDone, onReload }: { status
     <div className="modal-backdrop" onClick={phase === 'working' ? undefined : onClose}>
       <form className="modal custom-modal" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()} onSubmit={test}>
         <h2>{title}</h2>
+        <LegalNote kind="cores" />
         {phase === 'working' ? (
           <div className="custom-working" role="status">
             <Spinner />
@@ -674,8 +675,6 @@ export default function CustomCoresSection({ onChanged }: { onChanged: () => voi
   return (
     <>
       <Section id="custom-cores" title="Custom cores" desc="Your own libretro cores, for consoles or versions this server doesn’t offer. They’re third-party software, and this project hasn’t checked them.">
-        <LegalNote kind="cores" />
-        <LegalNote kind="modules" />
         <Row label="Allow custom cores" desc={<>Off by default on every server. {st.locked ? 'Whoever runs this machine has kept this off, and it can’t be changed from here.' : !st.canEnable ? `This system can’t box a core in properly (${st.sandbox}), so they can’t be used here.` : `A core runs as a program on this server, boxed in by ${st.sandbox}. Off stops them from running; nothing is deleted.`}</>}>
           <Switch checked={st.enabled} disabled={!st.canEnable && !st.enabled} label="Allow custom cores" onChange={(v) => { if (v) setEnabling(true); else turnOff() }} />
         </Row>
@@ -695,7 +694,7 @@ export default function CustomCoresSection({ onChanged }: { onChanged: () => voi
             <ul>
               {st.audit.map((a, i) => (
                 <li key={i}>
-                  <small className="muted">{new Date(a.at * 1000).toLocaleString()}</small>
+                  <small className="muted">{fmtDateTime(a.at * 1000)}</small>
                   <span><b>{auditWords[a.action] || a.action}</b>{a.core ? ` ${a.core}` : ''} <small className="muted">by {a.user}</small>{a.detail && <small className="custom-detail">{a.detail}</small>}</span>
                 </li>
               ))}
@@ -726,7 +725,7 @@ export default function CustomCoresSection({ onChanged }: { onChanged: () => voi
   )
 }
 
-// A console's core, for its card in Settings, Gaming.
+// A console's core, for its card in Settings, Consoles & cores.
 export function ConsoleCoreSelect({ console: c, onChanged }: { console: GameConsole; onChanged: () => void }) {
   const list = c.installed
   if (!list || list.length < 2) return null

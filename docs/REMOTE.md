@@ -451,13 +451,13 @@ Each of these exists for a reason, and each one gives something up. Leave them o
 | 🔴 **Also count as my home network** | *Remote Access → Advanced* | **Anyone from those addresses is treated as family**: they see profile names and can use password-free profiles, with no HTTPS requirement. A wrong range can mean strangers | List only networks you fully control. Most people should leave it empty |
 | 🔴 **Trusted reverse proxies**, listed too widely | *Remote Access → Advanced* | **Those machines can claim any visitor address**, so an attacker can claim to be at home and avoid sign-in limits | Only your proxy's exact address |
 | 🔴 **`-remote-access`, `WMS_REMOTE_ACCESS=1`, `remoteAccess`, or `publicUrl`** | Start-up options and [config file](CONFIG.md) | Remote Access is on, and the switch on the page can't turn it off | Use the switch on the page. See [A rented server](#a-rented-server-vps) |
-| 🔴 **Custom game cores** | *Settings → Gaming* | They're programs from outside this project, running on your server. A sandbox limits them, but limits can have bugs | Leave it off, or only use cores you trust, and never from a stranger's link |
+| 🔴 **Custom game cores** | *Settings → Consoles & cores* | They're programs from outside this project, running on your server. A sandbox limits them, but limits can have bugs | Leave it off, or only use cores you trust, and never from a stranger's link |
 | 🔴 **Modules from someone's fork** | *Settings → Modules* | You're trusting that person with code on your server. The project doesn't check it | Use the project's own modules |
 | 🟠 **Show profiles outside your home** | *Settings* | Strangers can see who lives in your house, and names help password guessing | Leave it off. People can type their name |
 | 🟠 **Do this automatically** (port mapping) | *Remote Access* | You may forget a port is open | [Forward by hand](#forwarding-a-port-on-your-router), or don't |
 | 🟠 **Game PCs: who may connect, PCs on this server's own network, PCs over the internet** | *Settings → Game PCs* | By default, any adult with no limits can make the server connect to a Sunshine PC on your home network or the internet, and it then handles data from a machine it doesn't control | If you've invited people, allow only admins, and turn off what you don't use |
 | 🟠 **Ports other than Sunshine's usual one** | *Settings → Game PCs* | Lets adult accounts make the server knock on other services on your network | Leave it off |
-| 🟠 **UDP port for games** | *Settings → Gaming*, *Settings → Game PCs* | A second port open on the internet | Leave it empty unless games won't connect. See [Games away from home](#games-away-from-home) |
+| 🟠 **UDP port for games** | *Settings → Consoles & cores*, *Settings → Game PCs* | A second port open on the internet | Leave it empty unless games won't connect. See [Games away from home](#games-away-from-home) |
 | 🟡 **Share links** (on by default) | *Settings → Sharing & photos* | **Anyone who has the link can open it, with no account.** Links get forwarded, and end up in chats and browser histories | Share rarely, and remove a link when it's done. Turn the feature off if you don't use it |
 | 🟡 **Allow uploads** (on by default) | *Settings → Sharing & photos* | Someone who gets into an account may be able to fill your disk | Turn it off if you don't use it |
 | 🟡 **Update checks** | *Settings → About*, *Settings → Modules* | **Turning these off is the unsafe choice.** You'd miss fixes | Keep them on. Install updates soon |
@@ -505,7 +505,7 @@ files missing or changed, or sign-ins from an unexpected place. Move quickly, an
    machine is clean. **If you have any real reason to think programs were run on it, the only trustworthy fix is to reinstall the system from scratch**
    and restore your media from a backup you trust.
 5. **On the server,** sign out every device, delete accounts you don't recognize, delete all share links, change every password and turn on two-factor
-   sign-in. Remove anything under custom cores in *Settings → Gaming* and in *Settings → Modules* that you didn't add.
+   sign-in. Remove anything under custom cores in *Settings → Consoles & cores* and in *Settings → Modules* that you didn't add.
 6. **Replace your API keys:** TMDB, TheTVDB, IGDB, RAWG, ScreenScraper, TheGamesDB and any others you added. Revoke the old ones on those services' sites.
 7. **Consider a clean start.** *Settings → Reset* gives you a new install. **Reset doesn't clean the computer**, and if you keep a copy, that copy may
    hold whatever the intruder changed. Don't bring it back without good reason.
@@ -570,7 +570,7 @@ Check a device's address before you sign in on it, and sign out of any device yo
 Games use WebRTC, which needs UDP. Most homes need nothing extra: it often finds its own way, with a STUN server if you've set one.
 
 > [!WARNING]
-> **Avoid forwarding a UDP port if you can.** It's a second door from the internet. If games won't connect without it, set a fixed port under *Settings → Gaming* or
+> **Avoid forwarding a UDP port if you can.** It's a second door from the internet. If games won't connect without it, set a fixed port under *Settings → Consoles & cores* or
 > *Settings → Game PCs*, forward only that port, and close it when you're done.
 
 **A gaming PC at home doesn't need to be on the internet at all**, because the server reaches the PC for you. Keep it that way.

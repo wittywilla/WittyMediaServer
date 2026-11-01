@@ -15,12 +15,19 @@ export const setDeviceTheme = (id: string) => { try { id ? localStorage.setItem(
 
 let wanted = ''
 
+// 'auto' follows the device's light or dark setting, using the two built-in looks.
+export const AUTO_THEME = 'auto'
+const lightDevice = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null
+const resolveTheme = (id: string) => (id === AUTO_THEME ? (lightDevice?.matches ? 'light' : 'default') : id)
+
 // applyTheme loads a theme's CSS after the built-in stylesheet. The new sheet
 // is added next to the current one and replaces it only once it has loaded,
 // so switching never flashes an unstyled page, and a sheet that failed to
 // load is fetched again the next time the theme is picked (instead of the
 // click silently doing nothing because the link already pointed at it).
-export function applyTheme(id: string, version = '') {
+export function applyTheme(wantedId: string, version = '') {
+  if (lightDevice) lightDevice.onchange = wantedId === AUTO_THEME ? () => applyTheme(AUTO_THEME, version) : null
+  const id = resolveTheme(wantedId)
   const href = `${serverBase()}/api/themes/${encodeURIComponent(id || 'default')}/theme.css${version ? '?v=' + version : ''}`
   wanted = href
   document.documentElement.dataset.theme = id || 'default'

@@ -25,3 +25,9 @@
 .ml-hosts { display: grid; gap: 8px; margin: 12px 0 18px; padding: 0; list-style: none; }
 .ml-hosts .rig-status { margin: 0; text-decoration: none; }
 .ml-hosts .rig-dot.on { background: var(--ok, var(--accent)); }
+
+/* Something to know, not something wrong. */
+.rig-note { padding: 10px 12px; margin: 8px 0; border-left: 3px solid var(--accent); background: var(--bg-2); }
+.rig-method + .rig-method, .ml-hosts + .rig-method { margin-top: 12px; }
+.rig-method .rig-form, .rig-method details, .rig-method .rig-found { margin-top: 12px; }
+.rig-note a:not(.btn) { color: var(--accent-text); text-decoration: underline; }

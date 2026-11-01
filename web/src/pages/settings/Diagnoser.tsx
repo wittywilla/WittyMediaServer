@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api } from '../../api'
+import { fmtDateTime, api } from '../../api'
 import DownloadButton from '../../components/DownloadButton'
 import { Spinner } from '../../components/common'
 import { IconDisc, IconDrive, IconFile, IconFolder, IconUp } from '../../icons'
@@ -250,7 +250,7 @@ function JobPanel({ id, onChanged }: { id: string; onChanged: () => void }) {
   }
   if (err && !job) return <Section title="This check"><div className="error" role="alert">{err}</div></Section>
   if (!job) return <div className="dgn-browser-empty"><Spinner /></div>
-  const when = job.finished ? new Date(job.finished).toLocaleString() : ''
+  const when = job.finished ? fmtDateTime(job.finished) : ''
   // Spoken when it changes: the words, never each percent.
   const said = job.state === 'queued' ? `Waiting for another check to finish${job.position ? ` (number ${job.position} in line)` : ''}.`
     : job.state === 'running' ? (stopping ? 'Stopping…' : job.phase || 'Working…')
@@ -320,7 +320,7 @@ function PastReports({ jobs, err, current, onOpen, onRetry }: { jobs: Job[] | nu
                 <span className="dgn-entry-name">{j.subject}</span>
                 <small>
                   {active(j) ? 'Running' : j.state === 'cancelled' ? 'Stopped' : j.worst ? WORDS[j.worst] : 'Finished'}
-                  {j.finished ? ` · ${new Date(j.finished).toLocaleString()}` : ''}
+                  {j.finished ? ` · ${fmtDateTime(j.finished)}` : ''}
                 </small>
               </button>
             </li>

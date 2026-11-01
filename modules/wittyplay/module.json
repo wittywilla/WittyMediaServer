@@ -21,7 +21,7 @@
   ],
   "needs": [
     "FFmpeg, which comes with the server",
-    "Game cores, which you add in Settings, Gaming"
+    "Game cores, which you add in Settings, Consoles & cores"
   ],
   "updates": "Running games: how the game runner uses cores, and its picture, sound and controller input.",
   "stays": "The streaming half (WebRTC and encoding), the console tables, and the player in the app. If WittyRetroArch is installed and chosen, it runs the games instead."

@@ -146,7 +146,7 @@ func (s *Server) customOn(h http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		if !s.customCoresOn(r.Context()) {
-			writeErr(w, 409, "Custom cores are turned off on this server. Turn them on in Settings, Gaming.")
+			writeErr(w, 409, "Custom cores are turned off on this server. Turn them on in Settings, Consoles & cores.")
 			return
 		}
 		h(w, r)
@@ -462,7 +462,7 @@ func (s *Server) checkCustomCore(ctx context.Context, core *cores.Core) error {
 		return nil
 	}
 	s.noticeChange(ctx, c, state)
-	return fmt.Errorf("The core %s has changed since it was approved, so it won't start. An administrator can look at it in Settings, Gaming.", c.Name)
+	return fmt.Errorf("The core %s has changed since it was approved, so it won't start. An administrator can look at it in Settings, Consoles & cores.", c.Name)
 }
 
 // ---- which core plays what ----

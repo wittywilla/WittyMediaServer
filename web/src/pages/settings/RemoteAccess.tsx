@@ -4,6 +4,7 @@ import { api, type Session } from '../../api'
 import { IconCheck, IconClose, IconInfo, IconRefresh, IconShield, IconTrash } from '../../icons'
 import { toast } from '../../state'
 import QrCode from './QrCode'
+import { LoadError } from '../../components/common'
 import { PageHead, Row, Section, Switch } from './ui'
 import './remote.css'
 import LegalNote from '../../components/LegalNote'
@@ -70,7 +71,8 @@ export default function RemoteAccess() {
   const [st, setSt] = useState<Status | null>(null)
   const [busy, setBusy] = useState(false)
   const load = useCallback(() => api.get<Status>('/remote').then(setSt), [])
-  useEffect(() => { load().catch((e) => toast(e.message)) }, [load])
+  const [failed, setFailed] = useState(false)
+  useEffect(() => { load().catch(() => setFailed(true)) }, [load])
   // While the page is open and being looked at, so a test or a certificate
   // shows up by itself.
   const live = !!st?.test && !st.test.hit?.proof || !!st?.https.obtaining
@@ -88,6 +90,7 @@ export default function RemoteAccess() {
       return true
     } catch (e: any) { toast(e.message); return false } finally { setBusy(false) }
   }
+  if (!st && failed) return <LoadError what="Remote Access" onRetry={() => { setFailed(false); load().catch(() => setFailed(true)) }} />
   if (!st) return <PageHead title="Remote Access" desc="Loading…" />
   const s = st.settings
   const on = s.enabled || st.forced
@@ -98,7 +101,6 @@ export default function RemoteAccess() {
   return (
     <>
       <PageHead title="Remote Access" desc="Watch and listen when you are away from home, without opening your server to the whole internet by accident. Everything here is off until you turn it on, and this server doesn't contact anyone to do it unless a step below says so." />
-      <LegalNote kind="remote" className="set-legal" />
       <StatusCard st={st} />
       <Section title="Allow connections from outside your home">
         <Row label="Remote Access" desc={st.forced
@@ -127,6 +129,7 @@ export default function RemoteAccess() {
       <People />
       <Protection st={st} reload={load} />
       <Advanced s={s} save={save} busy={busy} />
+      <LegalNote kind="remote" className="set-legal" />
     </>
   )
 }

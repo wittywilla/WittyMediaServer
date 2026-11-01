@@ -40,6 +40,7 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
     <>
       <div className="toolbar">
         <h1>{lib.name}{artist !== null && <span className="muted"> · {artist || 'Unknown'}</span>}</h1>
+        {tab === 'albums' && albums && <span className="count">{albums.length} {pods ? (albums.length === 1 ? 'podcast' : 'podcasts') : books ? (albums.length === 1 ? 'book' : 'books') : albums.length === 1 ? 'album' : 'albums'}</span>}
         {tabs.length > 1 && <div className="seg" role="tablist">
           {tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => { set('artist', null); set('tab', k) }}>{l}</button>)}
         </div>}
@@ -128,6 +129,15 @@ export function AlbumPage() {
     api.get<Library[]>('/libraries').then((ls) => setLib(ls.find((l) => String(l.id) === libId) || null)).catch(() => {})
     api.get<Item[]>(`/music/tracks?library=${libId}&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}`).then(setTracks).catch(() => setTracks([]))
   }, [libId, artist, album, reloadTracks])
+  // A disc whose image has gone isn't offered as one to insert.
+  const [goneDiscs, setGoneDiscs] = useState<number[]>([])
+  const discKey = [...new Set((tracks || []).map((t) => t.cdDisc).filter(Boolean))].join(',')
+  useEffect(() => {
+    let left = false
+    setGoneDiscs([])
+    if (discKey) discKey.split(',').forEach((d) => api.get(`/cd/${d}`).catch((e) => { if (!left && (e.status === 404 || e.status === 422)) setGoneDiscs((g) => [...g, Number(d)]) }))
+    return () => { left = true }
+  }, [discKey])
   if (!tracks) return <Spinner />
   const mode: AudioMode = lib?.type === 'audiobooks' ? 'audiobooks' : lib?.type === 'podcasts' ? 'podcasts' : 'music'
   const books = mode !== 'music'
@@ -156,7 +166,7 @@ export function AlbumPage() {
           <div className="muted">{tracks.length} {pods ? 'episodes' : books ? 'chapters' : 'tracks'}{pods ? '' : ` · ${fmtRuntime(total)}`}{tracks[0]?.year && !pods ? ` · ${tracks[0].year}` : ''}</div>
           <div className="actions">
             <button className="btn primary" onClick={() => playTrack(books && !pods ? resumeAt : 0)}><IconPlay /> {pods ? 'Play newest' : started ? 'Continue' : 'Play'}</button>
-            {discs.length > 0 && discs.map((d, i) => <Link key={d} className="btn" to={`/cd/${d}?play=1`}><IconDisc /> {discs.length > 1 ? `Disc ${i + 1}` : 'Insert disc'}</Link>)}
+            {discs.filter((d) => !goneDiscs.includes(d)).map((d) => <Link key={d} className="btn" to={`/cd/${d}?play=1`}><IconDisc /> {discs.length > 1 ? `Disc ${discs.indexOf(d) + 1}` : 'Insert disc'}</Link>)}
             {!books && <button className="btn" onClick={() => audio.play([...tracks].sort(() => Math.random() - 0.5), 0, mode)}>Shuffle</button>}
             <button className="btn ghost" onClick={() => audio.enqueue(tracks)}>Add to queue</button>
           </div>

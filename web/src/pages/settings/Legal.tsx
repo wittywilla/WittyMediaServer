@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import legal from '../../../../internal/legal/legal.json'
 import { api } from '../../api'
-import { Brand, BrandMark } from '../../components/common'
+import { Brand, BrandMark, LoadError } from '../../components/common'
 import { useApp } from '../../state'
 import { PageHead, Row, SaveBar, Section, useServerSettings } from './ui'
 import './settings.css'
@@ -118,7 +118,7 @@ function Doc({ signedIn }: { signedIn: boolean }) {
 function OwnerForm() {
   const st = useServerSettings()
   const { s, set } = st
-  if (!s) return null
+  if (!s) return st.failed ? <LoadError what="This page" onRetry={st.retry} /> : null
   return (
     <Section id="owner-form" title="Your notice for people using this server" desc="Only you see this form. What you write appears at the top of this page for everyone, including people who aren’t signed in, so don’t write anything you want kept private. It’s shown as plain text.">
       <Row label="Your notice" desc="For example, house rules, who may use this server, or how to reach you about something on it. Rules that apply to you depend on where you live." stack>

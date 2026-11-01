@@ -53,13 +53,13 @@ export default function BooksLibrary({ lib }: { lib: Library }) {
     <>
       <div className="toolbar">
         <h1>{lib.name}{series !== null && <span className="muted"> · {series || 'No series'}</span>}</h1>
+        {tab === 'books' && items && <span className="count">{items.length} {items.length === 1 ? 'book' : 'books'}</span>}
         <div className="seg" role="tablist">
           {[['books', 'Books'], ['series', 'Series']].map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => set({ tab: k, series: null })}>{l}</button>)}
         </div>
         <div className="grow" />
         <ScanButton lib={lib} />
       </div>
-      <LegalNote kind="reader" className="legal-top" />
       {tab === 'books' && (!items ? <SkeletonGrid /> : items.length === 0 ? <EmptyState icon={<IconBook />} title="No books yet" text="Put EPUB, PDF or CBZ files in this library's folders and scan it." /> : (
         <div className="album-grid">{items.map((it) => <BookCard key={it.id} it={it} />)}</div>
       ))}
@@ -73,6 +73,7 @@ export default function BooksLibrary({ lib }: { lib: Library }) {
           ))}
         </div>
       ))}
+      <LegalNote kind="reader" />
     </>
   )
 }

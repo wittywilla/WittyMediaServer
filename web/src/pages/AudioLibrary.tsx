@@ -90,11 +90,12 @@ function HomeTab({ lib, reload, onReload }: { lib: Library; reload: number; onRe
       if (all.length) audio.play(all, 0, 'music')
     } catch (e) { toast((e as Error).message) }
   }
-  const playAlbum = async (a: Album) => {
+  const playAlbum = async (a: { artist: string; title: string }, at?: number) => {
     try {
       const tracks = await api.get<Item[]>(`/music/tracks?library=${lib.id}&artist=${encodeURIComponent(a.artist)}&album=${encodeURIComponent(a.title)}`)
       if (!tracks.length) return
-      const from = books ? Math.max(0, tracks.findIndex((t) => !t.progress?.watched)) : 0
+      const chosen = at ? tracks.findIndex((t) => t.id === at) : -1
+      const from = chosen >= 0 ? chosen : books ? Math.max(0, tracks.findIndex((t) => !t.progress?.watched)) : 0
       audio.play(tracks, from, mode)
     } catch (e) { toast((e as Error).message) }
   }
@@ -132,7 +133,7 @@ function HomeTab({ lib, reload, onReload }: { lib: Library; reload: number; onRe
                     <small>{t.artist || t.albumArtist}</small>
                     <small>{Math.round(pct)}% listened</small>
                     <span className="mh-resume-bar" aria-hidden="true"><i style={{ width: pct + '%' }} /></span>
-                    <button className="btn sm" onClick={() => audio.play([t], 0, mode)}><IconPlay size={16} /> Resume</button>
+                    <button className="btn sm" onClick={() => void playAlbum({ artist: t.albumArtist || t.artist || '', title: t.album || '' }, t.id)}><IconPlay size={16} /> Resume</button>
                   </span>
                 </div>
               )

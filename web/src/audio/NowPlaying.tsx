@@ -115,7 +115,8 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   // be reached with arrows alone. A press with a mouse puts the focus back on the screen.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (document.querySelector('.wv-dialog-back') || karaoke || e.ctrlKey || e.metaKey || e.altKey) return
+      // Anything open on top has its own keys, Escape first of all.
+      if (document.querySelector('.wv-dialog-back, .np-fix, .mp-pop-body') || karaoke || e.ctrlKey || e.metaKey || e.altKey) return
       const t = e.target as HTMLElement
       const tag = t?.tagName
       const typing = tag === 'TEXTAREA' || tag === 'SELECT' || (tag === 'INPUT' && (t as HTMLInputElement).type !== 'range') || t?.isContentEditable

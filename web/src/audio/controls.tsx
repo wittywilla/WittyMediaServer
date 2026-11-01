@@ -98,7 +98,7 @@ export function PlaylistPicker({ items, onDone }: { items: Item[]; onDone: () =>
   const add = async (id: number, called: string) => {
     setBusy(true)
     try {
-      await api.post(`/collections/${id}/items`, { itemIds: items.map((i) => i.id) })
+      await api.post(`/collections/${id}/items`, { items: items.map((i) => i.id) })
       toast(`Added to ${called}`)
       onDone()
     } catch (e) { toast((e as Error).message) }

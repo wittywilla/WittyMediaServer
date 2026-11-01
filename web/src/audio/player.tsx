@@ -256,12 +256,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       app?.removeAttribute('inert')
       document.documentElement.classList.remove('np-open')
       // Back where the person came from: the bar, which has just returned.
-      requestAnimationFrame(() => {
+      // After the page's own move of focus for the change of address, which going back counts as.
+      setTimeout(() => {
         for (const el of document.querySelectorAll<HTMLElement>('.ab-expand, .audio-bar .phone-only')) {
           el.focus({ preventScroll: true })
           if (document.activeElement === el) break
         }
-      })
+      }, 150)
     }
   }, [full])
   const setCollapsed = (v: boolean) => {

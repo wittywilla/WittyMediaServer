@@ -16,6 +16,7 @@ import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
 import { AskHost } from './ui/Overlay'
+import ActivitySlot from './components/ActivitySlot'
 
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const DesignPage = lazy(() => import('./pages/DesignPage'))
@@ -231,6 +232,7 @@ function TopBar({ onMenu, showMenu, topNav }: { onMenu: () => void; showMenu: bo
         <input aria-label="Search" type="search" placeholder="Search your libraries…" value={q} onChange={(e) => setQ(e.target.value)} />
       </form>
       {!topNav && <div className="spacer" />}
+      <ActivitySlot />
       <ProfileMenu />
     </header>
   )

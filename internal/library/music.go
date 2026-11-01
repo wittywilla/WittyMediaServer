@@ -185,23 +185,25 @@ func (s *Store) MusicTracks(ctx context.Context, q MusicQuery, access *Access) (
 		where = append(where, "(i.title LIKE ? OR i.artist LIKE ? OR i.album LIKE ?)")
 		args = append(args, like, like, like)
 	}
-	order := "i.sort_title COLLATE NOCASE"
+	// Which way applies to what's being sorted by: songs of one album stay in album order.
+	way := ""
+	if q.Desc {
+		way = " DESC"
+	}
+	order := "i.sort_title COLLATE NOCASE" + way
 	switch q.Sort {
 	case "artist":
-		order = "IFNULL(i.artist, '') COLLATE NOCASE, IFNULL(i.album, '') COLLATE NOCASE, IFNULL(i.disc_no, 1), IFNULL(i.track, 9999)"
+		order = "IFNULL(i.artist, '') COLLATE NOCASE" + way + ", IFNULL(i.album, '') COLLATE NOCASE, IFNULL(i.disc_no, 1), IFNULL(i.track, 9999)"
 	case "album":
-		order = "IFNULL(i.album, '') COLLATE NOCASE, IFNULL(i.disc_no, 1), IFNULL(i.track, 9999)"
+		order = "IFNULL(i.album, '') COLLATE NOCASE" + way + ", IFNULL(i.disc_no, 1), IFNULL(i.track, 9999)"
 	case "year":
-		order = "IFNULL(i.year, 0)"
+		order = "IFNULL(i.year, 0)" + way
 	case "added":
-		order = "i.added_at"
+		order = "i.added_at" + way
 	case "runtime":
-		order = "IFNULL(i.runtime_sec, 0)"
+		order = "IFNULL(i.runtime_sec, 0)" + way
 	case "random":
 		order = "RANDOM()"
-	}
-	if q.Desc {
-		order += " DESC"
 	}
 	switch q.View {
 	case "liked":

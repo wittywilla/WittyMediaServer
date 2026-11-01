@@ -5,7 +5,7 @@ import { toast } from '../../../state'
 import { Button, Chip, Chips, EmptyState, Input, LinkButton, Notice, Select, Spinner } from '../../../ui'
 import { PageHead } from '../ui'
 import { ItemCard } from './ItemCard'
-import { FailureDialog, UpdateAllPanel, useStoreView } from './parts'
+import { FailureDialog, FailureNotice, UpdateAllPanel, useStoreView } from './parts'
 import { CATEGORIES, categoryOf, categoryTitle, checkAll, failureOf, matches, platformName, rank, showsRun, type Failure, type StoreItem } from './storeApi'
 
 // The store: find a module by searching or by what it's for, and see at a glance what's installed
@@ -113,10 +113,11 @@ export default function ModuleStore() {
         </div>
       </section>
 
-      {view.checkError && <Notice tone="warn" title="The last check didn’t work">{view.checkError} Everything keeps working as it is.</Notice>}
-      {broken.map((s) => (
-        <Notice key={s.id} tone={s.problem!.kind === 'key-changed' ? 'danger' : 'warn'} title={`${s.name} (${s.host}): ${s.problem!.title}`} action={<LinkButton size="sm" to="/settings/modules/stores">See this store</LinkButton>}>{s.problem!.message}</Notice>
-      ))}
+      {broken.map((s) => s.official
+        ? <FailureNotice key={s.id} failure={s.problem!} name="The list of modules" repairRoute={view.repairRoute} onRetry={check} />
+        : <Notice key={s.id} tone={s.problem!.kind === 'key-changed' ? 'danger' : 'warn'} title={`${s.name} (${s.host}): ${s.problem!.title}`} action={<LinkButton size="sm" to="/settings/modules/stores">See this store</LinkButton>}>{s.problem!.message}</Notice>
+      )}
+      {view.checkError && !broken.some((s) => s.official) && <Notice tone="warn" title="The last check didn’t work">{view.checkError} Everything keeps working as it is.</Notice>}
 
       {(view.updates > 0 || showsRun(view.run)) && <UpdateAllPanel view={view} onChanged={reload} />}
 

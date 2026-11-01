@@ -1127,6 +1127,13 @@ func TestOnlyOurProcessesAreRecognised(t *testing.T) {
 	}
 }
 
+// TestHelperThatWaits is the running program TestLeftoverHelperIsEnded looks for.
+func TestHelperThatWaits(t *testing.T) {
+	if os.Getenv("WMS_TEST_HELPER") == "1" {
+		time.Sleep(30 * time.Second)
+	}
+}
+
 func TestLeftoverHelperIsEnded(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("copies sleep and reads /proc")
@@ -1136,18 +1143,20 @@ func TestLeftoverHelperIsEnded(t *testing.T) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	sleep, err := exec.LookPath("sleep")
+	// A copy of this test program, as a copy of sleep doesn't run where it's a multi-call tool.
+	self, err := os.Executable()
 	if err != nil {
-		t.Skip("no sleep")
+		t.Fatal(err)
 	}
 	exe := filepath.Join(dir, "helper")
-	if err := copyFile(sleep, exe); err != nil {
+	if err := copyFile(self, exe); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Chmod(exe, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(exe, "30")
+	cmd := exec.Command(exe, "-test.run=^TestHelperThatWaits$")
+	cmd.Env = append(os.Environ(), "WMS_TEST_HELPER=1")
 	if err := cmd.Start(); err != nil {
 		t.Skip("can't run a copy here: ", err)
 	}

@@ -96,6 +96,7 @@ html.ten-foot .ctv-page .ctv-btn.icon, html.using-controller .ctv-page .ctv-btn.
   .ctv-bar .ctv-chips > * { flex: none; }
   .ctv-bar-time { flex: none; flex-wrap: nowrap; }
 }
+.ctv-bar .ctv-chips::-webkit-scrollbar, .ctv-hero-actions::-webkit-scrollbar, .ctv-bar::-webkit-scrollbar { display: none; }
 .ctv-bar-title { margin: 0 4px 0 2px; font-size: var(--text-lg); font-weight: 700; color: var(--ctv-accent); }
 .ctv-chips { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
 .ctv-chip { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 4px 12px; border: 1px solid transparent; border-radius: var(--ctv-r); background: transparent; color: var(--ctv-text); font: inherit; font-size: var(--text-md); font-weight: 700; cursor: pointer; white-space: nowrap; }
@@ -229,7 +230,9 @@ html.ten-foot .ctv-page .ctv-btn.icon, html.using-controller .ctv-page .ctv-btn.
   .ctv-hero-title { font-size: var(--text-4xl); }
   .ctv-hero-num { font-size: var(--text-3xl); }
   .ctv-hero-chtext { font-size: var(--text-xl); }
-  .ctv-hero-chtext span, .ctv-hero-meta, .ctv-hero-when, .ctv-hero-next, .ctv-info-desc, .ctv-help { font-size: var(--text-xl); }
+  .ctv-hero-chtext span, .ctv-hero-meta, .ctv-hero-when, .ctv-hero-next, .ctv-info-desc { font-size: var(--text-xl); }
+  .ctv-help { font-size: var(--text-md); flex-wrap: nowrap; }
+  .ctv-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .ctv-clock b { font-size: var(--text-4xl); }
   .ctv-time, .ctv-corner { font-size: var(--text-xl); padding: 8px 10px; }
   .ctv-cell b { font-size: var(--text-xl); }

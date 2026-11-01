@@ -643,7 +643,8 @@ func (s *Scanner) SearchMatches(ctx context.Context, t *Title, query string, yea
 		}
 		return res, nil
 	}
-	if query == "" {
+	auto := query == ""
+	if auto {
 		query = wantName
 	} else {
 		// Someone typing a name knows what they want, so what they typed is what's compared.
@@ -659,6 +660,38 @@ func (s *Scanner) SearchMatches(ctx context.Context, t *Title, query string, yea
 		return res, nil
 	}
 	sources := s.matchSources(t, libType)
+	for _, src := range sources {
+		res.Sources = append(res.Sources, src.Label())
+	}
+	tries := []string{query}
+	if auto {
+		tries = searchTries(query)
+	}
+	for _, q := range tries {
+		s.askSources(ctx, sources, q, wantName, wantYear, libType, res)
+		if len(res.Results) > 0 {
+			break
+		}
+	}
+	sort.SliceStable(res.Results, func(i, j int) bool { return res.Results[i].Score > res.Results[j].Score })
+	return res, nil
+}
+
+// searchTries is what to look for when no person typed it: the name, then, if that finds
+// nothing, the name without its first words. File names often start with something extra,
+// as in "Dr Story The Treeline" for "The Treeline".
+func searchTries(name string) []string {
+	out := []string{name}
+	words := strings.Fields(name)
+	for n := 1; n <= 2 && len(words)-n >= 2; n++ {
+		out = append(out, strings.Join(words[n:], " "))
+	}
+	return out
+}
+
+// askSources asks every source at the same time, each with its own time limit, so one
+// being slow only costs its own answers.
+func (s *Scanner) askSources(ctx context.Context, sources []MatchSource, query, wantName string, wantYear *int, libType string, res *SearchResult) {
 	type answer struct {
 		src  MatchSource
 		list []MatchCandidate
@@ -667,7 +700,6 @@ func (s *Scanner) SearchMatches(ctx context.Context, t *Title, query string, yea
 	answers := make([]answer, len(sources))
 	var wg sync.WaitGroup
 	for i, src := range sources {
-		res.Sources = append(res.Sources, src.Label())
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -684,9 +716,16 @@ func (s *Scanner) SearchMatches(ctx context.Context, t *Title, query string, yea
 	}
 	wg.Wait()
 	seen := map[string]bool{}
+	warned := map[string]bool{}
+	for _, w := range res.Warnings {
+		warned[w] = true
+	}
 	for _, a := range answers {
 		if a.err != nil && !errors.Is(a.err, ErrNotFound) {
-			res.Warnings = append(res.Warnings, a.src.Label()+" couldn't answer just now.")
+			if w := a.src.Label() + " couldn't answer just now."; !warned[w] {
+				warned[w] = true
+				res.Warnings = append(res.Warnings, w)
+			}
 			continue
 		}
 		for _, c := range a.list {
@@ -703,8 +742,6 @@ func (s *Scanner) SearchMatches(ctx context.Context, t *Title, query string, yea
 			res.Results = append(res.Results, c)
 		}
 	}
-	sort.SliceStable(res.Results, func(i, j int) bool { return res.Results[i].Score > res.Results[j].Score })
-	return res, nil
 }
 
 // resolveRef finds what an id or address means.

@@ -138,6 +138,7 @@ of a poster and of a wide episode card; they change with the screen.
 | Loading | `SkeletonGrid` for grids; `Spinner` for the rest | Both wait 0.2s, so fast loads show nothing |
 | Message | `.error`, `.warn-box`; `toast()` | |
 | Back | `BackLink` | |
+| Which button does what | `PromptBar` from `@wittywilla/wittyplay/web/prompts` | Follows the controller, keyboard or remote in use; a mouse or finger sees none |
 | Icons | `web/src/icons.tsx` | 24 grid, filled, `currentColor`. Never a text character as an icon |
 
 Class names are part of the theme contract (see the selector reference in

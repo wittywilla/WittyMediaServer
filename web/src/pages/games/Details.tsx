@@ -241,8 +241,8 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
         <section className="gm-panel" aria-labelledby="gm-play-h">
           <h2 id="gm-play-h">How it plays</h2>
           <ul className="gm-checks">
-            <li className="ok"><IconCheck size={16} /><span><b>Runs on your server</b><small>and streams to this device, so this device needs no emulator and nothing downloads. Saves stay on the server, and follow you to every device.</small></span></li>
-            {check?.core && <li className="ok"><IconCheck size={16} /><span><b>{check.core.name}</b><small>The core that plays this game. Licence: {check.core.license || 'not known'}.</small></span></li>}
+            <li className="ok"><IconCheck size={16} /><span><b>Runs on your server</b><small>and streams to this device, so this device needs no emulator and nothing downloads. Saves stay on the server, and follow you to every device. Playing on the device itself, without the server, isn’t available yet.</small></span></li>
+            {check?.core && <li className="ok"><IconCheck size={16} /><span><b>{check.core.name}</b><small>The core that plays this game. License: {check.core.license || 'not known'}.</small></span></li>}
             {check?.reason === 'core' && <li className="no"><IconInfo size={16} /><span><b>No core installed</b><small>{user?.isAdmin ? <>Install one in <Link to="/settings/gaming">Consoles &amp; cores</Link>.</> : 'Ask whoever runs this server.'}</small></span></li>}
             {check?.needsGpu && <li className="info"><IconInfo size={16} /><span><b>Uses the server’s graphics card</b><small>This console is drawn with one, so it needs a server that has one.</small></span></li>}
             {(check?.bios || []).filter((b) => b.required || b.found).map((b) => (

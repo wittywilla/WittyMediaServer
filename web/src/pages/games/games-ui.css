@@ -21,6 +21,8 @@
 @media (max-width: 600px) {
   .gm-search-box.at-top { display: none; }
   .gm-search-box.at-list { display: flex; flex: none; }
+  .gm-toolbar .count { display: none; } /* the list below says it too */
+  .gm-toolbar { gap: var(--sp-2); }
   /* Icons alone beside the title; their words stay for screen readers. */
   .gm-toolbar .btn:not(.sm) { width: var(--control-h); padding: 0; gap: 0; font-size: 0; justify-content: center; }
 }
@@ -104,7 +106,8 @@ html.ten-foot .gm-page { --gm-cell: 210px; --gm-jump-gap: 140px; }
 .gm-console.big { width: auto; min-height: 9rem; }
 .gm-console-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: var(--sp-4); }
 .gm-mark { display: inline-flex; align-items: center; justify-content: center; min-height: 2.5rem; font-weight: 700; }
-.gm-mark img { display: block; max-width: 100%; height: 2.5rem; object-fit: contain; }
+.gm-mark img { display: block; max-width: min(100%, 8rem); height: 2.5rem; object-fit: contain; }
+.gm-mark.plate img { padding: var(--sp-1); border-radius: var(--r-sm); background: var(--on-image); }
 .gm-mark.text { font-size: var(--text-xl); letter-spacing: var(--tracking-display); }
 .gm-mark.heading { min-height: 0; gap: var(--sp-3); font-weight: inherit; }
 .gm-mark.heading img { height: 2rem; }
@@ -274,7 +277,8 @@ html.gm-couch, html.gm-couch body { background: var(--bg); }
 
 /* A finger's worth on a phone, for what's small on a big screen. */
 @media (max-width: 520px) {
-  .gm-page .btn.sm { min-height: 44px; }
+  .gm-page .btn.sm, .gm-page .chip { min-height: 44px; }
+  .gm-page .hub-head a { display: inline-flex; align-items: center; min-height: 44px; }
   .gm-page summary { padding-block: var(--sp-3); }
   .gm-game-info .crumbs a, .gm-facts dd a { display: inline-block; padding-block: var(--sp-3); }
   .gm-facts dd { margin-top: 0; }

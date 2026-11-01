@@ -11,7 +11,7 @@ import { GameMetaNotice } from '../GameMeta'
 import { CoverFlow } from './CoverFlow'
 import { cachedHome, cardCover, consoleMap, fmtAgo, fmtPlayed, forgetHome, getHome, heroCover, saveThumb, setCouchOn, useCoverTint, useGameLinks, type GameContinue, type GameHome } from './data'
 import { VirtualGames, type VirtualHandle } from './VirtualGames'
-import { ConsoleMark } from './ConsoleMark'
+import { ConsoleMark, useConsoleLogos } from './ConsoleMark'
 import './games-ui.css'
 
 // The games home: covers at the top, what's being played, the consoles, shelves, then every
@@ -272,6 +272,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
   const byId = useMemo(() => consoleMap(consoles), [consoles])
   const present = useMemo(() => consoles.filter((c) => (c.count || 0) > 0).sort((a, b) => (b.count || 0) - (a.count || 0)), [consoles])
   const everything = present.reduce((n, c) => n + (c.count || 0), 0)
+  const logosShown = useConsoleLogos(isHome ? present : [])
   const current = consoleId ? byId.get(consoleId) : undefined
   const resumable = useMemo(() => new Set((home?.continue || []).filter((e) => e.save).map((e) => e.item.id)), [home])
   const left = Object.entries(skipped).sort((a, b) => b[1] - a[1])
@@ -429,6 +430,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
         <section className="hub gm-section" data-gm-section aria-label="Consoles">
           <div className="hub-head"><h2>Consoles</h2><a href="#gm-all" onClick={(e) => { e.preventDefault(); document.getElementById('gm-all')?.scrollIntoView(); document.querySelector<HTMLElement>('#gm-all .chip')?.focus({ preventScroll: true }) }}>All {everything.toLocaleString()} games</a></div>
           <CardRow>{present.map((c) => <ConsoleTile key={c.id} c={c} lib={lib.id} />)}</CardRow>
+          {logosShown && <LegalNote kind="logos" />}
         </section>
       )}
       {isHome && home && (

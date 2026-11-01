@@ -8,7 +8,7 @@ import { IconBack, IconGamepad, IconHome, IconLibrary, IconSearch, IconSettings 
 import { useApp } from '../../state'
 import { Dialog } from '../../ui'
 import { GameSettingsPage } from '../Games'
-import { ConsoleMark } from './ConsoleMark'
+import { ConsoleMark, useConsoleLogos } from './ConsoleMark'
 import { consoleMap, GameLinksContext, setCouchOn, type GameLinks } from './data'
 import GameDetails from './Details'
 import GamesLibrary, { GameCard } from './Library'
@@ -74,6 +74,7 @@ function CouchConsoles() {
   useEffect(() => {
     Promise.all(libs.map((l) => api.get<GameConsole[]>(`/games/consoles?library=${l.id}`).then((c) => ({ lib: l.id, name: l.name, consoles: c.filter((x) => (x.count || 0) > 0).sort((a, b) => (b.count || 0) - (a.count || 0)) })))).then(setLists).catch(() => setLists([]))
   }, [libs])
+  const logosShown = useConsoleLogos((lists || []).flatMap((l) => l.consoles))
   if (!lists) return <Spinner />
   return (
     <div className="gm-page">
@@ -91,6 +92,7 @@ function CouchConsoles() {
           </div>
         </section>
       ))}
+      {logosShown && <LegalNote kind="logos" />}
     </div>
   )
 }

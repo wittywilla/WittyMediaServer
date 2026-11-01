@@ -332,6 +332,26 @@ jobs:
             dist/*SHA256SUMS.txt
             dist/*SHA256SUMS.txt.sig
           prerelease: ${{ contains(github.ref_name, '-') }}
+          # Goes above the generated notes. What's been run has to say what README.md's "Where it has
+          # been run" says.
+          body: |
+            ## Which file to download
+
+            **These files are the server,** for the computer that holds your media. Most people want the installer for their system:
+
+            | System | File |
+            |---|---|
+            | Windows | `.msi` |
+            | macOS | `.pkg` |
+            | Debian, Ubuntu and relatives | `.deb` |
+            | Fedora, RHEL and relatives | `.rpm` |
+            | FreeBSD | `.pkg` |
+
+            `amd64` is most computers, and `arm64` is Apple silicon and many small boards. The [install guide](https://github.com/wittywilla/WittyMediaServer/blob/${{ github.ref_name }}/docs/INSTALL.md) covers the rest, and Docker.
+
+            **For phones, TVs and other computers, you don't need anything here.** Open the server's address in a web browser, or use the app, **[WittyMediaClient](https://github.com/wittywilla/WittyMediaClient/releases)**, which has its own releases.
+
+            WittyMediaClient adds Android, Android TV, iOS, tvOS and Plasma Big Screen. Android has been run on emulators only, and iOS and tvOS have never been built. A web browser is the way to reach everything today. See [Apps and devices](https://github.com/wittywilla/WittyMediaServer/blob/${{ github.ref_name }}/docs/APPS.md).
           generate_release_notes: true
 
   # Only for a tag, and only once its release is out.

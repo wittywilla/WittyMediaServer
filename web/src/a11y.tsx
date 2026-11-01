@@ -133,6 +133,7 @@ export function Announcer() {
   useEffect(() => {
     // Across the room, somewhere to start from. The page may still be loading, so look a few times.
     const arrived = performance.now()
+    settled.current = ''
     const land = (ms: number) => setTimeout(() => { if (settled.current !== loc.key && landOnPage(arrived, ms >= 1500)) settled.current = loc.key }, ms)
     if (first.current) {
       first.current = false

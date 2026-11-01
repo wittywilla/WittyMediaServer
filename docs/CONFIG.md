@@ -68,8 +68,10 @@ Every setting is optional. Leave out what you don't need.
 | `logDir` | log files (can also be changed in *Settings → WittyLog*) | `<dataDir>/logs` |
 | `logLevel` | `error`, `warn`, `info` or `debug` | `info` |
 | `ffmpeg`, `ffprobe` | use these FFmpeg programs instead of the bundled ones | bundled, then `PATH` |
+| `javaPath` | the Java folder, or the java program in it, for Blu-ray menus. Also `-java`, `WMS_JAVA`. Not a setting on the web page, on purpose | found by itself |
 | `maxTranscodes` | how many videos may be transcoded at once; lower it on small machines. When all are in use, a stream nobody has asked anything of for 20 seconds gives way, otherwise the next viewer waits | `4` |
 | `publicUrl` | the address people use from outside your home, e.g. `https://media.example.com`. Setting it also turns remote access on | — |
+| `allowNetworkPaths` | let settings changed from another device name a network share, such as `\\nas\media`, or a device path. Reaching a share signs in there with the server's own account, on Windows the machine's. Without it, choose a share on the server's own desktop, or use a mapped drive or a mount. Libraries already on a share go on working. Also `-allow-network-paths`, `WMS_ALLOW_NETWORK_PATHS=1` | `false` |
 | `setupFromHome` | let anyone on the home network make the first account without the setup code. Off, only the server's own desktop goes without it ([INSTALL.md](INSTALL.md)). Also `-setup-from-home`, `WMS_SETUP_FROM_HOME=1` | `false` |
 | `remoteAccess` | allow connections from outside your home without using *Settings → Remote Access*, for servers nobody can reach from a home network first ([REMOTE.md](REMOTE.md)) | `false` |
 | `trustedProxies` | reverse proxies whose `X-Forwarded-For` is believed: addresses or networks, separated by commas; added to those in Settings | — |

@@ -21,6 +21,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 	"github.com/wittywilla/wittytuner"
 	"github.com/wittywilla/wittytuner/mpegts"
 )
@@ -340,7 +341,7 @@ func (g *hlsGate) rewrite(base *url.URL, b []byte) (out []byte, why string, err 
 		case l == "":
 			continue
 		case strings.HasPrefix(l, "#EXT-X-KEY:"), strings.HasPrefix(l, "#EXT-X-SESSION-KEY:"):
-			if why := keyProtection(l); why != "" {
+			if why := library.HLSKeyProtection(l); why != "" {
 				return nil, why, nil
 			}
 			if strings.HasPrefix(l, "#EXT-X-KEY:") {
@@ -423,18 +424,18 @@ func (g *hlsGate) rename(name, ext string) string {
 
 // rewriteAttrs builds a tag again with its URI at the gate.
 func (g *hlsGate) rewriteAttrs(base *url.URL, l, tag string, kind gateKind, ext string) (string, error) {
-	attrs := parseHLSAttrs(strings.TrimPrefix(l, tag))
+	attrs := library.ParseHLSAttrs(strings.TrimPrefix(l, tag))
 	var b strings.Builder
 	b.WriteString(tag)
 	for i, a := range attrs {
 		if i > 0 {
 			b.WriteByte(',')
 		}
-		if a.key != "URI" {
-			b.WriteString(a.raw)
+		if a.Key != "URI" {
+			b.WriteString(a.Raw)
 			continue
 		}
-		addr, err := gateResolve(base, a.value)
+		addr, err := gateResolve(base, a.Value)
 		if err != nil {
 			return "", err
 		}
@@ -458,91 +459,6 @@ func gateResolve(base *url.URL, ref string) (string, error) {
 	}
 	u.Fragment = ""
 	return u.String(), nil
-}
-
-// keyProtection says why a key line means the stream can't be played, or "". Only METHOD=NONE, said
-// plainly and nothing else, means no key.
-func keyProtection(l string) string {
-	_, rest, _ := strings.Cut(l, ":")
-	attrs := parseHLSAttrs(rest)
-	none, drm := false, false
-	for _, a := range attrs {
-		v := strings.ToUpper(a.value)
-		switch a.key {
-		case "METHOD":
-			if v != "NONE" {
-				if v == "SAMPLE-AES" || v == "SAMPLE-AES-CTR" || v == "SAMPLE-AES-CENC" {
-					drm = true
-				}
-				return encryptedOr(drm, attrs)
-			}
-			none = true
-		}
-	}
-	if none {
-		return ""
-	}
-	return encryptedOr(drm, attrs)
-}
-
-func encryptedOr(drm bool, attrs []hlsAttr) string {
-	for _, a := range attrs {
-		if a.key == "KEYFORMAT" {
-			drm = true
-		}
-	}
-	if drm {
-		return "its HLS playlist uses DRM"
-	}
-	return "its HLS playlist is encrypted"
-}
-
-type hlsAttr struct {
-	key   string // in capitals
-	value string // without its quotes
-	raw   string // as written
-}
-
-// parseHLSAttrs reads KEY=value,KEY="value, with commas". A value can hold words that look like
-// another attribute, such as IV="METHOD=NONE", so looking for those words in the line isn't enough.
-func parseHLSAttrs(s string) []hlsAttr {
-	var out []hlsAttr
-	for len(s) > 0 {
-		s = strings.TrimLeft(s, " \t,")
-		if s == "" {
-			break
-		}
-		i := 0
-		for i < len(s) && s[i] != '=' && s[i] != ',' {
-			i++
-		}
-		key := strings.ToUpper(strings.TrimSpace(s[:i]))
-		if i == len(s) || s[i] == ',' {
-			out = append(out, hlsAttr{key: key, raw: s[:i]})
-			s = s[i:]
-			continue
-		}
-		j := i + 1
-		var value string
-		if j < len(s) && s[j] == '"' {
-			end := strings.IndexByte(s[j+1:], '"')
-			if end < 0 {
-				value, j = s[j+1:], len(s)
-			} else {
-				value = s[j+1 : j+1+end]
-				j += end + 2
-			}
-		} else {
-			start := j
-			for j < len(s) && s[j] != ',' {
-				j++
-			}
-			value = s[start:j]
-		}
-		out = append(out, hlsAttr{key: key, value: value, raw: s[:j]})
-		s = s[j:]
-	}
-	return out
 }
 
 func looksLikeHLS(b []byte) bool {
@@ -631,8 +547,10 @@ func gateClient(home bool) *http.Client {
 	}
 }
 
-// mayLeadHome: the owner named this tuner's address, or its playlist is on the home network, as
-// the tuner driver itself decides. A playlist from the internet stays on the internet.
+// mayLeadHome: the owner named this tuner's address, or its playlist is a file or on the home
+// network, going by the address the owner typed: one a home network or VPN uses, or a name only a
+// local network can resolve. Asking DNS instead would let a public name point home when it suits it.
+// A playlist from the internet stays on the internet.
 func mayLeadHome(t *Tuner) bool {
 	if t.Driver != "iptv" {
 		return true
@@ -645,7 +563,5 @@ func mayLeadHome(t *Tuner) bool {
 	if err != nil {
 		return false
 	}
-	h := u.Hostname()
-	ip := net.ParseIP(h)
-	return strings.EqualFold(h, "localhost") || (ip != nil && (ip.IsLoopback() || ip.IsPrivate()))
+	return remote.LocalAddress(u.Hostname())
 }

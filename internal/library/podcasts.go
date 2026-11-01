@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 	"unicode/utf8"
@@ -69,11 +70,74 @@ var safeDialer = &net.Dialer{Timeout: 15 * time.Second, Control: func(_, address
 	if err != nil {
 		return err
 	}
-	if !internetAddr(net.ParseIP(host)) {
+	if !internetAddr(net.ParseIP(host)) || onThisNetwork(net.ParseIP(host)) {
 		return fmt.Errorf("refusing to connect to %s (not on the internet)", host)
 	}
 	return nil
 }}
+
+// machineNets are this machine's own networks. Its addresses can be global ones, on IPv6 at home or
+// on a rented server, and a host on the internet learns them from the connection: it could then send
+// the server to the router beside it, or to itself. Looked up at most once a minute.
+var machineNets = func() []netip.Prefix {
+	if c := machineCache.Load(); c != nil && time.Since(c.at) < time.Minute {
+		return c.nets
+	}
+	addrs, _ := net.InterfaceAddrs() // none means nothing extra is refused, and the fixed list still holds
+	c := &machineNetCache{at: time.Now(), nets: netsOfCards(addrs)}
+	machineCache.Store(c)
+	return c.nets
+}
+
+type machineNetCache struct {
+	at   time.Time
+	nets []netip.Prefix
+}
+
+var machineCache atomic.Pointer[machineNetCache]
+
+// netsOfCards: each card's network, or only its own address when the network is wider than a
+// neighbourhood. Those already refused by the fixed list need no place here.
+func netsOfCards(addrs []net.Addr) []netip.Prefix {
+	var out []netip.Prefix
+	for _, a := range addrs {
+		n, ok := a.(*net.IPNet)
+		if !ok {
+			continue
+		}
+		ip, ok := netip.AddrFromSlice(n.IP)
+		if !ok || !internetAddr(n.IP) {
+			continue
+		}
+		ip = ip.Unmap()
+		bits, _ := n.Mask.Size()
+		narrowest := 24
+		if ip.Is6() {
+			narrowest = 48
+		}
+		if bits < narrowest {
+			bits = ip.BitLen()
+		}
+		if p, err := ip.Prefix(bits); err == nil {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func onThisNetwork(ip net.IP) bool {
+	a, ok := netip.AddrFromSlice(ip)
+	if !ok {
+		return false
+	}
+	a = a.Unmap()
+	for _, p := range machineNets() {
+		if p.Contains(a) {
+			return true
+		}
+	}
+	return false
+}
 
 // notInternet are the address ranges that are not the public internet. Some
 // lead back to private networks: NAT64 and 6to4 addresses embed an IPv4 one.
@@ -82,7 +146,7 @@ var notInternet = func() []netip.Prefix {
 	for _, c := range []string{
 		"0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16", "172.16.0.0/12", "192.0.0.0/24", "192.0.2.0/24", "192.88.99.0/24",
 		"192.168.0.0/16", "198.18.0.0/15", "198.51.100.0/24", "203.0.113.0/24", "224.0.0.0/4", "240.0.0.0/4",
-		"::/128", "::1/128", "100::/64", "2001::/32", "2001:db8::/32", "64:ff9b:1::/48", "fc00::/7", "fe80::/10", "fec0::/10", "ff00::/8",
+		"::/96", "::ffff:0:0:0/96", "100::/64", "2001::/32", "2001:db8::/32", "64:ff9b:1::/48", "fc00::/7", "fe80::/10", "fec0::/10", "ff00::/8",
 	} {
 		out = append(out, netip.MustParsePrefix(c))
 	}

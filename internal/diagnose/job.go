@@ -95,6 +95,8 @@ type Env struct {
 	Busy func() bool
 	// Setting reads a server setting. nil means every setting has its default.
 	Setting func(key, def string) string
+	// JavaPath is the Java the config file names, if any.
+	JavaPath string
 	// ItemPaths lists the files the database knows in a library, at most limit.
 	ItemPaths func(ctx context.Context, library int64, limit int) ([]string, error)
 }

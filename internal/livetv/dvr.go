@@ -16,6 +16,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittytuner"
 )
@@ -369,7 +370,7 @@ func (m *Manager) record(r *Recording) {
 	}
 	opened, err := m.openForRecording(ctx, r.ChannelID)
 	if err != nil {
-		m.finish(r.ID, "failed", err.Error(), "")
+		m.finish(r.ID, "failed", PublicError(err), "")
 		return
 	}
 	done := ""
@@ -381,7 +382,7 @@ func (m *Manager) record(r *Recording) {
 	defer opened.Release() // first: whoever is told may use the tuner
 	path, err := m.recordPath(r)
 	if err != nil {
-		m.finish(r.ID, "failed", err.Error(), "")
+		m.finish(r.ID, "failed", PublicError(err), "")
 		return
 	}
 	_, _ = m.DB.Exec(`UPDATE recordings SET path = ? WHERE id = ?`, path, r.ID)
@@ -405,7 +406,7 @@ func (m *Manager) record(r *Recording) {
 	}
 	// The deadline ending a recording is normal; so is a viewer cancelling it.
 	if err != nil && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) && ctx.Err() == nil {
-		m.finish(r.ID, "failed", err.Error(), path)
+		m.finish(r.ID, "failed", PublicError(err), path)
 		return
 	}
 	m.finish(r.ID, "done", "", path)
@@ -498,6 +499,10 @@ func safeFileName(s string) string {
 	}
 	if len(s) > 120 {
 		s = clip(s, 120)
+	}
+	// A programme called CON would be a console on Windows, not a folder.
+	if library.ReservedName(s) {
+		s = "Recording " + s
 	}
 	return s
 }

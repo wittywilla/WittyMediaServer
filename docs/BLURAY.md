@@ -92,7 +92,9 @@ Many commercial Blu-rays write their menus in Java. To show them:
    Temurin](https://adoptium.net) is a free build of OpenJDK. On Linux avoid "headless" packages
    only if they lack `java.desktop`, and install `fontconfig`. In Docker, add both to the image.
 2. In **Settings → Playback & discs**, turn on **Run Blu-ray Java menus**. The page shows which Java it
-   found; set **Java location** if it found none.
+   found. If it found none, name it in the server's [config file](CONFIG.md) as `javaPath`, or with
+   `WMS_JAVA`, and start the server again. It can't be set from the web page, so that a web account
+   can't choose what the server runs, and a location saved in Settings by an earlier version is ignored.
 3. Insert the disc.
 
 Each viewer's disc starts its own small Java process (192 MB at most), which ends with the session.

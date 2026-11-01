@@ -795,7 +795,10 @@ func (s *Scanner) IndexUploaded(ctx context.Context, lib *Library, path string) 
 	return s.Store.itemByPath(ctx, lib.ID, path)
 }
 
-var reservedNameRe = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$`)
+var reservedNameRe = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\..*)?$`)
+
+// ReservedName says Windows gives this name to a device, whatever folder it is in.
+func ReservedName(name string) bool { return reservedNameRe.MatchString(name) }
 
 // SafeFileName makes a name that came from a client safe to create on any file
 // system: no folders, control characters or characters some systems forbid, no

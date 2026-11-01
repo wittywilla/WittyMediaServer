@@ -334,9 +334,26 @@ func (f *fileCert) newest() (time.Time, error) {
 	return a.ModTime(), nil
 }
 
+// maxCertFile is more than any certificate chain or key. Named as one, /dev/zero would never end.
+const maxCertFile = 1 << 20
+
+func plainSmallFile(p string) error {
+	st, err := os.Stat(p)
+	if err != nil {
+		return err
+	}
+	if !st.Mode().IsRegular() || st.Size() > maxCertFile {
+		return errors.New("that isn't a certificate or key file")
+	}
+	return nil
+}
+
 func (f *fileCert) load() error {
 	stamp, err := f.newest()
 	if err != nil {
+		return err
+	}
+	if err := errors.Join(plainSmallFile(f.certPath), plainSmallFile(f.keyPath)); err != nil {
 		return err
 	}
 	c, err := tls.LoadX509KeyPair(f.certPath, f.keyPath)

@@ -519,9 +519,9 @@ func FuzzGateRewrite(f *testing.F) {
 			tag, rest, _ := strings.Cut(l, ":")
 			switch tag {
 			case "#EXT-X-MAP", "#EXT-X-MEDIA":
-				for _, a := range parseHLSAttrs(rest) {
-					if a.key == "URI" && !strings.HasPrefix(a.value, prefix) {
-						t.Fatalf("uri %q in %q", a.value, l)
+				for _, a := range library.ParseHLSAttrs(rest) {
+					if a.Key == "URI" && !strings.HasPrefix(a.Value, prefix) {
+						t.Fatalf("uri %q in %q", a.Value, l)
 					}
 				}
 			case "#EXT-X-KEY", "#EXT-X-STREAM-INF":
@@ -532,4 +532,18 @@ func FuzzGateRewrite(f *testing.F) {
 			}
 		}
 	})
+}
+
+// The guide names recordings, and a guide's titles are anyone's.
+func TestRecordingNamesAreNeverDevices(t *testing.T) {
+	for _, title := range []string{"CON", "con", "PRN", "AUX", "NUL", "COM1", "LPT9", "com¹", "CON.news", "nul.ts", " CON ", "aux..."} {
+		if got := safeFileName(title); library.ReservedName(got) {
+			t.Errorf("%q gave %q", title, got)
+		}
+	}
+	for title, want := range map[string]string{"Conan": "Conan", "The News": "The News", "../../etc": "etc", "": "Recording"} {
+		if got := safeFileName(title); got != want {
+			t.Errorf("%q gave %q, wanted %q", title, got, want)
+		}
+	}
 }

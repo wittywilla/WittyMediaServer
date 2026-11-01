@@ -173,8 +173,10 @@ func cmdServe(args []string) int {
 	dvdMgr := dvdsession.NewManager(hlsMgr, tools, cfg.CacheDir, "/api", log)
 	bdMgr := bdsession.NewManager(hlsMgr, tools, cfg.CacheDir, "/api", log)
 	bdMgr.BDJ = func() (bool, string) {
-		ctx := context.Background()
-		return database.GetSetting(ctx, "bdjEnabled", "0") == "1", database.GetSetting(ctx, "javaPath", "")
+		return database.GetSetting(context.Background(), "bdjEnabled", "0") == "1", cfg.JavaPath
+	}
+	if old := database.GetSetting(context.Background(), "javaPath", ""); old != "" && cfg.JavaPath == "" {
+		log.Warn("The Java location saved in Settings is no longer used: a web account can't choose what the server runs. If Java isn't found by itself, name it in the config file (javaPath) or with WMS_JAVA.", "cat", "discs")
 	}
 
 	themeMgr := &themes.Manager{Dir: filepath.Join(cfg.DataDir, "themes")}

@@ -224,8 +224,16 @@ function ButtonsTab({ host, data, known, input, consoleName, gameId, gameTitle, 
   }, [host, refresh, say])
   useEffect(() => () => { clearTimeout(timer.current); flushSave() }, [flushSave])
 
+  // A press can land while the first change is still making the profile. It waits, and
+  // changes that profile, rather than making another.
+  const creating = useRef<Promise<Profile | null> | null>(null)
   const change = useCallback(async (edit: (p: Profile) => Profile) => {
     let cur = profile
+    if (!cur && creating.current) {
+      cur = await creating.current
+      if (!cur) return
+      if (pending.current?.id === cur.id) cur = pending.current
+    }
     if (!cur) {
       // The first change to a default makes a profile out of it, so that a person gets
       // what they asked for with nothing else to do first.
@@ -234,12 +242,14 @@ function ButtonsTab({ host, data, known, input, consoleName, gameId, gameTitle, 
         name: name.slice(0, 60), kind: isKeys ? 'keyboard' : 'gamepad', controller: isKeys ? 'keyboard' : model, controllerName: pad?.name, console: consoleId, raw: !isKeys && rawPad,
         active: true, map: !isKeys && rawPad ? defaults : {}, keys: {}, options: {},
       }
-      try {
-        cur = await host.create(edit(fresh as Profile))
-      } catch (e: any) { say(e?.message || 'That couldn’t be saved'); return }
-      setProfiles((l) => [cur!, ...(l || [])])
-      setSelected(cur.id)
-      if (typeof device === 'number') input.previewProfile(device, cur)
+      const making = host.create(edit(fresh as Profile)).catch((e: any) => { say(e?.message || 'That couldn’t be saved'); return null })
+      creating.current = making
+      const made = await making
+      creating.current = null
+      if (!made) return
+      setProfiles((l) => [made, ...(l || [])])
+      setSelected(made.id)
+      if (typeof device === 'number') input.previewProfile(device, made)
       void refresh()
       return
     }
@@ -258,6 +268,11 @@ function ButtonsTab({ host, data, known, input, consoleName, gameId, gameTitle, 
     return { ...p, keys: { ...next, [id]: code } }
   }), [change])
   const setOption = useCallback((patch: Partial<ProfileOptions>) => change((p) => ({ ...p, options: { ...(p.options || {}), ...patch } })), [change])
+  // Listening below outlives a render, and must make its change on the profile as it is by then.
+  const setBindingNow = useRef(setBinding)
+  setBindingNow.current = setBinding
+  const setKeyNow = useRef(setKey)
+  setKeyNow.current = setKey
 
   // The two pairs of face buttons people most often want the other way round.
   const swaps = useMemo(() => (data.pad.art === 'six' ? [] : [[0, 8], [1, 9]].filter(([a, b]) => targetIds.has(a) && targetIds.has(b))), [targetIds, data.pad.art]) // six in two rows have no such pairs
@@ -288,7 +303,7 @@ function ButtonsTab({ host, data, known, input, consoleName, gameId, gameTitle, 
         if (cancel(e)) return
         e.preventDefault(); e.stopPropagation()
         const code = e.code || e.key // remotes often send no code
-        void setKey(listening, code)
+        void setKeyNow.current(listening, code)
         say(`${what} is now ${describeKey(code)}`)
         next()
       }
@@ -319,7 +334,7 @@ function ButtonsTab({ host, data, known, input, consoleName, gameId, gameTitle, 
       clearInterval(iv)
       clearTimeout(deadline)
       if (!b) { say('That button can’t be used here'); next(); return }
-      void setBinding(listening, b)
+      void setBindingNow.current(listening, b)
       say(`${what} is now ${describeSource(b, style, st.standing === 'unknown')}`)
       // Whatever was pressed mustn't also count as OK when this screen gets it back.
       const wait = window.setInterval(() => {

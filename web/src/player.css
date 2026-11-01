@@ -48,7 +48,7 @@
 .remote .rk:hover:not(:disabled) { background: linear-gradient(180deg, #4a4f5c, #343844); }
 .remote .rk.down, .remote .rk:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 #0c0d10; }
 .remote .rk:disabled { opacity: .3; cursor: not-allowed; }
-.remote .rk.round { width: 30px; height: 30px; border-radius: 50%; padding: 0; font-size: 14px; }
+.remote .rk.round { width: 30px; height: 30px; border-radius: 50%; padding: 0; font-size: var(--text-md); }
 .remote .rk.red { background: linear-gradient(180deg, #c0392b, #8e2a20); }
 .remote .rk.ghost { background: transparent; box-shadow: none; }
 .remote .rk.pill { border-radius: 15px; }
@@ -60,7 +60,7 @@
   position: relative; width: 150px; height: 150px; margin: 4px auto; border-radius: 50%;
   background: radial-gradient(circle at 50% 40%, #3b3f4a, #1c1e24); box-shadow: inset 0 2px 6px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.06);
 }
-.remote-dpad .rk.d { position: absolute; width: 46px; height: 42px; background: transparent; box-shadow: none; border-radius: 10px; }
+.remote-dpad .rk.d { position: absolute; width: 46px; height: 42px; background: transparent; box-shadow: none; border-radius: var(--r-md); }
 .remote-dpad .rk.d:hover:not(:disabled) { background: rgba(255,255,255,.08); }
 .remote-dpad .rk.d svg { width: 22px; height: 22px; }
 .remote-dpad .up { top: 6px; left: 52px; }
@@ -73,7 +73,7 @@
 }
 .remote-dpad .rk.enter:disabled { background: linear-gradient(180deg, #4a4f5c, #343844); }
 .remote-digits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.remote-digits .rk { border-radius: 12px; font-size: 12px; }
+.remote-digits .rk { border-radius: var(--r-lg); font-size: var(--text-xs); }
 
 /* ---------------------------------------------------------------- Insert DVD */
 /* Everything is sized in cqw (1% of the drive's width) so the scene scales
@@ -150,9 +150,10 @@
 .season-tab .t { margin-top: var(--sp-2); font-weight: 600; font-size: var(--text-sm); color: var(--fg); }
 .season-tab .sub { font-size: var(--text-xs); color: var(--fg-3); }
 .episodes { display: grid; gap: var(--sp-1); margin: 0 calc(-1 * var(--sp-2)); }
-.episode { display: grid; grid-template-columns: clamp(150px, 20vw, 240px) minmax(0, 1fr); gap: var(--sp-4); padding: var(--sp-2); border-radius: var(--r-lg); cursor: pointer; transition: background var(--dur-2); }
+.episode { position: relative; display: grid; grid-template-columns: clamp(150px, 20vw, 240px) minmax(0, 1fr); gap: var(--sp-4); padding: var(--sp-2); border-radius: var(--r-lg); cursor: pointer; transition: background var(--dur-2); }
 .episode:hover { background: var(--hover); }
-.episode .thumb { position: relative; display: block; width: 100%; padding: 0; border: 0; color: inherit; aspect-ratio: 16/9; border-radius: var(--r-md); overflow: hidden; background: var(--bg-3); }
+.episode .t::after { content: ''; position: absolute; inset: 0; border-radius: var(--r-lg); }
+.episode .thumb { position: relative; z-index: 1; display: block; width: 100%; padding: 0; border: 0; color: inherit; aspect-ratio: 16/9; border-radius: var(--r-md); overflow: hidden; background: var(--bg-3); }
 .episode .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .episode .thumb .play { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; background: rgb(0 0 0 / .32); transition: opacity var(--dur-2); z-index: 2; }
 .episode:hover .thumb .play, .episode .thumb:focus-visible .play { opacity: 1; }
@@ -173,7 +174,8 @@
 /* ---------------------------------------------------------------- episodes: layout toggle, playlist */
 .view-toggle { display: flex; align-items: center; gap: var(--sp-3); margin: var(--sp-2) 0 var(--sp-3); font-size: var(--text-sm); }
 .seg { display: inline-flex; background: var(--bg-3); border-radius: var(--r-md); padding: 3px; gap: 2px; }
-.seg button { background: transparent; border: 0; color: var(--fg-2); min-height: calc(var(--control-h-sm) - 4px); padding: 0 var(--sp-3); border-radius: calc(var(--r-md) - 3px); font-weight: 600; font-size: var(--text-sm); white-space: nowrap; transition: background var(--dur-2), color var(--dur-2); }
+@media (pointer: coarse) { .seg { padding: 0; } .seg button { min-height: 44px; } }
+.seg button { background: transparent; border: 0; color: var(--fg-2); min-height: calc(var(--control-h-sm) - 6px); padding: 0 var(--sp-3); border-radius: calc(var(--r-md) - 3px); font-weight: 600; font-size: var(--text-sm); white-space: nowrap; transition: background var(--dur-2), color var(--dur-2); }
 .seg button:hover { color: var(--fg); background: var(--hover); }
 .seg button.active, .seg button.active:hover { background: var(--fg); color: var(--bg); }
 .episode-table tr { cursor: pointer; }
@@ -284,7 +286,7 @@
 .vs-row .vs-ctl { display: flex; justify-content: flex-end; }
 .vs-row .seg button { padding: 5px 9px; }
 .vs-note { color: var(--fg-3); font-size: var(--text-xs); margin: var(--sp-3) 0 0; }
-.switch { width: 44px; height: 24px; border-radius: 12px; border: 0; background: var(--control-line); position: relative; padding: 0; transition: background var(--dur-2); flex: none; }
+.switch { width: 44px; height: 24px; border-radius: var(--r-lg); border: 0; background: var(--control-line); position: relative; padding: 0; transition: background var(--dur-2); flex: none; }
 .switch i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform var(--dur-2); }
 .switch.on { background: var(--accent); }
 .switch.on i { transform: translateX(20px); }
@@ -351,7 +353,7 @@
   width: max-content; max-width: calc(100% - 24px); overflow-x: auto; padding: 6px 8px; border-radius: var(--r-md); background: rgb(16 18 23 / .9); transition: opacity var(--dur-3); scrollbar-width: none; }
 .player.controls-hidden .remote-bar { opacity: 0; pointer-events: none; }
 .player.menu-mode .remote-bar { bottom: 70px; }
-.remote-bar .rb { flex: none; height: 30px; min-width: 30px; padding: 0 9px; border-radius: 8px; border: 0; background: rgba(255,255,255,.1); color: #fff;
+.remote-bar .rb { flex: none; height: 30px; min-width: 30px; padding: 0 9px; border-radius: var(--r-md); border: 0; background: rgba(255,255,255,.1); color: #fff;
   font-size: var(--text-2xs); font-weight: 700; letter-spacing: .5px; display: grid; place-items: center; }
 .remote-bar .rb svg { fill: currentColor; }
 .remote-bar .rb:hover:not(:disabled) { background: rgba(255,255,255,.2); }

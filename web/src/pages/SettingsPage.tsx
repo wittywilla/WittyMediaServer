@@ -277,7 +277,7 @@ function Libraries() {
                 </div>
                 {l.scanning && <span className="set-pill live">Scanning…</span>}
               </div>
-              <ul className="set-lib-paths">{l.paths.map((p) => <li key={p} title={p}><IconFolder size={14} /><span>{p}</span></li>)}</ul>
+              <ul className="set-lib-paths">{l.paths.map((p) => <li key={p} title={p}><IconFolder size={14} /><span><bdi>{p}</bdi></span></li>)}</ul>
               {l.type === 'commercials' && <CommercialsSwitch library={l} />}
               <div className="set-lib-actions">
                 <button className="btn sm" onClick={() => scan(l)} disabled={l.scanning}><IconRefresh /> Scan now</button>
@@ -433,8 +433,8 @@ function About() {
   const hw = (sys?.hardware || []).filter((h: any) => h.working).map((h: any) => h.label)
   return (
     <>
-      <PageHead title="About" desc="This server's version, the modules inside it, its system, its license, every third-party license, and the services it relies on." />
-      <Section title="Version and modules" desc="WittyMediaServer is built from separate modules, each also published on its own. These are the versions in this server.">
+      <PageHead title="About" desc="This server's version, the modules installed on it, its system, its license, every third-party license, and the services it relies on." />
+      <Section title="Version and modules" desc="What the server can do comes from separate modules, each published on its own. These are the versions on this server.">
         <div id="modules" className="mod-list">
           <div className="mod-row mod-self">
             <span className="mod-name"><b>WittyMediaServer</b><span className="muted">The server and this app</span></span>

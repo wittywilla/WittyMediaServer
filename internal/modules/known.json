@@ -202,7 +202,7 @@
       "id": "wittyink",
       "name": "WittyInk",
       "summary": "What every reader shares: annotations, notes, definitions, citations and handwriting.",
-      "description": "The study and handwriting toolkit behind WittyEbook, WittyPDF and WittyComics. It gives them highlights in any colour, notes, bookmarks, definitions and citations, a pen with pressure and palm rejection, and undo and redo. All your notes can be exported as Markdown.\n\nYou don't open it on its own: the readers use it. A new version reaches a reader only when that reader is running a downloaded version too. If it fails, the copy in the app takes over.",
+      "description": "The study and handwriting toolkit behind WittyEbook, WittyPDF and WittyComics. It gives them highlights in any colour, notes, bookmarks, definitions and citations, a pen with pressure and palm rejection, and undo and redo. All your notes can be exported as Markdown.\n\nYou don't open it on its own: the readers use it.",
       "icon": {
         "url": "wittyink.png",
         "size": 3194,

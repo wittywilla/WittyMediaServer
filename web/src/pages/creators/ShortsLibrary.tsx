@@ -345,7 +345,7 @@ function ActiveVideo({ v, muted, toggleMute, rate, onDone }: { v: VideoCard; mut
   const toggle = () => { const el = video.current; if (el) { setBlocked(false); el.paused ? el.play().catch(() => {}) : el.pause() } }
   const dur = info?.durationSec || v.durationSec
   return (
-    <div className="sh-video" onClick={toggle}>
+    <div className="sh-video" onClick={toggle}>{/* design-ok: a click on the picture is the mouse's shortcut for the keys and the button beside it */}
       <video ref={video} playsInline loop={false} muted={muted} poster={videoThumb(v.id, 640, v.updatedAt)}
         onPlay={() => setPaused(false)} onPause={() => setPaused(true)}
         onEnded={() => {

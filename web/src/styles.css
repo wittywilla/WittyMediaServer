@@ -134,9 +134,9 @@
   --card-wide-w: 260px;
 }
 /* Fingers: bigger controls everywhere, from one place. */
-@media (pointer: coarse) { :root { --control-h: 2.75rem; --control-h-sm: 2.25rem; --control-h-lg: 3.125rem; } }
-@media (min-width: 1100px) { :root { --card-w: 164px; } }
-@media (min-width: 1700px) { :root { --card-w: 180px; --card-wide-w: 300px; } }
+@media (pointer: coarse) { :root { --control-h: 2.75rem; --control-h-sm: 2.75rem; --control-h-lg: 3.125rem; } }
+/* About a seventh of the window, however wide it is. */
+@media (min-width: 1100px) { :root { --card-w: clamp(180px, 13.8vw, 300px); --card-wide-w: clamp(260px, 21vw, 420px); } }
 @media (max-width: 520px) { :root { --card-w: 104px; --card-wide-w: 232px; } }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -154,6 +154,18 @@ html.using-controller { font-size: 125%; --focus-width: 3px; --focus-offset: 3px
 html.using-controller, html.ten-foot { --focus: var(--fg); }
 @media (pointer: none) { :root { --focus: var(--fg); } }
 html.ten-foot { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; --card-w: 200px; --card-wide-w: 340px; --gutter: max(48px, 4vw); }
+/* The frame grows with the type, or the name in the side menu gets cut off and the bar is too short for what's in it. */
+@media (min-width: 901px) {
+  html.using-controller, html.ten-foot { --sidebar: 300px; --rail: 96px; --topbar-h: 80px; }
+}
+@media (min-width: 901px) and (pointer: none) { :root { --sidebar: 300px; --rail: 96px; --topbar-h: 80px; } }
+/* A controller on a phone: the type stays large, but a phone still has a phone's margin. */
+@media (max-width: 720px) {
+  html.using-controller, html.ten-foot { --gutter: var(--sp-4); }
+}
+@media (min-width: 1900px) {
+  html.using-controller, html.ten-foot { --card-w: 260px; --card-wide-w: 380px; }
+}
 /* Whatever is docked at the bottom keeps the things that float above it clear. */
 html:has(.audio-bar:not(.full)) { --dock-space: 88px; }
 html:has(.player.mini) { --dock-space: 88px; }
@@ -202,7 +214,7 @@ input[type=range] { accent-color: var(--accent); }
 .nav-link { display: flex; align-items: center; gap: var(--sp-3); min-height: 40px; padding: 0 var(--sp-3); border-radius: var(--r-md); color: var(--fg-2); font-weight: 500; font-size: var(--text-md); transition: background var(--dur-2), color var(--dur-2); }
 .nav-link:hover { background: var(--hover); color: var(--fg); }
 .nav-link.active { background: var(--accent-soft); color: var(--fg); font-weight: 600; }
-.nav-link svg { width: 18px; height: 18px; color: var(--fg-3); transition: color var(--dur-2); }
+.nav-link svg { width: 1.125rem; height: 1.125rem; color: var(--fg-3); transition: color var(--dur-2); }
 .nav-link:hover svg { color: var(--fg-2); }
 .nav-link.active svg { color: var(--accent-text); }
 .nav-empty { padding: var(--sp-1) var(--sp-3); font-size: var(--text-sm); color: var(--fg-3); }
@@ -237,6 +249,8 @@ input[type=range] { accent-color: var(--accent); }
   .app:has(.hero, .detail-hero) .topbar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--bg); opacity: 0; animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
   .app:has(.hero, .detail-hero) .topbar::after { animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
   .app:has(.home.editing) .topbar { margin-bottom: 0; background: var(--bg); }
+  /* The legal notice sits right under the bar, so the bar can't run over the picture and cover it. */
+  .app:has(.legal-ack-bar) .topbar { margin-bottom: 0; background: var(--bg); }
   @keyframes bar-solid { from { opacity: 0; } to { opacity: 1; } }
 }
 
@@ -297,7 +311,7 @@ input[type=range] { accent-color: var(--accent); }
 .hero .bg { position: absolute; inset: 0; background-size: cover; background-position: center 20%; transition: opacity var(--dur-4) var(--ease-standard); }
 .hero .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(var(--bg-rgb) / .94) 0%, rgb(var(--bg-rgb) / .78) 40%, rgb(var(--bg-rgb) / 0) 82%), linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .35) 24%, rgb(var(--bg-rgb) / 0) 52%); }
 .hero .info { position: absolute; left: var(--gutter); bottom: var(--sp-10); width: min(620px, calc(100% - 2 * var(--gutter))); }
-.hero h1 { font-size: var(--display); margin: 0 0 var(--sp-3); letter-spacing: var(--tracking-display); text-shadow: 0 2px 16px rgba(0,0,0,.5); }
+.hero h1 { font-size: var(--display); margin: 0 0 var(--sp-3); letter-spacing: var(--tracking-display); }
 .hero .meta { margin-bottom: var(--sp-3); }
 .hero p { color: var(--fg); opacity: .86; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 0 0 var(--sp-5); max-width: 58ch; }
 .hero .actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
@@ -313,6 +327,8 @@ input[type=range] { accent-color: var(--accent); }
 .hero .dots button.hero-pause:hover { color: var(--fg); }
 @media (max-width: 700px) {
   .hero { height: 66vh; min-height: 380px; }
+  /* A narrow hero has its words over the picture, not beside it. */
+  .hero .shade { background: linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .94) 34%, rgb(var(--bg-rgb) / .72) 56%, rgb(var(--bg-rgb) / 0) 82%); }
   .hero .info { bottom: var(--sp-6); }
   .hero p { -webkit-line-clamp: 2; }
   .hero .dots { bottom: auto; top: calc(var(--topbar-h) + var(--sp-2)); }
@@ -320,11 +336,12 @@ input[type=range] { accent-color: var(--accent); }
 
 /* ---------------------------------------------------------------- hubs */
 .hub { margin-bottom: var(--section-gap); }
-.hub-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-4); margin-bottom: var(--sp-3); }
+.hub-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); margin-bottom: var(--sp-3); }
 .hub-head h2 { font-size: var(--text-xl); margin: 0; min-width: 0; }
-.hub-head a { flex: none; display: inline-flex; align-items: center; gap: 2px; color: var(--fg-2); font-size: var(--text-sm); font-weight: 500; }
+.hub-head a { flex: none; display: inline-flex; align-items: center; min-height: var(--sp-6); gap: 2px; color: var(--fg-2); font-size: var(--text-sm); font-weight: 500; }
 .hub-head a svg { width: 16px; height: 16px; margin-right: -4px; }
 .hub-head a:hover { color: var(--accent-text); }
+@media (pointer: coarse) { .hub-head a { min-height: 44px; } }
 /* A row runs off both edges of the page, so the next card peeks in. */
 .row-wrap { position: relative; }
 .row { display: flex; gap: var(--sp-4); overflow-x: auto; margin: 0 calc(-1 * var(--gutter)); padding: var(--sp-3) var(--gutter) var(--sp-4); scroll-padding-inline: var(--gutter); scroll-snap-type: x proximity; scrollbar-width: thin; scrollbar-color: transparent transparent; overscroll-behavior-x: contain; }
@@ -621,6 +638,7 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 
 /* The short legal notices (components/LegalNote). */
 .legal-note { margin: var(--sp-4) 0 0; max-width: 72ch; color: var(--fg-3); font-size: var(--text-xs); line-height: 1.5; }
+.main:has(.content > .loading-box) .legal-foot { visibility: hidden; }
 .legal-note a, .auth-version a, .oobe-ack a, .legal-ack-bar a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: from-font; }
 .set-legal { margin: var(--sp-4) 0 0; }
 /* The page's own notice says more than the general one, and settings show no media. */
@@ -756,8 +774,12 @@ main.content:focus { outline: none; }
   input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; }
   .set-switch::after { content: ''; position: absolute; inset: -9px -2px; }
   .tip::before { inset: -11px; }
-  summary { padding-block: 10px; }
+  summary { padding-block: 12px; }
   .legal-note a { padding: 12px 6px; margin: -12px -6px; }
 }
 .field-row:has(> .field-label) { align-items: flex-end; flex-wrap: wrap; }
+.field-row:has(> .ui-field) { align-items: flex-start; }
+.field-row:has(> .ui-field) > .btn { margin-top: calc(var(--text-sm) * 1.5 + var(--sp-1)); }
+.field-row > .ui-field { flex: 1 1 240px; min-width: 0; }
+.field-row > .ui-field .input { width: 100%; }
 .field-label { display: grid; gap: 4px; flex: 1 1 180px; font-size: var(--text-sm); color: var(--fg-2); }

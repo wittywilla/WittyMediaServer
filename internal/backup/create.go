@@ -98,9 +98,20 @@ func Estimate(ctx context.Context, f Folders, live *sql.DB) []PartSize {
 	if st, err := os.Stat(filepath.Join(f.Data, "wms.db")); err == nil && live != nil {
 		rows := map[string]int64{}
 		var total int64
+		// Asking only for what's there: a table that has been retired would be logged as an error.
+		there := map[string]bool{}
+		if names, err := live.QueryContext(ctx, `SELECT name FROM sqlite_master WHERE type = 'table'`); err == nil {
+			for names.Next() {
+				var name string
+				if names.Scan(&name) == nil {
+					there[name] = true
+				}
+			}
+			_ = names.Close()
+		}
 		for table, part := range tableParts {
 			var n int64
-			if live.QueryRowContext(ctx, `SELECT COUNT(*) FROM "`+table+`"`).Scan(&n) == nil {
+			if there[table] && live.QueryRowContext(ctx, `SELECT COUNT(*) FROM "`+table+`"`).Scan(&n) == nil {
 				rows[part] += n
 				total += n
 			}

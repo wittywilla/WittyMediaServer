@@ -76,7 +76,7 @@ func Explain(name, detail string) *Failure {
 		f = Failure{Kind: FailDisk, Title: "The disk is full", Repair: true,
 			Message: "There wasn't enough room on the server's disk to unpack " + name + ". Nothing changed, and what was running before still is.",
 			Try:     []string{"Free some space on the disk that holds the server's data folder.", "Then install it again."}}
-	case containsAny(low, "disagree"):
+	case containsAny(low, "disagree", "its manifest says it belongs"):
 		f = Failure{Kind: FailMismatch, Title: "The store's description doesn't match the module",
 			Message: "The list of modules described this version of " + name + " differently from what its signed files say, so it wasn't installed. Either the list or the release is wrong.",
 			Try:     []string{"Check for updates in case the list has been corrected, then try again.", "If it keeps happening, tell whoever publishes the module."}}
@@ -130,6 +130,10 @@ func explainErr(name string, err error) *Failure {
 	var big *errStoreTooBig
 	var addr *ErrStoreAddress
 	switch {
+	case errors.Is(err, ErrRunBusy):
+		return &Failure{Kind: FailOther, Title: "Another change is under way", Detail: err.Error(),
+			Message: "Modules are being changed right now, and this server does one change at a time. Nothing went wrong.",
+			Try:     []string{"Wait for that to finish, then try this again."}}
 	case errors.As(err, &addr):
 		return &Failure{Kind: FailMissing, Title: "That address can't be used", Detail: err.Error(),
 			Message: sentence(strings.ToUpper(addr.Why[:1]) + addr.Why[1:]),

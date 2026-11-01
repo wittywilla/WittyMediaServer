@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
+import { focusFirst } from './tv'
 import { isBackKey } from './ui/spatial'
 
 // Accessibility shared by every page: dialogs that hold the keyboard while
@@ -146,6 +147,16 @@ export function Announcer() {
       document.querySelector<HTMLElement>(was)?.focus()
     }, ms))
     return () => { clearTimeout(t); later.forEach(clearTimeout) }
+  }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Across the room nothing shows where you are until something has the focus, so a page starts
+  // on its main action. It looks a few times, as a page may still be loading what it's going to show.
+  useEffect(() => {
+    if (!document.documentElement.classList.contains('using-controller') || (navType === 'POP' && focusMemory.get(loc.key))) return
+    const tries = [500, 1000, 2000, 3500].map((ms) => setTimeout(() => {
+      const active = document.activeElement
+      if (!active || active === document.body || active === document.getElementById('main')) focusFirst()
+    }, ms))
+    return () => tries.forEach(clearTimeout)
   }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
   return <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{msg}</div>
 }

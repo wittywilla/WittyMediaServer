@@ -121,7 +121,7 @@
 .ds-page { max-width: 62rem; }
 .ds-toc { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); margin-bottom: var(--sp-6); font-size: var(--text-sm); }
 .ds-toc a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
-.ds-part { margin-bottom: var(--section-gap); scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); display: grid; gap: var(--sp-4); min-width: 0; }
+.ds-part { margin-bottom: var(--section-gap); scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); min-width: 0; }
 .ds-part h2 { margin: 0; font-size: var(--text-xl); }
 .ds-note { margin: calc(-1 * var(--sp-2)) 0 0; color: var(--fg-2); font-size: var(--text-md); max-width: 62ch; }
 .ds-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); min-width: 0; }

@@ -114,7 +114,7 @@ func (s *Server) handleStoreInstall(w http.ResponseWriter, r *http.Request) {
 	}
 	plan, err := s.ModuleStores.InstallPlan(b.ID)
 	if err != nil {
-		writeStoreErr(w, b.ID, err)
+		writeStoreErr(w, "That module", err)
 		return
 	}
 	if len(plan) > 1 && !b.Confirm {
@@ -123,7 +123,7 @@ func (s *Server) handleStoreInstall(w http.ResponseWriter, r *http.Request) {
 	}
 	run, err := s.ModuleStores.InstallWithNeeds(b.ID, userFrom(r).Name)
 	if err != nil {
-		writeStoreErr(w, b.ID, err)
+		writeStoreErr(w, "That module", err)
 		return
 	}
 	s.Log.InfoContext(r.Context(), "module install started", "cat", "modules", "module", b.ID, "by", userFrom(r).Name)
@@ -408,7 +408,7 @@ func (s *Server) handleStoreFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.ModuleStores.UseFork(r.PathValue("id"), r.PathValue("module"), userFrom(r).Name, b.Confirm, b.Fingerprint); err != nil {
-		writeStoreErr(w, r.PathValue("module"), err)
+		writeStoreErr(w, "That module", err)
 		return
 	}
 	s.Log.Warn("a module now comes from another store", "module", r.PathValue("module"), "store", r.PathValue("id"), "by", userFrom(r).Name)

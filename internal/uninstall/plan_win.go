@@ -90,7 +90,7 @@ func planWindows(e *Env, pl *Plan) {
 			}})
 	}
 	// The boot task install.ps1 made, up to 0.5.2-alpha.
-	if out, err := e.Sys.Run(tool("schtasks.exe"), "/Query", "/TN", winName, "/XML"); err == nil {
+	if out, err := e.Sys.Run(tool("schtasks.exe"), "/Query", "/TN", winName, "/XML"); err == nil && strings.Contains(out, winName) {
 		if d := dataDirFromCommand(strings.ReplaceAll(out, "&quot;", `"`)); d != "" {
 			planDataFolder(e, pl, d, false, true)
 		}
@@ -124,15 +124,15 @@ func planWindows(e *Env, pl *Plan) {
 	}
 
 	// Firewall rules, by name.
-	if _, err := e.Sys.Run(tool("netsh.exe"), "advfirewall", "firewall", "show", "rule", "name="+winName); err == nil {
+	if out, err := e.Sys.Run(tool("netsh.exe"), "advfirewall", "firewall", "show", "rule", "name="+winName); err == nil && strings.Contains(out, winName) {
 		pl.add(Item{Kind: "firewall rule", Name: winName, Group: GroupProgram, Admin: true, step: stepFiles,
 			remove: func() error {
 				_, err := e.Sys.Run(tool("netsh.exe"), "advfirewall", "firewall", "delete", "rule", "name="+winName)
 				return err
 			},
 			gone: func() bool {
-				_, err := e.Sys.Run(tool("netsh.exe"), "advfirewall", "firewall", "show", "rule", "name="+winName)
-				return err != nil
+				out, err := e.Sys.Run(tool("netsh.exe"), "advfirewall", "firewall", "show", "rule", "name="+winName)
+				return err != nil || !strings.Contains(out, winName)
 			}})
 	}
 

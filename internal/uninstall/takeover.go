@@ -24,14 +24,14 @@ func TakeOver(e *Env) []string {
 
 	sys32 := filepath.Join(e.Getenv("SystemRoot"), "System32")
 	if e.IsAdmin {
-		if _, err := e.Sys.Run(filepath.Join(sys32, "schtasks.exe"), "/Query", "/TN", winName); err == nil {
+		if out, err := e.Sys.Run(filepath.Join(sys32, "schtasks.exe"), "/Query", "/TN", winName); err == nil && strings.Contains(out, winName) {
 			_, _ = e.Sys.Run(filepath.Join(sys32, "schtasks.exe"), "/End", "/TN", winName)
 			if _, err := e.Sys.Run(filepath.Join(sys32, "schtasks.exe"), "/Delete", "/TN", winName, "/F"); err == nil {
 				note("the old boot task")
 			}
 		}
 		// The new rule, if one was asked for, is added after this runs.
-		if _, err := e.Sys.Run(filepath.Join(sys32, "netsh.exe"), "advfirewall", "firewall", "show", "rule", "name="+winName); err == nil {
+		if out, err := e.Sys.Run(filepath.Join(sys32, "netsh.exe"), "advfirewall", "firewall", "show", "rule", "name="+winName); err == nil && strings.Contains(out, winName) {
 			if _, err := e.Sys.Run(filepath.Join(sys32, "netsh.exe"), "advfirewall", "firewall", "delete", "rule", "name="+winName); err == nil {
 				note("the old firewall rule")
 			}

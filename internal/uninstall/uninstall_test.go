@@ -342,7 +342,7 @@ func TestTakeOverOldCopy(t *testing.T) {
 		write(t, filepath.Join(w.perUser, filepath.FromSlash(f)), "x")
 	}
 	fillData(t, w.local)
-	w.sys.answers = map[string]string{"schtasks.exe": "", "netsh.exe": ""}
+	w.sys.answers = map[string]string{"schtasks.exe": "TaskName: WittyMediaServer", "netsh.exe": "Rule Name: WittyMediaServer"}
 	w.sys.reg[`HKCU\`+UninstallKey] = ""
 	w.sys.reg[`HKCU\`+UninstallKey+`\InstallLocation`] = w.perUser
 	w.sys.reg[`HKCU\`+runKey+`\`+winName] = `"` + filepath.Join(w.perUser, "WittyMediaServer.exe") + `"`

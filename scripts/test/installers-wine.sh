@@ -47,7 +47,7 @@ snapshot() {
   wineserver -w
   # Wine's own bookkeeping isn't the installer's doing.
   (cd "$C" && find . -path ./windows/Installer -prune -o -path ./windows/logs -prune -o -path ./windows/temp -prune \
-      -o -path ./users/root/AppData/Roaming/Microsoft/Installer -prune \
+      -o -path ./users/root/AppData/Roaming/Microsoft/Installer -prune -o -path ./users/root/Desktop -prune \
       -o -path ./users/root/Temp -prune -o -path ./users/root/AppData/Local/Temp -prune -o -print | sort)
   echo "--- registry"
   for f in system.reg user.reg; do

@@ -126,6 +126,7 @@ Remove-Item -Force "$env:LOCALAPPDATA\WittyMediaServer\my-own-notes.txt"; Remove
 Remove-Item -Force $film
 Start-Sleep -Seconds 5
 Same $before "just me"
+Check (Test-Path "$env:USERPROFILE\Desktop") "the desktop folder itself is still there"
 
 Say "for everyone: the service and the firewall rule"
 $machine = "C:\Program Files\WittyMediaServer"

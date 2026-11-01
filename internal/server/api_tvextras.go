@@ -446,7 +446,7 @@ func (s *Server) handleClipPreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := fmt.Sprintf("clip-%d-%d", it.ID, b.Title)
-	s.HLS.Ensure(hls.Spec{ID: id, InputArgs: in.InputArgs, Duration: in.Total, VideoFilter: in.VideoFilter, AudioIndex: in.AudioIndex, SubtitleIndex: -1,
+	s.HLS.Ensure(hls.Spec{ID: id, ItemID: it.ID, InputArgs: in.InputArgs, Duration: in.Total, VideoFilter: in.VideoFilter, AudioIndex: in.AudioIndex, SubtitleIndex: -1,
 		SeekMargin: 1.5, Quality: q, MaxHeight: h, AudioCodec: "aac"})
 	writeJSON(w, 200, map[string]any{"url": "/api/hls/" + id + "/playlist.m3u8", "durationSec": in.Total})
 }

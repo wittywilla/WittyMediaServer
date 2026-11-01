@@ -190,7 +190,7 @@ const (
 
 // sessionDirRe matches the folders this package makes (see the IDs in
 // api_play.go, dvdsession and bdsession).
-var sessionDirRe = regexp.MustCompile(`^(v|dvd|bd)-[0-9a-zA-Z-]+$`)
+var sessionDirRe = regexp.MustCompile(`^(v|dvd|bd|clip)-[0-9a-zA-Z-]+$`)
 
 func NewManager(tools *ffmpeg.Tools, root string, max int, log *slog.Logger) *Manager {
 	if max < 1 {

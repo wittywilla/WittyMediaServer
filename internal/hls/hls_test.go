@@ -599,3 +599,10 @@ func TestHoleExprs(t *testing.T) {
 		t.Errorf("no holes: %s %s", keep, shift)
 	}
 }
+
+// A preview of a disc's title is a session too, and its folder goes at the next start.
+func TestPreviewFoldersAreCleared(t *testing.T) {
+	if !sessionDirRe.MatchString("clip-3-1") {
+		t.Error("left behind for good")
+	}
+}

@@ -36,6 +36,9 @@
 .help-hits mark { background: var(--accent-soft); color: var(--fg); border-radius: var(--r-xs); padding: 0 2px; }
 .help-results-title { margin: 0 0 var(--sp-1); font-size: var(--page-title); }
 
+/* Reached by arrow keys, these stop clear of the bars that stay in view. */
+.help-main :is(a, summary, button, input, [tabindex="0"]) { scroll-margin-block: var(--sp-16); }
+
 /* The guide itself, kept to a length of line that's easy to read. */
 .help-prose { font-size: var(--text-base); line-height: var(--leading-body); overflow-wrap: anywhere; }
 .help-prose > * { max-width: 70ch; }
@@ -84,7 +87,7 @@
   .help { display: block; margin-top: 0; }
   .help-side { display: none; }
   .help-row { min-height: 56px; }
-  .help-toc a { padding: var(--sp-2) 0; }
+  .help-toc a { display: flex; align-items: center; min-height: 44px; padding: 0; }
   .help-side-link { min-height: 44px; }
   .help-code pre { padding-right: var(--sp-4); padding-top: 48px; }
   .help-table td code { white-space: normal; overflow-wrap: anywhere; }

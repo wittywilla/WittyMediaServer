@@ -200,33 +200,52 @@ const firstSection = (blocks: Block[]) => {
   return i < 0 ? blocks.length : i
 }
 
-// A guide can be many screens of words with nothing to focus between its links, and a remote
-// has only arrows. So up and down read on: they scroll while the next link in that direction
-// is off the screen, and move to it once it's in sight. tv.ts takes the arrows otherwise.
+// A guide can be many screens of words with few links, and a remote has only arrows. So in a
+// guide, up and down read on: they scroll while the next stop that way is off the screen, and
+// move to it once it's in sight. tv.ts picks the nearest control on the screen, which here would
+// be the bars that stay in view, so it only gets the arrows at the ends of the page and for
+// moving sideways. Left and right also move a table or code too wide for the screen.
+const STOPS = 'input, a[href], summary, button, [tabindex="0"]'
+
 function useArrowScroll(article: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || e.altKey || e.ctrlKey || e.metaKey) return
-      const el = article.current
+      if (e.altKey || e.ctrlKey || e.metaKey) return
+      const main = article.current?.closest('.help-main')
       const active = document.activeElement as HTMLElement | null
-      const inside = !!active && el?.contains(active)
-      if (!el || (active && active !== document.body && active.id !== 'main' && !inside)) return
+      if (!main || !active) return
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        if (!active.matches('.help-table, .help-code pre') || !main.contains(active)) return
+        const left = active.scrollLeft
+        active.scrollLeft = left + (e.key === 'ArrowRight' ? 240 : -240)
+        if (active.scrollLeft !== left) { e.preventDefault(); e.stopImmediatePropagation() }
+        return
+      }
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+      if (!main.contains(active) && active !== document.body && active.id !== 'main') return
       const down = e.key === 'ArrowDown'
       const h = window.innerHeight
-      const from = inside ? active!.getBoundingClientRect() : null
-      const nextInSight = Array.from(el.querySelectorAll<HTMLElement>('a[href], summary, button, [tabindex="0"]')).some((n) => {
-        const r = n.getBoundingClientRect()
-        if (r.height === 0) return false
-        return down
-          ? r.top < h * 0.9 && r.top >= (from ? from.bottom - 1 : 0)
-          : r.bottom > h * 0.1 && r.bottom <= (from ? from.top + 1 : h)
-      })
-      if (nextInSight) return
-      const box = el.getBoundingClientRect()
-      if (down ? box.bottom <= h : box.top >= 0) return
+      const stops = Array.from(main.querySelectorAll<HTMLElement>(STOPS)).filter((n) => n.getBoundingClientRect().height > 0)
+      const at = stops.indexOf(active)
+      let next: HTMLElement | undefined
+      if (at >= 0) next = stops[at + (down ? 1 : -1)]
+      else {
+        // From a heading, or the page itself: the first stop past it, or past the screen's edge.
+        const from = main.contains(active) ? active.getBoundingClientRect() : null
+        next = down
+          ? stops.find((n) => n.getBoundingClientRect().top >= (from ? from.bottom - 1 : 0))
+          : stops.filter((n) => n.getBoundingClientRect().bottom <= (from ? from.top + 1 : h)).pop()
+      }
+      const box = next?.getBoundingClientRect()
+      const inSight = !!box && (down ? box.top < h * 0.9 : box.bottom > h * 0.1)
+      const canScroll = down ? document.documentElement.scrollHeight - window.scrollY - h > 1 : window.scrollY > 0
+      if (!next && !canScroll) return
       e.preventDefault()
       e.stopImmediatePropagation()
-      window.scrollBy({ top: (down ? 1 : -1) * Math.round(h * 0.6) })
+      if (next && (inSight || !canScroll)) {
+        next.focus({ preventScroll: true })
+        next.scrollIntoView({ block: 'nearest' })
+      } else window.scrollBy({ top: (down ? 1 : -1) * Math.round(h * 0.6) })
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)

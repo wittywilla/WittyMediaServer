@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -170,5 +171,32 @@ func TestAttachedExtrasGoByTheirShow(t *testing.T) {
 	}
 	if w := f.do(t, "GET", path, f.adult, nil); !strings.Contains(w.Body.String(), "Hidden extra") {
 		t.Errorf("an account with no limits: %s", w.Body)
+	}
+}
+
+// A credit is a link on the page, and what's kept came from a service's answer.
+func TestArtistCreditIsALinkToTheArticle(t *testing.T) {
+	f := newMusicFixture(t)
+	path := f.artistCache("An Artist", ".json")
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := json.Marshal(artistFacts{Name: "An Artist", Title: "An Artist", Bio: strings.Repeat("words ", 100000), URL: "javascript:alert(1)", At: 1})
+	if err := os.WriteFile(path, b, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	var out struct {
+		Bio    string `json:"bio"`
+		BioURL string `json:"bioUrl"`
+	}
+	w := f.do(t, "GET", fmt.Sprintf("/api/music/artist?library=%d&name=An%%20Artist", f.lib), f.adult, nil)
+	if err := json.Unmarshal(w.Body.Bytes(), &out); err != nil {
+		t.Fatalf("%v %s", err, w.Body)
+	}
+	if !strings.HasPrefix(out.BioURL, "https://") {
+		t.Errorf("credit link %q", out.BioURL)
+	}
+	if len(out.Bio) > 8<<10 {
+		t.Errorf("%d bytes of biography", len(out.Bio))
 	}
 }

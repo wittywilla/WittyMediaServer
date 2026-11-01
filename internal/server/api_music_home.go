@@ -357,6 +357,24 @@ type artistFacts struct {
 	NotFound bool   `json:"notFound,omitempty"`
 }
 
+const maxArtistBio = 6 << 10
+
+// creditLink is the article's address, which the page makes a link of. It came in a service's
+// answer, so anything else gets the article's usual address instead.
+func (a *artistFacts) creditLink() string {
+	if u, err := url.Parse(a.URL); err == nil && u.Scheme == "https" && strings.HasSuffix(u.Host, ".wikipedia.org") {
+		return a.URL
+	}
+	return "https://en.wikipedia.org/wiki/" + url.PathEscape(strings.ReplaceAll(a.Title, " ", "_"))
+}
+
+func (a *artistFacts) shortBio() string {
+	if len(a.Bio) <= maxArtistBio {
+		return a.Bio
+	}
+	return strings.ToValidUTF8(a.Bio[:maxArtistBio], "") + "…"
+}
+
 func (s *Server) artistCache(name, ext string) string {
 	h := sha256.Sum256([]byte(strings.ToLower(strings.TrimSpace(name))))
 	return filepath.Join(s.Cfg.CacheDir, "artists", hex.EncodeToString(h[:12])+ext)
@@ -646,7 +664,7 @@ func (s *Server) handleMusicArtist(w http.ResponseWriter, r *http.Request) {
 	out := map[string]any{"name": name, "albums": albums, "tracks": s.forViewer(r, all...), "top": s.forViewer(r, top...), "genres": genreList,
 		"online": s.DB.GetSetting(ctx, "musicInfoOnline", "0") == "1"}
 	if facts != nil && !facts.NotFound {
-		out["bio"], out["bioUrl"], out["bioTitle"] = facts.Bio, facts.URL, facts.Title
+		out["bio"], out["bioUrl"], out["bioTitle"] = facts.shortBio(), facts.creditLink(), facts.Title
 	}
 	writeJSON(w, 200, out)
 }

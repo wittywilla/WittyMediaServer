@@ -250,7 +250,7 @@ func CSO(plain []byte) []byte {
 	for i := 0; i < blocks; i++ {
 		binary.LittleEndian.PutUint32(index[i*4:], uint32(at+body.Len()))
 		w, _ := flate.NewWriter(&body, flate.DefaultCompression)
-		_, _ = w.Write(plain[i*block:min((i+1)*block, len(plain))])
+		_, _ = w.Write(plain[i*block : min((i+1)*block, len(plain))])
 		_ = w.Close()
 	}
 	binary.LittleEndian.PutUint32(index[blocks*4:], uint32(at+body.Len()))

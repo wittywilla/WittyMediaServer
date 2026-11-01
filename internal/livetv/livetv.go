@@ -68,13 +68,13 @@ type Channel struct {
 	AudioCodec string `json:"audioCodec,omitempty"`
 	// NoRecord is why this channel may not be recorded: the device said so, or
 	// the owner did from what the device's documentation says.
-	NoRecord   string `json:"noRecord,omitempty"`
-	Program    int    `json:"program,omitempty"`
-	Enabled    bool   `json:"enabled"`
-	EPGID      string `json:"epgId,omitempty"`
-	NumberSet  string `json:"numberSet,omitempty"`
-	NameSet    string `json:"nameSet,omitempty"`
-	EPGSet     string `json:"epgSet,omitempty"`
+	NoRecord  string `json:"noRecord,omitempty"`
+	Program   int    `json:"program,omitempty"`
+	Enabled   bool   `json:"enabled"`
+	EPGID     string `json:"epgId,omitempty"`
+	NumberSet string `json:"numberSet,omitempty"`
+	NameSet   string `json:"nameSet,omitempty"`
+	EPGSet    string `json:"epgSet,omitempty"`
 	// LogoSet is what a person chose for its logo: "" to find it by name, "none", or
 	// "kind|name" in the logo service.
 	LogoSet    string `json:"logoSet,omitempty"`

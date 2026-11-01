@@ -1,12 +1,12 @@
 package modules
 
 import (
-	"strings"
-	"path/filepath"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/cd"

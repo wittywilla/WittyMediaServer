@@ -21,10 +21,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/auth"
 	wittycouch "github.com/wittywilla/wittymediaserver/internal/couch"
 	"github.com/wittywilla/wittymediaserver/internal/couch/gamestream"
 	"github.com/wittywilla/wittymediaserver/internal/couch/relay"
-	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"

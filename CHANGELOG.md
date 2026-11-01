@@ -16,6 +16,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **A signed catalogue** lists every module and its versions, from a new repository, WittyModuleCatalog. A release of the server
   can carry a starter set of signed modules for a machine with no network.
 - **Each module carries the licenses of its own libraries,** which a server shows at `GET /api/modules/{id}/notices`.
+- **Every module with a program comes for Windows, Linux, macOS and FreeBSD.** One with no build for a system says that in plain
+  words in place of the button to add it, and so does anything built on it. WittyCouch Host has no FreeBSD build yet, so WittyCouch
+  says that on FreeBSD.
 - **`wms dvd`, `wms bluray` and `wms cd` are gone,** along with the built-in copy of each module. Those tools come with their modules.
 - **Live TV:** FFmpeg no longer reads an internet stream itself. It reads through a small gate on this machine, so an encryption key that appears in a playing stream is refused within a second, before FFmpeg sees it, and a playlist can't lead the server to your home network. A stream's address and login are no longer on FFmpeg's command line.
 - **Fixed, serious:** a web page could claim a fresh server from the browser of anyone at home, or read the list of accounts and sign in as a password-free profile, by sending a made-up header. A page elsewhere never counts as being at home now.

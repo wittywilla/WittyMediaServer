@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/wittywilla/wittymodule"
 	wittytuner "github.com/wittywilla/wittymediaserver/internal/tuner"
+	"github.com/wittywilla/wittymodule"
 )
 
 func packets(n int, scrambled bool) []byte {

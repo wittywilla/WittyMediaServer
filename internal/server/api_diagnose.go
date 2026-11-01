@@ -43,11 +43,11 @@ func (s *Server) diagnoseRoutes(m *http.ServeMux) {
 func (s *Server) diagnoser() *diagnose.Manager {
 	s.diagOnce.Do(func() {
 		s.diag = diagnose.NewManager(diagnose.Env{
-			DataDir:  s.Cfg.DataDir,
-			Log:      s.Log,
-			Tasks:    s.Tasks,
-			Version:  s.Version,
-			Busy:     s.streamsPlaying,
+			DataDir: s.Cfg.DataDir,
+			Log:     s.Log,
+			Tasks:   s.Tasks,
+			Version: s.Version,
+			Busy:    s.streamsPlaying,
 			Helper: func(id string, limit time.Duration) diagnose.ModuleHelper {
 				if s.Modules == nil {
 					return nil

@@ -9,7 +9,7 @@ import (
 // viewer sees that, and opening the disc again starts a new helper.
 type nav struct {
 	r     *remote
-	clone bool // the what-if copy of the navigator; see Clone
+	clone bool          // the what-if copy of the navigator; see Clone
 	regs  dvd.Registers // as the helper last said
 	pgcs  map[pgcKey]*dvd.PGC
 }

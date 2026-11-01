@@ -64,7 +64,7 @@ export type GameDetailsInfo = {
 }
 export type GameCandidate = { source: string; id: string; title: string; year?: number; console?: string; poster?: string; score: number }
 export type GameFacet = { value: string; count: number }
-export type GameFacets = { genres: GameFacet[]; decades: GameFacet[]; players: GameFacet[]; rated: number }
+export type GameFacets = { genres: GameFacet[]; decades: GameFacet[]; players: GameFacet[]; rated: number; series: GameFacet[]; letters: GameFacet[] }
 export type GameMetaStatus = {
   running: boolean; phase: string; total: number; pending: number; matched: number; byChecksum: number; pictures: number; withPoster: number; withDetails: number
   consoles: Record<string, { total: number; matched: number; byChecksum: number }>; paused: { source: string; until: number; why: string }[]; keysSet: boolean

@@ -52,7 +52,22 @@ var (
 	comicLists   = map[string]comicList{}
 	comicListsMu sync.Mutex
 	comicUnpack  sync.Mutex // one at a time: each costs a process and a disk
+	// bookDraws is what drawing a page takes a turn from: each is a program, for anyone who can
+	// open the book, and a reader asks for several at a time.
+	bookDraws = make(chan struct{}, bookDrawsAtOnce)
 )
+
+const bookDrawsAtOnce = 2
+
+// bookDrawTurn waits for a turn at drawing a page, for as long as someone is still waiting for it.
+func bookDrawTurn(ctx context.Context) (func(), error) {
+	select {
+	case bookDraws <- struct{}{}:
+		return func() { <-bookDraws }, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
 
 // IsZipComic is comicIsZip for the server's handlers.
 func IsZipComic(p string) bool { return comicIsZip(p) }
@@ -262,6 +277,14 @@ func (s *Scanner) ComicPageImage(ctx context.Context, archive, name string, read
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
 	}
+	done, err := bookDrawTurn(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer done()
+	if st, err := os.Stat(out); err == nil && st.Size() > 0 {
+		return out, nil
+	}
 	src, err := read()
 	if err != nil {
 		return "", err
@@ -280,6 +303,7 @@ func (s *Scanner) ComicPageImage(ctx context.Context, archive, name string, read
 	if err := s.Tools.ImageThumb(ctx, tmp.Name(), 0, 2560, 0, out); err != nil {
 		return "", err
 	}
+	trimCache(filepath.Join(s.CacheDir, "comics"), maxComicCache)
 	return out, nil
 }
 
@@ -473,12 +497,28 @@ func djvuPages(p string) int {
 
 // DjvuPageList names a DjVu book's pages in the form the comic reader uses.
 func DjvuPageList(p string) []string {
+	// A reader asks with each page it turns, so the answer is kept as a comic's list is.
+	st, statErr := os.Stat(p)
+	if statErr == nil {
+		comicListsMu.Lock()
+		cur, ok := comicLists[p]
+		comicListsMu.Unlock()
+		if ok && cur.mtime.Equal(st.ModTime()) {
+			return cur.pages
+		}
+	}
 	n := 0
 	if tool := djvuTool("djvused"); tool != "" {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		if out, err := exec.CommandContext(ctx, tool, "-e", "n", p).Output(); err == nil {
-			n, _ = strconv.Atoi(strings.TrimSpace(string(out)))
+		if done, err := bookDrawTurn(ctx); err == nil {
+			abs, aerr := filepath.Abs(p) // so no name can read as an option
+			if aerr == nil {
+				if out, err := exec.CommandContext(ctx, tool, "-e", "n", abs).Output(); err == nil {
+					n, _ = strconv.Atoi(strings.TrimSpace(string(out)))
+				}
+			}
+			done()
 		}
 	}
 	if n <= 0 {
@@ -487,9 +527,20 @@ func DjvuPageList(p string) []string {
 	if n > maxComicPages {
 		n = maxComicPages
 	}
+	if n < 0 {
+		n = 0
+	}
 	pages := make([]string, n)
 	for i := range pages {
 		pages[i] = strconv.Itoa(i+1) + ".jpg"
+	}
+	if statErr == nil {
+		comicListsMu.Lock()
+		if len(comicLists) >= 64 {
+			comicLists = map[string]comicList{}
+		}
+		comicLists[p] = comicList{st.ModTime(), pages}
+		comicListsMu.Unlock()
 	}
 	return pages
 }
@@ -512,6 +563,14 @@ func (s *Scanner) DjvuPageFile(ctx context.Context, it *Item, page int) (string,
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
+	}
+	done, err := bookDrawTurn(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer done()
+	if fi, err := os.Stat(out); err == nil && fi.Size() > 0 {
+		return out, nil // someone else was asking for the same page
 	}
 	tmp := filepath.Join(dir, fmt.Sprintf("%05d.tmp.tif", page))
 	defer os.Remove(tmp)

@@ -242,16 +242,23 @@ function MakeBackup({ view, reload, call }: { view: View; reload: () => void; ca
 }
 
 function FileList({ view, reload, call, onRestore }: { view: View; reload: () => void; call: ReturnType<typeof client>; onRestore: (name: string) => void }) {
-  const download = async (name: string) => {
+  const [asking, setAsking] = useState('')
+  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
+  const [err, setErr] = useState('')
+  const startDownload = (name: string) => { setAsking(name); setPassword(''); setCode(''); setErr('') }
+  const download = async () => {
+    setErr('')
     try {
-      const r = await call<{ url: string }>('POST', `/backup/files/${encodeURIComponent(name)}/link`)
+      const r = await call<{ url: string }>('POST', `/backup/files/${encodeURIComponent(asking)}/link`, { password, code })
       const a = document.createElement('a')
       a.href = serverBase() + r.url
-      a.download = name
+      a.download = asking
       document.body.appendChild(a)
       a.click()
       a.remove()
-    } catch (e) { toast(message(e)) }
+      setAsking(''); setPassword(''); setCode('')
+    } catch (e) { setErr(message(e)) }
   }
   const remove = async (b: Info) => {
     if (!await ask({ title: 'Delete this backup?', body: `${b.name} (${size(b.size)}) is deleted for good.`, confirm: 'Delete', danger: true })) return
@@ -269,10 +276,22 @@ function FileList({ view, reload, call, onRestore }: { view: View; reload: () =>
                 <small className="mono bk-name">{b.name}</small>
               </div>
               <div className="bk-file-actions">
-                <Button onClick={() => void download(b.name)} icon={<IconDownload />}>Download</Button>
+                <Button onClick={() => startDownload(b.name)} icon={<IconDownload />}>Download</Button>
                 <Button onClick={() => onRestore(b.name)}>Restore</Button>
                 <Button variant="ghost" onClick={() => void remove(b)} icon={<IconTrash />} aria-label={`Delete ${b.name}`}>Delete</Button>
               </div>
+              {asking === b.name && (
+                <form className="bk-pw" onSubmit={(e) => { e.preventDefault(); void download() }}>
+                  <p className="bk-quiet">A backup holds your accounts, so taking one off the server asks for your password.</p>
+                  <Field label="Your password"><Input type="password" autoComplete="current-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+                  {view.twoFactor && <Field label="Code from your authenticator app"><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
+                  {err && <Notice tone="warn" title="It can’t be downloaded yet">{err}</Notice>}
+                  <div className="bk-actions">
+                    <Button type="submit" variant="primary" disabled={password === '' || (view.twoFactor && code === '')}>Download</Button>
+                    <Button onClick={() => setAsking('')}>Cancel</Button>
+                  </div>
+                </form>
+              )}
             </li>
           ))}
         </ul>

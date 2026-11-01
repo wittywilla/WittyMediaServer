@@ -37,6 +37,8 @@ const (
 	backupLinkLife        = 10 * time.Minute
 	inspectionLife        = time.Hour
 	uploadPrefix          = "wms-backup-upload-"
+	// firstRunUploads is how many can wait at once from someone with no account.
+	firstRunUploads = 3
 )
 
 // backupState is the job going, and what checking an archive found.
@@ -356,12 +358,23 @@ func (s *Server) handleBackupDelete(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
-// POST /api/backup/files/{name}/link: a short-lived address to download it, as a backup can
-// be far too large for the app to hold in memory on its way to a file.
+// POST /api/backup/files/{name}/link {password, code}: a short-lived address to download it, as
+// a backup can be far too large for the app to hold in memory on its way to a file. A backup
+// holds every account's password hash, and one with a password every secret on the server,
+// sealed with a password whoever made it chose. So the password is asked for again here: this
+// is the one way a backup leaves the server, and a stolen session mustn't be able to use it.
 func (s *Server) handleBackupLink(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 	if _, err := s.backupFolders().PathOf(name); err != nil {
 		writeErr(w, 404, "no such backup")
+		return
+	}
+	var body resetBody
+	if err := readJSON(r, &body); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if !s.resetAllowed(w, r, body) {
 		return
 	}
 	b := make([]byte, 24)
@@ -583,11 +596,29 @@ func (s *Server) handleBackupUpload(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	if free := sysinfo.FreeBytes(f.Dir()); free > 0 && r.ContentLength > free {
-		writeErr(w, 507, fmt.Sprintf("there isn't room for this file: it's %d MB, and the drive has %d MB free", r.ContentLength>>20, free>>20))
+	// Nothing says how long a body is unless it wants to, and during first-time setup this is
+	// from someone with no account. So it stops at what the disk has to spare, whatever it said.
+	if free := sysinfo.FreeBytes(f.Dir()); free >= 0 {
+		room := free - uploadFreeFloor
+		if room <= 0 || r.ContentLength > room {
+			writeErr(w, 507, fmt.Sprintf("there isn't room for this file: the drive has %d MB free, and the server keeps %d MB of that for itself", free>>20, uploadFreeFloor>>20))
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, room)
+	}
+	if userFrom(r) == nil {
+		if backup.CountUploads(f, uploadPrefix) >= firstRunUploads {
+			writeErr(w, 409, "there are already backups waiting here. Restore one, or remove them from the backups folder")
+			return
+		}
+	}
+	// A name of its own: one that was checked can't be replaced by the next to arrive.
+	unique := make([]byte, 6)
+	if _, err := rand.Read(unique); err != nil {
+		writeErr(w, 500, err.Error())
 		return
 	}
-	name := uploadPrefix + time.Now().Format("20060102-150405") + ".zip"
+	name := uploadPrefix + time.Now().Format("20060102-150405") + "-" + hex.EncodeToString(unique) + ".zip"
 	dst := filepath.Join(f.Dir(), name)
 	tmp, err := os.CreateTemp(f.Dir(), ".backup-upload-*.tmp")
 	if err != nil {
@@ -601,6 +632,11 @@ func (s *Server) handleBackupUpload(w http.ResponseWriter, r *http.Request) {
 	_ = tmp.Chmod(0o600)
 	n, err := io.Copy(tmp, r.Body)
 	if err != nil {
+		var tooBig *http.MaxBytesError
+		if errors.As(err, &tooBig) {
+			writeErr(w, 507, "there isn't room for this file on the server's drive")
+			return
+		}
 		writeErr(w, 400, "the upload stopped part way: "+err.Error())
 		return
 	}

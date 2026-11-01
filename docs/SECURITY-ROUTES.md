@@ -557,4 +557,74 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/channels/bumpers/item/{id}` | Admin | Bumper exists. A file is deleted only in the bumpers folder |
 | `GET /api/channels/discs` | Admin | Nothing further |
 | `POST /api/channels/clip-preview` | Admin | A disc that exists. Title exists. Encrypted discs are refused |
+| `GET /api/backup` | An admin, or before any account exists the home network or the setup code | Backups kept, what's going on, and a restore waiting. Before any account exists: no folder, schedule or settings |
+| `GET /api/backup/estimate` | Admin | Nothing further |
+| `POST /api/backup/create` | Admin | Known parts, and what each needs. A password of at least 8 characters, if given. One job at a time. The file stays on the server until a download asks for the password |
+| `POST /api/backup/cancel` | An admin, or before any account exists the home network or the setup code | Nothing: stops the job going |
+| `PUT /api/backup/schedule` | Admin | Frequency, hour, weekday, keep of 1 to 365, known parts. A password of at least 8 characters, kept only as a key made from it |
+| `DELETE /api/backup/files/{name}` | Admin | Name has the form of one of this folder's backups, and is a plain file there |
+| `POST /api/backup/files/{name}/link` | Admin | The account's password, and code with two-factor sign-in, with an attempt limit. Name as for deleting. A ticket for that one file, for 10 minutes |
+| `GET /api/backup/download` | Public, with a ticket | The ticket (`?st=`) names one file and lasts 10 minutes. It isn't a sign-in, and opens nothing else |
+| `POST /api/backup/restore/upload` | An admin, or before any account exists the home network or the setup code | No size limit of its own: stops at the drive's free space, less 2 GB. Name made here. Before any account exists: at most 3 waiting. Nothing is opened |
+| `POST /api/backup/restore/inspect` | An admin, or before any account exists the home network or the setup code | Name as for deleting. One job at a time. Every name, link, size, ratio and hash, and each folder's kind of file. A database is read as values into a clean one, and its rows made harmless. Nothing is changed |
+| `POST /api/backup/restore/start` | An admin, or before any account exists the home network or the setup code | Typed RESTORE. Password and code, unless no account exists. An archive that's been checked, and known parts. It's read again as it's unpacked. The swap is made at the next start |
+| `DELETE /api/backup/restore/request` | An admin, or before any account exists the home network or the setup code | Nothing: takes back what's waiting for the next start |
+| `POST /api/backup/undo` | Admin | Password, and code with two-factor sign-in. Safety copy name by form, holding its own list. What it moves stays inside the data folders |
+| `GET /api/games/home` | Signed-in | limits, in the query. Library number. own lists, without what the account can no longer see |
+| `GET /api/games/{id}/check` | Signed-in | limits. A game. Says what it needs, as Play does: BIOS files beside the game are collected. Names and paths of the server aren't answered |
+| `GET /api/libraries/{id}/games/review` | Admin | A games library. Known list. Limit and offset |
+| `POST /api/libraries/{id}/games/review/apply` | Admin | A games library. 1 to 5,000 ids, known action, known console. No file is touched |
+| `GET /api/libraries/{id}/games/import` | Admin | A games library |
+| `GET /api/games/{id}/versions` | Signed-in | limits, on the game and on each version. A game. No paths. What's in an archive for admins only |
+| `PUT /api/games/{id}/version` | Admin | A game. Entry is empty, or one this archive holds and this console runs |
+| `POST /api/games/{id}/split` | Admin | A game |
+| `PUT /api/games/{id}/console` | Admin | A game. Known console. No file is touched |
+| `POST /api/games/{id}/not-a-game` | Admin | A game. No file is touched |
+| `GET /api/libtranscode/options` | Admin | Nothing further |
+| `GET /api/libtranscode/settings` | Admin | Nothing further |
+| `PUT /api/libtranscode/settings` | Admin | Numbers within their ranges |
+| `GET /api/libtranscode/libraries` | Admin | Nothing further |
+| `PUT /api/libtranscode/libraries/{id}` | Admin | A library that holds video. Every choice in a recipe is from a list or a range, and languages are checked by form. Known output |
+| `GET /api/libtranscode/libraries/{id}/items` | Admin | A library that holds video. At most 100 answered |
+| `POST /api/libtranscode/libraries/{id}/preview` | Admin | A library that holds video. Item in that library. Recipe as for saving |
+| `POST /api/libtranscode/libraries/{id}/sample` | Admin | As a preview. Writes only to the cache |
+| `POST /api/libtranscode/libraries/{id}/runs` | Admin | A library that holds video. At most 10,000 items. A real run does only what's saved. FFmpeg opens files as a list of media formats, local only |
+| `GET /api/libtranscode/runs` | Admin | Library number |
+| `GET /api/libtranscode/runs/{id}` | Admin | Numeric id |
+| `GET /api/libtranscode/runs/{id}/files` | Admin | Numeric id. Limit of at most 200. Offset |
+| `GET /api/libtranscode/leftovers` | Admin | Library number |
+| `POST /api/libtranscode/files/{id}/undo` | Admin | A file of a run. Paths from the run's own record, which no backup holds. Refused while it's playing |
+| `POST /api/libtranscode/files/{id}/use-copy` | Admin | A file of a run. Paths from the run's own record, which no backup holds |
+| `DELETE /api/libtranscode/files/{id}/leftover` | Admin | A file of a run. Only a kept original or a converted copy, by the form of its name, from the run's own record |
+| `GET /api/libtranscode/tdarr` | Admin | Nothing further. The key is never answered |
+| `PUT /api/libtranscode/tdarr` | Admin | Web address with no login in it. Lengths. A new address needs its key again |
+| `POST /api/libtranscode/tdarr/test` | Admin | Web address with no login, not the cloud metadata address. No redirects. Time and size limits. The saved key goes only to the saved address |
+| `POST /api/libtranscode/tdarr/send` | Admin | At most 10,000 items. Library mapped. Saved address only |
+| `GET /api/metadata-folder` | Admin | Nothing: the folder's place is fixed |
+| `POST /api/metadata-folder/export` | Admin | Library number. One job at a time. The folder's place is fixed. No link is followed |
+| `GET /api/metadata-folder/preview` | Admin | Nothing: the folder's place is fixed. Files are limited in size, and read through their own checks. Nothing is written |
+| `POST /api/metadata-folder/apply` | Admin | As a preview. Pictures must be pictures, addresses must be web addresses, and text can't hold markup. One batch that can be undone |
+| `GET /api/system/metrics` | Signed-in | What this account gets, by the owner's setting. Nothing about the machine unless that's the whole view |
+| `GET /api/system/metrics/now` | Signed-in | By the owner's setting. Only an administrator sees the machine and other people. Known sections |
+| `GET /api/system/metrics/stream` | Signed-in | As for one reading. Limits on open streams, per account and overall. The account is looked at again as it runs |
+| `GET /api/system/metrics/history` | Signed-in | Administrators only, said in the handler. Known range, known series |
+| `GET /api/system/metrics/report` | Signed-in | By the owner's setting. Libraries the account may open, and its own record. The rest for administrators |
+| `GET /api/system/metrics/drives` | Admin | Nothing further |
+| `GET /api/repair` | Admin | Nothing further |
+| `POST /api/repair/check` | Admin | Known checks. One job at a time. Nothing is changed |
+| `POST /api/repair/fix` | Admin | Keys from the last check, and fixes that can be made. Password and code for anything but what can't lose anything. Paths come only from the check |
+| `POST /api/repair/remap` | Admin | Path lengths. A full path to a folder that exists, outside the data folder, on this machine unless it's allowed or asked for at the server. Most of the library's files must be there. Password and code to apply it. No file moves |
+| `POST /api/repair/restart` | Admin | A fix is waiting for it |
+| `GET /api/system/tasks` | Signed-in | By the owner's setting. Tasks of libraries the account may open, or its own. No file names, errors or other people for anyone but an administrator |
+| `GET /api/system/tasks/stream` | Signed-in | As for the list. Limits on open streams, per account and overall. The account is looked at again as it runs |
+| `GET /api/system/tasks/history` | Signed-in | As for the list. Limit, type, state, library |
+| `DELETE /api/system/tasks/history` | Admin | Nothing further |
+| `DELETE /api/system/tasks/history/{id}` | Admin | Task id |
+| `POST /api/system/tasks/{id}/pause` | Admin | Task exists, and can be paused |
+| `POST /api/system/tasks/{id}/resume` | Admin | Task exists, and can be resumed |
+| `POST /api/system/tasks/{id}/cancel` | Admin | Task exists, and can be cancelled |
+| `POST /api/system/tasks/{id}/retry` | Admin | Task exists, and its kind can be started again |
+| `POST /api/themes/custom` | Admin | Name, known colours as colour values and nothing else, radius in range. Becomes a theme through the theme manager's own check |
+| `GET /api/media-types` | Signed-in | Nothing: known formats and whether this server can play them. Which FFmpeg it runs for admins only |
+| `PUT /api/users/{id}/profile` | Signed-in | Caller may manage that account, or it's their own. Which name shows is anyone's own choice. Names: an adult's own, or a manager's. Username has no invisible characters and differs from every other, ignoring case. Display name cleaned and cut to 60 characters |
 | `/` (any method, everything else) | Public | Files of the web app, or its page. An unknown `/api/` address answers 404 |

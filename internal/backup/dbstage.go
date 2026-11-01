@@ -38,6 +38,13 @@ func inspectDatabase(ctx context.Context, in *Inspection, files []*zip.File, f F
 	if entry == nil {
 		return nil
 	}
+	// It comes out twice over: as it is, and rebuilt. Most of what a ZIP bomb's ratio limit lets
+	// through is this, and it happens before anyone has agreed to anything.
+	if need := 2*int64(entry.UncompressedSize64) + 64<<20; int64(entry.UncompressedSize64) <= maxDatabase {
+		if free := freeBytes(in.workDir); free >= 0 && free < need {
+			return fmt.Errorf("there isn't room to check this backup: its database needs about %d MB, and the drive has %d MB free", need>>20, free>>20)
+		}
+	}
 	archive := filepath.Join(in.workDir, "archive.db")
 	if err := extractLimited(entry, archive, maxDatabase); err != nil {
 		return Refused(dbEntry, err.Error())
@@ -311,7 +318,9 @@ func shortErr(err error) string { return printableName(err.Error()) }
 // Access is off after a restore until someone turns it on again from home.
 var (
 	placeSetting  = regexp.MustCompile(`(?i)(path|dir|folder|exe|binary|command|cmd|program)$`)
-	alwaysDropped = map[string]bool{"remoteAccess": true, "trustedProxies": true, "publicUrl": true, "portMapping": true, "backupKey": true, "backupFolder": true, "backupLast": true}
+	alwaysDropped = map[string]bool{"remoteAccess": true, "trustedProxies": true, "publicUrl": true, "portMapping": true, "backupKey": true, "backupFolder": true, "backupLast": true,
+		// Custom cores are programs, which no backup holds: turning them on is for this machine's owner.
+		"gamingCustomCores": true}
 	// Settings that hold addresses the server will contact. Kept only from a protected
 	// archive, as nobody can have changed one of those without the password.
 	addressSetting = map[string]bool{"agents": true, "lyricsMirror": true, "moduleSources": true, "moduleStores": true}
@@ -349,6 +358,10 @@ func sanitizeSettings(ctx context.Context, d *sql.DB, in *Inspection) error {
 		case placeSetting.MatchString(x.k):
 			drop = true
 			places = append(places, x.k)
+		case !in.man.Protected && isSecretSetting(x.k, nil):
+			// Making a backup with no password leaves these out, so one in the file was put
+			// there afterwards: this server's identity, or a key of someone else's.
+			drop = true
 		case !in.man.Protected && (addressSetting[x.k] || looksLikeAddress.MatchString(x.v)):
 			drop = true
 			addrs = append(addrs, x.k)
@@ -402,6 +415,9 @@ func dangerousRoot(p string, f Folders) string {
 	n := normalizePath(p)
 	if !looksAbsolute(p) {
 		return "it isn't a full path"
+	}
+	if s := strings.ReplaceAll(p, `\`, "/"); strings.HasPrefix(s, "//?/") || strings.HasPrefix(s, "//./") {
+		return "it's a device path, which nobody needs for a library"
 	}
 	if n == "" || n == "." || (len(n) == 2 && n[1] == ':') {
 		return "it's a whole drive's top level"
@@ -473,7 +489,13 @@ func sanitizeRows(ctx context.Context, d *sql.DB, in *Inspection, f Folders) err
 	rows.Close()
 	var roots []string
 	for _, x := range paths {
-		if why := dangerousRoot(x.path, f); why != "" {
+		why := dangerousRoot(x.path, f)
+		// Scanning a share sends this machine's sign-in to it. One from a backup with a password
+		// is shown before anyone agrees, and with none it has to be added again.
+		if why == "" && !in.man.Protected && strings.HasPrefix(strings.ReplaceAll(x.path, `\`, "/"), "//") {
+			why = "it's on another machine, and this backup has no password to prove it's yours. Add it again under Libraries"
+		}
+		if why != "" {
 			in.Dropped = append(in.Dropped, "The library folder "+printableName(x.path)+", because "+why+".")
 			if _, err := d.ExecContext(ctx, `DELETE FROM library_paths WHERE id = ?`, x.id); err != nil {
 				return err
@@ -516,6 +538,15 @@ func sanitizeRows(ctx context.Context, d *sql.DB, in *Inspection, f Folders) err
 		// A token's hash can be planted as easily as anything else.
 		if _, err := d.ExecContext(ctx, `DELETE FROM share_links`); err != nil {
 			return err
+		}
+		// A rule that goes on replacing files by itself is a person's decision, and this file
+		// has no password to say whose.
+		res, err := d.ExecContext(ctx, `UPDATE ltc_rules SET auto = 0, allow_writes = 0 WHERE auto <> 0 OR allow_writes <> 0`)
+		if err != nil {
+			return err
+		}
+		if n, err := res.RowsAffected(); err == nil && n > 0 {
+			in.Dropped = append(in.Dropped, "Libraries that convert new files by themselves, which you turn on again if you want them, since this backup has no password to prove they're yours.")
 		}
 	}
 	return nil
@@ -743,7 +774,8 @@ func sanitizeRecordings(ctx context.Context, d *sql.DB, in *Inspection, f Folder
 				return err
 			}
 		case in.man.Protected:
-			// Their own folder, and nobody without the password can have planted this.
+			// Their own folder, perhaps, and it's set again here. The server only touches a
+			// recording's file inside the recordings folder, so this names nothing it will use.
 		default:
 			dropped++
 			if _, err := d.ExecContext(ctx, `DELETE FROM recordings WHERE id = ?`, r.id); err != nil {

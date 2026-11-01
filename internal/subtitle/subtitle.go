@@ -11,6 +11,7 @@ import (
 	"io"
 	"math"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -22,6 +23,9 @@ import (
 const MaxInput = 32 << 20
 
 const maxCues = 1 << 20
+
+// maxLRCOutput is how much WebVTT timed lyrics can come to. The words of any song are far less.
+const maxLRCOutput = 64 << 20
 
 // ReadsItself says Convert handles this format with no help.
 func ReadsItself(format string) bool {
@@ -190,6 +194,9 @@ func fromLRC(text []byte) []byte {
 		if c.text == "" {
 			continue
 		}
+		if out.Len() > maxLRCOutput {
+			break // one line can have many stamps, each saying all of it again
+		}
 		end := c.at + 6
 		if i+1 < len(cues) {
 			end = cues[i+1].at
@@ -200,12 +207,7 @@ func fromLRC(text []byte) []byte {
 }
 
 func sortLRC(c []lrcLine) {
-	// Few lines, mostly in order already.
-	for i := 1; i < len(c); i++ {
-		for j := i; j > 0 && c[j].at < c[j-1].at; j-- {
-			c[j], c[j-1] = c[j-1], c[j]
-		}
-	}
+	sort.SliceStable(c, func(i, j int) bool { return c[i].at < c[j].at })
 }
 
 func clock(sec float64) string {

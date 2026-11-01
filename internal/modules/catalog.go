@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymodule"
 	"os"
 	"path/filepath"
 	"sort"
@@ -259,7 +260,7 @@ func (m *Manager) AddModule(id string) error {
 	for _, r := range requires {
 		m.mu.Lock()
 		o := m.mods[r]
-		need := o != nil && !o.on()
+		need := o != nil && !o.on() && !o.comesInside()
 		m.mu.Unlock()
 		if need {
 			if err := m.AddModule(r); err != nil {
@@ -523,6 +524,14 @@ func (m *Manager) requiredBy(id string) []string {
 		}
 	}
 	return out
+}
+
+// comesInside: a library has nothing to install, and reaches a server inside what's built with it.
+func (e *entry) comesInside() bool {
+	if e.builtin.Delivery == wittymodule.DeliveryLibrary {
+		return true
+	}
+	return e.builtin.Core && e.listed != nil && len(e.listed.Versions) == 0
 }
 
 // ready tells the server a module has arrived. Nothing here waits for what it does about that.

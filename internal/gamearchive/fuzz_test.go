@@ -20,7 +20,7 @@ func FuzzCleanName(f *testing.F) {
 
 // A game's own list of its parts, naming whatever it likes.
 func FuzzCheckReferences(f *testing.F) {
-	f.Add([]byte(`FILE "game.bin" BINARY` + "\n" + `  TRACK 01 MODE1/2352`), "game.cue")
+	f.Add([]byte(`FILE "game.bin" BINARY`+"\n"+`  TRACK 01 MODE1/2352`), "game.cue")
 	f.Add([]byte(`FILE "../../etc/passwd" BINARY`), "game.cue")
 	f.Add([]byte("1 0 4 2352 ..\\x.bin 0\n"), "game.gdi")
 	f.Add([]byte("a.cue\n../b.cue\n"), "game.m3u")

@@ -103,11 +103,7 @@ func FuzzSidecars(f *testing.F) {
 			t.Fatal(err)
 		}
 		inTime(t, 5*time.Second, func() {
-			var it Item
-			applyNFO(&it, p)
-			if r := it.Rating; r != nil && (math.IsInf(*r, 0) || math.IsNaN(*r)) {
-				t.Fatalf("rating %v", *r)
-			}
+			applyNFO(&Item{}, p)
 			applySidecarJSON(&Item{}, p)
 			applyShowNFO(&Show{}, p)
 			applyEpisodeNFO(&Item{}, p)

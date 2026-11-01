@@ -23,6 +23,7 @@ import LegalNote from '../components/LegalNote'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
+const MetadataFolder = lazy(() => import('./settings/MetadataFolder'))
 const LogSettings = lazy(() => import('./LogSettings'))
 const LegalSettings = lazy(() => import('./settings/Legal'))
 const ResetSettings = lazy(() => import('./settings/Reset'))
@@ -68,6 +69,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   { title: 'System', pages: [
     { to: 'logs', label: 'WittyLog', icon: <IconFile />, admin: true, hint: 'What is recorded and for how long, and downloading logs to share' },
     { to: 'diagnoser', label: 'WittyDiagnoser', icon: <IconTune />, admin: true, hint: 'The disk diagnoser: checks your discs and your drives, and changes nothing' },
+    { to: 'metadata-files', label: 'Metadata files', icon: <IconEdit />, admin: true, hint: 'Fix a title’s details by hand, with any text editor' },
     { to: 'modules', label: 'Modules', icon: <IconPlug />, admin: true, hint: 'What this server can do: add, remove, update and choose versions' },
     { to: 'reset', label: 'Reset', icon: <IconRefresh />, admin: true, hint: 'Back to a new install, with a copy kept if you want one' },
     { to: 'about', label: 'About', icon: <IconInfo />, hint: 'Version, modules, licenses and credits' },
@@ -142,6 +144,7 @@ export default function SettingsPage() {
           <Route path="remote" element={<Suspense fallback={null}><RemoteAccess /></Suspense>} />
           <Route path="security" element={<Suspense fallback={null}><Security /></Suspense>} />
           <Route path="diagnoser" element={<Suspense fallback={null}><Diagnoser /></Suspense>} />
+          <Route path="metadata-files" element={<Suspense fallback={null}><MetadataFolder /></Suspense>} />
           <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
           <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /></Suspense>} />
           <Route path="about" element={<About />} />

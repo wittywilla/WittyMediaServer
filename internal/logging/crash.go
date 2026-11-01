@@ -72,6 +72,27 @@ var activeGuard struct {
 	g *CrashGuard
 }
 
+// ServerRunning says whether another process is running as a server on the folder that
+// holds these crash reports, for tools that mustn't change its files underneath it.
+func ServerRunning(crashDir string) (pid int, running bool) {
+	entries, err := os.ReadDir(crashDir)
+	if err != nil {
+		return 0, false
+	}
+	me := os.Getpid()
+	for _, e := range entries {
+		name := e.Name()
+		if !strings.HasPrefix(name, "run-") || !strings.HasSuffix(name, ".json") {
+			continue
+		}
+		n, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(name, "run-"), ".json"))
+		if err == nil && n != me && pidAlive(n) {
+			return n, true
+		}
+	}
+	return 0, false
+}
+
 // StartCrashGuard turns what the last run left behind into reports and arms the
 // capture for this run. logDir is read for the last lines before a crash. It
 // returns the reports made now; failures are logged, and never stop the server.

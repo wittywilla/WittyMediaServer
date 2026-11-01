@@ -148,6 +148,7 @@ The full walkthrough, with no command line: **[Getting started](docs/GETTING_STA
 | 📺 | [TV shows](docs/TV.md) | folder layouts, TheTVDB, skip intro, watch next |
 | 📡 | [Channels and live TV](docs/CHANNELS.md) | channels from your library, the guide, tuners, IPTV, recording |
 | 🏷️ | [Metadata](docs/METADATA.md) | metadata agents, custom agents, NFO files, artwork |
+| ✏️ | [Fixing metadata by hand](docs/FIXING-METADATA.md) | a folder of plain text files, one for each title, with worked examples |
 | 🎵 | [Music, audiobooks & podcasts](docs/MUSIC.md) | folders, tags and covers, the player, following podcasts |
 | 📷 | [Photos](docs/PHOTOS.md) | formats, the timeline and map, uploads, sharing links |
 | 📱 | [Vertical videos](docs/SHORTS.md) · [Creator videos & music videos](docs/CREATOR-VIDEOS.md) | folder layouts, sidecar files, For You, channels, concerts |

@@ -28284,6 +28284,134 @@
         ],
         "x-wms-auth": "admin"
       }
+    },
+    "/metadata-folder": {
+      "get": {
+        "operationId": "getMetadataFolder",
+        "summary": "The editable metadata folder",
+        "description": "Where it is, what's in it and how the export is going. No route here takes a path.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The editable metadata folder",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/metadata-folder/export": {
+      "post": {
+        "operationId": "exportMetadataFolder",
+        "summary": "Write the files",
+        "description": "Writes a plain text file for each title, in the background. Never deletes, and never writes over edits that haven't been applied.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Write the files",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/metadata-folder/preview": {
+      "get": {
+        "operationId": "previewMetadataFolder",
+        "summary": "What applying would change",
+        "description": "Field by field, with every problem by file and line. Writes nothing.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "What applying would change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/metadata-folder/apply": {
+      "post": {
+        "operationId": "applyMetadataFolder",
+        "summary": "Apply the files",
+        "description": "Makes the changes in one batch that POST /meta/undo takes back. A bad file is listed and left out.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Apply the files",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
     }
   },
   "security": [

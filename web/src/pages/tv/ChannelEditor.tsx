@@ -4,10 +4,11 @@ import { fmtDateTime, api, fmtRuntime, mediaUrl, type Item, type UserView } from
 import { IconPlus, IconTrash } from '../../icons'
 import { toast, useApp } from '../../state'
 import { PageHead, Section } from '../settings/ui'
+import BrandLogo from '../../components/BrandLogo'
 import { BumperSection } from './BumperEditor'
 import DiscScenes from './DiscScenes'
 import './tveditor.css'
-import { DAYS, emptyDefinition, type CommercialPick, fmtClock, forgetLineup, fullDay, uploadLogo, type Block, type Channel, type Definition, type EditorOptions, type Order, type PoolStats, type Programme, type Rules, type Suggestion, type Visibility } from './tvApi'
+import { brandOf, DAYS, emptyDefinition, type ChannelLook, type CommercialPick, fmtClock, forgetLineup, fullDay, uploadLogo, type Block, type Channel, type Definition, type EditorOptions, type Order, type PoolStats, type Programme, type Rules, type Suggestion, type Visibility } from './tvApi'
 
 // One channel, as much or as little as you want. Simple, Rules and Timetable
 // are three views of the same definition: going from one to another changes
@@ -25,7 +26,7 @@ const FITS: { v: NonNullable<Block['fit']>; label: string }[] = [
   { v: 'fill', label: 'Finish on time: fill the gap' }, { v: 'overrun', label: 'Let the show finish' }, { v: 'cut', label: 'Cut it at the end of the slot' },
 ]
 
-type Draft = { name: string; number: string; description: string; definition: Definition; visibility: Visibility; countProgress: boolean; enabled: boolean; categories: string[]; look: { accent?: string } }
+type Draft = { name: string; number: string; description: string; definition: Definition; visibility: Visibility; countProgress: boolean; enabled: boolean; categories: string[]; look: ChannelLook }
 
 const blankDraft = (): Draft => ({ name: '', number: '', description: '', definition: emptyDefinition(), visibility: { mode: '' }, countProgress: false, enabled: true, categories: [], look: {} })
 const newBlockId = () => 'b' + Math.random().toString(36).slice(2, 9)
@@ -162,10 +163,11 @@ export default function ChannelEditor() {
               <small className="tvs-help">Separated by commas. Leave it empty and the guide works some out, such as Movies and Kids.</small>
             </label>
             <div className="tve-accent">
-              <label>The channel's own colour<input type="color" value={draft.look.accent || '#3478f6'} onChange={(e) => setDraft({ ...draft, look: { accent: e.target.value } })} /></label>
-              {draft.look.accent && <button type="button" className="btn sm ghost" onClick={() => setDraft({ ...draft, look: {} })}>Use the guide's colours</button>}
+              <label>The channel's own colour<input type="color" value={draft.look.accent || '#3478f6'} onChange={(e) => setDraft({ ...draft, look: { ...draft.look, accent: e.target.value } })} /></label>
+              {draft.look.accent && <button type="button" className="btn sm ghost" onClick={() => setDraft({ ...draft, look: { ...draft.look, accent: undefined } })}>Use the guide's colours</button>}
             </div>
           </div>
+          {opts && <LogoChoice look={draft.look} def={def} opts={opts} ownLogo={!!logo} set={(l) => setDraft({ ...draft, look: { ...draft.look, ...l } })} />}
         </div>
       </Section>
 
@@ -236,6 +238,32 @@ export default function ChannelEditor() {
         </div>
       )}
     </>
+  )
+}
+
+// Which logo the channel wears. Left alone it's the one network or studio it plays,
+// once the logo service has one: an owner's download or upload, never bundled.
+function LogoChoice({ look, def, opts, ownLogo, set }: { look: ChannelLook; def: Definition; opts: EditorOptions; ownLogo: boolean; set: (l: ChannelLook) => void }) {
+  const value = look.logoKind === 'none' ? 'none' : look.logoName ? `${look.logoKind}|${look.logoName}` : ''
+  const brand = brandOf(def, look)
+  return (
+    <div className="tve-logo">
+      <label>Logo
+        <select className="select" value={value} onChange={(e) => {
+          const v = e.target.value
+          if (v === '') set({ logoKind: undefined, logoName: undefined })
+          else if (v === 'none') set({ logoKind: 'none', logoName: undefined })
+          else { const [k, ...n] = v.split('|'); set({ logoKind: k as ChannelLook['logoKind'], logoName: n.join('|') }) }
+        }}>
+          <option value="">Worked out from what it plays</option>
+          <option value="none">Just its name</option>
+          {opts.networks.length > 0 && <optgroup label="Networks">{opts.networks.map((n) => <option key={n.name} value={`network|${n.name}`}>{n.name}</option>)}</optgroup>}
+          {opts.studios.length > 0 && <optgroup label="Studios">{opts.studios.map((n) => <option key={n} value={`studio|${n}`}>{n}</option>)}</optgroup>}
+        </select>
+        <small className="tvs-help">{ownLogo ? 'Your own uploaded logo comes first, while you have one. ' : ''}Logos are an optional download: <Link to="/settings/metadata">Settings, Metadata agents</Link>. Without one the guide uses the channel's name.</small>
+      </label>
+      {brand && <span className="tve-logo-show"><BrandLogo kind={brand.kind} name={brand.name} /></span>}
+    </div>
   )
 }
 
@@ -629,8 +657,21 @@ function CommercialsSection({ def, setDef }: { def: Definition; setDef: (p: Part
             </select>
           </label>
           <label>No longer than (seconds)<input className="input" type="number" min={0} value={f.maxSeconds || ''} onChange={(e) => setDef({ filler: { ...f, maxSeconds: Number(e.target.value) || 0 } })} /></label>
+          <label>During a programme, a break every
+            <select className="select" value={f.breakEveryMin || 0} onChange={(e) => { const m = Number(e.target.value); setDef({ filler: { ...f, breakEveryMin: m, breakAds: m ? f.breakAds || 2 : 0 } }) }}>
+              {[0, 10, 15, 20, 30, 45, 60].map((m) => <option key={m} value={m}>{m === 0 ? 'No breaks' : `${m} minutes`}</option>)}
+            </select>
+          </label>
+          {!!f.breakEveryMin && (
+            <label>With
+              <select className="select" value={f.breakAds || 2} onChange={(e) => setDef({ filler: { ...f, breakAds: Number(e.target.value) } })}>
+                {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n} {n === 1 ? 'commercial' : 'commercials'}</option>)}
+              </select>
+            </label>
+          )}
         </div>
       )}
+      {!!f.breakEveryMin && <p className="muted" style={{ fontSize: 13 }}>No break comes so near the end that you'd just wait for the programme to finish. With “Cut commercials short” on, these give way too, once those after the programme have.</p>}
       <p className="muted" style={{ fontSize: 13 }}>Commercials count as part of the channel for parental limits. A Kids profile won't see this channel unless these videos have a suitable rating (edit a video to give it one).</p>
     </Section>
   )

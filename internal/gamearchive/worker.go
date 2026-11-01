@@ -46,10 +46,15 @@ func init() {
 type listRequest struct {
 	Path   string `json:"path"`
 	Budget int64  `json:"budget,omitempty"`
+	// Peek, when set, asks for the first Bytes of this one file instead of a listing.
+	Peek  string `json:"peek,omitempty"`
+	Bytes int    `json:"bytes,omitempty"`
 }
 
 type listReply struct {
 	Listing *Listing `json:"listing,omitempty"`
+	Head    []byte   `json:"head,omitempty"`
+	Peeked  bool     `json:"peeked,omitempty"`
 	Code    string   `json:"code,omitempty"`
 }
 
@@ -83,6 +88,15 @@ func runWorker(mode string) int {
 			var req listRequest
 			if json.Unmarshal(line, &req) != nil {
 				return 1
+			}
+			if req.Peek != "" {
+				head, err := peekFile(req.Path, req.Peek, min(req.Bytes, PeekSize))
+				if err != nil {
+					_ = out.Encode(listReply{Code: codeFor(err)})
+					continue
+				}
+				_ = out.Encode(listReply{Head: head, Peeked: true})
+				continue
 			}
 			l, err := listFile(req.Path, req.Budget)
 			if err != nil {
@@ -233,7 +247,38 @@ func (l *Lister) List(path string, budget int64) (*Listing, error) {
 			return nil, ErrUnavailable
 		}
 	}
-	b, _ := json.Marshal(listRequest{Path: path, Budget: budget})
+	r, err := l.exchange(listRequest{Path: path, Budget: budget})
+	if err != nil {
+		return nil, err
+	}
+	if r.Listing == nil {
+		return nil, ErrDamaged
+	}
+	if err := r.Listing.check(); err != nil {
+		return nil, err
+	}
+	return r.Listing, nil
+}
+
+// ask gets the bytes a peek asked for. What comes back is untrusted like everything from
+// the worker, so it's cut to what was asked for.
+func (l *Lister) ask(req listRequest) ([]byte, error) {
+	r, err := l.exchange(req)
+	if err != nil {
+		return nil, err
+	}
+	if !r.Peeked {
+		return nil, ErrDamaged
+	}
+	if len(r.Head) > req.Bytes {
+		return r.Head[:req.Bytes], nil
+	}
+	return r.Head, nil
+}
+
+// exchange sends one request and waits for its answer.
+func (l *Lister) exchange(req listRequest) (*listReply, error) {
+	b, _ := json.Marshal(req)
 	if _, err := l.in.Write(append(b, '\n')); err != nil {
 		l.kill()
 		return nil, errWorkerGone
@@ -254,13 +299,7 @@ func (l *Lister) List(path string, budget int64) (*Listing, error) {
 		if r.Code != "" {
 			return nil, errorFor(r.Code)
 		}
-		if r.Listing == nil {
-			return nil, ErrDamaged
-		}
-		if err := r.Listing.check(); err != nil {
-			return nil, err
-		}
-		return r.Listing, nil
+		return &r, nil
 	case <-timer.C:
 		l.kill()
 		return nil, errWorkerGone
@@ -286,6 +325,15 @@ func List(path string) (*Listing, error) {
 	defer l.Close()
 	l.timeout = 10 * time.Minute // a whole .tar.gz, on the slowest hardware
 	return l.List(path, 0)
+}
+
+// Unpack takes these files out of an archive into a folder, in a worker of its own,
+// writing no more than limit bytes.
+func Unpack(ctx context.Context, path, dst string, want []Want, limit int64) ([]Written, error) {
+	if len(want) == 0 {
+		return nil, nil
+	}
+	return unpackIn(ctx, unpackRequest{Path: path, Dst: dst, Want: want, Limit: limit}, nil)
 }
 
 // unpackIn runs one unpack in a worker. Cancelling ctx kills it.

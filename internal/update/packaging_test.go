@@ -21,7 +21,7 @@ func TestEveryInstallBringsTheServerAndItsHelpers(t *testing.T) {
 	if !strings.Contains(build, `-o "$out/bin/wittymediaserver$ext"`) {
 		t.Error("build-release.sh doesn't put the server in bin")
 	}
-	if !strings.Contains(read("scripts", "install.sh"), `cp -R "$HERE/bin"`) {
+	if !strings.Contains(read("packaging", "linux", "install.sh"), `cp -R "$HERE/bin"`) {
 		t.Error("install.sh leaves out bin")
 	}
 	if !strings.Contains(read("packaging", "linux", "nfpm.yaml"), "${STAGE}/bin") {

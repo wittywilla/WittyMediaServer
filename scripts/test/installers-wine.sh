@@ -33,6 +33,10 @@ fail() { echo "FAIL: $*"; exit 1; }
 say() { echo; echo "##### $*"; }
 wineboot -i >/dev/null 2>&1
 wineserver -w
+# Wine's Windows Installer treats MSIINSTALLPERUSER=1 as for everyone. ALLUSERS="" gives what real
+# Windows does for just me, except that files stay in Program Files, so that folder choice isn't
+# proven here: installers-windows-sandbox.wsb does that.
+JUST_ME='ALLUSERS=""'
 msi=$(ls /pkgs/wittymediaserver-*-windows-amd64.msi)
 new=$(ls /pkgs/upgrade/wittymediaserver-*-windows-amd64.msi)
 C="$WINEPREFIX/drive_c"
@@ -80,7 +84,7 @@ if [ -n "${SHOTS:-}" ]; then
 fi
 
 say "install just for me, silently, with choices: $msi"
-run_msi /i "$msi" /qn MSIINSTALLPERUSER=1 AUTOSTART=1 DESKTOPSHORTCUT=1 ADDTOPATH=1 || fail "install exit $code"
+run_msi /i "$msi" /qn "$JUST_ME" AUTOSTART=1 DESKTOPSHORTCUT=1 ADDTOPATH=1 || fail "install exit $code"
 snapshot > /tmp/installed.txt
 diff /tmp/before.txt /tmp/installed.txt | grep '^>' | head -60
 dir=$(find "$C" -type f -name WittyMediaServer.exe | head -1)
@@ -101,7 +105,7 @@ wine "$root/bin/wittymediaserver.exe" config path
 
 say "upgrade in place: $new"
 echo mine > "$root/my-own-file.txt"
-run_msi /i "$new" /qn || fail "upgrade exit $code"
+run_msi /i "$new" /qn "$JUST_ME" || fail "upgrade exit $code"
 grep -a 'Product: WittyMediaServer' /root/wine/drive_c/msi.log | tail -n 3
 wine "$root/bin/wittymediaserver.exe" version | tee /tmp/v
 grep -q 9.9.9 /tmp/v || fail "still the old version"
@@ -128,7 +132,7 @@ reg_has 'Uninstall\\\\\\\\WittyMediaServer' && fail "the Installed apps entry st
 rm -f "$root/my-own-file.txt"; rmdir "$root" 2>/dev/null
 
 say "install again, for full removal"
-run_msi /i "$msi" /qn MSIINSTALLPERUSER=1 || fail "reinstall exit $code"
+run_msi /i "$msi" /qn "$JUST_ME" || fail "reinstall exit $code"
 root=$(dirname "$(find "$C" -type f -name WittyMediaServer.exe | head -1)")
 report='C:\report.txt'
 
@@ -150,7 +154,7 @@ if grep -Eq '^[+-][^+-]' /tmp/d.txt; then cat /tmp/d.txt; fail "something was le
 echo "NOTHING LEFT: $(wc -l < /tmp/after.txt) paths and registry keys, before and after the same"
 
 say "for everyone, with the service and the firewall rule"
-run_msi /i "$msi" /qn 'MSIINSTALLPERUSER=' INSTALLSERVICE=1 ADDFIREWALL=1 AUTOSTART= PORT=9797 || fail "machine install exit $code"
+run_msi /i "$msi" /qn ALLUSERS=1 INSTALLSERVICE=1 ADDFIREWALL=1 AUTOSTART=0 PORT=9797 || fail "machine install exit $code"
 root="$C/Program Files/WittyMediaServer"
 [ -f "$root/WittyMediaServer.exe" ] || fail "not in Program Files: $(find "$C" -name WittyMediaServer.exe)"
 grep -aqi 'Services\\\\\\\\WittyMediaServer' "$WINEPREFIX/system.reg" || fail "the service wasn't registered"

@@ -998,7 +998,8 @@ func (s *Session) videoFilter(it *wittybluray.PlayItem) string {
 			}
 		}
 		if isHDR(v) {
-			if tm := s.m.Tools.ToneMapFilter(); tm != "" {
+			// UHD Blu-ray's HDR is PQ: HDR10, HDR10+ and Dolby Vision's base layer.
+			if tm := s.m.Tools.ToneMapFilter("hdr10"); tm != "" {
 				chain = append(chain, tm)
 			}
 		}

@@ -67,7 +67,7 @@ To check a whole disc's menus: `go run ./cmd/wms dvd crawl /path/to/disc.iso`.
   from the public DVD-Video structure.
 - Match the surrounding code style; explain *why* in comments, not *what*.
 - New settings need a sensible default, a tooltip in the UI and a line in the docs.
-- For disc bugs, attach `wms dvd info` and `wms dvd crawl` output — never disc images.
+- For disc bugs, attach `wittymediaserver dvd info` and `wittymediaserver dvd crawl` output — never disc images.
 - A new screen that shows third-party or web content, or where people add or share media, takes a
   `<LegalNote>`: [docs/LEGAL-NOTICES-CHECKLIST.md](docs/LEGAL-NOTICES-CHECKLIST.md) says which. A new outside
   service goes on the privacy list in `internal/legal/legal.json`; a test fails otherwise.

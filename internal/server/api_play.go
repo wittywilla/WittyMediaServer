@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -17,6 +18,8 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 )
 
@@ -198,11 +201,24 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	ext := strings.ToLower(filepath.Ext(it.Path))
 	directPlay := s.DB.GetSetting(r.Context(), "directPlay", "1") == "1"
 	web, _ := playback.Find("web")
-	d := playback.Decide(web, probeSource(it, pr), playback.Request{AudioIndex: info.AudioIndex, SubtitleIndex: info.SubIndex, MaxHeight: maxHeight, AllowDirect: directPlay, ForceTranscode: qBool(r, "transcode")})
+	// This older door gives a client a file or a full stream, and subtitles in the
+	// picture. The player says what its browser can do, when it knows.
+	web.Remux, web.SidecarSubtitles = false, false
+	if raw := r.URL.Query().Get("caps"); raw != "" && len(raw) <= 4096 {
+		var caps playback.Capabilities
+		if json.Unmarshal([]byte(raw), &caps) == nil {
+			web = caps.Apply(web)
+			web.Remux, web.SidecarSubtitles = false, false
+		}
+	}
+	src := probeSource(it, pr)
+	src.Subtitles = src.Subtitles[:len(info.Subtitles)] // files beside it are for the newer door
+	d := playback.Decide(web, src, playback.Request{AudioIndex: info.AudioIndex, SubtitleIndex: info.SubIndex, MaxHeight: maxHeight, AllowDirect: directPlay, ForceTranscode: qBool(r, "transcode")})
 	if d.Mode == playback.Direct && s.fitsCap(r, it.SizeBytes, pr.Duration()) {
 		info.Type = "direct"
 		info.URL = fmt.Sprintf("/api/items/%d/file", it.ID)
 		s.Log.InfoContext(r.Context(), "playback started", "cat", "playback", "item", it.ID, "title", it.Title, "mode", "direct", "video", v.CodecName, "height", v.Height)
+		s.streams.note(r, it, "direct", nil, "")
 		writeJSON(w, 200, info)
 		return
 	}
@@ -210,6 +226,11 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	var vf string
 	if v != nil && (v.FieldOrder == "tt" || v.FieldOrder == "bb" || v.FieldOrder == "tb" || v.FieldOrder == "bt") {
 		vf = "bwdif=mode=send_frame:parity=auto:deint=interlaced"
+	}
+	if d.ToneMap {
+		if tm := s.Tools.ToneMapFilter(src.Range); tm != "" {
+			vf = strings.Trim(vf+","+tm, ",")
+		}
 	}
 	channels := 2
 	if info.AudioIndex < len(info.Audio) && info.Audio[info.AudioIndex].Channels > 2 && qBool(r, "surround") && q.CapRate == "" {
@@ -220,8 +241,22 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	if len(info.Audio) == 0 {
 		audioIdx = -1
 	}
+	inputArgs := ffmpeg.FileInput(it.Path)
+	if parts := library.StackedParts(it.Path); len(parts) > 1 {
+		h := sha1.Sum([]byte(it.Path))
+		list, err := ffmpeg.PartsInput(filepath.Join(s.Cfg.CacheDir, "lists"), "parts-"+hex.EncodeToString(h[:8]), parts)
+		if err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+		inputArgs = list
+		info.DurationSec = it.RuntimeSec
+	}
+	if info.DurationSec <= 0 {
+		info.DurationSec = it.RuntimeSec // a bare stream doesn't say; the scan worked it out
+	}
 	s.HLS.Ensure(hls.Spec{
-		ID: hid, InputArgs: ffmpeg.FileInput(it.Path), Source: it.Path, Duration: pr.Duration(), SeekMargin: pr.SeekMargin(), VideoFilter: vf,
+		ID: hid, InputArgs: inputArgs, Source: it.Path, Duration: info.DurationSec, SeekMargin: pr.SeekMargin(), VideoFilter: vf, VideoIndex: pr.VideoIndex(), NoVideo: v == nil,
 		AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: info.SubIndex, SubtitleText: s.textBurn(info.SubIndex, pr), Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r),
 	})
 	info.Type = "hls"
@@ -234,6 +269,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Log.InfoContext(r.Context(), "playback started", "cat", "playback", "session", hid, "item", it.ID, "title", it.Title, "mode", "transcode", "why", reason,
 		"container", ext, "audioTrack", info.AudioIndex, "subtitleTrack", info.SubIndex, "maxHeight", maxHeight)
+	s.streams.note(r, it, "transcode", []string{reason}, hid)
 	writeJSON(w, 200, info)
 }
 
@@ -301,27 +337,32 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 	}
 	// The type comes from this list, never from what the file's first bytes
 	// look like: a "movie" that is really a web page stays a download.
-	w.Header().Set("Content-Type", mediaType(it.Path))
-	if strings.EqualFold(filepath.Ext(it.Path), ".pdf") {
+	w.Header().Set("Content-Type", mediaType(it))
+	if it.Kind == "book" && it.Container == "pdf" {
 		w.Header().Del("Content-Security-Policy") // the browser's own viewer may show it in a tab; PDFs can't run scripts on this site
 	}
 	w.Header().Set("Accept-Ranges", "bytes")
-	http.ServeContent(s.capWriter(w, r), r, "", st.ModTime(), f)
+	counted, done := s.streams.served(s.capWriter(w, r), r, it.ID, "")
+	defer done()
+	http.ServeContent(counted, r, "", st.ModTime(), f)
 }
 
-var mediaTypes = map[string]string{
-	".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime", ".webm": "video/webm", ".mkv": "video/x-matroska",
-	".avi": "video/x-msvideo", ".wmv": "video/x-ms-wmv", ".ts": "video/mp2t", ".m2ts": "video/mp2t", ".mts": "video/mp2t", ".flv": "video/x-flv",
-	".mpg": "video/mpeg", ".mpeg": "video/mpeg", ".vob": "video/mpeg", ".ogv": "video/ogg", ".3gp": "video/3gpp",
-	".pdf": "application/pdf", ".epub": "application/epub+zip", ".cbz": "application/vnd.comicbook+zip", ".cbr": "application/vnd.comicbook-rar",
-}
-
-// mediaType is the Content-Type a library file is sent with.
-func mediaType(path string) string {
-	if ct := mediaTypes[strings.ToLower(filepath.Ext(path))]; ct != "" {
-		return ct
+// mediaType is the Content-Type a library file is sent with, from the registry. A file
+// the scan recognised by its content, or whose name lies, goes by what it is: the
+// family of MPEG-4 names all go as MPEG-4, which is what a browser plays them as.
+func mediaType(it *library.Item) string {
+	if it.Kind == "video" {
+		switch mediatypes.Canonical(it.Container, it.Path, it.VideoCodec, "") {
+		case "mp4", "m4v", "mov":
+			return "video/mp4"
+		case "webm":
+			return "video/webm"
+		}
 	}
-	return "application/octet-stream"
+	if m := mediatypes.MIME(it.Path); m != "application/octet-stream" {
+		return m
+	}
+	return mediatypes.MIMEOf(it.Container)
 }
 
 // ---------------------------------------------------------------------------
@@ -411,7 +452,9 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "video/mp2t")
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	http.ServeFile(s.capWriter(w, r), r, p)
+	counted, done := s.streams.served(s.capWriter(w, r), r, 0, id)
+	defer done()
+	http.ServeFile(counted, r, p)
 }
 
 // DELETE /api/hls/{id}: this viewer is done (another device may still watch).

@@ -16,6 +16,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
 // Matching: searching every source at once, saying how sure it is and why, showing
@@ -52,6 +53,7 @@ type MatchDetails struct {
 	Studios       []string
 	Network       string
 	Director      string
+	Series        string
 	Status        string
 	RuntimeMin    int
 
@@ -144,6 +146,7 @@ func cleanDetails(d *MatchDetails) *MatchDetails {
 	d.Studios = cleanList(d.Studios, 12, 120)
 	d.Network = cleanText(d.Network, 120, false)
 	d.Director = cleanText(d.Director, 300, false)
+	d.Series = cleanText(d.Series, 120, false)
 	d.Status = cleanText(d.Status, 40, false)
 	d.ContentRating = cleanText(d.ContentRating, 20, false)
 	if d.Rating != nil && (*d.Rating < 0 || *d.Rating > 10 || *d.Rating != *d.Rating) {
@@ -621,6 +624,15 @@ func (s *Scanner) SearchMatches(ctx context.Context, t *Title, query string, yea
 	if t.Meta.Sources["title"] == SourceYou || t.Meta.Sources["title"] == SourceNFO {
 		wantName = t.Name()
 	}
+	// A year from a file beside it, typed, or kept from before says as much as one in the file's
+	// name. One a match gave says nothing about whether that match was right.
+	if src := t.sourceOf("year"); wantYear == nil && (!isServiceSource(src) || src == SourceSaved) {
+		if t.Item != nil {
+			wantYear = t.Item.Year
+		} else {
+			wantYear = t.Show.Year
+		}
+	}
 	query = strings.TrimSpace(query)
 	if year != nil {
 		wantYear = year
@@ -824,7 +836,7 @@ type FieldChange struct {
 	Note   string `json:"note,omitempty"`
 }
 
-var fieldLabels = map[string]string{"title": "Title", "sortTitle": "Sort name", "year": "Year", "director": "Director", "edition": "Edition", "tagline": "Tagline", "overview": "Overview",
+var fieldLabels = map[string]string{"title": "Title", "sortTitle": "Sort name", "year": "Year", "director": "Director", "edition": "Edition", "series": "Collection", "tagline": "Tagline", "overview": "Overview",
 	"genres": "Genres", "tags": "Tags", "contentRating": "Content rating", "rating": "Rating", "studios": "Studios", "network": "Network", "status": "Status",
 	"poster": "Poster", "backdrop": "Backdrop", "banner": "Banner", "logo": "Logo", "introStart": "Intro starts", "introEnd": "Intro ends", "season": "Season", "episode": "Episode", "episodeEnd": "Last episode", "aired": "Aired"}
 
@@ -834,7 +846,7 @@ func FieldLabel(f string) string { return fieldLabels[f] }
 func (d *MatchDetails) fields() map[string]string {
 	m := map[string]string{
 		"title": d.Title, "overview": d.Overview, "tagline": d.Tagline, "genres": joinList(d.Genres), "contentRating": d.ContentRating, "rating": floatStr(d.Rating),
-		"studios": joinList(d.Studios), "network": d.Network, "director": d.Director, "status": d.Status, "year": intStr(d.Year),
+		"studios": joinList(d.Studios), "network": d.Network, "director": d.Director, "series": d.Series, "status": d.Status, "year": intStr(d.Year),
 		"poster": d.Poster, "backdrop": d.Backdrop, "banner": d.Banner, "logo": d.Logo,
 	}
 	if d.Title != "" {
@@ -1052,6 +1064,8 @@ func (s *Scanner) ApplyMatch(ctx context.Context, t *Title, source, id string, o
 	if err := s.Store.SaveTitle(ctx, t); err != nil {
 		return "", err
 	}
+	s.Store.forgetListing(ctx, t.Target, t.ID)
+	s.KickListings()
 	return batch, nil
 }
 
@@ -1160,7 +1174,12 @@ func (s *Scanner) RemoveMatch(ctx context.Context, t *Title, user string) (strin
 		cancel()
 	}
 	s.persist(ctx, t)
-	return batch, s.Store.SaveTitle(ctx, t)
+	if err := s.Store.SaveTitle(ctx, t); err != nil {
+		return "", err
+	}
+	s.Store.forgetListing(ctx, t.Target, t.ID)
+	s.KickListings()
+	return batch, nil
 }
 
 // PreviewRefresh says what looking a title up again would change.
@@ -1479,8 +1498,10 @@ func (s *Scanner) StartSuggesting(libraryID int64) bool {
 	ctx, cancel := context.WithCancel(context.Background())
 	suggestState.cancel = cancel
 	suggestState.job = SuggestJob{Running: true}
+	t := s.Tasks.Start(tasks.Spec{Type: tasks.TypeMetadata, Title: "Finding suggested matches", Unit: "titles", LibraryID: libraryID, Cancel: cancel, Pausable: true})
 	logging.Go("match suggestions", func() {
 		defer func() {
+			t.Finish(ctx.Err())
 			cancel()
 			suggestState.Lock()
 			suggestState.job.Running = false
@@ -1490,6 +1511,7 @@ func (s *Scanner) StartSuggesting(libraryID int64) bool {
 		q, err := s.MatchQueue(ctx, libraryID, "review", "", 500, 0)
 		if err != nil {
 			s.Log.WarnContext(ctx, "could not list what needs a look", "err", err)
+			t.Finish(err)
 			return
 		}
 		todo := make([]QueueRow, 0, len(q.Rows))
@@ -1502,12 +1524,14 @@ func (s *Scanner) StartSuggesting(libraryID int64) bool {
 		suggestState.job.Total = len(todo)
 		suggestState.Unlock()
 		for i, r := range todo {
-			if ctx.Err() != nil {
+			if t.Wait(ctx) != nil {
 				return
 			}
 			suggestState.Lock()
 			suggestState.job.Done, suggestState.job.Current = i, r.Title
 			suggestState.Unlock()
+			t.Progress(int64(i), int64(len(todo)))
+			t.Item(r.Title, "")
 			t, err := s.Store.LoadTitle(ctx, r.Target, r.ID)
 			if err != nil {
 				continue

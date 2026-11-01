@@ -87,13 +87,20 @@ func RemoveSelfLater() {
 	if !strings.HasPrefix(strings.ToLower(filepath.Base(dir)), "wittymediaserver-uninstall-") {
 		return
 	}
+	if cmd := removeLater(dir); cmd != nil {
+		_ = cmd.Start()
+	}
+}
+
+func removeLater(dir string) *exec.Cmd {
 	sys, err := windows.GetSystemDirectory()
 	if err != nil {
-		return
+		return nil
 	}
 	cmd := exec.Command(filepath.Join(sys, "cmd.exe"))
 	cmd.Dir = os.TempDir()
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: windows.CREATE_NO_WINDOW,
-		CmdLine: `cmd.exe /d /c "` + filepath.Join(sys, "PING.EXE") + `" -n 3 127.0.0.1 >nul & rmdir /s /q "` + dir + `"`}
-	_ = cmd.Start()
+		// cmd.exe takes off the first and last quote of what follows /c, so all of it is in quotes.
+		CmdLine: `cmd.exe /d /c ""` + filepath.Join(sys, "PING.EXE") + `" -n 2 127.0.0.1 >nul & rmdir /s /q "` + dir + `""`}
+	return cmd
 }

@@ -219,11 +219,8 @@ export function GameMetaNotice({ onProgress, unmatched, onUnmatched }: { onProgr
           <button type="button" className="btn sm ghost" aria-pressed={unmatched} onClick={() => onUnmatched(!unmatched)}>{unmatched ? 'Show all games' : 'Show them'}</button>
         </p>
       )}
-      {(busy || st.pictures > 0) && (
-        <p className="gm-progress muted" role="status">
-          {busy ? `Finding details: ${(st.total - st.pending).toLocaleString()} of ${st.total.toLocaleString()} games` : `Fetching pictures: ${st.pictures.toLocaleString()} games to go`}
-          {st.paused.length > 0 && <> · {st.paused.map((p) => sourceName(p.source)).join(', ')} paused</>}
-        </p>
+      {st.paused.length > 0 && (
+        <p className="gm-progress muted" role="status">{st.paused.map((p) => sourceName(p.source)).join(', ')} asked to wait, and will be asked again later.</p>
       )}
       {!st.keysSet && !hidden && !busy && (
         <div className="warn-box gm-hint" role="status">

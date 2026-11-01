@@ -220,7 +220,7 @@ func hashRecovery(code string) string {
 }
 
 // ClearTwoFactorByName is the way back for an owner who lost both their phone
-// and their recovery codes (`wms reset-2fa`, on the server itself).
+// and their recovery codes (`wittymediaserver reset-2fa`, on the server itself).
 func ClearTwoFactorByName(ctx context.Context, d *db.DB, name string) error {
 	res, err := d.ExecContext(ctx, `UPDATE users SET totp_secret = NULL, totp_on = 0, totp_last = 0, recovery_codes = NULL WHERE name = ? COLLATE NOCASE`, strings.TrimSpace(name))
 	if err != nil {

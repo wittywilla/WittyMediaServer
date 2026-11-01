@@ -14,6 +14,7 @@
   keep your library: Uninstall WittyMediaServer.exe asks, and then removes the MSI as well.
   `msiexec /x` works too, and keeps your data.
 -->
+<?define Everyone = "(NOT MSIINSTALLPERUSER OR ALLUSERS=1)" ?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:fw="http://wixtoolset.org/schemas/v4/wxs/firewall"
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
@@ -69,9 +70,9 @@
     <Property Id="AUTOSTART_MACHINE">
       <RegistrySearch Id="FindMachineAutostart" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="WittyMediaServer" Type="raw" />
     </Property>
-    <SetProperty Id="AUTOSTART" After="SetScope" Value="{}" Sequence="both" Condition="WIX_UPGRADE_DETECTED AND NOT AUTOSTART_USER AND NOT AUTOSTART_MACHINE AND NOT Installed" />
+    <SetProperty Id="AUTOSTART" After="FindRelatedProducts" Value="[NOTHING]" Sequence="both" Condition="WIX_UPGRADE_DETECTED AND NOT AUTOSTART_USER AND NOT AUTOSTART_MACHINE AND NOT Installed" />
 
-    <CustomAction Id="SetScope" Property="MSIINSTALLPERUSER" Value="{}" />
+    <CustomAction Id="SetScope" Property="MSIINSTALLPERUSER" Value="[NOTHING]" />
     <InstallUISequence>
       <AppSearch Sequence="10" />
       <Custom Action="SetScope" Sequence="11" Condition="INSTALLED_FOR_EVERYONE AND NOT Installed" />
@@ -83,7 +84,7 @@
       <Custom Action="StopRunningApp" Before="RemoveExistingProducts" Condition="(WIX_UPGRADE_DETECTED OR REMOVE) AND NOT UPGRADINGPRODUCTCODE" />
       <!-- What 0.5.2-alpha left: its setup program's copy, boot task and firewall rule. -->
       <Custom Action="TakeOverOldCopyUser" After="InstallFiles" Condition="NOT REMOVE" />
-      <Custom Action="TakeOverOldCopyMachine" After="TakeOverOldCopyUser" Condition="NOT REMOVE AND NOT MSIINSTALLPERUSER" />
+      <Custom Action="TakeOverOldCopyMachine" After="TakeOverOldCopyUser" Condition="NOT REMOVE AND $(var.Everyone)" />
     </InstallExecuteSequence>
 
     <!-- Failing here never stops an install: all that's left is something to tidy by hand. -->
@@ -124,10 +125,10 @@
 
       <!-- The server: Windows Installer registers a service for the file its component holds,
            so there are two components, of which one is installed. -->
-      <Component Id="ServerPlain" Guid="2e4b7c1d-96a3-4f08-b5d2-7a1c3e9f6d40" Directory="BinFolder" Condition="NOT (INSTALLSERVICE=&quot;1&quot; AND NOT MSIINSTALLPERUSER)">
+      <Component Id="ServerPlain" Guid="2e4b7c1d-96a3-4f08-b5d2-7a1c3e9f6d40" Directory="BinFolder" Condition="NOT (INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone))">
         <File Id="ServerPlain" Name="wittymediaserver.exe" ShortName="WITTYMS.EXE" Source="!(bindpath.pkg)\bin\wittymediaserver.exe" KeyPath="yes" />
       </Component>
-      <Component Id="ServerAsService" Guid="a35d8f60-1c7e-4b29-8e64-f2d0b7a49c13" Directory="BinFolder" Condition="INSTALLSERVICE=&quot;1&quot; AND NOT MSIINSTALLPERUSER">
+      <Component Id="ServerAsService" Guid="a35d8f60-1c7e-4b29-8e64-f2d0b7a49c13" Directory="BinFolder" Condition="INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)">
         <File Id="ServerAsService" Name="wittymediaserver.exe" ShortName="WITTYMS.EXE" Source="!(bindpath.pkg)\bin\wittymediaserver.exe" KeyPath="yes" />
         <ServiceInstall Id="Service" Name="WittyMediaServer" DisplayName="WittyMediaServer"
                         Description="Your media server, running in the background."
@@ -176,25 +177,25 @@
       </Component>
 
       <!-- Start with Windows: the app, for whoever signs in. Not alongside the service. -->
-      <Component Id="StartAtSignIn" Guid="5c2d8b91-6e0f-4a37-8f14-c9a1e7d3b062" Condition="AUTOSTART=&quot;1&quot; AND NOT (INSTALLSERVICE=&quot;1&quot; AND NOT MSIINSTALLPERUSER)">
+      <Component Id="StartAtSignIn" Guid="5c2d8b91-6e0f-4a37-8f14-c9a1e7d3b062" Condition="AUTOSTART=&quot;1&quot; AND NOT (INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone))">
         <RegistryValue Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="WittyMediaServer" Type="string" Value="&quot;[INSTALLFOLDER]WittyMediaServer.exe&quot;" KeyPath="yes" />
       </Component>
 
       <!-- The command line, in every new terminal. -->
-      <Component Id="PathForMe" Guid="e94a2c6d-1b07-4e58-a2f3-8d6b5c0f7e13" Directory="BinFolder" Condition="ADDTOPATH=&quot;1&quot; AND MSIINSTALLPERUSER">
+      <Component Id="PathForMe" Guid="e94a2c6d-1b07-4e58-a2f3-8d6b5c0f7e13" Directory="BinFolder" Condition="ADDTOPATH=&quot;1&quot; AND NOT $(var.Everyone)">
         <Environment Id="PathForMe" Name="PATH" Action="set" Part="last" System="no" Permanent="no" Value="[BinFolder]" />
         <RegistryValue Root="HKCU" Key="Software\WittyWilla\WittyMediaServer" Name="Path" Type="string" Value="1" KeyPath="yes" />
       </Component>
-      <Component Id="PathForEveryone" Guid="f15c7e2a-3d48-4b96-8a07-1c6d9e3f5b20" Directory="BinFolder" Condition="ADDTOPATH=&quot;1&quot; AND NOT MSIINSTALLPERUSER">
+      <Component Id="PathForEveryone" Guid="f15c7e2a-3d48-4b96-8a07-1c6d9e3f5b20" Directory="BinFolder" Condition="ADDTOPATH=&quot;1&quot; AND $(var.Everyone)">
         <Environment Id="PathForEveryone" Name="PATH" Action="set" Part="last" System="yes" Permanent="no" Value="[BinFolder]" />
         <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Path" Type="string" Value="1" KeyPath="yes" />
       </Component>
 
       <!-- Only for everyone: where the service keeps its library. Only it and administrators get in. -->
-      <Component Id="ServiceSettings" Guid="1a7d3e80-5f62-49b4-9c28-f0e6b1d4a735" Condition="INSTALLSERVICE=&quot;1&quot; AND NOT MSIINSTALLPERUSER">
+      <Component Id="ServiceSettings" Guid="1a7d3e80-5f62-49b4-9c28-f0e6b1d4a735" Condition="INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)">
         <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Service" Type="string" Value="1" KeyPath="yes" />
       </Component>
-      <Component Id="ServiceData" Guid="c8e15d24-7a90-4b6f-83d1-2f7c9e0a6b58" Directory="ServiceDataFolder" Condition="INSTALLSERVICE=&quot;1&quot; AND NOT MSIINSTALLPERUSER" Permanent="yes">
+      <Component Id="ServiceData" Guid="c8e15d24-7a90-4b6f-83d1-2f7c9e0a6b58" Directory="ServiceDataFolder" Condition="INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)" Permanent="yes">
         <CreateFolder>
           <util:PermissionEx User="LocalService" Domain="NT AUTHORITY" GenericAll="yes" Inheritable="yes" />
           <util:PermissionEx User="SYSTEM" Domain="NT AUTHORITY" GenericAll="yes" Inheritable="yes" />
@@ -204,7 +205,7 @@
       </Component>
 
       <!-- Only for everyone: lets other devices on the home network connect. -->
-      <Component Id="FirewallRule" Guid="7d40b6f2-93e1-4c58-a06d-5e8f2b7c1a94" Condition="ADDFIREWALL=&quot;1&quot; AND NOT MSIINSTALLPERUSER">
+      <Component Id="FirewallRule" Guid="7d40b6f2-93e1-4c58-a06d-5e8f2b7c1a94" Condition="ADDFIREWALL=&quot;1&quot; AND $(var.Everyone)">
         <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Firewall" Type="string" Value="1" KeyPath="yes" />
         <fw:FirewallException Id="FirewallTcp" Name="WittyMediaServer" Description="Other devices on your home network connect to your media server."
                               Port="[PORT]" Protocol="tcp" Scope="any" Profile="private" />

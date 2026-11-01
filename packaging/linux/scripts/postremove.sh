@@ -1,7 +1,7 @@
 #!/bin/sh
 # After the files have gone. `apt remove` and `dnf remove` keep your library, accounts and
 # settings. `apt purge` removes everything the server made, down to its account, as purge
-# always does. Only names the server made: recorded TV, library folders and anything
+# always does. Only names the server made: recorded TV, backups, library folders and anything
 # someone put in the data folder stay, and it says so.
 # deb: $1 is remove, purge or upgrade. rpm: $1 is 0 on removal, 1 on upgrade.
 set -e
@@ -20,14 +20,16 @@ purge_data() {
   dir=$1
   [ -d "$dir" ] || return 0
   for name in wms.db wms.db-wal wms.db-shm cache transcode logs wms.log crash diagnostics certs branding channel-logos \
-              bumpers lyrics-corrections modules themes gaming gamerigs wittycouch reset-request.json reset-result.json; do
+              bumpers lyrics-corrections modules themes gaming gamerigs wittycouch metadata restore-staged \
+              reset-request.json reset-result.json restore-request.json restore-result.json \
+              repair-request.json repair-result.json; do
     rm -rf "${dir:?}/$name"
   done
-  rm -rf "${dir:?}"/before-reset-*
-  # An empty folder for recordings is nothing to keep.
-  rmdir "$dir/recordings" 2>/dev/null || true
+  rm -rf "${dir:?}"/before-reset-* "${dir:?}"/repair-stage-*
+  # An empty folder is nothing to keep.
+  rmdir "$dir/recordings" "$dir/backups" 2>/dev/null || true
   if ! rmdir "$dir" 2>/dev/null; then
-    echo "Left in $dir, because it wasn't made by WittyMediaServer or holds your recordings:"
+    echo "Left in $dir, because it wasn't made by WittyMediaServer, or holds your recordings or backups:"
     ls -A "$dir" | sed 's/^/  /'
   fi
 }

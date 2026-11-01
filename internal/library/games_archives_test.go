@@ -14,6 +14,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
+	"github.com/wittywilla/wittymediaserver/internal/gameid/fixture"
 	"github.com/wittywilla/wittyplay"
 )
 
@@ -33,9 +34,10 @@ func copyArchive(t *testing.T, name, to string) {
 
 func TestDiscoverGamesInEveryKindOfArchive(t *testing.T) {
 	root := t.TempDir()
-	copyArchive(t, "cart.7z", filepath.Join(root, "Super Nintendo (SNES)", "A Game (USA).7z"))
+	copyArchive(t, "cart.tar.bz2", filepath.Join(root, "Super Nintendo (SNES)", "A Game (USA).tar.bz2"))
 	copyArchive(t, "cart.rar", filepath.Join(root, "SNES", "B Game (Europe).rar"))
-	copyArchive(t, "disc-solid.7z", filepath.Join(root, "Playstation (PSX)", "C Game.7z"))
+	discZip(t, filepath.Join(root, "Playstation (PSX)", "C Game.zip"))
+	copyArchive(t, "disc-solid.7z", filepath.Join(root, "Playstation (PSX)", "Not Really.7z"))
 	copyArchive(t, "cart.7z", filepath.Join(root, "Unsorted", "D Game.7z")) // sorted by what's inside
 	copyArchive(t, "disc-solid.7z", filepath.Join(root, "Unsorted", "E Game.7z"))
 	copyArchive(t, "locked-names.7z", filepath.Join(root, "SNES", "F Locked.7z"))
@@ -51,15 +53,16 @@ func TestDiscoverGamesInEveryKindOfArchive(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []string{
-		"Playstation (PSX)/C Game.7z=ps1", "SNES/B Game (Europe).rar=snes", "SNES/G Split.part1.rar=snes", "SNES/H Split.7z.001=snes",
-		"Super Nintendo (SNES)/A Game (USA).7z=snes", "Unsorted/D Game.7z=snes",
+		"Playstation (PSX)/C Game.zip=ps1", "SNES/B Game (Europe).rar=snes", "SNES/G Split.part1.rar=snes", "SNES/H Split.7z.001=snes",
+		"Super Nintendo (SNES)/A Game (USA).tar.bz2=snes", "Unsorted/D Game.7z=snes",
 	}
 	if !equal(names(got, root), want) {
 		t.Fatalf("got %v, want %v", names(got, root), want)
 	}
 	skipped := skippedGameFiles(root, "auto")
-	// E Game holds only a .cue and .bin, which say nothing without a folder to go by.
-	if skipped["encrypted"] != 1 || skipped[".7z"] != 1 || len(skipped) != 2 {
+	// E Game holds only a .cue and .bin, which say nothing without a folder to go by, and
+	// the same disc beside the PlayStation games doesn't have what a PlayStation disc has.
+	if skipped["encrypted"] != 1 || skipped[".7z"] != 2 || len(skipped) != 2 {
 		t.Fatalf("skipped: %v", skipped)
 	}
 
@@ -68,10 +71,35 @@ func TestDiscoverGamesInEveryKindOfArchive(t *testing.T) {
 	if err != nil || len(got) != 1 {
 		t.Fatalf("one console: %v %v", got, err)
 	}
-	got, _ = discoverGames(filepath.Join(root, "Playstation (PSX)"), "snes")
-	if len(got) != 0 {
+	// In a library set to a console, a game for another one wants a look. It isn't
+	// quietly left out, and it isn't quietly listed.
+	ix := newArchiveIndex(nil, 0)
+	defer ix.close()
+	if got, _ := ix.discover(filepath.Join(root, "Playstation (PSX)"), "snes"); len(got) != 0 {
 		t.Fatalf("a disc isn't a Super Nintendo game: %v", got)
 	}
+	if len(ix.notes) == 0 {
+		t.Fatal("nothing was said about it")
+	}
+}
+
+// discZip makes an archive holding a disc that's really a disc.
+func discZip(t *testing.T, to string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(to), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Create(to)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	w := zip.NewWriter(f)
+	e, _ := w.Create("Game.bin")
+	_, _ = e.Write(fixture.Raw(fixture.PS1("SLUS_123.45")))
+	c, _ := w.Create("Game.cue")
+	_, _ = c.Write([]byte("FILE \"Game.bin\" BINARY\n  TRACK 01 MODE2/2352\n"))
+	_ = w.Close()
 }
 
 func TestArchiveTitlesKeepTheirTags(t *testing.T) {
@@ -112,8 +140,8 @@ func TestScanRemembersWhatArchivesHold(t *testing.T) {
 	}
 	game := filepath.Join(root, "Game (USA).7z")
 	copyArchive(t, "cart.7z", game)
-	gone := filepath.Join(root, "Gone.7z")
-	copyArchive(t, "cart.7z", gone)
+	gone := filepath.Join(root, "Gone.rar")
+	copyArchive(t, "cart.rar", gone)
 	unreadable := filepath.Join(root, "Rubbish.7z")
 	if err := os.WriteFile(unreadable, []byte("not an archive"), 0o644); err != nil {
 		t.Fatal(err)
@@ -166,7 +194,7 @@ func TestScanRemembersWhatArchivesHold(t *testing.T) {
 		t.Fatalf("after removing one: %d, %v", n, read)
 	}
 	var rows int
-	if err := d.QueryRowContext(ctx, `SELECT COUNT(*) FROM game_archives WHERE library_id = ?`, lib.ID).Scan(&rows); err != nil {
+	if err := d.QueryRowContext(ctx, `SELECT COUNT(*) FROM game_files WHERE library_id = ?`, lib.ID).Scan(&rows); err != nil {
 		t.Fatal(err)
 	}
 	if rows != 2 { // Game (USA).7z, and that Rubbish.7z is rubbish
@@ -189,7 +217,7 @@ func TestZipGamesKeepTheirItem(t *testing.T) {
 	}
 	w := zip.NewWriter(f)
 	e, _ := w.Create("Game (USA).nes")
-	_, _ = e.Write([]byte("rom"))
+	_, _ = e.Write(gameBytes("Game (USA).nes"))
 	_ = w.Close()
 	_ = f.Close()
 	if err := s.scan(ctx, lib.ID); err != nil {

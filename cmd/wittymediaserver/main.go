@@ -46,6 +46,14 @@ func run(args []string) int {
 			return cmdReset2FA(args[1:])
 		case "reset":
 			return cmdReset(args[1:])
+		case "logs":
+			return cmdLogs(args[1:])
+		case "metadata":
+			return cmdMetadata(args[1:])
+		case "backup":
+			return cmdBackup(args[1:])
+		case "doctor":
+			return cmdDoctor(args[1:])
 		case "uninstall", "--uninstall", "-uninstall", "/uninstall":
 			return uninstall.RunCLI(args[1:], os.Stdin, os.Stdout)
 		case "--take-over-old-copy": // run by the Windows installer
@@ -89,6 +97,19 @@ usage:
                              back to a new install, the next time the server starts; keeps a copy unless -delete
   wittymediaserver reset -list | -restore <copy> | -cancel
                              see the copies kept, bring one back, or take back a reset that's waiting
+  wittymediaserver backup create|list|parts|inspect|restore|undo|cancel [-data <dir>]
+                             a ZIP of your data and metadata, and bringing one back. wittymediaserver backup help says more
+  wittymediaserver logs zip [-data <dir>] [-o out.zip] [-days N] [--raw]
+                             the logs as a ZIP, sanitized for sharing unless --raw; no server needed
+  wittymediaserver logs sanitize [-data <dir>] [-o out.txt] <file>
+                             a sanitized copy of any text log
+  wittymediaserver metadata export|check|apply [-data <dir>] [-library <id>] [--dry-run | --apply]
+                             write a text file for each title to fix by hand, say what's wrong with one, and apply them
+  wittymediaserver doctor [-data <dir>] [--fix] [--only <id,id or area>] [--safe-only] [--json] [--yes]
+                             find and fix problems with metadata, data, modules and the install, even if the
+                             server won't start. Without --fix it only looks. wittymediaserver doctor help says more
+  wittymediaserver doctor remap --from <old> --to <new> [--fix]
+                             a library's drive or folder moved: rewrite the paths
   wittymediaserver disc ls <image>        list files inside an ISO/UDF image
   wittymediaserver dvd info <image>       dump DVD-Video structure (titles, menus, chapters)
   wittymediaserver dvd walk <image> [n…]  run first-play, print the menu the viewer would see, press buttons

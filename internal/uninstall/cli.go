@@ -50,6 +50,8 @@ func ParseArgs(argv []string) (Args, error) {
 			a.KeepData = true
 		case "remove-recordings", "removerecordings":
 			a.RemoveRecordings = true
+		case "remove-backups", "removebackups":
+			a.RemoveBackups = true
 		case "yes", "y", "s", "silent", "quiet", "q":
 			a.Yes = true
 		case "dry-run", "dryrun":
@@ -88,6 +90,9 @@ func (a Args) Flags() []string {
 	if a.RemoveRecordings {
 		f = append(f, "--remove-recordings")
 	}
+	if a.RemoveBackups {
+		f = append(f, "--remove-backups")
+	}
 	if a.ProgramFolder != "" {
 		f = append(f, "--program-folder", a.ProgramFolder)
 	}
@@ -110,7 +115,7 @@ func RunCLI(argv []string, in io.Reader, out io.Writer) int {
 	a, err := ParseArgs(argv)
 	if err != nil {
 		fmt.Fprintln(out, err)
-		fmt.Fprintln(out, "usage: wittymediaserver --uninstall [--keep-data | --remove-data] [--remove-recordings] [--yes] [--dry-run] [--json]")
+		fmt.Fprintln(out, "usage: wittymediaserver --uninstall [--keep-data | --remove-data] [--remove-recordings] [--remove-backups] [--yes] [--dry-run] [--json]")
 		return 2
 	}
 	e := Here()
@@ -145,6 +150,11 @@ func runCLI(e *Env, a Args, in io.Reader, out io.Writer) int {
 		fmt.Fprint(out, pl.Describe(GroupRecordings))
 		a.RemoveRecordings = askYes(r, out, "Delete your recordings too?")
 	}
+	if !a.Yes && !a.DryRun && pl.Has(GroupBackups) && !a.RemoveBackups {
+		fmt.Fprintln(out, "\nYour backups:")
+		fmt.Fprint(out, pl.Describe(GroupBackups))
+		a.RemoveBackups = askYes(r, out, "Delete your backups too? If you keep them, you can restore from them after installing it again.")
+	}
 	if a.DryRun {
 		if a.JSON {
 			_ = json.NewEncoder(out).Encode(pl)
@@ -155,6 +165,10 @@ func runCLI(e *Env, a Args, in io.Reader, out io.Writer) int {
 		if pl.Has(GroupRecordings) {
 			fmt.Fprintln(out, "\nWith --remove-recordings it would also remove:")
 			fmt.Fprint(out, pl.Describe(GroupRecordings))
+		}
+		if pl.Has(GroupBackups) {
+			fmt.Fprintln(out, "\nWith --remove-backups it would also remove:")
+			fmt.Fprint(out, pl.Describe(GroupBackups))
 		}
 		if len(pl.Kept) > 0 {
 			fmt.Fprintln(out, "\nIt would leave in place:")

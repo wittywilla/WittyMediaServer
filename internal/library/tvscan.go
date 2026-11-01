@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -267,7 +268,7 @@ func isRemote(p string) bool {
 // findArt returns the first existing image named name.{jpg,jpeg,png,webp}.
 func findArt(dir string, names ...string) string {
 	for _, n := range names {
-		for _, ext := range []string{".jpg", ".jpeg", ".png", ".webp", ".tbn"} {
+		for _, ext := range mediatypes.ArtworkExts {
 			p := filepath.Join(dir, n+ext)
 			if st, err := os.Stat(p); err == nil && !st.IsDir() {
 				return p
@@ -498,24 +499,18 @@ type nfoShow struct {
 }
 
 func applyShowNFO(sh *Show, path string) bool {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return false
-	}
-	if i := strings.LastIndex(string(b), "</tvshow>"); i > 0 {
-		b = b[:i+len("</tvshow>")]
-	}
 	var m nfoShow
-	if xml.Unmarshal(b, &m) != nil {
+	if !readSidecarXML(path, "</tvshow>", &m) {
 		return false
 	}
+	m.clean()
 	if m.Title != "" {
 		sh.Title, sh.SortTitle = m.Title, SortTitle(m.Title)
 	}
 	if m.Year != 0 {
 		y := m.Year
 		sh.Year = &y
-	} else if y := yearOf(m.Premiered); y != nil {
+	} else if y := yearOf(m.Premiered); y != nil && validYear(*y) {
 		sh.Year = y
 	}
 	if m.Plot != "" {
@@ -561,18 +556,12 @@ type nfoEpisode struct {
 }
 
 func applyEpisodeNFO(it *Item, path string) bool {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return false
-	}
-	// Multi-episode NFOs hold several <episodedetails>; use the first.
-	if i := strings.Index(string(b), "</episodedetails>"); i > 0 {
-		b = b[:i+len("</episodedetails>")]
-	}
 	var m nfoEpisode
-	if xml.Unmarshal(b, &m) != nil {
+	// Multi-episode NFOs hold several <episodedetails>; use the first.
+	if !readFirstSidecarXML(path, "</episodedetails>", &m) {
 		return false
 	}
+	m.clean()
 	if m.Title != "" {
 		it.Title = m.Title
 	}
@@ -590,11 +579,8 @@ func applyEpisodeNFO(it *Item, path string) bool {
 		it.Rating = &r
 	}
 	if it.Poster == "" {
-		for _, t := range m.Thumb {
-			if isRemote(t) {
-				it.Poster = t
-				break
-			}
+		if u := firstWebAddress(m.Thumb); u != "" {
+			it.Poster = u
 		}
 	}
 	return m.Title != "" || m.Plot != ""

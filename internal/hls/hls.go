@@ -41,6 +41,11 @@ type Spec struct {
 	Duration    float64  // total seconds (required)
 	VideoFilter string   // extra -vf chain (deinterlace etc.); aspect normalisation is added automatically
 	AudioIndex  int      // ffmpeg audio stream index (a:N), -1 = no audio
+	// VideoIndex is the picture's stream (v:N). It isn't always 0: cover art can come
+	// first, and some files hold several pictures.
+	VideoIndex int
+	// NoVideo: a file that only has sound, in a video library.
+	NoVideo bool
 	// AudioInput is the input (of those InputArgs opens) that has the audio;
 	// 0 = the same one as the video. With a second input every input seeks,
 	// and Duration limits the output, since the picture may be an endless
@@ -53,6 +58,9 @@ type Spec struct {
 	// way of burning in draws nothing for; it goes through the subtitles filter,
 	// which reads Source itself.
 	SubtitleText bool
+	// SubtitleFile: what's burned in is this file beside the video, not a stream of it.
+	// SubtitleIndex must still be 0 or more.
+	SubtitleFile string
 	AudioCodec   string // aac (default) | mp3
 	SegmentSec   float64
 	MaxHeight    int    // 0 = source
@@ -109,7 +117,9 @@ type Variant struct {
 // Rendition is a WebVTT subtitle track of a stream.
 type Rendition struct {
 	Stream   int // subtitle stream number in the source (s:N)
-	Name     string
+	// File: it isn't in the source. It's this subtitle file beside it, in this format.
+	File, Format string
+	Name         string
 	Language string
 	Default  bool
 	Forced   bool
@@ -201,6 +211,10 @@ func NewManager(tools *ffmpeg.Tools, root string, max int, log *slog.Logger) *Ma
 	logging.Loop("hls sweep", m.sweep, "cat", "transcode")
 	return m
 }
+
+// IsSessionDir says a folder's name is one this package makes. The transcode folder can
+// hold anything else, so nothing else may be taken for a leftover of a stream.
+func IsSessionDir(name string) bool { return sessionDirRe.MatchString(name) }
 
 // cleanRoot removes what an earlier run left: only folders of the kind this
 // package makes. The transcode folder is the owner's choice and could hold
@@ -866,7 +880,12 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		}
 		// A copy runs as fast as the disk reads; a few times real time leaves
 		// plenty ahead of the viewer without filling the disk for nothing.
+		// The first seconds as fast as they come, so a stream with far-apart keyframes
+		// doesn't keep the viewer waiting for its first whole segment.
 		args = append(args, "-readrate", "4")
+		if s.m.burstSupported() {
+			args = append(args, "-readrate_initial_burst", "30")
+		}
 	}
 	read := start
 	if start > 0 && sp.AudioInput > 0 {
@@ -897,14 +916,26 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 			args = append(args, "-ss", strconv.FormatFloat(cut, 'f', 3, 64))
 		}
 	}
-	args = append(args, "-map", "0:v:0")
+	bitmapFile := sp.SubtitleIndex >= 0 && sp.SubtitleFile != "" && !sp.SubtitleText
+	if bitmapFile {
+		// Pictures in a file of their own: a second input, read from the same place.
+		if read > 0 {
+			args = append(args, "-ss", strconv.FormatFloat(read, 'f', 3, 64))
+		}
+		args = append(args, ffmpeg.FileInput(sp.SubtitleFile)...)
+	}
+	if !sp.NoVideo {
+		args = append(args, "-map", fmt.Sprintf("0:v:%d", sp.VideoIndex))
+	}
 	if sp.AudioIndex >= 0 {
 		args = append(args, "-map", fmt.Sprintf("%d:a:%d?", sp.AudioInput, sp.AudioIndex))
 	}
 	args = append(args, "-map_metadata", "-1", "-map_chapters", "-1")
 
 	// Video
-	if sp.CopyVideo {
+	if sp.NoVideo {
+		args = append(args, "-vn")
+	} else if sp.CopyVideo {
 		args = append(args, "-c:v", "copy")
 		if sp.VideoTag != "" {
 			args = append(args, "-tag:v", sp.VideoTag)
@@ -925,7 +956,11 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 			vf = append(vf, fmt.Sprintf("tpad=stop_mode=clone:stop_duration=%.3f", sp.Duration))
 		}
 		if sp.SubtitleIndex >= 0 && sp.SubtitleText {
-			vf = append(vf, textSubtitleFilter(sp.Source, sp.SubtitleIndex, start))
+			if sp.SubtitleFile != "" {
+				vf = append(vf, textSubtitleFileFilter(sp.SubtitleFile, start))
+			} else {
+				vf = append(vf, textSubtitleFilter(sp.Source, sp.SubtitleIndex, start))
+			}
 		}
 		vf = append(vf, "setsar=1", "format="+plan.PixFmt)
 		if plan.Upload != "" {
@@ -933,8 +968,12 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		}
 		if sp.SubtitleIndex >= 0 && !sp.SubtitleText {
 			// Burn bitmap subtitles in via a filter graph.
-			graph := fmt.Sprintf("[0:v:0]%s[v0];[0:s:%d]scale=iw:ih[s0];[v0][s0]overlay=shortest=0:eof_action=pass[vout]", strings.Join(vf, ","), sp.SubtitleIndex)
-			args = append(args, "-filter_complex", graph, "-map", "-0:v:0", "-map", "[vout]")
+			pics := fmt.Sprintf("[0:s:%d]", sp.SubtitleIndex)
+			if bitmapFile {
+				pics = "[1:s:0]"
+			}
+			graph := fmt.Sprintf("[0:v:%d]%s[v0];%sscale=iw:ih[s0];[v0][s0]overlay=shortest=0:eof_action=pass[vout]", sp.VideoIndex, strings.Join(vf, ","), pics)
+			args = append(args, "-filter_complex", graph, "-map", fmt.Sprintf("-0:v:%d", sp.VideoIndex), "-map", "[vout]")
 		} else {
 			args = append(args, "-vf", strings.Join(vf, ","))
 		}
@@ -1103,6 +1142,15 @@ func holeExprs(holes []Hole, read float64) (keep, shift string) {
 // textSubtitleFilter draws text subtitles from the file itself. The filter
 // counts from the start of the file while the picture, after a seek, counts from
 // where it started, so the clock is put right around it.
+// textSubtitleFileFilter draws a subtitle file beside the video.
+func textSubtitleFileFilter(path string, start float64) string {
+	f := fmt.Sprintf("subtitles='%s'", escapeFilterPath(path))
+	if start > 0 {
+		f = fmt.Sprintf("setpts=PTS+%.3f/TB,%s,setpts=PTS-STARTPTS", start, f)
+	}
+	return f
+}
+
 func textSubtitleFilter(path string, stream int, start float64) string {
 	f := fmt.Sprintf("subtitles='%s':si=%d", escapeFilterPath(path), stream)
 	if start > 0 {

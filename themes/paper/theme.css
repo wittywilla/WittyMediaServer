@@ -1,0 +1,51 @@
+/*
+ * Paper - a WittyMediaServer theme.
+ * Warm off-white and rust, easy on the eyes by day.
+ *
+ * Every variable below is explained in docs/THEMES.md. Copy this file into
+ * your own theme ZIP as a starting point.
+ */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: #f6f2ea;          /* page background */
+  --bg-2: #fffdf8;        /* side menu, panels, dialogs */
+  --bg-3: #ece6da;        /* fields, cards, hovered rows */
+  --bg-4: #ddd5c6;        /* pressed buttons, scrollbars */
+  --bg-rgb: 246 242 234;   /* --bg as "R G B", for see-through shades */
+  --border: color-mix(in srgb, var(--fg) 10%, transparent); /* hairlines between panels */
+  --control-line: #8b8272;      /* outlines of fields and switches: 3:1 on every surface */
+
+  /* Text */
+  --fg: #221d16;          /* main text */
+  --fg-2: #574e41;        /* secondary text */
+  --fg-3: #6d6354;        /* hints, captions */
+
+  /* Accent: buttons, highlights, progress bars, selected items */
+  --accent: #a14b1b;
+  --accent-2: #8a3f16;      /* hovered or pressed accent */
+  --accent-fg: #ffffff;     /* text on the accent */
+  --accent-text: #a14b1b;   /* the accent as text: links, highlighted words */
+  --accent-rgb: 161 75 27;
+  --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
+
+  /* Status */
+  --danger: #b8222f;
+  --ok: #116b45;
+  --warn: #8a5300;
+
+  /* Shape and depth */
+  --radius: 10px;
+  --shadow: 0 10px 30px rgba(20, 25, 40, 0.12);
+  --card-shadow: 0 10px 24px rgba(20, 25, 40, 0.18);
+  --overlay: rgba(20, 24, 32, 0.45);
+
+  /* Layout and type */
+  --sidebar: 240px;
+  --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Light themes: soften the text shadow used on artwork. */
+.hero h1, .detail h1 { text-shadow: 0 1px 6px rgba(255, 255, 255, 0.6); }
+.detail-hero .bg, .hero .bg { filter: saturate(1.05) brightness(1.02); }

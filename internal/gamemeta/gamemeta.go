@@ -61,10 +61,17 @@ type Query struct {
 	Tags  string
 	// CRCs are CRC-32s of the game's files, best guess first.
 	CRCs []uint32
+	// AltCRCs are those of other versions in the same archive. They come after the name
+	// when asking, as they're not what's actually being played.
+	AltCRCs []uint32
 	// Size is the size of the first file those CRCs came from.
 	Size int64
 	// Serial is a disc's product code, such as SLUS-00594.
 	Serial string
+	// HeaderTitle is what the file's own header calls the game, if it says. It's in
+	// capitals and often cut short, so it's worth less than a checksum and more than the
+	// name someone gave the file.
+	HeaderTitle string
 }
 
 // Score is one rating out of 100, from one reviewer or the source's own users.

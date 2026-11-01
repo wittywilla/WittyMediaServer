@@ -4,7 +4,9 @@ WittyDiagnoser is the disk diagnoser, for people who'd rather not open a termina
 WittyDiagnoser*, for administrators. "Disk" can mean two things, so it has two tabs: **A disc** (a DVD, Blu-ray or
 audio CD, as an image or a folder) and **Storage** (the drives and folders the server uses).
 
-It looks, and it tells you. It changes nothing.
+It looks, and it tells you. It changes nothing. Fixing is the job of [Repair](REPAIR.md), which looks after the
+server's own data and install: its database, metadata, modules and folders. Use WittyDiagnoser for what you've put on
+the server (discs) and what it runs on (drives), and Repair for the server itself.
 
 - [What it never does](#what-it-never-does)
 - [Checking a disc](#checking-a-disc)
@@ -16,7 +18,7 @@ It looks, and it tells you. It changes nothing.
 
 ## What it never does
 
-- **It never repairs or changes anything.** Discs and media are opened to read. The one thing it ever writes
+- **It never repairs or changes anything.** That's what [Repair](REPAIR.md) is for. Discs and media are opened to read. The one thing it ever writes
   is the small temp file of the write test, if you turn that on, and its own reports.
 - **It never decrypts anything or gets around copy protection.** It detects protection by reading a flag in
   the stream, and says so. It reads no keys, and doesn't name or suggest any tool.
@@ -98,7 +100,7 @@ on. It's a useful thing to report, because the same disc would probably cause tr
 The last 20 reports stay on the server, in `<data>/diagnostics/`, under **Past reports**. **Download report**
 gives plain text or JSON. Turn on **Hide disc name and file names** for a copy to send to someone: the disc's
 name, its label and every file name come out. The newest three go in the
-[support bundle](CONFIG.md#logs), always with names hidden.
+[log download](CONFIG.md#logs), always with names hidden.
 
 To report a disc problem, attach a report. Never attach the disc image.
 
@@ -118,8 +120,8 @@ To report a disc problem, attach a report. Never attach the disc image.
 
 The code is `internal/diagnose`, using the exported API of WittyDVD, WittyBluray and WittyDisc, and no changes to
 them: it has to build against their published versions. File systems and drives are in `internal/sysinfo`. The
-routes are `/api/diagnose/...` ([API](CLIENT-API.md)). The command-line tools, `wms disc`, `wms dvd` and
-`wms bluray`, stay for engine work: [DVD](DVD.md#diagnosing-a-disc), [Blu-ray](BLURAY.md#diagnosing-a-disc).
+routes are `/api/diagnose/...` ([API](CLIENT-API.md)). The command-line tools, `wittymediaserver disc`, `wittymediaserver dvd` and
+`wittymediaserver bluray`, stay for engine work: [DVD](DVD.md#diagnosing-a-disc), [Blu-ray](BLURAY.md#diagnosing-a-disc).
 
 ---
 <sub>WittyMediaServer documentation · [Back to the README](../README.md)</sub>

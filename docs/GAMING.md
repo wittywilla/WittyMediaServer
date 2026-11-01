@@ -190,6 +190,30 @@ Several cores run the game on stacks they allocate themselves, and call back fro
 callback on a foreign stack on a thread it created, so on Linux the runner hosts the core on a thread it
 didn't: `libretro.OnCoreThread`.
 
+## The game pages
+
+The library, a game's page and couch mode are in `web/src/pages/games`, and the menus and screens around a game are WittyPlay's
+own (`web/QuickMenu.tsx`, `web/Screens.tsx`, `web/prompts.tsx` in its repository). The prompts have a copy on each side, `pages/games/prompts.tsx` for the pages, because the pages have to work with the module missing. What they rest on, for anyone changing them:
+
+- **One request for the home screen.** `GET /games/home` answers with every shelf, so a TV app shows the same as the web page.
+- **Only what's on screen is on the page.** `VirtualGames.tsx` draws the rows near the screen and asks for the pages of results
+  those rows need, and stops asking during a fling. Six thousand games keep about the same number of elements on the page as sixty.
+- **Moving costs a transform.** The cover flow draws nine covers and moves them with `transform` and `opacity`. The tint behind
+  the page is a colour from a 16-pixel copy of the cover, faded between two layers. Nothing is blurred.
+- **Controllers come through `tv.ts`.** It turns buttons into key presses, which aren't "trusted" as real ones are, so a page can
+  tell a controller's X from someone typing. X searches, Y marks a favourite, View changes the sort, the bumpers move between
+  sections, and the triggers jump along the alphabet when sorted by title. Start opens couch mode. While a game is playing,
+  `tv.ts` leaves the controller to the game, and Start and Select together open the game menu.
+- **Prompts follow the last thing touched.** `useInputKind` watches for it. A controller shows its own letters or shapes, with
+  Nintendo's confirm button on the right as `tv.ts` maps it. A mouse or a finger sees no prompts.
+- **What a game needs is checked before Play.** `GET /games/{id}/check` looks for a core and a BIOS the way pressing Play does,
+  so a page can say what's missing and link to the fix. The player's error screens read the same flags from a refused start
+  (`needCore`, `needBios`, `encrypted`), and `web/words.ts` turns them into what to do next.
+
+Couch mode is `/big`. It's the same pages in a frame of their own, with larger sizes through `html.ten-foot`, and it survives
+going into a game and back for that tab. There is no playing on the device yet: every game runs on the server. See
+[In-browser emulation](#in-browser-emulation-designed-not-built-yet).
+
 ## Touch screens
 
 Nintendo DS and 3DS games are played on a touch screen. A press on the picture is the stylus, with a mouse or a
@@ -200,11 +224,16 @@ presses the button and a finger anywhere else is the stylus.
 DS cores use their software renderers, so they play on a server with no graphics card. 3DS cores need one. A real DS
 game that's played by touch has been played this way, from its title screen on.
 
-**3DS games must be decrypted.** These cores can't read encrypted game files, and nothing here will decrypt them or
-look for keys. The server reads the plain headers of `.3ds`, `.cci`, `.cxi`, `.app` and `.cia` files when you press
-Play, and an encrypted one gets a clear refusal rather than a core's failure. A `.cia` is an install package, which
-the cores can't open: an unencrypted one has its main program copied out to a temporary file for the session. Updates
-and extra content inside a package aren't applied.
+**3DS games must be decrypted.** Nothing here will decrypt them or look for keys. The server reads the plain headers of
+`.3ds`, `.cci`, `.cxi`, `.app` and `.cia` files, and an encrypted one is still listed, with a clear message on its page and on
+*Needs a look → Can't play*. A game's bytes are what count: a package marks its contents as encrypted, but its program must also start
+with `NCCH`, and that program must have its NoCrypto flag set. A package marked encrypted whose program is plainly readable plays; one
+marked clear whose program is scrambled doesn't.
+
+A `.cia` is an install package. Azahar's list of what it opens doesn't include it, so an unencrypted one has its main program copied out to a
+temporary file for the session, and a core opens that. Updates and extra content inside a package aren't applied. A title's type says if a package
+is an update or extra content rather than a game, and those aren't listed as games. A game made only for the New 3DS says so in its header, and
+Azahar is told to be one (`citra_is_new_3ds`), as it starts as the older model otherwise.
 
 ## Why WebRTC, and what happens when it can't connect
 
@@ -277,13 +306,52 @@ The player has been kept independent of the transport so that this can be added 
 - **Library type `games`**, with a `console` on the library (`nes`, `snes`, and so on) or `auto`
   for one folder holding many consoles. Several libraries of one console work the same way as
   several Movies libraries: the add flow's "combine or separate" choice applies per console.
-- **`auto` libraries** use the folder name first (`SNES/`, `Super Nintendo/`, `Super Nintendo (SNES)/`),
-  then the file extension when only one console claims it. Files nothing claims are skipped.
-- **Items** have kind `game` and a `console`. Multi-file games: a `.cue` hides its `.bin` tracks,
+- **Items** have kind `game` and a `console`. Multi-file games: a `.cue`, `.gdi` or `.ccd` hides the files it names,
   and an `.m3u` hides the discs it lists.
 - **Archives** count as the game inside them, so nothing needs unpacking first. See below.
-- **What gets skipped:** BIOS folders (`bios`, `system`), and files that aren't games. A scan reports what it left
-  out, on the library's page, for admins.
+- **What gets skipped:** BIOS folders (`bios`, `system`), and anything shown not to be a game.
+
+### What a scan believes
+
+A file's name is where the question starts, not where it ends. `.bin` and `.iso` mean half a dozen consoles, `.md` is usually a
+readme, `.dmg` a Mac disk image and `.vb` source code. So every file is judged on evidence (`internal/gameid`, and
+`internal/library/games_detect.go`), and a game's page shows an administrator what the evidence was.
+
+| Evidence | How sure | What it covers |
+|---|---|---|
+| **The file's own bytes** | 100 | iNES, UNIF and Famicom Disk System headers; the Super Nintendo's internal header, scored; the Nintendo 64's first word in any byte order; the logos a Game Boy, Game Boy Advance and DS check before starting; `SEGA` at 0x100 on a Mega Drive; TMR SEGA, with its console digit; Neo Geo Pocket's copyright line; Lynx and Atari 7800 headers; and on discs, `SYSTEM.CNF` (`BOOT` is PlayStation, `BOOT2` is PlayStation 2), `PSP_GAME` and its `PARAM.SFO`, `PBP`, the boot sector of Dreamcast, Saturn and Sega CD discs, GameCube and Wii magic numbers. `.cso` and `.zso` are read through their compression. A sheet is judged by the file it names |
+| **An extension only one console uses**, in its folder | 80 | `.smc` in a Super Nintendo folder, or inside an archive there |
+| **The folder or library**, and a file that can't say | 70 | `.chd`, `.cdi`, `.gdi`; consoles with no header at all, like the Atari 2600, checked for size |
+| **A person said so** | 100 | Anything on the *Needs a look* list |
+
+The file wins an argument. A PlayStation 2 game in a folder named for the PlayStation is a PlayStation 2 game. In a library set to one console, a
+game for another isn't quietly listed or quietly dropped: it goes on *Needs a look*.
+
+**Nothing unproven becomes a game.** Every file is either listed, or on one of two lists on the library's page, each with its reason:
+
+- **Needs a look** is for files that might be games: no header where every game has one, a disc with nothing to say which console, a console with no core here,
+  an archive holding hundreds of different things. One click says what it is, or that it isn't a game. A whole folder takes one click too.
+- **Left out** is for what's been shown not to be one: BIOS files (by name and by bytes), updates and extra content (a 3DS title's type in its title id, a PSP's
+  `CATEGORY`, a name's tags), test cartridges and cheat devices, music CDs, chiptunes, text, programs, film discs, and a second copy of something. These can be overruled.
+
+These choices are kept in the database, beside the library. Nothing is ever written to a games folder.
+
+**Several files, one game.** After each file has been judged:
+
+- **Copies** are found by checksum, across folders and whatever they're named: a loose `.cue` and a `.7z` holding the same disc. Only files the same size as another are
+  ever read for this. The one that needs no unpacking is kept.
+- **Discs** come together by name: `Disc 2`, `(CD2)`, `disc2of3`, or a folder called `Disc 2`. They can be loose, in archives, or both, and they're offered to the
+  core as a playlist, so the game's menu can change disc. Each disc in an archive is unpacked first. A disc that's kept on another drive from the data folder is copied beside the
+  playlist for as long as the game is running, unless a link can be made, because cores can't follow a playlist across drives.
+- **Versions** (regions, revisions, betas) of one name on one console share a tile, headed by a released version in the first region of the owner's order (see below). The head stays the
+  head, as saves belong to it. Each version is still its own game, with its own saves, and can be made a game of its own from its page.
+- **Sets:** an archive of versions of one game plays the verified one in the first region of the owner's order, leaving out bad dumps, hacks and translations, and its page lets an administrator choose another.
+- **What someone typed stays.** A field marked as edited that no source gave is theirs, and no scan changes it, including the first scan of a new version, which goes over every game
+  once, and whatever an NFO beside the file says. A field that's both edited and from a source is an old answer an earlier version read back from an NFO it wrote, which a better one can replace.
+
+**Importing a big library** needs nobody watching. It runs in the background, and carries on from where it stopped after a restart: what's been judged is saved every 200 files, and
+what's been looked up as it goes. A file is only read again if it changes. On this project's test library of 8,500 files on a hard disk, the scan took 30 seconds and every game had a
+name and a checksum match within a minute, with online sources and pictures carrying on after that.
 
 ### Games in archives
 
@@ -360,7 +428,16 @@ gaming/saves/u<user id>/i<item id>/save.srm       battery save
                                    undo.state     the game as it was before the last load
                                    autoprev.state the automatic save that starting over would have replaced
                                    patches/p<n>.patch  a person's patches
+                                   system/             the system folder of a core that keeps saves in it
 ```
+
+**Memory cards.** The PlayStation 2 core keeps its memory cards under its system folder, as `pcsx2/memcards`. A running
+core can't write to the shared system folder, and shouldn't see other people's cards there, so this core gets a system
+folder of its own, in the save folder (`SavesIn` in `traits.go`). The cards stay there. Copies of the BIOS in use and the
+core's support files go in beside them when the game starts and are removed when it ends, up to 64 MB, so firmware
+doesn't end up in backups. They're copies, not links, because on Linux a core could write through a hard link to the real
+file. Each game has its own cards for each account, so a game that reads another game's save can't find it. A new card
+is unformatted, as a new card was on a real console, and a game offers to format it the first time it saves.
 
 Paths are built only from numeric IDs and a slot number. The host sends the bytes over its pipe, and the server
 writes them atomically, so a host that has been exploited can't choose a path. Battery saves are written every 30
@@ -371,6 +448,20 @@ A person can download a state or a battery save and put one back. An exported st
 console, the core, its size and a checksum, and an import checks all of them. A plain state file from elsewhere is
 taken with a warning: nothing can vouch for it, and it's only ever read by a core inside its sandbox. A state that
 won't load leaves the game as it was and says so, and Undo load is always there.
+
+## Which version comes first
+
+*Settings, Consoles & cores, Which version comes first* puts regions in order (`gamingRegionOrder`, such as
+`japan,europe`: `usa`, `europe`, `australia`, `japan`, `asia`, `brazil`, with any left out going after those, in that
+order). A country counts as its region, and a version for the world counts as the first. It decides three things:
+
+- which file of an archive plays,
+- which version leads a tile,
+- which record names a game whose file says nothing about its region.
+
+Changing it scans the games libraries again. A file someone chose stays. So does the version of a game someone has played,
+as their saves belong to it, or has given a title of their own. New versions that arrive later never take over from
+the one leading a tile, which is the same with any order.
 
 ## Settings
 

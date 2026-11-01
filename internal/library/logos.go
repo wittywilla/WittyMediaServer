@@ -26,6 +26,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
 // The logo service: logos of studios, networks, consoles, game studios and
@@ -53,6 +54,9 @@ const (
 	LogoNone    = "none"    // looked, and no source has one
 	LogoText    = "text"    // someone chose the name alone
 )
+
+// BrandSeries is the kind of row in title_brands for a film series. It has no logo.
+const BrandSeries = "series"
 
 // LogoConsentVersion goes up if what the owner agreed to changes enough to ask again.
 const LogoConsentVersion = "1"
@@ -99,6 +103,7 @@ type LogoSource interface {
 
 // Logos runs the service.
 type Logos struct {
+	Tasks *tasks.Registry // where this shows in the activity panel; may be nil
 	Store *Store
 	Dir   string // where the pictures are kept
 	// Source is where downloads come from. Nil means nowhere.
@@ -367,17 +372,26 @@ func (l *Logos) work(ctx context.Context) {
 	if gap == 0 {
 		gap = time.Second
 	}
+	var t *tasks.Handle // only once there's something to do: this wakes after every scan
+	defer func() { t.Finish(nil) }()
 	for l.Store.LogoConsent(ctx) == "yes" {
-		g, err := scanLogo(l.Store.DB.QueryRowContext(ctx, `SELECT `+logoCols+` FROM logos WHERE status = ? ORDER BY id LIMIT 1`, LogoPending))
+		g, err := scanLogo(l.Store.DB.QueryRowContext(ctx, `SELECT `+logoCols+` FROM logos WHERE status = ? ORDER BY kind <> 'console', id LIMIT 1`, LogoPending))
 		if err != nil {
 			return
 		}
+		if t == nil {
+			t = l.Tasks.Start(tasks.Spec{Type: tasks.TypeMetadata, Title: "Looking for logos", Unit: "logos"})
+		}
+		t.Item(g.Name, "")
 		if err := l.lookFor(ctx, g); err != nil {
 			l.log().Warn("could not look for a logo", "kind", g.Kind, "name", g.Name, "err", err)
 			// The source may be away. Stop here: the next scan or lookup starts again.
 			_, _ = l.Store.DB.ExecContext(ctx, `UPDATE logos SET tried_at = ? WHERE id = ?`, db.Now(), g.ID)
+			words, fix := tasks.Explain(err)
+			t.Problem(g.Name, "Couldn't look for this logo. "+words+" "+fix)
 			return
 		}
+		t.Add(1)
 		time.Sleep(gap)
 	}
 }
@@ -810,8 +824,10 @@ func (s *Store) setTitleBrands(ctx context.Context, target string, id, libraryID
 		if _, err := s.DB.ExecContext(ctx, `INSERT INTO title_brands(kind, key, name, library_id, `+col+`) VALUES(?,?,?,?,?)`, kind, k, n, libraryID, id); err != nil {
 			return err
 		}
-		if _, err := s.EnsureLogo(ctx, kind, n); err != nil {
-			return err
+		if ValidLogoKind(kind) {
+			if _, err := s.EnsureLogo(ctx, kind, n); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

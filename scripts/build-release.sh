@@ -286,7 +286,7 @@ for t in "${TARGETS[@]}"; do
       CGO_ENABLED=0 GOOS=windows GOARCH="$arch" go build -trimpath -ldflags="-s -w -H=windowsgui -X main.version=${VERSION}" -o "$out/Uninstall WittyMediaServer.exe" ./cmd/wittymediaserver-uninstall
       rm -f cmd/wittymediaserver-uninstall/rsrc_windows_*.syso ;;
     darwin)  make_app_bundle "$out" "$arch" ;;
-    *)       cp scripts/install.sh "$out/"; "$TOOLS/genicon$HOSTEXE" "$out/bin/wittymediaserver.png" 256
+    *)       cp packaging/linux/install.sh "$out/"; "$TOOLS/genicon$HOSTEXE" "$out/bin/wittymediaserver.png" 256
              cp packaging/linux/wittymediaserver.desktop "$out/bin/wittymediaserver.desktop" ;;
   esac
   # So a copy of 0.5.2-alpha or older can update to this one from Settings. Installers don't carry it.

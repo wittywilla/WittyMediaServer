@@ -4,8 +4,8 @@
 //
 //	Uninstall WittyMediaServer.exe                 asks
 //	Uninstall WittyMediaServer.exe /S              silently, keeps your data
-//	Uninstall WittyMediaServer.exe /S /RemoveData  silently, a full clean-up (recordings stay)
-//	... /RemoveRecordings                          recorded TV too
+//	Uninstall WittyMediaServer.exe /S /RemoveData  silently, a full clean-up (recordings and backups stay)
+//	... /RemoveRecordings /RemoveBackups           those too
 //
 // It asks first, running unprivileged from wherever it is. The work is then done by a worker,
 // which may need raising to an administrator, and on Windows runs from a copy in the temp
@@ -61,6 +61,9 @@ func ask(e *uninstall.Env, a uninstall.Args) int {
 		}
 		if !a.RemoveRecordings && pl.Has(uninstall.GroupRecordings) {
 			a.RemoveRecordings = confirm(title, "Also delete your recorded TV ("+uninstall.Size(pl.Bytes(uninstall.GroupRecordings))+")?\n\nChoose No to keep the recordings where they are.")
+		}
+		if !a.RemoveBackups && pl.Has(uninstall.GroupBackups) {
+			a.RemoveBackups = confirm(title, "Also delete your backups ("+uninstall.Size(pl.Bytes(uninstall.GroupBackups))+")?\n\nChoose No to keep them, so you can restore from them after installing it again.")
 		}
 	}
 	a.ProgramFolder = e.SelfRoot

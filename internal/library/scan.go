@@ -20,12 +20,9 @@ import (
 	"github.com/wittywilla/wittydvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
-
-var videoExts = map[string]bool{
-	".mkv": true, ".mp4": true, ".m4v": true, ".mov": true, ".avi": true, ".wmv": true, ".ts": true, ".m2ts": true,
-	".mts": true, ".webm": true, ".flv": true, ".mpg": true, ".mpeg": true, ".vob": true, ".ogv": true, ".3gp": true,
-}
 
 // Scanner walks library paths and keeps items up to date.
 type Scanner struct {
@@ -56,9 +53,16 @@ type Scanner struct {
 	TMDBBase string
 	// OnScanned runs after a scan of a library that holds films or shows.
 	OnScanned func()
+	// AfterScan is told when any library's scan has finished without trouble. It's called
+	// with the scan's turn at the disk given up, and must not hold things up.
+	AfterScan func(libraryID int64)
+	// OnGamesScanned runs after a scan of a library of games.
+	OnGamesScanned func()
 	// SaveMeta reports whether to write NFO/artwork beside the media.
 	SaveMeta func() bool
 	Log      *slog.Logger
+	// Tasks is where scans show up in the activity panel. May be nil.
+	Tasks *tasks.Registry
 
 	// slot lets one library scan at a time: a small machine has one disk and a
 	// few cores to spare, and the periodic rescan starts every library at once.
@@ -80,11 +84,19 @@ type ScanProgress struct {
 }
 
 func NewScanner(store *Store, tools *ffmpeg.Tools, cacheDir string, tmdbKey func() string, log *slog.Logger) *Scanner {
-	return &Scanner{Store: store, Tools: tools, CacheDir: cacheDir, ImagesDir: filepath.Join(cacheDir, "images"), TMDBKey: tmdbKey, Log: log.With("cat", "library"), slot: make(chan struct{}, 1), running: map[int64]context.CancelFunc{}, Progress: map[int64]*ScanProgress{}}
+	sc := &Scanner{Store: store, Tools: tools, CacheDir: cacheDir, ImagesDir: filepath.Join(cacheDir, "images"), TMDBKey: tmdbKey, Log: log.With("cat", "library"), slot: make(chan struct{}, 1), running: map[int64]context.CancelFunc{}, Progress: map[int64]*ScanProgress{}}
+	if tools != nil && tools.FFmpeg != "" {
+		wittycd.ForeignAudio = sc.flacOfSheetAudio
+	}
+	return sc
 }
 
 // Start scans a library in the background (no-op if already scanning).
-func (s *Scanner) Start(libraryID int64) bool {
+func (s *Scanner) Start(libraryID int64) bool { return s.StartBy(libraryID, tasks.By{}) }
+
+// StartBy is Start, saying who asked. A scan of a library whose scan was stopped picks
+// up where it left off: files it has already seen, unchanged, take almost no time.
+func (s *Scanner) StartBy(libraryID int64, by tasks.By) bool {
 	s.mu.Lock()
 	if _, ok := s.running[libraryID]; ok {
 		s.mu.Unlock()
@@ -94,6 +106,12 @@ func (s *Scanner) Start(libraryID int64) bool {
 	s.running[libraryID] = cancel
 	s.Progress[libraryID] = &ScanProgress{LibraryID: libraryID, Phase: "starting", StartedAt: time.Now().Unix()}
 	s.mu.Unlock()
+	name, rig := "", false
+	if lib, err := s.Store.Library(ctx, libraryID); err == nil {
+		name, rig = lib.Name, lib.IsRig()
+	}
+	t := s.Tasks.Queue(tasks.Spec{Type: tasks.TypeScan, Title: "Scanning " + name, Phase: "Waiting for its turn", LibraryID: libraryID, LibraryName: name, Unit: "files",
+		By: by, Cancel: cancel, Pausable: true, RetryKey: strconv.FormatInt(libraryID, 10), Quiet: rig})
 	id := logging.NewID("scan")
 	ctx = logging.WithSession(ctx, id) // every record of this scan carries it
 	logging.Go("library scan", func() {
@@ -103,15 +121,110 @@ func (s *Scanner) Start(libraryID int64) bool {
 			delete(s.Progress, libraryID)
 			s.mu.Unlock()
 		}()
-		if err := s.scan(ctx, libraryID); err != nil {
+		err := s.scan(context.WithValue(ctx, taskKey{}, t), libraryID)
+		t.Finish(err)
+		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				s.Log.InfoContext(ctx, "scan cancelled", "library", libraryID)
 				return
 			}
 			s.Log.ErrorContext(ctx, "scan failed", "library", libraryID, "err", err)
+			return
+		}
+		if s.AfterScan != nil {
+			s.AfterScan(libraryID)
 		}
 	}, "cat", "library", "session", id)
 	return true
+}
+
+// HoldScans keeps any library from being scanned until release is called, once it has
+// waited for one that's going to reach a stopping point. For work that needs the files
+// and the database to hold still, such as a backup. Scans asked for meanwhile wait their
+// turn, shown as queued.
+func (s *Scanner) HoldScans(ctx context.Context) (release func(), err error) {
+	select {
+	case s.slot <- struct{}{}:
+		var once sync.Once
+		return func() { once.Do(func() { <-s.slot }) }, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+// findUnlessCancelled walks a folder, and doesn't keep whoever cancelled waiting. A slow
+// network share can take minutes to walk. The walk only reads, and goes on by itself until it
+// has finished, which costs nothing but its own time.
+func findUnlessCancelled(ctx context.Context, find func(string) ([]candidate, error), root string) ([]candidate, error) {
+	type found struct {
+		list []candidate
+		err  error
+	}
+	ch := make(chan found, 1)
+	logging.Go("library walk", func() {
+		list, err := find(root)
+		ch <- found{list, err}
+	}, "cat", "library")
+	select {
+	case f := <-ch:
+		return f.list, f.err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+// scanResult says what came of a scan, for the activity history.
+func scanResult(files, problems int, took time.Duration) string {
+	plural := func(n int, one, many string) string {
+		if n == 1 {
+			return "1 " + one
+		}
+		return strconv.Itoa(n) + " " + many
+	}
+	s := fmt.Sprintf("Looked at %s in %s", plural(files, "file", "files"), took.Round(time.Second))
+	if problems == 0 {
+		return s + ", with no problems."
+	}
+	return s + ", with " + plural(problems, "problem", "problems") + "."
+}
+
+// gameScanResult says what came of a scan of games: what someone comes to the activity
+// panel to find out is how many there are, and whether any of them want their attention.
+func (s *Store) gameScanResult(ctx context.Context, lib *Library, problems int, took time.Duration) string {
+	games := 0
+	if counts, err := s.GameCounts(ctx, lib.ID, nil); err == nil {
+		for _, n := range counts {
+			games += n
+		}
+	}
+	plural := func(n int, one, many string) string {
+		if n == 1 {
+			return "1 " + one
+		}
+		return strconv.Itoa(n) + " " + many
+	}
+	out := fmt.Sprintf("Found %s in %s.", plural(games, "game", "games"), took.Round(time.Second))
+	if review, err := s.GameReviewList(ctx, lib, "none", 1, 0); err == nil {
+		if n := review.Counts["needs"]; n > 0 {
+			out += " " + plural(n, "file needs", "files need") + " a look."
+		}
+		if n := review.Counts["blocked"]; n > 0 {
+			out += " " + plural(n, "game", "games") + " can't play."
+		}
+	}
+	if problems > 0 {
+		out += " " + plural(problems, "problem", "problems") + " along the way."
+	}
+	return out
+}
+
+type taskKey struct{}
+
+// scanTask is the activity entry of the scan this context belongs to. May be nil, and
+// a nil one does nothing.
+func scanTask(ctx context.Context) *tasks.Handle {
+	t, _ := ctx.Value(taskKey{}).(*tasks.Handle)
+	return t
 }
 
 // scanTally counts what a file or a lookup failed at without stopping the scan,
@@ -154,16 +267,28 @@ func (s *Scanner) minorFailure(ctx context.Context, msg string, err error, args 
 	e.err = err
 }
 
-// report leaves a warning for each kind of failure, and says how many in all.
+// report leaves a warning for each kind of failure, and says how many in all. The
+// activity panel gets it in a person's words.
 func (t *scanTally) report(ctx context.Context, log *slog.Logger) int {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	total := 0
+	task := scanTask(ctx)
 	for msg, e := range t.what {
 		total += e.n
 		log.WarnContext(ctx, "scan had failures", "what", msg, "count", e.n, "err", e.err)
+		words, fix := tasks.Explain(e.err)
+		task.ProblemN("", strings.TrimSpace(sentenceCase(msg)+": "+words+" "+fix), e.n)
 	}
 	return total
+}
+
+// sentenceCase gives a log message a capital letter, for showing it to someone.
+func sentenceCase(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 // Cancel stops a running scan.
@@ -181,6 +306,14 @@ func (s *Scanner) progress(id int64, f func(p *ScanProgress)) {
 	if p := s.Progress[id]; p != nil {
 		f(p)
 	}
+}
+
+// Running says a scan of this library is queued or under way.
+func (s *Scanner) Running(id int64) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, ok := s.running[id]
+	return ok
 }
 
 // Snapshot returns a copy of the progress for a library, or nil when idle.
@@ -203,6 +336,12 @@ type candidate struct {
 	motion string
 	// console: games, the console this file was sorted into.
 	console string
+	// verdict is how the console was worked out, and discs the game's discs when it has
+	// several. Games only.
+	verdict *gameVerdict
+	discs   []gameDisc
+	// format is the registry's id, when the content said it and the name didn't.
+	format string
 }
 
 // discover lists playable things under a root: video files, disc images and
@@ -235,6 +374,7 @@ func (u *unreadable) with(err error) error {
 func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 	var out []candidate
 	var bad unreadable
+	var unnamed sniffBudget
 	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
 		if err != nil {
 			bad.note(err)
@@ -263,23 +403,29 @@ func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 			}
 			return nil
 		}
-		ext := strings.ToLower(filepath.Ext(name))
 		st, err := d.Info()
-		if err != nil || !mediaEntry(root, p, d) {
+		if err != nil || !mediaEntry(root, p, d) || IsConvertedCopy(name) {
 			return nil
 		}
 		switch {
-		case ext == ".iso" || ext == ".img":
+		case isVideoDiscImage(p, name):
 			out = append(out, candidate{path: p, kind: "dvd-iso", size: st.Size(), mtime: st.ModTime().Unix()})
-		case videoExts[ext]:
+		case mediatypes.IsVideo(name) && nameHolds(p, name, mediatypes.Video):
 			if skipSamples && (strings.HasPrefix(strings.ToLower(name), "sample") || st.Size() < 5<<20) {
 				return nil
 			}
 			out = append(out, candidate{path: p, kind: "video", size: st.Size(), mtime: st.ModTime().Unix()})
+		default:
+			if skipSamples && st.Size() < 5<<20 {
+				return nil
+			}
+			if f := unnamed.sniff(p, name, st.Size(), mediatypes.Video); f != nil {
+				out = append(out, candidate{path: p, kind: "video", size: st.Size(), mtime: st.ModTime().Unix(), format: f.ID})
+			}
 		}
 		return nil
 	})
-	return out, bad.with(err)
+	return stackParts(out), bad.with(err)
 }
 
 func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
@@ -292,14 +438,43 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	}
 	s.Store.setScanning(ctx, libraryID, true)
 	defer s.Store.setScanning(context.Background(), libraryID, false)
-	if s.slot != nil {
+	task := scanTask(ctx)
+	holding := false
+	takeSlot := func() error {
+		if s.slot == nil {
+			return nil
+		}
 		s.progress(libraryID, func(p *ScanProgress) { p.Phase = "waiting" })
 		select {
 		case s.slot <- struct{}{}:
-			defer func() { <-s.slot }()
+			holding = true
+			return nil
 		case <-ctx.Done():
 			return ctx.Err()
 		}
+	}
+	defer func() {
+		if holding {
+			<-s.slot
+		}
+	}()
+	if err := takeSlot(); err != nil {
+		return err
+	}
+	task.Begin()
+	// A paused scan lets another library have its turn at the disk meanwhile.
+	pausePoint := func() error {
+		if !task.PauseWanted() {
+			return ctx.Err()
+		}
+		if holding {
+			<-s.slot
+			holding = false
+		}
+		if err := task.Wait(ctx); err != nil {
+			return err
+		}
+		return takeSlot()
 	}
 	s.Log.InfoContext(ctx, "scan started", "library", lib.Name, "type", lib.Type, "folders", len(lib.Paths))
 	started := time.Now()
@@ -314,15 +489,34 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		archives = newArchiveIndex(s.Store, libraryID)
 		archives.reading = func(path string) {
 			s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(path) })
+			task.Item(filepath.Base(path), path)
+			// Reading archives can be the longest part of a scan, so pausing can't wait for its end.
+			_ = pausePoint()
+		}
+		archives.stopped = func() bool { return ctx.Err() != nil }
+		archives.looking = func(done, total int) {
+			s.progress(libraryID, func(p *ScanProgress) { p.Done, p.Found = done, total })
+			task.Progress(int64(done), int64(total))
+			_ = pausePoint()
 		}
 		defer archives.close()
 	}
+	if lib.Type == "games" {
+		task.Phase("Working out what each file is")
+	} else {
+		task.Phase("Finding files")
+	}
 	for _, root := range lib.Paths {
+		if err := pausePoint(); err != nil {
+			return err
+		}
 		s.progress(libraryID, func(p *ScanProgress) { p.Phase = "discovering"; p.Current = root })
+		task.Item(filepath.Base(root), root)
 		// A drive or share that is away (an unmounted mount point reads as an
 		// empty folder) is not the same as every file having been deleted.
 		if entries, err := os.ReadDir(root); err != nil || len(entries) == 0 {
 			s.Log.WarnContext(ctx, "library folder is empty or can't be reached; keeping its items", "library", lib.Name, "dir", root, "err", err)
+			task.Problem(root, "This folder is empty or can't be reached, so what it held is being kept for now. If it's on a drive or a share, check that it's connected.")
 			offline = append(offline, root)
 			continue
 		}
@@ -341,9 +535,20 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		case lib.Type == "games":
 			find = func(root string) ([]candidate, error) { return archives.discover(root, lib.Console) }
 		}
-		c, err := find(root)
+		var c []candidate
+		var err error
+		if lib.Type == "games" {
+			c, err = find(root) // watches for a cancel as it goes, and shares what it finds with this scan
+		} else {
+			c, err = findUnlessCancelled(ctx, find, root)
+		}
+		if ctx.Err() != nil {
+			return ctx.Err() // before anything half-found is kept
+		}
 		if err != nil {
 			s.Log.WarnContext(ctx, "could not read all of a library folder", "library", lib.Name, "dir", root, "err", err)
+			words, fix := tasks.Explain(err)
+			task.Problem(root, "Some of this folder couldn't be read. "+words+" "+fix)
 		}
 		if lib.Type == "discs" {
 			images := discoverDiscCDs(root)
@@ -352,8 +557,10 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		all = append(all, c...)
 	}
 	if lib.Type == "games" {
-		s.Store.noteSkippedGames(ctx, lib, archives)
 		archives.save(ctx, len(offline) == 0)
+		if err := s.Store.saveNotes(ctx, libraryID, archives, len(offline) > 0); err != nil {
+			s.Log.WarnContext(ctx, "could not save what a games scan left out", "library", lib.Name, "err", err)
+		}
 	}
 	// Files someone moved to another library or removed, and files moved here.
 	if leave, adopt, err := s.Store.libraryNotes(ctx, libraryID); err == nil {
@@ -379,16 +586,33 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	rules := s.Store.loadRuleSet(ctx, lib)
 	ctx = context.WithValue(ctx, rulesKey{}, rules)
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
+	if lib.Type == "games" {
+		task.Phase("Listing the games")
+		task.Unit("games")
+	} else {
+		task.Phase("Looking at each file")
+	}
+	task.Progress(0, int64(len(all)))
 	keep := map[string]bool{}
 	tv := newTVScan()
 	covers := map[string]string{} // audio: one cover per folder+album
 	creators := newCreatorScan()
+	var playlists []candidate
 	for i, c := range all {
-		if ctx.Err() != nil {
-			return ctx.Err()
+		if err := pausePoint(); err != nil {
+			return err
+		}
+		s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(c.path); p.Done = i })
+		task.Item(filepath.Base(c.path), c.path)
+		task.Progress(int64(i), int64(len(all)))
+		if c.kind == playlistKind {
+			playlists = append(playlists, c)
+			continue // read once the songs it names are in
+		}
+		if s.leftOut(ctx, lib, c) {
+			continue // its name says media, its content says otherwise
 		}
 		keep[c.path] = true
-		s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(c.path); p.Done = i })
 		err := guard(func() error {
 			switch {
 			case (lib.Type == "shows" || lib.Type == "anime") && IsDiscKind(c.kind):
@@ -414,14 +638,20 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			if ctx.Err() == nil {
 				failed++
 				s.Log.WarnContext(ctx, "could not add a file to the library", "file", c.path, "err", err)
+				words, fix := tasks.Explain(err)
+				task.Problem(c.path, "This file couldn't be added to the library. "+words+" "+fix)
 			}
 		} else {
 			s.Log.DebugContext(ctx, "indexed", "file", c.path)
 		}
 	}
+	task.Progress(int64(len(all)), int64(len(all)))
+	task.Item("", "")
+	task.Phase("Tidying up")
 	if err := s.Store.markMissing(ctx, libraryID, keep, offline); err != nil {
 		return err
 	}
+	s.importPlaylists(ctx, lib, playlists)
 	if err := s.Store.markShowsMissing(ctx, libraryID); err != nil {
 		return err
 	}
@@ -438,7 +668,17 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	problems := tally.report(ctx, s.Log)
 	s.Log.InfoContext(ctx, "scan finished", "library", lib.Name, "items", len(all), "errors", failed+problems,
 		"offline", len(offline), "took", time.Since(started).Round(time.Second).String())
+	task.Result(scanResult(len(all), failed+problems, time.Since(started)))
 	if lib.Type == "games" {
+		task.Phase("Putting versions of a game together")
+		if err := s.Store.linkGameVersions(ctx, lib); err != nil {
+			s.Log.WarnContext(ctx, "could not put versions of a game together", "library", lib.Name, "err", err)
+		}
+		task.Result(s.Store.gameScanResult(ctx, lib, failed+problems, time.Since(started)))
+		s.Store.ensureGameLogos(ctx, lib)
+		if s.OnGamesScanned != nil {
+			s.OnGamesScanned()
+		}
 		s.GameMeta.Kick()
 	}
 	return nil
@@ -491,7 +731,8 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	if parentTitle, parentYear := ParseName(stripIDTags(filepath.Base(filepath.Dir(c.path)))); c.kind != "dvd-folder" && c.kind != "bluray-folder" && it.Year == nil && parentYear != nil && !strings.EqualFold(filepath.Dir(c.path), lib.Paths[0]) {
 		it.Title, it.Year = parentTitle, parentYear
 	}
-	rule, hasRule := ctx.Value(rulesKey{}).(*ruleSet).test(c.path)
+	rules, _ := ctx.Value(rulesKey{}).(*ruleSet)
+	rule, hasRule := rules.test(c.path)
 	if hasRule {
 		if rule.Title != "" {
 			it.Title = rule.Title
@@ -664,7 +905,7 @@ func (s *Scanner) adopted(path string, lib *Library) ([]candidate, error) {
 		return discover(path)
 	}
 	kind := "video"
-	if ext := strings.ToLower(filepath.Ext(path)); ext == ".iso" || ext == ".img" {
+	if isVideoDiscImage(path, filepath.Base(path)) {
 		kind = "dvd-iso"
 	}
 	return []candidate{{path: path, kind: kind, size: st.Size(), mtime: st.ModTime().Unix()}}, nil
@@ -750,10 +991,15 @@ func (s *Scanner) fillAudioFormats(ctx context.Context, libraryID int64) {
 		}
 	}
 	rows.Close()
+	task := scanTask(ctx)
+	if len(todo) > 0 {
+		task.Phase("Reading sound formats")
+	}
 	for _, r := range todo {
-		if ctx.Err() != nil {
+		if task.Wait(ctx) != nil {
 			return
 		}
+		task.Item(filepath.Base(r.path), r.path)
 		pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		p, err := s.Tools.ProbeFile(pctx, r.path)
 		cancel()
@@ -801,7 +1047,23 @@ func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
 		return
 	}
 	it.RuntimeSec = p.Duration()
+	if it.RuntimeSec <= 0 {
+		// A bare stream has no length written anywhere: read through it to find out.
+		mctx, done := context.WithTimeout(ctx, 2*time.Minute)
+		it.RuntimeSec = s.Tools.MeasureDuration(mctx, it.Path)
+		done()
+	}
 	it.Container = strings.Split(p.Format.FormatName, ",")[0]
+	if parts := StackedParts(it.Path); len(parts) > 1 {
+		// A film split across files: its length is all of them.
+		pctx, done := context.WithTimeout(ctx, 60*time.Second)
+		for _, part := range parts[1:] {
+			if q, err := s.Tools.ProbeFile(pctx, part); err == nil {
+				it.RuntimeSec += q.Duration()
+			}
+		}
+		done()
+	}
 	if v := p.Video(); v != nil {
 		it.VideoCodec = v.CodecName
 		it.Width, it.Height = v.DisplaySize()
@@ -814,6 +1076,9 @@ func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
 	}
 	for _, st := range p.Subtitles() {
 		it.SubLangs = append(it.SubLangs, orUnd(st.Tags["language"]))
+	}
+	for _, st := range FindSubtitles(it.Path) {
+		it.SubLangs = append(it.SubLangs, orUnd(st.Language))
 	}
 	// "Skip intro": an Intro/Opening chapter marks the intro exactly.
 	for _, ch := range p.Chapters {

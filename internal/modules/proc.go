@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymodule"
 )
 
@@ -45,18 +46,21 @@ type proc struct {
 	strict  bool                     // refuse to run without its sandbox: a fork, whose only limits these are
 	launch  string                   // the program that applies limits before it runs; "" for none
 	keep    bool                     // not stopped when idle: it holds state for a job
-	timeout time.Duration            // for one call; 0 is callTimeout
+	// background: a kept helper that reports tasks between calls, and so can't stream.
+	background bool
+	timeout    time.Duration // for one call; 0 is callTimeout
 
-	mu      sync.Mutex
-	cmd     *exec.Cmd
-	stdin   io.WriteCloser
-	stdout  io.Closer
-	conn    *wittymodule.Conn
-	release func() // what the sandbox holds for a running helper
-	idle    *time.Timer
-	stderr  *logging.Tail
-	started time.Time
-	closed  bool
+	mu       sync.Mutex
+	cmd      *exec.Cmd
+	stdin    io.WriteCloser
+	stdout   io.Closer
+	conn     *wittymodule.Conn
+	release  func() // what the sandbox holds for a running helper
+	idle     *time.Timer
+	stderr   *logging.Tail
+	started  time.Time
+	closed   bool
+	reporter *tasks.Reporter // its task reports; see tasks.go
 }
 
 func newProc(man *wittymodule.Manifest, dir string, verify func() error, log *slog.Logger) *proc {
@@ -214,6 +218,7 @@ func (p *proc) start() error {
 		release()
 		return fmt.Errorf("%w %s", err, t.Last(errStderr))
 	}
+	p.hearTasks(conn)
 	p.cmd, p.stdin, p.stdout, p.conn, p.release, p.stderr, p.started = cmd, stdin, stdout, conn, release, t, started
 	p.log.Debug("helper started", "topic", "lifecycle", "version", p.man.Version, "sandboxed", sandboxed)
 	return nil
@@ -257,6 +262,7 @@ func (p *proc) halt(why string) {
 		<-done
 	}
 	logging.ChildExit(p.log, "module helper", werr, false, p.stderr, p.started, "topic", "lifecycle", "why", why, "version", p.man.Version)
+	p.endTasks(why)
 	p.release()
 	p.cmd, p.stdin, p.stdout, p.conn, p.release, p.stderr = nil, nil, nil, nil, nil, nil
 }

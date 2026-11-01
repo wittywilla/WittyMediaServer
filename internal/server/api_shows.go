@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
 // tvSource is the active TV metadata service (TheTVDB with a key, else TVmaze).
@@ -262,7 +263,7 @@ func localImages(dir string) []artCandidate {
 	}
 	for _, e := range entries {
 		ext := strings.ToLower(filepath.Ext(e.Name()))
-		if e.IsDir() || (ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp") {
+		if e.IsDir() || !mediatypes.IsArtwork("x"+ext) {
 			continue
 		}
 		out = append(out, artCandidate{URL: filepath.Join(dir, e.Name()), Source: "local"})
@@ -399,7 +400,7 @@ func (s *Server) handleArtPreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ext := strings.ToLower(filepath.Ext(src))
-	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" && ext != ".tbn" {
+	if !mediatypes.IsArtwork("x" + ext) {
 		writeErr(w, 400, "not an image")
 		return
 	}
@@ -446,6 +447,7 @@ func (s *Server) handlePrefs(w http.ResponseWriter, r *http.Request) {
 		"shareLinks":  s.DB.GetSetting(ctx, "shareLinks", "1") == "1",
 		"uploads":     s.DB.GetSetting(ctx, "uploads", "1") == "1",
 		"visualizer":  s.Modules == nil || s.Modules.Installed("wittyvisualizer"),
+		"navDefault":  s.DB.GetSetting(ctx, "navDefault", ""),
 	})
 }
 

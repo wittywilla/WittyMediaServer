@@ -272,6 +272,26 @@ func TestRecordingsHaveTheirOwnQuestion(t *testing.T) {
 	}
 }
 
+func TestBackupsHaveTheirOwnQuestion(t *testing.T) {
+	w := newWindows(t)
+	fillData(t, w.local)
+	zip := filepath.Join(w.local, "backups", "before-the-move.zip")
+	write(t, zip, "zip")
+	pl := MakePlan(w.env)
+	if !pl.Has(GroupBackups) {
+		t.Fatal("backups aren't in the plan")
+	}
+	Execute(pl, Options{RemoveData: true, RemoveRecordings: true})
+	if !exists(zip) {
+		t.Fatal("removing data took the backups")
+	}
+	Execute(MakePlan(w.env), Options{RemoveData: true, RemoveBackups: true})
+	if exists(zip) {
+		t.Fatal("asked to remove backups, they stayed")
+	}
+	dirGone(t, w.local)
+}
+
 func TestAFolderWithTheRightNameIsNotEnough(t *testing.T) {
 	w := newWindows(t)
 	// Someone else's program folder, with our name on it.
@@ -564,6 +584,8 @@ func TestParseArgs(t *testing.T) {
 func TestEveryDataFolderIsKnown(t *testing.T) {
 	root := filepath.Join("..", "..")
 	re := regexp.MustCompile(`(?:DataDir|dataDir|\.Data), "([^"]+)"`)
+	// Not names in the data folder.
+	notNames := map[string]bool{"logDir": true}
 	var missing []string
 	for _, dir := range []string{"internal", "cmd"} {
 		err := filepath.WalkDir(filepath.Join(root, dir), func(p string, d os.DirEntry, err error) error {
@@ -584,7 +606,7 @@ func TestEveryDataFolderIsKnown(t *testing.T) {
 				}
 				for _, m := range re.FindAllStringSubmatch(line, -1) {
 					name := m[1]
-					if _, ok := dataEntry(name); !ok && name != RecordingsEntry {
+					if _, ok := dataEntry(name); !ok && name != RecordingsEntry && name != BackupsEntry && !notNames[name] {
 						missing = append(missing, name+" in "+filepath.ToSlash(p))
 					}
 				}

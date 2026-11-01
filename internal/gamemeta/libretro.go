@@ -300,8 +300,18 @@ func (s *Libretro) Prepare(ctx context.Context, console string, qs []Query) erro
 	return err
 }
 
+// company reads a developer or publisher. The list says "Unknown" for some, which isn't a name
+// to show as who made a game or look a logo up for.
+func company(s string) string {
+	s = Line(s)
+	if strings.EqualFold(s, "unknown") {
+		return ""
+	}
+	return s
+}
+
 // best picks among records of one game: the region the file says it's from if there's
-// a match, otherwise whichever is most useful to an English speaker.
+// a match, otherwise whichever the owner's order of regions likes best.
 func (d *libDB) best(ids []int32, tags string) int32 {
 	want := strings.ToLower(tags)
 	best, bestRank := ids[0], 99
@@ -370,6 +380,22 @@ func (d *libDB) closest(title string, want int) []struct {
 	return out
 }
 
+// discConsoles are consoles whose games are started by a product code on the disc.
+var discConsoles = map[string]bool{"ps1": true, "ps2": true, "psp": true, "dc": true, "saturn": true, "segacd": true, "gc": true, "wii": true}
+
+// sameGame says two names could be one game, or the first says nothing: a file called
+// rom.z64 isn't disagreeing with anything.
+func sameGame(fileTitle, other string) bool {
+	if unhelpfulName(fileTitle) {
+		return true
+	}
+	// A name that goes on well past the other's is usually a game built on it.
+	if len(words(fileTitle)) >= len(words(other))+2 {
+		return false
+	}
+	return NameScore(fileTitle, other) >= 60
+}
+
 // find is what Lookup and LibretroArt share: which record a file is.
 func (s *Libretro) find(ctx context.Context, q Query) (*libDB, int32, string, int, error) {
 	d, err := s.load(ctx, q.Console)
@@ -383,11 +409,32 @@ func (s *Libretro) find(ctx context.Context, q Query) (*libDB, int32, string, in
 	}
 	for _, form := range serialForms(q.Console, q.Serial, DiscNumber(q.Tags)) {
 		if i, ok := d.bySerial[normalSerial(form)]; ok {
-			return d, i, MethodSerial, 98, nil
+			// A fan's hack of a cartridge game keeps the code of the game it was made from.
+			// A disc's code is what its console starts it by, so a disc can be believed.
+			if discConsoles[q.Console] || sameGame(q.Title, d.recs[i].Name) {
+				return d, i, MethodSerial, 98, nil
+			}
+		}
+	}
+	// So does its header's name, so the file's own name has to agree.
+	if q.HeaderTitle != "" && sameGame(q.Title, q.HeaderTitle) {
+		if ids := d.byKey[NameKey(q.HeaderTitle)]; len(ids) > 0 {
+			return d, d.best(ids, q.Tags), MethodName, nameConfidence(100), nil
 		}
 	}
 	if ids := d.byKey[NameKey(q.Title)]; len(ids) > 0 {
 		return d, d.best(ids, q.Tags), MethodName, nameConfidence(100), nil
+	}
+	// Another version in the file's archive is known exactly. It's the same game, by the
+	// archive's reckoning, so its details hold. If its name is something else it can only
+	// be another region's: the file keeps the name it has, which is why it's less sure.
+	for _, crc := range q.AltCRCs {
+		if i, ok := d.byCRC[crc]; ok {
+			if sameGame(q.Title, d.recs[i].Name) {
+				return d, i, MethodChecksum, 95, nil
+			}
+			return d, i, MethodChecksum, RenameConfidence - 5, nil
+		}
 	}
 	if c := d.closest(q.Title, 1); len(c) > 0 && c[0].score >= AcceptScore {
 		return d, d.best(d.byKey[c[0].key], q.Tags), MethodName, nameConfidence(c[0].score), nil
@@ -397,7 +444,7 @@ func (s *Libretro) find(ctx context.Context, q Query) (*libDB, int32, string, in
 
 func (d *libDB) info(i int32) *Info {
 	r := &d.recs[i]
-	in := &Info{ID: r.Name, Title: Line(r.Name), Developer: Line(r.Developer), Publisher: Line(r.Publisher), Franchise: Line(r.Franchise)}
+	in := &Info{ID: r.Name, Title: Line(r.Name), Developer: company(r.Developer), Publisher: company(r.Publisher), Franchise: Line(r.Franchise)}
 	in.Genres = lines(strings.Split(r.Genre, ","), 8)
 	if r.Users > 0 && r.Users <= 64 {
 		in.Players = r.Users
@@ -427,10 +474,10 @@ func (d *libDB) info(i int32) *Info {
 			continue
 		}
 		if in.Developer == "" {
-			in.Developer = Line(o.Developer)
+			in.Developer = company(o.Developer)
 		}
 		if in.Publisher == "" {
-			in.Publisher = Line(o.Publisher)
+			in.Publisher = company(o.Publisher)
 		}
 		if len(in.Genres) == 0 {
 			in.Genres = lines(strings.Split(o.Genre, ","), 8)

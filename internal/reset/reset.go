@@ -69,6 +69,11 @@ type Copy struct {
 	Bytes int64  `json:"bytes"`
 }
 
+// keptThrough stay where they are through a reset that keeps a copy. A backup made
+// before a reset is what someone restores from after it, and doctor's safety copies
+// and a waiting restore aren't part of what's being set aside.
+var keptThrough = map[string]bool{"backups": true}
+
 // heldOpen may be open while a reset happens, by whatever started the server and keeps
 // its output: the tray app, for one. They move if they can, and stay behind if not.
 var heldOpen = map[string]bool{"logs": true, "wms.log": true}
@@ -331,13 +336,20 @@ func Apply(f Folders) *Result {
 			return false
 		}
 	}
+	// Deleting everything means that too.
+	keep := []string{}
+	if r.Mode != ModeDelete {
+		for name := range keptThrough {
+			keep = append(keep, name)
+		}
+	}
 	var err error
 	if _, cerr := Check(Folders{Data: f.Data, Program: f.Program, Config: f.Config}, nil); cerr != nil {
 		err = cerr
 	} else {
 		switch r.Mode {
 		case ModeKeepCopy, ModeDelete:
-			err = moveAll(f.Data, filepath.Join(f.Data, r.Copy), notCopy())
+			err = moveAll(f.Data, filepath.Join(f.Data, r.Copy), notCopy(keep...))
 			if err == nil {
 				moveHeldOpen(f.Data, filepath.Join(f.Data, r.Copy))
 				clearOutside(r, res)
@@ -352,10 +364,10 @@ func Apply(f Folders) *Result {
 				err = errors.New("that copy isn't there any more")
 				break
 			}
-			if err = moveAll(f.Data, filepath.Join(f.Data, r.Save), notCopy()); err != nil {
+			if err = moveAll(f.Data, filepath.Join(f.Data, r.Save), notCopy(keep...)); err != nil {
 				break
 			}
-			if err = moveAll(from, f.Data, func(name string) bool { return heldOpen[name] }); err != nil {
+			if err = moveAll(from, f.Data, func(name string) bool { return heldOpen[name] || keptThrough[name] }); err != nil {
 				_ = moveAll(filepath.Join(f.Data, r.Save), f.Data, func(string) bool { return false })
 				break
 			}

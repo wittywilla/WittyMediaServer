@@ -37,18 +37,18 @@ history.
 
 ```text
 wms [serve] [flags]                    start the server (the default)
-wms config path                        show the config file and folders in use
-wms config init [--portable]           write a starter wms.json
-wms disc ls <image>                    list files inside an ISO/UDF image
-wms dvd info   <image>                 titles, chapters, menus, languages, region, first-play program
-wms dvd walk   <image> [button…]       simulate inserting the disc; press menu buttons by number
-wms dvd crawl  <image> [limit]         press every button of every reachable menu, report dead ends
-wms dvd pgc    <image> fp|vmgm|vtsm|vts <vts> <pgcn>   disassemble one program chain
-wms dvd render <image> <dir>           menu highlight PNGs and a sample of the first menu
-wms bluray info   <disc>               titles, the disc's program, playlists, clips and streams
-wms bluray walk   <disc> [button…]     simulate inserting a Blu-ray; press menu buttons by id
-wms bluray render <disc> <dir>         the first menu's pages as PNG files
-wms version
+wittymediaserver config path                        show the config file and folders in use
+wittymediaserver config init [--portable]           write a starter wms.json
+wittymediaserver disc ls <image>                    list files inside an ISO/UDF image
+wittymediaserver dvd info   <image>                 titles, chapters, menus, languages, region, first-play program
+wittymediaserver dvd walk   <image> [button…]       simulate inserting the disc; press menu buttons by number
+wittymediaserver dvd crawl  <image> [limit]         press every button of every reachable menu, report dead ends
+wittymediaserver dvd pgc    <image> fp|vmgm|vtsm|vts <vts> <pgcn>   disassemble one program chain
+wittymediaserver dvd render <image> <dir>           menu highlight PNGs and a sample of the first menu
+wittymediaserver bluray info   <disc>               titles, the disc's program, playlists, clips and streams
+wittymediaserver bluray walk   <disc> [button…]     simulate inserting a Blu-ray; press menu buttons by id
+wittymediaserver bluray render <disc> <dir>         the first menu's pages as PNG files
+wittymediaserver version
 ```
 
 The disc tools never print video or artwork, so their output is safe to attach to a bug report. The

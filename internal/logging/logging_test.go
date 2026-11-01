@@ -878,7 +878,7 @@ func TestRecoverAndLoop(t *testing.T) {
 		panic("boom with token=PLANTEDSECRET")
 	}, "cat", "tv", "session", "tv-1")
 	<-done
-	deadline := time.Now().Add(3 * time.Second)
+	deadline := time.Now().Add(30 * time.Second)
 	for !strings.Contains(read(t, l), "a part of the server crashed") && time.Now().Before(deadline) {
 		time.Sleep(5 * time.Millisecond)
 	}
@@ -891,7 +891,12 @@ func TestRecoverAndLoop(t *testing.T) {
 	if strings.Contains(got, "PLANTEDSECRET") {
 		t.Error("the panic's value leaked a secret")
 	}
+	// The report is written just after the log line, so it may not be there yet.
 	crashes := guard.List()
+	for len(crashes) == 0 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+		crashes = guard.List()
+	}
 	if len(crashes) != 1 || crashes[0].Kind != "panic" {
 		t.Fatalf("reports: %+v", crashes)
 	}
@@ -1141,7 +1146,7 @@ func TestBundleRedactsTitlesAndPaths(t *testing.T) {
 			t.Errorf("%q survived redaction:\n%s", not, text)
 		}
 	}
-	for _, want := range []string{"permission denied", "/api/items/5/play", "Duration: 01:00:00", "[path:", `"version": "1"`} {
+	for _, want := range []string{"permission denied", "/api/items/5/play", "Duration: 01:00:00", "[path-", `"version": "1"`} {
 		if !strings.Contains(text, want) {
 			t.Errorf("redaction took too much, %q is gone:\n%s", want, text)
 		}

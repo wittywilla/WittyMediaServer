@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
+	"github.com/wittywilla/wittymediaserver/internal/gameid"
 	"github.com/wittywilla/wittyplay"
 )
 
@@ -25,9 +26,11 @@ import (
 
 // Identity is what a file says about itself.
 type Identity struct {
-	CRCs   []uint32
-	Size   int64
-	Serial string
+	CRCs []uint32
+	// AltCRCs are other versions in the same archive.
+	AltCRCs []uint32
+	Size    int64
+	Serial  string
 }
 
 // maxHashed is the biggest file read whole to take its checksum. Every cartridge game
@@ -56,7 +59,8 @@ func (x *Identifier) Close() {
 }
 
 // Identify looks at a game file. It always returns something: at worst, nothing known.
-func (x *Identifier) Identify(p, console string) Identity {
+// chosen, for an archive, is the file in it someone chose to play.
+func (x *Identifier) Identify(p, console, chosen string) Identity {
 	name := filepath.Base(p)
 	if gamearchive.IsArchive(name) {
 		if x.lister == nil {
@@ -66,7 +70,7 @@ func (x *Identifier) Identify(p, console string) Identity {
 		if err != nil {
 			return Identity{}
 		}
-		return identifyListing(l, console)
+		return identifyListing(l, console, name, chosen)
 	}
 	switch strings.ToLower(filepath.Ext(name)) {
 	case ".cue", ".m3u", ".gdi":
@@ -101,7 +105,7 @@ func identifyDisc(p, console string) Identity {
 	return id
 }
 
-func identifyListing(l *gamearchive.Listing, console string) Identity {
+func identifyListing(l *gamearchive.Listing, console, archive, chosen string) Identity {
 	c := wittyplay.ByID(console)
 	var picks []gamearchive.Entry
 	for _, e := range l.Entries {
@@ -113,23 +117,50 @@ func identifyListing(l *gamearchive.Listing, console string) Identity {
 			picks = append(picks, e)
 		}
 	}
+	// A set can hold hacks and bad dumps, which databases can know by checksum as
+	// something else altogether. What's asked about first is the file that would be played,
+	// and an altered copy isn't asked about while there's anything else in the archive.
+	base := strings.ToLower(gamearchive.BaseName(archive))
+	if c != nil {
+		if plan, err := gamearchive.ChooseEntry(l, c, archive, chosen); err == nil && len(plan.Want) == 1 {
+			chosen = plan.Want[0].Name // the one file a core would be given
+		}
+	}
+	played := picks[:0:0]
+	for _, e := range picks {
+		if q := gameid.QualityOf(path.Base(e.Name)); q <= gameid.QualityPrerelease || e.Name == chosen {
+			played = append(played, e)
+		}
+	}
+	if len(played) > 0 {
+		picks = played
+	}
 	// For discs, track 1 holds the data and is what databases key on; the name sorts it
-	// first. A lone game is the only entry anyway. Biggest next: a game's main file.
+	// first. Biggest next: a game's main file. A set's versions are the same size, so
+	// next comes whichever would be chosen to play.
 	sort.SliceStable(picks, func(a, b int) bool {
+		if ca, cb := picks[a].Name == chosen, picks[b].Name == chosen; ca != cb {
+			return ca
+		}
 		ta, tb := isFirstTrack(picks[a].Name), isFirstTrack(picks[b].Name)
 		if ta != tb {
 			return ta
 		}
-		return picks[a].Size > picks[b].Size
+		if picks[a].Size != picks[b].Size {
+			return picks[a].Size > picks[b].Size
+		}
+		return gamearchive.Score(picks[a].Name, base) > gamearchive.Score(picks[b].Name, base)
 	})
 	id := Identity{}
 	for i, e := range picks {
 		if i >= 6 {
 			break
 		}
-		id.CRCs = append(id.CRCs, e.CRC)
 		if i == 0 {
+			id.CRCs = append(id.CRCs, e.CRC)
 			id.Size = e.Size
+		} else {
+			id.AltCRCs = append(id.AltCRCs, e.CRC)
 		}
 	}
 	return id

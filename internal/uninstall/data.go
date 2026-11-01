@@ -13,34 +13,48 @@ import (
 // on this list is removed. Add a new folder here when the server starts using one: a test
 // reads the source and fails otherwise.
 var DataEntries = map[string]string{
-	"wms.db":             "library, accounts and settings",
-	"wms.db-wal":         "library, accounts and settings",
-	"wms.db-shm":         "library, accounts and settings",
-	"cache":              "artwork and other caches",
-	"transcode":          "temporary video",
-	"logs":               "logs",
-	"wms.log":            "logs",
-	"crash":              "crash reports",
-	"diagnostics":        "saved diagnostic reports",
-	"certs":              "HTTPS certificates",
-	"branding":           "your server's logo",
-	"channel-logos":      "TV channel logos",
-	"bumpers":            "TV bumpers",
-	"lyrics-corrections": "lyrics you corrected",
-	"modules":            "downloaded modules",
-	"themes":             "themes",
-	"gaming":             "game saves, cores and settings",
-	"gamerigs":           "game PC pairings",
-	"wittycouch":         "game streaming pairings",
-	"reset-request.json": "a waiting reset",
-	"reset-result.json":  "the last reset's result",
+	"wms.db":               "library, accounts and settings",
+	"wms.db-wal":           "library, accounts and settings",
+	"wms.db-shm":           "library, accounts and settings",
+	"cache":                "artwork and other caches",
+	"transcode":            "temporary video",
+	"logs":                 "logs",
+	"wms.log":              "logs",
+	"crash":                "crash reports",
+	"diagnostics":          "saved diagnostic reports",
+	"certs":                "HTTPS certificates",
+	"branding":             "your server's logo",
+	"channel-logos":        "TV channel logos",
+	"bumpers":              "TV bumpers",
+	"lyrics-corrections":   "lyrics you corrected",
+	"modules":              "downloaded modules",
+	"themes":               "themes",
+	"gaming":               "game saves, cores and settings",
+	"gamerigs":             "game PC pairings",
+	"wittycouch":           "game streaming pairings",
+	"metadata":             "text files for fixing titles by hand",
+	"reset-request.json":   "a waiting reset",
+	"reset-result.json":    "the last reset's result",
+	"restore-staged":       "a backup on its way back",
+	"restore-request.json": "a waiting restore",
+	"restore-result.json":  "the last restore's result",
+	"repair-request.json":  "a waiting repair",
+	"repair-result.json":   "the last repair's result",
 }
 
-// RecordingsEntry is recorded TV: media, so it has a question of its own.
-const RecordingsEntry = "recordings"
+// These have a question each. Recorded TV is media, and backups are the copy someone keeps
+// for when everything else has gone.
+const (
+	RecordingsEntry = "recordings"
+	BackupsEntry    = "backups"
+)
 
-// resetCopy is a copy kept by an earlier reset of the server.
-var resetCopy = regexp.MustCompile(`^before-reset-`)
+// resetCopy is a copy kept by an earlier reset of the server, and repairStage a repaired
+// database on its way in.
+var (
+	resetCopy   = regexp.MustCompile(`^before-reset-`)
+	repairStage = regexp.MustCompile(`^repair-stage-`)
+)
 
 func dataEntry(name string) (string, bool) {
 	if what, ok := DataEntries[name]; ok {
@@ -48,6 +62,9 @@ func dataEntry(name string) (string, bool) {
 	}
 	if resetCopy.MatchString(name) {
 		return "a copy kept by an earlier reset", true
+	}
+	if repairStage.MatchString(name) {
+		return "a repair that didn't finish", true
 	}
 	return "", false
 }
@@ -91,11 +108,14 @@ func planDataFolder(e *Env, pl *Plan, dir string, named, admin bool) {
 			pl.keep(p, "your library "+l+" is in it")
 			continue
 		}
-		if name == RecordingsEntry {
-			if sizeOf(p) > 0 {
-				pl.add(fileItem("recorded TV", p, GroupRecordings, admin))
-			} else {
+		if name == RecordingsEntry || name == BackupsEntry {
+			switch {
+			case sizeOf(p) == 0:
 				pl.add(fileItem("folder", p, GroupData, admin))
+			case name == RecordingsEntry:
+				pl.add(fileItem("recorded TV", p, GroupRecordings, admin))
+			default:
+				pl.add(fileItem("backups", p, GroupBackups, admin))
 			}
 			continue
 		}

@@ -33,6 +33,7 @@ const (
 	GroupProgram    Group = "program"    // program files, service, shortcuts, startup entries
 	GroupData       Group = "data"       // library, accounts, settings, logs, caches, modules
 	GroupRecordings Group = "recordings" // recorded TV
+	GroupBackups    Group = "backups"    // backups someone made, and safety copies
 )
 
 // Steps run in this order: stop what runs, let an installer remove what it put there, remove
@@ -77,6 +78,20 @@ type Plan struct {
 type Options struct {
 	RemoveData       bool // library, accounts, settings, logs, caches, modules
 	RemoveRecordings bool // recorded TV in the data folder
+	RemoveBackups    bool // backups in the data folder
+}
+
+// covers says these answers take in a group. The program always goes.
+func (o Options) covers(g Group) bool {
+	switch g {
+	case GroupData:
+		return o.RemoveData
+	case GroupRecordings:
+		return o.RemoveRecordings
+	case GroupBackups:
+		return o.RemoveBackups
+	}
+	return true
 }
 
 // Failure is something that couldn't be removed.
@@ -180,17 +195,9 @@ func (pl *Plan) first(path string) bool {
 func (pl *Plan) Select(o Options) []Item {
 	var out []Item
 	for _, it := range pl.Items {
-		switch it.Group {
-		case GroupData:
-			if !o.RemoveData {
-				continue
-			}
-		case GroupRecordings:
-			if !o.RemoveRecordings {
-				continue
-			}
+		if o.covers(it.Group) {
+			out = append(out, it)
 		}
-		out = append(out, it)
 	}
 	return out
 }
@@ -231,7 +238,7 @@ func (pl *Plan) Has(g Group) bool {
 func Execute(pl *Plan, o Options) Result {
 	r := Result{Kept: append([]Note(nil), pl.Kept...)}
 	for _, it := range pl.Items {
-		if (it.Group == GroupData && !o.RemoveData) || (it.Group == GroupRecordings && !o.RemoveRecordings) {
+		if !o.covers(it.Group) {
 			if it.step != stepEmptyFolders {
 				r.Kept = append(r.Kept, Note{it.Name, "you chose to keep it"})
 			}

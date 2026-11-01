@@ -384,8 +384,10 @@ func (s *Store) Suggest(ctx context.Context) ([]Suggestion, error) {
 const minChannelTitles = 3
 
 func (s *Store) studioCounts(ctx context.Context) ([]genreCount, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT i.studio, COUNT(*) AS n FROM items i LEFT JOIN shows s ON s.id = i.show_id
-		WHERE IFNULL(i.studio, '') <> '' AND i.show_id IS NULL AND `+notCommercial+` AND `+playable+` GROUP BY i.studio COLLATE NOCASE ORDER BY n DESC, i.studio LIMIT 50`)
+	rows, err := s.DB.QueryContext(ctx, `SELECT b.name, COUNT(DISTINCT i.id) AS n FROM (
+			SELECT id AS item, studio AS name FROM items WHERE IFNULL(studio, '') <> '' UNION SELECT item_id, name FROM title_brands WHERE kind = 'studio' AND item_id IS NOT NULL
+		) b JOIN items i ON i.id = b.item LEFT JOIN shows s ON s.id = i.show_id
+		WHERE i.show_id IS NULL AND `+notCommercial+` AND `+playable+` GROUP BY b.name COLLATE NOCASE ORDER BY n DESC, b.name LIMIT 50`)
 	if err != nil {
 		return nil, err
 	}
@@ -507,7 +509,8 @@ func (s *Store) EditorOptions(ctx context.Context) (*Options, error) {
 		o.Genres = append(o.Genres, g.name)
 	}
 	sort.Strings(o.Genres)
-	if o.Studios, err = s.strings(ctx, `SELECT DISTINCT i.studio FROM items i WHERE IFNULL(i.studio, '') <> '' AND i.show_id IS NULL AND i.missing = 0 AND `+notCommercial+` ORDER BY i.studio COLLATE NOCASE LIMIT 500`); err != nil {
+	if o.Studios, err = s.strings(ctx, `SELECT i.studio AS n FROM items i WHERE IFNULL(i.studio, '') <> '' AND i.show_id IS NULL AND i.missing = 0 AND `+notCommercial+`
+		UNION SELECT name FROM title_brands WHERE kind = 'studio' AND item_id IS NOT NULL ORDER BY n COLLATE NOCASE LIMIT 500`); err != nil {
 		return nil, err
 	}
 	if o.Ratings, err = s.strings(ctx, `SELECT DISTINCT COALESCE(NULLIF(i.content_rating, ''), s.content_rating) AS r FROM items i LEFT JOIN shows s ON s.id = i.show_id

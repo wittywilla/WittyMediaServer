@@ -4,7 +4,6 @@ import { EmptyState, Spinner } from '../components/common'
 import { useApp } from '../state'
 import AudioLibrary from './AudioLibrary'
 import BooksLibrary from './Books'
-import { GamesLibrary } from './Games'
 import VideoLibrary from './library/VideoLibrary'
 
 // Loaded when opened: most servers have only some of these libraries.
@@ -13,6 +12,7 @@ const ShortsLibrary = lazy(() => import('./creators/ShortsLibrary'))
 const ChannelsLibrary = lazy(() => import('./creators/ChannelsLibrary'))
 const RadioLibrary = lazy(() => import('./RadioLibrary'))
 const RigLibrary = lazy(() => import('./Rigs'))
+const GamesLibrary = lazy(() => import('./games/Library'))
 
 const AUDIO = ['music', 'audiobooks', 'podcasts']
 
@@ -27,7 +27,7 @@ export default function LibraryPage() {
   if (lib?.type === 'channels' || lib?.type === 'musicvideos') return <Suspense fallback={<Spinner />}><ChannelsLibrary key={lib.id} lib={lib} /></Suspense>
   if (lib?.type === 'radio') return <Suspense fallback={<Spinner />}><RadioLibrary key={lib.id} lib={lib} /></Suspense>
   if (lib?.type === 'games' && lib.console === 'rig') return <Suspense fallback={<Spinner />}><RigLibrary key={lib.id} lib={lib} /></Suspense>
-  if (lib?.type === 'games') return <GamesLibrary key={lib.id} lib={lib} />
+  if (lib?.type === 'games') return <Suspense fallback={<Spinner />}><GamesLibrary key={lib.id} lib={lib} /></Suspense>
   if (!lib) return <EmptyState title="Library not found" action={<Link to="/settings/libraries" className="btn">Manage libraries</Link>} />
   return <VideoLibrary key={lib.id} lib={lib} />
 }

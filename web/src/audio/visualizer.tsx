@@ -52,7 +52,11 @@ export type ShaderEffect = { id: string; name: string; motion: 'gentle' | 'livel
 
 // The plugin's effects, for choosing between. It's a press away from being used, so the
 // list arriving here is what brings the plugin in, a moment after the full player opens.
-export const shaderEffects = async (): Promise<ShaderEffect[]> => (await loadPlugin()).BUILTIN_EFFECTS.map((e) => ({ id: e.id, name: e.name, motion: e.motion }))
+export const shaderEffects = async (): Promise<ShaderEffect[]> => {
+  const p = await loadPlugin()
+  // Once it's running the session knows them all, a person's own among them.
+  return (p.currentSession()?.effects ?? p.BUILTIN_EFFECTS).map((e) => ({ id: e.id, name: e.name, motion: e.motion }))
+}
 
 // The running visualizer, to change its effect from the player's own controls.
 export const shaderSession = () => plugin?.currentSession() ?? null

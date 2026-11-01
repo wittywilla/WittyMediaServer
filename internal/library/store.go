@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
 type Library struct {
@@ -25,6 +26,8 @@ type Library struct {
 	// ShowMain: a commercials library also appears in the menus, Home and
 	// search. Off by default; channels can use it either way.
 	ShowMain bool `json:"showMain"`
+	// ReadOnly: nothing the server does may change this library's files.
+	ReadOnly bool `json:"readOnly"`
 }
 
 // CommercialsType is a library of the owner's own adverts and bumpers for
@@ -51,6 +54,11 @@ type Item struct {
 	Backdrop      string    `json:"backdrop"` // cache-relative path or URL
 	Container     string    `json:"container"`
 	VideoCodec    string    `json:"videoCodec"`
+	// AudioDirect: sound files a browser plays as they are. Reader: books, which
+	// reader opens it (epub, cbz or pdf), "" when none does. Both are worked out here,
+	// from the registry, so no client keeps a list of its own.
+	AudioDirect bool   `json:"audioDirect,omitempty"`
+	Reader      string `json:"reader,omitempty"`
 	Width         int       `json:"width"`
 	Height        int       `json:"height"`
 	AudioLangs    []string  `json:"audioLangs"`
@@ -103,6 +111,7 @@ type Item struct {
 	Progress *Progress `json:"progress,omitempty"`
 	// What a scan found beyond the row itself, kept by upsertItem and recordScan.
 	studios     []string
+	series      string
 	director    string
 	audioFormat string
 }
@@ -180,16 +189,17 @@ var ErrNotFound = errors.New("not found")
 // ---------------------------------------------------------------------------
 
 const libraryCols = `l.id, l.name, l.type, IFNULL(l.console, ''), l.created_at, l.last_scan_at, l.scanning,
-	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0), l.show_main`
+	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0), l.show_main, l.read_only`
 
 func scanLibrary(sc interface{ Scan(...any) error }) (*Library, error) {
 	var l Library
-	var scanning, showMain int
-	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.Console, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount, &showMain); err != nil {
+	var scanning, showMain, readOnly int
+	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.Console, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount, &showMain, &readOnly); err != nil {
 		return nil, err
 	}
 	l.Scanning = scanning != 0
 	l.ShowMain = showMain != 0
+	l.ReadOnly = readOnly != 0
 	l.Paths = []string{}
 	return &l, nil
 }
@@ -414,6 +424,12 @@ func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 	}
 	it.Overview, it.Tagline, it.ContentRating, it.Studio = overview.String, tagline.String, contentRating.String, studio.String
 	it.Poster, it.Backdrop, it.Container, it.VideoCodec = poster.String, backdrop.String, container.String, vcodec.String
+	switch it.Kind {
+	case "audio":
+		it.AudioDirect = audioPlaysDirect(&it)
+	case "book":
+		it.Reader = mediatypes.ReaderFor(it.Container)
+	}
 	it.Provider, it.ProviderID = provider.String, providerID.String
 	it.RuntimeSec = runtime.Float64
 	it.Width, it.Height = int(width.Int64), int(height.Int64)
@@ -466,12 +482,13 @@ const hideLinked = "i.id NOT IN (SELECT item_id FROM item_links)"
 type ItemQuery struct {
 	LibraryID int64
 	Search    string
-	Sort      string // title | added | year | rating | runtime
+	Sort      string // title | added | year | rating | runtime | popular | newest | oldest
 	Desc      bool
 	Limit     int
 	Offset    int
 	Genre     string
 	Kind      string // an item kind, or "disc" for every DVD and Blu-ray
+	Series    string // games: only this franchise
 	// DiscContent: "movie" or "tv", discs holding films or TV episodes.
 	DiscContent string
 	ShowID      int64
@@ -615,6 +632,10 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	if q.Unmatched {
 		where = append(where, "i.id IN (SELECT item_id FROM game_meta WHERE match_source = '' AND status = 'done')")
 	}
+	if q.Series != "" {
+		where = append(where, "i.id IN (SELECT item_id FROM game_meta WHERE franchise = ?)")
+		args = append(args, q.Series)
+	}
 	if q.PlayedBy != 0 {
 		where = append(where, "i.id IN (SELECT item_id FROM progress WHERE user_id = ? AND position_sec > 60)")
 		args = append(args, q.PlayedBy)
@@ -636,7 +657,18 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		args = append(args, *q.AlbumArtist)
 	}
 	order := "i.sort_title COLLATE NOCASE"
+	from := "items i"
 	switch q.Sort {
+	case "popular":
+		// Games: how often anyone on this server played it, then how well it's rated.
+		// A join, so a large library doesn't look through the plays once per game.
+		from = "items i LEFT JOIN (SELECT item_id, SUM(plays) AS plays FROM wittyplay_game_meta GROUP BY item_id) pop ON pop.item_id = i.id"
+		order = "IFNULL(pop.plays, 0) DESC, IFNULL(i.rating, 0) DESC, i.sort_title COLLATE NOCASE"
+	case "newest":
+		// Anything with no known year goes last either way.
+		order = "i.year IS NULL, i.year DESC, i.sort_title COLLATE NOCASE"
+	case "oldest":
+		order = "i.year IS NULL, i.year, i.sort_title COLLATE NOCASE"
 	case "added":
 		order = "i.added_at"
 	case "year":
@@ -675,7 +707,7 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	if q.Brief {
 		cols = itemColsBrief
 	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT `+cols+` FROM items i WHERE `+w+` ORDER BY `+order+` LIMIT ? OFFSET ?`, append(args, limit, q.Offset)...)
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+cols+` FROM `+from+` WHERE `+w+` ORDER BY `+order+` LIMIT ? OFFSET ?`, append(args, limit, q.Offset)...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -752,7 +784,15 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 
 // saveScanBrands keeps every studio a source named; the row holds only the first.
 func (s *Store) saveScanBrands(ctx context.Context, it *Item) error {
-	if it.studios == nil || it.ShowID != nil {
+	if it.ShowID != nil {
+		return nil
+	}
+	if it.series != "" {
+		if err := s.setTitleBrands(ctx, TargetItem, it.ID, it.LibraryID, BrandSeries, []string{it.series}); err != nil {
+			return err
+		}
+	}
+	if it.studios == nil {
 		return nil
 	}
 	return s.setTitleBrands(ctx, TargetItem, it.ID, it.LibraryID, LogoStudio, it.studios)

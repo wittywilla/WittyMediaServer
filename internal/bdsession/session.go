@@ -1158,7 +1158,7 @@ func (s *Session) ensureHLS(pl *playing, it *wittybluray.PlayItem, audio *wittyb
 		audioInput = 1
 	}
 	s.m.HLS.Ensure(hls.Spec{
-		ID: id, LogSession: s.ID, InputArgs: input, Duration: pl.duration, VideoFilter: s.videoFilter(it), Preset: s.preset(menu),
+		ID: id, ItemID: s.ItemID, LogSession: s.ID, InputArgs: input, Duration: pl.duration, VideoFilter: s.videoFilter(it), Preset: s.preset(menu),
 		AudioIndex: audioIdx, AudioInput: audioInput, AudioChannels: channels, SubtitleIndex: -1, LowLatency: menu, HoldLastFrame: hold, SeekMargin: seekMargin, Holes: holes,
 		Quality: s.prefs.Quality, MaxHeight: s.maxHeight(it), AudioCodec: s.prefs.AudioCodec,
 	})

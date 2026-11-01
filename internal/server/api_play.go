@@ -221,7 +221,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		audioIdx = -1
 	}
 	s.HLS.Ensure(hls.Spec{
-		ID: hid, InputArgs: ffmpeg.FileInput(it.Path), Source: it.Path, Duration: pr.Duration(), SeekMargin: pr.SeekMargin(), VideoFilter: vf,
+		ID: hid, ItemID: it.ID, InputArgs: ffmpeg.FileInput(it.Path), Source: it.Path, Duration: pr.Duration(), SeekMargin: pr.SeekMargin(), VideoFilter: vf,
 		AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: info.SubIndex, SubtitleText: s.textBurn(info.SubIndex, pr), Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r),
 	})
 	info.Type = "hls"
@@ -328,9 +328,23 @@ func mediaType(path string) string {
 // HLS
 // ---------------------------------------------------------------------------
 
+// visibleStream is a stream this account may watch. Its address is hard to guess, but addresses
+// get written down, and limits can change while a stream runs. An account with limits is checked
+// against what the stream plays, at every request; one without pays nothing.
+func (s *Server) visibleStream(r *http.Request, id string) *hls.Session {
+	sess := s.HLS.Get(id)
+	if sess == nil {
+		return nil
+	}
+	if a := s.access(r); a != nil && (sess.Spec.ItemID == 0 || !s.itemAllowed(r.Context(), a, sess.Spec.ItemID)) {
+		return nil
+	}
+	return sess
+}
+
 func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	sess := s.HLS.Get(id)
+	sess := s.visibleStream(r, id)
 	if sess == nil {
 		writeErr(w, 404, "no such stream (it may have expired; start playback again)")
 		return
@@ -373,7 +387,7 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	sess := s.HLS.Get(id)
+	sess := s.visibleStream(r, id)
 	if sess == nil {
 		writeErr(w, 404, "no such stream")
 		return

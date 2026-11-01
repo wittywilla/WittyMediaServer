@@ -286,7 +286,7 @@ func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad year")
 		return
 	}
-	rv, err := s.Store.ReviewOfYear(r.Context(), userFrom(r).ID, year)
+	rv, err := s.Store.ReviewOfYear(r.Context(), userFrom(r).ID, year, s.access(r))
 	if err != nil {
 		writeLibErr(w, err)
 		return

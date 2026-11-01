@@ -336,7 +336,7 @@ func (s *Server) handlePlayback(w http.ResponseWriter, r *http.Request) {
 	out := playbackResponse{ItemID: it.ID, Reasons: []string{}, StreamToken: tok, TokenExpires: int(time.Until(exp).Seconds()), Seek: "native",
 		Audio: []playbackAudio{}, Subtitles: []playbackSubtitle{}, SubtitleIndex: -1, SubtitleDelivery: playback.SubNone,
 		ProgressURL: fmt.Sprintf("/api/items/%d/progress", it.ID), DurationSec: float64(it.RuntimeSec), Container: it.Container,
-		NextID: s.Store.NextEpisode(r.Context(), it)}
+		NextID: s.Store.NextEpisode(r.Context(), it, s.access(r))}
 	if it.Progress != nil {
 		out.ResumeSec = it.Progress.ResumeSec
 	}
@@ -534,6 +534,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		input = abs // fMP4 streams run FFmpeg in another folder
 	}
 	spec := hls.Spec{
+		ItemID:       it.ID,
 		SubtitleText: s.textBurn(burn, pr), InputArgs: ffmpeg.FileInput(input), Source: input, Duration: pr.Duration(), SeekMargin: pr.SeekMargin(), VideoFilter: vf, AudioIndex: audioIdx, AudioChannels: channels,
 		SubtitleIndex: burn, Quality: q, MaxHeight: req.MaxHeight, AudioCodec: "aac",
 	}
@@ -761,7 +762,7 @@ func (s *Server) handleItemSubtitle(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/hls/{id}/master.m3u8: the stream with its subtitle renditions.
 func (s *Server) handleHLSMaster(w http.ResponseWriter, r *http.Request) {
-	sess := s.HLS.Get(r.PathValue("id"))
+	sess := s.visibleStream(r, r.PathValue("id"))
 	if sess == nil {
 		writeErr(w, 404, "no such stream (it may have expired; start playback again)")
 		return
@@ -780,7 +781,7 @@ var hlsSubFile = regexp.MustCompile(`^([0-9]{1,3})\.(m3u8|vtt)$`)
 // GET /api/hls/{id}/subs/{n}.m3u8 and {n}.vtt: one subtitle rendition (n is its
 // place in the master playlist): a playlist with one segment, and that segment.
 func (s *Server) handleHLSSubtitle(w http.ResponseWriter, r *http.Request) {
-	sess := s.HLS.Get(r.PathValue("id"))
+	sess := s.visibleStream(r, r.PathValue("id"))
 	if sess == nil || sess.Spec.Variant == nil {
 		writeErr(w, 404, "no such stream")
 		return

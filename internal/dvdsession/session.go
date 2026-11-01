@@ -1123,7 +1123,7 @@ func (s *Session) menuHLS(sp wittydvd.Space, st *wittydvd.Step, audio int) (stri
 		return "", err
 	}
 	s.m.HLS.Ensure(hls.Spec{
-		ID: id, LogSession: s.ID, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: st.CellDuration, VideoFilter: s.deinterlace(), Preset: s.preset(true),
+		ID: id, ItemID: s.ItemID, LogSession: s.ID, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: st.CellDuration, VideoFilter: s.deinterlace(), Preset: s.preset(true),
 		AudioIndex: audio, AudioChannels: 2, SubtitleIndex: -1, LowLatency: true, HoldLastFrame: true, Quality: s.prefs.Quality, MaxHeight: s.prefs.MaxHeight, AudioCodec: s.prefs.AudioCodec,
 	})
 	return id, nil
@@ -1246,7 +1246,7 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 			return err
 		}
 		s.m.HLS.Ensure(hls.Spec{
-			ID: id, LogSession: s.ID, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: ts.Duration, VideoFilter: s.deinterlace(), Preset: s.preset(false), SeekMargin: 1.5,
+			ID: id, ItemID: s.ItemID, LogSession: s.ID, InputArgs: ffmpeg.ConcatInputArgs(list), Duration: ts.Duration, VideoFilter: s.deinterlace(), Preset: s.preset(false), SeekMargin: 1.5,
 			AudioIndex: audioIdx, AudioChannels: channels, AudioFilter: audioFilter, SubtitleIndex: -1, Quality: s.prefs.Quality, MaxHeight: s.prefs.MaxHeight, AudioCodec: s.prefs.AudioCodec,
 		})
 	}

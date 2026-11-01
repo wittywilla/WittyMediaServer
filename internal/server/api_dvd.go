@@ -148,15 +148,30 @@ func firstNonEmpty(v ...string) string {
 func (s *Server) dvdSession(w http.ResponseWriter, r *http.Request) discSession {
 	sid := r.PathValue("sid")
 	if strings.HasPrefix(sid, "bd") {
-		if sess := s.BD.Get(sid); sess != nil {
+		if sess := s.bdSession(r, sid); sess != nil {
 			return sess
 		}
 		writeErr(w, 404, "disc session expired; open it again")
 		return nil
 	}
 	sess := s.DVD.Get(sid)
-	if sess == nil {
+	if sess == nil || !s.discAllowed(r, sess.ItemID) {
 		writeErr(w, 404, "disc session expired; open it again")
+		return nil
+	}
+	return sess
+}
+
+// discAllowed: as for a stream, someone with limits holding a session's name is checked
+// against what it plays, every time.
+func (s *Server) discAllowed(r *http.Request, itemID int64) bool {
+	a := s.access(r)
+	return a == nil || s.itemAllowed(r.Context(), a, itemID)
+}
+
+func (s *Server) bdSession(r *http.Request, sid string) *bdsession.Session {
+	sess := s.BD.Get(sid)
+	if sess == nil || !s.discAllowed(r, sess.ItemID) {
 		return nil
 	}
 	return sess
@@ -187,8 +202,10 @@ func (s *Server) handleDVDAction(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDVDClose(w http.ResponseWriter, r *http.Request) {
 	sid := r.PathValue("sid")
 	if strings.HasPrefix(sid, "bd") {
-		s.BD.CloseSession(sid)
-	} else {
+		if s.bdSession(r, sid) != nil {
+			s.BD.CloseSession(sid)
+		}
+	} else if sess := s.DVD.Get(sid); sess != nil && s.discAllowed(r, sess.ItemID) {
 		s.DVD.CloseSession(sid)
 	}
 	s.Log.InfoContext(r.Context(), "disc session closed", "cat", "playback", "session", sid)
@@ -261,7 +278,7 @@ func (s *Server) handleDVDEffect(w http.ResponseWriter, r *http.Request) {
 // handleBDJPoll waits for a disc's BD-J applications to change something.
 func (s *Server) handleBDJPoll(w http.ResponseWriter, r *http.Request) {
 	sid := r.PathValue("sid")
-	sess := s.BD.Get(sid)
+	sess := s.bdSession(r, sid)
 	if sess == nil {
 		writeErr(w, 404, "disc session expired; open it again")
 		return
@@ -272,7 +289,7 @@ func (s *Server) handleBDJPoll(w http.ResponseWriter, r *http.Request) {
 
 // handleBDJFrame serves the applications' graphics.
 func (s *Server) handleBDJFrame(w http.ResponseWriter, r *http.Request) {
-	sess := s.BD.Get(r.PathValue("sid"))
+	sess := s.bdSession(r, r.PathValue("sid"))
 	if sess == nil {
 		writeErr(w, 404, "disc session expired; open it again")
 		return

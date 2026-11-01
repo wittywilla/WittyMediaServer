@@ -13,7 +13,7 @@ import (
 
 // Kinds of failure.
 const (
-	FailSignature = "signature"  // not signed with the expected key, or changed since it was
+	FailSignature = "signature"   // not signed with the expected key, or changed since it was
 	FailKey       = "key-changed" // a store's signing key isn't the one that was agreed to
 	FailNetwork   = "network"
 	FailDisk      = "disk"

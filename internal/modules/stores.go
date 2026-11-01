@@ -196,8 +196,8 @@ func storeID(raw string) string {
 	return "s" + hex.EncodeToString(h[:6])
 }
 
-func (s *Stores) path() string              { return filepath.Join(s.cfg.Dir, storesDir, storesFile) }
-func (s *Stores) folder(id string) string   { return filepath.Join(s.cfg.Dir, storesDir, id) }
+func (s *Stores) path() string            { return filepath.Join(s.cfg.Dir, storesDir, storesFile) }
+func (s *Stores) folder(id string) string { return filepath.Join(s.cfg.Dir, storesDir, id) }
 func (s *Stores) fetcher(e *storeEntry) *storeFetcher {
 	return newStoreFetcher(s.cfg.Transport, e.Private)
 }

@@ -514,8 +514,8 @@ func TestFitSaysWhy(t *testing.T) {
 		}
 	}
 	check("a fit", FitOK, func(v *wittymodule.CatalogVersion) {})
-	check("from before the cut-off, claiming to fit", FitTooOld, func(v *wittymodule.CatalogVersion) { v.MinServer = "0.5.0-alpha" }, "older than 0.6.0-alpha", "beta")
-	check("past its maximum", FitTooOld, func(v *wittymodule.CatalogVersion) { v.MinServer, v.MaxServer = "0.5.0-alpha", "0.5.x" }, "older than 0.6.0-alpha")
+	check("from before the cut-off, claiming to fit", FitTooOld, func(v *wittymodule.CatalogVersion) { v.MinServer = "0.5.0-alpha" }, "built for an older server", "beta")
+	check("past its maximum", FitTooOld, func(v *wittymodule.CatalogVersion) { v.MinServer, v.MaxServer = "0.5.0-alpha", "0.5.x" }, "built for an older server")
 	check("needs a newer server", FitTooNew, func(v *wittymodule.CatalogVersion) { v.MinServer, v.MaxServer = "0.7.0", "0.7.x" }, "0.7.0")
 	check("needs a newer API", FitTooNew, func(v *wittymodule.CatalogVersion) { v.API = wittymodule.API + 1 }, "newer server")
 	check("an unknown permission", FitTooNew, func(v *wittymodule.CatalogVersion) { v.Permissions = []string{"everything"} }, "everything")
@@ -523,7 +523,9 @@ func TestFitSaysWhy(t *testing.T) {
 		v.Delivery = wittymodule.DeliveryHelper
 		v.Platforms = map[string]wittymodule.CatalogFile{"plan9-amd64": {URL: "a", Size: 1, SHA256: strings.Repeat("a", 64)}}
 	}, "this kind of computer")
-	check("withdrawn", FitWithdrawn, func(v *wittymodule.CatalogVersion) { v.Withdrawn = &wittymodule.CatalogWithdrawn{Severity: "security", Reason: "it leaks"} }, "it leaks")
+	check("withdrawn", FitWithdrawn, func(v *wittymodule.CatalogVersion) {
+		v.Withdrawn = &wittymodule.CatalogWithdrawn{Severity: "security", Reason: "it leaks"}
+	}, "it leaks")
 }
 
 func TestOrderByNeeds(t *testing.T) {

@@ -15,7 +15,7 @@ import (
 func TestModuleStoreRoutesAreForAdmins(t *testing.T) {
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "admin", "adult", true, "")
-	_, kid := ts.user(t, "kid", "child", false, "")
+	_, kid := ts.user(t, "kid", "kid", false, "")
 	dir := filepath.Join(t.TempDir(), "modules")
 	m := modmgr.New(modmgr.Config{Dir: dir, Server: "0.6.0-alpha", Log: slog.New(slog.DiscardHandler)})
 	t.Cleanup(m.Close)

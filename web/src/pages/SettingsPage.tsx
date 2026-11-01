@@ -23,6 +23,7 @@ import './settings/settings.css'
 import LegalNote from '../components/LegalNote'
 import { ask, Dialog } from '../ui/Overlay'
 import { Segmented } from '../ui/Choice'
+import { WebLink } from '../components/WebLink'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const WittyStatsPage = lazy(() => import('./WittyStatsPage'))
@@ -567,7 +568,7 @@ function Updates() {
             {st.canApply && !active && <button className="btn primary sm" onClick={apply}>Update now</button>}
           </div>
           {l.notes && <ReleaseNotes text={l.notes} />}
-          <a href={l.url || st.page} target="_blank" rel="noreferrer">Release page on GitHub ›</a>
+          <WebLink href={l.url || st.page}>Release page on GitHub ›</WebLink>
           {!st.canApply && st.reason && <p className="upd-msg">{st.reason}</p>}
         </div>
       )}

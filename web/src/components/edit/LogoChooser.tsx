@@ -6,6 +6,7 @@ import BrandLogo, { forgetLogos, logoImageUrl, logoVariant, type LogoInfo } from
 import LegalNote from '../LegalNote'
 import { sendPicture } from '../../metadata'
 import { Button, Dialog, Notice } from '../../ui'
+import { WebLink } from '../WebLink'
 
 // A row for each studio or network with its logo and a Change button, and what Change opens.
 
@@ -65,7 +66,7 @@ export default function LogoChooser({ logo, onClose, onChanged }: { logo: LogoIn
           <span className="ed-logo-plate big">{cur.has ? <img src={logoImageUrl(cur, cur.opaque ? 'original' : logoVariant())} alt={`Logo of ${logo.name}`} /> : <span className="brand-logo-text">{logo.name}</span>}</span>
           <div className="ed-logo-text">
             {cur.has ? (cur.source === 'you' ? <span>Uploaded by you.</span> : (
-              <span>From <a href={cur.sourceUrl} target="_blank" rel="noreferrer">Wikimedia Commons</a>, {cur.license}{cur.credit ? `, by ${cur.credit}` : ''}. Recoloured here.</span>
+              <span>From <WebLink href={cur.sourceUrl}>Wikimedia Commons</WebLink>, {cur.license}{cur.credit ? `, by ${cur.credit}` : ''}. Recoloured here.</span>
             )) : cur.status === 'text' ? <span>Shown as its name, as you chose.</span> : cur.status === 'none' ? <span>No source has one, so it's shown as its name.</span> : <span>Shown as its name for now.</span>}
             <div className="ed-art-btns">
               <Button size="sm" disabled={busy} onClick={() => input.current?.click()}>Upload your own</Button>

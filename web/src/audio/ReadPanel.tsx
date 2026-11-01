@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, mediaUrl } from '../api'
 import { IconClose, IconFile } from '../icons'
 import type { useLyrics } from './lyrics'
+import { WebLink } from '../components/WebLink'
 
 // Something to read while it plays: the words, at your own pace, and whatever came with the
 // album. A plain page that a keyboard or a remote can scroll, apart from the following lyrics.
@@ -63,7 +64,7 @@ export function ReadPanel({ itemId, extras, ly, onClose }: { itemId: number; ext
             {words
               ? <pre className="np-read-text">{words}</pre>
               : !ly.loading && extras.length === 0 && <p className="np-hint">Nothing to read for this one yet: no words were found, and no booklet is beside the album. A PDF or a text file in the album's folder appears here.</p>}
-            {ly.lyrics?.sourceName && words && <p className="np-credit">Words from {ly.lyrics.creditUrl ? <a href={ly.lyrics.creditUrl} target="_blank" rel="noreferrer">{ly.lyrics.sourceName}</a> : ly.lyrics.sourceName}.</p>}
+            {ly.lyrics?.sourceName && words && <p className="np-credit">Words from {ly.lyrics.creditUrl ? <WebLink href={ly.lyrics.creditUrl}>{ly.lyrics.sourceName}</WebLink> : ly.lyrics.sourceName}.</p>}
           </>
         )}
       </div>

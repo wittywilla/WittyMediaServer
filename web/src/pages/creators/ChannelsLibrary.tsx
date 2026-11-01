@@ -10,6 +10,7 @@ import '../../creators.css'
 import LegalNote from '../../components/LegalNote'
 import { Dialog } from '../../ui/Overlay'
 import { Button } from '../../ui/Button'
+import { WebLink } from '../../components/WebLink'
 
 // WittyChannels: the owner's archive of creator videos, laid out the way people
 // expect from a video site: a home of recommendations, subscriptions, a page per
@@ -203,7 +204,7 @@ export function CreatorPage() {
       {tab === 'about' && (
         <div className="ch-about">
           {c.description ? <p>{c.description}</p> : <p className="muted">Nothing written about this channel yet.</p>}
-          {c.url && <p><a href={c.url} target="_blank" rel="noopener noreferrer nofollow">{c.url}</a></p>}
+          {c.url && <p><WebLink href={c.url}>{c.url}</WebLink></p>}
         </div>
       )}
       <LegalNote kind="creators" />

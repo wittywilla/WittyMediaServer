@@ -6,6 +6,7 @@ import { toast, useApp } from '../../state'
 import type { RigView } from '../Rigs'
 import { AddRig, RigCard } from './GameRigs'
 import { PageHead, Row, Section, Switch } from './ui'
+import { WebLink } from '../../components/WebLink'
 import '../rigs.css'
 
 // Settings, Game PCs: who may connect to PCs running Sunshine from this server, and where. The
@@ -18,7 +19,7 @@ export function Credits({ list }: { list: Credit[] }) {
   return (
     <ul className="rig-apps">
       {list.map((c) => (
-        <li key={c.name}><b>{c.name}</b>: {c.role}. License: {c.license}. <a href={c.source} target="_blank" rel="noreferrer noopener">Source</a></li>
+        <li key={c.name}><b>{c.name}</b>: {c.role}. License: {c.license}. <WebLink href={c.source}>Source</WebLink></li>
       ))}
     </ul>
   )

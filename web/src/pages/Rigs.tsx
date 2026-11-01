@@ -9,6 +9,7 @@ import { toast, useApp } from '../state'
 import { heroCover, useCoverTint } from './games/data'
 import { Ambient } from './games/Library'
 import { VirtualGames } from './games/VirtualGames'
+import { WebLink } from '../components/WebLink'
 import './rigs.css'
 import './games/games-ui.css'
 
@@ -222,8 +223,8 @@ export function RigGameDetails({ it }: { it: Item }) {
           {plan.install && (appMissing || !moonlight) && (
             <section className="rig-method">
               <h2>{appMissing ? 'Moonlight isn’t installed on this computer' : 'Don’t have Moonlight yet?'}</h2>
-              <p><a href={plan.install.url} target="_blank" rel="noreferrer noopener">Get {plan.install.name}</a>{plan.install.note ? `. ${plan.install.note}` : ''}</p>
-              <p className="muted">Moonlight is a free, separate app from its own project (license: {plan.install.license}, <a href={plan.install.source} target="_blank" rel="noreferrer noopener">source</a>).</p>
+              <p><WebLink href={plan.install.url}>Get {plan.install.name}</WebLink>{plan.install.note ? `. ${plan.install.note}` : ''}</p>
+              <p className="muted">Moonlight is a free, separate app from its own project (license: {plan.install.license}, <WebLink href={plan.install.source}>source</WebLink>).</p>
             </section>
           )}
           {plan.setup && (

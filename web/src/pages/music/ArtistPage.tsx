@@ -9,6 +9,7 @@ import { IconAudio, IconPlay } from '../../icons'
 import { useApp } from '../../state'
 import { TrackList } from '../AudioLibrary'
 import { AlbumTile, artistPhoto, Shelf, shuffledCopy } from './parts'
+import { WebLink } from '../../components/WebLink'
 
 // One artist or author: a photo if there is one, a biography if the owner turned that on,
 // the songs they've played most, and their albums. Singles and EPs by size, as tags rarely say.
@@ -62,7 +63,7 @@ export default function ArtistPage() {
             {!books && info.tracks[0] && <button className="btn ghost" onClick={() => audio.startRadio(info.tracks[0])}><IconStation size={18} /> Station</button>}
           </div>
           {info.bio && <p className="mh-bio">{info.bio}</p>}
-          {info.bio && info.bioUrl && <p className="mh-credit">From <a href={info.bioUrl} target="_blank" rel="noreferrer">Wikipedia</a>, available under CC BY-SA 4.0. It's the article with this name, which may not always be the right person.</p>}
+          {info.bio && info.bioUrl && <p className="mh-credit">From <WebLink href={info.bioUrl}>Wikipedia</WebLink>, available under CC BY-SA 4.0. It's the article with this name, which may not always be the right person.</p>}
           {!info.online && !info.bio && user?.isAdmin && <p className="mh-credit">Biographies and photos can come from Wikipedia, if you turn on <Link to="/settings/metadata#lyrics">online music information</Link>. An <code>artist.jpg</code> in their folder is used first.</p>}
         </div>
       </header>

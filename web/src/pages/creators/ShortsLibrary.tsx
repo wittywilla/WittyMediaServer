@@ -12,6 +12,7 @@ import { Avatar, Comments, EditVideoDialog, LoadMore, SubscribeButton, useVideoL
 import '../../creators.css'
 import LegalNote from '../../components/LegalNote'
 import { browserCapabilities } from '../../player/capabilities'
+import { WebLink } from '../../components/WebLink'
 
 // WittyShorts: vertical videos, one at a time, with the next a swipe (or the
 // Down button) away. The order of For You comes from the server, from what this
@@ -273,7 +274,7 @@ function About({ d, lib, onCreator }: { d: VideoDetail; lib: Library; onCreator:
       <dl>
         {d.uploadDate && <><dt>Date</dt><dd>{d.uploadDate}</dd></>}
         {d.platform && <><dt>Platform of origin</dt><dd>{d.platform}</dd></>}
-        {d.sourceUrl && <><dt>Source</dt><dd><a href={d.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">{d.sourceUrl}</a></dd></>}
+        {d.sourceUrl && <><dt>Source</dt><dd><WebLink href={d.sourceUrl}>{d.sourceUrl}</WebLink></dd></>}
         {d.origViews > 0 && <><dt>Views at the source</dt><dd>{d.origViews.toLocaleString()}</dd></>}
         {d.views > 0 && <><dt>Plays here</dt><dd>{d.views.toLocaleString()}</dd></>}
         {custom.map(([k, x]) => <div key={k} style={{ display: 'contents' }}><dt>{k}</dt><dd>{String(x)}</dd></div>)}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../../api'
 import { useLook } from './look'
 import type { EncryptedHelpPage } from './tvApi'
+import { WebLink } from '../../components/WebLink'
 import './tv.css'
 
 // The page behind "Encrypted: can't be played here". The words come from the
@@ -37,7 +38,7 @@ export default function EncryptedHelp() {
                   <div className="ctv-rec-main">
                     <b>{d.name}</b>
                     <span>{d.facts}</span>
-                    <span>Source: <a href={d.url} target="_blank" rel="noopener noreferrer nofollow">{d.source}</a></span>
+                    <span>Source: <WebLink href={d.url}>{d.source}</WebLink></span>
                   </div>
                 </li>
               ))}

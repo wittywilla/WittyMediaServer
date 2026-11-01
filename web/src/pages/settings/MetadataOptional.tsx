@@ -6,6 +6,7 @@ import type { ListingStatus } from '../../metadata'
 import { toast } from '../../state'
 import { Button, Notice } from '../../ui'
 import { Row, Section, Switch } from './ui'
+import { WebLink } from '../../components/WebLink'
 import './metadataoptional.css'
 
 // The optional downloads: logos, and which streaming services list a title. Both are off until
@@ -55,7 +56,7 @@ export function LogoSettings() {
             {credits ? (
               credits.length === 0 ? <p className="muted">None yet.</p> : (
                 <ul className="set-credits">
-                  {credits.map((c) => <li key={c.id}><b>{c.name}</b>: {c.source === 'you' ? 'uploaded by you' : <><a href={c.sourceUrl} target="_blank" rel="noreferrer">{c.license}</a>{c.credit ? `, by ${c.credit}` : ''}</>}</li>)}
+                  {credits.map((c) => <li key={c.id}><b>{c.name}</b>: {c.source === 'you' ? 'uploaded by you' : <><WebLink href={c.sourceUrl}>{c.license}</WebLink>{c.credit ? `, by ${c.credit}` : ''}</>}</li>)}
                 </ul>
               )
             ) : <Button size="sm" onClick={() => api.get<{ logos: LogoInfo[] }>('/logos/credits').then((r) => setCredits(r.logos)).catch((e) => toast(e.message))}>Show the list</Button>}

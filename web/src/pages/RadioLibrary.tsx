@@ -8,6 +8,7 @@ import { toast, useApp } from '../state'
 import '../radio.css'
 import LegalNote from '../components/LegalNote'
 import { ask, Dialog } from '../ui/Overlay'
+import { WebLink } from '../components/WebLink'
 
 // Internet radio: stations from a free community directory or by address, played
 // through the server. docs/COLLECTIONS.md has what contacts what.
@@ -393,7 +394,7 @@ export function RadioStationPage() {
           <div className="rd-actions">
             <button className="btn primary big" onClick={() => play.toggle(s)}>{play.isPlaying(s) ? <><IconPause /> Pause</> : <><IconPlay /> Play</>}</button>
             <button className={'btn big' + (m.favorite ? ' rd-faved' : '')} aria-pressed={m.favorite} disabled={busy === 'fav'} onClick={favourite}><IconStar /> {m.favorite ? 'Favourite' : 'Add to favourites'}</button>
-            {m.homepage && <a className="btn big ghost" href={m.homepage} target="_blank" rel="noreferrer noopener"><IconGlobe /> Website</a>}
+            {m.homepage && <WebLink className="btn big ghost" href={m.homepage}><IconGlobe /> Website</WebLink>}
           </div>
           {on && <NowLine />}
         </div>

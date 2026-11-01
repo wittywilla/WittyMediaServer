@@ -21,6 +21,7 @@ purge_data() {
   [ -d "$dir" ] || return 0
   for name in wms.db wms.db-wal wms.db-shm cache transcode logs wms.log crash diagnostics certs branding channel-logos \
               bumpers lyrics-corrections modules themes gaming gamerigs wittycouch metadata restore-staged \
+              setup-code.txt update-withdrawn.json \
               reset-request.json reset-result.json restore-request.json restore-result.json \
               repair-request.json repair-result.json; do
     rm -rf "${dir:?}/$name"

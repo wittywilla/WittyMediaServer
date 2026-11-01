@@ -118,16 +118,8 @@ func TestAllowedURL(t *testing.T) {
 }
 
 func TestLatest(t *testing.T) {
-	asset := func(n string) struct {
-		Name string `json:"name"`
-		Size int64  `json:"size"`
-		URL  string `json:"browser_download_url"`
-	} {
-		return struct {
-			Name string `json:"name"`
-			Size int64  `json:"size"`
-			URL  string `json:"browser_download_url"`
-		}{n, 10, "https://github.com/d/" + n}
+	asset := func(n string) GHAsset {
+		return GHAsset{Name: n, Size: 10, URL: "https://github.com/d/" + n}
 	}
 	rel := func(tag string, draft bool, names ...string) ghRelease {
 		g := ghRelease{TagName: tag, Draft: draft, HTMLURL: "https://github.com/x"}

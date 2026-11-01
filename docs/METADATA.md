@@ -230,11 +230,14 @@ on, a game gets `<name>.nfo`, `<name>-poster.jpg` and `<name>-fanart.jpg` beside
 off, nothing is ever written next to your games. Your own files always win: a picture or NFO beside a game, and anything
 typed under **Edit**, stays as it is.
 
-### For anyone building their own copy
+### The developer id
 
-ScreenScraper's terms identify each program by a developer id, which isn't in this repository. Release builds set it with
-`-ldflags "-X github.com/wittywilla/wittymediaserver/internal/gamemeta.DevID=... -X github.com/wittywilla/wittymediaserver/internal/gamemeta.DevPassword=..."`.
-Without one the source says so, and asks for one in Settings; other sources aren't affected.
+ScreenScraper's terms identify each program by a developer id, which isn't in this repository. A copy needs its own unless
+one was built in. Without one the source says so, and asks for one in Settings; other sources aren't affected.
+
+Official releases don't have one built in today. `scripts/build-release.sh` builds one in when `SCREENSCRAPER_DEV_ID` and
+`SCREENSCRAPER_DEV_PASSWORD` are set, and the release workflow sets those from secrets of the same names. The Docker image
+isn't built with them, because build arguments stay readable in an image.
 
 ---
 <sub>WittyMediaServer 0.5.0-alpha documentation</sub>

@@ -5,7 +5,8 @@
 #   scripts/cutover-modules.sh                       a dry run: everything, for real, in a
 #                                                    throwaway clone, published to local
 #                                                    repositories. Nothing here or on GitHub changes.
-#   scripts/cutover-modules.sh --apply               do it
+#   scripts/cutover-modules.sh --apply --public-key KEY   do it. KEY is the public half
+#                                                    scripts/new-module-key.sh printed
 #   scripts/cutover-modules.sh --require-merged a,b  refuse unless these branches are in HEAD
 #   scripts/cutover-modules.sh --work DIR            where a dry run works (default: a new temp folder)
 #   scripts/cutover-modules.sh --keep                keep that folder after a dry run that passed
@@ -44,12 +45,14 @@ MODULES=(
 PURE_WEB="WittyInk WittyEbook WittyPDF WittyComics WittyReader"
 
 apply=""
+public_given=""
 required=""
 work=""
 keep=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --apply) apply=1 ;;
+    --public-key) public_given=${2:?--public-key needs the public half of the module key}; shift ;;
     --require-merged) required=${2:?--require-merged needs branch names, separated by commas}; shift ;;
     --work) work=${2:?--work needs a folder}; shift ;;
     --keep) keep=1 ;;
@@ -87,6 +90,18 @@ for m in "${MODULES[@]}"; do
   [ -d "$dir" ] || die "$dir isn't here. Has the cutover already finished on this branch?"
 done
 
+# A server trusts only the keys built into it. Tags can't be taken back, so a server that
+# can't verify what is about to be published has to be noticed now.
+module_key=$(sed -n 's/^const moduleKey = "\(.*\)"[[:space:]]*$/\1/p' internal/update/keys.go | tr -d '\r')
+if [ -n "$apply" ]; then
+  [ -n "$module_key" ] || die "moduleKey is empty in internal/update/keys.go, so no server would accept what this publishes. See docs/MODULES-CUTOVER.md"
+  [ -n "$public_given" ] || die "--apply needs --public-key: the public half scripts/new-module-key.sh printed"
+  [ "$module_key" = "$public_given" ] || die "moduleKey in internal/update/keys.go isn't the key given with --public-key, so no server would accept what this publishes"
+  echo "   moduleKey is the key given"
+elif [ -z "$module_key" ]; then
+  echo "   moduleKey is empty (a real run would stop here; this dry run carries on with a throwaway key)"
+fi
+
 repo_exists() {
   if [ -n "$GH" ]; then
     "$GH" repo view "$OWNER/$1" --json name >/dev/null 2>&1
@@ -106,6 +121,37 @@ done
 if [ -n "$missing" ]; then
   if [ -n "$apply" ]; then die "these repositories are missing:$missing. Creating them is the owner's step: docs/MODULES-CUTOVER.md."; fi
   echo "   MISSING:$missing (a real run would stop here; this dry run carries on with empty local repositories)"
+fi
+
+# Both of these live in folders the steps below remove, and neither is a module released
+# below. WittyCouch Host is GPL-3.0: the source offered beside it has to stay available.
+blocked=""
+host=modules/wittycouchhost
+if [ -d "$host" ]; then
+  host_url="https://github.com/$OWNER/WittyCouchHost.git"
+  if GIT_TERMINAL_PROMPT=0 git fetch -q "$host_url" refs/heads/main 2>/dev/null &&
+    [ "$(git rev-parse 'FETCH_HEAD^{tree}')" = "$(git rev-parse "HEAD:$host")" ]; then
+    echo "   WittyCouchHost has this folder's source"
+  else
+    blocked="$blocked
+   - $OWNER/WittyCouchHost doesn't hold what's in $host. Publish it first: scripts/mirror.sh WittyCouchHost"
+  fi
+fi
+# WittyMediaPlayer's engine builds against each engine's player module through go.work.
+engine=apps/wittymediaplayer/engine/go.mod
+if [ -f "$engine" ] && ! grep -q '^replace' "$engine"; then
+  for pair in "WittyDVD wittydvdplayer" "WittyBluray wittyblurayplayer"; do
+    read -r repo sub <<<"$pair"
+    grep -q "/$sub " "$engine" || continue
+    if ! GIT_TERMINAL_PROMPT=0 git ls-remote --tags --exit-code "https://github.com/$OWNER/$repo.git" "refs/tags/$sub/v*" >/dev/null 2>&1; then
+      blocked="$blocked
+   - $sub has no release on $OWNER/$repo, and $engine can only find it through go.work, which this removes"
+    fi
+  done
+fi
+if [ -n "$blocked" ]; then
+  if [ -n "$apply" ]; then die "this would leave things nobody can get:$blocked"; fi
+  echo "   a real run would stop here:$blocked"
 fi
 
 # ---------------------------------------------------------------- where it happens

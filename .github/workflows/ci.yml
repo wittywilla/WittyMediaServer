@@ -52,7 +52,7 @@ jobs:
         run: CGO_ENABLED=1 go test -race -count=1 -timeout 25m ./internal/...
       - name: Known vulnerabilities (reported, does not stop the build)
         continue-on-error: true
-        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
       # go.work builds the modules against each other's local source.
       - name: Modules (their own go.mod)
         env:
@@ -92,4 +92,8 @@ jobs:
             (cd modules/wittyphotos && GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wittyphotos-module) || exit 1
           done
       - name: Build-script smoke test (no FFmpeg downloads)
-        run: SKIP_WEB=1 SKIP_FFMPEG=1 scripts/build-release.sh ci-test linux/amd64 windows/amd64
+        run: |
+          SKIP_WEB=1 SKIP_FFMPEG=1 scripts/build-release.sh ci-test linux/amd64 windows/amd64
+          # Without the runner, a package can't play a single game.
+          test -x dist/wittymediaserver-ci-test-linux-amd64/wittyplay-host
+          test -f dist/wittymediaserver-ci-test-windows-amd64/wittyplay-host.exe

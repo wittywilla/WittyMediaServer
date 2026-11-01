@@ -32,6 +32,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -572,6 +573,17 @@ func keygen(path string) error {
 	return nil
 }
 
+// releaseFile is what follows "<id>-<version>-" in a release's files: its manifest, its
+// bundle for the browser, or its archive for a system, and what's inside either. Being
+// this exact is the point: 0.2.1 mustn't pass for 0.2.10 or 0.2.1-beta.
+var releaseFile = regexp.MustCompile(`^(?:module\.json|web(?:\.tar\.gz|\.zip|/.+)|(?:windows|darwin|linux|freebsd)-[a-z0-9]+(?:\.tar\.gz|\.zip|/.+))$`)
+
+// fileOf says whether a name in a checksum list belongs to this module and this version.
+func fileOf(name, expect string) bool {
+	rest, ok := strings.CutPrefix(name, expect+"-")
+	return ok && releaseFile.MatchString(rest)
+}
+
 // sign writes the signature the server checks: base64 of Ed25519 over the file's
 // exact bytes, from a key file in wms-sign's format.
 func sign(keyPath, expect string, files []string) error {
@@ -596,7 +608,7 @@ func sign(keyPath, expect string, files []string) error {
 			}
 			_, name, _ := strings.Cut(line, " ")
 			name = strings.TrimPrefix(strings.TrimSpace(name), "*")
-			if !strings.HasPrefix(name, expect) || strings.Contains(name, "..") || strings.ContainsAny(name, "\\:") {
+			if !fileOf(name, expect) || strings.Contains(name, "..") || strings.ContainsAny(name, "\\:") {
 				return fmt.Errorf("%s names %q, which isn't a file of %s; nothing was signed", files[0], name, expect)
 			}
 		}

@@ -81,11 +81,7 @@ func (g *gitHub) release(tag string, assets map[string][]byte) {
 	r := update.GHRelease{TagName: tag}
 	for name, b := range assets {
 		g.files["/r/"+name] = b
-		r.Assets = append(r.Assets, struct {
-			Name string `json:"name"`
-			Size int64  `json:"size"`
-			URL  string `json:"browser_download_url"`
-		}{name, int64(len(b)), "https://github.com/r/" + name})
+		r.Assets = append(r.Assets, update.GHAsset{Name: name, Size: int64(len(b)), URL: "https://github.com/r/" + name})
 	}
 	g.rels = append(g.rels, r)
 }

@@ -144,7 +144,7 @@ docker run -d --name wittymediaserver --restart unless-stopped \
   -v wms-config:/config \
   -v /path/to/movies:/media/movies:ro \
   -v /path/to/discs:/media/discs:ro \
-  ghcr.io/wittywilla/wittymediaserver:latest
+  ghcr.io/wittywilla/wittymediaserver:alpha
 ```
 
 Or `docker compose up -d` with [`docker-compose.yml`](../docker-compose.yml). For hardware

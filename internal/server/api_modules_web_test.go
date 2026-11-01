@@ -85,11 +85,7 @@ func installedBundle(t *testing.T, script, style string) *modmgr.Manager {
 	base := "/wittywilla/WittyComics/releases/download/v" + ver + "/"
 	for n, b := range map[string][]byte{archiveName: archive, manName: raw, sumsName: sums, sumsName + ".sig": update.Sign(key, sums)} {
 		feed.files[base+n] = b
-		rel.Assets = append(rel.Assets, struct {
-			Name string `json:"name"`
-			Size int64  `json:"size"`
-			URL  string `json:"browser_download_url"`
-		}{n, int64(len(b)), "https://github.com" + base + n})
+		rel.Assets = append(rel.Assets, update.GHAsset{Name: n, Size: int64(len(b)), URL: "https://github.com" + base + n})
 	}
 	feed.rels = []update.GHRelease{rel}
 	builtin, _ := json.Marshal(wittymodule.Manifest{ID: id, Name: "WittyComics", Version: "0.1.0", Repo: "wittywilla/WittyComics", Delivery: wittymodule.DeliveryWeb, API: 2, MinServer: "0.1.0", MaxServer: "0.x"})

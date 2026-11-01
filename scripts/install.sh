@@ -25,6 +25,10 @@ echo "==> installing to $PREFIX (data: $DATA, port: $PORT)"
 mkdir -p "$PREFIX" "$DATA"
 cp -R "$HERE"/wms "$HERE"/bin "$PREFIX"/ 2>/dev/null || cp "$HERE"/wms "$PREFIX"/
 cp "$HERE"/*.md "$HERE"/LICENSE "$HERE"/NOTICE "$PREFIX"/ 2>/dev/null || true
+# The separate program that runs games: without it no game can start.
+if [ -f "$HERE/wittyplay-host" ]; then
+  cp "$HERE/wittyplay-host" "$PREFIX/" && chmod +x "$PREFIX/wittyplay-host"
+fi
 # Tray launcher + desktop entry (optional; headless servers simply skip it).
 if [ -f "$HERE/WittyMediaServer" ]; then
   cp "$HERE/WittyMediaServer" "$PREFIX/" && chmod +x "$PREFIX/WittyMediaServer"

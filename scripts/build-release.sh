@@ -160,6 +160,7 @@ make_app_bundle() {
   [ -f "$out/WittyMediaServer" ] || return 0
   mkdir -p "$app/MacOS" "$app/Resources"
   cp "$out/WittyMediaServer" "$out/wms" "$app/MacOS/"
+  [ -f "$out/wittyplay-host" ] && cp "$out/wittyplay-host" "$app/MacOS/"
   [ -d "$out/bin" ] && cp -R "$out/bin" "$app/MacOS/"
   "$TOOLS/genicon$HOSTEXE" "$app/Resources/icon.png" 512
   cat > "$app/Info.plist" <<EOF
@@ -206,7 +207,11 @@ for t in "${TARGETS[@]}"; do
   rm -rf "$out.zip" "$out.tar.gz" "$out-setup.exe"; mkdir -p "$out"
   echo "==> $t"
   ext=""; [ "$os" = windows ] && ext=".exe"
-  CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$out/wms$ext" ./cmd/wms
+  server_flags="-s -w -X main.version=${VERSION}"
+  if [ -n "${SCREENSCRAPER_DEV_ID:-}" ] && [ -n "${SCREENSCRAPER_DEV_PASSWORD:-}" ]; then
+    server_flags="$server_flags -X github.com/wittywilla/wittymediaserver/internal/gamemeta.DevID=$SCREENSCRAPER_DEV_ID -X github.com/wittywilla/wittymediaserver/internal/gamemeta.DevPassword=$SCREENSCRAPER_DEV_PASSWORD"
+  fi
+  CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath -ldflags="$server_flags" -o "$out/wms$ext" ./cmd/wms
   build_tray "$out" "$os" "$arch"
   # The separate process that runs games (docs/GAMING.md). FreeBSD's cgo-free
   # build needs one package compiled with the standard library's privileges.

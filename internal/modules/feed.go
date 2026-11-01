@@ -224,9 +224,15 @@ func (m *Manager) checkOne(ctx context.Context, id string) error {
 		return fmt.Errorf("%s: %w", name, err)
 	}
 	if unchanged {
+		// The list of withdrawn versions changes on an old release, which the list of the
+		// newest may not show, so an unchanged list says nothing about it.
+		werr := m.checkWithdrawals(ctx, id, e, repo, nil)
 		m.mu.Lock()
 		m.computeOffers(e)
 		m.mu.Unlock()
+		if werr != nil {
+			return fmt.Errorf("%s: %w", name, werr)
+		}
 		return nil
 	}
 
@@ -249,17 +255,10 @@ func (m *Manager) checkOne(ctx context.Context, id string) error {
 		versions = versions[:maxKnown]
 	}
 
-	// The list of withdrawn versions first, so nothing it names gets offered. Its release
-	// is an old one, so a list of the newest may not reach it: asked for by name then.
-	var withdrawErr error
-	if withdrawals == nil {
-		withdrawals, withdrawErr = m.fetch.ReleaseByTag(ctx, repo, wittymodule.WithdrawalsTag)
-		if errors.Is(withdrawErr, update.ErrNotFound) {
-			withdrawals, withdrawErr = nil, nil
-		}
-	}
-	if withdrawErr == nil {
-		withdrawErr = m.readWithdrawals(ctx, id, e, withdrawals)
+	// The list of withdrawn versions first, so nothing it names gets offered.
+	withdrawErr := m.checkWithdrawals(ctx, id, e, repo, withdrawals)
+	if withdrawErr != nil {
+		newEtag = "" // come back: a withdrawal must not be missed for the sake of a tag
 	}
 
 	m.mu.Lock()
@@ -279,12 +278,12 @@ func (m *Manager) checkOne(ctx context.Context, id string) error {
 		// no second look. A release whose files changed gets one.
 		old := had[ver]
 		var man *wittymodule.Manifest
-		if old != nil && old.rel == *r && raw[ver] != nil {
+		if old != nil && sameFiles(old.rel, *r) && raw[ver] != nil {
 			man = old.man
 		} else {
 			// A release that failed isn't fetched again, and running out of checks only
 			// stops new ones: what is already known stays, so fake tags can't hide it.
-			if e.badFiles[r.sums.URL] {
+			if e.badFiles[r.sums.URL+r.sums.Updated] {
 				continue
 			}
 			if read++; read > maxNewChecks {
@@ -305,7 +304,7 @@ func (m *Manager) checkOne(ctx context.Context, id string) error {
 					if e.badFiles == nil {
 						e.badFiles = map[string]bool{}
 					}
-					e.badFiles[r.sums.URL] = true
+					e.badFiles[r.sums.URL+r.sums.Updated] = true
 					m.mu.Unlock()
 				}
 				continue
@@ -339,6 +338,19 @@ func trimNotes(s string) string {
 		return s[:maxNotes] + "…"
 	}
 	return s
+}
+
+// sameFiles says whether a release still has the files it had. A file uploaded again
+// can have the same name, address and size. A list kept from before the time of upload
+// was recorded has no time to compare.
+func sameFiles(old, now release) bool {
+	same := func(a, b update.Asset) bool {
+		if a.Updated == "" {
+			a.Updated = b.Updated
+		}
+		return a == b
+	}
+	return old.version == now.version && same(old.archive, now.archive) && same(old.sums, now.sums) && same(old.sig, now.sig) && same(old.man, now.man)
 }
 
 // pickFor finds a release's files for this system, or nil if one is missing.
@@ -401,6 +413,22 @@ func (m *Manager) computeOffers(e *entry) {
 		break
 	}
 	e.latest, e.tooNew, e.rel = latest, tooNew, rel
+}
+
+// checkWithdrawals reads the list of withdrawn versions. Its release is an old one, so
+// when g is nil it's asked for by name.
+func (m *Manager) checkWithdrawals(ctx context.Context, id string, e *entry, repo string, g *update.GHRelease) error {
+	if g == nil {
+		var err error
+		g, err = m.fetch.ReleaseByTag(ctx, repo, wittymodule.WithdrawalsTag)
+		if errors.Is(err, update.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return m.readWithdrawals(ctx, id, e, g)
 }
 
 // readWithdrawals fetches the plugin's signed list, if it has one, and takes it only

@@ -102,6 +102,26 @@ tag() { # <dir> <remote url> <commit>
   fi
 }
 
+# A folder's workflows run a released WittyModule, so pushing one that names a version
+# nobody has published leaves it unable to pass its checks or release. WittyModule's
+# own workflows name the version it is about to be, so it goes first.
+check_tool() { # <dir> <repository>
+  local used
+  [ "$2" = WittyModule ] && return 0
+  [ -d "$1/.github/workflows" ] || return 0
+  used=$(grep -rhoE 'wittymodule/cmd/wittymodule@v[0-9A-Za-z.-]+' "$1/.github/workflows" | sed 's/.*@//' | sort -u)
+  for v in $used; do
+    if ! GIT_TERMINAL_PROMPT=0 git ls-remote --tags --exit-code "https://github.com/$OWNER/WittyModule.git" "refs/tags/$v" >/dev/null 2>&1; then
+      if [ -n "${DRY_RUN:-}" ]; then
+        echo "   $1 uses WittyModule $v, which isn't published: a real run would stop here" >&2
+      else
+        echo "   $1 uses WittyModule $v, which isn't published. Publish it first: scripts/mirror.sh WittyModule $v" >&2
+        exit 1
+      fi
+    fi
+  done
+}
+
 found=""
 for m in "${MIRRORS[@]}"; do
   read -r dir repo <<<"$m"
@@ -109,6 +129,7 @@ for m in "${MIRRORS[@]}"; do
   found=1
   echo "== $repo"
   url="https://github.com/$OWNER/$repo.git"
+  check_tool "$dir" "$repo"
   [ -n "$TAG" ] && check_release "$dir"
   publish "$dir" "$url" main
   [ -n "$TAG" ] && tag "$dir" "$url" "$published"

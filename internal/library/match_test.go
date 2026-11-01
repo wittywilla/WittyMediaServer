@@ -1019,8 +1019,21 @@ func TestListingsFollowTheMatch(t *testing.T) {
 	if err := s.Store.DB.SetSetting(ctx, "listingsConsent", ListingsVersion); err != nil {
 		t.Fatal(err)
 	}
+	// Changing a match starts the job by itself: let that finish, so it can't get in the way.
+	settle := func() {
+		for {
+			listingJob.Lock()
+			running := listingJob.running
+			listingJob.Unlock()
+			if !running {
+				return
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+	}
 	listed := func(all bool) int {
 		t.Helper()
+		settle()
 		if err := s.syncListings(ctx, all); err != nil {
 			t.Fatal(err)
 		}
@@ -1033,6 +1046,7 @@ func TestListingsFollowTheMatch(t *testing.T) {
 	if _, err := s.RemoveMatch(ctx, title(t, s, TargetItem, it.ID), "someone"); err != nil {
 		t.Fatal(err)
 	}
+	settle()
 	if n := s.ListingStatus(ctx).Listed; n != 0 {
 		t.Errorf("the match has gone, and still listed: %d", n)
 	}
@@ -1053,6 +1067,14 @@ func TestListingsFollowTheMatch(t *testing.T) {
 	}
 	if n := listed(true); n != 1 {
 		t.Errorf("Check now didn't: %d", n)
+	}
+	// What was accepted stands when only the region changes.
+	if err := s.SetListings(ctx, true, "GB", nil); err != nil {
+		t.Fatalf("changing the region: %v", err)
+	}
+	settle()
+	if s.Store.ListingsRegion(ctx) != "GB" || !s.Store.ListingsEnabled(ctx) {
+		t.Errorf("%q", s.Store.ListingsRegion(ctx))
 	}
 }
 

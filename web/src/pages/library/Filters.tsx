@@ -24,14 +24,16 @@ const friendly = (k: string, v: string) => {
 }
 
 // The chosen filters, each with a way to take it off.
-export function ActiveFilters({ params, setParam, onSave, onClear }: { params: URLSearchParams; setParam: (k: string, v: string) => void; onSave: () => void; onClear: () => void }) {
+export function ActiveFilters({ params, setParam, onSave, onClear, platforms }: { params: URLSearchParams; setParam: (k: string, v: string) => void; onSave: () => void; onClear: () => void; platforms?: { key: string; name: string }[] }) {
   const on = FILTER_KEYS.filter((k) => params.get(k))
   if (on.length === 0) return null
+  // A service is filtered by its key, and shown by its name.
+  const shown = (k: string) => (k === 'platform' && platforms?.find((p) => p.key === params.get(k))?.name) || friendly(k, params.get(k)!)
   return (
     <div className="lib-active" role="group" aria-label="Filters" data-nav-group>
       {on.map((k) => (
-        <Chip key={k} onRemove={() => setParam(k, '')} removeLabel={`Take off ${LABELS[k]} ${friendly(k, params.get(k)!)}`}>
-          <span className="muted">{LABELS[k]}:</span>&nbsp;{friendly(k, params.get(k)!)}
+        <Chip key={k} onRemove={() => setParam(k, '')} removeLabel={`Take off ${LABELS[k]} ${shown(k)}`}>
+          <span className="muted">{LABELS[k]}:</span>&nbsp;{shown(k)}
         </Chip>
       ))}
       <Button size="sm" variant="ghost" onClick={onSave}>Save this view</Button>

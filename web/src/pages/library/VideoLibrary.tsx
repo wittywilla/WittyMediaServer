@@ -222,7 +222,7 @@ export default function VideoLibrary({ lib }: { lib: Library }) {
             : <ScanButton lib={lib} onStarted={() => setScanning({})} />}
         </>}
       >
-        <ActiveFilters params={params} setParam={setParam} onSave={() => setSaving(true)} onClear={clearAll} />
+        <ActiveFilters params={params} setParam={setParam} onSave={() => setSaving(true)} onClear={clearAll} platforms={shelves?.platforms} />
         {views.length > 0 && !activeCount && (
           <div className="chips lib-views" role="group" aria-label="Saved views">
             {views.map((v) => <Link key={v.id} className="chip" to={`${here}?${v.query}`}>{v.name}</Link>)}

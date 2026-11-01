@@ -90,10 +90,26 @@ func (s *Scanner) SetListings(ctx context.Context, on bool, region string, accep
 		if !regionRe.MatchString(region) {
 			return errors.New("a region is two letters, such as US")
 		}
-		if region != s.Store.ListingsRegion(ctx) {
-			if err := s.Store.DB.SetSetting(ctx, "listingsRegion", region); err != nil {
-				return err
+	}
+	// Once they're on, what was accepted stands: changing the region doesn't ask again.
+	already := s.Store.ListingsEnabled(ctx)
+	if on {
+		have := map[string]bool{}
+		for _, a := range accepted {
+			have[a] = true
+		}
+		for _, a := range ListingAcknowledgements {
+			if !have[a] && !already {
+				return ErrListingsNotAccepted
 			}
+		}
+		if s.TMDBKey == nil || s.TMDBKey() == "" {
+			return errors.New("listings need a free TMDB key first: add one under Built-in agents")
+		}
+	}
+	if region != "" && region != s.Store.ListingsRegion(ctx) {
+		if err := s.Store.DB.SetSetting(ctx, "listingsRegion", region); err != nil {
+			return err
 		}
 	}
 	if !on {
@@ -107,23 +123,13 @@ func (s *Scanner) SetListings(ctx context.Context, on bool, region string, accep
 		_, err := s.Store.DB.ExecContext(ctx, `DELETE FROM listing_titles`)
 		return err
 	}
-	have := map[string]bool{}
-	for _, a := range accepted {
-		have[a] = true
-	}
-	for _, a := range ListingAcknowledgements {
-		if !have[a] {
-			return ErrListingsNotAccepted
+	if !already {
+		if err := s.Store.DB.SetSetting(ctx, "listingsConsent", ListingsVersion); err != nil {
+			return err
 		}
-	}
-	if s.TMDBKey == nil || s.TMDBKey() == "" {
-		return errors.New("listings need a free TMDB key first: add one under Built-in agents")
-	}
-	if err := s.Store.DB.SetSetting(ctx, "listingsConsent", ListingsVersion); err != nil {
-		return err
-	}
-	if err := s.Store.DB.SetSetting(ctx, "listingsConsentAt", strconv.FormatInt(db.Now(), 10)); err != nil {
-		return err
+		if err := s.Store.DB.SetSetting(ctx, "listingsConsentAt", strconv.FormatInt(db.Now(), 10)); err != nil {
+			return err
+		}
 	}
 	s.KickListings()
 	return nil

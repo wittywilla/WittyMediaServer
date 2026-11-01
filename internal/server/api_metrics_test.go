@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/metrics"
 )
 
@@ -194,6 +197,56 @@ func TestStreamsAreTrackedAndCounted(t *testing.T) {
 	w = ts.do(t, "GET", "/api/system/metrics/now?sections=streams", viewerTok, nil)
 	if strings.Contains(w.Body.String(), "Made Up") || strings.Contains(w.Body.String(), "boss") {
 		t.Errorf("someone else's stream: %s", w.Body)
+	}
+}
+
+func TestTwoPeopleSharingAStreamAreEachCounted(t *testing.T) {
+	ts := newTestServer(t)
+	a, aTok := ts.user(t, "alex", "adult", true, "")
+	b, bTok := ts.user(t, "bea", "adult", false, "")
+	item := &library.Item{ID: 7, Title: "A Made Up Film"}
+	serve := func(tok string, u *auth.User) {
+		r := httptest.NewRequest("GET", "/api/hls/v-shared/seg/1", nil)
+		r = r.WithContext(context.WithValue(context.WithValue(r.Context(), userKey, u), tokenKey, tok))
+		ts.streams.note(r, item, "transcode", []string{"why"}, "v-shared")
+		w, done := ts.streams.served(httptest.NewRecorder(), r, 0, "v-shared")
+		_, _ = w.Write(make([]byte, 100))
+		done()
+	}
+	serve(aTok, a)
+	serve(bTok, b)
+	serve(aTok, a)
+	got := map[int64]int64{}
+	for _, v := range ts.streams.streams(0) {
+		got[v.UserID] = v.Bytes
+	}
+	if len(got) != 2 || got[a.ID] != 200 || got[b.ID] != 100 {
+		t.Fatalf("%+v", got)
+	}
+}
+
+func TestEndingStreamsLetsAServerStop(t *testing.T) {
+	ts := newTestServer(t)
+	_, admin := ts.user(t, "boss", "adult", true, "")
+	srv := httptest.NewServer(ts.h)
+	defer srv.Close()
+	for _, path := range []string{"/api/system/tasks/stream", "/api/system/metrics/stream"} {
+		req, _ := http.NewRequest("GET", srv.URL+path, nil)
+		req.Header.Set("Authorization", "Bearer "+admin)
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		ended := make(chan struct{})
+		go func() { _, _ = io.Copy(io.Discard, res.Body); close(ended) }()
+		ts.EndStreams()
+		ts.EndStreams() // twice is once
+		select {
+		case <-ended:
+		case <-time.After(5 * time.Second):
+			t.Fatalf("%s kept going", path)
+		}
 	}
 }
 

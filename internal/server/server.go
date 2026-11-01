@@ -56,9 +56,11 @@ type Server struct {
 	Web      fs.FS
 	Version  string
 	// Tasks is every background job; see api_tasks.go. Made in Handler.
-	Tasks       *tasks.Registry
-	taskStore   *tasks.SQLStore
-	taskStreams taskStreamCounts
+	Tasks                    *tasks.Registry
+	taskStore                *tasks.SQLStore
+	taskStreams              taskStreamCounts
+	streamEnd, streamEndInit sync.Once
+	streamEndCh              chan struct{}
 	// Metrics watches the machine; see api_metrics.go. Made in Handler.
 	Metrics       *metrics.Collector
 	gpus          metrics.GPUReader

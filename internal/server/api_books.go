@@ -198,6 +198,15 @@ func (s *Server) handleEPUBFile(w http.ResponseWriter, r *http.Request) {
 	s.serveArchiveFile(w, zr, name)
 }
 
+// scriptType: a browser would run a file of this type as a script. The app's policy allows
+// scripts from this site, so a file from a library must never go out as one: a page here
+// that something had got a tag into could otherwise run it. No book needs its scripts, as
+// they don't run in the reader.
+func scriptType(ct string) bool {
+	ct = strings.ToLower(ct)
+	return strings.Contains(ct, "javascript") || strings.Contains(ct, "ecmascript") || strings.Contains(ct, "jscript") || strings.Contains(ct, "livescript")
+}
+
 // serveArchiveFile serves a file from a book or comic. Their files are
 // untrusted (a comic "page" may be an SVG with a script), so none of them
 // can run scripts, submit forms or reach outside this server, even when
@@ -218,7 +227,7 @@ func (s *Server) serveArchiveFile(w http.ResponseWriter, zr *zip.Reader, name st
 	case ".avif":
 		ct = "image/avif"
 	}
-	if ct == "" {
+	if ct == "" || scriptType(ct) {
 		ct = "application/octet-stream"
 	}
 	w.Header().Set("Content-Type", ct)

@@ -2,6 +2,7 @@ package library
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -9,6 +10,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
+	"github.com/wittywilla/wittymediaserver/internal/gameid"
 )
 
 // Run by hand with WMS_REAL_GAMES set to a real folder of console folders, and
@@ -72,6 +76,32 @@ func TestRealGamesReport(t *testing.T) {
 	for _, n := range ix.notes {
 		at(n.path).Left[n.kind]++
 		_ = enc.Encode(map[string]any{"left": n.kind, "file": filepath.Base(n.path), "why": n.reason, "suggest": n.suggest})
+	}
+	// Whether what would be played really is for its console, by its own bytes. It reads
+	// into every archive, so it's only done when asked for.
+	if os.Getenv("WMS_REAL_VERIFY") != "" {
+		tally := map[string]int{}
+		l := gamearchive.NewLister()
+		defer l.Close()
+		for _, c := range found {
+			if c.verdict == nil || c.verdict.Entry == "" || !gamearchive.IsArchive(c.path) || c.verdict.How == howBytes {
+				continue
+			}
+			b, err := l.Peek(c.path, c.verdict.Entry)
+			f := gameid.Finding{}
+			if err == nil {
+				f = gameid.SniffHead(b, max(int64(len(b)), c.verdict.Payload))
+			}
+			key := c.console + " " + f.Console
+			if err != nil {
+				key = c.console + " unreadable"
+			}
+			tally[key]++
+			if f.Console != c.console {
+				_ = enc.Encode(map[string]any{"unproven": filepath.Base(c.path), "entry": c.verdict.Entry, "console": c.console, "says": f.Console, "kind": f.Kind, "proof": f.Proof, "err": fmt.Sprint(err), "size": c.verdict.Payload})
+			}
+		}
+		t.Logf("checking what would be played, by console and what its bytes say: %v", tally)
 	}
 	keys := make([]string, 0, len(report))
 	for k := range report {

@@ -26,6 +26,8 @@ func sniffCartridge(r io.ReaderAt, size int64, head []byte) (Finding, bool) {
 		return Finding{Console: "nes", Kind: KindGame, Proof: "It starts with the Famicom Disk System's header."}, true
 	case bytes.HasPrefix(head, []byte("NESM\x1a")), bytes.HasPrefix(head, []byte("SNESM")), bytes.HasPrefix(head, []byte("SNES-SPC700")), bytes.HasPrefix(head, []byte("GBS\x01")), bytes.HasPrefix(head, []byte("PSF")):
 		return Finding{Kind: KindAudio, Proof: "It's a file of console music, not a game."}, true
+	case bytes.HasPrefix(head, []byte("BANDAI SFC-ADX")):
+		return Finding{Console: "snes", Kind: KindGame, Proof: "It starts with the Sufami Turbo cartridge's mark."}, true
 	case bytes.HasPrefix(head, []byte("LYNX")):
 		return Finding{Console: "lynx", Kind: KindGame, Proof: "It starts with the Lynx cartridge header."}, true
 	case len(head) >= 10 && bytes.Equal(head[1:10], []byte("ATARI7800")):

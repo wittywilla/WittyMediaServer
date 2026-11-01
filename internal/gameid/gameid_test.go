@@ -229,6 +229,8 @@ func TestNames(t *testing.T) {
 		{"Made Up (USA) (DLC)", gameid.KindDLC},
 		{"Made Up: The Update (USA)", gameid.KindUnknown}, // only tags say so
 		{"Made Up (USA) (Rev 1)", gameid.KindUnknown},
+		{"Made Up - Data Pack 2 (J)", gameid.KindDLC},
+		{"X-Terminator 2 Made Up (J) [!]", gameid.KindUtility},
 	} {
 		if got, _ := gameid.ClassifyName(c.name); got != c.kind {
 			t.Errorf("%q: %q, want %q", c.name, got, c.kind)

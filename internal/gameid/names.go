@@ -14,13 +14,13 @@ var (
 	// Written in capitals on purpose: there are games with Bios in their names.
 	biosNameRe = regexp.MustCompile(`\bBIOS\b|^\[BIOS\]|(?i)^(?:scph[-_ ]?[0-9]+|dc_boot|dc_flash|gba_bios|bios[79]|syscard[0-9]|disksys|lynxboot|dmg_boot|cgb_boot|sgb[0-9]?_boot|firmware)\b`)
 	// Devices and test carts.
-	utilityNameRe = regexp.MustCompile(`(?i)\b(?:test (?:program|cartridge|cassette|rom|kit)|diagnostics?|copier|game genie|action replay|game ?shark|xploder|x-band modem|nintendo power menu|menu program)\b|\((?:test kit|test program|test cartridge|program)\)`)
+	utilityNameRe = regexp.MustCompile(`(?i)\b(?:test (?:program|cartridge|cassette|rom|kit)|diagnostics?|copier|game genie|action replay|game ?shark|xploder|x-terminator|x-band modem|nintendo power menu|menu program|dsp loader)\b|\((?:test kit|test program|test cartridge|program)\)`)
 	// A cart that only hosts other cartridges or does nothing by itself.
 	hostNameRe = regexp.MustCompile(`(?i)^(?:super game boy|sufami turbo|bs-x)\b`)
 
 	plusBIOSRe  = regexp.MustCompile(`\+\s*(?:[A-Za-z]+\s+)?BIOS\b`)
 	updateTagRe = regexp.MustCompile(`(?i)[\(\[](?:[^\)\]]*\b)?(?:update|patch)(?:\b[^\)\]]*)?[\)\]]`)
-	dlcTagRe    = regexp.MustCompile(`(?i)[\(\[](?:[^\)\]]*\b)?(?:dlc|add-?on)(?:\b[^\)\]]*)?[\)\]]`)
+	dlcTagRe    = regexp.MustCompile(`(?i)[\(\[](?:[^\)\]]*\b)?(?:dlc|add-?on)(?:\b[^\)\]]*)?[\)\]]|\bdata pack\b|\bkoma data\b`)
 	// Tracks of a disc, kept as files of their own: the first has the game's data.
 	trackNameRe = regexp.MustCompile(`(?i)[\s(\[_-]track[\s_-]*0*([0-9]+)\)?\]?\s*$`)
 )

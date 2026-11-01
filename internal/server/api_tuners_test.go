@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/livetv"
 )
 
 // logoChannels adds an IPTV tuner with one channel per logo address, numbered from 1.

@@ -138,7 +138,7 @@ var (
 	// What a channel list puts around a station's name: a country in front, and a picture quality,
 	// a country or a timeshift behind.
 	channelNamePrefix  = regexp.MustCompile(`(?i)^\s*(?:\[[a-z]{2,3}\]|\([a-z]{2,3}\)|[a-z]{2,3}\s*[:|]|[a-z]{2,3}\s+-)\s*`)
-	channelNameSuffix  = regexp.MustCompile(`(?i)(?:\s+|\s*[-.@|]\s*)(?:hd|fhd|uhd|sd|hevc|h\.?26[45]|4k|8k|\d{3,4}[pi]|\+\s*\d{1,2}|east|west|pacific|mountain|central|\.?[a-z]{2}@\w+)\s*$|\s*(?:\([^()]*\)|\[[^\[\]]*\])\s*$|\.[a-z]{2}\s*$`)
+	channelNameSuffix  = regexp.MustCompile(`(?i)(?:\s+|\s*[-.@|]\s*)(?:hd|fhd|uhd|sd|hevc|h\.?26[45]|4k|8k|\d{3,4}[pi]|\+\s*\d{1,2}|\.?[a-z]{2}@\w+)\s*$|\s*(?:\([^()]*\)|\[[^\[\]]*\])\s*$|\.[a-z]{2}\s*$`)
 	channelCallSign    = regexp.MustCompile(`(?i)^[kw][a-z]{2,3}(?:-(?:tv|dt|hd|cd|ld))?$`)
 	channelGenericOnly = regexp.MustCompile(`(?i)^(?:(?:channel|ch|tv|television|station|stream|live|local|public|access|community|test|news|sports?|movies?|films?|music|kids|weather|shopping|radio|info|events?|adult|ppv|hd|sd|the|and|of|all|free|\d+)[\s/&+.-]*)+$`)
 )

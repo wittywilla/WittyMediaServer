@@ -514,13 +514,16 @@ func noListInCells(segs []Segment) error {
 }
 
 // PartsInput opens the files of a split film as one input. Only files can be read,
-// and the list is written here from names that were checked.
+// and the list is written here from names that were checked. Each part is held to the formats
+// a file from a library may be, and the list format has to be among them for this one to open,
+// so a part whose bytes are a list is stopped by looking, as a disc's cells are.
 func PartsInput(dir, name string, parts []string) ([]string, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
 	}
 	var b strings.Builder
 	b.WriteString("ffconcat version 1.0\n")
+	segs := make([]Segment, 0, len(parts))
 	for _, p := range parts {
 		abs, err := filepath.Abs(p)
 		if err != nil {
@@ -530,12 +533,16 @@ func PartsInput(dir, name string, parts []string) ([]string, error) {
 			return nil, fmt.Errorf("unusable file name: %q", p)
 		}
 		fmt.Fprintf(&b, "file %s\n", quoteConcat(filepath.ToSlash(abs)))
+		segs = append(segs, Segment{Extents: []wittydvd.FileExtent{{File: abs}}})
+	}
+	if err := noListInCells(segs); err != nil {
+		return nil, errors.New("a part of this film isn't video")
 	}
 	list := filepath.Join(dir, name+".ffconcat")
 	if err := os.WriteFile(list, []byte(b.String()), 0o644); err != nil {
 		return nil, err
 	}
-	return []string{"-f", "concat", "-safe", "0", "-protocol_whitelist", "file,pipe", "-i", filepath.ToSlash(list)}, nil
+	return []string{"-f", "concat", "-safe", "0", "-format_whitelist", "concat," + libraryFormats, "-protocol_whitelist", "file,pipe", "-i", filepath.ToSlash(list)}, nil
 }
 
 // ConcatInputArgs are the ffmpeg input flags for an ffconcat list of subfiles.

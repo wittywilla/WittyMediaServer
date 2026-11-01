@@ -264,3 +264,72 @@ func TestLogsDontHoldTheList(t *testing.T) {
 		t.Errorf("%s", got)
 	}
 }
+
+// A split film goes through FFmpeg's list format, so a part can't be on the same terms as a file
+// opened alone: what's in a part is a film, or nothing is read.
+func TestSplitFilmPartsReadOnlyMedia(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses a link")
+	}
+	tools := realTools(t)
+	real, ok := sample(t, tools, "outside.ts", "-f", "lavfi", "-i", "testsrc=s=64x64:r=5:d=1", "-c:v", "mpeg2video")
+	if !ok {
+		t.Skip("can't make a transport stream")
+	}
+	lib := t.TempDir()
+	if err := os.Symlink(real, filepath.Join(lib, "v.ts")); err != nil {
+		t.Fatal(err)
+	}
+	cache := t.TempDir()
+	write := func(name, body string) string {
+		p := filepath.Join(lib, name)
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	pad := strings.Repeat("# padding past what a probe reads\n", 200)
+	// A list in a part is refused outright, as FFmpeg's list format has to be allowed here.
+	list := write("a.cd1.mkv", "ffconcat version 1.0\nfile v.ts\n"+pad)
+	if in, err := PartsInput(cache, "list", []string{list, list}); err == nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		pr, perr := tools.ProbeInput(ctx, in)
+		cancel()
+		streams := 0
+		if perr == nil {
+			streams = len(pr.Streams)
+		}
+		t.Errorf("a part that is itself a list was accepted, and read %d streams from what it names", streams)
+	}
+	// Anything else that follows names is left off the formats allowed.
+	for name, body := range map[string]string{
+		"hls.cd1.mkv": "#EXTM3U\n#EXT-X-TARGETDURATION:1\n#EXTINF:1,\nv.ts\n#EXT-X-ENDLIST\n" + pad,
+		"mpd.cd1.mkv": `<?xml version="1.0"?><MPD xmlns="urn:mpeg:dash:schema:mpd:2011" type="static" mediaPresentationDuration="PT1S"><Period><AdaptationSet><Representation id="1" bandwidth="1"><BaseURL>v.ts</BaseURL></Representation></AdaptationSet></Period></MPD>`,
+	} {
+		p := write(name, body)
+		in, err := PartsInput(cache, strings.ReplaceAll(name, ".", "-"), []string{p, p})
+		if err != nil {
+			continue
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		pr, err := tools.ProbeInput(ctx, in)
+		if err == nil && len(pr.Streams) > 0 {
+			t.Errorf("%s read what it named, as %s with %d streams", name, pr.Format.FormatName, len(pr.Streams))
+		}
+		cancel()
+	}
+	// Real parts still play as one.
+	one, ok := sample(t, tools, "one.mkv", "-f", "lavfi", "-i", "testsrc=s=64x64:r=5:d=1", "-c:v", "mpeg4")
+	if !ok {
+		t.Skip("can't make a film")
+	}
+	in, err := PartsInput(cache, "real", []string{one, one})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if pr, err := tools.ProbeInput(ctx, in); err != nil || len(pr.Streams) == 0 {
+		t.Errorf("real parts: %+v, %v", pr, err)
+	}
+}

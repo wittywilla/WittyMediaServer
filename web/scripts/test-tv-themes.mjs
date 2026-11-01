@@ -12,8 +12,9 @@
 //   WMS_SERVER=http://tv.localhost:9811 WMS_USER=tester WMS_PASSWORD=... node scripts/test-tv-themes.mjs out-folder
 //
 // WMS_ATTACH=127.0.0.1:9333 runs it all in something already running with a debugging port, such
-// as the desktop client or an Android web view, rather than a browser of its own. WMS_ONLY=audit
-// or WMS_ONLY=sizes runs part of it.
+// as the desktop client or an Android web view, rather than a browser of its own. A web view can't
+// pretend to be another size, so give it the size it is: WMS_SIZES=tv or WMS_SIZES=phone. WMS_ONLY=audit
+// or WMS_ONLY=sizes runs part of it, and WMS_THEMES=modern,classic only those themes.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 const { launch } = await import(new URL((process.env.WITTYVISUALIZER || '../../../WittyVisualizer') + '/tests/cdp.mjs', import.meta.url))
@@ -111,7 +112,8 @@ const measure = `(() => {
 
 // ---------------------------------------- every theme at every size
 await setLook({})
-for (const [name, s] of only === 'audit' ? [] : Object.entries(SIZES)) {
+const wantedSize = ([n]) => !process.env.WMS_SIZES || process.env.WMS_SIZES.split(',').includes(n)
+for (const [name, s] of only === 'audit' ? [] : Object.entries(SIZES).filter(wantedSize)) {
   await size(s)
   await openGuide(s.ten)
   for (const theme of THEMES) {
@@ -182,6 +184,7 @@ expect('Escape closes the panel', await page.eval(`!document.querySelector('.ctv
 expect('and the keyboard goes back to the Look button', await page.eval(`document.activeElement?.textContent === 'Look'`))
 
 // ---------------------------------------- the preview's size
+if (!process.env.WMS_SIZES) {
 await setLook({ theme: 'modern' }); await wait(700)
 const width = () => page.eval(`Math.round(document.querySelector('.ctv-preview').getBoundingClientRect().width)`)
 const start = await width()
@@ -194,6 +197,7 @@ expect('a size someone chose isn\'t overridden by a bigger window', (await width
 await setLook({ theme: 'modern' }); await wait(700)
 expect('automatic grows with the window', (await width()) > start + 100, [start, await width()])
 await size(SIZES.desktop); await wait(400)
+}
 
 // ---------------------------------------- the arrows, in every theme
 for (const theme of THEMES) {
@@ -283,6 +287,7 @@ const AUDIT = `(minSize) => {
     if (e.matches('.ctv-cell')) continue
     // A dialog can hold on to focus: see it without by giving it to something else first.
     if (document.activeElement === e) controls.find((x) => x !== e)?.focus({ preventScroll: true })
+    if (e.matches(':focus')) continue // it won't let go, so there's nothing to compare with
     const before = style(e)
     e.focus({ preventScroll: true })
     if (document.activeElement === e && style(e) === before) out.push('focus does not show: ' + say(e) + ' ' + before + ' fv=' + e.matches(':focus-visible'))
@@ -381,7 +386,7 @@ for (const [name, s] of only === 'sizes' ? [] : Object.entries(SCREENS).filter((
 
 // ---------------------------------------- a controller, in every theme
 if (only !== 'sizes') {
-  await size(SIZES.tv)
+  if (wantedSize(['tv'])) await size(SIZES.tv)
   await page.send('Emulation.setTouchEmulationEnabled', { enabled: false })
   await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `
     window.__pad = null

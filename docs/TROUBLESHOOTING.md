@@ -19,7 +19,7 @@ start? `wms logs zip` makes the same file without one. For anything to do with d
 | **It doesn't work away from home** | That's expected: the server is on your home network only until you turn on *Settings → Remote Access*. See [Remote access](REMOTE.md), which also has [its own troubleshooting](REMOTE.md#when-it-doesnt-work). |
 | **"This server is only available on its home network"** | Remote Access is off and the server sees you as outside. Turn it on from a device at home. Behind a reverse proxy, also list the proxy as trusted: see [REMOTE.md](REMOTE.md#a-reverse-proxy-you-already-run). |
 | **“ffmpeg not found”** | Keep `bin/ffmpeg` next to the program, install FFmpeg on `PATH`, or set `WMS_FFMPEG`. *Settings → About* shows which one is used. |
-| **Video stalls or has no sound in one browser** | Some Chromium builds lack AAC. Set *Settings → Transcoding → Stream audio codec* to MP3. |
+| **Video stalls or has no sound in one browser** | Some Chromium builds lack AAC. Set *Settings → Live transcoding → Sound format while converting* to MP3. |
 | **“This disc is CSS-scrambled” / “encrypted (AACS)”** | The image is copy protected. Encrypted media isn't supported, and WittyMediaServer never decrypts anything or bypasses copy protection. |
 | **A DVD or Blu-ray menu shows no buttons** | Run a check of the disc in *Settings → [WittyDiagnoser](DIAGNOSER.md)* with *Press every menu button* on, and attach its report to an issue (never the disc image). On the command line, `wms dvd walk disc.iso` or `wms bluray walk disc.iso` shows the same steps. |
 | **A disc won't play, stutters or stops partway** | *Settings → [WittyDiagnoser](DIAGNOSER.md)* says what's wrong with a copy: scrambled, incomplete, or with sectors that can't be read. |

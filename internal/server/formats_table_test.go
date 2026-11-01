@@ -1472,15 +1472,15 @@ func TestDolbyVisionRange(t *testing.T) {
 		{&ffmpeg.Stream{ColorTransfer: "bt709"}, "sdr"},
 		{&ffmpeg.Stream{}, "sdr"},
 	} {
-		if got := videoRange(c.s); got != c.want {
+		if got := c.s.Range(); got != c.want {
 			t.Errorf("%+v: %s, want %s", c.s, got, c.want)
 		}
 	}
-	if got := dynamicRange(dv(8, 1, "smpte2084")); got != "Dolby Vision profile 8.1" {
+	if got := dv(8, 1, "smpte2084").DynamicRange(); got != "Dolby Vision profile 8.1" {
 		t.Errorf("named %q", got)
 	}
 	plus := &ffmpeg.Stream{SideData: []map[string]any{{"side_data_type": "HDR Dynamic Metadata SMPTE2094-40 (HDR10+)"}}}
-	if got := dynamicRange(plus); got != "HDR10+" {
+	if got := plus.DynamicRange(); got != "HDR10+" {
 		t.Errorf("named %q", got)
 	}
 }
@@ -1491,23 +1491,23 @@ func TestStereoNames(t *testing.T) {
 		"Film.3D.HSBS.mkv": "sbs", "Film 3D SBS.mkv": "sbs", "Film.3D.H-SBS.1080p.mkv": "sbs", "Film.HOU.mkv": "tab", "Film.3D.TAB.mkv": "tab",
 		"Film.mkv": "", "Tabby.mkv": "", "Sbsomething.mkv": "", "Out of Time.mkv": "",
 	} {
-		if got := stereoMode(plain, name); got != want {
+		if got := plain.StereoMode(name); got != want {
 			t.Errorf("%s: %q, want %q", name, got, want)
 		}
 	}
-	if got := stereoMode(&ffmpeg.Stream{Tags: map[string]string{"stereo_mode": "top_bottom"}}, "a.mkv"); got != "tab" {
+	if got := (&ffmpeg.Stream{Tags: map[string]string{"stereo_mode": "top_bottom"}}).StereoMode("a.mkv"); got != "tab" {
 		t.Errorf("by its tag: %q", got)
 	}
-	if got := stereoMode(&ffmpeg.Stream{Tags: map[string]string{"stereo_mode": "mono"}}, "a.mkv"); got != "" {
+	if got := (&ffmpeg.Stream{Tags: map[string]string{"stereo_mode": "mono"}}).StereoMode("a.mkv"); got != "" {
 		t.Errorf("mono: %q", got)
 	}
-	if got := flattenFilter("sbs", 1920, 1080); got != "crop=iw/2:ih:0:0,scale=iw*2:ih,setsar=1" {
+	if got := ffmpeg.FlattenFilter("sbs", 1920, 1080); got != "crop=iw/2:ih:0:0,scale=iw*2:ih,setsar=1" {
 		t.Errorf("half width: %q", got)
 	}
-	if got := flattenFilter("sbs", 3840, 1080); got != "crop=iw/2:ih:0:0" {
+	if got := ffmpeg.FlattenFilter("sbs", 3840, 1080); got != "crop=iw/2:ih:0:0" {
 		t.Errorf("full width: %q", got)
 	}
-	if got := flattenFilter("tab", 1920, 1080); got != "crop=iw:ih/2:0:0,scale=iw:ih*2,setsar=1" {
+	if got := ffmpeg.FlattenFilter("tab", 1920, 1080); got != "crop=iw:ih/2:0:0,scale=iw:ih*2,setsar=1" {
 		t.Errorf("half height: %q", got)
 	}
 }

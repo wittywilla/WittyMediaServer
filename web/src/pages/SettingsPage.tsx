@@ -27,6 +27,7 @@ import { Segmented } from '../ui/Choice'
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
 const ActivitySettings = lazy(() => import('./settings/Activity'))
+const LibraryTranscoding = lazy(() => import('./settings/LibraryTranscoding'))
 const LogSettings = lazy(() => import('./LogSettings'))
 const LegalSettings = lazy(() => import('./settings/Legal'))
 const ResetSettings = lazy(() => import('./settings/Reset'))
@@ -58,7 +59,8 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'channels', label: 'Channels & tuners', icon: <IconChannels />, admin: true, hint: 'TV channels from your library, tuners, IPTV and the guide' },
     { to: 'gaming', label: 'Consoles & cores', icon: <IconGamepad />, admin: true, hint: 'Which consoles this server can play, their cores, and game streaming' },
     { to: 'couch', label: 'Game PCs', icon: <IconDrive />, admin: true, hint: 'Who can play on PCs running Sunshine, and which ones' },
-    { to: 'transcoding', label: 'Transcoding', icon: <IconFilm />, admin: true, hint: 'Quality, hardware and formats' },
+    { to: 'transcoding', label: 'Live transcoding', icon: <IconFilm />, admin: true, hint: 'While someone watches: quality, hardware and formats' },
+    { to: 'library-transcoding', label: 'Library transcoding', icon: <IconFilm />, admin: true, hint: 'Convert files ahead of time, and connect Tdarr' },
     { to: 'remote', label: 'Remote Access', icon: <IconGlobe />, admin: true, hint: 'Reaching your server away from home' },
   ] },
   { title: 'You', pages: [
@@ -143,7 +145,8 @@ export default function SettingsPage() {
           <Route path="couch" element={<Suspense fallback={null}><CouchSettings /></Suspense>} />
           <Route path="wittyrigs" element={<Suspense fallback={null}><WittyRigsSettings /></Suspense>} />
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />
-          <Route path="transcoding" element={<><PageHead title="Transcoding" desc="How video is converted for devices that can't play a file as it is: quality, hardware acceleration and formats." /><TranscodeSettings /></>} />
+          <Route path="transcoding" element={<TranscodeSettings />} />
+          <Route path="library-transcoding" element={<Suspense fallback={null}><LibraryTranscoding /></Suspense>} />
           <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: theme, layout and its name." /><AppearanceSettings /></>} />
           <Route path="users" element={<Users />} />
           <Route path="sharing" element={<SharingSettings />} />

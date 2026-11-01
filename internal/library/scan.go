@@ -20,8 +20,8 @@ import (
 	"github.com/wittywilla/wittydvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
-	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
 // Scanner walks library paths and keeps items up to date.
@@ -346,7 +346,7 @@ func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 			return nil
 		}
 		st, err := d.Info()
-		if err != nil || !mediaEntry(root, p, d) {
+		if err != nil || !mediaEntry(root, p, d) || IsConvertedCopy(name) {
 			return nil
 		}
 		switch {

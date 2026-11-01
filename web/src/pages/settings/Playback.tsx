@@ -13,7 +13,7 @@ export default function PlaybackSettings() {
   const fx = on('insertFx')
   return (
     <>
-      <PageHead title="Playback & discs" desc={<>How videos, TV shows and discs play for everyone on this server. Quality, hardware and formats are under <Link to="/settings/transcoding">Transcoding</Link>.</>} />
+      <PageHead title="Playback & discs" desc={<>How videos, TV shows and discs play for everyone on this server. Quality, hardware and formats are under <Link to="/settings/transcoding">Live transcoding</Link>.</>} />
 
       <Section title="Player">
         <Row label="Fastest playback speed" desc="Viewers pick a speed in every player: video, discs, music, audiobooks, podcasts and vertical videos. Voices keep their pitch at every speed. Above 4×: most browsers mute the sound, and a video that has to be converted must convert faster than it plays, which takes strong hardware. Files that play as they are, in H.264 or VP9 with AAC or Opus, cope best.">

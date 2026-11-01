@@ -50,7 +50,7 @@ func discoverCreatorVideos(root string) ([]candidate, error) {
 			}
 			return nil
 		}
-		if strings.HasPrefix(name, ".") || !IsVideoFile(name) {
+		if strings.HasPrefix(name, ".") || !IsVideoFile(name) || IsConvertedCopy(name) {
 			return nil
 		}
 		st, err := d.Info()

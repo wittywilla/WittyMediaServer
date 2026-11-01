@@ -233,6 +233,9 @@ func derefF(p *float64) float64 {
 // copied to the standard names and the item is pointed at the local files,
 // so other servers (and a rescan) see the same pictures.
 func (s *Scanner) SaveItemMetadata(ctx context.Context, it *Item) error {
+	if s.Store.libraryReadOnly(ctx, it.LibraryID) {
+		return nil
+	}
 	posterPath, backdropPath, nfoPath := ArtPaths(it)
 	var errs []error
 	if it.Poster != "" && !strings.HasPrefix(it.Poster, "cache:thumb-") {
@@ -276,6 +279,9 @@ func (s *Scanner) SaveItemMetadata(ctx context.Context, it *Item) error {
 
 // SaveShowMetadata writes tvshow.nfo and show/season artwork into the show folder.
 func (s *Scanner) SaveShowMetadata(ctx context.Context, sh *Show) error {
+	if s.Store.libraryReadOnly(ctx, sh.LibraryID) {
+		return nil
+	}
 	var errs []error
 	if sh.Poster != "" {
 		dst := filepath.Join(sh.Path, "poster.jpg")

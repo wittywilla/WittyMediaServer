@@ -79,6 +79,8 @@ var librariesGz []byte
 var written = []Component{
 	{Group: GroupPrograms, Name: "FFmpeg", License: "GPL-2.0-or-later", URL: "https://ffmpeg.org/legal.html",
 		Note: "Bundled with release downloads as bin/ffmpeg and bin/ffprobe, to convert video. Those builds include libx264 (GPL-2.0-or-later), LAME (LGPL-2.1) and Opus (BSD-3-Clause). Source: ffmpeg.org. Set WMS_FFMPEG to use a different build."},
+	{Group: GroupPrograms, Name: "Tdarr", License: "Proprietary (Tdarr's own EULA)", URL: "https://github.com/HaveAGitGat/Tdarr/blob/master/LICENSE.md",
+		Note: "Not bundled, downloaded or run. Library transcoding can connect to a copy someone installs themselves, over its HTTP API, if they turn that on. Whoever installs it agrees to its terms. No Tdarr code or plugin is included."},
 	{Group: GroupPrograms, Name: "RetroArch", License: "GPL-3.0", URL: "https://github.com/libretro/RetroArch",
 		Note: "Not bundled or run. If it's installed, its folder of game cores is read."},
 	{Group: GroupPrograms, Name: "Moonlight", License: "GPL-3.0", URL: "https://github.com/moonlight-stream",

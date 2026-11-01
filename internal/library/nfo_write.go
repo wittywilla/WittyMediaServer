@@ -137,16 +137,16 @@ func (s *Scanner) writeArt(ctx context.Context, ref, dst string) error {
 	if err != nil {
 		return err
 	}
-	return writeBeside(dst, b)
+	return writeBeside(dst, b, s.Store.Roots(ctx))
 }
 
 // writeNFO replaces a file beside the media in one step, so a crash or a full
 // disk can't leave someone's NFO cut short.
-func writeNFO(path string, doc any) error {
+func writeNFO(path string, doc any, roots []string) error {
 	if old, err := readPlain(path); err == nil && !bytes.Contains(old, []byte(nfoMarker)) {
 		if _, err := os.Lstat(path + ".bak"); os.IsNotExist(err) {
 			// Saving goes on regardless, so their own file is about to go.
-			if err := writeBeside(path+".bak", old); err != nil {
+			if err := writeBeside(path+".bak", old, roots); err != nil {
 				slog.Default().Warn("could not keep a copy of an NFO before replacing it", "cat", "library", "file", path, "err", err)
 			}
 		}
@@ -158,7 +158,7 @@ func writeNFO(path string, doc any) error {
 	out := []byte(xml.Header + nfoMarker + "\n")
 	out = append(out, b...)
 	out = append(out, '\n')
-	return writeBeside(path, out)
+	return writeBeside(path, out, roots)
 }
 
 type nfoUniqueID struct {
@@ -267,7 +267,7 @@ func (s *Scanner) SaveItemMetadata(ctx context.Context, it *Item) error {
 		}
 		doc = m
 	}
-	if err := writeNFO(nfoPath, doc); err != nil {
+	if err := writeNFO(nfoPath, doc, s.Store.Roots(ctx)); err != nil {
 		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
@@ -318,7 +318,7 @@ func (s *Scanner) SaveShowMetadata(ctx context.Context, sh *Show) error {
 			doc.TVDBIDCompat = sh.ProviderID
 		}
 	}
-	if err := writeNFO(filepath.Join(sh.Path, "tvshow.nfo"), doc); err != nil {
+	if err := writeNFO(filepath.Join(sh.Path, "tvshow.nfo"), doc, s.Store.Roots(ctx)); err != nil {
 		errs = append(errs, err)
 	}
 	return errors.Join(errs...)

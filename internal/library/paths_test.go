@@ -169,7 +169,7 @@ func TestWriteNFODoesNotFollowLinks(t *testing.T) {
 	}
 	nfo := filepath.Join(dir, "movie.nfo")
 	symlink(t, victim, nfo)
-	if err := writeNFO(nfo, nfoMovieOut{Title: "x"}); err != nil {
+	if err := writeNFO(nfo, nfoMovieOut{Title: "x"}, []string{dir}); err != nil {
 		t.Fatal(err)
 	}
 	if b, _ := os.ReadFile(victim); string(b) != "do not touch" {
@@ -218,6 +218,9 @@ func TestSafeName(t *testing.T) {
 func junction(t *testing.T, target, link string) {
 	t.Helper()
 	if runtime.GOOS == "windows" {
+		if real, err := filepath.EvalSymlinks(target); err == nil {
+			target = real // writing through a junction to a short name fails by itself
+		}
 		if out, err := exec.Command("cmd", "/c", "mklink", "/J", link, target).CombinedOutput(); err != nil {
 			t.Fatalf("%v %s", err, out)
 		}
@@ -342,5 +345,65 @@ func TestFileLinksInOpenInRoots(t *testing.T) {
 			continue
 		}
 		f.Close()
+	}
+}
+
+// A folder swapped for a link between finding a film and saving its artwork: nothing lands where
+// the link leads.
+func TestWritesDontFollowAFolderSwappedForALink(t *testing.T) {
+	lib, outside := t.TempDir(), t.TempDir()
+	s := testScanner(t, lib)
+	pic := filepath.Join(lib, "cover.png")
+	if err := os.WriteFile(pic, pngHead, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	junction(t, outside, filepath.Join(lib, "film"))
+	dst := filepath.Join(lib, "film", "poster.png")
+	if err := s.writeArt(ctx, pic, dst); err == nil {
+		t.Error("the write said it went fine")
+	}
+	if names, _ := os.ReadDir(outside); len(names) != 0 {
+		t.Errorf("wrote through the link: %v", names)
+	}
+	// An ordinary folder is written to, with no temporary file left behind.
+	if err := os.Mkdir(filepath.Join(lib, "real"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.writeArt(ctx, pic, filepath.Join(lib, "real", "poster.png")); err != nil {
+		t.Fatal(err)
+	}
+	names, _ := os.ReadDir(filepath.Join(lib, "real"))
+	if len(names) != 1 || names[0].Name() != "poster.png" {
+		t.Errorf("%v", names)
+	}
+}
+
+func TestCreateInLibrary(t *testing.T) {
+	lib, outside := t.TempDir(), t.TempDir()
+	dest := filepath.Join(lib, "Uploads", "someone", "2026-11")
+	f, p, err := CreateInLibrary(lib, dest, "a.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	if p != filepath.Join(dest, "a.jpg") {
+		t.Errorf("%s", p)
+	}
+	f, p, err = CreateInLibrary(lib, dest, "a.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	if p != filepath.Join(dest, "a (1).jpg") {
+		t.Errorf("a file was replaced: %s", p)
+	}
+	junction(t, outside, filepath.Join(lib, "away"))
+	if f, p, err := CreateInLibrary(lib, filepath.Join(lib, "away", "x"), "a.jpg"); err == nil {
+		f.Close()
+		t.Errorf("made %s through a link", p)
+	}
+	if names, _ := os.ReadDir(outside); len(names) != 0 {
+		t.Errorf("wrote through the link: %v", names)
 	}
 }

@@ -32,6 +32,9 @@ func linkOrSkip(t *testing.T, target, link string) {
 func dirLink(t *testing.T, target, link string) {
 	t.Helper()
 	if runtime.GOOS == "windows" {
+		if real, err := filepath.EvalSymlinks(target); err == nil {
+			target = real // writing through a junction to a short name fails by itself
+		}
 		if out, err := exec.Command("cmd", "/c", "mklink", "/J", link, target).CombinedOutput(); err != nil {
 			t.Fatalf("%v %s", err, out)
 		}
@@ -223,5 +226,19 @@ func TestNumbersJSONCantSay(t *testing.T) {
 	writeJSON(rec, 201, map[string]any{"fine": 1})
 	if rec.Code != 201 || !strings.Contains(rec.Body.String(), `"fine":1`) {
 		t.Errorf("%d %q", rec.Code, rec.Body)
+	}
+}
+
+// An upload's folders may have been swapped for a link: nothing lands where it leads.
+func TestUploadsDontFollowAFolderSwappedForALink(t *testing.T) {
+	g := newGalleryServer(t)
+	outside := t.TempDir()
+	dirLink(t, outside, filepath.Join(g.lib.Paths[0], "Uploads"))
+	w := g.upload(g.adult, "a.jpg", tinyJPEG(t))
+	if strings.Contains(w.Body.String(), `"id":`) {
+		t.Errorf("the upload went through: %s", w.Body)
+	}
+	if names, _ := os.ReadDir(outside); len(names) != 0 {
+		t.Errorf("wrote through the link: %v", names)
 	}
 }

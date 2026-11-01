@@ -2,6 +2,7 @@ package library
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -450,9 +451,6 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 		}
 	}
 	dir := filepath.Join(lib.Paths[0], safeName(it.Album))
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
-	}
 	dst := filepath.Join(dir, safeName(strings.TrimSpace(it.Aired+" "+it.Title))+ext)
 	req, err := http.NewRequestWithContext(ctx, "GET", it.Path, nil)
 	if err != nil {
@@ -467,25 +465,21 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 	if res.StatusCode != 200 {
 		return fmt.Errorf("download failed: %s", res.Status)
 	}
-	f, err := os.CreateTemp(dir, ".wms-*.part")
+	f, tmp, err := CreateInLibrary(lib.Paths[0], dir, ".wms-"+rand.Text()+".part")
 	if err != nil {
 		return err
 	}
-	tmp := f.Name()
 	n, err := io.Copy(f, io.LimitReader(res.Body, 4<<30))
 	if cerr := f.Close(); err == nil {
 		err = cerr
-	}
-	if err == nil {
-		err = os.Chmod(tmp, 0o644)
 	}
 	if err != nil {
 		os.Remove(tmp)
 		return err
 	}
 	// A feed chooses the name: it must not replace a file already there.
-	dst = freeName(dst)
-	if err := os.Rename(tmp, dst); err != nil {
+	dst, err = moveInLibrary(lib.Paths[0], tmp, dst)
+	if err != nil {
 		os.Remove(tmp)
 		return err
 	}

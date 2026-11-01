@@ -3,6 +3,7 @@ package library
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"errors"
 	"io"
 	"io/fs"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -248,28 +250,159 @@ func isPicture(b []byte) bool {
 	return len(b) > 12 && string(b[4:8]) == "ftyp" && (string(b[8:12]) == "avif" || string(b[8:12]) == "avis")
 }
 
-// writeBeside replaces path with data. It writes a new file and moves it into
-// place, so a link left at path is replaced and never written through.
-func writeBeside(path string, data []byte) error {
-	f, err := os.CreateTemp(filepath.Dir(path), ".wms-*.tmp")
-	if err != nil {
-		return err
+// inRoot does something to path through its root, so a folder on the way that has been swapped
+// for a link can't take it anywhere else. The one exception is Windows' cloud-file placeholders,
+// which os.Root won't pass through and which aren't links: with no link on the way, plain does
+// it by name.
+func inRoot(root, path string, through func(r *os.Root, rel string) error, plain func() error) error {
+	rel, err := filepath.Rel(root, filepath.Clean(path))
+	if err != nil || !filepath.IsLocal(rel) {
+		return ErrNotInLibrary
 	}
-	tmp := f.Name()
-	_, err = f.Write(data)
-	if cerr := f.Close(); err == nil {
-		err = cerr
-	}
+	r, err := os.OpenRoot(root)
 	if err == nil {
-		err = os.Chmod(tmp, 0o644)
+		defer r.Close()
+		err = through(r, rel)
 	}
-	if err == nil {
-		err = os.Rename(tmp, path)
-	}
-	if err != nil {
-		os.Remove(tmp)
+	if err != nil && runtime.GOOS == "windows" && !errors.Is(err, fs.ErrNotExist) && !errors.Is(err, fs.ErrExist) && noLinksBelow(root, rel) {
+		return plain()
 	}
 	return err
+}
+
+// noLinksBelow: no folder between root and rel is a link or a junction. What doesn't exist yet
+// is none.
+func noLinksBelow(root, rel string) bool {
+	cur := root
+	for _, part := range strings.Split(filepath.Dir(rel), string(filepath.Separator)) {
+		if part == "." {
+			continue
+		}
+		cur = filepath.Join(cur, part)
+		st, err := os.Lstat(cur)
+		if err != nil {
+			return errors.Is(err, fs.ErrNotExist)
+		}
+		if st.Mode()&fs.ModeSymlink != 0 {
+			return false
+		}
+		if st.Mode()&fs.ModeIrregular != 0 {
+			if _, err := os.Readlink(cur); err == nil {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// writeBeside replaces path, inside one of roots, with data. It writes a new file and moves it
+// into place, so a link left at path is replaced and never written through.
+func writeBeside(path string, data []byte, roots []string) error {
+	root := rootOf(path, roots)
+	if root == "" {
+		return ErrNotInLibrary
+	}
+	tmpName := ".wms-" + rand.Text() + ".tmp"
+	return inRoot(root, path, func(r *os.Root, rel string) error {
+		tmp := filepath.Join(filepath.Dir(rel), tmpName)
+		f, err := r.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+		if err != nil {
+			return err
+		}
+		_, err = f.Write(data)
+		if cerr := f.Close(); err == nil {
+			err = cerr
+		}
+		if err == nil {
+			err = r.Rename(tmp, rel)
+		}
+		if err != nil {
+			_ = r.Remove(tmp)
+		}
+		return err
+	}, func() error {
+		tmp := filepath.Join(filepath.Dir(path), tmpName)
+		err := os.WriteFile(tmp, data, 0o644)
+		if err == nil {
+			err = os.Rename(tmp, path)
+		}
+		if err != nil {
+			_ = os.Remove(tmp)
+		}
+		return err
+	})
+}
+
+// CreateInLibrary makes a new file named name in the folder dir under root, and any folders
+// on the way, numbering the name when it is taken.
+func CreateInLibrary(root, dir, name string) (*os.File, string, error) {
+	ext := filepath.Ext(name)
+	stem := strings.TrimSuffix(name, ext)
+	var f *os.File
+	var path string
+	err := inRoot(root, filepath.Join(dir, name), func(r *os.Root, rel string) error {
+		folder := filepath.Dir(rel)
+		if err := r.MkdirAll(folder, 0o755); err != nil {
+			return err
+		}
+		return numberedName(stem, ext, dir, &f, &path, func(try string) (*os.File, error) {
+			return r.OpenFile(filepath.Join(folder, try), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+		})
+	}, func() error {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return err
+		}
+		return numberedName(stem, ext, dir, &f, &path, func(try string) (*os.File, error) {
+			return os.OpenFile(filepath.Join(dir, try), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+		})
+	})
+	return f, path, err
+}
+
+func numberedName(stem, ext, dir string, f **os.File, path *string, open func(try string) (*os.File, error)) error {
+	for i := 0; i < 10000; i++ {
+		try := stem + ext
+		if i > 0 {
+			try = stem + " (" + strconv.Itoa(i) + ")" + ext
+		}
+		file, err := open(try)
+		if err == nil {
+			*f, *path = file, filepath.Join(dir, try)
+			return nil
+		}
+		if !errors.Is(err, fs.ErrExist) {
+			return err
+		}
+	}
+	return fs.ErrExist
+}
+
+// moveInLibrary moves a file within root to path, or to path with a number added when something
+// has that name, and says where it went.
+func moveInLibrary(root, from, path string) (string, error) {
+	ext := filepath.Ext(path)
+	stem := strings.TrimSuffix(path, ext)
+	final := path
+	err := inRoot(root, path, func(r *os.Root, rel string) error {
+		src, err := filepath.Rel(root, from)
+		if err != nil {
+			return err
+		}
+		relStem := strings.TrimSuffix(rel, ext)
+		dst := rel
+		for i := 2; ; i++ {
+			if _, err := r.Lstat(dst); err != nil {
+				break
+			}
+			dst = relStem + " (" + strconv.Itoa(i) + ")" + ext
+			final = stem + " (" + strconv.Itoa(i) + ")" + ext
+		}
+		return r.Rename(src, dst)
+	}, func() error {
+		final = freeName(path)
+		return os.Rename(from, final)
+	})
+	return final, err
 }
 
 // How much of a file beside the media is read. Real ones are kilobytes.

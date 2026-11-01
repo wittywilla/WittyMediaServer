@@ -79,3 +79,9 @@ are bytes. `goroutines`, `streams`, `transcodes` and `games` are counts.
 | Disk speed | Yes, with how busy | Yes, by drive letter | No | No |
 | Network, per interface | Yes | Yes | Names only | Names only |
 | This server | Yes | Yes | Yes, with peak memory | Yes, with peak memory |
+
+## The screen
+
+WittyStats is the module that shows all this, in its own repository. It's in Settings, System, Statistics, and it's arranged by each person: widgets can be added, removed, moved and resized, by buttons from a keyboard or remote and by dragging with a mouse or finger, in up to eight saved layouts, with three presets and a way back to stock. Every widget has a table beside its chart, a detail view with every row, and CSV and JSON files made in the browser.
+
+It follows the rules above: it opens one stream, asking only for the sections of widgets on the layout, and only while the page is showing. It closes when the page is hidden or left. The report and histories are fetched only when a widget near the screen needs them, each no more than once a minute. What a server can't provide says why, from the catalogue, and someone without the whole machine gets no frame for what isn't theirs.

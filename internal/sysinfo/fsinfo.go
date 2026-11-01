@@ -44,34 +44,40 @@ func FindMount(mountinfo, path string) (MountLine, bool) {
 	var best MountLine
 	found := false
 	for _, line := range strings.Split(mountinfo, "\n") {
-		left, right, ok := strings.Cut(line, " - ")
-		if !ok {
+		m, ok := ParseMountLine(line)
+		if !ok || !underMount(m.Mount, path) || (found && len(m.Mount) < len(best.Mount)) {
 			continue
 		}
-		l, r := strings.Fields(left), strings.Fields(right)
-		if len(l) < 6 || len(r) < 2 {
-			continue
-		}
-		mount := unescapeMount(l[4])
-		if !underMount(mount, path) || (found && len(mount) < len(best.Mount)) {
-			continue
-		}
-		best = MountLine{Mount: mount, Type: strings.ToLower(r[0]), Source: unescapeMount(r[1])}
-		for _, o := range strings.Split(l[5], ",") {
-			if o == "ro" {
-				best.ReadOnly = true
-			}
-		}
-		if len(r) >= 3 {
-			for _, o := range strings.Split(r[2], ",") {
-				if o == "ro" {
-					best.ReadOnly = true
-				}
-			}
-		}
+		best = m
 		found = true
 	}
 	return best, found
+}
+
+// ParseMountLine reads one line of /proc/self/mountinfo.
+func ParseMountLine(line string) (MountLine, bool) {
+	left, right, ok := strings.Cut(line, " - ")
+	if !ok {
+		return MountLine{}, false
+	}
+	l, r := strings.Fields(left), strings.Fields(right)
+	if len(l) < 6 || len(r) < 2 {
+		return MountLine{}, false
+	}
+	m := MountLine{Mount: unescapeMount(l[4]), Type: strings.ToLower(r[0]), Source: unescapeMount(r[1])}
+	for _, o := range strings.Split(l[5], ",") {
+		if o == "ro" {
+			m.ReadOnly = true
+		}
+	}
+	if len(r) >= 3 {
+		for _, o := range strings.Split(r[2], ",") {
+			if o == "ro" {
+				m.ReadOnly = true
+			}
+		}
+	}
+	return m, true
 }
 
 func underMount(mount, path string) bool {

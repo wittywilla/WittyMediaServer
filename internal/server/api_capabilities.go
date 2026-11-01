@@ -21,7 +21,7 @@ const (
 	apiVersion = 1
 	// apiRevision counts additions within the version: a client that needs
 	// something new can check for it, or look for a feature name below.
-	apiRevision = 5
+	apiRevision = 7
 	apiPrefix   = "/api/v1/"
 )
 
@@ -65,7 +65,7 @@ var serverFeatures = []string{
 	"dvd", "dvd-menus", "bluray", "bluray-menus", "audio-cd",
 	"shows", "next-up", "recommendations", "skip-intro",
 	"music", "audiobooks", "podcasts", "books", "annotations", "radio", "radio-directory",
-	"themes", "theme-tokens", "modules", "game-metadata",
+	"themes", "theme-tokens", "modules", "game-metadata", "system-tasks", "system-metrics",
 	"game-controller-profiles", "game-settings", "custom-game-cores", "game-rigs",
 }
 

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 	"github.com/wittywilla/wittymodule"
 )
@@ -241,6 +242,8 @@ func (m *Manager) InstallVersion(id, ver string, confirm bool) error {
 	}
 	e.busy, e.phase, e.lastError, e.done, e.total = true, PhaseDownloading, "", 0, k.rel.archive.Size
 	rel := k.rel
+	task := taskRegistry.Load().Start(tasks.Spec{Type: tasks.TypeModule, Title: "Installing " + e.builtin.Name + " " + rel.version, Phase: "Downloading", Unit: "bytes", AdminOnly: true})
+	e.task = task
 	session := logging.NewID("mod")
 	log := m.log.With("session", session, "module", id, "version", rel.version)
 	log.Info("modules: installing")
@@ -251,6 +254,13 @@ func (m *Manager) InstallVersion(id, ver string, confirm bool) error {
 		m.mu.Lock()
 		defer m.mu.Unlock()
 		e.busy = false
+		e.task = nil
+		if err != nil {
+			task.Fail(sentence(err.Error()), "Nothing changed: the version in use is still in use. Settings, Modules has the details.", err)
+		} else {
+			task.Result(e.builtin.Name + " " + rel.version + " is installed.")
+			task.Finish(nil)
+		}
 		if err != nil {
 			e.phase, e.lastError = PhaseFailed, sentence(err.Error())
 			e.note("failed", rel.version, "the install failed: "+err.Error())
@@ -270,8 +280,12 @@ func (m *Manager) InstallVersion(id, ver string, confirm bool) error {
 func (m *Manager) setPhase(e *entry, p string) {
 	m.mu.Lock()
 	e.phase = p
+	e.task.Phase(phaseWords[p])
 	m.mu.Unlock()
 }
+
+// phaseWords are the install's steps, for the activity panel.
+var phaseWords = map[string]string{PhaseDownloading: "Downloading", PhaseVerifying: "Checking its signature", PhaseInstalling: "Installing"}
 
 // install does the work. Until the state is saved, the version in use is
 // untouched, so a failure at any step, or the power going, changes nothing.
@@ -465,6 +479,7 @@ type progress struct {
 func (p progress) Write(b []byte) (int, error) {
 	p.m.mu.Lock()
 	p.e.done += int64(len(b))
+	p.e.task.Progress(p.e.done, p.e.total)
 	p.m.mu.Unlock()
 	return len(b), nil
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
 // Scanner walks library paths and keeps items up to date.
@@ -55,6 +56,8 @@ type Scanner struct {
 	// SaveMeta reports whether to write NFO/artwork beside the media.
 	SaveMeta func() bool
 	Log      *slog.Logger
+	// Tasks is where scans show up in the activity panel. May be nil.
+	Tasks *tasks.Registry
 
 	// slot lets one library scan at a time: a small machine has one disk and a
 	// few cores to spare, and the periodic rescan starts every library at once.
@@ -84,7 +87,11 @@ func NewScanner(store *Store, tools *ffmpeg.Tools, cacheDir string, tmdbKey func
 }
 
 // Start scans a library in the background (no-op if already scanning).
-func (s *Scanner) Start(libraryID int64) bool {
+func (s *Scanner) Start(libraryID int64) bool { return s.StartBy(libraryID, tasks.By{}) }
+
+// StartBy is Start, saying who asked. A scan of a library whose scan was stopped picks
+// up where it left off: files it has already seen, unchanged, take almost no time.
+func (s *Scanner) StartBy(libraryID int64, by tasks.By) bool {
 	s.mu.Lock()
 	if _, ok := s.running[libraryID]; ok {
 		s.mu.Unlock()
@@ -94,6 +101,12 @@ func (s *Scanner) Start(libraryID int64) bool {
 	s.running[libraryID] = cancel
 	s.Progress[libraryID] = &ScanProgress{LibraryID: libraryID, Phase: "starting", StartedAt: time.Now().Unix()}
 	s.mu.Unlock()
+	name, rig := "", false
+	if lib, err := s.Store.Library(ctx, libraryID); err == nil {
+		name, rig = lib.Name, lib.IsRig()
+	}
+	t := s.Tasks.Queue(tasks.Spec{Type: tasks.TypeScan, Title: "Scanning " + name, Phase: "Waiting for its turn", LibraryID: libraryID, LibraryName: name, Unit: "files",
+		By: by, Cancel: cancel, Pausable: true, RetryKey: strconv.FormatInt(libraryID, 10), Quiet: rig})
 	id := logging.NewID("scan")
 	ctx = logging.WithSession(ctx, id) // every record of this scan carries it
 	logging.Go("library scan", func() {
@@ -103,7 +116,9 @@ func (s *Scanner) Start(libraryID int64) bool {
 			delete(s.Progress, libraryID)
 			s.mu.Unlock()
 		}()
-		if err := s.scan(ctx, libraryID); err != nil {
+		err := s.scan(context.WithValue(ctx, taskKey{}, t), libraryID)
+		t.Finish(err)
+		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				s.Log.InfoContext(ctx, "scan cancelled", "library", libraryID)
 				return
@@ -112,6 +127,44 @@ func (s *Scanner) Start(libraryID int64) bool {
 		}
 	}, "cat", "library", "session", id)
 	return true
+}
+
+// HoldScans keeps any library from being scanned until release is called, once it has
+// waited for one that's going to reach a stopping point. For work that needs the files
+// and the database to hold still, such as a backup. Scans asked for meanwhile wait their
+// turn, shown as queued.
+func (s *Scanner) HoldScans(ctx context.Context) (release func(), err error) {
+	select {
+	case s.slot <- struct{}{}:
+		var once sync.Once
+		return func() { once.Do(func() { <-s.slot }) }, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+// scanResult says what came of a scan, for the activity history.
+func scanResult(files, problems int, took time.Duration) string {
+	plural := func(n int, one, many string) string {
+		if n == 1 {
+			return "1 " + one
+		}
+		return strconv.Itoa(n) + " " + many
+	}
+	s := fmt.Sprintf("Looked at %s in %s", plural(files, "file", "files"), took.Round(time.Second))
+	if problems == 0 {
+		return s + ", with no problems."
+	}
+	return s + ", with " + plural(problems, "problem", "problems") + "."
+}
+
+type taskKey struct{}
+
+// scanTask is the activity entry of the scan this context belongs to. May be nil, and
+// a nil one does nothing.
+func scanTask(ctx context.Context) *tasks.Handle {
+	t, _ := ctx.Value(taskKey{}).(*tasks.Handle)
+	return t
 }
 
 // scanTally counts what a file or a lookup failed at without stopping the scan,
@@ -154,16 +207,28 @@ func (s *Scanner) minorFailure(ctx context.Context, msg string, err error, args 
 	e.err = err
 }
 
-// report leaves a warning for each kind of failure, and says how many in all.
+// report leaves a warning for each kind of failure, and says how many in all. The
+// activity panel gets it in a person's words.
 func (t *scanTally) report(ctx context.Context, log *slog.Logger) int {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	total := 0
+	task := scanTask(ctx)
 	for msg, e := range t.what {
 		total += e.n
 		log.WarnContext(ctx, "scan had failures", "what", msg, "count", e.n, "err", e.err)
+		words, fix := tasks.Explain(e.err)
+		task.ProblemN("", strings.TrimSpace(sentenceCase(msg)+": "+words+" "+fix), e.n)
 	}
 	return total
+}
+
+// sentenceCase gives a log message a capital letter, for showing it to someone.
+func sentenceCase(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 // Cancel stops a running scan.
@@ -301,14 +366,43 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	}
 	s.Store.setScanning(ctx, libraryID, true)
 	defer s.Store.setScanning(context.Background(), libraryID, false)
-	if s.slot != nil {
+	task := scanTask(ctx)
+	holding := false
+	takeSlot := func() error {
+		if s.slot == nil {
+			return nil
+		}
 		s.progress(libraryID, func(p *ScanProgress) { p.Phase = "waiting" })
 		select {
 		case s.slot <- struct{}{}:
-			defer func() { <-s.slot }()
+			holding = true
+			return nil
 		case <-ctx.Done():
 			return ctx.Err()
 		}
+	}
+	defer func() {
+		if holding {
+			<-s.slot
+		}
+	}()
+	if err := takeSlot(); err != nil {
+		return err
+	}
+	task.Begin()
+	// A paused scan lets another library have its turn at the disk meanwhile.
+	pausePoint := func() error {
+		if !task.PauseWanted() {
+			return ctx.Err()
+		}
+		if holding {
+			<-s.slot
+			holding = false
+		}
+		if err := task.Wait(ctx); err != nil {
+			return err
+		}
+		return takeSlot()
 	}
 	s.Log.InfoContext(ctx, "scan started", "library", lib.Name, "type", lib.Type, "folders", len(lib.Paths))
 	started := time.Now()
@@ -323,15 +417,22 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		archives = newArchiveIndex(s.Store, libraryID)
 		archives.reading = func(path string) {
 			s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(path) })
+			task.Item(filepath.Base(path), path)
 		}
 		defer archives.close()
 	}
+	task.Phase("Finding files")
 	for _, root := range lib.Paths {
+		if err := pausePoint(); err != nil {
+			return err
+		}
 		s.progress(libraryID, func(p *ScanProgress) { p.Phase = "discovering"; p.Current = root })
+		task.Item(filepath.Base(root), root)
 		// A drive or share that is away (an unmounted mount point reads as an
 		// empty folder) is not the same as every file having been deleted.
 		if entries, err := os.ReadDir(root); err != nil || len(entries) == 0 {
 			s.Log.WarnContext(ctx, "library folder is empty or can't be reached; keeping its items", "library", lib.Name, "dir", root, "err", err)
+			task.Problem(root, "This folder is empty or can't be reached, so what it held is being kept for now. If it's on a drive or a share, check that it's connected.")
 			offline = append(offline, root)
 			continue
 		}
@@ -353,6 +454,8 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		c, err := find(root)
 		if err != nil {
 			s.Log.WarnContext(ctx, "could not read all of a library folder", "library", lib.Name, "dir", root, "err", err)
+			words, fix := tasks.Explain(err)
+			task.Problem(root, "Some of this folder couldn't be read. "+words+" "+fix)
 		}
 		if lib.Type == "discs" {
 			images := discoverDiscCDs(root)
@@ -388,16 +491,20 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	rules := s.Store.loadRuleSet(ctx, lib)
 	ctx = context.WithValue(ctx, rulesKey{}, rules)
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
+	task.Phase("Looking at each file")
+	task.Progress(0, int64(len(all)))
 	keep := map[string]bool{}
 	tv := newTVScan()
 	covers := map[string]string{} // audio: one cover per folder+album
 	creators := newCreatorScan()
 	var playlists []candidate
 	for i, c := range all {
-		if ctx.Err() != nil {
-			return ctx.Err()
+		if err := pausePoint(); err != nil {
+			return err
 		}
 		s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(c.path); p.Done = i })
+		task.Item(filepath.Base(c.path), c.path)
+		task.Progress(int64(i), int64(len(all)))
 		if c.kind == playlistKind {
 			playlists = append(playlists, c)
 			continue // read once the songs it names are in
@@ -431,11 +538,16 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			if ctx.Err() == nil {
 				failed++
 				s.Log.WarnContext(ctx, "could not add a file to the library", "file", c.path, "err", err)
+				words, fix := tasks.Explain(err)
+				task.Problem(c.path, "This file couldn't be added to the library. "+words+" "+fix)
 			}
 		} else {
 			s.Log.DebugContext(ctx, "indexed", "file", c.path)
 		}
 	}
+	task.Progress(int64(len(all)), int64(len(all)))
+	task.Item("", "")
+	task.Phase("Tidying up")
 	if err := s.Store.markMissing(ctx, libraryID, keep, offline); err != nil {
 		return err
 	}
@@ -456,6 +568,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	problems := tally.report(ctx, s.Log)
 	s.Log.InfoContext(ctx, "scan finished", "library", lib.Name, "items", len(all), "errors", failed+problems,
 		"offline", len(offline), "took", time.Since(started).Round(time.Second).String())
+	task.Result(scanResult(len(all), failed+problems, time.Since(started)))
 	if lib.Type == "games" {
 		s.GameMeta.Kick()
 	}
@@ -768,10 +881,15 @@ func (s *Scanner) fillAudioFormats(ctx context.Context, libraryID int64) {
 		}
 	}
 	rows.Close()
+	task := scanTask(ctx)
+	if len(todo) > 0 {
+		task.Phase("Reading sound formats")
+	}
 	for _, r := range todo {
-		if ctx.Err() != nil {
+		if task.Wait(ctx) != nil {
 			return
 		}
+		task.Item(filepath.Base(r.path), r.path)
 		pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		p, err := s.Tools.ProbeFile(pctx, r.path)
 		cancel()

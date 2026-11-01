@@ -13,6 +13,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
 // Streaming listings: which of the titles on this server a streaming service currently
@@ -246,14 +247,18 @@ func (s *Scanner) KickListings() {
 	}
 	jctx, cancel := context.WithCancel(ctx)
 	listingJob.running, listingJob.done, listingJob.total, listingJob.cancel = true, 0, 0, cancel
+	t := s.Tasks.Start(tasks.Spec{Type: tasks.TypeMetadata, Title: "Updating streaming listings", Unit: "titles", Cancel: cancel, Quiet: true})
+	jctx = context.WithValue(jctx, taskKey{}, t)
 	logging.Go("streaming listings", func() {
+		var err error
 		defer func() {
+			t.Finish(err)
 			cancel()
 			listingJob.Lock()
 			listingJob.running = false
 			listingJob.Unlock()
 		}()
-		if err := s.syncListings(jctx); err != nil && !errors.Is(err, context.Canceled) {
+		if err = s.syncListings(jctx); err != nil && !errors.Is(err, context.Canceled) {
 			s.Log.WarnContext(jctx, "could not update streaming listings", "err", err)
 		}
 	}, "cat", "library")
@@ -297,6 +302,7 @@ func (s *Scanner) syncListings(ctx context.Context) error {
 		listingJob.Lock()
 		listingJob.done = i
 		listingJob.Unlock()
+		scanTask(ctx).Progress(int64(i), int64(len(todo)))
 		if err := s.checkListing(ctx, tm, t, region); err != nil {
 			s.Log.DebugContext(ctx, "no listing", "target", t.target, "id", t.id, "err", err)
 		}

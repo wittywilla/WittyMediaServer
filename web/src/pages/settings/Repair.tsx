@@ -207,7 +207,8 @@ function IssueCard({ issue: i, view, busy, onFix, onMoved }: { issue: Issue; vie
   const [code, setCode] = useState('')
   const [err, setErr] = useState('')
   const fixable = i.safety !== 'manual' && !i.notChecked
-  const confirm = (e: React.FormEvent) => {
+  const cancelAsk = () => { setAsking(null); setErr(''); setPassword(''); setCode('') }
+  const confirm =(e: React.FormEvent) => {
     e.preventDefault(); setErr('')
     onFix({ keys: [i.key], option: asking?.option, password, code }).catch((x) => setErr(message(x)))
   }
@@ -230,7 +231,7 @@ function IssueCard({ issue: i, view, busy, onFix, onMoved }: { issue: Issue; vie
         </div>
       )}
       {asking && (
-        <form className="form full rp-confirm" onSubmit={confirm}>
+        <form className="form full rp-confirm" onSubmit={confirm} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); cancelAsk() } }}>
           <p>{asking.option ? i.options?.find((o) => o.id === asking.option)?.what : 'This changes data, so it asks for your password. A safety copy is made first.'}</p>
           <label className="oobe-field">Your password
             <input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
@@ -242,7 +243,7 @@ function IssueCard({ issue: i, view, busy, onFix, onMoved }: { issue: Issue; vie
           )}
           {err && <div className="error" role="alert">{err}</div>}
           <div className="actions">
-            <button type="button" className="btn ghost" onClick={() => { setAsking(null); setErr(''); setPassword(''); setCode('') }}>Cancel</button>
+            <button type="button" className="btn ghost" onClick={cancelAsk}>Cancel</button>
             <button className="btn primary" disabled={busy || !password || (view.twoFactor && !code)}>Go ahead</button>
           </div>
         </form>

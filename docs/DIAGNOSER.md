@@ -106,7 +106,7 @@ This has not been run on a real Mac or on FreeBSD yet.
 
 The code is `internal/diagnose`, using the exported API of WittyDVD, WittyBluray and WittyDisc, and no changes to them. File systems and drives are in `internal/sysinfo`. The routes are `/api/diagnose/...` ([API](CLIENT-API.md)), and each check's log lines carry its ID as the session.
 
-The command-line tools `wittymediaserver disc`, `wittymediaserver dvd`, `wittymediaserver bluray` and `wittymediaserver cd` stay for engine work: [DVD](DVD.md#diagnosing-a-disc), [Blu-ray](BLURAY.md#diagnosing-a-disc).
+The disc tools for engine work, `wittydvd` and `wittybluray`, are in those modules' repositories: [DVD](DVD.md#diagnosing-a-disc), [Blu-ray](BLURAY.md#diagnosing-a-disc).
 
 ---
 

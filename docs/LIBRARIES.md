@@ -126,7 +126,7 @@ Audiobooks/
 
 ### Podcasts
 
-Open the library and press **Add podcast**, to search or paste a feed address. A folder is only needed for episodes you already have and episodes you keep. New episodes are looked for every 2 hours. See [Music, audiobooks and podcasts](MUSIC.md#podcasts).
+Open the library and press **Follow a podcast**, to search or paste a feed address. A folder is only needed for episodes you already have and episodes you keep. New episodes are looked for every 2 hours. See [Music, audiobooks and podcasts](MUSIC.md#podcasts).
 
 ### Internet radio
 

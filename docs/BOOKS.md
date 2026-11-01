@@ -172,7 +172,7 @@ Its installers for Windows, macOS and Linux are on its own releases page. The Wi
 
 ## For developers
 
-The routes are under Books in [Client API](CLIENT-API.md#every-route). How a reader fits into an app is in [Plugins and apps](MODULES.md).
+The routes are under Books in [Client API](CLIENT-API.md#every-route). How a reader fits into an app is in [Making a module](MODULES.md).
 
 ---
 

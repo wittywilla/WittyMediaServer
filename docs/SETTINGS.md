@@ -282,7 +282,7 @@ What this server can do, one piece at a time.
 - Each module has its own version, **Store page** and **Logging**. Using someone's fork is under its **Advanced**.
 - **Built into everything** lists modules others depend on, which can't be removed. **Installed separately** lists programs that run beside the server.
 
-More: [Modules](MODULES.md), [Module store](MODULE-STORE.md).
+More: [Modules and the store](MODULE-STORE.md).
 
 ### Backup
 
@@ -332,7 +332,7 @@ Terms of use, who's responsible for what, what leaves this server, and the notic
 
 ## From modules
 
-Some modules add a settings page of their own. It appears in the menu under **From modules**, once the module is on your server. See [Modules](MODULES.md).
+Some modules add a settings page of their own. It appears in the menu under **From modules**, once the module is on your server. See [Modules and the store](MODULE-STORE.md).
 
 ---
 

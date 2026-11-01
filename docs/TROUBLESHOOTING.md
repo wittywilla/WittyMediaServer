@@ -71,7 +71,7 @@ wittymediaserver doctor --fix   # fixes what it can
 |---|---|
 | **A title is named strangely** | Rename the file to `Title (Year).ext`, or press **Edit** on its page |
 | **A title has the wrong details** | Press **Edit** on its page and use **Search and match**, or go through **Fix matches** on the library's page. See [Metadata](METADATA.md) |
-| **Lots of titles have wrong details, or an NFO is broken** | **Settings → Repair → Metadata files** lets you fix them in a text editor, with what would change shown first, and problems named by file and line. With the server stopped, `wittymediaserver metadata check` does the same. See [Fixing metadata by hand](FIXING-METADATA.md) |
+| **Lots of titles have wrong details, or an NFO is broken** | **Settings → Repair → Metadata files** lets you fix them in a text editor, with what would change shown first, and problems named by file and line. With the server stopped, `wittymediaserver metadata check` does the same. See [The metadata folder](METADATA-FOLDER.md) |
 | **Posters are missing** | Add a free TMDB key, or a custom agent, under **Settings → Metadata agents**, then press **Refresh** on the title |
 
 ## Playing video

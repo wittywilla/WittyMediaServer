@@ -16,7 +16,7 @@ To play console games on the server itself, see [Games](GAMES.md).
 ## Before you start
 
 - **The PC needs Sunshine,** a free program from LizardByte that shares a PC's games. Whoever owns the PC installs it. Sunshine isn't part of this server.
-- **This server needs WittyCouch Host** to play in the page. It's a separate program under the GPL-3.0, offered as a module of its own: see [Modules](MODULES.md). **Settings → Game PCs** says whether it's working. Without it you can still add and pair PCs. An admin can also put `wittycouch-host` in the `wittycouch/bin` folder in the data folder. There's no FreeBSD build of it.
+- **This server needs WittyCouch Host** to play in the page. It's a separate program under the GPL-3.0, offered as a module of its own: see [Modules and the store](MODULE-STORE.md). **Settings → Game PCs** says whether it's working. Without it you can still add and pair PCs. An admin can also put `wittycouch-host` in the `wittycouch/bin` folder in the data folder. There's no FreeBSD build of it.
 
 ### Install Sunshine on the PC
 

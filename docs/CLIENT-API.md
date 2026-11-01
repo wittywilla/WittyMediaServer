@@ -1099,7 +1099,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /match/rules` | Admin | A library's naming rules. |
 | `PUT /match/rules` | Admin | Replace a library's naming rules. |
 | `POST /match/rules/try` | Admin | What some rules would do to a library's files. Changes nothing. |
-| `GET /metadata-folder` | admin | The [editable metadata folder](FIXING-METADATA.md): `{path, files, pictures, layout, job}`. `job` is the export's progress and result. No route here takes a path. |
+| `GET /metadata-folder` | admin | The [editable metadata folder](METADATA-FOLDER.md): `{path, files, pictures, layout, job}`. `job` is the export's progress and result. No route here takes a path. |
 | `POST /metadata-folder/export` | admin | `{library}` (0 or left out for all): write the files, in the background. 202 with the job; 409 if the folder is busy. Never deletes, and never writes over edits not applied. |
 | `GET /metadata-folder/preview` | admin | What applying would change: `{files, unchanged, total, listed, changes: [{file, target, id, name, fields: [{field, label, old, new, line}]}], problems: [{file, line, field, msg, severity}]}`. Writes nothing. |
 | `POST /metadata-folder/apply` | admin | Makes those changes in one batch: `{batch, applied, fields, skipped, changes, problems}`. A bad file is listed and left out. `POST /meta/undo` with the batch takes it back. |

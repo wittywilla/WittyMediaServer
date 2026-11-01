@@ -251,7 +251,7 @@ Each module and app, including **WittyDisc**, **WittyDVD**, **WittyBluray**, **W
 
 The cycle repeats until the film plays, with chapters, audio, subtitles and resume working as on a player. Before any of it, the server's own reader looks for encryption: an encrypted disc is refused with a clear message.
 
-More: [Modules](MODULES.md), [DVDs](DVD.md), [Blu-rays](BLURAY.md).
+More: [Modules](MODULE-STORE.md), [DVDs](DVD.md), [Blu-rays](BLURAY.md).
 
 ### Building from source
 

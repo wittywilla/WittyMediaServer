@@ -106,13 +106,13 @@ These are here, and not in Settings, on purpose. Each one changes what someone w
 | `remoteAccess` | Allows connections from outside your home without using **Settings → Remote Access**, for a server nobody can reach from a home network first, such as a rented one. It also locks the switch on that page. See [Remote access](REMOTE.md) | Nothing answers from outside until you ask for it |
 | `trustedProxies` | Reverse proxies whose `X-Forwarded-For` is believed: addresses or networks, separated by commas. These are added to the ones in **Settings → Remote Access** | Anyone else could claim to be at home |
 | `javaPath` | The Java folder, or the `java` program in it, for Blu-ray menus. The server looks for it by itself if this is empty. See [Blu-ray](BLURAY.md) | A web account can't choose what the server runs. A location saved in Settings by an older version is ignored |
-| `gamingCustomCores` | Lets custom game cores be turned on in **Settings → Consoles & cores**. See [Games](GAMING.md) | A core is a program, and can read what the server can |
+| `gamingCustomCores` | Lets custom game cores be turned on in **Settings → Consoles & cores**. See [Your own core](GAMES.md#your-own-core) | A core is a program, and can read what the server can |
 
 Three more are variables only, with no setting and no flag, so a web session and the config file have no say:
 
 | Variable | What it does |
 |---|---|
-| `WMS_NO_MODULE_FORKS=1` | Keeps modules from other publishers off, whatever an administrator asks, and makes the server forget one already chosen. See [Using someone's fork](MODULES.md#using-someones-fork) |
+| `WMS_NO_MODULE_FORKS=1` | Keeps modules from other publishers off, whatever an administrator asks, and makes the server forget one already chosen. See [Using someone's fork](MODULE-STORE.md#using-someones-fork) |
 | `WMS_GAMING_NO_CUSTOM_CORES=1` | Keeps custom game cores off, whatever else is set |
 | `WMS_TUNER_COMMANDS=1` | Allows the custom command tuner, which runs a program on the server |
 
@@ -176,7 +176,7 @@ Without a config file the data folder is:
 
 - `wms.db` is the database. `cache/images` holds the artwork, and `transcode` is temporary.
 - `backups` holds the [backups](BACKUP.md) you make, and the safety copies from restores and repairs. A reset that keeps a copy leaves it where it is.
-- `metadata` holds one plain text file for each title, to fix by hand. It's filled when you export it, and nothing reads it until you apply it. See [Fixing metadata by hand](FIXING-METADATA.md). It isn't the same as `metadataDir`, the artwork folder.
+- `metadata` holds one plain text file for each title, to fix by hand. It's filled when you export it, and nothing reads it until you apply it. See [The metadata folder](METADATA-FOLDER.md). It isn't the same as `metadataDir`, the artwork folder.
 - [Uninstalling](UNINSTALL.md#what-goes-and-what-stays) lists every name.
 
 **To move the artwork folder:**

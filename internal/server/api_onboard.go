@@ -9,6 +9,8 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -33,8 +35,17 @@ func clientIP(r *http.Request) net.IP {
 	return nil
 }
 
-// onLocalNetwork: the same machine or the home network.
-func onLocalNetwork(r *http.Request) bool { return clientFrom(r).Where.AtHome() && localHostName(r) }
+// onLocalNetwork: the same machine or the home network, and asked by this server's own
+// pages or an app. A browser at home runs whatever page it was sent to, so being at home
+// says nothing about a request that a page elsewhere made.
+func onLocalNetwork(r *http.Request) bool {
+	return clientFrom(r).Where.AtHome() && localHostName(r) && !pageElsewhere(r)
+}
+
+// pageElsewhere: a web page that isn't this server's made this request.
+func pageElsewhere(r *http.Request) bool {
+	return !appOrigins[r.Header.Get("Origin")] && fromElsewhere(r, "")
+}
 
 // localHostName: the address in the browser's bar is one only this network can
 // resolve. A page on the internet can make its own domain point at this server
@@ -62,7 +73,7 @@ func localHostName(r *http.Request) bool {
 // in between.
 func onThisMachine(r *http.Request) bool {
 	c := clientFrom(r)
-	return c.Where == remote.Machine && c.Direct() && localHostName(r)
+	return c.Where == remote.Machine && c.Direct() && localHostName(r) && !pageElsewhere(r)
 }
 
 // GET /api/profiles (public). The "Who's watching?" screen lists accounts by
@@ -337,6 +348,22 @@ func (s *Server) SetupCode() string {
 		s.setupCode = out.String()
 	})
 	return s.setupCode
+}
+
+// setupCodeFile holds the setup code until setup is done, for a server with no console to
+// read: a service, a container that restarted, a box with no screen. Only an account that can
+// read the data folder can read it, and that account could make itself the owner anyway.
+const setupCodeFile = "setup-code.txt"
+
+// WriteSetupCode leaves the code where the person at the server can read it.
+func (s *Server) WriteSetupCode() error {
+	return os.WriteFile(filepath.Join(s.Cfg.DataDir, setupCodeFile), []byte(s.SetupCode()+"\n"), 0o600)
+}
+
+func (s *Server) forgetSetupCode() {
+	if s.Cfg != nil && s.Cfg.DataDir != "" {
+		_ = os.Remove(filepath.Join(s.Cfg.DataDir, setupCodeFile))
+	}
 }
 
 func (s *Server) setupCodeOK(given string) bool {

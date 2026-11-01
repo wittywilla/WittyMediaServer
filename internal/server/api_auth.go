@@ -47,8 +47,8 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"name":          "WittyMediaServer",
 		"version":       version,
 		"setupRequired": setupRequired,
-		// Setting up from outside this network takes the code from the log.
-		"setupCodeRequired": setupRequired && !onLocalNetwork(r),
+		// Setting up from another device takes the code the server wrote down.
+		"setupCodeRequired": setupRequired && s.setupNeedsCode(r),
 		"user":              u,
 		"brandName":         s.DB.GetSetting(r.Context(), "brandName", ""),
 		"brandLogo":         s.DB.GetSetting(r.Context(), "brandLogo", ""),
@@ -82,20 +82,32 @@ func (s *Server) setCookie(w http.ResponseWriter, r *http.Request, token string)
 // step, so two browsers racing through setup cannot both become admin.
 var setupMu sync.Mutex
 
+// setupNeedsCode: whoever makes the first account owns the server. On the server's own
+// desktop nobody else can be asking. Anywhere else, the home network included, a flatmate,
+// a visitor on the Wi-Fi or a hacked device could get there first, so it takes the code
+// that only someone with access to the machine can read. WMS_SETUP_FROM_HOME=1 lets the
+// home network go without it.
+func (s *Server) setupNeedsCode(r *http.Request) bool {
+	if s.Cfg != nil && s.Cfg.SetupFromHome && onLocalNetwork(r) {
+		return false
+	}
+	return !onThisMachine(r)
+}
+
 func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxCredentialBytes)
+	var c credentials
+	if err := readJSON(r, &c); err != nil { // before the lock: a slow sender mustn't hold up everyone
+		writeErr(w, 400, err.Error())
+		return
+	}
 	setupMu.Lock()
 	defer setupMu.Unlock()
 	if s.Auth.UserCount(r.Context()) > 0 {
 		writeErr(w, 409, "already set up")
 		return
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, maxCredentialBytes)
-	var c credentials
-	if err := readJSON(r, &c); err != nil {
-		writeErr(w, 400, err.Error())
-		return
-	}
-	if !onLocalNetwork(r) {
+	if s.setupNeedsCode(r) {
 		if d := s.logins.begin("setup|"+addressKey(r), freeTriesPerName); d > 0 {
 			w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
 			writeErr(w, 429, "Too many wrong setup codes. Try again later.")
@@ -103,7 +115,7 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 		}
 		if !s.setupCodeOK(c.SetupCode) {
 			s.Log.WarnContext(r.Context(), "setup refused: wrong setup code", "cat", "auth", "from", addressKey(r))
-			writeErr(w, 403, "Setting up this server from another network takes its setup code. You'll find it in the server's log.")
+			writeErr(w, 403, "Setting up this server from another device takes its setup code. It's on the server's console, and in setup-code.txt in its data folder.")
 			return
 		}
 	}
@@ -121,6 +133,7 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 			s.Log.Warn("couldn't record the first-run notice", "err", err)
 		}
 	}
+	s.forgetSetupCode()
 	s.setCookie(w, r, tok)
 	writeJSON(w, 200, map[string]any{"token": tok, "user": u})
 }

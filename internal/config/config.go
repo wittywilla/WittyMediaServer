@@ -40,6 +40,9 @@ type Config struct {
 	// RemoteAccess turns remote access on regardless of Settings, for servers
 	// nobody can reach from a home network first (a rented server).
 	RemoteAccess   bool
+	// SetupFromHome lets the first account be made from the home network without the
+	// setup code. Off, only the server's own desktop goes without it.
+	SetupFromHome bool
 	TrustedProxies string // reverse proxies whose forwarded headers are believed, added to those in Settings
 	Dev            bool   // serve the web UI from web/dist on disk instead of the embedded copy
 	MaxTranscode   int
@@ -65,6 +68,7 @@ type File struct {
 	MaxTranscodes  int    `json:"maxTranscodes,omitempty"`
 	PublicURL      string `json:"publicUrl,omitempty"`
 	RemoteAccess   bool   `json:"remoteAccess,omitempty"`
+	SetupFromHome  bool   `json:"setupFromHome,omitempty"`
 	TrustedProxies string `json:"trustedProxies,omitempty"`
 	OpenBrowser    *bool  `json:"openBrowser,omitempty"`
 }
@@ -260,6 +264,7 @@ func Parse(args []string) (*Config, error) {
 	fs.StringVar(&c.LogLevel, "log", env("WMS_LOG", or(f.LogLevel, "info")), "log level: debug|info|warn|error")
 	fs.StringVar(&c.LogDir, "log-dir", env("WMS_LOG_DIR", rel(f.LogDir)), "folder for log files (WMS_LOG_DIR); default <data>/logs")
 	fs.StringVar(&c.PublicURL, "public-url", env("WMS_PUBLIC_URL", f.PublicURL), "external base URL")
+	fs.BoolVar(&c.SetupFromHome, "setup-from-home", f.SetupFromHome || os.Getenv("WMS_SETUP_FROM_HOME") == "1", "let anyone on the home network make the first account, without the setup code (WMS_SETUP_FROM_HOME=1)")
 	fs.BoolVar(&c.RemoteAccess, "remote-access", f.RemoteAccess || os.Getenv("WMS_REMOTE_ACCESS") == "1", "allow connections from outside the home network (WMS_REMOTE_ACCESS=1); normally set in Settings")
 	fs.StringVar(&c.TrustedProxies, "trusted-proxies", env("WMS_TRUSTED_PROXIES", f.TrustedProxies), "reverse proxies whose X-Forwarded-For is believed: addresses or networks, comma separated (WMS_TRUSTED_PROXIES)")
 	fs.BoolVar(&c.Dev, "dev", os.Getenv("WMS_DEV") == "1", "serve web UI from ./web/dist on disk")

@@ -19,8 +19,9 @@ import (
 )
 
 func TestCSRF(t *testing.T) {
-	var s Server
-	h := s.csrf(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }))
+	ts := newTestServer(t)
+	_, tok := ts.user(t, "owner", "adult", true, "")
+	h := ts.csrf(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }))
 	cases := []struct {
 		name   string
 		method string
@@ -35,7 +36,11 @@ func TestCSRF(t *testing.T) {
 		{"old browser, same origin", "PUT", map[string]string{"Origin": "http://media.local:9797"}, 200},
 		{"sandboxed page", "POST", map[string]string{"Origin": "null"}, 403},
 		{"no browser at all", "DELETE", nil, 200},
-		{"app with a bearer token", "POST", map[string]string{"Sec-Fetch-Site": "cross-site", "Authorization": "Bearer x"}, 200},
+		{"app with a real token", "POST", map[string]string{"Sec-Fetch-Site": "cross-site", "Authorization": "Bearer " + tok}, 200},
+		{"page with a made-up token", "POST", map[string]string{"Sec-Fetch-Site": "cross-site", "Authorization": "Bearer x"}, 403},
+		{"page with a made-up header", "POST", map[string]string{"Origin": "http://evil.test", "X-WMS-Token": "x"}, 403},
+		{"page with some other scheme", "POST", map[string]string{"Origin": "http://evil.test", "Authorization": "Basic x"}, 403},
+		{"the mobile app, signing in", "POST", map[string]string{"Origin": "capacitor://localhost", "Sec-Fetch-Site": "cross-site"}, 200},
 	}
 	for _, c := range cases {
 		r := httptest.NewRequest(c.method, "http://media.local:9797/api/users", nil)
@@ -50,8 +55,62 @@ func TestCSRF(t *testing.T) {
 	}
 }
 
+// A page elsewhere that sends a made-up header gets past no check. These were how a page could
+// claim a fresh server from a visitor's browser, or sign in as a password-free profile.
+func TestPageElsewhereIsNeverAtHome(t *testing.T) {
+	evil := []string{"Origin", "http://evil.test", "Sec-Fetch-Site", "cross-site", "Authorization", "Bearer x"}
+	claim := map[string]string{"name": "evil", "password": "a long password"}
+	ts := newTestServer(t)
+	lan := append([]string{"RemoteAddr", "192.168.1.20:1", "Host", "192.168.1.5:9797"}, evil...)
+	if w := ts.do(t, "OPTIONS", "/api/setup", "", nil, "Origin", "http://evil.test", "Access-Control-Request-Headers", "authorization"); w.Code != 204 {
+		t.Fatalf("preflight: %d", w.Code)
+	}
+	for _, hdr := range [][]string{lan, append([]string{"RemoteAddr", "127.0.0.1:1", "Host", "127.0.0.1:9797"}, evil...)} {
+		w := ts.do(t, "POST", "/api/setup", "", claim, hdr...)
+		if w.Code != 403 || strings.Contains(w.Body.String(), "token") {
+			t.Fatalf("setup from a page: %d %s", w.Code, w.Body)
+		}
+		if w.Header().Get("Access-Control-Allow-Origin") != "" {
+			t.Fatalf("the page may read the answer: %v", w.Header())
+		}
+	}
+	if ts.Auth.UserCount(context.Background()) != 0 {
+		t.Fatal("a page made an account")
+	}
+	ts.user(t, "Owner", "adult", true, "")
+	if _, err := ts.Auth.CreateProfile(context.Background(), "Kiddo", "", "kids", false, ""); err != nil {
+		t.Fatal(err)
+	}
+	if w := ts.do(t, "POST", "/api/login", "", map[string]string{"name": "Kiddo"}, lan...); strings.Contains(w.Body.String(), "token") {
+		t.Fatalf("a page signed in as a password-free profile: %d %s", w.Code, w.Body)
+	}
+	w := ts.do(t, "GET", "/api/profiles", "", nil, lan...)
+	if strings.Contains(w.Body.String(), "Owner") || strings.Contains(w.Body.String(), "Kiddo") || w.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Fatalf("a page read the accounts: %s %v", w.Body, w.Header())
+	}
+	// A page on the same network with no header at all, the older way in.
+	w = ts.do(t, "GET", "/api/profiles", "", nil, "RemoteAddr", "192.168.1.20:1", "Host", "192.168.1.5:9797", "Origin", "http://evil.test")
+	if strings.Contains(w.Body.String(), "Owner") {
+		t.Fatalf("names to a page: %s", w.Body)
+	}
+	// The app still signs in, and the server's own pages still count as home.
+	if w := ts.do(t, "POST", "/api/login", "", map[string]string{"name": "Kiddo"}, "RemoteAddr", "192.168.1.20:1", "Host", "192.168.1.5:9797", "Origin", "capacitor://localhost", "Sec-Fetch-Site", "cross-site"); w.Code != 200 {
+		t.Fatalf("the mobile app: %d %s", w.Code, w.Body)
+	}
+	if w := ts.do(t, "POST", "/api/login", "", map[string]string{"name": "Kiddo"}, "RemoteAddr", "192.168.1.20:1", "Host", "192.168.1.5:9797", "Origin", "http://192.168.1.5:9797", "Sec-Fetch-Site", "same-origin"); w.Code != 200 {
+		t.Fatalf("this server's page: %d %s", w.Code, w.Body)
+	}
+	// A real token from another origin works, and may read its answer.
+	_, tok := ts.user(t, "Second", "adult", true, "")
+	w = ts.do(t, "GET", "/api/me", tok, nil, "Origin", "http://tool.example", "Sec-Fetch-Site", "cross-site")
+	if w.Code != 200 || w.Header().Get("Access-Control-Allow-Origin") != "http://tool.example" {
+		t.Fatalf("real token: %d %v", w.Code, w.Header())
+	}
+}
+
 func TestCORSHasNoCredentials(t *testing.T) {
-	var s Server
+	ts := newTestServer(t)
+	s := ts.Server
 	h := s.cors(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	r := httptest.NewRequest("GET", "/api/me", nil)
 	r.Header.Set("Origin", "http://evil.test")

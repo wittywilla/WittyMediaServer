@@ -256,8 +256,11 @@ func cmdServe(args []string) int {
 		// On the console only, on purpose: the person at the server is meant to see
 		// it, and the log files and viewer never hold it.
 		logging.AddSecret(srv.SetupCode())
-		fmt.Fprintln(os.Stderr, "This server has no accounts yet. Set it up in your browser. From another network it asks for this code:", srv.SetupCode())
-		log.Warn("This server has no accounts yet. Set it up in your browser; the setup code is on the server's console.")
+		fmt.Fprintln(os.Stderr, "This server has no accounts yet. Set it up in your browser. From another device it asks for this code:", srv.SetupCode())
+		if err := srv.WriteSetupCode(); err != nil {
+			log.Warn("could not write down the setup code", "err", err)
+		}
+		log.Warn("This server has no accounts yet. Set it up in your browser. From another device, the setup code is on the server's console and in setup-code.txt in its data folder.")
 	}
 	// Remote access: nothing opens unless the owner turned it on.
 	srv.StartRemote(context.Background(), handler)

@@ -628,12 +628,12 @@ const apiCSP = "default-src 'none'; frame-ancestors 'self'; sandbox"
 
 // CORS: other apps (the mobile app, tools) may call the API with a bearer
 // token, and the mobile app's own origins may also sign in. Cookies are never
-// honoured across origins, and a web page elsewhere that carries no token gets
-// no answer it can read, so it can't list the profiles of a server it finds on
-// the network of whoever is looking at it.
+// honoured across origins, and a web page elsewhere that carries no real token
+// gets no answer it can read, so it can't list the profiles of a server it finds
+// on the network of whoever is looking at it.
 func (s *Server) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if o := r.Header.Get("Origin"); o != "" && corsAllowed(r, o) {
+		if o := r.Header.Get("Origin"); o != "" && s.crossOrigin(r) && s.corsAllowed(r, o) {
 			w.Header().Set("Access-Control-Allow-Origin", o)
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-WMS-Token")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -651,20 +651,46 @@ func (s *Server) cors(next http.Handler) http.Handler {
 // the app itself: nothing on the internet can have these origins.
 var appOrigins = map[string]bool{"capacitor://localhost": true, "ionic://localhost": true, "https://localhost": true}
 
-func corsAllowed(r *http.Request, origin string) bool {
-	if appOrigins[origin] || r.Header.Get("Authorization") != "" || r.Header.Get("X-WMS-Token") != "" {
+func (s *Server) corsAllowed(r *http.Request, origin string) bool {
+	if appOrigins[origin] {
 		return true
 	}
+	// A preflight can't carry the token. The request it asks about is judged by its own.
 	if r.Method == http.MethodOptions {
 		h := strings.ToLower(r.Header.Get("Access-Control-Request-Headers"))
 		return strings.Contains(h, "authorization") || strings.Contains(h, "x-wms-token")
 	}
+	return s.tokenInHeader(r)
+}
+
+// tokenInHeader: the request names, in a header, a token that belongs to a session here.
+// Merely having the header proves nothing: any page can send "Authorization: x", and
+// there are routes that need no sign-in and go by where the request came from.
+func (s *Server) tokenInHeader(r *http.Request) bool {
+	var toks []string
+	if h := r.Header.Get("Authorization"); len(h) > 7 && strings.EqualFold(h[:7], "bearer ") {
+		toks = append(toks, strings.TrimSpace(h[7:]))
+	}
+	if x := r.Header.Get("X-WMS-Token"); x != "" {
+		toks = append(toks, x)
+	}
+	for _, tok := range toks {
+		var err error
+		if auth.IsStreamToken(tok) {
+			_, err = s.Auth.ResolveStream(r.Context(), tok, r)
+		} else {
+			_, err = s.Auth.Resolve(r.Context(), tok)
+		}
+		if err == nil {
+			return true
+		}
+	}
 	return false
 }
 
-// csrf refuses state-changing requests signed in by cookie that come from
-// another origin (a form or script on another page). Requests with the token
-// in a header cannot be forged that way, so apps and the mobile client pass.
+// csrf refuses state-changing requests that come from another origin (a form or
+// script on another page), unless they hold a real token in a header, which a
+// page elsewhere can't have taken from a cookie. Apps and the mobile client pass.
 func (s *Server) csrf(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -672,7 +698,7 @@ func (s *Server) csrf(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if r.Header.Get("Authorization") == "" && r.Header.Get("X-WMS-Token") == "" && !appOrigins[r.Header.Get("Origin")] && s.crossOrigin(r) {
+		if s.crossOrigin(r) && !appOrigins[r.Header.Get("Origin")] && !s.tokenInHeader(r) {
 			writeErr(w, 403, "cross-site request refused")
 			return
 		}
@@ -684,6 +710,14 @@ func (s *Server) csrf(next http.Handler) http.Handler {
 // page's own address is what the browser asked for, what a trusted proxy says
 // it asked for, or the server's outside address.
 func (s *Server) crossOrigin(r *http.Request) bool {
+	public := ""
+	if st := s.netState.Load(); st != nil {
+		public = st.publicHost
+	}
+	return fromElsewhere(r, public)
+}
+
+func fromElsewhere(r *http.Request, publicHost string) bool {
 	switch r.Header.Get("Sec-Fetch-Site") {
 	case "same-origin", "none":
 		return false
@@ -701,10 +735,7 @@ func (s *Server) crossOrigin(r *http.Request) bool {
 	if strings.EqualFold(u.Host, r.Host) || strings.EqualFold(u.Host, clientFrom(r).ForwardedHost) {
 		return false
 	}
-	if st := s.netState.Load(); st != nil && st.publicHost != "" && strings.EqualFold(u.Host, st.publicHost) {
-		return false
-	}
-	return true
+	return publicHost == "" || !strings.EqualFold(u.Host, publicHost)
 }
 
 func (s *Server) resolveUser(r *http.Request) *auth.User {

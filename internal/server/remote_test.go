@@ -152,8 +152,11 @@ func TestSetupStaysAtHome(t *testing.T) {
 	if r := call(h, "POST", "/api/setup", public, body); r.code != 403 {
 		t.Fatalf("first-run setup from the internet: got %d", r.code)
 	}
-	if r := call(h, "POST", "/api/setup", lan, body); r.code != 200 {
-		t.Fatalf("setup at home: %d %s", r.code, r.body)
+	if r := call(h, "POST", "/api/setup", lan, body); r.code != 403 {
+		t.Fatalf("first-run setup from someone else on the network: got %d", r.code)
+	}
+	if r := call(h, "POST", "/api/setup", "127.0.0.1", body); r.code != 200 {
+		t.Fatalf("setup on the server itself: %d %s", r.code, r.body)
 	}
 }
 
@@ -435,13 +438,17 @@ func TestStatusHidesVersionFromTheInternet(t *testing.T) {
 }
 
 func TestCORS(t *testing.T) {
-	_, h := remoteServer(t, nil)
+	s, h := remoteServer(t, nil)
+	tok := adminToken(t, s, h)
 	acao := func(r reply) string { return r.h.Get("Access-Control-Allow-Origin") }
 	if got := acao(call(h, "GET", "/api/profiles", lan, nil, "Origin: http://evil.test")); got != "" {
 		t.Errorf("a page elsewhere must not read the profiles: %q", got)
 	}
-	if got := acao(call(h, "GET", "/api/me", lan, nil, "Origin: http://tool.test", "Authorization: Bearer x")); got != "http://tool.test" {
+	if got := acao(call(h, "GET", "/api/me", lan, nil, "Origin: http://tool.test", "Authorization: Bearer "+tok)); got != "http://tool.test" {
 		t.Errorf("a tool with a token: %q", got)
+	}
+	if got := acao(call(h, "GET", "/api/profiles", lan, nil, "Origin: http://evil.test", "Authorization: Bearer x")); got != "" {
+		t.Errorf("a page with a made-up token: %q", got)
 	}
 	if got := acao(call(h, "OPTIONS", "/api/me", lan, nil, "Origin: http://tool.test", "Access-Control-Request-Headers: authorization")); got != "http://tool.test" {
 		t.Errorf("preflight of a tool with a token: %q", got)

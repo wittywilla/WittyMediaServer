@@ -290,7 +290,7 @@ var routeRules = map[string]string{
 	"GET /api/system/tasks":                          "Signed-in: By the owner's setting. Tasks of libraries the account may open, or its own. No file names, errors or other people for anyone but an administrator",
 	"GET /api/system/tasks/stream":                   "Signed-in: As for the list. Limits on open streams, per account and overall. The account is looked at again as it runs",
 	"GET /api/system/tasks/history":                  "Signed-in: As for the list. Limit, type, state, library",
-	"GET /api/media-types":                           "Signed-in: Nothing: known formats and whether this server can play them",
+	"GET /api/media-types":                           "Signed-in: Nothing: known formats and whether this server can play them. Which FFmpeg it runs for admins only",
 	"PUT /api/users/{id}/profile":                    "Signed-in: Caller may manage that account, or it's their own. Which name shows is anyone's own choice. Names: an adult's own, or a manager's. Username has no invisible characters and differs from every other, ignoring case. Display name cleaned and cut to 60 characters",
 	"PUT /api/views/{id}":                            "Signed-in: own. Name size, known filters only, library within the account's allowed libraries",
 }

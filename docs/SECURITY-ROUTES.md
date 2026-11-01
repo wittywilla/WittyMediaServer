@@ -625,6 +625,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/system/tasks/{id}/cancel` | Admin | Task exists, and can be cancelled |
 | `POST /api/system/tasks/{id}/retry` | Admin | Task exists, and its kind can be started again |
 | `POST /api/themes/custom` | Admin | Name, known colours as colour values and nothing else, radius in range. Becomes a theme through the theme manager's own check |
-| `GET /api/media-types` | Signed-in | Nothing: known formats and whether this server can play them |
+| `GET /api/media-types` | Signed-in | Nothing: known formats and whether this server can play them. Which FFmpeg it runs for admins only |
 | `PUT /api/users/{id}/profile` | Signed-in | Caller may manage that account, or it's their own. Which name shows is anyone's own choice. Names: an adult's own, or a manager's. Username has no invisible characters and differs from every other, ignoring case. Display name cleaned and cut to 60 characters |
 | `/` (any method, everything else) | Public | Files of the web app, or its page. An unknown `/api/` address answers 404 |

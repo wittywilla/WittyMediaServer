@@ -21,6 +21,20 @@ func TestRemapWontLookAtAnotherMachine(t *testing.T) {
 	}
 }
 
+// Which FFmpeg a server runs is something to look up flaws by, and only its administrator needs it.
+func TestMediaTypesOnlyToldToAdminsWhichFFmpeg(t *testing.T) {
+	ts := newTestServer(t)
+	ts.Tools.Version = "ffmpeg version 9.9.9-telltale"
+	_, admin := ts.user(t, "owner", "adult", true, "")
+	_, kid := ts.user(t, "pip", "kids", false, "")
+	if w := ts.do(t, "GET", "/api/media-types", kid, nil); w.Code != 200 || strings.Contains(w.Body.String(), "telltale") {
+		t.Errorf("a kid: %d, told: %v", w.Code, strings.Contains(w.Body.String(), "telltale"))
+	}
+	if w := ts.do(t, "GET", "/api/media-types", admin, nil); w.Code != 200 || !strings.Contains(w.Body.String(), "telltale") {
+		t.Errorf("an administrator: %d, told: %v", w.Code, strings.Contains(w.Body.String(), "telltale"))
+	}
+}
+
 // The key is saved for one address, and a stolen session can type another. Tdarr's key is someone else's
 // secret that the page never shows, so nothing here may hand it to a new place.
 func TestTdarrKeyStaysWithItsAddress(t *testing.T) {

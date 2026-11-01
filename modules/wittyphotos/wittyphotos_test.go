@@ -282,6 +282,39 @@ func FuzzParse(f *testing.F) {
 	})
 }
 
+// A directory of tags that each claim a value the size of the whole file. Reading a number
+// decoded the whole list every time, which held a thumbnail slot for many minutes.
+func TestTagsClaimingHugeValuesCostLittle(t *testing.T) {
+	huge := func(size int, ids ...uint16) []byte {
+		b := make([]byte, size)
+		copy(b, "II*\x00")
+		binary.LittleEndian.PutUint32(b[4:], 8)
+		binary.LittleEndian.PutUint16(b[8:], maxTags)
+		for i := range maxTags {
+			e := b[10+i*12:]
+			id := ids[i%len(ids)]
+			typ, count := uint16(4), uint32((size-16)/4)
+			if id == 0x010F { // Make, a string
+				typ, count = 2, uint32(size-16)
+			}
+			if id == 0x829A { // an exposure time, a list of fractions
+				typ, count = 5, uint32((size-16)/8)
+			}
+			binary.LittleEndian.PutUint16(e, id)
+			binary.LittleEndian.PutUint16(e[2:], typ)
+			binary.LittleEndian.PutUint32(e[4:], count)
+			binary.LittleEndian.PutUint32(e[8:], 16)
+		}
+		return b
+	}
+	start := time.Now()
+	_, _ = Parse(huge(1<<20, 0x0112, 0x010F))
+	_, _ = previewRange(huge(1<<20, 0x0201, tagSubIFDs))
+	if d := time.Since(start); d > 500*time.Millisecond {
+		t.Errorf("reading the tags took %v", d)
+	}
+}
+
 func rafWithOffset(off uint32) []byte {
 	b := make([]byte, 100)
 	copy(b, "FUJIFILMCCD-RAW")

@@ -278,10 +278,21 @@ func (r *reader) value(e tagEntry) []byte {
 	return r.b[int64(off) : int64(off)+n]
 }
 
+// What a directory's tags are read up to. A tag can claim a value the size of the whole file,
+// and a directory can hold a thousand of them, so reading each one in full is many minutes in a
+// crafted file. No real file has longer ones.
+const (
+	maxTagText = 4 << 10
+	maxTagList = 64
+)
+
 func (r *reader) str(e tagEntry) string {
 	v := r.value(e)
 	if v == nil || (e.typ != 2 && e.typ != 7) {
 		return ""
+	}
+	if len(v) > maxTagText {
+		v = v[:maxTagText]
 	}
 	if i := bytes.IndexByte(v, 0); i >= 0 {
 		v = v[:i]
@@ -297,24 +308,35 @@ func (r *reader) ints(e tagEntry) []uint32 {
 	var out []uint32
 	switch e.typ {
 	case 1, 7:
-		for _, b := range v {
+		for _, b := range v[:min(len(v), maxTagList)] {
 			out = append(out, uint32(b))
 		}
 	case 3:
-		for i := 0; i+2 <= len(v); i += 2 {
+		for i := 0; i+2 <= len(v) && len(out) < maxTagList; i += 2 {
 			out = append(out, uint32(r.ord.Uint16(v[i:])))
 		}
 	case 4:
-		for i := 0; i+4 <= len(v); i += 4 {
+		for i := 0; i+4 <= len(v) && len(out) < maxTagList; i += 4 {
 			out = append(out, r.ord.Uint32(v[i:]))
 		}
 	}
 	return out
 }
 
+// int1 is a tag's first value, without decoding the rest.
 func (r *reader) int1(e tagEntry) int {
-	if v := r.ints(e); len(v) > 0 && v[0] <= math.MaxInt32 {
-		return int(v[0])
+	v := r.value(e)
+	var n uint32
+	switch {
+	case (e.typ == 1 || e.typ == 7) && len(v) >= 1:
+		n = uint32(v[0])
+	case e.typ == 3 && len(v) >= 2:
+		n = uint32(r.ord.Uint16(v))
+	case e.typ == 4 && len(v) >= 4:
+		n = r.ord.Uint32(v)
+	}
+	if n <= math.MaxInt32 {
+		return int(n)
 	}
 	return 0
 }
@@ -327,7 +349,7 @@ func (r *reader) rationals(e tagEntry) []rational {
 		return nil
 	}
 	var out []rational
-	for i := 0; i+8 <= len(v); i += 8 {
+	for i := 0; i+8 <= len(v) && len(out) < maxTagList; i += 8 {
 		if e.typ == 5 {
 			out = append(out, rational{int64(r.ord.Uint32(v[i:])), int64(r.ord.Uint32(v[i+4:]))})
 		} else {

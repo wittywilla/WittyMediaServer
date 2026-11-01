@@ -1008,6 +1008,25 @@ func TestListingsNeedEveryAcknowledgement(t *testing.T) {
 	}
 }
 
+// A studio's list of films isn't a series, and the one a film is named after comes first.
+func TestPickSeries(t *testing.T) {
+	for _, c := range []struct {
+		names []string
+		title string
+		want  string
+	}{
+		{[]string{"Harbour Studio feature films", "Harbour Lights"}, "Harbour Lights 2", "Harbour Lights Collection"},
+		{[]string{"Lantern Universe", "Moth Trilogy"}, "The Moth Returns", "Moth Trilogy"},
+		{[]string{"Lantern Universe"}, "A Quiet Sequel", "Lantern Universe Collection"},
+		{[]string{"list of Harbour Studio films", "Harbour Studio films"}, "Harbour Lights", ""},
+		{nil, "Harbour Lights", ""},
+	} {
+		if got := pickSeries(c.names, c.title); got != c.want {
+			t.Errorf("%v, %q: %q, not %q", c.names, c.title, got, c.want)
+		}
+	}
+}
+
 // A title's listings go with its match, and Check now means now.
 func TestListingsFollowTheMatch(t *testing.T) {
 	s, lib, root := matchFixture(t)

@@ -596,9 +596,11 @@ func (w *wikidataSource) Details(ctx context.Context, id string) (*MatchDetails,
 			if r := refs[wdMPARating]; len(r) > 0 {
 				d.ContentRating = strings.TrimSuffix(label(r[0]), " rating")
 			}
-			if r := refs[wdPartOfSeries]; len(r) > 0 {
-				d.Series = collectionName(label(r[0]))
+			var series []string
+			for _, r := range refs[wdPartOfSeries] {
+				series = append(series, label(r))
 			}
+			d.Series = pickSeries(series, d.Title)
 		}
 	}
 	if page := e.Sitelinks["enwiki"].Title; page != "" {

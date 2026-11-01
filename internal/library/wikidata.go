@@ -189,14 +189,16 @@ func (w *Wikidata) Enrich(ctx context.Context, it *Item) error {
 		rating = c[0].Mainsnak.itemID()
 		refs = append(refs, rating)
 	}
-	series := ""
-	if c := best.Claims[wdPartOfSeries]; len(c) > 0 {
-		series = c[0].Mainsnak.itemID()
-		refs = append(refs, series)
+	series := map[string]bool{}
+	for _, c := range best.Claims[wdPartOfSeries] {
+		if id := c.Mainsnak.itemID(); id != "" && !series[id] && len(series) < 8 {
+			series[id] = true
+			refs = append(refs, id)
+		}
 	}
 	if len(refs) > 0 {
 		if names, err := w.entities(ctx, refs, "labels"); err == nil {
-			var genres []string
+			var genres, seriesNames []string
 			for _, id := range refs {
 				l := names[id].Labels["en"].Value
 				if l == "" {
@@ -208,12 +210,13 @@ func (w *Wikidata) Enrich(ctx context.Context, it *Item) error {
 					}
 					continue
 				}
-				if id == series {
-					it.series = collectionName(l)
+				if series[id] {
+					seriesNames = append(seriesNames, l)
 					continue
 				}
 				genres = append(genres, titleCase(strings.TrimSuffix(strings.TrimSuffix(l, " film"), " movie")))
 			}
+			it.series = pickSeries(seriesNames, it.Title)
 			if len(it.Genres) == 0 {
 				it.Genres = genres
 			}

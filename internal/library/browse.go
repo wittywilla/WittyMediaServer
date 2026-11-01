@@ -1035,6 +1035,37 @@ func collectionName(series string) string {
 	return series + " Collection"
 }
 
+// pickSeries chooses which of the series a source names to collect a film under. Some films
+// have several, and some of those are only lists of a studio's films, so the one that shares
+// a word with the film's title comes first, and a list is never a series.
+func pickSeries(names []string, title string) string {
+	inTitle := map[string]bool{}
+	for _, w := range strings.Fields(strings.ToLower(title)) {
+		if len(w) > 3 {
+			inTitle[w] = true
+		}
+	}
+	first := ""
+	for _, name := range names {
+		l := strings.ToLower(name)
+		if name == "" || containsAny(l, "list of", "filmography", "feature film") || strings.HasSuffix(l, " films") {
+			continue
+		}
+		for _, w := range strings.Fields(l) {
+			if inTitle[w] {
+				return collectionName(name)
+			}
+		}
+		if first == "" {
+			first = name
+		}
+	}
+	if first == "" {
+		return ""
+	}
+	return collectionName(first)
+}
+
 // SeriesInLibrary lists the film series a library has at least two of, each with the art
 // of its best-rated member: collections nobody had to make.
 func (s *Store) SeriesInLibrary(ctx context.Context, libraryID int64, access *Access) ([]LibraryCollection, error) {

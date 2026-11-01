@@ -5,6 +5,23 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Audit of game streaming, fixed:**
+  - A playlist in an archive that named itself crashed the server. Lists can't name lists now.
+  - The Linux sandbox had ways round it: x32 call numbers and io_uring reached the network and more, and a core
+    could empty or change the mode of any file the server's account could write.
+  - Stopping could hang for ever on a runner that said it was ready twice, on one that left a child behind, or
+    on one that had stopped reading. Stopping a game still starting could take the server's slot with it.
+  - A game still loading was stopped after a minute for having nobody watching, and that counted as a crash.
+  - A resume state the core couldn't load was overwritten when you left. It's kept as the previous save now.
+  - Starting another game while one loaded could bring the first back on another core. A core trying after
+    another now gets its own graphics card access and memory limits, and its option list is kept under its name.
+  - An encoder that died during a game froze the picture. Another starts now, and one that keeps dying is left out.
+  - Holding rewind at the start of what's kept ended the game without saving.
+  - Refresh took a game's lock off, and a rescan could replace a title typed by hand. Games on a gaming PC were
+    looked up by the PC's number for them, rather than by name.
+  - An IPS patch writing the same place over and over could hold the server for minutes, and a file of unknown
+    size could fill the disk past what's left free. TheGamesDB's names failed to load if a count came with them.
+
 - **Reset this server:** *Settings → Reset* puts a server back as it was first installed, after warnings, your
   password and typing RESET. It keeps a copy you can bring back from the same page, unless you choose to delete
   everything. Media files are never touched. `wms reset` does the same when you can't sign in.

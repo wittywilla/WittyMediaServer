@@ -24,4 +24,7 @@ if [ -f "$RC" ] && ! pkg info -e wittymediaserver >/dev/null 2>&1; then
   fi
   rm -f /usr/local/share/applications/wittymediaserver.desktop
 fi
+if ! pw usershow wms >/dev/null 2>&1; then
+  pw useradd wms -d /var/db/wittymediaserver -s /usr/sbin/nologin -c "WittyMediaServer"
+fi
 exit 0

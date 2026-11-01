@@ -57,8 +57,6 @@ prefix: /usr/local
 abi: "FreeBSD:$MAJOR:$abi_arch"
 licenselogic: single
 licenses: [APACHE20]
-users: [wms]
-groups: [wms]
 message: [
   {
     message: "WittyMediaServer is installed.\n\nStart it now, and at every boot:\n  sysrc wittymediaserver_enable=YES\n  service wittymediaserver start\nThen open http://<this computer>:9797/ to finish setup. If it says FFmpeg is missing: pkg install ffmpeg\nRemove: wittymediaserver --uninstall (asks about your data)\n",

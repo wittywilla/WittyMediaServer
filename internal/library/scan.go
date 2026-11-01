@@ -183,6 +183,14 @@ func (s *Scanner) progress(id int64, f func(p *ScanProgress)) {
 	}
 }
 
+// Running says a scan of this library is queued or under way.
+func (s *Scanner) Running(id int64) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, ok := s.running[id]
+	return ok
+}
+
 // Snapshot returns a copy of the progress for a library, or nil when idle.
 func (s *Scanner) Snapshot(id int64) *ScanProgress {
 	s.mu.Lock()

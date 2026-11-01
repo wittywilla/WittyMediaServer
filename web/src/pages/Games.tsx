@@ -359,7 +359,7 @@ export function GameDetails({ it, reload }: { it: Item; reload?: () => void }) {
           {meta && <GameProblem d={meta} />}
           <div className="actions game-actions">
             {offerResume && ready && !auto && <button className="btn primary" onClick={() => nav(`/game/${it.id}?resume=1`)}><IconPlay /> Resume</button>}
-            {ready && <button className={'btn' + (offerResume ? '' : ' primary')} onClick={() => nav(`/game/${it.id}${startsResumed ? '?resume=1' : ''}`)}><IconPlay /> {offerResume ? 'Start over' : startsResumed ? 'Resume' : 'Play'}</button>}
+            {ready && !meta?.problem && <button className={'btn' + (offerResume ? '' : ' primary')} onClick={() => nav(`/game/${it.id}${startsResumed ? '?resume=1' : ''}`)}><IconPlay /> {offerResume ? 'Start over' : startsResumed ? 'Resume' : 'Play'}</button>}
             {mine && <button className="btn" aria-pressed={mine.favourite} onClick={() => putMeta({ favourite: !mine.favourite })}>{mine.favourite ? '★ Favourite' : '☆ Add to favourites'}</button>}
             <button className="btn" aria-expanded={showSettings} onClick={() => setShowSettings((s) => !s)}><IconSettings size={15} /> Settings</button>
             <Link className="btn" to={`/controllers?console=${encodeURIComponent(it.console || '')}`}><IconGamepad /> Controllers</Link>

@@ -124,7 +124,7 @@ func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 		}
 		found = append(found, g)
 		if v.Problem != "" {
-			ix.noteFile(f.path, f.size, reviewBlocked, problemText(v), v.Console, nil)
+			ix.noteFile(f.path, f.size, reviewBlocked, problemText(v)+" "+v.Proof, v.Console, nil)
 		}
 	}
 	return ix.mergeGames(found, root), bad.with(err)
@@ -134,7 +134,7 @@ func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 func problemText(v gameVerdict) string {
 	switch v.Problem {
 	case "encrypted":
-		return v.Proof + " It can't be played here, and this server won't decrypt it. A copy dumped in decrypted form will play."
+		return "This game file is encrypted, as it came from the console or the store. It can't be played here, and this server won't decrypt it. A copy dumped in decrypted form will play."
 	}
 	return v.Proof
 }

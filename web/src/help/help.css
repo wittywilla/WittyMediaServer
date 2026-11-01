@@ -87,6 +87,8 @@
   .help-toc a { padding: var(--sp-2) 0; }
   .help-side-link { min-height: 44px; }
   .help-code pre { padding-right: var(--sp-4); padding-top: 48px; }
+  .help-table td code { white-space: normal; overflow-wrap: anywhere; }
+  .help-table th, .help-table td { padding: var(--sp-2); }
 }
 
 @media print {

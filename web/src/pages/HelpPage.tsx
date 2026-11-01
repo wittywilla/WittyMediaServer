@@ -146,6 +146,11 @@ function GuideView({ guide, signedIn }: { guide: Guide; signedIn: boolean }) {
     return () => { live = false }
   }, [guide])
   const blocks = useMemo<Block[]>(() => (md && md.file === guide.file ? parse(md.text) : []), [md, guide.file])
+  useEffect(() => {
+    const was = document.title
+    document.title = `${guide.title}: Help`
+    return () => { document.title = was }
+  }, [guide.title])
   const article = useRef<HTMLElement>(null)
   useArrowScroll(article)
 

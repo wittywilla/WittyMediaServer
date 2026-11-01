@@ -305,6 +305,11 @@ type consoleView struct {
 	Pad         wittyplay.PadLayout `json:"pad"`
 	// Count: with ?library=<id>, how many games that library holds for this console.
 	Count int `json:"count,omitempty"`
+	// For Settings, Consoles & cores: BIOS files in place, what's stopping it from starting
+	// if that's a missing BIOS, and how many games every library holds for it.
+	BiosFound  []string `json:"biosFound,omitempty"`
+	Blocked    string   `json:"blocked,omitempty"`
+	TotalGames int      `json:"totalGames,omitempty"`
 	// LogoName is the name to ask the logo service for, kind "console". See docs/METADATA.md.
 	LogoName string `json:"logoName,omitempty"`
 }
@@ -1147,8 +1152,26 @@ func (s *Server) handleGaming(w http.ResponseWriter, r *http.Request) {
 			enc = append(enc, e.Name)
 		}
 	}
+	views := s.consoleViews(ctx)
+	counts := s.gameCountsEverywhere(ctx)
+	systemDir := g.systemDir()
+	for i := range views {
+		v := &views[i]
+		v.TotalGames = counts[v.ID]
+		for _, b := range v.BIOS {
+			if _, err := os.Stat(filepath.Join(systemDir, filepath.FromSlash(b.File))); err == nil {
+				v.BiosFound = append(v.BiosFound, b.File)
+			}
+		}
+		if len(v.Installed) > 0 {
+			console := v.Console
+			if core, blocked := g.cores.Playable(&console, v.DefaultCore, systemDir); core == nil && blocked != nil {
+				v.Blocked = wittyplay.MissingBIOS(blocked.ID, systemDir)
+			}
+		}
+	}
 	writeJSON(w, 200, map[string]any{
-		"runner": runnerName, "encoders": enc, "consoles": s.consoleViews(ctx), "cores": g.cores.List(), "canDownload": cores.CanDownload(),
+		"runner": runnerName, "encoders": enc, "consoles": views, "cores": g.cores.List(), "canDownload": cores.CanDownload(),
 		"coresDir": g.cores.Dir, "systemDir": g.systemDir(), "running": g.mgr.Count(), "unpackedBytes": g.archives.Used(), "gpu": g.gpuStatus(runner, s.Log), "biosFolder": wittyplay.BIOSFolderName,
 	})
 }

@@ -30,6 +30,8 @@ trip through the app switcher loses nothing.
 
 | Route | Sign-in | What it does |
 |---|---|---|
+| `GET /games/home?library=` | user | The games home screen in one answer: `hero`, `continue` (`{item, plays, lastPlayed, save}`), `recent`, `favourites`, `favouriteIds`, `mostPlayed`, and `shelves` (`{kind: "genre" or "series", name, count, items}`) |
+| `GET /games/{id}/check` | user | What a game needs and whether this server has it: `{ready, reason, message, core, needsGpu, bios: [{file, for, required, found}]}`. `reason` is `core`, `bios` or `unavailable` |
 | `GET /games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed`. With `?library=<id>`, also `count`: that library's games for it |
 | `GET /games/modes?client=native` | user | What this server can stream, best first |
 | `GET /consoles/{console}/controls?device=` | user | The controller as data |

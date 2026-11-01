@@ -1590,6 +1590,8 @@ type GameFacets struct {
 	Decades []GameFacet `json:"decades"`
 	Players []GameFacet `json:"players"`
 	Rated   int         `json:"rated"` // games with a score
+	Series  []GameFacet `json:"series"`
+	Letters []GameFacet `json:"letters"` // first letters of the titles, in title order
 }
 
 // GameFacet is one choice in a filter.
@@ -1612,7 +1614,7 @@ func (s *Store) GameFacets(ctx context.Context, libraryID int64, console string,
 		where += " AND " + c
 		args = append(args, a...)
 	}
-	out := &GameFacets{Genres: []GameFacet{}, Decades: []GameFacet{}, Players: []GameFacet{}}
+	out := &GameFacets{Genres: []GameFacet{}, Decades: []GameFacet{}, Players: []GameFacet{}, Series: []GameFacet{}, Letters: []GameFacet{}}
 	rows, err := s.DB.QueryContext(ctx, `SELECT IFNULL(i.genres, ''), COUNT(*) FROM items i WHERE `+where+` GROUP BY 1`, args...)
 	if err != nil {
 		return nil, err
@@ -1660,5 +1662,27 @@ func (s *Store) GameFacets(ctx context.Context, libraryID int64, console string,
 	}
 	rows.Close()
 	_ = s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM items i WHERE `+where+` AND i.rating IS NOT NULL`, args...).Scan(&out.Rated)
+	rows, err = s.DB.QueryContext(ctx, `SELECT m.franchise, COUNT(*) FROM items i JOIN game_meta m ON m.item_id = i.id WHERE `+where+` AND m.franchise <> '' GROUP BY 1 ORDER BY 2 DESC, 1 COLLATE NOCASE LIMIT 200`, args...)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var f GameFacet
+		if rows.Scan(&f.Value, &f.Count) == nil {
+			out.Series = append(out.Series, f)
+		}
+	}
+	rows.Close()
+	rows, err = s.DB.QueryContext(ctx, `SELECT UPPER(SUBSTR(i.sort_title, 1, 1)), COUNT(*) FROM items i WHERE `+where+` GROUP BY 1 ORDER BY 1 COLLATE NOCASE`, args...)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var f GameFacet
+		if rows.Scan(&f.Value, &f.Count) == nil {
+			out.Letters = append(out.Letters, f)
+		}
+	}
+	rows.Close()
 	return out, nil
 }

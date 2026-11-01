@@ -1173,6 +1173,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 
 | Route | Sign-in | What it does |
 |---|---|---|
+| `GET /games/home` | user | The games home screen in one answer, for `?library=`. |
+| `GET /games/{id}/check` | user | What a game needs in order to play, and whether this server has it. |
 | `GET /games/consoles` | user | Game consoles. |
 | `GET /games/modes` | user | Game modes. |
 | `GET /consoles/{console}/controls` | user | Game controls. |

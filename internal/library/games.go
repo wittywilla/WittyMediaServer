@@ -1,23 +1,20 @@
 package library
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
+	"github.com/wittywilla/wittymediaserver/internal/gameid"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
-	"github.com/wittywilla/wittyplay"
 )
 
 // Games libraries: one console, or wittyplay.Auto for a folder holding many. See
@@ -39,7 +36,14 @@ func discoverGames(root, console string) ([]candidate, error) {
 }
 
 func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
-	var found []candidate
+	ix.verdictOnce.Do(ix.loadVerdicts)
+	ix.lastLibrary = console
+	freshConsoles()
+	type seen struct {
+		path, rel   string
+		size, mtime int64
+	}
+	var files []seen
 	hidden := map[string]bool{}
 	var bad unreadable
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
@@ -61,38 +65,80 @@ func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 		if err != nil {
 			return nil
 		}
-		c := ix.gameConsole(p, rel, console)
-		if c == "" || wittyplay.IsBIOSFile(c, name) {
-			return nil
-		}
 		st, err := d.Info()
 		if err != nil {
 			return nil
 		}
+		// What a sheet names is part of what it describes, whatever else it might be.
 		switch strings.ToLower(filepath.Ext(name)) {
-		case ".cue", ".m3u":
-			for _, f := range referencedFiles(p) {
-				hidden[strings.ToLower(filepath.Clean(f))] = true
+		case ".cue", ".m3u", ".gdi", ".ccd", ".toc":
+			if sheet, err := gameid.ReadSheet(p); err == nil {
+				for _, f := range sheet.Files {
+					hidden[strings.ToLower(filepath.Clean(f))] = true
+				}
 			}
 		}
-		found = append(found, candidate{path: p, kind: "game", size: st.Size(), mtime: st.ModTime().Unix(), console: c})
+		files = append(files, seen{p, rel, st.Size(), st.ModTime().Unix()})
 		return nil
 	})
-	out := found[:0]
-	for _, c := range found {
-		if !hidden[strings.ToLower(filepath.Clean(c.path))] {
-			out = append(out, c)
+	var found []*gameFile
+	for i, f := range files {
+		if ix.looking != nil {
+			ix.looking(i, len(files))
+		}
+		if hidden[strings.ToLower(filepath.Clean(f.path))] {
+			continue
+		}
+		d, decided := ix.decisions[f.path]
+		if decided && d.Action == "ignore" {
+			ix.noteFile(f.path, f.size, reviewIgnored, "You said this isn't a game.", "", nil)
+			continue
+		}
+		var v gameVerdict
+		switch {
+		case decided && d.Action == "add" && consoles().byID(d.Console) != nil:
+			v = accept(d.Console, howChosen, 100, "You said what this is.")
+		default:
+			v = ix.verdictFor(f.path, f.rel, console, f.size, f.mtime)
+		}
+		if !v.isGame() {
+			if v.Left != "" {
+				ix.noteFile(f.path, f.size, v.Left, v.Why, "", v.Suggest)
+			}
+			continue
+		}
+		c := &candidate{path: f.path, kind: "game", size: f.size, mtime: f.mtime, console: v.Console, verdict: &v}
+		if v.Payload == 0 {
+			v.Payload = sizeOf(mainFileOf(f.path))
+		}
+		g := &gameFile{cand: c, verdict: v, dir: filepath.Dir(f.path)}
+		g.key, g.disc, g.total = gameKey(fileBaseName(f.path, v))
+		if g.disc == 0 {
+			// Discs are often kept in folders of their own: Game/Disc 2/game.cue.
+			if parent := filepath.Base(g.dir); parent != "." {
+				if disc, total, rest := gameid.DiscIn(parent); disc > 0 {
+					g.disc, g.total = disc, total
+					g.key, _, _ = gameKey(rest)
+					g.dir = filepath.Dir(g.dir)
+				}
+			}
+		}
+		found = append(found, g)
+		if v.Problem != "" {
+			ix.noteFile(f.path, f.size, reviewBlocked, problemText(v)+" "+v.Proof, v.Console, nil)
 		}
 	}
-	return out, bad.with(err)
+	return ix.mergeGames(found), bad.with(err)
 }
 
-// gameLikeExts are files that are probably games. One that gameConsole turns down
-// is worth telling the owner about; anything else in the folder (a text file, a
-// picture) isn't.
-var gameLikeExts = map[string]bool{".7z": true, ".rar": true, ".zip": true, ".gz": true, ".tgz": true, ".tar": true, ".bz2": true, ".tbz": true, ".tbz2": true,
-	".xz": true, ".txz": true, ".zst": true, ".tzst": true, ".bin": true, ".iso": true, ".chd": true, ".cue": true, ".img": true,
-	".gcm": true, ".gcz": true, ".wbfs": true, ".rvz": true, ".nsp": true, ".xci": true, ".3ds": true, ".cia": true, ".xiso": true}
+// problemText says why a game on the list can't play as it is.
+func problemText(v gameVerdict) string {
+	switch v.Problem {
+	case "encrypted":
+		return "This game file is encrypted, as it came from the console or the store. It can't be played here, and this server won't decrypt it. A copy dumped in decrypted form will play."
+	}
+	return v.Proof
+}
 
 // skippedGameFiles counts, by extension, game-like files a library can't use. An
 // archive that can't be read at all counts by why instead (see gamearchive.Error).
@@ -103,58 +149,51 @@ func skippedGameFiles(root, console string) map[string]int {
 }
 
 func (ix *archiveIndex) skipped(root, console string) map[string]int {
+	_, _ = ix.discover(root, console)
 	out := map[string]int{}
-	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return nil
-		}
-		name := d.Name()
-		if d.IsDir() {
-			if p != root && (strings.HasPrefix(name, ".") || strings.HasPrefix(name, "$") || gameSkipDirs[strings.ToLower(name)]) {
-				return filepath.SkipDir
+	for _, n := range ix.notes {
+		if n.kind == reviewNeeds || n.kind == reviewBlocked {
+			key := strings.ToLower(filepath.Ext(n.path))
+			if code := problemCode(n.reason); code != "" {
+				key = code
 			}
-			return nil
+			out[key]++
 		}
-		ext := strings.ToLower(filepath.Ext(name))
-		if !gameLikeExts[ext] || strings.HasPrefix(name, ".") {
-			return nil
-		}
-		if gamearchive.IsLaterVolume(name) {
-			return nil
-		}
-		if rel, err := filepath.Rel(root, p); err == nil && ix.gameConsole(p, rel, console) == "" {
-			if problem := ix.problem(p); problem != "" {
-				out[problem]++
-			} else {
-				out[ext]++
-			}
-		}
-		return nil
-	})
+	}
 	return out
 }
 
-const skippedGamesKey = "gamesSkipped."
-
-// noteSkippedGames remembers what the last scan of a games library left out.
-func (s *Store) noteSkippedGames(ctx context.Context, lib *Library, ix *archiveIndex) {
-	total := map[string]int{}
-	for _, root := range lib.Paths {
-		for ext, n := range ix.skipped(root, lib.Console) {
-			total[ext] += n
+// problemCode reads back which archive problem a note is about.
+func problemCode(reason string) string {
+	for _, code := range []string{gamearchive.ErrEncrypted.Code, gamearchive.ErrDamaged.Code, gamearchive.ErrTooBig.Code, gamearchive.ErrTooMany.Code, gamearchive.ErrUnsafe.Code} {
+		if reason == archiveProblem(code) {
+			return code
 		}
 	}
-	b, err := json.Marshal(total)
-	if err == nil {
-		_ = s.DB.SetSetting(ctx, skippedGamesKey+strconv.FormatInt(lib.ID, 10), string(b))
-	}
+	return ""
 }
 
-// SkippedGames says what the last scan of a games library left out, by extension.
+// SkippedGames says how many files in a games library need a look, by extension or by
+// what's wrong with them.
 func (s *Store) SkippedGames(ctx context.Context, libraryID int64) map[string]int {
-	var out map[string]int
-	raw := s.DB.GetSetting(ctx, skippedGamesKey+strconv.FormatInt(libraryID, 10), "")
-	if raw == "" || json.Unmarshal([]byte(raw), &out) != nil {
+	rows, err := s.DB.QueryContext(ctx, `SELECT path, reason FROM game_review WHERE library_id = ? AND kind = ?`, libraryID, reviewNeeds)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	out := map[string]int{}
+	for rows.Next() {
+		var p, reason string
+		if rows.Scan(&p, &reason) != nil {
+			continue
+		}
+		key := strings.ToLower(filepath.Ext(p))
+		if code := problemCode(reason); code != "" {
+			key = code
+		}
+		out[key]++
+	}
+	if len(out) == 0 {
 		return nil
 	}
 	return out
@@ -162,7 +201,7 @@ func (s *Store) SkippedGames(ctx context.Context, libraryID int64) map[string]in
 
 // GameCounts says how many games a library holds for each console.
 func (s *Store) GameCounts(ctx context.Context, libraryID int64, access *Access) (map[string]int, error) {
-	q := `SELECT IFNULL(i.console, ''), COUNT(*) FROM items i WHERE i.library_id = ? AND i.kind = 'game' AND i.missing = 0`
+	q := `SELECT IFNULL(i.console, ''), COUNT(*) FROM items i WHERE i.library_id = ? AND i.kind = 'game' AND i.missing = 0 AND ` + hideLinked
 	args := []any{libraryID}
 	if access != nil {
 		c, a := access.ItemClause()
@@ -185,73 +224,6 @@ func (s *Store) GameCounts(ctx context.Context, libraryID int64, access *Access)
 	return out, rows.Err()
 }
 
-// gameConsole says which console a file is for, or "" when it isn't a game this
-// library holds.
-func (ix *archiveIndex) gameConsole(path, rel, console string) string {
-	name := filepath.Base(path)
-	ext := strings.ToLower(filepath.Ext(path))
-	archive := gamearchive.IsArchive(name)
-	if archive && gamearchive.IsLaterVolume(name) {
-		return ""
-	}
-	if console == wittyplay.Auto {
-		if c := wittyplay.Detect(rel); c != "" {
-			con := wittyplay.ByID(c)
-			if (!archive && con.Accepts(ext)) || (archive && gamearchive.HoldsGame(ix.exts(path), con)) {
-				return c
-			}
-			return "" // .001 only means an archive after .7z, for one
-		}
-		if archive {
-			return gamearchive.ConsoleOf(ix.exts(path))
-		}
-		return ""
-	}
-	c := wittyplay.ByID(console)
-	if c == nil {
-		return ""
-	}
-	if c.Accepts(ext) || (archive && gamearchive.HoldsGame(ix.exts(path), c)) {
-		return console
-	}
-	return ""
-}
-
-var cueFileRe = regexp.MustCompile(`(?i)^\s*FILE\s+"?(.+?)"?\s+[A-Z0-9]+\s*$`)
-
-// referencedFiles lists the files beside a .cue or .m3u that it names, without
-// following anything outside its own folder.
-func referencedFiles(path string) []string {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil
-	}
-	defer f.Close()
-	cue := strings.EqualFold(filepath.Ext(path), ".cue")
-	dir := filepath.Dir(path)
-	var out []string
-	sc := bufio.NewScanner(f)
-	for lines := 0; sc.Scan() && lines < 2000; lines++ {
-		line := strings.TrimSpace(sc.Text())
-		name := ""
-		if cue {
-			if m := cueFileRe.FindStringSubmatch(line); m != nil {
-				name = m[1]
-			}
-		} else if line != "" && !strings.HasPrefix(line, "#") {
-			name = line
-		}
-		if name == "" {
-			continue
-		}
-		full := filepath.Join(dir, filepath.FromSlash(strings.ReplaceAll(name, `\`, "/")))
-		if rel, err := filepath.Rel(dir, full); err == nil && !strings.HasPrefix(rel, "..") {
-			out = append(out, full)
-		}
-	}
-	return out
-}
-
 // ParseGameName splits a game's file name into its title and a short note made
 // of its tags, e.g. "Mega Game, The (USA) (Rev 1)" -> "The Mega Game", "USA, Rev 1".
 func ParseGameName(base string) (title, note string) { return gamemeta.CleanName(base) }
@@ -264,7 +236,7 @@ func gameBaseName(name string) string {
 		return strings.TrimSuffix(name, filepath.Ext(name))
 	}
 	base := gamearchive.BaseName(name)
-	if x := strings.ToLower(filepath.Ext(base)); x != "" && wittyplay.KnownExtension(x) {
+	if x := strings.ToLower(filepath.Ext(base)); x != "" && consoles().known(x) {
 		return strings.TrimSuffix(base, filepath.Ext(base))
 	}
 	return base
@@ -300,9 +272,19 @@ func gameBackdrop(dir, base string) string {
 }
 
 func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) error {
+	v := gameVerdict{}
+	if c.verdict != nil {
+		v = *c.verdict
+	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
-	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && !existing.Missing && existing.Console == c.console {
-		return nil // unchanged
+	unchanged := err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && existing.Console == c.console
+	// A game listed before files were judged needs going over once.
+	judged := existing != nil && s.Store.gameJudged(ctx, existing.ID)
+	if unchanged && !existing.Missing && judged {
+		if err := s.Store.saveDiscs(ctx, existing.ID, c.discs); err != nil {
+			return err
+		}
+		return s.Store.noteDetection(ctx, existing, v)
 	}
 	it := &Item{LibraryID: lib.ID, Kind: "game", Path: c.path, SizeBytes: c.size, MTime: c.mtime, Console: c.console}
 	if existing != nil {
@@ -310,25 +292,28 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 	}
 	base := gameBaseName(filepath.Base(c.path))
 	dir := filepath.Dir(c.path)
-	it.Title, it.Tagline = ParseGameName(base)
+	it.Title, it.Tagline = gameFileTitle(fileBaseName(c.path, v), v)
 	it.SortTitle = SortTitle(it.Title)
 	it.Container = strings.TrimPrefix(strings.ToLower(filepath.Ext(c.path)), ".")
 	it.Poster = gameArt(dir, base)
 	it.Backdrop = gameBackdrop(dir, base)
 	parsed, tags := it.Title, it.Tagline
-	for _, nfo := range []string{filepath.Join(dir, base+".nfo")} {
-		if applyNFO(it, nfo) {
-			break
-		}
-	}
-	// What the owner's own files say stays: sources only fill in the rest.
+	nfo := filepath.Join(dir, base+".nfo")
+	applyNFO(it, nfo)
+	// What the owner's own files say stays: sources only fill in the rest. An NFO this
+	// server wrote is only what it thought then, and a better answer can replace it. The
+	// pictures saved beside it are the same.
 	local := localGameFields(it, parsed, tags)
+	var earlier []string
+	if nfoWrittenHere(nfo) {
+		local, earlier = nil, local
+	}
 	if existing != nil && existing.Provider != "" {
 		it.Provider, it.ProviderID = existing.Provider, existing.ProviderID
 	}
 	if existing != nil {
 		// Scans never take away what someone chose or a source already found.
-		if (existing.Provider != "" || s.Store.gameFieldEdited(ctx, existing.ID, "title")) && !slices.Contains(local, "title") {
+		if (existing.Provider != "" || s.Store.gameFieldEdited(ctx, existing.ID, "title")) && !slices.Contains(local, "title") && judged {
 			it.Title, it.SortTitle = existing.Title, existing.SortTitle
 		}
 		if it.Poster == "" {
@@ -362,13 +347,55 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 	if err := s.Store.upsertItem(ctx, it); err != nil {
 		return err
 	}
+	if err := s.Store.saveDiscs(ctx, it.ID, c.discs); err != nil {
+		return err
+	}
 	// Finding out about it happens in the background, so a scan never waits on the internet.
 	// A file that's back where it was is the same game: what's known about it still holds.
-	if existing != nil && existing.SizeBytes == c.size && existing.MTime == c.mtime && existing.Console == c.console {
-		return nil
+	if !unchanged || !judged {
+		if err := s.Store.enqueueGame(ctx, it, local, earlier); err != nil {
+			return err
+		}
 	}
-	return s.Store.enqueueGame(ctx, it, local)
+	return s.Store.noteDetection(ctx, it, v)
 }
+
+// nfoWrittenHere says an NFO beside a game is one this server saved earlier, and not one
+// a person wrote.
+func nfoWrittenHere(path string) bool {
+	f, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	b := make([]byte, 256)
+	n, _ := f.Read(b)
+	return strings.Contains(string(b[:n]), nfoMarker)
+}
+
+// gameFileTitle reads a title from a file's name. A disc's number isn't part of its
+// title, and neither is the way a web address writes it. What's inside says more than the
+// archive's name does about its region, as sets name archives after the game alone.
+func gameFileTitle(stem string, v gameVerdict) (title, tags string) {
+	disc, _, rest := gameid.DiscIn(stem)
+	if gameid.IsSlug(stem) {
+		rest = titleCase(gameid.Unslug(rest))
+	}
+	title, tags = gamemeta.CleanName(rest)
+	if tags == "" && v.Entry != "" {
+		_, tags = gamemeta.CleanName(strings.TrimSuffix(pathBase(v.Entry), pathExt(v.Entry)))
+	}
+	if tags == "" {
+		tags = v.Region
+	}
+	if disc > 0 && tags == "" {
+		tags = "Disc " + itoa(int64(disc))
+	}
+	return title, tags
+}
+
+func pathBase(s string) string { return filepath.Base(filepath.FromSlash(s)) }
+func pathExt(s string) string  { return filepath.Ext(filepath.FromSlash(s)) }
 
 // localGameFields says what came from the owner's own files beside a game, rather
 // than from its file name.

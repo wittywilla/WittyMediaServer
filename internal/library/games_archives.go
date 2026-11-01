@@ -2,39 +2,40 @@ package library
 
 import (
 	"context"
-	"encoding/json"
-	"os"
 	"sync"
 
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
+	"github.com/wittywilla/wittymediaserver/internal/gameid"
 )
 
-// What archives hold, remembered so a scan looks inside a file once and never again
-// until it changes. Only headers are read, and that happens in a worker process.
-
-// archiveInfo is what a scan needs from one archive.
-type archiveInfo struct {
-	size, mtime int64
-	exts        []string
-	problem     string
-}
+// What's known about a games library's files, remembered so that a scan reads a file
+// once and never again until it changes. Archives are only read in a worker process.
 
 // archiveIndex lives for one scan of one library. Nil store: remembers nothing past it.
 type archiveIndex struct {
 	store     *Store
 	libraryID int64
-	once      sync.Once
-	known     map[string]archiveInfo
-	seen      map[string]archiveInfo
-	fresh     map[string]bool
 	lister    *gamearchive.Lister
 	// reading, when set, is told about each archive that really has to be opened: on a
 	// slow network folder the first scan can take a while, and this shows it's moving.
 	reading func(path string)
+	// looking, when set, is told how far through a folder's files the scan has got.
+	looking func(done, total int)
+
+	verdictOnce   sync.Once
+	verdicts      map[string]cachedVerdict
+	seenVerdicts  map[string]cachedVerdict
+	freshVerdicts map[string]bool
+	decisions     map[string]gameDecision
+	notes         []gameFileNote
+	lastLibrary   string
+	peekedAt      map[string]bool
+	told          map[string]bool
 }
 
 func newArchiveIndex(store *Store, libraryID int64) *archiveIndex {
-	return &archiveIndex{store: store, libraryID: libraryID, known: map[string]archiveInfo{}, seen: map[string]archiveInfo{}, fresh: map[string]bool{}}
+	return &archiveIndex{store: store, libraryID: libraryID, seenVerdicts: map[string]cachedVerdict{}, freshVerdicts: map[string]bool{},
+		peekedAt: map[string]bool{}, told: map[string]bool{}}
 }
 
 func (ix *archiveIndex) close() {
@@ -44,105 +45,54 @@ func (ix *archiveIndex) close() {
 	}
 }
 
-func (ix *archiveIndex) load() {
-	if ix.store == nil {
-		return
-	}
-	rows, err := ix.store.DB.QueryContext(context.Background(), `SELECT path, size, mtime, exts, problem FROM game_archives WHERE library_id = ?`, ix.libraryID)
-	if err != nil {
-		return
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var path, exts string
-		var a archiveInfo
-		if rows.Scan(&path, &a.size, &a.mtime, &exts, &a.problem) == nil && json.Unmarshal([]byte(exts), &a.exts) == nil {
-			ix.known[path] = a
-		}
-	}
-}
-
-// info is what's known of an archive, reading its headers only if it's new or changed.
-func (ix *archiveIndex) info(path string) archiveInfo {
-	ix.once.Do(ix.load)
-	st, err := os.Stat(path)
-	if err != nil {
-		return archiveInfo{problem: gamearchive.ErrUnavailable.Code}
-	}
-	size, mtime := st.Size(), st.ModTime().Unix()
-	if a, ok := ix.seen[path]; ok && a.size == size && a.mtime == mtime {
-		return a
-	}
-	if a, ok := ix.known[path]; ok && a.size == size && a.mtime == mtime {
-		ix.seen[path] = a
-		return a
-	}
+func (ix *archiveIndex) open(path string) *gamearchive.Lister {
 	if ix.lister == nil {
 		ix.lister = gamearchive.NewLister()
 	}
-	if ix.reading != nil {
+	if ix.reading != nil && !ix.told[path] {
+		ix.told[path] = true
 		ix.reading(path)
 	}
-	a := archiveInfo{size: size, mtime: mtime}
-	l, err := ix.lister.List(path, gamearchive.ScanBudget)
+	return ix.lister
+}
+
+// listing reads what an archive holds, or says why it can't be read.
+func (ix *archiveIndex) listing(path string) (*gamearchive.Listing, string) {
+	l, err := ix.open(path).List(path, gamearchive.ScanBudget)
 	if err != nil {
-		if a.problem = gamearchive.CodeOf(err); a.problem == "" {
-			a.problem = gamearchive.ErrDamaged.Code
+		code := gamearchive.CodeOf(err)
+		if code == "" {
+			code = gamearchive.ErrDamaged.Code
 		}
-	} else {
-		a.exts = l.Exts()
+		return nil, code
 	}
-	ix.seen[path] = a
-	ix.fresh[path] = err == nil || !gamearchive.Transient(err)
-	return a
+	return l, ""
 }
 
-func (ix *archiveIndex) exts(path string) []string { return ix.info(path).exts }
-
-// problem says why an archive couldn't be read, if that's why it isn't a game.
-func (ix *archiveIndex) problem(path string) string {
-	if !gamearchive.IsArchive(path) {
-		return ""
+// peek looks at the start of one file in an archive. A file that can't be reached says
+// nothing, and doesn't count against the archive: see peeked.
+func (ix *archiveIndex) peek(path string, e gamearchive.Entry) gameid.Finding {
+	b, err := ix.open(path).Peek(path, e.Name)
+	if err != nil {
+		return gameid.Finding{}
 	}
-	return ix.info(path).problem
+	ix.peekedAt[path] = true
+	size := e.Size
+	if size <= 0 {
+		size = int64(len(b))
+	}
+	return gameid.SniffHead(b, size)
 }
 
-// save remembers what this scan read. prune: every folder was reachable, so an
-// archive that wasn't seen is gone.
+// peeked says a look inside this archive really did read something.
+func (ix *archiveIndex) peeked(path string) bool { return ix.peekedAt[path] }
+
+// save keeps what this scan worked out. prune: every folder was reachable, so a file
+// that wasn't seen is gone.
 func (ix *archiveIndex) save(ctx context.Context, prune bool) {
-	if ix.store == nil {
-		return
-	}
-	ix.once.Do(ix.load)
-	tx, err := ix.store.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return
-	}
-	defer func() { _ = tx.Rollback() }()
-	for path, lasting := range ix.fresh {
-		if !lasting {
-			continue // a hiccup, not an answer: ask again next scan
-		}
-		a := ix.seen[path]
-		exts := a.exts
-		if exts == nil {
-			exts = []string{}
-		}
-		b, _ := json.Marshal(exts)
-		if _, err := tx.ExecContext(ctx, `INSERT INTO game_archives(library_id, path, size, mtime, exts, problem) VALUES(?,?,?,?,?,?)
-			ON CONFLICT(library_id, path) DO UPDATE SET size = excluded.size, mtime = excluded.mtime, exts = excluded.exts, problem = excluded.problem`,
-			ix.libraryID, path, a.size, a.mtime, string(b), a.problem); err != nil {
-			return
-		}
-	}
+	ix.verdictOnce.Do(ix.loadVerdicts)
+	ix.saveVerdicts(ctx)
 	if prune {
-		for path := range ix.known {
-			if _, ok := ix.seen[path]; !ok {
-				if _, err := tx.ExecContext(ctx, `DELETE FROM game_archives WHERE library_id = ? AND path = ?`, ix.libraryID, path); err != nil {
-					return
-				}
-			}
-		}
+		ix.forgetVerdicts(ctx)
 	}
-	_ = tx.Commit()
 }

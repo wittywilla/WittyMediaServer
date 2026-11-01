@@ -153,6 +153,10 @@ func (s *Server) StartMetadata() {
 		s.logos().Kick()
 		s.Scanner.KickListings()
 	}
+	s.Scanner.OnGamesScanned = func() { s.logos().Kick() }
+	if s.GameMeta != nil {
+		s.GameMeta.OnSettled = func() { s.logos().Kick() }
+	}
 	logging.Go("metadata start", func() {
 		ctx := context.Background()
 		if err := s.Store.SyncBrands(ctx); err != nil {

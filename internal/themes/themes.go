@@ -54,6 +54,7 @@ const (
 	maxZipBytes  = 25 << 20
 	maxFileBytes = 10 << 20
 	maxFiles     = 200
+	maxCSSBytes  = 32 << 20 // all a theme's stylesheets together, as they're read to check them
 )
 
 var idRe = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,63}$`)
@@ -266,6 +267,10 @@ func (m *Manager) File(id, name string) ([]byte, string, error) {
 	}
 	defer zr.Close()
 	b, err := readZipFile(&zr.Reader, name)
+	// A theme from before the rule, or put in the folder by hand, isn't excused from it.
+	if err == nil && strings.EqualFold(path.Ext(name), ".css") && outsideURL(b) {
+		return nil, "", ErrNotFound
+	}
 	return b, ct, err
 }
 
@@ -317,6 +322,7 @@ func parseTheme(data []byte) (*Meta, error) {
 	if len(zr.File) > maxFiles {
 		return nil, fmt.Errorf("theme has more than %d files", maxFiles)
 	}
+	cssLeft := maxCSSBytes
 	for _, f := range zr.File {
 		if strings.HasSuffix(f.Name, "/") {
 			continue
@@ -330,6 +336,18 @@ func parseTheme(data []byte) (*Meta, error) {
 		}
 		if f.UncompressedSize64 > maxFileBytes {
 			return nil, fmt.Errorf("%s is larger than %d MB", f.Name, maxFileBytes>>20)
+		}
+		if strings.EqualFold(path.Ext(f.Name), ".css") {
+			b, err := readZipFile(zr, f.Name)
+			if err != nil {
+				return nil, fmt.Errorf("%s can't be read", f.Name)
+			}
+			if cssLeft -= len(b); cssLeft < 0 {
+				return nil, fmt.Errorf("the stylesheets in this theme are larger than %d MB", maxCSSBytes>>20)
+			}
+			if outsideURL(b) {
+				return nil, outsideErr(f.Name)
+			}
 		}
 	}
 	raw, err := readZipFile(zr, "theme.json")
@@ -348,6 +366,9 @@ func parseTheme(data []byte) (*Meta, error) {
 	}
 	if meta.Builtin {
 		return nil, errors.New(`remove "builtin": true from theme.json (it is reserved for the themes that ship with WittyMediaServer)`)
+	}
+	if err := outsideColours(&meta); err != nil {
+		return nil, err
 	}
 	return &meta, nil
 }

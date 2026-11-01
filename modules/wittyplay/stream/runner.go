@@ -38,7 +38,9 @@ func StartRunner(program string, args []string, saveDir string, memoryMB int64, 
 		return nil, err
 	}
 	prepareSandbox(cmd, saveDir, log)
-	if err := cmd.Start(); err != nil {
+	err = cmd.Start()
+	sandboxStarted(cmd)
+	if err != nil {
 		return nil, fmt.Errorf("starting the game runner: %w", err)
 	}
 	return &Runner{Cmd: cmd, Stdin: stdin, Stdout: stdout, Stderr: stderr, box: lockDown(cmd, memoryMB, log)}, nil

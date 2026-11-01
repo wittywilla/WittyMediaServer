@@ -230,8 +230,9 @@ func (s *Session) startVideoEncoder(codec, name string, hdr ipc.VideoHeader, fps
 		werr := cmd.Wait()
 		select {
 		case <-e.got:
-			if werr != nil && ctx.Err() == nil {
+			if ctx.Err() == nil && !e.asked.Load() {
 				s.log.Warn("the video encoder stopped during the game", "encoder", name, "err", werr, "stderr", stderr.String())
+				s.encoderLost(e)
 			}
 		default:
 			if ctx.Err() == nil && !e.asked.Load() { // it never produced a frame, and nobody stopped it
@@ -370,6 +371,26 @@ func (s *Session) syncEncodersLocked(hdr ipc.VideoHeader) (h264, vp8 *videoEncod
 }
 
 // encoderDied clears a failed encoder so the next frame tries the next one.
+// encoderLost is for one that was working and went away: the next frame starts another.
+// One that keeps doing that isn't to be trusted, and isn't started again.
+func (s *Session) encoderLost(e *videoEncoder) {
+	s.viewMu.Lock()
+	if s.encLost == nil {
+		s.encLost = map[string]int{}
+	}
+	s.encLost[e.name]++
+	lost := s.encLost[e.name]
+	s.viewMu.Unlock()
+	if lost >= encoderLives {
+		s.log.Warn("this video encoder keeps stopping; trying the next", "encoder", e.name)
+		s.markBadEncoder(e.name)
+	}
+	s.encoderDied(e)
+}
+
+// encoderLives is how many times an encoder may stop in one game.
+const encoderLives = 3
+
 func (s *Session) encoderDied(e *videoEncoder) {
 	s.viewMu.Lock()
 	defer s.viewMu.Unlock()

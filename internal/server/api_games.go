@@ -618,7 +618,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		for _, other := range g.cores.AllForConsole(console, core.ID)[1:] {
 			// A custom core only ever runs where an administrator assigned it, and after its check.
 			if other.Source != cores.SourceCustom && wittyplay.MissingBIOS(other.ID, systemDir) == "" {
-				fallbacks = append(fallbacks, stream.CoreChoice{Core: other.Path, GPU: wittyplay.Traits(other.ID).GPU, Options: wittyplay.StartOptions(console.ID, other.ID, resolution, systemDir)})
+				fallbacks = append(fallbacks, stream.CoreChoice{Core: other.Path, CoreID: other.ID, RunnerArgs: wittyplay.RunnerArgs(other.ID), GPU: wittyplay.Traits(other.ID).GPU, Options: wittyplay.StartOptions(console.ID, other.ID, resolution, systemDir)})
 			}
 		}
 	}

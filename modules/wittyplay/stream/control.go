@@ -43,6 +43,7 @@ type controlState struct {
 	ctlMu      sync.Mutex
 	speed      float64
 	want       ipc.Control // what the settings last asked for
+	rewinding  atomic.Bool // going backwards, which may mean no new pictures for a while
 	options    []ipc.Option
 	optionsSet chan struct{} // closed at the first list
 	optionOnce sync.Once
@@ -195,7 +196,9 @@ func (s *Session) SetRewinding(on bool) error {
 	if on && !enabled {
 		return errors.New("rewind is off; turn it on in this game's settings")
 	}
-	return s.control(ipc.Control{Rewinding: &on})
+	err := s.control(ipc.Control{Rewinding: &on})
+	s.rewinding.Store(on && err == nil)
+	return err
 }
 
 // Advance runs a paused game for a few frames.
@@ -380,10 +383,12 @@ func (s *Session) noteEvent(e ipc.Event) (handled bool) {
 		s.ctlMu.Unlock()
 		s.optionOnce.Do(func() { close(s.optionsSet) })
 		if s.opt.OnCoreOptions != nil {
-			go s.opt.OnCoreOptions(list)
+			go s.opt.OnCoreOptions(s.opt.CoreID, list)
 		}
 		return true
 	case "statefail":
+		// What's in the resume state isn't what's running, so it has to be kept.
+		s.resumed.Store(false)
 		e.Text = "That saved state couldn’t be loaded. The game is still as it was, or use Undo load."
 		e.Type = "message"
 		b, _ := json.Marshal(e)
@@ -487,7 +492,7 @@ func (s *Session) writeSlotMeta(name string) {
 // keepPrevAuto moves a resume state out of the way when the session that's about to
 // replace it didn't start from it, which would otherwise lose it for good.
 func (s *Session) keepPrevAuto() {
-	if s.resumed {
+	if s.resumed.Load() {
 		return
 	}
 	auto, _ := SlotName(0)
@@ -532,7 +537,9 @@ func (m *Manager) ProbeOptions(ctx context.Context, core, systemDir, tmp string)
 		return nil, err
 	}
 	prepareSandbox(cmd, dir, m.log)
-	if err := cmd.Start(); err != nil {
+	err = cmd.Start()
+	sandboxStarted(cmd)
+	if err != nil {
 		return nil, fmt.Errorf("starting the game runner: %w", err)
 	}
 	box := lockDown(cmd, cfg.MemoryMB, m.log)

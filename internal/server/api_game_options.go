@@ -127,7 +127,7 @@ func (s *Server) applyGameSettings(ctx context.Context, o *stream.Options, it *l
 	lim := s.gameLimits(ctx)
 	o.MaxSpeed = lim.MaxSpeed
 	o.SafeMode = safe
-	o.OnCoreOptions = func(list []ipc.Option) { s.keepCoreOptions(coreID, list) }
+	o.OnCoreOptions = func(started string, list []ipc.Option) { s.keepCoreOptions(started, list) }
 	if safe {
 		return
 	}

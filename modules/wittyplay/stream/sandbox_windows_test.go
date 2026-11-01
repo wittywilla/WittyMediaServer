@@ -11,7 +11,37 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
+
+// Every game starts a runner, and the server runs for months.
+func TestStartingARunnerLeavesNoHandleBehind(t *testing.T) {
+	proc := windows.NewLazySystemDLL("kernel32.dll").NewProc("GetProcessHandleCount")
+	count := func() uint32 {
+		var n uint32
+		if r, _, err := proc.Call(uintptr(windows.CurrentProcess()), uintptr(unsafe.Pointer(&n))); r == 0 {
+			t.Fatal(err)
+		}
+		return n
+	}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	save := t.TempDir()
+	round := func() {
+		cmd := exec.Command("no-such-program")
+		prepareSandbox(cmd, save, log)
+		sandboxStarted(cmd)
+	}
+	round() // anything that's only loaded the once
+	before := count()
+	for range 200 {
+		round()
+	}
+	if after := count(); after > before+50 {
+		t.Errorf("%d handles became %d in 200 starts", before, after)
+	}
+}
 
 // The token and job the server gives a runner, tried on a copy of this test
 // program: it may write to its save folder and nowhere else, and it can't start

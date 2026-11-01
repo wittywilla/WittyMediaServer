@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Fixed:** on Linux, an installed module could fail to start on a busy machine and be counted against its version: its
+  address space limit was too close to what Go sets aside when it starts. Real memory use stays limited as before.
 - **Server 0.5.2-alpha:** The code and design audits: security and reliability fixes across the server, games, discs, modules, apps and the web UI, and a remote access guide written as a security guide.
 
 - **Modules:** a withdrawn version can't be missed: the list is read on every check, not only when the

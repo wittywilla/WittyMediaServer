@@ -123,8 +123,10 @@ func (p *proc) env() []string {
 }
 
 func (p *proc) newCmd() *exec.Cmd {
-	// More address space than the job's limit on Windows, which counts only memory in
-	// use: Go asks for more than it touches. GOMEMLIMIT keeps real use to softMemory.
+	// Much more address space than the job's limit on Windows, which counts only memory
+	// in use: Go sets aside over a gigabyte that it never touches, and a helper at 1 GiB
+	// failed to start about one time in six on a busy machine. GOMEMLIMIT keeps real use
+	// to softMemory.
 	mode := 0
 	if p.network {
 		mode |= SandboxNetwork
@@ -132,7 +134,7 @@ func (p *proc) newCmd() *exec.Cmd {
 	if p.strict {
 		mode |= SandboxStrict
 	}
-	prog, args := launchWith(p.launch, p.path(), 2*hardMemoryMB, mode, []string{wittymodule.HelperFlag})
+	prog, args := launchWith(p.launch, p.path(), 4*hardMemoryMB, mode, []string{wittymodule.HelperFlag})
 	cmd := exec.Command(prog, args...)
 	cmd.Dir = p.dir
 	cmd.Env = p.env()

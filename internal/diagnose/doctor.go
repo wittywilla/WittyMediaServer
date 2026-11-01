@@ -400,8 +400,9 @@ func ApplyFixes(ctx context.Context, e *DoctorEnv, issues []*Issue, option strin
 	defer e.closeDB()
 	out := []FixResult{}
 	fix := &FixContext{env: e}
-	defer fix.close()
-	for _, i := range issues {
+	ordered := append([]*Issue{}, issues...)
+	sort.SliceStable(ordered, func(a, b int) bool { return areaRank(ordered[a].Area) < areaRank(ordered[b].Area) })
+	for _, i := range ordered {
 		r := FixResult{Key: i.Key, Title: i.Title}
 		func() {
 			defer func() {

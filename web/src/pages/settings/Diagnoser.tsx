@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { fmtDateTime, api } from '../../api'
 import DownloadButton from '../../components/DownloadButton'
 import { Spinner } from '../../components/common'
 import { IconDisc, IconDrive, IconFile, IconFolder, IconUp } from '../../icons'
 import { toast } from '../../state'
+import FindingCard, { SEVERITY_WORDS as WORDS, type Finding, type Severity } from './FindingCard'
 import { PageHead, Row, Section, Switch } from './ui'
 import './diagnoser.css'
 
@@ -12,8 +14,6 @@ import './diagnoser.css'
 // server does the work, so this page can be left and come back to. Discs are
 // picked with the page's own browser, which shows only what the server allows.
 
-type Severity = 'ok' | 'info' | 'warn' | 'problem'
-type Finding = { severity: Severity; title: string; what?: string; fix?: string; details?: string[]; names?: string[]; more?: number; target?: string }
 type Job = {
   id: string; kind: 'disc' | 'storage'; state: 'queued' | 'running' | 'done' | 'cancelled'
   subject: string; label?: string; queued: number; started?: number; finished?: number
@@ -26,7 +26,6 @@ type Entry = { name: string; path: string; dir: boolean; disc?: string; kind?: s
 type Listing = { path: string; parent: string | null; roots?: { name: string; path: string; kind: string }[]; entries: Entry[]; truncated?: boolean }
 
 const POLL_MS = 1500
-const WORDS: Record<Severity, string> = { problem: 'Problem', warn: 'Warning', info: 'Note', ok: 'Fine' }
 const active = (j?: Job | null) => !!j && (j.state === 'queued' || j.state === 'running')
 const gb = (n = 0) => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : `${Math.max(1, Math.round(n / (1 << 20)))} MB`)
 const baseName = (p: string) => p.split(/[\\/]/).filter(Boolean).pop() || p
@@ -53,7 +52,7 @@ export default function Diagnoser() {
 
   return (
     <>
-      <PageHead title="WittyDiagnoser" desc="The disk diagnoser: checks your discs and your drives, and changes nothing. Pick a DVD, Blu-ray or CD image, or the folders the server uses, and it says what it finds in plain words. It never repairs anything, and never gets around copy protection." />
+      <PageHead title="WittyDiagnoser" desc={<>The disk diagnoser: checks your discs and your drives, and changes nothing. Pick a DVD, Blu-ray or CD image, or the folders the server uses, and it says what it finds in plain words. It never gets around copy protection. To fix the server’s own data, use <Link to="/settings/repair">Repair</Link>.</>} />
       <div className="tabs" role="tablist" aria-label="What to check">
         <button role="tab" id="dgn-tab-disc" aria-selected={tab === 'disc'} aria-controls="dgn-panel" className={tab === 'disc' ? 'active' : ''} onClick={() => setTab('disc')}>A disc</button>
         <button role="tab" id="dgn-tab-storage" aria-selected={tab === 'storage'} aria-controls="dgn-panel" className={tab === 'storage' ? 'active' : ''} onClick={() => setTab('storage')}>Storage</button>
@@ -278,28 +277,6 @@ function JobPanel({ id, onChanged }: { id: string; onChanged: () => void }) {
         </div>
       )}
     </Section>
-  )
-}
-
-function FindingCard({ f }: { f: Finding }) {
-  const lines = [...(f.details || []), ...(f.names || [])]
-  return (
-    <article className={'dgn-card sev-' + f.severity}>
-      <div className="dgn-card-head">
-        <span className="dgn-sev">{WORDS[f.severity]}</span>
-        {f.target && <span className="dgn-target">{f.target}</span>}
-      </div>
-      <h3>{f.title}</h3>
-      {f.what && <p>{f.what}</p>}
-      {f.fix && <p><b>What to do:</b> {f.fix}</p>}
-      {lines.length > 0 && (
-        <details>
-          <summary>Details</summary>
-          <ul>{lines.map((l, i) => <li key={i}>{l}</li>)}</ul>
-          {!!f.more && <p className="set-row-desc">…and {f.more.toLocaleString()} more.</p>}
-        </details>
-      )}
-    </article>
   )
 }
 

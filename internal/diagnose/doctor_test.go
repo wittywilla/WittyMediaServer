@@ -631,7 +631,11 @@ func TestDoctorRecoversADamagedDatabase(t *testing.T) {
 	corruptPages(t, f.env.Data, 0.5, 4)
 
 	r := f.run("data")
-	i := f.issue(r, "database:damaged")
+	// Which of these depends on where the damage is: the check can run into it and stop.
+	i := r.Find("database:damaged")
+	if i == nil {
+		i = f.issue(r, "database:unreadable")
+	}
 	if i.Severity != SevProblem || i.Safety != SafetyCareful || !i.Exclusive {
 		t.Fatalf("found: %+v", i)
 	}

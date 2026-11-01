@@ -852,6 +852,11 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /reset/restore` | admin | Bring a kept copy back: `{password, code, copy}`. 202, then the server restarts. What's there now becomes another copy. |
 | `DELETE /reset/request` | admin | Take back a reset waiting for the next start. |
 | `POST /reset/copies/delete` | admin | Delete a kept copy for good: `{password, code, copy}`. |
+| `GET /repair` | admin | [Repair](REPAIR.md): what's running, the last report with its issues, what fixes did, and the safety copies kept. |
+| `POST /repair/check` | admin | Look, and change nothing: `{only}`, a list of checks or areas, or nothing for all. 202, then ask `GET /repair`. 409 if one is running. |
+| `POST /repair/fix` | admin | Fix from the last report: `{keys, allSafe, option, password, code}`. A fix that isn't `safe`, or any `option`, needs the password and any second step again. 202, then ask `GET /repair`. |
+| `POST /repair/remap` | admin | A library's folder moved: `{from, to}` says what would change, and adds `{apply: true, password, code}` to do it. |
+| `POST /repair/restart` | admin | Restart, for a fix that waits for the next start. 409 if none is waiting. |
 | `GET /update` | admin | What is installed and what is available (404 in builds that can't update themselves). |
 | `POST /update/check` | admin | Look for a new version now. |
 | `POST /update/apply` | admin | Download, verify and install the newest release, then restart. |

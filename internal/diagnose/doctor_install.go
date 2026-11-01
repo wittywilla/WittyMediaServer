@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -113,6 +114,16 @@ func checkFFmpeg(_ context.Context, e *DoctorEnv) []Issue {
 	case a = <-got:
 	case <-time.After(30 * time.Second):
 		a.err = errors.New("it started, and gave no answer for 30 seconds")
+	}
+	if a.err == nil && a.t.Version == "" {
+		a.err = errors.New(a.t.FFmpeg + " is there, and doesn't run")
+	}
+	if a.err == nil {
+		if _, err := os.Stat(a.t.FFprobe); err != nil {
+			if _, err := exec.LookPath(a.t.FFprobe); err != nil {
+				a.err = errors.New("FFmpeg is there, but ffprobe, which comes with it, isn't")
+			}
+		}
 	}
 	if a.err == nil {
 		return nil

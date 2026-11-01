@@ -4,7 +4,9 @@ WittyDiagnoser is the disk diagnoser, for people who'd rather not open a termina
 WittyDiagnoser*, for administrators. "Disk" can mean two things, so it has two tabs: **A disc** (a DVD, Blu-ray or
 audio CD, as an image or a folder) and **Storage** (the drives and folders the server uses).
 
-It looks, and it tells you. It changes nothing.
+It looks, and it tells you. It changes nothing. Fixing is the job of [Repair](REPAIR.md), which looks after the
+server's own data and install: its database, metadata, modules and folders. Use WittyDiagnoser for what you've put on
+the server (discs) and what it runs on (drives), and Repair for the server itself.
 
 - [What it never does](#what-it-never-does)
 - [Checking a disc](#checking-a-disc)
@@ -16,7 +18,7 @@ It looks, and it tells you. It changes nothing.
 
 ## What it never does
 
-- **It never repairs or changes anything.** Discs and media are opened to read. The one thing it ever writes
+- **It never repairs or changes anything.** That's what [Repair](REPAIR.md) is for. Discs and media are opened to read. The one thing it ever writes
   is the small temp file of the write test, if you turn that on, and its own reports.
 - **It never decrypts anything or gets around copy protection.** It detects protection by reading a flag in
   the stream, and says so. It reads no keys, and doesn't name or suggest any tool.

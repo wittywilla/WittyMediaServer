@@ -37,8 +37,6 @@ type FixContext struct {
 	restart bool
 }
 
-func (f *FixContext) close() {}
-
 // ensureCopy makes the safety copy, the first time it's needed.
 func (f *FixContext) ensureCopy(ctx context.Context) error {
 	if f.copyDir != "" {

@@ -17,9 +17,22 @@ description: |-
   FFmpeg comes with it, in its own folder.
 
 contents:
-  # Named, or an .rpm leaves the folder behind when it's removed.
+  # Named, or an .rpm leaves the folder behind when it's removed. On a machine with no desktop
+  # nothing else makes the icon folders; where another package owns them too, they stay.
   - dst: /usr/lib/wittymediaserver
     type: dir
+    file_info: {mode: 0755}
+  - dst: /usr/share/icons/hicolor
+    type: dir
+    packager: rpm
+    file_info: {mode: 0755}
+  - dst: /usr/share/icons/hicolor/256x256
+    type: dir
+    packager: rpm
+    file_info: {mode: 0755}
+  - dst: /usr/share/icons/hicolor/256x256/apps
+    type: dir
+    packager: rpm
     file_info: {mode: 0755}
 
   # The program. The same layout as every other package: internal/layout.

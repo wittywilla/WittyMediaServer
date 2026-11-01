@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Server 0.5.2-alpha:** The code and design audits: security and reliability fixes across the server, games, discs, modules, apps and the web UI, and a remote access guide written as a security guide.
+
 - **Modules:** a withdrawn version can't be missed: the list is read on every check, not only when the
   list of releases changes. A file uploaded again is noticed by its upload time.
 - **Fixed:** a normal install and the Mac app left out the game runner, so games couldn't start.

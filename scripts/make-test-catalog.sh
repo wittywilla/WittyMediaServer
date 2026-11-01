@@ -66,10 +66,13 @@ for repo in "${mods[@]}"; do
       ;;
     helper | program)
       if [ -f "$dir/CMakeLists.txt" ]; then
-        echo "skipping $repo: it has its own build" >&2
-        continue
-      fi
-      if [ -n "$built" ]; then
+        # Its own build, which needs more than Go: name what it made with WMS_PREBUILT.
+        if [ ! -f "${WMS_PREBUILT:-/nowhere}/$repo/.built" ]; then
+          echo "skipping $repo: it has its own build" >&2
+          continue
+        fi
+        "$tool" pack -out "$rel" -prebuilt "$WMS_PREBUILT/$repo" "$dir" >/dev/null
+      elif [ -n "$built" ]; then
         "$tool" pack -out "$rel" -targets "$target" -web "$built" "$dir" >/dev/null
       else
         "$tool" pack -out "$rel" -targets "$target" "$dir" >/dev/null

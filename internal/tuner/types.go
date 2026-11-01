@@ -71,6 +71,9 @@ type ScanOptions struct {
 // ErrBusy: every tuner of the source is in use.
 var ErrBusy = errors.New("all of this device's tuners are in use")
 
+// ErrUnreachable: a connection failed. What's wrapped with it says what's on the network, for the log.
+var ErrUnreachable = errors.New("the stream could not be reached")
+
 // EncryptedError says a channel was refused because it is encrypted or copy
 // protected. It is never decrypted.
 type EncryptedError struct {

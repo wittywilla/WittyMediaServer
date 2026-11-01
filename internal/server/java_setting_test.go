@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 )
 
 // An administrator's web account can't run programs on the machine. The Java setting used to be
@@ -59,6 +61,7 @@ func TestWebSettingsCantNameAProgram(t *testing.T) {
 // What the owner named in the config file is used while BD-J is on, and nothing is started while
 // it's off. What a program prints never reaches the page.
 func TestJavaFromTheConfigFile(t *testing.T) {
+	modtest.Need(t, "wittybluray")
 	if runtime.GOOS == "windows" {
 		t.Skip("uses a shell script")
 	}

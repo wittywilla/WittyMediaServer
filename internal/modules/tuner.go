@@ -176,6 +176,8 @@ func docError(d *tuner.HelperDoc, channel string) error {
 		return &tuner.EncryptedError{Channel: channel, Why: clip(d.Error)}
 	case "busy":
 		return tuner.ErrBusy
+	case "unreachable":
+		return fmt.Errorf("%w: %s", tuner.ErrUnreachable, clip(d.Error))
 	}
 	return errors.New(clip(d.Error))
 }

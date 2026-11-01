@@ -242,6 +242,18 @@ The web app's `ModuleMissing` shows that with a button to add it, for an admin. 
 they always saw. A library waiting for a module is scanned when it arrives. A scan with no WittyPlay leaves a game
 library as it is, since not knowing what a game is isn't the same as the games being gone.
 
+### Which systems
+
+A helper or service is built for every system the server runs on: Windows, Linux, macOS and FreeBSD, the last on amd64 and
+arm64. `wittymodule pack` builds them all by default, and each is listed in the catalogue under its system. WittyPlay's FreeBSD
+builds need `-freebsd-gcflags github.com/ebitengine/purego/internal/fakecgo=-std`, which the kit passes to anything using that
+library. A web bundle is one file for all of them.
+
+A program built with something other than Go, as WittyCouchHost is, packs what it built with `-prebuilt`, and may not reach them
+all: WittyCouchHost has no FreeBSD build, or any for Linux on 32 bits or Windows on arm64. A server that finds no build for its own
+system says that in plain words in place of the button to add it, for that module and for any built on it. Everything else
+carries on as usual.
+
 ### A starter set for offline use
 
 A release of the server can carry signed modules, for a machine that never reaches the network. This is a step in

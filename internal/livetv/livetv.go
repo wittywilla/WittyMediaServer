@@ -220,7 +220,7 @@ func PublicError(err error) string {
 	var op *net.OpError
 	var dns *net.DNSError
 	var pe *fs.PathError
-	if errors.As(err, &ue) || errors.As(err, &op) || errors.As(err, &dns) {
+	if errors.As(err, &ue) || errors.As(err, &op) || errors.As(err, &dns) || errors.Is(err, tuner.ErrUnreachable) {
 		return "the stream could not be reached"
 	}
 	if errors.As(err, &pe) {

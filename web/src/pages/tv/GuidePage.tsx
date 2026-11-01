@@ -516,6 +516,8 @@ const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, 
   const span = to - from
   const pct = (u: number) => ((u - from) / span) * 100
   const cells = cellsFor(ch, from, to, pxPerSec)
+  // Whether what's being pressed was already highlighted when the press began.
+  const pressedHighlighted = useRef(false)
   const focusedCell = focusAt == null ? null : cells.find((c) => c.start <= focusAt && c.end > focusAt) || cells[0]
   const accent = ch?.accent ? channelVars(ch.accent, look.bg) : undefined
   // With a highlighted tile the logo needs the version that shows up on it.
@@ -546,8 +548,9 @@ const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, 
               aria-label={programmeLabel(ch, p, now)} aria-selected={focused} tabIndex={focused ? 0 : -1} data-focused={focused ? '1' : undefined} data-nav-skip={focused ? undefined : ''}
               className={'ctv-cell' + (focused ? ' focus' : '') + (live ? ' live' : '') + (p.kind === 'none' || p.kind === 'slate' ? ' dim' : '') + (ch.encrypted ? ' locked' : '') + (p.end <= now ? ' past' : '') + (tiny ? ' tiny' : '') + (p.kind === 'group' ? ' group' : '')}
               style={{ left: pct(start) + '%', width: pct(end) - pct(start) + '%' }}
+              onPointerDown={() => { pressedHighlighted.current = focused }}
               onFocus={() => { if (!focused) onFocus(r, Math.max(p.start, from)) }}
-              onClick={() => { if (focused) onActivate(ch, p); else { onFocus(r, Math.max(p.start, from)); wantFocus.current = true } }}
+              onClick={(e) => { if (focused && (e.detail === 0 || pressedHighlighted.current)) onActivate(ch, p); else { onFocus(r, Math.max(p.start, from)); wantFocus.current = true } }}
               onDoubleClick={() => onActivate(ch, p)}>
               {look.progress && live && p.kind !== 'none' && <i className="ctv-fill" aria-hidden="true" style={{ width: ((now - start) / Math.max(1, end - start)) * 100 + '%' }} />}
               {!tiny && p.start < from && <span className="ctv-more" aria-hidden="true">◄</span>}

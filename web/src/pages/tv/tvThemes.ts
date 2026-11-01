@@ -31,6 +31,8 @@ export type ShapeInfo = {
   art: boolean // the programme's picture and title art at the top
   details: boolean // cells say time, year and genre, rather than the episode
   rowHighlight: boolean // the highlighted row's channel takes the highlight's colour
+  // Colours it doesn't draw: Outline's cells are lines, and Compact's rows are the page.
+  noSlots?: Slot[]
 }
 
 export const SHAPES: Record<Shape, ShapeInfo> = {
@@ -40,8 +42,8 @@ export const SHAPES: Record<Shape, ShapeInfo> = {
   teletext: { name: 'Teletext', rows: [52, 50, 64], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
   listings: { name: 'Newspaper', rows: [60, 62, 72], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
   cinema: { name: 'Big picture', rows: [56, 54, 64], preview: 0.48, side: 'left', art: false, details: true, rowHighlight: true },
-  outline: { name: 'Outline', rows: [60, 66, 76], preview: 0.36, side: 'right', art: true, details: true, rowHighlight: false },
-  compact: { name: 'Compact', rows: [44, 40, 56], preview: 0.22, side: 'right', art: false, details: true, rowHighlight: false },
+  outline: { name: 'Outline', rows: [60, 66, 76], preview: 0.36, side: 'right', art: true, details: true, rowHighlight: false, noSlots: ['cell', 'live'] },
+  compact: { name: 'Compact', rows: [44, 40, 56], preview: 0.22, side: 'right', art: false, details: true, rowHighlight: false, noSlots: ['cell'] },
 }
 
 export type TvTheme = { id: ThemeId; name: string; blurb: string; shape: Shape; follows: boolean }

@@ -107,7 +107,9 @@ const PALETTE: [string, string][] = [['#000000', 'Black'], ['#0f1115', 'Near bla
 
 function Colours({ look }: { look: Look }) {
   const t = themeById(look.theme)!
-  const [slot, setSlot] = useState<Slot>('bg')
+  const [wanted, setSlot] = useState<Slot>('bg')
+  const offered = SLOTS.filter((s) => !SHAPES[look.shape].noSlots?.includes(s.slot))
+  const slot = offered.some((s) => s.slot === wanted) ? wanted : 'bg'
   const base = baseColours(look.theme, appColours())
   const tokens = look.tokens
   const hasAny = Object.keys(look.colours).length > 0
@@ -130,7 +132,7 @@ function Colours({ look }: { look: Look }) {
       <h3 id="ctv-colours-h">Colours of {t.name}</h3>
       <p>{hasAny ? <>These override the {t.follows ? 'app theme\'s colours' : 'theme\'s own colours'}, for this theme only.</> : t.follows ? <>These come from your app theme, so they change with it. Choose any of them here to override it, for this theme only.</> : <>{t.name} has colours of its own. Choose any of them here to override them, for this theme only.</>}</p>
       <Segmented<Slot> className="ctv-slot-tabs" label="Which colour" value={slot} onChange={(s) => { typing.current = false; setSlot(s) }}
-        options={SLOTS.map((s) => ({ value: s.slot, label: <><span className="ctv-slot-dot" style={{ background: value(s.slot) }} />{s.name}</>, name: s.name }))} />
+        options={offered.map((s) => ({ value: s.slot, label: <><span className="ctv-slot-dot" style={{ background: value(s.slot) }} />{s.name}</>, name: s.name }))} />
       <div className="ctv-swatches" role="group" aria-label={`Colours for ${SLOTS.find((s) => s.slot === slot)!.name}`} data-nav-group>
         {PALETTE.map(([c, name]) => <button key={c} type="button" className={'ctv-swatch' + (value(slot).toLowerCase() === c ? ' on' : '')} style={{ background: c }} aria-label={name} title={name} data-colour={c} aria-pressed={value(slot).toLowerCase() === c} onClick={() => { typing.current = false; set(c) }} />)}
       </div>

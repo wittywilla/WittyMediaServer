@@ -105,7 +105,7 @@ html.ten-foot .ctv-page[data-shape="modern"] { --ctv-grid-edge: var(--ctv-edge);
 .ctv[data-shape="receiver"] .ctv-row.current .ctv-ch { box-shadow: inset 3px 0 0 var(--ctv-accent); }
 .ctv[data-shape="receiver"] .ctv-num { font-family: var(--font-mono); font-weight: 400; }
 .ctv[data-shape="receiver"] .ctv-name { font-weight: 500; text-transform: uppercase; letter-spacing: .05em; font-size: var(--text-sm); }
-.ctv[data-shape="receiver"] .ctv-cell { background: var(--ctv-bg); border: 0; border-bottom: 1px solid var(--ctv-panel-2); border-right: 1px solid var(--ctv-panel-2); box-shadow: none; padding: 2px 10px; }
+.ctv[data-shape="receiver"] .ctv-cell { background: var(--ctv-cell); border: 0; border-bottom: 1px solid var(--ctv-panel-2); border-right: 1px solid var(--ctv-panel-2); box-shadow: none; padding: 2px 10px; }
 .ctv[data-shape="receiver"] .ctv-cell b { font-weight: 500; font-size: var(--text-md); }
 .ctv[data-shape="receiver"] .ctv-cell.live { background: var(--ctv-live); }
 .ctv[data-shape="receiver"] .ctv-cell.past:not(.focus), .ctv[data-shape="receiver"] .ctv-cell.dim { background: var(--ctv-dim); }
@@ -146,9 +146,8 @@ html.ten-foot .ctv-page[data-shape="modern"] { --ctv-grid-edge: var(--ctv-edge);
 .ctv[data-shape="teletext"] .ctv-num { color: var(--ctv-accent); font-weight: 400; }
 .ctv[data-shape="teletext"] .ctv-name { color: var(--ctv-soft); font-weight: 400; text-transform: uppercase; font-size: var(--text-sm); }
 .ctv[data-shape="teletext"] .ctv-row.current .ctv-ch { background: var(--ctv-panel-2); }
-.ctv[data-shape="teletext"] .ctv-cell { background: var(--ctv-bg); border: 0; box-shadow: none; padding: 2px var(--sp-2); }
+.ctv[data-shape="teletext"] .ctv-cell { background: var(--ctv-cell); border: 0; box-shadow: none; padding: 2px var(--sp-2); }
 .ctv[data-shape="teletext"] .ctv-cell b { font-weight: 400; font-size: var(--text-md); text-transform: uppercase; }
-.ctv[data-shape="teletext"] .ctv-cell small { color: var(--ctv-soft); }
 .ctv[data-shape="teletext"] .ctv-cell.live { background: var(--ctv-live); }
 .ctv[data-shape="teletext"] .ctv-cell.past:not(.focus), .ctv[data-shape="teletext"] .ctv-cell.dim { background: var(--ctv-dim); }
 .ctv[data-shape="teletext"] .ctv-cell.focus, .ctv[data-shape="teletext"] .ctv-cell:focus-visible { background: var(--ctv-hi); outline: 0; }
@@ -190,7 +189,7 @@ html.ten-foot .ctv-page[data-shape="modern"] { --ctv-grid-edge: var(--ctv-edge);
 .ctv[data-shape="listings"] .ctv-row.current .ctv-ch { background: var(--ctv-panel-2); }
 .ctv[data-shape="listings"] .ctv-num { color: var(--ctv-accent); font-style: italic; font-weight: 400; }
 .ctv[data-shape="listings"] .ctv-name { font-variant: small-caps; letter-spacing: .03em; }
-.ctv[data-shape="listings"] .ctv-cell { background: var(--ctv-bg); border: 0; border-bottom: 1px solid var(--ctv-line); border-right: 1px solid var(--ctv-line); box-shadow: none; padding: 2px 10px; }
+.ctv[data-shape="listings"] .ctv-cell { background: var(--ctv-cell); border: 0; border-bottom: 1px solid var(--ctv-line); border-right: 1px solid var(--ctv-line); box-shadow: none; padding: 2px 10px; }
 .ctv[data-shape="listings"] .ctv-cell b { font-size: var(--text-base); font-weight: 700; }
 .ctv[data-shape="listings"] .ctv-cell small { font-style: italic; font-size: var(--text-sm); }
 .ctv[data-shape="listings"] .ctv-cell.live { background: var(--ctv-live); }
@@ -462,7 +461,6 @@ html.ten-foot .ctv-page[data-shape="outline"] { --ctv-grid-edge: var(--ctv-edge)
 .ctv-swatch { width: 36px; height: 36px; padding: 0; border: 2px solid var(--border-strong); border-radius: var(--r-sm); cursor: pointer; }
 .ctv-swatch.on { border-color: var(--fg); box-shadow: 0 0 0 2px var(--accent); }
 .ctv-swatch:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-@media (pointer: coarse) { .ctv-swatch { width: 44px; height: 44px; } }
 .ctv-colour-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
 .ctv-colour-row label { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--text-sm); }
 .ctv-colour-row input[type=color] { width: 44px; height: 36px; padding: 0; border: 1px solid var(--bg-4); border-radius: var(--r-sm); background: none; cursor: pointer; }
@@ -474,9 +472,10 @@ html.ten-foot .ctv-page[data-shape="outline"] { --ctv-grid-edge: var(--ctv-edge)
 .ctv-shapes .ctv-themecard { padding: var(--sp-1); }
 .ctv-shapes .ctv-themecard b { font-size: var(--text-xs); font-weight: 600; }
 .ctv-font select { max-width: 16em; }
-/* To press with a thumb, or to find from the sofa. */
+/* To press with a thumb, or to find from the sofa: how big anything to press is, in the panels and
+   dialogs and on the pages around the guide. Nothing changes for a mouse. */
+@media (pointer: coarse), (pointer: none) { :root { --ctv-press: 44px; } .ctv-swatch { width: 44px; height: 44px; } }
+html.ten-foot, html.using-controller { --ctv-press: 48px; }
 html.ten-foot .ctv-swatch, html.using-controller .ctv-swatch { width: 48px; height: 48px; }
-html.ten-foot .ctv-choice-opts label, html.using-controller .ctv-choice-opts label, html.ten-foot .ctv-choice-checks label, html.using-controller .ctv-choice-checks label { min-height: 48px; }
-@media (pointer: coarse), (pointer: none) {
-  .ctv-choice-opts label, .ctv-choice-checks label { min-height: 44px; }
-}
+.ctv-choice-opts label, .ctv-choice-checks label, .ctv-editor .seg button, .ctv-editor .btn, .ctv-colour-row input, .ctv-colour-row select, .ctv-look .btn, .ctv-details .btn, .ctv-details .seg button, .ctv-search .btn, .ctv-search .input, .ctv-search .select, .ctv-key, .ctv-list-page .ctv-btn { min-height: var(--ctv-press, 0); }
+.ctv-help-page .ctv-rec a { display: inline-flex; align-items: center; min-height: var(--ctv-press, 0); }

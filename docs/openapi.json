@@ -100,6 +100,25 @@
         ],
         "type": "object"
       },
+      "ActivityAccess": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "readOnly": {
+            "type": "boolean"
+          },
+          "visible": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "readOnly",
+          "visible"
+        ],
+        "type": "object"
+      },
       "Agent": {
         "properties": {
           "enabled": {
@@ -2964,6 +2983,68 @@
         ],
         "type": "object"
       },
+      "GameView": {
+        "properties": {
+          "core": {
+            "type": "string"
+          },
+          "droppedFrames": {
+            "type": "integer"
+          },
+          "encodeMs": {
+            "type": "number"
+          },
+          "encoder": {
+            "type": "string"
+          },
+          "gameFps": {
+            "type": "number"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kbps": {
+            "type": "number"
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "sentFps": {
+            "type": "number"
+          },
+          "startedAt": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer"
+          },
+          "width": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "droppedFrames",
+          "encodeMs",
+          "gameFps",
+          "id",
+          "kbps",
+          "sentFps",
+          "startedAt",
+          "title",
+          "user",
+          "userId"
+        ],
+        "type": "object"
+      },
       "Item": {
         "properties": {
           "addedAt": {
@@ -3896,6 +3977,717 @@
         ],
         "type": "object"
       },
+      "MetricSection": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "full": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "available",
+          "id",
+          "title"
+        ],
+        "type": "object"
+      },
+      "MetricsAccess": {
+        "properties": {
+          "full": {
+            "type": "boolean"
+          },
+          "visible": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "full",
+          "visible"
+        ],
+        "type": "object"
+      },
+      "MetricsCPU": {
+        "properties": {
+          "cores": {
+            "items": {
+              "type": "number"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "percent": {
+            "type": "number"
+          },
+          "temps": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsTemp"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "cores",
+          "percent"
+        ],
+        "type": "object"
+      },
+      "MetricsCatalog": {
+        "properties": {
+          "access": {
+            "$ref": "#/components/schemas/MetricsAccess"
+          },
+          "everySec": {
+            "type": "integer"
+          },
+          "ranges": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/MetricSection"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "series": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "access",
+          "everySec",
+          "ranges",
+          "sections",
+          "series"
+        ],
+        "type": "object"
+      },
+      "MetricsDisk": {
+        "properties": {
+          "busyPercent": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "readRate": {
+            "type": "number"
+          },
+          "writeRate": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "readRate",
+          "writeRate"
+        ],
+        "type": "object"
+      },
+      "MetricsGPU": {
+        "properties": {
+          "celsius": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decoderPercent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "encoderFps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "encoderPercent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "encoderSessions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "memoryTotal": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "memoryUsed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "MetricsHistory": {
+        "properties": {
+          "from": {
+            "type": "integer"
+          },
+          "peak": {
+            "additionalProperties": {
+              "items": {
+                "type": "number"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "type": "object"
+          },
+          "series": {
+            "additionalProperties": {
+              "items": {
+                "type": "number"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "type": "object"
+          },
+          "stepSec": {
+            "type": "integer"
+          },
+          "times": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "to": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "from",
+          "series",
+          "stepSec",
+          "times",
+          "to"
+        ],
+        "type": "object"
+      },
+      "MetricsMemory": {
+        "properties": {
+          "available": {
+            "type": "integer"
+          },
+          "swapTotal": {
+            "type": "integer"
+          },
+          "swapUsed": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "used": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "available",
+          "swapTotal",
+          "swapUsed",
+          "total",
+          "used"
+        ],
+        "type": "object"
+      },
+      "MetricsNet": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "rxBytes": {
+            "type": "integer"
+          },
+          "rxErrs": {
+            "type": "integer"
+          },
+          "rxRate": {
+            "type": "number"
+          },
+          "speedMbps": {
+            "type": "integer"
+          },
+          "txBytes": {
+            "type": "integer"
+          },
+          "txErrs": {
+            "type": "integer"
+          },
+          "txRate": {
+            "type": "number"
+          },
+          "up": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "rxBytes",
+          "rxErrs",
+          "rxRate",
+          "txBytes",
+          "txErrs",
+          "txRate",
+          "up"
+        ],
+        "type": "object"
+      },
+      "MetricsNow": {
+        "properties": {
+          "cpu": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetricsCPU"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "disks": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsDisk"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "games": {
+            "items": {
+              "$ref": "#/components/schemas/GameView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "gpu": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsGPU"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "memory": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetricsMemory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "modules": {
+            "items": {
+              "$ref": "#/components/schemas/ModuleNow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "net": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsNet"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "process": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetricsProcess"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "server": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServerNow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "streams": {
+            "items": {
+              "$ref": "#/components/schemas/StreamView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "tasks": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "time": {
+            "type": "integer"
+          },
+          "transcodes": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TranscodeNow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "volumes": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsVolume"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "time"
+        ],
+        "type": "object"
+      },
+      "MetricsProcess": {
+        "properties": {
+          "cpuPercent": {
+            "type": "number"
+          },
+          "gcPauseMs": {
+            "type": "number"
+          },
+          "goroutines": {
+            "type": "integer"
+          },
+          "handles": {
+            "type": "integer"
+          },
+          "heapAlloc": {
+            "type": "integer"
+          },
+          "heapSys": {
+            "type": "integer"
+          },
+          "numGC": {
+            "type": "integer"
+          },
+          "rss": {
+            "type": "integer"
+          },
+          "threads": {
+            "type": "integer"
+          },
+          "uptimeSec": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cpuPercent",
+          "gcPauseMs",
+          "goroutines",
+          "heapAlloc",
+          "heapSys",
+          "numGC",
+          "rss",
+          "uptimeSec"
+        ],
+        "type": "object"
+      },
+      "MetricsReport": {
+        "properties": {
+          "bandwidth": {
+            "items": {
+              "$ref": "#/components/schemas/ReportBandwidth"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "byType": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "caches": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCache"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "codecs": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "database": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportDatabase"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "duplicates": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportDuplicates"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "generatedAt": {
+            "type": "integer"
+          },
+          "libraries": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLibrary"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "logs": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLogHour"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "mostWatched": {
+            "items": {
+              "$ref": "#/components/schemas/ReportWatched"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "peak": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportPeak"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolutions": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "savings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportSavings"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scans": {
+            "items": {
+              "$ref": "#/components/schemas/ReportScan"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "byType",
+          "codecs",
+          "generatedAt",
+          "libraries",
+          "mostWatched",
+          "resolutions"
+        ],
+        "type": "object"
+      },
+      "MetricsTemp": {
+        "properties": {
+          "celsius": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "celsius",
+          "name"
+        ],
+        "type": "object"
+      },
+      "MetricsVolume": {
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "free": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "mount": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "free",
+          "kind",
+          "mount",
+          "total"
+        ],
+        "type": "object"
+      },
       "ModuleEvent": {
         "properties": {
           "at": {
@@ -3971,6 +4763,38 @@
           "available",
           "modules",
           "type"
+        ],
+        "type": "object"
+      },
+      "ModuleNow": {
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "latest": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "installed",
+          "name",
+          "version"
         ],
         "type": "object"
       },
@@ -5504,6 +6328,282 @@
         ],
         "type": "object"
       },
+      "ReportBandwidth": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "user": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bytes",
+          "user",
+          "userId"
+        ],
+        "type": "object"
+      },
+      "ReportCache": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "files": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "partial": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "bytes",
+          "files",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReportCount": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bytes",
+          "items",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReportDatabase": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "walBytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bytes",
+          "walBytes"
+        ],
+        "type": "object"
+      },
+      "ReportDupe": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "copies": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "wasted": {
+            "type": "integer"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "bytes",
+          "copies",
+          "title",
+          "wasted"
+        ],
+        "type": "object"
+      },
+      "ReportDuplicates": {
+        "properties": {
+          "groups": {
+            "type": "integer"
+          },
+          "top": {
+            "items": {
+              "$ref": "#/components/schemas/ReportDupe"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "wastedBytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "groups",
+          "top",
+          "wastedBytes"
+        ],
+        "type": "object"
+      },
+      "ReportLibrary": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "integer"
+          },
+          "lastScanAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missing": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bytes",
+          "id",
+          "items",
+          "missing",
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "ReportLogHour": {
+        "properties": {
+          "errors": {
+            "type": "integer"
+          },
+          "hour": {
+            "type": "integer"
+          },
+          "warnings": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "errors",
+          "hour",
+          "warnings"
+        ],
+        "type": "object"
+      },
+      "ReportPeak": {
+        "properties": {
+          "at": {
+            "type": "integer"
+          },
+          "streams": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "streams"
+        ],
+        "type": "object"
+      },
+      "ReportSavings": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "estimatedSaved": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bytes",
+          "estimatedSaved",
+          "items"
+        ],
+        "type": "object"
+      },
+      "ReportScan": {
+        "properties": {
+          "files": {
+            "type": "integer"
+          },
+          "finishedAt": {
+            "type": "integer"
+          },
+          "library": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "tookSec": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "files",
+          "finishedAt",
+          "library",
+          "state",
+          "tookSec"
+        ],
+        "type": "object"
+      },
+      "ReportWatched": {
+        "properties": {
+          "itemId": {
+            "type": "integer"
+          },
+          "people": {
+            "type": "integer"
+          },
+          "seconds": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "itemId",
+          "people",
+          "seconds",
+          "title"
+        ],
+        "type": "object"
+      },
       "ResetCopy": {
         "properties": {
           "at": {
@@ -5706,6 +6806,35 @@
         ],
         "type": "object"
       },
+      "ServerNow": {
+        "properties": {
+          "arch": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "os": {
+            "type": "string"
+          },
+          "updateAvailable": {
+            "type": "string"
+          },
+          "uptimeSec": {
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "arch",
+          "os",
+          "uptimeSec",
+          "version"
+        ],
+        "type": "object"
+      },
       "Show": {
         "properties": {
           "addedAt": {
@@ -5842,6 +6971,72 @@
           "updatedAt",
           "view",
           "year"
+        ],
+        "type": "object"
+      },
+      "StreamView": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "device": {
+            "type": "string"
+          },
+          "fileKbps": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "sendingKbps": {
+            "type": "integer"
+          },
+          "startedAt": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer"
+          },
+          "where": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bytes",
+          "decision",
+          "id",
+          "reasons",
+          "sendingKbps",
+          "startedAt",
+          "user",
+          "userId"
         ],
         "type": "object"
       },
@@ -6128,6 +7323,240 @@
         ],
         "type": "object"
       },
+      "Task": {
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "byId": {
+            "type": "integer"
+          },
+          "canCancel": {
+            "type": "boolean"
+          },
+          "canPause": {
+            "type": "boolean"
+          },
+          "canResume": {
+            "type": "boolean"
+          },
+          "canRetry": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "done": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "etaSec": {
+            "type": "integer"
+          },
+          "finishedAt": {
+            "type": "integer"
+          },
+          "fix": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "libraryId": {
+            "type": "integer"
+          },
+          "libraryName": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "percent": {
+            "type": "number"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "problemCount": {
+            "type": "integer"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/TaskProblem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "rate": {
+            "type": "number"
+          },
+          "result": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "canCancel",
+          "canPause",
+          "canResume",
+          "canRetry",
+          "done",
+          "id",
+          "percent",
+          "startedAt",
+          "state",
+          "title",
+          "total",
+          "type",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "TaskList": {
+        "properties": {
+          "access": {
+            "$ref": "#/components/schemas/ActivityAccess"
+          },
+          "recent": {
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "summary": {
+            "$ref": "#/components/schemas/TaskSummary"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "access",
+          "recent",
+          "summary",
+          "tasks"
+        ],
+        "type": "object"
+      },
+      "TaskProblem": {
+        "properties": {
+          "at": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "item": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "message"
+        ],
+        "type": "object"
+      },
+      "TaskSummary": {
+        "properties": {
+          "active": {
+            "type": "integer"
+          },
+          "paused": {
+            "type": "integer"
+          },
+          "percent": {
+            "type": "number"
+          },
+          "queued": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "active",
+          "paused",
+          "percent",
+          "queued"
+        ],
+        "type": "object"
+      },
+      "TaskUpdate": {
+        "properties": {
+          "gone": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "summary": {
+            "$ref": "#/components/schemas/TaskSummary"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "summary",
+          "tasks"
+        ],
+        "type": "object"
+      },
       "ThemeMeta": {
         "properties": {
           "author": {
@@ -6261,6 +7690,21 @@
           "codec",
           "index",
           "language"
+        ],
+        "type": "object"
+      },
+      "TranscodeNow": {
+        "properties": {
+          "active": {
+            "type": "integer"
+          },
+          "max": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "active",
+          "max"
         ],
         "type": "object"
       },
@@ -6924,6 +8368,156 @@
           "Server"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/brands": {
+      "get": {
+        "operationId": "getBrands",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The studios or networks of a library, most titles first.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/browse": {
+      "get": {
+        "operationId": "getBrowse",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Films and shows as one list, by any filter and sort.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/browse/categories": {
+      "put": {
+        "operationId": "putBrowseCategories",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename, hide, merge or reorder a library's categories, or start again.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/browse/facets": {
+      "get": {
+        "operationId": "getBrowseFacets",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Everything a library can be filtered by, with counts.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/browse/shelves": {
+      "get": {
+        "operationId": "getBrowseShelves",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A library page in one answer: categories, studios, networks, collections and streaming services.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/capabilities": {
@@ -16772,6 +18366,96 @@
         "x-wms-auth": "user"
       }
     },
+    "/listings/refresh": {
+      "post": {
+        "operationId": "postListingsRefresh",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check listings again now.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/listings/settings": {
+      "put": {
+        "operationId": "putListingsSettings",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turn streaming listings on, after accepting every statement, or off, which forgets them.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/listings/status": {
+      "get": {
+        "operationId": "getListingsStatus",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether streaming listings are on, for which region, and how old they are.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/login": {
       "post": {
         "operationId": "postLogin",
@@ -16825,6 +18509,316 @@
           "Sign-in and accounts"
         ],
         "x-wms-auth": "public"
+      }
+    },
+    "/logos/consent": {
+      "put": {
+        "operationId": "putLogosConsent",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Agree or decline logo downloads, and optionally remove what was downloaded.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/logos/credits": {
+      "get": {
+        "operationId": "getLogosCredits",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Where every logo came from: source, licence and author.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/logos/lookup": {
+      "post": {
+        "operationId": "postLogosLookup",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What to show for up to 200 names: a logo, or the name.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/logos/preview": {
+      "get": {
+        "operationId": "getLogosPreview",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A candidate logo, through this server. Wikimedia addresses only.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/logos/status": {
+      "get": {
+        "operationId": "getLogosStatus",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether logo downloads are agreed to, and how far they have got.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/logos/{id}": {
+      "put": {
+        "operationId": "putLogosId",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Use a candidate, the name alone, or look again.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/logos/{id}/candidates": {
+      "get": {
+        "operationId": "getLogosIdCandidates",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What the source offers for a logo, to choose from.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/logos/{id}/image": {
+      "get": {
+        "operationId": "getLogosIdImage",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A logo as a PNG. variant=white, dark or original.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/logos/{id}/upload": {
+      "put": {
+        "operationId": "putLogosIdUpload",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Use your own picture as a logo. The picture is the body.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/logout": {
@@ -17578,6 +19572,240 @@
         "x-wms-auth": "admin"
       }
     },
+    "/match/accept": {
+      "post": {
+        "operationId": "postMatchAccept",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Choose results for up to 100 titles at once.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/match/queue": {
+      "get": {
+        "operationId": "getMatchQueue",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Titles worst first, with how sure each match is and why.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/match/rules": {
+      "get": {
+        "operationId": "getMatchRules",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A library's naming rules.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putMatchRules",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace a library's naming rules.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/match/rules/try": {
+      "post": {
+        "operationId": "postMatchRulesTry",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What some rules would do to a library's files. Changes nothing.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/match/suggest-all": {
+      "post": {
+        "operationId": "postMatchSuggestAll",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Find suggestions for everything that needs a look, in the background.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getMatchSuggestAll",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How that is going.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "delete": {
+        "operationId": "deleteMatchSuggestAll",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop it.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/me": {
       "get": {
         "operationId": "getMe",
@@ -17891,6 +20119,1280 @@
           "Sign-in and accounts"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/meta/bulk": {
+      "post": {
+        "operationId": "postMetaBulk",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit up to 500 titles together.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/history": {
+      "get": {
+        "operationId": "getMetaHistory",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Recent changes, each of which can be undone.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/removed": {
+      "get": {
+        "operationId": "getMetaRemoved",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Titles taken out of libraries.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/removed/restore": {
+      "post": {
+        "operationId": "postMetaRemovedRestore",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bring a removed title back.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/show/{id}/episodes": {
+      "get": {
+        "operationId": "getMetaShowIdEpisodes",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A show's files beside what its source lists.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "operationId": "putMetaShowIdEpisodes",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Renumber a show's episodes.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/undo": {
+      "post": {
+        "operationId": "postMetaUndo",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Undo a group of changes.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}": {
+      "get": {
+        "operationId": "getMetaTargetId",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Everything the edit dialog needs. target is item or show.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "operationId": "putMetaTargetId",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change fields and locks.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "deleteMetaTargetId",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a title out of its library. Its files stay.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/{target}/{id}/art/{kind}": {
+      "put": {
+        "operationId": "putMetaTargetIdArtKind",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a poster, backdrop, banner or logo. The picture is the body.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "get": {
+        "operationId": "getMetaTargetIdArtKind",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A title's banner or logo.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/{target}/{id}/artwork": {
+      "get": {
+        "operationId": "getMetaTargetIdArtwork",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every picture every source has for a title.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/{target}/{id}/attached": {
+      "get": {
+        "operationId": "getMetaTargetIdAttached",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A title's extras, versions, studios and other details beyond its row.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/{target}/{id}/leave": {
+      "post": {
+        "operationId": "postMetaTargetIdLeave",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "It has no match, or is right as it is: stop asking.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/{target}/{id}/link": {
+      "post": {
+        "operationId": "postMetaTargetIdLink",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make an item a bonus feature or another version of something.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "deleteMetaTargetIdLink",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make an attached item a title of its own again.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/{target}/{id}/listings": {
+      "get": {
+        "operationId": "getMetaTargetIdListings",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Which streaming services list a title, with its date and credit.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/{target}/{id}/match": {
+      "post": {
+        "operationId": "postMetaTargetIdMatch",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Choose a result. It stays chosen through scans and refreshes.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "deleteMetaTargetIdMatch",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a match and keep only what was typed.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/{target}/{id}/move": {
+      "post": {
+        "operationId": "postMetaTargetIdMove",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put a title in another library. Its files stay.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/{target}/{id}/preview": {
+      "post": {
+        "operationId": "postMetaTargetIdPreview",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What choosing a result, or refreshing, would change. Changes nothing.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/{target}/{id}/refresh": {
+      "post": {
+        "operationId": "postMetaTargetIdRefresh",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Look a title up again, keeping its match and its locks.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/{target}/{id}/revert": {
+      "post": {
+        "operationId": "postMetaTargetIdRevert",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put a field back to what its source said, and unlock it.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/{target}/{id}/search": {
+      "post": {
+        "operationId": "postMetaTargetIdSearch",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search every source, or find an id or address.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/meta/{target}/{id}/suggest": {
+      "post": {
+        "operationId": "postMetaTargetIdSuggest",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search for a title and keep the best results.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/metadata-folder": {
+      "get": {
+        "operationId": "getMetadataFolder",
+        "summary": "The editable metadata folder",
+        "description": "Where it is, what's in it and how the export is going. No route here takes a path.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The editable metadata folder",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/metadata-folder/apply": {
+      "post": {
+        "operationId": "applyMetadataFolder",
+        "summary": "Apply the files",
+        "description": "Makes the changes in one batch that POST /meta/undo takes back. A bad file is listed and left out.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Apply the files",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/metadata-folder/export": {
+      "post": {
+        "operationId": "exportMetadataFolder",
+        "summary": "Write the files",
+        "description": "Writes a plain text file for each title, in the background. Never deletes, and never writes over edits that haven't been applied.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Write the files",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/metadata-folder/preview": {
+      "get": {
+        "operationId": "previewMetadataFolder",
+        "summary": "What applying would change",
+        "description": "Field by field, with every problem by file and line. Writes nothing.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "What applying would change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
       }
     },
     "/metadata/test": {
@@ -22302,68 +25804,6 @@
         "x-wms-auth": "admin"
       }
     },
-    "/reset": {
-      "get": {
-        "operationId": "getReset",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResetView"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What a reset would do here, copies kept, and how the last went.",
-        "tags": [
-          "Server"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "post": {
-        "operationId": "postReset",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Back to a new install, the next time the server starts, which it does now.",
-        "tags": [
-          "Server"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
     "/repair": {
       "get": {
         "operationId": "getRepair",
@@ -22517,6 +25957,68 @@
           }
         ],
         "summary": "Restart, for a fix that waits for the next start.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/reset": {
+      "get": {
+        "operationId": "getReset",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetView"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a reset would do here, copies kept, and how the last went.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postReset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Back to a new install, the next time the server starts, which it does now.",
         "tags": [
           "Server"
         ],
@@ -24484,6 +27986,572 @@
         "x-wms-auth": "admin"
       }
     },
+    "/system/metrics": {
+      "get": {
+        "operationId": "getSystemMetrics",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsCatalog"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What statistics this server can show, and what this account may see.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/metrics/history": {
+      "get": {
+        "operationId": "getSystemMetricsHistory",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "range",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "series",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsHistory"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Charts' worth of numbers. Administrators only, whichever the account's sign-in.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/metrics/now": {
+      "get": {
+        "operationId": "getSystemMetricsNow",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sections",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsNow"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One reading of the statistics.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/metrics/report": {
+      "get": {
+        "operationId": "getSystemMetricsReport",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "fresh",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Libraries, what's in them, and what's gone on.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/metrics/stream": {
+      "get": {
+        "operationId": "streamSystemMetrics",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sections",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "An event stream."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Server-sent events: a reading every two seconds. See STATS.md.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/tasks": {
+      "get": {
+        "operationId": "getSystemTasks",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskList"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Background work going on now, and what finished lately, as this account may see it.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/tasks/history": {
+      "delete": {
+        "operationId": "clearSystemTaskHistory",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forgets the history. What is still going stays.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getSystemTaskHistory",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "library",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "tasks": {
+                      "items": {
+                        "$ref": "#/components/schemas/Task"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Finished tasks, newest first.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/tasks/history/{id}": {
+      "delete": {
+        "operationId": "deleteSystemTaskHistory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forgets one finished task.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/system/tasks/stream": {
+      "get": {
+        "operationId": "streamSystemTasks",
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "An event stream."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Server-sent events: a snapshot, then what changes. See TASKS.md.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/system/tasks/{id}/cancel": {
+      "post": {
+        "operationId": "cancelSystemTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Asks a task to stop.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/system/tasks/{id}/pause": {
+      "post": {
+        "operationId": "pauseSystemTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Asks a task to pause at its next step.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/system/tasks/{id}/resume": {
+      "post": {
+        "operationId": "resumeSystemTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lets a paused task carry on.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/system/tasks/{id}/retry": {
+      "post": {
+        "operationId": "retrySystemTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Starts a failed or cancelled task again.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/themes": {
       "get": {
         "operationId": "getThemes",
@@ -26278,526 +30346,6 @@
         "x-wms-auth": "user"
       }
     },
-    "/wittyrigs": {
-      "get": {
-        "operationId": "getSunshine",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See docs/GAME-RIGS.md."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "WittyRigs: whether it is on, and whether Sunshine is on this machine.",
-        "tags": [
-          "Game PCs"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "put": {
-        "operationId": "putSunshine",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See docs/GAME-RIGS.md."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Turn WittyRigs on or off.",
-        "tags": [
-          "Game PCs"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/logos/status": {
-      "get": {
-        "operationId": "getLogosStatus",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Whether logo downloads are agreed to, and how far they have got.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/logos/consent": {
-      "put": {
-        "operationId": "putLogosConsent",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Agree or decline logo downloads, and optionally remove what was downloaded.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/logos/lookup": {
-      "post": {
-        "operationId": "postLogosLookup",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What to show for up to 200 names: a logo, or the name.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/logos/credits": {
-      "get": {
-        "operationId": "getLogosCredits",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Where every logo came from: source, licence and author.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/logos/preview": {
-      "get": {
-        "operationId": "getLogosPreview",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A candidate logo, through this server. Wikimedia addresses only.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/logos/{id}/image": {
-      "get": {
-        "operationId": "getLogosIdImage",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A logo as a PNG. variant=white, dark or original.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/logos/{id}/candidates": {
-      "get": {
-        "operationId": "getLogosIdCandidates",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What the source offers for a logo, to choose from.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/logos/{id}": {
-      "put": {
-        "operationId": "putLogosId",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Use a candidate, the name alone, or look again.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/logos/{id}/upload": {
-      "put": {
-        "operationId": "putLogosIdUpload",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Use your own picture as a logo. The picture is the body.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/brands": {
-      "get": {
-        "operationId": "getBrands",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "The studios or networks of a library, most titles first.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/browse": {
-      "get": {
-        "operationId": "getBrowse",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Films and shows as one list, by any filter and sort.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/browse/facets": {
-      "get": {
-        "operationId": "getBrowseFacets",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Everything a library can be filtered by, with counts.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/browse/shelves": {
-      "get": {
-        "operationId": "getBrowseShelves",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A library page in one answer: categories, studios, networks, collections and streaming services.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/browse/categories": {
-      "put": {
-        "operationId": "putBrowseCategories",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Rename, hide, merge or reorder a library's categories, or start again.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
     "/views": {
       "get": {
         "operationId": "getViews",
@@ -26974,1602 +30522,64 @@
         ]
       }
     },
-    "/listings/status": {
+    "/wittyrigs": {
       "get": {
-        "operationId": "getListingsStatus",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Whether streaming listings are on, for which region, and how old they are.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/listings/settings": {
-      "put": {
-        "operationId": "putListingsSettings",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Turn streaming listings on, after accepting every statement, or off, which forgets them.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/listings/refresh": {
-      "post": {
-        "operationId": "postListingsRefresh",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Check listings again now.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/meta/removed": {
-      "get": {
-        "operationId": "getMetaRemoved",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Titles taken out of libraries.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/meta/removed/restore": {
-      "post": {
-        "operationId": "postMetaRemovedRestore",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Bring a removed title back.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/meta/undo": {
-      "post": {
-        "operationId": "postMetaUndo",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Undo a group of changes.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/meta/history": {
-      "get": {
-        "operationId": "getMetaHistory",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Recent changes, each of which can be undone.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/meta/bulk": {
-      "post": {
-        "operationId": "postMetaBulk",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Edit up to 500 titles together.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/meta/show/{id}/episodes": {
-      "get": {
-        "operationId": "getMetaShowIdEpisodes",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A show's files beside what its source lists.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      },
-      "put": {
-        "operationId": "putMetaShowIdEpisodes",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Renumber a show's episodes.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}": {
-      "get": {
-        "operationId": "getMetaTargetId",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Everything the edit dialog needs. target is item or show.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      },
-      "put": {
-        "operationId": "putMetaTargetId",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Change fields and locks.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      },
-      "delete": {
-        "operationId": "deleteMetaTargetId",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Take a title out of its library. Its files stay.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/revert": {
-      "post": {
-        "operationId": "postMetaTargetIdRevert",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Put a field back to what its source said, and unlock it.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/search": {
-      "post": {
-        "operationId": "postMetaTargetIdSearch",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Search every source, or find an id or address.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/preview": {
-      "post": {
-        "operationId": "postMetaTargetIdPreview",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What choosing a result, or refreshing, would change. Changes nothing.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/match": {
-      "post": {
-        "operationId": "postMetaTargetIdMatch",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Choose a result. It stays chosen through scans and refreshes.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      },
-      "delete": {
-        "operationId": "deleteMetaTargetIdMatch",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Remove a match and keep only what was typed.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/refresh": {
-      "post": {
-        "operationId": "postMetaTargetIdRefresh",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Look a title up again, keeping its match and its locks.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/suggest": {
-      "post": {
-        "operationId": "postMetaTargetIdSuggest",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Search for a title and keep the best results.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/leave": {
-      "post": {
-        "operationId": "postMetaTargetIdLeave",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "It has no match, or is right as it is: stop asking.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/artwork": {
-      "get": {
-        "operationId": "getMetaTargetIdArtwork",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Every picture every source has for a title.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/art/{kind}": {
-      "put": {
-        "operationId": "putMetaTargetIdArtKind",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Upload a poster, backdrop, banner or logo. The picture is the body.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "kind",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      },
-      "get": {
-        "operationId": "getMetaTargetIdArtKind",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A title's banner or logo.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "kind",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/link": {
-      "post": {
-        "operationId": "postMetaTargetIdLink",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Make an item a bonus feature or another version of something.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      },
-      "delete": {
-        "operationId": "deleteMetaTargetIdLink",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Make an attached item a title of its own again.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/move": {
-      "post": {
-        "operationId": "postMetaTargetIdMove",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Put a title in another library. Its files stay.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/listings": {
-      "get": {
-        "operationId": "getMetaTargetIdListings",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Which streaming services list a title, with its date and credit.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/meta/{target}/{id}/attached": {
-      "get": {
-        "operationId": "getMetaTargetIdAttached",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A title's extras, versions, studios and other details beyond its row.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "target",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/match/queue": {
-      "get": {
-        "operationId": "getMatchQueue",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Titles worst first, with how sure each match is and why.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/match/accept": {
-      "post": {
-        "operationId": "postMatchAccept",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Choose results for up to 100 titles at once.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/match/suggest-all": {
-      "post": {
-        "operationId": "postMatchSuggestAll",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Find suggestions for everything that needs a look, in the background.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "get": {
-        "operationId": "getMatchSuggestAll",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "How that is going.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "delete": {
-        "operationId": "deleteMatchSuggestAll",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Stop it.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/match/rules": {
-      "get": {
-        "operationId": "getMatchRules",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A library's naming rules.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "put": {
-        "operationId": "putMatchRules",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Replace a library's naming rules.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/match/rules/try": {
-      "post": {
-        "operationId": "postMatchRulesTry",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What some rules would do to a library's files. Changes nothing.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/metadata-folder": {
-      "get": {
-        "operationId": "getMetadataFolder",
-        "summary": "The editable metadata folder",
-        "description": "Where it is, what's in it and how the export is going. No route here takes a path.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
+        "operationId": "getSunshine",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "The editable metadata folder",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object"
                 }
               }
-            }
+            },
+            "description": "See docs/GAME-RIGS.md."
           },
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
-      }
-    },
-    "/metadata-folder/export": {
-      "post": {
-        "operationId": "exportMetadataFolder",
-        "summary": "Write the files",
-        "description": "Writes a plain text file for each title, in the background. Never deletes, and never writes over edits that haven't been applied.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
+        },
         "security": [
           {
             "bearer": []
           }
         ],
+        "summary": "WittyRigs: whether it is on, and whether Sunshine is on this machine.",
+        "tags": [
+          "Game PCs"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putSunshine",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Write the files",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object"
                 }
               }
-            }
+            },
+            "description": "See docs/GAME-RIGS.md."
           },
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
-      }
-    },
-    "/metadata-folder/preview": {
-      "get": {
-        "operationId": "previewMetadataFolder",
-        "summary": "What applying would change",
-        "description": "Field by field, with every problem by file and line. Writes nothing.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "admin",
+        },
         "security": [
           {
             "bearer": []
           }
         ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "What applying would change",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/metadata-folder/apply": {
-      "post": {
-        "operationId": "applyMetadataFolder",
-        "summary": "Apply the files",
-        "description": "Makes the changes in one batch that POST /meta/undo takes back. A bad file is listed and left out.",
+        "summary": "Turn WittyRigs on or off.",
         "tags": [
-          "Metadata"
+          "Game PCs"
         ],
-        "x-wms-auth": "admin",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Apply the files",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
+        "x-wms-auth": "admin"
       }
     }
   },

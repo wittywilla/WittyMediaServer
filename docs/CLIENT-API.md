@@ -25,6 +25,7 @@ isn't what the server does, or when a schema no longer matches the Go type behin
 - [What a TV app must build itself](#what-a-tv-app-must-build-itself)
 - [Game details](#game-details)
 - [Legal notices](#legal-notices)
+- [Background tasks and server stats](#background-tasks-and-server-stats)
 - [Adding to the API](#adding-to-the-api)
 - [Every route](#every-route)
 
@@ -767,6 +768,19 @@ same words everywhere. `GET /legal/notices` needs no sign-in and returns them by
   them `ack` once, then call `POST /legal/acknowledge`. `POST /setup` takes `acknowledgedLegal: true`
   when a client's own setup screen has shown it. Neither sends anything off the server.
 
+## Background tasks and server stats
+
+What the server is doing in the background: library scans, metadata, module installs, transcodes and more, each with its
+progress, speed, time left and errors. `GET /system/tasks` gives the state of things and `GET /system/tasks/stream` keeps it
+up to date, with no polling. [TASKS.md](TASKS.md#the-api) has the fields, the stream's format and who sees what. The server
+decides what each account may see: follow `access` in the answer. If `access.visible` is false, show nothing. If
+`access.readOnly` is true, show no controls.
+
+The server's statistics are in [STATS.md](STATS.md): the processor, memory, disks, network, streams, libraries and more, with
+history for charts. `GET /system/metrics` says what this server can show and what this account may see, and a section a system
+can't provide is left out rather than sent as zero. Keep `GET /system/metrics/stream` open only while it's on screen, as that's
+what keeps the sampling going.
+
 ## Adding to the API
 
 For anyone adding a feature (a new library, channels, games):
@@ -1406,6 +1420,30 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `POST /me/2fa/setup` | user | Two factor setup. |
 | `POST /me/2fa/confirm` | user | Two factor confirm. |
 | `POST /me/2fa/disable` | user | Two factor disable. |
+
+### Background tasks
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /system/tasks` | user | What's going on now and what finished lately, as this account may see it |
+| `GET /system/tasks/stream` | user | Server-sent events: a snapshot, then what changes |
+| `GET /system/tasks/history` | user | Finished tasks, newest first |
+| `DELETE /system/tasks/history` | admin | Forgets the history |
+| `DELETE /system/tasks/history/{id}` | admin | Forgets one finished task |
+| `POST /system/tasks/{id}/pause` | admin | Asks a task to pause at its next step |
+| `POST /system/tasks/{id}/resume` | admin | Lets a paused task carry on |
+| `POST /system/tasks/{id}/cancel` | admin | Asks a task to stop |
+| `POST /system/tasks/{id}/retry` | admin | Starts a failed or cancelled task again |
+
+### Server statistics
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /system/metrics` | user | What statistics this server can show, and what this account may see |
+| `GET /system/metrics/now` | user | One reading |
+| `GET /system/metrics/stream` | user | Server-sent events: a reading every two seconds, while it's open |
+| `GET /system/metrics/history` | user | Charts' worth of numbers, for administrators |
+| `GET /system/metrics/report` | user | Libraries, what's in them, and what's gone on |
 
 ### More server routes
 

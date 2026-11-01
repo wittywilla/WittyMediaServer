@@ -157,7 +157,7 @@ Before:
 
 The real thing:
 
-- [ ] `scripts/cutover-modules.sh --apply --require-merged branch-one,branch-two`. Use the machine
+- [ ] `scripts/cutover-modules.sh --apply --public-key <public half> --require-merged branch-one,branch-two`. Use the machine
       where `gh` and `git push` are signed in. It stops at the first failure and can be run again:
       what is already released is left alone, and tags never move.
       If a release workflow fails, open the run it names. For a passing problem, click *Re-run

@@ -73,10 +73,10 @@ func TestProtectedEPUBsAreRefused(t *testing.T) {
 		"protection with its name in capitals": {
 			"META-INF/ENCRYPTION.XML": encryptionXML([2]string{aes128, "OEBPS/c.xhtml"}),
 		},
-		"an algorithm nobody knows":    {"META-INF/encryption.xml": encryptionXML([2]string{"urn:made-up", "OEBPS/c.xhtml"})},
-		"no algorithm at all":          {"META-INF/encryption.xml": encryptionXML([2]string{"", "OEBPS/c.xhtml"})},
-		"pictures locked":              {"META-INF/encryption.xml": encryptionXML([2]string{aes128, "OEBPS/p1.jpg"})},
-		"fonts and chapters both":      {"META-INF/encryption.xml": encryptionXML([2]string{idpfFonts, "OEBPS/f.otf"}, [2]string{aes128, "OEBPS/c.xhtml"})},
+		"an algorithm nobody knows":      {"META-INF/encryption.xml": encryptionXML([2]string{"urn:made-up", "OEBPS/c.xhtml"})},
+		"no algorithm at all":            {"META-INF/encryption.xml": encryptionXML([2]string{"", "OEBPS/c.xhtml"})},
+		"pictures locked":                {"META-INF/encryption.xml": encryptionXML([2]string{aes128, "OEBPS/p1.jpg"})},
+		"fonts and chapters both":        {"META-INF/encryption.xml": encryptionXML([2]string{idpfFonts, "OEBPS/f.otf"}, [2]string{aes128, "OEBPS/c.xhtml"})},
 		"the font scramble on a chapter": {"META-INF/encryption.xml": encryptionXML([2]string{idpfFonts, "OEBPS/c.xhtml"})},
 		"a list that can't be read, beside a licence": {
 			"META-INF/encryption.xml": `<<<not xml`,
@@ -100,13 +100,13 @@ func TestProtectedEPUBsAreRefused(t *testing.T) {
 // What must simply work: a publisher's scrambled fonts are not protection of the book.
 func TestUnprotectedEPUBsOpen(t *testing.T) {
 	cases := map[string]map[string]string{
-		"nothing listed":     nil,
-		"the common scramble": {"META-INF/encryption.xml": encryptionXML([2]string{idpfFonts, "OEBPS/fonts/a.otf"})},
-		"the other scramble":  {"META-INF/encryption.xml": encryptionXML([2]string{adobeFonts, "OEBPS/fonts/a.ttf"})},
-		"many scrambled fonts": {"META-INF/encryption.xml": encryptionXML([2]string{idpfFonts, "OEBPS/a.otf"}, [2]string{adobeFonts, "OEBPS/b.woff"}, [2]string{idpfFonts, "OEBPS/c%20d.TTF"})},
-		"a font locked and nothing else": {"META-INF/encryption.xml": encryptionXML([2]string{aes128, "OEBPS/a.otf"})},
-		"an empty list":        {"META-INF/encryption.xml": encryptionXML()},
-		"a damaged list, readable chapters": {"META-INF/encryption.xml": `<<<not xml`},
+		"nothing listed":                                   nil,
+		"the common scramble":                              {"META-INF/encryption.xml": encryptionXML([2]string{idpfFonts, "OEBPS/fonts/a.otf"})},
+		"the other scramble":                               {"META-INF/encryption.xml": encryptionXML([2]string{adobeFonts, "OEBPS/fonts/a.ttf"})},
+		"many scrambled fonts":                             {"META-INF/encryption.xml": encryptionXML([2]string{idpfFonts, "OEBPS/a.otf"}, [2]string{adobeFonts, "OEBPS/b.woff"}, [2]string{idpfFonts, "OEBPS/c%20d.TTF"})},
+		"a font locked and nothing else":                   {"META-INF/encryption.xml": encryptionXML([2]string{aes128, "OEBPS/a.otf"})},
+		"an empty list":                                    {"META-INF/encryption.xml": encryptionXML()},
+		"a damaged list, readable chapters":                {"META-INF/encryption.xml": `<<<not xml`},
 		"a store's leftovers on a book with no protection": {"META-INF/rights.xml": `<rights/>`},
 	}
 	for what, extra := range cases {
@@ -134,10 +134,10 @@ func TestPasswordEPUBIsRefused(t *testing.T) {
 func TestChaptersThatAreText(t *testing.T) {
 	cut := bytes.Repeat([]byte("é"), 2048)[:4095] // ends halfway through a character
 	for what, b := range map[string][]byte{
-		"plain":         []byte("<html>words</html>"),
-		"empty":         {},
+		"plain":          []byte("<html>words</html>"),
+		"empty":          {},
 		"cut at the end": cut,
-		"UTF-16":        {0xFF, 0xFE, '<', 0, 'h', 0},
+		"UTF-16":         {0xFF, 0xFE, '<', 0, 'h', 0},
 	} {
 		if err := unreadableText(b); err != nil {
 			t.Errorf("%s: %v", what, err)

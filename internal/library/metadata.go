@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -18,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/metafolder"
 )
 
 func sortStrings(s []string) { sort.Strings(s) }
@@ -151,19 +152,12 @@ type nfoMovie struct {
 }
 
 func applyNFO(it *Item, path string) bool {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return false
-	}
 	var m nfoMovie
 	// NFOs sometimes have trailing URLs; cut at the closing tag.
-	if i := strings.LastIndex(string(b), "</movie>"); i > 0 {
-		b = b[:i+len("</movie>")]
-	}
-	if err := xml.Unmarshal(b, &m); err != nil {
-		slog.Default().Warn("could not read an NFO file; ignoring it", "cat", "library", "file", path, "err", err)
+	if !readSidecarXML(path, "</movie>", &m) {
 		return false
 	}
+	m.clean()
 	if m.Title != "" {
 		it.Title = m.Title
 	}
@@ -174,7 +168,7 @@ func applyNFO(it *Item, path string) bool {
 		y := m.Year
 		it.Year = &y
 	} else if len(m.Premiered) >= 4 {
-		if y, err := strconv.Atoi(m.Premiered[:4]); err == nil {
+		if y, err := strconv.Atoi(m.Premiered[:4]); err == nil && validYear(y) {
 			it.Year = &y
 		}
 	}
@@ -219,19 +213,13 @@ func applyNFO(it *Item, path string) bool {
 		it.Provider, it.ProviderID = "tmdb", m.TMDBID
 	}
 	if it.Poster == "" {
-		for _, t := range m.Thumb {
-			if u := webURL(t); u != "" {
-				it.Poster = u
-				break
-			}
+		if u := firstWebAddress(m.Thumb); u != "" {
+			it.Poster = u
 		}
 	}
 	if it.Backdrop == "" {
-		for _, t := range m.Fanart.Thumb {
-			if u := webURL(t); u != "" {
-				it.Backdrop = u
-				break
-			}
+		if u := firstWebAddress(m.Fanart.Thumb); u != "" {
+			it.Backdrop = u
 		}
 	}
 	return true
@@ -252,15 +240,11 @@ type sidecarJSON struct {
 }
 
 func applySidecarJSON(it *Item, path string) bool {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return false
-	}
 	var m sidecarJSON
-	if err := json.Unmarshal(b, &m); err != nil {
-		slog.Default().Warn("could not read a metadata file; ignoring it", "cat", "library", "file", path, "err", err)
+	if !readSidecarJSON(path, metafolder.MaxJSON, &m) {
 		return false
 	}
+	m.clean()
 	if m.Title != "" {
 		it.Title = m.Title
 	}

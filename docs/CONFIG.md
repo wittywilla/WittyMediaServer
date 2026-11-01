@@ -116,6 +116,10 @@ Without a config file the data folder is:
 | Linux, BSD | `~/.local/share/wittymediaserver` (or `$XDG_DATA_HOME/wittymediaserver`) |
 | Docker | `/config` |
 
+**`backups` inside the data folder** holds the [backups](BACKUP.md) you make, and the safety copies from restores and repairs. A reset that keeps a copy leaves it where it is.
+
+**`metadata` inside the data folder** holds one plain text file for each title, to fix by hand. It's filled when you export it, and nothing reads it until you apply it. See [Fixing metadata by hand](FIXING-METADATA.md). It isn't the same as `metadataDir`, the artwork folder, below.
+
 Moving the **metadata** folder: stop the server, move the folder's contents to the new place,
 set `metadataDir`, start the server. Artwork is referenced by file name, so nothing has to be
 rescanned. The same works for `transcodeDir` (it only holds temporary files).
@@ -148,9 +152,23 @@ unless you send a file yourself, for example with a bug report.
   server itself), and a picker to choose another folder.
 - **Crash reports** — if the server crashes, or stops without shutting down (a power cut, say), the next start
   writes a report and points it out here. They're in `crash/` inside the data folder.
-- **Support bundle** — a zip of recent logs, crash reports and a summary of your system, to send with a bug
-  report. It shows you what's inside first, and can hide titles and file paths. It's made when you ask and
-  downloaded by you: nothing is uploaded.
+- **Download logs** — a zip of recent logs, crash reports and a summary of your system, to send with a bug
+  report. **Download logs as ZIP** is on every tab of the page, and on a page that fails to load. Beside the button
+  is **Sanitize for sharing**, on by default: IP addresses, computer and web names, network card addresses, account
+  names, email addresses, file paths, folders, library names and titles are replaced with placeholders such as
+  `[path-3]`, which keep the same number all through the file, so what happened to one thing can still be followed.
+  The list of what each number stood for is never saved. Versions, codecs, status codes, timings, routes and errors
+  stay. The page shows the files, how much would be replaced, and lines before and after, before you download. It's
+  made when you ask and downloaded by you: nothing is uploaded.
+- **With no server running** — for a server that won't start:
+
+  ```bash
+  wms logs zip [-data <dir>] [-o out.zip] [-days N] [--raw]   # sanitized unless --raw
+  wms logs sanitize [-data <dir>] [-o out.txt] <file>         # a sanitized copy of any text log
+  ```
+
+  They only read. The database is looked at for the names to hide. If it's too broken to read they say so and carry on,
+  replacing everything that looks like a name, address or path, and any name the logs themselves label as one.
 
 Passwords, sign-in tokens, stream tokens, API keys, PINs, cookies and setup codes are removed from every log line
 automatically. Apps report their errors only to your own server, and you can turn that off.

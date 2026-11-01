@@ -72,6 +72,27 @@ var activeGuard struct {
 	g *CrashGuard
 }
 
+// ServerRunning says whether another process is running as a server on the folder that
+// holds these crash reports, for tools that mustn't change its files underneath it.
+func ServerRunning(crashDir string) (pid int, running bool) {
+	entries, err := os.ReadDir(crashDir)
+	if err != nil {
+		return 0, false
+	}
+	me := os.Getpid()
+	for _, e := range entries {
+		name := e.Name()
+		if !strings.HasPrefix(name, "run-") || !strings.HasSuffix(name, ".json") {
+			continue
+		}
+		n, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(name, "run-"), ".json"))
+		if err == nil && n != me && pidAlive(n) {
+			return n, true
+		}
+	}
+	return 0, false
+}
+
 // StartCrashGuard turns what the last run left behind into reports and arms the
 // capture for this run. logDir is read for the last lines before a crash. It
 // returns the reports made now; failures are logged, and never stop the server.
@@ -101,6 +122,30 @@ func StartCrashGuard(dir, logDir, version string) (*CrashGuard, []Crash, error) 
 	activeGuard.g = g
 	activeGuard.Unlock()
 	return g, found, nil
+}
+
+// RunningServer says whether a server is running on this data folder, by the marker each
+// run leaves in its crash folder and whether that process is still alive. A marker
+// whose process has gone is what a crash leaves, and isn't a running server.
+func RunningServer(crashDir string) (pid int, ok bool) {
+	entries, err := os.ReadDir(crashDir)
+	if err != nil {
+		return 0, false
+	}
+	for _, e := range entries {
+		name := e.Name()
+		if !strings.HasPrefix(name, "run-") || !strings.HasSuffix(name, ".json") {
+			continue
+		}
+		p, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(name, "run-"), ".json"))
+		if err != nil || p == os.Getpid() {
+			continue
+		}
+		if pidAlive(p) {
+			return p, true
+		}
+	}
+	return 0, false
 }
 
 func (g *CrashGuard) writeMarker() error {
@@ -353,6 +398,10 @@ var crashName = regexp.MustCompile(`^crash-[0-9TZ.]+-(fatal|panic|unclean)$`)
 
 // IsCrashID accepts only our own report names (never a path).
 func IsCrashID(id string) bool { return crashName.MatchString(id) }
+
+// OpenCrashReports reads the reports in a folder without arming anything or changing any
+// of them, for a tool running beside a server or without one.
+func OpenCrashReports(dir string) *CrashGuard { return &CrashGuard{dir: dir} }
 
 // List is every report, newest first.
 func (g *CrashGuard) List() []Crash {

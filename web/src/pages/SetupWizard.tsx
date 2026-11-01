@@ -1,5 +1,5 @@
 import { MusicOnlineStep } from './MusicOnline'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { api, setToken, type GameSource, type Library, type User } from '../api'
 import { GameKeyFields } from './GameMeta'
 import { Brand, VersionTag } from '../components/common'
@@ -32,6 +32,8 @@ const FEATURES = [
   { icon: <IconUsers />, title: 'Everyone at home', text: 'Profiles with their own progress, and Kids profiles by age.' },
   { icon: <IconPalette />, title: 'Yours', text: 'Themes, your server’s name, and no telemetry or accounts with anyone.' },
 ]
+
+const RestoreFlow = lazy(() => import('./settings/Backup').then((m) => ({ default: m.RestoreFlow })))
 
 export default function SetupWizard({ resume }: { resume: boolean }) {
   const { setUser, setOnboarding, brandName, setBrandName, setBrandLogo, version, refreshLibraries } = useApp()
@@ -105,6 +107,7 @@ export default function SetupWizard({ resume }: { resume: boolean }) {
               {naming && <BrandDialog name={serverName} logo={logoPreview} onClose={() => setNaming(false)}
                 onSave={(n, logo) => { setServerName(n); if (logo === 'remove') setPendingLogo(null); else if (logo) setPendingLogo(logo) }} />}
               <button className="btn primary big oobe-start" autoFocus onClick={() => go('account')}>Get started</button>
+              <RestoreEntry />
             </section>
           )}
 
@@ -521,5 +524,32 @@ function LookStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
         <button type="button" className="btn primary big" onClick={save}>Continue</button>
       </div>
     </section>
+  )
+}
+
+// Starting again after a reset, or moving to a new machine: bring a backup back instead of
+// setting everything up. From another network it takes the setup code, like making an account.
+function RestoreEntry() {
+  const [open, setOpen] = useState(false)
+  const [needCode, setNeedCode] = useState(false)
+  const [code, setCode] = useState('')
+  useEffect(() => { api.get<{ setupCodeRequired?: boolean }>('/status').then((s) => setNeedCode(!!s.setupCodeRequired)).catch(() => {}) }, [])
+  return (
+    <div className="oobe-restore">
+      <div className="oobe-restore-head">
+        <span className="muted">Coming back from a reset, or moving to this machine?</span>
+        <button type="button" className="btn" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? 'Close' : 'Restore from a backup'}</button>
+      </div>
+      {open && (
+        <div>
+          {needCode && (
+            <label className="oobe-field">Setup code, shown on the server’s console
+              <input className="input" autoComplete="off" value={code} onChange={(e) => setCode(e.target.value)} />
+            </label>
+          )}
+          {(!needCode || code.trim().length > 0) && <Suspense fallback={null}><RestoreFlow firstRun setupCode={needCode ? code.trim() : undefined} /></Suspense>}
+        </div>
+      )}
+    </div>
   )
 }

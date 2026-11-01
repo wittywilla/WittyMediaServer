@@ -6,6 +6,7 @@ already use, so you can move an existing library in — or out — without re-ta
 - [Where metadata comes from](#where-metadata-comes-from)
 - [What is saved next to your media](#what-is-saved-next-to-your-media)
 - [Editing and fixing matches](#editing-and-fixing-matches)
+- [Fixing metadata by hand](FIXING-METADATA.md): a folder of plain text files, one for each title, to edit in any text editor
 - [Fix matches: the review list](#fix-matches-the-review-list)
 - [Names that say what a file is](#names-that-say-what-a-file-is)
 - [Categories, studios and browsing](#categories-studios-and-browsing)
@@ -107,6 +108,7 @@ picture is fetched from the internet only. Only real pictures (JPEG, PNG, WebP, 
 
 ## What is saved next to your media
 
+Your metadata is in the server's database, and comes along in a [backup](BACKUP.md). 
 With *Settings → Metadata agents → Save information and artwork next to your media* on (the
 default), the server writes these files in the standard layout other media servers read too:
 
@@ -121,6 +123,10 @@ default), the server writes these files in the standard layout other media serve
 Artwork saved this way is always a real picture from the internet, the image cache or your own
 disk: a sidecar file or a feed can't make the server copy another kind of file here, or fetch
 something from your local network.
+
+Anything read back from a file beside your media, your own or anyone else's, is limited in size and cleaned to plain text: no HTML, no scripts, no hidden
+characters, and pictures that are only web addresses or files in that folder. A file that can't be read is left out with a warning in *Settings → WittyLog*
+naming the file and the line. [How it's kept safe](FIXING-METADATA.md#how-its-kept-safe).
 
 Scans only write metadata for items that have no NFO yet; your own NFOs are never touched by a
 scan, and if you edit an item whose NFO you wrote by hand, the original is kept as `<name>.nfo.bak`.
@@ -180,6 +186,11 @@ file, which its page then offers as a choice. Either can be undone with one butt
 **Move to** puts a title in another library that holds the same kind of thing. Its files don't move: the library it was found in leaves it alone from then on, and the new one looks after it. Where it can't move, it says why.
 
 **Delete** takes a title out of its library and leaves its files on disk. It won't come back on a scan, and can be brought back from *Fix matches → Removed*. Nothing here ever deletes a file.
+
+## Fixing by hand
+
+Prefer a text editor, or have a lot of small fixes to make? *Settings → Repair → Metadata files* writes a plain text file for each title, shows you what your edits
+would change, and applies them, locked and undoable like anything typed into **Edit**. The guide, with examples, is [Fixing metadata by hand](FIXING-METADATA.md).
 
 ## Fix matches: the review list
 

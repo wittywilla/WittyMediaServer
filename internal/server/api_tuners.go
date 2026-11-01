@@ -27,6 +27,7 @@ func (s *Server) tunerRoutes(m *http.ServeMux) {
 	ad := s.requireAdmin
 	if s.TV == nil && s.DB != nil {
 		s.TV = livetv.New(s.DB, s.Tools, s.Log)
+		s.TV.Tasks = s.Tasks
 		s.TV.Folder = func() string {
 			if f := s.tvSetting(context.Background(), "dvrFolder"); f != "" {
 				return f

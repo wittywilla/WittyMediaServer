@@ -168,7 +168,8 @@ pw userdel media
 if [ -f /root/old.tar.gz ]; then
   say "taking over from a real 0.5.2-alpha, installed with its own install.sh: custom data and port"
   rm -rf /root/old; mkdir -p /root/old; tar -xzf /root/old.tar.gz -C /root/old --strip-components=1
-  mkdir -p /var/lib
+  # The old script needed these already there.
+  mkdir -p /var/lib /usr/local/etc/rc.d /usr/local/share/applications
   sh /root/old/install.sh --prefix /opt/oldwms --data /srv/olddata --port 8125 > /tmp/out.txt 2>&1 || { cat /tmp/out.txt; fail "the old install"; }
   up 8125 /srv/olddata
   /opt/oldwms/wms version

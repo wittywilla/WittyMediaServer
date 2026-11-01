@@ -35,6 +35,11 @@ var (
 	maxTotalSize  int64 = 4 << 40
 	maxBombRatio  int64 = 400 // how far an entry over 1 MB may expand; SQLite with empty pages gets to 50
 	minRatioBytes int64 = 1 << 20
+	// maxListedManifest is how much of a manifest is read to list a backup. One with no password
+	// names each file, so this is passed at around 100,000 of them, and all that's lost then is
+	// the version beside its name in the list. Checking one reads the whole of it.
+	maxListedManifest int64 = 16 << 20
+	freeBytes               = sysinfo.FreeBytes
 )
 
 // Refusal says why an archive won't be used, in words for the person holding it.
@@ -184,24 +189,25 @@ func peekManifest(p string) (*Manifest, error) {
 	}
 	defer zr.Close()
 	for _, f := range zr.File {
-		if f.Name == ManifestName && f.UncompressedSize64 < uint64(maxManifest) {
-			return readManifest(f)
+		if f.Name == ManifestName && f.UncompressedSize64 < uint64(maxListedManifest) {
+			m, err := readManifest(f, maxListedManifest)
+			return m, err
 		}
 	}
 	return nil, errors.New("no manifest")
 }
 
-func readManifest(f *zip.File) (*Manifest, error) {
+func readManifest(f *zip.File, limit int64) (*Manifest, error) {
 	rc, err := f.Open()
 	if err != nil {
 		return nil, Refused(ManifestName, "it can't be read")
 	}
 	defer rc.Close()
-	b, err := io.ReadAll(io.LimitReader(rc, maxManifest+1))
+	b, err := io.ReadAll(io.LimitReader(rc, limit+1))
 	if err != nil {
 		return nil, Refused(ManifestName, "it can't be read")
 	}
-	if int64(len(b)) > maxManifest {
+	if int64(len(b)) > limit {
 		return nil, Refused(ManifestName, "it's far too large")
 	}
 	var m Manifest
@@ -400,7 +406,7 @@ func Inspect(ctx context.Context, archive, password string, f Folders, progress 
 	if manEntry == nil {
 		return in, &Refusal{Reason: "it has no manifest, so it isn't a WittyMediaServer backup"}
 	}
-	man, err := readManifest(manEntry)
+	man, err := readManifest(manEntry, maxManifest)
 	if err != nil {
 		return in, err
 	}
@@ -427,7 +433,7 @@ func Inspect(ctx context.Context, archive, password string, f Folders, progress 
 			return in, Refused(PayloadName, "it can't be read")
 		}
 		defer rc.Close()
-		if free := sysinfo.FreeBytes(work); free > 0 && free < int64(payload.UncompressedSize64) {
+		if free := freeBytes(work); free >= 0 && free < int64(payload.UncompressedSize64) {
 			return in, fmt.Errorf("there isn't room to open this backup: it needs about %d MB, and the drive has %d MB free", payload.UncompressedSize64>>20, free>>20)
 		}
 		innerPath := filepath.Join(work, "inner.zip")
@@ -463,7 +469,7 @@ func Inspect(ctx context.Context, archive, password string, f Folders, progress 
 		if innerMan == nil {
 			return in, Refused(PayloadName, "what's inside has no manifest")
 		}
-		if man, err = readManifest(innerMan); err != nil {
+		if man, err = readManifest(innerMan, maxManifest); err != nil {
 			return in, err
 		}
 		if man.Crypt != nil {

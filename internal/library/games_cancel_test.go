@@ -9,11 +9,13 @@ import (
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 )
 
 // A cancelled scan keeps what it really worked out, and nothing else: what it didn't get to
 // isn't taken for a file that isn't a game, now or in any scan after it.
 func TestCancellingAScanDoesNotChangeWhatTheNextOneFinds(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	d, err := db.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)

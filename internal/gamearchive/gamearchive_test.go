@@ -620,6 +620,7 @@ func TestChooseAmongMergedVersions(t *testing.T) {
 }
 
 func TestTheOwnersRegionOrderChoosesAmongVersions(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	t.Cleanup(func() { gameregion.Set("") })
 	snes := wittyplay.ByID("snes")
 	list := entries("Game (U) [!].sfc", "Game (E).sfc", "Game (J).sfc", "Game (J) [h1].sfc")

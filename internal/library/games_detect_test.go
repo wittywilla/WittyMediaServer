@@ -145,10 +145,15 @@ func TestConsoleComesFromTheBytes(t *testing.T) {
 	put(t, root, "Playstation 2/Not a Disc.iso", make([]byte, 64<<10))
 	put(t, root, "NES/Not a Cartridge.nes", make([]byte, 64<<10))
 
+	// A dump with no header isn't nothing, if it could be a cartridge's memory.
+	headerless := make([]byte, 64<<10)
+	headerless[0] = 0x78
+	put(t, root, "NES/Plain Dump.nes", headerless)
+
 	got, notes := discovered(t, root, "auto")
 	want := []string{
 		"Mystery Dreamcast.iso=dc", "Mystery Mega Drive.bin=md", "Mystery PS2.iso=ps2", "Mystery PSP.iso=psp", "Mystery Raw PS1.bin=ps1",
-		"Playstation 2/Really a PSP Game.cso=psp", "Playstation Portable/Really a PS1 Game.iso=ps1", "Playstation/Really a PS2 Game.iso=ps2",
+		"NES/Plain Dump.nes=nes", "Playstation 2/Really a PSP Game.cso=psp", "Playstation Portable/Really a PS1 Game.iso=ps1", "Playstation/Really a PS2 Game.iso=ps2",
 		"Super Nintendo/Really an N64 Game.bin=n64",
 	}
 	if !equal(got, want) {

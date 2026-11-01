@@ -144,7 +144,7 @@ function BulkBar({ items, busy, onAct }: { items: GameReviewItem[]; busy: boolea
   for (const it of items) {
     const s = it.suggest[0]
     if (!s) continue
-    const g = groups.get(s.console) || { name: s.name, ids: [] }
+    const g = groups.get(s.console) || { name: s.short, ids: [] }
     g.ids.push(it.id)
     groups.set(s.console, g)
   }
@@ -172,7 +172,7 @@ function ReviewRow({ it, tab, consoles, busy, onAct }: { it: GameReviewItem; tab
         {tab === 'ignored' && <Button size="sm" disabled={busy} onClick={() => onAct([it.id], 'forget', undefined, 'Taken back. The library is being scanned again.')}>Take it back</Button>}
         {(tab === 'needs' || tab === 'left') && it.kind !== 'duplicate' && (
           <>
-            {first && <Button size="sm" variant={tab === 'needs' ? 'primary' : 'ghost'} disabled={busy} onClick={() => onAct([it.id], 'add', first.console, `Added ${it.name} as a ${first.name} game.`)}><IconCheck /> It’s a {first.name} game</Button>}
+            {first && <Button size="sm" variant={tab === 'needs' ? 'primary' : 'ghost'} disabled={busy} onClick={() => onAct([it.id], 'add', first.console, `Added ${it.name} as a ${first.short} game.`)}><IconCheck /> It’s a {first.short} game</Button>}
             <Button size="sm" variant="ghost" disabled={busy} aria-expanded={choosing} onClick={() => setChoosing(!choosing)}>Another console</Button>
             {tab === 'needs' && <Button size="sm" variant="ghost" disabled={busy} onClick={() => onAct([it.id], 'ignore', undefined, `${it.name} won’t be listed.`)}><IconClose /> Not a game</Button>}
           </>

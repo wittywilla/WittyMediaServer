@@ -297,6 +297,18 @@ func sniffBIOS(r io.ReaderAt, size int64, head []byte) (Finding, bool) {
 // file is for one of these, only say whether a file a folder says is for one could be.
 func CheckFor(console string, r io.ReaderAt, size int64) (fits bool, why string) {
 	switch console {
+	case "nes":
+		// A dump with no header at all. Most cores want one, and Mesen can find what it needs
+		// from a checksum, so it's worth listing if it could be a cartridge's memory.
+		b := at(r, 0, 16)
+		same := b != nil
+		for _, c := range b {
+			same = same && c == b[0]
+		}
+		if size >= 16<<10 && size%(8<<10) == 0 && !same {
+			return true, "It has no NES header, so only some cores will play it. Mesen, if it's installed, works it out from its checksum."
+		}
+		return false, "It has no NES header, and doesn't look like a cartridge's memory either."
 	case "a2600":
 		// Bank-switched carts come in a fixed list of sizes.
 		switch size {

@@ -66,7 +66,7 @@ export type GameDetailsInfo = {
   discs?: { disc: number; name: string }[]
 }
 // Files in a games library that a scan wasn't sure about (GET /libraries/{id}/games/review).
-export type GameReviewItem = { id: number; path: string; name: string; size: number; kind: string; reason: string; suggest: { console: string; name: string }[]; itemId?: number }
+export type GameReviewItem = { id: number; path: string; name: string; size: number; kind: string; reason: string; suggest: { console: string; name: string; short: string }[]; itemId?: number }
 export type GameReview = { items: GameReviewItem[]; counts: Record<string, number>; total: number }
 export type GameImport = {
   scanning: boolean; scan: { phase: string; current: string; found: number; done: number } | null; lookup: GameMetaStatus

@@ -125,7 +125,7 @@ func hintNames(folder string) []string {
 
 // mustHaveHeader lists the consoles whose every game has a header their cores rely on.
 // A file for one of them without it won't play, whatever it's called.
-var mustHaveHeader = map[string]bool{"nes": true, "gb": true, "gba": true, "n64": true, "nds": true, "ngp": true, "ps1": true, "ps2": true, "psp": true, "3ds": true}
+var mustHaveHeader = map[string]bool{"gb": true, "gba": true, "n64": true, "nds": true, "ngp": true, "ps1": true, "ps2": true, "psp": true, "3ds": true}
 
 // opaqueExts are formats a header can't be read from here: compressed in a way that would
 // take a decoder of its own, or with one offset nothing can guess. They go by where they're
@@ -811,6 +811,7 @@ type GameReviewItem struct {
 type GameSuggestion struct {
 	Console string `json:"console"`
 	Name    string `json:"name"`
+	Short   string `json:"short"`
 }
 
 // GameReview is the review list, with how many of each kind there are.
@@ -877,7 +878,7 @@ func suggestionsFor(ids []string) []GameSuggestion {
 	out := []GameSuggestion{}
 	for _, id := range ids {
 		if c := wittyplay.ByID(id); c != nil && !c.Hidden {
-			out = append(out, GameSuggestion{Console: id, Name: c.Name})
+			out = append(out, GameSuggestion{Console: id, Name: c.Name, Short: c.Short})
 		}
 	}
 	return out

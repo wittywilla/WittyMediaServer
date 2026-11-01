@@ -39,9 +39,10 @@ var (
 
 // Asset is one file attached to a release.
 type Asset struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
-	Size int64  `json:"size"`
+	Name    string `json:"name"`
+	URL     string `json:"url"`
+	Size    int64  `json:"size"`
+	Updated string `json:"updated,omitempty"` // when it was uploaded, as GitHub says it
 }
 
 // Release is a published version with the files this system needs.
@@ -62,6 +63,14 @@ func (r *Release) Signed() bool { return r.Sums.URL != "" && r.Sig.URL != "" }
 
 type ghRelease = GHRelease
 
+// GHAsset is one file of a release, in GitHub's list.
+type GHAsset struct {
+	Name    string `json:"name"`
+	Size    int64  `json:"size"`
+	URL     string `json:"browser_download_url"`
+	Updated string `json:"updated_at,omitempty"`
+}
+
 // GHRelease is one entry of GitHub's list of a repository's releases.
 type GHRelease struct {
 	TagName     string    `json:"tag_name"`
@@ -71,11 +80,7 @@ type GHRelease struct {
 	Draft       bool      `json:"draft"`
 	Prerelease  bool      `json:"prerelease"`
 	PublishedAt time.Time `json:"published_at"`
-	Assets      []struct {
-		Name string `json:"name"`
-		Size int64  `json:"size"`
-		URL  string `json:"browser_download_url"`
-	} `json:"assets"`
+	Assets      []GHAsset `json:"assets"`
 }
 
 // ArchiveName is the release package for a platform, as built by

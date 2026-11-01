@@ -198,11 +198,7 @@ func TestThroughTheManager(t *testing.T) {
 			t.Fatal(err)
 		}
 		gh.files["/r/"+e.Name()] = b
-		rel.Assets = append(rel.Assets, struct {
-			Name string `json:"name"`
-			Size int64  `json:"size"`
-			URL  string `json:"browser_download_url"`
-		}{e.Name(), int64(len(b)), "https://github.com/r/" + e.Name()})
+		rel.Assets = append(rel.Assets, update.GHAsset{Name: e.Name(), Size: int64(len(b)), URL: "https://github.com/r/" + e.Name()})
 	}
 	gh.rels = []update.GHRelease{rel}
 

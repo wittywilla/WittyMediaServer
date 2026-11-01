@@ -59,7 +59,7 @@ func pageURL(raw string) string {
 func pickAssets(archive, id, ver string, g update.GHRelease) *release {
 	r := &release{version: ver}
 	for _, a := range g.Assets {
-		as := update.Asset{Name: a.Name, URL: a.URL, Size: a.Size}
+		as := update.Asset{Name: a.Name, URL: a.URL, Size: a.Size, Updated: a.Updated}
 		switch a.Name {
 		case archive:
 			r.archive = as

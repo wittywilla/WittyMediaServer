@@ -249,11 +249,7 @@ func (w *world) publish(ver string, man []byte) map[string]string {
 	g := update.GHRelease{TagName: "v" + ver, Name: "WittyPhotos " + ver, HTMLURL: "https://github.com/wittywilla/WittyPhotos/releases/tag/v" + ver, Prerelease: wittymodule.Prerelease(ver)}
 	for name, b := range assets {
 		w.gh.set(base+name, b)
-		g.Assets = append(g.Assets, struct {
-			Name string `json:"name"`
-			Size int64  `json:"size"`
-			URL  string `json:"browser_download_url"`
-		}{name, int64(len(b)), "https://github.com" + base + name})
+		g.Assets = append(g.Assets, update.GHAsset{Name: name, Size: int64(len(b)), URL: "https://github.com" + base + name})
 	}
 	w.gh.mu.Lock()
 	w.gh.rels = append([]update.GHRelease{g}, w.gh.rels...)
@@ -979,11 +975,7 @@ func TestRealHelperEndToEnd(t *testing.T) {
 			t.Fatal(err)
 		}
 		gh.files["/r/"+e.Name()] = b
-		g.Assets = append(g.Assets, struct {
-			Name string `json:"name"`
-			Size int64  `json:"size"`
-			URL  string `json:"browser_download_url"`
-		}{e.Name(), int64(len(b)), "https://github.com/r/" + e.Name()})
+		g.Assets = append(g.Assets, update.GHAsset{Name: e.Name(), Size: int64(len(b)), URL: "https://github.com/r/" + e.Name()})
 	}
 	gh.rels = []update.GHRelease{g}
 

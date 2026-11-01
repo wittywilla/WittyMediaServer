@@ -81,11 +81,7 @@ func (w *world) withdraw(id string, serial int, key ed25519.PrivateKey, vs ...wi
 	w.gh.set(base+name+".sig", update.Sign(key, b))
 	g := update.GHRelease{TagName: wittymodule.WithdrawalsTag, Name: "Withdrawn versions"}
 	for _, n := range []string{name, name + ".sig"} {
-		g.Assets = append(g.Assets, struct {
-			Name string `json:"name"`
-			Size int64  `json:"size"`
-			URL  string `json:"browser_download_url"`
-		}{n, 1, "https://github.com" + base + n})
+		g.Assets = append(g.Assets, update.GHAsset{Name: n, Size: 1, URL: "https://github.com" + base + n})
 	}
 	w.gh.mu.Lock()
 	defer w.gh.mu.Unlock()
@@ -639,11 +635,7 @@ func TestWebBundle(t *testing.T) {
 	g := update.GHRelease{TagName: "v0.2.0"}
 	for n, b := range map[string][]byte{archiveName: archive, manName: raw, sumsName: sums, sumsName + ".sig": update.Sign(w.key, sums)} {
 		w.gh.set(base+n, b)
-		g.Assets = append(g.Assets, struct {
-			Name string `json:"name"`
-			Size int64  `json:"size"`
-			URL  string `json:"browser_download_url"`
-		}{n, int64(len(b)), "https://github.com" + base + n})
+		g.Assets = append(g.Assets, update.GHAsset{Name: n, Size: int64(len(b)), URL: "https://github.com" + base + n})
 	}
 	w.gh.rels = []update.GHRelease{g}
 	builtin, _ := json.Marshal(wittymodule.Manifest{ID: id, Name: "WittyPhotos", Version: "0.1.0", Repo: "wittywilla/WittyPhotos", Delivery: wittymodule.DeliveryWeb, API: 2, MinServer: "0.1.0", MaxServer: "0.x"})
@@ -1094,6 +1086,102 @@ func TestWithdrawalsAreFoundByName(t *testing.T) {
 	check(t, m)
 	if v := find(t, versions(t, m), "0.2.0"); v.Allowed {
 		t.Fatalf("%+v", v)
+	}
+}
+
+// The list changes on an old release, so nothing about the list of the newest says it
+// did: one failed read, or a list that doesn't reach it, mustn't lose a withdrawal.
+func TestAWithdrawalIsSeenWithoutTheReleasesChanging(t *testing.T) {
+	withdrawn := func(m *Manager) bool { return find(t, versions(t, m), "0.2.0").Withdrawn != nil }
+
+	t.Run("after a read that failed", func(t *testing.T) {
+		w := newWorld(t)
+		w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+		w.withdraw("wittyphotos", 1, w.key, wittymodule.Withdrawn{Version: "0.2.0", Severity: wittymodule.SeveritySecurity, Reason: "x"})
+		name := "/wittywilla/WittyPhotos/releases/download/withdrawals/" + wittymodule.WithdrawalsName("wittyphotos")
+		w.gh.mu.Lock()
+		good := w.gh.files[name]
+		delete(w.gh.files, name)
+		w.gh.mu.Unlock()
+		m := w.manager()
+		defer m.Close()
+		check(t, m)
+		if withdrawn(m) {
+			t.Fatal("it couldn't have been read")
+		}
+		w.gh.set(name, good)
+		check(t, m)
+		if !withdrawn(m) {
+			t.Fatal("the withdrawal was lost to one failed read")
+		}
+	})
+
+	t.Run("when the list of the newest doesn't reach it", func(t *testing.T) {
+		w := newWorld(t)
+		w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+		w.gh.mu.Lock()
+		w.gh.feedOnly = append([]update.GHRelease{}, w.gh.rels...)
+		w.gh.mu.Unlock()
+		m := w.manager()
+		defer m.Close()
+		check(t, m)
+		w.withdraw("wittyphotos", 1, w.key, wittymodule.Withdrawn{Version: "0.2.0", Severity: wittymodule.SeveritySecurity, Reason: "x"})
+		check(t, m)
+		if !withdrawn(m) {
+			t.Fatal("an unchanged list of the newest hid the withdrawal")
+		}
+	})
+}
+
+// A file uploaded again can have the same name, address and size, and its time is what
+// says it changed. A signed manifest now saying otherwise has to be believed.
+func TestAFileUploadedAgainIsReadAgain(t *testing.T) {
+	stamp := func(w *world, when string, sizes map[string]int64) map[string]int64 {
+		w.gh.mu.Lock()
+		defer w.gh.mu.Unlock()
+		out := map[string]int64{}
+		for i := range w.gh.rels[0].Assets {
+			a := &w.gh.rels[0].Assets[i]
+			a.Updated = when
+			if s, ok := sizes[a.Name]; ok {
+				a.Size = s
+			}
+			out[a.Name] = a.Size
+		}
+		return out
+	}
+	w := newWorld(t)
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	sizes := stamp(w, "2026-01-01T00:00:00Z", nil)
+	m := w.manager()
+	defer m.Close()
+	if s := check(t, m); s.Latest == nil || s.Latest.Version != "0.2.0" {
+		t.Fatalf("%+v", s.Latest)
+	}
+	w.gh.mu.Lock()
+	w.gh.rels = nil
+	w.gh.mu.Unlock()
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.4.x", 1))
+	stamp(w, "2026-02-02T00:00:00Z", sizes)
+	if s := check(t, m); s.Latest != nil && s.Latest.MaxServer != "0.4.x" {
+		t.Fatalf("still offered from what it said before: %+v", s.Latest)
+	}
+}
+
+// A list kept from before upload times were recorded isn't read all over again.
+func TestAKeptListWithNoTimesIsNotReadAgain(t *testing.T) {
+	a := update.Asset{Name: "a", URL: "u", Size: 1}
+	b := a
+	b.Updated = "2026-01-01T00:00:00Z"
+	old, now := release{version: "1", archive: a, sums: a, sig: a, man: a}, release{version: "1", archive: b, sums: b, sig: b, man: b}
+	if !sameFiles(old, now) {
+		t.Error("a list with no times counts as the same")
+	}
+	c := b
+	c.Updated = "2026-02-02T00:00:00Z"
+	now.sums = c
+	if sameFiles(release{version: "1", archive: b, sums: b, sig: b, man: b}, now) {
+		t.Error("a new time counts as changed")
 	}
 }
 

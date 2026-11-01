@@ -985,3 +985,113 @@ func TestMeterKeepsCountAcrossRestarts(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 }
+
+func answerEverything(q gamemeta.Query) (*gamemeta.Info, error) {
+	return &gamemeta.Info{ID: "1", Title: "Source Title", Description: "From source", Method: gamemeta.MethodChecksum, Confidence: 100}, nil
+}
+
+func TestRefreshKeepsALock(t *testing.T) {
+	src := &fakeSource{id: "fake", answer: answerEverything}
+	f := newMetaFixture(t, src)
+	it := f.scanFile(t, "Mega Game (USA).sfc")
+	f.work(t)
+	it = f.item(t, it.ID)
+	if err := f.g.SetLocked(f.ctx, it, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.g.Refresh(f.ctx, it); err != nil {
+		t.Fatal(err)
+	}
+	if r, err := f.store.gameRow(f.ctx, it.ID); err != nil || !r.Locked {
+		t.Errorf("a locked game with no chosen match lost its lock: %v, %+v", err, r)
+	}
+	if err := f.g.ClearMatch(f.ctx, it); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.g.Refresh(f.ctx, f.item(t, it.ID)); err != nil {
+		t.Fatal(err)
+	}
+	if r, err := f.store.gameRow(f.ctx, it.ID); err != nil || !r.Locked {
+		t.Errorf("a cleared match lost its lock: %v, %+v", err, r)
+	}
+}
+
+func TestATypedTitleSurvivesARescan(t *testing.T) {
+	src := &fakeSource{id: "fake", answer: answerEverything}
+	f := newMetaFixture(t, src)
+	it := f.scanFile(t, "Mega Game (USA).sfc")
+	f.work(t)
+	it = f.item(t, it.ID)
+	it.Title = "Typed By Hand"
+	if err := f.store.upsertItem(f.ctx, it); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.store.MarkGameEdited(f.ctx, it.ID, "title"); err != nil {
+		t.Fatal(err)
+	}
+	// What a scan does when the file changed and a picture sits beside it.
+	if err := f.store.enqueueGame(f.ctx, it, []string{"poster"}); err != nil {
+		t.Fatal(err)
+	}
+	f.work(t)
+	if got := f.item(t, it.ID); got.Title != "Typed By Hand" {
+		t.Errorf("the typed title became %q", got.Title)
+	}
+	r, err := f.store.gameRow(f.ctx, it.ID)
+	if err != nil || !r.Edited["title"] || !r.Edited["poster"] {
+		t.Errorf("%v, %+v", err, r.Edited)
+	}
+}
+
+// With no match at all, a scan used to put the file's name back when the file changed.
+func TestATypedTitleOnAnUnmatchedGameSurvivesAChangedFile(t *testing.T) {
+	src := &fakeSource{id: "fake", answer: func(gamemeta.Query) (*gamemeta.Info, error) { return nil, gamemeta.ErrNotFound }}
+	f := newMetaFixture(t, src)
+	it := f.scanFile(t, "Mega Game (USA).sfc")
+	f.work(t)
+	it = f.item(t, it.ID)
+	it.Title = "Typed By Hand"
+	if err := f.store.upsertItem(f.ctx, it); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.store.MarkGameEdited(f.ctx, it.ID, "title"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(it.Path, []byte("a different dump of the game, a different size"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.scanFile2(t, it.ID); got.Title != "Typed By Hand" {
+		t.Errorf("the typed title became %q", got.Title)
+	}
+}
+
+// scanFile2 scans again without touching any file.
+func (f *metaFixture) scanFile2(t *testing.T, id int64) *Item {
+	t.Helper()
+	sc := NewScanner(f.store, nil, t.TempDir(), func() string { return "" }, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	sc.GameMeta = f.g
+	if err := sc.scan(f.ctx, f.lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	return f.item(t, id)
+}
+
+func TestARigGameIsAskedAboutByItsTitle(t *testing.T) {
+	src := &fakeSource{id: "fake", answer: func(gamemeta.Query) (*gamemeta.Info, error) { return nil, gamemeta.ErrNotFound }}
+	f := newMetaFixture(t, src)
+	lib, err := f.store.CreateRigLibrary(f.ctx, "PC")
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := f.store.SaveRigGame(f.ctx, lib.ID, RigPath(1, 730), "Mega Game", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.store.EnrichRigGame(f.ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	f.work(t)
+	if len(src.titles) == 0 || src.titles[0] != "Mega Game" {
+		t.Errorf("asked about %q", src.titles)
+	}
+}

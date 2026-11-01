@@ -222,10 +222,16 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
   .np-top-right { gap: 4px; }
   .np-stage { flex-direction: column; padding: 0 16px; gap: 8px; }
   .np-hints { display: none; }
-  .np-tools { flex-wrap: nowrap; justify-content: flex-start; width: 100%; overflow-x: auto; scrollbar-width: none; padding: 2px 2px 6px; }
+  .np-tools { width: 100%; padding: 2px 0 6px; gap: 6px; }
   .np-tools > * { flex: none; }
+  /* The words first: they're what a thumb came here for. */
+  .np-viz-toggle { order: 1; min-height: 44px; }
+  .np-styles { order: 2; max-width: 100%; overflow-x: auto; scrollbar-width: none; flex-shrink: 1 !important; }
+  .np-styles > * { flex: none; }
+  .np-tools > .np-speed { order: 3; }
+  .np-tools > .np-chip.slow-chip, .np-tools > .mp-pop { order: 3; }
   .np-tools-rule { display: none; }
-  .np-artbox { --np-art: min(72vw, 40vh); margin-bottom: clamp(20px, 5vh, 44px); }
+  .np-artbox { --np-art: min(66vw, 32vh); margin-bottom: clamp(16px, 4vh, 36px); }
   .np-reflect { height: clamp(16px, 4.4vh, 40px); }
   .np.has-panel .np-artbox, .np.has-panel .np-title, .np.has-panel .np-tools, .np.has-panel .np-seek { display: none; }
   .np.has-panel .np-main { flex: none; order: 2; padding: 4px 0 max(10px, env(safe-area-inset-bottom)); }
@@ -236,7 +242,10 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
   .np-q-edit .mp-ibtn:first-child { display: none; }
 }
 @media (max-width: 480px) {
-  .np-top .mp-ibtn { width: 40px; height: 40px; }
+  .np-top .mp-ibtn { width: 44px; height: 44px; }
+  .np-top-right { gap: 2px; flex-wrap: nowrap; }
+  /* Phones have their own volume, and are already the whole screen. */
+  .np-top-right > .mp-pop:first-child, .np-top-right > .np-fill { display: none; }
   .np-where { display: none; }
   .np-top { grid-template-columns: auto 1fr; }
   .mp-ibtn.taller { width: 56px; height: 56px; }

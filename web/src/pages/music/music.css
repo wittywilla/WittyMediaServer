@@ -153,6 +153,7 @@ a.mh-list-text, .mh-list-text { flex: 1; min-width: 0; display: flex; color: inh
   .mh-toolbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
   .mh-toolbar > * { flex: none; }
   .mh-toolbar .grow { display: none; }
+  .mh-toolbar .seg { flex: 0 1 auto; }
   .cf { --cf-size: min(58vw, 42vh); }
   .cf-cover { transform: translateX(calc(var(--d) * var(--cf-size) * .72 + clamp(-1, var(--d), 1) * var(--cf-size) * .28)) rotateY(calc(clamp(-1, var(--d), 1) * -24deg)) scale(calc(1 - var(--a) * .04)); }
   .mh-hero { margin-bottom: var(--sp-4); }

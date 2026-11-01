@@ -142,6 +142,10 @@ type Stores struct {
 	list     []*storeEntry
 	checking bool
 
+	// Watch, if set before anything runs, hears how each run stands: what the activity button
+	// shows. It runs on the run's own goroutine, and must not block.
+	Watch func(r *Run)
+
 	runMu   sync.Mutex
 	current *Run
 	last    *Run

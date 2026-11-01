@@ -234,7 +234,7 @@ func (s *Stores) View() StoreView {
 		official.Name, official.Serial, official.Generated, official.Modules = cleanText(cat.Name), cat.Serial, cat.Generated, len(cat.Modules)
 	}
 	if rep.Catalog != nil && rep.Catalog.Error != "" {
-		official.Problem = Explain("The module list", rep.Catalog.Error)
+		official.Problem = Explain("the list of modules", rep.Catalog.Error)
 	}
 	v.Stores = append(v.Stores, official)
 	v.Stores = append(v.Stores, s.List()...)

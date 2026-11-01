@@ -320,11 +320,20 @@ func (s *Stores) start(kind, by string, items []RunItem, stopOnFail bool) (*Run,
 	return r.copy(), nil
 }
 
-// setItem changes one item under the lock.
+// setItem changes one item under the lock, and tells whoever is watching.
 func (s *Stores) setItem(r *Run, i int, change func(*RunItem)) {
 	s.runMu.Lock()
 	change(&r.Items[i])
+	c := r.copy()
 	s.runMu.Unlock()
+	s.notify(c)
+}
+
+// notify tells the activity panel, if there is one, how a run stands. It must not block.
+func (s *Stores) notify(r *Run) {
+	if s.Watch != nil {
+		s.Watch(r)
+	}
 }
 
 func (s *Stores) work(r *Run, stopOnFail bool) {
@@ -429,6 +438,7 @@ func (s *Stores) finish(r *Run) {
 	s.current, s.last = nil, r
 	s.saveRun(r)
 	s.log.Info("modules: a run finished", "run", r.ID, "updated", r.Updated, "failed", r.Failed, "skipped", r.Skipped)
+	defer s.notify(r.copy())
 }
 
 // saveRun keeps the summary. Call with s.runMu held.

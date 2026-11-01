@@ -372,6 +372,7 @@ https://github.com/wittywilla/WittyModuleCatalog/releases/download/catalog/catal
 | `serial` | Only ever goes up, and a server keeps the highest it has seen, so an older catalogue can't be replayed to bring a withdrawn version back |
 | `summary`, `description`, `changelog`, `reason` | **Plain text**, with no control characters and line breaks only in the long ones. Always show it as text, never as HTML or Markdown |
 | `icon` | Optional. A PNG of at most 256 KiB, checked against its size and hash. A server fetches and keeps it, so a page never asks anyone else for it. No icon: the store draws one from the name |
+| `screenshots` | Optional. Up to 8 PNG or JPEG pictures of at most 2 MiB each, checked the same way, fetched when someone opens the module's page |
 | `publisher` | Who it comes from. `key`, also optional, is the base64 public key its releases are signed with, when that isn't the catalogue's own |
 | `group`, `libraries`, `requires`, `core`, `needs`, `updates`, `stays` | As in the [manifest](#the-manifest), from the newest version |
 | `versions` | Newest first, up to 100, and may be empty for a module listed before its first release. A version never changes once listed, except for `withdrawn` |
@@ -397,8 +398,7 @@ catalogue can't describe a version as asking for less than it does, and holding 
 4. Ask for one file at a time, with its limit in force, and hash as it arrives.
 5. Never let a page fetch from an address in a catalogue. The server fetches and serves what the page shows.
 
-**Stores other than this project's** (for the store's "add a store"): a store is a `catalog.json` at an `https` address, plus a
-public key an admin pastes in, after the same warning as [a fork](#using-someones-fork). Its signature and serial are kept for it alone.
+**Stores other than this project's**: a store is a `catalog.json` at an `https` address, with its key pinned when an admin adds it, after a warning. See [Other stores](#other-stores). Its signature and serial are kept for it alone.
 A module from one is held to the fork rules: an admin chooses each version, nothing updates by itself, and it gets a fork's limits.
 Its releases must be signed with that store's key or the `publisher.key` it gives. An `id` that this project's catalogue also lists is a
 fork of that module, and needs the choice a fork needs: a store can't replace a module by listing it, and WittyTuner can't be replaced at all.

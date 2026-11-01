@@ -4,7 +4,7 @@ import { fmtDateTime, api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
-import { IconChannels, IconClose, IconContrast, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconTag, IconTrash, IconTune, IconUsers, libIcon } from '../icons'
+import { IconActivity, IconChannels, IconClose, IconContrast, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconTag, IconTrash, IconTune, IconUsers, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import AppearanceSettings from './AppearanceSettings'
 import Profiles from './Profiles'
@@ -25,7 +25,10 @@ import { ask, Dialog } from '../ui/Overlay'
 import { Segmented } from '../ui/Choice'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
+const WittyStatsPage = lazy(() => import('./WittyStatsPage'))
+const IconStats = () => <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M4 20V10h3v10H4Zm6.5 0V4h3v16h-3Zm6.5 0v-7h3v7h-3Z" /></svg>
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
+const ActivitySettings = lazy(() => import('./settings/Activity'))
 const LogSettings = lazy(() => import('./LogSettings'))
 const LegalSettings = lazy(() => import('./settings/Legal'))
 const ResetSettings = lazy(() => import('./settings/Reset'))
@@ -62,6 +65,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'users', label: 'Profiles', icon: <IconUsers />, hint: 'People, passwords and limits' },
     { to: 'security', label: 'Sign-in & security', icon: <IconLock />, hint: 'Your devices and two-factor sign-in' },
     { to: 'games', label: 'My game settings', icon: <IconContrast />, hint: 'Picture, speed, shortcuts and more, for your games' },
+    { to: 'activity', label: 'Activity', icon: <IconActivity />, hint: 'The button showing library scans and other background work' },
     { to: 'appearance', label: 'Appearance', icon: <IconPalette />, hint: 'Themes, layout and name' },
     { to: 'sharing', label: 'Sharing & photos', icon: <IconImage />, hint: 'Uploads, links, the photo map' },
   ] },
@@ -69,6 +73,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'wittyrigs', label: 'WittyRigs', icon: <IconRemote />, admin: true, hint: 'Hosting demanding games on this server’s own hardware' },
   ] },
   { title: 'System', pages: [
+    { to: 'stats', label: 'Statistics', icon: <IconStats />, hint: 'The machine, streams and libraries, on a screen you arrange yourself' },
     { to: 'logs', label: 'WittyLog', icon: <IconFile />, admin: true, hint: 'Logs and privacy: what is recorded, and for how long' },
     { to: 'diagnoser', label: 'WittyDiagnoser', icon: <IconTune />, admin: true, hint: 'The disk diagnoser: checks your discs and your drives, and changes nothing' },
     { to: 'modules', label: 'Modules', icon: <IconPlug />, admin: true, hint: 'What this server can do: add, remove, update and choose versions' },
@@ -144,6 +149,8 @@ export default function SettingsPage() {
           <Route path="logs" element={<><PageHead title="WittyLog" desc="Logs and privacy: what the server records, and for how long. Nothing is ever sent anywhere." /><Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><LogSettings /></Suspense></>} />
           <Route path="remote" element={<Suspense fallback={null}><RemoteAccess /></Suspense>} />
           <Route path="security" element={<Suspense fallback={null}><Security /></Suspense>} />
+          <Route path="activity" element={<Suspense fallback={null}><ActivitySettings /></Suspense>} />
+          <Route path="stats" element={<Suspense fallback={null}><WittyStatsPage /></Suspense>} />
           <Route path="diagnoser" element={<Suspense fallback={null}><Diagnoser /></Suspense>} />
           <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
           <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /></Suspense>} />

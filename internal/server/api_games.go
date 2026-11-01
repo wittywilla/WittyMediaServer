@@ -753,6 +753,10 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		s.Modules.ReportWorking(wittyPlayID, version)
 	}
 	logging.Go("game play time", func() { s.recordPlayTime(sess, userID, it.ID) }, "cat", "games", "session", sess.ID())
+	s.streams.game(sess.ID(), userID, userFrom(r).Name, it.Title, sess.Done(), func() GameView {
+		st := sess.Stats()
+		return GameView{Core: st.Core, Encoder: st.Encoder, GameFPS: st.GameFPS, SentFPS: st.SentFPS, EncodeMs: st.EncodeMs, Kbps: st.Kbps, DroppedFrames: st.DroppedFrames, Width: st.Width, Height: st.Height, Paused: st.Paused}
+	})
 	if playing != nil {
 		s.noteCorePlay(ctx, playing.ID, it.ID, 1, 0, 0, "")
 		watcher := userFrom(r)

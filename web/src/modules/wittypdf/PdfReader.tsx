@@ -75,7 +75,7 @@ const Page = memo(function Page({ doc, index, size, scale, draw, theme, boxes, s
       const c = canvas.current!
       c.width = Math.floor(vp.width * ratio)
       c.height = Math.floor(vp.height * ratio)
-      task = page.render({ canvasContext: c.getContext('2d', { alpha: false })!, viewport: vp, transform: ratio !== 1 ? [ratio, 0, 0, ratio, 0, 0] : undefined })
+      task = page.render({ canvas: c, canvasContext: c.getContext('2d', { alpha: false })!, viewport: vp, transform: ratio !== 1 ? [ratio, 0, 0, ratio, 0, 0] : undefined })
       try { await task.promise } catch { return } // cancelled
       if (gone || !text.current) return
       text.current.replaceChildren()
@@ -129,7 +129,7 @@ function Thumb({ doc, index, current, go }: { doc: PDFDocumentProxy; index: numb
       doc.getPage(index + 1).then((p) => {
         const vp = p.getViewport({ scale: 140 / p.getViewport({ scale: 1 }).width })
         el.width = vp.width; el.height = vp.height
-        task = p.render({ canvasContext: el.getContext('2d')!, viewport: vp })
+        task = p.render({ canvas: el, canvasContext: el.getContext('2d')!, viewport: vp })
         task.promise.catch(() => {})
       })
     })
@@ -193,7 +193,7 @@ export default function PdfReader() {
   // Open the document. Scripts in PDFs never run (pdf.js has no scripting
   // here) and fonts are not compiled with eval.
   useEffect(() => {
-    const task = pdfjs.getDocument({ ...host.pdf, isEvalSupported: false, enableXfa: false, disableAutoFetch: true, rangeChunkSize: 1 << 18 })
+    const task = pdfjs.getDocument({ ...host.pdf, enableXfa: false, disableAutoFetch: true, rangeChunkSize: 1 << 18 })
     task.promise.then(async (d) => {
       const first = (await d.getPage(1)).getViewport({ scale: 1 })
       setSizes(Array.from({ length: d.numPages }, () => ({ w: first.width, h: first.height })))

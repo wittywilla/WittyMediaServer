@@ -18,9 +18,9 @@
   },
   "dependencies": {
     "@wittywilla/wittyink": "github:wittywilla/WittyInk",
-    "pdfjs-dist": "4.10.38"
+    "pdfjs-dist": "6.4.299"
   },
   "devDependencies": {
-    "vite": "^6.3.0"
+    "vite": "^8.3.5"
   }
 }

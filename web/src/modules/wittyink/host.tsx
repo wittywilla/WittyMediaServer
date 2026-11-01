@@ -31,7 +31,7 @@ export interface ReaderHost {
     update(a: Ann, patch: Partial<Ann>): Promise<void>
     remove(a: Ann): Promise<void>
   }
-  pdf?: { url?: string; data?: Uint8Array } // what pdf.js opens
+  pdf?: { url?: string; data?: Uint8Array; wasmUrl?: string; iccUrl?: string } // what pdf.js opens, and where its decoders are
   comic?: { pages: number; pageUrl(n: number): string }
   epub?: { info: EpubInfo; chapterUrl(path: string): string; search(q: string): Promise<SearchHit[]> }
   define?(word: string): Promise<Definition[]> // optional: needs a dictionary service

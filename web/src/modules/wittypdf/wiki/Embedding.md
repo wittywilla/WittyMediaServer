@@ -41,5 +41,5 @@ images, add `resolve.dedupe: ['pdfjs-dist']` so both share one copy.
 ## Requirements
 
 - React 18 or newer, and Vite.
-- `pdfjs-dist` 4.10.38 (installed with WittyPDF).
+- `pdfjs-dist` 6.4.299 (installed with WittyPDF).
 - Any engine pdf.js's build for older browsers supports.

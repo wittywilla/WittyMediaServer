@@ -39,7 +39,8 @@ var gameMigrations = []string{
 	 ALTER TABLE game_meta ADD COLUMN problem TEXT NOT NULL DEFAULT '';
 	 ALTER TABLE game_meta ADD COLUMN chosen_entry TEXT NOT NULL DEFAULT '';
 	 ALTER TABLE game_meta ADD COLUMN entry_name TEXT NOT NULL DEFAULT '';
-	 ALTER TABLE game_meta ADD COLUMN alt_crcs TEXT NOT NULL DEFAULT '';`,
+	 ALTER TABLE game_meta ADD COLUMN alt_crcs TEXT NOT NULL DEFAULT '';
+	 DROP TABLE IF EXISTS game_archives;`,
 }
 
 func (d *DB) migrateGames(ctx context.Context) error {

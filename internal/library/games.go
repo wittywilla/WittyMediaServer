@@ -127,7 +127,7 @@ func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 			ix.noteFile(f.path, f.size, reviewBlocked, problemText(v)+" "+v.Proof, v.Console, nil)
 		}
 	}
-	return ix.mergeGames(found, root), bad.with(err)
+	return ix.mergeGames(found), bad.with(err)
 }
 
 // problemText says why a game on the list can't play as it is.

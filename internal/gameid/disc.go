@@ -128,7 +128,6 @@ func sniffDisc(r io.ReaderAt, size int64) (Finding, bool) {
 func sniffISO(iso *isoImage, size int64) Finding {
 	root := iso.root()
 	system := clean(iso.pvd[8:40])
-	volume := clean(iso.pvd[40:72])
 	if e, ok := findEntry(root, "SYSTEM.CNF"); ok {
 		cnf := iso.read(e, 4096)
 		if m := bootRe.FindSubmatch(cnf); m != nil {
@@ -183,7 +182,6 @@ func sniffISO(iso *isoImage, size int64) Finding {
 			return Finding{Kind: KindOther, Proof: "It's a PC disc: it has " + name + "."}
 		}
 	}
-	_ = volume
 	return Finding{Proof: "It's a CD or DVD image, with nothing on it that says which console it's for."}
 }
 

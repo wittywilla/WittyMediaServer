@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -913,21 +912,4 @@ func (s *Store) decideGamePath(ctx context.Context, libraryID int64, p, action, 
 	_, err := s.DB.ExecContext(ctx, `INSERT INTO game_decisions(library_id, path, action, console, at) VALUES(?,?,?,?,strftime('%s','now'))
 		ON CONFLICT(library_id, path) DO UPDATE SET action = excluded.action, console = excluded.console, at = excluded.at`, libraryID, p, action, console)
 	return err
-}
-
-// walk is what discover and the review list both do with a folder tree.
-func walkGames(root string, each func(p string, d fs.DirEntry)) error {
-	return filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			if p != root && (strings.HasPrefix(d.Name(), ".") || strings.HasPrefix(d.Name(), "$") || gameSkipDirs[strings.ToLower(d.Name())]) {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		each(p, d)
-		return nil
-	})
 }

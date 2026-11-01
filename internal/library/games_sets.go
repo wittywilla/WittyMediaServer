@@ -60,9 +60,8 @@ func gameKey(stem string) (key string, disc, total int) {
 
 // mergeGames applies what a scan knows about several files at once. It returns the
 // games to list, each knowing its discs.
-func (ix *archiveIndex) mergeGames(found []*gameFile, root string) []candidate {
-	found = ix.dropDuplicates(found)
-	return ix.groupDiscs(found)
+func (ix *archiveIndex) mergeGames(found []*gameFile) []candidate {
+	return ix.groupDiscs(ix.dropDuplicates(found))
 }
 
 // dropDuplicates finds files with the same contents. Only files the same size as

@@ -61,11 +61,7 @@ type resetBody struct {
 // resetAllowed asks for the password and any second step again. It answers the request
 // itself when they are refused.
 func (s *Server) resetAllowed(w http.ResponseWriter, r *http.Request, b resetBody) bool {
-	u := userFrom(r)
-	if !s.checkOwnPassword(w, r, u, b.Password) {
-		return false
-	}
-	return !u.TwoFactor || s.checkOwnCode(w, r, u, b.Code)
+	return s.confirmOwner(w, r, b.Password, b.Code)
 }
 
 // resetAndRestart writes the request, answers, and restarts, which is when it happens.

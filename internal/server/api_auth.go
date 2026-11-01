@@ -378,6 +378,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		IsAdmin bool            `json:"isAdmin"`
 		Kind    string          `json:"kind"`
 		Access  *library.Access `json:"access"`
+		Current string          `json:"current"` // your own password, for a new administrator
 	}
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, 400, err.Error())
@@ -393,6 +394,9 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	if !me.IsAdmin {
 		c.IsAdmin = false
+	}
+	if c.IsAdmin && c.Kind == auth.KindAdult && !s.confirmOwner(w, r, c.Current, c.Code) {
+		return
 	}
 	restr := ""
 	if c.Access != nil || c.Kind != auth.KindAdult {
@@ -460,9 +464,23 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "cannot delete that user")
 		return
 	}
-	if target, err := s.Auth.User(r.Context(), id); err != nil || !s.canManage(r, userFrom(r), target.Kind) {
+	target, err := s.Auth.User(r.Context(), id)
+	if err != nil || !s.canManage(r, userFrom(r), target.Kind) {
 		writeErr(w, 403, "not allowed")
 		return
+	}
+	if target.IsAdmin {
+		var b struct {
+			Current string `json:"current"`
+			Code    string `json:"code"`
+		}
+		if err := readJSON(r, &b); err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
+		if !s.confirmOwner(w, r, b.Current, b.Code) {
+			return
+		}
 	}
 	if err := s.Auth.DeleteUser(r.Context(), id); err != nil {
 		writeErr(w, 500, err.Error())
@@ -482,9 +500,11 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 	// Your own password (adults), or one you manage. Kids and Guest
 	// profiles cannot change theirs: the people who manage them do.
 	allowed := id == u.ID && u.Kind == auth.KindAdult
+	otherAdmin := false
 	if id != u.ID {
-		if t, err := s.Auth.User(r.Context(), id); err == nil && !t.IsAdmin && s.canManage(r, u, t.Kind) {
-			allowed = true
+		if t, err := s.Auth.User(r.Context(), id); err == nil {
+			otherAdmin = t.IsAdmin
+			allowed = !t.IsAdmin && s.canManage(r, u, t.Kind)
 		}
 	}
 	if !allowed && !(u.IsAdmin && id != u.ID) {
@@ -494,6 +514,7 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 	var c struct {
 		Password string `json:"password"`
 		Current  string `json:"current"`
+		Code     string `json:"code"`
 	}
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, 400, err.Error())
@@ -503,6 +524,10 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 	// another device can't lock you out of your account. Wrong guesses count
 	// like wrong sign-ins, so that session can't be used to guess it either.
 	if id == u.ID && !s.checkOwnPassword(w, r, u, c.Current) {
+		return
+	}
+	// Taking over another administrator is what a stolen session would want.
+	if otherAdmin && !s.confirmOwner(w, r, c.Current, c.Code) {
 		return
 	}
 	if err := s.Auth.SetPassword(r.Context(), id, c.Password); err != nil {

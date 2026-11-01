@@ -81,6 +81,14 @@ func (s *Server) checkOwnPassword(w http.ResponseWriter, r *http.Request, u *aut
 	return true
 }
 
+// confirmOwner asks for the signed-in person's password, and code if they have two-factor sign-in,
+// before something that a stolen session must not be able to do. It answers the request itself when
+// they are refused.
+func (s *Server) confirmOwner(w http.ResponseWriter, r *http.Request, password, code string) bool {
+	u := userFrom(r)
+	return s.checkOwnPassword(w, r, u, password) && (!u.TwoFactor || s.checkOwnCode(w, r, u, code))
+}
+
 // checkOwnCode is checkOwnPassword for a two-factor code.
 func (s *Server) checkOwnCode(w http.ResponseWriter, r *http.Request, u *auth.User, code string) bool {
 	if d := s.logins.attempt(r, u.Name); d > 0 {

@@ -528,6 +528,8 @@ files missing or changed, or sign-ins from an unexpected place. Move quickly, an
 - **Cookies** are `HttpOnly`, `SameSite=Lax` and, over HTTPS, `Secure`.
 - **Other websites** can't read answers from the server unless they hold a sign-in token, and can't act with your cookie. This matters at home too: any page you
   visit could otherwise ask a server on your network who its profiles are.
+- **Your password is asked for again** to add an administrator, to remove one, to change another administrator's password, to reset the server and to change where a
+  module comes from, with your two-factor code if you have it on, so a device you left signed in can't do those.
 - **Password-free Kids and Guest profiles** only work at home, and profile names aren't shown elsewhere unless you turn that on. The version isn't shown to anyone
   not signed in on the internet.
 

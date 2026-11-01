@@ -341,8 +341,8 @@ const TEMPLATE = `{
 }
 `
 
-export function JsonEditor({ host, api, view, scope, level, levels, onLevel, consoleName, title, say, itemId }: {
-  host: SettingsHost; api: SettingsApi; view: SettingsView; scope: { console?: string; item?: number }; level: Level; levels: LevelChoice[]; onLevel: (l: Level) => void; consoleName: string; title: string; say: (t: string) => void; itemId?: number
+export function JsonEditor({ host, api, view, scope, level, levels, onLevel, consoleName, title, say, itemId, onDirty }: {
+  host: SettingsHost; api: SettingsApi; view: SettingsView; scope: { console?: string; item?: number }; level: Level; levels: LevelChoice[]; onLevel: (l: Level) => void; consoleName: string; title: string; say: (t: string) => void; itemId?: number; onDirty?: (dirty: boolean) => void
 }) {
   const [text, setText] = useState(() => layerDocument(view.layers[level]))
   const [report, setReport] = useState<Report | null>(null)
@@ -353,6 +353,9 @@ export function JsonEditor({ host, api, view, scope, level, levels, onLevel, con
   const box = useRef<HTMLTextAreaElement>(null)
   const gutter = useRef<HTMLDivElement>(null)
   const seq = useRef(0)
+  // The menu around this asks before closing over unsaved work.
+  useEffect(() => { onDirty?.(dirty) }, [dirty, onDirty])
+  useEffect(() => () => { onDirty?.(false) }, [onDirty])
 
   // Moving to another level shows that level's file.
   useEffect(() => { setText(layerDocument(view.layers[level])); setDirty(false); setReport(null); setConfirmReset(false) }, [level]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -481,13 +484,22 @@ export function CheatsPanel({ host, itemId, title, say }: { host: SettingsHost; 
   const [label, setLabel] = useState('')
   const [code, setCode] = useState('')
   useEffect(() => { host.request<Cheat[]>('GET', `/games/${itemId}/cheats`).then(setList).catch(() => setList([])) }, [host, itemId])
+  // What the server refuses comes back off the list, so the list says what's really kept.
   const put = async (next: Cheat[]) => {
+    const before = list
     setList(next)
-    try { setList(await host.request<Cheat[]>('PUT', `/games/${itemId}/cheats`, { cheats: next })) } catch (e: any) { say(e?.message || 'That couldn’t be saved') }
+    try {
+      setList(await host.request<Cheat[]>('PUT', `/games/${itemId}/cheats`, { cheats: next }))
+      return true
+    } catch (e: any) {
+      setList(before)
+      say(e?.message || 'That couldn’t be saved')
+      return false
+    }
   }
-  const add = () => {
+  const add = async () => {
     if (!code.trim() || !list) return
-    void put([...list, { label: label.trim() || code.trim(), code: code.trim(), enabled: true }])
+    if (!await put([...list, { label: label.trim() || code.trim(), code: code.trim(), enabled: true }])) return
     setLabel('')
     setCode('')
   }
@@ -496,8 +508,7 @@ export function CheatsPanel({ host, itemId, title, say }: { host: SettingsHost; 
     if (!f || !list) return
     try {
       const r = await host.upload<{ cheats: Cheat[]; skipped: number }>(`/games/${itemId}/cheats/import`, f)
-      await put([...list, ...r.cheats])
-      say(`${r.cheats.length} added${r.skipped ? `, ${r.skipped} couldn’t be read` : ''}`)
+      if (await put([...list, ...r.cheats])) say(`${r.cheats.length} added${r.skipped ? `, ${r.skipped} couldn’t be read` : ''}`)
     } catch (e: any) { say(e?.message || 'That file couldn’t be read') }
   }
   if (!list) return <p className="wp-muted" role="status">Loading…</p>
@@ -516,8 +527,8 @@ export function CheatsPanel({ host, itemId, title, say }: { host: SettingsHost; 
       </ul>
       <div className="wp-add">
         <input className="wp-input" placeholder="Name" aria-label="Cheat name" value={label} maxLength={120} onChange={(e) => setLabel(e.target.value)} />
-        <input className="wp-input wp-mono" placeholder="Code" aria-label="Cheat code" value={code} maxLength={2048} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
-        <button type="button" className="wp-btn" disabled={!code.trim()} onClick={add}>Add</button>
+        <input className="wp-input wp-mono" placeholder="Code" aria-label="Cheat code" value={code} maxLength={2048} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void add() }} />
+        <button type="button" className="wp-btn" disabled={!code.trim()} onClick={() => void add()}>Add</button>
       </div>
       <div className="wp-row wp-wrap">
         <button type="button" className="wp-btn" onClick={() => void importFile()}>Add from a file…</button>

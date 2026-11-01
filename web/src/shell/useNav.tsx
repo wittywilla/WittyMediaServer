@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { api, inMainMenus } from '../api'
+import { api, forgetMissingModule, inMainMenus } from '../api'
 import { IconChart, IconGamepad, IconHome, IconLibrary, IconPlug, IconTv, libIcon } from '../icons'
 import { useModulePages } from '../moduleBundles'
 import { setOwnerNavStyle } from '../navPrefs'
@@ -15,7 +15,7 @@ function useCanUseCouch() {
   const [can, setCan] = useState(false)
   useEffect(() => {
     if (!user) return
-    if (couchAsked?.user !== user.id) couchAsked = { user: user.id, answer: api.get<{ allowed: boolean }>('/couch').then((r) => r.allowed).catch(() => false) }
+    if (couchAsked?.user !== user.id) couchAsked = { user: user.id, answer: api.get<{ allowed: boolean }>('/couch').then((r) => r.allowed).catch(() => { forgetMissingModule(); return false }) }
     let live = true
     couchAsked.answer.then((a) => { if (live) setCan(a) })
     return () => { live = false }

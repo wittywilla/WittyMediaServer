@@ -1,6 +1,8 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { recentMissingModule } from '../api'
 import LogsLink from '../components/LogsLink'
+import { ModuleMissing } from '../components/ModuleMissing'
 import { IconFilm, IconInfo, IconLeft, IconPlay, IconRight } from '../icons'
 
 // What the content sits on: Card, the poster card, Shelf (a titled row of them),
@@ -117,6 +119,8 @@ export function EmptyState({ title, text, action, icon = <IconFilm /> }: { title
 
 // A page that couldn't load, which is not the same as having nothing to show.
 export function LoadError({ what, onRetry }: { what: string; onRetry?: () => void }) {
+  const module = recentMissingModule()
+  if (module) return <ModuleMissing ids={[module]} onReady={() => window.location.reload()} />
   return (
     <div className="empty" role="alert">
       <span className="empty-ic" aria-hidden="true"><IconInfo /></span>

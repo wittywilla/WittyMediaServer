@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { api, dvdTrackLabel, getPrefs, insertFxOn, langName, mediaUrl, posterUrl, type DiscView, type DvdAction, type DvdButton, type Item, type Presentation, type SubEvent, discName, isBluray } from '../api'
+import { api, recentMissingModule, dvdTrackLabel, getPrefs, insertFxOn, langName, mediaUrl, posterUrl, type DiscView, type DvdAction, type DvdButton, type Item, type Presentation, type SubEvent, discName, isBluray } from '../api'
+import { ModuleMissing } from '../components/ModuleMissing'
 import { setLogSession } from '../errorReport'
 import { IconBack, IconClose, IconExpand, IconMenu, IconMini, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings } from '../icons'
 import { usePlayerChrome } from './chrome'
@@ -700,7 +701,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       {spin && !needClick && !inserting && pres?.media?.type === 'hls' && <div className="center-spinner"><div className="spinner" /></div>}
       {needClick && !inserting && <div className="big-play"><button onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
       {stopped && !mini && <div className="overlay-msg"><div className="box">Stopped · press Play to continue</div></div>}
-      {err && <div className="overlay-msg"><div className="box">{err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={() => chrome.close()}>Back</button></div></div>}
+      {err && recentMissingModule() && <div className="overlay-msg"><div className="box"><ModuleMissing ids={[recentMissingModule()!]} onReady={() => window.location.reload()} /></div></div>}
+      {err && !recentMissingModule() && <div className="overlay-msg"><div className="box">{err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={() => chrome.close()}>Back</button></div></div>}
       {pres?.kind === 'stop' && !err && !mini && (
         <div className="overlay-msg"><div className="box">
           <div style={{ marginBottom: 10 }}>{pres.reason || 'Playback stopped.'}</div>

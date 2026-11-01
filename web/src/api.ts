@@ -181,6 +181,12 @@ export class ApiError extends Error {
   constructor(public status: number, message: string, public data?: any) { super(message) }
 }
 
+// The module a request has just found missing. A page that then can't load says that, rather than
+// that something went wrong.
+let missing: { id: string; at: number } | null = null
+export const recentMissingModule = () => (missing && Date.now() - missing.at < 20000 ? missing.id : null)
+export const forgetMissingModule = () => { missing = null }
+
 async function send(method: string, path: string, body?: unknown): Promise<{ text: string; data: any }> {
   const headers: Record<string, string> = {}
   const tok = getToken()
@@ -197,6 +203,10 @@ async function send(method: string, path: string, body?: unknown): Promise<{ tex
   const text = await res.text()
   let data: any = null
   try { data = text ? JSON.parse(text) : null } catch { data = { error: text } }
+  if (res.status === 424 && data?.module) {
+    missing = { id: String(data.module), at: Date.now() }
+    throw new ApiError(res.status, data.error || res.statusText, data)
+  }
   if (!res.ok) {
     reportRequestFailure(method, path, res.status, data?.error || res.statusText, res.headers.get('X-Request-Id'))
     throw new ApiError(res.status, data?.error || res.statusText, data)

@@ -838,5 +838,6 @@ func SafeFileName(name string) string {
 // library takes. Used for uploads, where the name alone proves nothing.
 func SniffMedia(b []byte) bool {
 	f := mediatypes.Sniff(b)
-	return f != nil && (f.Category == mediatypes.Photo || f.Category == mediatypes.Video)
+	// Never SVG: a picture that can hold a program has no business arriving this way.
+	return f != nil && f.ID != "svg" && (f.Category == mediatypes.Photo || f.Category == mediatypes.Video)
 }

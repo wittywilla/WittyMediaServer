@@ -11,6 +11,7 @@ import { toast, useApp } from '../../state'
 import { Avatar, Comments, EditVideoDialog, LoadMore, SubscribeButton, useVideoList, VideoTile, likesOf } from './parts'
 import '../../creators.css'
 import LegalNote from '../../components/LegalNote'
+import { browserCapabilities } from '../../player/capabilities'
 
 // WittyShorts: vertical videos, one at a time, with the next a swipe (or the
 // Down button) away. The order of For You comes from the server, from what this
@@ -307,7 +308,7 @@ function ActiveVideo({ v, muted, toggleMute, rate, onDone }: { v: VideoCard; mut
   const watched = useRef(0)
   const last = useRef(0)
   const ended = useRef(false)
-  useEffect(() => { api.get<PlayInfo>(`/items/${v.id}/play`).then(setInfo).catch((e) => setErr(e.message)) }, [v.id])
+  useEffect(() => { api.get<PlayInfo>(`/items/${v.id}/play?caps=${encodeURIComponent(JSON.stringify(browserCapabilities()))}`).then(setInfo).catch((e) => setErr(e.message)) }, [v.id])
   useSource(video, info?.url || null, {
     onReady: () => {
       const el = video.current

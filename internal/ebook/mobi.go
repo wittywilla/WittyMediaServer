@@ -142,7 +142,7 @@ func (h *mobiHeader) exthInt(typ int) (int, bool) {
 
 // fromMobi reads a Kindle or Palm book. A book with copy protection stops here.
 func fromMobi(d []byte) (*Book, error) {
-	if bytes.HasPrefix(d, []byte("êDRMIONî")) { // Kindle's newer protected format
+	if bytes.HasPrefix(d, []byte{0xEA, 'D', 'R', 'M', 'I', 'O', 'N', 0xEE}) { // Kindle's newer protected format
 		return nil, ErrProtected
 	}
 	db, err := readPalm(d)

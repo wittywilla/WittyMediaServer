@@ -140,9 +140,13 @@ func subtitleSuffix(name, stem string) (string, bool) {
 		return "", true
 	}
 	if !strings.ContainsRune("._- [(", rune(rest[0])) {
+		return "", false
+	}
+	rest = rest[1:]
+	if rest != "" && rest[0] >= '0' && rest[0] <= '9' {
 		return "", false // "Film 2.srt" isn't a subtitle of "Film"
 	}
-	return rest[1:], true
+	return rest, true
 }
 
 // skippedVobSub: this .sub is the data of the .idx beside it, which is what's listed.

@@ -7,6 +7,23 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **Every format, everywhere.** One list of file types now drives scanning, playback, serving, the file browser and the
+  docs. It covers over 200 extensions: every common video container, codec and raw stream, FLAC to DSD to tracker and game
+  music, MIDI through a synthesiser of the server's own, RAW from every major camera, Kindle, FictionBook, Word, Rich Text and
+  Markdown in the reader, and RAR, 7-Zip and TAR comics. See **Settings, About, Supported formats**.
+- **A file's content decides.** A file with a wrong or missing extension is recognised from its first bytes; a program
+  called `film.mkv` is left out and the log says why; a `.cbz` that's really a RAR still opens.
+- **Nothing is converted that needn't be.** Browsers now get rewrapped streams, and streams with only the sound converted, so
+  an H.264 MKV costs the server next to nothing. The browser says what it really decodes, so HEVC plays directly where it can.
+  The new **ⓘ** in the player says how a file is playing, and why.
+- **Subtitles beside a video** are found by themselves: SRT, ASS, SSA, WebVTT, MicroDVD, SubViewer, SBV, TTML, DFXP, SAMI,
+  LRC, MKS, SCC and more as text, whatever encoding they're in, and VobSub and PGS drawn into the picture. Text no longer forces
+  a conversion. ASS can still be drawn in, to keep its styling.
+- **Films split across files** (`CD1`, `part2`) are one title. **Cue sheets** split any sound file into tracks, not only WAV
+  and FLAC. **Playlists** in a music library (M3U, PLS, XSPF, ASX) become collections.
+- **Motion photos** with their clip inside the picture play it. **SVG pictures** are shown, with anything active taken out first.
+- Cover art at the front of a video no longer gets taken for the picture. Mono sound that FFmpeg's AAC encoder refused now
+  converts. DVDs in `.img` files, which FFmpeg took for pictures, get their thumbnails and play.
 - **Every module and app is now a project of its own.** WittyPlay, WittyDVD, WittyBluray, WittyCD, WittyDisc, WittyTuner, WittyPhotos,
   WittyCouch, WittyCouchHost, WittyRigs, WittyIntegratedFileBrowser, WittyModule, the reader plugins, WittyVisualizer, WittyReader,
   WittyMediaPlayer and WittyMediaClient each have their own repository, history, changelog and releases. The older `clients/desktop`

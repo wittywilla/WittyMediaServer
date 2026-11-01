@@ -93,6 +93,9 @@ func SanitizeSVG(src []byte) ([]byte, error) {
 				continue
 			}
 			name := strings.ToLower(t.Name.Local)
+			if name == "a" {
+				continue // a link goes; what it wraps is still the picture
+			}
 			if !svgElements[name] || t.Name.Space != "" && !strings.Contains(t.Name.Space, "svg") {
 				skip = 1
 				continue
@@ -135,7 +138,7 @@ func SanitizeSVG(src []byte) ([]byte, error) {
 				skip--
 				continue
 			}
-			if len(stack) == 0 {
+			if len(stack) == 0 || strings.EqualFold(t.Name.Local, "a") {
 				continue
 			}
 			out.WriteString("</" + stack[len(stack)-1] + ">")

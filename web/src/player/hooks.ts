@@ -8,7 +8,7 @@ import { reportHlsError, watchPlayback } from '../errorReport'
 // stream begin at that position, so the first frame shown is the right one
 // (seeking after the start would briefly show the beginning).
 export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: string | null,
-  opts: { onReady?: () => void; onError?: (msg: string) => void; startAt?: () => number | null | undefined; logSession?: string | null } = {}) {
+  opts: { onReady?: () => void; onError?: (msg: string) => void; startAt?: () => number | null | undefined; logSession?: string | null; growing?: boolean } = {}) {
   const hlsRef = useRef<Hls | null>(null)
   const optsRef = useRef(opts)
   optsRef.current = opts
@@ -26,7 +26,9 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
         xhrSetup: (xhr) => { const t = getToken(); if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t); xhr.withCredentials = !serverBase() },
         maxBufferLength: 30, maxMaxBufferLength: 90, backBufferLength: 30,
         fragLoadingTimeOut: 60000, manifestLoadingTimeOut: 20000, fragLoadingMaxRetry: 6, levelLoadingMaxRetry: 6,
-        startPosition: start != null && start > 0.5 ? start : -1, lowLatencyMode: false,
+        // A rewrapped stream grows as it's made, which HLS calls live. It starts at its
+        // start, however far ahead it has got.
+        startPosition: optsRef.current.growing ? 0 : (start != null && start > 0.5 ? start : -1), lowLatencyMode: false,
       })
       hlsRef.current = hls
       hls.loadSource(abs)

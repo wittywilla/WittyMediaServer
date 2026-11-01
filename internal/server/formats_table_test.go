@@ -1288,3 +1288,75 @@ func checkSubtitles(t *testing.T, ts *testServer, tok string, tools *ffmpeg.Tool
 func safeRowName(id string) string {
 	return regexp.MustCompile(`[^a-zA-Z0-9]+`).ReplaceAllString(id, "-")
 }
+
+func TestDolbyVisionRange(t *testing.T) {
+	dv := func(profile, compat float64, transfer string) *ffmpeg.Stream {
+		return &ffmpeg.Stream{ColorTransfer: transfer, SideData: []map[string]any{{"side_data_type": "DOVI configuration record", "dv_profile": profile, "dv_bl_signal_compatibility_id": compat}}}
+	}
+	for _, c := range []struct {
+		s    *ffmpeg.Stream
+		want string
+	}{
+		{dv(5, 0, "smpte2084"), "dv5"},
+		{dv(8, 1, "smpte2084"), "hdr10"},
+		{dv(7, 6, "smpte2084"), "hdr10"},
+		{dv(8, 4, "arib-std-b67"), "hlg"},
+		{dv(8, 2, ""), "sdr"},
+		{dv(4, 0, "arib-std-b67"), "hlg"},
+		{&ffmpeg.Stream{ColorTransfer: "smpte2084"}, "hdr10"},
+		{&ffmpeg.Stream{ColorTransfer: "arib-std-b67"}, "hlg"},
+		{&ffmpeg.Stream{ColorTransfer: "bt709"}, "sdr"},
+		{&ffmpeg.Stream{}, "sdr"},
+	} {
+		if got := videoRange(c.s); got != c.want {
+			t.Errorf("%+v: %s, want %s", c.s, got, c.want)
+		}
+	}
+	if got := dynamicRange(dv(8, 1, "smpte2084")); got != "Dolby Vision profile 8.1" {
+		t.Errorf("named %q", got)
+	}
+	plus := &ffmpeg.Stream{SideData: []map[string]any{{"side_data_type": "HDR Dynamic Metadata SMPTE2094-40 (HDR10+)"}}}
+	if got := dynamicRange(plus); got != "HDR10+" {
+		t.Errorf("named %q", got)
+	}
+}
+
+func TestStereoNames(t *testing.T) {
+	plain := &ffmpeg.Stream{Tags: map[string]string{}}
+	for name, want := range map[string]string{
+		"Film.3D.HSBS.mkv": "sbs", "Film 3D SBS.mkv": "sbs", "Film.3D.H-SBS.1080p.mkv": "sbs", "Film.HOU.mkv": "tab", "Film.3D.TAB.mkv": "tab",
+		"Film.mkv": "", "Tabby.mkv": "", "Sbsomething.mkv": "", "Out of Time.mkv": "",
+	} {
+		if got := stereoMode(plain, name); got != want {
+			t.Errorf("%s: %q, want %q", name, got, want)
+		}
+	}
+	if got := stereoMode(&ffmpeg.Stream{Tags: map[string]string{"stereo_mode": "top_bottom"}}, "a.mkv"); got != "tab" {
+		t.Errorf("by its tag: %q", got)
+	}
+	if got := stereoMode(&ffmpeg.Stream{Tags: map[string]string{"stereo_mode": "mono"}}, "a.mkv"); got != "" {
+		t.Errorf("mono: %q", got)
+	}
+	if got := flattenFilter("sbs", 1920, 1080); got != "crop=iw/2:ih:0:0,scale=iw*2:ih" {
+		t.Errorf("half width: %q", got)
+	}
+	if got := flattenFilter("sbs", 3840, 1080); got != "crop=iw/2:ih:0:0" {
+		t.Errorf("full width: %q", got)
+	}
+	if got := flattenFilter("tab", 1920, 1080); got != "crop=iw:ih/2:0:0,scale=iw:ih*2" {
+		t.Errorf("half height: %q", got)
+	}
+}
+
+// Codecs nothing here can encode are checked by asking FFmpeg whether it can decode them.
+func TestCodecsDecoders(t *testing.T) {
+	tools, err := ffmpeg.Locate("", "")
+	if err != nil {
+		t.Skip("no FFmpeg here")
+	}
+	for _, c := range []string{"vc1", "rv30", "rv40", "ape", "tak", "wmapro", "prores", "dnxhd", "dts", "truehd", "cook", "hevc", "av1", "vp9"} {
+		if !tools.CanDecode(c) && !tools.CanDecode("lib"+c) && !tools.CanDecode("lib"+c+"1") && c != "av1" {
+			t.Errorf("this FFmpeg can't decode %s", c)
+		}
+	}
+}

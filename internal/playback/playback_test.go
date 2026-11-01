@@ -1,6 +1,7 @@
 package playback
 
 import (
+	"strings"
 	"slices"
 	"testing"
 )
@@ -21,38 +22,51 @@ func prof(t *testing.T, id string) Profile {
 	return p
 }
 
-// The web profile must keep answering what the web player has always got:
-// direct only for browser-friendly files on the first sound track, without
-// subtitles; everything else converted.
-func TestWebProfileKeepsItsBehaviour(t *testing.T) {
+// What a browser that says nothing about itself gets. The rule the whole table is about:
+// the simplest way that plays. Direct if it can, then rewrapped, then with only the
+// sound converted, and only then with the picture converted.
+func TestWebProfile(t *testing.T) {
 	web := prof(t, "web")
 	cases := []struct {
-		name string
-		src  func(*Source)
-		q    func(*Request)
-		want string
+		name      string
+		src       func(*Source)
+		q         func(*Request)
+		want      string
+		copyAudio bool
 	}{
-		{"h264 mp4 aac", nil, nil, Direct},
+		{"h264 mp4 aac", nil, nil, Direct, false},
 		{"vp9 webm opus", func(s *Source) {
 			s.Container, s.VideoCodec = "webm", "vp9"
 			s.Audio[0].Codec = "opus"
-		}, nil, Direct},
+		}, nil, Direct, false},
 		{"av1 mov mp3", func(s *Source) {
 			s.Container, s.VideoCodec = "mov", "av1"
 			s.Audio[0].Codec = "mp3"
-		}, nil, Direct},
-		{"no sound", func(s *Source) { s.Audio = nil }, nil, Direct},
-		{"mkv never", func(s *Source) { s.Container = "mkv" }, nil, Transcode},
-		{"hevc never", func(s *Source) { s.VideoCodec = "hevc" }, nil, Transcode},
-		{"ac3 never", func(s *Source) { s.Audio[0].Codec = "ac3" }, nil, Transcode},
-		{"second sound track", func(s *Source) { s.Audio = append(s.Audio, Audio{Codec: "aac"}) }, func(q *Request) { q.AudioIndex = 1 }, Transcode},
-		{"any subtitle is burned", func(s *Source) { s.Subtitles = []Subtitle{{Codec: "subrip"}} }, func(q *Request) { q.SubtitleIndex = 0 }, Transcode},
-		{"direct play off", nil, func(q *Request) { q.AllowDirect = false }, Transcode},
-		{"asked to convert", nil, func(q *Request) { q.ForceTranscode = true }, Transcode},
-		{"over the height cap", nil, func(q *Request) { q.MaxHeight = 720 }, Transcode},
-		{"under the height cap", nil, func(q *Request) { q.MaxHeight = 1080 }, Direct},
-		{"hdr plays anyway", func(s *Source) { s.Range = "hdr10"; s.BitDepth = 10 }, nil, Direct},
-		{"interlaced plays anyway", func(s *Source) { s.Interlaced = true }, nil, Direct},
+		}, nil, Direct, false},
+		{"no sound", func(s *Source) { s.Audio = nil }, nil, Direct, false},
+		{"text subtitle needs no conversion", func(s *Source) { s.Subtitles = []Subtitle{{Codec: "subrip"}} }, func(q *Request) { q.SubtitleIndex = 0 }, Direct, false},
+		{"under the height cap", nil, func(q *Request) { q.MaxHeight = 1080 }, Direct, false},
+		{"only the container is wrong", func(s *Source) { s.Container = "mkv" }, nil, Remux, true},
+		{"split across files", func(s *Source) { s.Parts = 2 }, nil, Remux, true},
+		{"second sound track", func(s *Source) { s.Audio = append(s.Audio, Audio{Codec: "aac"}) }, func(q *Request) { q.AudioIndex = 1 }, Remux, true},
+		{"another video stream", nil, func(q *Request) { q.VideoIndex = 1 }, Remux, true},
+		{"direct play off", nil, func(q *Request) { q.AllowDirect = false }, Remux, true},
+		{"only the sound is wrong", func(s *Source) { s.Audio[0].Codec = "ac3" }, nil, Remux, false},
+		{"dts in mkv", func(s *Source) { s.Container = "mkv"; s.Audio[0].Codec = "dts" }, nil, Remux, false},
+		{"truehd in mkv", func(s *Source) { s.Container = "mkv"; s.Audio[0].Codec = "truehd" }, nil, Remux, false},
+		{"hevc can't be decoded", func(s *Source) { s.VideoCodec = "hevc" }, nil, Transcode, false},
+		{"mpeg-2 can't be decoded", func(s *Source) { s.VideoCodec = "mpeg2video"; s.Container = "mpg" }, nil, Transcode, false},
+		{"asked to convert", nil, func(q *Request) { q.ForceTranscode = true }, Transcode, false},
+		{"over the height cap", nil, func(q *Request) { q.MaxHeight = 720 }, Transcode, false},
+		{"picture subtitles", func(s *Source) { s.Subtitles = []Subtitle{{Codec: "hdmv_pgs_subtitle"}} }, func(q *Request) { q.SubtitleIndex = 0 }, Transcode, false},
+		{"styled subtitles asked for", func(s *Source) { s.Subtitles = []Subtitle{{Codec: "ass"}} }, func(q *Request) { q.SubtitleIndex = 0; q.BurnSubtitle = true }, Transcode, false},
+		{"hdr on an ordinary screen", func(s *Source) { s.Range = "hdr10"; s.VideoCodec = "vp9"; s.Container = "webm"; s.Audio[0].Codec = "opus"; s.BitDepth = 10 }, nil, Transcode, false},
+		{"interlaced", func(s *Source) { s.Interlaced = true }, nil, Transcode, false},
+		{"10-bit h264", func(s *Source) { s.BitDepth = 10 }, nil, Transcode, false},
+		{"12-bit vp9 plays", func(s *Source) { s.VideoCodec = "vp9"; s.Container = "webm"; s.Audio[0].Codec = "opus"; s.BitDepth = 10 }, nil, Direct, false},
+		{"3D in 2D", func(s *Source) { s.Stereo = "sbs" }, func(q *Request) { q.Flatten3D = true }, Transcode, false},
+		{"3D as it is", func(s *Source) { s.Stereo = "sbs" }, nil, Direct, false},
+		{"sound only goes through a stream", func(s *Source) { s.HasVideo = false; s.VideoCodec = "" }, nil, Transcode, false},
 	}
 	for _, c := range cases {
 		s, q := h264MP4(), req()
@@ -62,8 +76,102 @@ func TestWebProfileKeepsItsBehaviour(t *testing.T) {
 		if c.q != nil {
 			c.q(&q)
 		}
-		if got := Decide(web, s, q); got.Mode != c.want {
+		got := Decide(web, s, q)
+		if got.Mode != c.want {
 			t.Errorf("%s: got %s %v, want %s", c.name, got.Mode, got.Reasons, c.want)
+		}
+		if got.Mode == Remux && got.CopyAudio != c.copyAudio {
+			t.Errorf("%s: copies the sound: %v", c.name, got.CopyAudio)
+		}
+	}
+}
+
+// What the web app reports changes the answer, in both directions.
+func TestCapabilitiesChangeTheAnswer(t *testing.T) {
+	yes := true
+	hevc := h264MP4()
+	hevc.VideoCodec, hevc.Container = "hevc", "mkv"
+	browser := func(c Capabilities) Profile { return c.Apply(prof(t, "web")) }
+	// A browser that decodes HEVC: a MKV is rewrapped into fMP4 rather than converted.
+	p := browser(Capabilities{VideoCodecs: []string{"h264", "hevc"}, HLSVideo: []string{"h264", "hevc"}, FMP4Video: []string{"hevc"}})
+	if d := Decide(p, hevc, req()); d.Mode != Remux || !d.FMP4 {
+		t.Errorf("HEVC in MKV: %+v", d)
+	}
+	// In MP4 it plays as it is.
+	hevc.Container = "mp4"
+	if d := Decide(p, hevc, req()); d.Mode != Direct {
+		t.Errorf("HEVC in MP4: %+v", d)
+	}
+	// An HDR screen: nothing is converted for it.
+	hdr := hevc
+	hdr.Range, hdr.BitDepth = "hdr10", 10
+	if d := Decide(browser(Capabilities{VideoCodecs: []string{"hevc"}, HDR: []string{"hdr10", "hlg"}, TenBit: &yes}), hdr, req()); d.Mode != Direct {
+		t.Errorf("HDR on an HDR screen: %+v", d)
+	}
+	// An ordinary one: tone mapped.
+	if d := Decide(p, hdr, req()); d.Mode != Transcode || !d.ToneMap {
+		t.Errorf("HDR on an ordinary screen: %+v", d)
+	}
+	// A browser with Dolby sound: not converted for it.
+	ac3 := h264MP4()
+	ac3.Audio[0].Codec = "ac3"
+	if d := Decide(browser(Capabilities{AudioCodecs: []string{"aac", "ac3"}}), ac3, req()); d.Mode != Direct {
+		t.Errorf("AC-3 where it's decoded: %+v", d)
+	}
+	// One with no H.264 in Media Source: nothing to rewrap into.
+	mkv := h264MP4()
+	mkv.Container = "mkv"
+	no := false
+	if d := Decide(browser(Capabilities{Remux: &no}), mkv, req()); d.Mode != Transcode {
+		t.Errorf("no streams: %+v", d)
+	}
+	if d := Decide(browser(Capabilities{HiTenH264: &yes}), func() Source { s := h264MP4(); s.BitDepth = 10; return s }(), req()); d.Mode != Direct {
+		t.Errorf("10-bit H.264 where it's decoded: %+v", d)
+	}
+}
+
+func TestExplanations(t *testing.T) {
+	web := prof(t, "web")
+	s := h264MP4()
+	e := Explain(Decide(web, s, req()), s, req())
+	if e.Load != "none" || !strings.Contains(e.Summary, "as it is") || len(e.Reasons) != 0 {
+		t.Errorf("direct: %+v", e)
+	}
+	s.Container = "mkv"
+	e = Explain(Decide(web, s, req()), s, req())
+	if e.Load != "light" || !strings.Contains(e.Summary, "Rewrapping") || !strings.Contains(e.Source, "Matroska") || len(e.Reasons) != 1 {
+		t.Errorf("remux: %+v", e)
+	}
+	s.Audio[0].Codec = "dts"
+	e = Explain(Decide(web, s, req()), s, req())
+	if !strings.Contains(e.Summary, "only the sound") || !strings.Contains(e.Sound, "AAC") || !strings.Contains(e.Picture, "untouched") {
+		t.Errorf("sound only: %+v", e)
+	}
+	s.VideoCodec = "mpeg2video"
+	e = Explain(Decide(web, s, req()), s, req())
+	if e.Load != "heavy" || !strings.Contains(e.Picture, "Converted") {
+		t.Errorf("transcode: %+v", e)
+	}
+	// Every reason a decision can give has words.
+	for code := range reasonWords {
+		if ReasonText(code) == code {
+			t.Errorf("%s has no words", code)
+		}
+	}
+	for _, r := range []string{ReasonForced, ReasonDirectOff, ReasonContainer, ReasonVideoCodec, ReasonVideoTag, ReasonVideoHeight, ReasonVideoBitrate, ReasonVideoDepth, ReasonVideoRange, ReasonInterlaced, ReasonAudioCodec, ReasonAudioChans, ReasonAudioTrack, ReasonSubtitle, ReasonNoVideo, ReasonBurnAsked, ReasonHLSVideo, ReasonRemuxDisable, ReasonSplit, ReasonVideoTrack, ReasonFlatten3D} {
+		if ReasonText(r) == r {
+			t.Errorf("%s has no words", r)
+		}
+	}
+	if a := ExplainAudio(false, "ape", "ape"); a.Load != "light" || !strings.Contains(a.Source, "Monkey") {
+		t.Errorf("%+v", a)
+	}
+}
+
+func TestLanguageWords(t *testing.T) {
+	for in, want := range map[string]string{"en": "en", "eng": "en", "English": "en", "pt-BR": "pt", "nld": "nl", "dutch": "nl", "xx": "", "forced": "", "hi": "hi", "a": ""} {
+		if got := LanguageFromWord(in); got != want {
+			t.Errorf("%q: %q, want %q", in, got, want)
 		}
 	}
 }

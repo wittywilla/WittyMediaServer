@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { api, episodeLabel, langName, posterUrl, type Item, type PlayInfo, type Show } from '../api'
-import { IconBack, IconClose, IconExpand, IconMini, IconNext, IconPause, IconPlay } from '../icons'
+import { api, episodeLabel, langName, mediaUrl, posterUrl, type Item, type PlaybackAnswer, type Show } from '../api'
+import { IconBack, IconClose, IconExpand, IconInfo, IconMini, IconNext, IconPause, IconPlay } from '../icons'
+import { browserCapabilities } from './capabilities'
+import PlayInfoPanel from './PlayInfoPanel'
 import { usePlayerChrome } from './chrome'
 import PickIntroBar from './PickIntroBar'
 import { Controls, useVideoState } from './Controls'
@@ -10,6 +12,8 @@ import Remote, { DVD_ONLY, RemoteBar, type RemoteKey } from './Remote'
 import TrackPicker from './TrackPicker'
 import ViewSettings from './ViewSettings'
 import { useViewPrefs } from './viewPrefs'
+
+const MODE_WORDS: Record<string, string> = { direct: 'Direct play', remux: 'Rewrapped', transcode: 'Transcoding' }
 
 const legacyRemote = () => { try { return localStorage.getItem('wms.remote.video') === '1' } catch { return false } }
 
@@ -29,13 +33,24 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const [picker, setPicker] = useState<'audio' | 'subtitle' | null>(null)
   const video = useRef<HTMLVideoElement | null>(null)
   const root = useIdle(prefs.hideAfter * 1000, [mini])
-  const [info, setInfo] = useState<PlayInfo | null>(null)
-  const [audio, setAudio] = useState(0)
-  const [sub, setSub] = useState(-1)
+  const [info, setInfo] = useState<PlaybackAnswer | null>(null)
+  const [infoOpen, setInfoOpen] = useState(false)
+  // Null until the server has said which it chose. A subtitle the player draws itself
+  // changes with no new request; a choice the server has to act on makes one.
+  const [audio, setAudio] = useState<number | null>(null)
+  const [sub, setSub] = useState<number | null>(null)
+  const [burn, setBurn] = useState<{ index: number; styled: boolean } | null>(null)
+  const [videoTrack, setVideoTrack] = useState<number | null>(null)
+  const [flat3d, setFlat3d] = useState(false)
+  // A rewrapped stream only exists from where it started: going past what's been made
+  // asks for a new one, starting there.
+  const [restartAt, setRestartAt] = useState<{ at: number } | null>(null)
   const [err, setErr] = useState('')
   const [needClick, setNeedClick] = useState(false)
   const pendingSeek = useRef<number | null>(startAt ?? item.progress?.resumeSec ?? 0)
   const st = useVideoState(video)
+  const offset = info?.timeOffsetSec || 0
+  const now = st.time + offset
   const remoteOn = prefs.remote
   const setRemoteOn = (on: boolean) => view.update({ remote: on }, view.scope)
   const [upNext, setUpNext] = useState<number | null>(null)
@@ -45,7 +60,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
 
   // "Watch next": the next episode of this show, or (end of a show / a
   // movie) a recommendation, loaded once the credits are near.
-  const nearEnd = (info?.durationSec || item.runtimeSec || 0) > 0 && st.time >= (info?.durationSec || item.runtimeSec) - 30
+  const nearEnd = (info?.durationSec || item.runtimeSec || 0) > 0 && now >= (info?.durationSec || item.runtimeSec) - 30
   useEffect(() => {
     if ((!nearEnd && !ended) || next) return
     if (item.nextId) api.get<Item>(`/items/${item.nextId}`).then((it) => setNext({ item: it, recommended: false })).catch(() => {})
@@ -68,27 +83,74 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   }, [upNext, item.nextId, nav, nextDismissed, mini])
 
   // "Skip intro" while inside the intro range (chapter or show setting).
-  const inIntro = item.introEnd != null && st.time >= (item.introStart || 0) && st.time < item.introEnd - 1
+  const inIntro = item.introEnd != null && now >= (item.introStart || 0) && now < item.introEnd - 1
 
   useEffect(() => {
     setInfo(null)
-    api.get<PlayInfo>(`/items/${item.id}/play?audio=${audio}&subtitle=${sub}`).then(setInfo).catch((e) => setErr(e.message))
-  }, [item.id, audio, sub])
+    let current = true
+    const start = restartAt ? restartAt.at : pendingSeek.current
+    const body: Record<string, unknown> = { profile: 'web', capabilities: browserCapabilities(), startSec: start ?? 0, flatten3d: flat3d }
+    if (audio != null) body.audio = audio
+    if (burn) { body.subtitle = burn.index; body.burnSubtitle = burn.styled } else if (sub != null) body.subtitle = sub
+    if (videoTrack != null) body.video = videoTrack
+    api.post<PlaybackAnswer>(`/items/${item.id}/playback`, body).then((a) => {
+      if (!current) return
+      setInfo(a)
+      setAudio(a.audioIndex)
+      setSub((s) => (s == null ? a.subtitleIndex : s))
+      // A stream starts where it was asked to; a file or a full stream seeks once open.
+      pendingSeek.current = a.seek === 'restart' ? null : (a.startAtSec || null)
+    }).catch((e) => { if (current) setErr(e.message) })
+    return () => { current = false }
+  }, [item.id, audio, burn, videoTrack, flat3d, restartAt]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // If the server chose a subtitle the picture has to carry, it's burning it now.
+  useEffect(() => {
+    if (info && info.subtitleDelivery === 'burn' && info.subtitleIndex >= 0 && !burn) setBurn({ index: info.subtitleIndex, styled: false })
+  }, [info, burn])
+
+  // Subtitles the player draws: the chosen track, with its cues in the player's time.
+  const shownSub = info && sub != null && sub >= 0 && !burn ? info.subtitles.find((s) => s.index === sub) : undefined
+  const subUrl = shownSub?.url ? mediaUrl(shownSub.url) : ''
+  useEffect(() => {
+    const v = video.current
+    if (!v || !subUrl) return
+    const track = document.createElement('track')
+    track.kind = 'subtitles'
+    track.src = subUrl
+    track.srclang = shownSub?.language?.slice(0, 2) || 'und'
+    track.label = shownSub?.title || shownSub?.languageName || 'Subtitles'
+    track.default = true
+    v.appendChild(track)
+    track.track.mode = 'showing'
+    return () => { track.track.mode = 'disabled'; track.remove() }
+  }, [subUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Done with a stream (left the player, another audio or subtitle track):
   // the server can stop converting it now rather than after a while.
-  const hlsUrl = info?.type === 'hls' ? info.url : ''
+  const streamId = info?.streamId || ''
   useEffect(() => {
-    if (!hlsUrl) return
-    return () => { api.del(hlsUrl.replace(/^\/api/, '').replace(/\/playlist\.m3u8$/, '')).catch(() => {}) }
-  }, [hlsUrl])
+    if (!streamId) return
+    return () => { api.del(`/hls/${streamId}`).catch(() => {}) }
+  }, [streamId])
 
-  // HLS seeking is "seek the playlist"; our server playlist covers the whole
-  // file so a plain currentTime assignment works for both modes.
-  const seek = useCallback((t: number) => { const v = video.current; if (v) v.currentTime = Math.max(0, Math.min(t, (info?.durationSec || v.duration || t))) }, [info])
+  // A file, or a full stream with its whole length listed ahead, seeks anywhere. A
+  // rewrapped stream seeks within what has been made so far, and otherwise starts anew.
+  const seek = useCallback((t: number) => {
+    const v = video.current
+    if (!v) return
+    const to = Math.max(0, Math.min(t, (info?.durationSec || v.duration || t)))
+    if (info?.seek !== 'restart') { v.currentTime = to; return }
+    const local = to - offset
+    let made = 0
+    try { if (v.seekable.length) made = v.seekable.end(v.seekable.length - 1) } catch { /* not open yet */ }
+    if (local >= 0 && local <= made - 1) { v.currentTime = local; return }
+    setRestartAt({ at: to })
+  }, [info, offset])
 
   useSource(video, info?.url || null, {
     startAt: () => pendingSeek.current,
+    growing: info?.seek === 'restart',
     onReady: () => {
       const v = video.current
       if (!v) return
@@ -103,8 +165,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   useEffect(() => {
     const send = () => {
       const v = video.current
-      if (!v || !info || v.currentTime < 5) return
-      api.post(`/items/${item.id}/progress`, { positionSec: v.currentTime, durationSec: info.durationSec || v.duration }).catch(() => {})
+      if (!v || !info || v.currentTime + (info.timeOffsetSec || 0) < 5) return
+      api.post(`/items/${item.id}/progress`, { positionSec: v.currentTime + (info.timeOffsetSec || 0), durationSec: info.durationSec || v.duration }).catch(() => {})
     }
     const t = setInterval(send, 10000)
     window.addEventListener('beforeunload', send)
@@ -119,20 +181,21 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     if (mini) return
     const onKey = (e: KeyboardEvent) => {
       const v = video.current
-      if (!v || picker || settingsOpen) return
+      if (!v || picker || settingsOpen || infoOpen) return
       if (document.querySelector('.modal-backdrop, .scene-panel')) return // a window over the player has the keys
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.key.startsWith('Arrow') && (e.target as HTMLElement)?.closest?.('.bottom, .top, .remote, .watch-next')) return
       switch (e.key) {
         case ' ': case 'k': case 'MediaPlayPause': e.preventDefault(); v.paused ? v.play() : v.pause(); break
-        case 'ArrowRight': seek(v.currentTime + 10); break
-        case 'ArrowLeft': seek(v.currentTime - 10); break
+        case 'ArrowRight': seek(v.currentTime + offset + 10); break
+        case 'ArrowLeft': seek(v.currentTime + offset - 10); break
         case 'ArrowUp': v.volume = Math.min(1, v.volume + 0.1); break
         case 'ArrowDown': v.volume = Math.max(0, v.volume - 0.1); break
         case 'f': toggleFullscreen(root.current); break
         case 'm': v.muted = !v.muted; break
         case 'r': setRemoteOn(!remoteOn); break
+        case 'i': setInfoOpen((o) => !o); break
         case 'Escape': case 'GoBack': case 'BrowserBack': if (!document.fullscreenElement) { e.preventDefault(); chrome.minimize() } break
       }
     }
@@ -140,10 +203,22 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     return () => window.removeEventListener('keydown', onKey)
   })
 
-  const switchTrack = (kind: 'audio' | 'sub', id: number) => {
+  // Where a new stream should start, so that changing something doesn't lose the place.
+  const keepPlace = () => {
     const v = video.current
-    pendingSeek.current = v ? v.currentTime : 0
-    kind === 'audio' ? setAudio(id) : setSub(id)
+    pendingSeek.current = v ? v.currentTime + offset : 0
+    setRestartAt(null)
+  }
+  // Styled copies of a subtitle sit in the list as its number plus this.
+  const STYLED = 10000
+  const switchTrack = (kind: 'audio' | 'sub', id: number) => {
+    if (kind === 'audio') { keepPlace(); setAudio(id); return }
+    if (id >= STYLED) { keepPlace(); setSub(id - STYLED); setBurn({ index: id - STYLED, styled: true }); return }
+    const delivery = info?.subtitles.find((s) => s.index === id)?.delivery
+    setSub(id)
+    if (id >= 0 && (delivery === 'burn' || !delivery)) { keepPlace(); setBurn({ index: id, styled: false }); return }
+    // Text the player draws. A stream that had one drawn in goes back to none.
+    if (burn) { keepPlace(); setBurn(null) }
   }
   const duration = info?.durationSec || item.runtimeSec || 0
   // The same remote as for discs; disc-only keys are greyed out.
@@ -153,9 +228,9 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       case 'eject': chrome.close(); break
       case 'audio': if ((info?.audio.length || 0) > 1) setPicker('audio'); break
       case 'subtitle': if (info?.subtitles.length) setPicker('subtitle'); break
-      case 'rew': case 'prev': if (v) seek(v.currentTime - (k === 'prev' ? 60 : 10)); break
-      case 'ff': if (v) seek(v.currentTime + 30); break
-      case 'next': if (item.nextId) nav(nextHref); else if (v) seek(v.currentTime + 60); break
+      case 'rew': case 'prev': if (v) seek(v.currentTime + offset - (k === 'prev' ? 60 : 10)); break
+      case 'ff': if (v) seek(v.currentTime + offset + 30); break
+      case 'next': if (item.nextId) nav(nextHref); else if (v) seek(v.currentTime + offset + 60); break
       case 'play': v?.play().catch(() => {}); break
       case 'pause': v?.pause(); break
       case 'stop': if (v) { v.pause(); seek(0) } break
@@ -197,7 +272,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         <>
           <div className="top" onClick={(e) => e.stopPropagation()}>
             <button className="ibtn" onClick={chrome.minimize} title="Back (keeps playing in the mini player)"><IconBack /></button>
-            <div className="grow"><h1>{item.title}</h1><div className="sub">{[subtitle || item.year, info?.type === 'direct' ? 'Direct play' : 'Transcoding'].filter(Boolean).join(' · ')}</div></div>
+            <div className="grow"><h1>{item.title}</h1><div className="sub">{[subtitle || item.year, info && MODE_WORDS[info.decision]].filter(Boolean).join(' · ')}</div></div>
+            {info && <button className="ibtn" onClick={() => setInfoOpen(true)} title="How this is playing (I)" aria-label="How this is playing"><IconInfo /></button>}
             {item.nextId && <button className="btn sm" onClick={() => nav(nextHref, { replace: true })} title="Next episode"><IconNext /> <span className="hide-narrow">Next episode</span></button>}
             <button className="ibtn" onClick={chrome.minimize} title="Mini player"><IconMini /></button>
           </div>
@@ -205,7 +281,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             ? <RemoteBar onKey={onRemote} enabled={remoteEnabled} disc={false} />
             : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyMedia" />)}
           {inIntro && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(item.introEnd!) }}>Skip intro ›</button>}
-          {pickIntro && <PickIntroBar item={item} time={st.time} mode={pickIntro} />}
+          {pickIntro && <PickIntroBar item={item} time={now} mode={pickIntro} />}
           {next && (nearEnd || ended) && !nextDismissed && (
             <div className="watch-next" onClick={(e) => e.stopPropagation()}>
               <div className="wn-head">{next.recommended
@@ -224,7 +300,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
               </div>
             </div>
           )}
-          <Controls video={video} duration={duration} onSeek={seek} onFullscreen={() => toggleFullscreen(root.current)}
+          <Controls video={video} duration={duration} offset={offset} onSeek={seek} onFullscreen={() => toggleFullscreen(root.current)}
             chapters={info?.chapters?.map((c) => c.start)} chapterNames={info?.chapters?.map((c) => c.title)}
             audio={info?.audio.map((a) => ({ id: a.index, label: [langName(a.language), a.title, a.codec?.toUpperCase(), a.channels ? a.channels + 'ch' : ''].filter(Boolean).join(' · '), active: a.index === audio }))}
             subtitles={info?.subtitles.map((s) => ({ id: s.index, label: trackLabel(s), active: s.index === sub }))}
@@ -236,8 +312,13 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
               onPick={(id) => switchTrack(picker === 'audio' ? 'audio' : 'sub', id)}
               tiles={picker === 'audio'
                 ? info.audio.map((a) => ({ id: a.index, title: langName(a.language), sub: a.title, detail: [a.codec?.toUpperCase(), a.channels ? a.channels + ' ch' : ''].filter(Boolean).join(' · '), active: a.index === audio }))
-                : [{ id: -1, title: 'Off', active: sub < 0 }, ...info.subtitles.map((x) => ({ id: x.index, title: langName(x.language), sub: x.title, detail: x.codec?.toUpperCase(), active: x.index === sub }))]} />
+                : [{ id: -1, title: 'Off', active: sub == null || sub < 0 }, ...info.subtitles.flatMap((x) => {
+                  const plain = { id: x.index, title: langName(x.language), sub: x.title, detail: x.codec?.toUpperCase(), active: x.index === sub && !burn?.styled }
+                  // ASS can carry placement and styling that plain text loses: keeping it means drawing it into the picture.
+                  return x.codec === 'ass' || x.codec === 'ssa' ? [plain, { id: x.index + STYLED, title: langName(x.language), sub: 'With its styling', detail: 'Drawn into the picture', active: x.index === sub && !!burn?.styled }] : [plain]
+                })]} />
           )}
+          {infoOpen && info && <PlayInfoPanel info={info} flattened={flat3d} onClose={() => setInfoOpen(false)} onFlat3d={(on) => { keepPlace(); setFlat3d(on) }} onVideo={(i) => { keepPlace(); setVideoTrack(i) }} />}
         </>
       )}
     </div>

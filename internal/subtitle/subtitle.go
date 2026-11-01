@@ -111,6 +111,12 @@ func cueText(s string) string {
 	return strings.ReplaceAll(strings.TrimRight(s, " "), "-->", "-&gt;")
 }
 
+// plainCue is a line of text that has no tags of its own, with what WebVTT would read
+// as markup written out.
+func plainCue(s string) string {
+	return cueText(strings.NewReplacer("&", "&amp;", "<", "&lt;").Replace(s))
+}
+
 var sbvLineRe = regexp.MustCompile(`^(\d{1,2}:\d{1,2}:\d{1,2}\.\d{1,3}),(\d{1,2}:\d{1,2}:\d{1,2}\.\d{1,3})\s*$`)
 
 func fromSBV(text []byte) []byte {
@@ -126,7 +132,7 @@ func fromSBV(text []byte) []byte {
 		fmt.Fprintf(&out, "%s --> %s\n", a, b)
 		for i+1 < len(lines) && strings.TrimSpace(lines[i+1]) != "" {
 			i++
-			out.WriteString(cueText(strings.ReplaceAll(lines[i], "[br]", "\n")) + "\n")
+			out.WriteString(plainCue(strings.ReplaceAll(lines[i], "[br]", "\n")) + "\n")
 		}
 		out.WriteString("\n")
 	}
@@ -188,7 +194,7 @@ func fromLRC(text []byte) []byte {
 		if i+1 < len(cues) {
 			end = cues[i+1].at
 		}
-		fmt.Fprintf(&out, "%s --> %s\n%s\n\n", clock(max(0, c.at-offset)), clock(max(0, end-offset)), cueText(c.text))
+		fmt.Fprintf(&out, "%s --> %s\n%s\n\n", clock(max(0, c.at-offset)), clock(max(0, end-offset)), plainCue(c.text))
 	}
 	return out.Bytes()
 }
@@ -280,7 +286,7 @@ func fromTTML(text []byte) ([]byte, error) {
 					cues++
 					fmt.Fprintf(&out, "%s --> %s\n", clock(begin), clock(end))
 					for _, l := range strings.Split(strings.TrimSpace(cue.String()), "\n") {
-						out.WriteString(cueText(strings.TrimSpace(l)) + "\n")
+						out.WriteString(plainCue(strings.TrimSpace(l)) + "\n")
 					}
 					out.WriteString("\n")
 				}

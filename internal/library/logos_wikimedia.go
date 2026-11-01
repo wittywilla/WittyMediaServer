@@ -189,7 +189,7 @@ func (w *WikimediaLogos) findNamed(ctx context.Context, kind, name string) ([]Lo
 	}
 	out := []LogoCandidate{}
 	for _, p := range picks {
-		fi, ok := info[normalFileTitle("File:" + p.file)]
+		fi, ok := info[normalFileTitle("File:"+p.file)]
 		if !ok {
 			continue
 		}

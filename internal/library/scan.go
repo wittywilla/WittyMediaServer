@@ -52,6 +52,10 @@ type Scanner struct {
 	Agents func() []Agent
 	// GameMeta finds out about games after a scan has listed them.
 	GameMeta *GameMeta
+	// TMDBBase replaces TMDB's address in tests.
+	TMDBBase string
+	// OnScanned runs after a scan of a library that holds films or shows.
+	OnScanned func()
 	// SaveMeta reports whether to write NFO/artwork beside the media.
 	SaveMeta func() bool
 	Log      *slog.Logger
@@ -351,6 +355,29 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		s.Store.noteSkippedGames(ctx, lib, archives)
 		archives.save(ctx, len(offline) == 0)
 	}
+	// Files someone moved to another library or removed, and files moved here.
+	if leave, adopt, err := s.Store.libraryNotes(ctx, libraryID); err == nil {
+		if len(leave) > 0 {
+			kept := all[:0]
+			for _, c := range all {
+				if !underAny(c.path, leave) {
+					kept = append(kept, c)
+				}
+			}
+			all = kept
+		}
+		for _, p := range adopt {
+			c, err := s.adopted(p, lib)
+			if err != nil {
+				s.Log.WarnContext(ctx, "could not reach a title moved to this library; keeping it", "file", p, "err", err)
+				offline = append(offline, p)
+				continue
+			}
+			all = append(all, c...)
+		}
+	}
+	rules := s.Store.loadRuleSet(ctx, lib)
+	ctx = context.WithValue(ctx, rulesKey{}, rules)
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
 	keep := map[string]bool{}
 	tv := newTVScan()
@@ -398,6 +425,15 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	if err := s.Store.markShowsMissing(ctx, libraryID); err != nil {
 		return err
 	}
+	if matchableLibrary(lib.Type) || lib.Type == "videos" {
+		if err := s.Store.SyncBrands(ctx); err != nil {
+			s.Log.WarnContext(ctx, "could not update studios and networks", "library", lib.Name, "err", err)
+		}
+		s.fillAudioFormats(ctx, libraryID)
+		if s.OnScanned != nil {
+			s.OnScanned()
+		}
+	}
 	s.Store.DB.Optimize(ctx)
 	problems := tally.report(ctx, s.Log)
 	s.Log.InfoContext(ctx, "scan finished", "library", lib.Name, "items", len(all), "errors", failed+problems,
@@ -435,21 +471,39 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		return nil
 	}
 	it := &Item{LibraryID: lib.ID, Kind: c.kind, Path: c.path, SizeBytes: c.size, MTime: c.mtime}
+	meta := newTitleMeta()
 	if existing != nil {
 		it.ID = existing.ID
 		it.AddedAt = existing.AddedAt
+		meta = s.Store.TitleMeta(ctx, TargetItem, existing.ID)
 	}
+	prov := newProvenance()
 	base := strings.TrimSuffix(filepath.Base(c.path), filepath.Ext(c.path))
 	dir := filepath.Dir(c.path)
 	if c.kind == "dvd-folder" || c.kind == "bluray-folder" {
 		base = filepath.Base(c.path)
 		dir = c.path
 	}
-	it.Title, it.Year = ParseName(base)
+	// An id in the name says exactly what this is, and rules say how to read a folder's naming.
+	hint, hasHint := IDTag(c.path)
+	it.Title, it.Year = ParseName(stripIDTags(base))
 	// Folder name is often better than "VIDEO_TS"/"movie.mkv".
-	if parentTitle, parentYear := ParseName(filepath.Base(filepath.Dir(c.path))); c.kind != "dvd-folder" && c.kind != "bluray-folder" && it.Year == nil && parentYear != nil && !strings.EqualFold(filepath.Dir(c.path), lib.Paths[0]) {
+	if parentTitle, parentYear := ParseName(stripIDTags(filepath.Base(filepath.Dir(c.path)))); c.kind != "dvd-folder" && c.kind != "bluray-folder" && it.Year == nil && parentYear != nil && !strings.EqualFold(filepath.Dir(c.path), lib.Paths[0]) {
 		it.Title, it.Year = parentTitle, parentYear
 	}
+	rule, hasRule := ctx.Value(rulesKey{}).(*ruleSet).test(c.path)
+	if hasRule {
+		if rule.Title != "" {
+			it.Title = rule.Title
+		}
+		if rule.Year != nil {
+			it.Year = rule.Year
+		}
+		if rule.ID != "" && !hasHint {
+			hint, hasHint = MatchRef{rule.Source, rule.ID}, true
+		}
+	}
+	prov.note(it, SourceFile)
 
 	// Technical facts.
 	switch c.kind {
@@ -483,6 +537,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	if it.SortTitle == "" {
 		it.SortTitle = SortTitle(it.Title)
 	}
+	prov.note(it, SourceNFO)
 
 	// What a disc holds: kept when someone chose it, else worked out.
 	if it.Disc != nil {
@@ -493,32 +548,212 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		}
 	}
 
-	// Online metadata: the owner's own agents first, then the built-in ones.
-	// Discs of TV series are not looked up as films (they keep their name,
-	// disc label and agents' answers).
+	// A person's decision about the match stands: nothing is looked up against it.
+	lookup := meta.MatchState == MatchAuto && !(hasRule && rule.Lookup == "none")
+	if lookup && hasHint {
+		if s.applyHint(ctx, it, hint, meta) {
+			lookup = false
+		}
+	}
+	if lookup {
+		s.lookUpItem(ctx, it, lib, rule.Lookup, prov)
+	}
+	if existing != nil {
+		s.Store.keepLockedItem(ctx, it, existing, meta)
+	}
+	prov.note(it, it.Provider)
+	// Generated thumbnail as the last resort.
+	if it.Poster == "" && (it.Disc == nil || !it.Disc.Scrambled) {
+		if p, err := s.thumbnail(ctx, it); err == nil {
+			it.Poster = p
+			prov.note(it, SourceFrame)
+		} else {
+			s.minorFailure(ctx, "could not make a thumbnail", err, "file", c.path)
+		}
+	}
+	if !meta.Locks["director"] && it.director != "" {
+		meta.Director = it.director
+		prov.sources["director"] = it.Provider
+		meta.Sources["director"] = it.Provider
+	}
+	meta.AudioFormat = audioFormatOf(it)
+	if hasRule {
+		meta.Tags = cleanList(append(meta.Tags, rule.Tags...), 50, 60)
+		if len(rule.Edition) > 0 && !meta.Locks["edition"] {
+			meta.Edition = rule.Edition
+		}
+	}
+	s.saveOnScan(ctx, it)
+	if err := s.Store.upsertItem(ctx, it); err != nil {
+		return err
+	}
+	s.Store.recordScan(ctx, it.ID, meta, prov)
+	if hasRule && rule.Extra != "" {
+		s.Store.markRuleExtra(ctx, it, rule.Extra)
+	}
+	return nil
+}
+
+// lookUpItem asks the online sources about a new or changed file: the owner's own agents
+// first, then the built-in ones. Discs of TV series are not looked up as films (they
+// keep their name, disc label and agents' answers). only limits it to one source, for a
+// rule that says where to look.
+func (s *Scanner) lookUpItem(ctx context.Context, it *Item, lib *Library, only string, prov *provenance) {
 	s.applyAgents(ctx, it, lib.Type)
+	if it.Provider != "" {
+		prov.note(it, it.Provider)
+	}
 	movieLike := lib.Type != "videos" && lib.Type != CommercialsType && (it.Disc == nil || it.Disc.Content != "tv")
-	if key := s.TMDBKey(); key != "" && movieLike && (it.Overview == "" || it.Poster == "") {
-		t := &TMDB{Key: key}
+	if key := s.TMDBKey(); key != "" && movieLike && (it.Overview == "" || it.Poster == "") && (only == "" || only == "auto" || only == "tmdb") {
+		t := &TMDB{Key: key, Base: s.TMDBBase}
 		if err := t.Enrich(ctx, it); err != nil {
 			s.minorFailure(ctx, "metadata lookup failed", err, "source", "tmdb", "title", it.Title)
 		}
-	} else if key == "" && movieLike && (lib.Type == "movies" || lib.Type == "discs") && it.Overview == "" && (s.WikidataOn == nil || s.WikidataOn()) {
+	} else if key == "" && movieLike && (lib.Type == "movies" || lib.Type == "discs") && it.Overview == "" && (s.WikidataOn == nil || s.WikidataOn()) && (only == "" || only == "auto" || only == "wikidata") {
 		// No TMDB key: basic facts and the rating from Wikidata (no key needed).
 		if err := (&Wikidata{}).Enrich(ctx, it); err != nil {
 			s.minorFailure(ctx, "metadata lookup failed", err, "source", "wikidata", "title", it.Title)
 		}
 	}
-	// Generated thumbnail as the last resort.
-	if it.Poster == "" && (it.Disc == nil || !it.Disc.Scrambled) {
-		if p, err := s.thumbnail(ctx, it); err == nil {
-			it.Poster = p
-		} else {
-			s.minorFailure(ctx, "could not make a thumbnail", err, "file", c.path)
+}
+
+// applyHint fills an item from an id its name gave. It's a person's choice as much as
+// picking from a list, so it counts as one.
+func (s *Scanner) applyHint(ctx context.Context, it *Item, hint MatchRef, meta *TitleMeta) bool {
+	t := &Title{Target: TargetItem, ID: it.ID, Item: it, Meta: meta}
+	source := hint.Source
+	if source == "imdb" {
+		c, err := s.findIMDb(ctx, hint.ID, t)
+		if err != nil || len(c) == 0 {
+			s.minorFailure(ctx, "metadata lookup failed", errors.New("no title has that IMDb id"), "id", hint.ID)
+			return false
+		}
+		source, hint.ID = c[0].Source, c[0].ID
+	}
+	d, err := s.detailsOf(ctx, source, hint.ID)
+	if err != nil {
+		s.minorFailure(ctx, "metadata lookup failed", err, "source", source, "id", hint.ID)
+		return false
+	}
+	if err := applyDetails(t, d, nil); err != nil {
+		return false
+	}
+	meta.MatchState = MatchManual
+	return true
+}
+
+// adopted lists what a scan looks after for a path moved to this library. A show's
+// folder is under no folder of the library, so its parent counts as one for this scan.
+func (s *Scanner) adopted(path string, lib *Library) ([]candidate, error) {
+	st, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if st.IsDir() {
+		if _, err := os.Stat(filepath.Join(path, "VIDEO_TS", "VIDEO_TS.IFO")); err == nil {
+			return []candidate{{path: path, kind: "dvd-folder", mtime: st.ModTime().Unix()}}, nil
+		}
+		if _, err := os.Stat(filepath.Join(path, "BDMV", "index.bdmv")); err == nil {
+			return []candidate{{path: path, kind: "bluray-folder", mtime: st.ModTime().Unix()}}, nil
+		}
+		lib.Paths = append(lib.Paths, filepath.Dir(path))
+		return discover(path)
+	}
+	kind := "video"
+	if ext := strings.ToLower(filepath.Ext(path)); ext == ".iso" || ext == ".img" {
+		kind = "dvd-iso"
+	}
+	return []candidate{{path: path, kind: kind, size: st.Size(), mtime: st.ModTime().Unix()}}, nil
+}
+
+type rulesKey struct{}
+
+// audioFormatOf says what an item's audio is, for filtering: "AC3 5.1".
+func audioFormatOf(it *Item) string {
+	if it.audioFormat != "" {
+		return it.audioFormat
+	}
+	if it.Disc != nil {
+		for _, t := range it.Disc.Titles {
+			if t.Number == it.Disc.MainTitle && len(t.Audio) > 0 {
+				// "eng AC3 6ch"
+				if f := strings.Fields(t.Audio[0]); len(f) == 3 {
+					n, _ := strconv.Atoi(strings.TrimSuffix(f[2], "ch"))
+					return audioFormatName(f[1], n)
+				}
+			}
 		}
 	}
-	s.saveOnScan(ctx, it)
-	return s.Store.upsertItem(ctx, it)
+	return ""
+}
+
+func audioFormatName(codec string, channels int) string {
+	codec = strings.ToUpper(codec)
+	switch codec {
+	case "EAC3":
+		codec = "E-AC3"
+	case "TRUEHD":
+		codec = "TrueHD"
+	case "PCM_S16LE", "PCM_S24LE", "PCM_BLURAY", "PCM_DVD":
+		codec = "PCM"
+	case "":
+		return ""
+	}
+	switch channels {
+	case 0:
+		return codec
+	case 1:
+		return codec + " mono"
+	case 2:
+		return codec + " stereo"
+	case 6:
+		return codec + " 5.1"
+	case 8:
+		return codec + " 7.1"
+	}
+	return codec + " " + strconv.Itoa(channels) + "ch"
+}
+
+// maxAudioFills bounds the look at files scanned before audio formats were kept, per scan.
+const maxAudioFills = 200
+
+// fillAudioFormats reads the audio format of titles scanned before it was kept.
+func (s *Scanner) fillAudioFormats(ctx context.Context, libraryID int64) {
+	rows, err := s.Store.DB.QueryContext(ctx, `SELECT i.id, i.path FROM items i LEFT JOIN title_meta m ON m.target = 'item' AND m.target_id = i.id
+		WHERE i.library_id = ? AND i.missing = 0 AND i.show_id IS NULL AND i.kind = 'video' AND IFNULL(m.audio_format, '') = '' LIMIT ?`, libraryID, maxAudioFills)
+	if err != nil {
+		return
+	}
+	type row struct {
+		id   int64
+		path string
+	}
+	var todo []row
+	for rows.Next() {
+		var r row
+		if rows.Scan(&r.id, &r.path) == nil {
+			todo = append(todo, r)
+		}
+	}
+	rows.Close()
+	for _, r := range todo {
+		if ctx.Err() != nil {
+			return
+		}
+		pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		p, err := s.Tools.ProbeFile(pctx, r.path)
+		cancel()
+		if err != nil {
+			continue
+		}
+		format := "none"
+		if a := p.Audio(); len(a) > 0 {
+			format = audioFormatName(a[0].CodecName, a[0].Channels)
+		}
+		m := s.Store.TitleMeta(ctx, TargetItem, r.id)
+		m.AudioFormat = format
+		_ = s.Store.saveTitleMeta(ctx, TargetItem, r.id, m)
+	}
 }
 
 // findPoster looks once more for a picture for an unchanged item without one:
@@ -557,8 +792,11 @@ func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
 		it.VideoCodec = v.CodecName
 		it.Width, it.Height = v.DisplaySize()
 	}
-	for _, a := range p.Audio() {
+	for i, a := range p.Audio() {
 		it.AudioLangs = append(it.AudioLangs, orUnd(a.Tags["language"]))
+		if i == 0 {
+			it.audioFormat = audioFormatName(a.CodecName, a.Channels)
+		}
 	}
 	for _, st := range p.Subtitles() {
 		it.SubLangs = append(it.SubLangs, orUnd(st.Tags["language"]))
@@ -729,7 +967,7 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 // its file by the earlier, faulty parse ("Dr.Story.The.Treeline" became
 // "Dr Story The"). Items matched online or retitled by hand keep theirs.
 func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind string) {
-	if it.Provider != "" {
+	if it.Provider != "" || s.Store.TitleMeta(ctx, TargetItem, it.ID).Locks["title"] {
 		return
 	}
 	base := strings.TrimSuffix(filepath.Base(it.Path), filepath.Ext(it.Path))

@@ -129,6 +129,23 @@ func tokenFrom(r *http.Request) string {
 	return t
 }
 
+// StartMetadata wakes the services that follow scans, and brings in anything added
+// before they existed. The server's own start calls it once.
+func (s *Server) StartMetadata() {
+	s.Scanner.OnScanned = func() {
+		s.logos().Kick()
+		s.Scanner.KickListings()
+	}
+	logging.Go("metadata start", func() {
+		ctx := context.Background()
+		if err := s.Store.SyncBrands(ctx); err != nil {
+			s.Log.WarnContext(ctx, "could not update studios and networks", "cat", "library", "err", err)
+		}
+		s.logos().Kick()
+		s.Scanner.KickListings()
+	}, "cat", "library")
+}
+
 // Handler builds the root handler.
 func (s *Server) Handler() http.Handler {
 	s.mux = http.NewServeMux()
@@ -175,6 +192,52 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("PUT /api/logos/{id}", s.requireAdmin(s.handleLogoChange))
 	m.Handle("PUT /api/logos/{id}/upload", s.requireAdmin(s.handleLogoUpload))
 	m.Handle("GET /api/brands", a(s.handleBrands))
+	m.Handle("GET /api/browse", a(s.handleBrowse))
+	m.Handle("GET /api/browse/facets", a(s.handleBrowseFacets))
+	m.Handle("GET /api/browse/shelves", a(s.handleBrowseShelves))
+	m.Handle("PUT /api/browse/categories", s.requireAdmin(s.handleCategoriesPut))
+	m.Handle("GET /api/views", a(s.handleViews))
+	m.Handle("POST /api/views", a(s.handleViewSave))
+	m.Handle("PUT /api/views/{id}", a(s.handleViewSave))
+	m.Handle("DELETE /api/views/{id}", a(s.handleViewDelete))
+	m.Handle("GET /api/views/{id}/titles", a(s.handleViewTitles))
+	m.Handle("GET /api/listings/status", a(s.handleListingStatus))
+	m.Handle("PUT /api/listings/settings", s.requireAdmin(s.handleListingSettings))
+	m.Handle("POST /api/listings/refresh", s.requireAdmin(s.handleListingRefresh))
+	m.Handle("GET /api/meta/removed", s.requireAdmin(s.handleMetaRemoved))
+	m.Handle("POST /api/meta/removed/restore", s.requireAdmin(s.handleMetaRestore))
+	m.Handle("POST /api/meta/undo", s.requireAdmin(s.handleMetaUndo))
+	m.Handle("GET /api/meta/history", s.requireAdmin(s.handleMetaHistory))
+	m.Handle("POST /api/meta/bulk", s.requireAdmin(s.handleMetaBulk))
+	m.Handle("GET /api/meta/show/{id}/episodes", s.requireAdmin(s.handleEpisodesList))
+	m.Handle("PUT /api/meta/show/{id}/episodes", s.requireAdmin(s.handleEpisodesRemap))
+	m.Handle("GET /api/meta/{target}/{id}", s.requireAdmin(s.handleMetaGet))
+	m.Handle("PUT /api/meta/{target}/{id}", s.requireAdmin(s.handleMetaPut))
+	m.Handle("DELETE /api/meta/{target}/{id}", s.requireAdmin(s.handleMetaDelete))
+	m.Handle("POST /api/meta/{target}/{id}/revert", s.requireAdmin(s.handleMetaRevert))
+	m.Handle("POST /api/meta/{target}/{id}/search", s.requireAdmin(s.handleMetaSearch))
+	m.Handle("POST /api/meta/{target}/{id}/preview", s.requireAdmin(s.handleMetaPreview))
+	m.Handle("POST /api/meta/{target}/{id}/match", s.requireAdmin(s.handleMetaMatch))
+	m.Handle("DELETE /api/meta/{target}/{id}/match", s.requireAdmin(s.handleMetaUnmatch))
+	m.Handle("POST /api/meta/{target}/{id}/refresh", s.requireAdmin(s.handleMetaRefresh))
+	m.Handle("POST /api/meta/{target}/{id}/suggest", s.requireAdmin(s.handleMetaSuggest))
+	m.Handle("POST /api/meta/{target}/{id}/leave", s.requireAdmin(s.handleMetaLeave))
+	m.Handle("GET /api/meta/{target}/{id}/artwork", s.requireAdmin(s.handleMetaArtwork))
+	m.Handle("PUT /api/meta/{target}/{id}/art/{kind}", s.requireAdmin(s.handleMetaArtUpload))
+	m.Handle("GET /api/meta/{target}/{id}/art/{kind}", a(s.handleTitleArt))
+	m.Handle("POST /api/meta/{target}/{id}/link", s.requireAdmin(s.handleMetaLink))
+	m.Handle("DELETE /api/meta/{target}/{id}/link", s.requireAdmin(s.handleMetaUnlink))
+	m.Handle("POST /api/meta/{target}/{id}/move", s.requireAdmin(s.handleMetaMove))
+	m.Handle("GET /api/meta/{target}/{id}/listings", a(s.handleTitleListings))
+	m.Handle("GET /api/meta/{target}/{id}/attached", a(s.handleTitleAttached))
+	m.Handle("GET /api/match/queue", s.requireAdmin(s.handleMatchQueue))
+	m.Handle("POST /api/match/accept", s.requireAdmin(s.handleMatchAccept))
+	m.Handle("POST /api/match/suggest-all", s.requireAdmin(s.handleSuggestAll))
+	m.Handle("GET /api/match/suggest-all", s.requireAdmin(s.handleSuggestProgress))
+	m.Handle("DELETE /api/match/suggest-all", s.requireAdmin(s.handleSuggestStop))
+	m.Handle("GET /api/match/rules", s.requireAdmin(s.handleMatchRules))
+	m.Handle("PUT /api/match/rules", s.requireAdmin(s.handleMatchRulesPut))
+	m.Handle("POST /api/match/rules/try", s.requireAdmin(s.handleMatchRulesTry))
 	m.Handle("GET /api/items/{id}", a(s.handleItem))
 	m.Handle("PUT /api/items/{id}", s.requireAdmin(s.handleUpdateItem))
 	m.Handle("GET /api/items/{id}/poster", a(s.handlePoster))

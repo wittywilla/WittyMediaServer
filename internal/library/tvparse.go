@@ -56,6 +56,10 @@ func ParseEpisode(root, path string) (EpisodeRef, bool) {
 	file := parts[len(parts)-1]
 	dirs := parts[:len(parts)-1]
 	name := strings.TrimSuffix(file, filepath.Ext(file))
+	// An id in a folder's name is for matching, not part of the show's name.
+	for i := range dirs {
+		dirs[i] = stripIDTags(dirs[i])
+	}
 
 	var ref EpisodeRef
 	seasonFromDir := -1

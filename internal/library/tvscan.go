@@ -58,6 +58,15 @@ func (s *Scanner) sourceNamed(name string) SeriesSource {
 	if t := s.tvSource(); t != nil && t.Name() == name {
 		return t
 	}
+	// A show someone matched by hand may be on a source that isn't the active one.
+	switch src := s.matchSourceNamed(name).(type) {
+	case *tvmazeSource:
+		return &src.TVMaze
+	case *tvdbSource:
+		return &src.TVDB
+	case *tmdbShows:
+		return &tmdbSeries{src}
+	}
 	return nil
 }
 
@@ -124,8 +133,10 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 		return nil // unchanged
 	}
 	it := &Item{LibraryID: lib.ID, Kind: c.kind, Path: c.path, SizeBytes: c.size, MTime: c.mtime, ShowID: &sh.ID}
+	meta := newTitleMeta()
 	if existing != nil {
 		it.ID, it.AddedAt = existing.ID, existing.AddedAt
+		meta = s.Store.TitleMeta(ctx, TargetItem, existing.ID)
 	}
 	if ref.Season >= 0 {
 		season, ep := ref.Season, ref.Episode
@@ -190,6 +201,10 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 		it.Year = yearOf(it.Aired)
 	}
 	it.SortTitle = SortTitle(it.Title)
+	if existing != nil {
+		// Numbers someone corrected and anything else locked stay.
+		s.Store.keepLockedItem(ctx, it, existing, meta)
+	}
 	if it.Poster == "" {
 		if p, err := s.thumbnail(ctx, it); err == nil {
 			it.Poster = p
@@ -272,6 +287,11 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 		sh = &Show{LibraryID: lib.ID, Path: ref.ShowDir, Title: ref.Show, Year: ref.ShowYear}
 	}
 	before := *sh
+	meta := newTitleMeta()
+	if sh.ID != 0 {
+		meta = s.Store.TitleMeta(ctx, TargetShow, sh.ID)
+	}
+	hint, hasHint := IDTag(ref.ShowDir)
 	base := filepath.Base(ref.ShowDir)
 	if p := findArt(ref.ShowDir, "poster", "folder", "cover", "show", base); p != "" {
 		sh.Poster = p
@@ -280,29 +300,45 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 		sh.Backdrop = b
 	}
 	fromNFO := applyShowNFO(sh, filepath.Join(ref.ShowDir, "tvshow.nfo"))
-	if t := s.sourceFor(lib); t != nil && (sh.Provider != t.Name() || sh.Overview == "") {
-		var meta *SeriesMeta
+	// A person's decision about the match stands: nothing is looked up against it.
+	t := s.sourceFor(lib)
+	if hasHint && meta.MatchState == MatchAuto && sh.Provider != hint.Source {
+		if named := s.sourceNamed(hint.Source); named != nil {
+			t = named
+			sh.Provider, sh.ProviderID = hint.Source, hint.ID
+		}
+	}
+	if t != nil && meta.MatchState == MatchAuto && (sh.Provider != t.Name() || sh.Overview == "") {
+		var found *SeriesMeta
 		var err error
 		if sh.Provider == t.Name() && sh.ProviderID != "" {
-			meta, err = t.Series(ctx, sh.ProviderID)
+			found, err = t.Series(ctx, sh.ProviderID)
 		} else {
-			meta, err = t.FindSeries(ctx, sh.Title, sh.Year)
+			found, err = t.FindSeries(ctx, sh.Title, sh.Year)
 		}
 		if err != nil {
 			s.minorFailure(ctx, "metadata lookup failed", err, "source", t.Name(), "show", sh.Title)
 		} else {
-			applySeriesMeta(sh, t.Name(), meta, fromNFO, false)
+			applySeriesMeta(sh, t.Name(), found, fromNFO, false)
+		}
+		if before.ID != 0 {
+			keepLockedShow(sh, &before, meta)
 		}
 		if err := s.saveShow(ctx, sh, &before); err != nil {
 			return nil, err
 		}
-		if meta != nil {
-			for n, p := range meta.SeasonPosters {
+		if found != nil {
+			for n, p := range found.SeasonPosters {
 				_ = s.Store.SetSeasonPoster(ctx, sh.ID, n, p, false)
 			}
 		}
-	} else if err := s.saveShow(ctx, sh, &before); err != nil {
-		return nil, err
+	} else {
+		if before.ID != 0 {
+			keepLockedShow(sh, &before, meta)
+		}
+		if err := s.saveShow(ctx, sh, &before); err != nil {
+			return nil, err
+		}
 	}
 	s.saveShowOnScan(ctx, sh)
 	tv.shows[ref.ShowDir] = sh
@@ -405,7 +441,10 @@ func (s *Scanner) RefreshShow(ctx context.Context, showID int64, tvdbID string) 
 	if err != nil {
 		return nil, err
 	}
+	before := *sh
+	state := s.Store.TitleMeta(ctx, TargetShow, sh.ID)
 	applySeriesMeta(sh, t.Name(), meta, false, true)
+	keepLockedShow(sh, &before, state)
 	if err := s.Store.UpsertShow(ctx, sh); err != nil {
 		return nil, err
 	}
@@ -424,11 +463,13 @@ func (s *Scanner) RefreshShow(ctx context.Context, showID int64, tvdbID string) 
 		if it.Season == nil || it.Episode == nil {
 			continue
 		}
+		prev := *it
 		applyEpisodeMeta(it, t.Name(), eps, false)
 		if it.Year == nil {
 			it.Year = yearOf(it.Aired)
 		}
 		it.SortTitle = SortTitle(it.Title)
+		s.Store.keepLockedItem(ctx, it, &prev, s.Store.TitleMeta(ctx, TargetItem, it.ID))
 		if err := s.Store.upsertItem(ctx, it); err != nil {
 			return sh, err
 		}

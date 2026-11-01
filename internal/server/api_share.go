@@ -153,6 +153,10 @@ func (s *Server) sharedItem(ctx context.Context, c *shareContext, id int64) (*li
 			return nil, library.ErrNotFound
 		}
 	case "album":
+		// The album has to still be one the link's maker may share, not only hold the picture.
+		if _, err := s.Store.PhotoAlbumByID(ctx, c.link.TargetID, c.owner.ID, c.owner.IsAdmin); err != nil {
+			return nil, library.ErrNotFound
+		}
 		var one int
 		if err := s.DB.QueryRowContext(ctx, `SELECT 1 FROM photo_album_items WHERE album_id = ? AND item_id = ?`, c.link.TargetID, id).Scan(&one); err != nil {
 			return nil, library.ErrNotFound

@@ -401,6 +401,21 @@ var migrations = []string{
 	   uuid TEXT NOT NULL, mac TEXT NOT NULL DEFAULT '', cert TEXT NOT NULL DEFAULT '',
 	   public INTEGER NOT NULL DEFAULT 0, paired_at INTEGER, created_at INTEGER NOT NULL,
 	   UNIQUE(user_id, uuid));`,
+	// 25: a share link goes with what it shares. Numbers come back when the newest row is
+	// deleted, so a link left behind would open whatever got that number next.
+	`DELETE FROM share_links WHERE kind = 'item' AND target_id NOT IN (SELECT id FROM items);
+	 DELETE FROM share_links WHERE kind = 'album' AND target_id NOT IN (SELECT id FROM photo_albums);
+	 CREATE INDEX IF NOT EXISTS share_links_target ON share_links(kind, target_id);
+	 CREATE TRIGGER IF NOT EXISTS share_links_item_gone AFTER DELETE ON items BEGIN
+	   DELETE FROM share_links WHERE kind = 'item' AND target_id = OLD.id;
+	 END;
+	 CREATE TRIGGER IF NOT EXISTS share_links_album_gone AFTER DELETE ON photo_albums BEGIN
+	   DELETE FROM share_links WHERE kind = 'album' AND target_id = OLD.id;
+	 END;`,
+	// 26: a sign-in with no password only works at home, as the sign-in itself does. Accounts
+	// with no password today may have made theirs before this was kept.
+	`ALTER TABLE sessions ADD COLUMN home_only INTEGER NOT NULL DEFAULT 0;
+	 UPDATE sessions SET home_only = 1 WHERE user_id IN (SELECT id FROM users WHERE password_hash = '');`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

@@ -661,10 +661,10 @@ func (s SubpAttr) Purpose() string {
 
 // Register file of the DVD virtual machine.
 type Registers struct {
-	GPRM      [16]uint16
-	Counter   [16]bool // GPRM counter mode (increments once per second)
-	SPRM      [24]uint16
-	Rand      func() float64
+	GPRM    [16]uint16
+	Counter [16]bool // GPRM counter mode (increments once per second)
+	SPRM    [24]uint16
+	Rand    func() float64
 }
 
 // SPRM indexes.

@@ -189,8 +189,6 @@ type PMT struct {
 	CA      bool // a conditional access descriptor: the programme may be encrypted
 }
 
-const caDescriptor = 0x09
-
 // Service is an entry of DVB's SDT.
 type Service struct {
 	ID       int
@@ -599,16 +597,3 @@ func (g *Guard) Underneath() io.ReadCloser { return g.r }
 // --------------------------------------------------------------------------
 // Picking one programme out of a whole multiplex
 // --------------------------------------------------------------------------
-
-// ProgramFilter passes one programme from a stream that carries many: its PAT
-// (rewritten to list only it), PMT, audio and video, and the guide tables.
-type ProgramFilter struct {
-	r       io.ReadCloser
-	program int
-	pmt     int
-	keep    map[int]bool
-	dem     *Demux
-	carry   []byte
-	out     []byte
-	cc      byte
-}

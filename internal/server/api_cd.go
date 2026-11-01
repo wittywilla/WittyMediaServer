@@ -140,8 +140,12 @@ func (s *Server) cdItem(w http.ResponseWriter, r *http.Request) (*library.Item, 
 		return nil, nil, nil, false
 	}
 	it, err := s.visibleItem(r, id)
-	if err != nil || it.Kind != library.CDKind || !s.Store.LibraryFile(r.Context(), it.Path) {
+	if err != nil || it.Kind != library.CDKind {
 		writeErr(w, 404, "disc not found")
+		return nil, nil, nil, false
+	}
+	if !s.Store.LibraryFile(r.Context(), it.Path) {
+		writeErr(w, 404, "This disc's image is no longer where it was. A scan of its library will tidy it away.")
 		return nil, nil, nil, false
 	}
 	d, release, err := s.cds.open(it.Path)
@@ -159,9 +163,9 @@ func cdErrorText(err error) string {
 	case errors.Is(err, wittycd.ErrNoAudio), errors.Is(err, wittycd.ErrNotCD), errors.Is(err, wittycd.ErrUnsupported):
 		return err.Error()
 	case errors.Is(err, os.ErrNotExist):
-		return "this disc's image is no longer where it was"
+		return "This disc's image is no longer where it was. A scan of its library will tidy it away."
 	}
-	return "this disc's image can't be read: it may be damaged"
+	return "This disc's image can't be read. It may be damaged."
 }
 
 // cdTrackView is one track as players use it. Positions are in sectors from the

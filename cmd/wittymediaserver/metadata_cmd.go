@@ -87,7 +87,7 @@ func cmdMetadata(args []string) int {
 		return 2
 	}
 	if pid, running := logging.ServerRunning(filepath.Join(cfg.DataDir, "crash")); running && (what == "undo" || (what == "apply" && apply)) {
-		fmt.Fprintf(os.Stderr, "A server is running on this data folder (process %d). Use Settings > Metadata files instead, or stop the server first.\n", pid)
+		fmt.Fprintf(os.Stderr, "A server is running on this data folder (process %d). Use Settings > Repair instead, or stop the server first.\n", pid)
 		return 1
 	}
 	if _, err := os.Stat(filepath.Join(cfg.DataDir, "wms.db")); err != nil {

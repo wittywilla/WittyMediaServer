@@ -270,7 +270,7 @@ export default function GamingSettings() {
               </label>
             </div>
             <dl className="gaming-facts">
-              <dt>Game runner</dt><dd>{st.runner || <><b>Missing from this install</b><br /><span className="muted">Games can’t start without it. It ships with the release downloads; if you built this server yourself, build the runner too (see the gaming guide).</span></>}</dd>
+              <dt>Game runner</dt><dd>{st.runner || <><b>Missing from this install</b><br /><span className="muted">Games can’t start without it. It ships with the release downloads; if you built this server yourself, build the runner too (see <Link to="/help/games#cores">the games guide</Link>).</span></>}</dd>
               <dt>Encoders</dt><dd>{st.encoders.join(', ') || 'None found'}</dd>
               <dt>Graphics card</dt><dd>{st.gpu?.name || (checking && !st.gpu?.error ? 'Checking…' : <><b>None this server can use</b><br /><span className="muted">{st.gpu?.error ? `${st.gpu.error}. ` : ''}Consoles that draw with a graphics card won’t start. Older consoles still play.</span></>)}</dd>
               <dt>Games running</dt><dd>{st.running}</dd>

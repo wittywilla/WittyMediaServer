@@ -1,166 +1,104 @@
 # Open requests
 
-What the owner has asked for that isn't finished yet. It comes from reading the owner's messages and
-checking each request against the code on 2026-10-30, on the merged test branch.
+See what the owner has asked for and where each stands, checked against the code on 2026-11-01 at `a051f40`. This is an internal list for the people working on the project, and isn't in the app's help.
 
-**How far this was checked:** one desktop browser with one quick phone-size check, using the media on
-the development machine. No real TVs, tuners, retail Blu-rays or game cores were used. Requests from
-before 2026-10-29 can't be seen, so this list can't cover them. Work still in progress on other branches may
-close some of these.
+**How far this was checked:** by reading the code and each worker's report, and not by using the features. "Done" means the work is merged. What wasn't seen working is in the third column, and everything that needs real hardware is in the [Roadmap](ROADMAP.md#what-hasnt-met-the-real-world).
 
-## Fix first
+## The 0.6.0-alpha list
 
-- **The TV guide blanks the whole app when there are no channels.** The server sends an empty value
-  instead of an empty list, and the page can't handle it. This happens on every new install that opens
-  **TV guide** before making a channel. Fix it on the server and in the page.
-- **Settings, About can say no hardware video was found when it was.** Opening the page starts the
-  test, and the answer only shows the next time the page opens.
+| Request | State | Not seen, or left |
+|---|---|---|
+| Modules completely separate from the server | Done | `--apply` and the workflows have never run. WittyMediaPlayer's disc engine isn't on module API 3 yet |
+| Modules start at this release, with limited unofficial compatibility | Done | Older-API refusal is unit tests only |
+| A module store with search, and third-party stores with warnings | Done | Screenshots section and automatic updates not run in the UI |
+| **Update All Modules** and readable errors | Done | |
+| What's new on each module, with a plain line when there's nothing | Done | |
+| A list of the module repositories to make | Done | [Repositories](REPOSITORIES.md) |
+| Radio playing and the user button overlapping | Done | Radio sound not heard |
+| TV interface filled out, with more than the target has | Done | Not every new dialog seen in both light and dark |
+| Scalable TV preview, TV themes with cable box and modern looks | Done | Title art only in the modern look |
+| DVD main feature and chosen scenes on WittyTV | Done | |
+| Bumpers, mandatory or by title, and cutting commercials short | Done | |
+| Better metadata editing and match fixing | Done | A real TMDB key not tried |
+| Studio and network logos as an optional download, with notices | Done | Real logo downloads not tried |
+| Automatic categories such as comedy and horror | Done | |
+| Browse by type, network, studio and more, and local listings by streaming platform with disclosures | Done | |
+| Profile names apart from usernames, with a choice of which shows | Done | |
+| Poster movement on hover, with a way to turn it off | Done | **Moving posters**, in **Settings → Appearance** |
+| Settings scroll bug | Done | |
+| Top bar that stays manageable when big | Done | |
+| A design standards document, shared parts and revamped themes | Done | [Design](DESIGN.md). 357 older design check problems remain, none new |
+| Intense UI pass, cohesive across the app | In progress | Session `ui-final` |
+| Setup wizard for all of this, friendly to beginners | In progress | Session `oobe` |
+| Security audit, hardening and updated libraries | Done, second pass in progress | Session `security-second-pass`. `install.ps1` is gone, so the service is no longer SYSTEM |
+| Code audit for Android, iOS and the client | Done | Android has run on emulators only. Apple never compiled |
+| Portability to Apple TV and Android TV | Partly | Android TV has run on an emulator with keys only. Live TV and the guide aren't on native apps |
+| Keyboard, screen reader and remote everywhere | In progress | No real screen reader, TV or controller tried |
+| WittyPlay UI overhaul | Done | |
+| Game lag, input delay and the graphics fault | Done | Delay figures are headless on one machine, not to the glass. The owner hasn't played it on a real screen. PS2 shader cache is rebuilt each run under the sandbox |
+| Reliable, fast emulation | Partly | Mesen's NES core aborts on Linux. Real saves on Linux under the sandbox not tried for PS2 |
+| 3DS CIA files | Done as far as it can be | CIA is read. The owner's file is really encrypted, so it's refused with a clear message. Only an unencrypted dump can be run |
+| Importing all game data, and non-games tied to random consoles | Done | |
+| Console icons, as an optional download | Done | PlayStation and PS2 have no logo, so they show text |
+| Server stats module, customisable, all metrics | Done | No real TV, sensors or touch drag tried |
+| Activity button for scans, read-only for non-admins, enabled in Settings | Done | Thumbnails and intro detection have no tasks of their own |
+| ZIP backup and restore | Done | Upload and save buttons not seen |
+| Documentation and safe editing for broken metadata | Done | |
+| CLI and UI tools for metadata, modules, corrupt data and the install | Done | `wittymediaserver doctor`, **Settings → Repair** |
+| Sanitized log download | Done | |
+| Standard installers and full uninstallers for every product | Done | No real Windows or Mac. See [Installing](INSTALL.md#what-has-been-tested) |
+| Clearer program names | Done | |
+| Every media type and file extension | Done | Safari, phones, HEVC hardware and HDR screens not checked |
+| Tdarr integration, and transcoding options | Done | Tdarr isn't open source now, so there's our own engine and an optional connection to the user's own Tdarr. Real Tdarr was never run, as downloading it binds whoever does so to its licence |
+| Music UI, full screen, visualizer shuffle, lyrics and karaoke, with a free source and a setup option | Done, setup option in progress | |
+| Year and other metrics kept | Done | |
+| Product documentation revamped, in-app help that replaces GitHub | In progress | |
+| GitHub, files and code comments cleaned up | Not started | Session `repo-cleanup` |
+| Heavy optimisation | Not started | Comes last |
 
-## WittyVisualizer
+## Older requests still open
 
-Built for the web app and WittyMediaPlayer. Still open:
+- **Windows and macOS installers:** a combined installer isn't started. The client, player and reader each have their own.
+- **WittyMediaPlayer:** a real window, sound, disc menus by eye and anything with a physical drive wait for the owner. Other systems, Java menus and surround sound aren't started.
+- **Client apps:** a way to reach the log file on Apple. Android has it under **Profile**.
+- **Wholly new kinds of module:** an "in development" section on the Modules page exists, and it's only that. Forks of existing modules work.
+- **A diagnostic app** for Windows and macOS with no server: not started.
+- **A minimum hardware document:** not written.
+- **Blu-ray on a real disc:** the sample projects on hand have no built disc or Java code. To try real authored output, the owner could build one with a free authoring tool.
+- **Confirm by watching:** a reference disc's warning screen, interactive games and credits, and the DVD chapter-change fix. An NTSC disc is still to be tried.
+- **CDs:** a real image from each ripping tool, and WittyCD images inside archives.
+- **Show types:** with no API key, a show with no genres may stay empty, so channels by type miss it. Not rechecked.
+- **WittyVisualizer:** a professional check of the flash limit, as it's measured against the WCAG figures with our own counter. Effects written by people work in the web app only.
+- **README:** new screenshots, and how network and show type information is obtained.
 
-- **Trying it by eye and on real devices:** it's been run in headless Edge on one PC, with generated music. Real music, real TVs,
-  phones, Firefox and Safari haven't been tried.
-- **A clinical or professional check of the flash limit:** it's measured against the WCAG figures with our own counter, not a
-  certified analyser such as PEAT or Harding.
-- **In the native client apps:** not started. [Embedding](https://github.com/wittywilla/WittyVisualizer) says what each would need.
-- **Effects written by people in the desktop app:** only the web app can add them, as the desktop bakes its shaders at build time.
-
-## Client apps
-
-- **Finding a server and entering a security code:** being finished for desktop; Android and Apple are
-  in progress.
-- **Apps on every device:** Windows has run. Android compiles but has never run. Apple has never been
-  compiled. Linux has never been launched. webOS, Tizen and Roku aren't started.
-- **Matching the web app:** native apps only play video so far. Search, music, books, disc menus, games,
-  channels and photos aren't started there.
-- **Apple TV themes:** only the theme's colours are used, with no theme picker.
-- **A server build for Android TV**, for boxes such as the NVIDIA Shield: not started.
-- **Logs in the client apps:** each app now keeps its own log and reports errors to its server (see the client's
-  README). Still to do: a way to reach the log file on Android and Apple, which have no settings screen to put it
-  on, and trying all of it on real devices.
-- **Remotes, every game controller and screen readers:** written, but not tried on real devices.
-- **Tidy-up:** the older `clients/desktop` and `clients/mobile` folders sit beside the new client, and
-  the client has no published repository yet.
-
-## Standalone apps and modules
-
-- **WittyMediaPlayer**, with WittyDVD and WittyBluray as plugins: a first Windows build exists under
-  **WittyMediaPlayer**, in Qt 6, including playing straight from a disc drive and making `.iso` and `.img`
-  images for a server's library, the VLC libraries as an option in Settings, WittyDVD and WittyBluray updating on their own,
-  and playing and copying audio CDs on a CD screen with a visualizer. Copying has been tested with generated images only, since the
-  laptop it was built on has no drive; the README has a short checklist for a real disc. WittyVisualizer's effects are on the CD screen too. Playing in a real window, sound, disc menus by eye and anything with a physical
-  drive are waiting for the owner to confirm. Other platforms, Java menus and surround sound aren't started.
-  It has no published repository yet, which is the owner's step.
-- **Updating modules on their own:** built and tested, and waiting for [the cutover](MODULES-CUTOVER.md), which needs your go-ahead, your signing key in each repository, and any missing repositories made. [MODULES.md](MODULES.md) says plainly what each module can and can't do. Still with the server: library scanning of discs, Blu-ray Java menus, some tuner kinds, and game streaming.
-- **Wholly new kinds of module:** an "in development" section on the Modules page. Forks of existing modules work; see [MODULES.md](MODULES.md), "Using someone's fork".
-- **Not tried yet:** real tuners through a helper, retail games on a downloaded runner, the module page on a real TV, and a real release from GitHub, since none exists until the cutover.
-- **WittyMediaRemoteMedia:** the basics of connecting NAS libraries through a native or Docker app, in
-  their own repository. Not started.
-- **WittyReader desktop builds.**
-- **Published repositories:** nothing is published under WittyPhotos, WittyPlay or WittyMediaClient yet.
-
-## Installers and packages
-
-- **Windows installers:** the server's is done, with a silent mode. Still to do: a client installer, a
-  combined installer, and an option to install the portable version.
-- **Linux packages:** native AMD64 and ARM64 packages for Fedora, Ubuntu and Arch, plus Flatpak, Snap and
-  other popular distributions. Only general archives exist today.
-- **A minimum hardware document:** realistic specifications for the server and for disc playback.
-
-## Disc tools and engines
-
-- **A diagnostic file:** done in the app. [WittyDiagnoser](DIAGNOSER.md) makes a report of what's useful for
-  fixing a disc or storage problem, with nothing copyrighted in it, in *Settings → WittyDiagnoser*.
-- **A small Windows and macOS app** that makes that file without a server: not started.
-- **Clearer program names:** nothing in the package explains what each program does.
-- **Blu-ray:** secondary audio, picture-in-picture and MVC 3D decoding. Testing on retail discs, including
-  Java menus, 4K and HDR, waits for discs from the owner. Neither Blu-ray image on hand has Java menus.
-- **BD-J on a real disc:** the blu-disc.net examples are project files for an authoring tool, with no built
-  disc or Java code to run, so BD-J was tested with open-source sample applications instead. To try real
-  authored output, the owner could build `DEMO_menu` with the free Blu-Disc Studio Lite. What needs
-  a disc: real menus' timing with video, and how far the API classes written from the published specs match.
-- **Confirm by watching:** a reference disc's warning screen, interactive games and credits have
-  fixes, but the owner hasn't confirmed them. The same goes for the DVD chapter-change fix: on a PAL disc, play
-  straight through 2:20 to 2:35 and 33:55 to 36:45. Only PAL discs could be measured, so an NTSC disc is
-  still to be tried.
-
-### Audio CDs
-
-WittyCD is in, on its branch. Still to do:
-
-- **CD images inside archives,** once the archive code is merged: it needs a real folder from `gamearchive.Cache`, and nothing else.
-- **CD+G from a raw `.sub` file,** whose subcode is interleaved. A `.cdg` beside the image and `CDG` sectors work.
-- **Double-byte CD-TEXT,** Japanese for example, which needs character tables. It is reported, and names come from elsewhere.
-- **A real image from each ripping tool.** There were none to test with, so the formats were checked with generated images: CHD and TOC against the real
-  tools, CCD and NRG only against their published descriptions.
-- **WittyMediaPlayer and the native apps** can use the routes in `docs/CLIENT-API.md`, but none has a CD player yet.
-  Java menus, 4K and HDR, waits for discs from the owner.
-- **Confirm by watching:** a disc's warning screen, the interactive games and the Idol credits have
-  fixes, but the owner hasn't confirmed them.
-
-## Live TV and recording
-
-- **Recordings in the series' own folder:** an admin toggle to put a recording in the show's folder. Today
-  there's one chosen folder, with a new folder per title.
-- **Guide data:** make it easier to get, and mention it in the setup wizard. It needs no API key, but
-  people have to find their own XMLTV address.
-- **More tuners:** Windows BDA and DiSEqC, a viewer and a recording sharing one tuner, and testing on real
-  hardware.
-- **Show types:** with no API key, a show with no genres stays empty even when the metadata service gives
-  a type such as Animation, so channels by type miss it.
-- **Commercial breaks inside programmes:** commercials only play between programmes today.
-
-## Game PCs
-
-- **Try it on a real gaming PC:** a real stream has reached a real browser, from a real Sunshine in a container. A real game with a real GPU hasn't. The
-  checklist is at the end of [GAME-RIGS.md](GAME-RIGS.md#a-checklist-for-the-first-real-test).
-- **Apple TV:** [a decision for the owner](GAME-RIGS.md#what-each-device-gets).
-- **A WebSocket fallback** for networks that block UDP, and HEVC and AV1, aren't built.
-
-## Games
-
-- **Real games:** real cores haven't run end to end. The owner's game files are now on the test machine.
-- **Every browser:** on plain http, some browsers hide gamepads and limit video features. In-browser play
-  is designed but not built.
-
-## Libraries
-
-- **Photos:** people and places, and batch rotate and edit.
-- **Books:** MOBI and AZW3 are listed, but no code to open them was found.
-- **Local AI:** the future plan document, covering how it helps the server and its users, with image
-  recognition for photos as an example. The placeholders are in.
-
-## Interface and documents
-
-- **README screenshots:** retake them at 1920×1080 from the current interface, including the guide, games
-  and photos.
-- **Navigation:** navigation items can't be rearranged by dragging (home widgets can), and the setup wizard
-  doesn't offer "both".
-- **"Preview not available":** only disc scenes show it. Other failed thumbnails go blank.
-- **Version number:** it can't be seen with top-only navigation or on phones.
-- **README:** explain how network and show type information is obtained, or link to the page that does.
-- **UI review:** a detailed review of every page, edge cases and accessibility is in progress.
-
-## Housekeeping
-
-- **Remove old builds** from `dist/`. Look before deleting: one of those folders is a copy the owner has run
-  in place, with its own data.
-- **Push** the finished work to GitHub, when the owner is happy with it.
+Everything else that was on this list has been built, is in the [Roadmap](ROADMAP.md), or has gone: the empty TV guide, the hardware video test on **Settings → About**, commercial breaks inside programmes, disk space for recordings, the version number on phones, and MOBI and AZW3 in the reader.
 
 ## Decisions for the owner
 
-- **Windows 7 for the desktop client:** it would need a second app on a browser engine that stopped getting
-  security fixes in 2023. The recommendation so far is not to build it.
-- **Claude working continuously:** a recurring task doesn't exist yet and is waiting for a yes or no.
-- **The app's ID, its visible name and its artwork** for the client apps.
+- **Windows 7 for the desktop client:** it would need a second app on a browser engine that stopped getting security fixes in 2023. The recommendation so far is not to build it.
+- **The app's ID, its visible name and its artwork** for the client apps. Android and Apple still say "WittyMedia".
+- **Whether to host an apt and dnf repository,** and whether to buy code signing.
+- **ScreenScraper secrets,** which would be public in the programs.
+- Each worker's decisions that can be overruled are in `D:\alpha6-todo\TRACKER.md`.
+
+## Owner steps
+
+These need a person: see [Publishing the modules](MODULES-CUTOVER.md) and [Publishing a release](PUBLISHING.md).
+
+- Make the module key, back up both keys, and move `WMS_SIGNING_KEY` to a `release` environment with a required reviewer.
+- Rename `WittySunshine` and `WittyMoonlightHost`, create `WittyStats` and `WittyModuleCatalog`, and delete `WittyMoonlight`.
+- Add a legal contact address.
+- Run the Windows Sandbox test of each product's installer, and try the APK on a phone and a TV stick.
+- Remove old builds from `dist/`. Look before deleting: one of those folders is a copy the owner has run in place, with its own data.
 
 ## Not open
 
 These stay closed:
 
-- **Encrypted broadcasts are never decrypted, and there is no plugin to bypass encryption.** Clear channels
-  and licensed devices are the route.
-- **Copy-protected discs are refused.**
+- **Encrypted broadcasts, discs and game files are never decrypted, and there's no plugin to get around it.** They're detected and refused with a clear message. Clear channels and licensed devices are the route.
+- **Non-commercial emulator cores** aren't offered.
 - **The module wikis were skipped by the owner.** The pages are written if that changes.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

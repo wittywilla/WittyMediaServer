@@ -1,123 +1,94 @@
 # Roadmap
 
-What is still to do, from the project's own requirements, in the planned order. Done work is
-listed at the end so the whole picture is in one place. Names follow [MODULES.md](MODULES.md).
+See what's still to do on the project, and what has been tried in the real world and what hasn't. This is for developers and anyone curious, and isn't in the app's help. What has landed is in the changelog.
 
-## 1. Disc engines and the player family
+Names follow [Modules](MODULES.md).
 
-- [x] **WittyDVD as its own Go module** (**WittyDVD**, mirrored to its repository), with the
-  `wittydvd` command-line tool.
-- [x] **WittyBluray engine** (**WittyBluray**, mirrored to its repository, with the
-  `wittybluray` tool and [BLURAY.md](BLURAY.md)): images and folders, menus, titles, chapters,
-  audio, subtitles, resume, AACS/BD-J/3D detection, 4K and HDR flags with tone mapping.
-  Pop-up menus during the film, animated highlights and 3D viewing modes (side-by-side /
-  over-under to 2D or anaglyph) are in, and so are BD-J menus with a Java the server's owner
-  installs. [BLURAY-QUIRKS.md](BLURAY-QUIRKS.md) lists every format feature and its state. Still to
-  do: test on retail discs (BD-J, MVC 3D, UHD HDR); secondary audio and picture-in-picture; MVC 3D
-  decoding.
-- [x] **WittyDisc** (**WittyDisc**): the disc image reader both engines share.
-- [x] **Versioned module releases:** WittyDisc, WittyDVD and WittyBluray are tagged on their
-  repositories, so `go get` and `go install` work outside a WittyMediaServer checkout
-  (MODULES.md, *Releasing the Go modules*).
-- [ ] **DVD playback sometimes stuck on the first warning screen**: confirm fixed, or
-  fix.
-- [ ] **Server plugin interface** (`Module` in MODULES.md): books, discs and audio first.
-- [ ] **WittyMediaPlayer:** a desktop player for local files, folders, images and discs, built
-  on the server's engines, with WittyDVD and WittyBluray as plugins. A first Windows build is in
-  **WittyMediaPlayer**; still to come are its own repository and other platforms.
-- [ ] **Diagnostics:** the DVD and Blu-ray tools collect everything useful for diagnosing a disc,
-  with no copyrighted material in what they generate. A small GUI for Windows and macOS that
-  makes the diagnostic file. Clear program names on every platform.
-  on the server's engines, with WittyDVD and WittyBluray as plugins. Own repository.
-- [ ] **Diagnostics:** [WittyDiagnoser](DIAGNOSER.md) in Settings checks discs and storage, and
-  makes a report with no copyrighted material in it (done). Still to do: a small GUI for Windows
-  and macOS that makes the diagnostic file without a server. Clear program names on every platform.
+## Finishing 0.6.0-alpha
 
-## 2. Libraries still to build
+| Step | State |
+|---|---|
+| A beginner-friendly, modular setup wizard, asking about logos, lyrics, listings and modules | In progress |
+| A final pass over every screen, looking for faults | In progress |
+| A second security pass over moved modules, apps and the Windows and macOS paths | In progress |
+| Documentation and in-app help | In progress |
+| Cleaning up the repositories, files and code comments | Not started |
+| Heavy optimisation of the server and its resource use | Not started, and comes last |
 
-- [x] **WittyPhotos** ([PHOTOS.md](PHOTOS.md)): timeline, albums, favourites, folders, map, sharing and
-  uploads, with EXIF and RAW previews. Still to do: people and places, when the local AI exists (the
-  placeholder is in); batch rotate and edit.
-- [x] **WittyShorts** ([SHORTS.md](SHORTS.md)): vertical videos with likes, comments, sharing, creators,
-  custom metadata and a For You page from local data alone.
-- [x] **WittyChannels** ([CREATOR-VIDEOS.md](CREATOR-VIDEOS.md)): creator videos with a web-video-style interface, for
-  collections already on disk.
-- [x] **Music videos and concerts** ([CREATOR-VIDEOS.md](CREATOR-VIDEOS.md#music-videos-and-concerts)), **internet radio**,
-  **collections and smart playlists**, **Your year** and **recommendations** ([COLLECTIONS.md](COLLECTIONS.md)).
-- [ ] **Watch together:** a shared, synchronised player across profiles and devices. Best built with
-  remote access in place, so it can be tested across real networks.
-- [x] **WittyTV (Live TV and DVR):** channels from the libraries (networks, eras, rules, timetables,
-  commercials), the classic and streaming guides with a movable live preview, IPTV and every kind of
-  tuner through WittyTuner, guide data, DVR. See [CHANNELS.md](CHANNELS.md).
-  - [ ] Try the tuner drivers on real hardware.
-  - [ ] Windows BDA tuning; DiSEqC; commercial breaks inside programmes; a viewer and a recording
-    sharing one tuner; disk-space checks and clean-up for recordings.
-- [x] **Playback speed on every media type:** up to 4×, higher by a server setting with a
-  warning about hardware and preferred codecs; pitch preserved. Video, discs, music, audiobooks,
-  podcasts and vertical videos; each kind of listening remembers its own speed.
+## Still to build
 
-## 3. Remote access and clients
+### The server and its libraries
 
-- [x] **Remote access:** [REMOTE.md](REMOTE.md). *Settings → Remote Access* with a clear status and
-  guided steps for Tailscale, NetBird, port forwarding and a VPS; a test with your own phone; HTTPS
-  with Let's Encrypt or your own certificate; optional port mapping; limits on streams away from
-  home; a server address in the clients; a greyed-out hosted relay marked as a future paid service.
-- [ ] **Hosted relay:** the future paid service shown greyed out in Settings. Not built.
-- [ ] **WittyMediaRemoteMedia:** the basics of a NAS agent (UGREEN, Synology, Docker) that
-  shares folders with a server. Own repository.
-- [x] **The server's side of the clients:** [the client API](CLIENT-API.md) with versioning and
-  capabilities, playback profiles for Apple TV and Android TV (direct, remux or transcode), stream
-  tokens, TV sign-in with a code, themes as data, and D-pad navigation on every page. Not yet tried
-  on real TVs.
-- [ ] **WittyMediaClient** (own repository): a themed, frameless desktop client (no File/View
-  menus; fully themeable; Windows 7 and up), Android TV (and a server build for Android TV /
-  NVIDIA Shield), Apple TV with the current themes; TV remotes, every kind of game controller,
-  screen readers and accessible navigation everywhere. Started in `clients/wittymediaclient/`:
-  the Windows desktop client runs; Android and Apple apps are written but not yet compiled; finding
-  servers and the security code aren't built. Status: `clients/wittymediaclient/docs/PLATFORMS.md`.
-  Windows 7 needs a decision first (`clients/wittymediaclient/docs/DESIGN.md`). The Android TV server
-  build isn't started.
-- [ ] **WittyReader** desktop builds in their own window.
+| What | State |
+|---|---|
+| **Watch together:** a shared, synchronised player across profiles and devices | Not started. Best built with real networks to test across |
+| **Hosted relay:** a future paid way in from away | Not built. It's shown greyed out in **Settings → Remote Access** |
+| **Photos:** batch rotate and edit | Not started |
+| **Local AI:** a plan document, with image recognition for photos as the first use | Not written. The marked placeholders are in: **People & places** in photos, and `GET /api/photos/ai` says it isn't available |
+| **Recordings in a series' own folder** | Not started. Recordings go to one folder, or a chosen library's |
+| **A minimum hardware document:** realistic specifications for the server and for disc playback | Not written |
+| **Sandbox on FreeBSD and macOS:** a module's helper runs with none there, only a small environment and a soft memory limit | Not built |
 
-## 4. Packaging and setup
+### Discs, tuners and games
 
-- [ ] **Windows installers:** server, client and combined; silent/headless install; the portable
-  version as an option.
-- [ ] **Linux:** native amd64 and arm64 packages for Fedora, Ubuntu and Arch, plus Flatpak and
-  Snap and other popular distributions; portable builds.
-- [ ] **Minimum hardware specification** document (realistic; Windows 10 for the server,
-  Windows 7 for the desktop client).
-- [ ] **Local AI:** a future-plan document, with image recognition for photos as the first use. The clearly
-  marked placeholders are in: People & places in WittyPhotos, and Settings, Sharing & photos (never in the
-  setup wizard), and `GET /api/photos/ai` answers that it isn't available.
+| What | State |
+|---|---|
+| **Blu-ray:** mixing in secondary audio and picture-in-picture, and MVC 3D decoding | Not built. FFmpeg has no MVC decoder, so it plays the 2D view |
+| **CDs:** CD+G from a raw `.sub` file, and double-byte CD-TEXT | Not built. The second is reported, and names come from elsewhere |
+| **Tuners:** Windows BDA tuning, DiSEqC, and a viewer and a recording sharing one tuner | Not built |
+| **Games in the browser:** in-browser emulation and on-device play | Designed, not built. See [Games](GAMING.md) |
+| **Game PCs:** a fallback for networks that block UDP, HEVC and AV1, and adapting the bitrate | Not built. See [Game PCs](GAME-RIGS.md) |
+| **A small Windows and macOS app** that makes a diagnostic file without a server | Not started. **Settings → WittyDiagnoser** does this with one |
 
-## 5. Documentation and quality
+### Apps
 
-- [ ] **New screenshots** at 1920×1080 for the README (the layout, separate guides and download
-  link are done; the pictures still show the earlier interface).
-- [ ] **Publish the GitHub wikis** of WittyInk, WittyEbook, WittyPDF, WittyComics and WittyReader
-  (the pages are written in each `wiki/` folder; each wiki needs its first page saved on
-  github.com before `scripts/mirror.sh` can push).
-- [ ] **Continuous audit:** performance and security first, built for a wide range of hardware;
-  trim unneeded code. Known items: the main web bundle is 1.1 MB and should be split by page;
-  the next-up query runs one query per show.
+| What | State |
+|---|---|
+| **WittyMediaClient, native apps:** music, books, disc menus, channels and photos | Not started on Android and Apple. The desktop app has them through the web app |
+| **WittyMediaClient, Apple apps** | Written, and never compiled. They need a Mac |
+| **WittyMediaClient, theme picker on native apps** | They use the server's theme colours only |
+| **WittyMediaClient, other TVs:** webOS, Tizen, Roku | Not started |
+| **WittyMediaClient, Windows 7** | Not started, and needs the owner's decision |
+| **A server build for Android TV,** for boxes such as a Shield | Not started |
+| **WittyMediaPlayer:** macOS and Linux, Java menus, built-in surround sound | Not started. It runs on Windows |
+| **WittyVisualizer in the native apps** | Not started |
+| **WittyMediaRemoteMedia:** the basics of connecting NAS libraries through a native or Docker app, in its own repository | Not started |
 
-## Done
+### Packaging
 
-- Video libraries, TV shows, anime (AniList, absolute numbering), metadata without keys (TVmaze,
-  Wikidata), metadata keys in the setup wizard.
-- WittyDVD: menus, the resizable remote with tooltips and the seek-bar option, the insert
-  animation with its own sound toggle, angles, subtitles, speed with pitch preserved.
-- Music and audiobooks, podcasts, books, comics and manga; WittyEbook, WittyPDF, WittyComics and
-  WittyInk as plugins; WittyReader; the five repositories with READMEs, licences and attribution.
-- Profiles: Kids and Guest with content limits and admin-only settings; per-user library access.
-- Mobile-first shell (side, top or both navigation; home widgets), TV and controller navigation,
-  accessibility.
-- Config file (portable mode), custom metadata location, opt-in logging with categories, a
-  custom log folder and an open-folder link.
-- First run: default browser opens, native folder picker, a seven-step wizard (media, metadata
-  agents, discs, look) that says plainly the server is for the home network until remote access is set up.
-- Settings redesign (grouped pages, section cards, a save bar); custom metadata agents.
-- Security audit: cross-site protection, artwork and feed file-read and SSRF fixes, sandboxed book
-  files, fuzz-tested disc parsers, a hardened desktop client.
-- READMEs for every repository in one layout, with installing, reference and troubleshooting guides.
+| What | State |
+|---|---|
+| **A combined Windows installer,** for the server and client together | Not started. Each has its own |
+| **apt and dnf repositories** | The script is ready, and none is hosted |
+| **Code signing on Windows and macOS** | Not bought: see [Publishing a release](PUBLISHING.md#signing-the-programs-so-nothing-warns-people) |
+| **The server for Arch, Flatpak and Snap** | Not started. The archive and `install.sh` work on other distributions |
+
+### Documentation
+
+| What | State |
+|---|---|
+| **New screenshots** for the README at 1920x1080 | Not retaken |
+
+## What hasn't met the real world
+
+These are written and tested as far as this machine allows, and haven't been tried for real.
+
+| Not tried on | Waiting for |
+|---|---|
+| **A real copy of Windows:** the installers | A Windows Sandbox run: `scripts/test/README.md` |
+| **A real Mac:** anything at all, and iOS and tvOS | A Mac |
+| **FreeBSD hardware or arm64:** the amd64 package has run in virtual machines, and modules have only been built for it | A machine |
+| **Real TVs, TV remotes, phones and game controllers** | The owner's devices. Android has only run on emulators |
+| **Safari, Firefox and old TV browsers** for games and the visualizer | The owner's devices |
+| **Screen readers** with real speech | A person |
+| **Real tuners** through a helper | Hardware |
+| **Retail Blu-rays,** with Java menus, UHD HDR and MVC 3D | Discs |
+| **A real game with a real GPU** on a game PC | A gaming PC: [the checklist](GAME-RIGS.md#a-checklist-for-the-first-real-test) |
+| **Game delay on a real screen:** the figures are headless, on one machine | Someone playing, and a slow-motion camera |
+| **A real 3DS game:** the only file here is encrypted, so it's refused | An unencrypted dump |
+| **A real release from GitHub,** and every release workflow | Publishing |
+| **The complete Docker image** | Module tags on GitHub |
+
+---
+
+<sub>WittyMediaServer documentation</sub>

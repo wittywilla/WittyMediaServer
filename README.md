@@ -5,266 +5,134 @@
 <h1 align="center">WittyMediaServer</h1>
 
 <p align="center">
-  <b>Your films, shows, discs, music and books — on every screen in your home.</b><br>
+  <b>Your films, shows, discs, music, books and games, on every screen in your home.</b><br>
   A self-hosted media server that plays DVDs and Blu-rays <i>with their real menus</i>, in any browser.
 </p>
 
 <p align="center">
   <a href="LICENSE"><img alt="Licence: Apache-2.0" src="https://img.shields.io/badge/licence-Apache--2.0-blue.svg"></a>
-  <img alt="Platforms" src="https://img.shields.io/badge/runs%20on-Windows%20·%20macOS%20·%20Linux%20·%20FreeBSD%20·%20Docker-8b6cff.svg">
-  <img alt="Go 1.26+" src="https://img.shields.io/badge/Go-1.26%2B-00ADD8.svg">
-  <img alt="Version 0.5.0-alpha" src="https://img.shields.io/badge/version-0.5.0--alpha-orange.svg">
+  <img alt="Runs on Windows, macOS, Linux, FreeBSD and Docker" src="https://img.shields.io/badge/runs%20on-Windows%20·%20macOS%20·%20Linux%20·%20FreeBSD%20·%20Docker-8b6cff.svg">
+  <img alt="Version 0.6.0-alpha" src="https://img.shields.io/badge/version-0.6.0--alpha-orange.svg">
 </p>
 
 <p align="center">
   <a href="docs/GETTING_STARTED.md"><b>Get started</b></a> ·
   <a href="docs/INSTALL.md">Install</a> ·
   <a href="#guides">Guides</a> ·
-  <a href="#the-witty-family">The Witty family</a> ·
-  <a href="docs/REFERENCE.md">Reference</a>
+  <a href="CHANGELOG.md">What's new</a>
 </p>
 
-> **Alpha.** Version 0.5.0-alpha is usable every day but still changing quickly. Back up your data
-> folder before upgrading, and please report anything that goes wrong.
+> **Alpha.** Version 0.6.0-alpha is still changing quickly and can fail or lose data. Keep backups, and back up your data folder before you upgrade.
 
-## Highlights
+## What it does
 
-<table>
-<tr>
-<td width="33%" valign="top">
+- **Films and TV.** Posters, plots and ratings, *Continue watching*, skip intro and instant seeking. Information arrives with no API key, and you can add free keys or your own agents for more.
+- **DVDs and Blu-rays.** Disc images play like a disc player: intros, animated menus, scene selection, extras and the disc's own subtitles.
+- **Live TV and channels.** Channels made from your library, a guide, tuners, IPTV and recording.
+- **Music, audiobooks and podcasts.** Albums and artists, lyrics and karaoke, books that remember your place, and shows you follow.
+- **Books and comics.** EPUB, PDF, comics and manga, with highlights, notes and a pen.
+- **Photos and videos.** A timeline, albums and an offline map, a feed of vertical videos, and creators' videos by channel.
+- **Games.** Your own game files, played in a browser with a gamepad, keyboard or touch.
+- **Everyone at home.** *Who's watching?* profiles with their own progress, and Kids profiles that only show titles for their age.
+- **Yours.** It runs on your computer. No accounts with anyone, no telemetry and no cloud. No media comes with it.
 
-### 🎬 Films & TV
-Posters, plots and ratings, *Continue watching*, *Next up*, skip intro, and instant seeking.
-Information arrives with **no API key needed**; add free keys or your own agents for more.
-
-</td>
-<td width="33%" valign="top">
-
-### 💿 DVDs & Blu-rays
-Insert a disc image and it plays **like a disc player**: intros, animated menus, scene selection,
-extras, pop-up menus, the disc's own subtitles. 4K and HDR are handled.
-
-</td>
-<td width="33%" valign="top">
-
-### 🎵 Music & podcasts
-Albums and artists, audiobooks that remember your place with a sleep timer, and podcasts you
-follow. A player that stays with you as you browse.
-
-</td>
-</tr>
-<tr>
-<td valign="top">
-
-### 📚 Books & comics
-EPUB, PDF, comics and manga, with highlights in any colour, notes, a **pen with pressure**,
-bookmarks, definitions and citations.
-
-</td>
-<td valign="top">
-
-### 👨‍👩‍👧 Everyone at home
-*Who's watching?* profiles with their own progress; **Kids** profiles that only show titles for
-their age; guests without passwords.
-
-</td>
-<td valign="top">
-
-### 🔒 Yours
-Runs on your computer, in your home. No accounts, no telemetry, no cloud. Twenty themes, or make
-your own.
-
-</td>
-</tr>
-<tr>
-<td valign="top">
-
-### 📷 Photos
-A timeline, albums, a **map that works offline**, slideshows, uploads and links to share, with
-EXIF and RAW previews. Scanning reads only file headers, so large collections stay quick.
-
-</td>
-<td valign="top">
-
-### 📱 Creator videos
-Vertical videos with a **For You page worked out on your own server**, and creators' videos by
-channel with subscriptions and comments, from files you already have.
-
-</td>
-<td valign="top">
-
-### 🔀 Collections & more
-**Smart playlists** across every library, music videos and concerts, internet radio, a year in
-review, and playback speed on everything.
-
-</td>
-</tr>
-<tr>
-<td colspan="3" valign="top">
-
-### 🎮 Games
-Your own game files, by console, played in the browser with a gamepad, keyboard or touch controls you
-can rearrange. Each game runs on the server in its own sandboxed process and streams with low latency. Consoles that
-draw with a graphics card use the one in your server, and touch screens work with a mouse or a finger.
-Saves follow your profile. [How it works](docs/GAMING.md).
-
-</td>
-</tr>
-</table>
-
-## Screenshots
-
-| Setup | Choosing folders from any device |
-|:---:|:---:|
-| ![The setup wizard's welcome page](docs/screenshots/setup.png) | ![The built-in folder browser: drives, your folders and folders in your libraries](docs/screenshots/file-browser.png) |
-| **Themes and layout** | |
-| ![Settings, Appearance: layouts and themes](docs/screenshots/settings.png) | |
+Discs, games, photos, readers and tuners are modules: separate programs you add from a store inside the app, each with its own [repository](docs/REPOSITORIES.md). The server works without any of them.
 
 ## Get started
 
-1. **Download** the archive for your computer from the [Releases](https://github.com/wittywilla/WittyMediaServer/releases) page and unzip it.
-2. **Start** `WittyMediaServer`. Your browser opens the setup wizard.
-3. **Follow the wizard**: create your account, point it at your folders, pick a look. About three minutes.
+1. Download the installer for your computer from the [Releases page](https://github.com/wittywilla/WittyMediaServer/releases).
+2. Open **WittyMediaServer**. Your browser opens first-time setup.
+3. Create your account, point it at your folders and press **Start watching**.
 
-| Windows · macOS · Linux · FreeBSD | Docker | Always-on service |
-|---|---|---|
-| Double-click **WittyMediaServer**; it lives in the tray or menu bar. | `docker run -p 9797:9797 -v wms-config:/config -v /media:/media:ro ghcr.io/wittywilla/wittymediaserver` | `sudo apt install ./wittymediaserver-…-linux-amd64.deb`, `sudo dnf install ./…rpm`, or the Windows installer's service option |
+The full walkthrough is in [Getting started](docs/GETTING_STARTED.md), and [Installing](docs/INSTALL.md) covers services, Docker and a NAS:
 
-> **On your home network.** The server runs on your own computer, so it's available to every device
-> on your home network (TV, phone, tablet, other computers) at the address the wizard shows. Away from
-> home it works once you turn on **Remote Access** in Settings and follow its steps: see
-> [Remote access](docs/REMOTE.md).
+```bash
+docker run -d -p 9797:9797 -v wms-config:/config -v /path/to/media:/media:ro ghcr.io/wittywilla/wittymediaserver:alpha
+```
 
-The full walkthrough, with no command line: **[Getting started](docs/GETTING_STARTED.md)**.
+The server is on your home network only until you turn on **Settings → Remote Access** and follow its steps. See [Remote access](docs/REMOTE.md).
+
+## Where it has been run
+
+The server is written for Windows, Linux, macOS and FreeBSD. Linux gets the most testing. The Windows installers have been tested under Wine, not on real Windows. Nothing has been run on a real Mac yet. FreeBSD has been cross-compiled, not run.
+
+WittyMediaClient adds Android, Android TV, iOS, tvOS and Plasma Big Screen. Android has been run on emulators only, and iOS and tvOS have never been built. A web browser is the way to reach everything today. See [Apps and devices](docs/APPS.md).
 
 ## Guides
 
-| | Guide | What's inside |
-|---|---|---|
-| 🚀 | [Getting started](docs/GETTING_STARTED.md) | install, first account, folder layout, watching on other devices |
-| 📦 | [Installing](docs/INSTALL.md) | downloads, tray app, services, Docker, Kubernetes, home and away |
-| 🌍 | [Remote access](docs/REMOTE.md) | watching away from home: Tailscale, NetBird, port forwarding, HTTPS, keeping it safe |
-| 💿 | [DVDs](docs/DVD.md) · [Blu-rays](docs/BLURAY.md) | inserting discs, menus, the remote, audio and subtitles, 3D, 4K and HDR |
-| 📺 | [TV shows](docs/TV.md) | folder layouts, TheTVDB, skip intro, watch next |
-| 📡 | [Channels and live TV](docs/CHANNELS.md) | channels from your library, the guide, tuners, IPTV, recording |
-| 🏷️ | [Metadata](docs/METADATA.md) | metadata agents, custom agents, NFO files, artwork |
-| ✏️ | [Fixing metadata by hand](docs/FIXING-METADATA.md) | a folder of plain text files, one for each title, with worked examples |
-| 🎵 | [Music, audiobooks & podcasts](docs/MUSIC.md) | folders, tags and covers, the player, following podcasts |
-| 📷 | [Photos](docs/PHOTOS.md) | formats, the timeline and map, uploads, sharing links |
-| 📱 | [Vertical videos](docs/SHORTS.md) · [Creator videos & music videos](docs/CREATOR-VIDEOS.md) | folder layouts, sidecar files, For You, channels, concerts |
-| 🔀 | [Collections, radio & Your year](docs/COLLECTIONS.md) | smart playlists, stations from a free directory or by address, what each profile's year looked like |
-| 🎞️ | [Supported formats](docs/SUPPORTED-FORMATS.md) | every file type, codec and container, and how each plays |
-| ⚙️ | [Live transcoding](docs/TRANSCODING.md) | direct play, hardware encoders, quality, GPU and CPU tables |
-| ⚙️ | [Library transcoding](docs/LIBRARY-TRANSCODING.md) | converting files ahead of time, safely; connecting Tdarr |
-| 🎨 | [Themes](docs/THEMES.md) | the built-in themes and writing your own |
-| 🗂️ | [Config file & logs](docs/CONFIG.md) | `wms.json`, portable mode, folders, what is logged |
-| 🛠️ | [Reference](docs/REFERENCE.md) | flags, command-line tools, HTTP API, architecture, building |
-| 📊 | [Statistics](docs/STATS.md) · [Background tasks](docs/TASKS.md) | the numbers behind WittyStats and the activity button, who sees what, and what they cost |
-| 📡 | [Client API](docs/CLIENT-API.md) · [OpenAPI](docs/openapi.json) | for apps and tools: TV sign-in, playback profiles, stream tokens, disc menus |
-| 💾 | [Backup and restore](docs/BACKUP.md) | one ZIP of your data and metadata, and bringing it back after a reset or a move |
-| 🔧 | [Repair](docs/REPAIR.md) | finding and fixing problems with metadata, the database, modules and the install |
-| ❓ | [Troubleshooting](docs/TROUBLESHOOTING.md) | the common problems and their fixes |
-| ⚖️ | [Legal notices](docs/LEGAL-NOTICES-CHECKLIST.md) | which notice goes where |
-| 🧩 | [Modules & apps](docs/MODULES.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) | how the pieces fit, and what's next |
+**Everything here is also inside the app, under Help,** so you don't need this page once you're running.
 
-## The Witty family
-
-WittyMediaServer is built from engines and plugins that also stand on their own, each in its own
-repository:
-
-| Project | What it is |
+| Getting going | |
 |---|---|
-| [**WittyDVD**](https://github.com/wittywilla/WittyDVD) | DVD-Video engine: the disc's virtual machine, menus, highlights and subtitles |
-| [**WittyBluray**](https://github.com/wittywilla/WittyBluray) | Blu-ray engine: HDMV navigation, interactive menus, pop-ups, subtitles, 4K/HDR |
-| [**WittyCD**](https://github.com/wittywilla/WittyCD) | Audio CD images played gaplessly as one continuous stream, with their tracks, indexes and CD-TEXT |
-| [**WittyDisc**](https://github.com/wittywilla/WittyDisc) | Reads ISO 9660 and UDF disc images without mounting them |
-| [**WittyTuner**](https://github.com/wittywilla/WittyTuner) | TV tuners and IPTV behind one interface; encrypted channels are refused |
-| [**WittyInk**](https://github.com/wittywilla/WittyInk) | What the readers share: highlights, notes, pen with pressure, panels |
-| [**WittyEbook**](https://github.com/wittywilla/WittyEbook) · [**WittyPDF**](https://github.com/wittywilla/WittyPDF) · [**WittyComics**](https://github.com/wittywilla/WittyComics) | The book, PDF and comic readers |
-| [**WittyReader**](https://github.com/wittywilla/WittyReader) | A standalone reading app built from those readers, that keeps everything on your device |
+| [Getting started](docs/GETTING_STARTED.md) | From install to your first film |
+| [Installing](docs/INSTALL.md) | Downloads, the tray app, services, Docker, updating and removing it |
+| [Libraries](docs/LIBRARIES.md) | Adding your media, and naming your files |
+| [Accounts and profiles](docs/ACCOUNTS.md) | People, passwords, limits and sign-in |
+| [Apps and devices](docs/APPS.md) | Every device, and how far each has been run |
+| [Settings tour](docs/SETTINGS.md) | Where every setting lives |
+| [Troubleshooting](docs/TROUBLESHOOTING.md) | Common problems, by what you're seeing |
 
-Development happens here; the other repositories are published from this one.
+| Your media | |
+|---|---|
+| [Watching and listening](docs/PLAYING.md) | The player, keys, tracks and remotes |
+| [What each media type supports](docs/MEDIA-TYPES.md) · [Supported formats](docs/SUPPORTED-FORMATS.md) | Which library to make, and every file type |
+| [DVDs](docs/DVD.md) · [Blu-rays](docs/BLURAY.md) | Menus, the remote, audio and subtitles |
+| [TV shows](docs/TV.md) · [Channels and live TV](docs/CHANNELS.md) | Show folders, channels, tuners and the guide |
+| [Music](docs/MUSIC.md) · [Lyrics and karaoke](docs/LYRICS-KARAOKE.md) | Music, audiobooks, podcasts and singing along |
+| [Books, PDFs and comics](docs/BOOKS.md) · [Photos](docs/PHOTOS.md) | Reading and looking |
+| [Vertical videos](docs/SHORTS.md) · [Creator videos](docs/CREATOR-VIDEOS.md) | Feeds, channels and concerts |
+| [Collections, radio and Your year](docs/COLLECTIONS.md) | Smart playlists and internet radio |
+| [Games](docs/GAMES.md) | Your own games, from a folder to playing |
 
-## How it works
+| Running a server | |
+|---|---|
+| [Metadata](docs/METADATA.md) · [Fixing metadata by hand](docs/FIXING-METADATA.md) | Posters, plots and wrong matches |
+| [Live transcoding](docs/TRANSCODING.md) · [Library transcoding](docs/LIBRARY-TRANSCODING.md) · [Using Tdarr](docs/TDARR.md) | Converting video |
+| [Modules and the store](docs/MODULE-STORE.md) | Adding, updating and trusting modules |
+| [Remote access](docs/REMOTE.md) | Watching away from home, safely |
+| [Backup and restore](docs/BACKUP.md) · [Repair](docs/REPAIR.md) · [WittyDiagnoser](docs/DIAGNOSER.md) | Keeping it healthy |
+| [Config file and logs](docs/CONFIG.md) · [Statistics](docs/STATS.md) · [Themes](docs/THEMES.md) | Fine tuning |
 
-```mermaid
-flowchart LR
-  B[Browser · TV · phone] -->|HTTPS or home network| S[WittyMediaServer]
-  S --> L[(Your folders)]
-  S --> E[WittyDVD · WittyBluray<br/>disc engines]
-  S --> F[FFmpeg<br/>converts on the fly]
-  S --> M[Metadata agents<br/>no key · your keys · your own]
-```
+**For developers:** [Contributing](CONTRIBUTING.md), [Repositories](docs/REPOSITORIES.md), [Reference](docs/REFERENCE.md), [Client API](docs/CLIENT-API.md), [Modules design](docs/MODULES.md), [Security model](docs/SECURITY-REVIEW.md) and the [Changelog](CHANGELOG.md).
 
-Everything runs in one program on your computer, with a SQLite database and FFmpeg bundled. Files
-the browser can play are sent as they are; everything else is converted on the fly, with seeking that
-starts in about half a second. Details: [Reference → Architecture](docs/REFERENCE.md#architecture).
+## Privacy and security
 
-## Privacy & security
+- **No telemetry, no accounts with anyone, no cloud.** Logs stay on your computer and never contain passwords or session tokens.
+- **Your files stay here.** By default, names taken from your file and folder names go to the metadata services you keep switched on, and the server asks GitHub for updates twice a day. **Settings → Legal → Privacy** lists every outside service, what it receives and what controls it.
+- **Limits by default.** Cross-site requests are refused, feeds and agents can't reach other devices on your network, and modules run in a sandbox where the system offers one.
+- **Copy protection is never bypassed.** Encrypted discs, broadcasts and game files are detected and refused.
 
-- **Audio CDs** are looked up by their table of contents alone: no names, no audio.
-- **No telemetry, no accounts with anyone, no cloud.** Logs stay on your computer and never contain
-  passwords or session tokens.
-- **Your files stay here.** By default, names taken from your file and folder names go to the metadata
-  services you keep switched on, and the server asks GitHub for updates twice a day. Everything else
-  is off until you use it. *Settings → Legal → Privacy* lists every outside service, what it receives
-  and what controls it.
-- **Hardened by default:** cross-site requests are refused, artwork and books can't run scripts, feeds
-  and agents can't reach other devices on your network, and copy protection is never bypassed.
+To report a security problem, see [SECURITY.md](SECURITY.md).
 
 ## Contributing
 
-Issues and pull requests are welcome; see **[CONTRIBUTING.md](CONTRIBUTING.md)**. Before opening a
-pull request, run `gofmt`, `go vet ./...`, `go test ./...` and `npm run build` in `web/`. For disc
-problems, attach `wittymediaserver dvd walk` or `wittymediaserver bluray walk` output, never disc images. The disc engines are
-written from the public disc formats and must stay free of other players' code.
+Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has how to build, test and send a change. Disc engines must stay free of other players' code, because they're written from the public disc formats.
 
-## Licence & legal
+## Licence and legal
 
-**[Apache License 2.0](LICENSE).** Use, change and share WittyMediaServer, commercially or not, keeping
-the licence and the attribution in **[NOTICE](NOTICE)**: *“This product includes WittyMediaServer,
-developed by WittyWilla”*, in your distribution, documentation or About screen.
+**[Apache License 2.0](LICENSE).** Use, change and share WittyMediaServer, commercially or not, keeping the licence and the attribution in **[NOTICE](NOTICE)**: *"This product includes WittyMediaServer, developed by WittyWilla"*, in your distribution, documentation or About screen. A few separate programs have licences of their own, and each is listed in the app and in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
 <details>
 <summary><b>Your media, third parties and warranty</b></summary>
 
-The app's own **Legal** page (*Settings → Legal*, or `/legal` on any server) has the full text. This is
-plain-language information, not legal advice.
+The app's own **Legal** page (*Settings → Legal*, or `/legal` on any server) has the full text. This is plain-language information, not legal advice.
 
-**Your media, your responsibility.** WittyMediaServer organises and streams media you already have the
-right to use. It doesn't provide, host, own or check any of it. Server operators and users are
-responsible for the files they add and share, and for following the laws where they and their viewers
-live. The authors and contributors accept no liability for media stored on, played from or shared
-through a server, nor for how a server is used.
+**Your media, your responsibility.** WittyMediaServer organises and streams media you already have the right to use. It doesn't provide, host, own or check any of it. Server operators and users are responsible for the files they add and share, and for following the laws where they and their viewers live. The authors and contributors accept no liability for media stored on, played from or shared through a server, nor for how a server is used.
 
-**Web results and third-party content.** Search results, details, artwork, podcasts, radio stations, TV
-channels and guides, and game details come from third parties. They aren't created by, associated with,
-endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.
+**Web results and third-party content.** Search results, details, artwork, podcasts, radio stations, TV channels and guides, and game details come from third parties. They aren't created by, associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.
 
-**Games.** No games, ROMs or BIOS files come with this software, and the project doesn't link to them.
-Use only files you've obtained legally.
+**Games.** No games, ROMs or BIOS files come with this software, and the project doesn't link to them. Use only files you've obtained legally.
 
-**No circumvention.** Copy protection is never decrypted or bypassed: CSS-scrambled DVDs and
-AACS-encrypted Blu-rays are refused. Encrypted media isn't supported, and no plugin or setting changes
-that.
+**No circumvention.** Copy protection is never decrypted or bypassed: CSS-scrambled DVDs and AACS-encrypted Blu-rays are refused. Encrypted media isn't supported, and no plugin or setting changes that.
 
-**Third parties.** Video is converted by **FFmpeg**, run as a separate program; the bundled builds
-are GPL-licensed, with sources linked from [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md). This
-product uses the **TMDB** API but is not endorsed or certified by TMDB. TV information is provided by
-**[TheTVDB](https://thetvdb.com)** and **TVmaze** (CC BY-SA 4.0); movie and game facts by **Wikidata**
-(CC0) and **Wikipedia** (CC BY-SA 4.0); anime by **AniList**; definitions by the **Free Dictionary API**;
-podcast search by the **Apple Podcasts** directory. Each service's terms apply to its data.
+**Third parties.** Video is converted by **FFmpeg**, run as a separate program. The bundled builds are GPL-licensed, with sources linked from [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md). This product uses the **TMDB** API but is not endorsed or certified by TMDB. TV information is provided by **[TheTVDB](https://thetvdb.com)** and **TVmaze** (CC BY-SA 4.0), movie and game facts by **Wikidata** (CC0) and **Wikipedia** (CC BY-SA 4.0), anime by **AniList**, definitions by the **Free Dictionary API**, and podcast search by the **Apple Podcasts** directory. Each service's terms apply to its data.
 
-**No warranty.** Provided “as is”, without warranty of any kind.
+**No warranty.** Provided "as is", without warranty of any kind.
 
-**No affiliation, and trademarks.** WittyMediaServer is not affiliated with any other media software
-project, studio, console maker, service or rights holder. Third-party names only describe compatibility
-or where information came from, and belong to their owners. “DVD” is a trademark of DVD Format/Logo
-Licensing Corporation; “Blu-ray” and “Blu-ray Disc” are trademarks of the Blu-ray Disc Association. This
-software isn't a licensed or certified DVD or Blu-ray product.
+**No affiliation, and trademarks.** WittyMediaServer is not affiliated with any other media software project, studio, console maker, service or rights holder. Third-party names only describe compatibility or where information came from, and belong to their owners. "DVD" is a trademark of DVD Format/Logo Licensing Corporation; "Blu-ray" and "Blu-ray Disc" are trademarks of the Blu-ray Disc Association. This software isn't a licensed or certified DVD or Blu-ray product.
 
 </details>
 
 ---
 
-<p align="center"><sub>WittyMediaServer 0.5.0-alpha · Apache-2.0 · Made by <a href="https://github.com/wittywilla">WittyWilla</a></sub></p>
+<p align="center"><sub>WittyMediaServer 0.6.0-alpha · Apache-2.0 · Made by <a href="https://github.com/wittywilla">WittyWilla</a></sub></p>

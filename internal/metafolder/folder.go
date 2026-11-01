@@ -401,7 +401,7 @@ HOW TO FIX SOMETHING
 
   1. Open the file for the title, in Notepad, TextEdit or any text editor.
   2. Change what's wrong, and save it. Keep the "quotes" and the commas.
-  3. In Settings > Metadata files, press "Check what would change". On the command
+  3. In Settings > Repair, press "Check what would change". On the command
      line: wittymediaserver metadata apply
   4. Read what it says it will change, and press Apply. On the command line:
      wittymediaserver metadata apply --apply

@@ -1,12 +1,18 @@
 # Client API
 
-Everything an app needs to work with WittyMediaServer: signing in, browsing, playing, discs and
-themes. It is written for the Apple TV and Android TV apps (WittyMediaClient, in their own
-repository), and works for any other client or tool.
+For developers writing an app or a tool for WittyMediaServer: how to find a server, sign in, browse and play, with every route listed. A person running a server doesn't need this guide.
 
-The machine-readable version is [openapi.json](openapi.json) (OpenAPI 3.1). A test in
-`internal/server` fails when a route is missing from either file, when what they say about sign-in
-isn't what the server does, or when a schema no longer matches the Go type behind it.
+Everything here is served at `/api/v1` on the server's own address, which is port 9797 unless its owner changed it. A quick look at a server you can reach:
+
+```bash
+curl http://192.168.1.20:9797/api/v1/capabilities
+curl -X POST http://192.168.1.20:9797/api/v1/login -d '{"name": "Alex", "password": "...", "device": "My tool"}'
+curl -H "Authorization: Bearer <token>" http://192.168.1.20:9797/api/v1/home
+```
+
+The first needs no sign-in, and says what the server can do. The second answers with a token. The third uses it. An app should sign in [with a code](#with-a-code) rather than a password where it can.
+
+The same contract is in machine-readable form in `openapi.json` (OpenAPI 3.1), beside this guide in the project's `docs` folder. A test in `internal/server` fails when a route is missing from either file, when what they say about sign-in isn't what the server does, or when a schema no longer matches the Go type behind it.
 
 - [Start here](#start-here)
 - [Conventions](#conventions)
@@ -21,6 +27,7 @@ isn't what the server does, or when a schema no longer matches the Go type behin
 - [Rules every client shares](#rules-every-client-shares)
 - [Live channels](#live-channels)
 - [Discs and their menus](#discs-and-their-menus)
+- [Audio CDs](#audio-cds)
 - [Themes and design data](#themes-and-design-data)
 - [Choices that follow the account](#choices-that-follow-the-account)
 - [What a TV app must build itself](#what-a-tv-app-must-build-itself)
@@ -29,6 +36,7 @@ isn't what the server does, or when a schema no longer matches the Go type behin
 - [Background tasks and server stats](#background-tasks-and-server-stats)
 - [Adding to the API](#adding-to-the-api)
 - [Every route](#every-route)
+- [Backup](#backup)
 
 ## Start here
 
@@ -61,7 +69,7 @@ never by comparing server version numbers:
 | `apiVersions` has 1 | The app can't talk to it at all | "This server needs a newer version of the app" |
 | `apiRevision` is at least what this app needs (each app holds this as a constant) | The server is older than the app | "Update this server" |
 | This app's version is at least `minClientVersions[kind]`, for `android`, `apple` or `desktop` | The server has left this app behind | "This server needs a newer version of the app" |
-| Something optional: its name is in `features` | Only that part is hidden | Nothing: the app simply doesn't offer it |
+| Something optional: its name is in `features` | Only that part is hidden | Nothing: the app doesn't offer it |
 
 A missing `minClientVersions` or a kind not listed means fine. Within v1 the server should have no reason
 to raise these numbers, so they are a way out and not a habit.
@@ -140,8 +148,8 @@ Apple platforms need an entitlement Apple must grant for this, so don't rely on 
 private addresses only. Ignore answers whose `service` differs. Wait a second or two and listen for
 several: there may be more than one server.
 
-**If nothing is found:** a firewall may be blocking UDP ports 5353 and 9797 on the server (the install
-script for Windows opens them), a network may keep devices apart ("guest" or "client isolation" Wi-Fi), or
+**If nothing is found:** a firewall may be blocking UDP ports 5353 and 9797 on the server (the Windows
+installer opens them if its firewall option is on), a network may keep devices apart ("guest" or "client isolation" Wi-Fi), or
 the server may be in a container without host networking. So never make discovery the only way in.
 
 **Finding it again.** Addresses change, so remember `id`. If a saved address stops answering, browse
@@ -274,7 +282,7 @@ TV                              server                         phone or computer
 - Only adult accounts can approve (a password-free Kids profile must not be able to hand out lasting
   sign-ins). They may sign the device in as themselves or as a Kids or Guest profile they manage, by
   `userId` from the `profiles` in `/pair/info`.
-- Nothing is stored: a restart of the server simply means asking for a new code. The new session
+- Nothing is stored: a restart of the server means asking for a new code. The new session
   appears as `device`.
 
 ### Name and password
@@ -288,7 +296,7 @@ repeated failures. Keep this as the fallback for devices without a phone nearby.
 ## Stream tokens
 
 AVPlayer can't reliably add headers to the requests it makes, and a session token in an address is
-far too powerful to put there. A stream token is the short-lived replacement.
+gives away far too much to put there. A stream token is the short-lived replacement.
 
 - You get one in every `/playback` answer (`streamToken`), or from
   `POST /items/{id}/stream-token`. Addresses from `/playback` already carry it.
@@ -368,11 +376,13 @@ Only `profile` is needed. Leave out `audio` and `subtitle` and the server picks 
 | `disc` | `disc-session` | A disc: see [Discs](#discs-and-their-menus). `disc` says how it starts. | Depends on the title |
 | `audio-direct` | `file` | A sound file as it is. | Almost none |
 | `audio-transcode` | `adts` | Sound converted to AAC while streaming. | Little |
+| `cd` | `file` | A whole audio CD image as one stream: see [Audio CDs](#audio-cds). | Depends on the format |
+| `radio` | `stream` or `hls` | An internet radio station. | Little |
 
 The server always tries them in this order. `reasons` are stable names, worth showing in a
 "playback info" screen, and `explain` puts the same thing in plain words to show as they are. The names: `container`, `video-codec`, `video-tag`, `video-height`, `video-bitrate`,
 `video-depth`, `video-range`, `interlaced`, `audio-codec`, `audio-channels`, `audio-track`, `subtitle`,
-`burn-subtitle`, `forced`, `direct-play-off`, `remux-unavailable`, `hls-video-codec`, `no-video`, `split-file`, `video-track`, `flatten-3d`.
+`burn-subtitle`, `forced`, `direct-play-off`, `remux-unavailable`, `hls-video-codec`, `no-video`, `split-file`, `video-track`, `flatten-3d`, `remote-limit`.
 
 **Files, not just tracks.** Subtitle files beside a video come after the file's own tracks in `subtitles`, and work the
 same. A film split across files (`CD1`, `CD2`) is one item, with `split-file` among its reasons. `videos` lists the
@@ -407,14 +417,14 @@ therefore end in a 404: call `/playback` again.
 
 These are the defaults of `GET /playback/profiles`. They come from Apple's *HLS Authoring Specification
 for Apple Devices* and the Media3 *Supported formats* tables, and **haven't been tried on a real device
-yet**: the server side has been checked with FFmpeg as the client. Expect to adjust them as the apps
-meet real hardware.
+yet**: the server side has been checked with FFmpeg as the client, and the Android client on emulators.
+The Apple clients haven't been run. Expect to adjust these as the apps meet real hardware.
 
 | | `appletv` (Apple TV 4K) | `appletv-hd` | `androidtv` | `web` |
 |---|---|---|---|---|
 | Direct containers | MP4, M4V, MOV | MP4, M4V, MOV | MP4, M4V, MOV, MKV, WebM, TS | MP4, M4V, MOV, WebM |
-| Direct video | H.264, HEVC (`hvc1` only) | H.264 | H.264, HEVC, VP9 | H.264, VP9, AV1 |
-| Direct sound | AAC, AC-3, E-AC-3, ALAC, MP3 | AAC, AC-3, E-AC-3, ALAC, MP3 | AAC, MP3, FLAC, Opus, Vorbis | AAC, MP3, Opus, Vorbis |
+| Direct video | H.264, HEVC (`hvc1` only) | H.264 | H.264, HEVC, VP9 | H.264, VP8, VP9, AV1 |
+| Direct sound | AAC, AC-3, E-AC-3, ALAC, MP3 | AAC, AC-3, E-AC-3, ALAC, MP3 | AAC, MP3, FLAC, Opus, Vorbis | AAC, MP3, Opus, Vorbis, FLAC, PCM |
 | Most lines | 2160 | 1080 | 2160 | any |
 | HDR | HDR10, HLG, Dolby Vision 5 | none | none (add with capabilities) | none (the web app reports its screen) |
 | HLS, copied video | H.264 (TS), HEVC (fMP4) | H.264 (TS) | H.264 (TS), HEVC (fMP4) | H.264 (TS), AV1 and VP9 (fMP4), HEVC when reported |
@@ -584,7 +594,7 @@ progress with `discTitle` set to `ttn`, and pick up from `progress.resumeSec` wh
 - 3D Blu-rays (`stereo3d` on opening): the web player shows side-by-side and over-under as one eye or
   red/cyan. A TV app can leave that out, or hand the picture to the display's own 3D mode.
 
-**Keeping it seamless.** Switching clips shouldn't flash black. Keep the last frame on screen until the
+**Keeping it smooth.** Switching clips shouldn't flash black. Keep the last frame on screen until the
 next clip has drawn its first one: hold a snapshot (`AVPlayerItemVideoOutput`, or `TextureView.getBitmap`
 on Android), and drop it on `isReadyForDisplay` or `onRenderedFirstFrame`. The current clip's `url` is the
 same if a new presentation only moved within the same stream: then seek instead of reloading.
@@ -592,8 +602,10 @@ same if a new presentation only moved within the same stream: then seek instead 
 **Stops.** `kind: "stop"` has a `reason`; `scrambled` means the image is copy-protected and can't play.
 Offer Title menu, Play movie and Back. This server never decrypts discs.
 
-**What's left out.** BD-J (Java) Blu-ray menus aren't run by the server: such a disc plays its feature
-directly, on TV apps as in the browser.
+**Java menus.** BD-J (Java) Blu-ray menus run on the server only when its owner has installed Java and
+turned on **Run Blu-ray Java menus**: see [Blu-rays](BLURAY.md#bd-j-java-menus). Otherwise such a disc plays its
+feature directly. When they run, `GET /dvd/{sid}/bdj` waits for the disc's applications to change something,
+and `GET /dvd/{sid}/bdj/frame/{n}` serves their graphics.
 
 ## Audio CDs
 
@@ -642,10 +654,10 @@ variables, so theme authors write one file and the apps get the same colours:
 
 ```json
 {
-  "id": "default", "name": "WittyMediaServer", "scheme": "dark",
+  "id": "default", "name": "Witty", "scheme": "dark",
   "colors": { "bg": "#0F1115", "bg-2": "#171A21", "fg": "#E8EAF0", "accent": "#7955FF", "overlay": "#00000099" },
   "lengths": { "radius": 10, "sidebar": 240 },
-  "fonts": ["Inter", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"],
+  "fonts": ["Inter", "Segoe UI Variable Text", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"],
   "other": { "shadow": "0 10px 30px rgba(0, 0, 0, 0.45)" },
   "webOnly": false
 }
@@ -660,8 +672,8 @@ variables, so theme authors write one file and the apps get the same colours:
   CSS itself can't be used in a native app.
 - Which theme a person uses on a device is chosen on that device in the web interface too (the browser
   remembers it). Apps should offer the list, default to the server's, and remember the choice themselves.
-- How the interface is laid out and what the look is meant to be: `docs/DESIGN.md` (from the interface
-  work) is the place for that. This file only covers the data.
+- How the interface is laid out and what the look is meant to be: see [Design standards](DESIGN.md). This
+  guide only covers the data.
 - `GET /branding/logo` and `brandName` in `/status` replace the name and icon, where the owner set them.
 
 ## Choices that follow the account
@@ -745,9 +757,9 @@ deliberately a real list: anything here has to be written once for tvOS and once
 - Nothing has to be built. Library, account and server settings are fine in the web interface; every route
   for them is here for tools, but a TV app can link to the web address instead.
 
-**Moved to the server for this work**, so the apps don't have to: the resume rule, how a disc starts and its
+**The server already decides these**, so the apps don't have to: the resume rule, how a disc starts and its
 insert effect, default track choice, language names, and the direct/remux/transcode decision. The web
-interface now reads the first two from the server too.
+interface reads the first two from the server too.
 
 ## Game details
 
@@ -776,6 +788,7 @@ A game with no `poster` should use art made from its title and console, as the w
 
 The first pass over a large collection takes a while, on purpose: each source is asked no faster than its
 rules allow. `GET /gamemeta/status` says how it's going, for administrators.
+
 ## Legal notices
 
 Every client shows the same short notices beside third-party and local content, so a person gets the
@@ -852,7 +865,7 @@ For anyone adding a feature (a new library, channels, games):
 
 ## Every route
 
-Paths are relative to `/api/v1`. Full request and response shapes are in [openapi.json](openapi.json).
+Paths are relative to `/api/v1`. Full request and response shapes are in `openapi.json`.
 "Sign-in" is what the route needs: none, user, or admin; `st` means a
 [stream token](#stream-tokens) for the item works too.
 
@@ -864,7 +877,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /identity` | none | Prove this is the server an app pinned: signs a fresh challenge with the server's key. See "Server identity". |
 | `GET /status` | none | Server name, version, branding, default theme, and the signed-in user if any. |
 | `GET /health` | none | Liveness check. |
-| `GET /about` | user | Server version and the engines built into it. |
+| `GET /about` | user | Server version and the modules in use. |
 | `GET /licenses` | user | Everything in this server someone else made, with its license: `{groups, components}`. |
 | `GET /licenses/{id}` | user | One component's full license text: `{text}`. |
 | `GET /legal/notices` | none | The short legal notices, by kind, and what this server's owner wrote. See "Legal notices". |
@@ -920,8 +933,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /modules` | admin | Every module: version in use, supported range, status, what is available, what it needs, whether it is installed, and every kind of library and what it takes (404 in builds that can't update them). |
 | `POST /modules/check` | admin | Look for module updates now. Nothing else here goes online. |
 | `GET /modules/{id}/versions` | admin | Every version known, explained, without going online: release notes as plain text, whether each can be chosen, and why not. |
-| `POST /modules/{id}/install` | admin | Download, verify and install a version, with no restart: the newest the last check found, or `{"version": "0.2.0", "confirm": true}`. A choice with a warning (older, withdrawn as broken, taken out of use before) is answered 409 with `"code": "confirm"` and the `warning` until the body says confirm. 202; follow it with `GET /modules`. |
-| `POST /modules/{id}/rollback` | admin | Stop using this version, and go back to the previous one. |
+| `POST /modules/{id}/install` | admin | Download, verify and install a version, with no restart: the newest the last check found, or `{"version": "0.2.0", "confirm": true}`. A choice with a warning (older, withdrawn as broken, taken out of use before) is answered 409 with `"code": "confirm"` and the `warning` until the body says confirm. A version older than the one in use also takes `password`, and `code` with two-factor sign-in, and is answered 403 with `"code": "password-needed"` without them. 202; follow it with `GET /modules`. |
+| `POST /modules/{id}/rollback` | admin | Stop using this version, and go back to the previous one. Takes `{"password": "...", "code": "..."}`, and is answered 403 with `"code": "password-needed"` without them. |
 | `POST /modules/{id}/add` | admin | Install the newest version that fits, and what it's built on. Answers 202, and progress shows in `phase`, `done` and `total`. |
 | `POST /modules/{id}/enable` | admin | Turn it back on, with no restart. |
 | `POST /modules/{id}/disable` | admin | Turn it off, with no restart. Refused, with names, while libraries need it. |
@@ -933,22 +946,21 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `DELETE /modules/{id}/pin` | admin | Let automatic updates move it again. |
 | `PUT /modules/{id}/autoupdate` | admin | Whether this module may update by itself while the server's setting is on: `{"on": false}`. It still looks for updates and offers them. Not for modules that update with the server. |
 | `POST /modules/{id}/latest` | admin | End a pin and move to the newest version that fits. 202. |
-| `POST /modules/{id}/add` | admin | Put a module on this server. Works straight away, offline. |
 | `POST /modules/{id}/remove` | admin | Take a module off this server. Answered 409 with `"code": "module-in-use"` and the `libraries` that need it. No data is touched. |
 | `PUT /modules/installed` | admin | Make the set of modules on this server what someone chose: `{"installed": ["wittyvideo"]}`, as first-run setup does. Refused whole if libraries need something left out. |
-| `PUT /modules/{id}/source` | admin | Take this module's releases from a fork: `{"repo": "someone/WittyDVD", "key": "<public key>", "confirm": true}`. Answered 409 with `"code": "confirm"` and the security warning until confirmed. Show that warning; don't replace it. See [MODULES.md](MODULES.md), "Using someone's fork". |
+| `PUT /modules/{id}/source` | admin | Take this module's releases from a fork: `{"repo": "someone/WittyDVD", "key": "<public key>", "confirm": true, "password": "...", "code": "..."}`. Answered 409 with `"code": "confirm"` and the security warning until confirmed. Show that warning; don't replace it. 403 where forks are refused. See [Using someone's fork](MODULE-STORE.md#using-someones-fork). |
 | `DELETE /modules/{id}/source` | admin | Go back to the module's own repository. |
 | `GET /modules/libraries` | user | Every kind of library a module provides, whether it can be made here, and what it takes. A kind not listed is always available. |
 | `PUT /modules/libraries/{type}/label` | admin | What this server calls a kind of library, for when two read alike or two modules share one: `{"label": "Blu-rays and DVDs", "taken": {"movies": "Movies"}}`. An empty label goes back to the usual name. `taken` is what the app shows for the other kinds, and a name already in use is refused. |
-| `GET /modules/web` | user | The web bundles in use instead of the copies in the app. Usually none. |
+| `GET /modules/web` | user | The web bundles in use. |
 | `GET /modules/{id}/web/{version}/{path}` | user | A file of the bundle in use. Only names in its signed list exist. |
-| `POST /modules/{id}/failed` | user | A browser saying a bundle wouldn't load or crashed: `{"version": "...", "reason": "..."}`. Three within a day, at most one a minute, take that version out of use. 204. |
+| `POST /modules/{id}/failed` | user | A browser saying a bundle wouldn't load or crashed: `{"version": "...", "reason": "..."}`. Three within a day, at most one a minute, from an administrator's browser take that version out of use, and anyone else's goes in the module's log. 204. |
 
 `POST /libraries` answers 409 with `"code": "module-missing"` and the `modules` that would make it possible when a kind of library's module isn't installed.
 
 #### The module store
 
-What the store's pages use. Everything a catalogue says is plain text, to be shown as text. Whatever goes wrong comes with `failure`: `{kind, title, message, try, detail, repair}`, the same words on every client. See [MODULES.md](MODULES.md), "The store".
+What the store's pages use. Everything a catalogue says is plain text, to be shown as text. Whatever goes wrong comes with `failure`: `{kind, title, message, try, detail, repair}`, the same words on every client. See [Modules and the store](MODULE-STORE.md).
 
 | Route | Who | What |
 |---|---|---|
@@ -1602,8 +1614,6 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `GET /dvd/{sid}/bdj/frame/{n}` | user | BDJ frame. |
 | `GET /bdj/status` | admin | BDJ status. |
 
----
-<sub>WittyMediaServer 0.5.0-alpha documentation</sub>
 
 ## Backup
 
@@ -1624,3 +1634,7 @@ The page is [Backup and restore](BACKUP.md). An archive is treated as hostile: a
 | `POST /backup/restore/start` | Bring a checked archive back: `{parts, confirm: "RESTORE", password, code}`. An administrator's password is asked for again; first-time setup has none to ask for. |
 | `DELETE /backup/restore/request` | Take back a restore that's waiting for the next start. |
 | `POST /backup/undo` | Put back what the last restore replaced: `{copy, password, code}`. The server restarts. |
+
+---
+
+<sub>WittyMediaServer documentation</sub>

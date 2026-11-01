@@ -649,3 +649,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/media-types` | Signed-in | Nothing: known formats and whether this server can play them. Which FFmpeg it runs for admins only |
 | `PUT /api/users/{id}/profile` | Signed-in | Caller may manage that account, or it's their own. Which name shows is anyone's own choice. Names: an adult's own, or a manager's. Username has no invisible characters and differs from every other, ignoring case. Display name cleaned and cut to 60 characters |
 | `/` (any method, everything else) | Public | Files of the web app, or its page. An unknown `/api/` address answers 404 |
+
+---
+
+<sub>WittyMediaServer documentation</sub>

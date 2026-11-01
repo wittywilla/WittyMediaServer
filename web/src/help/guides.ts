@@ -109,7 +109,7 @@ export function loadGuide(g: Guide): Promise<string> {
 export const settingsHelp: Record<string, string> = {
   libraries: 'libraries',
   metadata: 'metadata',
-  playback: 'playing',
+  playback: 'settings#playback-and-discs',
   channels: 'channels',
   gaming: 'games',
   couch: 'game-rigs',
@@ -121,16 +121,16 @@ export const settingsHelp: Record<string, string> = {
   games: 'games',
   activity: 'tasks',
   appearance: 'themes',
-  sharing: 'photos',
+  sharing: 'settings#sharing-and-photos',
   wittyrigs: 'game-rigs',
   logs: 'logging',
   diagnoser: 'diagnoser',
   modules: 'module-store',
   backup: 'backup',
   repair: 'repair',
-  reset: 'repair',
-  about: 'settings',
-  legal: 'settings',
+  reset: 'repair#starting-again-the-reset-page',
+  about: 'settings#about',
+  legal: 'settings#legal',
 }
 
 // "Settings → Repair" in a guide can be a link to that page, for someone signed in.

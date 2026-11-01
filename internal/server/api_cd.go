@@ -150,10 +150,20 @@ func (s *Server) cdItem(w http.ResponseWriter, r *http.Request) (*library.Item, 
 	}
 	d, release, err := s.cds.open(it.Path)
 	if err != nil {
-		writeErr(w, 422, cdErrorText(err))
+		s.writeCDError(w, err)
 		return nil, nil, nil, false
 	}
 	return it, d, release, true
+}
+
+// writeCDError says why a disc did not open. With WittyCD away it is a missing module, which
+// the page knows how to offer, and nothing is wrong with the disc.
+func (s *Server) writeCDError(w http.ResponseWriter, err error) {
+	if errors.Is(err, wittycd.ErrNoEngine) {
+		writeModuleMissing(w, s.Modules.Missing("wittycd"))
+		return
+	}
+	writeErr(w, 422, cdErrorText(err))
 }
 
 // cdErrorText words a failure to open an image for whoever is looking at it,
@@ -439,7 +449,7 @@ func (s *Server) streamCDTrack(w http.ResponseWriter, r *http.Request, it *libra
 	}
 	d, release, err := s.cds.open(image)
 	if err != nil {
-		writeErr(w, 422, cdErrorText(err))
+		s.writeCDError(w, err)
 		return
 	}
 	defer release()

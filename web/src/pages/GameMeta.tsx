@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api, artPreviewUrl, mediaUrl, type GameCandidate, type GameDetailsInfo, type GameMetaStatus, type GameSource, type Item } from '../api'
 import { IconCheck, IconClose, IconDown, IconLock, IconRefresh, IconSearch, IconUp } from '../icons'
 import { toast } from '../state'
+import { ask } from '../ui'
 import { Row, Section, Switch } from './settings/ui'
 import LegalNote from '../components/LegalNote'
 import { WebLink } from '../components/WebLink'
@@ -310,7 +311,7 @@ export function GameSourcesSettings() {
     } catch (e: any) { toast(e.message) }
   }
   const refetch = async () => {
-    if (!confirm('Forget what every source said about every game, and ask again? Games you locked stay as they are.')) return
+    if (!await ask({ title: 'Look up every game again?', body: 'This forgets what every source said about every game, and asks again. Games you locked stay as they are.', confirm: 'Look up all again' })) return
     try { await api.post('/gamemeta/refetch'); toast('Looking up every game again') } catch (e: any) { toast(e.message) }
   }
   const consoles = status ? Object.entries(status.consoles).filter(([, c]) => c.total > 0).sort((a, b) => b[1].total - a[1].total) : []

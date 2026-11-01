@@ -1,0 +1,33 @@
+//go:build !windows
+
+package main
+
+import (
+	"fmt"
+	"os"
+	"os/user"
+	"path/filepath"
+	"strconv"
+	"syscall"
+)
+
+// dataOwnerOK stops root from writing to the database of a server that runs as someone else:
+// the journal files it leaves behind would belong to root, and the server couldn't open them.
+func dataOwnerOK(data string) error {
+	if os.Geteuid() != 0 {
+		return nil
+	}
+	st, err := os.Stat(filepath.Join(data, "wms.db"))
+	if err != nil {
+		return nil
+	}
+	sys, ok := st.Sys().(*syscall.Stat_t)
+	if !ok || sys.Uid == 0 {
+		return nil
+	}
+	who := strconv.FormatUint(uint64(sys.Uid), 10)
+	if u, err := user.LookupId(who); err == nil {
+		who = u.Username
+	}
+	return fmt.Errorf("the server's files belong to %s, and this is running as root, which would stop the server opening them. Run it as that account: sudo -u %s wittymediaserver <command> -data %s", who, who, data)
+}

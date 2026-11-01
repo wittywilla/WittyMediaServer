@@ -226,7 +226,7 @@ round, so use whichever end is easier to type on. They end the same: the device 
 
 **The code is typed on the device.** Good when the device has a number pad, or a remote can act as one.
 
-- The person presses *Get a number* at `/pair` (`POST /pair/invite {userId}`), and sees 6 digits.
+- The person presses *Get a code* at `/pair` (`POST /pair/invite {userId}`), and sees 6 digits.
 - The device sends `POST /pair/redeem {code, device, platform}` and gets
   `{status: "approved", token, user}` at once.
 - Digits only; spaces and dashes are ignored. A code lasts 5 minutes, works once, and a person has one open

@@ -40,6 +40,8 @@ func cmdDoctor(args []string) int {
 			return doctorRemap(args[1:])
 		case "reinstall":
 			return doctorReinstall(args[1:])
+		case "reset-password":
+			return cmdResetPassword(args[1:])
 		case "list":
 			for _, c := range diagnose.AllChecks() {
 				fmt.Printf("%-20s %-9s %s\n", c.ID, c.Area, c.Title)
@@ -190,13 +192,16 @@ the server stopped, when nothing else will. Without --fix it only looks, and cha
                                   a library's drive or folder moved: rewrite the paths. Only with --fix,
                                   and only if most of its files are in the new place
   wittymediaserver doctor reinstall <module>   download a module again from its publisher. Needs the internet
+  wittymediaserver doctor reset-password <username>
+                                  a new password for an account that can't sign in. Only here on the
+                                  command line, never in Settings. --list shows the usernames
 
 Exit code: 0 nothing needs attention, 1 something does, 2 it couldn't run.`
 
 // doctorEnv works out the folders. A config file that can't be used doesn't stop the doctor:
 // that's one of the things it's for. It says so, and carries on with the defaults, or -data.
 func doctorEnv(args []string) (*diagnose.DoctorEnv, error) {
-	cfg, err := config.Parse(args)
+	cfg, err := config.ParseOnly(args)
 	if err == nil {
 		return envFromConfig(cfg), nil
 	}

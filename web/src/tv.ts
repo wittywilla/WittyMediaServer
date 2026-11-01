@@ -107,6 +107,7 @@ function scopeOf(el: Element | null): ParentNode {
 const GROUPS = '[data-nav-group], .row, .topnav, .sidebar, .set-nav, .tabbar, .section-row'
 const lastIn = new WeakMap<Element, HTMLElement>()
 const groupOf = (el: Element | null) => el?.closest(GROUPS) || null
+const COLUMNS = '.sidebar, .set-nav'
 
 // Where the focus last was. A button can take itself away when pressed (a row that's removed,
 // a list that closes), and a remote has no other way back to where that was.
@@ -117,47 +118,6 @@ function focusGoneFrom(scope: Node): DOMRect | null {
   // The same dialog or page: a dialog can be found by more than one of its layers.
   if (!l || l.page !== location.pathname || !l.scope.isConnected || !(l.scope.contains(scope) || scope.contains(l.scope))) return null
   return l.box
-}
-
-// What a page offers first from across the room: whatever it marks as its main action (Play on
-// an item), and otherwise the first thing in it, passing over the links in the headings of rows.
-const ROW_HEAD = '.hub-head, .mh-shelf-head'
-const PAGE_NOTES = '.legal-foot, .page-foot, .legal-note'
-function firstOnPage(all: HTMLElement[], ok: (el: HTMLElement) => boolean): HTMLElement | undefined {
-  // The notes at the foot are there before the page has loaded, and are no place to start.
-  const inPage = all.filter((el) => el.closest('.content') && !el.closest(PAGE_NOTES) && ok(el))
-  // A text field comes last: a remote that lands on one has to type or find its way out.
-  return inPage.find((el) => el.matches('[data-tv-first]')) || inPage.find((el) => !el.closest(ROW_HEAD) && !typing(el)) || inPage.find((el) => !el.closest(ROW_HEAD))
-}
-
-// A heading's link sits at the far end of the line, over a row that may be short or scrolled away,
-// so straight down and straight left can both miss the row it belongs to. From there, the row is next.
-function fromRowHead(cur: HTMLElement, others: HTMLElement[], dir: Dir, box: (el: HTMLElement) => DOMRect, can: (el: HTMLElement) => boolean): HTMLElement | undefined {
-  if (dir !== 'down' && dir !== 'left') return undefined
-  const section = cur.closest(ROW_HEAD)?.parentElement
-  if (!section) return undefined
-  return ranked(box(cur), others.filter((el) => section.contains(el) && !el.closest(ROW_HEAD)), box, dir).find(can)
-}
-
-// Someone arriving at a page with a remote has nothing to tell them where they are, and their first
-// press would only put them somewhere. Answers whether focus has somewhere to be now; a page that may
-// still be loading says no, to be asked again, until it's the last time of asking.
-export function landOnPage(arrived: number, lastLook = true): boolean {
-  const html = document.documentElement
-  if (!html.classList.contains('ten-foot') && !html.classList.contains('using-controller') && !matchMedia('(pointer: none)').matches) return true
-  if (lastKeyAt > arrived) return true // they're on their way somewhere already
-  // A TV's web view gives focus to some link of its own choosing when it opens. That wasn't anyone's decision.
-  const active = document.activeElement
-  if (active && active !== document.body && active.id !== 'main' && !active.closest(`${PAGE_NOTES}, .sidebar, .topbar`)) return true
-  if (document.querySelector('[role=dialog], [role=alertdialog], .modal, .picker-backdrop, [role=menu]')) return true
-  const all = Array.from(document.querySelectorAll<HTMLElement>(FOCUSABLE))
-  const first = firstOnPage(all, (el) => {
-    const r = el.getBoundingClientRect()
-    return visible(el, r) && r.top < window.innerHeight
-  })
-  if (!first || (!lastLook && !first.matches('[data-tv-first]'))) return false
-  focus(first)
-  return true
 }
 
 function move(dir: Dir): boolean {
@@ -174,19 +134,40 @@ function move(dir: Dir): boolean {
     const gone = focusGoneFrom(scope as Node)
     const near = gone && nearest(gone, all.filter((el) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, document.body)), (el) => boxes.get(el)!)
     if (near) { focus(near); return true }
-    // Nothing focused yet: start at what the page offers first, or the first control of what's open.
-    const shows = (el: HTMLElement) => visible(el, boxes.get(el)!)
-    const first = firstOnPage(all, shows) || all.find((el) => el.closest('.player, [role=dialog]') && shows(el)) || all.find(shows)
+    // Nothing focused yet: start where this page's main action is, or at the first control of the main content.
+    const first = firstOf(all.filter((el) => el.closest('.content, .player, [role=dialog]')), boxes) || all.find((el) => visible(el, boxes.get(el)!))
     if (!first) return false
     focus(first)
     return true
   }
   const others = all.filter((el) => el !== cur && !el.contains(cur) && !cur.contains(el))
-  // Up and down stay on their own side of the side menu, however close it is: Left is the way in.
-  const inMenu = !!cur.closest('.sidebar')
-  const sameSide = (el: HTMLElement) => dir === 'left' || dir === 'right' || !!el.closest('.sidebar') === inMenu
-  const can = (el: HTMLElement) => sameSide(el) && visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, cur)
-  let best = fromRowHead(cur, others, dir, (el) => boxes.get(el)!, can) || ranked(boxes.get(cur)!, others, (el) => boxes.get(el)!, dir).find(can)
+  const can = (el: HTMLElement) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, cur)
+  // A row's own heading: the row is what's under it, even with few cards and See all far off to
+  // the right, where what's straight down is the next row's See all and to the left the side menu.
+  const head = cur.closest('.hub-head')
+  if (head && (dir === 'down' || dir === 'left')) {
+    const inRow = others.filter((el) => head.parentElement?.contains(el) && !head.contains(el) && can(el))
+    const row = inRow[0] && groupOf(inRow[0])
+    const left = row && lastIn.get(row)
+    const to = left && inRow.includes(left) ? left : nearest(boxes.get(cur)!, inRow, (el) => boxes.get(el)!)
+    if (to) { focus(to); return true }
+  }
+  // A side column is left and entered sideways. Going down a page mustn't fall into the side menu because the
+  // menu's last link happens to be lower, and the menu's last link mustn't fall into the page.
+  const col = cur.closest(COLUMNS)
+  const onward = dir === 'left' || dir === 'right' ? others : others.filter((el) => { const c = el.closest(COLUMNS); return c === col || (col?.matches('.set-nav') && el.closest('.topbar')) })
+  let best = ranked(boxes.get(cur)!, onward, (el) => boxes.get(el)!, dir).find(can)
+  // Past the end of a row: on to its See all if it has one. What's off to the side on some other row isn't
+  // where someone going along this one means to go.
+  const row = cur.closest('.row, [data-nav-group]')
+  if (best && dir === 'right' && row && !row.contains(best)) {
+    const a = boxes.get(cur)!, b = boxes.get(best)!
+    if (b.top >= a.bottom || b.bottom <= a.top) {
+      const seeAll = row.closest('.hub')?.querySelector<HTMLElement>('.hub-head a')
+      if (seeAll) focus(seeAll)
+      return !!seeAll
+    }
+  }
   if (best) {
     // Into another group: back to where it was left, as long as that is this way too.
     const group = groupOf(best)
@@ -199,6 +180,39 @@ function move(dir: Dir): boolean {
     return false
   }
   focus(best)
+  return true
+}
+
+// Where a remote starts on a page: its main action if that's on the screen, or else its first control that isn't
+// a field, as landing in a text box can open a TV's on-screen keyboard.
+function firstOf(list: HTMLElement[], boxes: Map<HTMLElement, DOMRect>): HTMLElement | undefined {
+  const shown = list.filter((el) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, document.body))
+  const onScreen = (el: HTMLElement) => { const r = boxes.get(el)!; return r.top >= 0 && r.bottom <= window.innerHeight }
+  return shown.find((el) => el.matches('[data-tv-first]')) || shown.find((el) => el.matches('.btn.primary') && onScreen(el)) || shown.find((el) => !typing(el) && !el.matches('select') && !el.closest('.hub-head, .mh-shelf-head') && onScreen(el)) || shown[0]
+}
+
+// focusFirst: for a page that has just arrived on a screen across the room, where a remote has
+// nothing to see until something has the focus.
+// A TV's web view gives focus to some link of its own choosing when it opens. That wasn't anyone's decision,
+// and it doesn't count, until someone presses something.
+let lastKeyAt = -1
+export function focusIsAnyonesChoice(el: Element | null, arrived: number): boolean {
+  if (!el || el === document.body || el.id === 'main') return false
+  return lastKeyAt > arrived || !el.closest('.sidebar, .topbar, .legal-note, .page-foot')
+}
+
+export function focusFirst(): boolean {
+  const main = document.getElementById('main')
+  if (!main || document.querySelector('[role=dialog], [role=alertdialog], [role=menu]')) return false
+  // Still arriving: there's nothing yet that the page is about, so leave it for the next look.
+  if (main.querySelector('.loading-box, .skeleton-grid')) return false
+  const all = Array.from(main.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !el.hasAttribute('data-nav-skip') && !el.closest('.legal-note'))
+  // A settings page starts on the page itself, not in the menu beside it.
+  const page = all.filter((el) => !el.closest('.set-nav'))
+  const list = page.length ? page : all
+  const first = firstOf(list, new Map(list.map((el) => [el, el.getBoundingClientRect()])))
+  if (!first) return false
+  first.focus({ preventScroll: true })
   return true
 }
 
@@ -227,7 +241,6 @@ export function focusPlayerControls(where: 'top' | 'first' = 'first'): boolean {
 // normal navigation again.
 const inGame = () => !!document.querySelector('.wp-playing, .wp-capture')
 
-let lastKeyAt = -1
 function onKey(e: KeyboardEvent) {
   lastKeyAt = performance.now()
   if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || inGame()) return

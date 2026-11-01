@@ -89,10 +89,10 @@ const (
 )
 
 func checkPassword(password, kind string) error {
-	if kind == KindAdult && len(password) < MinPassword {
+	if kind == KindAdult && utf8.RuneCountInString(password) < MinPassword {
 		return fmt.Errorf("the password must be at least %d characters", MinPassword)
 	}
-	if len(password) < MinPIN {
+	if utf8.RuneCountInString(password) < MinPIN {
 		return fmt.Errorf("the password or PIN must be at least %d characters", MinPIN)
 	}
 	if len(password) > 72 {
@@ -146,10 +146,13 @@ var dummyHash = sync.OnceValue(func() []byte {
 	return h
 })
 
-func (s *Service) UserCount(ctx context.Context) int {
+// NoAccounts is what first-run rules depend on, so it's true only when the database answered
+// and has none. A failed read says false: a request hung up on halfway, or a damaged table,
+// must never make a server that's set up look like a new one.
+func (s *Service) NoAccounts(ctx context.Context) bool {
 	var n int
-	_ = s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM users`).Scan(&n)
-	return n
+	err := s.DB.QueryRowContext(context.WithoutCancel(ctx), `SELECT COUNT(*) FROM users`).Scan(&n)
+	return err == nil && n == 0
 }
 
 func (s *Service) CreateUser(ctx context.Context, name, password string, admin bool) (*User, error) {
@@ -426,7 +429,7 @@ func (s *Service) LoginCode(ctx context.Context, name, password, code, device st
 			return "", nil, ErrCodeWrong
 		}
 	}
-	return s.issue(ctx, id, device, homeOnly)
+	return s.issueFor(ctx, id, device, homeOnly, &hash)
 }
 
 // IssueSession signs an account in on a device that proved itself some other
@@ -436,6 +439,13 @@ func (s *Service) IssueSession(ctx context.Context, userID int64, device string)
 }
 
 func (s *Service) issue(ctx context.Context, userID int64, device string, homeOnly bool) (string, *User, error) {
+	return s.issueFor(ctx, userID, device, homeOnly, nil)
+}
+
+// issueFor makes a session. With a hash, only if the account's password is still the one that
+// was just checked: checking takes a moment, and a new password means "signed out everywhere",
+// which a sign-in already under way must not slip past.
+func (s *Service) issueFor(ctx context.Context, userID int64, device string, homeOnly bool, hash *string) (string, *User, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return "", nil, err
@@ -447,8 +457,20 @@ func (s *Service) issue(ctx context.Context, userID int64, device string, homeOn
 	}
 	// Sessions nobody came back to would otherwise stay for ever.
 	_, _ = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE expires_at < ?`, now.Unix())
-	if _, err := s.DB.ExecContext(ctx, `INSERT INTO sessions(token, user_id, created_at, expires_at, device, home_only) VALUES(?,?,?,?,?,?)`, storedToken(tok), userID, now.Unix(), now.Add(tokenTTL).Unix(), device, homeOnly); err != nil {
-		return "", nil, err
+	const insert = `INSERT INTO sessions(token, user_id, created_at, expires_at, device, home_only) `
+	args := []any{storedToken(tok), userID, now.Unix(), now.Add(tokenTTL).Unix(), device, homeOnly}
+	if hash == nil {
+		if _, err := s.DB.ExecContext(ctx, insert+`VALUES(?,?,?,?,?,?)`, args...); err != nil {
+			return "", nil, err
+		}
+	} else {
+		res, err := s.DB.ExecContext(ctx, insert+`SELECT ?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM users WHERE id = ? AND password_hash = ?)`, append(args, userID, *hash)...)
+		if err != nil {
+			return "", nil, err
+		}
+		if n, err := res.RowsAffected(); err == nil && n == 0 {
+			return "", nil, ErrInvalid
+		}
 	}
 	u, err := s.User(ctx, userID)
 	return tok, u, err

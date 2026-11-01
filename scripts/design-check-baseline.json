@@ -1,73 +1,19 @@
 {
  "audio.css": {
-  "radius": 2,
-  "raw-colour": 10
- },
- "gallery.css": {
-  "blur": 1,
   "radius": 1,
-  "raw-colour": 2
+  "raw-colour": 10
  },
  "oobe.css": {
   "radius": 2,
   "raw-colour": 11
  },
- "pages/GameMeta.tsx": {
-  "native-dialog": 1
- },
- "pages/ShowPage.tsx": {
-  "click-div": 1
- },
- "pages/creators/ShortsLibrary.tsx": {
-  "click-div": 1
- },
- "pages/games.css": {
-  "font-size": 3,
-  "radius": 3,
-  "raw-colour": 4
- },
- "pages/tv/BumperEditor.tsx": {
-  "native-dialog": 1
- },
- "pages/tv/ChannelEditor.tsx": {
-  "native-dialog": 1
- },
- "pages/tv/RecordingsPage.tsx": {
-  "native-dialog": 1
- },
- "pages/tv/TvPlayer.tsx": {
-  "click-div": 1
- },
- "pages/tv/TvSettings.tsx": {
-  "native-dialog": 2
- },
- "pages/tv/onnow.css": {
-  "radius": 1,
-  "raw-colour": 3
- },
- "pages/tv/reminders.css": {
-  "raw-colour": 1,
-  "z-index": 1
- },
  "pages/tv/tv.css": {
-  "font-size": 94,
-  "radius": 28,
-  "raw-colour": 49,
-  "z-index": 1
- },
- "pages/tv/tveditor.css": {
-  "font-size": 2,
-  "radius": 24,
-  "raw-colour": 3
- },
- "pages/tv/tvsettings.css": {
-  "font-size": 22,
-  "radius": 11
+  "raw-colour": 4
  },
  "player.css": {
   "blur": 2,
-  "font-size": 3,
-  "radius": 10,
+  "font-size": 1,
+  "radius": 6,
   "raw-colour": 107,
   "z-index": 3
  },
@@ -80,9 +26,6 @@
   "icon-label": 8,
   "raw-colour": 1
  },
- "player/InlinePlayer.tsx": {
-  "click-div": 1
- },
  "player/VideoPlayer.tsx": {
   "click-div": 3,
   "icon-label": 7
@@ -91,8 +34,5 @@
   "radius": 20,
   "raw-colour": 96,
   "z-index": 1
- },
- "player/inline.css": {
-  "radius": 1
  }
 }

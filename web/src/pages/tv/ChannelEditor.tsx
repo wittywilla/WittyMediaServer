@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { fmtDateTime, api, fmtRuntime, mediaUrl, type Item, type UserView } from '../../api'
 import { IconPlus, IconTrash } from '../../icons'
 import { toast, useApp } from '../../state'
+import { ask } from '../../ui'
 import { PageHead, Section } from '../settings/ui'
 import BrandLogo from '../../components/BrandLogo'
 import { BumperSection } from './BumperEditor'
@@ -124,7 +125,7 @@ export default function ChannelEditor() {
   }
   const removeLogo = async () => { try { await api.del(`/channels/${id}/logo`); setLogo('') } catch (e: any) { toast(e.message) } }
   const restore = async (h: number) => {
-    if (!confirm('Go back to this version? The current one is kept in this list too.')) return
+    if (!await ask({ title: 'Go back to this version?', body: 'The current one is kept in this list too.', confirm: 'Go back' })) return
     try {
       await api.post(`/channels/${id}/restore`, { history: h })
       try { localStorage.removeItem(draftKey) } catch { /* ignore */ }

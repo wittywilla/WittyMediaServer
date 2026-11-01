@@ -245,6 +245,27 @@ func env(key, def string) string {
 // Parse builds a Config from the config file, the environment and the
 // command line arguments.
 func Parse(args []string) (*Config, error) {
+	c, err := ParseOnly(args)
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range []string{c.DataDir, c.TranscodeDir, c.CacheDir, c.ImagesDir, c.LogDir} {
+		_, missing := os.Stat(d)
+		if err := os.MkdirAll(d, 0o750); err != nil {
+			return nil, err
+		}
+		if os.IsNotExist(missing) {
+			if err := makePrivate(d); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return c, nil
+}
+
+// ParseOnly is Parse with nothing made on disk, for commands that only look, or that have
+// something to check first.
+func ParseOnly(args []string) (*Config, error) {
 	// The config file is found first: its values become the flag defaults.
 	explicit := ""
 	for i, a := range args {
@@ -341,17 +362,6 @@ func Parse(args []string) (*Config, error) {
 	c.CacheDir = env("WMS_CACHE_DIR", or(rel(f.CacheDir), filepath.Join(c.DataDir, "cache")))
 	c.ImagesDir = env("WMS_METADATA_DIR", or(rel(f.MetadataDir), filepath.Join(c.CacheDir, "images")))
 	c.LogDir = or(c.LogDir, filepath.Join(c.DataDir, "logs"))
-	for _, d := range []string{c.DataDir, c.TranscodeDir, c.CacheDir, c.ImagesDir, c.LogDir} {
-		_, missing := os.Stat(d)
-		if err := os.MkdirAll(d, 0o750); err != nil {
-			return nil, err
-		}
-		if os.IsNotExist(missing) {
-			if err := makePrivate(d); err != nil {
-				return nil, err
-			}
-		}
-	}
 	return c, nil
 }
 

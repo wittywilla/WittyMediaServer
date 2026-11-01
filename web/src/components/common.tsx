@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
+import { PosterCard } from '../ui/Surface'
 import { api, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, type Item, type Show } from '../api'
 import { toast, useApp } from '../state'
-import { IconCheck, IconLeft, IconPlay, IconRefresh } from '../icons'
+import { IconCheck, IconLeft, IconRefresh } from '../icons'
 
 // These moved to the shared parts; pages keep importing them from here.
 export { CardRow, EmptyState, LoadError, SkeletonGrid, Spinner } from '../ui/Surface'
@@ -54,21 +55,20 @@ export function ItemCard({ item, wide = item.showId != null }: { item: Item; wid
   // Books count pages or chapters in runtimeSec, so their length isn't a time.
   const length = item.kind === 'book' || audio ? '' : fmtRuntime(item.runtimeSec)
   return (
-    <Link to={`/item/${item.id}`} className={'card' + (wide ? ' wide' : '') + (audio ? ' square' : '')} title={item.title}>
-      <div className={'poster' + (gen && !wide ? ' generated' : '')} style={gen && !wide ? { '--art-hue': artHue(item.title) } as React.CSSProperties : undefined}>
-        {item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <Placeholder title={item.title} />}
+    <PosterCard to={`/item/${item.id}`} name={item.title} shape={audio ? 'square' : wide ? 'wide' : 'poster'} progress={pct}
+      posterClass={gen && !wide ? 'generated' : undefined}
+      posterStyle={gen && !wide ? { '--art-hue': artHue(item.title) } as React.CSSProperties : undefined}
+      art={item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <Placeholder title={item.title} />}
+      badges={<>
         {(isDisc(item) || cd) && <span className={'badge disc' + (isBluray(item) ? ' bluray' : '')}>{discName(item)}</span>}
         {item.progress?.watched && <SeenBadge />}
-        <div className="play"><span><IconPlay /></span></div>
-        {pct > 0 && <div className="progress"><i style={{ width: pct + '%' }} /></div>}
-      </div>
-      <div className="title">{item.showTitle && wide ? item.showTitle : item.title}</div>
-      <div className="sub">{item.showId != null
+      </>}
+      title={item.showTitle && wide ? item.showTitle : item.title}
+      sub={item.showId != null
         ? [episodeLabel(item), wide ? item.title : fmtRuntime(item.runtimeSec)].filter(Boolean).join(' · ')
         : audio ? item.albumArtist || item.artist || ''
         : item.kind === 'book' ? item.artist || item.year || ''
-        : [item.year, length].filter(Boolean).join(' · ')}</div>
-    </Link>
+        : [item.year, length].filter(Boolean).join(' · ')} />
   )
 }
 
@@ -79,18 +79,17 @@ export function SeenBadge() {
 
 export function ShowCard({ show }: { show: Show }) {
   return (
-    <Link to={`/show/${show.id}`} className="card" title={show.title}>
-      <div className="poster">
+    <PosterCard to={`/show/${show.id}`} name={show.title} title={show.title}
+      art={<>
         <Placeholder title={show.title} />
         {/* The server falls back to an episode still when there is no poster yet. */}
         <img src={showPosterUrl(show)} alt="" loading="lazy" style={{ position: 'relative' }} onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
-        {show.unwatched > 0 && show.unwatched < show.episodeCount && <span className="badge count">{show.unwatched}</span>}
+      </>}
+      badges={<>
+        {show.unwatched > 0 && show.unwatched < show.episodeCount && <span className="badge count" role="img" aria-label={`${show.unwatched} unwatched`}>{show.unwatched}</span>}
         {show.unwatched === 0 && <SeenBadge />}
-        <div className="play"><span><IconPlay /></span></div>
-      </div>
-      <div className="title">{show.title}</div>
-      <div className="sub" title={`${show.episodeCount} episodes`}>{[show.year, `${show.seasonCount} ${show.seasonCount === 1 ? 'season' : 'seasons'}`].filter(Boolean).join(' · ')}</div>
-    </Link>
+      </>}
+      sub={<span title={`${show.episodeCount} episodes`}>{[show.year, `${show.seasonCount} ${show.seasonCount === 1 ? 'season' : 'seasons'}`].filter(Boolean).join(' · ')}</span>} />
   )
 }
 

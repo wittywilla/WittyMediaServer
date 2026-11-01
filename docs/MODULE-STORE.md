@@ -106,7 +106,7 @@ WittyCouch Host has no build for FreeBSD, so WittyCouch and WittyRigs say so the
 
 If the module is built on others, a dialog lists them in order and asks first: press **Install 2 modules**, or however many it says. You'll see **Downloading**, **Checking the signature** and **Installing**, and then it's ready. If something it's built on fails, the module isn't attempted.
 
-You can also add a module from where you need it. **Settings → Modules** has a **Not added** button that lists them with **Add**, adding a library shows which kinds need a module, and a page missing its module has its own button.
+You can also add a module from where you need it. **Settings → Modules** has a **Not installed** button that lists them with **Install**, adding a library shows which kinds need a module, and a page missing its module has its own button.
 
 Opening the store doesn't look for new versions. It shows what the last check found, and a check happens when you press **Check for updates**, or by itself if you allow that. The one thing a page can fetch is a module's icon or screenshots, and the server does that itself.
 

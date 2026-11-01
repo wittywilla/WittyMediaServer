@@ -246,18 +246,25 @@ function ScenePanel({ chapters, name, thumb, current, onPick, onClose }: {
 }
 
 // ShortcutHelp: every key the player understands, in one list.
-const KEYS: [string, string, boolean?][] = [
+// The third column keeps a line to discs, or to everything else: the two handle some keys differently.
+const KEYS: [string, string, ('disc' | 'file')?][] = [
   ['Space or K', 'Play or pause'],
   ['← and →', 'Back 10 seconds, forward 10 seconds'],
   ['Page Up and Page Down', 'Forward or back a minute (on the timeline)'],
   ['Home and End', 'The start or the end (on the timeline)'],
-  ['↑ and ↓', 'Volume up or down'],
-  ['M', 'Mute or unmute'],
+  ['↑ and ↓', 'Volume up or down', 'file'],
+  ['M', 'Mute or unmute', 'file'],
+  ['I', 'Details of what’s playing', 'file'],
   ['< and >', 'Slower or faster'],
   ['F', 'Fullscreen'],
   ['R', 'Show or hide the remote'],
-  ['1 to 9', 'Jump to that scene, or press that menu button', true],
-  ['Arrow keys and Enter', 'Move around a disc menu and choose', true],
+  ['M', 'The disc’s menu, or its pop-up menu', 'disc'],
+  ['T', 'The disc’s title menu', 'disc'],
+  ['A and S', 'Next sound track, next subtitles', 'disc'],
+  ['N and P', 'Next chapter, previous chapter', 'disc'],
+  ['1 to 9', 'Jump to that scene, or press that menu button', 'disc'],
+  ['Arrow keys and Enter', 'Move around a disc menu and choose', 'disc'],
+  ['↑ and ↓', 'Reach the player’s buttons', 'disc'],
   ['Esc', 'Close a window, or shrink the player'],
   ['?', 'This list'],
 ]
@@ -267,7 +274,7 @@ function ShortcutHelp({ disc, onClose }: { disc: boolean; onClose: () => void })
       <div className="modal kbd-modal" role="dialog" aria-modal="true" aria-labelledby="kbd-h" onClick={(e) => e.stopPropagation()}>
         <h2 id="kbd-h">Keyboard shortcuts</h2>
         <dl className="kbd-list">
-          {KEYS.filter(([, , d]) => !d || disc).map(([k, what]) => <div key={k}><dt><kbd>{k}</kbd></dt><dd>{what}</dd></div>)}
+          {KEYS.filter(([, , only]) => !only || only === (disc ? 'disc' : 'file')).map(([k, what]) => <div key={k}><dt><kbd>{k}</kbd></dt><dd>{what}</dd></div>)}
         </dl>
         <p className="small-note">Game controllers and TV remotes work too: the D-pad moves, A or OK chooses, B goes back.</p>
         <div className="actions"><button className="btn primary" onClick={onClose}>Close</button></div>

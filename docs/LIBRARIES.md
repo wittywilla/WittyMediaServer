@@ -36,7 +36,7 @@ Scanning starts right away. The folder has to be one the server can read, which 
 | **Movies** | Film files. Disc images of films can go here too | Needed |
 | **TV shows** | One folder per show, with season folders inside. Disc images of a series too | Needed |
 | **DVDs, Blu-rays & CDs** | Only disc images and disc folders, sorted as films, series or audio CDs | Needed |
-| **Anime** | Series with information from AniList. Also collects anime found in your TV shows | Needed |
+| **Anime** | Series with information from AniList. Also collects anime found in your TV shows | Optional: with none, it shows the anime in your TV libraries |
 | **Home videos** | Your own recordings. Nothing is looked up online | Needed |
 | **Music videos & concerts** | Music videos and live recordings, by artist | Needed |
 | **Creator videos** | An archive of creators' videos, by channel | Needed |
@@ -218,9 +218,9 @@ Converting files ahead of time is set per library under **Settings → Library t
 
 ## Read-only libraries
 
-Under **Settings → Library transcoding**, choose the library and turn on **This library is read-only**. The server then won't convert its files or save artwork and details beside them. Previews and dry runs still work.
+Under **Settings → Library transcoding**, choose the library and turn on **This library is read-only**. The server then won't convert its files, save artwork and details beside them, take uploads into it or keep podcast episodes in its folder. **Upload** goes from its page, and asking anyway says why. Previews and dry runs still work.
 
-It doesn't stop what people ask for directly: uploads to a Photos or Vertical videos library, which you can turn off under **Settings → Sharing & photos**, and podcast episodes kept in its folder. For a guarantee, mount the folder read-only as well, such as `:ro` in Docker.
+For a guarantee against anything else on the machine, mount the folder read-only as well, such as `:ro` in Docker.
 
 ## Network shares
 

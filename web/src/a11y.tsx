@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
-import { landOnPage } from './tv'
+import { focusFirst, focusIsAnyonesChoice } from './tv'
 import { isBackKey } from './ui/spatial'
 
 // Accessibility shared by every page: dialogs that hold the keyboard while
@@ -94,8 +94,6 @@ const describe = (el: Element) => {
   return href ? `a[href="${CSS.escape(href)}"]` : ''
 }
 const focusMemory = new Map<string, string>()
-// How long after arriving to look for somewhere to put focus, in milliseconds. A cheap TV can take seconds to load a page.
-const LANDING = [400, 800, 1500, 2500, 4000, 6000]
 
 let say: (text: string) => void = () => {}
 
@@ -111,7 +109,6 @@ export function Announcer() {
   const loc = useLocation()
   const navType = useNavigationType()
   const first = useRef(true)
-  const settled = useRef('')
   const entry = useRef(loc.key)
   entry.current = loc.key
   const usingKeys = useRef(false)
@@ -133,15 +130,7 @@ export function Announcer() {
     return () => { say = () => {} }
   }, [])
   useEffect(() => {
-    // Across the room, somewhere to start from. The page may still be loading, so look a few times.
-    const arrived = performance.now()
-    settled.current = ''
-    const land = (ms: number) => setTimeout(() => { if (settled.current !== loc.key && landOnPage(arrived, ms >= 1500)) settled.current = loc.key }, ms)
-    if (first.current) {
-      first.current = false
-      const opening = LANDING.map(land)
-      return () => opening.forEach(clearTimeout)
-    }
+    if (first.current) { first.current = false; return }
     const t = setTimeout(() => {
       if (document.querySelector(DIALOGS)) return
       const main = document.getElementById('main')
@@ -157,9 +146,18 @@ export function Announcer() {
       if (active && active !== document.body && active !== document.getElementById('main')) return
       document.querySelector<HTMLElement>(was)?.focus()
     }, ms))
-    // Nothing to come back to, or it has gone by now.
-    const landing = (was ? [3000, 6000] : LANDING).map(land)
-    return () => { clearTimeout(t); later.forEach(clearTimeout); landing.forEach(clearTimeout) }
+    return () => { clearTimeout(t); later.forEach(clearTimeout) }
+  }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Across the room nothing shows where you are until something has the focus, so a page starts
+  // on its main action. It looks a few times, as a page may still be loading what it's going to show.
+  useEffect(() => {
+    if (!document.documentElement.classList.contains('using-controller') || (navType === 'POP' && focusMemory.get(loc.key))) return
+    const arrived = performance.now()
+    // A cheap TV can take seconds to load a page.
+    const tries = [500, 1000, 2000, 3500, 6000].map((ms) => setTimeout(() => {
+      if (!focusIsAnyonesChoice(document.activeElement, arrived)) focusFirst()
+    }, ms))
+    return () => tries.forEach(clearTimeout)
   }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
   return <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{msg}</div>
 }

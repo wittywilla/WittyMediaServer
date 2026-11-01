@@ -40,7 +40,7 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 .tl-t b, .tl-t .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
 .tl-t b { font-size: var(--text-md); }
 .tl-t .muted { font-size: var(--text-xs); }
-.tl-prog { position: absolute; left: 0; bottom: -4px; height: 2px; background: var(--accent); border-radius: 2px; }
+.tl-prog { position: absolute; left: 0; bottom: -4px; height: 2px; background: var(--accent); border-radius: var(--r-xs); }
 .tl-d { display: inline-flex; align-items: center; gap: var(--sp-1); font-variant-numeric: tabular-nums; font-size: var(--text-sm); }
 .tl-d svg { width: 14px; height: 14px; }
 

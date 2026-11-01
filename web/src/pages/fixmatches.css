@@ -9,6 +9,7 @@
 .fm-row-tick { flex: none; align-self: stretch; display: flex; align-items: center; justify-content: center; width: 44px; cursor: pointer; }
 .fm-row-tick input { width: 18px; height: 18px; }
 .fm-row.on { background: var(--accent-soft); }
+.fm-row.on .muted { color: var(--fg-2); }
 .fm-row-main { display: flex; gap: var(--sp-2); flex: 1; min-width: 0; padding: var(--sp-2); background: none; border: 0; color: inherit; text-align: left; font: inherit; border-radius: var(--r-md); cursor: pointer; }
 .fm-row-main:hover { background: var(--hover); }
 .fm-row-pic { flex: none; width: 40px; height: 60px; border-radius: var(--r-xs); background: var(--bg-3); overflow: hidden; }

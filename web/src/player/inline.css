@@ -1,5 +1,5 @@
 /* A player inside a page (see InlinePlayer). */
-.player.inline { position: relative; inset: auto; z-index: auto; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; }
+.player.inline { position: relative; inset: auto; z-index: auto; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r-lg); }
 .player.inline:fullscreen { border-radius: 0; }
 .player.inline .popover { max-height: 70%; overflow-y: auto; }
 .player.inline .ctl .time { min-width: 0; }

@@ -25,7 +25,35 @@ func dataChecks() []Check {
 		{ID: "temp-files", Area: AreaData, Title: "Are there leftover temporary files?", Run: checkTempFiles, Fix: fixTempFiles},
 		{ID: "reset-state", Area: AreaData, Title: "Is a reset or repair stuck halfway?", Run: checkResetState, Fix: fixResetState},
 		{ID: "restore-state", Area: AreaData, Title: "Is a restore waiting, or stuck part way?", Run: checkRestoreState, Fix: fixRestoreState},
+		// No fix on purpose: Settings can run a fix, and getting into an account must not be
+		// something anyone can do from another device. A person does this on the machine.
+		{ID: "accounts", Area: AreaData, Title: "Can someone sign in as an administrator?", Run: checkAccounts},
 	}
+}
+
+// --------------------------------------------------------------- can anyone sign in
+
+func checkAccounts(ctx context.Context, e *DoctorEnv) []Issue {
+	d, err := e.readDB()
+	if err != nil {
+		if errors.Is(err, db.ErrNoDatabase) {
+			return nil
+		}
+		return notChecked("accounts:failed", "accounts", "The database couldn't be read: "+err.Error()+".")
+	}
+	var accounts, admins int
+	if err := d.QueryRowContext(ctx, `SELECT COUNT(*), COALESCE(SUM(is_admin = 1 AND password_hash <> ''), 0) FROM users`).Scan(&accounts, &admins); err != nil {
+		return notChecked("accounts:failed", "accounts", "The accounts couldn't be read: "+err.Error()+".")
+	}
+	if accounts == 0 || admins > 0 {
+		return nil
+	}
+	return []Issue{{Key: "accounts:no-admin", Severity: SevProblem, Title: "No administrator can sign in", Safety: SafetyManual,
+		What: "There are accounts here, but none is an administrator with a password, so nobody can change this server's settings.",
+		Fix:  "Give an account a new password from a terminal on this machine. It's kept off this page, so that it can't be done from another device.",
+		Steps: []string{"On this machine, run: wittymediaserver reset-password --list",
+			"Then run: wittymediaserver reset-password <username>",
+			"If nobody on the list is an administrator, a backup or a reset is the way back. See Backup and restore."}}}
 }
 
 // --------------------------------------------------------------- is the database sound

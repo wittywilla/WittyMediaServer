@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api'
 import { toast, useApp } from '../../state'
+import { ask } from '../../ui'
 import { useLook } from './look'
 import { fmtClock, fmtDay, type Recording, type RecordingRule } from './tvApi'
 import './tv.css'
@@ -25,8 +26,13 @@ export default function RecordingsPage() {
   }
   useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t) }, [])
   const remove = async (r: Recording, deleteFile: boolean) => {
-    const what = r.status === 'done' || r.status === 'failed' ? `Remove “${r.title}” from this list?` : `Cancel the recording of “${r.title}”?`
-    if (!confirm(deleteFile ? `Delete the recording of “${r.title}” and its file? This cannot be undone.` : what)) return
+    const finished = r.status === 'done' || r.status === 'failed'
+    const yes = await ask(deleteFile
+      ? { title: `Delete the recording of “${r.title}”?`, body: 'Its file goes too. This can’t be undone.', confirm: 'Delete recording', danger: true }
+      : finished
+        ? { title: `Remove “${r.title}” from this list?`, body: 'Any file it made stays where it is.', confirm: 'Remove from list' }
+        : { title: `Cancel the recording of “${r.title}”?`, confirm: 'Cancel recording', cancel: 'Keep recording', danger: true })
+    if (!yes) return
     try { await api.del(`/recordings/${r.id}${deleteFile ? '?deleteFile=1' : ''}`); load() } catch (e: any) { toast(e.message) }
   }
   const removeRule = async (r: RecordingRule) => {

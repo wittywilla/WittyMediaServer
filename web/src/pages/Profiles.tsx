@@ -8,6 +8,7 @@ import { Field, Input, Switch } from '../ui/Field'
 import { ask, Dialog } from '../ui/Overlay'
 import { Avatar } from './AuthPage'
 import LegalNote from '../components/LegalNote'
+import './profiles.css'
 
 // Settings → Users: your account, the profiles you may manage, and their
 // limits. The admin manages everyone; adults manage Kids profiles unless the
@@ -33,7 +34,8 @@ export default function Profiles() {
   const [editing, setEditing] = useState<UserView | null>(null)
   const [removing, setRemoving] = useState<User | null>(null)
   const [naming, setNaming] = useState<UserView | null>(null)
-  const load = () => api.get<UserView[]>('/users').then(setUsers).catch(() => setUsers([]))
+  const [settingPw, setSettingPw] = useState<UserView | null>(null)
+  const load =() => api.get<UserView[]>('/users').then(setUsers).catch(() => setUsers([]))
   useEffect(() => { load() }, [])
   const changePw = async () => { try { await api.put(`/users/${user!.id}/password`, { password: mypw, current: curpw }); setMypw(''); setCurpw(''); toast('Password changed; other devices are signed out') } catch (e: any) { toast(e.message) } }
   const del = async (u: User) => {
@@ -64,15 +66,20 @@ export default function Profiles() {
           <h2>{user?.isAdmin ? 'Everyone on this server' : 'Kids profiles you manage'}</h2>
           <div className="list">
             {users.map((u) => (
-              <div className="list-item" key={u.id}>
+              <div className="list-item profile-row" key={u.id}>
                 <Avatar name={profileName(u)} />
                 <div className="grow">
                   <b>{profileName(u)}</b> <span className={'pill kind-' + u.kind}>{u.isAdmin ? 'Administrator' : KIND_LABEL[u.kind]}</span>
                   <div className="sub">{u.displayName && u.displayName !== u.name ? `Signs in as ${u.name} · ` : ''}{u.isAdmin ? 'No limits' : summary(u)}</div>
                 </div>
-                {u.id !== user!.id && <Button size="sm" onClick={() => setNaming(u)}>Names</Button>}
-                {!u.isAdmin && u.id !== user!.id && <Button size="sm" onClick={() => setEditing(u)}>Limits</Button>}
-                {u.id !== user!.id && <IconButton label={`Remove ${profileName(u)}`} size="sm" variant="danger" onClick={() => del(u)}><IconTrash /></IconButton>}
+                {u.id !== user!.id && (
+                  <div className="profile-actions">
+                    <Button size="sm" aria-label={`Names for ${profileName(u)}`} onClick={() => setNaming(u)}>Names</Button>
+                    <Button size="sm" aria-label={`${passwordWord(u)} for ${profileName(u)}`} onClick={() => setSettingPw(u)}>{passwordWord(u)}</Button>
+                    {!u.isAdmin && <Button size="sm" aria-label={`Limits for ${profileName(u)}`} onClick={() => setEditing(u)}>Limits</Button>}
+                    <IconButton label={`Remove ${profileName(u)}`} size="sm" variant="danger" onClick={() => del(u)}><IconTrash /></IconButton>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -86,6 +93,7 @@ export default function Profiles() {
       {editing && <LimitsEditor user={editing} admin={!!user?.isAdmin} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load() }} />}
       {removing && <RemoveAdmin user={removing} onClose={() => setRemoving(null)} onDone={() => { setRemoving(null); load() }} />}
       {naming && <NamesDialog user={naming} onClose={() => setNaming(null)} onSaved={() => { setNaming(null); load() }} />}
+      {settingPw && <PasswordDialog user={settingPw} onClose={() => setSettingPw(null)} onSaved={() => { setSettingPw(null); load() }} />}
     </>
   )
 }
@@ -176,6 +184,64 @@ function NamesDialog({ user, onClose, onSaved }: { user: UserView; onClose: () =
         <Field label="Profile name" hint="What they’re called around the app."><Input autoFocus value={display} maxLength={60} placeholder={user.name} onChange={(e) => setDisplay(e.target.value)} /></Field>
         <Field label="Username" hint="What they sign in with." error={err}><Input value={username} maxLength={40} onChange={(e) => setUsername(e.target.value)} /></Field>
       </div>
+    </Dialog>
+  )
+}
+
+const passwordWord = (u: UserView) => u.kind === 'adult' ? 'Password' : 'Password or PIN'
+
+// A new password for someone else, or a new PIN for a Kids or Guest profile, for whoever
+// manages them. Passwords can't be read back, so this is the way out of a forgotten one.
+function PasswordDialog({ user: target, onClose, onSaved }: { user: UserView; onClose: () => void; onSaved: () => void }) {
+  const { user } = useApp()
+  const adult = target.kind === 'adult'
+  const [pw, setPw] = useState('')
+  const [again, setAgain] = useState('')
+  const [current, setCurrent] = useState('')
+  const [code, setCode] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const min = adult ? 8 : 4
+  const bytes = new TextEncoder().encode(pw).length
+  const hint = bytes > 72 ? 'That’s too long: 72 bytes at most.' : `At least ${min} characters.`
+  const mismatch = again !== '' && again !== pw
+  const name = profileName(target)
+  const save = async () => {
+    setErr(''); setBusy(true)
+    try {
+      await api.put(`/users/${target.id}/password`, target.isAdmin ? { password: pw, current, code } : { password: pw })
+      toast(`New ${adult ? 'password' : 'password or PIN'} saved for ${name}. They’re signed out on their devices.`, { tone: 'ok' })
+      onSaved()
+    } catch (e) { setErr((e as Error).message); setBusy(false) }
+  }
+  const remove = async () => {
+    setErr(''); setBusy(true)
+    try {
+      await api.put(`/users/${target.id}/access`, { clearPassword: true })
+      toast(`${name} now signs in with a tap on your home network`, { tone: 'ok' })
+      onSaved()
+    } catch (e) { setErr((e as Error).message); setBusy(false) }
+  }
+  const ready = [...pw].length >= min && bytes <= 72 && pw === again && (!target.isAdmin || (!!current && (!user?.twoFactor || !!code)))
+  return (
+    <Dialog title={`${adult ? 'A new password' : target.hasPassword ? 'A new password or PIN' : 'Add a password or PIN'} for ${name}`} size="sm" onClose={onClose}
+      actions={<>
+        {!adult && target.hasPassword && <Button variant="ghost" disabled={busy} onClick={remove}>Remove it</Button>}
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button variant="primary" disabled={busy || !ready} onClick={save}>Save</Button>
+      </>}>
+      <form className="form full" onSubmit={(e) => { e.preventDefault(); if (ready && !busy) save() }}>
+        <p className="muted flush">
+          {adult ? 'Tell them what it is, and ask them to change it when they next sign in. ' : 'They’ll need this to sign in. '}
+          The old one stops working, and they’re signed out on every device.
+          {target.twoFactor && ' Their two-factor sign-in stays on.'}
+        </p>
+        <Field label={adult ? 'New password' : 'New password or PIN'} hint={hint}><Input autoFocus type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} /></Field>
+        <Field label="The same again" error={mismatch ? 'These two don’t match yet.' : undefined}><Input type="password" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} /></Field>
+        {target.isAdmin && <YourPassword password={current} code={code} setPassword={setCurrent} setCode={setCode} />}
+        {err && <div className="error" role="alert">{err}</div>}
+        <button type="submit" hidden aria-hidden="true" tabIndex={-1} />
+      </form>
     </Dialog>
   )
 }

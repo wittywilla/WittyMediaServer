@@ -141,7 +141,7 @@ func TestSetupClaim(t *testing.T) {
 	if w := ts.do(t, "POST", "/api/setup", "", creds, "X-Forwarded-For", "198.51.100.7", "X-Forwarded-Proto", "https"); w.Code != 403 {
 		t.Fatalf("through a proxy, without the code: %d", w.Code)
 	}
-	if ts.Auth.UserCount(context.Background()) != 0 {
+	if !ts.Auth.NoAccounts(context.Background()) {
 		t.Fatal("an account was made")
 	}
 	var st map[string]any

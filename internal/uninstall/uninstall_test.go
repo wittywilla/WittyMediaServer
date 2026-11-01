@@ -440,6 +440,72 @@ func TestLinuxOldInstallShCopy(t *testing.T) {
 	}
 }
 
+// Service settings someone made with systemctl edit, and folders moved with the system's own
+// settings for that, go too, and each is said before anything happens.
+func TestLinuxOverridesAndMovedFolders(t *testing.T) {
+	e, sys, root := newUnix(t)
+	data := filepath.Join(root, "tank/mine")
+	conf := filepath.Join(root, "tank/conf")
+	e.Getenv = func(k string) string {
+		return map[string]string{"XDG_DATA_HOME": data, "XDG_CONFIG_HOME": conf}[k]
+	}
+	before := tree(t, root)
+	unit := filepath.Join(root, "etc/systemd/system/wittymediaserver.service")
+	write(t, unit, "[Service]\nExecStart=/usr/bin/wittymediaserver serve\n")
+	override := filepath.Join(root, "etc/systemd/system/wittymediaserver.service.d/override.conf")
+	write(t, override, "[Service]\nEnvironment=WMS_DATA_DIR=/tank/from-override\n")
+	fillData(t, filepath.Join(root, "tank/from-override"))
+	fillData(t, filepath.Join(data, "wittymediaserver"))
+	write(t, filepath.Join(conf, "wittymediaserver/wms.json"), "{}")
+	write(t, filepath.Join(conf, "autostart/wittymediaserver.desktop"), "x")
+	write(t, filepath.Join(data, "applications/wittymediaserver.desktop"), "x")
+	sys.answers["systemctl"] = ""
+	plan := MakePlan(e)
+	names := []string{}
+	for _, it := range plan.Items {
+		names = append(names, it.Name)
+	}
+	listed := strings.Join(names, "\n")
+	for _, want := range []string{override, filepath.Join(conf, "wittymediaserver/wms.json"), filepath.Join(conf, "autostart/wittymediaserver.desktop"), filepath.Join(data, "applications/wittymediaserver.desktop")} {
+		if !strings.Contains(listed, want) {
+			t.Errorf("%s isn't said:\n%s", want, listed)
+		}
+	}
+	res := Execute(plan, Options{RemoveData: true})
+	if !res.OK() {
+		t.Fatal(res.Report())
+	}
+	dirGone(t, filepath.Join(root, "tank/from-override"))
+	dirGone(t, filepath.Join(data, "wittymediaserver"))
+	dirGone(t, filepath.Dir(override))
+	after := []string{}
+	for _, p := range tree(t, root) { // only the folders the test made to hold those remain
+		if !strings.Contains(p, "tank") && !strings.Contains(p, "applications") && !strings.Contains(p, "autostart") {
+			after = append(after, p)
+		}
+	}
+	kept := []string{}
+	for _, p := range before {
+		if !strings.Contains(p, "tank") {
+			kept = append(kept, p)
+		}
+	}
+	if strings.Join(kept, "\n") != strings.Join(after, "\n") {
+		t.Errorf("left behind:\n%s", strings.Join(after, "\n"))
+	}
+}
+
+// Someone else's choice can't be known, and a value that isn't a full path is to be ignored.
+func TestLinuxRelativeFolderSettingsAreIgnored(t *testing.T) {
+	e, _, root := newUnix(t)
+	e.Getenv = func(k string) string { return map[string]string{"XDG_DATA_HOME": "relative/data"}[k] }
+	for _, it := range MakePlan(e).Items {
+		if strings.Contains(it.Name, "relative") {
+			t.Errorf("followed a relative folder setting: %s (%s)", it.Name, root)
+		}
+	}
+}
+
 // A .deb is the package manager's to remove, and the question decides remove or purge.
 func TestLinuxDebPackage(t *testing.T) {
 	for _, removeData := range []bool{false, true} {

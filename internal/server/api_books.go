@@ -45,6 +45,10 @@ func (s *Server) handleBookInfo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		info, words, err := s.Store.ArchiveEPUBOf(r.Context(), it, book)
+		if bookRefused(err) {
+			writeBookError(w, err)
+			return
+		}
 		if err != nil {
 			writeErr(w, 422, s.viewerError(r, err))
 			return
@@ -70,6 +74,11 @@ func writeBookError(w http.ResponseWriter, err error) {
 	default:
 		writeErr(w, 422, "this book could not be read")
 	}
+}
+
+// bookRefused: the book's own locks are in the way, which is worth saying as it is.
+func bookRefused(err error) bool {
+	return errors.Is(err, ebook.ErrProtected) || errors.Is(err, ebook.ErrEncrypted)
 }
 
 // comicPages lists the pages of anything that opens page by page.
@@ -190,6 +199,10 @@ func (s *Server) handleEPUBFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	zr, done, err := s.Store.OpenBook(r.Context(), it, book)
+	if bookRefused(err) {
+		writeBookError(w, err)
+		return
+	}
 	if err != nil {
 		writeErr(w, 500, "cannot open this book")
 		return

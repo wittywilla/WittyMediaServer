@@ -669,6 +669,43 @@ func TestInstallAndUpdateAll(t *testing.T) {
 }
 
 // Automatic updates go the same way as Update All, and leave out whatever was told to wait.
+// A restart mustn't turn what's installed into an update to itself, or Update All fails on all of it.
+func TestRestartOffersNothingNewForWhatsInstalled(t *testing.T) {
+	pub, key, _ := ed25519.GenerateKey(nil)
+	dir := filepath.Join(t.TempDir(), "modules")
+	starter := filepath.Join(t.TempDir(), "starter")
+	if err := os.MkdirAll(starter, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	m1 := listedModule("wittyink", "WittyInk")
+	m1.Repo = "wittywilla/WittyInk"
+	m1.Versions = []wittymodule.CatalogVersion{webRelease(t, starter, key, "wittyink", "WittyInk", "wittywilla/WittyInk", "0.2.0")}
+	raw := testStoreCatalog(1, m1)
+	_ = os.WriteFile(filepath.Join(starter, wittymodule.CatalogName), raw, 0o644)
+	_ = os.WriteFile(filepath.Join(starter, wittymodule.CatalogName+".sig"), signed(key, raw), 0o644)
+	cfg := Config{Dir: dir, Server: "0.6.0-alpha", Starter: starter, Keys: []ed25519.PublicKey{pub}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	m := New(cfg)
+	s := NewStores(StoresConfig{Manager: m, Dir: dir, Log: cfg.Log})
+	if _, err := s.InstallWithNeeds("wittyink", "admin"); err != nil {
+		t.Fatal(err)
+	}
+	if r := waitRun(t, s); r.Updated != 1 || r.Failed != 0 {
+		t.Fatalf("install: %+v", r)
+	}
+	m.Close()
+
+	m = New(cfg)
+	defer m.Close()
+	s = NewStores(StoresConfig{Manager: m, Dir: dir, Log: cfg.Log})
+	st, ok := s.statusOf("wittyink")
+	if !ok || !st.Installed || st.Version != "0.2.0" {
+		t.Fatalf("after a restart: %+v", st)
+	}
+	if st.Latest != nil {
+		t.Fatalf("its own version is offered as an update: %+v", st.Latest)
+	}
+}
+
 func TestAutomaticUpdates(t *testing.T) {
 	pub, key, _ := ed25519.GenerateKey(nil)
 	dir := filepath.Join(t.TempDir(), "modules")

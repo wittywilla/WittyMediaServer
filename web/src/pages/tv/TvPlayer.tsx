@@ -234,7 +234,7 @@ export default function TvPlayer() {
   const isBehind = win.behind > 20
 
   return (
-    <div className={'player ctv-player'} ref={root} tabIndex={-1} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)} data-skin={look.colours} data-layout={look.layout} style={{ ...customVars(look), ...channelVars(info?.accent) }}>
+    <div className={'player ctv-player'} ref={root} tabIndex={-1} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)} data-skin={look.colours} data-layout={look.layout} style={{ ...customVars(look), ...channelVars(info?.accent) }}>{/* design-ok: a click on the picture is the mouse's shortcut for Play and Pause */}
       <h1 className="sr-only">{info ? `Channel ${info.number}, ${info.name}` : 'Live TV'}</h1>
       <div className="stage"><video ref={video} playsInline preload="auto" aria-label={info ? `Channel ${info.number}, ${info.name}` : 'TV'} onPlaying={() => { if (!picture) { setPicture(true); showBanner() } }} /></div>
       {!picture && !err && !needClick && <div className="center-spinner"><div className="spinner" /></div>}

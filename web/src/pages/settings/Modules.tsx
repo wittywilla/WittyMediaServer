@@ -11,7 +11,7 @@ import { PageHead, Row, Section, Switch } from './ui'
 import './modules.css'
 import LegalNote from '../../components/LegalNote'
 import { LinkButton } from '../../ui'
-import { ChangeNotes, FailureNotice, ModuleLogDialog, PolicyNote, SandboxNote, UpdateAllPanel, useStoreView, WhatsNew } from './store/parts'
+import { ChangeNotes, FailureNotice, ModuleIcon, ModuleLogDialog, PolicyNote, SandboxNote, UpdateAllPanel, useStoreView, WhatsNew } from './store/parts'
 import { checkAll, failureForStatus, type Failure } from './store/storeApi'
 import { Dialog } from '../../ui/Overlay'
 import { ConfirmOwner, OwnerFields, type OwnerAsk } from './ConfirmOwner'
@@ -25,7 +25,7 @@ const PHASE: Record<string, string> = { downloading: 'Downloading', verifying: '
 const busy = (m: ModuleStatus) => !!PHASE[m.phase]
 const mb = (n = 0) => (n / 1048576).toFixed(1)
 const when = (ms: number) => fmtDateTime(ms)
-const day = (ms: number) => new Date(ms).toLocaleDateString()
+const day = (ms: number) => new Date(ms).toLocaleDateString(undefined, { dateStyle: 'medium' })
 const kindName = (t: string) => LIB_TYPES.find((x) => x.type === t)?.name || t
 const needsLook = (m: ModuleStatus) => m.state === 'fallback' || m.phase === 'failed' || !!m.withdrawn || !!m.notice
 const severity = (s: string) => s === 'security' ? 'for security reasons' : 'because it was broken'
@@ -38,7 +38,7 @@ type Filter = 'all' | 'installed' | 'absent' | 'updates'
 const FILTERS: { id: Filter; label: string; test: (m: ModuleStatus) => boolean }[] = [
   { id: 'all', label: 'All', test: () => true },
   { id: 'installed', label: 'Installed', test: (m) => m.installed },
-  { id: 'absent', label: 'Not added', test: (m) => !m.installed },
+  { id: 'absent', label: 'Not installed', test: (m) => !m.installed },
   { id: 'updates', label: 'Updates', test: (m) => m.installed && !!m.latest },
 ]
 
@@ -153,14 +153,14 @@ export default function ModulesSettings() {
     try { setR(await call()); if (done) toast(done); void store.reload() } catch (e: any) { toast(e.message) }
   }
   const add = async (m: ModuleStatus) => {
-    await act(() => api.post<ModuleReport>(`/modules/${m.id}/add`), `${m.name} is being added`)
+    await act(() => api.post<ModuleReport>(`/modules/${m.id}/add`), `${m.name} is being installed`)
     focusRow(m.id)
   }
   const remove = (m: ModuleStatus) => setAsk({
     title: `Remove ${m.name}?`, action: 'Remove', danger: true,
     body: <>
       <p>{m.name} stops showing in the app and stops checking for updates.{m.libraries?.length ? ` New libraries of these kinds can’t be made: ${m.libraries.map(kindName).join(', ')}.` : ''} Your files, watch history and settings stay as they are.</p>
-      <p>Every version of it that was downloaded is deleted{m.source ? ', and the fork it comes from is forgotten' : ''}. You can add it back any time.</p>
+      <p>Every version of it that was downloaded is deleted, which frees the disk space{m.source ? ', and the fork it comes from is forgotten' : ''}. You can install it again from the store at any time.</p>
       {!!m.requiredBy?.length && <p>{m.requiredBy.join(', ')} {m.requiredBy.length === 1 ? 'is' : 'are'} built on it.</p>}
     </>,
     run: async () => {
@@ -258,7 +258,7 @@ export default function ModulesSettings() {
 
       {core.length > 0 && (
         <div className="ms-quiet">
-          <Section title="Built into everything" desc="Other modules are built on these, so they stay and can’t be removed.">{core.map(row)}</Section>
+          <Section title="What other modules are built on" desc="These stay for as long as something uses them, and can’t be removed on their own.">{core.map(row)}</Section>
         </div>
       )}
 
@@ -296,7 +296,7 @@ function Tag({ tone, icon, children }: { tone?: 'ok' | 'warn' | 'bad' | 'new' | 
 function Tags({ m }: { m: ModuleStatus }) {
   return (
     <span className="ms-tags">
-      {!m.installed ? <Tag tone="off">{m.unavailable ? 'No build here' : 'Not added'}</Tag>
+      {!m.installed ? <Tag tone="off">{m.comesInside ? 'Comes with other modules' : m.unavailable ? 'No build here' : 'Not installed'}</Tag>
         : busy(m) ? <Tag tone="new">{PHASE[m.phase]}</Tag>
         : needsLook(m) ? <Tag tone="bad" icon={<IconInfo size={12} />}>Needs a look</Tag>
         : m.latest ? <Tag tone="new">Update available</Tag>
@@ -322,14 +322,14 @@ function ModuleRow(p: RowProps) {
     <article id={'mod-' + m.id} className={'ms-mod' + (marked ? ' marked' : '') + (m.installed ? '' : ' absent')} aria-label={m.name}>
       <div className="ms-row">
         <button type="button" className="ms-head" aria-expanded={isOpen} aria-controls={isOpen ? detail : undefined} onClick={p.onToggle}>
-          <span className="ms-ic">{moduleIcon(m)}</span>
+          {m.icon ? <ModuleIcon item={{ icon: m.icon, name: m.name, official: true }} size={36} /> : <span className="ms-ic">{moduleIcon(m)}</span>}
           <span className="ms-title">
             <span className="ms-name"><b>{m.name}</b>{m.installed && <span className="ms-ver">{m.version}</span>}{m.license && <span className="ms-ver">{m.license}</span>}<Tags m={m} /></span>
             {m.summary && <span className="ms-sum">{m.summary}</span>}
           </span>
           <span className="ms-chev"><IconDown size={20} /></span>
         </button>
-        {!m.installed && !m.unavailable && <button type="button" className={'btn sm' + (marked ? ' primary' : '')} onClick={p.onAdd} aria-label={`Add ${m.name}`}><IconPlus /> <span className="ms-add-word">Add</span></button>}
+        {!m.installed && !m.unavailable && !m.comesInside && <button type="button" className={'btn sm' + (marked ? ' primary' : '')} onClick={p.onAdd} aria-label={`Install ${m.name}`}><IconPlus /> <span className="ms-add-word">Install</span></button>}
         {m.installed && m.latest && !m.pin && !busy(m) && !isOpen && <button type="button" className="btn sm" onClick={p.onUpdate} aria-label={`Update ${m.name} to ${m.latest.version}`}>Update</button>}
       </div>
       {busy(m) && (

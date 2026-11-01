@@ -81,12 +81,11 @@
 .gal-stage { position: relative; min-height: 0; display: grid; place-items: center; overflow: hidden; outline: none; touch-action: pinch-zoom; }
 .gal-img-wrap { position: absolute; inset: 0; display: grid; place-items: center; transition: transform .12s ease-out; }
 .gal-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; user-select: none; }
-.gal-img.under { filter: blur(0); }
 .gal-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 56px; height: 72px; background: color-mix(in srgb, var(--scrim) 51%, transparent); border: 0; color: var(--on-image); border-radius: var(--r-md); display: grid; place-items: center; opacity: .75; }
 .gal-nav:hover, .gal-nav:focus-visible { opacity: 1; background: var(--scrim); }
 .gal-nav.prev { left: 12px; } .gal-nav.next { right: 12px; }
 @media (hover: none) { .gal-nav { display: none; } }
-.gal-v-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px max(8px, env(safe-area-inset-bottom)); background: #0b0c10; flex-wrap: wrap; }
+.gal-v-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px max(8px, env(safe-area-inset-bottom)); background: var(--picture-bg); flex-wrap: wrap; }
 .gal-v-bar .ibtn { font-size: var(--text-xl); }
 /* The viewer is dark in every theme. */
 .gal-v-legal { flex-basis: 100%; margin: 0; max-width: none; color: var(--fg-2); }
@@ -96,7 +95,7 @@
 .gal-v-title b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
 .gal-v-title span { color: var(--fg-2); font-size: var(--text-xs); }
 .gal-slide { width: auto; }
-.gal-info { position: absolute; right: 0; top: 0; bottom: 0; width: min(340px, 100vw); padding: 12px 18px; background: rgba(16,18,23,.97); overflow-y: auto; z-index: 4; }
+.gal-info { position: absolute; right: 0; top: 0; bottom: 0; width: min(340px, 100vw); padding: 12px 18px; background: var(--bg-2); overflow-y: auto; z-index: 4; }
 .gal-info-head { display: flex; align-items: center; justify-content: space-between; }
 .gal-info h2 { margin: 0; font-size: var(--text-lg); }
 .gal-info dl { margin: 8px 0 18px; display: grid; gap: 2px; }
@@ -168,7 +167,7 @@
 .rv-grid .rv-card { margin: 0; }
 .rv-months { display: grid; grid-template-columns: repeat(12, 1fr); gap: 5px; height: 140px; }
 .rv-month { display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 4px; min-width: 0; }
-.rv-month i { display: block; background: var(--accent); border-radius: 4px 4px 0 0; }
+.rv-month i { display: block; background: var(--accent); border-radius: var(--r-xs) var(--r-xs) 0 0; }
 .rv-month span { font-size: var(--text-2xs); color: var(--fg-2); text-align: center; }
 .rv-top { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .rv-top li { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; font-size: var(--text-md); }

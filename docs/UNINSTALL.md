@@ -181,14 +181,14 @@ If you say yes to your data, it removes:
 - `/var/lib/wittymediaserver`, or the folder the service names
 - `/etc/wittymediaserver/wms.json`
 - for you, and for everyone when run with `sudo`: `~/.local/share/wittymediaserver`, `~/.config/wittymediaserver/wms.json`
+- for you, if you set them: the same folders under `XDG_DATA_HOME` and `XDG_CONFIG_HOME`
 - the `wms` account
 
-It always removes `~/.config/autostart/wittymediaserver.desktop` and `~/.local/share/applications/wittymediaserver.desktop`.
+It always removes `~/.config/autostart/wittymediaserver.desktop` and `~/.local/share/applications/wittymediaserver.desktop`, and each `.conf` file in `/etc/systemd/system/wittymediaserver.service.d`, including what you set with `sudo systemctl edit wittymediaserver`. They're all listed before anything happens.
 
 **What stays even so:**
 
-- Anything you set with `sudo systemctl edit wittymediaserver`, in `/etc/systemd/system/wittymediaserver.service.d`.
-- A data folder you moved with `XDG_DATA_HOME`, or a settings file with `XDG_CONFIG_HOME`, unless `WMS_DATA_DIR` names it when you run the command.
+- Someone else's folders under their own `XDG_DATA_HOME` or `XDG_CONFIG_HOME`, because only they have those settings. Run the command as them, or name the data folder with `WMS_DATA_DIR`.
 
 ## FreeBSD
 

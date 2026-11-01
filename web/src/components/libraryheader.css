@@ -6,7 +6,7 @@
 .lh-name h1 { margin: 0; font-size: var(--page-title); letter-spacing: var(--tracking-display); }
 .lh-name h1 .muted { font-weight: 500; }
 .lh-name .count { color: var(--fg-3); font-size: var(--text-md); white-space: nowrap; }
-.lh-sort { flex: 1 1 auto; display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2); min-width: 0; }
+.lh-sort { flex: 1 1 0; display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2); min-width: 0; }
 .lh-sort-label { flex: none; font-size: var(--text-2xs); font-weight: 700; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
 /* A row that scrolls by itself on a phone, so the page never does. */
 .lh-sort-list { display: flex; gap: var(--sp-1); overflow-x: auto; min-width: 0; scrollbar-width: none; padding: 2px; }
@@ -18,10 +18,14 @@
 .lh-more { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-3); margin: var(--sp-1) 0 var(--sp-4); }
 .lh-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
 .lh > .chips, .lh > .lib-active { margin-bottom: var(--sp-4); }
+/* Too narrow for one line: the name and Filters keep the first, and the sorts get the second. */
+@media (max-width: 1100px) {
+  .lh-sort { order: 3; flex-basis: 100%; justify-content: flex-start; }
+  .lh-end { margin-left: auto; }
+}
 @media (max-width: 760px) {
   /* A phone has little height to give, so nothing stays. */
   .lh-bar { position: static; }
-  .lh-sort { flex-basis: 100%; justify-content: flex-start; }
   .lh-sort-btn { min-height: 44px; }
   .lh-actions { margin-left: 0; width: 100%; }
 }

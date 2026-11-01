@@ -23,6 +23,8 @@ Vertical videos/
 
 Any video format the server plays will do, and there's no minimum size. Thumbnails are made when first needed, unless a picture with the video's name is beside it.
 
+**Uploading from a device:** adults and administrators see **Upload** under the tabs, and can drop files onto the page. Files go in `<the library's first folder>/Uploads/<profile>/<year-month>/` and appear at once. An administrator sets the limits under **Settings → Sharing & photos**, and it isn't there for a library with no folder or one set to [read-only](LIBRARIES.md#read-only-libraries).
+
 ## Adding details with sidecar files
 
 A sidecar is a small file beside a video that adds its details. These are read, in this order:
@@ -112,7 +114,7 @@ Every route is in [Client API](CLIENT-API.md#every-route). Videos are ordinary i
 | `GET /api/videos` | Lists, with `more`. Takes `library`, `creator`, `playlist`, `tag`, `platform`, `search`, `subscribed`, `liked`, `history`, `limit` and `offset`. `shape` is `vertical` or `wide`. `length` is `long` or `short`, split at 20 minutes. `sort` is `latest`, `oldest`, `popular` or `title` |
 | `PUT /api/items/{id}/reaction` `{value}` | 1 is like, 0 is neither, -1 is dislike |
 | `POST /api/items/{id}/view` `{seconds, completed, skipped}` | Report a video when moving on. This is what For You learns from |
-| `POST /api/libraries/{id}/upload` | Multipart upload, field `file`. A Vertical videos library takes videos. The web app has no upload button for this kind yet |
+| `POST /api/libraries/{id}/upload` | Multipart upload, field `file`. A Vertical videos library takes videos. The web app's **Upload** button uses it |
 
 ---
 

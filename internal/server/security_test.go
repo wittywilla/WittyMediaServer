@@ -74,7 +74,7 @@ func TestPageElsewhereIsNeverAtHome(t *testing.T) {
 			t.Fatalf("the page may read the answer: %v", w.Header())
 		}
 	}
-	if ts.Auth.UserCount(context.Background()) != 0 {
+	if !ts.Auth.NoAccounts(context.Background()) {
 		t.Fatal("a page made an account")
 	}
 	ts.user(t, "Owner", "adult", true, "")

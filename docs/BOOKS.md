@@ -54,8 +54,10 @@ Nothing here removes protection.
 
 - **Copy-protected Kindle books** are refused, with the message "this book has copy protection, so it can't be opened here".
 - **Password-protected Word, OpenDocument and zipped FictionBook files** are refused with a message saying the file has a password.
-- **PDFs with a password** don't open. The reader shows an error, and doesn't ask for the password.
-- **Copy-protected EPUB files** aren't recognised before they open, so their chapters won't read properly. Files whose names end in `_lcp.epub` are ignored by the scan.
+- **PDFs with a password** are refused with a message saying so. The reader doesn't ask for the password. You can download the file and open it in another program.
+- **Copy-protected EPUB files** are refused when you open them, with the same message as a Kindle book. A locked EPUB stays on your shelf under its title and author, with no cover from inside it, and it can still be downloaded. If there's another copy with the same name in the same folder, such as a PDF, that copy is used instead. Files whose names end in `_lcp.epub` are ignored by the scan.
+- **EPUBs with a password on the file itself** are refused with a message saying so.
+- **EPUBs whose embedded fonts are scrambled** aren't protected books, and open as usual. The scrambling only stops a font being copied out for other uses, so the text shows in the reader's font instead.
 - **Books too large to convert** are refused: the limit is 256 MB, or 64 MB for text formats.
 
 **Download** on the book's page gets you the file as it is.

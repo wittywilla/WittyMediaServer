@@ -38,7 +38,7 @@ This hasn't been checked on Safari, on phones, with hardware decoding of HEVC or
 | Setting | What it does |
 |---|---|
 | **Allow direct play** | On by default. Off sends every file through conversion, which is mainly useful for testing. |
-| **Maximum resolution** | Taller videos are converted down to this while playing, even ones that could otherwise play as they are. 720p is about half the work of 1080p. The default, **Source**, is no limit. |
+| **Maximum resolution** | Taller videos are converted down to this while playing, even ones that could otherwise play as they are. 720p is about half the work of 1080p. The default, **Source**, is no limit, except that 4K Blu-ray discs go as 1080p: choose **2160p (4K)** to send them as 4K. |
 | **Sound format while converting** | AAC works nearly everywhere. Choose MP3 only for a browser that can't play AAC, such as some Linux builds of Chromium. |
 | **Hardware encoders** | Below. |
 | **Picture quality** | [Easy, Advanced or Expert](#quality-modes). These apply to streams started after saving. |
@@ -114,7 +114,7 @@ Only options that tune encoding are accepted, each with a plain value: presets, 
 
 | Machine | Encoder and profile | Maximum resolution |
 |---|---|---|
-| Raspberry Pi 4 or 5 | Software, Speed. Turn on **Low-power mode for DVDs**. Avoid 1080p HEVC files | 720p |
+| Raspberry Pi 4 or 5 | Software, Speed. Turn on **Low-power mode for discs**. Avoid 1080p HEVC files | 720p |
 | Intel N100, N95, N305, J4125, N5105 | Quick Sync (or VAAPI on Linux), Balanced | 1080p |
 | Older quad-core (Core i5 4th to 7th generation, Ryzen 1000) | Quick Sync if it has it, Balanced. Software: Speed for 2 or more viewers | 1080p |
 | Modern 6 to 8 cores (Ryzen 5 5600 and up, Core i5-12400 and up) | Software or Quick Sync. Quality for 1 or 2 viewers, otherwise Balanced | Source |
@@ -186,7 +186,7 @@ Quick Sync is part of the built-in graphics. **CPUs ending in F, such as the i5-
 
 - **Apple VideoToolbox.** Macs have a hardware H.264 encoder, and Apple silicon encodes many 1080p streams at once with little power. Use Balanced. This has not been run on a real Mac yet.
 - **VAAPI on Linux.** Covers Intel (iHD driver) and AMD (Mesa radeonsi). The server's user needs access to `/dev/dri/renderD128`, usually through the `render` or `video` group.
-- **Raspberry Pi.** The Pi 5 has no hardware H.264 encoder, and this server doesn't use the Pi 4's. Use software with Speed, 720p and **Low-power mode for DVDs**.
+- **Raspberry Pi.** The Pi 5 has no hardware H.264 encoder, and this server doesn't use the Pi 4's. Use software with Speed, 720p and **Low-power mode for discs**.
 
 ## If it isn't working
 

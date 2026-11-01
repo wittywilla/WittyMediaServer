@@ -411,6 +411,7 @@ export default function GuidePage() {
       <div className="ctv-bar">
         <div className="ctv-bar-group">
           <h2 className="ctv-bar-title">Guide</h2>
+          <Link className="ctv-btn sm only-narrow" to="/tv/recordings">Recordings</Link>
           <div className="ctv-chips" role="group" aria-label="Which channels" data-nav-group>
             <button className={'ctv-chip' + (!filter.group && !filter.favourites && !filter.kind ? ' on' : '')} aria-pressed={!filter.group && !filter.favourites && !filter.kind} onClick={() => setFilter({ kind: '', group: '', favourites: false })}>All</button>
             {(anyFav || filter.favourites) && <button className={'ctv-chip' + (filter.favourites ? ' on' : '')} aria-pressed={filter.favourites} onClick={() => setFilter({ kind: '', group: '', favourites: !filter.favourites })}><IconStar size={14} /> Favourites</button>}
@@ -433,7 +434,7 @@ export default function GuidePage() {
           <button className="ctv-btn sm icon" onClick={openSearch} aria-haspopup="dialog" aria-label="Search the schedule" title="Search the schedule (S)"><IconSearch size={16} /></button>
           <button className="ctv-btn sm" onClick={() => setLookOpen(true)} aria-haspopup="dialog">Look</button>
           <Link className="ctv-btn sm hide-narrow" to="/tv/recordings">Recordings</Link>
-          {user?.isAdmin && <Link className="ctv-btn sm" to="/settings/channels"><IconSettings size={16} /> <span className="hide-narrow">Edit channels</span><span className="sr-only">Edit channels</span></Link>}
+          {user?.isAdmin && <Link className="ctv-btn sm" to="/settings/channels" aria-label="Edit channels"><IconSettings size={16} /> <span className="hide-narrow">Edit channels</span></Link>}
         </div>
       </div>
 

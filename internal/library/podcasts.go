@@ -553,6 +553,9 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 	if err != nil || len(lib.Paths) == 0 {
 		return errors.New("to download episodes, give this podcasts library a folder in Settings, Libraries")
 	}
+	if lib.ReadOnly {
+		return ErrReadOnly
+	}
 	ext := strings.ToLower(filepath.Ext(strings.Split(it.Path, "?")[0]))
 	if !mediatypes.IsAudio(ext) {
 		ext = map[string]string{"aac": ".m4a", "opus": ".opus"}[it.VideoCodec]

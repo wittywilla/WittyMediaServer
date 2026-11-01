@@ -95,11 +95,12 @@ func (s *Server) backupRoutes(m *http.ServeMux) {
 }
 
 // adminOrFirstRun lets an administrator in, or, while the server has no accounts, anyone
-// allowed to make the first one. Once there's an account it's administrators only.
+// allowed to make the first one: a restore can bring accounts of its own, so it asks for the
+// same as setup. Once there's an account it's administrators only.
 func (s *Server) adminOrFirstRun(h http.HandlerFunc) http.Handler {
 	admin := s.requireAdmin(h)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if s.Auth.UserCount(r.Context()) > 0 {
+		if !s.Auth.NoAccounts(r.Context()) {
 			admin.ServeHTTP(w, r)
 			return
 		}

@@ -280,13 +280,13 @@ func (s *Stores) officialItem(st *Status, cat *wittymodule.Catalog) StoreItem {
 		Group: st.Group, Publisher: st.Publisher, Repo: st.StockRepo, Icon: st.Icon, Libraries: st.Libraries, Requires: st.Requires, Needs: st.Needs, Core: st.Core,
 		Updates: st.Updates, Stays: st.Stays, Delivery: st.Delivery, License: st.License, Status: st, Fit: Fit{OK: true, Kind: FitOK}}
 	it.StoreName, it.StoreHost = "WittyMediaServer modules", hostOf(s.m.cfg.CatalogURL)
-	switch st.Delivery {
-	case wittymodule.DeliveryBuiltin:
+	if st.Delivery == wittymodule.DeliveryBuiltin {
 		it.Kind = "server"
 		it.Publisher = nil
 		it.Version = st.Version
 		return it
-	case wittymodule.DeliveryLibrary:
+	}
+	if st.ComesInside {
 		it.Fit = Fit{Kind: FitLibrary, Why: st.Name + " is a library: it reaches this server inside the modules built on it, so there's nothing to install on its own."}
 	}
 	if cat != nil {

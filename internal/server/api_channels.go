@@ -833,14 +833,17 @@ func (s *Server) rowProgrammes(ctx context.Context, row *guideChannel, from, to 
 // ---------------------------------------------------------------------------
 
 type tuneInfo struct {
-	Key    string          `json:"key"`
-	Kind   string          `json:"kind"`
-	Number string          `json:"number"`
-	Name   string          `json:"name"`
-	Logo   string          `json:"logo,omitempty"`
-	URL    string          `json:"url"`
-	Now    *guideProgramme `json:"now"`
-	Next   *guideProgramme `json:"next"`
+	Key    string `json:"key"`
+	Kind   string `json:"kind"`
+	Number string `json:"number"`
+	Name   string `json:"name"`
+	Logo   string `json:"logo,omitempty"`
+	URL    string `json:"url"`
+	// For a player that can't set headers: asked for with ?streamToken=1.
+	StreamURL   string          `json:"streamUrl,omitempty"`
+	StreamToken string          `json:"streamToken,omitempty"`
+	Now         *guideProgramme `json:"now"`
+	Next        *guideProgramme `json:"next"`
 	// Playing is what is on the screen when that isn't Now itself: a bumper
 	// or a commercial inside it.
 	Playing     *guideProgramme `json:"playing,omitempty"`
@@ -944,6 +947,10 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 		info.Playing = &p
 	}
 	info.BufferSec = float64(s.tvSettingInt(r.Context(), "tvLibraryBufferMin") * 60)
+	if err := s.addLiveTicket(r, &info); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
 	writeJSON(w, 200, info)
 }
 

@@ -9233,6 +9233,13 @@
                       },
                       "type": "array"
                     },
+                    "minClientVersions": {
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "description": "The oldest version of each kind of app (android, apple, desktop) this server works with.",
+                      "type": "object"
+                    },
                     "playback": {
                       "type": "object"
                     },
@@ -14390,6 +14397,7 @@
     },
     "/games/{id}/console": {
       "put": {
+        "operationId": "putGamesIdConsole",
         "parameters": [
           {
             "in": "path",
@@ -14442,8 +14450,7 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin",
-        "operationId": "putGamesIdConsole"
+        "x-wms-auth": "admin"
       }
     },
     "/games/{id}/core-options": {
@@ -14749,6 +14756,7 @@
     },
     "/games/{id}/not-a-game": {
       "post": {
+        "operationId": "postGamesIdNotAGame",
         "parameters": [
           {
             "in": "path",
@@ -14783,8 +14791,7 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin",
-        "operationId": "postGamesIdNotAGame"
+        "x-wms-auth": "admin"
       }
     },
     "/games/{id}/patches": {
@@ -15039,141 +15046,6 @@
         "x-wms-auth": "user"
       }
     },
-    "/games/{id}/versions": {
-      "get": {
-        "operationId": "getGamesVersions",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A game's other versions and its discs",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/games/{id}/version": {
-      "put": {
-        "operationId": "putGamesVersion",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "entry": {
-                    "type": "string"
-                  }
-                },
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Which file in its archive to play",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/{id}/split": {
-      "post": {
-        "operationId": "postGamesSplit",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A version becomes a game of its own",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
     "/games/{id}/saves": {
       "get": {
         "operationId": "getGamesIdSaves",
@@ -15398,6 +15270,141 @@
           }
         ],
         "summary": "Game save thumb.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/split": {
+      "post": {
+        "operationId": "postGamesSplit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A version becomes a game of its own",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/games/{id}/version": {
+      "put": {
+        "operationId": "putGamesVersion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "entry": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Which file in its archive to play",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/games/{id}/versions": {
+      "get": {
+        "operationId": "getGamesVersions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A game's other versions and its discs",
         "tags": [
           "Games"
         ],
@@ -19077,6 +19084,7 @@
     },
     "/libraries/{id}/games/import": {
       "get": {
+        "operationId": "getLibrariesIdGamesImport",
         "parameters": [
           {
             "in": "path",
@@ -19111,12 +19119,12 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin",
-        "operationId": "getLibrariesIdGamesImport"
+        "x-wms-auth": "admin"
       }
     },
     "/libraries/{id}/games/review": {
       "get": {
+        "operationId": "getLibrariesIdGamesReview",
         "parameters": [
           {
             "in": "path",
@@ -19179,12 +19187,12 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin",
-        "operationId": "getLibrariesIdGamesReview"
+        "x-wms-auth": "admin"
       }
     },
     "/libraries/{id}/games/review/apply": {
       "post": {
+        "operationId": "postLibrariesIdGamesReviewApply",
         "parameters": [
           {
             "in": "path",
@@ -19252,8 +19260,7 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin",
-        "operationId": "postLibrariesIdGamesReviewApply"
+        "x-wms-auth": "admin"
       }
     },
     "/libraries/{id}/main": {
@@ -30867,7 +30874,8 @@
         "tags": [
           "Channels and live TV"
         ],
-        "x-wms-auth": "user"
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
       }
     },
     "/tv/{key}/live/seg/{name}": {
@@ -30915,7 +30923,8 @@
         "tags": [
           "Channels and live TV"
         ],
-        "x-wms-auth": "user"
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
       }
     },
     "/tv/{key}/logo": {
@@ -30967,6 +30976,15 @@
             "in": "path",
             "name": "key",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Also answer streamUrl and streamToken, for a player that can't set headers.",
+            "in": "query",
+            "name": "streamToken",
+            "required": false,
             "schema": {
               "type": "string"
             }

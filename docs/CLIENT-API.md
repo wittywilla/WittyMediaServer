@@ -19,6 +19,7 @@ isn't what the server does, or when a schema no longer matches the Go type behin
 - [What each TV plays](#what-each-tv-plays)
 - [Subtitles](#subtitles)
 - [Rules every client shares](#rules-every-client-shares)
+- [Live channels](#live-channels)
 - [Discs and their menus](#discs-and-their-menus)
 - [Themes and design data](#themes-and-design-data)
 - [Choices that follow the account](#choices-that-follow-the-account)
@@ -51,6 +52,19 @@ in `/capabilities` counts additions, and `features` names them: look for a featu
 comparing server version numbers. `/api/...` without a version is the same thing, for the web
 interface that ships with each server. Every API answer carries `X-WMS-API-Version`. A version this
 server doesn't have answers 404 with `apiVersions`.
+
+**Which app works with which server.** Every client checks this at the address step, in this order, and
+never by comparing server version numbers:
+
+| Check | If it fails | Says |
+|---|---|---|
+| `apiVersions` has 1 | The app can't talk to it at all | "This server needs a newer version of the app" |
+| `apiRevision` is at least what this app needs (each app holds this as a constant) | The server is older than the app | "Update this server" |
+| This app's version is at least `minClientVersions[kind]`, for `android`, `apple` or `desktop` | The server has left this app behind | "This server needs a newer version of the app" |
+| Something optional: its name is in `features` | Only that part is hidden | Nothing: the app simply doesn't offer it |
+
+A missing `minClientVersions` or a kind not listed means fine. Within v1 the server should have no reason
+to raise these numbers, so they are a way out and not a habit.
 
 **Addresses in answers** (`url`, `overlayUrl`, `openUrl`...) start with `/api/`: put the server's
 address in front and don't change them otherwise. They are not part of what a version promises to
@@ -233,8 +247,9 @@ TV                              server                         phone or computer
 
 - `POST /pair/start {device, platform}`: `device` is a name people will recognise ("Living room Apple
   TV"), `platform` is `tvOS` or `Android TV`. It answers `code` to show, `deviceSecret` to keep (never
-  show it), `expiresInSec` (600), `intervalSec` (how often to poll, 3), and `approveUrl` (a path: put
-  the server's address in front for a QR code; the page still asks before doing anything).
+  show it), `expiresInSec` (600), `intervalSec` (how often to poll, 3), and `approveUrl` (a path with
+  the code in it: put the server's address in front for a QR code; the page still asks before doing
+  anything). `approvePath` is the same page without the code, to show as text to type.
 - `POST /pair/poll {deviceSecret}`, every `intervalSec`:
 
   | Status | `status` | Meaning |
@@ -467,6 +482,22 @@ numbers are also in `/capabilities`, under `playback.rules`.
 A few are for the app to carry out, with these values, so it feels the same everywhere: show **Watch
 next** 30 seconds before the end; count down **8 seconds** into the next episode; report progress every
 **10 seconds** and on stopping, but not in the first **5 seconds**.
+
+## Live channels
+
+Channels and tuners aren't items, so they don't go through `/playback`. `GET /guide` lists them and their
+programmes, with a `key` for each channel.
+
+`GET /tv/{key}/tune?streamToken=1` starts the shared stream and answers what is on (`now`, `next`,
+`positionSec`), the `url` of its playlist, and for a player that can't set headers, `streamUrl`: the same
+address with a stream token for that channel alone. AVPlayer always needs that one. Add `?viewer=<a random
+name>` to the address so the server can tell viewers apart, and send `POST /tv/{key}/leave?viewer=<name>`
+when leaving. A 503 means the channel is still starting: wait and ask again. Without `streamToken=1` no ticket
+is made, which is what the web player does.
+
+Everything about a channel's ticket works as in [Stream tokens](#stream-tokens), and every request checks again
+that the account may watch that channel. An encrypted broadcast is refused with `security` saying why; this
+server never decrypts one.
 
 ## Discs and their menus
 
@@ -1131,11 +1162,11 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /guide` | user | Guide. |
-| `GET /tv/{key}/tune` | user | Tune. |
-| `GET /tv/{key}/live/playlist.m3u8` | user | Live playlist. |
-| `GET /tv/{key}/live/seg/{name}` | user | Live segment. |
-| `POST /tv/{key}/leave` | user | Live leave. |
+| `GET /guide` | user | Every channel this account may watch, with its programmes. |
+| `GET /tv/{key}/tune` | user | What is on a channel, and starts its stream. `streamToken=1` adds `streamUrl` for players that can't set headers. See "Live channels". |
+| `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
+| `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |
+| `POST /tv/{key}/leave` | user | This viewer has gone: `viewer`. |
 | `GET /tv/{key}/logo` | user | A tuner channel's logo, fetched and kept by the server, so the site a playlist names never sees the viewer. The `logo` in `/guide` and `/tune` is this address. |
 | `GET /tv/settings` | admin | TV settings. |
 | `PUT /tv/settings` | admin | Put TV settings. |

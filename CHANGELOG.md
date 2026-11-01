@@ -17,6 +17,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   can carry a starter set of signed modules for a machine with no network.
 - **Each module carries the licenses of its own libraries,** which a server shows at `GET /api/modules/{id}/notices`.
 - **`wms dvd`, `wms bluray` and `wms cd` are gone,** along with the built-in copy of each module. Those tools come with their modules.
+- **Apps:** a live channel can now be played by a player that can't set headers, which is every Apple TV: `GET /tv/{key}/tune?streamToken=1` adds an address with a stream token for that channel alone. `/capabilities` says the oldest version of each app it works with (`minClientVersions`), names what has landed since the last revision, and lists games and photos, which it had left out. The API guide says how compatibility is decided, and how live channels work.
+
 - **Game libraries know what's a game.** A file's own bytes now decide which console it's for, and whether it's a game at all: headers, boot sectors, `SYSTEM.CNF` and `PARAM.SFO`,
   even inside a compressed `.cso`. A readme called `.md`, a BIOS, a copier's firmware, an update or a music CD no longer becomes a game, and a PlayStation 2 disc in the wrong folder lands in the right console.
 - **Needs a look.** What can't be proven doesn't become a game. It goes on a list on the library's page with its reason and a one-click fix, beside a list of what was left out and why.

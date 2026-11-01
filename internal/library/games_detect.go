@@ -356,7 +356,7 @@ func decideByFolder(f gameid.Finding, ext, hint string, size int64, fits func(st
 		}
 		return gameVerdict{}
 	}
-	proof :="Its folder is named for this console, and " + ext + " files are what it uses."
+	proof := "Its folder is named for this console, and " + ext + " files are what it uses."
 	switch {
 	case opaqueExts[ext]:
 		if f.Media == "gd" && hint != "dc" {

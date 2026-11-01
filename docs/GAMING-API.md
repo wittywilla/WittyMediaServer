@@ -121,14 +121,20 @@ out `client` counts as native.
 Standard offer and answer with no trickle, over HTTPS or HTTP, using your sign-in:
 
 1. Create a peer connection. Add **receive-only** video and audio transceivers.
-2. Create the data channels: `input` (unordered, no retransmits, binary) and `events` (reliable, text).
+2. Create the data channels: `input` (unordered, no retransmits, binary), `events` (reliable, text), and if you want it,
+   `timing` (unordered, no retransmits, binary: see [Measuring and timing](#measuring-and-timing)).
 3. Create an offer, set it, and wait for ICE gathering to finish (a second or two is enough).
 4. `POST /play/{sid}/webrtc` with the SDP, then set the answer. The answer holds all of the server's
    candidates.
 
-The server picks H.264 if your offer has it and VP8 otherwise. Send `"prefer": "vp8"` to ask for VP8. Ask your
-stack for the smallest receive buffer it allows (`playoutDelayHint`, `jitterBufferTarget`, or the same on
-your platform). Latency is the point.
+The server picks H.264 if your offer has it and VP8 otherwise. Send `"prefer": "vp8"` to ask for VP8. Offer the
+`http://www.webrtc.org/experiments/rtp-hdrext/playout-delay` header extension: the server uses it to say a frame may not wait, and a
+frame then goes to your decoder as soon as it's whole. If your stack doesn't honour it, ask for the smallest receive buffer it allows
+(`jitterBufferTarget` or the same on your platform). Latency is the point. Sound and video are separate streams, so as not to
+hold one back for the other.
+
+A connection that fails or stalls should simply be made again with a new offer: the game waits, paused, for a minute. The old picture
+can stay up meanwhile.
 
 Out of your home network, WebRTC needs a route to the server's UDP port. Admins set that up in Settings, Consoles & cores.
 If it fails, the WebSocket modes work anywhere HTTP does.
@@ -150,10 +156,29 @@ Binary messages, whose first byte says what they are:
 Text messages are events, as below. Send controller states as binary messages. If you fall behind, frames are
 dropped, and you carry on from the next keyframe.
 
+## Measuring and timing
+
+All optional, and all binary, on the `timing` data channel, or the WebSocket beside everything else. The first byte says what it is.
+
+| First byte | From | Rest |
+|---|---|---|
+| `0xF1` | You | A ping: an f64 of your own clock |
+| `0xF2` | Server | The answer: that f64, then an i64 of the server's Unix nanoseconds. The fastest of these lines the clocks up |
+| `0xF3` | You | One byte: 1 to have a record of every frame sent, 0 to stop |
+| `0xF4` | Server | One frame's record: a byte, 1 for a keyframe; then u32 frame number, u32 newest input it saw, u32 RTP timestamp, i32 encoded size; then i64 Unix nanoseconds for when that input reached the server, when it reached the runner, when the frame began, when its picture was ready, when it reached the server, when it went to the encoder, when it came out, and when it had been sent. 0 is "not known" |
+| `0xF5` | You | One byte: 0 fastest, 1 balanced, 2 steadiest. See [the design](GAMING.md#speed-or-steadiness) |
+| `0xF6` | You | An i16 of tenths of a millisecond to move when frames are made, once. Later is positive. It's held to a frame's length, and a few a second, and only with one viewer |
+| `0xF7` | You | You need a keyframe, and you don't have your stack's own way to say so |
+| `0xF8` | You | You're decoding frames yourself, so your stack's own requests for keyframes mean nothing |
+
+Your side of a frame is when you received it, when it was decoded and when it reached the display, and your RTP timestamp or frame
+number ties it to its record. `web/latency.ts` in WittyPlay is the browser's version.
+
 ## Controller states
 
 A 13-byte binary message, little-endian, on the `input` data channel or the WebSocket. The last two bytes may be left
-off if you can't tell how far triggers are held:
+off if you can't tell how far triggers are held. Four more may follow, a u32 you choose that names this state, which comes back in
+the `0xF4` record of the first frame that saw it, so that a press can be followed to the screen:
 
 | Bytes | Field | Meaning |
 |---|---|---|

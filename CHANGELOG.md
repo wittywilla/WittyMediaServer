@@ -7,6 +7,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **Games:** far less delay. From a press to the screen went from 60 to 260 ms to 12 to 30 ms on a home network, on every console. Bands and a grid in some PlayStation 2 games are gone, colours are right, and streams come back by themselves from a dropped network or a stuck encoder. The on-screen numbers show where the delay goes.
 - **Live TV:** FFmpeg no longer reads an internet stream itself. It reads through a small gate on this machine, so an encryption key that appears in a playing stream is refused within a second, before FFmpeg sees it, and a playlist can't lead the server to your home network. A stream's address and login are no longer on FFmpeg's command line.
 - **Fixed, serious:** a web page could claim a fresh server from the browser of anyone at home, or read the list of accounts and sign in as a password-free profile, by sending a made-up header. A page elsewhere never counts as being at home now.
 - **Fixed, serious:** a 100-byte picture from any adult's upload could stop the server, and stop it again at every scan.

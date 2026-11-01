@@ -112,12 +112,18 @@ Cores are told OpenGL is what's preferred, and those that can also draw with Vul
   runner only waits for that drawing to finish, after the core has returned. OpenGL's rows are bottom-up, so
   they are flipped once, on the copy that goes down the pipe.
 - **Encoding:** a game on the graphics card uses whichever hardware encoder works here, whatever the
-  transcoder's setting says, because its frames are large and its card is awake. NVENC takes the frame as it
-  is and converts its colours on the card, and it's told not to keep a queue of finished frames (`-delay 0`).
-  Only a frame that needs doubling goes through FFmpeg's scaler.
+  transcoder's setting says, because its frames are large and its card is awake. NVENC is told not to keep a queue of
+  finished frames (`-delay 0`). Its own conversion from RGB is always BT.601, which browsers wouldn't undo correctly, so
+  frames go through FFmpeg's scaler first: see [Encoding](#encoding).
 - **Internal resolution** is a setting in Settings, Consoles & cores: Automatic, or 1x to 4x. Automatic is 2x on
-  Nintendo 64, PlayStation, PlayStation 2, PSP and Dreamcast, and native on 3DS. The per-core options are in
-  `modules/wittyplay/traits.go`. A choice a core doesn't offer is ignored, so an updated core can't break.
+  Nintendo 64, PlayStation, PSP and Dreamcast, and native on PlayStation 2 and 3DS. The per-core options are in
+  `traits.go`. A choice a core doesn't offer is ignored, so an updated core can't break.
+- **PlayStation 2 stays native** because its games draw full-screen effects in small tiles, and the fixes that hold those
+  together when upscaled are worked out per game by the core's own database, which doesn't always succeed. Gran Turismo 4 at 2x
+  comes out in bands of the wrong colour with a grid over them, from the moment of a fresh start: the fault is already there
+  in the frame when it leaves the core. A state loaded into a fresh runner hides it, because those fixes aren't applied to one,
+  which makes it look intermittent. Native has no such seams, and a quarter of the pixels to draw, encode and send. Upscaling
+  is still there to choose, game by game, with that risk.
 - **How many at once:** two by default, set in Settings, Consoles & cores. Past that, starting another says the card is
   full. Software-rendered games don't count.
 - **No usable card:** the game says so plainly and older consoles carry on. OpenGL drawn by the CPU
@@ -126,23 +132,14 @@ Cores are told OpenGL is what's preferred, and those that can also draw with Vul
 
 ### What it costs
 
-Measured on one laptop with an RTX 3070 and an 8-core CPU, through the whole path (sandboxed runner, NVENC, WebRTC to
-a browser) while other work was keeping the CPU busy, so these are on the cautious side:
+[Where the time goes](#where-the-time-goes) has the numbers for each console. At 1280x960 on an RTX 3070, NVENC takes about 5 ms
+a frame. Readings of 22 to 36 ms in earlier versions of this page were wrong by exactly one frame: frames were matched to what came
+out of the encoder by counting, and one was off. They're matched by timestamp now, and the numbers drawn into each picture by
+`wittyplay-probe` confirm it.
 
-| Game | Picture | Frames a second | Encoder delay |
-|---|---|---|---|
-| Nintendo 64, Mupen64Plus-Next | 1280x960 | 50 to 60 | 28 to 36 ms |
-| PlayStation 2, LRPS2 | 1280x896 | 50 | 31 ms |
-| PSP, PPSSPP | 960x540 | 45 to 60 | 26 ms |
-| Nintendo DS, melonDS, drawn in software | 256x384, doubled | 45 to 53 | 28 ms |
-
-The encoder always kept up: the log's `gameFps` and `fps` matched in every run, so anything under 60 was the game itself
-competing for the CPU. The card itself had room, at about a quarter of its capacity and under half of that for encoding.
-
-On its own, NVENC's part is 22 ms at 1280x960, of which FFmpeg's command line holds one frame (17 ms at 60 frames a
-second). It was 53 ms before `-delay 0`.
-
-Five minutes each of Nintendo 64 and PlayStation 2, running at once, gave no crash and no fault.
+**PlayStation 2** on an 8-core laptop runs at 45 to 60 frames a second in a race, up from about 40, with VU1 on a thread of its own
+(the core's database still turns that off for games known to hang with it) and without waiting on the graphics card at every
+read-back. Both are in `traits.go`.
 
 **What PPSSPP does by itself:** the first time a PSP game starts for an account, the core unpacks the PSP firmware from
 the updater on that game's own disc into the save folder, about 20 MB, decrypting it as a PSP would. That is part of the
@@ -238,7 +235,7 @@ Azahar is told to be one (`citra_is_new_3ds`), as it starts as the older model o
 ## Why WebRTC, and what happens when it can't connect
 
 Latency is the whole product. WebRTC has no segment buffering, it drops late frames rather than
-stalling, and its receive buffer can be asked to stay close to empty. Input goes over an
+stalling, and the sender can tell a browser to keep no buffer at all. Input goes over an
 unreliable, unordered data channel carrying the complete pad state in every packet, so a lost
 packet is corrected by the next one.
 
@@ -247,11 +244,133 @@ Not every network or browser allows it, so the player steps down automatically:
 | Step | Video | Audio | Input | When |
 |---|---|---|---|---|
 | 1. **WebRTC** | H.264, or VP8 where the browser has no H.264 | Opus | Data channel | The normal case on every current browser |
+| (chosen) **WebRTC, drawn directly** | H.264 taken as it arrives, decoded by `VideoDecoder`, drawn to a canvas | Opus | Data channel | Only when someone picks it under Connection. It can tear. See below |
 | 2. **WebSocket + WebCodecs** | H.264 decoded by `VideoDecoder`, drawn to a canvas | PCM | WebSocket | UDP is blocked, or only a reverse proxy is reachable |
 | 3. **WebSocket + JPEG** | One JPEG per frame, encoded in Go, drawn to a canvas | PCM | WebSocket | No WebRTC, no WebCodecs and no H.264, or FFmpeg can't encode |
 
 The steps share the same session, so changing transport never restarts the game. You can force a
 step in the player's settings.
+
+## Where the time goes
+
+From a press to the screen, a frame passes through these stages. Every one is measured on real frames, all the time the
+on-screen numbers are showing, and each has been changed to take as little as it can:
+
+| Stage | What happens | What's been done about it |
+|---|---|---|
+| Reading the pad | The browser's pad state is read | Several times per screen refresh (`PAD_READ_MS`), not once. A TV keeps to the screen's pace |
+| Network, up | One packet on an unreliable channel | Nothing waits for anything, and a lost packet is corrected by the next |
+| Waiting for the core | A press arrives while the game waits for its next frame | **A new press starts the next frame straight away.** Frames stay on the same schedule afterwards, so the game keeps its speed: that frame is a little early and the gap after it a little longer. For the smaller consoles this takes the wait from about 8 ms to nothing. `host.waitForFrame` |
+| The core | The game runs a frame, and a graphics card's frame is read back | Unavoidable, and it's the core's own speed |
+| Runner to server | The picture crosses a pipe | Newest frame wins: a picture still waiting is replaced |
+| Queue for the encoder | Waiting for the encoder | **It holds one frame at a time.** FFmpeg has queues between its threads, which can hide many frames, every one of them delay. A frame that arrives while it's busy replaces the one waiting |
+| Encoding | | The fastest settings of each encoder, nothing buffered |
+| Network, down | | A frame's RTP timestamp comes from the real time, and it isn't paced out |
+| Jitter buffer | A browser holds frames back to smooth them out | **Gone.** The sender's `playout-delay` header extension says frames may not wait. A page can only ask for a smaller buffer, and even then a frame waits for an estimate of the network's jitter and 10 ms more. This one change took frames from 50 to 200 ms down to about 1 ms in the browser |
+| Sound's delay | Tracks of one stream are held back to match each other | Sound has a stream of its own, so its buffer can't become the picture's delay. Both follow real time, so they don't drift apart |
+| The display | A frame waits for the next refresh | **Frames land just before the display wants them** where a browser shows that helps: `PhaseLock` moves when the game makes them, a little at a time, until they just make it. It only moves them through one refresh looking for the edge, and gives up if the wait doesn't change |
+| Sound | A browser holds back enough sound to cover how unevenly it arrives | Sound is sent evenly, as fast as it plays, not in lumps a game's frame apart, and its clock jumps over any gap. A browser holds about 35 to 75 ms of it, from over 115. After a one-second stall it's back within about 15 seconds |
+
+The numbers are from `wittyplay-probe`, on this repository's test machine (see [Measuring it](#measuring-it)):
+
+| Console, core | Picture | Finished frame to screen, ms | Press to screen, ms |
+|---|---|---|---|
+| NES, FCEUmm | 256x224 | 107 before, **9** now | 116 before, **11** now |
+| Super Nintendo, Mesen-S | 256x239 | 108 before, **13** now | 120 before, **22** now |
+| Nintendo 64, Mupen64Plus-Next | 1280x960 | 66 before, **22** now | 77 before, **31** now |
+| PlayStation, PCSX ReARMed | 364x240 | 85 before, **10** now | 94 before, **12** now |
+| PlayStation 2, LRPS2 | 640x448 (1280x896 before) | 234 before, **14** now | 269 before, **49** now |
+| PSP, PPSSPP | 960x540 | 214 before, **16** now | 227 before, **23** now |
+| Nintendo DS, melonDS | 256x384 | 102 before, **14** now | 115 before, **19** now |
+
+Medians, from an RTX 3070 laptop with an i7-12700H, NVENC, WebRTC on the same machine, and Edge with no window, while other work kept the
+CPU 20 to 60% busy. "Before" is what the player did until 0.6.0-alpha, measured with the same probe. With the CPU at full load, before was
+150 to 200 ms and now is about 10 to 25. Where the time still goes on a Nintendo 64, at 1280x960: about 4 ms in the core, 2 reaching the
+server, 5 to 7 encoding, under 1 for the network, 1 decoding and 8 waiting for the display. A PlayStation 2 game takes most of a frame to
+run, so a press waits for the one in progress.
+
+**Press to screen** is from a press leaving the player to the first frame on the screen that the core made having seen that press.
+It's the most this path can claim. Games themselves take a frame or more to react to a button, as they did on the real console.
+
+### Run-ahead, by default on the older consoles
+
+A game's own reaction is the largest stage left, and only run-ahead can change it. On a real NES game and a real SNES game
+(`wittyplay-probe react`), the picture changes two frames after a press without it, and one frame after with it. So it's on by default, one
+frame, for cores whose whole state saves in a moment (`quickStates` in `stream/control.go`), on servers with four CPU threads or more. It costs
+under a millisecond a frame on a NES and about 5 ms on the SNES's most accurate core, and turns itself off, quietly, for a game that falls behind.
+A rare game may show a small glitch, which is what the setting is for: *Automatic run-ahead*, under Speed and rewind. Administrators can rule out run-ahead altogether.
+
+**What it can't see:** "on the screen" is when the browser expects the frame to reach the glass. Real displays add their own
+delay, and a headless browser's idea of the display is not a monitor. Only a camera can measure the whole of it.
+
+### Speed or steadiness
+
+`emulation.latency`, under Speed and rewind. **Fastest** shows every frame as it arrives. **Balanced** lets the browser hold a frame
+for up to 80 ms in a bad moment. **Steadiest** leaves it to the browser's own judgement, and doesn't start frames early on a press.
+**Automatic**, the default, is Fastest until frames start arriving unevenly for three seconds, and goes back after twenty calm ones.
+
+### Drawn directly
+
+WebRTC's encoded frames can be taken as soon as they're whole, before the browser's jitter buffer and renderer, decoded with
+`VideoDecoder` and drawn on a canvas that doesn't wait for the page's compositor (`web/direct.ts`). It keeps WebRTC's retransmissions.
+On a real display this may show a frame a whole refresh sooner, and it can tear. A headless browser has no display to measure that
+against, so it's for choosing under Connection, and isn't the default until someone has measured it with a camera.
+
+### Poor networks
+
+- **Rate:** bitrate follows the browser's reports of its video (`rateControl`). It falls straight to what's getting through when loss
+  is heavy, and by steps when round trips grow, which means queues are filling. It goes back up after 20 calm seconds. Changing it means a
+  new encoder, so changes are at least 5 seconds apart. On a link capped at 4 Mbit/s with 30 ms of delay, a 1280x960 game settles
+  in a few seconds with nothing lost, at 37 ms from frame to screen.
+- **Bursts:** a frame can't use more than a quarter of a second's bits. Left alone, encoders give a keyframe a second's worth or
+  more, which a slow network drops, and the browser asks for another, for good.
+- **Lost pictures:** a browser that has lost track of the picture asks for a keyframe, which starts another encoder, as FFmpeg can't be
+  told. That stops the picture for about a quarter of a second, so if the regular keyframe is due within 300 ms, it waits for that.
+
+### When something stops
+
+Everything comes back by itself, with the last picture up until there's a new one:
+
+| What stops | What happens | Measured |
+|---|---|---|
+| Video encoder dies | Another starts at the next frame | Picture back in 0.25 s |
+| Video encoder hangs | Noticed after 3 s with a frame inside it, then the same | 3.5 s |
+| Sound encoder dies | Another starts | Under 1 s |
+| Network drops, or changes | The player reconnects, over the same list of ways as at the start. The server pauses the game after about 6 s with nobody connected, and keeps it for a minute | Under 1 s after it returns |
+| Decoder or browser sticks | No new frame for 4 s on a visible page means reconnecting | About 5 s |
+| Tab closed, or browser dies | The game pauses, and carries on when someone returns within a minute | |
+| Runner dies | The game ends and the player says why. What was saved stays, and it starts again from there | |
+| Server dies | Nothing it started is left behind | |
+
+**The soak test:** `wittyplay-probe soak` ran a Nintendo 64 game for 65 minutes, through NVENC to a real browser, on a machine busy with other work. The game
+kept 60 frames a second and frame to screen stayed at 18 to 27 ms. Comparing the first ten minutes with the last: the runner 956 MB and 950 MB, the
+encoder 350 and 352, the server's heap 25 and 26, the page 12 and 17, goroutines 43 and 43, the runner's handles 380 and 384. Nothing grew.
+
+### Measuring it
+
+`wittyplay-probe` (`cmd/wittyplay-probe` in WittyPlay) runs a game through the real path to a real browser. It's given the runner, a
+core, a game and a browser, and starts everything:
+
+```
+wittyplay-probe run -runner ./wittyplay-host -core fceumm_libretro.so -core-id fceumm -console nes -rom game.nes -save /tmp/save \
+    -ffmpeg ffmpeg -encoders h264_nvenc,libx264,libopus -browser /path/to/chromium -seconds 30 -shots /tmp/pictures
+```
+
+It draws each frame's number and the newest input it saw into the top of the picture, with known colours under them. The page
+reads those back from what the browser actually shows, so nothing else has to be believed: not the clocks, not the records. It reports
+each stage's middle and 95th percentile, how far the colours have moved, and with `-shots`, what the core made beside what the
+browser showed. Other commands:
+
+| Command | What it does |
+|---|---|
+| `run -impair delay=30,jitter=5,loss=2,kbps=4000` | Through a network of that kind, on this machine |
+| `soak -minutes 65 -out soak.csv` | A line a minute of every stage, memory and handle counts, and a verdict on whether anything grew |
+| `chaos` | Kills each process in turn, and takes the network away, and says whether the picture came back |
+| `frames -out folder` | What leaves the core, before any encoder, as pictures. A fault in these isn't the stream's |
+| `react -button start` | How many frames a game takes to show a press, on a still screen |
+
+On Windows, use `-loopback`, or Windows Firewall will stop to ask. `scripts/build-probe.mjs` rebuilds the test page after a change to the
+player's transport.
 
 ### Encoding
 
@@ -261,6 +380,9 @@ step in the player's settings.
 - **Settings:** no B-frames, no lookahead, a keyframe every second so a lost packet heals quickly,
   and the fastest preset of each encoder. `libx264` uses sliced threads, because frame threads hold back
   a frame per thread: about 250 ms on a machine with many cores.
+- **Colours:** frames are converted to BT.709 and marked as that (VP8, which has only BT.601, is converted to that). Browsers show an
+  unmarked H.264 stream as BT.709 and not all of them read the mark, so what's sent has to be what they assume. With FFmpeg's default of
+  BT.601, red came out orange, off by 39 out of 255. The probe measures this on every run, and it's now within 1.
 - **Sharp pixels:** retro games are small and 4:2:0 chroma smears pixel art, so frames up to 400
   pixels wide are doubled with nearest-neighbour before encoding. On a server with fewer than
   four CPU threads and no hardware encoder they are not doubled. The source resolution is so low
@@ -269,7 +391,7 @@ step in the player's settings.
   so we never hold a finished frame while waiting for the next one to prove it finished, which
   raw Annex B would cost us one full frame of delay.
 - **A slow encoder drops frames instead of building a queue:** the session keeps only the newest
-  unencoded frame.
+  unencoded frame, and gives the encoder one at a time.
 
 ### What low-end servers can expect
 
@@ -284,12 +406,18 @@ to nothing while other programs are busy (one game measured 1 frame a second, ag
 with the machine under half busy). So on Windows it runs at normal priority, sharing fairly, and a
 software-rendered core uses about one CPU core. Audio costs about 1% of a core.
 
-The in-browser mode below is the answer for servers that can't keep up.
+## In-browser emulation (designed, not built)
 
-## In-browser emulation (designed, not built yet)
+Libretro cores also exist compiled to WebAssembly, in RetroArch's web build. A second mode could
+send the ROM to the browser and run it there, with no server CPU, no network and offline use.
 
-Libretro cores also exist compiled to WebAssembly, in RetroArch's web build. A second mode can
-send the ROM to the browser and run it there, with no server CPU, no latency and offline use.
+**Why it isn't built:** at home it wouldn't be faster. A game in a page runs in step with the page's frames, so a press waits half a
+refresh on average before the game looks at it, where a streamed game starts its next frame at once. On a home network that makes
+the two about equal, about 15 ms before the display, and an upscaled or 3D game is far beyond what a browser can run anyway. What it
+would buy is play over a poor connection, from servers too small to run games, and with no connection at all. What it would cost is a
+copy of the game on every device that plays it, 774 MB of web builds or a toolchain per core, and a second way for saves
+and controllers to work, for the consoles whose cores' licences allow it. That leaves out both of the usual choices for the Super Nintendo
+and the Genesis. If it's built, this is how:
 
 - It would be GPLv3 code, downloaded only on request into the data folder, and served as separate
   files from a sandboxed frame. Nothing would be compiled into the app's bundle.
@@ -790,7 +918,7 @@ default layouts, are data from the server (`modules/wittyplay/controls.go`).
 
 ### How it stays cheap
 
-Pads are read in step with the screen, because browsers update them no more often than that, and sending happens only when a state changes.
+Pads are read every 4 ms while one is connected, as browsers update them far more often than the screen refreshes (a TV stays with the screen), and sending happens only when a state changes.
 Reading allocates nothing, and a pad whose timestamp hasn't moved isn't read again. With no pad connected, or the page hidden, no frames are
 asked for at all, and all that's left is one heartbeat every quarter of a second.
 

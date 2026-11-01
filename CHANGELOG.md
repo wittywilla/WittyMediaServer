@@ -10,8 +10,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Real installers, on every system.** Windows gets a normal `.msi` setup: just for you or for everyone, Start menu entry, optional background service,
   firewall rule, start at sign-in, desktop shortcut and command line, each asked for in plain words, with silent flags for admins, and updating in place.
   macOS gets a `.pkg` with a background service. Linux gets a `.deb` and an `.rpm` with a systemd service and a layout ready for a package repository. Each
-  takes over from a copy that 0.5.2-alpha or older installed, keeping your library. These replace `wms-setup.exe` and `install.ps1`.
-- **Uninstalling removes everything, if you ask.** Windows' Installed apps, **Uninstall WittyMediaServer** on a Mac, and `wittymediaserver --uninstall` anywhere
+  takes over from a copy that 0.5.2-alpha or older installed, keeping your library. These replace `wms-setup.exe` and `install.ps1`. FreeBSD gets a `.pkg` with an
+  rc.d service, and `install.sh` still works there and on any other Linux.
+- **Uninstalling removes everything, if you ask.** Windows' Installed apps, **Uninstall WittyMediaServer** on a Mac, and `wittymediaserver --uninstall` anywhere, FreeBSD included,
   ask whether to keep your library, accounts and settings. A full clean-up takes the program, services, tasks, firewall rules, startup entries, shortcuts,
   registry keys, data, caches, logs and downloaded modules, then lists what it removed and what it couldn't. It never touches your media or anything it didn't
   make, and recorded TV and backups have a question each.

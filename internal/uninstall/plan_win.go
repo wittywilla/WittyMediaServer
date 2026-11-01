@@ -23,7 +23,7 @@ const (
 // wms.json someone keeps there is the data question's, and anything else isn't ours.
 func programEntry(name string) bool {
 	switch strings.ToLower(name) {
-	case "bin", "modules", "docs", ".update", "package-info.json", "wms.exe", "wms", "install.sh", "readme.txt",
+	case "bin", "modules", "docs", "share", ".update", "package-info.json", "wms.exe", "wms", "install.sh", "readme.txt",
 		"wittymediaserver.exe", "wittymediaserver", "uninstall wittymediaserver.exe":
 		return true
 	}

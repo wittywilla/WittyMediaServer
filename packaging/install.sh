@@ -2,13 +2,14 @@
 # Installs an unpacked WittyMediaServer archive as a system service on a Linux or FreeBSD
 # machine with no package for it. Everything stays inside the install folder.
 #
-#   sudo ./install.sh [--prefix /opt/wittymediaserver] [--data /var/lib/wittymediaserver] [--port 9797] [--user wms]
+#   sudo ./install.sh [--prefix /opt/wittymediaserver] [--data <folder>] [--port 9797] [--user wms]
 #
-# On Debian, Ubuntu, Fedora and their relatives use the .deb or .rpm instead. To remove it:
+# The data folder defaults to /var/lib/wittymediaserver, or on FreeBSD /var/db/wittymediaserver.
+# On Debian, Ubuntu, Fedora and FreeBSD you can use the .deb, .rpm or .pkg instead. To remove it:
 #   sudo /opt/wittymediaserver/bin/wittymediaserver --uninstall
 set -e
 PREFIX=/opt/wittymediaserver
-DATA=/var/lib/wittymediaserver
+DATA=""
 PORT=9797
 USER_NAME=wms
 while [ $# -gt 0 ]; do
@@ -29,11 +30,16 @@ case "$OS" in
   *) echo "unsupported system $OS: run $HERE/bin/wittymediaserver serve by hand"; exit 1 ;;
 esac
 
+if [ -z "$DATA" ]; then
+  DATA=/var/lib/wittymediaserver
+  # Where earlier versions kept it on FreeBSD stays, if it's in use.
+  if [ "$OS" = FreeBSD ] && [ ! -f "$DATA/wms.db" ]; then DATA=/var/db/wittymediaserver; fi
+fi
 echo "==> installing to $PREFIX (data: $DATA, port: $PORT)"
 mkdir -p "$PREFIX" "$DATA"
 if [ "$HERE" != "$PREFIX" ]; then
   # A copy updated from an older one: the server keeps its own files where they are.
-  cp -R "$HERE/bin" "$HERE/docs" "$HERE/package-info.json" "$PREFIX/"
+  cp -R "$HERE/bin" "$HERE/docs" "$HERE/share" "$HERE/package-info.json" "$PREFIX/"
   cp "$HERE/install.sh" "$PREFIX/"
   [ -f "$HERE/WittyMediaServer" ] && cp "$HERE/WittyMediaServer" "$PREFIX/"
 fi
@@ -46,11 +52,11 @@ rm -f "$PREFIX/wms" "$PREFIX/wittyplay-host" "$PREFIX/icon.png" "$PREFIX/wittyme
 
 # The app with the tray icon, in the app menu (headless servers can ignore it).
 # A machine with neither folder has no app menu, and doesn't get one made for it.
-if [ -f "$PREFIX/WittyMediaServer" ] && [ -f "$PREFIX/bin/wittymediaserver.desktop" ] && [ "$OS" = Linux ]; then
+if [ -f "$PREFIX/WittyMediaServer" ] && [ -f "$PREFIX/share/wittymediaserver.desktop" ]; then
   for menu in /usr/local/share/applications /usr/share/applications; do
     if [ -d "$menu" ]; then
-      sed -e "s|/usr/lib/wittymediaserver|$PREFIX|g" -e "s|^Icon=.*|Icon=$PREFIX/bin/wittymediaserver.png|" \
-        "$PREFIX/bin/wittymediaserver.desktop" > "$menu/wittymediaserver.desktop"
+      sed -e "s|/usr/lib/wittymediaserver|$PREFIX|g" -e "s|^Icon=.*|Icon=$PREFIX/share/wittymediaserver.png|" \
+        "$PREFIX/share/wittymediaserver.desktop" > "$menu/wittymediaserver.desktop"
       break
     fi
   done
@@ -103,25 +109,8 @@ EOF
     systemctl restart wittymediaserver
     echo "==> running: systemctl status wittymediaserver" ;;
   FreeBSD)
-    cat > /usr/local/etc/rc.d/wittymediaserver <<EOF
-#!/bin/sh
-# PROVIDE: wittymediaserver
-# REQUIRE: NETWORKING
-# KEYWORD: shutdown
-. /etc/rc.subr
-name=wittymediaserver
-rcvar=wittymediaserver_enable
-load_rc_config \$name
-: \${wittymediaserver_enable:=NO}
-: \${wittymediaserver_user:=$USER_NAME}
-: \${wittymediaserver_data:=$DATA}
-: \${wittymediaserver_listen:=:$PORT}
-pidfile=/var/run/\${name}.pid
-command=/usr/sbin/daemon
-command_args="-f -p \${pidfile} -o \${wittymediaserver_data}/wms.log /usr/bin/env WMS_NO_BROWSER=1 WMS_DATA_DIR=\${wittymediaserver_data} WMS_LISTEN=\${wittymediaserver_listen} $PREFIX/bin/wittymediaserver serve"
-start_precmd="install -o \${wittymediaserver_user} /dev/null \${pidfile}"
-run_rc_command "\$1"
-EOF
+    sed -e "s|%%USER%%|$USER_NAME|g" -e "s|%%DATA%%|$DATA|g" -e "s|%%PORT%%|$PORT|g" -e "s|%%PROGRAM%%|$PREFIX|g" \
+      "$PREFIX/share/wittymediaserver.rc" > /usr/local/etc/rc.d/wittymediaserver
     chmod +x /usr/local/etc/rc.d/wittymediaserver
     sysrc wittymediaserver_enable=YES >/dev/null
     service wittymediaserver restart

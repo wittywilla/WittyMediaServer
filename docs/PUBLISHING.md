@@ -52,7 +52,7 @@ git push origin v0.4.0-alpha
 ```
 
 Then watch the *Actions* tab on GitHub; when the workflow finishes, the archives for all ten
-platforms, the installers (Windows `.msi`, macOS `.pkg`, Linux `.deb` and `.rpm`) and the SHA256
+platforms, the installers (Windows `.msi`, macOS `.pkg`, Linux `.deb` and `.rpm`, FreeBSD `.pkg`) and the SHA256
 checksum file with its signature (see [Signing releases](#signing-releases)) appear on the
 *Releases* page. Tags with a suffix such as
 `-alpha` or `-beta` are published as *pre-releases* automatically.
@@ -135,6 +135,7 @@ Each is made from a folder that `scripts/build-release.sh` built, and [`scripts/
 packaging/linux/build-packages.sh 0.6.0-alpha dist/wittymediaserver-0.6.0-alpha-linux-amd64 amd64   # .deb and .rpm, needs nfpm
 packaging/linux/make-repository.sh dist out                                                         # an apt and dnf repository
 packaging/macos/build-pkg.sh 0.6.0-alpha dist/wittymediaserver-0.6.0-alpha-darwin-arm64 arm64       # .pkg, on a Mac
+packaging/freebsd/build-pkg.sh 0.6.0-alpha dist/wittymediaserver-0.6.0-alpha-freebsd-amd64 amd64    # .pkg, on FreeBSD
 ```
 
 ```powershell

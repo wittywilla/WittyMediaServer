@@ -216,6 +216,8 @@ func (u *Updater) cannotApply() string {
 		return "This copy was installed with a .deb package. Update it the same way: download the new one and run sudo apt install ./" + layout.ServerCommand + "-<version>-linux-<arch>.deb. Your library and settings are kept."
 	case layout.KindRPM:
 		return "This copy was installed with an .rpm package. Update it the same way: download the new one and run sudo dnf install ./" + layout.ServerCommand + "-<version>-linux-<arch>.rpm. Your library and settings are kept."
+	case layout.KindFreeBSD:
+		return "This copy was installed with a FreeBSD package. Update it the same way: download the new one and run pkg add -f wittymediaserver-<version>-freebsd-<arch>.pkg. Your library and settings are kept."
 	case layout.KindPkg:
 		return "On a Mac, download the new installer and run it. Your library and settings are kept."
 	case layout.KindMSI, layout.KindArchive:

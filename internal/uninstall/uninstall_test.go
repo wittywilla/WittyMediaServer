@@ -468,6 +468,63 @@ func TestLinuxDebPackage(t *testing.T) {
 	}
 }
 
+// What install.sh puts on FreeBSD, wherever it was told to: everything goes.
+func TestFreeBSDInstallSh(t *testing.T) {
+	e, sys, root := newUnix(t)
+	e.GOOS = "freebsd"
+	before := tree(t, root)
+	rc := "#!/bin/sh\n: ${wittymediaserver_user:=media}\n: ${wittymediaserver_data:=/tank/wms}\n" +
+		`command_args="-f -P x /usr/bin/env WMS_DATA_DIR=${wittymediaserver_data} /srv/wms/bin/wittymediaserver serve"` + "\n"
+	write(t, filepath.Join(root, "usr/local/etc/rc.d/wittymediaserver"), rc)
+	for _, f := range []string{"package-info.json", "WittyMediaServer", "install.sh", "bin/wittymediaserver", "share/wittymediaserver.png", "docs/LICENSE"} {
+		write(t, filepath.Join(root, "srv/wms", filepath.FromSlash(f)), "x")
+	}
+	write(t, filepath.Join(root, "var/run/wittymediaserver.pid"), "1")
+	fillData(t, filepath.Join(root, "tank/wms"))
+	sys.answers["service"] = ""
+	sys.answers["id wms"] = "uid=999"
+	sys.answers["pw userdel"] = ""
+	sys.answers["sysrc -qn wittymediaserver_enable"] = "YES"
+	sys.answers["sysrc -x"] = ""
+	res := Execute(MakePlan(e), Options{RemoveData: true})
+	if !res.OK() {
+		t.Fatal(res.Report())
+	}
+	if after := tree(t, root); strings.Join(before, "\n") != strings.Join(after, "\n") {
+		t.Errorf("left behind:\n%s", strings.Join(after, "\n"))
+	}
+	dirGone(t, filepath.Join(root, "srv/wms"))
+	dirGone(t, filepath.Join(root, "tank/wms"))
+	if !sys.called("service wittymediaserver onestop") || !sys.called("sysrc -x wittymediaserver_enable") || !sys.called("pw userdel wms") {
+		t.Errorf("ran %v", sys.calls)
+	}
+}
+
+// FreeBSD's package is pkg's to remove, and its data folder and account are then ours.
+func TestFreeBSDPackage(t *testing.T) {
+	e, sys, root := newUnix(t)
+	e.GOOS = "freebsd"
+	sys.answers["pkg info"] = "wittymediaserver"
+	sys.answers["pkg delete"] = ""
+	sys.answers["service"] = ""
+	sys.answers["id wms"] = "uid=999"
+	sys.answers["pw userdel"] = ""
+	rcFile := filepath.Join(root, "usr/local/etc/rc.d/wittymediaserver")
+	write(t, rcFile, ": ${wittymediaserver_data:=/var/db/wittymediaserver}\n")
+	fillData(t, filepath.Join(root, "var/db/wittymediaserver"))
+	res := Execute(MakePlan(e), Options{RemoveData: true})
+	if !res.OK() {
+		t.Fatal(res.Report())
+	}
+	if !sys.called("pkg delete -y wittymediaserver") || !sys.called("pw userdel wms") {
+		t.Errorf("ran %v", sys.calls)
+	}
+	dirGone(t, filepath.Join(root, "var/db/wittymediaserver"))
+	if !exists(rcFile) {
+		t.Error("removed a file the package owns")
+	}
+}
+
 func TestMacFullCleanLeavesNothing(t *testing.T) {
 	root := t.TempDir()
 	home := filepath.Join(root, "Users", "me")

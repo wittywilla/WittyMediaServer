@@ -11,8 +11,10 @@ Nothing in this folder ships to people, apart from what a build makes. What does
 | `cmd/wittymediaserver-uninstall` | The uninstaller with windows and buttons, on Windows and macOS |
 | `cmd/wms-forwarder` | Ships as `wms` in the `.zip` and `.tar.gz` only, so a copy of 0.5.2-alpha can update. Goes once that's past |
 | `packaging/windows` | The `.msi`, made with the WiX Toolset |
-| `packaging/linux` | The `.deb` and `.rpm`, made with nFPM. Their service, scripts and repository layout, and the archives' `install.sh` |
-| `packaging/macos` | The `.pkg`, made with Apple's tools. Needs a Mac |
+| `packaging/linux` | The `.deb` and `.rpm`, made with nFPM. Their service, scripts and repository layout |
+| `packaging/macos` | The Mac `.pkg`, made with Apple's tools. Needs a Mac |
+| `packaging/freebsd` | The FreeBSD `.pkg`, made with `pkg create`, and the rc.d service. Needs FreeBSD |
+| `packaging/install.sh` | The service installer in the Linux and FreeBSD `.tar.gz` |
 | `deploy/k8s` | A Kubernetes setup |
 | `Dockerfile`, `docker-compose.yml` | The Docker image, and how to run it |
 | `scripts/` | This folder |

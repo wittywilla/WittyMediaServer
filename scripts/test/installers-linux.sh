@@ -175,6 +175,7 @@ if [ -n "$arc" ]; then
   sh /tmp/arc/install.sh --prefix /srv/wittymedia --data /srv/wittydata --port 8124 > /tmp/out 2>&1 || { cat /tmp/out; fail "install.sh"; }
   wait_up 8124
   ls /srv/wittymedia /srv/wittymedia/bin
+  [ ! -e /srv/wittymedia/bin/wittymediaserver.png ] || fail "a picture among the programs"
   [ ! -e /srv/wittymedia/wms ] || fail "install.sh brought the forwarder"
   /srv/wittymedia/bin/wittymediaserver --uninstall --yes --remove-data > /tmp/out 2>&1; code=$?
   cat /tmp/out

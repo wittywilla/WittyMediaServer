@@ -527,7 +527,7 @@ func TestApply(t *testing.T) {
 
 // A package manager owns its files: Settings says how to update, and doesn't touch them.
 func TestPackagedCopiesPointToTheirInstaller(t *testing.T) {
-	for kind, want := range map[string]string{layout.KindDeb: "apt", layout.KindRPM: "dnf", layout.KindPkg: "installer"} {
+	for kind, want := range map[string]string{layout.KindDeb: "apt", layout.KindRPM: "dnf", layout.KindPkg: "installer", layout.KindFreeBSD: "pkg add"} {
 		dir := install(t)
 		writeFile(t, filepath.Join(dir, layout.Marker), []byte(`{"product":"WittyMediaServer","kind":"`+kind+`"}`))
 		u := New("0.3.0-alpha", dir, nil, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))

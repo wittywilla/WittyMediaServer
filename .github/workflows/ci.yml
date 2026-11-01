@@ -88,4 +88,9 @@ jobs:
           test -f dist/wittymediaserver-ci-test-windows-amd64/WittyMediaServer.exe
           test -f "dist/wittymediaserver-ci-test-windows-amd64/Uninstall WittyMediaServer.exe"
           test -f dist/wittymediaserver-ci-test-windows-amd64/bin/wittyplay-game-runner.exe
+          SKIP_WEB=1 SKIP_FFMPEG=1 scripts/build-release.sh ci-test freebsd/amd64
+          test -x dist/wittymediaserver-ci-test-freebsd-amd64/bin/wittymediaserver
+          test -x dist/wittymediaserver-ci-test-freebsd-amd64/WittyMediaServer
+          test -f dist/wittymediaserver-ci-test-freebsd-amd64/share/wittymediaserver.rc
+          test -x dist/wittymediaserver-ci-test-freebsd-amd64/install.sh
           dist/wittymediaserver-ci-test-linux-amd64/bin/wittymediaserver version

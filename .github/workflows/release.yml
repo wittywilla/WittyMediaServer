@@ -164,10 +164,48 @@ jobs:
           path: installers/*.pkg
           if-no-files-found: error
 
+  installers-freebsd:
+    needs: archives
+    if: ${{ !cancelled() && needs.archives.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: archives
+          path: dist
+      - name: Build the .pkg files
+        uses: vmactions/freebsd-vm@c46abacb49f09938ca4e1702d15d836285d694cc # v1
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          SHA: ${{ github.sha }}
+        with:
+          release: "14.4"
+          usesh: true
+          envs: REF_NAME REF_TYPE SHA
+          run: |
+            VERSION="${REF_NAME#v}"; [ "$REF_TYPE" = tag ] || VERSION="dev-$(printf %.8s "$SHA")"
+            mkdir -p stage installers
+            for a in amd64 arm64; do
+              tar -xzf "dist/wittymediaserver-$VERSION-freebsd-$a.tar.gz" -C stage
+              sh packaging/freebsd/build-pkg.sh "$VERSION" "stage/wittymediaserver-$VERSION-freebsd-$a" "$a" installers
+            done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: installers-freebsd
+          path: installers/*.pkg
+          if-no-files-found: error
+
   # One checksum list for everything people can download.
   checksums:
-    needs: [archives, installers-windows, installers-macos]
-    if: ${{ !cancelled() && needs.archives.result == 'success' && needs.installers-windows.result == 'success' && needs.installers-macos.result == 'success' }}
+    needs: [archives, installers-windows, installers-macos, installers-freebsd]
+    if: ${{ !cancelled() && needs.archives.result == 'success' && needs.installers-windows.result == 'success' && needs.installers-macos.result == 'success' && needs.installers-freebsd.result == 'success' }}
     runs-on: ubuntu-latest
     permissions: {}
     steps:
@@ -247,6 +285,10 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: installers-macos
+          path: dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: installers-freebsd
           path: dist
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:

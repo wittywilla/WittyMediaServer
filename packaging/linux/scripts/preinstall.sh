@@ -43,7 +43,7 @@ if [ -f "$OLD_UNIT" ] && grep -Eq '^ExecStart=.*/(wms|wittymediaserver) serve' "
              LICENSE NOTICE README.md CHANGELOG.md THIRD_PARTY_LICENSES.md; do
       rm -f "$old_prefix/$f"
     done
-    rm -rf "$old_prefix/bin" "$old_prefix/docs" "$old_prefix/.update"
+    rm -rf "$old_prefix/bin" "$old_prefix/docs" "$old_prefix/share" "$old_prefix/.update"
     rmdir "$old_prefix" 2>/dev/null || true
   fi
   rm -f /usr/local/share/applications/wittymediaserver.desktop

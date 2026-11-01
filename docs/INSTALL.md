@@ -7,6 +7,7 @@ Everything is in the download, FFmpeg included, with nothing else to install fir
 - [Windows](#windows)
 - [macOS](#macos)
 - [Linux](#linux)
+- [FreeBSD](#freebsd)
 - [Removing it](#removing-it)
 - [What the programs are](#what-the-programs-are)
 - [The tray app](#the-tray-app)
@@ -27,7 +28,7 @@ From the **Releases** page. Most people want the first file in their row.
 | macOS 11+ (Apple Silicon, Intel) | `…-macos-arm64.pkg`, `…-macos-amd64.pkg` | `…-darwin-arm64.tar.gz`, `…-darwin-amd64.tar.gz` |
 | Debian, Ubuntu (x64, ARM64, ARMv7, x86) | `…-linux-amd64.deb`, and `arm64`, `armv7`, `386` | `…-linux-amd64.tar.gz`, and the same |
 | Fedora, RHEL, openSUSE (x64, ARM64, ARMv7, x86) | `…-linux-amd64.rpm`, and the same | `…-linux-amd64.tar.gz`, and the same |
-| FreeBSD 14+ (x64, ARM64) | | `…-freebsd-amd64.tar.gz`, `…-freebsd-arm64.tar.gz` (ARM64 uses FreeBSD's FFmpeg: `pkg install ffmpeg`) |
+| FreeBSD 14+ (x64, ARM64) | `…-freebsd-amd64.pkg`, `…-freebsd-arm64.pkg` | `…-freebsd-amd64.tar.gz`, `…-freebsd-arm64.tar.gz` (ARM64 uses FreeBSD's FFmpeg: `pkg install ffmpeg`) |
 | Docker | `ghcr.io/wittywilla/wittymediaserver` (amd64, arm64, armv7) | |
 
 Each release has a `…-SHA256SUMS.txt` file to check downloads, and its signature
@@ -106,7 +107,7 @@ Installing the same way updates it in place. It takes over from what the `instal
 its data folder, port and account. A desktop gets **WittyMediaServer** in its app menu: the tray app shows the
 service, and doesn't start a second server.
 
-**Another distribution, or FreeBSD.** Unpack the `.tar.gz`, and:
+**Another distribution.** Unpack the `.tar.gz`, and:
 
 ```bash
 sudo ./install.sh                      # /opt/wittymediaserver, data in /var/lib/wittymediaserver, port 9797
@@ -117,6 +118,31 @@ Or just run `./WittyMediaServer`, or `./bin/wittymediaserver serve` with no tray
 
 Run either a service or the tray app on a port, not both by hand: the tray app notices a server already
 answering, and only shows it.
+
+## FreeBSD
+
+```sh
+pkg add wittymediaserver-…-freebsd-amd64.pkg
+sysrc wittymediaserver_enable=YES
+service wittymediaserver start
+```
+
+Then open `http://<this computer>:9797/` to finish setting up. As with FreeBSD's own packages, it doesn't start
+until you enable it.
+
+| | |
+|---|---|
+| Program | `/usr/local/lib/wittymediaserver`, with the command at `/usr/local/bin/wittymediaserver` |
+| Library, accounts and settings | `/var/db/wittymediaserver`, and the log is `wms.log` in there |
+| Runs as | its own account, `wms`, which needs read permission on your media folders |
+| Change the account, data folder or port | `sysrc wittymediaserver_user=…`, `wittymediaserver_data=…`, `wittymediaserver_listen=:8080` |
+| A settings file | `/usr/local/etc/wittymediaserver/wms.json` |
+
+`pkg add -f` with a newer package updates it in place. It takes over from what `install.sh` installed, keeping
+its data folder, port and account. A package made for FreeBSD 14 needs `env IGNORE_OSVERSION=yes pkg add …` on 15.
+
+Prefer not to use a package? Unpack the `.tar.gz` and run `./install.sh`, with the same options as on Linux. It keeps
+everything inside its folder, and starts the service straight away.
 
 ## Removing it
 
@@ -131,6 +157,7 @@ modules and game cores. Then it lists what it removed, and what it couldn't.
 | **macOS** | Open **Uninstall WittyMediaServer** in Applications |
 | **Debian, Ubuntu** | `sudo wittymediaserver --uninstall` asks. Or `sudo apt remove wittymediaserver` keeps your data, and `sudo apt purge wittymediaserver` removes it |
 | **Fedora, RHEL** | `sudo wittymediaserver --uninstall` asks. `sudo dnf remove wittymediaserver` keeps your data |
+| **FreeBSD** | `wittymediaserver --uninstall`, as root, asks. `pkg delete wittymediaserver` keeps your data |
 | **Anywhere**, even if the installer has gone missing | `wittymediaserver --uninstall`, from the program's `bin` folder if the command isn't found |
 
 The command line can also skip the questions: `--keep-data` or `--remove-data`, `--remove-recordings`,
@@ -203,7 +230,7 @@ Otherwise Settings says why and links to the download:
 |---|---|
 | Windows installer, *Just me*, or an unpacked folder | **Update now** |
 | Windows installer, *Everyone on this computer* | run the new installer, as Windows protects Program Files |
-| `.deb`, `.rpm` | install the new package the same way, as your package manager owns these files |
+| `.deb`, `.rpm`, FreeBSD `.pkg` | install the new package the same way, as your package manager owns these files |
 | `install.sh` (`/opt/…`, owned by root) | unpack the new archive and run `sudo ./install.sh` again |
 | macOS | run the new `.pkg` |
 | Docker / Kubernetes | pull the new image and recreate the container |

@@ -48,12 +48,13 @@ const (
 
 // How a copy was installed. The kind decides who may replace its files.
 const (
-	KindSource  = ""        // built from source, or older than 0.6.0
-	KindArchive = "archive" // a .zip or .tar.gz someone unpacked
-	KindMSI     = "msi"     // the Windows installer
-	KindDeb     = "deb"     // Debian, Ubuntu and relatives
-	KindRPM     = "rpm"     // Fedora, RHEL, openSUSE and relatives
-	KindPkg     = "pkg"     // the macOS installer
+	KindSource  = ""            // built from source, or older than 0.6.0
+	KindArchive = "archive"     // a .zip or .tar.gz someone unpacked
+	KindMSI     = "msi"         // the Windows installer
+	KindDeb     = "deb"         // Debian, Ubuntu and relatives
+	KindRPM     = "rpm"         // Fedora, RHEL, openSUSE and relatives
+	KindPkg     = "pkg"         // the macOS installer
+	KindFreeBSD = "freebsd-pkg" // FreeBSD's pkg
 )
 
 // Package is where a copy of the server is.

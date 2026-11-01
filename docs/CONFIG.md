@@ -22,7 +22,7 @@ The server looks for `wms.json` in this order and uses the first one it finds:
 | | Windows: `%APPDATA%\WittyMediaServer\wms.json` | |
 | | macOS: `~/Library/Application Support/WittyMediaServer/wms.json` | |
 | | Linux/BSD: `~/.config/wittymediaserver/wms.json` | |
-| 4 | Linux/BSD only: `/etc/wittymediaserver/wms.json` | system services |
+| 4 | Linux/BSD only: `/etc/wittymediaserver/wms.json`; on FreeBSD `/usr/local/etc/wittymediaserver/wms.json` first | system services |
 
 Create a starter file with:
 

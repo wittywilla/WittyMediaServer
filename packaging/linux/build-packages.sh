@@ -29,8 +29,7 @@ for kind in deb rpm; do
   rm -rf "$work/stage"
   cp -R "$STAGE_DIR/." "$work/stage/" 2>/dev/null || { mkdir -p "$work/stage"; cp -R "$STAGE_DIR/." "$work/stage/"; }
   # Only for archives and for updating from older copies.
-  rm -f "$work/stage/wms" "$work/stage/install.sh" "$work/stage/bin/wittymediaserver.desktop"
-  mv "$work/stage/bin/wittymediaserver.png" "$work/stage/wittymediaserver.png"
+  rm -f "$work/stage/wms" "$work/stage/install.sh"
   # Which installer owns this copy.
   printf '{"product":"WittyMediaServer","kind":"%s"}\n' "$kind" > "$work/stage/package-info.json"
 

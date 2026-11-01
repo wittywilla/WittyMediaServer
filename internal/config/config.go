@@ -9,7 +9,8 @@
 //     default data folder are then inside the program's folder, so the
 //     whole server can live on a USB stick or in one folder.
 //  3. the platform's config folder (see UserConfigFile), and on Linux/BSD
-//     /etc/wittymediaserver/wms.json for system services.
+//     /etc/wittymediaserver/wms.json for system services, or on FreeBSD
+//     /usr/local/etc/wittymediaserver/wms.json.
 //
 // Relative paths inside a config file are relative to the file itself.
 package config
@@ -150,6 +151,11 @@ func findFile(explicit string) (string, bool) {
 	}
 	if p := UserConfigFile(); exists(p) {
 		return p, false
+	}
+	if runtime.GOOS == "freebsd" {
+		if p := "/usr/local/etc/wittymediaserver/" + FileName; exists(p) {
+			return p, false
+		}
 	}
 	if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
 		if p := "/etc/wittymediaserver/" + FileName; exists(p) {

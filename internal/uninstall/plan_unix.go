@@ -3,12 +3,19 @@ package uninstall
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
 const (
 	unixName    = "wittymediaserver"
 	serviceUser = "wms"
+)
+
+// What FreeBSD's rc.d script says, for a copy put wherever install.sh was told to.
+var (
+	rcData    = regexp.MustCompile(`wittymediaserver_data:=([^}\s]+)}`)
+	rcProgram = regexp.MustCompile(`\s(/\S+?/bin)/wittymediaserver serve`)
 )
 
 // homes are the people on this machine whose settings can be cleared: the one running this,
@@ -58,6 +65,13 @@ func planHomeUnix(e *Env, pl *Plan, h string) {
 
 // packageTool asks the package manager about this machine: which of them installed it.
 func packageTool(e *Env) (tool string, purge, remove []string) {
+	if e.GOOS == "freebsd" {
+		if _, err := e.Sys.Run("pkg", "info", "-e", unixName); err == nil {
+			rm := []string{"pkg", "delete", "-y", unixName}
+			return "pkg", rm, rm
+		}
+		return "", nil, nil
+	}
 	if _, err := e.Sys.Run("dpkg-query", "-W", "-f=${Status}", unixName); err == nil {
 		return "deb", []string{"apt-get", "purge", "-y", unixName}, []string{"apt-get", "remove", "-y", unixName}
 	}
@@ -129,16 +143,38 @@ func planUnix(e *Env, pl *Plan) {
 	}
 	if rc := e.p("/usr/local/etc/rc.d/" + unixName); exists(rc) {
 		if b, err := os.ReadFile(rc); err == nil {
-			if d := dataDirFromCommand(strings.ReplaceAll(string(b), "${wittymediaserver_data}", "")); d != "" && strings.HasPrefix(d, "/") {
-				planDataFolder(e, pl, e.Prefix+d, false, true)
+			s := string(b)
+			if m := rcData.FindStringSubmatch(s); m != nil {
+				planDataFolder(e, pl, e.Prefix+m[1], false, true)
+			}
+			if m := rcProgram.FindStringSubmatch(s); m != nil && tool == "" {
+				planProgramFolder(e, pl, e.Prefix+strings.TrimSuffix(m[1], "/bin"), true)
 			}
 		}
-		pl.add(Item{Kind: "service", Name: rc, Group: GroupProgram, Admin: true, step: stepStop,
+		pl.add(Item{Kind: "service", Name: unixName, Group: GroupProgram, Admin: true, step: stepStop,
 			remove: func() error {
-				_, _ = e.Sys.Run("service", unixName, "stop")
-				_, _ = e.Sys.Run("sysrc", "-x", unixName+"_enable")
-				return os.Remove(rc)
+				_, _ = e.Sys.Run("service", unixName, "onestop")
+				return nil
 			}})
+		if tool == "" {
+			pl.add(fileItem("service", rc, GroupProgram, true))
+		}
+		for _, v := range []string{"_enable", "_user", "_listen", "_data"} {
+			name := unixName + v
+			if out, err := e.Sys.Run("sysrc", "-qn", name); err == nil && strings.TrimSpace(out) != "" {
+				if v == "_data" {
+					planDataFolder(e, pl, e.Prefix+strings.TrimSpace(out), false, true)
+				}
+				pl.add(Item{Kind: "service setting in rc.conf", Name: name, Group: GroupProgram, Admin: true, step: stepFiles,
+					remove: func() error {
+						_, err := e.Sys.Run("sysrc", "-x", name)
+						return err
+					}})
+			}
+		}
+		if p := e.p("/var/run/" + unixName + ".pid"); exists(p) {
+			pl.add(fileItem("service's process file", p, GroupProgram, true))
+		}
 	}
 
 	// install.sh's places. A package's own files are the package's to remove.
@@ -164,11 +200,18 @@ func planUnix(e *Env, pl *Plan) {
 		planDataFolder(e, pl, d, false, false)
 	}
 	planDataFolder(e, pl, e.p("/var/lib/"+unixName), true, true)
-	planConfigFile(e, pl, e.p("/etc/"+unixName+"/wms.json"), true)
-	if d := e.p("/etc/" + unixName); isDir(d) {
-		pl.add(emptyFolderItem(d, GroupData, true))
+	planDataFolder(e, pl, e.p("/var/db/"+unixName), true, true)
+	for _, etc := range []string{"/etc/" + unixName, "/usr/local/etc/" + unixName} {
+		planConfigFile(e, pl, e.p(etc+"/wms.json"), true)
+		if d := e.p(etc); isDir(d) {
+			pl.add(emptyFolderItem(d, GroupData, true))
+		}
 	}
-	for _, h := range homes(e, e.p("/home")) {
+	base := e.p("/home")
+	if e.GOOS == "freebsd" {
+		base = e.p("/usr/home")
+	}
+	for _, h := range homes(e, base) {
 		planHomeUnix(e, pl, h)
 	}
 

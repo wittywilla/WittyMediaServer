@@ -2,3 +2,5 @@
 *.sh text eol=lf
 packaging/macos/scripts/** text eol=lf
 packaging/linux/** text eol=lf
+packaging/freebsd/** text eol=lf
+packaging/install.sh text eol=lf

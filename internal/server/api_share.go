@@ -408,7 +408,7 @@ func (s *Server) sharedStream(w http.ResponseWriter, r *http.Request) (*library.
 	return it, true
 }
 
-var shareTokenRe = regexp.MustCompile(`(/api/share/|/s/)[A-Za-z0-9_-]+`)
+var shareTokenRe = regexp.MustCompile(`(/api/(?:v[0-9]+/)?share/|/s/)[A-Za-z0-9_-]+`)
 
 // redactPath hides the secret of a shared link from request logs, which people
 // attach to bug reports.

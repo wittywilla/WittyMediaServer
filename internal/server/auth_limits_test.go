@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -138,5 +139,13 @@ func TestQuietDoesntStartCountsOverSoon(t *testing.T) {
 	}
 	if d := l.attempt(r, "Owner"); d != 0 {
 		t.Fatalf("after failMemory the count does start over: %v", d)
+	}
+}
+
+func TestShareSecretsAreHiddenUnderTheVersionedAPI(t *testing.T) {
+	for _, p := range []string{"/api/share/SECRET/image/4", "/api/v1/share/SECRET/image/4", "/api/v2/share/SECRET", "/s/SECRET"} {
+		if got := redactPath(p); strings.Contains(got, "SECRET") {
+			t.Errorf("%s came out as %s", p, got)
+		}
 	}
 }

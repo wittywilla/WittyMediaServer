@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/gameid/fixture"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
@@ -81,7 +82,7 @@ func TestPS2SaysWhichBIOSIsMissingAndFindsOne(t *testing.T) {
 	g := newGameServer(t)
 	placeCores(t, g, "pcsx2")
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "Game.iso"), []byte("game"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "Game.iso"), fixture.PS2("SLUS_123.45"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	it := addGame(t, g, "ps2", dir)

@@ -42,6 +42,8 @@ func (s *Server) gameOptionRoutes(m routes) {
 	m.Handle("PUT /api/games/settings", a(s.handleGameSettingsPut))
 	m.Handle("POST /api/games/settings/validate", a(s.handleGameSettingsValidate))
 	m.Handle("GET /api/games/recent", a(s.handleGamesRecent))
+	m.Handle("GET /api/games/home", a(s.handleGamesHome))
+	m.Handle("GET /api/games/{id}/check", a(s.handleGameCheck))
 	m.Handle("GET /api/game-bezels", a(s.handleBezels))
 	m.Handle("POST /api/game-bezels", a(s.handleBezelAdd))
 	m.Handle("GET /api/game-bezels/{bezel}", a(s.handleBezelImage))

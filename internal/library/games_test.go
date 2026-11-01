@@ -9,9 +9,11 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/gameid/fixture"
 )
 
 func writeFiles(t *testing.T, root string, files ...string) {
@@ -21,10 +23,47 @@ func writeFiles(t *testing.T, root string, files ...string) {
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(p, []byte("x"), 0o644); err != nil {
+		if err := os.WriteFile(p, gameBytes(f), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
+}
+
+// gameBytes makes a file with what a real game of that kind has, so that a scan believes
+// it. Anything else gets one byte.
+func gameBytes(name string) []byte {
+	b := headerBytes(name)
+	// Different games have different contents, and checksums would say so.
+	if len(b) > 1024 {
+		copy(b[len(b)-256:], name)
+	}
+	return b
+}
+
+func headerBytes(name string) []byte {
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".sfc", ".smc":
+		return fixture.SNES("MADE UP GAME")
+	case ".nes":
+		return fixture.NES()
+	case ".gba":
+		return fixture.GBA("MADE UP", "AXXE")
+	case ".gb", ".gbc":
+		return fixture.GB("MADE UP")
+	case ".n64", ".z64":
+		return fixture.N64("MADE UP", "NXXE")
+	case ".nds":
+		return fixture.NDS("MADE UP", "AXXE")
+	case ".md", ".gen":
+		return fixture.MegaDrive("MADE UP", "GM 00000000-00")
+	case ".sms":
+		return fixture.MasterSystem(false)
+	case ".gg":
+		return fixture.MasterSystem(true)
+	case ".pce", ".a26", ".ws", ".vb":
+		return make([]byte, 64<<10)
+	}
+	return []byte("x")
 }
 
 func names(c []candidate, root string) []string {
@@ -65,7 +104,18 @@ func TestDiscoverGamesOneConsole(t *testing.T) {
 func TestDiscoverGamesAuto(t *testing.T) {
 	modtest.Need(t, "wittyplay")
 	root := t.TempDir()
-	writeFiles(t, root, "a.sfc", "b.gba", "Sega Genesis/c.bin", "mystery.bin", "Atari 2600/d.bin", "readme.txt")
+	writeFiles(t, root, "a.sfc", "b.gba", "mystery.bin", "readme.txt")
+	write := func(rel string, b []byte) {
+		p := filepath.Join(root, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("Sega Genesis/c.bin", fixture.MegaDrive("MADE UP", "GM 00000000-00"))
+	write("Atari 2600/d.bin", make([]byte, 4096))
 	got, _ := discoverGames(root, "auto")
 	want := []string{"Atari 2600/d.bin=a2600", "Sega Genesis/c.bin=md", "a.sfc=snes", "b.gba=gba"}
 	if !equal(names(got, root), want) {
@@ -76,13 +126,19 @@ func TestDiscoverGamesAuto(t *testing.T) {
 func TestDiscoverGamesMultiFile(t *testing.T) {
 	modtest.Need(t, "wittyplay")
 	root := t.TempDir()
-	writeFiles(t, root, "Game/Game (Track 1).bin", "Game/Game (Track 2).bin", "Solo.bin", "Set/Disc 1.cue", "Set/Disc 2.cue", "Set/Disc 1.bin", "Set/Disc 2.bin")
+	writeFiles(t, root, "Game/Game (Track 2).bin", "Set/Disc 1.cue", "Set/Disc 2.cue")
+	raw := fixture.Raw(fixture.PS1("SLUS_123.45"))
+	_ = os.WriteFile(filepath.Join(root, "Game", "Game (Track 1).bin"), raw, 0o644)
+	_ = os.WriteFile(filepath.Join(root, "Solo.bin"), raw, 0o644)
+	_ = os.WriteFile(filepath.Join(root, "Set", "Disc 1.bin"), fixture.Raw(fixture.PS1("SLUS_123.46")), 0o644)
+	_ = os.WriteFile(filepath.Join(root, "Set", "Disc 2.bin"), fixture.Raw(fixture.PS1("SLUS_123.47")), 0o644)
 	_ = os.WriteFile(filepath.Join(root, "Game", "Game.cue"), []byte("FILE \"Game (Track 1).bin\" BINARY\n  TRACK 01 MODE2/2352\nFILE \"Game (Track 2).bin\" BINARY\n"), 0o644)
-	_ = os.WriteFile(filepath.Join(root, "Set", "Disc 1.cue"), []byte("FILE \"Disc 1.bin\" BINARY\n"), 0o644)
-	_ = os.WriteFile(filepath.Join(root, "Set", "Disc 2.cue"), []byte("FILE \"Disc 2.bin\" BINARY\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(root, "Set", "Disc 1.cue"), []byte("FILE \"Disc 1.bin\" BINARY\n  TRACK 01 MODE2/2352\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(root, "Set", "Disc 2.cue"), []byte("FILE \"Disc 2.bin\" BINARY\n  TRACK 01 MODE2/2352\n"), 0o644)
 	_ = os.WriteFile(filepath.Join(root, "Set", "Game.m3u"), []byte("# discs\nDisc 1.cue\nDisc 2.cue\n../../outside.bin\n"), 0o644)
 	got, _ := discoverGames(root, "ps1")
-	want := []string{"Game/Game.cue=ps1", "Set/Game.m3u=ps1", "Solo.bin=ps1"}
+	// Solo.bin is the same game as Game.cue: its checksum says so, so it isn't listed twice.
+	want := []string{"Game/Game.cue=ps1", "Set/Game.m3u=ps1"}
 	if !equal(names(got, root), want) {
 		t.Fatalf("got %v, want %v", names(got, root), want)
 	}
@@ -98,7 +154,7 @@ func TestDiscoverGamesZip(t *testing.T) {
 		}
 		w := zip.NewWriter(f)
 		e, _ := w.Create(inner)
-		_, _ = e.Write([]byte("x"))
+		_, _ = e.Write(gameBytes(inner))
 		_ = w.Close()
 		_ = f.Close()
 	}

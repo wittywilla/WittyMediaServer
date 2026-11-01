@@ -906,7 +906,7 @@ func TestPartlyUnpackedIsNeverUsed(t *testing.T) {
 		t.Fatal(err)
 	}
 	release()
-	key, _ := keyOf(p, ps1)
+	key, _ := keyOf(p, ps1, "")
 	track := filepath.Join(filepath.Dir(rom), "Game (Track 1).bin")
 
 	// A crash mid-unpack leaves only a temporary folder, which is ignored and cleared.
@@ -963,12 +963,12 @@ func TestOldestGoFirstAndPlayingStays(t *testing.T) {
 		return rom, release
 	}
 	gone := func(p string) bool {
-		key, _ := keyOf(p, snes)
+		key, _ := keyOf(p, snes, "")
 		_, err := os.Stat(filepath.Join(c.Dir, key))
 		return err != nil
 	}
 	age := func(p string, by time.Duration) {
-		key, _ := keyOf(p, snes)
+		key, _ := keyOf(p, snes, "")
 		when := time.Now().Add(-by)
 		_ = os.Chtimes(filepath.Join(c.Dir, key, manifestName), when, when)
 	}
@@ -1184,7 +1184,7 @@ func TestClosingStopsAnUnpack(t *testing.T) {
 		t.Fatalf("got %+v", st)
 	}
 	// Nothing half-made is left to be taken for the game.
-	key, _ := keyOf(p, snes)
+	key, _ := keyOf(p, snes, "")
 	if _, err := os.Stat(filepath.Join(c.Dir, key, manifestName)); err == nil {
 		// It may have finished before Close got there, which is fine, if it's whole.
 		c2 := &Cache{Dir: c.Dir, Limit: c.Limit}
@@ -1246,3 +1246,36 @@ func TestWorkerAnswersOnlyWithCodes(t *testing.T) {
 }
 
 func zipDeflate(w io.Writer) (io.WriteCloser, error) { return flate.NewWriter(w, flate.BestSpeed) }
+
+// A set names its archive after its main game, and that's the one to play, unless all that's
+// on offer in its name is a bad dump or someone's hack of it.
+func TestSetsPlayTheirMainGame(t *testing.T) {
+	c := wittyplay.ByID("snes")
+	for _, tc := range []struct {
+		archive string
+		names   []string
+		want    string
+	}{
+		{"Mega Quest.7z", []string{"BS Mega Quest Part 1 (J).smc", "Mega Quest (J).smc"}, "Mega Quest (J).smc"},
+		{"Mega Quest.7z", []string{"Mega Quest Expert (J).smc", "Mega Quest (J).smc"}, "Mega Quest (J).smc"},
+		{"Mega Quest.7z", []string{"Mega Quest (J) [!].smc", "Mega Quest (U).smc"}, "Mega Quest (U).smc"},
+		{"Mega Quest.7z", []string{"Mega Quest (U) [b1].smc", "Mega Quest (E).smc"}, "Mega Quest (E).smc"},
+		{"Mega Quest.7z", []string{"Mega Quest (Fan Remix Hack).smc", "Mega Quest (J).smc"}, "Mega Quest (J).smc"},
+		{"Mega Quest.7z", []string{"Intro by Someone (PD).smc", "Other Name (J).smc"}, "Other Name (J).smc"},
+	} {
+		l := &Listing{}
+		for _, n := range tc.names {
+			l.Entries = append(l.Entries, Entry{Name: n, Size: 1 << 20})
+		}
+		plan, err := Choose(l, c, tc.archive)
+		if err != nil || len(plan.Want) != 1 || plan.Want[0].Name != tc.want {
+			t.Errorf("%v: %+v %v, want %s", tc.names, plan, err, tc.want)
+		}
+	}
+	// A readme beside a real game is no version of it.
+	md := wittyplay.ByID("md")
+	l := &Listing{Entries: []Entry{{Name: "readme.md", Size: 2000}, {Name: "game.bin", Size: 1 << 20}}}
+	if plan, err := Choose(l, md, "Mega Quest.zip"); err != nil || plan.Want[0].Name != "game.bin" {
+		t.Errorf("%+v %v", plan, err)
+	}
+}

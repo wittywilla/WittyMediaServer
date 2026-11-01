@@ -17,6 +17,17 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   can carry a starter set of signed modules for a machine with no network.
 - **Each module carries the licenses of its own libraries,** which a server shows at `GET /api/modules/{id}/notices`.
 - **`wms dvd`, `wms bluray` and `wms cd` are gone,** along with the built-in copy of each module. Those tools come with their modules.
+- **Game libraries know what's a game.** A file's own bytes now decide which console it's for, and whether it's a game at all: headers, boot sectors, `SYSTEM.CNF` and `PARAM.SFO`,
+  even inside a compressed `.cso`. A readme called `.md`, a BIOS, a copier's firmware, an update or a music CD no longer becomes a game, and a PlayStation 2 disc in the wrong folder lands in the right console.
+- **Needs a look.** What can't be proven doesn't become a game. It goes on a list on the library's page with its reason and a one-click fix, beside a list of what was left out and why.
+- **One game, however it's kept.** Discs come together as one game, in folders, in archives or a mix, with the disc changed from the game's menu. Copies are found by checksum. Regions and revisions
+  share a tile, with each still its own game. A set's best version plays, and another can be chosen.
+- **Fix this game**, on its page: the wrong console, not a game, which version, split a version off, and why the server believes what it does.
+- **Importing thousands of games** takes no attention. It runs in the background, survives a restart and shows how far it's got. Every game gets its name, checksum match and box art from the local
+  database first, in about a minute, before any online source is asked. A fan's hack isn't named after the game it was made from, and a set's right region is what's named.
+- **3DS:** whether a file is encrypted now comes from its bytes, and an encrypted one says so on its page before you press Play. New 3DS games tell the core to be one. Updates and extra content aren't listed as games.
+- **Console and studio marks:** logos for consoles and game studios from the logo service, optional as all logos are, and a typed label that looks right without them.
+- **A full server says so straight away,** rather than unpacking and patching a game first.
 - **Every format, everywhere.** One list of file types now drives scanning, playback, serving, the file browser and the
   docs. It covers over 200 extensions: every common video container, codec and raw stream, FLAC to DSD to tracker and game
   music, MIDI through a synthesiser of the server's own, RAW from every major camera, Kindle, FictionBook, Word, Rich Text and
@@ -88,6 +99,25 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **A library's header stays in view** as you scroll, with its name, sort and Filters.
 - **Arrow keys and a remote reach everything** in the edit dialog, Fix matches and Pick in player, and carry on from nearby when the button you pressed goes away.
 - **One library header** on film, TV, disc, music, audiobook and book libraries, with sort direction everywhere.
+### Games
+
+- **A new home for your games.** A hero of covers on a shiny floor with the page tinted by the cover at the front, Continue
+  playing with a picture of where you left off, Consoles with their game counts, then recently added, favourites, most played
+  and shelves by genre and series. Sort by most popular, newest first, oldest first or A to Z, filter, and jump to a letter.
+  Any number of games stays quick: only what's on screen is ever on the page.
+- **A new page for each game**: its art, screenshots, year, publisher and players, save states with pictures, cheats, controls,
+  and what it needs to play. If something's stopping it from starting, the page says so and takes you to the fix.
+- **A new game menu**, with large tiles for save, load, rewind, fast forward, screenshots, controllers, settings and quit, which
+  work the same by finger, keyboard, remote or controller. Rewind can be turned on from the menu.
+- **A loading screen that says what's happening**, and error screens that say what to do about it.
+- **Touch controls redrawn for each console**, with one tap to hide them, and they step aside when a controller is connected.
+  The editor can resize them all at once.
+- **Couch mode**: the games on their own, full screen and large, with an on-screen keyboard for searching.
+- **Button prompts** that match the controller in your hands: letters, shapes or a keyboard's keys.
+- **Settings, Consoles & cores** now starts with the consoles you have games for, whether each is ready, and the one thing to do
+  if it isn't. There's a button to install every recommended core at once. Everything else is under Advanced.
+- Game PCs and gaming PC libraries match the rest, and a gaming PC's library is no longer limited to 500 games.
+
 ### Music
 
 - **A new front page for music, audiobooks and podcasts:** covers to flip through with their reflections, artists as round photos, albums and songs as shelves with **See all**, and colours taken from the artwork. **Play my music** shuffles it all.

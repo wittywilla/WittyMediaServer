@@ -103,7 +103,7 @@ func TestPreparingAGameInAnArchive(t *testing.T) {
 	}
 
 	gs := g.s.games()
-	rom, cleanup, err := gs.prepareROM(context.Background(), it.Path, wittyplay.ByID(wittyplay.TestConsole))
+	rom, cleanup, err := gs.prepareROM(context.Background(), it.Path, wittyplay.ByID(wittyplay.TestConsole), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestPreparingAGameNotInAnArchiveIsInstant(t *testing.T) {
 		t.Fatalf("%d %s", w.Code, w.Body)
 	}
 	gs := g.s.games()
-	rom, cleanup, err := gs.prepareROM(context.Background(), it.Path, wittyplay.ByID(wittyplay.TestConsole))
+	rom, cleanup, err := gs.prepareROM(context.Background(), it.Path, wittyplay.ByID(wittyplay.TestConsole), "")
 	if err != nil || rom != it.Path || cleanup != nil {
 		t.Fatalf("%s %v", rom, err)
 	}

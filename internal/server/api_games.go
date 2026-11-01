@@ -66,6 +66,7 @@ func (s *Server) gameRoutes(m routes) {
 	m.Handle("DELETE /api/gaming/cores/{id}", s.requireAdmin(s.handleCoreRemove))
 	m.Handle("DELETE /api/gaming/unpacked", s.requireAdmin(s.handleUnpackedClear))
 	s.gameOptionRoutes(m)
+	s.gameReviewRoutes(m)
 	s.customRoutes(m)
 }
 
@@ -304,6 +305,13 @@ type consoleView struct {
 	Pad         wittyplay.PadLayout `json:"pad"`
 	// Count: with ?library=<id>, how many games that library holds for this console.
 	Count int `json:"count,omitempty"`
+	// For Settings, Consoles & cores: BIOS files in place, what's stopping it from starting
+	// if that's a missing BIOS, and how many games every library holds for it.
+	BiosFound  []string `json:"biosFound,omitempty"`
+	Blocked    string   `json:"blocked,omitempty"`
+	TotalGames int      `json:"totalGames,omitempty"`
+	// LogoName is the name to ask the logo service for, kind "console". See docs/METADATA.md.
+	LogoName string `json:"logoName,omitempty"`
 }
 
 func (s *Server) consoleViews(ctx context.Context) []consoleView {
@@ -320,7 +328,7 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 		if c.Hidden && !testing {
 			continue
 		}
-		v := consoleView{Console: c, Installed: []cores.Core{}, Pad: wittyplay.Pad(c.ID)}
+		v := consoleView{Console: c, Installed: []cores.Core{}, Pad: wittyplay.Pad(c.ID), LogoName: library.ConsoleLogoName(c.ID)}
 		if v.Cores == nil {
 			v.Cores = []wittyplay.Core{}
 		}
@@ -641,7 +649,13 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "the game file is missing")
 		return
 	}
-	rom, cleanup, err := g.prepareROM(ctx, it.Path, console)
+	// Full is full, whatever the game. Unpacking it, copying it and applying its patches
+	// would all be for nothing.
+	if s.gamesFull(ctx, g, userFrom(r).ID) {
+		writeErr(w, 503, stream.ErrBusy.Error())
+		return
+	}
+	rom, cleanup, err := g.prepareGame(ctx, s.Store, it, console)
 	if err != nil {
 		if ctx.Err() != nil {
 			return // whoever asked has gone; the unpack carries on for next time
@@ -649,7 +663,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 422, err.Error())
 		return
 	}
-	rom, cleanup, err = g.prepare3DS(rom, cleanup, console)
+	rom, cleanup, newOnly, err := g.prepare3DS(rom, cleanup, console)
 	if err != nil {
 		if errors.Is(err, wittyplay.ErrEncrypted3DS) {
 			writeJSON(w, 422, map[string]any{"error": err.Error(), "encrypted": true, "console": console.ID})
@@ -657,6 +671,14 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		}
 		writeErr(w, 422, err.Error())
 		return
+	}
+	if newOnly {
+		// A game made for the New 3DS won't start on the older model, which is what cores
+		// are out of the box. A core with no such option refuses the key and carries on.
+		coreOptions = withOption(coreOptions, wittyplay.NewThreeDSOption, wittyplay.NewThreeDSValue)
+		for i := range fallbacks {
+			fallbacks[i].Options = withOption(fallbacks[i].Options, wittyplay.NewThreeDSOption, wittyplay.NewThreeDSValue)
+		}
 	}
 	if why := wittyplay.Refusal(rom, console.ID); why != "" {
 		if cleanup != nil {
@@ -744,6 +766,19 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 201, info)
 }
 
+// gamesFull says this person starting a game would go over the limit. Their own game
+// doesn't count, since starting another ends it. A slot may come free by the time it
+// matters, or go: this is only there so that nobody unpacks or patches a game with nowhere
+// to run it, and the graphics card's own limit is still checked when the game starts.
+func (s *Server) gamesFull(ctx context.Context, g *gameService, userID int64) bool {
+	limit, _ := strconv.Atoi(s.DB.GetSetting(ctx, "gamingMaxSessions", "2"))
+	running := g.mgr.Count()
+	if g.mgr.ForUser(userID) != nil {
+		running--
+	}
+	return running >= limit
+}
+
 // recordPlayTime adds the time played to what "Continue playing" shows, in the
 // same progress table videos use: position is the total time played.
 func (s *Server) recordPlayTime(sess *stream.Session, userID, itemID int64) {
@@ -761,26 +796,26 @@ func (s *Server) recordPlayTime(sess *stream.Session, userID, itemID int64) {
 // prepareROM returns the file a core should open. An archive is unpacked first, or
 // already has been: see gamearchive.Cache. This waits for that, and cleanup lets the
 // cache have the space back once the game has ended.
-func (g *gameService) prepareROM(ctx context.Context, path string, console *wittyplay.Console) (rom string, cleanup func(), err error) {
+func (g *gameService) prepareROM(ctx context.Context, path string, console *wittyplay.Console, entry string) (rom string, cleanup func(), err error) {
 	if !gamearchive.IsArchive(path) {
 		return path, nil, nil
 	}
-	return g.archives.Acquire(ctx, path, console)
+	return g.archives.AcquireEntry(ctx, path, console, entry)
 }
 
 // prepare3DS checks a 3DS file before a core sees it. An encrypted one is refused:
 // nothing here decrypts or looks for keys. An unencrypted install package holds the
 // game as a plain program, which is copied out because the cores can't open a package.
 // On failure the earlier cleanup has already run.
-func (g *gameService) prepare3DS(rom string, cleanup func(), console *wittyplay.Console) (string, func(), error) {
+func (g *gameService) prepare3DS(rom string, cleanup func(), console *wittyplay.Console) (string, func(), bool, error) {
 	if console.ID != "3ds" {
-		return rom, cleanup, nil
+		return rom, cleanup, false, nil
 	}
-	fail := func(err error) (string, func(), error) {
+	fail := func(err error) (string, func(), bool, error) {
 		if cleanup != nil {
 			cleanup()
 		}
-		return "", nil, err
+		return "", nil, false, err
 	}
 	info, err := wittyplay.Inspect3DS(rom)
 	if err != nil {
@@ -790,7 +825,7 @@ func (g *gameService) prepare3DS(rom string, cleanup func(), console *wittyplay.
 		return fail(wittyplay.ErrEncrypted3DS)
 	}
 	if !info.Package {
-		return rom, cleanup, nil
+		return rom, cleanup, info.NewOnly, nil
 	}
 	tmpRoot := filepath.Join(g.dir, "tmp")
 	if err := os.MkdirAll(tmpRoot, 0o700); err != nil {
@@ -809,9 +844,18 @@ func (g *gameService) prepare3DS(rom string, cleanup func(), console *wittyplay.
 	out := filepath.Join(dir, "game.cxi")
 	if err := info.CopyProgram(rom, out); err != nil {
 		both()
-		return "", nil, err
+		return "", nil, false, err
 	}
-	return out, both, nil
+	return out, both, info.NewOnly, nil
+}
+
+func withOption(options map[string]string, key, value string) map[string]string {
+	out := make(map[string]string, len(options)+1)
+	for k, v := range options {
+		out[k] = v
+	}
+	out[key] = value
+	return out
 }
 
 // handleGamePrepare gets a game ready without waiting for it, and says how that's
@@ -834,7 +878,12 @@ func (s *Server) handleGamePrepare(w http.ResponseWriter, r *http.Request) {
 	}
 	g := s.games()
 	ready := gamearchive.Status{State: "ready"}
-	if !gamearchive.IsArchive(it.Path) {
+	discs, _ := s.Store.GameDiscs(r.Context(), it.ID)
+	anyArchive := gamearchive.IsArchive(it.Path)
+	for _, d := range discs {
+		anyArchive = anyArchive || gamearchive.IsArchive(d.Path)
+	}
+	if !anyArchive {
 		writeJSON(w, 200, ready)
 		return
 	}
@@ -843,7 +892,21 @@ func (s *Server) handleGamePrepare(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 409, map[string]any{"error": "No core is installed for " + console.Name + ".", "needCore": true, "console": console.ID})
 		return
 	}
-	st := g.archives.Prepare(it.Path, console)
+	st := ready
+	if gamearchive.IsArchive(it.Path) {
+		st = g.archives.PrepareEntry(it.Path, console, s.Store.GameEntry(r.Context(), it.ID))
+	}
+	if len(discs) > 1 && console.Accepts(".m3u") {
+		// Each disc in an archive has to be there. What's asked about is whichever is furthest behind.
+		for _, d := range discs {
+			if gamearchive.IsArchive(d.Path) {
+				if one := g.archives.Prepare(d.Path, console); one.State != "ready" {
+					st = one
+					break
+				}
+			}
+		}
+	}
 	if st.Error != "" {
 		writeErr(w, 422, st.Error)
 		return
@@ -1089,8 +1152,26 @@ func (s *Server) handleGaming(w http.ResponseWriter, r *http.Request) {
 			enc = append(enc, e.Name)
 		}
 	}
+	views := s.consoleViews(ctx)
+	counts := s.gameCountsEverywhere(ctx)
+	systemDir := g.systemDir()
+	for i := range views {
+		v := &views[i]
+		v.TotalGames = counts[v.ID]
+		for _, b := range v.BIOS {
+			if _, err := os.Stat(filepath.Join(systemDir, filepath.FromSlash(b.File))); err == nil {
+				v.BiosFound = append(v.BiosFound, b.File)
+			}
+		}
+		if len(v.Installed) > 0 {
+			console := v.Console
+			if core, blocked := g.cores.Playable(&console, v.DefaultCore, systemDir); core == nil && blocked != nil {
+				v.Blocked = wittyplay.MissingBIOS(blocked.ID, systemDir)
+			}
+		}
+	}
 	writeJSON(w, 200, map[string]any{
-		"runner": runnerName, "encoders": enc, "consoles": s.consoleViews(ctx), "cores": g.cores.List(), "canDownload": cores.CanDownload(),
+		"runner": runnerName, "encoders": enc, "consoles": views, "cores": g.cores.List(), "canDownload": cores.CanDownload(),
 		"coresDir": g.cores.Dir, "systemDir": g.systemDir(), "running": g.mgr.Count(), "unpackedBytes": g.archives.Used(), "gpu": g.gpuStatus(runner, s.Log), "biosFolder": wittyplay.BIOSFolderName,
 	})
 }

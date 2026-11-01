@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { PromptBar } from './games/prompts'
 import { api, posterUrl, type Item, type Library } from '../api'
-import { BackLink, EmptyState, Placeholder, SkeletonGrid, Spinner } from '../components/common'
+import { BackLink, EmptyState, LoadError, Placeholder, Spinner } from '../components/common'
 import LegalNote from '../components/LegalNote'
 import { IconGamepad, IconPlay, IconSettings } from '../icons'
 import { toast, useApp } from '../state'
+import { heroCover, useCoverTint } from './games/data'
+import { Ambient } from './games/Library'
+import { VirtualGames } from './games/VirtualGames'
 import './rigs.css'
+import './games/games-ui.css'
 
 // A gaming PC's games: the library page, and a game's own page. The game runs on that PC.
 // This server only works out what each device can do to get there: see docs/GAME-RIGS.md.
@@ -85,9 +90,9 @@ function RigStatus({ rig, reload, watchWake }: { rig: RigView; reload: () => voi
 
 function RigCard({ item, rig }: { item: Item; rig?: string }) {
   return (
-    <Link to={`/item/${item.id}`} className="card" title={item.title}>
+    <Link to={`/item/${item.id}`} className="card gm-card" title={item.title} data-gm-item={item.id}>
       <div className="poster">
-        {item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <Placeholder title={item.title} label="PC" />}
+        {item.poster ? <img src={`${posterUrl(item)}&w=320`} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add('in')} /> : <Placeholder title={item.title} label="PC" />}
         <div className="play"><span><IconPlay /></span></div>
       </div>
       <div className="title">{item.title}</div>
@@ -99,26 +104,25 @@ function RigCard({ item, rig }: { item: Item; rig?: string }) {
 // The library page of a gaming PC. Games are ordinary items, so this list obeys every limit
 // the account has, and a Kids profile sees only what it's been given.
 export default function RigLibrary({ lib }: { lib: Library }) {
-  const [items, setItems] = useState<Item[] | null>(null)
+  const [total, setTotal] = useState<number | null>(null)
   const { rig, reload, watchWake } = useRig(lib.id)
   const { user } = useApp()
-  useEffect(() => {
-    api.get<{ items: Item[] }>(`/items?library=${lib.id}&kind=game&sort=title&limit=500`).then((r) => setItems(r.items)).catch(() => setItems([]))
-  }, [lib.id, rig?.state])
   return (
-    <>
+    <div className="gm-page">
       <div className="toolbar">
         <h1>{lib.name}</h1>
-        {items && <span className="count">{items.length} {items.length === 1 ? 'game' : 'games'}, played on this PC</span>}
+        {total != null && <span className="count">{total.toLocaleString()} {total === 1 ? 'game' : 'games'}, played on this PC</span>}
         <div className="grow" />
         {user?.isAdmin && <Link className="btn ghost sm" to="/settings/rigs"><IconSettings size={15} /> Manage</Link>}
       </div>
       {rig && <RigStatus rig={rig} reload={reload} watchWake={watchWake} />}
-      {!items ? <SkeletonGrid /> : items.length === 0
-        ? <EmptyState icon={<IconGamepad />} title="No games to show here" text={rig?.paired === false ? 'This PC’s games appear here once it’s paired.' : 'Games appear here from the list in Sunshine on that PC.'} />
-        : <div className="grid">{items.map((it) => <RigCard key={it.id} item={it} rig={lib.name} />)}</div>}
+      <VirtualGames query={`library=${lib.id}&kind=game&sort=title&desc=0`} version={rig?.state === 'online' ? 1 : 0} label={`${lib.name}: games`} onTotal={setTotal}
+        card={(it) => <RigCard item={it} rig={lib.name} />}
+        failed={(retry) => <LoadError what="This library" onRetry={retry} />}
+        empty={<EmptyState icon={<IconGamepad />} title="No games to show here" text={rig?.paired === false ? 'This PC’s games appear here once it’s paired.' : 'Games appear here from the list in Sunshine on that PC.'} />} />
       <LegalNote kind="thirdPartyServer" />
-    </>
+      <PromptBar className="gm-prompts" items={[{ button: 'dpad', label: 'Move' }, { button: 'confirm', label: 'Open' }, { button: 'back', label: 'Back' }]} />
+    </div>
   )
 }
 
@@ -169,24 +173,28 @@ export function RigGameDetails({ it }: { it: Item }) {
     try { await navigator.clipboard.writeText(text); toast('Copied') } catch { toast('Couldn’t copy. Select the text instead.') }
   }
   const ready = !rig || rig.state === 'online' || rig.state === 'busy'
+  const tint = useCoverTint(it.poster ? heroCover(it) : null)
   return (
-    <div className="game-page">
-      <BackLink to={`/library/${it.libraryId}`} label={libraries.find((l) => l.id === it.libraryId)?.name || 'Library'} />
-      <div className="game-head">
-        <div className="poster game-poster">
-          {it.poster ? <img src={posterUrl(it)} alt="" /> : <Placeholder title={it.title} label="PC" />}
+    <div className="gm-page gm-detail">
+      <Ambient colour={tint} />
+      <div className="gm-game-head">
+        <div className="gm-game-cover">
+          <div className="poster game-poster">
+            {it.poster ? <img src={heroCover(it)} alt="" /> : <Placeholder title={it.title} label="PC" />}
+          </div>
         </div>
-        <div className="game-info">
+        <div className="gm-game-info">
+          <BackLink to={`/library/${it.libraryId}`} label={libraries.find((l) => l.id === it.libraryId)?.name || 'Library'} />
           <h1>{it.title}</h1>
           <p className="muted">{[it.tagline, it.year].filter(Boolean).join(' · ')}</p>
-          {it.overview && <p>{it.overview}</p>}
           {rig && <RigStatus rig={rig} reload={reload} watchWake={watchWake} />}
-          <div className="game-actions">
-            <button className="btn primary" disabled={busy || !ready} onClick={play}>{busy ? <Spinner /> : <IconPlay />} Play</button>
+          <div className="gm-game-actions">
+            <button className="btn primary big gm-play" disabled={busy || !ready} onClick={play}>{busy ? <Spinner /> : <IconPlay />} Play</button>
           </div>
           {note && <p className="game-note" role="status">{note}</p>}
         </div>
       </div>
+      {it.overview && <section className="gm-section gm-about" data-gm-section aria-label="About this game"><h2>About this game</h2><p className="gm-overview">{it.overview}</p></section>}
       {plan && (
         <div className="rig-plan" ref={planRef} tabIndex={-1} aria-label="Ways to play">
           {plan.message && <p className="game-note" role="status">{plan.message}</p>}
@@ -227,6 +235,7 @@ export function RigGameDetails({ it }: { it: Item }) {
         </div>
       )}
       <LegalNote kind="thirdPartyServer" />
+      <PromptBar className="gm-prompts" items={[{ button: 'dpad', label: 'Move' }, { button: 'confirm', label: 'Select' }, { button: 'back', label: 'Back' }]} />
     </div>
   )
 }

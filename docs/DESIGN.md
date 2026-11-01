@@ -379,6 +379,7 @@ address, which keeps them on).
 - **Long lists use `content-visibility`**: `.grid` and `.album-grid` already do.
 - **Lazy images**: `loading="lazy"` on everything in a list.
 - **Lazy pages**: routes load when they're opened.
+- **Lists that can run to thousands are windowed**: `pages/games/VirtualGames.tsx` draws only the rows near the screen and asks for only the pages of results those rows need. The page itself still scrolls.
 - **No React state for scrolling or dragging.**
 - **No polling where an event will do.**
 - **No new UI libraries.** Every icon is a path in `icons.tsx`.

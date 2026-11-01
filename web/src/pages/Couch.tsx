@@ -4,10 +4,12 @@ import { api, mediaUrl, type Item } from '../api'
 import { BackLink, EmptyState, LoadError, Placeholder, Spinner } from '../components/common'
 import LegalNote from '../components/LegalNote'
 import { IconGamepad, IconPlay } from '../icons'
+import { PromptBar } from './games/prompts'
 import { toast, useApp } from '../state'
 import type { CouchHost } from '@wittywilla/wittycouch'
 import { lazyModule } from '../moduleBundles'
 import './rigs.css'
+import './games/games-ui.css'
 
 // Your own list of PCs running Sunshine, and the games on them. Anyone allowed can connect to any
 // PC they can pair with: nothing here is shared with other accounts.
@@ -62,17 +64,18 @@ export default function CouchPage() {
   if (st?.failed) return <LoadError what="Game PCs" onRetry={() => window.location.reload()} />
   if (st && !st.allowed) return <EmptyState icon={<IconGamepad />} title="This isn’t turned on for this account" text="Ask whoever runs this server." />
   return (
-    <>
+    <div className="gm-page">
       <div className="toolbar"><h1>Game PCs</h1></div>
       <p className="muted">Play the games on any PC running Sunshine, here in your browser. It might be yours, or a friend’s. Each PC pairs once, with a PIN typed on that PC, and your pairings are yours alone.</p>
       {st && <NotReady st={st} />}
       {!hosts ? <Spinner /> : hosts.length > 0 && (
-        <ul className="ml-hosts">
+        <ul className="gm-pcs" data-gm-section>
           {hosts.map((h) => (
             <li key={h.id}>
-              <Link to={`/couch/${h.id}`} className="rig-status">
+              <Link to={`/couch/${h.id}`} className="gm-pc ml-hosts">
                 <span className={'rig-dot' + (h.state === 'online' || h.state === 'busy' || h.state === 'not-paired' ? ' on' : '')} aria-hidden="true" />
-                <div className="grow"><strong>{h.name}</strong><br /><span className="muted">{h.state === 'busy' && h.currentGame ? `Running ${h.currentGame}` : h.paired ? h.message : 'Needs pairing'}</span></div>
+                <b>{h.name}</b>
+                <small>{h.state === 'busy' && h.currentGame ? `Running ${h.currentGame}` : h.paired ? h.message : 'Needs pairing'}</small>
               </Link>
             </li>
           ))}
@@ -97,9 +100,12 @@ export default function CouchPage() {
         </details>
       </section>
       <LegalNote kind="thirdPartyServer" />
-    </>
+      <CouchPrompts />
+    </div>
   )
 }
+
+const CouchPrompts = () => <PromptBar className="gm-prompts" items={[{ button: 'dpad', label: 'Move' }, { button: 'confirm', label: 'Select' }, { button: 'back', label: 'Back' }]} />
 
 // One PC, its pairing, and what it offers.
 export function CouchHostPage() {
@@ -150,7 +156,7 @@ export function CouchHostPage() {
   const list = (apps || []).filter((a) => showAll || !a.isDesktop)
   const hidden = (apps || []).length - list.length
   return (
-    <div className="game-page">
+    <div className="gm-page">
       <BackLink to="/couch" label="Game PCs" />
       <div className="toolbar"><h1>{host.name}</h1><div className="grow" />{!sure && <button className="btn sm ghost" onClick={() => setSure(true)}>Remove</button>}</div>
       {sure && (
@@ -184,11 +190,11 @@ export function CouchHostPage() {
       {appsError && <p className="rig-warn" role="alert">{appsError}</p>}
       {host.paired && (apps ? (
         <>
-          <div className="grid">
+          <div className="grid gm-apps">
             {list.map((a) => (
-              <Link key={a.id} to={`/couch/${id}/play/${a.id}?t=${encodeURIComponent(a.title)}`} className="card" title={a.title}>
+              <Link key={a.id} to={`/couch/${id}/play/${a.id}?t=${encodeURIComponent(a.title)}`} className="card gm-card" title={a.title}>
                 <div className="poster">
-                  {a.hasArt ? <img src={mediaUrl(`/api/couch/hosts/${id}/apps/${a.id}/art`)} alt="" loading="lazy" /> : <Placeholder title={a.title} label="PC" />}
+                  {a.hasArt ? <img src={mediaUrl(`/api/couch/hosts/${id}/apps/${a.id}/art`)} alt="" loading="lazy" onLoad={(e) => e.currentTarget.classList.add('in')} /> : <Placeholder title={a.title} label="PC" />}
                   <div className="play"><span><IconPlay /></span></div>
                 </div>
                 <div className="title">{a.title}</div>
@@ -200,6 +206,7 @@ export function CouchHostPage() {
         </>
       ) : !appsError && <Spinner />)}
       <LegalNote kind="thirdPartyServer" />
+      <CouchPrompts />
     </div>
   )
 }

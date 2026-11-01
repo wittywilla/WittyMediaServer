@@ -67,18 +67,43 @@ var (
 	imageExts      = map[string]bool{".chd": true, ".pbp": true, ".cdi": true, ".iso": true, ".cso": true, ".img": true, ".bin": true, ".rvz": true, ".gcz": true}
 )
 
+// ChooseEntry is Choose when someone has picked which file to play. If it's gone from the
+// archive, the rules choose as usual.
+func ChooseEntry(l *Listing, c *wittyplay.Console, archiveName, entry string) (*Plan, error) {
+	if entry != "" {
+		for _, e := range l.Entries {
+			if e.Name == entry && c.Accepts(strings.ToLower(path.Ext(e.Name))) {
+				return onePlan(e), nil
+			}
+		}
+	}
+	return Choose(l, c, archiveName)
+}
+
 // Choose decides what to unpack for a console. archiveName is the archive's own
 // file name: a file inside named the same is the likely one.
 func Choose(l *Listing, c *wittyplay.Console, archiveName string) (*Plan, error) {
 	var cands []Entry
+	var biggest int64
 	for _, e := range l.Entries {
 		if c.Accepts(strings.ToLower(path.Ext(e.Name))) {
 			cands = append(cands, e)
+			biggest = max(biggest, e.Size)
 		}
 	}
 	if len(cands) == 0 {
 		return nil, ErrNoGame
 	}
+	// A small file beside a big one isn't a version of it: a readme.md is no Mega Drive
+	// game. A disc's sheets are small, and are what describes it.
+	kept := cands[:0:0]
+	for _, e := range cands {
+		x := strings.ToLower(path.Ext(e.Name))
+		if playlistExts[x] || descriptorExts[x] || olderDiscExts[x] || e.Size < 0 || e.Size*64 >= biggest {
+			kept = append(kept, e)
+		}
+	}
+	cands = kept
 	base := strings.ToLower(BaseName(archiveName))
 	for _, tier := range []map[string]bool{playlistExts, descriptorExts, olderDiscExts} {
 		if got := withExts(cands, tier); len(got) > 0 {
@@ -189,11 +214,15 @@ func best(list []Entry, base string) Entry {
 }
 
 var (
-	badDumpRe = regexp.MustCompile(`(?i)\[(b|h|o|t|p|f|a)[0-9]*[^\]]*\]|\((beta|proto|prototype|demo|sample|hack|pirate|unl)[^)]*\)`)
+	badDumpRe = regexp.MustCompile(`(?i)\[(b|h|o|t|p|f|a)[0-9]*[^\]]*\]|\((beta|proto|prototype|demo|sample|hack|pirate|unl)[^)]*\)|\([^)]*\bhack\b[^)]*\)|\(pd\)`)
 	usaRe     = regexp.MustCompile(`(?i)\((usa?|world)[,)]|\((u|w|ue|ju|jue)\)`)
 	europeRe  = regexp.MustCompile(`(?i)\((europe|e)[,)]`)
 	japanRe   = regexp.MustCompile(`(?i)\((japan|j)[,)]`)
 )
+
+// Score says how good a choice a file in an archive is, against the archive's own name
+// without its extension, in lower case.
+func Score(name, base string) int { return score(name, base) }
 
 func score(name, base string) int {
 	n := path.Base(name)
@@ -201,14 +230,23 @@ func score(name, base string) int {
 	if strings.EqualFold(strings.TrimSuffix(n, path.Ext(n)), base) {
 		s += 32
 	}
-	if strings.Contains(n, "[!]") {
-		s += 8
+	// Named for the archive but for its tags, as a set's main game is. A Satellaview
+	// broadcast in the same set needs a receiver's cartridge to play at all.
+	if title, _, ok := strings.Cut(n, " ("); ok && strings.EqualFold(title, strings.TrimSpace(base)) {
+		s += 16
 	}
+	if strings.HasPrefix(n, "BS ") {
+		s -= 4
+	}
+	if strings.Contains(n, "[!]") {
+		s += 3
+	}
+	// A plain dump in a widely-played region beats a verified one someone can't read.
 	switch {
 	case usaRe.MatchString(n):
-		s += 4
+		s += 8
 	case europeRe.MatchString(n):
-		s += 2
+		s += 6
 	case japanRe.MatchString(n):
 		s++
 	}

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, getToken, mediaUrl, posterUrl, serverBase, uploadFile, type GameConsole, type Item } from '../api'
 import { LoadError, Spinner } from '../components/common'

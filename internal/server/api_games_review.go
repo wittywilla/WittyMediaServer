@@ -21,7 +21,7 @@ import (
 // about, how an import is going, and fixing one game. Files aren't touched by any of it:
 // each choice is kept beside the library, and the next scan goes by it. See docs/GAMING.md.
 
-func (s *Server) gameReviewRoutes(m *http.ServeMux) {
+func (s *Server) gameReviewRoutes(m routes) {
 	m.Handle("GET /api/libraries/{id}/games/review", s.requireAdmin(s.handleGameReview))
 	m.Handle("POST /api/libraries/{id}/games/review/apply", s.requireAdmin(s.handleGameReviewApply))
 	m.Handle("GET /api/libraries/{id}/games/import", s.requireAdmin(s.handleGameImport))

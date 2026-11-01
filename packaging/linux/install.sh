@@ -45,10 +45,15 @@ rm -f "$PREFIX/wms" "$PREFIX/wittyplay-host" "$PREFIX/icon.png" "$PREFIX/wittyme
       "$PREFIX/LICENSE" "$PREFIX/NOTICE" "$PREFIX/README.md" "$PREFIX/CHANGELOG.md" "$PREFIX/THIRD_PARTY_LICENSES.md"
 
 # The app with the tray icon, in the app menu (headless servers can ignore it).
+# A machine with neither folder has no app menu, and doesn't get one made for it.
 if [ -f "$PREFIX/WittyMediaServer" ] && [ -f "$PREFIX/bin/wittymediaserver.desktop" ] && [ "$OS" = Linux ]; then
-  mkdir -p /usr/local/share/applications
-  sed -e "s|/usr/lib/wittymediaserver|$PREFIX|g" -e "s|^Icon=.*|Icon=$PREFIX/bin/wittymediaserver.png|" \
-    "$PREFIX/bin/wittymediaserver.desktop" > /usr/local/share/applications/wittymediaserver.desktop
+  for menu in /usr/local/share/applications /usr/share/applications; do
+    if [ -d "$menu" ]; then
+      sed -e "s|/usr/lib/wittymediaserver|$PREFIX|g" -e "s|^Icon=.*|Icon=$PREFIX/bin/wittymediaserver.png|" \
+        "$PREFIX/bin/wittymediaserver.desktop" > "$menu/wittymediaserver.desktop"
+      break
+    fi
+  done
 fi
 
 case "$OS" in

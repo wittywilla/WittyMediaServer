@@ -637,7 +637,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 503, err.Error())
 		return
 	}
-	if _, err := os.Stat(it.Path); err != nil {
+	if _, err := os.Stat(it.Path); err != nil || !s.Store.LibraryFile(ctx, it.Path) {
 		writeErr(w, 404, "the game file is missing")
 		return
 	}

@@ -354,6 +354,8 @@ func (s *Server) handlePlayback(w http.ResponseWriter, r *http.Request) {
 			code := 500
 			if errors.As(err, new(errBadTrack)) {
 				code = 400
+			} else if errors.Is(err, library.ErrNotFound) {
+				code = 404
 			}
 			writeErr(w, code, err.Error())
 			return
@@ -429,6 +431,10 @@ func (s *Server) playbackAudio(r *http.Request, it *library.Item, p playback.Pro
 // playbackVideo decides how to play a video file and sets the stream up.
 func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Profile, b playbackRequest, out *playbackResponse) error {
 	ctx := r.Context()
+	// FFmpeg reads what a link swapped in after the scan points at, if it gets the chance.
+	if !s.Store.LibraryFile(ctx, it.Path) {
+		return library.ErrNotFound
+	}
 	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	pr, err := s.Tools.ProbeFile(pctx, it.Path)
@@ -724,6 +730,10 @@ func (s *Server) handleItemSubtitle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	n, _ := strconv.Atoi(m[1])
+	if !s.Store.LibraryFile(r.Context(), it.Path) {
+		writeErr(w, 404, "file missing")
+		return
+	}
 	if st, err := os.Stat(s.subtitlePath(it.Path, n)); err != nil || st.Size() == 0 {
 		// Not converted yet: only text tracks that exist are worth reading the file for.
 		pctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)

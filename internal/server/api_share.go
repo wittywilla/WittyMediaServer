@@ -301,6 +301,9 @@ func shareStreamID(it *library.Item) string { return "share-" + hls.Key(it.Path)
 
 func (s *Server) ensureShareStream(r *http.Request, it *library.Item) error {
 	id := shareStreamID(it)
+	if !s.Store.LibraryFile(r.Context(), it.Path) {
+		return library.ErrNotFound
+	}
 	pctx, cancel := context.WithTimeout(logging.WithSession(r.Context(), id), 30*time.Second)
 	defer cancel()
 	pr, err := s.Tools.ProbeFile(pctx, it.Path)

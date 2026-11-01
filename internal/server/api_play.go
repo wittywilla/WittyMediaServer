@@ -242,7 +242,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 // drive, and every change of audio or subtitle track asks again.
 func (s *Server) probeOnce(ctx context.Context, path string) (*ffmpeg.Probe, error) {
 	st, err := os.Stat(path)
-	if err != nil {
+	if err != nil || !s.Store.LibraryFile(ctx, path) {
 		return nil, errors.New("the file is missing")
 	}
 	key := fmt.Sprintf("%s|%d|%d", path, st.Size(), st.ModTime().UnixNano())

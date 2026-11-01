@@ -217,6 +217,10 @@ func (s *Server) handleItemImage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) serveThumb(w http.ResponseWriter, r *http.Request, it *library.Item, width int) {
 	p, err := s.Scanner.Thumb(r.Context(), it, width)
+	if errors.Is(err, library.ErrNotFound) {
+		writeErr(w, 404, "not found")
+		return
+	}
 	if err != nil {
 		if r.Context().Err() == nil {
 			s.Log.WarnContext(r.Context(), "could not make a thumbnail", "cat", "library", "item", it.ID, "file", it.Path, "err", err)
@@ -276,6 +280,11 @@ func originalType(name string) string {
 }
 
 func (s *Server) serveOriginal(w http.ResponseWriter, r *http.Request, it *library.Item, download bool) {
+	// A link swapped in after the scan doesn't lead anywhere else.
+	if !s.Store.LibraryFile(r.Context(), it.Path) {
+		writeErr(w, 404, "file missing")
+		return
+	}
 	f, err := os.Open(it.Path)
 	if err != nil {
 		writeErr(w, 404, "file missing")
@@ -283,7 +292,7 @@ func (s *Server) serveOriginal(w http.ResponseWriter, r *http.Request, it *libra
 	}
 	defer f.Close()
 	st, err := f.Stat()
-	if err != nil || st.IsDir() {
+	if err != nil || !st.Mode().IsRegular() {
 		writeErr(w, 404, "file missing")
 		return
 	}
@@ -294,7 +303,7 @@ func (s *Server) serveOriginal(w http.ResponseWriter, r *http.Request, it *libra
 	if download {
 		h.Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": filepath.Base(it.Path)}))
 	}
-	http.ServeContent(w, r, "", st.ModTime(), f)
+	http.ServeContent(s.capWriter(w, r), r, "", st.ModTime(), f)
 }
 
 // GET /api/items/{id}/original: the file itself, to download.

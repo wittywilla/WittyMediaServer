@@ -78,6 +78,10 @@ func (s *Scanner) Thumb(ctx context.Context, it *Item, width int) (string, error
 	if st, err := os.Stat(out); err == nil && st.Size() > 0 {
 		return out, nil
 	}
+	// A link swapped in after the scan doesn't get read.
+	if !s.Store.LibraryFile(ctx, it.Path) {
+		return "", ErrNotFound
+	}
 	thumbMu.Lock()
 	if c, ok := thumbCalls[key]; ok {
 		thumbMu.Unlock()

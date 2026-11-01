@@ -3514,567 +3514,6 @@
         ],
         "type": "object"
       },
-      "LibTranscodeFile": {
-        "properties": {
-          "estBytes": {
-            "type": "integer"
-          },
-          "estSec": {
-            "type": "number"
-          },
-          "finalPath": {
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "itemId": {
-            "type": "integer"
-          },
-          "keptPath": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "part": {
-            "type": "integer"
-          },
-          "path": {
-            "type": "string"
-          },
-          "plan": {
-            "anyOf": [
-              {
-                "properties": {
-                  "container": {
-                    "type": "string"
-                  },
-                  "encoder": {
-                    "type": "string"
-                  },
-                  "estBytes": {
-                    "type": "integer"
-                  },
-                  "estSec": {
-                    "type": "number"
-                  },
-                  "ext": {
-                    "type": "string"
-                  },
-                  "notes": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "reason": {
-                    "type": "string"
-                  },
-                  "steps": {
-                    "items": {
-                      "properties": {
-                        "action": {
-                          "type": "string"
-                        },
-                        "from": {
-                          "type": "string"
-                        },
-                        "kind": {
-                          "type": "string"
-                        },
-                        "to": {
-                          "type": "string"
-                        },
-                        "why": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "action",
-                        "from",
-                        "kind"
-                      ],
-                      "type": "object"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "verdict": {
-                    "type": "string"
-                  },
-                  "warnings": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  }
-                },
-                "required": [
-                  "container",
-                  "estBytes",
-                  "estSec",
-                  "ext",
-                  "notes",
-                  "reason",
-                  "steps",
-                  "verdict",
-                  "warnings"
-                ],
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "reason": {
-            "type": "string"
-          },
-          "runId": {
-            "type": "integer"
-          },
-          "sizeAfter": {
-            "type": "integer"
-          },
-          "sizeBefore": {
-            "type": "integer"
-          },
-          "state": {
-            "type": "string"
-          },
-          "verdict": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "estBytes",
-          "estSec",
-          "id",
-          "itemId",
-          "part",
-          "path",
-          "reason",
-          "runId",
-          "sizeAfter",
-          "sizeBefore",
-          "state",
-          "verdict"
-        ],
-        "type": "object"
-      },
-      "LibTranscodeRun": {
-        "properties": {
-          "by": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "integer"
-          },
-          "dry": {
-            "type": "boolean"
-          },
-          "finishedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "id": {
-            "type": "integer"
-          },
-          "libraryId": {
-            "type": "integer"
-          },
-          "output": {
-            "type": "string"
-          },
-          "policy": {
-            "properties": {
-              "audio": {
-                "properties": {
-                  "accept": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "addStereo": {
-                    "type": "boolean"
-                  },
-                  "codec": {
-                    "type": "string"
-                  },
-                  "commentary": {
-                    "type": "string"
-                  },
-                  "default": {
-                    "type": "string"
-                  },
-                  "description": {
-                    "type": "string"
-                  },
-                  "keep": {
-                    "type": "string"
-                  },
-                  "keepOriginal": {
-                    "type": "boolean"
-                  },
-                  "languages": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "lossless": {
-                    "type": "string"
-                  },
-                  "maxChannels": {
-                    "type": "integer"
-                  },
-                  "objects": {
-                    "type": "string"
-                  },
-                  "stereoFirst": {
-                    "type": "boolean"
-                  },
-                  "untagged": {
-                    "type": "string"
-                  },
-                  "untaggedAs": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "accept",
-                  "addStereo",
-                  "codec",
-                  "commentary",
-                  "default",
-                  "description",
-                  "keep",
-                  "keepOriginal",
-                  "languages",
-                  "lossless",
-                  "maxChannels",
-                  "objects",
-                  "stereoFirst",
-                  "untagged",
-                  "untaggedAs"
-                ],
-                "type": "object"
-              },
-              "container": {
-                "type": "string"
-              },
-              "preset": {
-                "type": "string"
-              },
-              "subtitles": {
-                "properties": {
-                  "forced": {
-                    "type": "string"
-                  },
-                  "images": {
-                    "type": "string"
-                  },
-                  "keep": {
-                    "type": "string"
-                  },
-                  "languages": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "sdh": {
-                    "type": "string"
-                  },
-                  "sidecars": {
-                    "type": "string"
-                  },
-                  "text": {
-                    "type": "string"
-                  },
-                  "untagged": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "forced",
-                  "images",
-                  "keep",
-                  "languages",
-                  "sdh",
-                  "sidecars",
-                  "text",
-                  "untagged"
-                ],
-                "type": "object"
-              },
-              "video": {
-                "properties": {
-                  "accept": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "codec": {
-                    "type": "string"
-                  },
-                  "constantRate": {
-                    "type": "boolean"
-                  },
-                  "deinterlace": {
-                    "type": "boolean"
-                  },
-                  "dolbyVision": {
-                    "type": "string"
-                  },
-                  "eightBit": {
-                    "type": "boolean"
-                  },
-                  "extraVideo": {
-                    "type": "string"
-                  },
-                  "hdr": {
-                    "type": "string"
-                  },
-                  "maxHeight": {
-                    "type": "integer"
-                  },
-                  "minSavingPercent": {
-                    "type": "integer"
-                  },
-                  "quality": {
-                    "type": "integer"
-                  },
-                  "skipBelowKbps": {
-                    "type": "integer"
-                  },
-                  "speed": {
-                    "type": "string"
-                  },
-                  "threeD": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "accept",
-                  "codec",
-                  "constantRate",
-                  "deinterlace",
-                  "dolbyVision",
-                  "eightBit",
-                  "extraVideo",
-                  "hdr",
-                  "maxHeight",
-                  "minSavingPercent",
-                  "quality",
-                  "skipBelowKbps",
-                  "speed",
-                  "threeD"
-                ],
-                "type": "object"
-              }
-            },
-            "required": [
-              "audio",
-              "container",
-              "preset",
-              "subtitles",
-              "video"
-            ],
-            "type": "object"
-          },
-          "state": {
-            "type": "string"
-          },
-          "summary": {
-            "properties": {
-              "bytesAfter": {
-                "type": "integer"
-              },
-              "bytesBefore": {
-                "type": "integer"
-              },
-              "changed": {
-                "type": "integer"
-              },
-              "convert": {
-                "type": "integer"
-              },
-              "done": {
-                "type": "integer"
-              },
-              "drives": {
-                "items": {
-                  "properties": {
-                    "enough": {
-                      "type": "boolean"
-                    },
-                    "folder": {
-                      "type": "string"
-                    },
-                    "free": {
-                      "type": "integer"
-                    },
-                    "needs": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "enough",
-                    "folder",
-                    "free",
-                    "needs"
-                  ],
-                  "type": "object"
-                },
-                "type": [
-                  "array",
-                  "null"
-                ]
-              },
-              "estBytes": {
-                "type": "integer"
-              },
-              "estSec": {
-                "type": "number"
-              },
-              "failed": {
-                "type": "integer"
-              },
-              "files": {
-                "type": "integer"
-              },
-              "needsBytes": {
-                "type": "integer"
-              },
-              "notWorth": {
-                "type": "integer"
-              },
-              "postponed": {
-                "type": "integer"
-              },
-              "refuse": {
-                "type": "integer"
-              },
-              "remux": {
-                "type": "integer"
-              },
-              "skip": {
-                "type": "integer"
-              }
-            },
-            "required": [
-              "bytesAfter",
-              "bytesBefore",
-              "changed",
-              "convert",
-              "done",
-              "estBytes",
-              "estSec",
-              "failed",
-              "files",
-              "needsBytes",
-              "notWorth",
-              "postponed",
-              "refuse",
-              "remux",
-              "skip"
-            ],
-            "type": "object"
-          }
-        },
-        "required": [
-          "createdAt",
-          "dry",
-          "id",
-          "libraryId",
-          "output",
-          "policy",
-          "state",
-          "summary"
-        ],
-        "type": "object"
-      },
-      "LibTranscodeSettings": {
-        "properties": {
-          "acknowledged": {
-            "type": "boolean"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "hoursFrom": {
-            "type": "integer"
-          },
-          "hoursOn": {
-            "type": "boolean"
-          },
-          "hoursTo": {
-            "type": "integer"
-          },
-          "lowPriority": {
-            "type": "boolean"
-          },
-          "maxJobs": {
-            "type": "integer"
-          },
-          "minFreeGb": {
-            "type": "integer"
-          },
-          "pauseWhileStreaming": {
-            "type": "boolean"
-          },
-          "threads": {
-            "type": "integer"
-          },
-          "useHardware": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "acknowledged",
-          "enabled",
-          "hoursFrom",
-          "hoursOn",
-          "hoursTo",
-          "lowPriority",
-          "maxJobs",
-          "minFreeGb",
-          "pauseWhileStreaming",
-          "threads",
-          "useHardware"
-        ],
-        "type": "object"
-      },
       "Library": {
         "properties": {
           "console": {
@@ -8369,55 +7808,6 @@
         ],
         "type": "object"
       },
-      "TdarrSettings": {
-        "properties": {
-          "enabled": {
-            "type": "boolean"
-          },
-          "keySet": {
-            "type": "boolean"
-          },
-          "mappings": {
-            "items": {
-              "properties": {
-                "from": {
-                  "type": "string"
-                },
-                "libraryId": {
-                  "type": "integer"
-                },
-                "tdarrId": {
-                  "type": "string"
-                },
-                "to": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "from",
-                "libraryId",
-                "tdarrId",
-                "to"
-              ],
-              "type": "object"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "url": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "enabled",
-          "keySet",
-          "mappings",
-          "url"
-        ],
-        "type": "object"
-      },
       "ThemeMeta": {
         "properties": {
           "author": {
@@ -8761,6 +8151,616 @@
           "name",
           "showUsername",
           "twoFactor"
+        ],
+        "type": "object"
+      },
+      "LibTranscodeFile": {
+        "properties": {
+          "estBytes": {
+            "type": "integer"
+          },
+          "estSec": {
+            "type": "number"
+          },
+          "finalPath": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "itemId": {
+            "type": "integer"
+          },
+          "keptPath": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "part": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "properties": {
+                  "container": {
+                    "type": "string"
+                  },
+                  "encoder": {
+                    "type": "string"
+                  },
+                  "estBytes": {
+                    "type": "integer"
+                  },
+                  "estSec": {
+                    "type": "number"
+                  },
+                  "ext": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "steps": {
+                    "items": {
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "from": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "to": {
+                          "type": "string"
+                        },
+                        "why": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "action",
+                        "from",
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "verdict": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "container",
+                  "estBytes",
+                  "estSec",
+                  "ext",
+                  "notes",
+                  "reason",
+                  "steps",
+                  "verdict",
+                  "warnings"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "runId": {
+            "type": "integer"
+          },
+          "sizeAfter": {
+            "type": "integer"
+          },
+          "sizeBefore": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "estBytes",
+          "estSec",
+          "id",
+          "itemId",
+          "part",
+          "path",
+          "reason",
+          "runId",
+          "sizeAfter",
+          "sizeBefore",
+          "state",
+          "verdict"
+        ],
+        "type": "object"
+      },
+      "LibTranscodeRun": {
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "dry": {
+            "type": "boolean"
+          },
+          "finishedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "integer"
+          },
+          "libraryId": {
+            "type": "integer"
+          },
+          "output": {
+            "type": "string"
+          },
+          "policy": {
+            "properties": {
+              "audio": {
+                "properties": {
+                  "accept": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "addStereo": {
+                    "type": "boolean"
+                  },
+                  "codec": {
+                    "type": "string"
+                  },
+                  "commentary": {
+                    "type": "string"
+                  },
+                  "default": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "keep": {
+                    "type": "string"
+                  },
+                  "keepOriginal": {
+                    "type": "boolean"
+                  },
+                  "languages": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "lossless": {
+                    "type": "string"
+                  },
+                  "maxChannels": {
+                    "type": "integer"
+                  },
+                  "objects": {
+                    "type": "string"
+                  },
+                  "stereoFirst": {
+                    "type": "boolean"
+                  },
+                  "untagged": {
+                    "type": "string"
+                  },
+                  "untaggedAs": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "accept",
+                  "addStereo",
+                  "codec",
+                  "commentary",
+                  "default",
+                  "description",
+                  "keep",
+                  "keepOriginal",
+                  "languages",
+                  "lossless",
+                  "maxChannels",
+                  "objects",
+                  "stereoFirst",
+                  "untagged",
+                  "untaggedAs"
+                ],
+                "type": "object"
+              },
+              "container": {
+                "type": "string"
+              },
+              "preset": {
+                "type": "string"
+              },
+              "subtitles": {
+                "properties": {
+                  "forced": {
+                    "type": "string"
+                  },
+                  "images": {
+                    "type": "string"
+                  },
+                  "keep": {
+                    "type": "string"
+                  },
+                  "languages": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "sdh": {
+                    "type": "string"
+                  },
+                  "sidecars": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "untagged": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "forced",
+                  "images",
+                  "keep",
+                  "languages",
+                  "sdh",
+                  "sidecars",
+                  "text",
+                  "untagged"
+                ],
+                "type": "object"
+              },
+              "video": {
+                "properties": {
+                  "accept": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "codec": {
+                    "type": "string"
+                  },
+                  "constantRate": {
+                    "type": "boolean"
+                  },
+                  "deinterlace": {
+                    "type": "boolean"
+                  },
+                  "dolbyVision": {
+                    "type": "string"
+                  },
+                  "eightBit": {
+                    "type": "boolean"
+                  },
+                  "extraVideo": {
+                    "type": "string"
+                  },
+                  "hdr": {
+                    "type": "string"
+                  },
+                  "maxHeight": {
+                    "type": "integer"
+                  },
+                  "minSavingPercent": {
+                    "type": "integer"
+                  },
+                  "quality": {
+                    "type": "integer"
+                  },
+                  "skipBelowKbps": {
+                    "type": "integer"
+                  },
+                  "speed": {
+                    "type": "string"
+                  },
+                  "threeD": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "accept",
+                  "codec",
+                  "constantRate",
+                  "deinterlace",
+                  "dolbyVision",
+                  "eightBit",
+                  "extraVideo",
+                  "hdr",
+                  "maxHeight",
+                  "minSavingPercent",
+                  "quality",
+                  "skipBelowKbps",
+                  "speed",
+                  "threeD"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "audio",
+              "container",
+              "preset",
+              "subtitles",
+              "video"
+            ],
+            "type": "object"
+          },
+          "state": {
+            "type": "string"
+          },
+          "summary": {
+            "properties": {
+              "bytesAfter": {
+                "type": "integer"
+              },
+              "bytesBefore": {
+                "type": "integer"
+              },
+              "changed": {
+                "type": "integer"
+              },
+              "convert": {
+                "type": "integer"
+              },
+              "done": {
+                "type": "integer"
+              },
+              "drives": {
+                "items": {
+                  "properties": {
+                    "enough": {
+                      "type": "boolean"
+                    },
+                    "folder": {
+                      "type": "string"
+                    },
+                    "free": {
+                      "type": "integer"
+                    },
+                    "needs": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "enough",
+                    "folder",
+                    "free",
+                    "needs"
+                  ],
+                  "type": "object"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
+              "estBytes": {
+                "type": "integer"
+              },
+              "estSec": {
+                "type": "number"
+              },
+              "failed": {
+                "type": "integer"
+              },
+              "files": {
+                "type": "integer"
+              },
+              "needsBytes": {
+                "type": "integer"
+              },
+              "notWorth": {
+                "type": "integer"
+              },
+              "postponed": {
+                "type": "integer"
+              },
+              "refuse": {
+                "type": "integer"
+              },
+              "remux": {
+                "type": "integer"
+              },
+              "skip": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "bytesAfter",
+              "bytesBefore",
+              "changed",
+              "convert",
+              "done",
+              "estBytes",
+              "estSec",
+              "failed",
+              "files",
+              "needsBytes",
+              "notWorth",
+              "postponed",
+              "refuse",
+              "remux",
+              "skip"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "createdAt",
+          "dry",
+          "id",
+          "libraryId",
+          "output",
+          "policy",
+          "state",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "LibTranscodeSettings": {
+        "properties": {
+          "acknowledged": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "hoursFrom": {
+            "type": "integer"
+          },
+          "hoursOn": {
+            "type": "boolean"
+          },
+          "hoursTo": {
+            "type": "integer"
+          },
+          "lowPriority": {
+            "type": "boolean"
+          },
+          "maxJobs": {
+            "type": "integer"
+          },
+          "minFreeGb": {
+            "type": "integer"
+          },
+          "pauseWhileStreaming": {
+            "type": "boolean"
+          },
+          "threads": {
+            "type": "integer"
+          },
+          "useHardware": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "acknowledged",
+          "enabled",
+          "hoursFrom",
+          "hoursOn",
+          "hoursTo",
+          "lowPriority",
+          "maxJobs",
+          "minFreeGb",
+          "pauseWhileStreaming",
+          "threads",
+          "useHardware"
+        ],
+        "type": "object"
+      },
+      "TdarrSettings": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "keySet": {
+            "type": "boolean"
+          },
+          "mappings": {
+            "items": {
+              "properties": {
+                "from": {
+                  "type": "string"
+                },
+                "libraryId": {
+                  "type": "integer"
+                },
+                "tdarrId": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "from",
+                "libraryId",
+                "tdarrId",
+                "to"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "keySet",
+          "mappings",
+          "url"
         ],
         "type": "object"
       }
@@ -20049,712 +20049,6 @@
           "Photos"
         ],
         "x-wms-auth": "user"
-      }
-    },
-    "/libtranscode/files/{id}/leftover": {
-      "delete": {
-        "operationId": "deleteLibTranscodeLeftover",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Deletes a kept original or an unused copy, for good",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/files/{id}/undo": {
-      "post": {
-        "operationId": "undoLibTranscodeFile",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Puts the original back",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/files/{id}/use-copy": {
-      "post": {
-        "operationId": "useLibTranscodeCopy",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Puts a converted copy into use, keeping the original",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/leftovers": {
-      "get": {
-        "operationId": "listLibTranscodeLeftovers",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Kept originals and converted copies waiting for a decision",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/libraries": {
-      "get": {
-        "operationId": "listLibTranscodeLibraries",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Libraries that hold video files, each with its recipe and anything stopping it",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/libraries/{id}": {
-      "put": {
-        "operationId": "putLibTranscodeLibrary",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Saves a library's recipe, what happens to old files, and whether it's read-only",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/libraries/{id}/items": {
-      "get": {
-        "operationId": "listLibTranscodeItems",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Finds files to try a recipe on",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/libraries/{id}/preview": {
-      "post": {
-        "operationId": "previewLibTranscode",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What a recipe would do to one file, track by track. Changes nothing",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/libraries/{id}/runs": {
-      "post": {
-        "operationId": "startLibTranscodeRun",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Starts a run. dry: true looks at every file and changes nothing",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/libraries/{id}/sample": {
-      "post": {
-        "operationId": "sampleLibTranscode",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Really converts 20 seconds into the server's cache, and measures it",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/options": {
-      "get": {
-        "operationId": "getLibTranscodeOptions",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Presets, and what this machine's FFmpeg can do",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/runs": {
-      "get": {
-        "operationId": "listLibTranscodeRuns",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Recent runs, newest first",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/runs/{id}": {
-      "get": {
-        "operationId": "getLibTranscodeRun",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "One run",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/runs/{id}/files": {
-      "get": {
-        "operationId": "listLibTranscodeRunFiles",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A run's files and what became of each",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/settings": {
-      "get": {
-        "operationId": "getLibTranscodeSettings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "How conversions run on this server",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "put": {
-        "operationId": "putLibTranscodeSettings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Changes that. Turning it on needs the warning accepted",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/tdarr": {
-      "get": {
-        "operationId": "getTdarrSettings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "The connection to a separately installed Tdarr. The API key is never sent back",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "put": {
-        "operationId": "putTdarrSettings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Changes that",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/tdarr/send": {
-      "post": {
-        "operationId": "sendToTdarr",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Hands a library's files to Tdarr",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libtranscode/tdarr/test": {
-      "post": {
-        "operationId": "testTdarr",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Done"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Asks a Tdarr server about itself, without saving anything",
-        "tags": [
-          "Library transcoding"
-        ],
-        "x-wms-auth": "admin"
       }
     },
     "/licenses": {
@@ -33228,6 +32522,712 @@
         "summary": "Turn WittyRigs on or off.",
         "tags": [
           "Game PCs"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/files/{id}/leftover": {
+      "delete": {
+        "operationId": "deleteLibTranscodeLeftover",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deletes a kept original or an unused copy, for good",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/files/{id}/undo": {
+      "post": {
+        "operationId": "undoLibTranscodeFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Puts the original back",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/files/{id}/use-copy": {
+      "post": {
+        "operationId": "useLibTranscodeCopy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Puts a converted copy into use, keeping the original",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/leftovers": {
+      "get": {
+        "operationId": "listLibTranscodeLeftovers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Kept originals and converted copies waiting for a decision",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/libraries": {
+      "get": {
+        "operationId": "listLibTranscodeLibraries",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Libraries that hold video files, each with its recipe and anything stopping it",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/libraries/{id}": {
+      "put": {
+        "operationId": "putLibTranscodeLibrary",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Saves a library's recipe, what happens to old files, and whether it's read-only",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/libraries/{id}/items": {
+      "get": {
+        "operationId": "listLibTranscodeItems",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Finds files to try a recipe on",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/libraries/{id}/preview": {
+      "post": {
+        "operationId": "previewLibTranscode",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a recipe would do to one file, track by track. Changes nothing",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/libraries/{id}/runs": {
+      "post": {
+        "operationId": "startLibTranscodeRun",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Starts a run. dry: true looks at every file and changes nothing",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/libraries/{id}/sample": {
+      "post": {
+        "operationId": "sampleLibTranscode",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Really converts 20 seconds into the server's cache, and measures it",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/options": {
+      "get": {
+        "operationId": "getLibTranscodeOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Presets, and what this machine's FFmpeg can do",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/runs": {
+      "get": {
+        "operationId": "listLibTranscodeRuns",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Recent runs, newest first",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/runs/{id}": {
+      "get": {
+        "operationId": "getLibTranscodeRun",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One run",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/runs/{id}/files": {
+      "get": {
+        "operationId": "listLibTranscodeRunFiles",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A run's files and what became of each",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/settings": {
+      "get": {
+        "operationId": "getLibTranscodeSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How conversions run on this server",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putLibTranscodeSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Changes that. Turning it on needs the warning accepted",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/tdarr": {
+      "get": {
+        "operationId": "getTdarrSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The connection to a separately installed Tdarr. The API key is never sent back",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putTdarrSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Changes that",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/tdarr/send": {
+      "post": {
+        "operationId": "sendToTdarr",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Hands a library's files to Tdarr",
+        "tags": [
+          "Library transcoding"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libtranscode/tdarr/test": {
+      "post": {
+        "operationId": "testTdarr",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Asks a Tdarr server about itself, without saving anything",
+        "tags": [
+          "Library transcoding"
         ],
         "x-wms-auth": "admin"
       }

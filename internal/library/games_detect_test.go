@@ -97,9 +97,9 @@ func TestNonGamesAreNotGames(t *testing.T) {
 		t.Fatalf("got %v, want %v", got, want)
 	}
 	for rel, kind := range map[string]string{
-		"Sega Genesis/README.md":          string(gameid.KindOther),
-		"Game Boy/Installer.dmg":          reviewNeeds,
-		"Virtual Boy/Program.vb":          string(gameid.KindOther),
+		"Sega Genesis/README.md":                       string(gameid.KindOther),
+		"Game Boy/Installer.dmg":                       reviewNeeds,
+		"Virtual Boy/Program.vb":                       string(gameid.KindOther),
 		"Super Nintendo/Super Made Up BIOS (V1.0).sfc": string(gameid.KindBIOS),
 		"Playstation 2 (PS2)/SCPH-39001.bin":           string(gameid.KindBIOS),
 		"Nintendo 3DS/Game Update.cia":                 string(gameid.KindUpdate),

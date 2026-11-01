@@ -28725,7 +28725,8 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin"
+        "x-wms-auth": "admin",
+        "operationId": "getLibrariesIdGamesReview"
       }
     },
     "/libraries/{id}/games/review/apply": {
@@ -28797,7 +28798,8 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin"
+        "x-wms-auth": "admin",
+        "operationId": "postLibrariesIdGamesReviewApply"
       }
     },
     "/libraries/{id}/games/import": {
@@ -28836,7 +28838,8 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin"
+        "x-wms-auth": "admin",
+        "operationId": "getLibrariesIdGamesImport"
       }
     },
     "/games/{id}/versions": {
@@ -28875,7 +28878,8 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "user"
+        "x-wms-auth": "user",
+        "operationId": "getGamesIdVersions"
       }
     },
     "/games/{id}/version": {
@@ -28929,7 +28933,8 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin"
+        "x-wms-auth": "admin",
+        "operationId": "putGamesIdVersion"
       }
     },
     "/games/{id}/split": {
@@ -28968,7 +28973,8 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin"
+        "x-wms-auth": "admin",
+        "operationId": "postGamesIdSplit"
       }
     },
     "/games/{id}/console": {
@@ -29025,7 +29031,8 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin"
+        "x-wms-auth": "admin",
+        "operationId": "putGamesIdConsole"
       }
     },
     "/games/{id}/not-a-game": {
@@ -29064,7 +29071,8 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin"
+        "x-wms-auth": "admin",
+        "operationId": "postGamesIdNotAGame"
       }
     }
   },

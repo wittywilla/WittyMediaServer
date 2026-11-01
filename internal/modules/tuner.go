@@ -430,6 +430,8 @@ func (p *tunerProxy) Open(ctx context.Context, ch tuner.Channel) (*tuner.Stream,
 				return nil, &tuner.EncryptedError{Channel: ch.Name, Why: clip(ce.Message)}
 			case "busy":
 				return nil, tuner.ErrBusy
+			case "unreachable":
+				return nil, fmt.Errorf("%w: %s", tuner.ErrUnreachable, clip(ce.Message))
 			}
 		}
 		return nil, err

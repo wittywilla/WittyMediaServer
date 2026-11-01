@@ -84,16 +84,20 @@ async function arrowTo(label, wanted) {
   let cur = await active()
   if (!graph.has(cur)) { await press('ArrowDown'); await wait(60); await tagAll(); cur = await active() }
   if (!graph.has(cur)) throw new Error(`${label}: an arrow lands nowhere`)
-  const prev = new Map([[cur, null]]); const q = [cur]
-  while (q.length && !prev.has(target)) {
-    const c = q.shift()
-    for (const [k, t] of Object.entries(graph.get(c) || {})) if (t && !prev.has(t)) { prev.set(t, [c, k]); q.push(t) }
-  }
-  if (!prev.has(target)) throw new Error(`${label}: no route to "${await nameOf(target)}"`)
-  const route = []
-  for (let c = target; prev.get(c); c = prev.get(c)[0]) route.unshift(prev.get(c)[1])
-  for (const k of route) {
-    await press(k); await wait(60)
+  // Looks before each press, as someone would: coming back into a group lands where it was left,
+  // so where an arrow goes can differ from the map.
+  for (let tries = 0; cur !== target; tries++) {
+    if (tries > 40) throw new Error(`${label}: no route to "${await nameOf(target)}"`)
+    const prev = new Map([[cur, null]]); const q = [cur]
+    while (q.length && !prev.has(target)) {
+      const c = q.shift()
+      for (const [k, t] of Object.entries(graph.get(c) || {})) if (t && !prev.has(t)) { prev.set(t, [c, k]); q.push(t) }
+    }
+    if (!prev.has(target)) throw new Error(`${label}: no route to "${await nameOf(target)}"`)
+    let step = target
+    while (prev.get(step)[0] !== cur) step = prev.get(step)[0]
+    await press(prev.get(step)[1]); await wait(60)
+    cur = await active()
     const shows = await page.eval(`(() => { const e = document.activeElement; const s = getComputedStyle(e); return e !== document.body && ((s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0) || s.boxShadow !== 'none') })()`)
     if (!shows) problems.add(`${label}: no visible focus on "${await nameOf(await active())}"`)
   }

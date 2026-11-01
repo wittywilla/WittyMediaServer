@@ -92,7 +92,7 @@
 
 /* The ways forward from a share on another machine. */
 .su-ways { margin: var(--sp-2) 0; padding-left: var(--sp-5); display: grid; gap: var(--sp-2); }
-.ui-notice-text > p { margin: var(--sp-2) 0 0; }
+.su-para { margin: var(--sp-2) 0 0; }
 
 /* What setup left behind. */
 .su-summary { list-style: none; width: fit-content; max-width: 100%; margin: 0 auto var(--sp-5); padding: 0; display: grid; gap: var(--sp-2); text-align: left; color: var(--fg-2); font-size: var(--text-md); }
@@ -140,3 +140,4 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
   .su-ack a, .oobe .op-head { min-height: 2.75rem; }
   .oobe-next-card .btn.sm, .oobe-hint .btn.sm { min-height: 2.75rem; }
 }
+.su-progress-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-1) var(--sp-3); font-size: var(--text-sm); }

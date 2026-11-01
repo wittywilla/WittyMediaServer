@@ -18,12 +18,19 @@ import (
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	u := s.resolveUser(r)
 	ctx := r.Context()
-	// The setup wizard continues after the admin account exists, until it is
-	// finished or skipped (existing servers with libraries never see it).
+	// The setup wizard continues after the admin account exists, until its last page. It says it's
+	// under way with setupDone "0". A server that never said so, because it's older or was set up
+	// from a script, only sees it if it has no libraries.
 	onboarding := false
-	if u != nil && u.IsAdmin && s.DB.GetSetting(ctx, "setupDone", "") != "1" {
-		libs, _ := s.Store.Libraries(ctx)
-		onboarding = len(libs) == 0
+	if u != nil && u.IsAdmin {
+		switch s.DB.GetSetting(ctx, "setupDone", "") {
+		case "1":
+		case "0":
+			onboarding = true
+		default:
+			libs, _ := s.Store.Libraries(ctx)
+			onboarding = len(libs) == 0
+		}
 	}
 	setupRequired := s.Auth.UserCount(r.Context()) == 0
 	// Admins see a notice when a newer version was found.

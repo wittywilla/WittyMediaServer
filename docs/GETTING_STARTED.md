@@ -54,17 +54,24 @@ docker run -d --name wittymediaserver --restart unless-stopped \
 
 ## What first-time setup asks
 
-Setup takes a few minutes. Everything after your account can be skipped and changed later in **Settings**.
+Setup takes a few minutes. Everything after your account can be skipped, and each page says where in **Settings** to change it later. Each answer is saved as you go, so you can go back, or stop and carry on tomorrow. A page only appears if this server can use what it asks about: there's no page about games until a games module is here.
 
-- **What your server is called.** It starts as WittyMediaServer. You can rename it and add a logo. If you're moving from another machine or coming back from a reset, this is also where you'll find **Restore from a backup**. See [Backup and restore](BACKUP.md).
-- **Your account.** A name and a password of at least 8 characters, typed twice, and a tick to say you've read the legal notes. This first account is the administrator, who manages libraries, people and settings. Keep the password safe: [forgetting it is hard to undo](ACCOUNTS.md#if-you-forget-your-password).
-- **What you want on this server.** Some abilities are modules, parts you add only if you want them, such as disc menus, games, photos and readers. Adding one downloads it, so that takes an internet connection. You can add or remove them any time under **Settings → Modules**. See [Modules and the store](MODULE-STORE.md).
-- **Where your media is.** Pick a kind of media and the folder it's in, as many times as you like. See [Add your first library](#add-your-first-library).
-- **Where information comes from.** TVmaze, Wikidata, Wikipedia, AniList and libretro work with no key, and names taken from your files and folders are sent to them to look things up. Your files stay on your computer. Free keys for TMDB and TheTVDB, and sources for games, lyrics and artists, are optional.
-- **What a disc does when it starts.** Show its menu, or play the film straight away. This only appears if a disc module is on the server.
-- **How it looks.** A theme for everyone, and whether the menu sits along the top, down the side, or both.
+- **Set up a new server, or restore from a backup.** These are the two buttons on the first page. Moving from another machine, or coming back from a reset? [Restoring](BACKUP.md) brings your accounts, libraries and settings back, and you won't see the rest of this list. The first page is also where you can rename your server and give it a logo.
+- **Your account.** A name and a password of at least 8 characters, typed twice, and a tick to say you've read the legal notes. This first account looks after libraries, people and settings. Keep the password safe: [forgetting it is hard to undo](ACCOUNTS.md#if-you-forget-your-password).
+- **What you want on this server.** Movies, TV shows and music work straight away. [Modules](MODULE-STORE.md) add discs, games, photos, books and more. Tick what you want and it downloads, signed, from the official list, so this takes an internet connection. The folder browser is ticked for you, as it's how you choose a folder from a TV or a phone. No internet? Carry on without them, and add them later.
+- **When a module has a new version.** Tell you and let you choose, install it by itself, or look only when you ask.
+- **Where your media is.** Pick a kind of media and the folder it's in, as many times as you like. See [Add your first library](#add-your-first-library). A folder on another computer has [its own steps](LIBRARIES.md#network-shares), which the page lays out if you choose one from another device.
+- **Your games**, if you added the games module. Point it at your games folder and leave it. Anything it can't prove is listed for you to look at. Optional sources for more details can have their keys added here.
+- **What a disc does when it starts**, if you added a disc module. Show its menu, or play the film straight away.
+- **Posters and details.** TVmaze, Wikidata, Wikipedia, AniList and libretro work with no key, and names taken from your files and folders are sent to them to look things up. You choose whether posters are saved beside your files or kept on the server. Free keys for TMDB and TheTVDB are optional.
+- **Logos.** Real logos for consoles, studios and networks, instead of plain names. They aren't part of this software: they download from Wikimedia Commons only if you say yes, and they're still trademarks of their owners.
+- **Lyrics and artists**, where music can be played. Lyrics online come from LRCLIB, and artists' biographies and photos from Wikipedia. Both are free, with no account and no key, and both stay off unless you turn them on. See [Lyrics and karaoke](LYRICS-KARAOKE.md).
+- **Streaming service lists.** Which of your own titles a streaming service lists right now. Nothing streams from those services. It stays off unless you choose it, accept four statements, and have a free TMDB key.
+- **How it looks.** A theme for everyone, whether the menu sits along the top, down the side, or both, and whether this screen is across the room.
 
-The last page shows the address other devices can use, and offers to add a Kids profile. Press **Start watching** and you're in.
+The last page says what you chose, as the server has it now, and where to change each one. It shows the address other devices can use, and offers to add a Kids profile. [Library transcoding](LIBRARY-TRANSCODING.md) and TV channels are mentioned there too: there's nothing to set up for them now. Press **Start watching** and you're in.
+
+**With a remote or the keyboard.** The arrow keys reach everything and OK presses it. Back goes back a page. On a list of choices, the arrows only move: press OK on the one you want.
 
 ### If it asks for a setup code
 

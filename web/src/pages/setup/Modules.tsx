@@ -146,8 +146,8 @@ export function Modules({ info, refresh, next, back }: StepProps) {
       <StepHead title="What do you want on this server?" lead={lead} />
       {checkErr && (
         <Notice tone="warn" title="The list of modules couldn’t be read">
-          <p>{checkErr}</p>
-          <p>Check this computer’s internet connection and try again. You can also carry on without them: movies, TV shows and music still work, and you can add modules later in Settings, Modules.</p>
+          <p className="su-para">{checkErr}</p>
+          <p className="su-para">Check this computer’s internet connection and try again. You can also carry on without them: movies, TV shows and music still work, and you can add modules later in Settings, Modules.</p>
         </Notice>
       )}
       <div className="oobe-mod-groups">

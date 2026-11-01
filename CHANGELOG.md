@@ -99,6 +99,19 @@ This is an alpha, so here's what has and hasn't been tried.
   WittyMediaPlayer and WittyMediaClient each have their own repository, history, changelog and releases. The older `clients/desktop`
   and `clients/mobile` shells are retired: WittyMediaClient replaces them.
 
+### First-time setup
+
+Rebuilt so someone who's never done this can finish it, with a keyboard, a remote, a phone or a screen reader.
+
+- **A step belongs to what needs it.** The games and disc pages appear only with their modules, lyrics only where music can be played, and each page says where in Settings to change its answer.
+- **Restore from a backup** is one of the two buttons on the first page. Restoring from there now moves on by itself when the server comes back, where it used to sit on its last message.
+- **Choosing modules** downloads them through the store's own install, one at a time with progress, and says plainly what didn't work. It no longer says nothing is downloaded. It also asks what to do when a module has a new version.
+- **Logos, lyrics, Wikipedia and streaming lists** are each a question of their own, off until answered, with what's sent and who owns what said beside them.
+- **Setting up from another device:** the page says where the setup code is, on each system. **A share chosen from another device** lays out the three ways forward as soon as it's typed.
+- **Posters beside your files:** setup now asks. It's still on unless you untick it.
+- **Remotes:** every step has an address, so Back goes back a step, and OK now ticks an ordinary checkbox or chooses a radio button anywhere in the app. Before, those only answered to the space bar, which a remote doesn't have.
+- **The last page** reads what you chose back from the server, rather than from what was pressed.
+
 ### Help
 
 - **Help, built in.** Every guide is in the app under **Help**, in the account menu, at the top of each settings page and on the sign-in page, with search. It works with no internet connection, and anyone can read it. Nothing sends you to GitHub to find out how something works any more.

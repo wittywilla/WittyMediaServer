@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, setToken, type Library } from '../api'
 import { Brand, Spinner, VersionTag } from '../components/common'
+import { HelpLink } from '../components/HelpLink'
 import { uploadLogo } from '../components/BrandDialog'
 import type { LibraryKind, ModuleReport } from '../moduleStore'
 import { useApp } from '../state'
@@ -88,7 +89,10 @@ export default function SetupWizard() {
         <header className="oobe-head">
           <div className="brand"><img className="brand-mark" src={logoPreview || '/icon.svg'} alt="" /><Brand name={serverName || brandName} /></div>
           <div className="su-progress">
-            <p className="su-progress-words">Step {number.at} of {number.of}: {step.label}</p>
+            <div className="su-progress-line">
+              <p className="su-progress-words">Step {number.at} of {number.of}: {step.label}</p>
+              <HelpLink to="getting-started#what-first-time-setup-asks" newTab>Help with setup</HelpLink>
+            </div>
             <Progress label="How far through setup" value={number.at} max={number.of} />
           </div>
         </header>
@@ -101,6 +105,8 @@ export default function SetupWizard() {
             setOnboarding(true) // keep setup open after signing in
             setFacts(null)
             setUser(u)
+            // From here it counts as set up only when the last page says so, even once there are libraries.
+            api.put('/settings', { setupDone: '0' }).catch(() => {})
             if (pendingLogo) uploadLogo(pendingLogo).then(setBrandLogo).catch(() => {})
             navigate(pathOf('modules'), { replace: true })
           }} />}

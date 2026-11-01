@@ -217,6 +217,43 @@ func TestSetupFromTheHomeNetworkTakesTheCode(t *testing.T) {
 	}
 }
 
+// Setup that's under way stays open until its last page, even once there's a library: a reload
+// halfway through mustn't drop someone out with the rest unasked. A server that never said it was in
+// setup, because it's older or was set up from a script, isn't sent back to it for having libraries.
+func TestSetupStaysOpenUntilItsLastPage(t *testing.T) {
+	ts := newTestServer(t)
+	_, tok := ts.user(t, "owner", "adult", true, "")
+	onboarding := func() bool {
+		var st map[string]any
+		if err := json.Unmarshal(ts.do(t, "GET", "/api/status", tok, nil).Body.Bytes(), &st); err != nil {
+			t.Fatal(err)
+		}
+		return st["onboarding"] == true
+	}
+	if !onboarding() {
+		t.Error("no libraries and not finished: still in setup")
+	}
+	dir := t.TempDir()
+	if w := ts.do(t, "POST", "/api/libraries", tok, map[string]any{"name": "L", "type": "movies", "paths": []string{dir}}); w.Code >= 300 {
+		t.Fatalf("library: %d %s", w.Code, w.Body)
+	}
+	if onboarding() {
+		t.Error("never said it was in setup, and has a library: not sent back to it")
+	}
+	if w := ts.do(t, "PUT", "/api/settings", tok, map[string]string{"setupDone": "0"}); w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	if !onboarding() {
+		t.Error("under way, with a library: still in setup")
+	}
+	if w := ts.do(t, "PUT", "/api/settings", tok, map[string]string{"setupDone": "1"}); w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	if onboarding() {
+		t.Error("finished")
+	}
+}
+
 // A password-free Kids profile signs in with a tap at home, not from a page
 // that rebinds its domain to this server.
 func TestPasswordFreeProfileNeedsRealLocalHost(t *testing.T) {

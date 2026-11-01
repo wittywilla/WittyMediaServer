@@ -256,6 +256,22 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/update` | Admin | Build can update itself |
 | `POST /api/update/check` | Admin | Build can update itself. Answers younger than a minute are reused |
 | `POST /api/update/apply` | Admin | Signed release, checked by the updater |
+| `GET /api/modulestore` | Admin | Nothing further |
+| `POST /api/modulestore/check` | Admin | Answers younger than a minute are reused for this project's catalogue |
+| `GET /api/modulestore/item/{store}/{id}` | Admin | Known store and module |
+| `POST /api/modulestore/install` | Admin | Known module. Signed version. Says what else comes with it until confirmed |
+| `POST /api/modulestore/update-all` | Admin | One run at a time. Signed versions |
+| `GET /api/modulestore/run` | Admin | Nothing further |
+| `POST /api/modulestore/run/undo` | Admin | Own password, and a code with two-factor sign-in |
+| `DELETE /api/modulestore/run` | Admin | Nothing further |
+| `GET /api/modulestore/modules/{id}/log` | Admin | Known module. Records are redacted when written |
+| `GET /api/modulestore/media/{store}/{sha}` | Admin | A picture a catalogue lists, checked against its hash, PNG or JPEG. No token in the address |
+| `POST /api/modulestore/stores/preview` | Admin | Public addresses only unless the body allows the local network. Size limits. Keeps nothing |
+| `POST /api/modulestore/stores` | Admin | Warning agreed to. Own password, and a code with two-factor sign-in. Signature checked against the key pinned |
+| `DELETE /api/modulestore/stores/{id}` | Admin | Known store. What uses it goes back to the official version |
+| `PUT /api/modulestore/stores/{id}/enabled` | Admin | Known store. Body says on or off |
+| `POST /api/modulestore/stores/{id}/check` | Admin | Known store. Its pinned key has to match |
+| `POST /api/modulestore/stores/{id}/fork/{module}` | Admin | Known store and module. Confirmation, with own password and a code with two-factor sign-in. WittyTuner refused |
 | `GET /api/modules` | Admin | Nothing further |
 | `POST /api/modules/check` | Admin | Answers younger than a minute are reused |
 | `POST /api/modules/{id}/install` | Admin | Known module. Signed version. Confirmation for a version with a warning, with own password and a code with two-factor sign-in for one older than what is in use |

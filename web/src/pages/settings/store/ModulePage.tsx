@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { api, ApiError, getToken, mediaUrl, serverBase } from '../../../api'
+import { api, ApiError, getToken, serverBase } from '../../../api'
 import { BackLink } from '../../../components/common'
 import { IconCheck, IconInfo, IconShield } from '../../../icons'
 import type { ModuleReport, VersionInfo } from '../../../moduleStore'
 import { toast } from '../../../state'
 import { ask, Button, Dialog, Notice, Spinner } from '../../../ui'
+import { ConfirmOwner, type OwnerAsk } from '../ConfirmOwner'
 import { actionFor, ActionButton, InPlaceProgress, useInstall } from './ItemCard'
-import { ChangeNotes, FailureDialog, FailureNotice, itemPath, ModuleIcon, ModuleLogDialog, PolicyNote, StateTags, Tag } from './parts'
+import { ChangeNotes, FailureDialog, FailureNotice, itemPath, ModuleIcon, ModuleLogDialog, PolicyNote, StateTags, Tag, usePicture } from './parts'
 import { categoryTitle, dayOf, failureOf, isBusy, itemDetail, mb, platformName, useFork, type Failure, type ItemDetail } from './storeApi'
 
 // A module's own page: everything needed to decide, and everything that can be done to it.
@@ -48,6 +49,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
   const [logOpen, setLogOpen] = useState(false)
   const [failure, setFailure] = useState<Failure | null>(null)
   const [forkAsk, setForkAsk] = useState(false)
+  const [ownerAsk, setOwnerAsk] = useState<OwnerAsk | null>(null)
   const act = actionFor(it)
   const third = !it.official && it.kind !== 'server'
   const installedHere = !!m?.installed
@@ -63,20 +65,31 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
     await call(() => api.post<ModuleReport>(`/modules/${it.id}/remove`), `${it.name} removed`)
   }
   const toggle = (on: boolean) => call(() => api.post<ModuleReport>(`/modules/${it.id}/${on ? 'enable' : 'disable'}`), on ? `${it.name} turned on` : `${it.name} turned off`)
-  const rollback = async () => {
+  const rollback = () => {
     const to = m?.previous ? `version ${m.previous}` : 'the version before'
-    if (!await ask({ title: `Go back to ${to}?`, body: `${it.name} stops using version ${m?.version}, and automatic updates won't bring that version back. You can still choose it yourself.`, confirm: 'Go back' })) return
-    await call(() => api.post<ModuleReport>(`/modules/${it.id}/rollback`), `${it.name} went back`)
+    setOwnerAsk({
+      title: `Go back to ${to}?`, action: 'Go back',
+      body: <p>{it.name} stops using version {m?.version}, and automatic updates won’t bring that version back. You can still choose it yourself. An older version may lack security fixes, so this asks for your password.</p>,
+      run: async (password, code) => { await api.post<ModuleReport>(`/modules/${it.id}/rollback`, { password, code }); toast(`${it.name} went back`); reload() },
+    })
   }
   const official = async () => {
     if (!await ask({ title: 'Go back to the official version?', body: `What came from this store is deleted, and ${it.name} isn’t on this server until you install the official one, which is one press from its page.`, confirm: 'Go back' })) return
     await call(() => api.del<ModuleReport>(`/modules/${it.id}/source`), `${it.name} is back to the official version`)
   }
   const chooseVersion = async (v: VersionInfo) => {
-    const install = (confirm: boolean) => api.post<ModuleReport>(`/modules/${it.id}/install`, { version: v.version, confirm })
+    const install = (confirm: boolean, secrets?: { password: string; code: string }) => api.post<ModuleReport>(`/modules/${it.id}/install`, { version: v.version, confirm, ...secrets })
     try { await install(false); reload() } catch (e) {
       if (e instanceof ApiError && e.data?.code === 'confirm') {
-        if (await ask({ title: `Use ${it.name} ${v.version}?`, body: e.data.warning, confirm: 'Install anyway' })) await call(() => install(true))
+        if (!await ask({ title: `Use ${it.name} ${v.version}?`, body: e.data.warning, confirm: 'Install anyway' })) return
+        try { await install(true); reload() } catch (x) {
+          if (x instanceof ApiError && x.data?.code === 'password-needed') setOwnerAsk({
+            title: `Go back to ${it.name} ${v.version}?`, action: 'Go back',
+            body: <p>An older version may lack security fixes, so this asks for your password.</p>,
+            run: async (password, code) => { await install(true, { password, code }); reload() },
+          })
+          else setFailure(failureOf(x, it.name))
+        }
       } else setFailure(failureOf(e, it.name))
     }
   }
@@ -110,7 +123,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
       {it.lookalike && <Notice tone="danger" title="This uses the name of another module">It calls itself {it.name}, the name of a module from this project, and it isn’t that module. Don’t assume it does what that one does.</Notice>}
       {it.kind === 'in-development' && <Notice title="Custom modules are in development">{it.why}</Notice>}
       {it.kind === 'refused' && <Notice tone="danger" title="This can’t be used">{it.why}</Notice>}
-      {!it.fit.ok && it.kind !== 'in-development' && it.kind !== 'refused' && <Notice tone="warn" title={it.fit.kind === 'too-old' ? 'Built for an older server' : it.fit.kind === 'too-new' ? 'Needs a newer server' : 'Can’t be installed here'}>{it.fit.why}</Notice>}
+      {!it.fit.ok && it.kind !== 'in-development' && it.kind !== 'refused' && <Notice tone={it.fit.kind === 'library' ? undefined : 'warn'} title={it.fit.kind === 'too-old' ? 'Built for an older server' : it.fit.kind === 'too-new' ? 'Needs a newer server' : it.fit.kind === 'library' ? 'Comes with other modules' : 'Can’t be installed here'}>{it.fit.why}</Notice>}
       {it.failure && <FailureNotice failure={it.failure} name={it.name} moduleId={it.id} repairRoute={repair} onRetry={act ? press : undefined} />}
       {m?.notice && !it.failure && <Notice tone="warn">{m.notice}</Notice>}
 
@@ -120,7 +133,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
         <section className="st-mod-sec" aria-labelledby="st-shots">
           <h2 id="st-shots">Screenshots</h2>
           <div className="st-shots" tabIndex={0} role="group" aria-label={`Screenshots of ${it.name}`}>
-            {it.screenshots.map((src, i) => <img key={src} src={mediaUrl(src)} alt={`${it.name}, screenshot ${i + 1} of ${it.screenshots!.length}`} loading="lazy" />)}
+            {it.screenshots.map((src, i) => <Screenshot key={src} src={src} alt={`${it.name}, screenshot ${i + 1} of ${it.screenshots!.length}`} />)}
           </div>
         </section>
       )}
@@ -209,8 +222,14 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
       {logOpen && <ModuleLogDialog moduleId={it.id} name={it.name} onClose={() => setLogOpen(false)} />}
       {failure && <FailureDialog failure={failure} name={it.name} moduleId={it.id} repairRoute={repair} onClose={() => setFailure(null)} />}
       {forkAsk && <ForkDialog d={d} onClose={() => setForkAsk(false)} onDone={reload} />}
+      {ownerAsk && <ConfirmOwner ask={ownerAsk} onClose={() => setOwnerAsk(null)} />}
     </div>
   )
+}
+
+function Screenshot({ src, alt }: { src: string; alt: string }) {
+  const url = usePicture(src)
+  return url ? <img src={url} alt={alt} /> : null
 }
 
 // What a module brought with it under other licences, if anything. Asked for only when pressed.
@@ -238,16 +257,15 @@ function NoticesButton({ id, name }: { id: string; name: string }) {
 function ForkDialog({ d, onClose, onDone }: { d: ItemDetail; onClose: () => void; onDone: () => void }) {
   const it = d.item
   const [trust, setTrust] = useState(false)
-  const [working, setWorking] = useState(false)
-  const [failure, setFailure] = useState<Failure | null>(null)
-  const go = async () => {
-    setWorking(true)
-    try { await useFork(it.store, it.id, true); toast(`${it.name} now comes from ${it.storeName}`); onDone(); onClose() } catch (e) { setFailure(failureOf(e, it.name)); setWorking(false) }
-  }
-  if (failure) return <FailureDialog failure={failure} name={it.name} moduleId={it.id} repairRoute="/settings/repair" onClose={onClose} />
+  const [owner, setOwner] = useState(false)
+  if (owner) return <ConfirmOwner onClose={() => setOwner(false)} ask={{
+    title: `Replace ${it.name}?`, action: `Replace ${it.name}`,
+    body: <p>This changes which code runs on this server, so it asks for your password.</p>,
+    run: async (password, code) => { await useFork(it.store, it.id, true, { password, code }); toast(`${it.name} now comes from ${it.storeName}`); onDone(); onClose() },
+  }} />
   return (
     <Dialog title={`Replace ${it.name} with this store’s version?`} onClose={onClose} size="md" alert
-      actions={<><Button variant="ghost" autoFocus onClick={onClose}>Cancel</Button><Button variant="danger" aria-busy={working || undefined} disabled={!trust} onClick={working ? undefined : go}>Replace {it.name}</Button></>}>
+      actions={<><Button variant="ghost" autoFocus onClick={onClose}>Cancel</Button><Button variant="danger" disabled={!trust} onClick={() => setOwner(true)}>Replace {it.name}</Button></>}>
       <div className="st-warn-body">
         <IconShield size={28} />
         <p>{d.forkWarning}</p>

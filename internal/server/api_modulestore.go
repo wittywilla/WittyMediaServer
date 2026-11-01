@@ -151,9 +151,18 @@ func (s *Server) handleStoreRun(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"run": s.ModuleStores.CurrentRun()})
 }
 
-// POST /api/modulestore/run/undo: take the last Update All back.
+// POST /api/modulestore/run/undo {"password": "...", "code": "..."}: take the last Update All back.
+// Going back can bring back a hole that was fixed, so it asks what going back one module asks.
 func (s *Server) handleStoreRunUndo(w http.ResponseWriter, r *http.Request) {
 	if s.noStore(w) {
+		return
+	}
+	var b moduleSecrets
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&b); err != nil && !errors.Is(err, io.EOF) {
+		writeErr(w, 400, "unreadable request")
+		return
+	}
+	if !s.moduleGate(w, r, b, "update-all") {
 		return
 	}
 	run, err := s.ModuleStores.UndoRun(userFrom(r).Name)
@@ -161,6 +170,7 @@ func (s *Server) handleStoreRunUndo(w http.ResponseWriter, r *http.Request) {
 		writeStoreErr(w, "Update All", err)
 		return
 	}
+	s.auditModule(r, "module-undo", "update-all", "took the last Update All back")
 	writeJSON(w, 200, run)
 }
 
@@ -239,7 +249,8 @@ func (s *Server) handleStoreModuleLog(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /api/modulestore/media/{store}/{sha}: a picture a catalogue lists, from this server. The
-// address carries its hash, so it never changes.
+// address carries its hash, so it never changes. The page asks with a header: this route takes no
+// token in its address, as only an admin calls it, and an admin's sign-in has no place in a log.
 func (s *Server) handleStoreMedia(w http.ResponseWriter, r *http.Request) {
 	if s.noStore(w) {
 		return
@@ -269,6 +280,7 @@ type storeBody struct {
 	Key     string `json:"key"`
 	Private bool   `json:"private"`
 	Agreed  bool   `json:"agreed"`
+	moduleSecrets
 }
 
 // POST /api/modulestore/stores/preview: fetch a store and say what adding it would mean, with the
@@ -291,7 +303,8 @@ func (s *Server) handleStorePreview(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /api/modulestore/stores: add a store, pinning the key in the body. Refused unless the body
-// says the warning was agreed to.
+// says the warning was agreed to, and with the password: from then on, whoever holds that key can
+// offer code for this server to run.
 func (s *Server) handleStoreAdd(w http.ResponseWriter, r *http.Request) {
 	if s.noStore(w) {
 		return
@@ -305,11 +318,15 @@ func (s *Server) handleStoreAdd(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "the warning has to be agreed to first")
 		return
 	}
+	if !s.moduleGate(w, r, b.moduleSecrets, "store") {
+		return
+	}
 	info, err := s.ModuleStores.Add(r.Context(), b.URL, b.Key, b.Private, userFrom(r).Name)
 	if err != nil {
 		writeStoreErr(w, "That store", err)
 		return
 	}
+	s.auditModule(r, "store-added", "store", b.URL)
 	writeJSON(w, 201, info)
 }
 
@@ -323,6 +340,7 @@ func (s *Server) handleStoreRemove(w http.ResponseWriter, r *http.Request) {
 		writeStoreErr(w, "That store", err)
 		return
 	}
+	s.auditModule(r, "store-removed", "store", r.PathValue("id"))
 	w.WriteHeader(204)
 }
 
@@ -365,17 +383,22 @@ func (s *Server) handleStoreCheckOne(w http.ResponseWriter, r *http.Request) {
 	writeErr(w, 404, "there is no such store")
 }
 
-// POST /api/modulestore/stores/{id}/fork/{module} {"confirm": true}: use a store's version of a
-// module this server knows. Answered 409 with the warning until the body says confirm.
+// POST /api/modulestore/stores/{id}/fork/{module} {"confirm": true, "password": "..."}: use a
+// store's version of a module this server knows. Answered 409 with the warning until the body says
+// confirm, and that asks for the password.
 func (s *Server) handleStoreFork(w http.ResponseWriter, r *http.Request) {
 	if s.noStore(w) {
 		return
 	}
 	var b struct {
 		Confirm bool `json:"confirm"`
+		moduleSecrets
 	}
-	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 256)).Decode(&b); err != nil && !errors.Is(err, io.EOF) {
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&b); err != nil && !errors.Is(err, io.EOF) {
 		writeErr(w, 400, "unreadable request")
+		return
+	}
+	if b.Confirm && !s.moduleGate(w, r, b.moduleSecrets, r.PathValue("module")) {
 		return
 	}
 	if err := s.ModuleStores.UseFork(r.PathValue("id"), r.PathValue("module"), userFrom(r).Name, b.Confirm); err != nil {
@@ -383,5 +406,6 @@ func (s *Server) handleStoreFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.Log.Warn("a module now comes from another store", "module", r.PathValue("module"), "store", r.PathValue("id"), "by", userFrom(r).Name)
+	s.auditModule(r, "module-source", r.PathValue("module"), "now from store "+r.PathValue("id"))
 	w.WriteHeader(202)
 }

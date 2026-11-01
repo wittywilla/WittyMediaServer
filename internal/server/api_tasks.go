@@ -64,6 +64,7 @@ func (s *Server) wireTasks() {
 		s.Scanner.Tasks = s.Tasks
 	}
 	modmgr.ReportTasksTo(s.Tasks)
+	s.watchModuleRuns()
 	if s.GameMeta != nil {
 		s.GameMeta.Tasks = s.Tasks
 	}

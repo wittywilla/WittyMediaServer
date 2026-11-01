@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { fmtDateTime, mediaUrl } from '../../../api'
+import { fmtDateTime, getToken, serverBase } from '../../../api'
 import { copyText } from '../../../gallery'
 import { IconCheck, IconClose, IconInfo, IconPlug, IconShield } from '../../../icons'
 import { toast } from '../../../state'
 import { Button, Dialog, LinkButton, Notice, Progress } from '../../../ui'
+import { ConfirmOwner } from '../ConfirmOwner'
 import {
   anyBusy, changelogBlocks, dayOf, dismissRun, failureOf, mb, moduleLog, NOTHING_NOTABLE, PHASE, showsRun, startUpdateAll, storeView, undoRun,
   type Failure, type ModuleLog, type Run, type RunItem, type StoreItem, type StoreView,
@@ -34,11 +35,30 @@ export function useStoreView() {
 
 // ------------------------------------------------------------------- labels
 
+// A picture from the store's pages, which are for admins. It's asked for with a header, as an
+// address with a token in it ends up in logs. Empty until it has come, and if it never does.
+export function usePicture(src?: string) {
+  const [url, setUrl] = useState('')
+  useEffect(() => {
+    setUrl('')
+    if (!src) return
+    let gone = false, made = ''
+    const tok = getToken()
+    fetch(serverBase() + src, tok ? { headers: { Authorization: 'Bearer ' + tok } } : undefined)
+      .then((r) => (r.ok ? r.blob() : null))
+      .then((b) => { if (b && !gone) { made = URL.createObjectURL(b); setUrl(made) } })
+      .catch(() => {})
+    return () => { gone = true; if (made) URL.revokeObjectURL(made) }
+  }, [src])
+  return url
+}
+
 // A module's picture: its own icon, served by this server, or one drawn from its name. Either
 // way it decorates, as the name is always beside it.
 export function ModuleIcon({ item, size = 56 }: { item: Pick<StoreItem, 'icon' | 'name' | 'official'>; size?: number }) {
   const [broken, setBroken] = useState(false)
-  if (item.icon && !broken) return <img className="st-icon" src={mediaUrl(item.icon)} alt="" width={size} height={size} loading="lazy" onError={() => setBroken(true)} />
+  const url = usePicture(item.icon)
+  if (url && !broken) return <img className="st-icon" src={url} alt="" width={size} height={size} onError={() => setBroken(true)} />
   const letter = (item.name.replace(/^Witty/, '') || item.name).charAt(0).toUpperCase()
   return <span className="st-icon st-icon-drawn" aria-hidden="true" style={{ width: size, height: size, fontSize: size * 0.46 }}>{letter || <IconPlug />}</span>
 }
@@ -259,14 +279,10 @@ function summaryWords(r: Run): string {
 // Everything about a run: who's waiting, who's going, how it went, and taking it back.
 export function RunPanel({ run, onChanged, repairRoute }: { run: Run; onChanged: () => void; repairRoute: string }) {
   const [explain, setExplain] = useState<RunItem | null>(null)
-  const [undoing, setUndoing] = useState(false)
+  const [undoAsk, setUndoAsk] = useState(false)
   const headId = useId()
   const finished = !!run.finished
   const done = run.items.filter((i) => !['queued', 'working'].includes(i.state)).length
-  const undo = async () => {
-    setUndoing(true)
-    try { await undoRun(); toast('Those updates were taken back'); onChanged() } catch (e) { toast(failureOf(e).message) } finally { setUndoing(false) }
-  }
   const dismiss = async () => { try { await dismissRun() } finally { onChanged() } }
   return (
     <div className={'st-run' + (finished && run.failed ? ' has-failed' : '')} role="group" aria-labelledby={headId}>
@@ -278,12 +294,17 @@ export function RunPanel({ run, onChanged, repairRoute }: { run: Run; onChanged:
       <ul className="st-run-list">{run.items.map((it) => <RunLine key={it.id} it={it} onExplain={setExplain} />)}</ul>
       {finished && (
         <div className="ms-actions">
-          {run.canUndo && <Button size="sm" aria-busy={undoing || undefined} onClick={undoing ? undefined : undo}>Take these updates back</Button>}
+          {run.canUndo && <Button size="sm" onClick={() => setUndoAsk(true)}>Take these updates back</Button>}
           <Button size="sm" variant="ghost" onClick={dismiss}>Dismiss</Button>
           <span className="muted st-run-when">Finished {fmtDateTime(run.finished!)}</span>
         </div>
       )}
       {explain?.failure && <FailureDialog failure={explain.failure} name={explain.name} moduleId={explain.id} repairRoute={repairRoute} onClose={() => setExplain(null)} />}
+      {undoAsk && <ConfirmOwner onClose={() => setUndoAsk(false)} ask={{
+        title: 'Take these updates back?', action: 'Take them back',
+        body: <p>These modules go back to the versions they were on. An older version may lack security fixes, so this asks for your password.</p>,
+        run: async (password, code) => { await undoRun({ password, code }); toast('Those updates were taken back'); onChanged() },
+      }} />}
     </div>
   )
 }

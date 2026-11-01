@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ApiError, fmtDateTime } from '../../../api'
 import { BackLink } from '../../../components/common'
+import { ConfirmOwner } from '../ConfirmOwner'
 import { IconPlus, IconShield, IconTrash } from '../../../icons'
 import { toast } from '../../../state'
 import { ask, Button, Field, Input, Notice, Spinner, Switch } from '../../../ui'
@@ -86,6 +87,7 @@ function AddStore({ onAdded, repairRoute }: { onAdded: () => void; repairRoute: 
   const [needKey, setNeedKey] = useState(false)
   const [trust, setTrust] = useState(false)
   const [working, setWorking] = useState(false)
+  const [owner, setOwner] = useState(false)
   const warned = useRef<HTMLDivElement>(null)
   const urlField = useRef<HTMLInputElement>(null)
   useEffect(() => { if (preview) warned.current?.focus() }, [preview])
@@ -99,15 +101,12 @@ function AddStore({ onAdded, repairRoute }: { onAdded: () => void; repairRoute: 
       setFailure(failureOf(err, 'That store'))
     } finally { setWorking(false) }
   }
-  const agree = async () => {
-    if (!preview || working) return
-    setWorking(true)
-    try {
-      await addStore(preview.url, preview.key, allowPrivate, true)
-      toast(`${preview.name} added`)
-      setUrl(''); setKey(''); setAllowPrivate(false); reset(); onAdded()
-      setTimeout(() => urlField.current?.focus(), 0)
-    } catch (err) { setFailure(failureOf(err, 'That store')); setPreview(null) } finally { setWorking(false) }
+  const agree = async (password: string, code: string) => {
+    if (!preview) return
+    await addStore(preview.url, preview.key, allowPrivate, true, { password, code })
+    toast(`${preview.name} added`)
+    setUrl(''); setKey(''); setAllowPrivate(false); reset(); onAdded()
+    setTimeout(() => urlField.current?.focus(), 0)
   }
   const cancel = () => { reset(); setTimeout(() => urlField.current?.focus(), 0) }
   return (
@@ -150,11 +149,16 @@ function AddStore({ onAdded, repairRoute }: { onAdded: () => void; repairRoute: 
           )}
           <label className="ms-trust"><input type="checkbox" checked={trust} onChange={(e) => setTrust(e.target.checked)} /> I understand, and I trust whoever runs this store</label>
           <div className="ms-actions">
-            <Button variant="danger" disabled={!trust} aria-busy={working || undefined} onClick={agree}>Add this store</Button>
+            <Button variant="danger" disabled={!trust} onClick={() => setOwner(true)}>Add this store</Button>
             <Button variant="ghost" onClick={cancel}>Cancel</Button>
           </div>
         </div>
       )}
+      {owner && preview && <ConfirmOwner onClose={() => setOwner(false)} ask={{
+        title: `Add ${preview.name}?`, action: 'Add this store',
+        body: <p>From now on this store can offer code for this server to run, so this asks for your password.</p>,
+        run: agree,
+      }} />}
     </Section>
   )
 }

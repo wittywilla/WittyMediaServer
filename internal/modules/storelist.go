@@ -306,6 +306,9 @@ func (s *Stores) officialItem(st *Status, cat *wittymodule.Catalog) StoreItem {
 	} else if it.Fit.OK && !st.Installed {
 		it.Fit = Fit{Kind: FitNone, Why: "This server hasn't read the list of modules yet. Check for updates, or check its internet connection."}
 	}
+	if st.Unavailable != "" && it.Fit.Kind != FitLibrary {
+		it.Fit = Fit{Kind: FitNoBuild, Why: st.Unavailable}
+	}
 	it.Failure = failureFor(st)
 	return it
 }

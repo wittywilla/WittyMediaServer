@@ -958,16 +958,16 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `POST /modulestore/install` | admin | Install a module and what it's built on: `{"id": "...", "confirm": true}`. If it would bring anything else it answers 409 with `"code": "plan"` and the `plan` until confirmed. 202, with the run. |
 | `POST /modulestore/update-all` | admin | Update everything with an update, what others are built on first. One failure doesn't stop the rest. 202, with the run. |
 | `GET /modulestore/run` | admin | `{"run": ...}`: the run going on, or the summary of the last, kept across a restart. Each item has `state` (`queued`, `working`, `done`, `failed`, `skipped`, `undone`), and `failure` if it failed. |
-| `POST /modulestore/run/undo` | admin | Take the last Update All back. |
+| `POST /modulestore/run/undo` | admin | Take the last Update All back. `{"password": "...", "code": "..."}`: your password, and a code with two-factor sign-in. |
 | `DELETE /modulestore/run` | admin | Put the last run's summary away. |
 | `GET /modulestore/modules/{id}/log` | admin | What this module has logged lately: `lines`, and `text` to copy. |
-| `GET /modulestore/media/{store}/{sha}` | admin | A picture a catalogue lists, fetched, checked against its hash and served from here. Only those a catalogue lists, and only PNG or JPEG. |
+| `GET /modulestore/media/{store}/{sha}` | admin | A picture a catalogue lists, fetched, checked against its hash and served from here. Only those a catalogue lists, and only PNG or JPEG. Send the token as a header: this route doesn't take one in its address. |
 | `POST /modulestore/stores/preview` | admin | Fetch a store and say what adding it would mean: `{"url": "...", "key": "optional", "private": false}`. Answers with its `name`, `fingerprint`, what it offers and the `warning`. Show that warning; don't replace it. Nothing is kept. |
-| `POST /modulestore/stores` | admin | Add a store, pinning the key: `{"url": "...", "key": "...", "private": false, "agreed": true}`. |
+| `POST /modulestore/stores` | admin | Add a store, pinning the key: `{"url": "...", "key": "...", "private": false, "agreed": true, "password": "...", "code": "..."}`: your password, and a code with two-factor sign-in. |
 | `DELETE /modulestore/stores/{id}` | admin | Forget a store. Anything using it goes back to the official version. |
 | `PUT /modulestore/stores/{id}/enabled` | admin | Turn a store on or off: `{"on": false}`. |
 | `POST /modulestore/stores/{id}/check` | admin | Look at one store now. Answers with how it stands, including a `problem`. |
-| `POST /modulestore/stores/{id}/fork/{module}` | admin | Use a store's version of a module this server knows: `{"confirm": true}`. Answered 409 with `"code": "confirm"` and the warning until confirmed. |
+| `POST /modulestore/stores/{id}/fork/{module}` | admin | Use a store's version of a module this server knows: `{"confirm": true, "password": "...", "code": "..."}`. Answered 409 with `"code": "confirm"` and the warning until confirmed, and confirming asks for your password, and a code with two-factor sign-in. |
 
 ### Sign-in and accounts
 

@@ -38,16 +38,17 @@ export const itemDetail = (store: string, id: string) => api.get<ItemDetail>(`/m
 export const checkAll = () => api.post<StoreView>('/modulestore/check')
 export const startUpdateAll = () => api.post<Run>('/modulestore/update-all')
 export const currentRun = () => api.get<{ run?: Run }>('/modulestore/run').then((r) => r.run)
-export const undoRun = () => api.post<Run>('/modulestore/run/undo')
+export type OwnerSecrets = { password: string; code: string }
+export const undoRun = (secrets: OwnerSecrets) => api.post<Run>('/modulestore/run/undo', secrets)
 export const dismissRun = () => api.del('/modulestore/run')
 export const installModule = (id: string, confirm: boolean) => api.post<Run>('/modulestore/install', { id, confirm })
 export const moduleLog = (id: string) => api.get<ModuleLog>(`/modulestore/modules/${encodeURIComponent(id)}/log`)
 export const previewStore = (url: string, key: string, allowPrivate: boolean) => api.post<StorePreview>('/modulestore/stores/preview', { url, key, private: allowPrivate })
-export const addStore = (url: string, key: string, allowPrivate: boolean, agreed: boolean) => api.post<StoreInfo>('/modulestore/stores', { url, key, private: allowPrivate, agreed })
+export const addStore = (url: string, key: string, allowPrivate: boolean, agreed: boolean, secrets: OwnerSecrets) => api.post<StoreInfo>('/modulestore/stores', { url, key, private: allowPrivate, agreed, ...secrets })
 export const removeStore = (id: string) => api.del(`/modulestore/stores/${encodeURIComponent(id)}`)
 export const setStoreOn = (id: string, on: boolean) => api.put<StoreInfo>(`/modulestore/stores/${encodeURIComponent(id)}/enabled`, { on })
 export const checkStore = (id: string) => api.post<StoreInfo>(`/modulestore/stores/${encodeURIComponent(id)}/check`)
-export const useFork = (store: string, id: string, confirm: boolean) => api.post<ItemDetail>(`/modulestore/stores/${encodeURIComponent(store)}/fork/${encodeURIComponent(id)}`, { confirm })
+export const useFork = (store: string, id: string, confirm: boolean, secrets: OwnerSecrets) => api.post<ItemDetail>(`/modulestore/stores/${encodeURIComponent(store)}/fork/${encodeURIComponent(id)}`, { confirm, ...secrets })
 
 // The server's words for a failure, or the error's own when it has none.
 export function failureOf(e: unknown, name = 'This module'): Failure {

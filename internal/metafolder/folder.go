@@ -402,9 +402,9 @@ HOW TO FIX SOMETHING
   1. Open the file for the title, in Notepad, TextEdit or any text editor.
   2. Change what's wrong, and save it. Keep the "quotes" and the commas.
   3. In Settings > Metadata files, press "Check what would change". On the command
-     line: wms metadata apply
+     line: wittymediaserver metadata apply
   4. Read what it says it will change, and press Apply. On the command line:
-     wms metadata apply --apply
+     wittymediaserver metadata apply --apply
 
 Anything you change this way is locked, so no scan or lookup changes it back. Every
 change can be undone under Fix matches > History.

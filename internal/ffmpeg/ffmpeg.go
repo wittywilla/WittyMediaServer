@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/dvd"
+	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
@@ -42,8 +43,9 @@ func Locate(ffmpegPath, ffprobePath string) (*Tools, error) {
 	t := &Tools{Encoders: map[string]bool{}}
 	var candidates []string
 	if exe, err := os.Executable(); err == nil {
+		candidates = append(candidates, layout.Current().ProgramDirs()...)
 		dir := filepath.Dir(exe)
-		candidates = append(candidates, dir, filepath.Join(dir, "bin"), filepath.Join(dir, "ffmpeg"), filepath.Join(dir, "..", "ffmpeg"), filepath.Join(dir, "..", "Resources", "ffmpeg"))
+		candidates = append(candidates, filepath.Join(dir, "ffmpeg"), filepath.Join(dir, "..", "ffmpeg"))
 	}
 	// The copy for working on this project, only in a source checkout: FFmpeg
 	// must not be run from whatever folder the server was started in.
@@ -68,7 +70,7 @@ func Locate(ffmpegPath, ffprobePath string) (*Tools, error) {
 	t.FFmpeg = find(ffmpegPath, "ffmpeg")
 	t.FFprobe = find(ffprobePath, "ffprobe")
 	if t.FFmpeg == "" {
-		return nil, errors.New("ffmpeg not found: bundle it beside the wms binary (bin/ffmpeg) or set WMS_FFMPEG")
+		return nil, errors.New("ffmpeg not found: put it in the program's bin folder or set WMS_FFMPEG")
 	}
 	if t.FFprobe == "" {
 		t.FFprobe = filepath.Join(filepath.Dir(t.FFmpeg), exeName("ffprobe"))

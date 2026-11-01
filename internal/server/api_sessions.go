@@ -192,7 +192,7 @@ func (s *Server) handleTwoFactorDisable(w http.ResponseWriter, r *http.Request) 
 }
 
 // DELETE /api/users/{id}/2fa (admin): for someone who lost their phone and
-// their recovery codes. Administrators use `wms reset-2fa` on the server.
+// their recovery codes. Administrators use `wittymediaserver reset-2fa` on the server.
 func (s *Server) handleUserTwoFactorReset(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathInt(r, "id")
 	if !ok || id == userFrom(r).ID {
@@ -205,7 +205,7 @@ func (s *Server) handleUserTwoFactorReset(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if target.IsAdmin {
-		writeErr(w, 403, "another administrator's two-factor sign-in can only be reset on the server itself: wms reset-2fa")
+		writeErr(w, 403, "another administrator's two-factor sign-in can only be reset on the server itself: wittymediaserver reset-2fa")
 		return
 	}
 	if err := s.Auth.DisableTwoFactor(r.Context(), id); err != nil {

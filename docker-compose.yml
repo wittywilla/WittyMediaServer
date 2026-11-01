@@ -1,9 +1,13 @@
+# WittyMediaServer in a container: docker compose up -d, then open http://<this computer>:9797/
+# Change the media lines to your own folders. More, including a NAS: docs/INSTALL.md.
 services:
-  wms:
+  wittymediaserver:
     image: ghcr.io/wittywilla/wittymediaserver:alpha # the newest alpha; :latest is the newest full release
     build: .
     container_name: wittymediaserver
     restart: unless-stopped
+    # Runs as UID 1000. On a NAS, set this to your own account's UID and GID:
+    # user: "1000:1000"
     # Nothing it needs writes outside /config and /tmp. Helpers run from /config, so don't mount it noexec.
     read_only: true
     tmpfs:

@@ -20,6 +20,23 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   words in place of the button to add it, and so does anything built on it. WittyCouch Host has no FreeBSD build yet, so WittyCouch
   says that on FreeBSD.
 - **`wms dvd`, `wms bluray` and `wms cd` are gone,** along with the built-in copy of each module. Those tools come with their modules.
+- **Real installers, on every system.** Windows gets a normal `.msi` setup: just for you or for everyone, Start menu entry, optional background service,
+  firewall rule, start at sign-in, desktop shortcut and command line, each asked for in plain words, with silent flags for admins, and updating in place.
+  macOS gets a `.pkg` with a background service. Linux gets a `.deb` and an `.rpm` with a systemd service and a layout ready for a package repository. Each
+  takes over from a copy that 0.5.2-alpha or older installed, keeping your library. These replace `wms-setup.exe` and `install.ps1`. FreeBSD gets a `.pkg` with an
+  rc.d service, and `install.sh` still works there and on any other Linux.
+- **Uninstalling removes everything, if you ask.** Windows' Installed apps, **Uninstall WittyMediaServer** on a Mac, and `wittymediaserver --uninstall` anywhere, FreeBSD included,
+  ask whether to keep your library, accounts and settings. A full clean-up takes the program, services, tasks, firewall rules, startup entries, shortcuts,
+  registry keys, data, caches, logs and downloaded modules, then lists what it removed and what it couldn't. It never touches your media or anything it didn't
+  make, and recorded TV and backups have a question each.
+- **Programs you can tell apart.** You open `WittyMediaServer`. Everything else is in a `bin` folder and named for its job: `wms` is now
+  `bin/wittymediaserver`, and `wittyplay-host` is `bin/wittyplay-game-runner`. On Windows each says what it is in its Properties and in Task Manager. Scripts that
+  run `wms` need the new name; a small `wms` stays in the `.zip` and `.tar.gz` for this release. In Docker the command is `wittymediaserver`, and the compose service
+  is too. `wms.json`, the `WMS_` settings and your data folders haven't moved.
+- **The tray app shows a server that's already running**, such as a background service, instead of failing to start a second one.
+- **Windows' background service is a real service,** under a limited account, in place of a boot task that ran as SYSTEM.
+- Test builds are no longer signed with the release key unless `SIGN=1` says it's a real release.
+
 - **Live TV:** FFmpeg no longer reads an internet stream itself. It reads through a small gate on this machine, so an encryption key that appears in a playing stream is refused within a second, before FFmpeg sees it, and a playlist can't lead the server to your home network. A stream's address and login are no longer on FFmpeg's command line.
 - **Fixed, serious:** a web page could claim a fresh server from the browser of anyone at home, or read the list of accounts and sign in as a password-free profile, by sending a made-up header. A page elsewhere never counts as being at home now.
 - **Fixed, serious:** a 100-byte picture from any adult's upload could stop the server, and stop it again at every scan.

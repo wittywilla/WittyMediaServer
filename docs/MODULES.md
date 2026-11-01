@@ -763,7 +763,7 @@ the `updatetest` tag reads it, and no release can be:
 ```bash
 scripts/make-test-catalog.sh /tmp/catalog <folder holding the repositories> WittyPlay WittyDVD
 python3 -m http.server --bind 127.0.0.1 8099 --directory /tmp/catalog &
-go build -tags updatetest -o /tmp/wms ./cmd/wms
+go build -tags updatetest -o /tmp/wittymediaserver ./cmd/wittymediaserver
 WMS_UPDATE_KEY=$(cat /tmp/catalog/test-key.pub) WMS_MODULE_CATALOG=http://127.0.0.1:8099/catalog.json /tmp/wms
 ```
 

@@ -1,0 +1,5 @@
+#!/bin/sh
+# So the app opens without Gatekeeper asking about a copy the installer just put there on purpose.
+xattr -dr com.apple.quarantine "/Applications/WittyMediaServer.app" 2>/dev/null || true
+xattr -dr com.apple.quarantine "/Applications/Uninstall WittyMediaServer.app" 2>/dev/null || true
+exit 0

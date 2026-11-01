@@ -1,0 +1,82 @@
+# The .deb and .rpm of WittyMediaServer, made with nFPM (https://nfpm.goreleaser.com) from a
+# folder that scripts/build-release.sh built. packaging/linux/build-packages.sh runs this.
+name: wittymediaserver
+arch: ${NFPM_ARCH}
+platform: linux
+version: ${PKG_VERSION}
+version_schema: none
+release: "1"
+section: video
+priority: optional
+maintainer: WittyWilla <noreply@users.noreply.github.com>
+homepage: https://github.com/wittywilla/WittyMediaServer
+license: Apache-2.0
+description: |-
+  Your own media server: films, shows, music, photos, books, discs, TV and games
+  Runs as a background service, with a web app for every device on your home network.
+  FFmpeg comes with it, in its own folder.
+
+contents:
+  # Named, or an .rpm leaves the folder behind when it's removed. On a machine with no desktop
+  # nothing else makes the icon folders; where another package owns them too, they stay.
+  - dst: /usr/lib/wittymediaserver
+    type: dir
+    file_info: {mode: 0755}
+  - dst: /usr/share/icons/hicolor
+    type: dir
+    packager: rpm
+    file_info: {mode: 0755}
+  - dst: /usr/share/icons/hicolor/256x256
+    type: dir
+    packager: rpm
+    file_info: {mode: 0755}
+  - dst: /usr/share/icons/hicolor/256x256/apps
+    type: dir
+    packager: rpm
+    file_info: {mode: 0755}
+
+  # The program. The same layout as every other package: internal/layout.
+  - src: ${STAGE}/bin/
+    dst: /usr/lib/wittymediaserver/bin/
+    type: tree
+  - src: ${STAGE}/WittyMediaServer
+    dst: /usr/lib/wittymediaserver/WittyMediaServer
+    file_info: {mode: 0755}
+  - src: ${STAGE}/package-info.json
+    dst: /usr/lib/wittymediaserver/package-info.json
+    file_info: {mode: 0644}
+
+  # The command, on everyone's PATH.
+  - src: /usr/lib/wittymediaserver/bin/wittymediaserver
+    dst: /usr/bin/wittymediaserver
+    type: symlink
+
+  # The service.
+  - src: packaging/linux/wittymediaserver.service
+    dst: /usr/lib/systemd/system/wittymediaserver.service
+    file_info: {mode: 0644}
+
+  # In the app menu, for desktops.
+  - src: packaging/linux/wittymediaserver.desktop
+    dst: /usr/share/applications/wittymediaserver.desktop
+    file_info: {mode: 0644}
+  - src: ${STAGE}/share/wittymediaserver.png
+    dst: /usr/share/icons/hicolor/256x256/apps/wittymediaserver.png
+    file_info: {mode: 0644}
+
+  # Licences and notes.
+  - src: ${STAGE}/docs/
+    dst: /usr/share/doc/wittymediaserver/
+    type: tree
+
+scripts:
+  preinstall: packaging/linux/scripts/preinstall.sh
+  postinstall: packaging/linux/scripts/postinstall.sh
+  preremove: packaging/linux/scripts/preremove.sh
+  postremove: packaging/linux/scripts/postremove.sh
+
+deb:
+  compression: xz
+rpm:
+  compression: zstd
+  group: Applications/Multimedia

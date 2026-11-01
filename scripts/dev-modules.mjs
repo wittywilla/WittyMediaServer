@@ -235,7 +235,7 @@ function main() {
   writeChoices(top, choices)
 
   const list = scan(repos, choices.overrides)
-  const isServer = existsSync(join(top, 'cmd', 'wms'))
+  const isServer = existsSync(join(top, 'cmd', 'wittymediaserver')) || existsSync(join(top, 'cmd', 'wms'))
 
   if (!webOnly) {
     const own = describe(top)

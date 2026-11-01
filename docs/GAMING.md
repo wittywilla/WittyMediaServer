@@ -28,7 +28,7 @@ items with `console: rig`, and `POST /games/{id}/play` sends them there.
 ## The architecture
 
 ```
- Browser                     wms (the server)                 wittyplay-game-runner (one per game)
+ Browser                     wittymediaserver (the server)                 wittyplay-game-runner (one per game)
 ┌─────────────┐  WebRTC   ┌───────────────────────┐  pipes   ┌──────────────────────────┐
 │ <video>     │◄──────────│ stream.Session        │◄─────────│ libretro frontend        │
 │ gamepad,    │  H.264 or │  ├ pion WebRTC        │  raw     │  ├ loads one core        │

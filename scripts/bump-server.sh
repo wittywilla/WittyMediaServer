@@ -11,11 +11,11 @@ cd "$(git rev-parse --show-toplevel)"
 ver=${1:-}
 note=${2:-}
 [[ "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "usage: scripts/bump-server.sh <version> [note]" >&2; exit 2; }
-old=$(sed -n 's/^var version = "\(.*\)"$/\1/p' cmd/wms/main.go | tr -d '\r')
-[ -n "$old" ] || { echo "cmd/wms/main.go no longer says var version = \"...\"" >&2; exit 1; }
+old=$(sed -n 's/^var version = "\(.*\)"$/\1/p' cmd/wittymediaserver/main.go | tr -d '\r')
+[ -n "$old" ] || { echo "cmd/wittymediaserver/main.go no longer says var version = \"...\"" >&2; exit 1; }
 [ "$old" != "$ver" ] || { echo "the server is already $ver" >&2; exit 1; }
 
-sed -i "s/^var version = \"$old\"/var version = \"$ver\"/" cmd/wms/main.go
+sed -i "s/^var version = \"$old\"/var version = \"$ver\"/" cmd/wittymediaserver/main.go
 sed -i "0,/\"version\": \"$old\"/s//\"version\": \"$ver\"/" web/package.json
 # package-lock.json names it twice: for the package and for its root.
 sed -i "0,/\"version\": \"$old\"/s//\"version\": \"$ver\"/" web/package-lock.json

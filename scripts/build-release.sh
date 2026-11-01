@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Builds self-contained WittyMediaServer release archives for every supported
-# platform: the wms server + tray launcher + bundled FFmpeg + installers.
-# Nothing needs to be installed on the target machine.
+# Builds self-contained WittyMediaServer release archives for every supported platform:
+# the app, the server and its command line, FFmpeg, and on Windows the uninstaller. Nothing
+# needs to be installed on the target machine. The real installers are made from these
+# folders: packaging/windows, packaging/linux, packaging/macos.
+#
+# What a package holds, and what everything is called, is in internal/layout.
 #
 # Runs on Linux, macOS and Windows (Git Bash / MSYS2). Needs Go, Node.js,
 # curl, unzip and tar (with xz support). No zip tool is needed.
@@ -21,9 +24,11 @@
 #   FFMPEG_FREEBSD_DIR=   static FreeBSD ffmpeg/ffprobe: <dir>/<arch>/, <dir>/ffmpeg-freebsd-<arch>/
 #                         or (amd64 only) <dir>/ (see scripts/build-ffmpeg-static.sh)
 #   TRAY_DARWIN_DIR=      <dir>/<arch>/WittyMediaServer tray binaries built on a Mac (needs CGO)
-#   WMS_SIGNING_KEY=      release signing key (default ~/.wms-signing/release.key, see
-#                         docs/PUBLISHING.md); signs the checksum list so installs can update
-#   REQUIRE_SIGNING=1     fail when there is no signing key
+#   SIGN=1                sign the checksum list, so installs can update to this build from
+#                         Settings. Only for a real release: see docs/PUBLISHING.md. Test builds
+#                         stay unsigned, so a signed copy of a test build can't exist.
+#   WMS_SIGNING_KEY=      with SIGN=1, the key (default ~/.wms-signing/release.key)
+#   REQUIRE_SIGNING=1     with SIGN=1, fail when there is no signing key
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -51,7 +56,12 @@ HOSTEXE="$(go env GOEXE)"
 echo "==> building host tools"
 env -u GOOS -u GOARCH go build -o "$TOOLS/pack$HOSTEXE" ./scripts/pack
 env -u GOOS -u GOARCH go build -o "$TOOLS/genicon$HOSTEXE" ./scripts/genicon
-env -u GOOS -u GOARCH go build -o "$TOOLS/wms-sign$HOSTEXE" ./cmd/wms-sign
+env -u GOOS -u GOARCH go build -o "$TOOLS/release-sign$HOSTEXE" ./scripts/sign
+# Puts an icon, a description and a version on Windows programs, which is what Task Manager
+# and a file's Properties show. A build tool only: nothing of it ships.
+if ! [ -x "$TOOLS/go-winres$HOSTEXE" ]; then
+  GOWORK=off GOBIN="$(cd "$TOOLS" && pwd)" env -u GOOS -u GOARCH go install github.com/tc-hib/go-winres@v0.3.3
+fi
 
 # fetch <out> <url> [url...]: downloads the first URL that works (cached).
 fetch() {
@@ -134,34 +144,74 @@ bundle_ffmpeg() {
   esac
 }
 
-# Tray launcher (WittyMediaServer / WittyMediaServer.exe). Pure Go on Windows,
-# Linux and FreeBSD; macOS needs CGO so it is built on a Mac (TRAY_DARWIN_DIR)
-# or natively when this script runs on macOS.
+# winres <package folder> <arch> <description> <original file name> <gui|cli>: the Windows
+# resources for one program, left in its source folder for the next go build. run_build
+# removes them after, so a folder never holds another architecture's.
+winres() {
+  local dir="$1" arch="$2" desc="$3" name="$4" kind="$5"
+  local abs_icon; abs_icon="$(cd "$(dirname "$ICON_ICO")" && pwd)/$(basename "$ICON_ICO")"
+  (cd "$dir" && "$OLDPWD/$TOOLS/go-winres$HOSTEXE" simply --arch "$arch" --out rsrc --manifest "$kind" \
+    --icon "$abs_icon" --product-name WittyMediaServer --product-version "$VERSION" --file-version "$NUMERIC_VERSION.0" \
+    --file-description "$desc" --original-filename "$name" --copyright "Copyright WittyWilla" >/dev/null)
+}
+
+# The app people open (WittyMediaServer, WittyMediaServer.exe). Pure Go on Windows, Linux and
+# FreeBSD; macOS needs CGO so it is built on a Mac (TRAY_DARWIN_DIR) or natively when this
+# script runs on macOS.
 build_tray() {
   local out="$1" os="$2" arch="$3"
   case "$os" in
-    windows) CGO_ENABLED=0 GOOS=windows GOARCH="$arch" go build -trimpath -ldflags="-s -w -H=windowsgui -X main.version=${VERSION}" -o "$out/WittyMediaServer.exe" ./cmd/wms-tray ;;
+    windows)
+      winres cmd/wittymediaserver-tray "$arch" "WittyMediaServer: the app with the tray icon" WittyMediaServer.exe gui
+      CGO_ENABLED=0 GOOS=windows GOARCH="$arch" go build -trimpath -ldflags="-s -w -H=windowsgui -X main.version=${VERSION}" -o "$out/WittyMediaServer.exe" ./cmd/wittymediaserver-tray
+      rm -f cmd/wittymediaserver-tray/rsrc_windows_*.syso ;;
     darwin)
       if [ -n "${TRAY_DARWIN_DIR:-}" ] && [ -f "$TRAY_DARWIN_DIR/$arch/WittyMediaServer" ]; then
         cp "$TRAY_DARWIN_DIR/$arch/WittyMediaServer" "$out/WittyMediaServer"
       elif [ "$(uname -s)" = Darwin ]; then
-        CGO_ENABLED=1 GOOS=darwin GOARCH="$arch" go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$out/WittyMediaServer" ./cmd/wms-tray
+        CGO_ENABLED=1 GOOS=darwin GOARCH="$arch" go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$out/WittyMediaServer" ./cmd/wittymediaserver-tray
       else
-        echo "   (macOS tray launcher skipped: build it on a Mac or provide TRAY_DARWIN_DIR; wms still works)" >&2
+        echo "   (the macOS app is skipped: build it on a Mac or provide TRAY_DARWIN_DIR; the server still works)" >&2
       fi ;;
-    *) CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$out/WittyMediaServer" ./cmd/wms-tray ;;
+    *) CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$out/WittyMediaServer" ./cmd/wittymediaserver-tray ;;
   esac
 }
 
-# Wraps the macOS files in a menu-bar .app (LSUIElement) next to the plain binaries.
+# marker <file> <kind>: what says a folder is an installed package, and how it got there.
+marker() {
+  printf '{"product":"WittyMediaServer","kind":"%s"}\n' "$2" > "$1"
+}
+
+# Puts the macOS files where Apple wants them: the app in MacOS, everything else in Helpers.
 make_app_bundle() {
-  local out="$1" app="$1/WittyMediaServer.app/Contents"
+  local out="$1" arch="$2" app="$1/WittyMediaServer.app/Contents"
   [ -f "$out/WittyMediaServer" ] || return 0
-  mkdir -p "$app/MacOS" "$app/Resources"
-  cp "$out/WittyMediaServer" "$out/wms" "$app/MacOS/"
-  [ -d "$out/modules" ] && cp -R "$out/modules" "$app/MacOS/"
-  [ -d "$out/bin" ] && cp -R "$out/bin" "$app/MacOS/"
+  mkdir -p "$app/MacOS" "$app/Helpers" "$app/Resources"
+  mv "$out/WittyMediaServer" "$app/MacOS/"
+  mv "$out/bin"/* "$app/Helpers/" && rmdir "$out/bin"
+  mv "$out/package-info.json" "$app/Resources/"
+  # A starter set goes with the app, so whatever copies the app has it too (layout.Modules).
+  if [ -d "$out/modules" ]; then mv "$out/modules" "$app/Resources/modules"; fi
   "$TOOLS/genicon$HOSTEXE" "$app/Resources/icon.png" 512
+  # A Mac's uninstaller is an app of its own, so it's found the way an app is.
+  local un="$out/Uninstall WittyMediaServer.app/Contents"
+  mkdir -p "$un/MacOS"
+  CGO_ENABLED=0 GOOS=darwin GOARCH="$arch" go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$un/MacOS/Uninstall WittyMediaServer" ./cmd/wittymediaserver-uninstall
+  cat > "$un/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleName</key><string>Uninstall WittyMediaServer</string>
+  <key>CFBundleDisplayName</key><string>Uninstall WittyMediaServer</string>
+  <key>CFBundleIdentifier</key><string>com.wittywilla.wittymediaserver.uninstall</string>
+  <key>CFBundleVersion</key><string>${NUMERIC_VERSION}</string>
+  <key>CFBundleShortVersionString</key><string>${VERSION}</string>
+  <key>CFBundleExecutable</key><string>Uninstall WittyMediaServer</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>LSMinimumSystemVersion</key><string>11.0</string>
+  <key>NSHighResolutionCapable</key><true/>
+</dict></plist>
+EOF
   cat > "$app/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -169,7 +219,7 @@ make_app_bundle() {
   <key>CFBundleName</key><string>WittyMediaServer</string>
   <key>CFBundleDisplayName</key><string>WittyMediaServer</string>
   <key>CFBundleIdentifier</key><string>com.wittywilla.wittymediaserver</string>
-  <key>CFBundleVersion</key><string>${VERSION}</string>
+  <key>CFBundleVersion</key><string>${NUMERIC_VERSION}</string>
   <key>CFBundleShortVersionString</key><string>${VERSION}</string>
   <key>CFBundleExecutable</key><string>WittyMediaServer</string>
   <key>CFBundlePackageType</key><string>APPL</string>
@@ -179,6 +229,12 @@ make_app_bundle() {
 </dict></plist>
 EOF
 }
+
+# Windows wants four numbers.
+NUMERIC_VERSION="$(printf '%s' "$VERSION" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
+case "$NUMERIC_VERSION" in [0-9]*.[0-9]*.[0-9]*) ;; *) NUMERIC_VERSION=0.0.0 ;; esac
+ICON_ICO="$CACHE/icon.ico"
+"$TOOLS/genicon$HOSTEXE" "$ICON_ICO"
 
 ARCHIVES=()
 for t in "${TARGETS[@]}"; do
@@ -203,15 +259,18 @@ for t in "${TARGETS[@]}"; do
     fi
     rm -rf "$out.being-replaced"
   fi
-  rm -rf "$out.zip" "$out.tar.gz" "$out-setup.exe"; mkdir -p "$out"
+  rm -rf "$out.zip" "$out.tar.gz"; mkdir -p "$out/bin" "$out/docs"
   echo "==> $t"
   ext=""; [ "$os" = windows ] && ext=".exe"
   server_flags="-s -w -X main.version=${VERSION}"
   if [ -n "${SCREENSCRAPER_DEV_ID:-}" ] && [ -n "${SCREENSCRAPER_DEV_PASSWORD:-}" ]; then
     server_flags="$server_flags -X github.com/wittywilla/wittymediaserver/internal/gamemeta.DevID=$SCREENSCRAPER_DEV_ID -X github.com/wittywilla/wittymediaserver/internal/gamemeta.DevPassword=$SCREENSCRAPER_DEV_PASSWORD"
   fi
-  CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath -ldflags="$server_flags" -o "$out/wms$ext" ./cmd/wms
+  [ "$os" = windows ] && winres cmd/wittymediaserver "$arch" "WittyMediaServer: the server and its command line" wittymediaserver.exe cli
+  CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath -ldflags="$server_flags" -o "$out/bin/wittymediaserver$ext" ./cmd/wittymediaserver
+  rm -f cmd/wittymediaserver/rsrc_windows_*.syso
   build_tray "$out" "$os" "$arch"
+  marker "$out/package-info.json" archive
   # A starter set of signed modules, for a package that works offline (docs/MODULES.md). It's
   # only ever copied: nothing here builds a module.
   if [ -n "${WMS_STARTER:-}" ]; then
@@ -222,30 +281,27 @@ for t in "${TARGETS[@]}"; do
   fi
   if [ "${SKIP_FFMPEG:-}" != "1" ]; then
     if ! bundle_ffmpeg "$out" "$os" "$arch"; then
-      echo "   !! no FFmpeg bundled for $t (wms will use ffmpeg from PATH on that machine)" >&2
-      rmdir "$out/bin" 2>/dev/null || true
+      echo "   !! no FFmpeg bundled for $t (the server will use ffmpeg from PATH on that machine)" >&2
       MISSING+=("$t")
     fi
   fi
-  cp README.md LICENSE NOTICE THIRD_PARTY_LICENSES.md CHANGELOG.md "$out/" 2>/dev/null || true
+  cp README.md LICENSE NOTICE THIRD_PARTY_LICENSES.md CHANGELOG.md "$out/docs/"
   case "$os" in
-    windows) cp scripts/install.ps1 scripts/uninstall.ps1 scripts/start-wms.cmd "$out/"; "$TOOLS/genicon$HOSTEXE" "$out/icon.ico"
-             # Per-user installer and uninstaller (also installs an unpacked folder).
-             CGO_ENABLED=0 GOOS=windows GOARCH="$arch" go build -trimpath -ldflags="-s -w -H=windowsgui -X main.version=${VERSION}" -o "$out/wms-setup.exe" ./cmd/wms-setup ;;
-    darwin)  cp scripts/install.sh "$out/"; make_app_bundle "$out" ;;
-    *)       cp scripts/install.sh "$out/"; "$TOOLS/genicon$HOSTEXE" "$out/icon.png" 256
-             sed "s|@PREFIX@|/opt/wittymediaserver|g" scripts/wittymediaserver.desktop > "$out/wittymediaserver.desktop" ;;
+    windows)
+      winres cmd/wittymediaserver-uninstall "$arch" "Uninstall WittyMediaServer" "Uninstall WittyMediaServer.exe" gui
+      CGO_ENABLED=0 GOOS=windows GOARCH="$arch" go build -trimpath -ldflags="-s -w -H=windowsgui -X main.version=${VERSION}" -o "$out/Uninstall WittyMediaServer.exe" ./cmd/wittymediaserver-uninstall
+      rm -f cmd/wittymediaserver-uninstall/rsrc_windows_*.syso ;;
+    darwin)  make_app_bundle "$out" "$arch" ;;
+    *)       cp packaging/install.sh "$out/"; mkdir -p "$out/share"; "$TOOLS/genicon$HOSTEXE" "$out/share/wittymediaserver.png" 256
+             cp packaging/linux/wittymediaserver.desktop "$out/share/"
+             [ "$os" = freebsd ] && cp packaging/freebsd/wittymediaserver.rc "$out/share/" ;;
   esac
+  # So a copy of 0.5.2-alpha or older can update to this one from Settings. Installers don't carry it.
+  CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath -ldflags="-s -w" -o "$out/wms$ext" ./cmd/wms-forwarder
   archive="$name.tar.gz"; [ "$os" = windows ] && archive="$name.zip"
   "$TOOLS/pack$HOSTEXE" "$out" "$DIST/$archive"
   ARCHIVES+=("$archive")
   echo "   -> $DIST/$archive"
-  if [ "$os" = windows ]; then
-    # The setup .exe is the installer with the package appended.
-    cat "$out/wms-setup.exe" "$DIST/$archive" > "$DIST/$name-setup.exe"
-    ARCHIVES+=("$name-setup.exe")
-    echo "   -> $DIST/$name-setup.exe"
-  fi
 done
 
 SUM="sha256sum"; command -v sha256sum >/dev/null 2>&1 || SUM="shasum -a 256"
@@ -254,9 +310,11 @@ SUMS="wittymediaserver-${VERSION}-SHA256SUMS.txt"
 # Sign the checksum list: the in-app updater installs nothing without it.
 rm -f "$DIST/$SUMS.sig"
 KEY="${WMS_SIGNING_KEY:-$HOME/.wms-signing/release.key}"
-if [ -f "$KEY" ]; then
-  "$TOOLS/wms-sign$HOSTEXE" sign -key "$KEY" "$DIST/$SUMS"
-  "$TOOLS/wms-sign$HOSTEXE" verify "$DIST/$SUMS" || { echo "error: the signing key is not the one built into wms (internal/update/keys.go)" >&2; exit 1; }
+if [ "${SIGN:-}" != "1" ]; then
+  echo "   (not signed: SIGN=1 signs a real release)"
+elif [ -f "$KEY" ]; then
+  "$TOOLS/release-sign$HOSTEXE" sign -key "$KEY" "$DIST/$SUMS"
+  "$TOOLS/release-sign$HOSTEXE" verify "$DIST/$SUMS" || { echo "error: the signing key is not the one built into the server (internal/update/keys.go)" >&2; exit 1; }
 else
   echo "   !! no signing key at $KEY: $SUMS is not signed, and installs can't update to this release from Settings" >&2
   [ "${REQUIRE_SIGNING:-}" = "1" ] && exit 1

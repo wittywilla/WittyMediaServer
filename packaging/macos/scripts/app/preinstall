@@ -1,0 +1,17 @@
+#!/bin/sh
+# Before the new app goes in: stop what's running, and take over from a copy that the install.sh of
+# 0.5.2-alpha or older put in /opt. Its data folder stays, and the service part below reuses it.
+PLIST=/Library/LaunchDaemons/com.wittywilla.wittymediaserver.plist
+if [ -f "$PLIST" ]; then
+  launchctl bootout system "$PLIST" 2>/dev/null || true
+fi
+pkill -x WittyMediaServer 2>/dev/null || true
+OLD=/opt/wittymediaserver
+if [ -f "$OLD/wms" ]; then
+  for f in wms wittyplay-host WittyMediaServer icon.png LICENSE NOTICE README.md CHANGELOG.md THIRD_PARTY_LICENSES.md; do
+    rm -f "$OLD/$f"
+  done
+  rm -rf "$OLD/bin" "$OLD/.update"
+  rmdir "$OLD" 2>/dev/null || true
+fi
+exit 0

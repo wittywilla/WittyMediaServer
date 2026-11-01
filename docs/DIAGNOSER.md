@@ -120,8 +120,8 @@ To report a disc problem, attach a report. Never attach the disc image.
 
 The code is `internal/diagnose`, using the exported API of WittyDVD, WittyBluray and WittyDisc, and no changes to
 them: it has to build against their published versions. File systems and drives are in `internal/sysinfo`. The
-routes are `/api/diagnose/...` ([API](CLIENT-API.md)). The command-line tools, `wms disc`, `wms dvd` and
-`wms bluray`, stay for engine work: [DVD](DVD.md#diagnosing-a-disc), [Blu-ray](BLURAY.md#diagnosing-a-disc).
+routes are `/api/diagnose/...` ([API](CLIENT-API.md)). The command-line tools, `wittymediaserver disc`, `wittymediaserver dvd` and
+`wittymediaserver bluray`, stay for engine work: [DVD](DVD.md#diagnosing-a-disc), [Blu-ray](BLURAY.md#diagnosing-a-disc).
 
 ---
 <sub>WittyMediaServer documentation · [Back to the README](../README.md)</sub>

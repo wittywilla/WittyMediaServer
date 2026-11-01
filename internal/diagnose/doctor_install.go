@@ -63,7 +63,7 @@ func checkConfigFile(_ context.Context, e *DoctorEnv) []Issue {
 			Steps: []string{
 				"Open " + name + " in a text editor. It's JSON: names and text in double quotes, with a comma between entries and none after the last.",
 				"Only the names in docs/CONFIG.md are allowed, so a misspelled one stops the server. Correct it or remove it.",
-				"Or rename the file to wms.json.old, and the server starts with its defaults. wms config init writes a new one.",
+				"Or rename the file to wms.json.old, and the server starts with its defaults. wittymediaserver config init writes a new one.",
 			}})
 		return out
 	}
@@ -135,7 +135,7 @@ func checkFFmpeg(_ context.Context, e *DoctorEnv) []Issue {
 }
 
 func ffmpegSteps() []string {
-	last := "If it's somewhere else, set WMS_FFMPEG to its full path, or \"ffmpeg\" in wms.json. Then run wms doctor again."
+	last := "If it's somewhere else, set WMS_FFMPEG to its full path, or \"ffmpeg\" in wms.json. Then run wittymediaserver doctor again."
 	switch runtime.GOOS {
 	case "windows":
 		return []string{"Reinstall WittyMediaServer, which brings its own copy; or install one: winget install Gyan.FFmpeg", "Open a new terminal and check that this works: ffmpeg -version", last}
@@ -166,7 +166,7 @@ func checkFolders(_ context.Context, e *DoctorEnv) []Issue {
 		if err == nil && !st.IsDir() {
 			out = append(out, Issue{Key: "folders:" + f.name, Severity: SevProblem, Title: "The " + f.name + " folder is a file", Safety: SafetyManual,
 				What: f.dir + " should be a folder, and it's a file.", Fix: "Move that file away, or choose another folder in wms.json.",
-				Steps: []string{"Rename or move " + f.dir + ".", "Run wms doctor again."}})
+				Steps: []string{"Rename or move " + f.dir + ".", "Run wittymediaserver doctor again."}})
 			continue
 		}
 		if err != nil {
@@ -342,7 +342,7 @@ func checkPort(ctx context.Context, e *DoctorEnv) []Issue {
 			return []Issue{{Key: "port:version", Severity: SevWarn, Title: "A server of a different version is already running", Safety: SafetyManual,
 				What:  fmt.Sprintf("WittyMediaServer %s answers on port %d, and this program is %s. Running a command from one install against another's folder can change its files.", ver, port, e.Version),
 				Fix:   "Stop the other server, or point this command at its folder.",
-				Steps: []string{"If it's an older install, stop it, from its tray icon or service, before starting this one.", "If that's the install you meant, use its own program: run wms config path beside it to see where it is."}}}
+				Steps: []string{"If it's an older install, stop it, from its tray icon or service, before starting this one.", "If that's the install you meant, use its own program: run wittymediaserver config path beside it to see where it is."}}}
 		}
 		return []Issue{{Key: "port:other", Severity: SevWarn, Title: "Another copy of this server is using the port", Safety: SafetyManual,
 			What:  fmt.Sprintf("A WittyMediaServer on a different data folder answers on port %d, so a server on this folder can't start there.", port),
@@ -513,6 +513,6 @@ func checkLayout(_ context.Context, e *DoctorEnv) []Issue {
 		Steps: []string{
 			"Stop the server, and move the folder somewhere outside the program's folder.",
 			"Point the server at it with dataDir in wms.json, or -data.",
-			"Or, if you do want it all in one folder, run wms config init --portable.",
+			"Or, if you do want it all in one folder, run wittymediaserver config init --portable.",
 		}}}
 }

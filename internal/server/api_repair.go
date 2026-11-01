@@ -15,7 +15,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
-// Settings, Repair: the same doctor as `wms doctor`, run by the server on itself. One thing
+// Settings, Repair: the same doctor as `wittymediaserver doctor`, run by the server on itself. One thing
 // runs at a time, in the background, and this page can be left and come back to. Anything
 // that changes data asks for the password again, as a reset does. Paths only ever
 // come from what the server already knows, except the new place of a moved drive, which an

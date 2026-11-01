@@ -76,12 +76,25 @@ jobs:
         run: |
           for t in windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 linux/arm linux/386 freebsd/amd64 freebsd/arm64; do
             echo "== $t"
-            GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wms || exit 1
-            case $t in darwin/*) ;; *) GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wms-tray || exit 1 ;; esac
+            GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wittymediaserver || exit 1
+            case $t in darwin/*) ;; *) GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wittymediaserver-tray || exit 1 ;; esac
+            case $t in windows/*|darwin/*) GOOS=${t%/*} GOARCH=${t#*/} CGO_ENABLED=0 go build -o /dev/null ./cmd/wittymediaserver-uninstall || exit 1 ;; esac
           done
       - name: Build-script smoke test (no FFmpeg downloads)
         run: |
           SKIP_WEB=1 SKIP_FFMPEG=1 scripts/build-release.sh ci-test linux/amd64 windows/amd64
+          # What a package holds, by name: internal/layout, docs/INSTALL.md.
+          test -x dist/wittymediaserver-ci-test-linux-amd64/bin/wittymediaserver
+          test -x dist/wittymediaserver-ci-test-linux-amd64/WittyMediaServer
+          test -f dist/wittymediaserver-ci-test-windows-amd64/bin/wittymediaserver.exe
+          test -f dist/wittymediaserver-ci-test-windows-amd64/WittyMediaServer.exe
+          test -f "dist/wittymediaserver-ci-test-windows-amd64/Uninstall WittyMediaServer.exe"
+          SKIP_WEB=1 SKIP_FFMPEG=1 scripts/build-release.sh ci-test freebsd/amd64
+          test -x dist/wittymediaserver-ci-test-freebsd-amd64/bin/wittymediaserver
+          test -x dist/wittymediaserver-ci-test-freebsd-amd64/WittyMediaServer
+          test -f dist/wittymediaserver-ci-test-freebsd-amd64/share/wittymediaserver.rc
+          test -x dist/wittymediaserver-ci-test-freebsd-amd64/install.sh
+          dist/wittymediaserver-ci-test-linux-amd64/bin/wittymediaserver version
           # A package holds no module unless a starter set was asked for.
           test ! -e dist/wittymediaserver-ci-test-linux-amd64/modules
 

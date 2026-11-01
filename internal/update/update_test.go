@@ -22,6 +22,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/layout"
 )
 
 func TestCompare(t *testing.T) {
@@ -280,6 +282,8 @@ func install(t *testing.T) string {
 	dir := filepath.Join(t.TempDir(), "WittyMediaServer")
 	writeFile(t, filepath.Join(dir, "wms.exe"), []byte("old wms"))
 	writeFile(t, filepath.Join(dir, "wms"), []byte("old wms"))
+	writeFile(t, filepath.Join(dir, "bin", layout.Exe(layout.ServerCommand)), []byte("old wms"))
+	writeFile(t, filepath.Join(dir, layout.Marker), []byte(`{"product":"WittyMediaServer","kind":"msi"}`))
 	writeFile(t, filepath.Join(dir, "LICENSE"), []byte("licence"))
 	writeFile(t, filepath.Join(dir, "bin", "ffmpeg.exe"), []byte("old ff"))
 	writeFile(t, filepath.Join(dir, "mine.txt"), []byte("the owner's own file"))
@@ -398,18 +402,17 @@ func TestWithin(t *testing.T) {
 	}
 }
 
+// A package without the server in its bin folder is refused, whatever else is in it.
 // TestApply runs a whole update against a fake release server: signature,
 // checksum, download, swap and restart, with the data folder untouched.
 func TestApply(t *testing.T) {
 	priv, pub := newKey(t)
-	exe := "wms"
-	if runtime.GOOS == "windows" {
-		exe = "wms.exe"
-	}
+	exe := filepath.Join("bin", layout.Exe(layout.ServerCommand))
 	ver := "9.9.9-alpha"
 	name := ArchiveName(ver, runtime.GOOS, runtime.GOARCH)
 	files := []pkgFile{
-		{name: "pkg/" + exe, body: "new wms", mode: 0o755},
+		{name: "pkg/" + filepath.ToSlash(exe), body: "new wms", mode: 0o755},
+		{name: "pkg/" + layout.Marker, body: `{"product":"WittyMediaServer","kind":"archive"}`},
 		{name: "pkg/LICENSE", body: "new licence"},
 		{name: "pkg/data/library.db", body: "EVIL"},
 	}
@@ -517,6 +520,35 @@ func TestApply(t *testing.T) {
 		t.Error("old program not cleaned up")
 	}
 	checkDataKept(t, dir)
+	if !strings.Contains(readFile(t, filepath.Join(dir, layout.Marker)), `"msi"`) {
+		t.Error("an update forgot how this copy was installed")
+	}
+}
+
+// A package manager owns its files: Settings says how to update, and doesn't touch them.
+func TestPackagedCopiesPointToTheirInstaller(t *testing.T) {
+	for kind, want := range map[string]string{layout.KindDeb: "apt", layout.KindRPM: "dnf", layout.KindPkg: "installer", layout.KindFreeBSD: "pkg add"} {
+		dir := install(t)
+		writeFile(t, filepath.Join(dir, layout.Marker), []byte(`{"product":"WittyMediaServer","kind":"`+kind+`"}`))
+		u := New("0.3.0-alpha", dir, nil, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+		u.Restart = func() {}
+		if got := u.cannotApply(); !strings.Contains(got, want) {
+			t.Errorf("%s: %q", kind, got)
+		}
+	}
+}
+
+// A copy from before 0.6.0, or built from source, can't replace its own files.
+func TestNoMarkerNoUpdate(t *testing.T) {
+	dir := install(t)
+	if err := os.Remove(filepath.Join(dir, layout.Marker)); err != nil {
+		t.Fatal(err)
+	}
+	u := New("0.3.0-alpha", dir, nil, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	u.Restart = func() {}
+	if got := u.cannotApply(); !strings.Contains(got, "wasn't installed from a release package") {
+		t.Errorf("got %q", got)
+	}
 }
 
 // The Windows setup is a program with the package appended.

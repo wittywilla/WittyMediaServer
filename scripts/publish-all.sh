@@ -355,7 +355,7 @@ if should_run "$SERVER"; then
     fi
   fi
   v=""
-  [ $server_tag = 1 ] && v=$(sed -n 's/^var version = "\(.*\)"/\1/p' "$dir/cmd/wms/main.go" | tr -d '\r')
+  [ $server_tag = 1 ] && v=$(sed -n 's/^var version = "\(.*\)"/\1/p' "$dir/cmd/wittymediaserver/main.go" | tr -d '\r')
   push_and_tag "$SERVER" "$v"
   [ -n "$v" ] && wait_release "$SERVER" "$v" 1
 fi

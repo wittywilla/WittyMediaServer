@@ -80,7 +80,7 @@ there. That key is a secret like your API keys: anyone with your server's databa
 **Only some parts?** Anything you untick stays as it is on the server. The exception is what depends on something you're replacing: if you replace the library, watch history
 can't stay, because its numbers would point at other titles. The page says so.
 
-**Changed your mind?** The page has **Undo the last restore**, and `wms backup undo` does the same. The newest three safety copies are kept.
+**Changed your mind?** The page has **Undo the last restore**, and `wittymediaserver backup undo` does the same. The newest three safety copies are kept.
 
 ## Starting again from a reset
 
@@ -104,7 +104,7 @@ server's console, just as making the first account does.
 ## Moving to another machine or drive
 
 Restore as usual, on the new machine. The library's folders are kept as they were, so if the drive letters or paths differ, the next step is *Settings → Repair → Moved a
-drive?*, or `wms doctor remap --from <old> --to <new>`, which changes every path after checking the files are there. Watch history, matches and edits stay. A
+drive?*, or `wittymediaserver doctor remap --from <old> --to <new>`, which changes every path after checking the files are there. Watch history, matches and edits stay. A
 backup from an older version is brought up to date as it's restored. One from a newer version is refused: update this server first.
 
 ## Why a backup might be refused
@@ -123,16 +123,16 @@ A file refused for damage may be saved by an earlier backup. If you're sure it's
 
 ## From the command line
 
-Everything works with no server running, which is the point of it. `wms backup help` lists it all.
+Everything works with no server running, which is the point of it. `wittymediaserver backup help` lists it all.
 
 ```bash
-wms backup create -o /mnt/usb/server.zip --ask-password      # everything normally included, with a password
-wms backup parts                                             # what can be included, and how large each is
-wms backup create --parts library,settings,users,history     # only these, with secrets left out
-wms backup list
-wms backup inspect server.zip --ask-password                 # check it, and say what's in it; nothing changes
-wms backup restore server.zip --ask-password                 # with a server running, it happens as that server restarts
-wms backup undo                                              # put back what the last restore replaced
+wittymediaserver backup create -o /mnt/usb/server.zip --ask-password      # everything normally included, with a password
+wittymediaserver backup parts                                             # what can be included, and how large each is
+wittymediaserver backup create --parts library,settings,users,history     # only these, with secrets left out
+wittymediaserver backup list
+wittymediaserver backup inspect server.zip --ask-password                 # check it, and say what's in it; nothing changes
+wittymediaserver backup restore server.zip --ask-password                 # with a server running, it happens as that server restarts
+wittymediaserver backup undo                                              # put back what the last restore replaced
 ```
 
 A password can't be given on the command line, where other programs could see it. Use `--ask-password`, `--password-file <file>`, `--password-stdin`, or the

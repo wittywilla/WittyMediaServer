@@ -59,7 +59,7 @@ func checkRestoreState(_ context.Context, e *DoctorEnv) []Issue {
 		out = append(out, Issue{Key: "restore-state:cut-off", Severity: SevProblem, Title: "A restore was cut off part way", Safety: SafetyManual,
 			What:  "The server stopped while it was swapping a backup in. Everything is in its safety copy, " + name + ".",
 			Fix:   "Start the server. It finds this, and puts everything back as it was before it does anything else.",
-			Steps: []string{"Start the server, or run a command that does, such as wms backup cancel followed by a start.", "Check the Backup page in Settings, which says what happened."}})
+			Steps: []string{"Start the server, or run a command that does, such as wittymediaserver backup cancel followed by a start.", "Check the Backup page in Settings, which says what happened."}})
 	}
 	if l := backup.Last(f); l != nil && !l.OK && l.Error != "" && now.Sub(l.At) < 7*24*time.Hour {
 		out = append(out, Issue{Key: "restore-state:failed", Severity: SevInfo, Title: "The last restore didn't work", Safety: SafetyManual,

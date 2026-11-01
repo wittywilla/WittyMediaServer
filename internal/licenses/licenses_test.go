@@ -103,7 +103,7 @@ func TestEveryGoLibraryIsListed(t *testing.T) {
 		t.Skip("no go command")
 	}
 	root := filepath.Join("..", "..")
-	targets := []string{"./cmd/wms", "./cmd/wms-tray", "./cmd/wms-setup"}
+	targets := []string{"./cmd/wittymediaserver", "./cmd/wittymediaserver-tray", "./cmd/wittymediaserver-uninstall"}
 	cmd := exec.Command("go", append([]string{"list", "-e", "-deps", "-f", `{{with .Module}}{{if not .Main}}{{.Path}}{{end}}{{end}}`}, targets...)...)
 	cmd.Dir = root
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")

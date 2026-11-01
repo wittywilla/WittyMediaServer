@@ -138,14 +138,14 @@ programs, decoy titles, broken IFOs with an intact backup, menus in only some la
 The easy way is *Settings → [WittyDiagnoser](DIAGNOSER.md)*: it checks a disc and makes a report to attach, with nothing copyrighted in it. The `wms` command-line tool inspects a disc without the web interface:
 
 ```bash
-wms dvd info  MY_DISC.ISO               # titles, menus, languages, first-play program
-wms dvd walk  MY_DISC.ISO 1             # simulate inserting the disc and press button 1
-wms dvd crawl MY_DISC.ISO               # press every button of every menu; reports dead ends
-wms dvd pgc   MY_DISC.ISO vtsm 12 26    # show the commands of one program chain
-wms dvd render MY_DISC.ISO out/         # save the first menu's highlight images
+wittymediaserver dvd info  MY_DISC.ISO               # titles, menus, languages, first-play program
+wittymediaserver dvd walk  MY_DISC.ISO 1             # simulate inserting the disc and press button 1
+wittymediaserver dvd crawl MY_DISC.ISO               # press every button of every menu; reports dead ends
+wittymediaserver dvd pgc   MY_DISC.ISO vtsm 12 26    # show the commands of one program chain
+wittymediaserver dvd render MY_DISC.ISO out/         # save the first menu's highlight images
 ```
 
-On Windows run these in a terminal in the WittyMediaServer folder (`.\wms.exe dvd info …`).
+On Windows run these in a terminal in the WittyMediaServer folder (`.\bin\wittymediaserver.exe dvd info …`).
 The same commands exist as a standalone tool, `wittydvd`, from the
 [WittyDVD repository](https://github.com/wittywilla/WittyDVD) (`wittydvd info MY_DISC.ISO`).
 When reporting a disc problem, attach the output of `info` and `crawl` — never the disc image.

@@ -17,23 +17,23 @@ The server looks for `wms.json` in this order and uses the first one it finds:
 | # | Where | When to use it |
 |---|---|---|
 | 1 | the file given with `-config <file>` or the `WMS_CONFIG` environment variable | services, scripts, several servers on one machine |
-| 2 | **next to the program** (`wms.exe` / `wms`) | portable mode — see below |
+| 2 | **in the program's top folder**, beside `WittyMediaServer.exe` and `bin` | portable mode — see below |
 | 3 | your user config folder: | a normal install |
 | | Windows: `%APPDATA%\WittyMediaServer\wms.json` | |
 | | macOS: `~/Library/Application Support/WittyMediaServer/wms.json` | |
 | | Linux/BSD: `~/.config/wittymediaserver/wms.json` | |
-| 4 | Linux/BSD only: `/etc/wittymediaserver/wms.json` | system services |
+| 4 | Linux/BSD only: `/etc/wittymediaserver/wms.json`; on FreeBSD `/usr/local/etc/wittymediaserver/wms.json` first | system services |
 
 Create a starter file with:
 
 ```bash
-wms config init
+wittymediaserver config init
 ```
 
 and check which file and folders are in use with:
 
 ```bash
-wms config path
+wittymediaserver config path
 ```
 
 ## What you can set
@@ -104,13 +104,13 @@ A typo in a setting name stops the server with a clear message instead of being 
 Portable mode keeps **everything** — program, database, artwork, logs — in one folder, so you
 can run the server from a USB drive or an external disk, or keep several independent copies.
 
-To make any folder portable, put a `wms.json` next to `wms.exe` (or `wms`):
+To make an unpacked folder portable, put a `wms.json` in its top folder, beside `bin`:
 
 ```json
 { "portable": true }
 ```
 
-or run `wms config init --portable`. The data then lives in a `data` folder beside the
+or run `wittymediaserver config init --portable`. The data then lives in a `data` folder beside the
 program. The portable download already contains this file.
 
 > Keep a portable server on a drive that stays plugged in while it runs, and back up the whole
@@ -174,8 +174,8 @@ unless you send a file yourself, for example with a bug report.
 - **With no server running** — for a server that won't start:
 
   ```bash
-  wms logs zip [-data <dir>] [-o out.zip] [-days N] [--raw]   # sanitized unless --raw
-  wms logs sanitize [-data <dir>] [-o out.txt] <file>         # a sanitized copy of any text log
+  wittymediaserver logs zip [-data <dir>] [-o out.zip] [-days N] [--raw]   # sanitized unless --raw
+  wittymediaserver logs sanitize [-data <dir>] [-o out.txt] <file>         # a sanitized copy of any text log
   ```
 
   They only read. The database is looked at for the names to hide. If it's too broken to read they say so and carry on,

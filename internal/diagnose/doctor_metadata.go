@@ -120,7 +120,7 @@ func remapStep(e *DoctorEnv, path string) string {
 	if e.InServer {
 		return "If it moved, say where it went, with the button below."
 	}
-	return "If it moved: wms doctor remap --from \"" + path + "\" --to \"<the new folder>\" --fix, or use Moved a drive? in Settings, Repair."
+	return "If it moved: wittymediaserver doctor remap --from \"" + path + "\" --to \"<the new folder>\" --fix, or use Moved a drive? in Settings, Repair."
 }
 
 func hashOf(s string) string {
@@ -314,7 +314,7 @@ func checkArtRefs(ctx context.Context, e *DoctorEnv) []Issue {
 			Fix:  "Check the artwork folder.",
 			Steps: []string{
 				"Check that the drive holding " + e.Images + " is there.",
-				"Run wms config path to see which folder is in use, and check metadataDir in wms.json.",
+				"Run wittymediaserver config path to see which folder is in use, and check metadataDir in wms.json.",
 				"Run this check again. If the pictures really are gone, a refresh of each library fetches them again.",
 			}}}
 	}

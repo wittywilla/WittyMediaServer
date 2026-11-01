@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/config"
+	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -159,12 +159,13 @@ func (s *Server) unpackLimit() int64 {
 	return int64(gb) << 30
 }
 
-// findProgram looks beside the server, in bin/ and in the development build folder.
+// findProgram looks in the program's bin folder, beside it, and in the development
+// build folder.
 func (s *Server) findProgram(name string) string {
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
-	dirs := []string{config.ProgramDir(), filepath.Join(config.ProgramDir(), "bin")}
+	dirs := layout.Current().ProgramDirs()
 	// Relative to wherever it was started, so never for a real install: that can be a
 	// folder other people can write to.
 	if s.Cfg != nil && s.Cfg.Dev {

@@ -39,6 +39,8 @@ or licence. The rest already exist on GitHub and only need pushing.
 | WittyStats | A statistics screen you arrange yourself, as a page of its own | New | **Create** |
 | WittyModuleCatalog | The signed list of modules and versions that a server's store reads. Holds no module code | New | **Create** |
 
+Each desktop product makes its own installers, with the same rules for names and for removing everything: `packaging/` in the player's repository, `desktop/` in the client's and the reader's.
+
 `clients/desktop` and `clients/mobile` were older, thinner shells around the web app. WittyMediaClient
 replaces both, so they were retired rather than moved. Their history stays in this repository's history.
 

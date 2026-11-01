@@ -21,8 +21,8 @@ run time, so nothing from them is needed here. [docs/MODULES.md](docs/MODULES.md
 git clone https://github.com/wittywilla/WittyMediaServer
 cd WittyMediaServer
 cd web && npm install && npm run build && cd ..   # the web interface -> web/dist
-go build -o wms ./cmd/wms                          # the server (wms.exe on Windows)
-./wms serve -ffmpeg /path/to/ffmpeg -data ./devdata -listen :9797
+go build -o wittymediaserver ./cmd/wittymediaserver   # the server (wittymediaserver.exe on Windows)
+./wittymediaserver serve -ffmpeg /path/to/ffmpeg -data ./devdata -listen :9797
 ```
 
 Open <http://localhost:9797>. Use a separate `-data` folder while developing so your real
@@ -44,14 +44,19 @@ cd web && npx tsc --noEmit -p . && npm run build
 ```
 
 Real-disc test: `WMS_TEST_ISO=/path/to/disc.iso go test ./internal/wittydvd`.
-To check a whole disc's menus: `go run ./cmd/wms dvd crawl /path/to/disc.iso`.
+To check a whole disc's menus: `go run ./cmd/wittymediaserver dvd crawl /path/to/disc.iso`.
 
 ## Where things are
 
 | Folder | What it is |
 |---|---|
-| `cmd/wms` | the server and command-line tools |
-| `cmd/wms-tray` | the tray / menu-bar launcher |
+| `cmd/wittymediaserver` | the server and its command line |
+| `cmd/wittymediaserver-tray` | the app people open: the tray or menu-bar icon |
+| `cmd/wittymediaserver-uninstall` | the uninstaller with windows and buttons, on Windows and macOS |
+| `internal/layout` | what a package holds, and what each program is called |
+| `internal/uninstall` | removing everything, for every system |
+| `packaging/` | the installers: MSI, `.deb`, `.rpm`, `.pkg` |
+| `scripts/` | developer tools, none of which ship: [its README](scripts/README.md) |
 | `internal/wittydvd` | **WittyDVD**: IFO parser, command VM, navigator, NAV packs, sub-pictures |
 | `internal/dvdsession` | turns WittyDVD steps into what the browser shows (streams, buttons, subtitles) |
 | `internal/library` | libraries, scanner, TV parsing, TMDB/TheTVDB clients, NFO read/write |
@@ -67,7 +72,7 @@ To check a whole disc's menus: `go run ./cmd/wms dvd crawl /path/to/disc.iso`.
   from the public DVD-Video structure.
 - Match the surrounding code style; explain *why* in comments, not *what*.
 - New settings need a sensible default, a tooltip in the UI and a line in the docs.
-- For disc bugs, attach `wms dvd info` and `wms dvd crawl` output — never disc images.
+- For disc bugs, attach `wittymediaserver dvd info` and `wittymediaserver dvd crawl` output — never disc images.
 - A new screen that shows third-party or web content, or where people add or share media, takes a
   `<LegalNote>`: [docs/LEGAL-NOTICES-CHECKLIST.md](docs/LEGAL-NOTICES-CHECKLIST.md) says which. A new outside
   service goes on the privacy list in `internal/legal/legal.json`; a test fails otherwise.

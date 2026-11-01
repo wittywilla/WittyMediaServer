@@ -153,7 +153,7 @@ function ResetOthers() {
     try { await api.del(`/users/${u.id}/2fa`); toast(`Turned off for ${u.name}`); load() } catch (e: any) { toast(e.message) }
   }
   return (
-    <Section title="Other people's two-factor sign-in" desc="For someone who lost their phone and their recovery codes. An administrator's own can only be reset on the server itself, with: wms reset-2fa">
+    <Section title="Other people's two-factor sign-in" desc="For someone who lost their phone and their recovery codes. An administrator's own can only be reset on the server itself, with: wittymediaserver reset-2fa">
       {users.map((u) => (
         <Row key={u.id} label={u.name}><button type="button" className="btn sm ghost" onClick={() => reset(u)}>Turn off</button></Row>
       ))}

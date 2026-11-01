@@ -26,14 +26,14 @@ You do **not** need to install FFmpeg, a database or anything else: the download
 
 ## 2. Download and start
 
-1. Open the **Releases** page of the project on GitHub and download the archive for your system,
-   e.g. `wittymediaserver-0.4.0-alpha-windows-amd64.zip`.
-2. Unzip it anywhere (for example `Documents\WittyMediaServer`).
-3. Start it:
-   - **Windows**: double-click `WittyMediaServer.exe`. If SmartScreen warns about an unknown
-     publisher, choose *More info → Run anyway* (alpha builds are not code-signed yet).
-   - **macOS**: right-click `WittyMediaServer.app` → *Open* → *Open* (only the first time).
-   - **Linux**: run `./WittyMediaServer` (tray) or `./wms` (no tray).
+1. Open the **Releases** page of the project on GitHub and download the installer for your system:
+   `….msi` for Windows, `….pkg` for a Mac, `….deb` or `….rpm` for Linux.
+2. Open it and follow the steps:
+   - **Windows**: if SmartScreen warns about an unknown publisher, choose *More info → Run anyway*
+     (alpha builds are not code-signed yet). Choose *Just me* unless you want it always on.
+   - **macOS**: right-click the `.pkg` → *Open* → *Open* (only the first time).
+   - **Linux**: `sudo apt install ./wittymediaserver-….deb`, or `sudo dnf install ./wittymediaserver-….rpm`.
+3. Open **WittyMediaServer** from the Start menu or Applications.
 4. A small icon appears next to the clock (system tray / menu bar). Click it → **Open
    WittyMediaServer**. Your browser opens `http://localhost:9797`.
 

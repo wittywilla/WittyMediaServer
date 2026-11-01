@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# PROVIDE: wittymediaserver
+# REQUIRE: NETWORKING DAEMON
+# KEYWORD: shutdown
+#
+# Add these to /etc/rc.conf, or use sysrc:
+#   wittymediaserver_enable   YES to start at boot
+#   wittymediaserver_user     the account it runs as (%%USER%%)
+#   wittymediaserver_data     the folder for its library and settings (%%DATA%%)
+#   wittymediaserver_listen   the address to listen on (:%%PORT%%)
+
+. /etc/rc.subr
+
+name=wittymediaserver
+rcvar=wittymediaserver_enable
+load_rc_config $name
+
+: ${wittymediaserver_enable:=NO}
+: ${wittymediaserver_user:=%%USER%%}
+: ${wittymediaserver_data:=%%DATA%%}
+: ${wittymediaserver_listen:=:%%PORT%%}
+
+pidfile=/var/run/${name}.pid
+command=/usr/sbin/daemon
+procname=/usr/sbin/daemon
+# -r starts it again if it stops, as it asks to after an update.
+command_args="-f -r -R 3 -P ${pidfile} -o ${wittymediaserver_data}/wms.log /usr/bin/env PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin WMS_NO_BROWSER=1 WMS_DATA_DIR=${wittymediaserver_data} WMS_LISTEN=${wittymediaserver_listen} %%PROGRAM%%/bin/wittymediaserver serve"
+start_precmd="${name}_precmd"
+
+wittymediaserver_precmd()
+{
+	install -d -o "${wittymediaserver_user}" -m 0750 "${wittymediaserver_data}"
+	install -o "${wittymediaserver_user}" -m 0640 /dev/null "${pidfile}"
+}
+
+run_rc_command "$1"

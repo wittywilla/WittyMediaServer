@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/libtranscode/tdarr"
 	"github.com/wittywilla/wittymediaserver/internal/lyrics"
 )
 
@@ -261,7 +262,7 @@ func lyricsMirrorAddress(_, address string, _ syscall.RawConn) error {
 		return err
 	}
 	ip := net.ParseIP(host)
-	if ip == nil || ip.IsLinkLocalUnicast() || ip.IsMulticast() || ip.IsUnspecified() {
+	if ip == nil || ip.IsLinkLocalUnicast() || ip.IsMulticast() || ip.IsUnspecified() || tdarr.WrapsLinkLocal(ip) {
 		return fmt.Errorf("%s can't be a lyrics server", host)
 	}
 	return nil

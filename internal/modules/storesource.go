@@ -97,6 +97,21 @@ func (m *Manager) relist(id string, e *entry) {
 	m.computeOffers(e)
 }
 
+// clearStoreListing takes away what a store offers, for one that's turned off: what's installed
+// from it stays, and nothing more can be. Its versions come back when it's turned on.
+func (m *Manager) clearStoreListing(store string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, id := range m.order {
+		e := m.mods[id]
+		if e.state.Source != nil && e.state.Source.Store == store {
+			e.known = map[string]*knownRelease{}
+			e.feedLoaded = true
+			m.computeOffers(e)
+		}
+	}
+}
+
 // applyStoreListing gives every module using this store the versions it now lists. Each version
 // is only an offer, and has its own signed list and manifest to pass when it's installed. A
 // store can't reach any module that isn't using it, and can't restore a version it withdrew.

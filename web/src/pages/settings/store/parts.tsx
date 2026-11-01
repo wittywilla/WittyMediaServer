@@ -8,7 +8,7 @@ import { Button, Dialog, LinkButton, Notice, Progress } from '../../../ui'
 import { ConfirmOwner } from '../ConfirmOwner'
 import {
   anyBusy, changelogBlocks, dayOf, dismissRun, failureOf, mb, moduleLog, NOTHING_NOTABLE, PHASE, showsRun, startUpdateAll, storeView, undoRun,
-  type Failure, type ModuleLog, type Run, type RunItem, type StoreItem, type StoreView,
+  type Failure, type ModuleLog, type Run, type RunItem, type SandboxInfo, type StoreItem, type StoreView,
 } from './storeApi'
 import '../modules.css'
 import './store.css'
@@ -158,6 +158,12 @@ export function PolicyNote({ view }: { view: Pick<StoreView, 'policy' | 'server'
       <p className="muted">This server is version {view.server}.</p>
     </details>
   )
+}
+
+// What a module's helper is really held to here, whenever that's short of a full sandbox.
+export function SandboxNote({ sandbox }: { sandbox?: SandboxInfo }) {
+  if (!sandbox || sandbox.level === 'full') return null
+  return <Notice tone={sandbox.level === 'partial' ? 'info' : 'warn'} title={sandbox.title}>{sandbox.words}</Notice>
 }
 
 // ------------------------------------------------------------------- when something fails

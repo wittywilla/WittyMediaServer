@@ -270,7 +270,7 @@ function ForkDialog({ d, onClose, onDone }: { d: ItemDetail; onClose: () => void
   if (owner) return <ConfirmOwner onClose={() => setOwner(false)} ask={{
     title: `Replace ${it.name}?`, action: `Replace ${it.name}`,
     body: <p>This changes which code runs on this server, so it asks for your password. The official version is deleted first, so if this one won’t install, {it.name} is off until you try again or go back to the official version.</p>,
-    run: async (password, code) => { await useFork(it.store, it.id, true, { password, code }); toast(`Installing ${it.name} from ${it.storeName}`); onDone(); onClose() },
+    run: async (password, code) => { await useFork(it.store, it.id, true, d.fingerprint, { password, code }); toast(`Installing ${it.name} from ${it.storeName}`); onDone(); onClose() },
   }} />
   return (
     <Dialog title={`Replace ${it.name} with this store’s version?`} onClose={onClose} size="md" alert

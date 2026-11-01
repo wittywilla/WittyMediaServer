@@ -125,7 +125,7 @@ The newest three safety copies are kept.
 After a reset, or on a new machine, you don't have to set anything up again.
 
 1. On the first page of setup, press **Restore from a backup**.
-2. From another device on another network, type the setup code. It's shown on the server's console, and is in `setup-code.txt` in the data folder.
+2. From another device, even on your own network, type the setup code: a backup brings its own accounts, so this asks what setting up asks. It's shown on the server's console, and is in `setup-code.txt` in the data folder.
 3. Choose the file and carry on as in [Restoring a backup](#restoring-a-backup). There's no account yet, so it doesn't ask for your own password.
 
 A reset that keeps a copy leaves the `backups` folder where it is. One that deletes everything deletes those backups too, so download one first. See [the Reset page](REPAIR.md#starting-again-the-reset-page).
@@ -208,7 +208,7 @@ The code is `internal/backup`, the routes are `/api/backup/...` ([API](CLIENT-AP
 - **The rows are judged too.** An item outside every library folder is dropped, as it would let a row serve any file. A library pointed at a system folder or the data folder is dropped. Artwork references must be a cached picture, an `http(s)` address, or a file inside a library. Stored passwords must look like a bcrypt hash. Text has markup and hidden characters taken out, the same as [metadata files](METADATA-FOLDER.md#how-its-kept-safe). Sign-ins are never copied.
 - **Settings that start programs or write files aren't taken from a file**, password or not. Web addresses are taken only from a backup with a password. Module settings are reduced to on or off and who chooses updates, so a file can't name a place to install a module from.
 - **Encryption.** AES-256-GCM in 1 MB chunks, with the key from Argon2id. Chunks can't be reordered, dropped or cut off, and the cost settings in a file are limited before any work is done.
-- **Access.** Admin only, except during first-time setup, when from another network it takes the setup code. Restoring asks for the password and any second step again. Downloads use a ticket good for one file for ten minutes, so no sign-in goes in an address.
+- **Access.** Admin only, except during first-time setup, when from another device it takes the setup code, as setting up does. Restoring asks for the password and any second step again. Downloads use a ticket good for one file for ten minutes, so no sign-in goes in an address.
 - **New tables** must be listed in `tableParts` or `neverTables` in `internal/backup/backup.go`. A test fails until they are.
 
 ---

@@ -85,7 +85,7 @@ func (b *libraryBody) validate() error {
 			continue
 		}
 		if !filepath.IsAbs(p) {
-			return errors.New("use the folder's full path: " + p)
+			return errors.New("Use the folder's full path: " + p)
 		}
 		st, err := os.Stat(p)
 		if err != nil || !st.IsDir() {
@@ -113,7 +113,7 @@ func (s *Server) handleCreateLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.validateLibrary(r, &b, nil); err != nil {
-		writeErr(w, 400, err.Error())
+		writePathErr(w, 400, err)
 		return
 	}
 	lib, err := s.Store.CreateLibrary(r.Context(), b.Name, b.Type, b.Paths)
@@ -156,7 +156,7 @@ func (s *Server) handleUpdateLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.validateLibrary(r, &b, already); err != nil {
-		writeErr(w, 400, err.Error())
+		writePathErr(w, 400, err)
 		return
 	}
 	lib, err := s.Store.UpdateLibrary(r.Context(), id, b.Name, b.Type, b.Paths)

@@ -185,6 +185,9 @@ func (p *proc) newCmd() *exec.Cmd {
 	if p.dataDir != "" {
 		mode |= SandboxWriteData
 	}
+	if p.programs {
+		mode |= SandboxPrograms
+	}
 	memory := int64(4 * hardMemoryMB)
 	if p.programs {
 		memory = 0 // what it starts counts towards this, and a game can use far more
@@ -284,6 +287,14 @@ func (p *proc) start() error {
 		_ = cmd.Process.Kill()
 		logging.ChildExit(p.log, "module helper", cmd.Wait(), false, t, started, "topic", "lifecycle", "why", "failed to start", "version", p.man.Version)
 		release()
+		if launcherMayFail && p.launch != "" && !p.strict {
+			// This way of starting one has never been run on this system. Better a working helper
+			// and a page that says it isn't confined than no modules at all.
+			p.log.Warn("modules: a helper wouldn't start in its sandbox, so it's starting without one", "version", p.man.Version, "err", err, "said", t.Last(errStderr))
+			launcherFailed.Store(true)
+			p.launch = ""
+			return p.start()
+		}
 		return fmt.Errorf("%w %s", err, t.Last(errStderr))
 	}
 	p.hearTasks(conn)

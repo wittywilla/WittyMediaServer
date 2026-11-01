@@ -51,6 +51,6 @@ What the owner chooses to trust is also outside this: a store run by someone els
 - Keep the server on your home network, or use [a private network](docs/REMOTE.md#the-recommended-way-a-private-network) to reach it from elsewhere. Without HTTPS or a VPN, passwords and sessions cross the network unencrypted.
 - Finish first-time setup before exposing the server. From anywhere but the computer it runs on, setup asks for a code found on the server's console and in `setup-code.txt` in its data folder.
 - Use a long password for the administrator account, with [two-factor sign-in](docs/ACCOUNTS.md#two-factor-sign-in).
-- Add only modules you need. On Linux and Windows a module's helper runs in a sandbox. On macOS and FreeBSD it has no sandbox yet, only a small environment and a soft memory limit.
+- Add only modules you need. On Linux and Windows a module's helper runs in a sandbox. On FreeBSD it has limits rather than a sandbox, and macOS's hasn't been run on a real Mac yet. Settings, Modules says what yours has.
 
 Who the server is defended against, and how that gets checked, is in the [security model](docs/SECURITY-REVIEW.md).

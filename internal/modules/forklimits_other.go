@@ -3,4 +3,4 @@
 package modules
 
 // forkLimits is what this system can really take away from a fork's helper.
-const forkLimits = "This system can't limit a fork's helper at all: it could change your files, start other programs, and send what it reads over the internet."
+const forkLimits = "This system can't box in a fork's helper, so forks aren't let in here. Settings, Modules says what limits a module has."

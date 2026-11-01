@@ -47,6 +47,40 @@ func TestAdminPathsRefuseOtherMachines(t *testing.T) {
 	}
 }
 
+// First-time setup lays out the ways forward from a share, so it has to be able to tell this
+// refusal from any other, for a folder typed in and for one being browsed to.
+func TestAnotherMachineSaysSoWithACode(t *testing.T) {
+	ts := newTestServer(t)
+	_, tok := ts.user(t, "owner", "adult", true, "")
+	share := `\\nas.example\media`
+	for _, c := range []struct {
+		method, path string
+		body         any
+	}{
+		{"POST", "/api/libraries", map[string]any{"name": "L", "type": "movies", "paths": []string{share}}},
+		{"GET", "/api/fs?path=" + strings.ReplaceAll(share, `\`, "%5C"), nil},
+	} {
+		w := ts.do(t, c.method, c.path, tok, c.body, fromTheHomeNetwork...)
+		var got struct {
+			Code  string `json:"code"`
+			Error string `json:"error"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil || got.Code != "other-machine" {
+			t.Errorf("%s %s: %d %s", c.method, c.path, w.Code, w.Body)
+		}
+		for _, way := range []string{"own desktop", "drive letter", "allowNetworkPaths"} {
+			if !strings.Contains(got.Error, way) {
+				t.Errorf("%s: no mention of %q: %s", c.path, way, got.Error)
+			}
+		}
+	}
+	// Any other refusal has no such code, so the page doesn't offer the wrong help.
+	w := ts.do(t, "POST", "/api/libraries", tok, map[string]any{"name": "L", "type": "movies", "paths": []string{"relative/folder"}}, fromTheHomeNetwork...)
+	if w.Code < 400 || strings.Contains(w.Body.String(), "other-machine") {
+		t.Errorf("an ordinary refusal: %d %s", w.Code, w.Body)
+	}
+}
+
 // Someone at the server itself may choose a share, as may a server whose owner said so. A library
 // already on a share can still be edited.
 func TestNetworkPathsWhenTheOwnerSaysSo(t *testing.T) {

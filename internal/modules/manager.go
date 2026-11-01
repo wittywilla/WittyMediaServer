@@ -73,6 +73,8 @@ type Report struct {
 	// Libraries is every kind of library a module provides, and whether it can be made.
 	Libraries []LibraryType `json:"libraries"`
 	Catalog   *CatalogInfo  `json:"catalog,omitempty"`
+	// Sandbox says how well a helper is boxed in here, in words when it isn't fully.
+	Sandbox SandboxInfo `json:"sandbox"`
 }
 
 // Status is one module.
@@ -676,6 +678,7 @@ func (m *Manager) Report() Report {
 	}
 	r.Libraries = m.libraryTypes()
 	r.Catalog = m.catalogInfo()
+	r.Sandbox = confinement(m.cfg.Launcher)
 	return r
 }
 

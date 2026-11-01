@@ -11,7 +11,7 @@ import { PageHead, Row, Section, Switch } from './ui'
 import './modules.css'
 import LegalNote from '../../components/LegalNote'
 import { LinkButton } from '../../ui'
-import { ChangeNotes, FailureNotice, ModuleIcon, ModuleLogDialog, PolicyNote, UpdateAllPanel, useStoreView, WhatsNew } from './store/parts'
+import { ChangeNotes, FailureNotice, ModuleIcon, ModuleLogDialog, PolicyNote, SandboxNote, UpdateAllPanel, useStoreView, WhatsNew } from './store/parts'
 import { checkAll, failureForStatus, type Failure } from './store/storeApi'
 import { Dialog } from '../../ui/Overlay'
 import { ConfirmOwner, OwnerFields, type OwnerAsk } from './ConfirmOwner'
@@ -236,6 +236,7 @@ export default function ModulesSettings() {
         <p className="ms-note">This server is version {r.server} and has module API {r.minApi === r.api ? r.api : `${r.minApi} to ${r.api}`}.</p>
         {store.view && <PolicyNote view={store.view} />}
       </Section>
+      <SandboxNote sandbox={r.sandbox} />
 
       <div className="chips ms-filter" role="group" aria-label="Show">
         {FILTERS.map((f) => {

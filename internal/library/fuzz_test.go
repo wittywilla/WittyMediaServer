@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 )
@@ -63,7 +62,7 @@ func FuzzArtRef(f *testing.F) {
 	f.Fuzz(func(t *testing.T, s string) {
 		dir := filepath.FromSlash("/lib/show")
 		out := artRef(s, dir)
-		if out == "" || isWebAddress(out) {
+		if out == "" || webURL(out) != "" {
 			return
 		}
 		rel, err := filepath.Rel(dir, out)
@@ -71,10 +70,6 @@ func FuzzArtRef(f *testing.F) {
 			t.Fatalf("artRef(%q) = %q: leaves the folder", s, out)
 		}
 	})
-}
-
-func isWebAddress(s string) bool {
-	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
 }
 
 func FuzzAgentAnswer(f *testing.F) {

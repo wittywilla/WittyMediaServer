@@ -740,7 +740,8 @@ func (s *Server) headers(next http.Handler) http.Handler {
 			h.Set("Cross-Origin-Opener-Policy", "same-origin")
 			h.Set("Permissions-Policy", appPermissions)
 		}
-		if r.TLS != nil && r.TLS.ServerName != "" {
+		// Behind a proxy this server trusts, there's no TLS to see: it has the proxy's word.
+		if c := clientFrom(r); r.TLS != nil && r.TLS.ServerName != "" || c.Proxied && c.Secure {
 			h.Set("Strict-Transport-Security", hsts)
 		}
 		next.ServeHTTP(w, r)

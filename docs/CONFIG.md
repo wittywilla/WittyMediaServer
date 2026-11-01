@@ -148,9 +148,23 @@ unless you send a file yourself, for example with a bug report.
   server itself), and a picker to choose another folder.
 - **Crash reports** — if the server crashes, or stops without shutting down (a power cut, say), the next start
   writes a report and points it out here. They're in `crash/` inside the data folder.
-- **Support bundle** — a zip of recent logs, crash reports and a summary of your system, to send with a bug
-  report. It shows you what's inside first, and can hide titles and file paths. It's made when you ask and
-  downloaded by you: nothing is uploaded.
+- **Download logs** — a zip of recent logs, crash reports and a summary of your system, to send with a bug
+  report. **Download logs as ZIP** is on every tab of the page, and on a page that fails to load. Beside the button
+  is **Sanitize for sharing**, on by default: IP addresses, computer and web names, network card addresses, account
+  names, email addresses, file paths, folders, library names and titles are replaced with placeholders such as
+  `[path-3]`, which keep the same number all through the file, so what happened to one thing can still be followed.
+  The list of what each number stood for is never saved. Versions, codecs, status codes, timings, routes and errors
+  stay. The page shows the files, how much would be replaced, and lines before and after, before you download. It's
+  made when you ask and downloaded by you: nothing is uploaded.
+- **With no server running** — for a server that won't start:
+
+  ```bash
+  wms logs zip [-data <dir>] [-o out.zip] [-days N] [--raw]   # sanitized unless --raw
+  wms logs sanitize [-data <dir>] [-o out.txt] <file>         # a sanitized copy of any text log
+  ```
+
+  They only read. The database is looked at for the names to hide, and if it's too broken to read they say so and
+  carry on, replacing everything that looks like a name, address or path.
 
 Passwords, sign-in tokens, stream tokens, API keys, PINs, cookies and setup codes are removed from every log line
 automatically. Apps report their errors only to your own server, and you can turn that off.

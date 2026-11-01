@@ -16952,7 +16952,16 @@
             }
           },
           {
-            "description": "hide titles and file paths",
+            "description": "replace names, addresses, titles and paths with placeholders; on unless it's 0",
+            "in": "query",
+            "name": "sanitize",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "the earlier name for sanitize",
             "in": "query",
             "name": "redact",
             "required": false,
@@ -16998,6 +17007,15 @@
             "required": false,
             "schema": {
               "type": "integer"
+            }
+          },
+          {
+            "description": "replace names, addresses, titles and paths with placeholders; on unless it's 0",
+            "in": "query",
+            "name": "sanitize",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           },
           {

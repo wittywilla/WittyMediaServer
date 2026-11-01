@@ -1,9 +1,11 @@
 # Troubleshooting
 
 Quick answers to the problems people run into most. Still stuck? Open *Settings → WittyLog*: the viewer
-explains common failures in plain words. Reproduce the problem, then attach a **support bundle** to an issue (it
-never contains passwords or tokens, shows you what's inside first, and can hide titles and file paths). For anything
-to do with discs or drives, run *Settings → WittyDiagnoser*.
+explains common failures in plain words. Reproduce the problem, then press **Download logs as ZIP**, on any tab of that
+page, and attach the file to an issue. It's sanitized for sharing unless you turn that off: names, addresses, paths and
+titles become placeholders, and you can see what it holds first. Passwords and tokens are never in it. Server won't
+start? `wms logs zip` makes the same file without one. For anything to do with discs or drives, run
+*Settings → WittyDiagnoser*.
 
 | Problem | What to do |
 |---|---|

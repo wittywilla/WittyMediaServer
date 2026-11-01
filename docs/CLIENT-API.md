@@ -837,8 +837,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /logs/crashes/{id}` | admin | One crash report's text. |
 | `DELETE /logs/crashes/{id}` | admin | Delete a crash report. |
 | `POST /logs/crashes/{id}/seen` | admin | Stop pointing this report out. |
-| `GET /logs/bundle` | admin | The support bundle, a zip made on request: `days`, `redact=1` hides titles and paths. Nothing is uploaded anywhere. |
-| `GET /logs/bundle/preview` | admin | What the support bundle would hold. |
+| `GET /logs/bundle` | admin | The logs as a zip, made on request: `days`, and `sanitize`, on unless it's `0`, which replaces names, addresses, titles and paths with placeholders (`redact` is its earlier name). Nothing is uploaded anywhere. |
+| `GET /logs/bundle/preview` | admin | What that zip would hold, with the same `days` and `sanitize`: `{parts, total, sample, sanitize, days, scanned, replaced, changed}`. `replaced` counts the places changed by kind, in the newest lines; `changed` is a few lines before and after. |
 | `GET /diagnose/targets` | admin | WittyDiagnoser: the libraries, data folders and known discs that can be checked. |
 | `GET /diagnose/browse` | admin | Folders and disc images inside the libraries and data folders only. |
 | `POST /diagnose/disc` | admin | Start checking a disc: `{path, crawl, damage}`. 202 with the job; 429 when too many wait. Read-only. |

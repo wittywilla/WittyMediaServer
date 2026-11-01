@@ -164,9 +164,39 @@ Attacker-controlled text (file names, request paths, what a client reports, what
 as an attribute: values are quoted and escaped, so it can't start a new line or pass for a field, and control
 characters and text-direction tricks are shown as escapes. The viewer shows it as text only.
 
-**Titles and paths are fine in local logs**, where they're needed. They come out of *shared* bundles if the owner
-asks, by attribute name. So put them in attributes with a name that says what they are: `title`, `game`, `show`,
-`file`, `path`, `dir`, `url`. Never put a title in the message text.
+**Titles and paths are fine in local logs**, where they're needed. They come out of a *sanitized* download, which is
+what the owner gets unless they turn it off. So put them in attributes with a name that says what they are: `title`,
+`game`, `show`, `user`, `host`, `file`, `path`, `dir`, `url`. Never put a title in the message text.
+
+### Sanitized logs
+
+`internal/logging/sanitize.go` makes a copy someone can hand to anyone. It works on a finished log, and writing a log
+doesn't touch it, so it costs nothing until someone asks for a download. One `Sanitizer` serves one bundle, so one value keeps one
+number across the logs, crash reports, summary and diagnoser reports. The numbers are handed out as values turn up and
+the list is dropped with the `Sanitizer`: it's never written anywhere.
+
+| Placeholder | How it's found |
+|---|---|
+| `[ip-1]` | IPv4 and IPv6 in any form, in any text. Loopback and "any address" stay, as they identify nobody and often explain a problem |
+| `[host-1]` | Attributes like `host`, the host of any address, names ending as network names do, `lookup <name>`, this computer's name |
+| `[mac-1]`, `[email-1]` | By their shape, percent-encoded too |
+| `[path-1].mkv`, `[folder-1]` | Windows, UNC and Unix paths, and attributes like `file`. A file's type stays. A path in a known folder reads `[folder-1]/[path-2].mkv` |
+| `[user-1]` | Attributes like `user` and `by`, and the name of every account wherever it appears |
+| `[title-1]`, `[library-1]`, `[device-1]` | Attributes like `title`, FFmpeg's metadata lines and `-metadata`, and what the database calls every title and library |
+| `[name-1]` | Percent-encoded words, which are someone's text and not the program's |
+| `[hidden]` | Secrets, as in every log, and the login in any address |
+
+Exact names are looked up word by word (`KnownFromDB`), so a hundred thousand titles cost a map, not a regular expression.
+A last pass goes over each finished line (`Final`). Three limits are on purpose: a name that's an everyday word of the log's
+own (`commonWords`: a title called *Error*, a library called *Movies*) isn't hidden, because it says nothing about anyone
+and would blot out the diagnosis; a one-word title isn't looked for in a message, which is fixed text; and session IDs stay,
+because they're random and are how a story is followed.
+
+What stays: messages, levels, categories, times, versions, codecs, status codes, durations, `/api/...` routes (without their
+queries, and with anything in them that isn't a plain lower-case word hidden) and source lines of a stack.
+
+A new kind of value that identifies someone: add its attribute name to the maps at the top of `sanitize.go`, or a pattern, and
+plant it in `planted` in `sanitize_test.go`, which searches a real zip for every value.
 
 ## Modules: their own Go modules
 

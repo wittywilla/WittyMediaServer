@@ -98,7 +98,7 @@ on. It's a useful thing to report, because the same disc would probably cause tr
 The last 20 reports stay on the server, in `<data>/diagnostics/`, under **Past reports**. **Download report**
 gives plain text or JSON. Turn on **Hide disc name and file names** for a copy to send to someone: the disc's
 name, its label and every file name come out. The newest three go in the
-[support bundle](CONFIG.md#logs), always with names hidden.
+[log download](CONFIG.md#logs), always with names hidden.
 
 To report a disc problem, attach a report. Never attach the disc image.
 

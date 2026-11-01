@@ -351,3 +351,10 @@ func Confirms(f *Format, head []byte) bool {
 	}
 	return !looksLikeText(head)
 }
+
+// ArtworkExts are the pictures looked for beside media: poster.jpg, Film-fanart.png and
+// so on. A browser shows every one of them, and .tbn is a JPEG by an older name.
+var ArtworkExts = []string{".jpg", ".jpeg", ".jfif", ".png", ".webp", ".avif", ".gif", ".bmp", ".tbn"}
+
+// IsArtwork says a name is one of the pictures looked for beside media.
+func IsArtwork(name string) bool { return slices.Contains(ArtworkExts, Ext(name)) }

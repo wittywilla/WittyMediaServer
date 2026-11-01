@@ -4,6 +4,7 @@ import { api, episodeLabel, langName, mediaUrl, posterUrl, type Item, type Playb
 import { IconBack, IconClose, IconExpand, IconInfo, IconMini, IconNext, IconPause, IconPlay } from '../icons'
 import { browserCapabilities } from './capabilities'
 import PlayInfoPanel from './PlayInfoPanel'
+import { toast } from '../state'
 import { usePlayerChrome } from './chrome'
 import PickIntroBar from './PickIntroBar'
 import { Controls, useVideoState } from './Controls'
@@ -111,19 +112,32 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
 
   // Subtitles the player draws: the chosen track, with its cues in the player's time.
   const shownSub = info && sub != null && sub >= 0 && !burn ? info.subtitles.find((s) => s.index === sub) : undefined
-  const subUrl = shownSub?.url ? mediaUrl(shownSub.url) : ''
+  const subUrl = shownSub?.url || ''
   useEffect(() => {
     const v = video.current
     if (!v || !subUrl) return
-    const track = document.createElement('track')
-    track.kind = 'subtitles'
-    track.src = subUrl
-    track.srclang = shownSub?.language?.slice(0, 2) || 'und'
-    track.label = shownSub?.title || shownSub?.languageName || 'Subtitles'
-    track.default = true
-    v.appendChild(track)
-    track.track.mode = 'showing'
-    return () => { track.track.mode = 'disabled'; track.remove() }
+    // Fetched and handed over as a local file: a <track> can't send a sign-in, and an app
+    // whose page isn't on the server's own address couldn't load one directly at all.
+    let stopped = false
+    let track: HTMLTrackElement | null = null
+    let local = ''
+    fetch(mediaUrl(subUrl)).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text() }).then((vtt) => {
+      if (stopped) return
+      local = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }))
+      track = document.createElement('track')
+      track.kind = 'subtitles'
+      track.src = local
+      track.srclang = shownSub?.language?.slice(0, 2) || 'und'
+      track.label = shownSub?.title || shownSub?.languageName || 'Subtitles'
+      track.default = true
+      v.appendChild(track)
+      track.track.mode = 'showing'
+    }).catch(() => toast('These subtitles couldn’t be loaded.'))
+    return () => {
+      stopped = true
+      if (track) { track.track.mode = 'disabled'; track.remove() }
+      if (local) URL.revokeObjectURL(local)
+    }
   }, [subUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Done with a stream (left the player, another audio or subtitle track):

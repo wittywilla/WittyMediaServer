@@ -1,12 +1,12 @@
 package library
 
 import (
-	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"context"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"io"
 	"log/slog"
 	"net/http"
@@ -289,7 +289,7 @@ func applySidecarJSON(it *Item, path string) bool {
 func localArtwork(dir, base string) (poster, backdrop string) {
 	try := func(names ...string) string {
 		for _, n := range names {
-			for _, ext := range []string{".jpg", ".jpeg", ".png", ".webp"} {
+			for _, ext := range mediatypes.ArtworkExts {
 				p := filepath.Join(dir, n+ext)
 				if st, err := os.Stat(p); err == nil && !st.IsDir() {
 					return p

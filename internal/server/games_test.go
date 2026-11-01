@@ -33,6 +33,7 @@ type gameServer struct {
 
 func newGameServer(t *testing.T) *gameServer {
 	t.Helper()
+	modtest.Need(t, "wittyplay")
 	ctx := context.Background()
 	d, err := db.Open(t.TempDir())
 	if err != nil {

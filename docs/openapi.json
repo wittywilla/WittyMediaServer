@@ -2532,7 +2532,40 @@
               "null"
             ]
           },
+          "detectSure": {
+            "type": "integer"
+          },
+          "detectWhy": {
+            "type": "string"
+          },
+          "detectedBy": {
+            "type": "string"
+          },
           "developer": {
+            "type": "string"
+          },
+          "discs": {
+            "items": {
+              "properties": {
+                "disc": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "disc",
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "entry": {
             "type": "string"
           },
           "franchise": {
@@ -2552,6 +2585,12 @@
           },
           "players": {
             "type": "integer"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "problemText": {
+            "type": "string"
           },
           "publisher": {
             "type": "string"

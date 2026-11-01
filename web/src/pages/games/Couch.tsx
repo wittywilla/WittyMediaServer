@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { PromptBar } from '@wittywilla/wittyplay/web/prompts'
+import { PromptBar } from './prompts'
 import { api, type GameConsole, type Item } from '../../api'
 import { EmptyState, LoadError, Spinner } from '../../components/common'
 import LegalNote from '../../components/LegalNote'

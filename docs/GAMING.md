@@ -193,7 +193,7 @@ didn't: `libretro.OnCoreThread`.
 ## The game pages
 
 The library, a game's page and couch mode are in `web/src/pages/games`, and the menus and screens around a game are WittyPlay's
-own (`web/QuickMenu.tsx`, `web/Screens.tsx`, `web/prompts.tsx` in its repository). What they rest on, for anyone changing them:
+own (`web/QuickMenu.tsx`, `web/Screens.tsx`, `web/prompts.tsx` in its repository). The prompts have a copy on each side, `pages/games/prompts.tsx` for the pages, because the pages have to work with the module missing. What they rest on, for anyone changing them:
 
 - **One request for the home screen.** `GET /games/home` answers with every shelf, so a TV app shows the same as the web page.
 - **Only what's on screen is on the page.** `VirtualGames.tsx` draws the rows near the screen and asks for the pages of results

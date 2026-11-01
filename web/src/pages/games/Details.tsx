@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { PromptBar, useInputKind, type Prompt } from '@wittywilla/wittyplay/web/prompts'
+import { PromptBar, useInputKind, type Prompt } from './prompts'
 import { api, backdropUrl, fmtDateTime, mediaUrl, uploadFile, type GameDetailsInfo, type Item } from '../../api'
 import ArtworkPicker from '../../components/ArtworkPicker'
 import { Placeholder, Spinner } from '../../components/common'

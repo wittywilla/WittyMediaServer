@@ -36,4 +36,5 @@
   .gr-row { grid-template-columns: minmax(0, 1fr); }
   .gr-row-actions { justify-content: flex-start; }
   .gr-row-actions .btn, .gr-bulk .btn, .gr-fix-actions .btn, .gr-picker .btn, .gr-versions .btn { min-height: 44px; }
+  .gr-dialog [aria-label="Close"] { min-width: 44px; min-height: 44px; }
 }

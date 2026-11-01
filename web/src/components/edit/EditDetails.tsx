@@ -41,6 +41,9 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
   const scroller = useRef<HTMLDivElement | null>(null)
   const nav = useNavigate()
   const pressedOutside = useRef(false)
+  const safeChoice = useRef<HTMLButtonElement | null>(null)
+  // A question at the foot of the dialog takes the keyboard to its safe answer.
+  useEffect(() => { if (leaving || deleting) safeChoice.current?.focus() }, [leaving, deleting])
 
   const load = useCallback(() => api.get<TitleEditor>(`/meta/${target}/${id}`).then(setEd).catch((e) => setLoadErr(e.message)), [target, id])
   useEffect(() => { load() }, [load])
@@ -190,7 +193,7 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
           <footer className="ed-foot ed-confirm" role="alertdialog" aria-label="Unsaved changes">
             <span>You have changes that aren't saved.</span>
             <div className="ed-foot-right">
-              <button type="button" className="btn ghost" autoFocus onClick={() => setLeaving(false)}>Keep editing</button>
+              <button type="button" className="btn ghost" ref={safeChoice} onClick={() => setLeaving(false)}>Keep editing</button>
               <button type="button" className="btn danger" onClick={onClose}>Discard them</button>
             </div>
           </footer>
@@ -198,7 +201,7 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
           <footer className="ed-foot ed-confirm" role="alertdialog" aria-label="Take this out of the library">
             <span>Take this out of its library? Its {target === 'show' ? 'files stay' : 'file stays'} on disk and {target === 'show' ? 'they' : 'it'} won't come back on a scan. You can bring {target === 'show' ? 'them' : 'it'} back from Fix matches, Removed.</span>
             <div className="ed-foot-right">
-              <button type="button" className="btn ghost" autoFocus onClick={() => setDeleting(false)}>Keep it</button>
+              <button type="button" className="btn ghost" ref={safeChoice} onClick={() => setDeleting(false)}>Keep it</button>
               <button type="button" className="btn danger" onClick={remove}><IconTrash size={18} /> Take it out</button>
             </div>
           </footer>

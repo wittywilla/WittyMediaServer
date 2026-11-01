@@ -25,6 +25,8 @@ export default function ShowPage() {
   const load = () => api.get<ShowDetail>(`/shows/${id}`).then(setD).catch((e) => setErr(e.message))
   useEffect(() => { load(); setViewOverride(null) }, [id])
   useEffect(() => { getPrefs().then(setPrefs) }, [])
+  // Coming back from picking a time in the player opens where it was.
+  useEffect(() => { if (params.get('edit')) { const p = new URLSearchParams(params); p.delete('edit'); setParams(p, { replace: true }) } }, []) // eslint-disable-line react-hooks/exhaustive-deps
   if (err) return <EmptyState icon={<IconInfo />} title="This show didn’t load" text={err} />
   if (!d) return <Spinner />
   const { show, seasons, episodes } = d

@@ -1,0 +1,100 @@
+/* Help. Laid out like Settings: a list of guides beside what's open. On a phone the list is the
+   first page and a guide fills the screen. */
+.help { display: grid; grid-template-columns: 232px minmax(0, 760px); gap: var(--sp-10); justify-content: center; align-items: start; max-width: 1100px; margin: var(--sp-3) auto 0; }
+.help-public { padding: var(--sp-5) var(--gutter) var(--section-gap); }
+.help-public-head { max-width: 1100px; margin: 0 auto var(--sp-3); }
+
+.help-side { position: sticky; top: var(--sp-4); max-height: calc(100vh - var(--sp-8)); overflow-y: auto; overscroll-behavior: contain; padding-right: var(--sp-2); }
+.help-side-title { font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--sp-2); }
+.help-side-title a { color: var(--fg); }
+.help-side-group { margin-bottom: var(--sp-4); }
+.help-side-head { padding: var(--sp-1) var(--sp-2); color: var(--fg-3); font-size: var(--text-xs); font-weight: 600; letter-spacing: .02em; }
+.help-side-link { display: flex; align-items: center; min-height: 36px; padding: var(--sp-1) var(--sp-2); border-radius: var(--r-md); color: var(--fg-2); font-size: var(--text-md); line-height: var(--leading-snug); }
+.help-side-link:hover { background: var(--hover); color: var(--fg); }
+.help-side-link.active { background: var(--accent-soft); color: var(--fg); font-weight: 600; }
+
+.help-main { min-width: 0; padding-bottom: var(--section-gap); }
+.help-search { max-width: none; margin-bottom: var(--sp-5); }
+.help-head { margin-top: 0; }
+.help-head .version-tag, .help-head p > span { white-space: nowrap; }
+.help-back { margin-bottom: var(--sp-2); }
+
+.help-quick { list-style: none; margin: 0 0 var(--section-gap); padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-3); }
+.help-quick a { display: grid; gap: var(--sp-1); height: 100%; padding: var(--sp-4); background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); color: var(--fg); }
+.help-quick a:hover { background: var(--bg-3); }
+.help-quick span { color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-snug); }
+
+.help-group { margin-bottom: var(--section-gap); }
+.help-group h2 { margin: 0 0 var(--sp-2); font-size: var(--text-lg); }
+.help-group ul, .help-hits { list-style: none; margin: 0; padding: 0; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+.help-group li + li, .help-hits li + li { border-top: 1px solid var(--border); }
+.help-row { display: grid; gap: 2px; min-height: 44px; padding: var(--sp-3) var(--sp-4); color: var(--fg); }
+.help-row:hover { background: var(--hover); }
+.help-group .help-row:focus-visible, .help-hits .help-row:focus-visible { outline-offset: calc(var(--focus-width) * -1); }
+.help-row span { color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-snug); }
+.help-hits { margin-top: var(--sp-3); }
+.help-hits mark { background: var(--accent-soft); color: var(--fg); border-radius: var(--r-xs); padding: 0 2px; }
+.help-results-title { margin: 0 0 var(--sp-1); font-size: var(--page-title); }
+
+/* The guide itself, kept to a length of line that's easy to read. */
+.help-prose { font-size: var(--text-base); line-height: var(--leading-body); overflow-wrap: anywhere; }
+.help-prose > * { max-width: 70ch; }
+.help-prose > .help-table, .help-prose > .help-code { max-width: none; }
+.help-prose h1 { margin: 0 0 var(--sp-3); font-size: var(--page-title); letter-spacing: var(--tracking-display); line-height: var(--leading-tight); }
+.help-prose h2 { margin: var(--section-gap) 0 var(--sp-3); padding-top: var(--sp-2); font-size: var(--text-xl); line-height: var(--leading-snug); scroll-margin-top: var(--sp-4); }
+.help-prose h3 { margin: var(--sp-6) 0 var(--sp-2); font-size: var(--text-lg); line-height: var(--leading-snug); scroll-margin-top: var(--sp-4); }
+.help-prose h4, .help-prose h5 { margin: var(--sp-5) 0 var(--sp-2); font-size: var(--text-base); scroll-margin-top: var(--sp-4); }
+.help-prose h1:focus, .help-prose h2:focus, .help-prose h3:focus, .help-prose h4:focus, .help-prose h5:focus { outline: none; }
+.help-prose p { margin: 0 0 var(--sp-3); white-space: pre-line; }
+.help-prose ul, .help-prose ol { margin: 0 0 var(--sp-3); padding-left: var(--sp-6); }
+.help-prose li { margin-bottom: var(--sp-1); }
+.help-prose li > p { margin-bottom: var(--sp-1); }
+.help-prose li > ul, .help-prose li > ol { margin: var(--sp-1) 0 var(--sp-2); }
+.help-prose a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
+.help-prose code { padding: 1px var(--sp-1); background: var(--bg-3); border-radius: var(--r-xs); font-size: .9em; overflow-wrap: anywhere; }
+.help-prose hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-6) 0; }
+.help-prose blockquote { margin: 0 0 var(--sp-3); padding: var(--sp-3) var(--sp-4); background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-md); }
+.help-prose blockquote > :last-child { margin-bottom: 0; }
+
+.help-code { position: relative; margin: 0 0 var(--sp-4); }
+.help-code pre { margin: 0; padding: var(--sp-3) var(--sp-4); padding-right: 92px; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-md); overflow-x: auto; white-space: pre; line-height: var(--leading-snug); }
+.help-code pre code { padding: 0; background: none; overflow-wrap: normal; font-size: var(--text-sm); }
+.help-copy { position: absolute; top: var(--sp-2); right: var(--sp-2); background: var(--bg-2); }
+
+.help-table { margin: 0 0 var(--sp-4); overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-md); }
+.help-table table { width: 100%; border-collapse: collapse; font-size: var(--text-md); line-height: var(--leading-snug); }
+.help-table th, .help-table td { padding: var(--sp-2) var(--sp-3); text-align: left; vertical-align: top; overflow-wrap: normal; }
+.help-table th { background: var(--bg-2); font-weight: 600; white-space: nowrap; }
+.help-table tr + tr td, .help-table tbody tr:first-child td { border-top: 1px solid var(--border); }
+.help-table td code { white-space: nowrap; }
+
+.help-toc { margin: 0 0 var(--sp-5); padding: var(--sp-3) var(--sp-4); background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-md); }
+.help-toc summary { cursor: pointer; font-weight: 600; min-height: 28px; }
+.help-toc ul { list-style: none; margin: var(--sp-2) 0 0; padding: 0; }
+.help-toc li { margin: 0; }
+.help-toc a { display: inline-block; padding: var(--sp-1) 0; text-decoration: none; }
+.help-toc a:hover { text-decoration: underline; }
+
+.help-next { margin: var(--section-gap) 0 0; border-top: 1px solid var(--border); padding-top: var(--sp-3); }
+.help-next .help-row { padding-left: 0; padding-right: 0; }
+.help-next b { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.help-next .help-row:hover { background: none; text-decoration: underline; }
+
+/* The small way into a guide from the page it's about. */
+.help-link { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--fg-2); font-size: var(--text-sm); min-height: 32px; }
+.help-link:hover { color: var(--fg); text-decoration: underline; }
+.set-help { display: flex; justify-content: flex-end; min-height: 0; margin-bottom: calc(var(--sp-2) * -1); }
+
+@media (max-width: 900px) {
+  .help { display: block; margin-top: 0; }
+  .help-side { display: none; }
+  .help-row { min-height: 56px; }
+  .help-toc a { padding: var(--sp-2) 0; }
+  .help-side-link { min-height: 44px; }
+  .help-code pre { padding-right: var(--sp-4); padding-top: 48px; }
+}
+
+@media print {
+  .help-side, .help-search, .help-back, .help-copy, .help-next { display: none; }
+  .help { display: block; }
+}

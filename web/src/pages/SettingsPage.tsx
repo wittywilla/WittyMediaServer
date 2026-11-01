@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } fro
 import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { fmtDateTime, api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
+import { SettingsHelp } from '../components/HelpLink'
+import '../help/help.css'
 import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
@@ -144,6 +146,7 @@ export default function SettingsPage() {
       </nav>
       <div className="set-main">
         <div className="set-back"><BackLink to="/settings" label="Settings" /></div>
+        <SettingsHelp page={slug} />
         {unseenCrashes.length > 0 && !onLogs && (
           <div className="set-notice-row">
             <Link className="set-notice" to="/settings/logs?tab=crashes"><span>The server stopped unexpectedly. See what happened</span><IconRight /></Link>

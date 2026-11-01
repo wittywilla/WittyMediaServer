@@ -857,7 +857,7 @@ func checkSidecars(ctx context.Context, e *DoctorEnv) []Issue {
 		Steps: []string{
 			"Open the file in a text editor and go to the line named. Most often it's a stray & (write &amp;) or a tag that was never closed.",
 			"Or delete the file, and with saving beside media on, the server writes a new one at the next scan.",
-			"Then scan the library. The metadata guide in docs/METADATA.md has examples.",
+			"Then scan the library. The guide in Help, Where details come from, has examples.",
 		}}}
 }
 

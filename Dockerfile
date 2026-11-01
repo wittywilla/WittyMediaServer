@@ -10,6 +10,9 @@ RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY web/ ./
 # The legal notices' wording, shared with the server.
 COPY internal/legal/ /src/internal/legal/
+# The guides become the in-app help.
+COPY docs/ /src/docs/
+COPY CHANGELOG.md SECURITY.md /src/
 RUN npm run build
 
 FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine@sha256:d200d2dd76b03a99b52651fd1325aff7dcd35422c35c01bac56571b0507f3deb AS build

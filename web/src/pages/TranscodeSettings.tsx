@@ -50,7 +50,7 @@ export default function TranscodeSettings() {
   return (
     <div className="transcode">
       {head}
-      <Section title="Playback" desc={<>Not sure what to pick? The defaults suit most machines, and <a href="https://github.com/wittywilla/WittyMediaServer/blob/master/docs/TRANSCODING.md" target="_blank" rel="noreferrer">the transcoding guide</a> explains each choice.</>}>
+      <Section title="Playback" desc={<>Not sure what to pick? The defaults suit most machines, and <Link to="/help/transcoding">the transcoding guide</Link> explains each choice.</>}>
         <Row label="Allow direct play" desc="Files a device can play as they are get sent untouched: full quality, no processor work, instant seeking. Off sends every file through conversion, which is mainly useful for testing.">
           <Switch label="Allow direct play" checked={on('directPlay')} onChange={(v) => set('directPlay', v ? '1' : '0')} />
         </Row>

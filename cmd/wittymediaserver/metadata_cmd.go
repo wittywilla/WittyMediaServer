@@ -25,7 +25,7 @@ const metadataUsage = `usage:
   wittymediaserver metadata undo   [-data <dir>] <batch>
                        take back everything one apply changed
 
-See docs/FIXING-METADATA.md.`
+See Help in the app: Fixing wrong details, and The metadata folder.`
 
 // wittymediaserver metadata: the editable metadata folder, for when the server can't start or
 // someone would rather use a terminal. It works on the same files as Settings.

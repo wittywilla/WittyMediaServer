@@ -448,5 +448,5 @@ HTML, scripts, hidden characters and links are taken out of anything read from h
 pictures are checked to be real pictures. There's nothing you can break here that a
 new export won't put right.
 
-More help: Settings > Metadata files, or docs/FIXING-METADATA.md.
+More help: Settings > Repair, or Help in the app: The metadata folder.
 `

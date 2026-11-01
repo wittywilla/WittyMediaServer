@@ -351,15 +351,15 @@ func TestInviteCodeGuessingIsLimited(t *testing.T) {
 		bad = "000001"
 	}
 	for i := 0; i < inviteWrongLimit; i++ {
-		if _, why := ps.redeem(bad); why != redeemWrong {
+		if _, why := ps.redeem(bad, false); why != redeemWrong {
 			t.Fatalf("try %d: %s", i, why)
 		}
 	}
-	if _, why := ps.redeem(in.code); why != redeemTooMany {
+	if _, why := ps.redeem(in.code, false); why != redeemTooMany {
 		t.Errorf("over the limit: %s", why)
 	}
-	ps.wrong = nil
-	if _, why := ps.redeem(in.code); why != redeemExpired {
+	ps.wrongHome = nil
+	if _, why := ps.redeem(in.code, false); why != redeemExpired {
 		t.Errorf("a code open during the attack must not work afterwards: %s", why)
 	}
 }

@@ -1,9 +1,10 @@
-import RatingField from '../components/RatingField'
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, backdropUrl, codecName, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs, discName, isBluray } from '../api'
-import ArtworkPicker from '../components/ArtworkPicker'
 import DiscSections from './DiscSections'
+import EditDetails, { type EditSection } from '../components/edit/EditDetails'
+import RefreshDialog from '../components/edit/RefreshDialog'
+import TitleExtras, { TitleLogo } from '../components/edit/TitleExtras'
 import { BookDetails } from './Books'
 import { SaveButton } from '../components/SaveToCollection'
 import { GameDetails } from './Games'
@@ -20,14 +21,17 @@ export default function ItemPage() {
   const { user, libraries } = useApp()
   const [it, setIt] = useState<Item | null>(null)
   const [err, setErr] = useState('')
-  const [edit, setEdit] = useState(false)
-  const [art, setArt] = useState(false)
+  const [params, setParams] = useSearchParams()
+  const [edit, setEdit] = useState<EditSection | ''>((params.get('edit') as EditSection) || '')
+  const [refreshing, setRefreshing] = useState(false)
   const [discSettings, setDiscSettings] = useState(false)
   const [prefs, setPrefs] = useState<Prefs | null>(null)
   const [broken, setBroken] = useState(false)
   const load = () => { setBroken(false); return api.get<Item>(`/items/${id}`).then(setIt).catch((e) => { if (e.status >= 500) setBroken(true); else setErr(e.message) }) }
   useEffect(() => { load() }, [id])
   useEffect(() => { getPrefs().then(setPrefs) }, [])
+  // Coming back from picking a time in the player opens where it was.
+  useEffect(() => { if (params.get('edit')) { const p = new URLSearchParams(params); p.delete('edit'); setParams(p, { replace: true }) } }, []) // eslint-disable-line react-hooks/exhaustive-deps
   if (broken) return <LoadError what="This title" onRetry={load} />
   if (err) return <EmptyState icon={<IconInfo />} title="This title isn’t available" text="It may have been removed, or this profile may not be allowed to see it." action={<Link className="btn" to="/">Back to home</Link>} />
   if (!it) return <Spinner />
@@ -46,9 +50,6 @@ export default function ItemPage() {
   const disc = isDisc(it)
   const resume = it.progress?.resumeSec ? it.progress : null
   const main = it.disc?.titles.find((t) => t.number === it.disc?.mainTitle)
-  const refresh = async () => {
-    try { setIt(await api.put<Item>(`/items/${it.id}`, { refresh: true })); toast('Metadata refreshed') } catch (e: any) { toast(e.message) }
-  }
   const sizeGB = it.sizeBytes ? (it.sizeBytes / 1e9).toFixed(2) + ' GB' : ''
   const start = dvdStartMode(it)
   const fx = insertFxOn(it)
@@ -78,15 +79,14 @@ export default function ItemPage() {
               {episodeLabel(it) && <><IconRight /><span>{episodeLabel(it)}</span></>}
             </div>
           )}
-          <h1>{it.title}</h1>
+          <TitleLogo target="item" id={it.id} name={it.title} version={it.updatedAt} />
           {it.tagline && <div className="tagline">{it.tagline}</div>}
           <div className="meta">
             {it.aired ? <span>{it.aired}</span> : it.year && <span>{it.year}</span>}
             {it.runtimeSec > 0 && <span>{fmtRuntime(it.runtimeSec)}</span>}
             {it.contentRating && <span className="pill">{it.contentRating}</span>}
             {it.rating && <span className="star"><IconStar /> {it.rating.toFixed(1)}</span>}
-            {(it.genres || []).length > 0 && <span title={it.genres.join(', ')}>{it.genres.slice(0, 4).join(', ')}{it.genres.length > 4 ? '…' : ''}</span>}
-            {it.studio && <span>{it.studio}</span>}
+            {(it.genres || []).length > 0 && <span title={it.genres.join(', ')}>{it.genres.slice(0, 4).map((g, i) => <span key={g}>{i > 0 ? ', ' : ''}<Link to={`/library/${it.libraryId}?genre=${encodeURIComponent(g)}`}>{g}</Link></span>)}{it.genres.length > 4 ? '…' : ''}</span>}
           </div>
           {disc ? (
             <div className="actions disc-actions">
@@ -101,9 +101,9 @@ export default function ItemPage() {
               {user?.isAdmin && (
                 <div className="admin-tools" role="group" aria-label="Manage">
                   <button className="btn ghost square" onClick={() => setDiscSettings(true)} title="Disc settings" aria-label="Disc settings"><IconSettings /></button>
-                  <button className="btn ghost square" onClick={() => setArt(true)} title="Artwork" aria-label="Artwork"><IconImage /></button>
-                  <button className="btn ghost square" onClick={() => setEdit(true)} title="Edit details" aria-label="Edit details"><IconEdit /></button>
-                  <button className="btn ghost square" onClick={refresh} title="Refresh details from TMDB" aria-label="Refresh details"><IconRefresh /></button>
+                  <button className="btn ghost square" onClick={() => setEdit('artwork')} title="Artwork" aria-label="Artwork"><IconImage /></button>
+                  <button className="btn ghost square" onClick={() => setEdit('match')} title="Edit details" aria-label="Edit details"><IconEdit /></button>
+                  <button className="btn ghost square" onClick={() => setRefreshing(true)} title="Check for new details" aria-label="Check for new details"><IconRefresh /></button>
                 </div>
               )}
               <div className="disc-hint muted">Insert {discName(it)} starts with the {start === 'menu' ? 'disc menu' : 'main feature'}{fx ? ' · with the tray effect' : ''}{user?.isAdmin ? ' — change it in Disc settings.' : '.'}</div>
@@ -116,9 +116,9 @@ export default function ItemPage() {
               {resume && <button className="btn" onClick={() => nav(`/play/${it.id}?start=0`)}><IconPlay /> Play from start</button>}
               {it.nextId && <button className="btn" onClick={() => nav(`/item/${it.nextId}`)}><IconNext /> Next episode</button>}
               <SaveButton itemId={it.id} />
-              {user?.isAdmin && <button className="btn ghost" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
-              {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
-              {user?.isAdmin && it.showId == null && <button className="btn ghost" onClick={refresh} title="Fetch metadata from TMDB"><IconRefresh /> Refresh</button>}
+              {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('artwork')}><IconImage /> Artwork</button>}
+              {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('match')}><IconEdit /> Edit</button>}
+              {user?.isAdmin && it.showId == null && <button className="btn ghost" onClick={() => setRefreshing(true)} title="See what's new about this, and choose what to take"><IconRefresh /> Refresh</button>}
             </div>
           )}
           {it.overview && <p className="overview">{it.overview}</p>}
@@ -138,6 +138,7 @@ export default function ItemPage() {
             {user?.isAdmin && <div className="fact wide"><div className="k">File</div><div className="v">{it.path}</div></div>}
           </div>
 
+          <TitleExtras target="item" id={it.id} libraryId={it.libraryId} />
           {disc && <DiscSections item={it} admin={!!user?.isAdmin} playable={playable} />}
           <div className="page-back">{it.showId != null
             ? <BackLink to={`/show/${it.showId}?season=${it.season ?? -1}`} label={`Back to ${it.showTitle}`} />
@@ -145,9 +146,8 @@ export default function ItemPage() {
           <LegalNote kind="metadata" />
         </div>
       </div>
-      {edit && <EditModal item={it} onClose={() => setEdit(false)} onSaved={(x) => { setIt(x); setEdit(false) }} />}
-      {art && <ArtworkPicker base={`/items/${it.id}`} onClose={() => setArt(false)}
-        onPick={async (kind, url) => { setIt(await api.put<Item>(`/items/${it.id}`, { [kind]: url })); toast(kind === 'poster' ? 'Poster updated' : 'Backdrop updated') }} />}
+      {edit && <EditDetails target="item" id={it.id} start={edit} onClose={() => setEdit('')} onChanged={load} />}
+      {refreshing && <RefreshDialog target="item" id={it.id} onClose={() => setRefreshing(false)} onChanged={load} />}
       {discSettings && <DiscSettings item={it} prefs={prefs} onClose={() => setDiscSettings(false)} onSaved={(x) => { setIt(x); setDiscSettings(false); toast('Disc settings saved') }} />}
     </>
   )
@@ -190,42 +190,6 @@ function DiscSettings({ item, prefs, onClose, onSaved }: { item: Item; prefs: Pr
               <option value="off">Off for this disc</option>
             </select>
           </label>
-          {err && <div className="error">{err}</div>}
-        </div>
-        <div className="actions"><button className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary" onClick={save}>Save</button></div>
-      </div>
-    </div>
-  )
-}
-
-function EditModal({ item, onClose, onSaved }: { item: Item; onClose: () => void; onSaved: (it: Item) => void }) {
-  const [f, setF] = useState({ title: item.title, year: item.year ? String(item.year) : '', overview: item.overview, tagline: item.tagline, genres: item.genres.join(', '), poster: item.poster, backdrop: item.backdrop, contentRating: item.contentRating || '' })
-  const [err, setErr] = useState('')
-  const save = async () => {
-    try {
-      const r = await api.put<Item>(`/items/${item.id}`, {
-        title: f.title, year: f.year ? Number(f.year) : null, overview: f.overview, tagline: f.tagline, contentRating: f.contentRating,
-        genres: f.genres.split(',').map((s) => s.trim()).filter(Boolean), poster: f.poster, backdrop: f.backdrop,
-      })
-      onSaved(r)
-    } catch (e: any) { setErr(e.message) }
-  }
-  const up = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value })
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Edit metadata</h2>
-        <div className="form full">
-          <div className="row2">
-            <label>Title<input className="input" value={f.title} onChange={up('title')} /></label>
-            <label>Year<input className="input" value={f.year} onChange={up('year')} /></label>
-          </div>
-          <label>Tagline<input className="input" value={f.tagline} onChange={up('tagline')} /></label>
-          <label>Overview<textarea className="input" rows={5} value={f.overview} onChange={up('overview')} /></label>
-          <label>Genres (comma separated)<input className="input" value={f.genres} onChange={up('genres')} /></label>
-          <RatingField value={f.contentRating} onChange={(v) => setF({ ...f, contentRating: v })} />
-          <label>Poster (URL or file path)<input className="input" value={f.poster} onChange={up('poster')} /></label>
-          <label>Backdrop (URL or file path)<input className="input" value={f.backdrop} onChange={up('backdrop')} /></label>
           {err && <div className="error">{err}</div>}
         </div>
         <div className="actions"><button className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary" onClick={save}>Save</button></div>

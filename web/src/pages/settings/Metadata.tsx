@@ -6,6 +6,8 @@ import { GameSourcesSettings } from '../GameMeta'
 import { LoadError } from '../../components/common'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui'
 import LegalNote from '../../components/LegalNote'
+import { Link } from 'react-router-dom'
+import { ListingSettings, LogoSettings } from './MetadataOptional'
 
 // Where titles, posters, plots and ratings come from: the built-in agents
 // (some need a free API key), the owner's own custom agents, and what is
@@ -23,7 +25,8 @@ export default function MetadataSettings() {
   return (
     <>
       <PageHead title="Metadata agents"
-        desc="Where titles, posters, plots and ratings come from. Information inside your files and NFO files always comes first; then your custom agents, in order; then the built-in agents." />
+        desc="Where titles, posters, plots and ratings come from. Information inside your files and NFO files always comes first; then your custom agents, in order; then the built-in agents."
+        actions={<Link className="btn" to="/fix-matches">Fix matches</Link>} />
 
       <Section title="Built-in agents" desc="Agents marked “No API key needed” work straight away. The others need a free key from their website.">
         <Row label="TVmaze" badge={NO_KEY} desc="TV shows: episode titles, plots, posters and stills. Used until you add a TheTVDB key. Data shared under CC BY-SA 4.0.">
@@ -53,6 +56,9 @@ export default function MetadataSettings() {
       <GameSourcesSettings />
 
       <CustomAgents />
+
+      <LogoSettings />
+      <ListingSettings />
 
       <Section title="Anime">
         <Row label="Where anime from TV libraries appears" desc="Shows with the genre “Anime”. Needs an Anime library.">

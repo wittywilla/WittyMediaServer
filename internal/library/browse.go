@@ -33,7 +33,11 @@ type BrowseFilter struct {
 	Format     string // an audio format such as "AC3 5.1"
 	Tag        string
 	Edition    string
-	Kind       string // video | dvd | bluray | show
+	Kind       string // video | dvd | bluray | disc | show
+	Disc       string // what a disc holds: movie | tv | music
+	// AnimeOf: this anime library's shows and the anime of every TV library; HideAnime: a
+	// TV library when anime goes to the anime library only.
+	AnimeOf, HideAnime bool
 	Watched    string // yes | no
 	Platform   string // a streaming service's key (needs listings on)
 	Sort       string // title | added | newest | oldest | rating | quality | shuffle
@@ -51,7 +55,7 @@ func ParseBrowseFilter(q url.Values) BrowseFilter {
 	}
 	f := BrowseFilter{Library: int64(n("library")), Search: clip(q.Get("search"), 200), Genre: clip(q.Get("genre"), 100), Studio: clip(q.Get("studio"), 120), Network: clip(q.Get("network"), 120),
 		Year: n("year"), Decade: n("decade"), Content: clip(q.Get("content"), 20), Resolution: q.Get("resolution"), Audio: clip(q.Get("audio"), 12), Subtitle: clip(q.Get("subtitle"), 12), Format: clip(q.Get("format"), 40),
-		Tag: clip(q.Get("tag"), 60), Edition: clip(q.Get("edition"), 60), Kind: q.Get("kind"), Watched: q.Get("watched"), Platform: clip(q.Get("platform"), 80), Sort: q.Get("sort"), Desc: q.Get("desc") == "1",
+		Tag: clip(q.Get("tag"), 60), Edition: clip(q.Get("edition"), 60), Kind: q.Get("kind"), Disc: q.Get("disc"), Watched: q.Get("watched"), Platform: clip(q.Get("platform"), 80), Sort: q.Get("sort"), Desc: q.Get("desc") == "1",
 		Seed: n("seed"), Limit: n("limit"), Offset: n("offset")}
 	if v, err := strconv.ParseFloat(q.Get("minRating"), 64); err == nil && v > 0 && v <= 10 {
 		f.MinRating = v
@@ -60,7 +64,7 @@ func ParseBrowseFilter(q url.Values) BrowseFilter {
 }
 
 // browseKeys are what a saved view can hold.
-var browseKeys = []string{"genre", "studio", "network", "year", "decade", "content", "minRating", "resolution", "audio", "subtitle", "format", "tag", "edition", "kind", "watched", "platform", "sort", "desc", "search"}
+var browseKeys = []string{"genre", "studio", "network", "year", "decade", "content", "minRating", "resolution", "audio", "subtitle", "format", "tag", "edition", "kind", "disc", "watched", "platform", "sort", "desc", "search"}
 
 // CleanViewQuery keeps only what a saved view can hold, for storing.
 func CleanViewQuery(q url.Values) url.Values {
@@ -135,7 +139,7 @@ const videoLibraries = "(SELECT id FROM libraries WHERE type IN ('movies', 'disc
 func (s *Store) Browse(ctx context.Context, f BrowseFilter, userID int64, access *Access) (*BrowseResult, error) {
 	genres := s.expandGenre(ctx, f.Library, f.Genre)
 	ic, ia := access.ItemClause()
-	iw := []string{"i.missing = 0", "i.show_id IS NULL", hideLinked, "i.kind IN ('video', 'dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder')", "i.library_id IN " + videoLibraries, ic}
+	iw := []string{"i.missing = 0", "i.show_id IS NULL", hideLinked, "i.kind IN ('video', 'dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder', '" + CDKind + "')", "i.library_id IN " + videoLibraries, ic}
 	iargs := append([]any{}, ia...)
 	sc, sa := access.ShowClause()
 	sw := []string{"s.missing = 0", "EXISTS (SELECT 1 FROM items e WHERE e.show_id = s.id AND e.missing = 0)", sc}
@@ -143,8 +147,15 @@ func (s *Store) Browse(ctx context.Context, f BrowseFilter, userID int64, access
 	if f.Library != 0 {
 		iw = append(iw, "i.library_id = ?")
 		iargs = append(iargs, f.Library)
-		sw = append(sw, "s.library_id = ?")
+		if f.AnimeOf {
+			sw = append(sw, "(s.library_id = ? OR ("+animeGenre+" AND s.library_id IN (SELECT id FROM libraries WHERE type = 'shows')))")
+		} else {
+			sw = append(sw, "s.library_id = ?")
+		}
 		sargs = append(sargs, f.Library)
+	}
+	if f.HideAnime {
+		sw = append(sw, "NOT "+animeGenre)
 	}
 	both := func(item, show string, a ...any) {
 		iw = append(iw, item)
@@ -223,8 +234,16 @@ func (s *Store) Browse(ctx context.Context, f BrowseFilter, userID int64, access
 	case "bluray":
 		noShows = true
 		iw = append(iw, "i.kind IN ('bluray-iso', 'bluray-folder')")
+	case "disc":
+		noShows = true
+		iw = append(iw, "i.kind IN ('dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder', '"+CDKind+"')")
 	case "show":
 		noItems = true
+	}
+	if f.Disc != "" {
+		noShows = true
+		iw = append(iw, "json_extract(i.disc_json, '$.content') = ?")
+		iargs = append(iargs, f.Disc)
 	}
 	switch f.Watched {
 	case "yes":

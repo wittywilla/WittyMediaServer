@@ -70,6 +70,7 @@ type titleEditor struct {
 	IntroAuto  bool                 `json:"introAuto"`
 	Runtime    float64              `json:"runtimeSec"`
 	CanDelete  bool                 `json:"canDelete"`
+	Disc       bool                 `json:"disc"`
 	ExtraTypes []string             `json:"extraTypes"`
 }
 
@@ -135,6 +136,7 @@ func (s *Server) buildEditor(ctx context.Context, t *library.Title) *titleEditor
 			}
 		}
 		e.IntroAuto = t.Meta.Sources["introEnd"] != library.SourceYou && t.Item.IntroEnd != nil
+		e.Disc = library.IsDiscKind(t.Item.Kind)
 	} else {
 		e.Kind, e.UpdatedAt = "show", t.Show.UpdatedAt
 	}

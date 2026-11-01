@@ -21,6 +21,9 @@ func (s *Server) handleBrowse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) writeBrowse(w http.ResponseWriter, r *http.Request, f library.BrowseFilter) {
+	q := library.ShowQuery{LibraryID: f.Library}
+	s.animeQuery(r.Context(), &q)
+	f.AnimeOf, f.HideAnime = q.AnimeOf, q.HideAnime
 	if f.Platform != "" && !s.Store.ListingsEnabled(r.Context()) {
 		writeJSON(w, 200, library.BrowseResult{Results: []library.BrowseRow{}})
 		return

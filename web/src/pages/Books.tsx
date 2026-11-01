@@ -5,6 +5,7 @@ import { BackLink, EmptyState, ScanButton, SkeletonGrid } from '../components/co
 import { IconBook } from '../icons'
 import { useApp } from '../state'
 import LegalNote from '../components/LegalNote'
+import LibraryHeader from '../components/LibraryHeader'
 
 // Books, comics and manga: the library page and a book's details.
 
@@ -35,31 +36,38 @@ export default function BooksLibrary({ lib }: { lib: Library }) {
   const [params, setParams] = useSearchParams()
   const tab = params.get('tab') || 'books'
   const series = params.get('series')
+  const sort = params.get('sort') || 'title'
+  const desc = params.get('desc') === '1'
   const [items, setItems] = useState<Item[] | null>(null)
   const [groups, setGroups] = useState<Album[] | null>(null)
   useEffect(() => {
     if (tab === 'books') {
       setItems(null)
-      const q = series !== null ? `&sort=track` : '&sort=title'
+      const q = series !== null ? `&sort=track` : `&sort=${sort}&desc=${desc ? 1 : 0}`
       api.get<{ items: Item[] }>(`/items?library=${lib.id}${q}&kind=book`)
         .then((r) => setItems(series !== null ? r.items.filter((x) => (x.album || '') === series) : r.items)).catch(() => setItems([]))
     } else {
       setGroups(null)
       api.get<Album[]>(`/music/albums?library=${lib.id}&sort=title`).then(setGroups).catch(() => setGroups([]))
     }
-  }, [lib.id, tab, series])
+  }, [lib.id, tab, series, sort, desc])
   const set = (p: Record<string, string | null>) => { const n = new URLSearchParams(params); for (const [k, v] of Object.entries(p)) v === null ? n.delete(k) : n.set(k, v); setParams(n) }
   return (
     <>
-      <div className="toolbar">
-        <h1>{lib.name}{series !== null && <span className="muted"> · {series || 'No series'}</span>}</h1>
-        {tab === 'books' && items && <span className="count">{items.length} {items.length === 1 ? 'book' : 'books'}</span>}
-        <div className="seg" role="tablist">
+      <LibraryHeader
+        title={lib.name}
+        sub={series !== null ? series || 'No series' : undefined}
+        count={tab === 'books' && items ? `${items.length} ${items.length === 1 ? 'book' : 'books'}` : undefined}
+        tabs={<div className="seg" role="tablist">
           {[['books', 'Books'], ['series', 'Series']].map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => set({ tab: k, series: null })}>{l}</button>)}
-        </div>
-        <div className="grow" />
-        <ScanButton lib={lib} />
-      </div>
+        </div>}
+        sorts={tab === 'books' && series === null ? [{ key: 'title', label: 'Title' }, { key: 'added', label: 'Recently added', desc: true }, { key: 'year', label: 'Year', desc: true }] : undefined}
+        sort={sort}
+        desc={desc}
+        onSort={(k, d) => set({ sort: k, desc: d ? '1' : null })}
+        onDirection={(d) => set({ desc: d ? '1' : null })}
+        actions={<ScanButton lib={lib} />}
+      />
       {tab === 'books' && (!items ? <SkeletonGrid /> : items.length === 0 ? <EmptyState icon={<IconBook />} title="No books yet" text="Put EPUB, PDF or CBZ files in this library's folders and scan it." /> : (
         <div className="album-grid">{items.map((it) => <BookCard key={it.id} it={it} />)}</div>
       ))}

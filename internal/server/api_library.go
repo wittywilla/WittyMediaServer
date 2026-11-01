@@ -493,7 +493,9 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		Key     string          `json:"key"`
 		Title   string          `json:"title"`
 		Library *int64          `json:"libraryId,omitempty"`
-		Items   []*library.Item `json:"items"`
+		// Query: what "See all" adds to the library's address, for a saved view.
+		Query string          `json:"query,omitempty"`
+		Items []*library.Item `json:"items"`
 		Shows   []*library.Show `json:"shows,omitempty"`
 	}
 	hubs := []hub{}
@@ -568,7 +570,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 			if err != nil || len(res.Results) == 0 {
 				continue
 			}
-			h := hub{Key: "view-" + itoa(v.ID), Title: v.Name, Items: []*library.Item{}}
+			h := hub{Key: "view-" + itoa(v.ID), Title: v.Name, Query: v.Query, Items: []*library.Item{}}
 			if v.LibraryID != 0 {
 				id := v.LibraryID
 				h.Library = &id

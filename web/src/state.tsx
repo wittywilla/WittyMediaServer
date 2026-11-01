@@ -88,15 +88,5 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return <Ctx.Provider value={{ user, setupRequired, libraries, version, refreshLibraries, setUser, loading, brandName, brandLogo, setBrandLogo, serverTheme, setBrandName, setServerTheme, onboarding, setOnboarding, pickerLocal, needServer, update, setUpdate, legalAck, setLegalAck }}>{children}</Ctx.Provider>
 }
 
-// Tiny toast helper.
-let toastFn: ((msg: string) => void) | null = null
-export const toast = (msg: string) => toastFn?.(msg)
-export function ToastHost() {
-  const [msg, setMsg] = useState<string | null>(null)
-  useEffect(() => {
-    toastFn = (m) => { setMsg(m); setTimeout(() => setMsg(null), 3000) }
-    return () => { toastFn = null }
-  }, [])
-  // Always mounted so screen readers announce new messages.
-  return <div className={msg ? 'toast' : 'sr-only'} role="status" aria-live="polite">{msg || ''}</div>
-}
+// Toasts live with the other shared parts; every page imports them from here.
+export { toast, ToastHost } from './ui/Toast'

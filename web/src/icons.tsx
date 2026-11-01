@@ -61,7 +61,13 @@ export const IconMic = (p: P) => <S {...p} d="M12 2a3.5 3.5 0 00-3.5 3.5v6a3.5 3
 export const IconHeadphones = (p: P) => <S {...p} d="M12 3a9 9 0 00-9 9v7a2 2 0 002 2h2a2 2 0 002-2v-4a2 2 0 00-2-2H5v-1a7 7 0 0114 0v1h-2a2 2 0 00-2 2v4a2 2 0 002 2h2a2 2 0 002-2v-7a9 9 0 00-9-9z" />
 export const IconCamera = (p: P) => <S {...p} d="M9 3L7.2 5H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V7a2 2 0 00-2-2h-3.2L15 3zm3 15a5 5 0 110-10 5 5 0 010 10zm0-2a3 3 0 100-6 3 3 0 000 6z" />
 export const IconContrast = (p: P) => <S {...p} d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 2v16a8 8 0 010-16z" />
-export const IconSortUp = (p: P) => <S {...p} d="M13 20h-2V7.8l-5.6 5.6L4 12l8-8 8 8-1.4 1.4L13 7.8z" />
+export const IconMore = (p: P) => <S {...p} d="M5 10a2 2 0 110 4 2 2 0 010-4zm7 0a2 2 0 110 4 2 2 0 010-4zm7 0a2 2 0 110 4 2 2 0 010-4z" />
+export const IconUser = (p: P) => <S {...p} d="M12 12a4.5 4.5 0 100-9 4.5 4.5 0 000 9zm0 2c-3.3 0-8 1.7-8 4.5V21h16v-2.5c0-2.8-4.7-4.5-8-4.5z" />
+export const IconEye = (p: P) => <S {...p} d="M12 5C7 5 2.7 8.1 1 12c1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 11.5a4.5 4.5 0 110-9 4.5 4.5 0 010 9zm0-7a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" />
+export const IconEyeOff = (p: P) => <S {...p} d="M3.3 2L2 3.3l3.2 3.2A11.8 11.8 0 001 12c1.7 3.9 6 7 11 7 1.6 0 3.1-.3 4.5-.9l3.2 3.2 1.3-1.3zM12 16.5A4.5 4.5 0 017.9 10l1.6 1.6a2.5 2.5 0 002.9 2.9l1.6 1.6c-.6.3-1.3.4-2 .4zM12 5c-1.3 0-2.5.2-3.7.6l2.2 2.2a4.5 4.5 0 015.7 5.7l3.2 3.2A11.8 11.8 0 0023 12c-1.7-3.9-6-7-11-7z" />
+export const IconLayers = (p: P) => <S {...p} d="M12 2L2 8l10 6 10-6zm-8.3 9.8L2 13l10 6 10-6-1.7-1.2L12 16.7zm0 5L2 18l10 6 10-6-1.7-1.2L12 21.7z" />
+export const IconSidebar = (p: P) => <S {...p} d="M20 3H4a2 2 0 00-2 2v14a2 2 0 002 2h16a2 2 0 002-2V5a2 2 0 00-2-2zM9 19H4V5h5zm11 0H11V5h9z" />
+export const IconSortUp =(p: P) => <S {...p} d="M13 20h-2V7.8l-5.6 5.6L4 12l8-8 8 8-1.4 1.4L13 7.8z" />
 export const IconSortDown = (p: P) => <S {...p} d="M11 4h2v12.2l5.6-5.6L20 12l-8 8-8-8 1.4-1.4 5.6 5.6z" />
 // Jump back or forward by a number of seconds: a circular arrow around it.
 const Jump = ({ size = 24, back, n }: P & { back: boolean; n: number }) => (

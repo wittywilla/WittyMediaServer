@@ -48,7 +48,7 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* The bar: compact, centred, always within reach. On phones the full player
    is a screen of its own; from 1000 px it is a panel docked on the right and
    the library stays usable beside it. Theme colours only. */
-.audio-bar { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 45; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; grid-template-areas: "art info ctl" "seek seek seek";
+.audio-bar { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: var(--z-dock); display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; grid-template-areas: "art info ctl" "seek seek seek";
   gap: var(--sp-1) var(--sp-3); align-items: center; padding: var(--sp-2) 10px; border-radius: var(--r-lg); background: var(--bg-2); border: 1px solid var(--border-strong); box-shadow: var(--e-3); animation: toast-bar-in var(--dur-3) var(--ease-out); }
 @keyframes toast-bar-in { from { opacity: 0; } }
 .ab-art { grid-area: art; width: 48px; height: 48px; border-radius: var(--r-md); overflow: hidden; border: 0; padding: 0; background: var(--bg-3); display: grid; place-items: center; color: var(--fg-3); cursor: pointer; transition: transform var(--dur-2) var(--ease-out); }
@@ -81,7 +81,7 @@ button.ab-info:hover { background: var(--hover); }
 .select.sm { min-height: var(--control-h-sm); padding: 0 var(--sp-2); font-size: var(--text-sm); }
 /* Phones: the bar stays compact (previous and next live in the full player), above the tab bar. */
 @media (max-width: 700px) {
-  .audio-bar { bottom: calc(70px + env(safe-area-inset-bottom)); }
+  .audio-bar { bottom: calc(var(--tabbar-space) + var(--sp-2)); }
   .audio-bar:not(.full) .ab-ctl .ibtn:not(.big) { display: none; }
   .app:has(~ .audio-bar) .content, .audio-bar ~ .app .content { padding-bottom: 200px; }
 }
@@ -100,7 +100,7 @@ button.ab-info:hover { background: var(--hover); }
 
 /* ---------------------------------------------------------------- full player */
 /* A column (not a grid: a long queue must never squeeze into the controls). */
-.audio-bar.full { inset: 0; transform: none; width: auto; border-radius: 0; z-index: 70; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: max(14px, env(safe-area-inset-top)) 20px 24px; overflow-y: auto; overscroll-behavior: contain;
+.audio-bar.full { inset: 0; transform: none; width: auto; border-radius: 0; z-index: var(--z-fullscreen); display: flex; flex-direction: column; align-items: center; gap: 16px; padding: max(14px, env(safe-area-inset-top)) 20px 24px; overflow-y: auto; overscroll-behavior: contain;
   background: var(--bg); border: 0; animation: ab-up var(--dur-3) var(--ease-out); }
 @keyframes ab-up { from { opacity: 0; transform: translateY(24px); } }
 .audio-bar.full .ab-art { display: none; }
@@ -145,7 +145,7 @@ button.ab-info:hover { background: var(--hover); }
 /* Wide screens: the full player is a panel on the right, the size of the
    phone view, and the page moves over to keep the library in view. */
 @media (min-width: 1000px) {
-  .audio-bar.full { inset: 76px 16px 16px auto; width: 380px; border-radius: var(--r-xl); z-index: 30; padding: 14px 16px 16px; gap: 14px;
+  .audio-bar.full { inset: calc(var(--topbar-h) + var(--sp-3)) var(--sp-4) var(--sp-4) auto; width: 380px; border-radius: var(--r-xl); z-index: var(--z-dock); padding: 14px 16px 16px; gap: 14px;
     background: var(--bg-2); border: 1px solid var(--border); box-shadow: var(--e-3); animation: ab-in var(--dur-3) var(--ease-out); }
   @keyframes ab-in { from { opacity: 0; transform: translateX(24px); } }
   .audio-bar.full .ab-art-big { width: 100%; max-width: 300px; border-radius: var(--r-lg); }

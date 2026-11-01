@@ -1,0 +1,62 @@
+// node --experimental-strip-types --test web/src/ui/spatial.test.mjs
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { isBackKey, ranked, score } from './spatial.ts'
+
+const box = (left, top, w = 100, h = 150) => ({ left, top, right: left + w, bottom: top + h })
+const best = (from, all, dir) => ranked(from, all, (b) => b, dir)[0]
+
+// Three rows of poster cards.
+const grid = []
+for (let y = 0; y < 3; y++) for (let x = 0; x < 6; x++) grid.push(box(x * 120, y * 180))
+const at = (x, y) => grid[y * 6 + x]
+
+test('along a row it stays on the row', () => {
+  assert.equal(best(at(2, 1), grid, 'right'), at(3, 1))
+  assert.equal(best(at(2, 1), grid, 'left'), at(1, 1))
+})
+
+test('up and down keep the column', () => {
+  assert.equal(best(at(4, 1), grid, 'down'), at(4, 2))
+  assert.equal(best(at(4, 1), grid, 'up'), at(4, 0))
+})
+
+test('nothing that way means nowhere to go', () => {
+  assert.equal(best(at(0, 0), grid, 'left'), undefined)
+  assert.equal(best(at(5, 2), grid, 'down'), undefined)
+  assert.equal(score(at(2, 1), at(2, 0), 'down'), null)
+})
+
+test('a far card on this row beats a near one on the next', () => {
+  const here = box(0, 0)
+  const sameLine = box(600, 0), nextLine = box(120, 180)
+  assert.equal(best(here, [nextLine, sameLine], 'right'), sameLine)
+})
+
+test('from a narrow button down to a wide bar under it', () => {
+  const button = box(500, 0, 40, 40)
+  const bar = box(0, 60, 1000, 40), corner = box(0, 300, 40, 40)
+  assert.equal(best(button, [corner, bar], 'down'), bar)
+})
+
+test('down from a page title reaches the nearest thing under it, not the sidebar', () => {
+  const title = box(300, 10, 200, 40)
+  const sidebarLink = box(0, 70, 200, 40), firstCard = box(300, 90)
+  assert.equal(best(title, [sidebarLink, firstCard], 'down'), firstCard)
+})
+
+test('left from the page reaches the sidebar link on the same line', () => {
+  const card = box(300, 200)
+  const links = [box(0, 40, 200, 40), box(0, 240, 200, 40), box(0, 500, 200, 40)]
+  assert.equal(best(card, links, 'left'), links[1])
+})
+
+test('overlapping boxes still move', () => {
+  const a = box(0, 0, 100, 100), b = box(50, 80, 100, 100)
+  assert.equal(best(a, [b], 'down'), b)
+})
+
+test('the Back button on every remote', () => {
+  for (const e of [{ key: 'GoBack' }, { key: 'BrowserBack' }, { key: 'Unidentified', keyCode: 461 }, { key: 'XF86Back', keyCode: 10009 }]) assert.ok(isBackKey(e))
+  assert.ok(!isBackKey({ key: 'Enter', keyCode: 13 }))
+})

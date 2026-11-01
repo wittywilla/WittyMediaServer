@@ -14,8 +14,10 @@ import AuthPage from './pages/AuthPage'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
+import { AskHost } from './ui/Overlay'
 
 const SharedPage = lazy(() => import('./pages/SharedPage'))
+const DesignPage = lazy(() => import('./pages/DesignPage'))
 const LegalPublicPage = lazy(() => import('./pages/settings/Legal').then((m) => ({ default: m.LegalPublicPage })))
 const GamePage = lazy(() => import('./pages/Games').then((m) => ({ default: m.GamePage })))
 const RadioStationPage = lazy(() => import('./pages/RadioLibrary').then((m) => ({ default: m.RadioStationPage })))
@@ -53,6 +55,7 @@ export default function App() {
     <AppProvider>
       <Shell />
       <ToastHost />
+      <AskHost />
       <Announcer />
     </AppProvider>
   )
@@ -144,6 +147,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
             <Route path="/controllers" element={<Suspense fallback={<Spinner />}><ControllersScreen /></Suspense>} />
             <Route path="/settings/*" element={<SettingsPage />} />
+            <Route path="/design" element={<DesignPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           </Suspense>

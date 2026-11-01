@@ -1,4 +1,5 @@
-// TV, remote-control and game-controller input for the whole app.
+// TV, remote-control and game-controller input for the whole app. The rule for
+// which control is next lives in ui/spatial.ts; docs/DESIGN.md has the contract.
 //
 // - Arrow keys move focus to the nearest control in that direction (spatial
 //   navigation), so every page works with a TV remote's D-pad. Inside the
@@ -16,6 +17,8 @@
 //   to their first axes and buttons. The controller is only polled while one
 //   is connected, so this costs nothing otherwise.
 
+import { isBackKey, ranked, type Dir } from './ui/spatial'
+
 const FOCUSABLE = 'a[href], button:not([disabled]), summary, input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 // Inside the player only these areas take part in spatial navigation.
 const PLAYER_CONTROLS = '.bottom, .top, .view-settings, .remote, .remote-bar, .mini-bar, .overlay-msg, .watch-next, .big-play, .skip-intro'
@@ -26,7 +29,6 @@ const FULL_PLAYER = '.player:not(.mini):not(.inline)'
 // for an answer, then the controls.
 const PLAYER_FIRST = ['.big-play button', '.overlay-msg button', '.skip-intro', '.watch-next button', '.bottom .big', '.bottom button:not([disabled])', '.top button:not([disabled])']
 
-type Dir = 'up' | 'down' | 'left' | 'right'
 const DIRS: Record<string, Dir> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }
 
 function typing(el: Element | null): boolean {
@@ -71,43 +73,46 @@ function visible(el: HTMLElement, r: DOMRect): boolean {
 // The area focus may move within: the innermost open dialog, the player's
 // controls, or the whole page.
 function scopeOf(el: Element | null): ParentNode {
-  const dialog = el?.closest('[role=dialog], .picker-backdrop, .modal')
+  const dialog = el?.closest('[role=dialog], [role=alertdialog], [role=menu], .picker-backdrop, .modal')
   if (dialog) return dialog
-  const openDialog = document.querySelector('.picker-backdrop, .modal-backdrop .modal, .view-settings')
+  const openDialog = document.querySelector('[role=menu], .picker-backdrop, .modal-backdrop .modal, .view-settings')
   if (openDialog) return openDialog
+  // The full audio player covers the page on anything narrower than the docked panel.
+  const fullAudio = document.querySelector('.audio-bar.full')
+  if (fullAudio && innerWidth < 1000) return fullAudio
   const player = document.querySelector(FULL_PLAYER)
   if (player) return player
   return document
 }
 
+// A row, a menu or any other set of controls that belong together: coming back
+// to one lands where you left it, not on whatever happens to be nearest.
+const GROUPS = '[data-nav-group], .row, .topnav, .sidebar, .set-nav, .tabbar, .section-row'
+const lastIn = new WeakMap<Element, HTMLElement>()
+const groupOf = (el: Element | null) => el?.closest(GROUPS) || null
+
 function move(dir: Dir): boolean {
   const cur = document.activeElement as HTMLElement | null
   const scope = scopeOf(cur)
   const all = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !(el.closest(FULL_PLAYER) && !el.closest(PLAYER_CONTROLS)))
-  const cands = all.map((el) => ({ el, r: el.getBoundingClientRect() })).filter((c) => visible(c.el, c.r))
-  if (!cands.length) return false
-  if (!cur || cur === document.body || !cands.some((c) => c.el === cur)) {
+  if (!all.length) return false
+  // Read every position first, in one go, then look closer only at the likeliest few:
+  // a library can have thousands of cards, and this runs on every key press.
+  const boxes = new Map(all.map((el) => [el, el.getBoundingClientRect()]))
+  if (!cur || cur === document.body || !boxes.has(cur) || !visible(cur, boxes.get(cur)!)) {
     // Nothing focused yet: start at the first control of the main content.
-    const first = cands.find((c) => c.el.closest('.content, .player, [role=dialog]')) || cands[0]
-    focus(first.el)
+    const first = all.find((el) => el.closest('.content, .player, [role=dialog]') && visible(el, boxes.get(el)!)) || all.find((el) => visible(el, boxes.get(el)!))
+    if (!first) return false
+    focus(first)
     return true
   }
-  const a = cur.getBoundingClientRect()
-  const ax = a.left + a.width / 2, ay = a.top + a.height / 2
-  let best: HTMLElement | null = null, bestScore = Infinity
-  for (const { el, r } of cands) {
-    if (el === cur || el.contains(cur) || cur.contains(el)) continue
-    const bx = r.left + r.width / 2, by = r.top + r.height / 2
-    let primary: number, orth: number
-    switch (dir) {
-      case 'right': primary = r.left - a.right; orth = Math.abs(by - ay); if (bx <= ax + 1) continue; break
-      case 'left': primary = a.left - r.right; orth = Math.abs(by - ay); if (bx >= ax - 1) continue; break
-      case 'down': primary = r.top - a.bottom; orth = Math.abs(bx - ax); if (by <= ay + 1) continue; break
-      default: primary = a.top - r.bottom; orth = Math.abs(bx - ax); if (by >= ay - 1) continue
-    }
-    // Prefer controls in line with the current one; overlap counts as 0 distance.
-    const score = Math.max(0, primary) + orth * (dir === 'up' || dir === 'down' ? 0.6 : 2.2)
-    if (score < bestScore) { bestScore = score; best = el }
+  const others = all.filter((el) => el !== cur && !el.contains(cur) && !cur.contains(el))
+  let best = ranked(boxes.get(cur)!, others, (el) => boxes.get(el)!, dir).find((el) => visible(el, boxes.get(el)!))
+  if (best) {
+    // Into another group: back to where it was left, as long as that is this way too.
+    const group = groupOf(best)
+    const memory = group && group !== groupOf(cur) ? lastIn.get(group) : undefined
+    if (memory?.isConnected && memory !== best && boxes.has(memory) && visible(memory, boxes.get(memory)!) && ranked(boxes.get(cur)!, [memory], (el) => boxes.get(el)!, dir).length) best = memory
   }
   if (!best) {
     // Leaving the player's controls upwards hands the arrows back to the player.
@@ -186,8 +191,8 @@ function onKey(e: KeyboardEvent) {
     if (left || target?.tagName === 'SELECT') e.preventDefault()
     return
   }
-  if (e.key === 'GoBack' || e.key === 'BrowserBack' || (e.key === 'Backspace' && !typing(target))) {
-    if (document.querySelector(FULL_PLAYER) || document.querySelector('[role=dialog], .modal')) return // handled there
+  if (isBackKey(e) || (e.key === 'Backspace' && !typing(target))) {
+    if (document.querySelector(FULL_PLAYER) || document.querySelector('[role=dialog], [role=alertdialog], .modal')) return // handled there
     e.preventDefault()
     window.history.back()
   }
@@ -282,6 +287,11 @@ export function installTVInput() {
   if (installed) return
   installed = true
   window.addEventListener('keydown', onKey)
+  window.addEventListener('focusin', (e) => {
+    const el = e.target as HTMLElement
+    const group = groupOf(el)
+    if (group) lastIn.set(group, el)
+  }, { passive: true })
   // A list is open from the moment it is pressed until a choice or leaving it.
   window.addEventListener('mousedown', (e) => { openSelect = (e.target as Element)?.tagName === 'SELECT' ? (e.target as Element) : null }, { passive: true })
   for (const ev of ['change', 'focusout'] as const) window.addEventListener(ev, () => { openSelect = null })

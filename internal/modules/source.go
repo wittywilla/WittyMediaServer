@@ -26,6 +26,9 @@ type Source struct {
 	Key     string `json:"key"` // base64 of the publisher's Ed25519 public key
 	AddedAt int64  `json:"addedAt"`
 	AddedBy string `json:"addedBy,omitempty"`
+	// Store is the store it comes from, when its versions come from a store's catalogue rather
+	// than a GitHub repository. See stores.go.
+	Store string `json:"store,omitempty"`
 }
 
 // SourceInfo is what the page shows about a fork in use.
@@ -34,6 +37,7 @@ type SourceInfo struct {
 	Fingerprint string `json:"fingerprint"` // to compare with what the publisher says
 	AddedAt     int64  `json:"addedAt"`
 	AddedBy     string `json:"addedBy,omitempty"`
+	Store       string `json:"store,omitempty"`
 }
 
 // noFork lists modules a fork can't replace, and why, for the page. WittyTuner holds the
@@ -119,7 +123,7 @@ func (e *entry) sourceInfo() *SourceInfo {
 	if s == nil {
 		return nil
 	}
-	info := &SourceInfo{Repo: s.Repo, AddedAt: s.AddedAt, AddedBy: s.AddedBy}
+	info := &SourceInfo{Repo: s.Repo, AddedAt: s.AddedAt, AddedBy: s.AddedBy, Store: s.Store}
 	if k, err := parseSourceKey(s.Key); err == nil {
 		info.Fingerprint = Fingerprint(k)
 	}
@@ -203,5 +207,6 @@ func (m *Manager) changeSource(id string, e *entry, s *Source, detail string) er
 	_ = os.Remove(m.feedPath(id))
 	m.resolve(id, e)
 	m.prune(id, e)
+	m.relist(id, e)
 	return nil
 }

@@ -61,6 +61,7 @@ type Server struct {
 	Update       *update.Updater // nil: this build can't update itself
 	Restart      func()          // stops the server and starts it again; nil when it can't
 	Modules      *modmgr.Manager // nil: modules can't be updated here
+	ModuleStores *modmgr.Stores  // the store's pages; nil with Modules
 	// Discovery announces the server on the home network; nil when it can't
 	// be reached from other devices.
 	Discovery interface{ Refresh() }
@@ -391,6 +392,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/modules/{id}/remove", s.requireAdmin(s.handleModuleRemove))
 	m.Handle("POST /api/modules/{id}/enable", s.requireAdmin(s.handleModuleEnable))
 	m.Handle("POST /api/modules/{id}/disable", s.requireAdmin(s.handleModuleDisable))
+	s.moduleStoreRoutes(m)
 	m.Handle("PUT /api/modules/installed", s.requireAdmin(s.handleModulesInstalled))
 	m.Handle("GET /api/modules/libraries", s.requireUser(s.handleModulesLibraries))
 	m.Handle("PUT /api/modules/libraries/{type}/label", s.requireAdmin(s.handleModuleLibraryLabel))

@@ -1270,6 +1270,7 @@ func zipDeflate(w io.Writer) (io.WriteCloser, error) { return flate.NewWriter(w,
 // A panic while unpacking comes back as an error, and whoever is waiting hears about it. Nothing
 // else would catch one on this goroutine: it would end the server.
 func TestAPanicWhileUnpackingEndsOnlyThatGame(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	zp := filepath.Join(dir, "game.zip")
 	writeZip(t, zp, zipFile{name: "Game.sfc", data: []byte("rom")})
@@ -1300,6 +1301,7 @@ func TestAPanicWhileUnpackingEndsOnlyThatGame(t *testing.T) {
 // A set names its archive after its main game, and that's the one to play, unless all that's
 // on offer in its name is a bad dump or someone's hack of it.
 func TestSetsPlayTheirMainGame(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	c := wittyplay.ByID("snes")
 	for _, tc := range []struct {
 		archive string

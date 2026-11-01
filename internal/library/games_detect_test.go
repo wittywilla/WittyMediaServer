@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"github.com/wittywilla/wittymediaserver/internal/gameid"
 	"github.com/wittywilla/wittymediaserver/internal/gameid/fixture"
 	"github.com/wittywilla/wittymediaserver/internal/gameregion"
@@ -69,6 +70,7 @@ func discovered(t *testing.T, root, console string) ([]string, map[string]gameFi
 
 // The heart of it: what was indexed wrongly before, each with the file it was.
 func TestNonGamesAreNotGames(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	root := t.TempDir()
 	// In a folder for a console that uses these extensions, but not games at all.
 	put(t, root, "Sega Genesis/README.md", []byte("# Notes\n\nMade up text about these games.\n"))
@@ -127,6 +129,7 @@ func biosFixture() []byte {
 
 // Folders and extensions make a guess, and a file's bytes settle it.
 func TestConsoleComesFromTheBytes(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	root := t.TempDir()
 	// In the wrong folder: the file wins.
 	put(t, root, "Playstation/Really a PS2 Game.iso", fixture.PS2("SLUS_543.21"))
@@ -185,6 +188,7 @@ func gcFixture() []byte {
 // An archive with no console folder used to go to whichever console first claimed any
 // extension in it, however small: a readme.md made it a Mega Drive game.
 func TestArchivesAreNotSortedBySmallFiles(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	root := t.TempDir()
 	putZip(t, root, "A PC Game.zip", map[string][]byte{"readme.md": []byte("# Read me\n"), "game.exe": append([]byte("MZ"), make([]byte, 1<<20)...)})
 	putZip(t, root, "A Real Game.zip", map[string][]byte{"readme.md": []byte("# Read me\n"), "game.z64": fixture.N64("MADE UP", "NXXE")})
@@ -201,6 +205,7 @@ func TestArchivesAreNotSortedBySmallFiles(t *testing.T) {
 }
 
 func TestSetsOfCartridges(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	root := t.TempDir()
 	snes := func(rel string, names ...string) {
 		files := map[string][]byte{}
@@ -239,6 +244,7 @@ func TestSetsOfCartridges(t *testing.T) {
 // A file with no proof goes on the list, with the fix one click away, and that click
 // sticks. Nothing about it is forgotten at the next scan.
 func TestNeedsALookFlow(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ctx := context.Background()
 	d, err := db.Open(t.TempDir())
 	if err != nil {
@@ -322,6 +328,7 @@ func TestNeedsALookFlow(t *testing.T) {
 // A game on several discs is one game, in whichever of the ways it's kept. The same disc
 // twice isn't listed twice, and its checksums prove it.
 func TestDiscsAndDuplicates(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	root := t.TempDir()
 	disc := func(serial string) []byte { return fixture.Raw(fixture.PS1(serial)) }
 	cue := func(bin string) []byte { return []byte("FILE \"" + bin + "\" BINARY\n  TRACK 01 MODE2/2352\n") }
@@ -373,6 +380,7 @@ func TestDiscsAndDuplicates(t *testing.T) {
 }
 
 func TestVersionsOfOneGameShareATile(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ctx := context.Background()
 	d, err := db.Open(t.TempDir())
 	if err != nil {
@@ -451,6 +459,7 @@ func TestVersionsOfOneGameShareATile(t *testing.T) {
 // The owner's order of regions decides which version leads a game and which file of an
 // archive plays, but not for a game someone has played: their saves belong to that one.
 func TestTheOwnersRegionOrderDecidesWhatComesFirst(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	t.Cleanup(func() { gameregion.Set("") })
 	gameregion.Set("")
 	ctx := context.Background()

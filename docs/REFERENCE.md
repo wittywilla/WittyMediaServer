@@ -4,7 +4,7 @@ Look up every `wittymediaserver` command, and how to script the server through i
 
 - [Commands](#commands)
 - [Flags](#flags)
-- [Tools that come with modules](#tools-that-come-with-modules)
+- [Tools for looking inside discs](#tools-for-looking-inside-discs)
 - [HTTP API](#http-api)
 - [For developers](#for-developers)
 
@@ -31,6 +31,13 @@ wittymediaserver config init --portable write it next to the program, for portab
 **Sign-in:**
 
 ```text
+wittymediaserver reset-password [-data <dir>] <username>
+                                        a new password for an account that can't sign in, asked for
+                                        twice without showing it. See If you forget your password
+  --generate                            make a random one and show it once, instead of asking
+  --password-stdin                      read it from one line of input, for a script
+wittymediaserver reset-password --list [-data <dir>]
+                                        every account's username
 wittymediaserver reset-2fa [-data <dir>] <name>
                                         turn off an account's two-factor sign-in, when the phone
                                         and the recovery codes are both gone
@@ -51,6 +58,8 @@ wittymediaserver doctor remap --from <old> --to <new> [--fix]
                                         a library's drive or folder moved: rewrite the paths
 wittymediaserver doctor reinstall <module>
                                         download a module again from its publisher
+wittymediaserver doctor reset-password <username>
+                                        the same as reset-password above
 wittymediaserver doctor help            more about these
 ```
 
@@ -124,9 +133,23 @@ Flags go after `wittymediaserver serve`. Each of them, with its variable and its
 
 Everything else, such as API keys, metadata agents, transcoding, disc behaviour, themes and profiles, is set in the web app and kept in `wms.db` in the data folder. [Back up](BACKUP.md) to keep your libraries, people and watch history.
 
-## Tools that come with modules
+## Tools for looking inside discs
 
-The tools for looking inside discs and images come with their modules, and aren't part of `wittymediaserver`. They never print video or artwork, so their output is safe to attach to a bug report.
+These are for developers and bug reports, and playing a disc doesn't need them. They're in each disc module's project, not in the module you add from the store, so as not to make that download larger. They need Go 1.26 or newer:
+
+```bash
+go install github.com/wittywilla/wittydvd/cmd/wittydvd@latest
+```
+
+```bash
+go install github.com/wittywilla/wittybluray/cmd/wittybluray@latest
+```
+
+```bash
+go install github.com/wittywilla/wittycd/cmd/wittycd@latest
+```
+
+They never print video or artwork, so their output is safe to attach to a bug report.
 
 ```text
 wittydvd info    <image>                titles, menus, languages, first-play program

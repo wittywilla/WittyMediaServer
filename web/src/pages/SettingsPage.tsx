@@ -248,7 +248,7 @@ function Libraries() {
   const add = () => setAdding(true)
   return (
     <>
-      <PageHead title="Libraries" desc="Each library is one or more folders of one kind of media. The server watches them and keeps everything up to date."
+      <PageHead title="Libraries" desc="Each library is one or more folders of one kind of media. The server looks through them every 6 hours, and Scan now does it straight away."
         actions={libraries.length > 0 && <button className="btn primary" onClick={add}><IconPlus /> Add library</button>} />
       {libraries.length > 0 && (
         <div className="set-lib-summary">
@@ -321,7 +321,7 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
   }
   return (
     <Dialog title={<>{lib.id ? `Edit ${lib.name}` : 'Add a library'}</>} onClose={onClose} size="wide" className="set-modal" actions={<><button className="btn ghost" onClick={onClose}>Cancel</button>
-          <button className="btn primary" onClick={save} disabled={!name.trim() || (paths.length === 0 && type !== 'podcasts')}>{lib.id ? 'Save and scan' : 'Add library'}</button></>}>
+          <button className="btn primary" onClick={save} disabled={!name.trim() || (paths.length === 0 && type !== 'podcasts' && type !== 'radio' && type !== 'anime')}>{lib.id ? 'Save and scan' : 'Add library'}</button></>}>
         <div className="set-form">
           <fieldset className="set-types">
             <legend>What's in it?</legend>

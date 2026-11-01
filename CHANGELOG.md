@@ -290,6 +290,7 @@ This is an alpha, so here's what has and hasn't been tried.
 - **Repair:** *Settings → Repair* and `wittymediaserver doctor` find and fix problems with metadata, the database, modules and the install, on every platform, even when the server won't start. Each finding says what it found, what the fix does, and whether it's safe. It only looks until you say so, and a safety copy is made before anything changes.
 - **A damaged database can be recovered:** a new one is built from everything that can still be read, it says what couldn't be saved, and the damaged file is kept.
 - **Moved a drive?** `wittymediaserver doctor remap` or *Settings → Repair* changes where the server looks, after checking the files are really there. Watch progress, matches and edits stay.
+- **A forgotten password no longer means a reset.** Whoever manages a profile can give it a new password or PIN under *Settings → Profiles*. An administrator who's locked out, with no second one to ask, runs `wittymediaserver reset-password <username>` on the machine with the server, which keeps everything else. It has no address on the network and isn't in *Settings → Repair*, so it can't be done from another device.
 - **Sanitized logs:** *Settings → WittyLog* has **Download logs as ZIP**, with **Sanitize for sharing** right beside it, on by default. IP addresses, computer and web names, network card addresses, account names, emails, file paths, folders, library names and titles become placeholders such as `[path-3]`, the same number all through the file, so a problem can still be followed. It shows the files, how much is replaced, and lines before and after, first. Versions, codecs, status codes, timings, routes and errors stay.
 - **`wittymediaserver logs zip` and `wittymediaserver logs sanitize`:** the same with no server running, even with a broken database.
 - **Getting to the logs:** every WittyLog tab, a page that fails to load, a crash notice and the page shown when the app itself hits an error now link to the download.
@@ -343,6 +344,24 @@ This is an alpha, so here's what has and hasn't been tried.
 
 ### Fixed
 
+- **Restoring a backup during first-time setup** from another device on your home network skipped the setup code, and a backup can bring accounts with it. It now takes the same code as making the first account, unless you've allowed setup from home.
+- **A request hung up on at the right moment, or an accounts table that couldn't be read,** could make a server that's set up look like a new one to the backup routes. Only a database that answers and has no accounts counts as a new server now.
+- **A sign-in under way** could finish after a password change and stay signed in. It now fails if the password isn't still the one it checked.
+- `wittymediaserver reset-2fa` could make a new, empty database in a mistyped folder. `wittymediaserver doctor` could leave folders behind that a server running as someone else couldn't use. Neither makes anything now until it's sure.
+- Asking for a password on the command line no longer shows what's typed if the terminal can't hide it, or leaves the terminal hiding everything after Ctrl-C.
+- A password shorter than the rule could pass if it was made of emoji: its length was being counted in bytes.
+- A Vertical videos library now has the **Upload** button its settings promised, and Space and K work when the video has the focus.
+- **This library is read-only** now stops uploads and kept podcast episodes too, as it said it did.
+- **Who else can see statistics** is now a choice under *Settings → Activity*. It could only be set through the API, though the page said Settings.
+- **Maximum resolution** has **2160p (4K)**, which is the only way to send a 4K Blu-ray as 4K.
+- A result from Musixmatch under **Other versions** can be chosen. It used to answer that the source wasn't turned on.
+- Radio and anime libraries can be saved with no folder, as the server always allowed.
+- **Recordings** is reachable from the guide on a phone.
+- With WittyCD away, a disc says the module is missing and offers it, instead of saying the disc may be damaged.
+- **Low-power mode for discs** says what it does: it was always for Blu-rays as well as DVDs.
+- The player's key list says what each key does on a disc, and lists **I**. A PDF with a password says so in plain words.
+- Uninstalling on Linux lists and removes what `sudo systemctl edit` wrote, and folders you moved with `XDG_DATA_HOME` and `XDG_CONFIG_HOME`.
+- A copy-protected EPUB opened to unreadable chapters. It's now found and refused with a plain message, and nothing tries to decrypt it. An EPUB whose embedded fonts are merely scrambled opens as usual, and a locked copy gives way to another copy of the same book.
 - A quick press on a controller could be lost in the menus, in a game's menu as much as anywhere, if the browser happened to hold back
   its drawing for a moment. Controllers are now read on a timer of their own, which costs less, since no frames are asked for just to
   read them. Buttons still held as a game's menu opens are no longer taken for presses in that menu.

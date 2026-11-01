@@ -63,6 +63,13 @@ function ServerChoices() {
             { value: 'everyone', label: 'Everyone, including kids and guests' },
           ]} />
         </Row>
+        <Row label="Who else can see statistics" desc="For the WittyStats module and the apps. Administrators see everything. Anyone else sees the server’s name and how long it’s been up, their own streams, and the libraries they can see: never the machine itself.">
+          <Select value={s.statsViewers || 'admins'} onChange={(e) => set('statsViewers', e.target.value)} options={[
+            { value: 'admins', label: 'Only administrators' },
+            { value: 'adults', label: 'Adult profiles too' },
+            { value: 'everyone', label: 'Everyone, including kids and guests' },
+          ]} />
+        </Row>
       </Section>
       <Section title="History" desc="Finished work is kept so you can see what happened and try again. When either limit is reached, the oldest goes first.">
         <Row label="Keep at most" desc="Between 10 and 5,000 tasks.">

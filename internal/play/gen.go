@@ -579,7 +579,7 @@ type BIOSRule struct {
 
 // What the module's errors are, so errors.Is works on what comes back.
 var (
-	ErrEncrypted3DS = errors.New("This 3DS game file is encrypted: its program is scrambled, as it came from the console or the store. It can't be played here, and this server won't decrypt it. A copy dumped in decrypted form will play")
+	ErrEncrypted3DS = errors.New("This 3DS game file is encrypted: its program is scrambled, as it came from the console or the store. It can't be played here, and this server won't decrypt it")
 )
 
 func init() {

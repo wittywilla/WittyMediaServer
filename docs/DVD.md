@@ -89,7 +89,7 @@ Many discs put buttons inside titles: games, quizzes, "vote for your favourite",
 
 ## On a small machine
 
-- **Settings → Playback & discs → Low-power mode for DVDs** converts menus and titles faster, at a small cost in quality.
+- **Settings → Playback & discs → Low-power mode for discs** converts menus and titles faster, at a small cost in quality.
 - A hardware encoder helps most: see [Live transcoding](TRANSCODING.md#hardware-encoders).
 - Menu scans, button artwork and subtitle pictures are kept for each disc, so going back to a menu or moving the highlight never reads the disc again. The next menu clip is prepared while the current one plays.
 

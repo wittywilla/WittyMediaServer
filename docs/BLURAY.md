@@ -57,7 +57,7 @@ A disc can forbid seeking or skipping at some points, as on a disc player. To ig
 
 - **3D discs (MVC)** play their 2D view, because FFmpeg has no decoder for the other. The disc is marked 3D in the library.
 - **Side-by-side and over-under 3D**, on discs or files made that way: the viewing settings have **3D video**, and **Show 3D as**: one eye in 2D, or red and cyan for paper glasses.
-- **4K UHD discs** are read like any other. With **Maximum resolution** on **Source**, they're sent as 1080p, because converting 4K in software is beyond most machines. No real UHD disc has been tried.
+- **4K UHD discs** are read like any other. With **Maximum resolution** on **Source**, they're sent as 1080p, because converting 4K in software is beyond most machines. Choose **2160p (4K)** under **Settings → Playback & discs → Conversion** to send them as 4K. No real UHD disc has been tried.
 - **HDR** (HDR10, HDR10+ and the HDR10 layer of Dolby Vision) is mapped to an ordinary picture for the browser. An FFmpeg without the `zscale` and `tonemap` filters plays it unmapped: watchable, but flat. HDR screens haven't been checked.
 
 ## BD-J (Java) menus
@@ -87,7 +87,7 @@ Each viewer's disc starts its own small Java process, with a 192 MB heap, which 
 ## On a small machine
 
 - Only the bytes being played are read. Nothing is copied to disk.
-- **Settings → Playback & discs → Low-power mode for DVDs** applies to Blu-rays too: the cheapest deinterlacer and the fastest encoder setting.
+- **Settings → Playback & discs → Low-power mode for discs** uses the cheapest deinterlacer and the fastest encoder setting.
 - A hardware encoder helps most: see [Live transcoding](TRANSCODING.md#hardware-encoders).
 - Subtitle pictures are decoded in two-minute windows as the viewer reaches them, so a 20 GB film is never scanned whole.
 
@@ -100,7 +100,7 @@ When reporting a problem, attach that report, and never the disc image.
 ## Limits
 
 - AACS-encrypted discs are refused, and BD+ is not run.
-- 3D discs play in 2D, and 4K discs are sent as 1080p.
+- 3D discs play in 2D, and 4K discs are sent as 1080p unless you choose 2160p.
 - Secondary audio and picture-in-picture are not mixed in.
 - BD-J graphics reach the player at up to 12 pictures a second.
 - It has been tested on custom-authored discs. Retail discs use more of the format: BD-J, 3D and Ultra HD HDR are written, and have only been tested on synthetic data or not at all.

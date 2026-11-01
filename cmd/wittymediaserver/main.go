@@ -27,7 +27,7 @@ func run(args []string) int {
 		case modules.SandboxFlag:
 			return modules.RunSandboxed(args[1:])
 		case "disc", "dvd", "bluray", "cd":
-			fmt.Fprintf(os.Stderr, "wittymediaserver %s is now a tool of its own, which comes with its module: wittydvd, wittybluray or wittycd\n", args[0])
+			fmt.Fprintf(os.Stderr, "wittymediaserver %s has gone. Looking inside a disc is now a developer's tool in each disc module's project, wittydvd, wittybluray or wittycd, which playing discs doesn't need. The DVD, Blu-ray and Music guides say how to get it.\n", args[0])
 			return 2
 		case "config":
 			return cmdConfig(args[1:])
@@ -35,6 +35,8 @@ func run(args []string) int {
 			return cmdServe(args[1:])
 		case "reset-2fa":
 			return cmdReset2FA(args[1:])
+		case "reset-password":
+			return cmdResetPassword(args[1:])
 		case "reset":
 			return cmdReset(args[1:])
 		case "logs":
@@ -92,6 +94,8 @@ usage:
   wittymediaserver config path            show the config file and folders in use
   wittymediaserver config init [--portable]
                              write a starter wms.json (next to the program with --portable)
+  wittymediaserver reset-password [-data <dir>] [--generate] <name>
+                             a new password for an account that can't sign in; --list shows the usernames
   wittymediaserver reset-2fa [-data <dir>] <name>
                              turn off an account's two-factor sign-in (lost phone and recovery codes)
   wittymediaserver reset [-data <dir>] [-delete] [-yes]
@@ -113,5 +117,5 @@ usage:
                              a library's drive or folder moved: rewrite the paths
   wittymediaserver version
 
-Tools for looking inside discs now come with their modules: wittydvd, wittybluray and wittycd.`)
+Tools for looking inside discs are in each disc module's project, not in its download: wittydvd, wittybluray and wittycd.`)
 }

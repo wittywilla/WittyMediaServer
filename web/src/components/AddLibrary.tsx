@@ -112,6 +112,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
   }
   const pods = t?.type === 'podcasts'
   const noFolder = t?.type === 'radio'
+  const anime = t?.type === 'anime'
   const open = !!t || !!following
   useEffect(() => { onPanel?.(open) }, [open, onPanel])
   const addPath = (p: string) => { if (p.trim()) setPaths((x) => [...new Set([...x, p.trim()])]); setManual('') }
@@ -235,6 +236,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
         </label>
       )}
       {pods && <p className="pod-folder"><b>Folder for episode files</b> <span className="muted">optional: episodes you already have, and where downloads are saved. Leave it empty to only stream.</span></p>}
+      {anime && <p className="pod-folder"><b>Folder</b> <span className="muted">optional. With none, this library shows the anime found in your TV libraries.</span></p>}
       {noFolder && <p className="muted oobe-hint">Stations aren't files, so this library needs no folder. Add them on its page once it's made.</p>}
       {!noFolder && <div className="oobe-paths">
         {paths.map((p) => <div key={p} className="oobe-path"><IconFolder /> <span>{p}</span><button type="button" className="btn sm ghost" onClick={() => setPaths(paths.filter((x) => x !== p))} aria-label={`Remove ${p}`}>Remove</button></div>)}
@@ -255,7 +257,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
       )}
       <div className="oobe-actions">
         <button type="button" className="btn ghost" onClick={() => { setType(null); setPaths([]); setManual(''); setErr(''); setMissing([]); setAddErr('') }}>Back</button>
-        <button type="button" className="btn primary" disabled={(!allPaths.length && !pods && !noFolder) || busy} onClick={add}>{busy ? 'Adding…' : pods ? 'Add, then follow shows' : joining ? `Add to ${joining.name}` : `Add ${newName}`}</button></div>
+        <button type="button" className="btn primary" disabled={(!allPaths.length && !pods && !noFolder && !anime) || busy} onClick={add}>{busy ? 'Adding…' : pods ? 'Add, then follow shows' : joining ? `Add to ${joining.name}` : `Add ${newName}`}</button></div>
     </div>
   )
 }

@@ -411,6 +411,7 @@ export default function GuidePage() {
       <div className="ctv-bar">
         <div className="ctv-bar-group">
           <h2 className="ctv-bar-title">Guide</h2>
+          <Link className="ctv-btn sm only-narrow" to="/tv/recordings">Recordings</Link>
           <div className="ctv-chips" role="group" aria-label="Which channels" data-nav-group>
             <button className={'ctv-chip' + (!filter.group && !filter.favourites && !filter.kind ? ' on' : '')} aria-pressed={!filter.group && !filter.favourites && !filter.kind} onClick={() => setFilter({ kind: '', group: '', favourites: false })}>All</button>
             {(anyFav || filter.favourites) && <button className={'ctv-chip' + (filter.favourites ? ' on' : '')} aria-pressed={filter.favourites} onClick={() => setFilter({ kind: '', group: '', favourites: !filter.favourites })}><IconStar size={14} /> Favourites</button>}

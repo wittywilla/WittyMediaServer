@@ -18,7 +18,6 @@ import (
 	"github.com/wittywilla/wittycd"
 	"github.com/wittywilla/wittycd/lookup"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
-
 )
 
 // CD images. A disc is one item (kind cd-image), which is what a shelf shows and

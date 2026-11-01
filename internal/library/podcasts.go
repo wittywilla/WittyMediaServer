@@ -1,12 +1,12 @@
 package library
 
 import (
-	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"context"
 	"crypto/rand"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"io"
 	"net"
 	"net/http"

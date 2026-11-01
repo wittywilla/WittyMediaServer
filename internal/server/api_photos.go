@@ -16,8 +16,8 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
+	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
 
 // WittyPhotos: the gallery's JSON API and its pictures. See docs/PHOTOS.md.

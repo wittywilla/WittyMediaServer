@@ -25,11 +25,11 @@ func fakeTMDB(t *testing.T) string {
 	t.Cleanup(func() { *SafeClient = old })
 	film := func(id int, title, date, over string) map[string]any {
 		return map[string]any{"id": id, "title": title, "release_date": date, "overview": over, "poster_path": "/p" + title[:1] + ".jpg", "vote_average": 7.5,
-			"genres":               []map[string]any{{"name": "Comedy"}, {"name": "Sci-Fi"}},
-			"production_companies": []map[string]any{{"name": "Lantern Works"}, {"name": "Small Pictures"}},
-			"credits":              map[string]any{"crew": []map[string]string{{"name": "Dee Rector", "job": "Director"}}},
+			"genres":                []map[string]any{{"name": "Comedy"}, {"name": "Sci-Fi"}},
+			"production_companies":  []map[string]any{{"name": "Lantern Works"}, {"name": "Small Pictures"}},
+			"credits":               map[string]any{"crew": []map[string]string{{"name": "Dee Rector", "job": "Director"}}},
 			"belongs_to_collection": map[string]string{"name": "Harbour Collection"},
-			"images":               map[string]any{"posters": []map[string]string{{"file_path": "/one.jpg"}, {"file_path": "/two.jpg"}}}}
+			"images":                map[string]any{"posters": []map[string]string{{"file_path": "/one.jpg"}, {"file_path": "/two.jpg"}}}}
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {

@@ -379,7 +379,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		Kind        string          `json:"kind"`
 		Access      *library.Access `json:"access"`
 		DisplayName string          `json:"displayName"`
-		Current string          `json:"current"` // your own password, for a new administrator
+		Current     string          `json:"current"` // your own password, for a new administrator
 	}
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, 400, err.Error())

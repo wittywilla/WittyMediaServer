@@ -41,12 +41,12 @@ func (s *Server) diagnoseRoutes(m *http.ServeMux) {
 func (s *Server) diagnoser() *diagnose.Manager {
 	s.diagOnce.Do(func() {
 		s.diag = diagnose.NewManager(diagnose.Env{
-			DataDir: s.Cfg.DataDir,
-			Log:     s.Log,
-			Tasks:   s.Tasks,
-			Version: s.Version,
-			Busy:    s.streamsPlaying,
-			Setting: func(key, def string) string { return s.DB.GetSetting(context.Background(), key, def) },
+			DataDir:  s.Cfg.DataDir,
+			Log:      s.Log,
+			Tasks:    s.Tasks,
+			Version:  s.Version,
+			Busy:     s.streamsPlaying,
+			Setting:  func(key, def string) string { return s.DB.GetSetting(context.Background(), key, def) },
 			JavaPath: s.Cfg.JavaPath,
 			ItemPaths: func(ctx context.Context, lib int64, limit int) ([]string, error) {
 				rows, err := s.DB.QueryContext(ctx, `SELECT path FROM items WHERE library_id = ? AND missing = 0 LIMIT ?`, lib, limit)

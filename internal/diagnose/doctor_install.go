@@ -227,9 +227,9 @@ func fixFolders(_ context.Context, _ *DoctorEnv, i *Issue, _ *FixContext) (strin
 // --------------------------------------------------------------- disk space
 
 const (
-	diskLow      = 5 << 30
-	diskVeryLow  = 1 << 30
-	diskUnknown  = 0
+	diskLow     = 5 << 30
+	diskVeryLow = 1 << 30
+	diskUnknown = 0
 )
 
 func checkDiskSpace(_ context.Context, e *DoctorEnv) []Issue {

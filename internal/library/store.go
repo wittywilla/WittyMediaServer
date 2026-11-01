@@ -37,41 +37,41 @@ type Library struct {
 const CommercialsType = "commercials"
 
 type Item struct {
-	ID            int64     `json:"id"`
-	LibraryID     int64     `json:"libraryId"`
-	Kind          string    `json:"kind"` // video | dvd-iso | dvd-folder | audio
-	Path          string    `json:"path"`
-	Title         string    `json:"title"`
-	SortTitle     string    `json:"sortTitle"`
-	Year          *int      `json:"year"`
-	Overview      string    `json:"overview"`
-	Tagline       string    `json:"tagline"`
-	Genres        []string  `json:"genres"`
-	Rating        *float64  `json:"rating"`
-	ContentRating string    `json:"contentRating"`
-	Studio        string    `json:"studio"`
-	RuntimeSec    float64   `json:"runtimeSec"`
-	Poster        string    `json:"poster"`   // cache-relative path or URL
-	Backdrop      string    `json:"backdrop"` // cache-relative path or URL
-	Container     string    `json:"container"`
-	VideoCodec    string    `json:"videoCodec"`
+	ID            int64    `json:"id"`
+	LibraryID     int64    `json:"libraryId"`
+	Kind          string   `json:"kind"` // video | dvd-iso | dvd-folder | audio
+	Path          string   `json:"path"`
+	Title         string   `json:"title"`
+	SortTitle     string   `json:"sortTitle"`
+	Year          *int     `json:"year"`
+	Overview      string   `json:"overview"`
+	Tagline       string   `json:"tagline"`
+	Genres        []string `json:"genres"`
+	Rating        *float64 `json:"rating"`
+	ContentRating string   `json:"contentRating"`
+	Studio        string   `json:"studio"`
+	RuntimeSec    float64  `json:"runtimeSec"`
+	Poster        string   `json:"poster"`   // cache-relative path or URL
+	Backdrop      string   `json:"backdrop"` // cache-relative path or URL
+	Container     string   `json:"container"`
+	VideoCodec    string   `json:"videoCodec"`
 	// AudioDirect: sound files a browser plays as they are. Reader: books, which
 	// reader opens it (epub, cbz or pdf), "" when none does. Both are worked out here,
 	// from the registry, so no client keeps a list of its own.
-	AudioDirect bool   `json:"audioDirect,omitempty"`
-	Reader      string `json:"reader,omitempty"`
-	Width         int       `json:"width"`
-	Height        int       `json:"height"`
-	AudioLangs    []string  `json:"audioLangs"`
-	SubLangs      []string  `json:"subLangs"`
-	Disc          *DiscInfo `json:"disc,omitempty"`
-	Provider      string    `json:"provider"`
-	ProviderID    string    `json:"providerId"`
-	SizeBytes     int64     `json:"sizeBytes"`
-	MTime         int64     `json:"mtime"`
-	AddedAt       int64     `json:"addedAt"`
-	UpdatedAt     int64     `json:"updatedAt"`
-	Missing       bool      `json:"missing"`
+	AudioDirect bool      `json:"audioDirect,omitempty"`
+	Reader      string    `json:"reader,omitempty"`
+	Width       int       `json:"width"`
+	Height      int       `json:"height"`
+	AudioLangs  []string  `json:"audioLangs"`
+	SubLangs    []string  `json:"subLangs"`
+	Disc        *DiscInfo `json:"disc,omitempty"`
+	Provider    string    `json:"provider"`
+	ProviderID  string    `json:"providerId"`
+	SizeBytes   int64     `json:"sizeBytes"`
+	MTime       int64     `json:"mtime"`
+	AddedAt     int64     `json:"addedAt"`
+	UpdatedAt   int64     `json:"updatedAt"`
+	Missing     bool      `json:"missing"`
 	// TV episodes (shows libraries):
 	ShowID     *int64 `json:"showId,omitempty"`
 	ShowTitle  string `json:"showTitle,omitempty"`

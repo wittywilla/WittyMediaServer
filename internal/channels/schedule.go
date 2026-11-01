@@ -478,8 +478,8 @@ type generator struct {
 	// lastFiller: the commercial picked last.
 	lastFiller int64
 	rules      []*ruleState
-	out     []Programme
-	err     error
+	out        []Programme
+	err        error
 }
 
 // ruleState is a bumper rule ready to use.

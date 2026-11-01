@@ -38,9 +38,9 @@ type Meta struct {
 	Builtin     bool   `json:"builtin,omitempty"`
 	// Colors and Radius are every colour and the corner radius as data, so the
 	// app can show a theme without loading it. Written by scripts/design-tokens.py.
-	Colors map[string]string `json:"colors,omitempty"`
-	Radius float64           `json:"radius,omitempty"`
-	Preview     struct {
+	Colors  map[string]string `json:"colors,omitempty"`
+	Radius  float64           `json:"radius,omitempty"`
+	Preview struct {
 		BG      string `json:"bg,omitempty"`
 		Surface string `json:"surface,omitempty"`
 		Text    string `json:"text,omitempty"`

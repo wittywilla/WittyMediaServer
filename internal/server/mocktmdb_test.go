@@ -152,12 +152,12 @@ func mockTMDB() http.Handler {
 			first, _, _ := strings.Cut(title, " ")
 			send(w, map[string]any{"id": mustInt(parts[1]), "title": title, "release_date": "2001-05-01", "overview": "What the made-up TMDB says about " + title + ".", "tagline": "A made-up tagline.",
 				"poster_path": "/p" + parts[1] + ".jpg", "backdrop_path": "/b" + parts[1] + ".jpg", "vote_average": 7.5, "runtime": 90,
-				"genres":                 []map[string]string{{"name": "Comedy"}, {"name": "Family"}},
-				"production_companies":   []map[string]string{{"name": "Lantern Works"}, {"name": "Small Pictures"}},
-				"belongs_to_collection":  map[string]string{"name": first + " Collection"},
-				"credits":                map[string]any{"crew": []map[string]string{{"name": "Dee Rector", "job": "Director"}}},
-				"release_dates":          map[string]any{"results": []map[string]any{{"iso_3166_1": "US", "release_dates": []map[string]string{{"certification": "PG"}}}}},
-				"images":                 map[string]any{"posters": []map[string]string{{"file_path": "/p" + parts[1] + ".jpg"}, {"file_path": "/q" + parts[1] + ".jpg"}}, "backdrops": []map[string]string{{"file_path": "/b" + parts[1] + ".jpg"}}, "logos": []map[string]string{}},
+				"genres":                []map[string]string{{"name": "Comedy"}, {"name": "Family"}},
+				"production_companies":  []map[string]string{{"name": "Lantern Works"}, {"name": "Small Pictures"}},
+				"belongs_to_collection": map[string]string{"name": first + " Collection"},
+				"credits":               map[string]any{"crew": []map[string]string{{"name": "Dee Rector", "job": "Director"}}},
+				"release_dates":         map[string]any{"results": []map[string]any{{"iso_3166_1": "US", "release_dates": []map[string]string{{"certification": "PG"}}}}},
+				"images":                map[string]any{"posters": []map[string]string{{"file_path": "/p" + parts[1] + ".jpg"}, {"file_path": "/q" + parts[1] + ".jpg"}}, "backdrops": []map[string]string{{"file_path": "/b" + parts[1] + ".jpg"}}, "logos": []map[string]string{}},
 			})
 		case len(parts) == 2 && parts[0] == "tv":
 			mu.Lock()

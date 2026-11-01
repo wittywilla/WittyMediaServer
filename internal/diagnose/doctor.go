@@ -386,13 +386,13 @@ var ErrNeedsStopped = errors.New("this fix needs the server stopped")
 
 // FixResult says how one fix went.
 type FixResult struct {
-	Key    string `json:"key"`
-	Title  string `json:"title"`
-	OK     bool   `json:"ok"`
-	Done   string `json:"done,omitempty"`
-	Error  string `json:"error,omitempty"`
-	Copy   string `json:"copy,omitempty"` // where the safety copy is
-	Restart bool  `json:"restart,omitempty"`
+	Key     string `json:"key"`
+	Title   string `json:"title"`
+	OK      bool   `json:"ok"`
+	Done    string `json:"done,omitempty"`
+	Error   string `json:"error,omitempty"`
+	Copy    string `json:"copy,omitempty"` // where the safety copy is
+	Restart bool   `json:"restart,omitempty"`
 }
 
 // ApplyFixes runs the fixes of the given issues, in order: database first, because

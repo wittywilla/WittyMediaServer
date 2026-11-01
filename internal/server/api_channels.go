@@ -628,13 +628,13 @@ type guideChannel struct {
 	Accent      string   `json:"accent,omitempty"`
 	Favourite   bool     `json:"favourite,omitempty"`
 	// Brand names its logo in the logo service, for a channel with none of its own.
-	Brand *channelBrand `json:"brand,omitempty"`
-	HD          bool     `json:"hd,omitempty"`
-	Radio       bool     `json:"radio,omitempty"`
-	Encrypted   string   `json:"encrypted,omitempty"` // why it cannot be tuned
-	CanRecord   bool     `json:"canRecord,omitempty"`
-	NoRecord    string   `json:"noRecord,omitempty"` // why not, when the device says
-	ATSC3       bool     `json:"atsc3,omitempty"`
+	Brand     *channelBrand `json:"brand,omitempty"`
+	HD        bool          `json:"hd,omitempty"`
+	Radio     bool          `json:"radio,omitempty"`
+	Encrypted string        `json:"encrypted,omitempty"` // why it cannot be tuned
+	CanRecord bool          `json:"canRecord,omitempty"`
+	NoRecord  string        `json:"noRecord,omitempty"` // why not, when the device says
+	ATSC3     bool          `json:"atsc3,omitempty"`
 	// Security is the same wording for every client. Tuner channels only: a
 	// library channel plays the owner's own files.
 	Security    *securityInfo       `json:"security,omitempty"`

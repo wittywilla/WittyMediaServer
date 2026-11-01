@@ -117,7 +117,6 @@ func (f *folderFixture) filmFile() string {
 	return "Films/Harbour Lights (2001) [item-" + itoa(f.film.ID) + "].json"
 }
 
-
 func TestExportLayout(t *testing.T) {
 	f := newFolderFixture(t)
 	res := f.export(t)

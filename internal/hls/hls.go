@@ -119,13 +119,13 @@ type Variant struct {
 
 // Rendition is a WebVTT subtitle track of a stream.
 type Rendition struct {
-	Stream   int // subtitle stream number in the source (s:N)
+	Stream int // subtitle stream number in the source (s:N)
 	// File: it isn't in the source. It's this subtitle file beside it, in this format.
 	File, Format string
 	Name         string
-	Language string
-	Default  bool
-	Forced   bool
+	Language     string
+	Default      bool
+	Forced       bool
 }
 
 type job struct {

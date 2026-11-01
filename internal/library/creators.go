@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
-	"github.com/wittywilla/wittymediaserver/internal/metafolder"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
+	"github.com/wittywilla/wittymediaserver/internal/metafolder"
 )
 
 // WittyShorts and WittyChannels: videos by creators, from files the owner

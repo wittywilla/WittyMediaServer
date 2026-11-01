@@ -23,8 +23,8 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ebook"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
-	"github.com/wittywilla/wittymediaserver/internal/metafolder"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
+	"github.com/wittywilla/wittymediaserver/internal/metafolder"
 	"github.com/wittywilla/wittymediaserver/internal/zipsafe"
 )
 

@@ -4,6 +4,7 @@ import { IconPlay } from '../icons'
 import { Controls, setSpeed, useVideoState } from './Controls'
 import { toggleFullscreen, useIdle, useSource } from './hooks'
 import './inline.css'
+import { browserCapabilities } from './capabilities'
 
 // A video inside a page rather than filling the screen: the creator pages and
 // the photo viewer. It has the full player's controls (speed, chapters, audio,
@@ -31,7 +32,7 @@ export default function InlinePlayer({ id, startAt, autoPlay = true, onEnded, du
 
   useEffect(() => {
     setInfo(null); setErr('')
-    api.get<PlayInfo>(`/items/${id}/play?audio=${audio}&subtitle=${sub}`).then(setInfo).catch((e) => setErr(e.message))
+    api.get<PlayInfo>(`/items/${id}/play?audio=${audio}&subtitle=${sub}&caps=${encodeURIComponent(JSON.stringify(browserCapabilities()))}`).then(setInfo).catch((e) => setErr(e.message))
   }, [id, audio, sub])
 
   useEffect(() => { if (info) onInfo?.(info) }, [info]) // eslint-disable-line react-hooks/exhaustive-deps

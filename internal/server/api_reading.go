@@ -12,6 +12,7 @@ import (
 	"unicode"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
 // E-reader tools: annotations, search in a book, and word definitions.
@@ -87,13 +88,18 @@ func (s *Server) handleDeleteAnnotation(w http.ResponseWriter, r *http.Request) 
 // GET /api/items/{id}/search?q=
 func (s *Server) handleBookSearch(w http.ResponseWriter, r *http.Request) {
 	it, ok := s.bookItem(w, r)
-	if !ok || it.Container != "epub" {
+	if !ok || mediatypes.ReaderFor(it.Container) != "epub" {
 		if ok {
 			writeJSON(w, 200, []any{})
 		}
 		return
 	}
-	zr, done, err := library.OpenArchive(it.Path)
+	book, err := s.Scanner.BookEPUB(it)
+	if err != nil {
+		writeJSON(w, 200, []any{})
+		return
+	}
+	zr, done, err := library.OpenArchive(book)
 	if err != nil {
 		s.Log.WarnContext(r.Context(), "could not open a book", "cat", "library", "item", it.ID, "file", it.Path, "err", err)
 		writeErr(w, 500, "cannot open this book")

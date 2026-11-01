@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { api, getPrefs, getToken, mediaUrl, posterUrl, serverBase, type Item } from '../api'
 import { reportMediaError } from '../errorReport'
 import { setSpeed, SPEEDS } from '../player/Controls'
-import { toast } from '../state'
+import { toast, useApp } from '../state'
 import { useCdEngine, type CdActions, type CdNow } from './cdEngine'
 import MiniPlayer from './MiniPlayer'
 import { canRoute, loadSound, openGraph, saveSound, soundGraph, type SoundSettings } from './sound'
@@ -19,14 +19,29 @@ export type { AudioMode } from './types'
 
 const NowPlaying = lazy(() => import('./NowPlaying'))
 
-// Codecs every current browser plays as they are (keep in step with
-// library.DirectAudio on the server); others arrive converted to AAC and are
-// seeked by restarting the stream at the new position.
-const DIRECT = new Set(['mp3', 'aac', 'flac', 'opus', 'vorbis', 'pcm_s16le', 'pcm_s24le', 'pcm_u8', 'pcm_f32le'])
-
 const RETRY_WAITS = [2000, 5000, 10000] // between tries to reconnect to a station, in milliseconds
 const STALL_MS = 15000 // a station that plays nothing for this long has gone
 const COLLAPSE_KEY = 'wms.audio.collapsed'
+const QUEUE_KEY = 'wms.audio.queue.' // and who's listening: each person has their own
+const PLACE_KEY = 'wms.audio.place.'
+const KEPT_ITEMS = 500
+const KEPT_DAYS = 30
+
+// What's playing comes back after a reload, stopped where it was: it never starts by itself.
+// It's kept on this device, without what a song's card doesn't need, and read with care.
+type KeptQueue = { at: number; queue: Item[]; index: number; mode: AudioMode; repeat: Repeat; shuffle: boolean; order?: number[] }
+function readKept(user: number | undefined): (KeptQueue & { place: number }) | null {
+  if (!user) return null
+  try {
+    const k = JSON.parse(localStorage.getItem(QUEUE_KEY + user) || 'null') as KeptQueue | null
+    if (!k || !Array.isArray(k.queue) || !k.queue.length || !k.queue.every((q) => Number.isInteger(q?.id) && typeof q.title === 'string')) return null
+    if (!Number.isInteger(k.index) || k.index < 0 || k.index >= k.queue.length || Date.now() - k.at > KEPT_DAYS * 86400000) return null
+    if (!['music', 'audiobooks', 'podcasts', 'radio'].includes(k.mode)) return null
+    const p = JSON.parse(localStorage.getItem(PLACE_KEY + user) || 'null') as { id: number; at: number } | null
+    const place = p && p.id === k.queue[k.index].id && Number.isFinite(p.at) && p.at > 0 ? p.at : 0
+    return { ...k, repeat: k.repeat === 'all' || k.repeat === 'one' ? k.repeat : 'off', shuffle: k.shuffle === true, place }
+  } catch { return null }
+}
 
 type AudioCtx = {
   queue: Item[]
@@ -71,15 +86,20 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const deckA = useRef<HTMLAudioElement | null>(null)
   const deckB = useRef<HTMLAudioElement | null>(null)
   const audio = useRef<HTMLAudioElement | null>(null) // whichever deck is playing
+  const { user } = useApp()
+  const kept = useRef(readKept(user?.id)).current
+  // Back after a reload: nothing is fetched until someone presses play.
+  const waiting = useRef<{ id: number; at: number } | null>(kept ? { id: kept.queue[kept.index].id, at: kept.mode === 'radio' ? 0 : kept.place } : null)
   const standby = () => (audio.current === deckA.current ? deckB.current : deckA.current)
-  const [queue, setQueue] = useState<Item[]>([])
-  const [index, setIndex] = useState(0)
-  const [mode, setMode] = useState<AudioMode>('music')
+  const [queue, setQueue] = useState<Item[]>(kept?.queue || [])
+  const [index, setIndex] = useState(kept?.index || 0)
+  const [mode, setMode] = useState<AudioMode>(kept?.mode || 'music')
   const [playing, setPlaying] = useState(false)
-  const [shuffle, setShuffleOn] = useState(false)
-  const [repeat, setRepeat] = useState<Repeat>('off')
-  const unshuffled = useRef<Item[] | null>(null) // the order to go back to
-  const [time, setTime] = useState(0)
+  const [shuffle, setShuffleOn] = useState(kept?.shuffle || false)
+  const [repeat, setRepeat] = useState<Repeat>(kept?.repeat || 'off')
+  // The order to go back to.
+  const unshuffled = useRef<Item[] | null>(kept?.shuffle && kept.order ? kept.order.flatMap((id) => kept.queue.filter((q) => q.id === id).slice(0, 1)) : null)
+  const [time, setTime] = useState(waiting.current?.at || 0)
   const [rate, setRate] = useState(1)
   const [maxSpeed, setMaxSpeed] = useState(4)
   const [sleepAt, setSleepAt] = useState<number | 'chapter' | null>(null)
@@ -278,7 +298,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const handoffTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const fading = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
-  const direct = (it: Item) => DIRECT.has(it.videoCodec)
+  // The server says what a browser plays as it is, by the file's container and codec.
+  // Anything else arrives converted to AAC and is seeked by restarting the stream.
+  const direct = (it: Item) => !!it.audioDirect || it.videoCodec === 'midi'
   const dropPrepared = useCallback(() => {
     clearTimeout(handoffTimer.current)
     handoffTimer.current = undefined
@@ -298,6 +320,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const a = audio.current
     if (!a || !current || cdOn.current) return
     if (handingTo.current === current.id) { handingTo.current = null; return } // it's already playing
+    if (waiting.current?.id === current.id) return // back after a reload: it waits to be asked
+    waiting.current = null
     dropPrepared()
     silenceOther()
     const resume = books && current.progress && !current.progress.watched ? current.progress.positionSec : 0
@@ -358,10 +382,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
     setSpeed(a, rate)
   }
-  const position = useCallback(() => (audio.current ? audio.current.currentTime + offset.current : 0), [])
+  const position = useCallback(() => waiting.current?.at ?? (audio.current ? audio.current.currentTime + offset.current : 0), [])
   const seek = (t: number) => {
     const a = audio.current
     if (!a || !current) return
+    if (waiting.current) { waiting.current = { id: waiting.current.id, at: t }; setTime(t); return }
     if (cdOn.current) { cd.actions.seekInTrack(t); return }
     if (direct(current)) a.currentTime = t
     else { load(current, t); a.play().catch(() => {}) }
@@ -534,6 +559,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     clearTimeout(retryTimer.current)
     setRetrying(false)
     if (!a) return
+    if (waiting.current && current?.id === waiting.current.id) {
+      const at = waiting.current.at
+      waiting.current = null
+      load(current, at)
+      if (a.getAttribute('src')) a.play().catch(() => setPlaying(false))
+      return
+    }
     if (live && current && !a.getAttribute('src') && !hls.current) {
       load(current, 0)
       if (a.getAttribute('src')) a.play().catch(() => {}) // otherwise hls.js is on its way, and plays when it's ready
@@ -659,6 +691,28 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     try { ms.setPositionState({ duration: durNow, playbackRate: cdOn.current ? 1 : rate, position: Math.min(durNow, position()) }) } catch { /* it refuses numbers it doesn't like */ }
   }, [secondsAt, durNow, rate, live, position])
 
+  // Keep what's playing for the next time this page opens. A disc has its own memory.
+  const savePlace = useCallback(() => {
+    const id = currentId.current
+    if (!user || !id) return
+    try { localStorage.setItem(PLACE_KEY + user.id, JSON.stringify({ id, at: position() })) } catch { /* private window */ }
+  }, [user, position])
+  useEffect(() => {
+    if (!user) return
+    try {
+      if (!queue.length || cdOn.current) { localStorage.removeItem(QUEUE_KEY + user.id); localStorage.removeItem(PLACE_KEY + user.id); return }
+      const from = Math.max(0, index - 100)
+      const part = queue.slice(from, from + KEPT_ITEMS).map((q) => ({ ...q, overview: '', tagline: '', path: '', disc: undefined }))
+      const k: KeptQueue = { at: Date.now(), queue: part, index: index - from, mode, repeat, shuffle, order: unshuffled.current?.map((q) => q.id) }
+      localStorage.setItem(QUEUE_KEY + user.id, JSON.stringify(k))
+    } catch { /* full, or a private window: it just won't come back */ }
+  }, [queue, index, mode, repeat, shuffle, user])
+  useEffect(() => { if (current && !cdOn.current) savePlace() }, [secondsAt, playing, current?.id, savePlace]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    window.addEventListener('pagehide', savePlace)
+    return () => window.removeEventListener('pagehide', savePlace)
+  }, [savePlace])
+
   // V for the visualizer, wherever the music is playing from. In the full player it's the
   // switch for the background, which that screen handles itself.
   useEffect(() => {
@@ -698,7 +752,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       unshuffled.current = null
       setQueue(items)
       setIndex(start)
-      if (items[start]?.id === current?.id) resume()
+      if (items[start]?.id === current?.id) {
+        if (waiting.current) waiting.current = { id: waiting.current.id, at: 0 }
+        resume()
+      } else waiting.current = null
     },
     enqueue: (items) => {
       if (cdOn.current) { cd.actions.eject(); setQueue(items); setIndex(0); return }
@@ -714,6 +771,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     next, prev,
     stop: () => {
       if (cdOn.current) cd.actions.eject()
+      waiting.current = null
       audio.current?.pause()
       hangUp()
       dropPrepared()
@@ -781,6 +839,12 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     onError: (e: React.SyntheticEvent) => {
       if (!onDeck(e.currentTarget)) { if (prepared.current?.el === e.currentTarget) prepared.current = null; return }
       if (cdOn.current) { cd.onError(); return }
+      if (!live && current && audio.current?.getAttribute('src')) {
+        setPlaying(false)
+        toast(`${current.title} can't be played right now`)
+        if (audio.current) reportMediaError(audio.current, `Audio of item ${current.id}`)
+        return
+      }
       if (!live || !current || !audio.current?.getAttribute('src')) return
       if (wasPlaying.current) { reconnect(); return }
       const fail = () => { setPlaying(false); toast(`${current.title} can't be reached`); if (audio.current) reportMediaError(audio.current, `Audio of item ${current.id}`) }

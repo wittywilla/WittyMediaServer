@@ -9,6 +9,7 @@ import { toast, useApp } from '../state'
 import AppearanceSettings from './AppearanceSettings'
 import Profiles from './Profiles'
 import LicenseList from './settings/Licenses'
+import SupportedFormats from './settings/SupportedFormats'
 import MetadataSettings from './settings/Metadata'
 import PlaybackSettings from './settings/Playback'
 import SharingSettings from './settings/Sharing'
@@ -453,6 +454,10 @@ function About() {
         <div className="set-prose">
           <p>Terms of use, who’s responsible for what, trademarks, copy protection, privacy and more are on the <Link to="/settings/legal">Legal</Link> page.</p>
         </div>
+      </Section>
+      <div id="formats" />
+      <Section title="Supported formats" desc="Every kind of file this server takes, how each plays, and what it needs.">
+        <SupportedFormats />
       </Section>
       <div id="licenses" />
       <Section title="Third-party licenses" desc="Everything in this server that someone else made, and what it’s under.">

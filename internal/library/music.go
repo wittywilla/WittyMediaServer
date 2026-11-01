@@ -3,6 +3,7 @@ package library
 import (
 	"context"
 	"database/sql"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"strings"
 )
 
@@ -139,11 +140,20 @@ func (s *Store) Artists(ctx context.Context, libraryID int64, access *Access) ([
 	return out, rows.Err()
 }
 
-// DirectAudio lists the codecs every current browser plays without help;
-// everything else is converted to AAC while streaming. Keep in step with
-// web/src/audio/player.tsx.
-var DirectAudio = map[string]bool{"mp3": true, "aac": true, "flac": true, "opus": true, "vorbis": true,
-	"pcm_s16le": true, "pcm_s24le": true, "pcm_u8": true, "pcm_f32le": true}
+// audioPlaysDirect: a browser plays this sound file as it is. Everything else is
+// converted to AAC while streaming.
+func audioPlaysDirect(it *Item) bool {
+	// A track of a CD comes as plain samples, and a podcast from wherever it lives: there
+	// is no file here to look at, only what the sound is.
+	if it.IsCDTrack() || it.Container == "" || strings.Contains(it.Path, "://") {
+		c := mediatypes.CodecByID(it.VideoCodec)
+		return c != nil && c.Browser
+	}
+	return mediatypes.AudioPlaysDirect(mediatypes.Canonical(it.Container, it.Path, "", it.VideoCodec), it.VideoCodec)
+}
+
+// PlaysDirect is audioPlaysDirect for the server's handlers.
+func PlaysDirect(it *Item) bool { return audioPlaysDirect(it) }
 
 // MusicQuery asks for songs in a way a plain list of items can't: the order and the
 // shelf depend on who is listening.
@@ -181,23 +191,25 @@ func (s *Store) MusicTracks(ctx context.Context, q MusicQuery, access *Access) (
 		where = append(where, "(i.title LIKE ? OR i.artist LIKE ? OR i.album LIKE ?)")
 		args = append(args, like, like, like)
 	}
-	order := "i.sort_title COLLATE NOCASE"
+	// Which way applies to what's being sorted by: songs of one album stay in album order.
+	way := ""
+	if q.Desc {
+		way = " DESC"
+	}
+	order := "i.sort_title COLLATE NOCASE" + way
 	switch q.Sort {
 	case "artist":
-		order = "IFNULL(i.artist, '') COLLATE NOCASE, IFNULL(i.album, '') COLLATE NOCASE, IFNULL(i.disc_no, 1), IFNULL(i.track, 9999)"
+		order = "IFNULL(i.artist, '') COLLATE NOCASE" + way + ", IFNULL(i.album, '') COLLATE NOCASE, IFNULL(i.disc_no, 1), IFNULL(i.track, 9999)"
 	case "album":
-		order = "IFNULL(i.album, '') COLLATE NOCASE, IFNULL(i.disc_no, 1), IFNULL(i.track, 9999)"
+		order = "IFNULL(i.album, '') COLLATE NOCASE" + way + ", IFNULL(i.disc_no, 1), IFNULL(i.track, 9999)"
 	case "year":
-		order = "IFNULL(i.year, 0)"
+		order = "IFNULL(i.year, 0)" + way
 	case "added":
-		order = "i.added_at"
+		order = "i.added_at" + way
 	case "runtime":
-		order = "IFNULL(i.runtime_sec, 0)"
+		order = "IFNULL(i.runtime_sec, 0)" + way
 	case "random":
 		order = "RANDOM()"
-	}
-	if q.Desc {
-		order += " DESC"
 	}
 	switch q.View {
 	case "liked":

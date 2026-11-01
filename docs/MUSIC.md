@@ -54,7 +54,7 @@ A music library opens on its front page: a row of covers to flip through, with y
 **Artists**, **Albums** and **Songs**, each with **See all**. Colours behind them come from the artwork.
 
 - **Play my music** shuffles the whole library.
-- **Albums** sort by title, artist, year, date added or most played, and filter by genre.
+- **Albums** sort by title, artist, year, date added or most played, either way round, and filter by genre.
 - **Songs** have views for **Liked**, **Most played**, **Played lately** and **Newest**, with search, genre and sorting.
 - **Artists** have a page of their own, with their songs and discography, and singles and EPs apart.
 - An album with more than one disc is divided by disc, and other versions of it are offered below (Deluxe, Remaster).
@@ -68,6 +68,9 @@ Audiobooks and podcasts have the same front page, with **Continue listening**.
 
 The bar floats along the bottom while you browse, and the page leaves room for it so it never hides anything. Its arrow
 collapses it to a small button in the corner. On a phone it's art, title, play and next, above the tab bar.
+
+**What's playing comes back after a reload,** stopped where it was, with the queue, shuffle and repeat as they were. It's kept on
+that device for each person, for 30 days, and nothing is fetched until you press play. Stop and close forgets it.
 
 - **Music**: Play, Shuffle, Add to queue, repeat one/all. Shuffle really reorders the queue, so what's shown is what will play.
 - **Audiobooks and podcasts**: they continue where you stopped (on every device), **speed** from 0.75× to 3× with the voice
@@ -238,3 +241,5 @@ connect to itself or to devices on your local network on a feed's behalf.
 
 ---
 <sub>WittyMediaServer 0.5.0-alpha documentation</sub>
+
+Every sound format this library takes, and which of them play as they are, is in [Supported formats](SUPPORTED-FORMATS.md).

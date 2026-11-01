@@ -362,9 +362,14 @@ Only `profile` is needed. Leave out `audio` and `subtitle` and the server picks 
 | `audio-transcode` | `adts` | Sound converted to AAC while streaming. | Little |
 
 The server always tries them in this order. `reasons` are stable names, worth showing in a
-"playback info" screen: `container`, `video-codec`, `video-tag`, `video-height`, `video-bitrate`,
+"playback info" screen, and `explain` puts the same thing in plain words to show as they are. The names: `container`, `video-codec`, `video-tag`, `video-height`, `video-bitrate`,
 `video-depth`, `video-range`, `interlaced`, `audio-codec`, `audio-channels`, `audio-track`, `subtitle`,
-`burn-subtitle`, `forced`, `direct-play-off`, `remux-unavailable`, `hls-video-codec`, `no-video`.
+`burn-subtitle`, `forced`, `direct-play-off`, `remux-unavailable`, `hls-video-codec`, `no-video`, `split-file`, `video-track`, `flatten-3d`.
+
+**Files, not just tracks.** Subtitle files beside a video come after the file's own tracks in `subtitles`, and work the
+same. A film split across files (`CD1`, `CD2`) is one item, with `split-file` among its reasons. `videos` lists the
+streams of a file with several (ask with `video`), and `stereo` says a 3D picture is stored in the frame (ask with
+`flatten3d` to see one eye).
 
 **Time.** `seek` says how seeking works:
 
@@ -403,10 +408,10 @@ meet real hardware.
 | Direct video | H.264, HEVC (`hvc1` only) | H.264 | H.264, HEVC, VP9 | H.264, VP9, AV1 |
 | Direct sound | AAC, AC-3, E-AC-3, ALAC, MP3 | AAC, AC-3, E-AC-3, ALAC, MP3 | AAC, MP3, FLAC, Opus, Vorbis | AAC, MP3, Opus, Vorbis |
 | Most lines | 2160 | 1080 | 2160 | any |
-| HDR | HDR10, HLG, Dolby Vision 5 | none | none (add with capabilities) | not checked |
-| HLS, copied video | H.264 (TS), HEVC (fMP4) | H.264 (TS) | H.264 (TS), HEVC (fMP4) | never remuxed |
-| HLS, copied sound | AAC, AC-3, E-AC-3 | AAC, AC-3, E-AC-3 | AAC, MP3 | |
-| Subtitles drawn by the player | `mov_text` in the file; WebVTT renditions | the same | SRT, ASS, WebVTT, `mov_text`, PGS, VobSub, DVB in the file; WebVTT sidecar or rendition | none: burned in |
+| HDR | HDR10, HLG, Dolby Vision 5 | none | none (add with capabilities) | none (the web app reports its screen) |
+| HLS, copied video | H.264 (TS), HEVC (fMP4) | H.264 (TS) | H.264 (TS), HEVC (fMP4) | H.264 (TS), AV1 and VP9 (fMP4), HEVC when reported |
+| HLS, copied sound | AAC, AC-3, E-AC-3 | AAC, AC-3, E-AC-3 | AAC, MP3 | AAC, MP3 |
+| Subtitles drawn by the player | `mov_text` in the file; WebVTT renditions | the same | SRT, ASS, WebVTT, `mov_text`, PGS, VobSub, DVB in the file; WebVTT sidecar or rendition | WebVTT sidecar; pictures are burned in |
 
 Why they differ:
 
@@ -1033,6 +1038,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 |---|---|---|
 | `POST /items/{id}/playback` | user | The way to play anything: say what this client can play, get a decision, ready-to-use addresses, tracks, where to start and what comes next. |
 | `GET /playback/profiles` | user | The built-in client profiles. |
+| `GET /media-types` | user | Every file type, codec and container the server knows: extensions, how each plays, which libraries take it, what it needs, and whether this machine has that (`available`). Read this rather than keep a list. |
 | `POST /items/{id}/stream-token` | user | A stream token for this item's media (see "Stream tokens"). Needs a real sign-in, not another stream token. |
 | `GET /items/{id}/play` | user | The web player's older way to ask: decides for a browser only. Apps use `/items/{id}/playback`. |
 | `GET /items/{id}/file` | user, `st` | The file itself, with byte ranges (videos and books). |
@@ -1106,7 +1112,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /items/{id}/book` | user | What a reader needs: `format` (cbz, epub, pdf), `reading` direction, then `pages` for comics or `spine`, `toc` and `words` for EPUB. |
+| `GET /items/{id}/book` | user | What a reader needs: `format` (the book's own: mobi, cbr, docx…), `reader` (which reader opens it: cbz, epub or pdf, also on the item as `reader`), `reading` direction, then `pages` for page by page or `spine`, `toc` and `words` for the rest. Kindle, FictionBook, Word, Rich Text, Markdown, web pages and plain text read as EPUB. A book with copy protection answers 422 and says so. |
 | `GET /items/{id}/page/{n}` | user | One comic page, n from 0. |
 | `GET /items/{id}/epub/{file}` | user | A file inside an EPUB. Treat its HTML as untrusted: no scripts. |
 | `GET /items/{id}/annotations` | user | The account's bookmarks and highlights in this book. |

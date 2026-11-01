@@ -67,7 +67,12 @@ function ReviewPage({ library, tab, setTab }: { library: number; tab: string; se
   // While suggestions are being found, and only then, look in on them.
   useEffect(() => {
     if (!job?.running) return
-    const t = setTimeout(() => api.get<NonNullable<typeof job>>('/match/suggest-all').then((j) => { setJob(j); if (!j.running) setTick((n) => n + 1) }).catch(() => {}), 2000)
+    const t = setTimeout(() => api.get<NonNullable<typeof job>>('/match/suggest-all').then((j) => {
+      setJob(j)
+      if (j.running) return
+      if (j.total === 0) toast('They all have suggestions already')
+      setTick((n) => n + 1)
+    }).catch(() => {}), 2000)
     return () => clearTimeout(t)
   }, [job])
   useEffect(() => { api.get<NonNullable<typeof job>>('/match/suggest-all').then((j) => { if (j.running) setJob(j) }).catch(() => {}) }, [])

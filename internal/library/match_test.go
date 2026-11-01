@@ -541,6 +541,32 @@ func TestSearchScoresBestFirst(t *testing.T) {
 	}
 }
 
+// A year kept from before counts when scoring, as one in the file's name does. One the
+// match itself gave doesn't.
+func TestSavedYearCountsWhenScoring(t *testing.T) {
+	s, lib, root := matchFixture(t)
+	ctx := context.Background()
+	addFile(t, root, "Harbour Lights.mkv")
+	if err := s.scan(ctx, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	it := oneItem(t, s, lib.ID)
+	score := func(source string) int {
+		tl := title(t, s, TargetItem, it.ID)
+		y := 2004
+		tl.Item.Year = &y
+		tl.Meta.Sources = map[string]string{"year": source}
+		res, err := s.SearchMatches(ctx, tl, "", nil)
+		if err != nil || len(res.Results) == 0 {
+			t.Fatalf("%+v %v", res, err)
+		}
+		return res.Results[0].Score
+	}
+	if saved, service := score(SourceSaved), score("tmdb"); saved != 100 || service >= 90 {
+		t.Errorf("kept from before %d, from a service %d", saved, service)
+	}
+}
+
 // browseFixture is a library with something to sort: no scan, just rows.
 func browseFixture(t *testing.T) (*Store, *Library) {
 	t.Helper()

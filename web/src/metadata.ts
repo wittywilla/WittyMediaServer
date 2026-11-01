@@ -70,7 +70,9 @@ export const fmtClock = (sec: number) => {
 export const artPictureUrl = (a: CategoryArt) => mediaUrlQ(a.type === 'item' ? `/api/items/${a.id}/backdrop` : `/api/shows/${a.id}/art/backdrop`, `v=${a.v}`)
 
 // Sends a picture as the body of a request, as Upload your own and a logo's own upload do.
-export async function sendPicture<T>(path: string, f: File): Promise<T> {
+export async function sendPicture<T>(path: string, f: File, limitMB = 20): Promise<T> {
+  // Said here, as a browser can go on sending a big file long after the server has refused it.
+  if (f.size > limitMB * (1 << 20)) throw new Error(`The picture is too big: the limit is ${limitMB} MB`)
   const headers: Record<string, string> = { 'Content-Type': f.type || 'application/octet-stream' }
   const tok = getToken()
   if (tok) headers.Authorization = 'Bearer ' + tok

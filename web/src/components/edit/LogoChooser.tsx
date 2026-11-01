@@ -57,7 +57,7 @@ export default function LogoChooser({ logo, onClose, onChanged }: { logo: LogoIn
   const upload = async (f?: File) => {
     if (!f) return
     setBusy(true); setErr('')
-    try { done(await sendPicture<LogoInfo>(`/logos/${logo.id}/upload`, f)) } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+    try { done(await sendPicture<LogoInfo>(`/logos/${logo.id}/upload`, f, 8)) } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
   return (
     <Dialog title={`The logo of ${logo.name}`} size="wide" className="ed-logo-dialog" onClose={onClose} actions={<Button variant="ghost" onClick={onClose}>Done</Button>}>

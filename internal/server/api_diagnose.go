@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -11,9 +12,9 @@ import (
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/diagnose"
-	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 )
 
 // WittyDiagnoser, the disk diagnoser (Settings, WittyDiagnoser): checks of a DVD or Blu-ray, and
@@ -227,30 +228,40 @@ func (s *Server) handleDiagnoseBrowse(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "That's a file, not a folder.")
 		return
 	}
-	l, err := modmgr.FileBrowser{M: s.Modules}.List(real, modmgr.ListOptions{MaxEntries: 3000, Kind: library.FileKind})
-	switch {
-	case errors.Is(err, modmgr.ErrFolderNotFound):
+	entries, err := os.ReadDir(real)
+	if errors.Is(err, fs.ErrNotExist) {
 		writeDiagnosePathErr(w, diagnose.ErrMissing)
 		return
-	case writeModuleMissing(w, err):
-		return
-	case err != nil:
+	}
+	if err != nil {
 		writeErr(w, 403, "The server isn't allowed to open this folder.")
 		return
 	}
-	out := diagnoseListing{Path: l.Path, Entries: []diagnoseEntry{}, Truncated: l.Truncated}
+	out := diagnoseListing{Path: real, Entries: []diagnoseEntry{}}
 	// Up goes as far as the top of an allowed place, and no further.
-	if l.Parent != nil {
-		if _, err := roots.Resolve(*l.Parent); err == nil {
-			out.Parent = l.Parent
+	if parent := filepath.Dir(real); parent != real {
+		if _, err := roots.Resolve(parent); err == nil {
+			out.Parent = &parent
 		}
 	}
-	for _, e := range l.Entries {
+	for _, e := range entries {
+		if len(out.Entries) >= maxDiagnoseEntries {
+			out.Truncated = true
+			break
+		}
+		name, p := e.Name(), filepath.Join(real, e.Name())
+		if modmgr.IsHidden(name) {
+			continue
+		}
+		info, err := os.Stat(p) // through a link, as what it points at is what's being looked at
+		if err != nil {
+			continue
+		}
 		switch {
-		case e.Dir:
-			out.Entries = append(out.Entries, diagnoseEntry{Name: e.Name, Path: e.Path, Dir: true, Disc: e.Disc})
-		case diagnoseImageExt[strings.ToLower(filepath.Ext(e.Name))]:
-			out.Entries = append(out.Entries, diagnoseEntry{Name: e.Name, Path: e.Path, Kind: "disc", Size: e.Size})
+		case info.IsDir():
+			out.Entries = append(out.Entries, diagnoseEntry{Name: name, Path: p, Dir: true, Disc: discFolderKind(p)})
+		case diagnoseImageExt[strings.ToLower(filepath.Ext(name))]:
+			out.Entries = append(out.Entries, diagnoseEntry{Name: name, Path: p, Kind: "disc", Size: info.Size()})
 		}
 	}
 	writeJSON(w, 200, out)
@@ -414,4 +425,24 @@ func (s *Server) handleDiagnoseReport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Disposition", `attachment; filename="wittydiagnoser-`+safe+`.json"`)
 	_, _ = w.Write(b)
+}
+
+// maxDiagnoseEntries is more than anyone would look through.
+const maxDiagnoseEntries = 3000
+
+// discFolderKind says whether a folder holds a DVD or a Blu-ray.
+func discFolderKind(p string) string {
+	entries, err := os.ReadDir(p)
+	if err != nil {
+		return ""
+	}
+	for _, e := range entries {
+		if e.IsDir() && strings.EqualFold(e.Name(), "VIDEO_TS") {
+			return "dvd"
+		}
+		if e.IsDir() && strings.EqualFold(e.Name(), "BDMV") {
+			return "bluray"
+		}
+	}
+	return ""
 }

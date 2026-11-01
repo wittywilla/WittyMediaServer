@@ -10,7 +10,7 @@ import (
 
 func playManifest(ver string, ipc ...string) []byte {
 	m := wittymodule.Manifest{ID: "wittyplay", Name: "WittyPlay", Version: ver, Repo: "wittywilla/WittyPlay", Delivery: wittymodule.DeliveryProgram,
-		Entry: "wittyplay-host", API: 2, MinServer: "0.1.0", MaxServer: "0.x"}
+		Entry: "wittyplay-host", API: wittymodule.API, MinServer: "0.1.0", MaxServer: "0.x"}
 	if len(ipc) > 0 {
 		m.Capabilities = map[string][]string{protocolCapability: ipc}
 	}

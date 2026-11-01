@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -46,6 +47,7 @@ func TestCollectionsDontGiveAwayAddresses(t *testing.T) {
 }
 
 func TestRecentGamesHideTheFolder(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	item := runnerGameItem(t, g)
 	if w := g.do("PUT", fmt.Sprintf("/api/games/%d/meta", item), g.other, map[string]any{"favourite": true}); w.Code != 200 {
@@ -131,6 +133,7 @@ func wantImport(t *testing.T, g *gameServer, method, path string, body []byte, w
 
 // What the limit says is the limit: larger than the server's general limit on a request.
 func TestImportsTakeWhatTheirLimitSays(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	item := runnerGameItem(t, g)
 	big := make([]byte, 33<<20)
@@ -148,6 +151,7 @@ func TestImportsTakeWhatTheirLimitSays(t *testing.T) {
 }
 
 func TestAccountsHaveALimitAcrossTheirGames(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	item := runnerGameItem(t, g)
 	old := maxAccountGameBytes
@@ -180,6 +184,7 @@ func TestAccountsHaveALimitAcrossTheirGames(t *testing.T) {
 
 // Requests arriving together can't all take the last place.
 func TestPatchLimitHoldsWithManyAtOnce(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	item := runnerGameItem(t, g)
 	ctx := context.Background()

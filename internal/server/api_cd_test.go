@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"math"
 	"net/http"
 	"os"
@@ -35,6 +36,7 @@ func cdImage(t *testing.T, ts *contractServer) (id int64, pcm []byte) {
 }
 
 func TestCDRoutes(t *testing.T) {
+	modtest.Need(t, "wittycd")
 	ts := newContractServer(t)
 	_, session := ts.account(t, "listener", "adult", false)
 	id, pcm := cdImage(t, ts)
@@ -107,6 +109,7 @@ func TestCDRoutes(t *testing.T) {
 }
 
 func TestCDTrackPlaysThroughTheOrdinaryAudioRoute(t *testing.T) {
+	modtest.Need(t, "wittycd")
 	ts := newContractServer(t)
 	_, session := ts.account(t, "listener", "adult", false)
 	id, pcm := cdImage(t, ts)

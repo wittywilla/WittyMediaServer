@@ -209,6 +209,9 @@ type Config struct {
 	Dir      string // <data>/modules
 	Server   string // this server's version
 	Builtins [][]byte
+	// Known says to start from the list of modules this server was built knowing about, so a
+	// page can name what's missing before any catalogue has been read.
+	Known bool
 	// CatalogURL is where to look for the signed catalogue. Without it, each module's
 	// releases are read from its own repository, as a fork's are.
 	CatalogURL string

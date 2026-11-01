@@ -5,6 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -291,7 +295,11 @@ func (s *Scanner) readPhoto(ctx context.Context, it *Item, m *photoMeta) {
 	} else {
 		s.Log.DebugContext(ctx, "no details read from a photo", "file", it.Path, "err", err)
 	}
-	if w, h := photos().Dimensions(it.Path); w > 0 {
+	w, h := photos().Dimensions(it.Path)
+	if w == 0 {
+		w, h = pictureSize(it.Path)
+	}
+	if w > 0 {
 		it.Width, it.Height = w, h // the picture's own header beats EXIF, which editors leave stale
 	} else if it.Width == 0 && !m.Raw {
 		pctx, cancel := context.WithTimeout(ctx, 20*time.Second)
@@ -877,4 +885,19 @@ func SniffMedia(b []byte) bool {
 		return true
 	}
 	return false
+}
+
+// pictureSize reads the size of a picture in a common format from its header, for when
+// WittyPhotos isn't here to, so a picture still shows as the shape it is.
+func pictureSize(path string) (w, h int) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, 0
+	}
+	defer f.Close()
+	c, _, err := image.DecodeConfig(f)
+	if err != nil {
+		return 0, 0
+	}
+	return c.Width, c.Height
 }

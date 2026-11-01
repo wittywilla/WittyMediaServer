@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"io"
 	"log/slog"
 	"net/http"
@@ -424,6 +425,7 @@ func TestModuleLogging(t *testing.T) {
 		}
 		return out
 	}
+	ts.Modules = modtest.Need(t, "wittydvd")
 	mods := view()
 	dvd, ok := mods["wittydvd"]
 	if !ok || dvd.New || len(dvd.Topics) == 0 || dvd.Level != "" {

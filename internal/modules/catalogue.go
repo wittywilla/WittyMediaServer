@@ -77,7 +77,9 @@ func (m *Manager) addAbsent(mod *wittymodule.CatalogModule, saved map[string]mod
 // it was built with, then the catalogue it last saw, or a starter set's, and then anything
 // installed that neither of those lists. Before m is shared.
 func (m *Manager) loadKnown(saved map[string]moduleState) {
-	if known, err := wittymodule.ParseCatalog(knownJSON); err != nil {
+	if !m.cfg.Known {
+		// Only what's installed and what a catalogue says.
+	} else if known, err := wittymodule.ParseCatalog(knownJSON); err != nil {
 		m.log.Error("modules: the list of known modules is unreadable", "err", err)
 	} else {
 		for i := range known.Modules {

@@ -201,7 +201,7 @@ func cmdServe(args []string) int {
 	// Modules: which version of each to use. Nothing here goes online; only Run does,
 	// and only while the settings allow it.
 	modMgr := modules.New(modules.Config{
-		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: modules.ServerManifests(), CatalogURL: update.ModuleCatalog(), Starter: filepath.Join(progDir, "modules"),
+		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: modules.ServerManifests(), Known: true, CatalogURL: update.ModuleCatalog(), Starter: filepath.Join(progDir, "modules"),
 		WriteFolders: func(id string) []string {
 			switch id {
 			case "wittyplay": // saves, cores and what's unpacked stay where a server keeps them

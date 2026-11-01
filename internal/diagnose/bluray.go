@@ -385,7 +385,7 @@ func blurayBDJ(ctx context.Context, j *Job, d *wittybluray.Disc) {
 	}
 	j.Add(Finding{Severity: SevInfo, Title: "This Blu-ray uses Java (BD-J) menus", What: "Part of what this disc shows comes from Java programs on it. This check only reads what's in them: it never runs the disc's code.", Details: det})
 	on := j.env.setting("bdjEnabled", "0") == "1"
-	java, jerr := bdj.Find(j.env.setting("javaPath", ""))
+	java, jerr := bdj.Find(j.env.JavaPath)
 	switch {
 	case !on:
 		what := "It's off here, so the disc plays from its playlists, without its Java menus."

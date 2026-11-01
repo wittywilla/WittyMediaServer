@@ -46,6 +46,7 @@ func (s *Server) diagnoser() *diagnose.Manager {
 			Version: s.Version,
 			Busy:    s.streamsPlaying,
 			Setting: func(key, def string) string { return s.DB.GetSetting(context.Background(), key, def) },
+			JavaPath: s.Cfg.JavaPath,
 			ItemPaths: func(ctx context.Context, lib int64, limit int) ([]string, error) {
 				rows, err := s.DB.QueryContext(ctx, `SELECT path FROM items WHERE library_id = ? AND missing = 0 LIMIT ?`, lib, limit)
 				if err != nil {

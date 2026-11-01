@@ -31,6 +31,7 @@ type Config struct {
 	Listen       string
 	FFmpegPath   string
 	FFprobePath  string
+	JavaPath     string // the Java for Blu-ray menus; "" finds it. Never a web setting: see handleBDJStatus
 	TranscodeDir string
 	CacheDir     string
 	ImagesDir    string // downloaded and generated artwork ("metadata media")
@@ -65,6 +66,7 @@ type File struct {
 	LogLevel       string `json:"logLevel,omitempty"`
 	FFmpeg         string `json:"ffmpeg,omitempty"`
 	FFprobe        string `json:"ffprobe,omitempty"`
+	JavaPath       string `json:"javaPath,omitempty"`
 	MaxTranscodes  int    `json:"maxTranscodes,omitempty"`
 	PublicURL      string `json:"publicUrl,omitempty"`
 	RemoteAccess   bool   `json:"remoteAccess,omitempty"`
@@ -261,6 +263,7 @@ func Parse(args []string) (*Config, error) {
 	fs.StringVar(&c.Listen, "listen", env("WMS_LISTEN", or(f.Listen, ":"+strconv.Itoa(DefaultPort))), "listen address (WMS_LISTEN)")
 	fs.StringVar(&c.FFmpegPath, "ffmpeg", env("WMS_FFMPEG", rel(f.FFmpeg)), "path to ffmpeg (WMS_FFMPEG); default: bundled or PATH")
 	fs.StringVar(&c.FFprobePath, "ffprobe", env("WMS_FFPROBE", rel(f.FFprobe)), "path to ffprobe (WMS_FFPROBE)")
+	fs.StringVar(&c.JavaPath, "java", env("WMS_JAVA", rel(f.JavaPath)), "Java folder or program for Blu-ray menus (WMS_JAVA); default: found by itself")
 	fs.StringVar(&c.LogLevel, "log", env("WMS_LOG", or(f.LogLevel, "info")), "log level: debug|info|warn|error")
 	fs.StringVar(&c.LogDir, "log-dir", env("WMS_LOG_DIR", rel(f.LogDir)), "folder for log files (WMS_LOG_DIR); default <data>/logs")
 	fs.StringVar(&c.PublicURL, "public-url", env("WMS_PUBLIC_URL", f.PublicURL), "external base URL")

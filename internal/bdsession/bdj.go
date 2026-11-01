@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -575,12 +576,27 @@ func (s *Session) closeBDJ() {
 	_ = os.RemoveAll(filepath.Join(s.m.CacheDir, "bdj", "sessions", s.ID))
 }
 
-// JavaStatus reports whether this machine can run BD-J, for the settings page.
+// ErrJavaCantRun: Java was found and tried, and failed.
+var ErrJavaCantRun = errors.New("this Java cannot run BD-J")
+
+// FindJava says which Java would be used, without running it.
+func FindJava(path string) (string, error) {
+	j, err := bdj.Find(path)
+	if err != nil {
+		return "", err
+	}
+	return j.Path, nil
+}
+
+// JavaStatus reports whether this machine can run BD-J, for the settings page. It runs Java.
 func JavaStatus(ctx context.Context, cacheDir, path string) (version, where string, err error) {
 	j, err := bdj.Find(path)
 	if err != nil {
 		return "", "", err
 	}
 	v, err := j.Probe(ctx, filepath.Join(cacheDir, "bdj"))
-	return v, j.Path, err
+	if err != nil {
+		return v, j.Path, fmt.Errorf("%w: %w", ErrJavaCantRun, err)
+	}
+	return v, j.Path, nil
 }

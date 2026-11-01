@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -287,17 +288,31 @@ func (s *Server) handleBDJFrame(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(png)
 }
 
-// handleBDJStatus says whether this machine can run BD-J, for the settings page.
+// handleBDJStatus says whether this machine can run BD-J, for the settings page. Trying Java means
+// running it, so that waits until BD-J is on. Which Java comes from the config file, never from a
+// setting: a web account can't choose what the server runs.
 func (s *Server) handleBDJStatus(w http.ResponseWriter, r *http.Request) {
-	path := s.DB.GetSetting(r.Context(), "javaPath", "")
-	out := map[string]any{"enabled": s.DB.GetSetting(r.Context(), "bdjEnabled", "0") == "1"}
-	version, where, err := bdsession.JavaStatus(r.Context(), s.Cfg.CacheDir, path)
-	if err != nil {
-		out["error"] = err.Error()
-		if out["enabled"] == true {
-			s.Log.WarnContext(r.Context(), "BD-J is on, but this Java can't run it", "cat", "discs", "err", err)
+	on := s.DB.GetSetting(r.Context(), "bdjEnabled", "0") == "1"
+	out := map[string]any{"enabled": on, "configured": s.Cfg.JavaPath != ""}
+	if !on {
+		if where, err := bdsession.FindJava(s.Cfg.JavaPath); err == nil {
+			out["path"] = where
+		} else {
+			out["error"] = err.Error()
 		}
-	} else {
+		writeJSON(w, 200, out)
+		return
+	}
+	version, where, err := bdsession.JavaStatus(r.Context(), s.Cfg.CacheDir, s.Cfg.JavaPath)
+	switch {
+	case errors.Is(err, bdsession.ErrJavaCantRun):
+		// What a program printed stays in the log.
+		out["error"], out["path"] = "This Java can't run Blu-ray menus. The log says why.", where
+		s.Log.WarnContext(r.Context(), "BD-J is on, but this Java can't run it", "cat", "discs", "err", err)
+	case err != nil:
+		out["error"] = err.Error()
+		s.Log.WarnContext(r.Context(), "BD-J is on, but no Java was found", "cat", "discs", "err", err)
+	default:
 		out["version"], out["path"] = version, where
 	}
 	writeJSON(w, 200, out)

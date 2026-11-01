@@ -287,7 +287,7 @@ const AUDIT = `(minSize) => {
     if (e.matches('.ctv-cell')) continue
     // A dialog can hold on to focus: see it without by giving it to something else first.
     if (document.activeElement === e) controls.find((x) => x !== e)?.focus({ preventScroll: true })
-    if (e.matches(':focus')) continue // it won't let go, so there's nothing to compare with
+    if (e.matches(':focus, :focus-visible')) continue // it won't let go, so there's nothing to compare with
     const before = style(e)
     e.focus({ preventScroll: true })
     if (document.activeElement === e && style(e) === before) out.push('focus does not show: ' + say(e) + ' ' + before + ' fv=' + e.matches(':focus-visible'))

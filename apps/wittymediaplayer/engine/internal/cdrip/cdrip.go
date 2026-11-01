@@ -318,6 +318,15 @@ func RipTrack(ctx context.Context, src Source, t *Track, opt Options, progress f
 	return rep, nil
 }
 
+func nothingThere(paths ...string) error {
+	for _, p := range paths {
+		if _, err := os.Lstat(p); err == nil {
+			return fmt.Errorf("%s is already there, and copying a disc never overwrites anything", filepath.Base(p))
+		}
+	}
+	return nil
+}
+
 // WriteImage copies a disc's audio to a .bin and a .cue beside it. It writes to temporary
 // names first and never overwrites anything. A data track on the same disc is left out and
 // said so: an image is for the music.
@@ -327,10 +336,8 @@ func WriteImage(ctx context.Context, src Source, cuePath string, opt Options, pr
 		return nil, errors.New("the image's name has to end in .cue")
 	}
 	binPath := strings.TrimSuffix(cuePath, filepath.Ext(cuePath)) + ".bin"
-	for _, p := range []string{cuePath, binPath} {
-		if _, err := os.Lstat(p); err == nil {
-			return nil, fmt.Errorf("%s is already there, and copying a disc never overwrites anything", filepath.Base(p))
-		}
+	if err := nothingThere(cuePath, binPath); err != nil {
+		return nil, err
 	}
 	if len(info.AudioTracks()) == 0 {
 		return nil, errors.New("this disc has no audio tracks")
@@ -369,6 +376,10 @@ func WriteImage(ctx context.Context, src Source, cuePath string, opt Options, pr
 		return rep, err
 	}
 	defer os.Remove(cuePath + ".part")
+	// A copy takes a while, and something may have appeared under these names meanwhile.
+	if err := nothingThere(cuePath, binPath); err != nil {
+		return rep, err
+	}
 	if err := os.Rename(binPath+".part", binPath); err != nil {
 		return rep, err
 	}

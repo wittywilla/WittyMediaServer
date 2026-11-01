@@ -356,6 +356,33 @@ func TestStoppedImageLeavesNothing(t *testing.T) {
 	}
 }
 
+// A file that appears during the copy is still never overwritten.
+func TestImageNeverOverwritesWhatAppearedMeanwhile(t *testing.T) {
+	for _, name := range []string{"x.bin", "x.cue"} {
+		dir := t.TempDir()
+		there := filepath.Join(dir, name)
+		appeared := false
+		_, err := WriteImage(context.Background(), disc(40), filepath.Join(dir, "x.cue"), Options{}, func(int, int) {
+			if !appeared {
+				appeared = true
+				if err := os.WriteFile(there, []byte("mine"), 0o644); err != nil {
+					t.Error(err)
+				}
+			}
+		})
+		if err == nil || !strings.Contains(err.Error(), "already there") {
+			t.Errorf("%s: %v", name, err)
+		}
+		if b, _ := os.ReadFile(there); string(b) != "mine" {
+			t.Errorf("%s was overwritten", name)
+		}
+		entries, _ := os.ReadDir(dir)
+		if len(entries) != 1 {
+			t.Errorf("%s: left behind %v", name, entries)
+		}
+	}
+}
+
 func TestCueSheet(t *testing.T) {
 	info := &Info{Title: `A "Quoted" Album`, Tracks: []Track{{Number: 1, Audio: true, Pregap: 0, Start: 150, End: 300, Title: "One", ISRC: "USABC0000001"}, {Number: 2, Pregap: 300, Start: 300, End: 900}}}
 	got := CueSheet(info, "x.bin")

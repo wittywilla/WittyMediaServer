@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../../api'
 import { announce } from '../../a11y'
 import { toast, useApp } from '../../state'
@@ -11,6 +12,8 @@ import './reminders.css'
 // so a page left open does nothing until a reminder is due.
 
 const LEAD_SEC = 60
+// How long after a programme has started the reminder stays up.
+const STAYS_SEC = 180
 
 let list: Reminder[] = []
 let loadedFor: number | null = null
@@ -49,6 +52,15 @@ export function ReminderWatcher() {
   const current = useSyncExternalStore(subscribe, () => list)
   const [due, setDue] = useState<Reminder | null>(null)
   const [shown, setShown] = useState(new Set<number>())
+  // A player opening or closing moves the reminder in or out of it. It loads a
+  // moment after the address changes.
+  const loc = useLocation()
+  const [, redraw] = useState(0)
+  useEffect(() => {
+    if (!due) return
+    const t = setTimeout(() => redraw((n) => n + 1), 400)
+    return () => clearTimeout(t)
+  }, [loc.pathname, due])
 
   useEffect(() => {
     if (!user || loadedFor === user.id) return
@@ -70,6 +82,12 @@ export function ReminderWatcher() {
     return () => clearTimeout(t)
   }, [current, shown])
 
+  useEffect(() => {
+    if (!due) return
+    const t = setTimeout(() => setDue(null), Math.max(1000, (due.start + STAYS_SEC) * 1000 - Date.now()))
+    return () => clearTimeout(t)
+  }, [due])
+
   if (!due) return null
   const close = () => {
     setDue(null)
@@ -77,8 +95,11 @@ export function ReminderWatcher() {
     emit()
     api.del(`/tv/reminders/${due.id}`).catch(() => { /* it goes by itself once the programme ends */ })
   }
-  return (
-    <div className="tv-remind" role="alert">
+  // In a player that fills the screen it is part of the player, which is where a
+  // remote's arrows go.
+  const player = document.querySelector('.player:not(.mini):not(.inline)')
+  const box = (
+    <div className="tv-remind" role="alert" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
       <div><b>{due.title}</b>{due.start > Date.now() / 1000 ? ' is about to start' : ' has started'}{due.sub ? <small> {due.sub}</small> : null}</div>
       <div className="tv-remind-actions">
         <button className="btn sm primary" onClick={() => { close(); nav(`/tv/watch/${due.channel}`) }}>Watch</button>
@@ -86,4 +107,5 @@ export function ReminderWatcher() {
       </div>
     </div>
   )
+  return player ? createPortal(box, player) : box
 }

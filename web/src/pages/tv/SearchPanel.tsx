@@ -9,17 +9,19 @@ export default function SearchPanel({ onClose, onGo }: { onClose: () => void; on
   const [hits, setHits] = useState<GuideHit[] | null>(null)
   const [err, setErr] = useState('')
   const [days, setDays] = useState(7)
+  const [busy, setBusy] = useState(false)
   const seq = useRef(0)
   const reminders = useReminders()
   const now = Date.now() / 1000
   useEffect(() => {
     const text = q.trim()
-    if (text.length < 2) { setHits(null); setErr(''); return }
     const id = ++seq.current
+    if (text.length < 2) { setHits(null); setErr(''); setBusy(false); return }
+    setBusy(true)
     const t = setTimeout(() => {
       api.get<GuideHit[]>(`/guide/search?q=${encodeURIComponent(text)}&days=${days}`)
-        .then((h) => { if (id === seq.current) { setHits(h); setErr('') } })
-        .catch((e) => { if (id === seq.current) setErr(e.message) })
+        .then((h) => { if (id === seq.current) { setHits(h); setErr(''); setBusy(false) } })
+        .catch((e) => { if (id === seq.current) { setErr(e.message); setBusy(false) } })
     }, 300)
     return () => clearTimeout(t)
   }, [q, days])
@@ -34,8 +36,9 @@ export default function SearchPanel({ onClose, onGo }: { onClose: () => void; on
           </select>
         </div>
         {err && <p role="alert">{err}</p>}
-        <div aria-live="polite" className="sr-only">{hits ? `${hits.length} found` : ''}</div>
-        {hits && hits.length === 0 && <p className="muted">Nothing like that is coming up.</p>}
+        {busy && <p className="muted" role="status">Searching…</p>}
+        <div aria-live="polite" className="sr-only">{hits && !busy ? `${hits.length} found` : ''}</div>
+        {hits && !busy && hits.length === 0 && <p className="muted">Nothing like that is coming up.</p>}
         {hits && hits.length > 0 && (
           <ul className="ctv-hits">
             {hits.map((h) => {

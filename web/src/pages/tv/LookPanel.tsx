@@ -23,15 +23,14 @@ function Choice<T extends string | number>({ label, value, options, onChange, hi
 // A small drawing of each look, so the choice can be made at a glance.
 function LookCard({ name, desc, on, onPick, kind }: { name: string; desc: string; on: boolean; onPick: () => void; kind: 'cable' | 'modern' }) {
   return (
-    <label className={'ctv-lookcard ' + kind + (on ? ' on' : '')}>
-      <input type="radio" name="tv-look" checked={on} onChange={onPick} />
+    <button type="button" role="radio" aria-checked={on} className={'ctv-lookcard ' + kind + (on ? ' on' : '')} onClick={onPick}>
       <span className="ctv-lookcard-pic" aria-hidden="true">
         <i className="top" /><i className="pv" />
         <i className="row a" /><i className="row b" /><i className="row c" />
       </span>
       <b>{name}</b>
       <small>{desc}</small>
-    </label>
+    </button>
   )
 }
 
@@ -50,13 +49,12 @@ export default function LookPanel({ look, onClose }: { look: Look; onClose: () =
         <h2 id="ctv-look-h">Look of the guide</h2>
         <p className="muted">Changes show straight away, and follow you to your other devices.</p>
 
-        <fieldset className="ctv-choice">
-          <legend className="sr-only">Style</legend>
-          <div className="ctv-lookcards">
+        <div className="ctv-choice">
+          <div className="ctv-lookcards" role="radiogroup" aria-label="Style">
             <LookCard kind="cable" name="Classic cable box" desc="Chunky, bevelled and square, like a box of the early 2000s." on={look.layout === 'classic'} onPick={() => pick('classic', look.colours === 'midnight' ? 'cable' : look.colours)} />
             <LookCard kind="modern" name="Modern" desc="Clean and dark, with the programme's picture up top." on={look.layout === 'streaming'} onPick={() => pick('streaming', look.colours === 'cable' || look.colours === 'satellite' ? 'midnight' : look.colours)} />
           </div>
-        </fieldset>
+        </div>
 
         <Choice label="Colours" value={look.colours} onChange={(v) => setLook({ colours: v })} options={SWATCHES} />
         {look.colours === 'custom' && (

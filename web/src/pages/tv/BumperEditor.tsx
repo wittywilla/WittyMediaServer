@@ -40,9 +40,8 @@ export function BumperLibrary({ bumpers, reload }: { bumpers: Bumper[] | null; r
   return (
     <>
       <div className="tvs-toolbar">
-        <label className={'btn sm primary' + (busy ? ' disabled' : '')}><IconPlus /> {busy ? 'Uploading…' : 'Upload videos'}
-          <input ref={file} className="sr-only" type="file" accept="video/*,.mkv,.ts,.avi" multiple disabled={busy} onChange={(e) => void upload(e.target.files)} />
-        </label>
+        <button type="button" className="btn sm primary" disabled={busy} onClick={() => file.current?.click()}><IconPlus /> {busy ? 'Uploading…' : 'Upload videos'}</button>
+        <input ref={file} hidden type="file" accept="video/*,.mkv,.ts,.avi" multiple onChange={(e) => void upload(e.target.files)} />
         <button type="button" className="btn sm" aria-haspopup="dialog" onClick={() => setFinding(true)}><IconSearch size={16} /> Choose from my media</button>
       </div>
       {bumpers && bumpers.length === 0 && <p className="muted">Nothing here yet. Upload a short video, or choose one you already have. Anything in a Commercials library also appears here.</p>}

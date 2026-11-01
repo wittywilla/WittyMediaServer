@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, mediaUrl } from '../../api'
 import { CardRow } from '../../components/common'
+import { IconRight } from '../../icons'
 import { fmtLeft, type GuideChannel, type GuidePage } from './tvApi'
 import './onnow.css'
 
@@ -22,7 +23,7 @@ export default function OnNowRow() {
   const list = [...rows].sort((a, b) => Number(!!b.favourite) - Number(!!a.favourite))
   return (
     <section className="hub" aria-label="On TV now">
-      <div className="hub-head"><h2><Link to="/tv">On TV now</Link></h2></div>
+      <div className="hub-head"><h2>On TV now</h2><Link to="/tv">Guide <IconRight /></Link></div>
       <CardRow>
         {list.map((c) => {
           const p = c.programmes.find((x) => x.start <= now && x.end > now)

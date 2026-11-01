@@ -74,6 +74,26 @@ func TestBumpersBeforeAndAfter(t *testing.T) {
 	}
 }
 
+func TestBumpersBetweenCommercials(t *testing.T) {
+	def := Definition{Mode: "simple", Order: Order{Mode: "sequential"}, Filler: Filler{Between: 3, Rules: &Rules{Libraries: []int64{50}}},
+		Bumpers: BumperPlan{Rules: []BumperRule{rule(WhenBetween, 901)}}}
+	progs := dayOf(t, &def)
+	var roles []string
+	for _, p := range progs[1:6] {
+		roles = append(roles, p.Role)
+	}
+	if want := []string{RoleAd, RoleBetween, RoleAd, RoleBetween, RoleAd}; !reflect.DeepEqual(roles, want) {
+		t.Fatalf("after a programme: %v, want %v", roles, want)
+	}
+	// One commercial is no one to come between: not a bumper in sight.
+	def.Filler.Between = 1
+	for _, p := range dayOf(t, &def) {
+		if p.Role == RoleBetween {
+			t.Fatalf("a bumper between one commercial: %+v", p)
+		}
+	}
+}
+
 func TestBumperTiedToAShow(t *testing.T) {
 	r := rule(WhenBefore, 901)
 	r.Only = &Rules{Shows: []int64{2}}

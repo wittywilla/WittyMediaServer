@@ -114,6 +114,15 @@ export default function GuidePage() {
   const scroller = useRef<HTMLDivElement | null>(null)
   const grid = useRef<HTMLDivElement | null>(null)
   const wantFocus = useRef(true)
+  // Search takes the keyboard as it opens, so it can't be left to the dialog code
+  // to work out where the keyboard came from.
+  const searchBack = useRef<HTMLElement | null>(null)
+  const openSearch = () => { searchBack.current = document.activeElement as HTMLElement | null; setSearchOpen(true) }
+  const closeSearch = () => {
+    setSearchOpen(false)
+    const back = searchBack.current
+    requestAnimationFrame(() => { if (back?.isConnected) back.focus({ preventScroll: true }); else wantFocus.current = true })
+  }
   const loaded = useRef(new Set<string>())
   const slots = look.hours ? look.hours * 2 : slotsForWidth(width)
   const rowH = Math.round(baseRow(width, look.layout) * ({ compact: 0.8, normal: 1, large: 1.25 }[look.density]) * (look.layout === 'classic' ? 1.14 : 1))
@@ -304,7 +313,7 @@ export default function GuidePage() {
       case 'd': case 'D': if (cur && curCell) setDetails({ ch: cur, p: curCell, day: true }); break
       case 'm': case 'M': if (cur && curCell && curCell.start > now) void reminders.toggle(cur.key, curCell); break
       case 'l': case 'L': jumpToLast(); break
-      case 's': case 'S': case '/': setSearchOpen(true); break
+      case 's': case 'S': case '/': openSearch(); break
       case 'n': case 'N': goNow(); break
       case '+': case '=': setLook({ hours: Math.max(1.5, (look.hours || slots / 2) - 0.5) as Look['hours'] }); break
       case '-': setLook({ hours: Math.min(4, (look.hours || slots / 2) + 0.5) as Look['hours'] }); break
@@ -392,7 +401,7 @@ export default function GuidePage() {
               {Array.from({ length: DAY_NAMES }, (_, i) => <option key={i} value={i}>{i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : fmtDay(today + i * 86400 + 3600)}</option>)}
             </select>
           </label>
-          <button className="ctv-btn sm icon" onClick={() => setSearchOpen(true)} aria-haspopup="dialog" aria-label="Search the schedule" title="Search the schedule (S)"><IconSearch size={16} /></button>
+          <button className="ctv-btn sm icon" onClick={openSearch} aria-haspopup="dialog" aria-label="Search the schedule" title="Search the schedule (S)"><IconSearch size={16} /></button>
           <button className="ctv-btn sm" onClick={() => setLookOpen(true)} aria-haspopup="dialog">Look</button>
           <Link className="ctv-btn sm hide-narrow" to="/tv/recordings">Recordings</Link>
           {user?.isAdmin && <Link className="ctv-btn sm" to="/settings/channels"><IconSettings size={16} /> <span className="hide-narrow">Edit channels</span><span className="sr-only">Edit channels</span></Link>}
@@ -432,7 +441,7 @@ export default function GuidePage() {
 
       {details && <DetailsDialog ch={details.ch} p={details.p} now={now} startDay={details.day} look={look} onClose={() => setDetails(null)} onWatch={() => watch(details.ch.key)} onRecord={() => { void record(details.ch, details.p); setDetails(null) }} />}
       {lookOpen && <LookPanel look={look} onClose={() => setLookOpen(false)} />}
-      {searchOpen && <SearchPanel onClose={() => setSearchOpen(false)} onGo={(hit) => {
+      {searchOpen && <SearchPanel onClose={closeSearch} onGo={(hit) => {
         setSearchOpen(false)
         const i = lineup.filter((x) => matches(x, filter)).findIndex((x) => x.key === hit.channel)
         if (i >= 0) goAt(hit.start, i)

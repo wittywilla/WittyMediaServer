@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api'
 import { IconPlay } from '../../icons'
@@ -65,6 +65,9 @@ function DayView({ ch, at, now }: { ch: GuideChannel; at: number; now: number })
   const [list, setList] = useState<Programme[] | null>(null)
   const [err, setErr] = useState('')
   const reminders = useReminders()
+  const box = useRef<HTMLOListElement | null>(null)
+  // It opens at what's on now, not at midnight.
+  useEffect(() => { box.current?.querySelector('li.on')?.scrollIntoView({ block: 'center' }) }, [list])
   useEffect(() => {
     api.get<GuidePage>(`/guide?from=${Math.max(start, Math.floor(now) - 86000)}&hours=24&limit=1&channel=${encodeURIComponent(ch.key)}`)
       .then((g) => setList(g.channels[0]?.programmes || []))
@@ -74,7 +77,7 @@ function DayView({ ch, at, now }: { ch: GuideChannel; at: number; now: number })
   if (!list) return <div className="center"><div className="spinner" /></div>
   if (!list.length) return <p className="muted">Nothing is listed for this day.</p>
   return (
-    <ol className="ctv-day" aria-label={`Schedule for ${fmtDay(start + 3600)}`}>
+    <ol className="ctv-day" ref={box} aria-label={`Schedule for ${fmtDay(start + 3600)}`}>
       {list.map((p) => {
         const on = p.start <= now && p.end > now, past = p.end <= now
         return (

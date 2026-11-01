@@ -6,4 +6,5 @@
 .tv-remind small { display: block; color: var(--fg-2); }
 .tv-remind-actions { display: flex; gap: 6px; margin-left: auto; }
 .tv-remind-actions .btn { min-height: 36px; }
+.player .tv-remind { position: absolute; top: 64px; bottom: auto; }
 @media (max-width: 720px) { .tv-remind { bottom: 76px; } .tv-remind-actions .btn { min-height: 44px; } }

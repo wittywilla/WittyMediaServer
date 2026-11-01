@@ -2,4 +2,4 @@
 /* What a page shows when the module behind it isn't on this server. */
 .module-missing { max-width: 34rem; margin: 3rem auto; padding: 1.5rem; text-align: center; }
 .module-missing p { margin: .75rem 0; }
-.module-missing-error { color: var(--danger, #d33); }
+.module-missing-error { color: var(--danger); }

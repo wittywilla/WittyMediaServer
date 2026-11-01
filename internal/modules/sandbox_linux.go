@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"syscall"
@@ -38,7 +39,9 @@ func prepareSandbox(cmd *exec.Cmd, network bool, log *slog.Logger) bool {
 	return true
 }
 
-func lockDown(cmd *exec.Cmd, memoryMB int64, log *slog.Logger) func() { return func() {} }
+func lockDown(cmd *exec.Cmd, memoryMB int64, programs bool, log *slog.Logger) func() {
+	return func() {}
+}
 
 // launchWith wraps a program's start in the server itself, which applies limits to its
 // own process and then becomes the program. They survive that, and nothing in the program
@@ -119,6 +122,15 @@ func RunSandboxed(args []string) int {
 				writable = append(writable, args[3:][i+1])
 			}
 		}
+	}
+	if mode&SandboxWriteData != 0 {
+		if d := os.Getenv("WITTYMODULE_DATA"); d != "" {
+			writable = append(writable, d)
+		}
+		for _, d := range filepath.SplitList(os.Getenv(SandboxWriteEnv)) {
+			writable = append(writable, d)
+		}
+		writable = append(writable, os.TempDir())
 	}
 	abi := landlockABI()
 	if strict && abi < landlockForkABI {

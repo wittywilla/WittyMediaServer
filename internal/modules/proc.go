@@ -3,6 +3,7 @@ package modules
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -36,16 +38,20 @@ var errUntrusted = errors.New("files have changed since they were installed")
 // proc runs one version of a helper: started on first use, stopped when idle,
 // restarted after a failure. It makes one call at a time.
 type proc struct {
-	man     *wittymodule.Manifest
-	dir     string
-	verify  func() error // checked before every start; nil only for tests
-	log     *slog.Logger
-	logEnv  func(id string) []string // the owner's log settings, for the helper
-	network bool                     // it may have a network; see mayUseNetwork
-	strict  bool                     // refuse to run without its sandbox: a fork, whose only limits these are
-	launch  string                   // the program that applies limits before it runs; "" for none
-	keep    bool                     // not stopped when idle: it holds state for a job
-	timeout time.Duration            // for one call; 0 is callTimeout
+	man      *wittymodule.Manifest
+	dir      string
+	verify   func() error // checked before every start; nil only for tests
+	log      *slog.Logger
+	logEnv   func(id string) []string // the owner's log settings, for the helper
+	network  bool                     // it may have a network; see mayHave
+	programs bool                     // it may start other programs
+	devices  bool                     // it may open this machine's devices
+	dataDir  string                   // a folder of its own it may write to; "" for none
+	writable []string                 // other folders it may write to
+	strict   bool                     // refuse to run without its sandbox: a fork, whose only limits these are
+	launch   string                   // the program that applies limits before it runs; "" for none
+	keep     bool                     // not stopped when idle: it holds state for a job
+	timeout  time.Duration            // for one call; 0 is callTimeout
 
 	mu      sync.Mutex
 	cmd     *exec.Cmd
@@ -129,8 +135,19 @@ func (o *helperOutput) flush() {
 
 func (p *proc) env() []string {
 	env := []string{"GOMEMLIMIT=" + softMemory, "GOMAXPROCS=2"}
+	if p.programs {
+		// What it starts does the heavy work, and has its own limits.
+		env = []string{"PATH=" + os.Getenv("PATH"), "HOME=" + os.Getenv("HOME"), "TEMP=" + os.TempDir(), "TMP=" + os.TempDir(), "TMPDIR=" + os.TempDir(), "LANG=" + os.Getenv("LANG"),
+			"XDG_RUNTIME_DIR=" + os.Getenv("XDG_RUNTIME_DIR"), "DISPLAY=" + os.Getenv("DISPLAY"), "LD_LIBRARY_PATH=" + os.Getenv("LD_LIBRARY_PATH"), "USERPROFILE=" + os.Getenv("USERPROFILE"), "LOCALAPPDATA=" + os.Getenv("LOCALAPPDATA"), "ProgramFiles=" + os.Getenv("ProgramFiles"), "ProgramFiles(x86)=" + os.Getenv("ProgramFiles(x86)"), "JAVA_HOME=" + os.Getenv("JAVA_HOME")}
+	}
 	if runtime.GOOS == "windows" {
 		env = append(env, "SystemRoot="+os.Getenv("SystemRoot"))
+	}
+	if p.dataDir != "" {
+		env = append(env, "WITTYMODULE_DATA="+p.dataDir)
+	}
+	if len(p.writable) > 0 {
+		env = append(env, SandboxWriteEnv+"="+strings.Join(p.writable, string(os.PathListSeparator)))
 	}
 	if p.logEnv != nil {
 		env = append(env, p.logEnv(p.man.ID)...)
@@ -150,7 +167,17 @@ func (p *proc) newCmd() *exec.Cmd {
 	if p.strict {
 		mode |= SandboxStrict
 	}
-	prog, args := launchWith(p.launch, p.path(), 4*hardMemoryMB, mode, []string{wittymodule.HelperFlag})
+	if p.devices {
+		mode |= SandboxDevices
+	}
+	if p.dataDir != "" {
+		mode |= SandboxWriteData
+	}
+	memory := int64(4 * hardMemoryMB)
+	if p.programs {
+		memory = 0 // what it starts counts towards this, and a game can use far more
+	}
+	prog, args := launchWith(p.launch, p.path(), memory, mode, []string{wittymodule.HelperFlag})
 	cmd := exec.Command(prog, args...)
 	cmd.Dir = p.dir
 	cmd.Env = p.env()
@@ -172,7 +199,19 @@ func (p *proc) start() error {
 		return errors.New("this server can't apply the limits a module from another publisher needs")
 	}
 	cmd := p.newCmd()
-	sandboxed := prepareSandbox(cmd, p.network, p.log)
+	if p.dataDir != "" {
+		if err := os.MkdirAll(p.dataDir, 0o700); err != nil {
+			return err
+		}
+	}
+	// Namespaces of its own and a low-integrity token would take away what programs it starts
+	// need, such as a graphics card, or a folder to write to. The rest of its limits apply.
+	sandboxed := false
+	if p.programs || p.devices || p.dataDir != "" {
+		hideWindow(cmd)
+	} else {
+		sandboxed = prepareSandbox(cmd, p.network, p.log)
+	}
 	if p.strict && sandboxAvailable && !sandboxed {
 		return errors.New("this system won't run it with the limits a module from another publisher needs")
 	}
@@ -199,7 +238,11 @@ func (p *proc) start() error {
 		return fmt.Errorf("could not start: %w", err)
 	}
 	started := time.Now()
-	release := lockDown(cmd, hardMemoryMB, p.log)
+	memory := int64(hardMemoryMB)
+	if p.programs {
+		memory = 0
+	}
+	release := lockDown(cmd, memory, p.programs, p.log)
 	t := &logging.Tail{}
 	logging.Go("module stderr", func() {
 		o := &helperOutput{tail: t, log: p.log}

@@ -31,7 +31,7 @@ func (m *Manager) Attach(id string, callTimeout time.Duration) *Attached {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	e := m.mods[id]
-	if e == nil || e.dir == "" || e.man.Delivery != wittymodule.DeliveryHelper || m.closed {
+	if e == nil || e.dir == "" || e.state.Disabled || e.man.Delivery != wittymodule.DeliveryHelper || m.closed {
 		return nil
 	}
 	p := m.newProcFor(id, e, e.man, e.dir)

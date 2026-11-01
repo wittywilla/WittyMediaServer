@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 // A person's controller profiles and the background of their controller screen. Every

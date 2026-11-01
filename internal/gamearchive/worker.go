@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittyplay/hostsandbox"
+	"github.com/wittywilla/wittymediaserver/internal/play/hostsandbox"
 )
 
 // The worker is this same program, started again with workerArg. Doing it in init

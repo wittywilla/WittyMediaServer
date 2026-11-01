@@ -237,6 +237,34 @@ func (r *remote) TitleRuns(sp dvd.Space, cells []dvd.TitleCell) ([]dvd.TitleRun,
 	return nil, r.dead
 }
 
+func (r *remote) askRuns(sp dvd.Space, cells []dvd.TitleCell) ([]dvd.TitleRun, error) {
+	blob, err := r.h.Call(dvd.MethodRuns, dvd.RunsCall{Space: sp, Cells: cells}, nil)
+	if err != nil {
+		return nil, err
+	}
+	runs, err := dvd.DecodeRuns(blob)
+	if err != nil {
+		return nil, &badAnswer{err}
+	}
+	next := 0
+	for _, run := range runs {
+		if err := r.bounds.check(run.Extents); err != nil {
+			return nil, err
+		}
+		fine := func(v float64) bool { return v >= 0 && v <= maxRunSeconds } // false for NaN too
+		// A cell with nothing to read is left out, as on a cut-short image, so a run may
+		// start past where the last ended. They only have to stay in order and in range.
+		if !fine(run.Duration) || !fine(run.Lead) || run.FirstCell < next || run.Cells < 1 || run.Cells > len(cells)-run.FirstCell {
+			return nil, &badAnswer{errors.New("a title's runs make no sense")}
+		}
+		next = run.FirstCell + run.Cells
+	}
+	return runs, nil
+}
+
+// maxRunSeconds is longer than a disc can hold.
+const maxRunSeconds = 24 * 60 * 60
+
 // RenderSPU has one sub-picture unit drawn. Its pictures only go to the viewer as subtitles,
 // and a session checks the sizes of those it draws.
 func (r *remote) RenderSPU(b []byte, palette [16]uint32) ([]dvd.SPUFrame, error) {

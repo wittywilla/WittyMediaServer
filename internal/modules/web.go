@@ -128,7 +128,7 @@ func (m *Manager) ProgramCommand(id string) (path string, args []string, version
 func (m *Manager) Program(id string) (path, version string, ok bool) {
 	m.mu.Lock()
 	e := m.mods[id]
-	if e == nil || e.dir == "" || e.man.Delivery != wittymodule.DeliveryProgram {
+	if e == nil || e.dir == "" || e.state.Disabled || !e.man.PerPlatform() || (e.man.Delivery != wittymodule.DeliveryProgram && len(e.man.Programs) == 0) {
 		m.mu.Unlock()
 		return "", "", false
 	}
@@ -137,6 +137,9 @@ func (m *Manager) Program(id string) (path, version string, ok bool) {
 	if err := verifyInstalled(dir, man, keys); err != nil {
 		m.failed(id, e, man.Version, err)
 		return "", "", false
+	}
+	if man.Delivery != wittymodule.DeliveryProgram {
+		return filepath.Join(dir, wittymodule.ProgramFile(man.Programs[0], goos())), man.Version, true
 	}
 	return filepath.Join(dir, man.EntryFile(goos())), man.Version, true
 }

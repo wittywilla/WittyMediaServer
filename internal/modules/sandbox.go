@@ -9,4 +9,8 @@ const (
 	SandboxStrict              // a fork: if a limit can't be applied, it doesn't run
 	SandboxDevices             // it may open devices for writing, as a graphics card is
 	SandboxSaveArg             // it may write to the folder after its -save argument
+	SandboxWriteData           // it may write to WITTYMODULE_DATA, and the folders in SandboxWriteEnv
 )
+
+// SandboxWriteEnv lists other folders a program may write to, as the environment.
+const SandboxWriteEnv = "WITTYMODULE_WRITE"

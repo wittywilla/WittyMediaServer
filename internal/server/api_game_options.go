@@ -24,11 +24,11 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittyplay"
-	"github.com/wittywilla/wittyplay/cores"
-	"github.com/wittywilla/wittyplay/ipc"
-	"github.com/wittywilla/wittyplay/patch"
-	"github.com/wittywilla/wittyplay/stream"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
+	"github.com/wittywilla/wittymediaserver/internal/play/cores"
+	"github.com/wittywilla/wittymediaserver/internal/play/ipc"
+	"github.com/wittywilla/wittymediaserver/internal/play/patch"
+	"github.com/wittywilla/wittymediaserver/internal/play/stream"
 	_ "golang.org/x/image/webp"
 )
 
@@ -176,7 +176,7 @@ func optionInfo(o ipc.Option) wittyplay.OptionInfo {
 }
 
 func (s *Server) handleGameSettingsSchema(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"settings": wittyplay.Settings, "presets": wittyplay.BuiltinPresets, "levels": []string{wittyplay.LevelServer, wittyplay.LevelServerConsole, wittyplay.LevelPerson, wittyplay.LevelConsole, wittyplay.LevelGame}, "maxSlot": stream.MaxSlot, "undoSlot": stream.SlotUndo, "prevAutoSlot": stream.SlotPrevAuto})
+	writeJSON(w, 200, map[string]any{"settings": wittyplay.Settings(), "presets": wittyplay.BuiltinPresets(), "levels": []string{wittyplay.LevelServer, wittyplay.LevelServerConsole, wittyplay.LevelPerson, wittyplay.LevelConsole, wittyplay.LevelGame}, "maxSlot": stream.MaxSlot, "undoSlot": stream.SlotUndo, "prevAutoSlot": stream.SlotPrevAuto})
 }
 
 // gameScope works out which console and game a request is about, from ?item= or ?console=.

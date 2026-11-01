@@ -200,6 +200,15 @@ func cmdServe(args []string) int {
 	// and only while the settings allow it.
 	modMgr := modules.New(modules.Config{
 		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: modules.ServerManifests(), CatalogURL: update.ModuleCatalog(), Starter: filepath.Join(progDir, "modules"),
+		WriteFolders: func(id string) []string {
+			switch id {
+			case "wittyplay": // saves, cores and what's unpacked stay where a server keeps them
+				return []string{filepath.Join(cfg.DataDir, "gaming")}
+			case "wittycouch": // so do the keys that say this server is paired with a computer
+				return []string{filepath.Join(cfg.DataDir, "wittycouch"), filepath.Join(cfg.DataDir, "gamerigs")}
+			}
+			return nil
+		},
 		Transport: library.SafeClient.Transport, Log: log, Launcher: modulesLauncher(), LogEnv: logs.ModuleEnv,
 		CheckEnabled: func() bool {
 			ctx := context.Background()
@@ -216,6 +225,7 @@ func cmdServe(args []string) int {
 	livetv.SetEngine(modules.Tuners{M: modMgr})
 	cd.Open = modules.CDs{M: modMgr}.Open
 	library.EngineThere = modMgr.Installed
+	modMgr.UseServices()
 	dvdsession.SetEngine(dvdremote.Opener{M: modMgr, Log: log}.Open)
 	bdremote.Use(modMgr)
 

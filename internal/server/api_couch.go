@@ -21,9 +21,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittycouch"
-	"github.com/wittywilla/wittycouch/gamestream"
-	"github.com/wittywilla/wittycouch/relay"
+	wittycouch "github.com/wittywilla/wittymediaserver/internal/couch"
+	"github.com/wittywilla/wittymediaserver/internal/couch/gamestream"
+	"github.com/wittywilla/wittymediaserver/internal/couch/relay"
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
@@ -282,7 +282,12 @@ func (s *Server) couchProgram() string {
 	if p := filepath.Join(s.couch().dir, "bin", name); fileExists(p) {
 		return p
 	}
-	return s.findProgram("wittycouch-host")
+	if s.Modules != nil {
+		if p, _, ok := s.Modules.Program("wittycouchhost"); ok {
+			return p
+		}
+	}
+	return ""
 }
 
 // couchProgramWorks runs the program to see that it can run here, at most once a minute.

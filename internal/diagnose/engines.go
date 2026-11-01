@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/wittywilla/wittymodule"
@@ -198,4 +199,11 @@ func kindSentence(src *discSource) string {
 		return "A folder"
 	}
 	return "A " + formatName(src.Format) + " image"
+}
+
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return "1 " + one
+	}
+	return strconv.Itoa(n) + " " + many
 }

@@ -12,7 +12,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 // The groups, in the order they're shown.
@@ -163,8 +163,9 @@ func load() {
 func coreComponents() []Component {
 	seen := map[string]bool{}
 	var out []Component
-	for i := range wittyplay.Consoles {
-		for _, c := range wittyplay.Consoles[i].Cores {
+	consoles := wittyplay.Consoles()
+	for i := range consoles {
+		for _, c := range consoles[i].Cores {
 			if seen[c.ID] {
 				continue
 			}

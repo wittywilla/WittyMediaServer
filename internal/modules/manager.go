@@ -59,11 +59,6 @@ const (
 	maxEvents  = 20
 )
 
-// mayUseNetwork lists the plugins whose helpers may have a network, if their signed
-// manifest asks. Everything else gets an empty one where the system allows, so a
-// file that takes over a parser has nowhere to send anything.
-var mayUseNetwork = map[string]bool{"wittytuner": true}
-
 // Report is what Settings shows.
 type Report struct {
 	Server     string   `json:"server"` // this server's version
@@ -231,6 +226,9 @@ type Config struct {
 	Launcher string
 	// LogEnv is how the owner wants a module logged, as environment for its helper.
 	LogEnv func(id string) []string
+	// WriteFolders are folders of the server's that a module allowed to write may write to,
+	// beside its own: a game's saves stay where a server keeps them.
+	WriteFolders func(id string) []string
 	// For tests.
 	Keys  []ed25519.PublicKey
 	Fetch *update.Fetcher
@@ -259,13 +257,17 @@ type Manager struct {
 	catHigh   int64  // the highest serial seen
 	catErr    string
 	retiring  sync.WaitGroup // helpers of versions no longer in use, on their way out
+
+	svcMu       sync.Mutex
+	services    map[string]*runningService
+	svcWatching bool
 }
 
 // New reads what is installed and picks the version of each module to use. A
 // manifest that can't be read is a build error caught by tests, so it is only
 // logged here; nothing about modules can stop a server from starting.
 func New(cfg Config) *Manager {
-	m := &Manager{cfg: cfg, dir: cfg.Dir, keys: cfg.Keys, fetch: cfg.Fetch, log: cfg.Log, mods: map[string]*entry{}, attached: map[*Attached]bool{}}
+	m := &Manager{cfg: cfg, dir: cfg.Dir, keys: cfg.Keys, fetch: cfg.Fetch, log: cfg.Log, mods: map[string]*entry{}, attached: map[*Attached]bool{}, services: map[string]*runningService{}}
 	if m.log == nil {
 		m.log = slog.Default()
 	}
@@ -520,7 +522,19 @@ func (m *Manager) resolve(id string, e *entry) {
 func (m *Manager) newProcFor(id string, e *entry, man *wittymodule.Manifest, dir string) *proc {
 	keys := m.keysFor(e)
 	p := newProc(man, dir, func() error { return verifyInstalled(dir, man, keys) }, m.log)
-	p.network = mayUseNetwork[id] && man.Asks(wittymodule.PermissionNetwork) && e.state.Source == nil
+	// A fork never gets any of these, and nor does anything not listed.
+	may := func(permission string) bool {
+		return e.state.Source == nil && mayHave[id][permission] && man.Asks(permission)
+	}
+	p.network = may(wittymodule.PermissionNetwork)
+	p.programs = may(wittymodule.PermissionPrograms)
+	p.devices = may(wittymodule.PermissionDevices)
+	if may(wittymodule.PermissionData) {
+		p.dataDir = filepath.Join(m.modDir(id), "data")
+		if m.cfg.WriteFolders != nil {
+			p.writable = m.cfg.WriteFolders(id)
+		}
+	}
 	p.strict = e.state.Source != nil
 	p.launch = m.cfg.Launcher
 	p.logEnv = m.cfg.LogEnv
@@ -979,6 +993,9 @@ func (m *Manager) prune(id string, e *entry) {
 func (m *Manager) Close() {
 	m.mu.Lock()
 	m.closed = true
+	m.mu.Unlock()
+	m.closeServices() // these close through m.mu
+	m.mu.Lock()
 	var procs []*proc
 	for _, e := range m.mods {
 		if e.proc != nil {

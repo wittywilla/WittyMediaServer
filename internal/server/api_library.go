@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 func (s *Server) handleLibraries(w http.ResponseWriter, r *http.Request) {

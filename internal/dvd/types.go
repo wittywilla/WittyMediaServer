@@ -600,38 +600,6 @@ type RGBA struct {
 	Pix           []byte // 4 bytes per pixel
 }
 
-// Crop returns the bitmap trimmed to its visible pixels (zero size when
-// nothing is visible). Subtitle units usually cover the whole frame.
-func (r *RGBA) Crop() *RGBA {
-	minX, minY, maxX, maxY := r.Width, r.Height, -1, -1
-	for y := 0; y < r.Height; y++ {
-		row := r.Pix[y*r.Width*4 : (y+1)*r.Width*4]
-		for x := 0; x < r.Width; x++ {
-			if row[x*4+3] != 0 {
-				if x < minX {
-					minX = x
-				}
-				if x > maxX {
-					maxX = x
-				}
-				if y < minY {
-					minY = y
-				}
-				maxY = y
-			}
-		}
-	}
-	if maxX < 0 {
-		return &RGBA{X: r.X, Y: r.Y}
-	}
-	w, h := maxX-minX+1, maxY-minY+1
-	out := &RGBA{X: r.X + minX, Y: r.Y + minY, Width: w, Height: h, Pix: make([]byte, w*h*4)}
-	for y := 0; y < h; y++ {
-		copy(out.Pix[y*w*4:(y+1)*w*4], r.Pix[((minY+y)*r.Width+minX)*4:((minY+y)*r.Width+maxX+1)*4])
-	}
-	return out
-}
-
 // Opaque reports whether any pixel is visible.
 func (r *RGBA) Opaque() bool {
 	if r == nil {
@@ -808,6 +776,10 @@ const (
 	DomainVTSM
 	DomainVTS
 )
+
+func (d Domain) String() string {
+	return [...]string{"fp", "vmgm", "vtsm", "vts"}[d]
+}
 
 // Jump is a decoded jump/call target.
 type Jump struct {

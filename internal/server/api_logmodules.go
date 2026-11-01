@@ -102,7 +102,7 @@ func (s *Server) currentModules() []moduleSeen {
 		}
 		return out
 	}
-	for _, m := range builtModules() {
+	for _, m := range s.modulesInUse() {
 		id := m.Module[strings.LastIndexByte(m.Module, '/')+1:]
 		out = append(out, moduleSeen{id, m.Name, m.Version, "builtin"})
 	}

@@ -20,7 +20,7 @@ import (
 	_ "golang.org/x/image/webp"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 // Controller profiles and the picture behind the controller screen. Both belong to

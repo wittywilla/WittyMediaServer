@@ -342,7 +342,7 @@ func TestResumesAfterRestart(t *testing.T) {
 	for i := 0; i < gameMetaBatch+5; i++ {
 		f.scanFile(t, fmt.Sprintf("Game %03d.sfc", i))
 	}
-	if n, err := f.g.detailsBatch(f.ctx); err != nil || n != gameMetaBatch {
+	if n, err := f.g.detailsBatch(f.ctx, nil); err != nil || n != gameMetaBatch {
 		t.Fatalf("%d, %v", n, err)
 	}
 	if st := f.g.Status(f.ctx); st.Pending != 5 {

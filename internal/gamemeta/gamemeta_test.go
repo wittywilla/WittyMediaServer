@@ -59,6 +59,12 @@ func TestSearchTitle(t *testing.T) {
 	}
 }
 
+func TestUnknownIsNobody(t *testing.T) {
+	if company("Unknown") != "" || company(" unknown ") != "" || company("Maker") != "Maker" {
+		t.Fatalf("%q %q %q", company("Unknown"), company(" unknown "), company("Maker"))
+	}
+}
+
 func TestNameScore(t *testing.T) {
 	for _, c := range []struct {
 		a, b     string

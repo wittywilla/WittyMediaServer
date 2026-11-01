@@ -400,6 +400,8 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
         {!links.couch && <Link className="btn ghost" to="/big" onClick={() => { setCouchOn(true); void document.documentElement.requestFullscreen?.().catch(() => {}) }} aria-label="Couch mode: full screen, made for controllers"><IconFull size={18} /> <span className="gm-hide-narrow">Couch mode</span></Link>}
       </div>
       {!links.couch && user?.isAdmin && <GameImportBar libraryId={lib.id} onChanged={() => { setWatch((n) => n + 1); setReviewVersion((n) => n + 1) }} />}
+      {/* Up here because it wants someone's attention: the page can run to thousands of pixels. */}
+      {!links.couch && user?.isAdmin && <GameReviewBanner libraryId={lib.id} consoles={consoles} version={reviewVersion} onChanged={() => setWatch((n) => n + 1)} />}
       {current && !current.ready && (
         <div className="game-note" role="status">
           {current.unavailable || <>This server has no core for the {current.name} yet, so these games can’t start.{' '}
@@ -435,7 +437,6 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
       )}
 
       {!links.couch && user?.isAdmin && (isHome || unmatched) && <GameMetaNotice unmatched={unmatched} onUnmatched={(on) => set('unmatched', on ? '1' : '')} onProgress={() => { setVersion((n) => n + 1) }} />}
-      {!links.couch && user?.isAdmin && <GameReviewBanner libraryId={lib.id} consoles={consoles} version={reviewVersion} onChanged={() => setWatch((n) => n + 1)} />}
       <section className="gm-section gm-all" id="gm-all" data-gm-section aria-label="Games">
         <div className="gm-all-head">
           <h2>Games {total != null && <small>{total.toLocaleString()} {total === 1 ? 'game' : 'games'}</small>}</h2>

@@ -45,6 +45,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Fix this game**, on its page: the wrong console, not a game, which version, split a version off, and why the server believes what it does.
 - **Importing thousands of games** takes no attention. It runs in the background, survives a restart and shows how far it's got. Every game gets its name, checksum match and box art from the local
   database first, in about a minute, before any online source is asked. A fan's hack isn't named after the game it was made from, and a set's right region is what's named.
+- **PlayStation 2 saves work.** The core had nowhere it could write its memory cards, so games said no card was inserted. Each account now has its own cards for each game.
+- **Which version comes first** is yours to set, in Settings, Consoles & cores: USA first isn't right for everyone. It decides which file of an archive plays, which version leads a tile and whose names are used. Games someone has already played keep the version they have.
+- **A title you typed stays.** The first scan after an upgrade goes over every game, and could put the file's name back.
 - **3DS:** whether a file is encrypted now comes from its bytes, and an encrypted one says so on its page before you press Play. New 3DS games tell the core to be one. Updates and extra content aren't listed as games.
 - **Console and studio marks:** logos for consoles and game studios from the logo service, optional as all logos are, and a typed label that looks right without them.
 - **A full server says so straight away,** rather than unpacking and patching a game first.

@@ -23,6 +23,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
+	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittyplay"
@@ -36,7 +37,8 @@ import (
 // docs/GAMING.md.
 
 func init() {
-	settingKeys = append(settingKeys, "gamingMaxSessions", "gamingUdpPort", "gamingPublicIp", "gamingStun", "gamingRunner", "gamingCores", "gamingQuality", "gamingUnpackGB", "gamingMaxGpuSessions", "gamingResolution", "gamingMaxSpeed", "gamingRewindMB", "gamingRunAhead")
+	settingKeys = append(settingKeys, "gamingMaxSessions", "gamingUdpPort", "gamingPublicIp", "gamingStun", "gamingRunner", "gamingCores", "gamingQuality", "gamingUnpackGB", "gamingMaxGpuSessions", "gamingResolution", "gamingMaxSpeed", "gamingRewindMB", "gamingRunAhead", "gamingRegionOrder")
+	settingChecks["gamingRegionOrder"] = gameregion.Valid
 	settingDefaults["gamingMaxSessions"] = "2"
 	settingDefaults["gamingMaxGpuSessions"] = "2"
 	settingDefaults["gamingRunner"] = "auto"
@@ -46,6 +48,7 @@ func init() {
 // gameRoutes registers the games API.
 func (s *Server) gameRoutes(m *http.ServeMux) {
 	a := s.requireUser
+	gameregion.Set(s.DB.GetSetting(context.Background(), "gamingRegionOrder", ""))
 	m.Handle("GET /api/games/consoles", a(s.handleGameConsoles))
 	m.Handle("GET /api/games/modes", a(s.handleGameModes))
 	m.Handle("GET /api/consoles/{console}/controls", a(s.handleGameControls))

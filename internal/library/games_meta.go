@@ -135,36 +135,21 @@ func (g *GameMeta) setPhase(running bool, phase string) {
 func (g *GameMeta) work(ctx context.Context) {
 	defer g.setPhase(false, "")
 	defer g.id.Close()
-	// This wakes every few minutes, so it only shows once a round has found something to do.
-	// Pictures go on beside the details, so either can be the first to find some.
-	var tMu sync.Mutex
-	var t *tasks.Handle
+	t := &gameMetaTask{g: g}
 	var failed error
-	defer func() {
-		tMu.Lock()
-		defer tMu.Unlock()
-		t.Finish(failed)
-	}()
-	note := func(n int) {
-		if n == 0 {
-			return
-		}
-		tMu.Lock()
-		if t == nil {
-			t = g.Tasks.Start(tasks.Spec{Type: tasks.TypeGames, Title: "Finding out about games", Unit: "games"})
-		}
-		h := t
-		tMu.Unlock()
-		h.Add(int64(n))
-	}
+	defer func() { t.finish(ctx, failed) }()
 	defer func() {
 		if g.OnSettled != nil {
 			g.OnSettled()
 		}
 	}()
+	t.stage(ctx, phaseLocal)
 	for ctx.Err() == nil {
+		if t.wait(ctx) != nil {
+			return
+		}
 		g.setPhase(true, "details")
-		n, err := g.localBatch(ctx)
+		n, err := g.localBatch(ctx, t)
 		if err != nil && ctx.Err() == nil {
 			g.Log.Warn("game details", "cat", "library", "err", err)
 			break
@@ -172,14 +157,14 @@ func (g *GameMeta) work(ctx context.Context) {
 		if n == 0 {
 			break
 		}
-		note(n)
 	}
+	t.stage(ctx, phaseOnline)
 	finished := make(chan struct{})
 	pictures := make(chan struct{})
 	go func() {
 		defer close(pictures)
 		defer logging.Recover("game pictures", "cat", "library")
-		for ctx.Err() == nil {
+		for t.wait(ctx) == nil {
 			n, err := g.picturesBatch(ctx)
 			if err != nil {
 				if ctx.Err() == nil {
@@ -188,14 +173,16 @@ func (g *GameMeta) work(ctx context.Context) {
 				return
 			}
 			if n > 0 {
-				note(n)
+				t.picture(n)
 				continue
 			}
 			select {
 			case <-finished:
-				if n, err := g.picturesBatch(ctx); n == 0 || err != nil {
+				n, err := g.picturesBatch(ctx)
+				if n == 0 || err != nil {
 					return
 				}
+				t.picture(n)
 			case <-ctx.Done():
 				return
 			case <-time.After(500 * time.Millisecond):
@@ -206,25 +193,25 @@ func (g *GameMeta) work(ctx context.Context) {
 		close(finished)
 		<-pictures
 	}()
-	for ctx.Err() == nil {
+	for t.wait(ctx) == nil {
 		g.setPhase(true, "details")
-		details, err := g.detailsBatch(ctx)
+		details, err := g.detailsBatch(ctx, t)
 		if err != nil && ctx.Err() == nil {
 			g.Log.Warn("game details", "cat", "library", "err", err)
 			failed = err
 			return
 		}
 		if details == 0 {
+			t.stage(ctx, phasePictures)
 			return
 		}
-		note(details)
 	}
 }
 
 // localBatch asks the local database about games it hasn't been asked about, and applies
 // the answers straight away. Nothing here goes over the internet, beyond fetching a
 // console's list once.
-func (g *GameMeta) localBatch(ctx context.Context) (int, error) {
+func (g *GameMeta) localBatch(ctx context.Context, t *gameMetaTask) (int, error) {
 	set := g.sources(ctx)
 	if set.all["libretro"] == nil || !slices.Contains(set.on, "libretro") {
 		return 0, nil
@@ -247,6 +234,7 @@ func (g *GameMeta) localBatch(ctx context.Context) (int, error) {
 			}
 		}
 		done++
+		t.did(1)
 		answers, _, err := g.Store.gameAnswers(ctx, j.it.ID)
 		if err != nil {
 			continue
@@ -463,6 +451,10 @@ func (s *Store) enqueueGame(ctx context.Context, it *Item, local, earlier []stri
 	}
 	if locked == 0 {
 		for _, f := range earlier {
+			// Saved beside the file because someone typed it. It's theirs, not an old answer.
+			if edited[f] && !done[f] {
+				continue
+			}
 			delete(edited, f)
 			done[f] = true
 		}
@@ -507,6 +499,14 @@ func (s *Store) gameFieldEdited(ctx context.Context, id int64, field string) boo
 	return err == nil && r.Edited[field]
 }
 
+// gameFieldTyped says this field is someone's own: it's marked as edited, and no source
+// gave it. A source's answer goes in Applied, and typing takes a field out of it. A field
+// that's in both is an old answer that an earlier version read back from an NFO it wrote.
+func (s *Store) gameFieldTyped(ctx context.Context, id int64, field string) bool {
+	r, err := s.gameRow(ctx, id)
+	return err == nil && r.Edited[field] && !r.Applied[field]
+}
+
 // MarkGameEdited: someone changed these fields by hand, so sources leave them alone.
 func (s *Store) MarkGameEdited(ctx context.Context, id int64, fields ...string) error {
 	r, err := s.gameRow(ctx, id)
@@ -543,7 +543,7 @@ func fetchOrder(ids []string) []string {
 	return out
 }
 
-func (g *GameMeta) detailsBatch(ctx context.Context) (int, error) {
+func (g *GameMeta) detailsBatch(ctx context.Context, t *gameMetaTask) (int, error) {
 	jobs, err := g.Store.nextGames(ctx, gameMetaBatch)
 	if err != nil || len(jobs) == 0 {
 		return 0, err
@@ -582,6 +582,7 @@ func (g *GameMeta) detailsBatch(ctx context.Context) (int, error) {
 		if err := g.lookup(ctx, &jobs[i], set, order); err != nil && ctx.Err() == nil {
 			g.Log.Warn("game details", "cat", "library", "item", jobs[i].it.ID, "err", err)
 		}
+		t.did(1) // one at a time, so the time left that's shown means something
 	}
 	return len(jobs), nil
 }

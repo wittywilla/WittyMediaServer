@@ -7,6 +7,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **Games on a current Linux.** melonDS, Play! and SwanStation now start: each failed for its own reason, none of them a game's fault, and nothing was loosened in the sandbox to do it. A core that needs shared memory has a private folder of its own instead of the system's. PlayStation and Dreamcast discs whose sheets name their files in the wrong capitals play on Linux as they did on Windows, and Dreamcast memory cards now last, where a save to one used to be lost. Every core offered was played through the real stream under the sandbox.
+- **3DS packages.** An unencrypted `.cia` plays, from a small test program built for the purpose, with or without the marks and ticket a decrypted package keeps. Its program is copied out once and kept for next time, where a big game used to be copied at every start. Encrypted files are refused exactly as before: `wittyplay-probe cia-info` prints the bytes that say which one a file is.
 - **Security, second pass over what this release added.** Attacks were tried against the store, backups, support bundles and game cores:
   - Restoring a backup on a new server asks for the setup code, as setting one up does. A stranger on your network could otherwise get
     there first and restore a backup with an account of their own.

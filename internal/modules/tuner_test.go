@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymodule"
-	"github.com/wittywilla/wittytuner"
-	"github.com/wittywilla/wittytuner/mpegts"
+	wittytuner "github.com/wittywilla/wittymediaserver/internal/tuner"
+	"github.com/wittywilla/wittymediaserver/internal/tuner/mpegts"
 )
 
 func tunerManifest(ver string) []byte {

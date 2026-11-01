@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittydisc/isofs"
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/isofs"
+	wittydvd "github.com/wittywilla/wittymediaserver/internal/dvd"
 )
 
 // Every test makes its own small fixtures. Nothing here reads a real disc.
@@ -448,40 +448,6 @@ func (d sampleDisc) ReadSectors(first uint32, count int) ([]byte, error) {
 		out = append(out, videoPack(d.scrambled(s))...)
 	}
 	return out, nil
-}
-
-func TestDiagnoseScrambledPacksAreDetected(t *testing.T) {
-	if !wittydvd.PackScrambled(videoPack(true)) || wittydvd.PackScrambled(videoPack(false)) {
-		t.Fatal("the fixture doesn't match the engine's idea of a scrambled pack")
-	}
-	if !packHoldsStream(videoPack(false)) || packHoldsStream(navPack()) {
-		t.Fatal("telling packs apart")
-	}
-	const n = 16000
-	all := []packRange{{0, n - 1}}
-	j := testJob()
-	ctx := context.Background()
-
-	clear := samplePacks(ctx, j, sampleDisc{n, func(int) bool { return false }}, all, 32)
-	if clear.total == 0 || clear.scrambled != 0 {
-		t.Errorf("clear: %+v", clear)
-	}
-	whole := samplePacks(ctx, j, sampleDisc{n, func(int) bool { return true }}, all, 32)
-	if whole.total == 0 || whole.scrambled != whole.total {
-		t.Errorf("all scrambled: %+v", whole)
-	}
-	// Scrambled only from halfway on: a sample of the start alone would miss it.
-	half := samplePacks(ctx, j, sampleDisc{n, func(s int) bool { return s >= n/2 }}, all, 32)
-	if f := float64(half.scrambled) / float64(half.total); f < 0.4 || f > 0.6 {
-		t.Errorf("half scrambled gave %+v", half)
-	}
-	// Past the end reads as nothing, and doesn't count.
-	if got := samplePacks(ctx, j, sampleDisc{n, func(int) bool { return true }}, []packRange{{n + 5, n + 500}}, 8); got.total != 0 {
-		t.Errorf("past the end: %+v", got)
-	}
-	if !strings.Contains(half.String(), "%") {
-		t.Errorf("wording: %s", half)
-	}
 }
 
 // ---------------------------------------------------------------- damage

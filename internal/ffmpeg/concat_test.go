@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wittywilla/wittydvd"
+	wittydvd "github.com/wittywilla/wittymediaserver/internal/dvd"
 )
 
 // Streams must be pinned by id before the first file, or the concat demuxer

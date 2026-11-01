@@ -18,7 +18,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/pion/webrtc/v4"
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 // A native app, as docs/GAMING-API.md describes one: everything over the documented

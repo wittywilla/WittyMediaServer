@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 // raw sends a body as it is, for the endpoints that take a file.

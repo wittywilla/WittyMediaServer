@@ -16,7 +16,7 @@ import (
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 func newProfile(name string) map[string]any {

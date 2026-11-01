@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
-	"github.com/wittywilla/wittytuner"
+	wittytuner "github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
 func tsData(n int, scrambled bool) []byte {

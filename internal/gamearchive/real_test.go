@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 // Run by hand with WMS_GAME_ARCHIVE set to a real archive and WMS_GAME_CONSOLE to its

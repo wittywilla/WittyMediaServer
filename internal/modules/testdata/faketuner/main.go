@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymodule"
-	"github.com/wittywilla/wittytuner"
+	wittytuner "github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
 func packets(n int, scrambled bool) []byte {

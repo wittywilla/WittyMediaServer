@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
-	"github.com/wittywilla/wittytuner"
+	wittytuner "github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
 // liveFake is a playlist server whose live playlist grows, and can add a key partway

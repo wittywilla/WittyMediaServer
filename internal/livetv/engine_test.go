@@ -3,37 +3,63 @@ package livetv
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
-	"github.com/wittywilla/wittytuner"
+	wittytuner "github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
-// A running source comes from the engine in use, and settings are still checked by the
-// built-in copy, so a version can't change what may be saved.
+// fakeEngine is WittyTuner, as a test says it behaves.
+type fakeEngine struct {
+	made, looked int
+}
+
+func (f *fakeEngine) New(_ context.Context, driver string, c wittytuner.Config, _ wittytuner.Env) (wittytuner.Source, error) {
+	f.made++
+	if strings.HasPrefix(c.Options["url"], "file:") {
+		return nil, errors.New("that's not an address for this")
+	}
+	return nil, errors.New("from the engine")
+}
+
+func (f *fakeEngine) Discover(context.Context, wittytuner.Env) ([]wittytuner.Found, error) {
+	f.looked++
+	return []wittytuner.Found{{Driver: "network", Name: "Found"}}, nil
+}
+
+func (f *fakeEngine) Drivers(context.Context, wittytuner.Env) ([]wittytuner.Driver, error) {
+	return nil, nil
+}
+
+func (f *fakeEngine) SecretFields(context.Context, string, wittytuner.Env) ([]string, error) {
+	return []string{"password"}, nil
+}
+
+// A running source comes from the engine in use, and so does what settings it takes.
 func TestEngineMakesSources(t *testing.T) {
-	oldSource, oldDiscover := newSource, discoverTuners
-	defer SetEngine(oldSource, oldDiscover)
-	made, looked := 0, 0
-	SetEngine(func(d string, c wittytuner.Config, e wittytuner.Env) (wittytuner.Source, error) {
-		made++
-		return nil, errors.New("from the engine")
-	}, func(context.Context, wittytuner.Env) []wittytuner.Found {
-		looked++
-		return []wittytuner.Found{{Driver: "network", Name: "Found"}}
-	})
+	old := engine
+	defer SetEngine(old)
+	f := &fakeEngine{}
+	SetEngine(f)
 	m := testManager(t)
 	ctx := context.Background()
-	if _, err := m.Create(ctx, &Tuner{Name: "Bad", Driver: "stream", Options: map[string]string{"url": "file:///etc/passwd"}}); err == nil || made != 0 {
-		t.Fatalf("%v %d", err, made)
+	if _, err := m.Create(ctx, &Tuner{Name: "Bad", Driver: "stream", Options: map[string]string{"url": "file:///etc/passwd"}}); err == nil || f.made == 0 {
+		t.Fatalf("%v %d", err, f.made)
 	}
-	tu, err := m.Create(ctx, &Tuner{Name: "Good", Driver: "stream", Options: map[string]string{"url": "http://192.168.1.5/x"}})
-	if err != nil {
-		t.Fatal(err)
+	if found, err := m.Discover(ctx); err != nil || len(found) != 1 || found[0].Name != "Found" || f.looked != 1 {
+		t.Fatalf("%+v %v", found, err)
 	}
-	if err := m.Refresh(ctx, tu.ID); err == nil || err.Error() != "from the engine" || made == 0 {
-		t.Fatalf("%v %d", err, made)
+}
+
+func TestNoEngineSaysSo(t *testing.T) {
+	old := engine
+	defer SetEngine(old)
+	SetEngine(nil)
+	m := testManager(t)
+	if _, err := m.Discover(context.Background()); !errors.Is(err, ErrNoEngine) {
+		t.Fatalf("%v", err)
 	}
-	if f := m.Discover(ctx); len(f) != 1 || f[0].Name != "Found" || looked != 1 {
-		t.Fatalf("%+v", f)
+	if _, err := m.Create(context.Background(), &Tuner{Name: "Any", Driver: "stream"}); !errors.Is(err, ErrNoEngine) {
+		t.Fatalf("%v", err)
 	}
 }

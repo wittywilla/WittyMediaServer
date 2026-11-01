@@ -906,7 +906,7 @@ func TestBuiltinModulesCantBeInstalled(t *testing.T) {
 
 func TestEveryRealManifestIsSound(t *testing.T) {
 	seen := map[string]bool{}
-	for _, raw := range GoManifests() {
+	for _, raw := range ServerManifests() {
 		m, err := wittymodule.ParseManifest(raw)
 		if err != nil {
 			t.Fatal(err)

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittycouch/gamestream"
+	"github.com/wittywilla/wittymediaserver/internal/couch/gamestream"
 	"github.com/wittywilla/wittycouch/gamestream/fake"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )

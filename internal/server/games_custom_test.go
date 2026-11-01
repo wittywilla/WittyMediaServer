@@ -22,8 +22,8 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittyplay"
-	"github.com/wittywilla/wittyplay/cores"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
+	"github.com/wittywilla/wittymediaserver/internal/play/cores"
 	"github.com/wittywilla/wittyplay/testcore/fakecore"
 )
 

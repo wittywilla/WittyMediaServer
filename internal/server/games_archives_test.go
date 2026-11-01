@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 func tarGz(t *testing.T, name string, data []byte) []byte {

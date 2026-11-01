@@ -1330,7 +1330,7 @@ func TestLibraryKindsAreSharedOnlyOnPurpose(t *testing.T) {
 		"music": "wittyaudio,wittycd",              // a CD image's tracks show up among the music
 		"books": "wittycomics,wittyebook,wittypdf", // a book library holds any of these
 	}
-	all := append(GoManifests(), ServerManifests()...)
+	all := ServerManifests()
 	for _, dir := range []string{"wittycomics", "wittyebook", "wittyink", "wittypdf"} {
 		b, err := os.ReadFile(filepath.Join("..", "..", "web", "module-manifests", dir+".json"))
 		if err != nil {

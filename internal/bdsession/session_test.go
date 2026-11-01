@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/wittywilla/wittybluray"
+	wittybluray "github.com/wittywilla/wittymediaserver/internal/bluray"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 )

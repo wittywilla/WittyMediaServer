@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/wittywilla/wittybluray"
+	wittybluray "github.com/wittywilla/wittymediaserver/internal/bluray"
 )
 
 func quietSession(t *testing.T) *Session {

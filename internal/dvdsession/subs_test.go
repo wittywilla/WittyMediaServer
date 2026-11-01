@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wittywilla/wittydvd"
+	wittydvd "github.com/wittywilla/wittymediaserver/internal/dvd"
 )
 
 // A sub-picture unit that shows a 4x2 picture, recolours it at delay 100

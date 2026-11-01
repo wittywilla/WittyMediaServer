@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittytuner"
+	wittytuner "github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
 func securityServer(t *testing.T) *httptest.Server {

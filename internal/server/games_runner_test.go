@@ -21,9 +21,9 @@ import (
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 	"github.com/wittywilla/wittymodule"
-	"github.com/wittywilla/wittyplay"
-	"github.com/wittywilla/wittyplay/ipc"
-	"github.com/wittywilla/wittyplay/stream"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
+	"github.com/wittywilla/wittymediaserver/internal/play/ipc"
+	"github.com/wittywilla/wittymediaserver/internal/play/stream"
 )
 
 // downloadedRunner is what an install of a WittyPlay version leaves on disk. This test

@@ -81,8 +81,8 @@ function Shell() {
   if (loc.pathname === '/legal') return <Suspense fallback={<Spinner />}><LegalPublicPage /></Suspense>
   if (loading) return <div className="center"><div className="spinner" /></div>
   if (needServer) return <ConnectServer />
-  if (!user) return setupRequired ? <Suspense fallback={<Spinner />}><SetupWizard resume={false} /></Suspense> : <AuthPage />
-  if (onboarding && user.isAdmin) return <Suspense fallback={<Spinner />}><SetupWizard resume /></Suspense>
+  if (!user) return setupRequired ? <Suspense fallback={<Spinner />}><SetupWizard /></Suspense> : <AuthPage />
+  if (onboarding && user.isAdmin) return <Suspense fallback={<Spinner />}><SetupWizard /></Suspense>
   // The player lives outside the page routes (see PlayerDock) so it can keep
   // playing as a mini player while the viewer browses.
   const isPlayer = loc.pathname.startsWith('/play/')

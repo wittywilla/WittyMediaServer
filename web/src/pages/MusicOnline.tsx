@@ -4,6 +4,7 @@ import { api } from '../api'
 import { IconCheck } from '../icons'
 import { toast } from '../state'
 import { Row, Section, Switch } from './settings/ui'
+import { TickRow } from './setup/parts'
 
 // Lyrics and artist information from online. Both are off until the owner agrees, here or in
 // first-time setup, and this is where it says exactly what goes where. What's beside the music
@@ -44,28 +45,22 @@ export function MusicOnlineSettings({ s, set, on }: Draft) {
   )
 }
 
-// In first-time setup: the same two questions, in fewer words, saved as they're answered.
+// In first-time setup: the same two questions, in fewer words, saved as they're answered. They read
+// what's saved, so coming back to the page shows what was chosen.
 export function MusicOnlineStep() {
   const [lyrics, setLyrics] = useState(false)
   const [info, setInfo] = useState(false)
+  useEffect(() => { api.get<Record<string, string>>('/settings').then((s) => { setLyrics(s.lyricsOnline === '1'); setInfo(s.musicInfoOnline === '1') }).catch(() => {}) }, [])
   const put = (key: string, on: boolean, then: (v: boolean) => void) => {
     then(on)
-    api.put('/settings', { [key]: on ? '1' : '0' }).catch(() => { then(!on) })
+    api.put('/settings', { [key]: on ? '1' : '0' }).catch((e: Error) => { then(!on); toast(e.message) })
   }
   return (
-    <>
-      <h2 className="oobe-sub">Optional: lyrics and artists</h2>
-      <p className="muted oobe-hint">Off unless you turn them on. Lyrics beside your music or inside your files work either way. You can change these later in Settings → Metadata agents.</p>
-      <div className="oobe-consents">
-        <label className="oobe-consent">
-          <input type="checkbox" checked={lyrics} onChange={(e) => put('lyricsOnline', e.target.checked, setLyrics)} />
-          <span><b>Find lyrics online, free and with no account</b><small>Lyrics that follow the music and karaoke for songs with none of their own, from LRCLIB. When someone opens a song's lyrics, your server sends LRCLIB its artist, title, album and length, and keeps the answer on this server. The words belong to their writers.</small></span>
-        </label>
-        <label className="oobe-consent">
-          <input type="checkbox" checked={info} onChange={(e) => put('musicInfoOnline', e.target.checked, setInfo)} />
-          <span><b>Artist biographies and photos</b><small>From Wikipedia, credited on the artist's page. Your server sends Wikipedia each artist's name.</small></span>
-        </label>
-      </div>
-    </>
+    <div className="su-ticks">
+      <TickRow kind="switch" checked={lyrics} onChange={(v) => put('lyricsOnline', v, setLyrics)} title="Find lyrics online"
+        text="From LRCLIB, a free and open database. When someone opens the lyrics of a song with none of its own, your server sends LRCLIB its artist, title, album and length, and keeps the answer on this server. The words belong to their writers." />
+      <TickRow kind="switch" checked={info} onChange={(v) => put('musicInfoOnline', v, setInfo)} title="Artist biographies and photos"
+        text="From Wikipedia, credited on the artist’s page. Your server sends Wikipedia each artist’s name." />
+    </div>
   )
 }

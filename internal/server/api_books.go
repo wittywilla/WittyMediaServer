@@ -44,9 +44,9 @@ func (s *Server) handleBookInfo(w http.ResponseWriter, r *http.Request) {
 			writeBookError(w, err)
 			return
 		}
-		info, words, err := library.ArchiveEPUB(book)
+		info, words, err := s.Store.ArchiveEPUBOf(r.Context(), it, book)
 		if err != nil {
-			writeErr(w, 422, err.Error())
+			writeErr(w, 422, s.viewerError(r, err))
 			return
 		}
 		out["spine"], out["toc"] = info.Spine, info.TOC
@@ -121,7 +121,7 @@ func (s *Server) handleComicPage(w http.ResponseWriter, r *http.Request) {
 		}
 		s.servePageFile(w, r, p)
 	case library.IsZipComic(it.Path):
-		zr, done, err := library.OpenArchive(it.Path)
+		zr, done, err := s.Store.OpenArchive(ctx, it.Path)
 		if err != nil {
 			writeErr(w, 500, "cannot open this comic")
 			return
@@ -189,13 +189,22 @@ func (s *Server) handleEPUBFile(w http.ResponseWriter, r *http.Request) {
 		writeBookError(w, err)
 		return
 	}
-	zr, done, err := library.OpenArchive(book)
+	zr, done, err := s.Store.OpenBook(r.Context(), it, book)
 	if err != nil {
 		writeErr(w, 500, "cannot open this book")
 		return
 	}
 	defer done()
 	s.serveArchiveFile(w, zr, name)
+}
+
+// scriptType: a browser would run a file of this type as a script. The app's policy allows
+// scripts from this site, so a file from a library must never go out as one: a page here
+// that something had got a tag into could otherwise run it. No book needs its scripts, as
+// they don't run in the reader.
+func scriptType(ct string) bool {
+	ct = strings.ToLower(ct)
+	return strings.Contains(ct, "javascript") || strings.Contains(ct, "ecmascript") || strings.Contains(ct, "jscript") || strings.Contains(ct, "livescript")
 }
 
 // serveArchiveFile serves a file from a book or comic. Their files are
@@ -218,7 +227,7 @@ func (s *Server) serveArchiveFile(w http.ResponseWriter, zr *zip.Reader, name st
 	case ".avif":
 		ct = "image/avif"
 	}
-	if ct == "" {
+	if ct == "" || scriptType(ct) {
 		ct = "application/octet-stream"
 	}
 	w.Header().Set("Content-Type", ct)

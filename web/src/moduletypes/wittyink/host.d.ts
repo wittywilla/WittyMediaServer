@@ -57,6 +57,8 @@ export interface ReaderHost {
     pdf?: {
         url?: string;
         data?: Uint8Array;
+        wasmUrl?: string;
+        iccUrl?: string;
     };
     comic?: {
         pages: number;

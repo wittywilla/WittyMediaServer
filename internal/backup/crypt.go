@@ -34,7 +34,7 @@ const (
 
 	// The most an archive may ask for: its numbers are read before anything is proven.
 	kdfMaxTime    = 10
-	kdfMaxMemory  = 512 << 10
+	kdfMaxMemory  = 128 << 10
 	kdfMaxThreads = 8
 
 	// MinPassword is the shortest password accepted.

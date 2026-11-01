@@ -174,8 +174,9 @@ type YearReview struct {
 	Years       []int         `json:"years"`
 }
 
-// ReviewOfYear adds up an account's play log for a year.
-func (s *Store) ReviewOfYear(ctx context.Context, userID int64, year int) (*YearReview, error) {
+// ReviewOfYear adds up an account's play log for a year. Its time counts everything, and what it
+// names keeps to what the account may still open.
+func (s *Store) ReviewOfYear(ctx context.Context, userID int64, year int, access *Access) (*YearReview, error) {
 	r := &YearReview{Year: year, ByType: []ReviewEntry{}, TopTitles: []ReviewEntry{}, TopShows: []ReviewEntry{}, TopArtists: []ReviewEntry{}, TopCreators: []ReviewEntry{}, TopGenres: []ReviewEntry{}, Years: []int{}}
 	from, to := year*10000, (year+1)*10000
 	yrs, err := s.DB.QueryContext(ctx, `SELECT DISTINCT day / 10000 FROM play_log WHERE user_id = ? ORDER BY 1 DESC`, userID)
@@ -231,10 +232,11 @@ func (s *Store) ReviewOfYear(ctx context.Context, userID int64, year int) (*Year
 		genres, sTitle  string
 		secs            float64
 	}
+	clause, cargs := access.ItemClause()
 	rows, err := s.DB.QueryContext(ctx, `SELECT i.id, IFNULL(i.show_id, 0), i.title, IFNULL(l.type, ''), IFNULL(i.artist, ''), IFNULL(i.album_artist, ''), IFNULL(i.studio, ''),
 		IFNULL(i.genres, ''), IFNULL((SELECT title FROM shows s WHERE s.id = i.show_id), ''), SUM(p.seconds)
 		FROM play_log p JOIN items i ON i.id = p.item_id LEFT JOIN libraries l ON l.id = i.library_id
-		WHERE p.user_id = ? AND p.day >= ? AND p.day < ? GROUP BY i.id`, userID, from, to)
+		WHERE p.user_id = ? AND p.day >= ? AND p.day < ? AND `+clause+` GROUP BY i.id`, append([]any{userID, from, to}, cargs...)...)
 	if err != nil {
 		return nil, err
 	}

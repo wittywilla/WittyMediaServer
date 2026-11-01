@@ -2,6 +2,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -90,8 +91,9 @@ type Server struct {
 	// Discovery announces the server on the home network; nil when it can't
 	// be reached from other devices.
 	Discovery interface{ Refresh() }
-	HTTPS     *remote.HTTPS   // the HTTPS port; nil until StartRemote
-	Mapper    *portmap.Keeper // automatic port mapping; nil until StartRemote
+	HTTPS     *remote.HTTPS     // the HTTPS port; nil until StartRemote
+	Conns     *remote.ConnLimit // open connections on both ports; nil for none
+	Mapper    *portmap.Keeper   // automatic port mapping; nil until StartRemote
 	// Channels and Live TV (see api_channels.go, api_tuners.go).
 	Channels   *channels.Store
 	TV         *livetv.Manager
@@ -564,12 +566,11 @@ const (
 func (s *Server) limits(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
-			if !bigUploadPath(r.URL.Path) {
-				r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
-			}
-			_ = http.NewResponseController(w).SetReadDeadline(time.Now().Add(requestBodyTime))
+			limitBody(w, r)
 		}
-		next.ServeHTTP(w, r)
+		g := newWriteGuard(w, r.URL.Path)
+		defer g.finish()
+		next.ServeHTTP(g, r)
 	})
 }
 
@@ -743,8 +744,10 @@ func (s *Server) headers(next http.Handler) http.Handler {
 		} else {
 			h.Set("Content-Security-Policy", appCSP)
 			h.Set("Cross-Origin-Opener-Policy", "same-origin")
+			h.Set("Permissions-Policy", appPermissions)
 		}
-		if r.TLS != nil && r.TLS.ServerName != "" {
+		// Behind a proxy this server trusts, there's no TLS to see: it has the proxy's word.
+		if c := clientFrom(r); r.TLS != nil && r.TLS.ServerName != "" || c.Proxied && c.Secure {
 			h.Set("Strict-Transport-Security", hsts)
 		}
 		next.ServeHTTP(w, r)
@@ -757,21 +760,25 @@ const hsts = "max-age=604800"
 
 // appCSP: the web UI's own scripts only; artwork and podcast images may come
 // from the internet, media and workers from blobs (HLS, PDF).
-const appCSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; " +
+const appCSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https:; " +
 	"media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; font-src 'self' data:; frame-src 'self'; " +
 	"object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+
+// appPermissions: browser features the app has no use for. Whatever a bundle or a bug tried,
+// it can't ask for the camera. Gamepads, full screen and picture-in-picture stay.
+const appPermissions = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), hid=(), midi=(), display-capture=(), browsing-topics=()"
 
 // apiCSP: a sandbox with no scripts, for everything under /api/.
 const apiCSP = "default-src 'none'; frame-ancestors 'self'; sandbox"
 
 // CORS: other apps (the mobile app, tools) may call the API with a bearer
 // token, and the mobile app's own origins may also sign in. Cookies are never
-// honoured across origins, and a web page elsewhere that carries no token gets
-// no answer it can read, so it can't list the profiles of a server it finds on
-// the network of whoever is looking at it.
+// honoured across origins, and a web page elsewhere that carries no real token
+// gets no answer it can read, so it can't list the profiles of a server it finds
+// on the network of whoever is looking at it.
 func (s *Server) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if o := r.Header.Get("Origin"); o != "" && corsAllowed(r, o) {
+		if o := r.Header.Get("Origin"); o != "" && s.crossOrigin(r) && s.corsAllowed(r, o) {
 			w.Header().Set("Access-Control-Allow-Origin", o)
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-WMS-Token")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -789,20 +796,46 @@ func (s *Server) cors(next http.Handler) http.Handler {
 // the app itself: nothing on the internet can have these origins.
 var appOrigins = map[string]bool{"capacitor://localhost": true, "ionic://localhost": true, "https://localhost": true}
 
-func corsAllowed(r *http.Request, origin string) bool {
-	if appOrigins[origin] || r.Header.Get("Authorization") != "" || r.Header.Get("X-WMS-Token") != "" {
+func (s *Server) corsAllowed(r *http.Request, origin string) bool {
+	if appOrigins[origin] {
 		return true
 	}
+	// A preflight can't carry the token. The request it asks about is judged by its own.
 	if r.Method == http.MethodOptions {
 		h := strings.ToLower(r.Header.Get("Access-Control-Request-Headers"))
 		return strings.Contains(h, "authorization") || strings.Contains(h, "x-wms-token")
 	}
+	return s.tokenInHeader(r)
+}
+
+// tokenInHeader: the request names, in a header, a token that belongs to a session here.
+// Merely having the header proves nothing: any page can send "Authorization: x", and
+// there are routes that need no sign-in and go by where the request came from.
+func (s *Server) tokenInHeader(r *http.Request) bool {
+	var toks []string
+	if h := r.Header.Get("Authorization"); len(h) > 7 && strings.EqualFold(h[:7], "bearer ") {
+		toks = append(toks, strings.TrimSpace(h[7:]))
+	}
+	if x := r.Header.Get("X-WMS-Token"); x != "" {
+		toks = append(toks, x)
+	}
+	for _, tok := range toks {
+		var err error
+		if auth.IsStreamToken(tok) {
+			_, err = s.Auth.ResolveStream(r.Context(), tok, r)
+		} else {
+			_, err = s.Auth.Resolve(r.Context(), tok)
+		}
+		if err == nil {
+			return true
+		}
+	}
 	return false
 }
 
-// csrf refuses state-changing requests signed in by cookie that come from
-// another origin (a form or script on another page). Requests with the token
-// in a header cannot be forged that way, so apps and the mobile client pass.
+// csrf refuses state-changing requests that come from another origin (a form or
+// script on another page), unless they hold a real token in a header, which a
+// page elsewhere can't have taken from a cookie. Apps and the mobile client pass.
 func (s *Server) csrf(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -810,7 +843,7 @@ func (s *Server) csrf(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if r.Header.Get("Authorization") == "" && r.Header.Get("X-WMS-Token") == "" && !appOrigins[r.Header.Get("Origin")] && s.crossOrigin(r) {
+		if s.crossOrigin(r) && !appOrigins[r.Header.Get("Origin")] && !s.tokenInHeader(r) {
 			writeErr(w, 403, "cross-site request refused")
 			return
 		}
@@ -822,6 +855,14 @@ func (s *Server) csrf(next http.Handler) http.Handler {
 // page's own address is what the browser asked for, what a trusted proxy says
 // it asked for, or the server's outside address.
 func (s *Server) crossOrigin(r *http.Request) bool {
+	public := ""
+	if st := s.netState.Load(); st != nil {
+		public = st.publicHost
+	}
+	return fromElsewhere(r, public)
+}
+
+func fromElsewhere(r *http.Request, publicHost string) bool {
 	switch r.Header.Get("Sec-Fetch-Site") {
 	case "same-origin", "none":
 		return false
@@ -839,10 +880,7 @@ func (s *Server) crossOrigin(r *http.Request) bool {
 	if strings.EqualFold(u.Host, r.Host) || strings.EqualFold(u.Host, clientFrom(r).ForwardedHost) {
 		return false
 	}
-	if st := s.netState.Load(); st != nil && st.publicHost != "" && strings.EqualFold(u.Host, st.publicHost) {
-		return false
-	}
-	return true
+	return publicHost == "" || !strings.EqualFold(u.Host, publicHost)
 }
 
 func (s *Server) resolveUser(r *http.Request) *auth.User {
@@ -865,11 +903,16 @@ func (s *Server) signedIn(r *http.Request) (*auth.User, string) {
 		} else {
 			u, err = s.Auth.Resolve(r.Context(), tok)
 		}
-		if err == nil {
+		if err == nil && s.sessionCountsHere(r, u) {
 			return u, tok
 		}
 	}
 	return nil, ""
+}
+
+// sessionCountsHere: a sign-in with no password works only at home, as signing in does.
+func (s *Server) sessionCountsHere(r *http.Request, u *auth.User) bool {
+	return !u.HomeOnly || clientFrom(r).Where.AtHome()
 }
 
 func (s *Server) requireUser(h http.HandlerFunc) http.Handler {
@@ -883,6 +926,9 @@ func (s *Server) requireUser(h http.HandlerFunc) http.Handler {
 			return
 		}
 		s.touchSession(r, tok)
+		// A file sent to this account isn't for a cache in front of the server to keep for
+		// the next person to ask for that address. Handlers that say more replace this.
+		w.Header().Set("Cache-Control", "private")
 		ctx := context.WithValue(context.WithValue(r.Context(), userKey, u), tokenKey, tok)
 		h(w, r.WithContext(ctx))
 	})
@@ -905,8 +951,17 @@ func (s *Server) requireAdmin(h http.HandlerFunc) http.Handler {
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
+	// Into memory first, which the encoder would do anyway: a value it can't write is then an
+	// error someone can see, not a success with nothing in it.
+	var b bytes.Buffer
+	if err := json.NewEncoder(&b).Encode(v); err != nil {
+		slog.Error("an answer could not be written", "cat", "http", "err", err)
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(`{"error":"Something went wrong on the server. It is in the log."}` + "\n"))
+		return
+	}
 	w.WriteHeader(code)
-	_ = json.NewEncoder(w).Encode(v)
+	_, _ = w.Write(b.Bytes())
 }
 
 func writeErr(w http.ResponseWriter, code int, msg string) {
@@ -914,8 +969,13 @@ func writeErr(w http.ResponseWriter, code int, msg string) {
 }
 
 func readJSON(r *http.Request, v any) error {
+	return readJSONUpTo(r, v, maxJSONBody)
+}
+
+// readJSONUpTo is readJSON for the few requests that are longer than most.
+func readJSONUpTo(r *http.Request, v any, limit int64) error {
 	defer r.Body.Close()
-	dec := json.NewDecoder(io.LimitReader(r.Body, 4<<20))
+	dec := json.NewDecoder(io.LimitReader(r.Body, limit))
 	if err := dec.Decode(v); err != nil && !errors.Is(err, io.EOF) {
 		return err
 	}

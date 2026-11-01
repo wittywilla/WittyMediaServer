@@ -240,5 +240,18 @@ func probe(p process, path string) (version, where string, err error) {
 	if _, err := p.Call("javaprobe", bluray.JavaStart{Java: path}, &a); err != nil {
 		return "", "", err
 	}
+	if a.CantRun != "" {
+		return a.Version, a.Path, fmt.Errorf("%w: %s", bdsession.ErrJavaCantRun, a.CantRun)
+	}
 	return a.Version, a.Path, nil
+}
+
+// find asks a helper of its own which Java would be used. That doesn't run it.
+func find(p process, path string) (string, error) {
+	defer p.Close()
+	var a bluray.JavaProbe
+	if _, err := p.Call("javafind", bluray.JavaStart{Java: path}, &a); err != nil {
+		return "", err
+	}
+	return a.Path, nil
 }

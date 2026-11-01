@@ -409,7 +409,7 @@ func TestSidecars(t *testing.T) {
 	// The owner's own file wins, field by field.
 	write(v+".metadata.json", map[string]any{"title": "Mine", "platform": "Elsewhere", "tags": []string{"c"}, "custom": map[string]any{"Recorded by": "Sam"}})
 	side, _ = sidecarFor(v)
-	if side.Title != "Mine" || side.Platform != "Elsewhere" || side.Uploader != "Maker" || len(side.Tags) != 1 || side.Custom["Recorded by"] != "Sam" {
+	if side.Title != "Mine" || side.Platform != "Elsewhere" || side.Uploader != "Maker" || len(side.Tags) != 1 || !strings.Contains(string(side.Custom), `"Recorded by":"Sam"`) {
 		t.Errorf("merged: %+v", side)
 	}
 	if got := cleanTitle("My video [abcdef123]"); got != "My video" {

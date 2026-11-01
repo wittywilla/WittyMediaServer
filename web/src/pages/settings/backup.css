@@ -34,6 +34,7 @@
 .bk-choose { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-3); min-width: 0; }
 .bk-choose .select, .bk-choose select { flex: 1 1 220px; min-width: 0; max-width: 100%; min-height: max(var(--control-h), 44px); }
 .bk-pw { display: grid; gap: var(--sp-3); padding: var(--sp-2) 0; max-width: 420px; }
+.bk-file .bk-pw { flex: 1 1 100%; }
 .bk-preview { display: grid; gap: var(--sp-3); margin-top: var(--sp-3); min-width: 0; overflow-wrap: anywhere; }
 .bk-preview > p { margin: 0; }
 .bk-h:focus, .bk-answer:focus { outline: none; }

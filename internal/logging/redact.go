@@ -17,7 +17,7 @@ const hidden = "[hidden]"
 // Attribute names whose value is never kept. Compared in lower case, with the
 // part after the last dot, and matched at the end of the name ("tmdbKey" is
 // caught by apikey-like endings below, "userToken" by "token").
-var secretEndings = []string{"token", "password", "passwd", "passphrase", "secret", "apikey", "api_key", "authorization", "cookie", "credential", "credentials", "privatekey", "private_key", "setupcode", "setup_code", "recoverycode", "recovery_code", "paircode", "pair_code", "pairingcode", "pairing_code", "bearer"}
+var secretEndings = []string{"token", "password", "passwd", "passphrase", "secret", "apikey", "apikeys", "api_key", "_key", "-key", "authorization", "cookie", "credential", "credentials", "privatekey", "private_key", "setupcode", "setup_code", "recoverycode", "recoverycodes", "recovery_code", "recovery_codes", "paircode", "pair_code", "pairingcode", "pairing_code", "bearer"}
 
 var secretExact = map[string]bool{"pin": true, "st": true, "otp": true, "totp": true, "pass": true, "pwd": true, "sig": true, "signature": true, "key": true, "tmdbkey": true, "tvdbkey": true, "tvdbpin": true}
 
@@ -46,7 +46,9 @@ var textPatterns = []struct {
 	with  string
 }{
 	// In an address or a command line: token=..., ?st=..., password=...
-	{"=", nil, regexp.MustCompile(`(?i)(\b(?:[a-z0-9_-]*(?:token|password|passwd|secret)|auth|api[_-]?key|apikey|pwd|pass|pin|key|st|sig|signature|setup[_-]?code|recovery[_-]?code|pair(?:ing)?[_-]?code|otp|totp)=)[^&\s"'<>]+`), "${1}" + hidden},
+	{"=", nil, regexp.MustCompile(`(?i)(\b(?:[a-z0-9_-]*(?:token|password|passwd|secret|key)|auth|pwd|pass|pin|st|sig|signature|setup[_-]?code|recovery[_-]?code|pair(?:ing)?[_-]?code|otp|totp)=)[^&\s"'<>]+`), "${1}" + hidden},
+	// Words too ordinary to hide everywhere, in an address's query, where they tend to be a login.
+	{"=", []string{"?", "&"}, regexp.MustCompile(`(?i)([?&](?:sid|session|session[_-]?id|sign|hash|code)=)[^&\s"'<>]+`), "${1}" + hidden},
 	// The same with its name percent-encoded: %74oken=... signs in just the same.
 	{"%=", nil, regexp.MustCompile(`(?i)((?:%[0-9a-f]{2}|[a-z_-])*%[0-9a-f]{2}(?:%[0-9a-f]{2}|[a-z_-])*=)[^&\s"'<>]+`), "${1}" + hidden},
 	// A header, as a line of text or in FFmpeg's -headers.
@@ -54,9 +56,12 @@ var textPatterns = []struct {
 	{"", []string{"bearer"}, regexp.MustCompile(`(?i)\b(Bearer\s+)[A-Za-z0-9._~+/=-]+`), "${1}" + hidden},
 	{"", []string{"basic "}, regexp.MustCompile(`\b(Basic\s+)[A-Za-z0-9+/]*[A-Z0-9+/][A-Za-z0-9+/]{10,}={0,2}`), "${1}" + hidden},
 	// JSON: "password": "..."
-	{`":`, nil, regexp.MustCompile(`(?i)("(?:[a-z0-9_-]*(?:token|password|passwd|secret|api[_-]?key|apikey)|rawgkey|tgdbkey|tmdbkey|tvdbkey|pin|setup[_-]?code|recovery[_-]?code|pair(?:ing)?[_-]?code)"\s*:\s*)"(?:[^"\\]|\\.)*"`), `${1}"` + hidden + `"`},
-	// A login in an address: rtsp://user:password@camera/
-	{":@", nil, regexp.MustCompile(`(?i)\b([a-z][a-z0-9+.-]*://)[^/\s:@]+:[^/\s@]+@`), "${1}" + hidden + "@"},
+	{`":`, nil, regexp.MustCompile(`(?i)("(?:[a-z0-9_-]*(?:token|password|passwd|secret|api[_-]?key|apikey)|key|rawgkey|tgdbkey|tmdbkey|tvdbkey|pin|setup[_-]?code|recovery[_-]?code|pair(?:ing)?[_-]?code)"\s*:\s*)"(?:[^"\\]|\\.)*"`), `${1}"` + hidden + `"`},
+	{`":[`, []string{"recovery"}, regexp.MustCompile(`(?i)("recovery[_-]?codes"\s*:\s*)\[[^\]]*\]`), `${1}"` + hidden + `"`},
+	// A login in an address: rtsp://user:password@camera/, or a key alone: rtsp://key@camera/
+	{":@", nil, regexp.MustCompile(`(?i)\b([a-z][a-z0-9+.-]*://)[^/\s@]+@`), "${1}" + hidden + "@"},
+	// A login in an IPTV address's path: http://host/live/user/password/1.ts
+	{"://", []string{"/live/", "/movie/", "/series/"}, regexp.MustCompile(`(?i)(://[^/\s]+/(?:live|movie|series)/)[^/\s"']+/[^/\s"']+/`), "${1}" + hidden + "/"},
 	// A share link's token.
 	{"/", []string{"/s/", "/share/"}, regexp.MustCompile(`(/(?:api/)?(?:s|share)/)[A-Za-z0-9_-]{8,}`), "${1}" + hidden},
 	// The sign-in cookie and stream tokens, however they got there.

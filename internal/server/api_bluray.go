@@ -28,7 +28,7 @@ func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *li
 		return
 	}
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	if od.Disc == nil {

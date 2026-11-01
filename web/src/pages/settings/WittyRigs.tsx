@@ -6,6 +6,7 @@ import { toast, useApp } from '../../state'
 import type { RigView } from '../Rigs'
 import { RigCard, SetupHelp } from './GameRigs'
 import { PageHead, Section } from './ui'
+import { WebLink } from '../../components/WebLink'
 import '../rigs.css'
 
 // Settings, Advanced, WittyRigs: streaming demanding PC games hosted on this server's own
@@ -38,7 +39,7 @@ export default function WittyRigsSettings() {
         )}
         {sure && (
           <div className="rig-warn" role="alert">
-            <p>Sunshine is GPL-3.0 software by LizardByte, installed separately from <a href={st.source} target="_blank" rel="noreferrer noopener">its own project</a>. This server only talks to it over the network. Anyone you give a game from it can often get from that game to this machine’s desktop, so give them out with care.</p>
+            <p>Sunshine is GPL-3.0 software by LizardByte, installed separately from <WebLink href={st.source}>its own project</WebLink>. This server only talks to it over the network. Anyone you give a game from it can often get from that game to this machine’s desktop, so give them out with care.</p>
             <div className="rig-row-actions">
               <button className="btn sm" onClick={() => set(true)}>Turn it on</button>
               <button className="btn sm ghost" onClick={() => setSure(false)}>Not now</button>
@@ -54,7 +55,7 @@ export default function WittyRigsSettings() {
         )}
       </Section>
       {st.enabled && st.rig && <RigCard rig={st.rig} onChange={load} />}
-      <Section title="License"><p>WittyRigs is Apache-2.0. Sunshine itself is {st.license}: <a href={st.source} target="_blank" rel="noreferrer noopener">source</a>. Neither contains the other.</p></Section>
+      <Section title="License"><p>WittyRigs is Apache-2.0. Sunshine itself is {st.license}: <WebLink href={st.source}>source</WebLink>. Neither contains the other.</p></Section>
       <LegalNote kind="games" className="set-legal" />
     </>
   )

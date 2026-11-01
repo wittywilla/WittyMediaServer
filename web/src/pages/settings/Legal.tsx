@@ -5,6 +5,7 @@ import { api } from '../../api'
 import { Brand, BrandMark, LoadError } from '../../components/common'
 import { useApp } from '../../state'
 import { PageHead, Row, SaveBar, Section, useServerSettings } from './ui'
+import { WebLink } from '../../components/WebLink'
 import './settings.css'
 
 // The full Legal page: the words are in internal/legal/legal.json, which native
@@ -28,7 +29,7 @@ function Inline({ text, signedIn }: { text: string; signedIn: boolean }) {
       // Settings pages can't open for someone who isn't signed in: they keep the words, without the link.
       if (signedIn || !m[4].startsWith('/settings/')) out.push(<Link key={key} to={m[4]}>{m[3]}</Link>)
       else out.push(m[3])
-    } else out.push(<a key={key} href={m[4]} target="_blank" rel="noopener noreferrer">{m[3]}</a>)
+    } else out.push(<WebLink key={key} href={m[4]}>{m[3]}</WebLink>)
     at = m.index + m[0].length
   }
   if (at < text.length) out.push(text.slice(at))

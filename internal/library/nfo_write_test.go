@@ -116,7 +116,7 @@ func TestSaveShowNFOReadsBack(t *testing.T) {
 	sh := &Show{Path: dir, Title: "Codename: Kids Next Door", Year: &y, Overview: "Kids vs adults.", Genres: []string{"Animation"},
 		Network: "Cartoon Network", Status: "Ended", Provider: "tvdb", ProviderID: "76163"}
 	if err := writeNFO(filepath.Join(dir, "tvshow.nfo"), nfoShowOut{Title: sh.Title, Year: *sh.Year, Plot: sh.Overview, Genres: sh.Genres,
-		Studio: sh.Network, Status: sh.Status, UniqueIDs: []nfoUniqueID{{Type: "tvdb", Default: true, ID: sh.ProviderID}}, TVDBIDCompat: sh.ProviderID}); err != nil {
+		Studio: sh.Network, Status: sh.Status, UniqueIDs: []nfoUniqueID{{Type: "tvdb", Default: true, ID: sh.ProviderID}}, TVDBIDCompat: sh.ProviderID}, []string{dir}); err != nil {
 		t.Fatal(err)
 	}
 	var back Show

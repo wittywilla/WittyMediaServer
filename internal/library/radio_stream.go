@@ -368,7 +368,6 @@ func SplitNowPlaying(title string) NowPlaying {
 var (
 	hlsURIAttr  = regexp.MustCompile(`URI="([^"]*)"`)
 	hlsCodecs   = regexp.MustCompile(`CODECS="([^"]*)"`)
-	hlsMethod   = regexp.MustCompile(`METHOD=([A-Za-z0-9-]+)`)
 	extinfTitle = regexp.MustCompile(`(?i)(?:^|[,\s])title="([^"]*)"`)
 )
 
@@ -424,7 +423,7 @@ func RewriteHLS(body []byte, base *url.URL, link func(abs string) string) (out [
 		case line == "":
 			continue
 		case strings.HasPrefix(line, "#EXT-X-KEY"), strings.HasPrefix(line, "#EXT-X-SESSION-KEY"):
-			if m := hlsMethod.FindStringSubmatch(line); m == nil || !strings.EqualFold(m[1], "NONE") {
+			if HLSKeyProtection(line) != "" {
 				return nil, "", ErrStationEncrypted
 			}
 			continue

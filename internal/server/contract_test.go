@@ -28,12 +28,12 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/libtranscode"
 	"github.com/wittywilla/wittymediaserver/internal/licenses"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/metrics"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 	"github.com/wittywilla/wittymediaserver/internal/play/cores"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
-	"github.com/wittywilla/wittymediaserver/internal/metrics"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
@@ -409,11 +409,11 @@ func schemaTypes() map[string]reflect.Type {
 		"CustomStatus": ty(CustomStatus{}), "CustomCore": ty(CustomCore{}), "CoreReport": ty(CoreReport{}), "CoreVersion": ty(CoreVersion{}), "CorePlays": ty(CorePlays{}), "CoreAudit": ty(CoreAudit{}),
 		"CustomConsoleView": ty(CustomConsoleView{}), "CorePickOption": ty(CorePickOption{}), "GameCoreOption": ty(GameCoreOption{}),
 		"CoreBinary": ty(cores.Binary{}), "CoreFirmware": ty(cores.Firmware{}), "CoreFileState": ty(cores.CoreFileState{}), "PlacedCoreFile": ty(cores.PlacedFile{}),
-		"Task": ty(tasks.Task{}),
+		"Task":                 ty(tasks.Task{}),
 		"LibTranscodeSettings": ty(libtranscode.Settings{}),
-		"LibTranscodeRun": ty(libtranscode.Run{}),
-		"LibTranscodeFile": ty(libtranscode.FileRow{}),
-		"TdarrSettings": ty(libtranscode.TdarrSettings{}), "TaskProblem": ty(tasks.Problem{}), "TaskSummary": ty(tasks.Summary{}), "TaskList": ty(TaskList{}), "TaskUpdate": ty(taskUpdate{}), "ActivityAccess": ty(activityAccess{}),
+		"LibTranscodeRun":      ty(libtranscode.Run{}),
+		"LibTranscodeFile":     ty(libtranscode.FileRow{}),
+		"TdarrSettings":        ty(libtranscode.TdarrSettings{}), "TaskProblem": ty(tasks.Problem{}), "TaskSummary": ty(tasks.Summary{}), "TaskList": ty(TaskList{}), "TaskUpdate": ty(taskUpdate{}), "ActivityAccess": ty(activityAccess{}),
 		"MetricsCatalog": ty(MetricsCatalog{}), "MetricSection": ty(MetricSection{}), "MetricsAccess": ty(metricsAccess{}), "MetricsNow": ty(MetricsNow{}), "ServerNow": ty(ServerNow{}), "TranscodeNow": ty(TranscodeNow{}), "ModuleNow": ty(ModuleNow{}), "StreamView": ty(StreamView{}), "GameView": ty(GameView{}),
 		"MetricsCPU": ty(metrics.CPUView{}), "MetricsTemp": ty(metrics.Temp{}), "MetricsMemory": ty(metrics.MemoryView{}), "MetricsGPU": ty(metrics.GPU{}), "MetricsDisk": ty(metrics.DiskView{}), "MetricsVolume": ty(metrics.VolumeView{}), "MetricsNet": ty(metrics.NetView{}), "MetricsProcess": ty(metrics.ProcessView{}), "MetricsHistory": ty(metrics.History{}),
 		"DriveHealthView": ty(DriveHealthView{}), "MetricsReport": ty(MetricsReport{}), "ReportLibrary": ty(ReportLibrary{}), "ReportCount": ty(ReportCount{}), "ReportDuplicates": ty(ReportDuplicates{}), "ReportDupe": ty(ReportDupe{}), "ReportSavings": ty(ReportSavings{}), "ReportScan": ty(ReportScan{}), "ReportDatabase": ty(ReportDatabase{}), "ReportCache": ty(ReportCache{}), "ReportLogHour": ty(ReportLogHour{}), "ReportWatched": ty(ReportWatched{}), "ReportBandwidth": ty(ReportBandwidth{}), "ReportPeak": ty(ReportPeak{}),

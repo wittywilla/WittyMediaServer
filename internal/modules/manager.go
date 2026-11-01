@@ -7,6 +7,7 @@
 package modules
 
 import (
+	"cmp"
 	"context"
 	"crypto/ed25519"
 	"encoding/json"
@@ -578,7 +579,7 @@ func (e *entry) status(id string) Status {
 		Notice: e.notice, Latest: e.latest, TooNew: e.tooNew, Phase: e.phase, Done: e.done, Total: e.total, Error: e.lastError, Previous: e.state.Previous,
 		Group: e.man.Group, Summary: e.man.Summary, Needs: e.man.Needs, Updates: e.man.Updates, Stays: e.man.Stays, Pin: e.state.Pin,
 		Installed: e.onDisk(), Enabled: e.on(), Core: e.builtin.Core, Libraries: e.builtin.Libraries, Requires: e.builtin.Requires,
-		StockRepo: e.builtin.Repo, Source: e.sourceInfo(), NoFork: noFork[id]}
+		StockRepo: e.builtin.Repo, Source: e.sourceInfo(), NoFork: cmp.Or(noFork[id], ForkRefusal())}
 	if e.absent {
 		st.BuiltinVersion = ""
 		if e.dir == "" {
@@ -672,6 +673,14 @@ var ErrUnknown = errors.New("there is no such module")
 
 // call runs one call on a module's helper. handled is false when the caller
 // should use the built-in copy instead: there is no helper in use, or it failed.
+// helperRunning: calls to this module go to a helper program.
+func (m *Manager) helperRunning(id string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e := m.mods[id]
+	return e != nil && e.proc != nil
+}
+
 func (m *Manager) call(id, method string, params, out any) (blob []byte, err error, handled bool) {
 	m.mu.Lock()
 	e := m.mods[id]

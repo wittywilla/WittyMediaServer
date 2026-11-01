@@ -265,7 +265,7 @@ and checked by the server itself, never from options a helper offers.
 | DVB, SAT>IP | `free_CA_mode` in the SDT, CA descriptors in the PMT |
 | Backends | The channel's CA field |
 | Any MPEG-TS | `transport_scrambling_control` in the packets, also mid-stream |
-| IPTV | DRM licence lines in the playlist, and any `#EXT-X-KEY` in an HLS playlist or any of its variants, on opening and again while it plays or records, as often as the playlist changes (every 5 to 30 seconds). A key that appears stops the stream and marks the channel; a recording keeps what was clear. FFmpeg's `crypto` protocol is left off its whitelist, but FFmpeg has no option that stops it asking for a key, so these checks are what keeps encrypted HLS out |
+| IPTV | DRM licence lines in the playlist, and any `#EXT-X-KEY` in an HLS playlist or any of its variants, on opening and again while it plays or records, as often as the playlist changes (every 5 to 30 seconds). A key that appears stops the stream and marks the channel; a recording keeps what was clear. FFmpeg has no option that stops it asking for a key, so it never reads a stream itself: it reads through a small gate on this machine's loopback address, for that stream only, which reads each playlist first and refuses a key before FFmpeg sees it. A playlist naming anything but web addresses, a segment that is really a playlist, and transport stream segments that are scrambled are refused there too. A playlist from the internet can't lead back to the home network: everything fetched for it, guide included, goes through the client that checks each connection as it is made, and it can only name `http(s)` channels, not RTSP, RTMP, SRT or UDP, as FFmpeg would make those connections itself. A playlist counts as being at home if the address you typed is a file, a private or VPN address, or a name only a local network can resolve (`nas.local`, `mediabox`). A guide named in a playlist has to be a web address. From another device, a playlist or guide named as a file has to be in a library folder or the server's data folder; on the server's own desktop it can be anywhere |
 
 Refused channels stay listed. They cannot be tuned or recorded.
 
@@ -500,7 +500,7 @@ schedules, guide data, tuning, recording and the encryption wording. See the sha
 | Method and path | Who | What |
 |---|---|---|
 | `GET /api/guide?from&hours&offset&limit&kind&group&favourites&channel` | signed in | Channels and programmes |
-| `GET /api/guide/search?q&days&limit` | signed in | Search what is coming up |
+| `GET /api/guide/search?q&days&limit` | signed in | Search what is coming up. 429 with `Retry-After` when several are running |
 | `GET /api/tv/favourites`, `PUT`/`DELETE /api/tv/favourites/{key}` | signed in | This account's favourite channels |
 | `GET`/`POST /api/tv/reminders`, `DELETE /api/tv/reminders/{id}` | signed in | This account's reminders |
 | `GET`/`POST /api/channels/bumpers`, `POST …/upload`, `DELETE …/item/{id}` | admin | The bumper library |
@@ -523,7 +523,7 @@ schedules, guide data, tuning, recording and the encryption wording. See the sha
 | `POST /api/tuners/{id}/scan`, `GET` for progress | admin | Find channels |
 | `GET /api/tuners/{id}/channels`, `PUT /api/tuner-channels/{id}` | admin | Turn on or off, renumber, map guide data |
 | `GET`/`POST /api/epg/sources`, `DELETE`, `POST …/refresh` | admin | XMLTV sources |
-| `GET`/`POST /api/recordings`, `DELETE /api/recordings/{id}` | signed in, may use tuner channels | DVR |
+| `GET`/`POST /api/recordings`, `DELETE /api/recordings/{id}` | signed in, may use tuner channels. Each person sees and cancels their own; an administrator, all of them. Up to 50 waiting per person | DVR |
 | `GET`/`PUT /api/tv/settings` | admin | Buffers, DVR folder, conversion limits |
 
 ## Using it
@@ -558,5 +558,5 @@ of encrypted channels, XMLTV guide data, recording from a stand-in tuner, and pr
 - ATSC 3.0 sound: AC-4 needs a decoder FFmpeg doesn't have.
 - ATSC huffman-compressed guide text (those events are skipped).
 - A viewer and a recording sharing one tuner on the same channel.
-- Recording disk-space checks and automatic clean-up of old recordings.
+- Automatic clean-up of old recordings. A recording stops and says so when under 2 GB is left on its disk.
 - Guide data read over the air reaches only the channel being watched, not the others on its multiplex.

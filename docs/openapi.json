@@ -1430,6 +1430,9 @@
           "maxUploadMB": {
             "type": "integer"
           },
+          "needsSwitch": {
+            "type": "boolean"
+          },
           "otherCores": {
             "items": {
               "$ref": "#/components/schemas/CorePickOption"
@@ -1477,6 +1480,7 @@
           "haveRunner",
           "libraryExt",
           "maxUploadMB",
+          "needsSwitch",
           "otherCores",
           "padChoices",
           "placed",
@@ -8171,6 +8175,9 @@
           },
           "total": {
             "type": "integer"
+          },
+          "withdrawn": {
+            "type": "string"
           }
         },
         "required": [

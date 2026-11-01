@@ -25,6 +25,11 @@ function ServerSharing() {
             <option value="512">512 MB</option><option value="2048">2 GB</option><option value="4096">4 GB</option><option value="16384">16 GB</option><option value="65536">64 GB</option>
           </select>
         </Row>
+        <Row label="Room for each person" desc="What one account can upload in all, across galleries. Administrators have no limit. Uploads also stop when under 2 GB is left on the disk." dim={!on('uploads')}>
+          <select className="select" value={s.uploadAccountMb || '102400'} disabled={!on('uploads')} onChange={(e) => set('uploadAccountMb', e.target.value)}>
+            <option value="10240">10 GB</option><option value="102400">100 GB</option><option value="1048576">1 TB</option><option value="0">No limit</option>
+          </select>
+        </Row>
       </Section>
       <Section title="Links for people without an account" desc="Adults can make a link to one picture, video or album. Whoever has the link sees that and nothing else, without signing in. It only works where this server can be reached: on your home network until you set up remote access.">
         <Row label="Allow links" desc="Turning this off stops every existing link too.">

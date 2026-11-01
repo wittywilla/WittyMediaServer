@@ -43,8 +43,9 @@ func (s *Server) handleThemeFile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", ct)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	// Theme files are inert: no scripts even if an SVG carries one.
-	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:")
+	// Theme files are inert: no scripts even if an SVG carries one, and no form in it
+	// that could send what's typed elsewhere, which default-src doesn't cover.
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox")
 	w.Header().Set("Cache-Control", "no-cache")
 	_, _ = w.Write(b)
 }

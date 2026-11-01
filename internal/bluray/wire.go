@@ -98,6 +98,7 @@ type JavaExit struct {
 
 // JavaProbe is whether this machine's Java can run a disc's programs.
 type JavaProbe struct {
+	CantRun string `json:"cantRun,omitempty"` // Java was found and tried, and failed: why
 	Version string `json:"version"`
 	Path    string `json:"path"`
 }

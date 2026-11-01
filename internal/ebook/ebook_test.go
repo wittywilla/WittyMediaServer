@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 )
 
 func allText(b *Book) string {
@@ -337,6 +338,12 @@ func FuzzConvert(f *testing.F) {
 		if len(b) > 1<<16 {
 			return
 		}
+		start := time.Now()
+		defer func() {
+			if took := time.Since(start); took > 5*time.Second {
+				t.Errorf("%d bytes as %q took %v", len(b), format, took)
+			}
+		}()
 		book, err := ConvertBytes(b, format, "x")
 		if err != nil {
 			return

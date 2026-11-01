@@ -231,6 +231,9 @@ func (s *Server) handleLTCPutLibrary(w http.ResponseWriter, r *http.Request) {
 		AllowWrites bool                `json:"allowWrites"`
 		ReadOnly    bool                `json:"readOnly"`
 		Auto        bool                `json:"auto"`
+		// Your own password and code, to start replacing originals: that deletes people's films.
+		Current string `json:"current"`
+		Code    string `json:"code"`
 	}
 	if err := readJSON(r, &in); err != nil {
 		writeErr(w, 400, err.Error())
@@ -242,6 +245,9 @@ func (s *Server) handleLTCPutLibrary(w http.ResponseWriter, r *http.Request) {
 	}
 	if !libtranscode.ValidOutput(in.Output) {
 		writeErr(w, 400, "that's not one of the ways of writing the new file")
+		return
+	}
+	if in.Output == libtranscode.OutputReplace && libtranscode.LoadRule(r.Context(), s.DB, lib.ID).Output != libtranscode.OutputReplace && !s.confirmOwner(w, r, in.Current, in.Code) {
 		return
 	}
 	if err := libtranscode.SaveRule(r.Context(), s.DB, libtranscode.Rule{LibraryID: lib.ID, Policy: in.Policy, Output: in.Output, AllowWrites: in.AllowWrites, Auto: in.Auto}); err != nil {

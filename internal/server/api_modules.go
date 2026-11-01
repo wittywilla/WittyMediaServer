@@ -52,12 +52,21 @@ func (s *Server) handleModuleInstall(w http.ResponseWriter, r *http.Request) {
 	var b struct {
 		Version string `json:"version"`
 		Confirm bool   `json:"confirm"`
+		moduleSecrets
 	}
 	if r.ContentLength != 0 && r.Body != nil {
 		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&b); err != nil && !errors.Is(err, io.EOF) {
 			writeErr(w, 400, "unreadable request")
 			return
 		}
+	}
+	// Going back can bring back a hole that was fixed. The warning comes first, and needs nothing.
+	id := r.PathValue("id")
+	if b.Confirm && b.Version != "" && s.Modules.OlderThanInUse(id, b.Version) {
+		if !s.moduleGate(w, r, b.moduleSecrets, id) {
+			return
+		}
+		s.auditModule(r, "module-older", id, "to version "+b.Version)
 	}
 	var err error
 	if b.Version == "" {
@@ -126,6 +135,44 @@ func (s *Server) handleModuleLatest(w http.ResponseWriter, r *http.Request) {
 	s.moduleAction(w, r, "module returning to the latest", 202, func(id string) error { return s.Modules.ToLatest(id) })
 }
 
+// moduleSecrets are what a change to which code runs asks for.
+type moduleSecrets struct {
+	Password string `json:"password"`
+	Code     string `json:"code"`
+}
+
+// moduleGate asks for the signed-in person's password, and code if they use one, before a stolen
+// session could change what runs on this server. It answers the request itself when refused. With
+// nothing given, the answer says what to ask for.
+func (s *Server) moduleGate(w http.ResponseWriter, r *http.Request, b moduleSecrets, id string) bool {
+	if b.Password == "" {
+		writeJSON(w, 403, map[string]any{"error": "This asks for your password.", "code": "password-needed"})
+		return false
+	}
+	if s.confirmOwner(w, r, b.Password, b.Code) {
+		return true
+	}
+	s.auditModule(r, "password-refused", id, r.Method+" "+r.URL.Path)
+	return false
+}
+
+func (s *Server) moduleGateFromBody(w http.ResponseWriter, r *http.Request) bool {
+	var b moduleSecrets
+	if r.ContentLength != 0 && r.Body != nil {
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&b); err != nil && !errors.Is(err, io.EOF) {
+			writeErr(w, 400, "unreadable request")
+			return false
+		}
+	}
+	return s.moduleGate(w, r, b, r.PathValue("id"))
+}
+
+// auditModule writes a change to which code runs down beside custom cores', as both are the same
+// kind of thing, and in the log.
+func (s *Server) auditModule(r *http.Request, action, id, detail string) {
+	s.writeAudit(r.Context(), userFrom(r), "module", action, "module "+id, detail)
+}
+
 func (s *Server) moduleAction(w http.ResponseWriter, r *http.Request, what string, code int, do func(id string) error) {
 	if s.Modules == nil {
 		writeErr(w, 404, "modules can't be updated in this build")
@@ -150,9 +197,18 @@ func (s *Server) handleModuleSource(w http.ResponseWriter, r *http.Request) {
 		Repo    string `json:"repo"`
 		Key     string `json:"key"`
 		Confirm bool   `json:"confirm"`
+		moduleSecrets
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&b); err != nil {
 		writeErr(w, 400, "unreadable request")
+		return
+	}
+	if why := modmgr.ForkRefusal(); why != "" {
+		s.auditModule(r, "fork-refused", r.PathValue("id"), b.Repo)
+		writeErr(w, 403, why)
+		return
+	}
+	if b.Confirm && !s.moduleGate(w, r, b.moduleSecrets, r.PathValue("id")) {
 		return
 	}
 	if err := s.Modules.SetSource(r.PathValue("id"), b.Repo, b.Key, userFrom(r).Name, b.Confirm); err != nil {
@@ -160,6 +216,7 @@ func (s *Server) handleModuleSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.Log.Warn("a module now comes from another publisher", "module", r.PathValue("id"), "repo", b.Repo, "by", userFrom(r).Name)
+	s.auditModule(r, "module-source", r.PathValue("id"), "now from "+b.Repo)
 	writeJSON(w, 200, s.Modules.Report())
 }
 
@@ -374,6 +431,12 @@ func (s *Server) handleModuleRollback(w http.ResponseWriter, r *http.Request) {
 	if s.Modules == nil {
 		writeErr(w, 404, "modules can't be updated in this build")
 		return
+	}
+	if s.Modules.RunningDownload(r.PathValue("id")) {
+		if !s.moduleGateFromBody(w, r) {
+			return
+		}
+		s.auditModule(r, "module-rollback", r.PathValue("id"), "")
 	}
 	if err := s.Modules.Rollback(r.PathValue("id")); err != nil {
 		s.Log.WarnContext(r.Context(), "module rollback failed", "cat", "modules", "module", r.PathValue("id"), "err", err)

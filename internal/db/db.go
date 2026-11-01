@@ -70,6 +70,13 @@ func Open(dataDir string) (*DB, error) {
 	return d, nil
 }
 
+// clearInfinities clears what a file or feed could store before numbers were checked.
+const clearInfinities = `UPDATE items SET rating = NULL WHERE rating > 1e300 OR rating < -1e300;
+	 UPDATE items SET runtime_sec = 0 WHERE runtime_sec > 1e300 OR runtime_sec < -1e300;
+	 UPDATE items SET intro_start = NULL WHERE intro_start > 1e300 OR intro_start < -1e300;
+	 UPDATE items SET intro_end = NULL WHERE intro_end > 1e300 OR intro_end < -1e300;
+	 UPDATE shows SET rating = NULL WHERE rating > 1e300 OR rating < -1e300;`
+
 var migrations = []string{
 	`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 	 CREATE TABLE IF NOT EXISTS users (
@@ -440,6 +447,23 @@ var migrations = []string{
 	 CREATE TABLE IF NOT EXISTS stream_bytes (
 	   day INTEGER NOT NULL, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, bytes INTEGER NOT NULL,
 	   PRIMARY KEY(day, user_id));`,
+	// 28: a share link goes with what it shares. Numbers come back when the newest row is
+	// deleted, so a link left behind would open whatever got that number next.
+	`DELETE FROM share_links WHERE kind = 'item' AND target_id NOT IN (SELECT id FROM items);
+	 DELETE FROM share_links WHERE kind = 'album' AND target_id NOT IN (SELECT id FROM photo_albums);
+	 CREATE INDEX IF NOT EXISTS share_links_target ON share_links(kind, target_id);
+	 CREATE TRIGGER IF NOT EXISTS share_links_item_gone AFTER DELETE ON items BEGIN
+	   DELETE FROM share_links WHERE kind = 'item' AND target_id = OLD.id;
+	 END;
+	 CREATE TRIGGER IF NOT EXISTS share_links_album_gone AFTER DELETE ON photo_albums BEGIN
+	   DELETE FROM share_links WHERE kind = 'album' AND target_id = OLD.id;
+	 END;`,
+	// 29: a sign-in with no password only works at home, as the sign-in itself does. Accounts
+	// with no password today may have made theirs before this was kept.
+	`ALTER TABLE sessions ADD COLUMN home_only INTEGER NOT NULL DEFAULT 0;
+	 UPDATE sessions SET home_only = 1 WHERE user_id IN (SELECT id FROM users WHERE password_hash = '');`,
+	// 30: numbers a file said were infinite. One of these blanked every list holding it.
+	clearInfinities,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

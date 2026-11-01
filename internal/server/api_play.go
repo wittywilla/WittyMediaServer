@@ -161,7 +161,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	info := playInfo{DurationSec: pr.Duration(), Container: it.Container, AudioIndex: qInt(r, "audio", 0), SubIndex: qInt(r, "subtitle", -1)}
@@ -256,7 +256,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		info.DurationSec = it.RuntimeSec // a bare stream doesn't say; the scan worked it out
 	}
 	s.HLS.Ensure(hls.Spec{
-		ID: hid, InputArgs: inputArgs, Source: it.Path, Duration: info.DurationSec, SeekMargin: pr.SeekMargin(), VideoFilter: vf, VideoIndex: pr.VideoIndex(), NoVideo: v == nil,
+		ID: hid, ItemID: it.ID, InputArgs: inputArgs, Source: it.Path, Duration: info.DurationSec, SeekMargin: pr.SeekMargin(), VideoFilter: vf, VideoIndex: pr.VideoIndex(), NoVideo: v == nil,
 		AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: info.SubIndex, SubtitleText: s.textBurn(info.SubIndex, pr), Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r),
 	})
 	info.Type = "hls"
@@ -278,7 +278,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 // drive, and every change of audio or subtitle track asks again.
 func (s *Server) probeOnce(ctx context.Context, path string) (*ffmpeg.Probe, error) {
 	st, err := os.Stat(path)
-	if err != nil {
+	if err != nil || !s.Store.LibraryFile(ctx, path) {
 		return nil, errors.New("the file is missing")
 	}
 	key := fmt.Sprintf("%s|%d|%d", path, st.Size(), st.ModTime().UnixNano())
@@ -320,21 +320,12 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "item not found")
 		return
 	}
-	if !s.Store.LibraryFile(r.Context(), it.Path) {
-		writeErr(w, 404, "file missing")
-		return
-	}
-	f, err := os.Open(it.Path)
+	f, st, err := s.Store.OpenLibraryFile(r.Context(), it.Path)
 	if err != nil {
 		writeErr(w, 404, "file missing")
 		return
 	}
 	defer f.Close()
-	st, err := f.Stat()
-	if err != nil || !st.Mode().IsRegular() {
-		writeErr(w, 404, "file missing")
-		return
-	}
 	// The type comes from this list, never from what the file's first bytes
 	// look like: a "movie" that is really a web page stays a download.
 	w.Header().Set("Content-Type", mediaType(it))
@@ -369,9 +360,23 @@ func mediaType(it *library.Item) string {
 // HLS
 // ---------------------------------------------------------------------------
 
+// visibleStream is a stream this account may watch. Its address is hard to guess, but addresses
+// get written down, and limits can change while a stream runs. An account with limits is checked
+// against what the stream plays, at every request; one without pays nothing.
+func (s *Server) visibleStream(r *http.Request, id string) *hls.Session {
+	sess := s.HLS.Get(id)
+	if sess == nil {
+		return nil
+	}
+	if a := s.access(r); a != nil && (sess.Spec.ItemID == 0 || !s.itemAllowed(r.Context(), a, sess.Spec.ItemID)) {
+		return nil
+	}
+	return sess
+}
+
 func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	sess := s.HLS.Get(id)
+	sess := s.visibleStream(r, id)
 	if sess == nil {
 		writeErr(w, 404, "no such stream (it may have expired; start playback again)")
 		return
@@ -403,7 +408,7 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 			if !errors.Is(err, context.Canceled) {
 				s.Log.WarnContext(r.Context(), "could not serve a playlist", "cat", "transcode", "session", sess.LogSession(), "stream", id, "err", err)
 			}
-			writeErr(w, 500, err.Error())
+			writeErr(w, 500, s.viewerError(r, err))
 			return
 		}
 		_, _ = w.Write(b)
@@ -414,7 +419,7 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	sess := s.HLS.Get(id)
+	sess := s.visibleStream(r, id)
 	if sess == nil {
 		writeErr(w, 404, "no such stream")
 		return
@@ -443,7 +448,7 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		s.Log.WarnContext(r.Context(), "could not serve a segment", "cat", "transcode", "session", sess.LogSession(), "stream", id, "segment", name, "err", err)
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	if sess.Spec.FMP4 {

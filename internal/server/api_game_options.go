@@ -621,7 +621,7 @@ func (s *Server) handleGameCheatsPut(w http.ResponseWriter, r *http.Request) {
 		Cheats []wittyplay.Cheat `json:"cheats"`
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, wittyplay.MaxCheatFile)
-	if err := readJSON(r, &b); err != nil {
+	if err := readJSONUpTo(r, &b, wittyplay.MaxCheatFile); err != nil {
 		writeErr(w, 400, "this list can't be read")
 		return
 	}
@@ -648,6 +648,10 @@ func (s *Server) handleGameCheatsImport(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 404, "not found")
 		return
 	}
+	if !takeImportSlot(w) {
+		return
+	}
+	defer func() { <-importSlots }()
 	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, wittyplay.MaxCheatFile))
 	if err != nil {
 		writeErr(w, 413, "this file is too large to be a cheat list")
@@ -704,6 +708,11 @@ func (s *Server) handleGamePatches(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGamePatchAdd(w http.ResponseWriter, r *http.Request) {
+	// A patch changes what a core is given to run: that's for grown-up accounts.
+	if !canPost(userFrom(r)) {
+		writeErr(w, 403, "this profile can't add patches")
+		return
+	}
 	it, ok := s.gameItem(r)
 	if !ok {
 		writeErr(w, 404, "not found")
@@ -967,6 +976,10 @@ func reencodeImage(b []byte) (out []byte, width, height int, err error) {
 }
 
 func (s *Server) handleBezelAdd(w http.ResponseWriter, r *http.Request) {
+	if !canReact(userFrom(r)) {
+		writeErr(w, 403, "a guest can only look")
+		return
+	}
 	ctx := r.Context()
 	id := userFrom(r).ID
 	existing, err := s.Store.GameBezels(ctx, id)
@@ -978,6 +991,10 @@ func (s *Server) handleBezelAdd(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 409, fmt.Sprintf("you can keep %d images at most; remove one first", maxBezels))
 		return
 	}
+	if !takeImportSlot(w) {
+		return
+	}
+	defer func() { <-importSlots }()
 	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBezelUpload))
 	if err != nil {
 		writeErr(w, 413, fmt.Sprintf("this image is too large: %d MB at most", maxBezelUpload>>20))
@@ -1212,6 +1229,10 @@ func saveRoom(dir string, size int64) bool {
 }
 
 func (s *Server) handleSaveImport(w http.ResponseWriter, r *http.Request) {
+	if !canReact(userFrom(r)) { // a Kids profile may bring its own saves; a guest only looks
+		writeErr(w, 403, "a guest can only look")
+		return
+	}
 	it, ok := s.gameItem(r)
 	if !ok {
 		writeErr(w, 404, "not found")
@@ -1304,6 +1325,10 @@ func (s *Server) handleBatteryExport(w http.ResponseWriter, r *http.Request) {
 // playing it, because the running game would write over it anyway. The old one is kept
 // beside it.
 func (s *Server) handleBatteryImport(w http.ResponseWriter, r *http.Request) {
+	if !canReact(userFrom(r)) {
+		writeErr(w, 403, "a guest can only look")
+		return
+	}
 	it, ok := s.gameItem(r)
 	if !ok {
 		writeErr(w, 404, "not found")

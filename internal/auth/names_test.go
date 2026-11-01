@@ -57,13 +57,13 @@ func TestDisplayNameIsSeparateAndFree(t *testing.T) {
 
 func TestDisplayNameIsCleaned(t *testing.T) {
 	for in, want := range map[string]string{
-		"a‮b":                         "ab",
-		"⁦x⁩":                    "x",
-		"line\nbreak":                      "linebreak",
-		"tab\there":                        "tabhere",
-		"👨‍👩‍👧":                  "👨‍👩‍👧", // emoji joiners stay
-		"<b>kept as text</b>":              "<b>kept as text</b>",
-		strings.Repeat("é", 70):            strings.Repeat("é", MaxDisplayName),
+		"a‮b":                   "ab",
+		"⁦x⁩":                   "x",
+		"line\nbreak":           "linebreak",
+		"tab\there":             "tabhere",
+		"👨‍👩‍👧":                 "👨‍👩‍👧", // emoji joiners stay
+		"<b>kept as text</b>":   "<b>kept as text</b>",
+		strings.Repeat("é", 70): strings.Repeat("é", MaxDisplayName),
 	} {
 		if got := cleanDisplayName(in); got != want {
 			t.Errorf("%q: got %q", in, got)

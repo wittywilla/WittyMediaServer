@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -157,10 +160,54 @@ func TestSetupClaim(t *testing.T) {
 	}
 }
 
-func TestSetupFromThisNetwork(t *testing.T) {
+func TestSetupOnTheServerItself(t *testing.T) {
 	ts := newTestServer(t)
 	if w := ts.do(t, "POST", "/api/setup", "", map[string]string{"name": "owner", "password": "a long password"}); w.Code != 200 {
 		t.Fatalf("local setup: %d %s", w.Code, w.Body)
+	}
+}
+
+// Someone else on the network can't get there before the owner.
+func TestSetupFromTheHomeNetworkTakesTheCode(t *testing.T) {
+	creds := map[string]string{"name": "owner", "password": "a long password"}
+	lan := []string{"RemoteAddr", "192.168.1.20:1", "Host", "192.168.1.5:9797"}
+	ts := newTestServer(t)
+	if err := ts.WriteSetupCode(); err != nil {
+		t.Fatal(err)
+	}
+	if w := ts.do(t, "POST", "/api/setup", "", creds, lan...); w.Code != 403 {
+		t.Fatalf("no code: %d %s", w.Code, w.Body)
+	}
+	var st map[string]any
+	if err := json.Unmarshal(ts.do(t, "GET", "/api/status", "", nil, lan...).Body.Bytes(), &st); err != nil || st["setupCodeRequired"] != true {
+		t.Fatalf("status: %v %v", st, err)
+	}
+	file := filepath.Join(ts.Cfg.DataDir, setupCodeFile)
+	saved, err := os.ReadFile(file)
+	if err != nil || strings.TrimSpace(string(saved)) != ts.SetupCode() {
+		t.Fatalf("%q %v", saved, err)
+	}
+	if st, err := os.Stat(file); runtime.GOOS != "windows" && (err != nil || st.Mode().Perm() != 0o600) {
+		t.Fatalf("%v %v", st, err)
+	}
+	withCode := map[string]string{"name": "owner", "password": "a long password", "setupCode": ts.SetupCode()}
+	if w := ts.do(t, "POST", "/api/setup", "", withCode, lan...); w.Code != 200 {
+		t.Fatalf("with the code: %d %s", w.Code, w.Body)
+	}
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Fatalf("the code outlived setup: %v", err)
+	}
+
+	// The owner's choice, and only for the home network.
+	ts = newTestServer(t)
+	ts.Cfg.SetupFromHome = true
+	ts.Cfg.RemoteAccess = true
+	ts.reloadNet(context.Background())
+	if w := ts.do(t, "POST", "/api/setup", "", creds, "Host", "203.0.113.5:9797", "RemoteAddr", "198.51.100.7:1"); w.Code != 403 {
+		t.Fatalf("from the internet: %d", w.Code)
+	}
+	if w := ts.do(t, "POST", "/api/setup", "", creds, lan...); w.Code != 200 {
+		t.Fatalf("from home, allowed: %d %s", w.Code, w.Body)
 	}
 }
 

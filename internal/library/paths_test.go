@@ -2,12 +2,15 @@ package library
 
 import (
 	"context"
+	"errors"
 	"io"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -166,7 +169,7 @@ func TestWriteNFODoesNotFollowLinks(t *testing.T) {
 	}
 	nfo := filepath.Join(dir, "movie.nfo")
 	symlink(t, victim, nfo)
-	if err := writeNFO(nfo, nfoMovieOut{Title: "x"}); err != nil {
+	if err := writeNFO(nfo, nfoMovieOut{Title: "x"}, []string{dir}); err != nil {
 		t.Fatal(err)
 	}
 	if b, _ := os.ReadFile(victim); string(b) != "do not touch" {
@@ -207,5 +210,200 @@ func TestSafeName(t *testing.T) {
 		case "CON", "NUL", "AUX", "PRN":
 			t.Errorf("safeName(%q) = %q is a reserved device name", in, got)
 		}
+	}
+}
+
+// junction makes a link to a folder that any account can make on Windows, and a symbolic link
+// elsewhere.
+func junction(t *testing.T, target, link string) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		if real, err := filepath.EvalSymlinks(target); err == nil {
+			target = real // writing through a junction to a short name fails by itself
+		}
+		if out, err := exec.Command("cmd", "/c", "mklink", "/J", link, target).CombinedOutput(); err != nil {
+			t.Fatalf("%v %s", err, out)
+		}
+		return
+	}
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Every kind of library skips them, games and galleries too, which used to index anything.
+func TestEveryLibraryKindSkipsLinksOut(t *testing.T) {
+	outside := t.TempDir()
+	for _, n := range []string{"secret.jpg", "secret.mp4", "secret.sfc"} {
+		if err := os.WriteFile(filepath.Join(outside, n), []byte("secrets"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for name, find := range map[string]func(string) ([]candidate, error){
+		"photos":   discoverPhotos,
+		"creators": discoverCreatorVideos,
+		"games":    func(root string) ([]candidate, error) { return discoverGames(root, "snes") },
+	} {
+		lib := t.TempDir()
+		for _, n := range []string{"secret.jpg", "secret.mp4", "secret.sfc"} {
+			symlink(t, filepath.Join(outside, n), filepath.Join(lib, "steal-"+n))
+		}
+		got, err := find(lib)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, c := range got {
+			if strings.Contains(c.path, "steal") {
+				t.Errorf("%s indexed a link out of the library: %s", name, c.path)
+			}
+		}
+	}
+}
+
+func TestOpenInRootsStaysInside(t *testing.T) {
+	lib, other, outside := t.TempDir(), t.TempDir(), t.TempDir()
+	roots := []string{lib, other}
+	write := func(p, data string) {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(data), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(filepath.Join(lib, "sub", "film.mp4"), "film")
+	write(filepath.Join(other, "there", "film.mp4"), "other library")
+	write(filepath.Join(outside, "film.mp4"), "SECRET")
+	read := func(p string) (string, error) {
+		f, st, err := openInRoots(p, roots)
+		if err != nil {
+			return "", err
+		}
+		defer f.Close()
+		if st.Size() == 0 {
+			return "", nil
+		}
+		b, err := io.ReadAll(f)
+		return string(b), err
+	}
+	if got, err := read(filepath.Join(lib, "sub", "film.mp4")); err != nil || got != "film" {
+		t.Errorf("a plain file: %q %v", got, err)
+	}
+	if _, err := read(filepath.Join(outside, "film.mp4")); !errors.Is(err, ErrNotInLibrary) {
+		t.Errorf("outside: %v", err)
+	}
+	if _, err := read(lib); err == nil {
+		t.Error("the folder itself opened")
+	}
+	if _, err := read(filepath.Join(lib, "missing.mp4")); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("missing: %v", err)
+	}
+
+	// A folder link leading out is refused, wherever it is in the path.
+	junction(t, outside, filepath.Join(lib, "away"))
+	if got, err := read(filepath.Join(lib, "away", "film.mp4")); err == nil {
+		t.Errorf("through a link out: %q", got)
+	}
+	if resolvesInside(filepath.Join(lib, "away", "film.mp4"), roots) {
+		t.Error("the check says a link out is inside")
+	}
+	// One leading inside, or to another library, still works: an absolute link can't be followed
+	// by os.Root by itself, and real setups have them.
+	junction(t, filepath.Join(lib, "sub"), filepath.Join(lib, "alias"))
+	if got, err := read(filepath.Join(lib, "alias", "film.mp4")); err != nil || got != "film" {
+		t.Errorf("a link inside the library: %q %v", got, err)
+	}
+	junction(t, filepath.Join(other, "there"), filepath.Join(lib, "next"))
+	if got, err := read(filepath.Join(lib, "next", "film.mp4")); err != nil || got != "other library" {
+		t.Errorf("a link to another library: %q %v", got, err)
+	}
+}
+
+func TestFileLinksInOpenInRoots(t *testing.T) {
+	lib, outside := t.TempDir(), t.TempDir()
+	secret := filepath.Join(outside, "wms.db")
+	if err := os.WriteFile(secret, []byte("SECRET"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	real := filepath.Join(lib, "real.mp4")
+	if err := os.WriteFile(real, []byte("film"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	symlink(t, secret, filepath.Join(lib, "steal.mp4"))
+	symlink(t, real, filepath.Join(lib, "absolute.mp4"))
+	symlink(t, "real.mp4", filepath.Join(lib, "relative.mp4"))
+	roots := []string{lib}
+	if f, _, err := openInRoots(filepath.Join(lib, "steal.mp4"), roots); err == nil {
+		f.Close()
+		t.Error("a link out opened")
+	}
+	for _, n := range []string{"absolute.mp4", "relative.mp4"} {
+		f, _, err := openInRoots(filepath.Join(lib, n), roots)
+		if err != nil {
+			t.Errorf("%s: %v", n, err)
+			continue
+		}
+		f.Close()
+	}
+}
+
+// A folder swapped for a link between finding a film and saving its artwork: nothing lands where
+// the link leads.
+func TestWritesDontFollowAFolderSwappedForALink(t *testing.T) {
+	lib, outside := t.TempDir(), t.TempDir()
+	s := testScanner(t, lib)
+	pic := filepath.Join(lib, "cover.png")
+	if err := os.WriteFile(pic, pngHead, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	junction(t, outside, filepath.Join(lib, "film"))
+	dst := filepath.Join(lib, "film", "poster.png")
+	if err := s.writeArt(ctx, pic, dst); err == nil {
+		t.Error("the write said it went fine")
+	}
+	if names, _ := os.ReadDir(outside); len(names) != 0 {
+		t.Errorf("wrote through the link: %v", names)
+	}
+	// An ordinary folder is written to, with no temporary file left behind.
+	if err := os.Mkdir(filepath.Join(lib, "real"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.writeArt(ctx, pic, filepath.Join(lib, "real", "poster.png")); err != nil {
+		t.Fatal(err)
+	}
+	names, _ := os.ReadDir(filepath.Join(lib, "real"))
+	if len(names) != 1 || names[0].Name() != "poster.png" {
+		t.Errorf("%v", names)
+	}
+}
+
+func TestCreateInLibrary(t *testing.T) {
+	lib, outside := t.TempDir(), t.TempDir()
+	dest := filepath.Join(lib, "Uploads", "someone", "2026-11")
+	f, p, err := CreateInLibrary(lib, dest, "a.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	if p != filepath.Join(dest, "a.jpg") {
+		t.Errorf("%s", p)
+	}
+	f, p, err = CreateInLibrary(lib, dest, "a.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	if p != filepath.Join(dest, "a (1).jpg") {
+		t.Errorf("a file was replaced: %s", p)
+	}
+	junction(t, outside, filepath.Join(lib, "away"))
+	if f, p, err := CreateInLibrary(lib, filepath.Join(lib, "away", "x"), "a.jpg"); err == nil {
+		f.Close()
+		t.Errorf("made %s through a link", p)
+	}
+	if names, _ := os.ReadDir(outside); len(names) != 0 {
+		t.Errorf("wrote through the link: %v", names)
 	}
 }

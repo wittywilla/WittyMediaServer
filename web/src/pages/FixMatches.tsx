@@ -11,6 +11,7 @@ import { Button, Card, Chip, Chips, Dialog, IconButton, Notice, Select, Tabs } f
 import { undoBatch, type EpisodeMap, type EpisodeRow, type HistoryEntry, type MatchCandidate, type MatchPreview, type MatchRule, type QueueResult, type QueueRow, type RuleTry, type SearchResult, type Target } from '../metadata'
 import { toast, useApp } from '../state'
 import BulkEdit from './library/BulkEdit'
+import { WebLink } from '../components/WebLink'
 import './library/library.css'
 import './fixmatches.css'
 
@@ -285,7 +286,7 @@ function Detail({ r, ref_, topFor, setTopFor, onAccept, onLeave, onEdit, onRenum
         </div>
       </header>
       <div className="fm-why">
-        {r.provider ? <span>Matched with {r.url ? <a href={r.url} target="_blank" rel="noreferrer">{r.sourceLabel}</a> : r.sourceLabel}.</span> : null}
+        {r.provider ? <span>Matched with {r.url ? <WebLink href={r.url}>{r.sourceLabel}</WebLink> : r.sourceLabel}.</span> : null}
         <ul>{r.reasons.map((w) => <li key={w}>{w}</li>)}</ul>
       </div>
       <form className="field-row fm-find" onSubmit={(e) => { e.preventDefault(); search() }}>

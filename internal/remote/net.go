@@ -165,9 +165,14 @@ func (p *Policy) Resolve(r *http.Request) Client {
 	client := peer
 	list := strings.Split(strings.Join(xff, ","), ",")
 	for i := len(list) - 1; i >= 0; i-- {
-		a, err := netip.ParseAddr(strings.TrimSpace(list[i]))
-		if err != nil {
-			break // nothing left of a broken entry can be believed
+		a, ok := forwardedAddr(list[i])
+		if !ok {
+			// Nothing left of a broken entry can be believed, including that this
+			// request is the proxy's own, which may well be this machine.
+			c.IP = client
+			c.Unverified = true
+			c.Where = Internet
+			return c
 		}
 		a = clean(a)
 		client = a
@@ -180,6 +185,18 @@ func (p *Policy) Resolve(r *http.Request) Client {
 	c.Secure = c.Secure || lastValue(r.Header.Get("X-Forwarded-Proto")) == "https"
 	c.ForwardedHost = lastValue(r.Header.Get("X-Forwarded-Host"))
 	return c
+}
+
+// forwardedAddr reads one entry of X-Forwarded-For. Some proxies add a port or brackets.
+func forwardedAddr(s string) (netip.Addr, bool) {
+	s = strings.TrimSpace(s)
+	if a, err := netip.ParseAddr(strings.Trim(s, "[]")); err == nil {
+		return a, true
+	}
+	if ap, err := netip.ParseAddrPort(s); err == nil {
+		return ap.Addr(), true
+	}
+	return netip.Addr{}, false
 }
 
 // SecureHint: the connection is encrypted, or a header claims a proxy in front
@@ -374,4 +391,31 @@ func HomeSubnets() []netip.Prefix {
 	c := &subnetCache{at: time.Now(), nets: homeSubnetsOf(Interfaces())}
 	homeSubnets.Store(c)
 	return c.nets
+}
+
+// LocalName says a host name is one only a local network can resolve: a computer's own name, or
+// one under a suffix nobody can register. A name anyone can register can point anywhere.
+func LocalName(host string) bool {
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	if host == "" {
+		return false
+	}
+	if !strings.Contains(host, ".") {
+		return true // "localhost" or a computer's own name
+	}
+	for _, suffix := range []string{".localhost", ".local", ".localdomain", ".lan", ".home", ".home.arpa", ".fritz.box", ".internal", ".intranet"} {
+		if strings.HasSuffix(host, suffix) {
+			return true
+		}
+	}
+	return false
+}
+
+// LocalAddress says what someone typed names something at home or on their VPN.
+func LocalAddress(host string) bool {
+	host = strings.Trim(host, "[]")
+	if a, err := netip.ParseAddr(host); err == nil {
+		return (*Policy)(nil).Classify(a) != Internet
+	}
+	return LocalName(host)
 }

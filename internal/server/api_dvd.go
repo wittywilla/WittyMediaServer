@@ -64,7 +64,8 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 	}
 	q, maxHeight := s.quality(r)
 	prefs := dvdsession.Prefs{
-		Wide: true, Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r), LowPower: s.DB.GetSetting(r.Context(), "lowPower", "0") == "1",
+		Owner: userFrom(r).ID,
+		Wide:  true, Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r), LowPower: s.DB.GetSetting(r.Context(), "lowPower", "0") == "1",
 		MenuLanguage:     firstNonEmpty(b.MenuLanguage, s.DB.GetSetting(r.Context(), "menuLanguage", "en")),
 		AudioLanguage:    firstNonEmpty(b.AudioLanguage, s.DB.GetSetting(r.Context(), "audioLanguage", "")),
 		SubtitleLanguage: firstNonEmpty(b.SubtitleLanguage, s.DB.GetSetting(r.Context(), "subtitleLanguage", "")),
@@ -89,7 +90,7 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err != nil {
-			writeErr(w, 500, err.Error())
+			writeErr(w, 500, s.viewerError(r, err))
 			return
 		}
 		var p *dvdsession.Presentation
@@ -114,7 +115,7 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	var p *dvdsession.Presentation
@@ -159,15 +160,30 @@ func firstNonEmpty(v ...string) string {
 func (s *Server) dvdSession(w http.ResponseWriter, r *http.Request) discSession {
 	sid := r.PathValue("sid")
 	if strings.HasPrefix(sid, "bd") {
-		if sess := s.BD.Get(sid); sess != nil {
+		if sess := s.bdSession(r, sid); sess != nil {
 			return sess
 		}
 		writeErr(w, 404, "disc session expired; open it again")
 		return nil
 	}
 	sess := s.DVD.Get(sid)
-	if sess == nil {
+	if sess == nil || !s.discAllowed(r, sess.ItemID) {
 		writeErr(w, 404, "disc session expired; open it again")
+		return nil
+	}
+	return sess
+}
+
+// discAllowed: as for a stream, someone with limits holding a session's name is checked
+// against what it plays, every time.
+func (s *Server) discAllowed(r *http.Request, itemID int64) bool {
+	a := s.access(r)
+	return a == nil || s.itemAllowed(r.Context(), a, itemID)
+}
+
+func (s *Server) bdSession(r *http.Request, sid string) *bdsession.Session {
+	sess := s.BD.Get(sid)
+	if sess == nil || !s.discAllowed(r, sess.ItemID) {
 		return nil
 	}
 	return sess
@@ -198,8 +214,10 @@ func (s *Server) handleDVDAction(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDVDClose(w http.ResponseWriter, r *http.Request) {
 	sid := r.PathValue("sid")
 	if strings.HasPrefix(sid, "bd") {
-		s.BD.CloseSession(sid)
-	} else {
+		if s.bdSession(r, sid) != nil {
+			s.BD.CloseSession(sid)
+		}
+	} else if sess := s.DVD.Get(sid); sess != nil && s.discAllowed(r, sess.ItemID) {
 		s.DVD.CloseSession(sid)
 	}
 	s.Log.InfoContext(r.Context(), "disc session closed", "cat", "playback", "session", sid)
@@ -272,7 +290,7 @@ func (s *Server) handleDVDEffect(w http.ResponseWriter, r *http.Request) {
 // handleBDJPoll waits for a disc's BD-J applications to change something.
 func (s *Server) handleBDJPoll(w http.ResponseWriter, r *http.Request) {
 	sid := r.PathValue("sid")
-	sess := s.BD.Get(sid)
+	sess := s.bdSession(r, sid)
 	if sess == nil {
 		writeErr(w, 404, "disc session expired; open it again")
 		return
@@ -283,7 +301,7 @@ func (s *Server) handleBDJPoll(w http.ResponseWriter, r *http.Request) {
 
 // handleBDJFrame serves the applications' graphics.
 func (s *Server) handleBDJFrame(w http.ResponseWriter, r *http.Request) {
-	sess := s.BD.Get(r.PathValue("sid"))
+	sess := s.bdSession(r, r.PathValue("sid"))
 	if sess == nil {
 		writeErr(w, 404, "disc session expired; open it again")
 		return
@@ -298,17 +316,31 @@ func (s *Server) handleBDJFrame(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(png)
 }
 
-// handleBDJStatus says whether this machine can run BD-J, for the settings page.
+// handleBDJStatus says whether this machine can run BD-J, for the settings page. Trying Java means
+// running it, so that waits until BD-J is on. Which Java comes from the config file, never from a
+// setting: a web account can't choose what the server runs.
 func (s *Server) handleBDJStatus(w http.ResponseWriter, r *http.Request) {
-	path := s.DB.GetSetting(r.Context(), "javaPath", "")
-	out := map[string]any{"enabled": s.DB.GetSetting(r.Context(), "bdjEnabled", "0") == "1"}
-	version, where, err := bdsession.JavaStatus(r.Context(), s.Cfg.CacheDir, path)
-	if err != nil {
-		out["error"] = err.Error()
-		if out["enabled"] == true {
-			s.Log.WarnContext(r.Context(), "BD-J is on, but this Java can't run it", "cat", "discs", "err", err)
+	on := s.DB.GetSetting(r.Context(), "bdjEnabled", "0") == "1"
+	out := map[string]any{"enabled": on, "configured": s.Cfg.JavaPath != ""}
+	if !on {
+		if where, err := bdsession.FindJava(s.Cfg.JavaPath); err == nil {
+			out["path"] = where
+		} else {
+			out["error"] = err.Error()
 		}
-	} else {
+		writeJSON(w, 200, out)
+		return
+	}
+	version, where, err := bdsession.JavaStatus(r.Context(), s.Cfg.CacheDir, s.Cfg.JavaPath)
+	switch {
+	case errors.Is(err, bdsession.ErrJavaCantRun):
+		// What a program printed stays in the log.
+		out["error"], out["path"] = "This Java can't run Blu-ray menus. The log says why.", where
+		s.Log.WarnContext(r.Context(), "BD-J is on, but this Java can't run it", "cat", "discs", "err", err)
+	case err != nil:
+		out["error"] = err.Error()
+		s.Log.WarnContext(r.Context(), "BD-J is on, but no Java was found", "cat", "discs", "err", err)
+	default:
 		out["version"], out["path"] = version, where
 	}
 	writeJSON(w, 200, out)

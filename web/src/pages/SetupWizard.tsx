@@ -209,7 +209,7 @@ function AccountStep({ onBack, onDone }: { onBack: () => void; onDone: (u: User,
           <span className={'oobe-strength l' + level} id="pw-strength"><i /><i /><i /><span>{['At least 8 characters', '', 'Good', 'Strong'][level]}</span></span>
         </label>
         <label className="oobe-field">Type it again<input className="input" type="password" required value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" /></label>
-        {needCode && <label className="oobe-field">Setup code<input className="input mono" required value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" /><span className="muted">You're setting this server up from another network, so it asks for the code it wrote to its log when it started.</span></label>}
+        {needCode && <label className="oobe-field">Setup code<input className="input mono" required value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" /><span className="muted">You're setting this server up from another device, so it asks for a code to prove the server is yours. Find it on the server's console (for Docker, <code>docker logs</code>), or in <code>setup-code.txt</code> in its data folder.</span></label>}
         <label className="oobe-ack">
           <input type="checkbox" required checked={ack} onChange={(e) => setAck(e.target.checked)} />
           <span>{legalAckText()} <a href="/legal#your-content" target="_blank" rel="noreferrer">Read the legal notes (opens in a new tab)</a></span>

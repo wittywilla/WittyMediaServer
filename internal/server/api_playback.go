@@ -337,7 +337,7 @@ func (s *Server) handlePlayback(w http.ResponseWriter, r *http.Request) {
 	out := playbackResponse{ItemID: it.ID, Reasons: []string{}, StreamToken: tok, TokenExpires: int(time.Until(exp).Seconds()), Seek: "native",
 		Audio: []playbackAudio{}, Subtitles: []playbackSubtitle{}, SubtitleIndex: -1, SubtitleDelivery: playback.SubNone,
 		ProgressURL: fmt.Sprintf("/api/items/%d/progress", it.ID), DurationSec: float64(it.RuntimeSec), Container: it.Container,
-		NextID: s.Store.NextEpisode(r.Context(), it)}
+		NextID: s.Store.NextEpisode(r.Context(), it, s.access(r))}
 	if it.Progress != nil {
 		out.ResumeSec = it.Progress.ResumeSec
 	}
@@ -355,8 +355,10 @@ func (s *Server) handlePlayback(w http.ResponseWriter, r *http.Request) {
 			code := 500
 			if errors.As(err, new(errBadTrack)) {
 				code = 400
+			} else if errors.Is(err, library.ErrNotFound) {
+				code = 404
 			}
-			writeErr(w, code, err.Error())
+			writeErr(w, code, s.viewerError(r, err))
 			return
 		}
 	default:
@@ -446,6 +448,10 @@ func (s *Server) playbackAudio(r *http.Request, it *library.Item, p playback.Pro
 // playbackVideo decides how to play a video file and sets the stream up.
 func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Profile, b playbackRequest, out *playbackResponse) error {
 	ctx := r.Context()
+	// FFmpeg reads what a link swapped in after the scan points at, if it gets the chance.
+	if !s.Store.LibraryFile(ctx, it.Path) {
+		return library.ErrNotFound
+	}
 	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	pr, err := s.probeOnce(pctx, it.Path)
@@ -597,6 +603,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		}
 	}
 	spec := hls.Spec{
+		ItemID:    it.ID,
 		InputArgs: inputArgs, Source: input, Duration: out.DurationSec, SeekMargin: pr.SeekMargin(), VideoFilter: vf, AudioIndex: audioIdx, AudioChannels: channels,
 		SubtitleIndex: burn, Quality: q, MaxHeight: req.MaxHeight, AudioCodec: audioCodec, VideoIndex: pr.VideoIndex() + videoPick, NoVideo: !src.HasVideo,
 	}
@@ -952,11 +959,15 @@ func (s *Server) handleItemSubtitle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	n, _ := strconv.Atoi(m[1])
+	if !s.Store.LibraryFile(r.Context(), it.Path) {
+		writeErr(w, 404, "file missing")
+		return
+	}
 	pctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 	pr, err := s.probeOnce(pctx, it.Path)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	src := probeSource(it, pr)
@@ -971,7 +982,7 @@ func (s *Server) handleItemSubtitle(w http.ResponseWriter, r *http.Request) {
 		p, err = s.subtitleVTT(r.Context(), it.Path, n)
 	}
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	w.Header().Set("Content-Type", "text/vtt; charset=utf-8")
@@ -991,7 +1002,7 @@ func (s *Server) handleItemSubtitle(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/hls/{id}/master.m3u8: the stream with its subtitle renditions.
 func (s *Server) handleHLSMaster(w http.ResponseWriter, r *http.Request) {
-	sess := s.HLS.Get(r.PathValue("id"))
+	sess := s.visibleStream(r, r.PathValue("id"))
 	if sess == nil {
 		writeErr(w, 404, "no such stream (it may have expired; start playback again)")
 		return
@@ -1010,7 +1021,7 @@ var hlsSubFile = regexp.MustCompile(`^([0-9]{1,3})\.(m3u8|vtt)$`)
 // GET /api/hls/{id}/subs/{n}.m3u8 and {n}.vtt: one subtitle rendition (n is its
 // place in the master playlist): a playlist with one segment, and that segment.
 func (s *Server) handleHLSSubtitle(w http.ResponseWriter, r *http.Request) {
-	sess := s.HLS.Get(r.PathValue("id"))
+	sess := s.visibleStream(r, r.PathValue("id"))
 	if sess == nil || sess.Spec.Variant == nil {
 		writeErr(w, 404, "no such stream")
 		return
@@ -1040,12 +1051,12 @@ func (s *Server) handleHLSSubtitle(w http.ResponseWriter, r *http.Request) {
 		p, err = s.subtitleVTT(logging.WithSession(r.Context(), sess.LogSession()), sess.Spec.Source, rendition.Stream)
 	}
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	b, err := os.ReadFile(p)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		writeErr(w, 500, s.viewerError(r, err))
 		return
 	}
 	w.Header().Set("Content-Type", "text/vtt; charset=utf-8")

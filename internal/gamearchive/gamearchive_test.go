@@ -1266,6 +1266,36 @@ func TestWorkerAnswersOnlyWithCodes(t *testing.T) {
 
 func zipDeflate(w io.Writer) (io.WriteCloser, error) { return flate.NewWriter(w, flate.BestSpeed) }
 
+// A panic while unpacking comes back as an error, and whoever is waiting hears about it. Nothing
+// else would catch one on this goroutine: it would end the server.
+func TestAPanicWhileUnpackingEndsOnlyThatGame(t *testing.T) {
+	dir := t.TempDir()
+	zp := filepath.Join(dir, "game.zip")
+	writeZip(t, zp, zipFile{name: "Game.sfc", data: []byte("rom")})
+	c := newCache(t, 1<<30)
+	c.beforeBuild = func() { panic("a bug in a parser") }
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	_, release, err := c.Acquire(ctx, zp, wittyplay.ByID("snes"))
+	if err == nil {
+		release()
+		t.Fatal("it says it unpacked")
+	}
+	if ctx.Err() != nil {
+		t.Fatal("the job never said it was done")
+	}
+	// The next try gets a clean start.
+	c.beforeBuild = nil
+	c.mu.Lock()
+	clear(c.failed)
+	c.mu.Unlock()
+	if _, release, err := c.Acquire(ctx, zp, wittyplay.ByID("snes")); err != nil {
+		t.Errorf("%v", err)
+	} else {
+		release()
+	}
+}
+
 // A set names its archive after its main game, and that's the one to play, unless all that's
 // on offer in its name is a bad dump or someone's hack of it.
 func TestSetsPlayTheirMainGame(t *testing.T) {

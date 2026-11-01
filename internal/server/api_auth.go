@@ -47,8 +47,8 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"name":          "WittyMediaServer",
 		"version":       version,
 		"setupRequired": setupRequired,
-		// Setting up from outside this network takes the code from the log.
-		"setupCodeRequired": setupRequired && !onLocalNetwork(r),
+		// Setting up from another device takes the code the server wrote down.
+		"setupCodeRequired": setupRequired && s.setupNeedsCode(r),
 		"user":              u,
 		"brandName":         s.DB.GetSetting(r.Context(), "brandName", ""),
 		"brandLogo":         s.DB.GetSetting(r.Context(), "brandLogo", ""),
@@ -67,8 +67,8 @@ type credentials struct {
 	AcknowledgedLegal bool `json:"acknowledgedLegal"`
 }
 
-// maxCredentialBytes caps sign-in and setup requests (no name or password
-// comes near this); they are the only ones anyone can send without an account.
+// maxCredentialBytes caps every request anyone can send without an account (no name,
+// password or pairing code comes near this). See publicBody.
 const maxCredentialBytes = 16 << 10
 
 func (s *Server) setCookie(w http.ResponseWriter, r *http.Request, token string) {
@@ -82,20 +82,32 @@ func (s *Server) setCookie(w http.ResponseWriter, r *http.Request, token string)
 // step, so two browsers racing through setup cannot both become admin.
 var setupMu sync.Mutex
 
+// setupNeedsCode: whoever makes the first account owns the server. On the server's own
+// desktop nobody else can be asking. Anywhere else, the home network included, a flatmate,
+// a visitor on the Wi-Fi or a hacked device could get there first, so it takes the code
+// that only someone with access to the machine can read. WMS_SETUP_FROM_HOME=1 lets the
+// home network go without it.
+func (s *Server) setupNeedsCode(r *http.Request) bool {
+	if s.Cfg != nil && s.Cfg.SetupFromHome && onLocalNetwork(r) {
+		return false
+	}
+	return !onThisMachine(r)
+}
+
 func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxCredentialBytes)
+	var c credentials
+	if err := readJSON(r, &c); err != nil { // before the lock: a slow sender mustn't hold up everyone
+		writeErr(w, 400, err.Error())
+		return
+	}
 	setupMu.Lock()
 	defer setupMu.Unlock()
 	if s.Auth.UserCount(r.Context()) > 0 {
 		writeErr(w, 409, "already set up")
 		return
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, maxCredentialBytes)
-	var c credentials
-	if err := readJSON(r, &c); err != nil {
-		writeErr(w, 400, err.Error())
-		return
-	}
-	if !onLocalNetwork(r) {
+	if s.setupNeedsCode(r) {
 		if d := s.logins.begin("setup|"+addressKey(r), freeTriesPerName); d > 0 {
 			w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
 			writeErr(w, 429, "Too many wrong setup codes. Try again later.")
@@ -103,7 +115,7 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 		}
 		if !s.setupCodeOK(c.SetupCode) {
 			s.Log.WarnContext(r.Context(), "setup refused: wrong setup code", "cat", "auth", "from", addressKey(r))
-			writeErr(w, 403, "Setting up this server from another network takes its setup code. You'll find it in the server's log.")
+			writeErr(w, 403, "Setting up this server from another device takes its setup code. It's on the server's console, and in setup-code.txt in its data folder.")
 			return
 		}
 	}
@@ -121,6 +133,7 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 			s.Log.Warn("couldn't record the first-run notice", "err", err)
 		}
 	}
+	s.forgetSetupCode()
 	s.setCookie(w, r, tok)
 	writeJSON(w, 200, map[string]any{"token": tok, "user": u})
 }
@@ -164,18 +177,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"token": tok, "user": u})
 }
 
-// loginAllowed answers 429 when this client has failed too often, or when too
+// signInAllowed answers 429 when this client has failed too often, or when too
 // many passwords are being checked right now. Otherwise it holds one of the
-// places for checking a password until release is called.
-func (s *Server) loginAllowed(w http.ResponseWriter, r *http.Request, name string) (release func(), ok bool) {
-	if !s.loginWaitOver(w, r, name) {
-		return nil, false
-	}
-	return s.loginSlot(w, r)
-}
-
-// signInAllowed is loginAllowed for signing in. An attempt counts when it
-// starts, not when its password turns out wrong: otherwise hundreds of guesses
+// places for checking a password until release is called. An attempt counts when
+// it starts, not when its password turns out wrong: otherwise hundreds of guesses
 // sent at once all pass before the first one ends.
 func (s *Server) signInAllowed(w http.ResponseWriter, r *http.Request, name string) (release func(), ok bool) {
 	if d := s.logins.attempt(r, name); d > 0 {
@@ -205,16 +210,6 @@ func (s *Server) loginSlot(w http.ResponseWriter, r *http.Request) (release func
 	}
 }
 
-// loginWaitOver answers 429 when this client has failed too often.
-func (s *Server) loginWaitOver(w http.ResponseWriter, r *http.Request, name string) bool {
-	d := s.logins.gate(r, name)
-	if d <= 0 {
-		return true
-	}
-	tooManyTries(w, d)
-	return false
-}
-
 func tooManyTries(w http.ResponseWriter, d time.Duration) {
 	w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
 	writeErr(w, 429, fmt.Sprintf("Too many wrong tries. Try again in %s.", waitText(d)))
@@ -233,11 +228,6 @@ func (s *Server) endSessions(r *http.Request, id int64, keep string) {
 	if err := s.Auth.EndSessions(r.Context(), id, keep); err != nil {
 		s.Log.ErrorContext(r.Context(), "could not sign an account out of its other devices", "cat", "auth", "account", id, "err", err)
 	}
-}
-
-func (s *Server) signInFailed(r *http.Request, name string) {
-	s.logins.failed(r, name)
-	s.logSignInFailure(r, name)
 }
 
 // logSignInFailure writes down a failure that has already been counted.
@@ -389,6 +379,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		Kind        string          `json:"kind"`
 		Access      *library.Access `json:"access"`
 		DisplayName string          `json:"displayName"`
+		Current     string          `json:"current"` // your own password, for a new administrator
 	}
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, 400, err.Error())
@@ -404,6 +395,9 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	if !me.IsAdmin {
 		c.IsAdmin = false
+	}
+	if c.IsAdmin && c.Kind == auth.KindAdult && !s.confirmOwner(w, r, c.Current, c.Code) {
+		return
 	}
 	restr := ""
 	if c.Access != nil || c.Kind != auth.KindAdult {
@@ -543,15 +537,34 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "cannot delete that user")
 		return
 	}
-	if target, err := s.Auth.User(r.Context(), id); err != nil || !s.canManage(r, userFrom(r), target.Kind) {
+	target, err := s.Auth.User(r.Context(), id)
+	if err != nil || !s.canManage(r, userFrom(r), target.Kind) {
 		writeErr(w, 403, "not allowed")
 		return
+	}
+	if target.IsAdmin {
+		var b struct {
+			Current string `json:"current"`
+			Code    string `json:"code"`
+		}
+		if err := readJSON(r, &b); err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
+		if !s.confirmOwner(w, r, b.Current, b.Code) {
+			return
+		}
 	}
 	if err := s.Auth.DeleteUser(r.Context(), id); err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}
 	s.removeUserGameFiles(id)
+	if s.TV != nil {
+		if err := s.TV.ForgetUser(r.Context(), id); err != nil {
+			s.Log.ErrorContext(r.Context(), "could not hand over a removed account's recordings", "cat", "tv", "err", err)
+		}
+	}
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -565,9 +578,11 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 	// Your own password (adults), or one you manage. Kids and Guest
 	// profiles cannot change theirs: the people who manage them do.
 	allowed := id == u.ID && u.Kind == auth.KindAdult
+	otherAdmin := false
 	if id != u.ID {
-		if t, err := s.Auth.User(r.Context(), id); err == nil && !t.IsAdmin && s.canManage(r, u, t.Kind) {
-			allowed = true
+		if t, err := s.Auth.User(r.Context(), id); err == nil {
+			otherAdmin = t.IsAdmin
+			allowed = !t.IsAdmin && s.canManage(r, u, t.Kind)
 		}
 	}
 	if !allowed && !(u.IsAdmin && id != u.ID) {
@@ -577,6 +592,7 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 	var c struct {
 		Password string `json:"password"`
 		Current  string `json:"current"`
+		Code     string `json:"code"`
 	}
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, 400, err.Error())
@@ -586,6 +602,10 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 	// another device can't lock you out of your account. Wrong guesses count
 	// like wrong sign-ins, so that session can't be used to guess it either.
 	if id == u.ID && !s.checkOwnPassword(w, r, u, c.Current) {
+		return
+	}
+	// Taking over another administrator is what a stolen session would want.
+	if otherAdmin && !s.confirmOwner(w, r, c.Current, c.Code) {
 		return
 	}
 	if err := s.Auth.SetPassword(r.Context(), id, c.Password); err != nil {

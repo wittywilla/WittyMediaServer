@@ -17,6 +17,50 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   can carry a starter set of signed modules for a machine with no network.
 - **Each module carries the licenses of its own libraries,** which a server shows at `GET /api/modules/{id}/notices`.
 - **`wms dvd`, `wms bluray` and `wms cd` are gone,** along with the built-in copy of each module. Those tools come with their modules.
+- **Live TV:** FFmpeg no longer reads an internet stream itself. It reads through a small gate on this machine, so an encryption key that appears in a playing stream is refused within a second, before FFmpeg sees it, and a playlist can't lead the server to your home network. A stream's address and login are no longer on FFmpeg's command line.
+- **Fixed, serious:** a web page could claim a fresh server from the browser of anyone at home, or read the list of accounts and sign in as a password-free profile, by sending a made-up header. A page elsewhere never counts as being at home now.
+- **Fixed, serious:** a 100-byte picture from any adult's upload could stop the server, and stop it again at every scan.
+- **Security:** setup from anywhere but the server's own desktop asks for the setup code, so someone else on your network can't get there first. The code is on the console and in `setup-code.txt` in the data folder; `setupFromHome` goes back to not asking at home.
+- **Security:** a file in a library that is really FFmpeg's list format, a playlist, or text no longer opens: FFmpeg only reads library files as real media formats.
+- **Security:** the Java for Blu-ray menus is set in the config file (`javaPath`, `WMS_JAVA`) and no longer in Settings. A location saved earlier is ignored.
+- **Security:** a playlist from the internet can't send the server to your home network or to a file. Its guide has to be a web address, and its channels web streams. RTSP, RTMP, SRT, UDP and DASH channels in one stop working; add them as single streams.
+- **Security:** network shares and device paths can't be chosen from another device, unless `allowNetworkPaths` is set. Libraries already on a share keep working.
+- **Security:** a link in a library folder can't hand over files from elsewhere on the machine. Everything that sends a library file now opens it in a way that can't leave the library.
+- **Security:** only administrators see file locations and the web addresses of radio stations and podcast episodes, everywhere. Tuner and recording errors no longer show a stream's address or login.
+- **Security:** someone without an account can no longer fill the server's memory with unfinished requests: every request sent without signing in is limited to 16 KB and 15 seconds. Ordinary API requests are limited to 1 MB, down from 4.
+- **Security:** limits on open connections (2048 in all, 128 from one address, `maxConnections` to change it), with room kept for your home network. A client that stops reading is let go after 2 minutes, or 15 for a file being played.
+- **Security:** a game session takes only so many connections, so an account allowed to play can't run the machine out.
+- **Security:** helpers can't open a file to other accounts through its access list, and can't reach the kernel's more exposed corners.
+- **Sign-in:** a flood of made-up names can't wipe the sign-in limits, one address can't lock a name for everyone else, and counts last until six hours of quiet. Your own password and two-factor code, when asked again, count as they start, so a burst from a stolen session can't get through.
+- **Accounts:** names that differ only in case are now taken. Confirming two-factor again changes nothing. Comments, collections and albums have a generous limit per account.
+- **Password-free profiles:** their sign-ins now only work at home, those made earlier included.
+- **Reverse proxies:** an address a trusted proxy sends that can't be read counts as the internet, never as this machine. Ports and brackets are understood.
+- **Pairing:** strangers can't use up the places for pairing or stop a code working at home, and a pending code ends with the sign-in that made it.
+- **Administrators:** adding or removing one, or changing another's password, asks for your password and code.
+- **Custom game cores:** they now also need `WMS_GAMING_CUSTOM_CORES=1` on the machine. If you use them, set this after updating.
+- **Modules:** using a fork, going back to an older version or rolling back asks for your password and code, and is written down. `WMS_NO_MODULE_FORKS=1` keeps forks off.
+- **Share links** are removed with what they share. A link to an album stops working when its owner makes the album private, only its owner can link it, and a shared page no longer shows who shared it.
+- **Recordings:** each person sees and manages their own, an administrator all of them. Channels that are turned off can't be recorded, one person can have 50 waiting and 20 series, and a recording stops when under 2 GB is left on its disk.
+- **Uploads:** each person has a total, 100 GB by default, in Settings, Sharing & photos, and uploads stop when under 2 GB is left on the disk. Downloaded episodes stop with 512 MB left.
+- **Games:** a Guest profile can't upload anything, and only adults can add patches.
+- **Limits:** a limited account can no longer use a stream or disc session of something it may not see, and show pages, next episodes, album covers and the year in review keep to what it may see. Opening a fifth disc closes your own oldest rather than someone else's.
+- **Updates:** a server version can be withdrawn by a signed list, and a server running one says so in Settings. Someone on a full release isn't moved to a test version.
+- **Logs:** more kinds of key are hidden, a podcast's address stays out, and apps' reports have a daily budget so nobody can push older lines out.
+- **Fixed:** a slow guide host could stop the server saving anything for up to 10 minutes. A huge or unusual file beside the media (an NFO, a metadata file, a pipe) could stop library scans or run the server out of memory: NFO and metadata files must now be plain files of at most 4 MB. A crafted book could hold a processor for days, or take gigabytes of memory to open. A rating or length of "Inf" in a file emptied every list holding that item. A title with `=` or `\` in its file name couldn't have subtitles burned in. A programme called CON or similar failed to record on Windows. With `-listen` set to one address, the local discovery port also answered on the machine's other networks.
+- **Containers and services:** the compose file and Kubernetes deployment run with a read-only root, no capabilities and nothing to gain, and the systemd unit is sandboxed further. A new data folder on Windows is private to the server's account.
+- **Bundled FFmpeg:** by exact file and hash. Windows, Linux and macOS packages move from a rolling build to the 9.0.2 release.
+- **Fixed:** a crafted lyrics file could run the server out of memory. Lyrics, booklets and artist pictures beside a song are read the same safe way as other library files, and an artist picture must be a picture.
+- **Limits:** liked songs, logo credits and a title's extras keep to what an account may see, and logo and listing totals are for administrators.
+- **Lyrics:** your own lyrics server stays the only place that connection goes: redirects stay on its host. A logo's preview waits until logo downloads are agreed to. Guide searches take turns. Bumper uploads leave room on the disk.
+- **Backups:** downloading a backup, deleting one, keeping fewer of them, and starting to replace a library's originals each ask for your password, so a stolen session can't take the way back. A backup with no password can't bring keys, this server's identity or a share on another machine when restored, and libraries that convert by themselves come back off. Backups can't turn on custom cores. Uploads and checks leave room on the disk.
+- **Removing a recording** only ever removes a file in the recordings folder.
+- **Conversions:** a split film's parts, and files being converted, are held to the same list of formats as anything else played from a library. Tdarr's key goes only to the address it was saved for, and changing the address asks for it again. Repair won't look at a share on another machine unless you allow those.
+- **Books and lyrics:** timed lyrics can't use up the processor or the memory, and book pages draw two at a time. Files inside an EPUB are never sent as scripts.
+- **Themes:** can no longer load anything from other sites. A stylesheet that names an outside address, even in a comment, is refused, and one already installed stops being served. Put images and fonts in the theme's ZIP. A theme's files opened on their own are sandboxed.
+- **Web:** the redirect to HTTPS only ever keeps the path and query. Files sent to a signed-in account are marked private for caches in front of the server. HTTPS stays on (HSTS) behind a trusted proxy that says the connection is encrypted. Links from metadata, stations and modules only ever go to web addresses.
+- **FFmpeg:** which one a server runs is shown only to administrators.
+- **Docs:** `docs/SECURITY-ROUTES.md` lists every route, who may call it and what it validates, including every route that came with this release.
+- **Libraries:** everything updated to its newest stable version, including Vite 8, TypeScript 7 and pdf.js 6. The same older browsers and TVs are still reached.
 - **Library transcoding.** Convert a library's files ahead of time, under **Settings, Library transcoding**. Three plain presets (play on any
   device, save space, keep the best quality), with every detail open to change: sound tracks and subtitles by language, commentary, audio description, a
   stereo track beside surround, lossless and object sound, forced and picture subtitles, HDR, Dolby Vision, 3D, files with several pictures, and more. A

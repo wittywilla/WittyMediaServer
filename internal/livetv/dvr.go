@@ -12,11 +12,14 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/tuner"
 )
@@ -28,6 +31,7 @@ import (
 // Recording is one recording, past or to come.
 type Recording struct {
 	ID        int64  `json:"id"`
+	UserID    int64  `json:"-"` // who set it up, or whose rule it came from; 0 for nobody now
 	ChannelID int64  `json:"channelId"`
 	Channel   string `json:"channel"`
 	Number    string `json:"number"`
@@ -45,6 +49,7 @@ type Recording struct {
 // Rule records every airing of a title on a channel.
 type Rule struct {
 	ID        int64  `json:"id"`
+	UserID    int64  `json:"-"`
 	ChannelID int64  `json:"channelId"`
 	Channel   string `json:"channel"`
 	Title     string `json:"title"`
@@ -56,23 +61,51 @@ const (
 	padAfter  = 120
 )
 
-const recCols = `r.id, r.channel_id, IFNULL(NULLIF(c.name_set, ''), IFNULL(c.name, '')), IFNULL(NULLIF(c.number_set, ''), IFNULL(c.number, '')), r.title, r.sub, r.start, r.stop, r.status, r.error, r.path, r.rule_id`
+// sameAiring: two starts this close on one channel are one programme, however its title is spelled.
+const sameAiring = 60
 
-func scanRec(sc interface{ Scan(...any) error }) (*Recording, error) {
+// How many recordings run at once, whichever tuners they use: a source that names no limit
+// of its own could otherwise be asked for any number.
+const maxRecordingsAtOnce = 16
+
+// recordingFreeFloor is the room a recording leaves on its disk. The server's database may
+// share that disk, and stops when it's full. recordingFreeEvery is how often it looks.
+var (
+	recordingFreeFloor int64 = 2 << 30
+	recordingFreeEvery       = 30 * time.Second
+)
+
+const recCols = `r.id, IFNULL(r.user_id, IFNULL((SELECT u.user_id FROM recording_rules u WHERE u.id = r.rule_id), 0)), r.channel_id, IFNULL(NULLIF(c.name_set, ''), IFNULL(c.name, '')), IFNULL(NULLIF(c.number_set, ''), IFNULL(c.number, '')), r.title, r.sub, r.start, r.stop, r.status, r.error, r.path, r.rule_id`
+
+func (m *Manager) scanRec(sc interface{ Scan(...any) error }) (*Recording, error) {
 	var r Recording
 	var rule sql.NullInt64
-	if err := sc.Scan(&r.ID, &r.ChannelID, &r.Channel, &r.Number, &r.Title, &r.Sub, &r.Start, &r.Stop, &r.Status, &r.Error, &r.Path, &rule); err != nil {
+	if err := sc.Scan(&r.ID, &r.UserID, &r.ChannelID, &r.Channel, &r.Number, &r.Title, &r.Sub, &r.Start, &r.Stop, &r.Status, &r.Error, &r.Path, &rule); err != nil {
 		return nil, err
 	}
 	if rule.Valid {
 		r.RuleID = &rule.Int64
 	}
-	if r.Path != "" {
+	if m.inRecordingsFolder(r.Path) {
 		if st, err := os.Stat(r.Path); err == nil {
 			r.SizeBytes = st.Size()
 		}
 	}
 	return &r, nil
+}
+
+// inRecordingsFolder says a path is a file this server would have recorded to. A row's path can
+// have come from a backup, whoever made that, so nothing outside the folder is looked at or removed.
+func (m *Manager) inRecordingsFolder(p string) bool {
+	if p == "" || m.Folder == nil {
+		return false
+	}
+	folder := m.Folder()
+	if folder == "" {
+		return false
+	}
+	rel, err := filepath.Rel(folder, p)
+	return err == nil && rel != "." && filepath.IsLocal(rel)
 }
 
 // Recordings lists every recording, newest first.
@@ -84,7 +117,7 @@ func (m *Manager) Recordings(ctx context.Context) ([]*Recording, error) {
 	defer rows.Close()
 	out := []*Recording{}
 	for rows.Next() {
-		r, err := scanRec(rows)
+		r, err := m.scanRec(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -99,6 +132,9 @@ func (m *Manager) Schedule(ctx context.Context, channelID, userID int64, title, 
 	c, err := m.Channel(ctx, channelID)
 	if err != nil {
 		return nil, err
+	}
+	if !c.Enabled {
+		return nil, ErrNotFound
 	}
 	if c.Encrypted != "" {
 		return nil, &tuner.EncryptedError{Channel: c.Name, Why: c.Encrypted}
@@ -117,7 +153,7 @@ func (m *Manager) Schedule(ctx context.Context, channelID, userID int64, title, 
 		return nil, errors.New("that programme has already finished")
 	}
 	var dup int64
-	if m.DB.QueryRowContext(ctx, `SELECT id FROM recordings WHERE channel_id = ? AND start = ? AND status IN ('scheduled', 'recording')`, channelID, start).Scan(&dup) == nil {
+	if m.DB.QueryRowContext(ctx, `SELECT id FROM recordings WHERE channel_id = ? AND start > ? AND start < ? AND status IN ('scheduled', 'recording')`, channelID, start-sameAiring, start+sameAiring).Scan(&dup) == nil {
 		return nil, errors.New("that programme is already being recorded")
 	}
 	res, err := m.DB.ExecContext(ctx, `INSERT INTO recordings(channel_id, user_id, title, sub, start, stop, status, created_at) VALUES(?,?,?,?,?,?,'scheduled',?)`,
@@ -130,8 +166,48 @@ func (m *Manager) Schedule(ctx context.Context, channelID, userID int64, title, 
 	return m.recording(ctx, id)
 }
 
+// Recording is one recording.
+func (m *Manager) Recording(ctx context.Context, id int64) (*Recording, error) {
+	return m.recording(ctx, id)
+}
+
+// PendingRecordings is how many recordings of an account are yet to finish.
+func (m *Manager) PendingRecordings(ctx context.Context, userID int64) (int, error) {
+	var n int
+	err := m.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM recordings r WHERE status IN ('scheduled', 'recording')
+		AND IFNULL(r.user_id, IFNULL((SELECT u.user_id FROM recording_rules u WHERE u.id = r.rule_id), 0)) = ?`, userID).Scan(&n)
+	return n, err
+}
+
+// RuleCount is how many series recordings an account has.
+func (m *Manager) RuleCount(ctx context.Context, userID int64) (int, error) {
+	var n int
+	err := m.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM recording_rules WHERE user_id = ?`, userID).Scan(&n)
+	return n, err
+}
+
+// RuleOwner is who made a series recording; 0 for nobody now.
+func (m *Manager) RuleOwner(ctx context.Context, id int64) (int64, error) {
+	var owner sql.NullInt64
+	err := m.DB.QueryRowContext(ctx, `SELECT user_id FROM recording_rules WHERE id = ?`, id).Scan(&owner)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, ErrNotFound
+	}
+	return owner.Int64, err
+}
+
+// ForgetUser leaves an account's recordings with nobody, for administrators to look after.
+// Numbers of removed accounts come round again, and these shouldn't go with them.
+func (m *Manager) ForgetUser(ctx context.Context, userID int64) error {
+	if _, err := m.DB.ExecContext(ctx, `UPDATE recordings SET user_id = NULL WHERE user_id = ?`, userID); err != nil {
+		return err
+	}
+	_, err := m.DB.ExecContext(ctx, `UPDATE recording_rules SET user_id = NULL WHERE user_id = ?`, userID)
+	return err
+}
+
 func (m *Manager) recording(ctx context.Context, id int64) (*Recording, error) {
-	r, err := scanRec(m.DB.QueryRowContext(ctx, `SELECT `+recCols+` FROM recordings r LEFT JOIN tuner_channels c ON c.id = r.channel_id WHERE r.id = ?`, id))
+	r, err := m.scanRec(m.DB.QueryRowContext(ctx, `SELECT `+recCols+` FROM recordings r LEFT JOIN tuner_channels c ON c.id = r.channel_id WHERE r.id = ?`, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -150,7 +226,7 @@ func (m *Manager) CancelRecording(ctx context.Context, id int64, deleteFile bool
 	if cancel != nil {
 		cancel()
 	}
-	if deleteFile && r.Path != "" {
+	if deleteFile && m.inRecordingsFolder(r.Path) {
 		if err := os.Remove(r.Path); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("the file could not be deleted: %w", err)
 		}
@@ -164,6 +240,9 @@ func (m *Manager) AddRule(ctx context.Context, channelID, userID int64, title st
 	c, err := m.Channel(ctx, channelID)
 	if err != nil {
 		return nil, err
+	}
+	if !c.Enabled {
+		return nil, ErrNotFound
 	}
 	if c.Encrypted != "" {
 		return nil, &tuner.EncryptedError{Channel: c.Name, Why: c.Encrypted}
@@ -181,12 +260,12 @@ func (m *Manager) AddRule(ctx context.Context, channelID, userID int64, title st
 	}
 	id, _ := res.LastInsertId()
 	m.Start()
-	return &Rule{ID: id, ChannelID: channelID, Channel: c.Name, Title: title}, nil
+	return &Rule{ID: id, UserID: userID, ChannelID: channelID, Channel: c.Name, Title: title}, nil
 }
 
 // Rules lists series recordings.
 func (m *Manager) Rules(ctx context.Context) ([]Rule, error) {
-	rows, err := m.DB.QueryContext(ctx, `SELECT r.id, r.channel_id, IFNULL(NULLIF(c.name_set, ''), IFNULL(c.name, '')), r.title FROM recording_rules r LEFT JOIN tuner_channels c ON c.id = r.channel_id ORDER BY r.title COLLATE NOCASE`)
+	rows, err := m.DB.QueryContext(ctx, `SELECT r.id, IFNULL(r.user_id, 0), r.channel_id, IFNULL(NULLIF(c.name_set, ''), IFNULL(c.name, '')), r.title FROM recording_rules r LEFT JOIN tuner_channels c ON c.id = r.channel_id ORDER BY r.title COLLATE NOCASE`)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +273,7 @@ func (m *Manager) Rules(ctx context.Context) ([]Rule, error) {
 	out := []Rule{}
 	for rows.Next() {
 		var r Rule
-		if err := rows.Scan(&r.ID, &r.ChannelID, &r.Channel, &r.Title); err != nil {
+		if err := rows.Scan(&r.ID, &r.UserID, &r.ChannelID, &r.Channel, &r.Title); err != nil {
 			return nil, err
 		}
 		out = append(out, r)
@@ -224,7 +303,7 @@ func (m *Manager) applyRules(ctx context.Context) {
 	now := time.Now()
 	for _, rule := range rules {
 		c, err := m.Channel(ctx, rule.ChannelID)
-		if err != nil {
+		if err != nil || !c.Enabled {
 			continue
 		}
 		list, err := m.Guide(ctx, c, now, now.AddDate(0, 0, 7))
@@ -236,9 +315,9 @@ func (m *Manager) applyRules(ctx context.Context) {
 				continue
 			}
 			// One statement: the scheduler and a new rule can both be here at once.
-			_, _ = m.DB.ExecContext(ctx, `INSERT INTO recordings(channel_id, title, sub, start, stop, status, rule_id, created_at)
-				SELECT ?,?,?,?,?,'scheduled',?,? WHERE NOT EXISTS (SELECT 1 FROM recordings WHERE channel_id = ? AND start = ?)`,
-				rule.ChannelID, p.Title, p.Sub, p.Start, p.End, rule.ID, db.Now(), rule.ChannelID, p.Start)
+			_, _ = m.DB.ExecContext(ctx, `INSERT INTO recordings(channel_id, user_id, title, sub, start, stop, status, rule_id, created_at)
+				SELECT ?,NULLIF(?, 0),?,?,?,?,'scheduled',?,? WHERE NOT EXISTS (SELECT 1 FROM recordings WHERE channel_id = ? AND start = ?)`,
+				rule.ChannelID, rule.UserID, p.Title, p.Sub, p.Start, p.End, rule.ID, db.Now(), rule.ChannelID, p.Start)
 		}
 	}
 }
@@ -307,7 +386,7 @@ func (m *Manager) startDue(ctx context.Context) {
 	}
 	var due []*Recording
 	for rows.Next() {
-		if r, err := scanRec(rows); err == nil {
+		if r, err := m.scanRec(rows); err == nil {
 			due = append(due, r)
 		}
 	}
@@ -339,6 +418,13 @@ func (m *Manager) startDue(ctx context.Context) {
 	}
 }
 
+const diskFullReason = "the disk it records to is nearly full"
+
+func diskNearlyFull(dir string) bool {
+	free := sysinfo.FreeBytes(dir)
+	return free >= 0 && free < recordingFreeFloor
+}
+
 // finish is where every recording ends, so each that fails leaves a record here.
 func (m *Manager) finish(id int64, status, msg, path string) {
 	_, err := m.DB.Exec(`UPDATE recordings SET status = ?, error = ?, path = CASE WHEN ? <> '' THEN ? ELSE path END WHERE id = ?`, status, msg, path, path, id)
@@ -367,20 +453,31 @@ func (m *Manager) record(r *Recording) {
 		}
 	}()
 	m.mu.Lock()
-	m.running()[r.ID] = cancel
+	busy := len(m.running()) >= maxRecordingsAtOnce
+	if !busy {
+		m.running()[r.ID] = cancel
+	}
 	m.mu.Unlock()
+	if busy {
+		m.finish(r.ID, "failed", "too many recordings were already running", "")
+		return
+	}
 	defer func() {
 		m.mu.Lock()
 		delete(m.running(), r.ID)
 		m.mu.Unlock()
 	}()
-	if c, err := m.Channel(ctx, r.ChannelID); err == nil && c.NoRecord != "" {
+	if c, err := m.Channel(ctx, r.ChannelID); err == nil && !c.Enabled {
+		m.finish(r.ID, "failed", "this channel has been turned off", "")
+		return
+	} else if err == nil && c.NoRecord != "" {
 		m.finish(r.ID, "failed", fmt.Sprintf("%s can't be recorded: %s", c.Name, c.NoRecord), "")
 		return
 	}
 	opened, err := m.openForRecording(ctx, r.ChannelID)
 	if err != nil {
-		m.finish(r.ID, "failed", err.Error(), "")
+		log.Warn("a recording couldn't start", "err", err)
+		m.finish(r.ID, "failed", PublicError(err), "")
 		return
 	}
 	done := ""
@@ -392,11 +489,39 @@ func (m *Manager) record(r *Recording) {
 	defer opened.Release() // first: whoever is told may use the tuner
 	path, err := m.recordPath(r)
 	if err != nil {
-		m.finish(r.ID, "failed", err.Error(), "")
+		log.Warn("a recording has nowhere to go", "err", err)
+		m.finish(r.ID, "failed", PublicError(err), "")
+		return
+	}
+	if diskNearlyFull(filepath.Dir(path)) {
+		m.finish(r.ID, "failed", diskFullReason, "")
 		return
 	}
 	_, _ = m.DB.Exec(`UPDATE recordings SET path = ? WHERE id = ?`, path, r.ID)
-	err = m.write(ctx, log, opened, path)
+	var outOfRoom atomic.Bool
+	writing, stopLooking := context.WithCancel(ctx)
+	defer stopLooking()
+	logging.Go("recording disk space", func() {
+		for {
+			select {
+			case <-writing.Done():
+				return
+			case <-time.After(recordingFreeEvery):
+				if diskNearlyFull(filepath.Dir(path)) {
+					outOfRoom.Store(true)
+					stopLooking()
+					return
+				}
+			}
+		}
+	}, "cat", "tv")
+	err = m.write(writing, log, opened, path)
+	stopLooking()
+	if outOfRoom.Load() {
+		m.finish(r.ID, "failed", diskFullReason, path)
+		done = path
+		return
+	}
 	if refused := opened.Refusal(); refused != nil {
 		// All of it was clear until then, and stays. It stops here, for the same reason
 		// as anyone trying to watch.
@@ -416,7 +541,8 @@ func (m *Manager) record(r *Recording) {
 	}
 	// The deadline ending a recording is normal; so is a viewer cancelling it.
 	if err != nil && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) && ctx.Err() == nil {
-		m.finish(r.ID, "failed", err.Error(), path)
+		log.Warn("a recording stopped", "err", err)
+		m.finish(r.ID, "failed", PublicError(err), path)
 		return
 	}
 	m.finish(r.ID, "done", "", path)
@@ -509,6 +635,10 @@ func safeFileName(s string) string {
 	}
 	if len(s) > 120 {
 		s = clip(s, 120)
+	}
+	// A programme called CON would be a console on Windows, not a folder.
+	if library.ReservedName(s) {
+		s = "Recording " + s
 	}
 	return s
 }

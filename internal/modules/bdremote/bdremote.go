@@ -60,6 +60,13 @@ func Use(m *modules.Manager) {
 		}
 		return probe(a, path)
 	}
+	bdsession.JavaFinder = func(path string) (string, error) {
+		a := m.Attach(moduleID, javaProbeLimit)
+		if a == nil {
+			return "", m.Missing(moduleID)
+		}
+		return find(a, path)
+	}
 }
 
 // javaProbeLimit is how long Java may take to say whether it can run a disc's programs.

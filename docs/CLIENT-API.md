@@ -81,14 +81,20 @@ for this account** (titles an account may not see don't exist as far as it can t
 429 slow down (`Retry-After` says for how long), 503 busy (for example, every transcode slot is in use: a
 stream's segments may answer this, so wait `Retry-After` and try again), other 5xx a problem on the server.
 
+**Limits.** Routes that need no sign-in take a body of 16 KB, sent within 15 seconds. JSON elsewhere takes 1 MB.
+A game session takes 8 WebRTC offers at once and one more a minute, and 4 WebSocket viewers (429 past that). One
+address can hold 128 connections, so reuse them, and a response that a client doesn't read for 2 minutes (15 for
+a file being played) is ended: ask again with `Range` to carry on.
+
 **Numbers.** Times are seconds as floating point unless a name says otherwise; `...At` values are Unix
 seconds. IDs are integers, except session and stream IDs, which are strings to pass back unchanged.
 
 **Lists** that can be long take `limit` and `offset` and answer with `total` (`/items`), so don't fetch
 a whole library for a screen. Filtering and sorting always happen on the server.
 
-**Files on the server** are not for apps. An item's `path`, `poster` and `backdrop` fields are empty or
-say little for anyone but an administrator: use the routes for pictures, and `/playback` for media.
+**Files on the server** are not for apps. An item's `path` is empty for anyone but an administrator, a
+podcast episode's and a radio station's included, as their addresses can hold a key. `poster` and
+`backdrop` say little. Use the routes for pictures, and `/playback` for media.
 
 **Artwork** is a plain image route. Add `v=<updatedAt>` to the address so it can be cached until the
 item changes. Items and shows without a picture answer 404: draw a placeholder.
@@ -147,7 +153,8 @@ For someone typing an address or a URL. This is the whole check, in order:
 
 1. **Tidy it up.** Trim it. With no scheme, add `http://`. With neither a scheme nor a port, add port
    9797. Remove any path, query and trailing slash.
-2. **Ask.** `GET /api/v1/capabilities`, with a timeout of about 5 seconds, sending no token.
+2. **Ask.** `GET /api/v1/capabilities`, with a timeout of about 5 seconds, sending no token. From the
+   internet, `version` is empty until you sign in: go by `apiVersion` and `features`.
 3. **Is it a WittyMediaServer?**
 
    | Answer | Means | Say |
@@ -1001,11 +1008,11 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 
 | Route | Who | What it does |
 |---|---|---|
-| `GET /logos/status` | Signed in | Whether logo downloads are agreed to, and how far they have got. |
+| `GET /logos/status` | Signed in | Whether logo downloads are agreed to, and for an administrator how far they have got. |
 | `PUT /logos/consent` | Admin | Agree or decline logo downloads, and optionally remove what was downloaded. |
 | `POST /logos/lookup` | Signed in | What to show for up to 200 names: a logo, or the name. |
-| `GET /logos/credits` | Signed in | Where every logo came from: source, licence and author. |
-| `GET /logos/preview` | Admin | A candidate logo, through this server. Wikimedia addresses only. |
+| `GET /logos/credits` | Signed in | Where every logo came from: source, licence and author. An account with limits gets the studios and networks of what it may see. |
+| `GET /logos/preview` | Admin | A candidate logo, through this server. Wikimedia addresses only, and 409 until logo downloads are agreed to. |
 | `GET /logos/{id}/image` | Signed in | A logo as a PNG. variant=white, dark or original. |
 | `GET /logos/{id}/candidates` | Admin | What the source offers for a logo, to choose from. |
 | `PUT /logos/{id}` | Admin | Use a candidate, the name alone, or look again. |
@@ -1020,14 +1027,14 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `PUT /views/{id}` | Signed in | Change a saved view, or pin it to Home. |
 | `DELETE /views/{id}` | Signed in | Remove a saved view. |
 | `GET /views/{id}/titles` | Signed in | What a saved view finds now. |
-| `GET /listings/status` | Signed in | Whether streaming listings are on, for which region, and how old they are. |
+| `GET /listings/status` | Signed in | Whether streaming listings are on, for which region, and how old they are. Counts and progress are for an administrator. |
 | `PUT /listings/settings` | Admin | Turn streaming listings on, after accepting every statement, or off, which forgets them. |
 | `POST /listings/refresh` | Admin | Check listings again now. |
 | `GET /meta/removed` | Admin | Titles taken out of libraries. |
 | `POST /meta/removed/restore` | Admin | Bring a removed title back. |
 | `POST /meta/undo` | Admin | Undo a group of changes. |
 | `GET /meta/history` | Admin | Recent changes, each of which can be undone. |
-| `POST /meta/bulk` | Admin | Edit up to 500 titles together. |
+| `POST /meta/bulk` | Admin | Edit up to 500 titles together. A picture must be a web address or a file in a library. |
 | `GET /meta/show/{id}/episodes` | Admin | A show's files beside what its source lists. |
 | `PUT /meta/show/{id}/episodes` | Admin | Renumber a show's episodes. |
 | `GET /meta/{target}/{id}` | Admin | Everything the edit dialog needs. target is item or show. |
@@ -1195,7 +1202,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `PUT /channels/{id}/logo` | admin | Set channel logo. |
 | `DELETE /channels/{id}/logo` | admin | Delete channel logo. |
 | `GET /tv/encrypted-help` | user | Encrypted help. |
-| `GET /guide/search` | user | What is coming up that matches, soonest first. q (2 to 100 letters), days (1 to 14), limit. |
+| `GET /guide/search` | user | What is coming up that matches, soonest first. q (2 to 100 letters), days (1 to 14), limit. 429 with `Retry-After` when several searches are running. |
 | `GET /tv/favourites` | user | This account's favourite channels, as channel keys. The guide marks them too. |
 | `PUT /tv/favourites/{key}` | user | Star a channel. |
 | `DELETE /tv/favourites/{key}` | user | Unstar a channel. |
@@ -1204,7 +1211,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `DELETE /tv/reminders/{id}` | user | One of this account's reminders. |
 | `GET /channels/bumpers` | admin | Videos uploaded for the purpose, chosen from any library, or in a commercials library. |
 | `POST /channels/bumpers` | admin | Body: itemId. Any video in any library. |
-| `POST /channels/bumpers/upload` | admin | The body is the file; ?name= is its name. A video of up to 30 minutes and 2 GB. |
+| `POST /channels/bumpers/upload` | admin | The body is the file; ?name= is its name. A video of up to 30 minutes and 2 GB. 507 when the disk is nearly full. |
 | `DELETE /channels/bumpers/item/{id}` | admin | An upload goes altogether, its file too. A chosen video only comes off the list. |
 | `GET /channels/discs` | admin | Every disc, whether it is encrypted, and the words for refusing those that are. |
 | `POST /channels/clip-preview` | admin | Body: item, title. An HLS stream of the title, to try a scene before adding it. |
@@ -1225,9 +1232,9 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `DELETE /epg/sources/{id}` | admin | Delete EPG source. |
 | `POST /epg/sources/{id}/refresh` | admin | Refresh EPG source. |
 | `GET /epg/ids` | admin | EPGI ds. |
-| `GET /recordings` | user | Recordings. |
-| `POST /recordings` | user | Schedule. |
-| `DELETE /recordings/{id}` | user | Cancel recording. |
+| `GET /recordings` | user | This account's recordings, and an administrator's sees everyone's. |
+| `POST /recordings` | user | Schedule. 404 for a channel turned off, 409 at 50 waiting (not for an administrator). |
+| `DELETE /recordings/{id}` | user | Cancel a recording of this account's; an administrator, anyone's. |
 
 ### Games
 
@@ -1500,7 +1507,7 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `GET /libtranscode/settings` | admin | How conversions run on this server |
 | `PUT /libtranscode/settings` | admin | Changes that. Turning it on needs the warning accepted |
 | `GET /libtranscode/libraries` | admin | Libraries that hold video files, each with its recipe and anything stopping it |
-| `PUT /libtranscode/libraries/{id}` | admin | Saves a library's recipe, what happens to old files, and whether it's read-only |
+| `PUT /libtranscode/libraries/{id}` | admin | Saves a library's recipe, what happens to old files, and whether it's read-only. Starting to replace originals also takes `{current, code}`: the account's own password, and its two-factor code if it has one |
 | `GET /libtranscode/libraries/{id}/items` | admin | Finds files to try a recipe on |
 | `POST /libtranscode/libraries/{id}/preview` | admin | What a recipe would do to one file, track by track. Changes nothing |
 | `POST /libtranscode/libraries/{id}/sample` | admin | Really converts 20 seconds into the server's cache, and measures it |
@@ -1563,9 +1570,9 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `PUT /gaming/games/{id}/core` | admin | Choose a core for one game. |
 | `GET /reach/{nonce}` | none | Reach. |
 | `DELETE /users/{id}/2fa` | admin | User two factor reset. |
-| `GET /recording-rules` | user | Recording rules. |
-| `POST /recording-rules` | user | Add recording rule. |
-| `DELETE /recording-rules/{id}` | user | Delete recording rule. |
+| `GET /recording-rules` | user | This account's recording rules, and an administrator's sees everyone's. |
+| `POST /recording-rules` | user | Add recording rule. 404 for a channel turned off, 409 at 20 (not for an administrator). |
+| `DELETE /recording-rules/{id}` | user | Delete a recording rule of this account's; an administrator, anyone's. |
 | `GET /dvd/{sid}/menu/{serial}/effect/{n}` | user | DVD effect. |
 | `GET /dvd/{sid}/sound/{n}` | user | DVD sound. |
 | `GET /dvd/{sid}/bdj` | user | BDJ poll. |
@@ -1585,9 +1592,9 @@ The page is [Backup and restore](BACKUP.md). An archive is treated as hostile: a
 | `GET /backup/estimate` | About how large each part of a backup is, before compression. |
 | `POST /backup/create` | Start a backup: `{parts, password}`. With no password, secrets are left out. |
 | `POST /backup/cancel` | Stop what's running. An administrator's, or first-time setup. |
-| `PUT /backup/schedule` | Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`. |
-| `DELETE /backup/files/{name}` | Delete a backup kept on this server. |
-| `POST /backup/files/{name}/link` | A short-lived address to download a backup. |
+| `PUT /backup/schedule` | Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`. Keeping fewer than before also takes `{current, code}`: the account's own password, and its two-factor code if it has one. |
+| `DELETE /backup/files/{name}` | Delete a backup kept on this server. Takes `{password, code}`: the account's own password, and its two-factor code if it has one. |
+| `POST /backup/files/{name}/link` | A short-lived address to download a backup. Takes `{password, code}`: the account's own password, and its two-factor code if it has one. |
 | `GET /backup/download` | Download a backup, with the ticket from `/backup/files/{name}/link` as `?st=`. The ticket is the permission. |
 | `POST /backup/restore/upload` | An archive as the body. It's kept under a new name, and nothing is done with it yet. An administrator's, or first-time setup. |
 | `POST /backup/restore/inspect` | Check an archive from end to end: `{file, password}`. Nothing changes. An administrator's, or first-time setup. |

@@ -568,7 +568,11 @@ part of the system then treats it as that module: the versions list, pinning, ro
 the app. In the module's details, under Advanced, enter its repository and the public key its publisher gives
 you.
 
-**This is someone else's code running on your server, so only do it for a publisher you trust.**
+**This is someone else's code running on your server, so only do it for a publisher you trust.** Agreeing asks for
+your password, and your two-factor code if you use one, and is written down. So does going back to an older version of
+any module, as it may lack a fix. Whoever runs the machine can keep forks off whatever an administrator asks, by
+starting the server with `WMS_NO_MODULE_FORKS=1`, which also makes the server forget a fork already chosen. On a system
+with nothing to box a helper in (anything but Windows and Linux), forks can't be chosen at all.
 
 - Nobody has reviewed it. The signature proves it came from whoever holds that key, not that it's safe.
 - A helper or program can read what the server's account can read, which may include your media and the

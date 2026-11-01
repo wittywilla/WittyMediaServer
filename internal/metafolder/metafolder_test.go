@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestTextTakesOutWhatCouldRun(t *testing.T) {
@@ -444,6 +445,15 @@ func FuzzParse(f *testing.F) {
 	f.Add([]byte(`<movie><title>a</title></movie>`))
 	f.Add([]byte(`<!DOCTYPE a [<!ENTITY x "y">]><movie/>`))
 	f.Fuzz(func(t *testing.T, b []byte) {
+		if len(b) > 1<<16 {
+			return
+		}
+		start := time.Now()
+		defer func() {
+			if took := time.Since(start); took > 2*time.Second {
+				t.Errorf("%d bytes took %v", len(b), took)
+			}
+		}()
 		for _, parse := range []func(string, []byte) (*Doc, []Problem){ParseJSON, ParseNFO} {
 			d, _ := parse("a [item-1].json", b)
 			for k, v := range d.Fields {

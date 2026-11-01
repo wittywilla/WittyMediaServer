@@ -1,11 +1,12 @@
 package library
 
 import (
-	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"context"
+	"crypto/rand"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"io"
 	"net"
 	"net/http"
@@ -16,9 +17,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 	"unicode/utf8"
+
+	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
 
 // Podcasts: a podcasts library holds subscriptions (RSS feeds). Every
@@ -70,11 +74,74 @@ var safeDialer = &net.Dialer{Timeout: 15 * time.Second, Control: func(_, address
 	if err != nil {
 		return err
 	}
-	if !internetAddr(net.ParseIP(host)) {
+	if !internetAddr(net.ParseIP(host)) || onThisNetwork(net.ParseIP(host)) {
 		return fmt.Errorf("refusing to connect to %s (not on the internet)", host)
 	}
 	return nil
 }}
+
+// machineNets are this machine's own networks. Its addresses can be global ones, on IPv6 at home or
+// on a rented server, and a host on the internet learns them from the connection: it could then send
+// the server to the router beside it, or to itself. Looked up at most once a minute.
+var machineNets = func() []netip.Prefix {
+	if c := machineCache.Load(); c != nil && time.Since(c.at) < time.Minute {
+		return c.nets
+	}
+	addrs, _ := net.InterfaceAddrs() // none means nothing extra is refused, and the fixed list still holds
+	c := &machineNetCache{at: time.Now(), nets: netsOfCards(addrs)}
+	machineCache.Store(c)
+	return c.nets
+}
+
+type machineNetCache struct {
+	at   time.Time
+	nets []netip.Prefix
+}
+
+var machineCache atomic.Pointer[machineNetCache]
+
+// netsOfCards: each card's network, or only its own address when the network is wider than a
+// neighbourhood. Those already refused by the fixed list need no place here.
+func netsOfCards(addrs []net.Addr) []netip.Prefix {
+	var out []netip.Prefix
+	for _, a := range addrs {
+		n, ok := a.(*net.IPNet)
+		if !ok {
+			continue
+		}
+		ip, ok := netip.AddrFromSlice(n.IP)
+		if !ok || !internetAddr(n.IP) {
+			continue
+		}
+		ip = ip.Unmap()
+		bits, _ := n.Mask.Size()
+		narrowest := 24
+		if ip.Is6() {
+			narrowest = 48
+		}
+		if bits < narrowest {
+			bits = ip.BitLen()
+		}
+		if p, err := ip.Prefix(bits); err == nil {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func onThisNetwork(ip net.IP) bool {
+	a, ok := netip.AddrFromSlice(ip)
+	if !ok {
+		return false
+	}
+	a = a.Unmap()
+	for _, p := range machineNets() {
+		if p.Contains(a) {
+			return true
+		}
+	}
+	return false
+}
 
 // notInternet are the address ranges that are not the public internet. Some
 // lead back to private networks: NAT64 and 6to4 addresses embed an IPv4 one.
@@ -83,7 +150,7 @@ var notInternet = func() []netip.Prefix {
 	for _, c := range []string{
 		"0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16", "172.16.0.0/12", "192.0.0.0/24", "192.0.2.0/24", "192.88.99.0/24",
 		"192.168.0.0/16", "198.18.0.0/15", "198.51.100.0/24", "203.0.113.0/24", "224.0.0.0/4", "240.0.0.0/4",
-		"::/128", "::1/128", "100::/64", "2001::/32", "2001:db8::/32", "64:ff9b:1::/48", "fc00::/7", "fe80::/10", "fec0::/10", "ff00::/8",
+		"::/96", "::ffff:0:0:0/96", "100::/64", "2001::/32", "2001:db8::/32", "64:ff9b:1::/48", "fc00::/7", "fe80::/10", "fec0::/10", "ff00::/8",
 	} {
 		out = append(out, netip.MustParsePrefix(c))
 	}
@@ -127,6 +194,16 @@ func catalogClient(timeout time.Duration) *http.Client {
 
 // maxAnswer caps what is read from a catalogue's answer.
 const maxAnswer = 32 << 20
+
+// WithoutAddress is an HTTP client's error without the address it quotes: a private
+// feed's address is a password, and these errors end up in the log.
+func WithoutAddress(err error) error {
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		return ue.Err
+	}
+	return err
+}
 
 // webURL keeps a feed's address only when it is a web address: a feed must
 // not point the server at a file on this machine.
@@ -192,7 +269,7 @@ func FetchFeed(ctx context.Context, feedURL string) (*rssFeed, error) {
 	req.Header.Set("User-Agent", "WittyMediaServer/0.4 (podcasts)")
 	res, err := SafeClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, WithoutAddress(err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
@@ -233,12 +310,12 @@ func parseDuration(v string) float64 {
 	total := 0.0
 	for _, p := range parts {
 		n, err := strconv.ParseFloat(p, 64)
-		if err != nil {
+		if err != nil || n < 0 {
 			return 0
 		}
 		total = total*60 + n
 	}
-	return total
+	return finite(total)
 }
 
 // Subscribe adds a feed to a podcasts library and loads its episodes.
@@ -433,12 +510,45 @@ func safeName(s string) string {
 	return s
 }
 
+const (
+	// maxDownloadTime: a host sending an episode a byte at a time doesn't hold on for ever.
+	maxDownloadTime = 6 * time.Hour
+	// keepFree is left on the disk by anything a feed chooses the size of. If the data folder is
+	// on the same disk, a full one stops the database.
+	keepFree       = int64(512) << 20
+	roomCheckEvery = int64(1) << 20 * 64
+)
+
+// ErrNoRoom: too little of the disk is left to go on.
+var ErrNoRoom = errors.New("the disk is nearly full")
+
+// copyLeavingRoom copies, looking at how much room is left (free says, -1 for unknown) before it
+// starts and as it goes.
+func copyLeavingRoom(dst io.Writer, src io.Reader, free func() int64) (int64, error) {
+	total := int64(0)
+	for {
+		if room := free(); room >= 0 && room < keepFree {
+			return total, ErrNoRoom
+		}
+		n, err := io.CopyN(dst, src, roomCheckEvery)
+		total += n
+		if errors.Is(err, io.EOF) {
+			return total, nil
+		}
+		if err != nil {
+			return total, err
+		}
+	}
+}
+
 // Download saves an episode into the library's first folder:
 // <folder>/<podcast>/<date> <title>.<ext>, and the item then plays from disk.
 func (s *Scanner) Download(ctx context.Context, it *Item) error {
 	if !strings.HasPrefix(it.Path, "http://") && !strings.HasPrefix(it.Path, "https://") {
 		return nil // already on disk
 	}
+	ctx, cancel := context.WithTimeout(ctx, maxDownloadTime)
+	defer cancel()
 	lib, err := s.Store.Library(ctx, it.LibraryID)
 	if err != nil || len(lib.Paths) == 0 {
 		return errors.New("to download episodes, give this podcasts library a folder in Settings, Libraries")
@@ -451,9 +561,6 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 		}
 	}
 	dir := filepath.Join(lib.Paths[0], safeName(it.Album))
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
-	}
 	dst := filepath.Join(dir, safeName(strings.TrimSpace(it.Aired+" "+it.Title))+ext)
 	req, err := http.NewRequestWithContext(ctx, "GET", it.Path, nil)
 	if err != nil {
@@ -462,31 +569,27 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 	req.Header.Set("User-Agent", "WittyMediaServer/0.4 (podcasts)")
 	res, err := SafeClient.Do(req)
 	if err != nil {
-		return err
+		return WithoutAddress(err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
 		return fmt.Errorf("download failed: %s", res.Status)
 	}
-	f, err := os.CreateTemp(dir, ".wms-*.part")
+	f, tmp, err := CreateInLibrary(lib.Paths[0], dir, ".wms-"+rand.Text()+".part")
 	if err != nil {
 		return err
 	}
-	tmp := f.Name()
-	n, err := io.Copy(f, io.LimitReader(res.Body, 4<<30))
+	n, err := copyLeavingRoom(f, io.LimitReader(res.Body, 4<<30), func() int64 { return sysinfo.FreeBytes(dir) })
 	if cerr := f.Close(); err == nil {
 		err = cerr
-	}
-	if err == nil {
-		err = os.Chmod(tmp, 0o644)
 	}
 	if err != nil {
 		os.Remove(tmp)
 		return err
 	}
 	// A feed chooses the name: it must not replace a file already there.
-	dst = freeName(dst)
-	if err := os.Rename(tmp, dst); err != nil {
+	dst, err = moveInLibrary(lib.Paths[0], tmp, dst)
+	if err != nil {
 		os.Remove(tmp)
 		return err
 	}

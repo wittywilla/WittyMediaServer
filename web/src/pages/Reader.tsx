@@ -45,7 +45,7 @@ export default function ReaderPage() {
         update: async (a, patch) => { await api.put(`/annotations/${a.id}`, { ...a, ...patch }) },
         remove: async (a) => { await api.del(`/annotations/${a.id}`) },
       },
-      pdf: { url: mediaUrl(`/api${base}/file`) },
+      pdf: { url: mediaUrl(`/api${base}/file`), wasmUrl: new URL(__PDF_ASSETS__ + 'wasm/', location.href).href, iccUrl: new URL(__PDF_ASSETS__ + 'iccs/', location.href).href },
       comic: { pages: info.pages || 0, pageUrl: (n) => mediaUrl(`/api${base}/page/${n}`) },
       epub: {
         info: { spine: info.spine || [], toc: info.toc || [], words: info.words || [] },

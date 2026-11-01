@@ -90,15 +90,15 @@ type linkInfo struct {
 }
 
 type attachedTitle struct {
-	ID        int64  `json:"id"`
-	Title     string `json:"title"`
-	ExtraType string `json:"extraType,omitempty"`
-	Label     string `json:"label,omitempty"`
-	Width     int    `json:"width,omitempty"`
-	Height    int    `json:"height,omitempty"`
-	SizeBytes int64  `json:"sizeBytes,omitempty"`
+	ID        int64   `json:"id"`
+	Title     string  `json:"title"`
+	ExtraType string  `json:"extraType,omitempty"`
+	Label     string  `json:"label,omitempty"`
+	Width     int     `json:"width,omitempty"`
+	Height    int     `json:"height,omitempty"`
+	SizeBytes int64   `json:"sizeBytes,omitempty"`
 	Runtime   float64 `json:"runtimeSec,omitempty"`
-	UpdatedAt int64  `json:"updatedAt"`
+	UpdatedAt int64   `json:"updatedAt"`
 }
 
 func (s *Server) buildEditor(ctx context.Context, t *library.Title) *titleEditor {
@@ -717,6 +717,12 @@ func (s *Server) handleMetaBulk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
+	for _, f := range []string{"poster", "backdrop", "banner", "logo"} {
+		if v, on := b.Set[f]; on && !s.validArt(ctx, v) {
+			writeErr(w, 400, "that picture isn't a web address or a file in one of your libraries")
+			return
+		}
+	}
 	batch := library.NewBatch()
 	done := 0
 	failed := []string{}

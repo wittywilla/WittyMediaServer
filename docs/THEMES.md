@@ -180,9 +180,10 @@ my-theme.zip
 body { background: var(--bg) url("assets/backdrop.webp") center / cover fixed; }
 ```
 
-Keep images small: WebP and AVIF give the smallest files. Remote images in `url()` load, but then every
-viewer's browser contacts that site, so bundle what you can. Check that the licence of any font or image
-lets you share it.
+Keep images small: WebP and AVIF give the smallest files. A theme uses its own files: one whose stylesheet
+names an address on another site, even in a comment, is refused, because a stylesheet that can load from
+elsewhere can read what's typed into a page. Images kept in the stylesheet as `data:` addresses are fine.
+Check that the licence of any font or image lets you share it.
 
 ### Recipes
 

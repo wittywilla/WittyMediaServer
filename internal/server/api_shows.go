@@ -100,7 +100,7 @@ func (s *Server) handleShow(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "show not found")
 		return
 	}
-	seasons, err := s.Store.Seasons(ctx, id, uid)
+	seasons, err := s.Store.Seasons(ctx, id, uid, s.access(r))
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -243,7 +243,7 @@ func (s *Server) handleShowArt(w http.ResponseWriter, r *http.Request) {
 	}
 	if src == "" {
 		// No artwork yet (no TheTVDB key, no local files): use an episode still.
-		src = s.Store.EpisodePoster(r.Context(), id)
+		src = s.Store.EpisodePoster(r.Context(), id, s.access(r))
 	}
 	s.serveArtSrc(w, r, src)
 }

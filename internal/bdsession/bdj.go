@@ -2,6 +2,7 @@ package bdsession
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -62,6 +63,9 @@ type JavaEngine interface {
 // JavaProbe says whether this machine's Java can run a disc's programs. The server sets it as
 // it starts; without it, it can't.
 var JavaProbe func(path string) (version, where string, err error)
+
+// JavaFinder says which Java would be used, without running it. The server sets it as JavaProbe.
+var JavaFinder func(path string) (string, error)
 
 // BDJConfig says whether BD-J is turned on, and which Java to use ("" = find it).
 type BDJConfig func() (enabled bool, javaPath string)
@@ -581,7 +585,18 @@ func (s *Session) closeBDJ() {
 	}
 }
 
-// JavaStatus reports whether this machine can run BD-J, for the settings page.
+// ErrJavaCantRun: Java was found and tried, and failed.
+var ErrJavaCantRun = errors.New("this Java cannot run BD-J")
+
+// FindJava says which Java would be used, without running it.
+func FindJava(path string) (string, error) {
+	if JavaFinder == nil {
+		return "", ErrNoEngine
+	}
+	return JavaFinder(path)
+}
+
+// JavaStatus reports whether this machine can run BD-J, for the settings page. It runs Java.
 func JavaStatus(_ context.Context, _, path string) (version, where string, err error) {
 	if JavaProbe == nil {
 		return "", "", ErrNoEngine

@@ -412,6 +412,10 @@ func (s *Server) handleChannelLogo(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad id")
 		return
 	}
+	if _, err := s.visibleChannel(r, id); err != nil {
+		writeErr(w, 404, "not found")
+		return
+	}
 	for format, ctype := range logoTypes {
 		b, err := os.ReadFile(channelLogoPath(s.channelLogoDir(), id, format))
 		if err != nil {
@@ -559,6 +563,10 @@ func (s *Server) handlePutTVSettings(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		case "dvrFolder":
+			if err := s.checkAdminPaths(r, []string{v}, []string{s.tvSetting(r.Context(), "dvrFolder")}); err != nil {
+				writeErr(w, 400, err.Error())
+				return
+			}
 			if v != "" && !filepath.IsAbs(v) {
 				writeErr(w, 400, "the recordings folder must be a full path")
 				return
@@ -620,13 +628,13 @@ type guideChannel struct {
 	Accent      string   `json:"accent,omitempty"`
 	Favourite   bool     `json:"favourite,omitempty"`
 	// Brand names its logo in the logo service, for a channel with none of its own.
-	Brand *channelBrand `json:"brand,omitempty"`
-	HD          bool     `json:"hd,omitempty"`
-	Radio       bool     `json:"radio,omitempty"`
-	Encrypted   string   `json:"encrypted,omitempty"` // why it cannot be tuned
-	CanRecord   bool     `json:"canRecord,omitempty"`
-	NoRecord    string   `json:"noRecord,omitempty"` // why not, when the device says
-	ATSC3       bool     `json:"atsc3,omitempty"`
+	Brand     *channelBrand `json:"brand,omitempty"`
+	HD        bool          `json:"hd,omitempty"`
+	Radio     bool          `json:"radio,omitempty"`
+	Encrypted string        `json:"encrypted,omitempty"` // why it cannot be tuned
+	CanRecord bool          `json:"canRecord,omitempty"`
+	NoRecord  string        `json:"noRecord,omitempty"` // why not, when the device says
+	ATSC3     bool          `json:"atsc3,omitempty"`
 	// Security is the same wording for every client. Tuner channels only: a
 	// library channel plays the owner's own files.
 	Security    *securityInfo       `json:"security,omitempty"`
@@ -1071,6 +1079,9 @@ func (s *Server) itemLiveInput(ctx context.Context, p *channels.Programme, off, 
 		}
 		return s.discLiveInput(ctx, it, title, seek, remain, q, maxHeight)
 	}
+	if !s.Store.LibraryFile(ctx, it.Path) {
+		return nil, errors.New("the file is missing")
+	}
 	pctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	pr, err := s.Tools.ProbeFile(pctx, it.Path)
@@ -1167,7 +1178,7 @@ func (s *Server) handleLivePlaylist(w http.ResponseWriter, r *http.Request) {
 		var err error
 		if kind == "tun" {
 			if ls, err = s.ensureTunerLive(r, id); err != nil {
-				tuneError(w, err)
+				s.tuneError(w, r, err)
 				return
 			}
 		} else {
@@ -1189,11 +1200,11 @@ func (s *Server) handleLivePlaylist(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 503, "the channel is still starting")
 			return
 		}
-		tuneError(w, err)
+		s.tuneError(w, r, err)
 		return
 	}
 	if err := ls.Err(); err != nil {
-		tuneError(w, err)
+		s.tuneError(w, r, err)
 		return
 	}
 	// A player that can't set headers (a TV's own player) keeps its token.

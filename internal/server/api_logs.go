@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/desktop"
 	"github.com/wittywilla/wittymediaserver/internal/config"
+	"github.com/wittywilla/wittymediaserver/internal/desktop"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
@@ -85,6 +85,14 @@ func (s *Server) handlePutLogs(w http.ResponseWriter, r *http.Request) {
 		dir := strings.TrimSpace(*b.Dir)
 		if dir == "" {
 			dir = s.Cfg.LogDir // back to the default
+		}
+		var current []string
+		if s.Logs != nil {
+			current = []string{s.Logs.Dir()}
+		}
+		if err := s.checkAdminPaths(r, []string{dir}, current); err != nil {
+			writeErr(w, 400, err.Error())
+			return
 		}
 		if err := s.Logs.SetDir(dir); err != nil {
 			writeErr(w, 400, err.Error())
@@ -405,6 +413,11 @@ func (s *Server) handleClientLog(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		e := &events[i]
+		if !s.clientLogs.spend(min(len(e.Message), clientMsgChars) + min(len(e.Stack), clientStackChars) + 512) {
+			s.clientLogs.note(len(events) - i)
+			w.WriteHeader(204) // nothing the client can do about it, and retrying won't help
+			return
+		}
 		lv := slog.LevelWarn // written even if other app logging is later switched off
 		switch e.Level {
 		case "warn":
@@ -455,6 +468,27 @@ type clientLogLimiter struct {
 	m     map[int64]*clientWindow
 	all   clientWindow
 	noted int
+	day   string // the budget below is per day
+	used  int
+}
+
+// clientDailyBytes is the most that apps' reports may add to the log in a day. The log keeps
+// the newest that fits its total size, so without this, any account could push out the record
+// of what it had been doing.
+var clientDailyBytes = 8 << 20
+
+// spend takes n bytes from today's budget, or says there isn't room.
+func (l *clientLogLimiter) spend(n int) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if d := time.Now().Format(time.DateOnly); d != l.day {
+		l.day, l.used = d, 0
+	}
+	if l.used+n > clientDailyBytes {
+		return false
+	}
+	l.used += n
+	return true
 }
 
 type clientWindow struct {

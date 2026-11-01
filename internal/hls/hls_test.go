@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -236,9 +237,9 @@ func TestSessionsAreBounded(t *testing.T) {
 
 func TestTextSubtitleFilter(t *testing.T) {
 	cases := map[string]string{
-		`/media/film.mkv`:            `subtitles='/media/film.mkv':si=2`,
-		`C:/Media/My Film.mkv`:       `subtitles='C\:/Media/My Film.mkv':si=2`,
-		`/media/Don't [Look] Up.mkv`: `subtitles='/media/Don'\\\''t [Look] Up.mkv':si=2`,
+		`/media/film.mkv`:            `subtitles=filename='/media/film.mkv':si=2`,
+		`C:/Media/My Film.mkv`:       `subtitles=filename='C\:/Media/My Film.mkv':si=2`,
+		`/media/Don't [Look] Up.mkv`: `subtitles=filename='/media/Don'\\\''t [Look] Up.mkv':si=2`,
 	}
 	for in, want := range cases {
 		if got := textSubtitleFilter(in, 2, 0); got != want {
@@ -248,6 +249,59 @@ func TestTextSubtitleFilter(t *testing.T) {
 	got := textSubtitleFilter("/a.mkv", 0, 90.5)
 	if !strings.HasPrefix(got, "setpts=PTS+90.500/TB,subtitles=") || !strings.HasSuffix(got, ",setpts=PTS-STARTPTS") {
 		t.Errorf("after a seek: %s", got)
+	}
+}
+
+// File names reach a filter graph when subtitles are burned in, and a library's file names are
+// anyone's. Whatever a name holds, it stays a name: FFmpeg opens that file and adds no filter.
+func TestSubtitleFilterHoldsAnyName(t *testing.T) {
+	bin, err := exec.LookPath("ffmpeg")
+	if err != nil || runtime.GOOS == "windows" {
+		t.Skip("needs FFmpeg, and file names Windows doesn't allow")
+	}
+	dir := t.TempDir()
+	srt := filepath.Join(dir, "base.srt")
+	if err := os.WriteFile(srt, []byte("1\n00:00:00,000 --> 00:00:01,000\nhello\n\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	base := filepath.Join(dir, "base.mkv")
+	gen := exec.Command(bin, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc=s=64x64:r=5:d=1", "-i", srt, "-c:v", "mpeg2video", "-c:s", "srt", base)
+	if out, err := gen.CombinedOutput(); err != nil {
+		t.Skipf("can't make a sample: %v %s", err, out)
+	}
+	if out, err := exec.Command(bin, "-hide_banner", "-loglevel", "error", "-i", base, "-vf", textSubtitleFilter(base, 0, 0), "-frames:v", "1", "-f", "null", "-").CombinedOutput(); err != nil {
+		t.Skipf("this FFmpeg has no subtitles filter: %v %s", err, out)
+	}
+	b, err := os.ReadFile(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mark := filepath.Join(dir, "written.png")
+	for _, name := range []string{
+		"a:b.mkv", "a'b.mkv", `a\b.mkv`, "a,b.mkv", "a[b].mkv", "a;b.mkv", "a=b.mkv", "filename=x.mkv", "si=3.mkv", "%d.mkv", "-f.mkv",
+		"x',drawbox=c=red,'.mkv", "x'[y];movie=base.srt[z].mkv", `x\',drawtext=textfile=base.srt,'.mkv`, "x':si=9,drawbox,'.mkv", "x\\\\':si=9.mkv",
+	} {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		// With a showinfo-free graph, an added filter or a broken quote shows as a failure, or as more
+		// lines from a filter the name brought in.
+		cmd := exec.Command(bin, "-hide_banner", "-loglevel", "verbose", "-i", p, "-vf", textSubtitleFilter(p, 0, 0), "-frames:v", "1", "-f", "null", "-")
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Errorf("%s: %v\n%s", name, err, tail(string(out), 400))
+			continue
+		}
+		for _, sign := range []string{"Parsed_drawbox", "Parsed_movie", "Parsed_drawtext"} {
+			if strings.Contains(string(out), sign) {
+				t.Errorf("%s brought in a filter: %s", name, sign)
+			}
+		}
+		_ = os.Remove(p)
+	}
+	if _, err := os.Stat(mark); err == nil {
+		t.Error("a name wrote a file")
 	}
 }
 
@@ -543,5 +597,12 @@ func TestHoleExprs(t *testing.T) {
 	}
 	if keep, shift = holeExprs(nil, 0); keep != "" || shift != "" {
 		t.Errorf("no holes: %s %s", keep, shift)
+	}
+}
+
+// A preview of a disc's title is a session too, and its folder goes at the next start.
+func TestPreviewFoldersAreCleared(t *testing.T) {
+	if !sessionDirRe.MatchString("clip-3-1") {
+		t.Error("left behind for good")
 	}
 }

@@ -9,9 +9,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,6 +24,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/tuner"
@@ -132,6 +137,8 @@ type Manager struct {
 	Tools *ffmpeg.Tools
 	Log   *slog.Logger
 
+	internet *http.Client // what internetClient gives, for a test
+
 	mu               sync.Mutex
 	sources          map[int64]tuner.Source
 	scans            map[int64]*ScanState
@@ -199,6 +206,36 @@ func (m *Manager) Close() {
 
 // tunerLog is for what a tuner did, as opposed to what the guide or a recording did.
 func (m *Manager) tunerLog() *slog.Logger { return m.Log.With("module", "wittytuner") }
+
+var addressInText = regexp.MustCompile(`[a-zA-Z][a-zA-Z0-9+.-]*://[^\s"']+`)
+
+// PublicError is what people may be told about a tuner or stream that failed. Connection errors say
+// what's on the network, and hold the address, which can hold a login. Anything else that quotes
+// an address, as a helper program's errors can, has it taken out.
+func PublicError(err error) string {
+	if err == nil {
+		return ""
+	}
+	var ue *url.Error
+	var op *net.OpError
+	var dns *net.DNSError
+	var pe *fs.PathError
+	if errors.As(err, &ue) || errors.As(err, &op) || errors.As(err, &dns) {
+		return "the stream could not be reached"
+	}
+	if errors.As(err, &pe) {
+		return "the recording could not be written to its folder"
+	}
+	return addressInText.ReplaceAllString(err.Error(), "(address)")
+}
+
+// internetClient reaches the internet and nothing else, checking each connection as it is made.
+func (m *Manager) internetClient() *http.Client {
+	if m.internet != nil {
+		return m.internet
+	}
+	return library.SafeClient
+}
 
 // Env is what drivers get.
 func (m *Manager) Env() tuner.Env {
@@ -403,7 +440,7 @@ func (m *Manager) Refresh(ctx context.Context, id int64) error {
 	}
 	ch, err := s.Channels(ctx)
 	if err != nil {
-		m.setError(id, err.Error())
+		m.setError(id, PublicError(err))
 		return err
 	}
 	if ch != nil {
@@ -423,7 +460,7 @@ func (m *Manager) setError(id int64, msg string) {
 // ensureGuide offers a source's own guide address as a guide source.
 func (m *Manager) ensureGuide(ctx context.Context, id int64, s tuner.Source) {
 	info := s.Info()
-	if info.GuideURL == "" {
+	if !webGuide(info.GuideURL) { // nor can a playlist choose a file on this machine, or a network share
 		return
 	}
 	auth := ""
@@ -560,7 +597,7 @@ func (m *Manager) StartScan(id int64, source string) error {
 			}
 		}
 		if err != nil {
-			st.Error = err.Error()
+			st.Error = PublicError(err)
 		} else {
 			st.Percent, st.Message = 100, ""
 		}
@@ -572,7 +609,7 @@ func (m *Manager) StartScan(id int64, source string) error {
 			} else {
 				log.WarnContext(ctx, "channel scan failed", "err", err)
 			}
-			m.setError(id, err.Error())
+			m.setError(id, PublicError(err))
 		} else {
 			log.InfoContext(ctx, "channel scan finished", "found", found2, "added", added)
 			m.setError(id, "")
@@ -797,6 +834,7 @@ type Opened struct {
 	once    sync.Once
 	// A stream that was clear on opening can turn out not to be: see watch.
 	stopWatch  context.CancelFunc
+	gate       *hlsGate // what FFmpeg reads a live stream through
 	refused    chan struct{}
 	refuseOnce sync.Once
 	refusal    error
@@ -874,6 +912,7 @@ func (o *Opened) Release() {
 			}
 		}
 		_ = o.Stream.Close()
+		o.gate.Close()
 		o.release()
 	})
 }
@@ -894,6 +933,11 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 	}
 	if !t.Enabled {
 		return nil, errors.New("that tuner is turned off")
+	}
+	// FFmpeg makes its own connections for anything but HTTP, and those can't be held to the
+	// internet, so a list from the internet only gets to name web addresses.
+	if !mayLeadHome(t) && !webGuide(c.locator) {
+		return nil, errors.New("a playlist from the internet can only name web addresses. To use this channel, keep the playlist on your home network, or add it as a single stream")
 	}
 	limit := t.MaxStreams
 	if limit == 0 {
@@ -930,9 +974,31 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 		note("")
 	}
 	o := &Opened{Stream: st, Channel: c, release: release, note: note}
+	home := mayLeadHome(t)
+	addr, gated := gateInput(st)
+	// What FFmpeg would read by itself, a DASH manifest being the one kind left, could lead it
+	// anywhere. From a list on the internet, that isn't on offer.
+	if !home && !gated && st.Reader == nil {
+		_ = st.Close()
+		release()
+		return nil, errors.New("this channel is a kind of stream that can't be played from a playlist on the internet. To use it, keep the playlist on your home network, or add it as a single stream")
+	}
+	if gated {
+		g, err := newHLSGate(addr, st.Input, home, m.tunerLog(), o.refuse)
+		if err != nil {
+			_ = st.Close()
+			release()
+			return nil, err
+		}
+		if !home {
+			g.client = m.internetClient()
+		}
+		o.gate, o.refused = g, make(chan struct{})
+		st.Input = g.args(st.Input)
+	}
 	if st.Recheck != nil {
 		wctx, cancel := context.WithCancel(ctx)
-		o.stopWatch, o.refused = cancel, make(chan struct{})
+		o.stopWatch = cancel
 		log := m.tunerLog().With("topic", "tuner", "tuner", c.TunerID, "channel", c.Name)
 		logging.Go("stream re-check", func() { o.watch(wctx, log) }, "cat", "tv")
 	}

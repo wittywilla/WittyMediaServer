@@ -44,6 +44,8 @@ type User struct {
 	Restrictions string `json:"-"`
 	// TwoFactor: signing in also needs a code from an authenticator app.
 	TwoFactor bool `json:"twoFactor"`
+	// HomeOnly: the session this came from was made with no password, and only counts at home.
+	HomeOnly bool `json:"-"`
 }
 
 // Kinds of accounts.
@@ -183,13 +185,18 @@ func (s *Service) CreateProfile(ctx context.Context, name, password, kind string
 	if restrictions != "" {
 		restr = restrictions
 	}
-	res, err := s.DB.ExecContext(ctx, `INSERT INTO users(name, password_hash, is_admin, created_at, kind, restrictions) VALUES(?,?,?,?,?,?)`,
-		name, hash, admin, db.Now(), kind, restr)
+	// Sign-in ignores the case of a name, so names can't differ only by that.
+	res, err := s.DB.ExecContext(ctx, `INSERT INTO users(name, password_hash, is_admin, created_at, kind, restrictions)
+		SELECT ?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM users WHERE name = ? COLLATE NOCASE)`,
+		name, hash, admin, db.Now(), kind, restr, name)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
 			return nil, errors.New("that name is taken")
 		}
 		return nil, err
+	}
+	if n, err := res.RowsAffected(); err == nil && n == 0 {
+		return nil, errors.New("that name is taken")
 	}
 	id, _ := res.LastInsertId()
 	if hash != "" {
@@ -302,7 +309,8 @@ func (s *Service) ClearPassword(ctx context.Context, id int64) error {
 	if n, _ := res.RowsAffected(); n == 0 {
 		return errors.New("only Kids and Guest profiles can be used without a password")
 	}
-	return nil
+	_, err = s.DB.ExecContext(ctx, `UPDATE sessions SET home_only = 1 WHERE user_id = ?`, id)
+	return err
 }
 
 func (s *Service) SetPassword(ctx context.Context, id int64, password string) error {
@@ -397,7 +405,11 @@ func (s *Service) LoginCode(ctx context.Context, name, password, code, device st
 	if err != nil {
 		return "", nil, err
 	}
+	homeOnly := hash == ""
 	if hash == "" {
+		// The same work here too, so the time taken doesn't tell which names
+		// are password-free profiles.
+		_ = bcrypt.CompareHashAndPassword(dummyHash(), []byte(password))
 		if kind == KindAdult || !allowNoPassword {
 			return "", nil, ErrInvalid
 		}
@@ -414,16 +426,16 @@ func (s *Service) LoginCode(ctx context.Context, name, password, code, device st
 			return "", nil, ErrCodeWrong
 		}
 	}
-	return s.issue(ctx, id, device)
+	return s.issue(ctx, id, device, homeOnly)
 }
 
 // IssueSession signs an account in on a device that proved itself some other
 // way than a password (TV pairing, approved by someone already signed in).
 func (s *Service) IssueSession(ctx context.Context, userID int64, device string) (string, *User, error) {
-	return s.issue(ctx, userID, device)
+	return s.issue(ctx, userID, device, false)
 }
 
-func (s *Service) issue(ctx context.Context, userID int64, device string) (string, *User, error) {
+func (s *Service) issue(ctx context.Context, userID int64, device string, homeOnly bool) (string, *User, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return "", nil, err
@@ -435,7 +447,7 @@ func (s *Service) issue(ctx context.Context, userID int64, device string) (strin
 	}
 	// Sessions nobody came back to would otherwise stay for ever.
 	_, _ = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE expires_at < ?`, now.Unix())
-	if _, err := s.DB.ExecContext(ctx, `INSERT INTO sessions(token, user_id, created_at, expires_at, device) VALUES(?,?,?,?,?)`, storedToken(tok), userID, now.Unix(), now.Add(tokenTTL).Unix(), device); err != nil {
+	if _, err := s.DB.ExecContext(ctx, `INSERT INTO sessions(token, user_id, created_at, expires_at, device, home_only) VALUES(?,?,?,?,?,?)`, storedToken(tok), userID, now.Unix(), now.Add(tokenTTL).Unix(), device, homeOnly); err != nil {
 		return "", nil, err
 	}
 	u, err := s.User(ctx, userID)
@@ -459,14 +471,20 @@ func (s *Service) Resolve(ctx context.Context, token string) (*User, error) {
 
 func (s *Service) resolveStored(ctx context.Context, stored string) (*User, error) {
 	var userID, expires int64
-	if err := s.DB.QueryRowContext(ctx, `SELECT user_id, expires_at FROM sessions WHERE token = ?`, stored).Scan(&userID, &expires); err != nil {
+	var homeOnly bool
+	if err := s.DB.QueryRowContext(ctx, `SELECT user_id, expires_at, home_only FROM sessions WHERE token = ?`, stored).Scan(&userID, &expires, &homeOnly); err != nil {
 		return nil, ErrInvalid
 	}
 	if time.Now().Unix() > expires {
 		_, _ = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE token = ?`, stored)
 		return nil, ErrInvalid
 	}
-	return s.User(ctx, userID)
+	u, err := s.User(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	u.HomeOnly = homeOnly
+	return u, nil
 }
 
 // Stream tokens keep a session's token out of HLS playlists. A player that had
@@ -541,9 +559,8 @@ func (s *Service) ResolveStream(ctx context.Context, tok string, r *http.Request
 const CookieName = "wms_token"
 
 // mediaRoute are the addresses a page opens with <img>, <video>, <a download>,
-// a WebSocket, a module script and the like, which can't carry a header. Only these take a token in the
-// address: one that leaked from a media link (a browser's history, a proxy's
-// log) can't be used to call the rest of the API or change anything.
+// a WebSocket, a module script and the like, which can't carry a header. Only these take a token
+// in the address, and only to read.
 var mediaRoute = regexp.MustCompile(`^/api/(items/\d+/(poster|backdrop|file|stream|page/|epub/|disc/thumb/)|radio/\d+/(stream|hls)$|shows/\d+/art/|artwork/preview$|hls/|dvd/[^/]+/(menu/|still/|sub/|subs$)|logs/files/|themes/[^/]+/download$|games/\d+/art/\d+$|games/\d+/saves/\d+/(thumb|file)$|games/\d+/battery$|game-bezels/\d+$|play/[0-9a-f]+/screenshot$|play/[0-9a-f]+/ws$|game-background/image$|modules/[a-z0-9]+/web/|music/artist-photo$|music/extras/\d+/file$|logos/\d+/image$)`)
 
 // queryToken is the ?token= of a media address.

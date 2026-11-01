@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/wittywilla/wittymodule"
 )
 
 const (
@@ -117,12 +119,17 @@ func allowedURL(u *url.URL) bool {
 }
 
 // latest picks the newest release above current that has a package for
-// goos/goarch. Drafts and unreadable versions are skipped.
-func latest(rels []ghRelease, current, goos, goarch string) *Release {
+// goos/goarch. Drafts, unreadable and withdrawn versions are skipped, and someone
+// on a full release isn't moved to a test version.
+func latest(rels []ghRelease, current, goos, goarch string, withdrawn *wittymodule.Withdrawals) *Release {
 	var best *Release
+	stable := !strings.Contains(current, "-")
 	for _, g := range rels {
 		ver := strings.TrimPrefix(g.TagName, "v")
 		if g.Draft || !Valid(ver) || Compare(ver, current) <= 0 || (best != nil && Compare(ver, best.Version) <= 0) {
+			continue
+		}
+		if (stable && (g.Prerelease || strings.Contains(ver, "-"))) || (withdrawn != nil && withdrawn.Find(ver) != nil) {
 			continue
 		}
 		r := &Release{Version: ver, Title: g.Name, Notes: g.Body, Page: g.HTMLURL, Published: g.PublishedAt, Prerelease: g.Prerelease}

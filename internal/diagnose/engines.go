@@ -121,7 +121,7 @@ func checkWith(ctx context.Context, j *Job, id, name string, src *discSource, o 
 		To    float64 `json:"to,omitempty"`
 		BDJ   bool    `json:"bdj,omitempty"`
 		Java  string  `json:"java,omitempty"`
-	}{src.Path, o.Crawl, from, to, j.env.setting("bdjEnabled", "0") == "1", j.env.setting("javaPath", "")}, &r)
+	}{src.Path, o.Crawl, from, to, j.env.setting("bdjEnabled", "0") == "1", j.env.JavaPath}, &r)
 	if err != nil {
 		if ctx.Err() != nil {
 			return

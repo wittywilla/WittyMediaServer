@@ -185,6 +185,19 @@ type running struct {
 	stop func()
 }
 
+// udpAddr is where the question port listens: wherever the server does, and nowhere if
+// that's an address this IPv4 socket can't use.
+func (s *Service) udpAddr() *net.UDPAddr {
+	if s.Bind == nil {
+		return &net.UDPAddr{Port: UDPPort}
+	}
+	ip := s.Bind.To4()
+	if ip == nil {
+		return nil
+	}
+	return &net.UDPAddr{IP: ip, Port: UDPPort}
+}
+
 func (s *Service) start(info Info, nets localNets) *running {
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
@@ -202,14 +215,16 @@ func (s *Service) start(info Info, nets localNets) *running {
 			c.serve(ctx, info, s.Log)
 		}, "cat", "remote")
 	}
-	if udp, err := net.ListenUDP("udp4", &net.UDPAddr{Port: UDPPort}); err != nil {
-		s.Log.Debug("discovery by UDP is off", "err", err) // something else has the port
-	} else {
-		wg.Add(1)
-		logging.Go("discovery", func() {
-			defer wg.Done()
-			serveUDP(ctx, udp, info)
-		}, "cat", "remote")
+	if addr := s.udpAddr(); addr != nil {
+		if udp, err := net.ListenUDP("udp4", addr); err != nil {
+			s.Log.Debug("discovery by UDP is off", "err", err) // something else has the port
+		} else {
+			wg.Add(1)
+			logging.Go("discovery", func() {
+				defer wg.Done()
+				serveUDP(ctx, udp, info)
+			}, "cat", "remote")
+		}
 	}
 	if len(conns) > 0 {
 		s.Log.Info("announcing on the local network", "service", ServiceType, "interfaces", len(conns))

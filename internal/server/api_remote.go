@@ -155,6 +155,9 @@ func (r *remoteSettings) validate(listen string) error {
 		}
 	case "cert":
 		r.CertFile, r.KeyFile = strings.TrimSpace(r.CertFile), strings.TrimSpace(r.KeyFile)
+		if otherMachine(r.CertFile) || otherMachine(r.KeyFile) {
+			return errOtherMachine
+		}
 		if !filepath.IsAbs(r.CertFile) || !filepath.IsAbs(r.KeyFile) {
 			return errors.New("give the full path of both the certificate and its key")
 		}
@@ -213,6 +216,7 @@ func (s *Server) reloadNet(ctx context.Context) *netState {
 // port serves.
 func (s *Server) StartRemote(ctx context.Context, handler http.Handler) {
 	s.HTTPS = remote.NewHTTPS(handler, s.Cfg.DataDir, s.Log)
+	s.HTTPS.Conns = s.Conns
 	s.Mapper = &portmap.Keeper{Log: s.Log.With("cat", "remote")}
 	if err := s.applyNet(ctx); err != nil {
 		s.Log.WarnContext(ctx, "could not set up remote access", "cat", "remote", "err", err)

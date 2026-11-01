@@ -73,7 +73,8 @@ Adults and administrators see **Upload** in the gallery, and can drop files onto
 
 - never replace a file: a name already taken gets a number;
 - are checked by their first bytes as well as their name, so a web page called `photo.jpg` is refused;
-- can be turned off, or limited in size, in Settings → Sharing & photos.
+- can be turned off, or limited in size for one file and in all for one person, in Settings → Sharing & photos;
+- stop when under 2 GB is left on the disk.
 
 Kids and Guest profiles can't upload.
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api'
+import { useApp } from '../../state'
 import { fmtBytes, fmtDuration, taskAction, useActivity, type Task } from '../../activity'
 import { IconCheck, IconInfo, IconPause, IconPlay, IconRefresh, IconStop, IconTrash } from '../../icons'
 import { Button, Chip, Chips, EmptyState, Field, Input, LoadError, Notice, Progress, Segmented, Select, Spinner, ask, toast } from '../../ui'
@@ -172,12 +173,17 @@ function LibraryPanel({ lib, onSaved, options, settings }: { lib: Library; onSav
   const [allow, setAllow] = useState(lib.rule.allowWrites)
   const [auto, setAuto] = useState(lib.rule.auto)
   const [busy, setBusy] = useState(false)
+  const [current, setCurrent] = useState('')
+  const [code, setCode] = useState('')
+  const { user } = useApp()
+  const replacing = output === 'replace' && lib.rule.output !== 'replace' // deleting originals asks for your password
   const [ended, setEnded] = useState(0) // runs that have ended, so what they left gets listed
   const dirty = JSON.stringify(policy) !== JSON.stringify(lib.rule.policy) || output !== lib.rule.output || readOnly !== lib.readOnly || allow !== lib.rule.allowWrites || auto !== lib.rule.auto
   const save = async () => {
     setBusy(true)
     try {
-      const n = await api.put<Library>(`/libtranscode/libraries/${lib.id}`, { policy, output, readOnly, allowWrites: allow, auto })
+      const n = await api.put<Library>(`/libtranscode/libraries/${lib.id}`, { policy, output, readOnly, allowWrites: allow, auto, current, code })
+      setCurrent(''); setCode('')
       // What came back is what's saved, tidied by the server, and is what's compared from now on.
       setPolicy(n.rule.policy); setOutput(n.rule.output); setReadOnly(n.readOnly); setAllow(n.rule.allowWrites); setAuto(n.rule.auto)
       onSaved(n); toast('Saved')
@@ -221,6 +227,12 @@ function LibraryPanel({ lib, onSaved, options, settings }: { lib: Library; onSav
             </label>
           ))}
         </div>
+        {replacing && (
+          <div className="form full">
+            <Field label="Your password" hint="Replacing originals deletes them, so this asks for your password."><Input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} /></Field>
+            {user?.twoFactor && <Field label="Code from your authenticator app"><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
+          </div>
+        )}
         <Row label="This library is read-only" desc="Nothing the server does may change this library’s files: no conversions, and no saved artwork or details beside them. Previews and dry runs still work.">
           <Switch label="This library is read-only" checked={readOnly} onChange={setReadOnly} />
         </Row>

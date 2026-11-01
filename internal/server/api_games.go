@@ -88,6 +88,8 @@ type gameService struct {
 	gpuChecking bool
 
 	custom *customService
+
+	peers peerLimits
 }
 
 // gpuStatus is what's known about the graphics card. Finding out takes a second or
@@ -368,12 +370,19 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 	return out
 }
 
+// hideCustom takes out what an administrator chose to add, for everyone else: which custom
+// cores there are, their versions and hashes. Whether a console is ready stays.
+func hideCustom(views []consoleView) {
+	for i := range views {
+		views[i].Custom, views[i].DefaultCore = nil, ""
+		views[i].Installed = slices.DeleteFunc(views[i].Installed, func(c cores.Core) bool { return c.Source == cores.SourceCustom })
+	}
+}
+
 func (s *Server) handleGameConsoles(w http.ResponseWriter, r *http.Request) {
 	views := s.consoleViews(r.Context())
 	if !userFrom(r).IsAdmin {
-		for i := range views {
-			views[i].Custom, views[i].DefaultCore = nil, ""
-		}
+		hideCustom(views)
 	}
 	if id := int64(qInt(r, "library", 0)); id != 0 {
 		if counts, err := s.Store.GameCounts(r.Context(), id, s.access(r)); err == nil {
@@ -648,7 +657,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 503, err.Error())
 		return
 	}
-	if _, err := os.Stat(it.Path); err != nil {
+	if _, err := os.Stat(it.Path); err != nil || !s.Store.LibraryFile(ctx, it.Path) {
 		writeErr(w, 404, "the game file is missing")
 		return
 	}
@@ -961,6 +970,10 @@ func (s *Server) handlePlayWebRTC(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
+	if !s.games().peers.offer(sess.ID(), time.Now()) {
+		tooManyPeers(w, "60")
+		return
+	}
 	var b struct {
 		SDP    string `json:"sdp"`
 		Prefer string `json:"prefer"`
@@ -985,6 +998,12 @@ func (s *Server) handlePlayWS(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
+	release, ok := s.games().peers.socket(sess.ID(), time.Now())
+	if !ok {
+		tooManyPeers(w, "10")
+		return
+	}
+	defer release()
 	sess.ServeWS(w, r, r.URL.Query().Get("video"))
 }
 

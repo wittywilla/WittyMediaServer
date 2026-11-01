@@ -4,6 +4,7 @@ import { IconStar } from '../../icons'
 import type { FieldChange, MatchCandidate, MatchPreview, SearchResult, Target, TitleEditor } from '../../metadata'
 import { ask, Button, Notice, Progress } from '../../ui'
 import LegalNote from '../LegalNote'
+import { WebLink } from '../WebLink'
 
 // Search and match: pick the right title. Choosing a result shows what would change
 // first, field by field, before anything does.
@@ -102,7 +103,7 @@ export default function MatchPanel({ ed, target, id, onApplied, onError }: { ed:
       <h3 id="ed-match-h" className="sr-only">Match</h3>
       {m.source ? (
         <div className="ed-matched">
-          <p>Matched with {m.url ? <a href={m.url} target="_blank" rel="noreferrer">{m.sourceLabel}</a> : m.sourceLabel}{m.state === 'manual' ? ', chosen by you' : ''}.</p>
+          <p>Matched with {m.url ? <WebLink href={m.url}>{m.sourceLabel}</WebLink> : m.sourceLabel}{m.state === 'manual' ? ', chosen by you' : ''}.</p>
           {m.state !== 'manual' && <ConfidenceMeter value={m.confidence} />}
         </div>
       ) : m.state === 'none' ? (
@@ -147,7 +148,7 @@ export function PreviewTable({ p, picked, setPicked, onApply, onBack, applyLabel
   return (
     <div className="ed-preview">
       <h5 ref={head} tabIndex={-1}>
-        {p.title} <span className="muted">from {p.url ? <a href={p.url} target="_blank" rel="noreferrer">{p.sourceLabel}</a> : p.sourceLabel}</span>
+        {p.title} <span className="muted">from {p.url ? <WebLink href={p.url}>{p.sourceLabel}</WebLink> : p.sourceLabel}</span>
       </h5>
       {p.changes.length === 0 ? <p className="muted">Nothing would change: everything already says what this says.</p> : (
         <>

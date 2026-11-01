@@ -248,7 +248,7 @@ func TestYearInReview(t *testing.T) {
 	log(1, song.ID, 20240210, 600)
 	log(1, film.ID, 20231231, 7200) // last year
 	log(2, film.ID, 20240101, 9999) // someone else
-	r, err := s.ReviewOfYear(ctx, 1, 2024)
+	r, err := s.ReviewOfYear(ctx, 1, 2024, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,17 +273,17 @@ func TestYearInReview(t *testing.T) {
 	if len(r.Years) != 2 || r.Years[0] != 2024 {
 		t.Errorf("years: %v", r.Years)
 	}
-	empty, err := s.ReviewOfYear(ctx, 1, 2001)
+	empty, err := s.ReviewOfYear(ctx, 1, 2001, nil)
 	if err != nil || empty.Seconds != 0 || empty.ByType == nil {
 		t.Errorf("an empty year: %+v %v", empty, err)
 	}
 	if err := s.ClearWatchHistory(ctx, 1); err != nil {
 		t.Fatal(err)
 	}
-	if r, _ := s.ReviewOfYear(ctx, 1, 2024); r.Seconds != 0 {
+	if r, _ := s.ReviewOfYear(ctx, 1, 2024, nil); r.Seconds != 0 {
 		t.Errorf("clearing left %f seconds", r.Seconds)
 	}
-	if r, _ := s.ReviewOfYear(ctx, 2, 2024); r.Seconds == 0 {
+	if r, _ := s.ReviewOfYear(ctx, 2, 2024, nil); r.Seconds == 0 {
 		t.Error("clearing one account's history cleared another's")
 	}
 	for in, want := range map[int]int{20240131: 20240201, 20240228: 20240229, 20230228: 20230301, 20231231: 20240101, 20240115: 20240116} {

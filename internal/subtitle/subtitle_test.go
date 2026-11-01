@@ -3,6 +3,7 @@ package subtitle
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestConvert(t *testing.T) {
@@ -62,9 +63,16 @@ func FuzzConvert(f *testing.F) {
 		if len(in) > 1<<16 {
 			return
 		}
+		start := time.Now()
 		out, err := Convert(format, []byte(in))
 		if err == nil {
 			Shift(out, 1.5)
+			if len(out) > 256*len(in)+1<<16 {
+				t.Errorf("%d bytes from %d", len(out), len(in))
+			}
+		}
+		if took := time.Since(start); took > 2*time.Second {
+			t.Errorf("%d bytes took %v", len(in), took)
 		}
 	})
 }

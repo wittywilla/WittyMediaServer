@@ -314,7 +314,9 @@ https://cdn.example/video.m3u8
 		t.Errorf("video only: %v", err)
 	}
 	// Encrypted: refused, never unlocked. A key's address isn't fetched.
-	for _, tag := range []string{`#EXT-X-KEY:METHOD=AES-128,URI="k.key"`, `#EXT-X-KEY:METHOD=SAMPLE-AES,URI="skd://x"`, `#EXT-X-SESSION-KEY:METHOD=AES-128,URI="k"`, `#EXT-X-KEY:URI="k"`} {
+	for _, tag := range []string{`#EXT-X-KEY:METHOD=AES-128,URI="k.key"`, `#EXT-X-KEY:METHOD=SAMPLE-AES,URI="skd://x"`, `#EXT-X-SESSION-KEY:METHOD=AES-128,URI="k"`, `#EXT-X-KEY:URI="k"`,
+		// Words that look like no key, somewhere a search of the line would find them first.
+		`#EXT-X-KEY:URI="x?METHOD=NONE",METHOD=AES-128`, `#EXT-X-KEY:IV="METHOD=NONE",METHOD=SAMPLE-AES,URI="k"`, `#EXT-X-KEY:METHOD=NONE,METHOD=AES-128,URI="k"`} {
 		if _, _, err := RewriteHLS([]byte("#EXTM3U\n"+tag+"\n#EXTINF:6,\ns.aac\n"), base, link); !errors.Is(err, ErrStationEncrypted) {
 			t.Errorf("%s: %v", tag, err)
 		}

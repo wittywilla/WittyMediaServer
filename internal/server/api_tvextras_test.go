@@ -303,3 +303,32 @@ func TestGuideFiltersByCategoryAndKeepsOldSkins(t *testing.T) {
 		t.Errorf("a colour that isn't one: %d", w.Code)
 	}
 }
+
+// Working out every channel's next two weeks is real work, so only a few run at once.
+func TestGuideSearchTakesTurns(t *testing.T) {
+	h, admin, _, _ := tvServer(t)
+	for range cap(guideSearchSlots) {
+		guideSearchSlots <- struct{}{}
+	}
+	defer func() {
+		for range cap(guideSearchSlots) {
+			<-guideSearchSlots
+		}
+	}()
+	w := tvCall(h, "GET", "/api/guide/search?q=made", admin, "")
+	if w.Code != 429 || w.Header().Get("Retry-After") == "" {
+		t.Errorf("with every place taken: %d %q", w.Code, w.Header().Get("Retry-After"))
+	}
+}
+
+// Bumpers leave the disk the room every other upload does.
+func TestBumperUploadsLeaveRoomOnTheDisk(t *testing.T) {
+	h, admin, _, _ := tvServer(t)
+	old := uploadFreeFloor
+	uploadFreeFloor = 1 << 62
+	defer func() { uploadFreeFloor = old }()
+	w := tvCall(h, "POST", "/api/channels/bumpers/upload?name=a.mp4", admin, "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom")
+	if w.Code != 507 {
+		t.Errorf("a disk that's full: %d %s", w.Code, w.Body)
+	}
+}

@@ -1233,3 +1233,32 @@ func BenchmarkRedactAddress(b *testing.B) {
 		_ = Redact(s)
 	}
 }
+
+func TestRedactKeysInAddresses(t *testing.T) {
+	for _, s := range []string{
+		"https://x/feed?tmdb_key=SECRETVALUE", "https://x/a?listenerkey=SECRETVALUE", "rtmp://x/a?stream_key=SECRETVALUE", "https://x/?access_key=SECRETVALUE",
+		"https://x/?auth_key=SECRETVALUE", "https://x/?x_api_key=SECRETVALUE", "https://x/?sid=SECRETVALUE", "https://x/?a=1&session=SECRETVALUE", "https://x/?sign=SECRETVALUE",
+		"https://x/?hash=SECRETVALUE", "https://x/?code=SECRETVALUE", "rtsp://SECRETVALUE@camera/live", "rtsp://user:SECRETVALUE@camera/live", `{"key":"SECRETVALUE"}`,
+		`{"recoveryCodes":["SECRETVALUE","SECRETVALUE"]}`, "http://provider.example/live/user/SECRETVALUE/1.ts", "http://provider.example/series/SECRETVALUE/pw/1.ts",
+	} {
+		if got := Redact(s); strings.Contains(got, "SECRETVALUE") {
+			t.Errorf("%q came out as %q", s, got)
+		}
+	}
+	// What people need to read stays.
+	for _, s := range []string{"exit code=1", "http://host/a/b.mp4", "session=tv-abc", "hash=abc in the list", "user@example.com wrote", "/api/hls/live/1/seg/2"} {
+		if got := Redact(s); got != s {
+			t.Errorf("%q came out as %q", s, got)
+		}
+	}
+	for _, k := range []string{"tmdb_key", "apiKeys", "recoveryCodes", "stream_key", "x-api-key"} {
+		if !secretKey(k) {
+			t.Errorf("%s isn't treated as secret", k)
+		}
+	}
+	for _, k := range []string{"monkey", "cachekey", "name", "path"} {
+		if secretKey(k) {
+			t.Errorf("%s is treated as secret", k)
+		}
+	}
+}

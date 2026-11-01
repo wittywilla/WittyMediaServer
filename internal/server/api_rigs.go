@@ -701,7 +701,7 @@ func (s *Server) handleRigPair(w http.ResponseWriter, r *http.Request) {
 	answer := *p // the pairing changes this from here on
 	g.mu.Unlock()
 	s.Log.Info("rig pairing started", "rig", rig.Name, "by", userFrom(r).Name)
-	go s.runRigPair(ctx, cancel, rig, p, pin)
+	logging.Go("pairing a game PC", func() { s.runRigPair(ctx, cancel, rig, p, pin) }, "cat", "games")
 	writeJSON(w, 200, &answer)
 }
 

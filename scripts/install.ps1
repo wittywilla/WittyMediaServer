@@ -20,7 +20,17 @@ Write-Host "==> installing to $Prefix (data: $Data, port: $Port)"
 New-Item -ItemType Directory -Force $Prefix, $Data | Out-Null
 # ProgramData lets every account read, and add files to, new folders. This one
 # holds password hashes and sessions: only the service and administrators get in.
-icacls $Data /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" | Out-Null
+# Any account could have made this folder first, and would then own it and keep what it
+# granted itself, so ownership comes first and nothing is left of the old rules.
+icacls $Data /setowner "*S-1-5-32-544" /T /C /Q | Out-Null
+$acl = New-Object System.Security.AccessControl.DirectorySecurity
+$acl.SetOwner((New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")))
+$acl.SetAccessRuleProtection($true, $false)
+foreach ($sid in "S-1-5-18", "S-1-5-32-544") {
+  $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule((New-Object System.Security.Principal.SecurityIdentifier($sid)), "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")))
+}
+Set-Acl -LiteralPath $Data -AclObject $acl
+icacls "$Data\*" /reset /T /C /Q 2>$null | Out-Null
 Copy-Item -Force "$here\wms.exe" $Prefix
 if (Test-Path "$here\bin") { Copy-Item -Recurse -Force "$here\bin" $Prefix }
 Get-ChildItem "$here\*.md" -ErrorAction SilentlyContinue | Copy-Item -Force -Destination $Prefix

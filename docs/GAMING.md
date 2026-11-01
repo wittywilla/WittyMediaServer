@@ -343,9 +343,9 @@ These choices are kept in the database, beside the library. Nothing is ever writ
 - **Discs** come together by name: `Disc 2`, `(CD2)`, `disc2of3`, or a folder called `Disc 2`. They can be loose, in archives, or both, and they're offered to the
   core as a playlist, so the game's menu can change disc. Each disc in an archive is unpacked first. A disc that's kept on another drive from the data folder is copied beside the
   playlist for as long as the game is running, unless a link can be made, because cores can't follow a playlist across drives.
-- **Versions** (regions, revisions, betas) of one name on one console share a tile, headed by a released version in a widely-played region. The head stays the head, as saves
-  belong to it. Each version is still its own game, with its own saves, and can be made a game of its own from its page.
-- **Sets:** an archive of versions of one game plays the verified, widely-played one, leaving out bad dumps, hacks and translations, and its page lets an administrator choose another.
+- **Versions** (regions, revisions, betas) of one name on one console share a tile, headed by a released version in the first region of the owner's order (see below). The head stays the
+  head, as saves belong to it. Each version is still its own game, with its own saves, and can be made a game of its own from its page.
+- **Sets:** an archive of versions of one game plays the verified one in the first region of the owner's order, leaving out bad dumps, hacks and translations, and its page lets an administrator choose another.
 
 **Importing a big library** needs nobody watching. It runs in the background, and carries on from where it stopped after a restart: what's been judged is saved every 200 files, and
 what's been looked up as it goes. A file is only read again if it changes. On this project's test library of 8,500 files on a hard disk, the scan took 30 seconds and every game had a
@@ -426,7 +426,16 @@ gaming/saves/u<user id>/i<item id>/save.srm       battery save
                                    undo.state     the game as it was before the last load
                                    autoprev.state the automatic save that starting over would have replaced
                                    patches/p<n>.patch  a person's patches
+                                   system/             the system folder of a core that keeps saves in it
 ```
+
+**Memory cards.** The PlayStation 2 core keeps its memory cards under its system folder, as `pcsx2/memcards`. A running
+core can't write to the shared system folder, and shouldn't see other people's cards there, so this core gets a system
+folder of its own, in the save folder (`SavesIn` in `traits.go`). The cards stay there. Copies of the BIOS in use and the
+core's support files go in beside them when the game starts and are removed when it ends, up to 64 MB, so firmware
+doesn't end up in backups. They're copies, not links, because on Linux a core could write through a hard link to the real
+file. Each game has its own cards for each account, so a game that reads another game's save can't find it. A new card
+is unformatted, as a new card was on a real console, and a game offers to format it the first time it saves.
 
 Paths are built only from numeric IDs and a slot number. The host sends the bytes over its pipe, and the server
 writes them atomically, so a host that has been exploited can't choose a path. Battery saves are written every 30
@@ -437,6 +446,20 @@ A person can download a state or a battery save and put one back. An exported st
 console, the core, its size and a checksum, and an import checks all of them. A plain state file from elsewhere is
 taken with a warning: nothing can vouch for it, and it's only ever read by a core inside its sandbox. A state that
 won't load leaves the game as it was and says so, and Undo load is always there.
+
+## Which version comes first
+
+*Settings, Consoles & cores, Which version comes first* puts regions in order (`gamingRegionOrder`, such as
+`japan,europe`: `usa`, `europe`, `australia`, `japan`, `asia`, `brazil`, with any left out going after those, in that
+order). A country counts as its region, and a version for the world counts as the first. It decides three things:
+
+- which file of an archive plays,
+- which version leads a tile,
+- which record names a game whose file says nothing about its region.
+
+Changing it scans the games libraries again. A file someone chose stays. So does the version of a game someone has played,
+as their saves belong to it, or has given a title of their own. New versions that arrive later never take over from
+the one leading a tile, which is the same with any order.
 
 ## Settings
 

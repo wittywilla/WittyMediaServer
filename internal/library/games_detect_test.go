@@ -13,6 +13,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/gameid"
 	"github.com/wittywilla/wittymediaserver/internal/gameid/fixture"
+	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 )
 
 func discardLog() *slog.Logger { return slog.New(slog.NewTextHandler(io.Discard, nil)) }
@@ -444,5 +445,88 @@ func TestVersionsOfOneGameShareATile(t *testing.T) {
 	}
 	if store.LinkOf(ctx, rev.ID) != nil {
 		t.Fatal("a split came back")
+	}
+}
+
+// The owner's order of regions decides which version leads a game and which file of an
+// archive plays, but not for a game someone has played: their saves belong to that one.
+func TestTheOwnersRegionOrderDecidesWhatComesFirst(t *testing.T) {
+	t.Cleanup(func() { gameregion.Set("") })
+	gameregion.Set("")
+	ctx := context.Background()
+	d, err := db.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	store := &Store{DB: d}
+	root := t.TempDir()
+	lib, err := store.CreateLibrary(ctx, "Games", "games", []string{root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SetLibraryConsole(ctx, lib.ID, "nes"); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"Mega Game (Japan).nes", "Mega Game (USA).nes", "Played Game (Japan).nes", "Played Game (USA).nes", "Named Game (Japan).nes", "Named Game (USA).nes"} {
+		put(t, root, name, gameBytes(name))
+	}
+	sc := NewScanner(store, nil, t.TempDir(), func() string { return "" }, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	heads := func() map[string]string {
+		t.Helper()
+		if err := sc.scan(ctx, lib.ID); err != nil {
+			t.Fatal(err)
+		}
+		list, _, err := store.Items(ctx, ItemQuery{LibraryID: lib.ID})
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := map[string]string{}
+		for _, it := range list {
+			out[it.Title] = it.Tagline
+		}
+		return out
+	}
+	first := heads()
+	if len(first) != 3 || first["Mega Game"] != "USA" || first["Played Game"] != "USA" || first["Named Game"] != "USA" {
+		t.Fatalf("usual order: %+v", first)
+	}
+	list, _, err := store.Items(ctx, ItemQuery{LibraryID: lib.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, it := range list {
+		switch it.Title {
+		case "Played Game":
+			if _, err := d.ExecContext(ctx, `INSERT INTO game_core_plays(core_id, item_id, starts) VALUES('a', ?, 1)`, it.ID); err != nil {
+				t.Fatal(err)
+			}
+		case "Named Game":
+			it.Title, it.SortTitle = "A Name Of My Own", SortTitle("A Name Of My Own")
+			if err := store.upsertItem(ctx, it); err != nil {
+				t.Fatal(err)
+			}
+			if err := store.MarkGameEdited(ctx, it.ID, "title"); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	gameregion.Set("japan")
+	if err := store.GameRegionsChanged(ctx); err != nil {
+		t.Fatal(err)
+	}
+	after := heads()
+	if len(after) != 3 {
+		t.Fatalf("the versions came apart: %+v", after)
+	}
+	if after["Mega Game"] != "Japan" {
+		t.Errorf("a game nobody has played should follow the order: %+v", after)
+	}
+	if after["Played Game"] != "USA" {
+		t.Errorf("a game someone has played keeps its version: %+v", after)
+	}
+	if after["A Name Of My Own"] != "USA" {
+		t.Errorf("a game someone has named keeps its version: %+v", after)
 	}
 }

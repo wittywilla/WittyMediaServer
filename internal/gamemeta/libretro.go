@@ -301,7 +301,7 @@ func (s *Libretro) Prepare(ctx context.Context, console string, qs []Query) erro
 }
 
 // best picks among records of one game: the region the file says it's from if there's
-// a match, otherwise whichever is most useful to an English speaker.
+// a match, otherwise whichever the owner's order of regions likes best.
 func (d *libDB) best(ids []int32, tags string) int32 {
 	want := strings.ToLower(tags)
 	best, bestRank := ids[0], 99

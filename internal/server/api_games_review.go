@@ -13,6 +13,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/gameid"
+	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittyplay"
 )
@@ -30,6 +31,27 @@ func (s *Server) gameReviewRoutes(m *http.ServeMux) {
 	m.Handle("POST /api/games/{id}/split", s.requireAdmin(s.handleGameSplit))
 	m.Handle("PUT /api/games/{id}/console", s.requireAdmin(s.handleGameConsoleFix))
 	m.Handle("POST /api/games/{id}/not-a-game", s.requireAdmin(s.handleGameNotAGame))
+}
+
+// gameRegionsChanged puts the owner's new order of regions to use: what's new follows it
+// straight away, and each games library is scanned to bring what's listed into line.
+func (s *Server) gameRegionsChanged(ctx context.Context, setting string) {
+	gameregion.Set(setting)
+	if err := s.Store.GameRegionsChanged(ctx); err != nil {
+		s.Log.Warn("putting a new order of regions to use", "cat", "library", "err", err)
+		return
+	}
+	libs, err := s.Store.Libraries(ctx)
+	if err != nil {
+		s.Log.Warn("putting a new order of regions to use", "cat", "library", "err", err)
+		return
+	}
+	for _, lib := range libs {
+		if lib.Type == "games" {
+			s.Scanner.Start(lib.ID)
+		}
+	}
+	s.GameMeta.Kick()
 }
 
 func (s *Server) gamesLibrary(w http.ResponseWriter, r *http.Request) *library.Library {

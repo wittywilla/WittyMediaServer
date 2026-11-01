@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/gameid/fixture"
+	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittyplay"
 )
@@ -319,5 +320,44 @@ func TestAFullServerSaysSoFirst(t *testing.T) {
 	w := g.do("POST", fmt.Sprintf("/api/games/%d/play", item), g.admin, map[string]any{})
 	if w.Code != 503 || !strings.Contains(w.Body.String(), "as many games") {
 		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+}
+
+// The order of regions is checked, is used from then on, and brings what's listed into line.
+func TestTheOrderOfRegionsIsASetting(t *testing.T) {
+	t.Cleanup(func() { gameregion.Set("") })
+	g := newGameServer(t)
+	lib := reviewLibrary(t, g, map[string][]byte{"Game (USA).sfc": fixture.SNES("GAME USA"), "Game (Japan).sfc": fixture.SNES("GAME JAPAN")})
+	head := func() string {
+		t.Helper()
+		var out struct {
+			Items []library.Item `json:"items"`
+		}
+		jsonBody(t, g.do("GET", fmt.Sprintf("/api/items?library=%d&kind=game", lib.ID), g.admin, nil), &out)
+		if len(out.Items) != 1 {
+			t.Fatalf("%d tiles", len(out.Items))
+		}
+		return out.Items[0].Tagline
+	}
+	if got := head(); got != "USA" {
+		t.Fatalf("usual order led with %q", got)
+	}
+	for _, bad := range []string{"mars", "japan,japan", "usa,../.."} {
+		if w := g.do("PUT", "/api/settings", g.admin, map[string]string{"gamingRegionOrder": bad}); w.Code != 400 {
+			t.Errorf("%q: %d", bad, w.Code)
+		}
+	}
+	if got := gameregion.Order()[0]; got != gameregion.USA {
+		t.Fatalf("a refused setting changed the order: %s", got)
+	}
+	if w := g.do("PUT", "/api/settings", g.admin, map[string]string{"gamingRegionOrder": "japan,usa"}); w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	if got := gameregion.Order()[0]; got != gameregion.Japan {
+		t.Fatalf("order %v", gameregion.Order())
+	}
+	waitForScan(t, g, lib.ID)
+	if got := head(); got != "Japan" {
+		t.Fatalf("after the change it led with %q", got)
 	}
 }

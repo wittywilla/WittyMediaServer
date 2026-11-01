@@ -39,10 +39,10 @@ type Config struct {
 	PublicURL    string // optional external URL used in generated links
 	// RemoteAccess turns remote access on regardless of Settings, for servers
 	// nobody can reach from a home network first (a rented server).
-	RemoteAccess   bool
+	RemoteAccess bool
 	// SetupFromHome lets the first account be made from the home network without the
 	// setup code. Off, only the server's own desktop goes without it.
-	SetupFromHome bool
+	SetupFromHome  bool
 	TrustedProxies string // reverse proxies whose forwarded headers are believed, added to those in Settings
 	Dev            bool   // serve the web UI from web/dist on disk instead of the embedded copy
 	MaxTranscode   int

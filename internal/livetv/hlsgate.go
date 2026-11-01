@@ -619,7 +619,9 @@ func gateClient(home bool) *http.Client {
 	}}
 	return &http.Client{
 		Transport: &http.Transport{
-			DialContext:           func(ctx context.Context, network, address string) (net.Conn, error) { return d.DialContext(ctx, network, address) },
+			DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+				return d.DialContext(ctx, network, address)
+			},
 			TLSHandshakeTimeout:   15 * time.Second,
 			ResponseHeaderTimeout: 30 * time.Second,
 			MaxIdleConnsPerHost:   4,

@@ -74,7 +74,8 @@ function LiveTask({ task: t }: { task: Task }) {
           <div className="act-title">{t.title}</div>
           <div className="act-sub">{[typeName(t.type), t.source, t.by && `started by ${t.by}`, `started ${fmtAgo(t.startedAt)}`].filter(Boolean).join(' · ')}</div>
         </div>
-        <span className={'act-state ' + t.state}>{STATE_NAMES[t.state]}</span>
+        {/* Asked to pause, and carrying on to the next point it can stop at. */}
+        <span className={'act-state ' + t.state}>{t.state === 'running' && t.canResume ? 'Pausing…' : STATE_NAMES[t.state]}</span>
       </div>
       {t.state === 'paused' || waiting
         ? <Progress label={t.title} value={t.percent >= 0 ? t.percent : 0} />

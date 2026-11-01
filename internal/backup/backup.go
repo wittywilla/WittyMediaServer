@@ -142,6 +142,7 @@ var tableParts = map[string]string{
 	"photo_meta": PartLibrary, "creators": PartLibrary, "video_meta": PartLibrary, "podcasts": PartLibrary, "radio_meta": PartLibrary,
 	"game_archives": PartLibrary, "game_meta": PartLibrary, "game_meta_sources": PartLibrary,
 	"game_files": PartLibrary, "game_review": PartLibrary, "game_decisions": PartLibrary, "game_discs": PartLibrary,
+	"ltc_rules": PartLibrary,
 
 	"settings": PartSettings,
 	"users":    PartUsers,
@@ -169,6 +170,7 @@ var neverTables = map[string]bool{
 	"custom_cores": true, "custom_core_versions": true, "custom_consoles": true, "game_core_choice": true, "game_core_plays": true, "game_core_audit": true,
 	"wittycouch_hosts": true, "wittyrigs_rigs": true, "wittyrigs_apps": true,
 	"metrics_hourly": true, "stream_bytes": true, "task_history": true,
+	"ltc_runs": true, "ltc_files": true, "ltc_memo": true,
 }
 
 // FileEntry is one file in an archive.

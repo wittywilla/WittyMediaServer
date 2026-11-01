@@ -22,16 +22,18 @@ type Versions struct {
 	Metadata int `json:"metadata"`
 	Music    int `json:"music"`
 	Games    int `json:"games"`
+	// LibTranscode: library transcoding's tables.
+	LibTranscode int `json:"libTranscode"`
 }
 
 // CurrentVersions is what this program builds.
 func CurrentVersions() Versions {
-	return Versions{Main: len(migrations), TV: len(wittyTVMigrations), Metadata: len(metadataMigrations), Music: len(musicMigrations), Games: len(gameMigrations)}
+	return Versions{Main: len(migrations), TV: len(wittyTVMigrations), Metadata: len(metadataMigrations), Music: len(musicMigrations), Games: len(gameMigrations), LibTranscode: len(libTranscodeMigrations)}
 }
 
 // Newer says whether v has anything this program doesn't know about.
 func (v Versions) Newer(than Versions) bool {
-	return v.Main > than.Main || v.TV > than.TV || v.Metadata > than.Metadata || v.Music > than.Music || v.Games > than.Games
+	return v.Main > than.Main || v.TV > than.TV || v.Metadata > than.Metadata || v.Music > than.Music || v.Games > than.Games || v.LibTranscode > than.LibTranscode
 }
 
 // ReadVersions reads a database's versions without changing it.
@@ -42,7 +44,7 @@ func ReadVersions(ctx context.Context, q interface {
 	if err := q.QueryRowContext(ctx, `SELECT version FROM `+prefix+`schema LIMIT 1`).Scan(&v.Main); err != nil {
 		return v, fmt.Errorf("it has no schema version: %w", err)
 	}
-	for key, dst := range map[string]*int{"schema.wittytv": &v.TV, "schema.metadata": &v.Metadata, "schema.music": &v.Music, "schema.games": &v.Games} {
+	for key, dst := range map[string]*int{"schema.wittytv": &v.TV, "schema.metadata": &v.Metadata, "schema.music": &v.Music, "schema.games": &v.Games, "schema.libtranscode": &v.LibTranscode} {
 		var s string
 		err := q.QueryRowContext(ctx, `SELECT value FROM `+prefix+`settings WHERE key = ?`, key).Scan(&s)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -98,7 +100,7 @@ func BuildAt(ctx context.Context, path string, v Versions) (*sql.DB, error) {
 		list []string
 		n    int
 		key  string
-	}{{wittyTVMigrations, v.TV, "schema.wittytv"}, {metadataMigrations, v.Metadata, "schema.metadata"}, {musicMigrations, v.Music, "schema.music"}, {gameMigrations, v.Games, "schema.games"}} {
+	}{{wittyTVMigrations, v.TV, "schema.wittytv"}, {metadataMigrations, v.Metadata, "schema.metadata"}, {musicMigrations, v.Music, "schema.music"}, {gameMigrations, v.Games, "schema.games"}, {libTranscodeMigrations, v.LibTranscode, "schema.libtranscode"}} {
 		if err := step(track.list, track.n, track.key); err != nil {
 			d.Close()
 			return nil, err
@@ -142,7 +144,6 @@ func OpenPlainFile(path string) (*sql.DB, error) {
 	d.SetMaxOpenConns(1)
 	return d, nil
 }
-
 
 // RemoveOrphans deletes rows whose parent has gone, and says how many.
 func RemoveOrphans(ctx context.Context, d *sql.DB) (int64, error) {

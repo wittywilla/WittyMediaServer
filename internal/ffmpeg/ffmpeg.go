@@ -119,6 +119,10 @@ type Stream struct {
 	BitsPerSample string           `json:"bits_per_raw_sample"`
 	CodecTag      string           `json:"codec_tag_string"`
 	SideData      []map[string]any `json:"side_data_list"`
+	// Frame rates as fractions, and whether captions are carried inside the picture.
+	RFrameRate     string `json:"r_frame_rate"`
+	AvgFrameRate   string `json:"avg_frame_rate"`
+	ClosedCaptions int    `json:"closed_captions"`
 }
 
 // DisplaySize is the picture's size as shown: phones store upright video as a

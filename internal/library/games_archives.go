@@ -19,6 +19,10 @@ type archiveIndex struct {
 	// reading, when set, is told about each archive that really has to be opened: on a
 	// slow network folder the first scan can take a while, and this shows it's moving.
 	reading func(path string)
+	// stopped, when set, says the scan has been cancelled. Looking through a large library
+	// can be minutes of work, so discover stops at the next file. What it worked out by then
+	// is kept, so the next scan carries on from there.
+	stopped func() bool
 	// looking, when set, is told how far through a folder's files the scan has got.
 	looking func(done, total int)
 

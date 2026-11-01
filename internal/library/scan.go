@@ -145,6 +145,27 @@ func (s *Scanner) HoldScans(ctx context.Context) (release func(), err error) {
 	}
 }
 
+// findUnlessCancelled walks a folder, and doesn't keep whoever cancelled waiting. A slow
+// network share can take minutes to walk. The walk only reads, and goes on by itself until it
+// has finished, which costs nothing but its own time.
+func findUnlessCancelled(ctx context.Context, find func(string) ([]candidate, error), root string) ([]candidate, error) {
+	type found struct {
+		list []candidate
+		err  error
+	}
+	ch := make(chan found, 1)
+	logging.Go("library walk", func() {
+		list, err := find(root)
+		ch <- found{list, err}
+	}, "cat", "library")
+	select {
+	case f := <-ch:
+		return f.list, f.err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
 // scanResult says what came of a scan, for the activity history.
 func scanResult(files, problems int, took time.Duration) string {
 	plural := func(n int, one, many string) string {
@@ -376,7 +397,7 @@ func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 			return nil
 		}
 		st, err := d.Info()
-		if err != nil || !mediaEntry(root, p, d) {
+		if err != nil || !mediaEntry(root, p, d) || IsConvertedCopy(name) {
 			return nil
 		}
 		switch {
@@ -462,10 +483,14 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		archives.reading = func(path string) {
 			s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(path) })
 			task.Item(filepath.Base(path), path)
+			// Reading archives can be the longest part of a scan, so pausing can't wait for its end.
+			_ = pausePoint()
 		}
+		archives.stopped = func() bool { return ctx.Err() != nil }
 		archives.looking = func(done, total int) {
 			s.progress(libraryID, func(p *ScanProgress) { p.Done, p.Found = done, total })
 			task.Progress(int64(done), int64(total))
+			_ = pausePoint()
 		}
 		defer archives.close()
 	}
@@ -503,7 +528,16 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		case lib.Type == "games":
 			find = func(root string) ([]candidate, error) { return archives.discover(root, lib.Console) }
 		}
-		c, err := find(root)
+		var c []candidate
+		var err error
+		if lib.Type == "games" {
+			c, err = find(root) // watches for a cancel as it goes, and shares what it finds with this scan
+		} else {
+			c, err = findUnlessCancelled(ctx, find, root)
+		}
+		if ctx.Err() != nil {
+			return ctx.Err() // before anything half-found is kept
+		}
 		if err != nil {
 			s.Log.WarnContext(ctx, "could not read all of a library folder", "library", lib.Name, "dir", root, "err", err)
 			words, fix := tasks.Explain(err)

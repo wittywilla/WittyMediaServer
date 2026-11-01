@@ -7,6 +7,19 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **Library transcoding.** Convert a library's files ahead of time, under **Settings, Library transcoding**. Three plain presets (play on any
+  device, save space, keep the best quality), with every detail open to change: sound tracks and subtitles by language, commentary, audio description, a
+  stereo track beside surround, lossless and object sound, forced and picture subtitles, HDR, Dolby Vision, 3D, files with several pictures, and more. A
+  preview says what becomes of each track of a file, a dry run says what becomes of a whole library, and a 20-second test measures this machine. Each new file is checked before
+  anything happens to the old one, which you can keep, replace or leave in use, and put back later. What's been watched and your edits stay. It's off until you've read how
+  it affects streaming, and can hold still while people watch or outside chosen hours. Copy-protected files are refused. It shows in the activity panel, with pause, cancel and retry. See
+  [the guide](docs/LIBRARY-TRANSCODING.md).
+- **Connect your own Tdarr.** See its nodes and what they're working on in the activity panel, and hand it libraries, over its documented API. Tdarr is a separate program under its own
+  licence, and isn't included.
+- **The Transcoding page** is now **Live transcoding**, to tell it apart. Its controls have been checked, its text made plain, and a claim that a resolution limit leaves direct play alone,
+  which wasn't true, put right.
+- **Libraries can be read-only**: nothing the server does may change their files.
+
 - **An activity button in the top bar.** A ring and a count show library scans and other background work as they happen, and it
   stays quiet when nothing is going on. Its panel lists each task library by library, with the file being worked on, the speed, the
   time left, and pause, resume, cancel and try again. A history keeps what finished, with errors that say what happened and what

@@ -340,6 +340,8 @@ func (s *Server) handleMetricsStream(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 			return
+		case <-s.streamsEnding():
+			return
 		case <-check.C:
 			if !s.metricStreamAllowed(r, tok, u) {
 				return

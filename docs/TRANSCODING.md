@@ -1,9 +1,12 @@
-# Transcoding guide
+# Live transcoding guide
+
+This is about converting while someone watches, which leaves your files alone. To convert files ahead of time, see
+[Library transcoding](LIBRARY-TRANSCODING.md).
 
 WittyMediaServer sends a file to the browser **as it is** whenever the browser can play it
 (*direct play*). Everything else — MKV, AVI, HEVC, interlaced video, DVDs, files with burned-in
 subtitles — is converted on the fly to H.264 + AAC HLS by FFmpeg. This guide explains the
-settings under **Settings → Transcoding** and which choices suit which hardware.
+settings under **Settings → Live transcoding** and which choices suit which hardware.
 
 - [Direct play](#direct-play)
 - [Hardware encoders](#hardware-encoders)

@@ -891,7 +891,12 @@ func TestRecoverAndLoop(t *testing.T) {
 	if strings.Contains(got, "PLANTEDSECRET") {
 		t.Error("the panic's value leaked a secret")
 	}
+	// The report is written just after the log line, so it may not be there yet.
 	crashes := guard.List()
+	for len(crashes) == 0 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+		crashes = guard.List()
+	}
 	if len(crashes) != 1 || crashes[0].Kind != "panic" {
 		t.Fatalf("reports: %+v", crashes)
 	}

@@ -515,9 +515,9 @@ func FuzzGateRewrite(f *testing.F) {
 			if strings.HasPrefix(l, "#EXT-X-KEY:") && l != "#EXT-X-KEY:METHOD=NONE" {
 				t.Fatalf("key %q from %q", l, s)
 			}
-			for _, a := range parseHLSAttrs(l[strings.IndexByte(l, ':')+1:]) {
-				if a.key == "URI" && !strings.HasPrefix(a.value, prefix) {
-					t.Fatalf("uri %q in %q", a.value, l)
+			for _, a := range library.ParseHLSAttrs(l[strings.IndexByte(l, ':')+1:]) {
+				if a.Key == "URI" && !strings.HasPrefix(a.Value, prefix) {
+					t.Fatalf("uri %q in %q", a.Value, l)
 				}
 			}
 		}

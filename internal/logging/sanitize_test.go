@@ -337,6 +337,40 @@ func TestSanitizingKeepsDiagnostics(t *testing.T) {
 	}
 }
 
+// With nothing known in advance, a log still teaches what to hide, wherever it says so first.
+func TestNamesAreLearnedFromTheLog(t *testing.T) {
+	dir := t.TempDir()
+	first := `time=2026-11-01T10:00:00.000Z level=WARN cat=auth msg="a step failed" err="plantedlearned stopped watching The Learned Harbour"` + "\n"
+	last := `time=2026-11-01T11:00:00.000Z level=WARN cat=playback msg=opened user=plantedlearned title="The Learned Harbour"` + "\n"
+	if err := os.WriteFile(filepath.Join(dir, "wms-2026-11-01.log"), []byte(first+last), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := WriteBundleDir(&out, dir, nil, BundleOptions{Days: 14, Sanitize: true}); err != nil {
+		t.Fatal(err)
+	}
+	for name, text := range unzipFiles(t, out.Bytes()) {
+		for _, v := range []string{"plantedlearned", "The Learned Harbour"} {
+			if strings.Contains(text, v) {
+				t.Errorf("%q survived in %s:\n%s", v, name, text)
+			}
+		}
+	}
+	var one bytes.Buffer
+	if _, err := SanitizeLog(&one, strings.NewReader(first+last), Known{}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(one.String(), "plantedlearned") {
+		t.Error(one.String())
+	}
+	// Learning doesn't make a word of the log's own into a name.
+	s := NewSanitizer(Known{})
+	s.learnRecord(&Record{Attrs: []Attr{{"user", "admin"}, {"title", "Error"}, {"name", "ffmpeg"}}})
+	if got := s.Text("admin saw an Error from ffmpeg"); got != "admin saw an Error from ffmpeg" {
+		t.Error(got)
+	}
+}
+
 // The preview shows the same thing the zip will hold, and says how much it changed.
 func TestPreviewSaysWhatSanitizingDoes(t *testing.T) {
 	l, log := newTest(t)

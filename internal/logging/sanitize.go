@@ -1,8 +1,10 @@
 package logging
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
+	"io"
 	"net/netip"
 	"net/url"
 	"os"
@@ -115,13 +117,42 @@ func NewSanitizer(k Known) *Sanitizer {
 		}
 		s.addName("title", t)
 	}
-	// Longest first, so "The Long Night Returns" isn't taken for "The Long Night".
+	s.settle()
+	return s
+}
+
+// settle puts the longest first, so "The Long Night Returns" isn't taken for "The Long Night".
+func (s *Sanitizer) settle() {
 	for _, list := range s.words {
 		if len(list) > 1 {
 			sort.SliceStable(list, func(i, j int) bool { return len(list[i].text) > len(list[j].text) })
 		}
 	}
-	return s
+}
+
+// What a log says outright is someone's name or a title is a name to look for in the rest
+// of it. It matters most when the database can't be read.
+var learnKeys = map[string]string{"user": "user", "account": "user", "username": "user", "by": "user", "login": "user",
+	"title": "title", "show": "title", "game": "title", "album": "title", "artist": "title", "movie": "title", "episode": "title", "series": "title"}
+
+func (s *Sanitizer) learnRecord(rec *Record) {
+	for i := range rec.Attrs {
+		if kind := learnKeys[strings.ToLower(rec.Attrs[i].K)]; kind != "" && s.entries < maxKnownTitles*2 {
+			s.addName(kind, rec.Attrs[i].V)
+		}
+	}
+}
+
+// learnLines reads text for names, line by line, up to limit lines (0 for all of it).
+func (s *Sanitizer) learnLines(r io.Reader, limit int) {
+	sc := bufio.NewScanner(r)
+	sc.Buffer(make([]byte, 64<<10), 512<<10)
+	for n := 0; sc.Scan() && (limit == 0 || n < limit); n++ {
+		if line := sc.Text(); strings.HasPrefix(line, "time=") {
+			rec := ParseLine(line)
+			s.learnRecord(&rec)
+		}
+	}
 }
 
 // NewScrubber is NewSanitizer for callers that only know the library folders.

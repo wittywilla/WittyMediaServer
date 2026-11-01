@@ -3,6 +3,7 @@ package logging
 import (
 	"archive/zip"
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -95,6 +96,23 @@ func (o *BundleOptions) sanitizer() *Sanitizer {
 	return NewSanitizer(k)
 }
 
+// learn goes through what's going in for names, before any of it is written, so a name is
+// hidden from the first file even if only the last one says what it is.
+func learn(s *Sanitizer, dir string, logs []FileInfo, g *CrashGuard, limit int) {
+	for _, f := range logs {
+		if r, err := os.Open(filepath.Join(dir, f.Name)); err == nil {
+			s.learnLines(r, limit)
+			r.Close()
+		}
+	}
+	for _, c := range g.List() {
+		if b, err := g.Read(c.ID); err == nil {
+			s.learnLines(bytes.NewReader(b), limit)
+		}
+	}
+	s.settle()
+}
+
 // bundleLogs are the files to take, newest first, within the limits.
 func bundleLogs(dir string, o *BundleOptions) []FileInfo {
 	cutoff := time.Now().AddDate(0, 0, -o.Days)
@@ -167,13 +185,16 @@ func PreviewDir(dir string, g *CrashGuard, o BundleOptions) BundlePreview {
 	}
 	add("README.txt", "What this is", int64(len(readmeFor(o.Sanitize))))
 	scrub := o.sanitizer()
+	logs := bundleLogs(dir, &o)
+	if scrub != nil {
+		learn(scrub, dir, logs, g, previewScanLines)
+	}
 	for _, e := range o.Extra {
 		add(e.Name, e.Description, int64(len(e.Data)))
 		if scrub != nil {
 			_ = scrubJSONish(scrub, e.Data)
 		}
 	}
-	logs := bundleLogs(dir, &o)
 	for _, f := range logs {
 		add("logs/"+f.Name, "Log file from "+f.Modified.Format("2 Jan 2006"), f.Size)
 	}
@@ -230,6 +251,10 @@ func WriteBundleDir(w io.Writer, dir string, g *CrashGuard, o BundleOptions) err
 		return err
 	}
 	scrub := o.sanitizer()
+	logs := bundleLogs(dir, &o)
+	if scrub != nil {
+		learn(scrub, dir, logs, g, 0)
+	}
 	for _, e := range o.Extra {
 		data := e.Data
 		if scrub != nil {
@@ -252,7 +277,7 @@ func WriteBundleDir(w io.Writer, dir string, g *CrashGuard, o BundleOptions) err
 			return err
 		}
 	}
-	for _, f := range bundleLogs(dir, &o) {
+	for _, f := range logs {
 		out, err := zw.Create("logs/" + f.Name)
 		if err != nil {
 			return err
@@ -271,6 +296,13 @@ func WriteBundleDir(w io.Writer, dir string, g *CrashGuard, o BundleOptions) err
 // and any other line as free text.
 func SanitizeLog(w io.Writer, r io.Reader, k Known) (map[string]int, error) {
 	s := NewSanitizer(k)
+	if seeker, ok := r.(io.ReadSeeker); ok {
+		s.learnLines(seeker, 0)
+		s.settle()
+		if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
+	}
 	bw := bufio.NewWriter(w)
 	br := bufio.NewReaderSize(r, 64<<10)
 	var buf []byte

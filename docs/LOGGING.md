@@ -186,7 +186,8 @@ the list is dropped with the `Sanitizer`: it's never written anywhere.
 | `[name-1]` | Percent-encoded words, which are someone's text and not the program's |
 | `[hidden]` | Secrets, as in every log, and the login in any address |
 
-Exact names are looked up word by word (`KnownFromDB`), so a hundred thousand titles cost a map, not a regular expression.
+Exact names are looked up word by word (`KnownFromDB`), so a hundred thousand titles cost a map, not a regular expression. A first read of
+the logs adds whatever an attribute says outright is an account or a title, which matters most when the database can't be read.
 A last pass goes over each finished line (`Final`). Three limits are on purpose: a name that's an everyday word of the log's
 own (`commonWords`: a title called *Error*, a library called *Movies*) isn't hidden, because it says nothing about anyone
 and would blot out the diagnosis; a one-word title isn't looked for in a message, which is fixed text; and session IDs stay,

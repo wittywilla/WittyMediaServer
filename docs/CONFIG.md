@@ -163,8 +163,8 @@ unless you send a file yourself, for example with a bug report.
   wms logs sanitize [-data <dir>] [-o out.txt] <file>         # a sanitized copy of any text log
   ```
 
-  They only read. The database is looked at for the names to hide, and if it's too broken to read they say so and
-  carry on, replacing everything that looks like a name, address or path.
+  They only read. The database is looked at for the names to hide. If it's too broken to read they say so and carry on,
+  replacing everything that looks like a name, address or path, and any name the logs themselves label as one.
 
 Passwords, sign-in tokens, stream tokens, API keys, PINs, cookies and setup codes are removed from every log line
 automatically. Apps report their errors only to your own server, and you can turn that off.

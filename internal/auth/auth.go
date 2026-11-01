@@ -174,13 +174,18 @@ func (s *Service) CreateProfile(ctx context.Context, name, password, kind string
 	if restrictions != "" {
 		restr = restrictions
 	}
-	res, err := s.DB.ExecContext(ctx, `INSERT INTO users(name, password_hash, is_admin, created_at, kind, restrictions) VALUES(?,?,?,?,?,?)`,
-		name, hash, admin, db.Now(), kind, restr)
+	// Sign-in ignores the case of a name, so names can't differ only by that.
+	res, err := s.DB.ExecContext(ctx, `INSERT INTO users(name, password_hash, is_admin, created_at, kind, restrictions)
+		SELECT ?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM users WHERE name = ? COLLATE NOCASE)`,
+		name, hash, admin, db.Now(), kind, restr, name)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
 			return nil, errors.New("that name is taken")
 		}
 		return nil, err
+	}
+	if n, err := res.RowsAffected(); err == nil && n == 0 {
+		return nil, errors.New("that name is taken")
 	}
 	id, _ := res.LastInsertId()
 	if hash != "" {
@@ -317,6 +322,9 @@ func (s *Service) LoginCode(ctx context.Context, name, password, code, device st
 		return "", nil, err
 	}
 	if hash == "" {
+		// The same work here too, so the time taken doesn't tell which names
+		// are password-free profiles.
+		_ = bcrypt.CompareHashAndPassword(dummyHash(), []byte(password))
 		if kind == KindAdult || !allowNoPassword {
 			return "", nil, ErrInvalid
 		}

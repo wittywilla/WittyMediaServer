@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 	"io"
 	"log/slog"
 	"os"
@@ -312,6 +313,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	var all []candidate
 	var offline []string
 	var archives *archiveIndex
+	if lib.Type == "games" && len(wittyplay.Consoles()) == 0 {
+		// Without WittyPlay nothing can be told to be a game, which isn't the games being gone.
+		s.Log.WarnContext(ctx, "WittyPlay isn't running; keeping the library's games as they are", "library", lib.Name)
+		return nil
+	}
 	if lib.Type == "games" {
 		archives = newArchiveIndex(s.Store, libraryID)
 		archives.reading = func(path string) {

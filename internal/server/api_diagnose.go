@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/diagnose"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -45,6 +46,15 @@ func (s *Server) diagnoser() *diagnose.Manager {
 			Log:     s.Log,
 			Version: s.Version,
 			Busy:    s.streamsPlaying,
+			Helper: func(id string, limit time.Duration) diagnose.ModuleHelper {
+				if s.Modules == nil {
+					return nil
+				}
+				if a := s.Modules.Attach(id, limit); a != nil {
+					return a
+				}
+				return nil
+			},
 			Setting: func(key, def string) string { return s.DB.GetSetting(context.Background(), key, def) },
 			ItemPaths: func(ctx context.Context, lib int64, limit int) ([]string, error) {
 				rows, err := s.DB.QueryContext(ctx, `SELECT path FROM items WHERE library_id = ? AND missing = 0 LIMIT ?`, lib, limit)

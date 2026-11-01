@@ -152,6 +152,10 @@ func cleanFound(in []tuner.Found) []tuner.Found {
 		if len(out) == maxFound {
 			break
 		}
+		// A found tuner goes on the page as a suggestion, and a program to run is never one.
+		if f.Driver == "command" {
+			continue
+		}
 		f.Name, f.Detail = clip(f.Name), clip(f.Detail)
 		out = append(out, f)
 	}
@@ -347,7 +351,7 @@ var streamFormats = map[string]bool{"mpegts": true, "hls": true, "rtsp": true, "
 // capture device: FFmpeg can also read files, chain other protocols and write. It is the
 // last thing between a helper with a bad day and this server's own program.
 func checkInput(input []string) error {
-	addr, capture := "", false
+	addr, capture, limited := "", false, false
 	for i := 0; i < len(input); i++ {
 		a := input[i]
 		if a == "-i" {
@@ -361,12 +365,15 @@ func checkInput(input []string) error {
 			return fmt.Errorf("it asked for the FFmpeg option %q", a)
 		}
 		i++
+		if a == "-protocol_whitelist" {
+			limited = true
+		}
 		if a == "-protocol_whitelist" && strings.ContainsAny(input[i], "|") {
 			return errors.New("it asked for a strange list of protocols")
 		}
 		if a == "-protocol_whitelist" {
 			for _, proto := range strings.Split(input[i], ",") {
-				if proto == "file" || proto == "concat" || proto == "subfile" || proto == "pipe" || proto == "data" {
+				if proto == "file" || proto == "concat" || proto == "subfile" || proto == "pipe" || proto == "data" || proto == "crypto" {
 					return fmt.Errorf("it asked FFmpeg to allow %q", proto)
 				}
 			}
@@ -383,6 +390,10 @@ func checkInput(input []string) error {
 	}
 	if capture {
 		return nil
+	}
+	// Without a list FFmpeg would follow a playlist to files and to its own decryption.
+	if !limited {
+		return errors.New("it didn't limit what FFmpeg may open")
 	}
 	u, err := url.Parse(addr)
 	if err != nil || u.Host == "" {

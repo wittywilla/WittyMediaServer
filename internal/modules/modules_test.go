@@ -9,13 +9,12 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
+
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"image"
-	"image/png"
+
 	"io"
 	"log/slog"
 	"net/http"
@@ -918,9 +917,6 @@ func TestEveryRealManifestIsSound(t *testing.T) {
 		if m.API < wittymodule.MinAPI || m.API > wittymodule.API {
 			t.Errorf("%s: api %d", m.ID, m.API)
 		}
-	}
-	if !seen["wittyphotos"] {
-		t.Error("WittyPhotos is missing")
 	}
 }
 

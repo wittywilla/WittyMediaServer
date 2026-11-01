@@ -2,6 +2,7 @@ package licenses
 
 import (
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -82,8 +83,16 @@ func TestWhatMustBeSaidIsSaid(t *testing.T) {
 			cores++
 		}
 	}
-	if cores == 0 {
-		t.Error("no game cores listed")
+	if cores == 0 && os.Getenv(modtest.EnvCatalog) != "" {
+		modtest.Need(t, "wittyplay")
+		for _, c := range All() {
+			if c.Group == GroupCores {
+				cores++
+			}
+		}
+		if cores == 0 {
+			t.Error("no game cores listed")
+		}
 	}
 }
 

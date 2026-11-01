@@ -71,12 +71,12 @@ type Options struct {
 	// that one core refuses often play on another, and nobody should have to know.
 	Fallbacks []CoreChoice
 
-	Control       *ipc.Control            // how the game runs from the first frame
-	Cheats        []ipc.Cheat             // given to the core before the first frame
-	MaxSpeed      float64                 // the fastest it may be made to run; 0 means normal speed only
-	NoAutoSave    bool                    // leaving doesn't write the resume state
-	SafeMode      bool                    // started with defaults; settings aren't applied while it runs
-	Notices       []string                // things to tell whoever started it
+	Control       *ipc.Control                           // how the game runs from the first frame
+	Cheats        []ipc.Cheat                            // given to the core before the first frame
+	MaxSpeed      float64                                // the fastest it may be made to run; 0 means normal speed only
+	NoAutoSave    bool                                   // leaving doesn't write the resume state
+	SafeMode      bool                                   // started with defaults; settings aren't applied while it runs
+	Notices       []string                               // things to tell whoever started it
 	OnCoreOptions func(coreID string, list []ipc.Option) // a core has said what it offers
 
 	keep *keptCleanup

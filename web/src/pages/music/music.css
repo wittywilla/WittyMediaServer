@@ -3,7 +3,7 @@
 
 :root { --mh-fade: linear-gradient(rgb(0 0 0 / .28), transparent); }
 .mh { position: relative; min-width: 0; }
-.mh-toolbar { position: relative; z-index: 1; }
+.mh > .lh { position: relative; z-index: 1; }
 .mh .grow { flex: 1; }
 .mh-bg { position: absolute; left: calc(var(--gutter) * -1); right: calc(var(--gutter) * -1); top: -120px; height: min(720px, 90vh); pointer-events: none; z-index: 0;
   background: radial-gradient(70% 70% at 50% 0%, rgb(var(--art, 120 120 135) / .34), rgb(var(--art, 120 120 135) / .08) 60%, transparent 80%); transition: background var(--dur-3); }
@@ -153,11 +153,11 @@ a.mh-list-text, .mh-list-text { flex: 1; min-width: 0; display: flex; color: inh
 
 /* Phones: the layout that's made for a thumb. */
 @media (max-width: 600px) {
-  .mh-toolbar h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .mh-toolbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
-  .mh-toolbar > * { flex: none; }
-  .mh-toolbar .grow { display: none; }
-  .mh-toolbar .seg { flex: 0 1 auto; }
+  /* The row of libraries above already says where this is. */
+  .mh > .lh .lh-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .mh > .lh .lh-top { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 2px 16px; }
+  .mh > .lh .lh-top > * { flex: none; }
+  .mh > .lh .lh-actions { width: auto; margin-left: 0; flex-wrap: nowrap; }
   .cf { --cf-size: min(58vw, 42vh); }
   .cf-cover { transform: translateX(calc(var(--d) * var(--cf-size) * .72 + clamp(-1, var(--d), 1) * var(--cf-size) * .28)) rotateY(calc(clamp(-1, var(--d), 1) * -24deg)) scale(calc(1 - var(--a) * .04)); }
   .mh-hero { margin-bottom: var(--sp-4); }

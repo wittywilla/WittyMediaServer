@@ -95,7 +95,8 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
     const t = setInterval(() => {
       void acceptedFlashNotice().then((read) => {
         const pool = [...NATIVE_STYLES.map((n) => n.id as string)]
-        if (prefs.shufflePool === 'all' && read) pool.push(...shaders.filter((s) => !prefs.slow || s.motion === 'gentle').map((s) => s.id))
+        const gentleOnly = prefs.slow || matchMedia('(prefers-reduced-motion: reduce)').matches
+        if (prefs.shufflePool === 'all' && read) pool.push(...shaders.filter((s) => !gentleOnly || s.motion === 'gentle').map((s) => s.id))
         setShown((cur) => {
           const others = pool.filter((x) => x !== (cur || prefs.style))
           return others[Math.floor(Math.random() * others.length)] || cur
@@ -169,7 +170,8 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
     <div className={'np' + (panel ? ' has-panel panel-' + panel : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
       style={{ '--art': rgb } as React.CSSProperties} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => { if (!document.activeElement?.closest('input, select, textarea, .mp-pop-body, .np-panel')) root.current?.focus({ preventScroll: true }) }) }}>
       <div className="np-glow" aria-hidden="true" />
-      {p.vizHere && prefsLoaded && prefs.viz && <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}
+      {/* One canvas: it goes to the whole-screen view while that's open, and comes back after. */}
+      {p.vizHere && prefsLoaded && prefs.viz && !wholeShader && <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}
       {wholeShader && <VisualizerView media={trackMedia} place="full" onPlace={(pl) => { if (pl !== 'full') setWholeShader(false) }} onClose={() => setWholeShader(false)} />}
 
       <header className="np-top">

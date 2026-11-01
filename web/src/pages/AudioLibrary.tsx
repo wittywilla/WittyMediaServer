@@ -9,6 +9,7 @@ import { IconAudio, IconCheck, IconDisc, IconPlay } from '../icons'
 import { toast, useApp } from '../state'
 import { AddPodcast, DownloadButton, PodcastAdmin, PodcastFinder, PodcastWays } from './Podcasts'
 import LegalNote from '../components/LegalNote'
+import LibraryHeader, { type SortOption } from '../components/LibraryHeader'
 import CoverFlow, { type Cover } from './music/CoverFlow'
 import { AlbumTile, albumLink, ArtistTile, artistLink, coverUrl, LibrarySwitch, SeeAllTile, Shelf, shuffledCopy, SongRow, TrackMenu } from './music/parts'
 
@@ -28,25 +29,40 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
   const [params, setParams] = useSearchParams()
   const tab = params.get('tab') || 'home'
   const set = (k: string, v: string | null) => { const p = new URLSearchParams(params); v === null ? p.delete(k) : p.set(k, v); setParams(p) }
+  const view = params.get('view') || ''
+  const sorts: SortOption[] | undefined =
+    tab === 'albums' && !pods ? [{ key: 'title', label: 'Title' }, { key: 'artist', label: books ? 'Author' : 'Artist' }, { key: 'year', label: 'Year', desc: true }, { key: 'added', label: 'Recently added', desc: true }, { key: 'played', label: 'Most played', desc: true }]
+      : tab === 'artists' ? [{ key: 'name', label: 'Name' }, { key: 'albums', label: books ? 'Most books' : 'Most albums', desc: true }]
+        : tab === 'songs' && (!view || view === 'liked') ? [{ key: 'title', label: 'Title' }, { key: 'artist', label: 'Artist' }, { key: 'album', label: 'Album' }, { key: 'year', label: 'Year', desc: true }, { key: 'added', label: 'Date added', desc: true }, { key: 'runtime', label: 'Length', desc: true }]
+          : undefined
+  const sort = params.get('sort') || (tab === 'artists' ? 'name' : books ? 'artist' : 'title')
+  const desc = params.get('desc') === '1'
+  const chooseSort = (key: string, d: boolean) => { const p = new URLSearchParams(params); p.set('sort', key); if (d) p.set('desc', '1'); else p.delete('desc'); setParams(p) }
   const tabs: [string, string][] = pods ? [['home', 'Home'], ['albums', 'Podcasts']]
     : books ? [['home', 'Home'], ['albums', 'Books'], ['artists', 'Authors']]
       : [['home', 'Home'], ['albums', 'Albums'], ['artists', 'Artists'], ['songs', 'Songs'], ['playlists', 'Playlists']]
   return (
     <div className="mh">
       <LibrarySwitch />
-      <div className="toolbar mh-toolbar">
-        <h1>{lib.name}</h1>
-        <div className="seg" role="tablist" aria-label={`Parts of ${lib.name}`}>
+      <LibraryHeader
+        title={lib.name}
+        tabs={<div className="seg" role="tablist" aria-label={`Parts of ${lib.name}`}>
           {tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => { const p = new URLSearchParams(); if (k !== 'home') p.set('tab', k); setParams(p) }}>{l}</button>)}
-        </div>
-        {adding && <AddPodcast libraryId={lib.id} onClose={() => setAdding(false)} onAdded={() => { setAdding(false); setReload((n) => n + 1) }} />}
-        <div className="grow" />
-        <ScanButton lib={lib} />
-        {pods && user?.isAdmin && <button className="btn primary" onClick={() => setAdding(true)}>Follow a podcast</button>}
-      </div>
+        </div>}
+        sorts={sorts}
+        sort={sort}
+        desc={desc}
+        onSort={chooseSort}
+        onDirection={(d) => chooseSort(sort, d)}
+        actions={<>
+          <ScanButton lib={lib} />
+          {pods && user?.isAdmin && <button className="btn primary" onClick={() => setAdding(true)}>Follow a podcast</button>}
+        </>}
+      />
+      {adding && <AddPodcast libraryId={lib.id} onClose={() => setAdding(false)} onAdded={() => { setAdding(false); setReload((n) => n + 1) }} />}
       {tab === 'home' && <HomeTab lib={lib} reload={reload} onReload={() => setReload((n) => n + 1)} />}
       {tab === 'albums' && <AlbumsTab lib={lib} params={params} set={set} reload={reload} onReload={() => setReload((n) => n + 1)} />}
-      {tab === 'artists' && <ArtistsTab lib={lib} />}
+      {tab === 'artists' && <ArtistsTab lib={lib} sort={sort} desc={desc} />}
       {tab === 'songs' && <SongsTab lib={lib} params={params} set={set} />}
       {tab === 'playlists' && <PlaylistsTab lib={lib} />}
       {pods && <LegalNote kind="webMedia" />}
@@ -179,9 +195,14 @@ function AlbumsTab({ lib, params, set, reload, onReload }: { lib: Library; param
   const pods = lib.type === 'podcasts'
   const { user } = useApp()
   const sort = params.get('sort') || (books ? 'artist' : 'title')
+  const desc = params.get('desc') === '1'
   const genre = params.get('genre') || ''
   const artist = params.get('artist')
   const [albums, setAlbums] = useState<Album[] | null>(null)
+  // The list comes whole, newest or biggest first where that's the natural order for it,
+  // so the other way round is a matter of reading it backwards.
+  const newestFirst = sort === 'year' || sort === 'added' || sort === 'played'
+  const shown = albums && desc !== newestFirst ? [...albums].reverse() : albums
   const [genres, setGenres] = useState<string[]>([])
   useEffect(() => {
     setAlbums(null)
@@ -201,11 +222,6 @@ function AlbumsTab({ lib, params, set, reload, onReload }: { lib: Library; param
             {genres.map((g) => <option key={g} value={g}>{g}</option>)}
           </select>
         )}
-        {!pods && (
-          <select className="select" value={sort} aria-label="Sort" onChange={(e) => set('sort', e.target.value)}>
-            <option value="title">Title</option><option value="artist">{books ? 'Author' : 'Artist'}</option><option value="year">Year</option><option value="added">Recently added</option><option value="played">Most played</option>
-          </select>
-        )}
       </div>
       {!albums ? <SkeletonGrid square={!books} /> : albums.length === 0 ? (pods ? (
         <div className="pod-empty">
@@ -215,19 +231,21 @@ function AlbumsTab({ lib, params, set, reload, onReload }: { lib: Library; param
         </div>
       ) : <EmptyState icon={<IconAudio />} title="Nothing here" text={genre ? 'Nothing in this genre.' : "Add audio files to this library's folders and scan it."} />) : (
         <div className="album-grid">
-          {albums.map((a) => <AlbumTile key={a.artist + '|' + a.title} libId={lib.id} a={a} book={books} />)}
+          {(shown || []).map((a) => <AlbumTile key={a.artist + '|' + a.title} libId={lib.id} a={a} book={books} />)}
         </div>
       )}
     </>
   )
 }
 
-function ArtistsTab({ lib }: { lib: Library }) {
+function ArtistsTab({ lib, sort, desc }: { lib: Library; sort: string; desc: boolean }) {
   const books = lib.type === 'audiobooks'
   const [artists, setArtists] = useState<Artist[] | null>(null)
   const [q, setQ] = useState('')
   useEffect(() => { setArtists(null); api.get<Artist[]>(`/music/artists?library=${lib.id}`).then(setArtists).catch(() => setArtists([])) }, [lib.id])
   const shown = (artists || []).filter((a) => !q || a.name.toLowerCase().includes(q.toLowerCase()))
+  if (sort === 'albums') shown.sort((a, b) => a.albums - b.albums || a.name.localeCompare(b.name))
+  if (desc) shown.reverse()
   return (
     <>
       <div className="mh-filters">
@@ -249,6 +267,7 @@ const VIEWS: [string, string][] = [['', 'All songs'], ['liked', 'Liked'], ['play
 function SongsTab({ lib, params, set }: { lib: Library; params: URLSearchParams; set: (k: string, v: string | null) => void }) {
   const view = params.get('view') || ''
   const sort = params.get('sort') || 'title'
+  const desc = params.get('desc') === '1'
   const genre = params.get('genre') || ''
   const [q, setQ] = useState('')
   const [search, setSearch] = useState('')
@@ -260,11 +279,14 @@ function SongsTab({ lib, params, set }: { lib: Library; params: URLSearchParams;
     setSongs(null)
     const u = new URLSearchParams({ library: String(lib.id), limit: '2000' })
     if (view) u.set('view', view)
-    if (!view || view === 'liked') u.set('sort', sort)
+    if (!view || view === 'liked') {
+      u.set('sort', sort)
+      if (desc) u.set('desc', '1')
+    }
     if (genre) u.set('genre', genre)
     if (search) u.set('search', search)
     api.get<Item[]>(`/music/songs?${u}`).then(setSongs).catch(() => setSongs([]))
-  }, [lib.id, view, sort, genre, search])
+  }, [lib.id, view, sort, desc, genre, search])
   useEffect(() => { api.get<string[]>(`/genres?library=${lib.id}`).then(setGenres).catch(() => setGenres([])) }, [lib.id])
   const total = (songs || []).reduce((s, t) => s + t.runtimeSec, 0)
   return (
@@ -282,11 +304,6 @@ function SongsTab({ lib, params, set }: { lib: Library; params: URLSearchParams;
           <select className="select" value={genre} aria-label="Genre" onChange={(e) => set('genre', e.target.value || null)}>
             <option value="">All genres</option>
             {genres.map((g) => <option key={g} value={g}>{g}</option>)}
-          </select>
-        )}
-        {(!view || view === 'liked') && (
-          <select className="select" value={sort} aria-label="Sort" onChange={(e) => set('sort', e.target.value)}>
-            <option value="title">Title</option><option value="artist">Artist</option><option value="album">Album</option><option value="year">Year</option><option value="added">Date added</option><option value="runtime">Length</option>
           </select>
         )}
       </div>

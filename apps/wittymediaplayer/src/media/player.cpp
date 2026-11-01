@@ -1008,7 +1008,10 @@ struct Session {
 
         videoThread = QThread::create([this] { videoLoop(); });
         videoThread->start();
-        audioThread = QThread::create([this] { audioLoop(); });
+        // Handed over here: from now on this thread can be opening another one.
+        AVCodecContext *firstAudio = actx;
+        actx = nullptr;
+        audioThread = QThread::create([this, firstAudio] { audioLoop(firstAudio); });
         audioThread->start();
 
         // In a disc, the streams appear as they're found; tell the threads who's first.
@@ -1019,7 +1022,7 @@ struct Session {
             // or a badly interleaved file could stall itself.
             if (vq.bytes() > kMaxVideoQueue || aq.bytes() > kMaxAudioQueue) {
                 const bool otherDry = (vIndex >= 0 && vq.empty()) || (aIndex >= 0 && aq.empty());
-                if (!otherDry || vq.bytes() > 3 * kMaxVideoQueue) {
+                if (!otherDry || vq.bytes() > 3 * kMaxVideoQueue || aq.bytes() > 3 * kMaxAudioQueue) {
                     std::unique_lock<std::mutex> l(reqMu);
                     reqCv.wait_for(l, std::chrono::milliseconds(10));
                     continue;
@@ -1360,10 +1363,8 @@ struct Session {
 
     // ------------------------------------------------------------------ audio
 
-    void audioLoop()
+    void audioLoop(AVCodecContext *ctx)
     {
-        AVCodecContext *ctx = actx;
-        actx = nullptr;
         SwrContext *swr = nullptr;
         int swrFmt = -1, swrRate = 0, swrCh = 0;
         AVFrame *frame = av_frame_alloc();
@@ -1584,10 +1585,12 @@ Player::~Player()
 {
     stop();
     // A drive that won't answer gets a moment, not forever: leaving ends it anyway.
-    for (int i = 0; i < 200 && retiring_.load() > 0; i++)
+    for (int i = 0; i < 200 && retiring_->load() > 0; i++)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     audio_->stop();
-    delete audio_;
+    // One still stuck goes on using it until the program ends, which is soon.
+    if (retiring_->load() == 0)
+        delete audio_;
 }
 
 void Player::initAudio(bool noDevice)
@@ -1604,10 +1607,10 @@ void Player::retire(std::shared_ptr<Session> s)
     s->stop.store(true);
     if (s->reader)
         s->reader->stop();
-    retiring_.fetch_add(1);
-    QThread *t = QThread::create([s, this] {
+    retiring_->fetch_add(1);
+    QThread *t = QThread::create([s, count = retiring_] {
         s->shutdown();
-        retiring_.fetch_sub(1);
+        count->fetch_sub(1);
     });
     connect(t, &QThread::finished, t, &QObject::deleteLater);
     t->start();

@@ -11,6 +11,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
+#include <QPointer>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QRegularExpression>
@@ -90,8 +91,8 @@ void ImageDialog::loadDrives()
     const QString suffix = QFileInfo(source_).suffix().toLower();
     if (suffix == QLatin1String("iso") || suffix == QLatin1String("img"))
         source_.clear(); // already an image
-    engine_->call(QStringLiteral("drives"), {}, [this](const EngineReply &r) {
-        if (!r.ok())
+    engine_->call(QStringLiteral("drives"), {}, [this, alive = QPointer<ImageDialog>(this)](const EngineReply &r) {
+        if (!alive || !r.ok())
             return;
         int pick = -1;
         const QJsonArray list = r.result.toArray();

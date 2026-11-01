@@ -165,7 +165,9 @@ func checkOne(dir, server string) error {
 		return fmt.Errorf("api %d is outside what this WittyModule knows (%d to %d)", m.API, wittymodule.MinAPI, wittymodule.API)
 	}
 	if m.PerPlatform() {
-		if st, err := os.Stat(filepath.Join(dir, "cmd", m.Entry)); err != nil || !st.IsDir() {
+		// A program written in something other than Go brings its own build.
+		_, cmake := os.Stat(filepath.Join(dir, "CMakeLists.txt"))
+		if st, err := os.Stat(filepath.Join(dir, "cmd", m.Entry)); cmake != nil && (err != nil || !st.IsDir()) {
 			return fmt.Errorf("the helper's source, cmd/%s, is missing", m.Entry)
 		}
 	}

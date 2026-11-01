@@ -282,7 +282,7 @@ func (s *Server) couchProgram() string {
 	if p := filepath.Join(s.couch().dir, "bin", name); fileExists(p) {
 		return p
 	}
-	return findProgram("wittycouch-host")
+	return s.findProgram("wittycouch-host")
 }
 
 // couchProgramWorks runs the program to see that it can run here, at most once a minute.
@@ -298,7 +298,7 @@ func (s *Server) couchProgramWorks(ctx context.Context, program string) bool {
 	if cached {
 		return ok
 	}
-	ok = relay.CheckProgram(ctx, program) == nil
+	ok = relay.CheckProgram(ctx, program, prepareCouchHost) == nil
 	g.mu.Lock()
 	g.checked, g.checkedAt, g.checkOK = program, time.Now(), ok
 	g.mu.Unlock()

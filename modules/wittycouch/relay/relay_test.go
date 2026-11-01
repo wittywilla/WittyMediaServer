@@ -129,6 +129,59 @@ func TestStartMessageHasWhatItNeeds(t *testing.T) {
 }
 
 // A viewer, as a real WebRTC client: media arrives, and input goes back through to the program.
+// A browser's offer can still be gathering when the host goes away. Nothing would ever
+// close a connection stored after that.
+func TestOfferAfterTheEndIsRefused(t *testing.T) {
+	s, err := New(context.Background(), fakeOptions(t, "ok"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	pc, err := webrtc.NewPeerConnection(webrtc.Configuration{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pc.Close()
+	if _, err := pc.CreateDataChannel("control", nil); err != nil {
+		t.Fatal(err)
+	}
+	offer, err := pc.CreateOffer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.end("gone")
+	if _, err := s.Offer(context.Background(), offer.SDP); err == nil {
+		t.Error("a stream that has ended took a viewer")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.pc != nil {
+		t.Error("a connection was kept with nothing left to close it")
+	}
+}
+
+// The check gets as little as the real thing, and it's prepared the same way.
+func TestCheckProgramIsGivenNothing(t *testing.T) {
+	t.Setenv("WMS_SOME_SECRET", "x")
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var env []string
+	err = CheckProgram(context.Background(), self, func(c *exec.Cmd) {
+		env = append(env, c.Env...)
+		c.Env = append(c.Env, fakehost.Env+"=ok")
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range env {
+		if !strings.HasPrefix(e, "SystemRoot=") {
+			t.Errorf("it was given %s", e)
+		}
+	}
+}
+
 func TestViewerGetsMediaAndSendsInput(t *testing.T) {
 	s, err := New(context.Background(), fakeOptions(t, "ok"))
 	if err != nil {

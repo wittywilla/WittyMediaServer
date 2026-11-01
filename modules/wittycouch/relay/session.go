@@ -28,6 +28,8 @@ const (
 	idrEvery      = 300 * time.Millisecond
 )
 
+var errEnded = errors.New("this stream has ended")
+
 // Options set up a session.
 type Options struct {
 	Program  string
@@ -403,6 +405,14 @@ func (s *Session) Offer(ctx context.Context, offer string) (string, error) {
 	case <-time.After(5 * time.Second):
 	}
 	s.mu.Lock()
+	// Under the lock: end closes whatever connection it finds here, once.
+	select {
+	case <-s.ended:
+		s.mu.Unlock()
+		_ = pc.Close()
+		return "", errEnded
+	default:
+	}
 	old := s.pc
 	s.pc, s.video, s.audio, s.control = pc, video, audio, nil
 	s.viewerAt = time.Now()

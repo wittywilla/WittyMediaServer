@@ -214,9 +214,9 @@ VlcPlayback::~VlcPlayback()
     stop();
     // That stop runs on its own thread and uses the libraries. A drive that won't answer gets
     // a moment, not forever: then they stay as they are until the program ends.
-    for (int i = 0; i < 300 && retiring_.load() > 0; i++)
+    for (int i = 0; i < 300 && retiring_->load() > 0; i++)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    if (retiring_.load() > 0) {
+    if (retiring_->load() > 0) {
         (void)api_.release();
         return;
     }
@@ -401,11 +401,11 @@ void VlcPlayback::stop()
     if (s->reader)
         s->reader->stop();
     // A drive stuck on a bad sector mustn't hold up the window.
-    retiring_.fetch_add(1);
-    QThread *t = QThread::create([s = std::move(s), this]() mutable {
+    retiring_->fetch_add(1);
+    QThread *t = QThread::create([s = std::move(s), count = retiring_]() mutable {
         s->api->player_stop(s->player);
         s.reset();
-        retiring_.fetch_sub(1);
+        count->fetch_sub(1);
     });
     connect(t, &QThread::finished, t, &QObject::deleteLater);
     t->start();

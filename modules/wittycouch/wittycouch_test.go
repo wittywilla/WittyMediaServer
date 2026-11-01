@@ -1,6 +1,8 @@
 package wittycouch
 
 import (
+	"encoding/base64"
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -67,7 +69,7 @@ func TestHostileAppNames(t *testing.T) {
 	tg := target()
 	tg.AppName = `It's; rm -rf / $(x) "y"`
 	ms := Plan(Device{"browser", "linux"}, tg, false, "")
-	want := `moonlight 'stream' '192.168.1.20' 'It''s; rm -rf / $(x) "y"'`
+	want := `moonlight 'stream' '192.168.1.20' 'It'\''s; rm -rf / $(x) "y"'`
 	if ms[0].Text != want {
 		t.Errorf("command line: %s", ms[0].Text)
 	}
@@ -86,6 +88,49 @@ func TestHostileAppNames(t *testing.T) {
 	}
 	if PairArgs("-x", 0, "1234") != nil || PairArgs("pc", 0, "12") != nil {
 		t.Error("bad pair arguments")
+	}
+}
+
+// What someone pastes has to be one word to the shell that reads it, whatever the PC calls
+// its game. These ask each shell itself; PowerShell's is only parsed, never run.
+func TestAppNameStaysOneWordInEachShell(t *testing.T) {
+	names := []string{`It's; exit 9`, "x\u2019; exit 9; \u2019", "x\u2018; exit 9; \u2018", "x\u201a; exit 9; \u201a", "x\u201b; exit 9; \u201b", "\u2019''\u2018", `$(exit 9) "y"`}
+	if sh, err := exec.LookPath("sh"); err == nil {
+		for _, name := range names {
+			out, err := exec.Command(sh, "-c", "printf %s "+quoted("linux", name)).Output()
+			if err != nil || string(out) != name {
+				t.Errorf("sh: %q came out as %q: %v", name, out, err)
+			}
+		}
+	}
+	ps, err := exec.LookPath("powershell")
+	if err != nil {
+		return
+	}
+	parse := func(text string) []string {
+		line := base64.StdEncoding.EncodeToString([]byte(text))
+		script := `$errs=$null;$toks=$null;$a=[System.Management.Automation.Language.Parser]::ParseInput([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('` + line + `')),[ref]$toks,[ref]$errs);$p=$a.EndBlock.Statements;if($errs.Count -or $p.Count -ne 1){'statements='+$p.Count;exit};$e=$p[0].PipelineElements[0].CommandElements;$e.Count;[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($e[$e.Count-1].Value))`
+		out, err := exec.Command(ps, "-NoProfile", "-NonInteractive", "-Command", script).Output()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return strings.Fields(string(out))
+	}
+	// Doubling only the plain quote is what let a name out: this check has to see that.
+	if got := parse("moonlight 'x\u2019; exit 9; \u2019'"); len(got) != 1 || got[0] != "statements=3" {
+		t.Errorf("the parser should split a curly quote that isn't doubled: %q", got)
+	}
+	for _, name := range names {
+		lines := parse(commandLine("windows", []string{"stream", "pc", name}))
+		out := strings.Join(lines, " ")
+		if len(lines) != 2 || lines[0] != "4" {
+			t.Errorf("PowerShell: %q reads as %q", name, out)
+			continue
+		}
+		got, err := base64.StdEncoding.DecodeString(lines[1])
+		if err != nil || string(got) != name {
+			t.Errorf("PowerShell: %q came out as %q", name, got)
+		}
 	}
 }
 

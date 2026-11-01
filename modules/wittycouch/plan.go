@@ -100,11 +100,18 @@ func cleanArg(s string) bool {
 	return s != "" && !strings.HasPrefix(s, "-") && !strings.ContainsAny(s, "\r\n\x00")
 }
 
-// quoted makes one word of a command line to paste. Doubling quotes is what both the
-// POSIX shells and PowerShell understand inside single quotes.
-func quoted(s string) string {
-	return "'" + strings.ReplaceAll(s, "'", "''") + "'"
+// quoted makes one word of a command line to paste. An app's name is free text set on the
+// PC, so what ends a quoted word matters: PowerShell also ends one at curly quotes, and
+// doubling is its way of keeping any of them. A POSIX shell has no way inside single
+// quotes, and needs the quote stepped out of.
+func quoted(os, s string) string {
+	if os == "windows" {
+		return "'" + powershellQuotes.Replace(s) + "'"
+	}
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
+
+var powershellQuotes = strings.NewReplacer("'", "''", "\u2018", "\u2018\u2018", "\u2019", "\u2019\u2019", "\u201a", "\u201a\u201a", "\u201b", "\u201b\u201b")
 
 func withPort(address string, port int) string {
 	if strings.Contains(address, ":") { // IPv6
@@ -186,7 +193,7 @@ func commandLine(os string, args []string) string {
 	}
 	parts := []string{prog}
 	for _, a := range args {
-		parts = append(parts, quoted(a))
+		parts = append(parts, quoted(os, a))
 	}
 	return strings.Join(parts, " ")
 }

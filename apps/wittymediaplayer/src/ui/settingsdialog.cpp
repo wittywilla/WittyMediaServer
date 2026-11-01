@@ -15,6 +15,7 @@
 #include <QJsonDocument>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPointer>
 #include <QProcess>
 #include <QPushButton>
 #include <QRadioButton>
@@ -143,8 +144,8 @@ void SettingsDialog::loadModules()
 {
     if (!engine_)
         return;
-    engine_->call(QStringLiteral("modules"), {}, [this](const EngineReply &r) {
-        if (!r.ok())
+    engine_->call(QStringLiteral("modules"), {}, [this, alive = QPointer<SettingsDialog>(this)](const EngineReply &r) {
+        if (!alive || !r.ok())
             return;
         while (QLayoutItem *it = moduleRows_->takeAt(0)) {
             delete it->widget();
@@ -188,7 +189,9 @@ void SettingsDialog::loadModules()
                 auto *back = new QPushButton(QStringLiteral("Go back"), row);
                 back->setAccessibleName(QStringLiteral("Go back to the earlier version of %1").arg(name));
                 connect(back, &QPushButton::clicked, this, [this, id, name] {
-                    engine_->call(QStringLiteral("module-rollback"), {{"id", id}}, [this, name](const EngineReply &rb) {
+                    engine_->call(QStringLiteral("module-rollback"), {{"id", id}}, [this, name, alive = QPointer<SettingsDialog>(this)](const EngineReply &rb) {
+                        if (!alive)
+                            return;
                         moduleStatus_->setText(rb.ok() ? QStringLiteral("%1 is back to %2, from the next disc you open.").arg(name, rb.result.toObject().value("inUse").toString()) : rb.error);
                         loadModules();
                     });

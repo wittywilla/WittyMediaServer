@@ -711,7 +711,7 @@ func (s *Server) probeRunner() string {
 	if p := os.Getenv("WMS_WITTYPLAY_RUNNER"); p != "" {
 		return p
 	}
-	return findProgram("wittyplay-host")
+	return s.findProgram("wittyplay-host")
 }
 
 func (cs *customService) takeSlot() bool {

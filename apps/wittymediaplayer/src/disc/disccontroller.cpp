@@ -96,7 +96,9 @@ void DiscController::close()
     external_.clear();
     view_->setOverlays({});
     view_->setAspect({});
-    engine_->call(QStringLiteral("close"), {});
+    // One that has gone has nothing to close, and starting it again only to say so holds up the window.
+    if (engine_->running())
+        engine_->call(QStringLiteral("close"), {});
     emit buttonsChanged();
     emit changed();
 }

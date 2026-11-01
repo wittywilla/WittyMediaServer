@@ -308,3 +308,17 @@ func TestOnARealNetwork(t *testing.T) {
 		}
 	}
 }
+
+// Told to listen on one address, the question port doesn't answer on the machine's other networks.
+func TestUDPListensWhereTheServerDoes(t *testing.T) {
+	if a := (&Service{}).udpAddr(); a == nil || a.IP != nil || a.Port != UDPPort {
+		t.Errorf("no address given: %+v", a)
+	}
+	bound := net.IPv4(192, 168, 1, 5)
+	if a := (&Service{Bind: bound}).udpAddr(); a == nil || !a.IP.Equal(bound) || a.Port != UDPPort {
+		t.Errorf("one address given: %+v", a)
+	}
+	if a := (&Service{Bind: net.ParseIP("fd00::5")}).udpAddr(); a != nil {
+		t.Errorf("this socket is IPv4 only, so an IPv6 address means no answers: %+v", a)
+	}
+}

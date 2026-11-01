@@ -150,14 +150,19 @@ func (s *TGDB) names(ctx context.Context, which string, have *map[string]string,
 		if err != nil {
 			return nil
 		}
-		var d map[string]map[string]struct {
-			Name string `json:"name"`
-		}
+		// The list comes beside other things, such as a count, so only it is read.
+		var d map[string]json.RawMessage
 		if json.Unmarshal(a.Data, &d) != nil {
 			return nil
 		}
+		var list map[string]struct {
+			Name string `json:"name"`
+		}
+		if json.Unmarshal(d[which], &list) != nil {
+			return nil
+		}
 		m := map[string]string{}
-		for id, x := range d[which] {
+		for id, x := range list {
 			m[id] = x.Name
 		}
 		*have = m

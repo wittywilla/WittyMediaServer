@@ -138,3 +138,17 @@ func TestBundleSanitizedUnlessAskedOtherwise(t *testing.T) {
 		}
 	}
 }
+
+// The address a cloud machine keeps its credentials at, wrapped in IPv6 for a gateway to unwrap.
+func TestLyricsMirrorCantReachLinkLocalInDisguise(t *testing.T) {
+	for _, addr := range []string{"[64:ff9b::a9fe:a9fe]:80", "[2002:a9fe:a9fe::]:80", "169.254.169.254:80", "[fe80::1]:80"} {
+		if err := lyricsMirrorAddress("tcp", addr, nil); err == nil {
+			t.Errorf("%s was allowed", addr)
+		}
+	}
+	for _, addr := range []string{"192.168.1.20:3300", "[fd00::1]:3300", "8.8.8.8:443"} {
+		if err := lyricsMirrorAddress("tcp", addr, nil); err != nil {
+			t.Errorf("%s: %v", addr, err)
+		}
+	}
+}

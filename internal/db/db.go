@@ -59,6 +59,14 @@ func Open(dataDir string) (*DB, error) {
 		sdb.Close()
 		return nil, err
 	}
+	if err := d.migrateLibTranscode(context.Background()); err != nil {
+		sdb.Close()
+		return nil, err
+	}
+	if err := d.migrateGames(context.Background()); err != nil {
+		sdb.Close()
+		return nil, err
+	}
 	return d, nil
 }
 
@@ -416,7 +424,30 @@ var migrations = []string{
 	   uuid TEXT NOT NULL, mac TEXT NOT NULL DEFAULT '', cert TEXT NOT NULL DEFAULT '',
 	   public INTEGER NOT NULL DEFAULT 0, paired_at INTEGER, created_at INTEGER NOT NULL,
 	   UNIQUE(user_id, uuid));`,
-	// 25: a share link goes with what it shares. Numbers come back when the newest row is
+	// 25: a profile name, free for anyone to choose, apart from the unique username
+	// that signing in uses; and which of the two the corner of the screen shows.
+	`ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT '';
+	 ALTER TABLE users ADD COLUMN show_username INTEGER NOT NULL DEFAULT 0;`,
+	// 26: the activity history: finished background tasks, trimmed to a limit in Settings,
+	// and those going on when the server stopped.
+	`CREATE TABLE IF NOT EXISTS task_history (
+	   id TEXT PRIMARY KEY, type TEXT NOT NULL, title TEXT NOT NULL, state TEXT NOT NULL, phase TEXT NOT NULL DEFAULT '',
+	   library_id INTEGER NOT NULL DEFAULT 0, library_name TEXT NOT NULL DEFAULT '',
+	   done INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, unit TEXT NOT NULL DEFAULT '',
+	   started_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, finished_at INTEGER NOT NULL DEFAULT 0,
+	   by_id INTEGER NOT NULL DEFAULT 0, by_name TEXT NOT NULL DEFAULT '', source TEXT NOT NULL DEFAULT '',
+	   result TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT '', fix TEXT NOT NULL DEFAULT '', detail TEXT NOT NULL DEFAULT '',
+	   problem_count INTEGER NOT NULL DEFAULT 0, problems TEXT NOT NULL DEFAULT '', retry_key TEXT NOT NULL DEFAULT '',
+	   private INTEGER NOT NULL DEFAULT 0, admin_only INTEGER NOT NULL DEFAULT 0);
+	 CREATE INDEX IF NOT EXISTS task_history_finished ON task_history(finished_at);`,
+	// 27: the statistics: an hour's summary of each number, kept for 90 days, and how much
+	// each person has been sent each day.
+	`CREATE TABLE IF NOT EXISTS metrics_hourly (
+	   hour INTEGER NOT NULL, name TEXT NOT NULL, avg REAL NOT NULL, peak REAL NOT NULL, PRIMARY KEY(hour, name));
+	 CREATE TABLE IF NOT EXISTS stream_bytes (
+	   day INTEGER NOT NULL, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, bytes INTEGER NOT NULL,
+	   PRIMARY KEY(day, user_id));`,
+	// 28: a share link goes with what it shares. Numbers come back when the newest row is
 	// deleted, so a link left behind would open whatever got that number next.
 	`DELETE FROM share_links WHERE kind = 'item' AND target_id NOT IN (SELECT id FROM items);
 	 DELETE FROM share_links WHERE kind = 'album' AND target_id NOT IN (SELECT id FROM photo_albums);
@@ -427,11 +458,11 @@ var migrations = []string{
 	 CREATE TRIGGER IF NOT EXISTS share_links_album_gone AFTER DELETE ON photo_albums BEGIN
 	   DELETE FROM share_links WHERE kind = 'album' AND target_id = OLD.id;
 	 END;`,
-	// 26: a sign-in with no password only works at home, as the sign-in itself does. Accounts
+	// 29: a sign-in with no password only works at home, as the sign-in itself does. Accounts
 	// with no password today may have made theirs before this was kept.
 	`ALTER TABLE sessions ADD COLUMN home_only INTEGER NOT NULL DEFAULT 0;
 	 UPDATE sessions SET home_only = 1 WHERE user_id IN (SELECT id FROM users WHERE password_hash = '');`,
-	// 27: numbers a file said were infinite. One of these blanked every list holding it.
+	// 30: numbers a file said were infinite. One of these blanked every list holding it.
 	clearInfinities,
 }
 

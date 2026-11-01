@@ -85,7 +85,8 @@ func (s *Server) handleProfiles(w http.ResponseWriter, r *http.Request) {
 	}
 	type profile struct {
 		ID          int64  `json:"id"`
-		Name        string `json:"name"`
+		Name        string `json:"name"` // the username, which signing in needs
+		DisplayName string `json:"displayName"`
 		Kind        string `json:"kind"`
 		HasPassword bool   `json:"hasPassword"`
 	}
@@ -93,7 +94,7 @@ func (s *Server) handleProfiles(w http.ResponseWriter, r *http.Request) {
 	for _, u := range users {
 		// Away from home nobody can sign in without a password, and nobody
 		// needs to know which profiles have none.
-		out = append(out, profile{ID: u.ID, Name: u.Name, Kind: u.Kind, HasPassword: u.HasPassword || !onLocalNetwork(r)})
+		out = append(out, profile{ID: u.ID, Name: u.Name, DisplayName: u.DisplayName, Kind: u.Kind, HasPassword: u.HasPassword || !onLocalNetwork(r)})
 	}
 	writeJSON(w, 200, map[string]any{"style": "profiles", "profiles": out})
 }

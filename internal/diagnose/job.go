@@ -6,6 +6,9 @@
 // One check runs at a time, in the background, with a short queue. A check gives
 // way to anyone watching something: while the server is busy it rests for as long
 // as its last piece of work took.
+//
+// The doctor (doctor.go) shares this package and its words, and is the part that repairs:
+// it looks after the server's own data and install, never a disc, and never a library's files.
 package diagnose
 
 import (
@@ -20,6 +23,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
 // Severity says how much a finding matters.
@@ -88,6 +92,8 @@ var ErrQueueFull = errors.New("Too many checks are already waiting. Try again wh
 
 // Env is what a check needs from the server.
 type Env struct {
+	// Tasks is where a check shows in the activity panel. May be nil.
+	Tasks   *tasks.Registry
 	DataDir string // reports go in <DataDir>/diagnostics
 	Log     *slog.Logger
 	Version string
@@ -117,6 +123,7 @@ type Job struct {
 	run func(ctx context.Context, j *Job)
 
 	cancel context.CancelFunc
+	task   *tasks.Handle
 	// scrub lists full paths that must never reach a finding, and what to say
 	// instead.
 	scrub []scrubRule
@@ -243,11 +250,17 @@ func (m *Manager) runJob(j *Job) {
 		cancel()
 	}
 	j.log.Info("WittyDiagnoser started", "kind", j.report.Kind, "file", subject)
+	task := m.env.Tasks.Start(tasks.Spec{Type: tasks.TypeDiagnose, Title: "WittyDiagnoser is checking something", Cancel: func() { m.Cancel(j.ID) }, AdminOnly: true})
+	task.Item(filepath.Base(subject), subject)
+	j.mu.Lock()
+	j.task = task
+	j.mu.Unlock()
 	j.Engine("running this check", func() { j.run(ctx, j) })
 	state := StateDone
 	if ctx.Err() != nil {
 		state = StateCancelled
 	}
+	task.Finish(ctx.Err())
 	finished := time.Now().UnixMilli()
 	j.mu.Lock()
 	rep := j.snapshotLocked()

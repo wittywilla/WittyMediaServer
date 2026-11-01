@@ -93,7 +93,6 @@ func FuzzSidecars(f *testing.F) {
 		`{"title":"x","poster":"../y.jpg","rating":1e999,"custom":{"a":[{},{}]}}`,
 		`{"comments":[{"text":"x","like_count":1}],"tags":["a"]}`,
 		`<!DOCTYPE x [<!ENTITY a "aaaa"><!ENTITY b "&a;&a;">]><movie><title>&b;</title></movie>`,
-		`FILE "a.bin" BINARY` + "\n",
 		"",
 	} {
 		f.Add([]byte(s))
@@ -110,7 +109,6 @@ func FuzzSidecars(f *testing.F) {
 			applyEpisodeNFO(&Item{}, p)
 			readSidecar(p)
 			readMusicVideoNFO(p)
-			referencedFiles(p)
 		})
 	})
 }

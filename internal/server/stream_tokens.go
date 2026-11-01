@@ -39,6 +39,7 @@ type streamGrant struct {
 	userID  int64
 	itemID  int64
 	key     string // the item's name in stream IDs (hls.Key)
+	channel string // a live channel's key, for a ticket to that channel instead of an item
 	idle    time.Time
 	hard    time.Time
 }
@@ -51,6 +52,16 @@ type streamTokens struct {
 // mint returns a ticket for an item, reusing the one this sign-in already has
 // so that asking repeatedly doesn't pile them up.
 func (t *streamTokens) mint(session string, userID int64, it *library.Item) (string, time.Time, error) {
+	return t.grant(session, userID, it.ID, hls.Key(it.Path), "")
+}
+
+// mintChannel is the same for one live channel. A channel isn't an item, and what
+// it shows changes by itself, so the ticket opens that channel's live stream alone.
+func (t *streamTokens) mintChannel(session string, userID int64, channel string) (string, time.Time, error) {
+	return t.grant(session, userID, 0, "", channel)
+}
+
+func (t *streamTokens) grant(session string, userID, itemID int64, key, channel string) (string, time.Time, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	now := time.Now()
@@ -65,7 +76,7 @@ func (t *streamTokens) mint(session string, userID int64, it *library.Item) (str
 			continue
 		}
 		// Most of its life still ahead: hand out the same ticket.
-		if g.session == session && g.itemID == it.ID && g.hard.Sub(now) > streamMax/2 {
+		if g.session == session && g.itemID == itemID && g.channel == channel && g.hard.Sub(now) > streamMax/2 {
 			g.idle = now.Add(streamIdle)
 			return tok, g.idle, nil
 		}
@@ -90,7 +101,7 @@ func (t *streamTokens) mint(session string, userID int64, it *library.Item) (str
 		return "", time.Time{}, err
 	}
 	tok := "st_" + hex.EncodeToString(b)
-	g := &streamGrant{session: session, userID: userID, itemID: it.ID, key: hls.Key(it.Path), idle: now.Add(streamIdle), hard: now.Add(streamMax)}
+	g := &streamGrant{session: session, userID: userID, itemID: itemID, key: key, channel: channel, idle: now.Add(streamIdle), hard: now.Add(streamMax)}
 	t.m[tok] = g
 	return tok, g.idle, nil
 }
@@ -122,13 +133,19 @@ func (t *streamTokens) use(tok string) *streamGrant {
 func (s *Server) streamRoutes(pattern string) func(*http.Request, *streamGrant) bool {
 	item := func(r *http.Request, g *streamGrant) bool {
 		id, ok := pathInt(r, "id")
-		return ok && id == g.itemID
+		return ok && g.channel == "" && id == g.itemID
 	}
 	stream := func(r *http.Request, g *streamGrant) bool {
 		_, rest, ok := strings.Cut(r.PathValue("id"), "-") // v-KEY-..., dvd-KEY-..., bd-KEY-...
-		return ok && strings.HasPrefix(rest, g.key+"-")
+		return ok && g.channel == "" && strings.HasPrefix(rest, g.key+"-")
+	}
+	live := func(r *http.Request, g *streamGrant) bool {
+		return g.channel != "" && r.PathValue("key") == g.channel
 	}
 	disc := func(r *http.Request, g *streamGrant) bool {
+		if g.channel != "" {
+			return false
+		}
 		sid := r.PathValue("sid")
 		if strings.HasPrefix(sid, "bd") {
 			sess := s.BD.Get(sid)
@@ -144,6 +161,8 @@ func (s *Server) streamRoutes(pattern string) func(*http.Request, *streamGrant) 
 		return item
 	case "GET /api/hls/{id}/playlist.m3u8", "GET /api/hls/{id}/master.m3u8", "GET /api/hls/{id}/seg/{n}", "GET /api/hls/{id}/subs/{file}":
 		return stream
+	case "GET /api/tv/{key}/live/playlist.m3u8", "GET /api/tv/{key}/live/seg/{name}":
+		return live // both check the channel against the account themselves, on every request
 	case "GET /api/dvd/{sid}/menu/{serial}/overlay.png", "GET /api/dvd/{sid}/menu/{serial}/highlight/{n}", "GET /api/dvd/{sid}/still/{name}", "GET /api/dvd/{sid}/sub/{name}":
 		return disc
 	}
@@ -173,7 +192,7 @@ func (s *Server) resolveStream(r *http.Request) *auth.User {
 	}
 	// HLS and disc routes don't look at the item themselves, so limits set since
 	// the ticket was made are checked here. Accounts without limits pay nothing.
-	if a := accessFor(u); a != nil && !s.itemAllowed(r.Context(), a, g.itemID) {
+	if a := accessFor(u); a != nil && g.channel == "" && !s.itemAllowed(r.Context(), a, g.itemID) {
 		return nil
 	}
 	return u
@@ -221,6 +240,22 @@ func (s *Server) handleItemStreamToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]any{"token": tok, "param": "st", "expiresInSec": int(time.Until(exp).Seconds())})
+}
+
+// addLiveTicket fills in what a player that can't set headers needs, when it asks with
+// ?streamToken=1. The web player doesn't ask, so it doesn't use up an account's tickets.
+func (s *Server) addLiveTicket(r *http.Request, info *tuneInfo) error {
+	if r.URL.Query().Get("streamToken") != "1" {
+		return nil
+	}
+	u := userFrom(r)
+	tok, _, err := s.stream.mintChannel(s.sessionToken(r, u), u.ID, info.Key)
+	if err != nil {
+		return err
+	}
+	info.StreamToken = tok
+	info.StreamURL = withStream(info.URL, tok)
+	return nil
 }
 
 // withStream adds a ticket to a media address.

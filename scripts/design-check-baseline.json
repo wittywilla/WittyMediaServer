@@ -1,117 +1,33 @@
 {
  "audio.css": {
   "radius": 2,
-  "raw-colour": 11
- },
- "audio/player.tsx": {
-  "input-label": 1
- },
- "components/AddLibrary.tsx": {
-  "input-label": 1
- },
- "components/ArtworkPicker.tsx": {
-  "input-label": 1
- },
- "creators.css": {
-  "font-size": 33,
-  "radius": 12,
-  "raw-colour": 23
+  "raw-colour": 10
  },
  "gallery.css": {
   "blur": 1,
-  "font-size": 37,
-  "radius": 23,
-  "raw-colour": 18,
-  "z-index": 1
+  "radius": 1,
+  "raw-colour": 2
  },
  "oobe.css": {
   "radius": 2,
   "raw-colour": 11
  },
- "pages/AppearanceSettings.tsx": {
-  "click-div": 2,
-  "native-dialog": 1
- },
- "pages/CollectionsPage.tsx": {
-  "native-dialog": 1
- },
- "pages/DiscSections.tsx": {
-  "input-label": 3
- },
  "pages/GameMeta.tsx": {
-  "input-label": 1,
   "native-dialog": 1
- },
- "pages/LibraryPage.tsx": {
-  "input-label": 1
- },
- "pages/Podcasts.tsx": {
-  "native-dialog": 1
- },
- "pages/Profiles.tsx": {
-  "native-dialog": 1
- },
- "pages/RadioLibrary.tsx": {
-  "native-dialog": 1
- },
- "pages/ReviewPage.tsx": {
-  "native-dialog": 1
- },
- "pages/SettingsPage.tsx": {
-  "native-dialog": 2
  },
  "pages/ShowPage.tsx": {
   "click-div": 1
  },
- "pages/TranscodeSettings.tsx": {
-  "input-label": 3
- },
  "pages/creators/ShortsLibrary.tsx": {
   "click-div": 1
- },
- "pages/creators/parts.tsx": {
-  "native-dialog": 1
  },
  "pages/games.css": {
   "font-size": 3,
   "radius": 3,
   "raw-colour": 4
  },
- "pages/photos/PhotosLibrary.tsx": {
+ "pages/tv/BumperEditor.tsx": {
   "native-dialog": 1
- },
- "pages/rigs.css": {
-  "font-size": 2,
-  "radius": 3
- },
- "pages/settings/GamingCustom.tsx": {
-  "native-dialog": 1
- },
- "pages/settings/Metadata.tsx": {
-  "input-label": 2,
-  "native-dialog": 1
- },
- "pages/settings/Playback.tsx": {
-  "input-label": 1
- },
- "pages/settings/RemoteAccess.tsx": {
-  "native-dialog": 2
- },
- "pages/settings/Security.tsx": {
-  "native-dialog": 2
- },
- "pages/settings/Sharing.tsx": {
-  "native-dialog": 1
- },
- "pages/settings/remote.css": {
-  "font-size": 14,
-  "radius": 11
- },
- "pages/settings/settings.css": {
-  "font-size": 2,
-  "radius": 1,
-  "raw-colour": 2,
-  "z-index": 1
  },
  "pages/tv/ChannelEditor.tsx": {
   "native-dialog": 1
@@ -125,11 +41,24 @@
  "pages/tv/TvSettings.tsx": {
   "native-dialog": 2
  },
- "pages/tv/tv.css": {
-  "font-size": 74,
-  "radius": 14,
-  "raw-colour": 22,
+ "pages/tv/onnow.css": {
+  "radius": 1,
+  "raw-colour": 3
+ },
+ "pages/tv/reminders.css": {
+  "raw-colour": 1,
   "z-index": 1
+ },
+ "pages/tv/tv.css": {
+  "font-size": 94,
+  "radius": 28,
+  "raw-colour": 49,
+  "z-index": 1
+ },
+ "pages/tv/tveditor.css": {
+  "font-size": 2,
+  "radius": 24,
+  "raw-colour": 3
  },
  "pages/tv/tvsettings.css": {
   "font-size": 22,
@@ -141,9 +70,6 @@
   "radius": 10,
   "raw-colour": 107,
   "z-index": 3
- },
- "player/CdPlayer.tsx": {
-  "input-label": 1
  },
  "player/Controls.tsx": {
   "click-div": 1,
@@ -168,10 +94,5 @@
  },
  "player/inline.css": {
   "radius": 1
- },
- "shell.css": {
-  "radius": 1,
-  "raw-colour": 4,
-  "z-index": 3
  }
 }

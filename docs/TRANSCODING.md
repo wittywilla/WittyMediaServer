@@ -1,9 +1,12 @@
-# Transcoding guide
+# Live transcoding guide
+
+This is about converting while someone watches, which leaves your files alone. To convert files ahead of time, see
+[Library transcoding](LIBRARY-TRANSCODING.md).
 
 WittyMediaServer sends a file to the browser **as it is** whenever the browser can play it
 (*direct play*). Everything else — MKV, AVI, HEVC, interlaced video, DVDs, files with burned-in
 subtitles — is converted on the fly to H.264 + AAC HLS by FFmpeg. This guide explains the
-settings under **Settings → Transcoding** and which choices suit which hardware.
+settings under **Settings → Live transcoding** and which choices suit which hardware.
 
 - [Direct play](#direct-play)
 - [Hardware encoders](#hardware-encoders)
@@ -29,6 +32,18 @@ settings under **Settings → Transcoding** and which choices suit which hardwar
 - the first audio track is AAC, MP3, Opus or Vorbis, and
 - the default audio track and no subtitles are selected, and
 - the video is not taller than *Maximum resolution*.
+
+The server takes the simplest way that plays, in this order:
+
+1. **Direct play.** Your player opens the file as it is.
+2. **Rewrapped.** Only the wrapper is the trouble (an H.264 film in MKV, for a browser), so the picture and sound are
+   copied into a stream. This costs next to nothing.
+3. **Sound converted.** Only the sound is the trouble (DTS, TrueHD, FLAC in MKV), so the sound alone is converted to
+   AAC, and the picture is copied.
+4. **Transcoded.** Nothing simpler would play, so the picture is converted as well.
+
+Your player says what it can do with every request, and the **ⓘ** button in the player (or the **I** key) says which of
+these is happening, and why.
 
 Direct play costs no CPU and keeps the original quality. Turn it off to force every file through
 the transcoder — useful to cap bandwidth with a *bitrate cap* (for viewers away from home, use the

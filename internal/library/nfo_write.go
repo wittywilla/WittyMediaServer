@@ -1,6 +1,7 @@
 package library
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"bytes"
 	"context"
 	"encoding/xml"
@@ -60,8 +61,7 @@ func soleMedia(dir, p string) bool {
 		if e.IsDir() || strings.EqualFold(filepath.Join(dir, e.Name()), p) {
 			continue
 		}
-		ext := strings.ToLower(filepath.Ext(e.Name()))
-		if videoExts[ext] || ext == ".iso" || ext == ".img" {
+		if mediatypes.IsVideo(e.Name()) || mediatypes.IsDiscImage(e.Name()) {
 			return false
 		}
 	}
@@ -238,6 +238,9 @@ func derefF(p *float64) float64 {
 // copied to the standard names and the item is pointed at the local files,
 // so other servers (and a rescan) see the same pictures.
 func (s *Scanner) SaveItemMetadata(ctx context.Context, it *Item) error {
+	if s.Store.libraryReadOnly(ctx, it.LibraryID) {
+		return nil
+	}
 	posterPath, backdropPath, nfoPath := ArtPaths(it)
 	var errs []error
 	if it.Poster != "" && !strings.HasPrefix(it.Poster, "cache:thumb-") {
@@ -281,6 +284,9 @@ func (s *Scanner) SaveItemMetadata(ctx context.Context, it *Item) error {
 
 // SaveShowMetadata writes tvshow.nfo and show/season artwork into the show folder.
 func (s *Scanner) SaveShowMetadata(ctx context.Context, sh *Show) error {
+	if s.Store.libraryReadOnly(ctx, sh.LibraryID) {
+		return nil
+	}
 	var errs []error
 	if sh.Poster != "" {
 		dst := filepath.Join(sh.Path, "poster.jpg")

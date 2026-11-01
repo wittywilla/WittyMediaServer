@@ -256,6 +256,22 @@ const (
 
 func (s *Server) bumperDir() string { return filepath.Join(s.Cfg.DataDir, "bumpers") }
 
+// followBumperFolder keeps uploads playing when the data folder has moved, as after
+// restoring a backup somewhere else: the library and its files still point at the
+// old place.
+func (s *Server) followBumperFolder(ctx context.Context) {
+	id, err := strconv.ParseInt(s.DB.GetSetting(ctx, bumperLibrary, ""), 10, 64)
+	if err != nil {
+		return
+	}
+	moved, err := s.Channels.MoveBumperFolder(ctx, id, s.bumperDir())
+	if err != nil {
+		s.Log.WarnContext(ctx, "could not follow the bumpers to a moved data folder", "cat", "tv", "err", err)
+	} else if moved > 0 {
+		s.Log.InfoContext(ctx, "the data folder has moved: uploaded bumpers now point at the new place", "cat", "tv", "videos", moved)
+	}
+}
+
 func (s *Server) handleBumpers(w http.ResponseWriter, r *http.Request) {
 	list, err := s.Channels.Bumpers(r.Context())
 	if err != nil {

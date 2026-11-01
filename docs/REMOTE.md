@@ -132,7 +132,7 @@ network, including through a VPN, even if your router or firewall lets it throug
 > - **Never expose a server that hasn't finished setup.** The first person to complete setup becomes its administrator.
 > - **Never post your server's address** publicly, or in a screenshot, a forum post or a support request.
 > - **Never send your data folder or database to anyone.** It holds your settings and API keys. For help, use the
->   support bundle in *Settings → WittyLog*, and read it before you send it.
+>   sanitized log download in *Settings → WittyLog*, and read it before you send it.
 
 ## Step 1: Do you really need this?
 
@@ -500,7 +500,7 @@ files missing or changed, or sign-ins from an unexpected place. Move quickly, an
 
 1. **Cut it off.** Turn off **Remote Access** and remove any forward on your router. If you can't reach the settings, unplug the computer from the
    network. **Don't delete anything yet.**
-2. **Save the evidence.** Download the support bundle and logs from *Settings → WittyLog*, and note the date and what you saw.
+2. **Save the evidence.** Download the logs from *Settings → WittyLog*, with *Sanitize for sharing* off so you have the full addresses for yourself, and note the date and what you saw.
 3. **From a different, clean device, change passwords** for your email and your private network's account, and anything that shared a password with
    this server.
 4. **Check the computer.** Run a full malware scan, and look for programs and accounts you don't recognize. A scan finding nothing doesn't prove the

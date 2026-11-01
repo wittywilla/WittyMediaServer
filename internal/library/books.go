@@ -9,6 +9,7 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,8 +20,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/ebook"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/metafolder"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"github.com/wittywilla/wittymediaserver/internal/zipsafe"
 )
 
@@ -29,8 +33,15 @@ import (
 // CBZ + EPUB + PDF plus scans, OCR text and DRM-locked copies); the best
 // readable format is used and the rest is ignored.
 
-// Readable formats, best first: comics prefer page images, text prefers EPUB.
-var bookExts = map[string]int{".cbz": 1, ".epub": 2, ".pdf": 3, ".cbr": 4, ".cb7": 5, ".mobi": 6, ".azw3": 7}
+// Formats of one book, best first: comics prefer page images, text prefers EPUB, and
+// plain text comes last, since it's also what scans and notes are saved as.
+var bookRank = map[string]int{"cbz": 1, "epub": 2, "pdf": 3, "cbr": 4, "cb7": 5, "cbt": 6, "azw3": 7, "mobi": 8, "azw": 9, "fb2": 10, "docx": 11, "odt": 12,
+	"djvu": 13, "doc": 14, "rtf": 15, "pdb": 16, "html": 17, "md": 18, "txt": 19}
+
+// junkTextName: text beside books that isn't one. Text this small isn't one either.
+var junkTextName = regexp.MustCompile(`(?i)^(read ?me|license|licence|copying|changelog|changes|history|notes?|info|index|toc|contents|authors|credits|contributing|install|manifest|about|description|comicinfo)\b`)
+
+const minTextBook = 2 << 10
 
 // Files from digital-library downloads that are not a readable book.
 var junkBookRe = regexp.MustCompile(`(?i)(_lcp\.epub|_jp2\.zip|_djvu\.(txt|xml)|_hocr.*|_chocr.*|_scandata\.xml|_page_numbers\.json|_daisy.*|_text\.pdf)$`)
@@ -42,6 +53,7 @@ func discoverBooks(root string) ([]candidate, error) {
 	}
 	best := map[string]pick{} // folder + name without extension -> best format
 	var bad unreadable
+	var unnamed sniffBudget
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			bad.note(err)
@@ -54,18 +66,33 @@ func discoverBooks(root string) ([]candidate, error) {
 			}
 			return nil
 		}
-		ext := strings.ToLower(filepath.Ext(name))
-		rank, ok := bookExts[ext]
-		if !ok || junkBookRe.MatchString(name) || strings.HasPrefix(name, "._") {
+		if junkBookRe.MatchString(name) || strings.HasPrefix(name, "._") {
 			return nil
 		}
 		st, err := d.Info()
 		if err != nil || !mediaEntry(root, p, d) {
 			return nil
 		}
+		f := mediatypes.Find(name, mediatypes.Comic, mediatypes.Book)
+		format := ""
+		switch {
+		case f == nil:
+			if f = unnamed.sniff(p, name, st.Size(), mediatypes.Comic, mediatypes.Book); f == nil {
+				return nil
+			}
+			format = f.ID
+		case f.ID == "txt" || f.ID == "md" || f.ID == "html":
+			stem := strings.TrimSuffix(name, filepath.Ext(name))
+			if st.Size() < minTextBook || junkTextName.MatchString(stem) || !nameHolds(p, name, mediatypes.Book) {
+				return nil
+			}
+		case f.Confirm && !nameHolds(p, name, mediatypes.Book):
+			return nil
+		}
+		rank := bookRank[f.ID]
 		key := filepath.Join(filepath.Dir(p), strings.TrimSuffix(name, filepath.Ext(name)))
 		if cur, ok := best[key]; !ok || rank < cur.rank {
-			best[key] = pick{candidate{path: p, kind: "book", size: st.Size(), mtime: st.ModTime().Unix()}, rank}
+			best[key] = pick{candidate{path: p, kind: "book", size: st.Size(), mtime: st.ModTime().Unix(), format: format}, rank}
 		}
 		return nil
 	})
@@ -109,8 +136,13 @@ func (s *Scanner) indexBook(ctx context.Context, lib *Library, c candidate) erro
 		it.ID, it.AddedAt = existing.ID, existing.AddedAt
 		it.Reading = existing.Reading
 	}
-	ext := strings.ToLower(filepath.Ext(c.path))
-	it.Container = strings.TrimPrefix(ext, ".")
+	format := c.format
+	if format == "" {
+		if f := mediatypes.Find(c.path, mediatypes.Comic, mediatypes.Book); f != nil {
+			format = f.ID
+		}
+	}
+	it.Container = format
 	dir := filepath.Dir(c.path)
 	stem := strings.TrimSuffix(filepath.Base(c.path), filepath.Ext(c.path))
 	series, number, year := parseComicName(stem)
@@ -127,16 +159,47 @@ func (s *Scanner) indexBook(ctx context.Context, lib *Library, c candidate) erro
 		it.Reading = "rtl"
 	}
 	var cover func(context.Context, string) error
-	switch ext {
-	case ".epub":
-		cover = s.readEPUBMeta(it)
-	case ".cbz":
+	switch {
+	case format == "epub":
+		cover = s.readEPUBMeta(it, it.Path)
+	case format == "cbz" && comicIsZip(c.path):
 		cover = s.readCBZMeta(it)
+	case format == "cbz", format == "cbr", format == "cb7", format == "cbt":
+		// The name may not say what's inside: a ZIP goes the way of a CBZ.
+		if comicIsZip(c.path) {
+			cover = s.readCBZMeta(it)
+		} else {
+			cover = s.readComicMeta(it)
+		}
+	case format == "pdf":
+		if img := readPDFMeta(it); img != nil {
+			cover = func(ctx context.Context, out string) error { return s.coverFromBytes(ctx, img, ".jpg", out) }
+		}
+	case format == "djvu":
+		pages := djvuPages(c.path)
+		it.RuntimeSec = float64(pages)
+		if pages > 0 && HasDjVu() {
+			cover = func(ctx context.Context, out string) error {
+				p, err := s.DjvuPageFile(ctx, it, 0)
+				if err != nil {
+					return err
+				}
+				return s.Tools.Still(ctx, append([]string{"-f", "image2", "-max_pixels", maxCoverPixels}, ffmpeg.FileInput(p)...), 0, 400, out)
+			}
+		}
+	case ebook.Convertible(format):
+		// Its details and cover come from the EPUB the reader will use.
+		if p, err := s.BookEPUB(it); err == nil {
+			cover = s.readEPUBMeta(it, p)
+		} else {
+			s.minorFailure(ctx, "could not convert a book for the reader", err, "file", c.path)
+		}
 	}
 	// Digital-library sidecars: <id>_meta.xml and __ia_thumb.jpg.
 	if metas, _ := filepath.Glob(filepath.Join(dir, "*_meta.xml")); len(metas) == 1 {
 		applyArchiveMeta(it, metas[0], number == "")
 	}
+	cleanBook(it)
 	it.SortTitle = SortTitle(it.Title)
 	if it.Poster == "" {
 		h := sha1.Sum([]byte(c.path))
@@ -160,6 +223,21 @@ func (s *Scanner) indexBook(ctx context.Context, lib *Library, c candidate) erro
 }
 
 const maxCoverPixels = "100000000"
+
+// coverFromBytes makes a cover from a picture that's already in memory.
+func (s *Scanner) coverFromBytes(ctx context.Context, img []byte, ext, out string) error {
+	tmp, err := os.CreateTemp(s.ImagesDir, "cover-*"+ext)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(img); err != nil {
+		tmp.Close()
+		return err
+	}
+	tmp.Close()
+	return s.Tools.Still(ctx, append([]string{"-f", "image2", "-max_pixels", maxCoverPixels}, ffmpeg.FileInput(tmp.Name())...), 0, 400, out)
+}
 
 // makeCover turns an image inside an archive into a 400 px cover.
 func (s *Scanner) makeCover(ctx context.Context, archive, entry, out string) error {
@@ -209,23 +287,16 @@ const maxComicPages = 50000
 
 // ComicPages lists the page images of a comic archive in reading order.
 func ComicPages(zr *zip.Reader) []string {
-	var pages []string
+	names := make([]string, 0, min(len(zr.File), maxComicPages))
 	for _, f := range zr.File {
-		n := f.Name
-		low := strings.ToLower(n)
-		if f.FileInfo().IsDir() || strings.HasPrefix(low, "__macosx") || strings.Contains(low, "/.") || strings.HasPrefix(path.Base(low), ".") {
-			continue
+		if !f.FileInfo().IsDir() && comicPageExt(strings.ToLower(f.Name)) {
+			names = append(names, f.Name)
 		}
-		switch path.Ext(low) {
-		case ".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif":
-			pages = append(pages, n)
-		}
-		if len(pages) >= maxComicPages {
+		if len(names) >= maxComicPages {
 			break
 		}
 	}
-	sort.Slice(pages, func(i, j int) bool { return naturalLess(pages[i], pages[j]) })
-	return pages
+	return pageNames(names)
 }
 
 // naturalLess compares strings with numbers in numeric order ("p2" < "p10").
@@ -478,8 +549,10 @@ type ncxPoint struct {
 	Children []ncxPoint `xml:"navPoint"`
 }
 
-func (s *Scanner) readEPUBMeta(it *Item) func(context.Context, string) error {
-	zr, err := openZip(it.Path)
+// readEPUBMeta reads a book's details from an EPUB: the file itself, or the one made
+// from it for the reader.
+func (s *Scanner) readEPUBMeta(it *Item, file string) func(context.Context, string) error {
+	zr, err := openZip(file)
 	if err != nil {
 		return nil
 	}
@@ -516,7 +589,7 @@ func (s *Scanner) readEPUBMeta(it *Item) func(context.Context, string) error {
 	if info.Cover == "" {
 		return nil
 	}
-	archive, entry := it.Path, info.Cover
+	archive, entry := file, info.Cover
 	return func(ctx context.Context, out string) error { return s.makeCover(ctx, archive, entry, out) }
 }
 
@@ -534,17 +607,19 @@ func applyArchiveMeta(it *Item, p string, title bool) {
 		Date        string   `xml:"date"`
 		Subject     []string `xml:"subject"`
 	}
-	if xml.Unmarshal(b, &m) != nil {
+	if line, msg := metafolder.DecodeXML(b, &m); msg != "" {
+		slog.Default().Warn("could not read a metadata file; ignoring it", "cat", "library", "file", p, "line", line, "err", msg)
 		return
 	}
-	if title && m.Title != "" && it.Album == "" {
+	if m.Title = metafolder.Line(m.Title, 300); title && m.Title != "" && it.Album == "" {
 		it.Title = strings.TrimSpace(parenRe.ReplaceAllString(m.Title, ""))
 	}
 	if it.Artist == "" && len(m.Creator) > 0 {
-		it.Artist, it.AlbumArtist = m.Creator[0], m.Creator[0]
+		c := metafolder.Line(m.Creator[0], 300)
+		it.Artist, it.AlbumArtist = c, c
 	}
 	if it.Overview == "" && m.Description != "" {
-		it.Overview = plain(m.Description)
+		it.Overview = metafolder.Text(plain(m.Description), 20000)
 	}
 	if it.Year == nil {
 		it.Year = yearOf(m.Date)
@@ -642,6 +717,28 @@ func (s *Store) OpenArchive(ctx context.Context, p string) (*zip.Reader, func(),
 	if err != nil {
 		return nil, nil, err
 	}
+	return keepArchive(p, f, st)
+}
+
+// OpenBook opens what the reader reads for a book: the library's own file, or the copy made
+// from it in the cache, which isn't in a library and which only this server writes.
+func (s *Store) OpenBook(ctx context.Context, it *Item, book string) (*zip.Reader, func(), error) {
+	if book == it.Path {
+		return s.OpenArchive(ctx, book)
+	}
+	f, err := os.Open(book)
+	if err != nil {
+		return nil, nil, err
+	}
+	st, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, nil, err
+	}
+	return keepArchive(book, f, st)
+}
+
+func keepArchive(p string, f *os.File, st fs.FileInfo) (*zip.Reader, func(), error) {
 	archiveCache.sweeper.Do(func() { logging.Loop("archive sweep", sweepArchives, "cat", "library") })
 	archiveCache.Lock()
 	defer archiveCache.Unlock()
@@ -707,6 +804,20 @@ func (s *Store) ArchiveEPUB(ctx context.Context, p string) (*EPUBInfo, []int, er
 		return nil, nil, err
 	}
 	defer done()
+	return archiveEPUB(zr, p)
+}
+
+// ArchiveEPUBOf is ArchiveEPUB for what the reader reads for a book, as OpenBook.
+func (s *Store) ArchiveEPUBOf(ctx context.Context, it *Item, book string) (*EPUBInfo, []int, error) {
+	zr, done, err := s.OpenBook(ctx, it, book)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer done()
+	return archiveEPUB(zr, book)
+}
+
+func archiveEPUB(zr *zip.Reader, p string) (*EPUBInfo, []int, error) {
 	archiveCache.Lock()
 	c := archiveCache.m[p]
 	if c != nil && c.epub != nil {

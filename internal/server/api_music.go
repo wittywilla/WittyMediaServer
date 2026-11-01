@@ -11,6 +11,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
@@ -114,7 +115,11 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w = s.capWriter(w, r)
-	if library.DirectAudio[it.VideoCodec] && !qBool(r, "transcode") {
+	if it.VideoCodec == "midi" {
+		s.streamMIDI(w, r, it)
+		return
+	}
+	if library.PlaysDirect(it) && !qBool(r, "transcode") {
 		f, st, err := s.Store.OpenLibraryFile(r.Context(), it.Path)
 		if err != nil {
 			writeErr(w, 404, "not found")
@@ -122,6 +127,8 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 		}
 		defer f.Close()
 		w.Header().Set("Cache-Control", "private, max-age=3600")
+		// The type comes from the list, never from what the file's bytes look like.
+		w.Header().Set("Content-Type", audioType(it))
 		http.ServeContent(w, r, filepath.Base(it.Path), st.ModTime(), f)
 		return
 	}
@@ -142,7 +149,7 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 		args = append(args, "-ss", strconv.FormatFloat(start, 'f', 3, 64))
 	}
 	args = append(args, ffmpeg.FileInput(it.Path)...)
-	args = append(args, "-map", "0:a:0", "-vn", "-sn", "-c:a", "aac", "-b:a", "192k", "-f", "adts", "pipe:1")
+	args = append(args, "-map", "0:a:0", "-vn", "-sn", "-ac", "2", "-c:a", "aac", "-b:a", "192k", "-f", "adts", "pipe:1")
 	cmd := ffmpeg.Command(r.Context(), s.Tools.FFmpeg, args...)
 	cmd.Stdout = &stallWriter{w: w, rc: http.NewResponseController(w), limit: maxStreamStall}
 	var stderr logging.Tail
@@ -156,4 +163,35 @@ func (s *Server) handleAudioStream(w http.ResponseWriter, r *http.Request) {
 	err = cmd.Run() // ends when the file is done or the listener disconnects
 	// The headers have gone out, so this record is all that's left of a failure.
 	logging.ChildExit(s.Log.With("cat", "transcode", "session", session), "ffmpeg", err, r.Context().Err() != nil, &stderr, started, "item", it.ID, "file", it.Path)
+}
+
+// audioType is what a sound file is sent as.
+func audioType(it *library.Item) string {
+	m := mediatypes.MIMEOf(mediatypes.Canonical(it.Container, it.Path, "", it.VideoCodec))
+	if m == "application/octet-stream" {
+		m = mediatypes.MIME(it.Path)
+	}
+	return m
+}
+
+// streamMIDI sends the sound the server's synthesiser makes of a MIDI file. It's made
+// once, and then it's a plain file.
+func (s *Server) streamMIDI(w http.ResponseWriter, r *http.Request, it *library.Item) {
+	select {
+	case s.audioSlots <- struct{}{}:
+	default:
+		w.Header().Set("Retry-After", "5")
+		writeErr(w, 503, "the server is busy with other streams")
+		return
+	}
+	p, err := s.Scanner.MIDIAudio(r.Context(), it)
+	<-s.audioSlots
+	if err != nil {
+		s.Log.WarnContext(r.Context(), "could not play a MIDI file", "cat", "playback", "item", it.ID, "err", err)
+		writeErr(w, 422, "this MIDI file can't be played")
+		return
+	}
+	w.Header().Set("Content-Type", "audio/flac")
+	w.Header().Set("Cache-Control", "private, max-age=3600")
+	http.ServeFile(w, r, p)
 }

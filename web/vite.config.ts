@@ -60,10 +60,10 @@ export default defineConfig({
   // The modules are packages linked into node_modules, as TypeScript source
   // (scripts/dev-modules.mjs). dedupe resolves what they import from here.
   resolve: {
-    dedupe: ['react', 'react-dom', 'pdfjs-dist', '@wittywilla/wittyink', '@wittywilla/wittyebook', '@wittywilla/wittypdf', '@wittywilla/wittycomics', '@wittywilla/wittyvisualizer', '@wittywilla/wittyplay', '@wittywilla/wittyintegratedfilebrowser', '@wittywilla/wittycouch'],
+    dedupe: ['react', 'react-dom', 'pdfjs-dist', '@wittywilla/wittyink', '@wittywilla/wittyebook', '@wittywilla/wittypdf', '@wittywilla/wittycomics', '@wittywilla/wittyvisualizer', '@wittywilla/wittyplay', '@wittywilla/wittyintegratedfilebrowser', '@wittywilla/wittycouch', '@wittywilla/wittystats'],
   },
+  optimizeDeps: { exclude: ['@wittywilla/wittyink', '@wittywilla/wittyebook', '@wittywilla/wittypdf', '@wittywilla/wittycomics', '@wittywilla/wittyvisualizer', '@wittywilla/wittyplay', '@wittywilla/wittyintegratedfilebrowser', '@wittywilla/wittycouch', '@wittywilla/wittystats'] },
   // The browsers this app has always reached, TVs included, whatever the bundler's default is now.
-  optimizeDeps: { exclude: ['@wittywilla/wittyink', '@wittywilla/wittyebook', '@wittywilla/wittypdf', '@wittywilla/wittycomics', '@wittywilla/wittyvisualizer', '@wittywilla/wittyplay', '@wittywilla/wittyintegratedfilebrowser', '@wittywilla/wittycouch'] },
   build: { outDir: 'dist', emptyOutDir: true, sourcemap: false, target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'] },
   server: {
     port: 5173,

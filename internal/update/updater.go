@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymodule"
 )
 
@@ -64,6 +65,9 @@ type Status struct {
 
 // Updater checks for, downloads and installs releases.
 type Updater struct {
+	// Tasks is where an update shows in the activity panel. May be nil.
+	Tasks     *tasks.Registry
+	task      *tasks.Handle
 	Current   string            // the running version
 	Dir       string            // the program folder (where wms lives)
 	Protect   []string          // folders and files never written (data, cache, config…)
@@ -271,6 +275,7 @@ func (u *Updater) Apply() error {
 	u.busy = true
 	u.st.Phase, u.st.Error, u.st.Done, u.st.Total = PhaseDownloading, "", 0, u.rel.Archive.Size
 	rel := *u.rel
+	u.task = u.Tasks.Start(tasks.Spec{Type: tasks.TypeUpdate, Title: "Updating the server to " + rel.Version, Phase: "Downloading", Unit: "bytes", AdminOnly: true})
 	session := logging.NewID("update")
 	log := u.Log.With("session", session, "version", rel.Version)
 	log.Info("update started", "current", u.Current)
@@ -282,8 +287,11 @@ func (u *Updater) Apply() error {
 		u.busy = false
 		if err != nil {
 			u.st.Phase, u.st.Error = PhaseFailed, err.Error()
+			u.task.Fail("The update didn't install, and nothing changed.", "Try again. Settings, About has the details.", err)
 		} else {
 			u.st.Phase = PhaseRestarting
+			u.task.Result("Installed. The server is restarting.")
+			u.task.Finish(nil)
 		}
 		u.mu.Unlock()
 		if err != nil {
@@ -301,8 +309,12 @@ func (u *Updater) Apply() error {
 func (u *Updater) phase(p string) {
 	u.mu.Lock()
 	u.st.Phase = p
+	u.task.Phase(phaseWords[p])
 	u.mu.Unlock()
 }
+
+// phaseWords are the update's steps, for the activity panel.
+var phaseWords = map[string]string{PhaseDownloading: "Downloading", PhaseVerifying: "Checking its signature", PhaseInstalling: "Installing"}
 
 func (u *Updater) install(ctx context.Context, rel *Release) error {
 	stage := filepath.Join(u.Dir, StageDir)
@@ -413,6 +425,7 @@ type progress struct{ u *Updater }
 func (p *progress) Write(b []byte) (int, error) {
 	p.u.mu.Lock()
 	p.u.st.Done += int64(len(b))
+	p.u.task.Progress(p.u.st.Done, p.u.st.Total)
 	p.u.mu.Unlock()
 	return len(b), nil
 }

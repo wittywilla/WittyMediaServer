@@ -17,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -24,10 +26,16 @@ import (
 )
 
 type User struct {
-	ID        int64  `json:"id"`
-	Name      string `json:"name"`
-	IsAdmin   bool   `json:"isAdmin"`
-	CreatedAt int64  `json:"createdAt"`
+	ID int64 `json:"id"`
+	// Name is the username: unique, and what signing in uses.
+	Name string `json:"name"`
+	// DisplayName is the profile name, which anyone may choose and anyone may
+	// share ("" = use the username). ShowUsername: the corner of the screen shows
+	// the username instead of this.
+	DisplayName  string `json:"displayName"`
+	ShowUsername bool   `json:"showUsername"`
+	IsAdmin      bool   `json:"isAdmin"`
+	CreatedAt    int64  `json:"createdAt"`
 	// Kind is "adult", "kids" or "guest". Kids and Guest profiles may have
 	// no password; they then sign in with a tap on the home network.
 	Kind        string `json:"kind"`
@@ -47,18 +55,19 @@ const (
 	KindGuest = "guest"
 )
 
-const userCols = `id, name, is_admin, created_at, kind, password_hash <> '', IFNULL(restrictions, ''), totp_on`
+const userCols = `id, name, is_admin, created_at, kind, password_hash <> '', IFNULL(restrictions, ''), totp_on, display_name, show_username`
 
 type scanner interface{ Scan(...any) error }
 
 func scanUser(r scanner) (*User, error) {
 	var u User
-	var admin, totp int
-	if err := r.Scan(&u.ID, &u.Name, &admin, &u.CreatedAt, &u.Kind, &u.HasPassword, &u.Restrictions, &totp); err != nil {
+	var admin, totp, showUsername int
+	if err := r.Scan(&u.ID, &u.Name, &admin, &u.CreatedAt, &u.Kind, &u.HasPassword, &u.Restrictions, &totp, &u.DisplayName, &showUsername); err != nil {
 		return nil, err
 	}
 	u.IsAdmin = admin != 0
 	u.TwoFactor = totp != 0
+	u.ShowUsername = showUsername != 0
 	return &u, nil
 }
 
@@ -150,9 +159,9 @@ func (s *Service) CreateUser(ctx context.Context, name, password string, admin b
 // CreateProfile adds an account of a kind. Kids and Guest profiles may
 // have no password; adults always need one.
 func (s *Service) CreateProfile(ctx context.Context, name, password, kind string, admin bool, restrictions string) (*User, error) {
-	name = strings.TrimSpace(name)
-	if name == "" || len(name) > 40 {
-		return nil, errors.New("a name of up to 40 characters is required")
+	name, err := s.checkUsername(ctx, name, 0)
+	if err != nil {
+		return nil, err
 	}
 	switch kind {
 	case KindAdult:
@@ -194,6 +203,78 @@ func (s *Service) CreateProfile(ctx context.Context, name, password, kind string
 		s.markWeak(ctx, id, name, password)
 	}
 	return s.User(ctx, id)
+}
+
+// MaxDisplayName is the longest profile name, in characters.
+const MaxDisplayName = 60
+
+// checkUsername tidies a username and refuses one that can't be used. Signing in
+// ignores case, so "Sam" and "sam" count as the same name, and invisible characters
+// are out, or one account could pass itself off as another.
+func (s *Service) checkUsername(ctx context.Context, name string, id int64) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" || len(name) > 40 {
+		return "", errors.New("a name of up to 40 characters is required")
+	}
+	for _, r := range name {
+		if unicode.IsControl(r) || unicode.Is(unicode.Cf, r) || r == utf8.RuneError {
+			return "", errors.New("a name can't contain invisible characters")
+		}
+	}
+	var other int64
+	err := s.DB.QueryRowContext(ctx, `SELECT id FROM users WHERE name = ? COLLATE NOCASE AND id <> ? LIMIT 1`, name, id).Scan(&other)
+	if err == nil {
+		return "", errors.New("that name is taken")
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return "", err
+	}
+	return name, nil
+}
+
+// cleanDisplayName tidies a profile name. It takes out what could reorder or hide
+// text around it (control and direction-changing characters, while the joiners that
+// emoji are built with stay), closes up spaces and keeps to the length.
+func cleanDisplayName(name string) string {
+	name = strings.Map(func(r rune) rune {
+		switch {
+		case unicode.IsControl(r), r == utf8.RuneError, r == 0x061C, r == 0x200E, r == 0x200F, r >= 0x202A && r <= 0x202E, r >= 0x2066 && r <= 0x2069:
+			return -1
+		}
+		return r
+	}, name)
+	name = strings.Join(strings.Fields(name), " ")
+	if rs := []rune(name); len(rs) > MaxDisplayName {
+		name = strings.TrimSpace(string(rs[:MaxDisplayName]))
+	}
+	return name
+}
+
+// SetDisplayName sets the profile name ("" goes back to the username).
+func (s *Service) SetDisplayName(ctx context.Context, id int64, name string) error {
+	_, err := s.DB.ExecContext(ctx, `UPDATE users SET display_name = ? WHERE id = ?`, cleanDisplayName(name), id)
+	return err
+}
+
+// SetShowUsername chooses which name the corner of the screen shows.
+func (s *Service) SetShowUsername(ctx context.Context, id int64, on bool) error {
+	_, err := s.DB.ExecContext(ctx, `UPDATE users SET show_username = ? WHERE id = ?`, on, id)
+	return err
+}
+
+// SetUsername changes the name an account signs in with.
+func (s *Service) SetUsername(ctx context.Context, id int64, name string) error {
+	name, err := s.checkUsername(ctx, name, id)
+	if err != nil {
+		return err
+	}
+	if _, err := s.DB.ExecContext(ctx, `UPDATE users SET name = ? WHERE id = ?`, name, id); err != nil {
+		if strings.Contains(err.Error(), "UNIQUE") {
+			return errors.New("that name is taken")
+		}
+		return err
+	}
+	return nil
 }
 
 // SetRestrictions stores an account's limits (JSON, "" = none).
@@ -481,7 +562,7 @@ const CookieName = "wms_token"
 // a WebSocket, a module script and the like, which can't carry a header. Only these take a token in the
 // address: one that leaked from a media link (a browser's history, a proxy's
 // log) can't be used to call the rest of the API or change anything.
-var mediaRoute = regexp.MustCompile(`^/api/(items/\d+/(poster|backdrop|file|stream|page/|epub/|disc/thumb/)|radio/\d+/(stream|hls)$|shows/\d+/art/|artwork/preview$|hls/|dvd/[^/]+/(menu/|still/|sub/|subs$)|logs/files/|themes/[^/]+/download$|games/\d+/saves/\d+/(thumb|file)$|games/\d+/battery$|game-bezels/\d+$|play/[0-9a-f]+/screenshot$|play/[0-9a-f]+/ws$|game-background/image$|modules/[a-z0-9]+/web/|music/artist-photo$|music/extras/\d+/file$)`)
+var mediaRoute = regexp.MustCompile(`^/api/(items/\d+/(poster|backdrop|file|stream|page/|epub/|disc/thumb/)|radio/\d+/(stream|hls)$|shows/\d+/art/|artwork/preview$|hls/|dvd/[^/]+/(menu/|still/|sub/|subs$)|logs/files/|themes/[^/]+/download$|games/\d+/art/\d+$|games/\d+/saves/\d+/(thumb|file)$|games/\d+/battery$|game-bezels/\d+$|play/[0-9a-f]+/screenshot$|play/[0-9a-f]+/ws$|game-background/image$|modules/[a-z0-9]+/web/|music/artist-photo$|music/extras/\d+/file$|logos/\d+/image$)`)
 
 // queryToken is the ?token= of a media address.
 func queryToken(r *http.Request) string {

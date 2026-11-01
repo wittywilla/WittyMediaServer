@@ -47,6 +47,7 @@
   --focus-scale: 1;
   --on-image: #fff;                                         /* text and icons over artwork */
   --scrim: rgb(0 0 0 / .68);                                /* the plate behind them */
+  --picture-bg: #000;                                       /* behind video and photos: never themed */
 
   /* ---- type: one scale; sizes in rem so they follow the reader's setting ---- */
   --text-2xs: .6875rem;  /* 11  labels, badges */
@@ -149,6 +150,9 @@ html { scroll-padding-block: calc(var(--topbar-h) + var(--sp-4)) calc(var(--sp-1
 html.using-controller { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; --card-w: 200px; --card-wide-w: 340px; --gutter: max(48px, 4vw); }
 @media (pointer: none) { :root { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; --card-w: 200px; --card-wide-w: 340px; --gutter: max(48px, 4vw); } }
 /* The same again for "Big screen mode" in Settings, Appearance. */
+/* Across the room the outline has to be the strongest thing on the screen, on any surface. */
+html.using-controller, html.ten-foot { --focus: var(--fg); }
+@media (pointer: none) { :root { --focus: var(--fg); } }
 html.ten-foot { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; --card-w: 200px; --card-wide-w: 340px; --gutter: max(48px, 4vw); }
 /* Whatever is docked at the bottom keeps the things that float above it clear. */
 html:has(.audio-bar:not(.full)) { --dock-space: 88px; }

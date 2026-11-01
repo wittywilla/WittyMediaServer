@@ -43,7 +43,7 @@ export type CategoryArt = { type: 'item' | 'show'; id: number; v: number }
 export type Category = { key: string; name: string; genre: string; count: number; hidden: boolean; position: number; merged?: string[]; art: CategoryArt[] }
 export type Brand = { kind: 'studio' | 'network'; name: string; key: string; count: number }
 export type Platform = { key: string; name: string; count: number }
-export type Shelves = { categories: Category[]; studios: Brand[]; networks: Brand[]; collections: { id: number; name: string; count: number; art: CategoryArt[] }[]; platforms: Platform[] }
+export type Shelves = { categories: Category[]; studios: Brand[]; networks: Brand[]; collections: { id: number; key?: string; name: string; count: number; art: CategoryArt[] }[]; platforms: Platform[] }
 export type SavedView = { id: number; libraryId: number; name: string; query: string; pinned: boolean; position: number }
 export type ListingStatus = {
   enabled: boolean; region: string; asOf: number; newest: number; hasKey: boolean; titles: number; listed: number; running: boolean; done: number; total: number
@@ -70,7 +70,9 @@ export const fmtClock = (sec: number) => {
 export const artPictureUrl = (a: CategoryArt) => mediaUrlQ(a.type === 'item' ? `/api/items/${a.id}/backdrop` : `/api/shows/${a.id}/art/backdrop`, `v=${a.v}`)
 
 // Sends a picture as the body of a request, as Upload your own and a logo's own upload do.
-export async function sendPicture<T>(path: string, f: File): Promise<T> {
+export async function sendPicture<T>(path: string, f: File, limitMB = 20): Promise<T> {
+  // Said here, as a browser can go on sending a big file long after the server has refused it.
+  if (f.size > limitMB * (1 << 20)) throw new Error(`The picture is too big: the limit is ${limitMB} MB`)
   const headers: Record<string, string> = { 'Content-Type': f.type || 'application/octet-stream' }
   const tok = getToken()
   if (tok) headers.Authorization = 'Bearer ' + tok

@@ -1,6 +1,7 @@
 package library
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"context"
 	"crypto/rand"
 	"encoding/xml"
@@ -553,7 +554,7 @@ func (s *Scanner) Download(ctx context.Context, it *Item) error {
 		return errors.New("to download episodes, give this podcasts library a folder in Settings, Libraries")
 	}
 	ext := strings.ToLower(filepath.Ext(strings.Split(it.Path, "?")[0]))
-	if !audioExts[ext] {
+	if !mediatypes.IsAudio(ext) {
 		ext = map[string]string{"aac": ".m4a", "opus": ".opus"}[it.VideoCodec]
 		if ext == "" {
 			ext = ".mp3"

@@ -40,6 +40,7 @@ func TestQueryTokenOnlyOnMediaRoutes(t *testing.T) {
 		"/api/hls/v-1/playlist.m3u8?token=x":      true,
 		"/api/dvd/abc/still/x.png?token=x":        true,
 		"/api/logs/files/wms-1.log?token=x":       true,
+		"/api/games/1/art/0?token=x":              true,
 		"/api/users?token=x":                      false,
 		"/api/settings?token=x":                   false,
 		"/api/me?token=x":                         false,

@@ -5,6 +5,7 @@ import { toast, useApp } from '../../state'
 import { LoadError } from '../../components/common'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui'
 import LegalNote from '../../components/LegalNote'
+import { ask } from '../../ui/Overlay'
 
 // Uploads, links for people without an account, the online map, and the place
 // kept for the local AI.
@@ -57,7 +58,7 @@ function Links() {
   const load = () => api.get<ShareLink[]>(`/shares${all ? '?all=1' : ''}`).then(setLinks).catch(() => setLinks([]))
   useEffect(() => { load() }, [all]) // eslint-disable-line react-hooks/exhaustive-deps
   const end = async (l: ShareLink) => {
-    if (!confirm(`End the link to “${l.title}”? Anyone who has it will no longer be able to open it.`)) return
+    if (!await ask({ title: `End the link to “${l.title}”?`, body: 'Anyone who has it will no longer be able to open it.', confirm: 'End link', danger: true })) return
     try { await api.del(`/shares/${l.id}`); load() } catch (e: any) { toast(e.message) }
   }
   return (

@@ -22,6 +22,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
 // Internet radio. Anyone with the library listens; administrators add stations,
@@ -380,8 +381,11 @@ func (s *Server) handleRadioCheckAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.radioChecks.Add(1)
+	task := s.Tasks.Start(tasks.Spec{Type: tasks.TypeOther, Title: "Checking radio stations", LibraryID: b.LibraryID, By: byUser(userFrom(r))})
 	logging.Go("radio checks", func() {
 		defer s.radioChecks.Done()
+		defer task.Finish(nil)
+		task.Result(fmt.Sprintf("Checked %d stations.", len(items)))
 		s.Store.CheckStations(context.Background(), items, func(msg string, args ...any) {
 			s.Log.Info(msg, append([]any{"cat", "library"}, args...)...)
 		})

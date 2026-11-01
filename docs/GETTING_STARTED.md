@@ -18,7 +18,7 @@ command line needed on Windows or macOS.
 
 - A computer that stays on while you watch: Windows 10/11, macOS 11+, Linux, FreeBSD, a NAS
   with Docker, or a Raspberry Pi 4/5.
-- Your videos: movie files (`.mkv`, `.mp4`, …), TV episodes, or **DVD images** (`.iso`) /
+- Your videos, in nearly any format ([the full list](SUPPORTED-FORMATS.md)): movie files (`.mkv`, `.mp4`, …), TV episodes, or **DVD images** (`.iso`) /
   `VIDEO_TS` folders that you made from discs you own.
 - A web browser (Chrome, Edge, Firefox, Safari) on whatever you watch on.
 

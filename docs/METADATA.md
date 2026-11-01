@@ -6,6 +6,7 @@ already use, so you can move an existing library in — or out — without re-ta
 - [Where metadata comes from](#where-metadata-comes-from)
 - [What is saved next to your media](#what-is-saved-next-to-your-media)
 - [Editing and fixing matches](#editing-and-fixing-matches)
+- [Fixing metadata by hand](FIXING-METADATA.md): a folder of plain text files, one for each title, to edit in any text editor
 - [Fix matches: the review list](#fix-matches-the-review-list)
 - [Names that say what a file is](#names-that-say-what-a-file-is)
 - [Categories, studios and browsing](#categories-studios-and-browsing)
@@ -109,6 +110,7 @@ picture is fetched from the internet only. Only real pictures (JPEG, PNG, WebP, 
 
 ## What is saved next to your media
 
+Your metadata is in the server's database, and comes along in a [backup](BACKUP.md). 
 With *Settings → Metadata agents → Save information and artwork next to your media* on (the
 default), the server writes these files in the standard layout other media servers read too:
 
@@ -123,6 +125,10 @@ default), the server writes these files in the standard layout other media serve
 Artwork saved this way is always a real picture from the internet, the image cache or your own
 disk: a sidecar file or a feed can't make the server copy another kind of file here, or fetch
 something from your local network.
+
+Anything read back from a file beside your media, your own or anyone else's, is limited in size and cleaned to plain text: no HTML, no scripts, no hidden
+characters, and pictures that are only web addresses or files in that folder. A file that can't be read is left out with a warning in *Settings → WittyLog*
+naming the file and the line. [How it's kept safe](FIXING-METADATA.md#how-its-kept-safe).
 
 Scans only write metadata for items that have no NFO yet; your own NFOs are never touched by a
 scan, and if you edit an item whose NFO you wrote by hand, the original is kept as `<name>.nfo.bak`.
@@ -183,6 +189,11 @@ file, which its page then offers as a choice. Either can be undone with one butt
 
 **Delete** takes a title out of its library and leaves its files on disk. It won't come back on a scan, and can be brought back from *Fix matches → Removed*. Nothing here ever deletes a file.
 
+## Fixing by hand
+
+Prefer a text editor, or have a lot of small fixes to make? *Settings → Repair → Metadata files* writes a plain text file for each title, shows you what your edits
+would change, and applies them, locked and undoable like anything typed into **Edit**. The guide, with examples, is [Fixing metadata by hand](FIXING-METADATA.md).
+
 ## Fix matches: the review list
 
 *Fix matches*, on a library's page and in *Settings → Metadata agents*, lists every title in film, disc and TV libraries, worst first. Opening it asks nobody anything: how sure each match is comes from what's stored, comparing the file's name and year with what it's matched to.
@@ -207,6 +218,8 @@ Choosing a title finds suggestions, one request per source; **Find suggestions f
 | `/` | Search |
 | `U` | Undo |
 
+The arrow keys and a remote reach everything on the list and in the edit dialog: moving down the list follows along in the panel beside it, and OK on a title goes to its first suggestion. A year you typed, or one kept from before, counts when scoring, so an exact name and year comes to 100%. **Choose the 4 that are 90% sure** ticks those at once, for you to accept.
+
 With several chosen, **Accept their best suggestions** or **Edit together**, which adds or takes away genres and tags, sets a year or a rating, and locks or unlocks. **Renumber episodes** shows each file beside what the source calls that number, with ways to move a whole season. Numbers you change are locked, so a scan keeps them.
 
 ## Names that say what a file is
@@ -217,9 +230,11 @@ A folder with a naming of its own can have **rules**, under *Fix matches → Nam
 
 ## Categories, studios and browsing
 
-A film or TV library opens on **shelves**: categories, recently added, collections, studios, networks, highest rated, and a row for each category. Each row asks for its titles only as it comes near the screen. Choosing a sort, a filter or a card turns it into a grid, and the address holds the whole state, so any view can be bookmarked.
+A film or TV library opens on **shelves**: categories, collections, studios, networks, recently added, highest rated, and a row for each category. Each row asks for its titles only as it comes near the screen. Choosing a sort, a filter or a card turns it into a grid, and the address holds the whole state, so any view can be bookmarked.
 
 **Categories** are made from genres, one library at a time, with the art of what's in them. Different spellings of a genre are put together (*Sci-Fi* and *Science Fiction*), and combined ones split (*Action & Adventure*). **Categories** on the page lets an administrator rename, hide, reorder and merge them. Only the changes are kept, so new genres appear by themselves, and *Start again* forgets them.
+
+**Collections from film series** appear by themselves. When a source says a film is part of a series, and two or more films in a library share it, they show as a card under *Collections*. The **Collection** field in *Edit details* changes or clears it. Nothing is created in the *Collections* side menu.
 
 **Studios and networks** come from metadata, every studio a source names. A card opens everything from that studio, across libraries. Kids and Guest profiles see neither the titles they can't watch nor a studio or category only those titles are in.
 
@@ -237,7 +252,8 @@ Optional, and off until an administrator accepts each statement of what it means
 | **Needs** | Your own free TMDB key. Without one it stays off, because no source of this data works without a key and allows this use |
 | **Sent** | The TMDB id of each title in your film and TV libraries, or its name and year to find that id, about once every two weeks. A title that can't be found with near certainty isn't listed, because a wrong guess would say something is on a service when it isn't |
 | **What counts** | Included with a subscription, free, or free with adverts. Rentals and purchases aren't what's on a service |
-| **Region** | Your choice, as listings differ by country |
+| **Region** | Your choice, as listings differ by country. Changing it looks them up for that country |
+| **Kept up to date** | A title you match, rematch or unmatch is looked at again straight away, and its old listings go. **Check now** looks at everything again |
 | **Names and logos** | Plain text unless you've agreed to logos too |
 
 Turning it off forgets everything it fetched.
@@ -298,7 +314,19 @@ Kinds: `studio`, `network`, `console`, `gamestudio`, `platform`.
 ### Using it from the server
 
 When you find a new console or game studio, call `Store.EnsureLogo(ctx, kind, name)`. It only adds a row; `Logos.Kick()` starts looking, and does
-nothing without the owner's agreement. The studios of films and networks of shows are added by scans already.
+nothing without the owner's agreement. The studios of films and networks of shows are added by scans already, and so are the consoles of a games library and the studios of its games.
+
+### Consoles and game studios
+
+`GET /api/games/consoles` gives each console a `logoName`, the name it goes by on Wikidata, which is often not the one on its card. On a games screen, use the marks made for this, which are the same size
+whichever way a console appears. With no logo they're a short typed label, so a screen looks finished before anyone has agreed to logos, or if a console has none:
+
+```tsx
+import { ConsoleMark, StudioMark } from '../components/ConsoleMark'
+
+<ConsoleMark console={c} />                     // sizes: sm, md, lg
+<StudioMark name={it.studio} on="dark" />
+```
 
 ### Routes
 
@@ -360,11 +388,16 @@ or an app never talks to a source.
 1. **By checksum.** Archives record their files' checksums (`.zip`, `.7z` and `.gz`), so only the headers are read and
    nothing is unpacked. A cartridge file up to 128 MB is read once, with and without a copier's header. Nothing is
    read twice unless the file changes.
-2. **By disc code.** A disc's product code is read from a few sectors near its start, or from its file name (PlayStation,
-   PlayStation 2, PSP, GameCube, Wii, Saturn, Dreamcast, Mega-CD). A compressed disc such as a `.chd` goes by name.
+2. **By code.** A disc's product code is read from a few sectors near its start, even inside a `.cso`, or from its file name (PlayStation,
+   PlayStation 2, PSP, GameCube, Wii, Saturn, Dreamcast, Mega-CD). A compressed disc such as a `.chd` goes by name. A cartridge's code, and the title in its header, count
+   only when the file's name agrees, because a fan's hack of a game keeps both: it isn't that game, and shouldn't be named after it. A file called `rom.z64` has nothing to disagree with.
 3. **By name and console.** Region and dump tags are taken off and kept as details. Punctuation, articles and II or 2 don't
    matter, but different numbers always do. A name must be at least 85% alike to be used without asking, and only an exact name or a checksum renames a game: a close match
    gets its details, but keeps the name on its file, as it may be a variant.
+4. **By another version in its archive.** In a set, what's asked about first is the file that would be played. If neither that nor the name is known, a checksum of another version
+   in the archive still gives the game's details and art. Its name might be another region's, so unless the names agree the game keeps the one on its file.
+
+A file saved here earlier (an NFO this server wrote, and the pictures beside it) is only an old answer, which a better one replaces. An NFO a person wrote is theirs, and stays.
 
 A checksum found by one source gives the exact name to ask the others about, so they match better too. Every game's page
 shows administrators how it was matched and how sure that is, with **Fix match** (search every source and pick), **Lock**
@@ -374,7 +407,8 @@ A game from a gaming PC has no file to read, so it goes by name alone, on source
 
 ### Keeping requests down
 
-The queue is in the database, so a restart carries on where it stopped. Games are worked on in batches of 50, one console
+The queue is in the database, so a restart carries on where it stopped. The local database is asked about every game first, which takes seconds and no
+requests beyond fetching each console's list once. Pictures and online sources then go side by side, so a slow source holds nothing else up. Games are worked on in batches of 50, one console
 at a time. Each source's answer is kept, so changing the order of sources asks nobody anything, and adding one only
 asks that one, for what it can add.
 

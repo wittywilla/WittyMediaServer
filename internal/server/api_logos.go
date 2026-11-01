@@ -17,7 +17,7 @@ import (
 // logos is the service, made when first wanted.
 func (s *Server) logos() *library.Logos {
 	s.logoOnce.Do(func() {
-		s.logoSvc = &library.Logos{Store: s.Store, Dir: filepath.Join(s.Cfg.ImagesDir, "logos"), Source: &library.WikimediaLogos{}, Log: s.Log}
+		s.logoSvc = &library.Logos{Store: s.Store, Dir: filepath.Join(s.Cfg.ImagesDir, "logos"), Source: &library.WikimediaLogos{}, Log: s.Log, Tasks: s.Tasks}
 	})
 	return s.logoSvc
 }

@@ -51,7 +51,6 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
   padding: 10px 10px 8px; border-radius: var(--r-xl); background: var(--bg-2); border: 1px solid var(--border-strong); box-shadow: var(--e-3); animation: toast-bar-in var(--dur-3) var(--ease-out); }
 @keyframes toast-bar-in { from { opacity: 0; } }
 /* While the account menu is open, it comes first. */
-.app:has(.profile-menu .menu) ~ .audio-bar { z-index: 9; }
 .ab-art { position: relative; width: 52px; height: 52px; border-radius: var(--r-md); overflow: hidden; border: 0; padding: 0; background: var(--bg-3); display: grid; place-items: center; color: var(--fg-3); cursor: pointer; transition: transform var(--dur-2) var(--ease-out); box-shadow: var(--e-1); }
 .ab-art svg { width: 22px; height: 22px; }
 .ab-art:hover { transform: scale(1.04); }

@@ -83,7 +83,7 @@ func (s *Store) EnrichRigGame(ctx context.Context, itemID int64) error {
 	if it.Overview != "" || it.Provider != "" {
 		return nil
 	}
-	return s.enqueueGame(ctx, it, []string{"title"})
+	return s.enqueueGame(ctx, it, []string{"title"}, nil)
 }
 
 // RemoveRigGame takes a game out of a rig's library.

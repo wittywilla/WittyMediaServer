@@ -674,6 +674,7 @@ func (s *Server) handleMetaUndo(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		writeErr(w, 500, err.Error())
 	default:
+		s.Scanner.KickListings()
 		writeJSON(w, 200, map[string]any{"undone": n})
 	}
 }

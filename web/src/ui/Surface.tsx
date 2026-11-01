@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import LogsLink from '../components/LogsLink'
 import { IconFilm, IconInfo, IconLeft, IconPlay, IconRight } from '../icons'
 
 // What the content sits on: Card, the poster card, Shelf (a titled row of them),
@@ -122,6 +123,7 @@ export function LoadError({ what, onRetry }: { what: string; onRetry?: () => voi
       <h3>{what} couldn’t be loaded</h3>
       <p>The server didn’t answer properly. This is usually brief, and doesn’t mean anything has gone.</p>
       {onRetry && <button type="button" className="btn" onClick={onRetry}>Try again</button>}
+      <LogsLink />
     </div>
   )
 }

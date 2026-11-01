@@ -154,10 +154,13 @@ func sniff(p string) (string, error) {
 		return "", err
 	}
 	defer f.Close()
-	var b [8]byte
+	var b [512]byte
 	n, _ := io.ReadFull(f, b[:])
 	head := b[:n]
 	byName := nameFormat(p)
+	if byName == "" && n >= 262 && string(b[257:262]) == "ustar" {
+		byName = formatTar // named something else, a comic's .cbt for one
+	}
 	switch {
 	case bytes.HasPrefix(head, []byte{'7', 'z', 0xbc, 0xaf, 0x27, 0x1c}):
 		return format7z, nil

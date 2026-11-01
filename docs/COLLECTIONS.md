@@ -4,7 +4,7 @@ Three things that work across the server. All of them are worked out on your ser
 
 ## Collections and smart playlists
 
-**Collections** in the side menu gathers things from any library.
+**Collections** in the side menu gathers things from any library. Film series, which a library shows by itself on its own page, are described in [Metadata](METADATA.md#categories-studios-and-browsing).
 
 - **A list you fill:** use **Save** on a film, show or creator video. **Watch later** is one every profile
   has, made the first time it's used.

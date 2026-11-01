@@ -236,6 +236,41 @@ func TestRemovingABumperStaysInItsFolder(t *testing.T) {
 	}
 }
 
+// The data folder moved, as after restoring a backup: uploads still play.
+func TestBumpersFollowAMovedDataFolder(t *testing.T) {
+	_, _, _, s := tvServer(t)
+	ctx := context.Background()
+	lib, err := s.bumperLib(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const old = "/old/place/bumpers"
+	if _, err := s.DB.ExecContext(ctx, `UPDATE library_paths SET path = ? WHERE library_id = ?`, old, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	res, err := s.DB.ExecContext(ctx, `INSERT INTO items(library_id, kind, path, title, sort_title, runtime_sec, added_at, updated_at) VALUES(?, 'video', ?, 'b', 'b', 5, 1, 1)`, lib.ID, old+"/sting.mp4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, _ := res.LastInsertId()
+	s.followBumperFolder(ctx)
+	it, err := s.Store.Item(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := s.bumperDir() + "/sting.mp4"; it.Path != want {
+		t.Errorf("path %q, want %q", it.Path, want)
+	}
+	again, err := s.Store.Library(ctx, lib.ID)
+	if err != nil || len(again.Paths) != 1 || again.Paths[0] != s.bumperDir() {
+		t.Errorf("library paths %v %v", again, err)
+	}
+	// Nothing to do the second time.
+	if n, err := s.Channels.MoveBumperFolder(ctx, lib.ID, s.bumperDir()); n != 0 || err != nil {
+		t.Errorf("moved %d again: %v", n, err)
+	}
+}
+
 func TestGuideFiltersByCategoryAndKeepsOldSkins(t *testing.T) {
 	h, admin, _, s := tvServer(t)
 	_, video, _ := tvWorld(t, s)

@@ -17,17 +17,17 @@
 //   to their first axes and buttons. The controller is only polled while one
 //   is connected, so this costs nothing otherwise.
 
-import { isBackKey, ranked, type Dir } from './ui/spatial'
+import { isBackKey, nearest, ranked, type Dir } from './ui/spatial'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), summary, input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 // Inside the player only these areas take part in spatial navigation.
-const PLAYER_CONTROLS = '.bottom, .top, .view-settings, .remote, .remote-bar, .mini-bar, .overlay-msg, .watch-next, .big-play, .skip-intro, .ctv-mini, .tv-remind'
+const PLAYER_CONTROLS = '.bottom, .top, .view-settings, .remote, .remote-bar, .mini-bar, .overlay-msg, .watch-next, .big-play, .skip-intro, .pick-intro, .ctv-mini, .tv-remind'
 // The player that fills the screen. A player inside a page (.inline) is just a
 // part of that page.
 const FULL_PLAYER = '.player:not(.mini):not(.inline)'
 // What OK reaches first when the picture has the focus: whatever is asking
 // for an answer, then the controls.
-const PLAYER_FIRST = ['.big-play button', '.overlay-msg button', '.skip-intro', '.watch-next button', '.bottom .big', '.bottom button:not([disabled])', '.top button:not([disabled])']
+const PLAYER_FIRST = ['.big-play button', '.overlay-msg button', '.pick-intro button', '.skip-intro', '.watch-next button', '.bottom .big', '.bottom button:not([disabled])', '.top button:not([disabled])']
 
 const DIRS: Record<string, Dir> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }
 
@@ -70,6 +70,20 @@ function visible(el: HTMLElement, r: DOMRect): boolean {
   return s.visibility !== 'hidden' && s.pointerEvents !== 'none' && Number(s.opacity) > 0.05
 }
 
+// Scrolled out of sight in a list that the focus isn't in. It still has a position, which can
+// be right over something else on the page, so it mustn't be chosen from outside: moving
+// along that list reaches it, and from outside, what can be seen in the list comes first.
+function hiddenInScroller(el: HTMLElement, r: DOMRect, cur: Element): boolean {
+  for (let p = el.parentElement; p && p !== document.body && p !== document.documentElement; p = p.parentElement) {
+    const s = getComputedStyle(p)
+    if (s.overflowX === 'visible' && s.overflowY === 'visible') continue
+    if (p.contains(cur)) return false
+    const b = p.getBoundingClientRect()
+    if (r.bottom <= b.top + 1 || r.top >= b.bottom - 1 || r.right <= b.left + 1 || r.left >= b.right - 1) return true
+  }
+  return false
+}
+
 // The area focus may move within: the innermost open dialog, the player's
 // controls, or the whole page.
 function scopeOf(el: Element | null): ParentNode {
@@ -91,15 +105,31 @@ const GROUPS = '[data-nav-group], .row, .topnav, .sidebar, .set-nav, .tabbar, .s
 const lastIn = new WeakMap<Element, HTMLElement>()
 const groupOf = (el: Element | null) => el?.closest(GROUPS) || null
 
+// Where the focus last was. A button can take itself away when pressed (a row that's removed,
+// a list that closes), and a remote has no other way back to where that was.
+let lastFocus: { box: DOMRect; scope: Node; page: string } | null = null
+
+function focusGoneFrom(scope: Node): DOMRect | null {
+  const l = lastFocus
+  // The same dialog or page: a dialog can be found by more than one of its layers.
+  if (!l || l.page !== location.pathname || !l.scope.isConnected || !(l.scope.contains(scope) || scope.contains(l.scope))) return null
+  return l.box
+}
+
 function move(dir: Dir): boolean {
   const cur = document.activeElement as HTMLElement | null
   const scope = scopeOf(cur)
-  const all = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !(el.closest(FULL_PLAYER) && !el.closest(PLAYER_CONTROLS)))
+  // data-nav-skip: part of something with its own arrows, such as a programme grid,
+  // which is one stop from outside however many cells are drawn.
+  const all = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !(el.closest(FULL_PLAYER) && !el.closest(PLAYER_CONTROLS)) && !el.hasAttribute('data-nav-skip'))
   if (!all.length) return false
   // Read every position first, in one go, then look closer only at the likeliest few:
   // a library can have thousands of cards, and this runs on every key press.
   const boxes = new Map(all.map((el) => [el, el.getBoundingClientRect()]))
   if (!cur || cur === document.body || !boxes.has(cur) || !visible(cur, boxes.get(cur)!)) {
+    const gone = focusGoneFrom(scope as Node)
+    const near = gone && nearest(gone, all.filter((el) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, document.body)), (el) => boxes.get(el)!)
+    if (near) { focus(near); return true }
     // Nothing focused yet: start at the first control of the main content.
     const first = all.find((el) => el.closest('.content, .player, [role=dialog]') && visible(el, boxes.get(el)!)) || all.find((el) => visible(el, boxes.get(el)!))
     if (!first) return false
@@ -107,12 +137,13 @@ function move(dir: Dir): boolean {
     return true
   }
   const others = all.filter((el) => el !== cur && !el.contains(cur) && !cur.contains(el))
-  let best = ranked(boxes.get(cur)!, others, (el) => boxes.get(el)!, dir).find((el) => visible(el, boxes.get(el)!))
+  const can = (el: HTMLElement) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, cur)
+  let best = ranked(boxes.get(cur)!, others, (el) => boxes.get(el)!, dir).find(can)
   if (best) {
     // Into another group: back to where it was left, as long as that is this way too.
     const group = groupOf(best)
     const memory = group && group !== groupOf(cur) ? lastIn.get(group) : undefined
-    if (memory?.isConnected && memory !== best && boxes.has(memory) && visible(memory, boxes.get(memory)!) && ranked(boxes.get(cur)!, [memory], (el) => boxes.get(el)!, dir).length) best = memory
+    if (memory?.isConnected && memory !== best && boxes.has(memory) && can(memory) && ranked(boxes.get(cur)!, [memory], (el) => boxes.get(el)!, dir).length) best = memory
   }
   if (!best) {
     // Leaving the player's controls upwards hands the arrows back to the player.
@@ -230,14 +261,16 @@ function press(key: string) {
   }
 }
 
-let polling = false
+// How often a connected controller is read. On a timer and not on animation frames, because
+// frames can stop for up to half a second while timers keep their time, and a press that
+// starts and ends in that gap would be lost. Asking for no frames also lets the browser draw
+// nothing while nothing moves.
+const POLL_MS = 12
+let pollTimer = 0
 const held = new Map<string, number>() // key -> next repeat time
 
-function poll() {
-  const pads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) as Gamepad[] : []
-  if (!pads.length) { polling = false; held.clear(); return }
-  if (inGame()) { held.clear(); requestAnimationFrame(poll); return }
-  const now = performance.now()
+// The keys the controllers are holding down at the moment.
+function keysDown(pads: Gamepad[]) {
   const down = new Set<string>()
   for (const p of pads) {
     const swap = isNintendo(p.id)
@@ -265,20 +298,34 @@ function poll() {
       else if (Math.abs(ay) > 0.6) down.add(ay > 0 ? 'ArrowDown' : 'ArrowUp')
     }
   }
+  return down
+}
+
+function poll() {
+  const pads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) as Gamepad[] : []
+  if (!pads.length) { clearInterval(pollTimer); pollTimer = 0; held.clear(); return }
+  if (document.hidden) { held.clear(); return } // nobody is looking, and browsers stop updating pads
+  const down = keysDown(pads)
+  if (inGame()) {
+    // Whatever is down belongs to the game, including the buttons that open its menu: they
+    // aren't presses in that menu until they've been let go and pressed again.
+    held.clear()
+    for (const k of down) held.set(k, Infinity)
+    return
+  }
+  const now = performance.now()
   for (const k of down) {
     const next = held.get(k)
     if (next === undefined) { press(k); held.set(k, now + 420) } // first press, then repeat after a pause
     else if (now >= next && k.startsWith('Arrow')) { press(k); held.set(k, now + 110) }
   }
   for (const k of [...held.keys()]) if (!down.has(k)) held.delete(k)
-  requestAnimationFrame(poll)
 }
 
 function startPolling() {
-  if (polling) return
-  polling = true
+  if (pollTimer) return
   document.documentElement.classList.add('using-controller')
-  requestAnimationFrame(poll)
+  pollTimer = window.setInterval(poll, POLL_MS)
 }
 
 let installed = false
@@ -291,12 +338,13 @@ export function installTVInput() {
     const el = e.target as HTMLElement
     const group = groupOf(el)
     if (group) lastIn.set(group, el)
+    lastFocus = { box: el.getBoundingClientRect(), scope: scopeOf(el) as Node, page: location.pathname }
   }, { passive: true })
   // A list is open from the moment it is pressed until a choice or leaving it.
   window.addEventListener('mousedown', (e) => { openSelect = (e.target as Element)?.tagName === 'SELECT' ? (e.target as Element) : null }, { passive: true })
   for (const ev of ['change', 'focusout'] as const) window.addEventListener(ev, () => { openSelect = null })
   window.addEventListener('gamepadconnected', startPolling)
-  // Mouse use hides the controller focus styling again.
-  window.addEventListener('mousedown', () => document.documentElement.classList.remove('using-controller'), { passive: true })
+  // Mouse use hides the controller focus styling again, unless this screen is set up for across the room.
+  window.addEventListener('mousedown', () => { if (!document.documentElement.classList.contains('ten-foot')) document.documentElement.classList.remove('using-controller') }, { passive: true })
   if (navigator.getGamepads && Array.from(navigator.getGamepads()).some(Boolean)) startPolling()
 }

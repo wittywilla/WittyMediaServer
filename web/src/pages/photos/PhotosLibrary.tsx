@@ -9,6 +9,9 @@ import { toast, useApp } from '../../state'
 import PhotoMap from './PhotoMap'
 import PhotoViewer from './PhotoViewer'
 import '../../gallery.css'
+import { ACCEPT_GALLERY } from '../../mediaTypes.generated'
+import { ask, Dialog } from '../../ui/Overlay'
+import { Button } from '../../ui/Button'
 
 // WittyPhotos: the gallery. The timeline loads a month at a time as it comes
 // into view, so a library of any size costs what is on screen. All the lists
@@ -242,16 +245,15 @@ function AlbumDialog({ lib, album, onClose, onSaved }: { lib: Library; album?: P
     } catch (x: any) { setErr(x.message) }
   }
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <form className="modal" role="dialog" aria-modal="true" aria-labelledby="al-h" onClick={(e) => e.stopPropagation()} onSubmit={save}>
-        <h2 id="al-h">{album ? 'Album details' : 'New album'}</h2>
+    <Dialog title={album ? 'Album details' : 'New album'} onClose={onClose}
+      actions={<><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" form="album-form">{album ? 'Save' : 'Make album'}</Button></>}>
+      <form id="album-form" className="ui-dialog-form" onSubmit={save}>
         <label className="oobe-field">Name<input className="input" autoFocus required maxLength={200} value={name} onChange={(e) => setName(e.target.value)} /></label>
         <label className="oobe-field">Description<textarea className="input" maxLength={4000} rows={3} value={desc} onChange={(e) => setDesc(e.target.value)} /></label>
         <label className="share-check"><input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} /> Share with other profiles who can open this library</label>
         {err && <div className="error" role="alert">{err}</div>}
-        <div className="actions"><button type="button" className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary">{album ? 'Save' : 'Make album'}</button></div>
       </form>
-    </div>
+    </Dialog>
   )
 }
 
@@ -264,7 +266,7 @@ function AlbumHeader({ id, lib, onBack, onChanged }: { id: number; lib: Library;
   useEffect(load, [load])
   const own = a && (a.ownerId === user?.id || user?.isAdmin)
   const remove = async () => {
-    if (!a || !confirm(`Delete the album “${a.name}”? The pictures stay in the library.`)) return
+    if (!a || !await ask({ title: `Delete the album “${a.name}”?`, body: 'The pictures stay in the library.', confirm: 'Delete album', danger: true })) return
     await api.del(`/photos/albums/${a.id}`)
     onBack(); onChanged()
   }
@@ -292,9 +294,7 @@ function AddToAlbum({ lib, ids, onClose, onDone }: { lib: Library; ids: number[]
     onDone()
   }
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="ata-h" onClick={(e) => e.stopPropagation()}>
-        <h2 id="ata-h">Add to album</h2>
+    <Dialog title="Add to album" onClose={onClose}>
         {!albums ? <Spinner /> : (
           <div className="gal-pick">
             <button className="btn" onClick={() => setMaking(true)}><IconPlus /> New album</button>
@@ -303,8 +303,7 @@ function AddToAlbum({ lib, ids, onClose, onDone }: { lib: Library; ids: number[]
         )}
         <div className="actions"><button className="btn ghost" onClick={onClose}>Cancel</button></div>
         {making && <AlbumDialog lib={lib} onClose={() => setMaking(false)} onSaved={(a) => { setMaking(false); if (a) add(a) }} />}
-      </div>
-    </div>
+    </Dialog>
   )
 }
 
@@ -373,18 +372,14 @@ function UploadButton({ lib, onDone }: { lib: Library; onDone: () => void }) {
   if (!lib.paths.length) return null
   return (
     <>
-      <input ref={input} type="file" multiple hidden accept="image/*,video/*,.heic,.heif,.avif,.dng,.cr2,.cr3,.nef,.arw,.orf,.rw2,.raf"
+      <input ref={input} type="file" multiple hidden accept={"image/*,video/*," + ACCEPT_GALLERY}
         onChange={(e) => { const f = [...(e.target.files || [])]; e.target.value = ''; if (f.length) run(f) }} />
       <button className="btn sm" disabled={!!state} onClick={() => input.current?.click()}><IconPlus /> {state ? `Uploading ${state.n}/${state.of} (${Math.round(state.pct * 100)}%)` : 'Upload'}</button>
       {state && <span className="sr-only" role="status">Uploading {state.name}</span>}
       {errors.length > 0 && (
-        <div className="modal-backdrop" onClick={() => setErrors([])}>
-          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="ue-h" onClick={(e) => e.stopPropagation()}>
-            <h2 id="ue-h">{errors.length} {errors.length === 1 ? 'file' : 'files'} not added</h2>
+        <Dialog title={<>{errors.length} {errors.length === 1 ? 'file' : 'files'} not added</>} onClose={() => setErrors([])} actions={<><button className="btn primary" onClick={() => setErrors([])}>Close</button></>}>
             <ul className="gal-errs">{errors.map((x, i) => <li key={i}><b>{x.name}</b>: {x.error}</li>)}</ul>
-            <div className="actions"><button className="btn primary" onClick={() => setErrors([])}>Close</button></div>
-          </div>
-        </div>
+        </Dialog>
       )}
     </>
   )

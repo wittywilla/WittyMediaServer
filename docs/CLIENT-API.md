@@ -19,12 +19,14 @@ isn't what the server does, or when a schema no longer matches the Go type behin
 - [What each TV plays](#what-each-tv-plays)
 - [Subtitles](#subtitles)
 - [Rules every client shares](#rules-every-client-shares)
+- [Live channels](#live-channels)
 - [Discs and their menus](#discs-and-their-menus)
 - [Themes and design data](#themes-and-design-data)
 - [Choices that follow the account](#choices-that-follow-the-account)
 - [What a TV app must build itself](#what-a-tv-app-must-build-itself)
 - [Game details](#game-details)
 - [Legal notices](#legal-notices)
+- [Background tasks and server stats](#background-tasks-and-server-stats)
 - [Adding to the API](#adding-to-the-api)
 - [Every route](#every-route)
 
@@ -50,6 +52,19 @@ in `/capabilities` counts additions, and `features` names them: look for a featu
 comparing server version numbers. `/api/...` without a version is the same thing, for the web
 interface that ships with each server. Every API answer carries `X-WMS-API-Version`. A version this
 server doesn't have answers 404 with `apiVersions`.
+
+**Which app works with which server.** Every client checks this at the address step, in this order, and
+never by comparing server version numbers:
+
+| Check | If it fails | Says |
+|---|---|---|
+| `apiVersions` has 1 | The app can't talk to it at all | "This server needs a newer version of the app" |
+| `apiRevision` is at least what this app needs (each app holds this as a constant) | The server is older than the app | "Update this server" |
+| This app's version is at least `minClientVersions[kind]`, for `android`, `apple` or `desktop` | The server has left this app behind | "This server needs a newer version of the app" |
+| Something optional: its name is in `features` | Only that part is hidden | Nothing: the app simply doesn't offer it |
+
+A missing `minClientVersions` or a kind not listed means fine. Within v1 the server should have no reason
+to raise these numbers, so they are a way out and not a habit.
 
 **Addresses in answers** (`url`, `overlayUrl`, `openUrl`...) start with `/api/`: put the server's
 address in front and don't change them otherwise. They are not part of what a version promises to
@@ -239,8 +254,9 @@ TV                              server                         phone or computer
 
 - `POST /pair/start {device, platform}`: `device` is a name people will recognise ("Living room Apple
   TV"), `platform` is `tvOS` or `Android TV`. It answers `code` to show, `deviceSecret` to keep (never
-  show it), `expiresInSec` (600), `intervalSec` (how often to poll, 3), and `approveUrl` (a path: put
-  the server's address in front for a QR code; the page still asks before doing anything).
+  show it), `expiresInSec` (600), `intervalSec` (how often to poll, 3), and `approveUrl` (a path with
+  the code in it: put the server's address in front for a QR code; the page still asks before doing
+  anything). `approvePath` is the same page without the code, to show as text to type.
 - `POST /pair/poll {deviceSecret}`, every `intervalSec`:
 
   | Status | `status` | Meaning |
@@ -354,9 +370,14 @@ Only `profile` is needed. Leave out `audio` and `subtitle` and the server picks 
 | `audio-transcode` | `adts` | Sound converted to AAC while streaming. | Little |
 
 The server always tries them in this order. `reasons` are stable names, worth showing in a
-"playback info" screen: `container`, `video-codec`, `video-tag`, `video-height`, `video-bitrate`,
+"playback info" screen, and `explain` puts the same thing in plain words to show as they are. The names: `container`, `video-codec`, `video-tag`, `video-height`, `video-bitrate`,
 `video-depth`, `video-range`, `interlaced`, `audio-codec`, `audio-channels`, `audio-track`, `subtitle`,
-`burn-subtitle`, `forced`, `direct-play-off`, `remux-unavailable`, `hls-video-codec`, `no-video`.
+`burn-subtitle`, `forced`, `direct-play-off`, `remux-unavailable`, `hls-video-codec`, `no-video`, `split-file`, `video-track`, `flatten-3d`.
+
+**Files, not just tracks.** Subtitle files beside a video come after the file's own tracks in `subtitles`, and work the
+same. A film split across files (`CD1`, `CD2`) is one item, with `split-file` among its reasons. `videos` lists the
+streams of a file with several (ask with `video`), and `stereo` says a 3D picture is stored in the frame (ask with
+`flatten3d` to see one eye).
 
 **Time.** `seek` says how seeking works:
 
@@ -395,10 +416,10 @@ meet real hardware.
 | Direct video | H.264, HEVC (`hvc1` only) | H.264 | H.264, HEVC, VP9 | H.264, VP9, AV1 |
 | Direct sound | AAC, AC-3, E-AC-3, ALAC, MP3 | AAC, AC-3, E-AC-3, ALAC, MP3 | AAC, MP3, FLAC, Opus, Vorbis | AAC, MP3, Opus, Vorbis |
 | Most lines | 2160 | 1080 | 2160 | any |
-| HDR | HDR10, HLG, Dolby Vision 5 | none | none (add with capabilities) | not checked |
-| HLS, copied video | H.264 (TS), HEVC (fMP4) | H.264 (TS) | H.264 (TS), HEVC (fMP4) | never remuxed |
-| HLS, copied sound | AAC, AC-3, E-AC-3 | AAC, AC-3, E-AC-3 | AAC, MP3 | |
-| Subtitles drawn by the player | `mov_text` in the file; WebVTT renditions | the same | SRT, ASS, WebVTT, `mov_text`, PGS, VobSub, DVB in the file; WebVTT sidecar or rendition | none: burned in |
+| HDR | HDR10, HLG, Dolby Vision 5 | none | none (add with capabilities) | none (the web app reports its screen) |
+| HLS, copied video | H.264 (TS), HEVC (fMP4) | H.264 (TS) | H.264 (TS), HEVC (fMP4) | H.264 (TS), AV1 and VP9 (fMP4), HEVC when reported |
+| HLS, copied sound | AAC, AC-3, E-AC-3 | AAC, AC-3, E-AC-3 | AAC, MP3 | AAC, MP3 |
+| Subtitles drawn by the player | `mov_text` in the file; WebVTT renditions | the same | SRT, ASS, WebVTT, `mov_text`, PGS, VobSub, DVB in the file; WebVTT sidecar or rendition | WebVTT sidecar; pictures are burned in |
 
 Why they differ:
 
@@ -468,6 +489,22 @@ numbers are also in `/capabilities`, under `playback.rules`.
 A few are for the app to carry out, with these values, so it feels the same everywhere: show **Watch
 next** 30 seconds before the end; count down **8 seconds** into the next episode; report progress every
 **10 seconds** and on stopping, but not in the first **5 seconds**.
+
+## Live channels
+
+Channels and tuners aren't items, so they don't go through `/playback`. `GET /guide` lists them and their
+programmes, with a `key` for each channel.
+
+`GET /tv/{key}/tune?streamToken=1` starts the shared stream and answers what is on (`now`, `next`,
+`positionSec`), the `url` of its playlist, and for a player that can't set headers, `streamUrl`: the same
+address with a stream token for that channel alone. AVPlayer always needs that one. Add `?viewer=<a random
+name>` to the address so the server can tell viewers apart, and send `POST /tv/{key}/leave?viewer=<name>`
+when leaving. A 503 means the channel is still starting: wait and ask again. Without `streamToken=1` no ticket
+is made, which is what the web player does.
+
+Everything about a channel's ticket works as in [Stream tokens](#stream-tokens), and every request checks again
+that the account may watch that channel. An encrypted broadcast is refused with `security` saying why; this
+server never decrypts one.
 
 ## Discs and their menus
 
@@ -774,6 +811,19 @@ same words everywhere. `GET /legal/notices` needs no sign-in and returns them by
   them `ack` once, then call `POST /legal/acknowledge`. `POST /setup` takes `acknowledgedLegal: true`
   when a client's own setup screen has shown it. Neither sends anything off the server.
 
+## Background tasks and server stats
+
+What the server is doing in the background: library scans, metadata, module installs, transcodes and more, each with its
+progress, speed, time left and errors. `GET /system/tasks` gives the state of things and `GET /system/tasks/stream` keeps it
+up to date, with no polling. [TASKS.md](TASKS.md#the-api) has the fields, the stream's format and who sees what. The server
+decides what each account may see: follow `access` in the answer. If `access.visible` is false, show nothing. If
+`access.readOnly` is true, show no controls.
+
+The server's statistics are in [STATS.md](STATS.md): the processor, memory, disks, network, streams, libraries and more, with
+history for charts. `GET /system/metrics` says what this server can show and what this account may see, and a section a system
+can't provide is left out rather than sent as zero. Keep `GET /system/metrics/stream` open only while it's on screen, as that's
+what keeps the sampling going.
+
 ## Adding to the API
 
 For anyone adding a feature (a new library, channels, games):
@@ -820,7 +870,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /legal/notices` | none | The short legal notices, by kind, and what this server's owner wrote. See "Legal notices". |
 | `GET /legal` | none | The full Legal page, with the privacy list and what this server's owner wrote. |
 | `POST /legal/acknowledge` | admin | Record that an administrator has seen the first-run notice, so `legalAck` in `/status` turns true. |
-| `GET /prefs` | user | Server-wide playback defaults every viewer needs. |
+| `GET /prefs` | user | Server-wide defaults every viewer needs: playback, and `navDefault`, the owner's arrangement of the main menu as JSON. |
 | `GET /branding/logo` | none | The custom logo, if the server has one (404 otherwise). The `brandLogo` value in `/status` changes when it does. |
 | `PUT /branding/logo` | admin | Replace the logo: the PNG or JPEG itself as the body, 2 MB at most. |
 | `DELETE /branding/logo` | admin | Go back to the app icon. |
@@ -844,8 +894,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /logs/crashes/{id}` | admin | One crash report's text. |
 | `DELETE /logs/crashes/{id}` | admin | Delete a crash report. |
 | `POST /logs/crashes/{id}/seen` | admin | Stop pointing this report out. |
-| `GET /logs/bundle` | admin | The support bundle, a zip made on request: `days`, `redact=1` hides titles and paths. Nothing is uploaded anywhere. |
-| `GET /logs/bundle/preview` | admin | What the support bundle would hold. |
+| `GET /logs/bundle` | admin | The logs as a zip, made on request: `days`, and `sanitize`, on unless it's `0`, which replaces names, addresses, titles and paths with placeholders (`redact` is its earlier name). Nothing is uploaded anywhere. |
+| `GET /logs/bundle/preview` | admin | What that zip would hold, with the same `days` and `sanitize`: `{parts, total, sample, sanitize, days, scanned, replaced, changed}`. `replaced` counts the places changed by kind, in the newest lines; `changed` is a few lines before and after. |
 | `GET /diagnose/targets` | admin | WittyDiagnoser: the libraries, data folders and known discs that can be checked. |
 | `GET /diagnose/browse` | admin | Folders and disc images inside the libraries and data folders only. |
 | `POST /diagnose/disc` | admin | Start checking a disc: `{path, crawl, damage}`. 202 with the job; 429 when too many wait. Read-only. |
@@ -859,6 +909,11 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /reset/restore` | admin | Bring a kept copy back: `{password, code, copy}`. 202, then the server restarts. What's there now becomes another copy. |
 | `DELETE /reset/request` | admin | Take back a reset waiting for the next start. |
 | `POST /reset/copies/delete` | admin | Delete a kept copy for good: `{password, code, copy}`. |
+| `GET /repair` | admin | [Repair](REPAIR.md): what's running, the last report with its issues, what fixes did, and the safety copies kept. |
+| `POST /repair/check` | admin | Look, and change nothing: `{only}`, a list of checks or areas, or nothing for all. 202, then ask `GET /repair`. 409 if one is running. |
+| `POST /repair/fix` | admin | Fix from the last report: `{keys, allSafe, option, password, code}`. A fix that isn't `safe`, or any `option`, needs the password and any second step again. 202, then ask `GET /repair`. |
+| `POST /repair/remap` | admin | A library's folder moved: `{from, to}` says what would change, and adds `{apply: true, password, code}` to do it. |
+| `POST /repair/restart` | admin | Restart, for a fix that waits for the next start. 409 if none is waiting. |
 | `GET /update` | admin | What is installed and what is available (404 in builds that can't update themselves). |
 | `POST /update/check` | admin | Look for a new version now. |
 | `POST /update/apply` | admin | Download, verify and install the newest release, then restart. |
@@ -908,6 +963,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `DELETE /users/{id}` | user | Remove an account this one manages. |
 | `PUT /users/{id}/access` | user | Set an account's limits, or clear a Kids or Guest password. |
 | `PUT /users/{id}/password` | user | Change a password. Your own needs `current`; other sessions of that account end. |
+| `PUT /users/{id}/profile` | user | Change `displayName`, `username` or `showUsername`. Which name the corner shows is anyone's own choice; the names are for an adult's own account and whoever manages the account. |
 
 ### Browsing
 
@@ -1002,6 +1058,10 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /match/rules` | Admin | A library's naming rules. |
 | `PUT /match/rules` | Admin | Replace a library's naming rules. |
 | `POST /match/rules/try` | Admin | What some rules would do to a library's files. Changes nothing. |
+| `GET /metadata-folder` | admin | The [editable metadata folder](FIXING-METADATA.md): `{path, files, pictures, layout, job}`. `job` is the export's progress and result. No route here takes a path. |
+| `POST /metadata-folder/export` | admin | `{library}` (0 or left out for all): write the files, in the background. 202 with the job; 409 if the folder is busy. Never deletes, and never writes over edits not applied. |
+| `GET /metadata-folder/preview` | admin | What applying would change: `{files, unchanged, total, listed, changes: [{file, target, id, name, fields: [{field, label, old, new, line}]}], problems: [{file, line, field, msg, severity}]}`. Writes nothing. |
+| `POST /metadata-folder/apply` | admin | Makes those changes in one batch: `{batch, applied, fields, skipped, changes, problems}`. A bad file is listed and left out. `POST /meta/undo` with the batch takes it back. |
 
 ### Playback
 
@@ -1009,6 +1069,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 |---|---|---|
 | `POST /items/{id}/playback` | user | The way to play anything: say what this client can play, get a decision, ready-to-use addresses, tracks, where to start and what comes next. |
 | `GET /playback/profiles` | user | The built-in client profiles. |
+| `GET /media-types` | user | Every file type, codec and container the server knows: extensions, how each plays, which libraries take it, what it needs, and whether this machine has that (`available`). Read this rather than keep a list. |
 | `POST /items/{id}/stream-token` | user | A stream token for this item's media (see "Stream tokens"). Needs a real sign-in, not another stream token. |
 | `GET /items/{id}/play` | user | The web player's older way to ask: decides for a browser only. Apps use `/items/{id}/playback`. |
 | `GET /items/{id}/file` | user, `st` | The file itself, with byte ranges (videos and books). |
@@ -1082,7 +1143,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /items/{id}/book` | user | What a reader needs: `format` (cbz, epub, pdf), `reading` direction, then `pages` for comics or `spine`, `toc` and `words` for EPUB. |
+| `GET /items/{id}/book` | user | What a reader needs: `format` (the book's own: mobi, cbr, docx…), `reader` (which reader opens it: cbz, epub or pdf, also on the item as `reader`), `reading` direction, then `pages` for page by page or `spine`, `toc` and `words` for the rest. Kindle, FictionBook, Word, Rich Text, Markdown, web pages and plain text read as EPUB. A book with copy protection answers 422 and says so. |
 | `GET /items/{id}/page/{n}` | user | One comic page, n from 0. |
 | `GET /items/{id}/epub/{file}` | user | A file inside an EPUB. Treat its HTML as untrusted: no scripts. |
 | `GET /items/{id}/annotations` | user | The account's bookmarks and highlights in this book. |
@@ -1101,17 +1162,18 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /themes/{id}/download` | none | The theme as a ZIP. |
 | `GET /themes/{id}/{file}` | none | A file of a theme: theme.css and the images and fonts it uses. |
 | `POST /themes` | admin | Install a theme: the ZIP as the body. |
+| `POST /themes/custom` | admin | Add a theme from the theme maker: `name`, `scheme`, `colors` and `radius`. Colours must be exactly `#rrggbb`. |
 | `DELETE /themes/{id}` | admin | Remove a theme. |
 
 ### Channels and live TV
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /guide` | user | Guide. |
-| `GET /tv/{key}/tune` | user | Tune. |
-| `GET /tv/{key}/live/playlist.m3u8` | user | Live playlist. |
-| `GET /tv/{key}/live/seg/{name}` | user | Live segment. |
-| `POST /tv/{key}/leave` | user | Live leave. |
+| `GET /guide` | user | Every channel this account may watch, with its programmes. |
+| `GET /tv/{key}/tune` | user | What is on a channel, and starts its stream. `streamToken=1` adds `streamUrl` for players that can't set headers. See "Live channels". |
+| `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
+| `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |
+| `POST /tv/{key}/leave` | user | This viewer has gone: `viewer`. |
 | `GET /tv/{key}/logo` | user | A tuner channel's logo, fetched and kept by the server, so the site a playlist names never sees the viewer. The `logo` in `/guide` and `/tune` is this address. |
 | `GET /tv/settings` | admin | TV settings. |
 | `PUT /tv/settings` | admin | Put TV settings. |
@@ -1172,12 +1234,22 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 
 | Route | Sign-in | What it does |
 |---|---|---|
+| `GET /games/home` | user | The games home screen in one answer, for `?library=`. |
+| `GET /games/{id}/check` | user | What a game needs in order to play, and whether this server has it. |
 | `GET /games/consoles` | user | Game consoles. |
 | `GET /games/modes` | user | Game modes. |
 | `GET /consoles/{console}/controls` | user | Game controls. |
 | `PUT /consoles/{console}/controls` | user | Put game control. |
 | `POST /games/{id}/play` | user | Game play. |
 | `POST /games/{id}/prepare` | user | Game prepare. |
+| `GET /games/{id}/versions` | user | A game's other versions and its discs. See [GAMING-API.md](GAMING-API.md). |
+| `PUT /games/{id}/version` | admin | Which file in its archive to play. |
+| `POST /games/{id}/split` | admin | A version becomes a game of its own. |
+| `PUT /games/{id}/console` | admin | This file is for another console. |
+| `POST /games/{id}/not-a-game` | admin | Takes it off the list; its file stays. |
+| `GET /libraries/{id}/games/review` | admin | Files that didn't become games, or can't play. Query: `kind`, `limit`, `offset`. |
+| `POST /libraries/{id}/games/review/apply` | admin | Says what those files are. |
+| `GET /libraries/{id}/games/import` | admin | How an import is going. |
 | `GET /games/{id}/saves` | user | Game saves. |
 | `GET /games/{id}/saves/{slot}/thumb` | user | Game save thumb. |
 | `DELETE /games/{id}/saves/{slot}` | user | Game save delete. |
@@ -1405,6 +1477,58 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `POST /me/2fa/confirm` | user | Two factor confirm. |
 | `POST /me/2fa/disable` | user | Two factor disable. |
 
+### Background tasks
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /system/tasks` | user | What's going on now and what finished lately, as this account may see it |
+| `GET /system/tasks/stream` | user | Server-sent events: a snapshot, then what changes |
+| `GET /system/tasks/history` | user | Finished tasks, newest first |
+| `DELETE /system/tasks/history` | admin | Forgets the history |
+| `DELETE /system/tasks/history/{id}` | admin | Forgets one finished task |
+| `POST /system/tasks/{id}/pause` | admin | Asks a task to pause at its next step |
+| `POST /system/tasks/{id}/resume` | admin | Lets a paused task carry on |
+| `POST /system/tasks/{id}/cancel` | admin | Asks a task to stop |
+| `POST /system/tasks/{id}/retry` | admin | Starts a failed or cancelled task again |
+
+### Library transcoding
+
+See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /libtranscode/options` | admin | Presets, and what this machine's FFmpeg can do |
+| `GET /libtranscode/settings` | admin | How conversions run on this server |
+| `PUT /libtranscode/settings` | admin | Changes that. Turning it on needs the warning accepted |
+| `GET /libtranscode/libraries` | admin | Libraries that hold video files, each with its recipe and anything stopping it |
+| `PUT /libtranscode/libraries/{id}` | admin | Saves a library's recipe, what happens to old files, and whether it's read-only |
+| `GET /libtranscode/libraries/{id}/items` | admin | Finds files to try a recipe on |
+| `POST /libtranscode/libraries/{id}/preview` | admin | What a recipe would do to one file, track by track. Changes nothing |
+| `POST /libtranscode/libraries/{id}/sample` | admin | Really converts 20 seconds into the server's cache, and measures it |
+| `POST /libtranscode/libraries/{id}/runs` | admin | Starts a run. `dry: true` looks at every file and changes nothing |
+| `GET /libtranscode/runs` | admin | Recent runs, newest first |
+| `GET /libtranscode/runs/{id}` | admin | One run |
+| `GET /libtranscode/runs/{id}/files` | admin | A run's files and what became of each |
+| `GET /libtranscode/leftovers` | admin | Kept originals and converted copies waiting for a decision |
+| `POST /libtranscode/files/{id}/undo` | admin | Puts the original back |
+| `POST /libtranscode/files/{id}/use-copy` | admin | Puts a converted copy into use, keeping the original |
+| `DELETE /libtranscode/files/{id}/leftover` | admin | Deletes a kept original or an unused copy, for good |
+| `GET /libtranscode/tdarr` | admin | The connection to a separately installed Tdarr. The API key is never sent back |
+| `PUT /libtranscode/tdarr` | admin | Changes that |
+| `POST /libtranscode/tdarr/test` | admin | Asks a Tdarr server about itself, without saving anything |
+| `POST /libtranscode/tdarr/send` | admin | Hands a library's files to Tdarr |
+
+### Server statistics
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /system/metrics` | user | What statistics this server can show, and what this account may see |
+| `GET /system/metrics/now` | user | One reading |
+| `GET /system/metrics/stream` | user | Server-sent events: a reading every two seconds, while it's open |
+| `GET /system/metrics/history` | user | Charts' worth of numbers, for administrators |
+| `GET /system/metrics/report` | user | Libraries, what's in them, and what's gone on |
+| `GET /system/metrics/drives` | admin | Each disk's health, where the system will say |
+
 ### More server routes
 
 | Route | Sign-in | What it does |
@@ -1451,3 +1575,23 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 
 ---
 <sub>WittyMediaServer 0.5.0-alpha documentation</sub>
+
+## Backup
+
+The page is [Backup and restore](BACKUP.md). An archive is treated as hostile: a refused one answers with the reason in the job's `error`, and `refused` is true. While a server has no accounts, the routes marked for first-time setup follow the rule for making the first account: on the home network, or with the setup code in `X-Setup-Code`.
+
+| Route | |
+|---|---|
+| `GET /backup` | What's kept, the schedule, what's running, and how the last restore went. An administrator's, or anyone allowed to set up a server with no accounts yet. |
+| `GET /backup/estimate` | About how large each part of a backup is, before compression. |
+| `POST /backup/create` | Start a backup: `{parts, password}`. With no password, secrets are left out. |
+| `POST /backup/cancel` | Stop what's running. An administrator's, or first-time setup. |
+| `PUT /backup/schedule` | Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`. |
+| `DELETE /backup/files/{name}` | Delete a backup kept on this server. |
+| `POST /backup/files/{name}/link` | A short-lived address to download a backup. |
+| `GET /backup/download` | Download a backup, with the ticket from `/backup/files/{name}/link` as `?st=`. The ticket is the permission. |
+| `POST /backup/restore/upload` | An archive as the body. It's kept under a new name, and nothing is done with it yet. An administrator's, or first-time setup. |
+| `POST /backup/restore/inspect` | Check an archive from end to end: `{file, password}`. Nothing changes. An administrator's, or first-time setup. |
+| `POST /backup/restore/start` | Bring a checked archive back: `{parts, confirm: "RESTORE", password, code}`. An administrator's password is asked for again; first-time setup has none to ask for. |
+| `DELETE /backup/restore/request` | Take back a restore that's waiting for the next start. |
+| `POST /backup/undo` | Put back what the last restore replaced: `{copy, password, code}`. The server restarts. |

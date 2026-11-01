@@ -133,7 +133,7 @@ func contains(l []string, s string) bool {
 func (f *metaFixture) scanFile(t *testing.T, name string) *Item {
 	t.Helper()
 	p := filepath.Join(f.root, name)
-	if err := os.WriteFile(p, []byte("a small game: "+name), 0o644); err != nil {
+	if err := os.WriteFile(p, gameBytes(name), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	sc := NewScanner(f.store, nil, t.TempDir(), func() string { return "" }, slog.New(slog.NewTextHandler(io.Discard, nil)))
@@ -322,7 +322,7 @@ func TestAnswersAreKept(t *testing.T) {
 		t.Errorf("after a rescan: %q", got.Studio)
 	}
 	// A changed file is a new question.
-	if err := os.WriteFile(it.Path, []byte("a different version"), 0o644); err != nil {
+	if err := os.WriteFile(it.Path, gameBytes("a different version.sfc"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	os.Chtimes(it.Path, time.Now().Add(time.Hour), time.Now().Add(time.Hour))
@@ -342,7 +342,7 @@ func TestResumesAfterRestart(t *testing.T) {
 	for i := 0; i < gameMetaBatch+5; i++ {
 		f.scanFile(t, fmt.Sprintf("Game %03d.sfc", i))
 	}
-	if n, err := f.g.detailsBatch(f.ctx); err != nil || n != gameMetaBatch {
+	if n, err := f.g.detailsBatch(f.ctx, nil); err != nil || n != gameMetaBatch {
 		t.Fatalf("%d, %v", n, err)
 	}
 	if st := f.g.Status(f.ctx); st.Pending != 5 {
@@ -1030,7 +1030,7 @@ func TestATypedTitleSurvivesARescan(t *testing.T) {
 		t.Fatal(err)
 	}
 	// What a scan does when the file changed and a picture sits beside it.
-	if err := f.store.enqueueGame(f.ctx, it, []string{"poster"}); err != nil {
+	if err := f.store.enqueueGame(f.ctx, it, []string{"poster"}, nil); err != nil {
 		t.Fatal(err)
 	}
 	f.work(t)

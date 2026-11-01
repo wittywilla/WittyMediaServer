@@ -5,6 +5,7 @@ import { toast, useApp } from '../../state'
 import QrCode from './QrCode'
 import { PageHead, Row, Section } from './ui'
 import './remote.css'
+import { ask } from '../../ui/Overlay'
 
 // Settings → Sign-in & security, for everyone: the devices signed in to this
 // account, and two-factor sign-in for adults.
@@ -33,7 +34,7 @@ function Devices() {
     try { await api.del(`/sessions/${s.id}`); toast('Signed out on that device'); load() } catch (e: any) { toast(e.message) }
   }
   const endOthers = async () => {
-    if (!confirm('Sign out everywhere except on this device?')) return
+    if (!await ask({ title: 'Sign out everywhere except on this device?', confirm: 'Sign out the others', danger: true })) return
     try { await api.del('/sessions'); toast('Signed out on your other devices'); load() } catch (e: any) { toast(e.message) }
   }
   const others = (list || []).filter((s) => !s.current).length
@@ -148,7 +149,7 @@ function ResetOthers() {
   useEffect(() => { load() }, [load])
   if (users.length === 0) return null
   const reset = async (u: UserView) => {
-    if (!confirm(`Turn off two-factor sign-in for ${u.name}? Do this only if you know it's really them who lost their phone.`)) return
+    if (!await ask({ title: `Turn off two-factor sign-in for ${u.name}?`, body: 'Do this only if you know it’s really them who lost their phone.', confirm: 'Turn it off', danger: true })) return
     try { await api.del(`/users/${u.id}/2fa`); toast(`Turned off for ${u.name}`); load() } catch (e: any) { toast(e.message) }
   }
   return (

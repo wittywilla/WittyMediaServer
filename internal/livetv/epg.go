@@ -15,6 +15,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittytuner/mpegts"
 	"github.com/wittywilla/wittytuner/xmltv"
 )
@@ -206,14 +207,16 @@ func (m *Manager) openGuide(ctx context.Context, place, auth string, client *htt
 
 // FetchSource reads one source now, storing only programmes of channels on
 // this server.
-func (m *Manager) FetchSource(ctx context.Context, id int64) error {
+func (m *Manager) FetchSource(ctx context.Context, id int64) (err error) {
+	task := m.Tasks.Start(tasks.Spec{Type: tasks.TypeGuide, Title: "Updating the TV guide", AdminOnly: true})
+	defer func() { task.Finish(err) }()
 	var place, auth string
 	var tunerID sql.NullInt64
 	if err := m.DB.QueryRowContext(ctx, `SELECT url, auth, tuner_id FROM epg_sources WHERE id = ?`, id).Scan(&place, &auth, &tunerID); err != nil {
 		return ErrNotFound
 	}
 	client := gateClient(true)
-	err := checkEPGPlace(place)
+	err = checkEPGPlace(place)
 	if tunerID.Valid {
 		// A guide a tuner or its playlist named, rather than the owner.
 		client = m.internetClient()

@@ -61,6 +61,9 @@ func (s *Server) channelRoutes(m *http.ServeMux) {
 	m.Handle("DELETE /api/channels/{id}/logo", ad(s.handleDeleteChannelLogo))
 	s.tunerRoutes(m)
 	s.tvExtraRoutes(m)
+	if s.DB != nil && s.Cfg != nil {
+		s.followBumperFolder(context.Background())
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -143,6 +146,7 @@ func (s *Server) handleCreateChannel(w http.ResponseWriter, r *http.Request) {
 		channelError(w, err)
 		return
 	}
+	s.noteChannelLogo(r.Context(), &c)
 	writeJSON(w, 200, c)
 }
 
@@ -202,6 +206,7 @@ func (s *Server) handleUpdateChannel(w http.ResponseWriter, r *http.Request) {
 		channelError(w, err)
 		return
 	}
+	s.noteChannelLogo(r.Context(), c)
 	c, err = s.Channels.Get(r.Context(), id)
 	if err != nil {
 		channelError(w, err)
@@ -622,6 +627,8 @@ type guideChannel struct {
 	Categories  []string `json:"categories,omitempty"`
 	Accent      string   `json:"accent,omitempty"`
 	Favourite   bool     `json:"favourite,omitempty"`
+	// Brand names its logo in the logo service, for a channel with none of its own.
+	Brand *channelBrand `json:"brand,omitempty"`
 	HD          bool     `json:"hd,omitempty"`
 	Radio       bool     `json:"radio,omitempty"`
 	Encrypted   string   `json:"encrypted,omitempty"` // why it cannot be tuned
@@ -634,6 +641,33 @@ type guideChannel struct {
 	Alternative *livetv.Alternative `json:"alternative,omitempty"` // the same station, clear
 	Notices     []string            `json:"notices,omitempty"`
 	Programmes  []guideProgramme    `json:"programmes"`
+}
+
+// channelBrand is a name to look up in the logo service.
+type channelBrand struct {
+	Kind string `json:"kind"`
+	Name string `json:"name"`
+}
+
+func brandOf(c *channels.Channel) *channelBrand {
+	if kind, name := c.Brand(); name != "" {
+		return &channelBrand{kind, name}
+	}
+	return nil
+}
+
+// noteChannelLogo tells the logo service about a channel's name, so that it's
+// looked for once the owner has agreed to downloads. Nothing is fetched until then.
+func (s *Server) noteChannelLogo(ctx context.Context, c *channels.Channel) {
+	kind, name := c.Brand()
+	if name == "" {
+		return
+	}
+	if _, err := s.Store.EnsureLogo(ctx, kind, name); err != nil {
+		s.Log.WarnContext(ctx, "could not note a channel's logo", "cat", "tv", "channel", c.Name, "err", err)
+		return
+	}
+	s.logos().Kick()
 }
 
 // securityInfo is whether a channel is encrypted, in words.
@@ -669,7 +703,7 @@ func (s *Server) libraryRows(ctx context.Context, u *http.Request) []guideChanne
 			continue
 		}
 		row := guideChannel{Key: "lib-" + strconv.FormatInt(c.ID, 10), Kind: "library", ID: c.ID, Number: c.Number, Name: c.Name,
-			Description: c.Description, Categories: c.GuideCategories(), Accent: c.Look.Accent}
+			Description: c.Description, Categories: c.GuideCategories(), Accent: c.Look.Accent, Brand: brandOf(c)}
 		if c.Logo != "" {
 			row.Logo = fmt.Sprintf("/api/channels/%d/logo?v=%s", c.ID, c.Logo)
 		}
@@ -807,19 +841,23 @@ func (s *Server) rowProgrammes(ctx context.Context, row *guideChannel, from, to 
 // ---------------------------------------------------------------------------
 
 type tuneInfo struct {
-	Key    string          `json:"key"`
-	Kind   string          `json:"kind"`
-	Number string          `json:"number"`
-	Name   string          `json:"name"`
-	Logo   string          `json:"logo,omitempty"`
-	URL    string          `json:"url"`
-	Now    *guideProgramme `json:"now"`
-	Next   *guideProgramme `json:"next"`
+	Key    string `json:"key"`
+	Kind   string `json:"kind"`
+	Number string `json:"number"`
+	Name   string `json:"name"`
+	Logo   string `json:"logo,omitempty"`
+	URL    string `json:"url"`
+	// For a player that can't set headers: asked for with ?streamToken=1.
+	StreamURL   string          `json:"streamUrl,omitempty"`
+	StreamToken string          `json:"streamToken,omitempty"`
+	Now         *guideProgramme `json:"now"`
+	Next        *guideProgramme `json:"next"`
 	// Playing is what is on the screen when that isn't Now itself: a bumper
 	// or a commercial inside it.
 	Playing     *guideProgramme `json:"playing,omitempty"`
 	Description string          `json:"description,omitempty"`
 	Accent      string          `json:"accent,omitempty"`
+	Brand       *channelBrand   `json:"brand,omitempty"`
 	// PositionSec is how far into the title it is at ServerTime.
 	PositionSec   float64       `json:"positionSec"`
 	ServerTime    int64         `json:"serverTime"`
@@ -896,7 +934,7 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 	}
 	ls.Viewer(viewerName(r))
 	info := tuneInfo{Key: r.PathValue("key"), Kind: "library", Number: c.Number, Name: c.Name, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
-		Description: c.Description, Accent: c.Look.Accent,
+		Description: c.Description, Accent: c.Look.Accent, Brand: brandOf(c),
 		PositionSec: float64(now.Unix() - cur.Start + cur.Offset), ServerTime: now.Unix(), CountProgress: c.CountProgress && cur.Kind == channels.KindShow}
 	if c.Logo != "" {
 		info.Logo = fmt.Sprintf("/api/channels/%d/logo?v=%s", c.ID, c.Logo)
@@ -917,6 +955,10 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 		info.Playing = &p
 	}
 	info.BufferSec = float64(s.tvSettingInt(r.Context(), "tvLibraryBufferMin") * 60)
+	if err := s.addLiveTicket(r, &info); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
 	writeJSON(w, 200, info)
 }
 

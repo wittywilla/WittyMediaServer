@@ -118,6 +118,7 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	gameKeyChanged := false
+	regionsWere := s.DB.GetSetting(r.Context(), "gamingRegionOrder", "")
 	for _, k := range settingKeys {
 		v, ok := in[k]
 		if !ok {
@@ -141,6 +142,9 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	if gameKeyChanged {
 		s.GameMeta.KeysChanged(r.Context()) // the new source can be asked about every game
+	}
+	if regions := s.DB.GetSetting(r.Context(), "gamingRegionOrder", ""); regions != regionsWere {
+		s.gameRegionsChanged(regions)
 	}
 	s.protectSecrets(r.Context()) // a new API key is hidden from the log from now on
 	if s.Discovery != nil {

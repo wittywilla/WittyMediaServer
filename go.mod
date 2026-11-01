@@ -13,11 +13,11 @@ require (
 	github.com/pion/webrtc/v4 v4.2.26
 	github.com/ulikunitz/xz v0.5.17
 	github.com/wittywilla/wittybluray v0.2.0
-	github.com/wittywilla/wittycd v0.1.0
+	github.com/wittywilla/wittycd v0.1.1
 	github.com/wittywilla/wittycouch v0.1.0
 	github.com/wittywilla/wittydisc v0.1.1
 	github.com/wittywilla/wittydvd v0.2.1
-	github.com/wittywilla/wittyintegratedfilebrowser v0.1.1
+	github.com/wittywilla/wittyintegratedfilebrowser v0.1.2
 	github.com/wittywilla/wittymodule v0.2.1
 	github.com/wittywilla/wittyphotos v0.2.1
 	github.com/wittywilla/wittyplay v0.2.0
@@ -27,6 +27,7 @@ require (
 	golang.org/x/image v0.47.0
 	golang.org/x/net v0.62.0
 	golang.org/x/sys v0.49.0
+	golang.org/x/text v0.43.0
 	modernc.org/sqlite v1.61.1
 )
 
@@ -61,7 +62,6 @@ require (
 	github.com/stangelandcl/ppmd v0.1.1 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	go4.org v0.0.0-20261028031214-ed6929a230fe // indirect
-	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
 	modernc.org/libc v1.79.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect

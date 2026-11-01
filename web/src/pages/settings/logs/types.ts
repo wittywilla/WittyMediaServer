@@ -25,7 +25,10 @@ export type LogsView = {
   files: LogFile[]; canOpen: boolean; health: Health; crashes: Crash[]; modules: LogModule[]; recordingUntil?: string
 }
 export type BundlePart = { name: string; description: string; size: number }
-export type BundlePreview = { parts: BundlePart[]; total: number; sample: string[]; redact: boolean; days: number }
+export type BundlePreview = {
+  parts: BundlePart[]; total: number; sample: string[]; sanitize: boolean; days: number
+  scanned: number; replaced?: Record<string, number>; changed?: { before: string; after: string }[]
+}
 
 // The words for a level. Colour is only ever added to these.
 export const LEVEL_WORDS: Record<string, string> = { debug: 'Debug', info: 'Info', warn: 'Warning', error: 'Error', crash: 'Crash' }

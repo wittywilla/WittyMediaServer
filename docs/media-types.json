@@ -1,0 +1,4314 @@
+{
+  "version": 1,
+  "formats": [
+    {
+      "id": "mp4",
+      "name": "MPEG-4",
+      "category": "video",
+      "extensions": [
+        ".mp4",
+        ".m4v",
+        ".mp4v"
+      ],
+      "mime": "video/mp4",
+      "ffmpegFormats": [
+        "mov",
+        "mp4"
+      ],
+      "sniffAs": [
+        "mov",
+        "3gp",
+        "3g2",
+        "f4v",
+        "heic",
+        "avif",
+        "m4a"
+      ],
+      "plays": "native",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "mov",
+      "name": "QuickTime",
+      "category": "video",
+      "extensions": [
+        ".mov",
+        ".qt"
+      ],
+      "mime": "video/quicktime",
+      "ffmpegFormats": [
+        "mov"
+      ],
+      "sniffAs": [
+        "mp4",
+        "m4a"
+      ],
+      "plays": "native",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg",
+      "notes": "Sent to browsers as MPEG-4, which is what they play it as."
+    },
+    {
+      "id": "webm",
+      "name": "WebM",
+      "category": "video",
+      "extensions": [
+        ".webm"
+      ],
+      "mime": "video/webm",
+      "ffmpegFormats": [
+        "webm"
+      ],
+      "sniffAs": [
+        "mkv"
+      ],
+      "plays": "native",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "3gp",
+      "name": "3GPP (phones)",
+      "category": "video",
+      "extensions": [
+        ".3gp",
+        ".3gpp"
+      ],
+      "mime": "video/mp4",
+      "ffmpegFormats": [
+        "mov",
+        "3gp"
+      ],
+      "sniffAs": [
+        "mp4",
+        "3g2"
+      ],
+      "plays": "native",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "3g2",
+      "name": "3GPP2 (phones)",
+      "category": "video",
+      "extensions": [
+        ".3g2",
+        ".3gp2"
+      ],
+      "mime": "video/mp4",
+      "ffmpegFormats": [
+        "mov",
+        "3g2"
+      ],
+      "sniffAs": [
+        "mp4",
+        "3gp"
+      ],
+      "plays": "native",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "f4v",
+      "name": "Flash MP4",
+      "category": "video",
+      "extensions": [
+        ".f4v"
+      ],
+      "mime": "video/mp4",
+      "ffmpegFormats": [
+        "mov"
+      ],
+      "sniffAs": [
+        "mp4"
+      ],
+      "plays": "native",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "mkv",
+      "name": "Matroska",
+      "category": "video",
+      "extensions": [
+        ".mkv",
+        ".mk3d"
+      ],
+      "mime": "video/x-matroska",
+      "ffmpegFormats": [
+        "matroska"
+      ],
+      "sniffAs": [
+        "webm"
+      ],
+      "plays": "rewrap",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "ts",
+      "name": "MPEG transport stream",
+      "category": "video",
+      "extensions": [
+        ".ts",
+        ".m2ts",
+        ".mts",
+        ".m2t",
+        ".tp",
+        ".trp"
+      ],
+      "mime": "video/mp2t",
+      "ffmpegFormats": [
+        "mpegts"
+      ],
+      "confirmByContent": true,
+      "plays": "rewrap",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "flv",
+      "name": "Flash Video",
+      "category": "video",
+      "extensions": [
+        ".flv"
+      ],
+      "mime": "video/x-flv",
+      "ffmpegFormats": [
+        "flv"
+      ],
+      "plays": "rewrap",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "mpg",
+      "name": "MPEG program stream",
+      "category": "video",
+      "extensions": [
+        ".mpg",
+        ".mpeg",
+        ".mpe",
+        ".m2p",
+        ".vob",
+        ".evo",
+        ".vro"
+      ],
+      "mime": "video/mpeg",
+      "ffmpegFormats": [
+        "mpeg",
+        "mpegvideo",
+        "vob"
+      ],
+      "sniffAs": [
+        "mpeg-es",
+        "mp3"
+      ],
+      "plays": "rewrap",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "camcorder",
+      "name": "Camcorder MPEG",
+      "category": "video",
+      "extensions": [
+        ".mod",
+        ".tod"
+      ],
+      "mime": "video/mpeg",
+      "ffmpegFormats": [
+        "mpeg"
+      ],
+      "confirmByContent": true,
+      "sniffAs": [
+        "mpg",
+        "ts"
+      ],
+      "plays": "rewrap",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg",
+      "notes": "MOD and TOD files from camcorders. A .mod in a music library is a tracker song instead."
+    },
+    {
+      "id": "vcd",
+      "name": "Video CD track",
+      "category": "video",
+      "extensions": [
+        ".dat"
+      ],
+      "mime": "video/mpeg",
+      "ffmpegFormats": [
+        "mpeg"
+      ],
+      "confirmByContent": true,
+      "sniffAs": [
+        "mpg"
+      ],
+      "plays": "rewrap",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg",
+      "notes": "Only when its content really is an MPEG stream."
+    },
+    {
+      "id": "avi",
+      "name": "AVI",
+      "category": "video",
+      "extensions": [
+        ".avi",
+        ".divx",
+        ".xvid"
+      ],
+      "mime": "video/x-msvideo",
+      "ffmpegFormats": [
+        "avi"
+      ],
+      "plays": "rewrap",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "wmv",
+      "name": "Windows Media Video",
+      "category": "video",
+      "extensions": [
+        ".wmv"
+      ],
+      "mime": "video/x-ms-wmv",
+      "ffmpegFormats": [
+        "asf"
+      ],
+      "sniffAs": [
+        "asf",
+        "wma"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "asf",
+      "name": "Advanced Systems Format",
+      "category": "video",
+      "extensions": [
+        ".asf"
+      ],
+      "mime": "video/x-ms-asf",
+      "ffmpegFormats": [
+        "asf"
+      ],
+      "sniffAs": [
+        "wmv",
+        "wma"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "dvr-ms",
+      "name": "Windows Media Center recording",
+      "category": "video",
+      "extensions": [
+        ".dvr-ms"
+      ],
+      "mime": "video/x-ms-asf",
+      "ffmpegFormats": [
+        "asf"
+      ],
+      "sniffAs": [
+        "wmv",
+        "asf",
+        "wma"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "wtv",
+      "name": "Windows TV recording",
+      "category": "video",
+      "extensions": [
+        ".wtv"
+      ],
+      "mime": "video/x-ms-wtv",
+      "ffmpegFormats": [
+        "wtv"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "rm",
+      "name": "RealMedia",
+      "category": "video",
+      "extensions": [
+        ".rm",
+        ".rmvb",
+        ".rv"
+      ],
+      "mime": "application/vnd.rn-realmedia",
+      "ffmpegFormats": [
+        "rm"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "ogv",
+      "name": "Ogg video",
+      "category": "video",
+      "extensions": [
+        ".ogv",
+        ".ogm",
+        ".ogx"
+      ],
+      "mime": "video/ogg",
+      "ffmpegFormats": [
+        "ogg"
+      ],
+      "sniffAs": [
+        "ogg",
+        "opus",
+        "spx"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "mxf",
+      "name": "Material Exchange Format",
+      "category": "video",
+      "extensions": [
+        ".mxf"
+      ],
+      "mime": "application/mxf",
+      "ffmpegFormats": [
+        "mxf",
+        "mxf_d10",
+        "mxf_opatom"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "dv",
+      "name": "Digital Video",
+      "category": "video",
+      "extensions": [
+        ".dv",
+        ".dif"
+      ],
+      "mime": "video/x-dv",
+      "ffmpegFormats": [
+        "dv"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "nut",
+      "name": "NUT",
+      "category": "video",
+      "extensions": [
+        ".nut"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "nut"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "y4m",
+      "name": "YUV4MPEG",
+      "category": "video",
+      "extensions": [
+        ".y4m"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "yuv4mpegpipe"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "gxf",
+      "name": "General Exchange Format",
+      "category": "video",
+      "extensions": [
+        ".gxf"
+      ],
+      "mime": "application/gxf",
+      "ffmpegFormats": [
+        "gxf"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "amv",
+      "name": "AMV",
+      "category": "video",
+      "extensions": [
+        ".amv"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "amv"
+      ],
+      "sniffAs": [
+        "avi"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "mjpeg",
+      "name": "Motion JPEG",
+      "category": "video",
+      "extensions": [
+        ".mjpeg",
+        ".mjpg"
+      ],
+      "mime": "video/x-motion-jpeg",
+      "ffmpegFormats": [
+        "mjpeg"
+      ],
+      "sniffAs": [
+        "jpg"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "ivf",
+      "name": "IVF",
+      "category": "video",
+      "extensions": [
+        ".ivf"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "ivf"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "mpeg-es",
+      "name": "MPEG video stream",
+      "category": "video",
+      "extensions": [
+        ".m1v",
+        ".m2v",
+        ".mpv"
+      ],
+      "mime": "video/mpeg",
+      "ffmpegFormats": [
+        "mpegvideo"
+      ],
+      "sniffAs": [
+        "mpg"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "h264",
+      "name": "Raw H.264",
+      "category": "video",
+      "extensions": [
+        ".h264",
+        ".264",
+        ".avc"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "h264"
+      ],
+      "plays": "rewrap",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "hevc",
+      "name": "Raw HEVC",
+      "category": "video",
+      "extensions": [
+        ".h265",
+        ".265",
+        ".hevc"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "hevc"
+      ],
+      "plays": "rewrap",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "vvc",
+      "name": "Raw VVC",
+      "category": "video",
+      "extensions": [
+        ".h266",
+        ".266",
+        ".vvc"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "vvc"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg",
+      "notes": "Needs an FFmpeg that decodes VVC."
+    },
+    {
+      "id": "obu",
+      "name": "Raw AV1",
+      "category": "video",
+      "extensions": [
+        ".obu"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "obu",
+        "av1"
+      ],
+      "plays": "rewrap",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "bink",
+      "name": "Bink Video",
+      "category": "video",
+      "extensions": [
+        ".bik",
+        ".bk2"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "bink"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "smacker",
+      "name": "Smacker Video",
+      "category": "video",
+      "extensions": [
+        ".smk"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "smk"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "nsv",
+      "name": "Nullsoft Streaming Video",
+      "category": "video",
+      "extensions": [
+        ".nsv"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "nsv"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "flic",
+      "name": "FLIC animation",
+      "category": "video",
+      "extensions": [
+        ".fli",
+        ".flc"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "flic"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "ty",
+      "name": "TiVo recording",
+      "category": "video",
+      "extensions": [
+        ".ty"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "ty"
+      ],
+      "confirmByContent": true,
+      "plays": "convert",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "commercials",
+        "photos"
+      ],
+      "needs": "FFmpeg",
+      "notes": "Only recordings that aren't encrypted. Encrypted ones are refused."
+    },
+    {
+      "id": "mp3",
+      "name": "MP3",
+      "category": "audio",
+      "extensions": [
+        ".mp3"
+      ],
+      "mime": "audio/mpeg",
+      "ffmpegFormats": [
+        "mp3"
+      ],
+      "sniffAs": [
+        "aac",
+        "mp2"
+      ],
+      "plays": "native",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "mp2",
+      "name": "MPEG audio layer II",
+      "category": "audio",
+      "extensions": [
+        ".mp2",
+        ".mpa",
+        ".m2a"
+      ],
+      "mime": "audio/mpeg",
+      "ffmpegFormats": [
+        "mp3"
+      ],
+      "sniffAs": [
+        "mp3"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "aac",
+      "name": "AAC",
+      "category": "audio",
+      "extensions": [
+        ".aac",
+        ".adts"
+      ],
+      "mime": "audio/aac",
+      "ffmpegFormats": [
+        "aac"
+      ],
+      "sniffAs": [
+        "mp3"
+      ],
+      "plays": "native",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "m4a",
+      "name": "MPEG-4 audio",
+      "category": "audio",
+      "extensions": [
+        ".m4a",
+        ".m4b",
+        ".m4r",
+        ".alac"
+      ],
+      "mime": "audio/mp4",
+      "ffmpegFormats": [
+        "mov",
+        "m4a"
+      ],
+      "sniffAs": [
+        "mp4",
+        "mov"
+      ],
+      "plays": "native",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg",
+      "notes": "Plays in a browser with AAC inside. ALAC is converted."
+    },
+    {
+      "id": "flac",
+      "name": "FLAC",
+      "category": "audio",
+      "extensions": [
+        ".flac",
+        ".fla"
+      ],
+      "mime": "audio/flac",
+      "ffmpegFormats": [
+        "flac"
+      ],
+      "plays": "native",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "ogg",
+      "name": "Ogg audio",
+      "category": "audio",
+      "extensions": [
+        ".ogg",
+        ".oga"
+      ],
+      "mime": "audio/ogg",
+      "ffmpegFormats": [
+        "ogg"
+      ],
+      "sniffAs": [
+        "opus",
+        "ogv",
+        "spx"
+      ],
+      "plays": "native",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "opus",
+      "name": "Opus",
+      "category": "audio",
+      "extensions": [
+        ".opus"
+      ],
+      "mime": "audio/ogg",
+      "ffmpegFormats": [
+        "ogg",
+        "opus"
+      ],
+      "sniffAs": [
+        "ogg"
+      ],
+      "plays": "native",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "spx",
+      "name": "Speex",
+      "category": "audio",
+      "extensions": [
+        ".spx"
+      ],
+      "mime": "audio/ogg",
+      "ffmpegFormats": [
+        "ogg"
+      ],
+      "sniffAs": [
+        "ogg",
+        "opus"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "wav",
+      "name": "WAV",
+      "category": "audio",
+      "extensions": [
+        ".wav",
+        ".wave",
+        ".bwf"
+      ],
+      "mime": "audio/wav",
+      "ffmpegFormats": [
+        "wav"
+      ],
+      "plays": "native",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "w64",
+      "name": "Sony Wave64",
+      "category": "audio",
+      "extensions": [
+        ".w64"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "w64"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "rf64",
+      "name": "RF64",
+      "category": "audio",
+      "extensions": [
+        ".rf64"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "rf64"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "aiff",
+      "name": "AIFF",
+      "category": "audio",
+      "extensions": [
+        ".aiff",
+        ".aif",
+        ".aifc"
+      ],
+      "mime": "audio/aiff",
+      "ffmpegFormats": [
+        "aiff"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "wma",
+      "name": "Windows Media Audio",
+      "category": "audio",
+      "extensions": [
+        ".wma"
+      ],
+      "mime": "audio/x-ms-wma",
+      "ffmpegFormats": [
+        "asf"
+      ],
+      "sniffAs": [
+        "asf",
+        "wmv"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "ape",
+      "name": "Monkey's Audio",
+      "category": "audio",
+      "extensions": [
+        ".ape"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "ape"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "wv",
+      "name": "WavPack",
+      "category": "audio",
+      "extensions": [
+        ".wv"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "wv"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "tta",
+      "name": "True Audio",
+      "category": "audio",
+      "extensions": [
+        ".tta"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "tta"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "mpc",
+      "name": "Musepack",
+      "category": "audio",
+      "extensions": [
+        ".mpc",
+        ".mp+",
+        ".mpp"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "mpc",
+        "mpc8"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "tak",
+      "name": "TAK",
+      "category": "audio",
+      "extensions": [
+        ".tak"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "tak"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "shn",
+      "name": "Shorten",
+      "category": "audio",
+      "extensions": [
+        ".shn"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "shn"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "dsf",
+      "name": "DSD (DSF)",
+      "category": "audio",
+      "extensions": [
+        ".dsf"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "dsf"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "dff",
+      "name": "DSD (DFF)",
+      "category": "audio",
+      "extensions": [
+        ".dff"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "iff"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "ac3",
+      "name": "Dolby Digital",
+      "category": "audio",
+      "extensions": [
+        ".ac3"
+      ],
+      "mime": "audio/ac3",
+      "ffmpegFormats": [
+        "ac3"
+      ],
+      "sniffAs": [
+        "eac3"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "eac3",
+      "name": "Dolby Digital Plus",
+      "category": "audio",
+      "extensions": [
+        ".eac3",
+        ".ec3"
+      ],
+      "mime": "audio/eac3",
+      "ffmpegFormats": [
+        "eac3"
+      ],
+      "sniffAs": [
+        "ac3"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "dts",
+      "name": "DTS",
+      "category": "audio",
+      "extensions": [
+        ".dts",
+        ".dtshd",
+        ".dtsma"
+      ],
+      "mime": "audio/vnd.dts",
+      "ffmpegFormats": [
+        "dts",
+        "dtshd"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "truehd",
+      "name": "Dolby TrueHD",
+      "category": "audio",
+      "extensions": [
+        ".truehd",
+        ".thd"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "truehd"
+      ],
+      "sniffAs": [
+        "mlp"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "mlp",
+      "name": "Meridian Lossless",
+      "category": "audio",
+      "extensions": [
+        ".mlp"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "mlp"
+      ],
+      "sniffAs": [
+        "truehd"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "mka",
+      "name": "Matroska audio",
+      "category": "audio",
+      "extensions": [
+        ".mka"
+      ],
+      "mime": "audio/x-matroska",
+      "ffmpegFormats": [
+        "matroska"
+      ],
+      "sniffAs": [
+        "mkv",
+        "webm"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "weba",
+      "name": "WebM audio",
+      "category": "audio",
+      "extensions": [
+        ".weba"
+      ],
+      "mime": "audio/webm",
+      "ffmpegFormats": [
+        "webm",
+        "matroska"
+      ],
+      "sniffAs": [
+        "mkv",
+        "webm"
+      ],
+      "plays": "native",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "amr",
+      "name": "AMR (voice)",
+      "category": "audio",
+      "extensions": [
+        ".amr",
+        ".awb"
+      ],
+      "mime": "audio/amr",
+      "ffmpegFormats": [
+        "amr",
+        "amrnb",
+        "amrwb"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "au",
+      "name": "Sun audio",
+      "category": "audio",
+      "extensions": [
+        ".au",
+        ".snd"
+      ],
+      "mime": "audio/basic",
+      "ffmpegFormats": [
+        "au"
+      ],
+      "confirmByContent": true,
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "caf",
+      "name": "Core Audio",
+      "category": "audio",
+      "extensions": [
+        ".caf"
+      ],
+      "mime": "audio/x-caf",
+      "ffmpegFormats": [
+        "caf"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "ra",
+      "name": "RealAudio",
+      "category": "audio",
+      "extensions": [
+        ".ra"
+      ],
+      "mime": "audio/x-pn-realaudio",
+      "ffmpegFormats": [
+        "rm"
+      ],
+      "sniffAs": [
+        "rm"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "voc",
+      "name": "Creative Voice",
+      "category": "audio",
+      "extensions": [
+        ".voc"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "voc"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "gsm",
+      "name": "GSM voice",
+      "category": "audio",
+      "extensions": [
+        ".gsm"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "gsm"
+      ],
+      "confirmByContent": true,
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "midi",
+      "name": "MIDI",
+      "category": "audio",
+      "extensions": [
+        ".mid",
+        ".midi",
+        ".kar",
+        ".rmi"
+      ],
+      "mime": "audio/midi",
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "Nothing extra: the server has its own synthesiser",
+      "notes": "Played by the server's built-in synthesiser, which is simple but needs no sound font."
+    },
+    {
+      "id": "mod",
+      "name": "Tracker: ProTracker",
+      "category": "audio",
+      "extensions": [
+        ".mod"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libopenmpt"
+      ],
+      "confirmByContent": true,
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libopenmpt",
+      "demuxer": "libopenmpt"
+    },
+    {
+      "id": "xm",
+      "name": "Tracker: FastTracker",
+      "category": "audio",
+      "extensions": [
+        ".xm"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libopenmpt"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libopenmpt",
+      "demuxer": "libopenmpt"
+    },
+    {
+      "id": "s3m",
+      "name": "Tracker: Scream Tracker",
+      "category": "audio",
+      "extensions": [
+        ".s3m",
+        ".stm"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libopenmpt"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libopenmpt",
+      "demuxer": "libopenmpt"
+    },
+    {
+      "id": "it",
+      "name": "Tracker: Impulse Tracker",
+      "category": "audio",
+      "extensions": [
+        ".it",
+        ".mptm"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libopenmpt"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libopenmpt",
+      "demuxer": "libopenmpt"
+    },
+    {
+      "id": "tracker",
+      "name": "Tracker: other formats",
+      "category": "audio",
+      "extensions": [
+        ".669",
+        ".mtm",
+        ".med",
+        ".okt",
+        ".ult",
+        ".far",
+        ".dbm",
+        ".ams",
+        ".dmf",
+        ".psm",
+        ".umx",
+        ".j2b",
+        ".mdl",
+        ".ptm",
+        ".gdm"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libopenmpt"
+      ],
+      "confirmByContent": true,
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libopenmpt",
+      "demuxer": "libopenmpt"
+    },
+    {
+      "id": "nsf",
+      "name": "Game music: Nintendo",
+      "category": "audio",
+      "extensions": [
+        ".nsf",
+        ".nsfe"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libgme"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libgme",
+      "demuxer": "libgme"
+    },
+    {
+      "id": "spc",
+      "name": "Game music: Super Nintendo",
+      "category": "audio",
+      "extensions": [
+        ".spc"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libgme"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libgme",
+      "demuxer": "libgme"
+    },
+    {
+      "id": "gbs",
+      "name": "Game music: Game Boy",
+      "category": "audio",
+      "extensions": [
+        ".gbs"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libgme"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libgme",
+      "demuxer": "libgme"
+    },
+    {
+      "id": "vgm",
+      "name": "Game music: Video Game Music",
+      "category": "audio",
+      "extensions": [
+        ".vgm",
+        ".vgz"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libgme"
+      ],
+      "sniffAs": [
+        "gzip"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libgme",
+      "demuxer": "libgme"
+    },
+    {
+      "id": "gym",
+      "name": "Game music: Genesis",
+      "category": "audio",
+      "extensions": [
+        ".gym"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libgme"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libgme",
+      "demuxer": "libgme"
+    },
+    {
+      "id": "hes",
+      "name": "Game music: PC Engine",
+      "category": "audio",
+      "extensions": [
+        ".hes"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libgme"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libgme",
+      "demuxer": "libgme"
+    },
+    {
+      "id": "kss",
+      "name": "Game music: MSX",
+      "category": "audio",
+      "extensions": [
+        ".kss"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libgme"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libgme",
+      "demuxer": "libgme"
+    },
+    {
+      "id": "sap",
+      "name": "Game music: Atari",
+      "category": "audio",
+      "extensions": [
+        ".sap"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libgme"
+      ],
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libgme",
+      "demuxer": "libgme"
+    },
+    {
+      "id": "ay",
+      "name": "Game music: ZX Spectrum",
+      "category": "audio",
+      "extensions": [
+        ".ay"
+      ],
+      "mime": "application/octet-stream",
+      "ffmpegFormats": [
+        "libgme"
+      ],
+      "confirmByContent": true,
+      "plays": "convert",
+      "libraries": [
+        "music",
+        "audiobooks",
+        "podcasts"
+      ],
+      "needs": "An FFmpeg built with libgme",
+      "demuxer": "libgme"
+    },
+    {
+      "id": "srt",
+      "name": "SubRip",
+      "category": "subtitle",
+      "extensions": [
+        ".srt"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "ass",
+      "name": "Advanced SubStation",
+      "category": "subtitle",
+      "extensions": [
+        ".ass"
+      ],
+      "mime": "application/octet-stream",
+      "sniffAs": [
+        "ssa"
+      ],
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg",
+      "notes": "Shown as plain text by default, or burned in to keep its styling."
+    },
+    {
+      "id": "ssa",
+      "name": "SubStation Alpha",
+      "category": "subtitle",
+      "extensions": [
+        ".ssa"
+      ],
+      "mime": "application/octet-stream",
+      "sniffAs": [
+        "ass"
+      ],
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg",
+      "notes": "Shown as plain text by default, or burned in to keep its styling."
+    },
+    {
+      "id": "vtt",
+      "name": "WebVTT",
+      "category": "subtitle",
+      "extensions": [
+        ".vtt",
+        ".webvtt"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "sub",
+      "name": "MicroDVD, SubViewer or VobSub",
+      "category": "subtitle",
+      "extensions": [
+        ".sub"
+      ],
+      "mime": "application/octet-stream",
+      "sniffAs": [
+        "mpg",
+        "microdvd",
+        "subviewer",
+        "srt"
+      ],
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg",
+      "notes": "A .sub beside an .idx is VobSub, a picture format, and is burned in. Other .sub files are text."
+    },
+    {
+      "id": "idx",
+      "name": "VobSub index",
+      "category": "subtitle",
+      "extensions": [
+        ".idx"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "burn",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg",
+      "notes": "Pictures from a DVD, read with the .sub beside it, and burned into the picture."
+    },
+    {
+      "id": "sup",
+      "name": "Blu-ray PGS",
+      "category": "subtitle",
+      "extensions": [
+        ".sup",
+        ".pgs"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "burn",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg",
+      "notes": "Pictures from a Blu-ray, burned into the picture."
+    },
+    {
+      "id": "sbv",
+      "name": "YouTube SubViewer",
+      "category": "subtitle",
+      "extensions": [
+        ".sbv"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "ttml",
+      "name": "TTML",
+      "category": "subtitle",
+      "extensions": [
+        ".ttml",
+        ".ttml2"
+      ],
+      "mime": "application/octet-stream",
+      "sniffAs": [
+        "dfxp"
+      ],
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "dfxp",
+      "name": "DFXP",
+      "category": "subtitle",
+      "extensions": [
+        ".dfxp"
+      ],
+      "mime": "application/octet-stream",
+      "sniffAs": [
+        "ttml"
+      ],
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "smi",
+      "name": "SAMI",
+      "category": "subtitle",
+      "extensions": [
+        ".smi",
+        ".sami"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "lrc",
+      "name": "Timed lyrics",
+      "category": "subtitle",
+      "extensions": [
+        ".lrc"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos",
+        "music"
+      ],
+      "needs": "Nothing extra",
+      "notes": "Beside a song, these are its lyrics. Beside a video, a subtitle track."
+    },
+    {
+      "id": "mks",
+      "name": "Matroska subtitles",
+      "category": "subtitle",
+      "extensions": [
+        ".mks"
+      ],
+      "mime": "application/octet-stream",
+      "sniffAs": [
+        "mkv"
+      ],
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "scc",
+      "name": "Scenarist closed captions",
+      "category": "subtitle",
+      "extensions": [
+        ".scc"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "mpl2",
+      "name": "MPL2",
+      "category": "subtitle",
+      "extensions": [
+        ".mpl"
+      ],
+      "mime": "application/octet-stream",
+      "confirmByContent": true,
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "stl",
+      "name": "Spruce subtitles",
+      "category": "subtitle",
+      "extensions": [
+        ".stl"
+      ],
+      "mime": "application/octet-stream",
+      "confirmByContent": true,
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "jss",
+      "name": "JACOsub",
+      "category": "subtitle",
+      "extensions": [
+        ".jss"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "realtext",
+      "name": "RealText",
+      "category": "subtitle",
+      "extensions": [
+        ".rt"
+      ],
+      "mime": "application/octet-stream",
+      "confirmByContent": true,
+      "plays": "track",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "jpg",
+      "name": "JPEG",
+      "category": "photo",
+      "extensions": [
+        ".jpg",
+        ".jpeg",
+        ".jpe",
+        ".jfif"
+      ],
+      "mime": "image/jpeg",
+      "plays": "image",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg",
+      "notes": "A motion photo's clip, stored after the picture, plays with it."
+    },
+    {
+      "id": "png",
+      "name": "PNG",
+      "category": "photo",
+      "extensions": [
+        ".png"
+      ],
+      "mime": "image/png",
+      "sniffAs": [
+        "apng"
+      ],
+      "plays": "image",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "apng",
+      "name": "Animated PNG",
+      "category": "photo",
+      "extensions": [
+        ".apng"
+      ],
+      "mime": "image/apng",
+      "sniffAs": [
+        "png"
+      ],
+      "plays": "image",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "gif",
+      "name": "GIF",
+      "category": "photo",
+      "extensions": [
+        ".gif"
+      ],
+      "mime": "image/gif",
+      "plays": "image",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "webp",
+      "name": "WebP",
+      "category": "photo",
+      "extensions": [
+        ".webp"
+      ],
+      "mime": "image/webp",
+      "plays": "image",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "avif",
+      "name": "AVIF",
+      "category": "photo",
+      "extensions": [
+        ".avif"
+      ],
+      "mime": "image/avif",
+      "sniffAs": [
+        "heic",
+        "mp4"
+      ],
+      "plays": "image",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "bmp",
+      "name": "BMP",
+      "category": "photo",
+      "extensions": [
+        ".bmp",
+        ".dib"
+      ],
+      "mime": "image/bmp",
+      "plays": "image",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "ico",
+      "name": "Icon",
+      "category": "photo",
+      "extensions": [
+        ".ico",
+        ".cur"
+      ],
+      "mime": "image/x-icon",
+      "plays": "image",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "svg",
+      "name": "SVG",
+      "category": "photo",
+      "extensions": [
+        ".svg",
+        ".svgz"
+      ],
+      "mime": "image/svg+xml",
+      "sniffAs": [
+        "gzip"
+      ],
+      "plays": "image",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "Nothing extra",
+      "notes": "Scripts, outside links and active content are removed before it is sent. FFmpeg with librsvg makes smaller copies when it has it."
+    },
+    {
+      "id": "heic",
+      "name": "HEIC and HEIF",
+      "category": "photo",
+      "extensions": [
+        ".heic",
+        ".heif",
+        ".hif"
+      ],
+      "mime": "image/heif",
+      "sniffAs": [
+        "avif",
+        "mp4"
+      ],
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "An FFmpeg of version 7 or later"
+    },
+    {
+      "id": "jxl",
+      "name": "JPEG XL",
+      "category": "photo",
+      "extensions": [
+        ".jxl"
+      ],
+      "mime": "image/jxl",
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "An FFmpeg built with libjxl"
+    },
+    {
+      "id": "tiff",
+      "name": "TIFF",
+      "category": "photo",
+      "extensions": [
+        ".tif",
+        ".tiff"
+      ],
+      "mime": "image/tiff",
+      "sniffAs": [
+        "cr2",
+        "nef"
+      ],
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "jp2",
+      "name": "JPEG 2000",
+      "category": "photo",
+      "extensions": [
+        ".jp2",
+        ".j2k",
+        ".jpf",
+        ".jpx"
+      ],
+      "mime": "image/jp2",
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "psd",
+      "name": "Photoshop",
+      "category": "photo",
+      "extensions": [
+        ".psd"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "tga",
+      "name": "Targa",
+      "category": "photo",
+      "extensions": [
+        ".tga"
+      ],
+      "mime": "application/octet-stream",
+      "confirmByContent": true,
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "exr",
+      "name": "OpenEXR",
+      "category": "photo",
+      "extensions": [
+        ".exr"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "hdr",
+      "name": "Radiance HDR",
+      "category": "photo",
+      "extensions": [
+        ".hdr"
+      ],
+      "mime": "application/octet-stream",
+      "confirmByContent": true,
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "dds",
+      "name": "DirectDraw Surface",
+      "category": "photo",
+      "extensions": [
+        ".dds"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "pcx",
+      "name": "PCX",
+      "category": "photo",
+      "extensions": [
+        ".pcx"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "pnm",
+      "name": "Netpbm",
+      "category": "photo",
+      "extensions": [
+        ".ppm",
+        ".pgm",
+        ".pbm",
+        ".pnm",
+        ".pam"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "qoi",
+      "name": "QOI",
+      "category": "photo",
+      "extensions": [
+        ".qoi"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "sgi",
+      "name": "SGI",
+      "category": "photo",
+      "extensions": [
+        ".sgi",
+        ".rgb"
+      ],
+      "mime": "application/octet-stream",
+      "confirmByContent": true,
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "cr2",
+      "name": "Canon RAW",
+      "category": "photo",
+      "extensions": [
+        ".cr2",
+        ".crw"
+      ],
+      "mime": "image/x-canon-cr2",
+      "sniffAs": [
+        "tiff"
+      ],
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "cr3",
+      "name": "Canon RAW 3",
+      "category": "photo",
+      "extensions": [
+        ".cr3"
+      ],
+      "mime": "image/x-canon-cr3",
+      "sniffAs": [
+        "mp4",
+        "mov"
+      ],
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "nef",
+      "name": "Nikon RAW",
+      "category": "photo",
+      "extensions": [
+        ".nef",
+        ".nrw"
+      ],
+      "mime": "image/x-nikon-nef",
+      "sniffAs": [
+        "tiff"
+      ],
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "arw",
+      "name": "Sony RAW",
+      "category": "photo",
+      "extensions": [
+        ".arw",
+        ".srf",
+        ".sr2"
+      ],
+      "mime": "image/x-sony-arw",
+      "sniffAs": [
+        "tiff"
+      ],
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "dng",
+      "name": "Adobe DNG",
+      "category": "photo",
+      "extensions": [
+        ".dng"
+      ],
+      "mime": "image/x-adobe-dng",
+      "sniffAs": [
+        "tiff"
+      ],
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "raf",
+      "name": "Fujifilm RAW",
+      "category": "photo",
+      "extensions": [
+        ".raf"
+      ],
+      "mime": "image/x-fuji-raf",
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "orf",
+      "name": "Olympus RAW",
+      "category": "photo",
+      "extensions": [
+        ".orf"
+      ],
+      "mime": "image/x-olympus-orf",
+      "sniffAs": [
+        "tiff"
+      ],
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "rw2",
+      "name": "Panasonic RAW",
+      "category": "photo",
+      "extensions": [
+        ".rw2"
+      ],
+      "mime": "image/x-panasonic-rw2",
+      "sniffAs": [
+        "tiff"
+      ],
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "pef",
+      "name": "Pentax RAW",
+      "category": "photo",
+      "extensions": [
+        ".pef"
+      ],
+      "mime": "image/x-pentax-pef",
+      "sniffAs": [
+        "tiff"
+      ],
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "srw",
+      "name": "Samsung RAW",
+      "category": "photo",
+      "extensions": [
+        ".srw"
+      ],
+      "mime": "image/x-samsung-srw",
+      "sniffAs": [
+        "tiff"
+      ],
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "raw-other",
+      "name": "Other camera RAW",
+      "category": "photo",
+      "extensions": [
+        ".3fr",
+        ".fff",
+        ".erf",
+        ".kdc",
+        ".dcr",
+        ".mef",
+        ".mos",
+        ".mrw",
+        ".iiq",
+        ".x3f",
+        ".rwl"
+      ],
+      "mime": "application/octet-stream",
+      "sniffAs": [
+        "tiff"
+      ],
+      "plays": "picture",
+      "libraries": [
+        "photos"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "cbz",
+      "name": "Comic (ZIP)",
+      "category": "comic",
+      "extensions": [
+        ".cbz"
+      ],
+      "mime": "application/vnd.comicbook+zip",
+      "sniffAs": [
+        "zip",
+        "rar",
+        "7z",
+        "tar"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "cbr",
+      "name": "Comic (RAR)",
+      "category": "comic",
+      "extensions": [
+        ".cbr"
+      ],
+      "mime": "application/vnd.comicbook-rar",
+      "sniffAs": [
+        "rar",
+        "zip",
+        "7z",
+        "tar"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "cb7",
+      "name": "Comic (7-Zip)",
+      "category": "comic",
+      "extensions": [
+        ".cb7"
+      ],
+      "mime": "application/x-cb7",
+      "sniffAs": [
+        "7z",
+        "zip",
+        "rar",
+        "tar"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "cbt",
+      "name": "Comic (TAR)",
+      "category": "comic",
+      "extensions": [
+        ".cbt"
+      ],
+      "mime": "application/x-cbt",
+      "sniffAs": [
+        "tar",
+        "zip",
+        "rar",
+        "7z"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "epub",
+      "name": "EPUB",
+      "category": "book",
+      "extensions": [
+        ".epub",
+        ".kepub"
+      ],
+      "mime": "application/epub+zip",
+      "sniffAs": [
+        "zip"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "pdf",
+      "name": "PDF",
+      "category": "book",
+      "extensions": [
+        ".pdf"
+      ],
+      "mime": "application/pdf",
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "mobi",
+      "name": "Kindle (MOBI)",
+      "category": "book",
+      "extensions": [
+        ".mobi",
+        ".prc"
+      ],
+      "mime": "application/x-mobipocket-ebook",
+      "sniffAs": [
+        "pdb"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra",
+      "notes": "Copy-protected Kindle books are refused."
+    },
+    {
+      "id": "azw",
+      "name": "Kindle (AZW)",
+      "category": "book",
+      "extensions": [
+        ".azw",
+        ".azw1"
+      ],
+      "mime": "application/vnd.amazon.ebook",
+      "sniffAs": [
+        "mobi",
+        "pdb"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra",
+      "notes": "Copy-protected Kindle books are refused."
+    },
+    {
+      "id": "azw3",
+      "name": "Kindle (KF8)",
+      "category": "book",
+      "extensions": [
+        ".azw3",
+        ".kf8"
+      ],
+      "mime": "application/vnd.amazon.ebook",
+      "sniffAs": [
+        "mobi",
+        "pdb"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra",
+      "notes": "Copy-protected Kindle books are refused."
+    },
+    {
+      "id": "pdb",
+      "name": "Palm eBook",
+      "category": "book",
+      "extensions": [
+        ".pdb"
+      ],
+      "mime": "application/vnd.palm",
+      "confirmByContent": true,
+      "sniffAs": [
+        "mobi"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "fb2",
+      "name": "FictionBook",
+      "category": "book",
+      "extensions": [
+        ".fb2",
+        ".fbz"
+      ],
+      "mime": "application/x-fictionbook+xml",
+      "sniffAs": [
+        "zip"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "docx",
+      "name": "Word document",
+      "category": "book",
+      "extensions": [
+        ".docx"
+      ],
+      "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "sniffAs": [
+        "zip"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "odt",
+      "name": "OpenDocument text",
+      "category": "book",
+      "extensions": [
+        ".odt"
+      ],
+      "mime": "application/vnd.oasis.opendocument.text",
+      "sniffAs": [
+        "zip"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "doc",
+      "name": "Word 97-2003 document",
+      "category": "book",
+      "extensions": [
+        ".doc"
+      ],
+      "mime": "application/msword",
+      "sniffAs": [
+        "ole2"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra",
+      "notes": "Its text is shown, without pictures or layout."
+    },
+    {
+      "id": "rtf",
+      "name": "Rich Text",
+      "category": "book",
+      "extensions": [
+        ".rtf"
+      ],
+      "mime": "application/rtf",
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "md",
+      "name": "Markdown",
+      "category": "book",
+      "extensions": [
+        ".md",
+        ".markdown"
+      ],
+      "mime": "text/plain; charset=utf-8",
+      "confirmByContent": true,
+      "sniffAs": [
+        "webpage"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "html",
+      "name": "Web page",
+      "category": "book",
+      "extensions": [
+        ".html",
+        ".htm",
+        ".xhtml"
+      ],
+      "mime": "text/html",
+      "confirmByContent": true,
+      "sniffAs": [
+        "webpage"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra",
+      "notes": "Scripts and outside links are removed before it is shown."
+    },
+    {
+      "id": "txt",
+      "name": "Plain text",
+      "category": "book",
+      "extensions": [
+        ".txt"
+      ],
+      "mime": "text/plain; charset=utf-8",
+      "confirmByContent": true,
+      "sniffAs": [
+        "webpage",
+        "srt",
+        "m3u",
+        "cue",
+        "lrc",
+        "sbv",
+        "microdvd"
+      ],
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "djvu",
+      "name": "DjVu",
+      "category": "book",
+      "extensions": [
+        ".djvu",
+        ".djv"
+      ],
+      "mime": "image/vnd.djvu",
+      "plays": "reader",
+      "libraries": [
+        "books"
+      ],
+      "needs": "The DjVuLibre tools on the server (ddjvu), to open it",
+      "notes": "Pages are drawn by DjVuLibre when it is installed. Without it the book is still listed, and can be downloaded."
+    },
+    {
+      "id": "iso",
+      "name": "Disc image",
+      "category": "disc",
+      "extensions": [
+        ".iso",
+        ".udf"
+      ],
+      "mime": "application/x-iso9660-image",
+      "plays": "disc",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "discs",
+        "music"
+      ],
+      "needs": "FFmpeg",
+      "notes": "DVD, Blu-ray or audio CD. Encrypted discs are refused."
+    },
+    {
+      "id": "img",
+      "name": "Disc image",
+      "category": "disc",
+      "extensions": [
+        ".img"
+      ],
+      "mime": "application/octet-stream",
+      "confirmByContent": true,
+      "sniffAs": [
+        "iso",
+        "bin"
+      ],
+      "plays": "disc",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "discs",
+        "music"
+      ],
+      "needs": "FFmpeg",
+      "notes": "DVD, Blu-ray or audio CD."
+    },
+    {
+      "id": "bin",
+      "name": "Raw disc image",
+      "category": "disc",
+      "extensions": [
+        ".bin"
+      ],
+      "mime": "application/octet-stream",
+      "confirmByContent": true,
+      "sniffAs": [
+        "iso"
+      ],
+      "plays": "disc",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "discs",
+        "music"
+      ],
+      "needs": "FFmpeg",
+      "notes": "Read through the .cue beside it. An audio CD, or a data image of a DVD or Blu-ray."
+    },
+    {
+      "id": "cue",
+      "name": "CUE sheet",
+      "category": "disc",
+      "extensions": [
+        ".cue"
+      ],
+      "mime": "text/plain; charset=utf-8",
+      "plays": "disc",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "discs",
+        "music"
+      ],
+      "needs": "Nothing extra",
+      "notes": "Splits one long sound file, or a raw image, into tracks. The tracks of the sheet appear as one album."
+    },
+    {
+      "id": "nrg",
+      "name": "Nero image",
+      "category": "disc",
+      "extensions": [
+        ".nrg"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "disc",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "discs",
+        "music"
+      ],
+      "needs": "FFmpeg"
+    },
+    {
+      "id": "mdf",
+      "name": "Alcohol image",
+      "category": "disc",
+      "extensions": [
+        ".mdf"
+      ],
+      "mime": "application/octet-stream",
+      "sniffAs": [
+        "iso",
+        "bin"
+      ],
+      "plays": "disc",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "discs",
+        "music"
+      ],
+      "needs": "FFmpeg",
+      "notes": "Images that keep whole sectors of a DVD. The .mds beside it isn't needed."
+    },
+    {
+      "id": "ccd",
+      "name": "CloneCD sheet",
+      "category": "disc",
+      "extensions": [
+        ".ccd"
+      ],
+      "mime": "text/plain; charset=utf-8",
+      "plays": "disc",
+      "libraries": [
+        "music",
+        "discs"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "toc",
+      "name": "cdrdao sheet",
+      "category": "disc",
+      "extensions": [
+        ".toc"
+      ],
+      "mime": "text/plain; charset=utf-8",
+      "confirmByContent": true,
+      "plays": "disc",
+      "libraries": [
+        "music",
+        "discs"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "chd",
+      "name": "Compressed disc",
+      "category": "disc",
+      "extensions": [
+        ".chd"
+      ],
+      "mime": "application/octet-stream",
+      "plays": "disc",
+      "libraries": [
+        "music",
+        "discs"
+      ],
+      "needs": "Nothing extra"
+    },
+    {
+      "id": "video-ts",
+      "name": "DVD folder (VIDEO_TS)",
+      "category": "disc",
+      "extensions": null,
+      "mime": "",
+      "folder": true,
+      "plays": "disc",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "discs",
+        "music"
+      ],
+      "needs": "FFmpeg",
+      "notes": "A folder that holds VIDEO_TS is one disc."
+    },
+    {
+      "id": "bdmv",
+      "name": "Blu-ray folder (BDMV)",
+      "category": "disc",
+      "extensions": null,
+      "mime": "",
+      "folder": true,
+      "plays": "disc",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "discs",
+        "music"
+      ],
+      "needs": "FFmpeg",
+      "notes": "A folder that holds BDMV is one disc."
+    },
+    {
+      "id": "m3u",
+      "name": "M3U playlist",
+      "category": "playlist",
+      "extensions": [
+        ".m3u",
+        ".m3u8"
+      ],
+      "mime": "audio/x-mpegurl",
+      "plays": "sheet",
+      "libraries": [
+        "music"
+      ],
+      "needs": "Nothing extra",
+      "notes": "Becomes a playlist of the songs it names that are in the library. Web addresses in it are ignored."
+    },
+    {
+      "id": "pls",
+      "name": "PLS playlist",
+      "category": "playlist",
+      "extensions": [
+        ".pls"
+      ],
+      "mime": "audio/x-scpls",
+      "plays": "sheet",
+      "libraries": [
+        "music"
+      ],
+      "needs": "Nothing extra",
+      "notes": "As M3U."
+    },
+    {
+      "id": "xspf",
+      "name": "XSPF playlist",
+      "category": "playlist",
+      "extensions": [
+        ".xspf"
+      ],
+      "mime": "application/xspf+xml",
+      "plays": "sheet",
+      "libraries": [
+        "music"
+      ],
+      "needs": "Nothing extra",
+      "notes": "As M3U."
+    },
+    {
+      "id": "asx",
+      "name": "Windows Media playlist",
+      "category": "playlist",
+      "extensions": [
+        ".asx",
+        ".wax",
+        ".wvx",
+        ".wpl"
+      ],
+      "mime": "video/x-ms-asf",
+      "plays": "sheet",
+      "libraries": [
+        "music"
+      ],
+      "needs": "Nothing extra",
+      "notes": "As M3U."
+    },
+    {
+      "id": "nfo",
+      "name": "NFO details",
+      "category": "sidecar",
+      "extensions": [
+        ".nfo"
+      ],
+      "mime": "text/plain; charset=utf-8",
+      "plays": "sheet",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "music",
+        "audiobooks",
+        "photos",
+        "books"
+      ],
+      "needs": "Nothing extra",
+      "notes": "Titles and details saved beside a film, show or album."
+    },
+    {
+      "id": "tbn",
+      "name": "Thumbnail beside a file",
+      "category": "sidecar",
+      "extensions": [
+        ".tbn"
+      ],
+      "mime": "image/jpeg",
+      "plays": "sheet",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "music",
+        "audiobooks",
+        "photos",
+        "books"
+      ],
+      "needs": "Nothing extra",
+      "notes": "Artwork beside a file. So is any picture named poster, fanart, folder, cover or after the file."
+    },
+    {
+      "id": "json-meta",
+      "name": "Details in JSON",
+      "category": "sidecar",
+      "extensions": [
+        ".json"
+      ],
+      "mime": "application/json",
+      "plays": "sheet",
+      "libraries": [
+        "movies",
+        "shows",
+        "anime",
+        "videos",
+        "shorts",
+        "channels",
+        "musicvideos"
+      ],
+      "needs": "Nothing extra",
+      "notes": "name.metadata.json, and the .info.json video archivers write."
+    },
+    {
+      "id": "zip",
+      "name": "ZIP archive",
+      "category": "other",
+      "extensions": null,
+      "mime": "",
+      "plays": "",
+      "libraries": null,
+      "needs": ""
+    },
+    {
+      "id": "rar",
+      "name": "RAR archive",
+      "category": "other",
+      "extensions": null,
+      "mime": "",
+      "plays": "",
+      "libraries": null,
+      "needs": ""
+    },
+    {
+      "id": "7z",
+      "name": "7-Zip archive",
+      "category": "other",
+      "extensions": null,
+      "mime": "",
+      "plays": "",
+      "libraries": null,
+      "needs": ""
+    },
+    {
+      "id": "tar",
+      "name": "TAR archive",
+      "category": "other",
+      "extensions": null,
+      "mime": "",
+      "plays": "",
+      "libraries": null,
+      "needs": ""
+    },
+    {
+      "id": "gzip",
+      "name": "gzip archive",
+      "category": "other",
+      "extensions": null,
+      "mime": "",
+      "plays": "",
+      "libraries": null,
+      "needs": ""
+    },
+    {
+      "id": "ole2",
+      "name": "Microsoft Office file",
+      "category": "other",
+      "extensions": null,
+      "mime": "",
+      "plays": "",
+      "libraries": null,
+      "needs": ""
+    },
+    {
+      "id": "program",
+      "name": "Program",
+      "category": "other",
+      "extensions": null,
+      "mime": "",
+      "plays": "",
+      "libraries": null,
+      "needs": ""
+    },
+    {
+      "id": "webpage",
+      "name": "Web page",
+      "category": "other",
+      "extensions": null,
+      "mime": "",
+      "plays": "",
+      "libraries": null,
+      "needs": ""
+    },
+    {
+      "id": "microdvd",
+      "name": "MicroDVD subtitles",
+      "category": "other",
+      "extensions": null,
+      "mime": "",
+      "plays": "",
+      "libraries": null,
+      "needs": ""
+    },
+    {
+      "id": "subviewer",
+      "name": "SubViewer subtitles",
+      "category": "other",
+      "extensions": null,
+      "mime": "",
+      "plays": "",
+      "libraries": null,
+      "needs": ""
+    }
+  ],
+  "codecs": [
+    {
+      "id": "h264",
+      "name": "H.264 / AVC",
+      "kind": "video",
+      "browser": true
+    },
+    {
+      "id": "hevc",
+      "name": "HEVC / H.265",
+      "kind": "video",
+      "notes": "Plays directly where the browser and machine decode it, otherwise converted."
+    },
+    {
+      "id": "av1",
+      "name": "AV1",
+      "kind": "video",
+      "browser": true
+    },
+    {
+      "id": "vp9",
+      "name": "VP9",
+      "kind": "video",
+      "browser": true
+    },
+    {
+      "id": "vp8",
+      "name": "VP8",
+      "kind": "video",
+      "browser": true
+    },
+    {
+      "id": "vvc",
+      "name": "VVC / H.266",
+      "kind": "video",
+      "notes": "Needs an FFmpeg that decodes it."
+    },
+    {
+      "id": "mpeg1video",
+      "name": "MPEG-1",
+      "kind": "video"
+    },
+    {
+      "id": "mpeg2video",
+      "name": "MPEG-2",
+      "kind": "video"
+    },
+    {
+      "id": "mpeg4",
+      "name": "MPEG-4 ASP (DivX, Xvid)",
+      "kind": "video"
+    },
+    {
+      "id": "msmpeg4v3",
+      "name": "MS MPEG-4",
+      "kind": "video"
+    },
+    {
+      "id": "h263",
+      "name": "H.263",
+      "kind": "video"
+    },
+    {
+      "id": "vc1",
+      "name": "VC-1",
+      "kind": "video"
+    },
+    {
+      "id": "wmv3",
+      "name": "Windows Media Video 9",
+      "kind": "video"
+    },
+    {
+      "id": "wmv2",
+      "name": "Windows Media Video 8",
+      "kind": "video"
+    },
+    {
+      "id": "prores",
+      "name": "ProRes",
+      "kind": "video"
+    },
+    {
+      "id": "dnxhd",
+      "name": "DNxHD / DNxHR",
+      "kind": "video"
+    },
+    {
+      "id": "theora",
+      "name": "Theora",
+      "kind": "video"
+    },
+    {
+      "id": "rv30",
+      "name": "RealVideo 3",
+      "kind": "video"
+    },
+    {
+      "id": "rv40",
+      "name": "RealVideo 4",
+      "kind": "video"
+    },
+    {
+      "id": "mjpeg",
+      "name": "Motion JPEG",
+      "kind": "video"
+    },
+    {
+      "id": "dvvideo",
+      "name": "DV",
+      "kind": "video"
+    },
+    {
+      "id": "ffv1",
+      "name": "FFV1",
+      "kind": "video"
+    },
+    {
+      "id": "rawvideo",
+      "name": "Uncompressed",
+      "kind": "video"
+    },
+    {
+      "id": "flv1",
+      "name": "Sorenson Spark",
+      "kind": "video"
+    },
+    {
+      "id": "aac",
+      "name": "AAC",
+      "kind": "audio",
+      "browser": true
+    },
+    {
+      "id": "mp3",
+      "name": "MP3",
+      "kind": "audio",
+      "browser": true
+    },
+    {
+      "id": "mp3float",
+      "name": "MP3",
+      "kind": "audio",
+      "browser": true
+    },
+    {
+      "id": "mp2",
+      "name": "MPEG audio layer II",
+      "kind": "audio"
+    },
+    {
+      "id": "opus",
+      "name": "Opus",
+      "kind": "audio",
+      "browser": true
+    },
+    {
+      "id": "vorbis",
+      "name": "Vorbis",
+      "kind": "audio",
+      "browser": true
+    },
+    {
+      "id": "flac",
+      "name": "FLAC",
+      "kind": "audio",
+      "browser": true
+    },
+    {
+      "id": "alac",
+      "name": "Apple Lossless",
+      "kind": "audio"
+    },
+    {
+      "id": "ac3",
+      "name": "Dolby Digital",
+      "kind": "audio"
+    },
+    {
+      "id": "eac3",
+      "name": "Dolby Digital Plus",
+      "kind": "audio"
+    },
+    {
+      "id": "dts",
+      "name": "DTS and DTS-HD",
+      "kind": "audio"
+    },
+    {
+      "id": "truehd",
+      "name": "Dolby TrueHD",
+      "kind": "audio"
+    },
+    {
+      "id": "mlp",
+      "name": "Meridian Lossless",
+      "kind": "audio"
+    },
+    {
+      "id": "pcm_s16le",
+      "name": "PCM 16-bit",
+      "kind": "audio",
+      "browser": true
+    },
+    {
+      "id": "pcm_s24le",
+      "name": "PCM 24-bit",
+      "kind": "audio",
+      "browser": true
+    },
+    {
+      "id": "pcm_u8",
+      "name": "PCM 8-bit",
+      "kind": "audio",
+      "browser": true
+    },
+    {
+      "id": "pcm_f32le",
+      "name": "PCM 32-bit float",
+      "kind": "audio",
+      "browser": true
+    },
+    {
+      "id": "pcm_s16be",
+      "name": "PCM 16-bit, big-endian",
+      "kind": "audio"
+    },
+    {
+      "id": "pcm_s24be",
+      "name": "PCM 24-bit, big-endian",
+      "kind": "audio"
+    },
+    {
+      "id": "pcm_bluray",
+      "name": "Blu-ray PCM",
+      "kind": "audio"
+    },
+    {
+      "id": "pcm_dvd",
+      "name": "DVD PCM",
+      "kind": "audio"
+    },
+    {
+      "id": "wmav2",
+      "name": "Windows Media Audio",
+      "kind": "audio"
+    },
+    {
+      "id": "wmapro",
+      "name": "Windows Media Audio Pro",
+      "kind": "audio"
+    },
+    {
+      "id": "wmalossless",
+      "name": "Windows Media Audio Lossless",
+      "kind": "audio"
+    },
+    {
+      "id": "ape",
+      "name": "Monkey's Audio",
+      "kind": "audio"
+    },
+    {
+      "id": "wavpack",
+      "name": "WavPack",
+      "kind": "audio"
+    },
+    {
+      "id": "tta",
+      "name": "True Audio",
+      "kind": "audio"
+    },
+    {
+      "id": "musepack7",
+      "name": "Musepack SV7",
+      "kind": "audio"
+    },
+    {
+      "id": "musepack8",
+      "name": "Musepack SV8",
+      "kind": "audio"
+    },
+    {
+      "id": "dsd_lsbf",
+      "name": "DSD",
+      "kind": "audio"
+    },
+    {
+      "id": "dsd_lsbf_planar",
+      "name": "DSD",
+      "kind": "audio"
+    },
+    {
+      "id": "dsd_msbf",
+      "name": "DSD",
+      "kind": "audio"
+    },
+    {
+      "id": "dsd_msbf_planar",
+      "name": "DSD",
+      "kind": "audio"
+    },
+    {
+      "id": "cook",
+      "name": "RealAudio Cooker",
+      "kind": "audio"
+    },
+    {
+      "id": "amr_nb",
+      "name": "AMR",
+      "kind": "audio"
+    },
+    {
+      "id": "amr_wb",
+      "name": "AMR wideband",
+      "kind": "audio"
+    },
+    {
+      "id": "speex",
+      "name": "Speex",
+      "kind": "audio"
+    },
+    {
+      "id": "midi",
+      "name": "MIDI",
+      "kind": "audio"
+    },
+    {
+      "id": "subrip",
+      "name": "SubRip",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "srt",
+      "name": "SubRip",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "ass",
+      "name": "Advanced SubStation",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "ssa",
+      "name": "SubStation Alpha",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "webvtt",
+      "name": "WebVTT",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "mov_text",
+      "name": "MP4 timed text",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "text",
+      "name": "Plain text",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "microdvd",
+      "name": "MicroDVD",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "subviewer",
+      "name": "SubViewer",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "subviewer1",
+      "name": "SubViewer",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "sami",
+      "name": "SAMI",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "realtext",
+      "name": "RealText",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "stl",
+      "name": "Spruce subtitles",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "vplayer",
+      "name": "VPlayer",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "mpl2",
+      "name": "MPL2",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "pjs",
+      "name": "Phoenix",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "jacosub",
+      "name": "JACOsub",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "ttml",
+      "name": "TTML",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "dfxp",
+      "name": "DFXP",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "eia_608",
+      "name": "CEA-608 captions",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "cea608",
+      "name": "CEA-608 captions",
+      "kind": "subtitle",
+      "text": true
+    },
+    {
+      "id": "hdmv_pgs_subtitle",
+      "name": "Blu-ray PGS",
+      "kind": "subtitle"
+    },
+    {
+      "id": "dvd_subtitle",
+      "name": "DVD subtitles",
+      "kind": "subtitle"
+    },
+    {
+      "id": "dvb_subtitle",
+      "name": "DVB subtitles",
+      "kind": "subtitle"
+    },
+    {
+      "id": "xsub",
+      "name": "DivX subtitles",
+      "kind": "subtitle"
+    }
+  ]
+}

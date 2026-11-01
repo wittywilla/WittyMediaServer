@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 	"github.com/wittywilla/wittymodule"
 )
@@ -173,6 +174,7 @@ type moduleState struct {
 }
 
 type entry struct {
+	task    *tasks.Handle // the install going on, in the activity panel
 	builtin *wittymodule.Manifest
 	state   moduleState
 

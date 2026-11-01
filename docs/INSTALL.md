@@ -149,7 +149,7 @@ docker run -d --name wittymediaserver --restart unless-stopped \
 
 Or `docker compose up -d` with [`docker-compose.yml`](../docker-compose.yml). For hardware
 transcoding pass `--device /dev/dri` (VAAPI) or use the NVIDIA container runtime, then tick the
-encoder under *Settings → Transcoding*. The image runs as UID 1000: `chown` your media or add
+encoder under *Settings → Live transcoding*. The image runs as UID 1000: `chown` your media or add
 `--user`.
 
 ## Kubernetes

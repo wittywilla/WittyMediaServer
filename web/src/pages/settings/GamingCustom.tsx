@@ -5,6 +5,7 @@ import LegalNote from '../../components/LegalNote'
 import { toast } from '../../state'
 import { getConsoles } from '../Games'
 import { Row, Section, Switch } from './ui'
+import { ask } from '../../ui/Overlay'
 
 // Settings, Consoles & cores: an administrator's own cores and consoles. A core is a program
 // that runs on the server, so the page says so before anything else, asks for the
@@ -624,7 +625,7 @@ function ConsoleDialog({ status, existing, onClose, onDone }: { status: CustomSt
 function ConsolesPart({ status, onReload }: { status: CustomStatus; onReload: () => Promise<void> }) {
   const [editing, setEditing] = useState<ConsoleView | 'new' | null>(null)
   const remove = async (c: ConsoleView) => {
-    if (c.games > 0 && !window.confirm(`${c.games} games are sorted under ${c.name}. They'll drop out of their library at the next scan unless another console takes them. Remove it?`)) return
+    if (c.games > 0 && !await ask({ title: `Remove ${c.name}?`, body: `${c.games} games are sorted under it. They’ll drop out of their library at the next scan unless another console takes them.`, confirm: 'Remove', danger: true })) return
     try { await api.del(`/gaming/custom/consoles/${c.id}`); toast(`${c.name} removed`); await onReload() } catch (e: any) { toast(e.message) }
   }
   return (

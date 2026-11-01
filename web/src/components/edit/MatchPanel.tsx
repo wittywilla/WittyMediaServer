@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, artPreviewUrl } from '../../api'
 import { IconStar } from '../../icons'
 import type { FieldChange, MatchCandidate, MatchPreview, SearchResult, Target, TitleEditor } from '../../metadata'
+import { ask, Button, Notice, Progress } from '../../ui'
 import LegalNote from '../LegalNote'
 
 // Search and match: pick the right title. Choosing a result shows what would change
@@ -10,12 +11,7 @@ import LegalNote from '../LegalNote'
 export const confidenceWord = (n: number) => (n >= 90 ? 'Very likely' : n >= 70 ? 'Likely' : n >= 40 ? 'Not sure' : 'Unlikely')
 
 export function ConfidenceMeter({ value, label }: { value: number; label?: string }) {
-  const tone = value >= 70 ? 'good' : value >= 40 ? 'mid' : 'low'
-  return (
-    <span className={'ed-conf ' + tone} role="img" aria-label={`${label || confidenceWord(value)}: ${value} out of 100`}>
-      <i style={{ width: value + '%' }} /><b>{value}%</b>
-    </span>
-  )
+  return <span className="ed-conf"><Progress value={value} showValue tone={value >= 70 ? 'ok' : value >= 40 ? 'warn' : 'danger'} label={`${label || confidenceWord(value)}: ${value} out of 100`} /></span>
 }
 
 // Shared with the fix-matches page.
@@ -54,7 +50,6 @@ export default function MatchPanel({ ed, target, id, onApplied, onError }: { ed:
   const [preview, setPreview] = useState<MatchPreview | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [picked, setPicked] = useState<Set<string>>(new Set())
-  const [confirmRemove, setConfirmRemove] = useState(false)
   const list = useRef<HTMLDivElement | null>(null)
   const results = useRef<HTMLHeadingElement | null>(null)
 
@@ -87,9 +82,9 @@ export default function MatchPanel({ ed, target, id, onApplied, onError }: { ed:
   }
   const removeMatch = async () => {
     onError('')
+    if (!await ask({ title: 'Remove this match?', body: `Everything ${ed.match.sourceLabel} gave goes, and it's named after its file again. What you typed and what's beside the file stays. Nothing is looked up for it until you choose a match.`, confirm: 'Remove the match', cancel: 'Keep it', danger: true })) return
     try {
       const r = await api.del<{ editor: TitleEditor; batch: string }>(`/meta/${target}/${id}/match`)
-      setConfirmRemove(false)
       onApplied(r.editor, r.batch, 'Match removed.')
     } catch (e: any) { onError(e.message) }
   }
@@ -116,33 +111,22 @@ export default function MatchPanel({ ed, target, id, onApplied, onError }: { ed:
         <p className="muted">Nothing is matched yet. Search below and pick the right title.</p>
       )}
       {m.reasons.length > 0 && m.state === '' && m.source !== '' && <ul className="ed-why-list">{m.reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
-      {m.source && !confirmRemove && (
-        <p>Wrong film or show? <button type="button" className="ed-link" onClick={() => setConfirmRemove(true)}>Remove this match</button> and keep only what you typed.</p>
-      )}
-      {confirmRemove && (
-        <div className="ed-warn" role="alert">
-          <p>Everything {m.sourceLabel} gave goes, and it's named after its file again. What you typed and what's beside the file stays. Nothing is looked up for it until you choose a match.</p>
-          <div className="ed-art-btns">
-            <button type="button" className="btn danger" onClick={removeMatch}>Remove the match</button>
-            <button type="button" className="btn ghost" onClick={() => setConfirmRemove(false)}>Keep it</button>
-          </div>
-        </div>
-      )}
+      {m.source && <p>Wrong film or show? <button type="button" className="ed-link" onClick={removeMatch}>Remove this match</button> and keep only what you typed.</p>}
       <div className="ed-panel">
         <h4>Search and match: pick the right title</h4>
         <form className="field-row" onSubmit={(e) => { e.preventDefault(); search() }}>
           <input className="input" aria-label="Search for the right title, or paste an id or address" autoFocus value={query} placeholder={ed.name} onChange={(e) => setQuery(e.target.value)} />
-          <button type="submit" className="btn" disabled={searching}>{searching ? 'Searching…' : 'Search'}</button>
-          {m.source && m.state !== 'none' && <button type="button" className="btn ghost" onClick={refresh} disabled={previewing}>Check for changes</button>}
+          <Button type="submit" busy={searching}>Search</Button>
+          {m.source && m.state !== 'none' && <Button variant="ghost" onClick={refresh} disabled={previewing}>Check for changes</Button>}
         </form>
         <p className="muted ed-help">A name, or an id or address from TMDB, IMDb, TheTVDB, TVmaze or Wikidata, such as tt0000123 or tmdb:12.</p>
         {previewing && <div className="loading-box"><div className="spinner" /></div>}
         {preview ? <PreviewTable p={preview} picked={picked} setPicked={setPicked} onApply={apply} onBack={() => setPreview(null)} /> : res && (
           <>
             <h5 ref={results} tabIndex={-1} className="ed-results-h">{res.results.length ? `${res.results.length} ${res.results.length === 1 ? 'result' : 'results'}, most likely first` : 'Nothing found'}</h5>
-            {res.warnings.map((w) => <p key={w} className="ed-warn-line" role="alert">{w}</p>)}
+            {res.warnings.map((w) => <Notice key={w} tone="warn">{w}</Notice>)}
             {res.results.length === 0 && !res.warnings.length && <p className="muted">Try fewer words, the original title, or an id. Asked: {res.sources.join(', ') || 'no sources are turned on'}.</p>}
-            <div className="ed-results" ref={list} onKeyDown={arrows}>
+            <div className="ed-results" ref={list} onKeyDown={arrows} data-nav-group>
               {res.results.map((c) => <ResultRow key={c.source + c.id} c={c} onChoose={() => choose(c)} />)}
             </div>
             {res.results.length > 0 && <LegalNote kind="webResults" />}
@@ -202,8 +186,8 @@ export function PreviewTable({ p, picked, setPicked, onApply, onBack, applyLabel
         </p>
       )}
       <div className="ed-art-btns">
-        <button type="button" className="btn primary" onClick={onApply}>{applyLabel}</button>
-        <button type="button" className="btn ghost" onClick={onBack}>Back</button>
+        <Button variant="primary" onClick={onApply}>{applyLabel}</Button>
+        <Button variant="ghost" onClick={onBack}>Back</Button>
       </div>
     </div>
   )

@@ -32,6 +32,12 @@ type testServer struct {
 
 func newTestServer(t *testing.T) *testServer {
 	t.Helper()
+	return newTestServerWith(t, &ffmpeg.Tools{Encoders: map[string]bool{}})
+}
+
+// newTestServerWith is that, with these tools: a real FFmpeg, for playing real files.
+func newTestServerWith(t *testing.T, tools *ffmpeg.Tools) *testServer {
+	t.Helper()
 	dir := t.TempDir()
 	d, err := db.Open(dir)
 	if err != nil {
@@ -39,7 +45,6 @@ func newTestServer(t *testing.T) *testServer {
 	}
 	t.Cleanup(func() { d.Close() })
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	tools := &ffmpeg.Tools{Encoders: map[string]bool{}}
 	h := hls.NewManager(tools, filepath.Join(dir, "transcode"), 2, log)
 	store := &library.Store{DB: d}
 	s := &Server{

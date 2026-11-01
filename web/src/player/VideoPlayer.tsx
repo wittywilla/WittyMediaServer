@@ -36,16 +36,15 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const root = useIdle(prefs.hideAfter * 1000, [mini])
   const [info, setInfo] = useState<PlaybackAnswer | null>(null)
   const [infoOpen, setInfoOpen] = useState(false)
-  // Null until the server has said which it chose. A subtitle the player draws itself
-  // changes with no new request; a choice the server has to act on makes one.
-  const [audio, setAudio] = useState<number | null>(null)
+  // What has been asked of the server. Each change is a new request. A subtitle the
+  // player draws itself changes with none: that's sub, which starts as the server's
+  // choice. restartAt: a rewrapped stream only exists from where it started, so going
+  // past what's been made asks for a new one, starting there.
+  const [want, setWant] = useState<{ audio?: number; burn?: { index: number; styled: boolean } | null; video?: number; flat3d?: boolean; restartAt?: number; convert?: boolean }>({})
   const [sub, setSub] = useState<number | null>(null)
-  const [burn, setBurn] = useState<{ index: number; styled: boolean } | null>(null)
-  const [videoTrack, setVideoTrack] = useState<number | null>(null)
-  const [flat3d, setFlat3d] = useState(false)
-  // A rewrapped stream only exists from where it started: going past what's been made
-  // asks for a new one, starting there.
-  const [restartAt, setRestartAt] = useState<{ at: number } | null>(null)
+  const audio = want.audio ?? info?.audioIndex ?? 0
+  const burn = want.burn
+  const flat3d = !!want.flat3d
   const [err, setErr] = useState('')
   const [needClick, setNeedClick] = useState(false)
   const pendingSeek = useRef<number | null>(startAt ?? item.progress?.resumeSec ?? 0)
@@ -89,29 +88,25 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   useEffect(() => {
     setInfo(null)
     let current = true
-    const start = restartAt ? restartAt.at : pendingSeek.current
+    const start = want.restartAt ?? pendingSeek.current
     const body: Record<string, unknown> = { profile: 'web', capabilities: browserCapabilities(), startSec: start ?? 0, flatten3d: flat3d }
-    if (audio != null) body.audio = audio
+    if (want.audio != null) body.audio = want.audio
     if (burn) { body.subtitle = burn.index; body.burnSubtitle = burn.styled } else if (sub != null) body.subtitle = sub
-    if (videoTrack != null) body.video = videoTrack
+    if (want.video != null) body.video = want.video
+    if (want.convert) body.forceTranscode = true
     api.post<PlaybackAnswer>(`/items/${item.id}/playback`, body).then((a) => {
       if (!current) return
       setInfo(a)
-      setAudio(a.audioIndex)
       setSub((s) => (s == null ? a.subtitleIndex : s))
       // A stream starts where it was asked to; a file or a full stream seeks once open.
       pendingSeek.current = a.seek === 'restart' ? null : (a.startAtSec || null)
     }).catch((e) => { if (current) setErr(e.message) })
     return () => { current = false }
-  }, [item.id, audio, burn, videoTrack, flat3d, restartAt]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // If the server chose a subtitle the picture has to carry, it's burning it now.
-  useEffect(() => {
-    if (info && info.subtitleDelivery === 'burn' && info.subtitleIndex >= 0 && !burn) setBurn({ index: info.subtitleIndex, styled: false })
-  }, [info, burn])
+  }, [item.id, want]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Subtitles the player draws: the chosen track, with its cues in the player's time.
-  const shownSub = info && sub != null && sub >= 0 && !burn ? info.subtitles.find((s) => s.index === sub) : undefined
+  const burned = info?.subtitleDelivery === 'burn'
+  const shownSub = info && sub != null && sub >= 0 && !burned ? info.subtitles.find((s) => s.index === sub) : undefined
   const subUrl = shownSub?.url || ''
   useEffect(() => {
     const v = video.current
@@ -132,6 +127,9 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       track.default = true
       v.appendChild(track)
       track.track.mode = 'showing'
+      // Clear of the controls, which sit over the bottom of the picture.
+      const t = track
+      t.addEventListener('load', () => { for (const c of Array.from(t.track.cues || [])) { const cue = c as VTTCue; if (cue.line === 'auto') cue.line = -3 } })
     }).catch(() => toast('These subtitles couldn’t be loaded.'))
     return () => {
       stopped = true
@@ -159,7 +157,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     let made = 0
     try { if (v.seekable.length) made = v.seekable.end(v.seekable.length - 1) } catch { /* not open yet */ }
     if (local >= 0 && local <= made - 1) { v.currentTime = local; return }
-    setRestartAt({ at: to })
+    setWant((w) => ({ ...w, restartAt: to }))
   }, [info, offset])
 
   useSource(video, info?.url || null, {
@@ -172,7 +170,25 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       pendingSeek.current = null
       v.play().catch(() => setNeedClick(true))
     },
-    onError: (m) => setErr(m),
+    onError: (m) => { if (!convertInstead()) setErr(m) },
+  })
+
+  // Browsers sometimes say they can play what they then can't, or find a file's codecs
+  // aren't what its first bytes suggested. Rather than an error, it's converted, once.
+  const convertInstead = () => {
+    if (want.convert || !info || info.decision === 'transcode') return false
+    const v = video.current
+    pendingSeek.current = v ? v.currentTime + offset : 0
+    setErr('')
+    setWant((w) => ({ ...w, restartAt: undefined, convert: true }))
+    return true
+  }
+  useEffect(() => {
+    const v = video.current
+    if (!v) return
+    const onFail = () => { if (v.error && !convertInstead()) setErr(v.error.message || 'This file can’t be played here.') }
+    v.addEventListener('error', onFail)
+    return () => v.removeEventListener('error', onFail)
   })
 
   // Progress reporting.
@@ -217,22 +233,22 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     return () => window.removeEventListener('keydown', onKey)
   })
 
-  // Where a new stream should start, so that changing something doesn't lose the place.
-  const keepPlace = () => {
+  // A new request that keeps the place: a change of track shouldn't lose it.
+  const ask = (change: Partial<typeof want>) => {
     const v = video.current
     pendingSeek.current = v ? v.currentTime + offset : 0
-    setRestartAt(null)
+    setWant((w) => ({ ...w, restartAt: undefined, ...change }))
   }
   // Styled copies of a subtitle sit in the list as its number plus this.
   const STYLED = 10000
   const switchTrack = (kind: 'audio' | 'sub', id: number) => {
-    if (kind === 'audio') { keepPlace(); setAudio(id); return }
-    if (id >= STYLED) { keepPlace(); setSub(id - STYLED); setBurn({ index: id - STYLED, styled: true }); return }
+    if (kind === 'audio') { ask({ audio: id }); return }
+    if (id >= STYLED) { setSub(id - STYLED); ask({ burn: { index: id - STYLED, styled: true } }); return }
     const delivery = info?.subtitles.find((s) => s.index === id)?.delivery
     setSub(id)
-    if (id >= 0 && (delivery === 'burn' || !delivery)) { keepPlace(); setBurn({ index: id, styled: false }); return }
+    if (id >= 0 && (delivery === 'burn' || !delivery)) { ask({ burn: { index: id, styled: false } }); return }
     // Text the player draws. A stream that had one drawn in goes back to none.
-    if (burn) { keepPlace(); setBurn(null) }
+    if (burned) ask({ burn: null })
   }
   const duration = info?.durationSec || item.runtimeSec || 0
   // The same remote as for discs; disc-only keys are greyed out.
@@ -332,7 +348,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
                   return x.codec === 'ass' || x.codec === 'ssa' ? [plain, { id: x.index + STYLED, title: langName(x.language), sub: 'With its styling', detail: 'Drawn into the picture', active: x.index === sub && !!burn?.styled }] : [plain]
                 })]} />
           )}
-          {infoOpen && info && <PlayInfoPanel info={info} flattened={flat3d} onClose={() => setInfoOpen(false)} onFlat3d={(on) => { keepPlace(); setFlat3d(on) }} onVideo={(i) => { keepPlace(); setVideoTrack(i) }} />}
+          {infoOpen && info && <PlayInfoPanel info={info} flattened={flat3d} onClose={() => setInfoOpen(false)} onFlat3d={(on) => ask({ flat3d: on })} onVideo={(i) => ask({ video: i })} />}
         </>
       )}
     </div>

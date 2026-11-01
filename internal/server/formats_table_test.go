@@ -1337,13 +1337,13 @@ func TestStereoNames(t *testing.T) {
 	if got := stereoMode(&ffmpeg.Stream{Tags: map[string]string{"stereo_mode": "mono"}}, "a.mkv"); got != "" {
 		t.Errorf("mono: %q", got)
 	}
-	if got := flattenFilter("sbs", 1920, 1080); got != "crop=iw/2:ih:0:0,scale=iw*2:ih" {
+	if got := flattenFilter("sbs", 1920, 1080); got != "crop=iw/2:ih:0:0,scale=iw*2:ih,setsar=1" {
 		t.Errorf("half width: %q", got)
 	}
 	if got := flattenFilter("sbs", 3840, 1080); got != "crop=iw/2:ih:0:0" {
 		t.Errorf("full width: %q", got)
 	}
-	if got := flattenFilter("tab", 1920, 1080); got != "crop=iw:ih/2:0:0,scale=iw:ih*2" {
+	if got := flattenFilter("tab", 1920, 1080); got != "crop=iw:ih/2:0:0,scale=iw:ih*2,setsar=1" {
 		t.Errorf("half height: %q", got)
 	}
 }

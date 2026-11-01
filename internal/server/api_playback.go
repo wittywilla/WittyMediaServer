@@ -310,11 +310,11 @@ func flattenFilter(mode string, width, height int) string {
 	case mode == "sbs" && wide:
 		return "crop=iw/2:ih:0:0"
 	case mode == "sbs":
-		return "crop=iw/2:ih:0:0,scale=iw*2:ih"
+		return "crop=iw/2:ih:0:0,scale=iw*2:ih,setsar=1"
 	case mode == "tab" && tall:
 		return "crop=iw:ih/2:0:0"
 	case mode == "tab":
-		return "crop=iw:ih/2:0:0,scale=iw:ih*2"
+		return "crop=iw:ih/2:0:0,scale=iw:ih*2,setsar=1"
 	}
 	return ""
 }
@@ -722,6 +722,15 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		spec.CopyVideo, spec.CopyAudio, spec.FMP4, spec.Growing = true, d.CopyAudio, d.FMP4, true
 		if d.FMP4 && src.VideoCodec == "hevc" {
 			spec.VideoTag = "hvc1"
+		}
+		if start > 0 && len(parts) == 1 {
+			// A copy can only start at a keyframe. Starting at exactly that one means
+			// the player's clock is right, whatever the distance between keyframes.
+			kctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			if k, ok := s.Tools.KeyframeNear(kctx, input, spec.VideoIndex, start); ok {
+				start = k
+			}
+			cancel()
 		}
 		spec.StartSec = start
 		out.TimeOffsetSec = start

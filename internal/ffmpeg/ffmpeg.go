@@ -279,6 +279,28 @@ func (t *Tools) probe(ctx context.Context, input []string) (*Probe, error) {
 	return &p, nil
 }
 
+// KeyframeNear finds where a copy that starts at this time really starts: the first
+// keyframe FFmpeg reaches after seeking there. No keyframe found says so.
+func (t *Tools) KeyframeNear(ctx context.Context, path string, videoIndex int, sec float64) (float64, bool) {
+	args := []string{"-v", "error", "-select_streams", "v:" + strconv.Itoa(videoIndex), "-read_intervals", strconv.FormatFloat(sec, 'f', 3, 64) + "%+#600",
+		"-show_entries", "packet=pts_time,flags", "-of", "csv=p=0"}
+	args = append(args, FileInput(path)...)
+	out, _, err := Run(ctx, t.FFprobe, args)
+	if err != nil {
+		return 0, false
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		pts, flags, ok := strings.Cut(strings.TrimSpace(line), ",")
+		if !ok || !strings.HasPrefix(flags, "K") {
+			continue
+		}
+		if v, err := strconv.ParseFloat(pts, 64); err == nil && v >= 0 {
+			return v, true
+		}
+	}
+	return 0, false
+}
+
 // measureTime finds FFmpeg's last report of where it had got to.
 var measureTime = regexp.MustCompile(`time=(\d+):(\d+):(\d+(?:\.\d+)?)`)
 

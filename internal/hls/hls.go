@@ -876,7 +876,12 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		}
 		// A copy runs as fast as the disk reads; a few times real time leaves
 		// plenty ahead of the viewer without filling the disk for nothing.
+		// The first seconds as fast as they come, so a stream with far-apart keyframes
+		// doesn't keep the viewer waiting for its first whole segment.
 		args = append(args, "-readrate", "4")
+		if s.m.burstSupported() {
+			args = append(args, "-readrate_initial_burst", "30")
+		}
 	}
 	read := start
 	if start > 0 && sp.AudioInput > 0 {

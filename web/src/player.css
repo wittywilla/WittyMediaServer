@@ -419,11 +419,13 @@ kbd { display: inline-block; padding: 1px var(--sp-2); border-radius: var(--r-sm
 .playinfo-summary { margin: 0 0 12px; }
 .playinfo-facts { display: grid; gap: 8px; margin: 0; }
 .playinfo-fact { display: grid; grid-template-columns: minmax(90px, 150px) 1fr; gap: 10px; }
-.playinfo-fact dt { color: var(--muted); }
+.playinfo-fact dt { color: var(--fg-2); }
 .playinfo-fact dd { margin: 0; overflow-wrap: anywhere; }
-.playinfo-head { margin: 14px 0 6px; font-size: 14px; }
+.playinfo-head { margin: 14px 0 6px; font-size: var(--text-md); }
 .playinfo-reasons { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
 .playinfo-choice { margin-top: 14px; }
 .playinfo-choice p { margin: 0 0 8px; }
 .playinfo-videos { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 480px) { .playinfo-fact { grid-template-columns: 1fr; gap: 0; } }
+
+.player video::cue { background: rgba(0, 0, 0, 0.72); color: #fff; font-size: clamp(16px, 3.2vh, 36px); } /* design-ok: over any picture, in any theme */

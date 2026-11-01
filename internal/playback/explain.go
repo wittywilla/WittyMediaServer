@@ -171,6 +171,9 @@ func Explain(d Decision, src Source, q Request) Explanation {
 			e.Load = "light"
 		}
 	}
+	if a == nil {
+		e.Sound = "There's no sound in this file."
+	}
 	switch d.Subtitle {
 	case SubNone:
 	case SubEmbedded:

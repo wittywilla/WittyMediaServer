@@ -37,6 +37,7 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
       // A stream the server no longer has (it restarted) would be retried for
       // ever behind a spinner; a busy server (503) is worth waiting for.
       let gone = 0
+      let mediaErrors = 0
       hls.on(Hls.Events.FRAG_LOADED, () => { gone = 0 })
       hls.on(Hls.Events.ERROR, (_e, data) => {
         if (!data.fatal) return
@@ -44,7 +45,11 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
           if (data.response?.code === 404 && ++gone >= 2) optsRef.current.onError?.('The stream has ended on the server. Start playback again.')
           else hls.startLoad()
-        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError()
+        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          // Once is worth it; a stream this browser really can't decode would go round for ever.
+          if (++mediaErrors <= 2) hls.recoverMediaError()
+          else optsRef.current.onError?.(data.details || 'playback error')
+        }
         else optsRef.current.onError?.(data.details || 'playback error')
       })
       return () => { destroyed = true; hls.destroy(); hlsRef.current = null }

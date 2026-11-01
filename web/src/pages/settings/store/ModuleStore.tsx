@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { IconRefresh, IconSearch, IconShield } from '../../../icons'
 import { toast } from '../../../state'
@@ -6,7 +6,7 @@ import { Button, Chip, Chips, EmptyState, Input, LinkButton, Notice, Select, Spi
 import { PageHead } from '../ui'
 import { ItemCard } from './ItemCard'
 import { FailureDialog, UpdateAllPanel, useStoreView } from './parts'
-import { CATEGORIES, categoryOf, categoryTitle, checkAll, failureOf, matches, platformName, rank, type Failure, type StoreItem } from './storeApi'
+import { CATEGORIES, categoryOf, categoryTitle, checkAll, failureOf, matches, platformName, rank, showsRun, type Failure, type StoreItem } from './storeApi'
 
 // The store: find a module by searching or by what it's for, and see at a glance what's installed
 // and what can be updated. The filters live in the address, so Back returns to the same results
@@ -19,7 +19,14 @@ export default function ModuleStore() {
   const [failure, setFailure] = useState<Failure | null>(null)
   const results = useRef<HTMLDivElement>(null)
 
-  const q = params.get('q') || ''
+  // What's typed is the page's own, and reaches the address when typing pauses: an address that
+  // changes on every key would lose keys, and fill up history for nothing.
+  const [q, setQ] = useState(params.get('q') || '')
+  useEffect(() => {
+    if ((params.get('q') || '') === q) return
+    const t = setTimeout(() => setParams((p) => { const n = new URLSearchParams(p); if (q) n.set('q', q); else n.delete('q'); return n }, { replace: true }), 250)
+    return () => clearTimeout(t)
+  }, [q, params, setParams])
   const cat = params.get('cat') || ''
   const show = params.get('show') || ''
   const publisher = params.get('publisher') || ''
@@ -73,7 +80,7 @@ export default function ModuleStore() {
   const groups = categories.map((c) => ({ ...c, items: official.filter((i) => categoryOf(i) === c.id) })).filter((g) => g.items.length)
   const cards = (list: StoreItem[]) => <div className="st-grid">{list.map((i) => <ItemCard key={i.key} item={i} onChanged={reload} repairRoute={view.repairRoute} />)}</div>
   const count = `${shown.length} ${shown.length === 1 ? 'module' : 'modules'}`
-  const clear = () => setParams({}, { replace: true })
+  const clear = () => { setQ(''); setParams({}, { replace: true }) }
   const broken = view.stores.filter((s) => s.problem)
 
   return (
@@ -83,7 +90,7 @@ export default function ModuleStore() {
       <section className="st-search" role="search" aria-label="Find a module">
         <div className="st-search-box">
           <IconSearch />
-          <Input type="search" value={q} onChange={(e) => set('q', e.target.value)} aria-label="Search modules by name, description or category" placeholder="Search modules" autoComplete="off" spellCheck={false} />
+          <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search modules by name, description or category" placeholder="Search modules" autoComplete="off" spellCheck={false} />
         </div>
         <Chips label="Category" className="st-cats">
           <Chip selected={!cat} onClick={() => set('cat', '')}>All</Chip>
@@ -111,7 +118,7 @@ export default function ModuleStore() {
         <Notice key={s.id} tone={s.problem!.kind === 'key-changed' ? 'danger' : 'warn'} title={`${s.name} (${s.host}): ${s.problem!.title}`} action={<LinkButton size="sm" to="/settings/modules/stores">See this store</LinkButton>}>{s.problem!.message}</Notice>
       ))}
 
-      {(view.updates > 0 || view.run) && <UpdateAllPanel view={view} onChanged={reload} />}
+      {(view.updates > 0 || showsRun(view.run)) && <UpdateAllPanel view={view} onChanged={reload} />}
 
       <div ref={results} className="st-results" role="region" aria-label="Modules">
         <p className="st-count" role="status">{filtered ? `${count} found` : count}{filtered && <> · <button type="button" className="st-link" onClick={clear}>Clear search and filters</button></>}</p>

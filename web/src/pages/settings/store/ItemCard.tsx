@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError } from '../../../api'
 import { toast } from '../../../state'
 import { Button, Dialog, Progress } from '../../../ui'
 import { FailureDialog, itemPath, ModuleIcon, StateTags } from './parts'
-import { categoryTitle, failureOf, installModule, isBusy, mb, PHASE, type Failure, type RunItem, type StoreItem } from './storeApi'
+import { categoryTitle, currentRun, failureOf, installModule, isBusy, mb, PHASE, type Failure, type RunItem, type StoreItem } from './storeApi'
 
 // One module, with the one thing to do next, wherever it's shown. What can be done comes from
 // what the server says: nothing here decides whether something fits.
@@ -23,32 +23,44 @@ export function actionFor(it: StoreItem): { label: string; aria: string } | null
   return null
 }
 
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
 // useInstall presses the button: it asks first when a module brings others with it, follows the
-// change, and opens the failure dialogue by itself if the change goes wrong.
-export function useInstall(it: StoreItem, onChanged: () => void, repairRoute: string) {
+// change, and opens the failure dialogue by itself if the change goes wrong. It follows the run
+// rather than the page's view, since a small module can come and go between two looks at the page.
+// While it does, the button stays where it is, so the focus isn't dropped and a remote stays put.
+export function useInstall(it: StoreItem, onChanged: () => void, repairRoute: string, focusAfter?: () => void) {
   const [plan, setPlan] = useState<RunItem[] | null>(null)
   const [failure, setFailure] = useState<Failure | null>(null)
-  const [watching, setWatching] = useState(false)
-  const [starting, setStarting] = useState(false)
-  const busy = isBusy(it.status)
-  const wasBusy = useWasTrue(busy)
-  useEffect(() => {
-    if (!watching || busy || !wasBusy.current) return
-    setWatching(false); wasBusy.current = false
-    if (it.failure) setFailure(it.failure)
-    else toast(`${it.name} is ready`)
-  }, [watching, busy, it.failure, it.name, wasBusy])
+  const [working, setWorking] = useState(false)
+  const going = useRef(false)
+  const alive = useRef(true)
+  useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
+  const follow = async () => {
+    for (;;) {
+      await wait(400)
+      if (!alive.current) return
+      const r = await currentRun().catch(() => undefined)
+      onChanged()
+      if (!r || r.finished) return r
+    }
+  }
   const run = async (confirm: boolean) => {
-    if (starting) return
-    setStarting(true); setPlan(null)
+    if (going.current) return
+    going.current = true
+    setPlan(null); setWorking(true)
     try {
       await installModule(it.id, confirm)
-      setWatching(true)
       onChanged()
+      const r = await follow()
+      if (!alive.current) return
+      const failed = r?.items.find((x) => x.failure)
+      if (failed?.failure) setFailure(failed.failure)
+      else if (r) { toast(`${it.name} is ready`); setTimeout(() => focusAfter?.(), 0) }
     } catch (e) {
       if (e instanceof ApiError && e.data?.code === 'plan') setPlan(e.data.plan as RunItem[])
       else setFailure(failureOf(e, it.name))
-    } finally { setStarting(false) }
+    } finally { going.current = false; if (alive.current) setWorking(false) }
   }
   const dialogs = (
     <>
@@ -56,14 +68,19 @@ export function useInstall(it: StoreItem, onChanged: () => void, repairRoute: st
       {failure && <FailureDialog failure={failure} name={it.name} moduleId={it.id} repairRoute={repairRoute} onClose={() => setFailure(null)} onRetry={() => run(false)} />}
     </>
   )
-  return { press: () => run(false), starting, dialogs }
+  return { press: () => run(false), working, dialogs }
 }
 
-// Remembers that something was true since the last time this was reset.
-function useWasTrue(v: boolean) {
-  const [box] = useState(() => ({ current: false }))
-  if (v) box.current = true
-  return box
+// The button for the next step, which stays put while that step runs.
+export function ActionButton({ it, press, working, primary }: { it: StoreItem; press: () => void; working: boolean; primary?: boolean }) {
+  const act = actionFor(it)
+  const inProgress = working || isBusy(it.status)
+  if (!act && !inProgress) return null
+  const label = inProgress ? 'Working…' : act!.label + (primary && act!.label === 'Install' && it.size ? ` · ${mb(it.size)}` : '')
+  return (
+    <Button size={primary ? 'md' : 'sm'} variant={primary ? 'primary' : 'default'} className={primary ? undefined : 'st-card-act'} aria-busy={inProgress || undefined} aria-disabled={inProgress || undefined}
+      aria-label={inProgress ? `${it.name}: working` : act!.aria} onClick={inProgress ? undefined : press}>{label}</Button>
+  )
 }
 
 // What else comes with a module, explained before anything happens.
@@ -94,12 +111,13 @@ export function InPlaceProgress({ it }: { it: StoreItem }) {
 }
 
 export function ItemCard({ item, onChanged, repairRoute }: { item: StoreItem; onChanged: () => void; repairRoute: string }) {
-  const { press, starting, dialogs } = useInstall(item, onChanged, repairRoute)
-  const act = actionFor(item)
+  const link = useRef<HTMLAnchorElement>(null)
+  // The button goes once it's installed, and the focus shouldn't go with it.
+  const { press, working, dialogs } = useInstall(item, onChanged, repairRoute, () => { if (document.activeElement === document.body) link.current?.focus() })
   const label = [item.name, item.official || item.kind === 'server' ? '' : `from ${item.storeName}`].filter(Boolean).join(', ')
   return (
     <article className={'st-card' + (item.official || item.kind === 'server' ? '' : ' third')} aria-label={label}>
-      <Link className="st-card-link" to={itemPath(item)}>
+      <Link ref={link} className="st-card-link" to={itemPath(item)}>
         <ModuleIcon item={item} />
         <span className="st-card-text">
           <b className="st-card-name">{item.name}</b>
@@ -110,7 +128,7 @@ export function ItemCard({ item, onChanged, repairRoute }: { item: StoreItem; on
       <div className="st-card-foot">
         <StateTags item={item} />
         {!item.official && item.kind !== 'server' && <span className="st-card-store">{item.storeName} ({item.storeHost})</span>}
-        {act && <Button size="sm" className="st-card-act" busy={starting} aria-label={act.aria} onClick={press}>{act.label}</Button>}
+        <ActionButton it={item} press={press} working={working} />
       </div>
       <InPlaceProgress it={item} />
       {dialogs}

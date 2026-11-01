@@ -25,7 +25,7 @@ export type StoreView = {
   server: string; api: number; minApi: number; policy: string; minServer: string; platform: string; checkedAt?: number; checkError?: string
   stores: StoreInfo[]; items: StoreItem[]; updates: number; run?: Run; repairRoute: string
 }
-export type ItemDetail = { item: StoreItem; versions: VersionInfo[]; plan: RunItem[]; permissions: { name: string; words: string }[]; forkWarning?: string; fingerprint?: string; policy: string; server: string }
+export type ItemDetail = { item: StoreItem; versions: VersionInfo[]; plan: RunItem[]; permissions: { name: string; words: string }[]; builtOn: { id: string; name: string; installed: boolean }[]; forkWarning?: string; fingerprint?: string; policy: string; server: string }
 export type LogLine = { at: number; level: string; text: string }
 export type ModuleLog = { id: string; name: string; lines: LogLine[]; text: string; failure?: Failure }
 export type StorePreview = {
@@ -58,7 +58,9 @@ export function failureOf(e: unknown, name = 'This module'): Failure {
 
 export const PHASE: Record<string, string> = { downloading: 'Downloading', verifying: 'Checking the signature', installing: 'Installing' }
 export const isBusy = (m?: ModuleStatus) => !!m && !!PHASE[m.phase]
-export const anyBusy = (v?: StoreView | null) => !!v && (v.items.some((i) => isBusy(i.status)) || (!!v.run && !v.run.finished))
+// One install tells its story on its own card. Only Update All leaves a summary to read.
+export const showsRun = (r?: Run) => !!r && (r.kind === 'update-all' || !r.finished)
+export const anyBusy =(v?: StoreView | null) => !!v && (v.items.some((i) => isBusy(i.status)) || (!!v.run && !v.run.finished))
 
 // What's wrong with a module, from its status alone, for the installed list.
 export function failureForStatus(m: ModuleStatus): Failure | null {

@@ -143,7 +143,7 @@ func fitOf(name string, v *wittymodule.CatalogVersion, server string) Fit {
 	}
 	// A module built for a server from before this cut-off can't run, whatever range it claims.
 	if wittymodule.Compare(v.MinServer, MinModuleServer) < 0 && wittymodule.Compare(server, MinModuleServer) >= 0 {
-		return Fit{Kind: FitTooOld, Why: fmt.Sprintf("%s %s was built for a server older than %s, so it can't run here. %s", name, v.Version, MinModuleServer, PolicyWords)}
+		return Fit{Kind: FitTooOld, Why: fmt.Sprintf("%s %s was built for an older server, so it can't run here. %s", name, v.Version, PolicyWords)}
 	}
 	if err := v.Supports(name, server, wittymodule.MinAPI, wittymodule.API); err != nil {
 		f := Explain(name, err.Error())
@@ -288,12 +288,9 @@ func (s *Stores) officialItem(st *Status, cat *wittymodule.Catalog) StoreItem {
 	}
 	if cat != nil {
 		if mod := cat.Find(st.ID); mod != nil {
-			icon, pub, desc := it.Icon, it.Publisher, it.Description
+			pub, desc := it.Publisher, it.Description
 			was := it.Fit
 			s.fillListing(&it, mod, func(x string) string { return x })
-			if icon != "" {
-				it.Icon = icon // the manager keeps and checks this one
-			}
 			if pub != nil {
 				it.Publisher = pub
 			}
@@ -358,6 +355,7 @@ type ItemDetail struct {
 	Item        StoreItem       `json:"item"`
 	Versions    []VersionInfo   `json:"versions"`
 	Plan        []RunItem       `json:"plan"`
+	BuiltOn     []ModuleRef     `json:"builtOn"`
 	Permissions []PermissionRow `json:"permissions"`
 	ForkWarning string          `json:"forkWarning,omitempty"`
 	Fingerprint string          `json:"fingerprint,omitempty"`
@@ -393,7 +391,17 @@ func (s *Stores) Detail(store, id string) (*ItemDetail, error) {
 	if it == nil {
 		return nil, ErrUnknown
 	}
-	d := &ItemDetail{Item: *it, Versions: []VersionInfo{}, Plan: []RunItem{}, Permissions: []PermissionRow{}, Policy: PolicyWords, Server: v.Server}
+	d := &ItemDetail{Item: *it, Versions: []VersionInfo{}, Plan: []RunItem{}, BuiltOn: []ModuleRef{}, Permissions: []PermissionRow{}, Policy: PolicyWords, Server: v.Server}
+	for _, r := range it.Requires {
+		ref := ModuleRef{ID: r, Name: r}
+		for i := range v.Items {
+			if o := &v.Items[i]; o.Official && o.ID == r {
+				ref.Name = o.Name
+				ref.Installed = o.Status != nil && o.Status.Installed
+			}
+		}
+		d.BuiltOn = append(d.BuiltOn, ref)
+	}
 	for _, p := range it.Permissions {
 		name, words := PermissionWords(p)
 		d.Permissions = append(d.Permissions, PermissionRow{name, words})

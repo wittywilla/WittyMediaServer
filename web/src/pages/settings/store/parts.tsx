@@ -6,9 +6,10 @@ import { IconCheck, IconClose, IconInfo, IconPlug, IconShield } from '../../../i
 import { toast } from '../../../state'
 import { Button, Dialog, LinkButton, Notice, Progress } from '../../../ui'
 import {
-  anyBusy, changelogBlocks, currentRun, dayOf, dismissRun, failureOf, mb, moduleLog, NOTHING_NOTABLE, PHASE, startUpdateAll, storeView, undoRun,
+  anyBusy, changelogBlocks, dayOf, dismissRun, failureOf, mb, moduleLog, NOTHING_NOTABLE, PHASE, showsRun, startUpdateAll, storeView, undoRun,
   type Failure, type ModuleLog, type Run, type RunItem, type StoreItem, type StoreView,
 } from './storeApi'
+import '../modules.css'
 import './store.css'
 
 // ------------------------------------------------------------------- staying up to date
@@ -52,6 +53,15 @@ export function OriginTag({ item }: { item: StoreItem }) {
   return <Tag tone="warn" icon={<IconShield size={12} />}>Third-party</Tag>
 }
 
+// Why it can't be installed, in a word or two. The whole reason is on its page.
+function FitTag({ kind }: { kind: string }) {
+  if (kind === 'no-version') return <Tag tone="off">Not available yet</Tag>
+  if (kind === 'library') return <Tag tone="off">Comes with other modules</Tag>
+  if (kind === 'no-build') return <Tag tone="off">Not for this computer</Tag>
+  if (kind === 'withdrawn') return <Tag tone="bad" icon={<IconInfo size={12} />}>Withdrawn</Tag>
+  return <Tag tone="bad" icon={<IconInfo size={12} />}>{kind === 'too-old' ? 'Built for an older server' : 'Needs a newer server'}</Tag>
+}
+
 // What state it's in, in words. Each state also has its own wording or icon, never only a colour.
 export function StateTags({ item }: { item: StoreItem }) {
   const m = item.status
@@ -63,7 +73,7 @@ export function StateTags({ item }: { item: StoreItem }) {
       {m && PHASE[m.phase] && <Tag tone="new">{PHASE[m.phase]}</Tag>}
       {m?.installed && !PHASE[m.phase] && m.enabled === false && <Tag tone="off">Turned off</Tag>}
       {m?.installed && !PHASE[m.phase] && m.enabled !== false && (item.failure ? <Tag tone="bad" icon={<IconInfo size={12} />}>Needs a look</Tag> : m.latest ? <Tag tone="new">Update available</Tag> : <Tag tone="ok" icon={<IconCheck size={12} />}>Installed</Tag>)}
-      {!m?.installed && item.kind !== 'in-development' && item.kind !== 'refused' && !item.fit.ok && <Tag tone="bad" icon={<IconInfo size={12} />}>Doesn’t fit this server</Tag>}
+      {!m?.installed && item.kind !== 'in-development' && item.kind !== 'refused' && !item.fit.ok && <FitTag kind={item.fit.kind} />}
       {m?.pin && <Tag>Pinned</Tag>}
       {item.official && m?.source && <Tag tone="warn" icon={<IconShield size={12} />}>Other publisher</Tag>}
     </span>
@@ -268,7 +278,7 @@ export function RunPanel({ run, onChanged, repairRoute }: { run: Run; onChanged:
       <ul className="st-run-list">{run.items.map((it) => <RunLine key={it.id} it={it} onExplain={setExplain} />)}</ul>
       {finished && (
         <div className="ms-actions">
-          {run.canUndo && <Button size="sm" busy={undoing} onClick={undo}>Take these updates back</Button>}
+          {run.canUndo && <Button size="sm" aria-busy={undoing || undefined} onClick={undoing ? undefined : undo}>Take these updates back</Button>}
           <Button size="sm" variant="ghost" onClick={dismiss}>Dismiss</Button>
           <span className="muted st-run-when">Finished {fmtDateTime(run.finished!)}</span>
         </div>
@@ -284,21 +294,24 @@ export function UpdateAllPanel({ view, onChanged }: { view: StoreView; onChanged
   const [failure, setFailure] = useState<Failure | null>(null)
   const running = !!view.run && !view.run.finished
   const n = view.updates
+  // The button stays pressable-looking only while there's something to do, and is never truly
+  // disabled, as that would drop the focus and leave a remote lost on the page.
+  const idle = n === 0 || running
   const go = async () => {
-    if (starting || running) return
+    if (starting || idle) return
     setStarting(true)
-    try { await startUpdateAll(); await currentRun(); onChanged() } catch (e) { setFailure(failureOf(e, 'Update All')) } finally { setStarting(false) }
+    try { await startUpdateAll(); onChanged() } catch (e) { setFailure(failureOf(e, 'Update All')) } finally { setStarting(false) }
   }
   return (
     <div className="st-updateall">
       <div className="st-updateall-top">
         <div role="status">
-          <b className="st-updateall-count">{running ? 'Updating…' : n === 0 ? 'Every module is up to date' : n === 1 ? '1 update available' : `${n} updates available`}</b>
+          <b className="st-updateall-count">{running ? 'Updating…' : n > 1 ? `${n} updates available` : n === 1 ? '1 update available' : view.checkedAt ? 'Every module is up to date' : 'No updates known yet'}</b>
           {view.checkedAt ? <span className="muted"> Last checked {fmtDateTime(view.checkedAt)}.</span> : <span className="muted"> The server hasn’t looked yet.</span>}
         </div>
-        <Button variant={n > 0 ? 'primary' : 'default'} busy={starting} disabled={n === 0 || running} onClick={go}>{n > 0 ? `Update All Modules (${n})` : 'Update All Modules'}</Button>
+        <Button variant={n > 0 && !running ? 'primary' : 'default'} className={idle ? 'st-idle' : undefined} aria-busy={starting || running || undefined} aria-disabled={idle || undefined} onClick={go}>{n > 0 ? `Update All Modules (${n})` : 'Update All Modules'}</Button>
       </div>
-      {view.run && <RunPanel run={view.run} onChanged={onChanged} repairRoute={view.repairRoute} />}
+      {showsRun(view.run) && <RunPanel run={view.run!} onChanged={onChanged} repairRoute={view.repairRoute} />}
       {failure && <FailureDialog failure={failure} name="Update All" repairRoute={view.repairRoute} onClose={() => setFailure(null)} />}
     </div>
   )

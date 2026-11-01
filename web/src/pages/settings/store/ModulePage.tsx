@@ -6,7 +6,7 @@ import { IconCheck, IconInfo, IconShield } from '../../../icons'
 import type { ModuleReport, VersionInfo } from '../../../moduleStore'
 import { toast } from '../../../state'
 import { ask, Button, Dialog, Notice, Spinner } from '../../../ui'
-import { actionFor, InPlaceProgress, useInstall } from './ItemCard'
+import { actionFor, ActionButton, InPlaceProgress, useInstall } from './ItemCard'
 import { ChangeNotes, FailureDialog, FailureNotice, itemPath, ModuleIcon, ModuleLogDialog, PolicyNote, StateTags, Tag } from './parts'
 import { categoryTitle, dayOf, failureOf, isBusy, itemDetail, mb, platformName, useFork, type Failure, type ItemDetail } from './storeApi'
 
@@ -44,7 +44,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
   const it = d.item
   const m = it.status
   const repair = '/settings/repair'
-  const { press, starting, dialogs } = useInstall(it, reload, repair)
+  const { press, working: installing, dialogs } = useInstall(it, reload, repair, () => { if (document.activeElement === document.body) document.getElementById('st-module-h')?.focus() })
   const [logOpen, setLogOpen] = useState(false)
   const [failure, setFailure] = useState<Failure | null>(null)
   const [forkAsk, setForkAsk] = useState(false)
@@ -93,7 +93,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
           <StateTags item={it} />
         </div>
         <div className="st-mod-act">
-          {act && <Button variant="primary" busy={starting} aria-label={act.aria} onClick={press}>{act.label}{act.label === 'Install' && it.size ? ` · ${mb(it.size)}` : ''}</Button>}
+          <ActionButton it={it} press={press} working={installing} primary />
           {it.kind === 'fork' && !usingThisFork && it.fit.ok && <Button variant="danger" onClick={() => setForkAsk(true)}>Use this fork…</Button>}
         </div>
       </header>
@@ -150,7 +150,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
           {it.released && <div><dt>Released</dt><dd>{dayOf(it.released)}</dd></div>}
           {it.minServer && <div className="wide"><dt>Fits servers</dt><dd>{it.minServer} to {it.maxServer}, and this server is {d.item.fit.ok ? 'in that range' : 'not in that range'}</dd></div>}
           {!!it.platforms?.length && <div className="wide"><dt>Works on</dt><dd>{it.platforms.map(platformName).join(', ')}</dd></div>}
-          {!!it.requires?.length && <div className="wide"><dt>Built on</dt><dd>{it.requires.map((r, i) => <span key={r}>{i > 0 && ', '}<Link to={itemPath({ official: true, store: 'official', id: r, kind: 'official' })}>{r}</Link></span>)}</dd></div>}
+          {d.builtOn.length > 0 && <div className="wide"><dt>Built on</dt><dd>{d.builtOn.map((r, i) => <span key={r.id}>{i > 0 && ', '}<Link to={itemPath({ official: true, store: 'official', id: r.id, kind: 'official' })}>{r.name}</Link>{r.installed ? ' (installed)' : ''}</span>)}</dd></div>}
           {!!it.needs?.length && <div className="wide"><dt>What it needs</dt><dd>{it.needs.join(', ')}</dd></div>}
           {it.repo && <div className="wide"><dt>Source</dt><dd><a href={`https://github.com/${it.repo}`} target="_blank" rel="noreferrer noopener">{it.repo}</a></dd></div>}
         </dl>
@@ -225,7 +225,7 @@ function ForkDialog({ d, onClose, onDone }: { d: ItemDetail; onClose: () => void
   if (failure) return <FailureDialog failure={failure} name={it.name} moduleId={it.id} repairRoute="/settings/repair" onClose={onClose} />
   return (
     <Dialog title={`Replace ${it.name} with this store’s version?`} onClose={onClose} size="md" alert
-      actions={<><Button variant="ghost" autoFocus onClick={onClose}>Cancel</Button><Button variant="danger" busy={working} disabled={!trust} onClick={go}>Replace {it.name}</Button></>}>
+      actions={<><Button variant="ghost" autoFocus onClick={onClose}>Cancel</Button><Button variant="danger" aria-busy={working || undefined} disabled={!trust} onClick={working ? undefined : go}>Replace {it.name}</Button></>}>
       <div className="st-warn-body">
         <IconShield size={28} />
         <p>{d.forkWarning}</p>

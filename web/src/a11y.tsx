@@ -22,9 +22,20 @@ export function useDialogs() {
   useEffect(() => {
     const opened = new Map<Element, HTMLElement | null>()
     const top = () => [...opened.keys()].filter((d) => d.isConnected).pop() as HTMLElement | undefined
+    // A dialog whose button has autoFocus already holds the focus when it's seen here, so what
+    // opened it has to come from what had the focus just before.
+    const recent: HTMLElement[] = []
+    const noteFocus = (e: FocusEvent) => { if (e.target instanceof HTMLElement) { recent.push(e.target); if (recent.length > 8) recent.shift() } }
+    document.addEventListener('focusin', noteFocus)
+    const opener = (d: HTMLElement) => {
+      const now = document.activeElement as HTMLElement | null
+      if (!now || !d.contains(now)) return now
+      for (let i = recent.length - 1; i >= 0; i--) if (!d.contains(recent[i]) && recent[i].isConnected) return recent[i]
+      return null
+    }
     const prepare = (d: HTMLElement) => {
       if (opened.has(d)) return
-      opened.set(d, document.activeElement as HTMLElement | null)
+      opened.set(d, opener(d))
       if (!d.getAttribute('role')) d.setAttribute('role', 'dialog')
       if (!d.hasAttribute('aria-modal')) d.setAttribute('aria-modal', 'true')
       if (!d.hasAttribute('aria-label') && !d.hasAttribute('aria-labelledby')) {
@@ -71,7 +82,7 @@ export function useDialogs() {
       }
     }
     window.addEventListener('keydown', keys)
-    return () => { mo.disconnect(); window.removeEventListener('keydown', keys) }
+    return () => { mo.disconnect(); window.removeEventListener('keydown', keys); document.removeEventListener('focusin', noteFocus) }
   }, [])
 }
 

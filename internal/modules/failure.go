@@ -38,7 +38,7 @@ type Failure struct {
 }
 
 // PolicyWords is the module compatibility policy, the same everywhere it is shown.
-const PolicyWords = "Modules start with this release: one built for a server older than " + MinModuleServer + " can't run here, and those older alpha versions won't be fixed or updated. Newer servers may keep running modules built for an earlier 0.6 or later release, if the module says it fits, as a limited courtesy. That's unofficial: nothing is promised until the beta, which is when proper versioning for modules begins."
+const PolicyWords = "Modules start with " + MinModuleServer + ": one built for an older server can't run, and those older alpha versions won't be fixed or updated. A later server may keep running a module built for " + MinModuleServer + " or after, if the module says it fits. That's a limited courtesy and it's unofficial: nothing is promised until the beta, which is when proper versioning for modules begins."
 
 // MinModuleServer is the oldest server a module may have been built for.
 const MinModuleServer = wittymodule.FirstServer

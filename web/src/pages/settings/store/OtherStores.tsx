@@ -122,7 +122,7 @@ function AddStore({ onAdded, repairRoute }: { onAdded: () => void; repairRoute: 
         <label className="ms-trust st-allow"><input type="checkbox" checked={allowPrivate} onChange={(e) => { setAllowPrivate(e.target.checked); reset() }} /> Allow an address on my own network</label>
         <p className="ms-note st-allow-note">Only for a store you run yourself. It lets this server fetch from your own network for this one store, and over plain http there.</p>
         {failure && <div className="st-add-fail" role="alert"><strong>{failure.title}</strong><p>{failure.message}</p><FailureBody failure={failure} name="That store" repairRoute={repairRoute} /></div>}
-        {!preview && <div><Button type="submit" icon={<IconPlus />} busy={working} disabled={!url.trim()}>Look at this store</Button></div>}
+        {!preview && <div><Button type="submit" icon={<IconPlus />} aria-busy={working || undefined} disabled={!url.trim()}>Look at this store</Button></div>}
       </form>
 
       {preview && (
@@ -150,7 +150,7 @@ function AddStore({ onAdded, repairRoute }: { onAdded: () => void; repairRoute: 
           )}
           <label className="ms-trust"><input type="checkbox" checked={trust} onChange={(e) => setTrust(e.target.checked)} /> I understand, and I trust whoever runs this store</label>
           <div className="ms-actions">
-            <Button variant="danger" disabled={!trust} busy={working} onClick={agree}>Add this store</Button>
+            <Button variant="danger" disabled={!trust} aria-busy={working || undefined} onClick={agree}>Add this store</Button>
             <Button variant="ghost" onClick={cancel}>Cancel</Button>
           </div>
         </div>

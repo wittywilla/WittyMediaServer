@@ -86,7 +86,7 @@ export default function ModulesSettings() {
   const [failed, setFailed] = useState('')
   const [checking, setChecking] = useState(false)
   const [settings, setSettings] = useState<Record<string, string> | null>(null)
-  const [filter, setFilter] = useState<Filter>('all')
+  const [filter, setFilter] = useState<Filter>('installed')
   const [open, setOpen] = useState<string | null>(null)
   const [hi, setHi] = useState('')
   const [ask, setAsk] = useState<Ask | null>(null)
@@ -228,7 +228,7 @@ export default function ModulesSettings() {
       <Section title="Updates" desc="Some modules can update without a new server. Each update is signed, this server installs only what it can verify, and it takes effect straight away, with no restart."
         actions={<button className="btn ghost sm" onClick={check} aria-busy={checking}><IconRefresh /> {checking ? 'Checking…' : 'Check now'}</button>}>
         {store.view && <UpdateAllPanel view={store.view} onChanged={() => { void store.reload(); api.get<ModuleReport>('/modules').then(setR).catch(() => {}) }} />}
-        <Row label="Look for updates automatically" desc={`Asks GitHub twice a day. When this is off, the server only asks when you press Check now.${r.checkedAt ? ` Last checked ${when(r.checkedAt)}.` : ' It hasn’t asked yet.'}`}>
+        <Row label="Look for updates automatically" desc={`Looks online twice a day. When this is off, the server only looks when you press Check now.${r.checkedAt ? ` Last checked ${when(r.checkedAt)}.` : ' It hasn’t looked yet.'}`}>
           <Switch label="Look for updates automatically" checked={autoCheck} disabled={!settings} onChange={(v) => save('moduleUpdateCheck', v)} />
         </Row>
         <Row label="Install updates automatically" desc="Installs what the check finds, if it works with this server. A version that fails is taken back out by itself. Pinned modules and forks are left alone." dim={!autoCheck}>
@@ -249,8 +249,9 @@ export default function ModulesSettings() {
 
       {shown.length === 0 && (
         <div className="set-card set-empty">
-          <b>{filter === 'updates' ? 'No updates known' : filter === 'absent' ? 'Every module is on this server' : 'Nothing here'}</b>
-          {filter === 'updates' && <p>{r.checkedAt ? `Nothing newer was found when the server last asked, ${when(r.checkedAt)}.` : 'The server hasn’t asked GitHub yet.'}</p>}
+          <b>{filter === 'updates' ? 'No updates known' : filter === 'absent' ? 'Every module is on this server' : filter === 'installed' ? 'No modules yet' : 'Nothing here'}</b>
+          {filter === 'updates' && <p>{r.checkedAt ? `Nothing newer was found when the server last looked, ${when(r.checkedAt)}.` : 'The server hasn’t looked yet.'}</p>}
+          {filter === 'installed' && <p>The server works without any. <Link to="/settings/modules/store">Browse the store</Link> to add what you want.</p>}
           {filter === 'updates' && <button className="btn sm" onClick={check} aria-busy={checking}><IconRefresh /> {checking ? 'Checking…' : 'Check now'}</button>}
         </div>
       )}

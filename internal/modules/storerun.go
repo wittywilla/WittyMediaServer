@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymodule"
 )
 
 // A run is a list of modules to change, one after another: everything Update All does, and an
@@ -232,6 +233,15 @@ func (s *Stores) InstallPlan(id string) ([]RunItem, error) {
 		if st.Installed && x != id {
 			return nil
 		}
+		// A library has nothing to install: it reaches this server inside what is built on it.
+		// With no release listed, one can't be told from a module with none yet, and the module
+		// built on it is what will say so if that matters.
+		if x != id && st.Latest == nil && st.Updatable {
+			return nil
+		}
+		if x != id && st.Delivery == wittymodule.DeliveryLibrary {
+			return nil
+		}
 		need[x] = true
 		for _, d := range st.Requires {
 			if err := walk(d, depth+1); err != nil {
@@ -334,10 +344,10 @@ func (s *Stores) runOne(r *Run, i int, it RunItem) *Failure {
 	switch {
 	case !ok:
 		err = ErrUnknown
-	case !st.Installed:
-		err = s.m.AddModule(it.ID)
 	case it.To != "":
 		err = s.m.InstallVersion(it.ID, it.To, false)
+	case !st.Installed:
+		err = s.m.AddModule(it.ID)
 	default:
 		err = errors.New("no version of it that fits this server is known")
 	}

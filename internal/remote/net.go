@@ -165,9 +165,14 @@ func (p *Policy) Resolve(r *http.Request) Client {
 	client := peer
 	list := strings.Split(strings.Join(xff, ","), ",")
 	for i := len(list) - 1; i >= 0; i-- {
-		a, err := netip.ParseAddr(strings.TrimSpace(list[i]))
-		if err != nil {
-			break // nothing left of a broken entry can be believed
+		a, ok := forwardedAddr(list[i])
+		if !ok {
+			// Nothing left of a broken entry can be believed, including that this
+			// request is the proxy's own, which may well be this machine.
+			c.IP = client
+			c.Unverified = true
+			c.Where = Internet
+			return c
 		}
 		a = clean(a)
 		client = a
@@ -180,6 +185,18 @@ func (p *Policy) Resolve(r *http.Request) Client {
 	c.Secure = c.Secure || lastValue(r.Header.Get("X-Forwarded-Proto")) == "https"
 	c.ForwardedHost = lastValue(r.Header.Get("X-Forwarded-Host"))
 	return c
+}
+
+// forwardedAddr reads one entry of X-Forwarded-For. Some proxies add a port or brackets.
+func forwardedAddr(s string) (netip.Addr, bool) {
+	s = strings.TrimSpace(s)
+	if a, err := netip.ParseAddr(strings.Trim(s, "[]")); err == nil {
+		return a, true
+	}
+	if ap, err := netip.ParseAddrPort(s); err == nil {
+		return ap.Addr(), true
+	}
+	return netip.Addr{}, false
 }
 
 // SecureHint: the connection is encrypted, or a header claims a proxy in front

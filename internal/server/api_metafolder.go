@@ -28,6 +28,9 @@ func (s *Server) metaFolderRoutes(m *http.ServeMux) {
 type metaFolderJob struct {
 	mu sync.Mutex
 	metaFolderView
+	// What was counted last, for while an export runs: the page asks often, and walking
+	// a folder of many thousands of files each time would slow the export it's watching.
+	files, pictures, walkProblems int
 }
 
 type metaFolderView struct {
@@ -68,17 +71,27 @@ func (s *Server) metaFolderDir() string { return filepath.Join(s.Cfg.DataDir, me
 // GET /api/metadata-folder: where it is, what's in it, and the export's progress.
 func (s *Server) handleMetaFolder(w http.ResponseWriter, r *http.Request) {
 	dir := s.metaFolderDir()
-	files, pictures := 0, 0
-	problems := metafolder.Walk(dir, func(e metafolder.Entry) {
-		if e.Kind == "picture" {
-			pictures++
-		} else {
-			files++
-		}
-	})
+	j := &s.metaFolder
+	job := j.view()
+	if !job.Running {
+		files, pictures := 0, 0
+		problems := metafolder.Walk(dir, func(e metafolder.Entry) {
+			if e.Kind == "picture" {
+				pictures++
+			} else {
+				files++
+			}
+		})
+		j.mu.Lock()
+		j.files, j.pictures, j.walkProblems = files, pictures, len(problems)
+		j.mu.Unlock()
+	}
+	j.mu.Lock()
+	files, pictures, walkProblems := j.files, j.pictures, j.walkProblems
+	j.mu.Unlock()
 	writeJSON(w, 200, map[string]any{
-		"path": dir, "files": files, "pictures": pictures, "walkProblems": len(problems),
-		"job":    s.metaFolder.view(),
+		"path": dir, "files": files, "pictures": pictures, "walkProblems": walkProblems,
+		"job":    job,
 		"layout": []string{"README.txt", "Movies/My Film (2001) [item-123].json", "Movies/My Film (2001) [item-123]-poster.jpg", "Shows/A Show [show-22]/show.json", "Shows/A Show [show-22]/S01E01 Pilot [item-311].json"},
 	})
 }

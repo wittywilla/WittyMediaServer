@@ -544,7 +544,7 @@ func (s *Store) Recommend(ctx context.Context, userID int64, it *Item, access *A
 			sc += 2
 		}
 		if sameSeries(it.Title, c.Title) {
-			sc += 30 // sequels and prequels first (Shrek -> Shrek 2)
+			sc += 30 // sequels and prequels first (Swamptale -> Swamptale 2)
 		}
 		if sc > bestScore {
 			best, bestScore = c, sc
@@ -573,7 +573,7 @@ func abs(n int) int {
 }
 
 // sameSeries matches titles that share their first word(s), e.g.
-// "Shrek" / "Shrek 2" / "Shrek the Third".
+// "Swamptale" / "Swamptale 2" / "Swamptale the Third".
 func sameSeries(a, b string) bool {
 	fa, fb := strings.Fields(strings.ToLower(SortTitle(a))), strings.Fields(strings.ToLower(SortTitle(b)))
 	return len(fa) > 0 && len(fb) > 0 && fa[0] == fb[0] && len(fa[0]) > 3

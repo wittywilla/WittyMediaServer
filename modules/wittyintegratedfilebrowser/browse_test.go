@@ -20,8 +20,8 @@ func TestList(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	mk("Shrek/VIDEO_TS", true)
-	mk("Lorax/BDMV", true)
+	mk("Swamptale/VIDEO_TS", true)
+	mk("Treeline/BDMV", true)
 	mk("alpha", true)
 	mk(".hidden", true)
 	mk("film.mkv", false)
@@ -37,7 +37,7 @@ func TestList(t *testing.T) {
 	for _, e := range l.Entries {
 		names = append(names, e.Name)
 	}
-	want := []string{"alpha", "Lorax", "Shrek", "disc.iso", "film.mkv", "Film.srt", "notes.txt"}
+	want := []string{"alpha", "Treeline", "Swamptale", "disc.iso", "film.mkv", "Film.srt", "notes.txt"}
 	if len(names) != len(want) {
 		t.Fatalf("entries = %v, want %v", names, want)
 	}
@@ -50,8 +50,8 @@ func TestList(t *testing.T) {
 	for _, e := range l.Entries {
 		byName[e.Name] = e
 	}
-	if byName["Shrek"].Disc != "dvd" || byName["Lorax"].Disc != "bluray" || byName["alpha"].Disc != "" {
-		t.Errorf("disc folders: %+v %+v %+v", byName["Shrek"], byName["Lorax"], byName["alpha"])
+	if byName["Swamptale"].Disc != "dvd" || byName["Treeline"].Disc != "bluray" || byName["alpha"].Disc != "" {
+		t.Errorf("disc folders: %+v %+v %+v", byName["Swamptale"], byName["Treeline"], byName["alpha"])
 	}
 	if byName["film.mkv"].Kind != "video" || byName["disc.iso"].Kind != "disc" || byName["Film.srt"].Kind != "subtitle" || byName["notes.txt"].Kind != "other" {
 		t.Errorf("kinds wrong: %+v", l.Entries)

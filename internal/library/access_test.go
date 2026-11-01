@@ -169,7 +169,7 @@ func TestAccessQueries(t *testing.T) {
 		return it
 	}
 	cars := add("Cars", "G")
-	shrek := add("Shrek", "PG")
+	swamptale := add("Swamptale", "PG")
 	add("Alien", "R", "Horror")
 	home := add("Birthday", "")
 	titles := func(a *Access) map[string]bool {
@@ -190,17 +190,17 @@ func TestAccessQueries(t *testing.T) {
 		t.Fatalf("no limits: %v", got)
 	}
 	kids := &Access{MaxAge: 7}
-	if got := titles(kids); !got["Cars"] || got["Shrek"] || got["Alien"] || got["Birthday"] {
+	if got := titles(kids); !got["Cars"] || got["Swamptale"] || got["Alien"] || got["Birthday"] {
 		t.Errorf("kids 7+: %v", got)
 	}
 	kids.AllowUnrated = true
-	kids.AllowItems = []int64{shrek.ID}
+	kids.AllowItems = []int64{swamptale.ID}
 	kids.BlockItems = []int64{cars.ID}
-	if got := titles(kids); got["Cars"] || !got["Shrek"] || !got["Birthday"] || got["Alien"] {
+	if got := titles(kids); got["Cars"] || !got["Swamptale"] || !got["Birthday"] || got["Alien"] {
 		t.Errorf("overrides: %v", got)
 	}
 	adult := &Access{MaxAge: NoAgeLimit, AllowUnrated: true, BlockGenres: []string{"Horror"}}
-	if got := titles(adult); got["Alien"] || !got["Shrek"] {
+	if got := titles(adult); got["Alien"] || !got["Swamptale"] {
 		t.Errorf("genre block: %v", got)
 	}
 	other := &Access{MaxAge: NoAgeLimit, AllowUnrated: true, Libraries: []int64{lib.ID + 1}}

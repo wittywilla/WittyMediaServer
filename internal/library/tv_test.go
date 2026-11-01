@@ -41,7 +41,7 @@ func TestParseEpisode(t *testing.T) {
 			t.Errorf("%s:\n got  %q S%dE%d-%d %q\n want %q S%dE%d-%d %q", c.path, ref.Show, ref.Season, ref.Episode, ref.EpisodeEnd, ref.Title, c.show, c.season, c.ep, c.epEnd, c.title)
 		}
 	}
-	if _, ok := ParseEpisode(root, filepath.Join(root, "Movies", "Shrek (2001).mkv")); ok {
+	if _, ok := ParseEpisode(root, filepath.Join(root, "Movies", "Swamptale (2001).mkv")); ok {
 		t.Error("a movie was parsed as an episode")
 	}
 	if ref, ok := ParseEpisode(root, filepath.Join(root, "Blade Runner 2049.mkv")); ok && ref.Episode == 2049 {

@@ -726,8 +726,8 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 }
 
 // fixParsedTitle corrects the title of an unchanged item that was named from
-// its file by the earlier, faulty parse ("Dr.Seuss.The.Lorax" became
-// "Dr Seuss The"). Items matched online or retitled by hand keep theirs.
+// its file by the earlier, faulty parse ("Dr.Story.The.Treeline" became
+// "Dr Story The"). Items matched online or retitled by hand keep theirs.
 func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind string) {
 	if it.Provider != "" {
 		return

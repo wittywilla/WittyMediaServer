@@ -8,12 +8,12 @@ func TestParseName(t *testing.T) {
 		title string
 		year  int
 	}{
-		{"8707Dr.Seuss.The.Lorax.iso", "Dr Seuss The Lorax", 0},
-		{"8707Dr.Seuss.The.Lorax", "Dr Seuss The Lorax", 0}, // the scanner passes names without the extension
+		{"8707Dr.Story.The.Treeline.iso", "Dr Story The Treeline", 0},
+		{"8707Dr.Story.The.Treeline", "Dr Story The Treeline", 0}, // the scanner passes names without the extension
 		{"The.Matrix.1999.1080p.BluRay.x264.mkv", "The Matrix", 1999},
 		{"Some.Movie.Title", "Some Movie Title", 0},
 		{"Polar Express (2004)", "Polar Express", 2004},
-		{"SHREK_2", "Shrek 2", 0},
+		{"SWAMPTALE_2", "Swamptale 2", 0},
 		{"1917.2019.mkv", "1917", 2019},
 	}
 	for _, c := range cases {
@@ -30,7 +30,7 @@ func TestParseName(t *testing.T) {
 
 func TestLegacyTitle(t *testing.T) {
 	// The earlier parse dropped the last dotted word; such titles are fixed.
-	if got := legacyTitle("8707Dr.Seuss.The.Lorax"); got != "8707Dr Seuss The" {
+	if got := legacyTitle("8707Dr.Story.The.Treeline"); got != "8707Dr Story The" {
 		t.Errorf("legacyTitle = %q", got)
 	}
 	// Names it parsed correctly match the new parse, so nothing changes.
@@ -56,7 +56,7 @@ func TestWebURL(t *testing.T) {
 func TestLooksLikeTVDisc(t *testing.T) {
 	for in, want := range map[string]bool{
 		"Friends Season 1 Disc 2": true, "THE_OFFICE_S2D1": true, "Doctor Who Series 4": true,
-		"Planet Earth Complete Box Set": true, "Dr Seuss The Lorax": false, "Shrek 2": false, "THE POLAR EXPRESS 3D": false,
+		"Planet Earth Complete Box Set": true, "Dr Story The Treeline": false, "Swamptale 2": false, "THE POLAR EXPRESS 3D": false,
 	} {
 		if got := LooksLikeTVDisc(in); got != want {
 			t.Errorf("LooksLikeTVDisc(%q) = %v, want %v", in, got, want)
@@ -66,9 +66,9 @@ func TestLooksLikeTVDisc(t *testing.T) {
 
 func TestGuessDiscContent(t *testing.T) {
 	for _, c := range []struct{ lib, title, label, want string }{
-		{"movies", "Shrek 2", "SHREK_2", "movie"},
+		{"movies", "Swamptale 2", "SWAMPTALE_2", "movie"},
 		{"discs", "Friends Season 3 Disc 1", "FRIENDS_S3D1", "tv"},
-		{"discs", "The Lorax", "THE_LORAX", "movie"},
+		{"discs", "The Treeline", "THE_TREELINE", "movie"},
 		{"discs", "Planet Earth", "PLANET_EARTH_S1D2", "tv"},
 		{"shows", "Disc 1", "DISC_1", "tv"},
 		{"anime", "Spirited", "", "tv"},

@@ -15,11 +15,11 @@ import (
 
 func TestSaveItemMetadataRoundTrip(t *testing.T) {
 	dir := t.TempDir()
-	movieDir := filepath.Join(dir, "Shrek (2001)")
+	movieDir := filepath.Join(dir, "Swamptale (2001)")
 	if err := os.MkdirAll(movieDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	media := filepath.Join(movieDir, "Shrek (2001).mkv")
+	media := filepath.Join(movieDir, "Swamptale (2001).mkv")
 	art := filepath.Join(dir, "picked.jpg")
 	for _, f := range []string{media, art} {
 		if err := os.WriteFile(f, pngHead, 0o644); err != nil {
@@ -27,12 +27,12 @@ func TestSaveItemMetadataRoundTrip(t *testing.T) {
 		}
 	}
 	// A hand-written NFO must be kept as a backup, not lost.
-	userNFO := filepath.Join(movieDir, "Shrek (2001).nfo")
+	userNFO := filepath.Join(movieDir, "Swamptale (2001).nfo")
 	if err := os.WriteFile(userNFO, []byte("<movie><title>Mine</title></movie>"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	y, r := 2001, 7.9
-	it := &Item{Kind: "video", Path: media, Title: "Shrek", Year: &y, Overview: "An ogre.", Genres: []string{"Animation", "Comedy"},
+	it := &Item{Kind: "video", Path: media, Title: "Swamptale", Year: &y, Overview: "An ogre.", Genres: []string{"Animation", "Comedy"},
 		Rating: &r, Provider: "tmdb", ProviderID: "808", Poster: art}
 	s := testScanner(t, dir)
 	if err := s.SaveItemMetadata(context.Background(), it); err != nil {
@@ -49,15 +49,15 @@ func TestSaveItemMetadataRoundTrip(t *testing.T) {
 	if !applyNFO(&back, userNFO) {
 		t.Fatal("written NFO does not parse")
 	}
-	if back.Title != "Shrek" || back.Year == nil || *back.Year != 2001 || back.Overview != "An ogre." ||
+	if back.Title != "Swamptale" || back.Year == nil || *back.Year != 2001 || back.Overview != "An ogre." ||
 		len(back.Genres) != 2 || back.ProviderID != "808" || back.Rating == nil {
 		t.Fatalf("round trip lost data: %+v", back)
 	}
 	// Movies sharing a folder use <name>-poster.jpg.
-	other := filepath.Join(movieDir, "Shrek 2 (2004).mkv")
+	other := filepath.Join(movieDir, "Swamptale 2 (2004).mkv")
 	_ = os.WriteFile(other, []byte("x"), 0o644)
 	p, b, n := ArtPaths(&Item{Kind: "video", Path: media})
-	if !strings.HasSuffix(p, "Shrek (2001)-poster.jpg") || !strings.HasSuffix(b, "Shrek (2001)-fanart.jpg") || !strings.HasSuffix(n, "Shrek (2001).nfo") {
+	if !strings.HasSuffix(p, "Swamptale (2001)-poster.jpg") || !strings.HasSuffix(b, "Swamptale (2001)-fanart.jpg") || !strings.HasSuffix(n, "Swamptale (2001).nfo") {
 		t.Fatalf("shared-folder paths: %s %s %s", p, b, n)
 	}
 }

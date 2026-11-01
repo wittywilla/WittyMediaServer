@@ -20,11 +20,11 @@ func TestAgentLookup(t *testing.T) {
 				w.WriteHeader(401)
 				return
 			}
-			if r.URL.Query().Get("title") != "The Lorax" || r.URL.Query().Get("year") != "2012" || r.URL.Query().Get("type") != "movie" {
+			if r.URL.Query().Get("title") != "The Treeline" || r.URL.Query().Get("year") != "2012" || r.URL.Query().Get("type") != "movie" {
 				w.WriteHeader(404)
 				return
 			}
-			io.WriteString(w, `{"results":[{"id":"lx","title":"The Lorax","overview":"Trees.","genres":["Family"],"rating":6.4,"runtimeMinutes":86,"poster":"`+"http://"+r.Host+`/poster.png"}]}`)
+			io.WriteString(w, `{"results":[{"id":"lx","title":"The Treeline","overview":"Trees.","genres":["Family"],"rating":6.4,"runtimeMinutes":86,"poster":"`+"http://"+r.Host+`/poster.png"}]}`)
 		}
 	}))
 	defer srv.Close()
@@ -34,7 +34,7 @@ func TestAgentLookup(t *testing.T) {
 	}
 	s := &Scanner{ImagesDir: t.TempDir(), Log: slog.New(slog.NewTextHandler(io.Discard, nil)), Agents: func() []Agent { return []Agent{a} }}
 	y := 2012
-	it := &Item{Title: "The Lorax", Year: &y}
+	it := &Item{Title: "The Treeline", Year: &y}
 	s.applyAgents(context.Background(), it, "movies")
 	if it.Overview != "Trees." || len(it.Genres) != 1 || it.Rating == nil || it.RuntimeSec != 86*60 || it.Provider != "agent:home" {
 		t.Fatalf("not applied: %+v", it)
@@ -43,7 +43,7 @@ func TestAgentLookup(t *testing.T) {
 		t.Fatalf("poster not stored: %q", it.Poster)
 	}
 	// Other kinds of library are not its business.
-	other := &Item{Title: "The Lorax"}
+	other := &Item{Title: "The Treeline"}
 	s.applyAgents(context.Background(), other, "books")
 	if other.Overview != "" {
 		t.Fatal("agent ran for a library type it doesn't serve")

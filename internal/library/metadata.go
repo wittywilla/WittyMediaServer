@@ -31,12 +31,12 @@ var (
 	spacersRe = regexp.MustCompile(`[._]+`)
 	wsRe      = regexp.MustCompile(`\s+`)
 	articles  = []string{"the ", "a ", "an "}
-	// A catalogue number stuck to the title: "8707Dr.Seuss" is "Dr.Seuss".
+	// A catalogue number stuck to the title: "8707Dr.Story" is "Dr.Story".
 	catalogRe = regexp.MustCompile(`^\d{3,}([A-Z][a-z])`)
 )
 
 // isFileExt reports whether ext is the extension of a file a library holds
-// (callers often pass a name without one, and "Dr.Seuss.The.Lorax" must keep
+// (callers often pass a name without one, and "Dr.Story.The.Treeline" must keep
 // its last word).
 func isFileExt(ext string) bool {
 	e := strings.ToLower(ext)

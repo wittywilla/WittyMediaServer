@@ -131,7 +131,7 @@ export default function MatchPanel({ ed, target, id, onApplied, onError }: { ed:
       <div className="ed-panel">
         <h4>Search and match: pick the right title</h4>
         <form className="field-row" onSubmit={(e) => { e.preventDefault(); search() }}>
-          <input className="input" autoFocus value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search for the right title, or paste an id or address" placeholder={ed.name} />
+          <input className="input" aria-label="Search for the right title, or paste an id or address" autoFocus value={query} placeholder={ed.name} onChange={(e) => setQuery(e.target.value)} />
           <button type="submit" className="btn" disabled={searching}>{searching ? 'Searching…' : 'Search'}</button>
           {m.source && m.state !== 'none' && <button type="button" className="btn ghost" onClick={refresh} disabled={previewing}>Check for changes</button>}
         </form>

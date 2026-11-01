@@ -195,6 +195,10 @@ a.mod-row:hover { background: var(--hover); }
 .mod-group { padding: var(--sp-3) var(--sp-3) var(--sp-1); font-size: var(--text-2xs); font-weight: 600; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
 .set-nav-version { display: grid; gap: var(--sp-1); margin-top: var(--sp-1); padding: 10px var(--sp-3); border-radius: var(--r-md); color: var(--fg-3); font-size: var(--text-xs); }
 .set-main:has(.st-page > .back-link) > .set-back { display: none; }
+@media (max-width: 600px) {
+  .set-main .list-item { flex-wrap: wrap; }
+  .set-main .list-item > .grow { flex: 1 1 calc(100% - 64px); min-width: 0; }
+}
 .set-nav-version:hover { background: var(--hover); color: var(--fg-2); }
 /* The menu is its own page where it would otherwise squeeze the page beside it. */
 .set-nav-text { display: grid; min-width: 0; }

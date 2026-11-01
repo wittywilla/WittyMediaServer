@@ -5,7 +5,8 @@ import { ReminderWatcher } from './pages/tv/reminders'
 import { api } from './api'
 import { getNavCollapsed, setNavCollapsed, useNavStyle } from './navPrefs'
 import HomePage from './pages/HomePage'
-import { Spinner, VersionTag } from './components/common'
+import { EmptyState, Spinner, VersionTag } from './components/common'
+import { LinkButton } from './ui'
 import { AudioProvider } from './audio/player'
 import PairPage from './pages/PairPage'
 import ConnectServer from './components/ConnectServer'
@@ -167,7 +168,7 @@ function AppFrame() {
             <Route path="/help" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
             <Route path="/help/:guide" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
             <Route path="/design" element={<DesignPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
           <LegalNote kind="general" className="legal-foot" />
@@ -179,6 +180,11 @@ function AppFrame() {
   )
 }
 
+
+// An address that isn't a page: say so, with the way home, rather than landing somewhere unexplained.
+function NotFound() {
+  return <><h1 className="sr-only">Page not found</h1><EmptyState title="There’s no page here" text="The address may have changed, or it may be mistyped." action={<LinkButton variant="primary" to="/">Go to Home</LinkButton>} /></>
+}
 
 // LegalAckBar: the first-run notice, for an administrator who never went through
 // the setup wizard's tick-box. Once, and it doesn't stop anyone doing anything.

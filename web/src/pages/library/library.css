@@ -3,7 +3,8 @@
 .lib-shelf-wait { height: 240px; }
 .lib-views { margin-top: 0; }
 .lib-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 var(--sp-1); margin-left: var(--sp-1); border-radius: var(--r-full); background: var(--fg); color: var(--bg); font-size: var(--text-2xs); font-weight: 700; }
-.lib-empty-note { display: flex; align-items: center; gap: var(--sp-2); }
+.lib-empty-note { display: flex; align-items: flex-start; gap: var(--sp-2); }
+.lib-empty-note svg { flex: none; margin-top: 2px; }
 
 /* A category: a picture from something in it, with its name on a plate of shade. */
 .lib-cat { --art-hue: 220; position: relative; flex: none; display: block; width: clamp(220px, 26vw, 340px); aspect-ratio: 16 / 9; border-radius: var(--r-md); overflow: hidden; scroll-snap-align: start; background: linear-gradient(155deg, hsl(var(--art-hue) 32% 30%), hsl(calc(var(--art-hue) + 40) 38% 14%)); box-shadow: var(--e-1); transition: transform var(--dur-2) var(--ease-out); }

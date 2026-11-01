@@ -100,7 +100,7 @@
 
 /* The grid. */
 .ctv-grid { position: relative; flex: 1 0 260px; min-height: 260px; display: flex; flex-direction: column; --ctv-chw: 190px; --ctv-lead: 0px; --ctv-trail: 0px; }
-.ctv-times { display: flex; flex: none; height: 30px; background: linear-gradient(180deg, var(--ctv-head), var(--ctv-panel)); border-bottom: 2px solid var(--ctv-line); font-weight: 700; }
+.ctv-times { display: flex; flex: none; height: 1.875rem; background: linear-gradient(180deg, var(--ctv-head), var(--ctv-panel)); border-bottom: 2px solid var(--ctv-line); font-weight: 700; }
 .ctv-corner { width: var(--ctv-chw); flex: none; padding: 5px 10px; color: var(--ctv-accent); font-size: var(--text-md); border-right: 2px solid var(--ctv-line); white-space: nowrap; overflow: hidden; }
 .ctv-time-track { position: relative; flex: 1; margin-right: var(--ctv-gutter, 0); overflow: hidden; }
 .ctv-time { position: absolute; top: 0; bottom: 0; padding: 5px 7px; border-left: 1px solid var(--ctv-line); font-size: var(--text-md); white-space: nowrap; }
@@ -217,7 +217,7 @@
   .ctv-hero-chtext { font-size: var(--text-xl); }
   .ctv-hero-chtext span, .ctv-hero-meta, .ctv-hero-when, .ctv-hero-next, .ctv-info-desc, .ctv-help { font-size: var(--text-xl); }
   .ctv-clock b { font-size: var(--text-4xl); }
-  .ctv-times { height: 42px; }
+  .ctv-times, .ctv[data-layout="classic"] .ctv-times { height: 3.25rem; }
   .ctv-time, .ctv-corner { font-size: var(--text-xl); padding: 8px 10px; }
   .ctv-cell b { font-size: var(--text-xl); }
   .ctv-cell small { font-size: var(--text-lg); }
@@ -302,7 +302,7 @@
 .ctv[data-layout="classic"] .ctv-cell { border-width: 2px; }
 .ctv[data-layout="classic"] .ctv-cell b { font-size: var(--text-base); letter-spacing: .01em; }
 .ctv[data-layout="classic"] .ctv-hero { border-bottom-width: 4px; }
-.ctv[data-layout="classic"] .ctv-times { height: 34px; border-bottom-width: 3px; text-transform: uppercase; }
+.ctv[data-layout="classic"] .ctv-times { height: 2.125rem; border-bottom-width: 3px; text-transform: uppercase; }
 .ctv[data-layout="classic"] .ctv-corner { border-right-width: 3px; }
 .ctv[data-layout="classic"] .ctv-ch { border-right-width: 3px; }
 .ctv[data-layout="classic"] .ctv-num { font-size: var(--text-lg); }

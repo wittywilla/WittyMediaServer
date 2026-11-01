@@ -117,7 +117,9 @@ What a sandbox can't cover: a graphics driver is a large body of code running in
 
 **As a Windows service:** session 0 has no desktop, and consumer OpenGL drivers often refuse to draw there, so Settings, Consoles & cores says there's no usable card.
 
-**Under the Linux sandbox,** LRPS2 maps its recompiled code through `/dev/shm`, and crashes while loading if it can't. So that one core may make files there (`-shared-memory`, `CoreTraits.SharedMemory`). They're shared with whatever else runs under the same account, which is why no other core, and no custom core, gets it. Its `cache` folder stays beside the save between games (`CoreTraits.CacheIn`), and backups leave it out. A game has booted this way with a real BIOS, and left nothing in `/dev/shm`. No graphics driver here supports program binaries, so a shader file being written and read back hasn't been seen.
+**Under the Linux sandbox,** LRPS2, melonDS, SwanStation, PPSSPP and Flycast make files in `/dev/shm` to lay out the console's memory, and crash or refuse to start if they can't. So these may (`-shared-memory`, `CoreTraits.SharedMemory`), in a folder of their own: the runner starts in a mount namespace with one capability, puts an empty `tmpfs` over `/dev/shm`, gives the capability up and starts itself again before anything is loaded. Nothing else can reach that folder and nothing's left behind, however the runner ends. Where namespaces aren't allowed, Landlock lets the core write to the system's `/dev/shm` instead, which is shared with whatever else runs under the same account, so no other core and no custom core is given this. LRPS2's `cache` folder stays beside the save between games (`CoreTraits.CacheIn`), and backups leave it out. No graphics driver here supports program binaries, so a shader file being written and read back hasn't been seen.
+
+**What else a few cores ask for, and how they get it.** glibc 2.41 and later refuse to load a library that asks for an executable stack, as melonDS does. Its asking is an accident of how one file was built: it runs 60 frames a second without one. So a core that asks is opened from a private copy with the request taken off (`libretro/execstack_linux.go`), and no core ever gets an executable stack, on any glibc. The core's file isn't touched, so its recorded checksum still holds. melonDS reserves 16 GiB of empty address space and has no fallback if it can't, so it gets a higher ceiling on that (`-large-address-space`, `CoreTraits.LargeAddressSpace`). The data limit still holds what it really uses. Play! stops on starting if it can't make its folder under the home folder, so it has its save folder as one (`-own-home`, `CoreTraits.OwnHome`), and its memory cards are kept there.
 
 ### Cores that keep their own stacks
 
@@ -144,7 +146,9 @@ DS cores use their software renderers, so they play on a server with no graphics
 
 **3DS games must be unencrypted.** Nothing here decrypts them or looks for keys (`threeds.go`). The server reads the plain headers of `.3ds`, `.cci`, `.cxi`, `.app` and `.cia` files, and an encrypted one is still listed, with a clear message on its page and on *Needs a look → Can't play*. A game's bytes are what count: a package marks its contents as encrypted, but its program must also start with `NCCH`, and that program must have its NoCrypto flag set. A package marked encrypted whose program is plainly readable plays. One marked clear whose program is scrambled doesn't.
 
-A `.cia` is an install package, and Azahar's list of what it opens doesn't include it, so an unencrypted one has its main program copied out to a temporary file for the session. Updates and extra content inside a package aren't applied. A title's type says if a package is an update or extra content rather than a game, and those aren't listed as games. A game made only for the New 3DS says so in its header, and Azahar is told to be one (`citra_is_new_3ds`). No real 3DS game has been played: the one real file tried is encrypted.
+A ticket and a title key say nothing either way, as tools that remove a package's encryption leave them in. Nor do a readable title and icon, as a package keeps those in the open while its program stays encrypted. Fixed-key programs, whose key is public, are still encrypted and still refused. `wittyplay-probe cia-info -hash file.cia` prints each of these bytes and where it is, and compares the contents with the checksums in the table of contents, which cover their plain form.
+
+A `.cia` is an install package, and Azahar's list of what it opens doesn't include it, so an unencrypted one has its main program copied out, in the server's `gaming/tmp/3ds`. A big game's copy takes a while and as much room as the game, so the last one stays for next time, and goes when another package is played with nothing running, or the server restarts. Updates and extra content inside a package aren't applied. A title's type says if a package is an update or extra content rather than a game, and those aren't listed as games. A game made only for the New 3DS says so in its header, and Azahar is told to be one (`citra_is_new_3ds`). No retail 3DS game has been played: the one tried is encrypted. A plain package has, using `wittyplay-probe test-cia`, which writes one from a few hand-assembled instructions.
 
 ## Why WebRTC, and what happens when it can't connect
 
@@ -303,7 +307,7 @@ The file wins an argument. A PlayStation 2 game in a folder named for the PlaySt
 - **Needs a look** is for files that might be games: no header where every game has one (`mustHaveHeader`), a disc with nothing to say which console, a console with no core here, an archive holding hundreds of different things. One click says what it is, or that it isn't a game.
 - **Left out** is for what's been shown not to be one: BIOS files (by name and by bytes), updates and extra content (a 3DS title's type in its title id, a PSP's `CATEGORY`, a name's tags), test cartridges and cheat devices, music CDs, chiptunes, text, programs, film discs, and a second copy of something. These can be overruled.
 
-These choices are kept in the database, beside the library. A header-less NES dump is listed if its size fits, with a note: only Mesen can play one, by its checksum, and Mesen's NES core currently aborts on Linux.
+These choices are kept in the database, beside the library. A header-less NES dump is listed if its size fits, with a note: only Mesen can play one, by its checksum.
 
 **Several files, one game.** After each file has been judged:
 
@@ -725,14 +729,18 @@ Run on 2026-10-31 on Windows, with the same cores checked on Linux where the tab
 | PlayStation | 1 loose game and 1 three-disc game | OK on PCSX ReARMed and Beetle PSX, with disc changes, resume and battery saves. PCSX ReARMed at 95% speed |
 | Nintendo DS | 1 real game | OK on melonDS and DeSmuME, both screens counted, with states and resume. Speed not measured on a quiet machine |
 | PSP | 1 real game | OK on PPSSPP, though a resumed picture doesn't quite match. Speed not measured on a quiet machine |
-| 3DS | 1 real game, encrypted | Refused with a plain message, as it should be. No 3DS game has been played |
+| 3DS | 1 real game, encrypted; a plain test program in a `.cia` | The real one is refused with a plain message, as it should be. The test program plays. No retail 3DS game has been played |
 | Game Boy, GBA | 6 and 3 homebrew or test ROMs | OK on all cores. The GBA ROMs have no sound, so GBA audio is unproven |
 | Mega Drive, Master System, Game Gear | 3, 3 and 1 homebrew ROMs | OK on all cores. ClownMDEmu's resume doesn't match on any of the 3; BlastEm, the default, is fine |
 | PC Engine, Atari 2600, Virtual Boy, WonderSwan, Neo Geo Pocket | 3, 3, 3, 2 and 1 homebrew ROMs | OK on all cores |
 | Lynx | 20 homebrew or test ROMs | 16 OK. The other 4 are test ROMs that draw one colour. All are silent |
-| Atari 7800 | No game with a clear licence was found | Only that the core installs and opens |
+| Atari 7800, Dreamcast | No game with a clear licence was found; a test program written for each (`wittyplay-probe test-rom`) | Both run through the stream with a changing picture. No real game has been played |
 
-Every core offered at the time, 27 of them, installed and opened in the sandbox, on Windows, on Linux and in the container image. NES, SNES, PlayStation and homebrew samples also ran on Linux, where the sandbox is stricter. Since then, Mesen's NES core has been found to abort on Linux.
+Every core offered at the time, 27 of them, installed and opened in the sandbox, on Windows, on Linux and in the container image. NES, SNES, PlayStation and homebrew samples also ran on Linux, where the sandbox is stricter.
+
+**On Linux, under the sandbox, on 2026-11-01:** every core on every console, through the real session manager, runner, encoder and a viewer over the WebSocket, with what arrived put through a real decoder (`wittyplay-probe sweep`). Every one reaches frames with time passing. Every console held its full speed apart from these, on a machine with other work holding its load at 15 to 30: Beetle PSX HW at 22 frames a second and PPSSPP at 9 in a game's own menus, in both cases on this machine's only graphics driver, Mesa's D3D12 layer under WSL. PPSSPP's time goes on copying buffers inside that driver. It's the same at half the resolution, and a native driver hasn't been tried. About one time in four, Azahar's runner crashes on its way out, after everything is saved, at one place inside WSL's own `libd3d12core.so`. Nobody playing sees it, and PPSSPP's looks the same.
+
+Mesen's NES core was reported to abort on Linux. It hasn't been made to, with all 318 real NES games under the full checks, in a real browser, through run-ahead, rewind, save slots, reset and fast forward, and on the earlier version it was reported on.
 
 In a browser, on the real server, with pictures looked at: WebRTC with NES, SNES and PlayStation; WebSocket with H.264 and with JPEG; input, sound, phone size with the touch controls, a change of disc, save slots, a resume after quitting, and clean exits when the server or the runner is killed. Streaming through the module has played a real game in a browser, and the graphics-card consoles' delay figures are above.
 
@@ -741,11 +749,10 @@ In a browser, on the real server, with pictures looked at: WebRTC with NES, SNES
 ## Limits today
 
 - **Delay figures** are headless on one machine, and not from glass to glass. PlayStation 2 is the slowest, at about 49 ms from a press to the screen. Firefox, Safari, phones, TVs and real networks haven't been run. Nor has a real controller or TV remote.
-- **3DS** isn't tested with a real game.
+- **3DS and Dreamcast** aren't tested with a real game.
 - **Graphics-card consoles** run on Windows and Linux only, and with OpenGL only. melonDS's own OpenGL mode produces no frames here, so DS games draw in software at native resolution.
-- **Mesen's NES core** aborts on Linux, which leaves header-less NES dumps with nothing to play them there.
 - **PlayStation 2 on Linux:** a real game boots under the sandbox, on a software renderer here. A real save hasn't been tried under it, and nor has a graphics card.
-- **On a new Linux with glibc 2.41 or later,** melonDS won't load, as that refuses a library asking for an executable stack, and Play! aborts while loading. Both do the same with the sandbox off.
+- **Play!** reads a whole PlayStation 2 disc before its first frame, which on a slow disk or network share can look stuck for a minute or more. It stops with an error on a raw `.bin` with no `.cue`. LRPS2 plays those.
 - **Deflate64 and LZMA inside a `.zip`** aren't read, and say so. Deflate, bzip2 and Zstandard are.
 - **A `.7z` with locked contents** is only found out when played.
 - **Cheats depend on the core.** libretro gives a frontend no way to know whether a core acted on a code. Some cores have no cheat support at all.

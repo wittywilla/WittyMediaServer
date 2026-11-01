@@ -3,6 +3,8 @@ package server
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -90,6 +92,8 @@ type gameService struct {
 	custom *customService
 
 	peers peerLimits
+
+	programs sync.Mutex // the program copied out of a 3DS package, while it's looked at or made
 }
 
 // gpuStatus is what's known about the graphics card. Finding out takes a second or
@@ -823,7 +827,9 @@ func (g *gameService) prepareROM(ctx context.Context, path string, console *witt
 // prepare3DS checks a 3DS file before a core sees it. An encrypted one is refused:
 // nothing here decrypts or looks for keys. An unencrypted install package holds the
 // game as a plain program, which is copied out because the cores can't open a package.
-// On failure the earlier cleanup has already run.
+// On failure the earlier cleanup has already run. Whether it's refused goes by the bytes
+// where a program's header belongs, then its NoCrypto flag, and not by what the package's
+// table of contents says or whether it has a ticket: see threeds.go in WittyPlay.
 func (g *gameService) prepare3DS(rom string, cleanup func(), console *wittyplay.Console) (string, func(), bool, error) {
 	if console.ID != "3ds" {
 		return rom, cleanup, false, nil
@@ -844,26 +850,50 @@ func (g *gameService) prepare3DS(rom string, cleanup func(), console *wittyplay.
 	if !info.Package {
 		return rom, cleanup, info.NewOnly, nil
 	}
-	tmpRoot := filepath.Join(g.dir, "tmp")
-	if err := os.MkdirAll(tmpRoot, 0o700); err != nil {
-		return fail(err)
-	}
-	dir, err := os.MkdirTemp(tmpRoot, "rom-")
+	out, err := g.packageProgram(rom, info)
 	if err != nil {
 		return fail(err)
 	}
-	both := func() {
-		_ = os.RemoveAll(dir)
-		if cleanup != nil {
-			cleanup()
+	return out, cleanup, info.NewOnly, nil
+}
+
+// packageProgram gives the program out of a 3DS package as a file of its own. A big game's
+// copy takes a long while and as much room as the game, so it stays for next time rather than
+// being made at every start. Only the last one stays, unless a game is running that may still
+// be using another. The folder is emptied when the server starts.
+func (g *gameService) packageProgram(rom string, info wittyplay.ThreeDSFile) (string, error) {
+	st, err := os.Stat(rom)
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(g.dir, "tmp", "3ds")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(fmt.Appendf(nil, "%s|%d|%d", rom, st.Size(), st.ModTime().UnixNano()))
+	out := filepath.Join(dir, hex.EncodeToString(sum[:8])+".cxi")
+	g.programs.Lock()
+	defer g.programs.Unlock()
+	if have, err := os.Stat(out); err == nil && have.Size() == info.ProgramLen {
+		return out, nil
+	}
+	if g.mgr.Count() == 0 {
+		if ents, err := os.ReadDir(dir); err == nil {
+			for _, e := range ents {
+				_ = os.Remove(filepath.Join(dir, e.Name()))
+			}
 		}
 	}
-	out := filepath.Join(dir, "game.cxi")
-	if err := info.CopyProgram(rom, out); err != nil {
-		both()
-		return "", nil, false, err
+	part := out + ".part"
+	if err := info.CopyProgram(rom, part); err != nil {
+		_ = os.Remove(part)
+		return "", err
 	}
-	return out, both, info.NewOnly, nil
+	if err := os.Rename(part, out); err != nil {
+		_ = os.Remove(part)
+		return "", err
+	}
+	return out, nil
 }
 
 func withOption(options map[string]string, key, value string) map[string]string {

@@ -43,10 +43,10 @@ export default function Bundle() {
   return (
     <Section title="Download logs" desc="One ZIP file for someone helping you: recent logs, crash reports and a summary of this server. It’s made on this server when you ask, and nothing is ever uploaded. You decide who sees it.">
       <div className="lg-go">
-        <div className="lg-go-toggle">
+        <label className="lg-go-toggle">
           <Switch checked={sanitize} onChange={setSanitize} labelledBy={toggleId} />
           <span id={toggleId}><b>Sanitize for sharing</b></span>
-        </div>
+        </label>
         <DownloadButton className="btn primary" path={`/logs/bundle?${query}`} name={sanitize ? 'wittymediaserver-logs-sanitized.zip' : 'wittymediaserver-logs.zip'}>Download logs as ZIP</DownloadButton>
       </div>
       {sanitize

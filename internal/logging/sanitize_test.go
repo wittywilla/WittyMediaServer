@@ -124,8 +124,8 @@ func plantedBundle(t *testing.T, sanitize bool) map[string]string {
 	}
 	summary, _ := json.Marshal(map[string]any{
 		"version": "0.6.0-test", "hostname": "planted-computer", "ffmpeg": "/home/plantedhome/bin/ffmpeg",
-		"folders":  []map[string]any{{"role": "data", "path": `D:\PlantedMedia\data`}, {"role": "library", "path": "/srv/plantedlibrary"}},
-		"settings": map[string]string{"remoteHost": "myserver.example.net", "note": "for plantedaccount"},
+		"folders":      []map[string]any{{"role": "data", "path": `D:\PlantedMedia\data`}, {"role": "library", "path": "/srv/plantedlibrary"}},
+		"settings":     map[string]string{"remoteHost": "myserver.example.net", "note": "for plantedaccount"},
 		"Attic Cinema": 12, "encoders": []string{"libx264"},
 	})
 	diag, _ := json.Marshal(map[string]any{"subject": "The Quiet Harbour", "findings": []map[string]any{{"title": "Bad sector", "target": "Zanzibarium", "names": []string{"Crystal Burrow Saga"}, "what": "read " + `\\PLANTEDNAS\share\Family\clip.mp4`}}})
@@ -305,6 +305,17 @@ func TestSanitizingKeepsDiagnostics(t *testing.T) {
 	} {
 		if got := s.Attr(c.k, c.v); got != c.want {
 			t.Errorf("%s=%q became %q", c.k, c.v, got)
+		}
+	}
+	// A stack keeps where in the code, and nothing about the machine it was built on.
+	for in, want := range map[string]string{
+		"\tD:/somebody-private/projects/server/internal/server/api.go:12 +0x1d":          "\t…/internal/server/api.go:12 +0x1d",
+		"\t/home/somebody-private/go/pkg/mod/github.com/some-vendor/thing@v1.2.3/x.go:5": "\t…/github.com/some-vendor/thing@v1.2.3/x.go:5",
+		"\tC:\\Program Files\\Go\\src\\net\\http\\server.go:2000 +0x9":                   "\t…/net/http/server.go:2000 +0x9",
+		"\t/somebody-private/main.go:3":                                                  "\t…/main.go:3",
+	} {
+		if got := s.crashLine(in); got != want {
+			t.Errorf("%q became %q", in, got)
 		}
 	}
 	// A title that's an ordinary word can't blot out the words of a message, in any part.

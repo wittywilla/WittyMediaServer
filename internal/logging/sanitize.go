@@ -658,8 +658,8 @@ func isNumber(v string) bool {
 	return err == nil
 }
 
-// stack keeps the program's own source lines, which are what a stack is for, taking out
-// only names this server knows: a copy built at home has someone's home folder in them.
+// stack keeps the program's own source lines, which are what a stack is for. A copy built at
+// home has someone's home folder in them, so those lines lose whatever comes before the code.
 func (s *Sanitizer) stack(v string) string {
 	lines := strings.Split(v, "\n")
 	for i, line := range lines {
@@ -670,9 +670,34 @@ func (s *Sanitizer) stack(v string) string {
 
 func (s *Sanitizer) crashLine(line string) string {
 	if strings.HasPrefix(line, "\t") && goSourceLine.MatchString(line) {
-		return s.Final(line)
+		return s.Final(sourceLine(line))
 	}
 	return s.Text(line)
+}
+
+// sourceLine keeps a stack's file, line and offset, and the part of the path from where the
+// code starts, which is the same on every machine.
+func sourceLine(line string) string {
+	body := strings.ReplaceAll(strings.TrimPrefix(line, "\t"), `\`, "/")
+	at := goSourceLine.FindStringIndex(body)
+	if at == nil {
+		return line
+	}
+	file := body[:at[1]]
+	rest := body[at[1]:]
+	for _, mark := range []string{"/pkg/mod/", "/src/", "/internal/", "/cmd/"} {
+		if i := strings.LastIndex(file, mark); i >= 0 {
+			start := i + len(mark)
+			if mark == "/internal/" || mark == "/cmd/" {
+				start = i + 1
+			}
+			return "\t…/" + file[start:] + rest
+		}
+	}
+	if i := strings.LastIndexByte(file, '/'); i >= 0 {
+		return "\t…/" + file[i+1:] + rest
+	}
+	return line
 }
 
 // Record hides everything in a whole record that isn't the server's own vocabulary.

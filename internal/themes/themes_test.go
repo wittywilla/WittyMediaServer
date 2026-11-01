@@ -3,6 +3,7 @@ package themes
 import (
 	"archive/zip"
 	"bytes"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -32,12 +33,16 @@ func TestInstallListAndUpload(t *testing.T) {
 		t.Fatal(err)
 	}
 	list := m.List()
-	if len(list) < 19 || list[0].ID != "default" {
+	if len(list) != 8 || list[0].ID != "default" {
 		t.Fatalf("built-in themes: %d, first %q", len(list), list[0].ID)
 	}
-	css, ct, err := m.File("light-blue", "theme.css")
-	if err != nil || !strings.HasPrefix(ct, "text/css") || !strings.Contains(string(css), "--accent: #2563eb") {
-		t.Fatalf("light-blue css: %v %s", err, ct)
+	css, ct, err := m.File("midnight", "theme.css")
+	if err != nil || !strings.HasPrefix(ct, "text/css") || !strings.Contains(string(css), "--accent: #") {
+		t.Fatalf("midnight css: %v %s", err, ct)
+	}
+	// A server still set to a theme that's gone gets the look that replaced it.
+	if old, _, err := m.File("light-blue", "theme.css"); err != nil || !strings.Contains(string(old), "color-scheme: light") {
+		t.Fatalf("retired theme: %v", err)
 	}
 	good := zipOf(t, map[string]string{
 		"theme.json":    `{"id":"my-cinema","name":"My Cinema","scheme":"dark"}`,
@@ -70,5 +75,56 @@ func TestInstallListAndUpload(t *testing.T) {
 	}
 	if err := m.Remove("my-cinema"); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestRetiredBuiltinsGoAndOwnThemesStay(t *testing.T) {
+	m := &Manager{Dir: t.TempDir()}
+	write := func(id, meta string) {
+		if err := writeAtomic(filepath.Join(m.Dir, id+".zip"), zipOf(t, map[string]string{"theme.json": meta, "theme.css": ":root{}"})); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("dark-red", `{"name":"Dark Red","scheme":"dark","builtin":true}`)
+	write("dark-blue", `{"name":"My own blue","scheme":"dark"}`)
+	if err := m.Install(builtin.Builtin); err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]string{}
+	for _, th := range m.List() {
+		seen[th.ID] = th.Name
+	}
+	if _, ok := seen["dark-red"]; ok {
+		t.Fatal("the retired built-in is still listed")
+	}
+	if seen["dark-blue"] != "My own blue" {
+		t.Fatal("someone's own theme was removed")
+	}
+}
+
+func TestAddCustom(t *testing.T) {
+	m := &Manager{Dir: t.TempDir()}
+	colors := map[string]string{}
+	for _, k := range customVars {
+		colors[k] = "#336699"
+	}
+	meta, err := m.AddCustom(Custom{Name: "  My   Look! ", Scheme: "dark", Colors: colors, Radius: 12})
+	if err != nil || meta.ID != "custom-my-look" || meta.Name != "My Look!" {
+		t.Fatalf("%v %+v", err, meta)
+	}
+	css, _, err := m.File(meta.ID, "theme.css")
+	if err != nil || !strings.Contains(string(css), "--accent: #336699;") || !strings.Contains(string(css), "--radius: 12px;") || !strings.Contains(string(css), "--bg-rgb: 51 102 153;") {
+		t.Fatalf("%v %s", err, css)
+	}
+	for name, c := range map[string]Custom{
+		"no name":   {Scheme: "dark", Colors: colors},
+		"scheme":    {Name: "x", Scheme: "blue", Colors: colors},
+		"corners":   {Name: "x", Scheme: "dark", Colors: colors, Radius: 99},
+		"missing":   {Name: "x", Scheme: "dark", Colors: map[string]string{"bg": "#000000"}},
+		"injection": {Name: "x", Scheme: "dark", Colors: func() map[string]string { c := map[string]string{}; for k, v := range colors { c[k] = v }; c["bg"] = "#000;}body{display:none"; return c }()},
+	} {
+		if _, err := m.AddCustom(c); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
 	}
 }

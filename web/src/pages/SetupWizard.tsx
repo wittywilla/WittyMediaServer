@@ -489,14 +489,12 @@ function LookStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
     try { await api.put('/settings', { theme: pick }); setServerTheme(pick) } catch { /* can be changed later */ }
     onNext()
   }
-  // A handful of looks to start from; every theme is in Settings → Appearance.
-  const featured = ['default', 'dark', 'oled', 'light', 'dark-blue', 'dark-green', 'light-pink', 'dark-gold']
-  const shown = themes.filter((t) => featured.includes(t.id)).sort((a, b) => featured.indexOf(a.id) - featured.indexOf(b.id))
+  const shown = themes.filter((t) => t.builtin)
   const navOpts: [NavStyle, string, string][] = [['top', 'Top bar', 'Libraries along the top'], ['side', 'Side menu', 'Libraries in a menu on the left'], ['both', 'Both', 'The top bar and the side menu']]
   return (
     <section>
       <h1>Make it yours</h1>
-      <p className="lead">Pick a look for everyone. It changes right away; people can pick their own later in Settings → Appearance, where there are more themes.</p>
+      <p className="lead">Pick a look for everyone. It changes right away; people can pick their own later in Settings → Appearance, or make one.</p>
       <div className="oobe-themes" role="radiogroup" aria-label="Theme">
         {shown.map((t) => (
           <button key={t.id} type="button" role="radio" aria-checked={pick === t.id} className={'oobe-theme' + (pick === t.id ? ' on' : '')} onClick={() => choose(t.id)}>

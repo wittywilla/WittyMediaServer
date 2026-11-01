@@ -262,6 +262,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/artwork/preview", s.requireAdmin(s.handleArtPreview))
 	m.Handle("GET /api/prefs", a(s.handlePrefs))
 	m.Handle("POST /api/themes", s.requireAdmin(s.handleThemeUpload))
+	m.Handle("POST /api/themes/custom", s.requireAdmin(s.handleThemeCustom))
 	m.Handle("DELETE /api/themes/{id}", s.requireAdmin(s.handleThemeDelete))
 	m.Handle("GET /api/shows", a(s.handleShows))
 	m.Handle("GET /api/shows/genres", a(s.handleShowGenres))
@@ -279,6 +280,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/pair/deny", a(s.handlePairDeny))
 	m.Handle("POST /api/pair/invite", a(s.handlePairInvite))
 	m.Handle("GET /api/playback/profiles", a(s.handlePlaybackProfiles))
+	m.Handle("GET /api/media-types", a(s.handleMediaTypes))
 	m.Handle("POST /api/items/{id}/playback", a(s.handlePlayback))
 	m.Handle("POST /api/items/{id}/stream-token", a(s.handleItemStreamToken))
 	m.Handle("GET /api/items/{id}/subtitles/{file}", a(s.handleItemSubtitle))
@@ -360,6 +362,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/users", a(s.handleCreateUser)) // adults may add Kids profiles
 	m.Handle("DELETE /api/users/{id}", a(s.handleDeleteUser))
 	m.Handle("PUT /api/users/{id}/access", a(s.handleUserAccess))
+	m.Handle("PUT /api/users/{id}/profile", a(s.handleUserProfile))
 	m.Handle("PUT /api/users/{id}/password", a(s.handlePassword))
 	m.Handle("GET /api/fs", s.requireAdmin(s.handleFS))
 	m.Handle("POST /api/fs/pick", s.requireAdmin(s.handlePickFolder))

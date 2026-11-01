@@ -93,6 +93,13 @@ var metricRangeOrder = []string{"15m", "1h", "6h", "24h", "7d", "30d", "90d"}
 // Sections an account without the whole machine can have.
 var ownSections = map[string]bool{"server": true, "streams": true, "games": true, "libraries": true}
 
+// ownMetricSections are what an account without the whole machine can have. Saying so
+// reads nothing from the machine.
+func ownMetricSections() []MetricSection {
+	return []MetricSection{{ID: "server", Title: "Server", Available: true}, {ID: "streams", Title: "Streams", Available: true},
+		{ID: "games", Title: "Game sessions", Available: true}, {ID: "libraries", Title: "Libraries", Available: true}}
+}
+
 func (s *Server) metricSections() []MetricSection {
 	notOn := func(what string) string { return what + " isn't available on " + runtime.GOOS + "." }
 	_, _, cpu := sysinfo.ReadCPU()
@@ -133,14 +140,11 @@ func (s *Server) handleMetricsCatalog(w http.ResponseWriter, r *http.Request) {
 	acc := s.metricsAccessFor(r.Context(), userFrom(r))
 	out := MetricsCatalog{Access: acc, Sections: []MetricSection{}, Series: []string{}, Ranges: []string{}, EverySec: 2}
 	if acc.Visible {
-		for _, m := range s.metricSections() {
-			if acc.Full || !m.Full {
-				out.Sections = append(out.Sections, m)
-			}
-		}
 		out.Ranges = metricRangeOrder
 		if acc.Full {
-			out.Series = metrics.SeriesNames
+			out.Sections, out.Series = s.metricSections(), metrics.SeriesNames
+		} else {
+			out.Sections = ownMetricSections()
 		}
 	}
 	writeJSON(w, 200, out)
@@ -253,15 +257,8 @@ func (s *Server) buildNow(ctx context.Context, u *auth.User, full bool, want fun
 	if want("gpu") {
 		out.GPU = s.gpus.Read(ctx)
 	}
-	if want("modules") && s.Modules != nil {
-		rep := s.Modules.Report()
-		for _, m := range rep.Modules {
-			v := ModuleNow{ID: m.ID, Name: m.Name, Version: m.Version, Phase: m.Phase, Error: m.Error, Installed: m.Installed}
-			if m.Latest != nil {
-				v.Latest = m.Latest.Version
-			}
-			out.Modules = append(out.Modules, v)
-		}
+	if want("modules") {
+		out.Modules = s.modulesNow()
 	}
 	if want("streams") {
 		_, t, _ := s.streams.counts()
@@ -269,6 +266,29 @@ func (s *Server) buildNow(ctx context.Context, u *auth.User, full bool, want fun
 		sum := tasks.Summarize(s.Tasks.Live())
 		out.Tasks = &sum
 	}
+	return out
+}
+
+// modulesNow is how the modules stand. It hardly changes, and asking takes the manager's
+// lock and a look at some files, so the answer is kept for a while whoever asks.
+func (s *Server) modulesNow() []ModuleNow {
+	if s.Modules == nil {
+		return nil
+	}
+	s.reports.Lock()
+	defer s.reports.Unlock()
+	if time.Since(s.reports.modulesAt) < modulesKeep {
+		return s.reports.modules
+	}
+	out := []ModuleNow{}
+	for _, m := range s.Modules.Report().Modules {
+		v := ModuleNow{ID: m.ID, Name: m.Name, Version: m.Version, Phase: m.Phase, Error: m.Error, Installed: m.Installed}
+		if m.Latest != nil {
+			v.Latest = m.Latest.Version
+		}
+		out = append(out, v)
+	}
+	s.reports.modules, s.reports.modulesAt = out, time.Now()
 	return out
 }
 
@@ -524,9 +544,11 @@ type ReportPeak struct {
 
 type reportCache struct {
 	sync.Mutex
-	entries  map[int64]reportEntry
-	caches   []ReportCache
-	cachesAt time.Time
+	entries   map[int64]reportEntry
+	caches    []ReportCache
+	modules   []ModuleNow
+	modulesAt time.Time
+	cachesAt  time.Time
 }
 
 type reportEntry struct {
@@ -539,6 +561,7 @@ const (
 	reportCacheSize = 32
 	cacheCountKeep  = 5 * time.Minute
 	cacheCountTime  = 2 * time.Second
+	modulesKeep     = 30 * time.Second
 )
 
 // GET /api/system/metrics/report: libraries, what's in them, and what's gone on. Someone

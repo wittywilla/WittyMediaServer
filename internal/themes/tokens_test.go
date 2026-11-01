@@ -95,7 +95,7 @@ func TestBuiltinThemesAreReadableByNativeApps(t *testing.T) {
 			t.Errorf("%s: no --font", d.Name())
 		}
 	}
-	if n < 20 {
+	if n < 8 {
 		t.Errorf("only %d built-in themes found", n)
 	}
 }

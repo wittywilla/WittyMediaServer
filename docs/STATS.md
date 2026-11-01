@@ -48,7 +48,9 @@ No answer holds a file path, except `volumes[].mount` for administrators, which 
 
 **Sections:** `server`, `cpu`, `temperature`, `memory`, `gpu`, `disks`, `diskio`, `network`, `process`, `modules`, `streams`, `games`,
 `libraries`, `logs`. Leaving out `sections` gives all this account may have. A section a system can't provide is left out
-of the answer rather than sent as zero, so check before showing it. The fields are in [openapi.json](openapi.json).
+of the answer rather than sent as zero, so check before showing it. Lists with nothing in them, such as `streams` with nobody
+watching, are left out too: if you asked for a section and it isn't there, it has nothing in it, unless the catalogue says it isn't
+available. The fields are in [openapi.json](openapi.json).
 
 **Ranges:** `15m`, `1h`, `6h`, `24h`, `7d`, `30d`, `90d`. At most 240 points come back. Up to ten minutes uses the two-second samples
 if someone has been watching, up to a day the minute samples, and longer the hourly rows.

@@ -1,0 +1,47 @@
+/*
+ * High contrast - a WittyMediaServer theme.
+ * Black and white with bright yellow, for the clearest reading.
+ *
+ * Every variable below is explained in docs/THEMES.md. Copy this file into
+ * your own theme ZIP as a starting point.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #000000;          /* page background */
+  --bg-2: #000000;        /* side menu, panels, dialogs */
+  --bg-3: #141414;        /* fields, cards, hovered rows */
+  --bg-4: #2b2b2b;        /* pressed buttons, scrollbars */
+  --bg-rgb: 0 0 0;   /* --bg as "R G B", for see-through shades */
+  --border: color-mix(in srgb, var(--fg) 40%, transparent); /* hairlines between panels */
+  --control-line: #b0b0b0;      /* outlines of fields and switches: 3:1 on every surface */
+
+  /* Text */
+  --fg: #ffffff;          /* main text */
+  --fg-2: #e8e8e8;        /* secondary text */
+  --fg-3: #d0d0d0;        /* hints, captions */
+
+  /* Accent: buttons, highlights, progress bars, selected items */
+  --accent: #ffe14d;
+  --accent-2: #ffd400;      /* hovered or pressed accent */
+  --accent-fg: #000000;     /* text on the accent */
+  --accent-text: #ffe14d;   /* the accent as text: links, highlighted words */
+  --accent-rgb: 255 225 77;
+  --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
+
+  /* Status */
+  --danger: #ff9c9c;
+  --ok: #6df2b8;
+  --warn: #ffc95c;
+
+  /* Shape and depth */
+  --radius: 10px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --card-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  /* Layout and type */
+  --sidebar: 240px;
+  --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}

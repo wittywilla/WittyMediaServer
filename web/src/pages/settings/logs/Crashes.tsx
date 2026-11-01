@@ -6,6 +6,7 @@ import { IconCheck, IconTrash } from '../../../icons'
 import { toast } from '../../../state'
 import { Section } from '../ui'
 import { fmtDate, fmtSize, scrollKeys, type Crash } from './types'
+import { Dialog } from '../../../ui/Overlay'
 
 const KIND_WORDS: Record<string, string> = {
   fatal: 'Stopped by an internal error',
@@ -97,16 +98,10 @@ export default function Crashes({ crashes, reload, onSeen }: { crashes: Crash[];
           </ul>
         )}
       {deleting && (
-        <div className="modal-backdrop" onClick={() => setDeleting(null)}>
-          <div className="modal set-modal" role="dialog" onClick={(e) => e.stopPropagation()}>
-            <h2>Delete this crash report?</h2>
+        <Dialog title="Delete this crash report?" onClose={() => setDeleting(null)} className="set-modal" actions={<><button type="button" className="btn ghost" onClick={() => setDeleting(null)}>Keep it</button>
+              <button type="button" className="btn danger" onClick={() => void remove()}>Delete</button></>}>
             <p className="muted">The report from {fmtDate(deleting.time)} will be gone for good. Download it first if someone may need it.</p>
-            <div className="actions">
-              <button type="button" className="btn ghost" onClick={() => setDeleting(null)}>Keep it</button>
-              <button type="button" className="btn danger" onClick={() => void remove()}>Delete</button>
-            </div>
-          </div>
-        </div>
+        </Dialog>
       )}
     </Section>
   )

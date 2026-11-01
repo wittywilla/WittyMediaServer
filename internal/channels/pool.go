@@ -99,8 +99,9 @@ func (r *Rules) where() (string, []any) {
 		var parts []string
 		var a []any
 		for _, n := range r.Studios {
-			parts = append(parts, "i.studio = ? COLLATE NOCASE")
-			a = append(a, n)
+			// A title can have several: its first is on the item, all of them are here.
+			parts = append(parts, "i.studio = ? COLLATE NOCASE", "i.id IN (SELECT item_id FROM title_brands WHERE kind = 'studio' AND name = ? COLLATE NOCASE)")
+			a = append(a, n, n)
 		}
 		or(parts, a)
 	}

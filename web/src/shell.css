@@ -3,16 +3,20 @@
    phones, wider screens add to them. */
 
 /* ---------------------------------------------------------------- top navigation */
-/* The links take the room left between the brand and the search; when
-   they don't all fit they scroll, fading out at the edge (never cut off). */
-.topnav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; min-width: 0; flex: 1 1 auto; padding-right: 28px;
-  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); }
-.topnav::-webkit-scrollbar { display: none; }
-.topnav-link { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border-radius: var(--r-full); color: var(--fg-2); font-weight: 600; font-size: var(--text-md); white-space: nowrap; flex: none; transition: background var(--dur-2), color var(--dur-2); }
-.topnav-link svg { width: 16px; height: 16px; opacity: .85; }
-.topnav-link:hover { background: var(--bg-3); color: var(--fg); }
+/* The links take the room left between the brand and the search. Their own width
+   never decides that room (flex-basis 0), so working out what fits can't go round in
+   circles. What doesn't fit goes under More, or scrolls if someone prefers it. */
+.topnav { display: flex; align-items: center; gap: 2px; min-width: 0; flex: 1 1 0; }
+.topnav:has(.topnav-measure) { overflow: hidden; }
+.topnav.scrolls { overflow-x: auto; scrollbar-width: none; padding: var(--sp-1) var(--sp-1); }
+.topnav.scrolls::-webkit-scrollbar { display: none; }
+.topnav-link { display: inline-flex; align-items: center; gap: var(--sp-2); height: calc(var(--control-h) - var(--sp-1)); padding: 0 var(--sp-3); border: 0; border-radius: var(--r-full); background: none; color: var(--fg-2); font-weight: 600; font-size: var(--text-md); white-space: nowrap; flex: none; transition: background var(--dur-2), color var(--dur-2); }
+.topnav-link svg { width: var(--sp-4); height: var(--sp-4); opacity: .85; }
+.topnav-link:hover, .topnav-link[aria-expanded="true"] { background: var(--bg-3); color: var(--fg); }
 .topnav-link.active { background: var(--fg); color: var(--bg); }
 .topnav-link.active svg { opacity: 1; }
+.topnav-caret { margin-inline: calc(-1 * var(--sp-1)); }
+.topnav-measure { visibility: hidden; }
 .top-brand { padding: 0 var(--sp-2) 0 0; margin: 0; font-size: var(--text-base); flex: none; white-space: nowrap; }
 .top-brand img { width: 26px; height: 26px; }
 /* Top-bar mode drops the side menu on wide screens; phones keep it as the drawer behind the Libraries tab. */
@@ -40,38 +44,63 @@
 @media (max-width: 760px) { .avatar-name { display: none; } }
 .avatar-btn .avatar-tile { width: 36px; height: 36px; font-size: var(--text-base); font-weight: 700; border-radius: 50%; transition: box-shadow var(--dur-2); }
 .avatar-btn:hover .avatar-tile, .avatar-btn[aria-expanded="true"] .avatar-tile { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--border-strong); }
-.profile-menu .menu { position: absolute; right: 0; top: calc(100% + 8px); min-width: 220px; background: var(--bg-2); border: 1px solid var(--border);
-  border-radius: var(--r-lg); box-shadow: var(--e-3); padding: var(--sp-1); z-index: 50; display: grid; animation: dialog-in var(--dur-2) var(--ease-out); transform-origin: top right; }
-.profile-menu .menu-head { display: grid; padding: var(--sp-2) var(--sp-3) 10px; border-bottom: 1px solid var(--border); margin-bottom: var(--sp-1); }
-.profile-menu .menu-head .muted { font-size: var(--text-xs); }
-.profile-menu .menu a, .profile-menu .menu button { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 var(--sp-3); border-radius: var(--r-md); color: var(--fg); background: none; border: 0; text-align: left; font: inherit; font-size: var(--text-md); }
-.profile-menu .menu a:hover, .profile-menu .menu button:hover, .profile-menu .menu a:focus-visible, .profile-menu .menu button:focus-visible { background: var(--hover); }
-.profile-menu .menu svg { width: 16px; height: 16px; color: var(--fg-3); }
 
 /* The version, where no side menu shows it. */
 .page-foot { display: none; margin-top: var(--section-gap); text-align: center; }
 .nav-top .page-foot { display: block; }
 @media (max-width: 900px) { .page-foot { display: block; } }
 
-/* ---------------------------------------------------------------- phone tab bar */
-.tabbar { display: none; }
+/* ---------------------------------------------------------------- the rail */
+.nav-group { display: contents; }
+@media (min-width: 901px) {
+  .app.nav-rail .sidebar { display: flex; width: var(--rail); padding-inline: var(--sp-2); align-items: stretch; }
+  .nav-rail .nav-text, .nav-rail .nav-section, .nav-rail .sidebar-footer, .nav-rail .nav-empty { display: none; }
+  .nav-rail .sidebar .brand { justify-content: center; padding-inline: 0; }
+  .nav-rail .nav-link { justify-content: center; padding: 0; min-height: var(--sp-12); position: relative; }
+  .nav-rail .nav-link svg { width: var(--sp-6); height: var(--sp-6); }
+  .nav-rail .nav-link .upd-dot { position: absolute; top: var(--sp-2); right: var(--sp-3); margin: 0; }
+  .nav-rail .nav-group { display: grid; gap: inherit; margin-top: var(--sp-2); padding-top: var(--sp-2); border-top: 1px solid var(--border); }
+}
+@media (min-width: 1000px) {
+  .app.nav-rail ~ .audio-bar { left: calc(50% + var(--rail) / 2); width: min(1320px, calc(100% - var(--rail) - 48px)); }
+}
+
+/* ---------------------------------------------------------------- phone: sections and the bar */
+.tabbar, .section-row, .section-row-brand { display: none; }
 @media (max-width: 700px) {
-  .nav-dup { display: none !important; } /* what the tab bar already offers */
+  :root { --topbar-h: 52px; }
+  html:has(.tabbar) { --tabbar-space: calc(var(--tabbar-h) + var(--sp-4) + env(safe-area-inset-bottom)); }
+  .nav-dup { display: none !important; } /* what the bar at the bottom already offers */
+  .topbar { padding-block: var(--sp-1); gap: var(--sp-2); }
+  /* Sections take the top of the screen; search and the account are on the bar. */
+  .topnav, .topbar .menu-toggle, .top-brand, .topbar .search, .topbar .profile-menu, .topbar .spacer { display: none; }
+  .section-row { display: flex; flex: 1 1 0; min-width: 0; gap: var(--sp-5); margin-left: calc(-1 * var(--gutter)); padding-inline: var(--gutter) var(--sp-5); overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .section-row::-webkit-scrollbar { display: none; }
+  .section-row a { flex: none; display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--fg-2); font-size: var(--text-base); font-weight: 700; white-space: nowrap; }
+  .section-row a.active { color: var(--fg); box-shadow: inset 0 -2px var(--accent-text); }
+  .section-row-brand { display: flex; flex: 1; }
+  /* The same row, from the music pages: the bar's own takes over here. */
+  .app .mh-libs { display: none; }
   .tabbar {
-    display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
-    padding: 6px var(--sp-1) calc(6px + env(safe-area-inset-bottom)); background: var(--bg-2); border-top: 1px solid var(--border);
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; position: fixed; left: 50%; bottom: calc(var(--sp-2) + env(safe-area-inset-bottom)); z-index: var(--z-tabbar);
+    width: min(calc(100vw - 2 * var(--gutter)), 26rem); height: var(--tabbar-h); padding: var(--sp-1); transform: translateX(-50%);
+    border-radius: var(--r-full); background: var(--bg-3); border: 1px solid var(--border-strong); box-shadow: var(--e-3);
   }
-  .tabbar a, .tabbar button { display: grid; justify-items: center; gap: 2px; min-height: 48px; align-content: center; padding: 0; border-radius: var(--r-md); color: var(--fg-3); background: none; border: 0; font-size: var(--text-2xs); font-weight: 600; }
+  .tabbar a, .tabbar button { position: relative; display: grid; place-items: center; min-width: 44px; border-radius: var(--r-full); color: var(--fg-2); background: none; border: 0; padding: 0; }
   .tabbar a:active, .tabbar button:active { background: var(--hover); }
-  .tabbar svg { width: 22px; height: 22px; }
-  .tabbar a.active { color: var(--accent-text); }
-  .app .content { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
-  /* On phones the top navigation and side menu button make room for the search. */
-  .topnav, .topbar .menu-toggle, .top-brand { display: none; }
-  .app.nav-top .topbar .search, .topbar .search { flex: 1 1 auto; min-width: 0; max-width: none; }
-  /* The mini player sits above the tab bar. */
+  .tabbar svg { width: var(--sp-6); height: var(--sp-6); }
+  .tabbar a.active { background: var(--accent-soft); color: var(--accent-text); }
+  .tabbar .avatar-tile { width: var(--sp-8); height: var(--sp-8); font-size: var(--text-sm); font-weight: 700; border-radius: 50%; }
+  .tabbar .upd-dot { position: absolute; top: var(--sp-1); right: calc(50% - var(--sp-5)); margin: 0; }
+  .app .content { padding-bottom: calc(var(--sp-6) + var(--tabbar-space) + var(--dock-space)); }
+  /* The mini player sits above the bar. */
   .player.mini { bottom: calc(var(--tabbar-space) + var(--sp-2)) !important; }
-  .app:has(~ .player.mini) .content { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
+}
+.search-page-box { display: none; }
+@media (max-width: 700px) {
+  .search-page-box { display: flex; position: relative; align-items: center; margin-bottom: var(--sp-4); }
+  .search-page-box svg { position: absolute; left: var(--sp-3); width: var(--sp-5); height: var(--sp-5); color: var(--fg-3); pointer-events: none; }
+  .search-page-box input { width: 100%; padding-left: var(--sp-10); }
 }
 
 /* Comfortable touch targets on coarse pointers (the control sizes in styles.css follow too). */
@@ -82,13 +111,74 @@
   body { zoom: 1.25; }
 }
 
+/* ---------------------------------------------------------------- arranging the menu */
+.nav-custom { display: grid; gap: var(--sp-4); margin-top: var(--sp-5); scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
+.nav-custom h3 { margin: 0; font-size: var(--text-lg); }
+.nav-custom-opts { display: flex; flex-wrap: wrap; align-items: end; gap: var(--sp-4) var(--sp-6); }
+.nav-custom-opt { display: grid; justify-items: start; gap: var(--sp-2); min-width: 0; font-size: var(--text-sm); color: var(--fg-2); }
+.nav-custom-toggle { display: flex; align-items: center; gap: var(--sp-3); min-height: var(--control-h); font-size: var(--text-md); color: var(--fg); }
+.nav-custom-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-1); }
+.nav-custom-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-1) var(--sp-3) var(--sp-1) var(--sp-1); border-radius: var(--r-md); background: var(--bg-3); }
+.nav-custom-row.held { box-shadow: var(--e-2); outline: 2px solid var(--focus); }
+.nav-custom-row.off .nav-custom-name { color: var(--fg-3); }
+.nav-custom-grip { display: grid; place-items: center; flex: none; width: var(--control-h); height: var(--control-h); border: 0; border-radius: var(--r-sm); background: none; color: var(--fg-3); cursor: grab; touch-action: none; }
+.nav-custom-grip:hover { color: var(--fg); background: var(--hover); }
+.nav-custom-row.held .nav-custom-grip { cursor: grabbing; }
+.nav-custom-name { display: flex; align-items: center; gap: var(--sp-2); flex: 1 1 8rem; min-width: 0; font-weight: 600; font-size: var(--text-md); }
+.nav-custom-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-custom-name svg { flex: none; width: var(--sp-5); height: var(--sp-5); color: var(--fg-3); }
+.nav-custom-row .select { flex: 0 1 8rem; width: auto; }
+.nav-custom-move { display: flex; gap: var(--sp-1); flex: none; }
+.nav-custom-foot { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+/* Phones have one layout, so there's nothing to choose between. */
+@media (max-width: 700px) { .layout-opts { display: none; } .nav-custom { margin-top: 0; } }
+@media (max-width: 600px) { .nav-custom-row { flex-wrap: wrap; } .nav-custom-name { flex-basis: calc(100% - var(--control-h) - var(--sp-3)); } .nav-custom-row .select { flex: 1 1 6rem; } .nav-custom-move { margin-left: auto; } }
+
+/* ---------------------------------------------------------------- choosing a theme */
+.theme-card { cursor: default; }
+.theme-pick { display: grid; gap: var(--sp-1); width: 100%; padding: 0 0 var(--sp-2); border: 0; background: none; color: var(--fg); text-align: left; cursor: pointer; }
+.theme-pick .muted { padding-inline: var(--sp-3); font-size: var(--text-xs); line-height: var(--leading-snug); }
+.theme-pick:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: calc(-1 * var(--focus-width)); }
+.theme-name { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; padding: var(--sp-2) var(--sp-3) 0; font-weight: 600; font-size: var(--text-md); }
+.theme-card .theme-actions { padding: 0 var(--sp-3) var(--sp-3); margin-top: auto; min-height: calc(var(--control-h-sm) + var(--sp-3)); }
+/* The scene draws with the theme's own colours, set on it as variables. */
+.theme-scene { display: grid; grid-template-rows: auto 1fr; height: 7.5rem; overflow: hidden; background: var(--bg); color: var(--fg); pointer-events: none; }
+.ts-bar { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-1) var(--sp-2); background: var(--bg-2); font-size: var(--text-2xs); color: var(--fg-2); }
+.ts-dot { width: var(--sp-2); height: var(--sp-2); border-radius: 50%; background: var(--accent); }
+.ts-link { padding: 1px var(--sp-2); border-radius: var(--r-full); }
+.ts-link.on { background: var(--fg); color: var(--bg); font-weight: 600; }
+.ts-body { display: flex; gap: var(--sp-3); align-items: center; padding: var(--sp-2); min-height: 0; }
+.ts-posters { display: flex; gap: var(--sp-1); flex: none; }
+.ts-posters i { width: 1.75rem; aspect-ratio: 2 / 3; border-radius: calc(var(--radius) * .4); background: var(--bg-3); border: 1px solid var(--bg-4, var(--bg-3)); }
+.ts-text { display: grid; gap: 1px; justify-items: start; min-width: 0; font-size: var(--text-2xs); }
+.ts-text b { font-size: var(--text-xs); }
+.ts-text small { color: var(--fg-2); font-size: var(--text-2xs); white-space: nowrap; }
+.ts-text .btn.sm { height: 1.25rem; min-height: 0; padding: 0 var(--sp-2); margin-top: var(--sp-1); font-size: var(--text-2xs); }
+.theme-scene-pair { display: grid; grid-template-columns: 1fr 1fr; }
+.theme-scene-pair .ts-posters i:nth-child(n + 2), .theme-scene-pair .ts-link:not(.on), .theme-scene-pair small { display: none; }
+.theme-maker { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
+.theme-maker-colours { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.theme-colour.input { padding: var(--sp-1); height: var(--control-h); cursor: pointer; }
+.theme-maker-preview { display: grid; gap: var(--sp-3); position: sticky; top: 0; }
+.theme-maker-preview .theme-scene { height: 12rem; border-radius: var(--r-md); border: 1px solid var(--border-strong); }
+@media (max-width: 700px) { .theme-maker { grid-template-columns: minmax(0, 1fr); } .theme-maker-preview { position: static; order: -1; } }
+.block { display: block; }
+.seg-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); }
+
+/* ---------------------------------------------------------------- moving posters (ui/tilt.ts) */
+html.tilt-on .card:not(.square) .poster { transform-style: preserve-3d; }
+html.tilt-on .card:not(.square):hover .poster { transform: none; }
+html.tilt-on .card:not(.square) .poster.tilting { transition: transform 80ms linear, box-shadow var(--dur-2); box-shadow: var(--e-3); will-change: transform; }
+.tilt-sheen { position: absolute; inset: -35%; z-index: 3; pointer-events: none; background: radial-gradient(closest-side, color-mix(in srgb, var(--on-image) 20%, transparent), transparent); animation: fade-in var(--dur-2) ease-out; }
+@media (prefers-reduced-motion: reduce) { .tilt-sheen { display: none; } }
+
 /* ---------------------------------------------------------------- layout picker */
 .layout-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
 .layout-opt { display: grid; gap: 4px; justify-items: start; text-align: left; padding: 12px; border-radius: var(--r-md); border: 2px solid var(--border); background: var(--bg-3); color: var(--fg); }
 .layout-opt.on { border-color: var(--accent); }
 .layout-opt .muted { font-size: var(--text-xs); }
 .layout-pic { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r-sm); background: var(--bg); overflow: hidden; margin-bottom: 6px; }
-.layout-pic i { position: absolute; background: var(--bg-4); border-radius: 2px; }
+.layout-pic i { position: absolute; background: var(--bg-4); border-radius: var(--r-xs); }
 .layout-pic .s { left: 0; top: 0; bottom: 0; width: 22%; }
 .layout-pic .t { left: 0; right: 0; top: 0; height: 14%; background: var(--accent); opacity: .7; }
 .layout-pic .c { left: 28%; right: 6%; top: 24%; bottom: 10%; background: var(--bg-3); }
@@ -99,7 +189,7 @@
 .pic-both .t { left: 22%; }
 
 /* ---------------------------------------------------------------- home widgets */
-.home-tools { position: sticky; top: var(--topbar-h); z-index: 15; display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin: 4px 0 14px; padding: 10px 14px; flex-wrap: wrap;
+.home-tools { position: sticky; top: var(--topbar-h); z-index: var(--z-sticky); display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin: 4px 0 14px; padding: 10px 14px; flex-wrap: wrap;
   border-radius: var(--r-md); background: var(--bg-2); border: 1px solid var(--border); box-shadow: var(--e-1); }
 .home-foot { display: flex; justify-content: center; padding: 18px 0 4px; }
 .home-tools .muted { font-size: var(--text-sm); margin-right: auto; }
@@ -111,7 +201,7 @@
 .widget-bar .btn.square { width: var(--control-h-sm); }
 .widget-bar .grip { display: grid; color: var(--fg-3); }
 .widget-bar .grow { flex: 1; }
-.widget-preview { max-height: 280px; overflow: hidden; pointer-events: none; padding: 0 var(--sp-3) var(--sp-3); -webkit-mask-image: linear-gradient(#000 80%, transparent); mask-image: linear-gradient(#000 80%, transparent); }
+.widget-preview { max-height: 280px; overflow: hidden; pointer-events: none; padding: 0 var(--sp-3) var(--sp-3); -webkit-mask-image: linear-gradient(#000 80%, transparent); mask-image: linear-gradient(#000 80%, transparent); } /* design-ok: a mask only reads how solid it is, not its colour */
 /* The bar above already names the section. */
 .widget-preview .hub-head { display: none; }
 .widget-preview .hub { margin: 0; }

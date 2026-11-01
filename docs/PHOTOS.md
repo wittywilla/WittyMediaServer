@@ -118,3 +118,5 @@ Everything is on the server, in JSON:
 | `GET /api/share/{token}`, `.../image/{id}`, `.../play/{id}`, `.../original/{id}` | What a link opens, without an account |
 
 Clips are ordinary video items: play them with `GET /api/items/{id}/play`, direct or HLS.
+
+Every picture type this library takes is in [Supported formats](SUPPORTED-FORMATS.md).

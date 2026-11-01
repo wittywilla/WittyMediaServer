@@ -1,13 +1,11 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useLayoutEffect, useState } from 'react'
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
 import { ReminderWatcher } from './pages/tv/reminders'
-import { api, inMainMenus } from './api'
-import { IconGamepad, IconHome, IconLibrary, IconLogout, IconMenu, IconPalette, IconSearch, IconSettings, IconStar, IconTv, IconUsers, libIcon } from './icons'
-import { useNavStyle } from './navPrefs'
-import { Avatar } from './pages/AuthPage'
+import { api } from './api'
+import { getNavCollapsed, setNavCollapsed, useNavStyle } from './navPrefs'
 import HomePage from './pages/HomePage'
-import { Brand, BrandMark, Spinner, UpdateDot, VersionTag } from './components/common'
+import { Spinner, VersionTag } from './components/common'
 import { AudioProvider } from './audio/player'
 import PairPage from './pages/PairPage'
 import ConnectServer from './components/ConnectServer'
@@ -16,7 +14,12 @@ import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
 import { AskHost } from './ui/Overlay'
-import ActivitySlot from './components/ActivitySlot'
+import { loadUserPrefs, useUserPref } from './ui/userPrefs'
+import { syncTilt } from './ui/tilt'
+import { Sidebar } from './shell/Sidebar'
+import { TabBar } from './shell/TabBar'
+import { TopBar } from './shell/TopBar'
+import { useMedia, useNavPrefs } from './shell/useNav'
 
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const DesignPage = lazy(() => import('./pages/DesignPage'))
@@ -69,17 +72,7 @@ export default function App() {
 function Shell() {
   const { user, loading, setupRequired, onboarding, needServer } = useApp()
   const loc = useLocation()
-  const [navOpen, setNavOpen] = useState(() => window.matchMedia('(min-width: 901px)').matches)
-  const isMobile = () => !window.matchMedia('(min-width: 901px)').matches
-  // Close the drawer on navigation (mobile only).
-  useEffect(() => { if (isMobile()) setNavOpen(false) }, [loc.pathname])
-  // Follow viewport changes: open by default on desktop, closed on mobile.
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 901px)')
-    const onChange = (e: MediaQueryListEvent) => setNavOpen(e.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
+  useLayoutEffect(() => { if (user) loadUserPrefs(user.id) }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   // A link someone was sent: no account, no app around it.
   if (loc.pathname.startsWith('/s/')) return <Suspense fallback={null}><Routes><Route path="/s/:token" element={<SharedPage />} /></Routes></Suspense>
   // The Legal page, for anyone: a shared link, the setup wizard and the sign-in screen lead here.
@@ -101,33 +94,38 @@ function Shell() {
         : isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense>
         : isGame ? <Suspense fallback={<Spinner />}><Routes><Route path="/game/:id" element={<GamePage />} /></Routes></Suspense>
         : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
-        : isPlayer ? null : <AppFrame navOpen={navOpen} setNavOpen={setNavOpen} />}
+        : isPlayer ? null : <AppFrame />}
       <PlayerDock />
       <ReminderWatcher />
     </AudioProvider>
   )
 }
 
-// Whether to offer Game PCs. It's asked for once, as the answer rarely changes.
-function useCanUseCouch() {
-  const { user } = useApp()
-  const [can, setCan] = useState(false)
-  useEffect(() => {
-    if (user) api.get<{ allowed: boolean }>('/couch').then((r) => setCan(r.allowed)).catch(() => setCan(false))
-  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-  return can
-}
-
-function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React.Dispatch<React.SetStateAction<boolean>> }) {
+// The page's frame. On wide screens the side menu sits beside the page and can fold
+// to a rail or away, which this device remembers; narrower, it's a drawer over the page.
+function AppFrame() {
   const style = useNavStyle()
   const side = style !== 'top'
   const { version } = useApp()
+  const { prefs } = useNavPrefs()
+  const loc = useLocation()
+  const wide = useMedia('(min-width: 901px)')
+  const [folded, setFolded] = useState(getNavCollapsed)
+  const [drawer, setDrawer] = useState(false)
+  const [tilt] = useUserPref('posterTilt', true)
+  useEffect(() => { syncTilt(tilt) }, [tilt])
+  useEffect(() => { setDrawer(false) }, [loc.pathname, wide])
+  const open = wide ? side && !folded : drawer
+  const rail = wide && side && folded && prefs.collapse !== 'hide'
+  const toggle = () => {
+    if (wide) { setNavCollapsed(!folded); setFolded(!folded) } else setDrawer((o) => !o)
+  }
   return (
-    <div className={'app nav-' + style + (navOpen ? ' nav-open' : '')}>
+    <div className={'app nav-' + style + (open ? ' nav-open' : '') + (rail ? ' nav-rail' : '')}>
       <a className="skip-link" href="#main">Skip to content</a>
-      <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
+      <Sidebar open={open} rail={rail} drawer={!wide} onClose={() => setDrawer(false)} />
       <div className="main">
-        <TopBar onMenu={() => setNavOpen((o) => !o)} showMenu={side} topNav={style !== 'side'} />
+        <TopBar onMenu={toggle} showMenu={side || !wide} topNav={style !== 'side'} menuOpen={open} wide={wide} />
         <LegalAckBar />
         <main className="content" id="main" tabIndex={-1}>
           <Suspense fallback={<Spinner />}>
@@ -164,7 +162,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
           <footer className="page-foot"><VersionTag version={version} /></footer>
         </main>
       </div>
-      <TabBar onLibraries={() => setNavOpen(true)} />
+      <TabBar onMenu={() => setDrawer(true)} />
     </div>
   )
 }
@@ -181,111 +179,5 @@ function LegalAckBar() {
       <p>{legalAckText()} <Link to="/settings/legal#your-content">Legal</Link></p>
       <button className="btn sm primary" onClick={understood}>Understood</button>
     </div>
-  )
-}
-
-function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { libraries, version, brandName } = useApp()
-  const canUseCouch = useCanUseCouch()
-  return (
-    <>
-      {open && <div className="backdrop-dim" onClick={onClose} />}
-      <aside className="sidebar" aria-label="Main navigation" aria-hidden={!open} inert={!open || undefined}>
-        <Link to="/" className="brand"><BrandMark /><Brand name={brandName} /></Link>
-        <NavLink to="/" end className="nav-link nav-dup"><IconHome /> Home</NavLink>
-        <NavLink to="/tv" className="nav-link nav-dup"><IconTv /> TV guide</NavLink>
-        <div className="nav-section">Libraries</div>
-        {libraries.filter(inMainMenus).map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="nav-link">{libIcon(l.type)} {l.name}</NavLink>)}
-        {libraries.length === 0 && <div className="nav-empty">No libraries yet</div>}
-        {libraries.length > 0 && <NavLink to="/collections" className="nav-link"><IconLibrary /> Collections</NavLink>}
-        {canUseCouch && <NavLink to="/couch" className="nav-link"><IconGamepad /> Game PCs</NavLink>}
-        <div className="nav-section nav-dup">Manage</div>
-        <NavLink to="/settings" className="nav-link nav-dup"><IconSettings /> Settings<UpdateDot /></NavLink>
-        <div className="sidebar-footer"><VersionTag version={version} /></div>
-      </aside>
-    </>
-  )
-}
-
-function TopBar({ onMenu, showMenu, topNav }: { onMenu: () => void; showMenu: boolean; topNav: boolean }) {
-  const nav = useNavigate()
-  const loc = useLocation()
-  const [q, setQ] = useState('')
-  useEffect(() => { if (!loc.pathname.startsWith('/search')) setQ('') }, [loc.pathname])
-  const { libraries, brandName } = useApp()
-  const canUseCouch = useCanUseCouch()
-  return (
-    <header className="topbar">
-      {showMenu && <button className="btn icon menu-toggle" onClick={onMenu} aria-label="Show or hide the side menu" title="Side menu"><IconMenu /></button>}
-      {topNav && !showMenu && <Link to="/" className="brand top-brand"><BrandMark /><Brand name={brandName} /></Link>}
-      {topNav && (
-        <nav className="topnav" aria-label="Libraries">
-          <NavLink to="/" end className="topnav-link"><IconHome /> <span>Home</span></NavLink>
-          <NavLink to="/tv" className="topnav-link"><IconTv /> <span>TV guide</span></NavLink>
-          {libraries.filter(inMainMenus).map((l) => <NavLink key={l.id} to={`/library/${l.id}`} className="topnav-link">{libIcon(l.type)} <span>{l.name}</span></NavLink>)}
-          {libraries.length > 0 && <NavLink to="/collections" className="topnav-link"><IconLibrary /> <span>Collections</span></NavLink>}
-          {canUseCouch && <NavLink to="/couch" className="topnav-link"><IconGamepad /> <span>Game PCs</span></NavLink>}
-        </nav>
-      )}
-      <form className="search" role="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) nav('/search?q=' + encodeURIComponent(q.trim())) }}>
-        <IconSearch />
-        <input aria-label="Search" type="search" placeholder="Search your libraries…" value={q} onChange={(e) => setQ(e.target.value)} />
-      </form>
-      {!topNav && <div className="spacer" />}
-      <ActivitySlot />
-      <ProfileMenu />
-    </header>
-  )
-}
-
-// ProfileMenu: the avatar in the corner, with settings, switching profiles
-// (back to "Who's watching?") and signing out.
-function ProfileMenu() {
-  const { user, setUser, libraries } = useApp()
-  const nav = useNavigate()
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement | null>(null)
-  useEffect(() => {
-    if (!open) return
-    const close = (e: MouseEvent | KeyboardEvent) => {
-      if (e instanceof KeyboardEvent ? e.key === 'Escape' : !ref.current?.contains(e.target as Node)) setOpen(false)
-    }
-    window.addEventListener('mousedown', close)
-    window.addEventListener('keydown', close)
-    return () => { window.removeEventListener('mousedown', close); window.removeEventListener('keydown', close) }
-  }, [open])
-  const signOut = async () => { try { await api.post('/logout') } catch { /* ignore */ } nav('/', { replace: true }); setUser(null) }
-  return (
-    <div className="profile-menu" ref={ref}>
-      <button className="avatar-btn" aria-haspopup="menu" aria-expanded={open} aria-label={`${user?.name}: account menu`} onClick={() => setOpen((o) => !o)}>
-        <span className="avatar-name">{user?.name}</span>
-        <Avatar name={user?.name || '?'} />
-      </button>
-      {open && (
-        <div className="menu" role="menu" onClick={() => setOpen(false)}>
-          <div className="menu-head"><b>{user?.name}</b><span className="muted">{user?.isAdmin ? 'Administrator' : user?.kind === 'kids' ? 'Kids profile' : user?.kind === 'guest' ? 'Guest' : 'Profile'}</span></div>
-          <Link role="menuitem" to="/review"><IconStar /> Your year</Link>
-          <Link role="menuitem" to="/settings/appearance"><IconPalette /> Appearance</Link>
-          {libraries.some((l) => l.type === 'games') && <Link role="menuitem" to="/controllers"><IconGamepad /> Controllers</Link>}
-          <Link role="menuitem" to="/settings"><IconSettings /> Settings</Link>
-          {(user?.kind === 'adult' || user?.isAdmin) && <Link role="menuitem" to="/pair"><IconTv /> Sign in a TV</Link>}
-          <button role="menuitem" onClick={signOut}><IconUsers /> Switch profile</button>
-          <button role="menuitem" onClick={signOut}><IconLogout /> Sign out</button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// TabBar: the bottom bar on phones (thumb reach), always present there.
-function TabBar({ onLibraries }: { onLibraries: () => void }) {
-  return (
-    <nav className="tabbar" aria-label="Main">
-      <NavLink to="/" end><IconHome /><span>Home</span></NavLink>
-      <NavLink to="/tv"><IconTv /><span>TV guide</span></NavLink>
-      <NavLink to="/search"><IconSearch /><span>Search</span></NavLink>
-      <button type="button" onClick={onLibraries}><IconMenu /><span>Menu</span></button>
-      <NavLink to="/settings" className="tab-upd"><IconSettings /><span>Settings</span><UpdateDot /></NavLink>
-    </nav>
   )
 }

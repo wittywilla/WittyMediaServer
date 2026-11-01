@@ -9,6 +9,7 @@ import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui
 import LegalNote from '../../components/LegalNote'
 import { Link } from 'react-router-dom'
 import { ListingSettings, LogoSettings } from './MetadataOptional'
+import { ask, Dialog } from '../../ui/Overlay'
 
 // Where titles, posters, plots and ratings come from: the built-in agents
 // (some need a free API key), the owner's own custom agents, and what is
@@ -123,7 +124,7 @@ function CustomAgents() {
     try { const r = await api.put<{ agents: Agent[] }>('/agents', { agents: list }); setAgents(r.agents || []); return true } catch (e: any) { toast(e.message); return false }
   }
   const move = (i: number, d: number) => { const l = [...agents!]; const [a] = l.splice(i, 1); l.splice(i + d, 0, a); store(l) }
-  const remove = (a: Agent) => { if (confirm(`Remove the agent “${a.name}”?`)) store(agents!.filter((x) => x.id !== a.id)) }
+  const remove = async (a: Agent) => { if (await ask({ title: `Remove the agent “${a.name}”?`, confirm: 'Remove', danger: true })) store(agents!.filter((x) => x.id !== a.id)) }
   const newAgent = (): Agent => ({ id: 'agent-' + Math.random().toString(36).slice(2, 8), name: '', url: '', header: '', kinds: ['movies'], enabled: true })
   return (
     <Section title="Custom agents" desc="Your own web services, for catalogues the built-in agents don't cover: a family archive, a club's list, a script of your own. They run in this order and only fill in what is still empty."
@@ -176,9 +177,8 @@ function AgentEditor({ agent, onClose, onSave }: { agent: Agent; onClose: () => 
   }
   const valid = a.name.trim() && /^https?:\/\//.test(a.url) && a.url.includes('{title}') && a.kinds.length > 0
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal set-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Custom agent">
-        <h2>{agent.name ? `Edit ${agent.name}` : 'Add a custom agent'}</h2>
+    <Dialog title={<>{agent.name ? `Edit ${agent.name}` : 'Add a custom agent'}</>} onClose={onClose} className="set-modal" actions={<><button className="btn ghost" onClick={onClose}>Cancel</button>
+          <button className="btn primary" disabled={!valid} onClick={() => onSave({ ...a, name: a.name.trim(), url: a.url.trim(), header: a.header.trim() })}>{agent.name ? 'Save agent' : 'Add agent'}</button></>}>
         <div className="set-form">
           <label>Name<input className="input" value={a.name} onChange={(e) => up({ name: e.target.value })} placeholder="Family archive" autoFocus /></label>
           <label>Address
@@ -216,11 +216,6 @@ function AgentEditor({ agent, onClose, onSave }: { agent: Agent; onClose: () => 
             )}
           </div>
         </div>
-        <div className="actions">
-          <button className="btn ghost" onClick={onClose}>Cancel</button>
-          <button className="btn primary" disabled={!valid} onClick={() => onSave({ ...a, name: a.name.trim(), url: a.url.trim(), header: a.header.trim() })}>{agent.name ? 'Save agent' : 'Add agent'}</button>
-        </div>
-      </div>
-    </div>
+    </Dialog>
   )
 }

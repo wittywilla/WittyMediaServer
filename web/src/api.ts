@@ -2,7 +2,12 @@
 // the token in localStorage for native wrappers / cross-origin use.
 import { reportRequestFailure } from './errorReport'
 
-export type User = { id: number; name: string; isAdmin: boolean; createdAt: number; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; twoFactor?: boolean }
+export type User = { id: number; name: string; displayName?: string; showUsername?: boolean; isAdmin: boolean; createdAt: number; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; twoFactor?: boolean }
+// `name` is the username: unique, and what signing in uses. A profile name is what
+// people are called around the app, and anyone can have the same one.
+export const profileName = (u: Pick<User, 'name' | 'displayName'>) => u.displayName || u.name
+// What the corner of the screen says, which is each person's choice.
+export const cornerName = (u: Pick<User, 'name' | 'displayName' | 'showUsername'>) => u.showUsername ? u.name : profileName(u)
 // A device signed in to an account.
 export type Session = { id: string; userId: number; userName: string; device: string; createdAt: number; expiresAt: number; lastSeen: number; ip: string; where: string; via: string; streaming: boolean; current: boolean }
 // What an account may see (null = no limits). maxAge -1 = no age limit.
@@ -30,7 +35,7 @@ export type Item = {
   id: number; libraryId: number; kind: 'video' | 'dvd-iso' | 'dvd-folder' | 'bluray-iso' | 'bluray-folder' | string; path: string
   title: string; sortTitle: string; year: number | null; overview: string; tagline: string; genres: string[]
   rating: number | null; contentRating: string; studio: string; runtimeSec: number
-  poster: string; backdrop: string; container: string; videoCodec: string; width: number; height: number
+  poster: string; backdrop: string; container: string; videoCodec: string; audioDirect?: boolean; reader?: 'epub' | 'cbz' | 'pdf'; width: number; height: number
   audioLangs: string[]; subLangs: string[]; disc?: DiscInfo; provider: string; providerId: string
   sizeBytes: number; addedAt: number; updatedAt: number; progress?: Progress
   showId?: number; showTitle?: string; season?: number; episode?: number; episodeEnd?: number; aired?: string; nextId?: number
@@ -99,6 +104,16 @@ export type Track = { index: number; language: string; title?: string; codec: st
 export type PlayInfo = {
   type: 'direct' | 'hls'; url: string; durationSec: number; audio: Track[]; subtitles: Track[]
   audioIndex: number; subtitleIndex: number; container: string; chapters?: { start: number; title: string }[]
+}
+// The answer to POST /items/{id}/playback for a video. See docs/CLIENT-API.md.
+export type PlaybackSubtitle = { index: number; language: string; languageName?: string; title?: string; codec: string; forced?: boolean; sdh?: boolean; text: boolean; delivery: 'none' | 'embedded' | 'sidecar' | 'hls' | 'burn'; url?: string }
+export type PlaybackExplain = { summary: string; source: string; picture: string; sound: string; subtitles?: string; reasons: string[]; load: 'none' | 'light' | 'heavy' }
+export type PlaybackAnswer = {
+  decision: 'direct' | 'remux' | 'transcode' | string; reasons: string[]; protocol: string; url: string; streamId?: string; durationSec: number; container?: string
+  seek: 'native' | 'restart' | 'none'; startAtSec: number; timeOffsetSec: number; resumeSec: number
+  audio: Track[]; subtitles: PlaybackSubtitle[]; audioIndex: number; subtitleIndex: number; subtitleDelivery: string
+  chapters?: { start: number; title: string }[]; explain?: PlaybackExplain
+  videos?: { index: number; codec: string; width: number; height: number; title?: string }[]; videoIndex?: number; stereo?: string; flattened?: boolean
 }
 export type DvdButton = { n: number; x1: number; y1: number; x2: number; y2: number; up: number; down: number; left: number; right: number; auto: boolean; lit: boolean; cmd: string; frames?: number; fps?: number; num?: number; soundSelect?: number; soundPress?: number }
 export type DvdMenu = {

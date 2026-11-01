@@ -8,13 +8,13 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	fb "github.com/wittywilla/wittyintegratedfilebrowser"
 
 	"github.com/wittywilla/wittymediaserver/internal/diagnose"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
 // WittyDiagnoser, the disk diagnoser (Settings, WittyDiagnoser): checks of a DVD or Blu-ray, and
@@ -200,7 +200,7 @@ type diagnoseListing struct {
 
 // diagnoseImageExt: what might be a disc image. .bin and .mdf may turn out to be
 // formats the engines don't read, and the check says so.
-var diagnoseImageExt = map[string]bool{".iso": true, ".img": true, ".bin": true, ".udf": true, ".mdf": true, ".nrg": true, ".cue": true, ".toc": true, ".ccd": true, ".chd": true}
+func diagnoseImageExt(name string) bool { return mediatypes.IsDiscImage(name) }
 
 // GET /api/diagnose/browse?path=: folders, disc folders and disc images inside
 // the allowed places. With no path, the places themselves.
@@ -249,7 +249,7 @@ func (s *Server) handleDiagnoseBrowse(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case e.Dir:
 			out.Entries = append(out.Entries, diagnoseEntry{Name: e.Name, Path: e.Path, Dir: true, Disc: e.Disc})
-		case diagnoseImageExt[strings.ToLower(filepath.Ext(e.Name))]:
+		case diagnoseImageExt(e.Name):
 			out.Entries = append(out.Entries, diagnoseEntry{Name: e.Name, Path: e.Path, Kind: "disc", Size: e.Size})
 		}
 	}

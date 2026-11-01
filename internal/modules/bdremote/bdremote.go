@@ -213,9 +213,23 @@ func answeredNo(err error) bool {
 	return errors.As(err, &ce) && ce.Code == ""
 }
 
-// decode reads gob from a helper. Gob's decoder takes care with sizes, the protocol
-// has already limited the whole answer, and this keeps a decoder's panic from
-// becoming the server's.
+// answerLimits are what the server reads of an answer before decoding it. Gob isn't
+// hardened against a stranger's bytes: a playlist of empty play items grows 1500 times
+// as it decodes, which the protocol's own limit doesn't come close to stopping. They are
+// far above what real discs need (the largest playlist measured is 6 KB, the largest clip
+// 75 KB and its extents 88 KB); beyond them the built-in copy takes over. Menus, sounds and
+// subtitles hold pictures and samples, so they keep the protocol's limit.
+var answerLimits = map[string]int{
+	"playlist":  512 << 10,
+	"clip":      4 << 20,
+	"extents":   4 << 20,
+	"cliplead":  4 << 10,
+	"bdjobject": 1 << 20,
+	"text":      16 << 20,
+}
+
+// decode reads gob from a helper. The limits above and the protocol's have already
+// limited the answer, and this keeps a decoder's panic from becoming the server's.
 func decode(blob []byte, v any) (err error) {
 	defer func() {
 		if p := recover(); p != nil {
@@ -233,6 +247,9 @@ func fetch[T any](e *engine, method string, p helper.Params, check func(*T) erro
 	}
 	if len(blob) == 0 {
 		return nil, nil
+	}
+	if limit, ok := answerLimits[method]; ok && len(blob) > limit {
+		return nil, &badAnswer{fmt.Errorf("its answer to %s is too large: %d bytes", method, len(blob))}
 	}
 	v := new(T)
 	if err := decode(blob, v); err != nil {
@@ -540,6 +557,8 @@ func (e *engine) checkedStep(a *helper.Answer) (*wittybluray.Step, error) {
 	if len(st.Reason) > maxReason {
 		st.Reason = st.Reason[:maxReason]
 	}
+	// Only by its number, through the checks: a playlist written into the step has had none.
+	st.Playlist = nil
 	if a.Playlist != nil {
 		n := *a.Playlist
 		if st.Playlist = e.playlist(n); st.Playlist == nil && e.h != nil {

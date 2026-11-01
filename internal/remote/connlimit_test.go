@@ -1,12 +1,14 @@
 package remote
 
 import (
+	"errors"
 	"io"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -47,6 +49,9 @@ func limitedServer(t *testing.T, l *ConnLimit) *net.TCPAddr {
 func dial(t *testing.T, addr *net.TCPAddr) (net.Conn, bool) {
 	t.Helper()
 	c, err := net.DialTCP("tcp", nil, addr)
+	if errors.Is(err, syscall.ECONNRESET) { // refused before the call came back
+		return nil, false
+	}
 	if err != nil {
 		t.Fatal(err)
 	}

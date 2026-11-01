@@ -76,6 +76,8 @@ jobs:
         env:
           FFMPEG_FREEBSD_DIR: ${{ github.workspace }}/.tools/ffmpeg-freebsd
           TRAY_DARWIN_DIR: ${{ github.workspace }}/.tools/tray-darwin
+          SCREENSCRAPER_DEV_ID: ${{ secrets.SCREENSCRAPER_DEV_ID }} # empty until there is one
+          SCREENSCRAPER_DEV_PASSWORD: ${{ secrets.SCREENSCRAPER_DEV_PASSWORD }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
           WMS_SIGNING_KEY="$RUNNER_TEMP/none" scripts/build-release.sh "$VERSION"
@@ -166,7 +168,10 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           generate_release_notes: true
 
+  # Only for a tag, and only once its release is out.
   docker:
+    needs: publish
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -189,7 +194,8 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}},enable=${{ !contains(github.ref_name, '-') }}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-') }}
+            type=raw,value=alpha,enable=${{ startsWith(github.ref, 'refs/tags/') && contains(github.ref_name, '-') }}
             type=sha
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:

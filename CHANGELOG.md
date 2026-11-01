@@ -5,6 +5,19 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Modules:** a withdrawn version can't be missed: the list is read on every check, not only when the
+  list of releases changes. A file uploaded again is noticed by its upload time.
+- **Fixed:** a normal install and the Mac app left out the game runner, so games couldn't start.
+- **Security:** the helper sandbox refuses x32 system calls and io_uring, which got around its limits on
+  sockets. Signing checks a release's file names exactly, so another version can't pass as this one, and
+  more kinds of password and key are hidden in logs.
+- **Fixed:** a server stopped by a power cut in a container now reports it, even with the same process
+  number each time. A restart now brings a container back on any container runtime.
+- **Containers:** `:latest` moves only for full releases, and `:alpha` is the newest alpha.
+  `docker-compose.yml` follows `:alpha`.
+- **Scripts:** the cutover stops if `moduleKey` isn't the key given, or if something it removes wouldn't be
+  available afterwards, such as WittyCouch Host's source. `mirror.sh` refuses to push workflows naming an
+  unpublished tool version. ScreenScraper's developer id is described as what it is: not built in today.
 - **Reset this server:** *Settings → Reset* puts a server back as it was first installed, after warnings, your
   password and typing RESET. It keeps a copy you can bring back from the same page, unless you choose to delete
   everything. Media files are never touched. `wms reset` does the same when you can't sign in.

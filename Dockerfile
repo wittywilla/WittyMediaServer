@@ -50,7 +50,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certi
  && groupadd -g 1000 wms && useradd -u 1000 -g wms -m wms \
  && mkdir -p /config /media && chown wms:wms /config
 COPY --from=build /out/wms /out/wittyplay-host /usr/local/bin/
-ENV WMS_DATA_DIR=/config \
+ENV WMS_DOCKER=1 \
+    WMS_DATA_DIR=/config \
     WMS_LISTEN=:9797 \
     WMS_TRANSCODE_DIR=/config/transcode
 EXPOSE 9797

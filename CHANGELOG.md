@@ -26,7 +26,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   programme, between commercials, or a break every so many minutes, mandatory or only for particular films, shows,
   genres or collections.
 - **WittyTV timetable:** "cut commercials short" keeps programmes starting on time, with clear choices about what may give
-  way, and the editor shows the whole day with what was cut.
+  way, and the editor shows the whole day with what was cut. Commercial breaks can now come inside a programme, and give
+  way the same way.
+- **WittyTV logos:** channels wear their network's or studio's logo from the logo service, or one you pick, and the modern
+  look shows a title's own logo art.
+- **Fixed:** uploaded bumpers keep playing when the data folder moves, as after restoring a backup somewhere else.
 - **WittyTV channels:** one click for studios and your collections as well as genres, decades and networks, with *Add all*.
   Holiday seasons and marathon blocks. Channels you already have carry on as they were.
 - **Edit details:** one dialog for a film, an episode or a show, in sections, with Delete, Cancel and Save always in view. Every field says where its value came from, can be locked so nothing changes it (no scan, refresh, new match, NFO or file beside it, matched or not), and can go back to what its source said. It also has artwork from every source with your own uploads, banners and title logos, where the intro ends (typed, or picked in the player), bonus features, versions, moving to another library, and logos.

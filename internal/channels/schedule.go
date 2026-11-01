@@ -475,7 +475,9 @@ type generator struct {
 	pools   map[string]*pool
 	filler  []Entry
 	fillerR rng
-	rules   []*ruleState
+	// lastFiller: the commercial picked last.
+	lastFiller int64
+	rules      []*ruleState
 	out     []Programme
 	err     error
 }
@@ -1072,12 +1074,13 @@ func (g *generator) pickFiller(room int64) *Entry {
 	}
 	start := g.fillerR.intn(len(g.filler))
 	// The same video twice running only when there is nothing else to play.
-	if n := len(g.out); n > 0 && len(g.filler) > 1 && g.out[n-1].Kind == KindFiller && g.filler[start].itemID() == g.out[n-1].ItemID {
+	if len(g.filler) > 1 && g.filler[start].itemID() == g.lastFiller {
 		start = (start + 1) % len(g.filler)
 	}
 	for i := range g.filler {
 		e := &g.filler[(start+i)%len(g.filler)]
 		if e.Dur <= room {
+			g.lastFiller = e.itemID()
 			return e
 		}
 	}

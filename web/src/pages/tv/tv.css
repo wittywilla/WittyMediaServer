@@ -256,6 +256,7 @@
 /* The Look panel leaves the guide in view, to see each change. */
 .ctv-look-backdrop { background: var(--ctv-shade); justify-items: end; }
 .modal.ui-sheet.ctv-look { width: min(30rem, 100vw); }
+.modal-backdrop:has(> .ctv-look) { background: transparent; }
 .ctv-look p { margin: 0 0 var(--sp-2); }
 .ctv-choice { margin: 0 0 12px; padding: 0; border: 0; min-width: 0; }
 .ctv-choice legend { padding: 0; margin-bottom: 4px; font-weight: 700; font-size: var(--text-md); }
@@ -365,13 +366,14 @@
 @media (max-width: 720px) {
   .ctv[data-layout="streaming"] .ctv-hero, .ctv[data-layout="streaming"] .ctv-bar { padding-left: 16px; padding-right: 16px; }
   .ctv[data-layout="streaming"] .ctv-grid { padding: 0 8px 0 8px; --ctv-chw: 96px; --ctv-lead: 8px; --ctv-trail: 8px; }
-  .ctv[data-layout="streaming"] .ctv-logo { width: 104px; height: 46px; }
-.ctv[data-layout="streaming"] .ctv-hero-ch .ctv-logo { width: 84px; height: 40px; }
+  
 .ctv[data-layout="streaming"] .ctv-name { font-size: var(--text-xs); }
   .ctv[data-layout="streaming"] .ctv-num { font-size: var(--text-sm); }
   .ctv[data-layout="streaming"] .ctv-cell { padding: 2px 8px; }
   .ctv[data-layout="streaming"] .ctv-cell b { font-size: var(--text-md); }
   .ctv[data-layout="streaming"] .ctv-ch { padding: 0 6px; gap: 4px; }
+  .ctv[data-layout="streaming"] .ctv-logo { width: 56px; height: 30px; }
+  .ctv[data-layout="streaming"] .ctv-hero-ch .ctv-logo { width: 72px; height: 34px; }
 }
 
 /* Recordings */

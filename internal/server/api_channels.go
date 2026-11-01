@@ -61,6 +61,9 @@ func (s *Server) channelRoutes(m *http.ServeMux) {
 	m.Handle("DELETE /api/channels/{id}/logo", ad(s.handleDeleteChannelLogo))
 	s.tunerRoutes(m)
 	s.tvExtraRoutes(m)
+	if s.DB != nil && s.Cfg != nil {
+		s.followBumperFolder(context.Background())
+	}
 }
 
 // ---------------------------------------------------------------------------

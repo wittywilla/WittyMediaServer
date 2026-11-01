@@ -116,6 +116,7 @@ export default function GuidePage() {
   const scroller = useRef<HTMLDivElement | null>(null)
   const grid = useRef<HTMLDivElement | null>(null)
   const wantFocus = useRef(true)
+  const gridHadFocus = useRef(false)
   // Search takes the keyboard as it opens, so it can't be left to the dialog code
   // to work out where the keyboard came from.
   const searchBack = useRef<HTMLElement | null>(null)
@@ -157,8 +158,10 @@ export default function GuidePage() {
     if (track) setTrackW(track.clientWidth)
   })
 
-  // A changed filter or a new stretch of hours starts the rows afresh.
-  useEffect(() => { loaded.current.clear(); setRows({}) }, [filterKey, fetchFrom])
+  // A changed filter starts the rows afresh. A new stretch of hours keeps them until
+  // the new ones come, so the highlight has somewhere to be meanwhile.
+  useEffect(() => { loaded.current.clear(); setRows({}) }, [filterKey])
+  useEffect(() => { loaded.current.clear() }, [fetchFrom])
   useEffect(() => { setTotal(null); setFocus((f) => ({ ...f, row: 0 })); if (scroller.current) scroller.current.scrollTop = 0 }, [filterKey])
   useEffect(() => { getLineup().then(setLineup).catch(() => {}) }, [])
   // The rights notice goes with the logos: it's there only when one is on the screen.
@@ -341,13 +344,25 @@ export default function GuidePage() {
     if (handled) { e.preventDefault(); e.stopPropagation() }
   }
 
-  // Roving focus: the highlighted cell holds the keyboard after each move.
-  useEffect(() => {
+  // New data can replace the cell that has the keyboard. The browser then drops it on
+  // the page, where the next arrow would start from nowhere: it goes back to the cell.
+  useLayoutEffect(() => {
+    if (gridHadFocus.current && document.activeElement === document.body) wantFocus.current = true
+  }, [rows, from])
+
+  // Roving focus: the highlighted cell holds the keyboard after each move, before the
+  // next key can arrive.
+  useLayoutEffect(() => {
     if (!wantFocus.current) return
     const el = grid.current?.querySelector<HTMLElement>('[data-focused="1"]')
     if (el) { wantFocus.current = false; el.focus({ preventScroll: true }) }
   })
 
+  // The rows near what's on screen, and always the highlighted one: it's where the
+  // arrows come back to, however far away the rows have been scrolled.
+  const rowCount = total ?? 0
+  const drawnRows = Array.from({ length: Math.max(0, Math.min(lastRow, rowCount - 1) - firstRow + 1) }, (_, i) => firstRow + i)
+  if (focus.row < rowCount && !drawnRows.includes(focus.row)) drawnRows.push(focus.row)
   const timeHeads = useMemo(() => Array.from({ length: slots }, (_, i) => from + i * SLOT), [from, slots])
   const pct = (u: number) => ((u - from) / (to - from)) * 100
   const totalRows = total ?? 0
@@ -426,6 +441,7 @@ export default function GuidePage() {
       {dial && <div className="ctv-dial" role="status">CH {dial}<span className="ctv-blink">_</span></div>}
 
       <div className="ctv-grid" ref={grid} role="grid" aria-label={`TV guide, ${fmtDay(from)}`} aria-rowcount={totalRows + 1} aria-colcount={slots + 1} onKeyDown={onKey}
+        onFocus={() => { gridHadFocus.current = true }} onBlur={(e) => { if (e.relatedTarget) gridHadFocus.current = false }}
         style={{ '--ctv-row': rowH + 'px', '--ctv-gutter': gutter + 'px' } as React.CSSProperties}>
         <div className="ctv-times" role="row" aria-rowindex={1}>
           <div className="ctv-corner" role="columnheader" aria-colindex={1}><b>{dayWord(from, now)}</b> <span className="hide-narrow">{fmtClock(from)}</span></div>
@@ -436,7 +452,7 @@ export default function GuidePage() {
         {look.nowLine && <NowLine from={from} to={to} />}
         <div className="ctv-rows" ref={scroller} onScroll={(e) => setScrollTop((e.target as HTMLElement).scrollTop)} role="presentation">
           <div style={{ height: totalRows * rowH, position: 'relative' }} role="presentation">
-            {Array.from({ length: Math.max(0, Math.min(lastRow, totalRows - 1) - firstRow + 1) }, (_, i) => firstRow + i).map((r) => (
+            {drawnRows.map((r) => (
               <GuideRow key={r} r={r} ch={rows[r]} top={r * rowH} rowH={rowH} from={from} to={to} pxPerSec={pxPerSec} now={now} focusAt={r === focus.row ? focus.at : null} look={look}
                 onFocus={(row, at) => setFocus({ row, at })} onActivate={activate} wantFocus={wantFocus} />
             ))}
@@ -524,7 +540,7 @@ const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, 
           const details = [p.kind === 'none' || small ? '' : fmtClock(p.start), p.year ? String(p.year) : '', p.genre || ''].filter(Boolean).join(' · ')
           return (
             <button key={p.start + '-' + p.end} type="button" role="gridcell" aria-colindex={colStart + 2} aria-colspan={colSpan}
-              aria-label={programmeLabel(ch, p, now)} aria-selected={focused} tabIndex={focused ? 0 : -1} data-focused={focused ? '1' : undefined}
+              aria-label={programmeLabel(ch, p, now)} aria-selected={focused} tabIndex={focused ? 0 : -1} data-focused={focused ? '1' : undefined} data-nav-skip={focused ? undefined : ''}
               className={'ctv-cell' + (focused ? ' focus' : '') + (live ? ' live' : '') + (p.kind === 'none' || p.kind === 'slate' ? ' dim' : '') + (ch.encrypted ? ' locked' : '') + (p.end <= now ? ' past' : '') + (tiny ? ' tiny' : '') + (p.kind === 'group' ? ' group' : '')}
               style={{ left: pct(start) + '%', width: pct(end) - pct(start) + '%' }}
               onFocus={() => { if (!focused) onFocus(r, Math.max(p.start, from)) }}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -553,6 +554,53 @@ func TestClipsFromDiscs(t *testing.T) {
 	}
 	if got := brand(Channel{Definition: one, Look: Look{LogoKind: "network", LogoName: "Another"}}); got != "network|Another" {
 		t.Errorf("chosen by the owner: %s", got)
+	}
+}
+
+// Studios: a channel for each, wearing its logo, and a title can have several.
+func TestStudioChannels(t *testing.T) {
+	s, ls := testStore(t)
+	ctx := context.Background()
+	lib, err := ls.CreateLibrary(ctx, "Films", "movies", []string{"/f"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= 3; i++ {
+		res, err := s.DB.ExecContext(ctx, `INSERT INTO items(library_id, kind, path, title, sort_title, runtime_sec, studio, added_at, updated_at) VALUES(?, 'video', ?, ?, ?, 5400, 'First Studio', 1, 1)`,
+			lib.ID, "/f/"+string(rune('a'+i)), "A Made Up Film", "A Made Up Film")
+		if err != nil {
+			t.Fatal(err)
+		}
+		id, _ := res.LastInsertId()
+		if _, err := s.DB.ExecContext(ctx, `INSERT INTO title_brands(kind, key, name, library_id, item_id) VALUES('studio', 'second studio', 'Second Studio', ?, ?)`, lib.ID, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := s.LoadPool(ctx, Rules{Studios: []string{"second studio"}}, 30)
+	if err != nil || len(got) != 3 {
+		t.Fatalf("a title's second studio should count: %d %v", len(got), err)
+	}
+	list, err := s.Suggest(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, x := range list {
+		if x.Group == "studio" {
+			c := Channel{Name: x.Name, Definition: x.Definition}
+			kind, name := c.Brand()
+			if kind != "studio" || name != x.Name {
+				t.Errorf("%s should wear its studio's logo: %s %s", x.Name, kind, name)
+			}
+			names = append(names, x.Name)
+		}
+	}
+	if !reflect.DeepEqual(names, []string{"First Studio", "Second Studio"}) {
+		t.Errorf("studio channels: %v", names)
+	}
+	o, err := s.EditorOptions(ctx)
+	if err != nil || !slices.Contains(o.Studios, "First Studio") || !slices.Contains(o.Studios, "Second Studio") {
+		t.Errorf("studios offered: %v %v", o.Studios, err)
 	}
 }
 

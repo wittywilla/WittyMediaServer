@@ -389,6 +389,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("DELETE /api/modules/{id}/source", s.requireAdmin(s.handleModuleSourceClear))
 	m.Handle("POST /api/modules/{id}/add", s.requireAdmin(s.handleModuleAdd))
 	m.Handle("POST /api/modules/{id}/remove", s.requireAdmin(s.handleModuleRemove))
+	m.Handle("POST /api/modules/{id}/enable", s.requireAdmin(s.handleModuleEnable))
+	m.Handle("POST /api/modules/{id}/disable", s.requireAdmin(s.handleModuleDisable))
 	m.Handle("PUT /api/modules/installed", s.requireAdmin(s.handleModulesInstalled))
 	m.Handle("GET /api/modules/libraries", s.requireUser(s.handleModulesLibraries))
 	m.Handle("PUT /api/modules/libraries/{type}/label", s.requireAdmin(s.handleModuleLibraryLabel))

@@ -17,7 +17,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
-	"github.com/wittywilla/wittytuner"
+	"github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
 // Tuners, their guide data and recordings. See docs/CHANNELS.md.
@@ -68,7 +68,7 @@ func (s *Server) tunerRoutes(m *http.ServeMux) {
 }
 
 func tunerError(w http.ResponseWriter, err error) {
-	var enc *wittytuner.EncryptedError
+	var enc *tuner.EncryptedError
 	switch {
 	case errors.Is(err, livetv.ErrNotFound):
 		writeErr(w, 404, "not found")
@@ -82,13 +82,29 @@ func tunerError(w http.ResponseWriter, err error) {
 }
 
 func (s *Server) handleTunerDrivers(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, wittytuner.Drivers(s.TV.Env()))
+	list, err := s.TV.Drivers(r.Context())
+	if writeModuleMissing(w, err) {
+		return
+	}
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, list)
 }
 
 func (s *Server) handleTunerDiscover(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 12*time.Second)
 	defer cancel()
-	writeJSON(w, 200, s.TV.Discover(ctx))
+	found, err := s.TV.Discover(ctx)
+	if writeModuleMissing(w, err) {
+		return
+	}
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, found)
 }
 
 func (s *Server) handleTuners(w http.ResponseWriter, r *http.Request) {
@@ -512,7 +528,7 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 		return
 	}
 	if c.Encrypted != "" {
-		s.tuneRefused(w, r, id, &wittytuner.EncryptedError{Channel: c.Name, Why: c.Encrypted})
+		s.tuneRefused(w, r, id, &tuner.EncryptedError{Channel: c.Name, Why: c.Encrypted})
 		return
 	}
 	if strings.EqualFold(c.VideoCodec, "hevc") && !s.Tools.CanDecode("hevc") {
@@ -551,7 +567,7 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 func securityOf(c *livetv.Channel) *securityInfo {
 	switch c.Security {
 	case livetv.SecurityEncrypted:
-		return &securityInfo{State: c.Security, Label: wittytuner.EncryptedLabel, Detail: wittytuner.EncryptedExplain, Reason: c.Encrypted, HelpURL: encryptedHelpURL}
+		return &securityInfo{State: c.Security, Label: tuner.EncryptedLabel, Detail: tuner.EncryptedExplain, Reason: c.Encrypted, HelpURL: encryptedHelpURL}
 	case livetv.SecurityClear:
 		return &securityInfo{State: c.Security, Label: "Clear", Detail: "Not encrypted."}
 	}
@@ -570,11 +586,11 @@ func (s *Server) clearAlternative(ctx context.Context, id int64) *livetv.Alterna
 // tuneRefused answers a channel that can't be tuned. An encrypted one says so
 // in the same words everywhere, with its help page and any clear alternative.
 func (s *Server) tuneRefused(w http.ResponseWriter, r *http.Request, id int64, err error) {
-	if !wittytuner.IsEncrypted(err) {
+	if !tuner.IsEncrypted(err) {
 		tuneError(w, err)
 		return
 	}
-	writeJSON(w, 403, map[string]any{"error": err.Error(), "encrypted": true, "label": wittytuner.EncryptedLabel, "helpUrl": encryptedHelpURL,
+	writeJSON(w, 403, map[string]any{"error": err.Error(), "encrypted": true, "label": tuner.EncryptedLabel, "helpUrl": encryptedHelpURL,
 		"alternative": s.clearAlternative(r.Context(), id)})
 }
 
@@ -588,7 +604,7 @@ func tuneError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, hls.ErrLiveBusy), errors.Is(err, livetv.ErrBusy):
 		writeErr(w, 503, err.Error())
-	case wittytuner.IsEncrypted(err):
+	case tuner.IsEncrypted(err):
 		writeErr(w, 403, err.Error())
 	default:
 		writeErr(w, 502, err.Error())
@@ -685,7 +701,7 @@ func (r *refusalReader) Fatal() error {
 		return nil
 	}
 	if err := r.fatal(); err != nil {
-		return wittytuner.RefusalMessage(r.name, err)
+		return tuner.RefusalMessage(r.name, err)
 	}
 	return nil
 }

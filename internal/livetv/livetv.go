@@ -12,7 +12,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"os/exec"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,7 +21,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
-	"github.com/wittywilla/wittytuner"
+	"github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
 // Tuner is one configured source.
@@ -75,17 +74,52 @@ type Channel struct {
 	driver     string
 }
 
-// How a running source is made and tuners are looked for: by the built-in copy
-// unless SetEngine says otherwise. Settings are always checked by the built-in copy.
-var (
-	newSource      = wittytuner.New
-	discoverTuners = wittytuner.Discover
-)
+// Engine is WittyTuner, as the server reaches it.
+type Engine interface {
+	New(ctx context.Context, driver string, cfg tuner.Config, env tuner.Env) (tuner.Source, error)
+	Discover(ctx context.Context, env tuner.Env) ([]tuner.Found, error)
+	Drivers(ctx context.Context, env tuner.Env) ([]tuner.Driver, error)
+	SecretFields(ctx context.Context, driver string, env tuner.Env) ([]string, error)
+}
 
-// SetEngine makes running sources through the WittyTuner version in use. It is set
-// once, before the server starts serving.
-func SetEngine(source func(string, wittytuner.Config, wittytuner.Env) (wittytuner.Source, error), discover func(context.Context, wittytuner.Env) []wittytuner.Found) {
-	newSource, discoverTuners = source, discover
+// ErrNoEngine: nothing has been set to reach WittyTuner with.
+var ErrNoEngine = errors.New("WittyTuner isn't on this server")
+
+var engine Engine
+
+// SetEngine says how to reach WittyTuner. It is set once, before the server starts serving.
+func SetEngine(e Engine) { engine = e }
+
+// Drivers lists the kinds of tuner.
+func (m *Manager) Drivers(ctx context.Context) ([]tuner.Driver, error) {
+	if engine == nil {
+		return nil, ErrNoEngine
+	}
+	return engine.Drivers(ctx, m.Env())
+}
+
+// newSource makes a running source through the WittyTuner version in use, which is also
+// what checks its settings.
+func (m *Manager) newSource(ctx context.Context, driver string, cfg tuner.Config) (tuner.Source, error) {
+	if engine == nil {
+		return nil, ErrNoEngine
+	}
+	return engine.New(ctx, driver, cfg, m.Env())
+}
+
+// secretFields are the settings of a driver that are never shown again. If WittyTuner can't
+// say, every setting counts as one, since showing a password is the worse mistake.
+func secretFields(ctx context.Context, driver string, options map[string]string) []string {
+	if engine != nil {
+		if out, err := engine.SecretFields(ctx, driver, tuner.Env{}); err == nil {
+			return out
+		}
+	}
+	out := make([]string, 0, len(options))
+	for k := range options {
+		out = append(out, k)
+	}
+	return out
 }
 
 // Manager owns the running sources.
@@ -95,7 +129,7 @@ type Manager struct {
 	Log   *slog.Logger
 
 	mu               sync.Mutex
-	sources          map[int64]wittytuner.Source
+	sources          map[int64]tuner.Source
 	scans            map[int64]*ScanState
 	inUse            map[int64]int
 	viewers          map[int64]func() // live sessions by channel, for stopping one when a recording needs its tuner
@@ -129,7 +163,7 @@ type ScanState struct {
 // New makes a manager. Background work starts only when something needs it.
 func New(database *db.DB, tools *ffmpeg.Tools, log *slog.Logger) *Manager {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Manager{DB: database, Tools: tools, Log: log.With("cat", "tv"), sources: map[int64]wittytuner.Source{}, scans: map[int64]*ScanState{},
+	return &Manager{DB: database, Tools: tools, Log: log.With("cat", "tv"), sources: map[int64]tuner.Source{}, scans: map[int64]*ScanState{},
 		inUse: map[int64]int{}, viewers: map[int64]func(){}, stopCtx: ctx, stop: cancel}
 }
 
@@ -156,23 +190,15 @@ func (m *Manager) Close() {
 	for _, s := range m.sources {
 		_ = s.Close()
 	}
-	m.sources = map[int64]wittytuner.Source{}
+	m.sources = map[int64]tuner.Source{}
 }
 
 // tunerLog is for what a tuner did, as opposed to what the guide or a recording did.
 func (m *Manager) tunerLog() *slog.Logger { return m.Log.With("module", "wittytuner") }
 
 // Env is what drivers get.
-func (m *Manager) Env() wittytuner.Env {
-	env := wittytuner.Env{
-		HTTP:          &http.Client{Timeout: 30 * time.Second},
-		Stream:        &http.Client{},
-		AllowCommands: os.Getenv("WMS_TUNER_COMMANDS") == "1",
-		Log:           m.tunerLog(),
-		Command: func(ctx context.Context, name string, args ...string) *exec.Cmd {
-			return ffmpeg.Command(ctx, name, args...)
-		},
-	}
+func (m *Manager) Env() tuner.Env {
+	env := tuner.Env{AllowCommands: os.Getenv("WMS_TUNER_COMMANDS") == "1"}
 	if m.Tools != nil {
 		env.FFmpeg = m.Tools.FFmpeg
 	}
@@ -247,7 +273,7 @@ func PublicOptions(t *Tuner) map[string]string {
 	for k, v := range t.Options {
 		out[k] = v
 	}
-	for _, k := range wittytuner.SecretFields(t.Driver) {
+	for _, k := range secretFields(context.Background(), t.Driver, out) {
 		if out[k] != "" {
 			out[k] = Masked
 		}
@@ -266,7 +292,7 @@ func (m *Manager) Create(ctx context.Context, t *Tuner) (*Tuner, error) {
 	if len(t.Name) > 200 {
 		return nil, errors.New("the name is too long")
 	}
-	if _, err := wittytuner.New(t.Driver, wittytuner.Config{Name: t.Name, Options: cloneMap(t.Options)}, m.Env()); err != nil {
+	if _, err := m.newSource(ctx, t.Driver, tuner.Config{Name: t.Name, Options: cloneMap(t.Options)}); err != nil {
 		return nil, err
 	}
 	opts, _ := json.Marshal(t.Options)
@@ -301,7 +327,7 @@ func (m *Manager) Update(ctx context.Context, id int64, name string, options map
 		return nil, errors.New("give the tuner a name")
 	}
 	if options != nil {
-		for _, k := range wittytuner.SecretFields(t.Driver) {
+		for _, k := range secretFields(ctx, t.Driver, t.Options) {
 			if options[k] == Masked {
 				options[k] = t.Options[k]
 			}
@@ -309,7 +335,7 @@ func (m *Manager) Update(ctx context.Context, id int64, name string, options map
 	} else {
 		options = t.Options
 	}
-	if _, err := wittytuner.New(t.Driver, wittytuner.Config{Name: name, Options: cloneMap(options)}, m.Env()); err != nil {
+	if _, err := m.newSource(ctx, t.Driver, tuner.Config{Name: name, Options: cloneMap(options)}); err != nil {
 		return nil, err
 	}
 	opts, _ := json.Marshal(options)
@@ -347,7 +373,7 @@ func (m *Manager) forget(id int64) {
 	}
 }
 
-func (m *Manager) source(ctx context.Context, id int64) (wittytuner.Source, *Tuner, error) {
+func (m *Manager) source(ctx context.Context, id int64) (tuner.Source, *Tuner, error) {
 	t, err := m.Tuner(ctx, id)
 	if err != nil {
 		return nil, nil, err
@@ -357,7 +383,7 @@ func (m *Manager) source(ctx context.Context, id int64) (wittytuner.Source, *Tun
 	if s := m.sources[id]; s != nil {
 		return s, t, nil
 	}
-	s, err := newSource(t.Driver, wittytuner.Config{Name: t.Name, Options: t.Options}, m.Env())
+	s, err := m.newSource(ctx, t.Driver, tuner.Config{Name: t.Name, Options: t.Options})
 	if err != nil {
 		return nil, t, err
 	}
@@ -391,7 +417,7 @@ func (m *Manager) setError(id int64, msg string) {
 }
 
 // ensureGuide offers a source's own guide address as a guide source.
-func (m *Manager) ensureGuide(ctx context.Context, id int64, s wittytuner.Source) {
+func (m *Manager) ensureGuide(ctx context.Context, id int64, s tuner.Source) {
 	info := s.Info()
 	if info.GuideURL == "" {
 		return
@@ -411,7 +437,7 @@ func (m *Manager) ensureGuide(ctx context.Context, id int64, s wittytuner.Source
 
 // saveChannels merges a channel list: what the owner chose stays, what has gone
 // from the source goes. It returns how many are new.
-func (m *Manager) saveChannels(ctx context.Context, id int64, list []wittytuner.Channel) (int, error) {
+func (m *Manager) saveChannels(ctx context.Context, id int64, list []tuner.Channel) (int, error) {
 	tx, err := m.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -500,7 +526,7 @@ func (m *Manager) StartScan(id int64, source string) error {
 	log.InfoContext(ctx, "channel scan started")
 	logging.Go("channel scan", func() {
 		defer cancel()
-		ch, err := s.Scan(ctx, wittytuner.ScanOptions{Source: source}, func(p wittytuner.Progress) {
+		ch, err := s.Scan(ctx, tuner.ScanOptions{Source: source}, func(p tuner.Progress) {
 			m.mu.Lock()
 			st.Percent, st.Found, st.Message = p.Percent, p.Found, p.Message
 			m.mu.Unlock()
@@ -752,11 +778,11 @@ func (m *Manager) SetAllEnabled(ctx context.Context, tunerID int64, on bool) err
 // --------------------------------------------------------------------------
 
 // ErrBusy: every tuner of a source is in use.
-var ErrBusy = wittytuner.ErrBusy
+var ErrBusy = tuner.ErrBusy
 
 // Opened is a stream with the tuner slot it holds.
 type Opened struct {
-	Stream  *wittytuner.Stream
+	Stream  *tuner.Stream
 	Channel *Channel
 	release func()
 	note    func(encryptedWhy string)
@@ -784,7 +810,7 @@ func (o *Opened) Refusal() error {
 
 func (o *Opened) refuse(why string) {
 	o.refuseOnce.Do(func() {
-		o.refusal = &wittytuner.EncryptedError{Channel: o.Channel.Name, Why: why}
+		o.refusal = &tuner.EncryptedError{Channel: o.Channel.Name, Why: why}
 		o.note(why)
 		close(o.refused)
 	})
@@ -834,7 +860,7 @@ func (o *Opened) Release() {
 		if g := o.Stream.Guard; g != nil {
 			switch {
 			case g.Fatal() != nil:
-				o.note(wittytuner.ScrambledReason)
+				o.note(tuner.ScrambledReason)
 			case g.Verified():
 				o.note("")
 			}
@@ -852,7 +878,7 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 		return nil, err
 	}
 	if c.Encrypted != "" {
-		return nil, &wittytuner.EncryptedError{Channel: c.Name, Why: c.Encrypted}
+		return nil, &tuner.EncryptedError{Channel: c.Name, Why: c.Encrypted}
 	}
 	s, t, err := m.source(ctx, c.TunerID)
 	if err != nil {
@@ -877,11 +903,11 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 		m.inUse[c.TunerID]--
 		m.mu.Unlock()
 	}
-	st, err := s.Open(ctx, wittytuner.Channel{ID: c.SourceID, Number: c.Number, Name: c.Name, Locator: c.locator, Program: c.Program})
+	st, err := s.Open(ctx, tuner.Channel{ID: c.SourceID, Number: c.Number, Name: c.Name, Locator: c.locator, Program: c.Program})
 	if err != nil {
 		release()
 		m.noteOpenFailure(ctx, c, err)
-		var enc *wittytuner.EncryptedError
+		var enc *tuner.EncryptedError
 		if errors.As(err, &enc) && enc.Why != "" {
 			m.noteStream(c.ID, enc.Why)
 		}
@@ -912,7 +938,7 @@ func (m *Manager) noteOpenFailure(ctx context.Context, c *Channel, err error) {
 	switch {
 	case ctx.Err() != nil, errors.Is(err, ErrBusy):
 		log.DebugContext(ctx, "channel not opened", "err", err)
-	case wittytuner.IsEncrypted(err):
+	case tuner.IsEncrypted(err):
 		log.InfoContext(ctx, "channel refused: encrypted", "err", err)
 	default:
 		log.WarnContext(ctx, "could not open a tuner channel", "err", err)
@@ -1064,10 +1090,16 @@ func (m *Manager) freeTuner(ctx context.Context, tunerID int64) bool {
 }
 
 // Discover looks for tuners, and leaves out those already added.
-func (m *Manager) Discover(ctx context.Context) []wittytuner.Found {
-	found := discoverTuners(ctx, m.Env())
+func (m *Manager) Discover(ctx context.Context) ([]tuner.Found, error) {
+	if engine == nil {
+		return nil, ErrNoEngine
+	}
+	found, err := engine.Discover(ctx, m.Env())
+	if err != nil {
+		return nil, err
+	}
 	tuners, _ := m.Tuners(ctx)
-	out := []wittytuner.Found{}
+	out := []tuner.Found{}
 	for _, f := range found {
 		dup := false
 		for _, t := range tuners {
@@ -1081,7 +1113,7 @@ func (m *Manager) Discover(ctx context.Context) []wittytuner.Found {
 			out = append(out, f)
 		}
 	}
-	return out
+	return out, nil
 }
 
 // Describe gives a short account of a tuner, for logs.

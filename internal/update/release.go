@@ -33,6 +33,7 @@ var (
 	devKeys       []string              // extra trusted public keys
 	devFeedURL    string                // replaces the GitHub releases API
 	devModuleFeed string                // replaces it for plugins: <this>/<Repository>.json
+	devCatalog    string                // replaces the module catalogue's address
 	devAllowURL   func(u *url.URL) bool // extra hosts downloads may come from
 	devTransport  http.RoundTripper     // replaces the internet-only transport
 )
@@ -390,4 +391,12 @@ func (u *Updater) fetchReleases(ctx context.Context) ([]ghRelease, error) {
 		feed = devFeedURL
 	}
 	return u.fetcher().feed(ctx, feed)
+}
+
+// ModuleCatalog is where the signed list of modules is.
+func ModuleCatalog() string {
+	if devCatalog != "" {
+		return devCatalog
+	}
+	return "https://github.com/wittywilla/WittyModuleCatalog/releases/download/catalog/catalog.json"
 }

@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/modules"
 	"io"
 	"io/fs"
 	"math/rand/v2"
@@ -15,8 +17,6 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-
-	fb "github.com/wittywilla/wittyintegratedfilebrowser"
 
 	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
@@ -372,7 +372,7 @@ func longWindowsPath(p string) bool {
 }
 
 func isMediaName(name string) bool {
-	switch fb.FileKind(name) {
+	switch library.FileKind(name) {
 	case "video", "audio", "disc":
 		return true
 	}
@@ -417,7 +417,7 @@ func (c *storageCheck) walk(maxEntries int, budget time.Duration, inspect bool) 
 			return nil
 		}
 		name := e.Name()
-		if fb.IsHidden(name) {
+		if modules.IsHidden(name) {
 			if e.IsDir() {
 				return filepath.SkipDir
 			}

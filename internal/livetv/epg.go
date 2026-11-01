@@ -15,8 +15,8 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
-	"github.com/wittywilla/wittytuner/mpegts"
-	"github.com/wittywilla/wittytuner/xmltv"
+	"github.com/wittywilla/wittymediaserver/internal/tuner/mpegts"
+	"github.com/wittywilla/wittymediaserver/internal/tuner/xmltv"
 )
 
 // Guide data: XMLTV sources fetched on a schedule, and what broadcasts say

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/dvd"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 )
 
@@ -50,16 +50,16 @@ func seconds(v float64) bool { return v >= 0 && v <= maxSeconds }
 
 // checkStep checks what a session will use from a step, and fills DomainName, which
 // names cache files, from the domain number rather than from what the helper said.
-func checkStep(st *wittydvd.Step) error {
+func checkStep(st *dvd.Step) error {
 	if st == nil {
 		return nil
 	}
 	switch st.Kind {
-	case wittydvd.StepMenu, wittydvd.StepTitle, wittydvd.StepStop:
+	case dvd.StepMenu, dvd.StepTitle, dvd.StepStop:
 	default:
 		return bad("the helper gave a step of an unknown kind")
 	}
-	if st.Domain < wittydvd.DomainFP || st.Domain > wittydvd.DomainVTS {
+	if st.Domain < dvd.DomainFP || st.Domain > dvd.DomainVTS {
 		return bad("the helper gave a step in an unknown domain")
 	}
 	st.DomainName = st.Domain.String()
@@ -85,7 +85,7 @@ func checkStep(st *wittydvd.Step) error {
 }
 
 // checkPGC checks a program chain.
-func checkPGC(p *wittydvd.PGC) error {
+func checkPGC(p *dvd.PGC) error {
 	if len(p.Cells) > maxCells || len(p.Programs) > maxPrograms {
 		return bad("the helper gave a program chain of an impossible size")
 	}
@@ -100,7 +100,7 @@ func checkPGC(p *wittydvd.PGC) error {
 	return nil
 }
 
-func checkEntries(es []wittydvd.PGCEntry) error {
+func checkEntries(es []dvd.PGCEntry) error {
 	if len(es) > maxPGCs {
 		return bad("the helper gave a disc of an impossible size")
 	}
@@ -115,7 +115,7 @@ func checkEntries(es []wittydvd.PGCEntry) error {
 	return nil
 }
 
-func checkUnits(us []wittydvd.LangUnit) error {
+func checkUnits(us []dvd.LangUnit) error {
 	if len(us) > maxUnits {
 		return bad("the helper gave a disc of an impossible size")
 	}
@@ -130,7 +130,7 @@ func checkUnits(us []wittydvd.LangUnit) error {
 // checkDisc checks a disc's structure, which the session's own code then walks: every
 // table it indexes must have the size that code expects, as the parser makes sure for
 // the built-in copy.
-func checkDisc(d *wittydvd.Disc) error {
+func checkDisc(d *dvd.Disc) error {
 	if d.VMG == nil {
 		return bad("the helper gave a disc with no structure")
 	}
@@ -162,16 +162,16 @@ func checkDisc(d *wittydvd.Disc) error {
 	return nil
 }
 
-func checkPicture(r *wittydvd.RGBA) error {
+func checkPicture(r *dvd.RGBA) error {
 	if r != nil && (r.X < -maxPosition || r.X > maxPosition || r.Y < -maxPosition || r.Y > maxPosition) {
 		return bad("the helper gave a picture in an impossible place")
 	}
-	return nil // its size matches its pixels: wire.DecodeMenu sees to that
+	return nil // its size matches its pixels: dvd.DecodeMenu sees to that
 }
 
 // checkMenu checks a menu picture. The frame's size is what a session allocates when
 // it draws one.
-func checkMenu(p *wittydvd.MenuPicture) error {
+func checkMenu(p *dvd.MenuPicture) error {
 	if p.FrameW < 0 || p.FrameW > maxFrameSide || p.FrameH < 0 || p.FrameH > maxFrameSide {
 		return bad("the helper gave a menu of an impossible size")
 	}
@@ -268,7 +268,7 @@ func (b *bounds) checkFile(f string) error {
 }
 
 // check checks a list of extents before anything uses it.
-func (b *bounds) check(ext []wittydvd.FileExtent) error {
+func (b *bounds) check(ext []dvd.FileExtent) error {
 	if len(ext) > maxExtents {
 		return bad("the helper gave too many extents")
 	}

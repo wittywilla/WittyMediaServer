@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittybluray"
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/dvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
@@ -152,14 +152,14 @@ func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n i
 	if to <= from {
 		to = from + 64<<20
 	}
-	var cut []wittydvd.FileExtent
+	var cut []dvd.FileExtent
 	var off int64
 	for _, x := range ext {
 		a, b := off, off+x.Length
 		off = b
 		lo, hi := max(a, from), min(b, to)
 		if hi > lo {
-			cut = append(cut, wittydvd.FileExtent{File: x.Path, Offset: x.Offset + (lo - a), Length: hi - lo})
+			cut = append(cut, dvd.FileExtent{File: x.Path, Offset: x.Offset + (lo - a), Length: hi - lo})
 		}
 	}
 	if len(cut) == 0 {

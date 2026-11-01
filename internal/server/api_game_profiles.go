@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"image"
@@ -19,7 +20,6 @@ import (
 	_ "golang.org/x/image/webp"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittyphotos"
 	"github.com/wittywilla/wittyplay"
 )
 
@@ -416,8 +416,8 @@ func cleanBackground(b []byte) (out []byte, err error) {
 	}
 	orientation := 1
 	if format == "jpeg" { // phones store upright photos sideways, and say so in the part we drop
-		if info, err := wittyphotos.Parse(b); err == nil && info.Orientation >= 2 && info.Orientation <= 8 {
-			orientation = info.Orientation
+		if o := jpegOrientation(b); o >= 2 && o <= 8 {
+			orientation = o
 		}
 	}
 	sb := src.Bounds()
@@ -615,4 +615,56 @@ func activeProfilesFor(list []wittyplay.Profile, console string, game int64) []w
 		}
 	}
 	return out
+}
+
+// jpegOrientation finds how a JPEG says it should be turned, or 0: the one field of its EXIF
+// a background picture needs, so an upload doesn't start a module just for this.
+func jpegOrientation(b []byte) int {
+	if len(b) < 4 || b[0] != 0xFF || b[1] != 0xD8 {
+		return 0
+	}
+	for p := 2; p+4 <= len(b) && b[p] == 0xFF; {
+		marker, size := b[p+1], int(b[p+2])<<8|int(b[p+3])
+		if size < 2 || p+2+size > len(b) {
+			return 0
+		}
+		if marker == 0xE1 && size >= 8 && string(b[p+4:p+10]) == "Exif\x00\x00" {
+			return exifOrientation(b[p+10 : p+2+size])
+		}
+		if marker == 0xDA { // the picture itself: nothing to find past here
+			return 0
+		}
+		p += 2 + size
+	}
+	return 0
+}
+
+func exifOrientation(t []byte) int {
+	if len(t) < 8 {
+		return 0
+	}
+	var order binary.ByteOrder
+	switch string(t[:2]) {
+	case "II":
+		order = binary.LittleEndian
+	case "MM":
+		order = binary.BigEndian
+	default:
+		return 0
+	}
+	at := int(order.Uint32(t[4:8]))
+	if at < 8 || at+2 > len(t) {
+		return 0
+	}
+	n := int(order.Uint16(t[at:]))
+	for i := 0; i < n; i++ {
+		e := at + 2 + i*12
+		if e+12 > len(t) {
+			return 0
+		}
+		if order.Uint16(t[e:]) == 0x0112 {
+			return int(order.Uint16(t[e+8:]))
+		}
+	}
+	return 0
 }

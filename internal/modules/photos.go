@@ -5,34 +5,27 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymodule"
-	"github.com/wittywilla/wittyphotos"
 )
 
 const photosID = "wittyphotos"
 
-// PhotoEngine reads what photos say about themselves through the WittyPhotos
-// version in use, and through the built-in copy when that is the one in use or
-// a helper fails. Either way the scan carries on. It is library.PhotoEngine.
+// PhotoEngine reads what photos say about themselves through the WittyPhotos version in
+// use. With none, a scan carries on and the photos have only what their files say on the
+// outside. It is library.PhotoEngine.
 type PhotoEngine struct{ M *Manager }
 
 type pathParams struct {
 	Path string `json:"path"`
 }
 
-// useBuiltin: the helper's limits may be why it can't read a file, so the server
-// tries the file itself.
-func useBuiltin(err error) bool {
-	var ce *wittymodule.CallError
-	return errors.As(err, &ce) && ce.Code == "denied"
-}
-
 // ReadFile reads a photo's EXIF.
-func (p PhotoEngine) ReadFile(path string) (*wittyphotos.Info, error) {
-	var in wittyphotos.Info
+func (p PhotoEngine) ReadFile(path string) (*library.PhotoInfo, error) {
+	var in library.PhotoInfo
 	_, err, handled := p.M.call(photosID, "read", pathParams{path}, &in)
-	if !handled || useBuiltin(err) {
-		return wittyphotos.ReadFile(path)
+	if !handled {
+		return nil, library.ErrNoPhotoEngine
 	}
 	if err != nil {
 		return nil, err
@@ -46,28 +39,25 @@ func (p PhotoEngine) Dimensions(path string) (w, h int) {
 	if _, err, handled := p.M.call(photosID, "dimensions", pathParams{path}, &d); handled && err == nil {
 		return d.W, d.H
 	}
-	return wittyphotos.Dimensions(path)
+	return 0, 0
 }
 
 // RawPreview returns the JPEG a camera stored in a RAW file.
 func (p PhotoEngine) RawPreview(path string) ([]byte, error) {
 	b, err, handled := p.M.call(photosID, "preview", pathParams{path}, nil)
-	if !handled || useBuiltin(err) {
-		return wittyphotos.RawPreview(path)
+	if !handled {
+		return nil, library.ErrNoPhotoEngine
 	}
 	var ce *wittymodule.CallError
 	if errors.As(err, &ce) && ce.Code == "no-preview" {
-		return nil, wittyphotos.ErrNoPreview
+		return nil, library.ErrNoRawPreview
 	}
 	return b, err
 }
 
-// IsRaw knows the built-in copy's formats and any a newer version adds, from its
-// signed manifest, so scanning a folder never has to start a helper.
+// IsRaw knows the formats the version in use lists in its signed manifest, so scanning a
+// folder never has to start a helper.
 func (p PhotoEngine) IsRaw(name string) bool {
-	if wittyphotos.IsRaw(name) {
-		return true
-	}
 	ext := strings.ToLower(filepath.Ext(name))
 	if ext == "" {
 		return false

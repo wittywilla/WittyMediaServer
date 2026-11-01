@@ -10,9 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	fb "github.com/wittywilla/wittyintegratedfilebrowser"
-
 	"github.com/wittywilla/wittymediaserver/internal/diagnose"
+	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
@@ -228,10 +227,12 @@ func (s *Server) handleDiagnoseBrowse(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "That's a file, not a folder.")
 		return
 	}
-	l, err := fb.List(real, fb.Options{MaxEntries: 3000})
+	l, err := modmgr.FileBrowser{M: s.Modules}.List(real, modmgr.ListOptions{MaxEntries: 3000, Kind: library.FileKind})
 	switch {
-	case errors.Is(err, fb.ErrNotFound):
+	case errors.Is(err, modmgr.ErrFolderNotFound):
 		writeDiagnosePathErr(w, diagnose.ErrMissing)
+		return
+	case writeModuleMissing(w, err):
 		return
 	case err != nil:
 		writeErr(w, 403, "The server isn't allowed to open this folder.")

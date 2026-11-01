@@ -16,7 +16,6 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
-	"github.com/wittywilla/wittyphotos"
 )
 
 // Thumbnails made the first time they are asked for: scanning a library of a
@@ -153,7 +152,7 @@ func (s *Scanner) makeThumb(ctx context.Context, it *Item, width int, out string
 			}
 			defer os.Remove(src)
 			longSide = 0 // the preview's size isn't the sensor's
-		} else if !errors.Is(err, wittyphotos.ErrNoPreview) {
+		} else if !errors.Is(err, ErrNoRawPreview) {
 			return err
 		}
 	}

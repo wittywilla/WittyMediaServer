@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/dvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
@@ -261,7 +261,7 @@ type Session struct {
 	lastTick time.Time
 	current  *Presentation
 	menus    map[int]*menuArt
-	titles   map[int]*wittydvd.TitleSummary
+	titles   map[int]*dvd.TitleSummary
 	playing  *playingTitle // linear title the client is streaming
 	// resumeAt is the offset into the resume cell where the viewer left a
 	// title for a menu, so Resume continues from the same frame.
@@ -273,12 +273,12 @@ type Session struct {
 }
 
 type playingTitle struct {
-	ts  *wittydvd.TitleSummary
+	ts  *dvd.TitleSummary
 	idx int // index into ts.Cells of the cell playback started from
 }
 
 type menuArt struct {
-	pic        *wittydvd.MenuPicture
+	pic        *dvd.MenuPicture
 	overlay    []byte
 	highlights map[int][]byte
 }
@@ -300,14 +300,14 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 	}
 	s := &Session{
 		ID: randomID(), ItemID: itemID, Path: path, m: m, opened: o, prefs: prefs,
-		key: hls.Key(path), used: time.Now(), lastTick: time.Now(), menus: map[int]*menuArt{}, titles: map[int]*wittydvd.TitleSummary{}, subPics: map[string][]*subPic{},
+		key: hls.Key(path), used: time.Now(), lastTick: time.Now(), menus: map[int]*menuArt{}, titles: map[int]*dvd.TitleSummary{}, subPics: map[string][]*subPic{},
 	}
 	base := m.Log
 	if base == nil {
 		base = slog.Default()
 	}
 	s.log = base.With("cat", "discs", "module", "wittydvd", "session", s.ID)
-	s.nav = o.NewNav(wittydvd.NavOptions{RegisterOptions: wittydvd.RegisterOptions{MenuLanguage: prefs.MenuLanguage, AudioLanguage: prefs.AudioLanguage, SubtitleLanguage: prefs.SubtitleLanguage, Angle: prefs.Angle, Region: prefs.DVDRegion, Parental: prefs.DVDParental, Country: prefs.Country}})
+	s.nav = o.NewNav(dvd.NavOptions{RegisterOptions: dvd.RegisterOptions{MenuLanguage: prefs.MenuLanguage, AudioLanguage: prefs.AudioLanguage, SubtitleLanguage: prefs.SubtitleLanguage, Angle: prefs.Angle, Region: prefs.DVDRegion, Parental: prefs.DVDParental, Country: prefs.Country}})
 	m.mu.Lock()
 	m.sessions[s.ID] = s
 	m.mu.Unlock()
@@ -384,7 +384,7 @@ func (s *Session) PlayTitle(ctx context.Context, ttn, chapter int) *Presentation
 	st := s.nav.PlayTitle(ttn, chapter)
 	// Started directly (not through the disc's menus): the viewer's
 	// remembered angle wins over the one the title's own commands picked.
-	if a := s.prefs.Angle; a > 1 && st != nil && st.Kind == wittydvd.StepTitle && st.Title != nil &&
+	if a := s.prefs.Angle; a > 1 && st != nil && st.Kind == dvd.StepTitle && st.Title != nil &&
 		st.Title.TTN >= 1 && st.Title.TTN <= len(s.opened.Disc.VMG.Titles) && a <= s.opened.Disc.VMG.Titles[st.Title.TTN-1].Angles {
 		s.nav.SetAngle(a)
 	}
@@ -489,7 +489,7 @@ func (s *Session) press(ctx context.Context, n int) *Presentation {
 		return s.show(ctx, s.nav.PressButton(n, nil))
 	}
 	art := s.menus[cur.Serial]
-	var cmd *wittydvd.Command
+	var cmd *dvd.Command
 	if art != nil {
 		for _, b := range art.pic.Buttons {
 			if b.N == n {
@@ -559,7 +559,7 @@ func (s *Session) keyPress(ctx context.Context, key string) *Presentation {
 
 // tick advances the disc clocks (counter GPRMs, navigation timer) by the
 // wall time since the last action. It returns a step if the timer fired.
-func (s *Session) tick() *wittydvd.Step {
+func (s *Session) tick() *dvd.Step {
 	now := time.Now()
 	el := now.Sub(s.lastTick).Seconds()
 	s.lastTick = now
@@ -597,7 +597,7 @@ func (s *Session) ended(ctx context.Context) *Presentation {
 		st := s.nav.CellEnded()
 		for i := pl.idx + 1; i < len(pl.ts.Cells); i++ {
 			c := pl.ts.Cells[i]
-			if st == nil || st.Kind != wittydvd.StepTitle || st.PGCN != c.PGCN || st.CellN != c.CellN || st.Title == nil || st.Title.TTN != cur.Title.TTN {
+			if st == nil || st.Kind != dvd.StepTitle || st.PGCN != c.PGCN || st.CellN != c.CellN || st.Title == nil || st.Title.TTN != cur.Title.TTN {
 				break
 			}
 			st = s.nav.CellEnded()
@@ -615,20 +615,20 @@ func (s *Session) url(parts ...string) string {
 	return s.m.BaseURL + "/dvd/" + s.ID + "/" + strings.Join(parts, "/")
 }
 
-func (s *Session) show(ctx context.Context, st *wittydvd.Step) *Presentation {
+func (s *Session) show(ctx context.Context, st *dvd.Step) *Presentation {
 	return s.present(ctx, st, false)
 }
 
 // present turns a step into a presentation. A step with the same serial as
 // the current presentation is the same screen with a moved highlight (or a
 // message), so it reuses everything unless rebuild is set (stream changes).
-func (s *Session) present(ctx context.Context, st *wittydvd.Step, rebuild bool) *Presentation {
+func (s *Session) present(ctx context.Context, st *dvd.Step, rebuild bool) *Presentation {
 	if st == nil {
 		return s.current
 	}
 	s.log.Debug("dvd step", "topic", "nav", "step", st.Kind, "domain", st.DomainName, "vts", st.VTS, "pgc", st.PGCN,
 		"cell", st.CellN, "serial", st.Serial, "still", st.StillSec, "loop", st.Loop, "note", st.Reason)
-	if cur := s.current; !rebuild && cur != nil && cur.Serial == st.Serial && cur.Kind != "stop" && st.Kind != wittydvd.StepStop {
+	if cur := s.current; !rebuild && cur != nil && cur.Serial == st.Serial && cur.Kind != "stop" && st.Kind != dvd.StepStop {
 		p := *cur
 		p.Reason = st.Reason
 		if p.Menu != nil {
@@ -647,10 +647,10 @@ func (s *Session) present(ctx context.Context, st *wittydvd.Step, rebuild bool) 
 	prev := s.playing
 	s.playing = nil
 	switch st.Kind {
-	case wittydvd.StepStop:
+	case dvd.StepStop:
 		p.Kind = "stop"
 		p.Media = &Media{Type: "none"}
-	case wittydvd.StepTitle:
+	case dvd.StepTitle:
 		// A rebuild (audio change) keeps the cell the viewer has reached.
 		pl := prev
 		if !rebuild || pl == nil || st.Title == nil || pl.ts.Number != st.Title.TTN || pl.ts != s.title(st.Title.TTN) {
@@ -680,7 +680,7 @@ func (s *Session) present(ctx context.Context, st *wittydvd.Step, rebuild bool) 
 			p.Media = &Media{Type: "none"}
 		}
 	}
-	if t := s.nav.Registers().SPRM[wittydvd.SprmNavTimer]; t > 0 && p.Kind != "stop" {
+	if t := s.nav.Registers().SPRM[dvd.SprmNavTimer]; t > 0 && p.Kind != "stop" {
 		p.TimerSec = float64(t)
 	}
 	if p.Kind == "stop" {
@@ -696,7 +696,7 @@ func (s *Session) present(ctx context.Context, st *wittydvd.Step, rebuild bool) 
 // logStop leaves a record of why the disc stopped playing for the viewer: the
 // navigator came to a dead end, or a step couldn't be built. A player asking again
 // after a stop adds nothing.
-func (s *Session) logStop(st *wittydvd.Step, p *Presentation) {
+func (s *Session) logStop(st *dvd.Step, p *Presentation) {
 	if cur := s.current; cur != nil && cur.Kind == "stop" && cur.Reason == p.Reason {
 		return
 	}
@@ -708,7 +708,7 @@ func (s *Session) logStop(st *wittydvd.Step, p *Presentation) {
 }
 
 // title returns the flattened title (cached per session).
-func (s *Session) title(ttn int) *wittydvd.TitleSummary {
+func (s *Session) title(ttn int) *dvd.TitleSummary {
 	angle := s.angle(ttn)
 	key := ttn*16 + angle
 	if ts, ok := s.titles[key]; ok {
@@ -726,7 +726,7 @@ func (s *Session) angle(ttn int) int {
 	if ttn >= 1 && ttn <= len(s.opened.Disc.VMG.Titles) {
 		n = s.opened.Disc.VMG.Titles[ttn-1].Angles
 	}
-	a := int(s.nav.Registers().SPRM[wittydvd.SprmAngle])
+	a := int(s.nav.Registers().SPRM[dvd.SprmAngle])
 	if a < 1 || a > n {
 		return 1
 	}
@@ -762,7 +762,7 @@ func (s *Session) switchAngle(ctx context.Context, angle int, pos float64) *Pres
 // video from its current cell: the cell must be part of the title's normal
 // chain, nothing in that chain may pause (stills) or loop, and the cell must
 // not carry buttons. Anything else is played cell by cell.
-func (s *Session) linearTitle(st *wittydvd.Step) *playingTitle {
+func (s *Session) linearTitle(st *dvd.Step) *playingTitle {
 	if st.Title == nil || st.Loop || st.Hold || st.StillSec != 0 {
 		return nil
 	}
@@ -802,7 +802,7 @@ func (s *Session) linearTitle(st *wittydvd.Step) *playingTitle {
 	if st.CellDuration <= 300 {
 		hops = 0
 	}
-	pic, err := s.opened.Menu(wittydvd.SpaceFor(st.Domain, st.VTS), st.FirstSector, st.LastSector, s.scanOptions(st, hops))
+	pic, err := s.opened.Menu(dvd.SpaceFor(st.Domain, st.VTS), st.FirstSector, st.LastSector, s.scanOptions(st, hops))
 	if err == nil && interactive(pic) {
 		return nil
 	}
@@ -825,21 +825,21 @@ const scrambleSectors = 64
 // runsScrambled looks at what FFmpeg would read for a title, at the start of its first,
 // middle and last runs, in the middle too as some discs begin with a clear picture.
 // Every title stream comes through here, whichever way the title was asked for.
-func runsScrambled(runs []wittydvd.TitleRun) bool {
+func runsScrambled(runs []dvd.TitleRun) bool {
 	if len(runs) == 0 {
 		return false
 	}
-	for _, r := range []wittydvd.TitleRun{runs[0], runs[len(runs)/2], runs[len(runs)-1]} {
+	for _, r := range []dvd.TitleRun{runs[0], runs[len(runs)/2], runs[len(runs)-1]} {
 		if len(r.Extents) == 0 {
 			continue
 		}
-		for _, e := range []wittydvd.FileExtent{r.Extents[0], r.Extents[len(r.Extents)/2]} {
+		for _, e := range []dvd.FileExtent{r.Extents[0], r.Extents[len(r.Extents)/2]} {
 			at := []int64{e.Offset}
-			if e.Length > 2*scrambleSectors*wittydvd.Sector {
-				at = append(at, e.Offset+(e.Length/2)/wittydvd.Sector*wittydvd.Sector)
+			if e.Length > 2*scrambleSectors*dvd.Sector {
+				at = append(at, e.Offset+(e.Length/2)/dvd.Sector*dvd.Sector)
 			}
 			for _, off := range at {
-				if extentScrambled(e.File, off, min(e.Length, scrambleSectors*wittydvd.Sector)) {
+				if extentScrambled(e.File, off, min(e.Length, scrambleSectors*dvd.Sector)) {
 					return true
 				}
 			}
@@ -861,15 +861,15 @@ func extentScrambled(file string, off, n int64) bool {
 	if err != nil && !errors.Is(err, io.EOF) {
 		return false
 	}
-	for p := 0; p+wittydvd.Sector <= got; p += wittydvd.Sector {
-		if wittydvd.PackScrambled(buf[p : p+wittydvd.Sector]) {
+	for p := 0; p+dvd.Sector <= got; p += dvd.Sector {
+		if dvd.PackScrambled(buf[p : p+dvd.Sector]) {
 			return true
 		}
 	}
 	return false
 }
 
-func interactive(pic *wittydvd.MenuPicture) bool {
+func interactive(pic *dvd.MenuPicture) bool {
 	for _, b := range pic.Buttons {
 		if !b.Inert {
 			return true
@@ -880,15 +880,15 @@ func interactive(pic *wittydvd.MenuPicture) bool {
 
 // prefetchNext starts transcoding the clip that follows the one just shown,
 // so menu transitions (intro -> looping menu, sub-menu fades) do not stall.
-func (s *Session) prefetchNext(st *wittydvd.Step, p *Presentation) {
-	if p.Media == nil || p.Media.Loop || p.Media.StillSec < 0 || st.Kind == wittydvd.StepStop {
+func (s *Session) prefetchNext(st *dvd.Step, p *Presentation) {
+	if p.Media == nil || p.Media.Loop || p.Media.StillSec < 0 || st.Kind == dvd.StepStop {
 		return
 	}
 	nx := s.nav.Clone().CellEnded()
-	if nx == nil || nx.Kind != wittydvd.StepMenu || nx.CellDuration <= stillMaxSec {
+	if nx == nil || nx.Kind != dvd.StepMenu || nx.CellDuration <= stillMaxSec {
 		return
 	}
-	id, err := s.menuHLS(wittydvd.SpaceFor(nx.Domain, nx.VTS), nx, 0)
+	id, err := s.menuHLS(dvd.SpaceFor(nx.Domain, nx.VTS), nx, 0)
 	if err != nil {
 		s.log.Debug("could not prepare the next clip", "topic", "nav", "vts", nx.VTS, "pgc", nx.PGCN, "cell", nx.CellN, "err", err)
 		return
@@ -898,13 +898,13 @@ func (s *Session) prefetchNext(st *wittydvd.Step, p *Presentation) {
 	}
 }
 
-func (s *Session) videoAttr(st *wittydvd.Step) wittydvd.VideoAttr {
+func (s *Session) videoAttr(st *dvd.Step) dvd.VideoAttr {
 	switch st.Domain {
-	case wittydvd.DomainVTSM:
+	case dvd.DomainVTSM:
 		if v := s.opened.Disc.VTS[st.VTS]; v != nil {
 			return v.MenuVideo
 		}
-	case wittydvd.DomainVTS:
+	case dvd.DomainVTS:
 		if v := s.opened.Disc.VTS[st.VTS]; v != nil {
 			return v.Video
 		}
@@ -914,18 +914,18 @@ func (s *Session) videoAttr(st *wittydvd.Step) wittydvd.VideoAttr {
 
 // pgcOf is the program chain a step plays, as the navigator resolves it
 // (including the menu language unit it settled on).
-func (s *Session) pgcOf(st *wittydvd.Step) *wittydvd.PGC { return s.nav.StepPGC(st) }
+func (s *Session) pgcOf(st *dvd.Step) *dvd.PGC { return s.nav.StepPGC(st) }
 
 const stillMaxSec = 1.5
 
 // scanOptions builds the menu scan options for a step. Inside a title the
 // highlight belongs to the sub-picture stream the disc selected (SPRM2).
-func (s *Session) scanOptions(st *wittydvd.Step, maxHops int) wittydvd.MenuScanOptions {
-	o := wittydvd.MenuScanOptions{Palette: st.Palette, Video: s.videoAttr(st), Wide: s.prefs.Wide, NavButton: st.DefaultButton, MaxHops: maxHops}
+func (s *Session) scanOptions(st *dvd.Step, maxHops int) dvd.MenuScanOptions {
+	o := dvd.MenuScanOptions{Palette: st.Palette, Video: s.videoAttr(st), Wide: s.prefs.Wide, NavButton: st.DefaultButton, MaxHops: maxHops}
 	if pgc := s.pgcOf(st); pgc != nil {
 		n := 0
-		if st.Domain == wittydvd.DomainVTS {
-			n = int(s.nav.Registers().SPRM[wittydvd.SprmSubp] & 31)
+		if st.Domain == dvd.DomainVTS {
+			n = int(s.nav.Registers().SPRM[dvd.SprmSubp] & 31)
 		}
 		o.SubpControl = pgc.SubpControl[n]
 		if o.SubpControl == nil {
@@ -935,15 +935,15 @@ func (s *Session) scanOptions(st *wittydvd.Step, maxHops int) wittydvd.MenuScanO
 	return o
 }
 
-func (s *Session) buildMenu(ctx context.Context, st *wittydvd.Step, p *Presentation) error {
-	sp := wittydvd.SpaceFor(st.Domain, st.VTS)
+func (s *Session) buildMenu(ctx context.Context, st *dvd.Step, p *Presentation) error {
+	sp := dvd.SpaceFor(st.Domain, st.VTS)
 	pic, err := s.opened.Menu(sp, st.FirstSector, st.LastSector, s.scanOptions(st, 0))
-	if errors.Is(err, wittydvd.ErrNoNav) {
+	if errors.Is(err, dvd.ErrNoNav) {
 		// The cell does not start with a NAV pack (damaged sectors, junk
 		// cells): play what is there without buttons rather than stop.
 		s.log.Warn("a menu cell can't be read: playing it without buttons", "domain", st.DomainName, "vts", st.VTS, "pgc", st.PGCN, "cell", st.CellN, "err", err)
 		v := s.videoAttr(st)
-		pic, err = &wittydvd.MenuPicture{Aspect: 4.0 / 3.0, NoButtons: true}, nil
+		pic, err = &dvd.MenuPicture{Aspect: 4.0 / 3.0, NoButtons: true}, nil
 		pic.FrameW, pic.FrameH = v.Size()
 		if v.Wide {
 			pic.Aspect = 16.0 / 9.0
@@ -987,7 +987,7 @@ func (s *Session) buildMenu(ctx context.Context, st *wittydvd.Step, p *Presentat
 	} else {
 		m.Type = "hls"
 		audio := 0
-		if st.Domain == wittydvd.DomainVTS {
+		if st.Domain == dvd.DomainVTS {
 			audio = -1
 			if id := s.titleAudio(s.opened.Disc.VTS[st.VTS], s.pgcOf(st)); id > 0 {
 				audio = id
@@ -1003,7 +1003,7 @@ func (s *Session) buildMenu(ctx context.Context, st *wittydvd.Step, p *Presentat
 	p.Media = m
 	// Menu layer
 	menu := &Menu{Width: pic.FrameW, Height: pic.FrameH, Aspect: "4:3", Selected: pic.DefaultButton, ButtonsFromSec: pic.ButtonsFromSec, HasHighlights: pic.HasHighlights, Buttons: []ButtonView{},
-		ForcedAction: pic.ForcedAction, ActionAtSec: pic.ActionAtSec, InTitle: st.Domain == wittydvd.DomainVTS}
+		ForcedAction: pic.ForcedAction, ActionAtSec: pic.ActionAtSec, InTitle: st.Domain == dvd.DomainVTS}
 	if pic.Aspect > 1.5 {
 		menu.Aspect = "16:9"
 	}
@@ -1028,7 +1028,7 @@ func (s *Session) buildMenu(ctx context.Context, st *wittydvd.Step, p *Presentat
 	return nil
 }
 
-func (s *Session) segmentsFor(sp wittydvd.Space, first, last uint32, dur float64) ([]ffmpeg.Segment, error) {
+func (s *Session) segmentsFor(sp dvd.Space, first, last uint32, dur float64) ([]ffmpeg.Segment, error) {
 	ext, err := s.opened.RangeExtents(sp, first, last)
 	if err != nil {
 		return nil, err
@@ -1041,7 +1041,7 @@ func (s *Session) segmentsFor(sp wittydvd.Space, first, last uint32, dur float64
 
 // stepSegments is the video of the step's cell, following only that cell's
 // VOBUs when it is interleaved (multi-angle blocks, seamless branching).
-func (s *Session) stepSegments(sp wittydvd.Space, st *wittydvd.Step) ([]ffmpeg.Segment, error) {
+func (s *Session) stepSegments(sp dvd.Space, st *dvd.Step) ([]ffmpeg.Segment, error) {
 	if p := s.pgcOf(st); p != nil && st.CellN >= 1 && st.CellN <= len(p.Cells) {
 		c := p.Cells[st.CellN-1]
 		if c.Interleaved || c.BlockType == 1 {
@@ -1085,11 +1085,11 @@ func (s *Session) preset(menu bool) string {
 // titleAudio returns the MPEG-PS stream id of the audio the viewer hears in
 // a title-domain step (SPRM1 through the PGC's audio control table), or 0
 // when the title set has no audio.
-func (s *Session) titleAudio(v *wittydvd.VTS, pgc *wittydvd.PGC) int {
+func (s *Session) titleAudio(v *dvd.VTS, pgc *dvd.PGC) int {
 	if v == nil || len(v.Audio) == 0 {
 		return 0
 	}
-	n := int(s.nav.Registers().SPRM[wittydvd.SprmAudio]) & 7
+	n := int(s.nav.Registers().SPRM[dvd.SprmAudio]) & 7
 	if n >= len(v.Audio) {
 		n = 0
 	}
@@ -1103,7 +1103,7 @@ func (s *Session) titleAudio(v *wittydvd.VTS, pgc *wittydvd.PGC) int {
 // menuHLS streams one menu (or interactive title) cell. audio is the ffmpeg
 // audio index in menu domains or, inside a title, the audio's stream id
 // (>= 0x80), which pins the streams by id (see ffmpeg.WriteConcat).
-func (s *Session) menuHLS(sp wittydvd.Space, st *wittydvd.Step, audio int) (string, error) {
+func (s *Session) menuHLS(sp dvd.Space, st *dvd.Step, audio int) (string, error) {
 	name := fmt.Sprintf("m-%s-%d-%d-%d-a%x%s", st.DomainName, st.VTS, st.PGCN, st.CellN, audio, s.codecTag())
 	id := fmt.Sprintf("dvd-%s-%s", s.key, name)
 	if h := s.m.HLS.Get(id); h != nil {
@@ -1116,7 +1116,7 @@ func (s *Session) menuHLS(sp wittydvd.Space, st *wittydvd.Step, audio int) (stri
 	}
 	var ids []int
 	if audio >= 0x80 {
-		ids, audio = []int{wittydvd.VideoStreamID, audio}, 0
+		ids, audio = []int{dvd.VideoStreamID, audio}, 0
 	}
 	list, err := ffmpeg.WriteConcat(s.listDir(), name, segs, ids...)
 	if err != nil {
@@ -1129,7 +1129,7 @@ func (s *Session) menuHLS(sp wittydvd.Space, st *wittydvd.Step, audio int) (stri
 	return id, nil
 }
 
-func (s *Session) renderStill(ctx context.Context, sp wittydvd.Space, st *wittydvd.Step) (string, error) {
+func (s *Session) renderStill(ctx context.Context, sp dvd.Space, st *dvd.Step) (string, error) {
 	name := fmt.Sprintf("%s-%s-%d-%d-%d.png", s.key, st.DomainName, st.VTS, st.PGCN, st.CellN)
 	out := filepath.Join(s.m.CacheDir, "stills", name)
 	if fileNonEmpty(out) {
@@ -1140,7 +1140,7 @@ func (s *Session) renderStill(ctx context.Context, sp wittydvd.Space, st *wittyd
 	if err != nil {
 		return "", err
 	}
-	list, err := ffmpeg.WriteConcat(s.listDir(), "still-"+strings.TrimSuffix(name, ".png"), segs, wittydvd.VideoStreamID)
+	list, err := ffmpeg.WriteConcat(s.listDir(), "still-"+strings.TrimSuffix(name, ".png"), segs, dvd.VideoStreamID)
 	if err != nil {
 		return "", err
 	}
@@ -1177,10 +1177,10 @@ func (s *Session) StillPath(name string) (string, bool) {
 // Titles
 // ---------------------------------------------------------------------------
 
-func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playingTitle, p *Presentation) error {
+func (s *Session) buildTitle(ctx context.Context, st *dvd.Step, pl *playingTitle, p *Presentation) error {
 	ti := st.Title
 	ts := pl.ts
-	sp := wittydvd.Space{Domain: wittydvd.DomainVTS, VTS: ts.VTS}
+	sp := dvd.Space{Domain: dvd.DomainVTS, VTS: ts.VTS}
 	start := ts.Cells[pl.idx].Start
 	switch {
 	case s.seekTo > 0:
@@ -1193,8 +1193,8 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 	pgc := s.pgcOf(st)
 	s.pickDefaultStreams(v, pgc)
 	regs := s.nav.Registers()
-	audioN := int(regs.SPRM[wittydvd.SprmAudio]) & 7
-	subRaw := int(regs.SPRM[wittydvd.SprmSubp])
+	audioN := int(regs.SPRM[dvd.SprmAudio]) & 7
+	subRaw := int(regs.SPRM[dvd.SprmSubp])
 	subN := -1
 	if subRaw&0x40 != 0 {
 		subN = subRaw & 31
@@ -1237,7 +1237,7 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 	if h := s.m.HLS.Get(id); h != nil {
 		h.TieTo(s.ID)
 	} else {
-		ids := []int{wittydvd.VideoStreamID}
+		ids := []int{dvd.VideoStreamID}
 		if audioID > 0 {
 			ids = append(ids, audioID)
 		}
@@ -1297,10 +1297,10 @@ func (s *Session) buildTitle(ctx context.Context, st *wittydvd.Step, pl *playing
 
 // pickDefaultStreams applies the viewer's language preferences when the disc
 // has not chosen streams itself (SPRM1/SPRM2 still invalid for this title).
-func (s *Session) pickDefaultStreams(v *wittydvd.VTS, pgc *wittydvd.PGC) {
+func (s *Session) pickDefaultStreams(v *dvd.VTS, pgc *dvd.PGC) {
 	regs := s.nav.Registers()
 	avail := func(i int) bool { return pgc == nil || (i < 8 && pgc.AudioControl[i] >= 0) }
-	if a := int(regs.SPRM[wittydvd.SprmAudio]); a >= len(v.Audio) || !avail(a) {
+	if a := int(regs.SPRM[dvd.SprmAudio]); a >= len(v.Audio) || !avail(a) {
 		pick := -1
 		want := s.prefs.AudioLanguage
 		for i, at := range v.Audio {
@@ -1318,7 +1318,7 @@ func (s *Session) pickDefaultStreams(v *wittydvd.VTS, pgc *wittydvd.PGC) {
 			s.nav.SetAudio(pick)
 		}
 	}
-	if sub := int(regs.SPRM[wittydvd.SprmSubp]); sub&31 >= len(v.Subp) || (pgc != nil && pgc.SubpControl[sub&31] == nil) {
+	if sub := int(regs.SPRM[dvd.SprmSubp]); sub&31 >= len(v.Subp) || (pgc != nil && pgc.SubpControl[sub&31] == nil) {
 		if want := s.prefs.SubtitleLanguage; want != "" {
 			for i, sa := range v.Subp {
 				if (pgc == nil || pgc.SubpControl[i] != nil) && sa.Purpose() == "" && strings.EqualFold(sa.Language, want) {
@@ -1336,7 +1336,7 @@ func (s *Session) pickDefaultStreams(v *wittydvd.VTS, pgc *wittydvd.PGC) {
 
 var pngEnc = png.Encoder{CompressionLevel: png.BestSpeed}
 
-func encodePNG(r *wittydvd.RGBA, w, h int) []byte {
+func encodePNG(r *dvd.RGBA, w, h int) []byte {
 	img := image.NewNRGBA(image.Rect(0, 0, w, h))
 	if r != nil {
 		// Copy whole rows (clipped to the frame) instead of per-pixel sets.

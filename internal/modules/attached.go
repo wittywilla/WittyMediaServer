@@ -11,6 +11,8 @@ import (
 
 func goos() string { return runtime.GOOS }
 
+func goarch() string { return runtime.GOARCH }
+
 // Attached is a helper of its own for one long job, such as an open disc: it keeps its
 // state between calls, isn't stopped when idle, and the job's failure doesn't get in
 // anyone else's way. It stops when the job closes it, or with the server.

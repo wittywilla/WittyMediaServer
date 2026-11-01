@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/wittywilla/wittybluray"
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/dvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
 
@@ -210,7 +210,7 @@ func (s *Scanner) blurayThumbInput(it *Item, h [20]byte) ([]string, float64, err
 	}
 	from := int64(e.SPN) * 192
 	to := from + int64(c.TSRate/8)*20
-	var cut []wittydvd.FileExtent
+	var cut []dvd.FileExtent
 	var off int64
 	for _, x := range ext {
 		a, b := off, off+x.Length
@@ -223,7 +223,7 @@ func (s *Scanner) blurayThumbInput(it *Item, h [20]byte) ([]string, float64, err
 			hi = to
 		}
 		if hi > lo {
-			cut = append(cut, wittydvd.FileExtent{File: x.Path, Offset: x.Offset + (lo - a), Length: hi - lo})
+			cut = append(cut, dvd.FileExtent{File: x.Path, Offset: x.Offset + (lo - a), Length: hi - lo})
 		}
 	}
 	if len(cut) == 0 {

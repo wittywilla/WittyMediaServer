@@ -199,7 +199,7 @@ func cmdServe(args []string) int {
 	// Modules: which version of each to use. Nothing here goes online; only Run does,
 	// and only while the settings allow it.
 	modMgr := modules.New(modules.Config{
-		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: append(append(modules.GoManifests(), web.ModuleManifests()...), modules.ServerManifests()...),
+		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: modules.ServerManifests(), CatalogURL: update.ModuleCatalog(), Starter: filepath.Join(progDir, "modules"),
 		Transport: library.SafeClient.Transport, Log: log, Launcher: modulesLauncher(), LogEnv: logs.ModuleEnv,
 		CheckEnabled: func() bool {
 			ctx := context.Background()
@@ -213,7 +213,7 @@ func cmdServe(args []string) int {
 	})
 	defer modMgr.Close()
 	library.SetPhotoEngine(modules.PhotoEngine{M: modMgr})
-	livetv.SetEngine(modules.Tuners{M: modMgr}.New, modules.Tuners{M: modMgr}.Discover)
+	livetv.SetEngine(modules.Tuners{M: modMgr})
 	dvdsession.SetEngine(dvdremote.Opener{M: modMgr, Log: log}.Open)
 	bdremote.Use(modMgr)
 

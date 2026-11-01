@@ -71,7 +71,7 @@ func (m *Manager) feedPath(id string) string { return filepath.Join(m.modDir(id)
 // the folder may be a shared one, and a list of versions is worth as little as a
 // release that nobody signed. Call with m.mu held.
 func (m *Manager) loadFeed(id string, e *entry) {
-	if e.feedLoaded || !updatable(e.builtin) {
+	if e.feedLoaded || !updatable(e.builtin) || (m.cfg.CatalogURL != "" && e.state.Source == nil) {
 		return
 	}
 	e.feedLoaded = true
@@ -171,9 +171,11 @@ func (m *Manager) Check(ctx context.Context, maxAge time.Duration) Report {
 	m.checking = ch
 	var ids []string
 	for _, id := range m.order {
-		// A module that was taken off this server has no reason to ask anyone anything.
-		if updatable(m.mods[id].builtin) && !m.mods[id].state.Removed {
-			m.loadFeed(id, m.mods[id])
+		// A module that was taken off this server has no reason to ask anyone anything. With
+		// a catalogue, the one file answers for all of them except a fork, which is its own.
+		e := m.mods[id]
+		if updatable(e.builtin) && !e.state.Removed && (m.cfg.CatalogURL == "" || e.state.Source != nil) {
+			m.loadFeed(id, e)
 			ids = append(ids, id)
 		}
 	}
@@ -183,6 +185,16 @@ func (m *Manager) Check(ctx context.Context, maxAge time.Duration) Report {
 	defer cancel()
 	var problems []string
 	var hold time.Time
+	catProblem := ""
+	if err := m.checkCatalog(cctx); err != nil {
+		var limited *update.RateLimited
+		if errors.As(err, &limited) {
+			hold = limited.Until
+		}
+		m.log.Warn("modules: reading the catalogue failed", "err", err)
+		catProblem = sentence(err.Error())
+		problems = append(problems, catProblem)
+	}
 	for _, id := range ids {
 		err := m.checkOne(cctx, id)
 		if err == nil {
@@ -202,6 +214,7 @@ func (m *Manager) Check(ctx context.Context, maxAge time.Duration) Report {
 	m.mu.Lock()
 	m.checked = time.Now()
 	m.checkErr = strings.Join(problems, " ")
+	m.catErr = catProblem
 	m.holdUntil = hold
 	m.checking = nil
 	close(ch)
@@ -500,14 +513,16 @@ func (m *Manager) readWithdrawals(ctx context.Context, id string, e *entry, g *u
 // VersionInfo is one version, explained: what it is, and whether it can be chosen.
 type VersionInfo struct {
 	Offer
-	Builtin   bool                   `json:"builtin,omitempty"`   // the copy compiled into this server
-	InUse     bool                   `json:"inUse,omitempty"`     // the version running now
-	Installed bool                   `json:"installed,omitempty"` // on disk, so switching needs no download
-	Older     bool                   `json:"older,omitempty"`     // older than the version in use
-	Allowed   bool                   `json:"allowed"`             // it can be chosen
-	Refused   string                 `json:"refused,omitempty"`   // why it can't, in words for a person
-	Warning   string                 `json:"warning,omitempty"`   // what to know first; choosing it needs confirming
-	Withdrawn *wittymodule.Withdrawn `json:"withdrawn,omitempty"`
+	Builtin     bool                   `json:"builtin,omitempty"` // the copy compiled into this server
+	License     string                 `json:"license,omitempty"`
+	Permissions []string               `json:"permissions,omitempty"`
+	InUse       bool                   `json:"inUse,omitempty"`     // the version running now
+	Installed   bool                   `json:"installed,omitempty"` // on disk, so switching needs no download
+	Older       bool                   `json:"older,omitempty"`     // older than the version in use
+	Allowed     bool                   `json:"allowed"`             // it can be chosen
+	Refused     string                 `json:"refused,omitempty"`   // why it can't, in words for a person
+	Warning     string                 `json:"warning,omitempty"`   // what to know first; choosing it needs confirming
+	Withdrawn   *wittymodule.Withdrawn `json:"withdrawn,omitempty"`
 }
 
 // VersionList is everything known about a module's versions.
@@ -528,7 +543,7 @@ func (m *Manager) judge(e *entry, man *wittymodule.Manifest) (refused, warning s
 	if err := man.Supports(m.cfg.Server, wittymodule.MinAPI, wittymodule.API); err != nil {
 		return sentence(err.Error()), ""
 	}
-	if man.Delivery != e.builtin.Delivery {
+	if !e.absent && man.Delivery != e.builtin.Delivery {
 		return fmt.Sprintf("It is delivered as %q, and this server expects %q.", man.Delivery, e.builtin.Delivery), ""
 	}
 	if r := protocolRefusal(e, man); r != "" {
@@ -569,6 +584,9 @@ func (m *Manager) Versions(id string) (VersionList, error) {
 	}
 	m.loadFeed(id, e)
 	l := VersionList{ID: id, Name: e.builtin.Name, Repo: e.repo(), InUse: e.man.Version, Pin: e.state.Pin, Versions: []VersionInfo{}}
+	if e.absent && e.dir == "" {
+		l.InUse = ""
+	}
 	if !m.checked.IsZero() {
 		l.CheckedAt = m.checked.UnixMilli()
 	}
@@ -583,7 +601,8 @@ func (m *Manager) Versions(id string) (VersionList, error) {
 	seen := map[string]bool{}
 	for ver, k := range e.known {
 		seen[ver] = true
-		v := VersionInfo{Offer: *k.offer(), Installed: onDisk[ver], InUse: e.dir != "" && e.man.Version == ver, Older: wittymodule.Compare(ver, e.man.Version) < 0}
+		v := VersionInfo{Offer: *k.offer(), Installed: onDisk[ver], InUse: e.dir != "" && e.man.Version == ver, Older: wittymodule.Compare(ver, e.man.Version) < 0,
+			License: k.man.License, Permissions: k.man.Permissions}
 		v.Blocked = e.state.Blocked[ver]
 		v.Withdrawn = e.state.Withdrawn.Find(ver)
 		if !v.InUse {
@@ -613,8 +632,10 @@ func (m *Manager) Versions(id string) (VersionList, error) {
 			l.Versions = append(l.Versions, v)
 		}
 	}
-	// The built-in copy can always be chosen.
-	if !seen[e.builtin.Version] || e.state.Source != nil {
+	// A part of the server has its built-in copy, which can always be chosen.
+	if e.absent {
+		// There's no such copy of a module.
+	} else if !seen[e.builtin.Version] || e.state.Source != nil {
 		l.Versions = append(l.Versions, VersionInfo{Offer: Offer{Version: e.builtin.Version, MinServer: e.builtin.MinServer, MaxServer: e.builtin.MaxServer},
 			Builtin: true, InUse: e.dir == "", Allowed: e.dir != "", Older: wittymodule.Compare(e.builtin.Version, e.man.Version) < 0})
 	} else {

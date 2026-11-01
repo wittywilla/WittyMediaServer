@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
-	"github.com/wittywilla/wittyphotos"
 )
 
 // WittyPhotos: a gallery of the owner's own pictures and clips. Pictures are
@@ -29,23 +28,49 @@ var photoExts = map[string]bool{
 	".tif": true, ".tiff": true, ".heic": true, ".heif": true, ".hif": true, ".avif": true, ".jxl": true,
 }
 
-// PhotoEngine reads what photos say about themselves. The built-in copy of
-// WittyPhotos does this until a newer version replaces it (internal/modules).
+// PhotoInfo is what WittyPhotos answers about a photo. It travels as JSON, so a field a newer
+// version adds is simply not read here.
+type PhotoInfo struct {
+	Taken       time.Time // when the picture was taken, local to the camera unless HasOffset
+	HasOffset   bool
+	Make        string
+	Model       string
+	Lens        string
+	FNumber     float64
+	Exposure    string // "1/250" or "2.5"
+	ISO         int
+	FocalMM     float64
+	Orientation int // 1 to 8; 0 when not set
+	Width       int // as stored, before Orientation
+	Height      int
+	HasGPS      bool
+	Lat         float64
+	Lon         float64
+	Alt         float64
+}
+
+var (
+	// ErrNoPhotoEngine: WittyPhotos isn't on this server.
+	ErrNoPhotoEngine = errors.New("WittyPhotos isn't on this server")
+	// ErrNoRawPreview: this RAW file holds no picture to show.
+	ErrNoRawPreview = errors.New("this RAW file has no preview")
+)
+
+// PhotoEngine reads what photos say about themselves, which WittyPhotos does
+// (internal/modules). A library of photos still scans without it, with less to say.
 type PhotoEngine interface {
-	ReadFile(path string) (*wittyphotos.Info, error)
+	ReadFile(path string) (*PhotoInfo, error)
 	Dimensions(path string) (w, h int)
 	RawPreview(path string) ([]byte, error)
 	IsRaw(name string) bool
 }
 
-type builtinPhotos struct{}
+type noPhotos struct{}
 
-func (builtinPhotos) ReadFile(path string) (*wittyphotos.Info, error) {
-	return wittyphotos.ReadFile(path)
-}
-func (builtinPhotos) Dimensions(path string) (w, h int)      { return wittyphotos.Dimensions(path) }
-func (builtinPhotos) RawPreview(path string) ([]byte, error) { return wittyphotos.RawPreview(path) }
-func (builtinPhotos) IsRaw(name string) bool                 { return wittyphotos.IsRaw(name) }
+func (noPhotos) ReadFile(string) (*PhotoInfo, error) { return nil, ErrNoPhotoEngine }
+func (noPhotos) Dimensions(string) (w, h int)        { return 0, 0 }
+func (noPhotos) RawPreview(string) ([]byte, error)   { return nil, ErrNoPhotoEngine }
+func (noPhotos) IsRaw(string) bool                   { return false }
 
 var photoEngine atomic.Pointer[PhotoEngine]
 
@@ -56,7 +81,7 @@ func photos() PhotoEngine {
 	if e := photoEngine.Load(); e != nil {
 		return *e
 	}
-	return builtinPhotos{}
+	return noPhotos{}
 }
 
 // IsPhotoFile: a picture or camera RAW file by its name.

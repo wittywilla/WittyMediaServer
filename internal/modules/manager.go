@@ -1,10 +1,9 @@
-// Package modules runs the plugins that can be updated without a new server:
-// which version is in use, why, and getting a newer or older one. docs/MODULES.md
-// has the design.
+// Package modules runs the plugins, none of which is compiled into the server: which
+// version is in use, why, and getting a newer or older one. docs/MODULES.md has the design.
 //
-// A plugin's built-in copy is always there and always works. A downloaded version
-// is used only while it is signed, in range for this server and behaving, so
-// nothing here can stop the server from running.
+// A server with no modules works, and says what each missing one would add. A version is
+// used only while it is signed, in range for this server and behaving, so nothing here can
+// stop the server from running.
 package modules
 
 import (
@@ -39,9 +38,11 @@ const (
 
 // What a module is doing.
 const (
-	StateBuiltin   = "builtin"   // its built-in copy, as expected
-	StateInstalled = "installed" // a downloaded version
-	StateFallback  = "fallback"  // a downloaded version was refused; see Notice
+	StateAbsent    = "absent"    // no version of it is on this server
+	StateBuiltin   = "builtin"   // a part of the server, which updates with it
+	StateInstalled = "installed" // a version is in use
+	StateFallback  = "fallback"  // a version was refused; see Notice
+	StateDisabled  = "disabled"  // someone turned it off, and it is still on disk
 )
 
 // PinBuiltin is the pin of a module kept on its built-in copy.
@@ -74,14 +75,15 @@ type Report struct {
 	Modules    []Status `json:"modules"`
 	// Libraries is every kind of library a module provides, and whether it can be made.
 	Libraries []LibraryType `json:"libraries"`
+	Catalog   *CatalogInfo  `json:"catalog,omitempty"`
 }
 
 // Status is one module.
 type Status struct {
 	ID             string `json:"id"`
 	Name           string `json:"name"`
-	Version        string `json:"version"` // the version in use
-	BuiltinVersion string `json:"builtinVersion"`
+	Version        string `json:"version"` // the version in use; empty if none is
+	BuiltinVersion string `json:"builtinVersion,omitempty"`
 	Delivery       string `json:"delivery"`
 	Updatable      bool   `json:"updatable"` // can be updated without a new server
 	MinServer      string `json:"minServer"` // of the version in use
@@ -112,11 +114,15 @@ type Status struct {
 	Events    []Event                `json:"events,omitempty"`
 
 	// What the store needs.
-	Installed  bool     `json:"installed"`
-	Core       bool     `json:"core,omitempty"`      // other modules are built on it, so it stays
-	Libraries  []string `json:"libraries,omitempty"` // the kinds of library it makes possible
-	Requires   []string `json:"requires,omitempty"`
-	RequiredBy []string `json:"requiredBy,omitempty"`
+	Description string                 `json:"description,omitempty"`
+	Publisher   *wittymodule.Publisher `json:"publisher,omitempty"`
+	Icon        string                 `json:"icon,omitempty"`
+	Enabled     bool                   `json:"enabled"`
+	Installed   bool                   `json:"installed"`
+	Core        bool                   `json:"core,omitempty"`      // other modules are built on it, so it stays
+	Libraries   []string               `json:"libraries,omitempty"` // the kinds of library it makes possible
+	Requires    []string               `json:"requires,omitempty"`
+	RequiredBy  []string               `json:"requiredBy,omitempty"`
 
 	// A fork in place of the module's own repository.
 	StockRepo string      `json:"stockRepo"`
@@ -160,9 +166,10 @@ type moduleState struct {
 	NoAuto bool `json:"noAuto,omitempty"`
 	// Chosen: the active version was picked by hand, so it is used even when the
 	// built-in copy is newer.
-	Chosen  bool    `json:"chosen,omitempty"`
-	Removed bool    `json:"removed,omitempty"` // someone took it off this server
-	Source  *Source `json:"source,omitempty"`  // a fork in place of its own repository
+	Chosen   bool    `json:"chosen,omitempty"`
+	Removed  bool    `json:"removed,omitempty"`  // someone took it off this server
+	Disabled bool    `json:"disabled,omitempty"` // someone turned it off, and it stays on disk
+	Source   *Source `json:"source,omitempty"`   // a fork in place of its own repository
 	// StockWithdrawn keeps the module's own list while a fork is in use, so going back
 	// can't bring an older list in.
 	StockWithdrawn *wittymodule.Withdrawals `json:"stockWithdrawn,omitempty"`
@@ -172,7 +179,12 @@ type moduleState struct {
 }
 
 type entry struct {
+	// builtin is what's known of it with no version on this server. For a module, absent says
+	// that's all it is: the name and purpose from a catalogue, which is never run. Only the
+	// parts of the server have a copy that's really built in.
 	builtin *wittymodule.Manifest
+	absent  bool
+	listed  *wittymodule.CatalogModule // where a catalogue describes it
 	state   moduleState
 
 	man      *wittymodule.Manifest // the version in use
@@ -199,9 +211,15 @@ type entry struct {
 
 // Config prepares a Manager.
 type Config struct {
-	Dir       string // <data>/modules
-	Server    string // this server's version
-	Builtins  [][]byte
+	Dir      string // <data>/modules
+	Server   string // this server's version
+	Builtins [][]byte
+	// CatalogURL is where to look for the signed catalogue. Without it, each module's
+	// releases are read from its own repository, as a fork's are.
+	CatalogURL string
+	// Starter is a folder of signed archives that came with this server, with a catalogue,
+	// so modules can be installed offline. Optional, and only ever read.
+	Starter   string
 	Transport http.RoundTripper // internet-only transport for GitHub
 	Log       *slog.Logger
 	// CheckEnabled and AutoInstall read the owner's settings. Without them, nothing
@@ -236,7 +254,11 @@ type Manager struct {
 	closed    bool
 	attached  map[*Attached]bool
 	labels    map[string]string // kinds of library someone gave a name of their own
-	retiring  sync.WaitGroup    // helpers of versions no longer in use, on their way out
+	cat       *wittymodule.Catalog
+	catFrom   string // where cat's relative addresses resolve from
+	catHigh   int64  // the highest serial seen
+	catErr    string
+	retiring  sync.WaitGroup // helpers of versions no longer in use, on their way out
 }
 
 // New reads what is installed and picks the version of each module to use. A
@@ -267,6 +289,7 @@ func New(cfg Config) *Manager {
 		m.order = append(m.order, man.ID)
 	}
 	sort.Strings(m.order)
+	m.loadKnown(saved)
 	for _, id := range m.order {
 		m.checkSavedSource(id, m.mods[id])
 		m.resolve(id, m.mods[id])
@@ -307,7 +330,7 @@ func (m *Manager) saveState() error {
 	saved := map[string]moduleState{}
 	for id, e := range m.mods {
 		s := e.state
-		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.NoAuto || s.Removed || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 {
+		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.NoAuto || s.Removed || s.Disabled || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 {
 			saved[id] = s
 		}
 	}
@@ -392,7 +415,7 @@ func (m *Manager) usable(id string, e *entry, ver string) (*wittymodule.Manifest
 	if err := man.Supports(m.cfg.Server, wittymodule.MinAPI, wittymodule.API); err != nil {
 		return nil, "", err
 	}
-	if man.Delivery != e.builtin.Delivery {
+	if !e.absent && man.Delivery != e.builtin.Delivery {
 		return nil, "", fmt.Errorf("it is delivered as %q, and this server expects %q", man.Delivery, e.builtin.Delivery)
 	}
 	if !updatable(man) {
@@ -407,9 +430,8 @@ func (m *Manager) usable(id string, e *entry, ver string) (*wittymodule.Manifest
 	return man, dir, nil
 }
 
-// resolve picks the version to use: the chosen one, then the one before it, then
-// the built-in copy, which is always compatible because it was compiled in. Call
-// with m.mu held, or before m is shared.
+// resolve picks the version to use: the chosen one, then the one before it, and with
+// neither, none. Call with m.mu held, or before m is shared.
 func (m *Manager) resolve(id string, e *entry) {
 	name := e.builtin.Name
 	var why []string
@@ -418,7 +440,7 @@ func (m *Manager) resolve(id string, e *entry) {
 	// With nothing chosen, the built-in copy is the choice: Previous is what the chosen
 	// version falls back on, not a choice of its own.
 	var candidates []string
-	if e.state.Active != "" {
+	if e.state.Active != "" && !e.state.Disabled {
 		candidates = []string{e.state.Active, e.state.Previous}
 	}
 	for i, ver := range candidates {
@@ -482,11 +504,14 @@ func (m *Manager) resolve(id string, e *entry) {
 	}
 	e.notice = ""
 	if len(why) > 0 {
-		using := "the built-in copy (" + e.builtin.Version + ")"
-		if pick != nil {
-			using = "version " + pick.Version
+		using := " It isn't in use until another version is installed."
+		switch {
+		case pick != nil:
+			using = " Using version " + pick.Version + "."
+		case !e.absent:
+			using = " Using the built-in copy (" + e.builtin.Version + ")."
 		}
-		e.notice = strings.Join(why, " ") + " Using " + using + "."
+		e.notice = strings.Join(why, " ") + using
 	}
 }
 
@@ -521,12 +546,29 @@ func updatable(man *wittymodule.Manifest) bool {
 }
 
 func (e *entry) status(id string) Status {
-	st := Status{ID: id, Name: e.builtin.Name, Version: e.man.Version, BuiltinVersion: e.builtin.Version, Delivery: e.builtin.Delivery, License: e.builtin.License,
+	st := Status{ID: id, Name: e.builtin.Name, Version: e.man.Version, BuiltinVersion: e.builtin.Version, Delivery: e.builtin.Delivery, License: e.man.License,
 		Updatable: updatable(e.builtin), MinServer: e.man.MinServer, MaxServer: e.man.MaxServer, API: e.man.API, Repo: e.repo(),
 		Notice: e.notice, Latest: e.latest, TooNew: e.tooNew, Phase: e.phase, Done: e.done, Total: e.total, Error: e.lastError, Previous: e.state.Previous,
 		Group: e.man.Group, Summary: e.man.Summary, Needs: e.man.Needs, Updates: e.man.Updates, Stays: e.man.Stays, Pin: e.state.Pin,
-		Installed: !e.state.Removed, Core: e.builtin.Core, Libraries: e.builtin.Libraries, Requires: e.builtin.Requires,
+		Installed: e.onDisk(), Enabled: e.on(), Core: e.builtin.Core, Libraries: e.builtin.Libraries, Requires: e.builtin.Requires,
 		StockRepo: e.builtin.Repo, Source: e.sourceInfo(), NoFork: noFork[id]}
+	if e.absent {
+		st.BuiltinVersion = ""
+		if e.dir == "" {
+			st.Version, st.MinServer, st.MaxServer, st.API = "", "", "", 0
+		}
+	}
+	if l := e.listed; l != nil {
+		st.Description = l.Description
+		if l.Publisher.Name != "" {
+			p := l.Publisher
+			p.Key = "" // a store shows who it is; the key is the server's business
+			st.Publisher = &p
+		}
+		if l.Icon != nil {
+			st.Icon = "/api/modules/" + id + "/icon"
+		}
+	}
 	// A release from before a description was written, or a fork's that has none, still
 	// gets one: it is the same module.
 	if st.Group == "" {
@@ -547,10 +589,14 @@ func (e *entry) status(id string) Status {
 	st.AutoUpdate = updatable(e.builtin) && !e.state.NoAuto && e.state.Source == nil
 	inUse := e.dir != ""
 	switch {
+	case e.state.Disabled:
+		st.State = StateDisabled
 	case inUse && e.notice == "":
 		st.State = StateInstalled
 	case e.notice != "":
 		st.State = StateFallback
+	case e.absent:
+		st.State = StateAbsent
 	default:
 		st.State = StateBuiltin
 	}
@@ -590,6 +636,7 @@ func (m *Manager) Report() Report {
 		r.Modules = append(r.Modules, st)
 	}
 	r.Libraries = m.libraryTypes()
+	r.Catalog = m.catalogInfo()
 	return r
 }
 
@@ -746,7 +793,7 @@ func (m *Manager) Rollback(id string) error {
 		return errors.New("an update of this module is being installed")
 	}
 	if e.dir == "" {
-		return errors.New("this module is already using its built-in copy")
+		return errors.New("this module has no version in use to go back from")
 	}
 	ver := e.man.Version
 	old := e.state

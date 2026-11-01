@@ -313,7 +313,7 @@
 .player button:focus-visible, .player .seek:focus-visible, .player [tabindex]:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
 /* ------------------------------------------------ mini player */
-.player.mini { inset: auto 20px 20px auto; width: min(400px, calc(100vw - 40px)); height: auto; aspect-ratio: 16 / 9; border-radius: var(--r-md); z-index: 60;
+.player.mini { inset: auto 20px 20px auto; width: min(400px, calc(100vw - 40px)); height: auto; aspect-ratio: 16 / 9; border-radius: var(--r-md); z-index: var(--z-dock);
   box-shadow: var(--e-3); }
 .player.mini .stage { bottom: 0; }
 .player.mini .big-play button { width: 54px; height: 54px; }

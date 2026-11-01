@@ -85,6 +85,10 @@
   --gutter: clamp(16px, 3vw, 40px);        /* the page's side margin */
   --section-gap: clamp(28px, 3.4vw, 44px); /* between sections of a page */
   --topbar-h: 64px;
+  --rail: 76px;                            /* the side menu collapsed to icons */
+  --tabbar-h: 60px;                        /* the phone's bottom bar */
+  --tabbar-space: 0px;                     /* room kept for that bar: set where it shows */
+  --dock-space: 0px;                       /* room kept for the audio bar or mini player */
 
   /* ---- shape: follows the theme's --radius ---- */
   --r-xs: calc(var(--radius) * .4);
@@ -99,6 +103,18 @@
   --e-2: var(--card-shadow);                                     /* lifted: a hovered card */
   --e-3: var(--shadow);                                          /* over the page: menus, dialogs */
 
+  /* ---- layers: one order for everything over the page ---- */
+  --z-sticky: 10;   /* a page's own sticky bars */
+  --z-tabbar: 25;   /* the phone's bottom bar */
+  --z-dock: 45;     /* audio bar, mini player */
+  --z-topbar: 55;   /* over the dock: what opens from the bar is never behind it */
+  --z-scrim: 56;    /* behind the side drawer */
+  --z-drawer: 57;   /* the side menu on phones */
+  --z-modal: 60;    /* dialogs and sheets */
+  --z-fullscreen: 70; /* the full audio player */
+  --z-popover: 80;  /* menus */
+  --z-toast: 100;   /* toasts and tooltips */
+
   /* ---- motion ---- */
   --dur-1: 90ms;   /* pressing */
   --dur-2: 150ms;  /* hover, focus */
@@ -106,6 +122,8 @@
   --dur-4: 420ms;  /* a backdrop changes */
   --ease-out: cubic-bezier(.2, .8, .2, 1);
   --ease-standard: cubic-bezier(.4, 0, .2, 1);
+  --tilt-max: 7;      /* how far a poster leans under the pointer, degrees */
+  --tilt-scale: 1.05; /* and how much it grows */
 
   /* ---- sizes ---- */
   --control-h: 2.5rem;
@@ -123,13 +141,18 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { height: 100%; }
 /* A focused thing is never hidden under the bars (WCAG 2.4.11). */
-html { scroll-padding-block: calc(var(--topbar-h) + var(--sp-4)) var(--sp-16); -webkit-text-size-adjust: 100%; }
+html { scroll-padding-block: calc(var(--topbar-h) + var(--sp-4)) calc(var(--sp-16) + var(--dock-space) + var(--tabbar-space)); -webkit-text-size-adjust: 100%; }
 /* Ten feet from the screen: a controller in use, or a device with no pointer at
    all (a TV browser with a D-pad). Everything in rem grows with the base size,
    the margin clears TV overscan, and focus is what shows you where you are.
    Keep the two rules the same; a CSS rule can't be both a class and a query. */
 html.using-controller { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; --card-w: 200px; --card-wide-w: 340px; --gutter: max(48px, 4vw); }
 @media (pointer: none) { :root { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; --card-w: 200px; --card-wide-w: 340px; --gutter: max(48px, 4vw); } }
+/* The same again for "Big screen mode" in Settings, Appearance. */
+html.ten-foot { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; --card-w: 200px; --card-wide-w: 340px; --gutter: max(48px, 4vw); }
+/* Whatever is docked at the bottom keeps the things that float above it clear. */
+html:has(.audio-bar:not(.full)) { --dock-space: 88px; }
+html:has(.player.mini) { --dock-space: 88px; }
 body {
   margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); font-size: var(--text-base); line-height: var(--leading-body);
   -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; overflow-x: hidden;
@@ -181,7 +204,7 @@ input[type=range] { accent-color: var(--accent); }
 .nav-empty { padding: var(--sp-1) var(--sp-3); font-size: var(--text-sm); color: var(--fg-3); }
 .sidebar-footer { margin-top: auto; padding: var(--sp-4) var(--sp-3) var(--sp-2); color: var(--fg-3); font-size: var(--text-xs); }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: var(--sp-3); min-height: var(--topbar-h); padding: var(--sp-3) var(--gutter); background: var(--bg); }
+.topbar { position: sticky; top: 0; z-index: var(--z-topbar); display: flex; align-items: center; gap: var(--sp-3); min-height: var(--topbar-h); padding: var(--sp-3) var(--gutter); background: var(--bg); }
 /* Content slides under the bar through a soft edge (no blur: a blur repaints on
    every scrolled frame, which low-end devices can't afford). */
 .topbar::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: var(--sp-3); background: linear-gradient(var(--bg), rgb(var(--bg-rgb) / 0)); pointer-events: none; }
@@ -215,9 +238,9 @@ input[type=range] { accent-color: var(--accent); }
 
 @media (max-width: 900px) {
   /* Mobile: the sidebar is a slide-in drawer. */
-  .app .sidebar, .app:not(.nav-open) .sidebar { display: flex; position: fixed; left: 0; top: 0; transform: translateX(-100%); transition: transform var(--dur-3) var(--ease-out); z-index: 40; visibility: hidden; }
+  .app .sidebar, .app:not(.nav-open) .sidebar { display: flex; position: fixed; left: 0; top: 0; transform: translateX(-100%); transition: transform var(--dur-3) var(--ease-out); z-index: var(--z-drawer); visibility: hidden; }
   .app.nav-open .sidebar { transform: none; box-shadow: var(--e-3); visibility: visible; }
-  .app.nav-open .backdrop-dim { display: block; position: fixed; inset: 0; background: var(--overlay); z-index: 30; animation: fade-in var(--dur-2) ease-out; }
+  .app.nav-open .backdrop-dim { display: block; position: fixed; inset: 0; background: var(--overlay); z-index: var(--z-scrim); animation: fade-in var(--dur-2) ease-out; }
 }
 
 /* ---------------------------------------------------------------- buttons */
@@ -389,7 +412,9 @@ input[type=range] { accent-color: var(--accent); }
 .select, .input {
   min-height: var(--control-h); background: var(--bg-3); border: 1px solid var(--control-line); color: var(--fg); border-radius: var(--r-md); padding: 0 var(--sp-3); outline: none; font-size: var(--text-md); max-width: 100%; transition: border-color var(--dur-2), box-shadow var(--dur-2);
 }
-.select { cursor: pointer; padding-right: var(--sp-2); }
+.select { cursor: pointer; padding-right: var(--sp-8); -webkit-appearance: none; appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--fg-2) 50%), linear-gradient(135deg, var(--fg-2) 50%, transparent 50%); background-position: right 15px center, right 10px center; background-size: 5px 5px; background-repeat: no-repeat; }
+.select[multiple] { background-image: none; padding-right: var(--sp-3); }
+@media (forced-colors: active) { .select { -webkit-appearance: auto; appearance: auto; background-image: none; } }
 textarea.input { padding: 10px var(--sp-3); line-height: var(--leading-body); resize: vertical; }
 .select:hover, .input:hover { border-color: var(--fg-3); }
 .select:focus, .input:focus, .select:focus-visible, .input:focus-visible { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); outline: none; }
@@ -512,9 +537,9 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .empty-ic svg { width: 26px; height: 26px; }
 .empty h3 { color: var(--fg); font-size: var(--text-lg); margin: 0 0 var(--sp-1); }
 .empty p { margin: 0 0 var(--sp-4); max-width: 46ch; font-size: var(--text-md); }
-.toast { position: fixed; bottom: var(--sp-5); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); background: var(--bg-4); color: var(--fg); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); border: 1px solid var(--border); box-shadow: var(--e-3); z-index: 100; font-size: var(--text-md); font-weight: 500; animation: toast-in var(--dur-3) var(--ease-out); }
+.toast { position: fixed; bottom: calc(var(--sp-5) + var(--dock-space) + var(--tabbar-space)); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); background: var(--bg-4); color: var(--fg); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); border: 1px solid var(--border); box-shadow: var(--e-3); z-index: var(--z-toast); font-size: var(--text-md); font-weight: 500; animation: toast-in var(--dur-3) var(--ease-out); }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
-.modal-backdrop { position: fixed; inset: 0; background: var(--overlay); display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; z-index: 60; padding: var(--sp-5); animation: fade-in var(--dur-2) ease-out; overflow: auto; }
+.modal-backdrop { position: fixed; inset: 0; background: var(--overlay); display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; z-index: var(--z-modal); padding: var(--sp-5); animation: fade-in var(--dur-2) ease-out; overflow: auto; overscroll-behavior: contain; }
 .modal { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-xl); padding: var(--sp-6); width: 100%; max-width: 640px; max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow: auto; box-shadow: var(--e-3); animation: dialog-in var(--dur-3) var(--ease-out); }
 @keyframes dialog-in { from { opacity: 0; transform: translateY(6px) scale(.985); } }
 .modal h2 { margin: 0 0 var(--sp-4); font-size: var(--text-xl); }

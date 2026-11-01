@@ -28,8 +28,9 @@ jobs:
       - run: cd web && npm ci --ignore-scripts --no-audit --no-fund && npx tsc --noEmit -p . && npm run test:play && npm run build
       - run: node --experimental-strip-types --test modules/wittyplay/web/logic.test.mjs
       - run: cd web/src/modules/wittyvisualizer && node --test tests/*.test.mjs
-      - name: Theme contrast and design tokens
-        run: python3 scripts/theme-contrast.py && python3 scripts/design-tokens.py --check
+      - name: Theme contrast, design tokens and design rules
+        run: python3 scripts/theme-contrast.py && python3 scripts/design-tokens.py --check && python3 scripts/design-check.py
+      - run: node --experimental-strip-types --test web/src/ui/spatial.test.mjs
       - name: gofmt
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...

@@ -7,6 +7,8 @@
   display: grid; place-items: center; background: var(--accent); color: var(--accent-fg); font-size: var(--text-2xs); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
 }
 .act-count.bad { background: var(--danger); color: var(--bg); }
+html.using-controller .act-btn { width: 3rem; height: 3rem; } /* at least 48 at ten feet */
+@media (pointer: none) { .act-btn { width: 3rem; height: 3rem; } }
 
 .modal.act-sheet { width: min(30rem, 100vw); }
 .act-sheet .tabs { padding-inline: var(--sp-1); }

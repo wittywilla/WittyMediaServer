@@ -177,6 +177,8 @@ func TestAListDressedAsAFilmOpensNothing(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		if pr, err := tools.ProbeFile(ctx, p); err == nil {
 			t.Errorf("%s opened, as %s", name, pr.Format.FormatName)
+		} else if strings.Contains(err.Error(), "matroska") {
+			t.Errorf("the whole list is in the message: %v", err)
 		}
 		pic := filepath.Join(t.TempDir(), "out.jpg")
 		if err := tools.Still(ctx, FileInput(p), 0, 32, pic); err == nil {
@@ -252,5 +254,13 @@ func TestConcatInputHasAWhitelist(t *testing.T) {
 	in := strings.Join(ConcatInputArgs("/x/list.ffconcat"), " ")
 	if !strings.Contains(in, "-format_whitelist "+discFormats) {
 		t.Errorf("%s", in)
+	}
+}
+
+// The list would be on every line of the log.
+func TestLogsDontHoldTheList(t *testing.T) {
+	got := RedactArgs(FileInput("/a/b.mkv"))
+	if strings.Contains(got, "matroska") || !strings.Contains(got, "(media formats)") || !strings.Contains(got, "/a/b.mkv") {
+		t.Errorf("%s", got)
 	}
 }

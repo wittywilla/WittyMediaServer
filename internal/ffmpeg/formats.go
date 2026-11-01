@@ -61,3 +61,8 @@ func literalPicture(path string) bool {
 
 // discFormats are what a disc's lists hold: program streams on a DVD, transport streams on a Blu-ray.
 const discFormats = "concat,mpeg,mpegvideo,mpegts,mpegtsraw"
+
+// shortFormats takes the list out of what FFmpeg says about a file that isn't on it.
+func shortFormats(stderr string) string {
+	return strings.ReplaceAll(stderr, libraryFormats, "(media formats)")
+}

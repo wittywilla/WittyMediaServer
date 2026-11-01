@@ -241,7 +241,7 @@ func (t *Tools) probe(ctx context.Context, input []string) (*Probe, error) {
 	args = append(args, input...)
 	out, stderr, err := Run(ctx, t.FFprobe, args)
 	if err != nil {
-		return nil, fmt.Errorf("ffprobe: %w: %s", err, stderr.String())
+		return nil, fmt.Errorf("ffprobe: %w: %s", err, shortFormats(stderr.String()))
 	}
 	var p Probe
 	if err := json.Unmarshal(out, &p); err != nil {
@@ -430,7 +430,7 @@ func (t *Tools) Still(ctx context.Context, inputArgs []string, atSec float64, wi
 	}
 	args = append(args, "-an", "-sn", "-frames:v", "1", "-vf", vf, "-q:v", "3", out)
 	if _, stderr, err := Run(ctx, t.FFmpeg, args); err != nil {
-		return fmt.Errorf("ffmpeg still: %w: %s", err, stderr.String())
+		return fmt.Errorf("ffmpeg still: %w: %s", err, shortFormats(stderr.String()))
 	}
 	return nil
 }
@@ -465,7 +465,7 @@ func (t *Tools) ImageThumb(ctx context.Context, path string, orientation, width,
 	vf += fmt.Sprintf("scale='min(%d,iw)':'min(%d,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,format=yuvj420p", width, width)
 	args = append(args, "-an", "-sn", "-frames:v", "1", "-vf", vf, "-q:v", "4", "-update", "1", out)
 	if _, stderr, err := Run(ctx, t.FFmpeg, args); err != nil {
-		return fmt.Errorf("ffmpeg image: %w: %s", err, stderr.String())
+		return fmt.Errorf("ffmpeg image: %w: %s", err, shortFormats(stderr.String()))
 	}
 	return nil
 }
@@ -514,6 +514,9 @@ func RedactArgs(args []string) string {
 	for i, a := range args {
 		if i > 0 && args[i-1] == "-headers" {
 			a = "(hidden)"
+		}
+		if i > 0 && args[i-1] == "-format_whitelist" && len(a) > 80 {
+			a = "(media formats)" // a long list, on every line of the log
 		}
 		out[i] = urlCreds.ReplaceAllString(a, "$1(hidden)@")
 	}

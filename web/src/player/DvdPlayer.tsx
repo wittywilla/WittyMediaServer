@@ -703,7 +703,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       {err && <div className="overlay-msg"><div className="box">{err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={() => chrome.close()}>Back</button></div></div>}
       {pres?.kind === 'stop' && !err && !mini && (
         <div className="overlay-msg"><div className="box">
-          <div style={{ marginBottom: 10 }}>{pres.scrambled && !isBluray(item) ? 'This disc is CSS-scrambled and cannot be played.' : pres.reason || 'Playback stopped.'}</div>
+          <div style={{ marginBottom: 10 }}>{pres.reason || 'Playback stopped.'}</div>
           <button className="btn" onClick={(e) => { e.stopPropagation(); titleMenu() }}>Title menu</button>{' '}
           <button className="btn" onClick={(e) => { e.stopPropagation(); act({ type: 'title', ttn: item.disc?.mainTitle || 1 }) }}>Play movie</button>{' '}
           <button className="btn ghost" onClick={() => chrome.close()}>Back</button>

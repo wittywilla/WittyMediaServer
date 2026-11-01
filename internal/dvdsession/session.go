@@ -812,8 +812,12 @@ func (s *Session) linearTitle(st *wittydvd.Step) *playingTitle {
 	return &playingTitle{ts: ts, idx: idx}
 }
 
-// ErrScrambled is what a viewer of a CSS-scrambled disc is told.
-var ErrScrambled = errors.New("this disc is CSS-scrambled, so it can't be played: encrypted media isn't supported, and nothing here bypasses copy protection")
+// EncryptedRefusal is what a viewer of an encrypted disc is told, of any kind
+// (docs/LEGAL-NOTICES-CHECKLIST.md).
+const EncryptedRefusal = "This disc is encrypted, so it can't be played: encrypted media isn't supported, and nothing here bypasses copy protection."
+
+// ErrScrambled is a CSS-scrambled disc's refusal.
+var ErrScrambled = errors.New(EncryptedRefusal)
 
 // scrambleSectors is how much of a place is read to decide, as the library scan does.
 const scrambleSectors = 64

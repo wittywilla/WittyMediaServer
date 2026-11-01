@@ -326,7 +326,7 @@ func (s *Session) OpenMenu(ctx context.Context, kind string, vts int) *Presentat
 }
 
 // encryptedRefusal is what a viewer of an encrypted disc is told.
-const encryptedRefusal = "this disc is encrypted (AACS), so it can't be played: encrypted media isn't supported, and nothing here bypasses copy protection"
+const encryptedRefusal = dvdsession.EncryptedRefusal
 
 // Do applies a client action.
 func (s *Session) Do(ctx context.Context, a Action) *Presentation {

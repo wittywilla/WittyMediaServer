@@ -994,7 +994,7 @@ func canCopy(v *ffmpeg.Stream, maxHeight int) bool {
 // menus. Encrypted discs are refused by the engines and never reach a pool.
 func (s *Server) discLiveInput(ctx context.Context, it *library.Item, seek, remain float64, q ffmpeg.Quality, maxHeight int) (*hls.LiveInput, error) {
 	if it.Disc != nil && it.Disc.Scrambled {
-		return nil, errors.New("this disc is encrypted")
+		return nil, errors.New(dvdsession.EncryptedRefusal)
 	}
 	ttn := 0
 	if it.Disc != nil {

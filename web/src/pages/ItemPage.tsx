@@ -126,7 +126,7 @@ export default function ItemPage() {
               shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.
             </p>
           )}
-          {disc && it.disc?.scrambled && <div className="error">This disc image is {isBluray(it) ? 'encrypted (AACS)' : 'CSS-scrambled'}, so it can't be played. Encrypted discs aren't supported, and nothing here bypasses copy protection. Only unencrypted disc images play.</div>}
+          {disc && it.disc?.scrambled && <div className="error">This disc is encrypted, so it can't be played: encrypted media isn't supported, and nothing here bypasses copy protection.</div>}
           <div className="facts">
             {it.width > 0 && <div className="fact"><div className="k">Video</div><div className="v">{it.width}×{it.height} {codecName(it.videoCodec)}{disc && main ? ` · ${isBluray(it) ? main.standard : main.standard.toUpperCase()} ${main.wide ? '16:9' : '4:3'}` : ''}</div></div>}
             {(it.audioLangs || []).length > 0 && <div className="fact"><div className="k">Audio</div><div className="v">{[...new Set(it.audioLangs.map(langName))].join(', ')}</div></div>}

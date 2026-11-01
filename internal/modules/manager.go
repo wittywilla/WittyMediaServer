@@ -310,6 +310,9 @@ func New(cfg Config) *Manager {
 	for _, id := range m.order {
 		m.checkSavedSource(id, m.mods[id])
 		m.resolve(id, m.mods[id])
+		// The kept catalogue was judged before anyone knew what's on disk, which made every
+		// installed module look as if its own version were an update.
+		m.computeOffers(m.mods[id])
 		m.prune(id, m.mods[id])
 	}
 	return m

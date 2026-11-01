@@ -433,7 +433,7 @@ export default function GuidePage() {
           <button className="ctv-btn sm icon" onClick={openSearch} aria-haspopup="dialog" aria-label="Search the schedule" title="Search the schedule (S)"><IconSearch size={16} /></button>
           <button className="ctv-btn sm" onClick={() => setLookOpen(true)} aria-haspopup="dialog">Look</button>
           <Link className="ctv-btn sm hide-narrow" to="/tv/recordings">Recordings</Link>
-          {user?.isAdmin && <Link className="ctv-btn sm" to="/settings/channels"><IconSettings size={16} /> <span className="hide-narrow">Edit channels</span><span className="sr-only">Edit channels</span></Link>}
+          {user?.isAdmin && <Link className="ctv-btn sm" to="/settings/channels" aria-label="Edit channels"><IconSettings size={16} /> <span className="hide-narrow">Edit channels</span></Link>}
         </div>
       </div>
 

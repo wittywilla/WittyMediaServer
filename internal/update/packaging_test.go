@@ -15,9 +15,7 @@ func TestEveryInstallBringsTheStarterSet(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return strings.ReplaceAll(string(b), "
-", "
-")
+		return strings.ReplaceAll(string(b), "\r\n", "\n")
 	}
 	if !strings.Contains(read("install.sh"), `"$HERE/modules"`) {
 		t.Error("install.sh leaves out the starter set")

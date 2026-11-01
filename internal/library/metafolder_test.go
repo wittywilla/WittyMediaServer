@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -118,7 +117,6 @@ func (f *folderFixture) filmFile() string {
 	return "Films/Harbour Lights (2001) [item-" + itoa(f.film.ID) + "].json"
 }
 
-func itoa(n int64) string { return strconv.FormatInt(n, 10) }
 
 func TestExportLayout(t *testing.T) {
 	f := newFolderFixture(t)

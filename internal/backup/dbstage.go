@@ -484,7 +484,7 @@ func sanitizeRows(ctx context.Context, d *sql.DB, in *Inspection, f Folders) err
 	}
 	// Anything with a file path must be inside a library folder. Otherwise a row in a
 	// file could make the server serve any file on this machine.
-	for _, t := range []struct{ table, col string }{{"items", "path"}, {"shows", "path"}, {"game_archives", "path"}} {
+	for _, t := range []struct{ table, col string }{{"items", "path"}, {"shows", "path"}, {"game_archives", "path"}, {"game_files", "path"}, {"game_review", "path"}, {"game_decisions", "path"}, {"game_discs", "path"}} {
 		n, err := dropOutsideRoots(ctx, d, t.table, t.col, roots)
 		if err != nil {
 			return err
@@ -526,6 +526,14 @@ func sanitizeRows(ctx context.Context, d *sql.DB, in *Inspection, f Folders) err
 func eachValue(ctx context.Context, d *sql.DB, table, col string, fn func(v string) (string, bool)) (deleted int, err error) {
 	if !safeIdent.MatchString(table) || !safeIdent.MatchString(col) {
 		return 0, errors.New("bad name")
+	}
+	// A later version may have dropped a table or a column. Nothing to go through, then.
+	var has int
+	if err := d.QueryRowContext(ctx, `SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?`, table, col).Scan(&has); err != nil {
+		return 0, err
+	}
+	if has == 0 {
+		return 0, nil
 	}
 	rows, err := d.QueryContext(ctx, `SELECT name FROM pragma_table_info(?) WHERE pk > 0 ORDER BY pk`, table)
 	if err != nil {

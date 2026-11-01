@@ -21,16 +21,17 @@ type Versions struct {
 	TV       int `json:"tv"`
 	Metadata int `json:"metadata"`
 	Music    int `json:"music"`
+	Games    int `json:"games"`
 }
 
 // CurrentVersions is what this program builds.
 func CurrentVersions() Versions {
-	return Versions{Main: len(migrations), TV: len(wittyTVMigrations), Metadata: len(metadataMigrations), Music: len(musicMigrations)}
+	return Versions{Main: len(migrations), TV: len(wittyTVMigrations), Metadata: len(metadataMigrations), Music: len(musicMigrations), Games: len(gameMigrations)}
 }
 
 // Newer says whether v has anything this program doesn't know about.
 func (v Versions) Newer(than Versions) bool {
-	return v.Main > than.Main || v.TV > than.TV || v.Metadata > than.Metadata || v.Music > than.Music
+	return v.Main > than.Main || v.TV > than.TV || v.Metadata > than.Metadata || v.Music > than.Music || v.Games > than.Games
 }
 
 // ReadVersions reads a database's versions without changing it.
@@ -41,7 +42,7 @@ func ReadVersions(ctx context.Context, q interface {
 	if err := q.QueryRowContext(ctx, `SELECT version FROM `+prefix+`schema LIMIT 1`).Scan(&v.Main); err != nil {
 		return v, fmt.Errorf("it has no schema version: %w", err)
 	}
-	for key, dst := range map[string]*int{"schema.wittytv": &v.TV, "schema.metadata": &v.Metadata, "schema.music": &v.Music} {
+	for key, dst := range map[string]*int{"schema.wittytv": &v.TV, "schema.metadata": &v.Metadata, "schema.music": &v.Music, "schema.games": &v.Games} {
 		var s string
 		err := q.QueryRowContext(ctx, `SELECT value FROM `+prefix+`settings WHERE key = ?`, key).Scan(&s)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -97,7 +98,7 @@ func BuildAt(ctx context.Context, path string, v Versions) (*sql.DB, error) {
 		list []string
 		n    int
 		key  string
-	}{{wittyTVMigrations, v.TV, "schema.wittytv"}, {metadataMigrations, v.Metadata, "schema.metadata"}, {musicMigrations, v.Music, "schema.music"}} {
+	}{{wittyTVMigrations, v.TV, "schema.wittytv"}, {metadataMigrations, v.Metadata, "schema.metadata"}, {musicMigrations, v.Music, "schema.music"}, {gameMigrations, v.Games, "schema.games"}} {
 		if err := step(track.list, track.n, track.key); err != nil {
 			d.Close()
 			return nil, err

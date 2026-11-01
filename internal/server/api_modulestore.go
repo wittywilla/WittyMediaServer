@@ -284,7 +284,7 @@ type storeBody struct {
 }
 
 // POST /api/modulestore/stores/preview: fetch a store and say what adding it would mean, with the
-// warning. Nothing is kept.
+// warning. Nothing is kept. An address on the admin's own network asks for the password first.
 func (s *Server) handleStorePreview(w http.ResponseWriter, r *http.Request) {
 	if s.noStore(w) {
 		return
@@ -292,6 +292,11 @@ func (s *Server) handleStorePreview(w http.ResponseWriter, r *http.Request) {
 	var b storeBody
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&b); err != nil {
 		writeErr(w, 400, "unreadable request")
+		return
+	}
+	// From here a stolen session could otherwise look around this machine and its network, one
+	// address at a time, by what comes back.
+	if b.Private && !s.moduleGate(w, r, b.moduleSecrets, "store") {
 		return
 	}
 	p, err := s.ModuleStores.Preview(r.Context(), b.URL, b.Key, b.Private)
@@ -391,7 +396,8 @@ func (s *Server) handleStoreFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Confirm bool `json:"confirm"`
+		Confirm     bool   `json:"confirm"`
+		Fingerprint string `json:"fingerprint"` // of the key the admin was shown
 		moduleSecrets
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&b); err != nil && !errors.Is(err, io.EOF) {
@@ -401,7 +407,7 @@ func (s *Server) handleStoreFork(w http.ResponseWriter, r *http.Request) {
 	if b.Confirm && !s.moduleGate(w, r, b.moduleSecrets, r.PathValue("module")) {
 		return
 	}
-	if err := s.ModuleStores.UseFork(r.PathValue("id"), r.PathValue("module"), userFrom(r).Name, b.Confirm); err != nil {
+	if err := s.ModuleStores.UseFork(r.PathValue("id"), r.PathValue("module"), userFrom(r).Name, b.Confirm, b.Fingerprint); err != nil {
 		writeStoreErr(w, r.PathValue("module"), err)
 		return
 	}

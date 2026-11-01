@@ -88,18 +88,24 @@ function AddStore({ onAdded, repairRoute }: { onAdded: () => void; repairRoute: 
   const [trust, setTrust] = useState(false)
   const [working, setWorking] = useState(false)
   const [owner, setOwner] = useState(false)
+  const [lookOwner, setLookOwner] = useState(false)
   const warned = useRef<HTMLDivElement>(null)
   const urlField = useRef<HTMLInputElement>(null)
   useEffect(() => { if (preview) warned.current?.focus() }, [preview])
   const reset = () => { setPreview(null); setTrust(false); setFailure(null) }
-  const look = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (working) return
+  const fetchPreview = async (secrets?: { password: string; code: string }) => {
     setWorking(true); reset(); setNeedKey(false)
-    try { setPreview(await previewStore(url.trim(), key.trim(), allowPrivate)) } catch (err) {
+    try { setPreview(await previewStore(url.trim(), key.trim(), allowPrivate, secrets)) } catch (err) {
+      if (secrets && err instanceof ApiError && err.status === 403) throw err // the dialog says what was wrong with the password
       if (err instanceof ApiError && err.data?.code === 'need-key') setNeedKey(true)
       setFailure(failureOf(err, 'That store'))
     } finally { setWorking(false) }
+  }
+  const look = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (working) return
+    if (allowPrivate) setLookOwner(true)
+    else void fetchPreview()
   }
   const agree = async (password: string, code: string) => {
     if (!preview) return
@@ -154,6 +160,11 @@ function AddStore({ onAdded, repairRoute }: { onAdded: () => void; repairRoute: 
           </div>
         </div>
       )}
+      {lookOwner && <ConfirmOwner onClose={() => setLookOwner(false)} ask={{
+        title: 'Look on your own network?', action: 'Look at this store',
+        body: <p>This server will fetch from an address on your own network, so this asks for your password.</p>,
+        run: (password, code) => fetchPreview({ password, code }),
+      }} />}
       {owner && preview && <ConfirmOwner onClose={() => setOwner(false)} ask={{
         title: `Add ${preview.name}?`, action: 'Add this store',
         body: <p>From now on this store can offer code for this server to run, so this asks for your password.</p>,

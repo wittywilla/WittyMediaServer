@@ -16,8 +16,10 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/wittywilla/wittymodule"
+	"golang.org/x/text/unicode/norm"
 )
 
 // What the store's pages show: every module from every store that's on, with what this server
@@ -244,7 +246,7 @@ func (s *Stores) View() StoreView {
 	for i := range rep.Modules {
 		st := &rep.Modules[i]
 		statuses[st.ID] = st
-		names[strings.ToLower(st.Name)] = st.ID
+		names[nameSkeleton(st.Name)] = st.ID
 		v.Items = append(v.Items, s.officialItem(st, cat))
 	}
 
@@ -320,7 +322,7 @@ func (s *Stores) thirdPartyItem(e *storeEntry, mod *wittymodule.CatalogModule, k
 	if it.Kind != KindFork {
 		it.Fit = Fit{Kind: it.Kind, Why: it.Why}
 	}
-	if owner, ok := names[strings.ToLower(it.Name)]; ok && owner != mod.ID {
+	if owner, ok := names[nameSkeleton(it.Name)]; ok && owner != mod.ID {
 		it.Lookalike = owner
 	}
 	if st := statuses[mod.ID]; st != nil && st.Source != nil && st.Source.Store == e.ID {
@@ -328,6 +330,25 @@ func (s *Stores) thirdPartyItem(e *storeEntry, mod *wittymodule.CatalogModule, k
 		it.Failure = failureFor(st)
 	}
 	return it
+}
+
+// lookalikes are letters from other alphabets, and digits, that pass for a Latin letter in a name.
+var lookalikes = strings.NewReplacer(
+	"а", "a", "в", "b", "е", "e", "к", "k", "м", "m", "н", "h", "о", "o", "р", "p", "с", "c", "т", "t", "у", "y", "х", "x", "і", "i", "ј", "j", "ѕ", "s", "һ", "h", "ԁ", "d", "ɡ", "g",
+	"α", "a", "β", "b", "ε", "e", "ι", "i", "κ", "k", "ν", "v", "ο", "o", "ρ", "p", "τ", "t", "υ", "u", "χ", "x",
+	"0", "o", "1", "i", "l", "i", "|", "i", "5", "s", "$", "s",
+)
+
+// nameSkeleton is what a name looks like to someone glancing at it: case, spacing, punctuation and
+// letters that pass for others don't count. Two names with one skeleton can be mistaken for each other.
+func nameSkeleton(name string) string {
+	name = lookalikes.Replace(strings.ToLower(norm.NFKC.String(name)))
+	return strings.Map(func(r rune) rune {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			return r
+		}
+		return -1
+	}, name)
 }
 
 func knownPermission(p string) bool {
@@ -449,8 +470,13 @@ func (s *Stores) Detail(store, id string) (*ItemDetail, error) {
 
 // UseFork makes a store's version of a module the one this server uses: the choice a fork needs,
 // with its warning, and then the newest version that fits, which also has its own signature and
-// manifest to pass. Without confirm it answers *ErrNeedsConfirm and changes nothing.
-func (s *Stores) UseFork(store, id, by string, confirm bool) error {
+// manifest to pass. Without confirm it answers *ErrNeedsConfirm and changes nothing. seen is the
+// fingerprint the admin was shown, when the page sends it: the store may have named another key
+// since, and that one wasn't agreed to.
+func (s *Stores) UseFork(store, id, by string, confirm bool, seen string) error {
+	if why := ForkRefusal(); why != "" {
+		return errors.New(why)
+	}
 	e := s.snapshot(store)
 	switch {
 	case e == nil:
@@ -481,6 +507,9 @@ func (s *Stores) UseFork(store, id, by string, confirm bool) error {
 	if !confirm {
 		return &ErrNeedsConfirm{Warning: ForkWarning + " The key's fingerprint is " + Fingerprint(k) + "."}
 	}
+	if seen != "" && seen != Fingerprint(k) {
+		return errors.New("the store has named a different signing key since you were asked, so nothing changed. Look at its page again")
+	}
 	v, fit := s.offer(mod)
 	if v == nil || !fit.OK {
 		return errors.New(fit.Why)
@@ -496,17 +525,66 @@ func (s *Stores) UseFork(store, id, by string, confirm bool) error {
 // applyFork tells the manager what a store now offers for the modules that use it.
 func (s *Stores) applyFork(store string) {
 	e := s.snapshot(store)
-	if e == nil || e.cat == nil || s.m == nil {
+	if e == nil || s.m == nil {
+		return
+	}
+	if !e.Enabled {
+		s.m.clearStoreListing(store)
+		return
+	}
+	if e.cat == nil {
 		return
 	}
 	s.m.applyStoreListing(store, e.cat, e.URL, newStoreFetcher(s.cfg.Transport, e.Private))
 }
 
-// The most a picture may be, as in the catalogue's own checks.
+// The most a picture may be, as in the catalogue's own checks, and the most of them kept for one
+// store: a catalogue can list thousands, and new ones with every serial.
 const (
-	maxMediaIcon = 256 << 10
-	maxMediaShot = 2 << 20
+	maxMediaIcon  = 256 << 10
+	maxMediaShot  = 2 << 20
+	maxStoreMedia = 64 << 20
 )
+
+// keepMedia writes a fetched picture, if there's room for it in this store's share of the disk.
+func (s *Stores) keepMedia(path string, b []byte) error {
+	s.mediaMu.Lock()
+	defer s.mediaMu.Unlock()
+	used := int64(len(b))
+	files, _ := os.ReadDir(filepath.Dir(path))
+	for _, f := range files {
+		if i, err := f.Info(); err == nil {
+			used += i.Size()
+		}
+	}
+	if used > maxStoreMedia {
+		return errors.New("this store has more pictures than a server keeps for one store")
+	}
+	return writeAtomic(path, b)
+}
+
+// pruneMedia removes the pictures a store's list no longer names. Call with s.mu held.
+func (s *Stores) pruneMedia(e *storeEntry) {
+	listed := map[string]bool{}
+	for i := range e.cat.Modules {
+		mod := &e.cat.Modules[i]
+		if mod.Icon != nil {
+			listed[mod.Icon.SHA256] = true
+		}
+		for j := range mod.Screenshots {
+			listed[mod.Screenshots[j].SHA256] = true
+		}
+	}
+	s.mediaMu.Lock()
+	defer s.mediaMu.Unlock()
+	folder := filepath.Join(s.folder(e.ID), "media")
+	files, _ := os.ReadDir(folder)
+	for _, f := range files {
+		if !listed[f.Name()] {
+			_ = os.Remove(filepath.Join(folder, f.Name()))
+		}
+	}
+}
 
 var mediaHashRe = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
@@ -572,7 +650,7 @@ func (s *Stores) Media(ctx context.Context, store, sha string) (path, contentTyp
 		if int64(len(b)) != file.Size || sum(b) != sha {
 			return "", "", errors.New("the picture doesn't match what the catalogue says")
 		}
-		if err := writeAtomic(path, b); err != nil {
+		if err := s.keepMedia(path, b); err != nil {
 			return "", "", err
 		}
 	}

@@ -19,7 +19,7 @@ const hidden = "[hidden]"
 // caught by apikey-like endings below, "userToken" by "token").
 var secretEndings = []string{"token", "password", "passwd", "passphrase", "secret", "apikey", "apikeys", "api_key", "_key", "-key", "authorization", "cookie", "credential", "credentials", "privatekey", "private_key", "setupcode", "setup_code", "recoverycode", "recoverycodes", "recovery_code", "recovery_codes", "paircode", "pair_code", "pairingcode", "pairing_code", "bearer"}
 
-var secretExact = map[string]bool{"pin": true, "st": true, "otp": true, "totp": true, "pass": true, "pwd": true, "sig": true, "signature": true, "key": true, "tmdbkey": true, "tvdbkey": true, "tvdbpin": true}
+var secretExact = map[string]bool{"pin": true, "st": true, "otp": true, "totp": true, "pass": true, "pwd": true, "sig": true, "signature": true, "key": true, "tmdbkey": true, "tvdbkey": true, "tvdbpin": true, "tdarrkey": true, "rawgkey": true, "tgdbkey": true, "accesskey": true, "secretkey": true, "signingkey": true}
 
 func secretKey(k string) bool {
 	k = strings.ToLower(k)
@@ -46,7 +46,7 @@ var textPatterns = []struct {
 	with  string
 }{
 	// In an address or a command line: token=..., ?st=..., password=...
-	{"=", nil, regexp.MustCompile(`(?i)(\b(?:[a-z0-9_-]*(?:token|password|passwd|secret|key)|auth|pwd|pass|pin|st|sig|signature|setup[_-]?code|recovery[_-]?code|pair(?:ing)?[_-]?code|otp|totp)=)[^&\s"'<>]+`), "${1}" + hidden},
+	{"=", nil, regexp.MustCompile(`(?i)(\b(?:[a-z0-9_-]*(?:token|password|passwd|passphrase|secret|key)|auth|pwd|pass|pin|st|sig|signature|setup[_-]?code|recovery[_-]?code|pair(?:ing)?[_-]?code|otp|totp)=)[^&\s"'<>]+`), "${1}" + hidden},
 	// Words too ordinary to hide everywhere, in an address's query, where they tend to be a login.
 	{"=", []string{"?", "&"}, regexp.MustCompile(`(?i)([?&](?:sid|session|session[_-]?id|sign|hash|code)=)[^&\s"'<>]+`), "${1}" + hidden},
 	// The same with its name percent-encoded: %74oken=... signs in just the same.
@@ -56,7 +56,11 @@ var textPatterns = []struct {
 	{"", []string{"bearer"}, regexp.MustCompile(`(?i)\b(Bearer\s+)[A-Za-z0-9._~+/=-]+`), "${1}" + hidden},
 	{"", []string{"basic "}, regexp.MustCompile(`\b(Basic\s+)[A-Za-z0-9+/]*[A-Z0-9+/][A-Za-z0-9+/]{10,}={0,2}`), "${1}" + hidden},
 	// JSON: "password": "..."
-	{`":`, nil, regexp.MustCompile(`(?i)("(?:[a-z0-9_-]*(?:token|password|passwd|secret|api[_-]?key|apikey)|key|rawgkey|tgdbkey|tmdbkey|tvdbkey|pin|setup[_-]?code|recovery[_-]?code|pair(?:ing)?[_-]?code)"\s*:\s*)"(?:[^"\\]|\\.)*"`), `${1}"` + hidden + `"`},
+	{`":`, nil, regexp.MustCompile(`(?i)("(?:[a-z0-9_-]*(?:token|password|passwd|passphrase|secret|api[_-]?key|apikey|private[_-]?key|secret[_-]?key|access[_-]?key|signing[_-]?key)|key|auth|credentials?|cookie|rawgkey|tgdbkey|tmdbkey|tvdbkey|tdarrkey|pin|setup[_-]?code|recovery[_-]?code|pair(?:ing)?[_-]?code)"\s*:\s*)"(?:[^"\\]|\\.)*"`), `${1}"` + hidden + `"`},
+	// A two-factor code in a request's body. An error's "code" is a word, and is what a reader is after.
+	{`":`, []string{`"code"`}, regexp.MustCompile(`(?i)("code"\s*:\s*)"[0-9]{4,10}"`), `${1}"` + hidden + `"`},
+	// As a program says it on its own: "password: ...", "api key: ...".
+	{":", []string{"password", "passwd", "passphrase", "token", "secret", "api key", "api_key", "api-key", "apikey"}, regexp.MustCompile(`(?i)\b((?:password|passwd|passphrase|token|secret|api[ _-]?key)\s*:\s*)[^\s"',;]+`), "${1}" + hidden},
 	{`":[`, []string{"recovery"}, regexp.MustCompile(`(?i)("recovery[_-]?codes"\s*:\s*)\[[^\]]*\]`), `${1}"` + hidden + `"`},
 	// A login in an address: rtsp://user:password@camera/, or a key alone: rtsp://key@camera/
 	{":@", nil, regexp.MustCompile(`(?i)\b([a-z][a-z0-9+.-]*://)[^/\s@]+@`), "${1}" + hidden + "@"},

@@ -43,12 +43,12 @@ export const undoRun = (secrets: OwnerSecrets) => api.post<Run>('/modulestore/ru
 export const dismissRun = () => api.del('/modulestore/run')
 export const installModule = (id: string, confirm: boolean) => api.post<Run>('/modulestore/install', { id, confirm })
 export const moduleLog = (id: string) => api.get<ModuleLog>(`/modulestore/modules/${encodeURIComponent(id)}/log`)
-export const previewStore = (url: string, key: string, allowPrivate: boolean) => api.post<StorePreview>('/modulestore/stores/preview', { url, key, private: allowPrivate })
+export const previewStore = (url: string, key: string, allowPrivate: boolean, secrets?: OwnerSecrets) => api.post<StorePreview>('/modulestore/stores/preview', { url, key, private: allowPrivate, ...secrets })
 export const addStore = (url: string, key: string, allowPrivate: boolean, agreed: boolean, secrets: OwnerSecrets) => api.post<StoreInfo>('/modulestore/stores', { url, key, private: allowPrivate, agreed, ...secrets })
 export const removeStore = (id: string) => api.del(`/modulestore/stores/${encodeURIComponent(id)}`)
 export const setStoreOn = (id: string, on: boolean) => api.put<StoreInfo>(`/modulestore/stores/${encodeURIComponent(id)}/enabled`, { on })
 export const checkStore = (id: string) => api.post<StoreInfo>(`/modulestore/stores/${encodeURIComponent(id)}/check`)
-export const useFork = (store: string, id: string, confirm: boolean, secrets: OwnerSecrets) => api.post<ItemDetail>(`/modulestore/stores/${encodeURIComponent(store)}/fork/${encodeURIComponent(id)}`, { confirm, ...secrets })
+export const useFork = (store: string, id: string, confirm: boolean, fingerprint: string | undefined, secrets: OwnerSecrets) => api.post<ItemDetail>(`/modulestore/stores/${encodeURIComponent(store)}/fork/${encodeURIComponent(id)}`, { confirm, fingerprint, ...secrets })
 
 // The server's words for a failure, or the error's own when it has none.
 export function failureOf(e: unknown, name = 'This module'): Failure {

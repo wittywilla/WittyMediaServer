@@ -530,7 +530,7 @@ files missing or changed, or sign-ins from an unexpected place. Move quickly, an
   visit could otherwise ask a server on your network who its profiles are.
 - **Your password is asked for again** to add an administrator, to remove one, to change another administrator's password, to reset the server, to change where a module
   comes from and to go back to an older version of one, with your two-factor code if you have it on, so a device you left signed in can't do those.
-- **Password-free Kids and Guest profiles** only work at home, and profile names aren't shown elsewhere unless you turn that on. The version isn't shown to anyone
+- **Password-free Kids and Guest profiles** only work at home, sign-ins made earlier included, and profile names aren't shown elsewhere unless you turn that on. The version isn't shown to anyone
   not signed in on the internet.
 
 **What these don't do. A researcher reads this part first.**

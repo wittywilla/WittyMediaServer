@@ -168,7 +168,7 @@ func (s *Server) resolveStream(r *http.Request) *auth.User {
 	// The ticket ends with the sign-in it came from (signing out, a changed
 	// password), and the account's limits are read afresh.
 	u, err := s.Auth.Resolve(r.Context(), g.session)
-	if err != nil || u.ID != g.userID {
+	if err != nil || u.ID != g.userID || !s.sessionCountsHere(r, u) {
 		return nil
 	}
 	// HLS and disc routes don't look at the item themselves, so limits set since

@@ -758,11 +758,16 @@ func (s *Server) signedIn(r *http.Request) (*auth.User, string) {
 		} else {
 			u, err = s.Auth.Resolve(r.Context(), tok)
 		}
-		if err == nil {
+		if err == nil && s.sessionCountsHere(r, u) {
 			return u, tok
 		}
 	}
 	return nil, ""
+}
+
+// sessionCountsHere: a sign-in with no password works only at home, as signing in does.
+func (s *Server) sessionCountsHere(r *http.Request, u *auth.User) bool {
+	return !u.HomeOnly || clientFrom(r).Where.AtHome()
 }
 
 func (s *Server) requireUser(h http.HandlerFunc) http.Handler {

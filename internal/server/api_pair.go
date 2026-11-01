@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -57,7 +58,8 @@ const (
 type invite struct {
 	code    string
 	by      int64 // who asked for it
-	userID  int64 // who the device signs in as
+	session string // the sign-in that asked: the code lasts only as long as that does
+	userID  int64  // who the device signs in as
 	expires time.Time
 	used    bool
 }
@@ -73,6 +75,8 @@ type pairing struct {
 	expires  time.Time
 	lastPoll time.Time
 	userID   int64 // who approved; 0 = waiting
+	approver int64
+	session  string // the sign-in that approved: the answer lasts only as long as that does
 	denied   bool
 }
 
@@ -88,7 +92,7 @@ type pairings struct {
 }
 
 // newInvite makes a 6-digit code; a person has one open at a time.
-func (ps *pairings) newInvite(by, userID int64) (*invite, error) {
+func (ps *pairings) newInvite(by, userID int64, session string) (*invite, error) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 	now := time.Now()
@@ -109,7 +113,7 @@ func (ps *pairings) newInvite(by, userID int64) (*invite, error) {
 	if open >= inviteMaxOpen {
 		return nil, errPairBusy
 	}
-	in := &invite{by: by, userID: userID, expires: now.Add(inviteTTL)}
+	in := &invite{by: by, session: session, userID: userID, expires: now.Add(inviteTTL)}
 	for {
 		n, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
 		if err != nil {
@@ -132,9 +136,9 @@ const (
 	redeemTooMany = "too-many-tries"
 )
 
-// redeem uses a code, once. It answers who signs in, or why not. away says the try comes
-// from away from home.
-func (ps *pairings) redeem(code string, away bool) (int64, string) {
+// redeem uses a code, once. It answers the code, or why not. away says the try comes from
+// away from home.
+func (ps *pairings) redeem(code string, away bool) (*invite, string) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 	now := time.Now()
@@ -150,7 +154,7 @@ func (ps *pairings) redeem(code string, away bool) (int64, string) {
 	}
 	*wrong = keep
 	if len(*wrong) >= inviteWrongLimit {
-		return 0, redeemTooMany
+		return nil, redeemTooMany
 	}
 	in := ps.invites[code]
 	switch {
@@ -163,14 +167,22 @@ func (ps *pairings) redeem(code string, away bool) (int64, string) {
 				x.expires = now.Add(-time.Second)
 			}
 		}
-		return 0, redeemWrong
+		return nil, redeemWrong
 	case in.used:
-		return 0, redeemUsed
+		return nil, redeemUsed
 	case now.After(in.expires):
-		return 0, redeemExpired
+		return nil, redeemExpired
 	}
 	in.used = true
-	return in.userID, ""
+	return in, ""
+}
+
+// stillSignedIn: a code or an approval still stands only while the sign-in behind it does. Without
+// this, someone with a stolen session could keep one open, and be back in after the owner changed
+// the password or signed everything out.
+func (s *Server) stillSignedIn(ctx context.Context, session string, who int64) bool {
+	u, err := s.Auth.Resolve(ctx, session)
+	return err == nil && u.ID == who
 }
 
 var redeemFailures = map[string]struct {
@@ -231,7 +243,7 @@ func (s *Server) handlePairInvite(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 403, "you can't sign a device in as that profile")
 		return
 	}
-	in, err := s.pair.newInvite(me.ID, target.ID)
+	in, err := s.pair.newInvite(me.ID, target.ID, tokenFrom(r))
 	if errors.Is(err, errPairBusy) {
 		w.Header().Set("Retry-After", "60")
 		writeErr(w, 429, "Too many codes are waiting to be used. Try again in a few minutes.")
@@ -268,7 +280,7 @@ func (s *Server) handlePairRedeem(w http.ResponseWriter, r *http.Request) {
 		redeemFailed(w, redeemWrong, 0)
 		return
 	}
-	userID, reason := s.pair.redeem(code, !clientFrom(r).Where.AtHome())
+	in, reason := s.pair.redeem(code, !clientFrom(r).Where.AtHome())
 	if reason != "" {
 		if reason == redeemWrong {
 			s.logins.fail(k)
@@ -278,11 +290,16 @@ func (s *Server) handlePairRedeem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logins.ok(k)
+	if !s.stillSignedIn(r.Context(), in.session, in.by) {
+		s.Log.InfoContext(r.Context(), "code sign-in failed", "cat", "auth", "from", ipOf(r), "why", "whoever made the code has signed out")
+		redeemFailed(w, redeemExpired, 0)
+		return
+	}
 	device := cleanLabel(b.Device, 60)
 	if device == "" {
 		device = "TV app"
 	}
-	tok, u, err := s.Auth.IssueSession(r.Context(), userID, device)
+	tok, u, err := s.Auth.IssueSession(r.Context(), in.userID, device)
 	if err != nil { // the account was deleted in the meantime
 		redeemFailed(w, redeemExpired, 0)
 		return
@@ -417,7 +434,7 @@ func (ps *pairings) waitingLocked(code string) *pairing {
 }
 
 // answer approves (userID > 0) or denies a waiting pairing, once.
-func (ps *pairings) answer(code string, userID int64) *pairing {
+func (ps *pairings) answer(code string, userID, approver int64, session string) *pairing {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 	p := ps.waitingLocked(code)
@@ -425,7 +442,7 @@ func (ps *pairings) answer(code string, userID int64) *pairing {
 		return nil
 	}
 	if userID > 0 {
-		p.userID = userID
+		p.userID, p.approver, p.session = userID, approver, session
 	} else {
 		p.denied = true
 	}
@@ -553,6 +570,10 @@ func (s *Server) handlePairPoll(w http.ResponseWriter, r *http.Request) {
 	case pollDenied:
 		writeJSON(w, 403, map[string]any{"status": "denied", "error": "the sign-in was refused"})
 	case pollApproved:
+		if !s.stillSignedIn(r.Context(), p.session, p.approver) {
+			writeJSON(w, 410, map[string]any{"status": "expired", "error": "this code has expired or was already used; ask for a new one"})
+			return
+		}
 		tok, u, err := s.Auth.IssueSession(r.Context(), p.userID, p.device)
 		if err != nil { // the account was deleted in the meantime
 			writeJSON(w, 410, map[string]any{"status": "expired", "error": "this code has expired or was already used; ask for a new one"})
@@ -650,7 +671,7 @@ func (s *Server) handlePairApprove(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 403, "you can't sign a device in as that profile")
 		return
 	}
-	p := s.pair.answer(b.Code, target.ID)
+	p := s.pair.answer(b.Code, target.ID, me.ID, tokenFrom(r))
 	if p == nil { // answered a moment ago, on another phone
 		writeErr(w, 404, "That code has already been used.")
 		return
@@ -673,7 +694,7 @@ func (s *Server) handlePairDeny(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	s.pair.answer(b.Code, 0)
+	s.pair.answer(b.Code, 0, 0, "")
 	s.logins.ok(k)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }

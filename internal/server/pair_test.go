@@ -342,7 +342,7 @@ func TestInviteCodeGuessingIsLimited(t *testing.T) {
 	}
 	// For the whole server, whatever address it comes from: open codes are cancelled.
 	var ps pairings
-	in, err := ps.newInvite(1, 1)
+	in, err := ps.newInvite(1, 1, "s")
 	if err != nil {
 		t.Fatal(err)
 	}

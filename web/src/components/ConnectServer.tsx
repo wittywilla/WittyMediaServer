@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { HelpLink } from './HelpLink'
 import { api, normalizeServer, serverBase, setServerBase } from '../api'
 import { Brand, BrandMark } from './common'
 import LegalNote from './LegalNote'
@@ -37,7 +38,7 @@ export default function ConnectServer({ onCancel }: { onCancel?: () => void }) {
     <div className="center">
       <form className="auth-card" onSubmit={connect}>
         <div className="brand"><BrandMark /><Brand name="" /></div>
-        <p>Enter your server's address. <a href="/help/apps">Where to find it</a></p>
+        <p>Enter your server's address. <HelpLink to="apps">Where to find it</HelpLink></p>
         <div className="form">
           <label>Server address
             <input className="input" autoFocus inputMode="url" autoCapitalize="none" spellCheck={false} placeholder="https://media.example.com" value={addr} onChange={(e) => setAddr(e.target.value)} />

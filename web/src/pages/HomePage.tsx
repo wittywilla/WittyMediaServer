@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { HelpLink } from '../components/HelpLink'
 import { profileName, albumsOnce, api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Show, type Item, inMainMenus } from '../api'
 import AddLibrary from '../components/AddLibrary'
 import { CardRow, ItemCard, ShowCard, Spinner } from '../components/common'
@@ -163,7 +164,7 @@ function Welcome({ admin, name, onAdded }: { admin: boolean; name: string; onAdd
         <h1>Welcome{name ? `, ${name}` : ''}! Let’s fill your server.</h1>
         <p className="muted">{admin
           ? 'Choose what kind of media you have, then point to the folder it’s in. Your files stay where they are; nothing is moved or changed. You can add more libraries any time.'
-          : 'There’s nothing to watch, read or listen to yet. Whoever runs this server can add libraries in Settings, and they’ll appear here.'} <Link to="/help/getting-started">Getting started</Link></p>
+          : 'There’s nothing to watch, read or listen to yet. Whoever runs this server can add libraries in Settings, and they’ll appear here.'} <HelpLink to="getting-started">Getting started</HelpLink></p>
       </div>
       {admin && <AddLibrary onAdded={onAdded} />}
     </div>

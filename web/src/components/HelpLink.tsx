@@ -10,8 +10,8 @@ import './helplink.css'
 // A link in a sentence. In the middle of something that would be lost by leaving (setup, a
 // dialog), newTab keeps that page where it is.
 export function HelpLink({ to, newTab, children }: { to: string; newTab?: boolean; children: ReactNode }) {
-  if (newTab) return <Link to={`/help/${to}`} target="_blank" rel="noopener">{children}<span className="sr-only"> (opens in a new tab)</span></Link>
-  return <Link to={`/help/${to}`}>{children}</Link>
+  if (newTab) return <Link className="help-inline" to={`/help/${to}`} target="_blank" rel="noopener">{children}<span className="sr-only"> (opens in a new tab)</span></Link>
+  return <Link className="help-inline" to={`/help/${to}`}>{children}</Link>
 }
 
 // A quiet link with its own icon, for a page's toolbar or header.

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { HelpLink } from '../../components/HelpLink'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { fmtDateTime, api, ApiError } from '../../api'
 import { LIB_TYPES } from '../../components/AddLibrary'
@@ -466,7 +467,7 @@ function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRe
       {m.installed && !m.source && (m.noFork || m.updatable) && (
         <details className="ms-more">
           <summary>Advanced</summary>
-          <p className="muted"><Link to="/help/module-store#using-someones-fork">What using a fork means</Link></p>
+          <p className="muted"><HelpLink to="module-store#using-someones-fork">What using a fork means</HelpLink></p>
           <div className="ms-fork">
             <b>Use someone’s fork of this module</b>
             {m.noFork ? <p className="ms-note">{m.noFork}</p> : <ForkForm m={m} onReport={onReport} />}

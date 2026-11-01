@@ -57,7 +57,7 @@ var explainRules = []explainRule{
 	{regexp.MustCompile(`(?i)signature|files have changed since they were installed|not signed|verification failed|checksum`), Explanation{"verify-failed", "A download or module didn't pass its check",
 		"What was downloaded or installed doesn't match its signature, so it wasn't used.",
 		"Try again. If it keeps failing, check the connection, and reinstall the module from Settings, Modules."}},
-	{regexp.MustCompile(`(?i)(core|cores?\b).*(load|missing|not found|failed|no such)|the runner failed|game runner|wittyplay-host|runner .*(crash|exit|invalid)|libretro|retro_load`), Explanation{"game-runner", "The game couldn't run",
+	{regexp.MustCompile(`(?i)(core|cores?\b).*(load|missing|not found|failed|no such)|the runner failed|game runner|wittyplay-game-runner|runner .*(crash|exit|invalid)|libretro|retro_load`), Explanation{"game-runner", "The game couldn't run",
 		"The emulator core is missing or stopped, or it doesn't like this game file.",
 		"Check the core is installed in Settings, Consoles & cores, and that the game file works in another emulator. The lines above show what the core said."}},
 	{regexp.MustCompile(`(?i)tuner|no signal|tune failed|no tuner|channel lock`), Explanation{"tuner", "The tuner had a problem",

@@ -243,7 +243,7 @@ func (s *Server) configureGames(ctx context.Context) (version string, err error)
 	g := s.games()
 	runner, args, version := s.gameRunner(ctx)
 	if runner == "" {
-		return "", errors.New("the game runner (wittyplay-host) is missing from this install")
+		return "", errors.New("WittyPlay's game runner is missing from this install")
 	}
 	var hw []string
 	list, _ := s.Tools.HardwareStatus()

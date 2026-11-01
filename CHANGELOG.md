@@ -7,6 +7,16 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **Modules are completely separate from the server.** The server has none of their code in it, starts and is fully
+  usable with none of them, and a page whose module is missing says so and offers to add it. Adding, updating, removing or
+  turning one off needs no new server and no restart. Each runs as a program of its own in a sandbox, or in the browser, and
+  is checked against its signature before anything runs.
+- **Modules start here.** They work with this release and later ones, and nothing older. A version built for less is
+  refused, and the server says why. Limited backward compatibility may exist unofficially, but nothing promises it.
+- **A signed catalogue** lists every module and its versions, from a new repository, WittyModuleCatalog. A release of the server
+  can carry a starter set of signed modules for a machine with no network.
+- **Each module carries the licenses of its own libraries,** which a server shows at `GET /api/modules/{id}/notices`.
+- **`wms dvd`, `wms bluray` and `wms cd` are gone,** along with the built-in copy of each module. Those tools come with their modules.
 - **Every module and app is now a project of its own.** WittyPlay, WittyDVD, WittyBluray, WittyCD, WittyDisc, WittyTuner, WittyPhotos,
   WittyCouch, WittyCouchHost, WittyRigs, WittyIntegratedFileBrowser, WittyModule, the reader plugins, WittyVisualizer, WittyReader,
   WittyMediaPlayer and WittyMediaClient each have their own repository, history, changelog and releases. The older `clients/desktop`

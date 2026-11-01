@@ -96,7 +96,7 @@ const (
 
 // ProbeOptions test-load one core file.
 type ProbeOptions struct {
-	Runner    string // wittyplay-host: this is a question for our own runner
+	Runner    string // wittyplay-game-runner: this is a question for our own runner
 	Core      string
 	SystemDir string
 	WorkDir   string        // an empty folder, the only one the runner may write to

@@ -7,29 +7,36 @@ import (
 	"testing"
 )
 
-// Without the game runner no game can start, and a package holding it isn't enough: each
-// way of installing a package copies only what it names.
-func TestEveryInstallBringsTheGameRunner(t *testing.T) {
+// A package holds no module's program. A starter set of signed modules, when a release has one, is
+// a folder, and each way of installing a package copies only what it names.
+func TestEveryInstallBringsTheStarterSet(t *testing.T) {
 	read := func(name string) string {
 		b, err := os.ReadFile(filepath.Join("..", "..", "scripts", name))
 		if err != nil {
 			t.Fatal(err)
 		}
-		return strings.ReplaceAll(string(b), "\r\n", "\n")
+		return strings.ReplaceAll(string(b), "
+", "
+")
 	}
-	if !strings.Contains(read("install.sh"), `cp "$HERE/wittyplay-host"`) {
-		t.Error("install.sh leaves out the game runner")
+	if !strings.Contains(read("install.sh"), `"$HERE/modules"`) {
+		t.Error("install.sh leaves out the starter set")
 	}
-	if !strings.Contains(read("install.ps1"), `"wittyplay-host.exe"`) {
-		t.Error("install.ps1 leaves out the game runner")
+	if !strings.Contains(read("install.ps1"), `$here\modules`) {
+		t.Error("install.ps1 leaves out the starter set")
 	}
 	build := read("build-release.sh")
-	if !strings.Contains(build, `-o "$abs_out/wittyplay-host$ext"`) {
-		t.Error("build-release.sh doesn't build the game runner into the package")
+	if !strings.Contains(build, `"$out/modules"`) {
+		t.Error("build-release.sh doesn't copy a starter set")
+	}
+	for _, name := range []string{"install.sh", "install.ps1", "build-release.sh"} {
+		if strings.Contains(read(name), "wittyplay") {
+			t.Errorf("%s names a module's program", name)
+		}
 	}
 	start := strings.Index(build, "make_app_bundle() {")
 	end := strings.Index(build, "cat > \"$app/Info.plist\"")
-	if start < 0 || end < start || !strings.Contains(build[start:end], `"$out/wittyplay-host" "$app/MacOS/"`) {
-		t.Error("the Mac app leaves out the game runner")
+	if start < 0 || end < start || !strings.Contains(build[start:end], `"$out/modules" "$app/MacOS/"`) {
+		t.Error("the Mac app leaves out the starter set")
 	}
 }

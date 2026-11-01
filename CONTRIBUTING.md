@@ -14,8 +14,8 @@ haven't worked on a Go or React project before.
 
 ## Build and run
 
-The server is built with its modules from their own repositories, cloned beside this one. Clone those named in
-[docs/REPOSITORIES.md](docs/REPOSITORIES.md), then run `node scripts/dev-modules.mjs` here once.
+The server builds and runs by itself. Modules have [their own repositories](docs/REPOSITORIES.md), and a server installs them at
+run time, so nothing from them is needed here. [docs/MODULES.md](docs/MODULES.md) says how to try one on a build of your own.
 
 ```bash
 git clone https://github.com/wittywilla/WittyMediaServer

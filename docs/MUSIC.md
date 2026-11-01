@@ -151,7 +151,7 @@ Up or Down moves onto the controls for a remote.
 **In the full-screen player the visualizer is on by default**, behind the artwork, with the big **Visualizer** button (or V) to turn it off.
 
 - **Bars, Waves and Drift** are soft shapes drawn from the music in the artwork's colour. They don't flash, so they need no warning.
-- **More** has every effect from [WittyVisualizer](../web/src/modules/wittyvisualizer/README.md). The notice about flashing comes first, the first time.
+- **More** has every effect from [WittyVisualizer](https://github.com/wittywilla/WittyVisualizer). The notice about flashing comes first, the first time.
 - **Slow** is a slower, gentler pace for whichever one is showing. Devices set to reduce motion start that way.
 - **It never changes by itself unless you ask.** To have it change, choose an interval under the shuffle button: every 15 seconds up to every 10 minutes,
   among Bars, Waves and Drift, or among every effect.

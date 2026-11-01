@@ -24,7 +24,7 @@ Built for the web app and WittyMediaPlayer. Still open:
   phones, Firefox and Safari haven't been tried.
 - **A clinical or professional check of the flash limit:** it's measured against the WCAG figures with our own counter, not a
   certified analyser such as PEAT or Harding.
-- **In the native client apps:** not started. [Embedding](../web/src/modules/wittyvisualizer/wiki/Embedding.md) says what each would need.
+- **In the native client apps:** not started. [Embedding](https://github.com/wittywilla/WittyVisualizer) says what each would need.
 - **Effects written by people in the desktop app:** only the web app can add them, as the desktop bakes its shaders at build time.
 
 ## Client apps
@@ -47,7 +47,7 @@ Built for the web app and WittyMediaPlayer. Still open:
 ## Standalone apps and modules
 
 - **WittyMediaPlayer**, with WittyDVD and WittyBluray as plugins: a first Windows build exists under
-  `apps/wittymediaplayer`, in Qt 6, including playing straight from a disc drive and making `.iso` and `.img`
+  **WittyMediaPlayer**, in Qt 6, including playing straight from a disc drive and making `.iso` and `.img`
   images for a server's library, the VLC libraries as an option in Settings, WittyDVD and WittyBluray updating on their own,
   and playing and copying audio CDs on a CD screen with a visualizer. Copying has been tested with generated images only, since the
   laptop it was built on has no drive; the README has a short checklist for a real disc. WittyVisualizer's effects are on the CD screen too. Playing in a real window, sound, disc menus by eye and anything with a physical

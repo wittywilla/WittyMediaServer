@@ -16,25 +16,25 @@ or licence. The rest already exist on GitHub and only need pushing.
 
 | Repository | What it's for | From | On GitHub |
 |---|---|---|---|
-| WittyModule | The shared tools and manifest format modules are built with, and the kit that writes a module's workflows (`kit/`) | `modules/wittymodule` | Exists |
-| WittyDisc | Reading disc images, used by the disc engines | `modules/wittydisc` | Exists |
-| WittyDVD | The DVD engine | `modules/wittydvd` | Exists |
-| WittyBluray | The Blu-ray engine | `modules/wittybluray` | Exists |
-| WittyCD | The CD image engine and on-screen CD player | `modules/wittycd` | Exists |
-| WittyCouch | A Moonlight client in the page, for any Sunshine server: its relay, protocol code and player. **Apache-2.0** | `modules/wittycouch` | Exists |
-| WittyCouchHost | The separate program built on Moonlight's own code, which speaks to the PC. **GPL-3.0**, with source offered beside each release | `modules/wittycouchhost` | **Create**: rename the empty WittyMoonlightHost |
-| WittyRigs | An advanced option: hosting demanding games on the server's own hardware, using a separately installed Sunshine. **Apache-2.0** | `modules/wittyrigs` | **Create**: rename the empty WittySunshine |
-| WittyIntegratedFileBrowser | The built-in file browser | `modules/wittyintegratedfilebrowser` | Exists |
-| WittyPhotos | Photo processing | `modules/wittyphotos` | Exists |
-| WittyTuner | TV tuners and IPTV | `modules/wittytuner` | Exists |
-| WittyPlay | Console games streamed from the server | `modules/wittyplay` | Exists |
-| WittyInk | Reader plugin: notes and pen | `web/src/modules/wittyink` | Exists |
-| WittyEbook | Reader plugin: EPUB | `web/src/modules/wittyebook` | Exists |
-| WittyPDF | Reader plugin: PDF | `web/src/modules/wittypdf` | Exists |
-| WittyComics | Reader plugin: comics and manga | `web/src/modules/wittycomics` | Exists |
-| WittyVisualizer | The audio visualizer plugin, for the server and the desktop player | `web/src/modules/wittyvisualizer` | Exists |
-| WittyReader | The standalone reader app | `apps/wittyreader` | Exists |
-| WittyMediaPlayer | The standalone desktop player | `apps/wittymediaplayer` | Exists |
+| WittyModule | The shared tools and manifest format modules are built with, and the kit that writes a module's workflows (`kit/`) | **WittyModule** | Exists |
+| WittyDisc | Reading disc images, used by the disc engines | **WittyDisc** | Exists |
+| WittyDVD | The DVD engine | **WittyDVD** | Exists |
+| WittyBluray | The Blu-ray engine | **WittyBluray** | Exists |
+| WittyCD | The CD image engine and on-screen CD player | **WittyCD** | Exists |
+| WittyCouch | A Moonlight client in the page, for any Sunshine server: its relay, protocol code and player. **Apache-2.0** | **WittyCouch** | Exists |
+| WittyCouchHost | The separate program built on Moonlight's own code, which speaks to the PC. **GPL-3.0**, with source offered beside each release | **WittyCouchHost** | **Create**: rename the empty WittyMoonlightHost |
+| WittyRigs | An advanced option: hosting demanding games on the server's own hardware, using a separately installed Sunshine. **Apache-2.0** | **WittyRigs** | **Create**: rename the empty WittySunshine |
+| WittyIntegratedFileBrowser | The built-in file browser | **WittyIntegratedFileBrowser** | Exists |
+| WittyPhotos | Photo processing | **WittyPhotos** | Exists |
+| WittyTuner | TV tuners and IPTV | **WittyTuner** | Exists |
+| WittyPlay | Console games streamed from the server | **WittyPlay** | Exists |
+| WittyInk | Reader plugin: notes and pen | **WittyInk** | Exists |
+| WittyEbook | Reader plugin: EPUB | **WittyEbook** | Exists |
+| WittyPDF | Reader plugin: PDF | **WittyPDF** | Exists |
+| WittyComics | Reader plugin: comics and manga | **WittyComics** | Exists |
+| WittyVisualizer | The audio visualizer plugin, for the server and the desktop player | **WittyVisualizer** | Exists |
+| WittyReader | The standalone reader app | **WittyReader** | Exists |
+| WittyMediaPlayer | The standalone desktop player | **WittyMediaPlayer** | Exists |
 | WittyMediaClient | The client apps for desktop, Android, Apple and others | `clients/wittymediaclient` | Exists |
 | WittyModuleCatalog | The signed list of modules and versions that a server's store reads. Holds no module code | New | **Create** |
 
@@ -56,18 +56,19 @@ replaces both, so they were retired rather than moved. Their history stays in th
 
 ## Working on them
 
-### Set up once, in each checkout
+### The server needs none of them
 
-Run this once in every checkout of the server, including each worktree:
+A build of the server needs only WittyModule. Before WittyModule's new version is published, point at a checkout of it, once in
+each checkout of the server, which writes a `go.work` that git ignores:
 
 ```bash
-node scripts/dev-modules.mjs
+node scripts/dev-modules.mjs WittyModule=D:/projects/WittyModule
 ```
 
-It writes a `go.work` and links `web/node_modules/@wittywilla/*` to the repositories beside it, all ignored by
-git. `npm run build` and `npm run dev` in `web/` remake the links, since `npm ci` removes them.
+Once it's published, nothing needs setting up at all. To try real modules on a server, see
+[Developing a server and a module together](MODULES.md#developing-a-server-and-a-module-together).
 
-A module's own checkout does the same with the copy outside every repository:
+A module's own checkout that builds on another (WittyDVD on WittyDisc, say) uses the copy outside every repository:
 
 ```bash
 node D:/projects/dev-modules.mjs
@@ -89,14 +90,10 @@ git -C D:/projects/WittyPlay worktree add .claude/worktrees/my-chat -b my-chat m
 cd D:/projects/WittyPlay/.claude/worktrees/my-chat && node D:/projects/dev-modules.mjs
 ```
 
-Then point your server worktree at it, so the two build together with nothing published:
+The module's tests run in its worktree with `go test ./...`. Commit there, on your branch, and report the branch.
 
-```bash
-node scripts/dev-modules.mjs WittyPlay=D:/projects/WittyPlay/.claude/worktrees/my-chat
-```
-
-`WittyPlay=` with nothing after it goes back to the main checkout. The module's tests run in its worktree with
-`go test ./...`. Commit there, on your branch, and report the branch.
+A change to what the server calls (WittyPlay and WittyCouch) means rerunning the generator, which writes the stubs on both
+sides. See [Developing a server and a module together](MODULES.md#developing-a-server-and-a-module-together).
 
 ### From WSL
 
@@ -111,15 +108,8 @@ git clone /mnt/d/projects/WittyMediaServer ~/wms-my-chat
 cd ~/wms-my-chat && git fetch origin my-branch && git checkout FETCH_HEAD && node scripts/dev-modules.mjs --repos /mnt/d/projects
 ```
 
-To test a module's branch from WSL, clone that too and point at the clone:
-
-```bash
-git clone --branch my-chat /mnt/d/projects/WittyPlay ~/wms-my-chat-play
-```
-
-```bash
-node scripts/dev-modules.mjs WittyPlay=$HOME/wms-my-chat-play
-```
+To test a module's branch from WSL, clone it the same way, and build a catalogue from the clones with
+`scripts/make-test-catalog.sh`.
 
 ### A branch from before the split
 

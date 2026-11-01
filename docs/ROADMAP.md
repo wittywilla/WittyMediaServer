@@ -5,9 +5,9 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
 
 ## 1. Disc engines and the player family
 
-- [x] **WittyDVD as its own Go module** (`modules/wittydvd`, mirrored to its repository), with the
+- [x] **WittyDVD as its own Go module** (**WittyDVD**, mirrored to its repository), with the
   `wittydvd` command-line tool.
-- [x] **WittyBluray engine** (`modules/wittybluray`, mirrored to its repository, with the
+- [x] **WittyBluray engine** (**WittyBluray**, mirrored to its repository, with the
   `wittybluray` tool and [BLURAY.md](BLURAY.md)): images and folders, menus, titles, chapters,
   audio, subtitles, resume, AACS/BD-J/3D detection, 4K and HDR flags with tone mapping.
   Pop-up menus during the film, animated highlights and 3D viewing modes (side-by-side /
@@ -15,7 +15,7 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
   installs. [BLURAY-QUIRKS.md](BLURAY-QUIRKS.md) lists every format feature and its state. Still to
   do: test on retail discs (BD-J, MVC 3D, UHD HDR); secondary audio and picture-in-picture; MVC 3D
   decoding.
-- [x] **WittyDisc** (`modules/wittydisc`): the disc image reader both engines share.
+- [x] **WittyDisc** (**WittyDisc**): the disc image reader both engines share.
 - [x] **Versioned module releases:** WittyDisc, WittyDVD and WittyBluray are tagged on their
   repositories, so `go get` and `go install` work outside a WittyMediaServer checkout
   (MODULES.md, *Releasing the Go modules*).
@@ -24,7 +24,7 @@ listed at the end so the whole picture is in one place. Names follow [MODULES.md
 - [ ] **Server plugin interface** (`Module` in MODULES.md): books, discs and audio first.
 - [ ] **WittyMediaPlayer:** a desktop player for local files, folders, images and discs, built
   on the server's engines, with WittyDVD and WittyBluray as plugins. A first Windows build is in
-  `apps/wittymediaplayer`; still to come are its own repository and other platforms.
+  **WittyMediaPlayer**; still to come are its own repository and other platforms.
 - [ ] **Diagnostics:** the DVD and Blu-ray tools collect everything useful for diagnosing a disc,
   with no copyrighted material in what they generate. A small GUI for Windows and macOS that
   makes the diagnostic file. Clear program names on every platform.

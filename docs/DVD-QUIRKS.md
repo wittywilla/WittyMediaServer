@@ -1,6 +1,6 @@
 # DVD-Video features and disc quirks
 
-This is a reference for people working on WittyDVD, the DVD engine in `modules/wittydvd`, and on
+This is a reference for people working on WittyDVD, the DVD engine in **WittyDVD**, and on
 the DVD player in WittyMediaServer (`internal/dvdsession`, `web/src/player/DvdPlayer.tsx`). For how
 to *use* discs, see [DVD.md](DVD.md).
 
@@ -26,7 +26,7 @@ them.
 - **Field layouts** come from the public DVD-Video structure references (see [Sources](#sources)).
   Where those references stay silent, the entry says so and explains the choice made.
 - **Unit tests** build IFO tables, NAV packs, sub-picture units and VM commands byte by byte
-  (`*_test.go` in `modules/wittydvd`). The IFO, PCI, DSI and sub-picture parsers are fuzz tested
+  (`*_test.go` in **WittyDVD**). The IFO, PCI, DSI and sub-picture parsers are fuzz tested
   (`go test -fuzz=FuzzParsers`). Seeds now include a VMG with a parental table, title sets with
   parental blocks, and sub-pictures with several control sequences and CHG_COLCON.
 - **Regression runs**: `wittydvd info`, `walk` and `crawl` on the test discs give the same output

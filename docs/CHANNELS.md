@@ -197,7 +197,7 @@ feed(at) -> LiveInput          what to play now: a file and offset, a tuner stre
 - **Pause and rewind:** the window is the time-shift buffer, on disk in the transcode folder: 5
   minutes for library channels and 30 for tuners by default (*Settings → Channels & tuners*).
 
-## Tuners (`modules/wittytuner`)
+## Tuners (**WittyTuner**)
 
 A Go module of its own with no dependencies: `go.work` and a `replace` directive wire it in, like
 the disc engines. A driver implements one small interface:

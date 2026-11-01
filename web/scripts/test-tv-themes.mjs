@@ -279,6 +279,8 @@ const AUDIT = `(minSize) => {
     // Focus has to change something that shows.
     const style = (x) => { const c = getComputedStyle(x); return [c.outlineStyle + c.outlineWidth + c.outlineColor, c.boxShadow, c.backgroundColor, c.borderColor, c.color, c.backgroundImage].join('|') }
     if (e.matches('.ctv-cell')) continue
+    // A dialog can hold on to focus: see it without by giving it to something else first.
+    if (document.activeElement === e) controls.find((x) => x !== e)?.focus({ preventScroll: true })
     const before = style(e)
     e.focus({ preventScroll: true })
     if (document.activeElement === e && style(e) === before) out.push('focus does not show: ' + say(e))

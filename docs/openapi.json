@@ -5653,6 +5653,9 @@
           "canRollback": {
             "type": "boolean"
           },
+          "comesInside": {
+            "type": "boolean"
+          },
           "core": {
             "type": "boolean"
           },

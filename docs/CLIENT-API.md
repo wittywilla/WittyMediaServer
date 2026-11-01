@@ -897,9 +897,11 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `POST /modules/{id}/install` | admin | Download, verify and install a version, with no restart: the newest the last check found, or `{"version": "0.2.0", "confirm": true}`. A choice with a warning (older, withdrawn as broken, taken out of use before) is answered 409 with `"code": "confirm"` and the `warning` until the body says confirm. 202; follow it with `GET /modules`. |
 | `POST /modules/{id}/rollback` | admin | Stop using this version, and go back to the previous one. |
 | `POST /modules/{id}/add` | admin | Install the newest version that fits, and what it's built on. Answers 202, and progress shows in `phase`, `done` and `total`. |
-| `POST /modules/{id}/enable`, `/disable` | admin | Turn it on or off, with no restart. Turning off is refused, with names, while libraries need it. |
+| `POST /modules/{id}/enable` | admin | Turn it back on, with no restart. |
+| `POST /modules/{id}/disable` | admin | Turn it off, with no restart. Refused, with names, while libraries need it. |
 | `GET /modules/{id}/icon` | user | Its picture, kept by the server and checked against the signed catalogue. |
-| `GET /module-store/{id}/{key}`, `PUT` | user | A little JSON a module's page keeps for this person: at most 64 KB a key and 32 keys a module. |
+| `GET /module-store/{id}/{key}` | user | A little JSON a module's page kept for this person, or null. |
+| `PUT /module-store/{id}/{key}` | user | Keeps it: at most 64 KB a key and 32 keys a module. |
 | `GET /modules/{id}/notices` | user | The licenses of the libraries in its programs, as plain text. |
 | `POST /modules/{id}/pin` | admin | Keep the version in use; automatic updates leave it alone. A version withdrawn for security reasons goes out of use anyway. |
 | `DELETE /modules/{id}/pin` | admin | Let automatic updates move it again. |

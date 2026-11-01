@@ -172,6 +172,13 @@ type Session struct {
 	Sid string `json:"id"`
 }
 
+// MarshalJSON names a session to the module, by the name it gave.
+func (s *Session) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ID string `json:"id"`
+	}{s.Sid})
+}
+
 // sessionState is what this side keeps of a session: its end, and what's to run then.
 type sessionState struct {
 	once    sync.Once

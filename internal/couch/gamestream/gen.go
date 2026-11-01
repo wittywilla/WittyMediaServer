@@ -187,12 +187,6 @@ func CleanAddress(s string) (string, int, error) {
 	return r0, r1, err
 }
 
-// UnmarshalJSON finds an identity by the folder it's kept in.
-func (i *Identity) UnmarshalJSON(b []byte) error {
-	err := service.Call(context.Background(), "wittycouch", "gamestream.Identity.UnmarshalJSON", i, i, []any{b}, nil)
-	return err
-}
-
 // LoadOrCreateIdentity reads the identity kept in dir, making one the first time. The
 // key file is readable only by this server's account where the system allows it.
 func LoadOrCreateIdentity(dir string) (*Identity, error) {

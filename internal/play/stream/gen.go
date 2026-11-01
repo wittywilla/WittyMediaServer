@@ -377,13 +377,6 @@ func (s *Session) LoadState(slot int) error {
 	return err
 }
 
-// MarshalJSON names a session to a server, which reaches it by that name.
-func (s *Session) MarshalJSON() ([]byte, error) {
-	var r0 []byte
-	err := service.Call(context.Background(), "wittyplay", "stream.Session.MarshalJSON", s, s, nil, []any{&r0})
-	return r0, err
-}
-
 // Pause stops or restarts the game, as a menu does.
 func (s *Session) Pause(on bool) error {
 	err := service.Call(context.Background(), "wittyplay", "stream.Session.Pause", s, s, []any{on}, nil)

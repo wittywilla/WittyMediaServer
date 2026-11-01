@@ -1049,6 +1049,19 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `PUT /channels/{id}/logo` | admin | Set channel logo. |
 | `DELETE /channels/{id}/logo` | admin | Delete channel logo. |
 | `GET /tv/encrypted-help` | user | Encrypted help. |
+| `GET /guide/search` | user | What is coming up that matches, soonest first. q (2 to 100 letters), days (1 to 14), limit. |
+| `GET /tv/favourites` | user | This account's favourite channels, as channel keys. The guide marks them too. |
+| `PUT /tv/favourites/{key}` | user | Star a channel. |
+| `DELETE /tv/favourites/{key}` | user | Unstar a channel. |
+| `GET /tv/reminders` | user | This account's reminders still to come. |
+| `POST /tv/reminders` | user | Body: channel, title, sub, start, end. The same programme twice is one reminder. |
+| `DELETE /tv/reminders/{id}` | user | One of this account's reminders. |
+| `GET /channels/bumpers` | admin | Videos uploaded for the purpose, chosen from any library, or in a commercials library. |
+| `POST /channels/bumpers` | admin | Body: itemId. Any video in any library. |
+| `POST /channels/bumpers/upload` | admin | The body is the file; ?name= is its name. A video of up to 30 minutes and 2 GB. |
+| `DELETE /channels/bumpers/item/{id}` | admin | An upload goes altogether, its file too. A chosen video only comes off the list. |
+| `GET /channels/discs` | admin | Every disc, whether it is encrypted, and the words for refusing those that are. |
+| `POST /channels/clip-preview` | admin | Body: item, title. An HLS stream of the title, to try a scene before adding it. |
 | `GET /tuners/drivers` | admin | Tuner drivers. |
 | `GET /tuners/discover` | admin | Tuner discover. |
 | `GET /tuners` | admin | Tuners. |

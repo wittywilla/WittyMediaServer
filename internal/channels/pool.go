@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"hash/fnv"
 	"strconv"
 	"strings"
 
@@ -46,9 +49,15 @@ func (r *Rules) where() (string, []any) {
 			add("("+strings.Join(parts, " OR ")+")", a...)
 		}
 	}
+	// Nothing but scenes from discs: only those discs are in question.
+	if r.onlyClips() {
+		ids := r.clipItems()
+		add("i.id IN ("+placeholders(len(ids))+")", anyArgs(ids)...)
+		return strings.Join(cond, " AND "), args
+	}
 	if len(r.Libraries) > 0 {
 		add("i.library_id IN ("+placeholders(len(r.Libraries))+")", anyArgs(r.Libraries)...)
-	} else if len(r.Items) == 0 {
+	} else if len(r.Items) == 0 && len(r.Collections) == 0 {
 		add(notCommercial)
 	}
 	if len(r.Kinds) > 0 {
@@ -125,9 +134,16 @@ func (r *Rules) where() (string, []any) {
 		add("COALESCE(i.rating, s.rating) >= ?", r.MinScore)
 	}
 	// Chosen shows and hand-picked titles add up.
-	if len(r.Shows) > 0 || len(r.Items) > 0 {
+	if len(r.Shows) > 0 || len(r.Items) > 0 || len(r.Collections) > 0 {
 		var parts []string
 		var a []any
+		if len(r.Collections) > 0 {
+			in := placeholders(len(r.Collections))
+			parts = append(parts, "i.id IN (SELECT item_id FROM collection_items WHERE collection_id IN ("+in+"))",
+				"i.show_id IN (SELECT show_id FROM collection_shows WHERE collection_id IN ("+in+"))")
+			a = append(a, anyArgs(r.Collections)...)
+			a = append(a, anyArgs(r.Collections)...)
+		}
 		if len(r.Shows) > 0 {
 			parts = append(parts, "i.show_id IN ("+placeholders(len(r.Shows))+")")
 			a = append(a, anyArgs(r.Shows)...)
@@ -174,6 +190,13 @@ func (r *Rules) where() (string, []any) {
 // LoadPool reads the titles rules choose, in a stable order: shows by title,
 // season and episode, with films by title after them.
 func (s *Store) LoadPool(ctx context.Context, r Rules, minSec int64) ([]Entry, error) {
+	clips, err := s.loadClips(ctx, r.Clips)
+	if err != nil {
+		return nil, err
+	}
+	if r.onlyClips() {
+		return clips, nil
+	}
 	w, args := r.where()
 	rows, err := s.DB.QueryContext(ctx, `SELECT i.id, IFNULL(i.show_id, 0), i.runtime_sec, i.title, i.kind, i.disc_json, IFNULL(s.title, ''),
 		i.season, i.episode, i.episode_end, IFNULL(i.aired, ''), `+yearExpr+`, COALESCE(NULLIF(i.content_rating, ''), s.content_rating, ''),
@@ -208,6 +231,7 @@ func (s *Store) LoadPool(ctx context.Context, r Rules, minSec int64) ([]Entry, e
 		if g, _, _ := strings.Cut(genres, "|"); g != "" {
 			e.Genre = g
 		}
+		e.Item = e.ID
 		e.Title = title
 		if showTitle != "" {
 			e.Title = showTitle
@@ -223,7 +247,156 @@ func (s *Store) LoadPool(ctx context.Context, r Rules, minSec int64) ([]Entry, e
 		}
 		out = append(out, e)
 	}
+	return append(out, clips...), rows.Err()
+}
+
+// clipID gives a clip an id in the pool of its own, which real items (above
+// zero) can never have, and which stays the same while the clip does.
+func clipID(c DiscClip) int64 {
+	h := fnv.New32a()
+	fmt.Fprintf(h, "%d|%d|%.3f|%.3f", c.Item, c.Title, c.Start, c.End)
+	return -int64(h.Sum32()) - 1
+}
+
+// loadClips turns scenes into titles of their own. A disc that has gone, has
+// become encrypted or no longer has that title simply plays nothing.
+func (s *Store) loadClips(ctx context.Context, clips []DiscClip) ([]Entry, error) {
+	if len(clips) == 0 {
+		return nil, nil
+	}
+	discs, err := s.clipDiscs(ctx, clips)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]Entry, 0, len(clips))
+	seen := map[int64]bool{}
+	for _, c := range clips {
+		d, ok := discs[c.Item]
+		if !ok {
+			continue
+		}
+		start, end, ok := d.span(c)
+		if !ok {
+			continue
+		}
+		id := clipID(c)
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		clip := &ClipRef{Title: d.titleNumber(c.Title), Start: start, End: end, Label: c.Label}
+		e := Entry{ID: id, Item: c.Item, Dur: int64(end - start + 0.999), Title: d.title, Sub: clipSub(c), Year: d.year, Rating: d.rating, Genre: d.genre, Clip: clip}
+		out = append(out, e)
+	}
+	return out, nil
+}
+
+// clipSub is how a clip is named under its disc's title.
+func clipSub(c DiscClip) string {
+	if c.Label != "" {
+		return c.Label
+	}
+	switch {
+	case c.FromChapter > 0 && c.ToChapter > c.FromChapter:
+		return "Chapters " + strconv.Itoa(c.FromChapter) + " to " + strconv.Itoa(c.ToChapter)
+	case c.FromChapter > 0:
+		return "Chapter " + strconv.Itoa(c.FromChapter)
+	case c.Title == 0 && c.Start == 0 && c.End == 0:
+		return ""
+	}
+	return "A scene"
+}
+
+// clipDisc is what the schedule needs to know about a disc.
+type clipDisc struct {
+	info   library.DiscInfo
+	title  string
+	year   int
+	rating string
+	genre  string
+}
+
+func (d *clipDisc) titleNumber(n int) int {
+	if n == 0 {
+		return d.info.MainTitle
+	}
+	return n
+}
+
+// span is where a clip starts and ends in its title, held to what the disc has.
+func (d *clipDisc) span(c DiscClip) (start, end float64, ok bool) {
+	n := d.titleNumber(c.Title)
+	for _, t := range d.info.Titles {
+		if t.Number != n || t.DurationSec <= 0 {
+			continue
+		}
+		start, end = c.Start, c.End
+		if end == 0 || end > t.DurationSec {
+			end = t.DurationSec
+		}
+		return start, end, end-start >= minClipSec
+	}
+	return 0, 0, false
+}
+
+// clipDiscs reads the discs of these clips. Only what may be played comes back,
+// so a scrambled or missing disc is simply not there.
+func (s *Store) clipDiscs(ctx context.Context, clips []DiscClip) (map[int64]*clipDisc, error) {
+	seen := map[int64]bool{}
+	ids := []int64{}
+	for _, c := range clips {
+		if !seen[c.Item] {
+			seen[c.Item] = true
+			ids = append(ids, c.Item)
+		}
+	}
+	rows, err := s.DB.QueryContext(ctx, `SELECT i.id, i.title, i.disc_json, IFNULL(i.year, 0), IFNULL(i.content_rating, ''), IFNULL(i.genres, '')
+		FROM items i LEFT JOIN shows s ON s.id = i.show_id WHERE `+playable+` AND i.kind <> 'video' AND i.id IN (`+placeholders(len(ids))+`)`, anyArgs(ids)...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64]*clipDisc{}
+	for rows.Next() {
+		var id int64
+		var raw sql.NullString
+		var genres string
+		d := &clipDisc{}
+		if err := rows.Scan(&id, &d.title, &raw, &d.year, &d.rating, &genres); err != nil {
+			return nil, err
+		}
+		if !raw.Valid || json.Unmarshal([]byte(raw.String), &d.info) != nil {
+			continue
+		}
+		d.genre, _, _ = strings.Cut(genres, "|")
+		out[id] = d
+	}
 	return out, rows.Err()
+}
+
+// ErrEncryptedClip: a channel can't be given a scene from an encrypted disc.
+// The server words the refusal the same way as everywhere else discs are refused.
+var ErrEncryptedClip = errors.New("encrypted disc")
+
+// checkClips refuses scenes from encrypted discs when a channel is saved, so an
+// owner hears about it at once rather than getting a channel that plays nothing.
+func (s *Store) checkClips(ctx context.Context, def *Definition) error {
+	for _, r := range def.allRules() {
+		ids := r.clipItems()
+		if len(ids) == 0 {
+			continue
+		}
+		var n int
+		err := s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM items WHERE id IN (`+placeholders(len(ids))+`)
+			AND COALESCE(json_extract(disc_json, '$.scrambled'), 0) <> 0`, anyArgs(ids)...).Scan(&n)
+		if err != nil {
+			return err
+		}
+		if n > 0 {
+			return ErrEncryptedClip
+		}
+	}
+	return nil
 }
 
 // discLength is how long a disc's main title runs.
@@ -270,12 +443,26 @@ type PoolStats struct {
 
 // Stats counts a pool without loading it.
 func (s *Store) Stats(ctx context.Context, r Rules) (PoolStats, error) {
-	w, args := r.where()
 	var st PoolStats
+	clips, err := s.loadClips(ctx, r.Clips)
+	if err != nil {
+		return st, err
+	}
+	for _, c := range clips {
+		st.Titles++
+		st.Seconds += float64(c.Dur)
+	}
+	if r.onlyClips() {
+		return st, nil
+	}
+	w, args := r.where()
+	var titles, shows int
 	var sec sql.NullFloat64
-	err := s.DB.QueryRowContext(ctx, `SELECT COUNT(*), COUNT(DISTINCT i.show_id), SUM(i.runtime_sec)
-		FROM items i LEFT JOIN shows s ON s.id = i.show_id WHERE `+w, args...).Scan(&st.Titles, &st.Shows, &sec)
-	st.Seconds = sec.Float64
+	err = s.DB.QueryRowContext(ctx, `SELECT COUNT(*), COUNT(DISTINCT i.show_id), SUM(i.runtime_sec)
+		FROM items i LEFT JOIN shows s ON s.id = i.show_id WHERE `+w, args...).Scan(&titles, &shows, &sec)
+	st.Titles += titles
+	st.Shows = shows
+	st.Seconds += sec.Float64
 	return st, err
 }
 

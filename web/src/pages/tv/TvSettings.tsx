@@ -41,7 +41,7 @@ function Overview() {
 
 // ------------------------------------------------------------ library channels
 
-const GROUP_NAMES: Record<Suggestion['group'], string> = { network: 'TV networks', era: 'Eras', genre: 'Genres', show: 'Marathons', classic: 'Classics' }
+const GROUP_NAMES: Record<Suggestion['group'], string> = { network: 'TV networks', era: 'Decades', genre: 'Genres', studio: 'Studios', collection: 'Your collections', show: 'Marathons', classic: 'Classics' }
 
 function LibraryChannels() {
   const [list, setList] = useState<Channel[] | null>(null)
@@ -74,7 +74,19 @@ function LibraryChannels() {
   const setOn = async (c: Channel, enabled: boolean) => {
     try { await api.put(`/channels/${c.id}`, { enabled }); forgetLineup(); load() } catch (e: any) { toast(e.message) }
   }
-  const groups = (['network', 'classic', 'era', 'genre', 'show'] as const).map((g) => ({ g, items: (sug || []).filter((s) => s.group === g && !s.exists) })).filter((x) => x.items.length)
+  const addAll = async (items: Suggestion[]) => {
+    setBusy('all')
+    let made = 0
+    try {
+      for (const s of items) {
+        await api.post('/channels', { name: s.name, description: s.description, definition: s.definition })
+        made++
+      }
+      forgetLineup()
+      toast(`${made} ${made === 1 ? 'channel is' : 'channels are'} on the air`)
+    } catch (e: any) { toast(e.message) } finally { setBusy(''); load() }
+  }
+  const groups = (['classic', 'genre', 'studio', 'collection', 'era', 'network', 'show'] as const).map((g) => ({ g, items: (sug || []).filter((s) => s.group === g && !s.exists) })).filter((x) => x.items.length)
   return (
     <Section title="Channels from your library" desc="They run all the time, like real TV: tune in and you join the show part-way through. FFmpeg only runs while someone is watching."
       actions={<Link className="btn sm primary" to="new"><IconPlus /> New channel</Link>}>
@@ -95,7 +107,7 @@ function LibraryChannels() {
       {sug && groups.length > 0 && <h3 className="tvs-h3">Add with one click</h3>}
       {groups.map(({ g, items }) => (
         <div key={g} className="tvs-sug-group">
-          <h4 className="tvs-h4">{GROUP_NAMES[g]}</h4>
+          <div className="tvs-sug-head"><h4 className="tvs-h4">{GROUP_NAMES[g]}</h4>{items.length > 1 && <button className="btn sm ghost" disabled={!!busy} onClick={() => void addAll(items)}><IconPlus /> Add all {items.length}</button>}</div>
           <div className="tvs-sugs">
             {items.map((s) => (
               <div key={s.key} className="tvs-sug">
@@ -405,12 +417,12 @@ function Options() {
     <Section title="Options">
       <Row label="Guide layout" desc="What people start with. Everyone can change the layout, colours and preview for their own device with the Look button on the guide.">
         <select className="select" value={s.tvLayout} onChange={(e) => void set('tvLayout', e.target.value)}>
-          <option value="classic">Classic box</option><option value="streaming">Streaming</option>
+          <option value="classic">Classic cable box</option><option value="streaming">Modern</option>
         </select>
       </Row>
       <Row label="Guide colours">
         <select className="select" value={s.tvSkin} onChange={(e) => void set('tvSkin', e.target.value)}>
-          <option value="cable">Cable blue</option><option value="satellite">Satellite black and amber</option><option value="theme">The server's theme</option>
+          <option value="cable">Cable blue</option><option value="satellite">Satellite black and amber</option><option value="midnight">Midnight</option><option value="theme">The server's theme</option>
         </select>
       </Row>
       <Row label="Pass H.264 through" desc="Video the browser can already play is sent as it is. Much lighter on the machine; turn it off only if channels stutter when shows change.">

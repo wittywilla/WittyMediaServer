@@ -14,7 +14,7 @@ import (
 // definition, ready to save or to open in the editor first.
 type Suggestion struct {
 	Key         string     `json:"key"`
-	Group       string     `json:"group"` // network | era | genre | show | classic
+	Group       string     `json:"group"` // network | era | genre | studio | collection | show | classic
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	Definition  Definition `json:"definition"`
@@ -288,7 +288,7 @@ func (s *Store) Suggest(ctx context.Context) ([]Suggestion, error) {
 		if err != nil {
 			return nil, err
 		}
-		if st.Titles >= 20 {
+		if st.Titles >= minChannelTitles {
 			if err := add(fmt.Sprintf("era:%d", d), "era", fmt.Sprintf("The %ds", d), fmt.Sprintf("Everything from the %ds", d), def); err != nil {
 				return nil, err
 			}
@@ -300,7 +300,7 @@ func (s *Store) Suggest(ctx context.Context) ([]Suggestion, error) {
 		return nil, err
 	}
 	for i, g := range genres {
-		if i >= 12 || g.n < 15 {
+		if i >= 20 || g.n < minChannelTitles {
 			break
 		}
 		def := Definition{Mode: "simple", Rules: Rules{Genres: []string{g.name}}, Order: Order{Mode: "rotate"}, AlignMin: 30}
@@ -308,9 +308,37 @@ func (s *Store) Suggest(ctx context.Context) ([]Suggestion, error) {
 			return nil, err
 		}
 	}
+	// Studios: a channel of what each one made.
+	studios, err := s.studioCounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for i, g := range studios {
+		if i >= 20 || g.n < minChannelTitles {
+			break
+		}
+		def := Definition{Mode: "simple", Rules: Rules{Studios: []string{g.name}}, Order: Order{Mode: "shuffle"}, AlignMin: 30}
+		if err := add("studio:"+g.name, "studio", g.name, g.name+" films", def); err != nil {
+			return nil, err
+		}
+	}
+	// Collections the owner has put together.
+	cols, err := s.collectionOptions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range cols {
+		if c.Items < 2 {
+			continue
+		}
+		def := Definition{Mode: "simple", Rules: Rules{Collections: []int64{c.ID}}, Order: Order{Mode: "rotate"}, AlignMin: 30}
+		if err := add(fmt.Sprintf("collection:%d", c.ID), "collection", c.Name, "Everything in the "+c.Name+" collection", def); err != nil {
+			return nil, err
+		}
+	}
 	// Films, with evening starts on the half hour.
-	films := Definition{Mode: "simple", Rules: Rules{Kinds: []string{"movies"}}, Order: Order{Mode: "shuffle"}, AlignMin: 30}
-	if st, err := s.Stats(ctx, films.Rules); err == nil && st.Titles >= 5 {
+	films := Definition{Mode: "simple", Rules: Rules{Kinds: []string{"movies", "discs"}}, Order: Order{Mode: "shuffle"}, AlignMin: 30}
+	if st, err := s.Stats(ctx, films.Rules); err == nil && st.Titles >= minChannelTitles {
 		if err := add("classic:movies", "classic", "Movie Channel", "Your films, shuffled, starting on the half hour", films); err != nil {
 			return nil, err
 		}
@@ -318,7 +346,7 @@ func (s *Store) Suggest(ctx context.Context) ([]Suggestion, error) {
 	// Children's morning at the weekend.
 	age := 7
 	cartoon := Rules{Genres: []string{"Animation", "Children", "Kids"}, MaxAge: &age, AllowUnrated: true}
-	if st, err := s.Stats(ctx, cartoon); err == nil && st.Titles >= 10 {
+	if st, err := s.Stats(ctx, cartoon); err == nil && st.Titles >= minChannelTitles {
 		def := Definition{Mode: "rules", Rules: cartoon, Order: Order{Mode: "rotate"}, AlignMin: 30, Blocks: []Block{
 			{ID: "saturday-morning", Name: "Saturday morning", Days: []int{6}, Start: "07:00", End: "12:00", Rules: &cartoon},
 		}}
@@ -349,6 +377,28 @@ func (s *Store) Suggest(ctx context.Context) ([]Suggestion, error) {
 		out[i].Exists = names[strings.ToLower(out[i].Name)]
 	}
 	return out, nil
+}
+
+// minChannelTitles: fewer than this, and a channel would be the same thing again
+// and again.
+const minChannelTitles = 3
+
+func (s *Store) studioCounts(ctx context.Context) ([]genreCount, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT i.studio, COUNT(*) AS n FROM items i LEFT JOIN shows s ON s.id = i.show_id
+		WHERE IFNULL(i.studio, '') <> '' AND i.show_id IS NULL AND `+notCommercial+` AND `+playable+` GROUP BY i.studio COLLATE NOCASE ORDER BY n DESC, i.studio LIMIT 50`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []genreCount{}
+	for rows.Next() {
+		var g genreCount
+		if err := rows.Scan(&g.name, &g.n); err != nil {
+			return nil, err
+		}
+		out = append(out, g)
+	}
+	return out, rows.Err()
 }
 
 func plural(n int, one, many string) string {
@@ -426,6 +476,8 @@ type Options struct {
 	Ratings  []string      `json:"ratings"`
 	Decades  []int         `json:"decades"`
 	Shows    []ShowOption  `json:"shows"`
+	// Collections the owner has made by hand.
+	Collections []CollectionOption `json:"collections"`
 }
 
 // ShowOption is a show in the editor's pickers.
@@ -442,6 +494,9 @@ func (s *Store) EditorOptions(ctx context.Context) (*Options, error) {
 	o := &Options{Genres: []string{}, Studios: []string{}, Ratings: []string{}, Decades: []int{}, Shows: []ShowOption{}}
 	var err error
 	if o.Networks, err = s.Networks(ctx); err != nil {
+		return nil, err
+	}
+	if o.Collections, err = s.collectionOptions(ctx); err != nil {
 		return nil, err
 	}
 	gc, err := s.genreCounts(ctx)

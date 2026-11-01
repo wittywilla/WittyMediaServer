@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/rand/v2"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -31,8 +32,12 @@ type Channel struct {
 	Logo          string     `json:"logo"` // version of the owner's logo, '' = none
 	Visibility    Visibility `json:"visibility"`
 	CountProgress bool       `json:"countProgress"`
-	CreatedAt     int64      `json:"createdAt"`
-	UpdatedAt     int64      `json:"updatedAt"`
+	// Categories are the owner's own filters in the guide. None chosen: the
+	// guide works some out (see AutoCategories).
+	Categories []string `json:"categories"`
+	Look       Look     `json:"look"`
+	CreatedAt  int64    `json:"createdAt"`
+	UpdatedAt  int64    `json:"updatedAt"`
 }
 
 // Store reads and writes channels and their days.
@@ -52,14 +57,19 @@ func (s *Store) loc() *time.Location {
 	return time.Local
 }
 
-const channelCols = `id, number, name, description, enabled, definition, seed, rev, anchor_day, logo, visibility, count_progress, created_at, updated_at`
+// Look is how one channel stands out in the guide and on its banner.
+type Look struct {
+	Accent string `json:"accent,omitempty"` // #rrggbb
+}
+
+const channelCols = `id, number, name, description, enabled, definition, seed, rev, anchor_day, logo, visibility, count_progress, categories, look, created_at, updated_at`
 
 func scanChannel(sc interface{ Scan(...any) error }) (*Channel, error) {
 	var c Channel
-	var def, vis string
+	var def, vis, cats, look string
 	var seed int64
 	var enabled, count int
-	if err := sc.Scan(&c.ID, &c.Number, &c.Name, &c.Description, &enabled, &def, &seed, &c.Rev, &c.AnchorDay, &c.Logo, &vis, &count, &c.CreatedAt, &c.UpdatedAt); err != nil {
+	if err := sc.Scan(&c.ID, &c.Number, &c.Name, &c.Description, &enabled, &def, &seed, &c.Rev, &c.AnchorDay, &c.Logo, &vis, &count, &cats, &look, &c.CreatedAt, &c.UpdatedAt); err != nil {
 		return nil, err
 	}
 	c.Seed = uint64(seed)
@@ -69,6 +79,13 @@ func scanChannel(sc interface{ Scan(...any) error }) (*Channel, error) {
 	}
 	if vis != "" {
 		_ = json.Unmarshal([]byte(vis), &c.Visibility)
+	}
+	c.Categories = []string{}
+	if cats != "" {
+		_ = json.Unmarshal([]byte(cats), &c.Categories)
+	}
+	if look != "" {
+		_ = json.Unmarshal([]byte(look), &c.Look)
 	}
 	return &c, nil
 }
@@ -161,7 +178,63 @@ func (c *Channel) Check() error {
 	if err := c.Definition.Validate(); err != nil {
 		return err
 	}
+	if len(c.Categories) > 20 {
+		return errors.New("a channel can be in at most 20 categories")
+	}
+	seen := map[string]bool{}
+	cats := []string{}
+	for _, v := range c.Categories {
+		v = strings.TrimSpace(v)
+		if len(v) > 40 {
+			return errors.New("a category's name is too long")
+		}
+		if k := strings.ToLower(v); v != "" && !seen[k] {
+			seen[k] = true
+			cats = append(cats, v)
+		}
+	}
+	c.Categories = cats
+	if c.Look.Accent != "" && !hexColour.MatchString(c.Look.Accent) {
+		return errors.New("the channel's colour must look like #336699")
+	}
 	return c.Visibility.validate()
+}
+
+var hexColour = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+
+// Kids' genres, for working out the guide's Kids filter.
+var kidsGenres = []string{"Children", "Kids", "Family", "Animation"}
+
+// AutoCategories are the guide filters a channel falls under on its own: the
+// films-only ones under Movies, the child-friendly under Kids.
+func (c *Channel) AutoCategories() []string {
+	r := c.Definition.Rules
+	var out []string
+	films := len(r.Kinds) > 0
+	for _, k := range r.Kinds {
+		films = films && (k == "movies" || k == "discs")
+	}
+	if films || len(r.Studios) > 0 || r.onlyClips() {
+		out = append(out, "Movies")
+	}
+	kids := r.MaxAge != nil && *r.MaxAge <= 12
+	for _, g := range r.Genres {
+		for _, k := range kidsGenres {
+			kids = kids || strings.EqualFold(g, k)
+		}
+	}
+	if kids {
+		out = append(out, "Kids")
+	}
+	return out
+}
+
+// GuideCategories are the filters a channel shows under in the guide.
+func (c *Channel) GuideCategories() []string {
+	if len(c.Categories) > 0 {
+		return c.Categories
+	}
+	return c.AutoCategories()
 }
 
 // Create saves a new channel.
@@ -179,21 +252,34 @@ func (s *Store) Create(ctx context.Context, c *Channel, userID int64) error {
 	if c.Definition.Mode == "" {
 		c.Definition.Mode = "simple"
 	}
+	if err := s.checkClips(ctx, &c.Definition); err != nil {
+		return err
+	}
 	def, _ := json.Marshal(c.Definition)
 	vis, _ := json.Marshal(c.Visibility)
+	cats, look := marshalExtras(c)
 	c.Seed = rand.Uint64() >> 1 // keep it in SQLite's signed integers
 	c.Rev = 1
 	c.Enabled = true
 	now := db.Now()
 	c.AnchorDay = DayNumber(time.Now(), s.loc())
-	res, err := s.DB.ExecContext(ctx, `INSERT INTO channels(number, name, description, enabled, definition, seed, rev, anchor_day, visibility, count_progress, created_by, created_at, updated_at)
-		VALUES(?,?,?,1,?,?,1,?,?,?,?,?,?)`, c.Number, c.Name, c.Description, string(def), int64(c.Seed), c.AnchorDay, string(vis), boolInt(c.CountProgress), userID, now, now)
+	res, err := s.DB.ExecContext(ctx, `INSERT INTO channels(number, name, description, enabled, definition, seed, rev, anchor_day, visibility, count_progress, categories, look, created_by, created_at, updated_at)
+		VALUES(?,?,?,1,?,?,1,?,?,?,?,?,?,?,?)`, c.Number, c.Name, c.Description, string(def), int64(c.Seed), c.AnchorDay, string(vis), boolInt(c.CountProgress), cats, look, userID, now, now)
 	if err != nil {
 		return err
 	}
 	c.ID, _ = res.LastInsertId()
 	c.CreatedAt, c.UpdatedAt = now, now
 	return nil
+}
+
+func marshalExtras(c *Channel) (cats, look string) {
+	if c.Categories == nil {
+		c.Categories = []string{}
+	}
+	a, _ := json.Marshal(c.Categories)
+	b, _ := json.Marshal(c.Look)
+	return string(a), string(b)
 }
 
 func boolInt(b bool) int {
@@ -215,6 +301,9 @@ func (s *Store) Update(ctx context.Context, c *Channel) error {
 	if err != nil {
 		return err
 	}
+	if err := s.checkClips(ctx, &c.Definition); err != nil {
+		return err
+	}
 	oldDef, _ := json.Marshal(old.Definition)
 	newDef, _ := json.Marshal(c.Definition)
 	vis, _ := json.Marshal(c.Visibility)
@@ -226,8 +315,9 @@ func (s *Store) Update(ctx context.Context, c *Channel) error {
 		_, _ = s.DB.ExecContext(ctx, `DELETE FROM channel_history WHERE channel_id = ? AND id NOT IN
 			(SELECT id FROM channel_history WHERE channel_id = ? ORDER BY id DESC LIMIT ?)`, c.ID, c.ID, keepHistory)
 	}
-	if _, err := s.DB.ExecContext(ctx, `UPDATE channels SET number=?, name=?, description=?, enabled=?, definition=?, visibility=?, count_progress=?, updated_at=? WHERE id=?`,
-		c.Number, c.Name, c.Description, boolInt(c.Enabled), string(newDef), string(vis), boolInt(c.CountProgress), db.Now(), c.ID); err != nil {
+	cats, look := marshalExtras(c)
+	if _, err := s.DB.ExecContext(ctx, `UPDATE channels SET number=?, name=?, description=?, enabled=?, definition=?, visibility=?, count_progress=?, categories=?, look=?, updated_at=? WHERE id=?`,
+		c.Number, c.Name, c.Description, boolInt(c.Enabled), string(newDef), string(vis), boolInt(c.CountProgress), cats, look, db.Now(), c.ID); err != nil {
 		return err
 	}
 	if changed {
@@ -330,7 +420,10 @@ func (s *Store) Rebuild(ctx context.Context, id int64, reseed bool) error {
 	var state State
 	if row, ok := s.readDay(ctx, id, today); ok {
 		for _, p := range row.Programmes {
-			if p.Start <= now.Unix() {
+			// The rest of a programme that is on now stays too, breaks included.
+			last := len(kept) - 1
+			goesOn := last >= 0 && ((p.Kind == KindFiller && p.Role == RoleBreak) || (p.Kind == KindShow && p.Offset > 0 && p.ItemID == kept[last].ItemID))
+			if p.Start <= now.Unix() || goesOn {
 				kept = append(kept, p)
 			}
 		}
@@ -513,6 +606,98 @@ func (s *Store) Now(ctx context.Context, c *Channel, t time.Time) (cur, next *Pr
 	return cur, nil, nil
 }
 
+// slateMerge: a slate or filler shorter than this joins the programme it
+// follows in the guide; a long stretch of nothing shows as what it is.
+const slateMerge = 900
+
+// GuideCells turns the schedule into what a viewer means by a programme. A
+// bumper before a show starts its slot, breaks and the parts of a programme are
+// one programme, and what follows it belongs to it until the next one starts.
+// Every start and end in the result is when that actually happens, so the guide
+// is as true as the schedule.
+func GuideCells(list []Programme) []Programme {
+	out := make([]Programme, 0, len(list))
+	var lead int64 // when a bumper leading into the next programme began
+	for _, p := range list {
+		if p.Kind == KindFiller && p.Role == RolePre {
+			if lead == 0 {
+				lead = p.Start
+			}
+			continue
+		}
+		n := len(out)
+		if p.Kind == KindShow {
+			if n > 0 && p.Offset > 0 && out[n-1].Kind == KindShow && out[n-1].ItemID == p.ItemID && lead == 0 {
+				out[n-1].End = p.End // the next part of the same programme
+				continue
+			}
+			if lead != 0 {
+				p.Start, lead = lead, 0
+			}
+			out = append(out, p)
+			continue
+		}
+		if lead != 0 {
+			// A bumper leading into nothing: keep it where it is.
+			if n > 0 {
+				out[n-1].End = p.Start
+			}
+			lead = 0
+		}
+		if n > 0 && p.End-p.Start < slateMerge && out[n-1].End >= p.Start {
+			out[n-1].End = p.End
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// GuideNow is the programme on at t as the guide tells it, and the one after.
+func (s *Store) GuideNow(ctx context.Context, c *Channel, t time.Time) (cur, next *Programme, err error) {
+	list, err := s.Window(ctx, c, t.Add(-12*time.Hour), t.Add(26*time.Hour))
+	if err != nil {
+		return nil, nil, err
+	}
+	cells := GuideCells(list)
+	u := t.Unix()
+	for i := range cells {
+		p := &cells[i]
+		if p.Start <= u && u < p.End {
+			cur = p
+			continue
+		}
+		if p.Start > u {
+			if p.Kind == KindShow {
+				return cur, p, nil
+			}
+		}
+	}
+	return cur, nil, nil
+}
+
+// Find looks through what a channel will play in a window.
+func (s *Store) Find(ctx context.Context, c *Channel, from, to time.Time, needle string, limit int) ([]Programme, error) {
+	list, err := s.Window(ctx, c, from.Add(-12*time.Hour), to)
+	if err != nil {
+		return nil, err
+	}
+	needle = strings.ToLower(needle)
+	out := []Programme{}
+	for _, p := range GuideCells(list) {
+		if p.Kind != KindShow || p.End <= from.Unix() || p.Start >= to.Unix() {
+			continue
+		}
+		if strings.Contains(strings.ToLower(p.Title), needle) || strings.Contains(strings.ToLower(p.Sub), needle) {
+			out = append(out, p)
+			if len(out) >= limit {
+				break
+			}
+		}
+	}
+	return out, nil
+}
+
 // ---------------------------------------------------------------------------
 // Who may see a channel
 // ---------------------------------------------------------------------------
@@ -533,6 +718,17 @@ func (d *Definition) allRules() []Rules {
 	for _, c := range d.Filler.Commercials {
 		if r, ok := c.rules(); ok {
 			out = append(out, r)
+		}
+	}
+	for i := range d.Bumpers.Rules {
+		if b := &d.Bumpers.Rules[i]; !b.Off {
+			out = append(out, b.Source)
+		}
+	}
+	// A disc a scene comes from counts just as if the whole disc could play.
+	for _, r := range out[:len(out):len(out)] {
+		if ids := r.clipItems(); len(ids) > 0 && !r.onlyClips() {
+			out = append(out, Rules{Items: ids})
 		}
 	}
 	return out

@@ -26,8 +26,9 @@ Definition
   rules     what may play by default      library, genre, network, decade, rating, show, season,
                                           watched state, length, kind, hand-picked items…
   order     how it plays                  rotate | sequential | aired | shuffle, keep episodes in order
-  blocks[]  day parts and timetable slots days, start, end, own rules, own order, fit
-  filler    between programmes            commercials libraries, bumper rules, how many between shows
+  blocks[]  day parts and timetable slots days, start, end, own rules, own order, fit, season, marathon
+  filler    between programmes            commercials libraries, how many between shows
+  bumpers   around programmes             bumper rules, and what gives way to keep to the timetable
   alignMin  start times snap to a grid    0, 5, 15, 30 or 60 minutes
 ```
 
@@ -35,6 +36,10 @@ Day parts and hand-built timetable slots are both **blocks**. "Weekdays 18:00–
 episode" is one block with `rules.shows=[id]`; "Saturday 07:00–12:00, Animation" is another. Time no
 block covers plays the channel's own rules, or a "We'll be right back" slate if there are none.
 In `simple` mode the blocks are ignored but kept, so going back to Rules finds them again.
+
+A block can have a **season**, as first and last dates (`fromDate`, `toDate`, as `12-01`, and over New Year if the
+last is before the first). While a season runs its block takes over from anything that plays all year, however they
+overlap. A **marathon** block runs straight on: no commercials, no optional bumpers, no waiting for the time grid.
 
 Each save also keeps the previous definition (the last 20, restorable) and the editor keeps an
 unsaved draft in the browser, so a closed tab does not lose work.
@@ -71,7 +76,60 @@ the ones ticked. They play after each programme (0 to 5 of them) and fill the ga
 and never count as watched. They come under a profile's limits like anything else: unrated commercials
 hide a channel from a Kids profile, since viewers share one stream.
 
-Breaks inside a programme are not done: commercials come between programmes.
+### Bumpers
+
+A **bumper** is a short video around a programme: a station ident, a sting before one particular film. *Settings →
+Channels & tuners → (a channel) → Bumpers* has two parts:
+
+- **The bumper library,** shared by every channel. Upload a video (at most 30 minutes and 2 GB), or choose any video
+  you already have. Uploads go into an ordinary commercials library in the data folder, called *WittyTV bumpers*, so
+  ratings, thumbnails and everything else work as they do for any video. Anything in a commercials library is in the
+  bumper library too.
+- **Rules,** per channel. A rule says when, which videos and for what:
+
+| Part | Choices |
+|---|---|
+| When | Before each programme, after each programme, between commercials, or in a break every N minutes |
+| Which | Any of the chosen videos. They take turns, so the same one doesn't always play |
+| For | Every programme, or only particular films, shows, genres or collections |
+| Mandatory | Never cut or left out to keep to the timetable |
+
+A break every N minutes splits the programme into stretches with the bumper between them. The guide still shows one
+programme, and none comes so close to the end that the viewer would just wait for it to finish.
+
+### Cutting commercials short
+
+*Keeping to the timetable* decides what happens when a programme runs long. With it on, the next start time comes
+first: the first time on the grid that the programme and its mandatory bumpers can make. Everything else gets the room
+that is left, and gives way in this order:
+
+| What | Choices |
+|---|---|
+| Commercials, the last one first | **Cut them short** (the default; one with too little left is left out), **leave out whole ones**, or **always play them** |
+| Bumpers that aren't mandatory | **Leave them out** (the default), **cut them short**, or **always play them** |
+| The end of a programme | **Never** (the default), or up to 5 minutes. Only used when a programme is just over its slot, and it then starts the next one on time rather than leaving nearly a whole slot empty |
+
+Mandatory bumpers are never touched. A gap that is left is filled with commercials, the last cut to fit exactly, and
+then a card. If something set to always play makes a programme late, the schedule says so: the next one starts at the
+next time on the grid, and that is what the guide shows.
+
+**The guide stays truthful, and the schedule stays deterministic.** Trimming is worked out when the day is scheduled,
+from the definition and the seed, so the same input gives the same day. Each stretch records what it lost
+(`trimmed`). In the guide, a bumper leading in starts its programme's slot, and what follows belongs to the programme
+until the next one starts, so every time shown is when that really happens. The editor's *What it will look like*
+shows the whole day with every bumper and commercial, what was cut, and how many programmes started off the timetable.
+
+### Discs on a channel
+
+A channel can play a DVD or Blu-ray's **main feature**, or any **scenes** from any of its titles. *Discs and scenes* in
+the editor lists every disc: one press adds the main feature, and *Choose scenes* opens the picker, with a picture for
+each chapter. Press a chapter to start from it and another to end with it, nudge the times to the second, try the scene
+on the spot, and add it. *Add every chapter as a scene of its own* does the whole title at once.
+
+Each is a clip in the rules (`rules.clips`): a disc, a title (0 = its main feature) and a time range. With no other
+rules, clips are all a channel plays; otherwise they add to what the rules choose. Each clip is a programme of its own,
+and the same works for bumpers. Encrypted discs are listed with the normal refusal and can't be chosen, and a clip
+whose disc has since gone or become encrypted just doesn't play.
 
 ### Tune in mid-show
 
@@ -79,8 +137,8 @@ Breaks inside a programme are not done: commercials come between programmes.
 session (below) that starts FFmpeg at that position. When the run ends the feeder asks the schedule
 again, so a slow machine catches up rather than drifting.
 
-Discs play their main title through the same engines as the disc player, with no menus or remote
-features. Scrambled discs are left out of every pool.
+Discs play through the same engines as the disc player, with no menus or remote features. Scrambled discs are left out
+of every pool.
 
 ### Known TV networks
 
@@ -321,36 +379,86 @@ thousands of channels stays quick.
 
 ## The look
 
-Everything about how the guide looks is the viewer's own choice, per device (**Look** on the guide).
-The owner sets what people start with (*Settings → Channels & tuners*).
+Everything about how the guide looks is the viewer's own choice, kept with their account (**Look** on the guide). The
+owner sets what people start with (*Settings → Channels & tuners*), and a theme can suggest a look: see
+[THEMES.md](THEMES.md). The order is the viewer's choice, then the theme's suggestion, then the owner's.
 
 - **Layout: Classic box.** Bulky, bevelled and square, in the style of a cable or satellite box of the
   early 2000s, with original artwork and colours (no real provider's name, logo or layout): raised
   cells, half-hour columns, an information panel on top with a clock, and a help strip with the
   coloured A, B and C buttons of a remote.
-- **Layout: Streaming.** Clean rows and soft corners, with how long is left on each programme.
-- **Colours:** Cable blue, Satellite black and amber, or the viewer's theme. Both fixed palettes are
-  checked against WCAG AA.
+- **Layout: Modern** (`streaming` in the API). Dark and quiet, with the programme's picture up top and white for
+  what is selected.
+- **Colours:** Cable blue, Satellite black and amber, Midnight, the viewer's theme, or their own two colours. The fixed
+  palettes are checked against WCAG AA; with custom colours the text colour is worked out from its surface, and a
+  highlight too close to the background is moved until it can be read.
+- **Each channel** can have its own colour, in the editor, on its row, at the top of the guide and on its banner.
 - **The line at the current time** runs down all channels, and each programme on now fills up to it,
   so it is plain how far in each channel is. Both can be turned off, in either layout.
-- **The preview:** a live picture, top right by default, in both layouts. It can show the highlighted
-  channel, the last channel watched, or be off; go in any corner or anywhere it is dragged (or nudged
-  with the arrow keys on its handle); and come in three sizes.
-- Row size, hours across the screen, episode names and logos can be changed too.
+- **The preview:** a live picture beside the highlighted programme, on the right or the left, in both layouts. It can
+  show the highlighted channel, the last channel watched, or be hidden.
+- Row size, hours across the screen, episode names, logos and the programme's picture can be changed too.
 
-The preview waits for the highlight to settle, then shares the channel's ordinary stream, so a channel
-someone else is watching costs nothing extra. Each player names itself to the server and says when it
-leaves, so a channel only flicked past stops about two seconds later and frees FFmpeg and its tuner.
-On a tuner, a preview does use up a tuner, which is why it can be pointed at the last channel or off.
+**Resizing the preview.** Drag its inner corner, or focus that corner (it is a slider) and use Left and Right for small
+steps, Page Up and Page Down for the named sizes, Home and End for smallest and largest. The − and + buttons under the
+picture do the same, and work with a remote. It snaps to Small, Medium, Large and Extra large, and any size between
+works. It is part of the page's layout, not a layer over it, so at any size it moves what is beside it and covers
+nothing; its largest size is worked out from the page, so the words and the guide always keep room. On a phone it has
+a line of its own above the words.
 
-Tuning shows a banner with the channel number, name, times, a progress bar and what is next. Number
-keys dial a channel, CH+ and CH− use the arrows or Page keys, and **Last** goes back.
+**What it costs.** The preview waits for the highlight to settle, then shares the channel's ordinary stream, so a
+channel someone else is watching costs nothing extra. Each player names itself to the server and says when it leaves,
+so a channel only flicked past stops about two seconds later and frees FFmpeg and its tuner. It stops altogether while
+the page is in the background. Dragging changes only the preview's own width. On a tuner a preview does use up a tuner,
+which is why it can be pointed at the last channel or hidden.
 
-The grid is a real ARIA grid. Arrow keys move between programmes with a roving tab stop, every cell
-is read as "Channel 101, Comedy, The Show, 8:00 to 8:30 PM, on now", and it works with TV remotes,
-game controllers and on phones (a narrower channel column and sideways scrolling).
+Tuning shows a banner with the channel number, name, times, a progress bar and what is next, at once, from what the
+list already knows. Number keys dial a channel, CH+ and CH− use the arrows or Page keys, and **Last** goes back to the
+channel before, even after leaving the player. **G** opens the mini guide over the picture: a few channels with what is
+on now and next, without leaving what is playing.
 
-The player reuses the on-screen remote and the shared controls, and adds channel keys.
+The grid is a real ARIA grid. Arrow keys move between programmes with a roving tab stop, every cell is read as "Channel
+101, Comedy, The Show, 8:00 to 8:30 PM, on now", and it works with TV remotes, game controllers and on phones. Up from
+the top row and Left from the first cell hand the arrows back, so a remote reaches everything above.
+
+| Key | In the guide |
+|---|---|
+| Arrows, Page Up, Page Down | Move around |
+| OK / Enter | Watch, or details for something later |
+| 0–9 | Dial a channel |
+| F | Favourite channel |
+| M | Remind me |
+| D | The whole day on this channel |
+| S or / | Search the schedule |
+| L | The last channel |
+| I | More about this programme |
+| N or Home | Back to now |
+| + and − | Fewer or more hours across the screen |
+| A, B, C | A day back, a day on, library or live TV |
+
+Rows handle programmes of any length. A cell too narrow for words has none, and still takes the highlight. Several in a
+row are drawn as one saying how many; the top of the page names the one on now, and Info lists them all.
+
+### Around the guide
+
+- **The top of the guide** says everything about the highlighted programme: channel, title, year and genre, start and
+  end, how far in, what is next. From there: Watch full screen, Start over (the title from the beginning, on your own),
+  Open the film or show, favourite, channel up and down, more, and the whole day.
+- **Filters:** All, Favourites, and categories. A channel's categories are the owner's own, or else worked out: Movies
+  and Kids. Tuner channels use their playlist's group. Library and Live TV appear when there are both.
+- **Time:** earlier, Now, later, Tonight or Tomorrow 8 PM, Tomorrow morning, and any day of the next two weeks.
+- **Favourites and reminders** belong to the account. A reminder appears on any page a minute before the programme
+  starts, with a button to watch it.
+- **Search** covers every channel the account can see, up to two weeks ahead, library schedules and guide data alike.
+- **Home** has an *On TV now* row, which can be moved or hidden like any other.
+
+### Channels in one click
+
+*Add with one click* offers what the library can fill: Movies and Saturday morning classics, genres, studios, your own
+collections, decades, TV networks and marathons. Each group has *Add all*, for a whole line-up at once. A channel takes
+at least three titles, or it would be the same thing again and again.
+
+Logos come from the owner's own uploads. Without a logo a channel shows its name as a clean text mark.
 
 ## For the TV apps
 
@@ -363,8 +471,11 @@ schedules, guide data, tuning, recording and the encryption wording. See the sha
   carries on to its segments, for players that can't set headers.
 - **Codecs:** H.264 and stereo AAC in MPEG-TS, which every native player handles. Viewers share one stream, so the
   codec isn't chosen per client: it's the one they can all play.
-- **Guide:** `GET /api/guide`; pass `list=1` for numbers only. A TV app needs a grid that moves with a D-pad and
-  remote focus, as the web guide's does: arrows, Page keys, 0–9 to dial, Enter to watch.
+- **Guide:** `GET /api/guide`; pass `list=1` for numbers only, `favourites=1`, `group=` or `channel=` to narrow it. A TV
+  app needs a grid that moves with a D-pad and remote focus, as the web guide's does: arrows, Page keys, 0–9 to dial,
+  Enter to watch. `now` in the tune answer is the programme as the guide tells it, and `playing` what is on the screen
+  when that is a bumper inside it.
+- **The look:** an account's look is kept under `tvLook` in `GET /api/me/ui`, so a TV app can follow it.
 - **Encrypted channels:** show `security.label`, `security.detail` and `alternative` from the API, and the page from
   `GET /api/tv/encrypted-help`, rather than wording of your own.
 
@@ -372,7 +483,12 @@ schedules, guide data, tuning, recording and the encryption wording. See the sha
 
 | Method and path | Who | What |
 |---|---|---|
-| `GET /api/guide?from&hours&offset&limit&kind&group` | signed in | Channels and programmes |
+| `GET /api/guide?from&hours&offset&limit&kind&group&favourites&channel` | signed in | Channels and programmes |
+| `GET /api/guide/search?q&days&limit` | signed in | Search what is coming up |
+| `GET /api/tv/favourites`, `PUT`/`DELETE /api/tv/favourites/{key}` | signed in | This account's favourite channels |
+| `GET`/`POST /api/tv/reminders`, `DELETE /api/tv/reminders/{id}` | signed in | This account's reminders |
+| `GET`/`POST /api/channels/bumpers`, `POST …/upload`, `DELETE …/item/{id}` | admin | The bumper library |
+| `GET /api/channels/discs`, `POST /api/channels/clip-preview` | admin | Discs for scenes, and trying one |
 | `GET /api/tv/{key}/tune` | signed in | What is on, and the stream |
 | `GET /api/tv/{key}/live/playlist.m3u8`, `/seg/{name}` | signed in | The shared stream |
 | `POST /api/tv/{key}/leave?viewer=` | signed in | A player has gone |
@@ -399,11 +515,12 @@ schedules, guide data, tuning, recording and the encryption wording. See the sha
 1. *Settings → Channels & tuners*. Under **Add with one click**, press **Add** on anything suggested,
    such as a network your library has shows from. It is on the air straight away.
 2. **TV guide** in the menu. Arrow keys or the remote move around, Enter or OK watches, and number keys
-   dial a channel. **Look** changes how the guide looks on this device.
+   dial a channel. **Look** picks the classic cable box or the modern look, and more.
 3. For more control: **New channel**, or **Edit** on a channel. Start with Simple. Rules and Full
    timetable are there if you want them.
 4. For your own adverts: *Settings → Libraries → Add library → Commercials*, then tick the library under
-   **Commercials** when editing a channel.
+   **Commercials** when editing a channel. For bumpers, scenes from discs and keeping to the timetable, see the sections
+   of the same name when editing a channel.
 5. For live TV: **Search for tuners**, or **Add** one under *Tuners and IPTV*. For a guide, add an XMLTV
    address under *Guide data*, if the playlist did not bring its own.
 
@@ -412,9 +529,10 @@ To let the custom command driver run, start the server with `WMS_TUNER_COMMANDS=
 ## Status
 
 **Tested end to end on a real server with real FFmpeg:** one-click network channels, rule channels, hand
-timetables, tuning in mid-show, the guide and its looks, the preview, commercials, DVDs on a channel,
-IPTV playlists and streams against a local server, a stand-in network tuner, refusal of encrypted
-channels, XMLTV guide data, recording from a stand-in tuner, and profile limits.
+timetables, tuning in mid-show, the guide and both looks, the preview and its resizing, commercials, bumper rules
+(mandatory and tied to one film), commercials cut short on a real channel, DVD main features and scenes on a channel, a
+Blu-ray's main feature and scenes, IPTV playlists and streams against a local server, a stand-in network tuner, refusal
+of encrypted channels, XMLTV guide data, recording from a stand-in tuner, and profile limits.
 
 **Not tested on real hardware, because none was available:** every physical tuner. See the driver table.
 
@@ -423,7 +541,8 @@ channels, XMLTV guide data, recording from a stand-in tuner, and profile limits.
 - Windows BDA digital tuning; DiSEqC dish switches on Linux DVB.
 - ATSC 3.0 sound: AC-4 needs a decoder FFmpeg doesn't have.
 - ATSC huffman-compressed guide text (those events are skipped).
-- Commercial breaks inside a programme (they play between programmes).
+- Commercials inside a programme's breaks: a break every N minutes plays the rule's bumpers. Commercials play after a
+  programme.
 - A viewer and a recording sharing one tuner on the same channel.
 - Recording disk-space checks and automatic clean-up of old recordings.
 - Guide data read over the air reaches only the channel being watched, not the others on its multiplex.

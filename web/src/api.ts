@@ -245,7 +245,7 @@ export function mediaUrl(path: string): string {
   return full + (full.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(tok)
 }
 // mediaUrl with something more in its query.
-const mediaUrlQ = (path: string, q: string) => { const u = mediaUrl(path); return u + (u.includes('?') ? '&' : '?') + q }
+export const mediaUrlQ = (path: string, q: string) => { const u = mediaUrl(path); return u + (u.includes('?') ? '&' : '?') + q }
 
 export const posterUrl = (it: Item) => mediaUrlQ(`/api/items/${it.id}/poster`, `v=${it.updatedAt}`)
 // '' when the item has no picture at all (nothing to ask the server for).

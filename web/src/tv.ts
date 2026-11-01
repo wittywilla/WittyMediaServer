@@ -21,7 +21,7 @@ import { isBackKey, ranked, type Dir } from './ui/spatial'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), summary, input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 // Inside the player only these areas take part in spatial navigation.
-const PLAYER_CONTROLS = '.bottom, .top, .view-settings, .remote, .remote-bar, .mini-bar, .overlay-msg, .watch-next, .big-play, .skip-intro'
+const PLAYER_CONTROLS = '.bottom, .top, .view-settings, .remote, .remote-bar, .mini-bar, .overlay-msg, .watch-next, .big-play, .skip-intro, .ctv-mini, .tv-remind'
 // The player that fills the screen. A player inside a page (.inline) is just a
 // part of that page.
 const FULL_PLAYER = '.player:not(.mini):not(.inline)'

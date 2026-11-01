@@ -4,6 +4,9 @@ import { fmtDateTime, api, fmtRuntime, mediaUrl, type Item, type UserView } from
 import { IconPlus, IconTrash } from '../../icons'
 import { toast, useApp } from '../../state'
 import { PageHead, Section } from '../settings/ui'
+import { BumperSection } from './BumperEditor'
+import DiscScenes from './DiscScenes'
+import './tveditor.css'
 import { DAYS, emptyDefinition, type CommercialPick, fmtClock, forgetLineup, fullDay, uploadLogo, type Block, type Channel, type Definition, type EditorOptions, type Order, type PoolStats, type Programme, type Rules, type Suggestion, type Visibility } from './tvApi'
 
 // One channel, as much or as little as you want. Simple, Rules and Timetable
@@ -22,9 +25,9 @@ const FITS: { v: NonNullable<Block['fit']>; label: string }[] = [
   { v: 'fill', label: 'Finish on time: fill the gap' }, { v: 'overrun', label: 'Let the show finish' }, { v: 'cut', label: 'Cut it at the end of the slot' },
 ]
 
-type Draft = { name: string; number: string; description: string; definition: Definition; visibility: Visibility; countProgress: boolean; enabled: boolean }
+type Draft = { name: string; number: string; description: string; definition: Definition; visibility: Visibility; countProgress: boolean; enabled: boolean; categories: string[]; look: { accent?: string } }
 
-const blankDraft = (): Draft => ({ name: '', number: '', description: '', definition: emptyDefinition(), visibility: { mode: '' }, countProgress: false, enabled: true })
+const blankDraft = (): Draft => ({ name: '', number: '', description: '', definition: emptyDefinition(), visibility: { mode: '' }, countProgress: false, enabled: true, categories: [], look: {} })
 const newBlockId = () => 'b' + Math.random().toString(36).slice(2, 9)
 const clean = <T extends object>(o: T): T => JSON.parse(JSON.stringify(o, (_, v) => (v === '' || (Array.isArray(v) && v.length === 0) ? undefined : v)))
 
@@ -41,7 +44,14 @@ export default function ChannelEditor() {
   const [err, setErr] = useState('')
   const [logo, setLogo] = useState('')
   const [history, setHistory] = useState<{ id: number; savedAt: number; name: string }[]>([])
+  const [categories, setCategories] = useState('')
   const baseline = useRef('')
+  const catsLoaded = useRef(false)
+  useEffect(() => { if (draft && !catsLoaded.current) { catsLoaded.current = true; setCategories((draft.categories || []).join(', ')) } }, [draft])
+  const jump = (target: string) => (e: React.MouseEvent) => {
+    e.preventDefault()
+    document.getElementById(target)?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  }
 
   useEffect(() => { api.get<EditorOptions>('/channels/options').then(setOpts).catch((e) => toast(e.message)) }, [])
   useEffect(() => {
@@ -56,7 +66,7 @@ export default function ChannelEditor() {
     if (id) {
       api.get<Channel>(`/channels/${id}`).then((c) => {
         setSaved(c); setLogo(c.logo)
-        finish({ name: c.name, number: c.number, description: c.description, definition: { ...emptyDefinition(), ...c.definition, blocks: c.definition.blocks || [] }, visibility: c.visibility || { mode: '' }, countProgress: c.countProgress, enabled: c.enabled })
+        finish({ name: c.name, number: c.number, description: c.description, definition: { ...emptyDefinition(), ...c.definition, blocks: c.definition.blocks || [] }, visibility: c.visibility || { mode: '' }, countProgress: c.countProgress, enabled: c.enabled, categories: c.categories || [], look: c.look || {} })
       }).catch((e) => setErr(e.message))
       api.get<typeof history>(`/channels/${id}/history`).then(setHistory).catch(() => {})
     } else {
@@ -146,10 +156,30 @@ export default function ChannelEditor() {
             <label>Number<input className="input tvs-short" value={draft.number} maxLength={12} onChange={(e) => setDraft({ ...draft, number: e.target.value })} placeholder="Next free" /></label>
           </div>
           <label>Description<input className="input" value={draft.description} maxLength={2000} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></label>
+          <div className="tvs-two">
+            <label>Categories in the guide
+              <input className="input" value={categories} placeholder="Movies, Kids, Late night" onChange={(e) => setCategories(e.target.value)} onBlur={() => setDraft({ ...draft, categories: categories.split(',').map((x) => x.trim()).filter(Boolean) })} />
+              <small className="tvs-help">Separated by commas. Leave it empty and the guide works some out, such as Movies and Kids.</small>
+            </label>
+            <div className="tve-accent">
+              <label>The channel's own colour<input type="color" value={draft.look.accent || '#3478f6'} onChange={(e) => setDraft({ ...draft, look: { accent: e.target.value } })} /></label>
+              {draft.look.accent && <button type="button" className="btn sm ghost" onClick={() => setDraft({ ...draft, look: {} })}>Use the guide's colours</button>}
+            </div>
+          </div>
         </div>
       </Section>
 
-      <div className="tvs-levels" role="radiogroup" aria-label="How much do you want to set up?">
+      <nav className="tve-jump" aria-label="Parts of this channel">
+        <a href="#ch-plays" onClick={jump('ch-plays')}>What it plays</a>
+        <a href="#ch-discs" onClick={jump('ch-discs')}>Discs and scenes</a>
+        <a href="#ch-commercials" onClick={jump('ch-commercials')}>Commercials</a>
+        <a href="#ch-bumpers" onClick={jump('ch-bumpers')}>Bumpers</a>
+        <a href="#ch-bumpers-trim" onClick={jump('ch-bumpers-trim')}>Timetable</a>
+        <a href="#ch-schedule" onClick={jump('ch-schedule')}>Schedule</a>
+        <a href="#ch-who" onClick={jump('ch-who')}>Who sees it</a>
+      </nav>
+
+      <div className="tvs-levels" id="ch-plays" role="radiogroup" aria-label="How much do you want to set up?">
         {levels.map((l) => (
           <button key={l.v} type="button" role="radio" aria-checked={def.mode === l.v} className={'tvs-level' + (def.mode === l.v ? ' on' : '')} onClick={() => setDef({ mode: l.v })}>
             <b>{l.label}</b><span>{l.hint}</span>
@@ -161,12 +191,14 @@ export default function ChannelEditor() {
       {def.mode === 'rules' && opts && <RulesLevel def={def} setRules={setRules} setDef={setDef} opts={opts} />}
       {def.mode === 'timetable' && opts && <TimetableLevel def={def} setDef={setDef} setRules={setRules} opts={opts} />}
 
+      <DiscScenes id="ch-discs" rules={def.rules} set={setRules} />
       <CommercialsSection def={def} setDef={setDef} />
       {def.mode !== 'simple' && opts && <FillerSection def={def} setDef={setDef} opts={opts} />}
+      {opts && <BumperSection id="ch-bumpers" def={def} setDef={setDef} opts={opts} />}
 
       <Preview def={def} />
 
-      <Section title="Who sees it">
+      <Section id="ch-who" title="Who sees it">
         <Audience draft={draft} setDraft={setDraft} />
       </Section>
 
@@ -322,6 +354,7 @@ function RuleFields({ r, set, opts, compact }: { r: Rules; set: (p: Partial<Rule
       <Multi label="Genres" options={opts.genres.map((g) => ({ v: g, label: g }))} value={r.genres || []} onChange={(v) => set({ genres: v })} />
       <Multi label="Shows" options={showOpts(opts)} value={strs(r.shows)} onChange={(v) => set({ shows: v.map(Number) })} />
       <Multi label="Decades" options={opts.decades.map((d) => ({ v: String(d), label: d + 's' }))} value={strs(r.decades)} onChange={(v) => set({ decades: v.map(Number) })} />
+      <Multi label="Collections" options={opts.collections.map((c) => ({ v: String(c.id), label: `${c.name} (${c.items})` }))} value={strs(r.collections)} onChange={(v) => set({ collections: v.map(Number) })} />
       {!compact && (
         <>
           <Multi label="Leave out these genres" options={opts.genres.map((g) => ({ v: g, label: g }))} value={r.excludeGenres || []} onChange={(v) => set({ excludeGenres: v })} />
@@ -391,8 +424,12 @@ function DayParts({ def, setDef, opts }: { def: Definition; setDef: (p: Partial<
     setDef({ blocks: [...blocks, ...parts] })
   }
   return (
-    <Section title="Day parts" desc="Different things at different times: Saturday morning cartoons, prime time drama. The rest of the day plays the rules above."
-      actions={<button className="btn sm" onClick={addClassic}>Add the classic day parts</button>}>
+    <Section title="Day parts" desc="Different things at different times: Saturday morning cartoons, prime time drama, a Christmas season, a weekend marathon. The rest of the day plays the rules above."
+      actions={<>
+        <button className="btn sm" onClick={addClassic}>Add the classic day parts</button>
+        <button className="btn sm" onClick={() => setDef({ blocks: [...blocks, { id: newBlockId(), name: 'Holiday season', start: '00:00', end: '23:59', fromDate: '12-01', toDate: '12-26', rules: { genres: [] } }] })}>Add a holiday block</button>
+        <button className="btn sm" onClick={() => setDef({ blocks: [...blocks, { id: newBlockId(), name: 'Marathon', start: '12:00', end: '20:00', days: [6], marathon: true, order: { mode: 'sequential' }, rules: { shows: [] } }] })}>Add a marathon</button>
+      </>}>
       <BlockList def={def} setDef={setDef} opts={opts} />
     </Section>
   )
@@ -530,6 +567,11 @@ function BlockEditor({ n, b, opts, up, remove, copy }: { n: number; b: Block; op
           </select>
         </label>
       </div>
+      <div className="tve-season">
+        <label>Only from (MM-DD)<input className="input" value={b.fromDate || ''} placeholder="All year" maxLength={5} aria-label={`${label}: first date of the season`} onChange={(e) => up({ fromDate: e.target.value || undefined })} /></label>
+        <label>To (MM-DD)<input className="input" value={b.toDate || ''} placeholder="All year" maxLength={5} aria-label={`${label}: last date of the season`} onChange={(e) => up({ toDate: e.target.value || undefined })} /></label>
+        <label className="check-row"><input type="checkbox" checked={!!b.marathon} onChange={(e) => up({ marathon: e.target.checked })} /> Marathon: straight on, no commercials</label>
+      </div>
       {pick.kind === 'custom' && b.rules && (
         <div className="tvs-block-rules"><RuleFields compact r={b.rules} set={(p) => up({ rules: { ...b.rules, ...p } })} opts={opts} /></div>
       )}
@@ -553,13 +595,13 @@ function CommercialsSection({ def, setDef }: { def: Definition; setDef: (p: Part
   const change = (id: number, patch: Partial<CommercialPick>) => setPicks(picks.map((p) => (p.library === id ? { ...p, ...patch } : p)))
   if (libs.length === 0) {
     return (
-      <Section title="Commercials" desc="Your own ads between shows.">
+      <Section id="ch-commercials" title="Commercials" desc="Your own ads between shows.">
         <p className="muted">You have no commercials library yet. <Link to="/settings/libraries">Add one under Libraries</Link>, choosing the kind called Commercials. You can have as many as you like: one for the 1990s, one for toys, one for each channel.</p>
       </Section>
     )
   }
   return (
-    <Section title="Commercials" desc="Play your own ads between shows and in the gaps. Use any of your commercials libraries, whole or only the videos you choose.">
+    <Section id="ch-commercials" title="Commercials" desc="Play your own ads between shows and in the gaps. Use any of your commercials libraries, whole or only the videos you choose.">
       <ul className="tvs-blocks">
         {libs.map((l) => {
           const p = pickOf(l.id)
@@ -654,10 +696,14 @@ function Audience({ draft, setDraft }: { draft: Draft; setDraft: (d: Draft) => v
   )
 }
 
+// What the channel will really do: every programme, bumper, commercial and gap,
+// with what gave way to keep to the timetable. This is the schedule the server
+// would make from this draft, without saving it.
 function Preview({ def }: { def: Definition }) {
   const [day, setDay] = useState(0)
   const [data, setData] = useState<{ stats: PoolStats; programmes: Programme[] } | null>(null)
   const [err, setErr] = useState('')
+  const [all, setAll] = useState(true)
   const key = useMemo(() => JSON.stringify(def), [def])
   useEffect(() => {
     const t = setTimeout(() => {
@@ -666,22 +712,59 @@ function Preview({ def }: { def: Definition }) {
     return () => clearTimeout(t)
   }, [key, day]) // eslint-disable-line react-hooks/exhaustive-deps
   const when = new Date(Date.now() + day * 86400000)
-  const programmes = (data?.programmes || []).filter((p) => p.kind !== 'filler' && !(p.kind === 'slate' && p.end - p.start < 900))
-  const empty = data && data.stats.titles === 0 && def.mode !== 'timetable'
+  const list = data?.programmes || []
+  const programmes = list.filter((p) => all || (p.kind !== 'filler' && !(p.kind === 'slate' && p.end - p.start < 900)))
+  const empty = data && data.stats.titles === 0 && def.mode !== 'timetable' && !(def.rules.clips?.length)
+  // The first two hours as a strip, to see the rhythm of it at a glance.
+  const span = 2 * 3600
+  const stripStart = list[0]?.start || 0
+  const strip = list.filter((p) => p.start < stripStart + span)
+  const secs = (f: (p: Programme) => boolean) => list.filter(f).reduce((n, p) => n + p.end - p.start, 0)
+  const cuts = list.filter((p) => p.trimmed && p.kind === 'filler')
+  const lost = list.filter((p) => p.trimmed && p.kind === 'show')
+  const grid = def.alignMin * 60
+  const shows = list.filter((p, i) => p.kind === 'show' && !p.offset && list[i - 1]?.role !== 'pre')
+  const leads = list.filter((p) => p.role === 'pre')
+  const offGrid = grid ? [...shows, ...leads].filter((p) => p.start % grid !== 0).length : 0
+  const tag = (p: Programme) => ({ pre: 'Before', post: 'After', break: 'Break', ad: 'Commercial', between: 'Between', pad: 'Fills gap' } as Record<string, string>)[p.role || ''] || 'Bumper'
+  const fmtCut = (n: number) => (n >= 60 ? `${Math.floor(n / 60)}m ${n % 60}s` : `${n}s`)
   return (
-    <Section title="What it will look like" desc={data ? `The rules choose ${data.stats.titles} ${data.stats.titles === 1 ? 'title' : 'titles'} (${fmtRuntime(data.stats.seconds) || 'no time'}).` : undefined}
-      actions={<label className="tvs-inline">Day<select className="select sm" value={day} onChange={(e) => setDay(Number(e.target.value))}>{Array.from({ length: 8 }, (_, i) => <option key={i} value={i}>{i === 0 ? 'Today' : new Date(Date.now() + i * 86400000).toLocaleDateString([], { weekday: 'long' })}</option>)}</select></label>}>
+    <Section id="ch-schedule" title="What it will look like" desc={data ? `The rules choose ${data.stats.titles} ${data.stats.titles === 1 ? 'title' : 'titles'} (${fmtRuntime(data.stats.seconds) || 'no time'}).` : undefined}
+      actions={<>
+        <label className="check-row tvs-inline"><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /> Bumpers and commercials</label>
+        <label className="tvs-inline">Day<select className="select sm" value={day} onChange={(e) => setDay(Number(e.target.value))}>{Array.from({ length: 8 }, (_, i) => <option key={i} value={i}>{i === 0 ? 'Today' : new Date(Date.now() + i * 86400000).toLocaleDateString([], { weekday: 'long' })}</option>)}</select></label>
+      </>}>
       {err && <p className="tvs-error" role="alert">{err}</p>}
       {empty && <p className="tvs-note" role="status">Nothing in your library matches these rules, so the channel would show a “We'll be right back” card.</p>}
-      <ol className="tvs-preview" aria-label={`Schedule for ${when.toLocaleDateString()}`}>
-        {programmes.slice(0, 60).map((p) => (
+      {list.length > 0 && (
+        <div className="tve-summary" role="group" aria-label="This day in numbers">
+          <div className="tve-stat"><b>{shows.length + leads.length}</b> programmes</div>
+          <div className="tve-stat"><b>{fmtRuntime(secs((p) => p.kind === 'filler')) || '0'}</b> of bumpers and commercials</div>
+          <div className="tve-stat"><b>{cuts.length}</b> cut short, {fmtCut(cuts.reduce((n, p) => n + (p.trimmed || 0), 0))} in all</div>
+          {lost.length > 0 && <div className="tve-stat"><b>{lost.length}</b> programmes lost {fmtCut(lost.reduce((n, p) => n + (p.trimmed || 0), 0))} from their ends</div>}
+          {grid > 0 && <div className="tve-stat"><b>{offGrid}</b> started off the timetable</div>}
+        </div>
+      )}
+      {strip.length > 0 && (
+        <>
+          <div className="tve-strip" aria-hidden="true">
+            {strip.map((p) => <i key={p.start} className={p.kind + (p.mandatory ? ' must' : '')} style={{ flex: `${Math.min(p.end, stripStart + span) - p.start} 0 0` }} title={p.title} />)}
+          </div>
+          <div className="tve-strip-key" aria-hidden="true"><span><i style={{ background: 'var(--accent)' }} />Programme</span><span><i style={{ background: 'var(--fg)' }} />Mandatory bumper</span><span><i style={{ background: 'var(--fg-2)' }} />Other bumper or commercial</span><span><i style={{ background: 'var(--bg-4)' }} />Card</span><span>The first two hours</span></div>
+        </>
+      )}
+      <ol className="tve-sched" aria-label={`Schedule for ${when.toLocaleDateString()}`}>
+        {programmes.slice(0, 200).map((p) => (
           <li key={p.start} className={p.kind}>
             <time>{fmtClock(p.start)}</time>
-            <span><b>{p.kind === 'slate' ? 'We\'ll be right back' : p.title}</b>{p.sub && <small> {p.sub}</small>}</span>
+            {p.kind === 'filler' && <span className={'tag' + (p.mandatory ? ' must' : '')}>{p.mandatory ? 'Mandatory' : tag(p)}</span>}
+            <span className="main"><span>{p.kind === 'slate' ? 'We\'ll be right back' : p.title}</span>{p.sub && <small> {p.sub}</small>}{p.offset ? <small> (continues)</small> : null}{p.rule && <small> · {p.rule}</small>}</span>
+            {p.trimmed ? <span className="cut">{fmtCut(p.trimmed)} cut</span> : null}
+            <small>{fmtCut(p.end - p.start)}</small>
           </li>
         ))}
       </ol>
-      {programmes.length > 60 && <p className="muted">…and {programmes.length - 60} more.</p>}
+      {programmes.length > 200 && <p className="muted">…and {programmes.length - 200} more.</p>}
     </Section>
   )
 }

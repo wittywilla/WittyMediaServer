@@ -19,6 +19,8 @@ type archiveIndex struct {
 	// reading, when set, is told about each archive that really has to be opened: on a
 	// slow network folder the first scan can take a while, and this shows it's moving.
 	reading func(path string)
+	// looking, when set, is told how far through a folder's files the scan has got.
+	looking func(done, total int)
 
 	verdictOnce   sync.Once
 	verdicts      map[string]cachedVerdict

@@ -207,10 +207,11 @@ func TestSetsOfCartridges(t *testing.T) {
 	snes("Fan Hacks.zip", "Alpha (Made Up Hack).smc", "Beta (Made Up Hack).smc", "Gamma (Made Up Hack).smc", "Delta (Made Up Hack).smc")
 	snes("Grab Bag.zip", "One (U).smc", "Two (U).smc", "Three (U).smc", "Four (U).smc", "Five (U).smc", "Six (U).smc", "Seven (U).smc", "Eight (U).smc")
 	snes("Made Up Quest.zip", "Made Up Quest (U) [!].smc", "Made Up Quest (U) [b1].smc", "Made Up Quest (U) [T+Fre].smc", "Made Up Quest (E).smc", "Other Name (J).smc", "Made Up Quest (Made Up Hack).smc")
+	snes("Made Up Generations.zip", "Made Up Generation A (ST).smc", "Made Up Generation B (ST).smc", "Made Up Generation C (ST).smc", "Made Up Generation D (ST).smc", "Made Up Generation E (ST).smc", "Made Up Generation F (ST).smc", "Made Up Generation G (ST).smc", "Made Up Generation H (ST).smc")
 	snes("Legend of Stuff, The.zip", "Legend of Stuff, The (U).smc", "Side Story One (J).smc", "Side Story Two (J).smc", "Side Story Three (J).smc", "Side Story Four (J).smc", "Side Story Five (J).smc", "Side Story Six (J).smc", "Side Story Seven (J).smc", "Side Story Eight (J).smc")
 	snes("With a BIOS Inside.zip", "With a BIOS Inside + ST BIOS (ST) [h1].smc")
 	got, notes := discovered(t, root, "auto")
-	want := []string{"Super Nintendo/Legend of Stuff, The.zip=snes", "Super Nintendo/Made Up Quest.zip=snes", "Super Nintendo/With a BIOS Inside.zip=snes"}
+	want := []string{"Super Nintendo/Legend of Stuff, The.zip=snes", "Super Nintendo/Made Up Generations.zip=snes", "Super Nintendo/Made Up Quest.zip=snes", "Super Nintendo/With a BIOS Inside.zip=snes"}
 	if !equal(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
 	}

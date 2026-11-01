@@ -319,6 +319,9 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		archives.reading = func(path string) {
 			s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(path) })
 		}
+		archives.looking = func(done, total int) {
+			s.progress(libraryID, func(p *ScanProgress) { p.Done, p.Found = done, total })
+		}
 		defer archives.close()
 	}
 	for _, root := range lib.Paths {
@@ -448,6 +451,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		if err := s.Store.linkGameVersions(ctx, lib); err != nil {
 			s.Log.WarnContext(ctx, "could not put versions of a game together", "library", lib.Name, "err", err)
 		}
+		s.Store.ensureGameLogos(ctx, lib)
 		s.GameMeta.Kick()
 	}
 	return nil

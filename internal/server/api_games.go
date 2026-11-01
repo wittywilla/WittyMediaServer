@@ -305,6 +305,8 @@ type consoleView struct {
 	Pad         wittyplay.PadLayout `json:"pad"`
 	// Count: with ?library=<id>, how many games that library holds for this console.
 	Count int `json:"count,omitempty"`
+	// LogoName is the name to ask the logo service for, kind "console". See docs/METADATA.md.
+	LogoName string `json:"logoName,omitempty"`
 }
 
 func (s *Server) consoleViews(ctx context.Context) []consoleView {
@@ -321,7 +323,7 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 		if c.Hidden && !testing {
 			continue
 		}
-		v := consoleView{Console: c, Installed: []cores.Core{}, Pad: wittyplay.Pad(c.ID)}
+		v := consoleView{Console: c, Installed: []cores.Core{}, Pad: wittyplay.Pad(c.ID), LogoName: library.ConsoleLogoName(c.ID)}
 		if v.Cores == nil {
 			v.Cores = []wittyplay.Core{}
 		}

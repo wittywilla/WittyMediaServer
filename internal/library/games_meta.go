@@ -122,9 +122,56 @@ func (g *GameMeta) setPhase(running bool, phase string) {
 }
 
 // work goes until there's nothing left to do right now.
+//
+// What this server can work out by itself comes first, for every game: a library of
+// thousands has its names and box art within a minute or two. After that, pictures and
+// online sources go side by side, each at its own pace, as one source that's slow or
+// asks to wait shouldn't hold everything up.
 func (g *GameMeta) work(ctx context.Context) {
 	defer g.setPhase(false, "")
 	defer g.id.Close()
+	for ctx.Err() == nil {
+		g.setPhase(true, "details")
+		n, err := g.localBatch(ctx)
+		if err != nil && ctx.Err() == nil {
+			g.Log.Warn("game details", "cat", "library", "err", err)
+			break
+		}
+		if n == 0 {
+			break
+		}
+	}
+	finished := make(chan struct{})
+	pictures := make(chan struct{})
+	go func() {
+		defer close(pictures)
+		defer logging.Recover("game pictures", "cat", "library")
+		for ctx.Err() == nil {
+			n, err := g.picturesBatch(ctx)
+			if err != nil {
+				if ctx.Err() == nil {
+					g.Log.Warn("game pictures", "cat", "library", "err", err)
+				}
+				return
+			}
+			if n > 0 {
+				continue
+			}
+			select {
+			case <-finished:
+				if n, err := g.picturesBatch(ctx); n == 0 || err != nil {
+					return
+				}
+			case <-ctx.Done():
+				return
+			case <-time.After(500 * time.Millisecond):
+			}
+		}
+	}()
+	defer func() {
+		close(finished)
+		<-pictures
+	}()
 	for ctx.Err() == nil {
 		g.setPhase(true, "details")
 		details, err := g.detailsBatch(ctx)
@@ -132,17 +179,97 @@ func (g *GameMeta) work(ctx context.Context) {
 			g.Log.Warn("game details", "cat", "library", "err", err)
 			return
 		}
-		// Taking turns: covers are what someone looking at the page notices first.
-		g.setPhase(true, "pictures")
-		pictures, err := g.picturesBatch(ctx)
-		if err != nil && ctx.Err() == nil {
-			g.Log.Warn("game pictures", "cat", "library", "err", err)
-			return
-		}
-		if details == 0 && pictures == 0 {
+		if details == 0 {
 			return
 		}
 	}
+}
+
+// localBatch asks the local database about games it hasn't been asked about, and applies
+// the answers straight away. Nothing here goes over the internet, beyond fetching a
+// console's list once.
+func (g *GameMeta) localBatch(ctx context.Context) (int, error) {
+	set := g.sources(ctx)
+	if set.all["libretro"] == nil || !slices.Contains(set.on, "libretro") {
+		return 0, nil
+	}
+	jobs, err := g.Store.nextUnasked(ctx, 4*gameMetaBatch)
+	if err != nil || len(jobs) == 0 {
+		return 0, err
+	}
+	done := 0
+	for i := range jobs {
+		if ctx.Err() != nil {
+			return done, ctx.Err()
+		}
+		j := &jobs[i]
+		g.identify(ctx, j)
+		if _, ok := g.askLocal(ctx, j, set); !ok {
+			// The list can't be had just now, or it doesn't know this game.
+			if _, asked, err := g.Store.gameAnswers(ctx, j.it.ID); err != nil || !asked["libretro"] {
+				continue
+			}
+		}
+		done++
+		answers, _, err := g.Store.gameAnswers(ctx, j.it.ID)
+		if err != nil {
+			continue
+		}
+		// Pictures from a list of names, which asks nothing of anyone until they're fetched.
+		if art := set.all["libretroart"]; art != nil && slices.Contains(set.on, "libretroart") {
+			in, err := art.Lookup(ctx, j.lookup)
+			switch {
+			case err == nil:
+				answers["libretroart"] = in
+				_ = g.Store.saveGameAnswer(ctx, j.it.ID, "libretroart", in)
+			case errors.Is(err, gamemeta.ErrNotFound):
+				_ = g.Store.saveGameAnswer(ctx, j.it.ID, "libretroart", nil)
+			}
+		}
+		if err := g.applyAnswers(ctx, j.it.ID, answersInOrder(answers, set.on)); err != nil {
+			return done, err
+		}
+	}
+	return done, nil
+}
+
+// nextUnasked picks games the local database hasn't been asked about, one console at a time.
+func (s *Store) nextUnasked(ctx context.Context, n int) ([]gameJob, error) {
+	const unasked = `m.status = 'pending' AND i.missing = 0 AND i.kind = 'game' AND IFNULL(i.console, '') <> ? AND ` + hideLinked + `
+		AND NOT EXISTS (SELECT 1 FROM game_meta_sources s WHERE s.item_id = m.item_id AND s.source = 'libretro')`
+	var console string
+	err := s.DB.QueryRowContext(ctx, `SELECT IFNULL(i.console, '') FROM game_meta m JOIN items i ON i.id = m.item_id WHERE `+unasked+` ORDER BY i.console LIMIT 1`, wittyplay.TestConsole).Scan(&console)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.DB.QueryContext(ctx, `SELECT m.item_id FROM game_meta m JOIN items i ON i.id = m.item_id WHERE `+unasked+` AND IFNULL(i.console, '') = ? ORDER BY m.item_id LIMIT ?`, wittyplay.TestConsole, console, n)
+	if err != nil {
+		return nil, err
+	}
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if rows.Scan(&id) == nil {
+			ids = append(ids, id)
+		}
+	}
+	rows.Close()
+	var out []gameJob
+	for _, id := range ids {
+		it, err := s.Item(ctx, id)
+		if err != nil {
+			continue
+		}
+		r, err := s.gameRow(ctx, id)
+		if err != nil {
+			continue
+		}
+		out = append(out, gameJob{it: it, meta: r})
+	}
+	return out, rows.Err()
 }
 
 // ---------------------------------------------------------------- the queue
@@ -747,6 +874,8 @@ func (g *GameMeta) applyAnswers(ctx context.Context, id int64, answers []gamemet
 	if m.Developer != "" && fills("studio", it.Studio) {
 		it.Studio = m.Developer
 		mark("studio")
+		// Only a row: nothing is looked up until an administrator has agreed to logos.
+		_, _ = g.Store.EnsureLogo(ctx, LogoGameStudio, m.Developer)
 	}
 	if v := m.Rating(); v != nil && !r.Edited["rating"] && (it.Rating == nil || r.Applied["rating"]) {
 		it.Rating = v

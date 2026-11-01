@@ -515,7 +515,8 @@ func (ix *archiveIndex) judgeSet(p, stem string, l *gamearchive.Listing, c *witt
 			t, _ := gamemeta.CleanName(s)
 			key := gamemeta.NameKey(t)
 			titles[key] = true
-			if key == stemKey || strings.HasPrefix(key, stemKey+" ") {
+			// One game's versions, or one series: a set is named for what it holds.
+			if key == stemKey || strings.HasPrefix(key, stemKey+" ") || sameStart(key, stemKey) {
 				stemMatches = true
 			}
 		}
@@ -571,6 +572,12 @@ func (ix *archiveIndex) judgeSet(p, stem string, l *gamearchive.Listing, c *witt
 	main := mainEntry(mine)
 	v.Payload, v.CRC = main.Size, main.CRC
 	return v
+}
+
+// sameStart says two names begin with the same two words.
+func sameStart(a, b string) bool {
+	x, y := strings.Fields(a), strings.Fields(b)
+	return len(x) >= 2 && len(y) >= 2 && x[0] == y[0] && x[1] == y[1]
 }
 
 func whatItHolds(kind gameid.Kind) string {

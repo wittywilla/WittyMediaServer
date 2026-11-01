@@ -5,6 +5,7 @@ import ArtworkPicker from '../components/ArtworkPicker'
 import { BackLink, EmptyState, LoadError, Placeholder, ScanButton, SkeletonGrid, Spinner, artHue } from '../components/common'
 import { IconEdit, IconGamepad, IconImage, IconPlay, IconSettings, IconSortDown, IconSortUp, IconStar } from '../icons'
 import { GameCredits, GameMatchBar, GameMetaNotice, GameRatings, GameShots } from './GameMeta'
+import { GameFixPanel, GameImportBar, GameProblem, GameReviewBanner } from './GameReview'
 import { reportClient, setLogSession } from '../errorReport'
 import { toast, useApp } from '../state'
 import type { Background, ControllerData, ControlsData, PlayHost, PrepareStatus, Profile, ProfileHost, SaveSlot, SessionInfo, SettingsHost } from '@wittywilla/wittyplay'
@@ -107,13 +108,6 @@ function GameCard({ item, console: c }: { item: Item; console?: GameConsole }) {
 // A page at a time: a collection can run to thousands of games, and neither an old
 // TV nor a phone should pay for all of them to look at the first few.
 const PAGE = 120
-// A scan counts archives it can't read by why, and other files by their extension.
-const PROBLEMS: Record<string, string> = {
-  encrypted: 'password-protected archive', unsafe: 'unsafe archive', toobig: 'oversized archive', toomany: 'archive with too many files',
-  damaged: 'damaged archive', method: 'archive with unsupported compression', unavailable: 'unreadable archive',
-}
-const list = (ext: string, n: number) => `${n.toLocaleString()} ${PROBLEMS[ext] ? (n === 1 ? PROBLEMS[ext] : PROBLEMS[ext].replace('archive', 'archives')) : ext}`
-const and = (parts: string[]) => (parts.length < 2 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`)
 
 export function GamesLibrary({ lib }: { lib: Library }) {
   const [consoles, setConsoles] = useState<GameConsole[]>([])
@@ -122,7 +116,7 @@ export function GamesLibrary({ lib }: { lib: Library }) {
   const [total, setTotal] = useState(0)
   const [playing, setPlaying] = useState<Item[]>([])
   const [favourites, setFavourites] = useState<Item[]>([])
-  const [skipped, setSkipped] = useState<Record<string, number>>({})
+  const [reviewVersion, setReviewVersion] = useState(0)
   const filter = params.get('console') || ''
   const search = params.get('q') || ''
   const sort = params.get('sort') || 'title'
@@ -164,9 +158,8 @@ export function GamesLibrary({ lib }: { lib: Library }) {
     let stop = false
     let timer = 0
     const tick = async () => {
-      const r = await api.get<{ scanning: boolean; skipped?: Record<string, number> }>(`/libraries/${lib.id}/scan`).catch(() => ({ scanning: false, skipped: undefined }))
+      const r = await api.get<{ scanning: boolean }>(`/libraries/${lib.id}/scan`).catch(() => ({ scanning: false }))
       if (stop) return
-      setSkipped(r.skipped || {})
       await Promise.all([loadNow.current(), loadConsoles()])
       if (r.scanning && !stop) timer = window.setTimeout(tick, 2000)
     }
@@ -203,9 +196,6 @@ export function GamesLibrary({ lib }: { lib: Library }) {
   const present = consoles.filter((c) => (c.count || 0) > 0)
   const everything = present.reduce((n, c) => n + (c.count || 0), 0)
   const inProgress = [...playing].sort((a, b) => (b.progress?.updatedAt || 0) - (a.progress?.updatedAt || 0)).slice(0, 8)
-  const left = Object.entries(skipped).sort((a, b) => b[1] - a[1])
-  const leftCount = left.reduce((n, [, c]) => n + c, 0)
-  const locked = left.some(([e]) => e === 'encrypted')
   const { user } = useApp()
   return (
     <>
@@ -217,14 +207,8 @@ export function GamesLibrary({ lib }: { lib: Library }) {
         <ScanButton lib={lib} onStarted={() => setWatch((n) => n + 1)} />
       </div>
       {user?.isAdmin && <GameMetaNotice unmatched={unmatched} onUnmatched={(on) => setParam('unmatched', on ? '1' : '')} onProgress={() => { load(); loadFacets() }} />}
-      {leftCount > 0 && (
-        <div className="warn-box gm-skipped" role="status">
-          <strong>{leftCount.toLocaleString()} {leftCount === 1 ? 'file' : 'files'} in this library’s folders didn’t become games</strong>
-          {and(left.map(([e, c]) => list(e, c)))}.{' '}
-          {locked ? 'This server doesn’t open archives with a password: unpack those yourself. ' : ''}
-          Anything else is a kind of file, or a console, that isn’t supported yet.
-        </div>
-      )}
+      {user?.isAdmin && <GameImportBar libraryId={lib.id} onChanged={() => { setWatch((n) => n + 1); setReviewVersion((n) => n + 1) }} />}
+      {user?.isAdmin && <GameReviewBanner libraryId={lib.id} consoles={consoles} version={reviewVersion} onChanged={() => setWatch((n) => n + 1)} />}
       {present.length > 1 && (
         <div className="chips" role="group" aria-label="Console">
           <button type="button" aria-pressed={!filter} className={'chip' + (!filter ? ' active' : '')} onClick={() => setParam('console', '')}>All · {everything.toLocaleString()}</button>
@@ -372,6 +356,7 @@ export function GameDetails({ it, reload }: { it: Item; reload?: () => void }) {
               <span><b>Pick up where you left off</b><small className="muted">{fmtDateTime(auto.updatedAt * 1000)}</small></span>
             </button>
           )}
+          {meta && <GameProblem d={meta} />}
           <div className="actions game-actions">
             {offerResume && ready && !auto && <button className="btn primary" onClick={() => nav(`/game/${it.id}?resume=1`)}><IconPlay /> Resume</button>}
             {ready && <button className={'btn' + (offerResume ? '' : ' primary')} onClick={() => nav(`/game/${it.id}${startsResumed ? '?resume=1' : ''}`)}><IconPlay /> {offerResume ? 'Start over' : startsResumed ? 'Resume' : 'Play'}</button>}
@@ -445,6 +430,7 @@ export function GameDetails({ it, reload }: { it: Item; reload?: () => void }) {
           )}
           {meta && <GameShots d={meta} title={it.title} />}
           {user?.isAdmin && meta && <GameMatchBar it={it} d={meta} onChanged={() => { loadMeta(); reload?.() }} />}
+          {user?.isAdmin && meta && <GameFixPanel it={it} d={meta} consoles={consoles} onChanged={() => { loadMeta(); reload?.() }} />}
           {meta && <GameCredits d={meta} />}
           <div className="page-back"><BackLink to={`/library/${it.libraryId}`} label="Back to library" /></div>
         </div>

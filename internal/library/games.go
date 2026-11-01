@@ -81,7 +81,10 @@ func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 		return nil
 	})
 	var found []*gameFile
-	for _, f := range files {
+	for i, f := range files {
+		if ix.looking != nil {
+			ix.looking(i, len(files))
+		}
 		if hidden[strings.ToLower(filepath.Clean(f.path))] {
 			continue
 		}

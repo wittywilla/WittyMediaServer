@@ -406,6 +406,29 @@ func (s *Store) linkGameVersions(ctx context.Context, lib *Library) error {
 	return tx.Commit()
 }
 
+// ensureGameLogos makes sure the logo service knows about this library's consoles and
+// game studios. It only adds rows: nothing is looked up, or sent anywhere, until an
+// administrator has agreed to logos.
+func (s *Store) ensureGameLogos(ctx context.Context, lib *Library) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT DISTINCT IFNULL(console, '') FROM items WHERE library_id = ? AND kind = 'game' AND missing = 0`, lib.ID)
+	if err != nil {
+		return
+	}
+	var consoles []string
+	for rows.Next() {
+		var c string
+		if rows.Scan(&c) == nil && c != "" {
+			consoles = append(consoles, c)
+		}
+	}
+	rows.Close()
+	for _, c := range consoles {
+		if name := ConsoleLogoName(c); name != "" {
+			_, _ = s.EnsureLogo(ctx, LogoConsole, name)
+		}
+	}
+}
+
 // ConsoleLogoName is the name a console goes by for finding its logo, which is its
 // common name in English: what a Wikidata entry is called.
 func ConsoleLogoName(id string) string {

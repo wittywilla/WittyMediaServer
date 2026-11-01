@@ -3949,12 +3949,6 @@
       },
       "ModuleInfo": {
         "properties": {
-          "local": {
-            "type": "boolean"
-          },
-          "module": {
-            "type": "string"
-          },
           "name": {
             "type": "string"
           },
@@ -3966,7 +3960,6 @@
           }
         },
         "required": [
-          "module",
           "name",
           "role",
           "version"
@@ -4069,6 +4062,30 @@
           "api": {
             "type": "integer"
           },
+          "catalog": {
+            "anyOf": [
+              {
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  },
+                  "generated": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "serial": {
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "checkError": {
             "type": "string"
           },
@@ -4154,8 +4171,14 @@
           "delivery": {
             "type": "string"
           },
+          "description": {
+            "type": "string"
+          },
           "done": {
             "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
           },
           "error": {
             "type": "string"
@@ -4170,6 +4193,9 @@
             ]
           },
           "group": {
+            "type": "string"
+          },
+          "icon": {
             "type": "string"
           },
           "id": {
@@ -4235,6 +4261,30 @@
           },
           "previous": {
             "type": "string"
+          },
+          "publisher": {
+            "anyOf": [
+              {
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "repo": {
             "type": "string"
@@ -4315,9 +4365,9 @@
         "required": [
           "api",
           "autoUpdate",
-          "builtinVersion",
           "canRollback",
           "delivery",
+          "enabled",
           "id",
           "installed",
           "maxServer",
@@ -4349,6 +4399,9 @@
           "installed": {
             "type": "boolean"
           },
+          "license": {
+            "type": "string"
+          },
           "maxServer": {
             "type": "string"
           },
@@ -4360,6 +4413,15 @@
           },
           "older": {
             "type": "boolean"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "prerelease": {
             "type": "boolean"
@@ -4457,6 +4519,37 @@
           },
           "id": {
             "type": "string"
+          },
+          "pages": {
+            "items": {
+              "properties": {
+                "admin": {
+                  "type": "boolean"
+                },
+                "icon": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "where": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "where"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "style": {
             "type": "string"
@@ -7361,6 +7454,13 @@
                       },
                       "type": "array"
                     },
+                    "minClientVersions": {
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "description": "The oldest version of each kind of app (android, apple, desktop) this server works with.",
+                      "type": "object"
+                    },
                     "playback": {
                       "type": "object"
                     },
@@ -7381,13 +7481,6 @@
                     },
                     "version": {
                       "type": "string"
-                    },
-                    "minClientVersions": {
-                      "additionalProperties": {
-                        "type": "string"
-                      },
-                      "description": "The oldest version of each kind of app (android, apple, desktop) this server works with.",
-                      "type": "object"
                     }
                   },
                   "type": "object"
@@ -12525,6 +12618,7 @@
     },
     "/games/{id}/console": {
       "put": {
+        "operationId": "putGamesIdConsole",
         "parameters": [
           {
             "in": "path",
@@ -12577,8 +12671,7 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin",
-        "operationId": "putGamesIdConsole"
+        "x-wms-auth": "admin"
       }
     },
     "/games/{id}/core-options": {
@@ -12884,6 +12977,7 @@
     },
     "/games/{id}/not-a-game": {
       "post": {
+        "operationId": "postGamesIdNotAGame",
         "parameters": [
           {
             "in": "path",
@@ -12918,8 +13012,7 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin",
-        "operationId": "postGamesIdNotAGame"
+        "x-wms-auth": "admin"
       }
     },
     "/games/{id}/patches": {
@@ -13174,141 +13267,6 @@
         "x-wms-auth": "user"
       }
     },
-    "/games/{id}/versions": {
-      "get": {
-        "operationId": "getGamesVersions",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A game's other versions and its discs",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/games/{id}/version": {
-      "put": {
-        "operationId": "putGamesVersion",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "entry": {
-                    "type": "string"
-                  }
-                },
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Which file in its archive to play",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/{id}/split": {
-      "post": {
-        "operationId": "postGamesSplit",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A version becomes a game of its own",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
     "/games/{id}/saves": {
       "get": {
         "operationId": "getGamesIdSaves",
@@ -13533,6 +13491,141 @@
           }
         ],
         "summary": "Game save thumb.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/split": {
+      "post": {
+        "operationId": "postGamesSplit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A version becomes a game of its own",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/games/{id}/version": {
+      "put": {
+        "operationId": "putGamesVersion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "entry": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Which file in its archive to play",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/games/{id}/versions": {
+      "get": {
+        "operationId": "getGamesVersions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A game's other versions and its discs",
         "tags": [
           "Games"
         ],
@@ -17212,6 +17305,7 @@
     },
     "/libraries/{id}/games/import": {
       "get": {
+        "operationId": "getLibrariesIdGamesImport",
         "parameters": [
           {
             "in": "path",
@@ -17246,12 +17340,12 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin",
-        "operationId": "getLibrariesIdGamesImport"
+        "x-wms-auth": "admin"
       }
     },
     "/libraries/{id}/games/review": {
       "get": {
+        "operationId": "getLibrariesIdGamesReview",
         "parameters": [
           {
             "in": "path",
@@ -17314,12 +17408,12 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin",
-        "operationId": "getLibrariesIdGamesReview"
+        "x-wms-auth": "admin"
       }
     },
     "/libraries/{id}/games/review/apply": {
       "post": {
+        "operationId": "postLibrariesIdGamesReviewApply",
         "parameters": [
           {
             "in": "path",
@@ -17387,8 +17481,7 @@
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "admin",
-        "operationId": "postLibrariesIdGamesReviewApply"
+        "x-wms-auth": "admin"
       }
     },
     "/libraries/{id}/main": {
@@ -20646,6 +20739,96 @@
         "x-wms-auth": "admin"
       }
     },
+    "/module-store/{id}/{key}": {
+      "get": {
+        "operationId": "getModuleStoreIdKey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What this person's page of this module saved.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putModuleStoreIdKey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Saves a little JSON for this person and this module.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/modules": {
       "get": {
         "operationId": "getModules",
@@ -20911,9 +21094,6 @@
           }
         ],
         "responses": {
-          "default": {
-            "$ref": "#/components/responses/Error"
-          },
           "202": {
             "content": {
               "application/json": {
@@ -20923,6 +21103,9 @@
               }
             },
             "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
           }
         },
         "security": [
@@ -21138,14 +21321,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
             "content": {
               "image/png": {
                 "schema": {
                   "type": "string"
                 }
               }
-            }
+            },
+            "description": "OK"
           },
           "404": {
             "description": "There is none."
@@ -21276,14 +21459,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
             "content": {
               "text/plain": {
                 "schema": {
                   "type": "string"
                 }
               }
-            }
+            },
+            "description": "OK"
           },
           "404": {
             "description": "There is none."
@@ -21556,96 +21739,6 @@
           "Server"
         ],
         "x-wms-auth": "admin"
-      }
-    },
-    "/module-store/{id}/{key}": {
-      "get": {
-        "operationId": "getModuleStoreIdKey",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "key",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What this person's page of this module saved.",
-        "tags": [
-          "Server"
-        ],
-        "x-wms-auth": "user"
-      },
-      "put": {
-        "operationId": "putModuleStoreIdKey",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "key",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Saves a little JSON for this person and this module.",
-        "tags": [
-          "Server"
-        ],
-        "x-wms-auth": "user"
       }
     },
     "/modules/{id}/versions": {

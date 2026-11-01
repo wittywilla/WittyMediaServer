@@ -304,11 +304,14 @@ func SheetFiles(path string) (files []string, image bool) {
 			continue
 		}
 		seen[p] = true
-		switch strings.ToLower(filepath.Ext(p)) {
-		case ".flac":
+		switch ext := strings.ToLower(filepath.Ext(p)); {
+		case ext == ".flac":
 			compressed++
-		case ".mp3", ".ogg", ".oga", ".opus", ".m4a", ".aac", ".ape", ".wv", ".wma", ".tta", ".mpc":
-			return nil, false
+		case foreignAudioExt(ext):
+			if ForeignAudio == nil {
+				return nil, false
+			}
+			compressed++
 		}
 		files = append(files, p)
 	}
@@ -375,4 +378,13 @@ func matchName(dir, base string) string {
 		}
 	}
 	return ""
+}
+
+// foreignAudioExt: a sound file only ForeignAudio can read.
+func foreignAudioExt(ext string) bool {
+	switch ext {
+	case ".mp3", ".ogg", ".oga", ".opus", ".m4a", ".m4b", ".aac", ".ape", ".wv", ".wma", ".tta", ".mpc", ".dsf", ".dff", ".tak", ".mka", ".ac3", ".dts", ".alac":
+		return true
+	}
+	return false
 }

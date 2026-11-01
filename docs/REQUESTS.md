@@ -36,7 +36,7 @@ See what the owner has asked for and where each stands, checked against the code
 | Keyboard, screen reader and remote everywhere | In progress | No real screen reader, TV or controller tried |
 | WittyPlay UI overhaul | Done | |
 | Game lag, input delay and the graphics fault | Done | Delay figures are headless on one machine, not to the glass. The owner hasn't played it on a real screen. PS2 shader cache is rebuilt each run under the sandbox |
-| Reliable, fast emulation | Partly | Mesen's NES core aborts on Linux. Real saves on Linux under the sandbox not tried for PS2 |
+| Reliable, fast emulation | Partly | Every console's cores were played on Linux under the sandbox, through the real stream (see `GAMING.md`). No retail 3DS or Dreamcast game has been played. Real saves on Linux under the sandbox not tried for PS2 |
 | 3DS CIA files | Done as far as it can be | CIA is read. The owner's file is really encrypted, so it's refused with a clear message. Only an unencrypted dump can be run |
 | Importing all game data, and non-games tied to random consoles | Done | |
 | Console icons, as an optional download | Done | PlayStation and PS2 have no logo, so they show text |

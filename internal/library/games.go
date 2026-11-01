@@ -14,7 +14,6 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/gameid"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
-	"github.com/wittywilla/wittyplay"
 )
 
 // Games libraries: one console, or wittyplay.Auto for a folder holding many. See
@@ -38,6 +37,7 @@ func discoverGames(root, console string) ([]candidate, error) {
 func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 	ix.verdictOnce.Do(ix.loadVerdicts)
 	ix.lastLibrary = console
+	freshConsoles()
 	type seen struct {
 		path, rel   string
 		size, mtime int64
@@ -95,7 +95,7 @@ func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 		}
 		var v gameVerdict
 		switch {
-		case decided && d.Action == "add" && wittyplay.ByID(d.Console) != nil:
+		case decided && d.Action == "add" && consoles().byID(d.Console) != nil:
 			v = accept(d.Console, howChosen, 100, "You said what this is.")
 		default:
 			v = ix.verdictFor(f.path, f.rel, console, f.size, f.mtime)
@@ -235,7 +235,7 @@ func gameBaseName(name string) string {
 		return strings.TrimSuffix(name, filepath.Ext(name))
 	}
 	base := gamearchive.BaseName(name)
-	if x := strings.ToLower(filepath.Ext(base)); x != "" && wittyplay.KnownExtension(x) {
+	if x := strings.ToLower(filepath.Ext(base)); x != "" && consoles().known(x) {
 		return strings.TrimSuffix(base, filepath.Ext(base))
 	}
 	return base

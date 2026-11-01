@@ -14,7 +14,6 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/gameid"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
-	"github.com/wittywilla/wittyplay"
 )
 
 // Games made of several files, and games kept more than once. Three things happen here,
@@ -434,7 +433,7 @@ func ConsoleLogoName(id string) string {
 	if n, ok := consoleLogoNames[id]; ok {
 		return n
 	}
-	if c := wittyplay.ByID(id); c != nil {
+	if c := consoles().byID(id); c != nil {
 		return c.Name
 	}
 	return ""

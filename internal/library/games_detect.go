@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync/atomic"
 
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/gameid"
@@ -75,10 +76,57 @@ type gameVerdict struct {
 
 func (v gameVerdict) isGame() bool { return v.Console != "" && v.Left == "" }
 
+// consoleTable is the list of consoles, kept for a scan. Going through it is the point:
+// a scan asks about each of thousands of files, and the list comes from another process.
+type consoleTable struct {
+	list []wittyplay.Console
+	ids  map[string]*wittyplay.Console
+	only map[string]string // an extension only one console has as its own
+	any  map[string]bool
+}
+
+var consolesNow atomic.Pointer[consoleTable]
+
+// freshConsoles reads the list again. A scan starts with this, in case someone has added a
+// console since the last one.
+func freshConsoles() *consoleTable {
+	t := &consoleTable{list: wittyplay.All(), ids: map[string]*wittyplay.Console{}, only: map[string]string{}, any: map[string]bool{}}
+	for i := range t.list {
+		c := &t.list[i]
+		t.ids[c.ID] = c
+		for _, x := range c.Extensions {
+			if _, taken := t.only[x]; !taken {
+				t.only[x] = c.ID
+			}
+			t.any[x] = true
+		}
+		for _, x := range c.Shared {
+			t.any[x] = true
+		}
+	}
+	consolesNow.Store(t)
+	return t
+}
+
+func consoles() *consoleTable {
+	if t := consolesNow.Load(); t != nil {
+		return t
+	}
+	return freshConsoles()
+}
+
+func (t *consoleTable) byID(id string) *wittyplay.Console { return t.ids[id] }
+
+func (t *consoleTable) byExtension(ext string) string { return t.only[ext] }
+
+func (t *consoleTable) known(ext string) bool { return t.any[ext] }
+
+func isCustomConsole(id string) bool { return strings.HasPrefix(id, wittyplay.CustomPrefix) }
+
 // folderHint is what the path says: the console of the nearest folder named after one.
 func folderHint(rel string) string {
 	dir := filepath.ToSlash(filepath.Dir(rel))
-	all := wittyplay.All()
+	all := consoles().list
 	for dir != "." && dir != "/" && dir != "" {
 		for _, name := range hintNames(path.Base(dir)) {
 			for i := range all {
@@ -144,7 +192,7 @@ const minCartridge = 2 << 10
 
 // consoleName says a console's name, for messages.
 func consoleName(id string) string {
-	if c := wittyplay.ByID(id); c != nil {
+	if c := consoles().byID(id); c != nil {
 		return c.Name
 	}
 	switch id {
@@ -173,7 +221,7 @@ func consoleName(id string) string {
 func needsLook(why string, suggest ...string) gameVerdict {
 	var clean []string
 	for _, s := range suggest {
-		if s != "" && !containsString(clean, s) && wittyplay.ByID(s) != nil {
+		if s != "" && !containsString(clean, s) && consoles().byID(s) != nil {
 			clean = append(clean, s)
 		}
 	}
@@ -192,7 +240,7 @@ func accept(console, how string, sure int, proof string) gameVerdict {
 }
 
 func proven(f gameid.Finding, library string) gameVerdict {
-	c := wittyplay.ByID(f.Console)
+	c := consoles().byID(f.Console)
 	if c == nil {
 		return needsLook(fmt.Sprintf("This is a %s disc or cartridge. %s", consoleName(f.Console), f.Proof+" This server has no core for that console."), library)
 	}
@@ -228,21 +276,21 @@ func judgeFile(p, rel, library string, size int64) gameVerdict {
 	if hint == wittyplay.Auto || hint == "" {
 		hint = folderHint(rel)
 	}
-	if !wittyplay.KnownExtension(ext) && (hint == "" || !wittyplay.ByID(hint).Accepts(ext)) {
+	if !consoles().known(ext) && (hint == "" || !consoles().byID(hint).Accepts(ext)) {
 		return gameVerdict{}
 	}
 	// A console someone added themselves: only they know what its files look like. The
 	// built-in test console's files are whatever a test writes.
-	if c := wittyplay.ByID(hint); c != nil && (wittyplay.IsCustomConsole(hint) || c.Hidden) && c.Accepts(ext) {
+	if c := consoles().byID(hint); c != nil && (isCustomConsole(hint) || c.Hidden) && c.Accepts(ext) {
 		return accept(hint, howFolder, 70, "It's in a folder or library for this console.")
 	}
-	if only := wittyplay.ByExtension(ext); only != "" && (wittyplay.IsCustomConsole(only) || wittyplay.ByID(only).Hidden) {
+	if only := consoles().byExtension(ext); only != "" && (isCustomConsole(only) || consoles().byID(only).Hidden) {
 		return accept(only, howExt, 70, "Only this console uses "+ext+" files.")
 	}
 	f, err := gameid.SniffFile(p)
 	if err != nil {
 		// Not an answer about the file: the next scan asks again.
-		if c := wittyplay.ByID(hint); c != nil && c.Accepts(ext) {
+		if c := consoles().byID(hint); c != nil && c.Accepts(ext) {
 			return accept(hint, howFolder, 40, "It couldn't be read just now, so this goes by its folder.")
 		}
 		return gameVerdict{}
@@ -286,7 +334,7 @@ func decide(f gameid.Finding, ext, stem, hint, library string, size int64, fits 
 		return decideByFolder(f, ext, hint, size, fits)
 	}
 	// No folder or library to go on, and nothing in the file.
-	if only := wittyplay.ByExtension(ext); only != "" && !extHasNoProof[ext] && !mustHaveHeader[only] && size >= minCartridge {
+	if only := consoles().byExtension(ext); only != "" && !extHasNoProof[ext] && !mustHaveHeader[only] && size >= minCartridge {
 		if ok, why := fits(only); ok {
 			return accept(only, howExt, 60, "Only "+consoleName(only)+" uses "+ext+" files. "+why)
 		}
@@ -295,15 +343,15 @@ func decide(f gameid.Finding, ext, stem, hint, library string, size int64, fits 
 	if f.Proof != "" {
 		why = f.Proof + " Neither does its folder."
 	}
-	return needsLook(why, wittyplay.ByExtension(ext))
+	return needsLook(why, consoles().byExtension(ext))
 }
 
 // decideByFolder: the folder or library says which console, and the file can't confirm it.
 func decideByFolder(f gameid.Finding, ext, hint string, size int64, fits func(string) (bool, string)) gameVerdict {
-	c := wittyplay.ByID(hint)
+	c := consoles().byID(hint)
 	name := consoleName(hint)
 	if !c.Accepts(ext) {
-		if only := wittyplay.ByExtension(ext); only != "" {
+		if only := consoles().byExtension(ext); only != "" {
 			return needsLook(fmt.Sprintf("It's in a folder for %s, but only %s uses %s files.", name, consoleName(only), ext), only, hint)
 		}
 		return gameVerdict{}
@@ -360,7 +408,7 @@ func (ix *archiveIndex) judgeArchive(p, rel, library string) gameVerdict {
 	var entries []gamearchive.Entry
 	for _, e := range l.Entries {
 		x := strings.ToLower(path.Ext(e.Name))
-		if wittyplay.KnownExtension(x) || (hint != "" && wittyplay.ByID(hint).Accepts(x)) {
+		if consoles().known(x) || (hint != "" && consoles().byID(hint).Accepts(x)) {
 			entries = append(entries, e)
 		}
 	}
@@ -378,7 +426,7 @@ func (ix *archiveIndex) judgeArchive(p, rel, library string) gameVerdict {
 		x := strings.ToLower(path.Ext(e.Name))
 		sz := max(e.Size, 1)
 		total += sz
-		if c := wittyplay.ByExtension(x); c != "" && !extHasNoProof[x] {
+		if c := consoles().byExtension(x); c != "" && !extHasNoProof[x] {
 			bytesFor[c] += sz
 		}
 	}
@@ -393,14 +441,14 @@ func (ix *archiveIndex) judgeArchive(p, rel, library string) gameVerdict {
 		exclusive = "" // mostly files that say nothing
 	}
 	console := hint
-	if c := wittyplay.ByID(hint); exclusive != "" && (c == nil || !gamearchive.HoldsGame(extsOf(entries), c)) {
+	if c := consoles().byID(hint); exclusive != "" && (c == nil || !gamearchive.HoldsGame(extsOf(entries), c)) {
 		console = exclusive
 	}
 	if console == "" {
 		console = exclusive
 	}
 	var v gameVerdict
-	if c := wittyplay.ByID(console); c != nil && gamearchive.HoldsGame(extsOf(entries), c) {
+	if c := consoles().byID(console); c != nil && gamearchive.HoldsGame(extsOf(entries), c) {
 		v = ix.judgeSet(p, stem, l, c, entries, hint, library)
 	} else {
 		v = ix.judgeAmbiguous(p, stem, l, entries, hint, library)
@@ -444,7 +492,7 @@ func (ix *archiveIndex) judgeAmbiguous(p, stem string, l *gamearchive.Listing, e
 		}
 		return needsLook("Nothing in this archive says which console it's for, and neither does its folder.")
 	}
-	c := wittyplay.ByID(f.Console)
+	c := consoles().byID(f.Console)
 	if c == nil {
 		return needsLook(fmt.Sprintf("This archive holds a %s game. This server has no core for that console.", consoleName(f.Console)), hint)
 	}
@@ -598,7 +646,7 @@ func whatItHolds(kind gameid.Kind) string {
 func (ix *archiveIndex) proofForSet(p string, c *wittyplay.Console, mine []gamearchive.Entry, played, hint, library string) gameVerdict {
 	main := mainEntry(mine)
 	x := strings.ToLower(path.Ext(main.Name))
-	ambiguous := extHasNoProof[x] || wittyplay.ByExtension(x) == ""
+	ambiguous := extHasNoProof[x] || consoles().byExtension(x) == ""
 	if strings.EqualFold(filepath.Ext(p), ".zip") || ambiguous {
 		f := ix.peek(p, main)
 		switch {
@@ -607,7 +655,7 @@ func (ix *archiveIndex) proofForSet(p string, c *wittyplay.Console, mine []gamea
 			v.Proof = "Inside the archive: " + f.Proof
 			return v
 		case f.Proven():
-			if wittyplay.ByID(f.Console) == nil {
+			if consoles().byID(f.Console) == nil {
 				return needsLook(fmt.Sprintf("This archive holds a %s game. This server has no core for that console.", consoleName(f.Console)), hint)
 			}
 			if library != "" && library != wittyplay.Auto && library != f.Console {
@@ -623,16 +671,16 @@ func (ix *archiveIndex) proofForSet(p string, c *wittyplay.Console, mine []gamea
 		}
 	}
 	switch {
-	case hint == c.ID && wittyplay.ByExtension(x) == c.ID && !extHasNoProof[x]:
+	case hint == c.ID && consoles().byExtension(x) == c.ID && !extHasNoProof[x]:
 		return accept(c.ID, howExt, 80, "Its folder is named for this console, and the file inside is a kind only this console uses.")
 	case hint == c.ID:
 		return accept(c.ID, howFolder, 70, "Its folder is named for this console, and the file inside is a kind this console uses.")
-	case hint != "" && wittyplay.ByExtension(x) == c.ID:
+	case hint != "" && consoles().byExtension(x) == c.ID:
 		if library != "" && library != wittyplay.Auto {
 			return needsLook(fmt.Sprintf("This library is set to %s, but the file inside is a kind only %s uses.", consoleName(library), c.Name), c.ID, library)
 		}
 		return accept(c.ID, howExt, 70, fmt.Sprintf("The file inside is a kind only %s uses, whatever its folder is called.", c.Name))
-	case wittyplay.ByExtension(x) == c.ID:
+	case consoles().byExtension(x) == c.ID:
 		return accept(c.ID, howExt, 60, fmt.Sprintf("The file inside is a kind only %s uses.", c.Name))
 	}
 	return needsLook("Nothing in this archive says which console it's for, and neither does its folder.", c.ID)
@@ -876,7 +924,7 @@ func (s *Store) GameReviewList(ctx context.Context, lib *Library, kind string, l
 func suggestionsFor(ids []string) []GameSuggestion {
 	out := []GameSuggestion{}
 	for _, id := range ids {
-		if c := wittyplay.ByID(id); c != nil && !c.Hidden {
+		if c := consoles().byID(id); c != nil && !c.Hidden {
 			out = append(out, GameSuggestion{Console: id, Name: c.Name, Short: c.Short})
 		}
 	}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { announce } from '../a11y'
 import { api } from '../api'
+import { getNavStyle } from '../navPrefs'
 import { IconDown, IconGrip, IconUp } from '../icons'
 import { useApp } from '../state'
 import { Button, IconButton } from '../ui/Button'
@@ -68,7 +69,7 @@ export default function NavCustomize() {
   const setShown = (id: string, on: boolean) => save({ hidden: on ? hidden.filter((h) => h !== id) : [...hidden, id] })
   const shareIt = async () => {
     if (!await ask({ title: 'Use this arrangement for everyone?', body: 'People who have arranged their own menu keep theirs. Everyone else gets this one, and it can be changed again at any time.', confirm: 'Use for everyone' })) return
-    const value = { ...prefs, order: order.map((it) => it.id) }
+    const value = { ...prefs, order: order.map((it) => it.id), style: getNavStyle() }
     try {
       await api.put('/settings', { navDefault: JSON.stringify(value) })
       setOwnerNavPrefs(value)

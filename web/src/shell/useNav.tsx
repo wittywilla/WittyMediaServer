@@ -6,12 +6,18 @@ import { useApp } from '../state'
 import { useUserPref } from '../ui/userPrefs'
 import type { NavItem, NavPrefs } from './navModel'
 
-// Whether to offer Game PCs. It's asked for once, as the answer rarely changes.
+// Whether to offer Game PCs. It's asked for once per person, however many menus want
+// to know, as the answer rarely changes.
+let couchAsked: { user: number; answer: Promise<boolean> } | null = null
 function useCanUseCouch() {
   const { user } = useApp()
   const [can, setCan] = useState(false)
   useEffect(() => {
-    if (user) api.get<{ allowed: boolean }>('/couch').then((r) => setCan(r.allowed)).catch(() => setCan(false))
+    if (!user) return
+    if (couchAsked?.user !== user.id) couchAsked = { user: user.id, answer: api.get<{ allowed: boolean }>('/couch').then((r) => r.allowed).catch(() => false) }
+    let live = true
+    couchAsked.answer.then((a) => { if (live) setCan(a) })
+    return () => { live = false }
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   return can
 }

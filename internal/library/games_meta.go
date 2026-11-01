@@ -135,34 +135,19 @@ func (g *GameMeta) setPhase(running bool, phase string) {
 func (g *GameMeta) work(ctx context.Context) {
 	defer g.setPhase(false, "")
 	defer g.id.Close()
-	// This wakes every few minutes, so it only shows once a round has found something to do.
-	// Pictures go on beside the details, so either can be the first to find some.
-	var tMu sync.Mutex
-	var t *tasks.Handle
+	t := &gameMetaTask{g: g}
 	var failed error
-	defer func() {
-		tMu.Lock()
-		defer tMu.Unlock()
-		t.Finish(failed)
-	}()
-	note := func(n int) {
-		if n == 0 {
-			return
-		}
-		tMu.Lock()
-		if t == nil {
-			t = g.Tasks.Start(tasks.Spec{Type: tasks.TypeGames, Title: "Finding out about games", Unit: "games"})
-		}
-		h := t
-		tMu.Unlock()
-		h.Add(int64(n))
-	}
+	defer func() { t.finish(ctx, failed) }()
 	defer func() {
 		if g.OnSettled != nil {
 			g.OnSettled()
 		}
 	}()
+	t.stage(ctx, phaseLocal)
 	for ctx.Err() == nil {
+		if t.wait(ctx) != nil {
+			return
+		}
 		g.setPhase(true, "details")
 		n, err := g.localBatch(ctx)
 		if err != nil && ctx.Err() == nil {
@@ -172,14 +157,15 @@ func (g *GameMeta) work(ctx context.Context) {
 		if n == 0 {
 			break
 		}
-		note(n)
+		t.did(n)
 	}
+	t.stage(ctx, phaseOnline)
 	finished := make(chan struct{})
 	pictures := make(chan struct{})
 	go func() {
 		defer close(pictures)
 		defer logging.Recover("game pictures", "cat", "library")
-		for ctx.Err() == nil {
+		for t.wait(ctx) == nil {
 			n, err := g.picturesBatch(ctx)
 			if err != nil {
 				if ctx.Err() == nil {
@@ -188,14 +174,16 @@ func (g *GameMeta) work(ctx context.Context) {
 				return
 			}
 			if n > 0 {
-				note(n)
+				t.picture(n)
 				continue
 			}
 			select {
 			case <-finished:
-				if n, err := g.picturesBatch(ctx); n == 0 || err != nil {
+				n, err := g.picturesBatch(ctx)
+				if n == 0 || err != nil {
 					return
 				}
+				t.picture(n)
 			case <-ctx.Done():
 				return
 			case <-time.After(500 * time.Millisecond):
@@ -206,7 +194,7 @@ func (g *GameMeta) work(ctx context.Context) {
 		close(finished)
 		<-pictures
 	}()
-	for ctx.Err() == nil {
+	for t.wait(ctx) == nil {
 		g.setPhase(true, "details")
 		details, err := g.detailsBatch(ctx)
 		if err != nil && ctx.Err() == nil {
@@ -215,9 +203,10 @@ func (g *GameMeta) work(ctx context.Context) {
 			return
 		}
 		if details == 0 {
+			t.stage(ctx, phasePictures)
 			return
 		}
-		note(details)
+		t.did(details)
 	}
 }
 

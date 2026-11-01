@@ -8,6 +8,7 @@ import { GameCredits, GameMatchBar, GameMetaNotice, GameRatings, GameShots } fro
 import { reportClient, setLogSession } from '../errorReport'
 import { toast, useApp } from '../state'
 import type { Background, ControllerData, ControlsData, PlayHost, PrepareStatus, Profile, ProfileHost, SaveSlot, SessionInfo, SettingsHost } from '@wittywilla/wittyplay'
+import { lazyModule } from '../moduleBundles'
 import './games.css'
 import LegalNote from '../components/LegalNote'
 
@@ -15,8 +16,8 @@ import LegalNote from '../components/LegalNote'
 // The player itself is WittyPlay (the web folder of WittyPlay's repository), loaded only when a game
 // is opened.
 
-const GamePlayer = lazy(() => import('@wittywilla/wittyplay'))
-const Controllers = lazy(() => import('@wittywilla/wittyplay').then((m) => ({ default: m.ControllersPage })))
+const GamePlayer = lazyModule<any>('wittyplay', (m) => m.default) // eslint-disable-line @typescript-eslint/no-explicit-any
+const Controllers = lazyModule<any>('wittyplay', (m) => m.ControllersPage) // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Controller profiles and the background, through the same routes a TV app uses.
 const profileHost: ProfileHost = {
@@ -52,7 +53,7 @@ const getControllers = () => {
   return knownControllers
 }
 
-const SettingsScreen = lazy(() => import('@wittywilla/wittyplay').then((m) => ({ default: m.GameSettingsScreen })))
+const SettingsScreen = lazyModule<any>('wittyplay', (m) => m.GameSettingsScreen) // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // How the module's settings screens reach the API.
 const useSettingsHost = (isAdmin: boolean) => useMemo<SettingsHost>(() => ({
@@ -574,7 +575,7 @@ export function ControllersScreen() {
   return (
     <Suspense fallback={<Spinner />}>
       <Controllers profiles={profileHost} controls={controls} controllers={getControllers} consoles={consoles} consoleId={consoleId}
-        onConsole={(id) => setParams({ console: id }, { replace: true })} saveControl={async (id, s) => { await api.put(`/consoles/${id}/controls`, s) }} onClose={() => nav(-1)} />
+        onConsole={(id: string) => setParams({ console: id }, { replace: true })} saveControl={async (id: string, s: unknown) => { await api.put(`/consoles/${id}/controls`, s) }} onClose={() => nav(-1)} />
     </Suspense>
   )
 }

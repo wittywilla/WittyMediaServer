@@ -11,8 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wittywilla/wittybluray"
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/bdsession"
+	"github.com/wittywilla/wittymediaserver/internal/bluray"
+	"github.com/wittywilla/wittymediaserver/internal/dvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
@@ -22,14 +23,22 @@ import (
 // number, as it is for the player.
 
 func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *library.Item) {
-	d, err := wittybluray.Open(it.Path)
+	od, err := bdsession.Open(it.Path, s.Log)
+	if writeModuleMissing(w, err) {
+		return
+	}
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	if od.Disc == nil {
+		writeErr(w, 403, "This disc is encrypted, and encrypted discs aren't supported.")
+		return
+	}
+	d := od.Disc
 	defer d.Close()
 	labels := s.Store.DiscLabels(r.Context(), it.ID)
-	view := func(pl *wittybluray.Playlist) discTitle {
+	view := func(pl *bluray.Playlist) discTitle {
 		t := discTitle{TTN: pl.Number, Label: labels.Titles[strconv.Itoa(pl.Number)], DurationSec: d.PlaylistDuration(pl), Angles: 1, Wide: true,
 			Chapters: []discChapter{}, Audio: []string{}, Subtitles: []string{}}
 		names := labels.Chapters[strconv.Itoa(pl.Number)]
@@ -66,21 +75,21 @@ func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *li
 		out["main"] = view(main)
 	}
 	var extras []discTitle
-	for n, pl := range d.Playlists {
-		if pl == main || d.PlaylistDuration(pl) < 10 || len(pl.Items) == 0 || len(pl.Items[0].Video) == 0 {
+	for _, n := range od.Playlists {
+		pl := d.Playlist(n)
+		if pl == nil || pl == main || d.PlaylistDuration(pl) < 10 || len(pl.Items) == 0 || len(pl.Items[0].Video) == 0 {
 			continue
 		}
 		if len(pl.Items[0].IG) > 0 && d.PlaylistDuration(pl) < 600 {
 			continue // menu loops
 		}
-		_ = n
 		extras = append(extras, view(pl))
 	}
 	sort.SliceStable(extras, func(i, j int) bool { return extras[i].DurationSec > extras[j].DurationSec })
 	if extras != nil {
 		out["extras"] = extras
 	}
-	if d.Index.TopMenu.Kind != wittybluray.ObjectNone {
+	if od.Index != nil && od.Index.TopMenu.Kind != bluray.ObjectNone {
 		out["menus"] = []discMenu{{Kind: "title", Label: "Top menu"}}
 	}
 	writeJSON(w, 200, out)
@@ -88,10 +97,14 @@ func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *li
 
 // makeBlurayThumb grabs a frame of a playlist (chapter n, 0 = the start).
 func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n int, out string) error {
-	d, err := wittybluray.Open(it.Path)
+	od, err := bdsession.Open(it.Path, s.Log)
 	if err != nil {
 		return err
 	}
+	if od.Disc == nil {
+		return errNoPicture
+	}
+	d := od.Disc
 	defer d.Close()
 	pl := d.Playlist(ttn)
 	if pl == nil && ttn == 0 {
@@ -140,7 +153,7 @@ func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n i
 	// from its start.
 	e, ok := c.SPNAt(c.VideoPID(), at)
 	if !ok {
-		e = wittybluray.EPEntry{PTS: pi.In}
+		e = bluray.EPEntry{PTS: pi.In}
 	}
 	ext, err := d.ClipExtents(pi.Clip)
 	if err != nil {
@@ -152,14 +165,14 @@ func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n i
 	if to <= from {
 		to = from + 64<<20
 	}
-	var cut []wittydvd.FileExtent
+	var cut []dvd.FileExtent
 	var off int64
 	for _, x := range ext {
 		a, b := off, off+x.Length
 		off = b
 		lo, hi := max(a, from), min(b, to)
 		if hi > lo {
-			cut = append(cut, wittydvd.FileExtent{File: x.Path, Offset: x.Offset + (lo - a), Length: hi - lo})
+			cut = append(cut, dvd.FileExtent{File: x.Path, Offset: x.Offset + (lo - a), Length: hi - lo})
 		}
 	}
 	if len(cut) == 0 {

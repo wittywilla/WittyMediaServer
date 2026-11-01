@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/dvd"
 )
 
 // SubEvent is one subtitle image on the title timeline.
@@ -52,14 +52,14 @@ func (s *Session) Subtitles(ttn, n int, from, to float64) ([]SubEvent, error) {
 	if v == nil {
 		return nil, fmt.Errorf("title set %d missing", ts.VTS)
 	}
-	sp := wittydvd.Space{Domain: wittydvd.DomainVTS, VTS: ts.VTS}
+	sp := dvd.Space{Domain: dvd.DomainVTS, VTS: ts.VTS}
 	out := []SubEvent{}
 	for _, c := range ts.Cells {
 		cellEnd := c.Start + c.Cell.Duration
 		if cellEnd < from || c.Start > to {
 			continue
 		}
-		var pgc *wittydvd.PGC
+		var pgc *dvd.PGC
 		if c.PGCN >= 1 && c.PGCN <= len(v.PGCs) {
 			pgc = v.PGCs[c.PGCN-1].PGC
 		}
@@ -114,23 +114,23 @@ func (s *Session) Subtitles(ttn, n int, from, to float64) ([]SubEvent, error) {
 
 // renderSub renders every picture a sub-picture unit shows. Most units show
 // one; units with several control sequences change colour, blink or move
-// (see wittydvd.DecodeSPUFrames). Pictures that draw nothing (units that
+// (WittyDVD draws them). Pictures that draw nothing (units that
 // clear the screen) are left out.
-func (s *Session) renderSub(u wittydvd.SPUUnit, cellStart float64, base uint32, cellEnd, next float64, pgc *wittydvd.PGC) []*subPic {
-	frames, err := wittydvd.DecodeSPUFrames(u.Bytes)
-	if err != nil {
-		s.log.Debug("could not read a subtitle picture", "err", err)
-		return nil
-	}
+func (s *Session) renderSub(u dvd.SPUUnit, cellStart float64, base uint32, cellEnd, next float64, pgc *dvd.PGC) []*subPic {
 	var pal [16]uint32
 	if pgc != nil {
 		pal = pgc.Palette
 	}
+	frames, err := s.opened.RenderSPU(u.Bytes, pal)
+	if err != nil {
+		s.log.Debug("could not read a subtitle picture", "err", err)
+		return nil
+	}
 	at := cellStart + float64(u.PTS-int64(base))/90000
 	var out []*subPic
 	for _, spu := range frames {
-		img := spu.Render(pal, nil).Crop()
-		if img.Width == 0 || img.Height == 0 {
+		img := spu.Image
+		if img == nil || img.Width <= 0 || img.Height <= 0 || img.Width > 4096 || img.Height > 4096 || len(img.Pix) != 4*img.Width*img.Height {
 			continue
 		}
 		ev := SubEvent{Start: at + spu.StartSec, X: img.X, Y: img.Y, W: img.Width, H: img.Height, Forced: spu.Forced}

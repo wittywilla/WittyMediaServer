@@ -56,7 +56,7 @@ var serverStart = time.Now()
 
 // SystemSummary gathers the summary. It starts no programs and doesn't go online.
 func (s *Server) SystemSummary(ctx context.Context) SystemSummary {
-	out := SystemSummary{Time: time.Now(), Version: s.Version, Go: runtime.Version(), Started: serverStart, System: sysinfo.Read(), Modules: builtModules(),
+	out := SystemSummary{Time: time.Now(), Version: s.Version, Go: runtime.Version(), Started: serverStart, System: sysinfo.Read(), Modules: s.modulesInUse(),
 		Settings: map[string]string{}, SecretsSet: []string{}, Libraries: map[string]int{}, Folders: []FolderSpace{}, Encoders: []string{}}
 	if s.Tools != nil {
 		out.FFmpeg, out.FFmpegInfo = s.Tools.FFmpeg, s.Tools.Version

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"hash/crc32"
 	"image"
 	"image/color"
@@ -17,7 +18,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 // raw sends a body as it is, for the endpoints that take a file.
@@ -85,6 +86,7 @@ func (g *gameServer) settings(t *testing.T, tok string, item int64) settingsResp
 }
 
 func TestGameSettingsFollowTheirLevels(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	id := g.aGame(t, "one.wittytest")
@@ -131,6 +133,7 @@ func TestGameSettingsFollowTheirLevels(t *testing.T) {
 }
 
 func TestOnlyAnAdminSetsWhatEveryoneStartsWith(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	id := g.aGame(t, "one.wittytest")
@@ -159,6 +162,7 @@ func TestOnlyAnAdminSetsWhatEveryoneStartsWith(t *testing.T) {
 }
 
 func TestASettingsFileGoesThroughTheAPI(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	id := g.aGame(t, "one.wittytest")
@@ -206,6 +210,7 @@ func TestASettingsFileGoesThroughTheAPI(t *testing.T) {
 }
 
 func TestNobodyReachesSomeoneElsesGameData(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	id := g.aGame(t, "one.wittytest")
@@ -310,6 +315,7 @@ func TestNobodyReachesSomeoneElsesGameData(t *testing.T) {
 // A page or an app can't add a header to an <img> or a download link, so a sign-in in the
 // address opens these, and only these, and only for reading.
 func TestASignInInTheAddressOpensOnlyPicturesAndDownloads(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	id := g.aGame(t, "one.wittytest")
@@ -353,6 +359,7 @@ func TestASignInInTheAddressOpensOnlyPicturesAndDownloads(t *testing.T) {
 }
 
 func TestSlotNumbersOnlyEverNameTheirOwnFile(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	id := g.aGame(t, "one.wittytest")
@@ -386,6 +393,7 @@ func aPNG(t *testing.T, w, h int) []byte {
 
 // A person's image is hostile: only pixels that decode get through, in a file we made.
 func TestImagesAreDecodedAndRemade(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	good := aPNG(t, 16, 9)
@@ -455,6 +463,7 @@ func TestImagesAreDecodedAndRemade(t *testing.T) {
 }
 
 func TestStateFilesAreCheckedComingIn(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	id := g.aGame(t, "one.wittytest")
@@ -497,6 +506,7 @@ func TestStateFilesAreCheckedComingIn(t *testing.T) {
 }
 
 func TestPlayCountsAndRecentGames(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	id := g.aGame(t, "one.wittytest")
@@ -523,6 +533,7 @@ func TestPlayCountsAndRecentGames(t *testing.T) {
 }
 
 func TestPersonalNotesHaveALimit(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	id := g.aGame(t, "one.wittytest")

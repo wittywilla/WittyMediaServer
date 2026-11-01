@@ -4,10 +4,10 @@
   "version": "0.4.0-alpha",
   "type": "module",
   "scripts": {
-    "dev": "node ../scripts/dev-modules.mjs --web-only --quiet && vite",
-    "build": "node ../scripts/dev-modules.mjs --web-only --quiet && node scripts/sync-module-manifests.mjs && tsc -b && vite build",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test:play": "node scripts/test-wittyplay.mjs"
+    "test:music": "node scripts/test-music.mjs"
   },
   "dependencies": {
     "hls.js": "^1.6.0",

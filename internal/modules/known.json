@@ -1,0 +1,260 @@
+{
+  "format": 1,
+  "name": "WittyMediaServer modules",
+  "serial": 1,
+  "generated": "2026-11-01T07:13:04Z",
+  "modules": [
+    {
+      "id": "wittybluray",
+      "name": "WittyBluray",
+      "summary": "Blu-ray images with their menus, including 4K, HDR and 3D discs.",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyBluray",
+      "group": "discs",
+      "libraries": [
+        "discs"
+      ],
+      "needs": [
+        "FFmpeg, which comes with the server",
+        "Java, only for discs with Java menus, and only if you turn that on"
+      ],
+      "updates": "Playing an open disc: reading its playlists and clips, running its program, reading its menus and subtitles.",
+      "stays": "Finding and describing discs in a library scan, the check that refuses encrypted discs, drawing menus, turning a disc's steps into what the player shows, and discs with Java menus when Java menus are turned on: the built-in copy plays those. The server also opens every disc itself first, so a disc it can't read at all needs a new server.",
+      "versions": []
+    },
+    {
+      "id": "wittycd",
+      "name": "WittyCD",
+      "summary": "Audio CD images played as discs: gapless, with their tracks, indexes and CD-TEXT, in a CD player.",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyCD",
+      "group": "discs",
+      "libraries": [
+        "music",
+        "discs"
+      ],
+      "updates": "Reading CD images, disc IDs, CD-TEXT and the lossless stream.",
+      "stays": "The CD player page and looking discs up online.",
+      "versions": []
+    },
+    {
+      "id": "wittycomics",
+      "name": "WittyComics",
+      "summary": "Comics and manga: pages, spreads, vertical strips, either reading direction.",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyComics",
+      "group": "read",
+      "libraries": [
+        "books"
+      ],
+      "requires": [
+        "wittyink"
+      ],
+      "updates": "The comic reader itself: pages, spreads, the vertical strip, its controls and its look.",
+      "stays": "The Reader page, the ReaderHost it provides (saving your place, fetching pages), how the server opens comic archives, and React stay with the server. If this bundle fails, the copy in the app takes over.",
+      "versions": []
+    },
+    {
+      "id": "wittycouch",
+      "name": "WittyCouch",
+      "summary": "",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyCouch",
+      "versions": []
+    },
+    {
+      "id": "wittycouchhost",
+      "name": "WittyCouch Host",
+      "summary": "",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyCouchHost",
+      "versions": []
+    },
+    {
+      "id": "wittydvd",
+      "name": "WittyDVD",
+      "summary": "DVD images with their real menus, chapters, angles and subtitles.",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyDVD",
+      "group": "discs",
+      "libraries": [
+        "discs"
+      ],
+      "needs": [
+        "FFmpeg, which comes with the server"
+      ],
+      "updates": "The DVD engine a viewer plays a disc through: reading the disc's structure, its menus, buttons and commands, where its video lies, and its subtitles. While a downloaded version is in use, each open disc has a small helper program of its own.",
+      "stays": "Scanning a library, the title list on a disc's page and playing a title without its menus still use the built-in copy, and turning what the engine says into streams and pictures is the server's own code, as is refusing encrypted discs. Those change with a new server.",
+      "versions": []
+    },
+    {
+      "id": "wittyebook",
+      "name": "WittyEbook",
+      "summary": "Reflowable books (EPUB) with book view, typography and study tools.",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyEbook",
+      "group": "read",
+      "libraries": [
+        "books"
+      ],
+      "requires": [
+        "wittyink"
+      ],
+      "updates": "The EPUB reader itself: book view, typography, study tools, handwriting and its look.",
+      "stays": "The Reader page, the ReaderHost it provides (saving your place and notes, fetching chapters), how the server takes a book apart and cleans it, and React stay with the server. If this bundle fails, the copy in the app takes over.",
+      "versions": []
+    },
+    {
+      "id": "wittyink",
+      "name": "WittyInk",
+      "summary": "What every reader shares: annotations, notes, definitions, citations and handwriting.",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyInk",
+      "group": "read",
+      "core": true,
+      "updates": "What the readers share as they run from their own bundles: the notes panel, highlight colours, definitions, citations, handwriting tools and their look. It reaches a reader only when that reader is running a bundle too.",
+      "stays": "The Reader page, the ReaderHost it provides (saving your place and notes, fetching pages), and React stay with the server. Readers still using the copy in the app keep the WittyInk in the app. If this bundle fails, the copy in the app takes over.",
+      "versions": []
+    },
+    {
+      "id": "wittyintegratedfilebrowser",
+      "name": "WittyIntegratedFileBrowser",
+      "summary": "Choosing a server's folders from any device. Read-only.",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyIntegratedFileBrowser",
+      "group": "system",
+      "core": true,
+      "updates": "Finding drives and usual folders, and listing what is in a folder.",
+      "stays": "The folder window in the app, naming what kind of media each file is, and the folders already in your libraries. If a version can't read a folder, the server tries it itself.",
+      "versions": []
+    },
+    {
+      "id": "wittypdf",
+      "name": "WittyPDF",
+      "summary": "PDFs with selectable text, zoom, outline, thumbnails and search.",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyPDF",
+      "group": "read",
+      "libraries": [
+        "books"
+      ],
+      "requires": [
+        "wittyink"
+      ],
+      "updates": "The PDF reader itself: zoom, outline, thumbnails, search, study tools and its look.",
+      "stays": "pdf.js and its worker, which do the actual reading of a PDF, stay with the server, along with the Reader page, the ReaderHost it provides (saving your place and notes) and React. If this bundle fails, the copy in the app takes over.",
+      "versions": []
+    },
+    {
+      "id": "wittyphotos",
+      "name": "WittyPhotos",
+      "summary": "Photo libraries: what a photo says about itself, including RAW files, without decoding it.",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyPhotos",
+      "group": "photos",
+      "libraries": [
+        "photos"
+      ],
+      "updates": "Reading EXIF, picture sizes, and the preview inside RAW files.",
+      "stays": "The photo pages in the app.",
+      "versions": []
+    },
+    {
+      "id": "wittyplay",
+      "name": "WittyPlay",
+      "summary": "Console games streamed to a browser or an app, with every controller and a touch layout editor.",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyPlay",
+      "group": "games",
+      "libraries": [
+        "games"
+      ],
+      "needs": [
+        "FFmpeg, which comes with the server",
+        "Game cores, which you add in Settings, Consoles & cores"
+      ],
+      "updates": "Running games: how the game runner uses cores, and its picture, sound and controller input.",
+      "stays": "The streaming half (WebRTC and encoding), the console tables, and the player in the app. If WittyRetroArch is installed and chosen, it runs the games instead.",
+      "versions": []
+    },
+    {
+      "id": "wittyrigs",
+      "name": "WittyRigs",
+      "summary": "",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyRigs",
+      "versions": []
+    },
+    {
+      "id": "wittytuner",
+      "name": "WittyTuner",
+      "summary": "Live TV and recording: network tuners, IPTV playlists, capture cards and guide data. Encrypted channels are refused.",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyTuner",
+      "group": "tv",
+      "needs": [
+        "FFmpeg, which comes with the server",
+        "A tuner or an IPTV playlist"
+      ],
+      "updates": "Network tuners, IPTV over HTTP and external backends: finding them, reading their channels, scanning, and opening a stream.",
+      "stays": "Custom commands, capture cards, Linux DVB, SAT>IP and IPTV over RTSP, RTP, UDP, RTMP or SRT, which need other programs or this machine's devices, and a helper may use neither. Refusing encrypted channels also stays: the server watches every stream itself and opens HLS and DASH itself, whatever a version says. Recording and the guide stay too.",
+      "versions": []
+    },
+    {
+      "id": "wittyvisualizer",
+      "name": "WittyVisualizer",
+      "summary": "Light shows that follow the music: spectrum bars, scopes, plasma, tunnels, starfields, feedback and more, full screen.",
+      "publisher": {
+        "name": "WittyWilla",
+        "url": "https://github.com/wittywilla"
+      },
+      "repo": "wittywilla/WittyVisualizer",
+      "group": "listen",
+      "updates": "The visualizer itself: its effects, how it listens to the music, its controls and its look. New effects can arrive this way.",
+      "stays": "Where it's shown in the audio player and how settings are saved per person stay with the server. If this bundle fails, the copy in the app takes over.",
+      "versions": []
+    }
+  ]
+}

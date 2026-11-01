@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -22,8 +23,8 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittyplay"
-	"github.com/wittywilla/wittyplay/cores"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
+	"github.com/wittywilla/wittymediaserver/internal/play/cores"
 	"github.com/wittywilla/wittyplay/testcore/fakecore"
 )
 
@@ -39,20 +40,7 @@ var (
 func buildCustomRunner(t *testing.T) string {
 	t.Helper()
 	customRunnerOnce.Do(func() {
-		dir, err := os.MkdirTemp("", "wittyplay-runner")
-		if err != nil {
-			customRunnerErr = err
-			return
-		}
-		customRunner = filepath.Join(dir, "wittyplay-host")
-		if runtime.GOOS == "windows" {
-			customRunner += ".exe"
-		}
-		b := exec.Command("go", "build", "-o", customRunner, "github.com/wittywilla/wittyplay/cmd/wittyplay-host")
-		b.Env = append(os.Environ(), "CGO_ENABLED=0")
-		if out, err := b.CombinedOutput(); err != nil {
-			customRunnerErr = fmt.Errorf("%v: %s", err, out)
-		}
+		customRunner = modtest.Runner(t)
 	})
 	if customRunnerErr != nil {
 		t.Fatal(customRunnerErr)
@@ -191,6 +179,7 @@ func (g *gameServer) addGame(t *testing.T, console string) int64 {
 }
 
 func TestCustomCoresAreOffByDefault(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	buildCustomRunner(t)
 	g := newGameServer(t)
 	good := fakeCoreFile(t, "x", fakecore.Good)
@@ -226,6 +215,7 @@ func TestCustomCoresAreOffByDefault(t *testing.T) {
 }
 
 func TestCustomCoreRoutesAreForAdminsOnly(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	buildCustomRunner(t)
 	g := newGameServer(t)
 	g.enableCustom(t)
@@ -258,6 +248,7 @@ func TestCustomCoreRoutesAreForAdminsOnly(t *testing.T) {
 }
 
 func TestKidsProfilesCantReachAnyOfIt(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	buildCustomRunner(t)
 	g := newGameServer(t)
 	g.enableCustom(t)
@@ -286,6 +277,7 @@ func TestKidsProfilesCantReachAnyOfIt(t *testing.T) {
 }
 
 func TestAddingACoreChecksThePasswordFirst(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	buildCustomRunner(t)
 	g := newGameServer(t)
 	g.enableCustom(t)
@@ -310,6 +302,7 @@ func TestAddingACoreChecksThePasswordFirst(t *testing.T) {
 // Every hostile file, through the whole route: refused plainly, written down, nothing
 // left behind, and the server carries on.
 func TestHostileFilesThroughTheAPI(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	buildCustomRunner(t)
 	g := newGameServer(t)
 	g.enableCustom(t)
@@ -409,6 +402,7 @@ func TestHostileFilesThroughTheAPI(t *testing.T) {
 }
 
 func TestHostileConsolesThroughTheAPI(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	buildCustomRunner(t)
 	g := newGameServer(t)
 	t.Cleanup(func() { wittyplay.SetCustomConsoles(nil) })
@@ -471,6 +465,7 @@ func TestHostileConsolesThroughTheAPI(t *testing.T) {
 }
 
 func TestCustomCoreLifecycle(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	buildCustomRunner(t)
 	g := newGameServer(t)
 	g.enableCustom(t)
@@ -713,6 +708,7 @@ func TestCustomCoreLifecycle(t *testing.T) {
 }
 
 func TestAFilePlacedInTheFolderCantBeChosenUntilAdded(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	buildCustomRunner(t)
 	g := newGameServer(t)
 	g.enableCustom(t)
@@ -770,6 +766,7 @@ func TestAFilePlacedInTheFolderCantBeChosenUntilAdded(t *testing.T) {
 }
 
 func TestPackagesAndExtrasThroughTheAPI(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	buildCustomRunner(t)
 	g := newGameServer(t)
 	g.enableCustom(t)
@@ -859,6 +856,7 @@ func TestPackagesAndExtrasThroughTheAPI(t *testing.T) {
 // A real game through the whole path, with a real library that the runner loads and a
 // real stream of events: only with a core that can draw, so with a compiler.
 func TestPlayingWithACustomCore(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	if runtime.GOOS == "windows" {
 		t.Skip("the hand-written Windows core has no frames to play; docs/GAMING.md says what was run by hand")
 	}
@@ -901,6 +899,7 @@ func TestPlayingWithACustomCore(t *testing.T) {
 }
 
 func TestBestCoreComesFromRealPlay(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	ctx := context.Background()
 	lib, err := g.s.Store.CreateLibrary(ctx, "G", "games", []string{t.TempDir()})
@@ -932,6 +931,7 @@ func TestBestCoreComesFromRealPlay(t *testing.T) {
 }
 
 func TestTheCoresFolderIsThereWhenThePageNamesIt(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	g := newGameServer(t)
 	g.enableCustom(t)
 	dir := g.s.games().cores.Dir

@@ -3,6 +3,7 @@ package library
 import (
 	"archive/zip"
 	"context"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"io"
 	"log/slog"
 	"os"
@@ -49,6 +50,7 @@ func equal(a, b []string) bool {
 }
 
 func TestDiscoverGamesOneConsole(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	root := t.TempDir()
 	writeFiles(t, root, "Hello.sfc", "sub/World.smc", "notes.txt", "other.gba", "bios/skip.sfc", ".hidden/skip.sfc")
 	got, err := discoverGames(root, "snes")
@@ -61,6 +63,7 @@ func TestDiscoverGamesOneConsole(t *testing.T) {
 }
 
 func TestDiscoverGamesAuto(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	root := t.TempDir()
 	writeFiles(t, root, "a.sfc", "b.gba", "Sega Genesis/c.bin", "mystery.bin", "Atari 2600/d.bin", "readme.txt")
 	got, _ := discoverGames(root, "auto")
@@ -71,6 +74,7 @@ func TestDiscoverGamesAuto(t *testing.T) {
 }
 
 func TestDiscoverGamesMultiFile(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	root := t.TempDir()
 	writeFiles(t, root, "Game/Game (Track 1).bin", "Game/Game (Track 2).bin", "Solo.bin", "Set/Disc 1.cue", "Set/Disc 2.cue", "Set/Disc 1.bin", "Set/Disc 2.bin")
 	_ = os.WriteFile(filepath.Join(root, "Game", "Game.cue"), []byte("FILE \"Game (Track 1).bin\" BINARY\n  TRACK 01 MODE2/2352\nFILE \"Game (Track 2).bin\" BINARY\n"), 0o644)
@@ -85,6 +89,7 @@ func TestDiscoverGamesMultiFile(t *testing.T) {
 }
 
 func TestDiscoverGamesZip(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	root := t.TempDir()
 	mk := func(name, inner string) {
 		f, err := os.Create(filepath.Join(root, name))
@@ -127,6 +132,7 @@ func TestParseGameName(t *testing.T) {
 // A whole scan: two libraries of one console stay apart, each item has its console,
 // and a file that goes away is marked missing.
 func TestScanGamesLibrary(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ctx := context.Background()
 	database, err := db.Open(t.TempDir())
 	if err != nil {
@@ -198,5 +204,37 @@ func TestSkippedGameFilesAreCounted(t *testing.T) {
 	got := skippedGameFiles(root, "auto")
 	if got["damaged"] != 2 || len(got) != 1 {
 		t.Fatalf("want only two damaged archives reported, got %v", got)
+	}
+}
+
+// With no WittyPlay nothing can be told to be a game, and what's there stays.
+func TestGamesStayWithoutWittyPlay(t *testing.T) {
+	if os.Getenv(modtest.EnvCatalog) != "" {
+		t.Skip("this is about a server without it")
+	}
+	ctx := context.Background()
+	database, err := db.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer database.Close()
+	store := &Store{DB: database}
+	root := t.TempDir()
+	writeFiles(t, root, "Hello.sfc")
+	sc := NewScanner(store, nil, t.TempDir(), func() string { return "" }, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	lib, err := store.CreateLibrary(ctx, "Games", "games", []string{root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	it := &Item{LibraryID: lib.ID, Kind: "game", Path: filepath.Join(root, "Hello.sfc"), Title: "Hello"}
+	if err := store.upsertItem(ctx, it); err != nil {
+		t.Fatal(err)
+	}
+	if err := sc.scan(ctx, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	items, _, err := store.Items(ctx, ItemQuery{LibraryID: lib.ID})
+	if err != nil || len(items) != 1 {
+		t.Fatalf("%d items, %v", len(items), err)
 	}
 }

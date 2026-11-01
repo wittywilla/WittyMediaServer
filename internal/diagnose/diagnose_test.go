@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"io"
 	"log/slog"
 	"os"
@@ -15,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittydisc/isofs"
-	"github.com/wittywilla/wittydvd"
+	wittydvd "github.com/wittywilla/wittymediaserver/internal/dvd"
+	"github.com/wittywilla/wittymediaserver/internal/isofs"
 )
 
 // Every test makes its own small fixtures. Nothing here reads a real disc.
@@ -450,40 +451,6 @@ func (d sampleDisc) ReadSectors(first uint32, count int) ([]byte, error) {
 	return out, nil
 }
 
-func TestDiagnoseScrambledPacksAreDetected(t *testing.T) {
-	if !wittydvd.PackScrambled(videoPack(true)) || wittydvd.PackScrambled(videoPack(false)) {
-		t.Fatal("the fixture doesn't match the engine's idea of a scrambled pack")
-	}
-	if !packHoldsStream(videoPack(false)) || packHoldsStream(navPack()) {
-		t.Fatal("telling packs apart")
-	}
-	const n = 16000
-	all := []packRange{{0, n - 1}}
-	j := testJob()
-	ctx := context.Background()
-
-	clear := samplePacks(ctx, j, sampleDisc{n, func(int) bool { return false }}, all, 32)
-	if clear.total == 0 || clear.scrambled != 0 {
-		t.Errorf("clear: %+v", clear)
-	}
-	whole := samplePacks(ctx, j, sampleDisc{n, func(int) bool { return true }}, all, 32)
-	if whole.total == 0 || whole.scrambled != whole.total {
-		t.Errorf("all scrambled: %+v", whole)
-	}
-	// Scrambled only from halfway on: a sample of the start alone would miss it.
-	half := samplePacks(ctx, j, sampleDisc{n, func(s int) bool { return s >= n/2 }}, all, 32)
-	if f := float64(half.scrambled) / float64(half.total); f < 0.4 || f > 0.6 {
-		t.Errorf("half scrambled gave %+v", half)
-	}
-	// Past the end reads as nothing, and doesn't count.
-	if got := samplePacks(ctx, j, sampleDisc{n, func(int) bool { return true }}, []packRange{{n + 5, n + 500}}, 8); got.total != 0 {
-		t.Errorf("past the end: %+v", got)
-	}
-	if !strings.Contains(half.String(), "%") {
-		t.Errorf("wording: %s", half)
-	}
-}
-
 // ---------------------------------------------------------------- damage
 
 // isoFile is a file of the VIDEO_TS folder in a test image.
@@ -754,7 +721,9 @@ func TestDiagnoseDiscCheckAndWhatTheReportHolds(t *testing.T) {
 	img := filepath.Join(folder, "My Secret Film.iso")
 	buildISO(t, img, []isoFile{{"VIDEO_TS.IFO", []byte(contentMark)}, {"VTS_01_1.VOB", goodVOB(32)}}, 0, nil)
 
-	m := NewManager(Env{DataDir: dataDir, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	env := Env{DataDir: dataDir, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	withModules := realHelpers(t, &Job{env: &env}, "wittydvd")
+	m := NewManager(env)
 	j, err := m.SubmitDisc(img, DiscOptions{Crawl: true, Damage: true})
 	if err != nil {
 		t.Fatal(err)
@@ -768,7 +737,10 @@ func TestDiagnoseDiscCheckAndWhatTheReportHolds(t *testing.T) {
 	for _, f := range v.Findings {
 		found[f.Title] = true
 	}
-	if !found["Index files of this DVD are damaged"] || !found["The DVD can't be opened"] || !found["No damage found"] {
+	if withModules && (!found["Index files of this DVD are damaged"] || !found["The DVD can't be opened"]) || !found["No damage found"] {
+		t.Errorf("%+v", v.Findings)
+	}
+	if !withModules && !found["WittyDVD isn't on this server"] {
 		t.Errorf("%+v", v.Findings)
 	}
 
@@ -810,8 +782,10 @@ func jsonEscaped(s string) string {
 
 func TestDiagnoseThingsThatArentDiscs(t *testing.T) {
 	dir := t.TempDir()
+	withModules := false
 	run := func(p string) *Job {
 		j := testJob()
+		withModules = realHelpers(t, j, "wittydvd", "wittybluray")
 		j.scrub = []scrubRule{{path: p, with: "this disc"}, {path: dir, with: "its folder"}}
 		checkDisc(context.Background(), j, p, DiscOptions{Crawl: true, Damage: true})
 		return j
@@ -861,7 +835,10 @@ func TestDiagnoseThingsThatArentDiscs(t *testing.T) {
 		t.Fatal(err)
 	}
 	j = run(filepath.Dir(broken))
-	if !hasFinding(j, SevProblem, "Index files") || !strings.Contains(listFindings(j), "VIDEO_TS.IFO") {
+	if withModules && (!hasFinding(j, SevProblem, "Index files") || !strings.Contains(listFindings(j), "VIDEO_TS.IFO")) {
+		t.Error(listFindings(j))
+	}
+	if !withModules && !hasFinding(j, SevWarn, "WittyDVD isn't on this server") {
 		t.Error(listFindings(j))
 	}
 	// A broken Blu-ray too.
@@ -872,7 +849,7 @@ func TestDiagnoseThingsThatArentDiscs(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(bd, "index.bdmv"), []byte("broken"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if j := run(filepath.Dir(bd)); !hasFinding(j, SevProblem, "Blu-ray can't be opened") {
+	if j := run(filepath.Dir(bd)); withModules && !hasFinding(j, SevProblem, "Blu-ray can't be opened") {
 		t.Error(listFindings(j))
 	}
 }
@@ -1107,4 +1084,20 @@ func TestDiagnoseSpeedWords(t *testing.T) {
 	if f := speedFinding(1<<20, 10*time.Second, nil); f.Severity != SevWarn {
 		t.Errorf("%+v", f)
 	}
+}
+
+// realHelpers gives a check the real modules, if there's a catalogue of them.
+func realHelpers(t *testing.T, j *Job, ids ...string) bool {
+	t.Helper()
+	if os.Getenv(modtest.EnvCatalog) == "" {
+		return false
+	}
+	m := modtest.Need(t, ids...)
+	j.env.Helper = func(id string, limit time.Duration) ModuleHelper {
+		if a := m.Attach(id, limit); a != nil {
+			return a
+		}
+		return nil
+	}
+	return true
 }

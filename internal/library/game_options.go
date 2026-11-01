@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 // What each person keeps about their games: settings at three levels, and per game a

@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wittywilla/wittycd"
-	"github.com/wittywilla/wittycd/lookup"
+	wittycd "github.com/wittywilla/wittymediaserver/internal/cd"
+	"github.com/wittywilla/wittymediaserver/internal/cdlookup"
 )
 
 // CD images. A disc is one item (kind cd-image), which is what a shelf shows and
@@ -377,7 +377,7 @@ func (s *Scanner) identifyCD(ctx context.Context, lib *Library, it *Item, d *wit
 	switch {
 	case len(matches) == 0:
 		cd.Lookup = "unknown"
-	case len(matches) == 1 && matches[0].Exact, lookup.SameAlbum(matches):
+	case len(matches) == 1 && matches[0].Exact, cdlookup.SameAlbum(matches):
 		return s.ApplyCDMatch(ctx, lib, it, d, &matches[0])
 	default:
 		cd.Lookup = "ask"
@@ -427,7 +427,7 @@ func (s *Scanner) ApplyCDMatch(ctx context.Context, lib *Library, it *Item, d *w
 
 // fetchCDCover downloads a release's cover into the artwork cache.
 func (s *Scanner) fetchCDCover(ctx context.Context, release string) string {
-	if !lookup.ValidID(release) {
+	if !cdlookup.ValidID(release) {
 		return ""
 	}
 	name := "cd-" + release + ".jpg"

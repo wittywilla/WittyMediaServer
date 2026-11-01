@@ -97,6 +97,8 @@ type Env struct {
 	Setting func(key, def string) string
 	// ItemPaths lists the files the database knows in a library, at most limit.
 	ItemPaths func(ctx context.Context, library int64, limit int) ([]string, error)
+	// Helper gives a check a helper of a module of its own, or nil if the module isn't here.
+	Helper func(id string, limit time.Duration) ModuleHelper
 }
 
 func (e *Env) setting(key, def string) string {

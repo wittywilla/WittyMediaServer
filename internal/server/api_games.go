@@ -25,10 +25,10 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
-	"github.com/wittywilla/wittyplay"
-	"github.com/wittywilla/wittyplay/cores"
-	"github.com/wittywilla/wittyplay/ipc"
-	"github.com/wittywilla/wittyplay/stream"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
+	"github.com/wittywilla/wittymediaserver/internal/play/cores"
+	"github.com/wittywilla/wittymediaserver/internal/play/ipc"
+	"github.com/wittywilla/wittymediaserver/internal/play/stream"
 )
 
 // Games: the API around WittyPlay. Sessions and streaming live in the module;
@@ -202,7 +202,7 @@ func (s *Server) gameRunner(ctx context.Context) (path string, args []string, ve
 			return p, a, ver
 		}
 	}
-	return s.findProgram("wittyplay-host"), nil, ""
+	return "", nil, ""
 }
 
 // awaitHardwareProbe finds out which hardware encoders work, the first time a game

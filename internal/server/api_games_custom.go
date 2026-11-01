@@ -22,9 +22,9 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittyplay"
-	"github.com/wittywilla/wittyplay/cores"
-	"github.com/wittywilla/wittyplay/stream"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
+	"github.com/wittywilla/wittymediaserver/internal/play/cores"
+	"github.com/wittywilla/wittymediaserver/internal/play/stream"
 )
 
 // Custom cores: an administrator's own libretro cores, and custom consoles to play
@@ -627,7 +627,7 @@ func (s *Server) handleCustomGet(w http.ResponseWriter, r *http.Request) {
 	why, sandboxed := stream.SandboxStrength()
 	out := CustomStatus{
 		Enabled: s.customCoresOn(ctx), Locked: customLocked(), CanEnable: sandboxed && !customLocked(), Sandbox: why, HaveRunner: s.probeRunner() != "",
-		Platform: cores.Binary{OS: runtime.GOOS, Arch: runtime.GOARCH}.Describe(), LibraryExt: cores.LibraryExt(), MaxUploadMB: cores.DefaultLimits.Package >> 20,
+		Platform: cores.Binary{OS: runtime.GOOS, Arch: runtime.GOARCH}.Describe(), LibraryExt: cores.LibraryExt(), MaxUploadMB: cores.DefaultLimits().Package >> 20,
 		CoresDir: g.cores.Dir, SystemDir: g.systemDir(), Cores: []*CustomCore{}, Consoles: []CustomConsoleView{}, Placed: []cores.PlacedFile{}, Audit: s.coreAudit(ctx, 100),
 	}
 	if out.Enabled {
@@ -654,7 +654,7 @@ func (s *Server) handleCustomGet(w http.ResponseWriter, r *http.Request) {
 	if out.Enabled {
 		out.Placed = s.placedFiles()
 	}
-	for _, c := range wittyplay.Consoles {
+	for _, c := range wittyplay.Consoles() {
 		if !c.Hidden {
 			out.PadChoices = append(out.PadChoices, CorePickOption{c.ID, c.Name})
 			for _, core := range c.Cores {
@@ -711,7 +711,12 @@ func (s *Server) probeRunner() string {
 	if p := os.Getenv("WMS_WITTYPLAY_RUNNER"); p != "" {
 		return p
 	}
-	return s.findProgram("wittyplay-host")
+	if s.Modules != nil {
+		if p, _, ok := s.Modules.Program(wittyPlayID); ok {
+			return p
+		}
+	}
+	return ""
 }
 
 func (cs *customService) takeSlot() bool {
@@ -957,7 +962,7 @@ func rawFileName(part *multipart.Part) string {
 // readUpload checks the password, which has to come first so nothing is read from
 // anyone who doesn't have it, and returns the fields before the file and the file.
 func (s *Server) readUpload(w http.ResponseWriter, r *http.Request, core string) (fields map[string]string, file *multipart.Part, ok bool) {
-	limits := cores.DefaultLimits
+	limits := cores.DefaultLimits()
 	if st := s.games().custom.store.Limits; st.Package > 0 {
 		limits = st
 	}

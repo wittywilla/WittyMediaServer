@@ -1,25 +1,25 @@
-import { Component, useEffect, useState, type ComponentType, type Context, type ReactNode } from 'react'
-import { api, mediaUrl, serverBase } from './api'
+import { Component, lazy, useEffect, useState, type ComponentType, type Context, type ReactNode } from 'react'
+import { api, mediaUrl } from './api'
+import { ModuleMissing } from './components/ModuleMissing'
 import type { ReaderHost } from '@wittywilla/wittyink'
 
-// Readers that arrive as web bundles, so they can update without a new server. The
-// server says which bundles are in use, usually none, and asking is the only cost when
-// it says none. Anything that goes wrong with a bundle is told to the server, which
-// takes a version out of use after three reports in a day, and the copy in the app takes
-// over. Nothing here runs until a reader opens: the Reader page is itself loaded lazily.
+// What modules show in the browser arrives as web bundles, with none of it in the app. The
+// server says which bundles are in use. Anything that goes wrong with a bundle is told to the
+// server, which takes a version out of use after three reports in a day, and the page says what's
+// missing. Nothing here runs until a page needs it.
 
 export type ReaderFormat = 'epub' | 'pdf' | 'cbz'
 const READERS: Record<ReaderFormat, string> = { epub: 'wittyebook', pdf: 'wittypdf', cbz: 'wittycomics' }
-const HOST_API = 2 // the newest module API moduleHost.ts provides
+const HOST_API = 3 // the newest module API moduleHost.ts provides
 
 type Bundle = { id: string; version: string; entry: string; style?: string; base: string; api: number }
 type HostContextType = Context<ReaderHost | null>
 export type BundledReader = { bundle: Bundle; ink: Bundle | null; Reader: ComponentType; HostContext: HostContextType }
 
-// How long a reader waits before opening with the app's copy instead. Slow isn't broken,
-// so this isn't reported; the download carries on for next time.
+// How long a page waits. Slow isn't broken, so this isn't reported; the download carries on
+// for next time.
 const ASK_MS = 5000
-const LOAD_MS = 20000
+const LOAD_MS = 60000
 const within = <T,>(ms: number, p: Promise<T>, otherwise: T) =>
   Promise.race([p, new Promise<T>((done) => setTimeout(() => done(otherwise), ms))])
 
@@ -35,7 +35,7 @@ function reportFailure(b: Bundle, why: unknown) {
   links.get(keyOf(b))?.remove()
   // A browser's message can quote the address, which can carry the sign-in.
   const reason = String((why as Error)?.message || why).replace(/([?&]token=)[^&\s]*/g, '$1hidden').slice(0, 400)
-  console.warn(`${b.id} ${b.version} failed, so the copy in the app is used instead: ${reason}`)
+  console.warn(`${b.id} ${b.version} failed: ${reason}`)
   api.post(`/modules/${b.id}/failed`, { version: b.version, reason }).catch(() => {})
 }
 
@@ -70,23 +70,15 @@ function importBundle(b: Bundle, shape: (m: Record<string, unknown>) => boolean)
 const isComponent = (c: unknown) => typeof c === 'function' || (typeof c === 'object' && c !== null && '$$typeof' in c)
 const isInk = (m: Record<string, unknown>) => typeof m.useHost === 'function' && isComponent((m.HostContext as { Provider?: unknown })?.Provider)
 
-// chooseReader finds the bundle to use for a kind of book, or null for the app's copy.
-// WittyInk goes first so the reader shares it. A reader in the app is compiled with the
-// app's WittyInk, so a WittyInk bundle alone changes nothing until a reader bundle is
-// there to use it.
+// chooseReader finds the bundle to use for a kind of book, or null if it isn't here. WittyInk
+// goes first, since every reader is built on it and shares it.
 async function chooseReader(format: ReaderFormat, list: Bundle[]): Promise<BundledReader | null> {
   const bundle = list.find((b) => b.id === READERS[format])
   if (!bundle || bundle.api > HOST_API || failed.has(keyOf(bundle))) return null
   const { moduleHost } = await import('./moduleHost')
-  let ink = list.find((b) => b.id === 'wittyink' && b.api <= HOST_API && !failed.has(keyOf(b))) ?? null
-  let inkModule = moduleHost.builtinInk
-  if (ink) {
-    try {
-      inkModule = await importBundle(ink, isInk)
-    } catch {
-      ink = null // the reader runs with the app's WittyInk instead
-    }
-  }
+  const ink = list.find((b) => b.id === 'wittyink' && b.api <= HOST_API && !failed.has(keyOf(b))) ?? null
+  if (!ink) return null
+  const inkModule = await importBundle(ink, isInk)
   let r = readers.get(keyOf(bundle))
   if (!r) {
     r = (async () => {
@@ -105,13 +97,10 @@ async function chooseReader(format: ReaderFormat, list: Bundle[]): Promise<Bundl
 
 const usable = (r: BundledReader) => !failed.has(keyOf(r.bundle)) && !(r.ink && failed.has(keyOf(r.ink)))
 
-// The Reader page asks here. undefined until the answer is known; null means the copy in
-// the app. It asks the server once each time a reader opens, so a tab left open finds
-// out about a new version when next used. An app that carries its own copy of this page
-// and talks to a server elsewhere stays on that copy: the server's scripts aren't this
-// page's own there, and a failure here would count against everyone's version.
-const askServer = () => (serverBase() ? Promise.resolve([] as Bundle[])
-  : within(ASK_MS, api.get<{ bundles: Bundle[] }>('/modules/web').then((r) => r.bundles || []).catch(() => [] as Bundle[]), [] as Bundle[]))
+// The Reader page asks here. undefined until the answer is known; null means it isn't here. It
+// asks the server once each time a reader opens, so a tab left open finds out about a new version
+// when next used.
+const askServer = () => within(ASK_MS, api.get<{ bundles: Bundle[] }>('/modules/web').then((r) => r.bundles || []).catch(() => [] as Bundle[]), [] as Bundle[])
 
 export function useBundledReader(format: ReaderFormat | undefined) {
   const [list, setList] = useState<Bundle[] | null>(null)
@@ -131,7 +120,7 @@ export function useBundledReader(format: ReaderFormat | undefined) {
   return answer && answer.format === format ? answer.reader : undefined
 }
 
-// Any other plugin's bundle, for when it's opened: its script, or null for the copy in the app.
+// Any other plugin's bundle, for when it's opened: its script, or null if it isn't here.
 export async function bundledModule<T>(id: string, shape: (m: T) => boolean): Promise<T | null> {
   try {
     const list = await askServer()
@@ -184,4 +173,14 @@ export function BundledReaderView({ r, host, fallback, children }: { r: BundledR
       </r.HostContext.Provider>
     </Guard>
   )
+}
+
+// lazyModule is a component from a module's bundle, for React.lazy's place: until it's there it
+// waits, and if it isn't on this server it shows what's missing, with a way to add it.
+export function lazyModule<P extends object>(id: string, pick: (m: Record<string, unknown>) => unknown) {
+  return lazy(async () => {
+    const m = await bundledModule<Record<string, unknown>>(id, (x) => isComponent(pick(x)))
+    const c = m ? pick(m) as ComponentType<P> : null
+    return { default: c ?? ((() => <ModuleMissing ids={[id]} onReady={() => window.location.reload()} />) as unknown as ComponentType<P>) }
+  })
 }

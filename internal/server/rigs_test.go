@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittycouch/gamestream"
-	"github.com/wittywilla/wittycouch/gamestream/fake"
+	"github.com/wittywilla/wittymediaserver/internal/couch/gamestream"
+	"github.com/wittywilla/wittymediaserver/internal/couch/gamestream/fake"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
@@ -103,6 +104,7 @@ func gameNamed(t *testing.T, items []*library.Item, title string) *library.Item 
 }
 
 func TestRigFromAddingToPlaying(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	ts := newTestServer(t)
 	f := rigFake(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
@@ -245,6 +247,7 @@ func TestRigFromAddingToPlaying(t *testing.T) {
 }
 
 func TestRigPermissions(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	ts := newTestServer(t)
 	f := rigFake(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
@@ -345,6 +348,7 @@ func TestRigPermissions(t *testing.T) {
 }
 
 func TestRigAddressesAreChecked(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	for _, addr := range []string{"http://192.168.1.2", "192.168.1.2/admin", "user@pc", "169.254.169.254", "224.0.0.1", "0.0.0.0", "fe80::1", "pc?x=y", ""} {
@@ -389,6 +393,7 @@ func TestRigAddressesAreChecked(t *testing.T) {
 }
 
 func TestRigSecretsStayHome(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	ts := newTestServer(t)
 	f := rigFake(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
@@ -435,6 +440,7 @@ func TestRigSecretsStayHome(t *testing.T) {
 }
 
 func TestRigDevicePINIsNeverStored(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	ts := newTestServer(t)
 	f := rigFake(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
@@ -471,6 +477,7 @@ func TestRigDevicePINIsNeverStored(t *testing.T) {
 }
 
 func TestRigPairingRefusals(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	ts := newTestServer(t)
 	f := rigFake(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
@@ -541,6 +548,7 @@ func TestRigPairingRefusals(t *testing.T) {
 }
 
 func TestRigAddressDependsOnWhereYouAre(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	ts := newTestServer(t)
 	ts.Cfg.RemoteAccess = true
 	ts.h = ts.Handler()
@@ -579,6 +587,7 @@ func TestRigAddressDependsOnWhereYouAre(t *testing.T) {
 }
 
 func TestRigArtStaysWhenThePCCantSay(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	ts := newTestServer(t)
 	f := rigFake(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
@@ -617,6 +626,7 @@ func TestRigArtStaysWhenThePCCantSay(t *testing.T) {
 }
 
 func TestRigLibraryDeletedInLibrarySettings(t *testing.T) {
+	modtest.Need(t, "wittycouch")
 	ts := newTestServer(t)
 	f := rigFake(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")

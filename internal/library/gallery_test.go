@@ -53,7 +53,14 @@ func writeJPEG(t *testing.T, path string, w, h int) {
 	}
 }
 
+// rawNames says .nef is a RAW file, which is WittyPhotos's to say.
+type rawNames struct{ noPhotos }
+
+func (rawNames) IsRaw(name string) bool { return strings.HasSuffix(name, ".nef") }
+
 func TestPairPhotos(t *testing.T) {
+	SetPhotoEngine(rawNames{})
+	t.Cleanup(func() { SetPhotoEngine(noPhotos{}) })
 	dir := "base"
 	c := []candidate{
 		{path: filepath.Join(dir, "a.nef"), kind: "photo"},

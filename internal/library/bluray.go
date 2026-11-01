@@ -8,8 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/wittywilla/wittybluray"
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/bdsession"
+	"github.com/wittywilla/wittymediaserver/internal/bluray"
+	"github.com/wittywilla/wittymediaserver/internal/dvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
 
@@ -20,10 +21,24 @@ import (
 // probeBluray fills the item when its path is a Blu-ray; returns false
 // when it is not one.
 func (s *Scanner) probeBluray(ctx context.Context, it *Item) bool {
-	d, err := wittybluray.Open(it.Path)
+	od, err := bdsession.Open(it.Path, s.Log)
 	if err != nil {
 		return false
 	}
+	if od.Disc == nil {
+		// The server's own look says it's encrypted, and no helper was told of it.
+		if strings.HasPrefix(it.Kind, "dvd-") || it.Kind == "" {
+			if strings.HasSuffix(it.Kind, "folder") {
+				it.Kind = "bluray-folder"
+			} else {
+				it.Kind = "bluray-iso"
+			}
+		}
+		it.Container = "bluray"
+		it.Disc = &DiscInfo{Format: "bluray", Scrambled: true}
+		return true
+	}
+	d := od.Disc
 	defer d.Close()
 	if strings.HasPrefix(it.Kind, "dvd-") || it.Kind == "" {
 		if strings.HasSuffix(it.Kind, "folder") {
@@ -32,18 +47,18 @@ func (s *Scanner) probeBluray(ctx context.Context, it *Item) bool {
 			it.Kind = "bluray-iso"
 		}
 	}
-	info := &DiscInfo{Label: d.Label, Format: "bluray", HasMenus: d.Index.TopMenu.Kind != wittybluray.ObjectNone, Scrambled: d.Encrypted}
-	if d.Label != "" && it.Title == "" {
-		it.Title, _ = ParseName(d.Label)
+	info := &DiscInfo{Label: od.Label, Format: "bluray", HasMenus: od.Index != nil && od.Index.TopMenu.Kind != bluray.ObjectNone, Scrambled: od.Encrypted}
+	if od.Label != "" && it.Title == "" {
+		it.Title, _ = ParseName(od.Label)
 	}
 	main := d.MainPlaylist()
-	nums := make([]int, 0, len(d.Playlists))
-	for n := range d.Playlists {
-		nums = append(nums, n)
-	}
+	nums := append([]int(nil), od.Playlists...)
 	sort.Ints(nums)
 	for _, n := range nums {
-		pl := d.Playlists[n]
+		pl := d.Playlist(n)
+		if pl == nil {
+			continue
+		}
 		dur := d.PlaylistDuration(pl)
 		if len(pl.Items) == 0 || len(pl.Items[0].Video) == 0 || (dur < 30 && pl != main) {
 			continue
@@ -82,7 +97,7 @@ func (s *Scanner) probeBluray(ctx context.Context, it *Item) bool {
 			it.SubLangs = append(it.SubLangs, orUnd(sub.Lang))
 		}
 	}
-	if d.Stereo3D {
+	if od.Stereo3D {
 		it.Genres = appendUnique(it.Genres, "3D")
 	}
 	it.Container = "bluray"
@@ -99,7 +114,7 @@ func appendUnique(list []string, v string) []string {
 	return append(list, v)
 }
 
-func standardName(v wittybluray.Stream) string {
+func standardName(v bluray.Stream) string {
 	base := resolutionName(v.Format)
 	switch v.DynamicRange {
 	case 1:
@@ -176,10 +191,14 @@ func channelsOf(format int) int {
 // blurayThumbInput is the FFmpeg input for a frame about 20% into the
 // feature, and the seek within it.
 func (s *Scanner) blurayThumbInput(it *Item, h [20]byte) ([]string, float64, error) {
-	d, err := wittybluray.Open(it.Path)
+	od, err := bdsession.Open(it.Path, s.Log)
 	if err != nil {
 		return nil, 0, err
 	}
+	if od.Disc == nil {
+		return nil, 0, fmt.Errorf("this disc is encrypted")
+	}
+	d := od.Disc
 	defer d.Close()
 	pl := d.MainPlaylist()
 	if pl == nil || len(pl.Items) == 0 {
@@ -210,7 +229,7 @@ func (s *Scanner) blurayThumbInput(it *Item, h [20]byte) ([]string, float64, err
 	}
 	from := int64(e.SPN) * 192
 	to := from + int64(c.TSRate/8)*20
-	var cut []wittydvd.FileExtent
+	var cut []dvd.FileExtent
 	var off int64
 	for _, x := range ext {
 		a, b := off, off+x.Length
@@ -223,7 +242,7 @@ func (s *Scanner) blurayThumbInput(it *Item, h [20]byte) ([]string, float64, err
 			hi = to
 		}
 		if hi > lo {
-			cut = append(cut, wittydvd.FileExtent{File: x.Path, Offset: x.Offset + (lo - a), Length: hi - lo})
+			cut = append(cut, dvd.FileExtent{File: x.Path, Offset: x.Offset + (lo - a), Length: hi - lo})
 		}
 	}
 	if len(cut) == 0 {

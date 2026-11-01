@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"image"
 	"image/png"
 	"io"
@@ -75,6 +76,7 @@ func pngBytes(t *testing.T) []byte {
 }
 
 func newMetaFixture(t *testing.T, sources ...gamemeta.Source) *metaFixture {
+	modtest.Need(t, "wittyplay")
 	t.Helper()
 	dir := t.TempDir()
 	d, err := db.Open(dir)

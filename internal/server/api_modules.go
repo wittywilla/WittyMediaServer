@@ -307,6 +307,9 @@ func (s *Server) handleModuleWebFile(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "no such file")
 		return
 	}
+	// An app that has its own copy of the page reaches this from another origin. A bundle is
+	// no secret, and what fetches it still has to be signed in.
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	file, hash, err := s.Modules.WebFile(id, ver, rel)
 	if err != nil {
 		writeErr(w, 404, "no such file")
@@ -390,4 +393,40 @@ func writeModuleErr(w http.ResponseWriter, err error) {
 		return
 	}
 	writeErr(w, 409, err.Error())
+}
+
+// writeModuleMissing answers a request a missing module could have answered, and says whether
+// that's what happened. 424 means the request was fine and depends on something that isn't
+// here: the page explains itself and offers to install it, rather than showing an error.
+func writeModuleMissing(w http.ResponseWriter, err error) bool {
+	var missing *modmgr.ErrMissing
+	if !errors.As(err, &missing) {
+		return false
+	}
+	writeJSON(w, http.StatusFailedDependency, map[string]any{"error": missing.Error(), "module": missing.ID, "moduleName": missing.Name})
+	return true
+}
+
+// POST /api/modules/{id}/enable and /disable: turn a module on or off. Nothing is downloaded
+// or lost, and no restart is needed.
+func (s *Server) handleModuleEnable(w http.ResponseWriter, r *http.Request) {
+	s.setModuleEnabled(w, r, true)
+}
+
+func (s *Server) handleModuleDisable(w http.ResponseWriter, r *http.Request) {
+	s.setModuleEnabled(w, r, false)
+}
+
+func (s *Server) setModuleEnabled(w http.ResponseWriter, r *http.Request, on bool) {
+	what := "module turned off"
+	if on {
+		what = "module turned on"
+	}
+	s.moduleAction(w, r, what, 200, func(id string) error {
+		libs, err := s.librariesByType(r.Context())
+		if err != nil {
+			return err
+		}
+		return s.Modules.SetEnabled(id, on, libs)
+	})
 }

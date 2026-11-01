@@ -12,18 +12,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/tuner"
+	"github.com/wittywilla/wittymediaserver/internal/tuner/mpegts"
 	"github.com/wittywilla/wittymodule"
-	"github.com/wittywilla/wittytuner"
-	"github.com/wittywilla/wittytuner/mpegts"
 )
 
 const tunerID = "wittytuner"
-
-// tunerDrivers are the kinds of tuner a helper can run: they only need a network.
-// Everything else stays with the built-in copy, whichever version is in use, because a
-// helper's limits don't suit it. A custom command and FFmpeg are other programs, which
-// a helper may not start, and capture cards and DVB adapters are this machine's devices.
-var tunerDrivers = map[string]bool{"network": true, "iptv": true, "stream": true, "backend": true}
 
 const (
 	// tunerAnswerTime is how long a helper has to open a channel, and to start anything
@@ -35,67 +29,131 @@ const (
 	maxLocator    = 8 << 10
 	maxChannels   = 100000
 	maxFound      = 256
+	maxDrivers    = 64
 )
 
-// Tuners makes WittyTuner's sources for the server. A source decides at each call
-// whether to use a helper, so a new version takes over with no restart, and with the
-// built-in copy in use it does just what that copy does.
+// Tuners makes WittyTuner's sources for the server. Every question is a helper of its own,
+// which leaves when it has answered, so nothing runs while no one is watching and a new
+// version takes over with no restart.
 //
-// What is a helper's to say and what isn't: it may say a channel is protected or
-// busy, since that only ever refuses something. It can't say a channel is clear. Every
-// stream it hands over is watched by this server's own guard, as any other is, and
-// the server only believes what that guard sees. A stream for FFmpeg to open itself
-// isn't taken from it either: the built-in copy opens and checks it, because FFmpeg's
-// options can read files and run other protocols.
+// What is a helper's to say and what isn't: it may say a channel is protected or busy, since
+// that only ever refuses something. It can't say a channel is clear. Every stream it hands
+// over is watched by this server's own guard, and the server only believes what that guard
+// sees. WittyTuner has no forks for the same reason. What it asks FFmpeg to open is held to
+// checkInput, since FFmpeg's options can read files and run other protocols.
 type Tuners struct{ M *Manager }
 
-// New makes a source. Its settings are always checked by the built-in copy.
-func (t Tuners) New(driver string, cfg wittytuner.Config, env wittytuner.Env) (wittytuner.Source, error) {
-	builtin, err := wittytuner.New(driver, cfg, env)
+// callFor is a question about a tuner, with what a helper needs told.
+func callFor(driver string, cfg tuner.Config, env tuner.Env) tuner.HelperCall {
+	return tuner.HelperCall{Driver: driver, Name: cfg.Name, Options: cfg.Options, FFmpeg: env.FFmpeg, AllowCommands: env.AllowCommands}
+}
+
+// New makes a source, with its settings checked by the helper.
+func (t Tuners) New(ctx context.Context, driver string, cfg tuner.Config, env tuner.Env) (tuner.Source, error) {
+	if t.M == nil {
+		return nil, (*Manager)(nil).missing(tunerID)
+	}
+	call := callFor(driver, cfg, env)
+	d, err := t.M.askTuner(ctx, "validate", call, nil)
 	if err != nil {
 		return nil, err
 	}
-	if t.M == nil || !tunerDrivers[driver] {
-		return builtin, nil
+	if d.Error != "" {
+		return nil, docError(d, "")
 	}
-	check, ok := builtin.(locatorChecker)
-	if !ok {
-		return builtin, nil
-	}
-	return &tunerProxy{Source: builtin, check: check, m: t.M, call: wittytuner.HelperCall{Driver: driver, Name: cfg.Name, Options: cfg.Options}}, nil
+	p := &tunerProxy{m: t.M, call: call, headers: d.GuideHeaders, info: tuner.Info{Driver: driver, Name: cfg.Name}}
+	p.setInfo(d.Info)
+	return p, nil
 }
 
-// Discover looks for tuners: the helper looks over the network, and this machine's own
-// devices are looked for here.
-func (t Tuners) Discover(ctx context.Context, env wittytuner.Env) []wittytuner.Found {
+// Discover looks for tuners, on the network and on this machine.
+func (t Tuners) Discover(ctx context.Context, env tuner.Env) ([]tuner.Found, error) {
 	if t.M == nil {
-		return wittytuner.Discover(ctx, env)
+		return nil, (*Manager)(nil).missing(tunerID)
 	}
-	var wg sync.WaitGroup
-	var here []wittytuner.Found
-	wg.Add(1)
-	go func() { defer wg.Done(); here = wittytuner.DiscoverHere(ctx, env) }()
-	var near []wittytuner.Found
 	list, cancel := context.WithTimeout(ctx, tunerListTime)
 	defer cancel()
-	if d := t.M.askTuner(list, "discover", wittytuner.HelperCall{}, nil); d != nil && d.Error == "" {
-		near = cleanFound(d.Found)
-	} else {
-		near = wittytuner.DiscoverNetwork(ctx, env)
+	d, err := t.M.askTuner(list, "discover", callFor("", tuner.Config{}, env), nil)
+	if err != nil {
+		return nil, err
 	}
-	wg.Wait()
-	return append(near, here...)
+	if d.Error != "" {
+		return nil, docError(d, "")
+	}
+	return cleanFound(d.Found), nil
 }
 
-// cleanFound keeps what could be on a network. Adding one goes through the built-in
-// copy's checks like any other settings.
-func cleanFound(in []wittytuner.Found) []wittytuner.Found {
-	out := []wittytuner.Found{}
+// Drivers lists the kinds of tuner, each answered for this machine.
+func (t Tuners) Drivers(ctx context.Context, env tuner.Env) ([]tuner.Driver, error) {
+	if t.M == nil {
+		return nil, (*Manager)(nil).missing(tunerID)
+	}
+	d, err := t.M.askTuner(ctx, "drivers", callFor("", tuner.Config{}, env), nil)
+	if err != nil {
+		return nil, err
+	}
+	if d.Error != "" {
+		return nil, docError(d, "")
+	}
+	out := d.Drivers
+	if len(out) > maxDrivers {
+		out = out[:maxDrivers]
+	}
+	return out, nil
+}
+
+// secretsCache keeps the list of drivers from the version in use, since a page listing tuners
+// asks about each one and a helper's start is not nothing.
+var secretsCache struct {
+	sync.Mutex
+	version string
+	list    []tuner.Driver
+}
+
+// SecretFields are a driver's settings that are never shown again once they're saved. A
+// caller treats an error as hiding every setting.
+func (t Tuners) SecretFields(ctx context.Context, driver string, env tuner.Env) ([]string, error) {
+	version := ""
+	if t.M != nil {
+		version = t.M.VersionInUse(tunerID)
+	}
+	secretsCache.Lock()
+	list := secretsCache.list
+	if secretsCache.version != version || version == "" {
+		list = nil
+	}
+	secretsCache.Unlock()
+	if list == nil {
+		var err error
+		if list, err = t.Drivers(ctx, env); err != nil {
+			return nil, err
+		}
+		secretsCache.Lock()
+		secretsCache.version, secretsCache.list = version, list
+		secretsCache.Unlock()
+	}
+	var out []string
+	for _, d := range list {
+		if d.ID == driver {
+			for _, f := range d.Fields {
+				if f.Kind == "password" {
+					out = append(out, f.Key)
+				}
+			}
+		}
+	}
+	return out, nil
+}
+
+// cleanFound keeps what makes sense, and shortens what's shown.
+func cleanFound(in []tuner.Found) []tuner.Found {
+	out := []tuner.Found{}
 	for _, f := range in {
 		if len(out) == maxFound {
 			break
 		}
-		if f.Driver != "network" && f.Driver != "satip" {
+		// A found tuner goes on the page as a suggestion, and a program to run is never one.
+		if f.Driver == "command" {
 			continue
 		}
 		f.Name, f.Detail = clip(f.Name), clip(f.Detail)
@@ -111,31 +169,47 @@ func clip(s string) string {
 	return s
 }
 
-// askTuner asks a helper of its own one thing, and reads its answer's documents. It
-// returns nil when the built-in copy should answer: there is no helper in use, or it failed.
-func (m *Manager) askTuner(ctx context.Context, method string, call wittytuner.HelperCall, progress func(wittytuner.Progress)) *wittytuner.HelperDoc {
+// docError is what a final document that says no means.
+func docError(d *tuner.HelperDoc, channel string) error {
+	switch d.Code {
+	case "encrypted":
+		return &tuner.EncryptedError{Channel: channel, Why: clip(d.Error)}
+	case "busy":
+		return tuner.ErrBusy
+	}
+	return errors.New(clip(d.Error))
+}
+
+// askTuner asks a helper of its own one thing, and reads its answer's documents.
+func (m *Manager) askTuner(ctx context.Context, method string, call tuner.HelperCall, progress func(tuner.Progress)) (*tuner.HelperDoc, error) {
 	a := m.Attach(tunerID, tunerAnswerTime)
 	if a == nil {
-		return nil
+		return nil, m.missing(tunerID)
 	}
 	defer a.Close()
 	r, err := a.Stream(method, call, nil)
 	if err != nil {
-		return nil
+		var ce *wittymodule.CallError
+		if errors.As(err, &ce) {
+			return &tuner.HelperDoc{Error: ce.Message, Code: ce.Code, Done: true}, nil
+		}
+		return nil, fmt.Errorf("WittyTuner failed: %w", err)
 	}
 	stop := context.AfterFunc(ctx, a.Close)
 	defer stop()
 	dec := json.NewDecoder(io.LimitReader(r, wittymodule.MaxBlob))
 	for {
-		var d wittytuner.HelperDoc
+		var d tuner.HelperDoc
 		if err := dec.Decode(&d); err != nil {
-			if ctx.Err() == nil {
-				a.failedNow(fmt.Errorf("it stopped before it finished: %w", err))
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
 			}
-			return nil
+			err = fmt.Errorf("it stopped before it finished: %w", err)
+			a.failedNow(err)
+			return nil, fmt.Errorf("WittyTuner failed: %w", err)
 		}
 		if d.Progress == nil {
-			return &d
+			return &d, nil
 		}
 		if progress != nil {
 			p := *d.Progress
@@ -145,171 +219,206 @@ func (m *Manager) askTuner(ctx context.Context, method string, call wittytuner.H
 	}
 }
 
+// VersionInUse is the version of one module in use, or "".
+func (m *Manager) VersionInUse(id string) string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if e := m.mods[id]; e != nil && e.dir != "" {
+		return e.man.Version
+	}
+	return ""
+}
+
 // failedNow counts something this job saw against the version.
 func (a *Attached) failedNow(err error) { a.m.failed(a.id, a.e, a.version, err) }
 
-type locatorChecker interface{ CheckLocator(string) error }
-
-// tunerProxy is a tuner whose work a helper does when one is in use, with the built-in
-// copy behind it for everything a helper can't do, or fails at.
+// tunerProxy is a tuner whose work a helper does.
 type tunerProxy struct {
-	wittytuner.Source
-	check locatorChecker
-	m     *Manager
-	call  wittytuner.HelperCall
+	m       *Manager
+	call    tuner.HelperCall
+	headers http.Header
 
 	mu   sync.Mutex
-	info *wittytuner.Info // what a helper last learned from the device
+	info tuner.Info
 }
 
-// Info is what the built-in copy knows from its settings, with what a helper has
-// learned from the device. It has to be quick: it is asked with a lock held.
-func (p *tunerProxy) Info() wittytuner.Info {
-	i := p.Source.Info()
+// Info is what the helper last said. It has to be quick: it is asked with a lock held.
+func (p *tunerProxy) Info() tuner.Info {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if p.info != nil {
-		if p.info.Detail != "" {
-			i.Detail = clip(p.info.Detail)
-		}
-		if p.info.MaxStreams > 0 {
-			i.MaxStreams = p.info.MaxStreams
-		}
-		// Only a playlist finds its guide address as it goes. Fetching it must stay
-		// fetching: a guide source can also be a file on the server.
-		if u, err := url.Parse(p.info.GuideURL); i.GuideURL == "" && err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" && p.call.Driver == "iptv" {
-			i.GuideURL = p.info.GuideURL
-		}
-	}
-	return i
+	return p.info
 }
 
-// GuideHeaders are the built-in copy's: they come from the settings.
-func (p *tunerProxy) GuideHeaders() http.Header {
-	if g, ok := p.Source.(interface{ GuideHeaders() http.Header }); ok {
-		return g.GuideHeaders()
+func (p *tunerProxy) setInfo(i *tuner.Info) {
+	if i == nil {
+		return
 	}
-	return nil
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if i.Name != "" {
+		p.info.Name = clip(i.Name)
+	}
+	p.info.Detail = clip(i.Detail)
+	p.info.MaxStreams = max(i.MaxStreams, 0)
+	// Fetching a guide must stay fetching: a guide source can also be a file on the server,
+	// and that's for the owner to choose, not something a device says.
+	if u, err := url.Parse(i.GuideURL); err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" {
+		p.info.GuideURL = i.GuideURL
+	}
 }
 
-// fromDoc takes a final document's channels, or nil when the built-in copy should
-// answer. An empty list would take the owner's channels away, so it needs the built-in
-// copy's word.
-func (p *tunerProxy) fromDoc(d *wittytuner.HelperDoc) []wittytuner.Channel {
-	if d == nil || d.Error != "" {
-		return nil
+// GuideHeaders come from the settings, by way of the helper.
+func (p *tunerProxy) GuideHeaders() http.Header { return p.headers }
+
+// Close has nothing to do: no process is kept between questions.
+func (p *tunerProxy) Close() error { return nil }
+
+// fromDoc takes a final document's channels.
+func (p *tunerProxy) fromDoc(d *tuner.HelperDoc) ([]tuner.Channel, error) {
+	if d.Error != "" {
+		return nil, docError(d, "")
 	}
-	list := p.clean(d.Channels)
-	if len(list) == 0 {
-		return nil
-	}
-	if d.Info != nil {
-		p.mu.Lock()
-		p.info = d.Info
-		p.mu.Unlock()
-	}
-	return list
+	p.setInfo(d.Info)
+	return clean(d.Channels), nil
 }
 
-// clean makes a helper's list of channels what the server will keep. Saying a channel
-// is known to be clear isn't a helper's to say, so that comes from what a stream shows
-// the server's own guard. An address the built-in copy wouldn't use goes.
-func (p *tunerProxy) clean(in []wittytuner.Channel) []wittytuner.Channel {
-	out := make([]wittytuner.Channel, 0, len(in))
+// clean makes a helper's list of channels what the server will keep. Saying a channel is known
+// to be clear isn't a helper's to say, so that comes from what a stream shows the server's own guard.
+func clean(in []tuner.Channel) []tuner.Channel {
+	out := make([]tuner.Channel, 0, len(in))
 	for _, c := range in {
 		if len(out) == maxChannels {
 			break
 		}
-		if c.ID == "" || len(c.ID) > maxTunerText || len(c.Locator) > maxLocator || p.check.CheckLocator(c.Locator) != nil {
+		if c.ID == "" || len(c.ID) > maxTunerText || len(c.Locator) > maxLocator {
 			continue
 		}
-		if c.Logo != "" && !strings.HasPrefix(c.Logo, "http://") && !strings.HasPrefix(c.Logo, "https://") {
+		if len(c.Logo) > maxLocator || (c.Logo != "" && !strings.HasPrefix(c.Logo, "http://") && !strings.HasPrefix(c.Logo, "https://")) {
 			c.Logo = ""
 		}
 		c.Number, c.Name, c.Group, c.CallSign, c.EPGID = clip(c.Number), clip(c.Name), clip(c.Group), clip(c.CallSign), clip(c.EPGID)
 		c.VideoCodec, c.AudioCodec, c.Encrypted, c.NoRecord = clip(c.VideoCodec), clip(c.AudioCodec), clip(c.Encrypted), clip(c.NoRecord)
-		if len(c.Logo) > maxLocator {
-			c.Logo = ""
-		}
 		c.Checked = false
 		out = append(out, c)
 	}
 	return out
 }
 
-// Channels reads the list through a helper, and the built-in copy has the last word
-// if that didn't work: the helper's limits may be why.
-func (p *tunerProxy) Channels(ctx context.Context) ([]wittytuner.Channel, error) {
+// Channels reads the list.
+func (p *tunerProxy) Channels(ctx context.Context) ([]tuner.Channel, error) {
 	list, cancel := context.WithTimeout(ctx, tunerListTime)
 	defer cancel()
-	if ch := p.fromDoc(p.m.askTuner(list, "channels", p.call, nil)); ch != nil {
-		return ch, nil
-	}
-	if err := ctx.Err(); err != nil {
+	d, err := p.m.askTuner(list, "channels", p.call, nil)
+	if err != nil {
 		return nil, err
 	}
-	return p.Source.Channels(ctx)
+	return p.fromDoc(d)
 }
 
-// Scan looks for channels through a helper, which reports as it goes.
-func (p *tunerProxy) Scan(ctx context.Context, o wittytuner.ScanOptions, progress func(wittytuner.Progress)) ([]wittytuner.Channel, error) {
+// Scan looks for channels, reporting as it goes.
+func (p *tunerProxy) Scan(ctx context.Context, o tuner.ScanOptions, progress func(tuner.Progress)) ([]tuner.Channel, error) {
 	call := p.call
 	call.Source = o.Source
-	if ch := p.fromDoc(p.m.askTuner(ctx, "scan", call, progress)); ch != nil {
-		if progress != nil {
-			progress(wittytuner.Progress{Percent: 100, Found: len(ch)})
-		}
-		return ch, nil
-	}
-	if err := ctx.Err(); err != nil {
+	d, err := p.m.askTuner(ctx, "scan", call, progress)
+	if err != nil {
 		return nil, err
 	}
-	return p.Source.Scan(ctx, o, progress)
+	ch, err := p.fromDoc(d)
+	if err == nil && progress != nil {
+		progress(tuner.Progress{Percent: 100, Found: len(ch)})
+	}
+	return ch, err
 }
 
-// helperCanOpen: addresses other than these take FFmpeg, and a helper runs no programs.
-func helperCanOpen(locator string) bool {
-	if locator == "" {
-		return true
-	}
-	u, err := url.Parse(locator)
-	return err == nil && (strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") || u.Host == "")
+// FFmpeg options a helper may ask for: each only says how to read the input, with what
+// follows it a value. Anything else is refused, because FFmpeg has options that write files.
+var inputOptions = map[string]bool{
+	"-user_agent": true, "-headers": true, "-referer": true, "-timeout": true, "-rw_timeout": true, "-reconnect": true, "-reconnect_streamed": true,
+	"-reconnect_delay_max": true, "-reconnect_on_network_error": true, "-reconnect_on_http_error": true, "-rtsp_transport": true, "-fflags": true,
+	"-analyzeduration": true, "-probesize": true, "-seekable": true, "-multiple_requests": true, "-http_persistent": true, "-tls_verify": true,
+	"-allowed_extensions": true, "-protocol_whitelist": true, "-live_start_index": true, "-f": true, "-framerate": true, "-video_size": true,
+	"-input_format": true, "-pixel_format": true, "-standard": true, "-thread_queue_size": true, "-channel_layout": true, "-sample_rate": true, "-channels": true,
+	"-rtbufsize": true, "-audio_buffer_size": true, "-pkt_size": true, "-buffer_size": true, "-fifo_size": true, "-overrun_nonfatal": true, "-mode": true,
 }
 
-// plainInputURL takes the address out of what a helper offered for FFmpeg to open, and
-// refuses anything but a plain address of a kind that can only be a stream.
-func plainInputURL(input []string) (string, error) {
-	if len(input) != 2 || input[0] != "-i" {
-		return "", errors.New("it offered FFmpeg options as well as an address")
+// Formats that open this machine's capture devices, whose address is a device's name.
+var captureFormats = map[string]bool{"v4l2": true, "alsa": true, "dshow": true, "avfoundation": true}
+
+// Formats that read a stream. FFmpeg has others that make things up or read files.
+var streamFormats = map[string]bool{"mpegts": true, "hls": true, "rtsp": true, "rtp": true, "flv": true}
+
+// checkInput refuses what a helper asks FFmpeg to open unless it can only be a stream or a
+// capture device: FFmpeg can also read files, chain other protocols and write. It is the
+// last thing between a helper with a bad day and this server's own program.
+func checkInput(input []string) error {
+	addr, capture, limited := "", false, false
+	for i := 0; i < len(input); i++ {
+		a := input[i]
+		if a == "-i" {
+			if i+2 != len(input) {
+				return errors.New("it gave FFmpeg more after the address")
+			}
+			addr = input[i+1]
+			break
+		}
+		if !inputOptions[a] || i+1 >= len(input) {
+			return fmt.Errorf("it asked for the FFmpeg option %q", a)
+		}
+		i++
+		if a == "-protocol_whitelist" {
+			limited = true
+		}
+		if a == "-protocol_whitelist" && strings.ContainsAny(input[i], "|") {
+			return errors.New("it asked for a strange list of protocols")
+		}
+		if a == "-protocol_whitelist" {
+			for _, proto := range strings.Split(input[i], ",") {
+				if proto == "file" || proto == "concat" || proto == "subfile" || proto == "pipe" || proto == "data" || proto == "crypto" {
+					return fmt.Errorf("it asked FFmpeg to allow %q", proto)
+				}
+			}
+		}
+		if a == "-f" {
+			capture = captureFormats[input[i]]
+			if !capture && !streamFormats[input[i]] {
+				return fmt.Errorf("it asked for the FFmpeg format %q", input[i])
+			}
+		}
 	}
-	raw := input[1]
-	u, err := url.Parse(raw)
-	if err != nil || u.Host == "" || u.User != nil || strings.ContainsAny(raw, " \t\r\n|") {
-		return "", errors.New("it offered something other than a plain address")
+	if addr == "" || len(addr) > maxLocator || strings.ContainsAny(addr, "\r\n") {
+		return errors.New("it offered no address")
 	}
-	switch u.Scheme {
-	case "http", "https", "udp", "rtp":
-		return raw, nil
+	if capture {
+		return nil
 	}
-	return "", fmt.Errorf("it offered a %q address", u.Scheme)
+	// Without a list FFmpeg would follow a playlist to files and to its own decryption.
+	if !limited {
+		return errors.New("it didn't limit what FFmpeg may open")
+	}
+	u, err := url.Parse(addr)
+	if err != nil || u.Host == "" {
+		return errors.New("it offered something other than an address")
+	}
+	switch strings.ToLower(u.Scheme) {
+	case "http", "https", "udp", "rtp", "rtsp", "rtsps", "rtmp", "rtmps", "srt":
+		return nil
+	}
+	return fmt.Errorf("it offered a %q address", u.Scheme)
 }
 
 // Open starts a channel through a process of its own, so a helper failing ends only
 // this stream. See Tuners for what is and isn't believed.
-func (p *tunerProxy) Open(ctx context.Context, ch wittytuner.Channel) (*wittytuner.Stream, error) {
+func (p *tunerProxy) Open(ctx context.Context, ch tuner.Channel) (*tuner.Stream, error) {
 	if ch.Encrypted != "" {
-		return nil, &wittytuner.EncryptedError{Channel: ch.Name, Why: ch.Encrypted}
-	}
-	if !helperCanOpen(ch.Locator) || p.check.CheckLocator(ch.Locator) != nil {
-		return p.Source.Open(ctx, ch)
+		return nil, &tuner.EncryptedError{Channel: ch.Name, Why: ch.Encrypted}
 	}
 	a := p.m.Attach(tunerID, tunerAnswerTime)
 	if a == nil {
-		return p.Source.Open(ctx, ch)
+		return nil, p.m.missing(tunerID)
 	}
 	call := p.call
 	call.Channel = &ch
-	var ans wittytuner.HelperOpen
+	var ans tuner.HelperOpen
 	r, err := a.Stream("open", call, &ans)
 	if err != nil {
 		a.Close()
@@ -317,30 +426,43 @@ func (p *tunerProxy) Open(ctx context.Context, ch wittytuner.Channel) (*wittytun
 		if errors.As(err, &ce) {
 			switch ce.Code {
 			case "encrypted":
-				return nil, &wittytuner.EncryptedError{Channel: ch.Name, Why: clip(ce.Message)}
+				return nil, &tuner.EncryptedError{Channel: ch.Name, Why: clip(ce.Message)}
 			case "busy":
-				return nil, wittytuner.ErrBusy
+				return nil, tuner.ErrBusy
 			}
 		}
-		return p.Source.Open(ctx, ch)
+		return nil, err
 	}
 	if ans.Input != nil {
 		a.Close()
-		addr, err := plainInputURL(ans.Input)
-		if err == nil {
-			err = p.check.CheckLocator(addr)
-		}
-		if err != nil {
+		if err := checkInput(ans.Input); err != nil {
 			a.failedNow(fmt.Errorf("its stream was refused: %w", err))
-			return p.Source.Open(ctx, ch)
+			return nil, fmt.Errorf("WittyTuner's stream was refused: %w", err)
 		}
-		ch.Locator = addr
-		return p.Source.Open(ctx, ch)
+		st := &tuner.Stream{Input: ans.Input, Verified: ans.Verified}
+		if ans.Recheck {
+			st.Recheck = func(ctx context.Context) (string, time.Duration, error) { return p.recheck(ctx, ch) }
+		}
+		return st, nil
 	}
-	// As with the built-in copy, the stream lasts only as long as ctx.
+	// The stream lasts only as long as ctx.
 	stop := context.AfterFunc(ctx, a.Close)
 	g := mpegts.NewGuard(&helperStream{ReadCloser: r, stop: stop})
-	return &wittytuner.Stream{Reader: g, Guard: g}, nil
+	return &tuner.Stream{Reader: g, Guard: g}, nil
+}
+
+// recheck looks again at a stream FFmpeg is reading that can change while it plays.
+func (p *tunerProxy) recheck(ctx context.Context, ch tuner.Channel) (string, time.Duration, error) {
+	call := p.call
+	call.Channel = &ch
+	d, err := p.m.askTuner(ctx, "recheck", call, nil)
+	if err != nil {
+		return "", 0, err
+	}
+	if d.Error != "" {
+		return "", 0, errors.New(clip(d.Error))
+	}
+	return clip(d.Why), time.Duration(max(d.Next, 0)) * time.Second, nil
 }
 
 // helperStream ends a helper's stream, and what would have ended it.

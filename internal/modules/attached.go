@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"runtime"
@@ -10,6 +11,8 @@ import (
 )
 
 func goos() string { return runtime.GOOS }
+
+func goarch() string { return runtime.GOARCH }
 
 // Attached is a helper of its own for one long job, such as an open disc: it keeps its
 // state between calls, isn't stopped when idle, and the job's failure doesn't get in
@@ -28,7 +31,7 @@ func (m *Manager) Attach(id string, callTimeout time.Duration) *Attached {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	e := m.mods[id]
-	if e == nil || e.dir == "" || e.man.Delivery != wittymodule.DeliveryHelper || m.closed {
+	if e == nil || e.dir == "" || e.state.Disabled || e.man.Delivery != wittymodule.DeliveryHelper || m.closed {
 		return nil
 	}
 	p := m.newProcFor(id, e, e.man, e.dir)
@@ -36,6 +39,13 @@ func (m *Manager) Attach(id string, callTimeout time.Duration) *Attached {
 	a := &Attached{m: m, id: id, e: e, p: p, version: e.man.Version}
 	m.attached[a] = true
 	return a
+}
+
+// OnNotify hears what the helper says unasked. It takes effect from the helper's next start,
+// and it also keeps the pipe read between calls, so this is one thing per process: a job that
+// streams can't use it. What's heard is untrusted, and fn must not block or call the helper.
+func (a *Attached) OnNotify(fn func(method string, params json.RawMessage)) {
+	a.p.setNotify(fn)
 }
 
 // Version is the version this job runs.

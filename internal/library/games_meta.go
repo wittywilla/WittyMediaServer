@@ -22,7 +22,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 // Finding out about games, in the background: scans only list files, and this comes

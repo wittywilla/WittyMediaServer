@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 // ErrNoGame: nothing in the archive is a game for this console.

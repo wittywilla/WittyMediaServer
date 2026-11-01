@@ -304,6 +304,115 @@ say honestly which parts of it a release really changes and which only a new ser
 `dataFormat` and `dataFrom` number the shape of the data a version keeps and the oldest it can read.
 See [Data survives a version change](#data-survives-a-version-change).
 
+### The catalogue
+
+A server learns which modules exist from one signed file, with nothing compiled in. It lists every module and every
+version, with what a store shows and where each version's files are. This project's catalogue is in
+[WittyModuleCatalog](https://github.com/wittywilla/WittyModuleCatalog), at
+
+```
+https://github.com/wittywilla/WittyModuleCatalog/releases/download/catalog/catalog.json
+https://github.com/wittywilla/WittyModuleCatalog/releases/download/catalog/catalog.json.sig
+```
+
+`Catalog` in WittyModule (`catalog.go`) is the code that reads and checks one, and `wittymodule catalog-add`,
+`catalog-check` and `catalog-sign` write them. The `.sig` is the same as a release's: base64 of Ed25519 over the file's exact bytes.
+
+```json
+{
+  "format": 1,
+  "name": "WittyMediaServer modules",
+  "serial": 12,
+  "generated": "2026-11-01T12:00:00Z",
+  "modules": [
+    {
+      "id": "wittyphotos",
+      "name": "WittyPhotos",
+      "summary": "Photo libraries: what a photo says about itself.",
+      "description": "Plain text, as long as a store page needs.",
+      "icon": { "url": "icons/wittyphotos.png", "size": 4210, "sha256": "…" },
+      "publisher": { "name": "WittyWilla", "url": "https://github.com/wittywilla" },
+      "repo": "wittywilla/WittyPhotos",
+      "group": "photos",
+      "libraries": ["photos"],
+      "requires": [],
+      "core": false,
+      "needs": [],
+      "updates": "Reading EXIF, picture sizes, and the preview inside RAW files.",
+      "stays": "The photo pages in the app.",
+      "versions": [
+        {
+          "version": "0.3.0",
+          "delivery": "helper",
+          "api": 3,
+          "minServer": "0.6.0-alpha",
+          "maxServer": "0.6.x",
+          "license": "Apache-2.0",
+          "permissions": [],
+          "released": "2026-11-01",
+          "prerelease": false,
+          "changelog": "Plain text: this version's section of the module's changelog.",
+          "sums": "https://github.com/wittywilla/WittyPhotos/releases/download/v0.3.0/wittyphotos-0.3.0-SHA256SUMS.txt",
+          "sig": "https://github.com/wittywilla/WittyPhotos/releases/download/v0.3.0/wittyphotos-0.3.0-SHA256SUMS.txt.sig",
+          "manifest": "https://github.com/wittywilla/WittyPhotos/releases/download/v0.3.0/wittyphotos-0.3.0-module.json",
+          "platforms": {
+            "linux-amd64": { "url": "https://github.com/…/wittyphotos-0.3.0-linux-amd64.tar.gz", "size": 1446318, "sha256": "…" }
+          },
+          "withdrawn": { "severity": "security", "reason": "Only there when a version has been taken back." }
+        }
+      ]
+    }
+  ]
+}
+```
+
+| Field | What it means |
+|---|---|
+| `format` | This file's format. A server refuses a higher one in words ("a newer server can read it") and keeps its last good catalogue. Adding a field doesn't raise it, and readers ignore fields they don't know |
+| `serial` | Only ever goes up, and a server keeps the highest it has seen, so an older catalogue can't be replayed to bring a withdrawn version back |
+| `summary`, `description`, `changelog`, `reason` | **Plain text**, with no control characters and line breaks only in the long ones. Always show it as text, never as HTML or Markdown |
+| `icon` | Optional. A PNG of at most 256 KiB, checked against its size and hash. A server fetches and keeps it, so a page never asks anyone else for it. No icon: the store draws one from the name |
+| `publisher` | Who it comes from. `key`, also optional, is the base64 public key its releases are signed with, when that isn't the catalogue's own |
+| `group`, `libraries`, `requires`, `core`, `needs`, `updates`, `stays` | As in the [manifest](#the-manifest), from the newest version |
+| `versions` | Newest first, up to 100, and may be empty for a module listed before its first release. A version never changes once listed, except for `withdrawn` |
+| `delivery`, `api`, `minServer`, `maxServer`, `license`, `permissions` | As in the manifest. An install is refused unless all of these match the release's signed manifest (`MatchesManifest`). A permission this server doesn't know means the version can't run here, and it's shown with that reason |
+| `prerelease` | Offered under the rules in [Version ranges](#version-ranges-including-the-edges). A version with a label such as `-beta` counts anyway |
+| `changelog` | May be empty when there's nothing to report: the store then shows a plain line of its own, such as "Fixes and improvements" |
+| `platforms` | Keyed `GOOS-GOARCH` (`linux-arm` is the armv7 build), or `all` for a web bundle. A platform not listed means no build for it |
+| `sums`, `sig`, `manifest`, each `url` | `https`, or a path below the catalogue's own folder, which is how an offline starter set and a test catalogue work. Nothing else: no `http`, `file`, `..` or query |
+| `withdrawn` | `broken` warns, and `security` refuses it, as in [Withdrawing a version](#withdrawing-a-version). A module's own signed list still counts as well |
+
+Limits: 8 MiB for the file, read with that limit in force; 1000 modules; 100 versions each; 256 MiB for an archive.
+
+**What the signature means, and doesn't.** This project's catalogue is signed with the module key: it can't sign a server,
+and a leak of it already allows a signed module. The catalogue only offers. An install still checks the release's own signed
+list and manifest and every file in the archive, and also that the catalogue's description of the version matches. So a
+catalogue can't describe a version as asking for less than it does, and holding only a catalogue's key runs nothing.
+
+**The rules for a server.**
+
+1. Check the signature before reading anything in the file (`VerifyCatalog`), then compare `serial`. Failing either keeps the last good catalogue, and the store says why in a line.
+2. Keep the file and its signature in `<data>/modules/`, and check them again when reading them back, so the store works offline.
+3. Offer a version only if `Supports` passes for this server. Show the reason on one that doesn't, rather than hiding it.
+4. Ask for one file at a time, with its limit in force, and hash as it arrives.
+5. Never let a page fetch from an address in a catalogue. The server fetches and serves what the page shows.
+
+**Stores other than this project's** (for the store's "add a store"): a store is a `catalog.json` at an `https` address, plus a
+public key an admin pastes in, after the same warning as [a fork](#using-someones-fork). Its signature and serial are kept for it alone.
+A module from one is held to the fork rules: an admin chooses each version, nothing updates by itself, and it gets a fork's limits.
+Its releases must be signed with that store's key or the `publisher.key` it gives. An `id` that this project's catalogue also lists is a
+fork of that module, and needs the choice a fork needs: a store can't replace a module by listing it, and WittyTuner can't be replaced at all.
+A store's addresses are fetched like any other address someone typed: no private or local addresses, and no following redirects to them.
+
+**A test or offline catalogue** is a folder holding `catalog.json`, `catalog.json.sig` and the files, with relative paths:
+
+```bash
+wittymodule pack -out release/wittyphotos .
+wittymodule sign -key test.key release/wittyphotos/wittyphotos-0.3.0-SHA256SUMS.txt
+wittymodule catalog-add -catalog catalog.json -base wittyphotos -pub <test public key> release/wittyphotos
+wittymodule catalog-sign -key test.key catalog.json
+```
+
 ### Version ranges, including the edges
 
 Ordering is [semantic versioning](https://semver.org), so a pre-release comes before its release.

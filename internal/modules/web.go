@@ -23,9 +23,10 @@ import (
 // is in the address, so one version number from two publishers can't be mixed up in a
 // browser's cache.
 type webFiles struct {
-	dir   string
-	tag   string
-	files map[string]string
+	dir    string
+	tag    string
+	files  map[string]string
+	prefix string // where its files sit in the version: "web/" for a helper's web part
 }
 
 func loadWebFiles(dir string, man *wittymodule.Manifest, keys []ed25519.PublicKey) (*webFiles, error) {
@@ -37,7 +38,7 @@ func loadWebFiles(dir string, man *wittymodule.Manifest, keys []ed25519.PublicKe
 	if err != nil {
 		return nil, err
 	}
-	return &webFiles{dir: dir, tag: sum(sums)[:12], files: want}, nil
+	return &webFiles{dir: dir, tag: sum(sums)[:12], files: want, prefix: man.WebFolder()}, nil
 }
 
 // WebBundle says where the browser finds a bundle in use.
@@ -61,7 +62,11 @@ func (m *Manager) WebBundles() []WebBundle {
 		if e.web == nil {
 			continue
 		}
-		out = append(out, WebBundle{ID: id, Version: e.man.Version, Entry: e.man.Entry, Style: e.man.Style, API: e.man.API,
+		entry, style := e.man.Entry, e.man.Style
+		if e.man.Delivery != wittymodule.DeliveryWeb {
+			entry, style = e.man.WebEntry, e.man.WebStyle
+		}
+		out = append(out, WebBundle{ID: id, Version: e.man.Version, Entry: entry, Style: style, API: e.man.API,
 			Base: "/api/modules/" + id + "/web/" + e.web.address(e.man.Version) + "/"})
 	}
 	return out
@@ -85,11 +90,11 @@ func (m *Manager) WebFile(id, ver, rel string) (path, hash string, err error) {
 	}
 	w, version := e.web, e.man.Version
 	m.mu.Unlock()
-	want, ok := w.files[rel]
+	want, ok := w.files[w.prefix+rel]
 	if !ok || rel == wittymodule.ManifestFile || strings.HasPrefix(rel, ".") {
 		return "", "", ErrNoFile
 	}
-	p := filepath.Join(w.dir, filepath.FromSlash(rel))
+	p := filepath.Join(w.dir, filepath.FromSlash(w.prefix+rel))
 	got, herr := update.FileSHA256(p)
 	st, serr := os.Lstat(p)
 	if herr != nil || serr != nil || got != want || !st.Mode().IsRegular() {
@@ -128,7 +133,7 @@ func (m *Manager) ProgramCommand(id string) (path string, args []string, version
 func (m *Manager) Program(id string) (path, version string, ok bool) {
 	m.mu.Lock()
 	e := m.mods[id]
-	if e == nil || e.dir == "" || e.man.Delivery != wittymodule.DeliveryProgram {
+	if e == nil || e.dir == "" || e.state.Disabled || !e.man.PerPlatform() || (e.man.Delivery != wittymodule.DeliveryProgram && len(e.man.Programs) == 0) {
 		m.mu.Unlock()
 		return "", "", false
 	}
@@ -137,6 +142,9 @@ func (m *Manager) Program(id string) (path, version string, ok bool) {
 	if err := verifyInstalled(dir, man, keys); err != nil {
 		m.failed(id, e, man.Version, err)
 		return "", "", false
+	}
+	if man.Delivery != wittymodule.DeliveryProgram {
+		return filepath.Join(dir, wittymodule.ProgramFile(man.Programs[0], goos())), man.Version, true
 	}
 	return filepath.Join(dir, man.EntryFile(goos())), man.Version, true
 }

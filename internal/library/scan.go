@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -15,10 +17,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittycd"
-	"github.com/wittywilla/wittydisc/isofs"
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/cd"
+	"github.com/wittywilla/wittymediaserver/internal/dvd"
+	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/isofs"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
@@ -310,6 +313,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	var all []candidate
 	var offline []string
 	var archives *archiveIndex
+	if lib.Type == "games" && len(wittyplay.Consoles()) == 0 {
+		// Without WittyPlay nothing can be told to be a game, which isn't the games being gone.
+		s.Log.WarnContext(ctx, "WittyPlay isn't running; keeping the library's games as they are", "library", lib.Name)
+		return nil
+	}
 	if lib.Type == "games" {
 		archives = newArchiveIndex(s.Store, libraryID)
 		archives.reading = func(path string) {
@@ -446,8 +454,8 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 
 func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	// An .iso or .img that holds only audio is a CD, however it is named.
-	if c.kind == "dvd-iso" && c.size%wittycd.SectorBytes == 0 {
-		if d, err := wittycd.Open(c.path); err == nil {
+	if c.kind == "dvd-iso" && c.size%cd.SectorBytes == 0 {
+		if d, err := cd.Open(c.path); err == nil {
 			d.Close()
 			c.kind = CDKind
 			return s.indexCD(ctx, lib, c)
@@ -845,7 +853,23 @@ func orUnd(s string) string {
 }
 
 func (s *Scanner) probeDisc(ctx context.Context, it *Item) {
-	o, err := wittydvd.Open(it.Path)
+	if kind := discKindOf(it.Path); kind == "dvd" && !dvdEngineThere() {
+		// What's on the disc can't be read without WittyDVD, and the file itself is still
+		// here. It stays a disc, and the next scan after WittyDVD arrives fills it in.
+		s.Log.InfoContext(ctx, "a DVD waits for WittyDVD", "file", it.Path)
+		it.Container = "dvd"
+		return
+	} else if kind == "bluray" && !blurayEngineThere() {
+		s.Log.InfoContext(ctx, "a Blu-ray waits for WittyBluray", "file", it.Path)
+		if strings.HasSuffix(it.Kind, "folder") {
+			it.Kind = "bluray-folder"
+		} else {
+			it.Kind = "bluray-iso"
+		}
+		it.Container = "bluray"
+		return
+	}
+	o, err := dvdsession.Open(it.Path)
 	if err != nil {
 		if s.probeBluray(ctx, it) {
 			return
@@ -901,17 +925,13 @@ func (s *Scanner) probeDisc(ctx context.Context, it *Item) {
 		for _, sp := range m.Subp {
 			it.SubLangs = append(it.SubLangs, orUnd(sp.Language))
 		}
-		// Quick CSS check on the first sectors of the feature.
+		// Quick CSS check on the first sectors of the feature, where the engine says they are.
 		if len(m.Cells) > 0 {
-			if rd, err := o.Reader(wittydvd.Space{Domain: wittydvd.DomainVTS, VTS: m.VTS}); err == nil {
-				if buf, err := rd.ReadSectors(m.Cells[0].Cell.FirstSector, 64); err == nil {
-					for off := 0; off+wittydvd.Sector <= len(buf); off += wittydvd.Sector {
-						if wittydvd.PackScrambled(buf[off : off+wittydvd.Sector]) {
-							info.Scrambled = true
-							break
-						}
-					}
-				}
+			c := m.Cells[0].Cell
+			if ext, err := o.RangeExtents(dvd.Space{Domain: dvd.DomainVTS, VTS: m.VTS}, c.FirstSector, min(c.LastSector, c.FirstSector+63)); err != nil {
+				info.Scrambled = errors.Is(err, dvdsession.ErrScrambled)
+			} else if len(ext) > 0 {
+				info.Scrambled = extentScrambled(ext[0])
 			}
 		}
 	}
@@ -940,7 +960,7 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 			return "", err
 		}
 	default:
-		o, err := wittydvd.Open(it.Path)
+		o, err := dvdsession.Open(it.Path)
 		if err != nil {
 			return "", err
 		}
@@ -957,7 +977,7 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 				cell = c
 			}
 		}
-		ext, err := o.RangeExtents(wittydvd.Space{Domain: wittydvd.DomainVTS, VTS: m.VTS}, cell.Cell.FirstSector, cell.Cell.LastSector)
+		ext, err := o.RangeExtents(dvd.Space{Domain: dvd.DomainVTS, VTS: m.VTS}, cell.Cell.FirstSector, cell.Cell.LastSector)
 		if err != nil {
 			return "", err
 		}
@@ -1040,3 +1060,71 @@ func (s *Scanner) fillDiscContent(ctx context.Context, it *Item, libType string)
 		s.Log.WarnContext(ctx, "could not save what a disc holds", "file", it.Path, "err", err)
 	}
 }
+
+// discKindOf says what kind of disc a folder or image looks like from its names alone: "dvd",
+// "bluray" or "".
+func discKindOf(path string) string {
+	st, err := os.Stat(path)
+	if err != nil {
+		return ""
+	}
+	has := func(names map[string]bool) string {
+		for n := range names {
+			switch strings.ToUpper(n) {
+			case "VIDEO_TS":
+				return "dvd"
+			case "BDMV", "BDAV":
+				return "bluray"
+			}
+		}
+		return ""
+	}
+	names := map[string]bool{}
+	if st.IsDir() {
+		names[filepath.Base(path)] = true
+		if entries, err := os.ReadDir(path); err == nil {
+			for _, e := range entries {
+				names[e.Name()] = true
+			}
+		}
+		return has(names)
+	}
+	d, err := isofs.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer d.Close()
+	for _, f := range d.Files() {
+		top, _, _ := strings.Cut(strings.TrimPrefix(f.Path, "/"), "/")
+		names[top] = true
+	}
+	return has(names)
+}
+
+// extentScrambled looks at the start of an extent for encrypted packs.
+func extentScrambled(e dvd.FileExtent) bool {
+	f, err := os.Open(e.File)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	buf := make([]byte, min(e.Length, 64*dvd.Sector))
+	n, err := f.ReadAt(buf, e.Offset)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return false
+	}
+	for off := 0; off+dvd.Sector <= n; off += dvd.Sector {
+		if dvd.PackScrambled(buf[off : off+dvd.Sector]) {
+			return true
+		}
+	}
+	return false
+}
+
+// EngineThere says whether a disc engine is on this server, so a scan can tell a disc it can't
+// read yet from one that can't be read. The server sets it as it starts.
+var EngineThere = func(string) bool { return false }
+
+func dvdEngineThere() bool { return EngineThere("wittydvd") }
+
+func blurayEngineThere() bool { return EngineThere("wittybluray") }

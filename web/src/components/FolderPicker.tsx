@@ -1,8 +1,11 @@
-import { useState } from 'react'
-import FileBrowser, { type Listing } from '@wittywilla/wittyintegratedfilebrowser'
+import { Suspense, useState } from 'react'
+import type { Listing } from '@wittywilla/wittyintegratedfilebrowser'
 import { api } from '../api'
+import { lazyModule } from '../moduleBundles'
 import { IconDrive, IconFolder } from '../icons'
 import { useApp } from '../state'
+
+const FileBrowser = lazyModule<{ list: typeof listServer; onClose: () => void; onPick: (paths: string[]) => void }>('wittyintegratedfilebrowser', (m) => m.default)
 
 // The server's folders for WittyIntegratedFileBrowser.
 const listServer = (path: string, hidden: boolean) => api.get<Listing>(`/fs${path ? `?path=${encodeURIComponent(path)}${hidden ? '&hidden=1' : ''}` : ''}`)
@@ -36,7 +39,7 @@ export function ChooseFolderButton({ onPick, label = 'Choose folder…', classNa
         title="Browse the server's drives and folders from this device">
         <IconDrive /> {pickerLocal ? 'Browse folders' : label.replace('Choose', 'Browse')}
       </button>
-      {browse && <FileBrowser list={listServer} onClose={() => setBrowse(false)} onPick={(ps) => { ps.forEach(onPick); setBrowse(false) }} />}
+      {browse && <Suspense fallback={null}><FileBrowser list={listServer} onClose={() => setBrowse(false)} onPick={(ps) => { ps.forEach(onPick); setBrowse(false) }} /></Suspense>}
     </>
   )
 }

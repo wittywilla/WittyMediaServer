@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"hash/crc32"
 	"io"
 	"os"
@@ -23,7 +24,7 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 // testdata holds archives made by the real tools (7-Zip and RAR), since nothing in
@@ -120,6 +121,7 @@ func write(t *testing.T, p string, data []byte) string {
 }
 
 func TestListsEveryFormat(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	zp := filepath.Join(dir, "a.zip")
 	writeZip(t, zp, zipFile{name: "Game.sfc", data: []byte("rom")}, zipFile{name: "sub/", data: nil}, zipFile{name: "__MACOSX/._Game.sfc", data: []byte("x")})
@@ -174,6 +176,7 @@ func zstBytes(t *testing.T, data []byte) []byte {
 }
 
 func TestEveryCompressionPlays(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	rom := []byte("the game")
 	tarData := tarBytes(t, tarFile{name: "Game.sfc", data: rom})
@@ -227,6 +230,7 @@ func TestEveryCompressionPlays(t *testing.T) {
 // A small file must cost little to read, however it was compressed: this runs on servers
 // with very little memory.
 func TestSmallFilesTakeLittleMemory(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	rom := bytes.Repeat([]byte("the game"), 1024)
 	for how, data := range map[string][]byte{formatGz: gzBytes(t, rom, ""), formatXz: xzBytes(t, rom), formatZst: zstBytes(t, rom)} {
 		var before, after runtime.MemStats
@@ -248,6 +252,7 @@ func TestSmallFilesTakeLittleMemory(t *testing.T) {
 }
 
 func TestSplit7zSetsOpenThroughTheFirstPart(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	src := t.TempDir()
 	first := copyFixture(t, src, "split7.7z.001")
 	copyFixture(t, src, "split7.7z.002")
@@ -280,6 +285,7 @@ func TestSplit7zSetsOpenThroughTheFirstPart(t *testing.T) {
 }
 
 func TestLinksAreNeverListed(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	zp := filepath.Join(dir, "a.zip")
 	writeZip(t, zp, zipFile{name: "Game.sfc", data: []byte("rom")}, zipFile{name: "evil.sfc", data: []byte("/etc/passwd"), mode: os.ModeSymlink | 0o777})
@@ -298,6 +304,7 @@ func TestLinksAreNeverListed(t *testing.T) {
 }
 
 func TestPasswordProtectedArchivesAreSaidToBe(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	for _, p := range []string{"testdata/locked-names.7z", "testdata/locked-names.rar", "testdata/locked-content.rar", "testdata/locked.zip"} {
 		if _, err := List(p); !errors.Is(err, ErrEncrypted) {
 			t.Errorf("%s: got %v", p, err)
@@ -312,6 +319,7 @@ func TestPasswordProtectedArchivesAreSaidToBe(t *testing.T) {
 }
 
 func TestNamesThatClimbOutAreRefused(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	evil := []string{"../evil.sfc", "..\\evil.sfc", "a/../../evil.sfc", "/etc/evil.sfc", "C:\\evil.sfc", "C:/evil.sfc", "a\x00b.sfc", "\\\\server\\share\\evil.sfc"}
 	for i, name := range evil {
@@ -337,6 +345,7 @@ func TestNamesThatClimbOutAreRefused(t *testing.T) {
 
 // Even a name the checks miss can't leave the folder: the writing goes through os.Root.
 func TestWritingCantLeaveTheFolder(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	dst := filepath.Join(dir, "dst")
 	if err := os.Mkdir(dst, 0o755); err != nil {
@@ -353,6 +362,7 @@ func TestWritingCantLeaveTheFolder(t *testing.T) {
 }
 
 func TestTooManyEntries(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	zp := filepath.Join(dir, "a.zip")
 	f, err := os.Create(zp)
@@ -382,6 +392,7 @@ func TestTooManyEntries(t *testing.T) {
 }
 
 func TestAbsurdSizes(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	// A tar header promising more than anything could hold, with nothing behind it.
 	var hdr bytes.Buffer
@@ -405,6 +416,7 @@ func TestAbsurdSizes(t *testing.T) {
 
 // What comes out may be far more than the headers said.
 func TestLyingArchivesStopAtTheLimit(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	zeros := make([]byte, 8<<20)
 	gz := gzBytes(t, zeros, "")
@@ -458,6 +470,7 @@ func sevenZipHeader(next []byte) []byte {
 // A header that claims billions of files makes the decoder ask for more memory than
 // exists, which ends a Go program outright. That must only ever end a worker.
 func TestAnArchiveThatKillsTheWorkerOnlyKillsTheWorker(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	huge := []byte{0x01, 0x05, 0xff}
 	huge = binary.LittleEndian.AppendUint64(huge, 0xfffffff0)
@@ -479,6 +492,7 @@ func TestAnArchiveThatKillsTheWorkerOnlyKillsTheWorker(t *testing.T) {
 }
 
 func TestListerWorksThroughManyAndSurvivesRubbish(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	rubbish := write(t, filepath.Join(dir, "rubbish.7z"), []byte("not an archive at all"))
 	empty := write(t, filepath.Join(dir, "empty.rar"), nil)
@@ -501,6 +515,7 @@ func TestListerWorksThroughManyAndSurvivesRubbish(t *testing.T) {
 }
 
 func TestScanBudgetStopsAtAGlance(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	first := bytes.Repeat([]byte{1, 2, 3, 4}, 1<<18)
 	p := write(t, filepath.Join(dir, "a.tar.gz"), gzBytes(t, tarBytes(t, tarFile{name: "a.iso", data: first}, tarFile{name: "b.cue", data: []byte("x")}), ""))
@@ -523,6 +538,7 @@ func TestScanBudgetStopsAtAGlance(t *testing.T) {
 }
 
 func TestBaseName(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	for in, want := range map[string]string{
 		"Game (USA).7z": "Game (USA)", "Game (USA) [!].zip": "Game (USA) [!]", "Game (USA).tar.gz": "Game (USA)", "Game.TGZ": "Game",
 		"Game.part1.rar": "Game", "Game.part01.rar": "Game", "Game.sfc.gz": "Game.sfc", "Dr. Who.7z": "Dr. Who",
@@ -546,6 +562,7 @@ func entries(names ...string) *Listing {
 }
 
 func TestChoose(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ps1, snes, n64 := wittyplay.ByID("ps1"), wittyplay.ByID("snes"), wittyplay.ByID("n64")
 	for _, c := range []struct {
 		name    string
@@ -585,6 +602,7 @@ func TestChoose(t *testing.T) {
 }
 
 func TestChooseAmongMergedVersions(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	snes := wittyplay.ByID("snes")
 	p, err := Choose(entries("Game (J).sfc", "Game (U) [b1].sfc", "Game (E).sfc", "Game (U) [!].sfc", "Game (U) [h1].sfc"), snes, "Merged.7z")
 	if err != nil {
@@ -601,6 +619,7 @@ func TestChooseAmongMergedVersions(t *testing.T) {
 }
 
 func TestDiscsSortNaturally(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	var discs []Entry
 	for _, n := range []string{"Game (Disc 10).cue", "Game (Disc 2).cue", "Game (Disc 1).cue"} {
 		discs = append(discs, Entry{Name: n})
@@ -612,6 +631,7 @@ func TestDiscsSortNaturally(t *testing.T) {
 }
 
 func TestDescriptorsAreCheckedAndCorrected(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	write(t, filepath.Join(dir, "Game.bin"), []byte("x"))
 	write(t, filepath.Join(dir, "sub", "Track 2.bin"), []byte("x"))
@@ -690,6 +710,7 @@ func copyFixture(t *testing.T, dir, name string) string {
 }
 
 func TestUnpacksADiscWithEveryTrack(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	for _, name := range []string{"disc-solid.7z", "disc-notsolid.7z", "disc-solid.rar", "disc-nested.7z"} {
 		t.Run(name, func(t *testing.T) {
 			src := t.TempDir()
@@ -726,6 +747,7 @@ func TestUnpacksADiscWithEveryTrack(t *testing.T) {
 }
 
 func TestSeveralDiscsBecomeAPlaylist(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	p := copyFixture(t, t.TempDir(), "discs.7z")
 	c := newCache(t, 1<<30)
 	rom, release, err := c.Acquire(context.Background(), p, wittyplay.ByID("ps1"))
@@ -750,6 +772,7 @@ func TestSeveralDiscsBecomeAPlaylist(t *testing.T) {
 // A one-file game's name doesn't depend on the archive or the cache, as a core may
 // name its saves after it.
 func TestCartridgeNameIsStable(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	for _, name := range []string{"cart.7z", "cart.rar", "cart-solid.rar"} {
 		p := copyFixture(t, t.TempDir(), name)
 		c := newCache(t, 1<<30)
@@ -779,6 +802,7 @@ func TestCartridgeNameIsStable(t *testing.T) {
 }
 
 func TestEveryOtherFormatPlays(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	rom := []byte("the game")
 	tarData := tarBytes(t, tarFile{name: "Game.sfc", data: rom})
@@ -801,6 +825,7 @@ func TestEveryOtherFormatPlays(t *testing.T) {
 }
 
 func TestRenamedArchivesStillOpen(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	src, err := os.ReadFile("testdata/cart.7z")
 	if err != nil {
 		t.Fatal(err)
@@ -818,6 +843,7 @@ func TestRenamedArchivesStillOpen(t *testing.T) {
 }
 
 func TestReusedAndNotUnpackedTwice(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	p := copyFixture(t, t.TempDir(), "disc-solid.7z")
 	c := newCache(t, 1<<30)
 	ps1 := wittyplay.ByID("ps1")
@@ -871,6 +897,7 @@ func TestReusedAndNotUnpackedTwice(t *testing.T) {
 }
 
 func TestPartlyUnpackedIsNeverUsed(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	p := copyFixture(t, t.TempDir(), "disc-solid.7z")
 	ps1 := wittyplay.ByID("ps1")
 	c := newCache(t, 1<<30)
@@ -917,6 +944,7 @@ func TestPartlyUnpackedIsNeverUsed(t *testing.T) {
 }
 
 func TestOldestGoFirstAndPlayingStays(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	snes := wittyplay.ByID("snes")
 	mk := func(name string) string {
@@ -971,6 +999,7 @@ func TestOldestGoFirstAndPlayingStays(t *testing.T) {
 }
 
 func TestClearGivesTheSpaceBack(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	snes := wittyplay.ByID("snes")
 	mk := func(name string) string {
@@ -1014,6 +1043,7 @@ func TestClearGivesTheSpaceBack(t *testing.T) {
 }
 
 func TestTooLargeForTheCache(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	p := copyFixture(t, t.TempDir(), "disc-solid.7z")
 	c := newCache(t, 1000)
 	_, _, err := c.Acquire(context.Background(), p, wittyplay.ByID("ps1"))
@@ -1028,6 +1058,7 @@ func TestTooLargeForTheCache(t *testing.T) {
 // A compressed file doesn't say how large it is, so the room left on the disk has to
 // hold while it unpacks.
 func TestUnknownSizesKeepToTheFreeSpace(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	p := write(t, filepath.Join(dir, "Game.sfc.gz"), gzBytes(t, make([]byte, 1<<20), "Game.sfc"))
 	c := newCache(t, 1<<30)
@@ -1052,6 +1083,7 @@ func TestUnknownSizesKeepToTheFreeSpace(t *testing.T) {
 }
 
 func TestClearAnswersForWhatCantBePlayed(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	snes := wittyplay.ByID("snes")
 	zp := filepath.Join(dir, "other.zip")
@@ -1079,6 +1111,7 @@ func TestClearAnswersForWhatCantBePlayed(t *testing.T) {
 }
 
 func TestPrepareFollowsTheUnpack(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	p := copyFixture(t, t.TempDir(), "disc-solid.7z")
 	c := newCache(t, 1<<30)
 	ps1 := wittyplay.ByID("ps1")
@@ -1105,6 +1138,7 @@ func TestPrepareFollowsTheUnpack(t *testing.T) {
 }
 
 func TestGivingUpLeavesTheUnpackRunning(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	p := copyFixture(t, t.TempDir(), "disc-solid.7z")
 	c := newCache(t, 1<<30)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -1124,6 +1158,7 @@ func TestGivingUpLeavesTheUnpackRunning(t *testing.T) {
 }
 
 func TestClosingStopsAnUnpack(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	// Random data, so this takes long enough to be stopped halfway.
 	big := make([]byte, 64<<20)
@@ -1161,6 +1196,7 @@ func TestClosingStopsAnUnpack(t *testing.T) {
 }
 
 func TestAbandonedUnpacksStop(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	dir := t.TempDir()
 	p := write(t, filepath.Join(dir, "big.tar"), tarBytes(t, tarFile{name: "big.sfc", data: make([]byte, 1<<20)}))
 	c := newCache(t, 1<<30)
@@ -1195,6 +1231,7 @@ func TestAbandonedUnpacksStop(t *testing.T) {
 // The worker's own errors don't leak its words, and it can't be talked into anything
 // by its input.
 func TestWorkerAnswersOnlyWithCodes(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	if got := CodeOf(plainError(io.ErrUnexpectedEOF)); got != ErrDamaged.Code {
 		t.Fatalf("got %q", got)
 	}

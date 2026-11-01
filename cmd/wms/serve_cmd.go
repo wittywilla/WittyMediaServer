@@ -20,6 +20,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/bdsession"
+	"github.com/wittywilla/wittymediaserver/internal/cd"
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
@@ -32,6 +33,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/modules/photoengine"
 	"github.com/wittywilla/wittymediaserver/internal/modules/bdremote"
 	"github.com/wittywilla/wittymediaserver/internal/modules/dvdremote"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
@@ -199,7 +201,16 @@ func cmdServe(args []string) int {
 	// Modules: which version of each to use. Nothing here goes online; only Run does,
 	// and only while the settings allow it.
 	modMgr := modules.New(modules.Config{
-		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: append(append(modules.GoManifests(), web.ModuleManifests()...), modules.ServerManifests()...),
+		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: modules.ServerManifests(), Known: true, CatalogURL: update.ModuleCatalog(), Starter: filepath.Join(progDir, "modules"),
+		WriteFolders: func(id string) []string {
+			switch id {
+			case "wittyplay": // saves, cores and what's unpacked stay where a server keeps them
+				return []string{filepath.Join(cfg.DataDir, "gaming")}
+			case "wittycouch": // so do the keys that say this server is paired with a computer
+				return []string{filepath.Join(cfg.DataDir, "wittycouch"), filepath.Join(cfg.DataDir, "gamerigs")}
+			}
+			return nil
+		},
 		Transport: library.SafeClient.Transport, Log: log, Launcher: modulesLauncher(), LogEnv: logs.ModuleEnv,
 		CheckEnabled: func() bool {
 			ctx := context.Background()
@@ -212,8 +223,11 @@ func cmdServe(args []string) int {
 		AutoInstall: func() bool { return database.GetSetting(context.Background(), "moduleAutoInstall", "0") == "1" },
 	})
 	defer modMgr.Close()
-	library.SetPhotoEngine(modules.PhotoEngine{M: modMgr})
-	livetv.SetEngine(modules.Tuners{M: modMgr}.New, modules.Tuners{M: modMgr}.Discover)
+	library.SetPhotoEngine(photoengine.PhotoEngine{M: modMgr})
+	livetv.SetEngine(modules.Tuners{M: modMgr})
+	cd.Open = modules.CDs{M: modMgr}.Open
+	library.EngineThere = modMgr.Installed
+	modMgr.UseServices()
 	dvdsession.SetEngine(dvdremote.Opener{M: modMgr, Log: log}.Open)
 	bdremote.Use(modMgr)
 

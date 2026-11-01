@@ -67,7 +67,7 @@ func RunSandboxed(args []string) int { return 2 }
 // cap and can't start other programs. This happens just after it starts, so for a moment
 // it is outside the job. Creating it suspended closes that gap, but on a real machine it
 // made helpers hang at random for half a minute, which is the worse of the two.
-func lockDown(cmd *exec.Cmd, memoryMB int64, log *slog.Logger) func() {
+func lockDown(cmd *exec.Cmd, memoryMB int64, programs bool, log *slog.Logger) func() {
 	if t := cmd.SysProcAttr.Token; t != 0 {
 		_ = windows.Token(t).Close()
 		cmd.SysProcAttr.Token = 0
@@ -82,6 +82,12 @@ func lockDown(cmd *exec.Cmd, memoryMB int64, log *slog.Logger) func() {
 		windows.JOB_OBJECT_LIMIT_ACTIVE_PROCESS | windows.JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION
 	info.BasicLimitInformation.ActiveProcessLimit = 1
 	info.ProcessMemoryLimit = uintptr(memoryMB) << 20
+	if programs {
+		// It starts other programs, which stay in the job and die with it, and need the memory.
+		info.BasicLimitInformation.LimitFlags = windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | windows.JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION
+		info.BasicLimitInformation.ActiveProcessLimit = 0
+		info.ProcessMemoryLimit = 0
+	}
 	if _, err := windows.SetInformationJobObject(job, windows.JobObjectExtendedLimitInformation, uintptr(unsafe.Pointer(&info)), uint32(unsafe.Sizeof(info))); err != nil {
 		log.Warn("modules: job limits", "err", err)
 	}

@@ -1,7 +1,6 @@
-// Package dvdremote plays a disc through a downloaded version of WittyDVD: a helper
-// process for each open disc, behind the interfaces a session already uses. With the
-// built-in copy in use it does nothing at all, and when a helper fails, the built-in
-// copy takes over and the viewer starts the disc again.
+// Package dvdremote plays a disc through the WittyDVD version in use: a helper process for
+// each open disc, behind the interfaces a session uses. When a helper fails the disc stops,
+// with the reason, and opening it again starts a new one.
 //
 // A helper may be a fork, so nothing it says is taken on trust: see check.go for what
 // is checked, and scramble.go for how the server refuses encrypted discs for itself.
@@ -12,12 +11,12 @@ package dvdremote
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"time"
 
-	"github.com/wittywilla/wittydvd"
-	"github.com/wittywilla/wittydvd/wire"
+	"github.com/wittywilla/wittymediaserver/internal/dvd"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymodule"
@@ -27,7 +26,7 @@ const moduleID = "wittydvd"
 
 // callTimeout is generous because one call may scan a long menu, or read a whole
 // cell for its subtitles, from a slow network share. A helper that goes quiet for
-// longer is stopped, and the disc goes on with the built-in copy.
+// longer is stopped.
 const callTimeout = 3 * time.Minute
 
 // helper is the part of a modules.Attached this package uses.
@@ -42,12 +41,11 @@ type Opener struct {
 	Log *slog.Logger
 }
 
-// Open uses the helper of the version in use, or the built-in copy when that is the
-// one in use, the disc is refused, or the helper can't open it.
+// Open uses a helper of the version in use. Without one, it says which module is missing.
 func (o Opener) Open(path string) (*dvdsession.Engine, error) {
 	a := o.M.Attach(moduleID, callTimeout)
 	if a == nil {
-		return dvdsession.OpenBuiltin(path)
+		return nil, o.M.Missing(moduleID)
 	}
 	report := func(reason string) { _ = o.M.ReportFailure(moduleID, a.Version(), reason) }
 	return open(a, report, o.Log, path)
@@ -61,34 +59,41 @@ func open(h helper, report reporter, log *slog.Logger, path string) (*dvdsession
 		log = slog.Default()
 	}
 	r := &remote{h: h, report: report, log: log, path: path, checked: map[sample]bool{}, files: map[string]*os.File{}}
-	builtin := func(reason error) (*dvdsession.Engine, error) {
-		log.Info("dvd: using the built-in copy for this disc", "path", path, "reason", reason)
+	stop := func(err error) (*dvdsession.Engine, error) {
 		r.closeAll()
-		return dvdsession.OpenBuiltin(path)
+		return nil, err
 	}
 	bounds, err := newBounds(path)
 	if err != nil {
-		return builtin(err)
+		return stop(err)
 	}
 	r.bounds = bounds
-	// An encrypted disc never reaches a helper: the built-in copy refuses it, as ever.
+	// An encrypted disc never reaches a helper.
 	if err := r.inspect(); err != nil {
-		return builtin(err)
+		return stop(err)
 	}
-	blob, err := h.Call(wire.MethodOpen, wire.OpenParams{Path: path}, nil)
+	var opened dvd.Opened
+	blob, err := h.Call(dvd.MethodOpen, dvd.OpenParams{Path: path}, &opened)
 	if err != nil {
-		return builtin(err)
+		return stop(err)
 	}
-	d, err := wire.DecodeDisc(blob)
+	d, err := dvd.DecodeDisc(blob)
 	if err == nil {
 		err = checkDisc(d)
 	}
 	if err != nil {
 		report(err.Error())
-		return builtin(err)
+		return stop(err)
 	}
-	r.engine = &dvdsession.Engine{DiscEngine: r, Disc: d}
+	r.engine = &dvdsession.Engine{DiscEngine: r, Disc: d, Label: clipText(opened.Label), Format: clipText(opened.Format)}
 	return r.engine, nil
+}
+
+func clipText(s string) string {
+	if len(s) > 256 {
+		return s[:256]
+	}
+	return s
 }
 
 // remote is one open disc in a helper.
@@ -100,27 +105,22 @@ type remote struct {
 	bounds *bounds
 	engine *dvdsession.Engine
 
-	// guard is the built-in copy's way to read the disc, for checking for encryption.
-	// Nil when the built-in copy can't open this disc.
-	guard   *wittydvd.Opened
 	checked map[sample]bool
 	files   map[string]*os.File
 	samples int
 
 	subs []cachedSubs // the latest cells, as a session asks for them again and again
 
-	opts wittydvd.NavOptions
+	opts dvd.NavOptions
 	main *nav
 
-	// local is the built-in copy once the helper has gone. restart says the viewer
-	// hasn't been taken back to the disc's first-play yet.
-	local      *dvdsession.Engine
-	restart    bool
+	// dead is why the helper has gone. Nothing on this disc works after that.
+	dead       error
 	lastSerial int
 }
 
-// isRefusal says an answer is a working helper saying no about this disc, as the
-// built-in copy would have: a read error, say. It goes to the viewer the same way.
+// isRefusal says an answer is a working helper saying no about this disc: a read error,
+// say. It goes to the viewer the same way.
 // Anything else says the helper is the trouble.
 func isRefusal(err error) bool {
 	var ce *wittymodule.CallError
@@ -135,38 +135,24 @@ func refusal(err error) error {
 	return err
 }
 
-// giveUp ends the helper and goes on with the built-in copy. If that can't open the
-// disc either, the session gets a navigator that stops and an honest error.
+// giveUp ends the helper, and with it this disc.
 func (r *remote) giveUp(why error) {
-	if r.local != nil {
+	if r.dead != nil {
 		return
 	}
-	r.log.Warn("dvd: the helper failed; going on with the built-in copy", "path", r.path, "err", why)
+	r.log.Warn("dvd: the helper failed", "path", r.path, "err", why)
 	var ce *wittymodule.CallError
 	var bad *badAnswer
-	if (errors.As(why, &ce) && ce.Code != wire.CodeDenied) || errors.As(why, &bad) {
+	if (errors.As(why, &ce) && ce.Code != dvd.CodeDenied) || errors.As(why, &bad) {
 		// A failure of the process itself was already counted by Attached.Call.
 		r.report(why.Error())
 	}
 	r.closeAll()
-	local, err := dvdsession.OpenBuiltin(r.path)
-	if err != nil {
-		local = &dvdsession.Engine{DiscEngine: deadDisc{err}, Disc: &wittydvd.Disc{VMG: &wittydvd.VMG{}, VTS: map[int]*wittydvd.VTS{}}}
-	}
-	r.local = local
-	r.engine.Disc = local.Disc
-	r.restart = true
-	if r.main != nil {
-		r.main.local = local.NewNav(r.opts)
-	}
+	r.dead = fmt.Errorf("WittyDVD stopped working on this disc: %w", why)
 }
 
 func (r *remote) closeAll() {
 	r.h.Close()
-	if r.guard != nil {
-		_ = r.guard.Close()
-		r.guard = nil
-	}
 	for _, f := range r.files {
 		_ = f.Close()
 	}
@@ -175,41 +161,41 @@ func (r *remote) closeAll() {
 
 // Close ends the disc.
 func (r *remote) Close() error {
-	if r.local != nil {
-		return r.local.Close()
+	if r.dead == nil {
+		r.closeAll()
 	}
-	r.closeAll()
 	return nil
 }
 
 // Menu scans a cell for its buttons.
-func (r *remote) Menu(sp wittydvd.Space, first, last uint32, opt wittydvd.MenuScanOptions) (*wittydvd.MenuPicture, error) {
-	if r.local == nil {
-		if r.rangeScrambled(sp, first, last) {
-			return &wittydvd.MenuPicture{Scrambled: true}, nil
-		}
-		pic, err := r.askMenu(sp, first, last, opt)
-		if err == nil {
-			return pic, nil
-		}
-		var ce *wittymodule.CallError
-		if errors.As(err, &ce) && ce.Code == wire.CodeNoNav {
-			return nil, wittydvd.ErrNoNav
-		}
-		if isRefusal(err) {
-			return nil, refusal(err)
-		}
-		r.giveUp(err)
+func (r *remote) Menu(sp dvd.Space, first, last uint32, opt dvd.MenuScanOptions) (*dvd.MenuPicture, error) {
+	if r.dead != nil {
+		return nil, r.dead
 	}
-	return r.local.Menu(sp, first, last, opt)
+	if r.rangeScrambled(sp, first, last) {
+		return &dvd.MenuPicture{Scrambled: true}, nil
+	}
+	pic, err := r.askMenu(sp, first, last, opt)
+	if err == nil {
+		return pic, nil
+	}
+	var ce *wittymodule.CallError
+	if errors.As(err, &ce) && ce.Code == dvd.CodeNoNav {
+		return nil, dvd.ErrNoNav
+	}
+	if isRefusal(err) {
+		return nil, refusal(err)
+	}
+	r.giveUp(err)
+	return nil, r.dead
 }
 
-func (r *remote) askMenu(sp wittydvd.Space, first, last uint32, opt wittydvd.MenuScanOptions) (*wittydvd.MenuPicture, error) {
-	blob, err := r.h.Call(wire.MethodMenu, wire.MenuCall{Space: sp, First: first, Last: last, Options: opt}, nil)
+func (r *remote) askMenu(sp dvd.Space, first, last uint32, opt dvd.MenuScanOptions) (*dvd.MenuPicture, error) {
+	blob, err := r.h.Call(dvd.MethodMenu, dvd.MenuCall{Space: sp, First: first, Last: last, Options: opt}, nil)
 	if err != nil {
 		return nil, err
 	}
-	pic, err := wire.DecodeMenu(blob)
+	pic, err := dvd.DecodeMenu(blob)
 	if err != nil {
 		return nil, &badAnswer{err}
 	}
@@ -220,66 +206,43 @@ func (r *remote) askMenu(sp wittydvd.Space, first, last uint32, opt wittydvd.Men
 }
 
 // RangeExtents says where sectors of a space are.
-func (r *remote) RangeExtents(sp wittydvd.Space, first, last uint32) ([]wittydvd.FileExtent, error) {
-	return r.extents(wire.MethodRange, wire.RangeCall{Space: sp, First: first, Last: last}, func(l *dvdsession.Engine) ([]wittydvd.FileExtent, error) {
-		return l.RangeExtents(sp, first, last)
-	})
+func (r *remote) RangeExtents(sp dvd.Space, first, last uint32) ([]dvd.FileExtent, error) {
+	return r.extents(dvd.MethodRange, dvd.RangeCall{Space: sp, First: first, Last: last})
 }
 
 // CellExtents says where a cell is.
-func (r *remote) CellExtents(sp wittydvd.Space, c wittydvd.Cell) ([]wittydvd.FileExtent, error) {
-	return r.extents(wire.MethodCell, wire.CellCall{Space: sp, Cell: c}, func(l *dvdsession.Engine) ([]wittydvd.FileExtent, error) {
-		return l.CellExtents(sp, c)
-	})
+func (r *remote) CellExtents(sp dvd.Space, c dvd.Cell) ([]dvd.FileExtent, error) {
+	return r.extents(dvd.MethodCell, dvd.CellCall{Space: sp, Cell: c})
 }
 
 // TitleRuns says how a title's cells are read. Its extents are what FFmpeg will read,
 // so each is checked like any other, and the rest has to make sense for these cells.
-func (r *remote) TitleRuns(sp wittydvd.Space, cells []wittydvd.TitleCell) ([]wittydvd.TitleRun, error) {
-	if r.local == nil {
-		runs, err := r.askRuns(sp, cells)
-		if err == nil {
-			for _, run := range runs {
-				if r.extentsScrambled(run.Extents) {
-					return nil, errScrambled
-				}
+func (r *remote) TitleRuns(sp dvd.Space, cells []dvd.TitleCell) ([]dvd.TitleRun, error) {
+	if r.dead != nil {
+		return nil, r.dead
+	}
+	runs, err := r.askRuns(sp, cells)
+	if err == nil {
+		for _, run := range runs {
+			if r.extentsScrambled(run.Extents) {
+				return nil, errScrambled
 			}
-			return runs, nil
 		}
-		if isRefusal(err) {
-			return nil, refusal(err)
-		}
-		var ce *wittymodule.CallError
-		if errors.As(err, &ce) && ce.Code == wire.CodeUnknownCall {
-			return r.runsByCell(sp, cells)
-		}
-		r.giveUp(err)
+		return runs, nil
 	}
-	return r.local.TitleRuns(sp, cells)
+	if isRefusal(err) {
+		return nil, refusal(err)
+	}
+	r.giveUp(err)
+	return nil, r.dead
 }
 
-// runsByCell is for an installed helper from before TitleRuns, which is in good order:
-// each cell on its own, as titles played then, and the helper keeps the disc.
-func (r *remote) runsByCell(sp wittydvd.Space, cells []wittydvd.TitleCell) ([]wittydvd.TitleRun, error) {
-	var out []wittydvd.TitleRun
-	for i, c := range cells {
-		ext, err := r.CellExtents(sp, c.Cell)
-		if err != nil {
-			return nil, err
-		}
-		if len(ext) > 0 {
-			out = append(out, wittydvd.TitleRun{Extents: ext, Duration: c.Cell.Duration, FirstCell: i, Cells: 1})
-		}
-	}
-	return out, nil
-}
-
-func (r *remote) askRuns(sp wittydvd.Space, cells []wittydvd.TitleCell) ([]wittydvd.TitleRun, error) {
-	blob, err := r.h.Call(wire.MethodRuns, wire.RunsCall{Space: sp, Cells: cells}, nil)
+func (r *remote) askRuns(sp dvd.Space, cells []dvd.TitleCell) ([]dvd.TitleRun, error) {
+	blob, err := r.h.Call(dvd.MethodRuns, dvd.RunsCall{Space: sp, Cells: cells}, nil)
 	if err != nil {
 		return nil, err
 	}
-	runs, err := wire.DecodeRuns(blob)
+	runs, err := dvd.DecodeRuns(blob)
 	if err != nil {
 		return nil, &badAnswer{err}
 	}
@@ -302,30 +265,52 @@ func (r *remote) askRuns(sp wittydvd.Space, cells []wittydvd.TitleCell) ([]witty
 // maxRunSeconds is longer than a disc can hold.
 const maxRunSeconds = 24 * 60 * 60
 
-// extents are what FFmpeg will read, so they are checked before anything uses them.
-func (r *remote) extents(method string, params any, local func(*dvdsession.Engine) ([]wittydvd.FileExtent, error)) ([]wittydvd.FileExtent, error) {
-	if r.local == nil {
-		ext, err := r.askExtents(method, params)
-		if err == nil {
-			if r.extentsScrambled(ext) {
-				return nil, errScrambled
-			}
-			return ext, nil
-		}
-		if isRefusal(err) {
-			return nil, refusal(err)
-		}
-		r.giveUp(err)
+// RenderSPU has one sub-picture unit drawn. Its pictures only go to the viewer as subtitles,
+// and a session checks the sizes of those it draws.
+func (r *remote) RenderSPU(b []byte, palette [16]uint32) ([]dvd.SPUFrame, error) {
+	if r.dead != nil {
+		return nil, r.dead
 	}
-	return local(r.local)
+	blob, err := r.h.Call(dvd.MethodSPU, dvd.SPUCall{Bytes: b, Palette: palette}, nil)
+	if err == nil {
+		var frames []dvd.SPUFrame
+		if frames, err = dvd.DecodeSPU(blob); err == nil {
+			return frames, nil
+		}
+		err = &badAnswer{err}
+	}
+	if isRefusal(err) {
+		return nil, refusal(err)
+	}
+	r.giveUp(err)
+	return nil, r.dead
 }
 
-func (r *remote) askExtents(method string, params any) ([]wittydvd.FileExtent, error) {
+// extents are what FFmpeg will read, so they are checked before anything uses them.
+func (r *remote) extents(method string, params any) ([]dvd.FileExtent, error) {
+	if r.dead != nil {
+		return nil, r.dead
+	}
+	ext, err := r.askExtents(method, params)
+	if err == nil {
+		if r.extentsScrambled(ext) {
+			return nil, errScrambled
+		}
+		return ext, nil
+	}
+	if isRefusal(err) {
+		return nil, refusal(err)
+	}
+	r.giveUp(err)
+	return nil, r.dead
+}
+
+func (r *remote) askExtents(method string, params any) ([]dvd.FileExtent, error) {
 	blob, err := r.h.Call(method, params, nil)
 	if err != nil {
 		return nil, err
 	}
-	ext, err := wire.DecodeExtents(blob)
+	ext, err := dvd.DecodeExtents(blob)
 	if err != nil {
 		return nil, &badAnswer{err}
 	}
@@ -336,49 +321,50 @@ func (r *remote) askExtents(method string, params any) ([]wittydvd.FileExtent, e
 }
 
 type cachedSubs struct {
-	sp          wittydvd.Space
+	sp          dvd.Space
 	first, last uint32
-	subs        *wittydvd.CellSubs
+	subs        *dvd.CellSubs
 }
 
 // maxCachedSubs is few because each one is here and in the helper as well.
 const maxCachedSubs = 4
 
 // CellSubpictures reads a cell's sub-pictures.
-func (r *remote) CellSubpictures(sp wittydvd.Space, c wittydvd.Cell) (*wittydvd.CellSubs, error) {
-	if r.local == nil {
-		for _, k := range r.subs {
-			if k.sp == sp && k.first == c.FirstSector && k.last == c.LastSector {
-				return k.subs, nil
-			}
-		}
-		// A cell the server finds encrypted shows no subtitles, as with the built-in copy.
-		if r.rangeScrambled(sp, c.FirstSector, c.LastSector) {
-			return &wittydvd.CellSubs{}, nil
-		}
-		subs, err := r.askSubs(sp, c)
-		if err == nil {
-			if len(r.subs) >= maxCachedSubs {
-				r.subs = r.subs[1:]
-			}
-			r.subs = append(r.subs, cachedSubs{sp, c.FirstSector, c.LastSector, subs})
-			return subs, nil
-		}
-		if isRefusal(err) {
-			return nil, refusal(err)
-		}
-		r.giveUp(err)
-		r.subs = nil
+func (r *remote) CellSubpictures(sp dvd.Space, c dvd.Cell) (*dvd.CellSubs, error) {
+	if r.dead != nil {
+		return nil, r.dead
 	}
-	return r.local.CellSubpictures(sp, c)
+	for _, k := range r.subs {
+		if k.sp == sp && k.first == c.FirstSector && k.last == c.LastSector {
+			return k.subs, nil
+		}
+	}
+	// A cell the server finds encrypted shows no subtitles.
+	if r.rangeScrambled(sp, c.FirstSector, c.LastSector) {
+		return &dvd.CellSubs{}, nil
+	}
+	subs, err := r.askSubs(sp, c)
+	if err == nil {
+		if len(r.subs) >= maxCachedSubs {
+			r.subs = r.subs[1:]
+		}
+		r.subs = append(r.subs, cachedSubs{sp, c.FirstSector, c.LastSector, subs})
+		return subs, nil
+	}
+	if isRefusal(err) {
+		return nil, refusal(err)
+	}
+	r.giveUp(err)
+	r.subs = nil
+	return nil, r.dead
 }
 
-func (r *remote) askSubs(sp wittydvd.Space, c wittydvd.Cell) (*wittydvd.CellSubs, error) {
-	blob, err := r.h.Call(wire.MethodSubs, wire.CellCall{Space: sp, Cell: c}, nil)
+func (r *remote) askSubs(sp dvd.Space, c dvd.Cell) (*dvd.CellSubs, error) {
+	blob, err := r.h.Call(dvd.MethodSubs, dvd.CellCall{Space: sp, Cell: c}, nil)
 	if err != nil {
 		return nil, err
 	}
-	subs, err := wire.DecodeSubs(blob)
+	subs, err := dvd.DecodeSubs(blob)
 	if err != nil {
 		return nil, &badAnswer{err}
 	}
@@ -386,47 +372,16 @@ func (r *remote) askSubs(sp wittydvd.Space, c wittydvd.Cell) (*wittydvd.CellSubs
 }
 
 // NewNav starts the disc's navigator.
-func (r *remote) NewNav(o wittydvd.NavOptions) dvdsession.Navigator {
+func (r *remote) NewNav(o dvd.NavOptions) dvdsession.Navigator {
 	r.opts = o
 	r.main = &nav{r: r}
-	if r.local != nil {
-		r.main.local = r.local.NewNav(o)
+	if r.dead != nil {
 		return r.main
 	}
 	ro := o.RegisterOptions
-	if _, err := r.main.ask(wire.MethodNav, wire.NavOptions{MenuLanguage: ro.MenuLanguage, AudioLanguage: ro.AudioLanguage, SubtitleLanguage: ro.SubtitleLanguage,
+	if _, err := r.main.ask(dvd.MethodNav, dvd.NavParams{MenuLanguage: ro.MenuLanguage, AudioLanguage: ro.AudioLanguage, SubtitleLanguage: ro.SubtitleLanguage,
 		Region: ro.Region, Parental: ro.Parental, Country: ro.Country, Angle: ro.Angle}); err != nil {
 		r.giveUp(err)
 	}
 	return r.main
 }
-
-// deadDisc is a disc nothing can read any more: the helper has gone and the built-in
-// copy can't open it.
-type deadDisc struct{ err error }
-
-func (d deadDisc) Menu(wittydvd.Space, uint32, uint32, wittydvd.MenuScanOptions) (*wittydvd.MenuPicture, error) {
-	return nil, d.err
-}
-
-func (d deadDisc) RangeExtents(wittydvd.Space, uint32, uint32) ([]wittydvd.FileExtent, error) {
-	return nil, d.err
-}
-
-func (d deadDisc) CellExtents(wittydvd.Space, wittydvd.Cell) ([]wittydvd.FileExtent, error) {
-	return nil, d.err
-}
-
-func (d deadDisc) CellSubpictures(wittydvd.Space, wittydvd.Cell) (*wittydvd.CellSubs, error) {
-	return nil, d.err
-}
-
-func (d deadDisc) TitleRuns(wittydvd.Space, []wittydvd.TitleCell) ([]wittydvd.TitleRun, error) {
-	return nil, d.err
-}
-
-func (d deadDisc) NewNav(o wittydvd.NavOptions) dvdsession.Navigator {
-	return dvdsession.BuiltinNav(&wittydvd.Disc{VMG: &wittydvd.VMG{}, VTS: map[int]*wittydvd.VTS{}}, o)
-}
-
-func (d deadDisc) Close() error { return nil }

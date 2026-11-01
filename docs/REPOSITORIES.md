@@ -36,6 +36,7 @@ or licence. The rest already exist on GitHub and only need pushing.
 | WittyReader | The standalone reader app | `apps/wittyreader` | Exists |
 | WittyMediaPlayer | The standalone desktop player | `apps/wittymediaplayer` | Exists |
 | WittyMediaClient | The client apps for desktop, Android, Apple and others | `clients/wittymediaclient` | Exists |
+| WittyModuleCatalog | The signed list of modules and versions that a server's store reads. Holds no module code | New | **Create** |
 
 `clients/desktop` and `clients/mobile` were older, thinner shells around the web app. WittyMediaClient
 replaces both, so they were retired rather than moved. Their history stays in this repository's history.

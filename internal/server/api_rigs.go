@@ -16,8 +16,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wittywilla/wittycouch"
-	"github.com/wittywilla/wittycouch/gamestream"
+	wittycouch "github.com/wittywilla/wittymediaserver/internal/couch"
+	"github.com/wittywilla/wittymediaserver/internal/couch/gamestream"
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"

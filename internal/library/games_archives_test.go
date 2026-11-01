@@ -3,6 +3,7 @@ package library
 import (
 	"archive/zip"
 	"context"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"io"
 	"log/slog"
 	"os"
@@ -14,7 +15,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 func copyArchive(t *testing.T, name, to string) {
@@ -32,6 +33,7 @@ func copyArchive(t *testing.T, name, to string) {
 }
 
 func TestDiscoverGamesInEveryKindOfArchive(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	root := t.TempDir()
 	copyArchive(t, "cart.7z", filepath.Join(root, "Super Nintendo (SNES)", "A Game (USA).7z"))
 	copyArchive(t, "cart.rar", filepath.Join(root, "SNES", "B Game (Europe).rar"))
@@ -75,6 +77,7 @@ func TestDiscoverGamesInEveryKindOfArchive(t *testing.T) {
 }
 
 func TestArchiveTitlesKeepTheirTags(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	for in, want := range map[string]string{
 		"Mega Game, The (USA) (Rev 1) [!].7z": "Mega Game, The (USA) (Rev 1) [!]",
 		"Game (USA).tar.gz":                   "Game (USA)",
@@ -98,6 +101,7 @@ func TestArchiveTitlesKeepTheirTags(t *testing.T) {
 
 // Scanning an unchanged archive doesn't open it.
 func TestScanRemembersWhatArchivesHold(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	d, err := db.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -176,6 +180,7 @@ func TestScanRemembersWhatArchivesHold(t *testing.T) {
 
 // A zip game stays the same item from scan to scan: its saves hang on that.
 func TestZipGamesKeepTheirItem(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	s, lib, root := scanFixture(t)
 	ctx := context.Background()
 	s.WikidataOn = func() bool { return false }
@@ -218,6 +223,7 @@ func TestZipGamesKeepTheirItem(t *testing.T) {
 // set, to see what a scan of it finds and how long it takes. It only reads that folder,
 // keeps its database in a temporary one, and prints counts, never a name.
 func TestRealGamesFolder(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	root := os.Getenv("WMS_GAMES_FOLDER")
 	if root == "" {
 		t.Skip("set WMS_GAMES_FOLDER to run this")

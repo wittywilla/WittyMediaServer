@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"strings"
 
-	"github.com/wittywilla/wittybluray"
+	"github.com/wittywilla/wittymediaserver/internal/bluray"
 )
 
 type subPic struct {
@@ -105,7 +105,7 @@ func (s *Session) Subtitles(ttn, n int, from, to float64) ([]SubEvent, error) {
 }
 
 // subPlayItem finds the sub play item that goes with a main-path item.
-func subPlayItem(pl *wittybluray.Playlist, st *wittybluray.Stream, item int) *wittybluray.SubPlayItem {
+func subPlayItem(pl *bluray.Playlist, st *bluray.Stream, item int) *bluray.SubPlayItem {
 	if st.SubPath >= len(pl.SubPaths) || len(pl.SubPaths[st.SubPath].Items) == 0 {
 		return nil
 	}
@@ -119,7 +119,7 @@ func subPlayItem(pl *wittybluray.Playlist, st *wittybluray.Stream, item int) *wi
 }
 
 // textEvents lists the dialogs of a text subtitle stream in a time window.
-func (s *Session) textEvents(pl *wittybluray.Playlist, pi playedItem, st *wittybluray.Stream, from, to float64) []SubEvent {
+func (s *Session) textEvents(pl *bluray.Playlist, pi playedItem, st *bluray.Stream, from, to float64) []SubEvent {
 	sp := subPlayItem(pl, st, pi.item)
 	if sp == nil {
 		return nil
@@ -133,7 +133,7 @@ func (s *Session) textEvents(pl *wittybluray.Playlist, pi playedItem, st *wittyb
 			s.log.Warn("a subtitle track can't be read", "clip", clip, "err", err)
 		}
 		if s.textCues == nil {
-			s.textCues = map[string][]wittybluray.TextCue{}
+			s.textCues = map[string][]bluray.TextCue{}
 		}
 		s.textCues[key] = cues
 	}
@@ -174,4 +174,4 @@ func (s *Session) SubPNG(name string) ([]byte, bool) {
 // 3D viewing modes).
 func (s *Session) Stereo3D() bool { return s.disc.Stereo3D }
 
-var _ = wittybluray.NoButton
+var _ = bluray.NoButton

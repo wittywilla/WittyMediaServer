@@ -425,7 +425,11 @@ func TestRadioDirectoryRoutes(t *testing.T) {
 	const good = "11111111-1111-1111-1111-111111111111"
 	var hits atomic.Int32
 	ts, lib, dir := radioFixture(t, func(w http.ResponseWriter, r *http.Request) {
-		hits.Add(1)
+		// Adding a station reports the choice from a goroutine of its own, which can arrive at
+		// any point after the add, so it isn't counted as contact.
+		if !strings.HasPrefix(r.URL.Path, "/json/url/") {
+			hits.Add(1)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		station := map[string]any{"stationuuid": good, "name": "Alpha", "url": "http://a.example/s", "url_resolved": "https://a.example/s.mp3", "favicon": "https://a.example/l.png", "tags": "jazz", "countrycode": "NL", "country": "Netherlands", "lastcheckok": 1, "codec": "AAC", "bitrate": 64}
 		switch {

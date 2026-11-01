@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymodule"
-	"github.com/wittywilla/wittytuner"
+	wittytuner "github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
 func packets(n int, scrambled bool) []byte {
@@ -57,6 +57,10 @@ func handle(method string, raw json.RawMessage) (any, func(io.Writer) error, err
 		return nil, func(w io.Writer) error { _, err := io.WriteString(w, "this is not the protocol"); return err }, nil
 	}
 	switch method {
+	case "validate":
+		return nil, doc(wittytuner.HelperDoc{Info: &wittytuner.Info{Driver: c.Driver, Name: c.Name}, Done: true}), nil
+	case "drivers":
+		return nil, doc(wittytuner.HelperDoc{Drivers: []wittytuner.Driver{{ID: "stream", Name: "A stream"}}, Done: true}), nil
 	case "discover":
 		return nil, doc(wittytuner.HelperDoc{Found: []wittytuner.Found{{Driver: "network", Name: "From the helper", Options: map[string]string{"address": "192.168.1.9"}}, {Driver: "command", Name: "A program"}}, Done: true}), nil
 	case "channels", "scan":
@@ -120,7 +124,7 @@ func handle(method string, raw json.RawMessage) (any, func(io.Writer) error, err
 		case "busy":
 			return nil, nil, &wittymodule.CallError{Code: "busy", Message: "no tuner free"}
 		case "input-plain":
-			return map[string]any{"input": []string{"-i", c.Channel.Locator}, "verified": true}, nothing, nil
+			return map[string]any{"input": []string{"-protocol_whitelist", "http,https,tcp,tls", "-i", c.Channel.Locator}, "verified": true}, nothing, nil
 		case "input-empty":
 			return map[string]any{"input": []string{}}, nothing, nil
 		case "input-options":
@@ -132,7 +136,11 @@ func handle(method string, raw json.RawMessage) (any, func(io.Writer) error, err
 		case "input-crypto":
 			return map[string]any{"input": []string{"-i", "crypto+http://example.test/x"}}, nothing, nil
 		case "input-elsewhere":
-			return map[string]any{"input": []string{"-i", "http://example.test/x"}}, nothing, nil
+			return map[string]any{"input": []string{"-protocol_whitelist", "http,https,tcp,tls", "-i", "http://example.test/x"}}, nothing, nil
+		case "input-open":
+			return map[string]any{"input": []string{"-i", c.Channel.Locator}}, nothing, nil
+		case "input-crypto-list":
+			return map[string]any{"input": []string{"-protocol_whitelist", "crypto,http,tcp", "-i", c.Channel.Locator}}, nothing, nil
 		}
 		return nil, nil, &wittymodule.CallError{Code: "unknown", Message: "no behaviour named"}
 	}

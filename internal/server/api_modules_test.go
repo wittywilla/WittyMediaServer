@@ -31,7 +31,7 @@ func TestModuleRoutes(t *testing.T) {
 		}
 	}
 
-	m := modmgr.New(modmgr.Config{Dir: filepath.Join(t.TempDir(), "modules"), Server: "0.4.0", Builtins: modmgr.GoManifests()})
+	m := modmgr.New(modmgr.Config{Dir: filepath.Join(t.TempDir(), "modules"), Server: "0.4.0", Known: true, Builtins: modmgr.ServerManifests()})
 	defer m.Close()
 	s := &Server{Modules: m, Log: slog.New(slog.DiscardHandler)}
 	w := call(s, list, "")
@@ -45,7 +45,7 @@ func TestModuleRoutes(t *testing.T) {
 	found := false
 	for _, st := range r.Modules {
 		if st.ID == "wittyphotos" {
-			found = st.Updatable && st.State == modmgr.StateBuiltin && st.MaxServer != ""
+			found = st.Updatable && st.State == modmgr.StateAbsent && !st.Installed
 		}
 	}
 	if !found || r.Server != "0.4.0" || r.API < 1 {

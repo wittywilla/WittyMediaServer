@@ -1,9 +1,8 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl, type Item } from '../api'
-import WittyComics from '@wittywilla/wittycomics'
-import WittyEbook from '@wittywilla/wittyebook'
-import { HostContext, type Ann, type EpubInfo, type ReaderHost } from '@wittywilla/wittyink'
+import type { Ann, EpubInfo, ReaderHost } from '@wittywilla/wittyink'
+import { ModuleMissing } from '../components/ModuleMissing'
 import { toast } from '../state'
 import { BundledReaderView, useBundledReader } from '../moduleBundles'
 
@@ -12,8 +11,7 @@ import { BundledReaderView, useBundledReader } from '../moduleBundles'
 // on the server (so every device continues where the reader left off) and
 // fetches pages and definitions through the server.
 
-// pdf.js is large: WittyPDF loads only when a PDF is opened.
-const WittyPDF = lazy(() => import('@wittywilla/wittypdf'))
+const READER_MODULE = { pdf: 'wittypdf', cbz: 'wittycomics', epub: 'wittyebook' }
 
 type BookInfo = Partial<EpubInfo> & { format: string; reading: string; title: string; pages?: number }
 // Bumped when the server's book headers change, so cached chapters refresh.
@@ -64,13 +62,7 @@ export default function ReaderPage() {
 
   if (err) return <div className="reader center"><div className="error">{err}<br /><button className="btn" onClick={close}>Back</button></div></div>
   if (!host || bundled === undefined) return <div className="reader center"><div className="spinner" /></div>
-  const ownCopy = (
-    <HostContext.Provider value={host}>
-      <h1 className="sr-only">{it?.title}</h1>
-      {host.format === 'pdf' ? <Suspense fallback={<div className="reader center"><div className="spinner" /></div>}><WittyPDF /></Suspense>
-        : host.format === 'cbz' ? <WittyComics /> : <WittyEbook />}
-    </HostContext.Provider>
-  )
-  if (!bundled) return ownCopy
-  return <BundledReaderView r={bundled} host={host} fallback={ownCopy}><h1 className="sr-only">{it?.title}</h1></BundledReaderView>
+  const missing = <div className="reader center"><ModuleMissing ids={[READER_MODULE[host.format], 'wittyink']} what={it?.title} onReady={() => window.location.reload()} /></div>
+  if (!bundled) return missing
+  return <BundledReaderView r={bundled} host={host} fallback={missing}><h1 className="sr-only">{it?.title}</h1></BundledReaderView>
 }

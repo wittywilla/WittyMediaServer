@@ -15,7 +15,7 @@ import (
 // A running helper really has a low-integrity token and sits in a job.
 func TestHelperIsSandboxedOnWindows(t *testing.T) {
 	dir := t.TempDir()
-	raw := manifestJSON("0.2.0", "0.4.0", "0.5.x", 1)
+	raw := manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API)
 	man, err := wittymodule.ParseManifest(raw)
 	if err != nil {
 		t.Fatal(err)

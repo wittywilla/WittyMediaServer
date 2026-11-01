@@ -45,6 +45,9 @@ type release struct {
 	sums    update.Asset
 	sig     update.Asset
 	man     update.Asset
+	// What a catalogue said of it, when that's where it's known from. Nil for a fork's.
+	listed *wittymodule.CatalogVersion
+	sha256 string
 }
 
 func pageURL(raw string) string {
@@ -86,11 +89,11 @@ type verified struct {
 // verifiedRelease fetches a release's signed list and manifest, and checks them.
 // Nothing about a release is believed before this.
 func (m *Manager) verifiedRelease(ctx context.Context, id string, e *entry, r *release) (*wittymodule.Manifest, *verified, error) {
-	sums, err := m.fetch.Small(ctx, r.sums.URL, maxSums)
+	sums, err := m.small(ctx, r.sums.URL, maxSums)
 	if err != nil {
 		return nil, nil, fmt.Errorf("checksums: %w", err)
 	}
-	sig, err := m.fetch.Small(ctx, r.sig.URL, maxSig)
+	sig, err := m.small(ctx, r.sig.URL, maxSig)
 	if err != nil {
 		return nil, nil, fmt.Errorf("signature: %w", err)
 	}
@@ -100,7 +103,7 @@ func (m *Manager) verifiedRelease(ctx context.Context, id string, e *entry, r *r
 	if err := update.VerifySums(sums, sig, keys); err != nil {
 		return nil, nil, err
 	}
-	raw, err := m.fetch.Small(ctx, r.man.URL, maxManifest)
+	raw, err := m.small(ctx, r.man.URL, maxManifest)
 	if err != nil {
 		return nil, nil, fmt.Errorf("manifest: %w", err)
 	}
@@ -193,16 +196,21 @@ func (m *Manager) InstallVersion(id, ver string, confirm bool) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	e := m.mods[id]
-	switch {
-	case e == nil:
+	if e == nil {
 		return ErrUnknown
+	}
+	return m.installVersionLocked(id, e, ver, confirm)
+}
+
+func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm bool) error {
+	switch {
 	case !updatable(e.builtin):
 		return errors.New(e.builtin.Name + " is built into the server and updates with it")
 	case e.busy:
 		return errors.New("an update of this module is already being installed")
 	case m.closed:
 		return errors.New("the server is stopping")
-	case e.state.Removed:
+	case e.state.Removed && !e.absent:
 		return errors.New(e.builtin.Name + " isn't on this server; add it first")
 	case !wittymodule.Valid(ver):
 		return fmt.Errorf("%q is not a version", ver)
@@ -292,6 +300,9 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, 
 	if !ok {
 		return fmt.Errorf("the signed checksum list has no entry for %s", r.archive.Name)
 	}
+	if err := checkListed(id, r, man, want); err != nil {
+		return err
+	}
 
 	base := m.modDir(id)
 	if err := os.MkdirAll(filepath.Join(base, "versions"), 0o755); err != nil {
@@ -351,7 +362,7 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, 
 		if err := p.Try(); err != nil {
 			return fmt.Errorf("this version didn't start on this server, which can happen if the data folder doesn't allow programs to run: %w", err)
 		}
-	} else {
+	} else if man.Delivery == wittymodule.DeliveryWeb {
 		if _, err := os.Stat(filepath.Join(stage, man.Entry)); err != nil {
 			return fmt.Errorf("the package has no %s", man.Entry)
 		}
@@ -401,6 +412,7 @@ func (m *Manager) activate(id string, e *entry, man *wittymodule.Manifest, older
 		e.state.Previous = ""
 	}
 	e.state.Active, e.state.Blocked = man.Version, blocked
+	e.state.Removed, e.state.Disabled = false, false
 	e.state.Chosen = wittymodule.Compare(man.Version, e.builtin.Version) <= 0 || older
 	if older {
 		e.state.Pin = man.Version
@@ -424,16 +436,16 @@ func (m *Manager) activate(id string, e *entry, man *wittymodule.Manifest, older
 }
 
 func (m *Manager) download(ctx context.Context, e *entry, a update.Asset, dst, want string) error {
-	res, err := m.fetch.Get(ctx, a.URL, "application/octet-stream")
+	body, length, err := m.openFile(ctx, a.URL)
 	if err != nil {
 		return fmt.Errorf("download: %w", err)
 	}
-	defer res.Body.Close()
+	defer body.Close()
 	limit := int64(maxArchive)
 	if a.Size > 0 && a.Size < limit {
 		limit = a.Size
 	}
-	if res.ContentLength > limit {
+	if length > limit {
 		return errors.New("download: the file is larger than the release says")
 	}
 	f, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
@@ -441,7 +453,7 @@ func (m *Manager) download(ctx context.Context, e *entry, a update.Asset, dst, w
 		return err
 	}
 	h := sha256.New()
-	n, err := io.Copy(io.MultiWriter(f, h, progress{m, e}), io.LimitReader(res.Body, limit+1))
+	n, err := io.Copy(io.MultiWriter(f, h, progress{m, e}), io.LimitReader(body, limit+1))
 	if cerr := f.Close(); err == nil {
 		err = cerr
 	}

@@ -9,13 +9,12 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
+
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"image"
-	"image/png"
+
 	"io"
 	"log/slog"
 	"net/http"
@@ -182,7 +181,7 @@ func newWorld(t *testing.T) *world {
 
 func (w *world) manager() *Manager {
 	exe, _ := os.Executable() // this test program is the launcher too: see TestMain
-	return New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", 1)},
+	return New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", wittymodule.API)},
 		Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Launcher: exe,
 		Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 }
@@ -325,7 +324,7 @@ func usesBuiltin(t *testing.T, m *Manager) {
 
 func TestInRangeInstallRunsAndSurvivesRestart(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 	m := w.manager()
 	defer m.Close()
 	if s := one(t, m); s.State != StateBuiltin || s.Version != builtinVersion {
@@ -351,7 +350,7 @@ func TestInRangeInstallRunsAndSurvivesRestart(t *testing.T) {
 
 func TestOutOfRangeIsNotOfferedOrInstallable(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.5.0", "0.5.x", 1)) // needs a newer server
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.5.0", "0.5.x", wittymodule.API)) // needs a newer server
 	m := w.manager()
 	defer m.Close()
 	s := check(t, m)
@@ -369,8 +368,8 @@ func TestOutOfRangeIsNotOfferedOrInstallable(t *testing.T) {
 
 func TestOlderCompatibleReleaseIsOfferedUnderATooNewOne(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.4.x", 1))
-	w.publish("0.3.0", manifestJSON("0.3.0", "0.5.0", "0.5.x", 1))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.4.x", wittymodule.API))
+	w.publish("0.3.0", manifestJSON("0.3.0", "0.5.0", "0.5.x", wittymodule.API))
 	w.publish("0.3.1", manifestJSON("0.3.1", "0.4.0", "0.5.x", wittymodule.API+1)) // a newer module API
 	m := w.manager()
 	defer m.Close()
@@ -385,13 +384,13 @@ func TestOlderCompatibleReleaseIsOfferedUnderATooNewOne(t *testing.T) {
 
 func TestServerUpgradeOutOfRangeFallsBack(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.4.x", 1))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.4.x", wittymodule.API))
 	m := w.manager()
 	check(t, m)
 	if s := installWait(t, m); s.Version != "0.2.0" {
 		t.Fatalf("install: %+v", s)
 	}
-	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.4.5", 1))
+	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.4.5", wittymodule.API))
 	check(t, m)
 	if s := installWait(t, m); s.Version != "0.3.0" || s.Previous != "0.2.0" {
 		t.Fatalf("second install: %+v", s)
@@ -432,12 +431,12 @@ func TestServerUpgradeOutOfRangeFallsBack(t *testing.T) {
 
 func TestNewerBuiltinWins(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 	m := w.manager()
 	check(t, m)
 	installWait(t, m)
 	m.Close()
-	m2 := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON("0.3.0", "0.1.0", "0.x", 1)}, Keys: []ed25519.PublicKey{w.pub},
+	m2 := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON("0.3.0", "0.1.0", "0.x", wittymodule.API)}, Keys: []ed25519.PublicKey{w.pub},
 		Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	defer m2.Close()
 	if s := one(t, m2); s.Version != "0.3.0" || s.Latest != nil {
@@ -449,7 +448,7 @@ func TestPrereleases(t *testing.T) {
 	// A server on the alpha can't use a module that starts at the release.
 	w := newWorld(t)
 	w.server = "0.4.0-alpha"
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 	m := w.manager()
 	s := check(t, m)
 	if s.Latest != nil || s.TooNew == nil {
@@ -460,7 +459,7 @@ func TestPrereleases(t *testing.T) {
 	// A module that says it works on the alpha does.
 	w = newWorld(t)
 	w.server = "0.4.0-alpha"
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0-alpha", "0.5.x", 1))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0-alpha", "0.5.x", wittymodule.API))
 	m = w.manager()
 	if s := check(t, m); s.Latest == nil {
 		t.Fatalf("alpha server, module from the alpha: %+v", s)
@@ -469,7 +468,7 @@ func TestPrereleases(t *testing.T) {
 
 	// A stable server isn't offered a pre-release module, an alpha server is.
 	w = newWorld(t)
-	w.publish("0.2.0-beta", manifestJSON("0.2.0-beta", "0.4.0-alpha", "0.5.x", 1))
+	w.publish("0.2.0-beta", manifestJSON("0.2.0-beta", "0.4.0-alpha", "0.5.x", wittymodule.API))
 	m = w.manager()
 	if s := check(t, m); s.Latest != nil {
 		t.Fatalf("stable server offered a pre-release: %+v", s.Latest)
@@ -485,7 +484,7 @@ func TestPrereleases(t *testing.T) {
 
 func TestBadSignatureAtCheckIsIgnored(t *testing.T) {
 	w := newWorld(t)
-	paths := w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	paths := w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 	_, other, _ := ed25519.GenerateKey(rand.Reader)
 	w.gh.set(paths["sig"], update.Sign(other, w.gh.files[paths["sums"]]))
 	m := w.manager()
@@ -501,7 +500,7 @@ func TestBadSignatureAtCheckIsIgnored(t *testing.T) {
 
 func TestBadSignatureAtInstallChangesNothing(t *testing.T) {
 	w := newWorld(t)
-	paths := w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	paths := w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -519,7 +518,7 @@ func TestBadSignatureAtInstallChangesNothing(t *testing.T) {
 
 func TestListCantBeReplacedByAnUnsignedOne(t *testing.T) {
 	w := newWorld(t)
-	paths := w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	paths := w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -532,7 +531,7 @@ func TestListCantBeReplacedByAnUnsignedOne(t *testing.T) {
 
 func TestCorruptDownloadChangesNothing(t *testing.T) {
 	w := newWorld(t)
-	paths := w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	paths := w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -563,12 +562,12 @@ func TestCorruptDownloadChangesNothing(t *testing.T) {
 
 func TestInstallFailureKeepsTheVersionInUse(t *testing.T) {
 	for name, man := range map[string][]byte{
-		"dies at start": manifestJSON("0.3.0", "0.4.0", "0.5.x", 1, "die-at-start"),
-		"wrong version": manifestJSON("0.3.0", "0.4.0", "0.5.x", 1, "wrong-version"),
+		"dies at start": manifestJSON("0.3.0", "0.4.0", "0.5.x", wittymodule.API, "die-at-start"),
+		"wrong version": manifestJSON("0.3.0", "0.4.0", "0.5.x", wittymodule.API, "wrong-version"),
 	} {
 		t.Run(name, func(t *testing.T) {
 			w := newWorld(t)
-			w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+			w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 			m := w.manager()
 			defer m.Close()
 			check(t, m)
@@ -591,7 +590,7 @@ func TestInstallFailureKeepsTheVersionInUse(t *testing.T) {
 func TestManifestCantClaimAnotherVersion(t *testing.T) {
 	w := newWorld(t)
 	// A signed 0.2.0 manifest attached to a 0.3.0 tag.
-	w.publish("0.3.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	w.publish("0.3.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 	m := w.manager()
 	defer m.Close()
 	if s := check(t, m); s.Latest != nil {
@@ -601,7 +600,7 @@ func TestManifestCantClaimAnotherVersion(t *testing.T) {
 
 func TestChangedFilesAreRefused(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 	m := w.manager()
 	check(t, m)
 	installWait(t, m)
@@ -657,12 +656,12 @@ func TestCrashingVersionRollsBackByItself(t *testing.T) {
 	for _, bad := range []string{"crash", "garbage"} {
 		t.Run(bad, func(t *testing.T) {
 			w := newWorld(t)
-			w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+			w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 			m := w.manager()
 			defer m.Close()
 			check(t, m)
 			installWait(t, m)
-			w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", 1, bad))
+			w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", wittymodule.API, bad))
 			check(t, m)
 			if s := installWait(t, m); s.Version != "0.3.0" {
 				t.Fatalf("%+v", s)
@@ -706,7 +705,7 @@ func TestHangingVersionIsKilled(t *testing.T) {
 	callTimeout = 200 * time.Millisecond
 	defer func() { callTimeout = old }()
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1, "hang"))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API, "hang"))
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -723,7 +722,7 @@ func TestHangingVersionIsKilled(t *testing.T) {
 
 func TestManualRollback(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 	m := w.manager()
 	defer m.Close()
 	if err := m.Rollback("wittyphotos"); err == nil {
@@ -734,7 +733,7 @@ func TestManualRollback(t *testing.T) {
 	}
 	check(t, m)
 	installWait(t, m)
-	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", 1))
+	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", wittymodule.API))
 	check(t, m)
 	installWait(t, m)
 
@@ -763,12 +762,12 @@ func TestManualRollback(t *testing.T) {
 
 func TestOfflineKeepsWorking(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
 	installWait(t, m)
-	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", 1))
+	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", wittymodule.API))
 	if s := check(t, m); s.Latest == nil {
 		t.Fatal("not offered")
 	}
@@ -801,7 +800,7 @@ func TestNothingPhonesHomeWithoutPermission(t *testing.T) {
 	firstCheck = time.Millisecond
 	defer func() { firstCheck = old }()
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", 1))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
 	var mu sync.Mutex
 	allowCheck, allowInstall := false, false
 	get := func(p *bool) func() bool {
@@ -809,7 +808,7 @@ func TestNothingPhonesHomeWithoutPermission(t *testing.T) {
 	}
 	run := func(want string) {
 		t.Helper()
-		m := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", 1)}, Keys: []ed25519.PublicKey{w.pub},
+		m := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", wittymodule.API)}, Keys: []ed25519.PublicKey{w.pub},
 			Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)), CheckEnabled: get(&allowCheck), AutoInstall: get(&allowInstall)})
 		defer m.Close()
 		ctx, cancel := context.WithCancel(context.Background())
@@ -886,7 +885,7 @@ func TestStateFileProblemsAreNotFatal(t *testing.T) {
 
 func TestBuiltinModulesCantBeInstalled(t *testing.T) {
 	w := newWorld(t)
-	m := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{[]byte(`{"id":"wittydvd","name":"WittyDVD","version":"0.1.0","repo":"wittywilla/WittyDVD","delivery":"builtin","api":1,"minServer":"0.4.0","maxServer":"0.5.x"}`)},
+	m := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{[]byte(`{"id":"wittydvd","name":"WittyDVD","version":"0.1.0","repo":"wittywilla/WittyDVD","delivery":"builtin","api":3,"minServer":"0.4.0","maxServer":"0.5.x"}`)},
 		Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	defer m.Close()
 	m.Check(context.Background(), 0)
@@ -906,7 +905,7 @@ func TestBuiltinModulesCantBeInstalled(t *testing.T) {
 
 func TestEveryRealManifestIsSound(t *testing.T) {
 	seen := map[string]bool{}
-	for _, raw := range GoManifests() {
+	for _, raw := range ServerManifests() {
 		m, err := wittymodule.ParseManifest(raw)
 		if err != nil {
 			t.Fatal(err)
@@ -918,93 +917,6 @@ func TestEveryRealManifestIsSound(t *testing.T) {
 		if m.API < wittymodule.MinAPI || m.API > wittymodule.API {
 			t.Errorf("%s: api %d", m.ID, m.API)
 		}
-	}
-	if !seen["wittyphotos"] {
-		t.Error("WittyPhotos is missing")
-	}
-}
-
-// The whole way, with nothing fake: the real WittyPhotos helper, built, packed and
-// signed by the real tool, installed, and reading a real picture.
-func TestRealHelperEndToEnd(t *testing.T) {
-	if testing.Short() {
-		t.Skip("builds the real helper")
-	}
-	root, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
-	out := t.TempDir()
-	key := filepath.Join(out, "test.key")
-	pub, priv, _ := ed25519.GenerateKey(rand.Reader)
-	if err := os.WriteFile(key, []byte(base64.StdEncoding.EncodeToString(priv.Seed())+"\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	tool := func(args ...string) {
-		t.Helper()
-		cmd := exec.Command("go", append([]string{"run", "github.com/wittywilla/wittymodule/cmd/wittymodule"}, args...)...)
-		cmd.Dir = root
-		if b, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("wittymodule %v: %v\n%s", args, err, b)
-		}
-	}
-	tool("check", moduleDir(t, "wittyphotos"))
-	tool("pack", "-out", out, "-targets", runtime.GOOS+"/"+runtime.GOARCH, moduleDir(t, "wittyphotos"))
-	raw, err := os.ReadFile(filepath.Join(moduleDir(t, "wittyphotos"), "module.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	real, err := wittymodule.ParseManifest(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tool("sign", "-key", key, filepath.Join(out, wittymodule.SumsName(real.ID, real.Version)))
-
-	gh := &github{files: map[string][]byte{}}
-	g := update.GHRelease{TagName: "v" + real.Version}
-	entries, err := os.ReadDir(out)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, e := range entries {
-		if e.Name() == "test.key" {
-			continue
-		}
-		b, err := os.ReadFile(filepath.Join(out, e.Name()))
-		if err != nil {
-			t.Fatal(err)
-		}
-		gh.files["/r/"+e.Name()] = b
-		g.Assets = append(g.Assets, update.GHAsset{Name: e.Name(), Size: int64(len(b)), URL: "https://github.com/r/" + e.Name()})
-	}
-	gh.rels = []update.GHRelease{g}
-
-	old := append([]byte{}, raw...)
-	old = bytes.Replace(old, []byte(`"version": "`+real.Version+`"`), []byte(`"version": "0.0.1"`), 1)
-	m := New(Config{Dir: filepath.Join(t.TempDir(), "modules"), Server: real.MinServer, Builtins: [][]byte{old}, Keys: []ed25519.PublicKey{pub},
-		Fetch: &update.Fetcher{UserAgent: "test", Transport: gh}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
-	defer m.Close()
-	s := check(t, m)
-	if s.Latest == nil {
-		t.Fatalf("not offered: %+v %s", s, m.Report().CheckError)
-	}
-	if s = installWait(t, m); s.Phase != PhaseIdle || s.Version != real.Version {
-		t.Fatalf("%+v", s)
-	}
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, image.NewGray(image.Rect(0, 0, 7, 5))); err != nil {
-		t.Fatal(err)
-	}
-	pic := filepath.Join(t.TempDir(), "real.png")
-	if err := os.WriteFile(pic, buf.Bytes(), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	var d struct{ W, H int }
-	if _, err, handled := m.call("wittyphotos", "dimensions", pathParams{pic}, &d); !handled || err != nil || d.W != 7 || d.H != 5 {
-		t.Fatalf("handled=%v err=%v %+v", handled, err, d)
-	}
-	if !(PhotoEngine{m}).IsRaw("x.CR3") || (PhotoEngine{m}).IsRaw("x.mp4") {
-		t.Fatal("IsRaw")
 	}
 }
 

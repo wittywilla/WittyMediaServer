@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/wittywilla/wittycouch/relay/fakehost"
+	"github.com/wittywilla/wittymediaserver/internal/couch/relay/fakehost"
 )
 
 // TestMain lets this test program stand in for the Moonlight host program, when a test starts it

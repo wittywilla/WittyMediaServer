@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
-	"github.com/wittywilla/wittyplay"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 // Working out which exact game a file is, as cheaply as possible, and without ever

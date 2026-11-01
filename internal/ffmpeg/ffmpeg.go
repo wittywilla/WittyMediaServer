@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wittywilla/wittydvd"
+	"github.com/wittywilla/wittymediaserver/internal/dvd"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
@@ -252,7 +252,7 @@ func (t *Tools) probe(ctx context.Context, input []string) (*Probe, error) {
 
 // Segment is one playable run of bytes with a known duration.
 type Segment struct {
-	Extents  []wittydvd.FileExtent
+	Extents  []dvd.FileExtent
 	Duration float64 // seconds, 0 = unknown
 	// Lead is how long before its first picture a segment's earliest packet
 	// lies (seconds): usually sound, stored ahead of its picture, up to a
@@ -271,7 +271,7 @@ type Segment struct {
 }
 
 // SubfileURL builds a subfile protocol URL for one extent.
-func SubfileURL(e wittydvd.FileExtent) string {
+func SubfileURL(e dvd.FileExtent) string {
 	return fmt.Sprintf("subfile,,start,%d,end,%d,,:%s", e.Offset, e.Offset+e.Length, filepath.ToSlash(e.File))
 }
 
@@ -342,11 +342,11 @@ func WriteConcat(dir, name string, segs []Segment, streamIDs ...int) (string, er
 const maxSubfile = 1 << 30
 
 // splitExtents cuts extents into pieces that FFmpeg reads reliably.
-func splitExtents(ext []wittydvd.FileExtent) []wittydvd.FileExtent {
-	var out []wittydvd.FileExtent
+func splitExtents(ext []dvd.FileExtent) []dvd.FileExtent {
+	var out []dvd.FileExtent
 	for _, e := range ext {
 		for e.Length > maxSubfile {
-			out = append(out, wittydvd.FileExtent{File: e.File, Offset: e.Offset, Length: maxSubfile})
+			out = append(out, dvd.FileExtent{File: e.File, Offset: e.Offset, Length: maxSubfile})
 			e.Offset += maxSubfile
 			e.Length -= maxSubfile
 		}

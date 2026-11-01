@@ -8,9 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wittywilla/wittycouch/gamestream"
+	"github.com/wittywilla/wittymediaserver/internal/couch/gamestream"
 	"github.com/wittywilla/wittymediaserver/internal/db"
-	"github.com/wittywilla/wittyrigs"
 )
 
 // WittyRigs: the advanced option of hosting demanding games on this server's own hardware.
@@ -39,7 +38,15 @@ func (s *Server) sunshineRig(ctx context.Context) (*rigRow, error) {
 
 func (s *Server) wittyRigsStatus(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	body := map[string]any{"enabled": s.DB.GetSetting(ctx, wittyRigsSetting, "0") == "1", "installed": wittyrigs.Find(), "license": wittyrigs.License, "source": wittyrigs.Source, "running": false}
+	var found struct {
+		Path    string `json:"path"`
+		License string `json:"license"`
+		Source  string `json:"source"`
+	}
+	if _, err := s.Modules.Call("wittyrigs", "find", nil, &found); writeModuleMissing(w, err) {
+		return
+	}
+	body := map[string]any{"enabled": s.DB.GetSetting(ctx, wittyRigsSetting, "0") == "1", "installed": found.Path, "license": found.License, "source": found.Source, "running": false}
 	if body["enabled"] == true {
 		hctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 		defer cancel()

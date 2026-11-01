@@ -17,7 +17,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
-	"github.com/wittywilla/wittytuner"
+	"github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
 // Recording: tuner channels only. Raw MPEG-TS goes straight to disk, which
@@ -100,7 +100,7 @@ func (m *Manager) Schedule(ctx context.Context, channelID, userID int64, title, 
 		return nil, err
 	}
 	if c.Encrypted != "" {
-		return nil, &wittytuner.EncryptedError{Channel: c.Name, Why: c.Encrypted}
+		return nil, &tuner.EncryptedError{Channel: c.Name, Why: c.Encrypted}
 	}
 	if c.NoRecord != "" {
 		return nil, fmt.Errorf("%s can't be recorded: %s", c.Name, c.NoRecord)
@@ -165,7 +165,7 @@ func (m *Manager) AddRule(ctx context.Context, channelID, userID int64, title st
 		return nil, err
 	}
 	if c.Encrypted != "" {
-		return nil, &wittytuner.EncryptedError{Channel: c.Name, Why: c.Encrypted}
+		return nil, &tuner.EncryptedError{Channel: c.Name, Why: c.Encrypted}
 	}
 	if c.NoRecord != "" {
 		return nil, fmt.Errorf("%s can't be recorded: %s", c.Name, c.NoRecord)
@@ -398,9 +398,9 @@ func (m *Manager) record(r *Recording) {
 		done = path
 		return
 	}
-	if err != nil && wittytuner.IsEncrypted(err) {
+	if err != nil && tuner.IsEncrypted(err) {
 		_ = os.Remove(path)
-		m.finish(r.ID, "failed", wittytuner.RefusalMessage(opened.Channel.Name, err).Error(), "")
+		m.finish(r.ID, "failed", tuner.RefusalMessage(opened.Channel.Name, err).Error(), "")
 		return
 	}
 	// The deadline ending a recording is normal; so is a viewer cancelling it.

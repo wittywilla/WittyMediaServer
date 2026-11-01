@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittydvd"
+	wittydvd "github.com/wittywilla/wittymediaserver/internal/dvd"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 )

@@ -4,17 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	fb "github.com/wittywilla/wittyintegratedfilebrowser"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/diagnose"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 )
 
 // WittyDiagnoser, the disk diagnoser (Settings, WittyDiagnoser): checks of a DVD or Blu-ray, and
@@ -45,6 +46,15 @@ func (s *Server) diagnoser() *diagnose.Manager {
 			Log:     s.Log,
 			Version: s.Version,
 			Busy:    s.streamsPlaying,
+			Helper: func(id string, limit time.Duration) diagnose.ModuleHelper {
+				if s.Modules == nil {
+					return nil
+				}
+				if a := s.Modules.Attach(id, limit); a != nil {
+					return a
+				}
+				return nil
+			},
 			Setting: func(key, def string) string { return s.DB.GetSetting(context.Background(), key, def) },
 			ItemPaths: func(ctx context.Context, lib int64, limit int) ([]string, error) {
 				rows, err := s.DB.QueryContext(ctx, `SELECT path FROM items WHERE library_id = ? AND missing = 0 LIMIT ?`, lib, limit)
@@ -228,28 +238,40 @@ func (s *Server) handleDiagnoseBrowse(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "That's a file, not a folder.")
 		return
 	}
-	l, err := fb.List(real, fb.Options{MaxEntries: 3000})
-	switch {
-	case errors.Is(err, fb.ErrNotFound):
+	entries, err := os.ReadDir(real)
+	if errors.Is(err, fs.ErrNotExist) {
 		writeDiagnosePathErr(w, diagnose.ErrMissing)
 		return
-	case err != nil:
+	}
+	if err != nil {
 		writeErr(w, 403, "The server isn't allowed to open this folder.")
 		return
 	}
-	out := diagnoseListing{Path: l.Path, Entries: []diagnoseEntry{}, Truncated: l.Truncated}
+	out := diagnoseListing{Path: real, Entries: []diagnoseEntry{}}
 	// Up goes as far as the top of an allowed place, and no further.
-	if l.Parent != nil {
-		if _, err := roots.Resolve(*l.Parent); err == nil {
-			out.Parent = l.Parent
+	if parent := filepath.Dir(real); parent != real {
+		if _, err := roots.Resolve(parent); err == nil {
+			out.Parent = &parent
 		}
 	}
-	for _, e := range l.Entries {
+	for _, e := range entries {
+		if len(out.Entries) >= maxDiagnoseEntries {
+			out.Truncated = true
+			break
+		}
+		name, p := e.Name(), filepath.Join(real, e.Name())
+		if modmgr.IsHidden(name) {
+			continue
+		}
+		info, err := os.Stat(p) // through a link, as what it points at is what's being looked at
+		if err != nil {
+			continue
+		}
 		switch {
-		case e.Dir:
-			out.Entries = append(out.Entries, diagnoseEntry{Name: e.Name, Path: e.Path, Dir: true, Disc: e.Disc})
-		case diagnoseImageExt[strings.ToLower(filepath.Ext(e.Name))]:
-			out.Entries = append(out.Entries, diagnoseEntry{Name: e.Name, Path: e.Path, Kind: "disc", Size: e.Size})
+		case info.IsDir():
+			out.Entries = append(out.Entries, diagnoseEntry{Name: name, Path: p, Dir: true, Disc: discFolderKind(p)})
+		case diagnoseImageExt[strings.ToLower(filepath.Ext(name))]:
+			out.Entries = append(out.Entries, diagnoseEntry{Name: name, Path: p, Kind: "disc", Size: info.Size()})
 		}
 	}
 	writeJSON(w, 200, out)
@@ -413,4 +435,30 @@ func (s *Server) handleDiagnoseReport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Disposition", `attachment; filename="wittydiagnoser-`+safe+`.json"`)
 	_, _ = w.Write(b)
+}
+
+// maxDiagnoseEntries is more than anyone would look through.
+const maxDiagnoseEntries = 3000
+
+// discFolderKind says whether a folder holds a DVD or a Blu-ray.
+func discFolderKind(p string) string {
+	switch base := filepath.Base(p); {
+	case strings.EqualFold(base, "VIDEO_TS"):
+		return "dvd"
+	case strings.EqualFold(base, "BDMV"):
+		return "bluray"
+	}
+	entries, err := os.ReadDir(p)
+	if err != nil {
+		return ""
+	}
+	for _, e := range entries {
+		if e.IsDir() && strings.EqualFold(e.Name(), "VIDEO_TS") {
+			return "dvd"
+		}
+		if e.IsDir() && strings.EqualFold(e.Name(), "BDMV") {
+			return "bluray"
+		}
+	}
+	return ""
 }

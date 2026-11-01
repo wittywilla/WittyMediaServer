@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -41,6 +42,7 @@ func gameItem(t *testing.T, ts *testServer, title string, rating string, poster 
 }
 
 func TestGameKeysAreSecrets(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	if w := ts.do(t, "PUT", "/api/settings", admin, map[string]string{"igdbClientSecret": "very-secret-value", "rawgKey": "another-secret", "ssPassword": "pw-secret"}); w.Code != 200 {
@@ -100,6 +102,7 @@ func TestGameKeysAreSecrets(t *testing.T) {
 }
 
 func TestGameSourceTestRoute(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	var err error
@@ -132,6 +135,7 @@ func TestGameSourceTestRoute(t *testing.T) {
 // A game a profile can't see doesn't exist for it, whichever way it asks. Its rating
 // decides that, as a film's does.
 func TestBlockedGameBehavesLikeABlockedFilm(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	_, kid := ts.user(t, "kid", "kids", false, "")
@@ -176,6 +180,7 @@ func TestBlockedGameBehavesLikeABlockedFilm(t *testing.T) {
 }
 
 func TestFixingAMatch(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	src := &fakeGameSource{id: "rawg", test: func() (string, error) { return "", nil }}
@@ -223,6 +228,7 @@ func TestFixingAMatch(t *testing.T) {
 }
 
 func TestHandEditedGameFieldsStay(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	it := gameItem(t, ts, "Game", "", "")
@@ -240,6 +246,7 @@ func TestHandEditedGameFieldsStay(t *testing.T) {
 }
 
 func TestItemFiltersForGames(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	lib := ts.library(t, "games", t.TempDir())
@@ -278,6 +285,7 @@ func TestItemFiltersForGames(t *testing.T) {
 
 // Fixed pictures come through the server; a browser's never sent an outside address.
 func TestPictureIsServedByTheServer(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	var hits int

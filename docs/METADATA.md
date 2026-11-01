@@ -189,7 +189,7 @@ file, which its page then offers as a choice. Either can be undone with one butt
 
 ## Fixing by hand
 
-Prefer a text editor, or have a lot of small fixes to make? *Settings → Metadata files* writes a plain text file for each title, shows you what your edits
+Prefer a text editor, or have a lot of small fixes to make? *Settings → Repair → Metadata files* writes a plain text file for each title, shows you what your edits
 would change, and applies them, locked and undoable like anything typed into **Edit**. The guide, with examples, is [Fixing metadata by hand](FIXING-METADATA.md).
 
 ## Fix matches: the review list

@@ -116,6 +116,8 @@ Without a config file the data folder is:
 | Linux, BSD | `~/.local/share/wittymediaserver` (or `$XDG_DATA_HOME/wittymediaserver`) |
 | Docker | `/config` |
 
+**`backups` inside the data folder** holds the [backups](BACKUP.md) you make, and the safety copies from restores and repairs. A reset that keeps a copy leaves it where it is.
+
 **`metadata` inside the data folder** holds one plain text file for each title, to fix by hand. It's filled when you export it, and nothing reads it until you apply it. See [Fixing metadata by hand](FIXING-METADATA.md). It isn't the same as `metadataDir`, the artwork folder, below.
 
 Moving the **metadata** folder: stop the server, move the folder's contents to the new place,

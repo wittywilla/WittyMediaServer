@@ -20,7 +20,7 @@ rather work in a text editor.
 
 ## The short version
 
-1. Open *Settings → Metadata files* and press **Export the files**. The page says where the folder is. It's
+1. Open *Settings → Repair → Metadata files* and press **Export the files**. The page says where the folder is. It's
    `metadata` inside the [data folder](CONFIG.md#folders-the-server-uses).
 2. Open the file for the title in Notepad, TextEdit or any text editor. Change what's wrong, and save.
 3. Press **Check what would change**. It lists each change with what's there now beside what's coming, and the

@@ -29,6 +29,8 @@ const (
 	commonsAPI  = "https://commons.wikimedia.org/w/api.php"
 	wdLogoImage = "P154"
 	wdIcon      = "P2910"
+	wdLanguage  = "P407" // "language of work": a logo's language, where it has one
+	wdEnglish   = "Q1860"
 )
 
 // What an entity's short description has to say to be the right sort of thing, and what
@@ -122,14 +124,7 @@ func (w *WikimediaLogos) findNamed(ctx context.Context, kind, name string) ([]Lo
 			Labels       map[string]struct{ Value string }   `json:"labels"`
 			Aliases      map[string][]struct{ Value string } `json:"aliases"`
 			Descriptions map[string]struct{ Value string }   `json:"descriptions"`
-			Claims       map[string][]struct {
-				Rank     string `json:"rank"`
-				Mainsnak struct {
-					Datavalue struct {
-						Value json.RawMessage `json:"value"`
-					} `json:"datavalue"`
-				} `json:"mainsnak"`
-			} `json:"claims"`
+			Claims       map[string][]logoClaim              `json:"claims"`
 		} `json:"entities"`
 	}
 	if err := w.get(ctx, apiBase, url.Values{"action": {"wbgetentities"}, "ids": {strings.Join(ids, "|")}, "props": {"labels|aliases|descriptions|claims"}, "languages": {"en"}}, &ents); err != nil {
@@ -150,22 +145,9 @@ func (w *WikimediaLogos) findNamed(ctx context.Context, kind, name string) ([]Lo
 		if containsAny(desc, logoNotWords...) || (desc != "" && !containsAny(desc, logoKindWords[kind]...)) {
 			continue
 		}
-		var file string
-		for _, prop := range []string{wdLogoImage, wdIcon} {
-			// The newest logo is usually last; one marked as preferred comes first of all.
-			for _, c := range e.Claims[prop] {
-				var f string
-				if json.Unmarshal(c.Mainsnak.Datavalue.Value, &f) != nil || f == "" {
-					continue
-				}
-				file = f
-				if c.Rank == "preferred" {
-					break
-				}
-			}
-			if file != "" {
-				break
-			}
+		file := bestLogoFile(e.Claims[wdLogoImage])
+		if file == "" {
+			file = bestLogoFile(e.Claims[wdIcon])
 		}
 		if file == "" {
 			continue
@@ -209,6 +191,53 @@ func (w *WikimediaLogos) findNamed(ctx context.Context, kind, name string) ([]Lo
 		}
 	}
 	return exact, nil
+}
+
+// logoClaim is one picture Wikidata lists as an entity's logo.
+type logoClaim struct {
+	Rank     string `json:"rank"`
+	Mainsnak struct {
+		Datavalue struct {
+			Value json.RawMessage `json:"value"`
+		} `json:"datavalue"`
+	} `json:"mainsnak"`
+	Qualifiers map[string][]struct {
+		Datavalue struct {
+			Value struct {
+				ID string `json:"id"`
+			} `json:"value"`
+		} `json:"datavalue"`
+	} `json:"qualifiers"`
+}
+
+// bestLogoFile chooses among an entity's logos. One marked as preferred comes first of
+// all. Otherwise one in English, or in no language in particular, comes before one marked
+// as being in another language: the NES lists its Japanese counterpart's logo as well, and
+// lists it last. Among equals the last is taken, as the newest is usually last.
+func bestLogoFile(claims []logoClaim) string {
+	best, bestScore := "", -1
+	for _, c := range claims {
+		var f string
+		if json.Unmarshal(c.Mainsnak.Datavalue.Value, &f) != nil || f == "" {
+			continue
+		}
+		score := 1 // no language given
+		if langs := c.Qualifiers[wdLanguage]; len(langs) > 0 {
+			score = 0
+			for _, l := range langs {
+				if l.Datavalue.Value.ID == wdEnglish {
+					score = 2
+				}
+			}
+		}
+		if c.Rank == "preferred" {
+			score = 3
+		}
+		if c.Rank != "deprecated" && score >= bestScore {
+			best, bestScore = f, score
+		}
+	}
+	return best
 }
 
 func normalFileTitle(t string) string { return strings.ReplaceAll(t, "_", " ") }

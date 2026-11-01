@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -211,6 +212,38 @@ func (rt rewriteTo) RoundTrip(r *http.Request) (*http.Response, error) {
 		return http.DefaultTransport.RoundTrip(r2)
 	}
 	return http.DefaultTransport.RoundTrip(r)
+}
+
+func TestBestLogoFile(t *testing.T) {
+	claim := func(rank, file, language string) logoClaim {
+		var c logoClaim
+		c.Rank = rank
+		c.Mainsnak.Datavalue.Value = json.RawMessage(strconv.Quote(file))
+		if language != "" {
+			if err := json.Unmarshal([]byte(`{"P407":[{"datavalue":{"value":{"id":"`+language+`"}}}]}`), &c.Qualifiers); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return c
+	}
+	const japanese = "Q5287"
+	for _, c := range []struct {
+		name   string
+		claims []logoClaim
+		want   string
+	}{
+		// As Wikidata has them for the NES: the Japanese console's logo is listed last.
+		{"English over another language", []logoClaim{claim("normal", "NES logo.svg", wdEnglish), claim("normal", "Family Computer logo.svg", japanese)}, "NES logo.svg"},
+		{"no language over another language", []logoClaim{claim("normal", "Plain.svg", ""), claim("normal", "Super Famicom.svg", japanese)}, "Plain.svg"},
+		{"preferred over everything", []logoClaim{claim("preferred", "SNES logo.svg", ""), claim("normal", "English.svg", wdEnglish)}, "SNES logo.svg"},
+		{"the last among equals", []logoClaim{claim("normal", "Old.svg", ""), claim("normal", "New.svg", "")}, "New.svg"},
+		{"another language beats nothing", []logoClaim{claim("normal", "Only.svg", japanese)}, "Only.svg"},
+		{"deprecated is never used", []logoClaim{claim("deprecated", "Wrong.svg", "")}, ""},
+	} {
+		if got := bestLogoFile(c.claims); got != c.want {
+			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
 }
 
 func TestLogoServiceAsksNobodyWithoutConsent(t *testing.T) {

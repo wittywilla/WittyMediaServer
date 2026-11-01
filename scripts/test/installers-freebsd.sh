@@ -99,8 +99,8 @@ sysrc wittymediaserver_enable=YES
 service wittymediaserver start || fail "service start"
 up
 service wittymediaserver status
-ps -axww -o user=,command= | grep -i wittymediaserver | grep -v grep | cut -c1-150
-ps -axww -o user=,command= | grep 'bin/wittymediaserver serve' | grep -v grep | grep -v '^.* daemon:' | grep '^wms ' || fail "not running as its own account"
+ps -axww -o user= -o command= | grep -i wittymediaserver | grep -v grep | cut -c1-150
+ps -axww -o user= -o command= | grep 'bin/wittymediaserver serve' | grep -v grep | grep -v '^.* daemon:' | grep '^wms ' || fail "not running as its own account"
 wittymediaserver version
 ls /var/db/wittymediaserver
 

@@ -7,6 +7,10 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **Big screen mode:** the server's name is no longer cut off in the side menu, which now grows with the larger type and
+  has no sideways scrollbar. A long name of the server's own wraps. Arriving at a page with a remote now puts focus on its
+  main action, such as Play on a film, rather than leaving the first press to land anywhere. On a row with few cards, Down
+  and Left from See all go to that row's cards, and up and down no longer wander into the side menu.
 - **The module store:** search by name, description or category, browse by category, and filter by installed, updates,
   publisher and platform, with a page for each module: what it does, screenshots, what's new, what it asks for, what it's
   built on and which servers it fits. In Settings, Modules, and at `/settings/modules/store`.

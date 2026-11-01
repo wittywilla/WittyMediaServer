@@ -126,7 +126,8 @@ const PAGE_NOTES = '.legal-foot, .page-foot, .legal-note'
 function firstOnPage(all: HTMLElement[], ok: (el: HTMLElement) => boolean): HTMLElement | undefined {
   // The notes at the foot are there before the page has loaded, and are no place to start.
   const inPage = all.filter((el) => el.closest('.content') && !el.closest(PAGE_NOTES) && ok(el))
-  return inPage.find((el) => el.matches('[data-tv-first]')) || inPage.find((el) => !el.closest(ROW_HEAD))
+  // A text field comes last: a remote that lands on one has to type or find its way out.
+  return inPage.find((el) => el.matches('[data-tv-first]')) || inPage.find((el) => !el.closest(ROW_HEAD) && !typing(el)) || inPage.find((el) => !el.closest(ROW_HEAD))
 }
 
 // A heading's link sits at the far end of the line, over a row that may be short or scrolled away,

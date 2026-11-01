@@ -37,7 +37,7 @@ func TestList(t *testing.T) {
 	for _, e := range l.Entries {
 		names = append(names, e.Name)
 	}
-	want := []string{"alpha", "Treeline", "Swamptale", "disc.iso", "film.mkv", "Film.srt", "notes.txt"}
+	want := []string{"alpha", "Swamptale", "Treeline", "disc.iso", "film.mkv", "Film.srt", "notes.txt"}
 	if len(names) != len(want) {
 		t.Fatalf("entries = %v, want %v", names, want)
 	}

@@ -23,13 +23,29 @@ rpms=("$IN"/*.rpm)
 
 if [ ${#debs[@]} -gt 0 ]; then
   command -v apt-ftparchive >/dev/null || { echo "apt-ftparchive is missing (apt install apt-utils)" >&2; exit 1; }
-  cp "${debs[@]}" "$APT/pool/main/"
+  # A folder for each architecture: apt-ftparchive's own --arch goes by a file name's pattern,
+  # which these names don't follow.
+  for f in "${debs[@]}"; do
+    case "$f" in
+      *-amd64.deb) a=amd64 ;;
+      *-arm64.deb) a=arm64 ;;
+      *-armv7.deb) a=armhf ;;
+      *-386.deb) a=i386 ;;
+      *) echo "can't tell the architecture of $f" >&2; exit 1 ;;
+    esac
+    mkdir -p "$APT/pool/main/$a"
+    cp "$f" "$APT/pool/main/$a/"
+  done
   (
     cd "$APT"
     for arch in amd64 arm64 armhf i386; do
       dir="dists/stable/main/binary-$arch"
       mkdir -p "$dir"
-      apt-ftparchive --arch "$arch" packages pool/main > "$dir/Packages"
+      if [ -d "pool/main/$arch" ]; then
+        apt-ftparchive packages "pool/main/$arch" > "$dir/Packages"
+      else
+        : > "$dir/Packages"
+      fi
       gzip -9fk "$dir/Packages"
     done
     apt-ftparchive -o APT::FTPArchive::Release::Suite=stable -o APT::FTPArchive::Release::Codename=stable \

@@ -52,6 +52,7 @@ What a package holds, and the name of everything in it, is in one place: `intern
 
 | Script | What it does |
 |---|---|
+| `../packaging/linux/make-repository.sh` | Makes an apt and dnf repository from the packages. Proven by hand with `apt-get install` and `dnf install` from what it made |
 | `test/` | Really installs, upgrades and removes each installer on a throwaway machine: [its README](test/README.md). Not run by CI, as they take a while: run them before a release |
 | `design-check.py`, `design-check-baseline.json`, `design-tokens.py` | Hold the web app to its design standards. CI runs them. See [docs/DESIGN.md](../docs/DESIGN.md) |
 | `theme-contrast.py` | Checks the themes' contrast |

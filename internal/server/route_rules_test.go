@@ -125,7 +125,6 @@ var routeRules = map[string]string{
 	"GET /api/licenses":                              "Signed-in: Nothing",
 	"GET /api/licenses/{id}":                         "Signed-in: Numeric id",
 	"GET /api/listings/status":                       "Signed-in: Whether listings are on, the region and the credit. Counts and progress for admins only",
-	"GET /api/logos":                                 "Admin: Kind known. Bounded page",
 	"GET /api/logos/credits":                         "Signed-in: limits, on studios and networks: those of titles and channels the account may see",
 	"GET /api/logos/status":                          "Signed-in: Whether downloads are agreed to, and the source. Counts for admins only",
 	"GET /api/logos/{id}/image":                      "Signed-in: Numeric id. One of three variants, from the server's own files. Pictures only",

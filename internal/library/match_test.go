@@ -315,18 +315,18 @@ func TestUndo(t *testing.T) {
 
 func TestParseMatchRef(t *testing.T) {
 	for q, want := range map[string]MatchRef{
-		"tt0000123":                                         {"imdb", "tt0000123"},
-		"https://www.imdb.com/title/tt0000123/?ref_=x":      {"imdb", "tt0000123"},
-		"https://www.themoviedb.org/movie/12-a-made-up":     {"tmdb", "12"},
-		"https://www.themoviedb.org/tv/34-a-show":           {"tmdb-tv", "34"},
-		"https://www.tvmaze.com/shows/56/a-show":            {"tvmaze", "56"},
-		"https://thetvdb.com/?tab=series&id=78":             {"tvdb", "78"},
-		"https://anilist.co/anime/90/x":                     {"anilist", "90"},
-		"https://www.wikidata.org/wiki/Q42":                 {"wikidata", "Q42"},
-		"Q42":                                               {"wikidata", "Q42"},
-		"tmdb:12":                                           {"tmdb", "12"},
-		"tvdb 78":                                           {"tvdb", "78"},
-		"TVmaze: 56":                                        {"tvmaze", "56"},
+		"tt0000123": {"imdb", "tt0000123"},
+		"https://www.imdb.com/title/tt0000123/?ref_=x":  {"imdb", "tt0000123"},
+		"https://www.themoviedb.org/movie/12-a-made-up": {"tmdb", "12"},
+		"https://www.themoviedb.org/tv/34-a-show":       {"tmdb-tv", "34"},
+		"https://www.tvmaze.com/shows/56/a-show":        {"tvmaze", "56"},
+		"https://thetvdb.com/?tab=series&id=78":         {"tvdb", "78"},
+		"https://anilist.co/anime/90/x":                 {"anilist", "90"},
+		"https://www.wikidata.org/wiki/Q42":             {"wikidata", "Q42"},
+		"Q42":                                           {"wikidata", "Q42"},
+		"tmdb:12":                                       {"tmdb", "12"},
+		"tvdb 78":                                       {"tvdb", "78"},
+		"TVmaze: 56":                                    {"tvmaze", "56"},
 	} {
 		got, ok := ParseMatchRef(q)
 		if !ok || got != want {

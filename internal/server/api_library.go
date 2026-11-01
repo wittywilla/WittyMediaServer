@@ -497,13 +497,13 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	type hub struct {
-		Key     string          `json:"key"`
-		Title   string          `json:"title"`
-		Library *int64          `json:"libraryId,omitempty"`
+		Key     string `json:"key"`
+		Title   string `json:"title"`
+		Library *int64 `json:"libraryId,omitempty"`
 		// Query: what "See all" adds to the library's address, for a saved view.
 		Query string          `json:"query,omitempty"`
 		Items []*library.Item `json:"items"`
-		Shows   []*library.Show `json:"shows,omitempty"`
+		Shows []*library.Show `json:"shows,omitempty"`
 	}
 	hubs := []hub{}
 	if len(cont) > 0 {

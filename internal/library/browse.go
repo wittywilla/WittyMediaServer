@@ -38,13 +38,13 @@ type BrowseFilter struct {
 	// AnimeOf: this anime library's shows and the anime of every TV library; HideAnime: a
 	// TV library when anime goes to the anime library only.
 	AnimeOf, HideAnime bool
-	Watched    string // yes | no
-	Platform   string // a streaming service's key (needs listings on)
-	Sort       string // title | added | newest | oldest | rating | quality | shuffle
-	Desc       bool
-	Seed       int
-	Limit      int
-	Offset     int
+	Watched            string // yes | no
+	Platform           string // a streaming service's key (needs listings on)
+	Sort               string // title | added | newest | oldest | rating | quality | shuffle
+	Desc               bool
+	Seed               int
+	Limit              int
+	Offset             int
 }
 
 // ParseBrowseFilter reads a filter from a request's query or a saved view.

@@ -17,6 +17,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
 
 // What surrounds the guide: searching the schedule, an account's favourite
@@ -331,6 +332,10 @@ func (s *Server) handleUploadBumper(w http.ResponseWriter, r *http.Request) {
 	lib, err := s.bumperLib(ctx)
 	if err != nil {
 		writeErr(w, 500, err.Error())
+		return
+	}
+	if free := sysinfo.FreeBytes(s.bumperDir()); free >= 0 && free-uploadFreeFloor <= max(r.ContentLength, 0) {
+		writeErr(w, 507, "The disk this server keeps its data on is nearly full.")
 		return
 	}
 	f, path, err := library.CreateInLibrary(s.bumperDir(), s.bumperDir(), name)

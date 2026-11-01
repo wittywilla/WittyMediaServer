@@ -285,3 +285,15 @@ func TestGuideSearchTakesTurns(t *testing.T) {
 		t.Errorf("with every place taken: %d %q", w.Code, w.Header().Get("Retry-After"))
 	}
 }
+
+// Bumpers leave the disk the room every other upload does.
+func TestBumperUploadsLeaveRoomOnTheDisk(t *testing.T) {
+	h, admin, _, _ := tvServer(t)
+	old := uploadFreeFloor
+	uploadFreeFloor = 1 << 62
+	defer func() { uploadFreeFloor = old }()
+	w := tvCall(h, "POST", "/api/channels/bumpers/upload?name=a.mp4", admin, "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom")
+	if w.Code != 507 {
+		t.Errorf("a disk that's full: %d %s", w.Code, w.Body)
+	}
+}

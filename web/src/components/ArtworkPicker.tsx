@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, artPreviewUrl, type ArtCandidate } from '../api'
 import { Spinner } from './common'
 import LegalNote from './LegalNote'
+import { Dialog } from '../ui/Overlay'
 
 // Lets an admin pick a poster or backdrop from the candidates the server
 // finds: images beside the media, TMDB (movies) and TheTVDB (shows).
@@ -20,9 +21,7 @@ export default function ArtworkPicker({ base, onPick, onClose }: { base: string;
   const pick = async (u: string) => { setSaving(true); try { await onPick(kind, u) } finally { setSaving(false) } }
   const label = { local: 'In folder', tmdb: 'TMDB', tvdb: 'TheTVDB', tvmaze: 'TVmaze', anilist: 'AniList', current: 'Current' }
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal wide" onClick={(e) => e.stopPropagation()}>
-        <h2>Choose artwork</h2>
+    <Dialog title="Choose artwork" onClose={onClose} size="wide" actions={<><button className="btn ghost" onClick={onClose}>Close</button></>}>
         <div className="tabs" style={{ marginBottom: 12 }}>
           <a className={kind === 'poster' ? 'active' : ''} onClick={() => setKind('poster')}>Poster</a>
           <a className={kind === 'backdrop' ? 'active' : ''} onClick={() => setKind('backdrop')}>Backdrop</a>
@@ -45,8 +44,6 @@ export default function ArtworkPicker({ base, onPick, onClose }: { base: string;
         </div>
         <p className="muted" style={{ fontSize: 12, marginTop: 10 }}>The chosen image is saved next to the media (poster.jpg / fanart.jpg or &lt;name&gt;-poster.jpg) so other media software picks it up too.</p>
         <LegalNote kind="webResults" />
-        <div className="actions"><button className="btn ghost" onClick={onClose}>Close</button></div>
-      </div>
-    </div>
+    </Dialog>
   )
 }

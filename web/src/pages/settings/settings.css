@@ -59,8 +59,8 @@
 @keyframes set-pulse { 50% { opacity: .3; } }
 
 /* Switches. */
-.set-switch { position: relative; width: 44px; height: 26px; border-radius: 13px; border: 0; padding: 0; background: var(--control-line); cursor: pointer; transition: background var(--dur-3); flex: none; }
-.set-switch i { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform var(--dur-3) var(--ease-out); }
+.set-switch { position: relative; width: 44px; height: 26px; border-radius: var(--r-lg); border: 0; padding: 0; background: var(--control-line); cursor: pointer; transition: background var(--dur-3); flex: none; }
+.set-switch i { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--on-image); box-shadow: var(--e-1); transition: transform var(--dur-3) var(--ease-out); }
 .set-switch.on { background: var(--accent); }
 .set-switch.on i { transform: translateX(18px); }
 .set-switch:disabled { opacity: .4; cursor: default; }
@@ -171,7 +171,7 @@
 .set-paths { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .set-paths li { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 12px; border-radius: var(--r-md); background: var(--bg-3); min-width: 0; color: var(--fg); font-weight: 400; }
 .set-paths li svg { flex: none; color: var(--fg-3); }
-.set-paths li span { flex: 1; min-width: 0; font: 13px var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.set-paths li span { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .set-addpath { display: flex; gap: 8px; flex-wrap: wrap; }
 .set-addpath .input { flex: 1 1 240px; min-width: 0; }
 
@@ -234,11 +234,11 @@ a.mod-row:hover { background: var(--hover); }
 .upd-progress { display: grid; gap: 8px; margin: 0 0 12px; font-size: var(--text-md); font-weight: 600; }
 .upd-progress progress { width: 100%; height: 8px; accent-color: var(--accent); }
 
-.set-lib-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: 13px; }
+.set-lib-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: var(--text-sm); }
 
 /* Modules */
 .mod-card { display: grid; gap: var(--sp-2); padding-bottom: var(--sp-3); }
-.mod-card + .mod-card { border-top: 1px solid var(--line); padding-top: var(--sp-3); }
+.mod-card + .mod-card { border-top: 1px solid var(--border); padding-top: var(--sp-3); }
 .mod-card .upd-msg, .mod-card .upd-new, .mod-card .upd-progress, .mod-actions { margin: 0 var(--sp-3); }
 .mod-local.warn { background: var(--danger-soft, var(--bg-4)); color: var(--danger); }
 

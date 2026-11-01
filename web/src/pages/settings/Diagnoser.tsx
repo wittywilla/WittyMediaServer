@@ -6,6 +6,7 @@ import { IconDisc, IconDrive, IconFile, IconFolder, IconUp } from '../../icons'
 import { toast } from '../../state'
 import { PageHead, Row, Section, Switch } from './ui'
 import './diagnoser.css'
+import { Tabs } from '../../ui/Choice'
 
 // WittyDiagnoser, the disk diagnoser: checks a DVD or Blu-ray, or the folders the
 // server uses, and says in plain words what it found. It only reads, and the
@@ -54,11 +55,8 @@ export default function Diagnoser() {
   return (
     <>
       <PageHead title="WittyDiagnoser" desc="The disk diagnoser: checks your discs and your drives, and changes nothing. Pick a DVD, Blu-ray or CD image, or the folders the server uses, and it says what it finds in plain words. It never repairs anything, and never gets around copy protection." />
-      <div className="tabs" role="tablist" aria-label="What to check">
-        <button role="tab" id="dgn-tab-disc" aria-selected={tab === 'disc'} aria-controls="dgn-panel" className={tab === 'disc' ? 'active' : ''} onClick={() => setTab('disc')}>A disc</button>
-        <button role="tab" id="dgn-tab-storage" aria-selected={tab === 'storage'} aria-controls="dgn-panel" className={tab === 'storage' ? 'active' : ''} onClick={() => setTab('storage')}>Storage</button>
-      </div>
-      <div id="dgn-panel" role="tabpanel" aria-labelledby={'dgn-tab-' + tab}>
+      <Tabs label="What to check" value={tab} onChange={setTab} panelId="dgn-panel" items={[{ value: 'disc', label: 'A disc' }, { value: 'storage', label: 'Storage' }]} />
+      <div id="dgn-panel" role="tabpanel" aria-label={tab === 'disc' ? 'A disc' : 'Storage'}>
         {tab === 'disc' ? <DiscChoice onStarted={started} /> : <StorageChoice onStarted={started} />}
       </div>
       <div ref={panel} className="dgn-anchor">

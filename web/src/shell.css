@@ -175,7 +175,7 @@ html.tilt-on .card:not(.square) .poster.tilting { transition: transform 80ms lin
 .layout-opt.on { border-color: var(--accent); }
 .layout-opt .muted { font-size: var(--text-xs); }
 .layout-pic { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r-sm); background: var(--bg); overflow: hidden; margin-bottom: 6px; }
-.layout-pic i { position: absolute; background: var(--bg-4); border-radius: 2px; }
+.layout-pic i { position: absolute; background: var(--bg-4); border-radius: var(--r-xs); }
 .layout-pic .s { left: 0; top: 0; bottom: 0; width: 22%; }
 .layout-pic .t { left: 0; right: 0; top: 0; height: 14%; background: var(--accent); opacity: .7; }
 .layout-pic .c { left: 28%; right: 6%; top: 24%; bottom: 10%; background: var(--bg-3); }
@@ -186,7 +186,7 @@ html.tilt-on .card:not(.square) .poster.tilting { transition: transform 80ms lin
 .pic-both .t { left: 22%; }
 
 /* ---------------------------------------------------------------- home widgets */
-.home-tools { position: sticky; top: var(--topbar-h); z-index: 15; display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin: 4px 0 14px; padding: 10px 14px; flex-wrap: wrap;
+.home-tools { position: sticky; top: var(--topbar-h); z-index: var(--z-sticky); display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin: 4px 0 14px; padding: 10px 14px; flex-wrap: wrap;
   border-radius: var(--r-md); background: var(--bg-2); border: 1px solid var(--border); box-shadow: var(--e-1); }
 .home-foot { display: flex; justify-content: center; padding: 18px 0 4px; }
 .home-tools .muted { font-size: var(--text-sm); margin-right: auto; }
@@ -198,7 +198,7 @@ html.tilt-on .card:not(.square) .poster.tilting { transition: transform 80ms lin
 .widget-bar .btn.square { width: var(--control-h-sm); }
 .widget-bar .grip { display: grid; color: var(--fg-3); }
 .widget-bar .grow { flex: 1; }
-.widget-preview { max-height: 280px; overflow: hidden; pointer-events: none; padding: 0 var(--sp-3) var(--sp-3); -webkit-mask-image: linear-gradient(#000 80%, transparent); mask-image: linear-gradient(#000 80%, transparent); }
+.widget-preview { max-height: 280px; overflow: hidden; pointer-events: none; padding: 0 var(--sp-3) var(--sp-3); -webkit-mask-image: linear-gradient(#000 80%, transparent); mask-image: linear-gradient(#000 80%, transparent); } /* design-ok: a mask only reads how solid it is, not its colour */
 /* The bar above already names the section. */
 .widget-preview .hub-head { display: none; }
 .widget-preview .hub { margin: 0; }

@@ -8,6 +8,8 @@ import { useApp, toast } from '../../state'
 import { Avatar, LoadMore, SubscribeButton, useVideoList, VideoTile } from './parts'
 import '../../creators.css'
 import LegalNote from '../../components/LegalNote'
+import { Dialog } from '../../ui/Overlay'
+import { Button } from '../../ui/Button'
 
 // WittyChannels: the owner's archive of creator videos, laid out the way people
 // expect from a video site: a home of recommendations, subscriptions, a page per
@@ -222,17 +224,16 @@ function CreatorDialog({ c, onClose, onSaved }: { c: Creator; onClose: () => voi
     try { await api.put(`/creators/${c.id}`, { name, handle, description: desc, platform, url }); onSaved() } catch (x: any) { setErr(x.message) }
   }
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <form className="modal" role="dialog" aria-modal="true" aria-labelledby="cd-h" onClick={(e) => e.stopPropagation()} onSubmit={save}>
-        <h2 id="cd-h">Channel details</h2>
+    <Dialog title="Channel details" onClose={onClose}
+      actions={<><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" form="channel-form">Save</Button></>}>
+      <form id="channel-form" className="ui-dialog-form" onSubmit={save}>
         <label className="oobe-field">Name<input className="input" required value={name} onChange={(e) => setName(e.target.value)} /></label>
         <label className="oobe-field">Handle<input className="input" value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@name" /></label>
         <label className="oobe-field">Description<textarea className="input" rows={4} value={desc} onChange={(e) => setDesc(e.target.value)} /></label>
         <label className="oobe-field">Platform of origin<input className="input" value={platform} onChange={(e) => setPlatform(e.target.value)} /></label>
         <label className="oobe-field">Web address<input className="input" type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" /></label>
         {err && <div className="error" role="alert">{err}</div>}
-        <div className="actions"><button type="button" className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary">Save</button></div>
       </form>
-    </div>
+    </Dialog>
   )
 }

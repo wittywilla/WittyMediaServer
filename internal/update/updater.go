@@ -47,8 +47,8 @@ type Info struct {
 
 // Status is what Settings shows.
 type Status struct {
-	Current    string `json:"current"`
-	Latest     *Info  `json:"latest,omitempty"` // only when newer than Current
+	Current string `json:"current"`
+	Latest  *Info  `json:"latest,omitempty"` // only when newer than Current
 	// Withdrawn is why the running version was taken back, by the project's signed list.
 	Withdrawn  string `json:"withdrawn,omitempty"`
 	CheckedAt  int64  `json:"checkedAt,omitempty"`

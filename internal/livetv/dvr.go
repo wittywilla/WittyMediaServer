@@ -6,9 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"log/slog"
-	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -75,7 +73,6 @@ var (
 	recordingFreeFloor int64 = 2 << 30
 	recordingFreeEvery       = 30 * time.Second
 )
-
 
 const recCols = `r.id, IFNULL(r.user_id, IFNULL((SELECT u.user_id FROM recording_rules u WHERE u.id = r.rule_id), 0)), r.channel_id, IFNULL(NULLIF(c.name_set, ''), IFNULL(c.name, '')), IFNULL(NULLIF(c.number_set, ''), IFNULL(c.number, '')), r.title, r.sub, r.start, r.stop, r.status, r.error, r.path, r.rule_id`
 

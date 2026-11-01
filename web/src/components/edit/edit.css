@@ -66,6 +66,14 @@
 .ed-result-over { font-size: var(--text-sm); color: var(--fg-2); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .ed-result-side { display: flex; flex-direction: column; align-items: flex-end; gap: var(--sp-1); padding: var(--sp-2); }
 .ed-why { background: none; border: 0; padding: var(--sp-1); color: var(--fg-2); font: inherit; font-size: var(--text-xs); text-decoration: underline; cursor: pointer; }
+/* Big enough for a finger, here and on the review list, where small controls are many and close. */
+@media (pointer: coarse) {
+  .ed-dialog, .fm { --control-h-sm: var(--control-h); }
+  .ed-nav a, .ed-link, .ed-why { display: inline-flex; align-items: center; min-height: 44px; }
+  .ed-token-input { min-height: 44px; }
+  .ed-token button { position: relative; }
+  .ed-token button::after { content: ''; position: absolute; inset: -13px -6px; }
+}
 .ed-why-list { grid-column: 1 / -1; margin: 0 0 var(--sp-2); padding: 0 var(--sp-3) 0 var(--sp-6); font-size: var(--text-sm); color: var(--fg-2); }
 .ed-conf { display: inline-block; width: 112px; }
 

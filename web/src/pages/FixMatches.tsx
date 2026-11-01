@@ -171,7 +171,7 @@ function ReviewPage({ library, tab, setTab }: { library: number; tab: string; se
                   const on = i === Math.min(sel, rows.length - 1)
                   return (
                     <li key={keyOf(r)} className={'fm-row' + (on ? ' on' : '')}>
-                      <input type="checkbox" aria-label={`Choose ${r.title}`} checked={checked.has(keyOf(r))} onChange={() => setChecked((c) => { const n = new Set(c); if (n.has(keyOf(r))) n.delete(keyOf(r)); else n.add(keyOf(r)); return n })} />
+                      <label className="fm-row-tick"><input type="checkbox" aria-label={`Choose ${r.title}`} checked={checked.has(keyOf(r))} onChange={() => setChecked((c) => { const n = new Set(c); if (n.has(keyOf(r))) n.delete(keyOf(r)); else n.add(keyOf(r)); return n })} /></label>
                       <button type="button" className="fm-row-main" aria-current={on}
                         // Moving along the list with a remote or the keyboard shows each title as it goes.
                         onFocus={() => setSel(i)}

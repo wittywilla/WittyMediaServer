@@ -5,8 +5,9 @@
 .fm-job { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--text-sm); color: var(--fg-2); flex-wrap: wrap; }
 .fm-split { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
 .fm-list { list-style: none; margin: 0; padding: var(--sp-1); display: flex; flex-direction: column; gap: 2px; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); max-height: calc(100vh - 260px); max-height: calc(100dvh - 260px); overflow: auto; content-visibility: auto; }
-.fm-row { display: flex; align-items: center; gap: var(--sp-2); padding-left: var(--sp-2); border-radius: var(--r-md); }
-.fm-row > input { flex: none; width: 18px; height: 18px; }
+.fm-row { display: flex; align-items: center; gap: var(--sp-1); border-radius: var(--r-md); }
+.fm-row-tick { flex: none; align-self: stretch; display: flex; align-items: center; justify-content: center; width: 44px; cursor: pointer; }
+.fm-row-tick input { width: 18px; height: 18px; }
 .fm-row.on { background: var(--accent-soft); }
 .fm-row-main { display: flex; gap: var(--sp-2); flex: 1; min-width: 0; padding: var(--sp-2); background: none; border: 0; color: inherit; text-align: left; font: inherit; border-radius: var(--r-md); cursor: pointer; }
 .fm-row-main:hover { background: var(--hover); }

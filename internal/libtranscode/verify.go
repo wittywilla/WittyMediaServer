@@ -75,6 +75,15 @@ func Verify(ctx context.Context, tools *ffmpeg.Tools, src *Source, pl *Plan, pat
 	if len(src.Audio) > 0 && len(out.Audio) == 0 {
 		return &VerifyProblem{"The new file has no sound and the old one has, so the old one stays."}
 	}
+	wantCovers := 0
+	for _, st := range pl.Steps {
+		if st.Kind == "cover" && st.Action == ActKeep {
+			wantCovers++
+		}
+	}
+	if len(out.Covers) < wantCovers {
+		return &VerifyProblem{"The new file lost its cover picture, so the old one stays."}
+	}
 	if src.Chapters > 0 && out.Chapters == 0 {
 		return &VerifyProblem{"The new file lost its chapters, so the old one stays."}
 	}

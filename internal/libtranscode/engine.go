@@ -52,6 +52,10 @@ type Engine struct {
 	Now func() time.Time
 	// HoldTick replaces how often a running conversion looks at its conditions, in tests.
 	HoldTick time.Duration
+	// TdarrPoll replaces how often a connected Tdarr is asked what it's doing, in tests.
+	TdarrPoll time.Duration
+
+	tdarrW tdarrWatch
 
 	slot chan struct{}
 	once sync.Once
@@ -142,7 +146,7 @@ func (e *Engine) testEncoder(ctx context.Context, name, codec, family string) bo
 // Eligible says whether a library's type holds video files this can work on.
 func Eligible(libType string) bool {
 	switch libType {
-	case "movies", "shows", "anime", "videos", "discs", "mixed", library.CommercialsType:
+	case "movies", "shows", "anime", "videos", library.CommercialsType:
 		return true
 	}
 	return library.IsCreatorLibrary(libType)
@@ -160,7 +164,7 @@ func (e *Engine) Blocked(ctx context.Context, lib *library.Library, r Rule) stri
 	case lib.ReadOnly:
 		return "This library is set to read-only, so its files can't be changed."
 	case e.SaveMeta != nil && !e.SaveMeta() && !r.AllowWrites:
-		return "This server is set to keep metadata out of media folders (Save next to media, in Metadata settings). To convert here anyway, allow it for this library below. Previews and dry runs still work."
+		return "This server is set to keep metadata out of media folders (Save next to media, in Metadata settings). To convert here anyway, allow it for this library on this page. Trying a file and checking the library still work."
 	}
 	return ""
 }
@@ -192,6 +196,17 @@ func (e *Engine) Start(ctx context.Context, q RunRequest) (int64, error) {
 	}
 	if !ValidOutput(q.Output) {
 		return 0, errors.New("that's not one of the ways of writing the new file")
+	}
+	if !q.Dry && e.running() {
+		// It would wait its turn, but two runs of the same library would plan the same files.
+		e.mu.Lock()
+		for id := range e.live {
+			if r, err := e.GetRun(ctx, id); err == nil && r.LibraryID == q.Library && !r.Dry {
+				e.mu.Unlock()
+				return 0, errors.New("this library is being converted already")
+			}
+		}
+		e.mu.Unlock()
 	}
 	id, err := e.createRun(ctx, q.Library, q.Policy, q.Output, q.Dry, q.By.ID, q.By.Name)
 	if err != nil {
@@ -225,6 +240,12 @@ func (e *Engine) Start(ctx context.Context, q RunRequest) (int64, error) {
 	return id, nil
 }
 
+func (e *Engine) running() bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return len(e.live) > 0
+}
+
 func (e *Engine) runOne(ctx context.Context, id int64, lib *library.Library, q RunRequest, t *tasks.Handle) {
 	select {
 	case e.slot <- struct{}{}:
@@ -239,6 +260,8 @@ func (e *Engine) runOne(ctx context.Context, id int64, lib *library.Library, q R
 	e.Log.InfoContext(ctx, "conversion started", "library", lib.Name, "dry", q.Dry, "preset", q.Policy.Preset, "output", q.Output)
 	units, sum, err := e.survey(ctx, id, lib, q, t)
 	if err == nil && !q.Dry {
+		// Written now as well, so that a server that stops partway leaves a true picture.
+		e.setRunState(ctx, id, "running", &sum)
 		err = e.convertAll(ctx, id, lib, q, units, &sum, t)
 	}
 	state := "done"
@@ -271,6 +294,8 @@ type part struct {
 	final string
 	sups  []string
 	kept  string
+	// covers: pictures taken out of the old file for the new one to attach.
+	covers []string
 }
 
 // Refusals for what isn't a plain video file.
@@ -449,16 +474,38 @@ func (e *Engine) planItem(ctx context.Context, lib *library.Library, it library.
 func (e *Engine) lookAtFrames(ctx context.Context, src *Source) {
 	for i := range src.Video {
 		v := &src.Video[i]
-		if v.Range != "hdr10" || v.DV || v.Dynamic != "" {
+		if v.Range != "hdr10" || v.DV {
 			continue
 		}
 		pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		args := []string{"-v", "error", "-select_streams", strconv.Itoa(v.Index), "-read_intervals", "%+#2", "-show_entries", "frame=side_data_list", "-of", "json"}
+		args := []string{"-v", "error", "-select_streams", strconv.Itoa(v.Index), "-read_intervals", "%+#2", "-show_frames", "-of", "json"}
 		args = append(args, ffmpeg.FileInput(src.Path)...)
 		out, _, err := ffmpeg.Run(pctx, e.Tools.FFprobe, args, "job", "look for HDR10+")
 		cancel()
-		if err == nil && strings.Contains(string(out), "SMPTE2094-40") {
-			v.Dynamic = "HDR10+"
+		if err != nil {
+			continue
+		}
+		var frames struct {
+			Frames []struct {
+				SideData []map[string]any `json:"side_data_list"`
+			} `json:"frames"`
+		}
+		if json.Unmarshal(out, &frames) != nil {
+			continue
+		}
+		for _, fr := range frames.Frames {
+			for _, sd := range fr.SideData {
+				if t, _ := sd["side_data_type"].(string); strings.Contains(t, "SMPTE2094-40") {
+					v.Dynamic = "HDR10+"
+				}
+			}
+			mastering, light := hdrSideData(fr.SideData)
+			if v.Mastering == "" {
+				v.Mastering = mastering
+			}
+			if v.ContentLight == "" {
+				v.ContentLight = light
+			}
 		}
 	}
 }
@@ -587,6 +634,7 @@ func (e *Engine) convertAll(ctx context.Context, run int64, lib *library.Library
 		t.Progress(min(sumLive/1000, totalInt), totalInt)
 	}
 	t.Progress(0, totalInt)
+	t.Phase(fmt.Sprintf("Converting: %d files to do", len(todo)))
 	jobs := make(chan *unit)
 	var wg sync.WaitGroup
 	var sumMu sync.Mutex
@@ -845,8 +893,14 @@ func (e *Engine) convertUnit(ctx context.Context, run int64, lib *library.Librar
 	if err := e.swapUnit(context.WithoutCancel(ctx), u, q, lib); err != nil {
 		return fail(FileFailed, err.Error(), "")
 	}
+	done := 0
+	for _, f := range u.files {
+		if f.final != "" {
+			done++
+		}
+	}
 	edit(func(sum *Summary) {
-		sum.Done++
+		sum.Done += done
 		sum.BytesAfter += after
 	})
 	return FileDone
@@ -878,6 +932,14 @@ func (e *Engine) prepare(ctx context.Context, f *part, output string, s Settings
 	for i := range f.plan.exports {
 		f.sups = append(f.sups, filepath.Join(work, fmt.Sprintf("%s-%d.sup", name, i)))
 	}
+	f.covers = nil
+	for i, st := range f.plan.coverSteps() {
+		out := filepath.Join(work, fmt.Sprintf("%s-cover%d.%s", name, i, coverExt(st.tag)))
+		if _, _, err := ffmpeg.Run(ctx, e.Tools.FFmpeg, CoverArgs(f.src.Path, st, out), "job", "take a cover picture out of a file"); err != nil {
+			return errors.New("the cover picture couldn't be read, so nothing was changed. This file may be damaged")
+		}
+		f.covers = append(f.covers, out)
+	}
 	return nil
 }
 
@@ -892,10 +954,11 @@ func randomName() (string, error) {
 // encode runs FFmpeg for one file, reports its progress, holds it still when asked, and
 // stops it if the drive is running out.
 func (e *Engine) encode(ctx context.Context, f *part, s Settings, t *tasks.Handle, prog func(*part, float64)) error {
-	args := f.plan.Args(f.src, Output{Path: f.temp, Exports: f.sups})
+	args := f.plan.Args(f.src, Output{Path: f.temp, Exports: f.sups, Covers: f.covers})
 	jobCtx, stop := context.WithCancel(ctx)
 	defer stop()
 	cmd := ffmpeg.Command(jobCtx, e.Tools.FFmpeg, args...)
+	dieWithServer(cmd)
 	if s.LowPriority {
 		lowPriority(cmd)
 	}
@@ -935,6 +998,7 @@ func (e *Engine) encode(ctx context.Context, f *part, s Settings, t *tasks.Handl
 // a conversion does, which costs far more than a look at the clock.
 func (e *Engine) watch(ctx context.Context, cmd *exec.Cmd, f *part, t *tasks.Handle, stop func(), why *atomic.Pointer[noRoom]) {
 	held := false
+	var phased atomic.Bool
 	tick := time.NewTicker(e.tick())
 	defer tick.Stop()
 	lastFree := time.Time{}
@@ -961,6 +1025,10 @@ func (e *Engine) watch(ctx context.Context, cmd *exec.Cmd, f *part, t *tasks.Han
 		case !paused && words == "" && held:
 			if resume(cmd) {
 				held = false
+				t.Phase("Converting")
+			}
+		case !paused && words == "" && !held:
+			if phased.CompareAndSwap(false, true) {
 				t.Phase("Converting")
 			}
 		}
@@ -1041,6 +1109,10 @@ func (e *Engine) swapUnit(ctx context.Context, u *unit, q RunRequest, lib *libra
 		}
 		// A subtitle file made along the way, and an embedded one, go last, once all is safe.
 		e.finishSidecars(ctx, f, q.Output)
+		for _, c := range f.covers {
+			_ = os.Remove(c)
+		}
+		f.covers = nil
 		if q.Output == OutputReplace && f.kept != "" {
 			_ = os.Remove(f.kept)
 			_ = os.Remove(filepath.Dir(f.kept))
@@ -1190,9 +1262,44 @@ func (e *Engine) cleanTemps(ctx context.Context, u *unit) {
 		for _, s := range f.sups {
 			_ = os.Remove(s)
 		}
-		f.sups = nil
+		for _, s := range f.covers {
+			_ = os.Remove(s)
+		}
+		f.sups, f.covers = nil, nil
 	}
 	removeEmpty(u)
+}
+
+// Retry starts a run again, for the files that didn't get done. It works from what was
+// recorded, so it works after a restart too.
+func (e *Engine) Retry(ctx context.Context, run int64, by tasks.By) (int64, error) {
+	e.init()
+	old, err := e.GetRun(ctx, run)
+	if err != nil {
+		return 0, err
+	}
+	q := RunRequest{Library: old.LibraryID, Policy: old.Policy, Output: old.Output, Dry: old.Dry, By: by}
+	if !old.Dry {
+		rows, err := e.DB.QueryContext(ctx, `SELECT DISTINCT item_id FROM ltc_files WHERE run_id = ? AND state IN ('pending', 'running', 'failed', 'postponed', 'changed')`, run)
+		if err != nil {
+			return 0, err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var id int64
+			if err := rows.Scan(&id); err != nil {
+				return 0, err
+			}
+			q.Items = append(q.Items, id)
+		}
+		if err := rows.Err(); err != nil {
+			return 0, err
+		}
+		if len(q.Items) == 0 {
+			return 0, errors.New("every file of that conversion is done")
+		}
+	}
+	return e.Start(ctx, q)
 }
 
 // Cancel stops a run.
@@ -1217,9 +1324,9 @@ func (e *Engine) Recover(ctx context.Context) {
 		return
 	}
 	type row struct {
-		id                               int64
-		path, temp, final, kept, swap    string
-		item                             int64
+		id                            int64
+		path, temp, final, kept, swap string
+		item                          int64
 	}
 	var list []row
 	for rows.Next() {
@@ -1417,12 +1524,21 @@ func (e *Engine) sampleOne(ctx context.Context, f *part, cacheDir string) (*Samp
 	defer os.Remove(out)
 	length := min(sampleSeconds, f.src.Duration)
 	start := max(f.src.Duration/2-length/2, 0)
-	args := f.plan.Args(f.src, Output{Path: out})
+	var covers []string
+	for i, st := range f.plan.coverSteps() {
+		pic := filepath.Join(dir, fmt.Sprintf("%s-cover%d.%s", name, i, coverExt(st.tag)))
+		if _, _, err := ffmpeg.Run(ctx, e.Tools.FFmpeg, CoverArgs(f.src.Path, st, pic), "job", "take a cover picture out of a file"); err == nil {
+			covers = append(covers, pic)
+			defer os.Remove(pic)
+		}
+	}
+	args := f.plan.Args(f.src, Output{Path: out, Covers: covers})
 	args = withRange(args, start, length)
 	cctx, cancel := context.WithTimeout(ctx, 15*time.Minute)
 	defer cancel()
 	began := time.Now()
 	cmd := ffmpeg.Command(cctx, e.Tools.FFmpeg, args...)
+	dieWithServer(cmd)
 	lowPriority(cmd)
 	var stderr logging.Tail
 	cmd.Stderr = &stderr

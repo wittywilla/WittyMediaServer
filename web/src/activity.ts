@@ -208,7 +208,7 @@ export async function clearTaskHistory(id?: string) {
 
 const TYPE_NAMES: Record<string, string> = {
   scan: 'Library scan', analysis: 'File analysis', metadata: 'Metadata', thumbnails: 'Thumbnails', intros: 'Intro detection', games: 'Game details',
-  module: 'Module', backup: 'Backup', transcode: 'Transcode', update: 'Server update', guide: 'TV guide', recording: 'Recording', diagnose: 'WittyDiagnoser', other: 'Background work',
+  module: 'Module', backup: 'Backup', transcode: 'Transcode', convert: 'Library transcoding', tdarr: 'Tdarr', update: 'Server update', guide: 'TV guide', recording: 'Recording', diagnose: 'WittyDiagnoser', other: 'Background work',
 }
 export const typeName = (t: string) => TYPE_NAMES[t] ?? 'Background work'
 

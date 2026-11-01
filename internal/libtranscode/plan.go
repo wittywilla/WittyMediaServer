@@ -68,6 +68,7 @@ type Step struct {
 	tag         string
 	path        string // export: a suffix for the file; embed: the file
 	text        bool
+	relabel     bool // the language tag changes
 }
 
 // Plan is a decision about one file.
@@ -337,7 +338,7 @@ func decideOneVideo(src *Source, v VideoStream, p Policy, env Env, burn *Step, f
 		st.filters = append(st.filters, flattenFilterFor(v))
 	}
 	if wantTone {
-		st.filters = append(st.filters, env.ToneMap)
+		st.filters = append(st.filters, toneChain(env.ToneMap, v))
 		st.args = append(st.args, "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709")
 	} else if isHDR {
 		st.args = append(st.args, hdrColorArgs(v)...)
@@ -386,6 +387,17 @@ func decideOneVideo(src *Source, v VideoStream, p Policy, env Env, burn *Step, f
 	return st, ""
 }
 
+// toneChain says outright what the source is: a file that leaves its colours unmarked in the
+// stream (it may say so only in its container) otherwise stops the filter with no way to
+// tell what it's converting from.
+func toneChain(chain string, v VideoStream) string {
+	trc := "smpte2084"
+	if v.Range == "hlg" {
+		trc = "arib-std-b67"
+	}
+	return strings.Replace(chain, "zscale=t=linear", "zscale=pin=bt2020:tin="+trc+":min=bt2020nc:t=linear", 1)
+}
+
 func joinReasons(r []string) string {
 	switch len(r) {
 	case 0:
@@ -429,9 +441,13 @@ func flattenFilterFor(v VideoStream) string {
 
 func decideCovers(src *Source, pl *Plan) {
 	for _, c := range src.Covers {
-		st := Step{Kind: "cover", Action: ActKeep, From: "Cover picture", To: "Stays as it is", index: c.Index, disposition: "attached_pic"}
-		if pl.Container == "mp4" && c.Codec != "mjpeg" && c.Codec != "png" {
-			st.Action, st.To, st.Why = ActDrop, "", "An MP4 only holds JPEG and PNG covers."
+		st := Step{Kind: "cover", Action: ActKeep, From: "Cover picture", To: "Stays as it is", index: c.Index, disposition: "attached_pic", title: c.Name, subNumber: c.Number, tag: c.Codec}
+		if c.Codec != "mjpeg" && c.Codec != "png" {
+			if pl.Container == "mp4" {
+				st.Action, st.To, st.Why = ActDrop, "", "An MP4 only holds JPEG and PNG covers."
+			} else {
+				st.Action, st.To, st.Why = ActDrop, "", "Only JPEG and PNG covers can be carried across."
+			}
 		}
 		pl.Steps = append(pl.Steps, st)
 	}
@@ -499,6 +515,12 @@ func decideAudio(src *Source, p Policy, pl *Plan) []Step {
 
 	// The order: the languages in the order asked for, the plain tracks of a language
 	// ahead of its commentary and description, and otherwise as the file has them.
+	var seen []string
+	for _, k := range keep {
+		if !slices.Contains(seen, k.t.Language) {
+			seen = append(seen, k.t.Language)
+		}
+	}
 	rank := func(t AudioStream) int {
 		if i := slices.Index(a.Languages, t.Language); i >= 0 {
 			return i
@@ -507,12 +529,16 @@ func decideAudio(src *Source, p Policy, pl *Plan) []Step {
 			return -1
 		}
 		if len(a.Languages) == 0 && a.Default == "" {
+			if a.StereoFirst {
+				// Each language's tracks stay together, with its stereo one first.
+				return slices.Index(seen, t.Language)
+			}
 			return 0
 		}
 		return len(a.Languages) + 1
 	}
 	stereoFirst := func(t AudioStream) int {
-		if a.StereoFirst && !t.Commentary && !t.Description && t.Channels <= 2 && t.Codec == "aac" {
+		if a.StereoFirst && !t.Commentary && !t.Description && t.Channels <= 2 && (t.Codec == "aac" || willConvertToAAC(t, a, pl.Container)) {
 			return 0
 		}
 		return 1
@@ -576,13 +602,13 @@ func decideAudio(src *Source, p Policy, pl *Plan) []Step {
 		st := audioStep(k.t, k.why, a, pl)
 		st.disposition = dispositionOf(k.t, i == defaultAt)
 		if a.UntaggedAs != "" && k.t.Language == "" {
-			st.language = a.UntaggedAs
+			st.language, st.relabel = fileLanguage(a.UntaggedAs), true
 			st.To = strings.TrimSpace(st.To + " Labelled " + languageWords(a.UntaggedAs) + ".")
 		}
 		if a.AddStereo && extra(k.t) == 0 && k.t.Channels > 2 && !hasStereo[k.t.Language] {
 			hasStereo[k.t.Language] = true
 			add := Step{Kind: "audio", Action: ActAdd, From: "New track made from " + k.t.describe(), To: languageWords(orDefault(k.t.Language, a.UntaggedAs)) + ", AAC stereo",
-				Why: "So devices without surround sound have something to play.", index: k.t.Index, encoder: "aac", channels: 2, bitrate: "192k", title: "Stereo", language: orDefault(k.t.Language, a.UntaggedAs)}
+				Why: "So devices without surround sound have something to play.", index: k.t.Index, encoder: "aac", channels: 2, bitrate: "192k", title: "Stereo", language: fileLanguage(orDefault(k.t.Language, a.UntaggedAs))}
 			if a.StereoFirst {
 				if i == defaultAt {
 					add.disposition = "default"
@@ -659,7 +685,7 @@ func audioNeedsConverting(t AudioStream, a AudioPolicy, container string) string
 }
 
 func audioStep(t AudioStream, why string, a AudioPolicy, pl *Plan) Step {
-	st := Step{Kind: "audio", Action: ActKeep, From: t.describe(), To: "Stays as it is", Why: why, index: t.Index, language: t.Language}
+	st := Step{Kind: "audio", Action: ActKeep, From: t.describe(), To: "Stays as it is", Why: why, index: t.Index}
 	reason := audioNeedsConverting(t, a, pl.Container)
 	if reason == "" {
 		return st
@@ -985,8 +1011,8 @@ func finish(src *Source, p Policy, pl *Plan) {
 			switch st.Kind {
 			case "audio":
 				keptAudio = append(keptAudio, st.index)
-				if st.language != "" && !src.hasAudioLanguage(st.language) {
-					changed = true // a language label is being added
+				if st.relabel {
+					changed = true
 				}
 			case "subtitle":
 				keptSubs = append(keptSubs, st.index)
@@ -1007,6 +1033,10 @@ func finish(src *Source, p Policy, pl *Plan) {
 				}
 			}
 		}
+	}
+	// A saving is only asked of files that were encoded again. Tidying a file doesn't shrink it.
+	if !encoded {
+		pl.minSaving = 0
 	}
 	switch {
 	case !changed:

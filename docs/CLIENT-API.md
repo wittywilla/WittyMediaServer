@@ -1432,6 +1432,33 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `POST /system/tasks/{id}/cancel` | admin | Asks a task to stop |
 | `POST /system/tasks/{id}/retry` | admin | Starts a failed or cancelled task again |
 
+### Library transcoding
+
+See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /libtranscode/options` | admin | Presets, and what this machine's FFmpeg can do |
+| `GET /libtranscode/settings` | admin | How conversions run on this server |
+| `PUT /libtranscode/settings` | admin | Changes that. Turning it on needs the warning accepted |
+| `GET /libtranscode/libraries` | admin | Libraries that hold video files, each with its recipe and anything stopping it |
+| `PUT /libtranscode/libraries/{id}` | admin | Saves a library's recipe, what happens to old files, and whether it's read-only |
+| `GET /libtranscode/libraries/{id}/items` | admin | Finds files to try a recipe on |
+| `POST /libtranscode/libraries/{id}/preview` | admin | What a recipe would do to one file, track by track. Changes nothing |
+| `POST /libtranscode/libraries/{id}/sample` | admin | Really converts 20 seconds into the server's cache, and measures it |
+| `POST /libtranscode/libraries/{id}/runs` | admin | Starts a run. `dry: true` looks at every file and changes nothing |
+| `GET /libtranscode/runs` | admin | Recent runs, newest first |
+| `GET /libtranscode/runs/{id}` | admin | One run |
+| `GET /libtranscode/runs/{id}/files` | admin | A run's files and what became of each |
+| `GET /libtranscode/leftovers` | admin | Kept originals and converted copies waiting for a decision |
+| `POST /libtranscode/files/{id}/undo` | admin | Puts the original back |
+| `POST /libtranscode/files/{id}/use-copy` | admin | Puts a converted copy into use, keeping the original |
+| `DELETE /libtranscode/files/{id}/leftover` | admin | Deletes a kept original or an unused copy, for good |
+| `GET /libtranscode/tdarr` | admin | The connection to a separately installed Tdarr. The API key is never sent back |
+| `PUT /libtranscode/tdarr` | admin | Changes that |
+| `POST /libtranscode/tdarr/test` | admin | Asks a Tdarr server about itself, without saving anything |
+| `POST /libtranscode/tdarr/send` | admin | Hands a library's files to Tdarr |
+
 ### Server statistics
 
 | Route | Sign-in | What it does |

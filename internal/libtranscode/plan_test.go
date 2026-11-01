@@ -14,7 +14,7 @@ type atomic32 = atomic.Int32
 
 func testEnv() Env {
 	return Env{
-		Encoders: map[string]bool{"libx264": true, "libx265": true, "libsvtav1": true, "aac": true, "ac3": true, "eac3": true, "libopus": true, "hevc_nvenc": true},
+		Encoders:  map[string]bool{"libx264": true, "libx265": true, "libsvtav1": true, "aac": true, "ac3": true, "eac3": true, "libopus": true, "hevc_nvenc": true},
 		HasFilter: func(string) bool { return true }, ToneMap: "tonemap-chain", Sidecars: true,
 	}
 }
@@ -176,12 +176,16 @@ func TestMainPicture(t *testing.T) {
 		t.Fatal("the largest is the main one when nothing says")
 	}
 	s.Video[0].Default = true
-	if s.Main() != 0 {
-		t.Fatal("the one marked default is the main one")
-	}
-	s.Video[1].Default = true
 	if s.Main() != 1 {
-		t.Fatal("marking them all says nothing")
+		t.Fatal("tools mark the first by themselves, so that doesn't outweigh size")
+	}
+	s = &Source{Video: []VideoStream{{Index: 0, Width: 1920, Height: 1080}, {Index: 1, Width: 320, Height: 240, Default: true}}}
+	if s.Main() != 1 {
+		t.Fatal("a later stream marked default is the main one")
+	}
+	s.Video[0].Default = true
+	if s.Main() != 0 {
+		t.Fatal("marking them all says nothing, so the largest it is")
 	}
 }
 
@@ -316,6 +320,7 @@ func TestEstimatesAreSensible(t *testing.T) {
 	// An already tiny file isn't promised a saving.
 	src.Size, src.Kbps = 1<<28, 500
 	src.Video[0].Kbps = 300
+	src.Audio[0].Kbps = 128
 	p.Video.SkipBelowKbps = 0
 	if pl = Decide(src, p, testEnv(), PlanOptions{}); pl.EstBytes > src.Size*2 {
 		t.Fatalf("%d", pl.EstBytes)
@@ -405,7 +410,7 @@ func TestLengthOK(t *testing.T) {
 
 func TestFilterPathEscaping(t *testing.T) {
 	got := escapeFilterPath("/m/It's [odd].mkv")
-	if !strings.Contains(got, `'\''`) {
+	if !strings.Contains(got, `\'`) {
 		t.Fatal(got)
 	}
 }

@@ -174,8 +174,8 @@ func Presets() []PresetInfo {
 			Cost: "Heavy work for the processor. Files may grow if they were very efficient to begin with.",
 			Policy: Policy{
 				Preset: PresetCompatible, Container: "mp4",
-				Video: VideoPolicy{Codec: "h264", Quality: 21, Speed: "balanced", MaxHeight: 1080, HDR: "tonemap", DolbyVision: "base", EightBit: true, Deinterlace: true, ConstantRate: true, ThreeD: Keep, ExtraVideo: Drop},
-				Audio: AudioPolicy{Keep: KeepAll, KeepOriginal: true, Untagged: Keep, Commentary: Keep, Description: Keep, Codec: "aac", Accept: []string{"aac", "ac3", "eac3"}, Lossless: "convert", Objects: "keep", MaxChannels: 6, AddStereo: true, StereoFirst: true},
+				Video:     VideoPolicy{Codec: "h264", Quality: 21, Speed: "balanced", MaxHeight: 1080, HDR: "tonemap", DolbyVision: "base", EightBit: true, Deinterlace: true, ConstantRate: true, ThreeD: Keep, ExtraVideo: Drop},
+				Audio:     AudioPolicy{Keep: KeepAll, KeepOriginal: true, Untagged: Keep, Commentary: Keep, Description: Keep, Codec: "aac", Accept: []string{"aac", "ac3", "eac3"}, Lossless: "convert", Objects: "keep", MaxChannels: 6, AddStereo: true, StereoFirst: true},
 				Subtitles: SubtitlePolicy{Keep: KeepAll, Forced: "burn-images", SDH: Keep, Untagged: Keep, Images: "export", Text: Keep, Sidecars: "leave"},
 			},
 		},
@@ -192,8 +192,8 @@ func Presets() []PresetInfo {
 			Cost: "The slowest choice for the processor. Older devices may need the server to convert these files while playing.",
 			Policy: Policy{
 				Preset: PresetSaveSpace, Container: "keep",
-				Video: VideoPolicy{Codec: "hevc", Accept: []string{"hevc", "av1", "vp9"}, Quality: 23, Speed: "balanced", HDR: Keep, DolbyVision: Keep, Deinterlace: true, ThreeD: Keep, ExtraVideo: Keep, MinSavingPercent: 10, SkipBelowKbps: 2000},
-				Audio: AudioPolicy{Keep: KeepAll, KeepOriginal: true, Untagged: Keep, Commentary: Keep, Description: Keep, Codec: "eac3", Lossless: "convert", Objects: Keep},
+				Video:     VideoPolicy{Codec: "hevc", Accept: []string{"hevc", "av1", "vp9"}, Quality: 23, Speed: "balanced", HDR: Keep, DolbyVision: Keep, Deinterlace: true, ThreeD: Keep, ExtraVideo: Keep, MinSavingPercent: 10, SkipBelowKbps: 2000},
+				Audio:     AudioPolicy{Keep: KeepAll, KeepOriginal: true, Untagged: Keep, Commentary: Keep, Description: Keep, Codec: "eac3", Lossless: "convert", Objects: Keep},
 				Subtitles: SubtitlePolicy{Keep: KeepAll, Forced: Keep, SDH: Keep, Untagged: Keep, Images: Keep, Text: Keep, Sidecars: "leave"},
 			},
 		},
@@ -208,8 +208,8 @@ func Presets() []PresetInfo {
 			Cost: "Very little: mostly copying, plus a short conversion for an added stereo track.",
 			Policy: Policy{
 				Preset: PresetBest, Container: "mkv",
-				Video: VideoPolicy{Codec: Keep, HDR: Keep, DolbyVision: Keep, ThreeD: Keep, ExtraVideo: Keep},
-				Audio: AudioPolicy{Keep: KeepAll, KeepOriginal: true, Untagged: Keep, Commentary: Keep, Description: Keep, Codec: Keep, Lossless: Keep, Objects: Keep, AddStereo: true},
+				Video:     VideoPolicy{Codec: Keep, HDR: Keep, DolbyVision: Keep, ThreeD: Keep, ExtraVideo: Keep},
+				Audio:     AudioPolicy{Keep: KeepAll, KeepOriginal: true, Untagged: Keep, Commentary: Keep, Description: Keep, Codec: Keep, Lossless: Keep, Objects: Keep, AddStereo: true},
 				Subtitles: SubtitlePolicy{Keep: KeepAll, Forced: Keep, SDH: Keep, Untagged: Keep, Images: Keep, Text: Keep, Sidecars: "leave"},
 			},
 		},

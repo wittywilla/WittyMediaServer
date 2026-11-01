@@ -71,6 +71,13 @@ func (s *Store) SetLibraryReadOnly(ctx context.Context, id int64, on bool) error
 	return nil
 }
 
+// libraryReadOnly: nothing may be written into this library's folders.
+func (s *Store) libraryReadOnly(ctx context.Context, id int64) bool {
+	var on int
+	_ = s.DB.QueryRowContext(ctx, `SELECT read_only FROM libraries WHERE id = ?`, id).Scan(&on)
+	return on != 0
+}
+
 // FileReplaced records that an item's file is now the one at path, after a conversion.
 // Only what the file itself says changes. The item keeps its id, so everything anyone
 // has done with it stays: what's been watched and how far, ratings, its match and every
@@ -114,7 +121,7 @@ func (s *Scanner) FileReplaced(ctx context.Context, id int64, path string) error
 	return tx.Commit()
 }
 
-// ReleaseSlot is for tests and callers holding a scan slot: nothing to do with a nil one.
+// ScanHold keeps scans away for a moment, however this scanner was made.
 func (s *Scanner) ScanHold(ctx context.Context) (func(), error) {
 	if s.slot == nil {
 		return func() {}, nil

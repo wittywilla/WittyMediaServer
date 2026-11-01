@@ -1,0 +1,83 @@
+/* Library transcoding. Uses the design's tokens and shared parts; only what's particular
+   to this page is here. */
+
+.ltc-list { margin: var(--sp-2) 0; padding-left: 1.25em; line-height: 1.5; }
+.ltc-list li { margin: var(--sp-1) 0; }
+.ltc-muted { color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; margin: var(--sp-1) 0; }
+.ltc-path { overflow-wrap: anywhere; }
+.ltc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: var(--sp-3) 0; }
+.ltc-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.ltc-inline { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--text-sm); }
+
+.ltc-accept { display: flex; align-items: center; gap: var(--sp-3); margin: var(--sp-4) 0 0; min-height: 44px; }
+.ltc-accept input { width: 20px; height: 20px; flex: none; }
+
+/* Choices with a sentence or two beside them. */
+.ltc-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--sp-3); margin: var(--sp-3) 0; }
+.ltc-card { border: 1px solid var(--border-strong); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); background: var(--bg-3); }
+.ltc-card.on { border-color: var(--accent-line); background: var(--accent-soft); }
+.ltc-card-head { display: flex; align-items: flex-start; gap: var(--sp-3); cursor: pointer; min-height: 44px; }
+.ltc-card-head input { flex: none; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); }
+.ltc-card-head b { display: block; font-size: var(--text-md); }
+.ltc-card-text { display: block; margin-top: var(--sp-1); color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; }
+.ltc-card-head:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+.ltc-cost { color: var(--fg-2); font-size: var(--text-sm); margin: var(--sp-2) 0 0; }
+
+/* Things to open. <details> gives every device a way in, keyboard and remote included. */
+.ltc-more > summary { cursor: pointer; display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); min-height: 44px; font-size: var(--text-sm); font-weight: 600; color: var(--fg); border-radius: var(--r-sm); }
+.ltc-more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ltc-more > summary::before { content: '+'; display: inline-block; width: 1em; flex: none; text-align: center; color: var(--fg-2); }
+.ltc-more[open] > summary::before { content: '\2212'; }
+.ltc-more > summary::-webkit-details-marker { display: none; }
+.ltc-more.big { border-top: 1px solid var(--border); padding: var(--sp-1) 0; }
+.ltc-more.big > summary { font-size: var(--text-md); }
+.ltc-details { margin-top: var(--sp-3); }
+
+.ltc-langs { display: flex; flex-direction: column; gap: var(--sp-2); width: 100%; }
+.ltc-langs ol { list-style: none; margin: 0; padding: 0; }
+.ltc-langs li { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-1); padding: var(--sp-1) 0; }
+.ltc-langs li > span { flex: 1 1 8em; font-weight: 600; font-size: var(--text-md); }
+
+.ltc-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: var(--sp-3); margin: var(--sp-3) 0; }
+.ltc-pick .select, .ltc-pick .input { width: 100%; }
+
+/* What would become of a file. */
+.ltc-plan { margin: var(--sp-4) 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.ltc-plan h3, .ltc-result h3, .ltc-tdarr-libs h3 { margin: var(--sp-3) 0 var(--sp-1); font-size: var(--text-md); }
+.ltc-note { display: flex; gap: var(--sp-2); margin: 0; color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; }
+.ltc-note svg { flex: none; margin-top: 2px; }
+.ltc-steps h4 { margin: var(--sp-3) 0 var(--sp-1); font-size: var(--text-2xs); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-2); }
+.ltc-steps ul { list-style: none; margin: 0; padding: 0; }
+.ltc-step { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-2) 0; border-top: 1px solid var(--border); font-size: var(--text-sm); line-height: 1.45; }
+.ltc-step-act { flex: none; width: 6.5em; font-weight: 700; }
+.ltc-step.drop .ltc-step-act { color: var(--danger); }
+.ltc-step.convert .ltc-step-act, .ltc-step.add .ltc-step-act, .ltc-step.burn .ltc-step-act, .ltc-step.export .ltc-step-act, .ltc-step.embed .ltc-step-act { color: var(--accent-text); }
+.ltc-step-what { min-width: 0; overflow-wrap: anywhere; }
+.ltc-step-what small { display: block; color: var(--fg-2); font-size: var(--text-xs); margin-top: 2px; }
+.ltc-arrow { color: var(--fg-2); padding: 0 var(--sp-1); }
+
+/* A run in progress, and what came of one. */
+.ltc-live { border: 1px solid var(--border-strong); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); margin: var(--sp-3) 0; background: var(--bg-3); }
+.ltc-live-head { display: flex; justify-content: space-between; gap: var(--sp-3); margin-bottom: var(--sp-2); }
+.ltc-result { margin-top: var(--sp-3); }
+.ltc-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: var(--sp-2); margin: var(--sp-2) 0 var(--sp-3); }
+.ltc-tile { background: var(--bg-3); border-radius: var(--r-md); padding: var(--sp-2) var(--sp-3); }
+.ltc-tile b { display: block; font-size: var(--text-xl); font-variant-numeric: tabular-nums; }
+.ltc-tile span { color: var(--fg-2); font-size: var(--text-xs); }
+.ltc-files { list-style: none; margin: var(--sp-2) 0 0; padding: 0; }
+.ltc-files > li { border-top: 1px solid var(--border); padding: var(--sp-1) 0; }
+.ltc-file-name { flex: 1 1 12em; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.ltc-chip { flex: none; font-size: var(--text-xs); padding: 2px var(--sp-2); border-radius: var(--r-full); background: var(--bg-4); color: var(--fg); font-weight: 600; }
+.ltc-chip.done { background: var(--ok-soft); }
+.ltc-chip.failed, .ltc-chip.changed { background: var(--danger-soft); }
+.ltc-chip.refused, .ltc-chip.notworth, .ltc-chip.postponed, .ltc-chip.interrupted, .ltc-chip.cancelled { background: var(--warn-soft); }
+.ltc-left { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-4); padding: var(--sp-3) 0 !important; }
+.ltc-left .ltc-actions { margin: 0; }
+
+.ltc-tdarr-libs { margin: var(--sp-3) 0; }
+.ltc-tdarr-lib { border-top: 1px solid var(--border); padding: var(--sp-3) 0; }
+
+@media (max-width: 640px) {
+  .ltc-step { flex-direction: column; gap: 2px; }
+  .ltc-step-act { width: auto; }
+}

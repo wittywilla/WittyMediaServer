@@ -153,7 +153,8 @@ The full walkthrough, with no command line: **[Getting started](docs/GETTING_STA
 | 📱 | [Vertical videos](docs/SHORTS.md) · [Creator videos & music videos](docs/CREATOR-VIDEOS.md) | folder layouts, sidecar files, For You, channels, concerts |
 | 🔀 | [Collections, radio & Your year](docs/COLLECTIONS.md) | smart playlists, stations from a free directory or by address, what each profile's year looked like |
 | 🎞️ | [Supported formats](docs/SUPPORTED-FORMATS.md) | every file type, codec and container, and how each plays |
-| ⚙️ | [Transcoding](docs/TRANSCODING.md) | direct play, hardware encoders, quality, GPU and CPU tables |
+| ⚙️ | [Live transcoding](docs/TRANSCODING.md) | direct play, hardware encoders, quality, GPU and CPU tables |
+| ⚙️ | [Library transcoding](docs/LIBRARY-TRANSCODING.md) | converting files ahead of time, safely; connecting Tdarr |
 | 🎨 | [Themes](docs/THEMES.md) | the built-in themes and writing your own |
 | 🗂️ | [Config file & logs](docs/CONFIG.md) | `wms.json`, portable mode, folders, what is logged |
 | 🛠️ | [Reference](docs/REFERENCE.md) | flags, command-line tools, HTTP API, architecture, building |

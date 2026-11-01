@@ -36,29 +36,29 @@ type Source struct {
 
 // VideoStream is a real picture stream.
 type VideoStream struct {
-	Index       int // the stream's number in the file
-	Codec       string
-	Profile     string
-	Tag         string
-	PixFmt      string
-	Width       int
-	Height      int
-	Depth       int
-	Range       string // sdr, hdr10, hlg, dv5
-	Dynamic     string // "HDR10+", "Dolby Vision profile 8.1"
-	DV          bool
-	DVProfile   int
-	Interlaced  bool
-	Stereo      string // sbs, tab, ""
-	MVC         bool   // a second eye stored in a way a conversion would lose
-	Variable    bool   // variable frame rate
-	FPS         float64
-	Kbps        int
-	Default     bool
-	Language    string
-	Title       string
-	Captions    bool // closed captions inside the picture
-	Mastering   string
+	Index        int // the stream's number in the file
+	Codec        string
+	Profile      string
+	Tag          string
+	PixFmt       string
+	Width        int
+	Height       int
+	Depth        int
+	Range        string // sdr, hdr10, hlg, dv5
+	Dynamic      string // "HDR10+", "Dolby Vision profile 8.1"
+	DV           bool
+	DVProfile    int
+	Interlaced   bool
+	Stereo       string // sbs, tab, ""
+	MVC          bool   // a second eye stored in a way a conversion would lose
+	Variable     bool   // variable frame rate
+	FPS          float64
+	Kbps         int
+	Default      bool
+	Language     string
+	Title        string
+	Captions     bool // closed captions inside the picture
+	Mastering    string
 	ContentLight string
 }
 
@@ -67,6 +67,9 @@ type Picture struct {
 	Index int
 	Codec string
 	Title string
+	Name  string // its file name, in a file that attaches it
+	// Number is its place among the video streams of the file, for pulling it out.
+	Number int
 }
 
 // AudioStream is one sound track.
@@ -150,19 +153,23 @@ func Inspect(path string, p *ffmpeg.Probe) *Source {
 	s := &Source{Path: path, Ext: strings.TrimPrefix(strings.ToLower(filepath.Ext(path)), "."), Duration: p.Duration(), Chapters: len(p.Chapters)}
 	s.Size, _ = strconv.ParseInt(p.Format.Size, 10, 64)
 	s.Kbps = kbpsOf(p.Format.BitRate)
+	videoSeen := 0
 	for i := range p.Streams {
 		st := &p.Streams[i]
 		lang := languageOf(st.Tags["language"])
 		title := cleanTitle(st.Tags["title"])
 		switch st.CodecType {
 		case "video":
+			videoSeen++
+			cover := Picture{Index: st.Index, Codec: st.CodecName, Title: title, Name: cleanTitle(st.Tags["filename"]), Number: videoSeen - 1}
 			if st.Disposition["attached_pic"] == 1 || st.Disposition["still_image"] == 1 || st.Disposition["timed_thumbnails"] == 1 {
-				s.Covers = append(s.Covers, Picture{Index: st.Index, Codec: st.CodecName, Title: title})
+				s.Covers = append(s.Covers, cover)
 				continue
 			}
-			if st.CodecName == "mjpeg" && oneFrame(st) || st.CodecName == "png" || st.CodecName == "bmp" || st.CodecName == "webp" {
-				// A still with no flag on it, as some tools write them.
-				s.Covers = append(s.Covers, Picture{Index: st.Index, Codec: st.CodecName, Title: title})
+			// A still with no flag on it, as an MKV written by FFmpeg holds a cover. Beside a
+			// real picture it can only be a cover; alone, it's a film in Motion JPEG.
+			if stillCodec(st.CodecName) && realPictures(p) > 0 {
+				s.Covers = append(s.Covers, cover)
 				continue
 			}
 			v := VideoStream{Index: st.Index, Codec: st.CodecName, Profile: st.Profile, Tag: st.CodecTag, PixFmt: st.PixFmt, Language: lang, Title: title,
@@ -213,9 +220,24 @@ func (s *Source) AddSidecars(found []library.SubtitleFile) {
 	}
 }
 
-// oneFrame: the stream is known to hold a single frame.
-func oneFrame(st *ffmpeg.Stream) bool {
-	return st.AvgFrameRate == "0/0" || st.AvgFrameRate == ""
+func stillCodec(codec string) bool {
+	switch codec {
+	case "mjpeg", "png", "bmp", "webp":
+		return true
+	}
+	return false
+}
+
+// realPictures counts the video streams that can't be stills.
+func realPictures(p *ffmpeg.Probe) int {
+	n := 0
+	for i := range p.Streams {
+		st := &p.Streams[i]
+		if st.CodecType == "video" && !stillCodec(st.CodecName) && st.Disposition["attached_pic"] != 1 {
+			n++
+		}
+	}
+	return n
 }
 
 func languageOf(tag string) string {
@@ -255,8 +277,11 @@ func abs(f float64) float64 {
 
 // hdrParams writes a stream's mastering display and light level in the form an x265
 // encoder asks for. Empty when the file doesn't say.
-func hdrParams(st *ffmpeg.Stream) (mastering, light string) {
-	for _, sd := range st.SideData {
+func hdrParams(st *ffmpeg.Stream) (mastering, light string) { return hdrSideData(st.SideData) }
+
+// hdrSideData reads them from a stream's or a frame's side data, which look the same.
+func hdrSideData(list []map[string]any) (mastering, light string) {
+	for _, sd := range list {
 		switch t, _ := sd["side_data_type"].(string); t {
 		case "Mastering display metadata":
 			g, gOK := ratioIn(sd, "green_x", "green_y", 50000)
@@ -301,25 +326,21 @@ func ratioOf(s string) float64 {
 	return n / d
 }
 
-// Main picks the picture a film is: the one marked default, else the largest.
+// Main picks the picture a film is: one marked default that isn't simply the first (tools
+// mark the first by themselves, so that says nothing), else the largest, else the first.
 func (s *Source) Main() int {
 	best := -1
+	count := 0
 	for i, v := range s.Video {
-		if v.Default && (best < 0 || !s.Video[best].Default) {
-			best = i
-		}
-	}
-	if best >= 0 {
-		// Several marked default is what a tool writes when it marks them all.
-		count := 0
-		for _, v := range s.Video {
-			if v.Default {
-				count++
+		if v.Default {
+			count++
+			if i > 0 && best < 0 {
+				best = i
 			}
 		}
-		if count == 1 {
-			return best
-		}
+	}
+	if best >= 0 && count == 1 {
+		return best
 	}
 	best = -1
 	for i, v := range s.Video {
@@ -353,7 +374,20 @@ func (s *Source) OriginalLanguage() (lang, how string) {
 	return "", ""
 }
 
-// describe puts a track into words for the preview.
+// fileLanguage is the form a language is written in inside files: three letters, which is
+// all an MP4 can hold.
+func fileLanguage(code string) string {
+	if long, ok := threeLetters[code]; ok {
+		return long
+	}
+	return code
+}
+
+var threeLetters = map[string]string{"en": "eng", "nl": "dut", "fr": "fre", "de": "ger", "es": "spa", "it": "ita", "pt": "por", "ja": "jpn", "zh": "chi", "ko": "kor",
+	"ru": "rus", "sv": "swe", "da": "dan", "no": "nor", "fi": "fin", "pl": "pol", "cs": "cze", "hu": "hun", "el": "gre", "tr": "tur", "he": "heb", "ar": "ara",
+	"hi": "hin", "th": "tha", "ro": "rum", "uk": "ukr", "vi": "vie", "id": "ind", "ca": "cat"}
+
+// languageWords is a language in a person's words.
 func languageWords(code string) string {
 	if code == "" {
 		return "No language"

@@ -33,6 +33,7 @@ import (
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/portmap"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
+	"github.com/wittywilla/wittymediaserver/internal/libtranscode"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
@@ -57,6 +58,8 @@ type Server struct {
 	Version  string
 	// Tasks is every background job; see api_tasks.go. Made in Handler.
 	Tasks       *tasks.Registry
+	// LibConvert converts libraries' files ahead of time. Nil without FFmpeg.
+	LibConvert *libtranscode.Engine
 	taskStore   *tasks.SQLStore
 	taskStreams taskStreamCounts
 	// Metrics watches the machine; see api_metrics.go. Made in Handler.
@@ -413,6 +416,7 @@ func (s *Server) Handler() http.Handler {
 	s.remoteRoutes(m)
 	s.taskRoutes(m)
 	s.streams.init(s)
+	s.libTranscodeRoutes(m)
 	s.metricsRoutes(m)
 
 	// WittyPhotos

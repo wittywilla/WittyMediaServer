@@ -50,6 +50,9 @@ func newLab(t *testing.T) *lab {
 		t.Skip("this FFmpeg has no libx264")
 	}
 	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "data"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	d, err := db.Open(filepath.Join(dir, "data"))
 	if err != nil {
 		t.Fatal(err)
@@ -61,7 +64,11 @@ func newLab(t *testing.T) *lab {
 	}
 	store := &library.Store{DB: d}
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	slog.SetDefault(log)
 	scanner := library.NewScanner(store, realTools, filepath.Join(dir, "cache"), func() string { return "" }, log)
+	if err := os.MkdirAll(filepath.Join(dir, "cache", "images"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	root := filepath.Join(dir, "lib")
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		t.Fatal(err)
@@ -265,8 +272,15 @@ func TestRealConvertForAnyDevice(t *testing.T) {
 	l.scan()
 	it := l.item(src)
 	ctx := context.Background()
+	// Someone has watched some of it, and someone has edited its details.
 	if _, err := l.db.ExecContext(ctx, `INSERT INTO users(id, name, password_hash, is_admin, created_at) VALUES(50, 'viewer', 'x', 0, 0)`); err != nil {
-		t.Logf("no user row: %v", err)
+		t.Fatal(err)
+	}
+	if err := l.store.SetProgress(ctx, 50, it.ID, library.Progress{PositionSec: 1.5, DurationSec: 3}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := l.db.ExecContext(ctx, `UPDATE items SET overview = 'Someone wrote this by hand.' WHERE id = ?`, it.ID); err != nil {
+		t.Fatal(err)
 	}
 	r := l.run(preset(t, PresetCompatible), OutputKeep)
 	if r.Summary.Done != 1 || r.State != "done" {
@@ -309,11 +323,24 @@ func TestRealConvertForAnyDevice(t *testing.T) {
 	if full.VideoCodec != "h264" {
 		t.Fatalf("the item's facts weren't updated: %+v", full)
 	}
+	if full.Overview != "Someone wrote this by hand." {
+		t.Fatalf("its details were lost: %q", full.Overview)
+	}
+	list := []*library.Item{full}
+	if err := l.store.AttachProgress(ctx, 50, list); err != nil {
+		t.Fatal(err)
+	}
+	if full.Progress == nil || full.Progress.PositionSec != 1.5 {
+		t.Fatalf("what they'd watched was lost: %+v", full.Progress)
+	}
 	// A scan finds nothing new, and doesn't make a second item.
 	l.scan()
 	items, _ := l.store.ConversionItems(ctx, l.lib.ID)
 	if len(items) != 1 || items[0].ID != it.ID || items[0].Missing {
 		t.Fatalf("after a scan: %+v", items)
+	}
+	if after, _ := l.store.Item(ctx, it.ID); after.Overview != "Someone wrote this by hand." {
+		t.Fatalf("a scan after converting changed its details: %q", after.Overview)
 	}
 	// Doing it again changes nothing.
 	r2 := l.run(preset(t, PresetCompatible), OutputKeep)
@@ -680,7 +707,7 @@ func TestRealSubtitles(t *testing.T) {
 		if v := p.Video(); v == nil || v.CodecName != "h264" {
 			t.Fatalf("%+v", v)
 		}
-		if !exists(filepath.Join(l.root, "Device.ger.sup")) {
+		if !exists(filepath.Join(l.root, "Device.de.sup")) {
 			entries, _ := os.ReadDir(l.root)
 			t.Fatalf("no exported subtitle file: %v", entries)
 		}
@@ -711,7 +738,7 @@ func TestRealSubtitles(t *testing.T) {
 		if r.Summary.Done != 1 {
 			t.Fatalf("%+v %+v", r.Summary, l.files(r))
 		}
-		if exists(filepath.Join(l.root, "No Sidecar.ger.sup")) {
+		if exists(filepath.Join(l.root, "No Sidecar.de.sup")) {
 			t.Fatal("wrote beside the video with that off")
 		}
 		found := false
@@ -733,8 +760,8 @@ func TestRealSubtitles(t *testing.T) {
 		p.Subtitles.Images = Keep
 		p.Subtitles.Forced = Keep
 		r := l.run(p, OutputReplace)
-		if r.Summary.Done != 1 {
-			t.Fatalf("%+v %+v", r.Summary, l.files(r))
+		if r.Summary.Skip != 1 {
+			t.Fatalf("it fits as it is, in its MKV: %+v %+v", r.Summary, l.files(r))
 		}
 		got := subCodecs(l.probe(filepath.Join(l.root, "Stays Mkv.mkv")))
 		if !slices.Equal(got, []string{"subrip", "subrip", "ass", "hdmv_pgs_subtitle", "hdmv_pgs_subtitle"}) {
@@ -899,10 +926,15 @@ func TestRealCoverArt(t *testing.T) {
 	if out, err := exec.Command("ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=red:s=64x64", "-frames:v", "1", cover).CombinedOutput(); err != nil {
 		t.Skipf("can't make a picture: %v %s", err, out)
 	}
+	attached := []string{"-c:v", "mpeg4", "-c:a", "aac", "-attach", cover, "-metadata:s:t:0", "mimetype=image/jpeg", "-metadata:s:t:0", "filename=cover.jpg"}
 	for _, ext := range []string{"mkv", "mp4"} {
 		t.Run(ext, func(t *testing.T) {
 			l := newLab(t)
-			src := l.gen("With Cover."+ext, join(pic(2, "320x240"), tone(2, 300, "stereo"), []string{"-i", cover, "-map", "0", "-map", "1", "-map", "2", "-c:v:0", "mpeg4", "-c:a", "aac", "-c:v:1", "copy", "-disposition:v:1", "attached_pic"})...)
+			extra := []string{"-i", cover, "-map", "0", "-map", "1", "-map", "2", "-c:v:0", "mpeg4", "-c:a", "aac", "-c:v:1", "copy", "-disposition:v:1", "attached_pic"}
+			if ext == "mkv" {
+				extra = attached
+			}
+			src := l.gen("With Cover."+ext, join(pic(2, "320x240"), tone(2, 300, "stereo"), extra)...)
 			before := Inspect(src, l.probe(src))
 			if len(before.Covers) != 1 || len(before.Video) != 1 {
 				t.Fatalf("the sample should have one cover: %+v", before)
@@ -920,7 +952,7 @@ func TestRealCoverArt(t *testing.T) {
 	}
 	t.Run("MKV to MKV", func(t *testing.T) {
 		l := newLab(t)
-		src := l.gen("Cover Stays.mkv", join(pic(2, "320x240"), tone(2, 300, "stereo"), []string{"-i", cover, "-map", "0", "-map", "1", "-map", "2", "-c:v:0", "mpeg4", "-c:a", "aac", "-c:v:1", "copy", "-disposition:v:1", "attached_pic"})...)
+		src := l.gen("Cover Stays.mkv", join(pic(2, "320x240"), tone(2, 300, "stereo"), attached)...)
 		l.scan()
 		p := preset(t, PresetSaveSpace)
 		p.Video.Codec = "h264"
@@ -952,9 +984,6 @@ func TestRealHDR(t *testing.T) {
 	if v.Range != "hdr10" || v.Depth != 10 {
 		t.Fatalf("not read as HDR10: %+v", v)
 	}
-	if v.Mastering == "" || v.ContentLight == "" {
-		t.Logf("the sample's stream doesn't say its mastering display: %+v", v)
-	}
 	l.scan()
 	t.Run("save space leaves efficient HDR alone", func(t *testing.T) {
 		r := l.run(preset(t, PresetSaveSpace), OutputReplace)
@@ -980,7 +1009,7 @@ func TestRealHDR(t *testing.T) {
 			t.Fatalf("%+v", o2)
 		}
 		// x265 carries the mastering display inside the stream, which the frames show.
-		out, err := exec.Command(l.tools.FFprobe, "-v", "error", "-select_streams", "v:0", "-read_intervals", "%+#1", "-show_entries", "frame=side_data_list", "-of", "json", filepath.Join(l.root, "Hdr10.wms-converted.mkv")).Output()
+		out, err := exec.Command(l.tools.FFprobe, "-v", "error", "-select_streams", "v:0", "-read_intervals", "%+#1", "-show_frames", "-of", "json", filepath.Join(l.root, "Hdr10.wms-converted.mkv")).Output()
 		if err != nil || !strings.Contains(string(out), "Mastering display") {
 			t.Fatalf("mastering display lost: %s %v", out, err)
 		}
@@ -1142,7 +1171,9 @@ func TestRealDolbyVision(t *testing.T) {
 		}
 		eight := l.row(r, "Dv Eight.mp4")
 		if eight.State != FileDone {
-			t.Fatalf("%+v", eight)
+			var detail string
+			l.db.QueryRowContext(context.Background(), `SELECT detail FROM ltc_files WHERE id = ?`, eight.ID).Scan(&detail)
+			t.Fatalf("%+v\n%s", eight, detail)
 		}
 		warned := false
 		for _, w := range eight.Plan.Warnings {
@@ -1173,7 +1204,7 @@ func TestRealPictureOddities(t *testing.T) {
 	l := newLab(t)
 	l.gen("Ten Bit.mkv", join(pic(2, "320x240"), tone(2, 300, "stereo"), []string{"-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p10le", "-c:a", "aac"})...)
 	l.gen("Interlaced.mkv", join(pic(2, "720x576"), tone(2, 300, "stereo"), []string{"-vf", "tinterlace=interleave_top,fieldorder=tff", "-flags", "+ildct+ilme", "-c:v", "mpeg2video", "-c:a", "aac"})...)
-	l.gen("Variable.mkv", join(pic(4, "320x240"), tone(4, 300, "stereo"), []string{"-vf", "select='not(mod(n,3))+lt(t,2)',setpts=N/FRAME_RATE/TB*if(lt(t\\,2)\\,1\\,1)", "-fps_mode", "vfr", "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", "-shortest"})...)
+	l.gen("Variable.mkv", join(pic(4, "320x240"), tone(4, 300, "stereo"), []string{"-vf", `select=lt(t\,2)+not(mod(n\,5))`, "-fps_mode", "vfr", "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac"})...)
 	l.gen("Film.3D.SBS.mkv", join(pic(2, "640x240"), tone(2, 300, "stereo"), []string{"-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", "-metadata:s:v:0", "stereo_mode=left_right"})...)
 	l.scan()
 	r := l.run(preset(t, PresetCompatible), OutputReplace)
@@ -1222,15 +1253,12 @@ func TestRealPictureOddities(t *testing.T) {
 	})
 	t.Run("variable frame rate keeps sound in step", func(t *testing.T) {
 		l := newLab(t)
-		// Timed frames: a run of quick ones, then slow ones.
-		list := filepath.Join(t.TempDir(), "list.txt")
-		var b strings.Builder
-		b.WriteString("ffconcat version 1.0\n")
-		_ = b
-		src := l.gen("Vfr.mkv", join(pic(6, "320x240"), tone(6, 300, "stereo"), []string{"-filter:v", "setpts='if(lt(T,3),PTS,3/TB+(PTS-3/TB)*1)',select='lt(t,3)+not(mod(n,5))'", "-fps_mode", "vfr", "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac"})...)
-		_ = list
+		// A run of frames, then far fewer of them.
+		src := l.gen("Vfr.mkv", join(pic(6, "320x240"), tone(6, 300, "stereo"), []string{"-filter:v", `select=lt(t\,3)+not(mod(n\,5))`, "-fps_mode", "vfr", "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac"})...)
 		s := Inspect(src, l.probe(src))
-		t.Logf("sample: %+v", s.Video[0])
+		if !s.Video[0].Variable {
+			t.Logf("the sample isn't read as variable: %+v", s.Video[0])
+		}
 		l.scan()
 		p := preset(t, PresetSaveSpace)
 		p.Preset = PresetCustom
@@ -2038,6 +2066,58 @@ func TestRealAttachments(t *testing.T) {
 			t.Fatal("the plan doesn't say the font is dropped")
 		}
 	})
+}
+
+// Only on a machine with a working NVIDIA encoder, which is all this can be tried on here.
+func TestRealHardwareEncoder(t *testing.T) {
+	l := newLab(t)
+	l.engine.HardwareAllowed = func() []string { return []string{"h264_nvenc"} }
+	env := l.engine.Env(context.Background())
+	if !slices.Contains(env.Hardware, "h264_nvenc") || !slices.Contains(env.Hardware, "hevc_nvenc") {
+		t.Skip("no working NVIDIA encoder here")
+	}
+	src := l.gen("Hardware.mkv", join(pic(3, "1280x720"), tone(3, 300, "stereo"), []string{"-c:v", "mpeg2video", "-q:v", "2", "-c:a", "aac"})...)
+	hdr := l.gen("Hardware HDR.mkv", join(pic(3, "1280x720"), tone(3, 300, "stereo"), []string{"-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p10le", "-color_primaries", "bt2020", "-color_trc", "smpte2084", "-colorspace", "bt2020nc", "-c:a", "aac"})...)
+	l.scan()
+	p := preset(t, PresetSaveSpace)
+	p.Video.Accept, p.Video.SkipBelowKbps, p.Video.MinSavingPercent = nil, 0, 0
+	r := l.run(p, OutputReplace)
+	if r.Summary.Done != 2 {
+		t.Fatalf("%+v %+v", r.Summary, l.files(r))
+	}
+	if got := l.row(r, "Hardware.mkv").Plan.Encoder; got != "hevc_nvenc" {
+		t.Fatalf("an ordinary picture used %s", got)
+	}
+	if got := l.row(r, "Hardware HDR.mkv").Plan.Encoder; got != "libx265" {
+		t.Fatalf("HDR used %s", got)
+	}
+	if v := l.probe(src).Video(); v.CodecName != "hevc" {
+		t.Fatalf("%+v", v)
+	}
+	if v := l.probe(hdr).Video(); v.CodecName != "hevc" || v.ColorTransfer != "smpte2084" {
+		t.Fatalf("%+v", v)
+	}
+}
+
+// A real HDR10+ file can't be made here (Ubuntu's x265 leaves it out), so what the plan
+// says about one is checked with what a look at its frames would have found.
+func TestHDR10PlusIsSaidToBeLost(t *testing.T) {
+	src := &Source{Path: "/m/a.mkv", Ext: "mkv", Duration: 60, Video: []VideoStream{{Index: 0, Codec: "hevc", PixFmt: "yuv420p10le", Width: 3840, Height: 2160, Depth: 10, Range: "hdr10", Dynamic: "HDR10+", Default: true}}}
+	p, _ := PresetPolicy(PresetSaveSpace)
+	if pl := Decide(src, p, testEnv(), PlanOptions{}); pl.Verdict != VerdictSkip {
+		t.Fatalf("left alone it stays HDR10+: %+v", pl)
+	}
+	p.Video.MaxHeight = 1080
+	pl := Decide(src, p, testEnv(), PlanOptions{})
+	said := false
+	for _, w := range pl.Warnings {
+		if strings.Contains(w, "HDR10+") {
+			said = true
+		}
+	}
+	if pl.Verdict != VerdictConvert || !said {
+		t.Fatalf("%+v", pl)
+	}
 }
 
 func TestRealHEVCInMP4IsTaggedForApple(t *testing.T) {

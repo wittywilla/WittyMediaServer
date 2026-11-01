@@ -3,7 +3,6 @@ package libtranscode
 import (
 	"fmt"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 )
@@ -13,6 +12,8 @@ type Output struct {
 	Path string // the new file (a temporary name)
 	// Exports are subtitle files to write as well, by step, in the plan's order.
 	Exports []string
+	// Covers are pictures already pulled out of the source, for an MKV to attach.
+	Covers []string
 }
 
 // Args builds FFmpeg's command line. Everything from the file (track titles, languages)
@@ -37,7 +38,7 @@ func (pl *Plan) Args(src *Source, out Output) []string {
 	}
 	// Burning a subtitle made of pictures needs the filter graph, which names its inputs.
 	maps, vout := pl.filterGraph(src, &args)
-	var vIdx, aIdx, sIdx int
+	var vIdx, aIdx, sIdx, tIdx int
 	var body []string
 	add := func(a ...string) { body = append(body, a...) }
 	for _, st := range pl.Steps {
@@ -72,6 +73,9 @@ func (pl *Plan) Args(src *Source, out Output) []string {
 			}
 			vIdx++
 		case "cover":
+			if pl.Container != "mp4" {
+				continue // an MKV holds a cover as an attached file: see below
+			}
 			n := strconv.Itoa(vIdx)
 			add("-map", "0:"+strconv.Itoa(st.index), "-c:v:"+n, "copy", "-disposition:v:"+n, "attached_pic")
 			vIdx++
@@ -111,6 +115,7 @@ func (pl *Plan) Args(src *Source, out Output) []string {
 			sIdx++
 		case "attachment":
 			add("-map", "0:"+strconv.Itoa(st.index), "-c:t", "copy")
+			tIdx++
 		}
 	}
 	for _, e := range pl.embeds {
@@ -130,11 +135,20 @@ func (pl *Plan) Args(src *Source, out Output) []string {
 		sIdx++
 	}
 	_ = vout
+	for i, cover := range out.Covers {
+		if i >= len(pl.coverSteps()) {
+			break
+		}
+		st := pl.coverSteps()[i]
+		n := strconv.Itoa(tIdx)
+		add("-attach", cover, "-metadata:s:t:"+n, "mimetype="+coverMime(st.tag), "-metadata:s:t:"+n, "filename="+coverName(st))
+		tIdx++
+	}
 	args = append(args, body...)
 	args = append(args, "-map_metadata", "0", "-map_chapters", "0",
 		"-max_muxing_queue_size", "4096", "-max_interleave_delta", "0", "-avoid_negative_ts", "make_zero")
 	if pl.Container == "mp4" {
-		args = append(args, "-movflags", "+faststart+use_metadata_tags", "-f", "mp4", out.Path)
+		args = append(args, "-movflags", "+faststart", "-f", "mp4", out.Path)
 	} else {
 		args = append(args, "-f", "matroska", out.Path)
 	}
@@ -203,11 +217,49 @@ func splitBeforeScale(filters []string) (before, after []string) {
 
 // escapeFilterPath writes a path for a quoted value in a filter graph.
 func escapeFilterPath(p string) string {
-	p = filepath.ToSlash(p)
-	if runtime.GOOS == "windows" {
-		p = strings.Replace(p, ":", `\:`, 1)
+	return strings.NewReplacer(`\`, `\\\\`, `:`, `\:`, `'`, `'\\\''`).Replace(filepath.ToSlash(p))
+}
+
+// coverSteps lists the covers an MKV has to carry as attached files.
+func (pl *Plan) coverSteps() []Step {
+	if pl.Container == "mp4" {
+		return nil
 	}
-	return strings.ReplaceAll(strings.ReplaceAll(p, `\`, `\\`), `'`, `'\''`)
+	var out []Step
+	for _, st := range pl.Steps {
+		if st.Kind == "cover" && st.Action == ActKeep {
+			out = append(out, st)
+		}
+	}
+	return out
+}
+
+func coverMime(codec string) string {
+	if codec == "png" {
+		return "image/png"
+	}
+	return "image/jpeg"
+}
+
+func coverExt(codec string) string {
+	if codec == "png" {
+		return "png"
+	}
+	return "jpg"
+}
+
+func coverName(st Step) string {
+	if st.title != "" {
+		return filepath.Base(filepath.FromSlash(st.title))
+	}
+	return "cover." + coverExt(st.tag)
+}
+
+// CoverArgs pulls one cover out of a file, as it's stored there.
+func CoverArgs(src string, st Step, out string) []string {
+	args := []string{"-hide_banner", "-nostdin", "-y", "-loglevel", "error", "-protocol_whitelist", "file,pipe", "-i", src,
+		"-map", "0:" + strconv.Itoa(st.index), "-frames:v", "1", "-c", "copy", "-f", "image2", "-update", "1", out}
+	return args
 }
 
 // streamArgs turns encoder options into ones that apply to one stream.

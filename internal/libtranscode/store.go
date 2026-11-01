@@ -139,8 +139,8 @@ func SaveRule(ctx context.Context, d *db.DB, r Rule) error {
 
 // States of one file in a run.
 const (
-	FilePlanned   = "planned"   // a dry run looked at it
-	FilePending   = "pending"   // waiting its turn
+	FilePlanned   = "planned" // a dry run looked at it
+	FilePending   = "pending" // waiting its turn
 	FileRunning   = "running"
 	FileDone      = "done"      // converted, checked and in place
 	FileSkipped   = "skipped"   // nothing to do
@@ -168,21 +168,21 @@ type Run struct {
 
 // Summary adds up a run, for the page and the estimate shown before starting.
 type Summary struct {
-	Files        int     `json:"files"`
-	Convert      int     `json:"convert"`
-	Remux        int     `json:"remux"`
-	Skip         int     `json:"skip"`
-	Refuse       int     `json:"refuse"`
-	Done         int     `json:"done"`
-	Failed       int     `json:"failed"`
-	NotWorth     int     `json:"notWorth"`
-	Postponed    int     `json:"postponed"`
-	Changed      int     `json:"changed"`
-	BytesBefore  int64   `json:"bytesBefore"`
-	EstBytes     int64   `json:"estBytes"`
-	EstSec       float64 `json:"estSec"`
-	BytesAfter   int64   `json:"bytesAfter"`
-	NeedsBytes   int64   `json:"needsBytes"`
+	Files       int     `json:"files"`
+	Convert     int     `json:"convert"`
+	Remux       int     `json:"remux"`
+	Skip        int     `json:"skip"`
+	Refuse      int     `json:"refuse"`
+	Done        int     `json:"done"`
+	Failed      int     `json:"failed"`
+	NotWorth    int     `json:"notWorth"`
+	Postponed   int     `json:"postponed"`
+	Changed     int     `json:"changed"`
+	BytesBefore int64   `json:"bytesBefore"`
+	EstBytes    int64   `json:"estBytes"`
+	EstSec      float64 `json:"estSec"`
+	BytesAfter  int64   `json:"bytesAfter"`
+	NeedsBytes  int64   `json:"needsBytes"`
 	// Drives: room on each drive involved against what the job needs there.
 	Drives []DriveRoom `json:"drives,omitempty"`
 }
@@ -197,22 +197,22 @@ type DriveRoom struct {
 
 // FileRow is one file of a run.
 type FileRow struct {
-	ID         int64  `json:"id"`
-	RunID      int64  `json:"runId"`
-	ItemID     int64  `json:"itemId"`
-	Part       int    `json:"part"`
-	Path       string `json:"path"`
-	Verdict    string `json:"verdict"`
-	Reason     string `json:"reason"`
-	State      string `json:"state"`
-	Message    string `json:"message,omitempty"`
-	SizeBefore int64  `json:"sizeBefore"`
-	SizeAfter  int64  `json:"sizeAfter"`
-	EstBytes   int64  `json:"estBytes"`
+	ID         int64   `json:"id"`
+	RunID      int64   `json:"runId"`
+	ItemID     int64   `json:"itemId"`
+	Part       int     `json:"part"`
+	Path       string  `json:"path"`
+	Verdict    string  `json:"verdict"`
+	Reason     string  `json:"reason"`
+	State      string  `json:"state"`
+	Message    string  `json:"message,omitempty"`
+	SizeBefore int64   `json:"sizeBefore"`
+	SizeAfter  int64   `json:"sizeAfter"`
+	EstBytes   int64   `json:"estBytes"`
 	EstSec     float64 `json:"estSec"`
-	FinalPath  string `json:"finalPath,omitempty"`
-	KeptPath   string `json:"keptPath,omitempty"`
-	Plan       *Plan  `json:"plan,omitempty"`
+	FinalPath  string  `json:"finalPath,omitempty"`
+	KeptPath   string  `json:"keptPath,omitempty"`
+	Plan       *Plan   `json:"plan,omitempty"`
 }
 
 func (e *Engine) createRun(ctx context.Context, libraryID int64, p Policy, output string, dry bool, byID int64, by string) (int64, error) {

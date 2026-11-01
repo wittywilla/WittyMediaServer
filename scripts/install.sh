@@ -22,7 +22,8 @@ OS="$(uname -s)"
 [ "$(id -u)" = 0 ] || { echo "please run as root (sudo ./install.sh)"; exit 1; }
 
 echo "==> installing to $PREFIX (data: $DATA, port: $PORT)"
-mkdir -p "$PREFIX" "$DATA"
+mkdir -p "$PREFIX"
+install -d -m 0750 "$DATA" # holds password hashes and sessions; the service account gets it below
 cp -R "$HERE"/wms "$HERE"/bin "$PREFIX"/ 2>/dev/null || cp "$HERE"/wms "$PREFIX"/
 cp "$HERE"/*.md "$HERE"/LICENSE "$HERE"/NOTICE "$PREFIX"/ 2>/dev/null || true
 # The separate program that runs games: without it no game can start.
@@ -77,11 +78,34 @@ ProtectSystem=full
 PrivateTmp=true
 ProtectKernelTunables=true
 ProtectKernelModules=true
+ProtectKernelLogs=true
 ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
 RestrictSUIDSGID=true
+RestrictRealtime=true
+RemoveIPC=true
 LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0027
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+# Helpers run in a box made of these: without them they lose it.
+RestrictNamespaces=user pid net ipc
+# Graphics cards for transcoding, and TV tuners.
+DevicePolicy=closed
+DeviceAllow=char-drm rw
+DeviceAllow=char-DVB rw
+DeviceAllow=char-video4linux rw
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+SystemCallFilter=~@mount @reboot @swap @raw-io @module @cpu-emulation
 ReadWritePaths=$DATA
-# Media folders are read-only by default; add ReadWritePaths= entries if you need deletes.
+# Not set: MemoryDenyWriteExecute (Java and game cores that recompile need it), PrivateDevices
+# (graphics cards and tuners), PrivateUsers (the video and render groups), and ProtectSystem=strict
+# or ProtectHome, as saving information beside media writes into your media folders. To keep media
+# read-only, use the folder's permissions, or add ReadOnlyPaths= entries here.
 
 [Install]
 WantedBy=multi-user.target

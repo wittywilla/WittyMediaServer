@@ -114,6 +114,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const cd = useCdEngine(audio, {
     onDisc: (items) => {
       cdOn.current = !!items
+      if (items) dropPrepared()
       setFull(false)
       setMode('music')
       setQueue(items || [])

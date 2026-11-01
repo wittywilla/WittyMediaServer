@@ -72,7 +72,7 @@ export function Volume({ p, up }: { p: PlayerView; up?: boolean }) {
 }
 
 export function Like({ p }: { p: PlayerView }) {
-  if (!p.current || p.live) return null
+  if (!p.current || p.live || p.books) return null
   const id = p.current.id
   return <button type="button" className={'mp-ibtn' + (p.liked ? ' liked' : '')} aria-pressed={p.liked} aria-label={p.liked ? 'Remove from liked songs' : 'Add to liked songs'} title={p.liked ? 'Liked' : 'Like'} onClick={() => p.toggleLike(id)}>{p.liked ? <IconHeartOn /> : <IconHeart />}</button>
 }

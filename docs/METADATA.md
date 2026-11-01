@@ -239,5 +239,10 @@ Official releases don't have one built in today. `scripts/build-release.sh` buil
 `SCREENSCRAPER_DEV_PASSWORD` are set, and the release workflow sets those from secrets of the same names. The Docker image
 isn't built with them, because build arguments stay readable in an image.
 
+## Lyrics and artist information
+
+Music can also find lyrics, and artists' biographies and photos, online. Both are off until the owner turns them on, in first-time setup or
+*Settings → Metadata agents*. What's sent to whom is set out there and in [Music](MUSIC.md#lyrics).
+
 ---
 <sub>WittyMediaServer 0.5.0-alpha documentation</sub>

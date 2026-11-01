@@ -34,6 +34,8 @@ func main() {
 			os.Exit(cmdReset2FA(os.Args[2:]))
 		case "reset":
 			os.Exit(cmdReset(os.Args[2:]))
+		case "metadata":
+			os.Exit(cmdMetadata(os.Args[2:]))
 		case "version", "--version", "-v":
 			fmt.Println("wms", version)
 			return
@@ -67,6 +69,8 @@ usage:
                              back to a new install, the next time the server starts; keeps a copy unless -delete
   wms reset -list | -restore <copy> | -cancel
                              see the copies kept, bring one back, or take back a reset that's waiting
+  wms metadata export|check|apply [-data <dir>] [-library <id>] [--dry-run | --apply]
+                             write a text file for each title to fix by hand, say what's wrong with one, and apply them
   wms disc ls <image>        list files inside an ISO/UDF image
   wms dvd info <image>       dump DVD-Video structure (titles, menus, chapters)
   wms dvd walk <image> [n…]  run first-play, print the menu the viewer would see, press buttons

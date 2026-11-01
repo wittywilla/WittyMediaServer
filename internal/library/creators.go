@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +15,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/metafolder"
 )
 
 // WittyShorts and WittyChannels: videos by creators, from files the owner
@@ -129,9 +129,11 @@ func readSidecar(path string) (*videoSidecar, int64) {
 		return nil, 0
 	}
 	var v videoSidecar
-	if json.Unmarshal(b, &v) != nil {
+	if err := json.Unmarshal(b, &v); err != nil {
+		warnSidecar(path, b, err)
 		return nil, 0
 	}
+	v.clean()
 	return &v, st.ModTime().Unix()
 }
 
@@ -468,14 +470,11 @@ type musicVideoNFO struct {
 
 // readMusicVideoNFO reads the common sidecar for music videos.
 func readMusicVideoNFO(p string) *musicVideoNFO {
-	b, err := os.ReadFile(p)
-	if err != nil || len(b) > 1<<20 {
-		return nil
-	}
 	var n musicVideoNFO
-	if xml.Unmarshal(b, &n) != nil {
+	if !readSidecarXML(p, "</musicvideo>", &n) {
 		return nil
 	}
+	n.clean()
 	return &n
 }
 
@@ -582,18 +581,14 @@ func (s *Store) ensureCreator(ctx context.Context, libraryID int64, c creatorRow
 		avatar = artIn(c.Folder, "avatar", "channel", "profile", "folder", "poster", "cover")
 		banner = artIn(c.Folder, "banner", "fanart", "backdrop", "header")
 		for _, n := range []string{"channel.json", "creator.json", "channel.info.json"} {
-			b, err := os.ReadFile(filepath.Join(c.Folder, n))
-			if err != nil || len(b) > 1<<20 {
-				continue
-			}
 			var m channelSidecar
-			if json.Unmarshal(b, &m) == nil {
-				description = m.Description
-				if m.Handle != "" {
-					c.Handle = m.Handle
+			if readSidecarJSON(filepath.Join(c.Folder, n), 1<<20, &m) {
+				description = metafolder.Text(m.Description, 20000)
+				if h := metafolder.Line(m.Handle, 200); h != "" {
+					c.Handle = h
 				}
-				if m.Platform != "" {
-					c.Platform = m.Platform
+				if p := metafolder.Line(m.Platform, 60); p != "" {
+					c.Platform = p
 				}
 				if u := safeWebURL(m.URL); u != "" {
 					c.URL = u

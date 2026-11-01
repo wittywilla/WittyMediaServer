@@ -12,6 +12,7 @@ import (
 	_ "image/jpeg" // the formats a person's own image may be in
 	"image/png"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,9 +21,11 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittyplay"
+	"github.com/wittywilla/wittyplay/cores"
 	"github.com/wittywilla/wittyplay/ipc"
 	"github.com/wittywilla/wittyplay/patch"
 	"github.com/wittywilla/wittyplay/stream"
@@ -359,7 +362,7 @@ func (s *Server) customInput(ctx context.Context, r *http.Request, console strin
 // coreOptionsFor finds what the core for a console offers: from the running game, then
 // what was kept, then by asking the core. It returns which core that was, too.
 func (s *Server) coreOptionsFor(ctx context.Context, r *http.Request, console string, itemID int64) ([]wittyplay.OptionInfo, string) {
-	coreID, corePath := s.coreForConsole(ctx, console)
+	coreID, corePath, custom := s.coreForConsole(ctx, console, itemID)
 	if coreID == "" {
 		return nil, ""
 	}
@@ -380,12 +383,29 @@ func (s *Server) coreOptionsFor(ctx context.Context, r *http.Request, console st
 		return nil, coreID
 	}
 	g := s.games()
+	if at, ok := g.silentCores.Load(coreID); ok && time.Since(at.(time.Time)) < silentCoreFor {
+		return nil, coreID
+	}
+	// Asking loads the core, which the same promise as playing it covers.
+	if custom != nil {
+		if err := s.checkCustomCore(ctx, custom); err != nil {
+			s.Log.Warn("not asking a core for its options", "core", coreID, "err", err)
+			return nil, coreID
+		}
+	}
+	select {
+	case g.probeSlot <- struct{}{}:
+		defer func() { <-g.probeSlot }()
+	case <-ctx.Done():
+		return nil, coreID
+	}
 	opts, err := g.mgr.ProbeOptions(ctx, corePath, filepath.Join(g.dir, "system"), filepath.Join(g.dir, "tmp"))
 	if err != nil {
 		s.Log.Debug("asking a core for its options", "core", coreID, "err", err)
 		return nil, coreID
 	}
 	if len(opts) == 0 {
+		g.silentCores.Store(coreID, time.Now())
 		return nil, coreID // this core only says with a game loaded
 	}
 	s.keepCoreOptions(coreID, opts)
@@ -407,20 +427,24 @@ func (s *Server) gameSvcSession(userID, itemID int64) *stream.Session {
 	return sess
 }
 
-// coreForConsole is the core a console's games use here.
-func (s *Server) coreForConsole(ctx context.Context, console string) (id, path string) {
+// coreForConsole is the core a console's games, or this game, use here, the same way a
+// game chooses one. custom is set if that's somebody's own core.
+func (s *Server) coreForConsole(ctx context.Context, console string, itemID int64) (id, path string, custom *cores.Core) {
 	if console == wittyplay.TestConsole {
-		return "test", ipc.TestCore
+		return "test", ipc.TestCore, nil
 	}
 	c := wittyplay.ByID(console)
 	if c == nil {
-		return "", ""
+		return "", "", nil
 	}
-	core := s.games().cores.ForConsole(c, s.preferredCores(ctx)[console])
+	core := s.games().cores.ForConsole(c, s.preferredCore(ctx, c, itemID))
 	if core == nil {
-		return "", ""
+		return "", "", nil
 	}
-	return core.ID, core.Path
+	if core.Source == cores.SourceCustom {
+		custom = core
+	}
+	return core.ID, core.Path, custom
 }
 
 func (s *Server) handleGameSettingsValidate(w http.ResponseWriter, r *http.Request) {
@@ -500,12 +524,16 @@ func (s *Server) handleGamesRecent(w http.ResponseWriter, r *http.Request) {
 		if err != nil || it.Kind != "game" {
 			continue // no longer theirs to see
 		}
+		s.forViewer(r, it)
 		out = append(out, entry{it, e.Favourite, e.Plays, e.LastPlayed})
 	}
 	writeJSON(w, 200, out)
 }
 
 const maxGameNote = 8 << 10
+
+// silentCoreFor: a core with nothing to say without a game isn't asked again for this long.
+const silentCoreFor = time.Hour
 
 func (s *Server) handleGameMeta(w http.ResponseWriter, r *http.Request) {
 	it, ok := s.gameItem(r)
@@ -690,6 +718,10 @@ func (s *Server) handleGamePatchAdd(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 409, fmt.Sprintf("a game can have %d patches at most; remove one first", maxGamePatches))
 		return
 	}
+	if !takeImportSlot(w) {
+		return
+	}
+	defer func() { <-importSlots }()
 	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, patch.MaxPatch))
 	if err != nil {
 		writeErr(w, 413, fmt.Sprintf("this patch is too large: %d MB at most", patch.MaxPatch>>20))
@@ -700,13 +732,20 @@ func (s *Server) handleGamePatchAdd(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 422, err.Error())
 		return
 	}
+	if !s.accountRoom(w, id, int64(len(b))) {
+		return
+	}
 	name := cleanUploadName(r.URL.Query().Get("name"), "patch."+kind)
 	dir := s.games().patchDir(id, it.ID)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	pid, err := s.Store.AddGamePatch(ctx, id, it.ID, library.GamePatch{Name: name, Kind: kind, Size: int64(len(b))})
+	pid, err := s.Store.AddGamePatch(ctx, id, it.ID, library.GamePatch{Name: name, Kind: kind, Size: int64(len(b))}, maxGamePatches)
+	if errors.Is(err, library.ErrTooManyPatches) {
+		writeErr(w, 409, fmt.Sprintf("a game can have %d patches at most; remove one first", maxGamePatches))
+		return
+	}
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -775,6 +814,8 @@ func (s *Server) handleGamePatchDelete(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
+var patchSlot = make(chan struct{}, 1)
+
 // patchROM makes a patched copy of a game for this session when its player has patches
 // turned on. The original is never touched. A patch that won't apply leaves the game
 // unpatched and playable, with a notice saying so.
@@ -796,6 +837,13 @@ func (g *gameService) patchROM(ctx context.Context, store *library.Store, userID
 	switch ext {
 	case ".cue", ".m3u", ".gdi", ".chd", ".pbp", ".iso":
 		return rom, cleanup, []string{"Patches only work on games that are a single file, so this one started unpatched."}
+	}
+	// A game and its patched copy are both in memory here, so only one at a time.
+	select {
+	case patchSlot <- struct{}{}:
+		defer func() { <-patchSlot }()
+	case <-ctx.Done():
+		return rom, cleanup, nil
 	}
 	st, err := os.Stat(rom)
 	if err != nil || st.Size() > patch.MaxOutput {
@@ -1003,7 +1051,46 @@ const (
 	maxImportState = 256 << 20
 	maxImportSRM   = 64 << 20
 	maxStateHeader = 4 << 10
+	// importsAtOnce: each is held in memory while it's checked.
+	importsAtOnce = 2
 )
+
+// maxAccountGameBytes is what one account's imports and patches can bring the saves it
+// keeps up to, across all its games. A game's own saving is limited for each game instead.
+var maxAccountGameBytes int64 = 10 << 30
+
+var importSlots = make(chan struct{}, importsAtOnce)
+
+// takeImportSlot answers the request itself when too many are arriving already.
+func takeImportSlot(w http.ResponseWriter) bool {
+	select {
+	case importSlots <- struct{}{}:
+		return true
+	default:
+		w.Header().Set("Retry-After", "10")
+		writeErr(w, 503, "other files are being imported right now. Try again in a moment")
+		return false
+	}
+}
+
+// accountRoom says whether this much more fits in what an account may keep, and
+// answers the request itself when it doesn't.
+func (s *Server) accountRoom(w http.ResponseWriter, userID, size int64) bool {
+	n := size
+	_ = filepath.WalkDir(filepath.Join(s.games().dir, "saves", "u"+strconv.FormatInt(userID, 10)), func(_ string, d fs.DirEntry, err error) error {
+		if err == nil && !d.IsDir() {
+			if info, ierr := d.Info(); ierr == nil {
+				n += info.Size()
+			}
+		}
+		return nil
+	})
+	if n <= maxAccountGameBytes {
+		return true
+	}
+	writeErr(w, 409, fmt.Sprintf("your saved games and patches have reached the %d GB this server allows for each person. Delete some first", maxAccountGameBytes>>30))
+	return false
+}
 
 type stateHeader struct {
 	Console string `json:"console"`
@@ -1134,6 +1221,10 @@ func (s *Server) handleSaveImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name, _ := stream.SlotName(slot)
+	if !takeImportSlot(w) {
+		return
+	}
+	defer func() { <-importSlots }()
 	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxImportState))
 	if err != nil {
 		writeErr(w, 413, fmt.Sprintf("this file is too large: %d MB at most", maxImportState>>20))
@@ -1164,6 +1255,9 @@ func (s *Server) handleSaveImport(w http.ResponseWriter, r *http.Request) {
 	}
 	if !saveRoom(dir, int64(len(body))) {
 		writeErr(w, 409, stream.ErrSaveFull.Error())
+		return
+	}
+	if !s.accountRoom(w, userFrom(r).ID, int64(len(body))) {
 		return
 	}
 	if err := writeFileAtomic(filepath.Join(dir, name+".state"), body); err != nil {
@@ -1218,6 +1312,10 @@ func (s *Server) handleBatteryImport(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 409, "leave the game first: it would write over this")
 		return
 	}
+	if !takeImportSlot(w) {
+		return
+	}
+	defer func() { <-importSlots }()
 	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxImportSRM))
 	if err != nil {
 		writeErr(w, 413, fmt.Sprintf("this file is too large: %d MB at most", maxImportSRM>>20))
@@ -1234,6 +1332,9 @@ func (s *Server) handleBatteryImport(w http.ResponseWriter, r *http.Request) {
 	}
 	if !saveRoom(dir, int64(len(b))) {
 		writeErr(w, 409, stream.ErrSaveFull.Error())
+		return
+	}
+	if !s.accountRoom(w, id, int64(len(b))) {
 		return
 	}
 	path := filepath.Join(dir, "save.srm")

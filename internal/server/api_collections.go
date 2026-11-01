@@ -116,7 +116,8 @@ func (s *Server) handleCollection(w http.ResponseWriter, r *http.Request) {
 		writeLibErr(w, err)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"collection": c, "items": items, "shows": shows, "more": len(items) == limit})
+	more := len(items) == limit
+	writeJSON(w, 200, map[string]any{"collection": c, "items": s.forViewer(r, items...), "shows": s.showsForViewer(r, shows...), "more": more})
 }
 
 // PUT /api/collections/{id}

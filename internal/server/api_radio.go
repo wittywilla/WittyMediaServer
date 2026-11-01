@@ -3,6 +3,8 @@ package server
 import (
 	"bufio"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -29,11 +31,14 @@ import (
 // it is playing, and time listened to HLS stations, which have no one long request
 // to time. Entries leave when nobody is listening, so it stays small.
 type radioLive struct {
-	mu       sync.Mutex
-	titles   map[int64]*radioTitle
-	hlsUsers map[[2]int64]*radioHLSUser
-	keyOnce  sync.Once
-	key      []byte
+	streamsMu sync.Mutex
+	streams   int
+	perUser   map[int64]int
+	mu        sync.Mutex
+	titles    map[int64]*radioTitle
+	hlsUsers  map[[2]int64]*radioHLSUser
+	keyOnce   sync.Once
+	key       []byte
 }
 
 type radioTitle struct {
@@ -148,14 +153,72 @@ func (l *radioLive) hlsTick(user, id int64) (seconds float64, first bool) {
 // sign makes the proof that this server's own playlist gave out an address for a
 // station, so the relay can't be asked to fetch anything else. The key lasts until
 // a restart, after which a player starts the stream again.
-func (l *radioLive) sign(id int64, abs string) string {
+// How many stations this server relays at once, and for one person: each holds a
+// connection to the station, and a person may have a few devices going.
+const (
+	radioStreamsAtOnce  = 32
+	radioStreamsPerUser = 4
+)
+
+func (l *radioLive) takeStream(user int64) bool {
+	l.streamsMu.Lock()
+	defer l.streamsMu.Unlock()
+	if l.streams >= radioStreamsAtOnce || l.perUser[user] >= radioStreamsPerUser {
+		return false
+	}
+	if l.perUser == nil {
+		l.perUser = map[int64]int{}
+	}
+	l.streams++
+	l.perUser[user]++
+	return true
+}
+
+func (l *radioLive) dropStream(user int64) {
+	l.streamsMu.Lock()
+	defer l.streamsMu.Unlock()
+	l.streams--
+	if l.perUser[user]--; l.perUser[user] <= 0 {
+		delete(l.perUser, user)
+	}
+}
+
+func (l *radioLive) cipher() cipher.AEAD {
 	l.keyOnce.Do(func() {
 		l.key = make([]byte, 32)
 		_, _ = rand.Read(l.key)
 	})
+	block, err := aes.NewCipher(l.key)
+	if err != nil {
+		panic(err) // the key is always 32 bytes
+	}
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		panic(err)
+	}
+	return aead
+}
+
+// seal is a part of a station as its players see it: only this server can read which
+// address it means, and only for that station. A station's address can hold a private
+// key, and everyone who may listen isn't someone who may have that. The same address
+// seals the same way, so a player sees a part it already has as that part.
+func (l *radioLive) seal(id int64, abs string) string {
+	aead := l.cipher()
 	m := hmac.New(sha256.New, l.key)
 	fmt.Fprintf(m, "%d\n%s", id, abs)
-	return base64.RawURLEncoding.EncodeToString(m.Sum(nil))
+	nonce := m.Sum(nil)[:aead.NonceSize()]
+	return base64.RawURLEncoding.EncodeToString(aead.Seal(nonce, nonce, []byte(abs), []byte(strconv.FormatInt(id, 10))))
+}
+
+func (l *radioLive) unseal(id int64, sealed string) (string, bool) {
+	aead := l.cipher()
+	raw, err := base64.RawURLEncoding.DecodeString(sealed)
+	if err != nil || len(raw) < aead.NonceSize() {
+		return "", false
+	}
+	abs, err := aead.Open(nil, raw[:aead.NonceSize()], raw[aead.NonceSize():], []byte(strconv.FormatInt(id, 10)))
+	return string(abs), err == nil
 }
 
 func (s *Server) radioStation(r *http.Request) (*library.Item, bool) {
@@ -464,6 +527,12 @@ func (s *Server) handleRadioStream(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
+	if !s.radio.takeStream(userFrom(r).ID) {
+		w.Header().Set("Retry-After", "30")
+		writeErr(w, 503, "too many stations are playing right now. Close one, or try again in a moment")
+		return
+	}
+	defer s.radio.dropStream(userFrom(r).ID)
 	bg := context.WithoutCancel(r.Context())
 	st, err := library.OpenStation(r.Context(), it.Path)
 	if err != nil {
@@ -503,17 +572,16 @@ func (s *Server) handleRadioStream(w http.ResponseWriter, r *http.Request) {
 		ct = "audio/mpeg"
 	}
 	setRadioHeaders(w.Header(), ct)
-	flusher, _ := w.(http.Flusher)
+	rc := http.NewResponseController(w)
+	out := &stallWriter{w: s.capWriter(w, r), rc: rc, limit: maxStreamStall}
 	buf := make([]byte, 32<<10)
 	for {
 		n, rerr := body.Read(buf)
 		if n > 0 {
-			if _, werr := w.Write(buf[:n]); werr != nil {
+			if _, werr := out.Write(buf[:n]); werr != nil {
 				return
 			}
-			if flusher != nil {
-				flusher.Flush()
-			}
+			_ = rc.Flush()
 		}
 		if rerr != nil {
 			if !errors.Is(rerr, io.EOF) && r.Context().Err() == nil {
@@ -552,7 +620,7 @@ func (s *Server) serveRadioPlaylist(w http.ResponseWriter, r *http.Request, it *
 		suffix = "&token=" + url.QueryEscape(tok)
 	}
 	out, title, err := library.RewriteHLS(body, base, func(abs string) string {
-		return "hls?u=" + base64.RawURLEncoding.EncodeToString([]byte(abs)) + "&s=" + s.radio.sign(it.ID, abs) + suffix
+		return "hls?u=" + s.radio.seal(it.ID, abs) + suffix
 	})
 	if err != nil {
 		s.Store.RadioResult(context.WithoutCancel(r.Context()), it.ID, err)
@@ -579,7 +647,7 @@ func (s *Server) noteRadioHLS(r *http.Request, it *library.Item, title string) b
 	return first
 }
 
-// GET /api/radio/{id}/hls?u=&s=: a part of an HLS station. Only addresses this
+// GET /api/radio/{id}/hls?u=: a part of an HLS station. Only addresses this
 // server's own playlist gave out for this station are fetched.
 func (s *Server) handleRadioHLS(w http.ResponseWriter, r *http.Request) {
 	it, ok := s.radioStation(r)
@@ -587,10 +655,8 @@ func (s *Server) handleRadioHLS(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
-	q := r.URL.Query()
-	raw, err := base64.RawURLEncoding.DecodeString(q.Get("u"))
-	abs := string(raw)
-	if err != nil || !hmac.Equal([]byte(q.Get("s")), []byte(s.radio.sign(it.ID, abs))) || !library.ValidStreamURL(abs) {
+	abs, sealed := s.radio.unseal(it.ID, r.URL.Query().Get("u"))
+	if !sealed || !library.ValidStreamURL(abs) {
 		writeErr(w, 403, "that isn't part of this station")
 		return
 	}

@@ -80,7 +80,8 @@ func (s *Server) customRoutes(m *http.ServeMux) {
 // bigUploadPath says which routes take a body larger than the server's usual limit.
 // They set their own limit once they know who's asking.
 func bigUploadPath(p string) bool {
-	return strings.HasSuffix(p, "/gaming/custom/staged/upload") || (strings.Contains(p, "/gaming/custom/cores/") && strings.HasSuffix(p, "/files"))
+	return strings.HasSuffix(p, "/gaming/custom/staged/upload") || (strings.Contains(p, "/gaming/custom/cores/") && strings.HasSuffix(p, "/files")) ||
+		(strings.Contains(p, "/games/") && (strings.HasSuffix(p, "/file") || strings.HasSuffix(p, "/battery") || strings.HasSuffix(p, "/patches")))
 }
 
 // customService is what the routes keep between requests.

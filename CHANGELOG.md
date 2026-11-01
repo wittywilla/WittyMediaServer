@@ -18,6 +18,15 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Scripts:** the cutover stops if `moduleKey` isn't the key given, or if something it removes wouldn't be
   available afterwards, such as WittyCouch Host's source. `mirror.sh` refuses to push workflows naming an
   unpublished tool version. ScreenScraper's developer id is described as what it is: not built in today.
+- **Privacy:** collections, recent games and CD pages no longer show non-admins where files are on the server, and an HLS
+  radio station's address no longer reaches listeners or the logs.
+- **Limits:** each person's game saves and patches have a 10 GB total for imports, and imports really can be as large as they say.
+  Radio is limited to 4 streams a person and 32 a server. Pictures from game PCs can't pile up, patched games are prepared one at a
+  time, and a core is only asked what it offers one at a time, after its file is checked. Game PC stream limits now hold when
+  several requests arrive together.
+- **Accounts:** deleting one removes its saves, patches, images and game PC identity, and ends its games and streams, so a new
+  account can't inherit them. Whoever started a game on a shared PC stops counting as its owner once it has ended.
+
 - **Reset this server:** *Settings → Reset* puts a server back as it was first installed, after warnings, your
   password and typing RESET. It keeps a copy you can bring back from the same page, unless you choose to delete
   everything. Media files are never touched. `wms reset` does the same when you can't sign in.

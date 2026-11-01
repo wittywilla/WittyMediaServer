@@ -339,10 +339,8 @@ func TestRadioHLSRelay(t *testing.T) {
 	if w := ts.do("GET", "/api/radio/"+other+"/"+links[0], ts.adult, nil); w.Code != 403 {
 		t.Errorf("another station's address: %d", w.Code)
 	}
-	forge := func(addr, sig string) string {
-		return "/api/radio/" + id + "/hls?u=" + base64.RawURLEncoding.EncodeToString([]byte(addr)) + "&s=" + url.QueryEscape(sig)
-	}
-	for _, path := range []string{forge(st.URL+"/private", ""), forge(st.URL+"/private", "AAAA"), "/api/radio/" + id + "/hls", "/api/radio/" + id + "/hls?u=!!!&s=x"} {
+	forged := "/api/radio/" + id + "/hls?u=" + base64.RawURLEncoding.EncodeToString([]byte(st.URL+"/private"))
+	for _, path := range []string{forged, "/api/radio/" + id + "/hls", "/api/radio/" + id + "/hls?u=!!!"} {
 		if w := ts.do("GET", path, ts.adult, nil); w.Code != 403 {
 			t.Errorf("%s: %d", path, w.Code)
 		}
@@ -358,13 +356,13 @@ func TestRadioHLSRelay(t *testing.T) {
 	}
 	// A signed address that serves a page later is still refused, and with the real
 	// client a signed address can't reach this machine at all.
-	page := forge(st.URL+"/page.aac", ts.s.radio.sign(it.ID, st.URL+"/page.aac"))
+	page := "/api/radio/" + id + "/hls?u=" + ts.s.radio.seal(it.ID, st.URL+"/page.aac")
 	if w := ts.do("GET", page, ts.adult, nil); w.Code != 502 || strings.Contains(w.Body.String(), "<script>") {
 		t.Errorf("a page came through: %d %s", w.Code, w.Body)
 	}
 	test := library.SafeClient
 	library.SafeClient = realSafeClient(t)
-	inner := forge(st.URL+"/private", ts.s.radio.sign(it.ID, st.URL+"/private"))
+	inner := "/api/radio/" + id + "/hls?u=" + ts.s.radio.seal(it.ID, st.URL+"/private")
 	if w := ts.do("GET", inner, ts.adult, nil); w.Code != 502 || privateAsked.Load() != 0 {
 		t.Errorf("reached this machine: %d", w.Code)
 	}

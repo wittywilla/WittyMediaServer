@@ -72,7 +72,7 @@ type rigService struct {
 	pairs    map[int64]*rigPairing
 	lastSync map[int64]time.Time
 	lastWake map[int64]time.Time
-	starter  map[int64]int64 // rig: who last started something on it through this server
+	starter  map[int64]rigStarter // rig: who last started something on it through this server
 	syncing  map[int64]*sync.Mutex
 	finding  sync.Mutex
 }
@@ -80,6 +80,16 @@ type rigService struct {
 type rigCached struct {
 	at   time.Time
 	view rigState
+}
+
+// rigStarter is who started what from here.
+type rigStarter struct {
+	user int64
+	app  int
+}
+
+func (r rigStarter) owns(user int64, app int) bool {
+	return r.user != 0 && r.user == user && r.app == app
 }
 
 type rigPairing struct {
@@ -94,7 +104,7 @@ type rigPairing struct {
 func (s *Server) rigs() *rigService {
 	s.rigOnce.Do(func() {
 		s.rigSvc = &rigService{dir: filepath.Join(s.Cfg.DataDir, "gamerigs"), statuses: map[int64]rigCached{}, pairs: map[int64]*rigPairing{},
-			lastSync: map[int64]time.Time{}, lastWake: map[int64]time.Time{}, starter: map[int64]int64{}, syncing: map[int64]*sync.Mutex{}}
+			lastSync: map[int64]time.Time{}, lastWake: map[int64]time.Time{}, starter: map[int64]rigStarter{}, syncing: map[int64]*sync.Mutex{}}
 	})
 	return s.rigSvc
 }
@@ -270,6 +280,13 @@ func (s *Server) rigStatusNow(ctx context.Context, rig *rigRow) rigState {
 			}
 		}
 	}
+	if view.State == "online" && view.currentApp == 0 {
+		// Nothing's running, so nothing is anyone's any more: what's started at the PC next isn't theirs.
+		g := s.rigs()
+		g.mu.Lock()
+		delete(g.starter, rig.ID)
+		g.mu.Unlock()
+	}
 	if view.currentApp > 0 {
 		var title string
 		if err := s.DB.QueryRowContext(ctx, `SELECT title FROM wittyrigs_apps WHERE rig_id = ? AND app_id = ?`, rig.ID, view.currentApp).Scan(&title); err == nil {
@@ -317,10 +334,10 @@ func (s *Server) rigViewFor(ctx context.Context, r *http.Request, rig *rigRow) r
 	u := userFrom(r)
 	g := s.rigs()
 	g.mu.Lock()
-	starter := g.starter[rig.ID]
+	startedBy := g.starter[rig.ID]
 	g.mu.Unlock()
 	v := rigView{ID: rig.ID, LibraryID: rig.LibraryID, Name: rig.Name, Paired: rig.Cert != "", State: st.State, Message: st.Message, CurrentGame: st.CurrentGame,
-		CanWake: rig.MAC != "" && (st.State == "asleep"), CanQuit: st.State == "busy" && (u.IsAdmin || starter == u.ID)}
+		CanWake: rig.MAC != "" && (st.State == "asleep"), CanQuit: st.State == "busy" && (u.IsAdmin || startedBy.owns(u.ID, st.currentApp))}
 	if !u.IsAdmin {
 		if st.State == "cert-changed" || st.State == "not-paired" || st.State == "error" {
 			v.Message = "Something needs sorting out on this PC. Ask whoever runs this server."
@@ -673,17 +690,19 @@ func (s *Server) handleRigPair(w http.ResponseWriter, r *http.Request) {
 	g := s.rigs()
 	g.mu.Lock()
 	if p := g.pairs[rig.ID]; p != nil && p.State == "waiting" {
+		answer := *p
 		g.mu.Unlock()
-		writeJSON(w, 200, p)
+		writeJSON(w, 200, &answer)
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), gamestream.PairTimeout)
 	p := &rigPairing{PIN: pin, State: "waiting", Started: time.Now(), Kind: "server", cancel: cancel}
 	g.pairs[rig.ID] = p
+	answer := *p // the pairing changes this from here on
 	g.mu.Unlock()
 	s.Log.Info("rig pairing started", "rig", rig.Name, "by", userFrom(r).Name)
 	go s.runRigPair(ctx, cancel, rig, p, pin)
-	writeJSON(w, 200, p)
+	writeJSON(w, 200, &answer)
 }
 
 func (s *Server) runRigPair(ctx context.Context, cancel context.CancelFunc, rig *rigRow, p *rigPairing, pin string) {
@@ -878,33 +897,37 @@ func (s *Server) syncRig(ctx context.Context, rig *rigRow) ([]rigApp, error) {
 	// the game's name looks better.
 	art := map[int]*string{} // a missing entry means the PC couldn't say, which changes nothing
 	sums := map[[32]byte][]int{}
-	images := map[int][]byte{}
 	exts := map[int]string{}
-	for _, app := range apps {
-		if data, ext, err := c.AppImage(ctx, app.ID); err == nil {
-			images[app.ID], exts[app.ID] = data, ext
-			sum := sha256.Sum256(data)
-			sums[sum] = append(sums[sum], app.ID)
-		}
-	}
 	if err := os.MkdirAll(s.Cfg.ImagesDir, 0o755); err != nil {
 		return nil, err
+	}
+	// On disk as they come, so a long list isn't all held in memory.
+	rigArt := func(id int, ext string) string {
+		return filepath.Join(s.Cfg.ImagesDir, fmt.Sprintf("rig-%d-%d%s", rig.ID, id, ext))
+	}
+	for _, app := range apps {
+		data, ext, err := c.AppImage(ctx, app.ID)
+		if err != nil || len(data) > maxAppArt {
+			continue
+		}
+		if err := os.WriteFile(rigArt(app.ID, ext)+".tmp", data, 0o644); err != nil {
+			continue
+		}
+		exts[app.ID] = ext
+		sum := sha256.Sum256(data)
+		sums[sum] = append(sums[sum], app.ID)
 	}
 	for _, ids := range sums {
 		if len(ids) > 1 {
 			for _, id := range ids {
 				art[id] = new(string)
+				_ = os.Remove(rigArt(id, exts[id]) + ".tmp")
 			}
 			continue
 		}
-		name := fmt.Sprintf("rig-%d-%d%s", rig.ID, ids[0], exts[ids[0]])
-		p := filepath.Join(s.Cfg.ImagesDir, name)
-		tmp := p + ".tmp"
-		if err := os.WriteFile(tmp, images[ids[0]], 0o644); err != nil {
-			continue
-		}
-		if err := os.Rename(tmp, p); err == nil {
-			poster := "cache:" + name
+		p := rigArt(ids[0], exts[ids[0]])
+		if err := os.Rename(p+".tmp", p); err == nil {
+			poster := "cache:" + filepath.Base(p)
 			art[ids[0]] = &poster
 		}
 	}
@@ -1112,12 +1135,16 @@ func (s *Server) handleRigQuit(w http.ResponseWriter, r *http.Request) {
 	}
 	u := userFrom(r)
 	g := s.rigs()
-	g.mu.Lock()
-	starter := g.starter[rig.ID]
-	g.mu.Unlock()
-	if !u.IsAdmin && starter != u.ID {
-		writeErr(w, 403, "Only whoever started it, or an admin, can end what's running on this PC.")
-		return
+	if !u.IsAdmin {
+		// As it is now: the game they started may have ended, and another may be running.
+		st := s.rigStatusNow(r.Context(), rig)
+		g.mu.Lock()
+		startedBy := g.starter[rig.ID]
+		g.mu.Unlock()
+		if !startedBy.owns(u.ID, st.currentApp) {
+			writeErr(w, 403, "Only whoever started it, or an admin, can end what's running on this PC.")
+			return
+		}
 	}
 	c, err := s.rigClient(rig)
 	if err != nil {
@@ -1283,7 +1310,7 @@ func (s *Server) rigMayJoin(rig *rigRow, st rigState, appID int, user int64, adm
 	g := s.rigs()
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	return g.starter[rig.ID] == user
+	return g.starter[rig.ID].owns(user, appID)
 }
 
 // POST /api/rigs/games/{id}/start: start a game on the PC from here, so a device with no way to
@@ -1315,7 +1342,7 @@ func (s *Server) handleRigStart(w http.ResponseWriter, r *http.Request) {
 	}
 	g := s.rigs()
 	g.mu.Lock()
-	g.starter[rig.ID] = u.ID
+	g.starter[rig.ID] = rigStarter{user: u.ID, app: appID}
 	delete(g.statuses, rig.ID)
 	g.mu.Unlock()
 	s.Log.Info("rig game started", "rig", rig.Name, "game", it.Title, "by", u.Name)

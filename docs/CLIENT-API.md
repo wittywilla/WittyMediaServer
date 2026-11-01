@@ -1269,7 +1269,7 @@ one of these games answers 409 with `"rig": true`.
 | `POST /radio/{id}/check` | admin | Tries a station now, and answers with its status. |
 | `POST /radio/{id}/lookup` | admin | Finds a station added by address in the directory, and fills in its details. An address that may hold a private key is refused, never sent. |
 | `GET /radio/{id}/stream` | user, st | The sound, relayed: endless audio, or an HLS playlist when `radio.hls` is true. Get the address from `POST /items/{id}/playback`, which answers `decision: radio`, `protocol: stream` or `hls`, `seek: none`, and `nowPlayingUrl`. |
-| `GET /radio/{id}/hls` | user, st | A part of an HLS station. These addresses come from this server's playlists and are signed; don't build them. |
+| `GET /radio/{id}/hls` | user, st | A part of an HLS station. These addresses come from this server's playlists and are sealed: only this server can read them, so they can't be built. |
 
 Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything else. Station logos are at `/items/{id}/poster`, like any other picture, and may be absent or refused: show generated art when they are.
 

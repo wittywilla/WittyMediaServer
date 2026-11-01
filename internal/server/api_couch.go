@@ -45,7 +45,9 @@ import (
 const (
 	couchAttemptsWindow = 10 * time.Minute
 	couchAttemptsLimit  = 20
-	couchHostLimit      = 32
+	// maxAppArt: a game's picture from a PC, which has no use for more.
+	maxAppArt      = 2 << 20
+	couchHostLimit = 32
 )
 
 func init() {
@@ -95,6 +97,7 @@ type couchService struct {
 	checked    string
 	checkedAt  time.Time
 	checkOK    bool
+	starting   map[int64]bool // who has a stream on its way, as that takes a minute
 }
 
 type couchAppsCache struct {
@@ -226,6 +229,29 @@ func (s *Server) couchAttempt(w http.ResponseWriter, u *auth.User) bool {
 	}
 	g.attempts[u.ID] = append(kept, now)
 	return true
+}
+
+// forgetCouchUser ends an account's streams and removes what it kept here.
+func (s *Server) forgetCouchUser(u int64) {
+	g := s.couch()
+	g.mu.Lock()
+	var streams []*couchStream
+	for _, st := range g.sessions {
+		if st.User == u {
+			streams = append(streams, st)
+		}
+	}
+	delete(g.identities, u)
+	delete(g.attempts, u)
+	g.mu.Unlock()
+	for _, st := range streams {
+		st.Session.Close()
+	}
+	_ = os.RemoveAll(filepath.Join(g.dir, "identities", "u"+strconv.FormatInt(u, 10)))
+	files, _ := filepath.Glob(filepath.Join(g.dir, "art", fmt.Sprintf("u%d-h*.img", u)))
+	for _, f := range files {
+		_ = os.Remove(f)
+	}
 }
 
 func (s *Server) couchIdentity(u int64) (*gamestream.Identity, error) {
@@ -702,8 +728,9 @@ func (s *Server) handleCouchPair(w http.ResponseWriter, r *http.Request) {
 	g := s.couch()
 	g.mu.Lock()
 	if p := g.pairs[h.ID]; p != nil && p.State == "waiting" {
+		answer := *p
 		g.mu.Unlock()
-		writeJSON(w, 200, p)
+		writeJSON(w, 200, &answer)
 		return
 	}
 	g.mu.Unlock()
@@ -718,7 +745,15 @@ func (s *Server) handleCouchPair(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), gamestream.PairTimeout)
 	p := &rigPairing{PIN: pin, State: "waiting", Started: time.Now(), Kind: "couch", cancel: cancel}
 	g.mu.Lock()
+	if other := g.pairs[h.ID]; other != nil && other.State == "waiting" { // while that attempt was counted
+		answer := *other
+		g.mu.Unlock()
+		cancel()
+		writeJSON(w, 200, &answer)
+		return
+	}
 	g.pairs[h.ID] = p
+	answer := *p // the pairing changes this from here on
 	g.mu.Unlock()
 	go func() {
 		defer logging.Recover("couch: pairing", "cat", "games")
@@ -750,7 +785,7 @@ func (s *Server) handleCouchPair(w http.ResponseWriter, r *http.Request) {
 		finish("paired", "Paired.")
 		s.Log.Info("couch: a PC was paired", "user", u.Name)
 	}()
-	writeJSON(w, 200, p)
+	writeJSON(w, 200, &answer)
 }
 
 func (s *Server) handleCouchPairStatus(w http.ResponseWriter, r *http.Request) {
@@ -803,6 +838,21 @@ func (g *couchService) artPath(user, host int64, app int) string {
 	return filepath.Join(g.dir, "art", fmt.Sprintf("u%d-h%d-%d.img", user, host, app))
 }
 
+// dropOldArt removes pictures of what a PC no longer lists, as those numbers are the PC's
+// to choose: one that keeps changing them could otherwise fill the disk.
+func (g *couchService) dropOldArt(user, host int64, list []gamestream.App) {
+	keep := map[string]bool{}
+	for _, a := range list {
+		keep[g.artPath(user, host, a.ID)] = true
+	}
+	files, _ := filepath.Glob(filepath.Join(g.dir, "art", fmt.Sprintf("u%d-h%d-*.img", user, host)))
+	for _, f := range files {
+		if !keep[f] {
+			_ = os.Remove(f)
+		}
+	}
+}
+
 func (s *Server) removeCouchArt(user, host int64) {
 	matches, _ := filepath.Glob(filepath.Join(s.couch().dir, "art", fmt.Sprintf("u%d-h%d-*", user, host)))
 	for _, m := range matches {
@@ -825,8 +875,12 @@ func (s *Server) handleCouchApps(w http.ResponseWriter, r *http.Request) {
 	g.mu.Lock()
 	c, ok := g.apps[h.ID]
 	g.mu.Unlock()
-	if ok && time.Since(c.at) < rigSyncEvery && r.URL.Query().Get("fresh") == "" {
+	fresh := r.URL.Query().Get("fresh") != ""
+	if ok && time.Since(c.at) < rigSyncEvery && !fresh {
 		writeJSON(w, 200, c.apps)
+		return
+	}
+	if fresh && !s.couchAttempt(w, u) {
 		return
 	}
 	client, err := s.couchClient(ctx, u, h)
@@ -860,7 +914,7 @@ func (s *Server) handleCouchApps(w http.ResponseWriter, r *http.Request) {
 			defer logging.Recover("couch: game picture", "cat", "games")
 			defer func() { <-sem }()
 			data, _, err := client.AppImage(ctx, a.ID)
-			if err != nil {
+			if err != nil || len(data) > maxAppArt {
 				return
 			}
 			sums[i] = sha256.Sum256(data)
@@ -874,6 +928,7 @@ func (s *Server) handleCouchApps(w http.ResponseWriter, r *http.Request) {
 	for i := range out {
 		out[i].HasArt = sums[i] != [32]byte{} && seen[sums[i]] == 1
 	}
+	g.dropOldArt(u.ID, h.ID, list)
 	g.mu.Lock()
 	g.apps[h.ID] = couchAppsCache{at: time.Now(), apps: out}
 	g.mu.Unlock()
@@ -987,11 +1042,25 @@ func (s *Server) startCouchStream(ctx context.Context, u *auth.User, client *gam
 			mine = append(mine, st)
 		}
 	}
-	others := len(g.sessions) - len(mine)
-	g.mu.Unlock()
+	others := len(g.sessions) - len(mine) + len(g.starting)
+	if g.starting[u.ID] {
+		g.mu.Unlock()
+		return nil, errCouchStarting
+	}
 	if others >= limit {
+		g.mu.Unlock()
 		return nil, errCouchFull
 	}
+	if g.starting == nil {
+		g.starting = map[int64]bool{}
+	}
+	g.starting[u.ID] = true
+	g.mu.Unlock()
+	defer func() {
+		g.mu.Lock()
+		delete(g.starting, u.ID)
+		g.mu.Unlock()
+	}()
 	info, err := client.Status(ctx)
 	if err != nil {
 		return nil, err
@@ -1068,11 +1137,22 @@ func (s *Server) startCouchStream(ctx context.Context, u *auth.User, client *gam
 	g.mu.Lock()
 	g.sessions[st.ID] = st
 	g.mu.Unlock()
+	select {
+	case <-sess.Ended(): // before it was listed, so nothing else would take it off
+		g.mu.Lock()
+		delete(g.sessions, st.ID)
+		g.mu.Unlock()
+		return nil, errors.New("the stream ended as it started")
+	default:
+	}
 	s.Log.Info("couch: a stream started", "user", u.Name, "encrypted", true)
 	return st, nil
 }
 
-var errCouchFull = errors.New("This server is already streaming as many games as it's set to. Try again when one has finished.")
+var (
+	errCouchFull     = errors.New("This server is already streaming as many games as it's set to. Try again when one has finished.")
+	errCouchStarting = errors.New("Your game is already starting. Give it a moment.")
+)
 
 // writeCouchStartError says why a stream didn't start.
 func writeCouchStartError(w http.ResponseWriter, u *auth.User, err error) {
@@ -1082,6 +1162,8 @@ func writeCouchStartError(w http.ResponseWriter, u *auth.User, err error) {
 		writeJSON(w, 503, map[string]any{"error": "This server doesn't have its Moonlight program yet. It's a separate download: see Settings, WittyCouch.", "needProgram": true})
 	case errors.Is(err, errCouchFull):
 		writeErr(w, 503, err.Error())
+	case errors.Is(err, errCouchStarting):
+		writeErr(w, 409, err.Error())
 	case errors.Is(err, gamestream.ErrBusy):
 		writeErr(w, 409, "Another game is running on this PC, so this one can't start until it's closed.")
 	case errors.Is(err, gamestream.ErrNotPaired):
@@ -1130,6 +1212,9 @@ func (s *Server) handleCouchPlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q.clean()
+	if !s.couchAttempt(w, u) {
+		return
+	}
 	client, err := s.couchClient(ctx, u, h)
 	if err != nil {
 		writeErr(w, 500, err.Error())
@@ -1194,7 +1279,7 @@ func (s *Server) handleRigStream(w http.ResponseWriter, r *http.Request) {
 	}
 	g := s.rigs()
 	g.mu.Lock()
-	g.starter[rig.ID] = u.ID
+	g.starter[rig.ID] = rigStarter{user: u.ID, app: appID}
 	delete(g.statuses, rig.ID)
 	g.mu.Unlock()
 	writeJSON(w, 200, viewOfStream(stream))

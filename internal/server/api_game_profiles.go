@@ -582,10 +582,27 @@ func (s *Server) handleGameBackgroundDelete(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, 200, library.DefaultGameBackground())
 }
 
-// removeUserGameFiles is for when an account goes: its rows go with it, and this is
-// the one file of ours they don't cover.
+// removeUserGameFiles is for when an account goes: its rows go with it, and this is what
+// they don't cover. An account's number can be used again by the next one made, which
+// mustn't find any of this.
 func (s *Server) removeUserGameFiles(userID int64) {
+	g := s.games()
+	if sess := g.mgr.ForUser(userID); sess != nil {
+		sess.Stop() // it would save into what's about to go
+	}
+	dir := "u" + strconv.FormatInt(userID, 10)
+	_ = os.RemoveAll(filepath.Join(g.dir, "saves", dir))
+	_ = os.RemoveAll(filepath.Join(g.dir, "bezels", dir))
 	_ = os.Remove(s.backgroundPath(userID))
+	s.forgetCouchUser(userID)
+	r := s.rigs()
+	r.mu.Lock()
+	for id, st := range r.starter {
+		if st.user == userID {
+			delete(r.starter, id)
+		}
+	}
+	r.mu.Unlock()
 }
 
 // activeProfilesFor is what the controls route sends: a person's profiles in use for a

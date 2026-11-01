@@ -19,6 +19,7 @@ mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
 NUMERIC="$(printf '%s' "$VERSION" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
 
+chmod +x packaging/macos/scripts/*/*
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 root="$work/root"

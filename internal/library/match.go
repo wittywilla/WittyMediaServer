@@ -623,6 +623,15 @@ func (s *Scanner) SearchMatches(ctx context.Context, t *Title, query string, yea
 	if t.Meta.Sources["title"] == SourceYou || t.Meta.Sources["title"] == SourceNFO {
 		wantName = t.Name()
 	}
+	// A year from a file beside it, or typed, says as much as one in the file's name. One a
+	// match gave says nothing about whether that match was right.
+	if wantYear == nil && !isServiceSource(t.sourceOf("year")) {
+		if t.Item != nil {
+			wantYear = t.Item.Year
+		} else {
+			wantYear = t.Show.Year
+		}
+	}
 	query = strings.TrimSpace(query)
 	if year != nil {
 		wantYear = year

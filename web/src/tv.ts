@@ -70,6 +70,20 @@ function visible(el: HTMLElement, r: DOMRect): boolean {
   return s.visibility !== 'hidden' && s.pointerEvents !== 'none' && Number(s.opacity) > 0.05
 }
 
+// Scrolled out of sight in a list that the focus isn't in. It still has a position, which can
+// be right over something else on the page, so it mustn't be chosen from outside: moving
+// along that list reaches it, and from outside, what can be seen in the list comes first.
+function hiddenInScroller(el: HTMLElement, r: DOMRect, cur: Element): boolean {
+  for (let p = el.parentElement; p && p !== document.body && p !== document.documentElement; p = p.parentElement) {
+    const s = getComputedStyle(p)
+    if (s.overflowX === 'visible' && s.overflowY === 'visible') continue
+    if (p.contains(cur)) return false
+    const b = p.getBoundingClientRect()
+    if (r.bottom <= b.top + 1 || r.top >= b.bottom - 1 || r.right <= b.left + 1 || r.left >= b.right - 1) return true
+  }
+  return false
+}
+
 // The area focus may move within: the innermost open dialog, the player's
 // controls, or the whole page.
 function scopeOf(el: Element | null): ParentNode {
@@ -107,12 +121,13 @@ function move(dir: Dir): boolean {
     return true
   }
   const others = all.filter((el) => el !== cur && !el.contains(cur) && !cur.contains(el))
-  let best = ranked(boxes.get(cur)!, others, (el) => boxes.get(el)!, dir).find((el) => visible(el, boxes.get(el)!))
+  const can = (el: HTMLElement) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, cur)
+  let best = ranked(boxes.get(cur)!, others, (el) => boxes.get(el)!, dir).find(can)
   if (best) {
     // Into another group: back to where it was left, as long as that is this way too.
     const group = groupOf(best)
     const memory = group && group !== groupOf(cur) ? lastIn.get(group) : undefined
-    if (memory?.isConnected && memory !== best && boxes.has(memory) && visible(memory, boxes.get(memory)!) && ranked(boxes.get(cur)!, [memory], (el) => boxes.get(el)!, dir).length) best = memory
+    if (memory?.isConnected && memory !== best && boxes.has(memory) && can(memory) && ranked(boxes.get(cur)!, [memory], (el) => boxes.get(el)!, dir).length) best = memory
   }
   if (!best) {
     // Leaving the player's controls upwards hands the arrows back to the player.

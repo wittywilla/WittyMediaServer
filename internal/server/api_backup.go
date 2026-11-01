@@ -111,7 +111,7 @@ func (s *Server) adminOrFirstRun(h http.HandlerFunc) http.Handler {
 			}
 			if !s.setupCodeOK(r.Header.Get("X-Setup-Code")) {
 				s.Log.WarnContext(r.Context(), "restore refused: wrong setup code", "cat", "auth", "from", addressKey(r))
-				writeErr(w, 403, "Restoring from another network takes the setup code. You'll find it on the server's console.")
+				writeErr(w, 403, "Restoring from another device takes the setup code. It's on the server's console (for Docker, in docker logs), and in setup-code.txt in its data folder.")
 				return
 			}
 		}

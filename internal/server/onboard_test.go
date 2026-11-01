@@ -175,8 +175,14 @@ func TestSetupFromTheHomeNetworkTakesTheCode(t *testing.T) {
 	if err := ts.WriteSetupCode(); err != nil {
 		t.Fatal(err)
 	}
-	if w := ts.do(t, "POST", "/api/setup", "", creds, lan...); w.Code != 403 {
+	w := ts.do(t, "POST", "/api/setup", "", creds, lan...)
+	if w.Code != 403 {
 		t.Fatalf("no code: %d %s", w.Code, w.Body)
+	}
+	for _, place := range []string{"console", "docker logs", "setup-code.txt"} {
+		if !strings.Contains(w.Body.String(), place) {
+			t.Errorf("the refusal doesn't say where the code is: %q: %s", place, w.Body)
+		}
 	}
 	var st map[string]any
 	if err := json.Unmarshal(ts.do(t, "GET", "/api/status", "", nil, lan...).Body.Bytes(), &st); err != nil || st["setupCodeRequired"] != true {

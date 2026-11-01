@@ -115,7 +115,7 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 		}
 		if !s.setupCodeOK(c.SetupCode) {
 			s.Log.WarnContext(r.Context(), "setup refused: wrong setup code", "cat", "auth", "from", addressKey(r))
-			writeErr(w, 403, "Setting up this server from another device takes its setup code. It's on the server's console, and in setup-code.txt in its data folder.")
+			writeErr(w, 403, "Setting up this server from another device takes its setup code. It's on the server's console (for Docker, in docker logs), and in setup-code.txt in its data folder.")
 			return
 		}
 	}

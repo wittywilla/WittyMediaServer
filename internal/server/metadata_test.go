@@ -240,3 +240,20 @@ func TestViewsBelongToTheirOwner(t *testing.T) {
 		t.Error("it's on someone else's Home")
 	}
 }
+
+// A title with nothing kept about it yet still answers with lists, as an app expects.
+func TestAttachedAnswersWithLists(t *testing.T) {
+	ts := newTestServer(t)
+	_, admin := ts.user(t, "owner", "adult", true, "")
+	lib := ts.library(t, "movies", t.TempDir())
+	it := metaItem(t, ts, lib, "A Quiet Pier")
+	w := ts.do(t, "GET", "/api/meta/item/"+strconv.FormatInt(it.ID, 10)+"/attached", admin, nil)
+	if w.Code != 200 {
+		t.Fatalf("%d", w.Code)
+	}
+	for _, null := range []string{`"edition":null`, `"tags":null`, `"studios":null`, `"extras":null`, `"versions":null`} {
+		if strings.Contains(w.Body.String(), null) {
+			t.Errorf("%s in %s", null, w.Body)
+		}
+	}
+}

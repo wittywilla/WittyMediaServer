@@ -71,7 +71,7 @@ type Baseline struct {
 }
 
 func newTitleMeta() *TitleMeta {
-	return &TitleMeta{Locks: map[string]bool{}, Sources: map[string]string{}, Baseline: map[string]Baseline{}}
+	return &TitleMeta{Locks: map[string]bool{}, Sources: map[string]string{}, Baseline: map[string]Baseline{}, Edition: []string{}, Tags: []string{}}
 }
 
 // TitleMeta reads a title's row (never nil).

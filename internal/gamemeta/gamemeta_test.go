@@ -490,7 +490,7 @@ func TestIdentifyCartridge(t *testing.T) {
 	os.WriteFile(plain, rom, 0o644)
 	var x Identifier
 	defer x.Close()
-	id := x.Identify(plain, "gba")
+	id := x.Identify(plain, "gba", "")
 	if len(id.CRCs) != 1 || id.CRCs[0] != crc32.ChecksumIEEE(rom) || id.Size != int64(len(rom)) {
 		t.Errorf("plain: %+v", id)
 	}
@@ -498,7 +498,7 @@ func TestIdentifyCartridge(t *testing.T) {
 	nes := filepath.Join(dir, "headered.nes")
 	headered := append(append([]byte("NES\x1a"), make([]byte, 12)...), rom...)
 	os.WriteFile(nes, headered, 0o644)
-	id = x.Identify(nes, "nes")
+	id = x.Identify(nes, "nes", "")
 	if len(id.CRCs) != 2 || id.CRCs[0] != crc32.ChecksumIEEE(headered) || id.CRCs[1] != crc32.ChecksumIEEE(rom) {
 		t.Errorf("nes: %+v", id)
 	}
@@ -506,12 +506,12 @@ func TestIdentifyCartridge(t *testing.T) {
 	rom2 := bytes.Repeat([]byte("x"), 1024*8)
 	withHeader := append(make([]byte, 512), rom2...)
 	os.WriteFile(smc, withHeader, 0o644)
-	id = x.Identify(smc, "snes")
+	id = x.Identify(smc, "snes", "")
 	if len(id.CRCs) != 2 || id.CRCs[1] != crc32.ChecksumIEEE(rom2) {
 		t.Errorf("smc: %+v", id)
 	}
 	// What can't be read says nothing.
-	if id := x.Identify(filepath.Join(dir, "missing.gba"), "gba"); len(id.CRCs) != 0 {
+	if id := x.Identify(filepath.Join(dir, "missing.gba"), "gba", ""); len(id.CRCs) != 0 {
 		t.Errorf("missing: %+v", id)
 	}
 }
@@ -530,7 +530,7 @@ func TestIdentifyZipReadsOnlyHeaders(t *testing.T) {
 	f.Close()
 	var x Identifier
 	defer x.Close()
-	id := x.Identify(p, "snes")
+	id := x.Identify(p, "snes", "")
 	if len(id.CRCs) != 1 || id.CRCs[0] != crc32.ChecksumIEEE(rom) || id.Size != int64(len(rom)) {
 		t.Errorf("%+v", id)
 	}
@@ -544,7 +544,7 @@ func TestIdentifySevenZip(t *testing.T) {
 	}
 	var x Identifier
 	defer x.Close()
-	if id := x.Identify(p, "snes"); len(id.CRCs) == 0 {
+	if id := x.Identify(p, "snes", ""); len(id.CRCs) == 0 {
 		t.Errorf("no checksum from a .7z: %+v", id)
 	}
 }
@@ -598,7 +598,7 @@ func TestDiscSerials(t *testing.T) {
 	var x Identifier
 	defer x.Close()
 	for _, c := range cases {
-		if id := x.Identify(write(c.name, c.data), c.console); id.Serial != c.want {
+		if id := x.Identify(write(c.name, c.data), c.console, ""); id.Serial != c.want {
 			t.Errorf("%s: %q, want %q", c.name, id.Serial, c.want)
 		}
 	}
@@ -606,35 +606,35 @@ func TestDiscSerials(t *testing.T) {
 	gc := make([]byte, 4096)
 	copy(gc, "GMGE01")
 	binary.BigEndian.PutUint32(gc[0x1c:], 0xc2339f3d)
-	if id := x.Identify(write("gc.iso", gc), "gc"); id.Serial != "GMGE01" {
+	if id := x.Identify(write("gc.iso", gc), "gc", ""); id.Serial != "GMGE01" {
 		t.Errorf("gc: %q", id.Serial)
 	}
 	notGC := make([]byte, 4096)
 	copy(notGC, "GMGE01")
-	if id := x.Identify(write("notgc.iso", notGC), "gc"); id.Serial != "" {
+	if id := x.Identify(write("notgc.iso", notGC), "gc", ""); id.Serial != "" {
 		t.Errorf("not a gc disc: %q", id.Serial)
 	}
 	// Sega: raw sectors, with the system's name 16 bytes in.
 	saturn := make([]byte, 4096)
 	copy(saturn[0x10:], "SEGA SEGASATURN ")
 	copy(saturn[0x30:], "MK-81022 ")
-	if id := x.Identify(write("saturn.bin", saturn), "saturn"); id.Serial != "MK-81022" {
+	if id := x.Identify(write("saturn.bin", saturn), "saturn", ""); id.Serial != "MK-81022" {
 		t.Errorf("saturn: %q", id.Serial)
 	}
 	cd := make([]byte, 4096)
 	copy(cd[0x10:], "SEGADISCSYSTEM")
 	copy(cd[0x193:], "T-12345    ")
-	if id := x.Identify(write("segacd.bin", cd), "segacd"); id.Serial != "T-12345" {
+	if id := x.Identify(write("segacd.bin", cd), "segacd", ""); id.Serial != "T-12345" {
 		t.Errorf("segacd: %q", id.Serial)
 	}
 	// A cue sheet's first track, staying in its own folder.
 	track := write("Disc Game (Track 01).bin", makeISO(2352, 24, "SYSTEM.CNF;1", cnf))
 	cue := write("Disc Game.cue", []byte(`FILE "`+filepath.Base(track)+`" BINARY`+"\n  TRACK 01 MODE2/2352\n"))
-	if id := x.Identify(cue, "ps1"); id.Serial != "SLUS-00594" {
+	if id := x.Identify(cue, "ps1", ""); id.Serial != "SLUS-00594" {
 		t.Errorf("cue: %+v", id)
 	}
 	escape := write("escape.cue", []byte(`FILE "../../secret.bin" BINARY`+"\n"))
-	if id := x.Identify(escape, "ps1"); id.Serial != "" || len(id.CRCs) != 0 {
+	if id := x.Identify(escape, "ps1", ""); id.Serial != "" || len(id.CRCs) != 0 {
 		t.Errorf("a cue reached outside its folder: %+v", id)
 	}
 }

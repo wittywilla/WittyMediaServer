@@ -219,6 +219,7 @@ func TestNames(t *testing.T) {
 		{"[BIOS] Made Up (USA)", gameid.KindBIOS},
 		{"SCPH-39001", gameid.KindBIOS},
 		{"Bios Quest (Japan)", gameid.KindUnknown}, // a game with the word in its name
+		{"Made Up Battle + ST BIOS (ST) [h1]", gameid.KindUnknown}, // a game that comes with one
 		{"Game Genie (USA) (Unl)", gameid.KindUtility},
 		{"Pro Action Replay Mk2", gameid.KindUtility},
 		{"Controller Test Cartridge (J) [!]", gameid.KindUtility},

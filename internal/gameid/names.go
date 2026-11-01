@@ -18,6 +18,7 @@ var (
 	// A cart that only hosts other cartridges or does nothing by itself.
 	hostNameRe = regexp.MustCompile(`(?i)^(?:super game boy|sufami turbo|bs-x)\b`)
 
+	plusBIOSRe  = regexp.MustCompile(`\+\s*(?:[A-Za-z]+\s+)?BIOS\b`)
 	updateTagRe = regexp.MustCompile(`(?i)[\(\[](?:[^\)\]]*\b)?(?:update|patch)(?:\b[^\)\]]*)?[\)\]]`)
 	dlcTagRe    = regexp.MustCompile(`(?i)[\(\[](?:[^\)\]]*\b)?(?:dlc|add-?on)(?:\b[^\)\]]*)?[\)\]]`)
 	// Tracks of a disc, kept as files of their own: the first has the game's data.
@@ -28,6 +29,10 @@ var (
 // say nothing: "" means it's left to the bytes.
 func ClassifyName(stem string) (Kind, string) {
 	bare := tagFreeTitle(stem)
+	// "Game + ST BIOS" is a game that comes with what it needs.
+	if plusBIOSRe.MatchString(stem) {
+		return KindUnknown, ""
+	}
 	switch {
 	case biosNameRe.MatchString(stem):
 		return KindBIOS, "Its name says it's a BIOS."

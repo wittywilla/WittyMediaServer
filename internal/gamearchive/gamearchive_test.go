@@ -879,7 +879,7 @@ func TestPartlyUnpackedIsNeverUsed(t *testing.T) {
 		t.Fatal(err)
 	}
 	release()
-	key, _ := keyOf(p, ps1)
+	key, _ := keyOf(p, ps1, "")
 	track := filepath.Join(filepath.Dir(rom), "Game (Track 1).bin")
 
 	// A crash mid-unpack leaves only a temporary folder, which is ignored and cleared.
@@ -935,12 +935,12 @@ func TestOldestGoFirstAndPlayingStays(t *testing.T) {
 		return rom, release
 	}
 	gone := func(p string) bool {
-		key, _ := keyOf(p, snes)
+		key, _ := keyOf(p, snes, "")
 		_, err := os.Stat(filepath.Join(c.Dir, key))
 		return err != nil
 	}
 	age := func(p string, by time.Duration) {
-		key, _ := keyOf(p, snes)
+		key, _ := keyOf(p, snes, "")
 		when := time.Now().Add(-by)
 		_ = os.Chtimes(filepath.Join(c.Dir, key, manifestName), when, when)
 	}
@@ -1149,7 +1149,7 @@ func TestClosingStopsAnUnpack(t *testing.T) {
 		t.Fatalf("got %+v", st)
 	}
 	// Nothing half-made is left to be taken for the game.
-	key, _ := keyOf(p, snes)
+	key, _ := keyOf(p, snes, "")
 	if _, err := os.Stat(filepath.Join(c.Dir, key, manifestName)); err == nil {
 		// It may have finished before Close got there, which is fine, if it's whole.
 		c2 := &Cache{Dir: c.Dir, Limit: c.Limit}

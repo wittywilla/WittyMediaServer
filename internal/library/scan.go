@@ -203,6 +203,10 @@ type candidate struct {
 	motion string
 	// console: games, the console this file was sorted into.
 	console string
+	// verdict is how the console was worked out, and discs the game's discs when it has
+	// several. Games only.
+	verdict *gameVerdict
+	discs   []gameDisc
 }
 
 // discover lists playable things under a root: video files, disc images and
@@ -352,8 +356,10 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		all = append(all, c...)
 	}
 	if lib.Type == "games" {
-		s.Store.noteSkippedGames(ctx, lib, archives)
 		archives.save(ctx, len(offline) == 0)
+		if err := s.Store.saveNotes(ctx, libraryID, archives, len(offline) > 0); err != nil {
+			s.Log.WarnContext(ctx, "could not save what a games scan left out", "library", lib.Name, "err", err)
+		}
 	}
 	// Files someone moved to another library or removed, and files moved here.
 	if leave, adopt, err := s.Store.libraryNotes(ctx, libraryID); err == nil {
@@ -439,6 +445,9 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	s.Log.InfoContext(ctx, "scan finished", "library", lib.Name, "items", len(all), "errors", failed+problems,
 		"offline", len(offline), "took", time.Since(started).Round(time.Second).String())
 	if lib.Type == "games" {
+		if err := s.Store.linkGameVersions(ctx, lib); err != nil {
+			s.Log.WarnContext(ctx, "could not put versions of a game together", "library", lib.Name, "err", err)
+		}
 		s.GameMeta.Kick()
 	}
 	return nil

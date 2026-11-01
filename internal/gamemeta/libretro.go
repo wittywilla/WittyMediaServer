@@ -386,6 +386,11 @@ func (s *Libretro) find(ctx context.Context, q Query) (*libDB, int32, string, in
 			return d, i, MethodSerial, 98, nil
 		}
 	}
+	if q.HeaderTitle != "" {
+		if ids := d.byKey[NameKey(q.HeaderTitle)]; len(ids) > 0 {
+			return d, d.best(ids, q.Tags), MethodName, nameConfidence(100), nil
+		}
+	}
 	if ids := d.byKey[NameKey(q.Title)]; len(ids) > 0 {
 		return d, d.best(ids, q.Tags), MethodName, nameConfidence(100), nil
 	}

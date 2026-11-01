@@ -65,6 +65,10 @@ type Query struct {
 	Size int64
 	// Serial is a disc's product code, such as SLUS-00594.
 	Serial string
+	// HeaderTitle is what the file's own header calls the game, if it says. It's in
+	// capitals and often cut short, so it's worth less than a checksum and more than the
+	// name someone gave the file.
+	HeaderTitle string
 }
 
 // Score is one rating out of 100, from one reviewer or the source's own users.

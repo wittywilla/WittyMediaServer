@@ -13,6 +13,12 @@ var (
 	discRe    = regexp.MustCompile(`(?i)[\s_-]*\b(?:dis[ck]|cd|side)[\s_-]*(?:[0-9]+|[a-d])(?:\s*of\s*[0-9]+)?\b`)
 	discNumRe = regexp.MustCompile(`(?i)\bdis[ck]\s*([0-9]+)`)
 	spacesRe  = regexp.MustCompile(`\s+`)
+	// A Nintendo product code: KTR-P-CAFE, NTR-AZEE-USA.
+	productCodeRe = regexp.MustCompile(`^(?:CTR|KTR|TWL|NTR|AGB|CGB|DMG|NUS)-[A-Z0-9]{1,4}-[A-Z0-9]{2,4}$`)
+	// 000400000F700100 at the front of a name.
+	titleIDRe = regexp.MustCompile(`^[0-9A-Fa-f]{16}\s+`)
+	// "Mega Game Rev PRG1", "Mega Game v1.0".
+	revisionTailRe = regexp.MustCompile(`\s+(?:Rev\.?\s*(?:PRG)?[0-9A-Z][0-9A-Za-z.]*|v[0-9]+\.[0-9]+[a-z]?)$`)
 	// A product code left in a file name: SLUS-00594, scus_941.63, SLES 12345.
 	serialNameRe = regexp.MustCompile(`(?i)\b(SL[UEPK][SM]|SC[UEPK][SM]|SCED|SLED|SLPM|PAPX|PBPX|ULUS|ULES|ULJS|ULJM|UCUS|UCES|UCJS|NPUG|NPEG|NPJG)[-_ ]?([0-9]{3})[-_. ]?([0-9]{2})\b`)
 )
@@ -23,12 +29,25 @@ func CleanName(base string) (title, tags string) {
 	var found []string
 	for _, m := range tagRe.FindAllString(base, -1) {
 		t := strings.Trim(strings.TrimSpace(m), "()[]")
+		if productCodeRe.MatchString(t) {
+			continue // a serial says nothing to a person
+		}
+		if long, ok := regionLetters[t]; ok {
+			t = long
+		}
 		if t != "" && t != "!" {
 			found = append(found, t)
 		}
 	}
 	title = strings.TrimSpace(tagRe.ReplaceAllString(base, ""))
 	title = strings.TrimSpace(strings.ReplaceAll(title, "_", " "))
+	// A 3DS title's id is often left at the front of its name.
+	title = titleIDRe.ReplaceAllString(title, "")
+	// Some lists write a revision after the name, with no brackets.
+	if m := revisionTailRe.FindStringIndex(title); m != nil {
+		found = append(found, strings.TrimSpace(title[m[0]:m[1]]))
+		title = strings.TrimSpace(title[:m[0]])
+	}
 	for _, art := range []string{"The", "A", "An"} {
 		if s, ok := strings.CutSuffix(title, ", "+art); ok {
 			title = art + " " + s
@@ -44,6 +63,10 @@ func CleanName(base string) (title, tags string) {
 	}
 	return title, strings.Join(found, ", ")
 }
+
+// regionLetters are what sets of cartridges write for a region.
+var regionLetters = map[string]string{"U": "USA", "J": "Japan", "E": "Europe", "W": "World", "G": "Germany", "F": "France", "S": "Spain", "I": "Italy",
+	"JU": "Japan, USA", "UE": "USA, Europe", "JE": "Japan, Europe", "JUE": "Japan, USA, Europe", "A": "Australia", "K": "Korea", "C": "China"}
 
 // SearchTitle takes off what no database calls a game: which disc this is, and a
 // product code left in the name. "Dashes-for-spaces" names become words.
@@ -81,10 +104,12 @@ func DiscNumber(name string) int {
 func SerialInName(name string) string {
 	m := serialNameRe.FindStringSubmatch(name)
 	if m == nil {
-		return ""
+		return nintendoCodeRe.FindString(name)
 	}
 	return strings.ToUpper(m[1]) + "-" + m[2] + m[3]
 }
+
+var nintendoCodeRe = regexp.MustCompile(`\b(?:CTR|KTR|TWL|NTR)-[A-Z0-9]-[A-Z0-9]{4}\b`)
 
 // foldTable covers what game names actually use. Anything else is kept as it is, so
 // a Japanese title still matches itself.

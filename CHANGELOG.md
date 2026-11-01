@@ -7,6 +7,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **WittyTV with a remote:** arrows change channel again after the first press, as focus no longer lands on the player's buttons. Back from the player to the guide can't lead back into the player. The guide's grid can be reached with Down from the bar above it.
+- **Controllers:** a DualSense's D-pad works in Android's web view, where it reports no layout. An app can offer a way out for when Back has nothing left to go back through.
 - **Big screen mode:** the server's name is no longer cut off in the side menu, which now grows with the larger type and
   has no sideways scrollbar. A long name of the server's own wraps. Arriving at a page with a remote now puts focus on its
   main action, such as Play on a film, rather than leaving the first press to land anywhere. On a row with few cards, Down

@@ -94,6 +94,8 @@ const describe = (el: Element) => {
   return href ? `a[href="${CSS.escape(href)}"]` : ''
 }
 const focusMemory = new Map<string, string>()
+// How long after arriving to look for somewhere to put focus, in milliseconds. A cheap TV can take seconds to load a page.
+const LANDING = [400, 800, 1500, 2500, 4000, 6000]
 
 let say: (text: string) => void = () => {}
 
@@ -137,7 +139,7 @@ export function Announcer() {
     const land = (ms: number) => setTimeout(() => { if (settled.current !== loc.key && landOnPage(arrived, ms >= 1500)) settled.current = loc.key }, ms)
     if (first.current) {
       first.current = false
-      const opening = [400, 800, 1500, 2500].map(land)
+      const opening = LANDING.map(land)
       return () => opening.forEach(clearTimeout)
     }
     const t = setTimeout(() => {
@@ -156,7 +158,7 @@ export function Announcer() {
       document.querySelector<HTMLElement>(was)?.focus()
     }, ms))
     // Nothing to come back to, or it has gone by now.
-    const landing = (was ? [3000] : [500, 900, 1500, 2500]).map(land)
+    const landing = (was ? [3000, 6000] : LANDING).map(land)
     return () => { clearTimeout(t); later.forEach(clearTimeout); landing.forEach(clearTimeout) }
   }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
   return <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{msg}</div>

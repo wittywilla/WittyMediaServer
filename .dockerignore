@@ -1,11 +1,9 @@
 .git
+.claude
 .build
 .re
 .tools
 dist
 web/node_modules
 web/dist
-dvd_iso_test
-stuff-to-reverse-engineer
-clients
 *.log

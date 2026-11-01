@@ -1,19 +1,24 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { mediaUrl } from '../../api'
+import { api, mediaUrl } from '../../api'
 import { IconDown, IconFilm, IconFull, IconInfo, IconPrev, IconStar, IconTv, IconUp } from '../../icons'
-import { channelVars, setLook, type Look } from './look'
+import { ChannelLogo } from './ChannelLogo'
+import { channelVars, setLook, surfaceOf, type Look } from './look'
 import Preview from './Preview'
 import { useReminders } from './reminders'
-import { fmtClock, fmtDay, fmtLeft, logoSrc, type GuideChannel, type Programme } from './tvApi'
+import { fmtClock, fmtDay, fmtLeft, type GuideChannel, type Programme } from './tvApi'
 
-// A logo, when the channel has one, and otherwise its name as a clean text mark.
-export function ChannelMark({ ch, look }: { ch: Pick<GuideChannel, 'logo' | 'name'>; look: Look }) {
-  const [broken, setBroken] = useState(false)
-  useEffect(() => setBroken(false), [ch.logo])
-  const src = look.logos && !broken ? logoSrc(ch.logo) : ''
-  if (src) return <img className="ctv-logo" src={src} alt={ch.name} loading="lazy" onError={() => setBroken(true)} />
-  return <span className="ctv-name">{ch.name}</span>
+// Whether a title has logo artwork, asked once per title for as long as the page is open.
+const titleArtKnown = new Map<string, Promise<boolean>>()
+function hasTitleArt(target: 'item' | 'show', id: number): Promise<boolean> {
+  const key = target + id
+  let p = titleArtKnown.get(key)
+  if (!p) {
+    if (titleArtKnown.size > 200) titleArtKnown.clear()
+    p = api.get<{ hasLogo: boolean }>(`/meta/${target}/${id}/attached`).then((a) => !!a.hasLogo).catch(() => false)
+    titleArtKnown.set(key, p)
+  }
+  return p
 }
 
 // The top of the guide: everything about the highlighted programme. Its picture
@@ -32,6 +37,20 @@ export default function Hero({ ch, p, next, look, now, previewKey, previewName, 
     const t = setTimeout(() => setArt(itemId), 400)
     return () => clearTimeout(t)
   }, [itemId, look.art, look.layout])
+  // The title's own logo, in the modern look. The classic box is all type, as such
+  // boxes were, and any title without one keeps its name.
+  const showId = p?.showId
+  const [titleArt, setTitleArt] = useState('')
+  useEffect(() => {
+    setTitleArt('')
+    if (!itemId || !look.art || look.layout !== 'streaming') return
+    let on = true
+    const target = showId ? 'show' : 'item', id = showId || itemId
+    const t = setTimeout(() => {
+      void hasTitleArt(target, id).then((has) => { if (on && has) setTitleArt(mediaUrl(`/api/meta/${target}/${id}/art/logo`)) })
+    }, 400)
+    return () => { on = false; clearTimeout(t) }
+  }, [itemId, showId, look.art, look.layout])
 
   const real = !!p && p.kind !== 'none' && p.kind !== 'group'
   const live = !!p && p.start <= now && p.end > now
@@ -51,11 +70,13 @@ export default function Hero({ ch, p, next, look, now, previewKey, previewName, 
         <div className="ctv-hero-ch">
           {ch ? <>
             <b className="ctv-hero-num">{ch.number}</b>
-            {look.logos && logoSrc(ch.logo) ? <ChannelMark ch={ch} look={look} /> : null}
+            <ChannelLogo ch={ch} look={look} on={surfaceOf(look)} />
             <span className="ctv-hero-chtext"><b>{ch.name}</b>{ch.description && <span>{ch.description}</span>}</span>
           </> : <IconTv size={22} />}
         </div>
-        <h2 className="ctv-hero-title">{p?.title || ch?.name || ' '}</h2>
+        {titleArt && p
+          ? <h2 className="ctv-hero-title has-art" aria-label={p.title}><img src={titleArt} alt="" onError={() => setTitleArt('')} /></h2>
+          : <h2 className="ctv-hero-title">{p?.title || ch?.name || ' '}</h2>}
         <div className="ctv-hero-meta">
           {p?.sub && <span className="ctv-hero-sub">{p.sub}</span>}
           {p?.year ? <span>{p.year}</span> : null}
@@ -79,7 +100,7 @@ export default function Hero({ ch, p, next, look, now, previewKey, previewName, 
         {p?.desc && <p className="ctv-info-desc">{p.desc}</p>}
         {ch?.security?.state === 'encrypted' && <p className="ctv-info-desc"><b>{ch.security.label}.</b> {ch.security.detail} <Link className="ctv-link" to="/tv/encrypted">What can I do?</Link></p>}
         {ch?.notices?.map((n) => <p key={n} className="ctv-info-desc">{n}</p>)}
-        <div className="ctv-hero-actions">
+        <div className="ctv-hero-actions" data-nav-group>
           {ch?.alternative && <button className="ctv-btn on" onClick={() => onWatch(ch.alternative!.key)}>Watch {ch.alternative.number} {ch.alternative.name} instead</button>}
           {ch && !ch.encrypted && (later
             ? <button className={'ctv-btn' + (reminded ? '' : ' on')} aria-pressed={reminded} onClick={() => p && void reminders.toggle(ch.key, p)}>{reminded ? '✓ Reminder set' : 'Remind me'}</button>

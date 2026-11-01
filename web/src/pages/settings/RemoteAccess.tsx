@@ -8,6 +8,8 @@ import { LoadError } from '../../components/common'
 import { PageHead, Row, Section, Switch } from './ui'
 import './remote.css'
 import LegalNote from '../../components/LegalNote'
+import { ask } from '../../ui/Overlay'
+import { Segmented } from '../../ui/Choice'
 
 // Settings → Remote Access: reaching the server from outside the home. It says
 // plainly whether that works, from where and how; guides the owner through one
@@ -94,8 +96,8 @@ export default function RemoteAccess() {
   if (!st) return <PageHead title="Remote Access" desc="Loading…" />
   const s = st.settings
   const on = s.enabled || st.forced
-  const turn = (v: boolean) => {
-    if (!v && !['machine', 'home'].includes(st.you.where) && !confirm('You are connected from outside your home. Turning this off cuts this connection too, and you can only turn it on again from home. Turn it off?')) return
+  const turn = async (v: boolean) => {
+    if (!v && !['machine', 'home'].includes(st.you.where) && !await ask({ title: 'Turn this off while you’re away from home?', body: 'You’re connected from outside your home, so this cuts your connection too. You can only turn it on again from home.', confirm: 'Turn it off', danger: true })) return
     save({ enabled: v }, v ? 'Remote Access is on' : 'Remote Access is off')
   }
   return (
@@ -228,11 +230,7 @@ function CertForm({ st, save, busy }: { st: Status; save: (c: Partial<Settings>,
   const apply = () => save({ httpsMode: mode, domain, email, acceptTerms: agree, certFile, keyFile, httpsPort: Number(port) || 0, portMapping: mode === 'off' ? false : s.portMapping }, mode === 'off' ? 'HTTPS is off' : 'HTTPS settings saved')
   return (
     <div className="set-form rem-form">
-      <div className="seg" role="radiogroup" aria-label="Certificate">
-        {([['off', 'Off'], ['acme', 'Let’s Encrypt'], ['cert', 'My own certificate']] as const).map(([v, label]) => (
-          <button key={v} type="button" role="radio" aria-checked={mode === v} className={mode === v ? 'active' : ''} onClick={() => setMode(v)}>{label}</button>
-        ))}
-      </div>
+      <Segmented label="Certificate" value={mode} onChange={setMode} options={[{ value: 'off', label: 'Off' }, { value: 'acme', label: 'Let’s Encrypt' }, { value: 'cert', label: 'My own certificate' }]} />
       {mode === 'acme' && <>
         <label>Your domain name<input className="input" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="media.example.com" autoCapitalize="none" spellCheck={false} /></label>
         <label>Email for expiry notices (optional)<input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
@@ -447,7 +445,7 @@ function People() {
   }, [load])
   const away = (list || []).filter((v) => v.where === 'vpn' || v.where === 'internet')
   const end = async (v: Session) => {
-    if (!confirm(`Sign ${v.userName} out on ${v.device || 'this device'}? They'd have to sign in again.`)) return
+    if (!await ask({ title: `Sign ${v.userName} out on ${v.device || 'this device'}?`, body: 'They’d have to sign in again.', confirm: 'Sign out', danger: true })) return
     try { await api.del(`/sessions/${v.id}`); toast('Signed out'); load() } catch (e: any) { toast(e.message) }
   }
   return (

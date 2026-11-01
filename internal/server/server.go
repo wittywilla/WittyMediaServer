@@ -71,6 +71,10 @@ type Server struct {
 	Logs          *logging.Logger
 	Crashes       *logging.CrashGuard // crash reports; nil when they can't be kept
 	logMods       logModules          // how each module is logged
+	// metaFolder is the editable metadata folder's export, running or last run.
+	metaFolder metaFolderJob
+	repair     repairState // Settings, Repair
+	backup     backupState // Settings, Backup
 	// BundleExtras adds files to the support bundle (WittyDiagnoser's reports).
 	BundleExtras func() []logging.BundleFile
 	Update       *update.Updater // nil: this build can't update itself
@@ -151,6 +155,10 @@ func (s *Server) StartMetadata() {
 	s.Scanner.OnScanned = func() {
 		s.logos().Kick()
 		s.Scanner.KickListings()
+	}
+	s.Scanner.OnGamesScanned = func() { s.logos().Kick() }
+	if s.GameMeta != nil {
+		s.GameMeta.OnSettled = func() { s.logos().Kick() }
 	}
 	logging.Go("metadata start", func() {
 		ctx := context.Background()
@@ -265,6 +273,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/artwork/preview", s.requireAdmin(s.handleArtPreview))
 	m.Handle("GET /api/prefs", a(s.handlePrefs))
 	m.Handle("POST /api/themes", s.requireAdmin(s.handleThemeUpload))
+	m.Handle("POST /api/themes/custom", s.requireAdmin(s.handleThemeCustom))
 	m.Handle("DELETE /api/themes/{id}", s.requireAdmin(s.handleThemeDelete))
 	m.Handle("GET /api/shows", a(s.handleShows))
 	m.Handle("GET /api/shows/genres", a(s.handleShowGenres))
@@ -364,6 +373,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/users", a(s.handleCreateUser)) // adults may add Kids profiles
 	m.Handle("DELETE /api/users/{id}", a(s.handleDeleteUser))
 	m.Handle("PUT /api/users/{id}/access", a(s.handleUserAccess))
+	m.Handle("PUT /api/users/{id}/profile", a(s.handleUserProfile))
 	m.Handle("PUT /api/users/{id}/password", a(s.handlePassword))
 	m.Handle("GET /api/fs", s.requireAdmin(s.handleFS))
 	m.Handle("POST /api/fs/pick", s.requireAdmin(s.handlePickFolder))
@@ -514,6 +524,9 @@ func (s *Server) Handler() http.Handler {
 	s.couchRoutes(m)
 	s.wittyRigsRoutes(m)
 	s.diagnoseRoutes(m)
+	s.metaFolderRoutes(m)
+	s.repairRoutes(m)
+	s.backupRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

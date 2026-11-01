@@ -1,0 +1,19 @@
+import { NavLink } from 'react-router-dom'
+import { IconHome, IconMenu, IconSearch, IconTv } from '../icons'
+import { YouTab } from './Account'
+import { useNavPrefs } from './useNav'
+
+// The bar at the bottom on phones, floating over the page in reach of a thumb.
+export function TabBar({ onMenu }: { onMenu: () => void }) {
+  const { prefs } = useNavPrefs()
+  const hidden = prefs.hidden || []
+  return (
+    <nav className="tabbar" aria-label="Main">
+      {!hidden.includes('home') && <NavLink to="/" end aria-label="Home"><IconHome /></NavLink>}
+      {!hidden.includes('tv') && <NavLink to="/tv" aria-label="TV guide"><IconTv /></NavLink>}
+      <NavLink to="/search" aria-label="Search"><IconSearch /></NavLink>
+      <button type="button" onClick={onMenu} aria-label="Menu"><IconMenu /></button>
+      <YouTab />
+    </nav>
+  )
+}

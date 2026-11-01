@@ -1,0 +1,55 @@
+/* Settings, Backup, and restoring in first-time setup. Long paths must wrap: nothing here may
+   push the page wider than a phone. */
+
+.bk-quiet { margin: 0; color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; overflow-wrap: anywhere; }
+.bk-phase { margin: 0; font-size: var(--text-base); font-weight: 600; overflow-wrap: anywhere; }
+.bk-h { margin: var(--sp-4) 0 var(--sp-2); font-size: var(--text-lg); }
+.bk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin-top: var(--sp-3); }
+.bk-actions .btn, .bk-file-actions .btn, .bk-pw .btn, .bk-choose .btn { min-height: max(var(--control-h), 44px); }
+.bk-actions .bk-quiet { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.bk-save { margin-bottom: var(--sp-6); }
+.bk-progress { display: grid; gap: var(--sp-2); padding: var(--sp-2) 0; min-width: 0; }
+.bk-fields { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); padding-top: var(--sp-2); align-items: start; }
+.bk-total { margin: var(--sp-3) 0 0; font-size: var(--text-md); }
+.bk-keep { width: 7rem; }
+
+/* A row of what can be included. The whole row is the target. */
+.bk-parts { margin: 0; padding: 0; border: 0; display: grid; gap: var(--sp-1); min-width: 0; }
+.bk-part { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-2); min-height: 44px; border-radius: var(--r-sm); cursor: pointer; min-width: 0; }
+.bk-part:hover { background: var(--hover); }
+.bk-part:focus-within { outline: 2px solid var(--focus); outline-offset: 1px; }
+.bk-part input { flex: none; width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--accent); }
+.bk-part-text { display: grid; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.bk-part-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 var(--sp-3); font-size: var(--text-md); }
+.bk-part-head b { font-weight: 600; }
+.bk-size { color: var(--fg-2); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+
+.bk-files { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); min-width: 0; }
+.bk-file { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-4); padding: var(--sp-3) 0; border-top: 1px solid var(--border); min-width: 0; }
+.bk-file:first-child { border-top: 0; }
+.bk-file-text { display: grid; gap: 2px; min-width: 0; flex: 1 1 260px; overflow-wrap: anywhere; }
+.bk-name { color: var(--fg-3, var(--fg-2)); font-size: var(--text-xs); }
+.bk-file-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+.bk-choose { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-3); min-width: 0; }
+.bk-choose .select, .bk-choose select { flex: 1 1 220px; min-width: 0; max-width: 100%; min-height: max(var(--control-h), 44px); }
+.bk-pw { display: grid; gap: var(--sp-3); padding: var(--sp-2) 0; max-width: 420px; }
+.bk-preview { display: grid; gap: var(--sp-3); margin-top: var(--sp-3); min-width: 0; overflow-wrap: anywhere; }
+.bk-preview > p { margin: 0; }
+.bk-h:focus, .bk-answer:focus { outline: none; }
+.bk-h:focus-visible, .bk-answer:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--r-sm); }
+.bk-block { padding: var(--sp-3) 0 0; border-top: 1px solid var(--border); min-width: 0; }
+.bk-block h3 { margin: 0 0 var(--sp-2); font-size: var(--text-md); }
+.bk-block.warn h3 { color: var(--warn); }
+.bk-block p { margin: var(--sp-2) 0 0; }
+.bk-list { margin: var(--sp-1) 0 0; padding-left: var(--sp-5); font-size: var(--text-sm); line-height: 1.55; }
+.bk-list li + li { margin-top: 2px; }
+
+/* First-time setup: a way in that isn't making an account. */
+.oobe-restore { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--border); text-align: left; }
+.oobe-restore-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+
+@media (max-width: 520px) {
+  .bk-actions .btn, .bk-file-actions .btn, .bk-choose .btn, .bk-pw .btn { flex: 1 1 100%; }
+  .bk-file-actions { width: 100%; }
+}

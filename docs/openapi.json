@@ -355,6 +355,27 @@
       },
       "BundlePreview": {
         "properties": {
+          "changed": {
+            "items": {
+              "properties": {
+                "after": {
+                  "type": "string"
+                },
+                "before": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "after",
+                "before"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "days": {
             "type": "integer"
           },
@@ -386,6 +407,12 @@
           "redact": {
             "type": "boolean"
           },
+          "replaced": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
           "sample": {
             "items": {
               "type": "string"
@@ -394,6 +421,12 @@
               "array",
               "null"
             ]
+          },
+          "sanitize": {
+            "type": "boolean"
+          },
+          "scanned": {
+            "type": "integer"
           },
           "total": {
             "type": "integer"
@@ -404,6 +437,8 @@
           "parts",
           "redact",
           "sample",
+          "sanitize",
+          "scanned",
           "total"
         ],
         "type": "object"
@@ -2551,7 +2586,40 @@
               "null"
             ]
           },
+          "detectSure": {
+            "type": "integer"
+          },
+          "detectWhy": {
+            "type": "string"
+          },
+          "detectedBy": {
+            "type": "string"
+          },
           "developer": {
+            "type": "string"
+          },
+          "discs": {
+            "items": {
+              "properties": {
+                "disc": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "disc",
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "entry": {
             "type": "string"
           },
           "franchise": {
@@ -2571,6 +2639,12 @@
           },
           "players": {
             "type": "integer"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "problemText": {
+            "type": "string"
           },
           "publisher": {
             "type": "string"
@@ -2652,6 +2726,15 @@
               "null"
             ]
           },
+          "letters": {
+            "items": {
+              "$ref": "#/components/schemas/GameFacet"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "players": {
             "items": {
               "$ref": "#/components/schemas/GameFacet"
@@ -2663,13 +2746,24 @@
           },
           "rated": {
             "type": "integer"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/GameFacet"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
           "decades",
           "genres",
+          "letters",
           "players",
-          "rated"
+          "rated",
+          "series"
         ],
         "type": "object"
       },
@@ -8332,6 +8426,12 @@
           "builtin": {
             "type": "boolean"
           },
+          "colors": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
           "description": {
             "type": "string"
           },
@@ -8360,6 +8460,9 @@
               }
             },
             "type": "object"
+          },
+          "radius": {
+            "type": "number"
           },
           "scheme": {
             "type": "string"
@@ -8569,6 +8672,9 @@
           "createdAt": {
             "type": "integer"
           },
+          "displayName": {
+            "type": "string"
+          },
           "hasPassword": {
             "type": "boolean"
           },
@@ -8584,17 +8690,22 @@
           "name": {
             "type": "string"
           },
+          "showUsername": {
+            "type": "boolean"
+          },
           "twoFactor": {
             "type": "boolean"
           }
         },
         "required": [
           "createdAt",
+          "displayName",
           "hasPassword",
           "id",
           "isAdmin",
           "kind",
           "name",
+          "showUsername",
           "twoFactor"
         ],
         "type": "object"
@@ -8614,6 +8725,9 @@
           "createdAt": {
             "type": "integer"
           },
+          "displayName": {
+            "type": "string"
+          },
           "hasPassword": {
             "type": "boolean"
           },
@@ -8629,6 +8743,9 @@
           "name": {
             "type": "string"
           },
+          "showUsername": {
+            "type": "boolean"
+          },
           "twoFactor": {
             "type": "boolean"
           }
@@ -8636,11 +8753,13 @@
         "required": [
           "access",
           "createdAt",
+          "displayName",
           "hasPassword",
           "id",
           "isAdmin",
           "kind",
           "name",
+          "showUsername",
           "twoFactor"
         ],
         "type": "object"
@@ -9002,6 +9121,399 @@
         "x-wms-auth": "admin"
       }
     },
+    "/backup": {
+      "get": {
+        "operationId": "getBackup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "What's kept, the schedule, what's running, and how the last restore went. An administrator's, or anyone allowed to set up a server with no accounts yet.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/cancel": {
+      "post": {
+        "operationId": "postBackupCancel",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Stop what's running. An administrator's, or first-time setup.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/create": {
+      "post": {
+        "operationId": "postBackupCreate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start a backup: `{parts, password}`. With no password, secrets are left out.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/backup/download": {
+      "get": {
+        "operationId": "getBackupDownload",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Download a backup, with the ticket from `/backup/files/{name}/link` as `?st=`. The ticket is the permission.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/estimate": {
+      "get": {
+        "operationId": "getBackupEstimate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "About how large each part of a backup is, before compression.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/backup/files/{name}": {
+      "delete": {
+        "operationId": "deleteBackupFilesName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a backup kept on this server.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/backup/files/{name}/link": {
+      "post": {
+        "operationId": "postBackupFilesNameLink",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A short-lived address to download a backup.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/backup/restore/inspect": {
+      "post": {
+        "operationId": "postBackupRestoreInspect",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Check an archive from end to end: `{file, password}`. Nothing changes. An administrator's, or first-time setup.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/restore/request": {
+      "delete": {
+        "operationId": "deleteBackupRestoreRequest",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Take back a restore that's waiting for the next start.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/restore/start": {
+      "post": {
+        "operationId": "postBackupRestoreStart",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Bring a checked archive back: `{parts, confirm: \"RESTORE\", password, code}`. An administrator's password is asked for again; first-time setup has none to ask for.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/restore/upload": {
+      "post": {
+        "operationId": "postBackupRestoreUpload",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "An archive as the body. It's kept under a new name, and nothing is done with it yet. An administrator's, or first-time setup.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/backup/schedule": {
+      "put": {
+        "operationId": "putBackupSchedule",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/backup/undo": {
+      "post": {
+        "operationId": "postBackupUndo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put back what the last restore replaced: `{copy, password, code}`. The server restarts.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/bdj/status": {
       "get": {
         "operationId": "getBdjStatus",
@@ -9334,6 +9846,13 @@
                         "type": "string"
                       },
                       "type": "array"
+                    },
+                    "minClientVersions": {
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "description": "The oldest version of each kind of app (android, apple, desktop) this server works with.",
+                      "type": "object"
                     },
                     "playback": {
                       "type": "object"
@@ -13995,6 +14514,43 @@
         "x-wms-auth": "user"
       }
     },
+    "/games/home": {
+      "get": {
+        "operationId": "getGamesHome",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "library",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Every shelf of the games home screen"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The games home screen in one answer",
+        "tags": [
+          "games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/games/modes": {
       "get": {
         "operationId": "getGamesModes",
@@ -14416,6 +14972,101 @@
         "x-wms-auth": "user"
       }
     },
+    "/games/{id}/check": {
+      "get": {
+        "operationId": "getGamesCheck",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Whether this server can play the game, and what's missing if not"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a game needs in order to play",
+        "tags": [
+          "games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/console": {
+      "put": {
+        "operationId": "putGamesIdConsole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "console": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "console"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This file is for another console",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/games/{id}/core-options": {
       "get": {
         "operationId": "getGamesIdCoreOptions",
@@ -14713,6 +15364,46 @@
         "summary": "Games this might be, from every source in use, for fixing a match. Query: q (default: its title). Answers results and failed, the sources that didn't answer.",
         "tags": [
           "games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/games/{id}/not-a-game": {
+      "post": {
+        "operationId": "postGamesIdNotAGame",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This isn't a game. Its file stays",
+        "tags": [
+          "Games"
         ],
         "x-wms-auth": "admin"
       }
@@ -15193,6 +15884,141 @@
           }
         ],
         "summary": "Game save thumb.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/split": {
+      "post": {
+        "operationId": "postGamesSplit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A version becomes a game of its own",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/games/{id}/version": {
+      "put": {
+        "operationId": "putGamesVersion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "entry": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Which file in its archive to play",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/games/{id}/versions": {
+      "get": {
+        "operationId": "getGamesVersions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A game's other versions and its discs",
         "tags": [
           "Games"
         ],
@@ -18866,6 +19692,187 @@
         "summary": "Change a library; scanning starts.",
         "tags": [
           "Browsing"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libraries/{id}/games/import": {
+      "get": {
+        "operationId": "getLibrariesIdGamesImport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How a library's import is going",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libraries/{id}/games/review": {
+      "get": {
+        "operationId": "getLibrariesIdGamesReview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "enum": [
+                "needs",
+                "blocked",
+                "left",
+                "ignored",
+                "duplicate"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Files in a games library that didn't become games, or can't play",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libraries/{id}/games/review/apply": {
+      "post": {
+        "operationId": "postLibrariesIdGamesReviewApply",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "action": {
+                    "enum": [
+                      "add",
+                      "ignore",
+                      "forget"
+                    ],
+                    "type": "string"
+                  },
+                  "console": {
+                    "type": "string"
+                  },
+                  "ids": {
+                    "items": {
+                      "type": "integer"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "ids",
+                  "action"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Say what those files are: games for a console, or not games",
+        "tags": [
+          "Games"
         ],
         "x-wms-auth": "admin"
       }
@@ -22766,6 +23773,134 @@
           }
         ],
         "summary": "Search for a title and keep the best results.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/metadata-folder": {
+      "get": {
+        "description": "Where it is, what's in it and how the export is going. No route here takes a path.",
+        "operationId": "getMetadataFolder",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The editable metadata folder"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The editable metadata folder",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/metadata-folder/apply": {
+      "post": {
+        "description": "Makes the changes in one batch that POST /meta/undo takes back. A bad file is listed and left out.",
+        "operationId": "applyMetadataFolder",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Apply the files"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply the files",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/metadata-folder/export": {
+      "post": {
+        "description": "Writes a plain text file for each title, in the background. Never deletes, and never writes over edits that haven't been applied.",
+        "operationId": "exportMetadataFolder",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Write the files"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Write the files",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/metadata-folder/preview": {
+      "get": {
+        "description": "Field by field, with every problem by file and line. Writes nothing.",
+        "operationId": "previewMetadataFolder",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What applying would change"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What applying would change",
         "tags": [
           "Metadata"
         ],
@@ -27181,6 +28316,165 @@
         "x-wms-auth": "admin"
       }
     },
+    "/repair": {
+      "get": {
+        "operationId": "getRepair",
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What's running, the last report, what fixes did, and the safety copies kept.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/repair/check": {
+      "post": {
+        "operationId": "postRepairCheck",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Started."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Look for problems, changing nothing.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/repair/fix": {
+      "post": {
+        "operationId": "postRepairFix",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Started."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Run fixes from the last report. Anything that changes data needs the password again.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/repair/remap": {
+      "post": {
+        "operationId": "postRepairRemap",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A library's folder moved: say what would change, or do it.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/repair/restart": {
+      "post": {
+        "operationId": "postRepairRestart",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "202": {
+            "description": "Restarting."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restart, for a fix that waits for the next start.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/reset": {
       "get": {
         "operationId": "getReset",
@@ -29859,6 +31153,69 @@
         "x-wms-auth": "admin"
       }
     },
+    "/themes/custom": {
+      "post": {
+        "operationId": "postThemesCustom",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "colors": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "CSS variable name without the dashes, to a colour like #336699.",
+                    "type": "object"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "radius": {
+                    "description": "Corners, 0 to 24 pixels.",
+                    "type": "integer"
+                  },
+                  "scheme": {
+                    "enum": [
+                      "dark",
+                      "light"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemeMeta"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a theme from the theme maker: colours and corners, no files.",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/themes/{id}": {
       "delete": {
         "operationId": "deleteThemesById",
@@ -30837,7 +32194,8 @@
         "tags": [
           "Channels and live TV"
         ],
-        "x-wms-auth": "user"
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
       }
     },
     "/tv/{key}/live/seg/{name}": {
@@ -30885,7 +32243,8 @@
         "tags": [
           "Channels and live TV"
         ],
-        "x-wms-auth": "user"
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
       }
     },
     "/tv/{key}/logo": {
@@ -30937,6 +32296,15 @@
             "in": "path",
             "name": "key",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Also answer streamUrl and streamToken, for a player that can't set headers.",
+            "in": "query",
+            "name": "streamToken",
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -31347,6 +32715,70 @@
           }
         ],
         "summary": "Change a password. Your own needs `current`; other sessions of that account end.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/users/{id}/profile": {
+      "put": {
+        "operationId": "putUsersProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "displayName": {
+                    "description": "The profile name, free for anyone to choose. Empty goes back to the username.",
+                    "type": "string"
+                  },
+                  "showUsername": {
+                    "description": "Show the username in the corner of the screen, not the profile name.",
+                    "type": "boolean"
+                  },
+                  "username": {
+                    "description": "The name to sign in with. Unique, ignoring case.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change what an account is called, and which name its corner shows.",
         "tags": [
           "Sign-in and accounts"
         ],

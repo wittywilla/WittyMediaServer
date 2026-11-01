@@ -150,6 +150,20 @@ export function customVars(look: Look): React.CSSProperties {
   } as React.CSSProperties
 }
 
+// What a logo sits on, so it comes in the version that can be read: a highlighted row
+// in the modern look is the highlight's colour, anything else the guide's background.
+export function surfaceOf(look: Look, selected = false): 'dark' | 'light' {
+  const token = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  let colour = ''
+  if (selected && look.layout === 'streaming') {
+    if (look.colours === 'theme') colour = token('--accent')
+    else if (look.colours === 'custom') colour = legibleAccent(look.customAccent, look.customBg)
+    else return 'light'
+  } else if (look.colours === 'theme') colour = token('--bg')
+  else if (look.colours === 'custom') colour = look.customBg
+  return isHex(colour) && readableOn(colour) === '#000000' ? 'light' : 'dark'
+}
+
 // A channel's own colour, for what belongs to that channel.
 export function channelVars(accent: string | undefined, bg = '#000000'): React.CSSProperties {
   if (!isHex(accent)) return {}

@@ -20,6 +20,19 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   which wasn't true, put right.
 - **Libraries can be read-only**: nothing the server does may change their files.
 
+- **Apps:** a live channel can now be played by a player that can't set headers, which is every Apple TV: `GET /tv/{key}/tune?streamToken=1` adds an address with a stream token for that channel alone. `/capabilities` says the oldest version of each app it works with (`minClientVersions`), names what has landed since the last revision, and lists games and photos, which it had left out. The API guide says how compatibility is decided, and how live channels work.
+
+- **Game libraries know what's a game.** A file's own bytes now decide which console it's for, and whether it's a game at all: headers, boot sectors, `SYSTEM.CNF` and `PARAM.SFO`,
+  even inside a compressed `.cso`. A readme called `.md`, a BIOS, a copier's firmware, an update or a music CD no longer becomes a game, and a PlayStation 2 disc in the wrong folder lands in the right console.
+- **Needs a look.** What can't be proven doesn't become a game. It goes on a list on the library's page with its reason and a one-click fix, beside a list of what was left out and why.
+- **One game, however it's kept.** Discs come together as one game, in folders, in archives or a mix, with the disc changed from the game's menu. Copies are found by checksum. Regions and revisions
+  share a tile, with each still its own game. A set's best version plays, and another can be chosen.
+- **Fix this game**, on its page: the wrong console, not a game, which version, split a version off, and why the server believes what it does.
+- **Importing thousands of games** takes no attention. It runs in the background, survives a restart and shows how far it's got. Every game gets its name, checksum match and box art from the local
+  database first, in about a minute, before any online source is asked. A fan's hack isn't named after the game it was made from, and a set's right region is what's named.
+- **3DS:** whether a file is encrypted now comes from its bytes, and an encrypted one says so on its page before you press Play. New 3DS games tell the core to be one. Updates and extra content aren't listed as games.
+- **Console and studio marks:** logos for consoles and game studios from the logo service, optional as all logos are, and a typed label that looks right without them.
+- **A full server says so straight away,** rather than unpacking and patching a game first.
 - **Every format, everywhere.** One list of file types now drives scanning, playback, serving, the file browser and the
   docs. It covers over 200 extensions: every common video container, codec and raw stream, FLAC to DSD to tracker and game
   music, MIDI through a synthesiser of the server's own, RAW from every major camera, Kindle, FictionBook, Word, Rich Text and
@@ -37,6 +50,22 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Motion photos** with their clip inside the picture play it. **SVG pictures** are shown, with anything active taken out first.
 - Cover art at the front of a video no longer gets taken for the picture. Mono sound that FFmpeg's AAC encoder refused now
   converts. DVDs in `.img` files, which FFmpeg took for pictures, get their thumbnails and play.
+### A new look, the same everywhere
+
+- **Design standards**: `docs/DESIGN.md` now covers every colour, size, part, pattern and rule, and a check in CI keeps the interface to it. Administrators can see every part at `/design`.
+- **Shared parts** for buttons, fields, menus, dialogs, toasts, tooltips, cards and tables, which all work with a keyboard, a remote and a screen reader. Settings and the pages around it moved onto them, and "are you sure?" questions are now the app's own instead of the browser's.
+- **Themes**: eight well-made themes in place of twenty colour variations, each shown as a small live piece of the app. If you were using one of the old ones, you've been moved to the closest. **Make a theme** builds a whole readable theme from a few choices, with no code. `docs/THEMES.md` is rewritten for someone who has never written CSS.
+- **The top bar stays manageable**: what doesn't fit goes under **More**, and you can see the page you're on even when it's in there. Drag or use the keyboard to reorder, hide what you don't use, and group into Watch, Listen, Read and Play. The side menu folds to a rail of icons. Everyone can have their own arrangement, and the owner can set the default.
+- **Phones** get a row of sections along the top and a floating bar at the bottom.
+- **Remote and keyboard**: arrow keys reach everything, coming back to a row lands where you left it, and Back returns to the control you left. **Big screen mode** in Appearance, or `?tv=1`, keeps the larger text and stronger focus on for a TV.
+- **Moving posters**: movie and show posters lean toward the pointer with a soft moving light, or settle in as a remote reaches them. Turn it off in Appearance; it also stays off on modest devices and when a device asks for less motion.
+- **Profile names and usernames can differ**: you sign in with a unique username, and everyone else sees a profile name anyone can choose. Each person picks which one shows at the top right. Usernames now count as taken whatever their case, and can't contain invisible characters.
+
+### Fixed
+
+- In Settings, scrolling with the pointer over the menu moved the page beside it. The menu now scrolls by itself.
+- With internet radio or music playing, the account menu could open behind the audio bar, and the mini player could cover dialogs. Everything over the page now has one stacking order.
+
 - **Every module and app is now a project of its own.** WittyPlay, WittyDVD, WittyBluray, WittyCD, WittyDisc, WittyTuner, WittyPhotos,
   WittyCouch, WittyCouchHost, WittyRigs, WittyIntegratedFileBrowser, WittyModule, the reader plugins, WittyVisualizer, WittyReader,
   WittyMediaPlayer and WittyMediaClient each have their own repository, history, changelog and releases. The older `clients/desktop`
@@ -56,7 +85,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   programme, between commercials, or a break every so many minutes, mandatory or only for particular films, shows,
   genres or collections.
 - **WittyTV timetable:** "cut commercials short" keeps programmes starting on time, with clear choices about what may give
-  way, and the editor shows the whole day with what was cut.
+  way, and the editor shows the whole day with what was cut. Commercial breaks can now come inside a programme, and give
+  way the same way.
+- **WittyTV logos:** channels wear their network's or studio's logo from the logo service, or one you pick, and the modern
+  look shows a title's own logo art.
+- **Fixed:** uploaded bumpers keep playing when the data folder moves, as after restoring a backup somewhere else.
 - **WittyTV channels:** one click for studios and your collections as well as genres, decades and networks, with *Add all*.
   Holiday seasons and marathon blocks. Channels you already have carry on as they were.
 - **Edit details:** one dialog for a film, an episode or a show, in sections, with Delete, Cancel and Save always in view. Every field says where its value came from, can be locked so nothing changes it (no scan, refresh, new match, NFO or file beside it, matched or not), and can go back to what its source said. It also has artwork from every source with your own uploads, banners and title logos, where the intro ends (typed, or picked in the player), bonus features, versions, moving to another library, and logos.
@@ -67,7 +100,43 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Categories:** made from genres per library, with spellings of the same genre put together, and they can be hidden, reordered, renamed and merged, with art from what's in them.
 - **Browse by anything:** type, category, studio, network, year, decade, age rating, score, picture, sound, audio and subtitle language, edition, tags and whether it's been watched, sorted by Shuffle, Recently added, Title, Newest, Oldest, Highest rated or Best quality. Views can be saved and pinned to Home.
 - **Streaming listings:** optional, off until you accept each statement of what it is. Sorts the media on your server by what services currently list it, with a date and credit. Nothing plays from those services.
+- **Collections from film series:** when a source says films belong to a series, a library shows them as a collection by itself, and the Collection field changes it.
+- **A library's header stays in view** as you scroll, with its name, sort and Filters.
+- **Arrow keys and a remote reach everything** in the edit dialog, Fix matches and Pick in player, and carry on from nearby when the button you pressed goes away.
 - **One library header** on film, TV, disc, music, audiobook and book libraries, with sort direction everywhere.
+### Backups, repair and logs
+
+- **Backup and restore:** *Settings → Backup* and `wms backup` make one ZIP of your database, settings, metadata, artwork, accounts, watch history, channels, game saves and module settings, with a tick for each, and a size estimate first. It runs in the background while the server carries on, and shows in the activity panel. Your media is never in it, and neither is any program.
+- **Real encryption:** a password seals the whole backup with AES-256-GCM, with the key made by Argon2id, and brings your API keys and two-factor sign-in along. With no password, secrets are left out.
+- **Scheduled backups:** every day or week, keeping the newest few.
+- **Restore,** from Settings, the command line, or first-time setup, so a reset no longer means setting everything up again. An archive is treated as hostile: every file is checked first, and anything that tries to leave its folder, a link, a ZIP bomb, a program, a picture that isn't one or a tampered database is refused, saying why. It shows who could sign in and which folders it would use before you agree. What's there now moves to a safety copy, goes back by itself if anything fails, and can be put back later. Every sign-in ends, on purpose.
+- **Metadata files:** *Settings → Repair → Metadata files* writes a plain text file for each film, show, episode, disc, home video, book and game, to fix by hand in any text editor. It shows what your edits would change, field by field, before anything does. Anything wrong is named by file and line, and one bad file doesn't hold up the rest. Changes lock themselves and can be undone in one step. A picture can be dropped beside a file. It works from the command line too, with the server stopped: `wms metadata export|check|apply|undo`. Guide: `docs/FIXING-METADATA.md`, and in the app.
+- **Safer metadata files:** everything read from an NFO, `.metadata.json`, `.info.json`, `.wittycd.json`, or a book's or comic's own details is limited in size and cleaned to plain text: no HTML, scripts, hidden characters or file addresses. `DOCTYPE` and `ENTITY` declarations are refused, and links that lead out of a folder aren't followed. Problems name the file and the line.
+- **Repair:** *Settings → Repair* and `wms doctor` find and fix problems with metadata, the database, modules and the install, on every platform, even when the server won't start. Each finding says what it found, what the fix does, and whether it's safe. It only looks until you say so, and a safety copy is made before anything changes.
+- **A damaged database can be recovered:** a new one is built from everything that can still be read, it says what couldn't be saved, and the damaged file is kept.
+- **Moved a drive?** `wms doctor remap` or *Settings → Repair* changes where the server looks, after checking the files are really there. Watch progress, matches and edits stay.
+- **Sanitized logs:** *Settings → WittyLog* has **Download logs as ZIP**, with **Sanitize for sharing** right beside it, on by default. IP addresses, computer and web names, network card addresses, account names, emails, file paths, folders, library names and titles become placeholders such as `[path-3]`, the same number all through the file, so a problem can still be followed. It shows the files, how much is replaced, and lines before and after, first. Versions, codecs, status codes, timings, routes and errors stay.
+- **`wms logs zip` and `wms logs sanitize`:** the same with no server running, even with a broken database.
+- **Getting to the logs:** every WittyLog tab, a page that fails to load, a crash notice and the page shown when the app itself hits an error now link to the download.
+### Games
+
+- **A new home for your games.** A hero of covers on a shiny floor with the page tinted by the cover at the front, Continue
+  playing with a picture of where you left off, Consoles with their game counts, then recently added, favourites, most played
+  and shelves by genre and series. Sort by most popular, newest first, oldest first or A to Z, filter, and jump to a letter.
+  Any number of games stays quick: only what's on screen is ever on the page.
+- **A new page for each game**: its art, screenshots, year, publisher and players, save states with pictures, cheats, controls,
+  and what it needs to play. If something's stopping it from starting, the page says so and takes you to the fix.
+- **A new game menu**, with large tiles for save, load, rewind, fast forward, screenshots, controllers, settings and quit, which
+  work the same by finger, keyboard, remote or controller. Rewind can be turned on from the menu.
+- **A loading screen that says what's happening**, and error screens that say what to do about it.
+- **Touch controls redrawn for each console**, with one tap to hide them, and they step aside when a controller is connected.
+  The editor can resize them all at once.
+- **Couch mode**: the games on their own, full screen and large, with an on-screen keyboard for searching.
+- **Button prompts** that match the controller in your hands: letters, shapes or a keyboard's keys.
+- **Settings, Consoles & cores** now starts with the consoles you have games for, whether each is ready, and the one thing to do
+  if it isn't. There's a button to install every recommended core at once. Everything else is under Advanced.
+- Game PCs and gaming PC libraries match the rest, and a gaming PC's library is no longer limited to 500 games.
+
 ### Music
 
 - **A new front page for music, audiobooks and podcasts:** covers to flip through with their reflections, artists as round photos, albums and songs as shelves with **See all**, and colours taken from the artwork. **Play my music** shuffles it all.

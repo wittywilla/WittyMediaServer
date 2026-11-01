@@ -3,6 +3,7 @@ import { api } from '../api'
 import { canPost, type Collection } from '../gallery'
 import { IconPlus } from '../icons'
 import { toast, useApp } from '../state'
+import { Dialog } from '../ui/Overlay'
 
 // SaveButton: Save, on a film, show or video's own page.
 export function SaveButton({ itemId, showId, label = 'Save' }: { itemId?: number; showId?: number; label?: string }) {
@@ -54,16 +55,12 @@ function SaveDialog({ itemId, showId, onClose }: { itemId?: number; showId?: num
   }
   const hasLater = list?.some((c) => c.system === 'watchlater')
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="save-h" onClick={(e) => e.stopPropagation()}>
-        <h2 id="save-h">Save to</h2>
+    <Dialog title="Save to" onClose={onClose} actions={<><button className="btn primary" onClick={onClose}>Done</button></>}>
         <div className="gal-pick">
           {!hasLater && <button className="btn ghost" onClick={later}>Watch later</button>}
           {list?.map((c) => <label key={c.id} className="share-check col-save"><input type="checkbox" checked={holding.includes(c.id)} onChange={() => toggle(c)} /> {c.name}</label>)}
         </div>
         {canPost(user) && <form className="share-link" onSubmit={make}><input className="input" placeholder="New collection" aria-label="New collection's name" maxLength={200} value={name} onChange={(e) => setName(e.target.value)} /><button className="btn">Add</button></form>}
-        <div className="actions"><button className="btn primary" onClick={onClose}>Done</button></div>
-      </div>
-    </div>
+    </Dialog>
   )
 }

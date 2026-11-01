@@ -385,9 +385,10 @@ func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	var c struct {
 		credentials
-		IsAdmin bool            `json:"isAdmin"`
-		Kind    string          `json:"kind"`
-		Access  *library.Access `json:"access"`
+		IsAdmin     bool            `json:"isAdmin"`
+		Kind        string          `json:"kind"`
+		Access      *library.Access `json:"access"`
+		DisplayName string          `json:"displayName"`
 	}
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, 400, err.Error())
@@ -418,7 +419,79 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	if c.DisplayName != "" {
+		if err := s.Auth.SetDisplayName(r.Context(), u.ID, c.DisplayName); err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+		if u, err = s.Auth.User(r.Context(), u.ID); err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+	}
 	writeJSON(w, 201, u)
+}
+
+// PUT /api/users/{id}/profile {displayName, username, showUsername}: what an account
+// is called. Which name the corner shows is anyone's own choice. The names themselves
+// are for grown-up accounts to change for themselves, and for whoever manages the
+// account, so Kids and Guest profiles keep the names they were given.
+func (s *Server) handleUserProfile(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	var in struct {
+		DisplayName  *string `json:"displayName"`
+		Username     *string `json:"username"`
+		ShowUsername *bool   `json:"showUsername"`
+	}
+	if err := readJSON(r, &in); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	ctx := r.Context()
+	me := userFrom(r)
+	target, err := s.Auth.User(ctx, id)
+	if err != nil {
+		writeErr(w, 404, "no such profile")
+		return
+	}
+	self := me.ID == target.ID
+	manages := s.canManage(r, me, target.Kind)
+	if !self && !manages {
+		writeErr(w, 403, "you can't change this profile")
+		return
+	}
+	if (in.DisplayName != nil || in.Username != nil) && !manages && !(self && me.Kind == auth.KindAdult) {
+		writeErr(w, 403, "this profile's names are managed by the adults of this server")
+		return
+	}
+	if in.Username != nil && *in.Username != target.Name {
+		if err := s.Auth.SetUsername(ctx, id, *in.Username); err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
+	}
+	if in.DisplayName != nil {
+		if err := s.Auth.SetDisplayName(ctx, id, *in.DisplayName); err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+	}
+	if in.ShowUsername != nil {
+		if err := s.Auth.SetShowUsername(ctx, id, *in.ShowUsername); err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+	}
+	u, err := s.Auth.User(ctx, id)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, u)
 }
 
 // PUT /api/users/{id}/access {access, clearPassword}: an account's limits.

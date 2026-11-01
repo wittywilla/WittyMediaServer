@@ -34,6 +34,14 @@ func main() {
 			os.Exit(cmdReset2FA(os.Args[2:]))
 		case "reset":
 			os.Exit(cmdReset(os.Args[2:]))
+		case "logs":
+			os.Exit(cmdLogs(os.Args[2:]))
+		case "metadata":
+			os.Exit(cmdMetadata(os.Args[2:]))
+		case "backup":
+			os.Exit(cmdBackup(os.Args[2:]))
+		case "doctor":
+			os.Exit(cmdDoctor(os.Args[2:]))
 		case "version", "--version", "-v":
 			fmt.Println("wms", version)
 			return
@@ -67,6 +75,19 @@ usage:
                              back to a new install, the next time the server starts; keeps a copy unless -delete
   wms reset -list | -restore <copy> | -cancel
                              see the copies kept, bring one back, or take back a reset that's waiting
+  wms backup create|list|parts|inspect|restore|undo|cancel [-data <dir>]
+                             a ZIP of your data and metadata, and bringing one back. wms backup help says more
+  wms logs zip [-data <dir>] [-o out.zip] [-days N] [--raw]
+                             the logs as a ZIP, sanitized for sharing unless --raw; no server needed
+  wms logs sanitize [-data <dir>] [-o out.txt] <file>
+                             a sanitized copy of any text log
+  wms metadata export|check|apply [-data <dir>] [-library <id>] [--dry-run | --apply]
+                             write a text file for each title to fix by hand, say what's wrong with one, and apply them
+  wms doctor [-data <dir>] [--fix] [--only <id,id or area>] [--safe-only] [--json] [--yes]
+                             find and fix problems with metadata, data, modules and the install, even if the
+                             server won't start. Without --fix it only looks. wms doctor help says more
+  wms doctor remap --from <old> --to <new> [--fix]
+                             a library's drive or folder moved: rewrite the paths
   wms disc ls <image>        list files inside an ISO/UDF image
   wms dvd info <image>       dump DVD-Video structure (titles, menus, chapters)
   wms dvd walk <image> [n…]  run first-play, print the menu the viewer would see, press buttons

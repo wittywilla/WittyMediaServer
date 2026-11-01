@@ -111,13 +111,30 @@
 .lg-part-size { flex: none; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-2); }
 .lg-total { margin: 0; font-size: var(--text-sm); color: var(--fg-2); }
 .lg-total b { color: var(--fg); }
-.lg-bundle-go { display: flex; padding: var(--sp-3) 0 var(--sp-3); border-top: 1px solid var(--border); }
+.lg-go { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--bg-3); border: 1px solid var(--border); }
+.lg-go-toggle { display: flex; align-items: center; gap: var(--sp-3); min-height: 44px; font-size: var(--text-md); cursor: pointer; }
+.lg-go + .ui-notice { margin-top: var(--sp-3); }
+.lg-go .btn { min-height: 44px; }
+.lg-go-note { margin: var(--sp-3) 0; font-size: var(--text-sm); line-height: 1.5; color: var(--fg-2); }
+.lg-what { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--sp-3) var(--sp-5); margin: var(--sp-3) 0; font-size: var(--text-sm); line-height: 1.5; }
+.lg-what ul { margin: var(--sp-1) 0 0; padding-left: var(--sp-5); color: var(--fg-2); }
+.lg-counts { margin: var(--sp-3) 0; }
+.lg-count-list { display: flex; flex-wrap: wrap; gap: var(--sp-2); list-style: none; margin: var(--sp-2) 0 0; padding: 0; }
+.lg-count-list li { padding: var(--sp-1) var(--sp-3); border-radius: var(--r-full); background: var(--bg-3); border: 1px solid var(--border); font-size: var(--text-sm); }
+.lg-changed { margin: var(--sp-3) 0; }
+.lg-changed summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-size: var(--text-sm); font-weight: 600; }
+.lg-changed-one { margin-top: var(--sp-3); }
+.lg-changed-one .lg-pre { max-height: 160px; }
+.lg-dl-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3); margin: 0 0 var(--sp-3); font-size: var(--text-sm); color: var(--fg-2); }
+.lg-dl-row .btn { min-height: 44px; }
 
 /* ---------------------------------------------------------------- phones */
 @media (max-width: 600px) {
   .lg-head { grid-template-columns: auto auto minmax(0, 1fr); gap: var(--sp-1) var(--sp-2); }
   .lg-msg { grid-column: 1 / -1; }
-  .lg-banner-actions .btn, .lg-bundle-go .btn { flex: 1 1 auto; }
+  .lg-banner-actions .btn, .lg-go .btn, .lg-dl-row .btn { flex: 1 1 auto; min-height: 44px; }
+  .lg-go-toggle { flex: 1 1 100%; }
+  .set-row .seg button { min-height: 44px; }
   .lg-files li { flex-wrap: wrap; }
   .lg-attrs div { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .lg-dir-edit .btn { flex: 1 1 auto; }

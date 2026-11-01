@@ -1,36 +1,36 @@
 /*
  * Light - a WittyMediaServer theme.
- * Clean light grey with a violet accent.
+ * Clean, bright grey with a violet accent.
  *
- * Every variable below is documented in docs/THEMES.md. Copy this file into
+ * Every variable below is explained in docs/THEMES.md. Copy this file into
  * your own theme ZIP as a starting point.
  */
 :root {
   color-scheme: light;
 
-  /* Surfaces, darkest/lightest first */
+  /* Surfaces */
   --bg: #f4f5f8;          /* page background */
-  --bg-2: #ffffff;        /* sidebar, panels, modals */
-  --bg-3: #eaedf2;        /* inputs, cards, hovered rows */
-  --bg-4: #dadfe7;        /* borders, scrollbar, pressed buttons */
-  --bg-rgb: 244 245 248;   /* --bg as "R G B" for translucent shades */
+  --bg-2: #ffffff;        /* side menu, panels, dialogs */
+  --bg-3: #eaedf2;        /* fields, cards, hovered rows */
+  --bg-4: #dadfe7;        /* pressed buttons, scrollbars */
+  --bg-rgb: 244 245 248;   /* --bg as "R G B", for see-through shades */
   --border: color-mix(in srgb, var(--fg) 10%, transparent); /* hairlines between panels */
   --control-line: #838992;      /* outlines of fields and switches: 3:1 on every surface */
 
   /* Text */
-  --fg: #15171c;          /* primary text */
+  --fg: #15171c;          /* main text */
   --fg-2: #4a5160;        /* secondary text */
   --fg-3: #636b7a;        /* hints, captions */
 
-  /* Accent (buttons, highlights, progress bars, selected items) */
+  /* Accent: buttons, highlights, progress bars, selected items */
   --accent: #6d4fe0;
-  --accent-2: #5838c9;      /* hover / pressed accent */
-  --accent-fg: #ffffff;     /* text on accent backgrounds */
+  --accent-2: #5838c9;      /* hovered or pressed accent */
+  --accent-fg: #ffffff;     /* text on the accent */
   --accent-text: #6d4fe0;   /* the accent as text: links, highlighted words */
   --accent-rgb: 109 79 224;
   --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
 
-  /* Status colours */
+  /* Status */
   --danger: #cf2537;
   --ok: #117b50;
   --warn: #9b5d00;
@@ -46,6 +46,6 @@
   --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* Light themes: soften the text shadow used on artwork and keep chips readable. */
+/* Light themes: soften the text shadow used on artwork. */
 .hero h1, .detail h1 { text-shadow: 0 1px 6px rgba(255, 255, 255, 0.6); }
 .detail-hero .bg, .hero .bg { filter: saturate(1.05) brightness(1.02); }

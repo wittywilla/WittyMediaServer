@@ -4,7 +4,7 @@ import { fmtDateTime, api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
-import { IconActivity, IconChannels, IconClose, IconContrast, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconTag, IconTrash, IconTune, IconUsers, libIcon } from '../icons'
+import { IconActivity, IconChannels, IconClose, IconContrast, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import AppearanceSettings from './AppearanceSettings'
 import Profiles from './Profiles'
@@ -21,6 +21,8 @@ import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './se
 import TranscodeSettings from './TranscodeSettings'
 import './settings/settings.css'
 import LegalNote from '../components/LegalNote'
+import { ask, Dialog } from '../ui/Overlay'
+import { Segmented } from '../ui/Choice'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
@@ -29,6 +31,8 @@ const LibraryTranscoding = lazy(() => import('./settings/LibraryTranscoding'))
 const LogSettings = lazy(() => import('./LogSettings'))
 const LegalSettings = lazy(() => import('./settings/Legal'))
 const ResetSettings = lazy(() => import('./settings/Reset'))
+const BackupSettings = lazy(() => import('./settings/Backup'))
+const RepairSettings = lazy(() => import('./settings/Repair'))
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const CouchSettings = lazy(() => import('./settings/Couch'))
 const WittyRigsSettings = lazy(() => import('./settings/WittyRigs'))
@@ -71,9 +75,11 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'wittyrigs', label: 'WittyRigs', icon: <IconRemote />, admin: true, hint: 'Hosting demanding games on this server’s own hardware' },
   ] },
   { title: 'System', pages: [
-    { to: 'logs', label: 'WittyLog', icon: <IconFile />, admin: true, hint: 'Logs and privacy: what is recorded, and for how long' },
+    { to: 'logs', label: 'WittyLog', icon: <IconFile />, admin: true, hint: 'What is recorded and for how long, and downloading logs to share' },
     { to: 'diagnoser', label: 'WittyDiagnoser', icon: <IconTune />, admin: true, hint: 'The disk diagnoser: checks your discs and your drives, and changes nothing' },
     { to: 'modules', label: 'Modules', icon: <IconPlug />, admin: true, hint: 'What this server can do: add, remove, update and choose versions' },
+    { to: 'backup', label: 'Backup', icon: <IconDownload />, admin: true, hint: 'A ZIP of your data and metadata, on demand or on a schedule, and bringing one back' },
+    { to: 'repair', label: 'Repair', icon: <IconWrench />, admin: true, hint: 'Finds and fixes problems with metadata, the database, modules and this install' },
     { to: 'reset', label: 'Reset', icon: <IconRefresh />, admin: true, hint: 'Back to a new install, with a copy kept if you want one' },
     { to: 'about', label: 'About', icon: <IconInfo />, hint: 'Version, modules, licenses and credits' },
     { to: 'legal', label: 'Legal', icon: <IconShield />, hint: 'Terms, who’s responsible for what, privacy and notices' },
@@ -144,11 +150,14 @@ export default function SettingsPage() {
           <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: theme, layout and its name." /><AppearanceSettings /></>} />
           <Route path="users" element={<Users />} />
           <Route path="sharing" element={<SharingSettings />} />
-          <Route path="logs" element={<><PageHead title="WittyLog" desc="Logs and privacy: what the server records, and for how long. Nothing is ever sent anywhere." /><Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><LogSettings /></Suspense></>} />
+          <Route path="logs" element={<><PageHead title="WittyLog" desc="What the server records and for how long, and the logs as a ZIP to share, sanitized if you want. Nothing is ever sent anywhere." /><Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><LogSettings /></Suspense></>} />
           <Route path="remote" element={<Suspense fallback={null}><RemoteAccess /></Suspense>} />
           <Route path="security" element={<Suspense fallback={null}><Security /></Suspense>} />
           <Route path="activity" element={<Suspense fallback={null}><ActivitySettings /></Suspense>} />
           <Route path="diagnoser" element={<Suspense fallback={null}><Diagnoser /></Suspense>} />
+          <Route path="metadata-files" element={<Navigate to="/settings/repair?tab=files" replace />} />
+          <Route path="backup" element={<Suspense fallback={null}><BackupSettings /></Suspense>} />
+          <Route path="repair" element={<Suspense fallback={null}><RepairSettings /></Suspense>} />
           <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
           <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /></Suspense>} />
           <Route path="about" element={<About />} />
@@ -207,7 +216,7 @@ function Libraries() {
     try { await api.put('/settings', { libraryGrouping: g }); toast(g === 'combine' ? 'Folders of one kind now join one library' : 'New folders now become libraries of their own') } catch (e: any) { toast(e.message) }
   }
   const remove = async (l: Library) => {
-    if (!confirm(`Remove the library “${l.name}”? Your files stay where they are; only the server forgets them.`)) return
+    if (!await ask({ title: `Remove the library “${l.name}”?`, body: 'Your files stay where they are; only the server forgets them.', confirm: 'Remove library', danger: true })) return
     await api.del(`/libraries/${l.id}`)
     await refreshLibraries()
     toast('Library removed')
@@ -258,12 +267,9 @@ function Libraries() {
         </div>
       )}
       {adding && (
-        <div className="modal-backdrop" onClick={() => setAdding(false)}>
-          <div className="modal wide add-lib-modal" role="dialog" aria-label="Add a library" onClick={(e) => e.stopPropagation()}>
-            <div className="add-lib-modal-head"><h2>Add a library</h2><button className="btn sm ghost square" onClick={() => setAdding(false)} aria-label="Close"><IconClose /></button></div>
-            <AddLibrary existing={libraries} grouping={grouping} onAdded={async (l) => { setAdding(false); await refreshLibraries(); toast(`${l.name} saved; scanning`) }} />
-          </div>
-        </div>
+        <Dialog title="Add a library" size="wide" className="add-lib-modal" onClose={() => setAdding(false)}>
+          <AddLibrary existing={libraries} grouping={grouping} onAdded={async (l) => { setAdding(false); await refreshLibraries(); toast(`${l.name} saved; scanning`) }} />
+        </Dialog>
       )}
       {editing && <LibraryEditor lib={editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await refreshLibraries(); toast('Library saved; scanning') }} />}
       <LegalNote kind="local" className="set-legal" />
@@ -291,9 +297,8 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
     } catch (e: any) { setErr(e.message) }
   }
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal set-modal wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={lib.id ? 'Edit library' : 'Add library'}>
-        <h2>{lib.id ? `Edit ${lib.name}` : 'Add a library'}</h2>
+    <Dialog title={<>{lib.id ? `Edit ${lib.name}` : 'Add a library'}</>} onClose={onClose} size="wide" className="set-modal" actions={<><button className="btn ghost" onClick={onClose}>Cancel</button>
+          <button className="btn primary" onClick={save} disabled={!name.trim() || (paths.length === 0 && type !== 'podcasts')}>{lib.id ? 'Save and scan' : 'Add library'}</button></>}>
         <div className="set-form">
           <fieldset className="set-types">
             <legend>What's in it?</legend>
@@ -330,12 +335,7 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
           </div>
           {err && <div className="error">{err}</div>}
         </div>
-        <div className="actions">
-          <button className="btn ghost" onClick={onClose}>Cancel</button>
-          <button className="btn primary" onClick={save} disabled={!name.trim() || (paths.length === 0 && type !== 'podcasts')}>{lib.id ? 'Save and scan' : 'Add library'}</button>
-        </div>
-      </div>
-    </div>
+    </Dialog>
   )
 }
 
@@ -362,10 +362,7 @@ function SignInScreen() {
   return (
     <Section title="Signing in">
       <Row label="Sign-in screen" desc="Profiles show everyone's picture to pick from, like a streaming service. The classic form asks for a name and password.">
-        <div className="seg" role="radiogroup" aria-label="Sign-in screen">
-          <button role="radio" aria-checked={profiles} className={profiles ? 'active' : ''} onClick={() => set('loginStyle', 'profiles')}>Profiles</button>
-          <button role="radio" aria-checked={!profiles} className={!profiles ? 'active' : ''} onClick={() => set('loginStyle', 'classic')}>Classic</button>
-        </div>
+        <Segmented label="Sign-in screen" value={profiles ? 'profiles' : 'classic'} onChange={(v) => set('loginStyle', v)} options={[{ value: 'profiles', label: 'Profiles' }, { value: 'classic', label: 'Classic' }]} />
       </Row>
       <Row label="Show profiles outside your home" desc="Off by default: anyone who can reach the server would see everyone's names. Passwords are always required." dim={!profiles}>
         <Switch label="Show profiles outside your home" disabled={!profiles} checked={on('profilesRemote', '0')} onChange={(v) => set('profilesRemote', v ? '1' : '0')} />
@@ -538,7 +535,7 @@ function Updates() {
     } catch (e: any) { toast(e.message) } finally { setChecking(false) }
   }
   const apply = async () => {
-    if (!st?.latest || !confirm(`Install WittyMediaServer ${st.latest.version}? The server restarts, which pauses anything playing for a moment. Your library and settings are kept.`)) return
+    if (!st?.latest || !await ask({ title: `Install WittyMediaServer ${st.latest.version}?`, body: 'The server restarts, which pauses anything playing for a moment. Your library and settings are kept.', confirm: 'Install and restart' })) return
     try { from.current = st.current; setSt(await api.post<UpdateStatus>('/update/apply')) } catch (e: any) { toast(e.message) }
   }
   const setAutoCheck = async (v: boolean) => {

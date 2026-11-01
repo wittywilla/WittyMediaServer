@@ -34,6 +34,10 @@ type Meta struct {
 	Version     string `json:"version,omitempty"`
 	Scheme      string `json:"scheme"` // dark | light
 	Builtin     bool   `json:"builtin,omitempty"`
+	// Colors and Radius are every colour and the corner radius as data, so the
+	// app can show a theme without loading it. Written by scripts/design-tokens.py.
+	Colors map[string]string `json:"colors,omitempty"`
+	Radius float64           `json:"radius,omitempty"`
 	Preview     struct {
 		BG      string `json:"bg,omitempty"`
 		Surface string `json:"surface,omitempty"`
@@ -61,6 +65,16 @@ var contentTypes = map[string]string{
 	".txt": "text/plain; charset=utf-8", ".md": "text/plain; charset=utf-8",
 }
 
+// retired: themes that used to ship, and which of today's looks replaces each, so
+// a server or device still set to one keeps working.
+var retired = map[string]string{
+	"dark": "default", "dark-purple": "default", "dark-pink": "default",
+	"dark-blue": "midnight", "dark-red": "cinema", "dark-orange": "cinema", "dark-gold": "cinema",
+	"dark-green": "evergreen", "dark-teal": "evergreen",
+	"light-blue": "light", "light-purple": "light", "light-pink": "light", "light-teal": "light",
+	"light-red": "paper", "light-orange": "paper", "light-gold": "paper", "light-green": "paper",
+}
+
 // Manager reads themes from a directory.
 type Manager struct {
 	Dir string
@@ -80,6 +94,14 @@ func (m *Manager) Install(src fs.FS) error {
 	dirs, err := fs.ReadDir(src, ".")
 	if err != nil {
 		return err
+	}
+	// Built-in copies of retired themes go. A theme someone made under one of those
+	// names isn't marked built-in, and stays.
+	for id := range retired {
+		p := filepath.Join(m.Dir, id+".zip")
+		if cur, err := m.readMeta(p); err == nil && cur.Builtin {
+			_ = os.Remove(p)
+		}
 	}
 	for _, d := range dirs {
 		if !d.IsDir() {
@@ -217,6 +239,9 @@ func (m *Manager) zipPath(id string) (string, error) {
 	}
 	p := filepath.Join(m.Dir, id+".zip")
 	if _, err := os.Stat(p); err != nil {
+		if to, ok := retired[id]; ok {
+			return m.zipPath(to)
+		}
 		return "", ErrNotFound
 	}
 	return p, nil
@@ -248,6 +273,35 @@ func (m *Manager) ZipPath(id string) (string, error) { return m.zipPath(id) }
 // Add validates an uploaded theme ZIP and stores it as <id>.zip. The id comes
 // from theme.json "id" or else the uploaded file name.
 func (m *Manager) Add(data []byte, fileName string) (*Meta, error) {
+	meta, err := parseTheme(data)
+	if err != nil {
+		return nil, err
+	}
+	id := strings.ToLower(meta.ID)
+	if id == "" {
+		id = strings.ToLower(strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName)))
+	}
+	id = regexp.MustCompile(`[^a-z0-9._-]+`).ReplaceAllString(id, "-")
+	if !idRe.MatchString(id) || !filepath.IsLocal(id+".zip") {
+		return nil, errors.New(`choose a theme id (theme.json "id") of letters, digits, dots, dashes or underscores`)
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if cur, err := m.readMeta(filepath.Join(m.Dir, id+".zip")); err == nil && cur.Builtin {
+		return nil, fmt.Errorf("%q is a built-in theme; give your theme a different id", id)
+	}
+	if err := os.MkdirAll(m.Dir, 0o755); err != nil {
+		return nil, err
+	}
+	if err := writeAtomic(filepath.Join(m.Dir, id+".zip"), data); err != nil {
+		return nil, err
+	}
+	meta.ID = id
+	return meta, nil
+}
+
+// parseTheme checks a ZIP by the rules for a theme, and reads its theme.json.
+func parseTheme(data []byte) (*Meta, error) {
 	if len(data) > maxZipBytes {
 		return nil, fmt.Errorf("theme ZIP is larger than %d MB", maxZipBytes>>20)
 	}
@@ -290,27 +344,14 @@ func (m *Manager) Add(data []byte, fileName string) (*Meta, error) {
 	if meta.Builtin {
 		return nil, errors.New(`remove "builtin": true from theme.json (it is reserved for the themes that ship with WittyMediaServer)`)
 	}
-	id := strings.ToLower(meta.ID)
-	if id == "" {
-		id = strings.ToLower(strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName)))
-	}
-	id = regexp.MustCompile(`[^a-z0-9._-]+`).ReplaceAllString(id, "-")
-	if !idRe.MatchString(id) || !filepath.IsLocal(id+".zip") {
-		return nil, errors.New(`choose a theme id (theme.json "id") of letters, digits, dots, dashes or underscores`)
-	}
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if cur, err := m.readMeta(filepath.Join(m.Dir, id+".zip")); err == nil && cur.Builtin {
-		return nil, fmt.Errorf("%q is a built-in theme; give your theme a different id", id)
-	}
-	if err := os.MkdirAll(m.Dir, 0o755); err != nil {
-		return nil, err
-	}
-	if err := writeAtomic(filepath.Join(m.Dir, id+".zip"), data); err != nil {
-		return nil, err
-	}
-	meta.ID = id
 	return &meta, nil
+}
+
+// CheckZip says whether a ZIP would be accepted as a theme someone uploads, by the same
+// rules, without keeping it.
+func CheckZip(data []byte) error {
+	_, err := parseTheme(data)
+	return err
 }
 
 // Remove deletes a user theme (built-ins are recreated at start-up, so they
@@ -324,4 +365,81 @@ func (m *Manager) Remove(id string) error {
 		return errors.New("built-in themes cannot be removed")
 	}
 	return os.Remove(p)
+}
+
+// Custom is a theme made in the app's theme maker: colours and corners, no files.
+type Custom struct {
+	Name   string            `json:"name"`
+	Scheme string            `json:"scheme"`
+	Colors map[string]string `json:"colors"` // CSS variable name without the dashes -> #rrggbb
+	Radius int               `json:"radius"`
+}
+
+// customVars is everything the maker sets, in the order it's written out.
+var customVars = []string{"bg", "bg-2", "bg-3", "bg-4", "fg", "fg-2", "fg-3", "accent", "accent-2", "accent-fg", "accent-text", "control-line", "danger", "ok", "warn"}
+
+var plainHex = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+
+// AddCustom turns a made theme into an ordinary theme ZIP. Only colours that are
+// exactly #rrggbb get through, so nothing else can reach the stylesheet.
+func (m *Manager) AddCustom(c Custom) (*Meta, error) {
+	name := strings.Join(strings.Fields(strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f {
+			return -1
+		}
+		return r
+	}, c.Name)), " ")
+	if name == "" || len([]rune(name)) > 40 {
+		return nil, errors.New("a name of up to 40 characters is required")
+	}
+	if c.Scheme != "dark" && c.Scheme != "light" {
+		return nil, errors.New("a theme is dark or light")
+	}
+	if c.Radius < 0 || c.Radius > 24 {
+		return nil, errors.New("corners are 0 to 24 pixels")
+	}
+	var css strings.Builder
+	fmt.Fprintf(&css, ":root {\n  color-scheme: %s;\n", c.Scheme)
+	for _, k := range customVars {
+		v := c.Colors[k]
+		if !plainHex.MatchString(v) {
+			return nil, fmt.Errorf("%s needs to be a colour like #336699", k)
+		}
+		fmt.Fprintf(&css, "  --%s: %s;\n", k, v)
+	}
+	rgb := func(h string) string {
+		var r, g, b int
+		_, _ = fmt.Sscanf(h, "#%02x%02x%02x", &r, &g, &b)
+		return fmt.Sprintf("%d %d %d", r, g, b)
+	}
+	fmt.Fprintf(&css, "  --bg-rgb: %s;\n  --accent-rgb: %s;\n  --radius: %dpx;\n}\n", rgb(c.Colors["bg"]), rgb(c.Colors["accent"]), c.Radius)
+
+	id := "custom-" + strings.Trim(regexp.MustCompile(`[^a-z0-9]+`).ReplaceAllString(strings.ToLower(name), "-"), "-")
+	if id == "custom-" {
+		id = "custom-theme"
+	}
+	if len(id) > 64 {
+		id = strings.TrimRight(id[:64], "-")
+	}
+	meta := Meta{ID: id, Name: name, Author: "Made in the app", Scheme: c.Scheme, Radius: float64(c.Radius), Colors: map[string]string{}}
+	meta.Preview.BG, meta.Preview.Surface, meta.Preview.Text, meta.Preview.Accent = c.Colors["bg"], c.Colors["bg-3"], c.Colors["fg"], c.Colors["accent"]
+	raw, err := json.Marshal(meta)
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	for name, body := range map[string][]byte{"theme.json": raw, "theme.css": []byte(css.String())} {
+		w, err := zw.Create(name)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := w.Write(body); err != nil {
+			return nil, err
+		}
+	}
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+	return m.Add(buf.Bytes(), id+".zip")
 }

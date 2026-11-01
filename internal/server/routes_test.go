@@ -51,6 +51,8 @@ var publicRoutes = map[string]bool{
 	// link, the setup wizard and an app with no account need the same words.
 	"GET /api/legal":         true,
 	"GET /api/legal/notices": true,
+	// A backup's download: the ticket in the address is the permission, and an admin asked for it.
+	"GET /api/backup/download": true,
 	// The outside reachability test; an unknown address looks like any other.
 	"GET /api/reach/{nonce}": true,
 }

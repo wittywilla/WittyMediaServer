@@ -552,6 +552,10 @@ type CoreTraits struct {
 	Assets string
 	// RequiredBIOS is set when the core can't start without a BIOS file.
 	RequiredBIOS *BIOSRule
+	// SavesIn is a folder under the system folder where the core keeps saves, such as
+	// memory cards. A running core can't write to the system folder, which everyone
+	// shares, so this core gets a system folder of its own in the player's save folder.
+	SavesIn string
 	// Options are always passed. Each one makes the core use what this runner has.
 	Options map[string]string
 	// Resolution gives the options for an internal resolution, 1 to 4 times native.

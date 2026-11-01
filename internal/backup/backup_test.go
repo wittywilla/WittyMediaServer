@@ -171,7 +171,8 @@ func TestProtectedBackupShowsNothing(t *testing.T) {
 		t.Fatalf("entries: %d", len(all))
 	}
 	for name, b := range all {
-		for _, planted := range []string{"The Treeline", "TMDBPLANTEDKEY", "kim", "SAVEDATA", "SQLite format 3"} {
+		// Nothing as short as an account's name: three bytes turn up in this much random data by chance.
+		for _, planted := range []string{"The Treeline", "TMDBPLANTEDKEY", "SAVEDATA", "SQLite format 3"} {
 			if bytes.Contains(b, []byte(planted)) {
 				t.Errorf("%s shows %s in the open", name, planted)
 			}

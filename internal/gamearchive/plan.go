@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
@@ -200,7 +201,7 @@ func naturalSort(list []Entry) {
 
 // best picks one of several candidates. Sets that merge many versions of a game into
 // one archive are the usual reason there's a choice at all: the one named after the
-// archive, then a verified dump in a widely-played region, and bad dumps and hacks last.
+// archive, then a verified dump in the owner's preferred region, and bad dumps and hacks last.
 // A tie goes to the first in the archive, as it always has.
 func best(list []Entry, base string) Entry {
 	top := list[0]
@@ -215,9 +216,6 @@ func best(list []Entry, base string) Entry {
 
 var (
 	badDumpRe = regexp.MustCompile(`(?i)\[(b|h|o|t|p|f|a)[0-9]*[^\]]*\]|\((beta|proto|prototype|demo|sample|hack|pirate|unl)[^)]*\)|\([^)]*\bhack\b[^)]*\)|\(pd\)`)
-	usaRe     = regexp.MustCompile(`(?i)\((usa?|world)[,)]|\((u|w|ue|ju|jue)\)`)
-	europeRe  = regexp.MustCompile(`(?i)\((europe|e)[,)]`)
-	japanRe   = regexp.MustCompile(`(?i)\((japan|j)[,)]`)
 )
 
 // Score says how good a choice a file in an archive is, against the archive's own name
@@ -241,15 +239,8 @@ func score(name, base string) int {
 	if strings.Contains(n, "[!]") {
 		s += 3
 	}
-	// A plain dump in a widely-played region beats a verified one someone can't read.
-	switch {
-	case usaRe.MatchString(n):
-		s += 8
-	case europeRe.MatchString(n):
-		s += 6
-	case japanRe.MatchString(n):
-		s++
-	}
+	// A plain dump in a region someone wants beats a verified one they can't read.
+	s += max(0, 8-2*gameregion.RankFile(n))
 	if badDumpRe.MatchString(n) {
 		s -= 16
 	}

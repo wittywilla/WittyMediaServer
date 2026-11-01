@@ -75,6 +75,8 @@ func (s *Server) wireLibTranscode() {
 	ctx := context.Background()
 	s.LibConvert.Recover(ctx)
 	s.LibConvert.WatchTdarr()
+	s.Scanner.AfterScan = s.LibConvert.ScanFinished
+	s.LibConvert.KickAllAuto(ctx)
 	s.Tasks.OnRetry(libtranscode.TaskType, func(old tasks.Task, by tasks.By) error {
 		id, err := strconv.ParseInt(old.RetryKey, 10, 64)
 		if err != nil {
@@ -139,7 +141,7 @@ func (s *Server) handleLTCOptions(w http.ResponseWriter, r *http.Request) {
 			H264: has("libx264") || slices.ContainsFunc(env.Hardware, func(h string) bool { return strings.HasPrefix(h, "h264_") }),
 			HEVC: has("libx265") || slices.ContainsFunc(env.Hardware, func(h string) bool { return strings.HasPrefix(h, "hevc_") }),
 			AV1:  has("libsvtav1") || slices.ContainsFunc(env.Hardware, func(h string) bool { return strings.HasPrefix(h, "av1_") }),
-			Opus: has("libopus"), ToneMap: env.ToneMap != "", BurnText: s.Tools.HasFilter("subtitles"), Hardware: hw, Cores: runtime.NumCPU(),
+			Opus: has("libopus"), ToneMap: s.Tools.ToneMapFilter("hdr10") != "", BurnText: s.Tools.HasFilter("subtitles"), Hardware: hw, Cores: runtime.NumCPU(),
 		},
 	})
 }
@@ -228,6 +230,7 @@ func (s *Server) handleLTCPutLibrary(w http.ResponseWriter, r *http.Request) {
 		Output      string              `json:"output"`
 		AllowWrites bool                `json:"allowWrites"`
 		ReadOnly    bool                `json:"readOnly"`
+		Auto        bool                `json:"auto"`
 	}
 	if err := readJSON(r, &in); err != nil {
 		writeErr(w, 400, err.Error())
@@ -241,7 +244,7 @@ func (s *Server) handleLTCPutLibrary(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "that's not one of the ways of writing the new file")
 		return
 	}
-	if err := libtranscode.SaveRule(r.Context(), s.DB, libtranscode.Rule{LibraryID: lib.ID, Policy: in.Policy, Output: in.Output, AllowWrites: in.AllowWrites}); err != nil {
+	if err := libtranscode.SaveRule(r.Context(), s.DB, libtranscode.Rule{LibraryID: lib.ID, Policy: in.Policy, Output: in.Output, AllowWrites: in.AllowWrites, Auto: in.Auto}); err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}

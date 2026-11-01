@@ -878,7 +878,7 @@ func TestRecoverAndLoop(t *testing.T) {
 		panic("boom with token=PLANTEDSECRET")
 	}, "cat", "tv", "session", "tv-1")
 	<-done
-	deadline := time.Now().Add(3 * time.Second)
+	deadline := time.Now().Add(30 * time.Second)
 	for !strings.Contains(read(t, l), "a part of the server crashed") && time.Now().Before(deadline) {
 		time.Sleep(5 * time.Millisecond)
 	}

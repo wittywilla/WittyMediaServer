@@ -29,8 +29,8 @@ type Identity struct {
 	CRCs []uint32
 	// AltCRCs are other versions in the same archive.
 	AltCRCs []uint32
-	Size   int64
-	Serial string
+	Size    int64
+	Serial  string
 }
 
 // maxHashed is the biggest file read whole to take its checksum. Every cartridge game

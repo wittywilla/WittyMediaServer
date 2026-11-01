@@ -24,6 +24,7 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
+	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
@@ -614,6 +615,24 @@ func TestChooseAmongMergedVersions(t *testing.T) {
 	// All else equal, the first in the archive, as has always been the case for a .zip.
 	p, _ = Choose(entries("b.sfc", "a.sfc"), snes, "x.zip")
 	if p.Want[0].Name != "b.sfc" {
+		t.Fatalf("picked %s", p.Want[0].Name)
+	}
+}
+
+func TestTheOwnersRegionOrderChoosesAmongVersions(t *testing.T) {
+	t.Cleanup(func() { gameregion.Set("") })
+	snes := wittyplay.ByID("snes")
+	list := entries("Game (U) [!].sfc", "Game (E).sfc", "Game (J).sfc", "Game (J) [h1].sfc")
+	gameregion.Set("japan,europe")
+	p, err := Choose(list, snes, "Merged.7z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Want[0].Name != "Game (J).sfc" {
+		t.Fatalf("picked %s", p.Want[0].Name)
+	}
+	gameregion.Set("europe,japan")
+	if p, _ = Choose(list, snes, "Merged.7z"); p.Want[0].Name != "Game (E).sfc" {
 		t.Fatalf("picked %s", p.Want[0].Name)
 	}
 }

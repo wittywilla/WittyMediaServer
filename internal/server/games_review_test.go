@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/gameid/fixture"
+	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
@@ -320,4 +321,47 @@ func TestAFullServerSaysSoFirst(t *testing.T) {
 	if w.Code != 503 || !strings.Contains(w.Body.String(), "as many games") {
 		t.Fatalf("%d %s", w.Code, w.Body)
 	}
+}
+
+// The order of regions is checked, is used from then on, and brings what's listed into line.
+func TestTheOrderOfRegionsIsASetting(t *testing.T) {
+	t.Cleanup(func() { gameregion.Set("") })
+	g := newGameServer(t)
+	lib := reviewLibrary(t, g, map[string][]byte{"Game (USA).sfc": fixture.SNES("GAME USA"), "Game (Japan).sfc": fixture.SNES("GAME JAPAN")})
+	head := func() string {
+		t.Helper()
+		var out struct {
+			Items []library.Item `json:"items"`
+		}
+		jsonBody(t, g.do("GET", fmt.Sprintf("/api/items?library=%d&kind=game", lib.ID), g.admin, nil), &out)
+		if len(out.Items) != 1 {
+			return "" // versions apart for a moment, while they're put together again
+		}
+		return out.Items[0].Tagline
+	}
+	if got := head(); got != "USA" {
+		t.Fatalf("usual order led with %q", got)
+	}
+	for _, bad := range []string{"mars", "japan,japan", "usa,../.."} {
+		if w := g.do("PUT", "/api/settings", g.admin, map[string]string{"gamingRegionOrder": bad}); w.Code != 400 {
+			t.Errorf("%q: %d", bad, w.Code)
+		}
+	}
+	if got := gameregion.Order()[0]; got != gameregion.USA {
+		t.Fatalf("a refused setting changed the order: %s", got)
+	}
+	if w := g.do("PUT", "/api/settings", g.admin, map[string]string{"gamingRegionOrder": "japan,usa"}); w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	if got := gameregion.Order()[0]; got != gameregion.Japan {
+		t.Fatalf("order %v", gameregion.Order())
+	}
+	deadline := time.Now().Add(30 * time.Second)
+	for head() != "Japan" {
+		if time.Now().After(deadline) {
+			t.Fatalf("after the change it led with %q", head())
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	waitForScan(t, g, lib.ID)
 }

@@ -24,6 +24,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   anything happens to the old one, which you can keep, replace or leave in use, and put back later. What's been watched and your edits stay. It's off until you've read how
   it affects streaming, and can hold still while people watch or outside chosen hours. Copy-protected files are refused. It shows in the activity panel, with pause, cancel and retry. See
   [the guide](docs/LIBRARY-TRANSCODING.md).
+- **New files can convert by themselves.** Turn it on for a library and, after a scan finds new files, each is left until it stops changing, then converted within the same limits, showing in the activity panel. A file that fails isn't tried again until it changes.
+- **HDR that doesn't mark its own frames** no longer stops live playback with "no path between colorspaces". It's made an ordinary picture like any other.
 - **Connect your own Tdarr.** See its nodes and what they're working on in the activity panel, and hand it libraries, over its documented API. Tdarr is a separate program under its own
   licence, and isn't included.
 - **The Transcoding page** is now **Live transcoding**, to tell it apart. Its controls have been checked, its text made plain, and a claim that a resolution limit leaves direct play alone,
@@ -53,6 +55,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Fix this game**, on its page: the wrong console, not a game, which version, split a version off, and why the server believes what it does.
 - **Importing thousands of games** takes no attention. It runs in the background, survives a restart and shows how far it's got. Every game gets its name, checksum match and box art from the local
   database first, in about a minute, before any online source is asked. A fan's hack isn't named after the game it was made from, and a set's right region is what's named.
+- **PlayStation 2 saves work.** The core had nowhere it could write its memory cards, so games said no card was inserted. Each account now has its own cards for each game.
+- **Which version comes first** is yours to set, in Settings, Consoles & cores: USA first isn't right for everyone. It decides which file of an archive plays, which version leads a tile and whose names are used. Games someone has already played keep the version they have.
+- **A title you typed stays.** The first scan after an upgrade goes over every game, and could put the file's name back.
 - **3DS:** whether a file is encrypted now comes from its bytes, and an encrypted one says so on its page before you press Play. New 3DS games tell the core to be one. Updates and extra content aren't listed as games.
 - **Console and studio marks:** logos for consoles and game studios from the logo service, optional as all logos are, and a typed label that looks right without them.
 - **A full server says so straight away,** rather than unpacking and patching a game first.

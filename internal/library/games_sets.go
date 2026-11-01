@@ -14,6 +14,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/gameid"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
+	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 )
 
 // Games made of several files, and games kept more than once. Three things happen here,
@@ -258,25 +259,96 @@ func (s *Store) GameDiscs(ctx context.Context, itemID int64) ([]GameDisc, error)
 
 // ---------------------------------------------------------------- versions of one game
 
+// playedGames lists a library's games that someone has played.
+func (s *Store) playedGames(ctx context.Context, libraryID int64) (map[int64]bool, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT i.id FROM items i WHERE i.library_id = ? AND i.kind = 'game' AND (
+		EXISTS (SELECT 1 FROM item_stats st WHERE st.item_id = i.id) OR EXISTS (SELECT 1 FROM game_core_plays p WHERE p.item_id = i.id))`, libraryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64]bool{}
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out[id] = true
+	}
+	return out, rows.Err()
+}
+
+// GameRegionsChanged makes the owner's new order of regions count at the next scan. An
+// archive's file is worked out again, unless someone chose it or has played it, as their
+// saves belong to it. So is which version leads a game, unless someone has played that one
+// or given it a title of their own. Games the file's name says nothing about ask for their
+// record again, which goes no further than the local list.
+func (s *Store) GameRegionsChanged(ctx context.Context) error {
+	if _, err := s.DB.ExecContext(ctx, `DELETE FROM item_links WHERE link = ? AND parent_item IN (SELECT i.id FROM items i LEFT JOIN game_meta m ON m.item_id = i.id
+		WHERE i.kind = 'game' AND NOT EXISTS (SELECT 1 FROM item_stats st WHERE st.item_id = i.id) AND NOT EXISTS (SELECT 1 FROM game_core_plays p WHERE p.item_id = i.id)
+		  AND instr(',' || IFNULL(m.edited, '') || ',', ',title,') = 0)`, LinkVersion); err != nil {
+		return err
+	}
+	rows, err := s.DB.QueryContext(ctx, `SELECT i.id, i.library_id, json_extract(f.verdict, '$.entry') FROM game_files f
+		JOIN items i ON i.path = f.path AND i.library_id = f.library_id JOIN game_meta m ON m.item_id = i.id
+		WHERE i.kind = 'game' AND m.chosen_entry = '' AND json_extract(f.verdict, '$.entry') IS NOT NULL`)
+	if err != nil {
+		return err
+	}
+	type archived struct {
+		id, library int64
+		entry       string
+	}
+	var games []archived
+	for rows.Next() {
+		var a archived
+		if err := rows.Scan(&a.id, &a.library, &a.entry); err != nil {
+			rows.Close()
+			return err
+		}
+		games = append(games, a)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	played := map[int64]map[int64]bool{}
+	for _, a := range games {
+		if played[a.library] == nil {
+			if played[a.library], err = s.playedGames(ctx, a.library); err != nil {
+				return err
+			}
+		}
+		// Going over a game once is what a game listed by an older version gets.
+		q := `UPDATE game_meta SET detect_how = '', file_size = -1 WHERE item_id = ?`
+		args := []any{a.id}
+		if played[a.library][a.id] {
+			q, args = `UPDATE game_meta SET chosen_entry = ? WHERE item_id = ?`, []any{a.entry, a.id}
+		}
+		if _, err := s.DB.ExecContext(ctx, q, args...); err != nil {
+			return err
+		}
+	}
+	if _, err := s.DB.ExecContext(ctx, `UPDATE game_files SET version = 0 WHERE json_extract(verdict, '$.entry') IS NOT NULL`); err != nil {
+		return err
+	}
+	const untagged = `SELECT id FROM items WHERE kind = 'game' AND IFNULL(tagline, '') = ''`
+	if _, err := s.DB.ExecContext(ctx, `DELETE FROM game_meta_sources WHERE source IN ('libretro', 'libretroart') AND method <> 'manual' AND item_id IN (`+untagged+`)`); err != nil {
+		return err
+	}
+	_, err = s.DB.ExecContext(ctx, `UPDATE game_meta SET status = 'pending', next_try = 0, tries = 0 WHERE locked = 0 AND item_id IN (`+untagged+`)`)
+	return err
+}
+
 // versionTagRe spots a pre-release, which is never what to show first.
 var versionTagRe = regexp.MustCompile(`(?i)\b(?:beta|alpha|proto|prototype|demo|sample|pre-?release|preview|hack|pirate)\b`)
 
-// versionRank orders versions of a game: a released version in a widely-played region
+// versionRank orders versions of a game: a released version in the owner's preferred region
 // first, then the newest revision of it. Lower is better.
 func versionRank(tags string) int {
-	t := strings.ToLower(tags)
-	rank := 0
-	if versionTagRe.MatchString(t) {
+	rank := 100 * gameregion.Rank(tags)
+	if versionTagRe.MatchString(strings.ToLower(tags)) {
 		rank += 1000
-	}
-	switch {
-	case strings.Contains(t, "usa"), strings.Contains(t, "world"):
-	case strings.Contains(t, "europe"), strings.Contains(t, "australia"):
-		rank += 100
-	case strings.Contains(t, "japan"):
-		rank += 200
-	default:
-		rank += 300
 	}
 	return rank
 }

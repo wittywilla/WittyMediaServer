@@ -78,6 +78,25 @@ func (m *Manager) useStoreSource(id string, src *Source, detail string) error {
 	return m.changeSource(id, e, src, detail)
 }
 
+// relist gives a module back the versions this project's catalogue lists, after it stopped
+// coming from somewhere else. Call with m.mu held.
+func (m *Manager) relist(id string, e *entry) {
+	if e.state.Source != nil || m.cat == nil {
+		return
+	}
+	mod := m.cat.Find(id)
+	if mod == nil {
+		return
+	}
+	e.feedLoaded = true
+	for i := range mod.Versions {
+		if k := listedRelease(mod, &mod.Versions[i], m.catFrom); k != nil {
+			e.known[mod.Versions[i].Version] = k
+		}
+	}
+	m.computeOffers(e)
+}
+
 // applyStoreListing gives every module using this store the versions it now lists. Each version
 // is only an offer, and has its own signed list and manifest to pass when it's installed. A
 // store can't reach any module that isn't using it, and can't restore a version it withdrew.

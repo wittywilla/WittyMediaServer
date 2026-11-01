@@ -69,7 +69,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
     await call(() => api.post<ModuleReport>(`/modules/${it.id}/rollback`), `${it.name} went back`)
   }
   const official = async () => {
-    if (!await ask({ title: 'Go back to the official version?', body: `Versions of ${it.name} from this store are deleted.`, confirm: 'Go back' })) return
+    if (!await ask({ title: 'Go back to the official version?', body: `What came from this store is deleted, and ${it.name} isn’t on this server until you install the official one, which is one press from its page.`, confirm: 'Go back' })) return
     await call(() => api.del<ModuleReport>(`/modules/${it.id}/source`), `${it.name} is back to the official version`)
   }
   const chooseVersion = async (v: VersionInfo) => {
@@ -148,7 +148,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
           <div><dt>Publisher</dt><dd>{it.publisher?.name || 'This server'}</dd></div>
           {(it.license || m?.license) && <div><dt>Licence</dt><dd>{it.license || m?.license}</dd></div>}
           {it.released && <div><dt>Released</dt><dd>{dayOf(it.released)}</dd></div>}
-          {it.minServer && <div className="wide"><dt>Fits servers</dt><dd>{it.minServer} to {it.maxServer}, and this server is {d.item.fit.ok ? 'in that range' : 'not in that range'}</dd></div>}
+          {it.minServer && <div className="wide"><dt>Fits servers</dt><dd>{it.minServer} to {it.maxServer}{it.fit.ok ? ', which includes this server' : ''}</dd></div>}
           {!!it.platforms?.length && <div className="wide"><dt>Works on</dt><dd>{it.platforms.map(platformName).join(', ')}</dd></div>}
           {d.builtOn.length > 0 && <div className="wide"><dt>Built on</dt><dd>{d.builtOn.map((r, i) => <span key={r.id}>{i > 0 && ', '}<Link to={itemPath({ official: true, store: 'official', id: r.id, kind: 'official' })}>{r.name}</Link>{r.installed ? ' (installed)' : ''}</span>)}</dd></div>}
           {!!it.needs?.length && <div className="wide"><dt>What it needs</dt><dd>{it.needs.join(', ')}</dd></div>}

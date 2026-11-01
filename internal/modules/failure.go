@@ -125,7 +125,12 @@ func explainErr(name string, err error) *Failure {
 		return nil
 	}
 	var big *errStoreTooBig
+	var addr *ErrStoreAddress
 	switch {
+	case errors.As(err, &addr):
+		return &Failure{Kind: FailMissing, Title: "That address can't be used", Detail: err.Error(),
+			Message: sentence(strings.ToUpper(addr.Why[:1]) + addr.Why[1:]),
+			Try:     []string{"Check the address with whoever runs the store.", "If this is a store of yours on your own network, turn on \"Allow an address on my own network\"."}}
 	case errors.Is(err, ErrStorePrivate):
 		return &Failure{Kind: FailNetwork, Title: "That address is on your own network", Detail: err.Error(),
 			Message: "A store's address normally has to be on the public internet, so that a list of modules can't be used to reach other things on your network.",

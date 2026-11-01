@@ -30,6 +30,11 @@ const (
 // allowed that for this store.
 var ErrStorePrivate = errors.New("that address is on this machine or your own network, which a store can't use unless you allow it")
 
+// ErrStoreAddress: this isn't an address a store can be at.
+type ErrStoreAddress struct{ Why string }
+
+func (e *ErrStoreAddress) Error() string { return e.Why }
+
 // storeFetcher fetches for one store.
 type storeFetcher struct {
 	client  *http.Client
@@ -100,26 +105,26 @@ func privateHost(host string) bool {
 func checkStoreURL(raw string, private bool) (*url.URL, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" || len(raw) > 2048 || strings.ContainsAny(raw, " \\\x00\r\n\t") {
-		return nil, errors.New("that isn't an address")
+		return nil, &ErrStoreAddress{"that isn't an address"}
 	}
 	u, err := url.Parse(raw)
 	if err != nil || u.Host == "" {
-		return nil, errors.New("that isn't an address: it should look like https://example.com/modules/catalog.json")
+		return nil, &ErrStoreAddress{"that isn't an address: it should look like https://example.com/modules/catalog.json"}
 	}
 	if u.User != nil {
-		return nil, errors.New("an address with a name or password in it isn't accepted")
+		return nil, &ErrStoreAddress{"an address with a name or password in it isn't accepted"}
 	}
 	if u.Fragment != "" {
-		return nil, errors.New("an address with a # in it isn't accepted")
+		return nil, &ErrStoreAddress{"an address with a # in it isn't accepted"}
 	}
 	local := privateHost(u.Hostname())
 	switch {
 	case u.Scheme == "https":
 	case u.Scheme == "http" && private && local:
 	case u.Scheme == "http":
-		return nil, errors.New("a store's address has to start with https:// (plain http is only for a store on your own network, if you allow one)")
+		return nil, &ErrStoreAddress{"a store's address has to start with https://. Plain http is only for a store on your own network, if you allow one"}
 	default:
-		return nil, errors.New("a store's address has to start with https://")
+		return nil, &ErrStoreAddress{"a store's address has to start with https://"}
 	}
 	if local && !private {
 		return nil, ErrStorePrivate

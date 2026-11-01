@@ -351,11 +351,18 @@ func (s *Server) handleStoreCheckOne(w http.ResponseWriter, r *http.Request) {
 	if s.noStore(w) {
 		return
 	}
-	if err := s.ModuleStores.Refresh(r.Context(), r.PathValue("id")); errors.Is(err, modmgr.ErrUnknownStore) {
+	id := r.PathValue("id")
+	if err := s.ModuleStores.Refresh(r.Context(), id); errors.Is(err, modmgr.ErrUnknownStore) {
 		writeStoreErr(w, "That store", err)
 		return
 	}
-	w.WriteHeader(204)
+	for _, info := range s.ModuleStores.List() {
+		if info.ID == id {
+			writeJSON(w, 200, info)
+			return
+		}
+	}
+	writeErr(w, 404, "there is no such store")
 }
 
 // POST /api/modulestore/stores/{id}/fork/{module} {"confirm": true}: use a store's version of a

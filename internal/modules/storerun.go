@@ -207,6 +207,27 @@ func (s *Stores) UpdateAll(by string) (*Run, error) {
 	return s.start(RunUpdateAll, by, items, false)
 }
 
+// AutoUpdate is what the owner's "Install updates automatically" runs: everything Update All would
+// do, in the same order, except what has been told to wait for an admin.
+func (s *Stores) AutoUpdate() {
+	auto := map[string]bool{}
+	for _, st := range s.m.Report().Modules {
+		auto[st.ID] = st.AutoUpdate
+	}
+	var items []RunItem
+	for _, it := range s.updatePlan() {
+		if it.State == RunQueued && auto[it.ID] {
+			items = append(items, it)
+		}
+	}
+	if len(items) == 0 {
+		return
+	}
+	if _, err := s.start(RunUpdateAll, "automatic updates", items, false); err != nil {
+		s.log.Info("modules: automatic updates wait for the next check", "err", err)
+	}
+}
+
 // InstallPlan says what installing a module would bring with it: everything it's built on that
 // isn't here yet, first, then the module. A module with no version that fits is named with why,
 // so nothing starts that can't finish.

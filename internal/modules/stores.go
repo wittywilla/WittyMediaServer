@@ -151,6 +151,9 @@ type Stores struct {
 // that was pinned, since the folder may be a shared one.
 func NewStores(cfg StoresConfig) *Stores {
 	s := &Stores{cfg: cfg, m: cfg.Manager, log: cfg.Log}
+	if cfg.Manager != nil {
+		cfg.Manager.autoRun = s.AutoUpdate
+	}
 	if s.log == nil {
 		s.log = slog.Default()
 	}

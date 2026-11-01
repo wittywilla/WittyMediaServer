@@ -228,6 +228,35 @@ func junction(t *testing.T, target, link string) {
 	}
 }
 
+// Every kind of library skips them, games and galleries too, which used to index anything.
+func TestEveryLibraryKindSkipsLinksOut(t *testing.T) {
+	outside := t.TempDir()
+	for _, n := range []string{"secret.jpg", "secret.mp4", "secret.sfc"} {
+		if err := os.WriteFile(filepath.Join(outside, n), []byte("secrets"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for name, find := range map[string]func(string) ([]candidate, error){
+		"photos":   discoverPhotos,
+		"creators": discoverCreatorVideos,
+		"games":    func(root string) ([]candidate, error) { return discoverGames(root, "snes") },
+	} {
+		lib := t.TempDir()
+		for _, n := range []string{"secret.jpg", "secret.mp4", "secret.sfc"} {
+			symlink(t, filepath.Join(outside, n), filepath.Join(lib, "steal-"+n))
+		}
+		got, err := find(lib)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, c := range got {
+			if strings.Contains(c.path, "steal") {
+				t.Errorf("%s indexed a link out of the library: %s", name, c.path)
+			}
+		}
+	}
+}
+
 func TestOpenInRootsStaysInside(t *testing.T) {
 	lib, other, outside := t.TempDir(), t.TempDir(), t.TempDir()
 	roots := []string{lib, other}

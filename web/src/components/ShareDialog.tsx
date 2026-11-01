@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { api, getPrefs } from '../api'
 import { copyText, type ShareLink } from '../gallery'
-import { IconClose } from '../icons'
 import { toast } from '../state'
 import { useEffect } from 'react'
 import LegalNote from './LegalNote'
 import '../gallery.css'
+import { Dialog } from '../ui/Overlay'
 
 // Sharing something: a link inside this server for other profiles, or (pictures,
 // videos and albums) a link for someone with no account, with its own end date.
@@ -30,12 +30,7 @@ export default function ShareDialog({ kind, id, title, onClose, internalPath }: 
   }
   const copy = async (t: string) => { toast((await copyText(t)) ? 'Link copied' : "Couldn't copy the link: select it and copy") }
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal share-modal" role="dialog" aria-modal="true" aria-labelledby="share-h" onClick={(e) => e.stopPropagation()}>
-        <div className="share-head">
-          <h2 id="share-h">Share “{title}”</h2>
-          <button className="ibtn" onClick={onClose} aria-label="Close"><IconClose /></button>
-        </div>
+    <Dialog title={<>Share “{title}”</>} className="share-modal" onClose={onClose}>
         <LegalNote kind="sharing" />
         <h3>With other profiles here</h3>
         <p className="muted">Anyone signed in to this server who can open this library.</p>
@@ -59,7 +54,6 @@ export default function ShareDialog({ kind, id, title, onClose, internalPath }: 
             </>
           )}
         </>}
-      </div>
-    </div>
+    </Dialog>
   )
 }

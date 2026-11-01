@@ -87,6 +87,12 @@ func (s *Server) handleBrowseShelves(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	series, err := s.Store.SeriesInLibrary(ctx, lib, acc)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	collections = append(series, collections...)
 	platforms, err := s.Store.ListingPlatforms(ctx, lib, acc)
 	if err != nil {
 		writeErr(w, 500, err.Error())
@@ -236,7 +242,7 @@ func (s *Server) handleListingSettings(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/listings/refresh
 func (s *Server) handleListingRefresh(w http.ResponseWriter, r *http.Request) {
-	s.Scanner.KickListings()
+	s.Scanner.RecheckListings()
 	writeJSON(w, 202, s.Scanner.ListingStatus(r.Context()))
 }
 

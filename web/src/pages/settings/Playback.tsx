@@ -17,7 +17,7 @@ export default function PlaybackSettings() {
 
       <Section title="Player">
         <Row label="Fastest playback speed" desc="Viewers pick a speed in every player: video, discs, music, audiobooks, podcasts and vertical videos. Voices keep their pitch at every speed. Above 4×: most browsers mute the sound, and a video that has to be converted must convert faster than it plays, which takes strong hardware. Files that play as they are, in H.264 or VP9 with AAC or Opus, cope best.">
-          <select className="select" value={s.maxSpeed || '4'} onChange={(e) => set('maxSpeed', e.target.value)}>
+          <select className="select" aria-label="Fastest playback speed" value={s.maxSpeed || '4'} onChange={(e) => set('maxSpeed', e.target.value)}>
             <option value="2">2×</option><option value="4">4× (recommended)</option><option value="6">6×</option><option value="8">8×</option><option value="16">16× (browser limit)</option>
           </select>
         </Row>

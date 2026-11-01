@@ -16,6 +16,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/metafolder"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
 // WittyShorts and WittyChannels: videos by creators, from files the owner
@@ -498,7 +499,7 @@ func creatorFromPath(lib *Library, p string) (creator, playlist, dir string) {
 // localThumb is a picture beside the video with its name.
 func localThumb(p string) string {
 	stem := strings.TrimSuffix(p, filepath.Ext(p))
-	for _, ext := range []string{".jpg", ".jpeg", ".webp", ".png"} {
+	for _, ext := range mediatypes.ArtworkExts {
 		for _, name := range []string{stem + ext, stem + "-thumb" + ext, p + ext} {
 			if st, err := os.Stat(name); err == nil && !st.IsDir() {
 				return name
@@ -627,7 +628,7 @@ func (s *Store) ensureCreator(ctx context.Context, libraryID int64, c creatorRow
 
 func artIn(dir string, names ...string) string {
 	for _, n := range names {
-		for _, ext := range []string{".jpg", ".jpeg", ".png", ".webp"} {
+		for _, ext := range mediatypes.ArtworkExts {
 			p := filepath.Join(dir, n+ext)
 			if st, err := os.Stat(p); err == nil && !st.IsDir() {
 				return p

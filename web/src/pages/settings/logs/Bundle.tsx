@@ -5,6 +5,7 @@ import { Spinner } from '../../../components/common'
 import { Notice } from '../../../ui'
 import { Row, Section, Switch } from '../ui'
 import { fmtSize, scrollKeys, type BundlePreview } from './types'
+import { Segmented } from '../../../ui/Choice'
 
 const DAYS = [1, 3, 7, 14]
 const SAMPLE_LINES = 8
@@ -73,11 +74,7 @@ export default function Bundle() {
         </div>
       </div>
       <Row label="How far back">
-        <div className="seg" role="radiogroup" aria-label="How far back">
-          {DAYS.map((d) => (
-            <button key={d} type="button" role="radio" aria-checked={days === d} className={days === d ? 'active' : ''} onClick={() => setDays(d)}>{d} {d === 1 ? 'day' : 'days'}</button>
-          ))}
-        </div>
+        <Segmented label="How far back" value={String(days)} onChange={(d) => setDays(Number(d) as typeof days)} options={DAYS.map((d) => ({ value: String(d), label: `${d} ${d === 1 ? 'day' : 'days'}` }))} />
       </Row>
       <div className="set-row stack">
         <div className="set-row-label">What will be in it</div>

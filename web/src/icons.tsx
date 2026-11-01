@@ -1,7 +1,7 @@
 // Inline SVG icons (no icon-font dependency).
-type P = { size?: number }
-const S = ({ d, size = 20, fill = 'currentColor' }: { d: string; size?: number; fill?: string }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} fill={fill} aria-hidden="true"><path d={d} /></svg>
+type P = { size?: number; className?: string }
+const S = ({ d, size = 20, fill = 'currentColor', className }: { d: string; size?: number; fill?: string; className?: string }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill={fill} className={className} aria-hidden="true"><path d={d} /></svg>
 )
 export const IconHome = (p: P) => <S {...p} d="M12 3l9 8h-3v9h-5v-6h-2v6H6v-9H3z" />
 export const IconFilm = (p: P) => <S {...p} d="M4 4h16v16H4zM6 6v2h2V6zm0 4v2h2v-2zm0 4v2h2v-2zm10-8v2h2V6zm0 4v2h2v-2zm0 4v2h2v-2zM10 6v12h4V6z" />

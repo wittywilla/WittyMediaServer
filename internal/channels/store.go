@@ -60,6 +60,29 @@ func (s *Store) loc() *time.Location {
 // Look is how one channel stands out in the guide and on its banner.
 type Look struct {
 	Accent string `json:"accent,omitempty"` // #rrggbb
+	// LogoKind and LogoName choose its logo from the logo service. Empty: it is
+	// worked out from what the channel plays. LogoKind "none": never a logo.
+	LogoKind string `json:"logoKind,omitempty"` // network | studio | none
+	LogoName string `json:"logoName,omitempty"`
+}
+
+// Brand is the name a channel's logo goes by, in the logo service: chosen by the
+// owner, or else the one network or studio that's all it plays.
+func (c *Channel) Brand() (kind, name string) {
+	switch {
+	case c.Look.LogoKind == "none":
+		return "", ""
+	case c.Look.LogoName != "":
+		return c.Look.LogoKind, c.Look.LogoName
+	}
+	r := &c.Definition.Rules
+	switch {
+	case len(r.Networks) == 1 && len(r.Studios) == 0:
+		return "network", r.Networks[0]
+	case len(r.Studios) == 1 && len(r.Networks) == 0:
+		return "studio", r.Studios[0]
+	}
+	return "", ""
 }
 
 const channelCols = `id, number, name, description, enabled, definition, seed, rev, anchor_day, logo, visibility, count_progress, categories, look, created_at, updated_at`
@@ -196,6 +219,21 @@ func (c *Channel) Check() error {
 	c.Categories = cats
 	if c.Look.Accent != "" && !hexColour.MatchString(c.Look.Accent) {
 		return errors.New("the channel's colour must look like #336699")
+	}
+	switch c.Look.LogoKind {
+	case "", "none":
+		if c.Look.LogoName != "" && c.Look.LogoKind == "" {
+			return errors.New("say whether the logo is a network's or a studio's")
+		}
+	case "network", "studio":
+		if strings.TrimSpace(c.Look.LogoName) == "" {
+			return errors.New("name the network or studio whose logo to use")
+		}
+	default:
+		return errors.New("a channel's logo is a network's or a studio's")
+	}
+	if len(c.Look.LogoName) > maxTextLen {
+		return errors.New("the logo's name is too long")
 	}
 	return c.Visibility.validate()
 }
@@ -419,13 +457,18 @@ func (s *Store) Rebuild(ctx context.Context, id int64, reseed bool) error {
 	var kept []Programme
 	var state State
 	if row, ok := s.readDay(ctx, id, today); ok {
+		var onNow int64
 		for _, p := range row.Programmes {
 			// The rest of a programme that is on now stays too, breaks included.
-			last := len(kept) - 1
-			goesOn := last >= 0 && ((p.Kind == KindFiller && p.Role == RoleBreak) || (p.Kind == KindShow && p.Offset > 0 && p.ItemID == kept[last].ItemID))
-			if p.Start <= now.Unix() || goesOn {
-				kept = append(kept, p)
+			inBreak := p.Kind == KindFiller && (p.Role == RoleBreak || p.Role == RoleAd || p.Role == RoleBetween)
+			goesOn := onNow != 0 && (inBreak || (p.Kind == KindShow && p.Offset > 0 && p.ItemID == onNow))
+			if p.Start > now.Unix() && !goesOn {
+				break
 			}
+			if p.Kind == KindShow {
+				onNow = p.ItemID
+			}
+			kept = append(kept, p)
 		}
 		if len(kept) > 0 {
 			state.Carry = kept[len(kept)-1].End

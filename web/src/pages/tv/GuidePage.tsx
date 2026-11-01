@@ -5,10 +5,12 @@ import { api } from '../../api'
 import { announce } from '../../a11y'
 import { IconLeft, IconRight, IconSearch, IconSettings, IconStar, IconTv } from '../../icons'
 import { toast, useApp } from '../../state'
+import { lookupLogo } from '../../components/BrandLogo'
 import LookPanel from './LookPanel'
-import { channelVars, customVars, lastChannel, previousChannel, setLook, useLook, type Colours, type Layout, type Look } from './look'
+import { channelVars, customVars, lastChannel, previousChannel, setLook, surfaceOf, useLook, type Colours, type Layout, type Look } from './look'
+import { ChannelMark } from './ChannelLogo'
 import DetailsDialog from './Details'
-import Hero, { ChannelMark } from './Hero'
+import Hero from './Hero'
 import SearchPanel from './SearchPanel'
 import { useReminders } from './reminders'
 import { dayWord, fmtClock, fmtDay, fmtSpan, getLineup, forgetLineup, setFavourite, type GuideChannel, type GuidePage as Page, type Programme } from './tvApi'
@@ -114,6 +116,7 @@ export default function GuidePage() {
   const scroller = useRef<HTMLDivElement | null>(null)
   const grid = useRef<HTMLDivElement | null>(null)
   const wantFocus = useRef(true)
+  const gridHadFocus = useRef(false)
   // Search takes the keyboard as it opens, so it can't be left to the dialog code
   // to work out where the keyboard came from.
   const searchBack = useRef<HTMLElement | null>(null)
@@ -155,10 +158,21 @@ export default function GuidePage() {
     if (track) setTrackW(track.clientWidth)
   })
 
-  // A changed filter or a new stretch of hours starts the rows afresh.
-  useEffect(() => { loaded.current.clear(); setRows({}) }, [filterKey, fetchFrom])
+  // A changed filter starts the rows afresh. A new stretch of hours keeps them until
+  // the new ones come, so the highlight has somewhere to be meanwhile.
+  useEffect(() => { loaded.current.clear(); setRows({}) }, [filterKey])
+  useEffect(() => { loaded.current.clear() }, [fetchFrom])
   useEffect(() => { setTotal(null); setFocus((f) => ({ ...f, row: 0 })); if (scroller.current) scroller.current.scrollTop = 0 }, [filterKey])
   useEffect(() => { getLineup().then(setLineup).catch(() => {}) }, [])
+  // The rights notice goes with the logos: it's there only when one is on the screen.
+  const [logosShown, setLogosShown] = useState(false)
+  useEffect(() => {
+    const brands = lineup.flatMap((c) => (c.brand ? [c.brand] : []))
+    if (!look.logos || !brands.length) { setLogosShown(false); return }
+    let on = true
+    Promise.all(brands.slice(0, 200).map((b) => lookupLogo(b.kind, b.name))).then((l) => { if (on) setLogosShown(l.some((x) => x.has)) })
+    return () => { on = false }
+  }, [lineup, look.logos])
 
   const firstRow = Math.max(0, Math.floor(scrollTop / rowH) - 3)
   const lastRow = Math.ceil((scrollTop + viewH) / rowH) + 3
@@ -289,7 +303,10 @@ export default function GuidePage() {
         // The top row hands the arrows back, so a remote can reach the buttons above.
         if (row === 0) return
         moveRow(row - 1); break
-      case 'ArrowDown': moveRow(row + 1); break
+      case 'ArrowDown':
+        // The same at the bottom, for what is under the guide.
+        if (total != null && row >= total - 1) return
+        moveRow(row + 1); break
       case 'PageUp': case 'ChannelUp': moveRow(row - Math.max(1, Math.floor(viewH / rowH) - 1)); break
       case 'PageDown': case 'ChannelDown': moveRow(row + Math.max(1, Math.floor(viewH / rowH) - 1)); break
       case 'Home': goNow(); break
@@ -327,13 +344,25 @@ export default function GuidePage() {
     if (handled) { e.preventDefault(); e.stopPropagation() }
   }
 
-  // Roving focus: the highlighted cell holds the keyboard after each move.
-  useEffect(() => {
+  // New data can replace the cell that has the keyboard. The browser then drops it on
+  // the page, where the next arrow would start from nowhere: it goes back to the cell.
+  useLayoutEffect(() => {
+    if (gridHadFocus.current && document.activeElement === document.body) wantFocus.current = true
+  }, [rows, from])
+
+  // Roving focus: the highlighted cell holds the keyboard after each move, before the
+  // next key can arrive.
+  useLayoutEffect(() => {
     if (!wantFocus.current) return
     const el = grid.current?.querySelector<HTMLElement>('[data-focused="1"]')
     if (el) { wantFocus.current = false; el.focus({ preventScroll: true }) }
   })
 
+  // The rows near what's on screen, and always the highlighted one: it's where the
+  // arrows come back to, however far away the rows have been scrolled.
+  const rowCount = total ?? 0
+  const drawnRows = Array.from({ length: Math.max(0, Math.min(lastRow, rowCount - 1) - firstRow + 1) }, (_, i) => firstRow + i)
+  if (focus.row < rowCount && !drawnRows.includes(focus.row)) drawnRows.push(focus.row)
   const timeHeads = useMemo(() => Array.from({ length: slots }, (_, i) => from + i * SLOT), [from, slots])
   const pct = (u: number) => ((u - from) / (to - from)) * 100
   const totalRows = total ?? 0
@@ -382,7 +411,7 @@ export default function GuidePage() {
       <div className="ctv-bar">
         <div className="ctv-bar-group">
           <h2 className="ctv-bar-title">Guide</h2>
-          <div className="ctv-chips" role="group" aria-label="Which channels">
+          <div className="ctv-chips" role="group" aria-label="Which channels" data-nav-group>
             <button className={'ctv-chip' + (!filter.group && !filter.favourites && !filter.kind ? ' on' : '')} aria-pressed={!filter.group && !filter.favourites && !filter.kind} onClick={() => setFilter({ kind: '', group: '', favourites: false })}>All</button>
             {(anyFav || filter.favourites) && <button className={'ctv-chip' + (filter.favourites ? ' on' : '')} aria-pressed={filter.favourites} onClick={() => setFilter({ kind: '', group: '', favourites: !filter.favourites })}><IconStar size={14} /> Favourites</button>}
             {groups.map((g) => <button key={g} className={'ctv-chip' + (filter.group === g ? ' on' : '')} aria-pressed={filter.group === g} onClick={() => setFilter({ kind: '', favourites: false, group: filter.group === g ? '' : g })}>{g}</button>)}
@@ -390,7 +419,7 @@ export default function GuidePage() {
             {hasBoth && <button className={'ctv-chip' + (filter.kind === 'tuner' ? ' on' : '')} aria-pressed={filter.kind === 'tuner'} onClick={() => setFilter({ group: '', favourites: false, kind: filter.kind === 'tuner' ? '' : 'tuner' })}>Live TV</button>}
           </div>
         </div>
-        <div className="ctv-bar-group ctv-bar-time" role="group" aria-label="Time">
+        <div className="ctv-bar-group ctv-bar-time" role="group" aria-label="Time" data-nav-group>
           <button className="ctv-btn sm icon" onClick={() => shiftTime(-SLOT)} aria-label="Half an hour earlier"><IconLeft size={16} /></button>
           <button className={'ctv-btn sm' + (floorSlot(now) === from ? ' on' : '')} onClick={goNow}>Now</button>
           <button className="ctv-btn sm icon" onClick={() => shiftTime(SLOT)} aria-label="Half an hour later"><IconRight size={16} /></button>
@@ -412,6 +441,7 @@ export default function GuidePage() {
       {dial && <div className="ctv-dial" role="status">CH {dial}<span className="ctv-blink">_</span></div>}
 
       <div className="ctv-grid" ref={grid} role="grid" aria-label={`TV guide, ${fmtDay(from)}`} aria-rowcount={totalRows + 1} aria-colcount={slots + 1} onKeyDown={onKey}
+        onFocus={() => { gridHadFocus.current = true }} onBlur={(e) => { if (e.relatedTarget) gridHadFocus.current = false }}
         style={{ '--ctv-row': rowH + 'px', '--ctv-gutter': gutter + 'px' } as React.CSSProperties}>
         <div className="ctv-times" role="row" aria-rowindex={1}>
           <div className="ctv-corner" role="columnheader" aria-colindex={1}><b>{dayWord(from, now)}</b> <span className="hide-narrow">{fmtClock(from)}</span></div>
@@ -422,7 +452,7 @@ export default function GuidePage() {
         {look.nowLine && <NowLine from={from} to={to} />}
         <div className="ctv-rows" ref={scroller} onScroll={(e) => setScrollTop((e.target as HTMLElement).scrollTop)} role="presentation">
           <div style={{ height: totalRows * rowH, position: 'relative' }} role="presentation">
-            {Array.from({ length: Math.max(0, Math.min(lastRow, totalRows - 1) - firstRow + 1) }, (_, i) => firstRow + i).map((r) => (
+            {drawnRows.map((r) => (
               <GuideRow key={r} r={r} ch={rows[r]} top={r * rowH} rowH={rowH} from={from} to={to} pxPerSec={pxPerSec} now={now} focusAt={r === focus.row ? focus.at : null} look={look}
                 onFocus={(row, at) => setFocus({ row, at })} onActivate={activate} wantFocus={wantFocus} />
             ))}
@@ -431,13 +461,14 @@ export default function GuidePage() {
       </div>
       {total === 0 && <div className="ctv-err">{filter.favourites ? 'No favourites yet: press the star on a channel.' : 'No channels match that.'}</div>}
 
-      <footer className="ctv-help" aria-label="Keys">
+      <footer className="ctv-help" aria-label="Keys" data-nav-group>
         <button className="ctv-key a" onClick={() => shiftTime(-86400)}><b>A</b> Day −</button>
         <button className="ctv-key b" onClick={() => shiftTime(86400)}><b>B</b> Day +</button>
         <button className="ctv-key c" onClick={cycleKind}><b>C</b> {filter.kind === '' ? 'All' : filter.kind === 'library' ? 'Library' : 'Live TV'}</button>
         <span className="ctv-hint hide-narrow">▲▼ Channel · ◄► Time · OK Watch · 0–9 Dial · F Favourite · M Remind · D Day · S Search · L Last · I Info</span>
       </footer>
       <LegalNote kind="tv" className="ctv-legal" />
+      {logosShown && <LegalNote kind="logos" className="ctv-legal" />}
 
       {details && <DetailsDialog ch={details.ch} p={details.p} now={now} startDay={details.day} look={look} onClose={() => setDetails(null)} onWatch={() => watch(details.ch.key)} onRecord={() => { void record(details.ch, details.p); setDetails(null) }} />}
       {lookOpen && <LookPanel look={look} onClose={() => setLookOpen(false)} />}
@@ -484,12 +515,14 @@ const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, 
   const cells = cellsFor(ch, from, to, pxPerSec)
   const focusedCell = focusAt == null ? null : cells.find((c) => c.start <= focusAt && c.end > focusAt) || cells[0]
   const accent = ch?.accent ? channelVars(ch.accent) : undefined
+  // With a highlighted tile the logo needs the version that shows up on it.
+  const on = surfaceOf(look, focusAt != null)
   return (
     <div className={'ctv-row' + (focusAt != null ? ' current' : '')} role="row" aria-rowindex={r + 2} style={{ top, height: rowH, ...accent }}>
       {ch ? (
         <div className="ctv-ch" role="rowheader" aria-colindex={1} title={ch.name}>
           <span className="ctv-num">{ch.number}</span>
-          <ChannelMark ch={ch} look={look} />
+          <ChannelMark ch={ch} look={look} on={on} />
           {ch.favourite && <span className="ctv-fav" role="img" aria-label="Favourite"><IconStar size={13} /></span>}
           {ch.encrypted && <span className="ctv-lock" aria-hidden="true">🔒</span>}
         </div>
@@ -507,7 +540,7 @@ const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, 
           const details = [p.kind === 'none' || small ? '' : fmtClock(p.start), p.year ? String(p.year) : '', p.genre || ''].filter(Boolean).join(' · ')
           return (
             <button key={p.start + '-' + p.end} type="button" role="gridcell" aria-colindex={colStart + 2} aria-colspan={colSpan}
-              aria-label={programmeLabel(ch, p, now)} aria-selected={focused} tabIndex={focused ? 0 : -1} data-focused={focused ? '1' : undefined}
+              aria-label={programmeLabel(ch, p, now)} aria-selected={focused} tabIndex={focused ? 0 : -1} data-focused={focused ? '1' : undefined} data-nav-skip={focused ? undefined : ''}
               className={'ctv-cell' + (focused ? ' focus' : '') + (live ? ' live' : '') + (p.kind === 'none' || p.kind === 'slate' ? ' dim' : '') + (ch.encrypted ? ' locked' : '') + (p.end <= now ? ' past' : '') + (tiny ? ' tiny' : '') + (p.kind === 'group' ? ' group' : '')}
               style={{ left: pct(start) + '%', width: pct(end) - pct(start) + '%' }}
               onFocus={() => { if (!focused) onFocus(r, Math.max(p.start, from)) }}

@@ -409,7 +409,11 @@ var migrations = []string{
 	   uuid TEXT NOT NULL, mac TEXT NOT NULL DEFAULT '', cert TEXT NOT NULL DEFAULT '',
 	   public INTEGER NOT NULL DEFAULT 0, paired_at INTEGER, created_at INTEGER NOT NULL,
 	   UNIQUE(user_id, uuid));`,
-	// 25: the activity history: finished background tasks, trimmed to a limit in Settings,
+	// 25: a profile name, free for anyone to choose, apart from the unique username
+	// that signing in uses; and which of the two the corner of the screen shows.
+	`ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT '';
+	 ALTER TABLE users ADD COLUMN show_username INTEGER NOT NULL DEFAULT 0;`,
+	// 26: the activity history: finished background tasks, trimmed to a limit in Settings,
 	// and those going on when the server stopped.
 	`CREATE TABLE IF NOT EXISTS task_history (
 	   id TEXT PRIMARY KEY, type TEXT NOT NULL, title TEXT NOT NULL, state TEXT NOT NULL, phase TEXT NOT NULL DEFAULT '',
@@ -421,7 +425,7 @@ var migrations = []string{
 	   problem_count INTEGER NOT NULL DEFAULT 0, problems TEXT NOT NULL DEFAULT '', retry_key TEXT NOT NULL DEFAULT '',
 	   private INTEGER NOT NULL DEFAULT 0, admin_only INTEGER NOT NULL DEFAULT 0);
 	 CREATE INDEX IF NOT EXISTS task_history_finished ON task_history(finished_at);`,
-	// 26: the statistics: an hour's summary of each number, kept for 90 days, and how much
+	// 27: the statistics: an hour's summary of each number, kept for 90 days, and how much
 	// each person has been sent each day.
 	`CREATE TABLE IF NOT EXISTS metrics_hourly (
 	   hour INTEGER NOT NULL, name TEXT NOT NULL, avg REAL NOT NULL, peak REAL NOT NULL, PRIMARY KEY(hour, name));

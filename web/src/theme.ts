@@ -6,11 +6,33 @@ import { serverBase } from './api'
 export type ThemeMeta = {
   id: string; name: string; description?: string; author?: string; version?: string; scheme: 'dark' | 'light'; builtin?: boolean
   preview: { bg?: string; surface?: string; text?: string; accent?: string }; size: number; modTime: number
+  colors?: Record<string, string>; radius?: number
 }
 
-const KEY = 'wms.theme'
+// Themes that used to ship, and today's look for each. The server knows these too.
+const RETIRED: Record<string, string> = {
+  dark: 'default', 'dark-purple': 'default', 'dark-pink': 'default', 'dark-blue': 'midnight', 'dark-red': 'cinema', 'dark-orange': 'cinema', 'dark-gold': 'cinema', 'dark-green': 'evergreen', 'dark-teal': 'evergreen',
+  'light-blue': 'light', 'light-purple': 'light', 'light-pink': 'light', 'light-teal': 'light', 'light-red': 'paper', 'light-orange': 'paper', 'light-gold': 'paper', 'light-green': 'paper',
+}
+export const currentThemeId = (id: string) => RETIRED[id] || id
 
-export const deviceTheme = (): string => { try { return localStorage.getItem(KEY) || '' } catch { return '' } }
+const KEY = 'wms.theme'
+const CUSTOM_CSS = 'wms.customTheme'
+
+// A look made in the theme maker just for this device: it's only colours, kept here
+// as the stylesheet it became, so it applies before anything else has loaded.
+export const CUSTOM_THEME = 'custom'
+export const customThemeCss = () => { try { return localStorage.getItem(CUSTOM_CSS) || '' } catch { return '' } }
+export const setCustomThemeCss = (css: string) => { try { localStorage.setItem(CUSTOM_CSS, css) } catch { /* it lasts until the page reloads */ } }
+function applyCustom(css: string) {
+  document.querySelectorAll('link[data-wms-theme]').forEach((l) => l.remove())
+  let st = document.getElementById('wms-custom-theme') as HTMLStyleElement | null
+  if (!st) { st = document.createElement('style'); st.id = 'wms-custom-theme'; document.head.appendChild(st) }
+  st.textContent = css
+  document.documentElement.dataset.theme = CUSTOM_THEME
+}
+
+export const deviceTheme = (): string => { try { return currentThemeId(localStorage.getItem(KEY) || '') } catch { return '' } }
 export const setDeviceTheme = (id: string) => { try { id ? localStorage.setItem(KEY, id) : localStorage.removeItem(KEY) } catch { /* ignore */ } }
 
 let wanted = ''
@@ -18,7 +40,7 @@ let wanted = ''
 // 'auto' follows the device's light or dark setting, using the two built-in looks.
 export const AUTO_THEME = 'auto'
 const lightDevice = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null
-const resolveTheme = (id: string) => (id === AUTO_THEME ? (lightDevice?.matches ? 'light' : 'default') : id)
+const resolveTheme = (id: string) => (id === AUTO_THEME ? (lightDevice?.matches ? 'light' : 'default') : currentThemeId(id))
 
 // applyTheme loads a theme's CSS after the built-in stylesheet. The new sheet
 // is added next to the current one and replaces it only once it has loaded,
@@ -28,6 +50,8 @@ const resolveTheme = (id: string) => (id === AUTO_THEME ? (lightDevice?.matches 
 export function applyTheme(wantedId: string, version = '') {
   if (lightDevice) lightDevice.onchange = wantedId === AUTO_THEME ? () => applyTheme(AUTO_THEME, version) : null
   const id = resolveTheme(wantedId)
+  if (id === CUSTOM_THEME && customThemeCss()) { wanted = ''; applyCustom(customThemeCss()); return }
+  document.getElementById('wms-custom-theme')?.remove()
   const href = `${serverBase()}/api/themes/${encodeURIComponent(id || 'default')}/theme.css${version ? '?v=' + version : ''}`
   wanted = href
   document.documentElement.dataset.theme = id || 'default'

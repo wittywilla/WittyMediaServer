@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"io"
 	"net/http"
 	"net/url"
@@ -39,10 +40,18 @@ var (
 // isFileExt reports whether ext is the extension of a file a library holds
 // (callers often pass a name without one, and "Dr.Story.The.Treeline" must keep
 // its last word).
+//
+// Only the names people really leave on: a last word of a title can be many a rarer
+// extension ("The.Nut", "Mr.Doc", "It"), and a title losing a word is a worse mistake
+// than one keeping ".rm" on its end.
 func isFileExt(ext string) bool {
-	e := strings.ToLower(ext)
-	_, book := bookExts[e]
-	return videoExts[e] || audioExts[e] || book || e == ".iso" || e == ".img"
+	switch strings.ToLower(ext) {
+	case ".mkv", ".mp4", ".m4v", ".mov", ".avi", ".wmv", ".ts", ".m2ts", ".mts", ".webm", ".flv", ".mpg", ".mpeg", ".vob", ".ogv", ".3gp", ".divx", ".rmvb", ".asf", ".iso", ".img",
+		".mp3", ".flac", ".m4a", ".m4b", ".aac", ".ogg", ".oga", ".opus", ".wav", ".wma", ".aiff", ".aif", ".alac", ".ape", ".wv", ".mka", ".dsf",
+		".cbz", ".epub", ".pdf", ".cbr", ".cb7", ".cbt", ".mobi", ".azw3":
+		return true
+	}
+	return false
 }
 
 // ParseName guesses title and year from a file or folder name.
@@ -274,7 +283,7 @@ func applySidecarJSON(it *Item, path string) bool {
 func localArtwork(dir, base string) (poster, backdrop string) {
 	try := func(names ...string) string {
 		for _, n := range names {
-			for _, ext := range []string{".jpg", ".jpeg", ".png", ".webp"} {
+			for _, ext := range mediatypes.ArtworkExts {
 				p := filepath.Join(dir, n+ext)
 				if st, err := os.Stat(p); err == nil && !st.IsDir() {
 					return p
@@ -329,6 +338,9 @@ type tmdbMovie struct {
 	ProductionCompanies []struct {
 		Name string `json:"name"`
 	} `json:"production_companies"`
+	Collection *struct {
+		Name string `json:"name"`
+	} `json:"belongs_to_collection"`
 	ReleaseDates struct {
 		Results []struct {
 			ISO   string `json:"iso_3166_1"`
@@ -476,6 +488,9 @@ func (t *TMDB) Enrich(ctx context.Context, it *Item) error {
 		}
 	}
 	it.director = strings.Join(directors, ", ")
+	if m.Collection != nil {
+		it.series = m.Collection.Name
+	}
 	it.Provider, it.ProviderID = "tmdb", id
 	if it.Title == "" || it.Provider == "tmdb" {
 		it.Title = m.Title

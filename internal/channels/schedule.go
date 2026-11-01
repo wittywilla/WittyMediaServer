@@ -475,7 +475,9 @@ type generator struct {
 	pools   map[string]*pool
 	filler  []Entry
 	fillerR rng
-	rules   []*ruleState
+	// lastFiller: the commercial picked last.
+	lastFiller int64
+	rules      []*ruleState
 	out     []Programme
 	err     error
 }
@@ -502,6 +504,19 @@ type piece struct {
 	rule string
 	must bool
 	cut  int64
+}
+
+// stop is a break inside a programme, this far into it.
+type stop struct {
+	at     int64
+	pieces []piece
+}
+
+// adUnit is one commercial with any bumper leading into it, and which break it
+// is in. No stop: it follows the programme.
+type adUnit struct {
+	pieces []piece
+	stop   *stop
 }
 
 // GenerateDay works out one day's programmes from the state the previous day
@@ -779,11 +794,17 @@ func (g *generator) play(seg segment, t int64, e *Entry, dur int64, marathon boo
 	plan := g.def.Bumpers
 	var pre, post []piece
 	var between []*ruleState
-	type stop struct {
-		at     int64
-		pieces []piece
+	var stops []*stop
+	stopAt := func(off int64) *stop {
+		for _, st := range stops {
+			if st.at == off {
+				return st
+			}
+		}
+		st := &stop{at: off}
+		stops = append(stops, st)
+		return st
 	}
-	var stops []stop
 	for _, r := range g.rules {
 		if !g.applies(r, e, marathon) {
 			continue
@@ -798,42 +819,54 @@ func (g *generator) play(seg segment, t int64, e *Entry, dur int64, marathon boo
 		case WhenEvery:
 			every := int64(r.rule.EveryMin) * 60
 			for off := every; off < dur-every/2; off += every {
-				stops = append(stops, stop{off, g.take(r, RoleBreak)})
+				st := stopAt(off)
+				st.pieces = append(st.pieces, g.take(r, RoleBreak)...)
 			}
 		}
 	}
-	slices.SortStableFunc(stops, func(a, b stop) int { return cmp.Compare(a.at, b.at) })
 
 	limit := seg.end
 	if seg.soft {
 		limit = seg.end + 3600
 	}
 	grid := int64(g.def.AlignMin) * 60
+	ads, breakAds, breakEvery := g.def.Filler.Between, g.def.Filler.BreakAds, int64(g.def.Filler.BreakEveryMin)*60
 	if marathon {
-		grid = 0
+		grid, ads, breakAds = 0, 0, 0
 	}
-	ads := g.def.Filler.Between
-	if marathon {
-		ads = 0
+	if breakAds == 0 || breakEvery == 0 || len(g.filler) == 0 {
+		breakEvery = 0
 	}
+	if breakEvery > 0 {
+		for off := breakEvery; off < dur-breakEvery/2; off += breakEvery {
+			stopAt(off)
+		}
+	}
+	slices.SortStableFunc(stops, func(a, b *stop) int { return cmp.Compare(a.at, b.at) })
 	trim := plan.Trim
 
-	var target int64 // the start time being kept to, 0 = none
-	var units [][]piece
-	if trim.On {
-		sum := func(list []piece, must bool) (n int64) {
-			for _, b := range list {
-				if b.must == must {
-					n += b.dur
-				}
+	sum := func(list []piece, must bool) (n int64) {
+		for _, b := range list {
+			if b.must == must {
+				n += b.dur
 			}
-			return n
 		}
-		mustLen := sum(pre, true) + sum(post, true)
+		return n
+	}
+	bumpers := func(must bool) int64 {
+		n := sum(pre, must) + sum(post, must)
 		for _, st := range stops {
-			mustLen += sum(st.pieces, true)
+			if st.at < dur {
+				n += sum(st.pieces, must)
+			}
 		}
-		base := t + dur + mustLen
+		return n
+	}
+
+	var target int64 // the start time being kept to, 0 = none
+	var room int64
+	if trim.On {
+		base := t + dur + bumpers(true)
 		target = nextStart(base, grid, seg)
 		// Could the programme make the start time before that by losing no
 		// more than it is allowed to? Then it does, rather than leave a long gap.
@@ -842,42 +875,59 @@ func (g *generator) play(seg segment, t int64, e *Entry, dur int64, marathon boo
 			base = back
 			target = back
 		}
-		kept := make([]stop, 0, len(stops))
+		if target > 0 {
+			room = target - base - bumpers(false)
+		}
+	} else {
+		room = limit - t - dur - bumpers(true) - bumpers(false)
+	}
+	choosing := Trim{Ads: TrimDrop}
+	if trim.On && target > 0 {
+		choosing = trim
+	}
+
+	// The commercials, in the order they would play. Inside the programme first, then
+	// what follows it, which is what gives way first.
+	var units []adUnit
+	if breakEvery > 0 {
 		for _, st := range stops {
-			if st.at < dur {
-				kept = append(kept, st)
+			if st.at >= dur || st.at%breakEvery != 0 {
+				continue
+			}
+			for _, u := range g.pickAds(breakAds, between, choosing, room) {
+				room -= piecesLen(u)
+				units = append(units, adUnit{u, st})
 			}
 		}
-		stops = kept
-		if target > 0 {
-			room := target - base
-			optional := sum(pre, false) + sum(post, false)
-			for _, st := range stops {
-				optional += sum(st.pieces, false)
-			}
-			units = g.pickAds(ads, between, trim, room-optional)
-			var excess = optional - room
-			for _, u := range units {
-				for _, b := range u {
-					excess += b.dur
-				}
-			}
-			units, excess = shrinkAds(units, excess, trim)
-			lists := [][]piece{post}
-			for i := len(stops) - 1; i >= 0; i-- {
-				lists = append(lists, stops[i].pieces)
-			}
-			lists = append(lists, pre)
-			for _, l := range lists {
-				excess = shrinkBumpers(l, excess, trim)
-			}
+	}
+	if trim.On && target > 0 {
+		for _, u := range g.pickAds(ads, between, trim, room) {
+			room -= piecesLen(u)
+			units = append(units, adUnit{u, nil})
+		}
+		// room has gone below nothing by however much it doesn't fit.
+		excess := -room
+		units, excess = shrinkAds(units, excess, trim)
+		lists := [][]piece{post}
+		for i := len(stops) - 1; i >= 0; i-- {
+			lists = append(lists, stops[i].pieces)
+		}
+		lists = append(lists, pre)
+		for _, l := range lists {
+			excess = shrinkBumpers(l, excess, trim)
+		}
+	}
+	for _, u := range units {
+		if u.stop != nil {
+			u.stop.pieces = append(u.stop.pieces, u.pieces...)
 		}
 	}
 
 	t = g.placePieces(t, pre)
 	var from int64
 	for _, st := range stops {
-		if st.at <= from || st.at >= dur {
+		// A break that has nothing left in it doesn't interrupt anything.
+		if st.at >= dur || piecesLen(st.pieces) == 0 {
 			continue
 		}
 		pr := g.place(t, t+st.at-from, KindShow, e)
@@ -893,10 +943,15 @@ func (g *generator) play(seg segment, t int64, e *Entry, dur int64, marathon boo
 	t = g.placePieces(t, post)
 
 	if !trim.On || target == 0 {
-		units = g.pickAds(ads, between, Trim{Ads: TrimDrop}, limit-t)
-	}
-	for _, u := range units {
-		t = g.placePieces(t, u)
+		for _, u := range g.pickAds(ads, between, Trim{Ads: TrimDrop}, limit-t) {
+			t = g.placePieces(t, u)
+		}
+	} else {
+		for _, u := range units {
+			if u.stop == nil {
+				t = g.placePieces(t, u.pieces)
+			}
+		}
 	}
 
 	if grid > 0 {
@@ -915,6 +970,13 @@ func (g *generator) play(seg segment, t int64, e *Entry, dur int64, marathon boo
 		}
 	}
 	return t
+}
+
+func piecesLen(list []piece) (n int64) {
+	for _, b := range list {
+		n += b.dur
+	}
+	return n
 }
 
 // nextStart is the first start time at or after t: a grid time, or the end of a
@@ -961,15 +1023,15 @@ func (g *generator) pickAds(n int, between []*ruleState, trim Trim, room int64) 
 	return out
 }
 
-// shrinkAds takes excess seconds out of a break, from the last commercial back,
+// shrinkAds takes excess seconds out of the commercials, from the last one back,
 // and returns what could not be found.
-func shrinkAds(units [][]piece, excess int64, trim Trim) ([][]piece, int64) {
+func shrinkAds(units []adUnit, excess int64, trim Trim) ([]adUnit, int64) {
 	policy := trim.adsPolicy()
 	if policy == TrimKeep {
 		return units, excess
 	}
 	for i := len(units) - 1; i >= 0 && excess > 0; i-- {
-		u := units[i]
+		u := units[i].pieces
 		ad := &u[len(u)-1]
 		if policy == TrimCut && ad.dur-excess >= trim.minKeep() {
 			ad.dur -= excess
@@ -978,9 +1040,7 @@ func shrinkAds(units [][]piece, excess int64, trim Trim) ([][]piece, int64) {
 		}
 		// Too little would be left, or it may not be shortened: it goes, along
 		// with the bumper that led into it.
-		for _, b := range u {
-			excess -= b.dur
-		}
+		excess -= piecesLen(u)
 		units = units[:i]
 	}
 	return units, excess
@@ -1014,12 +1074,13 @@ func (g *generator) pickFiller(room int64) *Entry {
 	}
 	start := g.fillerR.intn(len(g.filler))
 	// The same video twice running only when there is nothing else to play.
-	if n := len(g.out); n > 0 && len(g.filler) > 1 && g.out[n-1].Kind == KindFiller && g.filler[start].itemID() == g.out[n-1].ItemID {
+	if len(g.filler) > 1 && g.filler[start].itemID() == g.lastFiller {
 		start = (start + 1) % len(g.filler)
 	}
 	for i := range g.filler {
 		e := &g.filler[(start+i)%len(g.filler)]
 		if e.Dur <= room {
+			g.lastFiller = e.itemID()
 			return e
 		}
 	}

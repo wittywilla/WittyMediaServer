@@ -1,9 +1,11 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { api } from '../../api'
 import { TokenField } from '../../components/edit/EditDetails'
 import RatingField from '../../components/RatingField'
 import { undoBatch, type Target } from '../../metadata'
 import { toast } from '../../state'
+import { Button, Dialog, Field, Input, Select } from '../../ui'
+import './library.css'
 
 // Changing many titles at once. Everything can be undone in one go.
 
@@ -35,54 +37,43 @@ export default function BulkEdit({ titles, onClose, onDone }: { titles: BulkTitl
       setDone(r)
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
-  const pressed = useRef(false)
   const nothing = !addGenres.length && !removeGenres.length && !addTags.length && !removeTags.length && !year.trim() && !setRatingOn && !lock
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { pressed.current = e.target === e.currentTarget }} onClick={(e) => { if (e.target === e.currentTarget && (pressed.current || e.detail === 0)) (done ? onDone : onClose)() }}>
-      <div className="modal lib-bulk-dialog" role="dialog" aria-modal="true" aria-labelledby="bulk-h">
-        <h2 id="bulk-h">Edit {titles.length} {titles.length === 1 ? 'title' : 'titles'} together</h2>
-        {done ? (
-          <>
-            <p role="status">Changed {done.done}. {done.failed.length ? `${done.failed.length} couldn't be changed.` : ''}</p>
-            {done.failed.length > 0 && <ul className="muted">{done.failed.slice(0, 10).map((f) => <li key={f}>{f}</li>)}</ul>}
-            <div className="actions">
-              <button type="button" className="btn ghost" onClick={async () => {
-                try { await undoBatch(done.batch); toast('Undone'); onDone() } catch (e: any) { setErr(e.message) }
-              }}>Undo all of it</button>
-              <button type="button" className="btn primary" autoFocus onClick={onDone}>Done</button>
-            </div>
+    <Dialog title={`Edit ${titles.length} ${titles.length === 1 ? 'title' : 'titles'} together`} className="lib-bulk-dialog" onClose={done ? onDone : onClose}
+      description={done ? undefined : "Only what you fill in changes. What you change is locked on each title, so nothing changes it back."}
+      actions={done
+        ? <>
+            <Button variant="ghost" onClick={async () => { try { await undoBatch(done.batch); toast('Undone'); onDone() } catch (e: any) { setErr(e.message) } }}>Undo all of it</Button>
+            <Button variant="primary" autoFocus onClick={onDone}>Done</Button>
           </>
-        ) : (
-          <>
-            <p className="muted">Only what you fill in changes. What you change is locked on each title, so nothing changes it back.</p>
-            <div className="form full">
-              <div className="row2">
-                <div><label htmlFor="bulk-ag">Add genres</label><TokenField id="bulk-ag" value={addGenres} onChange={setAddGenres} placeholder="Comedy" /></div>
-                <div><label htmlFor="bulk-rg">Take away genres</label><TokenField id="bulk-rg" value={removeGenres} onChange={setRemoveGenres} /></div>
-              </div>
-              <div className="row2">
-                <div><label htmlFor="bulk-at">Add tags</label><TokenField id="bulk-at" value={addTags} onChange={setAddTags} placeholder="Box set" /></div>
-                <div><label htmlFor="bulk-rt">Take away tags</label><TokenField id="bulk-rt" value={removeTags} onChange={setRemoveTags} /></div>
-              </div>
-              <label>Year<input className="input" inputMode="numeric" maxLength={4} value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, ''))} /></label>
-              <label className="lib-check"><input type="checkbox" checked={setRatingOn} onChange={(e) => setSetRatingOn(e.target.checked)} /> Set the content rating</label>
-              {setRatingOn && <RatingField value={rating} onChange={setRating} />}
-              <label>Locks
-                <select className="select" value={lock} onChange={(e) => setLock(e.target.value)}>
-                  <option value="">Leave them as they are</option>
-                  <option value="lock">Lock every field</option>
-                  <option value="unlock">Unlock every field</option>
-                </select>
-              </label>
-              {err && <div className="error" role="alert">{err}</div>}
-            </div>
-            <div className="actions">
-              <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
-              <button type="button" className="btn primary" disabled={busy || nothing} onClick={apply}>{busy ? 'Changing…' : `Change ${titles.length}`}</button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+        : <>
+            <Button variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button variant="primary" busy={busy} disabled={nothing} onClick={apply}>Change {titles.length}</Button>
+          </>}>
+      {done ? (
+        <>
+          <p role="status">Changed {done.done}. {done.failed.length ? `${done.failed.length} couldn't be changed.` : ''}</p>
+          {done.failed.length > 0 && <ul className="muted">{done.failed.slice(0, 10).map((f) => <li key={f}>{f}</li>)}</ul>}
+        </>
+      ) : (
+        <div className="form full">
+          <div className="row2">
+            <Field label="Add genres"><TokenField id="bulk-ag" value={addGenres} onChange={setAddGenres} placeholder="Comedy" /></Field>
+            <Field label="Take away genres"><TokenField id="bulk-rg" value={removeGenres} onChange={setRemoveGenres} /></Field>
+          </div>
+          <div className="row2">
+            <Field label="Add tags"><TokenField id="bulk-at" value={addTags} onChange={setAddTags} placeholder="Box set" /></Field>
+            <Field label="Take away tags"><TokenField id="bulk-rt" value={removeTags} onChange={setRemoveTags} /></Field>
+          </div>
+          <Field label="Year"><Input inputMode="numeric" maxLength={4} value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, ''))} /></Field>
+          <label className="lib-check"><input type="checkbox" checked={setRatingOn} onChange={(e) => setSetRatingOn(e.target.checked)} /> Set the content rating</label>
+          {setRatingOn && <RatingField value={rating} onChange={setRating} />}
+          <Field label="Locks">
+            <Select value={lock} onChange={(e) => setLock(e.target.value)} options={[{ value: '', label: 'Leave them as they are' }, { value: 'lock', label: 'Lock every field' }, { value: 'unlock', label: 'Unlock every field' }]} />
+          </Field>
+          {err && <div className="error" role="alert">{err}</div>}
+        </div>
+      )}
+    </Dialog>
   )
 }

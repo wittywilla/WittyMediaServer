@@ -3335,6 +3335,12 @@
                 "type": "null"
               }
             ]
+          },
+          "audioDirect": {
+            "type": "boolean"
+          },
+          "reader": {
+            "type": "string"
           }
         },
         "required": [
@@ -5596,6 +5602,55 @@
               "array",
               "null"
             ]
+          },
+          "fmp4Video": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "hi10pH264": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "interlaced": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "remux": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "switchAudio": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -5783,6 +5838,9 @@
               "array",
               "null"
             ]
+          },
+          "surroundOutput": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -5872,6 +5930,19 @@
           },
           "subtitleLanguage": {
             "type": "string"
+          },
+          "flatten3d": {
+            "type": "boolean"
+          },
+          "video": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -6004,6 +6075,115 @@
           },
           "url": {
             "type": "string"
+          },
+          "chapters": {
+            "items": {
+              "properties": {
+                "start": {
+                  "type": "number"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "start",
+                "title"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "explain": {
+            "anyOf": [
+              {
+                "properties": {
+                  "load": {
+                    "type": "string"
+                  },
+                  "picture": {
+                    "type": "string"
+                  },
+                  "reasons": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "sound": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "subtitles": {
+                    "type": "string"
+                  },
+                  "summary": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "load",
+                  "picture",
+                  "reasons",
+                  "sound",
+                  "source",
+                  "summary"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "flattened": {
+            "type": "boolean"
+          },
+          "stereo": {
+            "type": "string"
+          },
+          "videoIndex": {
+            "type": "integer"
+          },
+          "videos": {
+            "items": {
+              "properties": {
+                "codec": {
+                  "type": "string"
+                },
+                "height": {
+                  "type": "integer"
+                },
+                "index": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "width": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "codec",
+                "height",
+                "index",
+                "width"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
@@ -7602,6 +7782,15 @@
           },
           "version": {
             "type": "string"
+          },
+          "colors": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "radius": {
+            "type": "number"
           }
         },
         "required": [
@@ -7819,6 +8008,12 @@
           },
           "twoFactor": {
             "type": "boolean"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "showUsername": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -7863,6 +8058,12 @@
             "type": "string"
           },
           "twoFactor": {
+            "type": "boolean"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "showUsername": {
             "type": "boolean"
           }
         },
@@ -20501,6 +20702,56 @@
         "x-wms-auth": "user"
       }
     },
+    "/media-types": {
+      "get": {
+        "operationId": "getMediaTypes",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "codecs": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "ffmpeg": {
+                      "type": "string"
+                    },
+                    "formats": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every file type, codec and container the server knows, and which work on this machine.",
+        "tags": [
+          "Playback"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/meta/bulk": {
       "post": {
         "operationId": "postMetaBulk",
@@ -29021,6 +29272,69 @@
         "x-wms-auth": "admin"
       }
     },
+    "/themes/custom": {
+      "post": {
+        "operationId": "postThemesCustom",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "colors": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "CSS variable name without the dashes, to a colour like #336699.",
+                    "type": "object"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "radius": {
+                    "description": "Corners, 0 to 24 pixels.",
+                    "type": "integer"
+                  },
+                  "scheme": {
+                    "enum": [
+                      "dark",
+                      "light"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemeMeta"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a theme from the theme maker: colours and corners, no files.",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/themes/{id}": {
       "delete": {
         "operationId": "deleteThemesById",
@@ -30509,6 +30823,70 @@
           }
         ],
         "summary": "Change a password. Your own needs `current`; other sessions of that account end.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/users/{id}/profile": {
+      "put": {
+        "operationId": "putUsersProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "displayName": {
+                    "description": "The profile name, free for anyone to choose. Empty goes back to the username.",
+                    "type": "string"
+                  },
+                  "showUsername": {
+                    "description": "Show the username in the corner of the screen, not the profile name.",
+                    "type": "boolean"
+                  },
+                  "username": {
+                    "description": "The name to sign in with. Unique, ignoring case.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change what an account is called, and which name its corner shows.",
         "tags": [
           "Sign-in and accounts"
         ],

@@ -2,6 +2,8 @@ package library
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,10 +12,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittycd"
 	"github.com/wittywilla/wittycd/lookup"
+	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 
 )
 
@@ -644,3 +648,48 @@ func (s *Scanner) CDCoverPreview(ctx context.Context, release string) ([]byte, e
 	}
 	return b, nil
 }
+
+// flacOfSheetAudio makes FLAC of a sound file a cue sheet splits, when it's in a format
+// WittyCD doesn't read: Monkey's Audio, WavPack, MP3 and the rest. It's made once, in
+// CD format, and kept in the cache, so the sheet's tracks read like any others.
+func (s *Scanner) flacOfSheetAudio(path string) (string, error) {
+	st, err := os.Stat(path)
+	if err != nil {
+		return "", err
+	}
+	if !st.Mode().IsRegular() || st.Size() > maxSheetAudio {
+		return "", errors.New("this file is too large to read here")
+	}
+	sum := sha1.Sum([]byte(fmt.Sprintf("%s|%d|%d", path, st.Size(), st.ModTime().UnixNano())))
+	dir := filepath.Join(s.CacheDir, "cuesheets")
+	out := filepath.Join(dir, hex.EncodeToString(sum[:12])+".flac")
+	if fi, err := os.Stat(out); err == nil && fi.Size() > 0 {
+		return out, nil
+	}
+	sheetAudioMu.Lock()
+	defer sheetAudioMu.Unlock()
+	if fi, err := os.Stat(out); err == nil && fi.Size() > 0 {
+		return out, nil
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer cancel()
+	tmp := out + ".tmp.flac"
+	defer os.Remove(tmp)
+	args := append([]string{"-hide_banner", "-loglevel", "error", "-nostdin", "-y"}, ffmpeg.FileInput(path)...)
+	args = append(args, "-map", "0:a:0", "-vn", "-ar", "44100", "-ac", "2", "-sample_fmt", "s16", "-c:a", "flac", tmp)
+	if _, stderr, err := ffmpeg.Run(ctx, s.Tools.FFmpeg, args, "file", path); err != nil {
+		return "", fmt.Errorf("%w: %s", err, stderr.Last(300))
+	}
+	if err := os.Rename(tmp, out); err != nil {
+		return "", err
+	}
+	trimCache(dir, maxConvertedCache)
+	return out, nil
+}
+
+const maxSheetAudio = int64(8) << 30
+
+var sheetAudioMu sync.Mutex

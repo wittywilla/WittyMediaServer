@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -267,7 +268,7 @@ func isRemote(p string) bool {
 // findArt returns the first existing image named name.{jpg,jpeg,png,webp}.
 func findArt(dir string, names ...string) string {
 	for _, n := range names {
-		for _, ext := range []string{".jpg", ".jpeg", ".png", ".webp", ".tbn"} {
+		for _, ext := range mediatypes.ArtworkExts {
 			p := filepath.Join(dir, n+ext)
 			if st, err := os.Stat(p); err == nil && !st.IsDir() {
 				return p

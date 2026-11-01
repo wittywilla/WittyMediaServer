@@ -442,7 +442,7 @@ var textColumns = []struct {
 	{"item_comments", "author", 200, false}, {"item_comments", "body", 20000, true}, {"annotations", "note", 20000, true},
 	{"creators", "name", 500, false}, {"creators", "description", 20000, true},
 	{"podcasts", "title", 500, false}, {"podcasts", "author", 500, false}, {"podcasts", "description", 20000, true},
-	{"users", "name", 200, false},
+	{"users", "name", 200, false}, {"users", "display_name", 200, false},
 }
 
 func sanitizeRows(ctx context.Context, d *sql.DB, in *Inspection, f Folders) error {

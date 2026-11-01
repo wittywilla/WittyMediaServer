@@ -19,11 +19,6 @@ export type { AudioMode } from './types'
 
 const NowPlaying = lazy(() => import('./NowPlaying'))
 
-// Codecs every current browser plays as they are (keep in step with
-// library.DirectAudio on the server); others arrive converted to AAC and are
-// seeked by restarting the stream at the new position.
-const DIRECT = new Set(['mp3', 'aac', 'flac', 'opus', 'vorbis', 'pcm_s16le', 'pcm_s24le', 'pcm_u8', 'pcm_f32le'])
-
 const RETRY_WAITS = [2000, 5000, 10000] // between tries to reconnect to a station, in milliseconds
 const STALL_MS = 15000 // a station that plays nothing for this long has gone
 const COLLAPSE_KEY = 'wms.audio.collapsed'
@@ -303,7 +298,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const handoffTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const fading = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
-  const direct = (it: Item) => DIRECT.has(it.videoCodec)
+  // The server says what a browser plays as it is, by the file's container and codec.
+  // Anything else arrives converted to AAC and is seeked by restarting the stream.
+  const direct = (it: Item) => !!it.audioDirect || it.videoCodec === 'midi'
   const dropPrepared = useCallback(() => {
     clearTimeout(handoffTimer.current)
     handoffTimer.current = undefined

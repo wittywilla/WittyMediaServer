@@ -666,3 +666,10 @@ The helper is told what the owner chose through its environment when it starts: 
 (`debug`, `info`, `warn`, `error` or `off`) and `WITTYMODULE_LOG_TOPICS` a comma-separated list of topics that are on.
 Print what is wanted to stderr, one thing per line. Never print tokens, passwords or the contents of files.
 See [how every part logs](LOGGING.md#module-logging-levels-and-options-per-module).
+
+## File types
+
+A module that needs to know about file types shouldn't keep a list of its own. `GET /api/media-types` gives every format,
+codec and container the server knows, with extensions, how each plays, which libraries take it and whether this machine can
+handle it. `docs/media-types.json` is the same list as a file, for use when a module is built. See
+[Supported formats](SUPPORTED-FORMATS.md).

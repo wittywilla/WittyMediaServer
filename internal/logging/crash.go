@@ -124,6 +124,30 @@ func StartCrashGuard(dir, logDir, version string) (*CrashGuard, []Crash, error) 
 	return g, found, nil
 }
 
+// RunningServer says whether a server is running on this data folder, by the marker each
+// run leaves in its crash folder and whether that process is still alive. A marker
+// whose process has gone is what a crash leaves, and isn't a running server.
+func RunningServer(crashDir string) (pid int, ok bool) {
+	entries, err := os.ReadDir(crashDir)
+	if err != nil {
+		return 0, false
+	}
+	for _, e := range entries {
+		name := e.Name()
+		if !strings.HasPrefix(name, "run-") || !strings.HasSuffix(name, ".json") {
+			continue
+		}
+		p, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(name, "run-"), ".json"))
+		if err != nil || p == os.Getpid() {
+			continue
+		}
+		if pidAlive(p) {
+			return p, true
+		}
+	}
+	return 0, false
+}
+
 func (g *CrashGuard) writeMarker() error {
 	b, err := json.Marshal(g.run)
 	if err != nil {

@@ -202,6 +202,10 @@ func NewManager(tools *ffmpeg.Tools, root string, max int, log *slog.Logger) *Ma
 	return m
 }
 
+// IsSessionDir says a folder's name is one this package makes. The transcode folder can
+// hold anything else, so nothing else may be taken for a leftover of a stream.
+func IsSessionDir(name string) bool { return sessionDirRe.MatchString(name) }
+
 // cleanRoot removes what an earlier run left: only folders of the kind this
 // package makes. The transcode folder is the owner's choice and could hold
 // anything else.

@@ -102,6 +102,14 @@ Check (Test-Path "$env:LOCALAPPDATA\WittyMediaServer\wms.db") "the library staye
 Check (-not (Test-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\WittyMediaServer")) "out of Installed apps"
 Remove-Item -Force "$perUser\my-own-file.txt"; Remove-Item -Force $perUser -ErrorAction SilentlyContinue
 
+Say "the command line, for when the installer has gone missing"
+Install $msi @("MSIINSTALLPERUSER=1")
+$report = Join-Path $env:TEMP "cli-report.txt"
+& "$perUser\bin\wittymediaserver.exe" --uninstall --yes --keep-data --report $report
+Check (WaitGone "$perUser\bin") "the program went"
+Check (Test-Path $report) "it wrote what it did"
+Check (Test-Path "$env:LOCALAPPDATA\WittyMediaServer\wms.db") "the library stayed"
+
 Say "install again, and a full clean-up"
 Install $msi @("MSIINSTALLPERUSER=1")
 Start-Process "$perUser\WittyMediaServer.exe"

@@ -96,7 +96,7 @@ for f in "Uninstall WittyMediaServer.exe" package-info.json bin/wittymediaserver
 done
 [ ! -e "$root/wms.exe" ] || fail "the installer brought the forwarder"
 grep -q '"msi"' "$root/package-info.json" || fail "the marker doesn't say msi"
-reg_has 'Uninstall\\\\\\\\WittyMediaServer' || fail "no Installed apps entry"
+reg_has 'Uninstall\\\\WittyMediaServer' || fail "no Installed apps entry"
 reg_has 'ProductCode' || fail "no product code in the entry"
 
 say "the server starts from where it was installed"
@@ -128,15 +128,23 @@ wineserver -w; sleep 8; wineserver -w
 [ ! -e "$root/bin/wittymediaserver.exe" ] || fail "the program stayed"
 [ -f "$data/cache/images/a.jpg" ] || fail "a keep-data uninstall took the cache"
 [ -f "$root/my-own-file.txt" ] || fail "took a file it didn't make"
-reg_has 'Uninstall\\\\\\\\WittyMediaServer' && fail "the Installed apps entry stayed"
+reg_has 'Uninstall\\\\WittyMediaServer' && fail "the Installed apps entry stayed"
 rm -f "$root/my-own-file.txt"; rmdir "$root" 2>/dev/null
 
 say "install again: the command line, for when the installer has gone missing"
 run_msi /i "$msi" /qn "$JUST_ME" || fail "reinstall exit $code"
 root=$(dirname "$(find "$C" -type f -name WittyMediaServer.exe | head -1)")
-wine "$root/bin/wittymediaserver.exe" --uninstall --yes --keep-data --report 'C:\report.txt'
+# Wine leaves this in Program Files whoever it's for, and this account isn't an administrator there.
+wine "$root/bin/wittymediaserver.exe" --uninstall --yes --keep-data > /tmp/refused.txt 2>&1
+grep -q 'needs an administrator' /tmp/refused.txt || { cat /tmp/refused.txt; fail "it should have asked for an administrator"; }
+[ -e "$root/bin/wittymediaserver.exe" ] || fail "it carried on without the rights"
+# What it then starts, as an administrator would: a copy in the temp folder.
+mkdir -p "$C/wittymediaserver-uninstall-test"
+cp "$root/bin/wittymediaserver.exe" "$C/wittymediaserver-uninstall-test/"
+wine "$C/wittymediaserver-uninstall-test/wittymediaserver.exe" --uninstall --worker --yes --keep-data --program-folder 'C:\Program Files\WittyMediaServer' --report 'C:\report.txt'
 wineserver -w; sleep 8; wineserver -w
 cat "$C/report.txt" || fail "no report from the command line"
+rm -rf "$C/wittymediaserver-uninstall-test"
 [ ! -e "$root/bin/wittymediaserver.exe" ] || fail "the command line left the program"
 [ -f "$data/cache/images/a.jpg" ] || fail "--keep-data took the cache"
 rm -f "$C/report.txt"
@@ -167,13 +175,13 @@ say "for everyone, with the service and the firewall rule"
 run_msi /i "$msi" /qn ALLUSERS=1 INSTALLSERVICE=1 ADDFIREWALL=1 AUTOSTART=0 PORT=9797 || fail "machine install exit $code"
 root="$C/Program Files/WittyMediaServer"
 [ -f "$root/WittyMediaServer.exe" ] || fail "not in Program Files: $(find "$C" -name WittyMediaServer.exe)"
-grep -aqi 'Services\\\\\\\\WittyMediaServer' "$WINEPREFIX/system.reg" || fail "the service wasn't registered"
-grep -a -A6 'Services\\\\\\\\WittyMediaServer\]' "$WINEPREFIX/system.reg" | head -12
+grep -aqi 'Services\\\\WittyMediaServer' "$WINEPREFIX/system.reg" || fail "the service wasn't registered"
+grep -a -A6 'Services\\\\WittyMediaServer\]' "$WINEPREFIX/system.reg" | head -12
 grep -aq 'serve -data' "$WINEPREFIX/system.reg" || fail "the service has no arguments"
 wine "$root/Uninstall WittyMediaServer.exe" /S /RemoveData
 wineserver -w; sleep 8; wineserver -w
 [ ! -e "$root/bin/wittymediaserver.exe" ] || fail "the program stayed in Program Files"
-grep -aqi 'Services\\\\\\\\WittyMediaServer' "$WINEPREFIX/system.reg" && fail "the service stayed"
+grep -aqi 'Services\\\\WittyMediaServer' "$WINEPREFIX/system.reg" && fail "the service stayed"
 rm -rf "$C/ProgramData/WittyMediaServer"
 snapshot > /tmp/after2.txt
 diff -u /tmp/before.txt /tmp/after2.txt | grep -v msi.log > /tmp/d2.txt

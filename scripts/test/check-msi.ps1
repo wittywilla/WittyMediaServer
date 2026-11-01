@@ -75,8 +75,16 @@ $svc = Query $db 'SELECT ServiceInstall, Name, StartName, Arguments, Component_ 
 $svc | ForEach-Object { Write-Host "Service: $($_.name) as $($_.account), arguments [$($_.args)], in $($_.comp)" }
 if ($svc.account -notmatch 'LocalService') { Fail "the service isn't under the limited account" } else { Ok "the service runs under LocalService" }
 if ($svc.comp -ne 'ServerAsService') { Fail "the service is in the wrong component" }
-$fw = Query $db 'SELECT Wix4FirewallException, Name, Port, Protocol, Scope, Profile, Component_ FROM Wix6FirewallException' @('id', 'name', 'port', 'proto', 'scope', 'profile', 'comp') 2>$null
-$fw | ForEach-Object { Write-Host "Firewall: $($_.name) port $($_.port) protocol $($_.proto) scope $($_.scope) profile $($_.profile)" }
+$tables = (Query $db 'SELECT Name FROM _Tables' @('n')).n
+$fwTable = $tables | Where-Object { $_ -match 'FirewallException' } | Select-Object -First 1
+if (-not $fwTable) {
+  Fail "no firewall table"
+} else {
+  $cols = (Query $db "SELECT Name FROM _Columns WHERE ``Table``='$fwTable'" @('n')).n
+  $fw = Query $db ("SELECT * FROM ``$fwTable``") $cols
+  $fw | ForEach-Object { Write-Host "Firewall ($fwTable): $(($_.PSObject.Properties | Where-Object { $_.Value } | ForEach-Object { "$($_.Name)=$($_.Value)" }) -join ' ')" }
+  if (@($fw).Count -ne 2) { Fail "there should be a rule for each of TCP and UDP" } else { Ok "a firewall rule for each of TCP and UDP" }
+}
 
 $reg = Query $db 'SELECT `Registry`, `Root`, `Key`, `Name`, `Value`, `Component_` FROM `Registry`' @('id', 'root', 'key', 'name', 'value', 'comp')
 $arp = $reg | Where-Object { $_.key -like '*CurrentVersion\Uninstall\WittyMediaServer' }

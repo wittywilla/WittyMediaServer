@@ -187,7 +187,7 @@ func runCLI(e *Env, a Args, in io.Reader, out io.Writer) int {
 		fmt.Fprintln(out, "Nothing was changed.")
 		return 1
 	}
-	if pl.NeedsAdmin(a.Options) && !e.IsAdmin {
+	if pl.NeedsAdmin(a.Options) && !e.IsAdmin && !a.Worker {
 		if e.GOOS == "windows" {
 			fmt.Fprintln(out, "Some of this needs an administrator. Open a terminal with Run as administrator and try again, or use Uninstall WittyMediaServer.")
 		} else {

@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -100,6 +101,66 @@ func checkStreamURL(raw string, local bool) error {
 		}
 	}
 	return nil
+}
+
+// checkOpening is checkStreamURL for a stream about to be opened, which can afford to ask
+// where a name really leads. A playlist's thousands of channels can't.
+func checkOpening(raw string, local bool) error {
+	if err := checkStreamURL(raw, local); err != nil {
+		return err
+	}
+	if local {
+		return nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return errors.New("that is not a stream address")
+	}
+	if host := u.Hostname(); net.ParseIP(host) == nil && !resolvesOutside(host) {
+		return errors.New("a playlist from elsewhere may not point at this server")
+	}
+	return nil
+}
+
+// noWayHome is a client that won't follow a redirect to this machine.
+func noWayHome(c *http.Client) *http.Client {
+	out := *c
+	before := c.CheckRedirect
+	out.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		if err := checkOpening(req.URL.String(), false); err != nil {
+			return err
+		}
+		if before != nil {
+			return before(req, via)
+		}
+		if len(via) >= 10 {
+			return errors.New("too many redirects")
+		}
+		return nil
+	}
+	return &out
+}
+
+// lookupHost is what a channel's name is asked of.
+var lookupHost = func(host string) ([]net.IP, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	return net.DefaultResolver.LookupIP(ctx, "ip", host)
+}
+
+// resolvesOutside says a name doesn't lead to this machine, whatever the name looks like.
+// One that can't be looked up leads nowhere yet, and fails by itself when it's opened.
+func resolvesOutside(host string) bool {
+	ips, err := lookupHost(strings.TrimSuffix(host, "."))
+	if err != nil {
+		return true
+	}
+	for _, ip := range ips {
+		if ip.IsLoopback() || ip.IsUnspecified() || ip.IsLinkLocalUnicast() {
+			return false
+		}
+	}
+	return true
 }
 
 // M3UEntry is one channel of a playlist.
@@ -351,14 +412,18 @@ func (s *iptv) Open(ctx context.Context, ch Channel) (*Stream, error) {
 		return nil, &EncryptedError{ch.Name, ch.Encrypted}
 	}
 	local := s.single != "" || s.localPlaylist()
-	if err := checkStreamURL(ch.Locator, local); err != nil {
+	if err := checkOpening(ch.Locator, local); err != nil {
 		return nil, err
 	}
 	u, _ := url.Parse(ch.Locator)
 	ua := s.cfg.Options["userAgent"]
 	switch strings.ToLower(u.Scheme) {
 	case "http", "https":
-		return openHTTPStream(ctx, s.env, ch, ua, nil)
+		env := s.env
+		if !local {
+			env.HTTP, env.Stream, env.refuseHere = noWayHome(env.http()), noWayHome(env.stream()), true
+		}
+		return openHTTPStream(ctx, env, ch, ua, nil)
 	// A relay turns the rest into MPEG-TS, so the guard can read them too.
 	case "rtp", "udp":
 		return relay(ctx, s.env, []string{"-protocol_whitelist", "udp,rtp", "-i", ch.Locator})
@@ -440,15 +505,35 @@ func openHTTPStream(ctx context.Context, env Env, ch Channel, ua string, headers
 	if isHLS {
 		rest, _ := io.ReadAll(io.LimitReader(res.Body, 2<<20))
 		res.Body.Close()
-		if why := hlsProtection(append(head, rest...)); why != "" {
+		all := append(head, rest...)
+		if why := hlsProtection(all); why != "" {
 			return nil, &EncryptedError{ch.Name, why}
 		}
-		if v := firstVariant(append(head, rest...)); v != "" {
-			if why := checkVariant(ctx, env, ch.Locator, v, ua, headers); why != "" {
+		// FFmpeg may pick any variant, so every one has to be clear. "Verified" is only
+		// for a stream that was read all the way through.
+		whole := len(rest) < 2<<20
+		variants := hlsVariants(all)
+		if len(variants) > maxHLSVariants {
+			variants, whole = variants[:maxHLSVariants], false
+		}
+		for _, v := range variants {
+			if env.refuseHere {
+				bu, err := url.Parse(ch.Locator)
+				if err == nil {
+					if ru, err := bu.Parse(v); err == nil {
+						if err := checkOpening(ru.String(), false); err != nil {
+							return nil, err
+						}
+					}
+				}
+			}
+			why, read := checkVariant(ctx, env, ch.Locator, v, ua, headers)
+			if why != "" {
 				return nil, &EncryptedError{ch.Name, why}
 			}
+			whole = whole && read
 		}
-		return &Stream{Input: httpInput(ch.Locator, ua, headers), Verified: true}, nil
+		return &Stream{Input: httpInput(ch.Locator, ua, headers), Verified: whole}, nil
 	}
 	if n >= 188 && head[0] == 0x47 && (n < 376 || head[188] == 0x47) {
 		// Raw MPEG-TS: read on, starting with what was already read.
@@ -489,36 +574,52 @@ func hlsProtection(b []byte) string {
 	return ""
 }
 
-// firstVariant finds a master playlist's first stream.
-func firstVariant(b []byte) string {
+// maxHLSVariants is more variants than a real channel has, each one a request.
+const maxHLSVariants = 32
+
+// hlsVariants finds a master playlist's streams, and what its audio and subtitle
+// renditions point at: any of them could be what FFmpeg reads.
+func hlsVariants(b []byte) []string {
 	sc := bufio.NewScanner(bytes.NewReader(b))
 	sc.Buffer(make([]byte, 0, 64*1024), 1<<20)
 	next := false
+	var out []string
 	for sc.Scan() {
 		l := strings.TrimSpace(sc.Text())
 		if strings.HasPrefix(l, "#EXT-X-STREAM-INF") {
 			next = true
 			continue
 		}
+		if strings.HasPrefix(l, "#EXT-X-MEDIA:") {
+			if m := hlsMediaURI.FindStringSubmatch(l); m != nil {
+				out = append(out, m[1])
+			}
+			continue
+		}
 		if next && l != "" && !strings.HasPrefix(l, "#") {
-			return l
+			out = append(out, l)
+			next = false
 		}
 	}
-	return ""
+	return out
 }
 
-func checkVariant(ctx context.Context, env Env, base, v, ua string, headers http.Header) string {
+var hlsMediaURI = regexp.MustCompile(`URI="([^"]+)"`)
+
+// checkVariant says why one variant can't be played, or "", and whether it was read:
+// one that wasn't has said nothing either way.
+func checkVariant(ctx context.Context, env Env, base, v, ua string, headers http.Header) (why string, read bool) {
 	bu, err := url.Parse(base)
 	if err != nil {
-		return ""
+		return "", false
 	}
 	ru, err := bu.Parse(v)
 	if err != nil || (ru.Scheme != "http" && ru.Scheme != "https") {
-		return ""
+		return "", false
 	}
 	req, err := http.NewRequestWithContext(ctx, "GET", ru.String(), nil)
 	if err != nil {
-		return ""
+		return "", false
 	}
 	for k, vs := range headers {
 		req.Header[k] = vs
@@ -528,11 +629,14 @@ func checkVariant(ctx context.Context, env Env, base, v, ua string, headers http
 	}
 	res, err := env.http().Do(req)
 	if err != nil {
-		return ""
+		return "", false
 	}
 	defer res.Body.Close()
-	b, _ := io.ReadAll(io.LimitReader(res.Body, 2<<20))
-	return hlsProtection(b)
+	b, err := io.ReadAll(io.LimitReader(res.Body, 2<<20))
+	if why := hlsProtection(b); why != "" {
+		return why, true
+	}
+	return "", err == nil && res.StatusCode == http.StatusOK && len(b) < 2<<20
 }
 
 // relay runs FFmpeg to bring a stream to MPEG-TS without converting anything.

@@ -159,6 +159,9 @@ type Env struct {
 	FFmpeg string
 	// Command prepares a process (the host hides console windows and so on).
 	Command func(ctx context.Context, name string, args ...string) *exec.Cmd
+	// refuseHere: this stream's playlist came from elsewhere, so nothing it names may
+	// lead back to this machine.
+	refuseHere bool
 	// AllowCommands: the owner has allowed the custom command driver.
 	AllowCommands bool
 	// Log is where drivers say what went wrong; nil says nothing. Records are

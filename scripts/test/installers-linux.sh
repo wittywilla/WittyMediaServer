@@ -101,7 +101,7 @@ say "remove, keeping data"
 if [ "$KIND" = deb ]; then apt-get remove -y wittymediaserver >/tmp/out 2>&1 || { cat /tmp/out; fail removing; }
 else dnf remove -y wittymediaserver >/tmp/out 2>&1 || { cat /tmp/out; fail removing; }; fi
 tail -n 5 /tmp/out
-[ ! -e /usr/lib/wittymediaserver ] || fail "the program stayed"
+[ ! -e /usr/lib/wittymediaserver ] || { find /usr/lib/wittymediaserver; fail "the program stayed"; }
 [ -f /var/lib/wittymediaserver/wms.db ] || fail "plain remove took the library"
 systemctl status wittymediaserver --no-pager >/dev/null 2>&1; [ $? -ne 0 ] || fail "the service is still running"
 

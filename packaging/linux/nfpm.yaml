@@ -17,6 +17,17 @@ description: |-
   FFmpeg comes with it, in its own folder.
 
 contents:
+  # Folders of ours are named, or an .rpm leaves them behind when it's removed.
+  - dst: /usr/lib/wittymediaserver
+    type: dir
+    file_info: {mode: 0755}
+  - dst: /usr/lib/wittymediaserver/bin
+    type: dir
+    file_info: {mode: 0755}
+  - dst: /usr/share/doc/wittymediaserver
+    type: dir
+    file_info: {mode: 0755}
+
   # The program. The same layout as every other package: internal/layout.
   - src: ${STAGE}/bin/
     dst: /usr/lib/wittymediaserver/bin/

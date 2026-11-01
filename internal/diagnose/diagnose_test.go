@@ -785,7 +785,7 @@ func TestDiagnoseThingsThatArentDiscs(t *testing.T) {
 	withModules := false
 	run := func(p string) *Job {
 		j := testJob()
-		withModules = realHelpers(t, j, "wittydvd", "wittybluray")
+		withModules = realHelpers(t, j, "wittydvd", "wittybluray", "wittycd")
 		j.scrub = []scrubRule{{path: p, with: "this disc"}, {path: dir, with: "its folder"}}
 		checkDisc(context.Background(), j, p, DiscOptions{Crawl: true, Damage: true})
 		return j

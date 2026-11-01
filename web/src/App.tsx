@@ -25,6 +25,7 @@ const SharedPage = lazy(() => import('./pages/SharedPage'))
 const DesignPage = lazy(() => import('./pages/DesignPage'))
 const LegalPublicPage = lazy(() => import('./pages/settings/Legal').then((m) => ({ default: m.LegalPublicPage })))
 const GamePage = lazy(() => import('./pages/Games').then((m) => ({ default: m.GamePage })))
+const CouchMode = lazy(() => import('./pages/games/Couch'))
 const RadioStationPage = lazy(() => import('./pages/RadioLibrary').then((m) => ({ default: m.RadioStationPage })))
 const ControllersScreen = lazy(() => import('./pages/Games').then((m) => ({ default: m.ControllersScreen })))
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
@@ -32,6 +33,7 @@ const CollectionsPage = lazy(() => import('./pages/CollectionsPage'))
 const FixMatches = lazy(() => import('./pages/FixMatches'))
 const BrandPage = lazy(() => import('./pages/library/BrandPage'))
 const CouchPage = lazy(() => import('./pages/Couch'))
+const ModulePage = lazy(() => import('./pages/ModulePage'))
 const CouchHostPage = lazy(() => import('./pages/Couch').then((m) => ({ default: m.CouchHostPage })))
 const CouchPlayPage = lazy(() => import('./pages/Couch').then((m) => ({ default: m.CouchPlayPage })))
 const RigPlayPage = lazy(() => import('./pages/Couch').then((m) => ({ default: m.RigPlayPage })))
@@ -87,11 +89,13 @@ function Shell() {
   const isReader = loc.pathname.startsWith('/read/')
   const isTvPlayer = loc.pathname.startsWith('/tv/watch/')
   const isGame = loc.pathname.startsWith('/game/')
+  const isCouchMode = loc.pathname === '/big' || loc.pathname.startsWith('/big/')
   const isStream = /^\/couch\/\d+\/play\//.test(loc.pathname) || loc.pathname.startsWith('/couch-rig/')
   return (
     <AudioProvider>
       {isTvPlayer ? <Suspense fallback={tvFallback}><Routes><Route path="/tv/watch/:key" element={<TvPlayer />} /></Routes></Suspense>
         : isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense>
+        : isCouchMode ? <Suspense fallback={<Spinner />}><Routes><Route path="/big/*" element={<CouchMode />} /></Routes></Suspense>
         : isGame ? <Suspense fallback={<Spinner />}><Routes><Route path="/game/:id" element={<GamePage />} /></Routes></Suspense>
         : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
         : isPlayer ? null : <AppFrame />}
@@ -154,6 +158,7 @@ function AppFrame() {
             <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
             <Route path="/controllers" element={<Suspense fallback={<Spinner />}><ControllersScreen /></Suspense>} />
             <Route path="/settings/*" element={<SettingsPage />} />
+            <Route path="/m/:module/:page" element={<Suspense fallback={<Spinner />}><ModulePage /></Suspense>} />
             <Route path="/design" element={<DesignPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api, inMainMenus } from '../api'
-import { IconGamepad, IconHome, IconLibrary, IconTv, libIcon } from '../icons'
+import { IconChart, IconGamepad, IconHome, IconLibrary, IconPlug, IconTv, libIcon } from '../icons'
+import { useModulePages } from '../moduleBundles'
 import { setOwnerNavStyle } from '../navPrefs'
 import { useApp } from '../state'
 import { useUserPref } from '../ui/userPrefs'
@@ -26,6 +27,7 @@ function useCanUseCouch() {
 export function useNavItems(): NavItem[] {
   const { libraries } = useApp()
   const couch = useCanUseCouch()
+  const modulePages = useModulePages()
   return useMemo(() => {
     const list: NavItem[] = [
       { id: 'home', label: 'Home', to: '/', end: true },
@@ -34,8 +36,11 @@ export function useNavItems(): NavItem[] {
     ]
     if (libraries.length > 0) list.push({ id: 'collections', label: 'Collections', to: '/collections' })
     if (couch) list.push({ id: 'couch', label: 'Game PCs', to: '/couch' })
+    for (const p of modulePages) {
+      if (p.where === 'main') list.push({ id: `m:${p.module}:${p.id}`, label: p.title, to: `/m/${p.module}/${p.id}`, kind: 'module:' + (p.icon ?? '') })
+    }
     return list
-  }, [libraries, couch])
+  }, [libraries, couch, modulePages])
 }
 
 export function navIcon(item: NavItem): ReactNode {
@@ -44,7 +49,9 @@ export function navIcon(item: NavItem): ReactNode {
     case 'tv': return <IconTv />
     case 'collections': return <IconLibrary />
     case 'couch': return <IconGamepad />
-    default: return libIcon(item.kind || '')
+    default:
+      if (item.kind?.startsWith('module:')) return item.kind === 'module:chart' ? <IconChart /> : <IconPlug />
+      return libIcon(item.kind || '')
   }
 }
 

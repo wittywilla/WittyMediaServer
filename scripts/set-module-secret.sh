@@ -16,7 +16,7 @@
 set -euo pipefail
 
 OWNER=${OWNER:-wittywilla}
-REPOS=(WittyDVD WittyBluray WittyCD WittyTuner WittyPhotos WittyIntegratedFileBrowser WittyRigs WittyPlay WittyCouch WittyCouchHost WittyInk WittyEbook WittyPDF WittyComics WittyVisualizer WittyModuleCatalog)
+REPOS=(WittyDVD WittyBluray WittyCD WittyTuner WittyPhotos WittyIntegratedFileBrowser WittyRigs WittyPlay WittyCouch WittyCouchHost WittyInk WittyEbook WittyPDF WittyComics WittyVisualizer WittyStats WittyModuleCatalog)
 
 GH=gh
 if ! command -v gh >/dev/null 2>&1; then

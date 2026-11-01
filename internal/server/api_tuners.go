@@ -560,6 +560,10 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 			info.Next = &g
 		}
 	}
+	if err := s.addLiveTicket(r, &info); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
 	writeJSON(w, 200, info)
 }
 

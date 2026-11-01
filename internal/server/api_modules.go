@@ -4,9 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/wittywilla/wittymodule"
 	"io"
 	"net/http"
 	"path"
+	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -278,7 +282,15 @@ func (s *Server) handleModulesWeb(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"bundles": []modmgr.WebBundle{}})
 		return
 	}
-	writeJSON(w, 200, map[string]any{"bundles": s.Modules.WebBundles()})
+	bundles := s.Modules.WebBundles()
+	// A page for admins isn't offered to anyone else. It keeps nothing safe by itself: what it
+	// calls checks for itself.
+	if !userFrom(r).IsAdmin {
+		for i := range bundles {
+			bundles[i].Pages = slices.DeleteFunc(slices.Clone(bundles[i].Pages), func(p wittymodule.Page) bool { return p.Admin })
+		}
+	}
+	writeJSON(w, 200, map[string]any{"bundles": bundles})
 }
 
 // bundleTypes are the only kinds of file a bundle can serve (wittymodule pack refuses
@@ -494,4 +506,70 @@ func (s *Server) handleModuleNotices(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	_, _ = w.Write(b)
+}
+
+// A module's page keeps a little per person, such as how they arranged it. It's kept in the settings
+// table, and the key says whose it is, so a module can't read anyone else's or any setting.
+const (
+	maxModuleStoreValue = 64 << 10
+	maxModuleStoreKeys  = 32
+)
+
+var moduleStoreKey = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
+
+func moduleStoreName(userID int64, id, key string) string {
+	return fmt.Sprintf("modulestore.%d.%s.%s", userID, id, key)
+}
+
+// moduleStoreTarget checks the address. It writes the answer itself when it says no.
+func (s *Server) moduleStoreTarget(w http.ResponseWriter, r *http.Request) (string, bool) {
+	id, key := r.PathValue("id"), r.PathValue("key")
+	if s.Modules == nil || !moduleStoreKey.MatchString(key) {
+		writeErr(w, 404, "not found")
+		return "", false
+	}
+	if !s.Modules.Installed(id) {
+		writeModuleMissing(w, s.Modules.Missing(id))
+		return "", false
+	}
+	return moduleStoreName(userFrom(r).ID, id, key), true
+}
+
+// GET /api/module-store/{id}/{key}: what this person's page saved, or null.
+func (s *Server) handleModuleStoreGet(w http.ResponseWriter, r *http.Request) {
+	name, ok := s.moduleStoreTarget(w, r)
+	if !ok {
+		return
+	}
+	v := s.DB.GetSetting(r.Context(), name, "null")
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = io.WriteString(w, v)
+}
+
+// PUT /api/module-store/{id}/{key}: saves any JSON, up to a limit.
+func (s *Server) handleModuleStorePut(w http.ResponseWriter, r *http.Request) {
+	name, ok := s.moduleStoreTarget(w, r)
+	if !ok {
+		return
+	}
+	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxModuleStoreValue))
+	if err != nil || !json.Valid(b) {
+		writeErr(w, 400, "expected JSON of at most 64 KB")
+		return
+	}
+	prefix := name[:strings.LastIndexByte(name, '.')+1]
+	var n int
+	if err := s.DB.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM settings WHERE key >= ? AND key < ? AND key <> ?`, prefix, prefix+"~", name).Scan(&n); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	if n >= maxModuleStoreKeys {
+		writeErr(w, 409, "this module has saved as much as it may")
+		return
+	}
+	if err := s.DB.SetSetting(r.Context(), name, string(b)); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"ok": true})
 }

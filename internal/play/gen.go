@@ -520,6 +520,13 @@ type OptionInfo struct {
 	Hidden   bool     `json:"hidden,omitempty"` // the core says it doesn't apply just now
 }
 
+// Azahar, like the 3DS, starts as the older model unless it's told otherwise. A game made
+// for the New 3DS, whose header says so, won't run on that.
+const (
+	NewThreeDSOption = "citra_is_new_3ds"
+	NewThreeDSValue  = "New 3DS"
+)
+
 // ThreeDSFile is what a 3DS file's headers say.
 type ThreeDSFile struct {
 	Encrypted bool
@@ -528,6 +535,8 @@ type ThreeDSFile struct {
 	Program    int64
 	ProgramLen int64
 	Package    bool
+	// NewOnly: this game only runs on a New 3DS, so a core has to be told to be one.
+	NewOnly bool
 }
 
 // CoreTraits describes one core.
@@ -564,7 +573,7 @@ type BIOSRule struct {
 
 // What the module's errors are, so errors.Is works on what comes back.
 var (
-	ErrEncrypted3DS = errors.New("This 3DS game file is encrypted, so it can't be played here, and this server won't decrypt it. A copy in decrypted form will play")
+	ErrEncrypted3DS = errors.New("This 3DS game file is encrypted: its program is scrambled, as it came from the console or the store. It can't be played here, and this server won't decrypt it. A copy dumped in decrypted form will play")
 )
 
 func init() {

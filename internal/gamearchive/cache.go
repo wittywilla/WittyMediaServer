@@ -99,6 +99,7 @@ type failure struct {
 type job struct {
 	key     string
 	path    string
+	entry   string // the file someone chose to play, or "" to choose by the rules
 	console *wittyplay.Console
 	done    chan struct{}
 	err     error
@@ -149,20 +150,29 @@ func (c *Cache) Close() {
 	c.stop()
 }
 
-func keyOf(p string, console *wittyplay.Console) (string, error) {
+func keyOf(p string, console *wittyplay.Console, entry string) (string, error) {
 	st, err := os.Stat(p)
 	if err != nil {
 		return "", err
 	}
-	h := sha256.Sum256([]byte(p + "\x00" + strconv.FormatInt(st.Size(), 10) + "\x00" + strconv.FormatInt(st.ModTime().UnixNano(), 10) + "\x00" + console.ID))
+	key := p + "\x00" + strconv.FormatInt(st.Size(), 10) + "\x00" + strconv.FormatInt(st.ModTime().UnixNano(), 10) + "\x00" + console.ID
+	if entry != "" {
+		key += "\x00" + entry
+	}
+	h := sha256.Sum256([]byte(key))
 	return hex.EncodeToString(h[:16]), nil
 }
 
 // Prepare starts unpacking if it isn't running and isn't done, and says how it's
 // going. It never waits, so it's what a client polls.
 func (c *Cache) Prepare(p string, console *wittyplay.Console) Status {
+	return c.PrepareEntry(p, console, "")
+}
+
+// PrepareEntry is Prepare for one chosen file of the archive.
+func (c *Cache) PrepareEntry(p string, console *wittyplay.Console, entry string) Status {
 	c.init()
-	key, err := keyOf(p, console)
+	key, err := keyOf(p, console, entry)
 	if err != nil {
 		return Status{State: stateFailed, Error: "the game file is missing"}
 	}
@@ -181,15 +191,20 @@ func (c *Cache) Prepare(p string, console *wittyplay.Console) Status {
 	if c.closed {
 		return Status{State: stateFailed, Error: "the server is stopping"}
 	}
-	return c.start(key, p, console).status()
+	return c.start(key, p, console, entry).status()
 }
 
 // Acquire waits until the game is unpacked and gives the file a core should open.
 // Until release is called, the game can't be evicted. Giving up on ctx doesn't stop
 // the unpack, since someone else may be waiting for it, or may come back.
 func (c *Cache) Acquire(ctx context.Context, p string, console *wittyplay.Console) (rom string, release func(), err error) {
+	return c.AcquireEntry(ctx, p, console, "")
+}
+
+// AcquireEntry is Acquire for one chosen file of the archive.
+func (c *Cache) AcquireEntry(ctx context.Context, p string, console *wittyplay.Console, entry string) (rom string, release func(), err error) {
 	c.init()
-	key, err := keyOf(p, console)
+	key, err := keyOf(p, console, entry)
 	if err != nil {
 		return "", nil, errors.New("the game file is missing")
 	}
@@ -214,7 +229,7 @@ func (c *Cache) Acquire(ctx context.Context, p string, console *wittyplay.Consol
 				c.mu.Unlock()
 				return "", nil, errors.New("the server is stopping")
 			}
-			j = c.start(key, p, console)
+			j = c.start(key, p, console, entry)
 		}
 		j.set(func() { j.waiters++ })
 		c.mu.Unlock()
@@ -274,9 +289,9 @@ func (c *Cache) ready(key string) *manifest {
 }
 
 // start begins a job. With the lock held.
-func (c *Cache) start(key, p string, console *wittyplay.Console) *job {
+func (c *Cache) start(key, p string, console *wittyplay.Console, entry string) *job {
 	delete(c.failed, key)
-	j := &job{key: key, path: p, console: console, done: make(chan struct{}), state: stateWaiting, lastSeen: time.Now()}
+	j := &job{key: key, path: p, entry: entry, console: console, done: make(chan struct{}), state: stateWaiting, lastSeen: time.Now()}
 	c.jobs[key] = j
 	go c.run(j)
 	return j
@@ -343,7 +358,7 @@ func (c *Cache) build(ctx context.Context, j *job) error {
 	if err != nil {
 		return err
 	}
-	plan, err := Choose(l, j.console, filepath.Base(j.path))
+	plan, err := ChooseEntry(l, j.console, filepath.Base(j.path), j.entry)
 	if errors.Is(err, ErrNoGame) {
 		return errors.New("this archive holds no game for " + j.console.Name)
 	}

@@ -19,7 +19,7 @@ target="$(go env GOOS)/$(go env GOARCH)"
 
 mods=("$@")
 if [ ${#mods[@]} -eq 0 ]; then
-  mods=(WittyPhotos WittyIntegratedFileBrowser WittyDVD WittyBluray WittyCD WittyTuner WittyPlay WittyCouch WittyCouchHost WittyRigs WittyInk WittyEbook WittyPDF WittyComics WittyVisualizer)
+  mods=(WittyPhotos WittyIntegratedFileBrowser WittyDVD WittyBluray WittyCD WittyTuner WittyPlay WittyCouch WittyCouchHost WittyRigs WittyInk WittyEbook WittyPDF WittyComics WittyVisualizer WittyStats)
 fi
 
 mkdir -p "$out"

@@ -89,7 +89,7 @@ jobs:
       - name: A catalogue from every module's own repository
         run: |
           mkdir "$RUNNER_TEMP/repos"
-          for r in WittyModule WittyPhotos WittyIntegratedFileBrowser WittyDVD WittyBluray WittyCD WittyTuner WittyPlay WittyCouch WittyCouchHost WittyRigs WittyInk WittyEbook WittyPDF WittyComics WittyVisualizer; do
+          for r in WittyModule WittyPhotos WittyIntegratedFileBrowser WittyDVD WittyBluray WittyCD WittyTuner WittyPlay WittyCouch WittyCouchHost WittyRigs WittyInk WittyEbook WittyPDF WittyComics WittyVisualizer WittyStats; do
             git clone -q --depth 1 "https://github.com/wittywilla/$r" "$RUNNER_TEMP/repos/$r"
           done
           scripts/make-test-catalog.sh "$RUNNER_TEMP/catalog" "$RUNNER_TEMP/repos"

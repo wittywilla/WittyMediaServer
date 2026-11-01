@@ -4,6 +4,7 @@ import { fmtDateTime, api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
+import { useModulePages } from '../moduleBundles'
 import { IconChannels, IconClose, IconContrast, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconTag, IconTrash, IconTune, IconUsers, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import AppearanceSettings from './AppearanceSettings'
@@ -84,6 +85,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
 export default function SettingsPage() {
   const { user, version } = useApp()
   const loc = useLocation()
+  const modulePages = useModulePages().filter((p) => p.where === 'settings')
   const groups = GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => !p.admin || user?.isAdmin) })).filter((g) => g.pages.length)
   useEffect(() => { window.scrollTo({ top: 0 }) }, [loc.pathname])
   const slug = loc.pathname.split('/')[2]
@@ -117,6 +119,16 @@ export default function SettingsPage() {
             ))}
           </div>
         ))}
+        {modulePages.length > 0 && (
+          <div className="set-nav-group">
+            <div className="set-nav-head">From modules</div>
+            {modulePages.map((p) => (
+              <NavLink key={p.module + p.id} to={`/m/${p.module}/${p.id}`} className="set-nav-link">
+                <span className="set-nav-icon"><IconPlug /></span><span className="set-nav-text"><span>{p.title}</span></span>
+              </NavLink>
+            ))}
+          </div>
+        )}
         <NavLink to="/settings/about#modules" className="set-nav-version" title="Version and modules">
           <VersionTag version={version} /><span>Version and modules</span>
         </NavLink>

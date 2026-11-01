@@ -2532,7 +2532,40 @@
               "null"
             ]
           },
+          "detectSure": {
+            "type": "integer"
+          },
+          "detectWhy": {
+            "type": "string"
+          },
+          "detectedBy": {
+            "type": "string"
+          },
           "developer": {
+            "type": "string"
+          },
+          "discs": {
+            "items": {
+              "properties": {
+                "disc": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "disc",
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "entry": {
             "type": "string"
           },
           "franchise": {
@@ -2552,6 +2585,12 @@
           },
           "players": {
             "type": "integer"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "problemText": {
+            "type": "string"
           },
           "publisher": {
             "type": "string"
@@ -2633,6 +2672,15 @@
               "null"
             ]
           },
+          "letters": {
+            "items": {
+              "$ref": "#/components/schemas/GameFacet"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "players": {
             "items": {
               "$ref": "#/components/schemas/GameFacet"
@@ -2644,13 +2692,24 @@
           },
           "rated": {
             "type": "integer"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/GameFacet"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
           "decades",
           "genres",
+          "letters",
           "players",
-          "rated"
+          "rated",
+          "series"
         ],
         "type": "object"
       },
@@ -6633,7 +6692,7 @@
       "name": "Apache-2.0"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.5.0"
+    "version": "1.6.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -7322,6 +7381,13 @@
                     },
                     "version": {
                       "type": "string"
+                    },
+                    "minClientVersions": {
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "description": "The oldest version of each kind of app (android, apple, desktop) this server works with.",
+                      "type": "object"
                     }
                   },
                   "type": "object"
@@ -11962,6 +12028,43 @@
         "x-wms-auth": "user"
       }
     },
+    "/games/home": {
+      "get": {
+        "operationId": "getGamesHome",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "library",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Every shelf of the games home screen"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The games home screen in one answer",
+        "tags": [
+          "games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/games/modes": {
       "get": {
         "operationId": "getGamesModes",
@@ -12383,6 +12486,101 @@
         "x-wms-auth": "user"
       }
     },
+    "/games/{id}/check": {
+      "get": {
+        "operationId": "getGamesCheck",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Whether this server can play the game, and what's missing if not"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a game needs in order to play",
+        "tags": [
+          "games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/console": {
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "console": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "console"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This file is for another console",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin",
+        "operationId": "putGamesIdConsole"
+      }
+    },
     "/games/{id}/core-options": {
       "get": {
         "operationId": "getGamesIdCoreOptions",
@@ -12684,6 +12882,46 @@
         "x-wms-auth": "admin"
       }
     },
+    "/games/{id}/not-a-game": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This isn't a game. Its file stays",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin",
+        "operationId": "postGamesIdNotAGame"
+      }
+    },
     "/games/{id}/patches": {
       "get": {
         "operationId": "getGamesIdPatches",
@@ -12934,6 +13172,141 @@
           "Games"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/versions": {
+      "get": {
+        "operationId": "getGamesVersions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A game's other versions and its discs",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/version": {
+      "put": {
+        "operationId": "putGamesVersion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "entry": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Which file in its archive to play",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/games/{id}/split": {
+      "post": {
+        "operationId": "postGamesSplit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A version becomes a game of its own",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/games/{id}/saves": {
@@ -16835,6 +17208,187 @@
           "Browsing"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/libraries/{id}/games/import": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How a library's import is going",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin",
+        "operationId": "getLibrariesIdGamesImport"
+      }
+    },
+    "/libraries/{id}/games/review": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "enum": [
+                "needs",
+                "blocked",
+                "left",
+                "ignored",
+                "duplicate"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Files in a games library that didn't become games, or can't play",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin",
+        "operationId": "getLibrariesIdGamesReview"
+      }
+    },
+    "/libraries/{id}/games/review/apply": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "action": {
+                    "enum": [
+                      "add",
+                      "ignore",
+                      "forget"
+                    ],
+                    "type": "string"
+                  },
+                  "console": {
+                    "type": "string"
+                  },
+                  "ids": {
+                    "items": {
+                      "type": "integer"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "ids",
+                  "action"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What it says."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Say what those files are: games for a console, or not games",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin",
+        "operationId": "postLibrariesIdGamesReviewApply"
       }
     },
     "/libraries/{id}/main": {
@@ -21002,6 +21556,96 @@
           "Server"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/module-store/{id}/{key}": {
+      "get": {
+        "operationId": "getModuleStoreIdKey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What this person's page of this module saved.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putModuleStoreIdKey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Saves a little JSON for this person and this module.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/modules/{id}/versions": {
@@ -28273,7 +28917,8 @@
         "tags": [
           "Channels and live TV"
         ],
-        "x-wms-auth": "user"
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
       }
     },
     "/tv/{key}/live/seg/{name}": {
@@ -28321,7 +28966,8 @@
         "tags": [
           "Channels and live TV"
         ],
-        "x-wms-auth": "user"
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
       }
     },
     "/tv/{key}/logo": {
@@ -28373,6 +29019,15 @@
             "in": "path",
             "name": "key",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Also answer streamUrl and streamToken, for a player that can't set headers.",
+            "in": "query",
+            "name": "streamToken",
+            "required": false,
             "schema": {
               "type": "string"
             }

@@ -49,10 +49,11 @@ type WebBundle struct {
 	Style   string `json:"style,omitempty"` // a stylesheet, under Base
 	Base    string `json:"base"`
 	API     int    `json:"api"`
+	// Pages are what it adds to the app's menus.
+	Pages []wittymodule.Page `json:"pages,omitempty"`
 }
 
-// WebBundles lists the bundles in use instead of the built-in copies. A module not
-// listed uses the copy in the app itself, which is the ordinary case.
+// WebBundles lists the bundles in use.
 func (m *Manager) WebBundles() []WebBundle {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -67,7 +68,7 @@ func (m *Manager) WebBundles() []WebBundle {
 			entry, style = e.man.WebEntry, e.man.WebStyle
 		}
 		out = append(out, WebBundle{ID: id, Version: e.man.Version, Entry: entry, Style: style, API: e.man.API,
-			Base: "/api/modules/" + id + "/web/" + e.web.address(e.man.Version) + "/"})
+			Pages: e.man.Pages, Base: "/api/modules/" + id + "/web/" + e.web.address(e.man.Version) + "/"})
 	}
 	return out
 }

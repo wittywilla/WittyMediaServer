@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/licenses"
 	"io"
 	"log/slog"
 	"net"
@@ -221,7 +222,10 @@ func cmdServe(args []string) int {
 			return v == "1"
 		},
 		AutoInstall: func() bool { return database.GetSetting(context.Background(), "moduleAutoInstall", "0") == "1" },
-		OnReady:     func(id string) { scanFor(context.Background(), store, scanner, id, log) },
+		OnReady: func(id string) {
+			licenses.Reload()
+			scanFor(context.Background(), store, scanner, id, log)
+		},
 	})
 	defer modMgr.Close()
 	modStores := modules.NewStores(modules.StoresConfig{Manager: modMgr, Dir: filepath.Join(cfg.DataDir, "modules"), Transport: library.SafeClient.Transport, Log: log, CheckEnabled: modMgr.CheckEnabled})

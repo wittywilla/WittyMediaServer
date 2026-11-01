@@ -150,6 +150,21 @@ In the server (`web/src/pages/Reader.tsx`) the host is backed by the HTTP API: n
 reading position are kept per account and follow the reader to every device. In WittyReader it
 is backed by local files and storage on the device, with optional sign-in to a server to sync.
 
+### Pages
+
+A module's manifest can list `pages`, each with an `id`, `title`, `icon`, `where` (`main` or `settings`) and `admin`. They appear
+in the app's menus while the module is in use, at `/m/<module>/<page>`, and its bundle exports `pages`: components by id. Each gets
+one prop, `host`:
+
+| | |
+|---|---|
+| `host.request(method, path, body?)` | Calls this server's API with the viewer's own access, and returns parsed JSON. Only this server: any other address is refused |
+| `host.user` | `{ admin }` |
+| `host.store` | `get(key)` and `set(key, value)`, as promises: a little JSON for this person and this module. At most 64 KB a key and 32 keys |
+| `host.token()`, `host.base()` | For a page that opens a stream itself: the sign-in, and the server's address, or `''` on the same origin |
+
+`admin: true` hides a page from anyone else. It keeps nothing safe by itself, so what the page calls has to check for itself.
+
 ### What a plugin can reach
 
 A plugin has no way into the server's memory or its database. A signed-in person's request reaches it

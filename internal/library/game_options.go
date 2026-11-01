@@ -298,3 +298,23 @@ func (s *Store) RemoveGamePatch(ctx context.Context, userID, itemID, id int64) (
 	n, err := res.RowsAffected()
 	return n > 0, err
 }
+
+// GameMostPlayed lists a person's games, those they've started most often first.
+func (s *Store) GameMostPlayed(ctx context.Context, userID int64, limit int) ([]GameListEntry, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT item_id, favourite, plays, last_played FROM wittyplay_game_meta WHERE user_id = ? AND plays > 0 ORDER BY plays DESC, last_played DESC LIMIT ?`, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []GameListEntry{}
+	for rows.Next() {
+		var e GameListEntry
+		var fav int
+		if err := rows.Scan(&e.ItemID, &fav, &e.Plays, &e.LastPlayed); err != nil {
+			return nil, err
+		}
+		e.Favourite = fav != 0
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}

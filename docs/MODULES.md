@@ -382,6 +382,7 @@ https://github.com/wittywilla/WittyModuleCatalog/releases/download/catalog/catal
 | `serial` | Only ever goes up, and a server keeps the highest it has seen, so an older catalogue can't be replayed to bring a withdrawn version back |
 | `summary`, `description`, `changelog`, `reason` | **Plain text**, with no control characters and line breaks only in the long ones. Always show it as text, never as HTML or Markdown |
 | `icon` | Optional. A PNG of at most 256 KiB, checked against its size and hash. A server fetches and keeps it, so a page never asks anyone else for it. No icon: the store draws one from the name |
+| `screenshots` | Optional. Up to 8 PNG or JPEG pictures of at most 2 MiB each, checked the same way, fetched when someone opens the module's page |
 | `publisher` | Who it comes from. `key`, also optional, is the base64 public key its releases are signed with, when that isn't the catalogue's own |
 | `group`, `libraries`, `requires`, `core`, `needs`, `updates`, `stays` | As in the [manifest](#the-manifest), from the newest version |
 | `versions` | Newest first, up to 100, and may be empty for a module listed before its first release. A version never changes once listed, except for `withdrawn` |
@@ -407,8 +408,7 @@ catalogue can't describe a version as asking for less than it does, and holding 
 4. Ask for one file at a time, with its limit in force, and hash as it arrives.
 5. Never let a page fetch from an address in a catalogue. The server fetches and serves what the page shows.
 
-**Stores other than this project's** (for the store's "add a store"): a store is a `catalog.json` at an `https` address, plus a
-public key an admin pastes in, after the same warning as [a fork](#using-someones-fork). Its signature and serial are kept for it alone.
+**Stores other than this project's**: a store is a `catalog.json` at an `https` address, with its key pinned when an admin adds it, after a warning. See [Other stores](#other-stores). Its signature and serial are kept for it alone.
 A module from one is held to the fork rules: an admin chooses each version, nothing updates by itself, and it gets a fork's limits.
 Its releases must be signed with that store's key or the `publisher.key` it gives. An `id` that this project's catalogue also lists is a
 fork of that module, and needs the choice a fork needs: a store can't replace a module by listing it, and WittyTuner can't be replaced at all.
@@ -616,8 +616,9 @@ than where you got the key. **Go back to the official version** undoes it, and r
 **WittyTuner can't be replaced by a fork.** It is what refuses encrypted channels, and it handles live streams
 with network access, so nothing outside it could tell whether a fork had kept that line. Disc engines can be
 replaced, because video never passes through them: FFmpeg reads the disc from locations the server has checked.
-This isn't a way to add decryption. The refusal doesn't depend on the module. There is no list of recommended forks
-and no store of other people's modules, and that is deliberate.
+This isn't a way to add decryption. The refusal doesn't depend on the module. This project keeps no list of recommended
+forks. An admin can add a store run by someone else, which is the same choice with its own warning: see
+[The store](#the-store).
 
 To publish a fork: change `repo` in `module.json` to yours, keep the `id`, run `wittymodule keygen -key <file>`,
 and add that key as your repository's `WMS_SIGNING_KEY` secret. The release workflow that comes with the module
@@ -772,6 +773,76 @@ WMS_UPDATE_KEY=$(cat /tmp/catalog/test-key.pub) WMS_MODULE_CATALOG=http://127.0.
 ```bash
 WMS_TEST_CATALOG=/tmp/catalog go test ./...
 ```
+
+## Which modules run on which server
+
+**Modules start with 0.6.0-alpha.** A module built for an older server can't run on this one or any later one, whatever range it claims, and those older alpha versions won't be fixed or updated. The store and the installed list both say so in those words, and offer the current version where there is one.
+
+**Limited backward compatibility, unofficially.** A newer server may keep running a module built for 0.6.0-alpha or later, if the module's own range says it fits. That's a courtesy, not a promise: nothing about it is guaranteed until the beta, which is when proper versioning for modules begins. Until then a module can stop fitting at any new server, and the page says so when it does.
+
+## The store
+
+**Settings, Modules** has what's on this server: what's new, **Update All Modules**, and each module. **Settings, Modules, Store** (`/settings/modules/store`) has everything that can be added.
+
+### Finding a module
+
+Search goes across name, description, category and publisher, ignoring case and accents, and every word has to match. Modules can be browsed by category (`group` in the catalogue) and filtered by whether they're installed, whether they have an update, who publishes them and which platforms they're built for. The search and filters are in the page's address, so Back returns to the same results.
+
+A module's own page has its icon, description, screenshots, what's new, what it asks for, licence, publisher, what it's built on, which servers it fits, a link to its source, every version, and the things that can be done to it: install, update, go back, turn off, remove, and its log.
+
+Everything in a catalogue is shown as text. Pictures are fetched and checked by the server, then served from it, so a page never asks anyone else for anything. An icon is fetched when the page needs it, and kept.
+
+### Installing
+
+Installing brings what a module is built on, and says so first. If something it's built on fails, the module isn't attempted.
+
+**Update All Modules** updates everything with an update, what others are built on first. One failure doesn't stop the rest. It shows each module's progress, and ends with a summary that stays, across a restart, until it's dismissed. **Take these updates back** returns each module to the version it was using, and that version isn't installed by itself again. Skipped, with the reason: a pinned module, a module from another publisher (you choose each of its versions), and a version that was taken out of use before.
+
+Automatic updates are the owner's setting, **Install updates automatically**. Pinned modules and anything from another publisher are left alone.
+
+### When something goes wrong
+
+Every failure says what happened in plain words, what to try, and has **Show details**: the exact words behind it, this module's log lines, and a button that copies all of it. Each module also has **Show log**. The words are the server's (`Explain` in `internal/modules/failure.go`), so every client says the same thing.
+
+| What happened | What it says to do |
+|---|---|
+| The signature doesn't check out | Try again; a damaged download usually goes away. If not, tell the publisher, and don't look for another copy |
+| The package is damaged | Try again |
+| The download didn't work | Check this server's internet, or try later |
+| The disk is full | Free some space on the data folder's disk |
+| Built for an older server | Install the current version, as above |
+| Needs a newer server | Update this server, or choose an older version |
+| The program wouldn't run | Try again, in case a virus scanner was holding it. Check that the data folder allows programs to run |
+| The store's description doesn't match | Check for updates. If it stays, tell the publisher |
+| A store's signing key has changed | See below |
+
+### Other stores
+
+An admin can add a store run by someone else: **Settings, Modules, Other stores**, with the address of its `catalog.json`.
+
+**This is someone else's code running on your server, so only do it for someone you trust.** Before a store is added, the server fetches and checks it and shows the warning (`StoreWarning` in `internal/modules/stores.go`), what it offers, and its key's fingerprint. A box has to be ticked first.
+
+| Rule | How |
+|---|---|
+| Who holds the key | Whoever runs the store. The signature only proves a file came from them |
+| Where the key comes from | Pasted, which is better: then even the first answer doesn't have to be taken on trust. Otherwise the store's own suggestion, `catalog.json.key` beside its catalogue, for the admin to check |
+| The key is pinned | From the moment it's added. A store signed by anything else is a loud refusal, however it asks. To accept a real change, remove the store and add it again, after checking the new fingerprint with its owner. There's deliberately no button for this |
+| The catalogue is hostile input | Its signature is checked against the pinned key before anything in it is read. Its serial only goes up. The same serial with different contents is refused. Failing any check keeps the last good one, and the store says why |
+| Where a store can be | `https` on the public internet, with no redirect that breaks that. An address on this machine or the admin's own network only with **Allow an address on my own network**, for that one store, and then plain `http` too. Link-local addresses are never allowed |
+| Limits | 8 MiB for a catalogue, 4 KiB for a signature, 256 KiB for an icon, 2 MiB for a screenshot, enforced while reading |
+| Words | Characters that reorder or hide text are taken out, and it's only ever shown as text. A module using the name of one of this project's modules is told apart |
+| Labels | Every module from one says **Third-party** wherever it appears, with its store's name and address. They're listed separately |
+| On, off and removing | A store that's off isn't fetched or listed, and what's installed from it stays. Removing it first puts anything using it back to the official version |
+
+What a store can offer follows the [forks policy](#using-someones-fork):
+
+| It lists | What the server does |
+|---|---|
+| A module this server knows | A fork, with a fork's warning, key and limits. An admin chooses it module by module, and nothing updates by itself. The release's own signed files must match what the store said |
+| WittyTuner | **Refused**: it can't be replaced |
+| A wholly new module | Shown as **In development**, and can't be installed: see [Custom modules](#custom-modules-in-development) |
+
+To run a store, make a folder with `catalog.json` and the release files, as in [the catalogue](#the-catalogue), and run `wittymodule catalog-sign -key <file> catalog.json`, which writes `catalog.json.sig` and `catalog.json.key`. Give people the address and, somewhere else, the key.
 
 ## How the apps run
 

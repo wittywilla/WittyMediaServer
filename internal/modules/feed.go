@@ -71,7 +71,7 @@ func (m *Manager) feedPath(id string) string { return filepath.Join(m.modDir(id)
 // the folder may be a shared one, and a list of versions is worth as little as a
 // release that nobody signed. Call with m.mu held.
 func (m *Manager) loadFeed(id string, e *entry) {
-	if e.feedLoaded || !updatable(e.builtin) || (m.cfg.CatalogURL != "" && e.state.Source == nil) {
+	if e.feedLoaded || !updatable(e.builtin) || (m.cfg.CatalogURL != "" && e.state.Source == nil) || fromStore(e) {
 		return
 	}
 	e.feedLoaded = true
@@ -174,7 +174,7 @@ func (m *Manager) Check(ctx context.Context, maxAge time.Duration) Report {
 		// A module that was taken off this server has no reason to ask anyone anything. With
 		// a catalogue, the one file answers for all of them except a fork, which is its own.
 		e := m.mods[id]
-		if updatable(e.builtin) && !e.state.Removed && (m.cfg.CatalogURL == "" || e.state.Source != nil) {
+		if updatable(e.builtin) && !e.state.Removed && (m.cfg.CatalogURL == "" || e.state.Source != nil) && !fromStore(e) {
 			m.loadFeed(id, e)
 			ids = append(ids, id)
 		}

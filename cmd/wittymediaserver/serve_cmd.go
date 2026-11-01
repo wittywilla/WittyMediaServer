@@ -245,6 +245,7 @@ func cmdServe(args []string) int {
 		},
 	})
 	defer modMgr.Close()
+	modStores := modules.NewStores(modules.StoresConfig{Manager: modMgr, Dir: filepath.Join(cfg.DataDir, "modules"), Transport: library.SafeClient.Transport, Log: log, CheckEnabled: modMgr.CheckEnabled})
 	library.SetPhotoEngine(photoengine.PhotoEngine{M: modMgr})
 	livetv.SetEngine(modules.Tuners{M: modMgr})
 	cd.Open = modules.CDs{M: modMgr}.Open
@@ -260,7 +261,7 @@ func cmdServe(args []string) int {
 	srv := &server.Server{
 		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner, GameMeta: gameMeta,
 		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, BD: bdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
-		Update: updater, Modules: modMgr, Crashes: guard, Restart: updater.Restart,
+		Update: updater, Modules: modMgr, ModuleStores: modStores, Crashes: guard, Restart: updater.Restart,
 	}
 	if restoreDone != nil {
 		if restoreDone.OK {
@@ -398,6 +399,7 @@ func cmdServe(args []string) int {
 		updater.Run(ctx, func() bool { return database.GetSetting(context.Background(), "updateCheck", "1") == "1" })
 	}, "cat", "update")
 	logging.Loop("module update check", func() { modMgr.Run(ctx) }, "cat", "modules")
+	logging.Loop("module store check", func() { modStores.Run(ctx) }, "cat", "modules")
 	var restarting atomic.Bool
 	go func() {
 		select {

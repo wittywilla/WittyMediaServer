@@ -27,6 +27,9 @@ import { Segmented } from '../ui/Choice'
 import { WebLink } from '../components/WebLink'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
+const ModuleStore = lazy(() => import('./settings/store/ModuleStore'))
+const ModulePage = lazy(() => import('./settings/store/ModulePage'))
+const OtherStores = lazy(() => import('./settings/store/OtherStores'))
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
 const ActivitySettings = lazy(() => import('./settings/Activity'))
 const LibraryTranscoding = lazy(() => import('./settings/LibraryTranscoding'))
@@ -139,7 +142,7 @@ export default function SettingsPage() {
           <VersionTag version={version} /><span>Version and modules</span>
         </NavLink>
       </nav>
-      <main className="set-main">
+      <div className="set-main">
         <div className="set-back"><BackLink to="/settings" label="Settings" /></div>
         {unseenCrashes.length > 0 && !onLogs && (
           <div className="set-notice-row">
@@ -173,11 +176,15 @@ export default function SettingsPage() {
           <Route path="repair" element={<Suspense fallback={null}><RepairSettings /></Suspense>} />
           <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
           <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /></Suspense>} />
+          <Route path="modules/store" element={<Suspense fallback={null}><ModuleStore /></Suspense>} />
+          <Route path="modules/store/:id" element={<Suspense fallback={null}><ModulePage /></Suspense>} />
+          <Route path="modules/store/:store/:id" element={<Suspense fallback={null}><ModulePage /></Suspense>} />
+          <Route path="modules/stores" element={<Suspense fallback={null}><OtherStores /></Suspense>} />
           <Route path="about" element={<About />} />
           <Route path="legal" element={<Suspense fallback={null}><LegalSettings /></Suspense>} />
           <Route path="*" element={<Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
         </Routes>
-      </main>
+      </div>
     </div>
   )
 }
@@ -324,7 +331,7 @@ function LibraryEditor({ lib, onClose, onSaved }: { lib: Partial<Library>; onClo
                   <span className="set-type-icon">{libIcon(t.v)}</span>
                   <b>{kindTitle(kinds, t.v, t.label)}</b>
                   {locked
-                    ? <small>Needs {orList(gone.modules.map((m) => m.name))}. <Link to={`/settings/modules?add=${encodeURIComponent(gone.modules[0]?.id || '')}`}>Open the module store</Link></small>
+                    ? <small>Needs {orList(gone.modules.map((m) => m.name))}. <Link to={`/settings/modules/store/${encodeURIComponent(gone.modules[0]?.id || '')}`}>Open the module store</Link></small>
                     : <small>{t.hint}</small>}
                 </label>
               )

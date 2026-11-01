@@ -9,6 +9,9 @@ import { toast, useApp } from '../../state'
 import { PageHead, Row, Section, Switch } from './ui'
 import './modules.css'
 import LegalNote from '../../components/LegalNote'
+import { LinkButton } from '../../ui'
+import { ChangeNotes, FailureNotice, ModuleLogDialog, PolicyNote, UpdateAllPanel, useStoreView, WhatsNew } from './store/parts'
+import { checkAll, failureForStatus, type Failure } from './store/storeApi'
 import { Dialog } from '../../ui/Overlay'
 
 // The module store: what this server can do, by what it is for, to add and take away,
@@ -23,9 +26,8 @@ const when = (ms: number) => fmtDateTime(ms)
 const day = (ms: number) => new Date(ms).toLocaleDateString()
 const kindName = (t: string) => LIB_TYPES.find((x) => x.type === t)?.name || t
 const needsLook = (m: ModuleStatus) => m.state === 'fallback' || m.phase === 'failed' || !!m.withdrawn || !!m.notice
-const backTo = (m: ModuleStatus) => m.previous ? `version ${m.previous}` : `the built-in copy (${m.builtinVersion})`
 const severity = (s: string) => s === 'security' ? 'for security reasons' : 'because it was broken'
-const pinWords = (pin: string) => pin === 'builtin' ? 'the built-in copy' : `version ${pin}`
+const pinWords = (pin: string) => `version ${pin}`
 const moduleIcon = (m: ModuleStatus) => m.libraries?.length ? libIcon(m.libraries[0]) : m.group === 'tv' ? <IconTv /> : <IconPlug />
 // A release's address comes unsigned from GitHub, so only a plain link to GitHub is used.
 const safeUrl = (u?: string) => u && /^https:\/\/github\.com\//.test(u) ? u : ''
@@ -123,7 +125,7 @@ export default function ModulesSettings() {
   const [failed, setFailed] = useState('')
   const [checking, setChecking] = useState(false)
   const [settings, setSettings] = useState<Record<string, string> | null>(null)
-  const [filter, setFilter] = useState<Filter>('all')
+  const [filter, setFilter] = useState<Filter>('installed')
   const [open, setOpen] = useState<string | null>(null)
   const [hi, setHi] = useState('')
   const [ask, setAsk] = useState<Ask | null>(null)
@@ -135,6 +137,8 @@ export default function ModulesSettings() {
   const target = params.get('add') || loc.hash.slice(1)
   const reached = useRef('')
   const [hostReady, setHostReady] = useState(false)
+  const store = useStoreView()
+  const [logOf, setLogOf] = useState<ModuleStatus | null>(null)
 
   useEffect(() => {
     api.get<ModuleReport>('/modules').then(setR).catch((e) => setFailed(e.message))
@@ -175,9 +179,10 @@ export default function ModulesSettings() {
     if (checking) return
     setChecking(true)
     try {
-      const n = await api.post<ModuleReport>('/modules/check')
+      store.setView(await checkAll())
+      const n = await api.get<ModuleReport>('/modules')
       setR(n)
-      if (n.checkError) toast(n.checkError)
+      if (n.checkError) toast('The check didn’t work. What happened is on the page.')
       else if (!n.modules.some((m) => m.latest)) toast('Every module is up to date')
     } catch (e: any) { toast(e.message) } finally { setChecking(false) }
   }
@@ -188,10 +193,10 @@ export default function ModulesSettings() {
   }
   // Runs one action on a module; the answer is always the new report.
   const act = async (call: () => Promise<ModuleReport>, done?: string) => {
-    try { setR(await call()); if (done) toast(done) } catch (e: any) { toast(e.message) }
+    try { setR(await call()); if (done) toast(done); void store.reload() } catch (e: any) { toast(e.message) }
   }
   const add = async (m: ModuleStatus) => {
-    await act(() => api.post<ModuleReport>(`/modules/${m.id}/add`), `${m.name} added. It works straight away.`)
+    await act(() => api.post<ModuleReport>(`/modules/${m.id}/add`), `${m.name} is being added`)
     focusRow(m.id)
   }
   const remove = (m: ModuleStatus) => setAsk({
@@ -226,7 +231,7 @@ export default function ModulesSettings() {
   const toLatest = (m: ModuleStatus) => act(() => api.post<ModuleReport>(`/modules/${m.id}/latest`), `${m.name} is going back to the latest`)
   const official = (m: ModuleStatus) => setAsk({
     title: 'Go back to the official version?', action: 'Go back',
-    body: <p>{m.name} goes back to the releases of <b>{m.stockRepo}</b>. Versions downloaded from {m.source?.repo} are deleted, and it uses its built-in copy until you choose another.</p>,
+    body: <p>{m.name} goes back to the releases of <b>{m.stockRepo}</b>. Versions downloaded from {m.source?.repo} are deleted, and it isn’t on this server until you install the official one.</p>,
     run: async () => { await act(() => api.del<ModuleReport>(`/modules/${m.id}/source`), `${m.name} is back to the official version`); focusRow(m.id) },
   })
 
@@ -250,16 +255,20 @@ export default function ModulesSettings() {
     <ModuleRow key={m.id} m={m} isOpen={open === m.id} marked={hi === m.id} checkedAt={r.checkedAt} nameOf={nameOf} refused={refused?.id === m.id ? refused.why : ''}
       onToggle={() => setOpen(open === m.id ? null : m.id)} onReport={setR}
       onAdd={() => add(m)} onRemove={() => remove(m)} onUpdate={() => update(m)} onVersions={() => setVersionsOf(m)}
-      onPin={() => pin(m)} onRollback={() => rollback(m)} onOfficial={() => official(m)} onAuto={(on) => setAuto(m, on)} onLatest={() => toLatest(m)} serverAuto={settings?.moduleAutoInstall === '1' && autoCheck} kinds={r.libraries || []} />
+      onPin={() => pin(m)} onRollback={() => rollback(m)} onOfficial={() => official(m)} onAuto={(on) => setAuto(m, on)} onLatest={() => toLatest(m)} onLog={() => setLogOf(m)} repairRoute={store.view?.repairRoute || '/settings/repair'} serverFailure={store.view?.items.find((i) => i.official && i.id === m.id)?.failure} serverAuto={settings?.moduleAutoInstall === '1' && autoCheck} kinds={r.libraries || []} />
   )
 
   return (
     <div className="ms-page">
-      <PageHead title="Modules" desc="What this server can do, one piece at a time. Add what you want and remove what you don’t. All of it is already part of the server, so adding a module is instant and downloads nothing." />
+      <PageHead title="Modules" desc="What this server can do, one piece at a time. Add what you want and remove what you don’t."
+        actions={<LinkButton variant="primary" to="/settings/modules/store" icon={<IconPlug />}>Browse the store</LinkButton>} />
+
+      {store.view && <WhatsNew view={store.view} />}
 
       <Section title="Updates" desc="Some modules can update without a new server. Each update is signed, this server installs only what it can verify, and it takes effect straight away, with no restart."
         actions={<button className="btn ghost sm" onClick={check} aria-busy={checking}><IconRefresh /> {checking ? 'Checking…' : 'Check now'}</button>}>
-        <Row label="Look for updates automatically" desc={`Asks GitHub twice a day. When this is off, the server only asks when you press Check now.${r.checkedAt ? ` Last checked ${when(r.checkedAt)}.` : ' It hasn’t asked yet.'}`}>
+        {store.view && <UpdateAllPanel view={store.view} onChanged={() => { void store.reload(); api.get<ModuleReport>('/modules').then(setR).catch(() => {}) }} />}
+        <Row label="Look for updates automatically" desc={`Looks online twice a day. When this is off, the server only looks when you press Check now.${r.checkedAt ? ` Last checked ${when(r.checkedAt)}.` : ' It hasn’t looked yet.'}`}>
           <Switch label="Look for updates automatically" checked={autoCheck} disabled={!settings} onChange={(v) => save('moduleUpdateCheck', v)} />
         </Row>
         <Row label="Install updates automatically" desc="Installs what the check finds, if it works with this server. A version that fails is taken back out by itself. Pinned modules and forks are left alone." dim={!autoCheck}>
@@ -268,6 +277,7 @@ export default function ModulesSettings() {
         {!!held && <p className="upd-msg">GitHub asked this network to wait, so the server won’t ask again until {when(held)}. Everything keeps working as it is.</p>}
         {r.checkError && <p className="upd-msg warn">The last check didn’t work: {r.checkError} Everything keeps working as it is.</p>}
         <p className="ms-note">This server is version {r.server} and has module API {r.minApi === r.api ? r.api : `${r.minApi} to ${r.api}`}.</p>
+        {store.view && <PolicyNote view={store.view} />}
       </Section>
 
       <div className="chips ms-filter" role="group" aria-label="Show">
@@ -279,8 +289,9 @@ export default function ModulesSettings() {
 
       {shown.length === 0 && (
         <div className="set-card set-empty">
-          <b>{filter === 'updates' ? 'No updates known' : filter === 'absent' ? 'Every module is on this server' : 'Nothing here'}</b>
-          {filter === 'updates' && <p>{r.checkedAt ? `Nothing newer was found when the server last asked, ${when(r.checkedAt)}.` : 'The server hasn’t asked GitHub yet.'}</p>}
+          <b>{filter === 'updates' ? 'No updates known' : filter === 'absent' ? 'Every module is on this server' : filter === 'installed' ? 'No modules yet' : 'Nothing here'}</b>
+          {filter === 'updates' && <p>{r.checkedAt ? `Nothing newer was found when the server last looked, ${when(r.checkedAt)}.` : 'The server hasn’t looked yet.'}</p>}
+          {filter === 'installed' && <p>The server works without any. <Link to="/settings/modules/store">Browse the store</Link> to add what you want.</p>}
           {filter === 'updates' && <button className="btn sm" onClick={check} aria-busy={checking}><IconRefresh /> {checking ? 'Checking…' : 'Check now'}</button>}
         </div>
       )}
@@ -305,6 +316,7 @@ export default function ModulesSettings() {
       {ownerAsk && <ConfirmOwner ask={ownerAsk} onClose={() => setOwnerAsk(null)} />}
       {versionsOf && <VersionsDialog m={r.modules.find((m) => m.id === versionsOf.id) || versionsOf} onClose={() => setVersionsOf(null)} onReport={setR} />}
       {ask && <Confirm ask={ask} onClose={() => setAsk(null)} />}
+      {logOf && <ModuleLogDialog moduleId={logOf.id} name={logOf.name} onClose={() => setLogOf(null)} />}
 
       <Section title="Installed separately" desc="A program of its own that runs beside this server, under its own license. The server works without it.">
         <div className="mod-list">
@@ -341,7 +353,7 @@ type RowProps = {
   m: ModuleStatus; isOpen: boolean; marked: boolean; checkedAt?: number; nameOf: (id: string) => string; refused: string
   onToggle: () => void; onReport: (r: ModuleReport) => void
   onAdd: () => void; onRemove: () => void; onUpdate: () => void; onVersions: () => void; onPin: () => void; onRollback: () => void; onOfficial: () => void
-  onAuto: (on: boolean) => void; onLatest: () => void; serverAuto: boolean; kinds: LibraryKind[]
+  onAuto: (on: boolean) => void; onLatest: () => void; onLog: () => void; repairRoute: string; serverFailure?: Failure; serverAuto: boolean; kinds: LibraryKind[]
 }
 
 // One module: a line to scan, and everything else when it is opened.
@@ -416,23 +428,23 @@ function BroughtKind({ type, m, kinds, onReport }: { type: string; m: ModuleStat
   )
 }
 
-function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRemove, onUpdate, onVersions, onPin, onRollback, onOfficial, onAuto, onLatest, serverAuto }: RowProps & { id: string }) {
+function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRemove, onUpdate, onVersions, onPin, onRollback, onOfficial, onAuto, onLatest, onLog, repairRoute, serverFailure, serverAuto }: RowProps & { id: string }) {
   const working = busy(m)
+  const failure = serverFailure || failureForStatus(m)
   const events = [...(m.events || [])].reverse().slice(0, 8)
   const latest = m.latest ? m.latest.version : checkedAt ? 'This is the newest known' : 'Not checked yet'
   return (
     <div className="ms-detail" id={id}>
       {m.source && <PublisherNote m={m} onOfficial={onOfficial} disabled={working} />}
       {refused && <p className="error" role="alert">{refused} <Link to="/settings/libraries">Go to Libraries</Link></p>}
-      {m.notice && <p className="error" role="status">{m.notice}</p>}
+      {failure && <FailureNotice failure={failure} name={m.name} moduleId={m.id} repairRoute={repairRoute} onRetry={m.latest ? onUpdate : undefined} />}
       {m.withdrawn && <p className="error">Version {m.withdrawn.version} was withdrawn {severity(m.withdrawn.severity)}: {m.withdrawn.reason}</p>}
-      {m.phase === 'failed' && <p className="error" role="status">The update wasn’t installed, and nothing changed: {m.error}</p>}
-      {m.lastFailure && m.phase !== 'failed' && <p className="warn-box">The last problem it had: {m.lastFailure}</p>}
+      {m.lastFailure && !failure && <p className="warn-box">The last problem it had: {m.lastFailure}</p>}
 
       <dl className="ms-facts">
-        {m.installed && <div><dt>In use</dt><dd>{m.version}{m.updatable && m.state !== 'installed' ? ' (the built-in copy)' : ''}</dd></div>}
+        {m.installed && <div><dt>In use</dt><dd>{m.version}</dd></div>}
         {m.installed && m.updatable && <div><dt>Latest</dt><dd>{latest}</dd></div>}
-        {!m.installed && <div><dt>Version</dt><dd>{m.builtinVersion}</dd></div>}
+        {!m.installed && <div><dt>Version</dt><dd>{m.latest?.version || 'None available yet'}</dd></div>}
         <div><dt>Works with</dt><dd>Servers {m.minServer} to {m.maxServer}</dd></div>
         <div className="wide"><dt>{m.source ? 'Official repository' : 'Repository'}</dt><dd><a href={`https://github.com/${m.stockRepo || m.repo}`} target="_blank" rel="noreferrer">{m.stockRepo || m.repo}</a></dd></div>
         {!!m.libraries?.length && <div className="wide"><dt>Brings these libraries</dt><dd>{m.libraries.map((t) => <BroughtKind key={t} type={t} m={m} kinds={kinds} onReport={onReport} />)}</dd></div>}
@@ -457,6 +469,7 @@ function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRe
           <b>Version {m.latest.version} is available</b>
           <span className="muted">Works with servers {m.latest.minServer} to {m.latest.maxServer}{m.latest.prerelease ? ' · pre-release' : ''}{m.latest.size ? ` · ${mb(m.latest.size)} MB` : ''}</span>
           {m.latest.blocked && <span className="ms-bad">This version was taken out of use before: {m.latest.blocked}</span>}
+          <ChangeNotes text={m.latest.notes} />
         </div>
       )}
       {m.tooNew && <p className="ms-note">Version {m.tooNew.version} exists but doesn’t fit this server. {m.tooNew.reason}</p>}
@@ -474,12 +487,14 @@ function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRe
       )}
 
       <div className="ms-actions">
-        {m.installed && m.pin && m.pin !== m.latest?.version && (m.latest || m.pin === 'builtin' || m.version !== m.builtinVersion) && <button type="button" className="btn sm" disabled={working} onClick={onLatest}>Go back to the latest</button>}
+        {m.installed && m.pin && m.pin !== m.latest?.version && m.latest && <button type="button" className="btn sm" disabled={working} onClick={onLatest}>Go back to the latest</button>}
         {m.installed && m.latest && !m.pin && <button type="button" className="btn sm" disabled={working} onClick={onUpdate}>Update to {m.latest.version}</button>}
         {m.installed && m.updatable && <button type="button" className="btn sm" disabled={working} onClick={onVersions}>Versions</button>}
         {m.installed && m.updatable && <button type="button" className="btn sm ghost" disabled={working} onClick={onPin}>{m.pin ? 'Unpin' : 'Pin this version'}</button>}
-        {m.installed && m.canRollback && <button type="button" className="btn sm ghost" disabled={working} onClick={onRollback}>Go back to {backTo(m)}</button>}
+        {m.installed && m.canRollback && <button type="button" className="btn sm ghost" disabled={working} onClick={onRollback}>{m.previous ? `Go back to version ${m.previous}` : 'Stop using this version'}</button>}
         {m.installed && !m.core && <button type="button" className="btn sm ghost danger-hover" disabled={working} onClick={onRemove}>Remove</button>}
+        <Link className="btn sm ghost" to={`/settings/modules/store/${m.id}`} aria-label={`The store's page for ${m.name}`}>Store page</Link>
+        <button type="button" className="btn sm ghost" onClick={onLog} aria-label={`Show the log for ${m.name}`}>Show log</button>
         <Link className="btn sm ghost" to={`/settings/logs?module=${m.id}`} aria-label={`Logging for ${m.name}`}>Logging</Link>
       </div>
 
@@ -596,7 +611,7 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
   const [needPassword, setNeedPassword] = useState<VersionInfo | null>(null)
   const load = () => api.get<VersionList>(`/modules/${m.id}/versions`).then((l) => { setList(l); setErr('') }).catch((e) => setErr(e.message))
   useEffect(() => { void load() }, [m.id])
-  // Check now is the only thing here that asks GitHub, and someone has to press it.
+  // Check now is the only thing here that goes online, and someone has to press it.
   const check = async () => {
     if (checking) return
     setChecking(true)
@@ -625,7 +640,7 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
     try { onReport(await call()); await load() } catch (e: any) { setErr(e.message) }
   }
   const pin = list?.pin ?? m.pin
-  const onlyBuiltin = !!list && list.versions.every((v) => v.builtin)
+  const none = !!list && list.versions.length === 0
   return (
     <>
       <Dialog title={`${m.name} versions`} size="wide" className="set-modal ms-versions" onClose={onClose}>
@@ -634,7 +649,7 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
             <span>{pin
               ? <><b>Pinned</b> to {pinWords(pin)}. Automatic updates leave it alone.</>
               : 'Not pinned, so automatic updates can move it if you turned them on.'}
-              {list?.checkedAt ? ` Last asked GitHub ${when(list.checkedAt)}.` : ' The server hasn’t asked GitHub yet.'}
+              {list?.checkedAt ? ` Last looked ${when(list.checkedAt)}.` : ' The server hasn’t looked yet.'}
             </span>
             <span className="ms-actions">
               {pin && <button type="button" className="btn sm" onClick={() => pinAct(() => api.post<ModuleReport>(`/modules/${m.id}/latest`))}>Return to latest</button>}
@@ -645,7 +660,7 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
           {m.source && <p className="warn-box">These releases come from another publisher: {m.source.repo}.</p>}
           {err && <p className="error" role="alert">{err}</p>}
           {!list && !err && <div role="status" className="muted">Reading the list…</div>}
-          {onlyBuiltin && <p className="ms-note">Only the built-in copy is known so far. {list?.checkedAt ? 'GitHub had no other releases of this module when the server last asked.' : 'Press Check now to ask GitHub what else there is.'}</p>}
+          {none && <p className="ms-note">No versions are known so far. {list?.checkedAt ? 'There were none when the server last looked.' : 'Press Check now to look.'}</p>}
 
           {list && (
             <ul className="ms-vers">
@@ -673,14 +688,13 @@ function VersionRow({ v, working, onChoose }: { v: VersionInfo; working: boolean
           {v.published ? <span className="muted">{day(v.published)}</span> : null}
           <span className="ms-tags">
             {v.inUse && <Tag tone="ok" icon={<IconCheck size={12} />}>In use</Tag>}
-            {v.builtin && <Tag>Built in</Tag>}
             {v.installed && !v.inUse && <Tag>Installed</Tag>}
             {v.prerelease && <Tag>Pre-release</Tag>}
             {v.older && <Tag>Older</Tag>}
             {v.withdrawn && <Tag tone="bad" icon={<IconInfo size={12} />}>Withdrawn</Tag>}
           </span>
         </div>
-        {!v.inUse && <button type="button" id={'ver-' + v.version} className="btn sm" disabled={!can || working} onClick={onChoose} aria-label={`${v.builtin || v.installed ? 'Switch to' : 'Install'} version ${v.version}`}>{v.builtin || v.installed ? 'Switch to this' : 'Install'}</button>}
+        {!v.inUse && <button type="button" id={'ver-' + v.version} className="btn sm" disabled={!can || working} onClick={onChoose} aria-label={`${v.installed ? 'Switch to' : 'Install'} version ${v.version}`}>{v.installed ? 'Switch to this' : 'Install'}</button>}
       </div>
       <div className="muted ms-ver-fit">Works with servers {v.minServer} to {v.maxServer}{v.size ? ` · ${mb(v.size)} MB` : ''}{link && <> · <a href={link} target="_blank" rel="noreferrer">On GitHub</a></>}</div>
       {v.withdrawn && <p className="ms-bad">Withdrawn {severity(v.withdrawn.severity)}: {v.withdrawn.reason}</p>}
@@ -688,8 +702,8 @@ function VersionRow({ v, working, onChoose }: { v: VersionInfo; working: boolean
       {v.blocked && !v.withdrawn && <p className="ms-why">Taken out of use before: {v.blocked}</p>}
       {v.notes && (
         <details className="ms-more">
-          <summary>Release notes <span className="muted">(from GitHub, unsigned)</span></summary>
-          {/* Plain text on purpose: notes aren't signed, so they must never become markup. */}
+          <summary>Release notes</summary>
+          {/* Plain text on purpose: they must never become markup. */}
           <div className="ms-notes">{v.notes}</div>
         </details>
       )}

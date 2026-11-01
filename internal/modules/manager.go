@@ -268,6 +268,8 @@ type Manager struct {
 	catFrom   string // where cat's relative addresses resolve from
 	catHigh   int64  // the highest serial seen
 	catErr    string
+	routes    storeRoutes    // how to fetch what a store listed
+	autoRun   func()         // automatic updates, in order, when the store is here
 	retiring  sync.WaitGroup // helpers of versions no longer in use, on their way out
 
 	svcMu       sync.Mutex
@@ -1062,7 +1064,11 @@ func (m *Manager) Run(ctx context.Context) {
 		}
 		m.Check(ctx, 6*time.Hour)
 		if m.cfg.AutoInstall != nil && m.cfg.AutoInstall() {
-			m.autoInstall()
+			if m.autoRun != nil {
+				m.autoRun()
+			} else {
+				m.autoInstall()
+			}
 		}
 	}
 }

@@ -33,19 +33,21 @@ func TestTokensOrder(t *testing.T) {
 // A token in an address only works for media, and only to read it.
 func TestQueryTokenOnlyOnMediaRoutes(t *testing.T) {
 	for target, want := range map[string]bool{
-		"/api/items/1/poster?token=x":             true,
-		"/api/items/1/file?token=x":               true,
-		"/api/items/1/epub/OEBPS/a.xhtml?token=x": true,
-		"/api/shows/3/art/poster?token=x":         true,
-		"/api/hls/v-1/playlist.m3u8?token=x":      true,
-		"/api/dvd/abc/still/x.png?token=x":        true,
-		"/api/logs/files/wms-1.log?token=x":       true,
-		"/api/games/1/art/0?token=x":              true,
-		"/api/users?token=x":                      false,
-		"/api/settings?token=x":                   false,
-		"/api/me?token=x":                         false,
-		"/api/fs?token=x&path=/":                  false,
-		"/api/items/1?token=x":                    false,
+		"/api/items/1/poster?token=x":                true,
+		"/api/items/1/file?token=x":                  true,
+		"/api/items/1/epub/OEBPS/a.xhtml?token=x":    true,
+		"/api/shows/3/art/poster?token=x":            true,
+		"/api/hls/v-1/playlist.m3u8?token=x":         true,
+		"/api/dvd/abc/still/x.png?token=x":           true,
+		"/api/logs/files/wms-1.log?token=x":          true,
+		"/api/games/1/art/0?token=x":                 true,
+		"/api/modulestore/media/official/ab?token=x": false,
+		"/api/modulestore?token=x":                   false,
+		"/api/users?token=x":                         false,
+		"/api/settings?token=x":                      false,
+		"/api/me?token=x":                            false,
+		"/api/fs?token=x&path=/":                     false,
+		"/api/items/1?token=x":                       false,
 	} {
 		if got := len(Tokens(httptest.NewRequest("GET", target, nil))) == 1; got != want {
 			t.Errorf("GET %s: token used = %v, want %v", target, got, want)

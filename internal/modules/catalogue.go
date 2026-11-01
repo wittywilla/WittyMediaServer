@@ -351,6 +351,9 @@ func (m *Manager) catalogInfo() *CatalogInfo {
 
 // small reads a small file: from a starter set's folder, or the catalogue's own address.
 func (m *Manager) small(ctx context.Context, raw string, limit int64) ([]byte, error) {
+	if b, ok, err := m.routeSmall(ctx, raw, limit); ok {
+		return b, err
+	}
 	if p, ok := m.localFile(raw); ok {
 		f, err := os.Open(p)
 		if err != nil {
@@ -371,6 +374,9 @@ func (m *Manager) small(ctx context.Context, raw string, limit int64) ([]byte, e
 
 // openFile opens a release's archive for reading, wherever it is.
 func (m *Manager) openFile(ctx context.Context, raw string) (io.ReadCloser, int64, error) {
+	if body, size, ok, err := m.routeOpen(ctx, raw); ok {
+		return body, size, err
+	}
 	if p, ok := m.localFile(raw); ok {
 		f, err := os.Open(p)
 		if err != nil {

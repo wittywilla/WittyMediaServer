@@ -6692,7 +6692,7 @@
       "name": "Apache-2.0"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.5.0"
+    "version": "1.6.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -7381,6 +7381,13 @@
                     },
                     "version": {
                       "type": "string"
+                    },
+                    "minClientVersions": {
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "description": "The oldest version of each kind of app (android, apple, desktop) this server works with.",
+                      "type": "object"
                     }
                   },
                   "type": "object"
@@ -28142,7 +28149,8 @@
         "tags": [
           "Channels and live TV"
         ],
-        "x-wms-auth": "user"
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
       }
     },
     "/tv/{key}/live/seg/{name}": {
@@ -28190,7 +28198,8 @@
         "tags": [
           "Channels and live TV"
         ],
-        "x-wms-auth": "user"
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
       }
     },
     "/tv/{key}/logo": {
@@ -28242,6 +28251,15 @@
             "in": "path",
             "name": "key",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Also answer streamUrl and streamToken, for a player that can't set headers.",
+            "in": "query",
+            "name": "streamToken",
+            "required": false,
             "schema": {
               "type": "string"
             }

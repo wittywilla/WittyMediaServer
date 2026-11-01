@@ -60,7 +60,7 @@ The item in your library stays the same item, even if the file goes from `.avi` 
 
 ### Two more safety switches
 
-- **This library is read-only.** Nothing the server does may change this library's files: no conversions, and no saved artwork or details beside them. Previews and dry runs still work. The setting is kept with the library, in the `libraries.read_only` column of the database.
+- **This library is read-only.** Nothing the server does may change this library's files: no conversions, no saved artwork or details beside them, no uploads and no podcast episodes kept in its folder. Previews and dry runs still work. The setting is kept with the library, in the `libraries.read_only` column of the database.
 - **Save next to media off.** If you've turned that off in **Settings → Metadata agents** (`saveMetadata=0`), the server keeps out of your media folders, so conversions stop too. A switch appears for each library, **Allow conversions in this library**. With it on, new video files are written, and still no subtitle files or artwork. **Check this library** and **Show what would happen** work either way.
 
 ## How it affects people watching

@@ -1,34 +1,106 @@
-import { useEffect, useRef, useState } from 'react'
-import { IconDownload } from '../icons'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { IconDownload, IconPlus } from '../icons'
 import { api, getToken, mediaUrl, serverBase } from '../api'
 import BrandDialog, { uploadLogo } from '../components/BrandDialog'
 import { Brand, BrandMark, logoUrl } from '../components/common'
 import { toast, useApp } from '../state'
-import { applyTheme, AUTO_THEME, deviceTheme, setDeviceTheme, type ThemeMeta } from '../theme'
+import { applyTheme, AUTO_THEME, currentThemeId, CUSTOM_THEME, deviceTheme, setCustomThemeCss, setDeviceTheme, type ThemeMeta } from '../theme'
 import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
+import NavCustomize from '../shell/NavCustomize'
+import { Button } from '../ui/Button'
+import { Segmented } from '../ui/Choice'
+import { Field, Input, Switch } from '../ui/Field'
+import { ask, Dialog } from '../ui/Overlay'
+import { Notice } from '../ui/Surface'
+import { makeTheme, themeColors, themeCss, type MakerInput } from '../ui/themeMaker'
+import { tiltBlocked } from '../ui/tilt'
+import { getTenFoot, setTenFoot } from '../ui/tenFoot'
+import { useUserPref } from '../ui/userPrefs'
 
 const DOCS = 'https://github.com/wittywilla/WittyMediaServer/blob/master/docs/THEMES.md'
+
+const SCENE_VARS: Record<string, string> = { bg: '--bg', bg2: '--bg-2', bg3: '--bg-3', bg4: '--bg-4', fg: '--fg', fg2: '--fg-2', fg3: '--fg-3', accent: '--accent', accentHover: '--accent-2', accentFg: '--accent-fg', accentText: '--accent-text' }
+
+// A small piece of the app in a theme's colours, drawn with the real classes, so what
+// you see is what you get before choosing anything.
+function ThemeScene({ colors, radius, preview }: { colors?: Record<string, string>; radius?: number; preview?: ThemeMeta['preview'] }) {
+  const vars: Record<string, string> = {}
+  for (const [k, v] of Object.entries(SCENE_VARS)) if (colors?.[k]) vars[v] = colors[k]
+  if (!colors && preview) {
+    const p: Record<string, string | undefined> = { '--bg': preview.bg, '--bg-2': preview.surface, '--bg-3': preview.surface, '--fg': preview.text, '--fg-2': preview.text, '--fg-3': preview.text, '--accent': preview.accent, '--accent-text': preview.accent }
+    for (const [k, v] of Object.entries(p)) if (v) vars[k] = v
+  }
+  if (radius !== undefined) vars['--radius'] = radius + 'px'
+  return (
+    <span className="theme-scene" style={vars as CSSProperties} aria-hidden="true">
+      <span className="ts-bar"><i className="ts-dot" /><span className="ts-link on">Home</span><span className="ts-link">Movies</span></span>
+      <span className="ts-body">
+        <span className="ts-posters"><i /><i /><i /></span>
+        <span className="ts-text"><b>Title</b><small>A line of detail</small><span className="btn primary sm">Play</span></span>
+      </span>
+    </span>
+  )
+}
+
+const FRESH_MAKER: MakerInput = { name: 'My theme', scheme: 'dark', accent: '#2f6fed', tint: '#2f6fed', corners: 'soft' }
+
+function ThemeMaker({ start, admin, onClose, onDevice, onServer }: { start: MakerInput; admin: boolean; onClose: () => void; onDevice: (i: MakerInput) => void; onServer: (i: MakerInput) => Promise<void> }) {
+  const [i, setI] = useState(start)
+  const set = (p: Partial<MakerInput>) => setI((x) => ({ ...x, ...p }))
+  const made = makeTheme(i)
+  return (
+    <Dialog title="Make a theme" size="wide" onClose={onClose} description="Choose a few things and the rest follows. Every colour is checked as it’s made, so text stays easy to read."
+      actions={<>
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        {admin && <Button disabled={!i.name.trim()} onClick={() => onServer(i)}>Add for everyone</Button>}
+        <Button variant="primary" disabled={!i.name.trim()} onClick={() => onDevice(i)}>Use on this device</Button>
+      </>}>
+      <div className="theme-maker">
+        <div className="form full">
+          <Field label="Name"><Input autoFocus value={i.name} maxLength={40} onChange={(e) => set({ name: e.target.value })} /></Field>
+          <div className="nav-custom-opt"><span>Light or dark</span>
+            <Segmented label="Light or dark" value={i.scheme} onChange={(scheme) => set({ scheme })} options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }]} />
+          </div>
+          <div className="theme-maker-colours">
+            <Field label="Accent" hint="Buttons and highlights"><Input className="theme-colour" type="color" value={i.accent} onChange={(e) => set({ accent: e.target.value })} /></Field>
+            <Field label="Background tint" hint="A hint of colour in the page"><Input className="theme-colour" type="color" value={i.tint} onChange={(e) => set({ tint: e.target.value })} /></Field>
+          </div>
+          <div className="nav-custom-opt"><span>Corners</span>
+            <Segmented label="Corners" value={i.corners} onChange={(corners) => set({ corners })} options={[{ value: 'square', label: 'Crisp' }, { value: 'soft', label: 'Soft' }, { value: 'round', label: 'Round' }]} />
+          </div>
+        </div>
+        <div className="theme-maker-preview">
+          <ThemeScene colors={themeColors(made)} radius={made.radius} />
+          {made.adjusted && <Notice>Your accent was adjusted a little so the words on it stay readable.</Notice>}
+        </div>
+      </div>
+    </Dialog>
+  )
+}
 
 export default function AppearanceSettings() {
   const { user, brandName, setBrandName, brandLogo, setBrandLogo, serverTheme, setServerTheme } = useApp()
   const [naming, setNaming] = useState(false)
   const [themes, setThemes] = useState<ThemeMeta[]>([])
   const [mine, setMine] = useState(deviceTheme())
-  const [filter, setFilter] = useState<'all' | 'dark' | 'light'>('all')
+  const [making, setMaking] = useState(false)
+  const [custom, setCustom] = useUserPref<MakerInput | null>('customTheme', null)
   const fileRef = useRef<HTMLInputElement | null>(null)
   const load = () => api.get<{ themes: ThemeMeta[] }>('/themes').then((r) => setThemes(r.themes)).catch(() => {})
   useEffect(() => { load() }, [])
 
-  const active = mine || serverTheme
+  const admin = !!user?.isAdmin
+  const fallback = currentThemeId(serverTheme)
+  const active = mine || fallback
   const useHere = (id: string) => { setDeviceTheme(id); setMine(id); applyTheme(id || serverTheme) }
   const makeDefault = async (id: string) => {
-    try { await api.put('/settings', { theme: id }); setServerTheme(id); toast('Server default theme updated') } catch (e: any) { toast(e.message) }
+    try { await api.put('/settings', { theme: id }); setServerTheme(id); toast('Everyone starts with this theme now', { tone: 'ok' }) } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }
   const saveBrand = async (n: string, logo: File | 'remove' | null) => {
     await api.put('/settings', { brandName: n })
     setBrandName(n)
     if (logo === 'remove') { await api.del('/branding/logo'); setBrandLogo('') } else if (logo) setBrandLogo(await uploadLogo(logo))
-    toast('Saved')
+    toast('Saved', { tone: 'ok' })
   }
   const upload = async (f: File) => {
     const headers: Record<string, string> = { 'Content-Type': 'application/zip' }
@@ -36,82 +108,92 @@ export default function AppearanceSettings() {
     if (tok) headers.Authorization = 'Bearer ' + tok
     const res = await fetch(`${serverBase()}/api/themes?name=${encodeURIComponent(f.name)}`, { method: 'POST', headers, body: f, credentials: 'same-origin' })
     const data = await res.json().catch(() => ({}))
-    if (!res.ok) { toast(data.error || 'Upload failed'); return }
-    toast(`Installed “${data.name}”`)
+    if (!res.ok) { toast(data.error || 'That theme couldn’t be installed', { tone: 'danger' }); return }
+    toast(`“${data.name}” is installed`, { tone: 'ok' })
     load()
   }
   const remove = async (t: ThemeMeta) => {
-    if (!confirm(`Remove the theme “${t.name}”? Its ZIP is deleted from the themes folder.`)) return
-    try { await api.del(`/themes/${t.id}`); if (mine === t.id) useHere(''); load() } catch (e: any) { toast(e.message) }
+    if (!await ask({ title: `Remove “${t.name}”?`, body: 'Its ZIP is deleted from the server’s themes folder.', confirm: 'Remove theme', danger: true })) return
+    try { await api.del(`/themes/${t.id}`); if (mine === t.id) useHere(''); load() } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }
-  const shown = themes.filter((t) => filter === 'all' || t.scheme === filter)
+  const madeForDevice = (i: MakerInput) => {
+    setCustomThemeCss(themeCss(i))
+    setCustom(i).catch(() => { /* it's still on this device */ })
+    useHere(CUSTOM_THEME)
+    setMaking(false)
+  }
+  const madeForServer = async (i: MakerInput) => {
+    const t = makeTheme(i)
+    try {
+      const meta = await api.post<ThemeMeta>('/themes/custom', { name: i.name, scheme: i.scheme, colors: t.vars, radius: t.radius })
+      setMaking(false)
+      await load()
+      useHere(meta.id)
+      toast(`“${meta.name}” is on the server`, { tone: 'ok' })
+    } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
+  }
+  const customMade = custom && makeTheme(custom)
   return (
     <>
-      <LayoutPanel />
       <div className="panel">
         <h2>Theme</h2>
         <p className="panel-note">
-          Pick a look for this device, {user?.isAdmin ? 'or set the default everyone gets. ' : ''}
-          Themes are ZIP files in the server's <code>themes</code> folder — <a href={DOCS} target="_blank" rel="noreferrer">make your own</a>.
+          {mine ? <>This device has its own theme. <button type="button" className="linkish" onClick={() => useHere('')}>Follow the server’s</button></> : 'This device follows the server’s theme. Choosing one here changes this device only.'}
         </p>
-        <div className="theme-bar">
-          <div className="seg">
-            {(['all', 'dark', 'light'] as const).map((f) => <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>{f[0].toUpperCase() + f.slice(1)}</button>)}
-          </div>
-          <span className="small-note">
-            {mine ? <>This device uses its own theme. <button className="linkish" onClick={() => useHere('')}>Follow the server default</button></> : 'This device follows the server default.'}
-          </span>
-        </div>
         <div className="theme-grid" role="radiogroup" aria-label="Themes">
-          <div className={'theme-card' + (mine === AUTO_THEME ? ' active' : '')} onClick={() => useHere(AUTO_THEME)}>
-            <button type="button" className="swatch swatch-auto" role="radio" aria-checked={mine === AUTO_THEME} aria-label="Automatic theme" title="Follow this device’s light or dark setting"
-              onClick={(e) => { e.stopPropagation(); useHere(AUTO_THEME) }} />
-            <div className="theme-info">
-              <div className="t"><span>Automatic</span></div>
-              <div className="muted">Follows this device’s light or dark setting.</div>
-              <div className="theme-actions" onClick={(e) => e.stopPropagation()}>
-                <button className="btn sm" onClick={() => useHere(AUTO_THEME)} disabled={mine === AUTO_THEME}>{mine === AUTO_THEME ? 'In use here' : 'Use here'}</button>
-              </div>
-            </div>
+          <div className={'theme-card' + (mine === AUTO_THEME ? ' active' : '')}>
+            <button type="button" className="theme-pick" role="radio" aria-checked={mine === AUTO_THEME} onClick={() => useHere(AUTO_THEME)}>
+              <span className="theme-scene-pair" aria-hidden="true">
+                <ThemeScene colors={themes.find((t) => t.id === 'default')?.colors} radius={10} />
+                <ThemeScene colors={themes.find((t) => t.id === 'light')?.colors} radius={10} />
+              </span>
+              <span className="theme-name">Automatic</span>
+              <span className="muted">Light or dark, as this device is set.</span>
+            </button>
           </div>
-          {shown.map((t) => (
-            // The whole card picks the theme; its own buttons stop the click.
-            <div key={t.id} className={'theme-card' + (t.id === active ? ' active' : '')} onClick={() => useHere(t.id)}>
-              <button type="button" className="swatch" role="radio" aria-checked={t.id === active} aria-label={`${t.name} theme`} title={`Use ${t.name} on this device`}
-                onClick={(e) => { e.stopPropagation(); useHere(t.id) }}
-                style={{ background: t.preview.bg, color: t.preview.text }}>
-                <span className="sw-side" style={{ background: t.preview.surface }} />
-                <span className="sw-card" style={{ background: t.preview.surface }} />
-                <span className="sw-card" style={{ background: t.preview.surface }} />
-                <span className="sw-btn" style={{ background: t.preview.accent }} />
-                <span className="sw-text" style={{ background: t.preview.text }} />
+          {themes.map((t) => (
+            <div key={t.id} className={'theme-card' + (t.id === active ? ' active' : '')}>
+              <button type="button" className="theme-pick" role="radio" aria-checked={t.id === active} onClick={() => useHere(t.id)}>
+                <ThemeScene colors={t.colors} radius={t.radius} preview={t.preview} />
+                <span className="theme-name">{t.name}{t.id === fallback && <span className="pill">default</span>}</span>
+                <span className="muted">{t.description || (t.author ? 'by ' + t.author : '')}</span>
               </button>
-              <div className="theme-info">
-                <div className="t"><span>{t.name}</span> {t.id === serverTheme && <span className="pill">default</span>}<a className="btn sm ghost square theme-dl" href={mediaUrl(`/api/themes/${t.id}/download`)} onClick={(e) => e.stopPropagation()} title="Download this theme as a ZIP, as a starting point for your own" aria-label={`Download the ${t.name} theme`}><IconDownload /></a></div>
-                <div className="muted">{t.description || (t.author ? 'by ' + t.author : '')}</div>
-                <div className="theme-actions" onClick={(e) => e.stopPropagation()}>
-                  <button className="btn sm" onClick={() => useHere(t.id)} disabled={mine === t.id}>{mine === t.id ? 'In use here' : 'Use here'}</button>
-                  {user?.isAdmin && t.id !== serverTheme && <button className="btn sm ghost" onClick={() => makeDefault(t.id)}>Make default</button>}
-                  {user?.isAdmin && !t.builtin && <button className="btn sm danger" onClick={() => remove(t)}>Remove</button>}
-                </div>
+              <div className="theme-actions">
+                {admin && t.id !== fallback && <Button size="sm" variant="ghost" onClick={() => makeDefault(t.id)}>Make default</Button>}
+                {admin && !t.builtin && <Button size="sm" variant="danger" onClick={() => remove(t)}>Remove</Button>}
+                <a className="btn sm ghost square theme-dl" href={mediaUrl(`/api/themes/${t.id}/download`)} aria-label={`Download the ${t.name} theme`} title="Download, as a starting point for your own"><IconDownload /></a>
               </div>
             </div>
           ))}
+          {custom && customMade && (
+            <div className={'theme-card' + (mine === CUSTOM_THEME ? ' active' : '')}>
+              <button type="button" className="theme-pick" role="radio" aria-checked={mine === CUSTOM_THEME} onClick={() => madeForDevice(custom)}>
+                <ThemeScene colors={themeColors(customMade)} radius={customMade.radius} />
+                <span className="theme-name">{custom.name}</span>
+                <span className="muted">Made by you, for this device.</span>
+              </button>
+              <div className="theme-actions"><Button size="sm" variant="ghost" onClick={() => setMaking(true)}>Edit</Button></div>
+            </div>
+          )}
         </div>
-        {user?.isAdmin && (
-          <div className="panel-actions">
-            <input ref={fileRef} type="file" accept=".zip,application/zip" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = '' }} />
-            <button className="btn primary" onClick={() => fileRef.current?.click()}>Install theme ZIP…</button>
-            <span className="small-note">Or copy the ZIP into the <code>themes</code> folder of the data directory and reload this page.</span>
-          </div>
-        )}
+        <div className="panel-actions">
+          <Button icon={<IconPlus />} onClick={() => setMaking(true)}>Make a theme</Button>
+          {admin && <>
+            <input ref={fileRef} type="file" accept=".zip,application/zip" hidden aria-label="Theme ZIP" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = '' }} />
+            <Button variant="ghost" onClick={() => fileRef.current?.click()}>Install a theme ZIP…</Button>
+          </>}
+          <a className="small-note" href={DOCS} target="_blank" rel="noreferrer">How themes work</a>
+        </div>
+        {making && <ThemeMaker start={custom || FRESH_MAKER} admin={admin} onClose={() => setMaking(false)} onDevice={madeForDevice} onServer={madeForServer} />}
       </div>
-      {user?.isAdmin && (
+      <LayoutPanel />
+      <MotionPanel />
+      {admin && (
         <div className="panel">
           <h2>Name and logo</h2>
           <div className="brand-now">
             <div className="brand"><BrandMark /><Brand name={brandName} /></div>
-            <button className="btn" onClick={() => setNaming(true)}>Rename…</button>
+            <Button onClick={() => setNaming(true)}>Rename…</Button>
           </div>
           <p className="small-note">Shown in the corner, on the sign-in page and in the browser tab. The license notice in Settings, About always remains.</p>
           {naming && <BrandDialog name={brandName} logo={brandLogo ? logoUrl(brandLogo) : ''} onClose={() => setNaming(false)} onSave={saveBrand} />}
@@ -121,7 +203,7 @@ export default function AppearanceSettings() {
   )
 }
 
-// LayoutPanel: where the navigation sits on this device.
+// LayoutPanel: where the navigation sits on this device, and what's in it.
 function LayoutPanel() {
   const style = useNavStyle()
   const opts: [NavStyle, string, string][] = [
@@ -132,7 +214,7 @@ function LayoutPanel() {
   return (
     <div className="panel">
       <h2>Layout</h2>
-      <p className="panel-note">Where the navigation sits on this device. Phones always also have the bar at the bottom. Rearrange the home page with <b>Customize home</b> at the foot of the home page.</p>
+      <p className="panel-note">Where the navigation sits on this device. Phones always have the bar at the bottom instead. Rearrange the home page with <b>Customize home</b> at the foot of the home page.</p>
       <div className="layout-opts" role="radiogroup" aria-label="Navigation">
         {opts.map(([v, label, hint]) => (
           <button key={v} type="button" role="radio" aria-checked={style === v} className={'layout-opt' + (style === v ? ' on' : '')} onClick={() => setNavStyle(v)}>
@@ -140,6 +222,27 @@ function LayoutPanel() {
             <b>{label}</b><span className="muted">{hint}</span>
           </button>
         ))}
+      </div>
+      <NavCustomize />
+    </div>
+  )
+}
+
+// Moving posters, and this screen's distance from the sofa.
+function MotionPanel() {
+  const [tilt, setTilt] = useUserPref('posterTilt', true)
+  const [ten, setTen] = useState(getTenFoot)
+  const blocked = tiltBlocked()
+  return (
+    <div className="panel">
+      <h2>Motion and big screens</h2>
+      <div className="set-row-inline">
+        <span id="pref-tilt"><b>Moving posters</b><small className="muted block">Movie and show posters lean toward the pointer, or settle in as a remote reaches them. {blocked ? `Off here: ${blocked}` : 'Follows you to your other devices.'}</small></span>
+        <Switch labelledBy="pref-tilt" checked={tilt && !blocked} disabled={!!blocked} onChange={(on) => setTilt(on).catch(() => toast('Could not save that', { tone: 'danger' }))} />
+      </div>
+      <div className="set-row-inline">
+        <span id="pref-ten"><b>Big screen mode</b><small className="muted block">Larger text and a stronger focus outline, for a TV across the room. This device only.</small></span>
+        <Switch labelledBy="pref-ten" checked={ten} onChange={(on) => { setTenFoot(on); setTen(on) }} />
       </div>
     </div>
   )

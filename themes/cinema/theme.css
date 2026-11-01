@@ -1,0 +1,47 @@
+/*
+ * Cinema - a WittyMediaServer theme.
+ * Warm near-black and amber, for a dim room.
+ *
+ * Every variable below is explained in docs/THEMES.md. Copy this file into
+ * your own theme ZIP as a starting point.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #14110e;          /* page background */
+  --bg-2: #1c1815;        /* side menu, panels, dialogs */
+  --bg-3: #25201b;        /* fields, cards, hovered rows */
+  --bg-4: #312a24;        /* pressed buttons, scrollbars */
+  --bg-rgb: 20 17 14;   /* --bg as "R G B", for see-through shades */
+  --border: color-mix(in srgb, var(--fg) 10%, transparent); /* hairlines between panels */
+  --control-line: #796958;      /* outlines of fields and switches: 3:1 on every surface */
+
+  /* Text */
+  --fg: #f2ece4;          /* main text */
+  --fg-2: #b9afa3;        /* secondary text */
+  --fg-3: #968c80;        /* hints, captions */
+
+  /* Accent: buttons, highlights, progress bars, selected items */
+  --accent: #e8a33a;
+  --accent-2: #d18f28;      /* hovered or pressed accent */
+  --accent-fg: #17120a;     /* text on the accent */
+  --accent-text: #eeb159;   /* the accent as text: links, highlighted words */
+  --accent-rgb: 232 163 58;
+  --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
+
+  /* Status */
+  --danger: #ff6f6a;
+  --ok: #58cf9a;
+  --warn: #eeb159;
+
+  /* Shape and depth */
+  --radius: 10px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --card-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  /* Layout and type */
+  --sidebar: 240px;
+  --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}

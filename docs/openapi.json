@@ -6289,6 +6289,12 @@
           "builtin": {
             "type": "boolean"
           },
+          "colors": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
           "description": {
             "type": "string"
           },
@@ -6317,6 +6323,9 @@
               }
             },
             "type": "object"
+          },
+          "radius": {
+            "type": "number"
           },
           "scheme": {
             "type": "string"
@@ -6511,6 +6520,9 @@
           "createdAt": {
             "type": "integer"
           },
+          "displayName": {
+            "type": "string"
+          },
           "hasPassword": {
             "type": "boolean"
           },
@@ -6526,17 +6538,22 @@
           "name": {
             "type": "string"
           },
+          "showUsername": {
+            "type": "boolean"
+          },
           "twoFactor": {
             "type": "boolean"
           }
         },
         "required": [
           "createdAt",
+          "displayName",
           "hasPassword",
           "id",
           "isAdmin",
           "kind",
           "name",
+          "showUsername",
           "twoFactor"
         ],
         "type": "object"
@@ -6556,6 +6573,9 @@
           "createdAt": {
             "type": "integer"
           },
+          "displayName": {
+            "type": "string"
+          },
           "hasPassword": {
             "type": "boolean"
           },
@@ -6571,6 +6591,9 @@
           "name": {
             "type": "string"
           },
+          "showUsername": {
+            "type": "boolean"
+          },
           "twoFactor": {
             "type": "boolean"
           }
@@ -6578,11 +6601,13 @@
         "required": [
           "access",
           "createdAt",
+          "displayName",
           "hasPassword",
           "id",
           "isAdmin",
           "kind",
           "name",
+          "showUsername",
           "twoFactor"
         ],
         "type": "object"
@@ -26529,6 +26554,69 @@
         "x-wms-auth": "admin"
       }
     },
+    "/themes/custom": {
+      "post": {
+        "operationId": "postThemesCustom",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "colors": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "CSS variable name without the dashes, to a colour like #336699.",
+                    "type": "object"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "radius": {
+                    "description": "Corners, 0 to 24 pixels.",
+                    "type": "integer"
+                  },
+                  "scheme": {
+                    "enum": [
+                      "dark",
+                      "light"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemeMeta"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a theme from the theme maker: colours and corners, no files.",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/themes/{id}": {
       "delete": {
         "operationId": "deleteThemesById",
@@ -28017,6 +28105,70 @@
           }
         ],
         "summary": "Change a password. Your own needs `current`; other sessions of that account end.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/users/{id}/profile": {
+      "put": {
+        "operationId": "putUsersProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "displayName": {
+                    "description": "The profile name, free for anyone to choose. Empty goes back to the username.",
+                    "type": "string"
+                  },
+                  "showUsername": {
+                    "description": "Show the username in the corner of the screen, not the profile name.",
+                    "type": "boolean"
+                  },
+                  "username": {
+                    "description": "The name to sign in with. Unique, ignoring case.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change what an account is called, and which name its corner shows.",
         "tags": [
           "Sign-in and accounts"
         ],

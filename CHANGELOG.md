@@ -24,6 +24,22 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Motion photos** with their clip inside the picture play it. **SVG pictures** are shown, with anything active taken out first.
 - Cover art at the front of a video no longer gets taken for the picture. Mono sound that FFmpeg's AAC encoder refused now
   converts. DVDs in `.img` files, which FFmpeg took for pictures, get their thumbnails and play.
+### A new look, the same everywhere
+
+- **Design standards**: `docs/DESIGN.md` now covers every colour, size, part, pattern and rule, and a check in CI keeps the interface to it. Administrators can see every part at `/design`.
+- **Shared parts** for buttons, fields, menus, dialogs, toasts, tooltips, cards and tables, which all work with a keyboard, a remote and a screen reader. Settings and the pages around it moved onto them, and "are you sure?" questions are now the app's own instead of the browser's.
+- **Themes**: eight well-made themes in place of twenty colour variations, each shown as a small live piece of the app. If you were using one of the old ones, you've been moved to the closest. **Make a theme** builds a whole readable theme from a few choices, with no code. `docs/THEMES.md` is rewritten for someone who has never written CSS.
+- **The top bar stays manageable**: what doesn't fit goes under **More**, and you can see the page you're on even when it's in there. Drag or use the keyboard to reorder, hide what you don't use, and group into Watch, Listen, Read and Play. The side menu folds to a rail of icons. Everyone can have their own arrangement, and the owner can set the default.
+- **Phones** get a row of sections along the top and a floating bar at the bottom.
+- **Remote and keyboard**: arrow keys reach everything, coming back to a row lands where you left it, and Back returns to the control you left. **Big screen mode** in Appearance, or `?tv=1`, keeps the larger text and stronger focus on for a TV.
+- **Moving posters**: movie and show posters lean toward the pointer with a soft moving light, or settle in as a remote reaches them. Turn it off in Appearance; it also stays off on modest devices and when a device asks for less motion.
+- **Profile names and usernames can differ**: you sign in with a unique username, and everyone else sees a profile name anyone can choose. Each person picks which one shows at the top right. Usernames now count as taken whatever their case, and can't contain invisible characters.
+
+### Fixed
+
+- In Settings, scrolling with the pointer over the menu moved the page beside it. The menu now scrolls by itself.
+- With internet radio or music playing, the account menu could open behind the audio bar, and the mini player could cover dialogs. Everything over the page now has one stacking order.
+
 - **Every module and app is now a project of its own.** WittyPlay, WittyDVD, WittyBluray, WittyCD, WittyDisc, WittyTuner, WittyPhotos,
   WittyCouch, WittyCouchHost, WittyRigs, WittyIntegratedFileBrowser, WittyModule, the reader plugins, WittyVisualizer, WittyReader,
   WittyMediaPlayer and WittyMediaClient each have their own repository, history, changelog and releases. The older `clients/desktop`

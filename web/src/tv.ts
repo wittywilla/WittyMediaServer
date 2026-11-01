@@ -328,7 +328,7 @@ export function installTVInput() {
   window.addEventListener('mousedown', (e) => { openSelect = (e.target as Element)?.tagName === 'SELECT' ? (e.target as Element) : null }, { passive: true })
   for (const ev of ['change', 'focusout'] as const) window.addEventListener(ev, () => { openSelect = null })
   window.addEventListener('gamepadconnected', startPolling)
-  // Mouse use hides the controller focus styling again.
-  window.addEventListener('mousedown', () => document.documentElement.classList.remove('using-controller'), { passive: true })
+  // Mouse use hides the controller focus styling again, unless this screen is set up for across the room.
+  window.addEventListener('mousedown', () => { if (!document.documentElement.classList.contains('ten-foot')) document.documentElement.classList.remove('using-controller') }, { passive: true })
   if (navigator.getGamepads && Array.from(navigator.getGamepads()).some(Boolean)) startPolling()
 }

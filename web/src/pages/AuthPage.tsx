@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { api, ApiError, isNativeShell, setToken, type User } from '../api'
+import { api, ApiError, isNativeShell, profileName, setToken, type User } from '../api'
 import ConnectServer from '../components/ConnectServer'
 import { Brand, BrandMark, VersionTag } from '../components/common'
 import { IconBack } from '../icons'
 import { useApp } from '../state'
 
-type Profile = { id: number; name: string; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean }
+type Profile = { id: number; name: string; displayName?: string; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean }
 
 // Sign-in. On the home network this is a "Who's watching?" screen with a
 // tile per profile; elsewhere (or when an admin chose it) the classic name
@@ -47,8 +47,8 @@ export default function AuthPage() {
           {profiles!.map((p, i) => (
             <li key={p.id}>
               <button type="button" className="who-tile" autoFocus={i === 0} onClick={() => pick(p)}>
-                <Avatar name={p.name} big />
-                <span className="who-name">{p.name}</span>
+                <Avatar name={profileName(p)} big />
+                <span className="who-name">{profileName(p)}</span>
                 {p.kind !== 'adult' && <span className={'who-kind kind-' + p.kind}>{p.kind === 'kids' ? 'Kids' : 'Guest'}</span>}
               </button>
             </li>
@@ -123,11 +123,11 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
     <form className="auth-card" onSubmit={submit}>
       {onBack && <button type="button" className="ibtn auth-back" onClick={onBack} aria-label="Back to profiles"><IconBack /></button>}
       {profile
-        ? <div className="auth-profile"><Avatar name={profile.name} big /><h2>{profile.name}</h2></div>
+        ? <div className="auth-profile"><Avatar name={profileName(profile)} big /><h2>{profileName(profile)}</h2></div>
         : <div className="brand"><BrandMark /><Brand name={brandName} /></div>}
       <p>{profile ? 'Enter your password or PIN.' : 'Sign in to your media server.'}</p>
       <div className="form">
-        {!profile && <label>Name<input className="input" autoFocus value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" /></label>}
+        {!profile && <label>Username<input className="input" autoFocus value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" /></label>}
         <label>{profile ? <span className="sr-only">Password</span> : 'Password'}
           <input ref={pwRef} className="input" type="password" autoFocus={!!profile} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
         </label>

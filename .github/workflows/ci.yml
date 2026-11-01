@@ -52,33 +52,21 @@ jobs:
       - name: Known vulnerabilities (reported, does not stop the build)
         continue-on-error: true
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
-      # Every manifest is sound, its range valid, and this server is inside it. A new
-      # server version that falls outside a range fails here until maxServer is raised.
-      - name: Module manifests and version ranges
+      # The server has no module's code in it: each is a program of its own, fetched and verified
+      # at run time. WittyModule is the one thing they share.
+      - name: Nothing but WittyModule from the modules
         run: |
-          server="$(go run ./cmd/wms version | awk '{print $2}')"
-          # The tool wants each manifest in a folder named for its module.
-          tmp="$(mktemp -d)"
-          for m in $(go list -m -f '{{.Path}}' all | grep '^github.com/wittywilla/' | grep -vE '/(wittymodule|wittymediaserver)$'); do
-            cp -r "$(go list -m -f '{{.Dir}}' "$m")" "$tmp/${m##*/}"
-          done
-          for f in web/module-manifests/*.json; do
-            mkdir "$tmp/$(basename "$f" .json)" && cp "$f" "$tmp/$(basename "$f" .json)/module.json"
-          done
-          chmod -R u+w "$tmp"
-          go run github.com/wittywilla/wittymodule/cmd/wittymodule check -server "$server" "$tmp"/*/
+          found="$(for goos in linux windows darwin freebsd; do GOOS=$goos go list -deps -f '{{with .Module}}{{.Path}}{{end}}' ./... ; done | sort -u | grep '^github.com/wittywilla/' | grep -vE '/(wittymodule|wittymediaserver)$' || true)"
+          [ -z "$found" ] || { echo "$found"; exit 1; }
       - name: Cross-compile every release platform
         run: |
           for t in windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 linux/arm linux/386 freebsd/amd64 freebsd/arm64; do
             echo "== $t"
             GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wms || exit 1
             case $t in darwin/*) ;; *) GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null ./cmd/wms-tray || exit 1 ;; esac
-            flags=""; case $t in freebsd/*) flags="github.com/ebitengine/purego/internal/fakecgo=-std" ;; esac
-            GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -gcflags="$flags" -o /dev/null github.com/wittywilla/wittyplay/cmd/wittyplay-host || exit 1
           done
       - name: Build-script smoke test (no FFmpeg downloads)
         run: |
           SKIP_WEB=1 SKIP_FFMPEG=1 scripts/build-release.sh ci-test linux/amd64 windows/amd64
-          # Without the runner, a package can't play a single game.
-          test -x dist/wittymediaserver-ci-test-linux-amd64/wittyplay-host
-          test -f dist/wittymediaserver-ci-test-windows-amd64/wittyplay-host.exe
+          # A package holds no module unless a starter set was asked for.
+          test ! -e dist/wittymediaserver-ci-test-linux-amd64/modules

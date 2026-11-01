@@ -160,7 +160,7 @@ make_app_bundle() {
   [ -f "$out/WittyMediaServer" ] || return 0
   mkdir -p "$app/MacOS" "$app/Resources"
   cp "$out/WittyMediaServer" "$out/wms" "$app/MacOS/"
-  [ -f "$out/wittyplay-host" ] && cp "$out/wittyplay-host" "$app/MacOS/"
+  [ -d "$out/modules" ] && cp -R "$out/modules" "$app/MacOS/"
   [ -d "$out/bin" ] && cp -R "$out/bin" "$app/MacOS/"
   "$TOOLS/genicon$HOSTEXE" "$app/Resources/icon.png" 512
   cat > "$app/Info.plist" <<EOF
@@ -213,11 +213,14 @@ for t in "${TARGETS[@]}"; do
   fi
   CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath -ldflags="$server_flags" -o "$out/wms$ext" ./cmd/wms
   build_tray "$out" "$os" "$arch"
-  # The separate process that runs games (docs/GAMING.md). FreeBSD's cgo-free
-  # build needs one package compiled with the standard library's privileges.
-  host_flags=(); [ "$os" = freebsd ] && host_flags=(-gcflags="github.com/ebitengine/purego/internal/fakecgo=-std")
-  abs_out=$(cd "$out" && pwd)
-  CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM=7 go build -trimpath ${host_flags[@]+"${host_flags[@]}"} -ldflags="-s -w" -o "$abs_out/wittyplay-host$ext" github.com/wittywilla/wittyplay/cmd/wittyplay-host
+  # A starter set of signed modules, for a package that works offline (docs/MODULES.md). It's
+  # only ever copied: nothing here builds a module.
+  if [ -n "${WMS_STARTER:-}" ]; then
+    [ -f "$WMS_STARTER/catalog.json" ] && [ -f "$WMS_STARTER/catalog.json.sig" ] || { echo "error: $WMS_STARTER has no signed catalogue" >&2; exit 1; }
+    mkdir -p "$out/modules"
+    cp -R "$WMS_STARTER/." "$out/modules/"
+    rm -f "$out/modules/test.key" "$out/modules/test-key.pub" "$out/modules/.wittymodule"
+  fi
   if [ "${SKIP_FFMPEG:-}" != "1" ]; then
     if ! bundle_ffmpeg "$out" "$os" "$arch"; then
       echo "   !! no FFmpeg bundled for $t (wms will use ffmpeg from PATH on that machine)" >&2

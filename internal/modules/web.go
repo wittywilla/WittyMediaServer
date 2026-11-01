@@ -148,3 +148,19 @@ func (m *Manager) Program(id string) (path, version string, ok bool) {
 	}
 	return filepath.Join(dir, man.EntryFile(goos())), man.Version, true
 }
+
+// Notices is what a module says about the libraries in its programs.
+func (m *Manager) Notices(id string) ([]byte, bool) {
+	m.mu.Lock()
+	e := m.mods[id]
+	dir := ""
+	if e != nil {
+		dir = e.dir
+	}
+	m.mu.Unlock()
+	if dir == "" {
+		return nil, false
+	}
+	b, err := os.ReadFile(filepath.Join(dir, wittymodule.NoticesFile))
+	return b, err == nil
+}

@@ -65,6 +65,58 @@ func TestPlainArchiveCantPlantSecretsOrSwitches(t *testing.T) {
 	}
 }
 
+// A share on another machine: scanning it sends this machine's sign-in there. A browser can't name
+// one unless the owner allows it, and neither can a file with no password. Device paths get round
+// every check on the words of a path, so nothing brings those.
+func TestArchiveCantNameAnotherMachine(t *testing.T) {
+	f, _ := aServer(t)
+	for _, c := range []struct {
+		path, why string
+	}{
+		{`\\?\C:\Windows\System32`, "device"},
+		{`\\.\C:\Windows`, "device"},
+		{`//?/C:/Windows`, "device"},
+	} {
+		if got := dangerousRoot(c.path, f); !strings.Contains(got, c.why) {
+			t.Errorf("%s: %q", c.path, got)
+		}
+	}
+	dir := t.TempDir()
+	src, _, err := Create(ctx, Options{Folders: f, Parts: everything, Output: filepath.Join(dir, "good.zip")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad := filepath.Join(dir, "bad.zip")
+	tamper(t, src, bad, `INSERT INTO library_paths(library_id, path) VALUES (1, '\\attacker.example\share'), (1, '//attacker.example/share')`)
+	in, err := Inspect(ctx, bad, "", f, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer in.Close()
+	for _, l := range in.Libraries {
+		for _, p := range l.Folders {
+			if strings.Contains(p, "attacker") {
+				t.Errorf("kept: %s", p)
+			}
+		}
+	}
+	if !containsWord(in.Dropped, "another machine") {
+		t.Errorf("a person wasn't told: %v", in.Dropped)
+	}
+}
+
+// Its numbers are read before anything is proven, and all this server's own backups ask for 64 MB.
+func TestHeaderCantAskForMuchMemory(t *testing.T) {
+	h := CryptHeader{Alg: "AES-256-GCM", KDF: "argon2id", Time: 3, MemoryKiB: 256 << 10, Threads: 2, Salt: "c2FsdHNhbHQ=", Prefix: "AAAAAAAAAA==", Chunk: chunkSize}
+	if err := h.check(); err == nil {
+		t.Error("256 MB was accepted")
+	}
+	h.MemoryKiB = kdfMemory
+	if err := h.check(); err != nil {
+		t.Errorf("what this server makes: %v", err)
+	}
+}
+
 // What's used is what's read at the second pass, so it has to meet the same rules. The file can
 // change between checking and restoring: another upload, or someone with the disk.
 func TestStageChecksTheArchiveAgain(t *testing.T) {

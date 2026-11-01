@@ -416,6 +416,9 @@ func dangerousRoot(p string, f Folders) string {
 	if !looksAbsolute(p) {
 		return "it isn't a full path"
 	}
+	if s := strings.ReplaceAll(p, `\`, "/"); strings.HasPrefix(s, "//?/") || strings.HasPrefix(s, "//./") {
+		return "it's a device path, which nobody needs for a library"
+	}
 	if n == "" || n == "." || (len(n) == 2 && n[1] == ':') {
 		return "it's a whole drive's top level"
 	}
@@ -486,7 +489,13 @@ func sanitizeRows(ctx context.Context, d *sql.DB, in *Inspection, f Folders) err
 	rows.Close()
 	var roots []string
 	for _, x := range paths {
-		if why := dangerousRoot(x.path, f); why != "" {
+		why := dangerousRoot(x.path, f)
+		// Scanning a share sends this machine's sign-in to it. One from a backup with a password
+		// is shown before anyone agrees, and with none it has to be added again.
+		if why == "" && !in.man.Protected && strings.HasPrefix(strings.ReplaceAll(x.path, `\`, "/"), "//") {
+			why = "it's on another machine, and this backup has no password to prove it's yours. Add it again under Libraries"
+		}
+		if why != "" {
 			in.Dropped = append(in.Dropped, "The library folder "+printableName(x.path)+", because "+why+".")
 			if _, err := d.ExecContext(ctx, `DELETE FROM library_paths WHERE id = ?`, x.id); err != nil {
 				return err

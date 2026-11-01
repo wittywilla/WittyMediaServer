@@ -5,7 +5,7 @@ import { useApp } from '../state'
 // What a page shows when the module behind it isn't on this server: what's missing and what it
 // would add, and for an admin a button that installs it, with no restart. Never a broken screen.
 
-type Status = { id: string; name: string; summary?: string; installed?: boolean; enabled?: boolean; phase?: string; done?: number; total?: number; error?: string }
+type Status = { id: string; name: string; summary?: string; unavailable?: string; installed?: boolean; enabled?: boolean; phase?: string; done?: number; total?: number; error?: string }
 type Report = { modules: Status[]; catalog?: { error?: string } }
 
 const POLL_MS = 1500
@@ -46,13 +46,15 @@ export function ModuleMissing({ ids, what, onReady }: { ids: string[]; what?: st
 
   const name = mods?.[0]?.name || ids[0]
   const busy = mods?.find((m) => m.phase && m.phase !== 'idle' && m.phase !== 'failed')
+  const noBuild = mods?.find((m) => m.unavailable)
   return (
     <div className="module-missing">
       <h2>{what || `This needs ${name}`}</h2>
       <p>{name} isn't on this server, so this can't open yet. Everything else works as usual.</p>
       {mods?.map((m) => m.summary ? <p key={m.id}><strong>{m.name}</strong>: {m.summary}</p> : null)}
       {!admin && <p>An admin of this server can add it in Settings, Modules.</p>}
-      {admin && !busy && (mods || ids.map((id) => ({ id, name: id }))).map((m) => (
+      {noBuild && <p>{noBuild.unavailable}</p>}
+      {admin && !busy && !noBuild && (mods || ids.map((id) => ({ id, name: id }))).map((m) => (
         <button key={m.id} type="button" className="btn primary" disabled={adding} onClick={() => add(m.id)}>Add {m.name}</button>
       ))}
       {busy && <p>Adding {busy.name}{busy.total ? `: ${Math.round((busy.done || 0) * 100 / busy.total)}%` : '…'} There's no need to restart anything.</p>}

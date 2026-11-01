@@ -126,6 +126,10 @@ type Status struct {
 	Source    *SourceInfo `json:"source,omitempty"`
 	NoFork    string      `json:"noFork,omitempty"` // why a fork can't replace it
 
+	// Unavailable says in words why it can't be added here, when that's because there's no build
+	// for this system. A page shows it in place of the button.
+	Unavailable string `json:"unavailable,omitempty"`
+
 	// AutoUpdate says this module may update by itself when the server's setting is on.
 	AutoUpdate bool `json:"autoUpdate"`
 }
@@ -176,7 +180,7 @@ type moduleState struct {
 }
 
 type entry struct {
-	task    *tasks.Handle // the install going on, in the activity panel
+	task *tasks.Handle // the install going on, in the activity panel
 	// builtin is what's known of it with no version on this server. For a module, absent says
 	// that's all it is: the name and purpose from a catalogue, which is never run. Only the
 	// parts of the server have a copy that's really built in.
@@ -661,6 +665,7 @@ func (m *Manager) Report() Report {
 		m.loadFeed(id, m.mods[id])
 		st := m.mods[id].status(id)
 		st.RequiredBy = m.requiredBy(id)
+		st.Unavailable = m.unavailable(m.mods[id])
 		r.Modules = append(r.Modules, st)
 	}
 	r.Libraries = m.libraryTypes()

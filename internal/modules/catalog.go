@@ -302,12 +302,46 @@ func (m *Manager) whyNoVersion(e *entry) string {
 	switch {
 	case e.tooNew != nil && e.tooNew.Reason != "":
 		return e.tooNew.Reason
-	case e.listed != nil && len(e.listed.Versions) > 0 && len(e.known) == 0:
-		return e.builtin.Name + " has no build for this system (" + goos() + "/" + goarch() + ")."
+	case e.noBuild():
+		return noBuildWords(e)
 	case m.cat == nil && m.cfg.CatalogURL != "":
 		return "This server hasn't been able to read the list of modules yet, so it can't install " + e.builtin.Name + ". Check for updates, or check its internet connection."
 	}
 	return "No version of " + e.builtin.Name + " is available for this server yet."
+}
+
+// noBuild: versions are listed, and none has a build for this system. Call with m.mu held.
+func (e *entry) noBuild() bool {
+	return e.absent && e.listed != nil && e.state.Source == nil && len(e.listed.Versions) > 0 && len(e.known) == 0
+}
+
+func noBuildWords(e *entry) string {
+	return e.builtin.Name + " has no build for " + systemName(goos(), goarch()) + " yet. Everything else on this server works as usual."
+}
+
+// systemName is a system as people call it.
+func systemName(os, arch string) string {
+	if n := map[string]string{"windows": "Windows", "darwin": "macOS", "linux": "Linux", "freebsd": "FreeBSD"}[os]; n != "" {
+		os = n
+	}
+	return os + " on " + arch
+}
+
+// unavailable says why a module that isn't here can't be added on this system, or nothing. What
+// it's built on counts. Call with m.mu held.
+func (m *Manager) unavailable(e *entry) string {
+	if e.on() {
+		return ""
+	}
+	if e.noBuild() {
+		return noBuildWords(e)
+	}
+	for _, r := range e.builtin.Requires {
+		if o := m.mods[r]; o != nil && !o.on() && o.noBuild() {
+			return e.builtin.Name + " is built on " + o.builtin.Name + ", which has no build for " + systemName(goos(), goarch()) + " yet. Everything else on this server works as usual."
+		}
+	}
+	return ""
 }
 
 // SetEnabled turns a module off without taking it off the server, or back on. Nothing is

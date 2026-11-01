@@ -23,6 +23,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 )
 
@@ -134,6 +135,7 @@ func (ts *testServer) item(t *testing.T, it *library.Item) *library.Item {
 
 func init() {
 	modtest.Wire = func(m *modmgr.Manager) {
+		livetv.SetEngine(modmgr.Tuners{M: m})
 		library.SetPhotoEngine(photoengine.PhotoEngine{M: m})
 		library.EngineThere = m.Installed
 	}

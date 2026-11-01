@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 )
 
 var fromTheHomeNetwork = []string{"RemoteAddr", "192.168.1.20:1", "Host", "192.168.1.5:9797"}
@@ -74,6 +75,7 @@ func TestNetworkPathsWhenTheOwnerSaysSo(t *testing.T) {
 
 // Playlists and guides named as files come from where media and the server's own things are.
 func TestAdminFilesComeFromKnownFolders(t *testing.T) {
+	modtest.Need(t, "wittytuner")
 	ts := newTestServer(t)
 	_, tok := ts.user(t, "owner", "adult", true, "")
 	private := filepath.Join(t.TempDir(), "secrets.conf")
@@ -129,6 +131,7 @@ func TestAdminFilesComeFromKnownFolders(t *testing.T) {
 // A stream's address can hold a login, and what a connection answered says what's on the network.
 // Neither is for the page.
 func TestTunerErrorsHoldNoAddress(t *testing.T) {
+	modtest.Need(t, "wittytuner")
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	_, adult := ts.user(t, "viewer", "adult", false, "")

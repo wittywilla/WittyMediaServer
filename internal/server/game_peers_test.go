@@ -13,16 +13,19 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/pion/webrtc/v4"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 )
 
 // Each offer on a game session holds sockets, goroutines and memory for half a minute
 // whether or not anything connects, so a session gets only so many. Through the real
 // handlers with the test game, as anyone allowed to see a game could do it.
 func TestGameSessionConnectionsAreLimited(t *testing.T) {
+	modtest.Need(t, "wittyplay")
 	ffmpegPath, err := exec.LookPath("ffmpeg")
 	if err != nil {
 		t.Skip("no FFmpeg on PATH")
 	}
+	t.Setenv("WMS_WITTYPLAY_RUNNER", modtest.Runner(t))
 	g := newGameServer(t)
 	defer g.s.StopGames()
 	g.s.Tools.FFmpeg = ffmpegPath

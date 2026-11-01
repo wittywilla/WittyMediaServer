@@ -300,6 +300,16 @@ func (s *Server) cdViewOf(r *http.Request, it *library.Item, d *wittycd.Disc) (*
 	return v, nil
 }
 
+// cdRoutes are what WittyCD answers.
+func (s *Server) cdRoutes(m routes) {
+	a := s.requireUser
+	m.Handle("GET /api/cd/{id}", a(s.handleCD))
+	m.Handle("GET /api/cd/{id}/audio", a(s.handleCDAudio))
+	m.Handle("GET /api/cd/{id}/graphics", a(s.handleCDGraphics))
+	m.Handle("GET /api/cd/{id}/matches", s.requireAdmin(s.handleCDMatches))
+	m.Handle("POST /api/cd/{id}/identify", s.requireAdmin(s.handleCDIdentify))
+}
+
 // GET /api/cd/{id}
 func (s *Server) handleCD(w http.ResponseWriter, r *http.Request) {
 	it, d, release, ok := s.cdItem(w, r)

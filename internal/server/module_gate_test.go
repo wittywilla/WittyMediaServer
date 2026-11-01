@@ -27,7 +27,7 @@ func auditRows(t *testing.T, ts *testServer, action string) int {
 // Its code then ran on the server, and as a web bundle, in every viewer's browser.
 func TestModuleForkAsksForThePasswordAndCanBeLocked(t *testing.T) {
 	ts := newTestServer(t)
-	ts.Modules = modmgr.New(modmgr.Config{Dir: filepath.Join(t.TempDir(), "modules"), Server: "0.6.0-alpha", Builtins: modmgr.ServerManifests(), Log: slog.New(slog.DiscardHandler)})
+	ts.Modules = modmgr.New(modmgr.Config{Dir: filepath.Join(t.TempDir(), "modules"), Server: "0.6.0-alpha", Builtins: modmgr.ServerManifests(), Known: true, Log: slog.New(slog.DiscardHandler)})
 	t.Cleanup(ts.Modules.Close)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	_, adult := ts.user(t, "adult", "adult", false, "")

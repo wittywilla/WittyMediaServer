@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
 const guideXML = `<?xml version="1.0"?><tv><channel id="a"><display-name>A</display-name></channel></tv>`
@@ -103,7 +104,10 @@ func internetTuner(t *testing.T, playlist string, extra map[string]string) (*Man
 	for k, v := range extra {
 		f.hosts[k] = v
 	}
-	m := testManager(t)
+	old := engine
+	t.Cleanup(func() { SetEngine(old) })
+	SetEngine(&listEngine{playlist: playlist})
+	m := bareManager(t)
 	m.internet = &http.Client{Transport: f}
 	tn, err := m.Create(context.Background(), &Tuner{Driver: "iptv", Name: "Elsewhere", Options: map[string]string{"playlist": "https://playlist.example/list.m3u"}})
 	if err != nil {
@@ -111,6 +115,47 @@ func internetTuner(t *testing.T, playlist string, extra map[string]string) (*Man
 	}
 	return m, f, tn
 }
+
+// listEngine is WittyTuner's helper as far as the server can see it: what a playlist names, and a
+// stream for FFmpeg. A DASH manifest comes back checked and with nothing to look at again.
+type listEngine struct {
+	fakeEngine
+	playlist string
+}
+
+func (e *listEngine) New(context.Context, string, tuner.Config, tuner.Env) (tuner.Source, error) {
+	return &listSource{playlist: e.playlist}, nil
+}
+
+type listSource struct{ playlist string }
+
+func (s *listSource) Info() tuner.Info {
+	info := tuner.Info{Driver: "iptv"}
+	if _, after, ok := strings.Cut(s.playlist, `url-tvg="`); ok {
+		info.GuideURL, _, _ = strings.Cut(after, `"`)
+	}
+	return info
+}
+
+func (s *listSource) Channels(context.Context) ([]tuner.Channel, error) {
+	var out []tuner.Channel
+	for l := range strings.Lines(s.playlist) {
+		if l = strings.TrimSpace(l); l != "" && !strings.HasPrefix(l, "#") {
+			out = append(out, tuner.Channel{ID: l, Name: "Live", Locator: l})
+		}
+	}
+	return out, nil
+}
+
+func (s *listSource) Scan(ctx context.Context, _ tuner.ScanOptions, _ func(tuner.Progress)) ([]tuner.Channel, error) {
+	return s.Channels(ctx)
+}
+
+func (s *listSource) Open(_ context.Context, ch tuner.Channel) (*tuner.Stream, error) {
+	return &tuner.Stream{Input: []string{"-i", ch.Locator}, Verified: strings.HasSuffix(ch.Locator, ".mpd")}, nil
+}
+
+func (s *listSource) Close() error { return nil }
 
 func TestWhoMayLeadHome(t *testing.T) {
 	for addr, want := range map[string]bool{

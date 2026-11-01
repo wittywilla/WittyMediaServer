@@ -919,6 +919,9 @@ func (s *Server) requireUser(h http.HandlerFunc) http.Handler {
 			return
 		}
 		s.touchSession(r, tok)
+		// A file sent to this account isn't for a cache in front of the server to keep for
+		// the next person to ask for that address. Handlers that say more replace this.
+		w.Header().Set("Cache-Control", "private")
 		ctx := context.WithValue(context.WithValue(r.Context(), userKey, u), tokenKey, tok)
 		h(w, r.WithContext(ctx))
 	})

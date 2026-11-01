@@ -248,12 +248,41 @@ func normalizeName(s string) string {
 	return strings.TrimSuffix(b.String(), "hd")
 }
 
+// How much one source may take, and how long it may take over it. Nothing here holds the database
+// while waiting for the source: a slow host must not stop every other write on the server.
+var (
+	maxGuideChannels   = 100_000
+	maxGuideProgrammes = 2_000_000
+	guideIdle          = time.Minute
+)
+
+const (
+	guideMaxTime = 10 * time.Minute
+	guideBatch   = 500
+)
+
+// idleReader gives up on a source that stops sending.
+type idleReader struct {
+	r     io.Reader
+	timer *time.Timer
+	idle  time.Duration
+}
+
+func (i *idleReader) Read(p []byte) (int, error) {
+	i.timer.Reset(i.idle)
+	return i.r.Read(p)
+}
+
 func (m *Manager) fetch(ctx context.Context, id int64, place, auth string, client *http.Client) (int, error) {
+	ctx, cancel := context.WithTimeout(ctx, guideMaxTime)
+	defer cancel()
 	r, err := m.openGuide(ctx, place, auth, client)
 	if err != nil {
 		return 0, err
 	}
 	defer r.Close()
+	stalled := time.AfterFunc(guideIdle, cancel)
+	defer stalled.Stop()
 	// What the server has: guide ids, and names to match on when there are none.
 	wanted := map[string]bool{}
 	byName := map[string]int64{}
@@ -278,51 +307,60 @@ func (m *Manager) fetch(ctx context.Context, id int64, place, auth string, clien
 		}
 	}
 	rows.Close()
-	tx, err := m.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, err
-	}
-	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, `DELETE FROM epg_channels WHERE source_id = ?`, id); err != nil {
-		return 0, err
-	}
-	matched := map[int64]string{}
-	addChannel, err := tx.PrepareContext(ctx, `INSERT OR REPLACE INTO epg_channels(source_id, epg_id, name) VALUES(?,?,?)`)
-	if err != nil {
-		return 0, err
-	}
-	defer addChannel.Close()
-	addProg, err := tx.PrepareContext(ctx, `INSERT OR REPLACE INTO epg_programmes(channel, start, stop, title, sub, descr, category, rating, season, episode, source)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
-	if err != nil {
-		return 0, err
-	}
-	defer addProg.Close()
 	now := time.Now()
 	from, to := now.Add(-12*time.Hour), now.AddDate(0, 0, epgKeepDays)
 	src := fmt.Sprintf("xmltv:%d", id)
-	if _, err := tx.ExecContext(ctx, `DELETE FROM epg_programmes WHERE source = ?`, src); err != nil {
-		return 0, err
+	// Programmes go in a few at a time under a name of their own, and take the source's name when
+	// the guide has been read to its end, so a guide cut short changes nothing.
+	coming := src + ":coming"
+	discard := func() {
+		_, _ = m.DB.ExecContext(context.WithoutCancel(ctx), `DELETE FROM epg_programmes WHERE source = ?`, coming)
 	}
+	discard()
+	type channel struct{ id, name string }
+	var channels []channel
+	matched := map[int64]string{}
+	var batch []*xmltv.Programme
 	count := 0
-	open := map[string]*xmltv.Programme{}
-	save := func(p *xmltv.Programme) error {
-		if p.Stop.IsZero() || !p.Stop.After(p.Start) || p.Stop.Before(from) || p.Start.After(to) {
+	flush := func() error {
+		if len(batch) == 0 {
 			return nil
 		}
-		_, err := addProg.ExecContext(ctx, p.Channel, p.Start.Unix(), p.Stop.Unix(), clip(p.Title, 300), clip(p.Sub, 300), clip(p.Desc, 2000), clip(p.Category, 80), clip(p.Rating, 30), p.Season, p.Episode, src)
-		if err == nil {
-			count++
+		tx, err := m.DB.BeginTx(ctx, nil)
+		if err != nil {
+			return err
 		}
-		return err
+		defer tx.Rollback()
+		for _, p := range batch {
+			if _, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO epg_programmes(channel, start, stop, title, sub, descr, category, rating, season, episode, source)
+				VALUES(?,?,?,?,?,?,?,?,?,?,?)`, p.Channel, p.Start.Unix(), p.Stop.Unix(), clip(p.Title, 300), clip(p.Sub, 300), clip(p.Desc, 2000), clip(p.Category, 80), clip(p.Rating, 30), p.Season, p.Episode, coming); err != nil {
+				return err
+			}
+		}
+		batch = batch[:0]
+		return tx.Commit()
+	}
+	open := map[string]*xmltv.Programme{}
+	save := func(p *xmltv.Programme) error {
+		if p.Stop.IsZero() || !p.Stop.After(p.Start) || p.Stop.Before(from) || p.Start.After(to) || count >= maxGuideProgrammes {
+			return nil
+		}
+		count++
+		batch = append(batch, p)
+		if len(batch) >= guideBatch {
+			return flush()
+		}
+		return nil
 	}
 	var failed error
-	err = xmltv.Parse(r, func(c xmltv.Channel) bool {
+	err = xmltv.Parse(&idleReader{r: r, timer: stalled, idle: guideIdle}, func(c xmltv.Channel) bool {
 		name := ""
 		if len(c.Names) > 0 {
 			name = c.Names[0]
 		}
-		_, _ = addChannel.ExecContext(ctx, id, c.ID, clip(name, 200))
+		if len(channels) < maxGuideChannels {
+			channels = append(channels, channel{c.ID, clip(name, 200)})
+		}
 		for _, n := range c.Names {
 			if cid, ok := byName[normalizeName(n)]; ok && matched[cid] == "" {
 				matched[cid] = c.ID
@@ -353,8 +391,36 @@ func (m *Manager) fetch(ctx context.Context, id int64, place, auth string, clien
 	if err == nil {
 		err = failed
 	}
+	if err == nil {
+		err = ctx.Err()
+	}
+	if err == nil {
+		err = flush()
+	}
 	if err != nil {
+		discard()
 		return 0, fmt.Errorf("the guide could not be read: %w", err)
+	}
+	stalled.Stop()
+	tx, err := m.DB.BeginTx(ctx, nil)
+	if err != nil {
+		discard()
+		return 0, err
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `DELETE FROM epg_channels WHERE source_id = ?`, id); err != nil {
+		return 0, err
+	}
+	for _, c := range channels {
+		if _, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO epg_channels(source_id, epg_id, name) VALUES(?,?,?)`, id, c.id, c.name); err != nil {
+			return 0, err
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM epg_programmes WHERE source = ?`, src); err != nil {
+		return 0, err
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE epg_programmes SET source = ? WHERE source = ?`, src, coming); err != nil {
+		return 0, err
 	}
 	for cid, key := range matched {
 		if _, err := tx.ExecContext(ctx, `UPDATE tuner_channels SET epg_id = ? WHERE id = ? AND epg_id = '' AND epg_set = ''`, key, cid); err != nil {

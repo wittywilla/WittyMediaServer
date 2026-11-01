@@ -6309,6 +6309,9 @@
           },
           "total": {
             "type": "integer"
+          },
+          "withdrawn": {
+            "type": "string"
           }
         },
         "required": [

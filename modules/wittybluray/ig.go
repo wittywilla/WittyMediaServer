@@ -112,6 +112,7 @@ func (d *Disc) LoadMenu(clip string, pid uint16, limit uint32) (*Menu, error) {
 	var icsDone bool
 	matrix := matrix709
 	var segs []segment
+	var tooBig error
 	err := d.ReadPID(clip, pid, 0, limit, func(payload []byte, pts uint64) bool {
 		segs = splitSegments(payload, pts, segs[:0])
 		for _, s := range segs {
@@ -130,6 +131,10 @@ func (d *Disc) LoadMenu(clip string, pid uint16, limit uint32) (*Menu, error) {
 				}
 				m.Width = int(s.data[0])<<8 | int(s.data[1])
 				m.Height = int(s.data[2])<<8 | int(s.data[3])
+				if m.Width > maxPictureSide || m.Height > maxPictureSide {
+					tooBig = fmt.Errorf("a menu of %dx%d can't be drawn", m.Width, m.Height)
+					return false
+				}
 				matrix = matrixFor(m.Height)
 				flags := s.data[8]
 				if flags&0x80 != 0 {
@@ -149,6 +154,9 @@ func (d *Disc) LoadMenu(clip string, pid uint16, limit uint32) (*Menu, error) {
 		}
 		return true
 	})
+	if tooBig != nil {
+		return nil, tooBig
+	}
 	if err != nil {
 		return nil, err
 	}

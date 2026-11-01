@@ -881,8 +881,9 @@ func (s *Store) Categories(ctx context.Context, libraryID int64, access *Access,
 		if o.ArtItem != 0 {
 			art = append(art, CategoryArt{"item", o.ArtItem, 0})
 		}
+		// More than a card shows, so there are others to choose from when one is taken.
 		for _, r := range c.rated {
-			if len(art) >= 3 {
+			if len(art) >= 12 {
 				break
 			}
 			art = append(art, r.art)
@@ -906,6 +907,21 @@ func (s *Store) Categories(ctx context.Context, libraryID int64, access *Access,
 		}
 		return out[i].Name < out[j].Name
 	})
+	// A row of categories shouldn't show the same picture on every card: each takes the
+	// best one nothing before it has used, if it has one.
+	used := map[int64]bool{}
+	for i := range out {
+		art := out[i].Art
+		for j, a := range art {
+			if !used[a.ID] {
+				art[0], art[j] = art[j], art[0]
+				break
+			}
+		}
+		if len(art) > 0 {
+			used[art[0].ID] = true
+		}
+	}
 	return out, nil
 }
 

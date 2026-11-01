@@ -43,6 +43,9 @@ const (
 	SourceLocal = "local"
 	SourceFrame = "frame"
 	SourceProbe = "probe"
+	// SourceSaved: an NFO this server wrote itself earlier. It says what some match said
+	// back then, so it's no more a person's work than that match was.
+	SourceSaved = "saved"
 )
 
 // TitleMeta is a title's row in title_meta.
@@ -655,6 +658,10 @@ func (t *Title) EditFields(changes map[string]string, lock bool) error {
 		if lock {
 			t.Meta.Locks[f] = true
 		}
+	}
+	// A new title files under its new name, unless someone has said otherwise.
+	if _, set := changes["sortTitle"]; !set && changes["title"] != "" && !t.Meta.Locks["sortTitle"] {
+		_ = t.SetField("sortTitle", SortTitle(t.Field("title")))
 	}
 	return nil
 }

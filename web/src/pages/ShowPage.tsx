@@ -97,6 +97,7 @@ export default function ShowPage() {
           )}
           <div className="page-back"><BackLink to={`/library/${show.libraryId}`} label="Back to library" /></div>
           {show.provider === 'tvdb' && <p className="fine-print">Metadata provided by <a href="https://thetvdb.com" target="_blank" rel="noreferrer">TheTVDB</a>. Please consider adding missing information or subscribing.</p>}
+          {show.provider === 'tmdb-tv' && <p className="fine-print">Details from <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">TMDB</a>. This product uses the TMDB API but is not endorsed or certified by TMDB.</p>}
           {show.provider === 'anilist' && <p className="fine-print">Anime information from <a href={`https://anilist.co/anime/${show.providerId}`} target="_blank" rel="noreferrer">AniList</a>.</p>}
           {show.provider === 'tvmaze' && <p className="fine-print">TV information from <a href={`https://www.tvmaze.com/shows/${show.providerId}`} target="_blank" rel="noreferrer">TVmaze</a>, shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.</p>}
           <LegalNote kind="metadata" />

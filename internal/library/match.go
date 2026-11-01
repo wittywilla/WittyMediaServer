@@ -100,6 +100,8 @@ func SourceLabel(src string) string {
 		return "From the video"
 	case SourceProbe:
 		return "The file itself"
+	case SourceSaved:
+		return "Saved earlier"
 	}
 	if strings.HasPrefix(src, "agent:") {
 		return "Custom agent"
@@ -363,6 +365,15 @@ func ConfidenceFor(t *Title, libType string) (int, []string) {
 	}
 	provider, _ := t.Provider()
 	if provider == "" {
+		switch t.Meta.Sources["overview"] {
+		case SourceNFO:
+			return 0, []string{"It has details from an NFO file beside it, but no match to check them against"}
+		case SourceSaved:
+			return 0, []string{"It has details saved earlier, but no match to check them against"}
+		}
+		if t.Field("overview") != "" {
+			return 0, []string{"It has details, but no match to check them against"}
+		}
 		return 0, []string{"Nothing was found for this"}
 	}
 	if strings.HasPrefix(provider, "agent:") {
@@ -833,6 +844,18 @@ func DiffDetails(t *Title, d *MatchDetails) []FieldChange {
 			c.Apply = true
 		}
 		out = append(out, c)
+	}
+	// The sort name goes with the title, wherever it came from.
+	apply := false
+	for _, c := range out {
+		if c.Field == "title" {
+			apply = c.Apply
+		}
+	}
+	for i := range out {
+		if out[i].Field == "sortTitle" && !out[i].Locked && apply {
+			out[i].Apply, out[i].Note = true, ""
+		}
 	}
 	return out
 }

@@ -128,6 +128,10 @@ export default function ItemPage() {
               shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.
             </p>
           )}
+          {it.provider === 'tvmaze' && <p className="fine-print">TV information from <a href={`https://www.tvmaze.com/shows/${it.providerId}`} target="_blank" rel="noreferrer">TVmaze</a>, shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.</p>}
+          {it.provider === 'tvdb' && <p className="fine-print">Metadata provided by <a href="https://thetvdb.com" target="_blank" rel="noreferrer">TheTVDB</a>. Please consider adding missing information or subscribing.</p>}
+          {it.provider === 'anilist' && <p className="fine-print">Anime information from <a href={`https://anilist.co/anime/${it.providerId}`} target="_blank" rel="noreferrer">AniList</a>.</p>}
+          {(it.provider === 'tmdb' || it.provider === 'tmdb-tv') && <p className="fine-print">Details from <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">TMDB</a>. This product uses the TMDB API but is not endorsed or certified by TMDB.</p>}
           {disc && it.disc?.scrambled && <div className="error">This disc is encrypted, so it can't be played: encrypted media isn't supported, and nothing here bypasses copy protection.</div>}
           <div className="facts">
             {it.width > 0 && <div className="fact"><div className="k">Video</div><div className="v">{it.width}×{it.height} {codecName(it.videoCodec)}{disc && main ? ` · ${isBluray(it) ? main.standard : main.standard.toUpperCase()} ${main.wide ? '16:9' : '4:3'}` : ''}</div></div>}

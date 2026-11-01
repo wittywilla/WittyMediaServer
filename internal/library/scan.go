@@ -524,8 +524,12 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 			it.Backdrop = b2
 		}
 	}
+	nfoSource := SourceNFO
 	for _, nfo := range []string{filepath.Join(dir, base+".nfo"), filepath.Join(dir, "movie.nfo"), filepath.Join(filepath.Dir(c.path), filepath.Base(c.path)+".nfo")} {
 		if applyNFO(it, nfo) {
+			if nfoIsOurs(nfo) {
+				nfoSource = SourceSaved
+			}
 			break
 		}
 	}
@@ -537,7 +541,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	if it.SortTitle == "" {
 		it.SortTitle = SortTitle(it.Title)
 	}
-	prov.note(it, SourceNFO)
+	prov.note(it, nfoSource)
 
 	// What a disc holds: kept when someone chose it, else worked out.
 	if it.Disc != nil {
@@ -719,6 +723,16 @@ const maxAudioFills = 200
 
 // fillAudioFormats reads the audio format of titles scanned before it was kept.
 func (s *Scanner) fillAudioFormats(ctx context.Context, libraryID int64) {
+	// A disc says what its sound is in what's stored already.
+	if discs, _, err := s.Store.Items(ctx, ItemQuery{LibraryID: libraryID, Kind: "disc", NoTotal: true}); err == nil {
+		for _, it := range discs {
+			m := s.Store.TitleMeta(ctx, TargetItem, it.ID)
+			if f := audioFormatOf(it); f != "" && m.AudioFormat == "" {
+				m.AudioFormat = f
+				_ = s.Store.saveTitleMeta(ctx, TargetItem, it.ID, m)
+			}
+		}
+	}
 	rows, err := s.Store.DB.QueryContext(ctx, `SELECT i.id, i.path FROM items i LEFT JOIN title_meta m ON m.target = 'item' AND m.target_id = i.id
 		WHERE i.library_id = ? AND i.missing = 0 AND i.show_id IS NULL AND i.kind = 'video' AND IFNULL(m.audio_format, '') = '' LIMIT ?`, libraryID, maxAudioFills)
 	if err != nil {

@@ -225,6 +225,7 @@ function sourceWords(m?: MetaField) {
   if (m.source === 'you') return 'You typed this'
   if (m.source === 'file') return 'From the file name'
   if (m.source === 'nfo') return 'From an NFO file'
+  if (m.source === 'saved') return 'Saved earlier'
   if (m.source === 'local') return 'From beside the file'
   if (m.source === 'frame') return 'A frame from the video'
   return 'From ' + m.sourceLabel

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { api, mediaUrl } from '../../api'
 import { useApp } from '../../state'
@@ -59,7 +60,8 @@ export default function LogoChooser({ logo, onClose, onChanged }: { logo: LogoIn
     try { done(await sendPicture<LogoInfo>(`/logos/${logo.id}/upload`, f)) } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
   const pressed = useRef(false)
-  return (
+  // A portal, so it's a dialog of its own when it's opened from another.
+  return createPortal(
     <div className="modal-backdrop" onMouseDown={(e) => { pressed.current = e.target === e.currentTarget }} onClick={(e) => { if (e.target === e.currentTarget && (pressed.current || e.detail === 0)) onClose() }}>
       <div className="modal wide ed-logo-dialog" role="dialog" aria-modal="true" aria-labelledby="logo-h">
         <h2 id="logo-h">The logo of {logo.name}</h2>
@@ -102,6 +104,7 @@ export default function LogoChooser({ logo, onClose, onChanged }: { logo: LogoIn
         <LegalNote kind="logos" />
         <div className="actions"><button type="button" className="btn ghost" onClick={onClose}>Done</button></div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

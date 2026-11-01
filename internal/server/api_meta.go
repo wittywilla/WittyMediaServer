@@ -716,6 +716,12 @@ func (s *Server) handleMetaBulk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
+	for _, f := range []string{"poster", "backdrop", "banner", "logo"} {
+		if v, on := b.Set[f]; on && !s.validArt(ctx, v) {
+			writeErr(w, 400, "that picture isn't a web address or a file in one of your libraries")
+			return
+		}
+	}
 	batch := library.NewBatch()
 	done := 0
 	failed := []string{}

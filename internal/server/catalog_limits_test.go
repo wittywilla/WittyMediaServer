@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -90,5 +91,22 @@ func TestLogoPreviewNeedsAgreement(t *testing.T) {
 	f := newMusicFixture(t)
 	if w := f.do(t, "GET", "/api/logos/preview?src=https%3A%2F%2Fupload.wikimedia.org%2Fx%2Fnone.png", f.admin, nil); w.Code != 409 {
 		t.Errorf("before agreeing: %d %s", w.Code, w.Body)
+	}
+}
+
+// A picture set on many titles at once is held to what a single edit is.
+func TestBulkEditChecksPictures(t *testing.T) {
+	f := newMusicFixture(t)
+	outside := filepath.Join(t.TempDir(), "secret.jpg")
+	body := map[string]any{"titles": []map[string]any{{"target": "item", "id": f.song.ID}}, "set": map[string]string{"poster": outside}}
+	if w := f.do(t, "POST", "/api/meta/bulk", f.admin, body); w.Code != 400 {
+		t.Errorf("%d %s", w.Code, w.Body)
+	}
+	it, err := f.Store.Item(context.Background(), f.song.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if it.Poster == outside {
+		t.Error("it was kept")
 	}
 }

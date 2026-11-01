@@ -42,26 +42,6 @@ function pdfAssets(): Plugin {
   }
 }
 
-// pdf.js fetches its image decoders and colour profile by name, from a folder it
-// is told about, so they can't go through the bundler. The folder carries pdf.js's
-// version because everything under assets/ is cached for good. The script engine
-// for PDF scripts stays behind: PDF scripts never run here.
-const pdfVersion = String(JSON.parse(readFileSync(new URL('./node_modules/pdfjs-dist/package.json', import.meta.url), 'utf8')).version)
-function pdfAssets(): Plugin {
-  return {
-    name: 'pdf-assets',
-    apply: 'build',
-    closeBundle() {
-      for (const [from, match] of [['wasm', /^(openjpeg|jbig2|qcms).*\.(wasm|js)$/], ['iccs', /\.icc$/]] as const) {
-        const src = fileURLToPath(new URL(`./node_modules/pdfjs-dist/${from}/`, import.meta.url))
-        const dst = fileURLToPath(new URL(`./dist/assets/pdfjs-${pdfVersion}/${from}/`, import.meta.url))
-        mkdirSync(dst, { recursive: true })
-        for (const f of readdirSync(src)) if (match.test(f)) copyFileSync(src + f, dst + f)
-      }
-    },
-  }
-}
-
 export default defineConfig({
   plugins: [react(), precompress(), pdfAssets()],
   define: { __WEB_MODULES__: JSON.stringify([]), __PDF_ASSETS__: JSON.stringify(`/assets/pdfjs-${pdfVersion}/`) },

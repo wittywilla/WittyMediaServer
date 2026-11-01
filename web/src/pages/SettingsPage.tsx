@@ -118,7 +118,7 @@ export default function SettingsPage() {
           <VersionTag version={version} /><span>Version and modules</span>
         </NavLink>
       </nav>
-      <main className="set-main">
+      <div className="set-main">
         <div className="set-back"><BackLink to="/settings" label="Settings" /></div>
         {unseenCrashes.length > 0 && !onLogs && (
           <div className="set-notice-row">
@@ -155,7 +155,7 @@ export default function SettingsPage() {
           <Route path="legal" element={<Suspense fallback={null}><LegalSettings /></Suspense>} />
           <Route path="*" element={<Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
         </Routes>
-      </main>
+      </div>
     </div>
   )
 }

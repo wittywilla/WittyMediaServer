@@ -668,6 +668,61 @@ func TestInstallAndUpdateAll(t *testing.T) {
 	}
 }
 
+// Automatic updates go the same way as Update All, and leave out whatever was told to wait.
+func TestAutomaticUpdates(t *testing.T) {
+	pub, key, _ := ed25519.GenerateKey(nil)
+	dir := filepath.Join(t.TempDir(), "modules")
+	starter := filepath.Join(t.TempDir(), "starter")
+	if err := os.MkdirAll(starter, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mod := func(id, name string, vers ...wittymodule.CatalogVersion) wittymodule.CatalogModule {
+		m := listedModule(id, name)
+		m.Repo = "wittywilla/" + name
+		m.Versions = vers
+		return m
+	}
+	publish := func(serial int64, mods ...wittymodule.CatalogModule) {
+		raw := testStoreCatalog(serial, mods...)
+		_ = os.WriteFile(filepath.Join(starter, wittymodule.CatalogName), raw, 0o644)
+		_ = os.WriteFile(filepath.Join(starter, wittymodule.CatalogName+".sig"), signed(key, raw), 0o644)
+	}
+	a1 := webRelease(t, starter, key, "wittyink", "WittyInk", "wittywilla/WittyInk", "0.2.0")
+	b1 := webRelease(t, starter, key, "wittypdf", "WittyPDF", "wittywilla/WittyPDF", "0.2.0")
+	publish(1, mod("wittyink", "WittyInk", a1), mod("wittypdf", "WittyPDF", b1))
+	cfg := Config{Dir: dir, Server: "0.6.0-alpha", Starter: starter, Keys: []ed25519.PublicKey{pub}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	m := New(cfg)
+	s := NewStores(StoresConfig{Manager: m, Dir: dir, Log: cfg.Log})
+	for _, id := range []string{"wittyink", "wittypdf"} {
+		if _, err := s.InstallWithNeeds(id, "admin"); err != nil {
+			t.Fatal(err)
+		}
+		waitRun(t, s)
+	}
+	a2 := webRelease(t, starter, key, "wittyink", "WittyInk", "wittywilla/WittyInk", "0.3.0")
+	b2 := webRelease(t, starter, key, "wittypdf", "WittyPDF", "wittywilla/WittyPDF", "0.3.0")
+	publish(2, mod("wittyink", "WittyInk", a2, a1), mod("wittypdf", "WittyPDF", b2, b1))
+	m.Close()
+	m = New(cfg)
+	defer m.Close()
+	s = NewStores(StoresConfig{Manager: m, Dir: dir, Log: cfg.Log})
+	if m.autoRun == nil {
+		t.Fatal("the store should take over automatic updates")
+	}
+	if err := m.SetAutoUpdate("wittypdf", false); err != nil {
+		t.Fatal(err)
+	}
+	s.DismissRun()
+	m.autoRun()
+	r := waitRun(t, s)
+	if r.Updated != 1 || r.Items[0].ID != "wittyink" || r.By != "automatic updates" {
+		t.Fatalf("the run: %+v", r)
+	}
+	if st, _ := s.statusOf("wittypdf"); st.Version != "0.2.0" || st.Latest == nil {
+		t.Fatalf("a module told to wait still offers its update and waits: %+v", st)
+	}
+}
+
 // A store's version of a module, from the warning to the module running, and back again.
 func TestAForkFromAStore(t *testing.T) {
 	w := newStoresWorld(t, listedModule("wittycomics", "WittyComics"))

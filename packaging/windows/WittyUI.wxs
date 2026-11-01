@@ -65,14 +65,17 @@
         <Control Id="MeText" Type="Text" X="40" Y="76" Width="300" Height="40" NoPrefix="yes"
                  Text="Needs no administrator, and can update itself from Settings. It runs while you're signed in. Recommended for most people." />
         <Control Id="EveryoneText" Type="Text" X="40" Y="138" Width="300" Height="40" NoPrefix="yes"
-                 Text="Asks for an administrator, and installs to Program Files. Choose this to run it as a background service that's always on, even when nobody is signed in." />
+                 Text="Asks for an administrator, and installs to Program Files. Choose this for a background service that's always on, even when nobody is signed in." />
         <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)">
           <Publish Event="NewDialog" Value="WelcomeDlg" />
         </Control>
         <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)">
           <Publish Property="MSIINSTALLPERUSER" Value="1" Condition="WITTYSCOPE = &quot;me&quot;" Order="1" />
           <Publish Property="MSIINSTALLPERUSER" Value="{}" Condition="WITTYSCOPE = &quot;everyone&quot;" Order="2" />
-          <Publish Event="NewDialog" Value="WittyOptionsDlg" Order="3" />
+          <!-- Other devices connecting is the point of a server for everyone: ticked the first time here. -->
+          <Publish Property="ADDFIREWALL" Value="1" Condition="WITTYSCOPE = &quot;everyone&quot; AND NOT WITTYASKED" Order="3" />
+          <Publish Property="WITTYASKED" Value="1" Condition="WITTYSCOPE = &quot;everyone&quot;" Order="4" />
+          <Publish Event="NewDialog" Value="WittyOptionsDlg" Order="5" />
         </Control>
         <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
           <Publish Event="SpawnDialog" Value="CancelDlg" />

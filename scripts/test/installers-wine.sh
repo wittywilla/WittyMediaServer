@@ -6,7 +6,8 @@
 #
 #   scripts/test/installers-wine.sh <folder with the .msi files> [screenshots]
 #
-# The folder holds wittymediaserver-*-windows-amd64.msi, and upgrade/ the same at a later version.
+# The folder holds wittymediaserver-*-windows-amd64.msi, and upgrade/ the same at a later version,
+# and optionally old/wittymediaserver-0.5.2-alpha-windows-amd64.zip, a real old release.
 # Writes its listing to <folder>/results/wine.log. With "screenshots" it also photographs the wizard.
 set -uo pipefail
 
@@ -19,7 +20,7 @@ tag=wms-installer-test-wine
 docker build -q -t "$tag" - >"$log" 2>&1 <<'EOF'
 FROM debian:trixie-slim
 RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-install-recommends \
-    wine wine64 wine32:i386 xvfb xauth x11-utils imagemagick xdotool procps file fonts-liberation
+    wine wine64 wine32:i386 xvfb xauth x11-utils imagemagick xdotool procps file fonts-liberation unzip
 EOF
 [ $? -eq 0 ] || { echo "FAILED to prepare the image: see $log"; tail -n 20 "$log"; exit 1; }
 
@@ -206,6 +207,33 @@ snapshot > /tmp/after2.txt
 diff -u /tmp/before.txt /tmp/after2.txt | grep -v msi.log > /tmp/d2.txt
 if grep -Eq '^[+-][^+-]' /tmp/d2.txt; then cat /tmp/d2.txt; fail "something was left behind by the for-everyone install"; fi
 echo "NOTHING LEFT after the for-everyone install either"
+
+old=$(ls /pkgs/old/wittymediaserver-0.5.2-alpha-windows-amd64.zip 2>/dev/null)
+if [ -n "$old" ]; then
+  say "taking over from a real 0.5.2-alpha, installed with its own setup program"
+  unzip -q "$old" -d /root/old
+  wine "$(ls -d /root/old/*)/wms-setup.exe" /S
+  oldroot="$USERDIR/AppData/Local/Programs/WittyMediaServer"
+  for _ in $(seq 1 30); do [ -f "$USERDIR/AppData/Local/WittyMediaServer/wms.db" ] && break; sleep 2; done
+  [ -f "$oldroot/wms.exe" ] || fail "the old setup didn't install"
+  [ -f "$USERDIR/AppData/Local/WittyMediaServer/wms.db" ] || fail "the old copy didn't start"
+  reg_has 'wms-setup.exe' || fail "the old setup left no Installed apps entry"
+  echo kept > "$USERDIR/AppData/Local/WittyMediaServer/my-own-notes.txt"
+  wine taskkill /f /im WittyMediaServer.exe >/dev/null 2>&1; wine taskkill /f /im wms.exe >/dev/null 2>&1
+  run_msi /i "$msi" /qn "$JUST_ME" || fail "install over the old copy exit $code"
+  [ ! -e "$oldroot/wms.exe" ] || fail "the old program stayed"
+  [ ! -e "$oldroot/wms-setup.exe" ] || fail "the old setup stayed"
+  reg_has 'wms-setup.exe' && fail "Installed apps still points at the old setup"
+  reg_has 'Uninstall WittyMediaServer.exe' || fail "Installed apps doesn't point at the new uninstaller"
+  [ -f "$USERDIR/AppData/Local/WittyMediaServer/wms.db" ] || fail "the library went"
+  [ -f "$USERDIR/AppData/Local/WittyMediaServer/my-own-notes.txt" ] || fail "a file of mine went"
+  echo "TOOK OVER from the old setup program, and kept the library"
+  root=$(dirname "$(find "$C" -type f -name WittyMediaServer.exe | head -1)")
+  wine "$root/Uninstall WittyMediaServer.exe" /S /RemoveData
+  wineserver -w; sleep 8; wineserver -w
+  [ ! -e "$root/bin/wittymediaserver.exe" ] || fail "the program stayed"
+  [ ! -e "$USERDIR/AppData/Local/WittyMediaServer/wms.db" ] || fail "the old library stayed"
+fi
 echo ALLPASSED
 SCRIPT
 if tail -n 1 "$log" | grep -q ALLPASSED; then

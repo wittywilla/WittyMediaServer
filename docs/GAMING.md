@@ -346,6 +346,8 @@ These choices are kept in the database, beside the library. Nothing is ever writ
 - **Versions** (regions, revisions, betas) of one name on one console share a tile, headed by a released version in the first region of the owner's order (see below). The head stays the
   head, as saves belong to it. Each version is still its own game, with its own saves, and can be made a game of its own from its page.
 - **Sets:** an archive of versions of one game plays the verified one in the first region of the owner's order, leaving out bad dumps, hacks and translations, and its page lets an administrator choose another.
+- **What someone typed stays.** A field marked as edited that no source gave is theirs, and no scan changes it, including the first scan of a new version, which goes over every game
+  once, and whatever an NFO beside the file says. A field that's both edited and from a source is an old answer an earlier version read back from an NFO it wrote, which a better one can replace.
 
 **Importing a big library** needs nobody watching. It runs in the background, and carries on from where it stopped after a restart: what's been judged is saved every 200 files, and
 what's been looked up as it goes. A file is only read again if it changes. On this project's test library of 8,500 files on a hard disk, the scan took 30 seconds and every game had a

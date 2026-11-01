@@ -947,8 +947,16 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 		note("")
 	}
 	o := &Opened{Stream: st, Channel: c, release: release, note: note}
-	if addr, ok := gateInput(st); ok {
-		home := mayLeadHome(t)
+	home := mayLeadHome(t)
+	addr, gated := gateInput(st)
+	// What FFmpeg would read by itself, a DASH manifest being the one kind left, could lead it
+	// anywhere. From a list on the internet, that isn't on offer.
+	if !home && !gated && st.Reader == nil {
+		_ = st.Close()
+		release()
+		return nil, errors.New("this channel is a kind of stream that can't be played from a playlist on the internet. To use it, keep the playlist on your home network, or add it as a single stream")
+	}
+	if gated {
 		g, err := newHLSGate(addr, st.Input, home, m.tunerLog(), o.refuse)
 		if err != nil {
 			_ = st.Close()

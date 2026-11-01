@@ -249,3 +249,52 @@ func TestOwnersGuideOnTheHomeNetworkWorks(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 }
+
+// A DASH manifest names its own addresses, and FFmpeg goes to them by itself, past the gate.
+func TestInternetPlaylistCantUseDASH(t *testing.T) {
+	m, _, tn := internetTuner(t, "#EXTM3U\n#EXTINF:-1,Live\nhttps://stream.example/live.mpd\n", map[string]string{
+		"stream.example/live.mpd": `<?xml version="1.0"?><MPD xmlns="urn:mpeg:dash:schema:mpd:2011"><Period><BaseURL>http://192.168.1.1/admin</BaseURL></Period></MPD>`,
+	})
+	ch, err := m.Channels(context.Background(), tn.ID)
+	if err != nil || len(ch) != 1 {
+		t.Fatalf("%v %v", err, ch)
+	}
+	o, err := m.Open(context.Background(), ch[0].ID)
+	if err == nil {
+		o.Release()
+		t.Fatal("it opened")
+	}
+	if strings.Contains(err.Error(), "192.168") {
+		t.Errorf("%v", err)
+	}
+	// The tuner is free again.
+	if m.inUse[tn.ID] != 0 {
+		t.Errorf("%d in use", m.inUse[tn.ID])
+	}
+}
+
+// At home, the same manifest is the owner's business.
+func TestDASHAtHomeStillOpens(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, ".m3u") {
+			fmt.Fprintf(w, "#EXTM3U\n#EXTINF:-1,Live\nhttp://%s/live.mpd\n", r.Host)
+			return
+		}
+		fmt.Fprint(w, `<?xml version="1.0"?><MPD xmlns="urn:mpeg:dash:schema:mpd:2011"><Period></Period></MPD>`)
+	}))
+	defer srv.Close()
+	m := testManager(t)
+	tn, err := m.Create(context.Background(), &Tuner{Driver: "iptv", Name: "Home", Options: map[string]string{"playlist": srv.URL + "/l.m3u"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ch, err := m.Channels(context.Background(), tn.ID)
+	if err != nil || len(ch) != 1 {
+		t.Fatalf("%v %v", err, ch)
+	}
+	o, err := m.Open(context.Background(), ch[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	o.Release()
+}

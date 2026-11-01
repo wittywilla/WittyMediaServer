@@ -373,13 +373,16 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, 
 		if _, err := os.Stat(filepath.Join(stage, man.EntryFile(runtime.GOOS))); err != nil {
 			return fmt.Errorf("the package has no %s", man.EntryFile(runtime.GOOS))
 		}
-		// With the limits it would have in use: this is the first time its code runs.
-		m.mu.Lock()
-		p := m.newProcFor(id, e, man, stage)
-		m.mu.Unlock()
-		p.verify = nil
-		if err := p.Try(); err != nil {
-			return fmt.Errorf("this version didn't start on this server, which can happen if the data folder doesn't allow programs to run: %w", err)
+		// With the limits it would have in use: this is the first time its code runs. A program
+		// that isn't a helper has no greeting to wait for: what starts it checks it can run.
+		if man.Delivery != wittymodule.DeliveryProgram {
+			m.mu.Lock()
+			p := m.newProcFor(id, e, man, stage)
+			m.mu.Unlock()
+			p.verify = nil
+			if err := p.Try(); err != nil {
+				return fmt.Errorf("this version didn't start on this server, which can happen if the data folder doesn't allow programs to run: %w", err)
+			}
 		}
 	} else if man.Delivery == wittymodule.DeliveryWeb {
 		if _, err := os.Stat(filepath.Join(stage, man.Entry)); err != nil {

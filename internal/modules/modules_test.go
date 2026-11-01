@@ -168,6 +168,8 @@ type world struct {
 	gh     *github
 	dir    string
 	server string
+	// builtinProgram: the module is a program rather than a helper.
+	builtinProgram bool
 }
 
 func newWorld(t *testing.T) *world {
@@ -181,7 +183,11 @@ func newWorld(t *testing.T) *world {
 
 func (w *world) manager() *Manager {
 	exe, _ := os.Executable() // this test program is the launcher too: see TestMain
-	return New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", wittymodule.API)},
+	builtin := manifestJSON(builtinVersion, "0.1.0", "0.x", wittymodule.API)
+	if w.builtinProgram {
+		builtin = bytes.Replace(builtin, []byte(`"delivery":"helper"`), []byte(`"delivery":"program"`), 1)
+	}
+	return New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{builtin},
 		Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Launcher: exe,
 		Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 }

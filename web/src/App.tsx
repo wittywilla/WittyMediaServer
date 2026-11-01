@@ -36,6 +36,7 @@ const ItemPage = lazy(() => import('./pages/ItemPage'))
 const ShowPage = lazy(() => import('./pages/ShowPage'))
 const CdPlayer = lazy(() => import('./player/CdPlayer'))
 const AlbumPage = lazy(() => import('./pages/AudioLibrary').then((m) => ({ default: m.AlbumPage })))
+const ArtistPage = lazy(() => import('./pages/music/ArtistPage'))
 const ReaderPage = lazy(() => import('./pages/Reader'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
@@ -128,6 +129,7 @@ function AppFrame({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: React
             <Route path="/item/:id" element={<ItemPage />} />
             <Route path="/show/:id" element={<ShowPage />} />
             <Route path="/album/:lib" element={<AlbumPage />} />
+            <Route path="/artist/:lib" element={<Suspense fallback={<Spinner />}><ArtistPage /></Suspense>} />
             <Route path="/radio/:id" element={<Suspense fallback={<Spinner />}><RadioStationPage /></Suspense>} />
             <Route path="/cd/:id" element={<CdPlayer />} />
             <Route path="/couch" element={<Suspense fallback={<Spinner />}><CouchPage /></Suspense>} />

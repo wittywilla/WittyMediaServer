@@ -1,0 +1,172 @@
+/* Music, audiobook and podcast pages. Built on the theme's tokens, so they suit light and
+   dark alike. The colour from the artwork is one soft gradient, drawn once. */
+
+.mh { position: relative; min-width: 0; }
+.mh-toolbar { position: relative; z-index: 1; }
+.mh .grow { flex: 1; }
+.mh-bg { position: absolute; left: calc(var(--page-x, 0px) * -1); right: calc(var(--page-x, 0px) * -1); top: calc(var(--sp-6) * -1); height: min(720px, 90vh); pointer-events: none; z-index: 0;
+  background: radial-gradient(70% 70% at 50% 0%, rgb(var(--art, 120 120 135) / .34), rgb(var(--art, 120 120 135) / .08) 60%, transparent 80%); transition: background var(--dur-3); }
+.album-page { position: relative; }
+.album-page > *:not(.mh-bg) { position: relative; z-index: 1; }
+.mh-home { position: relative; }
+.mh-home > *:not(.mh-bg) { position: relative; z-index: 1; }
+
+/* A row across the top to move between libraries, on phones. */
+.mh-libs { display: none; }
+@media (max-width: 899px) {
+  .mh-libs { display: flex; gap: var(--sp-4); overflow-x: auto; scrollbar-width: none; margin: 0 -16px var(--sp-2); padding: 4px 16px; position: relative; z-index: 1; }
+  .mh-libs a { flex: none; display: inline-flex; align-items: center; min-height: 44px; color: var(--fg-2); font-weight: 600; font-size: var(--text-base); text-decoration: none; white-space: nowrap; }
+  .mh-libs a.active { color: var(--fg); font-weight: 800; }
+}
+
+/* ---------------------------------------------------------------- cover flow */
+.mh-hero { display: grid; justify-items: center; gap: var(--sp-2); margin-bottom: var(--sp-6); }
+.cf { position: relative; width: 100%; height: calc(var(--cf-size) * 1.2); --cf-size: clamp(190px, 34vh, 400px); perspective: 1200px; touch-action: pan-y; user-select: none; }
+.cf.tall { --cf-size: clamp(200px, 36vh, 420px); }
+.cf-row { position: absolute; inset: 0; display: flex; justify-content: center; }
+.cf-cover { position: absolute; top: 0; width: var(--cf-size); height: 100%; padding: 0; border: 0; background: none; cursor: pointer; transform: translateX(calc(var(--d) * var(--cf-size) * .62 + clamp(-1, var(--d), 1) * var(--cf-size) * .24)) rotateY(calc(clamp(-1, var(--d), 1) * -52deg)) scale(calc(1 - var(--a) * .06)); transform-style: preserve-3d; transition: transform var(--dur-3) var(--ease-out), opacity var(--dur-3); opacity: calc(1.15 - var(--a) * .28); }
+.cf-cover.front { transform: none; opacity: 1; }
+.cf-art { display: block; width: 100%; aspect-ratio: 1; border-radius: var(--r-lg); overflow: hidden; background: var(--bg-3); box-shadow: var(--e-3); position: relative; }
+.cf-art img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.cf-art .ph { position: absolute; inset: 0; }
+.cf-reflect { display: block; height: 18%; margin-top: 6px; overflow: hidden; border-radius: var(--r-lg) var(--r-lg) 0 0; -webkit-mask-image: linear-gradient(rgb(0 0 0 / .3), transparent); mask-image: linear-gradient(rgb(0 0 0 / .3), transparent); }
+.cf-reflect img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; transform: scaleY(-1); margin-top: calc(var(--cf-size) * -1 + 100%); pointer-events: none; }
+.cf-cover:focus-visible { outline: none; }
+.cf-cover:focus-visible .cf-art { outline: var(--focus-width, 2px) solid var(--focus); outline-offset: 3px; }
+.cf-step { position: absolute; top: calc(var(--cf-size) / 2); transform: translateY(-50%); z-index: 20; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--scrim); color: var(--on-image, #fff); cursor: pointer; }
+.cf-step:hover { background: var(--accent); color: var(--accent-fg); }
+.cf-step[disabled] { opacity: .3; cursor: default; }
+.cf-step.left { left: max(8px, calc(50% - var(--cf-size) * .5 - 76px)); }
+.cf-step.right { right: max(8px, calc(50% - var(--cf-size) * .5 - 76px)); }
+@media (hover: none) { .cf-step { display: none; } }
+.using-controller .cf-step { display: grid; }
+.mh-hero-text { text-align: center; max-width: 720px; padding: 0 var(--sp-3); }
+.mh-hero-text h2 { margin: 0; font-size: clamp(1.4rem, 3.2vw, 2.2rem); font-weight: 800; letter-spacing: var(--tracking-display); }
+.mh-hero-text h2 a { color: inherit; text-decoration: none; }
+.mh-hero-text h2 a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.mh-hero-sub { margin: 2px 0 0; color: var(--fg-2); font-size: var(--text-base); }
+.mh-hero-sub a { color: var(--fg); font-weight: 600; text-decoration: none; }
+.mh-hero-sub a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.mh-hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); margin-top: var(--sp-2); }
+.mh-play-all { min-height: 52px; padding: 0 var(--sp-6); border: 0; border-radius: var(--r-full); background: var(--fg); color: var(--bg); font-size: var(--text-base); font-weight: 700; }
+.mh-play-all:hover { background: var(--fg); filter: brightness(.9); }
+.mh-play-album { min-height: 52px; padding: 0 var(--sp-5); border-radius: var(--r-full); font-weight: 600; }
+
+/* ---------------------------------------------------------------- shelves */
+.mh-shelf { margin-bottom: var(--section-gap, 32px); }
+.mh-shelf-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); margin-bottom: var(--sp-3); }
+.mh-shelf-head h2 { margin: 0; font-size: var(--text-xl); font-weight: 700; }
+.mh-shelf-head h2 .muted { font-size: var(--text-sm); font-weight: 500; }
+.mh-seeall { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; color: var(--fg-2); font-weight: 600; font-size: var(--text-md); text-decoration: none; white-space: nowrap; }
+.mh-seeall:hover { color: var(--fg); }
+.mh-disco-head { align-items: center; margin-top: var(--sp-6); }
+.mh-row { display: flex; gap: var(--sp-4); overflow-x: auto; scrollbar-width: none; padding: 6px 2px 4px; scroll-snap-type: x proximity; }
+.mh-row > * { flex: none; scroll-snap-align: start; }
+.mh-albums > .mh-album { width: clamp(130px, 16vw, 200px); }
+.mh-artists { gap: var(--sp-5); }
+
+.mh-artist { display: grid; justify-items: center; gap: 2px; width: clamp(110px, 12vw, 170px); color: var(--fg); text-decoration: none; text-align: center; min-width: 0; }
+.mh-artist b { font-weight: 600; font-size: var(--text-md); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh-artist .muted { font-size: var(--text-xs); }
+.mh-artist-photo { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: var(--bg-3); box-shadow: var(--e-2); transition: transform var(--dur-2) var(--ease-out); }
+.mh-artist-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mh-initial { font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; color: var(--fg-3); }
+.mh-artist:hover .mh-artist-photo { transform: translateY(-3px); }
+.mh-artist:focus-visible { outline: none; }
+.mh-artist:focus-visible .mh-artist-photo { outline: var(--focus-width, 2px) solid var(--focus); outline-offset: 3px; }
+.mh-artist-reflect { position: relative; display: block; width: 100%; height: 22px; margin-top: 2px; overflow: hidden; -webkit-mask-image: linear-gradient(rgb(0 0 0 / .24), transparent); mask-image: linear-gradient(rgb(0 0 0 / .24), transparent); }
+.mh-artist-reflect img { position: absolute; left: 0; bottom: 0; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 50%; transform: scaleY(-1); }
+.mh-artist-reflect .mh-initial { display: none; }
+.mh-artist-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); justify-items: center; }
+.mh-artist-grid .mh-artist { width: 100%; }
+
+.mh-seeall-tile { display: grid; place-items: center; width: clamp(110px, 12vw, 170px); aspect-ratio: 1; align-self: start; border-radius: var(--r-md); background: var(--bg-3); color: var(--fg); font-weight: 600; text-decoration: none; }
+.mh-seeall-tile.round { border-radius: 50%; }
+.mh-seeall-tile:hover { background: var(--hover); }
+.mh-seeall-tile:focus-visible { outline: var(--focus-width, 2px) solid var(--focus); outline-offset: 3px; }
+
+/* Songs: compact rows, a few high and scrolling sideways, as a shelf. */
+.mh-songs { display: grid; grid-auto-flow: column; grid-template-rows: repeat(4, auto); grid-auto-columns: minmax(280px, 400px); gap: 6px var(--sp-3); overflow-x: auto; scrollbar-width: none; padding: 2px; scroll-snap-type: x proximity; }
+.mh-song { display: flex; align-items: center; border-radius: var(--r-md); background: var(--hover); scroll-snap-align: start; min-width: 0; }
+.mh-song.on { background: var(--accent-soft); }
+.mh-song:hover { background: var(--pressed, var(--hover)); }
+.mh-song-play { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--sp-3); min-height: 60px; padding: 6px 4px 6px 8px; border: 0; background: none; color: var(--fg); font: inherit; text-align: left; cursor: pointer; border-radius: var(--r-md); }
+.mh-song-art { position: relative; flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: var(--r-sm); overflow: hidden; background: var(--bg-3); }
+.mh-song-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mh-song-art .ab-eq { position: absolute; padding: 4px; border-radius: 4px; background: var(--scrim); height: 20px; }
+.mh-song-art .ab-eq b { background: var(--on-image, #fff); }
+.mh-song-text { flex: 1; min-width: 0; display: grid; }
+.mh-song-text b { font-weight: 600; font-size: var(--text-md); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh-song-text small { font-size: var(--text-xs); color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh-song-time { flex: none; font-size: var(--text-sm); color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.mh-more { color: var(--fg-2); }
+.mh-menu-link { display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: var(--r-md); color: inherit; text-decoration: none; font-size: var(--text-md); }
+.mh-menu-link:hover, .mh-menu-link:focus-visible { background: var(--hover); }
+
+/* Continue listening */
+.mh-resume { display: flex; gap: var(--sp-3); width: min(340px, 84vw); padding: var(--sp-2); border-radius: var(--r-lg); background: var(--hover); }
+.mh-resume-art { flex: none; width: 110px; aspect-ratio: 3 / 4; border-radius: var(--r-md); overflow: hidden; background: var(--bg-3); }
+.mh-resume-art img { width: 100%; height: 100%; object-fit: cover; }
+.mh-resume-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mh-resume-text b { font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mh-resume-text small { color: var(--fg-2); font-size: var(--text-xs); }
+.mh-resume-bar { height: 3px; margin: 4px 0; background: var(--border); border-radius: 2px; overflow: hidden; }
+.mh-resume-bar i { display: block; height: 100%; background: var(--accent); }
+.mh-resume-text .btn { margin-top: auto; align-self: flex-start; }
+
+/* See-all pages */
+.mh-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-4); position: relative; z-index: 1; }
+.mh-filters .select { width: auto; }
+.mh-find { width: min(240px, 100%); }
+.mh-views { margin-bottom: var(--sp-3); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.mh-views button { white-space: nowrap; }
+.mh-lists { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--sp-2); margin-bottom: var(--sp-6); }
+.mh-list { display: flex; align-items: center; gap: var(--sp-2); min-height: 68px; padding: var(--sp-2); border-radius: var(--r-md); background: var(--hover); color: var(--fg); text-decoration: none; }
+.mh-list:hover { background: var(--pressed, var(--hover)); }
+a.mh-list-text, .mh-list-text { flex: 1; min-width: 0; display: flex; color: inherit; text-decoration: none; }
+.mh-list > a.mh-list-text { flex-direction: column; justify-content: center; }
+.mh-list b { font-weight: 600; font-size: var(--text-md); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.mh-list small { font-size: var(--text-xs); color: var(--fg-2); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh-list-art { flex: none; width: 52px; height: 52px; border-radius: var(--r-sm); background: var(--bg-3); overflow: hidden; }
+.mh-list-art img { width: 100%; height: 100%; object-fit: cover; }
+.mh-list-words { min-width: 0; display: grid; }
+.mh-list-play { background: var(--accent); color: var(--accent-fg); }
+.mh-list-play:hover { background: var(--accent-2); }
+
+/* Album and artist pages */
+.track-list li.new-disc { flex-wrap: wrap; }
+.track-list li.new-disc::before { content: attr(data-disc); flex: 1 0 100%; margin: var(--sp-4) 0 var(--sp-1); padding: 0 var(--sp-2); font-size: var(--text-sm); font-weight: 700; color: var(--fg-2); text-transform: uppercase; letter-spacing: var(--tracking-label); }
+.track-list li.on .tl-n .ab-eq b { background: var(--accent-text); }
+.tl-heart { color: var(--fg-3); }
+.tl-heart.liked { color: var(--accent-text); }
+.mh-artist-head { display: grid; grid-template-columns: clamp(140px, 20vw, 260px) minmax(0, 1fr); gap: clamp(var(--sp-5), 3vw, var(--sp-8)); align-items: start; margin: var(--sp-2) 0 var(--sp-6); }
+.mh-artist-photo.big { box-shadow: var(--e-3); }
+.mh-artist-photo.big .mh-initial { font-size: clamp(3rem, 6vw, 5rem); }
+.mh-bio { margin: var(--sp-3) 0 0; max-width: 72ch; color: var(--fg); line-height: var(--leading-body); }
+.mh-credit { margin: var(--sp-2) 0 0; font-size: var(--text-xs); color: var(--fg-2); max-width: 72ch; }
+.mh-credit a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.mh-credit code { font-family: var(--font-mono); }
+
+/* Phones: the layout that's made for a thumb. */
+@media (max-width: 600px) {
+  .mh-toolbar h1 { display: none; }
+  .mh-toolbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
+  .mh-toolbar > * { flex: none; }
+  .mh-toolbar .grow { display: none; }
+  .cf { --cf-size: min(58vw, 42vh); }
+  .cf-cover { transform: translateX(calc(var(--d) * var(--cf-size) * .72 + clamp(-1, var(--d), 1) * var(--cf-size) * .28)) rotateY(calc(clamp(-1, var(--d), 1) * -24deg)) scale(calc(1 - var(--a) * .04)); }
+  .mh-hero { margin-bottom: var(--sp-4); }
+  .mh-play-all, .mh-play-album { min-height: 44px; padding: 0 var(--sp-4); font-size: var(--text-md); }
+  .mh-songs { grid-template-rows: repeat(3, auto); grid-auto-columns: 84vw; }
+  .mh-artist { width: 88px; }
+  .mh-artist .muted { display: none; }
+  .mh-artists { gap: var(--sp-3); }
+  .mh-artist-reflect { display: none; }
+  .mh-artist-head { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .mh-artist-head .album-meta { justify-items: center; }
+  .mh-artist-head .actions { justify-content: center; }
+  .mh-artist-photo.big { width: min(52vw, 200px); }
+  .mh-find { width: 100%; }
+  .mh-filters .select { flex: 1 1 40%; }
+}
+@media (prefers-reduced-motion: reduce) { .cf-cover, .mh-artist-photo { transition: none; } }

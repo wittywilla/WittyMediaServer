@@ -80,7 +80,7 @@ export type GameConsole = {
   customCores?: GameCore[]; defaultCore?: string; shared?: string[]; padLike?: string
   pad: { face: { id: number; label: string }[]; shoulder?: { id: number; label: string }[]; meta: { id: number; label: string }[]; sticks?: boolean }
 }
-export type Album = { artist: string; title: string; year?: number; tracks: number; durationSec: number; coverItem: number; addedAt: number }
+export type Album = { artist: string; title: string; year?: number; tracks: number; durationSec: number; coverItem: number; addedAt: number; genre?: string }
 export type Artist = { name: string; albums: number; tracks: number; coverItem: number }
 export type Show = {
   id: number; libraryId: number; path: string; title: string; sortTitle: string; year: number | null; overview: string

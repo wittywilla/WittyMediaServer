@@ -18,7 +18,7 @@ export type Settings = {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  notice: false, on: false, effect: null, random: true, cycleSec: 30, favourites: [], favouritesOnly: false,
+  notice: false, on: false, effect: null, random: true, cycleSec: 0, favourites: [], favouritesOnly: false,
   intensity: 1, sensitivity: 1, calm: null, scale: 0, stats: false,
 }
 

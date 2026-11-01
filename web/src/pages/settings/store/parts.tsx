@@ -75,7 +75,7 @@ export function OriginTag({ item }: { item: StoreItem }) {
 
 // Why it can't be installed, in a word or two. The whole reason is on its page.
 function FitTag({ kind }: { kind: string }) {
-  if (kind === 'no-version') return <Tag tone="off">Not available yet</Tag>
+  if (kind === 'no-version') return <Tag tone="off">Not available</Tag>
   if (kind === 'library') return <Tag tone="off">Comes with other modules</Tag>
   if (kind === 'no-build') return <Tag tone="off">Not for this computer</Tag>
   if (kind === 'withdrawn') return <Tag tone="bad" icon={<IconInfo size={12} />}>Withdrawn</Tag>

@@ -31,7 +31,7 @@
         "Java, only for discs with Java menus, and only if you turn that on"
       ],
       "updates": "Playing an open disc: reading its playlists and clips, running its program, reading its menus and subtitles.",
-      "stays": "Finding and describing discs in a library scan, the check that refuses encrypted discs, drawing menus, turning a disc's steps into what the player shows, and discs with Java menus when Java menus are turned on: the built-in copy plays those. The server also opens every disc itself first, so a disc it can't read at all needs a new server.",
+      "stays": "Finding and describing discs in a library scan, the check that refuses encrypted discs and drawing menus are the server's own, so they change with a new server. The server also opens every disc itself first, so a disc it can't read at all needs a new server.",
       "versions": []
     },
     {
@@ -81,7 +81,7 @@
         "wittyink"
       ],
       "updates": "The comic reader itself: pages, spreads, the vertical strip, its controls and its look.",
-      "stays": "The Reader page, the ReaderHost it provides (saving your place, fetching pages), how the server opens comic archives, and React stay with the server. If this bundle fails, the copy in the app takes over.",
+      "stays": "The Reader page, the ReaderHost it provides (saving your place, fetching pages), how the server opens comic archives, and React stay with the server.",
       "versions": []
     },
     {
@@ -166,7 +166,7 @@
         "FFmpeg, which comes with the server"
       ],
       "updates": "The DVD engine a viewer plays a disc through: reading the disc's structure, its menus, buttons and commands, where its video lies, and its subtitles. While a downloaded version is in use, each open disc has a small helper program of its own.",
-      "stays": "Scanning a library, the title list on a disc's page and playing a title without its menus still use the built-in copy, and turning what the engine says into streams and pictures is the server's own code, as is refusing encrypted discs. Those change with a new server.",
+      "stays": "Turning what the engine says into streams and pictures is the server's own code, as is refusing encrypted discs. Those change with a new server.",
       "versions": []
     },
     {
@@ -192,14 +192,14 @@
         "wittyink"
       ],
       "updates": "The EPUB reader itself: book view, typography, study tools, handwriting and its look.",
-      "stays": "The Reader page, the ReaderHost it provides (saving your place and notes, fetching chapters), how the server takes a book apart and cleans it, and React stay with the server. If this bundle fails, the copy in the app takes over.",
+      "stays": "The Reader page, the ReaderHost it provides (saving your place and notes, fetching chapters), how the server takes a book apart and cleans it, and React stay with the server.",
       "versions": []
     },
     {
       "id": "wittyink",
       "name": "WittyInk",
       "summary": "What every reader shares: annotations, notes, definitions, citations and handwriting.",
-      "description": "The study and handwriting toolkit behind WittyEbook, WittyPDF and WittyComics. It gives them highlights in any colour, notes, bookmarks, definitions and citations, a pen with pressure and palm rejection, and undo and redo. All your notes can be exported as Markdown.\n\nYou don't open it on its own: the readers use it. A new version reaches a reader only when that reader is running a downloaded version too. If it fails, the copy in the app takes over.",
+      "description": "The study and handwriting toolkit behind WittyEbook, WittyPDF and WittyComics. It gives them highlights in any colour, notes, bookmarks, definitions and citations, a pen with pressure and palm rejection, and undo and redo. All your notes can be exported as Markdown.\n\nYou don't open it on its own: the readers use it.",
       "icon": {
         "url": "wittyink.png",
         "size": 3194,
@@ -213,7 +213,7 @@
       "group": "read",
       "core": true,
       "updates": "What the readers share as they run from their own bundles: the notes panel, highlight colours, definitions, citations, handwriting tools and their look. It reaches a reader only when that reader is running a bundle too.",
-      "stays": "The Reader page, the ReaderHost it provides (saving your place and notes, fetching pages), and React stay with the server. Readers still using the copy in the app keep the WittyInk in the app. If this bundle fails, the copy in the app takes over.",
+      "stays": "The Reader page, the ReaderHost it provides (saving your place and notes, fetching pages), and React stay with the server.",
       "versions": []
     },
     {
@@ -280,7 +280,7 @@
         "wittyink"
       ],
       "updates": "The PDF reader itself: zoom, outline, thumbnails, search, study tools and its look.",
-      "stays": "pdf.js and its worker, which do the actual reading of a PDF, stay with the server, along with the Reader page, the ReaderHost it provides (saving your place and notes) and React. If this bundle fails, the copy in the app takes over.",
+      "stays": "pdf.js and its worker, which do the actual reading of a PDF, stay with the server, along with the Reader page, the ReaderHost it provides (saving your place and notes) and React.",
       "versions": []
     },
     {
@@ -406,7 +406,7 @@
       "repo": "wittywilla/WittyVisualizer",
       "group": "listen",
       "updates": "The visualizer itself: its effects, how it listens to the music, its controls and its look. New effects can arrive this way.",
-      "stays": "Where it's shown in the audio player and how settings are saved per person stay with the server. If this bundle fails, the copy in the app takes over.",
+      "stays": "Where it's shown in the audio player and how settings are saved per person stay with the server.",
       "versions": []
     }
   ]

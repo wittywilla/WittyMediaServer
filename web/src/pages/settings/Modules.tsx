@@ -256,7 +256,7 @@ export default function ModulesSettings() {
 
       {core.length > 0 && (
         <div className="ms-quiet">
-          <Section title="Built into everything" desc="Other modules are built on these, so they stay and can’t be removed.">{core.map(row)}</Section>
+          <Section title="What other modules are built on" desc="These stay for as long as something uses them, and can’t be removed on their own.">{core.map(row)}</Section>
         </div>
       )}
 
@@ -294,7 +294,7 @@ function Tag({ tone, icon, children }: { tone?: 'ok' | 'warn' | 'bad' | 'new' | 
 function Tags({ m }: { m: ModuleStatus }) {
   return (
     <span className="ms-tags">
-      {!m.installed ? <Tag tone="off">{m.unavailable ? 'No build here' : 'Not added'}</Tag>
+      {!m.installed ? <Tag tone="off">{m.comesInside ? 'Comes with other modules' : m.unavailable ? 'No build here' : 'Not added'}</Tag>
         : busy(m) ? <Tag tone="new">{PHASE[m.phase]}</Tag>
         : needsLook(m) ? <Tag tone="bad" icon={<IconInfo size={12} />}>Needs a look</Tag>
         : m.latest ? <Tag tone="new">Update available</Tag>
@@ -327,7 +327,7 @@ function ModuleRow(p: RowProps) {
           </span>
           <span className="ms-chev"><IconDown size={20} /></span>
         </button>
-        {!m.installed && !m.unavailable && <button type="button" className={'btn sm' + (marked ? ' primary' : '')} onClick={p.onAdd} aria-label={`Add ${m.name}`}><IconPlus /> <span className="ms-add-word">Add</span></button>}
+        {!m.installed && !m.unavailable && !m.comesInside && <button type="button" className={'btn sm' + (marked ? ' primary' : '')} onClick={p.onAdd} aria-label={`Add ${m.name}`}><IconPlus /> <span className="ms-add-word">Add</span></button>}
         {m.installed && m.latest && !m.pin && !busy(m) && !isOpen && <button type="button" className="btn sm" onClick={p.onUpdate} aria-label={`Update ${m.name} to ${m.latest.version}`}>Update</button>}
       </div>
       {busy(m) && (

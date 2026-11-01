@@ -130,6 +130,10 @@ func explainErr(name string, err error) *Failure {
 	var big *errStoreTooBig
 	var addr *ErrStoreAddress
 	switch {
+	case errors.Is(err, ErrRunBusy):
+		return &Failure{Kind: FailOther, Title: "Another change is under way", Detail: err.Error(),
+			Message: "Modules are being changed right now, and this server does one change at a time. Nothing went wrong.",
+			Try:     []string{"Wait for that to finish, then try this again."}}
 	case errors.As(err, &addr):
 		return &Failure{Kind: FailMissing, Title: "That address can't be used", Detail: err.Error(),
 			Message: sentence(strings.ToUpper(addr.Why[:1]) + addr.Why[1:]),

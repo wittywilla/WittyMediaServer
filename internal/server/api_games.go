@@ -84,6 +84,8 @@ type gameService struct {
 	gpuChecking bool
 
 	custom *customService
+
+	peers peerLimits
 }
 
 // gpuStatus is what's known about the graphics card. Finding out takes a second or
@@ -898,6 +900,10 @@ func (s *Server) handlePlayWebRTC(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
+	if !s.games().peers.offer(sess.ID(), time.Now()) {
+		tooManyPeers(w, "60")
+		return
+	}
 	var b struct {
 		SDP    string `json:"sdp"`
 		Prefer string `json:"prefer"`
@@ -922,6 +928,12 @@ func (s *Server) handlePlayWS(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
+	release, ok := s.games().peers.socket(sess.ID(), time.Now())
+	if !ok {
+		tooManyPeers(w, "10")
+		return
+	}
+	defer release()
 	sess.ServeWS(w, r, r.URL.Query().Get("video"))
 }
 

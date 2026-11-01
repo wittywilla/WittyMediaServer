@@ -512,6 +512,10 @@ func (s *Server) handleGameBackgroundUpload(w http.ResponseWriter, r *http.Reque
 		writeErr(w, 403, "a guest can only look")
 		return
 	}
+	if !takeImportSlot(w) {
+		return
+	}
+	defer func() { <-importSlots }()
 	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBackgroundBytes))
 	if err != nil {
 		writeErr(w, 413, "the picture must be 10 MB or smaller")

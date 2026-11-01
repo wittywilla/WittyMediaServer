@@ -619,7 +619,7 @@ func (s *Server) handleGameCheatsPut(w http.ResponseWriter, r *http.Request) {
 		Cheats []wittyplay.Cheat `json:"cheats"`
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, wittyplay.MaxCheatFile)
-	if err := readJSON(r, &b); err != nil {
+	if err := readJSONUpTo(r, &b, wittyplay.MaxCheatFile); err != nil {
 		writeErr(w, 400, "this list can't be read")
 		return
 	}
@@ -646,6 +646,10 @@ func (s *Server) handleGameCheatsImport(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 404, "not found")
 		return
 	}
+	if !takeImportSlot(w) {
+		return
+	}
+	defer func() { <-importSlots }()
 	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, wittyplay.MaxCheatFile))
 	if err != nil {
 		writeErr(w, 413, "this file is too large to be a cheat list")
@@ -985,6 +989,10 @@ func (s *Server) handleBezelAdd(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 409, fmt.Sprintf("you can keep %d images at most; remove one first", maxBezels))
 		return
 	}
+	if !takeImportSlot(w) {
+		return
+	}
+	defer func() { <-importSlots }()
 	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBezelUpload))
 	if err != nil {
 		writeErr(w, 413, fmt.Sprintf("this image is too large: %d MB at most", maxBezelUpload>>20))

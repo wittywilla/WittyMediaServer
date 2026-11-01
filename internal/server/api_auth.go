@@ -67,8 +67,8 @@ type credentials struct {
 	AcknowledgedLegal bool `json:"acknowledgedLegal"`
 }
 
-// maxCredentialBytes caps sign-in and setup requests (no name or password
-// comes near this); they are the only ones anyone can send without an account.
+// maxCredentialBytes caps every request anyone can send without an account (no name,
+// password or pairing code comes near this). See publicBody.
 const maxCredentialBytes = 16 << 10
 
 func (s *Server) setCookie(w http.ResponseWriter, r *http.Request, token string) {

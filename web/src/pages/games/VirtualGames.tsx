@@ -51,12 +51,19 @@ export function VirtualGames({ query, card, onTotal, label, empty, failed, versi
     const el = box.current
     if (!el) return
     const css = getComputedStyle(el)
-    const min = parseFloat(css.getPropertyValue('--gm-cell')) || 150
-    const gapX = parseFloat(css.columnGap) || 16, gapY = parseFloat(css.getPropertyValue('--gm-row-gap')) || 20
+    // Sizes are set in the page's CSS, in px or rem.
+    const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+    const size = (name: string, otherwise: number) => {
+      const v = css.getPropertyValue(name).trim()
+      const n = parseFloat(v)
+      return Number.isNaN(n) ? otherwise : v.endsWith('rem') ? n * rootPx : n
+    }
+    const min = size('--gm-cell', 150)
+    const gapX = parseFloat(css.columnGap) || 16, gapY = size('--gm-row-gap', 20)
     const inner = el.clientWidth
     const cols = Math.max(window.innerWidth <= 520 ? 3 : 2, Math.floor((inner + gapX) / (min + gapX)))
     const cell = (inner - gapX * (cols - 1)) / cols
-    const textH = parseFloat(css.getPropertyValue('--gm-text-h')) || 52
+    const textH = size('--gm-text-h', 56)
     const rowH = Math.round(cell * (4 / 3) + textH + gapY)
     setShape((s) => (s.cols === cols && s.rowH === rowH ? s : { cols, rowH, gap: gapY }))
   }, [])
@@ -142,7 +149,7 @@ export function VirtualGames({ query, card, onTotal, label, empty, failed, versi
       if (!el) return
       const { cols, rowH } = shapeRef.current
       const row = Math.floor(offset / cols)
-      wantFocus.current = row * cols
+      wantFocus.current = offset
       const y = el.getBoundingClientRect().top + window.scrollY + row * rowH - parseFloat(getComputedStyle(el).getPropertyValue('--gm-jump-gap') || '96')
       window.scrollTo(0, Math.max(0, y))
       look()

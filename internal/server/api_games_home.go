@@ -241,6 +241,10 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 		bios = append(bios, gameCheckBIOS{File: b.File, For: b.For, Required: b.Required, Found: err == nil})
 	}
 	out := map[string]any{"console": console.ID, "consoleName": console.Name, "bios": bios, "biosFolder": wittyplay.BIOSFolderName}
+	if console.ID == wittyplay.TestConsole {
+		out["ready"] = true
+		return out
+	}
 	if console.Unavailable != "" && !s.customFor(ctx, console.ID) {
 		out["ready"], out["reason"], out["message"] = false, "unavailable", console.Unavailable
 		return out
@@ -255,6 +259,28 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 		out["file"] = wittyplay.MissingBIOS(blocked.ID, systemDir)
 	default:
 		out["ready"], out["reason"], out["message"] = false, "core", "No core is installed for "+console.Name+"."
+	}
+	return out
+}
+
+// gameCountsEverywhere adds up each console's games across every library.
+func (s *Server) gameCountsEverywhere(ctx context.Context) map[string]int {
+	out := map[string]int{}
+	libs, err := s.Store.Libraries(ctx)
+	if err != nil {
+		return out
+	}
+	for _, l := range libs {
+		if l.Type != "games" {
+			continue
+		}
+		counts, err := s.Store.GameCounts(ctx, l.ID, nil)
+		if err != nil {
+			continue
+		}
+		for id, n := range counts {
+			out[id] += n
+		}
 	}
 	return out
 }

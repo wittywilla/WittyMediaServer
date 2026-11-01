@@ -25,8 +25,8 @@ function place(d: number): CSSProperties {
   } as CSSProperties
 }
 
-export function CoverFlow({ items, index, onIndex, onOpen, consoles, label }: {
-  items: Item[]; index: number; onIndex: (i: number) => void; onOpen: (it: Item) => void; consoles: Map<string, GameConsole>; label: string
+export function CoverFlow({ items, index, onIndex, onOpen, onDown, consoles, label }: {
+  items: Item[]; index: number; onIndex: (i: number) => void; onOpen: (it: Item) => void; onDown?: () => boolean; consoles: Map<string, GameConsole>; label: string
 }) {
   const stage = useRef<HTMLDivElement>(null)
   const refocus = useRef(false)
@@ -50,6 +50,7 @@ export function CoverFlow({ items, index, onIndex, onOpen, consoles, label }: {
     if (by && go(index + by)) e.preventDefault()
     else if (e.key === 'Home' && go(0)) e.preventDefault()
     else if (e.key === 'End' && go(items.length - 1)) e.preventDefault()
+    else if (e.key === 'ArrowDown' && onDown?.()) e.preventDefault()
   }
 
   // Dragging moves one cover at a time, by how far the finger has travelled.

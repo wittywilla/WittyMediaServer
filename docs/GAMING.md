@@ -190,6 +190,30 @@ Several cores run the game on stacks they allocate themselves, and call back fro
 callback on a foreign stack on a thread it created, so on Linux the runner hosts the core on a thread it
 didn't: `libretro.OnCoreThread`.
 
+## The game pages
+
+The library, a game's page and couch mode are in `web/src/pages/games`, and the menus and screens around a game are WittyPlay's
+own (`web/QuickMenu.tsx`, `web/Screens.tsx`, `web/prompts.tsx` in its repository). What they rest on, for anyone changing them:
+
+- **One request for the home screen.** `GET /games/home` answers with every shelf, so a TV app shows the same as the web page.
+- **Only what's on screen is on the page.** `VirtualGames.tsx` draws the rows near the screen and asks for the pages of results
+  those rows need, and stops asking during a fling. Six thousand games keep about the same number of elements on the page as sixty.
+- **Moving costs a transform.** The cover flow draws nine covers and moves them with `transform` and `opacity`. The tint behind
+  the page is a colour from a 16-pixel copy of the cover, faded between two layers. Nothing is blurred.
+- **Controllers come through `tv.ts`.** It turns buttons into key presses, which aren't "trusted" as real ones are, so a page can
+  tell a controller's X from someone typing. X searches, Y marks a favourite, View changes the sort, the bumpers move between
+  sections, and the triggers jump along the alphabet when sorted by title. Start opens couch mode. While a game is playing,
+  `tv.ts` leaves the controller to the game, and Start and Select together open the game menu.
+- **Prompts follow the last thing touched.** `useInputKind` watches for it. A controller shows its own letters or shapes, with
+  Nintendo's confirm button on the right as `tv.ts` maps it. A mouse or a finger sees no prompts.
+- **What a game needs is checked before Play.** `GET /games/{id}/check` looks for a core and a BIOS the way pressing Play does,
+  so a page can say what's missing and link to the fix. The player's error screens read the same flags from a refused start
+  (`needCore`, `needBios`, `encrypted`), and `web/words.ts` turns them into what to do next.
+
+Couch mode is `/big`. It's the same pages in a frame of their own, with larger sizes through `html.ten-foot`, and it survives
+going into a game and back for that tab. There is no playing on the device yet: every game runs on the server. See
+[In-browser emulation](#in-browser-emulation-designed-not-built-yet).
+
 ## Touch screens
 
 Nintendo DS and 3DS games are played on a touch screen. A press on the picture is the stylus, with a mouse or a

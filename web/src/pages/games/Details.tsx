@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PromptBar, useInputKind, type Prompt } from '@wittywilla/wittyplay/web/prompts'
 import { api, backdropUrl, fmtDateTime, mediaUrl, uploadFile, type GameDetailsInfo, type Item } from '../../api'
@@ -113,7 +113,19 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
       { key: 'edit', label: 'Edit details', icon: <IconEdit />, onSelect: () => setEdit(true) },
     ] : []),
   ]
-  const prompts: Prompt[] = [{ button: 'dpad', label: 'Move' }, { button: 'confirm', label: 'Select' }, { button: 'back', label: 'Back' }]
+  const prompts: Prompt[] = [{ button: 'dpad', label: 'Move' }, { button: 'confirm', label: 'Select' }, { button: 'back', label: 'Back' }, { button: 'north', label: 'Favourite', key: 'F' }]
+  // The same button as on a game's card.
+  const toggleFav = useRef(() => {})
+  toggleFav.current = () => { if (mine) void putMeta({ favourite: !mine.favourite }) }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey || document.querySelector('.modal')) return
+      if ((e.target as Element | null)?.matches?.('input, textarea, select, [contenteditable]')) return
+      if ((!e.isTrusted && e.key === 'm') || (e.isTrusted && e.key === 'f')) { e.preventDefault(); toggleFav.current() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   return (
     <div className="gm-page gm-detail">
@@ -290,7 +302,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
       </details>
       {meta && <GameCredits d={meta} />}
       <LegalNote kind="games" />
-      {!links.couch && <PromptBar className="gm-prompts" items={prompts} />}
+      <PromptBar className="gm-prompts" always={links.couch} items={prompts} />
       {edit && <EditGame item={it} onClose={() => setEdit(false)} onSaved={() => { setEdit(false); reload?.() }} />}
       {art && <ArtworkPicker base={`/items/${it.id}`} onClose={() => setArt(false)}
         onPick={async (kind, url) => { await api.put<Item>(`/items/${it.id}`, { [kind]: url }); reload?.(); toast(kind === 'poster' ? 'Cover updated' : 'Backdrop updated') }} />}

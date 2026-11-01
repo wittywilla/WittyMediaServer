@@ -163,7 +163,7 @@ export default function CouchMode() {
   const atTop = /^\/big(\/library\/\d+)?\/?$/.test(loc.pathname) && !loc.search
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || document.querySelector('.modal')) return
+      if (e.defaultPrevented || document.querySelector('.modal, [role=menu]')) return
       if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
         e.preventDefault()
         e.stopImmediatePropagation()
@@ -171,8 +171,9 @@ export default function CouchMode() {
         else nav(-1)
       }
     }
-    window.addEventListener('keydown', onKey, { capture: false })
-    return () => window.removeEventListener('keydown', onKey)
+    // First in line, or the page-wide Back would leave couch mode without asking.
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
   }, [atTop, nav])
   // Start from the first thing on a new screen, as a console does.
   const main = useRef<HTMLElement>(null)
@@ -189,7 +190,9 @@ export default function CouchMode() {
       <div className="gm-couch-frame">
         <header className="gm-couch-bar">
           <nav className="gm-couch-tabs" aria-label="Couch mode" data-nav-group>
-            <NavLink to={libs[0] ? `/big/library/${libs[0].id}` : '/big'} className="gm-couch-tab" end><IconHome /> <span>Home</span></NavLink>
+            {libs.length > 1
+              ? libs.map((l, i) => <NavLink key={l.id} to={`/big/library/${l.id}`} className="gm-couch-tab">{i === 0 && <IconHome />} <span>{l.name}</span></NavLink>)
+              : <NavLink to={libs[0] ? `/big/library/${libs[0].id}` : '/big'} className="gm-couch-tab" end><IconHome /> <span>Home</span></NavLink>}
             <NavLink to="/big/consoles" className="gm-couch-tab"><IconLibrary /> <span>Consoles</span></NavLink>
             <NavLink to="/big/search" className="gm-couch-tab"><IconSearch /> <span>Search</span></NavLink>
             <NavLink to="/big/settings" className="gm-couch-tab"><IconSettings /> <span>Settings</span></NavLink>
@@ -211,12 +214,12 @@ export default function CouchMode() {
             <Route path="*" element={<Navigate to="/big" replace />} />
           </Routes>
         </main>
-        <footer className="gm-couch-foot">
-          <PromptBar always items={[
-            { button: 'dpad', label: 'Move' }, { button: 'confirm', label: 'Select' }, { button: 'back', label: 'Back' },
-            { button: 'north', label: 'Favourite', key: 'F' }, { button: 'west', label: 'Search', key: '/' }, { button: 'select', label: 'Sort' }, { button: 'lb', label: 'Sections' },
-          ]} />
-        </footer>
+        {/* The library and a game's page say what their own buttons do. */}
+        {!/^\/big\/(library|game)\//.test(loc.pathname) && (
+          <footer className="gm-couch-foot">
+            <PromptBar always items={[{ button: 'dpad', label: 'Move' }, { button: 'confirm', label: 'Select' }, { button: 'back', label: 'Back' }]} />
+          </footer>
+        )}
       </div>
       {leaving && (
         <Dialog title="Leave couch mode?" onClose={() => setLeaving(false)} size="sm" actions={<><button type="button" className="btn" onClick={() => setLeaving(false)}>Stay</button><button type="button" className="btn primary" autoFocus onClick={exit}>Leave</button></>}>

@@ -181,6 +181,8 @@ stops turning by itself; it can be paused anyway, and stops under the pointer or
 - **Long lists use `content-visibility`**: `.grid` and `.album-grid` already do. Copy it for anything
   that can run to hundreds of rows.
 - **Lazy images**: `loading="lazy"` on everything in a list.
+- **Lists that can run to thousands are windowed**: `pages/games/VirtualGames.tsx` draws only the rows near the screen
+  and asks for only the pages of results those rows need. The page itself still scrolls.
 - **No React state for scrolling or dragging.** `CardRow` writes to the DOM directly.
 - **No new UI libraries.** Every icon is a path in `icons.tsx`.
 - Watch the build's CSS and JS sizes in `npm run build`.

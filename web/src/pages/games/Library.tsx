@@ -46,7 +46,7 @@ export function GameCard({ item, console: c, fav, to }: { item: Item; console?: 
   return (
     <Link to={to || links.item(item.id)} className="card gm-card" title={item.title} data-gm-item={item.id}>
       <div className="poster">
-        {item.poster ? <img src={cardCover(item)} alt="" loading="lazy" decoding="async" /> : <Placeholder title={item.title} label={c?.short} />}
+        {item.poster ? <img src={cardCover(item)} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add('in')} /> : <Placeholder title={item.title} label={c?.short} />}
         {fav && <span className="gm-card-fav" role="img" aria-label="Favourite"><IconStar size={14} /></span>}
         <div className="play"><span><IconPlay /></span></div>
       </div>
@@ -89,9 +89,14 @@ function centreOut(list: Item[]): Item[] {
   return out
 }
 
-function Hero({ items: list, consoles, resumable, title }: { items: Item[]; consoles: Map<string, GameConsole>; resumable: Set<number>; title: string }) {
+// Which cover was at the front, for coming back to the same one.
+const heroAt = new Map<string, number>()
+
+function Hero({ items: list, consoles, resumable, title, place }: { items: Item[]; consoles: Map<string, GameConsole>; resumable: Set<number>; title: string; place: string }) {
   const items = useMemo(() => centreOut(list), [list])
-  const [at, setAt] = useState<number | null>(null)
+  const [at, setAtState] = useState<number | null>(heroAt.get(place) ?? null)
+  const setAt = useCallback((i: number) => { heroAt.set(place, i); setAtState(i) }, [place])
+  const info = useRef<HTMLDivElement>(null)
   const links = useGameLinks()
   const nav = useNavigate()
   const index = Math.min(at ?? (items.length - 1) >> 1, items.length - 1)
@@ -104,8 +109,9 @@ function Hero({ items: list, consoles, resumable, title }: { items: Item[]; cons
   return (
     <section className="gm-hero" aria-label={title} data-gm-section>
       <Ambient colour={tint} />
-      <CoverFlow items={items} index={index} onIndex={setAt} consoles={consoles} onOpen={(g) => nav(links.item(g.id))} label={title} />
-      <div className="gm-hero-info">
+      <CoverFlow items={items} index={index} onIndex={setAt} consoles={consoles} onOpen={(g) => nav(links.item(g.id))} label={title}
+        onDown={() => { const b = info.current?.querySelector<HTMLElement>('a[href]'); b?.focus({ preventScroll: true }); return !!b }} />
+      <div className="gm-hero-info" ref={info}>
         <h2 aria-live="polite">{it.title}</h2>
         <div className="meta">{[c?.name || c?.short, it.year, it.studio].filter(Boolean).map((t) => <span key={String(t)}>{t}</span>)}</div>
         <div className="gm-hero-actions">
@@ -129,7 +135,7 @@ function ContinueCard({ e, console: c }: { e: GameContinue; console?: GameConsol
     <Link to={ready ? links.play(it.id, e.save ? 'resume=1' : '') : links.item(it.id)} className="gm-cont" data-gm-item={it.id}
       aria-label={`${e.save ? 'Resume' : 'Play'} ${it.title}${c ? ', ' + c.short : ''}, last played ${fmtAgo(e.lastPlayed)}`}>
       <span className="gm-cont-shot">
-        {thumb ? <img src={thumb} alt="" loading="lazy" decoding="async" /> : it.poster ? <img className="soft" src={cardCover(it)} alt="" loading="lazy" decoding="async" /> : <Placeholder title={it.title} label={c?.short} />}
+        {thumb ? <img src={thumb} alt="" decoding="async" /> : it.poster ? <img className="soft" src={cardCover(it)} alt="" decoding="async" /> : <Placeholder title={it.title} label={c?.short} />}
         <span className="gm-cont-play"><IconPlay /></span>
       </span>
       <span className="gm-cont-text">
@@ -308,12 +314,18 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
   const sectionJump = useCallback((by: number) => {
     const all = Array.from(document.querySelectorAll<HTMLElement>('[data-gm-section]'))
     if (!all.length) return
-    const y = window.innerHeight * 0.28
-    let at = all.findIndex((s) => s.getBoundingClientRect().bottom > y)
-    if (at < 0) at = all.length - 1
+    // From the section in use, or else the one on screen.
+    const own = (document.activeElement as HTMLElement | null)?.closest?.('[data-gm-section]') as HTMLElement | null
+    let at = own ? all.indexOf(own) : -1
+    if (at < 0) {
+      const y = window.innerHeight * 0.28
+      at = all.findIndex((s) => s.getBoundingClientRect().bottom > y)
+      if (at < 0) at = all.length - 1
+    }
     const to = all[Math.max(0, Math.min(all.length - 1, at + by))]
     to.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
-    to.querySelector<HTMLElement>('a[href], button:not([disabled])')?.focus({ preventScroll: true })
+    const first = to.querySelector<HTMLElement>('[data-front="1"], .card:not(.gm-card-wait), .gm-cont, .gm-console') || to.querySelector<HTMLElement>('a[href], button:not([disabled])')
+    first?.focus({ preventScroll: true })
   }, [])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -324,8 +336,8 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
       else if (pad && e.key === ' ') { e.preventDefault(); search.current?.focus(); if (links.couch) nav('/big/search') }
       else if ((pad && e.key === 'm') || (!pad && e.key === 'f')) { const id = itemOf(); if (id) { e.preventDefault(); void toggleFav(id) } }
       else if (pad && e.key === 't') { e.preventDefault(); cycleSort() }
-      else if (pad && e.key === 'ContextMenu') { e.preventDefault(); if (links.couch) nav('/'); else { setCouchOn(true); nav('/big') } }
-      else if (!pad && e.key === '/') { e.preventDefault(); search.current?.focus() }
+      else if (pad && e.key === 'ContextMenu' && !links.couch) { e.preventDefault(); setCouchOn(true); nav('/big') }
+      else if (!pad && e.key === '/') { e.preventDefault(); (window.matchMedia('(max-width: 600px)').matches ? document.querySelector<HTMLElement>('.at-list input') : search.current)?.focus() }
       else if (pad && (e.key === 'MediaRewind' || e.key === 'MediaFastForward')) {
         if (!letters.length) { sectionJump(e.key === 'MediaRewind' ? -1 : 1); return }
         const focusedAt = Number((document.activeElement as HTMLElement | null)?.closest?.('[data-gm-at]')?.getAttribute('data-gm-at') ?? -1)
@@ -387,7 +399,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
         <div className="grow" />
         {!links.couch && (
           <>
-            <label className="gm-search-box">
+            <label className="gm-search-box at-top">
               <IconSearch size={18} />
               <input ref={search} className="input gm-search" type="search" placeholder="Search these games" aria-label="Search these games" value={typed} onChange={(e) => setTyped(e.target.value)} />
             </label>
@@ -403,8 +415,8 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
         </div>
       )}
 
-      {showHeroHome && <Hero items={home!.hero} consoles={byId} resumable={resumable} title="Featured games" />}
-      {!isHome && consoleId && !narrowed && consoleHero.length > 0 && <Hero items={consoleHero} consoles={byId} resumable={resumable} title={`${current?.short || 'These'} games`} />}
+      {showHeroHome && <Hero items={home!.hero} consoles={byId} resumable={resumable} title="Featured games" place={`${lib.id}`} />}
+      {!isHome && consoleId && !narrowed && consoleHero.length > 0 && <Hero items={consoleHero} consoles={byId} resumable={resumable} title={`${current?.short || 'These'} games`} place={`${lib.id}/${consoleId}`} />}
       {isHome && homeFailed && !home && <LoadError what="This library" onRetry={() => { void loadHome() }} />}
 
       {isHome && home && home.continue.length > 0 && (
@@ -429,7 +441,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
         </>
       )}
 
-      {!links.couch && user?.isAdmin && <GameMetaNotice unmatched={unmatched} onUnmatched={(on) => set('unmatched', on ? '1' : '')} onProgress={() => { setVersion((n) => n + 1) }} />}
+      {!links.couch && user?.isAdmin && (isHome || unmatched) && <GameMetaNotice unmatched={unmatched} onUnmatched={(on) => set('unmatched', on ? '1' : '')} onProgress={() => { setVersion((n) => n + 1) }} />}
       {!links.couch && leftCount > 0 && (
         <div className="warn-box gm-skipped" role="status">
           <strong>{leftCount.toLocaleString()} {leftCount === 1 ? 'file' : 'files'} in this library’s folders didn’t become games</strong>{' '}
@@ -441,6 +453,13 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
       <section className="gm-section gm-all" id="gm-all" data-gm-section aria-label="Games">
         <div className="gm-all-head">
           <h2>Games {total != null && <small>{total.toLocaleString()} {total === 1 ? 'game' : 'games'}</small>}</h2>
+          {/* On a phone the search is here, beside the list it searches, so the covers come first. */}
+          {!links.couch && (
+            <label className="gm-search-box at-list">
+              <IconSearch size={18} />
+              <input className="input gm-search" type="search" placeholder="Search these games" aria-label="Search these games" value={typed} onChange={(e) => setTyped(e.target.value)} />
+            </label>
+          )}
           <div className="chips gm-sorts" role="group" aria-label="Sort">
             {SORTS.map((s) => <Chip key={s.id} selected={sort === s.id} onClick={() => set('sort', s.id === DEFAULT_SORT ? '' : s.id)}>{s.label}</Chip>)}
             {MORE_SORTS.some((s) => s.id === sort) && <Chip selected onClick={() => setFiltersOpen(true)}>{MORE_SORTS.find((s) => s.id === sort)!.label}</Chip>}
@@ -463,7 +482,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
       <LegalNote kind="games" />
       {filtersOpen && <FiltersSheet facets={facets} params={params} set={set} onClose={() => setFiltersOpen(false)} />}
       {lettersOpen && <LetterSheet letters={letters} onJump={(o) => grid.current?.jumpTo(o)} onClose={() => setLettersOpen(false)} />}
-      {!links.couch && <PromptBar className="gm-prompts" items={prompts} />}
+      <PromptBar className="gm-prompts" always={links.couch} items={prompts} />
     </div>
   )
 }

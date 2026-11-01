@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, getToken, mediaUrl, posterUrl, serverBase, uploadFile, type GameConsole, type Item } from '../api'
-import { Spinner } from '../components/common'
+import { LoadError, Spinner } from '../components/common'
 import { reportClient, setLogSession } from '../errorReport'
 import { toast, useApp } from '../state'
 import { couchOn } from './games/data'
@@ -118,7 +118,7 @@ export function GamePage() {
       close: () => nav(couchOn() ? `/big/game/${it.id}` : `/item/${it.id}`, { replace: true }),
     }
   }, [it, settingsHost])
-  if (err) return <div className="error" role="alert">{err}</div>
+  if (err) return <div className="wp-page-error" role="alert"><LoadError what="This game" onRetry={() => window.location.reload()} /><p className="muted">{err}</p></div>
   if (!host) return <Spinner />
   return <Suspense fallback={<Spinner />}><GamePlayer host={host} /></Suspense>
 }

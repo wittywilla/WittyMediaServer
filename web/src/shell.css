@@ -80,7 +80,7 @@
   .section-row a.active { color: var(--fg); box-shadow: inset 0 -2px var(--accent-text); }
   .section-row-brand { display: flex; flex: 1; }
   /* The same row, from the music pages: the bar's own takes over here. */
-  .mh-libs { display: none; }
+  .app .mh-libs { display: none; }
   .tabbar {
     display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; position: fixed; left: 50%; bottom: calc(var(--sp-2) + env(safe-area-inset-bottom)); z-index: var(--z-tabbar);
     width: min(calc(100vw - 2 * var(--gutter)), 26rem); height: var(--tabbar-h); padding: var(--sp-1); transform: translateX(-50%);
@@ -131,6 +131,43 @@
 .nav-custom-move { display: flex; gap: var(--sp-1); flex: none; }
 .nav-custom-foot { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 @media (max-width: 600px) { .nav-custom-row { flex-wrap: wrap; } .nav-custom-name { flex-basis: calc(100% - var(--control-h) - var(--sp-3)); } .nav-custom-row .select { flex: 1 1 6rem; } .nav-custom-move { margin-left: auto; } }
+
+/* ---------------------------------------------------------------- choosing a theme */
+.theme-card { cursor: default; }
+.theme-pick { display: grid; gap: var(--sp-1); width: 100%; padding: 0 0 var(--sp-2); border: 0; background: none; color: var(--fg); text-align: left; cursor: pointer; }
+.theme-pick .muted { padding-inline: var(--sp-3); font-size: var(--text-xs); line-height: var(--leading-snug); }
+.theme-pick:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: calc(-1 * var(--focus-width)); }
+.theme-name { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; padding: var(--sp-2) var(--sp-3) 0; font-weight: 600; font-size: var(--text-md); }
+.theme-card .theme-actions { padding: 0 var(--sp-3) var(--sp-3); margin-top: auto; min-height: calc(var(--control-h-sm) + var(--sp-3)); }
+/* The scene draws with the theme's own colours, set on it as variables. */
+.theme-scene { display: grid; grid-template-rows: auto 1fr; height: 7.5rem; overflow: hidden; background: var(--bg); color: var(--fg); pointer-events: none; }
+.ts-bar { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-1) var(--sp-2); background: var(--bg-2); font-size: var(--text-2xs); color: var(--fg-2); }
+.ts-dot { width: var(--sp-2); height: var(--sp-2); border-radius: 50%; background: var(--accent); }
+.ts-link { padding: 1px var(--sp-2); border-radius: var(--r-full); }
+.ts-link.on { background: var(--fg); color: var(--bg); font-weight: 600; }
+.ts-body { display: flex; gap: var(--sp-3); align-items: center; padding: var(--sp-2); min-height: 0; }
+.ts-posters { display: flex; gap: var(--sp-1); flex: none; }
+.ts-posters i { width: 1.75rem; aspect-ratio: 2 / 3; border-radius: calc(var(--radius) * .4); background: var(--bg-3); border: 1px solid var(--bg-4, var(--bg-3)); }
+.ts-text { display: grid; gap: 1px; justify-items: start; min-width: 0; font-size: var(--text-2xs); }
+.ts-text b { font-size: var(--text-xs); }
+.ts-text small { color: var(--fg-2); font-size: var(--text-2xs); white-space: nowrap; }
+.ts-text .btn.sm { height: 1.25rem; min-height: 0; padding: 0 var(--sp-2); margin-top: var(--sp-1); font-size: var(--text-2xs); }
+.theme-scene-pair { display: grid; grid-template-columns: 1fr 1fr; }
+.theme-scene-pair .ts-posters i:nth-child(n + 2), .theme-scene-pair .ts-link:not(.on), .theme-scene-pair small { display: none; }
+.theme-maker { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
+.theme-maker-colours { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.theme-colour.input { padding: var(--sp-1); height: var(--control-h); cursor: pointer; }
+.theme-maker-preview { display: grid; gap: var(--sp-3); position: sticky; top: 0; }
+.theme-maker-preview .theme-scene { height: 12rem; border-radius: var(--r-md); border: 1px solid var(--border-strong); }
+@media (max-width: 700px) { .theme-maker { grid-template-columns: minmax(0, 1fr); } .theme-maker-preview { position: static; order: -1; } }
+.block { display: block; }
+
+/* ---------------------------------------------------------------- moving posters (ui/tilt.ts) */
+html.tilt-on .card:not(.square) .poster { transform-style: preserve-3d; }
+html.tilt-on .card:not(.square):hover .poster { transform: none; }
+html.tilt-on .card:not(.square) .poster.tilting { transition: transform 80ms linear, box-shadow var(--dur-2); box-shadow: var(--e-3); will-change: transform; }
+.tilt-sheen { position: absolute; inset: -35%; z-index: 3; pointer-events: none; background: radial-gradient(closest-side, color-mix(in srgb, var(--on-image) 20%, transparent), transparent); animation: fade-in var(--dur-2) ease-out; }
+@media (prefers-reduced-motion: reduce) { .tilt-sheen { display: none; } }
 
 /* ---------------------------------------------------------------- layout picker */
 .layout-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }

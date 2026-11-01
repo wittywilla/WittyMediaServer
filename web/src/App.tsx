@@ -14,7 +14,8 @@ import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
 import { AskHost } from './ui/Overlay'
-import { loadUserPrefs } from './ui/userPrefs'
+import { loadUserPrefs, useUserPref } from './ui/userPrefs'
+import { syncTilt } from './ui/tilt'
 import { Sidebar } from './shell/Sidebar'
 import { TabBar } from './shell/TabBar'
 import { TopBar } from './shell/TopBar'
@@ -111,6 +112,8 @@ function AppFrame() {
   const wide = useMedia('(min-width: 901px)')
   const [folded, setFolded] = useState(getNavCollapsed)
   const [drawer, setDrawer] = useState(false)
+  const [tilt] = useUserPref('posterTilt', true)
+  useEffect(() => { syncTilt(tilt) }, [tilt])
   useEffect(() => { setDrawer(false) }, [loc.pathname, wide])
   const open = wide ? side && !folded : drawer
   const rail = wide && side && folded && prefs.collapse !== 'hide'

@@ -249,6 +249,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/artwork/preview", s.requireAdmin(s.handleArtPreview))
 	m.Handle("GET /api/prefs", a(s.handlePrefs))
 	m.Handle("POST /api/themes", s.requireAdmin(s.handleThemeUpload))
+	m.Handle("POST /api/themes/custom", s.requireAdmin(s.handleThemeCustom))
 	m.Handle("DELETE /api/themes/{id}", s.requireAdmin(s.handleThemeDelete))
 	m.Handle("GET /api/shows", a(s.handleShows))
 	m.Handle("GET /api/shows/genres", a(s.handleShowGenres))

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type KeyboardEvent, type ReactElement } from 'react'
+import { useEffect, useMemo, type ReactElement } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { Brand, BrandMark, UpdateDot, VersionTag } from '../components/common'
 import { IconSettings } from '../icons'
@@ -18,10 +18,12 @@ export function Sidebar({ open, rail, drawer, onClose }: { open: boolean; rail: 
   const list = useMemo(() => entries(arrange(items, prefs), prefs), [items, prefs])
   const shown = open || rail
   const holding = drawer && open
-  useEffect(() => { if (!holding) return; document.body.classList.add('drawer-open'); return () => document.body.classList.remove('drawer-open') }, [holding])
-  const keys = (e: KeyboardEvent) => {
-    if (holding && (e.key === 'Escape' || isBackKey(e))) { e.preventDefault(); e.stopPropagation(); onClose() }
-  }
+  useEffect(() => {
+    if (!holding) return
+    const keys = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape' || isBackKey(e)) { e.preventDefault(); onClose() } }
+    window.addEventListener('keydown', keys)
+    return () => window.removeEventListener('keydown', keys)
+  }, [holding, onClose])
   const tip = (node: ReactElement<object>, text: string) => rail ? <Tooltip key={text} text={text} side="right" describes={false}>{node}</Tooltip> : node
   const link = (it: NavItem) => tip(
     <NavLink key={it.id} to={it.to} end={it.end} className={'nav-link' + (it.id === 'home' || it.id === 'tv' ? ' nav-dup' : '')} aria-label={rail ? it.label : undefined}>{navIcon(it)} <span className="nav-text">{it.label}</span></NavLink>, it.label)
@@ -29,7 +31,7 @@ export function Sidebar({ open, rail, drawer, onClose }: { open: boolean; rail: 
   return (
     <>
       {holding && <div className="backdrop-dim" onClick={onClose} />}
-      <aside className="sidebar" aria-label="Main navigation" aria-hidden={!shown} inert={!shown || undefined} onKeyDown={keys}
+      <aside className="sidebar" aria-label="Main navigation" aria-hidden={!shown} inert={!shown || undefined}
         role={holding ? 'dialog' : undefined} aria-modal={holding || undefined}>
         <Link to="/" className="brand" aria-label={rail ? brandName || 'Home' : undefined}><BrandMark /><span className="nav-text"><Brand name={brandName} /></span></Link>
         {list.map((e) => {

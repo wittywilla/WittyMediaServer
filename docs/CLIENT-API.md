@@ -985,6 +985,21 @@ Paths are relative to `/api/v1`. Full request and response shapes are in [openap
 | `GET /music/albums` | user | Albums or books of a library. |
 | `GET /music/artists` | user | Artists or authors. |
 | `GET /music/tracks` | user | Tracks of one album, or all songs; an empty `album` or `artist` means none or unknown. |
+| `GET /music/home` | user | A music library's front page in one request: `library`. |
+| `GET /music/songs` | user | Songs: `library`, `view` (`liked`, `played`, `recent`, `added`), `artist`, `genre`, `search`, `sort`, `desc`, `limit`, `offset`. |
+| `GET /music/likes` | user | The ids of this person's liked songs: `library`. |
+| `GET /music/radio/{id}` | user | A station made from this song, from this library: `limit`. |
+| `GET /music/loudness/{id}` | user | The volume correction a file is tagged with (ReplayGain or R128), in dB. |
+| `GET /music/extras/{id}` | user | Booklets and text beside a song's album. |
+| `GET /music/extras/{id}/file` | user | One of those, by the `name` the list gave. |
+| `GET /music/artist` | user | An artist's page: albums, songs, and a biography if online information is on: `library`, `name`. |
+| `GET /music/artist-photo` | user | An artist's picture, or a cover of theirs: `library`, `name`. |
+| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. |
+| `PUT /music/lyrics/{id}/offset` | user | This person's timing correction: `{offsetMs}`, up to two minutes either way. |
+| `POST /music/lyrics/{id}/search` | admin | Online lyrics to choose from: `{q}`. |
+| `PUT /music/lyrics/{id}` | admin | Corrects a song's lyrics on this server: `{text}`, `{instrumental}` or `{provider, id}`. |
+| `DELETE /music/lyrics/{id}` | admin | Forgets the correction and any online answer. |
+| `DELETE /music/lyrics-cache` | admin | Forgets all lyrics fetched from online. |
 | `GET /podcasts` | user | Podcast subscriptions. |
 | `GET /podcasts/search` | admin | Search a podcast directory. |
 | `POST /podcasts` | admin | Subscribe. |

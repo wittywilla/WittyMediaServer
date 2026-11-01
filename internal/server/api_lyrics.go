@@ -211,13 +211,13 @@ func (s *Server) lyricsSources(ctx context.Context) []lyrics.Source {
 	if m := strings.TrimSpace(s.DB.GetSetting(ctx, "lyricsMirror", "")); m != "" {
 		// Someone's own copy may well be on the home network, so this one client may
 		// reach private addresses: an admin typed the address, nothing else can set it.
-		out = append(out, &lyrics.LRCLIB{Base: m, Client: lyricsMirrorClient, Label: "Your LRCLIB server"})
+		out = append(out, &lyrics.LRCLIB{Base: m, Client: lyricsMirrorClient, Label: "Your LRCLIB server", Provider: "mirror"})
 	}
 	if key := s.DB.GetSetting(ctx, "lyricsMusixmatchKey", ""); key != "" {
 		out = append(out, &lyrics.Musixmatch{Key: key, Client: library.SafeClient})
 	}
 	if s.DB.GetSetting(ctx, "lyricsLrclib", "1") == "1" {
-		out = append(out, &lyrics.LRCLIB{Base: lyricsPublicBase, Client: library.SafeClient, Label: "LRCLIB"})
+		out = append(out, &lyrics.LRCLIB{Base: lyricsPublicBase, Client: library.SafeClient, Label: "LRCLIB", Provider: "lrclib"})
 	}
 	return out
 }
@@ -458,7 +458,7 @@ func (s *Server) handleLyricsSave(w http.ResponseWriter, r *http.Request) {
 	case in.Provider != "":
 		for _, src := range s.lyricsSources(r.Context()) {
 			l, ok := src.(*lyrics.LRCLIB)
-			if !ok || (in.Provider == "lrclib") != (l.Base == lyricsPublicBase) {
+			if !ok || l.Provider != in.Provider {
 				continue
 			}
 			f, err := l.ByID(r.Context(), in.ID)

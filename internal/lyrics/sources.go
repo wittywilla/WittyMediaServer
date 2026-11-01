@@ -86,9 +86,10 @@ func getJSON(ctx context.Context, c *http.Client, address string, out any) (int,
 // LRCLIB: a free and open database of timed lyrics, with no key and no account.
 // Base can point at a copy someone runs themselves.
 type LRCLIB struct {
-	Base   string
-	Client *http.Client
-	Label  string
+	Base     string
+	Client   *http.Client
+	Label    string
+	Provider string // how its answers are marked: "lrclib", or "mirror" for someone's own copy
 }
 
 // LRCLIBHome is the public service.
@@ -112,13 +113,6 @@ func (r lrclibRecord) found(provider string) Found {
 		Synced: r.SyncedLyrics, Plain: r.PlainLyrics, HasSynced: strings.TrimSpace(r.SyncedLyrics) != "", Instrumental: r.Instrumental}
 }
 
-func (l *LRCLIB) provider() string {
-	if strings.TrimRight(l.Base, "/") == LRCLIBHome {
-		return "lrclib"
-	}
-	return "mirror"
-}
-
 func (l *LRCLIB) Get(ctx context.Context, q Query) (*Found, error) {
 	v := url.Values{"artist_name": {q.Artist}, "track_name": {q.Title}}
 	if q.Album != "" {
@@ -133,7 +127,7 @@ func (l *LRCLIB) Get(ctx context.Context, q Query) (*Found, error) {
 		return nil, err
 	}
 	if code == 200 {
-		f := r.found(l.provider())
+		f := r.found(l.Provider)
 		return &f, nil
 	}
 	if code != 404 {
@@ -175,7 +169,7 @@ func (l *LRCLIB) Search(ctx context.Context, q Query, text string) ([]Found, err
 	}
 	out := make([]Found, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, r.found(l.provider()))
+		out = append(out, r.found(l.Provider))
 	}
 	return out, nil
 }
@@ -192,7 +186,7 @@ func (l *LRCLIB) ByID(ctx context.Context, id string) (*Found, error) {
 	if code != 200 {
 		return nil, ErrNotFound
 	}
-	f := r.found(l.provider())
+	f := r.found(l.Provider)
 	return &f, nil
 }
 

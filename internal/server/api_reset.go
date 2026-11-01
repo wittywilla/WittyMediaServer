@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"time"
 
@@ -156,7 +155,7 @@ func (s *Server) handleResetCopyDelete(w http.ResponseWriter, r *http.Request) {
 		if err.Error() == "no such copy" {
 			code = 404
 		}
-		writeErr(w, code, errors.Join(err).Error())
+		writeErr(w, code, err.Error())
 		return
 	}
 	s.Log.InfoContext(r.Context(), "a copy from an earlier reset was deleted", "cat", "server", "copy", b.Copy, "by", userFrom(r).Name)

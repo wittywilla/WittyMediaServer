@@ -69,6 +69,10 @@ type Copy struct {
 	Bytes int64  `json:"bytes"`
 }
 
+// heldOpen may be open while a reset happens, by whatever started the server and keeps
+// its output: the tray app, for one. They move if they can, and stay behind if not.
+var heldOpen = map[string]bool{"logs": true, "wms.log": true}
+
 // retryFor is how long a file that's in use gets. The process before this one may
 // still be closing its database, and a helper may still be on its way out.
 var retryFor = 30 * time.Second
@@ -281,6 +285,28 @@ func moveAll(from, to string, skip func(name string) bool) error {
 	return nil
 }
 
+// moveHeldOpen moves what it can of what may be held open, file by file, with no waiting.
+func moveHeldOpen(from, to string) {
+	for name := range heldOpen {
+		src, dst := filepath.Join(from, name), filepath.Join(to, name)
+		st, err := os.Stat(src)
+		if err != nil {
+			continue
+		}
+		if !st.IsDir() {
+			_ = os.Rename(src, dst)
+			continue
+		}
+		entries, err := os.ReadDir(src)
+		if err != nil || os.MkdirAll(dst, 0o750) != nil {
+			continue
+		}
+		for _, e := range entries {
+			_ = os.Rename(filepath.Join(src, e.Name()), filepath.Join(dst, e.Name()))
+		}
+	}
+}
+
 // Apply carries out a waiting request, if there is one. It returns nil when there was
 // none. On failure the install is left as it was, and the server starts as usual.
 func Apply(f Folders) *Result {
@@ -294,7 +320,7 @@ func Apply(f Folders) *Result {
 	res := &Result{Mode: r.Mode, Copy: r.Copy, At: time.Now().UTC()}
 	notCopy := func(keep ...string) func(string) bool {
 		return func(name string) bool {
-			if name == requestFile || name == requestFile+".tmp" || copyName.MatchString(name) {
+			if name == requestFile || name == requestFile+".tmp" || heldOpen[name] || copyName.MatchString(name) {
 				return true
 			}
 			for _, k := range keep {
@@ -313,6 +339,7 @@ func Apply(f Folders) *Result {
 		case ModeKeepCopy, ModeDelete:
 			err = moveAll(f.Data, filepath.Join(f.Data, r.Copy), notCopy())
 			if err == nil {
+				moveHeldOpen(f.Data, filepath.Join(f.Data, r.Copy))
 				clearOutside(r, res)
 			}
 		case ModeRestore:
@@ -328,9 +355,15 @@ func Apply(f Folders) *Result {
 			if err = moveAll(f.Data, filepath.Join(f.Data, r.Save), notCopy()); err != nil {
 				break
 			}
-			if err = moveAll(from, f.Data, func(string) bool { return false }); err != nil {
+			if err = moveAll(from, f.Data, func(name string) bool { return heldOpen[name] }); err != nil {
 				_ = moveAll(filepath.Join(f.Data, r.Save), f.Data, func(string) bool { return false })
 				break
+			}
+			moveHeldOpen(f.Data, filepath.Join(f.Data, r.Save))
+			moveHeldOpen(from, f.Data)
+			// Old logs that couldn't come back aren't worth keeping a folder for.
+			for name := range heldOpen {
+				_ = os.RemoveAll(filepath.Join(from, name))
 			}
 			_ = os.Remove(from)
 			res.Notes = append(res.Notes, "What was here before is kept as "+r.Save+".")

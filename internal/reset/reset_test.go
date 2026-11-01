@@ -152,6 +152,50 @@ func TestChecksKeepMediaAndTheProgramOut(t *testing.T) {
 	}
 }
 
+// The tray app holds the server's console log open while the server starts, and on
+// Windows a folder with an open file in it can't be moved at all.
+func TestALogHeldOpenDoesNotStopIt(t *testing.T) {
+	f := install(t)
+	write(t, filepath.Join(f.Data, "logs", "server.log"), "yesterday")
+	console := filepath.Join(f.Data, "logs", "console.log")
+	held, err := os.OpenFile(console, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer held.Close()
+	retryFor = 200 * time.Millisecond
+	defer func() { retryFor = 30 * time.Second }()
+
+	if err := Ask(f.Data, Request{Mode: ModeKeepCopy, At: time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)}); err != nil {
+		t.Fatal(err)
+	}
+	res := Apply(f)
+	if res == nil || !res.OK {
+		t.Fatalf("%+v", res)
+	}
+	if _, err := os.Stat(filepath.Join(f.Data, "wms.db")); err == nil {
+		t.Fatal("the old database is still in place")
+	}
+	if read(t, filepath.Join(f.Data, res.Copy, "logs", "server.log")) != "yesterday" {
+		t.Fatal("the other logs didn't go with the copy")
+	}
+
+	// And back again, with the same log still held.
+	write(t, filepath.Join(f.Data, "wms.db"), "fresh")
+	if err := Ask(f.Data, Request{Mode: ModeRestore, Copy: res.Copy, At: time.Date(2026, 1, 3, 3, 4, 5, 0, time.UTC)}); err != nil {
+		t.Fatal(err)
+	}
+	if back := Apply(f); back == nil || !back.OK {
+		t.Fatalf("%+v", back)
+	}
+	if read(t, filepath.Join(f.Data, "wms.db")) != "accounts" || read(t, filepath.Join(f.Data, "logs", "server.log")) != "yesterday" {
+		t.Fatal("the copy didn't come back")
+	}
+	if _, err := os.Stat(filepath.Join(f.Data, res.Copy)); err == nil {
+		t.Fatal("the restored copy's folder is still there")
+	}
+}
+
 func TestBadRequestsChangeNothing(t *testing.T) {
 	f := install(t)
 	for _, name := range []string{"..", "../../etc", "wms.db", "before-reset-20990101-000000"} {

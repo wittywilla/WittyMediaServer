@@ -19,6 +19,7 @@ type counter struct {
 	n         uint32
 	failLoad  bool
 	noStates  bool
+	mu        sync.Mutex // the game's thread writes these while a test looks
 	option    string
 	cheats    map[int]string
 	big       int
@@ -64,17 +65,27 @@ func (c *counter) LoadState(b []byte) bool {
 func (c *counter) SaveRAM() []byte { return nil }
 func (c *counter) Close()          {}
 func (c *counter) Options() []engine.Option {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return []engine.Option{{Key: "k", Label: "K", Choices: []string{"a", "b"}, Value: c.option}}
 }
 func (c *counter) SetOption(key, value string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if key == "k" && (value == "a" || value == "b") {
 		c.option = value
 		return true
 	}
 	return false
 }
-func (c *counter) CheatReset() { c.cheats = map[int]string{} }
+func (c *counter) CheatReset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.cheats = map[int]string{}
+}
 func (c *counter) CheatSet(i int, on bool, code string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if on {
 		c.cheats[i] = code
 	}
@@ -553,6 +564,8 @@ func TestOptionsAreListedAndOnlyOfferedValuesTakeEffect(t *testing.T) {
 	h.send(ipc.CmdOption, ipc.OptionSet{Key: "other", Value: "a"})
 	h.send(ipc.CmdOption, ipc.OptionSet{Key: "k", Value: "b"})
 	time.Sleep(50 * time.Millisecond)
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.option != "b" {
 		t.Fatalf("option is %q", c.option)
 	}
@@ -565,6 +578,8 @@ func TestCheatsReplaceTheList(t *testing.T) {
 	h.send(ipc.CmdCheats, []ipc.Cheat{{Code: "one", Enabled: true}, {Code: "two", Enabled: false}})
 	h.send(ipc.CmdCheats, []ipc.Cheat{{Code: "three", Enabled: true}})
 	time.Sleep(50 * time.Millisecond)
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if len(c.cheats) != 1 || c.cheats[0] != "three" {
 		t.Fatalf("cheats are %v", c.cheats)
 	}

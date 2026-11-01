@@ -729,14 +729,18 @@ Run on 2026-10-31 on Windows, with the same cores checked on Linux where the tab
 | PlayStation | 1 loose game and 1 three-disc game | OK on PCSX ReARMed and Beetle PSX, with disc changes, resume and battery saves. PCSX ReARMed at 95% speed |
 | Nintendo DS | 1 real game | OK on melonDS and DeSmuME, both screens counted, with states and resume. Speed not measured on a quiet machine |
 | PSP | 1 real game | OK on PPSSPP, though a resumed picture doesn't quite match. Speed not measured on a quiet machine |
-| 3DS | 1 real game, encrypted | Refused with a plain message, as it should be. No 3DS game has been played |
+| 3DS | 1 real game, encrypted; a plain test program in a `.cia` | The real one is refused with a plain message, as it should be. The test program plays. No retail 3DS game has been played |
 | Game Boy, GBA | 6 and 3 homebrew or test ROMs | OK on all cores. The GBA ROMs have no sound, so GBA audio is unproven |
 | Mega Drive, Master System, Game Gear | 3, 3 and 1 homebrew ROMs | OK on all cores. ClownMDEmu's resume doesn't match on any of the 3; BlastEm, the default, is fine |
 | PC Engine, Atari 2600, Virtual Boy, WonderSwan, Neo Geo Pocket | 3, 3, 3, 2 and 1 homebrew ROMs | OK on all cores |
 | Lynx | 20 homebrew or test ROMs | 16 OK. The other 4 are test ROMs that draw one colour. All are silent |
-| Atari 7800 | No game with a clear licence was found | Only that the core installs and opens |
+| Atari 7800, Dreamcast | No game with a clear licence was found; a test program written for each (`wittyplay-probe test-rom`) | Both run through the stream with a changing picture. No real game has been played |
 
-Every core offered at the time, 27 of them, installed and opened in the sandbox, on Windows, on Linux and in the container image. NES, SNES, PlayStation and homebrew samples also ran on Linux, where the sandbox is stricter. Since then, Mesen's NES core has been found to abort on Linux.
+Every core offered at the time, 27 of them, installed and opened in the sandbox, on Windows, on Linux and in the container image. NES, SNES, PlayStation and homebrew samples also ran on Linux, where the sandbox is stricter.
+
+**On Linux, under the sandbox, on 2026-11-01:** every core on every console, through the real session manager, runner, encoder and a viewer over the WebSocket, with what arrived put through a real decoder (`wittyplay-probe sweep`). Every one reaches frames with time passing. Every console held its full speed apart from these, on a machine with other work holding its load at 15 to 30: Beetle PSX HW at 22 frames a second and PPSSPP at 9 in a game's own menus, in both cases on this machine's only graphics driver, Mesa's D3D12 layer under WSL. PPSSPP's time goes on copying buffers inside that driver. It's the same at half the resolution, and a native driver hasn't been tried. About one time in four, Azahar's runner crashes on its way out, after everything is saved, at one place inside WSL's own `libd3d12core.so`. Nobody playing sees it, and PPSSPP's looks the same.
+
+Mesen's NES core was reported to abort on Linux. It hasn't been made to, with all 318 real NES games under the full checks, in a real browser, through run-ahead, rewind, save slots, reset and fast forward, and on the earlier version it was reported on.
 
 In a browser, on the real server, with pictures looked at: WebRTC with NES, SNES and PlayStation; WebSocket with H.264 and with JPEG; input, sound, phone size with the touch controls, a change of disc, save slots, a resume after quitting, and clean exits when the server or the runner is killed. Streaming through the module has played a real game in a browser, and the graphics-card consoles' delay figures are above.
 
@@ -745,11 +749,10 @@ In a browser, on the real server, with pictures looked at: WebRTC with NES, SNES
 ## Limits today
 
 - **Delay figures** are headless on one machine, and not from glass to glass. PlayStation 2 is the slowest, at about 49 ms from a press to the screen. Firefox, Safari, phones, TVs and real networks haven't been run. Nor has a real controller or TV remote.
-- **3DS** isn't tested with a real game.
+- **3DS and Dreamcast** aren't tested with a real game.
 - **Graphics-card consoles** run on Windows and Linux only, and with OpenGL only. melonDS's own OpenGL mode produces no frames here, so DS games draw in software at native resolution.
-- **Mesen's NES core** aborts on Linux, which leaves header-less NES dumps with nothing to play them there.
 - **PlayStation 2 on Linux:** a real game boots under the sandbox, on a software renderer here. A real save hasn't been tried under it, and nor has a graphics card.
-- **On a new Linux with glibc 2.41 or later,** melonDS won't load, as that refuses a library asking for an executable stack, and Play! aborts while loading. Both do the same with the sandbox off.
+- **Play!** reads a whole PlayStation 2 disc before its first frame, which on a slow disk or network share can look stuck for a minute or more. It stops with an error on a raw `.bin` with no `.cue`. LRPS2 plays those.
 - **Deflate64 and LZMA inside a `.zip`** aren't read, and say so. Deflate, bzip2 and Zstandard are.
 - **A `.7z` with locked contents** is only found out when played.
 - **Cheats depend on the core.** libretro gives a frontend no way to know whether a core acted on a code. Some cores have no cheat support at all.

@@ -367,9 +367,7 @@ func (g *hlsGate) rewrite(base *url.URL, b []byte) (out []byte, why string, err 
 			buf.WriteString(l + "\n")
 			continue
 		case strings.HasPrefix(l, "#"):
-			// Anything else that names an address stays here: FFmpeg has no use for those it
-			// knows, and those it doesn't know have no business in a playlist it reads.
-			if !strings.Contains(strings.ToUpper(l), "URI=") {
+			if gateKeepsTag(l) {
 				buf.WriteString(l + "\n")
 			}
 			continue
@@ -386,6 +384,20 @@ func (g *hlsGate) rewrite(base *url.URL, b []byte) (out []byte, why string, err 
 		next = gateSegment
 	}
 	return buf.Bytes(), "", nil
+}
+
+// gateKeepsTag: the tags a live stream needs that name no address. Whatever else a playlist
+// holds stays here: FFmpeg has no use for the others it knows, and what it doesn't know has
+// no business in a playlist it reads.
+func gateKeepsTag(l string) bool {
+	tag, _, _ := strings.Cut(l, ":")
+	switch tag {
+	case "#EXTM3U", "#EXTINF", "#EXT-X-VERSION", "#EXT-X-TARGETDURATION", "#EXT-X-MEDIA-SEQUENCE", "#EXT-X-DISCONTINUITY",
+		"#EXT-X-DISCONTINUITY-SEQUENCE", "#EXT-X-ENDLIST", "#EXT-X-PLAYLIST-TYPE", "#EXT-X-PROGRAM-DATE-TIME",
+		"#EXT-X-INDEPENDENT-SEGMENTS", "#EXT-X-START", "#EXT-X-BYTERANGE", "#EXT-X-ALLOW-CACHE":
+		return true
+	}
+	return false
 }
 
 // rename changes a segment's ending, for a stream whose segments are fragments of an MP4 whatever

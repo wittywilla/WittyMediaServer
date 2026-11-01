@@ -83,6 +83,7 @@ https://cdn.invalid/high.m3u8
 #EXTINF:6,
 seg1.m4s
 #EXT-X-PART:DURATION=1,URI="part.m4s"
+#EXT-X-SOMETHING-NEW:Uri = "http://elsewhere.invalid/x"
 #EXT-X-BYTERANGE:100@200
 #EXTINF:6,
 ../seg2
@@ -95,7 +96,7 @@ seg1.m4s
 	if !strings.Contains(s, "#EXT-X-KEY:METHOD=NONE\n") || !strings.Contains(s, "#EXT-X-BYTERANGE:100@200\n") || !strings.Contains(s, `BYTERANGE="100@0"`) {
 		t.Errorf("a tag was lost:\n%s", s)
 	}
-	if strings.Contains(s, "part.m4s") || strings.Contains(s, "#EXT-X-PART") {
+	if strings.Contains(s, "part.m4s") || strings.Contains(s, "#EXT-X-PART") || strings.Contains(s, "elsewhere") {
 		t.Errorf("a tag naming an address got through:\n%s", s)
 	}
 	if !strings.Contains(s, ".mp4\"") || !strings.Contains(s, ".m4s\n") {
@@ -515,9 +516,18 @@ func FuzzGateRewrite(f *testing.F) {
 			if strings.HasPrefix(l, "#EXT-X-KEY:") && l != "#EXT-X-KEY:METHOD=NONE" {
 				t.Fatalf("key %q from %q", l, s)
 			}
-			for _, a := range parseHLSAttrs(l[strings.IndexByte(l, ':')+1:]) {
-				if a.key == "URI" && !strings.HasPrefix(a.value, prefix) {
-					t.Fatalf("uri %q in %q", a.value, l)
+			tag, rest, _ := strings.Cut(l, ":")
+			switch tag {
+			case "#EXT-X-MAP", "#EXT-X-MEDIA":
+				for _, a := range parseHLSAttrs(rest) {
+					if a.key == "URI" && !strings.HasPrefix(a.value, prefix) {
+						t.Fatalf("uri %q in %q", a.value, l)
+					}
+				}
+			case "#EXT-X-KEY", "#EXT-X-STREAM-INF":
+			default:
+				if !gateKeepsTag(l) {
+					t.Fatalf("a tag got through: %q", l)
 				}
 			}
 		}

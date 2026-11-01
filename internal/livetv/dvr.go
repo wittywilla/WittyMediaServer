@@ -16,6 +16,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittytuner"
 )
@@ -498,6 +499,10 @@ func safeFileName(s string) string {
 	}
 	if len(s) > 120 {
 		s = clip(s, 120)
+	}
+	// A programme called CON would be a console on Windows, not a folder.
+	if library.ReservedName(s) {
+		s = "Recording " + s
 	}
 	return s
 }

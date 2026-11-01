@@ -130,6 +130,8 @@
 .nav-custom-row .select { flex: 0 1 8rem; width: auto; }
 .nav-custom-move { display: flex; gap: var(--sp-1); flex: none; }
 .nav-custom-foot { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+/* Phones have one layout, so there's nothing to choose between. */
+@media (max-width: 700px) { .layout-opts { display: none; } .nav-custom { margin-top: 0; } }
 @media (max-width: 600px) { .nav-custom-row { flex-wrap: wrap; } .nav-custom-name { flex-basis: calc(100% - var(--control-h) - var(--sp-3)); } .nav-custom-row .select { flex: 1 1 6rem; } .nav-custom-move { margin-left: auto; } }
 
 /* ---------------------------------------------------------------- choosing a theme */

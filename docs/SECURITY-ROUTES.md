@@ -584,7 +584,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/libtranscode/settings` | Admin | Nothing further |
 | `PUT /api/libtranscode/settings` | Admin | Numbers within their ranges |
 | `GET /api/libtranscode/libraries` | Admin | Nothing further |
-| `PUT /api/libtranscode/libraries/{id}` | Admin | A library that holds video. Every choice in a recipe is from a list, and none reaches FFmpeg as text. Known output |
+| `PUT /api/libtranscode/libraries/{id}` | Admin | A library that holds video. Every choice in a recipe is from a list or a range, and languages are checked by form. Known output |
 | `GET /api/libtranscode/libraries/{id}/items` | Admin | A library that holds video. At most 100 answered |
 | `POST /api/libtranscode/libraries/{id}/preview` | Admin | A library that holds video. Item in that library. Recipe as for saving |
 | `POST /api/libtranscode/libraries/{id}/sample` | Admin | As a preview. Writes only to the cache |
@@ -593,9 +593,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/libtranscode/runs/{id}` | Admin | Numeric id |
 | `GET /api/libtranscode/runs/{id}/files` | Admin | Numeric id. Limit of at most 200. Offset |
 | `GET /api/libtranscode/leftovers` | Admin | Library number |
-| `POST /api/libtranscode/files/{id}/undo` | Admin | A file of a run. Paths from the run's own record, inside the library. Refused while it's playing |
-| `POST /api/libtranscode/files/{id}/use-copy` | Admin | A file of a run. Paths from the run's own record, inside the library |
-| `DELETE /api/libtranscode/files/{id}/leftover` | Admin | A file of a run. Paths from the run's own record, inside the library |
+| `POST /api/libtranscode/files/{id}/undo` | Admin | A file of a run. Paths from the run's own record, which no backup holds. Refused while it's playing |
+| `POST /api/libtranscode/files/{id}/use-copy` | Admin | A file of a run. Paths from the run's own record, which no backup holds |
+| `DELETE /api/libtranscode/files/{id}/leftover` | Admin | A file of a run. Only a kept original or a converted copy, by the form of its name, from the run's own record |
 | `GET /api/libtranscode/tdarr` | Admin | Nothing further. The key is never answered |
 | `PUT /api/libtranscode/tdarr` | Admin | Web address with no login in it. Lengths. A new address needs its key again |
 | `POST /api/libtranscode/tdarr/test` | Admin | Web address with no login, not the cloud metadata address. No redirects. Time and size limits. The saved key goes only to the saved address |

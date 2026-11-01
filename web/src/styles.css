@@ -135,8 +135,9 @@
 }
 /* Fingers: bigger controls everywhere, from one place. */
 @media (pointer: coarse) { :root { --control-h: 2.75rem; --control-h-sm: 2.25rem; --control-h-lg: 3.125rem; } }
-@media (min-width: 1100px) { :root { --card-w: 164px; } }
-@media (min-width: 1700px) { :root { --card-w: 180px; --card-wide-w: 300px; } }
+@media (min-width: 1100px) { :root { --card-w: 180px; } }
+@media (min-width: 1500px) { :root { --card-w: 200px; --card-wide-w: 300px; } }
+@media (min-width: 1900px) { :root { --card-w: 240px; --card-wide-w: 340px; } }
 @media (max-width: 520px) { :root { --card-w: 104px; --card-wide-w: 232px; } }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -237,6 +238,8 @@ input[type=range] { accent-color: var(--accent); }
   .app:has(.hero, .detail-hero) .topbar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--bg); opacity: 0; animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
   .app:has(.hero, .detail-hero) .topbar::after { animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
   .app:has(.home.editing) .topbar { margin-bottom: 0; background: var(--bg); }
+  /* The legal notice sits right under the bar, so the bar can't run over the picture and cover it. */
+  .app:has(.legal-ack-bar) .topbar { margin-bottom: 0; background: var(--bg); }
   @keyframes bar-solid { from { opacity: 0; } to { opacity: 1; } }
 }
 
@@ -320,11 +323,12 @@ input[type=range] { accent-color: var(--accent); }
 
 /* ---------------------------------------------------------------- hubs */
 .hub { margin-bottom: var(--section-gap); }
-.hub-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-4); margin-bottom: var(--sp-3); }
+.hub-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); margin-bottom: var(--sp-3); }
 .hub-head h2 { font-size: var(--text-xl); margin: 0; min-width: 0; }
-.hub-head a { flex: none; display: inline-flex; align-items: center; gap: 2px; color: var(--fg-2); font-size: var(--text-sm); font-weight: 500; }
+.hub-head a { flex: none; display: inline-flex; align-items: center; min-height: var(--sp-6); gap: 2px; color: var(--fg-2); font-size: var(--text-sm); font-weight: 500; }
 .hub-head a svg { width: 16px; height: 16px; margin-right: -4px; }
 .hub-head a:hover { color: var(--accent-text); }
+@media (pointer: coarse) { .hub-head a { min-height: 44px; } }
 /* A row runs off both edges of the page, so the next card peeks in. */
 .row-wrap { position: relative; }
 .row { display: flex; gap: var(--sp-4); overflow-x: auto; margin: 0 calc(-1 * var(--gutter)); padding: var(--sp-3) var(--gutter) var(--sp-4); scroll-padding-inline: var(--gutter); scroll-snap-type: x proximity; scrollbar-width: thin; scrollbar-color: transparent transparent; overscroll-behavior-x: contain; }

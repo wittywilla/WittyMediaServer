@@ -196,11 +196,11 @@ export default function CouchMode() {
         <header className="gm-couch-bar">
           <nav className="gm-couch-tabs" aria-label="Couch mode" data-nav-group>
             {libs.length > 1
-              ? libs.map((l, i) => <NavLink key={l.id} to={`/big/library/${l.id}`} className="gm-couch-tab">{i === 0 && <IconHome />} <span>{l.name}</span></NavLink>)
-              : <NavLink to={libs[0] ? `/big/library/${libs[0].id}` : '/big'} className="gm-couch-tab" end><IconHome /> <span>Home</span></NavLink>}
-            <NavLink to="/big/consoles" className="gm-couch-tab"><IconLibrary /> <span>Consoles</span></NavLink>
-            <NavLink to="/big/search" className="gm-couch-tab"><IconSearch /> <span>Search</span></NavLink>
-            <NavLink to="/big/settings" className="gm-couch-tab"><IconSettings /> <span>Settings</span></NavLink>
+              ? libs.map((l, i) => <NavLink key={l.id} to={`/big/library/${l.id}`} className="gm-couch-tab" aria-label={l.name}>{i === 0 && <IconHome />} <span>{l.name}</span></NavLink>)
+              : <NavLink to={libs[0] ? `/big/library/${libs[0].id}` : '/big'} className="gm-couch-tab" aria-label="Home" end><IconHome /> <span>Home</span></NavLink>}
+            <NavLink to="/big/consoles" className="gm-couch-tab" aria-label="Consoles"><IconLibrary /> <span>Consoles</span></NavLink>
+            <NavLink to="/big/search" className="gm-couch-tab" aria-label="Search"><IconSearch /> <span>Search</span></NavLink>
+            <NavLink to="/big/settings" className="gm-couch-tab" aria-label="Settings"><IconSettings /> <span>Settings</span></NavLink>
           </nav>
           <div className="gm-couch-right">
             <span className="gm-couch-name">{user?.name}</span>

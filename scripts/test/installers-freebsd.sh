@@ -107,6 +107,8 @@ ls /var/db/wittymediaserver
 say "repair works here"
 wittymediaserver doctor --json > /tmp/doctor.txt 2>&1; echo "doctor exit $?"
 head -c 300 /tmp/doctor.txt; echo
+wittymediaserver config path | grep '^data:' | grep -q /var/db/wittymediaserver || fail "root's command line doesn't look at the service's library"
+[ ! -e /root/.local/share/wittymediaserver ] || fail "root's command line made a library of its own"
 
 say "restarts if it stops"
 pkill -f 'bin/wittymediaserver serve'; sleep 6; up

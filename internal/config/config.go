@@ -88,6 +88,10 @@ func defaultDataDir() string {
 	if st, err := os.Stat("/config"); err == nil && st.IsDir() && runtime.GOOS != "windows" {
 		return "/config"
 	}
+	// Root using the command line of a packaged server means the service's library, not one of its own.
+	if d := serviceDataDir(); d != "" {
+		return d
+	}
 	switch runtime.GOOS {
 	case "windows":
 		if v := os.Getenv("LOCALAPPDATA"); v != "" {
@@ -106,6 +110,28 @@ func defaultDataDir() string {
 		}
 	}
 	return "wms-data"
+}
+
+// serviceDataDir is where a package's service keeps its data, for root's command line. "" when
+// this isn't root, or the service's folder isn't there.
+func serviceDataDir() string {
+	if os.Geteuid() != 0 {
+		return ""
+	}
+	d := ""
+	switch layout.Current().Kind {
+	case layout.KindDeb, layout.KindRPM:
+		d = "/var/lib/wittymediaserver"
+	case layout.KindFreeBSD:
+		d = "/var/db/wittymediaserver"
+	}
+	if d == "" {
+		return ""
+	}
+	if st, err := os.Stat(d); err != nil || !st.IsDir() {
+		return ""
+	}
+	return d
 }
 
 // UserConfigFile is where the config file lives when it is not portable:

@@ -109,6 +109,7 @@ EOF
     systemctl restart wittymediaserver
     echo "==> running: systemctl status wittymediaserver" ;;
   FreeBSD)
+    mkdir -p /usr/local/etc/rc.d
     sed -e "s|%%USER%%|$USER_NAME|g" -e "s|%%DATA%%|$DATA|g" -e "s|%%PORT%%|$PORT|g" -e "s|%%PROGRAM%%|$PREFIX|g" \
       "$PREFIX/share/wittymediaserver.rc" > /usr/local/etc/rc.d/wittymediaserver
     chmod +x /usr/local/etc/rc.d/wittymediaserver

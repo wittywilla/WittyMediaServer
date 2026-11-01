@@ -80,7 +80,9 @@ echo "my file" > /var/lib/wittymediaserver/my-own-notes.txt
 find /usr/lib/wittymediaserver -type f | sort > /tmp/files-installed.txt
 cat /tmp/files-installed.txt
 
-say "the package is how to update"
+say "root's command line looks at the service's library"
+wittymediaserver config path | grep '^data:' | grep -q /var/lib/wittymediaserver || fail "it looks somewhere else"
+wittymediaserver doctor --json > /tmp/doctor.txt 2>&1; echo "doctor exit $?"
 curl -fsS http://127.0.0.1:9797/api/health
 echo
 

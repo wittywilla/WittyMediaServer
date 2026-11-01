@@ -158,6 +158,8 @@ func planUnix(e *Env, pl *Plan) {
 			}})
 		if tool == "" {
 			pl.add(fileItem("service", rc, GroupProgram, true))
+			// install.sh makes this if no package has yet. Only ever goes when empty.
+			pl.add(emptyFolderItem(filepath.Dir(rc), GroupProgram, true))
 		}
 		for _, v := range []string{"_enable", "_user", "_listen", "_data"} {
 			name := unixName + v

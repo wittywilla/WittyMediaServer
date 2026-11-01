@@ -508,6 +508,10 @@ func (s *Server) handleGameBackgroundPut(w http.ResponseWriter, r *http.Request)
 
 // PUT /api/game-background/image: the image itself as the body.
 func (s *Server) handleGameBackgroundUpload(w http.ResponseWriter, r *http.Request) {
+	if !takeImportSlot(w) {
+		return
+	}
+	defer func() { <-importSlots }()
 	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBackgroundBytes))
 	if err != nil {
 		writeErr(w, 413, "the picture must be 10 MB or smaller")

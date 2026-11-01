@@ -426,10 +426,7 @@ const (
 func (s *Server) limits(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
-			if !bigUploadPath(r.URL.Path) {
-				r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
-			}
-			_ = http.NewResponseController(w).SetReadDeadline(time.Now().Add(requestBodyTime))
+			limitBody(w, r)
 		}
 		next.ServeHTTP(w, r)
 	})
@@ -807,8 +804,13 @@ func writeErr(w http.ResponseWriter, code int, msg string) {
 }
 
 func readJSON(r *http.Request, v any) error {
+	return readJSONUpTo(r, v, maxJSONBody)
+}
+
+// readJSONUpTo is readJSON for the few requests that are longer than most.
+func readJSONUpTo(r *http.Request, v any, limit int64) error {
 	defer r.Body.Close()
-	dec := json.NewDecoder(io.LimitReader(r.Body, 4<<20))
+	dec := json.NewDecoder(io.LimitReader(r.Body, limit))
 	if err := dec.Decode(v); err != nil && !errors.Is(err, io.EOF) {
 		return err
 	}

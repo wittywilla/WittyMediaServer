@@ -542,8 +542,9 @@ func (s *Server) tdarrAddressGate(w http.ResponseWriter, r *http.Request, addres
 	if address == "" {
 		return true
 	}
-	if base, err := tdarr.CleanAddress(address); err == nil && base == s.LibConvert.LoadTdarr(r.Context()).URL {
-		return true
+	base, err := tdarr.CleanAddress(address)
+	if err != nil || base == s.LibConvert.LoadTdarr(r.Context()).URL {
+		return true // what isn't an address reaches nothing, and is refused in words further on
 	}
 	return s.moduleGate(w, r, b, "tdarr")
 }

@@ -20,7 +20,7 @@ const SandboxWriteEnv = "WITTYMODULE_WRITE"
 
 // How well a helper is boxed in on this system.
 const (
-	SandboxFull       = "full"       // what docs/SECURITY-REVIEW.md promises
+	SandboxFull       = "full"       // everything the security model promises
 	SandboxPartial    = "partial"    // most of it, and the words say what's missing
 	SandboxLimited    = "limited"    // some limits, which aren't a sandbox
 	SandboxUnconfined = "unconfined" // nothing that would stop it doing harm

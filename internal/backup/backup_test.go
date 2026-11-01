@@ -1084,3 +1084,12 @@ func TestBackupNamesCantBePaths(t *testing.T) {
 		t.Error("a real one failed")
 	}
 }
+
+// What a core worked out for itself is made again for nothing and can run to gigabytes.
+func TestACoresCacheStaysOutOfABackup(t *testing.T) {
+	for rel, want := range map[string]bool{"3/12/system/pcsx2/cache/shaders.bin": true, "system/pcsx2/cache/a": true, "3/12/system/pcsx2/memcards/card.ps2": false, "3/12/save.srm": false, "3/cache/x": false} {
+		if got := isCoreCache(rel); got != want {
+			t.Errorf("%s: %v", rel, got)
+		}
+	}
+}

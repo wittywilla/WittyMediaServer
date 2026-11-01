@@ -59,8 +59,9 @@ func ParseSheet(ext, name string, in io.Reader, dir string, exists func(string) 
 			return // leads out of its folder: not something to read
 		}
 		if !exists(full) {
-			// A sheet made on another machine may have written the case differently.
-			if found := sameIgnoringCase(full); found != "" {
+			// A sheet made on another machine may have written the case differently. What's found
+			// still has to be a file: this also finds a pipe, or a link to a device, by its own name.
+			if found := sameIgnoringCase(full); found != "" && exists(found) {
 				full = found
 			} else {
 				s.Missing = append(s.Missing, filepath.Base(full))
@@ -159,6 +160,10 @@ func SniffFile(path string) (Finding, error) {
 }
 
 func sniffPlain(path string) (Finding, error) {
+	// Before opening it: opening a pipe waits for someone to write to it.
+	if st, err := os.Stat(path); err == nil && !st.Mode().IsRegular() {
+		return Finding{Kind: KindOther}, nil
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		return Finding{}, err

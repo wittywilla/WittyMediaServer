@@ -258,3 +258,25 @@ func TestForkPinsTheKeyTheAdminSaw(t *testing.T) {
 	}
 	waitIdle(t, w, "wittycomics")
 }
+
+// A fork's manifest names the program the server will start. It can't name one outside its folder.
+func TestAManifestCantNameAProgramOutsideItsFolder(t *testing.T) {
+	for _, bad := range []string{"../../../bin/sh", "/bin/sh", "a/b", `a\b`, "..", ".hidden", "x\x00y", "C:evil"} {
+		for _, field := range []string{`"entry"`, `"programs"`, `"webEntry"`} {
+			value := `"` + strings.ReplaceAll(bad, `\`, `\\`) + `"`
+			entry, extra := `"entry":"good"`, ""
+			switch field {
+			case `"entry"`:
+				entry = `"entry":` + value
+			case `"programs"`:
+				extra = `,"programs":[` + value + `]`
+			case `"webEntry"`:
+				extra = `,"webEntry":` + value
+			}
+			raw := `{"id":"wittycomics","name":"X","version":"0.9.0","repo":"a/b","delivery":"helper",` + entry + `,"api":` + fmt.Sprint(wittymodule.API) + `,"minServer":"0.6.0-alpha","maxServer":"0.6.x","license":"MIT"` + extra + `}`
+			if _, err := wittymodule.ParseManifest([]byte(raw)); err == nil {
+				t.Errorf("%s of %q was taken", field, bad)
+			}
+		}
+	}
+}

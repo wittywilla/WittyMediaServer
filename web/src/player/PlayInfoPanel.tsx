@@ -1,4 +1,5 @@
 import { Dialog, Button } from '../ui'
+import { HelpLink } from '../components/HelpLink'
 import type { PlaybackAnswer } from '../api'
 
 // "How this is playing": what the file is, what happens to its picture, sound and
@@ -22,7 +23,7 @@ export default function PlayInfoPanel({ info, onClose, onFlat3d, flattened, onVi
   return (
     <Dialog title="How this is playing" onClose={onClose} actions={<Button onClick={onClose}>Close</Button>}>
       <div className="playinfo">
-        {ex && <p className="playinfo-summary">{ex.summary}</p>}
+        {ex && <p className="playinfo-summary">{ex.summary} <HelpLink to="playing#quality-direct-play-and-converting" newTab>What this means</HelpLink></p>}
         <dl className="playinfo-facts">
           <Fact k="The file" v={ex?.source} />
           <Fact k="Picture" v={ex?.picture} />

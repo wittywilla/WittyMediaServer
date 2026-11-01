@@ -161,6 +161,7 @@ function GuideView({ guide, signedIn }: { guide: Guide; signedIn: boolean }) {
   if (err) return <p role="alert">{err}</p>
   if (!ready) return <div role="status" aria-label="Loading"><Spinner /></div>
 
+  const intro = blocks.slice(0, firstSection(blocks)).filter((b) => !isContents(b))
   const parts = blocks.filter((b): b is Extract<Block, { t: 'heading' }> => b.t === 'heading' && b.level === 2)
   const at = allGuides.indexOf(guide)
   const next = allGuides[at + 1]
@@ -168,7 +169,7 @@ function GuideView({ guide, signedIn }: { guide: Guide; signedIn: boolean }) {
     <>
       <div className="help-back"><BackLink to="/help" label="All guides" /></div>
       <article className="help-prose" ref={article}>
-        <GuideBody blocks={blocks.slice(0, firstSection(blocks))} signedIn={signedIn} />
+        <GuideBody blocks={intro} signedIn={signedIn} />
         {parts.length >= 3 && (
           <details className="help-toc" open={parts.length <= 12}>
             <summary>On this page</summary>
@@ -185,6 +186,9 @@ function GuideView({ guide, signedIn }: { guide: Guide; signedIn: boolean }) {
     </>
   )
 }
+
+// A list that's nothing but links to parts of the same guide.
+const isContents = (b: Block) => b.t === 'list' && b.items.every((it) => it.length === 1 && it[0].t === 'p' && it[0].c.every((n) => n.t === 'link' ? n.href.startsWith('#') : n.t === 'text' && /^[\s,:;]*$/.test(n.v)) && it[0].c[0]?.t === 'link')
 
 const firstSection = (blocks: Block[]) => {
   const i = blocks.findIndex((b, n) => n > 0 && b.t === 'heading')

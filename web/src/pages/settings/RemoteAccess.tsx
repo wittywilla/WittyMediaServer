@@ -351,7 +351,7 @@ function VpsSteps({ st, save, busy }: { st: Status; save: (c: Partial<Settings>,
         <Done yes={st.settings.enabled || st.forced}>Turn on <b>Remote Access</b> above.</Done>
         <Done yes={!!st.lastProof}>Run the test below with your phone on mobile data.</Done>
       </ol>
-      <p className="rem-note">Running this server itself on a rented machine? Reach this page through an SSH tunnel, or start it with <code>-remote-access</code>: see <Link to="/help/remote">the guide</Link>.</p>
+      <p className="rem-note">Running this server itself on a rented machine? Reach this page through an SSH tunnel, or start it with <code>-remote-access</code>: see <Link to="/help/remote#the-server-itself-on-a-rented-machine">the guide</Link>.</p>
     </div>
   )
 }

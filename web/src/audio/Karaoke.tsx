@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { HelpLink } from '../components/HelpLink'
 import { IconClose, IconFull, IconNext, IconPause, IconPlay, IconPrev } from '../icons'
 import { lineAt, useLineIndex, wordTimes, type LyricLine, type useLyrics } from './lyrics'
 import { soundGraph } from './sound'
@@ -129,7 +130,7 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
             <div className="kar-msg">
               <p>{lyrics.plain ? 'These words have no times, so they can\'t follow the music yet.' : 'No words for this song.'}</p>
               {lyrics.plain && <pre className="kar-plain" tabIndex={0}>{lyrics.plain}</pre>}
-              <p className="kar-sub">A timed <code>.lrc</code> file beside the song gives karaoke what it needs, or use Lyrics, then Fix, then Tap along.</p>
+              <p className="kar-sub">A timed <code>.lrc</code> file beside the song gives karaoke what it needs, or use Lyrics, then Fix, then Tap along. <HelpLink to="lyrics-karaoke#adding-your-own-lyrics" newTab>How to add your own</HelpLink></p>
             </div>
           ) : (
             <>

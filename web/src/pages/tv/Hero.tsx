@@ -7,6 +7,7 @@ import { channelVars, setLook, surfaceOf, type Look } from './look'
 import Preview from './Preview'
 import { useReminders } from './reminders'
 import { fmtClock, fmtDay, fmtLeft, type GuideChannel, type Programme } from './tvApi'
+import { SHAPES } from './tvThemes'
 
 // Whether a title has logo artwork, asked once per title for as long as the page is open.
 const titleArtKnown = new Map<string, Promise<boolean>>()
@@ -23,34 +24,35 @@ function hasTitleArt(target: 'item' | 'show', id: number): Promise<boolean> {
 
 // The top of the guide: everything about the highlighted programme. Its picture
 // waits for the highlight to settle, so running down the channels loads nothing.
-export default function Hero({ ch, p, next, look, now, previewKey, previewName, previewMax, onWatch, onDetails, onDay, onFav, onUp, onDown, onRecord }: {
-  ch?: GuideChannel; p?: Programme; next?: Programme; look: Look; now: number; previewKey: string; previewName: string; previewMax: number
+export default function Hero({ ch, p, next, look, now, previewKey, previewName, previewMax, previewStart, onWatch, onDetails, onDay, onFav, onUp, onDown, onRecord }: {
+  ch?: GuideChannel; p?: Programme; next?: Programme; look: Look; now: number; previewKey: string; previewName: string; previewMax: number; previewStart: number
   onWatch: (key: string) => void; onDetails: () => void; onDay: () => void; onFav: () => void; onUp: () => void; onDown: () => void; onRecord: () => void
 }) {
   const nav = useNavigate()
   const reminders = useReminders()
   const itemId = p?.itemId
+  const artShown = look.art && SHAPES[look.shape].art
   const [art, setArt] = useState<number | null>(null)
   useEffect(() => {
     setArt(null)
-    if (!itemId || !look.art || look.layout !== 'streaming') return
+    if (!itemId || !artShown) return
     const t = setTimeout(() => setArt(itemId), 400)
     return () => clearTimeout(t)
-  }, [itemId, look.art, look.layout])
-  // The title's own logo, in the modern look. The classic box is all type, as such
-  // boxes were, and any title without one keeps its name.
+  }, [itemId, artShown])
+  // The title's own logo, in the themes that show pictures. The classic box is all type, as
+  // such boxes were, and any title without one keeps its name.
   const showId = p?.showId
   const [titleArt, setTitleArt] = useState('')
   useEffect(() => {
     setTitleArt('')
-    if (!itemId || !look.art || look.layout !== 'streaming') return
+    if (!itemId || !artShown) return
     let on = true
     const target = showId ? 'show' : 'item', id = showId || itemId
     const t = setTimeout(() => {
       void hasTitleArt(target, id).then((has) => { if (on && has) setTitleArt(mediaUrl(`/api/meta/${target}/${id}/art/logo`)) })
     }, 400)
     return () => { on = false; clearTimeout(t) }
-  }, [itemId, showId, look.art, look.layout])
+  }, [itemId, showId, artShown])
 
   const real = !!p && p.kind !== 'none' && p.kind !== 'group'
   const live = !!p && p.start <= now && p.end > now
@@ -60,8 +62,8 @@ export default function Hero({ ch, p, next, look, now, previewKey, previewName, 
   const isTitle = real && !!p?.itemId
   const isFilm = isTitle && !p?.showId
   const reminded = !!p && !!ch && reminders.has(ch.key, p.start)
-  const accent = ch?.accent ? channelVars(ch.accent) : undefined
-  const preview = look.preview !== 'off' && <Preview channel={previewKey} label={previewName} look={look} max={previewMax} />
+  const accent = ch?.accent ? channelVars(ch.accent, look.bg) : undefined
+  const preview = look.preview !== 'off' && <Preview channel={previewKey} label={previewName} look={look} max={previewMax} start={previewStart} />
   return (
     <section className={'ctv-hero side-' + look.previewSide} aria-label="Highlighted programme" style={accent}>
       {art ? <img className="ctv-hero-art" src={mediaUrl(`/api/items/${art}/backdrop`)} alt="" decoding="async" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} /> : null}

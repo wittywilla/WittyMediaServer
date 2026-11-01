@@ -1050,6 +1050,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /logos/status` | Signed in | Whether logo downloads are agreed to, and for an administrator how far they have got. |
 | `PUT /logos/consent` | Admin | Agree or decline logo downloads, and optionally remove what was downloaded. |
 | `POST /logos/lookup` | Signed in | What to show for up to 200 names: a logo, or the name. |
+| `GET /logos` | Admin | Every name the logo service knows, to find one: kind, q, limit, offset. `{logos, total}`. |
 | `GET /logos/credits` | Signed in | Where every logo came from: source, licence and author. An account with limits gets the studios and networks of what it may see. |
 | `GET /logos/preview` | Admin | A candidate logo, through this server. Wikimedia addresses only, and 409 until logo downloads are agreed to. |
 | `GET /logos/{id}/image` | Signed in | A logo as a PNG. variant=white, dark or original. |
@@ -1214,7 +1215,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /guide` | user | Every channel this account may watch, with its programmes. |
+| `GET /guide` | user | Every channel this account may watch, with its programmes. Each can name `logo`, a picture of its own, or `brand`, for `POST /logos/lookup`. Beside them, `theme`, `layout` and `skin`: what a new viewer starts with. |
 | `GET /tv/{key}/tune` | user | What is on a channel, and starts its stream. `streamToken=1` adds `streamUrl` for players that can't set headers. See "Live channels". |
 | `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
 | `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |
@@ -1265,7 +1266,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /tuners/{id}/scan` | admin | Scan progress2. |
 | `GET /tuners/{id}/channels` | admin | Tuner channels. |
 | `POST /tuners/{id}/channels/enable` | admin | Enable all channels. |
-| `PUT /tuner-channels/{id}` | admin | Edit tuner channel. |
+| `PUT /tuner-channels/{id}` | admin | Edit tuner channel. `logo` is `""` to find it by name, `none`, or `kind\|name` in the logo service. |
 | `GET /epg/sources` | admin | EPG sources. |
 | `POST /epg/sources` | admin | Add EPG source. |
 | `DELETE /epg/sources/{id}` | admin | Delete EPG source. |

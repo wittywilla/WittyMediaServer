@@ -134,6 +134,42 @@ func BrandKey(name string) string {
 	return logoSuffix.ReplaceAllString(k, "")
 }
 
+var (
+	// What a channel list puts around a station's name: a country in front, and a picture quality,
+	// a country or a timeshift behind.
+	channelNamePrefix  = regexp.MustCompile(`(?i)^\s*(?:\[[a-z]{2,3}\]|\([a-z]{2,3}\)|[a-z]{2,3}\s*[:|]|[a-z]{2,3}\s+-)\s*`)
+	channelNameSuffix  = regexp.MustCompile(`(?i)(?:\s+|\s*[-.@|]\s*)(?:hd|fhd|uhd|sd|hevc|h\.?26[45]|4k|8k|\d{3,4}[pi]|\+\s*\d{1,2}|\.?[a-z]{2}@\w+)\s*$|\s*(?:\([^()]*\)|\[[^\[\]]*\])\s*$|\.[a-z]{2}\s*$`)
+	channelCallSign    = regexp.MustCompile(`(?i)^[kw][a-z]{2,3}(?:-(?:tv|dt|hd|cd|ld))?$`)
+	channelGenericOnly = regexp.MustCompile(`(?i)^(?:(?:channel|ch|tv|television|station|stream|live|local|public|access|community|test|news|sports?|movies?|films?|music|kids|weather|shopping|radio|info|events?|adult|ppv|hd|sd|the|and|of|all|free|\d+)[\s/&+.-]*)+$`)
+)
+
+// ChannelBrandName is the name a tuner or playlist channel would have its logo under, or "" if
+// it isn't one worth asking about. What comes out goes to the logo service, which only takes a
+// logo by itself when the name is exact, so this keeps to removing what's plainly not part of
+// the name, and leaves out what could only ever match the wrong thing.
+func ChannelBrandName(name string) string {
+	n := cleanBrandName(name)
+	n = channelNamePrefix.ReplaceAllString(n, "")
+	for range 4 {
+		next := channelNameSuffix.ReplaceAllString(n, "")
+		if next == n {
+			break
+		}
+		n = strings.TrimSpace(next)
+	}
+	// A station's number after its call sign: WABC-TV 7.
+	if f := strings.Fields(n); len(f) == 2 && channelCallSign.MatchString(f[0]) && strings.Trim(f[1], "0123456789.") == "" {
+		n = f[0]
+	}
+	if strings.ContainsAny(n, "/\\@:") || len(n) > 60 || channelGenericOnly.MatchString(n) {
+		return ""
+	}
+	if len([]rune(BrandKey(n))) < 2 {
+		return ""
+	}
+	return n
+}
+
 // cleanBrandName trims and bounds a name that came from a source or a person.
 func cleanBrandName(name string) string {
 	name = strings.TrimSpace(strings.Map(func(r rune) rune {
@@ -302,6 +338,40 @@ func (l *Logos) LookupLogos(ctx context.Context, refs []LogoRef, create bool) ([
 		l.Kick()
 	}
 	return out, nil
+}
+
+// ListLogos is a page of the names the service knows, for an administrator to find one.
+func (s *Store) ListLogos(ctx context.Context, kind, query string, limit, offset int) ([]Logo, int, error) {
+	if limit < 1 || limit > 200 {
+		limit = 100
+	}
+	where, args := "1 = 1", []any{}
+	if kind != "" {
+		where += " AND kind = ?"
+		args = append(args, kind)
+	}
+	if key := BrandKey(query); key != "" {
+		where += ` AND key LIKE ? ESCAPE '\'`
+		args = append(args, "%"+strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(key)+"%")
+	}
+	var total int
+	if err := s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM logos WHERE `+where, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+logoCols+` FROM logos WHERE `+where+` ORDER BY name COLLATE NOCASE LIMIT ? OFFSET ?`, append(args, limit, max(offset, 0))...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	out := []Logo{}
+	for rows.Next() {
+		g, err := scanLogo(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		out = append(out, *g)
+	}
+	return out, total, rows.Err()
 }
 
 // LogoCredits lists where every downloaded logo came from: its source, licence and

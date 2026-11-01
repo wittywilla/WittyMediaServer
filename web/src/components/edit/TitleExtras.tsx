@@ -5,6 +5,7 @@ import type { Target } from '../../metadata'
 import BrandLogo from '../BrandLogo'
 import { CardRow, ItemCard } from '../common'
 import LegalNote from '../LegalNote'
+import LogoNotice from '../LogoNotice'
 import './titlepage.css'
 
 // What a title's page shows beyond its row: who made it, its other versions, its bonus
@@ -103,6 +104,7 @@ export default function TitleExtras({ target, id, libraryId }: { target: Target;
           <LegalNote kind="listings" />
         </section>
       )}
+      {(hasBrands || !!l?.platforms.length) && <LogoNotice logos={[...a.studios.map((name) => ({ kind: 'studio' as const, name })), ...(l?.platforms || []).map((p) => ({ kind: 'platform' as const, name: p.name }))]} />}
     </div>
   )
 }

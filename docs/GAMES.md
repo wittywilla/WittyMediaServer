@@ -80,7 +80,7 @@ To see why a game was sorted the way it was, open it and expand **Fix this game,
 
 Some consoles' cartridges have no header at all: Atari 2600 and 7800, PC Engine, Virtual Boy and WonderSwan. These go by their folder or library, and by whether the file is a size a cartridge could be.
 
-A NES dump with no header is listed if its size fits a cartridge, and its page says so. Most NES cores can't play one. Mesen can, by working out the game from its checksum, but Mesen is an optional install and it currently aborts on Linux, so on a Linux server a header-less NES dump won't play. Install Mesen under **Settings → Consoles & cores**, on the NES card, under **Cores and BIOS files**.
+A NES dump with no header is listed if its size fits a cartridge, and its page says so. Most NES cores can't play one. Mesen can, by working out the game from its checksum, but Mesen is an optional install. Install it under **Settings → Consoles & cores**, on the NES card, under **Cores and BIOS files**.
 
 Other consoles rely on their header: Game Boy, Game Boy Advance, Nintendo 64, DS, 3DS, PlayStation, PS2 and PSP. A file for one of them with no header goes on **Needs a look**, because a core wouldn't be able to start it.
 
@@ -349,9 +349,11 @@ A patch is applied to a copy each time the game starts, so your file is never ch
 
 Encrypted game files are detected and refused with a clear message. Nothing here decrypts a file, goes looking for keys or tries a password. The file stays listed, with the reason on its page and on the **Can't play** tab.
 
-**3DS files.** Most 3DS copies are encrypted, and the cores can't read those. An encrypted `.cia` won't work, and only an unencrypted dump will. The server reads the plain headers of `.3ds`, `.cci`, `.cxi`, `.app` and `.cia` files to tell which is which, and it goes by the program's bytes as well as what the package says. A `.cia` that really is unencrypted has its main program copied out to a temporary file for the session. Updates and extra content inside a package aren't applied, and a package that's only an update or extra content isn't listed as a game.
+**3DS files.** Most 3DS copies are encrypted, and the cores can't read those. An encrypted `.cia` won't work, and only an unencrypted dump will. The server reads the plain headers of `.3ds`, `.cci`, `.cxi`, `.app` and `.cia` files to tell which is which, and it goes by the program's bytes: `NCCH` has to be readable where it belongs, and the program's NoCrypto flag has to be set. A title that shows its name and icon may still be encrypted, because a package keeps those in the open, and a package with a ticket may not be, because tools that take off a package's encryption often leave the ticket in. Neither counts.
 
-No real 3DS game has been played here yet: the only real file tried was encrypted, so it was refused.
+A `.cia` that really is unencrypted has its main program copied out, the first time it's played, and the copy stays until another package is played. Updates and extra content inside a package aren't applied, and a package that's only an update or extra content isn't listed as a game.
+
+No retail 3DS game has been played here: the only one tried is encrypted, so it was refused. A plain test program, in a `.cia` made for the purpose, has played from end to end, with and without the marks a decrypted package usually keeps. To see what a file of yours says, run `wittyplay-probe cia-info -hash yourgame.cia`.
 
 **Password-protected archives** are never opened. A `.7z` that keeps its names readable and locks only its contents can't be told from its headers, so it shows in the library and says so when you press Play.
 
@@ -419,8 +421,7 @@ For anything else, the server's log has the core's own words: see [Logging](LOGG
 
 - **Browsers and devices:** Firefox, Safari, phones and TVs haven't been run with game streaming, and neither has a real controller or TV remote.
 - **Networks:** no real network has been run. Every delay figure is from one machine, as above.
-- **3DS:** not tested, as above.
-- **Mesen on NES** aborts on Linux. FCEUmm is the first choice and isn't affected.
+- **3DS:** no retail game, as above.
 - **macOS and FreeBSD:** games haven't been run on a real Mac or on FreeBSD. On FreeBSD, a running core has limits rather than a sandbox: it can't start programs, and with no graphics card can't open a network connection.
 
 ## For developers

@@ -7,7 +7,11 @@ import { toast, useApp } from '../../state'
 import { ask } from '../../ui'
 import { PageHead, Row, Section, Switch } from '../settings/ui'
 import ChannelEditor from './ChannelEditor'
+import TunerLogo from './TunerLogo'
 import BrandLogo from '../../components/BrandLogo'
+import { LogoConsentHint } from '../../components/edit/LogoChooser'
+import { forgetOwnerLook } from './look'
+import { fromLegacy, THEMES } from './tvThemes'
 import { brandOf, forgetLineup, type Channel, type Driver, type DriverField, type EPGSource, type Found, type ScanState, type Suggestion, type Tuner, type TunerChannel } from './tvApi'
 import './tvsettings.css'
 import LegalNote from '../../components/LegalNote'
@@ -327,7 +331,7 @@ function TunerChannels() {
         </div>
         <div className="tvs-table-wrap">
           <table className="tvs-table">
-            <thead><tr><th scope="col">In guide</th><th scope="col">Number</th><th scope="col">Name</th><th scope="col">Status</th><th scope="col">Can record</th><th scope="col">Guide id</th></tr></thead>
+            <thead><tr><th scope="col">In guide</th><th scope="col">Number</th><th scope="col">Name</th><th scope="col">Logo</th><th scope="col">Status</th><th scope="col">Can record</th><th scope="col">Guide id</th></tr></thead>
             <tbody>
               {shown.map((c) => (
                 <tr key={c.id} className={c.encrypted ? 'locked' : ''}>
@@ -337,6 +341,7 @@ function TunerChannels() {
                     <input className="input" aria-label={`Name of ${c.name}`} defaultValue={c.name} onBlur={(e) => { if (e.target.value !== c.name) void edit(c, { name: e.target.value }) }} />
                     {c.group && <small className="tvs-dim">{c.group}</small>}
                   </td>
+                  <td><TunerLogo channel={c} onChange={(n) => setList((l) => l?.map((x) => (x.id === n.id ? n : x)) || null)} /></td>
                   <td>
                     {c.security === 'encrypted' && <small className="tvs-lock">Encrypted: can't be played here. {c.encrypted}. <Link to="/tv/encrypted">What can I do?</Link> <button className="btn sm ghost" onClick={() => void edit(c, { checkAgain: true })} title="If the station has stopped encrypting: it is checked again next time it is tuned">Check again</button></small>}
                     {c.security === 'clear' && <small className="tvs-clear">Clear</small>}
@@ -351,6 +356,8 @@ function TunerChannels() {
           </table>
         </div>
         {list && shown.length < list.length && shown.length === 500 && <p className="muted">Showing the first 500. Use the search box to find others.</p>}
+        <LogoConsentHint compact />
+        <LegalNote kind="logos" className="set-legal" />
       </Section>
       {driver && opts && (
         <Section title="Settings" actions={<button className="btn sm primary" onClick={() => void saveSettings()}>Save</button>}>
@@ -405,6 +412,21 @@ function GuideSources() {
 
 // --------------------------------------------------------------------- options
 
+// What a new viewer starts with. Someone's own choice comes first, then what their app theme
+// suggests, and then this, so that's what it says.
+function OwnerTheme({ s, set }: { s: Record<string, string>; set: (k: string, v: string) => Promise<void> }) {
+  const earlier = fromLegacy(s.tvLayout, s.tvSkin)
+  const current = s.tvTheme || (earlier.theme === 'custom' || earlier.themeColours ? '' : earlier.theme!)
+  return (
+    <Row label="WittyTV theme for new viewers" desc={<>What someone starts with until they choose. Their own choice in <Link to="/settings/appearance#wittytv">Settings, Appearance</Link> or the guide's Look panel comes first, then what their app theme suggests, and then this. Custom is each viewer's own, so it isn't offered here.</>}>
+      <select className="select" value={current} onChange={(e) => { void set('tvTheme', e.target.value).then(forgetOwnerLook) }}>
+        {!current && <option value="">As set earlier</option>}
+        {THEMES.filter((t) => t.id !== 'custom').map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+      </select>
+    </Row>
+  )
+}
+
 function Options() {
   const { libraries } = useApp()
   const [s, setS] = useState<Record<string, string> | null>(null)
@@ -418,16 +440,7 @@ function Options() {
   if (!s) return null
   return (
     <Section title="Options">
-      <Row label="Guide layout" desc="What people start with. Everyone can change the layout, colours and preview for their own device with the Look button on the guide.">
-        <select className="select" value={s.tvLayout} onChange={(e) => void set('tvLayout', e.target.value)}>
-          <option value="classic">Classic cable box</option><option value="streaming">Modern</option>
-        </select>
-      </Row>
-      <Row label="Guide colours">
-        <select className="select" value={s.tvSkin} onChange={(e) => void set('tvSkin', e.target.value)}>
-          <option value="cable">Cable blue</option><option value="satellite">Satellite black and amber</option><option value="midnight">Midnight</option><option value="theme">The server's theme</option>
-        </select>
-      </Row>
+      <OwnerTheme s={s} set={set} />
       <Row label="Pass H.264 through" desc="Video the browser can already play is sent as it is. Much lighter on the machine; turn it off only if channels stutter when shows change.">
         <Switch checked={s.tvCopyVideo === '1'} label="Pass H.264 through" onChange={(v) => void set('tvCopyVideo', v ? '1' : '0')} />
       </Row>

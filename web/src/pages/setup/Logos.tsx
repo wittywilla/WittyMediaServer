@@ -7,8 +7,8 @@ import { Button, LoadError, Spinner } from '../../ui'
 import { LogoConsentWords } from '../settings/MetadataOptional'
 import { LaterNote, StepActions, StepHead, type StepProps } from './parts'
 
-// One agreement, the same one Settings asks for, covering consoles, game studios, film studios and
-// TV networks. No logo comes with the server or in any package. They download only after a yes.
+// One agreement, the same one Settings asks for, covering consoles, game studios, film studios, TV
+// networks and channels. No logo comes with the server or in any package. They download only after a yes.
 export function Logos({ info, next, back }: StepProps) {
   const [consent, setConsent] = useState<'yes' | 'no' | '' | null>(null)
   const [failed, setFailed] = useState(false)

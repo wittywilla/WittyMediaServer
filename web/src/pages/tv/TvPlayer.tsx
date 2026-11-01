@@ -7,11 +7,14 @@ import { IconBack, IconPlay } from '../../icons'
 import { Controls } from '../../player/Controls'
 import { toggleFullscreen, useIdle, useSource } from '../../player/hooks'
 import Remote, { type RemoteKey } from '../../player/Remote'
+import { useLogo } from '../../components/BrandLogo'
+import LegalNote from '../../components/LegalNote'
 import { ChannelLogo } from './ChannelLogo'
-import { channelVars, customVars, previousChannel, rememberChannel, surfaceOf, useLook, type Look } from './look'
+import { channelVars, previousChannel, rememberChannel, surfaceOf, themeRoot, useLook, type Look } from './look'
 import MiniGuide from './MiniGuide'
 import { fmtClock, fmtSpan, forgetLineup, getLineup, leaveChannel, makeViewer, preflight, tune, type Alternative, type GuideChannel, type Programme, type TuneInfo } from './tvApi'
 import './tv.css'
+import './tvthemes.css'
 
 // Watching a channel: the app's player and on-screen remote, with channel keys
 // and the classic banner that drops in on every tune. Everyone on a channel
@@ -233,8 +236,11 @@ export default function TvPlayer() {
   const windowLen = Math.max(0, win.end - win.start)
   const isBehind = win.behind > 20
 
+  const root_ = themeRoot(look)
+  const playerRoot = { ...root_, style: { ...root_.style, ...channelVars(info?.accent, look.bg) } }
+
   return (
-    <div className={'player ctv-player'} ref={root} tabIndex={-1} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)} data-skin={look.colours} data-layout={look.layout} style={{ ...customVars(look), ...channelVars(info?.accent) }}>{/* design-ok: a click on the picture is the mouse's shortcut for Play and Pause */}
+    <div className={'player ctv-player'} ref={root} tabIndex={-1} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)} {...playerRoot}>{/* design-ok: a click on the picture is the mouse's shortcut for Play and Pause */}
       <h1 className="sr-only">{info ? `Channel ${info.number}, ${info.name}` : 'Live TV'}</h1>
       <div className="stage"><video ref={video} playsInline preload="auto" aria-label={info ? `Channel ${info.number}, ${info.name}` : 'TV'} onPlaying={() => { if (!picture) { setPicture(true); showBanner() } }} /></div>
       {!picture && !err && !needClick && <div className="center-spinner"><div className="spinner" /></div>}
@@ -259,7 +265,7 @@ export default function TvPlayer() {
         <div className="grow"><h2>{info ? `${info.number} ${info.name}` : 'Tuning…'}</h2><div className="sub">{isBehind ? `${Math.round(win.behind / 60)} min behind live` : 'Live'}</div></div>
       </div>
       {remoteOn && <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyTV" />}
-      {banner && (info ? <Banner info={info} look={look} /> : zap && <ZapBanner ch={zap} look={look} />)}
+      {banner && !mini && (info ? <Banner info={info} look={look} /> : zap && <ZapBanner ch={zap} look={look} />)}
       {mini && <MiniGuide channel={key} onTune={tuneTo} onClose={() => setMini(false)} onFull={guide} />}
       <Controls video={video} duration={windowLen} offset={-win.start} onSeek={(t) => seekTo(win.start + t)} onFullscreen={() => toggleFullscreen(root.current)}
         remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} showChapterMarks={false}
@@ -304,10 +310,18 @@ function Banner({ info, look }: { info: TuneInfo; look: Look }) {
         {info.next && <div className="ctv-banner-next">Next: {info.next.title} · {fmtSpan(info.next)}</div>}
         {info.playing && <div className="ctv-banner-next">Playing now: {info.playing.title}</div>}
         {info.notices?.map((n) => <div key={n} className="ctv-banner-notice">{n}{info.alternative ? ` Channel ${info.alternative.number} has the same station with sound.` : ''}</div>)}
+        <BannerRights ch={info} look={look} />
       </div>
       <div className="ctv-banner-clock">{fmtClock(now)}</div>
     </div>
   )
+}
+
+// A logo on the banner has its rights notice with it, however briefly it's up.
+function BannerRights({ ch, look }: { ch: Pick<TuneInfo, 'logo' | 'brand'>; look: Look }) {
+  const service = useLogo(ch.brand?.kind || 'studio', look.logos && !ch.logo && ch.brand ? ch.brand.name : '')
+  if (!look.logos || !(ch.logo || service?.has)) return null
+  return <LegalNote kind="logosBrief" className="ctv-banner-legal" />
 }
 
 function Slate({ name, next }: { name: string; next: Programme | null }) {

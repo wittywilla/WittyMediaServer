@@ -53,6 +53,7 @@ func (s *Server) handleLogoConsent(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	forgetTunerLogosNoted(s)
 	s.handleLogoStatus(w, r)
 }
 
@@ -106,6 +107,28 @@ func (s *Server) handleLogoImage(w http.ResponseWriter, r *http.Request) {
 	s.serveArtFile(w, r, f, p)
 }
 
+// channelLogoCredit is a channel wearing a picture that didn't come through the logo service, so
+// it has no licence to state: where it came from is all that's known.
+type channelLogoCredit struct {
+	Name   string `json:"name"`
+	Source string `json:"source"` // owner | list
+}
+
+// GET /api/logos: every name the service knows, for an administrator to find and change one.
+func (s *Server) handleLogoList(w http.ResponseWriter, r *http.Request) {
+	kind := r.URL.Query().Get("kind")
+	if kind != "" && !library.ValidLogoKind(kind) {
+		writeErr(w, 400, "unknown kind of logo")
+		return
+	}
+	out, total, err := s.Store.ListLogos(r.Context(), kind, r.URL.Query().Get("q"), qInt(r, "limit", 100), qInt(r, "offset", 0))
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"logos": out, "total": total})
+}
+
 // GET /api/logos/credits: where every logo came from, as their licences ask. An account with
 // limits is credited the studios and networks of what it may see, not of everything here.
 func (s *Server) handleLogoCredits(w http.ResponseWriter, r *http.Request) {
@@ -114,6 +137,22 @@ func (s *Server) handleLogoCredits(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
+	}
+	// The channels this account can see, with what each wears.
+	rows := s.libraryRows(ctx, r)
+	if s.TV != nil {
+		rows = append(rows, s.tunerRows(ctx, r)...)
+	}
+	others := []channelLogoCredit{}
+	for _, c := range rows {
+		if c.Logo == "" {
+			continue
+		}
+		source := "owner"
+		if c.Kind == "tuner" {
+			source = "list"
+		}
+		others = append(others, channelLogoCredit{c.Name, source})
 	}
 	if acc := s.access(r); acc != nil {
 		seen := map[string]bool{}
@@ -127,6 +166,11 @@ func (s *Server) handleLogoCredits(w http.ResponseWriter, r *http.Request) {
 				seen[kind+"|"+b.Key] = true
 			}
 		}
+		for _, c := range rows {
+			if c.Brand != nil {
+				seen[c.Brand.Kind+"|"+library.BrandKey(c.Brand.Name)] = true
+			}
+		}
 		kept := out[:0]
 		for _, g := range out {
 			if (g.Kind != library.LogoStudio && g.Kind != library.LogoNetwork) || seen[g.Kind+"|"+library.BrandKey(g.Name)] {
@@ -135,7 +179,7 @@ func (s *Server) handleLogoCredits(w http.ResponseWriter, r *http.Request) {
 		}
 		out = kept
 	}
-	writeJSON(w, 200, map[string]any{"logos": out})
+	writeJSON(w, 200, map[string]any{"logos": out, "channels": others})
 }
 
 // GET /api/logos/{id}/candidates?q=: what a source has, to choose from.

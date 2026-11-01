@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconClose, IconFull, IconMute, IconVolume } from '../../icons'
 import { useSource } from '../../player/hooks'
-import { PREVIEW_MIN, PREVIEW_SIZES, previewSizeName, setLook, type Look } from './look'
+import { PREVIEW_SIZES, previewSizeName, setLook, type Look } from './look'
+import { PREVIEW_MIN } from './tvThemes'
 import { leaveChannel, makeViewer, preflight, tune, type TuneInfo } from './tvApi'
 
 // The little TV on the guide. It waits for the highlight to settle before
@@ -10,9 +11,10 @@ import { leaveChannel, makeViewer, preflight, tune, type TuneInfo } from './tvAp
 // so a channel that was only flicked past stops at once. With the tab in the
 // background it stops altogether.
 //
-// It sits in the page's layout, not over it, so it can't cover anything. Its
-// size is any width from small up to what the page can spare (`max`), set by
-// dragging its handle or with the keys on it, and snaps to the named sizes.
+// It sits in the page's layout, not over it, so it can't cover anything. It starts at
+// a size that suits the theme and the window (`start`). Someone can make it any width
+// from small up to what the page can spare (`max`), by dragging its handle or with the
+// keys on it, and it snaps to the named sizes. A size someone chose is theirs to keep.
 
 const SETTLE_MS = 1500
 const STEP = 24
@@ -20,7 +22,7 @@ const SNAP_WITHIN = 18
 
 const snap = (w: number) => PREVIEW_SIZES.find((s) => Math.abs(s.w - w) <= SNAP_WITHIN)?.w ?? w
 
-export default function Preview({ channel, label, look, max }: { channel: string; label: string; look: Look; max: number }) {
+export default function Preview({ channel, label, look, max, start }: { channel: string; label: string; look: Look; max: number; start: number }) {
   const nav = useNavigate()
   const video = useRef<HTMLVideoElement | null>(null)
   const box = useRef<HTMLDivElement | null>(null)
@@ -73,7 +75,7 @@ export default function Preview({ channel, label, look, max }: { channel: string
 
   // Below what the controls need, a preview can't be used at all.
   const least = Math.min(PREVIEW_MIN, max)
-  const width = Math.max(least, Math.min(max, look.previewW))
+  const width = Math.max(least, Math.min(max, look.previewW ?? start))
   const setWidth = (w: number) => setLook({ previewW: Math.round(Math.max(least, Math.min(max, w))) })
 
   // Dragging changes only this element, so nothing else redraws on every move.

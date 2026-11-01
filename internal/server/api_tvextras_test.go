@@ -298,6 +298,38 @@ func TestGuideFiltersByCategoryAndKeepsOldSkins(t *testing.T) {
 	if w := tvCall(h, "PUT", "/api/tv/settings", admin, `{"tvSkin":"neon"}`); w.Code != 400 {
 		t.Errorf("unknown colours: %d", w.Code)
 	}
+	// The owner's theme for new viewers: it goes out beside the two older choices it replaced, and
+	// those still work for a client that sets them.
+	guide := func() map[string]any {
+		var g map[string]any
+		if err := json.Unmarshal(tvCall(h, "GET", "/api/guide?list=1&limit=1", admin, "").Body.Bytes(), &g); err != nil {
+			t.Fatal(err)
+		}
+		return g
+	}
+	if w := tvCall(h, "PUT", "/api/tv/settings", admin, `{"tvTheme":"satellite"}`); w.Code != 200 {
+		t.Errorf("a theme: %d", w.Code)
+	}
+	if g := guide(); g["theme"] != "satellite" || g["layout"] != "classic" || g["skin"] != "satellite" {
+		t.Errorf("the guide should say the theme, and what it comes to for an older client: %v %v %v", g["theme"], g["layout"], g["skin"])
+	}
+	if w := tvCall(h, "PUT", "/api/tv/settings", admin, `{"tvTheme":"listings"}`); w.Code != 200 {
+		t.Errorf("a theme: %d", w.Code)
+	}
+	if g := guide(); g["layout"] != "streaming" || g["skin"] != "theme" {
+		t.Errorf("an older client's nearest thing: %v %v", g["layout"], g["skin"])
+	}
+	if w := tvCall(h, "PUT", "/api/tv/settings", admin, `{"tvLayout":"classic"}`); w.Code != 200 {
+		t.Errorf("the older setting: %d", w.Code)
+	}
+	if g := guide(); g["theme"] != "" || g["layout"] != "classic" {
+		t.Errorf("choosing the old way means the theme no longer says: %v %v", g["theme"], g["layout"])
+	}
+	for _, body := range []string{`{"tvTheme":"custom"}`, `{"tvTheme":"<script>"}`} {
+		if w := tvCall(h, "PUT", "/api/tv/settings", admin, body); w.Code != 400 {
+			t.Errorf("%s: %d", body, w.Code)
+		}
+	}
 	bad := fmt.Sprintf(`{"name":"x","look":{"accent":"url(evil)"},"definition":{"mode":"simple","rules":{"items":[%d]},"order":{"mode":"sequential"},"filler":{},"alignMin":0}}`, video)
 	if w := tvCall(h, "POST", "/api/channels", admin, bad); w.Code != 400 {
 		t.Errorf("a colour that isn't one: %d", w.Code)

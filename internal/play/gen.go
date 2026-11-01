@@ -559,6 +559,12 @@ type CoreTraits struct {
 	// SharedMemory is set when the core can't run without making files in /dev/shm, as a
 	// core that maps its recompiled code twice can't.
 	SharedMemory bool
+	// LargeAddressSpace is set when the core reserves far more address space than a game
+	// normally gets: reservations, not memory, which stays limited as for any other game.
+	LargeAddressSpace bool
+	// OwnHome is set when the core won't start without a home folder it can write to. It gets
+	// its save folder as one, which is where what it keeps there belongs.
+	OwnHome bool
 	// CacheIn is a folder under the system folder where the core keeps what it has worked out,
 	// such as compiled shaders, kept between games for a core with a system folder of its own.
 	CacheIn string

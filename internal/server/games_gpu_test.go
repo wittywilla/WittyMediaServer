@@ -116,6 +116,63 @@ func TestPS2SaysWhichBIOSIsMissingAndFindsOne(t *testing.T) {
 	}
 }
 
+// A package that really is unencrypted starts, whatever its table of contents still says
+// and whether or not it kept its ticket, and the program copied out of it stays for next time.
+// One whose program is scrambled is refused, and no copy is made. The runner here is missing,
+// so these stop just after the point being tested.
+func TestPlain3DSPackageGetsPastTheRefusal(t *testing.T) {
+	modtest.Need(t, "wittyplay")
+	t.Setenv("WMS_WITTYPLAY_RUNNER", filepath.Join(t.TempDir(), "no-such-runner"))
+	g := newGameServer(t)
+	placeCores(t, g, "azahar")
+	for _, c := range []struct {
+		name      string
+		data      []byte
+		encrypted bool
+	}{
+		{"plain and marked plain", fixture.CIA(fixture.NCCH(true, false, 0x4000), 0, 0x00040000), false},
+		{"plain and still marked encrypted", fixture.CIA(fixture.NCCH(true, false, 0x4000), 1, 0x00040000), false},
+		{"scrambled by the package", fixture.CIA(fixture.Scrambled(0x4000), 1, 0x00040000), true},
+		{"scrambled by the program", fixture.CIA(fixture.NCCH(false, false, 0x4000), 0, 0x00040000), true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, "Game.cia"), c.data, 0o644); err != nil {
+				t.Fatal(err)
+			}
+			kept := filepath.Join(g.s.games().dir, "tmp", "3ds")
+			_ = os.RemoveAll(kept)
+			it := addGame(t, g, "3ds", dir)
+			code, a := play(t, g, it.ID)
+			if a.Encrypted != c.encrypted || (code == 422) != c.encrypted {
+				t.Fatalf("%d %+v", code, a)
+			}
+			ents, _ := os.ReadDir(kept)
+			if c.encrypted {
+				if len(ents) != 0 {
+					t.Errorf("copied something out of an encrypted file: %v", ents)
+				}
+				return
+			}
+			if len(ents) != 1 {
+				t.Fatalf("kept %v", ents)
+			}
+			before, err := ents[0].Info()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if code, _ = play(t, g, it.ID); code == 422 {
+				t.Fatal("refused the second time")
+			}
+			ents, _ = os.ReadDir(kept)
+			after, err := ents[0].Info()
+			if err != nil || len(ents) != 1 || !after.ModTime().Equal(before.ModTime()) {
+				t.Errorf("it should have used the copy it had: %v %v", ents, err)
+			}
+		})
+	}
+}
+
 // A generated card image: real headers, and a program that can't be read.
 func encryptedCCI() []byte {
 	b := make([]byte, 0x6000)

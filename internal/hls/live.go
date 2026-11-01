@@ -32,6 +32,7 @@ type LiveInput struct {
 	InputArgs []string // input options and -i; a slate when Slate is set
 	Seek      float64  // start this far in (files only)
 	Duration  float64  // stop after this long; 0 = until the input ends
+	Total     float64  // how long the whole input runs, where that is known
 	// Stdin feeds the input (MPEG-TS from a tuner); closed when the run ends.
 	Stdin       io.ReadCloser
 	VideoFilter string // deinterlacing and the like

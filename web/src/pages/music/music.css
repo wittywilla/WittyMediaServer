@@ -101,6 +101,7 @@
 .mh-song-text small { font-size: var(--text-xs); color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mh-song-time { flex: none; font-size: var(--text-sm); color: var(--fg-2); font-variant-numeric: tabular-nums; }
 .mh-more { color: var(--fg-2); }
+@media (pointer: coarse) { .mh-more { width: 44px; height: 44px; } }
 .mh-menu-link { display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: var(--r-md); color: inherit; text-decoration: none; font-size: var(--text-md); }
 .mh-menu-link:hover, .mh-menu-link:focus-visible { background: var(--hover); }
 

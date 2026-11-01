@@ -193,8 +193,13 @@ function firstOf(list: HTMLElement[], boxes: Map<HTMLElement, DOMRect>): HTMLEle
 export function focusFirst(): boolean {
   const main = document.getElementById('main')
   if (!main || document.querySelector('[role=dialog], [role=alertdialog], [role=menu]')) return false
-  const all = Array.from(main.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !el.hasAttribute('data-nav-skip'))
-  const first = firstOf(all, new Map(all.map((el) => [el, el.getBoundingClientRect()])))
+  // Still arriving: there's nothing yet that the page is about, so leave it for the next look.
+  if (main.querySelector('.loading-box, .skeleton-grid')) return false
+  const all = Array.from(main.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !el.hasAttribute('data-nav-skip') && !el.closest('.legal-note'))
+  // A settings page starts on the page itself, not in the menu beside it.
+  const page = all.filter((el) => !el.closest('.set-nav'))
+  const list = page.length ? page : all
+  const first = firstOf(list, new Map(list.map((el) => [el, el.getBoundingClientRect()])))
   if (!first) return false
   first.focus({ preventScroll: true })
   return true

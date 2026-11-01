@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useState } from 'react'
-import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, Route, Routes, useLocation } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
 import { ReminderWatcher } from './pages/tv/reminders'
 import { api } from './api'

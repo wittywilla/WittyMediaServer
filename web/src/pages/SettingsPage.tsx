@@ -277,7 +277,7 @@ function Libraries() {
                 </div>
                 {l.scanning && <span className="set-pill live">Scanning…</span>}
               </div>
-              <ul className="set-lib-paths">{l.paths.map((p) => <li key={p} title={p}><IconFolder size={14} /><span>{p}</span></li>)}</ul>
+              <ul className="set-lib-paths">{l.paths.map((p) => <li key={p} title={p}><IconFolder size={14} /><span><bdi>{p}</bdi></span></li>)}</ul>
               {l.type === 'commercials' && <CommercialsSwitch library={l} />}
               <div className="set-lib-actions">
                 <button className="btn sm" onClick={() => scan(l)} disabled={l.scanning}><IconRefresh /> Scan now</button>

@@ -261,6 +261,12 @@ This is an alpha, so here's what has and hasn't been tried.
 - **Remote and keyboard**: arrow keys reach everything, coming back to a row lands where you left it, and Back returns to the control you left. **Big screen mode** in Appearance, or `?tv=1`, keeps the larger text and stronger focus on for a TV.
 - **Moving posters**: movie and show posters lean toward the pointer with a soft moving light, or settle in as a remote reaches them. Turn it off in Appearance; it also stays off on modest devices and when a device asks for less motion.
 - **Profile names and usernames can differ**: you sign in with a unique username, and everyone else sees a profile name anyone can choose. Each person picks which one shows at the top right. Usernames now count as taken whatever their case, and can't contain invisible characters.
+- **Posters are larger,** about a seventh of the window on a wide screen, and a library's name, sorts and Filters stay tidy at any width.
+- **Across the room:** a page starts on its main action, the side menu and top bar grow with the type, a row's heading leads into its row, and going down a page no longer falls into the side menu.
+- **On a phone:** every control is at least 44 pixels to the finger, words over artwork stay readable, and rows of people and buttons no longer squeeze a name to nothing.
+- **Asking first is the app's own dialog everywhere,** including deleting a channel or recording and removing a tuner, so a remote can always answer. The dialog that asks for your password is the same one.
+- An address that isn't a page now says so, with a way home. A library's folder keeps its leading slash on screen.
+- **Module store:** a library such as WittyDisc says it comes with other modules, Modules and the store both say Install and show each module's own picture, and a change refused because another is running says so plainly.
 
 ### Activity and statistics
 

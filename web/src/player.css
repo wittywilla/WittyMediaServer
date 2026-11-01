@@ -174,6 +174,7 @@
 /* ---------------------------------------------------------------- episodes: layout toggle, playlist */
 .view-toggle { display: flex; align-items: center; gap: var(--sp-3); margin: var(--sp-2) 0 var(--sp-3); font-size: var(--text-sm); }
 .seg { display: inline-flex; background: var(--bg-3); border-radius: var(--r-md); padding: 3px; gap: 2px; }
+@media (pointer: coarse) { .seg { padding: 0; } .seg button { min-height: 44px; } }
 .seg button { background: transparent; border: 0; color: var(--fg-2); min-height: calc(var(--control-h-sm) - 6px); padding: 0 var(--sp-3); border-radius: calc(var(--r-md) - 3px); font-weight: 600; font-size: var(--text-sm); white-space: nowrap; transition: background var(--dur-2), color var(--dur-2); }
 .seg button:hover { color: var(--fg); background: var(--hover); }
 .seg button.active, .seg button.active:hover { background: var(--fg); color: var(--bg); }

@@ -135,9 +135,8 @@
 }
 /* Fingers: bigger controls everywhere, from one place. */
 @media (pointer: coarse) { :root { --control-h: 2.75rem; --control-h-sm: 2.75rem; --control-h-lg: 3.125rem; } }
-@media (min-width: 1100px) { :root { --card-w: 180px; } }
-@media (min-width: 1500px) { :root { --card-w: 200px; --card-wide-w: 300px; } }
-@media (min-width: 1900px) { :root { --card-w: 240px; --card-wide-w: 340px; } }
+/* About a seventh of the window, however wide it is. */
+@media (min-width: 1100px) { :root { --card-w: clamp(180px, 13.8vw, 300px); --card-wide-w: clamp(260px, 21vw, 420px); } }
 @media (max-width: 520px) { :root { --card-w: 104px; --card-wide-w: 232px; } }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -160,6 +159,10 @@ html.ten-foot { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focu
   html.using-controller, html.ten-foot { --sidebar: 300px; --rail: 96px; --topbar-h: 80px; }
 }
 @media (min-width: 901px) and (pointer: none) { :root { --sidebar: 300px; --rail: 96px; --topbar-h: 80px; } }
+/* A controller on a phone: the type stays large, but a phone still has a phone's margin. */
+@media (max-width: 720px) {
+  html.using-controller, html.ten-foot { --gutter: var(--sp-4); }
+}
 @media (min-width: 1900px) {
   html.using-controller, html.ten-foot { --card-w: 260px; --card-wide-w: 380px; }
 }
@@ -771,10 +774,12 @@ main.content:focus { outline: none; }
   input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; }
   .set-switch::after { content: ''; position: absolute; inset: -9px -2px; }
   .tip::before { inset: -11px; }
-  summary { padding-block: 10px; }
+  summary { padding-block: 12px; }
   .legal-note a { padding: 12px 6px; margin: -12px -6px; }
 }
 .field-row:has(> .field-label) { align-items: flex-end; flex-wrap: wrap; }
+.field-row:has(> .ui-field) { align-items: flex-start; }
+.field-row:has(> .ui-field) > .btn { margin-top: calc(var(--text-sm) * 1.5 + var(--sp-1)); }
 .field-row > .ui-field { flex: 1 1 240px; min-width: 0; }
 .field-row > .ui-field .input { width: 100%; }
 .field-label { display: grid; gap: 4px; flex: 1 1 180px; font-size: var(--text-sm); color: var(--fg-2); }

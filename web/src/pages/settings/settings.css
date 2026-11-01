@@ -188,6 +188,7 @@
 .mod-row { display: flex; align-items: center; gap: 14px; padding: 11px 12px; border-radius: var(--r-md); color: var(--fg); }
 a.mod-row:hover { background: var(--hover); }
 .mod-row.mod-self { background: var(--accent-soft); margin-bottom: 6px; }
+.mod-self .muted { color: var(--fg-2); }
 .mod-name { display: grid; gap: 1px; min-width: 0; flex: 1; }
 .mod-name .muted { font-size: var(--text-xs); }
 .mod-ver { display: flex; align-items: center; gap: var(--sp-2); font-family: var(--font-mono); font-size: var(--text-sm); color: var(--fg-2); flex: none; }

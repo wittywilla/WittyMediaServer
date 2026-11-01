@@ -205,7 +205,7 @@ export default function CouchMode() {
           <div className="gm-couch-right">
             <span className="gm-couch-name">{user?.name}</span>
             <time className="gm-couch-clock">{clock}</time>
-            <button type="button" className="btn ghost" onClick={() => setLeaving(true)}><IconBack size={18} /> Leave</button>
+            <button type="button" className="btn ghost gm-couch-leave" aria-label="Leave" onClick={() => setLeaving(true)}><IconBack size={18} /> <span>Leave</span></button>
           </div>
         </header>
         <main ref={main} id="main" className="content gm-couch-main" tabIndex={-1}>

@@ -522,8 +522,8 @@ files missing or changed, or sign-ins from an unexpected place. Move quickly, an
 - **Encryption from the internet.** Unencrypted requests from the internet are refused or sent to your HTTPS address, so a wrongly forwarded plain port can't
   expose your password. Browsers that have used HTTPS keep using it for a week (HSTS).
 - **Sign-in limits.** After 5 wrong tries for one name from one address, each further try waits longer, up to 15 minutes. Away from home there are also limits
-  on one address trying many names (20 wrong tries, an IPv6 network counts as one address) and one name tried from many addresses (30). **Nobody on the internet
-  can lock you out at home.** Wrong tries are shown on the page, where you can also clear the locks. Only a few passwords are checked at once, so a flood of
+  on one address trying many names (20 wrong tries, an IPv6 network counts as one address) and one name tried from many addresses (30). Counts are kept until an
+  address has been quiet for six hours. One address alone can't lock a name for anyone else, and **nobody on the internet can lock you out at home.** Wrong tries are shown on the page, where you can also clear the locks. Only a few passwords are checked at once, so a flood of
   attempts can't take the whole machine.
 - **Cookies** are `HttpOnly`, `SameSite=Lax` and, over HTTPS, `Secure`.
 - **Other websites** can't read answers from the server unless they hold a sign-in token, and can't act with your cookie. This matters at home too: any page you

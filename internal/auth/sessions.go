@@ -225,9 +225,11 @@ type WeakAccount struct {
 	Unknown bool   `json:"unknown"`
 }
 
-// WeakAccounts lists adult accounts with a weak or unchecked password.
+// WeakAccounts lists adult accounts with a weak or unchecked password, and Kids and Guest profiles
+// signing in with a short PIN: it keeps siblings apart, but it faces the internet just the same
+// once remote access is on.
 func (s *Service) WeakAccounts(ctx context.Context) ([]WeakAccount, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT name, is_admin, password_weak FROM users WHERE kind = 'adult' AND (password_weak IS NULL OR password_weak = 1) ORDER BY is_admin DESC, name`)
+	rows, err := s.DB.QueryContext(ctx, `SELECT name, is_admin, password_weak FROM users WHERE (kind = 'adult' AND (password_weak IS NULL OR password_weak = 1)) OR (kind <> 'adult' AND password_hash <> '' AND password_weak = 1) ORDER BY is_admin DESC, name`)
 	if err != nil {
 		return nil, err
 	}

@@ -35,7 +35,7 @@ import (
 // A person's settings and own files for their games: what they've chosen, at which
 // level, and how a running game hears about it. docs/GAMING.md has the reasoning.
 
-func (s *Server) gameOptionRoutes(m *http.ServeMux) {
+func (s *Server) gameOptionRoutes(m routes) {
 	a := s.requireUser
 	m.Handle("GET /api/games/settings/schema", a(s.handleGameSettingsSchema))
 	m.Handle("GET /api/games/settings", a(s.handleGameSettingsGet))

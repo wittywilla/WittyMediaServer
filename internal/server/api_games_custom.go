@@ -54,7 +54,7 @@ const (
 
 // customRoutes registers the routes. Everything here is for administrators, and every
 // route that changes anything other than turning this off checks it is turned on.
-func (s *Server) customRoutes(m *http.ServeMux) {
+func (s *Server) customRoutes(m routes) {
 	on := s.customOn
 	m.Handle("GET /api/gaming/custom", s.requireAdmin(s.handleCustomGet))
 	m.Handle("PUT /api/gaming/custom/enabled", s.requireAdmin(s.handleCustomEnable))

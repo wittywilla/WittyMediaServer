@@ -28,7 +28,7 @@ import (
 // is nothing to change to reach someone else's. See docs/GAMING-API.md.
 
 // gameProfileRoutes registers them.
-func (s *Server) gameProfileRoutes(m *http.ServeMux) {
+func (s *Server) gameProfileRoutes(m routes) {
 	a := s.requireUser
 	m.Handle("GET /api/game-controllers", a(s.handleGameControllers))
 	m.Handle("GET /api/game-profiles", a(s.handleGameProfiles))

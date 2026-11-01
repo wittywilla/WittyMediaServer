@@ -44,7 +44,7 @@ func init() {
 }
 
 // gameRoutes registers the games API.
-func (s *Server) gameRoutes(m *http.ServeMux) {
+func (s *Server) gameRoutes(m routes) {
 	a := s.requireUser
 	m.Handle("GET /api/games/consoles", a(s.handleGameConsoles))
 	m.Handle("GET /api/games/modes", a(s.handleGameModes))

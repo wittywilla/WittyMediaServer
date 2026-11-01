@@ -245,7 +245,11 @@ func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm 
 	}
 	older := wittymodule.Compare(ver, e.man.Version) < 0
 	if localErr == nil {
-		return m.activate(id, e, man, older)
+		err := m.activate(id, e, man, older)
+		if err == nil {
+			m.ready(id)
+		}
+		return err
 	}
 	e.busy, e.phase, e.lastError, e.done, e.total = true, PhaseDownloading, "", 0, k.rel.archive.Size
 	rel := k.rel
@@ -271,6 +275,7 @@ func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm 
 		}
 		e.phase = PhaseIdle
 		log.Info("modules: installed")
+		m.ready(id)
 	}, "cat", "modules", "session", session)
 	return nil
 }

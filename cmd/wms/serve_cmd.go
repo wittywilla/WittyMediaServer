@@ -221,6 +221,7 @@ func cmdServe(args []string) int {
 			return v == "1"
 		},
 		AutoInstall: func() bool { return database.GetSetting(context.Background(), "moduleAutoInstall", "0") == "1" },
+		OnReady:     func(id string) { scanFor(context.Background(), store, scanner, id, log) },
 	})
 	defer modMgr.Close()
 	modStores := modules.NewStores(modules.StoresConfig{Manager: modMgr, Dir: filepath.Join(cfg.DataDir, "modules"), Transport: library.SafeClient.Transport, Log: log, CheckEnabled: modMgr.CheckEnabled})
@@ -452,4 +453,28 @@ func parseLevelName(v string) (slog.Level, bool) {
 		return 0, false
 	}
 	return lv, true
+}
+
+// scanFor scans the libraries that have been waiting for a module: discs and games stay listed
+// without theirs, with nothing known about what's in them.
+func scanFor(ctx context.Context, store *library.Store, scanner *library.Scanner, id string, log *slog.Logger) {
+	var kinds map[string]bool
+	switch id {
+	case "wittyplay":
+		kinds = map[string]bool{"games": true}
+	case "wittydvd", "wittybluray", "wittycd":
+		kinds = map[string]bool{"discs": true, "movies": true, "shows": true}
+	default:
+		return
+	}
+	libs, err := store.Libraries(ctx)
+	if err != nil {
+		log.WarnContext(ctx, "looking for libraries to scan after a module arrived", "module", id, "err", err)
+		return
+	}
+	for _, l := range libs {
+		if kinds[l.Type] {
+			scanner.Start(l.ID)
+		}
+	}
 }

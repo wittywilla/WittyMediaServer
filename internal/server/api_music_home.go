@@ -323,14 +323,13 @@ func (s *Server) handleMusicExtraFile(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
-	path := filepath.Join(filepath.Dir(it.Path), name)
+	f, st, err := s.Store.OpenLibraryFile(r.Context(), filepath.Join(filepath.Dir(it.Path), name))
+	if err != nil {
+		writeErr(w, 404, "not found")
+		return
+	}
+	defer f.Close()
 	if found.Kind == "text" {
-		f, err := os.Open(path)
-		if err != nil {
-			writeErr(w, 404, "not found")
-			return
-		}
-		defer f.Close()
 		b, err := io.ReadAll(io.LimitReader(f, maxExtraText))
 		if err != nil {
 			writeErr(w, 500, "couldn't read that")
@@ -339,20 +338,9 @@ func (s *Server) handleMusicExtraFile(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]string{"text": lyrics.Decode(b)})
 		return
 	}
-	f, err := os.Open(path)
-	if err != nil {
-		writeErr(w, 404, "not found")
-		return
-	}
-	defer f.Close()
-	st, err := f.Stat()
-	if err != nil || !st.Mode().IsRegular() {
-		writeErr(w, 404, "not found")
-		return
-	}
 	w.Header().Set("Content-Type", "application/pdf")
 	w.Header().Del("Content-Security-Policy") // the browser's own viewer shows it in a tab; PDFs can't run scripts on this site
-	http.ServeContent(w, r, "", st.ModTime(), f)
+	http.ServeContent(s.capWriter(w, r), r, "", st.ModTime(), f)
 }
 
 // ---------------------------------------------------------------- artists
@@ -504,21 +492,26 @@ func (s *Server) saveArtistPicture(ctx context.Context, name, src string) bool {
 var artistPictures = []string{"artist.jpg", "artist.jpeg", "artist.png", "artist.webp"}
 
 // localArtistPicture looks in the artist's folder and the album's for a picture named
-// for that purpose. The folders come from a song's own path, checked to be in a library.
-func (s *Server) localArtistPicture(ctx context.Context, songPath string) string {
+// for that purpose, and hands it back open. The folders come from a song's own path.
+func (s *Server) localArtistPicture(ctx context.Context, songPath string) (*os.File, string) {
 	if isWeb(songPath) {
-		return ""
+		return nil, ""
 	}
 	dir := filepath.Dir(songPath)
 	for _, d := range []string{filepath.Dir(dir), dir} {
 		for _, name := range artistPictures {
 			p := filepath.Join(d, name)
-			if s.Store.LibraryFile(ctx, p) {
-				return p
+			f, _, err := s.Store.OpenLibraryFile(ctx, p)
+			if err != nil {
+				continue
 			}
+			if imageType(f, p) != "" {
+				return f, p
+			}
+			f.Close()
 		}
 	}
-	return ""
+	return nil, ""
 }
 
 var artistRefresh = make(chan string, 64) // names to look up when there's a moment
@@ -556,9 +549,8 @@ func (s *Server) handleArtistPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	if p := s.localArtistPicture(ctx, tracks[0].Path); p != "" {
-		w.Header().Set("Cache-Control", "private, max-age=86400")
-		http.ServeFile(w, r, p)
+	if f, p := s.localArtistPicture(ctx, tracks[0].Path); f != nil {
+		s.serveArtFile(w, r, f, p)
 		return
 	}
 	facts := s.readArtistFacts(name)

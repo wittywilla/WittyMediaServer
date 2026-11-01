@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -121,10 +122,10 @@ func (s *Server) localLyrics(ctx context.Context, it *library.Item) (lyrics.Doc,
 	if it.IsCDTrack() || isWeb(it.Path) || !s.Store.LibraryFile(ctx, it.Path) {
 		return lyrics.Doc{}, ""
 	}
-	if d := sidecarLyrics(it.Path); !d.Empty() {
+	if d := s.sidecarLyrics(ctx, it.Path); !d.Empty() {
 		return d, "sidecar"
 	}
-	if f, err := os.Open(it.Path); err == nil {
+	if f, _, err := s.Store.OpenLibraryFile(ctx, it.Path); err == nil {
 		d := lyrics.ReadID3(f)
 		f.Close()
 		if !d.Empty() {
@@ -160,8 +161,9 @@ func (s *Server) localLyrics(ctx context.Context, it *library.Item) (lyrics.Doc,
 }
 
 // sidecarLyrics looks for "<song>.lrc" then "<song>.txt", whatever their case. The
-// names come from the folder listing, so nothing can lead out of the folder.
-func sidecarLyrics(songPath string) lyrics.Doc {
+// names come from the folder listing, and what's read is what's opened: a file swapped
+// for a link after the listing still can't lead out of the library.
+func (s *Server) sidecarLyrics(ctx context.Context, songPath string) lyrics.Doc {
 	dir := filepath.Dir(songPath)
 	base := strings.TrimSuffix(filepath.Base(songPath), filepath.Ext(songPath))
 	entries, err := os.ReadDir(dir)
@@ -188,14 +190,21 @@ func sidecarLyrics(songPath string) lyrics.Doc {
 		if name == "" {
 			continue
 		}
-		p := filepath.Join(dir, name)
-		if st, err := os.Stat(p); err != nil || st.Size() > lyrics.MaxBytes {
+		f, st, err := s.Store.OpenLibraryFile(ctx, filepath.Join(dir, name))
+		if err != nil {
 			continue
 		}
-		if b, err := os.ReadFile(p); err == nil {
-			if d := lyrics.Parse(lyrics.Decode(b)); !d.Empty() {
-				return d
-			}
+		if st.Size() > lyrics.MaxBytes {
+			f.Close()
+			continue
+		}
+		b, err := io.ReadAll(io.LimitReader(f, lyrics.MaxBytes))
+		f.Close()
+		if err != nil {
+			continue
+		}
+		if d := lyrics.Parse(lyrics.Decode(b)); !d.Empty() {
+			return d
 		}
 	}
 	return lyrics.Doc{}

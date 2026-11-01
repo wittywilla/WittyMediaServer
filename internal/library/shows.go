@@ -231,6 +231,7 @@ func (s *Store) showByPath(ctx context.Context, libraryID int64, path string) (*
 
 // UpsertShow inserts or updates a show (and clears its missing flag).
 func (s *Store) UpsertShow(ctx context.Context, sh *Show) error {
+	sh.Rating, sh.IntroStart, sh.IntroEnd = finitePtr(sh.Rating), finitePtr(sh.IntroStart), finitePtr(sh.IntroEnd)
 	now := db.Now()
 	if sh.SortTitle == "" {
 		sh.SortTitle = SortTitle(sh.Title)

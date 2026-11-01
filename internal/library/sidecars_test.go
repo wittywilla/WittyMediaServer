@@ -1,11 +1,16 @@
 package library
 
 import (
+	"context"
+	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/db"
 )
 
 // allocated says how much a function allocates in all, whatever it gives back.
@@ -86,5 +91,61 @@ func TestSmallSidecarsStillRead(t *testing.T) {
 	}
 	if _, err := readSmall(dir, 1<<20); err == nil {
 		t.Error("a folder read as a file")
+	}
+}
+
+// A number from a file or a feed is whatever it says, and Go reads "Inf" as a number.
+func TestFilesCantSayInfinity(t *testing.T) {
+	for _, v := range []string{"Inf", "+Inf", "NaN", "-Inf", "-5", "1e308:1e308:1e308", "1e999"} {
+		if got := parseDuration(v); got != 0 {
+			t.Errorf("%q: %v", v, got)
+		}
+	}
+	for v, want := range map[string]float64{"1:02:03": 3723, "62:03": 3723, "3723": 3723, "": 0, "x": 0} {
+		if got := parseDuration(v); got != want {
+			t.Errorf("%q: %v", v, got)
+		}
+	}
+	dir := t.TempDir()
+	p := filepath.Join(dir, "m.nfo")
+	if err := os.WriteFile(p, []byte("<movie><title>Bad</title><rating>Inf</rating></movie>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	d, derr := db.Open(t.TempDir())
+	if derr != nil {
+		t.Fatal(derr)
+	}
+	defer d.Close()
+	s := &Store{DB: d}
+	lib, err := s.CreateLibrary(context.Background(), "M", "movies", []string{dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	it := &Item{LibraryID: lib.ID, Kind: "video", Path: filepath.Join(dir, "m.mkv"), Title: "x", SortTitle: "x"}
+	applyNFO(it, p)
+	if err := s.UpdateItem(context.Background(), it); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.Item(context.Background(), it.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Rating != nil {
+		t.Errorf("rating %v", *got.Rating)
+	}
+	if _, err := json.Marshal(got); err != nil {
+		t.Errorf("the item can't be sent: %v", err)
+	}
+	inf := math.Inf(1)
+	sh := &Show{LibraryID: lib.ID, Path: filepath.Join(dir, "show"), Title: "Show", Rating: &inf}
+	if err := s.UpsertShow(context.Background(), sh); err != nil {
+		t.Fatal(err)
+	}
+	gs, err := s.ShowFacts(context.Background(), sh.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := json.Marshal(gs); err != nil {
+		t.Errorf("the show can't be sent: %v", err)
 	}
 }

@@ -54,6 +54,13 @@ func Open(dataDir string) (*DB, error) {
 	return d, nil
 }
 
+// clearInfinities clears what a file or feed could store before numbers were checked.
+const clearInfinities = `UPDATE items SET rating = NULL WHERE rating > 1e300 OR rating < -1e300;
+	 UPDATE items SET runtime_sec = 0 WHERE runtime_sec > 1e300 OR runtime_sec < -1e300;
+	 UPDATE items SET intro_start = NULL WHERE intro_start > 1e300 OR intro_start < -1e300;
+	 UPDATE items SET intro_end = NULL WHERE intro_end > 1e300 OR intro_end < -1e300;
+	 UPDATE shows SET rating = NULL WHERE rating > 1e300 OR rating < -1e300;`
+
 var migrations = []string{
 	`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 	 CREATE TABLE IF NOT EXISTS users (
@@ -401,6 +408,8 @@ var migrations = []string{
 	   uuid TEXT NOT NULL, mac TEXT NOT NULL DEFAULT '', cert TEXT NOT NULL DEFAULT '',
 	   public INTEGER NOT NULL DEFAULT 0, paired_at INTEGER, created_at INTEGER NOT NULL,
 	   UNIQUE(user_id, uuid));`,
+	// 25: numbers a file said were infinite. One of these blanked every list holding it.
+	clearInfinities,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

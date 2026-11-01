@@ -232,12 +232,12 @@ func parseDuration(v string) float64 {
 	total := 0.0
 	for _, p := range parts {
 		n, err := strconv.ParseFloat(p, 64)
-		if err != nil {
+		if err != nil || n < 0 {
 			return 0
 		}
 		total = total*60 + n
 	}
-	return total
+	return finite(total)
 }
 
 // Subscribe adds a feed to a podcasts library and loads its episodes.

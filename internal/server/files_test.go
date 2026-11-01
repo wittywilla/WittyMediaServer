@@ -2,7 +2,10 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"math"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -182,5 +185,43 @@ func TestSwappingALinkDuringServingNeverLeaks(t *testing.T) {
 	<-done
 	if leaked > 0 {
 		t.Errorf("the outside file came through %d times in 1200 requests", leaked)
+	}
+}
+
+// A number that JSON can't say used to blank every list holding it: the answer was 200 with
+// nothing in it, and nothing in the log.
+func TestNumbersJSONCantSay(t *testing.T) {
+	g := newGalleryServer(t)
+	inf := math.Inf(1)
+	nan := math.NaN()
+	it := g.galleryItem(t, "a.mp4", "video")
+	it.Rating, it.RuntimeSec, it.IntroStart, it.IntroEnd = &inf, inf, &nan, &inf
+	if err := g.s.Store.UpdateItem(context.Background(), it); err != nil {
+		t.Fatal(err)
+	}
+	w := g.do("GET", fmt.Sprintf("/api/items?library=%d&limit=50", g.lib.ID), g.adult, nil)
+	var got struct {
+		Items []struct {
+			ID         int64    `json:"id"`
+			Rating     *float64 `json:"rating"`
+			RuntimeSec float64  `json:"runtimeSec"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil || w.Code != 200 || len(got.Items) != 1 {
+		t.Fatalf("%d %q %v", w.Code, w.Body, err)
+	}
+	if got.Items[0].Rating != nil || got.Items[0].RuntimeSec != 0 {
+		t.Errorf("%+v", got.Items[0])
+	}
+
+	rec := httptest.NewRecorder()
+	writeJSON(rec, 200, map[string]any{"bad": inf})
+	if rec.Code != 500 || !json.Valid(rec.Body.Bytes()) {
+		t.Errorf("what can't be written is an error, not an empty answer: %d %q", rec.Code, rec.Body)
+	}
+	rec = httptest.NewRecorder()
+	writeJSON(rec, 201, map[string]any{"fine": 1})
+	if rec.Code != 201 || !strings.Contains(rec.Body.String(), `"fine":1`) {
+		t.Errorf("%d %q", rec.Code, rec.Body)
 	}
 }

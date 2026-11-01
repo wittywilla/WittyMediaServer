@@ -256,7 +256,7 @@ export default function MetadataFolder() {
           <details>
             <summary>Doing this without the web page</summary>
             <p>If the server won’t start, or you’d rather use a terminal, the same things work with the server stopped:</p>
-            <pre tabIndex={0} aria-label="Commands for the terminal">{'wittymediaserver metadata export\nwms metadata check\nwms metadata apply          (says what would change)\nwms metadata apply --apply  (changes it)'}</pre>
+            <pre tabIndex={0} aria-label="Commands for the terminal">{'wittymediaserver metadata export\nwittymediaserver metadata check\nwittymediaserver metadata apply          (says what would change)\nwittymediaserver metadata apply --apply  (changes it)'}</pre>
           </details>
           <p className="mf-more">Worried about a match rather than a typo? <LinkButton className="mf-touch" to="/fix-matches" size="sm">Open Fix matches</LinkButton></p>
         </div>

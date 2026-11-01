@@ -1,13 +1,15 @@
-# WittyShorts
+# Vertical videos
 
-Vertical videos, one at a time, from files you already have: likes, comments, sharing, creators, your
-own metadata and a For You page worked out on your server alone.
+Use this guide to set up a feed of vertical videos from files you already have, with likes, comments, creators and a For You page worked out on your server alone.
 
-WittyShorts plays files you supply. It doesn't download from video sites and never contacts one.
+Vertical videos, also called WittyShorts, plays files you supply. It doesn't download from video sites and never contacts one.
+
+The Android and Apple apps can't open these libraries yet, so use a browser or the desktop app.
 
 ## Setting it up
 
-Add a library of the kind **Vertical videos** and choose its folder. One folder per creator works best:
+1. Go to **Settings → Libraries**, or use first-time setup, and choose **Vertical videos**.
+2. Choose its folder. One folder per creator works best:
 
 ```
 Vertical videos/
@@ -19,12 +21,11 @@ Vertical videos/
     ridge run.mp4
 ```
 
-Any video format the server plays will do, and there is no minimum size. Thumbnails are made when first
-needed, unless a picture with the video's name is beside it.
+Any video format the server plays will do, and there's no minimum size. Thumbnails are made when first needed, unless a picture with the video's name is beside it.
 
-## Sidecar files
+## Adding details with sidecar files
 
-Beside a video, in this order:
+A sidecar is a small file beside a video that adds its details. These are read, in this order:
 
 | File | Read for |
 |---|---|
@@ -46,59 +47,73 @@ Your own file can hold any of these fields:
 }
 ```
 
-Without a sidecar, the creator is the first folder below the library and the title is the file's name
-without the id archivers add. A `channel.json` in a creator's folder (`name`, `handle`, `description`,
-`platform`, `url`) and an `avatar.jpg` and `banner.jpg` beside it fill in the creator's page. Viewers
-are shown *platform of origin* as text; a source address is a link, and only `http` and `https`
-addresses are accepted.
+Without a sidecar, the creator is the first folder below the library, and the title is the file's name without the id archivers add.
 
-Administrators can edit all of this on a video with **Edit**. Edits stay in the database, so your files
-aren't touched, and later scans leave them alone.
+**A creator's page** is filled in from their folder:
+
+- `channel.json` (or `creator.json`), with `name`, `handle`, `description`, `platform` and `url`.
+- A picture named `avatar`, `channel`, `profile`, `folder`, `poster` or `cover`.
+- A picture named `banner`, `fanart`, `backdrop` or `header`.
+
+Viewers see the platform of origin as text. A source address is a link, and only `http` and `https` addresses are accepted.
+
+**Editing:** admins can change all of this with **Edit** beside a video. Edits stay in the database, so your files aren't touched, and later scans leave them alone.
 
 ## Watching
 
-The feed plays one video and shows the others as pictures until they arrive, so a low-end phone has as
-much to do as for a single video. Swipe or use ↑ and ↓. **L** likes, **C** opens comments, **M** mutes,
-and Space or K pauses. With a remote, ↑ and ↓ change video, → reaches the buttons, ← comes back.
+The feed plays one video and shows the others as pictures until they arrive, so a low-end phone has as much to do as for a single video. A video of 15 seconds or less plays twice before moving on. Longer ones move on when they end.
 
-*Following* lists the creators you follow, *Liked* what you liked, *Creators* everyone. Playback speed
-is on the side, and stays for the videos that follow.
+| Tab | What it shows |
+|---|---|
+| **For You** | The feed, in an order made for you |
+| **Following** | The creators you follow. Press **Subscribe** under **About** on a video to follow its creator |
+| **Liked** | What you liked |
+| **Creators** | Everyone in the library |
 
-## For You
+Beside the video are **Like**, **Comments**, **Share**, **Speed**, **About** and, for admins, **Edit**. Speed stays for the videos that follow. Press the video to pause it, or use its pause and sound buttons.
 
-The order of the feed is worked out on the server, from what this profile did on this server and nothing
-else. There is no account anywhere else, and nothing leaves the server.
+| Key | What it does |
+|---|---|
+| ↑ ↓ | Previous or next video |
+| L | Like |
+| C | Comments |
+| M | Sound on or off |
+| → | Move to the buttons. ← comes back |
 
-- A like adds to your taste for that video's tags and creator; a dislike (✕ on the watch page) takes away
-  and hides it; so do a comment and a full watch (add), and a skip (take away a little).
+Swiping works on a touch screen. With a remote, ↑ and ↓ change video, → reaches the buttons and ← comes back.
+
+**Sharing:** **Share** works as it does for photos, including links for someone without an account. See [Sharing](PHOTOS.md#sharing).
+
+## How For You works
+
+The order of the feed is worked out on the server, from what this profile did on this server and nothing else. There's no account anywhere else, and nothing leaves the server.
+
+- A like, a comment and a full watch add to your taste for that video's tags and creator. A like counts most.
+- A dislike takes away and hides the video. It's the ✕ beside **Like**, on a video's watch page in a [creator videos](CREATOR-VIDEOS.md) library. A skip takes away a little.
 - Older actions count less: half as much every 45 days.
-- A video scores its taste, plus how new it is, plus a little chance so the feed keeps offering something
-  different, minus having been seen recently.
+- A video scores your taste, plus how new it is, plus a little chance so the feed keeps offering something different, minus having been seen recently.
 - One creator doesn't fill the screen while others are waiting.
 
-Under each video the feed says why it is there: *Because you like #cats*, *More from …*, *New on this
-server*. To start again from nothing, use **Clear my history** on Your year. Each profile's feed is its
-own, and one profile's likes don't change another's.
+Under each video the feed says why it's there: *Because you like #cats*, *More from …*, *New on this server* or *Watch again*.
+
+**To start again from nothing,** use **Clear my history** on [Your year](COLLECTIONS.md#your-year). It clears the numbers behind For You, your history and your year, and leaves your place in videos and books. Each profile's feed is its own, and one profile's likes don't change another's.
 
 ## Profiles
 
-Kids and Guest profiles see only what their limits allow. A video's rating comes from a sidecar's
-`contentRating` or `age_limit`, or from **Edit**; unrated videos are hidden from them unless you allow
-unrated titles. Kids can like but not comment, and a Guest can only watch.
+Kids and Guest profiles see only what their limits allow. A video's rating comes from a sidecar's `contentRating` or `age_limit`, or from **Edit**. Unrated videos are hidden from them unless you allow titles without a rating, under **Settings → Profiles**. Kids can like but not comment, and a Guest can only watch.
 
-## For apps
+## For developers
 
-| Route | What it gives |
+Every route is in [Client API](CLIENT-API.md#every-route). Videos are ordinary items: `GET /api/items/{id}/play` says how to play one, direct or HLS. These notes add what the route list doesn't say.
+
+| Route | What to know |
 |---|---|
-| `GET /api/videos/feed?library=&seed=&limit=&offset=` | For You, one page. The first answer has the `seed` to send for the next pages, so a session's order holds |
-| `GET /api/videos?library=&creator=&playlist=&tag=&platform=&search=&shape=vertical\|wide&length=long\|short&subscribed=&liked=&history=&sort=latest\|oldest\|popular\|title&limit=&offset=` | Lists, with `more` |
-| `GET /api/videos/{id}`, `GET /api/videos/{id}/related` | One video, and what to watch after it |
-| `PUT /api/videos/{id}` | Custom metadata (administrators) |
-| `GET /api/videos/tags?library=` | Common tags |
-| `GET /api/creators?library=`, `GET /api/creators/{id}`, `PUT /api/creators/{id}`, `GET /api/creators/{id}/art/avatar\|banner`, `PUT /api/creators/{id}/subscribe` | Creators |
-| `PUT /api/items/{id}/reaction` `{value: 1, 0 or -1}` | Like, neither, dislike |
-| `GET`/`POST /api/items/{id}/comments`, `PUT`/`DELETE /api/comments/{id}` | Comments |
-| `POST /api/items/{id}/view` `{seconds, completed, skipped}` | Report a video when moving on: this is what For You learns from |
-| `GET /api/items/{id}/poster?w=` | A JPEG thumbnail |
+| `GET /api/videos/feed?library=&seed=&limit=&offset=&shape=` | For You, one page. The first answer has the `seed` to send for the next pages, so a session's order holds |
+| `GET /api/videos` | Lists, with `more`. Takes `library`, `creator`, `playlist`, `tag`, `platform`, `search`, `subscribed`, `liked`, `history`, `limit` and `offset`. `shape` is `vertical` or `wide`. `length` is `long` or `short`, split at 20 minutes. `sort` is `latest`, `oldest`, `popular` or `title` |
+| `PUT /api/items/{id}/reaction` `{value}` | 1 is like, 0 is neither, -1 is dislike |
+| `POST /api/items/{id}/view` `{seconds, completed, skipped}` | Report a video when moving on. This is what For You learns from |
+| `POST /api/libraries/{id}/upload` | Multipart upload, field `file`. A Vertical videos library takes videos. The web app has no upload button for this kind yet |
 
-Videos are ordinary items: `GET /api/items/{id}/play` says how to play one, direct or HLS.
+---
+
+<sub>WittyMediaServer documentation</sub>

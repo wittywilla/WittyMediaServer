@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
+import { HelpLink } from '../../components/HelpLink'
 import { Input } from '../../ui'
 
 // Every file type the server knows, and what happens with it. All of it comes from the
@@ -45,6 +46,7 @@ export default function SupportedFormats() {
           They’re listed below, marked “needs more”, and their files stay in your library.
         </p>
       )}
+      <p className="muted"><HelpLink to="media-types">What each media type supports</HelpLink></p>
       {data.ffmpeg !== undefined && <p className="muted formats-ffmpeg">{data.ffmpeg || 'FFmpeg wasn’t found.'}</p>}
       <label className="formats-find">
         <span className="sr-only">Find a format or extension</span>

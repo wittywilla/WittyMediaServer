@@ -5609,6 +5609,9 @@
           },
           "repo": {
             "type": "string"
+          },
+          "store": {
+            "type": "string"
           }
         },
         "required": [
@@ -25361,13 +25364,13 @@
         "responses": {
           "200": {
             "content": {
-              "image/png": {
+              "image/jpeg": {
                 "schema": {
                   "format": "binary",
                   "type": "string"
                 }
               },
-              "image/jpeg": {
+              "image/png": {
                 "schema": {
                   "format": "binary",
                   "type": "string"
@@ -25433,6 +25436,27 @@
       }
     },
     "/modulestore/run": {
+      "delete": {
+        "operationId": "deleteModulestoreRun",
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put the last run's summary away.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
       "get": {
         "operationId": "getModulestoreRun",
         "responses": {
@@ -25456,27 +25480,6 @@
           }
         ],
         "summary": "The run going on, or the summary of the last.",
-        "tags": [
-          "Server"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "delete": {
-        "operationId": "deleteModulestoreRun",
-        "responses": {
-          "204": {
-            "description": "Done."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Put the last run's summary away.",
         "tags": [
           "Server"
         ],

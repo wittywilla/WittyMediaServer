@@ -1,275 +1,217 @@
-# Fixing metadata by hand
+# Fixing wrong details
 
-The server can write what it knows about each film, show and episode into a folder of plain text files. You can
-open one in any text editor, fix what's wrong, and apply it. You don't need to know anything about programming, and
-nothing you do in this folder can break your server or your media.
+Put right a wrong match, title, poster or episode number, on one title or hundreds. Whatever you fix stays fixed, and every change can be undone.
 
-There are other ways to fix a title, and they're usually quicker for one or two: **Edit** on a title's page, and
-**Fix matches** for the wrong film or show ([Metadata](METADATA.md#editing-and-fixing-matches)). The folder is
-better for lots of small fixes at once, for fixing things when the server won't start, and for anyone who'd
-rather work in a text editor.
+All of this is for administrators. To see where details come from in the first place, read [Where details come from](METADATA.md).
 
-- [The short version](#the-short-version)
-- [What's in the folder](#whats-in-the-folder)
-- [Examples](#examples)
-- [When it says something is wrong](#when-it-says-something-is-wrong)
-- [Taking it back](#taking-it-back)
-- [What can go in a file](#what-can-go-in-a-file)
-- [How it's kept safe](#how-its-kept-safe)
-- [On the command line](#on-the-command-line)
+- [Which tool to use](#which-tool-to-use)
+- [The Edit dialog](#the-edit-dialog)
+- [Choosing the right match](#choosing-the-right-match)
+- [Locks, sources and Revert](#locks-sources-and-revert)
+- [Artwork](#artwork)
+- [Skip intro](#skip-intro)
+- [Bonus features, versions and moving](#bonus-features-versions-and-moving)
+- [Logos](#logos)
+- [Refreshing a title](#refreshing-a-title)
+- [The Fix matches page](#the-fix-matches-page)
+- [Fixing episode numbers](#fixing-episode-numbers)
+- [Editing several titles together](#editing-several-titles-together)
+- [Naming rules](#naming-rules)
+- [History and undo](#history-and-undo)
+- [From the command line](#from-the-command-line)
 
-## The short version
+## Which tool to use
 
-1. Open *Settings → Repair → Metadata files* and press **Export the files**. The page says where the folder is. It's
-   `metadata` inside the [data folder](CONFIG.md#folders-the-server-uses).
-2. Open the file for the title in Notepad, TextEdit or any text editor. Change what's wrong, and save.
-3. Press **Check what would change**. It lists each change with what's there now beside what's coming, and the
-   file and line of anything that's wrong. Nothing has changed yet.
-4. Press **Apply**.
-
-What you change this way is locked: no scan or lookup changes it back.
-
-## What's in the folder
-
-```
-metadata/
-  README.txt                                     what you're reading now, in brief
-  Movies/
-    My Film (2001) [item-123].json               one film
-    My Film (2001) [item-123]-poster.jpg         a picture for it, if you put one there
-  Shows/
-    A Show [show-22]/
-      show.json                                  the show
-      poster.jpg                                 a picture for the show, if you put one there
-      S01E01 Pilot [item-311].json               one episode
-```
-
-- Each library has a folder with its name. Two libraries whose names a file system can't tell apart get the library's
-  number as well.
-- The number in square brackets is how the server knows which title a file is for. Everything else in the name is
-  only there to help you find it, so you can rename a file as long as the brackets stay.
-- A file stays where it is if you rename the title, so its name may be out of date. It does no harm.
-- Films, shows, episodes, discs, home videos, music videos, books and games get files. Music, audiobooks, podcasts,
-  photos and radio don't, because these fields don't describe them.
-
-A file looks like this:
-
-```json
-{
-  "wittyMetadata": 1,
-  "target": "item",
-  "id": 123,
-  "path": "D:\\Media\\Movies\\My Film (2001).mkv",
-  "title": "My Film",
-  "sortTitle": "My Film",
-  "year": 2001,
-  "director": "",
-  "edition": [],
-  "tagline": "",
-  "overview": "A lighthouse keeper finds a boat.",
-  "genres": ["Drama", "Mystery"],
-  "tags": [],
-  "contentRating": "PG",
-  "rating": 7.5,
-  "studios": ["Lantern Works"],
-  "poster": "https://example.com/my-film.jpg",
-  "locked": []
-}
-```
-
-Leave the first four lines alone. They say what the file is for, and the server uses them to catch mix-ups.
-
-The rules are few. Text goes in `"quotes"`. A number has none. A list goes in `[square brackets]`. Every line but the
-last has a comma at its end.
-
-## Examples
-
-### A wrong title and year
-
-```json
-  "title": "Harbour Ligts",
-  "sortTitle": "Harbour Ligts",
-  "year": 1998,
-```
-
-becomes
-
-```json
-  "title": "Harbour Lights",
-  "sortTitle": "Harbour Lights",
-  "year": 2004,
-```
-
-### A wrong poster
-
-Either put a picture beside the file, or give a web address.
-
-**A picture beside the file.** If the file is `My Film (2001) [item-123].json`, call the picture
-`My Film (2001) [item-123]-poster.jpg`. Use `-backdrop`, `-banner` or `-logo` for those. Beside a `show.json`, it's just `poster.jpg`,
-`backdrop.jpg`, `banner.jpg` or `logo.jpg`. A picture there comes before a web address in the file. When you apply it, it's
-copied into the server's own image cache.
-
-**A web address**, in the file:
-
-```json
-  "poster": "https://example.com/my-poster.jpg",
-```
-
-Or the plain name of a picture in the same folder, whatever it's called:
-
-```json
-  "poster": "cover.png",
-```
-
-Pictures have to be JPEG, PNG, WebP or GIF, up to 20 MB. If a title has a picture only the server can find, such as a
-frame from the video, the file has no `poster` line, and you can add one.
-
-### Wrong genres
-
-```json
-  "genres": ["Drama", "Mystery"],
-```
-
-To clear something, empty its quotes or brackets: `"tagline": ""` or `"genres": []`. To leave something as it is,
-you can delete its line, and a file can be cut down to just the one thing it changes. A title can't be emptied.
-
-### A summary with several lines
-
-A line break in text is written `\n`, and a quote inside text is written `\"`:
-
-```json
-  "overview": "First paragraph.\n\nThe \"second\" paragraph.",
-```
-
-### The wrong match
-
-To say which entry on a service a title is, give both lines. The services are `tmdb`, `tvdb`, `tvmaze`, `anilist`, `wikidata`
-and `imdb`:
-
-```json
-  "provider": "tmdb",
-  "providerId": "12345",
-```
-
-Nothing is looked up when you apply this. For choosing from a list of results, with a preview, use
-[Fix matches](METADATA.md#fix-matches-the-review-list). Empty both lines to remove a match.
-
-### Letting a field follow its source again
-
-`"locked"` lists the fields no scan or lookup may change. Anything you change in a file locks itself. To unlock something,
-take it out of the list.
-
-```json
-  "locked": ["title", "year"]
-```
-
-## When it says something is wrong
-
-Every message names the file and the line, like this:
-
-```
-Movies/Quiet Pier (2011) [item-2].json:9: A comma is missing at the end of the line before this one
-```
-
-That means line 9 of that file. Look at that line and the one before it. A file with a problem is left out, and the
-others still apply.
-
-| What it says | What to do |
+| You want to | Use |
 |---|---|
-| **A comma is missing at the end of the line before this one** | Add a comma at the end of the line above |
-| **Something is wrong just before here. Often it's a comma after the last line** | Take the comma off the last line before the closing `}` |
-| **This line has something that isn't a value** | Text needs `"quotes"`. A number doesn't |
-| **There's something a text can't hold as it is** | Write a quote as `\"`, a backslash as `\\`, and a new line as `\n` |
-| **The file ends too soon** | The closing `}` or a `"` has gone missing from the end |
-| **"year" has to be a year such as 2001** | A number with no quotes, between 1800 and 3000 |
-| **"rating" has to be a number from 0 to 10** | The same, from 0 to 10 |
-| **"genres" has to be a list in [square brackets]** | `["Drama"]`, even for only one |
-| **"x" isn't something this file can set. Did you mean "y"?** | A spelling slip. It's left out, and the rest of the file is used. Names are case sensitive |
-| **"poster": only http and https addresses are accepted** | Pictures are only web addresses or file names, and an address can't have a login in it |
-| **It isn't a picture, whatever its name says** | The file isn't really a JPEG, PNG, WebP or GIF. Convert it, or use another |
-| **This file was written for one thing, but this number is now another** | The number means another title now, perhaps after a restore. Delete the file and export again |
-| **There's no title with the number…** | That title has gone from the server. Delete the file |
-| **This file and another describe the same title** | Delete one of them |
-| **This file is saved as UTF-16** | Save it again as UTF-8. In Notepad it's in the *Save As* window, beside *Encoding* |
-| **HTML or hidden characters were taken out** | Only a note. They were removed, and the rest was used. See [below](#how-its-kept-safe) |
+| Fix one title: its name, poster, plot or rating | [**Edit**](#the-edit-dialog) on its page |
+| Say it's really a different film or show | [**Edit**, then Search and match](#choosing-the-right-match) |
+| Go through everything that looks wrong | [**Fix matches**](#the-fix-matches-page) |
+| Fix a show whose episodes have the wrong numbers | [**Renumber episodes**](#fixing-episode-numbers) |
+| Change a genre or tag on many titles at once | [**Edit together**](#editing-several-titles-together) |
+| Teach the server how a folder is named | [**Naming rules**](#naming-rules) |
+| Make lots of small fixes in a text editor, or work with the server stopped | [The metadata folder](METADATA-FOLDER.md) |
+| Fix a game | **Fix match** on its page: see [Video games](METADATA.md#video-games) |
 
-**Starting a file over:** delete it, and press **Export again**.
+## The Edit dialog
 
-**Starting the whole folder over:** delete it and export again. Your titles are in the server's database, and these files are
-only a copy to edit. Anything you've applied stays.
+Press **Edit** on a film, episode or show. One dialog holds everything about it, in sections you can jump between: **Match**, **Details**, **Artwork**, **Skip intro**, **Organise** and **Logos**. **Delete**, **Cancel** and **Save** stay in view however long it runs.
 
-## Taking it back
+*Ctrl+S* saves, and *Escape* closes, asking first if something isn't saved.
 
-Right after applying, press **Undo all of it**. Later, open *Fix matches → History*. Everything from one apply is one
-entry there, and it goes back as one. The last 5,000 changes are kept.
+**Details** has the title, sort name, year, director (or who created a show), season and episode, edition, collection, tagline, overview, genres, tags, content rating, score, network, status and studios. Only what fits that kind of title is shown. Typing waits for **Save**. Choosing a match, uploading a picture or moving a title happens at once, and a bar offers **Undo**.
 
-After undoing, press **Export again** to bring the files back into line.
+**Delete** takes a title out of its library and leaves its files on disk. It won't come back on a scan, and can be brought back from **Fix matches**, under **Removed**. Nothing here ever deletes a file.
 
-Some things worth knowing:
+## Choosing the right match
 
-- **A file you haven't touched changes nothing.** The server remembers what it last wrote or applied, in a hidden file called
-  `.exported.json`. So if you change a title in the app after exporting, its old file can't change it back.
-- **An export never writes over your work.** A file you've edited and not applied stays as it is, and the export says how many it left.
-- **A file you've changed says everything in it.** If you edit a file exported a while ago, everything in it that differs from the server
-  is listed as a change. Read the list: it's why it's there. Or delete the file and export again before you edit.
+In the **Match** section:
 
-## What can go in a file
+1. Type a name, or paste an id or address from TMDB, IMDb, TheTVDB, TVmaze, AniList or Wikidata, and press **Search**. For example: `tt0000123`, `tmdb:12`, `https://www.tvmaze.com/shows/56/a-show`.
+2. Every source that's on is asked at once, films and shows alike, so a disc of a series can be matched to the series. Each result says how likely it is out of 100, and **Why?** says why in plain words.
+3. Choose a result. Nothing changes yet. It shows what would change, field by field, with what's there now beside what's coming.
+4. Untick anything you want to keep. Text you typed, a hand-written NFO and pictures beside the file are shown but not ticked, and locked fields can't be ticked. For a show, it also says how many of your episodes the source knows.
+5. Press **Use this match**.
 
-| Name | What it is | Limit |
-|---|---|---|
-| `title` | The name. Can't be empty | 300 characters |
-| `sortTitle` | How it sorts. If you change the title and leave this out, it's worked out for you | 300 |
-| `year` | A number | 1800 to 3000 |
-| `overview` | The summary | 20,000 |
-| `tagline` | One line | 500 |
-| `genres`, `tags` | Lists | 30 of 60 characters; 50 of 60 |
-| `contentRating` | `PG`, `TV-14` and so on. Kids and Guest profiles go by this | 20 |
-| `rating` | A score | 0 to 10 |
-| `studios` | A list | 12 of 120 |
-| `network`, `status` | Shows only | 120; 40 |
-| `director`, `edition` | Films | 300; a list of 8 of 60 |
-| `aired`, `season`, `episode`, `episodeEnd` | Episodes only | |
-| `introStart`, `introEnd` | Where the intro is, in seconds | Up to 86,400 |
-| `poster`, `backdrop`, `banner`, `logo` | A web address, or the name of a picture beside the file | 20 MB a picture |
-| `locked` | A list of the names above | |
-| `provider`, `providerId` | Which entry on which service | |
+A match you choose **stays**: no scan or refresh changes it, even if the file is replaced by a better copy.
 
-A field that kind of title doesn't have, such as `network` on a film, is a note, and it's left out.
+**Remove this match** takes away what the source gave and keeps what you typed. The title is named after its file again, and nothing is looked up for it until you choose one.
 
-## How it's kept safe
+**Check for changes** shows what looking it up again would change, and keeps the match it has.
 
-This folder can hold anything, including something you were sent or downloaded. So nothing in it is believed:
+## Locks, sources and Revert
 
-- **Text is only text.** HTML, scripts, comments, control characters and tricks that reverse how text reads are taken out, and you're told.
-  The web app also shows these fields as text, never as markup.
-- **A web address has to be one.** Only `http` and `https`, with no login in it. Not `javascript:`, `data:` or `file:`.
-- **A picture has to be one.** It's judged by what's in the file and not its name. SVG isn't accepted, because it can hold scripts.
-- **Nothing leads out of the folder.** A file name can't hold a folder or `..`. Links, shortcuts and junctions in the folder aren't followed, and
-  nothing is written through them.
-- **Sizes are limited.** 256 KB for a file, 1 MB for an NFO, 20 MB for a picture, 500,000 files in all.
-- **NFOs can't declare anything.** A `DOCTYPE` or `ENTITY` is refused, because that's how an XML file can be made to read others.
-- **Only an administrator can apply.** It goes through the same checks as the edit dialog, and every change is recorded in History.
+Each field says where its value came from:
 
-The same cleaning is done to anything read from beside your media: `.nfo`, `.metadata.json`, `.info.json`, `.wittycd.json`, and the details inside
-a book or comic. A problem there is in *Settings → WittyLog*, in the `library` category, with the file and the line.
+| It says | Means |
+|---|---|
+| **You typed this** | You changed it here, or in the [metadata folder](METADATA-FOLDER.md) |
+| **From TMDB**, or another source | That source gave it |
+| **From an NFO file** | From an NFO beside the file that a person wrote |
+| **Saved earlier** | From an NFO this server wrote |
+| **From beside the file** | A picture or other file next to the media |
+| **From the file name** | Worked out from the name |
+| **A frame from the video** | A picture taken from the video itself |
 
-You can also put a hand-written `.nfo` in this folder, if its name has the number in square brackets. It's read in the same way, and its
-pictures have to be web addresses.
+| Control | What it does |
+|---|---|
+| **Lock** | A locked field stays as it is. No scan, refresh, new match, NFO or file beside it can change it, whether the title is matched or not. Anything you type locks itself |
+| **Lock all**, **Unlock all** | Every field at once |
+| **Revert** | Goes back to what the source said before you typed over it, and unlocks the field |
 
-## On the command line
+## Artwork
 
-These work on any system, with the server stopped, for instance if it won't start. Add `-data <folder>` if yours isn't the default.
+Press **Artwork** on a title's page, or go to that section. Poster, backdrop, banner and title logo each have:
+
+- **Browse images:** a grid from every source, with a tick on the chosen one. You can also paste a picture's web address and press **Use it**.
+- **Upload your own:** JPEG, PNG, WebP or GIF, up to 20 MB. It's checked to be a real picture.
+- **Remove**, and **Revert** where there's something to go back to.
+
+Pictures from sources are fetched by your server, so no browser or app contacts them. Without a TMDB key, films have only what's in their folder, because Wikidata has no posters. TV shows get theirs from TVmaze.
+
+With **Save information and artwork next to your media** on, the chosen poster and backdrop are also copied to the standard names beside the file, and the NFO is rewritten. A hand-written one is kept as `.nfo.bak`.
+
+## Skip intro
+
+Under **Where the intro ends**, type a time such as `1:05`, or press **Pick in player**, play to the moment, and press the button there. Blank means work it out from the file's chapters. On a show, it covers every episode with no intro of its own. Discs have their own menus, so this isn't offered for them.
+
+Save or undo your changes first, because picking a time leaves the dialog.
+
+## Bonus features, versions and moving
+
+The **Organise** section:
+
+- **It's a bonus feature** takes a trailer, featurette, deleted scene, interview or short out of the lists, and puts it on the page of the film or show it belongs to. **Make it a title of its own** undoes that.
+- **This is another version of…** does the same for a second copy of a film, such as a DVD and a 4K file. Its page then offers a choice of version. **Split it off** undoes that.
+- **Move to**, under **In the wrong library?**, puts a title in another library that holds the same kind of thing. Its files don't move: the library it was found in leaves it alone from then on, and the new one looks after it. Where it can't move, it says why.
+
+## Logos
+
+The **Logos** section lists each studio or network on a title, with **Change**, which opens a list of what's available, **Upload your own** and **Use the name alone**. A change applies everywhere that name appears on your server. Downloading logos needs your agreement first: see [The logo service](METADATA.md#the-logo-service).
+
+## Refreshing a title
+
+**Refresh** on a title's page shows what looking it up again would change, and you choose what to take. **Update it** applies that, and **Undo** is offered straight after. The title keeps its match, and locked fields stay as they are.
+
+If nothing would change, you can press **Look again anyway**.
+
+## The Fix matches page
+
+Open **Fix matches** from a library's page, where a count shows how many need a look, or from **Settings → Metadata agents**. It covers film, disc, TV and anime libraries, worst first. It has three tabs: **Review**, **Naming rules** and **History**. Choose a library at the top to narrow it down.
+
+Opening it asks nobody anything: how sure each match is comes from what's stored, comparing the file's name and year with what it's matched to.
+
+| Under Review | What's there |
+|---|---|
+| **Needs a look** | No match, or one under 70% |
+| **No match**, **Not sure**, **Looks right** | Those on their own |
+| **You chose**, **Left alone** | What you've decided, which nothing changes |
+| **Everything** | The whole list |
+| **Removed** | Titles taken out of a library. **Bring it back** returns one |
+
+**To fix one:**
+
+1. Choose a title. It finds suggestions, one request per source. If a file's whole name finds nothing, its first words are dropped and it's tried again.
+2. Press **Accept** on the right one, or choose a suggestion to see what would change first. **Search** takes a name, an id or an address.
+3. If nothing fits, press **It has no match**. If it's right but scored low, press **It's right: stop asking**. **Edit details** opens the Edit dialog.
+
+**To go faster:**
+
+- **Find suggestions for all** does the whole list in the background, gently. **Stop** ends it.
+- **Choose the 4 that are 90% sure** ticks those at once, and **Accept their best suggestions** accepts them. The number is however many there are.
+
+A year you typed, or one kept from before, counts when scoring, so an exact name and year comes to 100%. The words beside a score are **Very likely** (90 or more), **Likely** (70 or more), **Not sure** (40 or more) and **Unlikely**.
+
+| Key | |
+|---|---|
+| `J`, `K` | Next and last |
+| `A` | Accept the first suggestion |
+| `1` to `6` | Accept that suggestion |
+| `N` | It has no match |
+| `E` | Edit details |
+| `X` | Choose it, for doing several at once |
+| `/` | Search |
+| `U` | Undo |
+
+The arrow keys and a remote reach everything too. Moving down the list follows along in the panel beside it, and OK on a title goes to its first suggestion.
+
+## Fixing episode numbers
+
+When a show's episodes have the wrong numbers:
+
+1. On the Fix matches page, choose the show, and press **Renumber episodes**.
+2. Each file is shown beside what the source calls that number. **Not listed** means the source doesn't have that number.
+3. Change the numbers by hand, or choose a **Season** and use **Move episodes by** with **Move them** or **Move seasons instead**. **Number them in order** counts through them from 1.
+4. Press **Save**.
+
+Numbers you change are locked, so a scan keeps them.
+
+## Editing several titles together
+
+On the Fix matches page, tick some titles, and press **Edit together**. You can add or take away genres and tags, set a year or a content rating, and lock or unlock. Press **Change**, which says how many, and **Undo all of it** is offered straight after.
+
+## Naming rules
+
+**An id in a file or folder's name** always wins over a search, and doesn't appear in the title. The usual forms all work:
 
 ```
-wittymediaserver metadata export                write the files. -library <number> for only one library
-wittymediaserver metadata check                 what's wrong with them, by file and line. It needs no database
-wittymediaserver metadata apply                 what they would change. Nothing changes
-wittymediaserver metadata apply --apply         change it
-wittymediaserver metadata undo <batch>          take it back. Apply tells you the batch
+My Film (2001) [tmdbid-123].mkv
+My Film (2001) {imdb-tt0000123}.mkv
+A Show [tvdb-456]
+A Show [tvmaze-78]
+A Show [anilist-90]
 ```
 
-`check` and `apply` end with a non-zero exit code if a file has a problem, so they can be used in a script. If a server is running on the same
-folder, `apply --apply` refuses and points you to Settings, because the server is the one holding those files.
+**A folder with a naming of its own** can have rules, under **Fix matches → Naming rules**. Choose a library, and press **Add a rule**. The first rule that fits a file decides.
+
+| Field | What it does |
+|---|---|
+| **How the path reads** | Uses `{title}`, `{year}`, `{edition}`, `{tmdb}`, `{imdb}`, `{tvdb}`, `{any}`, and `*` for anything within a folder's name. For example, `Harbour Studio/{year} - {title}` |
+| **Where to look** | **Look everywhere**, one source only, or **Don't look it up** |
+| **Add tags** | Tags for what it fits, separated by commas |
+| **These are bonus features** | Marks what it fits as a trailer, featurette and so on |
+| **On** | Turns the rule off without removing it |
+
+**Try them** shows what each file would become, without changing anything. Press **Save** to keep them. Rules apply to new and changed files when the library is next scanned.
+
+## History and undo
+
+Every match, edit and renumbering can be undone, right after it, or later under **Fix matches → History**. Press **Undo** beside an entry. Changes made together, such as one apply from the metadata folder, are one entry and go back together.
+
+The last 5,000 changes are kept, and the page shows the newest 100.
+
+## From the command line
+
+Nothing on this page needs a terminal. When the server won't start, or you'd rather not use the page, these do related work:
+
+| Command | What it does |
+|---|---|
+| `wittymediaserver metadata check` | Says what's wrong with the metadata folder's files. See [On the command line](METADATA-FOLDER.md#on-the-command-line) |
+| `wittymediaserver metadata apply --apply` | Applies your edits from that folder |
+| `wittymediaserver metadata undo <batch>` | Takes one apply back |
+| `wittymediaserver doctor --only metadata` | Looks for broken matches, missing artwork, duplicates and unreadable NFO files. See [Repair](REPAIR.md#what-it-checks-and-fixes) |
+| `wittymediaserver doctor remap --from <old> --to <new>` | Tells the server a library's folder moved. See [Moved a drive?](REPAIR.md#moved-a-drive) |
 
 ---
-<sub>WittyMediaServer documentation · [Back to the README](../README.md)</sub>
+
+<sub>WittyMediaServer documentation</sub>

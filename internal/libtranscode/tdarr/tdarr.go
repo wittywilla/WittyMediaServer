@@ -83,6 +83,22 @@ func CleanAddress(address string) (string, error) {
 	return strings.TrimRight(u.Scheme+"://"+u.Host+u.Path, "/"), nil
 }
 
+// WrapsLinkLocal: an IPv6 address that carries an IPv4 one, for a gateway to unwrap, carrying the
+// address cloud machines keep their credentials at.
+func WrapsLinkLocal(ip net.IP) bool {
+	v6 := ip.To16()
+	if v6 == nil || ip.To4() != nil {
+		return false
+	}
+	switch {
+	case v6[0] == 0x00 && v6[1] == 0x64 && v6[2] == 0xff && v6[3] == 0x9b:
+		return net.IP(v6[12:16]).IsLinkLocalUnicast()
+	case v6[0] == 0x20 && v6[1] == 0x02:
+		return net.IP(v6[2:6]).IsLinkLocalUnicast()
+	}
+	return false
+}
+
 func dialNoMetadata(ctx context.Context, network, addr string) (net.Conn, error) {
 	d := &net.Dialer{Timeout: 5 * time.Second, Control: nil}
 	host, port, err := net.SplitHostPort(addr)
@@ -95,7 +111,7 @@ func dialNoMetadata(ctx context.Context, network, addr string) (net.Conn, error)
 	}
 	var last error
 	for _, ip := range ips {
-		if ip.IP.IsLinkLocalUnicast() || ip.IP.IsMulticast() || ip.IP.IsUnspecified() {
+		if ip.IP.IsLinkLocalUnicast() || ip.IP.IsMulticast() || ip.IP.IsUnspecified() || WrapsLinkLocal(ip.IP) {
 			last = errors.New("that address can't be used")
 			continue
 		}

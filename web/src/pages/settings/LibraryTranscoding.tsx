@@ -38,7 +38,7 @@ export default function LibraryTranscoding() {
       .then(([o, l, s]) => { setOptions(o); setLibs(l); setSettings(s) }).catch(() => setFailed(true))
   }, [])
   useEffect(load, [load])
-  const head = <PageHead title="Library transcoding" desc={<>Converts the files in a library ahead of time, so they play without being converted later. It changes your files, so it starts off. Converting while someone watches is a separate thing, under <Link to="/settings/transcoding">Live transcoding</Link>. <a href="https://github.com/wittywilla/WittyMediaServer/blob/master/docs/LIBRARY-TRANSCODING.md" target="_blank" rel="noreferrer">The guide</a> explains it all.</>} />
+  const head = <PageHead title="Library transcoding" desc={<>Converts the files in a library ahead of time, so they play without being converted later. It changes your files, so it starts off. Converting while someone watches is a separate thing, under <Link to="/settings/transcoding">Live transcoding</Link>. <Link to="/help/library-transcoding">The guide</Link> explains it all.</>} />
   if (failed) return <>{head}<LoadError what="This page" onRetry={load} /></>
   if (!options || !libs || !settings) return <>{head}<Spinner /></>
   return (

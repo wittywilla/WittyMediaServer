@@ -55,7 +55,7 @@ var localTransport http.RoundTripper = &http.Transport{
 			return err
 		}
 		a = a.Unmap()
-		if a.IsLinkLocalUnicast() || a.IsLinkLocalMulticast() || a.IsMulticast() || a.IsUnspecified() {
+		if a.IsLinkLocalUnicast() || a.IsLinkLocalMulticast() || a.IsMulticast() || a.IsUnspecified() || carriesLinkLocal(a) {
 			return fmt.Errorf("refusing to connect to %s", host)
 		}
 		return nil
@@ -63,6 +63,24 @@ var localTransport http.RoundTripper = &http.Transport{
 	TLSHandshakeTimeout:   15 * time.Second,
 	ResponseHeaderTimeout: 30 * time.Second,
 	MaxIdleConnsPerHost:   2,
+}
+
+// carriesLinkLocal: a NAT64 or 6to4 address, which holds an IPv4 one, holding a link-local address.
+func carriesLinkLocal(a netip.Addr) bool {
+	if !a.Is6() {
+		return false
+	}
+	b := a.As16()
+	var inner [4]byte
+	switch {
+	case netip.MustParsePrefix("64:ff9b::/96").Contains(a):
+		copy(inner[:], b[12:])
+	case netip.MustParsePrefix("2002::/16").Contains(a):
+		copy(inner[:], b[2:6])
+	default:
+		return false
+	}
+	return netip.AddrFrom4(inner).IsLinkLocalUnicast()
 }
 
 // newStoreFetcher makes the fetcher for a store. public must only reach the internet; the

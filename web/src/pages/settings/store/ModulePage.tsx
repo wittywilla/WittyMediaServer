@@ -148,7 +148,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
         {d.permissions.length ? (
           <ul className="st-perms">{d.permissions.map((p) => <li key={p.name}><IconInfo size={16} /><span><b>{p.name}</b> {p.words}</span></li>)}</ul>
         ) : <p>No special permissions.</p>}
-        <p className="muted">Whatever it asks for, a module can read what this server’s account can read, and the server’s own limits apply to it. See <a href="https://github.com/wittywilla/WittyMediaServer/blob/master/docs/MODULES.md#the-helper-protocol-module-api-1" target="_blank" rel="noreferrer noopener">what limits a module</a>.</p>
+        <p className="muted">Whatever it asks for, a module can read what this server’s account can read, and the server’s own limits apply to it. See <Link to="/help/module-store#what-limits-a-module">what limits a module</Link>.</p>
       </section>
 
       <section className="st-mod-sec" aria-labelledby="st-facts">
@@ -260,7 +260,7 @@ function ForkDialog({ d, onClose, onDone }: { d: ItemDetail; onClose: () => void
   if (owner) return <ConfirmOwner onClose={() => setOwner(false)} ask={{
     title: `Replace ${it.name}?`, action: `Replace ${it.name}`,
     body: <p>This changes which code runs on this server, so it asks for your password.</p>,
-    run: async (password, code) => { await useFork(it.store, it.id, true, { password, code }); toast(`${it.name} now comes from ${it.storeName}`); onDone(); onClose() },
+    run: async (password, code) => { await useFork(it.store, it.id, true, d.fingerprint, { password, code }); toast(`${it.name} now comes from ${it.storeName}`); onDone(); onClose() },
   }} />
   return (
     <Dialog title={`Replace ${it.name} with this store’s version?`} onClose={onClose} size="md" alert

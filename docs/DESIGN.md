@@ -21,6 +21,7 @@ administrator.
 - [Keeping it fast](#keeping-it-fast)
 - [Keeping to it](#keeping-to-it)
 - [Adding a page](#adding-a-page)
+- [Adding a step to first-time setup](#adding-a-step-to-first-time-setup)
 
 ## Principles
 
@@ -229,7 +230,7 @@ A page has one `h1`, which the announcer reads aloud on every page change: `.too
 - **Whose arrangement**: a person's own, else the owner's (`Use for everyone`), else ours.
 - **Phones**: a row of sections scrolling sideways at the top; a floating bar at the bottom with Home,
   TV, Search, the drawer and You.
-- **Reserved**: `components/ActivitySlot.tsx`, left of the account menu, for one `IconButton`.
+- **Activity**: `components/ActivitySlot.tsx`, left of the account menu, holds the activity button.
 
 ### Dialogs and sheets
 
@@ -399,7 +400,7 @@ CI runs these, and fails on a problem. Run them from the repository root.
 | `python scripts/design-check.py` | raw colours, one-off font sizes and radii, z-index numbers, `transition: all`, blur, unnamed icon buttons, unlabelled fields, images without `alt`, click handlers on a `div`, `confirm()` |
 | `python scripts/theme-contrast.py` | every built-in theme against [Accessibility](#accessibility) |
 | `python scripts/design-tokens.py --check` | the data files match the CSS |
-| `node --experimental-strip-types --test web/src/ui/*.test.mjs web/src/shell/*.test.mjs` | the navigation rule, the menu's arithmetic, the theme maker's colours |
+| `node --experimental-strip-types --test web/src/ui/*.test.mjs web/src/shell/*.test.mjs web/src/pages/setup/*.test.mjs` | the navigation rule, the menu's arithmetic, the theme maker's colours, and which steps first-time setup shows |
 
 Older code that hasn't been moved over yet is listed file by file in
 `scripts/design-check-baseline.json`. Counts may go down, never up, and a file that isn't listed must be
@@ -440,3 +441,19 @@ mask-image: linear-gradient(#000 80%, transparent); /* design-ok: a mask only re
 8. **Keep logic out of components.** Fetching and shaping data goes in `api.ts` or the server, so the
    native apps get the same behaviour.
 9. **Check it** at 390, 820, 1440 and 1920 wide, with the keyboard alone, and in a dark and a light theme.
+
+## Adding a step to first-time setup
+
+A step belongs to whatever needs it. `web/src/pages/setup/plan.ts` lists them, and each is a file beside it.
+
+1. **Add a line to `STEPS`:** its `id`, its `label`, what it `needs` (`'server'`, or the modules any one of which is enough), `later` (where in Settings the same choice is: a test checks that page exists and is called that), and `when` if it depends on anything else. A module's step is skipped when the module isn't there, so nothing else has to check.
+2. **Write the step** from the parts in `setup/parts.tsx`: `StepHead`, `LaterNote`, `StepActions`, `ChoiceCards`, `TickRow`. These already work with a remote, a keyboard, touch and a screen reader. A checkbox for what's saved with the step, a switch for what takes effect at once.
+3. **Read what's saved when it opens, and save when the choice is made.** Someone can come back to any step. Nothing goes online until they've agreed, and leaving something off is always the easy button.
+4. **Add it to `SetupWizard.tsx`**, and to `describeOutcome` if the last page should say what was chosen.
+5. **Run** `npm run test:setup` in `web`, which walks the whole of it with arrows and OK alone. Its first lines say what it needs.
+
+In `ChoiceCards`, the arrows move and OK chooses. They don't choose as they go, as a remote has to pass through the cards to reach what's below them.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

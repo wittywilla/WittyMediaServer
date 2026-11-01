@@ -1,222 +1,204 @@
-# Live transcoding guide
+# Live transcoding
 
-This is about converting while someone watches, which leaves your files alone. To convert files ahead of time, see
-[Library transcoding](LIBRARY-TRANSCODING.md).
+Use this guide to choose the settings under **Settings → Live transcoding**, which decide what happens while someone watches a video their device can't play as it is. Your files aren't changed, and the work stops when they stop watching.
 
-WittyMediaServer sends a file to the browser **as it is** whenever the browser can play it
-(*direct play*). Everything else — MKV, AVI, HEVC, interlaced video, DVDs, files with burned-in
-subtitles — is converted on the fly to H.264 + AAC HLS by FFmpeg. This guide explains the
-settings under **Settings → Live transcoding** and which choices suit which hardware.
+To convert files ahead of time, see [Library transcoding](LIBRARY-TRANSCODING.md).
 
-- [Direct play](#direct-play)
+- [What happens when you press play](#what-happens-when-you-press-play)
+- [The settings page](#the-settings-page)
 - [Hardware encoders](#hardware-encoders)
-- [Quality modes](#quality-modes) — [Easy](#easy) · [Advanced](#advanced) · [Expert](#expert)
-- [Which profile for which machine](#which-profile-for-which-machine)
+- [Quality modes](#quality-modes)
+- [Which choice for which machine](#which-choice-for-which-machine)
+- [How much a conversion costs](#how-much-a-conversion-costs)
 - [NVIDIA NVENC by GPU](#nvidia-nvenc-by-gpu)
-- [AMD AMF (VCE / VCN) by GPU](#amd-amf-vce--vcn-by-gpu)
+- [AMD AMF by GPU](#amd-amf-by-gpu)
 - [Intel Quick Sync by CPU](#intel-quick-sync-by-cpu)
-- [Apple, Linux VAAPI and Raspberry Pi](#apple-linux-vaapi-and-raspberry-pi)
-- [Troubleshooting](#troubleshooting)
+- [Apple, Linux and Raspberry Pi](#apple-linux-and-raspberry-pi)
+- [If it isn't working](#if-it-isnt-working)
 
-> The tables are a practical summary for choosing settings, compiled from vendor documentation
-> and FFmpeg behaviour. Exact feature sets vary with drivers and board vendors; the
-> **Hardware encoders** list in Settings shows what actually works on *your* machine, because
-> WittyMediaServer test-encodes with every encoder when it starts.
+## What happens when you press play
 
-## Direct play
+Your player tells the server what it can do, and the server takes the simplest way that plays, in this order:
 
-**Allow direct play** (on by default) streams the original file with HTTP range requests when:
+1. **Direct play.** Your player opens the file as it is. This costs no processor work and keeps the original quality.
+2. **Rewrapped.** Only the wrapper is the trouble, such as an H.264 film in MKV for a browser. The picture and sound are copied into a stream, which costs next to nothing.
+3. **Sound converted.** Only the sound is the trouble, such as DTS or TrueHD in MKV. The sound alone is converted to AAC, and the picture is copied.
+4. **Converted.** Nothing simpler would play, so the picture is converted to H.264 too.
 
-- the container is MP4, M4V, MOV or WebM, and
-- the video is H.264, VP9 or AV1, and
-- the first audio track is AAC, MP3, Opus or Vorbis, and
-- the default audio track and no subtitles are selected, and
-- the video is not taller than *Maximum resolution*.
+The **How this is playing** button in the player, or the **I** key, says which of these is happening, and why.
 
-The server takes the simplest way that plays, in this order:
+**HDR.** A screen that shows HDR, on a player that can decode it, gets it as it is. Anything else gets the picture mapped to fit an ordinary screen. That needs FFmpeg's `zscale` and `tonemap` filters. Without them the picture plays unmapped: flat and dim, but watchable.
 
-1. **Direct play.** Your player opens the file as it is.
-2. **Rewrapped.** Only the wrapper is the trouble (an H.264 film in MKV, for a browser), so the picture and sound are
-   copied into a stream. This costs next to nothing.
-3. **Sound converted.** Only the sound is the trouble (DTS, TrueHD, FLAC in MKV), so the sound alone is converted to
-   AAC, and the picture is copied.
-4. **Transcoded.** Nothing simpler would play, so the picture is converted as well.
+**Subtitles.** Text subtitles are shown by your player. Subtitles stored as pictures, from discs, are drawn into the picture, which means converting it.
 
-Your player says what it can do with every request, and the **ⓘ** button in the player (or the **I** key) says which of
-these is happening, and why.
+This hasn't been checked on Safari, on phones, with hardware decoding of HEVC or on HDR screens.
 
-Direct play costs no CPU and keeps the original quality. Turn it off to force every file through
-the transcoder — useful to cap bandwidth with a *bitrate cap* (for viewers away from home, use the
-limits in *Settings → Remote Access*, which leave playback at home alone), or to compare quality
-profiles.
+## The settings page
+
+| Setting | What it does |
+|---|---|
+| **Allow direct play** | On by default. Off sends every file through conversion, which is mainly useful for testing. |
+| **Maximum resolution** | Taller videos are converted down to this while playing, even ones that could otherwise play as they are. 720p is about half the work of 1080p. The default, **Source**, is no limit. |
+| **Sound format while converting** | AAC works nearly everywhere. Choose MP3 only for a browser that can't play AAC, such as some Linux builds of Chromium. |
+| **Hardware encoders** | Below. |
+| **Picture quality** | [Easy, Advanced or Expert](#quality-modes). These apply to streams started after saving. |
+
+For viewers away from home, the limits in [Remote access](REMOTE.md) leave playback at home alone, and they always win.
+
+How many conversions can run at once is set with `maxTranscodes` in the [config file](CONFIG.md). When that many are running and all have someone watching, the next viewer is told the server is busy. A viewer who has asked for nothing for 20 seconds gives up their place if someone else needs it, and carries on when they come back.
 
 ## Hardware encoders
 
-| Setting | Encoder | Works with |
-|---|---|---|
-| NVIDIA NVENC | `h264_nvenc` | GeForce / RTX / Quadro, Maxwell (GTX 750) and newer, Windows and Linux |
-| Intel Quick Sync | `h264_qsv` | Intel CPUs with integrated graphics, Intel Arc, Windows and Linux |
-| Apple VideoToolbox | `h264_videotoolbox` | every Mac (Intel with T2/iGPU, Apple silicon) |
-| AMD AMF | `h264_amf` | Radeon GPUs and Ryzen APUs on **Windows** |
-| VAAPI | `h264_vaapi` | Intel and AMD GPUs on **Linux/FreeBSD** (`/dev/dri/renderD128`) |
+Your graphics chip can convert video for a fraction of the processor work, which lets a small machine serve several streams. Software gives the best quality for the size and uses the most processor.
 
-Tick the ones you want. When several are ticked, the first *working* one in the list above is
-used; if none works, WittyMediaServer falls back to software (libx264). Encoders that FFmpeg
-was built with but that your hardware or driver lacks are shown greyed out with the reason in
-their tooltip.
+| On the page | Works with |
+|---|---|
+| **NVIDIA NVENC** | GeForce, RTX and Quadro cards, on Windows and Linux |
+| **Intel Quick Sync** | Intel CPUs with built-in graphics, and Intel Arc, on Windows and Linux |
+| **Apple VideoToolbox** | Macs. This has not been run on a real Mac yet |
+| **AMD AMF** | Radeon cards and Ryzen APUs, on Windows |
+| **VAAPI** | Intel and AMD graphics on Linux, through `/dev/dri/renderD128`. FreeBSD also tries it, and it has not been run there |
 
-Hardware encoding is roughly 5–20× cheaper on the CPU than libx264 and lets small machines
-serve several streams. Software x264 still gives the best quality per bit; with a fast CPU and
-few viewers, *Quality* on software looks best.
+1. Go to **Settings → Live transcoding → Hardware encoders**.
+2. Tick the ones you want. The first that works, in the order above, is used. With none ticked, it's all software.
+3. Press **Save changes**.
 
-Docker: pass the GPU into the container (`--device /dev/dri` for VAAPI/Quick Sync,
-`--gpus all` with the NVIDIA container toolkit for NVENC).
+Each is tested when the server starts, and the page says what it found:
+
+| What it says | What it means |
+|---|---|
+| **Working on this machine** | Ready to tick |
+| **Not found on this machine** | FFmpeg has it, and your hardware or driver doesn't. Hover over it for the reason |
+| **Not included in this FFmpeg build** | Your FFmpeg wasn't built with it |
+| **Not supported on this operating system** | Such as VideoToolbox on Linux |
+
+**In Docker,** pass the graphics chip into the container: `--device /dev/dri` for VAAPI and Quick Sync, or `--gpus all` with the NVIDIA container toolkit for NVENC.
 
 ## Quality modes
 
 ### Easy
 
-Three tested profiles. They apply to libx264 and are mapped onto each hardware encoder.
+Three profiles, which also apply to hardware encoders through their nearest settings.
 
-| Profile | x264 preset | Quality (CRF) | Stereo audio | Relative CPU | Pick it when |
-|---|---|---|---|---|---|
-| **Speed** | superfast | 23 | 160 kb/s | 0.5× | low-power machines, many viewers, fastest start/seek |
-| **Balanced** (default) | veryfast | 21 | 192 kb/s | 1× | almost everyone |
-| **Quality** | medium | 19 | 256 kb/s | ~3× | strong CPU or a modern GPU, few viewers, big screens |
+| Profile | Software setting | Quality level | Stereo sound | Best for |
+|---|---|---|---|---|
+| **Speed** | superfast | 23 | 160 kb/s | Raspberry Pi, Intel N100 and J-series, NAS boxes, laptops on battery, several viewers at once |
+| **Balanced** (the default) | veryfast | 21 | 192 kb/s | Any desktop or laptop from the last 8 years or so, or any working hardware encoder |
+| **Quality** | medium | 19 | 256 kb/s | 6 or more cores, or an NVIDIA or Intel hardware encoder. About three times the processor work of Balanced |
 
 ### Advanced
 
-| Control | What it does | Recommendation |
+| Control | What it does | Try |
 |---|---|---|
-| Encoder speed | x264 preset; NVENC `p1`–`p7`, Quick Sync `veryfast`–`slow`, AMF `speed`/`balanced`/`quality` are derived from it | `veryfast` for real-time; `medium` only on 8+ cores or GPUs |
-| Quality level | x264 CRF 16–30 (lower = better, bigger); mapped to NVENC `-cq`, QSV `-global_quality`, VAAPI/AMF `-qp`, VideoToolbox `-q:v` | 18–21 at home, 23–26 for phones / remote |
-| Bitrate cap | `-maxrate`/`-bufsize` | 4 Mb/s for 720p over the internet, 8 Mb/s for 1080p, none on the LAN |
-| Stereo audio bitrate | AAC bitrate | 160–192 kb/s; 256 kb/s for concerts / music |
+| **Encoder speed** | Faster settings use less processor and need more data for the same picture. Hardware encoders use their own nearest setting. | `veryfast` while watching. `medium` needs 8 or more cores or a hardware encoder |
+| **Quality level** | 16 to 30. Lower looks better and sends more data. | 18 to 21 at home, 23 to 26 for phones and slow connections |
+| **Bitrate limit** | The most data the picture may use. | 4 Mb/s for 720p and 8 Mb/s for 1080p over the internet |
+| **Stereo sound bitrate** | Surround sound always uses 384 kb/s. | 160 to 192 kb/s, or 256 kb/s for music |
 
 ### Expert
 
-Everything in Advanced, plus two raw FFmpeg fields:
+Everything in Advanced, plus two fields for FFmpeg options:
 
-- **Encoder options** replace everything WittyMediaServer would put after `-c:v <encoder>`.
-  Examples:
-  - libx264, film archive: `-preset slow -crf 19 -tune film -x264-params aq-mode=3`
+- **Encoder options** replace the encoder's options. For example:
+  - Software, film archive: `-preset slow -crf 19 -tune film -x264-params aq-mode=3`
   - NVENC, high quality: `-preset p6 -tune hq -rc vbr -cq 21 -b:v 0 -spatial-aq 1 -temporal-aq 1`
   - Quick Sync: `-preset slower -global_quality 20 -look_ahead 1`
   - VAAPI: `-qp 20 -quality 1`
-- **Extra output options** are inserted before the HLS muxer options, e.g. `-threads 4`.
+- **Extra options** are added to the output, such as `-threads 4`.
 
-Keyframes are still forced on segment boundaries so seeking keeps working. Quotes group words
-(`-x264-params "aq-mode=3:psy-rd=1.0"`). A wrong option makes transcodes fail; start the server
-with `-log debug` to see every FFmpeg command line.
+Keyframes stay on segment boundaries, so seeking keeps working. Quotes group words: `-x264-params "aq-mode=3:psy-rd=1.0"`. A wrong option makes conversions fail, and **Settings → WittyLog** explains why. Starting the server with `-log debug` shows every FFmpeg command line.
 
-Only options that tune encoding are accepted, each with a plain value: presets, tunes, profiles,
-quality and bitrate settings, GOP settings, threads, `-pix_fmt`, `-movflags`, `-x264-params` and
-`-x265-params` (without parameters that name a file), and so on. Anything that can open or write
-files or reach the network (`-i`, output names, `-vf`, `-filter_complex`, `-attach`...) is refused
-when you save, because a web account must not be able to read or change files on the machine that
-way. The full list is `expertOptions` in `internal/ffmpeg/encoders.go`.
+Only options that tune encoding are accepted, each with a plain value: presets, tunes, profiles, quality and bitrate settings, keyframe settings, threads, `-pix_fmt`, `-movflags`, and `-x264-params` and `-x265-params` without parameters that name a file. Anything that can open or write files or reach the network, such as `-i`, output names, `-vf`, `-filter_complex` or `-attach`, is refused, because a web account must not be able to read or change files on the machine that way.
 
-## How much a transcode costs
+## Which choice for which machine
 
-The server stops FFmpeg once it is 6 minutes ahead of the viewer and starts it again as they near
-that point, so a fast machine doesn't convert a whole film for someone who stops after a minute.
-Segments more than 10 minutes behind the viewer are removed, so a long film stays small on disk.
-FFmpeg stops 90 seconds after the last request (a paused player), and when the player closes.
+| Machine | Encoder and profile | Maximum resolution |
+|---|---|---|
+| Raspberry Pi 4 or 5 | Software, Speed. Turn on **Low-power mode for DVDs**. Avoid 1080p HEVC files | 720p |
+| Intel N100, N95, N305, J4125, N5105 | Quick Sync (or VAAPI on Linux), Balanced | 1080p |
+| Older quad-core (Core i5 4th to 7th generation, Ryzen 1000) | Quick Sync if it has it, Balanced. Software: Speed for 2 or more viewers | 1080p |
+| Modern 6 to 8 cores (Ryzen 5 5600 and up, Core i5-12400 and up) | Software or Quick Sync. Quality for 1 or 2 viewers, otherwise Balanced | Source |
+| NVIDIA GTX 10 series | NVENC, Balanced | Source |
+| NVIDIA RTX 20 to 50, GTX 1660 | NVENC, Quality | Source |
+| AMD Radeon RX 5000 to 9000, on Windows | AMF, Balanced. Its H.264 needs a bit more data | Source |
+| Mac | VideoToolbox, Balanced | Source |
 
-The transcode folder (`transcodeDir`) is cleaned at every start, of the stream folders the server
-made itself; anything else in it stays.
+Direct play matters most on small machines: MP4 files with H.264 and AAC cost nothing to play.
 
-## Which profile for which machine
+## How much a conversion costs
 
-| Machine | Encoder | Profile | Max resolution | Notes |
-|---|---|---|---|---|
-| Raspberry Pi 4 / 5 | software | Speed | 720p | enable *Low-power mode for DVDs*; DVDs (SD) run in real time; avoid 1080p HEVC sources |
-| Intel N100 / N95 / N305, J4125, N5105 NAS | Quick Sync (VAAPI on Linux) | Balanced | 1080p | several 1080p streams at once |
-| Older quad-core (Core i5 4th–7th gen, Ryzen 1000) | Quick Sync if present, else software | Balanced (software: Speed for 2+ viewers) | 1080p | |
-| Modern 6–8 core desktop (Ryzen 5 5600+, Core i5-12400+) | software or Quick Sync | Quality (1–2 viewers) / Balanced | Source | |
-| NVIDIA GTX 10 series | NVENC | Balanced | Source | Pascal NVENC is fine at CQ 21–23 |
-| NVIDIA RTX 20/30/40/50, GTX 1660/Super/Ti | NVENC | Quality | Source | Turing+ NVENC rivals x264 *medium* |
-| AMD Radeon RX 5000 – 9000 (Windows) | AMF | Balanced | Source | AMD H.264 needs a bit more bitrate; CQ 20 |
-| Mac (any) | VideoToolbox | Balanced | Source | Apple silicon handles many streams |
+- FFmpeg stops once it's about 6 minutes ahead of the viewer, and starts again as they near that point, so a fast machine doesn't convert a whole film for someone who stops after a minute.
+- Parts more than about 10 minutes behind the viewer are removed, so a long film stays small on disk.
+- FFmpeg stops 90 seconds after the last request, such as a paused player, and when the player closes.
+- The transcode folder (`transcodeDir` in the [config file](CONFIG.md)) is cleaned of the server's own stream folders at every start. Anything else in it stays.
 
 ## NVIDIA NVENC by GPU
 
-H.264 NVENC is on every GPU below except where noted. Consumer GeForce drivers limit the number
-of simultaneous encode sessions (recent drivers allow 8; older ones 3–5); professional cards
-are not limited.
+This table and the two below are a summary for choosing hardware, from the makers' documents and how FFmpeg behaves. Features vary with drivers and board makers, and **Hardware encoders** in Settings shows what works on your machine. Live transcoding uses H.264. Library transcoding can also use H.265 and AV1.
 
-| Architecture | Typical GPUs | H.264 | HEVC | AV1 | Quality (H.264) | Notes |
-|---|---|---|---|---|---|---|
-| Kepler | GTX 650–780, GTX Titan | ✔ | – | – | low | not supported by current drivers / FFmpeg NVENC; use software |
-| Maxwell 1st gen | GTX 750 / 750 Ti, GTX 9xxM (some) | ✔ | – | – | low | old driver branch only |
-| Maxwell 2nd gen | GTX 950–980 Ti, GTX Titan X | ✔ | 8-bit | – | fair | |
-| Pascal | GTX 1050 – 1080 Ti, Titan Xp (**not GT 1030**) | ✔ | 8/10-bit | – | good | GT 1030 has no NVENC |
-| Volta / Turing (TU117) | GTX 1650 (non-Super) | ✔ | 8/10-bit | – | good | GTX 1650 uses the older Volta-era NVENC |
-| Turing | GTX 1650 Super, 1660 / Super / Ti, RTX 2060 – 2080 Ti | ✔ | 8/10-bit, B-frames | – | very good (≈ x264 medium) | best value used cards for transcoding |
-| Ampere | RTX 3050 – 3090 Ti, RTX A-series | ✔ | 8/10-bit | – | very good | same encoder as Turing |
-| Ada Lovelace | RTX 4060 – 4090 | ✔ | 8/10-bit | ✔ | very good | two encoders on RTX 4070 Ti and up |
-| Blackwell | RTX 5060 – 5090 | ✔ | 8/10-bit, 4:2:2 | ✔ | excellent | more encoders on higher tiers |
+Consumer GeForce drivers limit how many streams encode at once: recent ones allow 8, older ones 3 to 5. Professional cards aren't limited.
 
-## AMD AMF (VCE / VCN) by GPU
+| Family | Typical cards | Encodes | Notes |
+|---|---|---|---|
+| Kepler | GTX 650 to 780 | H.264 | Not supported by current drivers and FFmpeg. Use software |
+| Maxwell, first generation | GTX 750, 750 Ti | H.264 | Low quality. Old driver branch only |
+| Maxwell, second generation | GTX 950 to 980 Ti | H.264, 8-bit H.265 | Fair quality |
+| Pascal | GTX 1050 to 1080 Ti | H.264, 8 and 10-bit H.265 | Good quality. The GT 1030 has no NVENC |
+| Volta-era | GTX 1650 (not Super) | H.264, 8 and 10-bit H.265 | Good quality |
+| Turing | GTX 1650 Super, 1660, RTX 2060 to 2080 Ti | H.264, 8 and 10-bit H.265 | Very good: close to software on `medium` |
+| Ampere | RTX 3050 to 3090 Ti | H.264, 8 and 10-bit H.265 | Same encoder as Turing |
+| Ada Lovelace | RTX 4060 to 4090 | H.264, 8 and 10-bit H.265, AV1 | Two encoders on the RTX 4070 Ti and up |
+| Blackwell | RTX 5060 to 5090 | H.264, 8 and 10-bit H.265, AV1 | More encoders on higher models |
 
-AMF (`h264_amf`) works on Windows. On Linux use **VAAPI** with the Mesa driver for the same
-hardware.
+## AMD AMF by GPU
 
-| Engine | Typical GPUs / APUs | H.264 | HEVC | AV1 | Notes |
-|---|---|---|---|---|---|
-| VCE 1.0 – 2.0 | HD 7000, R7 260, R9 290/390, Kaveri APUs | ✔ | – | – | legacy; quality is low, prefer software |
-| VCE 3.x | R9 285/380/Fury, RX 400/500 (Polaris) | ✔ | 8-bit (3.4) | – | |
-| VCE 4.x | RX Vega 56/64, Radeon VII | ✔ | 8-bit | – | |
-| VCN 1.0 | Ryzen 2000G/3000G APUs (Raven Ridge, Picasso) | ✔ | 8-bit | – | |
-| VCN 2.x | RX 5000 (RDNA1), Ryzen 4000/5000G APUs | ✔ | 8/10-bit | – | |
-| VCN 3.0 | RX 6000 (RDNA2), Ryzen 6000 APUs | ✔ | 8/10-bit | decode only | **RX 6500 XT / 6400 have no encoder** |
-| VCN 4.0 | RX 7000 (RDNA3), Ryzen 7040/8040 APUs (Radeon 780M) | ✔ | 8/10-bit | ✔ | much improved H.264 quality |
-| VCN 5.0 | RX 9000 (RDNA4) | ✔ | 8/10-bit | ✔ | best AMD quality so far |
+AMF works on Windows. On Linux, use **VAAPI** with the Mesa driver for the same hardware.
+
+| Engine | Typical cards and APUs | Encodes | Notes |
+|---|---|---|---|
+| VCE 1 and 2 | HD 7000, R7 260, R9 290 and 390 | H.264 | Low quality. Prefer software |
+| VCE 3 | R9 285, 380, Fury, RX 400 and 500 | H.264, 8-bit H.265 on VCE 3.4 | |
+| VCE 4 | RX Vega 56 and 64, Radeon VII | H.264, 8-bit H.265 | |
+| VCN 1 | Ryzen 2000G and 3000G | H.264, 8-bit H.265 | |
+| VCN 2 | RX 5000, Ryzen 4000 and 5000G | H.264, 8 and 10-bit H.265 | |
+| VCN 3 | RX 6000, Ryzen 6000 | H.264, 8 and 10-bit H.265 | The RX 6500 XT and 6400 have no encoder |
+| VCN 4 | RX 7000, Ryzen 7040 and 8040 | H.264, 8 and 10-bit H.265, AV1 | Much better H.264 |
+| VCN 5 | RX 9000 | H.264, 8 and 10-bit H.265, AV1 | AMD's best so far |
 
 ## Intel Quick Sync by CPU
 
-Quick Sync is part of the integrated GPU. **CPUs ending in "F" (e.g. i5-12400F) and most
-"KF" models have no iGPU and therefore no Quick Sync.** On Linux use **VAAPI** (`intel-media-driver`)
-or Quick Sync; both use the same hardware.
+Quick Sync is part of the built-in graphics. **CPUs ending in F, such as the i5-12400F, and most KF models have none, so they have no Quick Sync.** On Linux, VAAPI with `intel-media-driver` and Quick Sync use the same hardware.
 
-| Generation | Example CPUs | GPU | H.264 | HEVC encode | AV1 | Notes |
-|---|---|---|---|---|---|---|
-| 2nd gen (Sandy Bridge) | i5-2500, i7-2600 | HD 2000/3000 | ✔ | – | – | first Quick Sync; too old for current drivers on Linux |
-| 3rd gen (Ivy Bridge) | i5-3470, i7-3770 | HD 2500/4000 | ✔ | – | – | |
-| 4th gen (Haswell) | i5-4590, i7-4790 | HD 4600 | ✔ | – | – | |
-| 5th gen (Broadwell) | i7-5775C | Iris 6200 | ✔ | – | – | |
-| 6th gen (Skylake) | i5-6500, i7-6700 | HD 530 | ✔ | 8-bit | – | |
-| 7th gen (Kaby Lake) | i5-7500, i7-7700 | HD 630 | ✔ | 8/10-bit | – | first with 10-bit HEVC |
-| 8th–10th gen (Coffee/Comet Lake) | i5-8400, i7-9700, i5-10400 | UHD 630 | ✔ | 8/10-bit | – | very common in home servers |
-| 10th gen mobile (Ice Lake) | i7-1065G7 | Iris Plus (Gen11) | ✔ | 8/10-bit | – | |
-| 11th gen (Tiger / Rocket Lake) | i5-11400, i7-1165G7 | Xe / UHD 750 | ✔ | 8/10-bit | decode | |
-| 12th–14th gen (Alder / Raptor Lake) | i3-12100, i5-13500, i7-14700 | UHD 730/770, Iris Xe | ✔ | 8/10-bit | decode | excellent for multiple 1080p streams |
-| Core Ultra 1 (Meteor Lake) | Core Ultra 5 125H | Arc (Xe-LPG) | ✔ | 8/10-bit | ✔ | |
-| Core Ultra 200 (Arrow / Lunar Lake) | Core Ultra 5 245K | Xe-LPG / Xe2 | ✔ | 8/10-bit | ✔ | |
-| Atom / Celeron / Pentium | J4105/J4125 (Gemini Lake), N5105 (Jasper Lake) | UHD 600/605/Jasper | ✔ | 8/10-bit | – | popular NAS chips |
-| Intel Processor N-series | N100, N95, N305 (Alder Lake-N) | UHD (Xe, 24–32 EU) | ✔ | 8/10-bit | decode | best low-power choice |
-| Intel Arc discrete | A310, A380, A750, A770, B580 | Xe-HPG / Xe2 | ✔ | 8/10-bit | ✔ | great dedicated transcoding cards |
+| Generation | Example CPUs | Encodes | Notes |
+|---|---|---|---|
+| 2nd to 5th (Sandy Bridge to Broadwell) | i5-2500, i7-3770, i5-4590, i7-5775C | H.264 | 2nd is too old for current Linux drivers |
+| 6th (Skylake) | i5-6500, i7-6700 | H.264, 8-bit H.265 | |
+| 7th (Kaby Lake) | i5-7500, i7-7700 | H.264, 8 and 10-bit H.265 | |
+| 8th to 10th (Coffee and Comet Lake, Ice Lake) | i5-8400, i7-9700, i5-10400, i7-1065G7 | H.264, 8 and 10-bit H.265 | Very common in home servers |
+| 11th (Tiger and Rocket Lake) | i5-11400, i7-1165G7 | H.264, 8 and 10-bit H.265 | |
+| 12th to 14th (Alder and Raptor Lake) | i3-12100, i5-13500, i7-14700 | H.264, 8 and 10-bit H.265 | Excellent for several 1080p streams |
+| Core Ultra | Core Ultra 5 125H, 245K | H.264, 8 and 10-bit H.265, AV1 | |
+| Atom, Celeron, Pentium | J4105, J4125, N5105 | H.264, 8 and 10-bit H.265 | Popular NAS chips |
+| N-series | N100, N95, N305 | H.264, 8 and 10-bit H.265 | The best low-power choice |
+| Arc cards | A310, A380, A750, A770, B580 | H.264, 8 and 10-bit H.265, AV1 | Great dedicated cards for this |
 
-## Apple, Linux VAAPI and Raspberry Pi
+## Apple, Linux and Raspberry Pi
 
-- **Apple VideoToolbox**: every Mac since about 2012 has a hardware H.264 encoder; Apple silicon
-  (M1 and later) encodes many 1080p streams at once with little power. Use *Balanced*.
-- **VAAPI (Linux/FreeBSD)**: covers Intel (iHD driver) and AMD (Mesa radeonsi) GPUs.
-  WittyMediaServer uses `/dev/dri/renderD128`; the server user needs access to it (usually the
-  `render` or `video` group). In Docker add `--device /dev/dri`.
-- **Raspberry Pi**: the Pi 5 has no hardware H.264 encoder, and the Pi 4's (V4L2 M2M) encoder is
-  not used by WittyMediaServer. Use software with *Speed*, *Maximum resolution 720p* and
-  *Low-power mode for DVDs*. Direct play matters most here: MP4/H.264/AAC files cost nothing.
+- **Apple VideoToolbox.** Macs have a hardware H.264 encoder, and Apple silicon encodes many 1080p streams at once with little power. Use Balanced. This has not been run on a real Mac yet.
+- **VAAPI on Linux.** Covers Intel (iHD driver) and AMD (Mesa radeonsi). The server's user needs access to `/dev/dri/renderD128`, usually through the `render` or `video` group.
+- **Raspberry Pi.** The Pi 5 has no hardware H.264 encoder, and this server doesn't use the Pi 4's. Use software with Speed, 720p and **Low-power mode for DVDs**.
 
-## Troubleshooting
+## If it isn't working
 
-| Symptom | Try |
+| What you see | Try |
 |---|---|
-| An encoder is greyed out although the GPU is present | update the GPU driver; on Linux check permissions on `/dev/dri`; NVENC needs the NVIDIA driver, not nouveau; restart WittyMediaServer to re-test |
-| Playback stutters / buffers | Speed profile, a lower *Maximum resolution*, a hardware encoder, or a bitrate cap for remote viewers |
-| Picture is blocky | lower the quality level (CRF), raise the bitrate cap, or use Quality |
-| Hardware encoding fails mid-stream | too many NVENC sessions on a GeForce card; untick NVENC or upgrade the driver |
-| Transcodes fail after changing Expert options | clear both Expert fields; check the log with `-log debug` |
+| An encoder is greyed out although the card is there | Update the driver. On Linux, check permissions on `/dev/dri`. NVENC needs NVIDIA's driver, not nouveau. Restart the server to test again |
+| Playback stutters or buffers | The Speed profile, a lower **Maximum resolution**, a hardware encoder, or a bitrate limit for remote viewers |
+| The picture is blocky | A lower quality level, a higher bitrate limit, or the Quality profile |
+| Hardware encoding fails partway | Too many NVENC streams on a GeForce card. Untick NVENC, or update the driver |
+| Conversions fail after changing Expert options | Clear both Expert fields, and look in **Settings → WittyLog** |
+| HDR looks flat and dim | Your FFmpeg has no tone mapping filters. [Supported formats](SUPPORTED-FORMATS.md) covers how HDR plays |
 
 ---
-<sub>WittyMediaServer 0.5.0-alpha documentation</sub>
+
+<sub>WittyMediaServer documentation</sub>

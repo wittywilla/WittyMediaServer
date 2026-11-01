@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PageHelp } from '../components/HelpLink'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, mediaUrl, posterUrl, type Album, type Item, type Library } from '../api'
 import { BackLink, EmptyState, ScanButton, SkeletonGrid } from '../components/common'
@@ -67,7 +68,7 @@ export default function BooksLibrary({ lib }: { lib: Library }) {
         desc={desc}
         onSort={(k, d) => set({ sort: k, desc: d ? '1' : null })}
         onDirection={(d) => set({ desc: d ? '1' : null })}
-        actions={<ScanButton lib={lib} />}
+        actions={<><PageHelp to="books" /><ScanButton lib={lib} /></>}
       />
       {tab === 'books' && (!items ? <SkeletonGrid /> : items.length === 0 ? <EmptyState icon={<IconBook />} title="No books yet" text="Put EPUB, PDF or CBZ files in this library's folders and scan it." /> : (
         <div className="album-grid">{items.map((it) => <BookCard key={it.id} it={it} />)}</div>

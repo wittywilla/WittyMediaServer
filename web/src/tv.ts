@@ -247,6 +247,8 @@ function onKey(e: KeyboardEvent) {
       return
     }
     if (target.tagName === 'SELECT') { e.preventDefault(); openList(target as HTMLSelectElement); return }
+    // A native checkbox or radio button answers only to the space bar, and a remote has none.
+    if (target.matches('input[type=checkbox], input[type=radio]')) { e.preventDefault(); (target as HTMLElement).click(); return }
     // Things that act as links or buttons without being them (a card row).
     if (target.matches('[tabindex="0"][role=link], [tabindex="0"][role=button]')) { e.preventDefault(); (target as HTMLElement).click(); return }
   }

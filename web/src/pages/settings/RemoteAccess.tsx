@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { HelpLink } from '../../components/HelpLink'
 import { Link } from 'react-router-dom'
 import { api, type Session } from '../../api'
 import { IconCheck, IconClose, IconInfo, IconRefresh, IconShield, IconTrash } from '../../icons'
@@ -327,7 +328,7 @@ function ProxySteps({ st, save, busy }: { st: Status; save: (c: Partial<Settings
       <ol>
         <li>Point your proxy at this server. For Caddy, this is all it takes (it gets its own certificate):
           <pre className="rem-pre">{CADDY(host, `127.0.0.1:${st.homePort}`)}</pre>
-          For nginx, also pass <code>X-Forwarded-For</code> and <code>X-Forwarded-Proto</code>, and turn off body-size limits. <code>docs/REMOTE.md</code> has a full example.
+          For nginx, also pass <code>X-Forwarded-For</code> and <code>X-Forwarded-Proto</code>, and turn off body-size limits. <HelpLink to="remote#a-reverse-proxy-you-already-run">The guide</HelpLink> has a full example.
         </li>
         <Done yes={!!st.settings.trustedProxies && !!st.settings.publicUrl}>Tell this server about it:<TrustForm st={st} save={save} busy={busy} /></Done>
         <Done yes={st.settings.enabled || st.forced}>Turn on <b>Remote Access</b> above.</Done>
@@ -351,7 +352,7 @@ function VpsSteps({ st, save, busy }: { st: Status; save: (c: Partial<Settings>,
         <Done yes={st.settings.enabled || st.forced}>Turn on <b>Remote Access</b> above.</Done>
         <Done yes={!!st.lastProof}>Run the test below with your phone on mobile data.</Done>
       </ol>
-      <p className="rem-note">Running this server itself on a rented machine? Reach this page through an SSH tunnel, or start it with <code>-remote-access</code>: see <code>docs/REMOTE.md</code>.</p>
+      <p className="rem-note">Running this server itself on a rented machine? Reach this page through an SSH tunnel, or start it with <code>-remote-access</code>: see <HelpLink to="remote#the-server-itself-on-a-rented-machine">the guide</HelpLink>.</p>
     </div>
   )
 }

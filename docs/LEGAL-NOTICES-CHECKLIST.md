@@ -34,7 +34,7 @@ a notice of its own.
 | Modules and their updates | `modules` | Settings, Modules |
 | Creator videos and the people named in them | `creators` | Creator libraries, channels, watch page, vertical videos' creators and About |
 | Books and comics, reader content | `reader` | Books library, book pages |
-| A connection to a server someone else runs | `thirdPartyServer` | None yet |
+| A connection to a server someone else runs | `thirdPartyServer` | Game PCs: `pages/Couch.tsx`, `pages/Rigs.tsx`, Settings, Game PCs |
 | An app's choice of server | `connect` | The apps' connect screens |
 | A place where someone adds their own folders | `local` | Settings, Libraries, and the setup wizard's tick-box (only there, once) |
 | A place where someone shares | `sharing` | Share dialog, Settings, Sharing |
@@ -47,27 +47,27 @@ If nothing fits, add a kind to `notices.json` with its `section` on the Legal pa
 `internal/legal/legal_test.go`. Keep the core words for third-party content: *aren't created by,
 associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates*.
 
-## Screens in other branches
+## Screens with more to keep
 
-To apply when each one merges. Don't edit a notice's words for one screen: add a kind if it really differs.
+Keep to these when changing one of these areas. Don't edit a notice's words for one screen: add a kind if it really differs.
 
-| Branch | Screen | Kind | Also |
+| Area | Screen | Kind | Also |
 |---|---|---|---|
-| `radio-revamp` | Station search and directory results | `webResults` | Add `all.api.radio-browser.info` and its servers to `services` in `legal.json`. The directory is on by default, so add it to the privacy section's "On by default" line and to `THIRD_PARTY_LICENSES.md` |
-| `radio-revamp` | Stations from the directory; radio pages | `webMedia` | Already on the Radio library; keep it in the merged page |
-| `games-metadata` | Game details, ratings, box art, every source it adds | `games` on the page, `webResults` on match or search results | Add each source to `services`. Credit each source on the game's page, as `GameDetails` now does for Wikidata |
-| `games-rigs` | Moonlight or any connection to someone's gaming PC or server | `thirdPartyServer` | Add the bridge's GitHub download and its GPL license to `services` and the licenses page. The bridge's install dialog takes `cores`-style wording: add a kind if needed. Mention the added encryption (RSA, ECDSA, AES) in the `cryptography` section |
-| `games-custom-cores` | Installing or adding a core or firmware | `cores` | In the add dialog. "New custom modules" are third-party: `modules` where those are added |
-| `games-options`, `games-controllers` | Settings around games | None, if they show no third-party content | If a screen shows a game or its details, `games`. Button pictures must not copy a console maker's logos |
-| `games-archives` | Settings, About, third-party licenses | None | It adds the license list: keep `<div id="licenses" />` just above it, since Legal links to `/settings/about#licenses`. Its hint and page-title lines for "About & legal" conflict with this branch's: take "About". |
-| `witty-cd` | Album lookups | `webResults` on results, `metadata` on album pages | Add each lookup host to `services`; credit it as its terms ask |
-| `witty-visualizer` | Visualizer | None | Its own notice appears before each person first turns it on, and has to be accepted, so `flashing` would only repeat it. Each person accepts for themselves, on the server and in the desktop player |
-| `modules-independent` | The Modules page, in any new form | `modules` | Keep it directly under the page's header. New custom modules: `modules` in the install dialog too |
-| `logging-diagnoser` | Logs, and anything sent or copied off the server | None, unless it sends something | If it can send anything, it goes on the privacy list and says so first. `Logs & privacy`'s header now says "Logs are never sent anywhere": keep that true |
-| `witty-media-player` | Standalone player | `local` on first run, `webResults` on any lookup | It's its own program, so copy the wording from this file. The owner checks its look before it lands |
-| `chapter-skip`, `bdj-examples` | Anything they add to disc pages | None | Use the copy-protection wording below in any new message |
+| Radio | Station search and directory results | `webResults` | `all.api.radio-browser.info` and its servers stay in `services` in `legal.json`. The directory is on by default, so it stays in the privacy section's "On by default" line and in `THIRD_PARTY_LICENSES.md` |
+| Radio | Stations from the directory; radio pages | `webMedia` | On the Radio library |
+| Game details | Game details, ratings, box art, every source it adds | `games` on the page, `webResults` on match or search results | Add each source to `services`. Credit each source on the game's page, as `GameDetails` now does for Wikidata |
+| Game PCs | Moonlight or any connection to someone's gaming PC or server | `thirdPartyServer` | Add the bridge's GitHub download and its GPL license to `services` and the licenses page. The bridge's install dialog takes `cores`-style wording: add a kind if needed. The added encryption is mentioned (RSA, ECDSA, AES) in the `cryptography` section |
+| Custom cores | Installing or adding a core or firmware | `cores` | In the add dialog. "New custom modules" are third-party: `modules` where those are added |
+| Game settings and controllers | Settings around games | None, if they show no third-party content | If a screen shows a game or its details, `games`. Button pictures must not copy a console maker's logos |
+| Licenses | Settings, About, third-party licenses | None | Keep `<div id="licenses" />` just above the license list, since Legal links to `/settings/about#licenses` |
+| WittyCD | Album lookups | `webResults` on results, `metadata` on album pages | Add each lookup host to `services`; credit it as its terms ask |
+| WittyVisualizer | Visualizer | None | Its own notice appears before each person first turns it on, and has to be accepted, so `flashing` would only repeat it. Each person accepts for themselves, on the server and in the desktop player |
+| Modules | The Modules page, in any new form | `modules` | Keep it directly under the page's header. New custom modules: `modules` in the install dialog too |
+| Logs and the diagnoser | Logs, and anything sent or copied off the server | None, unless it sends something | If it can send anything, it goes on the privacy list and says so first. `Logs & privacy`'s header now says "Logs are never sent anywhere": keep that true |
+| WittyMediaPlayer | Standalone player | `local` on first run, `webResults` on any lookup | It's its own program, so copy the wording from this file. The owner checks its look before it lands |
+| Discs | Anything added to disc pages | None | Use the copy-protection wording below in any new message |
 
-## At merge
+## Before merging
 
 1. `go test ./internal/legal ./internal/server`. It fails when:
    - a screen in the table in `internal/legal/legal_test.go` lost its notice (add new screens there);
@@ -91,8 +91,7 @@ Say that it's refused. Never say how to get a copy that isn't.
 
 ## Module READMEs
 
-Each repository's README ends with a **Legal** section. Folders in this repository already have theirs.
-For a repository that lives elsewhere, adapt this:
+Each repository's README ends with a **Legal** section. For a new repository, adapt this:
 
 ```markdown
 ## Legal
@@ -110,3 +109,7 @@ legal advice.
 - **WittyVisualizer:** add the `flashing` notice.
 - **WittyMediaPlayer:** add `local`, and credit any optional playback libraries it uses.
 - **WittyCouch, WittyCouch Host, WittyRigs:** say that it isn't associated with the projects it connects to.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

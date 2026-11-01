@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { PageHelp } from '../components/HelpLink'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api, artPreviewUrl } from '../api'
 import { announce } from '../a11y'
@@ -35,6 +36,7 @@ export default function FixMatches() {
         <h1>Fix matches</h1>
         <Tabs label="Fix matches" value={page} onChange={(k) => set('page', k === 'review' ? '' : k)} items={[{ value: 'review', label: 'Review' }, { value: 'rules', label: 'Naming rules' }, { value: 'history', label: 'History' }]} />
         <div className="grow" />
+        <PageHelp to="fixing-metadata" />
         <Select aria-label="Library" value={params.get('library') || ''} onChange={(e) => set('library', e.target.value)}
           options={[{ value: '', label: page === 'rules' ? 'Choose a library' : 'All libraries' }, ...matchable.map((l) => ({ value: String(l.id), label: l.name }))]} />
       </div>

@@ -21,9 +21,12 @@ export type StoreItem = {
 }
 export type RunItem = { id: string; name: string; from?: string; to?: string; state: 'queued' | 'working' | 'done' | 'failed' | 'skipped' | 'undone'; why?: string; phase?: string; done?: number; total?: number; failure?: Failure }
 export type Run = { id: string; kind: string; by?: string; started: number; finished?: number; items: RunItem[]; updated: number; failed: number; skipped: number; canUndo?: boolean; undone?: boolean }
+// How well a module's helper is boxed in on this system, in words when it isn't fully.
+export type SandboxInfo = { level: 'full' | 'partial' | 'limited' | 'unconfined'; title?: string; words?: string }
+
 export type StoreView = {
   server: string; api: number; minApi: number; policy: string; minServer: string; platform: string; checkedAt?: number; checkError?: string
-  stores: StoreInfo[]; items: StoreItem[]; updates: number; run?: Run; repairRoute: string
+  stores: StoreInfo[]; items: StoreItem[]; updates: number; run?: Run; repairRoute: string; sandbox?: SandboxInfo
 }
 export type ItemDetail = { item: StoreItem; versions: VersionInfo[]; plan: RunItem[]; permissions: { name: string; words: string }[]; builtOn: { id: string; name: string; installed: boolean }[]; forkWarning?: string; fingerprint?: string; policy: string; server: string }
 export type LogLine = { at: number; level: string; text: string }
@@ -43,12 +46,12 @@ export const undoRun = (secrets: OwnerSecrets) => api.post<Run>('/modulestore/ru
 export const dismissRun = () => api.del('/modulestore/run')
 export const installModule = (id: string, confirm: boolean) => api.post<Run>('/modulestore/install', { id, confirm })
 export const moduleLog = (id: string) => api.get<ModuleLog>(`/modulestore/modules/${encodeURIComponent(id)}/log`)
-export const previewStore = (url: string, key: string, allowPrivate: boolean) => api.post<StorePreview>('/modulestore/stores/preview', { url, key, private: allowPrivate })
+export const previewStore = (url: string, key: string, allowPrivate: boolean, secrets?: OwnerSecrets) => api.post<StorePreview>('/modulestore/stores/preview', { url, key, private: allowPrivate, ...secrets })
 export const addStore = (url: string, key: string, allowPrivate: boolean, agreed: boolean, secrets: OwnerSecrets) => api.post<StoreInfo>('/modulestore/stores', { url, key, private: allowPrivate, agreed, ...secrets })
 export const removeStore = (id: string) => api.del(`/modulestore/stores/${encodeURIComponent(id)}`)
 export const setStoreOn = (id: string, on: boolean) => api.put<StoreInfo>(`/modulestore/stores/${encodeURIComponent(id)}/enabled`, { on })
 export const checkStore = (id: string) => api.post<StoreInfo>(`/modulestore/stores/${encodeURIComponent(id)}/check`)
-export const useFork = (store: string, id: string, confirm: boolean, secrets: OwnerSecrets) => api.post<ItemDetail>(`/modulestore/stores/${encodeURIComponent(store)}/fork/${encodeURIComponent(id)}`, { confirm, ...secrets })
+export const useFork = (store: string, id: string, confirm: boolean, fingerprint: string | undefined, secrets: OwnerSecrets) => api.post<ItemDetail>(`/modulestore/stores/${encodeURIComponent(store)}/fork/${encodeURIComponent(id)}`, { confirm, fingerprint, ...secrets })
 
 // The server's words for a failure, or the error's own when it has none.
 export function failureOf(e: unknown, name = 'This module'): Failure {

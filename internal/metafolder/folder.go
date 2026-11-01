@@ -401,7 +401,7 @@ HOW TO FIX SOMETHING
 
   1. Open the file for the title, in Notepad, TextEdit or any text editor.
   2. Change what's wrong, and save it. Keep the "quotes" and the commas.
-  3. In Settings > Metadata files, press "Check what would change". On the command
+  3. In Settings > Repair, press "Check what would change". On the command
      line: wittymediaserver metadata apply
   4. Read what it says it will change, and press Apply. On the command line:
      wittymediaserver metadata apply --apply
@@ -448,5 +448,5 @@ HTML, scripts, hidden characters and links are taken out of anything read from h
 pictures are checked to be real pictures. There's nothing you can break here that a
 new export won't put right.
 
-More help: Settings > Metadata files, or docs/FIXING-METADATA.md.
+More help: Settings > Repair, or Help in the app: The metadata folder.
 `

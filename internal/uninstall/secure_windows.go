@@ -4,11 +4,30 @@ package uninstall
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
 	"golang.org/x/sys/windows"
 )
+
+// refuseLinks walks a folder, itself included, and says if anything in it is a link or a junction.
+// Nothing in it should be, and each of those could lead an administrator's change somewhere else.
+func refuseLinks(dir string) error {
+	return filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		st, err := os.Lstat(p)
+		if err != nil {
+			return err
+		}
+		if st.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
+			return fmt.Errorf("%s is a link, which nothing here makes. Someone may have put it there to change the rules of another folder: remove it, and try again", p)
+		}
+		return nil
+	})
+}
 
 // SecureServiceData makes the service's folder in ProgramData, where every account can read
 // new folders and add to them. It holds password hashes and sessions, so only the service and
@@ -19,6 +38,11 @@ func SecureServiceData(dir string) error {
 		return fmt.Errorf("%s isn't a full path", dir)
 	}
 	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return err
+	}
+	// This runs as an administrator, on a folder any account could have made first. As a link to
+	// somewhere else, it would hand the service full control of wherever that leads.
+	if err := refuseLinks(dir); err != nil {
 		return err
 	}
 	admins, err := windows.CreateWellKnownSid(windows.WinBuiltinAdministratorsSid)
@@ -62,10 +86,13 @@ func SecureServiceData(dir string) error {
 	}
 	icacls := filepath.Join(sys, "icacls.exe")
 	if entries, err := os.ReadDir(dir); err == nil && len(entries) > 0 {
-		if _, err := runProgram(icacls, filepath.Join(dir, "*"), "/setowner", "*S-1-5-32-544", "/T", "/C", "/Q"); err != nil {
+		if err := refuseLinks(dir); err != nil {
+			return err
+		}
+		if _, err := runProgram(icacls, filepath.Join(dir, "*"), "/setowner", "*S-1-5-32-544", "/T", "/C", "/Q", "/L"); err != nil {
 			return fmt.Errorf("taking over what's in %s: %w", dir, err)
 		}
-		if _, err := runProgram(icacls, filepath.Join(dir, "*"), "/reset", "/T", "/C", "/Q"); err != nil {
+		if _, err := runProgram(icacls, filepath.Join(dir, "*"), "/reset", "/T", "/C", "/Q", "/L"); err != nil {
 			return fmt.Errorf("resetting what's in %s: %w", dir, err)
 		}
 	}

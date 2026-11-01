@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useState } from 'react'
+import { PageHelp } from '../components/HelpLink'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl, type Item } from '../api'
 import { BackLink, EmptyState, LoadError, Placeholder, Spinner } from '../components/common'
@@ -65,7 +66,7 @@ export default function CouchPage() {
   if (st && !st.allowed) return <EmptyState icon={<IconGamepad />} title="This isn’t turned on for this account" text="Ask whoever runs this server." />
   return (
     <div className="gm-page">
-      <div className="toolbar"><h1>Game PCs</h1></div>
+      <div className="toolbar"><h1>Game PCs</h1><div className="grow" /><PageHelp to="game-rigs" /></div>
       <p className="muted">Play the games on any PC running Sunshine, here in your browser. It might be yours, or a friend’s. Each PC pairs once, with a PIN typed on that PC, and your pairings are yours alone.</p>
       {st && <NotReady st={st} />}
       {!hosts ? <Spinner /> : hosts.length > 0 && (

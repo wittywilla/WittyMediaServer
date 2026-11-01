@@ -1,0 +1,143 @@
+/* First-time setup's own pieces. The cards, fields and page around them are in oobe.css. */
+
+.su-card-main:focus { outline: none; }
+
+/* How far through it is: a sentence and one bar, however many steps this server has. */
+.su-progress { display: grid; gap: var(--sp-2); }
+.su-progress-words { margin: 0; font-size: var(--text-sm); font-weight: 600; color: var(--fg-2); }
+
+/* The foot of a step. */
+.su-actions-go { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--sp-3); margin-left: auto; }
+.su-later { margin: var(--sp-5) 0 0; color: var(--fg-3); font-size: var(--text-sm); }
+.su-gap { margin-top: var(--sp-4); }
+.su-gap-under { margin-bottom: var(--sp-4); }
+.su-plain { list-style: none; margin: 0; padding: 0; }
+
+/* The first page: starting new, or bringing a backup back. */
+.su-starts { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-3); margin-bottom: var(--sp-3); }
+.su-start-note { max-width: 62ch; margin: 0 0 var(--sp-5); font-size: var(--text-sm); }
+.su-restore { width: 100%; display: grid; gap: var(--sp-3); margin-bottom: var(--sp-5); padding: var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--bg-3); text-align: left; }
+
+/* One of a few, as cards. */
+.su-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--sp-3); }
+.su-cards.small { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
+.su-card { position: relative; display: grid; gap: var(--sp-2); justify-items: start; align-content: start; min-height: 3rem; padding: var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--bg-3); color: var(--fg); font: inherit; text-align: left; cursor: pointer; transition: border-color var(--dur-2), background var(--dur-2); }
+.su-card:hover { border-color: var(--border-strong); }
+.su-card.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.su-card b { padding-right: var(--sp-6); font-size: var(--text-base); }
+.su-card-text { color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-snug); }
+.su-card-mark { position: absolute; top: var(--sp-3); right: var(--sp-3); z-index: 1; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border: 2px solid var(--control-line); border-radius: 50%; background: var(--bg-2); color: var(--accent-text); }
+.su-card.on .su-card-mark { border-color: var(--accent); }
+.su-card .oobe-theme-pic, .su-card .oobe-choice-pic, .su-card .layout-pic { width: 100%; margin: 0; }
+
+/* A yes or no as a whole row. */
+.su-tick { display: flex; align-items: flex-start; gap: var(--sp-3); width: 100%; min-height: 3rem; padding: var(--sp-3) var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--bg-3); color: var(--fg); font: inherit; text-align: left; cursor: pointer; transition: border-color var(--dur-2), background var(--dur-2); }
+.su-tick:hover { border-color: var(--border-strong); }
+.su-tick.on { border-color: var(--accent-line); background: var(--accent-soft); }
+.su-tick.off { cursor: default; }
+.su-tick.off:hover { border-color: var(--border); }
+.su-tick-box { flex: none; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border: 2px solid var(--control-line); border-radius: var(--r-xs); background: var(--bg-2); color: var(--accent-text); }
+.su-tick.on .su-tick-box { border-color: var(--accent); }
+.su-tick-switch { pointer-events: none; display: block; margin-top: 2px; }
+.su-tick-ic { flex: none; }
+.su-tick-ic svg { display: block; width: 1.5rem; height: 1.5rem; color: var(--fg-3); }
+.su-tick.on .su-tick-ic svg { color: var(--accent-text); }
+.su-tick-words { flex: 1; min-width: 0; display: grid; gap: var(--sp-1); }
+.su-tick-words b { font-size: var(--text-md); font-weight: 600; line-height: var(--leading-snug); }
+.su-tick-text { color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-snug); }
+.su-tick-words small { color: var(--fg-3); font-size: var(--text-xs); line-height: var(--leading-snug); }
+.su-tick.on .su-tick-words small { color: var(--fg-2); }
+
+.su-mods { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: var(--sp-3); }
+.su-ticks { display: grid; gap: var(--sp-2); }
+.su-ticks .su-tick-words b { font-weight: 400; }
+
+/* The account page. */
+.su-form { max-width: 34rem; gap: var(--sp-4); }
+.su-ack { display: grid; gap: var(--sp-2); }
+.su-ack .su-tick-words b { font-weight: 400; font-size: var(--text-sm); }
+.su-ack.wrong .su-tick { border-color: var(--danger); }
+.su-ack a { justify-self: start; display: inline-flex; align-items: center; min-height: 1.5rem; color: var(--accent-text); font-size: var(--text-sm); text-decoration: underline; }
+
+/* Where the setup code is. */
+.su-where { padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--bg-3); color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-body); }
+.su-where p { margin: 0 0 var(--sp-2); }
+.su-where p:last-child { margin: var(--sp-2) 0 0; }
+.su-where ul { margin: 0; padding-left: var(--sp-5); display: grid; gap: var(--sp-1); }
+.su-where b { color: var(--fg); }
+.su-where code, .su-ways code, .oobe-next-card code { overflow-wrap: anywhere; }
+
+/* Consents. */
+.su-consent { padding: var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--bg-3); }
+.su-consent .set-consent { margin: 0; padding-left: var(--sp-5); display: grid; gap: var(--sp-2); color: var(--fg-2); font-size: var(--text-md); line-height: var(--leading-body); }
+.su-consent .set-consent a { color: var(--accent-text); }
+.su-consent .su-tick { background: var(--bg-2); }
+.su-consent .su-tick.on { background: var(--accent-soft); }
+.su-consent-go { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-4); }
+.su-keybox { display: grid; gap: var(--sp-2); justify-items: start; margin-bottom: var(--sp-4); }
+.su-keybox .ui-field { width: 100%; }
+
+/* Modules being installed. */
+.su-going { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.su-going li { display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3) var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-3); }
+.su-going li.done { border-color: var(--ok); }
+.su-going li.failed { border-color: var(--danger); }
+.su-going-mark { flex: none; display: grid; place-items: center; width: 1.25rem; height: 1.25rem; margin-top: 1px; }
+.su-going li.done .su-going-mark { color: var(--ok); }
+.su-going li.failed .su-going-mark { color: var(--danger); }
+.su-spin { width: 1.125rem; height: 1.125rem; border-width: 2px; }
+.su-going-words { flex: 1; min-width: 0; display: grid; gap: var(--sp-1); font-size: var(--text-sm); }
+.su-going-words > b { font-size: var(--text-md); }
+.su-going-why { color: var(--fg-2); line-height: var(--leading-snug); }
+
+/* The ways forward from a share on another machine. */
+.su-ways { margin: var(--sp-2) 0; padding-left: var(--sp-5); display: grid; gap: var(--sp-2); }
+.su-para { margin: var(--sp-2) 0 0; }
+
+/* What setup left behind. */
+.su-summary { list-style: none; width: fit-content; max-width: 100%; margin: 0 auto var(--sp-5); padding: 0; display: grid; gap: var(--sp-2); text-align: left; color: var(--fg-2); font-size: var(--text-md); }
+.su-summary li { display: flex; align-items: flex-start; gap: var(--sp-2); }
+.su-summary svg { flex: none; margin-top: 2px; color: var(--fg-3); }
+.su-summary li.on svg { color: var(--ok); }
+.su-summary span { display: grid; min-width: 0; }
+.su-summary small { color: var(--fg-3); font-size: var(--text-xs); }
+
+/* A phone: the buttons at the foot stack, the main one first, each the width of the page. */
+@media (max-width: 600px) {
+  .su-actions { flex-direction: column-reverse; align-items: stretch; }
+  .su-actions-go { flex-direction: column-reverse; align-items: stretch; margin-left: 0; }
+  .su-actions .btn, .su-starts .btn, .oobe-finish .btn { width: 100%; }
+  .su-actions > span:empty { display: none; }
+  .su-going li, .su-tick { padding: var(--sp-3); }
+}
+
+/* Across the room: wider, as the words are bigger, and nothing a remote lands on is small. */
+html.ten-foot .oobe-shell, html.using-controller .oobe-shell { width: min(76rem, 100%); }
+html.ten-foot .su-card-main button.btn, html.using-controller .su-card-main button.btn { min-height: 3rem; }
+html.ten-foot .su-card-main .input, html.ten-foot .su-card-main .select, html.using-controller .su-card-main .input, html.using-controller .su-card-main .select { min-height: 3rem; }
+html.ten-foot .su-card-main .seg button, html.using-controller .su-card-main .seg button { min-height: 3rem; }
+html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head, html.using-controller .op-head { min-height: 3rem; display: inline-flex; align-items: center; }
+
+/* The games folder panel says what it promises, first. */
+.su-games-line { margin: 0 0 var(--sp-4); font-size: var(--text-base); font-weight: 600; color: var(--fg); }
+
+/* Something most people can skip, closed until it's wanted. */
+.su-more { margin-top: var(--sp-5); }
+.su-more summary { min-height: 2.75rem; display: flex; align-items: center; gap: var(--sp-2); font-weight: 600; font-size: var(--text-md); cursor: pointer; }
+.su-more[open] summary { margin-bottom: var(--sp-3); }
+
+/* A plain button on a raised panel would melt into it. */
+:is(.oobe-lib, .oobe-name, .su-consent, .su-restore, .oobe-provider, .oobe-next-card, .oobe-locked-item) .btn:not(.primary, .ghost, .danger) { background: var(--bg-4); border-color: var(--border-strong); }
+.oobe-lib .game-bios-hint { margin: 0 0 var(--sp-4); }
+.oobe-lib .field-row + .oobe-hint { margin-top: var(--sp-2); }
+
+@media (max-width: 600px), (pointer: coarse) { .su-card-main .seg button { min-height: 2.75rem; } }
+.su-more summary svg { transition: transform var(--dur-2); }
+.su-more[open] summary svg { transform: rotate(180deg); }
+
+/* On a phone, what's pressed is big enough for a thumb. */
+@media (max-width: 600px), (pointer: coarse) {
+  .su-ack a, .oobe .op-head { min-height: 2.75rem; }
+  .oobe-next-card .btn.sm, .oobe-hint .btn.sm { min-height: 2.75rem; }
+}
+.su-progress-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-1) var(--sp-3); font-size: var(--text-sm); }

@@ -131,7 +131,7 @@ func (m *Manager) checkSavedSource(id string, e *entry) {
 		return
 	}
 	_, keyErr := parseSourceKey(s.Key)
-	if noFork[id] == "" && updatable(e.builtin) && sourceRepoRe.MatchString(s.Repo) && keyErr == nil && os.Getenv(LockForks) != "1" {
+	if noFork[id] == "" && updatable(e.builtin) && sourceRepoRe.MatchString(s.Repo) && keyErr == nil && ForkRefusal() == "" {
 		return
 	}
 	m.log.Error("modules: ignoring a source in the saved state that can't be chosen", "module", id, "repo", s.Repo)

@@ -84,7 +84,7 @@ function RigStatus({ rig, reload, watchWake }: { rig: RigView; reload: () => voi
       </div>
       {rig.canWake && <button className="btn sm" disabled={busy} onClick={wake}>Wake it up</button>}
       {rig.canQuit && <button className="btn sm ghost" disabled={busy} onClick={quit}>End what’s running</button>}
-      {user?.isAdmin && !rig.paired && <Link className="btn sm" to="/settings/rigs"><IconSettings size={15} /> Pair it</Link>}
+      {user?.isAdmin && !rig.paired && <Link className="btn sm" to="/settings/couch"><IconSettings size={15} /> Pair it</Link>}
     </div>
   )
 }
@@ -114,7 +114,7 @@ export default function RigLibrary({ lib }: { lib: Library }) {
         <h1>{lib.name}</h1>
         {total != null && <span className="count">{total.toLocaleString()} {total === 1 ? 'game' : 'games'}, played on this PC</span>}
         <div className="grow" />
-        {user?.isAdmin && <Link className="btn ghost sm" to="/settings/rigs"><IconSettings size={15} /> Manage</Link>}
+        {user?.isAdmin && <Link className="btn ghost sm" to="/settings/couch"><IconSettings size={15} /> Manage</Link>}
       </div>
       {rig && <RigStatus rig={rig} reload={reload} watchWake={watchWake} />}
       <VirtualGames query={`library=${lib.id}&kind=game&sort=title&desc=0`} version={rig?.state === 'online' ? 1 : 0} label={`${lib.name}: games`} onTotal={setTotal}

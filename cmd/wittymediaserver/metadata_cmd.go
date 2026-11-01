@@ -25,7 +25,7 @@ const metadataUsage = `usage:
   wittymediaserver metadata undo   [-data <dir>] <batch>
                        take back everything one apply changed
 
-See docs/FIXING-METADATA.md.`
+See Help in the app: Fixing wrong details, and The metadata folder.`
 
 // wittymediaserver metadata: the editable metadata folder, for when the server can't start or
 // someone would rather use a terminal. It works on the same files as Settings.
@@ -87,7 +87,7 @@ func cmdMetadata(args []string) int {
 		return 2
 	}
 	if pid, running := logging.ServerRunning(filepath.Join(cfg.DataDir, "crash")); running && (what == "undo" || (what == "apply" && apply)) {
-		fmt.Fprintf(os.Stderr, "A server is running on this data folder (process %d). Use Settings > Metadata files instead, or stop the server first.\n", pid)
+		fmt.Fprintf(os.Stderr, "A server is running on this data folder (process %d). Use Settings > Repair instead, or stop the server first.\n", pid)
 		return 1
 	}
 	if _, err := os.Stat(filepath.Join(cfg.DataDir, "wms.db")); err != nil {

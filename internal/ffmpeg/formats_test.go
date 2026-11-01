@@ -177,7 +177,7 @@ func TestAListDressedAsAFilmOpensNothing(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		if pr, err := tools.ProbeFile(ctx, p); err == nil {
 			t.Errorf("%s opened, as %s", name, pr.Format.FormatName)
-		} else if strings.Contains(err.Error(), "matroska") {
+		} else if strings.Contains(err.Error(), "bethsoftvid") {
 			t.Errorf("the whole list is in the message: %v", err)
 		}
 		pic := filepath.Join(t.TempDir(), "out.jpg")

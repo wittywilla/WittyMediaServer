@@ -544,6 +544,10 @@ func (s *Server) handlePutTVSettings(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		case "dvrFolder":
+			if err := s.checkAdminPaths(r, []string{v}, []string{s.tvSetting(r.Context(), "dvrFolder")}); err != nil {
+				writeErr(w, 400, err.Error())
+				return
+			}
 			if v != "" && !filepath.IsAbs(v) {
 				writeErr(w, 400, "the recordings folder must be a full path")
 				return
@@ -1052,7 +1056,7 @@ func (s *Server) handleLivePlaylist(w http.ResponseWriter, r *http.Request) {
 		var err error
 		if kind == "tun" {
 			if ls, err = s.ensureTunerLive(r, id); err != nil {
-				tuneError(w, err)
+				s.tuneError(w, r, err)
 				return
 			}
 		} else {
@@ -1074,11 +1078,11 @@ func (s *Server) handleLivePlaylist(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 503, "the channel is still starting")
 			return
 		}
-		tuneError(w, err)
+		s.tuneError(w, r, err)
 		return
 	}
 	if err := ls.Err(); err != nil {
-		tuneError(w, err)
+		s.tuneError(w, r, err)
 		return
 	}
 	// A player that can't set headers (a TV's own player) keeps its token.

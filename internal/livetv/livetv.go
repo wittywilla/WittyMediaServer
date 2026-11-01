@@ -10,9 +10,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -164,6 +167,24 @@ func (m *Manager) Close() {
 
 // tunerLog is for what a tuner did, as opposed to what the guide or a recording did.
 func (m *Manager) tunerLog() *slog.Logger { return m.Log.With("module", "wittytuner") }
+
+var addressInText = regexp.MustCompile(`[a-zA-Z][a-zA-Z0-9+.-]*://[^\s"']+`)
+
+// PublicError is what people may be told about a tuner or stream that failed. Connection errors say
+// what's on the network, and hold the address, which can hold a login. Anything else that quotes
+// an address, as a helper program's errors can, has it taken out.
+func PublicError(err error) string {
+	if err == nil {
+		return ""
+	}
+	var ue *url.Error
+	var op *net.OpError
+	var dns *net.DNSError
+	if errors.As(err, &ue) || errors.As(err, &op) || errors.As(err, &dns) {
+		return "the stream could not be reached"
+	}
+	return addressInText.ReplaceAllString(err.Error(), "(address)")
+}
 
 // internetClient reaches the internet and nothing else, checking each connection as it is made.
 func (m *Manager) internetClient() *http.Client {
@@ -396,7 +417,7 @@ func (m *Manager) Refresh(ctx context.Context, id int64) error {
 	}
 	ch, err := s.Channels(ctx)
 	if err != nil {
-		m.setError(id, err.Error())
+		m.setError(id, PublicError(err))
 		return err
 	}
 	if ch != nil {
@@ -549,7 +570,7 @@ func (m *Manager) StartScan(id int64, source string) error {
 			}
 		}
 		if err != nil {
-			st.Error = err.Error()
+			st.Error = PublicError(err)
 		} else {
 			st.Percent, st.Message = 100, ""
 		}
@@ -561,7 +582,7 @@ func (m *Manager) StartScan(id int64, source string) error {
 			} else {
 				log.WarnContext(ctx, "channel scan failed", "err", err)
 			}
-			m.setError(id, err.Error())
+			m.setError(id, PublicError(err))
 		} else {
 			log.InfoContext(ctx, "channel scan finished", "found", found2, "added", added)
 			m.setError(id, "")

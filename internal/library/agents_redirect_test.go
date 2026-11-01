@@ -41,9 +41,9 @@ func TestAgentRedirectStaysOnItsHost(t *testing.T) {
 	agent := localServer(t, "127.0.0.1:0", func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/away":
-			http.Redirect(w, r, device+"/status.json", 302)
+			http.Redirect(w, r, device+"/status.json", http.StatusFound)
 		case "/round":
-			http.Redirect(w, r, "/here", 302)
+			http.Redirect(w, r, "/here", http.StatusFound)
 		default:
 			fmt.Fprint(w, `{"title":"from the agent"}`)
 		}

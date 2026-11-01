@@ -85,6 +85,14 @@ func (s *Server) handlePutLogs(w http.ResponseWriter, r *http.Request) {
 		if dir == "" {
 			dir = s.Cfg.LogDir // back to the default
 		}
+		var current []string
+		if s.Logs != nil {
+			current = []string{s.Logs.Dir()}
+		}
+		if err := s.checkAdminPaths(r, []string{dir}, current); err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
 		if err := s.Logs.SetDir(dir); err != nil {
 			writeErr(w, 400, err.Error())
 			return

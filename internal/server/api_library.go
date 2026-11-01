@@ -45,7 +45,10 @@ type libraryBody struct {
 	Paths   []string `json:"paths"`
 }
 
-func (s *Server) validateLibrary(b *libraryBody) error {
+func (s *Server) validateLibrary(r *http.Request, b *libraryBody, already []string) error {
+	if err := s.checkAdminPaths(r, b.Paths, already); err != nil {
+		return err
+	}
 	if err := b.validate(); err != nil {
 		return err
 	}
@@ -104,7 +107,7 @@ func (s *Server) handleCreateLibrary(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	if err := s.validateLibrary(&b); err != nil {
+	if err := s.validateLibrary(r, &b, nil); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
@@ -138,11 +141,15 @@ func (s *Server) handleUpdateLibrary(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	if cur, err := s.Store.Library(r.Context(), id); err == nil && cur.IsRig() {
-		writeErr(w, 409, "This library belongs to a gaming PC. Change it in Settings, Game rigs.")
-		return
+	var already []string
+	if cur, err := s.Store.Library(r.Context(), id); err == nil {
+		if cur.IsRig() {
+			writeErr(w, 409, "This library belongs to a gaming PC. Change it in Settings, Game rigs.")
+			return
+		}
+		already = cur.Paths
 	}
-	if err := s.validateLibrary(&b); err != nil {
+	if err := s.validateLibrary(r, &b, already); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}

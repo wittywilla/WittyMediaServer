@@ -67,7 +67,7 @@ func (s *Server) tunerRoutes(m *http.ServeMux) {
 	m.Handle("DELETE /api/recording-rules/{id}", a(s.handleDeleteRecordingRule))
 }
 
-func tunerError(w http.ResponseWriter, err error) {
+func (s *Server) tunerError(w http.ResponseWriter, r *http.Request, err error) {
 	var enc *wittytuner.EncryptedError
 	switch {
 	case errors.Is(err, livetv.ErrNotFound):
@@ -77,8 +77,18 @@ func tunerError(w http.ResponseWriter, err error) {
 	case errors.Is(err, livetv.ErrBusy):
 		writeErr(w, 503, err.Error())
 	default:
-		writeErr(w, 400, err.Error())
+		writeErr(w, 400, s.tunerErrorText(r, err))
 	}
+}
+
+// tunerErrorText is what a page may say about a tuner's failure. What a connection answered says
+// what's on the network, and a stream's address can hold a login. The detail goes in the log.
+func (s *Server) tunerErrorText(r *http.Request, err error) string {
+	text := livetv.PublicError(err)
+	if text != err.Error() {
+		s.Log.WarnContext(r.Context(), "a tuner or stream failed", "cat", "tv", "err", err)
+	}
+	return text
 }
 
 func (s *Server) handleTunerDrivers(w http.ResponseWriter, r *http.Request) {
@@ -109,9 +119,13 @@ func (s *Server) handleCreateTuner(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "that tuner could not be read")
 		return
 	}
+	if err := s.checkSourcePlace(r, t.Options["playlist"]); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
 	got, err := s.TV.Create(r.Context(), &t)
 	if err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
 	}
 	got.Options = livetv.PublicOptions(got)
@@ -136,8 +150,14 @@ func (s *Server) handleUpdateTuner(w http.ResponseWriter, r *http.Request) {
 	}
 	cur, err := s.TV.Tuner(r.Context(), id)
 	if err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
+	}
+	if p := b.Options["playlist"]; p != cur.Options["playlist"] {
+		if err := s.checkSourcePlace(r, p); err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
 	}
 	en := cur.Enabled
 	if b.Enabled != nil {
@@ -145,7 +165,7 @@ func (s *Server) handleUpdateTuner(w http.ResponseWriter, r *http.Request) {
 	}
 	got, err := s.TV.Update(r.Context(), id, firstNonEmpty(b.Name, cur.Name), b.Options, en, b.MaxStreams)
 	if err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
 	}
 	got.Options = livetv.PublicOptions(got)
@@ -159,7 +179,7 @@ func (s *Server) handleDeleteTuner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.TV.Delete(r.Context(), id); err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})
@@ -172,12 +192,12 @@ func (s *Server) handleRefreshTuner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.TV.Refresh(r.Context(), id); err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
 	}
 	t, err := s.TV.Tuner(r.Context(), id)
 	if err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
 	}
 	t.Options = livetv.PublicOptions(t)
@@ -198,7 +218,7 @@ func (s *Server) handleScanTuner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.TV.StartScan(id, b.Source); err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, s.TV.ScanProgress(id))
@@ -260,7 +280,7 @@ func (s *Server) handleEditTunerChannel(w http.ResponseWriter, r *http.Request) 
 	}
 	c, err := s.TV.EditChannel(r.Context(), id, e)
 	if err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, c)
@@ -284,9 +304,13 @@ func (s *Server) handleAddEPGSource(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	if err := s.checkSourcePlace(r, b.URL); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
 	src, err := s.TV.AddSource(r.Context(), b.Name, b.URL)
 	if err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, src)
@@ -299,7 +323,7 @@ func (s *Server) handleDeleteEPGSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.TV.DeleteSource(r.Context(), id); err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})
@@ -571,7 +595,7 @@ func (s *Server) clearAlternative(ctx context.Context, id int64) *livetv.Alterna
 // in the same words everywhere, with its help page and any clear alternative.
 func (s *Server) tuneRefused(w http.ResponseWriter, r *http.Request, id int64, err error) {
 	if !wittytuner.IsEncrypted(err) {
-		tuneError(w, err)
+		s.tuneError(w, r, err)
 		return
 	}
 	writeJSON(w, 403, map[string]any{"error": err.Error(), "encrypted": true, "label": wittytuner.EncryptedLabel, "helpUrl": encryptedHelpURL,
@@ -584,14 +608,14 @@ func (s *Server) handleEncryptedHelp(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, livetv.EncryptedHelp())
 }
 
-func tuneError(w http.ResponseWriter, err error) {
+func (s *Server) tuneError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, hls.ErrLiveBusy), errors.Is(err, livetv.ErrBusy):
 		writeErr(w, 503, err.Error())
 	case wittytuner.IsEncrypted(err):
 		writeErr(w, 403, err.Error())
 	default:
-		writeErr(w, 502, err.Error())
+		writeErr(w, 502, s.tunerErrorText(r, err))
 	}
 }
 
@@ -806,7 +830,7 @@ func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 	}
 	rec, err := s.TV.Schedule(r.Context(), id, userFrom(r).ID, b.Title, b.Sub, b.Start, b.Stop)
 	if err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, rec)
@@ -839,7 +863,7 @@ func (s *Server) handleCancelRecording(w http.ResponseWriter, r *http.Request) {
 	}
 	del := qBool(r, "deleteFile") && userFrom(r).IsAdmin
 	if err := s.TV.CancelRecording(r.Context(), id, del); err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})
@@ -877,7 +901,7 @@ func (s *Server) handleAddRecordingRule(w http.ResponseWriter, r *http.Request) 
 	}
 	rule, err := s.TV.AddRule(r.Context(), id, userFrom(r).ID, b.Title)
 	if err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, rule)
@@ -894,7 +918,7 @@ func (s *Server) handleDeleteRecordingRule(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if err := s.TV.DeleteRule(r.Context(), id); err != nil {
-		tunerError(w, err)
+		s.tunerError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})

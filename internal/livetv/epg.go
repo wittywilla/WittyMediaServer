@@ -86,7 +86,7 @@ func checkEPGPlace(place string) error {
 		}
 		return nil
 	}
-	if st, err := os.Stat(place); err != nil || st.IsDir() {
+	if st, err := os.Stat(place); err != nil || !st.Mode().IsRegular() { // a pipe would hold the refresh for ever
 		return errors.New("that guide file was not found on the server")
 	}
 	return nil
@@ -225,13 +225,13 @@ func (m *Manager) FetchSource(ctx context.Context, id int64) error {
 		}
 	}
 	if err != nil {
-		_, _ = m.DB.ExecContext(ctx, `UPDATE epg_sources SET last_error = ?, last_fetch = ? WHERE id = ?`, err.Error(), db.Now(), id)
+		_, _ = m.DB.ExecContext(ctx, `UPDATE epg_sources SET last_error = ?, last_fetch = ? WHERE id = ?`, PublicError(err), db.Now(), id)
 		return err
 	}
 	n, err := m.fetch(ctx, id, place, auth, client)
 	msg := ""
 	if err != nil {
-		msg = err.Error()
+		msg = PublicError(err)
 	}
 	_, _ = m.DB.ExecContext(ctx, `UPDATE epg_sources SET last_error = ?, last_fetch = ?, programmes = ? WHERE id = ?`, msg, db.Now(), n, id)
 	return err

@@ -155,6 +155,9 @@ func (r *remoteSettings) validate(listen string) error {
 		}
 	case "cert":
 		r.CertFile, r.KeyFile = strings.TrimSpace(r.CertFile), strings.TrimSpace(r.KeyFile)
+		if otherMachine(r.CertFile) || otherMachine(r.KeyFile) {
+			return errOtherMachine
+		}
 		if !filepath.IsAbs(r.CertFile) || !filepath.IsAbs(r.KeyFile) {
 			return errors.New("give the full path of both the certificate and its key")
 		}

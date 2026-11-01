@@ -57,7 +57,7 @@ const (
 // invite is a code made to be typed on the device.
 type invite struct {
 	code    string
-	by      int64 // who asked for it
+	by      int64  // who asked for it
 	session string // the sign-in that asked: the code lasts only as long as that does
 	userID  int64  // who the device signs in as
 	expires time.Time

@@ -117,6 +117,7 @@ func (g *gameServer) uploadCore(t *testing.T, path, tok, password, fileName stri
 
 func (g *gameServer) enableCustom(t *testing.T) {
 	t.Helper()
+	g.s.Cfg.GamingCustomCores = true
 	if w := g.do("PUT", "/api/gaming/custom/enabled", g.admin, map[string]any{"enabled": true, "password": testPassword}); w.Code != 200 {
 		t.Fatalf("turning on: %d %s", w.Code, w.Body)
 	}
@@ -220,6 +221,7 @@ func TestCustomCoresAreOffByDefault(t *testing.T) {
 		}
 	}
 
+	// Being allowed and being locked: the lock wins, for whoever runs the machine.
 	t.Setenv(lockCustomCores, "1")
 	if w := g.do("PUT", "/api/gaming/custom/enabled", g.admin, map[string]any{"enabled": true, "password": testPassword}); w.Code != 403 {
 		t.Errorf("the machine's owner said no: %d", w.Code)

@@ -36,13 +36,18 @@ import (
 //     approve it, and always runs in one afterwards. This process never loads it;
 //   - its SHA-256 is approved, and a file that no longer matches doesn't run again until
 //     an administrator looks at it;
-//   - the whole thing can be off, and is until someone turns it on.
+//   - the whole thing can be off, and is until someone turns it on. Turning it on takes
+//     the machine's say first (allowCustomCores), and a lock beats everything.
 
 const (
 	settingCustomCores = "gamingCustomCores"
 	// lockCustomCores keeps custom cores off whatever the settings say, for whoever
 	// runs the machine when that isn't the same person as this server's administrator.
 	lockCustomCores = "WMS_GAMING_NO_CUSTOM_CORES"
+	// allowCustomCores is the name of the switch that has to be set on the machine before
+	// custom cores can be turned on at all: a core runs as a program that can read what the
+	// server can, so a web session, even one with the password, can't decide that alone.
+	allowCustomCores = "WMS_GAMING_CUSTOM_CORES"
 
 	stageLife      = time.Hour
 	stagesAtOnce   = 2
@@ -129,8 +134,11 @@ func customFetchClient() *http.Client {
 
 func customLocked() bool { return os.Getenv(lockCustomCores) == "1" }
 
+// customAllowed: the machine's owner has said custom cores may be used here.
+func (s *Server) customAllowed() bool { return s.Cfg != nil && s.Cfg.GamingCustomCores }
+
 func (s *Server) customCoresOn(ctx context.Context) bool {
-	if _, sandboxed := stream.SandboxStrength(); !sandboxed || customLocked() {
+	if _, sandboxed := stream.SandboxStrength(); !sandboxed || customLocked() || !s.customAllowed() {
 		return false
 	}
 	return s.DB.GetSetting(ctx, settingCustomCores, "0") == "1"
@@ -178,6 +186,10 @@ func (s *Server) handleCustomEnable(w http.ResponseWriter, r *http.Request) {
 	if b.Enabled {
 		if customLocked() {
 			writeErr(w, 403, "Whoever runs this machine has kept custom cores off with "+lockCustomCores+".")
+			return
+		}
+		if !s.customAllowed() {
+			writeErr(w, 403, "Custom cores have to be allowed on the machine first: start the server with "+allowCustomCores+"=1, or gamingCustomCores in its config file.")
 			return
 		}
 		if why, sandboxed := stream.SandboxStrength(); !sandboxed {
@@ -600,6 +612,7 @@ type CustomStatus struct {
 	Enabled     bool                `json:"enabled"`
 	Locked      bool                `json:"locked,omitempty"`
 	CanEnable   bool                `json:"canEnable"`
+	NeedsSwitch bool                `json:"needsSwitch"` // not allowed on the machine yet
 	Sandbox     string              `json:"sandbox"`
 	HaveRunner  bool                `json:"haveRunner"`
 	Platform    string              `json:"platform"`
@@ -626,7 +639,7 @@ func (s *Server) handleCustomGet(w http.ResponseWriter, r *http.Request) {
 	g := s.games()
 	why, sandboxed := stream.SandboxStrength()
 	out := CustomStatus{
-		Enabled: s.customCoresOn(ctx), Locked: customLocked(), CanEnable: sandboxed && !customLocked(), Sandbox: why, HaveRunner: s.probeRunner() != "",
+		Enabled: s.customCoresOn(ctx), Locked: customLocked(), NeedsSwitch: !s.customAllowed(), CanEnable: sandboxed && !customLocked() && s.customAllowed(), Sandbox: why, HaveRunner: s.probeRunner() != "",
 		Platform: cores.Binary{OS: runtime.GOOS, Arch: runtime.GOARCH}.Describe(), LibraryExt: cores.LibraryExt(), MaxUploadMB: cores.DefaultLimits.Package >> 20,
 		CoresDir: g.cores.Dir, SystemDir: g.systemDir(), Cores: []*CustomCore{}, Consoles: []CustomConsoleView{}, Placed: []cores.PlacedFile{}, Audit: s.coreAudit(ctx, 100),
 	}

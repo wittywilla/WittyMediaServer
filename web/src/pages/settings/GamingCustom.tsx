@@ -32,7 +32,7 @@ type Placed = { key: string; name: string; folder: string; ours: boolean; size: 
 type Audit = { at: number; user: string; action: string; core?: string; detail?: string }
 type Option = { id: string; name: string }
 export type CustomStatus = {
-  enabled: boolean; locked?: boolean; canEnable: boolean; sandbox: string; haveRunner: boolean; platform: string; libraryExt: string; maxUploadMB: number
+  enabled: boolean; locked?: boolean; needsSwitch?: boolean; canEnable: boolean; sandbox: string; haveRunner: boolean; platform: string; libraryExt: string; maxUploadMB: number
   coresDir: string; systemDir: string; cores: CustomCore[]; consoles: ConsoleView[]; placed: Placed[]; audit: Audit[]; padChoices: Option[]; otherCores: Option[]
 }
 type Staged = { token: string; report: Report; replaces?: string }
@@ -675,7 +675,7 @@ export default function CustomCoresSection({ onChanged }: { onChanged: () => voi
   return (
     <>
       <Section id="custom-cores" title="Custom cores" desc="Your own libretro cores, for consoles or versions this server doesn’t offer. They’re third-party software, and this project hasn’t checked them.">
-        <Row label="Allow custom cores" desc={<>Off by default on every server. {st.locked ? 'Whoever runs this machine has kept this off, and it can’t be changed from here.' : !st.canEnable ? `This system can’t box a core in properly (${st.sandbox}), so they can’t be used here.` : `A core runs as a program on this server, boxed in by ${st.sandbox}. Off stops them from running; nothing is deleted.`}</>}>
+        <Row label="Allow custom cores" desc={<>Off by default on every server. {st.locked ? 'Whoever runs this machine has kept this off, and it can’t be changed from here.' : st.needsSwitch ? <>A core is a program running on this machine, so whoever runs the machine has to allow them first: start the server with <code>WMS_GAMING_CUSTOM_CORES=1</code>, or put <code>gamingCustomCores</code> in its config file. Then come back here. A password alone can’t turn this on.</> : !st.canEnable ? `This system can’t box a core in properly (${st.sandbox}), so they can’t be used here.` : `A core runs as a program on this server, boxed in by ${st.sandbox}. Off stops them from running; nothing is deleted.`}</>}>
           <Switch checked={st.enabled} disabled={!st.canEnable && !st.enabled} label="Allow custom cores" onChange={(v) => { if (v) setEnabling(true); else turnOff() }} />
         </Row>
         {st.enabled && !st.haveRunner && <Warning>The game runner is missing from this install, so a new core can’t be tested. Custom cores can’t be added until it’s back.</Warning>}

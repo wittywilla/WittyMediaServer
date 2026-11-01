@@ -527,9 +527,13 @@ Why off by default: most people never need this, and a server shared with others
 new programs. Turning it on takes a moment, once. Turning it off needs no password: the cores stay where they are, don't run,
 and can still be removed.
 
-If someone else runs the machine, they can keep it off whatever the settings say by starting the server with
-`WMS_GAMING_NO_CUSTOM_CORES=1`. On a system that can't box a core in (anything but Windows, Linux or macOS), it can't be turned on
-at all.
+**First, allow them on the machine.** A core is a program that can read what the server can, so the page alone can't turn this on:
+start the server with `WMS_GAMING_CUSTOM_CORES=1`, or `-gaming-custom-cores`, or put `"gamingCustomCores": true` in its
+[config file](CONFIG.md). A server that had custom cores on before this keeps them, but they don't run until this is set.
+
+If someone else runs the machine, they can keep it off whatever else is set by starting the server with
+`WMS_GAMING_NO_CUSTOM_CORES=1`. That beats everything, including the switch above. On a system that can't box a core in (anything
+but Windows, Linux or macOS), it can't be turned on at all.
 
 Kids and guest profiles, and anyone who isn't an administrator, never see any of this.
 
@@ -635,7 +639,7 @@ hashes and an entry in its history. Unless you changed that file yourself, take 
 | Guard | How |
 |---|---|
 | Who | Administrators only, with an adult account. Adding, approving again and going back all ask for the password. Kids and guests can't reach any of it |
-| Off by default | One server-wide setting, which the general settings route can't change, plus `WMS_GAMING_NO_CUSTOM_CORES=1` for whoever runs the machine |
+| Off by default | Two switches, both needed: `WMS_GAMING_CUSTOM_CORES=1` on the machine, and one server-wide setting, which the general settings route can't change. `WMS_GAMING_NO_CUSTOM_CORES=1` beats both |
 | Where it runs | Always in a runner process with the same sandbox as any game, listed under [Security](#security). The server never loads one. Custom cores get no more rights than the cores we offer |
 | Tested first | The first thing a file ever does is load in that sandbox, where a crash is an exit code and a hang is a timeout. Its answers are treated as hostile and cleaned before they're shown |
 | The file | SHA-256 recorded when approved, and read in full before every game. It's the file as approved or it doesn't run |

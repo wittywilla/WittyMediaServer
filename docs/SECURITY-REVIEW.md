@@ -44,8 +44,8 @@ chooses to trust, such as a reverse proxy listed as trusted, a fork of a module,
   administrator. A route open to any signed-in account fails the build until its rule has been written down.
 - **A test for each fixed hole.** Each was written to fail against the unfixed code first, and is kept.
 - **Fuzzing:** every parser of untrusted input has a target, run for minutes at a time: names, NFO and JSON sidecars, EPUB,
-  feeds, playlists, ID3, disc images and programs, archives, game lists and databases, themes, log lines, pictures, subtitles,
-  HLS playlists, checksum lists and packages. Those where a slow answer is the danger fail on time too.
+  feeds, playlists, ID3, lyrics, disc images and programs, archives, game lists and databases, themes, log lines, pictures, subtitles,
+  HLS playlists, saved views, match rules, channel definitions, checksum lists and packages. Those where a slow answer is the danger fail on time too.
 - **Live attacks** against test servers, in Linux, with FFmpeg: for instance, a playlist that gains a key while the real FFmpeg
   reads it, and a link swapped back and forth while a file is being served.
 - **Every build:** `go vet`, the tests, the race detector, `govulncheck` and `npm audit`, which stop the build on a

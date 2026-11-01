@@ -28,8 +28,7 @@ func TestGameSessionConnectionsAreLimited(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		runner += ".exe"
 	}
-	build := exec.Command("go", "build", "-o", runner, "./cmd/wittyplay-host")
-	build.Dir = filepath.Join("..", "..", "modules", "wittyplay")
+	build := exec.Command("go", "build", "-o", runner, "github.com/wittywilla/wittyplay/cmd/wittyplay-host")
 	build.Env = append(os.Environ(), "CGO_ENABLED=0")
 	if b, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("%v: %s", err, b)

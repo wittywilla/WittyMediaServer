@@ -1589,11 +1589,14 @@ func TestHostileFiles(t *testing.T) {
 			}
 		}
 		id := ts.library(t, lib, dir)
+		started := time.Now()
 		scanAndWait(t, ts.Server, id)
+		scanned := time.Since(started)
 		items, _, err := ts.Store.Items(context.Background(), library.ItemQuery{LibraryID: id, NoTotal: true, Limit: 100000})
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer func() { t.Logf("%s: scan %v, %d items in %v", lib, scanned, len(items), time.Since(started)-scanned) }()
 		for _, it := range items {
 			for _, u := range map[string][]string{"book": {"/book", "/page/0", "/file"}, "photo": {"/image?w=320", "/motion"}, "video": {"/file"}, "audio": {"/stream"}}[it.Kind] {
 				w := ts.do(t, "GET", fmt.Sprintf("/api/items/%d%s", it.ID, u), tok, nil, "Range", "bytes=0-99")

@@ -1275,7 +1275,7 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 			at = cell.Cell.Duration / 2
 		}
 	}
-	if err := s.Tools.Still(tctx, input, at, 600, out); err != nil {
+	if err := s.Tools.Poster(tctx, input, at, 600, out); err != nil {
 		return "", err
 	}
 	return "cache:" + name, nil

@@ -186,7 +186,7 @@ func (s *Scanner) makeThumb(ctx context.Context, it *Item, width int, out string
 		if at > 30 {
 			at = 30
 		}
-		return s.Tools.Still(ctx, ffmpeg.FileInput(it.Path), at, width, out)
+		return s.Tools.Poster(ctx, ffmpeg.FileInput(it.Path), at, width, out)
 	}
 	orientation, _ := s.Store.photoExtras(ctx, it.ID)
 	src, longSide := it.Path, it.Width

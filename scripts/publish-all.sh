@@ -125,7 +125,8 @@ if [ $have_gh = 1 ]; then
 else
   [ $apply = 1 ] || note "gh isn't signed in here, so what's on GitHub wasn't looked at"
 fi
-if grep -q 'const moduleKey = ""' "$repos/$SERVER/internal/update/keys.go"; then
+# From the branch being published: the folder itself may be on another one.
+if git -C "$repos/$SERVER" show "$server_branch:internal/update/keys.go" | grep -q 'const moduleKey = ""'; then
   [ $apply = 1 ] && die "moduleKey in internal/update/keys.go is empty: no server could accept any of these"
   owner_step "scripts/new-module-key.sh, and put its public half in internal/update/keys.go"
 fi

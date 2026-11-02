@@ -116,7 +116,9 @@ export function Announcer() {
     const keys = () => { usingKeys.current = true }
     const mouse = () => { usingKeys.current = false }
     const remember = (e: FocusEvent) => {
-      const what = usingKeys.current && e.target instanceof Element ? describe(e.target) : ''
+      // The page itself takes focus when it arrives. That's nowhere anyone left, and remembering it would
+      // stop a page being come back to from starting on its main action.
+      const what = usingKeys.current && e.target instanceof Element && e.target.id !== 'main' ? describe(e.target) : ''
       if (what) focusMemory.set(entry.current, what)
     }
     window.addEventListener('keydown', keys, { passive: true })

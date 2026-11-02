@@ -390,7 +390,10 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       const ar = aspect === '4:3' ? 4 / 3 : 16 / 9
       let w = W, h = W / ar
       if (fill ? h < H : h > H) { h = H; w = H * ar }
-      setRect({ left: (W - w) / 2, top: (H - h) / 2, width: w, height: h })
+      // On whole screen pixels: at 125% or 150% scaling a fraction of a pixel is enough for
+      // Firefox to draw the video somewhere other than its box.
+      const px = (v: number) => Math.round(v * devicePixelRatio) / devicePixelRatio
+      setRect({ left: px((W - w) / 2), top: px((H - h) / 2), width: px(w), height: px(h) })
     }
     calc()
     const ro = new ResizeObserver(calc)
@@ -663,8 +666,14 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       <div className={'stage' + (prefs.stereo !== 'off' ? ` stereo-${prefs.stereo}` : '')} ref={stage}>
         {/* The video element stays mounted (stills are drawn over it) so the
             picture never blanks between clips. */}
-        {/* A BD-J application can shrink the video into a corner of its own menu. */}
-        <video ref={video} playsInline preload="auto" style={{ objectFit, opacity: prefs.stereo !== 'off' ? 0 : 1, ...(bdj?.video?.length === 4 && rect ? { position: 'absolute', left: rect.left + bdj.video[0] / 1920 * rect.width, top: rect.top + bdj.video[1] / 1080 * rect.height, width: bdj.video[2] / 1920 * rect.width, height: bdj.video[3] / 1080 * rect.height } : {}) }} />
+        {/* A BD-J application can shrink the video into a corner of its own menu. Otherwise the
+            picture gets exactly the rectangle the buttons, subtitles and highlights are placed in,
+            in the disc's own shape, and fills it, so the browser never letterboxes it itself:
+            Firefox drew letterboxed disc video away from its box, which left pictures shifted and
+            menus unusable. */}
+        <video ref={video} playsInline preload="auto" style={{ objectFit, opacity: prefs.stereo !== 'off' ? 0 : 1,
+          ...(bdj?.video?.length === 4 && rect ? { position: 'absolute', left: rect.left + bdj.video[0] / 1920 * rect.width, top: rect.top + bdj.video[1] / 1080 * rect.height, width: bdj.video[2] / 1920 * rect.width, height: bdj.video[3] / 1080 * rect.height }
+            : rect && !fill ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height, maxWidth: 'none', maxHeight: 'none', objectFit: 'fill' } : { inset: 0 }) }} />
         {prefs.stereo !== 'off' && rect && <StereoLayer video={video} rect={rect} mode={prefs.stereo} out={prefs.stereoOut} />}
         {pres?.media?.type === 'still' && <img className="still" src={mediaUrl(pres.media.url!)} alt="" />}
         {lingerStill && <img className="still" src={mediaUrl(lingerStill)} alt="" />}

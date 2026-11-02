@@ -22,7 +22,7 @@ func TestLyricsFileCantTieUpTheServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if took := time.Since(start); took > 5*time.Second {
+	if took := time.Since(start); took > 5*timeScale*time.Second {
 		t.Errorf("%d lines in reverse took %v", lines, took)
 	}
 	if !bytes.Contains(out, []byte("-->")) {

@@ -5,6 +5,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+## 0.6.1-alpha
+
+- **DVDs and Blu-rays in Firefox.** Menus, intros, trailers and films no longer show shifted down or cut off, and a menu's buttons line up with its picture again, at any display scaling and in the mini player. The picture is now placed in the same rectangle as the buttons, in the disc's own shape, instead of being left for the browser to fit, which Firefox got wrong. The fix is in the server's web app, so it comes with this server version: no module needs updating.
+- **A stream link is accepted only exactly as it was given out.** Another spelling of the same signature, with spare bits at its end set, used to be read as the same link. It couldn't open anything the real link couldn't, but a link now has one form only.
+
 ## 0.6.0-alpha
 
 - **Nintendo 64 homebrew built with libdragon plays.** It goes to ParaLLEl N64 with the settings it needs, on the CPU alone. Without that core, the message says to install it, rather than that the emulator crashed. Some newer homebrew still stops on its own error screen, and the game says so when it starts.

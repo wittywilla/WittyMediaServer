@@ -52,7 +52,7 @@ type formatRow struct {
 	check func(p *ffmpeg.Probe) string
 	res   stage
 	note  string
-	made bool // its sample was made
+	made  bool // its sample was made
 }
 
 func av(args ...string) func(st *sampleTools, p string) error {
@@ -560,8 +560,8 @@ type subtitleRow struct {
 	burn     bool // pictures: the server draws it
 	res      stage
 	note     string
-	video bool // a file beside a video, rather than a track inside one
-	made  bool // its sample was made
+	video    bool // a file beside a video, rather than a track inside one
+	made     bool // its sample was made
 }
 
 func text(s string) func(st *sampleTools, p string) error {

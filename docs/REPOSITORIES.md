@@ -8,36 +8,34 @@ Every repository's README ends with a **Legal** section: no affiliation, no warr
 
 ## The list
 
-All of these have local history that hasn't been pushed. **Exists** means it only needs pushing. [Publishing the modules](MODULES-CUTOVER.md) has the steps.
+Every one is on GitHub under its final name, so nothing needs creating, renaming or deleting. All but WittyMediaRemoteMedia have local history that hasn't been pushed: [Publishing the modules](MODULES-CUTOVER.md) has the steps. WittyStats and WittyModuleCatalog are still empty there.
 
-| Repository | What it's for | On GitHub |
-|---|---|---|
-| WittyMediaServer | The server | Exists |
-| WittyModule | The shared tools and manifest format modules are built with, and the kit that writes a module's workflows | Exists |
-| WittyModuleCatalog | The signed list of modules and versions that a server's store reads. Holds no module code | **Create** |
-| WittyDisc | Reading disc images, used by the disc engines | Exists |
-| WittyDVD | The DVD engine | Exists |
-| WittyBluray | The Blu-ray engine | Exists |
-| WittyCD | The CD image engine and on-screen CD player | Exists |
-| WittyPlay | Console games streamed from the server | Exists |
-| WittyCouch | A client in the page for playing on a game PC: its relay, protocol code and player. **Apache-2.0** | Exists |
-| WittyCouchHost | The separate program built on Moonlight's own code, which speaks to the PC. **GPL-3.0**, with source offered beside each release | **Rename** WittyMoonlightHost |
-| WittyRigs | An advanced option: hosting demanding games on the server's own hardware, using a separately installed Sunshine. **Apache-2.0** | **Rename** WittySunshine |
-| WittyIntegratedFileBrowser | The built-in file browser | Exists |
-| WittyPhotos | Photo processing | Exists |
-| WittyTuner | TV tuners and IPTV | Exists |
-| WittyInk | Reader plugin: notes and pen | Exists |
-| WittyEbook | Reader plugin: EPUB | Exists |
-| WittyPDF | Reader plugin: PDF | Exists |
-| WittyComics | Reader plugin: comics and manga | Exists |
-| WittyVisualizer | The audio visualizer plugin, for the server and the desktop player | Exists |
-| WittyStats | A statistics screen you arrange yourself | **Create** |
-| WittyReader | The standalone reader app | Exists |
-| WittyMediaPlayer | The standalone desktop player | Exists |
-| WittyMediaClient | The client apps for desktop, Android, Apple and others | Exists |
-| WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app. Empty: work not started | Exists |
-
-**To delete:** WittyMoonlight. WittyCouch replaces it, and it holds only a README.
+| Repository | What it's for |
+|---|---|
+| WittyMediaServer | The server |
+| WittyModule | The shared tools and manifest format modules are built with, and the kit that writes a module's workflows |
+| WittyModuleCatalog | The signed list of modules and versions that a server's store reads. Holds no module code |
+| WittyDisc | Reading disc images, used by the disc engines |
+| WittyDVD | The DVD engine |
+| WittyBluray | The Blu-ray engine |
+| WittyCD | The CD image engine and on-screen CD player |
+| WittyPlay | Console games streamed from the server |
+| WittyCouch | A client in the page for playing on a game PC: its relay, protocol code and player. **Apache-2.0** |
+| WittyCouchHost | The separate program built on Moonlight's own code, which speaks to the PC. **GPL-3.0**, with source offered beside each release |
+| WittyRigs | An advanced option: hosting demanding games on the server's own hardware, using a separately installed Sunshine. **Apache-2.0** |
+| WittyIntegratedFileBrowser | The built-in file browser |
+| WittyPhotos | Photo processing |
+| WittyTuner | TV tuners and IPTV |
+| WittyInk | Reader plugin: notes and pen |
+| WittyEbook | Reader plugin: EPUB |
+| WittyPDF | Reader plugin: PDF |
+| WittyComics | Reader plugin: comics and manga |
+| WittyVisualizer | The audio visualizer plugin, for the server and the desktop player |
+| WittyStats | A statistics screen you arrange yourself |
+| WittyReader | The standalone reader app |
+| WittyMediaPlayer | The standalone desktop player |
+| WittyMediaClient | The client apps for desktop, Android, Apple and others |
+| WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app. Empty, and has no local copy: work not started. The roadmap is the only thing that names it |
 
 **A new one on GitHub:** make it under `wittywilla`, as **Public**, with no README, `.gitignore` or licence.
 
@@ -65,14 +63,14 @@ node D:/projects/dev-modules.mjs
 
 ### Changing a module
 
-Use a `git worktree` under its repository, on a branch named for your chat. Never work on `main`:
+Use a `git worktree` under its repository, on a branch of its own. Never work on `main`:
 
 ```bash
-git -C D:/projects/WittyPlay worktree add .claude/worktrees/my-chat -b my-chat main
+git -C D:/projects/WittyPlay worktree add .claude/worktrees/my-branch -b my-branch main
 ```
 
 ```bash
-cd D:/projects/WittyPlay/.claude/worktrees/my-chat && node D:/projects/dev-modules.mjs
+cd D:/projects/WittyPlay/.claude/worktrees/my-branch && node D:/projects/dev-modules.mjs
 ```
 
 The module's tests run in its worktree with `go test ./...`. Commit there, on your branch, and report the branch.
@@ -84,22 +82,14 @@ A change to what the server calls, in WittyPlay and WittyCouch, means rerunning 
 A worktree's git link is a Windows path that WSL can't follow, so WSL uses clones, on its own disk. Module repositories are read through `/mnt/d/projects`:
 
 ```bash
-git clone /mnt/d/projects/WittyMediaServer ~/wms-my-chat
+git clone /mnt/d/projects/WittyMediaServer ~/wms-my-branch
 ```
 
 ```bash
-cd ~/wms-my-chat && git fetch origin my-branch && git checkout FETCH_HEAD && node scripts/dev-modules.mjs --repos /mnt/d/projects
+cd ~/wms-my-branch && git fetch origin my-branch && git checkout FETCH_HEAD && node scripts/dev-modules.mjs --repos /mnt/d/projects
 ```
 
 To test a module's branch from WSL, clone it the same way, and build a catalogue from the clones with `scripts/make-test-catalog.sh`.
-
-### A branch from before the split
-
-A change under `modules/`, `web/src/modules/`, `apps/` or `clients/wittymediaclient/` belongs in the module's repository now. Each file sits at the top of the repository instead of under its folder, so a diff moves across with its prefix removed:
-
-```bash
-git diff release/0.6.0-alpha...HEAD --relative=modules/wittyplay | git -C D:/projects/WittyPlay/.claude/worktrees/my-chat apply
-```
 
 ---
 

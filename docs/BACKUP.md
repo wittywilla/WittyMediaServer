@@ -20,6 +20,9 @@ Backups are for administrators. They have not been run on a real Mac or on FreeB
 
 ## Making a backup
 
+
+![The Backup page in Settings](images/settings-backup.webp)
+*Settings, Backup.*
 1. Open **Settings → Backup**, on the **Back up** tab.
 2. Under **What to include**, tick what you want. The page says about how large each part is.
 3. Leave **Protect with a password** on, and type a password of at least 8 characters.

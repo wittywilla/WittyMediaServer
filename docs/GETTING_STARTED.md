@@ -109,6 +109,12 @@ Scanning starts right away in the background. Titles appear as they're found, an
 
 ## Play your first film
 
+
+
+![The first-time setup guide inside the app](images/help-setup-guide.webp)
+*The first-time setup guide in the built-in Help.*
+![A film's page, with its poster, plot and a Play button](images/film-page.webp)
+*A film's page. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
 1. Open **Home**, or your library from the menu, and select a poster.
 2. Press **Play**. If you've started it before, you'll see **Resume from** and the time, with **Play from start** beside it.
 

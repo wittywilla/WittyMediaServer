@@ -129,6 +129,9 @@ If nothing would change, you can press **Look again anyway**.
 
 Open **Fix matches** from a library's page, where a count shows how many need a look, or from **Settings → Metadata agents**. It covers film, disc, TV and anime libraries, worst first. It has three tabs: **Review**, **Naming rules** and **History**. Choose a library at the top to narrow it down.
 
+![The Fix matches page](images/fix-matches.webp)
+*The Fix matches page. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
 Opening it asks nobody anything: how sure each match is comes from what's stored, comparing the file's name and year with what it's matched to.
 
 | Under Review | What's there |

@@ -8,11 +8,17 @@ This is about the player in a web browser and the desktop app. The apps for phon
 
 Open a title and press **Play**. If you've started it before, the button says **Resume from** and the time, with **Play from start** beside it.
 
+![A home video's page with a Play button](images/home-video-page.webp)
+*A home video's page. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
 Discs have their own buttons. See [DVDs](DVD.md) and [Blu-rays](BLURAY.md). Music, audiobooks and podcasts play in a bar along the bottom instead: see [Music](MUSIC.md). Books open in a reader: see [Books](BOOKS.md). Live channels have their own player: see [Live TV](TV.md).
 
 ## The player's controls
 
 Move the pointer or press a key and the controls appear. They hide again after 3.5 seconds unless you change that under [Viewing settings](#viewing-settings).
+
+![A film playing, with the controls showing along the bottom](images/player.webp)
+*The player. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
 
 Click the picture to pause or play. Double-click for full screen.
 

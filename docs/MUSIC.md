@@ -61,6 +61,15 @@ When it's on, your server sends Wikipedia an artist's name when someone views th
 
 A music library opens on **Home**: a row of covers to flip through, with what you've played most at the front, then **Artists**, **Albums**, **Songs** and **Played lately**. Colours behind them come from the artwork. **Play my music** shuffles up to 500 songs from the library.
 
+![A page of artists](images/music-artists.webp)
+*Artists. Credited in [the list](images/CREDITS.md).*
+
+![A wall of album covers](images/music-albums.webp)
+*Albums. Credited in [the list](images/CREDITS.md).*
+
+![A Music library: album covers you can flip through, and a row of artists](images/music-home.webp)
+*A Music library. Albums from CC netlabels, credited in [the list](images/CREDITS.md).*
+
 | Tab | What you can do |
 |---|---|
 | **Albums** | Sort by title, artist, year, recently added or most played, either way round. Filter by genre |
@@ -79,6 +88,9 @@ A music library opens on **Home**: a row of covers to flip through, with what yo
 ## Playing and the queue
 
 The bar floats along the bottom while you browse, and the page leaves room for it. Its arrow collapses it to a small button in the corner. On a phone it shows the art, title, play and next, above the tab bar.
+
+![An album's page with its tracks](images/music-album.webp)
+*An album's page. Credited in [the list](images/CREDITS.md).*
 
 **What's playing comes back after a reload,** stopped where it was, with the queue, shuffle and repeat as they were. It's kept on that device for each person, for 30 days, and nothing is fetched until you press play. **Stop and close** forgets it.
 
@@ -99,6 +111,9 @@ The bar floats along the bottom while you browse, and the page leaves room for i
 ## The full-screen player
 
 Press the artwork or title in the bar, or **Full screen**. **F** then fills the whole screen. It's the same for music, audiobooks, podcasts and radio, with what doesn't apply left out.
+
+![The full-screen player, with a large album cover and controls](images/music-full.webp)
+*The full-screen player. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
 
 **Top row:** close, volume, add to a playlist, sleep timer, queue, like, fill the screen, and **More**. **More** has **Sound: equaliser and more**, **Start a station from this song**, **Go to album**, **Go to artist** and **Stop and close**.
 
@@ -134,6 +149,15 @@ Lyrics follow the music in the full-screen player, and karaoke is one press from
 
 The visualizer draws moving shapes from the music behind the artwork in the full-screen player. It's on by default there, and **Visualizer** or **V** turns it off. It's part of the **WittyVisualizer** module: if its buttons aren't there, an admin can add it in **Settings → Modules**. **V** also opens it from anywhere the bar is showing.
 
+![A soft green effect filling the screen behind the player](images/music-visualizer-3.webp)
+*A WittyVisualizer effect. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
+
+![A colourful effect filling the screen behind the player](images/music-visualizer-2.webp)
+*A WittyVisualizer effect. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
+
+![A light show filling the screen behind the player](images/music-visualizer.webp)
+*WittyVisualizer. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
+
 - **Bars, Waves and Drift** are soft shapes in the artwork's colour. They don't flash, so they come with no warning.
 - **More** has every other effect WittyVisualizer offers. A notice about flashing comes first, once, with the choice of calm mode. Choose **Not now** and it goes back to Bars.
 - **Effect settings and your own effects…**, at the end of **More**, opens the full view, with its settings.
@@ -166,6 +190,12 @@ These limits are worth knowing:
 
 A library of the kind **Audiobooks** uses the *album* tag (or the folder) as the book, and the *artist* (or the parent folder) as the author. Each file is a chapter. Its tabs are **Home**, **Books** and **Authors**.
 
+![An audiobook with its list of chapters](images/audiobook-page.webp)
+*An audiobook's page. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
+![A shelf of audiobooks](images/audiobooks.webp)
+*Audiobooks, public-domain readings credited in [the list](images/CREDITS.md).*
+
 - **Your place is saved** every 15 seconds while you listen, for your account, so you can carry on from any device. **Continue listening** on the home page, and **Continue** on a book's page, take you back.
 - **Back 15 seconds** and **Forward 30 seconds** replace shuffle and repeat.
 - **Speed** runs from 0.75× to 3× with the voice pitch kept, up to the fastest speed the server allows. Each kind of listening keeps its own speed on that device, so 1.5× for a book doesn't carry over to your next album.
@@ -175,6 +205,9 @@ Lyrics, karaoke and online lyrics are for music libraries only.
 
 ## Podcasts
 
+
+![A page of podcasts](images/podcasts.webp)
+*Podcasts under open licences, credited in [the list](images/CREDITS.md).*
 1. Add a library of the kind **Podcasts**. A folder is optional: it holds episode files you already have, and it's where downloads are saved.
 2. Choose **Add, then follow shows**, or **Follow a podcast** on the library's page later.
 3. Search the directory by name, or switch to **RSS feed address** and paste the show's feed. Private and members-only feeds work too.
@@ -200,6 +233,9 @@ Everything about stations, including what contacts what, is in [Collections, rad
 ## Audio CDs
 
 Images of your audio CDs play in a CD player of their own, in the spirit of the desktop players of the early 2000s: the disc spins behind a window, and a lit display shows the track, index and time beside the list of tracks. This needs the **WittyCD** module.
+
+![An audio CD image playing on the CD screen](images/cd-player.webp)
+*The CD screen. An image authored for testing from Jazz Sampler, Kevin MacLeod, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
 
 **Which library should you use?**
 

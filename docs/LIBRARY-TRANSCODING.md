@@ -16,6 +16,9 @@ This rewrites your files, so it starts switched off. To convert only while someo
 
 ## The short version
 
+
+![The Library transcoding page in Settings](images/settings-library-transcoding.webp)
+*Settings, Library transcoding.*
 1. Read the warning at the top of the page, tick **I understand how this affects streaming and my files**, and press **Turn on library transcoding**. Until you do, nothing can be changed.
 2. Under **Choose a library**, pick one. Then choose the preset that sounds like what you want.
 3. Under **What happens to the old file?**, leave it on **Keep the original** until you trust your recipe.

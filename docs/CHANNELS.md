@@ -39,6 +39,9 @@ A channel runs all the time, like real TV: tune in and you join the show part-wa
 
 The top of the guide says everything about the highlighted programme: channel, title, year and genre, start and end, how far in, and what's next. From there you can **Watch full screen**, **Start over** (the title from the beginning, on your own), open the film or show, make the channel a favourite, change channel, read more, and see the whole day.
 
+![A TV guide with a row for each channel, and a film playing in the preview](images/wittytv-guide.webp)
+*WittyTV, with channels made from a library in one press, and the preview playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Other titles in the guide are in [the list](images/CREDITS.md).*
+
 Above the grid:
 
 - **Filters:** All, Favourites, and categories. A channel's categories are the ones you gave it, or else worked out, such as Movies and Kids. Tuner channels use their playlist's group. Library and Live TV appear when you have both.
@@ -69,6 +72,18 @@ Up from the top row and Left from the first cell hand the arrows back, so a remo
 ## The look
 
 WittyTV has themes of its own, apart from the app's theme. Press **Look** on the guide, or open **Settings → Appearance** and find **WittyTV**. Each is drawn as a small picture of itself, and changes show straight away. A theme changes the guide, the player's banner and mini guide, recordings and the other TV pages, not only the grid.
+
+![The guide in the Satellite look, with a film playing](images/wittytv-satellite.webp)
+*The Satellite look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+
+![The guide in the Modern look, with a film playing](images/wittytv-modern.webp)
+*The Modern look, playing [Singularity](https://commons.wikimedia.org/wiki/File:SINGULARITY_-_Blender_Open_Movie-full_movie.webm), Blender Studio, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
+
+![The guide in the Big Picture look, with a large preview](images/wittytv-bigpicture.webp)
+*The Big Picture look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+
+![The same guide in the Classic look, like an old cable box](images/wittytv-classic.webp)
+*The Classic look, playing [Singularity](https://commons.wikimedia.org/wiki/File:SINGULARITY_-_Blender_Open_Movie-full_movie.webm), Blender Studio, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
 
 | Theme | What it is like | Colours |
 |---|---|---|
@@ -118,6 +133,12 @@ The buttons under it also turn its sound on, go full screen and hide it.
 
 Tuning shows a banner with the channel number, name, times, a progress bar and what's next.
 
+![A small list of channels over the picture](images/wittytv-miniguide.webp)
+*The mini guide over a channel, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+
+![A channel playing full screen, with what's on along the bottom](images/wittytv-watching.webp)
+*A channel, full screen, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+
 | Key | While watching |
 |---|---|
 | Up, Down, Page Up, Page Down | Change channel |
@@ -144,6 +165,9 @@ A network channel can run the network's shows all day, be limited to a decade, f
 ## Making your own channel
 
 Press **New channel**, or **Edit** on a channel. The editor has three levels, which are three views of the same channel. Moving between them never loses anything.
+
+![The page for making a channel](images/wittytv-new-channel.webp)
+*Making a channel.*
 
 | Level | What you set |
 |---|---|
@@ -259,6 +283,9 @@ To put one right, open a tuner under **Tuners and IPTV**, and press **Change** b
 
 These need the **WittyTuner** module. No channel lists or stream addresses come with the server, so bring your own. Scanning uses computed band plans, not lists of stations.
 
+![The Channels and tuners page in Settings](images/settings-channels.webp)
+*Settings, Channels & tuners, on a server with no tuner attached.*
+
 1. Go to **Settings → Channels & tuners → Tuners and IPTV**.
 2. Press **Search for tuners**, or choose one under **Add a tuner** and fill it in.
 3. Press **Channels** on the tuner. **Read the list** or **Scan for channels** fills it, and you choose which show in the guide, renumber them, or set a guide id.
@@ -312,6 +339,9 @@ ATSC huffman-compressed guide text isn't read, so those events are skipped.
 ## Recordings
 
 Highlight a show on a tuner channel, and press **R** or **Record**. **Record every airing**, under more about a programme, follows a title on that channel.
+
+![The recordings page](images/wittytv-recordings.webp)
+*Recordings, on a server with none yet.*
 
 - **Each person has their own.** You see and cancel your own recordings, and an administrator sees all of them. Up to 50 can be waiting and 20 series running per person, with no limit for an administrator. Only an administrator can delete a recording's file.
 - **Profiles.** It needs the profile's **Live TV** limit to allow tuner channels.

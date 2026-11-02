@@ -41,6 +41,21 @@ These apps say plainly when something can't play yet. For anything on this list,
 
 Open the server's address, and you have everything: films, TV, music, books, photos, games, discs and live TV.
 
+![A Music library at phone width](images/phone-music.webp)
+*Music at phone width. Credited in [the list](images/CREDITS.md).*
+
+![A film's page at phone width](images/phone-film.webp)
+*At phone width. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+
+![A wall of posters at phone width](images/phone-movies.webp)
+*At phone width. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
+![The TV guide at phone width, with a film playing](images/phone-guide.webp)
+*WittyTV at phone width. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
+![The home page at phone width](images/phone-home.webp)
+*At phone width. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
 1. Find the server's address. An administrator sees it at **Settings → About → This server**, under **Open it on other devices at home**. It looks like `http://192.168.1.20:9797`.
 2. Type it into a browser on any device on your home network, and bookmark it.
 
@@ -49,6 +64,9 @@ A browser can't search your network for servers, so you need the address.
 ## WittyMediaClient
 
 The app for putting your server on a device.
+
+![The desktop app showing the home page](images/client-home.webp)
+*WittyMediaClient on a desktop, connected to a test server. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 
 ### On a computer
 
@@ -116,6 +134,9 @@ To read books that are on your server, open them in a browser: see [Books](BOOKS
 ## Big screens
 
 There are two different things here.
+
+![The big-screen view, with large cards for a TV](images/big-screen.webp)
+*The big-screen view. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 
 **Big screen mode** is for the whole web app on a TV across the room. It makes text larger and the outline around the selected item stronger. Turn it on at **Settings → Appearance → Motion and big screens**. It applies to that device only. On a TV browser with no easy way to reach Settings, add `?tv=1` to the server's address.
 

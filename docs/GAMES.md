@@ -12,6 +12,9 @@ To play games installed on a PC rather than on this server, see [Game PCs](GAME-
 
 You need an administrator account for this.
 
+![A library of games, by console](images/games.webp)
+*WittyPlay, with open-licence homebrew. Each is credited in [the list](images/CREDITS.md).*
+
 1. Open **Settings → Libraries** and press **Add library**.
 2. Choose **Games**.
 3. Under **Console**, pick one console, or leave it on **Many consoles in one folder (sorted by folder and file type)**.
@@ -44,6 +47,9 @@ You can have several libraries for one console, or one library for everything.
 ## Needs a look
 
 A scan only lists what it can prove is a game. Anything else is set aside for you, with the reason, rather than guessed at.
+
+![A fighting game running in a browser](images/gameplay-super-tilt-bro.webp)
+*[Super Tilt Bro](https://github.com/sgadrat/super-tilt-bro), Sylvain Gadrat, WTFPL.*
 
 When there's something to see, a banner appears at the top of the library page, for administrators. Press **Take a look**. The window has four tabs:
 
@@ -105,6 +111,12 @@ Set your regions in **Settings → Consoles & cores → Which version comes firs
 ## Cores
 
 A core is the free program that plays one console's games. Each one is someone else's work, and stays a separate program. It only runs when you play, boxed in by a sandbox.
+
+![An arcade game running in a browser](images/gameplay-thwaite.webp)
+*[Thwaite](https://github.com/pinobatch/thwaite-nes), Damian Yerrick, GPL-3.0-or-later.*
+
+![The Consoles and cores page in Settings](images/settings-consoles.webp)
+*Settings, Consoles & cores.*
 
 1. Open **Settings → Consoles & cores**. The consoles you have games for are at the top, each saying whether it's ready.
 2. Press the button on a card, such as **Install FCEUmm**. When several consoles need one, **Install all 3 recommended cores** at the top does them together.
@@ -179,6 +191,9 @@ PlayStation 2 games fall back to the Play! core when LRPS2 has no BIOS, if Play!
 
 All of these belong to your account, so everyone on the server has their own. They follow you to every device.
 
+![A city-building game running in a browser](images/gameplay-ucity.webp)
+*[µCity](https://github.com/AntonioND/ucity), Antonio Niño Díaz, GPL-3.0 and CC BY-SA 4.0, running on the server and streamed to a browser.*
+
 - **Battery saves** are what a game saves by itself, written within 5 seconds of changing.
 - **Memory cards:** the PlayStation 2 has its own cards for each game and each account. A new card is unformatted, as a new card was on a real console, and the game offers to format it the first time it saves. These have been seen working on Windows. A real PS2 save hasn't been tried under the Linux sandbox yet.
 - **Save states** are a snapshot of the whole game, in slots 1 to 99, each with a picture. Open the game menu and press **Save** or **Load**, or use **Quick save** and **Quick load**.
@@ -195,6 +210,9 @@ One account can keep 4 GB for one game, and imports and patches can bring an acc
 ## Controllers, touch and keyboard
 
 Plug in a controller and press any button on it: browsers only show a controller once it has been pressed. Connecting one gives it the player it had last time on this device, or the next free one. Up to four players can share one device.
+
+![The controllers page](images/controllers.webp)
+*Setting up controllers.*
 
 **On plain `http://`, most browsers hide controllers.** Open the server over https, or at `localhost` on the same computer. See [Remote access](REMOTE.md). Until then, the keyboard and touch controls work.
 
@@ -258,6 +276,9 @@ The D-pad moves, OK is A, Play/Pause is B, and Back opens the game menu. A remot
 
 Press `Esc`, Start and Select together, or the button in the corner. The game pauses behind it.
 
+![The My game settings page](images/settings-games.webp)
+*Settings, My game settings.*
+
 The tiles include **Save**, **Load**, **Rewind**, **Fast forward**, **Screenshot**, **Controllers**, **Settings**, **More** and **Save and quit**. **Rewind** is off until you turn it on, as it costs the server memory all the time. Fast-forward and slow motion have no sound.
 
 Games can contain flashing images, and fast-forward can make them flash quickly. **Tube flicker**, under **Picture**, makes the picture flicker. It's off by default, and stays off when your device asks for reduced motion.
@@ -273,6 +294,9 @@ If a setting breaks a game, **Start with default settings** in the same **More**
 ## Couch mode
 
 Couch mode is the games library alone, full screen and large, made for a TV and a controller. Press **Couch mode** on a games library, or Start on a controller, or open `/big`.
+
+![A strategy game running in a browser](images/gameplay-rhde.webp)
+*[RHDE: Furniture Fight](https://github.com/pinobatch/rhde-nes), Damian Yerrick, under a GNU All-Permissive style licence.*
 
 Along the top are your libraries or **Home**, **Consoles**, **Search** and **Settings**. Search has letters on the screen, so it needs no keyboard. The bar along the bottom shows the buttons for the controller you're using. In a library:
 
@@ -291,6 +315,9 @@ Couch mode has nothing to do with WittyCouch, which plays games on PCs: see [Gam
 ## Streaming and delay
 
 The player finds the best way to reach your device by itself. Change it in the game menu under **More → Connection**:
+
+![A space shooter running in a browser](images/gameplay-dragon-blaster.webp)
+*[Dragon Blaster](https://github.com/haroldo-ok/dragon-blaster), Haroldo de Oliveira Pinheiro, MIT, with open art from OpenGameArt.*
 
 | Choice | When you'd want it |
 |---|---|
@@ -335,6 +362,9 @@ Most homes need nothing. To reach games from outside your network, or from a con
 
 A patch is a small file that changes a game, such as a translation or a fix.
 
+![A puzzle game running in a browser](images/gameplay-libbet.webp)
+*[Libbet and the Magic Floor](https://github.com/pinobatch/libbet), Damian Yerrick, zlib.*
+
 1. Start the game and open the game menu.
 2. Press **Settings → Patches → Add a patch…**, and choose an IPS or BPS file.
 3. It takes effect when the game next starts.
@@ -360,6 +390,9 @@ No retail 3DS game has been played here: the only one tried is encrypted, so it 
 ## Your own core
 
 A custom core is for a console or a version this server doesn't offer. It's a program, and it runs on your server whenever someone plays with it, so only add one you trust. It always runs boxed in, in a process of its own. This project hasn't checked anything you add, and doesn't offer or support it. Where to get one is your call: go to the people who make it.
+
+![A shooter running in a browser](images/gameplay-datastorm.webp)
+*[DataStorm](https://github.com/haroldo-ok/datastorm), Haroldo de Oliveira Pinheiro, Apache-2.0.*
 
 Custom cores are off on every server. Only an administrator with an adult account can reach them, and they need two switches.
 

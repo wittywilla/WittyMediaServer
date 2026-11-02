@@ -16,6 +16,9 @@ This guide helps you add your media, lay out and name your files so they're reco
 
 A library is one or more folders of one kind of media. Your files stay where they are, and nothing is copied.
 
+![Choosing a folder on the server, in the page](images/folder-browser.webp)
+*Choosing a folder. The folders are from a test server.*
+
 1. Go to **Settings → Libraries → Add library**.
 2. Choose the kind of media. If a kind needs a module this server doesn't have, it's listed under **Add a module to use these**, with a button to add it. Adding a module downloads it.
 3. If you already have a library of that kind, choose whether these folders go in it or make a separate one with its own name, such as "Kids' movies" beside "Movies".
@@ -31,6 +34,15 @@ Scanning starts right away. The folder has to be one the server can read, which 
 
 ## Kinds of library
 
+
+
+
+![A Home Videos library](images/home-videos.webp)
+*Home videos. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+![A shelf of disc images](images/discs.webp)
+*A shelf of discs. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+![A Movies library: a wall of posters, with sorting and filters](images/movies.webp)
+*A Movies library. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 | Kind | What goes in it | Folder |
 |---|---|---|
 | **Movies** | Film files. Disc images of films can go here too | Needed |
@@ -207,6 +219,9 @@ Unless you've turned it off, the server saves NFO files and artwork beside your 
 ## Library settings
 
 Each library has a card under **Settings → Libraries**:
+
+![The Libraries page in Settings, with one row for each library](images/settings-libraries.webp)
+*Settings, Libraries.*
 
 - **Scan now** looks through its folders again.
 - **Edit** changes its name, its kind and its folders, and for games, its console. **Save and scan** starts a scan.

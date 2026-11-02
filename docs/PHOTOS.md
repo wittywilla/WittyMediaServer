@@ -34,6 +34,9 @@ Places come from EXIF GPS tags, and from the location tag of clips. Phones and s
 
 ## The screens
 
+
+![A timeline of photos, by month](images/photos.webp)
+*The timeline, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](images/CREDITS.md).*
 - **Timeline:** by month and day, newest first. A month loads when it comes into view, and the years down the side jump. Search looks through names, folders and cameras.
 - **Albums:** yours, and those others have shared. An album belongs to whoever made it. Tick **Share with other profiles who can open this library** and every such profile can see it, each within their own limits. **Select**, in the timeline, adds many pictures at once.
 - **Favorites:** the heart on a picture. Favourites are per profile.
@@ -44,6 +47,9 @@ Places come from EXIF GPS tags, and from the location tag of clips. Phones and s
 ## The picture viewer
 
 Press a picture to open it. **Details** shows its date, file, camera, exposure and place, with **Download the original**. **Slideshow** runs at 2, 3, 5, 8 or 15 seconds a picture. A clip plays to its end before the slideshow moves on.
+
+![One photo filling the screen](images/photos-viewer.webp)
+*The viewer, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](images/CREDITS.md).*
 
 | Key | What it does |
 |---|---|
@@ -61,6 +67,9 @@ On a touch screen, swipe to step.
 ## The map and the internet
 
 The map needs nothing online. A small outline of the world's land comes with the app, from Natural Earth, which is public domain, and the groups of pictures come from your server.
+
+![Photos placed on a map of the world](images/photos-map.webp)
+*The map, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](images/CREDITS.md).*
 
 If you want streets and place names, an admin can give an online map's address in **Settings → Sharing & photos**, under **Photo map**. It's off by default.
 
@@ -86,6 +95,9 @@ An admin can change these in **Settings → Sharing & photos**, under **Uploads*
 
 ## Sharing
 
+
+![The Sharing and photos page in Settings](images/settings-sharing.webp)
+*Settings, Sharing & photos.*
 **Share** on a picture, clip or album gives two ways. Adults and admins can use it.
 
 - **With other profiles here:** a link for anyone signed in who can open this library. They still see only what their limits allow.

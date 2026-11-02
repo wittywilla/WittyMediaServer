@@ -68,6 +68,9 @@ Saved keys are hidden, so paste a key again to test it. TVmaze and Wikidata can 
 
 The server reads and writes the standard NFO and artwork layout most other media software uses, so you can move a library in or out without re-tagging anything.
 
+![A film's page, with a plot and poster read from files beside it](images/film-page.webp)
+*Everything here came from files beside the film. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+
 An NFO can be up to 1 MB and a `.metadata.json` up to 256 KB. Anything read from beside your media, yours or anyone else's, is cleaned to plain text: no HTML, scripts or hidden characters, and pictures only as web addresses or files in that folder. A file that can't be read is left out, with a warning under **Settings → WittyLog** naming the file and the line.
 
 More on what's safe to change, and how it's checked, is in [Files beside your media](METADATA-FOLDER.md#files-beside-your-media).

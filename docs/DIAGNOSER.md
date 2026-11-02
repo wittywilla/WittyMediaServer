@@ -16,6 +16,9 @@ Use it for what you've put on the server and what the server runs on. To fix the
 
 ## Checking a disc
 
+
+![The WittyDiagnoser page in Settings](images/settings-diagnoser.webp)
+*Settings, WittyDiagnoser.*
 1. On the **A disc** tab, press **Browse for a disc**, or choose from **Discs in your libraries**. The browser only shows your libraries and the data folder.
 2. Choose how thorough to be, with the two switches below.
 3. Press **Start the check**.

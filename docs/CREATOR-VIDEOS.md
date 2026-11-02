@@ -37,6 +37,9 @@ The same sidecar files as [vertical videos](SHORTS.md#adding-details-with-sideca
 
 ## The screens
 
+
+![A page of creators' channels](images/creators.webp)
+*Channels of openly licensed videos, credited in [the list](images/CREDITS.md).*
 | Tab | What it shows |
 |---|---|
 | **Home** | A feed from this profile's own record on this server. See [how it works](SHORTS.md#how-for-you-works) |
@@ -71,6 +74,9 @@ Limits work as they do for [vertical videos](SHORTS.md#profiles). A channel with
 ## Music videos and concerts
 
 A library of the kind **Music videos & concerts** uses the same screens, in its own words: an artist is a channel, and an album is a playlist.
+
+![A library of music videos](images/music-videos.webp)
+*Music videos and concerts under open licences, credited in [the list](images/CREDITS.md).*
 
 | Tab | What it shows |
 |---|---|

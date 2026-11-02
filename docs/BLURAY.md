@@ -15,6 +15,9 @@ Use this guide to add Blu-ray images and folders to your server, play them with 
 
 ## Adding discs
 
+
+![A Blu-ray's page](images/bluray-item.webp)
+*A Blu-ray image's page. [Sita Sings the Blues](https://archive.org/details/SitaSingsTheBlues_201812), Nina Paley, [CC0](https://creativecommons.org/publicdomain/zero/1.0/).*
 1. Go to **Settings → Modules** and add **WittyBluray**. WittyDisc, which reads disc images, comes inside it. See [Modules and the store](MODULE-STORE.md).
 2. Go to **Settings → Libraries → Add library**, and choose **DVDs, Blu-rays & CDs**. Images of films can also go in a **Movies** library, and images of a series in a **TV shows** library.
 3. Choose the folder that holds your discs, and press **Add library**.
@@ -28,6 +31,9 @@ A scan recognises a Blu-ray by its structure, not its name, and records its labe
 ## Playing a disc
 
 On a Blu-ray's page:
+
+![A Blu-ray playing in a browser](images/bluray-menu.webp)
+*A Blu-ray image, in a browser. [Sita Sings the Blues](https://archive.org/details/SitaSingsTheBlues_201812), Nina Paley, [CC0](https://creativecommons.org/publicdomain/zero/1.0/).*
 
 | Button | What happens |
 |---|---|
@@ -99,6 +105,9 @@ When reporting a problem, attach that report, and never the disc image.
 
 ## Limits
 
+
+![A message saying the disc is encrypted and can't be played](images/bluray-refused.webp)
+*A copy-protected pressing gets a plain message, and nothing unlocks it. [Big Buck Bunny](https://peach.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), from a disc pressed by Imagion AG.*
 - AACS-encrypted discs are refused, and BD+ is not run.
 - 3D discs play in 2D, and 4K discs are sent as 1080p unless you choose 2160p.
 - Secondary audio and picture-in-picture are not mixed in.

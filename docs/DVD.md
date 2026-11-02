@@ -15,6 +15,9 @@ Use this guide to add DVD images and folders to your server and play them with t
 
 ## Adding DVDs
 
+
+![A disc's page, with buttons to insert it, play the film or go to its menu](images/dvd-item.webp)
+*A disc's page. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
 1. Go to **Settings → Modules** and add **WittyDVD**. WittyDisc, which reads disc images, comes inside it. See [Modules and the store](MODULE-STORE.md).
 2. Go to **Settings → Libraries → Add library**, and choose **DVDs, Blu-rays & CDs**. Images of films can also go in a **Movies** library, and images of a series in a **TV shows** library.
 3. Choose the folder that holds your discs, and press **Add library**.
@@ -28,6 +31,12 @@ A disc is recognised by its structure, not its name. Without WittyDVD, a disc st
 ## Playing a disc
 
 On a DVD's page:
+
+![A disc sliding into a tray on screen](images/dvd-tray.webp)
+*A disc in the tray. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+
+![A DVD's own animated menu playing in a browser, with Play highlighted](images/dvd-menu.webp)
+*The disc's own menu, in a browser. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), from its original DVD.*
 
 | Button | What happens |
 |---|---|
@@ -43,6 +52,9 @@ Below those, **Feature Presentation** has **Play feature** and its **Scenes**, a
 ## Disc settings
 
 The **Disc settings** button on a DVD's page, for administrators, has:
+
+![The Playback and discs page in Settings](images/settings-playback.webp)
+*Settings, Playback & discs.*
 
 - **What's on this disc:** a movie or episodes of a TV series, or work it out from the name.
 - **When this disc is inserted:** start with the disc menu, or skip menus and play the main feature.

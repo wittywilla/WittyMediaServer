@@ -35,6 +35,9 @@ This hasn't been checked on Safari, on phones, with hardware decoding of HEVC or
 
 ## The settings page
 
+
+![The Live transcoding page in Settings](images/settings-transcoding.webp)
+*Settings, Live transcoding.*
 | Setting | What it does |
 |---|---|
 | **Allow direct play** | On by default. Off sends every file through conversion, which is mainly useful for testing. |

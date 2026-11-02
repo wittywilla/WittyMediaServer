@@ -24,6 +24,10 @@
 
 > **Alpha.** Version 0.6.0-alpha is still changing quickly and can fail or lose data. Keep backups, and back up your data folder before you upgrade.
 
+<!-- hero -->
+<p align="center"><a href="docs/images/home.webp"><img src="docs/images/home.webp" alt="The home page, with a large picture from a film and a row of libraries" width="100%"></a><br><sub>The home page. <a href="https://commons.wikimedia.org/wiki/File:WING_IT!_-_Blender_Open_Movie-full_movie.webm">Wing It!</a>, Blender Studio, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Everything shown is <a href="docs/images/CREDITS.md">openly licensed</a>.</sub></p>
+<!-- /hero -->
+
 ## What it does
 
 - **Films and TV.** Posters, plots and ratings, *Continue watching*, skip intro and instant seeking. Information arrives with no API key, and you can add free keys or your own agents for more.
@@ -38,6 +42,60 @@
 
 Discs, games, photos, readers and tuners are modules: separate programs you add from a store inside the app, each with its own [repository](docs/REPOSITORIES.md). The server works without any of them.
 
+<!-- gallery -->
+## A look around
+
+A test server, filled with openly licensed media to show what it can do. No media comes with it. Every work on that server is named in [the credits](docs/images/CREDITS.md), with its licence. See [every step of first-time setup](docs/FIRST-TIME-SETUP.md) too.
+
+<table>
+<tr>
+<td width="50%"><a href="docs/images/movies.webp"><img src="docs/images/movies.webp" alt="A wall of film posters"></a><br><b>Films</b><br><sub>Open-licence and public-domain media, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
+<td width="50%"><a href="docs/images/film-page.webp"><img src="docs/images/film-page.webp" alt="A film's page"></a><br><b>A film's page</b><br><sub><a href="https://durian.blender.org/">Sintel</a>, Blender Foundation, <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a></sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="docs/images/dvd-menu.webp"><img src="docs/images/dvd-menu.webp" alt="A DVD's own menu in a browser"></a><br><b>A DVD's real menu, in a browser</b><br><sub><a href="https://durian.blender.org/">Sintel</a>, Blender Foundation, <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>, from its original DVD</sub></td>
+<td width="50%"><a href="docs/images/bluray-menu.webp"><img src="docs/images/bluray-menu.webp" alt="A Blu-ray playing in a browser"></a><br><b>Blu-rays too</b><br><sub><a href="https://archive.org/details/SitaSingsTheBlues_201812">Sita Sings the Blues</a>, Nina Paley, <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a></sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="docs/images/wittytv-guide.webp"><img src="docs/images/wittytv-guide.webp" alt="A TV guide with a film playing in the preview"></a><br><b>WittyTV: channels made from your library</b><br><sub><a href="https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm">Caminandes: Llamigos</a>, Pablo Vazquez, Blender Foundation, <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a></sub></td>
+<td width="50%"><a href="docs/images/wittytv-classic.webp"><img src="docs/images/wittytv-classic.webp" alt="The guide in the Classic look"></a><br><b>Six looks to choose from</b><br><sub><a href="https://commons.wikimedia.org/wiki/File:SINGULARITY_-_Blender_Open_Movie-full_movie.webm">Singularity</a>, Blender Studio, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="docs/images/music-visualizer.webp"><img src="docs/images/music-visualizer.webp" alt="A light show behind the music player"></a><br><b>Music, with WittyVisualizer</b><br><sub><a href="https://archive.org/details/SRS08807">Collide</a>, Aryll Fae, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></sub></td>
+<td width="50%"><a href="docs/images/music-lyrics.webp"><img src="docs/images/music-lyrics.webp" alt="Lyrics beside the player"></a><br><b>Lyrics and karaoke</b><br><sub>"Take Me Out to the Ball Game", 1908, public domain</sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="docs/images/gameplay-ucity.webp"><img src="docs/images/gameplay-ucity.webp" alt="A city-building game running in a browser"></a><br><b>Games, played in a browser</b><br><sub><a href="https://github.com/AntonioND/ucity">µCity</a>, Antonio Niño Díaz, GPL-3.0-or-later and CC BY-SA 4.0</sub></td>
+<td width="50%"><a href="docs/images/games.webp"><img src="docs/images/games.webp" alt="A library of games"></a><br><b>Open-licence homebrew on many consoles</b><br><sub>Each <a href="docs/images/CREDITS.md">credited here</a></sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="docs/images/gameplay-thwaite.webp"><img src="docs/images/gameplay-thwaite.webp" alt="An arcade game running in a browser"></a><br><b>Thwaite</b><br><sub><a href="https://github.com/pinobatch/thwaite-nes">Thwaite</a>, Damian Yerrick, GPL-3.0-or-later</sub></td>
+<td width="50%"><a href="docs/images/gameplay-super-tilt-bro.webp"><img src="docs/images/gameplay-super-tilt-bro.webp" alt="A fighting game running in a browser"></a><br><b>Super Tilt Bro</b><br><sub><a href="https://github.com/sgadrat/super-tilt-bro">Super Tilt Bro</a>, Sylvain Gadrat, WTFPL</sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="docs/images/reader-epub.webp"><img src="docs/images/reader-epub.webp" alt="A book open in the reader"></a><br><b>Books</b><br><sub><a href="https://standardebooks.org/">Standard Ebooks</a>, <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a></sub></td>
+<td width="50%"><a href="docs/images/reader-comic.webp"><img src="docs/images/reader-comic.webp" alt="A comic open in the reader"></a><br><b>Comics</b><br><sub><a href="https://www.peppercarrot.com/">Pepper&amp;Carrot</a>, David Revoy, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="docs/images/photos.webp"><img src="docs/images/photos.webp" alt="A timeline of photos"></a><br><b>Photos</b><br><sub>From Wikimedia Commons, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
+<td width="50%"><a href="docs/images/tv-show-page.webp"><img src="docs/images/tv-show-page.webp" alt="A show's page with its episodes"></a><br><b>TV shows</b><br><sub>Open-licence and public-domain media, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="docs/images/podcasts.webp"><img src="docs/images/podcasts.webp" alt="A page of podcasts"></a><br><b>Podcasts and audiobooks</b><br><sub><a href="docs/images/CREDITS.md">Credited here</a></sub></td>
+<td width="50%"><a href="docs/images/shorts.webp"><img src="docs/images/shorts.webp" alt="A feed of vertical videos"></a><br><b>Vertical videos</b><br><sub>Clips cropped from open films, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="docs/images/theme-light-home.webp"><img src="docs/images/theme-light-home.webp" alt="The home page in the Light theme"></a><br><b>Themes</b><br><sub>Open-licence and public-domain media, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
+<td width="50%"><a href="docs/images/big-screen.webp"><img src="docs/images/big-screen.webp" alt="The big-screen view for a TV"></a><br><b>A big-screen view for the couch</b><br><sub>Open-licence and public-domain media, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="docs/images/module-store.webp"><img src="docs/images/module-store.webp" alt="The module store"></a><br><b>Add only what you want from the store</b><br><sub>From a local test catalogue</sub></td>
+<td width="50%"><a href="docs/images/settings-libraries.webp"><img src="docs/images/settings-libraries.webp" alt="The Libraries page in Settings"></a><br><b>Everything is in plain settings</b><br><sub>Settings, Libraries</sub></td>
+</tr>
+</table>
+
+<!-- /gallery -->
+
 ## Get started
 
 1. Download the installer for your computer from the [Releases page](https://github.com/wittywilla/WittyMediaServer/releases).
@@ -46,7 +104,7 @@ Discs, games, photos, readers and tuners are modules: separate programs you add 
 
 Those downloads are the server, for the computer that holds your media. **To watch on another device,** open the server's address in a web browser, or use the app, [WittyMediaClient](https://github.com/wittywilla/WittyMediaClient/releases), which has its own Releases page. It's for phones, TVs and other computers, and it's early: see [Where it has been run](#where-it-has-been-run).
 
-The full walkthrough is in [Getting started](docs/GETTING_STARTED.md), and [Installing](docs/INSTALL.md) covers services, Docker and a NAS:
+The full walkthrough is in [Getting started](docs/GETTING_STARTED.md), [First-time setup](docs/FIRST-TIME-SETUP.md) shows every page of it with pictures, and [Installing](docs/INSTALL.md) covers services, Docker and a NAS:
 
 ```bash
 docker run -d -p 9797:9797 -v wms-config:/config -v /path/to/media:/media:ro ghcr.io/wittywilla/wittymediaserver:alpha
@@ -67,6 +125,7 @@ WittyMediaClient adds Android, Android TV, iOS, tvOS and Plasma Big Screen. Andr
 | Getting going | |
 |---|---|
 | [Getting started](docs/GETTING_STARTED.md) | From install to your first film |
+| [First-time setup, step by step](docs/FIRST-TIME-SETUP.md) | Every page of setup, with a picture of each |
 | [Installing](docs/INSTALL.md) | Downloads, the tray app, services, Docker, updating and removing it |
 | [Libraries](docs/LIBRARIES.md) | Adding your media, and naming your files |
 | [Accounts and profiles](docs/ACCOUNTS.md) | People, passwords, limits and sign-in |

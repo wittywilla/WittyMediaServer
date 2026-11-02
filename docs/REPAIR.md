@@ -39,6 +39,9 @@ Still stuck?
 
 ## Repairing from Settings
 
+
+![The Repair page in Settings](images/settings-repair.webp)
+*Settings, Repair.*
 1. Open **Settings → Repair**, on the **Check and fix** tab.
 2. Press **Check this server**. You can leave the page while it runs.
 3. Each thing it finds says what it found, what the fix does, and how safe that is.
@@ -211,6 +214,9 @@ To undo a repair, stop the server and copy `wms.db` back from that folder into t
 
 ## Starting again: the Reset page
 
+
+![The Reset page in Settings](images/settings-reset.webp)
+*Settings, Reset.*
 **Settings → Reset** puts the server back the way it was first installed. It applies to everyone on this server, so make a [backup](BACKUP.md#making-a-backup) first: **Go to Backup** is at the top of the page.
 
 **These go away:**

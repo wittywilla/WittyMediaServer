@@ -52,6 +52,9 @@ Answers are kept in the server's cache folder, for that song, and aren't shared 
 
 Timed lyrics show the line being sung in the middle of the panel. Press any line to go to it. If you scroll by hand, the view holds still for a few seconds. Lyrics without times read as plain text, and don't follow the music.
 
+![Lyrics beside the player, with the current line lit](images/music-lyrics.webp)
+*"Take Me Out to the Ball Game", 1908, public domain.*
+
 **Read,** beside **Lyrics**, shows the same words as plain text to read at your own pace.
 
 **If the timing is slightly off:** press **Sooner** or **Later**. Each press moves the words a quarter of a second, up to two minutes either way, and **Reset** puts them back. This is for you alone, it stays with that song, and it follows your account.
@@ -59,6 +62,9 @@ Timed lyrics show the line being sung in the middle of the panel. Press any line
 ## Karaoke
 
 Karaoke is a big display for singing, made to read from across a room: the words fill in as they're sung, the next line waits below, and a three-second count comes before a line after a long break.
+
+![The karaoke display, with big words to sing along to](images/music-karaoke.webp)
+*Karaoke. "Take Me Out to the Ball Game", 1908, public domain.*
 
 It needs timed lyrics. Without times it shows the words and says so. Use a timed `.lrc` file, or **Tap along**, below.
 

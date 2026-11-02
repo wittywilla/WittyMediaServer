@@ -10,6 +10,12 @@ Gather things from any library into lists, listen to internet radio stations, an
 
 ## Collections and smart playlists
 
+
+
+![A smart collection of silent films](images/collection-page.webp)
+*A smart collection. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+![A page of collections](images/collections.webp)
+*Collections. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 **Collections** in the main menu gathers things from any library. Film series, which a library shows by itself on its own page, are described in [Categories, studios and browsing](METADATA.md#categories-studios-and-browsing).
 
 There are two kinds:

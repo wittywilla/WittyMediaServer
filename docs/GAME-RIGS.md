@@ -26,6 +26,9 @@ To play console games on the server itself, see [Games](GAMES.md).
 
 ## Add and pair a PC
 
+
+![The Game PCs page in Settings](images/settings-couch.webp)
+*Settings, Game PCs, on a server with none added yet.*
 1. Open **Game PCs** in the menu.
 2. Press **Find PCs on the network**, then **Add** beside the PC. If it doesn't appear, type its address under **Or type its address**, such as `192.168.1.20` or a friend's address, and press **Add**.
 3. Open the PC from the list and press **Pair this PC**. A PIN appears.
@@ -37,6 +40,9 @@ Pair on a network you trust: someone listening could work out the PIN. Each PC p
 
 ## Play
 
+
+![The Game PCs page, listing PCs to play on](images/couch-page.webp)
+*Game PCs, on a server with none added yet.*
 1. On the PC's page, press a game.
 2. Choose **Picture**, **Frames a second** and **Quality**, then press **Play**. Your choices are remembered on this device.
 
@@ -121,6 +127,9 @@ Streams need UDP. If a network blocks it, there's no WebSocket fallback yet, and
 ## Host games on this server: WittyRigs
 
 Most servers don't need this. It's for playing demanding PC games installed on this server itself, using this machine's graphics card. To play on other PCs, use **Game PCs**.
+
+![The WittyRigs page in Settings](images/settings-wittyrigs.webp)
+*Settings, WittyRigs.*
 
 It streams this machine's screen, and everything on it, to whoever plays, and adds a service and virtual controller drivers. It needs a good graphics card, and a screen or a virtual one. Anyone you give a game from it can often get from that game to this machine's desktop.
 

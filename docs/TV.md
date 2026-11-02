@@ -15,6 +15,9 @@ For always-on TV channels and the guide, and WittyTV's own themes, see [Channels
 
 ## Setting up
 
+
+![A TV shows library: a wall of posters](images/tv-shows.webp)
+*A TV shows library. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 1. Go to **Settings → Libraries → Add library**, choose **TV shows**, and pick your TV folder.
 2. Press **Add library**. It scans straight away.
 
@@ -64,6 +67,9 @@ Numbering comes from your files. If a source numbers a show differently, see [Fi
 
 ## Show pages
 
+
+![A show's page, with its seasons and episodes](images/tv-show-page.webp)
+*A show's page. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 - **Play** carries on from the next episode, and says which, with **Resume** if you're part-way through.
 - **Layout** switches between **Cards**, with pictures and overviews, and **Playlist**, a compact list. Each show remembers its own choice. **Settings → Playback & discs → TV episode layout** sets the default.
 - **Skip intro** appears during an episode's intro when the file has a chapter called `Intro` or `Opening`, or when you set where it ends: press **Edit** on the show or episode, and go to **Skip intro**. You can type the time, or use **Pick in player**. On a show, it covers every episode with no intro of its own.
@@ -104,6 +110,9 @@ You can also set them in the show's **Edit** dialog. When **Save next to media**
 ## Anime
 
 Anime can live in its own **Anime** library, in your TV folders, or both:
+
+![An Anime library](images/anime.webp)
+*An Anime library. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 
 - **An Anime library with its own folders** gets its details from AniList, with no key: titles, synopsis, studio, genres, score, cover and banner, and episode names where AniList has them. **Settings → Metadata agents → Title language** chooses how titles are written. Titles AniList marks as adult are rated 18, so Kids and Guest profiles never see them.
 - **Anime kept in a TV library** is any show with the genre Anime, which you can also add yourself in **Edit**. It appears in your Anime library too. **Settings → Metadata agents → Where anime from TV libraries appears** chooses **Anime and TV libraries**, or **Only the Anime library**.

@@ -467,6 +467,9 @@ wittymodule catalog-sign -key test.key catalog.json
 
 A store is a `catalog.json` at an `https` address. To run one, make a folder with `catalog.json` and the release files, as in [the catalogue](#the-catalogue), and run `wittymodule catalog-sign -key <file> catalog.json`, which writes `catalog.json.sig` and `catalog.json.key`. Give people the address and, somewhere else, the key.
 
+![The page listing other module stores](images/store-sources.webp)
+*Other stores, on a server using only this project's.*
+
 What a server does with one, in `internal/modules/stores.go`:
 
 - An admin adds it after a warning, with its key pinned at that moment. The key comes from what the admin pastes, or from `catalog.json.key` beside the catalogue, for the admin to check.

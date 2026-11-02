@@ -44,6 +44,9 @@ Open a line to read its details. Common failures have an explanation in plain wo
 
 The **What to log** tab sets each part of the server to **Off**, **Errors only**, **Warnings and errors**, **Normal** or **Everything**. Changes work straight away, with no restart. **Off** still records crashes.
 
+![The WittyLog page in Settings](images/settings-logs.webp)
+*Settings, WittyLog.*
+
 Playback, Discs, Sign-ins, App errors and Web requests start at **Warnings and errors**, because they name what you watch or who signs in. Everything else starts at **Normal**.
 
 The **Modules** tab does the same for each module. A module follows the level of its area unless you choose otherwise. **Advanced** turns on extra kinds of detail, for modules that have them, and **Show what this module logged** filters the viewer to it.

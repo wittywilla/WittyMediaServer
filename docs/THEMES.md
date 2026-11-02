@@ -4,6 +4,18 @@ A theme changes how WittyMediaServer looks: its colours, its corners, even its f
 
 ## Changing your theme
 
+
+
+
+
+![The home page in the Midnight theme](images/theme-midnight-home.webp)
+*The Midnight theme. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+![A Movies library in the Paper theme](images/theme-paper-movies.webp)
+*The Paper theme. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+![The home page in the Cinema theme](images/theme-cinema-home.webp)
+*The Cinema theme. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+![The home page in the Light theme](images/theme-light-home.webp)
+*The Light theme. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 1. Open **Settings → Appearance**.
 2. Click a theme. It applies straight away, on this device only, and other devices aren't affected.
 
@@ -96,6 +108,12 @@ To change a theme that's nearly right, press the download button on its card in 
 ## TV looks
 
 WittyTV has themes of its own, and an app theme can suggest one, with one more setting in `:root`:
+
+![The TV guide in the Teletext look](images/wittytv-teletext.webp)
+*The Teletext look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+
+![The TV guide in the Listings look, like a printed paper](images/wittytv-listings.webp)
+*The Listings look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
 
 ```css
 :root {

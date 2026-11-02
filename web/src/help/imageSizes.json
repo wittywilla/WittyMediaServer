@@ -1,1 +1,502 @@
-{}
+{
+"activity.webp": [
+720,
+405
+],
+"anime.webp": [
+720,
+405
+],
+"audiobook-page.webp": [
+720,
+405
+],
+"audiobooks.webp": [
+720,
+405
+],
+"big-screen.webp": [
+720,
+405
+],
+"bluray-item.webp": [
+720,
+405
+],
+"bluray-menu.webp": [
+720,
+405
+],
+"bluray-refused.webp": [
+720,
+405
+],
+"books.webp": [
+720,
+405
+],
+"cd-player.webp": [
+720,
+405
+],
+"client-home.webp": [
+720,
+432
+],
+"collection-page.webp": [
+720,
+405
+],
+"collections.webp": [
+720,
+405
+],
+"comics.webp": [
+720,
+405
+],
+"controllers.webp": [
+720,
+405
+],
+"couch-page.webp": [
+720,
+405
+],
+"creators.webp": [
+720,
+405
+],
+"discs.webp": [
+720,
+405
+],
+"dvd-item.webp": [
+720,
+405
+],
+"dvd-menu.webp": [
+720,
+405
+],
+"dvd-tray.webp": [
+720,
+405
+],
+"film-page.webp": [
+720,
+405
+],
+"fix-matches.webp": [
+720,
+405
+],
+"folder-browser.webp": [
+720,
+405
+],
+"gameplay-datastorm.webp": [
+720,
+405
+],
+"gameplay-dragon-blaster.webp": [
+720,
+405
+],
+"gameplay-libbet.webp": [
+720,
+405
+],
+"gameplay-rhde.webp": [
+720,
+405
+],
+"gameplay-super-tilt-bro.webp": [
+720,
+405
+],
+"gameplay-thwaite.webp": [
+720,
+405
+],
+"gameplay-ucity.webp": [
+720,
+405
+],
+"games.webp": [
+720,
+405
+],
+"help-setup-guide.webp": [
+720,
+405
+],
+"help.webp": [
+720,
+405
+],
+"home-shelves.webp": [
+720,
+405
+],
+"home-video-page.webp": [
+720,
+405
+],
+"home-videos.webp": [
+720,
+405
+],
+"module-store.webp": [
+720,
+405
+],
+"movies.webp": [
+720,
+405
+],
+"music-album.webp": [
+720,
+405
+],
+"music-albums.webp": [
+720,
+405
+],
+"music-artists.webp": [
+720,
+405
+],
+"music-full.webp": [
+720,
+405
+],
+"music-home.webp": [
+720,
+405
+],
+"music-karaoke.webp": [
+720,
+405
+],
+"music-lyrics.webp": [
+720,
+405
+],
+"music-videos.webp": [
+720,
+405
+],
+"music-visualizer-2.webp": [
+720,
+405
+],
+"music-visualizer-3.webp": [
+720,
+405
+],
+"music-visualizer.webp": [
+720,
+405
+],
+"phone-film.webp": [
+720,
+1559
+],
+"phone-guide.webp": [
+720,
+1559
+],
+"phone-home.webp": [
+720,
+1559
+],
+"phone-movies.webp": [
+720,
+1559
+],
+"phone-music.webp": [
+720,
+1559
+],
+"photos-map.webp": [
+720,
+405
+],
+"photos-viewer.webp": [
+720,
+405
+],
+"photos.webp": [
+720,
+405
+],
+"player.webp": [
+720,
+405
+],
+"podcasts.webp": [
+720,
+405
+],
+"reader-comic.webp": [
+720,
+405
+],
+"reader-epub.webp": [
+720,
+405
+],
+"reader-library.webp": [
+720,
+405
+],
+"reader-pdf.webp": [
+720,
+405
+],
+"settings-about.webp": [
+720,
+405
+],
+"settings-activity.webp": [
+720,
+405
+],
+"settings-appearance.webp": [
+720,
+405
+],
+"settings-backup.webp": [
+720,
+405
+],
+"settings-channels.webp": [
+720,
+405
+],
+"settings-consoles.webp": [
+720,
+405
+],
+"settings-couch.webp": [
+720,
+405
+],
+"settings-diagnoser.webp": [
+720,
+405
+],
+"settings-games.webp": [
+720,
+405
+],
+"settings-legal.webp": [
+720,
+405
+],
+"settings-libraries.webp": [
+720,
+405
+],
+"settings-library-transcoding.webp": [
+720,
+405
+],
+"settings-logs.webp": [
+720,
+405
+],
+"settings-metadata.webp": [
+720,
+405
+],
+"settings-modules.webp": [
+720,
+405
+],
+"settings-playback.webp": [
+720,
+405
+],
+"settings-remote.webp": [
+720,
+405
+],
+"settings-repair.webp": [
+720,
+405
+],
+"settings-reset.webp": [
+720,
+405
+],
+"settings-security.webp": [
+720,
+405
+],
+"settings-sharing.webp": [
+720,
+405
+],
+"settings-transcoding.webp": [
+720,
+405
+],
+"settings-users.webp": [
+720,
+405
+],
+"settings-wittyrigs.webp": [
+720,
+405
+],
+"setup-01-welcome.webp": [
+720,
+405
+],
+"setup-02-account.webp": [
+720,
+549
+],
+"setup-04-modules-chosen.webp": [
+720,
+1508
+],
+"setup-05-modules-installing.webp": [
+720,
+873
+],
+"setup-06-modules-ready.webp": [
+720,
+903
+],
+"setup-07-media.webp": [
+720,
+1398
+],
+"setup-08-media-movies.webp": [
+720,
+458
+],
+"setup-09-media-added.webp": [
+720,
+1523
+],
+"setup-10-games.webp": [
+720,
+708
+],
+"setup-11-discs.webp": [
+720,
+542
+],
+"setup-12-details.webp": [
+720,
+769
+],
+"setup-14-logos.webp": [
+720,
+587
+],
+"setup-15-music.webp": [
+720,
+426
+],
+"setup-16-listings.webp": [
+720,
+420
+],
+"setup-17-look.webp": [
+720,
+812
+],
+"setup-18-done.webp": [
+720,
+837
+],
+"shorts.webp": [
+720,
+405
+],
+"stats.webp": [
+720,
+405
+],
+"store-module.webp": [
+720,
+405
+],
+"store-sources.webp": [
+720,
+405
+],
+"theme-cinema-home.webp": [
+720,
+405
+],
+"theme-light-home.webp": [
+720,
+405
+],
+"theme-midnight-home.webp": [
+720,
+405
+],
+"theme-paper-movies.webp": [
+720,
+405
+],
+"tv-show-page.webp": [
+720,
+405
+],
+"tv-shows.webp": [
+720,
+405
+],
+"wittytv-bigpicture.webp": [
+720,
+405
+],
+"wittytv-classic.webp": [
+720,
+405
+],
+"wittytv-guide.webp": [
+720,
+405
+],
+"wittytv-listings.webp": [
+720,
+405
+],
+"wittytv-miniguide.webp": [
+720,
+405
+],
+"wittytv-modern.webp": [
+720,
+405
+],
+"wittytv-new-channel.webp": [
+720,
+405
+],
+"wittytv-recordings.webp": [
+720,
+405
+],
+"wittytv-satellite.webp": [
+720,
+405
+],
+"wittytv-teletext.webp": [
+720,
+405
+],
+"wittytv-watching.webp": [
+720,
+405
+]
+}

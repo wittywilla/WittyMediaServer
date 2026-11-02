@@ -14,6 +14,9 @@ The converter built into this server is its own, written on FFmpeg, and is compl
 
 ## Connecting it
 
+
+![The Library transcoding page in Settings, where Tdarr is connected](images/settings-library-transcoding.webp)
+*Settings, Library transcoding.*
 1. Install Tdarr on any machine.
 2. In Tdarr, make an API key under **Tools, API Keys**. If its sign-in is off, you can leave the key out.
 3. Here, go to **Settings → Library transcoding → Connect your own Tdarr**.

@@ -6,6 +6,12 @@ The reader runs in a browser and in the desktop WittyMediaClient, which shows th
 
 ## Setting it up
 
+
+
+![A shelf of comics](images/comics.webp)
+*A shelf of comics. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+![A shelf of books with their covers](images/books.webp)
+*A shelf of books, covers and text from [Standard Ebooks](https://standardebooks.org/), [CC0](https://creativecommons.org/publicdomain/zero/1.0/).*
 1. Go to **Settings → Libraries**, or use first-time setup, and choose **Books & comics**.
 2. Choose your folders. Any layout works.
 
@@ -24,6 +30,9 @@ Each reader is a module an admin can add or remove in **Settings → Modules**. 
 
 ## What it can read
 
+
+![A comic open in the reader](images/reader-comic.webp)
+*WittyComics. [Pepper&Carrot](https://www.peppercarrot.com/), David Revoy, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
 | Kind | Formats | How it opens |
 |---|---|---|
 | Books | EPUB, KEPUB | As they are |
@@ -65,6 +74,9 @@ Nothing here removes protection.
 ## Reading
 
 Open a book and press **Read**, **Continue reading** or **Read again**. Esc or the back button closes panels first, then the book.
+
+![A book open in the reader](images/reader-epub.webp)
+*WittyEbook. covers and text from [Standard Ebooks](https://standardebooks.org/), [CC0](https://creativecommons.org/publicdomain/zero/1.0/).*
 
 **Your place** is saved for your account, so any device carries on where you stopped. The library shows your progress on each cover. Your layout, text and colour choices are kept on each device.
 
@@ -111,6 +123,9 @@ Highlights, notes, bookmarks and handwriting aren't part of the comic reader, an
 ## Bookmarks, highlights and notes
 
 These work in books and PDFs. They belong to your account on the server, and each person sees only their own.
+
+![A PDF open in the reader](images/reader-pdf.webp)
+*WittyPDF. Earth as Art, NASA, public domain.*
 
 **Bookmarks:** press the bookmark button or **b**.
 
@@ -163,6 +178,9 @@ Each library can be limited per account, as everywhere. A comic's `AgeRating` in
 
 ## WittyReader
 
+
+![WittyReader's library of books, PDFs and comics](images/reader-library.webp)
+*WittyReader, with covers and text from [Standard Ebooks](https://standardebooks.org/), [CC0](https://creativecommons.org/publicdomain/zero/1.0/); Earth as Art, NASA, public domain; and [Pepper&Carrot](https://www.peppercarrot.com/), David Revoy, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
 **WittyReader** is a separate app for reading on your own device, with no server. It's built from the same readers, so books, PDFs and comics read the same way, with highlights, notes and a pen.
 
 - Books and notes stay in that app on that device. Nothing is uploaded, and it has no account.

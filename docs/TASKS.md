@@ -14,6 +14,9 @@ See what your server is busy with, how far along it is and what went wrong, from
 
 The button is in the top bar, just left of the account menu. On a phone it sits at the right of the row of sections.
 
+![The activity panel open, showing what the server is doing](images/activity.webp)
+*The activity panel. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
 - While something is running, a ring around it shows how far along everything is, with a count.
 - A **!** means something finished with a problem you haven't looked at.
 - When nothing is going on, it's quiet.

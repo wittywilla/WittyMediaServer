@@ -65,6 +65,9 @@ Viewers see the platform of origin as text. A source address is a link, and only
 
 The feed plays one video and shows the others as pictures until they arrive, so a low-end phone has as much to do as for a single video. A video of 15 seconds or less plays twice before moving on. Longer ones move on when they end.
 
+![A feed of vertical videos](images/shorts.webp)
+*Clips cropped from open films, credited in [the list](images/CREDITS.md).*
+
 | Tab | What it shows |
 |---|---|
 | **For You** | The feed, in an order made for you |

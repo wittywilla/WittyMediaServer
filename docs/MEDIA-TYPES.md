@@ -6,6 +6,9 @@ You add a library under **Settings → Libraries → Add library**. A kind of li
 
 ## At a glance
 
+
+![The home page with a row of each kind of media](images/home-shelves.webp)
+*Every kind of media on one server. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 | Media | Library to add | Needs a module |
 |---|---|---|
 | [Films](#films) | Movies | No |

@@ -137,6 +137,9 @@ Start with [If it won't play](PLAYING.md#if-it-wont-play) for anything to do wit
 
 ## Getting help
 
+
+![The built-in Help page](images/help.webp)
+*The built-in Help.*
 1. Make the problem happen again.
 2. Go to **Settings → WittyLog** and press **Download logs as ZIP**, on any tab of that page.
 3. Leave **Sanitize for sharing** on. Names, addresses, paths and titles become placeholders, and you can see what it holds first. Passwords, tokens and API keys are taken out of every copy.

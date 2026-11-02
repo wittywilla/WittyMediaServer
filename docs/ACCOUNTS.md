@@ -55,6 +55,9 @@ For visitors. A new Guest profile starts at *Teens 13+*, with no Live TV. A pass
 
 ## Add a profile
 
+
+![The Profiles page in Settings](images/settings-users.webp)
+*Settings, Profiles, with made-up names.*
 1. Go to **Settings → Profiles** and press **Add profile**. An adult sees **Add a Kids profile** when they have none yet.
 2. Under **Kind of profile**, choose **Adult**, **Kids** or **Guest**. Only an administrator gets this choice.
 3. Type a **Username**, and a **Profile name** if you want them called something else.
@@ -140,6 +143,9 @@ wittymediaserver reset-2fa -data <your data folder> <username>
 
 ## Your devices
 
+
+![The Sign-in and security page in Settings](images/settings-security.webp)
+*Settings, Sign-in & security.*
 **Settings → Sign-in & security → Your devices** lists everywhere you're signed in, with when and where it was last used. Press **Sign out** beside one, or **Sign out the others**. If you don't recognise one, sign it out, then change your password.
 
 ## Signing in with a code

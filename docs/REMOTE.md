@@ -474,6 +474,9 @@ Nothing else for remote access. The outside test uses your phone. Metadata servi
 
 Who counts as at home decides who gets trusted, so it's worth understanding.
 
+![The Remote Access page in Settings](images/settings-remote.webp)
+*Settings, Remote Access. The address is an example.*
+
 - **At home:** this computer, private addresses (`192.168.x.x`, `10.x.x.x`, `172.16.x.x` to `172.31.x.x`, `fc00::/7`, link-local), and IPv6 addresses on this computer's own network, if that network card also has a private IPv4 address.
 - **VPN:** `100.64.0.0/10` and `fd7a:115c:a1e0::/48`, the addresses Tailscale and NetBird use.
 - **Internet:** everything else.

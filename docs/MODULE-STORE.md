@@ -98,6 +98,12 @@ WittyCouch Host has no build for FreeBSD, so WittyCouch and WittyRigs say so the
 
 ## Finding and adding a module
 
+
+
+![A module's own page in the store](images/store-module.webp)
+*A module's page in the store.*
+![The module store: a grid of modules with their icons](images/module-store.webp)
+*The module store, from a local test catalogue.*
 1. Open **Settings → Modules**, and press **Browse the store**.
 2. Type in the search box, or use the category buttons. Every word you type has to match the name, description, category or publisher, so "blu ray" finds Blu-ray.
 3. Narrow it down if you want: **Installed**, **Updates available**, **Publisher** and **Platform**. These stay in the page's address, so Back returns you to the same results.

@@ -23,6 +23,9 @@ The numbers belong to the server. It collects them and decides who sees what, wi
 
 ## What it shows
 
+
+![A page of charts about the server](images/stats.webp)
+*WittyStats.*
 | Group | What's there |
 |---|---|
 | **Machine** | Processor and its cores, temperature, memory, swap, graphics and encoder sessions, disk space, disk speed and how busy, network per connection |

@@ -61,6 +61,9 @@ Everything in this group is for administrators only.
 
 Each library is one or more folders of one kind of media. The server watches them and keeps everything up to date.
 
+![The Libraries page in Settings](images/settings-libraries.webp)
+*Settings, Libraries.*
+
 - **Add library** asks what's in the folder and where it is. **Edit** changes the name, kind and folders, then scans. **Scan now** looks again straight away. The bin icon removes a library: your files stay where they are, and only the server forgets them.
 - **Folders of the same kind** decides what happens when you add a folder of a kind you already have. It can join that library, or become a new one with its own name, such as "Kids' movies". You can choose differently each time you add one.
 - A kind that needs a module you don't have is greyed out, with a link to the store.
@@ -71,6 +74,9 @@ More: [Libraries](LIBRARIES.md), [Media types](MEDIA-TYPES.md).
 ### Metadata agents
 
 Where titles, posters, plots and ratings come from. Information inside your files and NFO files comes first, then your custom agents in order, then the built-in ones.
+
+![The Metadata agents page in Settings](images/settings-metadata.webp)
+*Settings, Metadata agents.*
 
 - **Built-in agents:** the ones marked "No API key needed" work straight away. **The Movie Database (TMDB)** and **TheTVDB** need a free key from their sites, and **Test** checks a key.
 - **Fix matches** at the top opens the list of titles to look over.
@@ -84,6 +90,9 @@ More: [Metadata](METADATA.md), [Fixing metadata](FIXING-METADATA.md), [The metad
 ### Playback and discs
 
 The page is called **Playback & discs**. It sets how videos, shows and discs play for everyone.
+
+![The Playback and discs page in Settings](images/settings-playback.webp)
+*Settings, Playback & discs.*
 
 - **Fastest playback speed** is the highest speed the player offers. 4× is the recommended limit: above it, most browsers mute the sound, and a video being converted has to convert faster than it plays.
 - **TV episode layout** is the default for every show. A show can change it on its own page.
@@ -101,6 +110,9 @@ More: [Watching and listening](PLAYING.md), [DVDs](DVD.md), [Blu-rays](BLURAY.md
 
 The page is called **Channels & tuners**.
 
+![The Channels and tuners page in Settings](images/settings-channels.webp)
+*Settings, Channels & tuners.*
+
 - **Channels from your library** run all the time, like real TV. You tune in and join the show part-way through. **Network facts** fills in the network and original day and time of shows.
 - **Tuners and IPTV** adds tuners and internet TV lists. No channel lists or stream addresses come with the server. Encrypted channels are shown as encrypted and are never decrypted.
 - **Guide data** adds listings for tuner and IPTV channels, in XMLTV format.
@@ -111,6 +123,9 @@ More: [Live TV](TV.md), [Channels](CHANNELS.md).
 ### Consoles and cores
 
 The page is called **Consoles & cores**. Games run on this server and stream to whatever you're playing on.
+
+![The Consoles and cores page in Settings](images/settings-consoles.webp)
+*Settings, Consoles & cores.*
 
 - **Your consoles** shows what each console with games needs. A core is a small free program that plays a console's games. A button to install all the recommended cores appears when more than one is missing. Installing one downloads it from the libretro project's build server, after asking.
 - **BIOS files** says where to put the files some consoles need, copied from a console you own. They're never downloaded for you.
@@ -124,6 +139,9 @@ More: [Games](GAMES.md).
 
 Lets people play the games on any PC running Sunshine, in their browser, through this server. This feature is called WittyCouch.
 
+![The Game PCs page in Settings](images/settings-couch.webp)
+*Settings, Game PCs.*
+
 - **This server** says whether WittyCouch Host, a separate program, is installed. Without it, people can add and pair PCs but can't play in the page.
 - **Who may connect** sets who can use it. The recommended choice is **Adult profiles with no limits set**. The switches below it decide whether that covers PCs on this network, PCs over the internet, and ports other than Sunshine's usual one.
 - **Streams at once** matters because each stream passes through this server.
@@ -135,6 +153,9 @@ More: [Game PCs](GAME-RIGS.md).
 ### Live transcoding
 
 What happens while someone watches a video their device can't play as it is. Your files aren't changed, and the work stops when they stop watching.
+
+![The Live transcoding page in Settings](images/settings-transcoding.webp)
+*Settings, Live transcoding.*
 
 - **Allow direct play** sends a file untouched when the device can play it. Leave it on.
 - **Maximum resolution** converts taller videos down, even ones that could play as they are. 720p is about half the work of 1080p.
@@ -148,6 +169,9 @@ More: [Transcoding](TRANSCODING.md).
 
 Converts the files in a library ahead of time, so they play without being converted later. It changes your files, so it starts off.
 
+![The Library transcoding page in Settings](images/settings-library-transcoding.webp)
+*Settings, Library transcoding.*
+
 - **Before you turn this on** explains the risks. **Try it on one file** and **This whole library** can show what would happen, and change nothing.
 - **How it runs on this server** keeps it out of people's way: pausing while anyone is streaming, low priority, certain hours, and how much free space to leave.
 - Each library has its own recipe: **What should the files become?** and **What happens to the old file?**. Keeping the original is the default.
@@ -160,6 +184,9 @@ More: [Library transcoding](LIBRARY-TRANSCODING.md), [Tdarr](TDARR.md).
 ### Remote Access
 
 Reaching your server when you're away from home. Everything here is off until you turn it on. Read [Remote access](REMOTE.md) before you do.
+
+![The Remote Access page in Settings](images/settings-remote.webp)
+*Settings, Remote Access. The address is an example.*
 
 - The status card at the top says what really works, from where, and how you're connected now.
 - **Remote Access** is the master switch. While it's off, the server refuses every connection from outside your home network.
@@ -178,6 +205,9 @@ Everyone can open these pages. Some have parts for administrators or adults only
 
 Everyone who uses this server, with their passwords and what they may watch.
 
+![The Profiles page in Settings](images/settings-users.webp)
+*Settings, Profiles, with made-up names.*
+
 - **Your account** has your **Profile name**, your **Username** (what you sign in with) and **Change password**. Changing your password signs out your other devices. Kids and Guest profiles can't rename themselves or change a password: an adult does that.
 - **Everyone on this server** (administrators) or **Kids profiles you manage** (adults) lists people, with **Names**, **Limits** and a remove button. Removing a profile deletes its watch history too, and can't be undone.
 - **Password** or **Password or PIN** beside someone gives them a new one, for a forgotten password. See [If you forget your password](ACCOUNTS.md#if-you-forget-your-password).
@@ -191,6 +221,9 @@ More: [Accounts and profiles](ACCOUNTS.md).
 
 The page is called **Sign-in & security**.
 
+![The Sign-in and security page in Settings](images/settings-security.webp)
+*Settings, Sign-in & security.*
+
 - **Your devices** lists where you're signed in. Sign out anything you don't recognise, then change your password. **Sign out the others** does them all.
 - **Two-factor sign-in** (adults) asks for a 6-digit code from an app on your phone as well as your password. Save the 8 recovery codes it gives you somewhere that isn't your phone. Turning it on signs out your other devices.
 - **Other people's two-factor sign-in** (administrators) turns it off for someone who lost their phone and their recovery codes. An administrator's own can only be reset on the server itself, with `wittymediaserver reset-2fa`.
@@ -201,11 +234,17 @@ More: [Remote access](REMOTE.md#step-2-lock-down-your-accounts).
 
 How your games look, sound and behave: picture, speed, shortcuts and more. You can set something for every game or for one console, and a game's own page can change it for just that game. It follows you to every device. Administrators can choose **Everyone** at the top of a panel to set the starting point for all.
 
+![The My game settings page](images/settings-games.webp)
+*Settings, My game settings.*
+
 More: [Games](GAMES.md).
 
 ### Activity
 
 The button in the top bar that shows library scans and other background work.
+
+![The Activity page in Settings](images/settings-activity.webp)
+*Settings, Activity.*
 
 - **Show the activity button** only changes what you see. The work carries on either way.
 - **On this server** (administrators) turns the button off for everyone, and sets **Who else can see it**. Anyone but an administrator gets a read-only view with no file names and no controls. **Who else can see statistics** does the same for [statistics](STATS.md#who-may-see-it).
@@ -216,6 +255,9 @@ More: [Background tasks](TASKS.md), [Watching and listening](PLAYING.md#the-acti
 ### Appearance
 
 How this server looks for you.
+
+![The Appearance page in Settings](images/settings-appearance.webp)
+*Settings, Appearance.*
 
 - **Theme:** choosing one changes this device only. **Automatic** follows the device's light or dark setting. **Make a theme** builds your own from a few choices. Administrators also get **Make default** and **Install a theme ZIP…**.
 - **Layout:** **Side menu**, **Top bar** or **Both**. Phones always have the bar at the bottom. Below that you can arrange the menu.
@@ -231,6 +273,9 @@ More: [Themes](THEMES.md), [Watching and listening](PLAYING.md#moving-posters).
 
 The page is called **Sharing & photos**. **Your links** is for everyone who has made one. The rest is for administrators.
 
+![The Sharing and photos page in Settings](images/settings-sharing.webp)
+*Settings, Sharing & photos.*
+
 - **Uploads:** **Allow uploads** lets adults add pictures and videos to Photos and Vertical videos libraries. It's on by default. **Largest upload** and **Room for each person** set the limits. Uploads also stop when under 2 GB is left on the disk.
 - **Links for people without an account:** **Allow links** is on by default. Turning it off stops every existing link too.
 - **Photo map** works offline with a plain outline of the world. **Online map address** is optional, and tells that provider roughly what area is being viewed.
@@ -245,6 +290,9 @@ More: [Photos](PHOTOS.md), [Vertical videos](SHORTS.md).
 
 For administrators. It's for playing demanding PC games installed on this server itself, using this machine's graphics card. Most servers don't need it. To play on other PCs, use [Game PCs](#game-pcs).
 
+![The WittyRigs page in Settings](images/settings-wittyrigs.webp)
+*Settings, WittyRigs.*
+
 **Turn on** explains what you're agreeing to first. It uses Sunshine, a separate program you install yourself, which streams this machine's screen to whoever plays.
 
 More: [Game PCs](GAME-RIGS.md).
@@ -256,6 +304,9 @@ Everything here except **About** and **Legal** is for administrators only.
 ### WittyLog
 
 What the server records and for how long. Nothing is ever sent anywhere. The tabs are:
+
+![The WittyLog page in Settings](images/settings-logs.webp)
+*Settings, WittyLog.*
 
 - **Viewer** reads the log as it's written.
 - **What to log** sets how much each part of the server writes down. **Catch a problem** records everything for a while, then goes back to your usual settings.
@@ -270,6 +321,9 @@ More: [Logging](LOGGING.md).
 
 The disk diagnoser. It checks your discs and your drives, and changes nothing.
 
+![The WittyDiagnoser page in Settings](images/settings-diagnoser.webp)
+*Settings, WittyDiagnoser.*
+
 - **A disc** checks a disc image, or a folder holding `VIDEO_TS` or `BDMV`. **Press every menu button** finds buttons that lead nowhere. **Check for damaged or unreadable sectors** reads the whole disc.
 - **Storage** checks free space, drive health and read speed for the server's folders.
 
@@ -280,6 +334,9 @@ More: [WittyDiagnoser](DIAGNOSER.md).
 ### Modules
 
 What this server can do, one piece at a time.
+
+![The Modules page in Settings](images/settings-modules.webp)
+*Settings, Modules.*
 
 - **Browse the store** opens the module store. **Other stores** is on its page.
 - **Updates** has **Look for updates automatically** and **Install updates automatically**. Each update is signed, and takes effect with no restart.
@@ -292,6 +349,9 @@ More: [Modules and the store](MODULE-STORE.md).
 
 A ZIP of your data and metadata, for when something goes wrong or you move to another machine. Your media files are never in a backup, and neither are modules, game cores, BIOS files, logs or sign-ins.
 
+![The Backup page in Settings](images/settings-backup.webp)
+*Settings, Backup.*
+
 - **What to include**, **Protect it with a password** and **Make the backup** make one now. A password encrypts it, and everything comes back, including API keys.
 - **Backups on this server** can be downloaded. Download one to keep it on another drive.
 - **Back up by itself** makes one on a schedule.
@@ -303,6 +363,9 @@ More: [Backup](BACKUP.md).
 
 Finds and fixes problems with your metadata, the database, modules and this install. It only looks until you press a fix, and a safety copy is made first. It never changes or removes your media files.
 
+![The Repair page in Settings](images/settings-repair.webp)
+*Settings, Repair.*
+
 - **Check and fix** runs the checks and shows what it found. **Moved a drive?** changes where the server looks when a library's folder has moved, and keeps everything it knows about those titles.
 - **Metadata files** is for editing what the server knows about a title by hand.
 
@@ -311,6 +374,9 @@ If the server won't start, the same checks are on the command line. See [Repair]
 ### Reset
 
 The page is called **Reset this server**. It puts the server back the way it was first installed, for everyone who uses it.
+
+![The Reset page in Settings](images/settings-reset.webp)
+*Settings, Reset.*
 
 Accounts, library lists, watch progress, settings, API keys, game saves and installed modules go away. Your media files, the program and its config file stay. Read the page's own list first.
 
@@ -323,6 +389,9 @@ It asks for your password, and for you to type `RESET`. Make a [backup](#backup)
 
 For everyone: the version, the modules inside this server, the license, every kind of file it takes, and third-party licenses.
 
+![The About page in Settings](images/settings-about.webp)
+*Settings, About.*
+
 For administrators, also:
 
 - **Updates**: **Check now**, **Update now** when there's a newer version, and **Check for updates automatically**. Twice a day the server asks GitHub for its list of releases and shows a dot on Settings when there's a newer one. Nothing about you or your library is sent, and nothing installs without you.
@@ -333,6 +402,9 @@ More: [Supported formats](SUPPORTED-FORMATS.md).
 ### Legal
 
 Terms of use, who's responsible for what, what leaves this server, and the notices the law or a license asks for. Administrators can add **Your notice** and a **Contact** for people using this server.
+
+![The Legal page in Settings](images/settings-legal.webp)
+*Settings, Legal.*
 
 ## From modules
 

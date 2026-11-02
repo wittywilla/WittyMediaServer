@@ -16,8 +16,8 @@ Every one is on GitHub under its final name, so nothing needs creating, renaming
 | WittyModule | The shared tools and manifest format modules are built with, and the kit that writes a module's workflows |
 | WittyModuleCatalog | The signed list of modules and versions that a server's store reads. Holds no module code |
 | WittyDisc | Reading disc images, used by the disc engines |
-| WittyDVD | The DVD engine |
-| WittyBluray | The Blu-ray engine |
+| WittyDVD | The DVD engine, and in `wittydvdplayer/` its copy for WittyMediaPlayer |
+| WittyBluray | The Blu-ray engine, and in `wittyblurayplayer/` its copy for WittyMediaPlayer |
 | WittyCD | The CD image engine and on-screen CD player |
 | WittyPlay | Console games streamed from the server |
 | WittyCouch | A client in the page for playing on a game PC: its relay, protocol code and player. **Apache-2.0** |

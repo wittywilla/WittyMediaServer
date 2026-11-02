@@ -8,7 +8,11 @@ Everything is ready in local repositories at `D:\projects\<Repository>`, and not
 
 Words you'll see: a *secret* is a value GitHub keeps encrypted and never shows again. An *environment* is a named set of secrets and rules that only the jobs naming it can use.
 
-Run the commands below in **Git Bash**, inside the `WittyMediaServer` folder, except for steps 4 and 5.
+Run the commands below in **Git Bash**, except for steps 4 and 5. The `WittyMediaServer` folder itself is on `master`, which has none of this yet, so work in the folder that has the release branch:
+
+```bash
+cd /d/projects/WittyMediaServer/.claude/worktrees/release-integration
+```
 
 ## 1. Make the module key
 
@@ -61,7 +65,11 @@ gh variable set MODULE_PUBLIC_KEY -R wittywilla/WittyModuleCatalog --body "<the 
 Open **Ubuntu**, and:
 
 ```bash
-cd /mnt/d/projects/WittyMediaServer && scripts/publish-all.sh --repos /mnt/d/projects
+git clone -q --branch release/0.6.0-alpha /mnt/d/projects/WittyMediaServer ~/wms-publish
+```
+
+```bash
+cd ~/wms-publish && scripts/publish-all.sh --repos /mnt/d/projects
 ```
 
 It takes about half an hour. It clones every repository, runs each one's tests on its own, builds a catalogue with a throwaway key, and builds and tests a clean clone of the server, with no modules and then with them. Then it lists anything still waiting for you. Nothing leaves your machine.
@@ -78,10 +86,14 @@ sudo apt install gh
 gh auth login
 ```
 
-Once the rehearsal passes and lists nothing:
+```bash
+gh auth setup-git
+```
+
+Once the rehearsal passes and lists nothing, take a fresh copy, so it has your commit from step 1:
 
 ```bash
-cd /mnt/d/projects/WittyMediaServer && scripts/publish-all.sh --repos /mnt/d/projects --apply
+cd ~/wms-publish && git pull -q && scripts/publish-all.sh --repos /mnt/d/projects --apply
 ```
 
 Stay nearby: it stops for your **Approve** on each module's release. It stops at the first failure. To carry on after fixing something, add `--from <the repository it stopped at>`: what's already published is left alone, and tags never move.

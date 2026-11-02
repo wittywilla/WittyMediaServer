@@ -5,6 +5,10 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+## 0.6.2-alpha
+
+- **The Windows installer updates an installed copy again.** Installing 0.6.1-alpha's `.msi` over 0.6.0-alpha stopped with "The error code is 2613" and put the old version back. The step that stops a running copy was placed where Windows Installer doesn't allow it, which only shows when one installer version replaces another. Every release's Windows installer is now tested installing over the one before, for everyone, for one account and as a service, before it's published.
+
 ## 0.6.1-alpha
 
 - **DVDs and Blu-rays in Firefox.** Menus, intros, trailers and films no longer show shifted down or cut off, and a menu's buttons line up with its picture again, at any display scaling and in the mini player. The picture is now placed in the same rectangle as the buttons, in the disc's own shape, instead of being left for the browser to fit, which Firefox got wrong. The fix is in the server's web app, so it comes with this server version: no module needs updating.

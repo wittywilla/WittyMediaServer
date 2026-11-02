@@ -151,6 +151,27 @@ jobs:
             Expand-Archive "dist\wittymediaserver-$version-windows-$arch.zip" stage
             packaging\windows\build-msi.ps1 -Version $version -PackageDir "stage\wittymediaserver-$version-windows-$arch" -Arch $arch -OutDir installers
           }
+      # 0.6.1-alpha's MSI couldn't replace 0.6.0-alpha (error 2613), and nothing tried before it
+      # was published. Each new MSI now installs over the last published one first, three ways.
+      - name: The .msi updates the last published version
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          $prev = gh release list -R $env:GITHUB_REPOSITORY --limit 20 --json tagName,isDraft -q '.[] | select(.isDraft | not) | .tagName' | Where-Object { $_ -ne $env:GITHUB_REF_NAME } | Select-Object -First 1
+          gh release download $prev -R $env:GITHUB_REPOSITORY -p '*-windows-amd64.msi' -D previous
+          $old = (Get-ChildItem previous\*-windows-amd64.msi).FullName
+          $new = "installers\wittymediaserver-$version-windows-amd64.msi"
+          packaging\windows\test-upgrade.ps1 -OldMsi $old -NewMsi $new -Scope machine -LogDir upgrade-logs\machine
+          packaging\windows\test-upgrade.ps1 -OldMsi $old -NewMsi $new -Scope user -LogDir upgrade-logs\user
+          packaging\windows\test-upgrade.ps1 -OldMsi $old -NewMsi $new -Scope machine -Service -LogDir upgrade-logs\service
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: msi-upgrade-logs
+          path: upgrade-logs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: installers-windows

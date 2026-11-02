@@ -80,8 +80,11 @@
     <InstallExecuteSequence>
       <AppSearch Sequence="10" />
       <Custom Action="SetScope" Sequence="11" Condition="INSTALLED_FOR_EVERYONE AND NOT Installed" />
-      <!-- Stop what's running first, or the old copy keeps its files and an upgrade fails. -->
-      <Custom Action="StopRunningApp" Before="RemoveExistingProducts" Condition="(WIX_UPGRADE_DETECTED OR REMOVE) AND NOT UPGRADINGPRODUCTCODE" />
+      <!-- Stop what's running first, or the old copy keeps its files and an upgrade fails. It runs
+           before InstallValidate, so nothing is reported as in use, and it can't be deferred:
+           RemoveExistingProducts comes straight after InstallInitialize, and Windows Installer
+           refuses a deferred action ahead of it with error 2613 (0.6.1-alpha's MSI did that). -->
+      <Custom Action="StopRunningApp" Before="InstallValidate" Condition="(WIX_UPGRADE_DETECTED OR REMOVE) AND NOT UPGRADINGPRODUCTCODE" />
       <!-- What 0.5.2-alpha left: its setup program's copy, boot task and firewall rule. -->
       <Custom Action="TakeOverOldCopyUser" After="InstallFiles" Condition="NOT REMOVE" />
       <Custom Action="TakeOverOldCopyMachine" After="TakeOverOldCopyUser" Condition="NOT REMOVE AND $(var.Everyone)" />
@@ -90,9 +93,11 @@
     </InstallExecuteSequence>
 
     <!-- Failing here never stops an install: all that's left is something to tidy by hand. -->
-    <SetProperty Action="SetStopRunningApp" Id="StopRunningApp" Before="StopRunningApp" Sequence="execute"
+    <!-- Run as the person installing, which is who started the tray app and server. The
+         service is stopped by its ServiceControl as the old copy is removed. -->
+    <SetProperty Action="SetStopRunningApp" Id="WixQuietExecCmdLine" Before="StopRunningApp" Sequence="execute"
                  Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$d='[INSTALLFOLDER]'; $p=Get-Process WittyMediaServer -EA 0 | ?{$_.Path -like ($d+'*')}; $p | Stop-Process -Force; Start-Sleep -Seconds 3; Get-Process wittymediaserver,wms,ffmpeg,ffprobe,wittyplay-game-runner -EA 0 | ?{$_.Path -like ($d+'*')} | Stop-Process -Force&quot;" />
-    <CustomAction Id="StopRunningApp" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="deferred" Return="ignore" Impersonate="no" />
+    <CustomAction Id="StopRunningApp" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="immediate" Return="ignore" />
     <SetProperty Action="SetTakeOverOldCopyUser" Id="TakeOverOldCopyUser" Before="TakeOverOldCopyUser" Sequence="execute"
                  Value="&quot;[BinFolder]wittymediaserver.exe&quot; --take-over-old-copy" />
     <CustomAction Id="TakeOverOldCopyUser" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="deferred" Return="ignore" Impersonate="yes" />

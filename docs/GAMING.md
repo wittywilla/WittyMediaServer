@@ -744,6 +744,8 @@ Mesen's NES core was reported to abort on Linux. It hasn't been made to, with al
 
 In a browser, on the real server, with pictures looked at: WebRTC with NES, SNES and PlayStation; WebSocket with H.264 and with JPEG; input, sound, phone size with the touch controls, a change of disc, save slots, a resume after quitting, and clean exits when the server or the runner is killed. Streaming through the module has played a real game in a browser, and the graphics-card consoles' delay figures are above.
 
+**Nintendo 64 homebrew built with libdragon** only runs on ParaLLEl N64, which it's sent to whatever core is chosen, with its software renderer, the cxd4 RSP and the cached interpreter. No graphics card is needed. Mupen64Plus-Next can't run these: its recompiler ends the process, and its interpreters never make a frame. Without ParaLLEl N64, pressing Play says to install it. Newer homebrew can still ask for more than the core can do: `N64brew Game Jam 2024` stops on its own error screen. A custom core assigned to such a game is left alone.
+
 **The SNES games that stay blank on Supafaust**, 43 of them: 7 play on another core. 13 are Satellaview dumps, and 2 of those play on Mesen-S with `BS-X.bin`. 7 are Sufami Turbo cartridges and 2 are data packs, which need a base cartridge plugged in. 6 aren't games: start-up programs of copiers and cheat devices. 8 others, some using chips whose firmware the cores want. These ran for 25 seconds on all three cores, so they aren't merely slow starters.
 
 ## Limits today

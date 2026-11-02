@@ -141,6 +141,8 @@ Rebuilt so someone who's never done this can finish it, with a keyboard, a remot
 
 ### Help
 
+- **Pictures, all through the guides and on the project's pages,** taken from a real server full of openly licensed films, music, books and games, with a credit under each one that shows someone's work. Help shows small copies, loaded only as they come into view.
+- **First-time setup, step by step:** a new guide with a picture of every page.
 - **Help, built in.** Every guide is in the app under **Help**, in the account menu, at the top of each settings page and on the sign-in page, with search. It works with no internet connection, and anyone can read it. Nothing sends you to GitHub to find out how something works any more.
 - **Guides rewritten** against the code, with new ones for libraries, accounts, apps, playing, a tour of Settings, what each media type supports, lyrics and karaoke, books, games, the metadata folder, uninstalling, the module store and Tdarr.
 
@@ -391,6 +393,7 @@ Rebuilt so someone who's never done this can finish it, with a keyboard, a remot
 
 ### Fixed
 
+- **Widescreen NTSC discs play.** Their menus and films came out 853 pixels wide, which the video encoder refuses, so a real 16:9 DVD sat on a spinner.
 - **Restoring a backup during first-time setup** from another device on your home network skipped the setup code, and a backup can bring accounts with it. It now takes the same code as making the first account, unless you've allowed setup from home.
 - **A request hung up on at the right moment, or an accounts table that couldn't be read,** could make a server that's set up look like a new one to the backup routes. Only a database that answers and has no accounts counts as a new server now.
 - **A sign-in under way** could finish after a password change and stay signed in. It now fails if the password isn't still the one it checked.

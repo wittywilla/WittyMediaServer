@@ -30,7 +30,7 @@ export async function open(server, out, { width = 1920, height = 1080, path = '/
   const press = (words, within = 'body') => page.eval(`(() => {
     const rx = ${words instanceof RegExp ? words.toString() : `new RegExp(${JSON.stringify(words.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))})`}
     const all = [...document.querySelectorAll(${JSON.stringify(within)} + ' button, ' + ${JSON.stringify(within)} + ' a, ' + ${JSON.stringify(within)} + ' [role=button], ' + ${JSON.stringify(within)} + ' [role=radio], ' + ${JSON.stringify(within)} + ' [role=checkbox], ' + ${JSON.stringify(within)} + ' [role=tab], ' + ${JSON.stringify(within)} + ' label, ' + ${JSON.stringify(within)} + ' summary')]
-    const e = all.find((b) => { const r = b.getBoundingClientRect(); return r.width > 1 && r.height > 1 && rx.test((b.getAttribute('aria-label') || '') + ' ' + b.textContent) })
+    const e = all.find((b) => { const r = b.getBoundingClientRect(); return r.width > 1 && r.height > 1 && rx.test((b.getAttribute('aria-label') || '') + ' ' + (b.title || '') + ' ' + b.textContent) })
     if (!e) return false
     e.scrollIntoView({ block: 'center' }); e.click(); return (e.textContent || '').trim().slice(0, 50)
   })()`)

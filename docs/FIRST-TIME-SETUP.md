@@ -56,7 +56,7 @@ Under the list, choose what happens when a module has a new version: tell you an
 *Each module downloads, and its signature is checked before it goes in.*
 
 ![Every module ticked off as ready](images/setup-06-modules-ready.webp)
-*If one fails, you can try again or carry on without it. No internet? Carry on, and add them later from* **Settings → Modules***.*
+*If one fails, you can try again or carry on without it. No internet? Carry on, and add them later from Settings, Modules.*
 
 See [Modules and the store](MODULE-STORE.md).
 
@@ -77,7 +77,7 @@ Pick a kind of media, then the folder it's in. Each one becomes a library you ca
 Press the button that adds it, such as **Add Movies**, and it starts scanning in the background. Add as many as you like.
 
 ![The list of libraries so far, with every kind still there to add another](images/setup-09-media-added.webp)
-*Add another kind, or press* **Continue***.*
+*Add another kind, or press Continue.*
 
 How to name your files is in [Libraries](LIBRARIES.md#how-to-lay-out-and-name-your-files). A folder on another computer has [its own steps](LIBRARIES.md#network-shares), which this page lays out if you choose one from another device.
 

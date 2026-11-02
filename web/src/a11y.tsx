@@ -141,10 +141,14 @@ export function Announcer() {
     }, 350)
     // Coming back: the page may still be loading what you left, so look a few times.
     const was = navType === 'POP' && usingKeys.current ? focusMemory.get(loc.key) : undefined
-    const later: ReturnType<typeof setTimeout>[] = !was ? [] : [400, 800, 1500, 2500].map((ms) => setTimeout(() => {
+    const looks = [400, 800, 1500, 2500, 4000, 6000, 9000]
+    const later: ReturnType<typeof setTimeout>[] = !was ? [] : looks.map((ms) => setTimeout(() => {
       const active = document.activeElement
       if (active && active !== document.body && active !== document.getElementById('main')) return
-      document.querySelector<HTMLElement>(was)?.focus()
+      const left = document.querySelector<HTMLElement>(was)
+      if (left) left.focus()
+      // What it left has gone. Across the room there has to be something with the focus all the same.
+      else if (ms === looks[looks.length - 1] && document.documentElement.classList.contains('using-controller')) focusFirst()
     }, ms))
     return () => { clearTimeout(t); later.forEach(clearTimeout) }
   }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps

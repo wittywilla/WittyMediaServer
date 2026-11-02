@@ -267,6 +267,11 @@ function onKey(e: KeyboardEvent) {
       if (bar) { e.preventDefault(); bar.focus({ preventScroll: true }) }
       return
     }
+    // Nothing has the focus yet on a page still arriving: OK shows where it starts, rather than doing nothing.
+    if ((target === document.body || target.id === 'main') && !document.querySelector(FULL_PLAYER) && document.documentElement.classList.contains('using-controller')) {
+      if (focusFirst()) e.preventDefault()
+      return
+    }
     if (target.tagName === 'SELECT') { e.preventDefault(); openList(target as HTMLSelectElement); return }
     // A native checkbox or radio button answers only to the space bar, and a remote has none.
     if (target.matches('input[type=checkbox], input[type=radio]')) { e.preventDefault(); (target as HTMLElement).click(); return }

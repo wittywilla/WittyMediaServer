@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -47,12 +48,46 @@ type thumbCall struct {
 	err  error
 }
 
+// A picture that can't be made isn't tried again for this long. Some damaged files keep FFmpeg
+// working at full speed until it's stopped, and a page of them would otherwise do that again on
+// every visit, in the slots everyone else's pictures wait for. The key holds the file's date and
+// size, so a replaced file is tried at once; the list has a limit, and when it's full the oldest
+// half goes, which at worst costs those files one more try.
+const (
+	thumbFailMemory = time.Hour
+	maxThumbFails   = 4096
+)
+
 var (
 	thumbMu     sync.Mutex
 	thumbCalls  = map[string]*thumbCall{}
+	thumbFails  = map[string]thumbFailure{}
 	thumbSlotsO sync.Once
 	thumbSlots  chan struct{}
 )
+
+type thumbFailure struct {
+	err error
+	at  time.Time
+}
+
+// noteThumbFailure remembers a failure. Call with thumbMu held.
+func noteThumbFailure(key string, err error) {
+	if len(thumbFails) >= maxThumbFails {
+		oldest := make([]time.Time, 0, len(thumbFails))
+		for _, f := range thumbFails {
+			oldest = append(oldest, f.at)
+		}
+		slices.SortFunc(oldest, time.Time.Compare)
+		cut := oldest[len(oldest)/2]
+		for k, f := range thumbFails {
+			if !f.at.After(cut) {
+				delete(thumbFails, k)
+			}
+		}
+	}
+	thumbFails[key] = thumbFailure{err, time.Now()}
+}
 
 func thumbSlot() chan struct{} {
 	thumbSlotsO.Do(func() {
@@ -84,6 +119,13 @@ func (s *Scanner) Thumb(ctx context.Context, it *Item, width int) (string, error
 		return "", ErrNotFound
 	}
 	thumbMu.Lock()
+	if f, ok := thumbFails[key]; ok {
+		if time.Since(f.at) < thumbFailMemory {
+			thumbMu.Unlock()
+			return "", f.err
+		}
+		delete(thumbFails, key)
+	}
 	if c, ok := thumbCalls[key]; ok {
 		thumbMu.Unlock()
 		select {
@@ -108,6 +150,9 @@ func (s *Scanner) Thumb(ctx context.Context, it *Item, width int) (string, error
 			}
 			thumbMu.Lock()
 			delete(thumbCalls, key)
+			if c.err != nil {
+				noteThumbFailure(key, c.err)
+			}
 			thumbMu.Unlock()
 			close(c.done)
 		}()

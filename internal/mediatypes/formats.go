@@ -189,7 +189,7 @@ var formats = []Format{
 
 	// ---- Photos that reach the viewer as a JPEG.
 	p("heic", "HEIC and HEIF", exts(".heic", ".heif", ".hif"), "image/heif", PlayThumb, needs(needFFmpegHEIF), looksLike("avif", "mp4")),
-	p("jxl", "JPEG XL", exts(".jxl"), "image/jxl", PlayThumb, needs("An FFmpeg built with libjxl")),
+	p("jxl", "JPEG XL", exts(".jxl"), "image/jxl", PlayThumb, needs("An FFmpeg built with libjxl"), confirm, note("A file with this name and no JPEG XL signature isn't listed: FFmpeg would work at one for minutes and find nothing.")),
 	p("tiff", "TIFF", exts(".tif", ".tiff"), "image/tiff", PlayThumb, looksLike("cr2", "nef")),
 	p("jp2", "JPEG 2000", exts(".jp2", ".j2k", ".jpf", ".jpx"), "image/jp2", PlayThumb),
 	p("psd", "Photoshop", exts(".psd"), "application/octet-stream", PlayThumb),

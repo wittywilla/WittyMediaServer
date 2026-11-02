@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -24,6 +25,14 @@ type sampleTools struct {
 	t      *testing.T
 	ffmpeg string
 	dir    string
+	office *officeProfile
+}
+
+// officeProfile: LibreOffice builds a profile the first time, which takes seconds, and refuses to
+// share one between copies running at once.
+type officeProfile struct {
+	mu  sync.Mutex
+	dir string
 }
 
 var errNoTool = fmt.Errorf("no tool here to make this sample")
@@ -283,7 +292,9 @@ func (st *sampleTools) soffice(out, format string) error {
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command(p, "--headless", "-env:UserInstallation=file://"+filepath.Join(st.dir, "lo"), "--convert-to", format, "--outdir", outdir, src)
+	st.office.mu.Lock()
+	defer st.office.mu.Unlock()
+	cmd := exec.Command(p, "--headless", "-env:UserInstallation=file://"+st.office.dir, "--convert-to", format, "--outdir", outdir, src)
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("soffice: %w: %s", err, b)
 	}

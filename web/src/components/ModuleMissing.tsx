@@ -64,8 +64,3 @@ export function ModuleMissing({ ids, what, onReady }: { ids: string[]; what?: st
     </div>
   )
 }
-
-// isModuleMissing finds out whether a request failed because a module isn't here.
-export function missingModule(e: unknown): string | null {
-  return e instanceof ApiError && e.status === 424 && e.data?.module ? String(e.data.module) : null
-}

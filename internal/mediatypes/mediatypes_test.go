@@ -67,7 +67,7 @@ func TestRegistryIsWellFormed(t *testing.T) {
 	}
 }
 
-// What the brief asks for by name: if one of these disappears, a test says so.
+// Formats people look for by name: if one of these disappears, a test says so.
 func TestEverythingAskedForIsListed(t *testing.T) {
 	for cat, list := range map[string]string{
 		Video:    "mp4 m4v mkv webm avi mov qt wmv asf flv f4v mpg mpeg m2v mpe vob ts m2ts mts tp trp ogv ogm 3gp 3g2 rm rmvb divx xvid mxf dv nut y4m gxf wtv dvr-ms amv mjpeg ivf",

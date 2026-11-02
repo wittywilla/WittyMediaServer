@@ -4,7 +4,7 @@ import { api, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, s
 import { toast, useApp } from '../state'
 import { IconCheck, IconLeft, IconRefresh } from '../icons'
 
-// These moved to the shared parts; pages keep importing them from here.
+// The shared parts, under the names pages import them by.
 export { CardRow, EmptyState, LoadError, SkeletonGrid, Spinner } from '../ui/Surface'
 
 // The way back up: the library (or show) a page belongs to.

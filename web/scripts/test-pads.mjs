@@ -12,16 +12,17 @@
 import { spawnSync } from 'node:child_process'
 import { rmSync } from 'node:fs'
 import { cpus } from 'node:os'
+import { basename, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Worker } from 'node:worker_threads'
-import { build } from 'esbuild'
+import { build } from 'vite'
 
 const [mode, ...consoles] = process.argv.slice(2)
 
 if (mode !== 'browser') {
   const entry = fileURLToPath(new URL('../tests/pads.test.ts', import.meta.url))
   const out = entry.replace(/\.ts$/, '.tmp.mjs')
-  await build({ entryPoints: [entry], outfile: out, bundle: true, format: 'esm', platform: 'node', logLevel: 'warning' })
+  await build({ configFile: false, logLevel: 'warn', build: { ssr: entry, outDir: dirname(out), emptyOutDir: false, rollupOptions: { output: { entryFileNames: basename(out) } } } })
   const r = spawnSync(process.execPath, ['--test', '--test-timeout=30000', '--test-force-exit', out], { stdio: 'inherit' })
   rmSync(out, { force: true })
   process.exit(r.status === 0 ? 0 : 1)

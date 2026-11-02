@@ -13,7 +13,6 @@ export type Lyrics = {
 // A song's lyrics change rarely, so they're kept for as long as this page is open, and
 // asked for again only after someone has corrected them.
 const held = new Map<number, Lyrics>()
-export const forgetLyrics = (id: number) => { held.delete(id) }
 
 export function useLyrics(itemId: number | undefined, wanted: boolean) {
   const [lyrics, setLyrics] = useState<Lyrics | null>(null)

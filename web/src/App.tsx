@@ -8,7 +8,6 @@ import HomePage from './pages/HomePage'
 import { EmptyState, Spinner, VersionTag } from './components/common'
 import { LinkButton } from './ui'
 import { AudioProvider } from './audio/player'
-import PairPage from './pages/PairPage'
 import ConnectServer from './components/ConnectServer'
 import AuthPage from './pages/AuthPage'
 import { PlayerDock } from './player/PlayerPage'
@@ -22,6 +21,7 @@ import { TabBar } from './shell/TabBar'
 import { TopBar } from './shell/TopBar'
 import { useMedia, useNavPrefs } from './shell/useNav'
 
+const PairPage = lazy(() => import('./pages/PairPage'))
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const DesignPage = lazy(() => import('./pages/DesignPage'))
 const HelpPage = lazy(() => import('./pages/HelpPage'))

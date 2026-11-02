@@ -2,6 +2,8 @@
 // Each comes as its own small script, fetched from this server only when it's opened or searched.
 // Every docs/*.md is listed in GROUPS or in notInHelp: internal/docscheck holds us to that.
 
+import { settingsHelp } from './settingsHelp'
+
 const files = import.meta.glob([
   '../../../docs/*.md',
   '../../../CHANGELOG.md',
@@ -103,33 +105,7 @@ export function loadGuide(g: Guide): Promise<string> {
   return key ? files[key]() : Promise.reject(new Error('This guide isn’t in this build.'))
 }
 
-// The guide for each settings page: its place in the tour, or a guide of its own.
-export const settingsHelp: Record<string, string> = {
-  libraries: 'libraries',
-  metadata: 'metadata',
-  playback: 'settings#playback-and-discs',
-  channels: 'channels',
-  gaming: 'games',
-  couch: 'game-rigs',
-  transcoding: 'transcoding',
-  'library-transcoding': 'library-transcoding',
-  remote: 'remote',
-  users: 'accounts',
-  security: 'accounts',
-  games: 'games',
-  activity: 'tasks',
-  appearance: 'themes',
-  sharing: 'settings#sharing-and-photos',
-  wittyrigs: 'game-rigs',
-  logs: 'logging',
-  diagnoser: 'diagnoser',
-  modules: 'module-store',
-  backup: 'backup',
-  repair: 'repair',
-  reset: 'repair#starting-again-the-reset-page',
-  about: 'settings#about',
-  legal: 'settings#legal',
-}
+export { settingsHelp }
 
 // "Settings → Repair" in a guide can be a link to that page, for someone signed in.
 export const settingsPages: Record<string, string> = {

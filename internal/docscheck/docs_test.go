@@ -228,10 +228,10 @@ func TestAppLinksToHelpLeadSomewhere(t *testing.T) {
 			}
 		}
 	}
-	guides := read(t, filepath.Join(repo, "web/src/help/guides.ts"))
+	guides := read(t, filepath.Join(repo, "web/src/help/settingsHelp.ts"))
 	block := regexp.MustCompile(`(?s)settingsHelp: Record<string, string> = \{(.*?)\n\}`).FindStringSubmatch(guides)
 	if block == nil {
-		t.Fatal("guides.ts has no settingsHelp")
+		t.Fatal("settingsHelp.ts has no settingsHelp")
 	}
 	for _, m := range regexp.MustCompile(`: '([a-z0-9-]+)(?:#([a-z0-9_-]+))?'`).FindAllStringSubmatch(block[1], -1) {
 		text, ok := guideText(t, m[1])
@@ -246,7 +246,7 @@ func TestAppLinksToHelpLeadSomewhere(t *testing.T) {
 // Every settings page has help, and a guide's "Settings → Repair" knows where that is.
 func TestSettingsPagesHaveHelp(t *testing.T) {
 	src := read(t, filepath.Join(repo, "web/src/pages/SettingsPage.tsx"))
-	guides := read(t, filepath.Join(repo, "web/src/help/guides.ts"))
+	guides := read(t, filepath.Join(repo, "web/src/help/guides.ts")) + read(t, filepath.Join(repo, "web/src/help/settingsHelp.ts"))
 	for _, m := range regexp.MustCompile(`\{ to: '([a-z-]+)', label: '([^']+)'`).FindAllStringSubmatch(src, -1) {
 		slugName, label := m[1], m[2]
 		if !regexp.MustCompile(`\n\s*'?` + regexp.QuoteMeta(slugName) + `'?: '[a-z0-9#_-]+',`).MatchString(guides) {

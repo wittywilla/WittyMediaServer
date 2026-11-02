@@ -3,7 +3,7 @@ import { fmtDateTime, api, ApiError, getToken, serverBase, type GameConsole } fr
 import { Spinner } from '../../components/common'
 import LegalNote from '../../components/LegalNote'
 import { toast } from '../../state'
-import { getConsoles } from '../Games'
+import { getConsoles } from '../games/consoles'
 import { Row, Section, Switch } from './ui'
 import { ask } from '../../ui/Overlay'
 

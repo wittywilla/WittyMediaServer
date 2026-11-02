@@ -12,21 +12,24 @@ import (
 // libzimg), so features that depend on a filter ask first.
 
 var filterCache struct {
-	once sync.Once
-	set  map[string]bool
+	mu  sync.Mutex
+	set map[string]bool
 }
 
-// HasFilter says whether this FFmpeg has a video filter, found once by
-// asking `ffmpeg -filters`.
+// HasFilter says whether this FFmpeg has a video filter, found by asking `ffmpeg -filters`
+// once it has answered. A machine too busy to answer in time hasn't said it has none: remembering
+// that would leave HDR flat and dim until the next restart.
 func (t *Tools) HasFilter(name string) bool {
-	filterCache.once.Do(func() {
-		filterCache.set = map[string]bool{}
+	filterCache.mu.Lock()
+	defer filterCache.mu.Unlock()
+	if filterCache.set == nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 		out, _, err := Run(ctx, t.FFmpeg, []string{"-hide_banner", "-filters"})
 		if err != nil {
-			return
+			return false
 		}
+		filterCache.set = map[string]bool{}
 		sc := bufio.NewScanner(strings.NewReader(string(out)))
 		for sc.Scan() {
 			f := strings.Fields(sc.Text())
@@ -35,7 +38,7 @@ func (t *Tools) HasFilter(name string) bool {
 				filterCache.set[f[1]] = true
 			}
 		}
-	})
+	}
 	return filterCache.set[name]
 }
 

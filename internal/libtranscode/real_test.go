@@ -80,7 +80,9 @@ func newLab(t *testing.T) *lab {
 	reg := tasks.New(nil)
 	e := &Engine{DB: d, Store: store, Scanner: scanner, Tools: realTools, Tasks: reg, Log: log, HoldTick: 40 * time.Millisecond, SaveMeta: func() bool { return true }}
 	set := DefaultSettings()
-	set.Enabled, set.Acknowledged, set.MinFreeGB = true, true, 1
+	// No free-space limit, unless a test is about that: these conversions need kilobytes, and how
+	// full the temporary folder's drive is at the moment depends on whatever else is running.
+	set.Enabled, set.Acknowledged, set.MinFreeGB = true, true, 0
 	set.PauseWhileStreaming, set.Threads = false, 2
 	if err := SaveSettings(ctx, d, set); err != nil {
 		t.Fatal(err)

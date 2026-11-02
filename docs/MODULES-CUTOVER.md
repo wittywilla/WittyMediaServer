@@ -14,6 +14,12 @@ Run the commands below in **Git Bash**, except for steps 4 and 5. The `WittyMedi
 cd /d/projects/WittyMediaServer/.claude/worktrees/release-integration
 ```
 
+If this folder has no `go.work`, make one first. Until WittyModule is published, the scripts can't build without it, and Go would otherwise find the `go.work` in the folder above and fail with `does not contain package`:
+
+```bash
+node scripts/dev-modules.mjs WittyModule=D:/projects/WittyModule
+```
+
 ## 1. Make the module key
 
 ```bash

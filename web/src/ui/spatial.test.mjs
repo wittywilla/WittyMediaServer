@@ -46,6 +46,12 @@ test('from a narrow button down to a wide bar under it', () => {
   assert.equal(best(button, [corner, bar], 'down'), bar)
 })
 
+test('from a bar down to a very wide programme, not the footer straight below it', () => {
+  const chip = box(437, 410, 52, 50)
+  const programme = box(662, 500, 1195, 95), footer = box(372, 980, 90, 40)
+  assert.equal(best(chip, [footer, programme], 'down'), programme)
+})
+
 test('down from a page title reaches the nearest thing under it, not the sidebar', () => {
   const title = box(300, 10, 200, 40)
   const sidebarLink = box(0, 70, 200, 40), firstCard = box(300, 90)

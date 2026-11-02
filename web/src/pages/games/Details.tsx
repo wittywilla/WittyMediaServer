@@ -167,8 +167,8 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
           {meta && <GameProblem d={meta} />}
           <div className="gm-game-actions">
             {ready && resumes
-              ? <Link className="btn primary big gm-play" to={links.play(it.id, 'resume=1')}><IconPlay /> Resume</Link>
-              : ready && <Link className="btn primary big gm-play" to={links.play(it.id)}><IconPlay /> Play</Link>}
+              ? <Link data-tv-first className="btn primary big gm-play" to={links.play(it.id, 'resume=1')}><IconPlay /> Resume</Link>
+              : ready && <Link data-tv-first className="btn primary big gm-play" to={links.play(it.id)}><IconPlay /> Play</Link>}
             {ready && auto && <Link className="btn big" to={links.play(it.id)}>Start over</Link>}
             {!ready && check?.reason === 'core' && user?.isAdmin && <Link className="btn primary big" to="/settings/gaming"><IconSettings size={16} /> Install a core</Link>}
             {!ready && check?.reason === 'bios' && user?.isAdmin && <Link className="btn primary big" to="/settings/gaming"><IconSettings size={16} /> Set up {c?.short}</Link>}

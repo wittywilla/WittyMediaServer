@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import Hls from 'hls.js'
 import { api } from '../../api'
 import { announce } from '../../a11y'
@@ -28,6 +28,8 @@ const remoteSaved = () => { try { return localStorage.getItem(REMOTE_KEY) === '1
 export default function TvPlayer() {
   const { key = '' } = useParams()
   const nav = useNavigate()
+  // Changing channel takes the place of the channel left, and remembers where they all came from.
+  const from = useLocation().state as { fromGuide?: boolean } | null
   const video = useRef<HTMLVideoElement | null>(null)
   const root = useIdle(4000, [])
   const [info, setInfo] = useState<TuneInfo | null>(null)
@@ -156,8 +158,8 @@ export default function TvPlayer() {
     if (!usable.length) return
     const i = usable.findIndex((c) => c.key === key)
     const next = usable[(i + dir + usable.length) % usable.length]
-    nav(`/tv/watch/${next.key}`, { replace: true })
-  }, [key, nav])
+    nav(`/tv/watch/${next.key}`, { replace: true, state: from })
+  }, [key, nav, from])
 
   const dialRef = useRef('')
   const dialTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -171,15 +173,17 @@ export default function TvPlayer() {
       setDial('')
       const list = await getLineup().catch(() => [] as GuideChannel[])
       const c = list.find((x) => x.number === n)
-      if (c) nav(`/tv/watch/${c.key}`, { replace: true })
+      if (c) nav(`/tv/watch/${c.key}`, { replace: true, state: from })
       else announce(`No channel ${n}`)
     }, 1300)
   }
   useEffect(() => () => clearTimeout(dialTimer.current), [])
 
-  const last = () => { if (lastKey.current) nav(`/tv/watch/${lastKey.current}`, { replace: true }) }
-  const guide = () => nav('/tv')
-  const tuneTo = (k: string) => { setMini(false); if (k !== key) nav(`/tv/watch/${k}`, { replace: true }) }
+  const last = () => { if (lastKey.current) nav(`/tv/watch/${lastKey.current}`, { replace: true, state: from }) }
+  // Back to the guide this came from, or to one in this player's place: leaving a guide opened from
+  // here mustn't lead back into the player, or Back could never get out.
+  const guide = () => { if (from?.fromGuide) nav(-1); else nav('/tv', { replace: true }) }
+  const tuneTo = (k: string) => { setMini(false); if (k !== key) nav(`/tv/watch/${k}`, { replace: true, state: from }) }
   const setRemoteOn = (on: boolean) => { setRemoteOnState(on); try { localStorage.setItem(REMOTE_KEY, on ? '1' : '0') } catch { /* ignore */ } }
 
   useEffect(() => {

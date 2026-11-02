@@ -204,8 +204,12 @@ input[type=range] { accent-color: var(--accent); }
 .app { display: flex; min-height: 100%; }
 .sidebar {
   width: var(--sidebar); flex: none; background: var(--bg-2); border-right: 1px solid var(--border); padding: var(--sp-3);
-  position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; scrollbar-width: thin;
+  position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; gap: 2px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin;
 }
+/* A server can have a long name of its own: it wraps here rather than being cut off. */
+.sidebar .brand .nav-text { min-width: 0; overflow-wrap: anywhere; }
+.sidebar .brand img { flex: none; }
+.sidebar .brand .brand-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; white-space: normal; overflow-wrap: anywhere; line-height: var(--leading-tight); }
 .brand { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 var(--sp-2); margin-bottom: var(--sp-3); font-weight: 700; font-size: var(--text-lg); letter-spacing: var(--tracking-heading); }
 .brand img { width: 28px; height: 28px; }
 .brand span { color: var(--fg); }

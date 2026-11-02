@@ -241,7 +241,7 @@ export default function GuidePage() {
   }
   const goNow = () => goAt(Date.now() / 1000)
 
-  const watch = (key: string) => nav(`/tv/watch/${key}`)
+  const watch = (key: string) => nav(`/tv/watch/${key}`, { state: { fromGuide: true } })
   const activate = (ch: GuideChannel, p: Programme) => {
     if (ch.encrypted || p.kind === 'group') { setDetails({ ch, p }); return }
     const live = p.kind === 'none' ? p.start <= now + 60 : p.start <= now && p.end > now

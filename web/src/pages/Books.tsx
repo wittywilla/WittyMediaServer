@@ -107,7 +107,7 @@ export function BookDetails({ it }: { it: Item }) {
           {pct > 0 && <div className="book-progress"><span style={{ width: pct + '%' }} /></div>}
           <div className="actions">
             {readable(it)
-              ? <button className="btn primary" onClick={() => nav(`/read/${it.id}`)}><IconBook /> {started ? 'Continue reading' : pct >= 100 ? 'Read again' : 'Read'}</button>
+              ? <button data-tv-first className="btn primary" onClick={() => nav(`/read/${it.id}`)}><IconBook /> {started ? 'Continue reading' : pct >= 100 ? 'Read again' : 'Read'}</button>
               : <span className="muted">This format can't be read in the browser. Convert it to EPUB or CBZ, or download it.</span>}
             <a className="btn ghost" href={mediaUrl(`/api/items/${it.id}/file`)} download>Download</a>
           </div>

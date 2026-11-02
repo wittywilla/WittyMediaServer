@@ -131,8 +131,8 @@ function HomeTab({ lib, reload, onReload }: { lib: Library; reload: number; onRe
           </div>
         )}
         <div className="mh-hero-actions">
-          {!books && !pods && <button className="btn mh-play-all" onClick={() => void playAll()}><IconPlay /> Play my music</button>}
-          {hero && <button className={'btn ' + (books || pods ? 'mh-play-all' : 'mh-play-album')} onClick={() => void playAlbum(hero)}><IconPlay /> {books ? 'Play this book' : pods ? 'Play this show' : 'Play this album'}</button>}
+          {!books && !pods && <button data-tv-first className="btn mh-play-all" onClick={() => void playAll()}><IconPlay /> Play my music</button>}
+          {hero && <button data-tv-first={books || pods || undefined} className={'btn ' + (books || pods ? 'mh-play-all' : 'mh-play-album')} onClick={() => void playAlbum(hero)}><IconPlay /> {books ? 'Play this book' : pods ? 'Play this show' : 'Play this album'}</button>}
         </div>
       </div>
 
@@ -455,7 +455,7 @@ export function AlbumPage() {
           {pods ? <span className="album-artist">{artist}</span> : <Link to={artistLink(numericLib, artist)} className="album-artist">{artist || 'Unknown'}</Link>}
           <div className="muted">{[`${tracks.length} ${pods ? 'episodes' : books ? 'chapters' : tracks.length === 1 ? 'track' : 'tracks'}`, pods ? '' : fmtRuntime(total), pods ? '' : tracks[0]?.year, pods ? '' : genre].filter(Boolean).join(' · ')}</div>
           <div className="actions">
-            <button className="btn primary" onClick={() => playTrack(books && !pods ? resumeAt : 0)}><IconPlay /> {pods ? 'Play newest' : started ? 'Continue' : 'Play'}</button>
+            <button data-tv-first className="btn primary" onClick={() => playTrack(books && !pods ? resumeAt : 0)}><IconPlay /> {pods ? 'Play newest' : started ? 'Continue' : 'Play'}</button>
             {discs.filter((d) => !goneDiscs.includes(d)).map((d) => <Link key={d} className="btn" to={`/cd/${d}?play=1`}><IconDisc /> {discs.length > 1 ? `Disc ${discs.indexOf(d) + 1}` : 'Insert disc'}</Link>)}
             {!books && <button className="btn" onClick={() => audio.play(shuffledCopy(tracks), 0, mode)}>Shuffle</button>}
             {!books && tracks[0] && <button className="btn ghost" onClick={() => audio.startRadio(tracks[0])}><IconStation size={18} /> Station</button>}

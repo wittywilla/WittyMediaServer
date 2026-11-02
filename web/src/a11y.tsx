@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
-import { focusFirst } from './tv'
+import { focusFirst, focusIsAnyonesChoice } from './tv'
 import { isBackKey } from './ui/spatial'
 
 // Accessibility shared by every page: dialogs that hold the keyboard while
@@ -116,7 +116,9 @@ export function Announcer() {
     const keys = () => { usingKeys.current = true }
     const mouse = () => { usingKeys.current = false }
     const remember = (e: FocusEvent) => {
-      const what = usingKeys.current && e.target instanceof Element ? describe(e.target) : ''
+      // The page itself takes focus when it arrives. That's nowhere anyone left, and remembering it would
+      // stop a page being come back to from starting on its main action.
+      const what = usingKeys.current && e.target instanceof Element && e.target.id !== 'main' ? describe(e.target) : ''
       if (what) focusMemory.set(entry.current, what)
     }
     window.addEventListener('keydown', keys, { passive: true })
@@ -141,10 +143,14 @@ export function Announcer() {
     }, 350)
     // Coming back: the page may still be loading what you left, so look a few times.
     const was = navType === 'POP' && usingKeys.current ? focusMemory.get(loc.key) : undefined
-    const later: ReturnType<typeof setTimeout>[] = !was ? [] : [400, 800, 1500, 2500].map((ms) => setTimeout(() => {
+    const looks = [400, 800, 1500, 2500, 4000, 6000, 9000]
+    const later: ReturnType<typeof setTimeout>[] = !was ? [] : looks.map((ms) => setTimeout(() => {
       const active = document.activeElement
       if (active && active !== document.body && active !== document.getElementById('main')) return
-      document.querySelector<HTMLElement>(was)?.focus()
+      const left = document.querySelector<HTMLElement>(was)
+      if (left) left.focus()
+      // What it left has gone. Across the room there has to be something with the focus all the same.
+      else if (ms === looks[looks.length - 1] && document.documentElement.classList.contains('using-controller')) focusFirst()
     }, ms))
     return () => { clearTimeout(t); later.forEach(clearTimeout) }
   }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -152,9 +158,10 @@ export function Announcer() {
   // on its main action. It looks a few times, as a page may still be loading what it's going to show.
   useEffect(() => {
     if (!document.documentElement.classList.contains('using-controller') || (navType === 'POP' && focusMemory.get(loc.key))) return
-    const tries = [500, 1000, 2000, 3500].map((ms) => setTimeout(() => {
-      const active = document.activeElement
-      if (!active || active === document.body || active === document.getElementById('main')) focusFirst()
+    const arrived = performance.now()
+    // A cheap TV can take seconds to load a page.
+    const tries = [500, 1000, 2000, 3500, 6000].map((ms) => setTimeout(() => {
+      if (!focusIsAnyonesChoice(document.activeElement, arrived)) focusFirst()
     }, ms))
     return () => tries.forEach(clearTimeout)
   }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps

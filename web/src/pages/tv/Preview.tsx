@@ -134,7 +134,7 @@ export default function Preview({ channel, label, look, max, start }: { channel:
         <button type="button" onClick={down} disabled={width <= least} aria-label="Smaller preview" title="Smaller">−</button>
         <button type="button" onClick={up} disabled={width >= max} aria-label="Larger preview" title="Larger">+</button>
         <button type="button" onClick={() => setLook({ previewSound: !look.previewSound })} aria-pressed={look.previewSound} aria-label="Preview sound" title={look.previewSound ? 'Sound on' : 'Sound off'}>{look.previewSound ? <IconVolume size={15} /> : <IconMute size={15} />}</button>
-        <button type="button" disabled={!channel} onClick={() => nav(`/tv/watch/${channel}`)} aria-label={`Watch ${label} full screen`} title="Full screen"><IconFull size={15} /></button>
+        <button type="button" disabled={!channel} onClick={() => nav(`/tv/watch/${channel}`, { state: { fromGuide: true } })} aria-label={`Watch ${label} full screen`} title="Full screen"><IconFull size={15} /></button>
         <button type="button" onClick={() => setLook({ preview: 'off' })} aria-label="Hide the preview" title="Hide the preview"><IconClose size={15} /></button>
       </div>
     </div>

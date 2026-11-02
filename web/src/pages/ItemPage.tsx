@@ -90,7 +90,7 @@ export default function ItemPage() {
           </div>
           {disc ? (
             <div className="actions disc-actions">
-              <button className="btn primary insert" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=${start}${fx ? '&insert=1' : ''}`)}
+              <button data-tv-first className="btn primary insert" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=${start}${fx ? '&insert=1' : ''}`)}
                 title={start === 'menu' ? `Start the disc like a ${discName(it)} player: first-play, intros, then the main menu` : 'Start the disc straight into the main feature'}>
                 <IconDisc /> Insert {discName(it)}
               </button>
@@ -110,7 +110,7 @@ export default function ItemPage() {
             </div>
           ) : (
             <div className="actions">
-              <button className="btn primary" onClick={() => nav(`/play/${it.id}`)}>
+              <button data-tv-first className="btn primary" onClick={() => nav(`/play/${it.id}`)}>
                 <IconPlay /> {resume ? `Resume from ${fmtTime(resume.positionSec)}` : 'Play'}
               </button>
               {resume && <button className="btn" onClick={() => nav(`/play/${it.id}?start=0`)}><IconPlay /> Play from start</button>}

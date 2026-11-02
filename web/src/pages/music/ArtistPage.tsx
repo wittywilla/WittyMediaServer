@@ -58,7 +58,7 @@ export default function ArtistPage() {
           <h1>{name || 'Unknown'}</h1>
           <div className="muted">{[`${info.albums.length} ${books ? (info.albums.length === 1 ? 'book' : 'books') : info.albums.length === 1 ? 'album' : 'albums'}`, `${info.tracks.length} ${info.tracks.length === 1 ? 'song' : 'songs'}`, fmtRuntime(total), info.genres.slice(0, 3).join(', ')].filter(Boolean).join(' · ')}</div>
           <div className="actions">
-            <button className="btn primary" onClick={() => audio.play(info.tracks, 0, mode)}><IconPlay /> Play</button>
+            <button data-tv-first className="btn primary" onClick={() => audio.play(info.tracks, 0, mode)}><IconPlay /> Play</button>
             {!books && <button className="btn" onClick={() => audio.play(shuffledCopy(info.tracks), 0, mode)}>Shuffle</button>}
             {!books && info.tracks[0] && <button className="btn ghost" onClick={() => audio.startRadio(info.tracks[0])}><IconStation size={18} /> Station</button>}
           </div>

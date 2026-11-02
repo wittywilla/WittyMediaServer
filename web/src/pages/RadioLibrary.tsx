@@ -393,7 +393,7 @@ export function RadioStationPage() {
           <h1>{s.title}</h1>
           {facts.length > 0 && <div className="meta">{facts.map((f) => <span key={f}>{f}</span>)}</div>}
           <div className="rd-actions">
-            <button className="btn primary big" onClick={() => play.toggle(s)}>{play.isPlaying(s) ? <><IconPause /> Pause</> : <><IconPlay /> Play</>}</button>
+            <button data-tv-first className="btn primary big" onClick={() => play.toggle(s)}>{play.isPlaying(s) ? <><IconPause /> Pause</> : <><IconPlay /> Play</>}</button>
             <button className={'btn big' + (m.favorite ? ' rd-faved' : '')} aria-pressed={m.favorite} disabled={busy === 'fav'} onClick={favourite}><IconStar /> {m.favorite ? 'Favourite' : 'Add to favourites'}</button>
             {safeLink(m.homepage) && <WebLink className="btn big ghost" href={m.homepage}><IconGlobe /> Website</WebLink>}
           </div>

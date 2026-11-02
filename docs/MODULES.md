@@ -506,7 +506,7 @@ A forked game runner goes through the same limits, and may also write to its own
 - Because one key is shared, the signing job refuses a checksum list naming anything but its own module and version, and required approval on the `release` environment, with a protection rule on `v*` tags, is strongly recommended.
 - Forks have keys of their own, good for one module only.
 
-Until the owner makes one with `scripts/new-module-key.sh`, modules are signed with the release key, which works the same but gives up that separation. If a module key leaks, remove it from `moduleKey` and release a new server, and any version it signed stops being trusted. The owner's steps are in `docs/MODULES-CUTOVER.md`.
+If a module key leaks, remove it from `moduleKey` and release a new server, and any version it signed stops being trusted. The owner's steps are in `docs/MODULES-CUTOVER.md`.
 
 ## Which systems
 

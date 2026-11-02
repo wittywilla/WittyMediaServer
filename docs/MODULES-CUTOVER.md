@@ -20,13 +20,15 @@ If this folder has no `go.work`, make one first. Until WittyModule is published,
 node scripts/dev-modules.mjs WittyModule=D:/projects/WittyModule
 ```
 
-## 1. Make the module key
+## 1. The module key
+
+Already made, on 2026-11-01: `~/.wms-signing/module.key` on the development machine, with its public half in `moduleKey` in `internal/update/keys.go`.
+
+To make one on another machine, or to replace one, use the command below, and put the public half it prints in `keys.go`. It refuses to replace a file that's already there, won't put the key inside this repository, and never opens your existing key.
 
 ```bash
 scripts/new-module-key.sh ~/.wms-signing/module.key
 ```
-
-It refuses to replace a file that's already there, won't put the key inside this repository, and never opens your existing key. It prints the public half, which isn't secret. Put that in `moduleKey` in `internal/update/keys.go`, and commit it. It's empty now.
 
 **Why one key for all modules, and not the server's.** A key in the secrets of many repositories is far more exposed than one in the server's alone. A module key can't sign a server, so losing it can't put a bad server on anyone's machine.
 
@@ -63,7 +65,7 @@ Both are strongly recommended. All modules share one key, so a compromised build
 The catalogue also needs the public half of the key:
 
 ```bash
-gh variable set MODULE_PUBLIC_KEY -R wittywilla/WittyModuleCatalog --body "<the public half from step 1>"
+gh variable set MODULE_PUBLIC_KEY -R wittywilla/WittyModuleCatalog --body "oITeMfo/k0yM4l5saoL1ypTfXxdacZTfa0kg5PNmf6s="
 ```
 
 ## 4. Rehearse

@@ -158,6 +158,7 @@ Step 5 fixes all of these, in order. Each repository is pinned to what was just 
 
 | It says | What it means |
 |---|---|
+| `GitHub has ... which isn't in` | That repository's history on GitHub isn't part of what you're publishing. Merge it in first |
 | `hasn't had the module work merged` | A repository's branch is older than module API 3: merge it into its `main` |
 | `moduleKey ... is empty` | Step 1, and it needs committing |
 | `has no WMS_SIGNING_KEY` or `no MODULE_PUBLIC_KEY` | Step 3 |

@@ -154,6 +154,13 @@ prepare() { # <repo>: a clone of what's to be published, in $dir
   git -C "$dir" remote set-url origin "$(url "$r")"
   if [ $apply = 1 ]; then
     git -C "$dir" fetch -q origin --tags 2>/dev/null || true
+  else
+    # A rehearsal pushes to its own copies, so only this can find a push GitHub would refuse.
+    local on_github
+    on_github=$(git ls-remote "https://github.com/$OWNER/$r" refs/heads/main refs/heads/master 2>/dev/null | cut -f1)
+    for sha in $on_github; do
+      git -C "$dir" merge-base --is-ancestor "$sha" HEAD 2>/dev/null || die "$r: GitHub has ${sha:0:7}, which isn't in $src, so the push would be refused"
+    done
   fi
   if [ -f "$NAMES_FILE" ] && git -C "$dir" grep -nE -f "$NAMES_FILE" -- . ':!*.lock' ':!package-lock.json' ':!go.sum' >"$work/forbidden.txt" 2>/dev/null; then
     head -5 "$work/forbidden.txt"

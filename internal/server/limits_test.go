@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -73,6 +75,34 @@ func TestPublicBodyHasAShortDeadline(t *testing.T) {
 	}
 	if !bytes.Contains(buf[:n], []byte("400")) {
 		t.Errorf("%s", buf[:n])
+	}
+}
+
+// The deadline is for the body to arrive. A request still at work past it isn't cancelled: this
+// is what ended a slow core install after exactly two minutes.
+func TestLongRequestOutlivesTheBodyDeadline(t *testing.T) {
+	saved := publicBodyTime
+	publicBodyTime = 100 * time.Millisecond
+	defer func() { publicBodyTime = saved }()
+	var s Server
+	srv := httptest.NewServer(s.limits(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.Copy(io.Discard, r.Body)
+		select {
+		case <-r.Context().Done():
+			w.WriteHeader(http.StatusTeapot)
+		case <-time.After(400 * time.Millisecond):
+		}
+	})))
+	defer srv.Close()
+	for name, body := range map[string]io.Reader{"no body": nil, "a body": strings.NewReader(`{}`)} {
+		res, err := http.Post(srv.URL+"/api/logout", "application/json", body)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			t.Errorf("%s: the request was cancelled at the deadline", name)
+		}
 	}
 }
 

@@ -220,7 +220,7 @@ func TestLiveArgs(t *testing.T) {
 	hasBurst = false
 	readrateOnce.Do(func() {})
 	file := strings.Join(s.liveArgs(&LiveInput{InputArgs: ffmpeg.FileInput("/m/a.mkv"), Seek: 90, Duration: 30, AudioIndex: 0}, 1, true), " ")
-	for _, want := range []string{"-re", "-ss 90.000", "-t 30.000", "-c:a aac", "-ar 48000", "scale=-2:'min(ih,720)'", "-f hls"} {
+	for _, want := range []string{"-re", "-ss 90.000", "-t 30.000", "-c:a aac", "-ar 48000", "scale=trunc(iw*sar/2)*2:ih", "scale=-2:'min(ih,720)'", "-f hls"} {
 		if !strings.Contains(file, want) {
 			t.Errorf("file run lacks %q:\n%s", want, file)
 		}

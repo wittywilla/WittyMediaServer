@@ -951,7 +951,7 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		if sp.VideoFilter != "" {
 			vf = append(vf, sp.VideoFilter)
 		}
-		vf = append(vf, "scale=iw*sar:ih")
+		vf = append(vf, "scale=trunc(iw*sar/2)*2:ih") // H.264 refuses an odd width, and widescreen NTSC comes to 853
 		if sp.MaxHeight > 0 {
 			vf = append(vf, fmt.Sprintf("scale=-2:'min(ih,%d)'", sp.MaxHeight))
 		}

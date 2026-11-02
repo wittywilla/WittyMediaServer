@@ -46,8 +46,12 @@ const scenes = {
     console.log(games.map((g) => [g.id, g.title]))
     const g = games.find((x) => /City/i.test(x.title))
     await go(`/game/${g.id}`)
+    await wait(20000)
     await shot('game-page')
     console.log(await page.eval(`document.body.innerText.slice(0, 500)`))
+    for (const k of ['Enter', 'Enter', 'Enter']) { await key(k, k, 13); await wait(2500) }
+    await shot('game-page2')
+    console.log(await page.eval(`JSON.stringify([...document.querySelectorAll('video,canvas')].map((v) => [v.tagName, v.width, v.height, v.videoWidth, v.currentTime]))`))
   },
 }
 

@@ -1,7 +1,16 @@
-import Hls from 'hls.js'
+import type Hls from 'hls.js'
 import { useEffect, useRef } from 'react'
 import { getToken, mediaUrl, serverBase } from '../api'
 import { reportHlsError, watchPlayback } from '../errorReport'
+import { mediaSourceWorks } from './mse'
+
+type HlsClass = typeof Hls
+let loaded: HlsClass | null = null
+
+// The full-screen players bring hls.js with them, as they're about to need it, and start at once.
+// A guide or a photo page that may never play anything only asks for it when a stream starts.
+export function haveHls(h: HlsClass) { loaded = h }
+const loadHls = () => loaded ? Promise.resolve(loaded) : import('hls.js').then((m) => (loaded = m.default))
 
 // Attaches an HLS (or direct) source to a <video>. Uses hls.js where MSE is
 // available and falls back to native HLS (Safari/iOS). startAt makes the
@@ -21,38 +30,44 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
     const isHls = url.includes('.m3u8')
     const abs = url.startsWith('http') ? url : serverBase() + url
     const start = optsRef.current.startAt?.()
-    if (isHls && Hls.isSupported()) {
-      const hls = new Hls({
-        xhrSetup: (xhr) => { const t = getToken(); if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t); xhr.withCredentials = !serverBase() },
-        maxBufferLength: 30, maxMaxBufferLength: 90, backBufferLength: 30,
-        fragLoadingTimeOut: 60000, manifestLoadingTimeOut: 20000, fragLoadingMaxRetry: 6, levelLoadingMaxRetry: 6,
-        // A rewrapped stream grows as it's made, which HLS calls live. It starts at its
-        // start, however far ahead it has got.
-        startPosition: optsRef.current.growing ? 0 : (start != null && start > 0.5 ? start : -1), lowLatencyMode: false,
-      })
-      hlsRef.current = hls
-      hls.loadSource(abs)
-      hls.attachMedia(v)
-      hls.on(Hls.Events.MANIFEST_PARSED, () => { if (!destroyed) optsRef.current.onReady?.() })
-      // A stream the server no longer has (it restarted) would be retried for
-      // ever behind a spinner; a busy server (503) is worth waiting for.
-      let gone = 0
-      let mediaErrors = 0
-      hls.on(Hls.Events.FRAG_LOADED, () => { gone = 0 })
-      hls.on(Hls.Events.ERROR, (_e, data) => {
-        if (!data.fatal) return
-        reportHlsError(data)
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-          if (data.response?.code === 404 && ++gone >= 2) optsRef.current.onError?.('The stream has ended on the server. Start playback again.')
-          else hls.startLoad()
-        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-          // Once is worth it; a stream this browser really can't decode would go round for ever.
-          if (++mediaErrors <= 2) hls.recoverMediaError()
+    if (isHls && mediaSourceWorks()) {
+      const attach = (Hls: HlsClass) => {
+        const hls = new Hls({
+          xhrSetup: (xhr) => { const t = getToken(); if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t); xhr.withCredentials = !serverBase() },
+          maxBufferLength: 30, maxMaxBufferLength: 90, backBufferLength: 30,
+          fragLoadingTimeOut: 60000, manifestLoadingTimeOut: 20000, fragLoadingMaxRetry: 6, levelLoadingMaxRetry: 6,
+          // A rewrapped stream grows as it's made, which HLS calls live. It starts at its
+          // start, however far ahead it has got.
+          startPosition: optsRef.current.growing ? 0 : (start != null && start > 0.5 ? start : -1), lowLatencyMode: false,
+        })
+        hlsRef.current = hls
+        hls.loadSource(abs)
+        hls.attachMedia(v)
+        hls.on(Hls.Events.MANIFEST_PARSED, () => { if (!destroyed) optsRef.current.onReady?.() })
+        // A stream the server no longer has (it restarted) would be retried for
+        // ever behind a spinner; a busy server (503) is worth waiting for.
+        let gone = 0
+        let mediaErrors = 0
+        hls.on(Hls.Events.FRAG_LOADED, () => { gone = 0 })
+        hls.on(Hls.Events.ERROR, (_e, data) => {
+          if (!data.fatal) return
+          reportHlsError(data)
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            if (data.response?.code === 404 && ++gone >= 2) optsRef.current.onError?.('The stream has ended on the server. Start playback again.')
+            else hls.startLoad()
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            // Once is worth it; a stream this browser really can't decode would go round for ever.
+            if (++mediaErrors <= 2) hls.recoverMediaError()
+            else optsRef.current.onError?.(data.details || 'playback error')
+          }
           else optsRef.current.onError?.(data.details || 'playback error')
-        }
-        else optsRef.current.onError?.(data.details || 'playback error')
-      })
-      return () => { destroyed = true; hls.destroy(); hlsRef.current = null }
+        })
+        return () => { hls.destroy(); hlsRef.current = null }
+      }
+      let stop: (() => void) | undefined
+      if (loaded) stop = attach(loaded)
+      else loadHls().then((Hls) => { if (!destroyed) stop = attach(Hls) }, (err) => { if (!destroyed) optsRef.current.onError?.(String(err?.message || err)) })
+      return () => { destroyed = true; stop?.() }
     }
     v.src = mediaUrl(abs)
     const ready = () => optsRef.current.onReady?.()

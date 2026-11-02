@@ -606,7 +606,11 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		args = append(args, q.DiscContent)
 	}
 	if q.NoEpisodes {
-		where = append(where, "i.show_id IS NULL")
+		if q.Sort == "added" {
+			where = append(where, "+i.show_id IS NULL") // so that the index on dates gives the order
+		} else {
+			where = append(where, filmsOf(q.LibraryID))
+		}
 	}
 	if q.Watchable {
 		where = append(where, "i.kind IN ('video', 'dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder')")
@@ -692,7 +696,11 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	if q.Desc {
 		order += " DESC"
 	}
-	order += ", i.id"
+	if q.Desc && (q.Sort == "added" || q.Sort == "updated") {
+		order += ", i.id DESC" // the way an index on dates reads backwards, so nothing has to be sorted
+	} else {
+		order += ", i.id"
+	}
 	w := strings.Join(where, " AND ")
 	var total int
 	if !q.NoTotal {
@@ -952,7 +960,8 @@ func (s *Store) setPoster(ctx context.Context, id int64, poster string) error {
 
 func (s *Store) Genres(ctx context.Context, libraryID int64, access *Access) ([]string, error) {
 	c, a := access.ItemClause()
-	rows, err := s.DB.QueryContext(ctx, `SELECT DISTINCT i.genres FROM items i WHERE i.missing = 0 AND (? = 0 OR i.library_id = ?) AND `+c, append([]any{libraryID, libraryID}, a...)...)
+	lc, la := oneItemLibrary(libraryID)
+	rows, err := s.DB.QueryContext(ctx, `SELECT DISTINCT i.genres FROM items i WHERE i.missing = 0 AND `+lc+` AND `+c, append(la, a...)...)
 	if err != nil {
 		return nil, err
 	}

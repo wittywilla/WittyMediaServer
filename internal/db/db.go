@@ -25,7 +25,9 @@ func Open(dataDir string) (*DB, error) {
 	// Every transaction here writes, so each takes the write lock when it begins.
 	// One that reads first and writes later fails at once, without waiting, if
 	// another write lands in between: busy_timeout can't help it.
-	dsn := fmt.Sprintf("file:%s?_txlock=immediate&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=synchronous(NORMAL)", name)
+	// cache_size: SQLite's default is 2 MB for each connection, on top of what the operating system
+	// already holds of this file. 1 MB answers as fast (see the numbers in the release notes).
+	dsn := fmt.Sprintf("file:%s?_txlock=immediate&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=synchronous(NORMAL)&_pragma=cache_size(-1024)", name)
 	sdb, err := sql.Open(driverName, dsn) // the SQLite driver with failures logged: logged.go
 	if err != nil {
 		return nil, err
@@ -35,6 +37,8 @@ func Open(dataDir string) (*DB, error) {
 	// (a row cursor plus a lookup) would deadlock on a single connection.
 	sdb.SetMaxOpenConns(6)
 	sdb.SetMaxIdleConns(3) // opening one means reading the schema again
+	// But not for long: each holds its cache, and most of the time a home server is doing nothing.
+	sdb.SetConnMaxIdleTime(5 * time.Minute)
 	sdb.SetConnMaxLifetime(0)
 	d := &DB{sdb}
 	if err := d.migrate(context.Background()); err != nil {

@@ -8,11 +8,14 @@ import { toast } from '../state'
 import { usePlayerChrome } from './chrome'
 import PickIntroBar from './PickIntroBar'
 import { Controls, useVideoState } from './Controls'
-import { toggleFullscreen, useIdle, useSource } from './hooks'
+import { haveHls, toggleFullscreen, useIdle, useSource } from './hooks'
+import Hls from 'hls.js'
 import Remote, { DVD_ONLY, RemoteBar, type RemoteKey } from './Remote'
 import TrackPicker from './TrackPicker'
 import ViewSettings from './ViewSettings'
 import { useViewPrefs } from './viewPrefs'
+
+haveHls(Hls)
 
 const MODE_WORDS: Record<string, string> = { direct: 'Direct play', remux: 'Rewrapped', transcode: 'Transcoding' }
 

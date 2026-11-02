@@ -5,7 +5,7 @@ import { api } from '../../api'
 import { announce } from '../../a11y'
 import { IconBack, IconPlay } from '../../icons'
 import { Controls } from '../../player/Controls'
-import { toggleFullscreen, useIdle, useSource } from '../../player/hooks'
+import { haveHls, toggleFullscreen, useIdle, useSource } from '../../player/hooks'
 import Remote, { type RemoteKey } from '../../player/Remote'
 import { useLogo } from '../../components/BrandLogo'
 import LegalNote from '../../components/LegalNote'
@@ -15,6 +15,8 @@ import MiniGuide from './MiniGuide'
 import { fmtClock, fmtSpan, forgetLineup, getLineup, leaveChannel, makeViewer, preflight, tune, type Alternative, type GuideChannel, type Programme, type TuneInfo } from './tvApi'
 import './tv.css'
 import './tvthemes.css'
+
+haveHls(Hls)
 
 // Watching a channel: the app's player and on-screen remote, with channel keys
 // and the classic banner that drops in on every tune. Everyone on a channel

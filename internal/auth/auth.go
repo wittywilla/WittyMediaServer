@@ -562,7 +562,9 @@ func (s *Service) ResolveStream(ctx context.Context, tok string, r *http.Request
 	if !ok {
 		return nil, ErrInvalid
 	}
-	enc := base64.RawURLEncoding
+	// Strict: the spare bits at the end must be zero, so a token has one spelling only, the one
+	// this server wrote, and another spelling of the same signature isn't taken for it.
+	enc := base64.RawURLEncoding.Strict()
 	payload, err1 := enc.DecodeString(body)
 	mac, err2 := enc.DecodeString(sig)
 	if err1 != nil || err2 != nil || !hmac.Equal(mac, signStream(payload)) || len(payload) < 8+streamSessionLen {

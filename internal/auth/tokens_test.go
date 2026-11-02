@@ -190,8 +190,23 @@ func TestStreamTokenScope(t *testing.T) {
 	if _, err := s.Resolve(ctx, tok); err == nil {
 		t.Error("a stream token worked as a session")
 	}
-	// Changed in any way, it is nothing.
-	for _, bad := range []string{tok[:len(tok)-2] + "aa", "st1." + tok[6:], "st1.x", "st1.", strings.Replace(tok, ".", "", 2)} {
+	// Changed in any way, it is nothing. A character of the signature is swapped for a different
+	// one (a fixed replacement could be the same character), and the last character is also
+	// respelled with its spare bits set, which says the same bytes in a form never issued.
+	swap := func(s string, i int) string {
+		c := byte('A')
+		if s[i] == 'A' {
+			c = 'B'
+		}
+		return s[:i] + string(c) + s[i+1:]
+	}
+	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+	last := strings.IndexByte(alphabet, tok[len(tok)-1])
+	respelled := tok[:len(tok)-1] + string(alphabet[last|1])
+	if last|1 == last {
+		respelled = tok[:len(tok)-1] + string(alphabet[last|2])
+	}
+	for _, bad := range []string{swap(tok, len(tok)-3), respelled, "st1." + tok[6:], "st1.x", "st1.", strings.Replace(tok, ".", "", 2)} {
 		if _, err := s.ResolveStream(ctx, bad, streamRequest("GET", "/api/hls/abc/seg/1.ts", "x")); err == nil {
 			t.Errorf("tampered token %q was accepted", bad)
 		}

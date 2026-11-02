@@ -22,7 +22,7 @@ const [mode, ...consoles] = process.argv.slice(2)
 if (mode !== 'browser') {
   const entry = fileURLToPath(new URL('../tests/pads.test.ts', import.meta.url))
   const out = entry.replace(/\.ts$/, '.tmp.mjs')
-  await build({ configFile: false, logLevel: 'warn', build: { ssr: entry, outDir: dirname(out), emptyOutDir: false, rollupOptions: { output: { entryFileNames: basename(out) } } } })
+  await build({ configFile: false, logLevel: 'warn', publicDir: false, build: { ssr: entry, outDir: dirname(out), emptyOutDir: false, rollupOptions: { output: { entryFileNames: basename(out) } } } })
   const r = spawnSync(process.execPath, ['--test', '--test-timeout=30000', '--test-force-exit', out], { stdio: 'inherit' })
   rmSync(out, { force: true })
   process.exit(r.status === 0 ? 0 : 1)

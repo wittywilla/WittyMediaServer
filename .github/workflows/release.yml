@@ -230,15 +230,29 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     steps:
+      # Only what's published: the web files and the macOS tray are artifacts too, and folders.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
+          name: archives
           path: all
-          merge-multiple: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: installers-windows
+          path: all
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: installers-macos
+          path: all
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: installers-freebsd
+          path: all
       - name: Write the checksum list
         run: |
           VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
           mkdir sums
-          (cd all && sha256sum -- *) > "sums/wittymediaserver-$VERSION-SHA256SUMS.txt"
+          (cd all && find . -maxdepth 1 -type f \( -name '*.zip' -o -name '*.tar.gz' -o -name '*.msi' -o -name '*.pkg' -o -name '*.deb' -o -name '*.rpm' \) -printf '%f\0' | sort -z | xargs -0 sha256sum --) > "sums/wittymediaserver-$VERSION-SHA256SUMS.txt"
+          test -s "sums/wittymediaserver-$VERSION-SHA256SUMS.txt"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: sums

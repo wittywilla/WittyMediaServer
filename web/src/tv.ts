@@ -322,18 +322,28 @@ const POLL_MS = 12
 let pollTimer = 0
 const held = new Map<string, number>() // key -> next repeat time
 
+// What the last read found, so a pad with nothing new costs a comparison and no work: this runs
+// about 80 times a second on the weakest thing it's installed on. A pad's timestamp moves when its
+// state does; every so often it's read anyway, for a browser that never moves it.
+const FULL_READ_EVERY = 8
+const lastStamps: number[] = []
+let lastDown = new Set<string>()
+let sinceFullRead = 0
+
 // The keys the controllers are holding down at the moment.
-function keysDown(pads: Gamepad[]) {
+function keysDown(pads: readonly (Gamepad | null)[]) {
   const down = new Set<string>()
-  for (const p of pads) {
+  for (let n = 0; n < pads.length; n++) {
+    const p = pads[n]
+    if (!p) continue
     const swap = isNintendo(p.id)
     if (p.mapping === 'standard') {
-      p.buttons.forEach((b, i) => {
-        if (!b.pressed) return
+      for (let i = 0; i < p.buttons.length; i++) {
+        if (!p.buttons[i].pressed) continue
         let k = STD[i]
         if (swap && (i === 0 || i === 1)) k = STD[1 - i]
         if (k) down.add(k)
-      })
+      }
     } else {
       // Unknown layout: first two buttons confirm/back, last axes pair is often the D-pad hat.
       if (p.buttons[0]?.pressed) down.add(swap ? 'Escape' : 'Enter')
@@ -355,10 +365,19 @@ function keysDown(pads: Gamepad[]) {
 }
 
 function poll() {
-  const pads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) as Gamepad[] : []
-  if (!pads.length) { clearInterval(pollTimer); pollTimer = 0; held.clear(); return }
+  const pads = navigator.getGamepads ? navigator.getGamepads() : []
+  let connected = false
+  let changed = ++sinceFullRead >= FULL_READ_EVERY
+  for (let i = 0; i < pads.length; i++) {
+    const p = pads[i]
+    const stamp = p ? p.timestamp || 0 : -1
+    if (p) connected = true
+    if (stamp === 0 || stamp !== lastStamps[i]) { lastStamps[i] = stamp; changed = true }
+  }
+  if (!connected) { clearInterval(pollTimer); pollTimer = 0; held.clear(); lastDown = new Set(); lastStamps.length = 0; return }
   if (document.hidden) { held.clear(); return } // nobody is looking, and browsers stop updating pads
-  const down = keysDown(pads)
+  if (changed) { lastDown = keysDown(pads); sinceFullRead = 0 }
+  const down = lastDown
   if (inGame()) {
     // Whatever is down belongs to the game, including the buttons that open its menu: they
     // aren't presses in that menu until they've been let go and pressed again.
@@ -366,13 +385,14 @@ function poll() {
     for (const k of down) held.set(k, Infinity)
     return
   }
+  if (!down.size && !held.size) return
   const now = performance.now()
   for (const k of down) {
     const next = held.get(k)
     if (next === undefined) { press(k); held.set(k, now + 420) } // first press, then repeat after a pause
     else if (now >= next && k.startsWith('Arrow')) { press(k); held.set(k, now + 110) }
   }
-  for (const k of [...held.keys()]) if (!down.has(k)) held.delete(k)
+  for (const k of held.keys()) if (!down.has(k)) held.delete(k)
 }
 
 function startPolling() {

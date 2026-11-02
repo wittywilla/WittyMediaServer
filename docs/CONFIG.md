@@ -56,7 +56,7 @@ Every setting is optional. Most can be given three ways, and the strongest wins:
 | `listen` | `-listen` | `WMS_LISTEN` | The address and port. `:9797`, the default, is every network card on port 9797. `127.0.0.1:9797` keeps it to this computer |
 | `dataDir` | `-data` | `WMS_DATA_DIR` | The server's own folder: database, settings, users, watch history. Default: [see below](#folders-the-server-uses) |
 | `metadataDir` | | `WMS_METADATA_DIR` | Downloaded posters, backdrops and generated thumbnails. Default: `images` in the cache folder |
-| `cacheDir` | | `WMS_CACHE_DIR` | Other cached files, such as disc playlists and menu stills. Default: `cache` in the data folder |
+| `cacheDir` | | `WMS_CACHE_DIR` | Other cached files, such as disc playlists and menu stills. It stays within limits: 4 GB of thumbnails, 1 GB of stills, 4 GB of unpacked comics, oldest first, and what's removed is made again when it's needed. Default: `cache` in the data folder |
 | `transcodeDir` | | `WMS_TRANSCODE_DIR` | Temporary video while transcoding. Put it on a fast SSD or RAM disk. Default: `transcode` in the data folder |
 | `logDir` | `-log-dir` | `WMS_LOG_DIR` | Log files. It can also be changed in **Settings → WittyLog**. Default: `logs` in the data folder |
 | `logLevel` | `-log` | `WMS_LOG` | `error`, `warn`, `info` (the default) or `debug`. `debug` makes every area of the log as detailed as it goes, whatever **Settings → WittyLog** says |

@@ -2,7 +2,6 @@ package libtranscode
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
@@ -11,7 +10,7 @@ import (
 // A run ending cancels the read: that once stopped a good conversion for the default 10 GB limit,
 // on a server asked to keep 1 GB.
 func TestSettingsNowKeepsThemWhenTheReadFails(t *testing.T) {
-	d, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	d, err := db.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

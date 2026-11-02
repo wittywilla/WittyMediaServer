@@ -112,6 +112,7 @@ func TestCouchWhoMayUseIt(t *testing.T) {
 
 func TestCouchAddressRules(t *testing.T) {
 	modtest.Need(t, "wittycouch")
+	quickCouchFailures(t)
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
 	_, adult := ts.user(t, "adult1", "adult", false, "")
@@ -168,6 +169,7 @@ func TestCouchAddressRules(t *testing.T) {
 func TestCouchAnswersGiveNothingAway(t *testing.T) {
 	modtest.Need(t, "wittycouch")
 	testAllowLoopback(t)
+	quickCouchFailures(t)
 	ts := newTestServer(t)
 	_, adult := ts.user(t, "adult1", "adult", false, "")
 	_ = ts.DB.SetSetting(context.Background(), "couchCustomPorts", "1")
@@ -186,9 +188,19 @@ func TestCouchAnswersGiveNothingAway(t *testing.T) {
 	}
 }
 
+// quickCouchFailures shortens the wait a failed connection is padded to, which is what a test of
+// limits would otherwise spend its time on. The limits themselves are the real ones.
+func quickCouchFailures(t *testing.T) {
+	t.Helper()
+	old := couchAnswerWait
+	couchAnswerWait = time.Millisecond
+	t.Cleanup(func() { couchAnswerWait = old })
+}
+
 func TestCouchRateLimit(t *testing.T) {
 	modtest.Need(t, "wittycouch")
 	testAllowLoopback(t)
+	quickCouchFailures(t)
 	ts := newTestServer(t)
 	_, adult := ts.user(t, "adult1", "adult", false, "")
 	_ = ts.DB.SetSetting(context.Background(), "couchCustomPorts", "1")

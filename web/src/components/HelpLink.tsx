@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { IconHelp } from '../icons'
-import { settingsHelp } from '../help/guides'
+import { settingsHelp } from '../help/settingsHelp'
 import './helplink.css'
 
 // The ways into a guide from the page it's about. `to` is a guide and perhaps a part of it, such

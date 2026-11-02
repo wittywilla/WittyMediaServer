@@ -1,4 +1,4 @@
-import Hls from 'hls.js'
+import { mediaSourceWorks } from './mse'
 
 // What this browser can play, found out by asking it, and sent with every request to
 // play something. The server decides from this, so a browser that decodes HEVC gets
@@ -71,17 +71,17 @@ export function browserCapabilities(): Capabilities {
   // Streams go through Media Source where there is one; Safari on a phone plays
   // HLS itself, which takes H.264 and HEVC.
   const nativeHLS = can('application/vnd.apple.mpegurl')
-  const hlsOK = Hls.isSupported() || nativeHLS
+  const hlsOK = mediaSourceWorks() || nativeHLS
   const fmp4Video: string[] = []
   const hlsVideo: string[] = []
-  const inStream = (c: string) => Hls.isSupported() ? mse(`video/mp4; codecs="${c}"`) : nativeHLS && mp4(c)
+  const inStream = (c: string) => mediaSourceWorks() ? mse(`video/mp4; codecs="${c}"`) : nativeHLS && mp4(c)
   if (inStream('avc1.640028')) hlsVideo.push('h264')
   if (inStream('hvc1.1.6.L120.B0')) { hlsVideo.push('hevc'); fmp4Video.push('hevc') }
-  if (Hls.isSupported() && inStream('av01.0.08M.08')) { hlsVideo.push('av1'); fmp4Video.push('av1') }
-  if (Hls.isSupported() && inStream('vp09.00.40.08')) { hlsVideo.push('vp9'); fmp4Video.push('vp9') }
+  if (mediaSourceWorks() && inStream('av01.0.08M.08')) { hlsVideo.push('av1'); fmp4Video.push('av1') }
+  if (mediaSourceWorks() && inStream('vp09.00.40.08')) { hlsVideo.push('vp9'); fmp4Video.push('vp9') }
   const hlsAudio = ['aac']
-  if (Hls.isSupported() && mse('audio/mp4; codecs="ac-3"')) hlsAudio.push('ac3')
-  if (Hls.isSupported() && mse('audio/mp4; codecs="ec-3"')) hlsAudio.push('eac3')
+  if (mediaSourceWorks() && mse('audio/mp4; codecs="ac-3"')) hlsAudio.push('ac3')
+  if (mediaSourceWorks() && mse('audio/mp4; codecs="ec-3"')) hlsAudio.push('eac3')
 
   cached = {
     containers, videoCodecs, audioCodecs, hdr,

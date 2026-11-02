@@ -91,6 +91,25 @@ type BrowseResult struct {
 	Total   int         `json:"total"`
 }
 
+// filmsOf is the test for what isn't an episode. Given one library, the + keeps SQLite from
+// walking every item in the server without a show to find that library's: it goes through the
+// library's own rows instead, which on a server with a big music library is 80 times quicker.
+func filmsOf(libraryID int64) string {
+	if libraryID != 0 {
+		return "+i.show_id IS NULL"
+	}
+	return "i.show_id IS NULL"
+}
+
+// oneItemLibrary is the test for items of a library, or all of them for 0. Written out instead of
+// "(? = 0 OR i.library_id = ?)", which SQLite can't use an index for.
+func oneItemLibrary(libraryID int64) (string, []any) {
+	if libraryID == 0 {
+		return "1=1", nil
+	}
+	return "i.library_id = ?", []any{libraryID}
+}
+
 func genreClause(col string, names []string) (string, []any) {
 	if len(names) == 0 {
 		return "", nil
@@ -146,6 +165,7 @@ func (s *Store) Browse(ctx context.Context, f BrowseFilter, userID int64, access
 	sw := []string{"s.missing = 0", "EXISTS (SELECT 1 FROM items e WHERE e.show_id = s.id AND e.missing = 0)", sc}
 	sargs := append([]any{}, sa...)
 	if f.Library != 0 {
+		iw[1] = filmsOf(f.Library)
 		iw = append(iw, "i.library_id = ?")
 		iargs = append(iargs, f.Library)
 		if f.AnimeOf {
@@ -494,11 +514,12 @@ func (s *Store) LibraryFacets(ctx context.Context, libraryID int64, access *Acce
 		}
 	}
 	ic, ia := access.ItemClause()
+	lc, la := oneItemLibrary(libraryID)
 	rows, err := s.DB.QueryContext(ctx, `SELECT i.kind, i.genres, i.year, i.content_rating, i.width, i.height, i.audio_langs, i.sub_langs,
 		IFNULL(m.tags, ''), IFNULL(m.edition, ''), IFNULL(m.audio_format, '')
 		FROM items i LEFT JOIN title_meta m ON m.target = 'item' AND m.target_id = i.id
-		WHERE i.missing = 0 AND i.show_id IS NULL AND `+hideLinked+` AND i.kind IN ('video', 'dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder') AND i.library_id IN `+videoLibraries+` AND (? = 0 OR i.library_id = ?) AND `+ic,
-		append([]any{libraryID, libraryID}, ia...)...)
+		WHERE i.missing = 0 AND `+filmsOf(libraryID)+` AND `+hideLinked+` AND i.kind IN ('video', 'dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder') AND i.library_id IN `+videoLibraries+` AND `+lc+` AND `+ic,
+		append(la, ia...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -823,9 +844,10 @@ func (s *Store) Categories(ctx context.Context, libraryID int64, access *Access,
 		}
 	}
 	ic, ia := access.ItemClause()
+	lc, la := oneItemLibrary(libraryID)
 	rows, err := s.DB.QueryContext(ctx, `SELECT i.id, i.genres, i.updated_at, IFNULL(i.rating, 0), (IFNULL(i.backdrop, '') <> '' OR IFNULL(i.poster, '') <> '') FROM items i
-		WHERE i.missing = 0 AND i.show_id IS NULL AND IFNULL(i.genres, '') <> '' AND `+hideLinked+` AND i.kind IN ('video', 'dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder') AND i.library_id IN `+videoLibraries+` AND (? = 0 OR i.library_id = ?) AND `+ic,
-		append([]any{libraryID, libraryID}, ia...)...)
+		WHERE i.missing = 0 AND `+filmsOf(libraryID)+` AND IFNULL(i.genres, '') <> '' AND `+hideLinked+` AND i.kind IN ('video', 'dvd-iso', 'dvd-folder', 'bluray-iso', 'bluray-folder') AND i.library_id IN `+videoLibraries+` AND `+lc+` AND `+ic,
+		append(la, ia...)...)
 	if err != nil {
 		return nil, err
 	}

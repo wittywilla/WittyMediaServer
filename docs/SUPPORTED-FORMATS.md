@@ -158,7 +158,7 @@ Pictures a browser can't show are sent as a JPEG the server makes, and the origi
 | Icon | .ico, .cur | As it is | FFmpeg |
 | SVG (Scripts, outside links and active content are removed before it is sent. FFmpeg with librsvg makes smaller copies when it has it) | .svg, .svgz | As it is | Nothing extra |
 | HEIC and HEIF | .heic, .heif, .hif | As a JPEG | An FFmpeg of version 7 or later |
-| JPEG XL | .jxl | As a JPEG | An FFmpeg built with libjxl |
+| JPEG XL (A file with this name and no JPEG XL signature isn't listed: FFmpeg would work at one for minutes and find nothing) | .jxl | As a JPEG | An FFmpeg built with libjxl |
 | TIFF | .tif, .tiff | As a JPEG | FFmpeg |
 | JPEG 2000 | .jp2, .j2k, .jpf, .jpx | As a JPEG | FFmpeg |
 | Photoshop | .psd | As a JPEG | FFmpeg |

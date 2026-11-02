@@ -125,6 +125,9 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 	if err != nil {
 		return err
 	}
+	if k := c.unchanged(); k != nil && k.hasPoster && k.showID == sh.ID && !k.missing && !s.knownTVInfoNew(ctx, k, sh, tv) {
+		return nil // unchanged
+	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
 	sameFile := err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size
 	if sameFile && existing.Poster != "" && existing.ShowID != nil && *existing.ShowID == sh.ID && !s.tvInfoNew(ctx, existing, sh, tv) {
@@ -227,6 +230,15 @@ func (s *Scanner) tvInfoNew(ctx context.Context, it *Item, sh *Show, tv *tvScan)
 	}
 	_, known := s.tvEpisodes(ctx, sh, tv)[[2]int{*it.Season, *it.Episode}]
 	return known
+}
+
+// knownTVInfoNew is tvInfoNew, from what a scan read at its start.
+func (s *Scanner) knownTVInfoNew(ctx context.Context, k *knownFile, sh *Show, tv *tvScan) bool {
+	if k.season < 0 || k.episode < 0 {
+		return false
+	}
+	season, episode := int(k.season), int(k.episode)
+	return s.tvInfoNew(ctx, &Item{Provider: k.provider, Season: &season, Episode: &episode}, sh, tv)
 }
 
 // applyEpisodeMeta fills an episode from TheTVDB. Titles parsed from file

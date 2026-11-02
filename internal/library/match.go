@@ -1411,29 +1411,21 @@ func (m metaIndex) get(target string, id int64) *TitleMeta {
 }
 
 func (s *Store) allTitleMeta(ctx context.Context) (metaIndex, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT target, target_id FROM title_meta`)
+	rows, err := s.DB.QueryContext(ctx, `SELECT target, target_id, `+titleMetaCols+` FROM title_meta`)
 	if err != nil {
 		return nil, err
 	}
-	type key struct {
-		t  string
-		id int64
-	}
-	var keys []key
-	for rows.Next() {
-		var k key
-		if err := rows.Scan(&k.t, &k.id); err != nil {
-			rows.Close()
-			return nil, err
-		}
-		keys = append(keys, k)
-	}
-	rows.Close()
+	defer rows.Close()
 	out := metaIndex{}
-	for _, k := range keys {
-		out[k.t+strconv.FormatInt(k.id, 10)] = s.TitleMeta(ctx, k.t, k.id)
+	for rows.Next() {
+		var target string
+		var id int64
+		m := scanTitleMeta(rows, &target, &id)
+		if target != "" {
+			out[target+strconv.FormatInt(id, 10)] = m
+		}
 	}
-	return out, nil
+	return out, rows.Err()
 }
 
 // Suggest searches for a title and keeps the best results, so its row in the queue

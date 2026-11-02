@@ -75,6 +75,7 @@ type Scanner struct {
 	running map[int64]context.CancelFunc
 	// Progress for the UI.
 	Progress map[int64]*ScanProgress
+	lastTrim time.Time // when the caches were last kept to their limits; guarded by mu
 }
 
 type ScanProgress struct {
@@ -345,6 +346,8 @@ type candidate struct {
 	discs   []gameDisc
 	// format is the registry's id, when the content said it and the name didn't.
 	format string
+	// known is what the library already says about this path, if anything.
+	known *knownFile
 }
 
 // discover lists playable things under a root: video files, disc images and
@@ -593,6 +596,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	}
 	rules := s.Store.loadRuleSet(ctx, lib)
 	ctx = context.WithValue(ctx, rulesKey{}, rules)
+	if lib.Type != "games" {
+		if err := s.Store.loadKnown(ctx, libraryID, all, !IsAudioLibrary(lib.Type) && lib.Type != "photos" && lib.Type != "books"); err != nil && ctx.Err() == nil {
+			s.Log.WarnContext(ctx, "could not read what the library holds in one go; looking file by file", "library", lib.Name, "err", err)
+		}
+	}
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
 	if lib.Type == "games" {
 		task.Phase("Listing the games")
@@ -673,6 +681,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		}
 	}
 	s.Store.DB.Optimize(ctx)
+	s.trimCaches()
 	problems := tally.report(ctx, s.Log)
 	s.Log.InfoContext(ctx, "scan finished", "library", lib.Name, "items", len(all), "errors", failed+problems,
 		"offline", len(offline), "took", time.Since(started).Round(time.Second).String())
@@ -700,6 +709,10 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 			c.kind = CDKind
 			return s.indexCD(ctx, lib, c)
 		}
+	}
+	if k := c.unchanged(); k != nil && k.hasPoster && !k.hasDisc && !k.missing {
+		s.fixParsedTitle(ctx, &Item{ID: k.id, Path: c.path, Title: k.title, Provider: k.provider}, c.kind)
+		return nil
 	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
 	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size {
@@ -1262,7 +1275,7 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 			at = cell.Cell.Duration / 2
 		}
 	}
-	if err := s.Tools.Still(tctx, input, at, 600, out); err != nil {
+	if err := s.Tools.Poster(tctx, input, at, 600, out); err != nil {
 		return "", err
 	}
 	return "cache:" + name, nil
@@ -1272,7 +1285,7 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 // its file by the earlier, faulty parse ("Dr.Story.The.Treeline" became
 // "Dr Story The"). Items matched online or retitled by hand keep theirs.
 func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind string) {
-	if it.Provider != "" || s.Store.TitleMeta(ctx, TargetItem, it.ID).Locks["title"] {
+	if it.Provider != "" {
 		return
 	}
 	base := strings.TrimSuffix(filepath.Base(it.Path), filepath.Ext(it.Path))
@@ -1280,7 +1293,7 @@ func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind string) {
 		base = filepath.Base(it.Path)
 	}
 	title, _ := ParseName(base)
-	if title == it.Title || it.Title != legacyTitle(base) {
+	if title == it.Title || it.Title != legacyTitle(base) || s.Store.TitleMeta(ctx, TargetItem, it.ID).Locks["title"] {
 		return
 	}
 	if err := s.Store.retitle(ctx, it.ID, title); err != nil {

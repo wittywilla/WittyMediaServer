@@ -52,6 +52,7 @@ type formatRow struct {
 	check func(p *ffmpeg.Probe) string
 	res   stage
 	note  string
+	made bool // its sample was made
 }
 
 func av(args ...string) func(st *sampleTools, p string) error {
@@ -559,6 +560,8 @@ type subtitleRow struct {
 	burn     bool // pictures: the server draws it
 	res      stage
 	note     string
+	video bool // a file beside a video, rather than a track inside one
+	made  bool // its sample was made
 }
 
 func text(s string) func(st *sampleTools, p string) error {
@@ -647,6 +650,42 @@ func embeddedRows() []*subtitleRow {
 	}
 }
 
+// formatRowsAtOnce is how many rows are played at once: fewer than hls.maxGrowing, which ends the
+// oldest copied stream to make room for another.
+const formatRowsAtOnce = 6
+
+// eachAtOnce runs f on every row in a subtest of its own, up to most at once (0: as many as
+// -parallel says), and returns when they've all finished.
+func eachAtOnce[R any](t *testing.T, name string, most int, rows []R, label func(R) string, f func(t *testing.T, r R)) {
+	t.Helper()
+	var slots chan struct{}
+	if most > 0 {
+		slots = make(chan struct{}, most)
+	}
+	t.Run(name, func(t *testing.T) {
+		for _, r := range rows {
+			t.Run(label(r), func(t *testing.T) {
+				t.Parallel()
+				if slots != nil {
+					slots <- struct{}{}
+					defer func() { <-slots }()
+				}
+				f(t, r)
+			})
+		}
+	})
+}
+
+// forRow is the sample tools for one row, with a folder of its own, as rows are made at once.
+func (st *sampleTools) forRow(t *testing.T, id string) *sampleTools {
+	t.Helper()
+	dir := filepath.Join(st.dir, safeRowName(id))
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return &sampleTools{t: t, ffmpeg: st.ffmpeg, dir: dir, office: st.office}
+}
+
 // formatServer is a server like newTestServer's, with the machine's own FFmpeg.
 func formatServer(t *testing.T, tools *ffmpeg.Tools) *testServer {
 	t.Helper()
@@ -661,15 +700,15 @@ func formatServer(t *testing.T, tools *ffmpeg.Tools) *testServer {
 		logTo = os.Stderr
 	}
 	log := slog.New(slog.NewTextHandler(logTo, nil))
-	h := hls.NewManager(tools, filepath.Join(dir, "transcode"), 2, log)
+	h := hls.NewManager(tools, filepath.Join(dir, "transcode"), formatRowsAtOnce, log)
 	store := &library.Store{DB: d}
 	cache := filepath.Join(dir, "cache")
 	s := &Server{
-		Cfg: &config.Config{DataDir: dir, ImagesDir: filepath.Join(dir, "images"), CacheDir: cache, MaxTranscode: 2}, DB: d, Log: log, Tools: tools, Store: store,
+		Cfg: &config.Config{DataDir: dir, ImagesDir: filepath.Join(dir, "images"), CacheDir: cache, MaxTranscode: formatRowsAtOnce}, DB: d, Log: log, Tools: tools, Store: store,
 		Scanner: library.NewScanner(store, tools, cache, func() string { return "" }, log),
 		Auth:    &auth.Service{DB: d}, HLS: h, DVD: dvdsession.NewManager(h, tools, dir, "/api", log), BD: bdsession.NewManager(h, tools, dir, "/api", log),
 		Themes: &themes.Manager{Dir: filepath.Join(dir, "themes")}, Web: fstest.MapFS{"index.html": {Data: []byte("<html></html>")}}, Version: "test",
-		audioSlots: make(chan struct{}, 4),
+		audioSlots: make(chan struct{}, 2*formatRowsAtOnce),
 	}
 	if err := os.MkdirAll(s.Scanner.ImagesDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -689,7 +728,7 @@ func TestFormatTable(t *testing.T) {
 	ts := formatServer(t, tools)
 	_, tok := ts.user(t, "tester", auth.KindAdult, true, "")
 	root := t.TempDir()
-	st := &sampleTools{t: t, ffmpeg: tools.FFmpeg, dir: filepath.Join(root, "work")}
+	st := &sampleTools{t: t, ffmpeg: tools.FFmpeg, dir: filepath.Join(root, "work"), office: &officeProfile{dir: filepath.Join(root, "office-profile")}}
 	if err := os.MkdirAll(st.dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -718,21 +757,29 @@ func TestFormatTable(t *testing.T) {
 		}
 		// A small film alone in the folder keeps the "folder is empty" check from firing
 		// if a run makes nothing else.
-		var made []*formatRow
+		var wanted, made []*formatRow
 		for _, row := range g.rows {
-			if filter != nil && !filter.MatchString(row.id) {
-				continue
+			if filter == nil || filter.MatchString(row.id) {
+				wanted = append(wanted, row)
 			}
+		}
+		rowID := func(r *formatRow) string { return r.id }
+		eachAtOnce(t, g.title+" samples", 0, wanted, rowID, func(t *testing.T, row *formatRow) {
 			p := filepath.Join(folder, filepath.FromSlash(row.file))
 			if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 				t.Fatal(err)
 			}
-			if err := row.make(st, p); err != nil {
+			if err := row.make(st.forRow(t, row.id), p); err != nil {
 				row.res = stage{scan: "no sample", probe: sNA, art: sNA, decision: sNA, play: sNA}
 				row.note = strings.ReplaceAll(strings.TrimSpace(err.Error()), "\n", " ")
-				continue
+				return
 			}
-			made = append(made, row)
+			row.made = true
+		})
+		for _, row := range wanted {
+			if row.made {
+				made = append(made, row)
+			}
 		}
 		if len(made) > 0 {
 			id := ts.library(t, g.lib, folder)
@@ -745,15 +792,14 @@ func TestFormatTable(t *testing.T) {
 			for _, it := range items {
 				byPath[it.Path] = it
 			}
-			for _, row := range made {
+			eachAtOnce(t, g.title+" results", formatRowsAtOnce, made, rowID, func(t *testing.T, row *formatRow) {
 				p := filepath.Join(folder, filepath.FromSlash(row.file))
-				it := byPath[p]
-				if it == nil {
+				if it := byPath[p]; it == nil {
 					row.res = stage{scan: "FAIL: not in the library", probe: sNA, art: sNA, decision: sNA, play: sNA}
 				} else {
 					checkItem(t, ts, tok, g.lib, row, it, tools)
 				}
-			}
+			})
 		}
 		fmt.Fprintf(&table, "\n### %s\n\n| Format | Scan | Probe | Artwork | Decision | Playback | Note |\n|---|---|---|---|---|---|---|\n", g.title)
 		for _, row := range g.rows {
@@ -1328,41 +1374,40 @@ func checkSubtitles(t *testing.T, ts *testServer, tok string, tools *ffmpeg.Tool
 		t.Fatal(err)
 	}
 	rows := subtitleRows()
-	var made []*subtitleRow
-	for _, row := range rows {
-		if filter != nil && !filter.MatchString(row.id) {
-			continue
-		}
-		dir := filepath.Join(folder, safeRowName(row.id))
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			t.Fatal(err)
-		}
-		stem := strings.SplitN(row.name, ".", 2)[0]
-		if err := st.ff(filepath.Join(dir, stem+".mkv"), join(h264v(), x264, []string{"-c:a", "aac"})...); err != nil {
-			t.Fatal(err)
-		}
-		if err := row.make(st, filepath.Join(dir, row.name)); err != nil {
-			row.res = stage{scan: "no sample", probe: sNA, art: sNA, decision: sNA, play: sNA}
-			row.note = err.Error()
-			continue
-		}
-		made = append(made, row)
-	}
 	embedded := embeddedRows()
-	for _, row := range embedded {
-		if filter != nil && !filter.MatchString(row.id) {
-			continue
+	var wanted, made []*subtitleRow
+	for _, row := range rows {
+		row.video = true
+	}
+	for _, row := range append(append([]*subtitleRow{}, rows...), embedded...) {
+		if filter == nil || filter.MatchString(row.id) {
+			wanted = append(wanted, row)
 		}
+	}
+	rowID := func(r *subtitleRow) string { return r.id }
+	eachAtOnce(t, "Subtitle samples", 0, wanted, rowID, func(t *testing.T, row *subtitleRow) {
+		st := st.forRow(t, row.id)
 		dir := filepath.Join(folder, safeRowName(row.id))
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatal(err)
 		}
+		if row.video { // beside a video of its own
+			stem := strings.SplitN(row.name, ".", 2)[0]
+			if err := st.ff(filepath.Join(dir, stem+".mkv"), join(h264v(), x264, []string{"-c:a", "aac"})...); err != nil {
+				t.Fatal(err)
+			}
+		}
 		if err := row.make(st, filepath.Join(dir, row.name)); err != nil {
 			row.res = stage{scan: "no sample", probe: sNA, art: sNA, decision: sNA, play: sNA}
 			row.note = err.Error()
-			continue
+			return
 		}
-		made = append(made, row)
+		row.made = true
+	})
+	for _, row := range wanted {
+		if row.made {
+			made = append(made, row)
+		}
 	}
 	if len(made) == 0 {
 		return ""
@@ -1377,21 +1422,21 @@ func checkSubtitles(t *testing.T, ts *testServer, tok string, tools *ffmpeg.Tool
 	for _, it := range items {
 		byDir[filepath.Base(filepath.Dir(it.Path))] = it
 	}
-	for _, row := range made {
+	eachAtOnce(t, "Subtitle results", formatRowsAtOnce, made, rowID, func(t *testing.T, row *subtitleRow) {
 		row.res = stage{scan: sOK, probe: sNA, art: sNA, decision: sNA, play: sNA}
 		it := byDir[safeRowName(row.id)]
 		if it == nil {
 			row.res.scan = "FAIL: the video isn't in the library"
-			continue
+			return
 		}
 		a, bad := askPlayback(t, ts, tok, it.ID, map[string]any{"subtitle": 0})
 		if bad != "" {
 			row.res.decision = bad
-			continue
+			return
 		}
 		if len(a.Subtitles) == 0 {
 			row.res.probe = "FAIL: no subtitle track found"
-			continue
+			return
 		}
 		row.res.probe = sOK
 		row.res.decision = a.SubtitleDelivery
@@ -1405,32 +1450,32 @@ func checkSubtitles(t *testing.T, ts *testServer, tok string, tools *ffmpeg.Tool
 		if row.burn {
 			row.res.play = playHLS(t, ts, tok, a, tools, nil)
 			ts.do(t, "DELETE", "/api/hls/"+a.StreamID, tok, nil)
-			continue
+			return
 		}
 		vtt := ts.do(t, "GET", a.Subtitles[0].URL, tok, nil)
 		body := vtt.Body.String()
 		switch {
 		case vtt.Code != 200:
 			row.res.play = fmt.Sprintf("FAIL: WebVTT %d: %s", vtt.Code, trimBody(body))
-			continue
+			return
 		case !strings.HasPrefix(body, "WEBVTT") || !strings.Contains(body, "-->"):
 			row.res.play = "FAIL: not WebVTT: " + trimBody(body)
-			continue
+			return
 		}
 		row.res.play = sOK
 		if strings.Contains(row.id, "1252") && !strings.Contains(body, "Café crème") {
 			row.res.play = "FAIL: its encoding came out wrong: " + trimBody(body)
-			continue
+			return
 		}
 		// Burned in as well, for a player that wants its styling.
 		b, bad := askPlayback(t, ts, tok, it.ID, map[string]any{"subtitle": 0, "burnSubtitle": true})
 		if bad != "" {
 			row.res.play = bad
-			continue
+			return
 		}
 		row.res.play = playHLS(t, ts, tok, b, tools, nil)
 		ts.do(t, "DELETE", "/api/hls/"+b.StreamID, tok, nil)
-	}
+	})
 	var out strings.Builder
 	out.WriteString("\n### Subtitles\n\n| Format | Scan | Found | Artwork | Delivery | Text, and burned in | Note |\n|---|---|---|---|---|---|---|\n")
 	all := append(rows, embedded...)
@@ -1594,7 +1639,7 @@ func TestHostileFiles(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, it := range items {
+		eachAtOnce(t, lib, formatRowsAtOnce, items, func(it *library.Item) string { return filepath.Base(it.Path) }, func(t *testing.T, it *library.Item) {
 			for _, u := range map[string][]string{"book": {"/book", "/page/0", "/file"}, "photo": {"/image?w=320", "/motion"}, "video": {"/file"}, "audio": {"/stream"}}[it.Kind] {
 				w := ts.do(t, "GET", fmt.Sprintf("/api/items/%d%s", it.ID, u), tok, nil, "Range", "bytes=0-99")
 				if w.Code >= 500 && w.Code != 503 && strings.Contains(w.Body.String(), "panic") {
@@ -1614,6 +1659,6 @@ func TestHostileFiles(t *testing.T) {
 					t.Errorf("%s: a web page or a program got into a %s library", it.Path, lib)
 				}
 			}
-		}
+		})
 	}
 }

@@ -146,9 +146,6 @@ var fields = map[string]fieldSpec{
 // IsField says whether a name is a field of a title.
 func IsField(name string) bool { _, ok := fields[name]; return ok }
 
-// IsArt says whether a field holds a picture.
-func IsArt(name string) bool { return fields[name].kind == kindArt && IsField(name) }
-
 // Clean is a stored value as this package would have read it: a value that only differs
 // from it by what cleaning removes hasn't changed.
 func Clean(field, v string) string {

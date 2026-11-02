@@ -35,7 +35,7 @@ const (
 )
 
 // badAnswer is an answer from a helper that no honest helper gives. It counts against
-// the version, and the built-in copy takes over.
+// the version.
 type badAnswer struct{ err error }
 
 func (b *badAnswer) Error() string { return b.err.Error() }
@@ -128,8 +128,7 @@ func checkUnits(us []dvd.LangUnit) error {
 }
 
 // checkDisc checks a disc's structure, which the session's own code then walks: every
-// table it indexes must have the size that code expects, as the parser makes sure for
-// the built-in copy.
+// table it indexes must have the size that code expects, as a parser would make sure of.
 func checkDisc(d *dvd.Disc) error {
 	if d.VMG == nil {
 		return bad("the helper gave a disc with no structure")

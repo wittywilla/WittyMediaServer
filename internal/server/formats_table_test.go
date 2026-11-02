@@ -45,7 +45,6 @@ const (
 type formatRow struct {
 	id   string // the row's name in the table
 	file string // relative to its library's folder
-	lib  string // the kind of library
 	make func(st *sampleTools, path string) error
 	// want is the playback decision for a browser that says nothing about itself.
 	want string

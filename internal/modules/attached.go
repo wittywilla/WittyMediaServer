@@ -26,7 +26,7 @@ type Attached struct {
 }
 
 // Attach starts nothing yet, and gives a job its own helper for the version in use.
-// It returns nil when the built-in copy is in use, which is what the job then uses.
+// It returns nil when no helper version is in use, and the job then can't go ahead.
 func (m *Manager) Attach(id string, callTimeout time.Duration) *Attached {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -53,7 +53,7 @@ func (a *Attached) Version() string { return a.version }
 
 // Call asks the helper one thing. A *wittymodule.CallError is a working helper saying
 // no. Any other error means it failed, which counts against the version, and the job
-// goes on with its built-in copy; the helper's state is gone with it.
+// loses the helper's state with it.
 func (a *Attached) Call(method string, params, out any) ([]byte, error) {
 	blob, err := a.p.Call(method, params, out)
 	var ce *wittymodule.CallError

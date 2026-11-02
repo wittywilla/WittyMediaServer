@@ -29,8 +29,8 @@ func (e *DoctorEnv) modulesDir() string { return filepath.Join(e.Data, "modules"
 func checkModuleState(_ context.Context, e *DoctorEnv) []Issue {
 	if _, err := modules.ReadInstalledState(e.modulesDir()); err != nil {
 		return []Issue{{Key: "module-state", Severity: SevWarn, Title: "The list of installed modules can't be read", Safety: SafetySafe, Exclusive: e.Modules == nil,
-			What: "modules/state.json is damaged: " + err.Error() + ". Every module is using the copy built into the server until this is fixed, and your choices of version can't be remembered.",
-			Fix:  "Moves the damaged file to the safety copy. Modules carry on with their built-in copies, and later updates install as usual."}}
+			What: "modules/state.json is damaged: " + err.Error() + ". No downloaded module is in use until this is fixed, and your choices of version can't be remembered.",
+			Fix:  "Moves the damaged file to the safety copy. Modules are out of use until you install them again from Settings, Modules."}}
 	}
 	return nil
 }
@@ -39,7 +39,7 @@ func fixModuleState(_ context.Context, e *DoctorEnv, _ *Issue, f *FixContext) (s
 	if err := f.Remove(filepath.Join(e.modulesDir(), "state.json")); err != nil {
 		return "", err
 	}
-	return "The damaged list was moved to the safety copy. Modules use their built-in copies until you install an update.", nil
+	return "The damaged list was moved to the safety copy. Modules are out of use until you install them again from Settings, Modules.", nil
 }
 
 // --------------------------------------------------------------- each installed version
@@ -93,10 +93,10 @@ func checkModuleVersions(_ context.Context, e *DoctorEnv) []Issue {
 				what = "It's listed as installed, but " + p.Error() + "."
 			}
 			if inUse {
-				what += " Until this is fixed the server falls back to the version before it or its built-in copy."
+				what += " Until this is fixed the server falls back to the version before it, if it has one."
 			}
 			iss := Issue{Key: "module-versions:" + id + ":" + ver, Severity: sev, Title: title, What: what, Safety: SafetySafe, Exclusive: e.Modules == nil, data: badVersion{id, ver, inUse},
-				Fix: "Takes this version out of use, and moves its files to the safety copy. The module goes back to the version before it, or to its built-in copy."}
+				Fix: "Takes this version out of use, and moves its files to the safety copy. The module goes back to the version before it. With none, it's out of use until you install it again."}
 			if inUse {
 				iss.Options = []FixOption{{ID: "reinstall", Label: "Reinstall it", Network: true, What: "Also downloads this module's newest compatible version from its publisher. Nothing is downloaded unless you choose this."}}
 				iss.Steps = []string{"To reinstall afterwards: wittymediaserver doctor reinstall " + id + ", or use the Modules page in Settings."}
@@ -124,7 +124,7 @@ func fixModuleVersion(_ context.Context, e *DoctorEnv, i *Issue, f *FixContext) 
 				if err := e.Modules.UseBuiltin(b.id); err != nil {
 					return "", err
 				}
-				said = b.id + " is using its built-in copy."
+				said = b.id + " is out of use until it's installed again."
 			} else {
 				said = b.id + " went back to the version before."
 			}
@@ -138,7 +138,7 @@ func fixModuleVersion(_ context.Context, e *DoctorEnv, i *Issue, f *FixContext) 
 			if now != "" {
 				said = b.id + " went back to " + now + "."
 			} else {
-				said = b.id + " is using its built-in copy."
+				said = b.id + " is out of use until it's installed again."
 			}
 		}
 	}

@@ -116,15 +116,6 @@ func Open(path string, log *slog.Logger) (*Remote, error) {
 	return RemoteEngine(path, bluray.NavOptions{}, log)
 }
 
-// runsJava: a disc with Java programs, on a server that has that turned on.
-func (m *Manager) runsJava(d *engineDisc) bool {
-	if !d.BDJ || m.BDJ == nil {
-		return false
-	}
-	enabled, _ := m.BDJ()
-	return enabled
-}
-
 // navOptions is the player a viewer's choices describe.
 func navOptions(prefs Prefs) bluray.NavOptions {
 	return bluray.NavOptions{Registers: bluray.RegisterOptions{

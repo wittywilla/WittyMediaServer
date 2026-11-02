@@ -38,15 +38,6 @@ type javaHost struct {
 	pngVer  int
 }
 
-// Java says how to start this disc's programs, or nil if this helper can't tell this side
-// what they do.
-func (e *engine) java() bdsession.JavaEngine {
-	if _, ok := e.h.(listener); !ok {
-		return nil
-	}
-	return e
-}
-
 // StartJava starts Java in the helper. An error means the disc plays from its playlists.
 func (e *engine) StartJava(o bdsession.JavaOptions) (bdsession.JavaHost, error) {
 	e.mu.Lock()

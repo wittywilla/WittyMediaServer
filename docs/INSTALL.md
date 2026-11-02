@@ -24,6 +24,8 @@ FFmpeg comes with the download, so there's nothing else to install first, apart 
 
 Everything is on the project's [Releases page](https://github.com/wittywilla/WittyMediaServer/releases). Most people want the installer. Each file name starts `wittymediaserver-<version>-`, followed by what's in the table.
 
+These files are the server, for the computer that holds your media. **For a phone, a TV or another computer, you don't install the server.** Open the server's address in a web browser, or use the app, [WittyMediaClient](https://github.com/wittywilla/WittyMediaClient/releases), which has its own Releases page. The app is written for Windows, macOS, Linux, FreeBSD, Android, Android TV, iOS, tvOS and Plasma Big Screen, but it's early: Android has been run on emulators only, and iOS and tvOS have never been built. A web browser is the way to reach everything today. [Apps and devices](APPS.md) has the state of each device.
+
 | System | Installer | Without installing |
 |---|---|---|
 | Windows 10 or 11 | `windows-amd64.msi`, `windows-arm64.msi` | `windows-amd64.zip`, `windows-arm64.zip` |

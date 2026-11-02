@@ -296,14 +296,3 @@ func (g *GameMeta) TestSource(ctx context.Context, id string, fields map[string]
 	}
 	return "", err
 }
-
-// SourceAbout is every source's description, built with no secrets, for places that
-// list them without using them: the credits, the docs.
-func SourceAbout() []gamemeta.About {
-	g := &GameMeta{}
-	var out []gamemeta.About
-	for _, s := range g.build(map[string]string{}) {
-		out = append(out, s.About())
-	}
-	return out
-}

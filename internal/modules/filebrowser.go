@@ -90,9 +90,6 @@ func (m *Manager) missing(id string) error {
 // use. Without it, someone can still type a folder's path. M may be nil.
 type FileBrowser struct{ M *Manager }
 
-// Available says whether there's a version in use.
-func (b FileBrowser) Available() bool { return b.M != nil && b.M.Installed(fileBrowserID) }
-
 // Places lists where to start: the helper's drives and usual folders, then extra,
 // which is what the server knows itself, such as folders already in libraries.
 func (b FileBrowser) Places(extra ...Place) ([]Place, error) {
@@ -179,8 +176,8 @@ func IsHidden(name string) bool {
 	return false
 }
 
-// checkedListing makes what a helper said into what the built-in copy would have
-// answered about the same folder, or nil if it can't be. A listing only names things,
+// checkedListing makes what a helper said into a true answer about the folder asked
+// for, or nil if it can't be. A listing only names things,
 // but the page offers those names as paths to open, so they must be the ones asked for.
 func checkedListing(asked string, l *Listing, o ListOptions) *Listing {
 	if !isFolderOf(asked, l.Path) {

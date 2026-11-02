@@ -193,14 +193,6 @@ func checkCD(ctx context.Context, j *Job, path string) bool {
 	return true
 }
 
-// kindSentence words what a disc is, for the findings the server adds itself.
-func kindSentence(src *discSource) string {
-	if src.IsDir {
-		return "A folder"
-	}
-	return "A " + formatName(src.Format) + " image"
-}
-
 func plural(n int, one, many string) string {
 	if n == 1 {
 		return "1 " + one

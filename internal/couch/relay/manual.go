@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log/slog"
 	"os/exec"
-	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymodule/service"
@@ -33,7 +32,6 @@ type Options struct {
 type Session struct {
 	Sid string `json:"id"`
 
-	once  sync.Once
 	ended chan struct{}
 }
 

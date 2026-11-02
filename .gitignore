@@ -11,8 +11,9 @@ web/dist/*
 *.db-shm
 .DS_Store
 Thumbs.db
-dvd_iso_test/
-stuff-to-reverse-engineer/
+
+# Worktrees and settings from AI coding tools
+.claude/
 
 # TypeScript build cache
 *.tsbuildinfo

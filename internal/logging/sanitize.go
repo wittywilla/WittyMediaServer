@@ -155,9 +155,6 @@ func (s *Sanitizer) learnLines(r io.Reader, limit int) {
 	}
 }
 
-// NewScrubber is NewSanitizer for callers that only know the library folders.
-func NewScrubber(roots []string) *Sanitizer { return NewSanitizer(Known{Folders: roots}) }
-
 func (s *Sanitizer) addFolder(p string, seen map[string]bool) {
 	p = strings.TrimRight(strings.TrimSpace(p), `\/`)
 	if len(p) < 3 { // "/" or "D:" would match everything

@@ -109,9 +109,6 @@ func init() {
 	}
 }
 
-// Formats returns every format, in the registry's order. Don't change them.
-func Formats() []Format { return formats }
-
 // Codecs returns every codec. Don't change them.
 func Codecs() []Codec { return codecs }
 
@@ -149,9 +146,6 @@ func IsAudio(name string) bool { return ofCategory(name, Audio) != nil }
 // IsPhoto: the name is that of a picture or camera RAW file.
 func IsPhoto(name string) bool { return ofCategory(name, Photo) != nil }
 
-// IsBook: the name is that of a book or comic.
-func IsBook(name string) bool { return ofCategory(name, Book, Comic) != nil }
-
 // IsSubtitle: the name is that of a subtitle file.
 func IsSubtitle(name string) bool { return ofCategory(name, Subtitle) != nil }
 
@@ -160,11 +154,6 @@ func IsPlaylist(name string) bool { return ofCategory(name, Playlist) != nil }
 
 // IsDiscImage: the name is that of a disc image.
 func IsDiscImage(name string) bool { return ofCategory(name, Disc) != nil }
-
-// IsMedia: the name is that of something a scan would take for a library.
-func IsMedia(name string) bool {
-	return ofCategory(name, Video, Audio, Photo, Book, Comic, Disc) != nil
-}
 
 // IsWebImage: every current browser shows this kind of picture itself, so the
 // original can be sent as it is.

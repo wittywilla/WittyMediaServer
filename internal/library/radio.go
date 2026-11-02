@@ -226,11 +226,11 @@ func (s *Store) ReviewOfYear(ctx context.Context, userID int64, year int, access
 		return r, nil
 	}
 	type row struct {
-		id, show        int64
-		title, typ, sub string
-		artist, studio  string
-		genres, sTitle  string
-		secs            float64
+		id, show       int64
+		title, typ     string
+		artist, studio string
+		genres, sTitle string
+		secs           float64
 	}
 	clause, cargs := access.ItemClause()
 	rows, err := s.DB.QueryContext(ctx, `SELECT i.id, IFNULL(i.show_id, 0), i.title, IFNULL(l.type, ''), IFNULL(i.artist, ''), IFNULL(i.album_artist, ''), IFNULL(i.studio, ''),

@@ -44,6 +44,8 @@ Discs, games, photos, readers and tuners are modules: separate programs you add 
 2. Open **WittyMediaServer**. Your browser opens first-time setup.
 3. Create your account, point it at your folders and press **Start watching**.
 
+Those downloads are the server, for the computer that holds your media. **To watch on another device,** open the server's address in a web browser, or use the app, [WittyMediaClient](https://github.com/wittywilla/WittyMediaClient/releases), which has its own Releases page. It's for phones, TVs and other computers, and it's early: see [Where it has been run](#where-it-has-been-run).
+
 The full walkthrough is in [Getting started](docs/GETTING_STARTED.md), and [Installing](docs/INSTALL.md) covers services, Docker and a NAS:
 
 ```bash

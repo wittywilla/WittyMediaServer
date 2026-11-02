@@ -463,13 +463,6 @@ func (s *Server) rigMoved(ctx context.Context, rig *rigRow, f gamestream.Found) 
 	}
 }
 
-func rigPortOf(port int) int {
-	if port == gamestream.DefaultPort {
-		return 0
-	}
-	return port
-}
-
 // POST /api/rigs {address, name, confirmPublic}: add a PC. It has to answer as Sunshine.
 func (s *Server) handleRigAdd(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

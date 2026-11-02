@@ -1016,7 +1016,7 @@ func (e *Engine) encode(ctx context.Context, f *part, s Settings, t *tasks.Handl
 	watcherDone := make(chan struct{})
 	go func() {
 		defer close(watcherDone)
-		e.watch(jobCtx, cmd, f, t, stop, &why)
+		e.watch(jobCtx, cmd, f, t, s, stop, &why)
 	}()
 	readProgress(stdout, func(sec float64) { prog(f, sec) })
 	err = cmd.Wait()
@@ -1034,7 +1034,7 @@ func (e *Engine) encode(ctx context.Context, f *part, s Settings, t *tasks.Handl
 
 // watch looks at a running FFmpeg's conditions a few times a minute: this only runs while
 // a conversion does, which costs far more than a look at the clock.
-func (e *Engine) watch(ctx context.Context, cmd *exec.Cmd, f *part, t *tasks.Handle, stop func(), why *atomic.Pointer[noRoom]) {
+func (e *Engine) watch(ctx context.Context, cmd *exec.Cmd, f *part, t *tasks.Handle, s Settings, stop func(), why *atomic.Pointer[noRoom]) {
 	held := false
 	var phased atomic.Bool
 	tick := time.NewTicker(e.tick())
@@ -1049,7 +1049,7 @@ func (e *Engine) watch(ctx context.Context, cmd *exec.Cmd, f *part, t *tasks.Han
 			return
 		case <-tick.C:
 		}
-		s := LoadSettings(ctx, e.DB)
+		s = settingsNow(ctx, e.DB, s)
 		words := e.holdWords(s)
 		paused := t.PauseWanted()
 		switch {

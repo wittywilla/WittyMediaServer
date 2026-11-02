@@ -29,7 +29,6 @@ type fakeSource struct {
 	answer func(q gamemeta.Query) (*gamemeta.Info, error)
 	asked  atomic.Int32
 	titles []string
-	gaps   bool
 }
 
 func (f *fakeSource) About() gamemeta.About {

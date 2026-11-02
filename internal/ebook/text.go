@@ -207,9 +207,8 @@ func fromRTF(data []byte) (*Book, error) {
 }
 
 type rtfState struct {
-	skip         bool
-	bold, italic bool
-	dest         string // info field being read
+	skip bool
+	dest string // info field being read
 }
 
 type rtfReader struct {
@@ -218,7 +217,6 @@ type rtfReader struct {
 	para          strings.Builder
 	title, author string
 	field         strings.Builder
-	cp1252        bool
 	stack         []rtfState
 	cur           rtfState
 	ucSkip        int

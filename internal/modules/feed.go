@@ -573,7 +573,7 @@ func (m *Manager) judge(e *entry, man *wittymodule.Manifest) (refused, warning s
 }
 
 // Versions lists what is known, without going online: the last check's answer, or an
-// empty list and the built-in copy until there has been one. Incompatible versions
+// empty list until there has been one. Incompatible versions
 // are there too, explained, rather than hidden.
 func (m *Manager) Versions(id string) (VersionList, error) {
 	m.mu.Lock()
@@ -609,7 +609,7 @@ func (m *Manager) Versions(id string) (VersionList, error) {
 			v.Refused, v.Warning = m.judge(e, k.man)
 			v.Allowed = v.Refused == ""
 		}
-		// The same number from a fork is someone else's code, not the built-in copy.
+		// The same number from a fork is someone else's code, not a part of the server.
 		if ver == e.builtin.Version && e.state.Source == nil {
 			v.Builtin = true
 		}
@@ -632,9 +632,9 @@ func (m *Manager) Versions(id string) (VersionList, error) {
 			l.Versions = append(l.Versions, v)
 		}
 	}
-	// A part of the server has its built-in copy, which can always be chosen.
+	// A part of the server is built in, which can always be chosen.
 	if e.absent {
-		// There's no such copy of a module.
+		// A module has nothing built in.
 	} else if !seen[e.builtin.Version] || e.state.Source != nil {
 		l.Versions = append(l.Versions, VersionInfo{Offer: Offer{Version: e.builtin.Version, MinServer: e.builtin.MinServer, MaxServer: e.builtin.MaxServer},
 			Builtin: true, InUse: e.dir == "", Allowed: e.dir != "", Older: wittymodule.Compare(e.builtin.Version, e.man.Version) < 0})

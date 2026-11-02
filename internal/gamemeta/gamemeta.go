@@ -14,7 +14,6 @@ package gamemeta
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -47,11 +46,6 @@ type RateLimited struct {
 }
 
 func (e *RateLimited) Error() string { return "rate limited: " + e.Why }
-
-// IsRetryable says whether an error means "ask again later" rather than "no".
-func IsRetryable(err error) bool {
-	return err != nil && !errors.Is(err, ErrNotFound)
-}
 
 // Query is what's known about a game file before asking.
 type Query struct {
@@ -208,8 +202,4 @@ type Metered interface {
 // is still missing.
 type GapFiller interface {
 	GapsOnly() bool
-}
-
-func errf(source, format string, a ...any) error {
-	return fmt.Errorf(source+": "+format, a...)
 }

@@ -93,10 +93,9 @@ type github struct {
 	requests  int
 	offline   bool
 	notFound  bool
-	limited   bool // answers every request as GitHub does when it has had enough
-	apiCalls  int  // to the release list
-	full      int  // of those, how many cost a full answer rather than a 304
-	sawAgent  string
+	limited   bool               // answers every request as GitHub does when it has had enough
+	apiCalls  int                // to the release list
+	full      int                // of those, how many cost a full answer rather than a 304
 	forbidden bool               // answers 403 with nothing about the limit, as for one repository
 	feedOnly  []update.GHRelease // what the list of the newest shows, when not everything
 }

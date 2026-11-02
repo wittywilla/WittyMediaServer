@@ -10,20 +10,22 @@
 //
 //   WMS_SERVER=http://127.0.0.1:9811 WMS_NAME=... WMS_PASS=... node scripts/test-pads.mjs browser [nes n64 ...]
 import { spawnSync } from 'node:child_process'
-import { rmSync } from 'node:fs'
-import { cpus } from 'node:os'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { cpus, tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Worker } from 'node:worker_threads'
-import { build } from 'esbuild'
+import { build } from 'vite'
 
 const [mode, ...consoles] = process.argv.slice(2)
 
 if (mode !== 'browser') {
   const entry = fileURLToPath(new URL('../tests/pads.test.ts', import.meta.url))
-  const out = entry.replace(/\.ts$/, '.tmp.mjs')
-  await build({ entryPoints: [entry], outfile: out, bundle: true, format: 'esm', platform: 'node', logLevel: 'warning' })
+  const dir = mkdtempSync(join(tmpdir(), 'test-pads-'))
+  const out = join(dir, 'pads.test.mjs')
+  await build({ configFile: false, logLevel: 'warn', publicDir: false, build: { ssr: entry, outDir: dir, rollupOptions: { output: { entryFileNames: 'pads.test.mjs' } } } })
   const r = spawnSync(process.execPath, ['--test', '--test-timeout=30000', '--test-force-exit', out], { stdio: 'inherit' })
-  rmSync(out, { force: true })
+  rmSync(dir, { recursive: true, force: true })
   process.exit(r.status === 0 ? 0 : 1)
 }
 

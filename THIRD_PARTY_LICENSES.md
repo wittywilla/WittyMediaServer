@@ -50,7 +50,7 @@ None of these is in the server's release, and no code from them is in WittyMedia
 
 | Program | License | How it's used |
 |---|---|---|
-| **WittyCouch Host** | **GPL-3.0** | A separate program, installed separately, that `wms` starts and talks to over pipes. Built from `modules/wittycouchhost`, with its complete source offered beside each release |
+| **WittyCouch Host** | **GPL-3.0** | A separate program, installed separately, that the server starts and talks to over pipes. Built from the WittyCouchHost repository, with its complete source offered beside each release |
 | [moonlight-common-c](https://github.com/moonlight-stream/moonlight-common-c) | GPL-3.0 | Moonlight's streaming core, inside WittyCouch Host |
 | [ENet](https://github.com/cgutman/enet), [nanors](https://github.com/sleepybishop/nanors) | MIT | Inside moonlight-common-c |
 | [Mbed TLS](https://github.com/Mbed-TLS/mbedtls) | Apache-2.0 (it's dual-licensed; this is the license chosen) | Inside WittyCouch Host |
@@ -138,7 +138,7 @@ implementations written from the publicly documented DVD-Video structure. No
 code from libdvdnav/libdvdread or any proprietary player is included, and no
 CSS decryption is performed.
 
-## WittyMediaPlayer (`apps/wittymediaplayer`, a separate desktop app)
+## WittyMediaPlayer (a separate desktop app, in its own repository)
 
 Its release is its own folder, with the full texts in its `licenses/` folder. It's not part of the server's
 archives or Docker image.
@@ -146,7 +146,7 @@ archives or Docker image.
 | Component | Licence | Notes |
 |---|---|---|
 | **Qt 6.10** (Core, Gui, Widgets, Multimedia) | LGPL-3.0 | Shared libraries beside the program, so they can be replaced. Source: <https://download.qt.io/official_releases/qt/6.10/>. |
-| **FFmpeg 8.1** (avcodec, avformat, avfilter, avutil, swresample, swscale) | LGPL-3.0-or-later | Shared libraries, built by `apps/wittymediaplayer/scripts/setup-toolchain.sh` with no GPL or non-free parts, no network code, and no `libbluray`, `libdvdread` or `libdvdnav`. Source: <https://ffmpeg.org/releases/ffmpeg-8.1.tar.xz>, with a copy to go beside each release. |
+| **FFmpeg 8.1** (avcodec, avformat, avfilter, avutil, swresample, swscale) | LGPL-3.0-or-later | Shared libraries, built by its `scripts/setup-toolchain.sh` with no GPL or non-free parts, no network code, and no `libbluray`, `libdvdread` or `libdvdnav`. Source: <https://ffmpeg.org/releases/ffmpeg-8.1.tar.xz>, with a copy to go beside each release. |
 | zlib 1.3.1 (inside FFmpeg) | Zlib | <https://zlib.net> |
 | LAME 3.100 (inside FFmpeg) | LGPL-2.0-or-later | Writes MP3 when copying CDs. Source goes with each release. <https://lame.sourceforge.io> |
 | Opus 1.5.2, libvorbis 1.3.7, libogg 1.3.5 (inside FFmpeg) | BSD-3-Clause | Write Opus and Ogg Vorbis when copying CDs. <https://xiph.org> |

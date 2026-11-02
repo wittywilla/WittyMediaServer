@@ -95,6 +95,7 @@ This is an alpha, so here's what has and hasn't been tried.
 
 ### Modules
 
+- **Repair no longer says a module has a copy in the server.** It said modules carry on with "built-in copies", which stopped being true when modules moved out.
 - **The module store:** search by name, description or category, browse by category, and filter by installed, updates,
   publisher and platform, with a page for each module: what it does, screenshots, what's new, what it asks for, what it's
   built on and which servers it fits. In Settings, Modules, and at `/settings/modules/store`.
@@ -148,6 +149,7 @@ Rebuilt so someone who's never done this can finish it, with a keyboard, a remot
 
 ### Installing and uninstalling
 
+- **The download page names WittyMediaClient.** The README, [Installing](docs/INSTALL.md) and each release now say which file is the server, and send phones, TVs and other computers to a browser or the app.
 - **Real installers, on every system.** Windows gets a normal `.msi` setup: just for you or for everyone, Start menu entry, optional background service,
   firewall rule, start at sign-in, desktop shortcut and command line, each asked for in plain words, with silent flags for admins, and updating in place.
   macOS gets a `.pkg` with a background service. Linux gets a `.deb` and an `.rpm` with a systemd service and a layout ready for a package repository. Each
@@ -910,7 +912,7 @@ notice:
 - Accounts other than the administrator no longer see server folders or podcast feed addresses.
 - An HLS playlist opened with a token in its address names its segments with a token for that stream
   alone, so the session's own token doesn't end up in playlists.
-Everything found in a full audit of the code; [docs/AUDIT.md](docs/AUDIT.md) has the details.
+Everything found in a full audit of the code; the details are in the project's history.
 
 ### Security
 

@@ -120,7 +120,6 @@ type storesWorld struct {
 	dir     string
 	starter string
 	key     ed25519.PrivateKey
-	release string // files for publishing
 }
 
 func newStoresWorld(t *testing.T, mods ...wittymodule.CatalogModule) *storesWorld {

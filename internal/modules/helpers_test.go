@@ -112,12 +112,3 @@ func (p PhotoEngine) Dimensions(path string) (w, h int) {
 func (p PhotoEngine) RawPreview(path string) ([]byte, error) {
 	return p.M.Call("wittyphotos", "preview", pathParams{path}, nil)
 }
-
-func (p PhotoEngine) IsRaw(name string) bool {
-	for _, e := range p.M.Capability("wittyphotos", "rawExtensions") {
-		if strings.EqualFold(e, filepath.Ext(name)) {
-			return true
-		}
-	}
-	return false
-}

@@ -135,7 +135,7 @@ func (m *Manager) ReinstallNow(ctx context.Context, id string) error {
 }
 
 // ForgetVersion takes a version out of use in state.json, with no Manager running: the
-// version before it becomes the choice if it's still good, or else the built-in copy.
+// version before it becomes the choice if it's still good, or else no version is.
 // A running server keeps this in memory, so it must use Rollback and UseBuiltin instead.
 func ForgetVersion(dir, id, ver, server string) (now string, err error) {
 	b, err := os.ReadFile(filepath.Join(dir, "state.json"))

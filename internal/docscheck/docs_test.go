@@ -330,7 +330,7 @@ func TestGuidesAreTidy(t *testing.T) {
 // Commands are wittymediaserver's. "wms" lives on only in file names and variables.
 func TestProgramNamesAreCurrent(t *testing.T) {
 	old := regexp.MustCompile(`(^|[^\w./-])(\./)?wms(\.exe)? (serve|doctor|config|backup|logs|metadata|dvd|bluray|cd|version|update|hash|uninstall)\b|cmd/wms\b|wms-tray|wms-setup`)
-	allowed := []string{"CHANGELOG.md", "INSTALL.md", "UNINSTALL.md", "AUDIT.md"}
+	allowed := []string{"CHANGELOG.md", "INSTALL.md", "UNINSTALL.md"}
 	for _, file := range docsFiles(t) {
 		if slices.Contains(allowed, filepath.Base(file)) {
 			continue

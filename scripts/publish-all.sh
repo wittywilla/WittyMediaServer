@@ -27,8 +27,8 @@ APPS=(WittyReader WittyMediaPlayer WittyMediaClient)
 CATALOG=WittyModuleCatalog
 SERVER=WittyMediaServer
 ORDER=("${LIBRARIES[@]}" "${PROGRAMS[@]}" "${WEB[@]}" "${APPS[@]}" "$CATALOG" "$SERVER")
-# What's on GitHub under an old name, to rename first.
-RENAMES=(WittyMoonlightHost:WittyCouchHost WittySunshine:WittyRigs)
+# The disc modules' copies for WittyMediaPlayer: a Go module of its own in a folder of each repository.
+PLAYER_COPIES=(WittyDVD:wittydvdplayer WittyBluray:wittyblurayplayer)
 # One word or pattern a line, of what no repository may name. It lives outside them all, as naming them
 # here would be just what it looks for.
 NAMES_FILE=${WMS_FORBIDDEN_NAMES:-}
@@ -107,27 +107,13 @@ for r in "${ORDER[@]}"; do
   [ -d "$repos/$r/.git" ] || die "$repos/$r isn't a repository"
 done
 if [ $have_gh = 1 ]; then
-  for pair in "${RENAMES[@]}"; do
-    old=${pair%:*} new=${pair#*:}
-    if gh repo view "$OWNER/$new" >/dev/null 2>&1; then :
-    elif gh repo view "$OWNER/$old" >/dev/null 2>&1; then
-      if [ $apply = 1 ]; then
-        note "renaming $old to $new"
-        gh repo rename "$new" -R "$OWNER/$old" --yes
-      else note "would rename $old to $new"; fi
-    else die "neither $old nor $new is on GitHub"; fi
-  done
   for r in "${ORDER[@]}"; do
-    case " ${RENAMES[*]} " in *":$r "*) continue ;; esac
     gh repo view "$OWNER/$r" >/dev/null 2>&1 && continue
     if [ $apply = 1 ]; then
       note "creating $r"
       gh repo create "$OWNER/$r" --public --disable-wiki=false
     else note "would create $r, public and empty"; fi
   done
-  if gh repo view "$OWNER/WittyMoonlight" >/dev/null 2>&1; then
-    owner_step "delete the repository WittyMoonlight: it holds only a README, and WittyCouch replaces it"
-  fi
   pub=$(gh variable get MODULE_PUBLIC_KEY -R "$OWNER/$CATALOG" 2>/dev/null || true)
   [ -n "$pub" ] || { [ $apply = 1 ] && die "$CATALOG has no MODULE_PUBLIC_KEY variable"; owner_step "set MODULE_PUBLIC_KEY on $CATALOG, and the WMS_SIGNING_KEY secret in each repository's release environment: scripts/set-module-secret.sh"; }
   for r in "${PROGRAMS[@]}" "${WEB[@]}" "$CATALOG"; do
@@ -168,6 +154,13 @@ prepare() { # <repo>: a clone of what's to be published, in $dir
   git -C "$dir" remote set-url origin "$(url "$r")"
   if [ $apply = 1 ]; then
     git -C "$dir" fetch -q origin --tags 2>/dev/null || true
+  else
+    # A rehearsal pushes to its own copies, so only this can find a push GitHub would refuse.
+    local on_github
+    on_github=$(git ls-remote "https://github.com/$OWNER/$r" refs/heads/main refs/heads/master 2>/dev/null | cut -f1)
+    for sha in $on_github; do
+      git -C "$dir" merge-base --is-ancestor "$sha" HEAD 2>/dev/null || die "$r: GitHub has ${sha:0:7}, which isn't in $src, so the push would be refused"
+    done
   fi
   if [ -f "$NAMES_FILE" ] && git -C "$dir" grep -nE -f "$NAMES_FILE" -- . ':!*.lock' ':!package-lock.json' ':!go.sum' >"$work/forbidden.txt" 2>/dev/null; then
     head -5 "$work/forbidden.txt"
@@ -180,12 +173,20 @@ prepare() { # <repo>: a clone of what's to be published, in $dir
   fi
 }
 
+# Where a repository's Go is: WittyMediaPlayer's is in a folder, the others' at the top.
+go_folder() { [ "$1" = WittyMediaPlayer ] && echo "$dir/engine" || echo "$dir"; }
+
 pin() { # <repo>: uses what was just published, and commits that
-  local r=$1
-  [ -f "$dir/go.mod" ] || return 0
-  sed -i -E '/github\.com\/wittywilla\/witty(module|disc) /d' "$dir/go.sum" 2>/dev/null || true
+  local r=$1 go_dir
+  go_dir=$(go_folder "$r")
+  [ -f "$go_dir/go.mod" ] || return 0
+  sed -i -E '/github\.com\/wittywilla\/witty(module|disc) /d' "$go_dir/go.sum" 2>/dev/null || true
   (
-    cd "$dir"
+    cd "$go_dir"
+    if [ "$r" = WittyMediaPlayer ]; then
+      go get "github.com/$OWNER/wittydvd@v$dvd_version" "github.com/$OWNER/wittybluray@v$bluray_version" "github.com/$OWNER/wittycd@v$cd_version" \
+        "github.com/$OWNER/wittydvd/wittydvdplayer@v$dvd_copy_version" "github.com/$OWNER/wittybluray/wittyblurayplayer@v$bluray_copy_version"
+    fi
     if [ "$r" != WittyModule ] && grep -rlq "github.com/$OWNER/wittymodule" . --include=*.go; then
       go get "github.com/$OWNER/wittymodule@v$module_version"
     fi
@@ -194,18 +195,19 @@ pin() { # <repo>: uses what was just published, and commits that
     fi
     go mod tidy
   )
-  if [ -n "$(git -C "$dir" status --porcelain go.mod go.sum 2>/dev/null)" ]; then
-    git -C "$dir" add go.mod go.sum
-    git -C "$dir" commit -qm "Uses the versions this release publishes"
+  if [ -n "$(git -C "$go_dir" status --porcelain go.mod go.sum 2>/dev/null)" ]; then
+    git -C "$go_dir" add go.mod go.sum
+    git -C "$go_dir" commit -qm "Uses the versions this release publishes"
     note "pinned"
   fi
 }
 
 check_alone() { # <repo>: its own tests, on its own
-  local r=$1 log=$work/$r.log
+  local r=$1 log=$work/$r.log go_dir
   [ $skip_tests = 1 ] && return 0
-  if [ -f "$dir/go.mod" ]; then
-    (cd "$dir" && go vet ./... && go test ./... -count=1 -timeout 15m) >"$log" 2>&1 || { tail -30 "$log" | cut -c1-200; die "$r's tests failed: $log"; }
+  go_dir=$(go_folder "$r")
+  if [ -f "$go_dir/go.mod" ]; then
+    (cd "$go_dir" && go vet ./... && go test ./... -count=1 -timeout 15m) >"$log" 2>&1 || { tail -30 "$log" | cut -c1-200; die "$r's tests failed: $log"; }
   fi
   if [ -f "$dir/package.json" ] && grep -q '"test"' "$dir/package.json"; then
     (cd "$dir" && npm install --ignore-scripts --no-audit --no-fund --no-package-lock && npm test && rm -rf node_modules) >"$log.npm" 2>&1 || { tail -30 "$log.npm" | cut -c1-200; die "$r's Node tests failed: $log.npm"; }
@@ -231,19 +233,51 @@ push_and_tag() { # <repo> <version or empty>
   local r=$1 v=${2:-} target
   target=main
   [ "$r" = "$SERVER" ] && target=$server_branch
-  git -C "$dir" push -q origin "HEAD:refs/heads/$target" || die "$r: the push was refused"
-  note "pushed to $target"
+  # On a second run this clone is pinned afresh, so its commit differs even when what's in it doesn't.
+  if git -C "$dir" fetch -q origin "refs/heads/$target" 2>/dev/null && git -C "$dir" diff --quiet FETCH_HEAD HEAD; then
+    git -C "$dir" reset -q --hard FETCH_HEAD
+    note "$target is already this"
+  else
+    git -C "$dir" push -q origin "HEAD:refs/heads/$target" || die "$r: the push was refused"
+    note "pushed to $target"
+  fi
   [ -n "$v" ] || return 0
-  local tag=v$v have want
+  tag_once "$r" "v$v"
+}
+
+tag_once() { # <repo> <tag>
+  local r=$1 tag=$2 have want
   have=$(git -C "$dir" ls-remote --tags origin "refs/tags/$tag" | cut -f1)
   if [ -n "$have" ]; then
     note "$tag is already there, and tags never move"
     return 0
   fi
   want=$(git -C "$dir" rev-parse HEAD)
-  git -C "$dir" tag -a "$tag" -m "$r $v" "$want"
+  git -C "$dir" tag -a "$tag" -m "$r ${tag##*v}" "$want"
   git -C "$dir" push -q origin "refs/tags/$tag" || die "$r: the tag was refused"
   note "tagged $tag"
+}
+
+# Go finds a module in a folder by a tag with the folder in front, so WittyMediaPlayer needs these.
+# Its go.mod says which version of the module around it, so this comes after that's published.
+player_copy() { # <repo> <folder>: with $dir still the repository's clone
+  local r=$1 folder=$2 v log=$work/$r-$2.log
+  v=$(field version "$dir/$folder/module.json")
+  (
+    cd "$dir/$folder"
+    go get "github.com/$OWNER/$(tr 'A-Z' 'a-z' <<<"$r")@v$(version_of "$dir")" "github.com/$OWNER/wittydisc@v$disc_version" "github.com/$OWNER/wittymodule@v$module_version"
+    go mod tidy
+  )
+  if [ -n "$(git -C "$dir/$folder" status --porcelain . 2>/dev/null)" ]; then
+    git -C "$dir" add "$folder"
+    git -C "$dir" commit -qm "$folder: uses the versions this release publishes"
+  fi
+  if [ $skip_tests = 0 ]; then
+    (cd "$dir/$folder" && go vet ./... && go test ./... -count=1 -timeout 15m) >"$log" 2>&1 || { tail -30 "$log" | cut -c1-200; die "$folder's tests failed: $log"; }
+    note "$folder's tests pass"
+  fi
+  push_and_tag "$r" ""
+  tag_once "$r" "$folder/v$v"
 }
 
 wait_release() { # <repo> <version> <signed?>: until the release workflow has done its job
@@ -282,16 +316,24 @@ should_run() { # <repo>
 }
 
 # Versions everything else pins to, from what's about to be published.
-for pair in WittyModule:module WittyDisc:disc WittyInk:ink; do
+for pair in WittyModule:module WittyDisc:disc WittyInk:ink WittyDVD:dvd WittyBluray:bluray WittyCD:cd; do
   r=${pair%:*}
   src=$(source_branch "$r")
   v=$(git -C "$repos/$r" show "$src:module.json" | sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' | head -1 | tr -d '\r')
   [ -n "$v" ] || die "no version for $r"
   eval "${pair#*:}_version=$v"
 done
+dvd_copy_version=$(git -C "$repos/WittyDVD" show "$(source_branch WittyDVD):wittydvdplayer/module.json" | sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' | head -1 | tr -d '\r')
+bluray_copy_version=$(git -C "$repos/WittyBluray" show "$(source_branch WittyBluray):wittyblurayplayer/module.json" | sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' | head -1 | tr -d '\r')
 
 for r in "${LIBRARIES[@]}"; do should_run "$r" && publish "$r" 0 1; done
-for r in "${PROGRAMS[@]}"; do should_run "$r" && publish "$r" 1 1; done
+for r in "${PROGRAMS[@]}"; do
+  should_run "$r" || continue
+  publish "$r" 1 1
+  for pair in "${PLAYER_COPIES[@]}"; do
+    [ "${pair%:*}" = "$r" ] && player_copy "$r" "${pair#*:}"
+  done
+done
 for r in "${WEB[@]}"; do should_run "$r" && publish "$r" 1 1; done
 for r in "${APPS[@]}"; do
   # The apps go on their own schedules. They're pushed, and tagged when they next have a release.
@@ -361,7 +403,7 @@ if should_run "$SERVER"; then
 fi
 
 say "Done"
-[ $apply = 1 ] && echo "Everything's published." || echo "The dry run passed: nothing left this machine. Run it again with --apply when the steps below are done."
+[ $apply = 1 ] && { echo "Everything's published. Bring your own copies up to date: docs/MODULES-CUTOVER.md, step 6."; } || echo "The dry run passed: nothing left this machine. Run it again with --apply when the steps below are done."
 if [ ${#left[@]} -gt 0 ]; then
   echo
   echo "Still needs a person first:"

@@ -24,11 +24,10 @@ import (
 )
 
 type gameServer struct {
-	h           http.Handler
-	admin, kid  string // session tokens
-	other       string
-	s           *Server
-	lib, itemID int64
+	h          http.Handler
+	admin, kid string // session tokens
+	other      string
+	s          *Server
 }
 
 func newGameServer(t *testing.T) *gameServer {

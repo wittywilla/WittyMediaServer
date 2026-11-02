@@ -13,8 +13,8 @@ import (
 const protocolCapability = "ipc"
 
 // protocolRefusal says why a version can't work with the server's half of its
-// protocol, in words for the owner; "" if it can. The built-in copy was compiled with
-// the server, so its manifest says what the server speaks.
+// protocol, in words for the owner; "" if it can. The entry's own manifest says what
+// the server speaks.
 func protocolRefusal(e *entry, man *wittymodule.Manifest) string {
 	want := e.builtin.Capabilities[protocolCapability]
 	got := man.Capabilities[protocolCapability]

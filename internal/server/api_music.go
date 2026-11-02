@@ -83,10 +83,6 @@ func (s *Server) handleTracks(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, s.forViewer(r, items...))
 }
 
-// audioSlots: audio conversions at once. They are far lighter than video, but
-// each is a process, started by any signed-in account.
-var audioSlots = make(chan struct{}, 8)
-
 // GET /api/items/{id}/stream?start=SEC: plays an audio file. Formats every
 // browser understands are sent as they are (with seeking); others are
 // converted to AAC while streaming, starting at start (the client reloads

@@ -6,18 +6,16 @@ const files = import.meta.glob([
   '../../../docs/*.md',
   '../../../CHANGELOG.md',
   '../../../SECURITY.md',
-  '!../../../docs/AUDIT.md',
   '!../../../docs/LEGAL-NOTICES-CHECKLIST.md',
   '!../../../docs/MODULES-CUTOVER.md',
   '!../../../docs/PUBLISHING.md',
   '!../../../docs/REPOSITORIES.md',
-  '!../../../docs/REQUESTS.md',
   '!../../../docs/ROADMAP.md',
   '!../../../docs/WITTYRETROARCH.md',
 ], { query: '?raw', import: 'default' }) as Record<string, () => Promise<string>>
 
 // For the people working on the project, and no use to anyone running it.
-export const notInHelp = ['AUDIT', 'LEGAL-NOTICES-CHECKLIST', 'MODULES-CUTOVER', 'PUBLISHING', 'REPOSITORIES', 'REQUESTS', 'ROADMAP', 'WITTYRETROARCH']
+export const notInHelp = ['LEGAL-NOTICES-CHECKLIST', 'MODULES-CUTOVER', 'PUBLISHING', 'REPOSITORIES', 'ROADMAP', 'WITTYRETROARCH']
 
 export type Guide = { file: string; title: string; about: string }
 export type GuideGroup = { title: string; quiet?: boolean; guides: Guide[] }

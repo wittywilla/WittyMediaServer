@@ -29,7 +29,6 @@ import (
 type gameFile struct {
 	cand    *candidate
 	verdict gameVerdict
-	base    string // its name, without its extension
 	key     string // what its name comes down to
 	disc    int
 	total   int

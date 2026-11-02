@@ -75,6 +75,7 @@ type Scanner struct {
 	running map[int64]context.CancelFunc
 	// Progress for the UI.
 	Progress map[int64]*ScanProgress
+	lastTrim time.Time // when the caches were last kept to their limits; guarded by mu
 }
 
 type ScanProgress struct {
@@ -680,6 +681,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		}
 	}
 	s.Store.DB.Optimize(ctx)
+	s.trimCaches()
 	problems := tally.report(ctx, s.Log)
 	s.Log.InfoContext(ctx, "scan finished", "library", lib.Name, "items", len(all), "errors", failed+problems,
 		"offline", len(offline), "took", time.Since(started).Round(time.Second).String())

@@ -199,6 +199,31 @@ func (s *Scanner) ComicPageFile(ctx context.Context, p string, pages []string, n
 	return out, nil
 }
 
+// Limits on what's made on demand and could otherwise only grow: a thumbnail stays behind when
+// its file changes or goes. Anything removed is made again if it's asked for.
+var (
+	maxThumbCache = int64(4) << 30
+	maxStillCache = int64(1) << 30
+	maxListCache  = int64(64) << 20
+)
+
+// trimCaches keeps the caches within their limits, at most once a day. It's done at the end of
+// a scan, which has just been through the disk anyway, so it needs no timer of its own.
+func (s *Scanner) trimCaches() {
+	s.mu.Lock()
+	due := time.Since(s.lastTrim) >= 24*time.Hour
+	if due {
+		s.lastTrim = time.Now()
+	}
+	s.mu.Unlock()
+	if !due {
+		return
+	}
+	trimCache(filepath.Join(s.CacheDir, "thumbs"), maxThumbCache)
+	trimCache(filepath.Join(s.CacheDir, "stills"), maxStillCache)
+	trimCache(filepath.Join(s.CacheDir, "lists"), maxListCache)
+}
+
 // trimCache removes the oldest folders or files until a cache holds no more than limit.
 func trimCache(root string, limit int64) {
 	entries, err := os.ReadDir(root)

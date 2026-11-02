@@ -1,0 +1,54 @@
+# Installs the newest published Windows MSI, then an MSI built from this branch over it, the way
+# someone updating would: for everyone, just for one account, and as a service. 0.6.1-alpha's MSI
+# failed exactly this with error 2613, and nothing tested an upgrade before it was published.
+name: msi-upgrade
+
+on:
+  pull_request:
+    paths:
+      - packaging/windows/**
+      - .github/workflows/msi-upgrade.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  upgrade:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: The published installers to upgrade from
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v0.6.0-alpha -R $env:GITHUB_REPOSITORY -p '*-windows-amd64.msi' -D old
+          gh release download v0.6.1-alpha -R $env:GITHUB_REPOSITORY -p '*-windows-amd64.msi' -p '*-windows-amd64.zip' -D latest
+      - name: Build this branch's MSI from 0.6.1-alpha's programs
+        shell: pwsh
+        run: |
+          dotnet tool install --tool-path "$env:RUNNER_TEMP\wix" wix --version 6.0.2
+          $env:WIX_EXE = "$env:RUNNER_TEMP\wix\wix.exe"
+          & $env:WIX_EXE extension add -g WixToolset.UI.wixext/6.0.2 WixToolset.Firewall.wixext/6.0.2 WixToolset.Util.wixext/6.0.2
+          Expand-Archive latest\wittymediaserver-0.6.1-alpha-windows-amd64.zip stage
+          packaging\windows\build-msi.ps1 -Version 0.6.2-alpha -PackageDir stage\wittymediaserver-0.6.1-alpha-windows-amd64 -Arch amd64 -OutDir new
+      - name: The test catches a broken upgrade (0.6.1-alpha's own MSI)
+        shell: pwsh
+        run: packaging\windows\test-upgrade.ps1 -OldMsi old\wittymediaserver-0.6.0-alpha-windows-amd64.msi -NewMsi latest\wittymediaserver-0.6.1-alpha-windows-amd64.msi -Scope machine -ExpectFail -LogDir logs\control
+      - name: Upgrade for everyone, with the server running
+        shell: pwsh
+        run: packaging\windows\test-upgrade.ps1 -OldMsi old\wittymediaserver-0.6.0-alpha-windows-amd64.msi -NewMsi new\wittymediaserver-0.6.2-alpha-windows-amd64.msi -Scope machine -LogDir logs\machine
+      - name: Upgrade just for this account, with the server running
+        shell: pwsh
+        run: packaging\windows\test-upgrade.ps1 -OldMsi old\wittymediaserver-0.6.0-alpha-windows-amd64.msi -NewMsi new\wittymediaserver-0.6.2-alpha-windows-amd64.msi -Scope user -LogDir logs\user
+      - name: Upgrade with the background service
+        shell: pwsh
+        run: packaging\windows\test-upgrade.ps1 -OldMsi old\wittymediaserver-0.6.0-alpha-windows-amd64.msi -NewMsi new\wittymediaserver-0.6.2-alpha-windows-amd64.msi -Scope machine -Service -LogDir logs\service
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: msi-upgrade-logs
+          path: logs

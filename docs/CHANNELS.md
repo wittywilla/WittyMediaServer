@@ -79,8 +79,8 @@ WittyTV has themes of its own, apart from the app's theme. Press **Look** on the
 ![The guide in the Modern look, with a film playing](images/wittytv-modern.webp)
 *The Modern look, playing [Singularity](https://commons.wikimedia.org/wiki/File:SINGULARITY_-_Blender_Open_Movie-full_movie.webm), Blender Studio, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
 
-![The guide in the Big Picture look, with a large preview](images/wittytv-bigpicture.webp)
-*The Big Picture look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+![The guide in the Big picture look, with a large preview](images/wittytv-bigpicture.webp)
+*The Big picture look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
 
 ![The same guide in the Classic look, like an old cable box](images/wittytv-classic.webp)
 *The Classic look, playing [Singularity](https://commons.wikimedia.org/wiki/File:SINGULARITY_-_Blender_Open_Movie-full_movie.webm), Blender Studio, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*

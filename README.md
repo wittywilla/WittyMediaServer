@@ -58,7 +58,7 @@ A test server, filled with openly licensed media to show what it can do. No medi
 </tr>
 <tr>
 <td width="50%"><a href="docs/images/wittytv-guide.webp"><img src="docs/images/wittytv-guide.webp" alt="A TV guide with a film playing in the preview"></a><br><b>WittyTV: channels made from your library</b><br><sub><a href="https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm">Caminandes: Llamigos</a>, Pablo Vazquez, Blender Foundation, <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a></sub></td>
-<td width="50%"><a href="docs/images/wittytv-classic.webp"><img src="docs/images/wittytv-classic.webp" alt="The guide in the Classic look"></a><br><b>Six looks to choose from</b><br><sub><a href="https://commons.wikimedia.org/wiki/File:SINGULARITY_-_Blender_Open_Movie-full_movie.webm">Singularity</a>, Blender Studio, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></sub></td>
+<td width="50%"><a href="docs/images/wittytv-classic.webp"><img src="docs/images/wittytv-classic.webp" alt="The guide in the Classic look"></a><br><b>Looks of its own to choose from</b><br><sub><a href="https://commons.wikimedia.org/wiki/File:SINGULARITY_-_Blender_Open_Movie-full_movie.webm">Singularity</a>, Blender Studio, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></sub></td>
 </tr>
 <tr>
 <td width="50%"><a href="docs/images/music-visualizer.webp"><img src="docs/images/music-visualizer.webp" alt="A light show behind the music player"></a><br><b>Music, with WittyVisualizer</b><br><sub><a href="https://archive.org/details/SRS08807">Collide</a>, Aryll Fae, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></sub></td>

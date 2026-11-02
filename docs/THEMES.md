@@ -112,8 +112,8 @@ WittyTV has themes of its own, and an app theme can suggest one, with one more s
 ![The TV guide in the Teletext look](images/wittytv-teletext.webp)
 *The Teletext look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
 
-![The TV guide in the Listings look, like a printed paper](images/wittytv-listings.webp)
-*The Listings look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+![The TV guide in the Newspaper look, like a printed paper](images/wittytv-listings.webp)
+*The Newspaper look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
 
 ```css
 :root {

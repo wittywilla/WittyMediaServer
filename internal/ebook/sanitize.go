@@ -6,6 +6,7 @@ import (
 	"html"
 	"regexp"
 	"strings"
+	"sync"
 
 	xhtml "golang.org/x/net/html"
 	"golang.org/x/net/html/charset"
@@ -160,10 +161,10 @@ func attr(n *xhtml.Node, key string) string {
 func fromHTML(data []byte) (*Book, error) {
 	text := decodeText(data)
 	b := &Book{}
-	if m := titleRe.FindStringSubmatch(text); m != nil {
+	if m := titleRe().FindStringSubmatch(text); m != nil {
 		b.Title = strings.TrimSpace(html.UnescapeString(m[1]))
 	}
-	if m := metaAuthorRe.FindStringSubmatch(text); m != nil {
+	if m := metaAuthorRe().FindStringSubmatch(text); m != nil {
 		b.Author = strings.TrimSpace(html.UnescapeString(m[1]))
 	}
 	body := sanitizeHTML(text, htmlOptions{image: func(src string) string { return b.dataImage(src) }, anchors: true})
@@ -172,8 +173,10 @@ func fromHTML(data []byte) (*Book, error) {
 }
 
 var (
-	titleRe      = regexp.MustCompile(`(?is)<title[^>]*>(.{0,500}?)</title>`)
-	metaAuthorRe = regexp.MustCompile(`(?is)<meta\s+name=["']?author["']?\s+content=["']([^"']{0,300})["']`)
+	titleRe      = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`(?is)<title[^>]*>(.{0,500}?)</title>`) })
+	metaAuthorRe = sync.OnceValue(func() *regexp.Regexp {
+		return regexp.MustCompile(`(?is)<meta\s+name=["']?author["']?\s+content=["']([^"']{0,300})["']`)
+	})
 )
 
 // dataImage stores a picture carried in a data: address.

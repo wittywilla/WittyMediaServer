@@ -45,24 +45,26 @@ func parseDecoders(out string) map[string]bool {
 }
 
 var (
-	demuxers     map[string]bool
-	demuxersOnce sync.Once
+	demuxers   map[string]bool
+	demuxersMu sync.Mutex
 )
 
-// HasDemuxer says whether this FFmpeg can read an input of this name, found once by
-// asking it. An FFmpeg that can't be asked has none.
+// HasDemuxer says whether this FFmpeg can read an input of this name, found by asking it once
+// it has answered. An FFmpeg that can't be asked has none, for now.
 func (t *Tools) HasDemuxer(name string) bool {
-	demuxersOnce.Do(func() {
-		demuxers = map[string]bool{}
+	demuxersMu.Lock()
+	defer demuxersMu.Unlock()
+	if demuxers == nil {
 		if t.FFmpeg == "" {
-			return
+			return false
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 		out, _, err := Run(ctx, t.FFmpeg, []string{"-hide_banner", "-demuxers"})
 		if err != nil {
-			return
+			return false
 		}
+		demuxers = map[string]bool{}
 		for _, line := range strings.Split(string(out), "\n") {
 			if f := strings.Fields(line); len(f) >= 2 && strings.Contains(f[0], "D") {
 				for _, n := range strings.Split(f[1], ",") {
@@ -70,6 +72,6 @@ func (t *Tools) HasDemuxer(name string) bool {
 				}
 			}
 		}
-	})
+	}
 	return demuxers[name]
 }

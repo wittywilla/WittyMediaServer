@@ -2670,11 +2670,13 @@
         ".jxl"
       ],
       "mime": "image/jxl",
+      "confirmByContent": true,
       "plays": "picture",
       "libraries": [
         "photos"
       ],
-      "needs": "An FFmpeg built with libjxl"
+      "needs": "An FFmpeg built with libjxl",
+      "notes": "A file with this name and no JPEG XL signature isn't listed: FFmpeg would work at one for minutes and find nothing."
     },
     {
       "id": "tiff",

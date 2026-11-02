@@ -249,6 +249,9 @@ func relFolder(lib *Library, p string) string {
 
 // indexPhoto saves a picture or clip of a photos library.
 func (s *Scanner) indexPhoto(ctx context.Context, lib *Library, c candidate) error {
+	if k := c.unchanged(); k != nil && !k.missing {
+		return nil // unchanged
+	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
 	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && !existing.Missing {
 		return nil // unchanged

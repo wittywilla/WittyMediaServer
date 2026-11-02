@@ -199,6 +199,31 @@ func (s *Scanner) ComicPageFile(ctx context.Context, p string, pages []string, n
 	return out, nil
 }
 
+// Limits on what's made on demand and could otherwise only grow: a thumbnail stays behind when
+// its file changes or goes. Anything removed is made again if it's asked for.
+var (
+	maxThumbCache = int64(4) << 30
+	maxStillCache = int64(1) << 30
+	maxListCache  = int64(64) << 20
+)
+
+// trimCaches keeps the caches within their limits, at most once a day. It's done at the end of
+// a scan, which has just been through the disk anyway, so it needs no timer of its own.
+func (s *Scanner) trimCaches() {
+	s.mu.Lock()
+	due := time.Since(s.lastTrim) >= 24*time.Hour
+	if due {
+		s.lastTrim = time.Now()
+	}
+	s.mu.Unlock()
+	if !due {
+		return
+	}
+	trimCache(filepath.Join(s.CacheDir, "thumbs"), maxThumbCache)
+	trimCache(filepath.Join(s.CacheDir, "stills"), maxStillCache)
+	trimCache(filepath.Join(s.CacheDir, "lists"), maxListCache)
+}
+
 // trimCache removes the oldest folders or files until a cache holds no more than limit.
 func trimCache(root string, limit int64) {
 	entries, err := os.ReadDir(root)
@@ -370,10 +395,10 @@ func (s *Scanner) BookEPUB(it *Item) (string, error) {
 const maxPDFScan = 32 << 20
 
 var (
-	pdfPagesRe  = regexp.MustCompile(`/Type\s*/Pages\b[^>]{0,400}?/Count\s+(\d{1,6})`)
-	pdfCountRe  = regexp.MustCompile(`/Count\s+(\d{1,6})[^>]{0,400}?/Type\s*/Pages\b`)
-	pdfTitleRe  = regexp.MustCompile(`/Title\s*\(((?:[^()\\]|\\.){1,400})\)`)
-	pdfAuthorRe = regexp.MustCompile(`/Author\s*\(((?:[^()\\]|\\.){1,400})\)`)
+	pdfPagesRe  = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`/Type\s*/Pages\b[^>]{0,400}?/Count\s+(\d{1,6})`) })
+	pdfCountRe  = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`/Count\s+(\d{1,6})[^>]{0,400}?/Type\s*/Pages\b`) })
+	pdfTitleRe  = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`/Title\s*\(((?:[^()\\]|\\.){1,400})\)`) })
+	pdfAuthorRe = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`/Author\s*\(((?:[^()\\]|\\.){1,400})\)`) })
 )
 
 // readPDFMeta reads what's cheap to find in a PDF: pages, title and author when they
@@ -390,7 +415,7 @@ func readPDFMeta(it *Item) (cover []byte) {
 		return nil
 	}
 	pages := 0
-	for _, re := range []*regexp.Regexp{pdfPagesRe, pdfCountRe} {
+	for _, re := range []*regexp.Regexp{pdfPagesRe(), pdfCountRe()} {
 		for _, m := range re.FindAllSubmatch(b, 64) {
 			if n, _ := strconv.Atoi(string(m[1])); n > pages {
 				pages = n
@@ -400,12 +425,12 @@ func readPDFMeta(it *Item) (cover []byte) {
 	if pages > 0 {
 		it.RuntimeSec = float64(pages)
 	}
-	if m := pdfTitleRe.FindSubmatch(b); m != nil {
+	if m := pdfTitleRe().FindSubmatch(b); m != nil {
 		if t := pdfString(m[1]); t != "" && it.Album == "" {
 			it.Title = t
 		}
 	}
-	if m := pdfAuthorRe.FindSubmatch(b); m != nil {
+	if m := pdfAuthorRe().FindSubmatch(b); m != nil {
 		if a := pdfString(m[1]); a != "" {
 			it.Artist, it.AlbumArtist = a, a
 		}

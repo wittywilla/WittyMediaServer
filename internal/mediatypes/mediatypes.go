@@ -333,6 +333,8 @@ func Confirms(f *Format, head []byte) bool {
 	switch f.ID {
 	case "vcd", "bin", "ty", "toc":
 		return false // too many other things use these names
+	case "jxl":
+		return false // anything else with this name keeps FFmpeg's JPEG XL reader busy until it's stopped
 	case "txt", "md", "html", "mpl2", "realtext", "stl":
 		return looksLikeText(head)
 	case "sub":

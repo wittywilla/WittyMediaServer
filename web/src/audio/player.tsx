@@ -2,7 +2,7 @@ import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useM
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, getPrefs, getToken, mediaUrl, posterUrl, serverBase, type Item } from '../api'
 import { reportMediaError } from '../errorReport'
-import { setSpeed, SPEEDS } from '../player/Controls'
+import { setSpeed, SPEEDS } from '../player/speed'
 import { toast, useApp } from '../state'
 import { useCdEngine, type CdActions, type CdNow } from './cdEngine'
 import MiniPlayer from './MiniPlayer'

@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 )
@@ -243,25 +244,30 @@ var (
 	nameKeys  = map[string]string{"library": "library", "device": "device"}
 )
 
-var (
-	windowsPath = regexp.MustCompile(`(?:\b[A-Za-z]:[\\/]|\\\\[^\\\s]+\\)[^"'\n\r]*?(?:: |"|'|$|\r|\n)`)
-	// A folder's name may have spaces when another folder follows it; a file's only when it ends in an extension.
-	unixPath   = regexp.MustCompile(`(^|[\s"'=(,\[])(/{1,2}(?:[^/\s"'\n:]+(?: [^/\s"'\n:]+)*/)*[^/\s"'\n:]+(?:[^/"'\n:]*\.[A-Za-z][A-Za-z0-9]{1,4}\b)?)`)
-	webAddress = regexp.MustCompile(`(?i)\b[a-z][a-z0-9+.-]*://[^\s"'<>]+`)
-	metaLine   = regexp.MustCompile(`(?im)^(\s*(?:title|album|artist|album_artist|comment|show|description|synopsis|encoded_by|filename|handler_name|service_name|service_provider|publisher|network)\s*:\s*)(.*)$`)
-	metaArg    = regexp.MustCompile(`(?i)(\b(?:title|album|artist|album_artist|comment|show|description|synopsis|encoded_by|filename)=)("[^"]*"|'[^']*'|.*?)(\s+-[A-Za-z]|$)`)
-	fromName   = regexp.MustCompile(`(?i)\b(from|to) '([^']*)'`)
-	macAddress = regexp.MustCompile(`\b[0-9A-Fa-f]{2}(?:[:-][0-9A-Fa-f]{2}){5}\b|\b[0-9A-Fa-f]{4}\.[0-9A-Fa-f]{4}\.[0-9A-Fa-f]{4}\b`)
-	email      = regexp.MustCompile(`(?i)\b[a-z0-9._+-]+(?:@|%40)[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\b`)
-	ipv4       = regexp.MustCompile(`\b(?:\d{1,3}\.){3}\d{1,3}\b`)
-	ipv6Run    = regexp.MustCompile(`[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*(?:%[0-9A-Za-z_.-]+)?`)
-	// A name with a dot that ends the way network names do.
-	dnsName = regexp.MustCompile(`(?i)\b(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:local|lan|home|internal|intranet|localdomain|arpa|box|corp|com|net|org|io|tv|dev|app|me|co|uk|de|fr|nl|eu|ca|au|us|info|xyz|online|site|cloud)\b`)
-	// How Go's resolver names a host it couldn't find, even a bare computer name.
-	lookupName = regexp.MustCompile(`(?i)\b(lookup )([a-z0-9][a-z0-9._-]*)`)
-	percentRun = regexp.MustCompile(`[^\s"'&=?/\\]*%[0-9A-Fa-f]{2}[^\s"'&=?/\\]*`)
-	plainRoute = regexp.MustCompile(`^[a-z0-9_.-]{1,40}$`)
-)
+// Compiled when a log is first sanitised, which most servers never do.
+var sanitizing = sync.OnceValue(func() *sanitizePatterns {
+	return &sanitizePatterns{
+		windowsPath: regexp.MustCompile(`(?:\b[A-Za-z]:[\\/]|\\\\[^\\\s]+\\)[^"'\n\r]*?(?:: |"|'|$|\r|\n)`),
+		// A folder's name may have spaces when another folder follows it; a file's only when it ends in an extension.
+		unixPath:   regexp.MustCompile(`(^|[\s"'=(,\[])(/{1,2}(?:[^/\s"'\n:]+(?: [^/\s"'\n:]+)*/)*[^/\s"'\n:]+(?:[^/"'\n:]*\.[A-Za-z][A-Za-z0-9]{1,4}\b)?)`),
+		webAddress: regexp.MustCompile(`(?i)\b[a-z][a-z0-9+.-]*://[^\s"'<>]+`),
+		metaLine:   regexp.MustCompile(`(?im)^(\s*(?:title|album|artist|album_artist|comment|show|description|synopsis|encoded_by|filename|handler_name|service_name|service_provider|publisher|network)\s*:\s*)(.*)$`),
+		metaArg:    regexp.MustCompile(`(?i)(\b(?:title|album|artist|album_artist|comment|show|description|synopsis|encoded_by|filename)=)("[^"]*"|'[^']*'|.*?)(\s+-[A-Za-z]|$)`),
+		fromName:   regexp.MustCompile(`(?i)\b(from|to) '([^']*)'`),
+		macAddress: regexp.MustCompile(`\b[0-9A-Fa-f]{2}(?:[:-][0-9A-Fa-f]{2}){5}\b|\b[0-9A-Fa-f]{4}\.[0-9A-Fa-f]{4}\.[0-9A-Fa-f]{4}\b`),
+		email:      regexp.MustCompile(`(?i)\b[a-z0-9._+-]+(?:@|%40)[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\b`),
+		ipv4:       regexp.MustCompile(`\b(?:\d{1,3}\.){3}\d{1,3}\b`),
+		ipv6Run:    regexp.MustCompile(`[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*(?:%[0-9A-Za-z_.-]+)?`),
+		// A name with a dot that ends the way network names do.
+		dnsName: regexp.MustCompile(`(?i)\b(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:local|lan|home|internal|intranet|localdomain|arpa|box|corp|com|net|org|io|tv|dev|app|me|co|uk|de|fr|nl|eu|ca|au|us|info|xyz|online|site|cloud)\b`),
+		// How Go's resolver names a host it couldn't find, even a bare computer name.
+		lookupName: regexp.MustCompile(`(?i)\b(lookup )([a-z0-9][a-z0-9._-]*)`),
+		percentRun: regexp.MustCompile(`[^\s"'&=?/\\]*%[0-9A-Fa-f]{2}[^\s"'&=?/\\]*`),
+		plainRoute: regexp.MustCompile(`^[a-z0-9_.-]{1,40}$`),
+	}
+})
+
+type sanitizePatterns struct{ windowsPath, unixPath, webAddress, metaLine, metaArg, fromName, macAddress, email, ipv4, ipv6Run, dnsName, lookupName, percentRun, plainRoute *regexp.Regexp }
 
 // These name the project and its libraries: they say nothing about anyone.
 var publicHosts = map[string]bool{"github.com": true, "golang.org": true, "modernc.org": true, "localhost": true}
@@ -316,7 +322,7 @@ func (s *Sanitizer) route(p string) string {
 	}
 	parts := strings.Split(p, "/")
 	for i, part := range parts {
-		if part != "" && part != hidden && !plainRoute.MatchString(part) {
+		if part != "" && part != hidden && !sanitizing().plainRoute.MatchString(part) {
 			parts[i] = s.standPath(part)
 		}
 	}
@@ -390,29 +396,29 @@ func (s *Sanitizer) text(v string, message bool) string {
 		return v
 	}
 	v = Redact(v)
-	v = metaLine.ReplaceAllStringFunc(v, func(m string) string {
-		sub := metaLine.FindStringSubmatch(m)
+	v = sanitizing().metaLine.ReplaceAllStringFunc(v, func(m string) string {
+		sub := sanitizing().metaLine.FindStringSubmatch(m)
 		if strings.TrimSpace(sub[2]) == "" {
 			return m
 		}
 		return sub[1] + s.stand("title", strings.TrimSpace(sub[2]))
 	})
-	v = metaArg.ReplaceAllStringFunc(v, func(m string) string {
-		sub := metaArg.FindStringSubmatch(m)
+	v = sanitizing().metaArg.ReplaceAllStringFunc(v, func(m string) string {
+		sub := sanitizing().metaArg.FindStringSubmatch(m)
 		return sub[1] + s.stand("title", sub[2]) + sub[3]
 	})
-	v = fromName.ReplaceAllStringFunc(v, func(m string) string {
-		sub := fromName.FindStringSubmatch(m)
+	v = sanitizing().fromName.ReplaceAllStringFunc(v, func(m string) string {
+		sub := sanitizing().fromName.FindStringSubmatch(m)
 		if strings.HasPrefix(sub[2], "pipe:") || sub[2] == "" {
 			return m
 		}
 		return sub[1] + " " + s.standPath(sub[2])
 	})
-	v = webAddress.ReplaceAllStringFunc(v, s.webAddr)
-	v = email.ReplaceAllStringFunc(v, func(m string) string {
+	v = sanitizing().webAddress.ReplaceAllStringFunc(v, s.webAddr)
+	v = sanitizing().email.ReplaceAllStringFunc(v, func(m string) string {
 		return s.stand("email", strings.ReplaceAll(strings.ToLower(m), "%40", "@"))
 	})
-	v = windowsPath.ReplaceAllStringFunc(v, func(m string) string {
+	v = sanitizing().windowsPath.ReplaceAllStringFunc(v, func(m string) string {
 		end, body := "", m
 		for _, tail := range []string{": ", `"`, "'", "\r", "\n"} {
 			if strings.HasSuffix(m, tail) {
@@ -422,8 +428,8 @@ func (s *Sanitizer) text(v string, message bool) string {
 		}
 		return s.standPath(body) + end
 	})
-	v = unixPath.ReplaceAllStringFunc(v, func(m string) string {
-		sub := unixPath.FindStringSubmatch(m)
+	v = sanitizing().unixPath.ReplaceAllStringFunc(v, func(m string) string {
+		sub := sanitizing().unixPath.FindStringSubmatch(m)
 		switch {
 		case len(sub) < 3 || keepsPath(sub[2]):
 			return m
@@ -432,26 +438,26 @@ func (s *Sanitizer) text(v string, message bool) string {
 		}
 		return sub[1] + s.standPath(sub[2])
 	})
-	v = macAddress.ReplaceAllStringFunc(v, func(m string) string {
+	v = sanitizing().macAddress.ReplaceAllStringFunc(v, func(m string) string {
 		return s.stand("mac", strings.ToLower(strings.NewReplacer("-", ":", ".", "").Replace(m)))
 	})
 	v = s.hideIPv6(v)
 	v = s.hideIPv4(v)
-	v = dnsName.ReplaceAllStringFunc(v, func(m string) string {
+	v = sanitizing().dnsName.ReplaceAllStringFunc(v, func(m string) string {
 		if publicHosts[strings.ToLower(m)] {
 			return m
 		}
 		return s.stand("host", m)
 	})
-	v = lookupName.ReplaceAllStringFunc(v, func(m string) string {
-		sub := lookupName.FindStringSubmatch(m)
+	v = sanitizing().lookupName.ReplaceAllStringFunc(v, func(m string) string {
+		sub := sanitizing().lookupName.FindStringSubmatch(m)
 		if publicHosts[strings.ToLower(sub[2])] || strings.HasPrefix(sub[2], "[") {
 			return m
 		}
 		return sub[1] + s.stand("host", sub[2])
 	})
 	if strings.IndexByte(v, '%') >= 0 {
-		v = percentRun.ReplaceAllStringFunc(v, s.encoded)
+		v = sanitizing().percentRun.ReplaceAllStringFunc(v, s.encoded)
 	}
 	return s.known(v, message)
 }
@@ -479,7 +485,7 @@ func (s *Sanitizer) hideIPv4(v string) string {
 	if strings.Count(v, ".") < 3 {
 		return v
 	}
-	return replaceAt(v, ipv4, func(m string, start, end int) string {
+	return replaceAt(v, sanitizing().ipv4, func(m string, start, end int) string {
 		if start > 0 {
 			if c := v[start-1]; c == 'v' || c == 'V' || c == '.' {
 				return m // a version, or a piece of a longer one
@@ -497,7 +503,7 @@ func (s *Sanitizer) hideIPv6(v string) string {
 	if strings.Count(v, ":") < 2 {
 		return v
 	}
-	return replaceAt(v, ipv6Run, func(m string, start, end int) string {
+	return replaceAt(v, sanitizing().ipv6Run, func(m string, start, end int) string {
 		// std::string and the like: it runs into more of a word.
 		if start > 0 && isWordByte(v[start-1]) || end < len(v) && isWordByte(v[end]) {
 			return m

@@ -89,9 +89,12 @@ type fileWriter struct {
 
 func (l *Logger) run(w *fileWriter) {
 	defer l.stopped.Done()
-	flush := time.NewTicker(flushEvery)
-	defer flush.Stop()
 	defer w.close()
+	// Lines wait in the buffer for at most flushEvery. With nothing waiting, this sleeps until
+	// the disk is next looked at, rather than waking a quiet server to find nothing to do.
+	wake := time.NewTimer(flushEvery)
+	defer wake.Stop()
+	due := time.Now().Add(flushEvery)
 	for {
 		select {
 		case rec := <-l.queue:
@@ -99,15 +102,28 @@ func (l *Logger) run(w *fileWriter) {
 			w.drain()
 		case f := <-l.ctl:
 			f(w)
-		case <-flush.C:
+		case <-wake.C:
 			w.flush()
 			w.maintain(time.Now())
+			due = time.Time{}
 		case <-l.done:
 			w.drain()
 			w.flush()
 			return
 		}
+		if next := time.Now().Add(w.nextLook()); due.IsZero() || next.Before(due) {
+			due = next
+			wake.Reset(time.Until(due))
+		}
 	}
+}
+
+// nextLook is how long until the writer has something to do without being asked.
+func (w *fileWriter) nextLook() time.Duration {
+	if w.unflushed > 0 || w.file == nil || w.lost > 0 || w.l.dropped.Load() > w.reported {
+		return flushEvery
+	}
+	return max(flushEvery, checkEvery-time.Since(w.lastCheck))
 }
 
 // drain writes what's queued without going round the loop for each line. Errors

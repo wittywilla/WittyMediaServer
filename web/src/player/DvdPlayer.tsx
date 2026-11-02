@@ -5,13 +5,16 @@ import { setLogSession } from '../errorReport'
 import { IconBack, IconClose, IconExpand, IconMenu, IconMini, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings } from '../icons'
 import { usePlayerChrome } from './chrome'
 import { Controls, useVideoState } from './Controls'
-import { toggleFullscreen, useIdle, useSource } from './hooks'
+import { haveHls, toggleFullscreen, useIdle, useSource } from './hooks'
+import Hls from 'hls.js'
 import InsertDisc from './InsertDisc'
 import Remote, { RemoteBar, type RemoteKey } from './Remote'
 import TrackPicker, { type Tile } from './TrackPicker'
 import ViewSettings from './ViewSettings'
 import { discMemory, rememberDisc, useViewPrefs } from './viewPrefs'
 import { focusPlayerControls } from '../tv'
+
+haveHls(Hls)
 
 type Props = {
   item: Item; mode: 'menu' | 'title'; ttn?: number; chapter?: number; startAt: number | null; insert?: boolean

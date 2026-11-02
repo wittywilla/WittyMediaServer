@@ -2,7 +2,6 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react
 import { Link, useNavigate } from 'react-router-dom'
 import { HelpLink } from '../components/HelpLink'
 import { profileName, albumsOnce, api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Show, type Item, inMainMenus } from '../api'
-import AddLibrary from '../components/AddLibrary'
 import { CardRow, ItemCard, ShowCard, Spinner } from '../components/common'
 import { IconDown, IconGrip, IconInfo, IconPause, IconPlay, IconPlus, IconRefresh, IconRight, IconStar, IconUp, libIcon } from '../icons'
 import { toast, useApp } from '../state'
@@ -19,6 +18,7 @@ type Layout = { v?: number; order: string[]; hidden: string[] }
 type Widget = { id: string; title: string; render: () => React.ReactNode | null }
 const LAYOUT_V = 2
 const OnNowRow = lazy(() => import('./tv/OnNowRow'))
+const AddLibrary = lazy(() => import('../components/AddLibrary'))
 
 export default function HomePage() {
   const [home, setHome] = useState<Home | null>(null)
@@ -166,7 +166,7 @@ function Welcome({ admin, name, onAdded }: { admin: boolean; name: string; onAdd
           ? 'Choose what kind of media you have, then point to the folder it’s in. Your files stay where they are; nothing is moved or changed. You can add more libraries any time.'
           : 'There’s nothing to watch, read or listen to yet. Whoever runs this server can add libraries in Settings, and they’ll appear here.'} <HelpLink to="getting-started">Getting started</HelpLink></p>
       </div>
-      {admin && <AddLibrary onAdded={onAdded} />}
+      {admin && <Suspense fallback={<Spinner />}><AddLibrary onAdded={onAdded} /></Suspense>}
     </div>
   )
 }

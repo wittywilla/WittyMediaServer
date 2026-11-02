@@ -1,6 +1,7 @@
 package server
 
 import (
+	"compress/gzip"
 	"errors"
 	"io"
 	"io/fs"
@@ -236,6 +237,10 @@ func (s *Server) spa() http.Handler {
 		if p == "" {
 			p = "index.html"
 		}
+		// Scripts and stylesheets are kept compressed only (web/vite.config.ts).
+		if strings.HasPrefix(p, "assets/") && s.serveCompressedOnly(w, r, p) {
+			return
+		}
 		if f, err := s.Web.Open(p); err == nil {
 			st, _ := f.Stat()
 			f.Close()
@@ -298,6 +303,36 @@ func (s *Server) serveGzipped(w http.ResponseWriter, r *http.Request, name strin
 	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("Vary", "Accept-Encoding")
 	http.ServeContent(w, r, "", time.Time{}, rs)
+	return true
+}
+
+// serveCompressedOnly answers for a file that has only its compressed copy, unpacking it for
+// the rare browser that doesn't take that. False when the file isn't one of those.
+func (s *Server) serveCompressedOnly(w http.ResponseWriter, r *http.Request, name string) bool {
+	if f, err := s.Web.Open(name); err == nil {
+		f.Close()
+		return false
+	}
+	f, err := s.Web.Open(name + ".gz")
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	if ct := webTypes[path.Ext(name)]; ct != "" {
+		w.Header().Set("Content-Type", ct)
+	}
+	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	if s.serveGzipped(w, r, name) {
+		return true
+	}
+	w.Header().Set("Vary", "Accept-Encoding")
+	zr, err := gzip.NewReader(f)
+	if err != nil {
+		http.Error(w, "this file is damaged", 500)
+		return true
+	}
+	defer zr.Close()
+	_, _ = io.Copy(w, zr)
 	return true
 }
 

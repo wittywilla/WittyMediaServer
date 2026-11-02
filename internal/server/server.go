@@ -549,7 +549,7 @@ func (s *Server) Handler() http.Handler {
 	s.audioSlots = make(chan struct{}, 2*max(s.Cfg.MaxTranscode, 1))
 	s.loginSlots = make(chan struct{}, loginConcurrency())
 	s.reloadNet(context.Background())
-	return s.identify(s.limits(s.logging(s.headers(s.gate(s.versioned(s.cors(s.csrf(m))))))))
+	return s.identify(s.limits(s.logging(s.headers(s.gate(s.versioned(s.cors(s.csrf(s.compressLists(m)))))))))
 }
 
 // ---------------------------------------------------------------------------

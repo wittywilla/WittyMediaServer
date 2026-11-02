@@ -3,6 +3,7 @@ package ebook
 import (
 	"regexp"
 	"strings"
+	"sync"
 
 	"golang.org/x/net/html/atom"
 )
@@ -56,16 +57,22 @@ func fromText(data []byte) *Book {
 	return b
 }
 
-var (
-	mdHeadingRe = regexp.MustCompile(`^(#{1,6})\s+(.*?)\s*#*\s*$`)
-	mdListRe    = regexp.MustCompile(`^\s*([-*+]|\d{1,4}[.)])\s+(.*)$`)
-	mdRuleRe    = regexp.MustCompile(`^\s*(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$`)
-	mdLinkRe    = regexp.MustCompile(`\[([^\]]{1,500})\]\((https?://[^)\s"<>]{1,1000})\)`)
-	mdBoldRe    = regexp.MustCompile(`(\*\*|__)([^*_]{1,1000}?)(\*\*|__)`)
-	mdItalicRe  = regexp.MustCompile(`(^|[\s(])[*_]([^*_\s][^*_]{0,1000}?)[*_]($|[\s).,;:!?])`)
-	mdCodeRe    = regexp.MustCompile("`([^`]{1,1000})`")
-	mdImageRe   = regexp.MustCompile(`!\[[^\]]{0,500}\]\([^)]{0,1000}\)`)
-)
+// Compiled when a Markdown file is first read: their lengths make them large, and most servers
+// never need them.
+var md = sync.OnceValue(func() *mdPatterns {
+	return &mdPatterns{
+		heading: regexp.MustCompile(`^(#{1,6})\s+(.*?)\s*#*\s*$`),
+		list:    regexp.MustCompile(`^\s*([-*+]|\d{1,4}[.)])\s+(.*)$`),
+		rule:    regexp.MustCompile(`^\s*(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$`),
+		link:    regexp.MustCompile(`\[([^\]]{1,500})\]\((https?://[^)\s"<>]{1,1000})\)`),
+		bold:    regexp.MustCompile(`(\*\*|__)([^*_]{1,1000}?)(\*\*|__)`),
+		italic:  regexp.MustCompile(`(^|[\s(])[*_]([^*_\s][^*_]{0,1000}?)[*_]($|[\s).,;:!?])`),
+		code:    regexp.MustCompile("`([^`]{1,1000})`"),
+		image:   regexp.MustCompile(`!\[[^\]]{0,500}\]\([^)]{0,1000}\)`),
+	}
+})
+
+type mdPatterns struct{ heading, list, rule, link, bold, italic, code, image *regexp.Regexp }
 
 // fromMarkdown reads the common parts of Markdown. Anything that looks like HTML in
 // it is shown as the text it is: it's escaped before any markup is added.
@@ -124,7 +131,7 @@ func fromMarkdown(data []byte) *Book {
 			closeQuote()
 			continue
 		}
-		if m := mdHeadingRe.FindStringSubmatch(line); m != nil {
+		if m := md().heading.FindStringSubmatch(line); m != nil {
 			level := len(m[1])
 			if level == 1 && body.Len() > 0 {
 				flushChapter()
@@ -143,13 +150,13 @@ func fromMarkdown(data []byte) *Book {
 			body.WriteString("<" + tag + ">" + text + "</" + tag + ">")
 			continue
 		}
-		if mdRuleRe.MatchString(line) {
+		if md().rule.MatchString(line) {
 			flushPara()
 			closeList()
 			body.WriteString("<hr/>")
 			continue
 		}
-		if m := mdListRe.FindStringSubmatch(line); m != nil {
+		if m := md().list.FindStringSubmatch(line); m != nil {
 			flushPara()
 			want := "ul"
 			if m[1][0] >= '0' && m[1][0] <= '9' {
@@ -186,12 +193,12 @@ func fromMarkdown(data []byte) *Book {
 
 // mdInline adds emphasis, code and web links to text that has been escaped first.
 func mdInline(s string) string {
-	s = mdImageRe.ReplaceAllString(s, "")
+	s = md().image.ReplaceAllString(s, "")
 	s = xmlText(s)
-	s = mdCodeRe.ReplaceAllString(s, "<code>$1</code>")
-	s = mdLinkRe.ReplaceAllString(s, `<a href="$2">$1</a>`)
-	s = mdBoldRe.ReplaceAllString(s, "<strong>$2</strong>")
-	s = mdItalicRe.ReplaceAllString(s, "$1<em>$2</em>$3")
+	s = md().code.ReplaceAllString(s, "<code>$1</code>")
+	s = md().link.ReplaceAllString(s, `<a href="$2">$1</a>`)
+	s = md().bold.ReplaceAllString(s, "<strong>$2</strong>")
+	s = md().italic.ReplaceAllString(s, "$1<em>$2</em>$3")
 	return s
 }
 

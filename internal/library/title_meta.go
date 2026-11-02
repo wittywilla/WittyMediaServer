@@ -76,10 +76,15 @@ func newTitleMeta() *TitleMeta {
 
 // TitleMeta reads a title's row (never nil).
 func (s *Store) TitleMeta(ctx context.Context, target string, id int64) *TitleMeta {
+	return scanTitleMeta(s.DB.QueryRowContext(ctx, `SELECT `+titleMetaCols+` FROM title_meta WHERE target = ? AND target_id = ?`, target, id))
+}
+
+const titleMetaCols = `locks, sources, baseline, match_state, suggestions, suggested_at, director, edition, tags, banner, logo, audio_format`
+
+func scanTitleMeta(row interface{ Scan(...any) error }, first ...any) *TitleMeta {
 	m := newTitleMeta()
 	var locks, sources, baseline, suggestions, edition, tags string
-	err := s.DB.QueryRowContext(ctx, `SELECT locks, sources, baseline, match_state, suggestions, suggested_at, director, edition, tags, banner, logo, audio_format
-		FROM title_meta WHERE target = ? AND target_id = ?`, target, id).Scan(&locks, &sources, &baseline, &m.MatchState, &suggestions, &m.SuggestedAt, &m.Director, &edition, &tags, &m.Banner, &m.Logo, &m.AudioFormat)
+	err := row.Scan(append(first, &locks, &sources, &baseline, &m.MatchState, &suggestions, &m.SuggestedAt, &m.Director, &edition, &tags, &m.Banner, &m.Logo, &m.AudioFormat)...)
 	if err != nil {
 		return m
 	}

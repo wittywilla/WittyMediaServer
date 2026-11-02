@@ -116,6 +116,9 @@ func (s *Scanner) leftOut(ctx context.Context, lib *Library, c candidate) bool {
 	default:
 		return false
 	}
+	if c.unchanged() != nil {
+		return false
+	}
 	if existing, err := s.Store.itemByPath(ctx, lib.ID, c.path); err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size {
 		return false
 	}

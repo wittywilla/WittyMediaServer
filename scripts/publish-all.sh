@@ -114,7 +114,7 @@ if [ $have_gh = 1 ]; then
       gh repo create "$OWNER/$r" --public --disable-wiki=false
     else note "would create $r, public and empty"; fi
   done
-  pub=$(gh variable get MODULE_PUBLIC_KEY -R "$OWNER/$CATALOG" 2>/dev/null || true)
+  pub=$(gh api "repos/$OWNER/$CATALOG/actions/variables/MODULE_PUBLIC_KEY" --jq .value 2>/dev/null || true)
   [ -n "$pub" ] || { [ $apply = 1 ] && die "$CATALOG has no MODULE_PUBLIC_KEY variable"; owner_step "set MODULE_PUBLIC_KEY on $CATALOG, and the WMS_SIGNING_KEY secret in each repository's release environment: scripts/set-module-secret.sh"; }
   for r in "${PROGRAMS[@]}" "${WEB[@]}" "$CATALOG"; do
     if ! gh secret list -R "$OWNER/$r" --env release --json name --jq '.[].name' 2>/dev/null | grep -q '^WMS_SIGNING_KEY$'; then
@@ -350,7 +350,7 @@ if should_run "$CATALOG"; then
     gh workflow run refresh.yml -R "$OWNER/$CATALOG" --ref main
     note "the refresh is running. It adds every release above, and publishes a signed catalogue."
     catalog_url="https://github.com/$OWNER/$CATALOG/releases/download/catalog/catalog.json"
-    pub=$(gh variable get MODULE_PUBLIC_KEY -R "$OWNER/$CATALOG")
+    pub=$(gh api "repos/$OWNER/$CATALOG/actions/variables/MODULE_PUBLIC_KEY" --jq .value)
     want=$(python3 -c "import json;print(len(json.load(open('$dir/catalog.json'))['modules']))")
     waited=0
     while :; do

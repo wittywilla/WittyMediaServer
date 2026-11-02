@@ -23,6 +23,7 @@ export type GuideGroup = { title: string; quiet?: boolean; guides: Guide[] }
 export const GROUPS: GuideGroup[] = [
   { title: 'Start here', guides: [
     { file: 'GETTING_STARTED', title: 'Getting started', about: 'From installing to your first film playing.' },
+    { file: 'FIRST-TIME-SETUP', title: 'First-time setup, step by step', about: 'Every page of setup, with a picture of each.' },
     { file: 'LIBRARIES', title: 'Libraries', about: 'Adding your folders, and how to name what’s in them.' },
     { file: 'ACCOUNTS', title: 'Accounts and profiles', about: 'People, kids and guests, passwords and two-factor sign-in.' },
     { file: 'APPS', title: 'Apps and devices', about: 'Every way to reach your server, and what works where.' },

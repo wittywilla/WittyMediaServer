@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { IconCheck, IconCopy } from '../icons'
 import { guideByFile, settingsPages, slugOf } from './guides'
+import imageSizes from './imageSizes.json'
 import { plain, target, type Block, type Inline } from './markdown'
 
 // Draws a guide. Everything becomes React elements, so nothing in a guide can act as HTML, and
@@ -77,6 +78,17 @@ function Blocks({ blocks, ctx }: { blocks: Block[]; ctx: Ctx }): ReactNode {
       }
       case 'p': return <p key={i}><Inlines c={b.c} ctx={ctx} /></p>
       case 'hr': return <hr key={i} />
+      case 'figure': {
+        // Small copies, from this server, loaded only as they come into view. Their sizes keep
+        // the page from jumping as they arrive, which would throw off an address with a heading.
+        const size = (imageSizes as Record<string, number[]>)[b.name]
+        return (
+          <figure key={i} className="help-figure">
+            <img src={`/help-images/${b.name}`} alt={b.alt} loading="lazy" decoding="async" width={size?.[0]} height={size?.[1]} />
+            {b.caption.length > 0 && <figcaption><Inlines c={b.caption} ctx={ctx} /></figcaption>}
+          </figure>
+        )
+      }
       case 'quote': return <blockquote key={i}><Blocks blocks={b.c} ctx={ctx} /></blockquote>
       case 'code': return <CodeBlock key={i} v={b.v} />
       case 'list': {

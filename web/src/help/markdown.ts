@@ -1,7 +1,8 @@
 // A small Markdown reader for the guides in docs/. It makes a tree that help/GuideBody.tsx
 // draws as React elements, so nothing in a guide ever reaches the page as HTML. Only what the
-// guides use is here: headings, paragraphs, lists, tables, code, quotes and rules. Raw HTML
-// lines are dropped.
+// guides use is here: headings, paragraphs, lists, tables, code, quotes, rules and pictures. Raw
+// HTML lines are dropped. A picture is a line of its own, ![words](images/name.webp), and an
+// italic line straight after it is its caption. Only names in docs/images can be pictures.
 
 export type Inline =
   | { t: 'text'; v: string }
@@ -19,6 +20,7 @@ export type Block =
   | { t: 'code'; lang: string; v: string }
   | { t: 'quote'; c: Block[] }
   | { t: 'hr' }
+  | { t: 'figure'; name: string; alt: string; caption: Inline[] }
 
 const MAX_DEPTH = 12
 
@@ -133,6 +135,9 @@ const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/
 const RULE = /^\s*(-\s*){3,}$|^\s*(\*\s*){3,}$|^\s*(_\s*){3,}$/
 const TABLE_RULE = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/
 const HTML = /^\s*<\/?[a-zA-Z][^>]*>/
+const IMAGE = /^\s*!\[([^\]]*)\]\(([^)\s]+)\)\s*$/
+const CAPTION = /^\s*\*(?!\*)(.+)\*\s*$/
+const IMAGE_NAME = /^(?:\.\/)?images\/([A-Za-z0-9_-]+\.(?:webp|png|jpe?g))$/
 
 function indentOf(line: string) {
   let n = 0
@@ -161,7 +166,7 @@ function cells(line: string): string[] {
 }
 
 function startsBlock(line: string, next: string | undefined): boolean {
-  return HEADING.test(line) || FENCE.test(line) || RULE.test(line) || /^\s*>/.test(line) || LIST_ITEM.test(line)
+  return HEADING.test(line) || FENCE.test(line) || RULE.test(line) || /^\s*>/.test(line) || LIST_ITEM.test(line) || IMAGE.test(line)
     || (line.includes('|') && next !== undefined && TABLE_RULE.test(next) && next.includes('-'))
 }
 
@@ -199,6 +204,18 @@ function parseLines(lines: string[], used: Used, depth: number): Block[] {
     }
 
     if (RULE.test(line)) { out.push({ t: 'hr' }); i++; continue }
+
+    const img = IMAGE.exec(line)
+    if (img) {
+      i++
+      const name = IMAGE_NAME.exec(img[2])?.[1]
+      // Anything but a picture of ours says what it is in words, and nothing is fetched.
+      if (!name) { if (img[1]) out.push({ t: 'p', c: [{ t: 'text', v: img[1] }] }); continue }
+      const under = CAPTION.exec(lines[i] ?? '')
+      if (under) i++
+      out.push({ t: 'figure', name, alt: img[1], caption: under ? inline(under[1]) : [] })
+      continue
+    }
 
     if (/^\s*>/.test(line)) {
       const body: string[] = []

@@ -306,6 +306,58 @@ func TestHelpIsNotOnGitHub(t *testing.T) {
 	}
 }
 
+// A picture in a guide is one of ours, says what it shows, has a small copy for Help that comes with
+// the app, and a credit under it if it shows someone's work.
+func TestGuidePicturesAreComplete(t *testing.T) {
+	image := regexp.MustCompile(`^\s*!\[([^\]]*)\]\(([^)\s]+)\)\s*$`)
+	credits := read(t, filepath.Join(repo, "docs", "images", "CREDITS.md"))
+	used := map[string]bool{}
+	for _, file := range docsFiles(t) {
+		name := filepath.Base(file)
+		lines := prose(read(t, file))
+		for i, line := range lines {
+			if !strings.Contains(line, "![") {
+				continue
+			}
+			m := image.FindStringSubmatch(line)
+			if m == nil {
+				t.Errorf("%s: a picture has to be a line of its own, or the app won't show it: %s", name, strings.TrimSpace(line))
+				continue
+			}
+			pic, ok := strings.CutPrefix(m[2], "images/")
+			if !ok || strings.ContainsAny(pic, `/\`) || !strings.HasSuffix(pic, ".webp") {
+				t.Errorf("%s: %s isn't a WebP picture in docs/images", name, m[2])
+				continue
+			}
+			used[pic] = true
+			if strings.TrimSpace(m[1]) == "" {
+				t.Errorf("%s: %s doesn't say what it shows", name, pic)
+			}
+			if _, err := os.Stat(filepath.Join(repo, "docs", "images", pic)); err != nil {
+				t.Errorf("%s: %s isn't in docs/images", name, pic)
+			}
+			if _, err := os.Stat(filepath.Join(repo, "web", "public", "help-images", pic)); err != nil {
+				t.Errorf("%s: %s has no small copy for Help: run scripts/docs-images.py --help-copies", name, pic)
+			}
+			if !strings.Contains(credits, "`"+pic+"`") {
+				t.Errorf("%s: %s isn't in docs/images/CREDITS.md", name, pic)
+			}
+			if i+1 >= len(lines) || !strings.HasPrefix(strings.TrimSpace(lines[i+1]), "*") {
+				t.Errorf("%s: %s has no caption line under it", name, pic)
+			}
+		}
+	}
+	copies, err := os.ReadDir(filepath.Join(repo, "web", "public", "help-images"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range copies {
+		if !used[c.Name()] {
+			t.Errorf("web/public/help-images/%s isn't used by any guide, and adds to the download", c.Name())
+		}
+	}
+}
+
 // One footer, with no version in it to go stale, and no HTML for the app to drop.
 func TestGuidesAreTidy(t *testing.T) {
 	const footer = "<sub>WittyMediaServer documentation</sub>"

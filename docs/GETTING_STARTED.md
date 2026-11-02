@@ -54,7 +54,7 @@ docker run -d --name wittymediaserver --restart unless-stopped \
 
 ## What first-time setup asks
 
-Setup takes a few minutes. Everything after your account can be skipped, and each page says where in **Settings** to change it later. Each answer is saved as you go, so you can go back, or stop and carry on tomorrow. A page only appears if this server can use what it asks about: there's no page about games until a games module is here.
+[First-time setup, step by step](FIRST-TIME-SETUP.md) has a picture of every page. Setup takes a few minutes. Everything after your account can be skipped, and each page says where in **Settings** to change it later. Each answer is saved as you go, so you can go back, or stop and carry on tomorrow. A page only appears if this server can use what it asks about: there's no page about games until a games module is here.
 
 - **Set up a new server, or restore from a backup.** These are the two buttons on the first page. Moving from another machine, or coming back from a reset? [Restoring](BACKUP.md) brings your accounts, libraries and settings back, and you won't see the rest of this list. The first page is also where you can rename your server and give it a logo.
 - **Your account.** A name and a password of at least 8 characters, typed twice, and a tick to say you've read the legal notes. This first account looks after libraries, people and settings. Keep the password safe: [forgetting it is hard to undo](ACCOUNTS.md#if-you-forget-your-password).

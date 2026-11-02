@@ -18,6 +18,7 @@ function blockText(b: Block): string {
     case 'list': return b.items.map((it) => it.map(blockText).join(' ')).join(' ')
     case 'quote': return b.c.map(blockText).join(' ')
     case 'table': return [b.head, ...b.rows].map((r) => r.map(plain).join(' ')).join(' ')
+    case 'figure': return `${b.alt} ${plain(b.caption)}`
     case 'hr': return ''
   }
 }

@@ -58,6 +58,9 @@
 .help-prose hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-6) 0; }
 .help-prose blockquote { margin: 0 0 var(--sp-3); padding: var(--sp-3) var(--sp-4); background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-md); }
 .help-prose blockquote > :last-child { margin-bottom: 0; }
+.help-figure { margin: var(--sp-3) 0 var(--sp-4); }
+.help-figure img { display: block; width: 100%; height: auto; background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--r-md); }
+.help-figure figcaption { margin-top: var(--sp-1); color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-snug); }
 
 .help-code { position: relative; margin: 0 0 var(--sp-4); }
 .help-code pre { margin: 0; padding: var(--sp-3) var(--sp-4); padding-right: 92px; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-md); overflow-x: auto; white-space: pre; line-height: var(--leading-snug); }

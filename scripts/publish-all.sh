@@ -366,7 +366,7 @@ if should_run "$CATALOG"; then
     while :; do
       mkdir -p "$work/catalog"
       if curl -fsSL "$catalog_url" -o "$work/catalog/catalog.json" && curl -fsSL "$catalog_url.sig" -o "$work/catalog/catalog.json.sig" &&
-        (cd "$clones/WittyModule" && go run ./cmd/wittymodule catalog-check -pub "$pub" "$work/catalog/catalog.json") &&
+        go run "github.com/$OWNER/wittymodule/cmd/wittymodule@v$module_version" catalog-check -pub "$pub" "$work/catalog/catalog.json" &&
         [ "$(python3 -c "import json;print(sum(1 for m in json.load(open('$work/catalog/catalog.json'))['modules'] if m['versions']))")" -ge "$((want - 3))" ]; then
         note "the published catalogue has a good signature and lists the new versions"
         break

@@ -311,6 +311,19 @@ type ControllerData struct {
 	Pads    []KnownPad           `json:"pads"`
 }
 
+// Most new Nintendo 64 homebrew is built with libdragon, whose games boot from its own code and
+// run their own programs on the console's graphics processor, where a commercial game runs
+// Nintendo's. Mupen64Plus-Next can't run them: on its fast CPU setting, it ends the whole
+// process with exit(1) while compiling their code, and on the slower ones it never makes a
+// frame. ParaLLEl N64 can, but only with its software renderer and the real graphics processor
+// emulated: a graphics plugin guessing at what's being drawn makes the game crash.
+const (
+	LibdragonCore = "parallel_n64"
+
+	LibdragonNeedsCore = "This is homebrew built with libdragon, which Mupen64Plus-Next can't run. ParaLLEl N64 can: an admin can install it in Settings, Consoles & cores."
+	LibdragonNotice    = "This homebrew runs on ParaLLEl N64's accurate, slower settings. Some newer homebrew asks for more than this emulator can do, and stops on an error screen of its own."
+)
+
 // Kinds of profile.
 const (
 	ProfileGamepad  = "gamepad"
@@ -873,6 +886,14 @@ func IsCustomConsole(id string) bool {
 	return r0
 }
 
+// IsLibdragon says whether a Nintendo 64 file boots from libdragon's own code, whichever of the
+// three byte orders it was dumped in. Nothing here decides for a file it can't read.
+func IsLibdragon(path string) bool {
+	var r0 bool
+	_ = service.Call(context.Background(), "wittyplay", "wittyplay.IsLibdragon", nil, nil, []any{path}, []any{&r0})
+	return r0
+}
+
 // IsNonCommercial says whether a core's licence forbids commercial use, as far
 // as this table knows.
 func IsNonCommercial(id string) bool {
@@ -921,6 +942,16 @@ func (l *Layer) Empty() bool {
 func (l *Layer) Patch(values map[string]any, core map[string]*string) []Issue {
 	var r0 []Issue
 	_ = service.Call(context.Background(), "wittyplay", "wittyplay.Layer.Patch", l, l, []any{values, core}, []any{&r0})
+	return r0
+}
+
+// LibdragonOptions are what ParaLLEl N64 takes to run such a game. Nothing here needs a graphics
+// card. The cached interpreter takes about twice the CPU of the recompiler (12 seconds against 7
+// in 20 of a test suite's menus), and is what shows a game's own error where the recompiler
+// shows a black screen for good. cxd4 is in every build of this core.
+func LibdragonOptions() map[string]string {
+	var r0 map[string]string
+	_ = service.Call(context.Background(), "wittyplay", "wittyplay.LibdragonOptions", nil, nil, nil, []any{&r0})
 	return r0
 }
 

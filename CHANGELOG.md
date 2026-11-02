@@ -7,6 +7,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.6.0-alpha
 
+- **Nintendo 64 homebrew built with libdragon plays.** It goes to ParaLLEl N64 with the settings it needs, on the CPU alone. Without that core, the message says to install it, rather than that the emulator crashed. Some newer homebrew still stops on its own error screen, and the game says so when it starts.
+- **Slow core installs finish.** Every request that wasn't a read was cancelled after two minutes, however well it was going, which cut off core installs on slow connections.
 - **Lighter on a small server.** Checking a library that hasn't changed takes a tenth of the processor it did: about 1 second instead of 10 for 43,000 files, and it happens every six hours. First scans of films and shows use half the processor, as a title's picture now comes from the nearest keyframe (on a 7 GB film, 110 ms and 77 MB instead of 2.5 s and 219 MB). A library page of one library is about 80 times quicker to look up in the database on a server with a big music library. An idle server wakes a quarter as often and starts with less memory. The install is 6 MB smaller.
 - **Quicker pages, especially away from home.** Lists are sent compressed, so a page of a library is a tenth of the size to fetch. The first page no longer brings the code for game pages, adding a library or the player's controls, and the video engine waits until something plays: the TV guide and photo pages are 180 KB lighter.
 - **A damaged picture no longer costs two minutes of a whole processor core every time it's looked at.** A `.jxl` file that isn't really JPEG XL isn't listed any more, and a picture that can't be made isn't tried again for an hour.

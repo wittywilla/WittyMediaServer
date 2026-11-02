@@ -723,6 +723,20 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		corePath, fallbacks = core[0].Path, nil
 		coreOptions = wittyplay.StartOptions(console.ID, core[0].ID, s.DB.GetSetting(ctx, "gamingResolution", ""), systemDir)
 	}
+	// A custom core only runs where an administrator put it, so it's left to them.
+	if console.ID == "n64" && (playing == nil || playing.Source != cores.SourceCustom) && wittyplay.IsLibdragon(rom) {
+		core := g.cores.AllForConsole(console, wittyplay.LibdragonCore)
+		if len(core) == 0 || core[0].ID != wittyplay.LibdragonCore {
+			if cleanup != nil {
+				cleanup()
+			}
+			writeJSON(w, 409, map[string]any{"error": wittyplay.LibdragonNeedsCore, "otherCore": true, "console": console.ID})
+			return
+		}
+		corePath, coreID, playing, fallbacks = core[0].Path, core[0].ID, &core[0], nil
+		runnerArgs = wittyplay.RunnerArgs(core[0].ID)
+		coreOptions = wittyplay.StartOptions(console.ID, core[0].ID, s.DB.GetSetting(ctx, "gamingResolution", ""), systemDir)
+	}
 	s.Log.Debug("game prepared", "item", it.ID, "seconds", time.Since(began).Seconds())
 	userID := userFrom(r).ID
 	var coreAssets string

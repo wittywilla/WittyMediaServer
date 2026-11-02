@@ -1,6 +1,7 @@
 package server
 
 import (
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -35,13 +36,36 @@ func publicBody(p string) bool {
 // limitBody bounds the size of a request's body and how long it may take to arrive.
 func limitBody(w http.ResponseWriter, r *http.Request) {
 	rc := http.NewResponseController(w)
+	noBody := r.Body == http.NoBody
 	if publicBody(r.URL.Path) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxCredentialBytes)
 		_ = rc.SetReadDeadline(time.Now().Add(publicBodyTime))
+	} else {
+		if !bigUploadPath(r.URL.Path) {
+			r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
+		}
+		_ = rc.SetReadDeadline(time.Now().Add(requestBodyTime))
+	}
+	if noBody {
+		_ = rc.SetReadDeadline(time.Time{})
 		return
 	}
-	if !bigUploadPath(r.URL.Path) {
-		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
+	r.Body = &arrivedBody{ReadCloser: r.Body, rc: rc}
+}
+
+// arrivedBody takes the deadline off once the body is all here. It's a limit on the body, and
+// past that it would end the request: with nothing left to read, the standard server watches
+// the connection to see if the client has gone, and takes that read failing to mean it has. So
+// a request cancels itself when the deadline passes, however well it's doing.
+type arrivedBody struct {
+	io.ReadCloser
+	rc *http.ResponseController
+}
+
+func (b *arrivedBody) Read(p []byte) (int, error) {
+	n, err := b.ReadCloser.Read(p)
+	if err == io.EOF {
+		_ = b.rc.SetReadDeadline(time.Time{})
 	}
-	_ = rc.SetReadDeadline(time.Now().Add(requestBodyTime))
+	return n, err
 }

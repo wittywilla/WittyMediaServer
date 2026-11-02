@@ -54,6 +54,24 @@ func LoadSettings(ctx context.Context, d *db.DB) Settings {
 	return s
 }
 
+// settingsNow reads the settings during a conversion. A read that fails isn't anyone changing
+// their mind, so what was in force stands. It fails when the run is ending, and the defaults
+// in its place could stop a good conversion for a limit nobody set.
+func settingsNow(ctx context.Context, d *db.DB, was Settings) Settings {
+	var raw string
+	switch err := d.QueryRowContext(ctx, `SELECT value FROM settings WHERE key = ?`, settingsKey).Scan(&raw); {
+	case errors.Is(err, sql.ErrNoRows):
+		return DefaultSettings()
+	case err != nil:
+		return was
+	}
+	s := DefaultSettings()
+	if json.Unmarshal([]byte(raw), &s) != nil {
+		return was
+	}
+	return s
+}
+
 // Validate checks settings from outside.
 func (s *Settings) Validate() error {
 	switch {

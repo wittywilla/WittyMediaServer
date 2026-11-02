@@ -909,7 +909,7 @@ notice:
 - Accounts other than the administrator no longer see server folders or podcast feed addresses.
 - An HLS playlist opened with a token in its address names its segments with a token for that stream
   alone, so the session's own token doesn't end up in playlists.
-Everything found in a full audit of the code; [docs/AUDIT.md](docs/AUDIT.md) has the details.
+Everything found in a full audit of the code; the details are in the project's history.
 
 ### Security
 

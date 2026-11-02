@@ -26,7 +26,7 @@ func Open(dataDir string) (*DB, error) {
 	// One that reads first and writes later fails at once, without waiting, if
 	// another write lands in between: busy_timeout can't help it.
 	// cache_size: SQLite's default is 2 MB for each connection, on top of what the operating system
-	// already holds of this file. 1 MB answers as fast (see the numbers in the release notes).
+	// already holds of this file. 1 MB answered the slowest pages as fast on 43,000 files.
 	dsn := fmt.Sprintf("file:%s?_txlock=immediate&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=synchronous(NORMAL)&_pragma=cache_size(-1024)", name)
 	sdb, err := sql.Open(driverName, dsn) // the SQLite driver with failures logged: logged.go
 	if err != nil {

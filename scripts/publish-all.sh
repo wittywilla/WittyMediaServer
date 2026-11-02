@@ -79,9 +79,10 @@ export GIT_ALLOW_PROTOCOL=file:https:ssh GIT_CONFIG_NOSYSTEM=1
 gitname=$(git -C "$repos/$SERVER" config user.name || echo "WittyWilla")
 gitmail=$(git -C "$repos/$SERVER" config user.email || echo "noreply@users.noreply.github.com")
 export GIT_AUTHOR_NAME="$gitname" GIT_AUTHOR_EMAIL="$gitmail" GIT_COMMITTER_NAME="$gitname" GIT_COMMITTER_EMAIL="$gitmail"
+# Its own module cache, either way. A copy left by a dry run or an earlier build is what its go.sum
+# would record, and a release built on GitHub then fails on the checksum.
+export GOMODCACHE=$work/modcache
 if [ $apply = 0 ]; then
-  # A dry run keeps its own module cache: what it pretends to publish isn't what's on GitHub.
-  export GOMODCACHE=$work/modcache
   i=0
   for r in "${ORDER[@]}"; do
     export "GIT_CONFIG_KEY_$i=url.file://$remotes/$r.git.insteadOf" "GIT_CONFIG_VALUE_$i=https://github.com/$OWNER/$(tr 'A-Z' 'a-z' <<<"$r")"
@@ -286,6 +287,15 @@ wait_release() { # <repo> <version> <signed?>: until the release workflow has do
   [ $apply = 1 ] || return 0
   note "waiting for $r $tag's release. Approve it in the Actions tab if your rules ask for that."
   until assets=$(gh release view "$tag" -R "$OWNER/$r" --json assets --jq '.assets[].name' 2>/dev/null) && { [ "$signed" != 1 ] || [ -n "$assets" ]; }; do
+    # A release that failed never appears, so say so now rather than wait out the hour.
+    local run state
+    run=$(gh run list -R "$OWNER/$r" --workflow release --branch "$tag" --limit 1 --json databaseId,status,conclusion --jq '.[0] | "\(.databaseId) \(.status) \(.conclusion)"' 2>/dev/null || true)
+    state=${run##* }
+    case "$state" in failure|cancelled|timed_out|startup_failure)
+      gh run view "${run%% *}" -R "$OWNER/$r" --log-failed 2>/dev/null | tail -25 | cut -c1-220 || true
+      die "$r $tag's release run ended in $state: see its Actions tab, then run this again with --from $r"
+      ;;
+    esac
     sleep 30
     waited=$((waited + 30))
     [ $waited -lt 3600 ] || die "$r $tag's release didn't appear in an hour: see its Actions tab, then run this again with --from $r"

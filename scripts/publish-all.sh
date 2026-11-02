@@ -285,7 +285,7 @@ wait_release() { # <repo> <version> <signed?>: until the release workflow has do
   local r=$1 v=$2 signed=$3 tag=v$2 waited=0
   [ $apply = 1 ] || return 0
   note "waiting for $r $tag's release. Approve it in the Actions tab if your rules ask for that."
-  until assets=$(gh release view "$tag" -R "$OWNER/$r" --json assets --jq '.assets[].name' 2>/dev/null) && [ -n "$assets" ]; do
+  until assets=$(gh release view "$tag" -R "$OWNER/$r" --json assets --jq '.assets[].name' 2>/dev/null) && { [ "$signed" != 1 ] || [ -n "$assets" ]; }; do
     sleep 30
     waited=$((waited + 30))
     [ $waited -lt 3600 ] || die "$r $tag's release didn't appear in an hour: see its Actions tab, then run this again with --from $r"
@@ -293,7 +293,7 @@ wait_release() { # <repo> <version> <signed?>: until the release workflow has do
   if [ "$signed" = 1 ]; then
     grep -q 'SHA256SUMS.txt.sig$' <<<"$assets" || die "$r $tag's release has no signature"
   fi
-  note "released, with $(wc -l <<<"$assets") files"
+  note "released, with $(grep -c . <<<"$assets") files"
 }
 
 publish() { # <repo> <signed?> <tag?>

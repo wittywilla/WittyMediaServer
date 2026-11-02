@@ -115,6 +115,12 @@ func num(v string) *int {
 var trackPrefixRe = regexp.MustCompile(`^(\d{1,3})(?:[ ._-]+|\.\s*)(.+)$`)
 
 func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, covers map[string]string) error {
+	if k := c.unchanged(); k != nil {
+		if k.missing {
+			return s.Store.restore(ctx, k.id)
+		}
+		return nil // unchanged
+	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
 	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size {
 		if existing.Missing {

@@ -136,6 +136,12 @@ func parseComicName(name string) (series string, number string, year *int) {
 }
 
 func (s *Scanner) indexBook(ctx context.Context, lib *Library, c candidate) error {
+	if k := c.unchanged(); k != nil {
+		if k.missing {
+			return s.Store.restore(ctx, k.id)
+		}
+		return nil
+	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
 	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size {
 		if existing.Missing {

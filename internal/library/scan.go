@@ -345,6 +345,8 @@ type candidate struct {
 	discs   []gameDisc
 	// format is the registry's id, when the content said it and the name didn't.
 	format string
+	// known is what the library already says about this path, if anything.
+	known *knownFile
 }
 
 // discover lists playable things under a root: video files, disc images and
@@ -593,6 +595,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	}
 	rules := s.Store.loadRuleSet(ctx, lib)
 	ctx = context.WithValue(ctx, rulesKey{}, rules)
+	if lib.Type != "games" {
+		if err := s.Store.loadKnown(ctx, libraryID, all, !IsAudioLibrary(lib.Type) && lib.Type != "photos" && lib.Type != "books"); err != nil && ctx.Err() == nil {
+			s.Log.WarnContext(ctx, "could not read what the library holds in one go; looking file by file", "library", lib.Name, "err", err)
+		}
+	}
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
 	if lib.Type == "games" {
 		task.Phase("Listing the games")
@@ -700,6 +707,10 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 			c.kind = CDKind
 			return s.indexCD(ctx, lib, c)
 		}
+	}
+	if k := c.unchanged(); k != nil && k.hasPoster && !k.hasDisc && !k.missing {
+		s.fixParsedTitle(ctx, &Item{ID: k.id, Path: c.path, Title: k.title, Provider: k.provider}, c.kind)
+		return nil
 	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
 	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size {
@@ -1272,7 +1283,7 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 // its file by the earlier, faulty parse ("Dr.Story.The.Treeline" became
 // "Dr Story The"). Items matched online or retitled by hand keep theirs.
 func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind string) {
-	if it.Provider != "" || s.Store.TitleMeta(ctx, TargetItem, it.ID).Locks["title"] {
+	if it.Provider != "" {
 		return
 	}
 	base := strings.TrimSuffix(filepath.Base(it.Path), filepath.Ext(it.Path))
@@ -1280,7 +1291,7 @@ func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind string) {
 		base = filepath.Base(it.Path)
 	}
 	title, _ := ParseName(base)
-	if title == it.Title || it.Title != legacyTitle(base) {
+	if title == it.Title || it.Title != legacyTitle(base) || s.Store.TitleMeta(ctx, TargetItem, it.ID).Locks["title"] {
 		return
 	}
 	if err := s.Store.retitle(ctx, it.ID, title); err != nil {

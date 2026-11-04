@@ -280,7 +280,7 @@ var lyricsAskSlot = make(chan struct{}, 1)
 // browser has to a server, and with all six waiting the whole page stops (issue #17).
 // Variables for tests.
 var (
-	lyricsTurnWait = 2 * time.Second
+	lyricsTurnWait = 500 * time.Millisecond
 	lyricsBudget   = 20 * time.Second
 )
 
@@ -290,7 +290,7 @@ var errLyricsBusy = errors.New("still looking up another song's lyrics: try agai
 // A source that doesn't answer is left alone for a while, and says so, instead of every
 // song waiting the whole time limit on it.
 const (
-	lyricsTripAfter = 3               // failures in a row
+	lyricsTripAfter = 2               // failures in a row: each may have taken the whole time limit
 	lyricsRestFor   = 5 * time.Minute // then one try, and if that fails, this long again
 )
 

@@ -2,6 +2,7 @@ package logging
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -146,9 +147,12 @@ func (c *calls) log(ctx context.Context, what string, status int, n int64, answe
 		args = append(args, "bytes", n)
 	}
 	if err != nil && err != io.EOF {
-		if ctx.Err() != nil {
-			args = append(args, "stopped", "the caller gave up")
-		} else {
+		switch {
+		case errors.Is(ctx.Err(), context.DeadlineExceeded):
+			args = append(args, "stopped", "no answer within its time limit")
+		case ctx.Err() != nil:
+			args = append(args, "stopped", "no longer wanted")
+		default:
 			args = append(args, "err", err.Error())
 		}
 	}

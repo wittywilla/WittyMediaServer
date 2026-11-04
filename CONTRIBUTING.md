@@ -65,6 +65,27 @@ cd web && npx tsc --noEmit -p . && npm run build
 
 `gofmt -l .` must print nothing. The tests need more than Go's default 10 minutes: `internal/server` alone is slow, and takes longer on a busy machine.
 
+**Then on Windows too, before a release.** Some faults only show there: files held open, paths with `\`, programs that take a while to stop. From PowerShell:
+
+```powershell
+cd web; npm run build; cd ..
+go test ./... -count=1 -timeout 60m
+```
+
+- Build the web app first. Without `web/dist`, `cmd/wittymediaserver` and `web` stop with "pattern all:dist: no matching files found".
+- In a worktree, or any checkout `dev-modules.mjs` didn't set up, Go says the folder "is contained in a module that is not one of the workspace modules". Run `$env:GOWORK = "off"` first, and Go uses the published WittyModule that `go.sum` names.
+- Allow an hour. Windows starts programs more slowly than Linux, and the slowest packages take more than 30 minutes there.
+- [Windows go test failures](https://github.com/wittywilla/WittyMediaServer/issues/133) lists what fails on Windows today.
+
+**If every package fails at once on Windows**, with "An Application Control policy has blocked this file" or a bare `exit status 1`, Windows' Smart App Control is stopping the test programs. Go builds each package's tests as a new, unsigned program in your temporary folder, and Smart App Control only lets through programs that are signed or that Microsoft already knows. There's no way to allow a folder, so building them somewhere else doesn't help. To check, in PowerShell:
+
+```powershell
+(Get-MpComputerStatus).SmartAppControlState
+Get-WinEvent -LogName Microsoft-Windows-CodeIntegrity/Operational -MaxEvents 200 | Where-Object Message -match 'go-build' | Select-Object -First 3 TimeCreated, Message
+```
+
+`On` or `Eval` with `go-build` lines means it's blocking them: run the tests in WSL instead. Whether to turn Smart App Control off is a decision about your PC's security, not this project's. Windows may not let you turn it back on without a reset, so this guide doesn't ask you to.
+
 CI also runs these, which you can run yourself from the top of the repository:
 
 ```bash

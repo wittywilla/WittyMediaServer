@@ -606,3 +606,50 @@ func TestPreviewFoldersAreCleared(t *testing.T) {
 		t.Error("left behind for good")
 	}
 }
+
+// On a machine with many processor threads, a stream's decoder and libx264 get a set number,
+// placed where FFmpeg applies them to the picture, and expert options still have the last word.
+func TestStreamThreads(t *testing.T) {
+	tools := &ffmpeg.Tools{Encoders: map[string]bool{"libx264": true}}
+	line := func(sp Spec) string {
+		s := &Session{Spec: sp, Dir: t.TempDir(), tools: tools, m: &Manager{tools: tools}}
+		args, _, _ := s.commandLine(0)
+		return strings.Join(args, " ")
+	}
+	base := Spec{InputArgs: []string{"-i", "in.mkv"}, Duration: 60, SegmentSec: 4, AudioIndex: 0, SubtitleIndex: -1}
+	dec, enc := ffmpeg.StreamThreads(1080)
+	got := line(base)
+	if dec == 0 {
+		if strings.Contains(got, "-threads") {
+			t.Errorf("a small machine is left to FFmpeg's choice:\n%s", got)
+		}
+		return
+	}
+	if want := fmt.Sprintf("-threads %d -i in.mkv", dec); !strings.Contains(got, want) {
+		t.Errorf("the decoder's threads aren't set before the input (%q):\n%s", want, got)
+	}
+	if want := fmt.Sprintf("-c:v libx264 -threads %d -preset", enc); !strings.Contains(got, want) {
+		t.Errorf("libx264's threads aren't set (%q):\n%s", want, got)
+	}
+	big := base
+	big.Height = 2160
+	if _, enc4k := ffmpeg.StreamThreads(2160); !strings.Contains(line(big), fmt.Sprintf("-c:v libx264 -threads %d ", enc4k)) {
+		t.Errorf("4K gets more threads:\n%s", line(big))
+	}
+	big.MaxHeight = 720 // what comes out is small, whatever went in
+	if !strings.Contains(line(big), fmt.Sprintf("-c:v libx264 -threads %d ", enc)) {
+		t.Errorf("a 4K film converted to 720p gets the threads of 720p:\n%s", line(big))
+	}
+	expert := base
+	expert.Quality.VideoArgs = []string{"-preset", "fast", "-threads", "3"}
+	if got := line(expert); !strings.HasSuffix(strings.SplitN(got, "-threads 3", 2)[0], fmt.Sprintf("-threads %d -preset fast ", enc)) {
+		t.Errorf("expert options come after, so theirs counts:\n%s", got)
+	}
+	copied := base
+	copied.CopyVideo, copied.Growing = true, true
+	hasBurst = false
+	readrateOnce.Do(func() {})
+	if got := line(copied); strings.Contains(got, "-threads") {
+		t.Errorf("a copy decodes no picture:\n%s", got)
+	}
+}

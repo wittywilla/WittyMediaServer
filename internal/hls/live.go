@@ -481,10 +481,14 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 		q.Preset = sp.Preset
 		plan = t.Plan(q)
 	}
+	decThreads, encThreads := ffmpeg.StreamThreads(sp.MaxHeight)
 	if !in.CopyVideo {
 		args = append(args, plan.InputArgs...)
 		if plan.Name == "h264_nvenc" {
 			args = append(args, "-hwaccel", "auto")
+		}
+		if decThreads > 0 {
+			args = append(args, "-threads", strconv.Itoa(decThreads))
 		}
 	}
 	if in.Stdin != nil {
@@ -528,6 +532,9 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 			vf = append(vf, plan.Upload)
 		}
 		args = append(args, "-vf", strings.Join(vf, ","), "-c:v", plan.Name)
+		if plan.Name == "libx264" && encThreads > 0 {
+			args = append(args, "-threads", strconv.Itoa(encThreads))
+		}
 		args = append(args, plan.Args...)
 		if rate := sp.Quality.MaxRate; rate != "" && len(sp.Quality.VideoArgs) == 0 {
 			args = append(args, "-maxrate", rate, "-bufsize", rate)

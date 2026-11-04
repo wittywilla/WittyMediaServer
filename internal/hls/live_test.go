@@ -3,6 +3,7 @@ package hls
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -232,6 +233,16 @@ func TestLiveArgs(t *testing.T) {
 	}
 	if !strings.Contains(joined, "-c:v copy") {
 		t.Errorf("copy mode: %s", joined)
+	}
+	if dec, enc := ffmpeg.StreamThreads(720); dec > 0 {
+		for _, want := range []string{fmt.Sprintf("-threads %d -re", dec), fmt.Sprintf("-c:v libx264 -threads %d ", enc)} {
+			if !strings.Contains(file, want) {
+				t.Errorf("a conversion on a big machine lacks %q:\n%s", want, file)
+			}
+		}
+	}
+	if strings.Contains(joined, "-threads") {
+		t.Errorf("a copy decodes no picture:\n%s", joined)
 	}
 	slate := strings.Join(s.liveArgs(&LiveInput{InputArgs: SlateInput(), Slate: true, Duration: 10, AudioIndex: -1}, 3, false), " ")
 	if !strings.Contains(slate, "anullsrc") || !strings.Contains(slate, "-map 1:a:0") {

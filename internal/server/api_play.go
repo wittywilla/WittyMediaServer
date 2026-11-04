@@ -255,10 +255,14 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	if info.DurationSec <= 0 {
 		info.DurationSec = it.RuntimeSec // a bare stream doesn't say; the scan worked it out
 	}
-	s.HLS.Ensure(hls.Spec{
+	spec := hls.Spec{
 		ID: hid, ItemID: it.ID, InputArgs: inputArgs, Source: it.Path, Duration: info.DurationSec, SeekMargin: pr.SeekMargin(), VideoFilter: vf, VideoIndex: pr.VideoIndex(), NoVideo: v == nil,
 		AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: info.SubIndex, SubtitleText: s.textBurn(info.SubIndex, pr), Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r),
-	})
+	}
+	if v != nil {
+		spec.Height = v.Height
+	}
+	s.HLS.Ensure(spec)
 	info.Type = "hls"
 	info.URL = "/api/hls/" + hid + "/playlist.m3u8"
 	reason := "browser cannot play the file as is"

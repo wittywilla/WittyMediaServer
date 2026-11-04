@@ -143,3 +143,20 @@ func TestParseDecoders(t *testing.T) {
 		t.Fatalf("%v", got)
 	}
 }
+
+func TestStreamThreads(t *testing.T) {
+	defer func(f func() int) { numCPU = f }(numCPU)
+	for _, c := range []struct{ cpus, height, decode, encode int }{
+		{4, 1080, 0, 0}, // FFmpeg's own choice on a small machine
+		{8, 2160, 0, 0},
+		{20, 0, 8, 8}, // height not known: no bigger than 1080
+		{20, 1080, 8, 8},
+		{20, 2160, 8, 16},
+		{10, 2160, 8, 15}, // never more than libx264 would start by itself
+	} {
+		numCPU = func() int { return c.cpus }
+		if d, e := StreamThreads(c.height); d != c.decode || e != c.encode {
+			t.Errorf("%d threads, %d lines: %d and %d, want %d and %d", c.cpus, c.height, d, e, c.decode, c.encode)
+		}
+	}
+}

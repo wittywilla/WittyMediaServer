@@ -165,6 +165,32 @@ type Plan struct {
 	Upload    string   // filter appended after format= (hwupload for VAAPI)
 }
 
+// StreamThreads is how many threads the decoder and libx264 get for a stream someone is
+// watching, whose picture comes out this many lines high (0 when that isn't known, which is
+// taken as 1080 or less). 0 leaves it to FFmpeg.
+//
+// FFmpeg starts a decoding thread for each processor thread and libx264 one and a half, and
+// each of them holds pictures of its own. On a 20-thread machine a 1080p conversion held
+// 1.1 GB that way and 530 MB with eight threads, for the same processor time and still five
+// times faster than real time; a 4K one held 3.9 GB, and 2.5 GB with sixteen. On a machine
+// with eight processor threads or fewer, FFmpeg's own choice is about this anyway, and
+// speed matters more there.
+func StreamThreads(height int) (decode, encode int) {
+	n := numCPU()
+	if n <= streamThreads {
+		return 0, 0
+	}
+	encode = streamThreads
+	if height > 1088 {
+		encode = min(2*streamThreads, n*3/2)
+	}
+	return streamThreads, encode
+}
+
+const streamThreads = 8
+
+var numCPU = runtime.NumCPU // tests pretend to be other machines
+
 // Plan picks the encoder for a quality profile.
 func (t *Tools) Plan(q Quality) Plan {
 	for _, name := range q.HW {

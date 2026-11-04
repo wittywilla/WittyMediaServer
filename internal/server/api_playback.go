@@ -622,6 +622,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		}
 	}
 	spec.MaxHeight = playback.Smallest(spec.MaxHeight, p.MaxHeight)
+	spec.Height = src.Height
 	if d.CopyVideo {
 		spec.CopyVideo, spec.CopyAudio, spec.FMP4, spec.Growing = true, d.CopyAudio, d.FMP4, true
 		if d.FMP4 && src.VideoCodec == "hevc" {

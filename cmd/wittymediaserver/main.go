@@ -21,6 +21,9 @@ func main() {
 // serviceStop closes when Windows' service manager asks the server to stop.
 var serviceStop = make(chan struct{})
 
+// asService: Windows' service manager started this process.
+var asService bool
+
 func run(args []string) int {
 	if len(args) > 0 {
 		switch args[0] {

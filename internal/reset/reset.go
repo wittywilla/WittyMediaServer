@@ -78,6 +78,10 @@ var keptThrough = map[string]bool{"backups": true}
 // its output: the tray app, for one. They move if they can, and stay behind if not.
 var heldOpen = map[string]bool{"logs": true, "wms.log": true}
 
+// running belong to the server that's starting, which holds the lock while the reset
+// happens: they never move.
+var running = map[string]bool{"instance.lock": true, "instance.json": true, "instance.json.tmp": true}
+
 // retryFor is how long a file that's in use gets. The process before this one may
 // still be closing its database, and a helper may still be on its way out.
 var retryFor = 30 * time.Second
@@ -325,7 +329,7 @@ func Apply(f Folders) *Result {
 	res := &Result{Mode: r.Mode, Copy: r.Copy, At: time.Now().UTC()}
 	notCopy := func(keep ...string) func(string) bool {
 		return func(name string) bool {
-			if name == requestFile || name == requestFile+".tmp" || heldOpen[name] || copyName.MatchString(name) {
+			if name == requestFile || name == requestFile+".tmp" || heldOpen[name] || running[name] || copyName.MatchString(name) {
 				return true
 			}
 			for _, k := range keep {
@@ -367,7 +371,7 @@ func Apply(f Folders) *Result {
 			if err = moveAll(f.Data, filepath.Join(f.Data, r.Save), notCopy(keep...)); err != nil {
 				break
 			}
-			if err = moveAll(from, f.Data, func(name string) bool { return heldOpen[name] || keptThrough[name] }); err != nil {
+			if err = moveAll(from, f.Data, func(name string) bool { return heldOpen[name] || keptThrough[name] || running[name] }); err != nil {
 				_ = moveAll(filepath.Join(f.Data, r.Save), f.Data, func(string) bool { return false })
 				break
 			}

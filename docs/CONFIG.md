@@ -177,7 +177,10 @@ Without a config file the data folder is:
 - `wms.db` is the database. `cache/images` holds the artwork, and `transcode` is temporary.
 - `backups` holds the [backups](BACKUP.md) you make, and the safety copies from restores and repairs. A reset that keeps a copy leaves it where it is.
 - `metadata` holds one plain text file for each title, to fix by hand. It's filled when you export it, and nothing reads it until you apply it. See [The metadata folder](METADATA-FOLDER.md). It isn't the same as `metadataDir`, the artwork folder.
+- `instance.lock` is held by the server while it runs, so that a second start of the same folder finds it instead of starting another server on it. The system lets go of it when the server ends, even in a crash, so it never needs deleting. `instance.json` beside it says where the running server is (its address and process number, nothing secret).
 - [Uninstalling](UNINSTALL.md#what-goes-and-what-stays) lists every name.
+
+**One server per data folder.** Two servers can run on one computer, each with its own data folder and port (`-data` and `-listen`). Starting a second one on a folder already in use opens the running one instead, or asks on a desktop. A data folder on a network share may not be lockable: the server then starts anyway and says in its log that it can't stop a second server on it.
 
 **To move the artwork folder:**
 

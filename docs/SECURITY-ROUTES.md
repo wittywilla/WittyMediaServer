@@ -44,7 +44,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/themes/{id}/download` | Public | Theme id resolved by the theme manager |
 | `GET /api/themes/{id}/{file...}` | Public | Theme id and file name checked by the theme manager. Inert content policy |
 | `GET /api/themes/{id}/tokens.json` | Public | Theme id resolved by the theme manager |
-| `GET /api/health` | Public | Nothing: answers `ok` |
+| `GET /api/health` | Public | Nothing: answers `ok`, and this run's random `instance` id, so that a second start on the same data folder knows the server answering is the one using it. The id is made fresh at every start and says nothing about the server |
 | `GET /api/capabilities` | Public | Describes the server to apps. Version left out for signed-out callers from the internet |
 | `POST /api/identity` | Public | Nonce format. Answers with a signature over it |
 | `POST /api/pair/start` | Public | Server is set up. Limits on open codes per address and for the server |

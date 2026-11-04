@@ -31,6 +31,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/instance"
 	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
@@ -55,6 +56,12 @@ func cmdServe(args []string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 2
 	}
+	// One server per data folder, before a reset, a restore or the database touches it.
+	lock, cfg, code, ok, lockWarn := claimDataFolder(cfg, args)
+	if !ok {
+		return code
+	}
+	defer lock.Release()
 	level := slog.LevelInfo
 	switch strings.ToLower(cfg.LogLevel) {
 	case "debug":
@@ -92,6 +99,9 @@ func cmdServe(args []string) int {
 	}
 	if cfg.ConfigFile != "" {
 		log.Info("config", "file", cfg.ConfigFile, "portable", cfg.Portable)
+	}
+	if lockWarn != "" {
+		log.Warn(lockWarn, "cat", "server", "data", cfg.DataDir)
 	}
 
 	tools, err := ffmpeg.Locate(cfg.FFmpegPath, cfg.FFprobePath)
@@ -263,6 +273,7 @@ func cmdServe(args []string) int {
 		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner, GameMeta: gameMeta,
 		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, BD: bdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
 		Update: updater, Modules: modMgr, ModuleStores: modStores, Crashes: guard, Restart: updater.Restart,
+		Instance: lock.ID(),
 	}
 	if restoreDone != nil {
 		if restoreDone.OK {
@@ -291,12 +302,18 @@ func cmdServe(args []string) int {
 	}
 	ln, err := listen(cfg.Listen)
 	if err != nil {
-		log.Error("listen", "addr", cfg.Listen, "err", err)
+		why := portTaken(cfg.Listen, err)
+		log.Error("listen", "addr", cfg.Listen, "err", err, "why", why)
+		fmt.Fprintln(os.Stderr, why)
 		return 1
 	}
 	srv.Conns = &remote.ConnLimit{Total: cfg.MaxConnections, PerAddress: min(remote.DefaultPerAddress, cfg.MaxConnections), Policy: srv.NetPolicy, Log: log}
 	ln = srv.Conns.Wrap(ln)
 	log.Info("WittyMediaServer listening", "url", listenURL(cfg.Listen), "data", cfg.DataDir)
+	if err := lock.Publish(instance.Info{PID: os.Getpid(), Started: time.Now(), Version: version, URLs: []string{listenURL(cfg.Listen)},
+		Service: asService || os.Getenv("INVOCATION_ID") != ""}); err != nil {
+		log.Warn("could not say where this server is, for a second start to find it", "cat", "server", "err", err)
+	}
 	srv.LogStartup(context.Background())
 	if err := srv.Auth.HashStoredTokens(context.Background()); err != nil {
 		log.Warn("session tokens", "err", err)

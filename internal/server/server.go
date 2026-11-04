@@ -78,6 +78,9 @@ type Server struct {
 	}
 	Logs    *logging.Logger
 	Crashes *logging.CrashGuard // crash reports; nil when they can't be kept
+	// Instance is this run's random id, given out by /api/health so that a second start on
+	// the same data folder knows it's this server answering. Not a secret.
+	Instance string
 	logMods logModules          // how each module is logged
 	// metaFolder is the editable metadata folder's export, running or last run.
 	metaFolder metaFolderJob
@@ -196,7 +199,9 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("GET /api/themes", s.handleThemes)
 	m.HandleFunc("GET /api/themes/{id}/download", s.handleThemeDownload)
 	m.HandleFunc("GET /api/themes/{id}/{file...}", s.handleThemeFile)
-	m.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]any{"ok": true}) })
+	m.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, 200, map[string]any{"ok": true, "instance": s.Instance})
+	})
 	m.HandleFunc("GET /api/capabilities", s.handleCapabilities)
 	m.HandleFunc("POST /api/identity", s.handleIdentity)
 	m.HandleFunc("GET /api/themes/{id}/tokens.json", s.handleThemeTokens)

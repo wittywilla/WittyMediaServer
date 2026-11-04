@@ -22,6 +22,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
+	"github.com/wittywilla/wittymediaserver/internal/instance"
 	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/trayicon"
@@ -51,7 +52,8 @@ type launcher struct {
 	lastErr    string
 	logPath    string
 	// attached: a server was already answering on this port, a background service most
-	// likely. Starting another would only fail, so this app just shows it.
+	// likely, or took this app's data folder first. Starting another would only fail, so
+	// this app just shows it.
 	attached bool
 	// Crash-loop protection.
 	startedAt time.Time
@@ -76,6 +78,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
+	cfg, code, ok := claim(cfg, args)
+	if !ok {
+		os.Exit(code)
+	}
 	l.dataDir, l.listen, l.configFile = cfg.DataDir, cfg.Listen, cfg.ConfigFile
 	if abs, err := filepath.Abs(l.dataDir); err == nil {
 		l.dataDir = abs
@@ -83,6 +89,49 @@ func main() {
 	l.logPath = filepath.Join(cfg.LogDir, "console.log")
 	l.wantRun = !hasArg("-no-autostart")
 	systray.Run(l.onReady, l.onExit)
+}
+
+// claim asks, before a second server starts on a data folder that has one: open the
+// running one (the default), start another on a folder and port of its own, or exit. A
+// server the service manager runs is shown instead, as before. It returns the config to
+// start with, and whether to.
+func claim(cfg *config.Config, args []string) (*config.Config, int, bool) {
+	for range 5 {
+		if !instance.Held(cfg.DataDir) {
+			return cfg, 0, true
+		}
+		r := instance.Find(context.Background(), cfg.DataDir, 10*time.Second)
+		if r.Service {
+			return cfg, 0, true // start() finds it answering and shows it
+		}
+		if desktop.Headless() {
+			fmt.Fprintln(os.Stderr, instance.Line(r, cfg.DataDir))
+			return cfg, instance.ExitRunning, false
+		}
+		if !r.Answering {
+			if _, err := desktop.Ask(instance.TitleRunning, instance.NotAnsweringText(r), []string{"OK"}); err != nil {
+				fmt.Fprintln(os.Stderr, instance.Line(r, cfg.DataDir))
+			}
+			return cfg, instance.ExitRunning, false
+		}
+		d := instance.Decide(instance.DesktopQuestion(r, cfg.DataDir, cfg.Listen))
+		switch d.Choice {
+		case instance.ChoiceOpen:
+			openURL(r.URL)
+			return cfg, 0, false
+		case instance.ChoiceAnother:
+			args = instance.WithAnother(args, cfg.Listen, d)
+			next, err := config.Parse(args)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return cfg, 2, false
+			}
+			cfg = next
+		default:
+			return cfg, 0, false
+		}
+	}
+	return cfg, instance.ExitRunning, false
 }
 
 func hasArg(s string) bool {
@@ -254,6 +303,8 @@ func (l *launcher) start() {
 		err := c.Wait()
 		// The server installed an update and asks to be started again.
 		updated := c.ProcessState != nil && c.ProcessState.ExitCode() == update.ExitRestart
+		// Another server took the data folder first: show that one, and don't try again.
+		taken := c.ProcessState != nil && c.ProcessState.ExitCode() == instance.ExitRunning
 		l.mu.Lock()
 		if l.cmd == c {
 			l.running = false
@@ -279,6 +330,9 @@ func (l *launcher) start() {
 		}
 		if l.fails >= 3 {
 			l.wantRun = false
+		}
+		if taken && l.cmd == c {
+			l.wantRun, l.attached, l.lastErr = false, true, ""
 		}
 		restart := l.wantRun && l.cmd == c
 		l.refreshLocked()
@@ -465,11 +519,11 @@ func (l *launcher) refresh() {
 func (l *launcher) refreshLocked() {
 	if l.attached {
 		if l.healthy {
-			l.mStatus.SetTitle("● Running as a background service at " + l.url())
+			l.mStatus.SetTitle("● Running at " + l.url() + ", started outside this app")
 			systray.SetTooltip("WittyMediaServer — running at " + l.url())
 			l.mOpen.Enable()
 		} else {
-			l.mStatus.SetTitle("○ The background service isn't answering")
+			l.mStatus.SetTitle("○ The server started outside this app isn't answering")
 			systray.SetTooltip("WittyMediaServer — not answering")
 			l.mOpen.Disable()
 		}

@@ -142,6 +142,10 @@ func missingDevice(vendor string, gpus []GPUDevice, container bool) string {
 			return whyNoRender(gpus, "intel", "Intel", container)
 		}
 	case "nvidia":
+		// Under WSL, and Docker Desktop on Windows, NVIDIA's driver is reached through /dev/dxg.
+		if slices.ContainsFunc(gpus, func(d GPUDevice) bool { return d.Path == "/dev/dxg" && d.Usable }) {
+			return ""
+		}
 		for _, d := range gpus {
 			if strings.HasPrefix(d.Path, "/dev/nvidia") {
 				if d.Usable {

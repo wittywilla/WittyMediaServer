@@ -92,6 +92,9 @@ func TestMissingDevice(t *testing.T) {
 	if r := missingDevice("nvidia", []GPUDevice{{Path: "/dev/nvidia0", Vendor: "nvidia", Usable: true}}, true); r != "" {
 		t.Errorf("an NVIDIA node: %q", r)
 	}
+	if r := missingDevice("nvidia", []GPUDevice{{Path: "/dev/dxg", Vendor: "other", Usable: true}}, true); r != "" {
+		t.Errorf("WSL reaches NVIDIA through /dev/dxg: %q", r)
+	}
 }
 
 func TestExplainEncoderError(t *testing.T) {

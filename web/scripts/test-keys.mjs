@@ -27,7 +27,7 @@ mkdirSync(out, { recursive: true })
 const only = process.env.WMS_ONLY || ''
 const wait = (ms) => new Promise((d) => setTimeout(d, ms))
 // Pages that leave the app's frame, start something or need a link of their own.
-const SKIP = /^\/(s|read|game|couch\/[^/]+\/play|couch-rig|tv\/watch|watch|setup|big|logout|sign-?out)(\/|$)|download/
+const SKIP = /^\/(s|read|game|couch\/[^/]+\/play|couch-rig|tv\/watch|watch|setup|big|logout|sign-?out)(\/|$)|\/download(\/|$)/
 const MAX_PAGES = Number(process.env.WMS_MAX_PAGES || 120)
 const MAX_ARROW_NODES = 160
 
@@ -72,7 +72,7 @@ const go = async (path) => {
 }
 
 // ---------------------------------------- finding the pages
-const template = (p) => p.replace(/\/[0-9a-f]{8,}|\/\d+(?=\/|$)/g, '/:id').replace(/^\/(brand\/[^/]+)\/[^/]+$/, '/$1/:name').replace(/^\/(album|artist)\/[^/]+$/, '/$1/:lib').replace(/^\/help\/[^/]+$/, '/help/:guide')
+const template = (p) => p.split('#')[0].replace(/^\/settings\/modules\/store\/[^/]+$/, '/settings/modules/store/:id').replace(/\/[0-9a-f]{8,}|\/\d+(?=\/|$)/g, '/:id').replace(/^\/(brand\/[^/]+)\/[^/]+$/, '/$1/:name').replace(/^\/(album|artist)\/[^/]+$/, '/$1/:lib').replace(/^\/help\/[^/]+$/, '/help/:guide')
 async function links() {
   return page.eval(`[...document.querySelectorAll('a[href]:not([download])')].map((a) => a.getAttribute('href')).filter((h) => h && h.startsWith('/') && !h.startsWith('//') && !h.startsWith('/api/'))`)
 }
@@ -84,6 +84,7 @@ else {
   while (queue.length && pages.length < MAX_PAGES) {
     const p = queue.shift()
     const key = template(p.split('?')[0])
+    if (p.includes('#')) continue // a part of a page already on the list
     if (seen.has(key) || SKIP.test(p)) continue
     seen.add(key)
     pages.push(p)

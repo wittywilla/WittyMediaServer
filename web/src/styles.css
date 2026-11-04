@@ -157,7 +157,8 @@ html.ten-foot { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focu
 /* The frame grows with the type, or the name in the side menu gets cut off and the bar is too short for what's in it.
    The menu grows at every width: below 901px it's the drawer, which has the same type. */
 html.using-controller, html.ten-foot { --sidebar: min(300px, 85vw); }
-@media (pointer: none) { :root { --sidebar: min(300px, 85vw); } }
+/* html:root, so a theme's own :root { --sidebar } loaded after this doesn't put it back to 240px. */
+@media (pointer: none) { html:root { --sidebar: min(300px, 85vw); } }
 @media (min-width: 901px) {
   html.using-controller, html.ten-foot { --rail: 96px; --topbar-h: 80px; }
 }

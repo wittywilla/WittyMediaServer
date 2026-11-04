@@ -25,6 +25,8 @@
 /* The covers either side run past the edge; clip keeps them from widening the page, which on a
    phone pushes the bottom tab bar off the screen. Sideways only, so nothing above or below is cut. */
 .cf { position: relative; width: 100%; height: calc(var(--cf-size) * 1.2); --cf-size: clamp(190px, 34vh, 400px); perspective: 1200px; touch-action: pan-y; user-select: none; overflow-x: clip; }
+/* Browsers without clip (Safari before 16) clip both ways rather than widen the page. */
+@supports not (overflow-x: clip) { .cf { overflow: hidden; } }
 .cf.tall { --cf-size: clamp(200px, 36vh, 420px); }
 .cf-row { position: absolute; inset: 0; display: flex; justify-content: center; }
 .cf-cover { position: absolute; top: 0; width: var(--cf-size); height: 100%; padding: 0; border: 0; background: none; cursor: pointer; transform: translateX(calc(var(--d) * var(--cf-size) * .62 + clamp(-1, var(--d), 1) * var(--cf-size) * .24)) rotateY(calc(clamp(-1, var(--d), 1) * -52deg)) scale(calc(1 - var(--a) * .06)); transform-style: preserve-3d; transition: transform var(--dur-3) var(--ease-out), opacity var(--dur-3); opacity: calc(1.15 - var(--a) * .28); }

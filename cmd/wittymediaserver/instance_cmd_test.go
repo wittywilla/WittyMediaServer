@@ -143,7 +143,7 @@ func TestSecondStart(t *testing.T) {
 	dataA := filepath.Join(root, "a")
 	portA := freePort(t)
 	first := startServer(t, dataA, portA)
-	r := instance.Find(context.Background(), dataA, 90*time.Second)
+	r := instance.Find(context.Background(), dataA, serverUp)
 	if !r.Answering {
 		t.Fatalf("the first server didn't come up:\n%s", first.out.String())
 	}
@@ -165,7 +165,7 @@ func TestSecondStart(t *testing.T) {
 	t.Run("another folder and port", func(t *testing.T) {
 		dataB := filepath.Join(root, "b")
 		other := startServer(t, dataB, freePort(t))
-		rb := instance.Find(context.Background(), dataB, 90*time.Second)
+		rb := instance.Find(context.Background(), dataB, serverUp)
 		if !rb.Answering || rb.Instance == r.Instance {
 			t.Fatalf("second server: %+v\n%s", rb, other.out.String())
 		}
@@ -205,10 +205,14 @@ func TestSecondStart(t *testing.T) {
 		}
 		_ = first.cmd.Wait()
 		again := startServer(t, dataA, freePort(t))
-		ra := instance.Find(context.Background(), dataA, 90*time.Second)
+		ra := instance.Find(context.Background(), dataA, serverUp)
 		if !ra.Answering || ra.PID != again.cmd.Process.Pid {
 			t.Fatalf("after a kill: %+v\n%s", ra, again.out.String())
 		}
 		_ = again.cmd.Process.Kill()
 	})
 }
+
+// serverUp is how long a test server gets to start: a busy machine scanning a new test
+// program can take minutes over what's a second or two anywhere else.
+const serverUp = 3 * time.Minute

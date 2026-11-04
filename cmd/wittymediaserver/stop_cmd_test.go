@@ -41,7 +41,7 @@ func TestStopAndStartSayWhy(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "data")
 
 	first := startServer(t, dir, freePort(t), "-watch-stdin")
-	if r := instance.Find(context.Background(), dir, 90*time.Second); !r.Answering {
+	if r := instance.Find(context.Background(), dir, serverUp); !r.Answering {
 		t.Fatalf("didn't come up:\n%s", first.out.String())
 	}
 	if _, err := first.stdin.Write([]byte("stop tray-quit\n")); err != nil {
@@ -54,23 +54,36 @@ func TestStopAndStartSayWhy(t *testing.T) {
 	if out := first.out.String(); !strings.Contains(out, "stopping") || !strings.Contains(out, "tray-quit") || !strings.Contains(out, "Quit was chosen in the tray icon") {
 		t.Fatalf("no reason in the stop:\n%s", out)
 	}
+	t.Log(lineWith(first.out.String(), "stopping"))
 
 	second := startServer(t, dir, freePort(t))
-	if r := instance.Find(context.Background(), dir, 90*time.Second); !r.Answering {
+	if r := instance.Find(context.Background(), dir, serverUp); !r.Answering {
 		t.Fatalf("didn't come up:\n%s", second.out.String())
 	}
 	if out := second.out.String(); !strings.Contains(out, "(tray-quit), ran ") {
 		t.Fatalf("the start doesn't say how the last run ended:\n%s", out)
 	}
+	t.Log(lineWith(second.out.String(), "previous="))
 	_ = second.cmd.Process.Kill()
 	_ = second.cmd.Wait()
 
 	third := startServer(t, dir, freePort(t))
-	if r := instance.Find(context.Background(), dir, 90*time.Second); !r.Answering {
+	if r := instance.Find(context.Background(), dir, serverUp); !r.Answering {
 		t.Fatalf("didn't come up:\n%s", third.out.String())
 	}
 	if out := third.out.String(); !strings.Contains(out, "the last run ended without stopping cleanly") {
 		t.Fatalf("a kill wasn't noticed:\n%s", out)
 	}
+	t.Log(lineWith(third.out.String(), "without stopping cleanly"))
 	_ = third.cmd.Process.Kill()
+}
+
+// lineWith is the first line of out holding s, for the test's own output.
+func lineWith(out, s string) string {
+	for _, l := range strings.Split(out, "\n") {
+		if strings.Contains(l, s) {
+			return strings.TrimSpace(l)
+		}
+	}
+	return ""
 }

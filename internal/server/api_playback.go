@@ -49,6 +49,12 @@ type playbackRequest struct {
 	Video *int `json:"video"`
 	// Flatten3D shows one eye of a 3D picture, for a screen that isn't 3D.
 	Flatten3D bool `json:"flatten3d"`
+	// Streaming is this device's own choice of streaming mode: standard or robust. Left
+	// out (or "auto"), the server's setting decides.
+	Streaming string `json:"streaming"`
+	// MeasuredKbps is what this device's connection carried when it last measured it
+	// (GET /playback/speedtest), for a robust stream to start at a rate that fits.
+	MeasuredKbps int `json:"measuredKbps"`
 }
 
 // playbackVideoStream is one picture of a file with several.
@@ -157,6 +163,9 @@ type playbackResponse struct {
 	// offer to show it in 2D.
 	Stereo    string `json:"stereo,omitempty"`
 	Flattened bool   `json:"flattened,omitempty"`
+	// Streaming says how a video is streamed (standard or robust) and what the player
+	// should do for that. Videos only.
+	Streaming *playbackStreaming `json:"streaming,omitempty"`
 }
 
 // probeSource turns a probe into what the decision needs. The container comes from what
@@ -320,10 +329,18 @@ func (s *Server) handlePlayback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p = b.Capabilities.Apply(p)
-	if b.MaxHeight < 0 || b.MaxBitrateKbps < 0 {
-		writeErr(w, 400, "maxHeight and maxBitrateKbps can't be negative")
+	if b.MaxHeight < 0 || b.MaxBitrateKbps < 0 || b.MeasuredKbps < 0 {
+		writeErr(w, 400, "maxHeight, maxBitrateKbps and measuredKbps can't be negative")
 		return
 	}
+	if b.Streaming == "auto" {
+		b.Streaming = ""
+	}
+	if b.Streaming != "" && !playback.ValidStreamMode(b.Streaming) {
+		writeErr(w, 400, "streaming should be standard, robust or auto")
+		return
+	}
+	b.MeasuredKbps = min(b.MeasuredKbps, 10000000)
 	if b.StartSec != nil && (*b.StartSec < 0 || math.IsNaN(*b.StartSec) || math.IsInf(*b.StartSec, 0)) {
 		writeErr(w, 400, "startSec can't be negative")
 		return
@@ -483,10 +500,14 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		videoPick = *b.Video
 	}
 	q, serverMax := s.quality(r)
+	mode, modeFrom := s.streamMode(r, b.Streaming)
+	robust := mode == playback.StreamRobust
 	req := playback.Request{AudioIndex: chosen.Audio, SubtitleIndex: chosen.Subtitle, MaxBitrateKbps: b.MaxBitrateKbps, BurnSubtitle: b.BurnSubtitle,
 		AllowDirect: s.DB.GetSetting(ctx, "directPlay", "1") == "1", ForceTranscode: b.ForceTranscode, MaxHeight: playback.Smallest(b.MaxHeight, serverMax),
-		VideoIndex: videoPick, Flatten3D: b.Flatten3D, OverLimit: !s.fitsCap(r, it.SizeBytes, pr.Duration())}
+		VideoIndex: videoPick, Flatten3D: b.Flatten3D, OverLimit: !s.fitsCap(r, it.SizeBytes, pr.Duration()),
+		Robust: robust && src.HasVideo && !playback.FitsRobust(src.BitrateKbps, b.MeasuredKbps)}
 	d := playback.Decide(p, src, req)
+	out.Streaming = &playbackStreaming{Mode: mode, From: modeFrom, MeasuredKbps: b.MeasuredKbps, Player: playback.Hints(mode)}
 
 	out.DurationSec = pr.Duration()
 	if len(parts) > 1 || out.DurationSec <= 0 {
@@ -506,6 +527,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		}
 	}
 	out.Explain = &ex
+	ex.Streaming = playback.ExplainStreaming(mode, modeFrom, nil, b.MeasuredKbps)
 	if len(pictures) > 1 {
 		for i, v := range pictures {
 			out.Videos = append(out.Videos, playbackVideoStream{Index: i, Codec: v.CodecName, Width: v.Width, Height: v.Height, Title: v.Tags["title"]})
@@ -539,7 +561,8 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		out.Intro = &in
 	}
 	logStarted := func(session string) {
-		s.Log.InfoContext(ctx, "playback started", "cat", "playback", "session", session, "item", it.ID, "title", it.Title, "profile", p.ID, "mode", d.Mode, "reasons", strings.Join(d.Reasons, ","), "audioTrack", chosen.Audio, "subtitleTrack", chosen.Subtitle)
+		s.Log.InfoContext(ctx, "playback started", "cat", "playback", "session", session, "item", it.ID, "title", it.Title, "profile", p.ID, "mode", d.Mode, "reasons", strings.Join(d.Reasons, ","), "audioTrack", chosen.Audio, "subtitleTrack", chosen.Subtitle,
+			"streaming", mode, "streamingFrom", modeFrom, "measuredKbps", b.MeasuredKbps, "ladder", ladderParam(out.Streaming.Ladder))
 	}
 
 	token := out.StreamToken
@@ -656,15 +679,33 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	spec.Variant = v
 	sum := sha1.Sum([]byte(fmt.Sprint(p.ID, d, chosen, spec.MaxHeight, q, start*boolFloat(spec.Growing), vf, len(v.Subtitles), v.Codecs, spec.VideoIndex, spec.SubtitleFile)))
 	spec.ID = fmt.Sprintf("v-%s-n%s", hls.Key(it.Path), hex.EncodeToString(sum[:6]))
-	s.HLS.Ensure(spec)
-	logStarted(spec.ID)
-	out.StreamID = spec.ID
 	out.Protocol = "hls"
-	if len(v.Subtitles) > 0 {
-		out.URL = withStream("/api/hls/"+spec.ID+"/master.m3u8", token)
+	out.Streaming.SegmentSec = playback.StandardSegmentSec
+	if robust && src.HasVideo && !d.CopyVideo {
+		// A ladder of steady rates, one stream per rung, made only for the rungs a player
+		// asks for. Its master playlist lists them in the order of the ladder parameter.
+		lad := playback.RobustLadder(src.Height, spec.MaxHeight, s.robustCapKbps(r, b.MaxBitrateKbps), b.MeasuredKbps)
+		order := append([]playback.Rung{lad.Rungs[lad.Start]}, slices.Delete(slices.Clone(lad.Rungs), lad.Start, lad.Start+1)...)
+		group := fmt.Sprintf("v-%s-r%s", hls.Key(it.Path), hex.EncodeToString(sum[:6]))
+		specs := ladderSpecs(spec, group, order, v.Width, v.Height)
+		for _, sp := range specs {
+			s.HLS.Ensure(sp)
+		}
+		out.Streaming.SegmentSec, out.Streaming.Ladder = playback.RobustSegmentSec, order
+		logStarted(specs[0].ID)
+		out.StreamID = specs[0].ID
+		out.URL = withStream("/api/hls/"+specs[0].ID+"/master.m3u8?ladder="+ladderParam(order), token)
 	} else {
-		out.URL = withStream("/api/hls/"+spec.ID+"/playlist.m3u8", token)
+		s.HLS.Ensure(spec)
+		logStarted(spec.ID)
+		out.StreamID = spec.ID
+		if len(v.Subtitles) > 0 {
+			out.URL = withStream("/api/hls/"+spec.ID+"/master.m3u8", token)
+		} else {
+			out.URL = withStream("/api/hls/"+spec.ID+"/playlist.m3u8", token)
+		}
 	}
+	ex.Streaming = playback.ExplainStreaming(mode, modeFrom, out.Streaming.Ladder, b.MeasuredKbps)
 	fillSubtitles(out, src, p, false, subURL)
 	if d.Subtitle == playback.SubHLS || d.Subtitle == playback.SubSidecar {
 		s.warmSubtitle(spec.ID, it.Path, chosen.Subtitle, src)
@@ -1008,9 +1049,13 @@ func (s *Server) handleHLSMaster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	st := r.URL.Query().Get("st")
-	b := sess.MasterPlaylist(withStream("playlist.m3u8", st), func(i int) string {
-		return withStream(fmt.Sprintf("subs/%d.m3u8", i), st)
-	})
+	subs := func(i int) string { return withStream(fmt.Sprintf("subs/%d.m3u8", i), st) }
+	var b []byte
+	if rungs := s.ladderEntries(r, sess, r.URL.Query().Get("ladder"), st); len(rungs) > 0 {
+		b = sess.LadderPlaylist(rungs, subs)
+	} else {
+		b = sess.MasterPlaylist(withStream("playlist.m3u8", st), subs)
+	}
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	w.Header().Set("Cache-Control", "no-store")
 	_, _ = w.Write(b)

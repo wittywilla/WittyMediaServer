@@ -8951,7 +8951,7 @@
       "name": "Apache-2.0"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.9.0"
+    "version": "1.10.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -27800,6 +27800,51 @@
           }
         ],
         "summary": "The built-in client profiles.",
+        "tags": [
+          "Playback"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/playback/speedtest": {
+      "get": {
+        "operationId": "getPlaybackSpeedTest",
+        "parameters": [
+          {
+            "description": "How many kilobytes: 64 to 4096, 512 by default.",
+            "in": "query",
+            "name": "kb",
+            "required": false,
+            "schema": {
+              "default": 512,
+              "maximum": 4096,
+              "minimum": 64,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bytes that don’t compress, for timing this connection before asking for a robust stream.",
         "tags": [
           "Playback"
         ],

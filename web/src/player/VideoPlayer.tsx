@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { api, episodeLabel, langName, mediaUrl, posterUrl, type Item, type PlaybackAnswer, type Show } from '../api'
+import { api, ApiError, episodeLabel, langName, mediaUrl, posterUrl, type Item, type PlaybackAnswer, type Show } from '../api'
 import { IconBack, IconClose, IconExpand, IconInfo, IconMini, IconNext, IconPause, IconPlay } from '../icons'
 import { browserCapabilities } from './capabilities'
 import PlayInfoPanel from './PlayInfoPanel'
@@ -8,7 +8,8 @@ import { toast } from '../state'
 import { usePlayerChrome } from './chrome'
 import PickIntroBar from './PickIntroBar'
 import { Controls, useVideoState } from './Controls'
-import { haveHls, toggleFullscreen, useIdle, useSource } from './hooks'
+import { haveHls, toggleFullscreen, useIdle, useSource, type NetNote } from './hooks'
+import { deviceStreaming, mayBeRobust, measureSpeed, rememberSpeed, setDeviceStreaming, type DeviceStreaming } from './streaming'
 import Hls from 'hls.js'
 import Remote, { DVD_ONLY, RemoteBar, type RemoteKey } from './Remote'
 import TrackPicker from './TrackPicker'
@@ -43,7 +44,13 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   // player draws itself changes with none: that's sub, which starts as the server's
   // choice. restartAt: a rewrapped stream only exists from where it started, so going
   // past what's been made asks for a new one, starting there.
-  const [want, setWant] = useState<{ audio?: number; burn?: { index: number; styled: boolean } | null; video?: number; flat3d?: boolean; restartAt?: number; convert?: boolean }>({})
+  // reopen counts fresh requests for the same thing at the same place: a robust stream
+  // that couldn't go on (the connection was gone, or the server forgot the stream).
+  const [want, setWant] = useState<{ audio?: number; burn?: { index: number; styled: boolean } | null; video?: number; flat3d?: boolean; restartAt?: number; convert?: boolean; reopen?: number }>({})
+  // What a robust stream's player did: shown for a moment, and listed in the information panel.
+  const [note, setNote] = useState<NetNote | null>(null)
+  const [netLog, setNetLog] = useState<string[]>([])
+  const [streamPref, setStreamPref] = useState<DeviceStreaming>(deviceStreaming)
   const [sub, setSub] = useState<number | null>(null)
   const audio = want.audio ?? info?.audioIndex ?? 0
   const burn = want.burn
@@ -91,20 +98,40 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   useEffect(() => {
     setInfo(null)
     let current = true
+    let retry = 0
     const start = want.restartAt ?? pendingSeek.current
     const body: Record<string, unknown> = { profile: 'web', capabilities: browserCapabilities(), startSec: start ?? 0, flatten3d: flat3d }
     if (want.audio != null) body.audio = want.audio
     if (burn) { body.subtitle = burn.index; body.burnSubtitle = burn.styled } else if (sub != null) body.subtitle = sub
     if (want.video != null) body.video = want.video
     if (want.convert) body.forceTranscode = true
-    api.post<PlaybackAnswer>(`/items/${item.id}/playback`, body).then((a) => {
-      if (!current) return
-      setInfo(a)
-      setSub((s) => (s == null ? a.subtitleIndex : s))
-      // A stream starts where it was asked to; a file or a full stream seeks once open.
-      pendingSeek.current = a.seek === 'restart' ? null : (a.startAtSec || null)
-    }).catch((e) => { if (current) setErr(e.message) })
-    return () => { current = false }
+    const device = deviceStreaming()
+    if (device !== 'auto') body.streaming = device
+    // A robust stream starts at a rate chosen from what this connection carries.
+    const ask = async (wait: number): Promise<void> => {
+      if (await mayBeRobust()) body.measuredKbps = await measureSpeed()
+      try {
+        const a = await api.post<PlaybackAnswer>(`/items/${item.id}/playback`, body)
+        if (!current) return
+        setInfo(a)
+        if (want.reopen) setNote((n) => (n?.kind === 'lost' ? { kind: 'back', text: 'Reconnected, at the same place.' } : n))
+        setSub((s) => (s == null ? a.subtitleIndex : s))
+        // A stream starts where it was asked to; a file or a full stream seeks once open.
+        pendingSeek.current = a.seek === 'restart' ? null : (a.startAtSec || null)
+      } catch (e) {
+        if (!current) return
+        // Picking up after a dropped connection: keep asking, waiting longer each time, rather
+        // than stop with an error the moment the connection is still away.
+        if (want.reopen && !(e instanceof ApiError && e.status >= 400 && e.status < 500)) {
+          setNote({ kind: 'lost', text: 'Connection lost. Trying again…' })
+          retry = window.setTimeout(() => { ask(Math.min(wait * 2, 8000)) }, wait)
+          return
+        }
+        setErr((e as Error).message)
+      }
+    }
+    ask(1000)
+    return () => { current = false; clearTimeout(retry) }
   }, [item.id, want]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Subtitles the player draws: the chosen track, with its cues in the player's time.
@@ -163,9 +190,31 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     setWant((w) => ({ ...w, restartAt: to }))
   }, [info, offset])
 
-  useSource(video, info?.url || null, {
+  // Robust streams: the player says what it did, and a stream that can't go on is asked
+  // for again at the same place. A file that stalled is asked for as a steadier stream.
+  const robust = info?.streaming?.mode === 'robust' ? info.streaming.player : null
+  const lastNote = useRef<NetNote['kind'] | null>(null)
+  const onNote = useCallback((n: NetNote) => {
+    lastNote.current = n.kind
+    setNote(n)
+    if (n.kind !== 'lost') setNetLog((l) => [...l.slice(-7), n.text])
+  }, [])
+  useEffect(() => {
+    if (!note || note.kind === 'lost') return
+    const t = setTimeout(() => setNote(null), 6000)
+    return () => clearTimeout(t)
+  }, [note])
+  const hlsRef = useSource(video, info?.url || null, {
     startAt: () => pendingSeek.current,
     growing: info?.seek === 'restart',
+    robust, measuredKbps: info?.streaming?.measuredKbps, onNote,
+    onReopen: (at) => {
+      const est = hlsRef.current?.bandwidthEstimate
+      if (est) rememberSpeed(est / 1000) // what the connection was doing, for the new stream's start
+      pendingSeek.current = at + offset
+      const steadier = lastNote.current === 'stall' && info?.decision !== 'transcode'
+      setWant((w) => ({ ...w, restartAt: undefined, reopen: (w.reopen || 0) + 1, convert: w.convert || steadier }))
+    },
     onReady: () => {
       const v = video.current
       if (!v) return
@@ -189,7 +238,10 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   useEffect(() => {
     const v = video.current
     if (!v) return
-    const onFail = () => { if (v.error && !convertInstead()) setErr(v.error.message || 'This file can’t be played here.') }
+    const onFail = () => {
+      if (robust && v.error?.code === MediaError.MEDIA_ERR_NETWORK) return // asked for again at the same place (useSource)
+      if (v.error && !convertInstead()) setErr(v.error.message || 'This file can’t be played here.')
+    }
     v.addEventListener('error', onFail)
     return () => v.removeEventListener('error', onFail)
   })
@@ -285,6 +337,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         <video ref={video} playsInline preload="auto" style={{ objectFit: prefs.picture === 'fill' ? 'cover' : 'contain' }} />
       </div>
       {st.waiting && !needClick && <div className="center-spinner"><div className="spinner" /></div>}
+      {note && !mini && <div className={'net-note' + (note.kind === 'lost' ? ' lost' : '')} role="status" aria-live="polite">{note.text}</div>}
       {needClick && <div className="big-play"><button onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
       {err && <div className="overlay-msg"><div className="box">Playback failed: {err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={chrome.close}>Back</button></div></div>}
       {mini ? (
@@ -339,7 +392,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             subtitles={info?.subtitles.map((s) => ({ id: s.index, label: trackLabel(s), active: s.index === sub }))}
             onAudio={(id) => switchTrack('audio', id)} onSubtitle={(id) => switchTrack('sub', id)} onPick={(k) => { if (k !== 'angle') setPicker(k) }}
             showSeek={prefs.seekBar} remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} onSettings={() => setSettingsOpen((o) => !o)} />
-          {settingsOpen && <ViewSettings prefs={prefs} scope={view.scope} isDisc={false} onClose={() => setSettingsOpen(false)} onChange={(p) => view.update(p, view.scope)} onScope={view.setScope} />}
+          {settingsOpen && <ViewSettings prefs={prefs} scope={view.scope} isDisc={false} onClose={() => setSettingsOpen(false)} onChange={(p) => view.update(p, view.scope)} onScope={view.setScope}
+            streaming={streamPref} onStreaming={(v) => { setDeviceStreaming(v); setStreamPref(v); ask({ reopen: (want.reopen || 0) + 1 }) }} />}
           {picker && info && (
             <TrackPicker heading={picker === 'audio' ? 'Audio & language' : 'Subtitles'} onClose={() => setPicker(null)}
               onPick={(id) => switchTrack(picker === 'audio' ? 'audio' : 'sub', id)}
@@ -351,7 +405,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
                   return x.codec === 'ass' || x.codec === 'ssa' ? [plain, { id: x.index + STYLED, title: langName(x.language), sub: 'With its styling', detail: 'Drawn into the picture', active: x.index === sub && !!burn?.styled }] : [plain]
                 })]} />
           )}
-          {infoOpen && info && <PlayInfoPanel info={info} flattened={flat3d} onClose={() => setInfoOpen(false)} onFlat3d={(on) => ask({ flat3d: on })} onVideo={(i) => ask({ video: i })} />}
+          {infoOpen && info && <PlayInfoPanel info={info} netLog={netLog} flattened={flat3d} onClose={() => setInfoOpen(false)} onFlat3d={(on) => ask({ flat3d: on })} onVideo={(i) => ask({ video: i })} />}
         </>
       )}
     </div>

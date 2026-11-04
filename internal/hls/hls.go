@@ -101,6 +101,10 @@ type Spec struct {
 	// Holes are stretches of the input's clock to leave out of the stream, for an
 	// input that holds more than it should show. Only for a stream being converted.
 	Holes []Hole
+	// Group names the ladder a robust stream's rung belongs to (see LadderPlaylist):
+	// a player takes one rung at a time, so FFmpeg runs for one rung of a group at a
+	// time, and a viewer who leaves leaves them all. "" = a stream on its own.
+	Group string
 	// HoldLastFrame pads video (and audio) to Duration by repeating the last
 	// frame. DVD menus and transitions are often a single still picture
 	// shown for many seconds; without this the stream would be one frame
@@ -445,6 +449,16 @@ func (m *Manager) Leave(id, viewer string) {
 	if s == nil {
 		return
 	}
+	if s.Spec.Group != "" {
+		for _, o := range m.group(s.Spec.Group) {
+			m.leave(o, viewer)
+		}
+		return
+	}
+	m.leave(s, viewer)
+}
+
+func (m *Manager) leave(s *Session, viewer string) {
 	s.mu.Lock()
 	delete(s.viewers, viewer)
 	others := false
@@ -453,7 +467,54 @@ func (m *Manager) Leave(id, viewer string) {
 	}
 	s.mu.Unlock()
 	if !others {
-		m.Stop(id)
+		m.Stop(s.Spec.ID)
+	}
+}
+
+// group returns the streams of a ladder.
+func (m *Manager) group(name string) []*Session {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []*Session
+	for _, s := range m.session {
+		if s.Spec.Group == name {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// Sibling is the rung of this stream's ladder with that ID, or nil.
+func (s *Session) Sibling(id string) *Session {
+	o := s.m.Get(id)
+	if o == nil || s.Spec.Group == "" || o.Spec.Group != s.Spec.Group {
+		return nil
+	}
+	return o
+}
+
+// siblingRest is how long a rung the player has left keeps converting: a player that
+// changes rung may still be fetching a segment of the old one, or come straight back.
+var siblingRest = 6 * time.Second
+
+// restSiblings lets the other rungs of this stream's ladder rest once nobody asks for
+// them: a player takes one rung at a time, and a rung it left would otherwise run on far
+// ahead, for nobody, taking the processor the new rung needs.
+func (s *Session) restSiblings() {
+	if s.Spec.Group == "" {
+		return
+	}
+	asked := time.Now().UnixNano()
+	for _, o := range s.m.group(s.Spec.Group) {
+		if o == s || !o.Active() {
+			continue
+		}
+		time.AfterFunc(siblingRest, func() {
+			if o.used.Load() < asked {
+				o.logger().Debug("resting: the player moved to another rung")
+				o.stop()
+			}
+		})
 	}
 }
 
@@ -601,6 +662,24 @@ func (s *Session) MasterPlaylist(media string, subs func(i int) string) []byte {
 	if v == nil {
 		v = &Variant{}
 	}
+	return s.LadderPlaylist([]LadderEntry{{Media: media, Variant: *v}}, subs)
+}
+
+// LadderEntry is one rung of a ladder: its media playlist and what it holds.
+type LadderEntry struct {
+	Media   string
+	Variant Variant
+}
+
+// LadderPlaylist is a master playlist offering several rungs of the same stream, with
+// this stream's subtitle renditions shared by all of them. The first rung is where
+// players start (the HLS specification has them start with the first one listed), so the
+// server, which knows what the connection was measured to carry, chooses it.
+func (s *Session) LadderPlaylist(rungs []LadderEntry, subs func(i int) string) []byte {
+	v := s.Spec.Variant
+	if v == nil {
+		v = &Variant{}
+	}
 	var b strings.Builder
 	version := 4
 	if s.Spec.FMP4 {
@@ -626,24 +705,27 @@ func (s *Session) MasterPlaylist(media string, subs func(i int) string) []byte {
 		}
 		fmt.Fprintf(&b, ",URI=\"%s\"\n", subs(i))
 	}
-	kbps := v.BandwidthKbps
-	if kbps <= 0 {
-		kbps = 8000
+	for _, e := range rungs {
+		rv := e.Variant
+		kbps := rv.BandwidthKbps
+		if kbps <= 0 {
+			kbps = 8000
+		}
+		fmt.Fprintf(&b, "#EXT-X-STREAM-INF:BANDWIDTH=%d,AVERAGE-BANDWIDTH=%d", kbps*1000, kbps*1000)
+		if rv.Codecs != "" {
+			fmt.Fprintf(&b, `,CODECS="%s"`, rv.Codecs)
+		}
+		if rv.Width > 0 && rv.Height > 0 {
+			fmt.Fprintf(&b, ",RESOLUTION=%dx%d", rv.Width, rv.Height)
+		}
+		if rv.Range != "" {
+			fmt.Fprintf(&b, ",VIDEO-RANGE=%s", rv.Range)
+		}
+		if len(v.Subtitles) > 0 {
+			b.WriteString(`,SUBTITLES="subs"`)
+		}
+		fmt.Fprintf(&b, "\n%s\n", e.Media)
 	}
-	fmt.Fprintf(&b, "#EXT-X-STREAM-INF:BANDWIDTH=%d,AVERAGE-BANDWIDTH=%d", kbps*1000, kbps*1000)
-	if v.Codecs != "" {
-		fmt.Fprintf(&b, `,CODECS="%s"`, v.Codecs)
-	}
-	if v.Width > 0 && v.Height > 0 {
-		fmt.Fprintf(&b, ",RESOLUTION=%dx%d", v.Width, v.Height)
-	}
-	if v.Range != "" {
-		fmt.Fprintf(&b, ",VIDEO-RANGE=%s", v.Range)
-	}
-	if len(v.Subtitles) > 0 {
-		b.WriteString(`,SUBTITLES="subs"`)
-	}
-	fmt.Fprintf(&b, "\n%s\n", media)
 	return []byte(b.String())
 }
 
@@ -767,6 +849,7 @@ func (s *Session) ensureJob(n, from int) (*job, error) {
 	}
 	s.stopLocked()
 	s.mu.Unlock()
+	s.restSiblings()
 	// Without the session's lock: makeRoom looks at the other sessions.
 	if err := s.m.makeRoom(s); err != nil {
 		return nil, err

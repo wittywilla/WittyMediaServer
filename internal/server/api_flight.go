@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
@@ -73,7 +74,7 @@ func (s *Server) WatchChecks(base string) []logging.Check {
 			}
 			return nil
 		}},
-		{Name: "database", Run: func(ctx context.Context) error {
+		{Name: "database", Patience: 3, Run: func(ctx context.Context) error {
 			var one int
 			if err := s.DB.QueryRowContext(ctx, `SELECT 1`).Scan(&one); err != nil {
 				if ctx.Err() != nil {
@@ -102,6 +103,10 @@ func (s *Server) handleSaveEvidence(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "that note is too long")
 		return
 	}
+	if last := lastSaved.Swap(time.Now().Unix()); time.Now().Unix()-last < 10 {
+		writeErr(w, 429, "it was saved a moment ago: it's under Crash reports")
+		return
+	}
 	summary := "Saved from Settings by " + userFrom(r).Name + "."
 	if note := strings.TrimSpace(in.Note); note != "" {
 		summary += " " + strings.Join(strings.Fields(note), " ")
@@ -116,6 +121,9 @@ func (s *Server) handleSaveEvidence(w http.ResponseWriter, r *http.Request) {
 	s.Log.InfoContext(r.Context(), "what just happened was saved", "cat", "server", "report", c.ID)
 	writeJSON(w, 200, c)
 }
+
+// lastSaved: Save what just happened writes tens of megabytes; once in ten seconds is plenty.
+var lastSaved atomic.Int64
 
 var partTypes = map[string]string{
 	logging.PartFlight:     "text/plain; charset=utf-8",

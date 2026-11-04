@@ -38,10 +38,10 @@ type flightRing struct {
 	count   atomic.Int64 // lines let in during it
 	skipped atomic.Int64 // left out for being too many, ever
 	mu      sync.Mutex
-	buf   []*Record
-	start int
-	n     int
-	bytes int
+	buf     []*Record
+	start   int
+	n       int
+	bytes   int
 }
 
 func (f *flightRing) setOn(on bool) {
@@ -196,8 +196,25 @@ func WriteTrace(w io.Writer) (int64, error) {
 	return goTrace.fr.WriteTo(w)
 }
 
-// flightKeeps is Enabled's answer, for a line no file wants, while the flight recorder
-// is on: worth building, because it's kept for a while, up to so many a second.
+// flightRoom is Enabled's answer, for a line no file wants, while the flight recorder
+// is on: worth building if this second's allowance isn't spent. It only looks; Handle
+// takes from the allowance (flightKeeps), whichever way a line got there.
+func (l *Logger) flightRoom(lv slog.Level) bool {
+	if lv < slog.LevelDebug || !l.flight.on.Load() {
+		return false
+	}
+	f := &l.flight
+	if f.sec.Load() != time.Now().Unix() {
+		return true
+	}
+	if f.count.Load() >= flightPerSecond {
+		f.skipped.Add(1)
+		return false
+	}
+	return true
+}
+
+// flightKeeps takes one line from this second's allowance, for a line no file wants.
 func (l *Logger) flightKeeps(lv slog.Level) bool {
 	if lv < slog.LevelDebug || !l.flight.on.Load() {
 		return false

@@ -48,7 +48,7 @@ type Podcast struct {
 // on the local network or this machine are refused, so a feed cannot be
 // used to reach other devices (server-side request forgery).
 var SafeClient = &http.Client{
-	Timeout: 0, // episodes can be long; requests carry their own contexts
+	Timeout:   0,                                                 // episodes can be long; requests carry their own contexts
 	Transport: logging.Calls(safeTransport, "library", "online"), // every call logged with its time: logging/calls.go
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 8 || (req.URL.Scheme != "http" && req.URL.Scheme != "https") {

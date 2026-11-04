@@ -29,6 +29,9 @@ import (
 type Check struct {
 	Name string
 	Run  func(ctx context.Context) error
+	// Patience is how many times hangAfter it may fail before that's a hang: a database
+	// busy with a long scan is slow, not stuck. 0 is once.
+	Patience int
 }
 
 // Watchdog timings. Variables so tests can shrink them.
@@ -119,9 +122,10 @@ func (w *watchdog) round(ctx context.Context) {
 		}
 		w.mu.Unlock()
 		if busy {
-			w.note(c.Name, fmt.Errorf("still waiting for the last check to answer"))
+			w.note(c.Name, time.Now(), fmt.Errorf("still waiting for the last check to answer"))
 			continue
 		}
+		asked := time.Now()
 		wg.Add(1)
 		done := make(chan error, 1)
 		go func() {
@@ -143,9 +147,9 @@ func (w *watchdog) round(ctx context.Context) {
 			defer t.Stop()
 			select {
 			case err := <-done:
-				w.note(c.Name, err)
+				w.note(c.Name, asked, err)
 			case <-t.C:
-				w.note(c.Name, fmt.Errorf("no answer in %s", watchLimit))
+				w.note(c.Name, asked, fmt.Errorf("no answer in %s", watchLimit))
 			}
 		}()
 	}
@@ -155,7 +159,9 @@ func (w *watchdog) round(ctx context.Context) {
 	}
 }
 
-func (w *watchdog) note(name string, err error) {
+// note records a check's answer; since is when it was asked, which is when the trouble
+// began if it didn't answer.
+func (w *watchdog) note(name string, since time.Time, err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if err == nil {
@@ -164,7 +170,7 @@ func (w *watchdog) note(name string, err error) {
 		return
 	}
 	if _, ok := w.failing[name]; !ok {
-		w.failing[name] = time.Now()
+		w.failing[name] = since
 	}
 	w.lastErr[name] = err.Error()
 }
@@ -180,6 +186,21 @@ func (w *watchdog) judge(now time.Time) {
 			worst, since = name, t
 		}
 	}
+	// The check that has been failing longest for its patience decides.
+	failingFor, over := time.Duration(0), false
+	for _, c := range w.checks {
+		t, ok := w.failing[c.Name]
+		if !ok {
+			continue
+		}
+		d := now.Sub(t)
+		if d > failingFor {
+			failingFor = d
+		}
+		if d >= hangAfter*time.Duration(max(c.Patience, 1)) {
+			over = true
+		}
+	}
 	if worst == "" {
 		if !w.episode.IsZero() {
 			took := now.Sub(w.episode)
@@ -191,11 +212,10 @@ func (w *watchdog) judge(now time.Time) {
 		w.mu.Unlock()
 		return
 	}
-	failingFor := now.Sub(since)
 	what := w.describeLocked()
 	dump := 0
 	switch {
-	case failingFor < hangAfter:
+	case !over && w.episode.IsZero():
 	case w.episode.IsZero():
 		w.episode = since
 		if w.lastDump.IsZero() || now.Sub(w.lastDump) >= hangGap {
@@ -403,7 +423,7 @@ func NoteStopping() {
 		return
 	}
 	w.mu.Lock()
-	episode, last, dumps := w.episode, w.lastDump, w.dumps
+	episode, last := w.episode, w.lastDump
 	what := w.describeLocked()
 	failing := len(w.failing) > 0
 	w.mu.Unlock()
@@ -418,7 +438,7 @@ func NoteStopping() {
 	default:
 		return
 	}
-	if dumps >= 2 && !episode.IsZero() && time.Since(last) < hangAgain {
+	if !last.IsZero() && time.Since(last) < hangAgain {
 		return // just written down
 	}
 	if _, err := SaveEvidence("hang", summary, ""); err != nil {

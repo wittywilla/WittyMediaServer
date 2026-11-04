@@ -374,7 +374,7 @@ func (s *Server) askOnline(ctx context.Context, it *library.Item) (*savedLyrics,
 		return nil, nil
 	}
 	if _, busy := lyricsAsking.LoadOrStore(it.ID, true); busy {
-		return nil, errors.New("still looking")
+		return nil, errLyricsBusy // this song, for someone else: its answer will be kept
 	}
 	defer lyricsAsking.Delete(it.ID)
 	turn := time.NewTimer(lyricsTurnWait)

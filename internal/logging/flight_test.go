@@ -207,7 +207,7 @@ func TestStoppingWhileHungIsWrittenDown(t *testing.T) {
 	if n := len(guard.List()); n != 0 {
 		t.Fatalf("a stop with all well wrote %d reports", n)
 	}
-	w.note("web", context.DeadlineExceeded)
+	w.note("web", time.Now(), context.DeadlineExceeded)
 	w.mu.Lock()
 	w.episode = time.Now().Add(-time.Minute)
 	w.mu.Unlock()

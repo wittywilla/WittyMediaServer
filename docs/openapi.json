@@ -22012,6 +22012,65 @@
         "x-wms-auth": "admin"
       }
     },
+    "/logs/crashes/{id}/{part}": {
+      "get": {
+        "operationId": "getLogCrashPart",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "part",
+            "required": true,
+            "schema": {
+              "enum": [
+                "flight.log",
+                "goroutines.txt",
+                "trace"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What was kept beside a report: the last 10 minutes of the log (flight.log), every goroutine's stack (goroutines.txt) or the execution trace (trace).",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/logs/entries": {
       "get": {
         "operationId": "getLogEntries",
@@ -22194,6 +22253,52 @@
           }
         ],
         "summary": "Open the log folder on the server's own screen.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/logs/save": {
+      "post": {
+        "operationId": "postLogSave",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "note": {
+                    "description": "Up to 500 characters, added to the report's summary.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrashReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save what just happened: a report of kind saved, with the last 10 minutes of the log at the most detailed level, every goroutine's stack and the execution trace beside it.",
         "tags": [
           "Server"
         ],

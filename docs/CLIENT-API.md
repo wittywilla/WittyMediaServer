@@ -897,7 +897,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `PUT /agents` | admin | Replace the list of agents, 20 at most. |
 | `POST /agents/test` | admin | Ask an agent about a title without changing anything. |
 | `GET /logs` | admin | What is logged, where, and the log files. |
-| `PUT /logs` | admin | Change each category's level (`levels`), each module's level and advanced options (`modules`), or the folder, or record everything for a while (`recordMinutes`). Takes effect at once, with no restart. |
+| `PUT /logs` | admin | Change each category's level (`levels`), each module's level and advanced options (`modules`), or the folder, or record everything for a while (`recordMinutes`), or keep the last 10 minutes in memory (`flight`) and Go's execution trace of the last seconds (`trace`). Takes effect at once, with no restart. |
 | `GET /logs/files/{name}` | admin | Download one log file. |
 | `POST /logs/open` | admin | Open the log folder on the server's own screen. |
 | `POST /logs/client` | user | Report errors from a client: `{app, version, device, events: [{level, kind, message, stack, page, session, request, count, time}]}`. `session` is the stream, disc or game session in play, and `request` the `X-Request-Id` of a failed request. 64 KB and 25 events a request, 60 events a minute per account; 429 past that. 204 when stored, or when the owner turned app errors off. |
@@ -907,6 +907,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `GET /logs/crashes/{id}` | admin | One crash report's text. |
 | `DELETE /logs/crashes/{id}` | admin | Delete a crash report. |
 | `POST /logs/crashes/{id}/seen` | admin | Stop pointing this report out. |
+| `GET /logs/crashes/{id}/{part}` | admin | What was kept beside a report, listed in its `parts`: `flight.log` (the last 10 minutes at the most detailed level), `goroutines.txt` (every goroutine's stack) or `trace` (an execution trace for `go tool trace`). |
+| `POST /logs/save` | admin | Save what just happened: `{note}` is optional. Writes a report of kind `saved` with those three parts beside it, and returns it. |
 | `GET /logs/bundle` | admin | The logs as a zip, made on request: `days`, and `sanitize`, on unless it's `0`, which replaces names, addresses, titles and paths with placeholders (`redact` is its earlier name). Nothing is uploaded anywhere. |
 | `GET /logs/bundle/preview` | admin | What that zip would hold, with the same `days` and `sanitize`: `{parts, total, sample, sanitize, days, scanned, replaced, changed}`. `replaced` counts the places changed by kind, in the newest lines; `changed` is a few lines before and after. |
 | `GET /diagnose/targets` | admin | WittyDiagnoser: the libraries, data folders and known discs that can be checked. |
@@ -1171,7 +1173,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /music/extras/{id}/file` | user | One of those, by the `name` the list gave. |
 | `GET /music/artist` | user | An artist's page: albums, songs, and a biography if online information is on: `library`, `name`. |
 | `GET /music/artist-photo` | user | An artist's picture, or a cover of theirs: `library`, `name`. |
-| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. |
+| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. One song is looked up at a time: `retry: true` with `failed` says another song's look-up is under way, so ask again in a few seconds. A source that stops answering is left alone for 5 minutes, and `failed` says so. Give the request up (close it) when the listener moves on. |
 | `PUT /music/lyrics/{id}/offset` | user | This person's timing correction: `{offsetMs}`, up to two minutes either way. |
 | `POST /music/lyrics/{id}/search` | admin | Online lyrics to choose from: `{q}`. |
 | `PUT /music/lyrics/{id}` | admin | Corrects a song's lyrics on this server: `{text}`, `{instrumental}` or `{provider, id}`. |

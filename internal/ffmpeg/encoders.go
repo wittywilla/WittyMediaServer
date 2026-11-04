@@ -1,6 +1,7 @@
 package ffmpeg
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -198,6 +199,14 @@ func (t *Tools) testEncoder(ctx context.Context, log *slog.Logger, st *HWStatus,
 	}
 	msg := strings.TrimSpace(stderr.String())
 	st.Reason = explainEncoderError(st.Vendor, msg, container)
+	if st.Vendor == "vaapi" && st.Reason != "" {
+		// A driver "missing" for a chip that has none here, such as WSL's own device.
+		for _, d := range GPUs() {
+			if d.Path == st.Device && d.Vendor == "other" {
+				st.Reason = "The graphics device " + d.Path + " isn't Intel's or AMD's (its driver is " + cmp.Or(d.Driver, "unknown") + "): VA-API here has drivers for those only."
+			}
+		}
+	}
 	if i := strings.LastIndex(msg, "\n"); i > 0 && len(msg) > 300 {
 		msg = msg[i+1:]
 	}

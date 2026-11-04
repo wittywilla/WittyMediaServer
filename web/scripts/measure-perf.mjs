@@ -11,12 +11,14 @@
 //
 // WMS_ITEM=/item/12 names an item page (the first item of the grid otherwise). WMS_SLOW=4 is how many
 // times slower the processor is made (4 is a low-end phone or TV). WMS_RUNS=3 loads per page.
+// WMS_ONLY=pages, scroll or browse runs that part alone.
 import { writeFileSync } from 'node:fs'
 const { launch } = await import(new URL((process.env.WITTYVISUALIZER || '../../../WittyVisualizer') + '/tests/cdp.mjs', import.meta.url))
 
 const server = process.env.WMS_SERVER || 'http://perf.localhost:19790'
 const slow = Number(process.env.WMS_SLOW || 4)
 const runs = Number(process.env.WMS_RUNS || 3)
+const only = (part) => !process.env.WMS_ONLY || process.env.WMS_ONLY.split(',').includes(part)
 const [out] = process.argv.slice(2)
 const wait = (ms) => new Promise((d) => setTimeout(d, ms))
 const median = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)]
@@ -119,7 +121,7 @@ const result = { server, slow, when: new Date().toISOString(), pages: {} }
 
 // First visits, with nothing cached, and repeat visits, with the cache.
 await page.send('Emulation.setCPUThrottlingRate', { rate: slow })
-for (const [name, path, ready] of PAGES) {
+for (const [name, path, ready] of only('pages') ? PAGES : []) {
   const one = {}
   for (const cold of [true, false]) {
     const times = [], fcps = [], lcps = [], scripts = [], heaps = [], nodes = []
@@ -151,18 +153,19 @@ await page.send('Network.setCacheDisabled', { cacheDisabled: false })
 await page.send('Emulation.setCPUThrottlingRate', { rate: 1 })
 
 // Scrolling the big grid to its end: renders, requests and what stays in the page.
-{
+if (only('scroll')) {
   await page.go(server + grid)
   await until(PAGES[1][2], 30000, 'the grid')
   await idle()
   reqs = new Map()
   await page.eval(`(window.__wmsRenders.commits = window.__wmsRenders.renders = window.__wmsRenders.mounts = 0)`)
   const t0 = Date.now()
+  // At the bottom, the next page may still be on its way: wait for it before calling it the end.
   let lastHeight = 0, same = 0
-  while (same < 15 && Date.now() - t0 < 120000) {
+  while (same < 3 && Date.now() - t0 < 300000) {
     const h = await page.eval(`(scrollBy(0, 700), document.scrollingElement.scrollHeight + ':' + Math.round(scrollY + innerHeight))`)
     const [height, bottom] = h.split(':').map(Number)
-    if (bottom >= height - 2 && height === lastHeight) same++; else same = 0
+    if (bottom >= height - 2) { await idle(500); if (height === lastHeight) same++ } else same = 0
     lastHeight = height
     await wait(120)
   }
@@ -175,7 +178,7 @@ await page.send('Emulation.setCPUThrottlingRate', { rate: 1 })
 }
 
 // Browsing round the app inside one page load, as someone would on a TV: is memory given back?
-{
+if (only('browse')) {
   await page.go(server + '/')
   await until(PAGES[0][2], 30000, 'home')
   await page.eval(`(window.__wmsRenders.on = false)`)

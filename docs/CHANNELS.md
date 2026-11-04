@@ -129,6 +129,8 @@ It snaps to Small, Medium, Large, Extra large and Huge, and any size between wor
 
 The buttons under it also turn its sound on, go full screen and hide it.
 
+**One picture, not two.** The preview and the full-screen view are the same stream in two places. Going full screen from the preview, using F or the button, and coming back to the guide carry on from where the picture was: nothing tunes again, and nothing jumps back. On the way back the guide keeps the channel in the preview while it loads.
+
 ## Watching a channel
 
 Tuning shows a banner with the channel number, name, times, a progress bar and what's next.
@@ -412,7 +414,7 @@ A channel is treated as ATSC 3.0 when its source names HEVC or AC-4. The server 
 ## What costs what
 
 - **An idle channel costs nothing.** A day's schedule is worked out the first time something needs that day, then kept. Days nobody watched are worked out as needed, so an unwatched channel still moves on as real TV would.
-- **Watching.** Everyone on a channel shares one stream, and FFmpeg stops about 45 seconds after the last request, deleting what it kept and releasing any tuner. A player says when it leaves, so a channel only flicked past stops about two seconds later.
+- **Watching.** Everyone on a channel shares one stream, and FFmpeg stops about 45 seconds after the last request, deleting what it kept and releasing any tuner. A player says when it leaves, so a channel only flicked past stops about two seconds later. The web app says so 3 seconds after nothing on the page shows the channel, unless it's shown again first, and at once on changing channel or closing the tab.
 - **Pass H.264 through**, under **Options**, sends video the browser can already play as it is, which is much lighter on the machine. Turn it off only if channels stutter when shows change. Sound is always stereo AAC, so a stream stays playable across programmes.
 - **The limit.** Live sessions that convert count against how many conversions may run at once, and a viewer is told plainly when the server is full. **Largest picture on channels** is lighter on small machines.
 - **The preview.** It waits for the highlight to settle, then shares the channel's ordinary stream, so a channel someone else is watching costs nothing extra. It stops while the page is in the background, and dragging changes only its own width. **On a tuner, a preview uses up a tuner**, which is why it can be pointed at the last channel or hidden.

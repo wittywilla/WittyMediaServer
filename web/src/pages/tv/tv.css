@@ -250,6 +250,7 @@ html.ten-foot .ctv-page .ctv-btn.icon, html.using-controller .ctv-page .ctv-btn.
    its width only ever moves what is beside it. */
 .ctv-preview { position: relative; z-index: 1; min-width: 0; max-width: 100%; background: var(--ctv-picture); color: var(--on-image); border: 2px solid var(--ctv-line); box-shadow: var(--ctv-bevel); }
 .ctv-preview-screen { position: relative; aspect-ratio: 16 / 9; background: var(--ctv-picture); }
+.ctv-preview-slot { position: absolute; inset: 0; }
 .ctv-preview video { display: block; width: 100%; height: 100%; background: var(--ctv-picture); object-fit: contain; }
 .ctv-preview-msg { position: absolute; inset: 0; display: grid; place-items: center; padding: 8px; text-align: center; color: var(--on-image); font-size: var(--text-xs); }
 .ctv-preview-bar { display: flex; align-items: center; gap: 2px; height: 28px; padding: 0 2px; background: var(--ctv-panel); font-size: var(--text-xs); }

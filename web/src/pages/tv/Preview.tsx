@@ -1,15 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconClose, IconFull, IconMute, IconVolume } from '../../icons'
-import { useSource } from '../../player/hooks'
 import { PREVIEW_SIZES, previewSizeName, setLook, type Look } from './look'
 import { PREVIEW_MIN } from './tvThemes'
-import { leaveChannel, makeViewer, preflight, tune, type TuneInfo } from './tvApi'
+import { liveNow, liveVideo, useLive } from './live'
 
 // The little TV on the guide. It waits for the highlight to settle before
-// tuning, because each channel it shows runs a stream, and says when it leaves,
-// so a channel that was only flicked past stops at once. With the tab in the
-// background it stops altogether.
+// tuning, because each channel it shows runs a stream, and moving on leaves the
+// last at once, so a channel that was only flicked past stops. With the tab in the
+// background it stops altogether. The picture is the TV section's one player
+// (live.ts): the channel that was being watched carries on here without tuning
+// again, and carries on into the watch view the same way.
 //
 // It sits in the page's layout, not over it, so it can't cover anything. It starts at
 // a size that suits the theme and the window (`start`). Someone can make it any width
@@ -24,14 +25,15 @@ const snap = (w: number) => PREVIEW_SIZES.find((s) => Math.abs(s.w - w) <= SNAP_
 
 export default function Preview({ channel, label, look, max, start }: { channel: string; label: string; look: Look; max: number; start: number }) {
   const nav = useNavigate()
-  const video = useRef<HTMLVideoElement | null>(null)
   const box = useRef<HTMLDivElement | null>(null)
-  const viewer = useRef(makeViewer())
-  const [url, setUrl] = useState<string | null>(null)
-  const [info, setInfo] = useState<TuneInfo | null>(null)
-  const [state, setState] = useState<'idle' | 'tuning' | 'playing' | 'failed'>('idle')
-  const [msg, setMsg] = useState('')
+  const screen = useRef<HTMLDivElement | null>(null)
   const [hidden, setHidden] = useState(() => document.hidden)
+  // The channel this asks the player for: the highlighted one once it has settled, or at once
+  // when it's the one already playing.
+  const [want, setWant] = useState(() => (channel && channel === liveNow().key ? channel : ''))
+  const live = useLive(want, screen)
+  const mine = !!want && live.key === want
+  const [shown, setShown] = useState(false)
 
   useEffect(() => {
     const on = () => setHidden(document.hidden)
@@ -40,38 +42,34 @@ export default function Preview({ channel, label, look, max, start }: { channel:
   }, [])
 
   useEffect(() => {
-    setUrl(null); setInfo(null); setMsg('')
-    if (!channel || hidden) { setState('idle'); return }
-    setState('tuning')
-    const ac = new AbortController()
-    const v = viewer.current
-    const t = setTimeout(() => {
-      tune(channel, v, ac.signal)
-        .then(async (i) => {
-          if (ac.signal.aborted) return
-          setInfo(i)
-          const u = i.url + '?viewer=' + v
-          await preflight(u, ac.signal)
-          if (!ac.signal.aborted) setUrl(u)
-        })
-        .catch((e) => { if (!ac.signal.aborted) { setState('failed'); setMsg(e.message) } })
-    }, SETTLE_MS)
-    // Closing the tab counts as leaving, too.
-    const gone = () => leaveChannel(channel, v)
-    window.addEventListener('pagehide', gone)
-    return () => { clearTimeout(t); ac.abort(); window.removeEventListener('pagehide', gone); gone() }
+    if (!channel || hidden) { setWant(''); return }
+    if (channel === liveNow().key) { setWant(channel); return }
+    setWant('')
+    const t = setTimeout(() => setWant(channel), SETTLE_MS)
+    return () => clearTimeout(t)
   }, [channel, hidden])
 
-  useSource(video, url, {
-    onReady: () => {
-      const v = video.current
-      if (!v) return
-      v.muted = !look.previewSound
-      v.play().then(() => setState('playing')).catch(() => { v.muted = true; v.play().then(() => setState('playing')).catch(() => setState('failed')) })
-    },
-    onError: (m) => { setState('failed'); setMsg(m) },
-  })
-  useEffect(() => { if (video.current) video.current.muted = !look.previewSound }, [look.previewSound])
+  useLayoutEffect(() => {
+    const v = liveVideo()
+    v.setAttribute('aria-hidden', 'true')
+    v.tabIndex = -1
+  }, [])
+  // Sound only when asked for; a browser that won't start it with sound starts it silent.
+  useEffect(() => {
+    setShown(false)
+    if (!mine || !live.ready) return
+    const v = liveVideo()
+    v.muted = !look.previewSound
+    let on = true
+    v.play().then(() => { if (on) setShown(true) })
+      .catch(() => { v.muted = true; v.play().then(() => { if (on) setShown(true) }).catch(() => {}) })
+    return () => { on = false }
+  }, [mine, live.ready]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (mine) liveVideo().muted = !look.previewSound }, [mine, look.previewSound])
+  const failed = mine && !!live.err
+  const state = !channel || hidden ? 'idle' : failed ? 'failed' : mine && shown && live.playing ? 'playing' : 'tuning'
+  const msg = failed ? live.err : ''
+  const info = mine ? live.info : null
 
   // Below what the controls need, a preview can't be used at all.
   const least = Math.min(PREVIEW_MIN, max)
@@ -119,7 +117,7 @@ export default function Preview({ channel, label, look, max, start }: { channel:
   return (
     <div className={'ctv-preview side-' + look.previewSide} ref={box} style={{ width }} role="group" aria-label={`Preview: ${label || 'no channel'}`}>
       <div className="ctv-preview-screen">
-        <video ref={video} playsInline muted preload="auto" aria-hidden="true" tabIndex={-1} />
+        <div className="ctv-preview-slot" ref={screen} />
         {state !== 'playing' && (
           <div className="ctv-preview-msg" aria-live="polite">
             {state === 'failed' ? <small>{msg.length > 90 ? 'Not available' : msg || 'Not available'}</small> : state === 'tuning' ? <small>{info ? 'Tuning…' : label}</small> : <small>{hidden ? 'Paused while this page is in the background' : 'No preview for this channel'}</small>}

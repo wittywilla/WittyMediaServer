@@ -913,6 +913,27 @@ func (s *Session) Warm() {
 	}
 }
 
+// WarmAt starts FFmpeg at the segment holding sec, if nothing there is made or being made,
+// so that a stream a player is about to fetch is ready sooner: the player still has the
+// master playlist, the media playlist and the segment to ask for, each a round trip, which
+// on a slow connection is a second or more.
+func (s *Session) WarmAt(sec float64) {
+	n := int(sec / s.Spec.SegmentSec)
+	if s.Spec.Growing || s.Spec.HoldLastFrame || n < 0 || n >= s.SegmentCount() {
+		return
+	}
+	s.mu.Lock()
+	busy := (s.job != nil && !s.wantsStart(n)) || fileReady(s.segPath(n))
+	s.mu.Unlock()
+	if busy {
+		return
+	}
+	s.lastAsked.Store(int64(n))
+	if _, err := s.ensureJob(n, n); err != nil {
+		s.logFailedStart("could not start a transcode ahead of the viewer", err)
+	}
+}
+
 // logFailedStart is for starts nobody is waiting on, so nobody receives the
 // error. A server at its limit will try again when the viewer gets there.
 func (s *Session) logFailedStart(msg string, err error) {

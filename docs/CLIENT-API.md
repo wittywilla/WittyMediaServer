@@ -461,8 +461,9 @@ player has left rests after a few seconds. `DELETE /hls/{streamId}` ends every r
   estimate to catch up. Pick a lower rung by `RESOLUTION` or `BANDWIDTH` in the master playlist.
 - `resumeOnDrop`: when the connection is lost, keep the position and keep retrying, sooner when the device
   says it's back online. When the stream answers 404, or the stream token has run out (401, 403), or
-  nothing has arrived for about a minute, call `/playback` again with `startSec` at the position and the
-  same choices.
+  the picture has been stalled for 25 seconds with nothing arriving, or the connection has been gone for
+  about a minute, call `/playback` again with `startSec` at the position and the same choices. If that
+  fails because the connection is still gone, keep asking, waiting longer each time.
 - A file sent as it is can't step down: when it stalls for 6 seconds or its connection fails, call
   `/playback` again at the position, with `forceTranscode` after a stall.
 - Say what it did, briefly ("Picture lowered to 480p to keep playing", "Reconnected after 12 s, at the

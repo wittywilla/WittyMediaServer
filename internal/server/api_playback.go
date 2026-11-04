@@ -382,7 +382,7 @@ func (s *Server) handlePlayback(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "this kind of item isn't played: books open with GET /api/items/{id}/book")
 		return
 	}
-	s.streams.note(r, it, out.Decision, out.Reasons, out.StreamID)
+	s.streams.note(r, it, out.Decision, out.Reasons, s.trackedStream(out.StreamID))
 	writeJSON(w, 200, out)
 }
 
@@ -688,8 +688,10 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		order := append([]playback.Rung{lad.Rungs[lad.Start]}, slices.Delete(slices.Clone(lad.Rungs), lad.Start, lad.Start+1)...)
 		group := fmt.Sprintf("v-%s-r%s", hls.Key(it.Path), hex.EncodeToString(sum[:6]))
 		specs := ladderSpecs(spec, group, order, v.Width, v.Height)
-		for _, sp := range specs {
-			s.HLS.Ensure(sp)
+		for i, sp := range specs {
+			if sess := s.HLS.Ensure(sp); i == 0 {
+				sess.WarmAt(start) // the rung it starts at: on a slow link every round trip saved shows
+			}
 		}
 		out.Streaming.SegmentSec, out.Streaming.Ladder = playback.RobustSegmentSec, order
 		logStarted(specs[0].ID)
@@ -708,7 +710,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	ex.Streaming = playback.ExplainStreaming(mode, modeFrom, out.Streaming.Ladder, b.MeasuredKbps)
 	fillSubtitles(out, src, p, false, subURL)
 	if d.Subtitle == playback.SubHLS || d.Subtitle == playback.SubSidecar {
-		s.warmSubtitle(spec.ID, it.Path, chosen.Subtitle, src)
+		s.warmSubtitle(out.StreamID, it.Path, chosen.Subtitle, src)
 	}
 	return nil
 }

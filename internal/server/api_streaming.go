@@ -67,11 +67,12 @@ func ladderSpecs(base hls.Spec, group string, rungs []playback.Rung, srcW, srcH 
 		sp.Group = group
 		sp.SegmentSec = playback.RobustSegmentSec
 		sp.MaxHeight = rung.Height
-		q := base.Quality
+		sp.Quality = base.Quality.WithCap(strconv.Itoa(rung.Kbps) + "k")
 		if rung.Kbps <= 800 {
-			q.AudioRate = "96k" // at these rates the picture needs every bit it can get
+			// At these rates the picture needs every bit: the sound takes less than WithCap
+			// allows for it, which leaves the picture a little room under its limit.
+			sp.Quality.AudioRate = "96k"
 		}
-		sp.Quality = q.WithCap(strconv.Itoa(rung.Kbps) + "k")
 		if base.Variant != nil {
 			v := *base.Variant
 			v.BandwidthKbps = rung.Kbps
@@ -85,6 +86,18 @@ func ladderSpecs(base hls.Spec, group string, rungs []playback.Rung, srcW, srcH 
 		out = append(out, sp)
 	}
 	return out
+}
+
+// trackedStream is the name a stream is counted under in the list of who is watching: a
+// ladder's rungs are one stream there, whichever the player is on.
+func (s *Server) trackedStream(id string) string {
+	if id == "" || s.HLS == nil {
+		return id
+	}
+	if sess := s.HLS.Get(id); sess != nil && sess.Spec.Group != "" {
+		return sess.Spec.Group
+	}
+	return id
 }
 
 func rungID(group string, height int) string { return fmt.Sprintf("%s-q%d", group, height) }

@@ -262,7 +262,13 @@ export function channelVars(accent: string | undefined, bg = '#000000'): React.C
 const LAST = 'wms.tv.last'
 export const lastChannel = () => { try { return localStorage.getItem(LAST) || '' } catch { return '' } }
 export const previousChannel = () => { try { return localStorage.getItem(LAST + '.before') || '' } catch { return '' } }
+// The channel just watched, for the guide to come back to. Only for this visit: a guide
+// opened afresh starts at the top as before.
+let watched = ''
+export const justWatched = () => watched
+export const forgetJustWatched = () => { watched = '' }
 export const rememberChannel = (key: string) => {
+  watched = key
   try {
     const was = localStorage.getItem(LAST)
     if (was && was !== key) localStorage.setItem(LAST + '.before', was)

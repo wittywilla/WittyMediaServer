@@ -7,7 +7,7 @@ import { IconLeft, IconRight, IconSearch, IconSettings, IconStar, IconTv } from 
 import { toast, useApp } from '../../state'
 import { lookupLogo } from '../../components/BrandLogo'
 import LookPanel from './LookPanel'
-import { channelVars, lastChannel, previousChannel, setLook, setOwnerLook, surfaceOf, themeRoot, useLook, type Look } from './look'
+import { channelVars, forgetJustWatched, justWatched, lastChannel, previousChannel, setLook, setOwnerLook, surfaceOf, themeRoot, useLook, type Look } from './look'
 import { previewAuto, previewLimit, rowHeight, SHAPES } from './tvThemes'
 import { ChannelMark } from './ChannelLogo'
 import DetailsDialog from './Details'
@@ -103,6 +103,8 @@ export default function GuidePage() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [err, setErr] = useState('')
   const [focus, setFocus] = useState<Focus>(() => ({ row: 0, at: Date.now() / 1000 }))
+  // Back from a channel, by any way out of it: that channel is highlighted once the rows come.
+  const [back, setBack] = useState(justWatched)
   const [details, setDetails] = useState<{ ch: GuideChannel; p: Programme; day?: boolean } | null>(null)
   const [dial, setDial] = useState('')
   const [width, setWidth] = useState(() => window.innerWidth)
@@ -199,6 +201,19 @@ export default function GuidePage() {
     const t = setInterval(() => { loaded.current.clear(); setScrollTop((s) => s + 0.001) }, 5 * 60000)
     return () => clearInterval(t)
   }, [])
+
+  // The channel just left, in the middle of the rows, at now, with the keyboard on it.
+  useEffect(() => {
+    if (!back || total == null || !lineup.length) return
+    setBack('')
+    forgetJustWatched()
+    const i = lineup.findIndex((c) => c.key === back)
+    if (i < 0) return
+    const el = scroller.current
+    if (el) el.scrollTop = Math.max(0, i * rowH - (el.clientHeight - rowH) / 2)
+    wantFocus.current = true
+    setFocus({ row: i, at: Date.now() / 1000 })
+  }, [back, total, lineup, rowH])
 
   const cur = rows[focus.row]
   const cells = useMemo(() => cellsFor(cur, from, to, pxPerSec), [cur, from, to, pxPerSec])
@@ -369,8 +384,8 @@ export default function GuidePage() {
   const pct = (u: number) => ((u - from) / (to - from)) * 100
   const totalRows = total ?? 0
   // What the little TV shows: settled on by the preview itself. Until the rows come, it keeps
-  // what was already playing, so coming back from a channel doesn't stop it.
-  const previewKey = look.preview === 'off' ? '' : look.preview === 'last' ? (lastChannel() || (cur && !cur.encrypted ? cur.key : '')) : cur ? (cur.encrypted ? '' : cur.key) : liveNow().key
+  // what was already playing, or the channel just left, so coming back doesn't stop it.
+  const previewKey = look.preview === 'off' ? '' : look.preview === 'last' ? (lastChannel() || (cur && !cur.encrypted ? cur.key : '')) : back || (cur ? (cur.encrypted ? '' : cur.key) : liveNow().key)
   const previewName = useMemo(() => {
     if (!previewKey) return ''
     const c = cur?.key === previewKey ? cur : lineup.find((x) => x.key === previewKey)

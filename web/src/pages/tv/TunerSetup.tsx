@@ -78,12 +78,14 @@ export default function TunerSetup({ drivers, start, onClose, onAdded }: { drive
     setName(f.name); setOpts(f.options); setFound(null)
   }
 
-  const missing = driver ? driver.fields.filter((f) => f.required && !(opts[f.key] || '').trim()).map((f) => f.label) : []
+  const missing = driver ? driver.fields.filter((f) => f.required && !(opts[f.key] || f.default || '').trim()).map((f) => f.label) : []
   const save = async () => {
     if (!driver) return
     setBusy(true); setErr('')
     try {
-      const t = await api.post<Tuner>('/tuners', { driver: driver.id, name: name.trim() || driver.name, options: opts })
+      // What a field shows by default is what's sent, as if it had been chosen.
+      const options = { ...Object.fromEntries(driver.fields.filter((f) => f.default).map((f) => [f.key, f.default!])), ...opts }
+      const t = await api.post<Tuner>('/tuners', { driver: driver.id, name: name.trim() || driver.name, options })
       forgetLineup()
       setTuner(t)
       setStep('channels')
@@ -116,8 +118,20 @@ export default function TunerSetup({ drivers, start, onClose, onAdded }: { drive
     try { await api.post('/epg/sources', { url: guideURL.trim() }); toast('Reading the guide…'); setStep('done') } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
 
-  // A playlist that names its own guide, or a broadcast that carries one, needs nothing more.
-  const ownGuide = !!(opts.guide || '').trim() || ['network', 'satip', 'dvb', 'bda'].includes(driver?.id || '')
+  // A playlist that names its own guide, or anything that isn't a playlist or stream, needs nothing more.
+  // Only playlists and streams can be matched to XMLTV listings by channel.
+  const ownGuide = !!(opts.guide || '').trim() || !['iptv', 'stream'].includes(driver?.id || '')
+  // Arrow keys move between the kinds and choose, as in any group of radio buttons.
+  const radioKeys = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const by = ({ ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 } as Record<string, number>)[e.key]
+    if (!by) return
+    const all = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('[role=radio]:not([disabled])')]
+    const i = all.indexOf(document.activeElement as HTMLButtonElement)
+    const next = all[(i + by + all.length) % all.length]
+    if (!next) return
+    e.preventDefault(); e.stopPropagation()
+    next.focus(); next.click()
+  }
   const at = STEPS.indexOf(step)
   const title = step === 'done' ? `${tuner?.name || 'Live TV'} is ready` : 'Add live TV'
   const back = () => setStep(STEPS[Math.max(0, at - 1)])
@@ -142,7 +156,7 @@ export default function TunerSetup({ drivers, start, onClose, onAdded }: { drive
       <h3 className="tvw-h" ref={heading} tabIndex={-1}>{step === 'done' ? 'All set' : `Step ${at + 1} of ${STEPS.length}: ${STEP_NAMES[step]}`}</h3>
 
       {step === 'kind' && (
-        <div className="tvw-kinds" role="radiogroup" aria-label="What do you have?">
+        <div className="tvw-kinds" role="radiogroup" aria-label="What do you have?" onKeyDown={radioKeys}>
           {KINDS.map((k) => {
             const ds = driversOf(k, drivers)
             const usable = ds.filter((d) => d.available && !d.planned)

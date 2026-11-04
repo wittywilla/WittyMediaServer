@@ -77,12 +77,13 @@ function Tuners() {
   const [list, setList] = useState<Tuner[] | null>(null)
   const [drivers, setDrivers] = useState<Driver[] | null>(null)
   const [noModule, setNoModule] = useState(false)
+  const [driversErr, setDriversErr] = useState('')
   const [found, setFound] = useState<Found[] | null>(null)
   const [searching, setSearching] = useState(false)
   // The setup, open: from the start, at a device that was found, or at one kind by hand.
   const [setup, setSetup] = useState<{ start?: Found } | null>(null)
   const load = () => api.get<Tuner[]>('/tuners').then(setList).catch((e) => { if (e.status !== 424) toast(e.message) })
-  const loadDrivers = () => api.get<Driver[]>('/tuners/drivers').then((d) => { setDrivers(d); setNoModule(false) }).catch((e) => { if (e.status === 424) setNoModule(true); else toast(e.message) })
+  const loadDrivers = () => { setDriversErr(''); return api.get<Driver[]>('/tuners/drivers').then((d) => { setDrivers(d); setNoModule(false) }).catch((e) => { if (e.status === 424) setNoModule(true); else setDriversErr(e.message) }) }
   useEffect(() => { void load(); void loadDrivers() }, [])
   const search = async () => {
     setSearching(true)
@@ -108,7 +109,8 @@ function Tuners() {
         <button className="btn sm" disabled={searching || !drivers} onClick={() => void search()}><IconRefresh /> {searching ? 'Searching…' : 'Search for tuners'}</button>
         <button className="btn sm primary" disabled={!drivers} onClick={() => setSetup({})}><IconPlus /> Add live TV</button>
       </>}>
-      {!drivers && <p className="muted" role="status">Getting WittyTuner ready…</p>}
+      {!drivers && !driversErr && <p className="muted" role="status">Getting WittyTuner ready…</p>}
+      {driversErr && <p className="tvs-error" role="alert">WittyTuner didn't answer: {driversErr} <button className="btn sm" onClick={() => void loadDrivers()}><IconRefresh /> Try again</button></p>}
       {found && found.length === 0 && <p className="muted" role="status">No new tuners found on your network or this machine, or the search didn't finish. Press <b>Add live TV</b> to add one by its address.</p>}
       {found && found.length > 0 && (
         <ul className="tvs-list" aria-label="Found on your network">

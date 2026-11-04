@@ -601,6 +601,9 @@ func runLiveFFmpeg(ctx context.Context, s *LiveSession, in *LiveInput, run int, 
 		select {
 		case err := <-done:
 			s.readRun(r)
+			// A last update that couldn't replace the playlist (something else,
+			// such as a virus scanner, had it open) is still in FFmpeg's temporary file.
+			s.readRunFrom(r, r.playlist+".tmp")
 			logging.ChildExit(s.log, "ffmpeg", err, ctx.Err() != nil, &stderr, started, "run", run, "args", cmdline)
 			if ctx.Err() != nil {
 				return nil
@@ -638,9 +641,13 @@ func (in *LiveInput) fatalCause() error {
 }
 
 // readRun picks up the segments FFmpeg has finished.
-func (s *LiveSession) readRun(r *liveRun) {
+func (s *LiveSession) readRun(r *liveRun) { s.readRunFrom(r, r.playlist) }
+
+// readRunFrom picks up the segments a playlist of the run lists that haven't been
+// picked up yet.
+func (s *LiveSession) readRunFrom(r *liveRun, playlist string) {
 	// A day of 4-second segments is about 2 MB of playlist.
-	b, err := readShared(r.playlist, 4<<20)
+	b, err := readShared(playlist, 4<<20)
 	if err != nil {
 		return
 	}

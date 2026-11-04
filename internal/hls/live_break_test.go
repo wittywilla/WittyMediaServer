@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -92,5 +93,34 @@ func TestLiveAcrossABreakForReal(t *testing.T) {
 	// Each run plays as long as it was asked to, give or take a frame.
 	if want := 4.0 + 3 + 2 + 4; total < want-0.5 || total > want+0.5 {
 		t.Errorf("the playlist runs %.2f s, want %.0f:\n%s", total, want, pl)
+	}
+}
+
+// When FFmpeg's last update of a run's playlist couldn't replace it, the
+// segments it added are read from the update it left behind.
+func TestLiveRunsLastUpdateIsNotLost(t *testing.T) {
+	m := liveTestManager(t)
+	s := m.newLive(LiveSpec{ID: "lib-9"})
+	r := &liveRun{n: 1, playlist: filepath.Join(s.Dir, "r00001.m3u8")}
+	list := func(n int) string {
+		var b strings.Builder
+		b.WriteString("#EXTM3U\n#EXT-X-TARGETDURATION:4\n")
+		for i := range n {
+			b.WriteString("#EXTINF:4.000,\nr00001-0000" + string(rune('0'+i)) + ".ts\n")
+		}
+		return b.String()
+	}
+	if err := os.WriteFile(r.playlist, []byte(list(2)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s.readRun(r)
+	if err := os.WriteFile(r.playlist+".tmp", []byte(list(3)+"#EXT-X-ENDLIST\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s.readRun(r)
+	s.readRunFrom(r, r.playlist+".tmp")
+	s.readRunFrom(r, r.playlist+".tmp")
+	if len(s.segs) != 3 || s.segs[2].File != "r00001-00002.ts" {
+		t.Fatalf("segments %+v", s.segs)
 	}
 }

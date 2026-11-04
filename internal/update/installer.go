@@ -101,7 +101,10 @@ func (u *Updater) installerAsset(rel *Release) (Asset, bool) {
 	if rel == nil || u.DownloadDir == "" {
 		return Asset{}, false
 	}
-	name := InstallerName(rel.Version, runtime.GOOS, runtime.GOARCH, u.Kind())
+	if u.kind == "" || time.Since(u.reasonAt) > 30*time.Second {
+		u.kind = u.Kind()
+	}
+	name := InstallerName(rel.Version, runtime.GOOS, runtime.GOARCH, u.kind)
 	a, ok := rel.Assets[name]
 	return a, ok && name != ""
 }
@@ -252,11 +255,12 @@ func installerVersion(name string) string {
 	return ""
 }
 
-// InstallerFile is the checked installer, once it's ready.
+// InstallerFile is the checked installer, once it's ready, and only while it's the one for the
+// newest version found.
 func (u *Updater) InstallerFile() (path, name string, ok bool) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	if u.dl.Phase != InstallerReady || !fileExists(u.dl.Path) {
+	if a, found := u.installerAsset(u.rel); !found || a.Name != u.dl.Name || u.dl.Phase != InstallerReady || !fileExists(u.dl.Path) {
 		return "", "", false
 	}
 	return u.dl.Path, u.dl.Name, true

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { api, downloadFile, fmtDateTime } from '../../api'
 import { forgetUpdateStatus, loadUpdateStatus, type Installer, type UpdateInfo, type UpdateStatus } from '../../components/UpdateBanner'
 import { WebLink } from '../../components/WebLink'
-import { GuideBody } from '../../help/GuideBody'
+import { copyText, GuideBody } from '../../help/GuideBody'
 import { parse, type Block } from '../../help/markdown'
 import '../../help/help.css'
 import { IconCopy, IconDownload, IconRefresh } from '../../icons'
@@ -201,12 +201,14 @@ function DockerSteps({ image }: { image: string }) {
 function Command({ text, label = 'Command' }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false)
   const copy = async () => {
-    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1800) } catch { toast('Select the text and copy it') }
+    if (!await copyText(text)) { toast('Select the text and copy it'); return }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1800)
   }
   return (
     <div className="help-code upd-command">
       <pre tabIndex={0} role="group" aria-label={label}><code>{text}</code></pre>
-      {navigator.clipboard && <button type="button" className="btn sm ghost help-copy" onClick={copy} aria-label={copied ? 'Copied' : 'Copy this'}><IconCopy size={16} /><span>{copied ? 'Copied' : 'Copy'}</span></button>}
+      <button type="button" className="btn sm ghost help-copy" onClick={copy} aria-label={copied ? 'Copied' : 'Copy this'}><IconCopy size={16} /><span>{copied ? 'Copied' : 'Copy'}</span></button>
     </div>
   )
 }
@@ -215,8 +217,8 @@ function Command({ text, label = 'Command' }: { text: string; label?: string }) 
 // reader: nothing from the notes can act as HTML, and links open outside the app.
 function WhatsNew({ info }: { info: UpdateInfo }) {
   const { user } = useApp()
-  const changes = useMemo(() => (info.changes?.length ? info.changes : info.notes ? [{ version: info.version, notes: info.notes }] : [])
-    .map((c) => ({ ...c, blocks: parse(c.notes) as Block[] })), [info])
+  // Only what changed: a release's own notes are the page on GitHub, with its table of downloads.
+  const changes = useMemo(() => (info.changes || []).map((c) => ({ ...c, blocks: parse(c.notes) as Block[] })), [info])
   if (!changes.length) return null
   return (
     <div className="upd-whatsnew">

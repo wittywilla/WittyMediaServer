@@ -8,7 +8,7 @@ import { plain, target, type Block, type Inline } from './markdown'
 // Draws a guide. Everything becomes React elements, so nothing in a guide can act as HTML, and
 // only plain web addresses and other guides become links.
 
-async function copyText(text: string): Promise<boolean> {
+export async function copyText(text: string): Promise<boolean> {
   // The clipboard API exists only on secure pages, and a server at home usually isn't one.
   try {
     if (navigator.clipboard) { await navigator.clipboard.writeText(text); return true }

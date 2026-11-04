@@ -99,6 +99,7 @@ type Updater struct {
 	withdrawn     *wittymodule.Withdrawals // the newest signed list seen
 	withdrawnFile string                   // where it is kept
 
+	kind       string    // how this copy was installed, read with reason
 	dl         Installer // the installer download
 	dlBusy     bool
 	changes    []Change // what's new, read from the changelog for changesFor

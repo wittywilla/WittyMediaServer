@@ -49,13 +49,14 @@ var (
 	idleFor  = flag.Duration("idle", 2*time.Minute, "length of each idle reading")
 	repeat   = flag.Int("repeat", 30, "how many times each API route is asked")
 	scanWait = flag.Duration("scan-timeout", 60*time.Minute, "longest wait for one library's scan")
+	again    = flag.Bool("report", false, "report the run in -out again, with the query plans made again, instead of running")
 	libs     libFlag
 )
 
 func main() {
 	flag.Var(&libs, "lib", "type=folder of a library to add and scan (repeatable), e.g. movies=D:\\Media\\Movies")
 	flag.Parse()
-	if *exe == "" {
+	if *exe == "" && !*again {
 		fmt.Fprintln(os.Stderr, "-exe is needed: a server built with -tags wmsprofile")
 		os.Exit(2)
 	}
@@ -65,6 +66,16 @@ func main() {
 		*outDir = d
 	}
 	check(os.MkdirAll(*outDir, 0o755))
+	if *again {
+		// The report of an earlier run, with the plans made again (after adding an index, say).
+		b, err := os.ReadFile(filepath.Join(*outDir, "results.json"))
+		check(err)
+		var res Results
+		check(json.Unmarshal(b, &res))
+		res.SQL = plan(res.SQL, filepath.Join(*outDir, "data", "wms.db"))
+		report(&res, os.Stdout)
+		return
+	}
 	res := Results{When: time.Now().UTC().Format(time.RFC3339), Exe: *exe}
 	res.Startup = timeStarts()
 	runMain(&res)
@@ -326,18 +337,24 @@ func (s *server) sql() sqlStats {
 // statements is every statement the run made, with SQLite's plan for each. A plan
 // is made without the values, as for a prepared statement.
 func (s *server) statements() []Statement {
-	all := s.sql().Statements
+	return plan(s.sql().Statements, filepath.Join(s.data, "wms.db"))
+}
+
+func plan(all []Statement, dbPath string) []Statement {
 	sort.Slice(all, func(i, j int) bool { return all[i].Sec > all[j].Sec })
-	d, err := sql.Open("sqlite", "file:"+filepath.ToSlash(filepath.Join(s.data, "wms.db"))+"?mode=ro")
+	d, err := sql.Open("sqlite", "file:"+filepath.ToSlash(dbPath)+"?mode=ro")
 	check(err)
 	defer d.Close()
 	for i := range all {
 		q := all[i].Query
+		all[i].Plan, all[i].Scans = nil, false
 		head := strings.ToUpper(strings.TrimSpace(q))
 		if !strings.HasPrefix(head, "SELECT") && !strings.HasPrefix(head, "WITH") && !strings.HasPrefix(head, "UPDATE") && !strings.HasPrefix(head, "DELETE") && !strings.HasPrefix(head, "INSERT") {
 			continue
 		}
-		rows, err := d.Query("EXPLAIN QUERY PLAN " + q)
+		// The driver wants a value for each placeholder; NULL plans the same as any.
+		args := make([]any, strings.Count(q, "?"))
+		rows, err := d.Query("EXPLAIN QUERY PLAN "+q, args...)
 		if err != nil {
 			all[i].Plan = []string{"(no plan: " + err.Error() + ")"}
 			continue
@@ -553,13 +570,41 @@ func report(r *Results, w io.Writer) {
 			fmt.Fprintf(w, "| %s | %s | %d | %.1f | %.1f | %.0f | %.0f | %.1f | %.2f | %.1f |\n", s.Type, filepath.Base(s.Path), s.Items, s.Seconds, s.CPUSec, s.AllocMiB, s.PeakRSSMiB, again.Seconds, again.CPUSec, again.AllocMiB)
 		}
 	}
-	fmt.Fprintln(w, "\n| Route | Status | KiB | p50 ms | p95 ms | KiB allocated | Objects |")
-	fmt.Fprintln(w, "|---|---|---|---|---|---|---|")
+	// Ordered by what each answer allocates, which a busy machine doesn't change; times do.
+	fmt.Fprintln(w, "\n| Route | Status | KiB sent | KiB allocated | Objects | Statements | p50 ms | p95 ms |")
+	fmt.Fprintln(w, "|---|---|---|---|---|---|---|---|")
 	rs := slices.Clone(r.Routes)
-	sort.SliceStable(rs, func(i, j int) bool { return rs[i].P50Ms > rs[j].P50Ms })
+	sort.SliceStable(rs, func(i, j int) bool { return rs[i].AllocKiB > rs[j].AllocKiB })
 	for _, x := range rs {
-		fmt.Fprintf(w, "| `%s` | %d | %.1f | %.2f | %.2f | %.0f | %.0f |\n", x.Path, x.Status, float64(x.Bytes)/1024, x.P50Ms, x.P95Ms, x.AllocKiB, x.AllocObjects)
+		fmt.Fprintf(w, "| `%s` | %d | %.1f | %.0f | %.0f | %.1f | %.2f | %.2f |\n", x.Path, x.Status, float64(x.Bytes)/1024, x.AllocKiB, x.AllocObjects, x.Statements, x.P50Ms, x.P95Ms)
 	}
+	var n int64
+	var sec float64
+	for _, q := range r.SQL {
+		n, sec = n+q.N, sec+q.Sec
+	}
+	fmt.Fprintf(w, "\n%d statements of %d kinds took %.1f s in all. The costliest:\n\n", n, len(r.SQL), sec)
+	fmt.Fprintln(w, "| Runs | Seconds | Whole table or sort | Statement |")
+	fmt.Fprintln(w, "|---|---|---|---|")
+	for i, q := range r.SQL {
+		if i == 30 {
+			break
+		}
+		fmt.Fprintf(w, "| %d | %.3f | %s | `%s` |\n", q.N, q.Sec, yes(q.Scans), cut(q.Query, 160))
+	}
+	fmt.Fprintln(w, "\nEvery statement whose plan reads a whole table or sorts without an index, the costliest first:")
+	for _, q := range r.SQL {
+		if q.Scans {
+			fmt.Fprintf(w, "\n- %d runs, %.3f s: `%s`\n  - %s\n", q.N, q.Sec, cut(q.Query, 300), strings.Join(q.Plan, "\n  - "))
+		}
+	}
+}
+
+func yes(b bool) string {
+	if b {
+		return "yes"
+	}
+	return ""
 }
 
 func spread(v []float64) string {

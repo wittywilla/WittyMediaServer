@@ -43,7 +43,7 @@ const open = async () => {
   await page.go(`${server}/library/${lib.id}?tab=map`)
   await page.until(`document.querySelectorAll('.gal-pin').length && document.querySelector('.gal-land use')`, 30000, 'the map')
   await wait(700) // the groups for the first view
-  await page.until(`[...document.querySelectorAll('.gal-pin:not([aria-hidden]) img')].every((i) => i.complete)`, 30000, 'the groups' pictures').catch(() => {})
+  await page.until(`[...document.querySelectorAll('.gal-pin:not([aria-hidden]) img')].every((i) => i.complete)`, 30000, 'the pictures of the groups').catch(() => {})
 }
 const shot = async (name) => writeFileSync(join(out, `map-${name}.png`), await page.shot())
 // What's on the map now: the pins in view, how close any two come, the land, and the list.

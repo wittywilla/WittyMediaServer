@@ -485,6 +485,7 @@ function About() {
             <div><dt>Built with</dt><dd>{sys.go}</dd></div>
             <div className="wide"><dt>Data folder</dt><dd className="mono">{sys.dataDir}</dd></div>
             <div className="wide"><dt>FFmpeg</dt><dd className="mono">{sys.ffmpegInfo}</dd></div>
+            {sys.smartAppControl && <div className="wide"><dt>Windows Smart App Control</dt><dd>{sys.smartAppControl}. <Link to="/help/troubleshooting#smart-app-control-on-windows">What this means</Link></dd></div>}
           </dl>
         </Section>
       )}

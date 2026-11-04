@@ -336,6 +336,7 @@ The programs in this alpha aren't code-signed yet, so systems warn about them. E
 | System | What you see | What to do |
 |---|---|---|
 | **Windows** | "Windows protected your PC", from SmartScreen | Choose **More info**, then **Run anyway** |
+| **Windows 11,** with Smart App Control on | Windows blocks the installer, and offers only to turn Smart App Control off | Don't turn it off: Windows can't turn it back on without being reinstalled. Signed releases are being prepared. See [Smart App Control on Windows](TROUBLESHOOTING.md#smart-app-control-on-windows) |
 | **Windows,** for everyone | The administrator prompt says "Unknown publisher" | Choose **Yes** if you trust the download |
 | **macOS** | The Mac refuses to open the `.pkg` | Right-click it and choose **Open**, then **Open** again. If it still refuses, choose **Open Anyway** in **System Settings → Privacy & Security** |
 | **Linux, FreeBSD** | Nothing, for a file you install by name | Nothing. The packages carry no signature of their own |

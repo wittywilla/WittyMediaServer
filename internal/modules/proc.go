@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/appcontrol"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymodule"
@@ -250,7 +251,7 @@ func (p *proc) start() error {
 		err = cmd.Start()
 	}
 	if err != nil {
-		return fmt.Errorf("could not start: %w", err)
+		return fmt.Errorf("could not start: %w", appcontrol.Explain(err, p.path(), SignedFix))
 	}
 	started := time.Now()
 	memory := int64(hardMemoryMB)

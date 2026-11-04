@@ -16,11 +16,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/appcontrol"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/update"
 	"github.com/wittywilla/wittymodule"
 )
+
+// SignedFix is what to do when Windows' Smart App Control refuses a module's program.
+const SignedFix = "WittyMediaServer's own modules will come signed; for a module from another store, ask its publisher for a signed build."
 
 // Limits on a release. The checksum list has a few lines per file per platform,
 // and the largest helper planned is well under the archive limit.
@@ -372,6 +376,11 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, 
 	if man.PerPlatform() {
 		if _, err := os.Stat(filepath.Join(stage, man.EntryFile(runtime.GOOS))); err != nil {
 			return fmt.Errorf("the package has no %s", man.EntryFile(runtime.GOOS))
+		}
+		// Windows' Smart App Control would refuse programs that aren't signed: better said now,
+		// naming them, than as a helper that doesn't start.
+		if err := appcontrol.CheckInstall(stage, "this module", SignedFix); err != nil {
+			return err
 		}
 		// With the limits it would have in use: this is the first time its code runs. A program
 		// that isn't a helper has no greeting to wait for: what starts it checks it can run.

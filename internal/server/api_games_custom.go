@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/appcontrol"
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
@@ -1233,6 +1234,10 @@ func (s *Server) handleStageApprove(w http.ResponseWriter, r *http.Request) {
 	}
 	if !b.Acknowledged {
 		writeErr(w, 400, "Please confirm that you understand this core runs as code on this server.")
+		return
+	}
+	if err := appcontrol.CheckInstall(st.s.Library, "this core", "Ask the core's author for a signed build."); err != nil {
+		writeErr(w, 409, err.Error())
 		return
 	}
 	ctx := r.Context()

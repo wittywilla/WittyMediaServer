@@ -565,6 +565,9 @@ func ConcatInputArgs(list string) []string {
 // Still grabs one frame as JPEG/PNG (by extension of out). inputArgs is
 // everything up to and including -i; atSec seeks (input-side) when > 0.
 func (t *Tools) Still(ctx context.Context, inputArgs []string, atSec float64, width int, out string) error {
+	if err := outFolder(out); err != nil {
+		return err
+	}
 	args := []string{"-hide_banner", "-loglevel", "error", "-y"}
 	if atSec > 0 {
 		args = append(args, "-ss", strconv.FormatFloat(atSec, 'f', 3, 64))
@@ -592,6 +595,9 @@ func (t *Tools) Still(ctx context.Context, inputArgs []string, atSec float64, wi
 // a tenth of the work and a third of the memory of decoding up to the moment on every core (measured
 // on a 7 GB film: 110 ms and 77 MB against 2560 ms and 219 MB). If that finds nothing, it's Still.
 func (t *Tools) Poster(ctx context.Context, inputArgs []string, atSec float64, width int, out string) error {
+	if err := outFolder(out); err != nil {
+		return err
+	}
 	if atSec <= 0 {
 		return t.Still(ctx, inputArgs, atSec, width, out)
 	}
@@ -618,6 +624,9 @@ func (t *Tools) Poster(ctx context.Context, inputArgs []string, atSec float64, w
 // shrink halves a JPEG that many times while decoding (0 to 3). Rotation is
 // always done here rather than by FFmpeg, whose handling differs by version.
 func (t *Tools) ImageThumb(ctx context.Context, path string, orientation, width, shrink int, out string) error {
+	if err := outFolder(out); err != nil {
+		return err
+	}
 	args := []string{"-hide_banner", "-loglevel", "error", "-y", "-noautorotate", "-threads", "1"}
 	if shrink > 0 {
 		args = append(args, "-lowres", strconv.Itoa(shrink))
@@ -646,6 +655,12 @@ func (t *Tools) ImageThumb(ctx context.Context, path string, orientation, width,
 		return fmt.Errorf("ffmpeg image: %w: %s", err, shortFormats(stderr.String()))
 	}
 	return nil
+}
+
+// outFolder makes the folder a picture is written to: a cache folder can be removed while
+// the server runs (a reset, someone tidying up), and FFmpeg won't make it.
+func outFolder(out string) error {
+	return os.MkdirAll(filepath.Dir(out), 0o755)
 }
 
 // Command prepares an ffmpeg/ffprobe process. On Windows it never opens a

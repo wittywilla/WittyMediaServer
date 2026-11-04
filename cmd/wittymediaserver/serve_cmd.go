@@ -70,6 +70,12 @@ func cmdServe(args []string) int {
 	resetDone := reset.Apply(reset.Folders{Data: cfg.DataDir, Program: config.ProgramDir(), Config: cfg.ConfigFile})
 	repairDone := reset.ApplyRepair(cfg.DataDir)
 	restoreDone := backup.Apply(backup.Folders{Data: cfg.DataDir, Images: cfg.ImagesDir})
+	// A reset or restore has just moved folders away that Parse made: make them again,
+	// or every thumbnail fails until the next start.
+	if err := cfg.MakeFolders(); err != nil {
+		fmt.Fprintln(os.Stderr, "data folders:", err)
+		return 1
+	}
 	logs, err := logging.New(cfg.LogDir, level, os.Stderr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "log folder:", err)

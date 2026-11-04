@@ -7,6 +7,7 @@ import (
 	"image/jpeg"
 	"io"
 	"log/slog"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -276,17 +277,115 @@ func TestPhotoClusters(t *testing.T) {
 	add("a", 52.37, 4.89)
 	add("b", 52.38, 4.90)
 	add("c", -33.85, 151.21)
-	far, err := s.PhotoClusters(ctx, PhotoQuery{LibraryID: lib.ID}, 1)
+	far, _, err := s.PhotoClusters(ctx, PhotoQuery{LibraryID: lib.ID}, 1)
 	if err != nil || len(far) != 2 {
 		t.Fatalf("zoomed out: %+v %v", far, err)
 	}
-	near, err := s.PhotoClusters(ctx, PhotoQuery{LibraryID: lib.ID}, 14)
+	near, _, err := s.PhotoClusters(ctx, PhotoQuery{LibraryID: lib.ID}, 14)
 	if err != nil || len(near) != 3 {
 		t.Fatalf("zoomed in: %+v %v", near, err)
 	}
 	b := [4]float64{52, 4, 53, 5}
 	if p, _, _ := s.Photos(ctx, PhotoQuery{LibraryID: lib.ID, BBox: &b}); len(p) != 2 {
 		t.Errorf("in the box: %+v", p)
+	}
+
+	// Across the date line: Fiji and Samoa, asked for as one box from 170°E to 170°W.
+	add("fiji", -17.7, 178.1)
+	add("samoa", -13.8, -171.8)
+	pacific := [4]float64{-30, 170, 0, -170}
+	if p, _, _ := s.Photos(ctx, PhotoQuery{LibraryID: lib.ID, BBox: &pacific}); len(p) != 2 {
+		t.Errorf("across the date line: %d pictures", len(p))
+	}
+	if c, _, _ := s.PhotoClusters(ctx, PhotoQuery{LibraryID: lib.ID, BBox: &pacific}, 3); sum(c) != 2 {
+		t.Errorf("groups across the date line: %+v", c)
+	}
+	bd, err := s.PhotoBounds(ctx, PhotoQuery{LibraryID: lib.ID})
+	if err != nil || bd.Count != 5 || bd.West != 4.89 || bd.East != -171.8 {
+		t.Errorf("bounds the short way round: %+v %v", bd, err) // Amsterdam east to Samoa, not Samoa east to Sydney
+	}
+
+	// Near the poles a square of the map is a few hundred metres, and nothing is lost past 85°.
+	add("svalbard", 78.22, 15.65)
+	add("pole", 89.9, 0)
+	add("south pole", -90, 0)
+	all, _, _ := s.PhotoClusters(ctx, PhotoQuery{LibraryID: lib.ID}, 0)
+	if sum(all) != 8 {
+		t.Errorf("whole world: %d of 8 pictures in %+v", sum(all), all)
+	}
+}
+
+func sum(c []PhotoCluster) (n int) {
+	for _, g := range c {
+		n += g.Count
+	}
+	return n
+}
+
+// Pins are drawn 52 pixels wide: no two groups may come closer than that at any zoom,
+// wherever they are, and every picture is in exactly one group.
+func TestPhotoClustersNeverOverlap(t *testing.T) {
+	s, lib := galleryStore(t, "photos")
+	ctx := context.Background()
+	// A spread from the equator to the far north, so Mercator's stretching shows if it's wrong.
+	if _, err := s.DB.ExecContext(ctx, `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 3000)
+		INSERT INTO items(library_id, kind, path, title, sort_title, added_at, updated_at) SELECT ?, 'photo', '/p/' || i, i, i, 0, 0 FROM n`, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DB.ExecContext(ctx, `INSERT INTO photo_meta(item_id, library_id, taken_at, ym, lat, lon)
+		SELECT id, library_id, id, 0, (id * 7919 % 7000) / 100.0, (id * 104729 % 36000) / 100.0 - 180 FROM items`); err != nil {
+		t.Fatal(err)
+	}
+	for _, zoom := range []int{0, 2, 5, 9} {
+		c, cut, err := s.PhotoClusters(ctx, PhotoQuery{LibraryID: lib.ID}, zoom)
+		if err != nil || cut || sum(c) != 3000 {
+			t.Fatalf("zoom %d: %d pictures, cut %v, %v", zoom, sum(c), cut, err)
+		}
+		world := float64(int64(256) << zoom)
+		for i := range c {
+			for j := i + 1; j < len(c); j++ {
+				dx, dy := (MercX(c[i].Lon)-MercX(c[j].Lon))*world, (MercY(c[i].Lat)-MercY(c[j].Lat))*world
+				if math.Hypot(dx, dy) < mapPinPx {
+					t.Fatalf("zoom %d: groups %+v and %+v overlap", zoom, c[i], c[j])
+				}
+			}
+		}
+	}
+}
+
+// 100,000 placed pictures, grouped for the whole world and for a part of it. The
+// design's budget is a second on a low-end server; machines running tests are
+// often busy, so only something far slower than that fails here, such as
+// joining groups pairwise instead of by square.
+func TestPhotoClustersManyPictures(t *testing.T) {
+	if testing.Short() {
+		t.Skip("fills a library with 100,000 pictures")
+	}
+	s, lib := galleryStore(t, "photos")
+	ctx := context.Background()
+	if _, err := s.DB.ExecContext(ctx, `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 100000)
+		INSERT INTO items(library_id, kind, path, title, sort_title, added_at, updated_at) SELECT ?, 'photo', '/p/' || i, i, i, 0, 0 FROM n`, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DB.ExecContext(ctx, `INSERT INTO photo_meta(item_id, library_id, taken_at, ym, lat, lon)
+		SELECT id, library_id, id, 0, (id * 7919 % 16000) / 100.0 - 80, (id * 104729 % 36000) / 100.0 - 180 FROM items`); err != nil {
+		t.Fatal(err)
+	}
+	europe := [4]float64{35, -10, 60, 30}
+	for _, v := range []struct {
+		zoom int
+		box  *[4]float64
+	}{{1, nil}, {4, &europe}} {
+		start := time.Now()
+		c, _, err := s.PhotoClusters(ctx, PhotoQuery{LibraryID: lib.ID, BBox: v.box}, v.zoom)
+		took := time.Since(start)
+		if err != nil || len(c) == 0 {
+			t.Fatalf("zoom %d: %v", v.zoom, err)
+		}
+		t.Logf("zoom %d: %d groups in %v", v.zoom, len(c), took)
+		if took > 5*time.Second && !raceEnabled {
+			t.Errorf("zoom %d took %v", v.zoom, took)
+		}
 	}
 }
 

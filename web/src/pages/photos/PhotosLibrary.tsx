@@ -88,7 +88,7 @@ export default function PhotosLibrary({ lib }: { lib: Library }) {
       {albumId && <AlbumHeader id={Number(albumId)} lib={lib} onBack={() => set({ album: null })} onChanged={() => setRefresh((r) => r + 1)} />}
       {tab === 'folders' && folder === null && <FoldersTab lib={lib} onOpen={(f) => set({ folder: f })} />}
       {folder !== null && <div className="gal-sub"><button className="btn sm ghost" onClick={() => set({ folder: null })}>‹ Folders</button><h2>{folder || 'Top folder'}</h2></div>}
-      {tab === 'map' && <PhotoMap lib={lib} onOpen={open} onList={setList} />}
+      {tab === 'map' && <PhotoMap key={lib.id} lib={lib} onOpen={open} onList={setList} />}
       {tab === 'people' && <PeoplePlaces />}
       {showGrid && <Timeline key={q + '|' + refresh} query={q} open={open} selecting={selecting} selected={selected} toggle={toggle} onList={setList}
         empty={tab === 'favorites' ? 'No favorites yet' : albumId ? 'This album is empty' : search ? 'Nothing matched' : 'No pictures yet'} />}

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -103,21 +104,36 @@ func (s *Server) photoQuery(r *http.Request) (library.PhotoQuery, error) {
 		pq.Album = id
 	}
 	if v := q.Get("bbox"); v != "" {
-		parts := strings.Split(v, ",")
-		if len(parts) != 4 {
-			return pq, errors.New("bbox is south,west,north,east")
+		b, err := parseBBox(v)
+		if err != nil {
+			return pq, err
 		}
-		var b [4]float64
-		for i, p := range parts {
-			f, err := strconv.ParseFloat(p, 64)
-			if err != nil {
-				return pq, errors.New("bbox is south,west,north,east")
-			}
-			b[i] = f
-		}
-		pq.BBox = &b
+		pq.BBox = b
 	}
 	return pq, nil
+}
+
+// parseBBox reads "south,west,north,east" in degrees. West greater than east
+// is a box across the date line. A box at least the world wide is no limit on
+// longitude, which a map zoomed right out asks for.
+func parseBBox(v string) (*[4]float64, error) {
+	bad := library.ErrBadInput("bbox is south,west,north,east in degrees")
+	parts := strings.Split(v, ",")
+	if len(parts) != 4 {
+		return nil, bad
+	}
+	var b [4]float64
+	for i, p := range parts {
+		f, err := strconv.ParseFloat(strings.TrimSpace(p), 64)
+		if err != nil || math.IsNaN(f) || math.IsInf(f, 0) {
+			return nil, bad
+		}
+		b[i] = f
+	}
+	if b[0] < -90 || b[2] > 90 || b[0] > b[2] || b[1] < -180 || b[1] > 180 || b[3] < -180 || b[3] > 180 {
+		return nil, bad
+	}
+	return &b, nil
 }
 
 func writeLibErr(w http.ResponseWriter, err error) {
@@ -177,19 +193,42 @@ func (s *Server) handlePhotoFolders(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, f)
 }
 
-// GET /api/photos/map?library=&zoom=&bbox=
+// GET /api/photos/map?library=&zoom=&bbox=&fit=1 (and the list's filters): groups
+// of pictures for the part of the map in view. fit=1 adds the box around every
+// located picture, for the first view.
 func (s *Server) handlePhotoMap(w http.ResponseWriter, r *http.Request) {
 	pq, err := s.photoQuery(r)
 	if err != nil {
 		writeLibErr(w, err)
 		return
 	}
-	c, err := s.Store.PhotoClusters(r.Context(), pq, qInt(r, "zoom", 0))
+	c, cut, err := s.Store.PhotoClusters(r.Context(), pq, qInt(r, "zoom", 0))
 	if err != nil {
 		writeLibErr(w, err)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"clusters": c, "tiles": s.DB.GetSetting(r.Context(), "mapTiles", "")})
+	tiles, credit := s.onlineMap(r.Context())
+	out := map[string]any{"clusters": c, "truncated": cut, "tiles": tiles, "attribution": credit}
+	if qBool(r, "fit") {
+		b, err := s.Store.PhotoBounds(r.Context(), pq)
+		if err != nil {
+			writeLibErr(w, err)
+			return
+		}
+		out["bounds"] = b
+	}
+	writeJSON(w, 200, out)
+}
+
+// onlineMap is the online map's address and the credit its provider asks for,
+// or nothing while the online map is off. mapOnline unset (servers from before
+// the switch) follows whether an address was given, as it did then.
+func (s *Server) onlineMap(ctx context.Context) (tiles, credit string) {
+	tiles = s.DB.GetSetting(ctx, "mapTiles", "")
+	if tiles == "" || s.DB.GetSetting(ctx, "mapOnline", "") == "0" || !validMapTiles(tiles) {
+		return "", ""
+	}
+	return tiles, s.DB.GetSetting(ctx, "mapAttribution", "")
 }
 
 // GET /api/photos/ai: the place for the local AI. It doesn't exist yet; when it

@@ -14,7 +14,7 @@ export type PhotoDetail = Photo & {
 }
 export type PhotoMonth = { ym: number; count: number }
 export type PhotoFolder = { folder: string; count: number; coverId: number }
-export type PhotoCluster = { lat: number; lon: number; count: number; coverId: number; south: number; west: number; north: number; east: number }
+export type PhotoCluster = { lat: number; lon: number; count: number; coverId: number; south: number; west: number; north: number; east: number; from: number; to: number }
 export type PhotoAlbum = {
   id: number; libraryId: number; ownerId: number; owner: string; name: string; description: string; shared: boolean
   count: number; coverId: number; createdAt: number; updatedAt: number

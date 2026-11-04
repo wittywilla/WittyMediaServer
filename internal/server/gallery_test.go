@@ -422,6 +422,68 @@ func TestMapTilesSetting(t *testing.T) {
 	}
 }
 
+func TestPhotoMapRoute(t *testing.T) {
+	ts := newGalleryServer(t)
+	ctx := context.Background()
+	id := ts.uploadOK(ts.adult, "picture.jpg")
+	if _, err := ts.s.DB.ExecContext(ctx, `UPDATE photo_meta SET lat = -17.7, lon = 178.1 WHERE item_id = ?`, id); err != nil {
+		t.Fatal(err)
+	}
+	lib := itoa(ts.lib.ID)
+	type answer struct {
+		Clusters    []library.PhotoCluster `json:"clusters"`
+		Bounds      *library.PhotoBounds   `json:"bounds"`
+		Tiles       string                 `json:"tiles"`
+		Attribution string                 `json:"attribution"`
+	}
+	get := func(token, query string) (int, answer) {
+		t.Helper()
+		var a answer
+		w := ts.do("GET", "/api/photos/map?library="+lib+query, token, nil)
+		_ = json.Unmarshal(w.Body.Bytes(), &a)
+		return w.Code, a
+	}
+	if code, a := get(ts.adult, "&zoom=3&fit=1"); code != 200 || len(a.Clusters) != 1 || a.Clusters[0].Cover != id || a.Bounds == nil || a.Bounds.Count != 1 || a.Tiles != "" {
+		t.Errorf("the map: %d %+v", code, a)
+	}
+	// Across the date line, and boxes that aren't boxes.
+	if _, a := get(ts.adult, "&zoom=5&bbox=-30,170,0,-170"); len(a.Clusters) != 1 {
+		t.Errorf("a box across the date line: %+v", a)
+	}
+	for _, b := range []string{"1,2,3", "95,0,99,10", "10,0,-10,10", "0,-190,1,0", "NaN,0,1,1", "0,0,1,Inf", "a,b,c,d"} {
+		if code, _ := get(ts.adult, "&zoom=2&bbox="+b); code != 400 {
+			t.Errorf("bbox %s: %d", b, code)
+		}
+	}
+	// A Kids profile doesn't see an unrated picture there either, nor where it is.
+	if code, a := get(ts.kid, "&zoom=3&fit=1"); code != 200 || len(a.Clusters) != 0 || a.Bounds != nil {
+		t.Errorf("kid: %d %+v", code, a)
+	}
+	if code, _ := get(ts.outside, "&zoom=3"); code != 404 {
+		t.Errorf("an account without the library: %d", code)
+	}
+	// The online map: an address alone turns it on, as before there was a switch; off is off.
+	set := func(k, v string) {
+		if err := ts.s.DB.SetSetting(ctx, k, v); err != nil {
+			t.Fatal(err)
+		}
+	}
+	set("mapTiles", "https://tiles.example/{z}/{x}/{y}.png")
+	set("mapAttribution", "© Example contributors")
+	if _, a := get(ts.adult, "&zoom=3"); a.Tiles == "" || a.Attribution != "© Example contributors" {
+		t.Errorf("address set: %+v", a)
+	}
+	set("mapOnline", "0")
+	if _, a := get(ts.adult, "&zoom=3"); a.Tiles != "" || a.Attribution != "" {
+		t.Errorf("switched off: %+v", a)
+	}
+	for k, v := range map[string]string{"mapOnline": "yes", "mapAttribution": "<img src=x onerror=alert(1)>"} {
+		if err := checkSetting(k, v); err == nil {
+			t.Errorf("%s=%q accepted", k, v)
+		}
+	}
+}
+
 func TestOriginalType(t *testing.T) {
 	if originalType("x.html") != "application/octet-stream" || originalType("x.svg") != "application/octet-stream" {
 		t.Error("a file must never be served as something a browser would run")

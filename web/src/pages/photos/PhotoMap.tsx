@@ -1,34 +1,69 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { api, serverBase, type Library } from '../../api'
 import { photoThumb, type Photo, type PhotoCluster } from '../../gallery'
-import { IconLeft, IconRight, IconUp, IconDown } from '../../icons'
+import { IconClose, IconDown, IconGlobe, IconHome, IconLeft, IconRight, IconUp } from '../../icons'
+import { isBackKey } from '../../ui/spatial'
+import {
+  MAX_ZOOM, boxParam, clampView, fitView, groupZoom, mercX, mercY, placeName, scaleOf, tileUrl, toScreen, viewBox, worldCopies, zoomAt,
+  type Box, type Size, type View,
+} from './mapMath'
 
 // The photo map. By default it needs nothing from the internet: a small outline
 // of the world's land ships with the app, and the groups of pictures come from
-// this server. An administrator can add an online map's address (Settings,
-// Sharing & photos); only then does this page ask anyone else for anything.
+// this server, grouped there for the part in view. An administrator can add an
+// online map (Settings, Sharing & photos); only then does this page ask anyone
+// else for anything, says so under the map, and each device can still choose
+// the outline.
+//
+// Moving the map moves one layer with a CSS transform; the pins are drawn
+// again only when the movement settles, so a slow TV keeps up with a finger.
 
-// Web Mercator, as a share of the world's width: online maps use the same.
-const mercX = (lon: number) => (lon + 180) / 360
-const mercY = (lat: number) => {
-  const r = Math.min(85.05, Math.max(-85.05, lat)) * Math.PI / 180
-  return 0.5 - Math.log(Math.tan(Math.PI / 4 + r / 2)) / (2 * Math.PI)
+type Answer = { clusters: PhotoCluster[]; tiles: string; attribution: string; truncated: boolean; bounds?: (Box & { count: number }) | null }
+type Area = { title: string; photos: Photo[]; next: string; bbox: string; group: PhotoCluster }
+
+const OUTLINE_KEY = 'wms.photoMap.outline' // this device chose the outline over the online map
+const readOutline = () => { try { return localStorage.getItem(OUTLINE_KEY) === '1' } catch { return false } }
+const PIN = 52
+const compact = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 })
+const monthYear = (t: number) => new Date(t * 1000).toLocaleDateString([], { timeZone: 'UTC', month: 'long', year: 'numeric' })
+function when(c: PhotoCluster) {
+  if (!c.from) return ''
+  const a = monthYear(c.from), b = monthYear(c.to)
+  return a === b ? a : `${a} to ${b}`
 }
-const unMercLat = (y: number) => (Math.atan(Math.sinh((0.5 - y) * 2 * Math.PI)) * 180) / Math.PI
-
-type View = { x: number; y: number; z: number } // centre and zoom (2^z worlds across 256 px)
-const clamp = (n: number, a: number, b: number) => Math.min(b, Math.max(a, n))
-const MAX_ZOOM = 18
+const pictures = (n: number) => `${n.toLocaleString()} ${n === 1 ? 'picture' : 'pictures'}`
+const describe = (c: PhotoCluster) => [pictures(c.count), placeName(c.lat, c.lon), when(c)].filter(Boolean).join(', ')
+const groupBox = (c: PhotoCluster): Box => ({ south: c.south, west: c.west, north: c.north, east: c.east })
+const hostOf = (t: string) => { try { return new URL(t.replace(/\{[a-z]\}/g, '0')).host } catch { return 'an online map' } }
 
 export default function PhotoMap({ lib, onOpen, onList }: { lib: Library; onOpen: (id: number) => void; onList: (l: Photo[]) => void }) {
   const box = useRef<HTMLDivElement | null>(null)
-  const [size, setSize] = useState({ w: 800, h: 500 })
-  const [view, setView] = useState<View>({ x: 0.5, y: 0.45, z: 1 })
-  const [clusters, setClusters] = useState<PhotoCluster[] | null>(null)
-  const [tiles, setTiles] = useState('')
+  const layer = useRef<HTMLDivElement | null>(null)
+  const [size, setSize] = useState<Size>({ w: 0, h: 0 })
+  const [view, setView] = useState<View | null>(null)
+  const [first, setFirst] = useState<Answer | null>(null) // with the box around every placed picture
+  const [answer, setAnswer] = useState<Answer | null>(null)
+  const [failed, setFailed] = useState(false)
   const [land, setLand] = useState('')
-  const [area, setArea] = useState<Photo[] | null>(null)
-  const [fitted, setFitted] = useState(false)
+  const [area, setArea] = useState<Area | null>(null)
+  const [moving, setMoving] = useState(false) // the arrows move the map (Enter turns it on, so a remote can still leave)
+  const [focused, setFocused] = useState(false)
+  const [lit, setLit] = useState<number | null>(null) // the cover of the group the list points at
+  const [outline, setOutline] = useState(readOutline)
+  const [tilesBroken, setTilesBroken] = useState(false)
+  const tileLoads = useRef({ ok: 0, bad: 0 })
+  const cache = useRef(new Map<string, Answer>())
+  const asked = useRef('')
+  const areaHead = useRef<HTMLHeadingElement | null>(null)
+  const ids = useId()
+
+  // What's on screen right now, which leads what React last drew while a gesture runs.
+  const live = useRef<View | null>(null)
+  const viewRef = useRef(view), sizeRef = useRef(size)
+  viewRef.current = view
+  sizeRef.current = size
+  const settle = useRef(0)
+
   useEffect(() => {
     const el = box.current
     if (!el) return
@@ -36,105 +71,328 @@ export default function PhotoMap({ lib, onOpen, onList }: { lib: Library; onOpen
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
-  useEffect(() => { fetch(serverBase() + '/world-land.txt').then((r) => r.text()).then(setLand).catch(() => {}) }, [])
-  const z = Math.round(view.z)
+  useEffect(() => { fetch(serverBase() + '/world-land.txt').then((r) => (r.ok ? r.text() : '')).then(setLand).catch(() => {}) }, [])
+
+  // First, where the pictures are, to start the map around them.
   useEffect(() => {
-    const t = setTimeout(() => {
-      api.get<{ clusters: PhotoCluster[]; tiles: string }>(`/photos/map?library=${lib.id}&zoom=${z}`).then((r) => {
-        setClusters(r.clusters); setTiles(r.tiles)
-        if (!fitted && r.clusters.length) { setFitted(true); fitBounds(r.clusters.map((c) => [c.south, c.west, c.north, c.east] as const)) }
-      }).catch(() => setClusters([]))
-    }, 120)
+    api.get<Answer>(`/photos/map?library=${lib.id}&zoom=0&fit=1`).then(setFirst).catch(() => setFailed(true))
+  }, [lib.id])
+  useEffect(() => {
+    if (!first || !size.w || !size.h) return
+    if (!viewRef.current) {
+      const v = first.bounds ? fitView(first.bounds, size) : clampView({ x: 0.5, y: 0.5, z: 0 }, size)
+      live.current = v
+      setView(v)
+    } else {
+      const v = clampView(live.current || viewRef.current, size)
+      live.current = v
+      setView(v)
+    }
+  }, [first, size])
+
+  // Then the groups for the part in view, once the map stops moving.
+  useEffect(() => {
+    if (!view || !size.w) return
+    const url = `/photos/map?library=${lib.id}&zoom=${groupZoom(view.z)}&bbox=${boxParam(viewBox(view, size))}`
+    const known = cache.current.get(url)
+    if (known) { asked.current = url; setAnswer(known); return }
+    const ask = () => {
+      asked.current = url
+      api.get<Answer>(url).then((r) => {
+        cache.current.set(url, r)
+        if (cache.current.size > 24) cache.current.delete(cache.current.keys().next().value!)
+        if (asked.current === url) { setAnswer(r); setFailed(false) }
+      }).catch(() => { if (asked.current === url) setFailed(true) })
+    }
+    if (!asked.current) { ask(); return } // the first view: nothing is moving yet
+    const t = setTimeout(ask, 150)
     return () => clearTimeout(t)
-  }, [lib.id, z]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [view, size, lib.id])
 
-  const scale = 256 * 2 ** view.z // pixels across the world
-  const toPx = (x: number, y: number) => ({ left: (x - view.x) * scale + size.w / 2, top: (y - view.y) * scale + size.h / 2 })
-  const fitBounds = (b: readonly (readonly [number, number, number, number])[]) => {
-    const s = Math.min(...b.map((v) => v[0])), w = Math.min(...b.map((v) => v[1])), n = Math.max(...b.map((v) => v[2])), e = Math.max(...b.map((v) => v[3]))
-    const x1 = mercX(w), x2 = mercX(e), y1 = mercY(n), y2 = mercY(s)
+  // Draws the live view by moving the layer from where React last drew it.
+  const show = () => {
+    const V = viewRef.current, L = live.current, el = layer.current, s = sizeRef.current
+    if (!V || !L || !el) return
+    const k = scaleOf(L.z) / scaleOf(V.z)
+    let dx = V.x - L.x
+    dx -= Math.round(dx) // the same place in the nearest copy of the world
+    const sc = scaleOf(V.z)
+    const tx = (s.w / 2) * (1 - k) + k * dx * sc, ty = (s.h / 2) * (1 - k) + k * (V.y - L.y) * sc
+    el.style.transform = Math.abs(tx) < 0.01 && Math.abs(ty) < 0.01 && Math.abs(k - 1) < 1e-6 ? '' : `translate(${tx}px, ${ty}px) scale(${k})`
+  }
+  useLayoutEffect(show, [view, size])
+  const move = (to: View, after: number) => {
+    live.current = clampView(to, sizeRef.current)
+    show()
+    clearTimeout(settle.current)
+    settle.current = window.setTimeout(() => setView(live.current), after)
+  }
+  useEffect(() => () => clearTimeout(settle.current), [])
+  const zoomBy = (dz: number, px = sizeRef.current.w / 2, py = sizeRef.current.h / 2) => {
+    if (live.current) move(zoomAt(live.current, sizeRef.current, px, py, dz), 0)
+  }
+  const pan = (dx: number, dy: number) => { // in quarters of the map
+    const L = live.current, s = sizeRef.current
+    if (L) move({ ...L, x: L.x + (dx * s.w) / 4 / scaleOf(L.z), y: L.y + (dy * s.h) / 4 / scaleOf(L.z) }, 0)
+  }
+  const fitAll = () => {
+    const b = first?.bounds
+    move(b ? fitView(b, sizeRef.current) : { x: 0.5, y: 0.5, z: 0 }, 0)
+  }
+
+  // The wheel zooms around the pointer. React's wheel handler can't stop the page scrolling.
+  useEffect(() => {
     const el = box.current
-    const W = el?.clientWidth || size.w, H = el?.clientHeight || size.h
-    const zx = Math.log2((W * 0.8) / (256 * Math.max(x2 - x1, 1e-6))), zy = Math.log2((H * 0.8) / (256 * Math.max(y2 - y1, 1e-6)))
-    setView({ x: (x1 + x2) / 2, y: (y1 + y2) / 2, z: clamp(Math.min(zx, zy), 0.5, 14) })
-  }
-  const zoom = (d: number) => setView((v) => ({ ...v, z: clamp(v.z + d, 0.5, MAX_ZOOM) }))
-  const pan = (dx: number, dy: number) => setView((v) => ({ ...v, x: clamp(v.x + (dx * 150) / (256 * 2 ** v.z), 0, 1), y: clamp(v.y + (dy * 150) / (256 * 2 ** v.z), 0, 1) }))
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      if (!live.current) return
+      e.preventDefault()
+      const r = el.getBoundingClientRect()
+      const unit = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1
+      const dz = Math.max(-1, Math.min(1, (-e.deltaY * unit) / (e.ctrlKey ? 60 : 200))) // ctrl: a touchpad's pinch
+      move(zoomAt(live.current, sizeRef.current, e.clientX - r.left, e.clientY - r.top, dz), 180)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // A small group opens its pictures; a large one zooms in first.
+  // One finger or the mouse drags; two fingers pinch. A drag that starts on a
+  // pin still moves the map, and then doesn't open it.
+  const pointers = useRef(new Map<number, { x: number; y: number }>())
+  const gesture = useRef<{ dragged: boolean; x: number; y: number; from: View; dist: number; mid: { x: number; y: number } } | null>(null)
+  const swallowClick = useRef(false)
+  const lastTap = useRef({ t: 0, x: 0, y: 0 })
+  const capture = (id: number) => { try { box.current?.setPointerCapture(id) } catch { /* that pointer has already gone */ } }
+  const at = (e: React.PointerEvent) => { const r = box.current!.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top } }
+  const restart = () => {
+    const ps = [...pointers.current.values()], L = live.current
+    if (!ps.length || !L) { gesture.current = null; return }
+    const mid = ps.length > 1 ? { x: (ps[0].x + ps[1].x) / 2, y: (ps[0].y + ps[1].y) / 2 } : ps[0]
+    const dist = ps.length > 1 ? Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y) : 0
+    gesture.current = { dragged: gesture.current?.dragged || false, x: mid.x, y: mid.y, from: L, dist, mid }
+  }
+  const onPointerDown = (e: React.PointerEvent) => {
+    if ((e.pointerType === 'mouse' && e.button !== 0) || (e.target as Element).closest('.gal-map-ctl')) return
+    pointers.current.set(e.pointerId, at(e))
+    if (pointers.current.size > 2) return
+    if (pointers.current.size === 1) gesture.current = null
+    restart()
+  }
+  const onPointerMove = (e: React.PointerEvent) => {
+    const p = pointers.current.get(e.pointerId), g = gesture.current
+    if (!p || !g) return
+    Object.assign(p, at(e))
+    const ps = [...pointers.current.values()]
+    if (ps.length === 1) {
+      if (!g.dragged && Math.hypot(p.x - g.x, p.y - g.y) < 6) return
+      if (!g.dragged) { g.dragged = true; capture(e.pointerId) }
+      const sc = scaleOf(g.from.z)
+      move({ ...g.from, x: g.from.x - (p.x - g.x) / sc, y: g.from.y - (p.y - g.y) / sc }, 250)
+    } else if (ps.length === 2 && g.dist > 0) {
+      if (!g.dragged) { g.dragged = true; for (const id of pointers.current.keys()) capture(id) }
+      const mid = { x: (ps[0].x + ps[1].x) / 2, y: (ps[0].y + ps[1].y) / 2 }
+      const z = zoomAt(g.from, sizeRef.current, g.mid.x, g.mid.y, Math.log2(Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y) / g.dist))
+      const sc = scaleOf(z.z)
+      move({ ...z, x: z.x - (mid.x - g.mid.x) / sc, y: z.y - (mid.y - g.mid.y) / sc }, 250)
+    }
+  }
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!pointers.current.delete(e.pointerId)) return
+    const g = gesture.current
+    if (pointers.current.size) { restart(); return } // a finger left a pinch: carry on with the other
+    gesture.current = null
+    if (g?.dragged) {
+      swallowClick.current = true
+      setTimeout(() => { swallowClick.current = false }, 0)
+      if (live.current) move(live.current, 0)
+      return
+    }
+    // Two taps zoom in where they were, as a double click does.
+    if (e.pointerType === 'touch' && e.type === 'pointerup' && !(e.target as Element).closest('button')) {
+      const p = at(e), last = lastTap.current
+      if (e.timeStamp - last.t < 320 && Math.hypot(p.x - last.x, p.y - last.y) < 30) { zoomBy(1, p.x, p.y); lastTap.current = { t: 0, x: 0, y: 0 } }
+      else lastTap.current = { t: e.timeStamp, ...p }
+    }
+  }
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return
+    const t = e.target as HTMLElement
+    const z = e.key === '+' || e.key === '=' ? 1 : e.key === '-' || e.key === '_' ? -1 : moving && e.key === 'PageUp' ? 1 : moving && e.key === 'PageDown' ? -1 : 0
+    if (z) { e.preventDefault(); zoomBy(z); return }
+    if (t !== box.current) return // a pin or a button: arrows go from one to the next
+    if (!moving) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMoving(true) }
+      return
+    }
+    if (e.key === 'Enter' || e.key === 'Escape' || e.key === 'Backspace' || isBackKey(e)) { e.preventDefault(); setMoving(false); return }
+    const d = ({ ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] } as Record<string, number[]>)[e.key]
+    if (d) { e.preventDefault(); pan(d[0], d[1]) }
+  }
+
+  // A group spread over the map zooms in, so it splits; a group in one spot,
+  // or one that can't split further, lists its pictures.
   const choose = (c: PhotoCluster) => {
-    if (c.count > 30 && z < MAX_ZOOM - 2 && (c.north - c.south > 1e-4 || c.east - c.west > 1e-4)) { fitBounds([[c.south, c.west, c.north, c.east]]); return }
+    const v = live.current || view
+    if (!v) return
+    const sc = scaleOf(v.z)
+    const spread = Math.max((mercX(c.east) - mercX(c.west)) * sc, (mercY(c.south) - mercY(c.north)) * sc)
+    if (c.count > 1 && v.z < MAX_ZOOM - 0.5 && (spread > PIN || (c.count > 30 && spread > 0.5))) {
+      move(fitView(groupBox(c), sizeRef.current, MAX_ZOOM - 1), 0)
+      return
+    }
+    openArea(c)
+  }
+  const openArea = (c: PhotoCluster, after = '', title = describe(c)) => {
     const pad = 1e-5
-    api.get<{ photos: Photo[] }>(`/photos/list?library=${lib.id}&limit=500&bbox=${c.south - pad},${c.west - pad},${c.north + pad},${c.east + pad}`).then((r) => { setArea(r.photos); onList(r.photos) }).catch(() => {})
+    const bbox = boxParam({ south: c.south - pad, west: c.west - pad, north: c.north + pad, east: c.east + pad })
+    api.get<{ photos: Photo[]; nextCursor: string }>(`/photos/list?library=${lib.id}&limit=200&bbox=${bbox}${after ? `&cursor=${encodeURIComponent(after)}` : ''}`).then((r) => {
+      setArea((a) => {
+        const photos = after && a ? [...a.photos, ...r.photos] : r.photos
+        onList(photos)
+        return { title, photos, next: r.nextCursor, bbox, group: c }
+      })
+      if (!after) requestAnimationFrame(() => areaHead.current?.focus())
+    }).catch(() => {})
   }
 
+  const s = size
+  const tiles = first && answer?.tiles && !outline ? answer.tiles : ''
   const tileImgs = useMemo(() => {
-    if (!tiles) return []
-    const tz = clamp(Math.round(view.z), 0, 19)
-    const n = 2 ** tz
-    const tileSize = scale / n
+    if (!tiles || !view || !s.w) return []
+    const tz = Math.max(0, Math.min(MAX_ZOOM, Math.round(view.z)))
+    const n = 2 ** tz, scale = scaleOf(view.z), size = scale / n
     const out: { key: string; src: string; left: number; top: number; size: number }[] = []
-    const cols = Math.ceil(size.w / tileSize) + 2, rows = Math.ceil(size.h / tileSize) + 2
-    const cx = Math.floor(view.x * n - cols / 2), cy = Math.floor(view.y * n - rows / 2)
-    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
-      const tx = cx + i, ty = cy + j
-      if (ty < 0 || ty >= n) continue
-      const wrapped = ((tx % n) + n) % n
-      const p = toPx(tx / n, ty / n)
-      out.push({ key: `${tz}/${tx}/${ty}`, src: tiles.replace('{z}', String(tz)).replace('{x}', String(wrapped)).replace('{y}', String(ty)), left: p.left, top: p.top, size: tileSize })
+    const x0 = Math.floor((view.x - s.w / scale) * n), x1 = Math.ceil((view.x + s.w / scale) * n)
+    const y0 = Math.max(0, Math.floor((view.y - s.h / scale) * n)), y1 = Math.min(n - 1, Math.ceil((view.y + s.h / scale) * n))
+    for (let tx = x0; tx <= x1 && out.length < 400; tx++) for (let ty = y0; ty <= y1; ty++) {
+      const p = toScreen(view, s, tx / n, ty / n)
+      out.push({ key: `${tz}/${tx}/${ty}`, src: tileUrl(tiles, tz, ((tx % n) + n) % n, ty), left: p.left, top: p.top, size })
     }
     return out
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tiles, view, size])
+  }, [tiles, view, s])
+  useEffect(() => { tileLoads.current = { ok: 0, bad: 0 }; setTilesBroken(false) }, [tiles])
+  const tileDone = (ok: boolean) => {
+    const t = tileLoads.current
+    if (ok) t.ok++
+    else t.bad++
+    if (!t.ok && t.bad >= 6) setTilesBroken(true)
+  }
 
-  const drag = useRef<{ x: number; y: number; vx: number; vy: number; moved: boolean } | null>(null)
-  const landPx = toPx(0, 0)
-  const placed = clusters?.length ?? 0
+  // Pins for each copy of the world in view, in reading order, so Tab and a
+  // screen reader go left to right and top to bottom.
+  const clusters = answer?.clusters ?? []
+  const pins = useMemo(() => {
+    if (!view || !s.w) return []
+    const m = s.w / 2 // half a screen either side, for dragging into
+    const out: { c: PhotoCluster; key: string; left: number; top: number; seen: boolean }[] = []
+    for (const k of worldCopies(view, s, m)) for (const c of clusters) {
+      const p = toScreen(view, s, mercX(c.lon), mercY(c.lat), k)
+      if (p.left < -m || p.left > s.w + m || p.top < -s.h || p.top > s.h * 2) continue
+      out.push({ c, key: `${k}:${c.coverId}`, left: p.left, top: p.top, seen: p.left > -PIN / 2 && p.left < s.w + PIN / 2 && p.top > -PIN / 2 && p.top < s.h + PIN / 2 })
+    }
+    return out.sort((a, b) => Math.round(a.top / PIN) - Math.round(b.top / PIN) || a.left - b.left)
+  }, [clusters, view, s])
+  const inView = useMemo(() => {
+    const seen = new Set<PhotoCluster>()
+    for (const p of pins) if (p.seen) seen.add(p.c)
+    return [...seen].sort((a, b) => b.count - a.count)
+  }, [pins])
+  const shownInList = inView.slice(0, 100)
+  const total = first?.bounds?.count ?? 0
+  const landCopies = view && s.w ? worldCopies(view, s, s.w / 2) : []
+  const scale = view ? scaleOf(view.z) : 1
+  const hint = moving ? 'Arrows move the map, + and − zoom. Enter or Back when done.' : 'Press Enter to move the map with the arrows. + and − zoom. Tab or the arrows go from group to group.'
+
   return (
     <div className="gal-map-wrap">
-      <div className="gal-map" ref={box}
-        onWheel={(e) => zoom(e.deltaY < 0 ? 0.5 : -0.5)}
-        onPointerDown={(e) => { if ((e.target as HTMLElement).closest('button')) return; drag.current = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false }; (e.currentTarget as Element).setPointerCapture?.(e.pointerId) }}
-        onPointerMove={(e) => { const d = drag.current; if (d) setView((v) => ({ ...v, x: clamp(d.vx - (e.clientX - d.x) / scale, 0, 1), y: clamp(d.vy - (e.clientY - d.y) / scale, 0, 1) })) }}
-        onPointerUp={() => { drag.current = null }}>
-        {tileImgs.map((t) => <img key={t.key} className="gal-tile-img" src={t.src} alt="" draggable={false} referrerPolicy="no-referrer" style={{ left: t.left, top: t.top, width: t.size, height: t.size }} />)}
-        {!tiles && land && (
-          <svg className="gal-land" width={size.w} height={size.h} aria-hidden="true">
-            <path d={land} transform={`translate(${landPx.left} ${landPx.top}) scale(${scale / 1000})`} fillRule="evenodd" vectorEffect="non-scaling-stroke" />
-          </svg>
-        )}
-        {clusters?.map((c) => {
-          const p = toPx(mercX(c.lon), mercY(c.lat))
-          if (p.left < -40 || p.top < -40 || p.left > size.w + 40 || p.top > size.h + 40) return null
-          return (
-            <button key={`${c.lat},${c.lon}`} className="gal-pin" style={{ left: p.left, top: p.top }} onClick={() => choose(c)}
-              aria-label={`${c.count} ${c.count === 1 ? 'picture' : 'pictures'} near ${c.lat.toFixed(2)}, ${c.lon.toFixed(2)}`}>
-              <img src={photoThumb(c.coverId, 160)} alt="" loading="lazy" />
-              {c.count > 1 && <b>{c.count > 999 ? Math.round(c.count / 1000) + 'K' : c.count}</b>}
-            </button>
-          )
-        })}
-        <div className="gal-map-ctl" role="group" aria-label="Move the map">
-          <button className="btn icon" onClick={() => zoom(1)} aria-label="Zoom in">＋</button>
-          <button className="btn icon" onClick={() => zoom(-1)} aria-label="Zoom out">－</button>
-          <button className="btn icon" onClick={() => pan(0, -1)} aria-label="Move up"><IconUp /></button>
-          <button className="btn icon" onClick={() => pan(0, 1)} aria-label="Move down"><IconDown /></button>
-          <button className="btn icon" onClick={() => pan(-1, 0)} aria-label="Move left"><IconLeft /></button>
-          <button className="btn icon" onClick={() => pan(1, 0)} aria-label="Move right"><IconRight /></button>
+      <div className="gal-map-main">
+        <div className={'gal-map' + (moving ? ' moving' : '') + (tiles && !tilesBroken ? ' online' : '')} ref={box} tabIndex={0}
+          role="group" aria-roledescription="map" aria-label="Map of where pictures were taken" aria-describedby={`${ids}-hint`}
+          onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
+          onClickCapture={(e) => { if (swallowClick.current) { e.stopPropagation(); e.preventDefault() } }}
+          onDoubleClick={(e) => { if ((e.target as Element).closest('button')) return; const r = box.current!.getBoundingClientRect(); zoomBy(1, e.clientX - r.left, e.clientY - r.top) }}
+          onKeyDown={onKeyDown} onFocus={(e) => setFocused(e.target === e.currentTarget)} onBlur={() => { setFocused(false); setMoving(false) }}>
+          <div className="gal-map-layer" ref={layer}>
+            {land && view && (
+              <svg className="gal-land" width={s.w} height={s.h} aria-hidden="true">
+                <defs><path id={`${ids}-land`} d={land} fillRule="evenodd" /></defs>
+                {landCopies.map((k) => {
+                  const o = toScreen(view, s, 0, 0, k)
+                  return <use key={k} href={`#${ids}-land`} transform={`translate(${o.left} ${o.top}) scale(${scale / 1000})`} />
+                })}
+              </svg>
+            )}
+            {tiles && !tilesBroken && tileImgs.map((t) => (
+              <img key={t.key} className="gal-tile-img" src={t.src} alt="" draggable={false} referrerPolicy="no-referrer" decoding="async"
+                onLoad={() => tileDone(true)} onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden'; tileDone(false) }}
+                style={{ left: t.left, top: t.top, width: t.size + 0.5, height: t.size + 0.5 }} />
+            ))}
+            {pins.map(({ c, key, left, top, seen }) => (
+              <button key={key} type="button" className={'gal-pin' + (lit === c.coverId ? ' lit' : '')} style={{ left, top }} onClick={() => choose(c)}
+                aria-label={describe(c)} title={describe(c)} tabIndex={seen ? 0 : -1} aria-hidden={seen ? undefined : true}>
+                <img src={photoThumb(c.coverId, 160)} alt="" loading="lazy" draggable={false} />
+                {c.count > 1 && <b aria-hidden="true">{compact.format(c.count)}</b>}
+              </button>
+            ))}
+          </div>
+          <div className="gal-map-ctl" role="group" aria-label="Map controls">
+            <button type="button" className="btn icon" onClick={() => zoomBy(1)} aria-label="Zoom in" title="Zoom in">＋</button>
+            <button type="button" className="btn icon" onClick={() => zoomBy(-1)} aria-label="Zoom out" title="Zoom out">－</button>
+            <button type="button" className="btn icon" onClick={() => pan(0, -1)} aria-label="Move north" title="Move north"><IconUp /></button>
+            <button type="button" className="btn icon" onClick={() => pan(0, 1)} aria-label="Move south" title="Move south"><IconDown /></button>
+            <button type="button" className="btn icon" onClick={() => pan(-1, 0)} aria-label="Move west" title="Move west"><IconLeft /></button>
+            <button type="button" className="btn icon" onClick={() => pan(1, 0)} aria-label="Move east" title="Move east"><IconRight /></button>
+            <button type="button" className="btn icon" onClick={fitAll} aria-label="Show every picture" title="Show every picture"><IconHome /></button>
+            {answer?.tiles && (
+              <button type="button" className={'btn icon' + (outline ? '' : ' on')} aria-pressed={!outline} aria-label="Online map" title={outline ? 'Use the online map' : 'Use the outline, which asks nothing online'}
+                onClick={() => { const v = !outline; setOutline(v); try { localStorage.setItem(OUTLINE_KEY, v ? '1' : '0') } catch { /* this device can't remember it */ } }}>
+                <IconGlobe />
+              </button>
+            )}
+          </div>
+          <p id={`${ids}-hint`} className={'gal-map-hint' + (focused || moving ? ' shown' : '')}>{hint}</p>
+          <span className="gal-map-credit">{tiles && !tilesBroken ? <>Map: {answer?.attribution || hostOf(tiles)}</> : 'Outline: Natural Earth'}</span>
+          {first && total === 0 && !failed && <div className="gal-map-empty"><b>No pictures with a location yet</b><p>Phones and some cameras save where a picture was taken. Those pictures appear here.</p></div>}
+          {failed && <div className="gal-map-empty" role="alert"><b>The map couldn’t be loaded</b><p>The server didn’t answer. It tries again when you move the map.</p></div>}
         </div>
-        {tiles ? <span className="gal-map-credit">Map from the provider set in Settings</span> : <span className="gal-map-credit">Outline: Natural Earth · Latitude {unMercLat(view.y).toFixed(1)}°</span>}
-        {clusters !== null && placed === 0 && <div className="gal-map-empty"><b>No pictures with a location yet</b><p>Phones and some cameras save where a picture was taken. Those pictures appear here.</p></div>}
+        {tiles && (
+          <p className="gal-map-note muted">
+            {tilesBroken ? 'The online map isn’t answering, so the outline is shown.' : <>This map is drawn by {hostOf(tiles)}: your device asks it for the area in view, so it learns roughly where you look. Your pictures and their places stay on this server.</>}
+          </p>
+        )}
+        {answer?.truncated && <p className="gal-map-note muted">There are too many places to show at once here. Zoom in to see them all.</p>}
       </div>
+      <section className="gal-map-list" aria-labelledby={`${ids}-list`}>
+        <h2 id={`${ids}-list`}>{inView.length ? `${inView.length} ${inView.length === 1 ? 'place' : 'places'} in view` : 'Places in view'}</h2>
+        {first && total > 0 && !inView.length && <p className="muted">No pictures here. <button type="button" className="btn sm ghost" onClick={fitAll}>Show every picture</button></p>}
+        <ul data-nav-group>
+          {shownInList.map((c) => (
+            <li key={c.coverId}>
+              <button type="button" onClick={() => openArea(c)} onMouseEnter={() => setLit(c.coverId)} onMouseLeave={() => setLit(null)} onFocus={() => setLit(c.coverId)} onBlur={() => setLit(null)}>
+                <img src={photoThumb(c.coverId, 160)} alt="" loading="lazy" />
+                <span><b>{pictures(c.count)}</b><span className="muted">{placeName(c.lat, c.lon)}</span>{when(c) && <span className="muted">{when(c)}</span>}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        {inView.length > shownInList.length && <p className="muted">And {inView.length - shownInList.length} more. Zoom in to see them.</p>}
+      </section>
       {area && (
-        <section className="gal-map-area" aria-label="Pictures here">
-          <div className="gal-sub"><h2>{area.length} {area.length === 1 ? 'picture' : 'pictures'} here</h2><button className="btn sm ghost" onClick={() => setArea(null)}>Close</button></div>
+        <section className="gal-map-area" aria-labelledby={`${ids}-area`}>
+          <div className="gal-sub">
+            <h2 id={`${ids}-area`} ref={areaHead} tabIndex={-1}>{pictures(area.photos.length)}{area.next ? ' so far' : ''} <span className="muted">· {placeName(area.group.lat, area.group.lon)}</span></h2>
+            <button type="button" className="btn sm ghost" onClick={() => { move(fitView(groupBox(area.group), sizeRef.current, MAX_ZOOM - 1), 0) }}>Show on the map</button>
+            <button type="button" className="btn sm ghost" onClick={() => setArea(null)}><IconClose /> Close</button>
+          </div>
           <div className="gal-grid small">
-            {area.map((p) => (
+            {area.photos.map((p) => (
               <button key={p.id} type="button" className="gal-tile" style={{ flexGrow: p.width && p.height ? p.width / p.height : 1.4, flexBasis: ((p.width && p.height ? p.width / p.height : 1.4) * 130) }} aria-label={p.title} onClick={() => onOpen(p.id)}>
                 <img src={photoThumb(p.id, 320, p.updatedAt)} alt="" loading="lazy" />
               </button>
             ))}
           </div>
+          {area.next && <button type="button" className="btn" onClick={() => openArea(area.group, area.next, area.title)}>Show more</button>}
         </section>
       )}
     </div>

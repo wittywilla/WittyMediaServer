@@ -113,7 +113,7 @@ The page is called **Channels & tuners**.
 ![The Channels and tuners page in Settings](images/settings-channels.webp)
 *Settings, Channels & tuners.*
 
-- **Channels from your library** run all the time, like real TV. You tune in and join the show part-way through. **Network facts** fills in the network and original day and time of shows.
+- **Channels from your library** run all the time, like real TV. You tune in and join the show part-way through. They're made and changed on a page of their own, **Channels** (**Open the channel list**, or **Edit channels** in the guide), with the channels suggested from your library and **Network facts**, which fills in the network and original day and time of shows.
 - **Tuners and IPTV** adds tuners and internet TV lists. No channel lists or stream addresses come with the server. Encrypted channels are shown as encrypted and are never decrypted.
 - **Guide data** adds listings for tuner and IPTV channels, in XMLTV format.
 - **Options** holds the guide's starting layout and colours, how far back people can pause (**Pause buffer**), the largest picture on channels and where recordings go. Each person can change the guide's look on their own device with the **Look** button on the guide.

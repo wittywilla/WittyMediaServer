@@ -1,30 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, Navigate, Route, Routes } from 'react-router-dom'
-import { fmtDateTime, api, fmtRuntime, mediaUrl } from '../../api'
+import { Link, Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { fmtDateTime, api } from '../../api'
 import { ChooseFolderButton } from '../../components/FolderPicker'
 import { IconEdit, IconPlus, IconRefresh, IconTrash, IconTv } from '../../icons'
 import { toast, useApp } from '../../state'
 import { ask } from '../../ui'
 import { PageHead, Row, Section, Switch } from '../settings/ui'
-import ChannelEditor from './ChannelEditor'
 import TunerLogo from './TunerLogo'
-import BrandLogo from '../../components/BrandLogo'
 import { LogoConsentHint } from '../../components/edit/LogoChooser'
 import { forgetOwnerLook } from './look'
 import { fromLegacy, THEMES } from './tvThemes'
-import { brandOf, forgetLineup, type Channel, type Driver, type DriverField, type EPGSource, type Found, type ScanState, type Suggestion, type Tuner, type TunerChannel } from './tvApi'
+import { forgetLineup, type Channel, type Driver, type DriverField, type EPGSource, type Found, type ScanState, type Tuner, type TunerChannel } from './tvApi'
 import './tvsettings.css'
 import LegalNote from '../../components/LegalNote'
 
-// Settings → Channels & tuners. Everything starts from the simplest thing:
-// one click makes a channel; more detail is there for whoever wants it.
+// Settings → Channels & tuners: tuners and IPTV, guide data and WittyTV's options.
+// Channels from the library are made and changed on their own page, /tv/channels.
 
 export default function TvSettings() {
   return (
     <Routes>
       <Route index element={<Overview />} />
-      <Route path="new" element={<ChannelEditor />} />
-      <Route path="edit/:id" element={<ChannelEditor />} />
+      <Route path="new" element={<MovedEditor />} />
+      <Route path="edit/:id" element={<MovedEditor />} />
       <Route path="tuner/:id" element={<TunerChannels />} />
       <Route path="*" element={<Navigate to="/settings/channels" replace />} />
     </Routes>
@@ -34,7 +32,7 @@ export default function TvSettings() {
 function Overview() {
   return (
     <>
-      <PageHead title="Channels & tuners" desc="Always-on TV channels made from your library, and live TV from tuners and IPTV, side by side in one guide."
+      <PageHead title="Channels & tuners" desc="Live TV from tuners and IPTV, guide data and WittyTV's options. Channels from your library sit beside them in one guide."
         actions={<Link className="btn" to="/tv"><IconTv /> Open the guide</Link>} />
       <LibraryChannels />
       <Tuners />
@@ -48,96 +46,25 @@ function Overview() {
 
 // ------------------------------------------------------------ library channels
 
-const GROUP_NAMES: Record<Suggestion['group'], string> = { network: 'TV networks', era: 'Decades', genre: 'Genres', studio: 'Studios', collection: 'Your collections', show: 'Marathons', classic: 'Classics' }
-
+// The channels themselves have a page of their own (ChannelsPage), so that this
+// one holds only settings.
 function LibraryChannels() {
   const [list, setList] = useState<Channel[] | null>(null)
-  const [sug, setSug] = useState<Suggestion[] | null>(null)
-  const [busy, setBusy] = useState('')
-  const [facts, setFacts] = useState<{ running: boolean; total: number; done: number; found: number } | null>(null)
-  const load = () => {
-    api.get<Channel[]>('/channels').then(setList).catch((e) => toast(e.message))
-    api.get<Suggestion[]>('/channels/suggestions').then(setSug).catch(() => setSug([]))
-  }
-  useEffect(load, [])
-  useEffect(() => {
-    if (!facts?.running) return
-    const t = setTimeout(() => api.get<typeof facts>('/channels/networks/refresh').then((f) => { setFacts(f); if (f && !f.running) { toast(`Network facts filled in for ${f.found} ${f.found === 1 ? 'show' : 'shows'}`); load() } }).catch(() => {}), 2000)
-    return () => clearTimeout(t)
-  }, [facts])
-  const add = async (s: Suggestion) => {
-    setBusy(s.key)
-    try {
-      await api.post('/channels', { name: s.name, description: s.description, definition: s.definition })
-      forgetLineup()
-      toast(`${s.name} is on the air`)
-      load()
-    } catch (e: any) { toast(e.message) } finally { setBusy('') }
-  }
-  const remove = async (c: Channel) => {
-    if (!await ask({ title: `Delete the channel “${c.name}”?`, body: 'Your files aren’t touched.', confirm: 'Delete channel', danger: true })) return
-    try { await api.del(`/channels/${c.id}`); forgetLineup(); load() } catch (e: any) { toast(e.message) }
-  }
-  const setOn = async (c: Channel, enabled: boolean) => {
-    try { await api.put(`/channels/${c.id}`, { enabled }); forgetLineup(); load() } catch (e: any) { toast(e.message) }
-  }
-  const addAll = async (items: Suggestion[]) => {
-    setBusy('all')
-    let made = 0
-    try {
-      for (const s of items) {
-        await api.post('/channels', { name: s.name, description: s.description, definition: s.definition })
-        made++
-      }
-      forgetLineup()
-      toast(`${made} ${made === 1 ? 'channel is' : 'channels are'} on the air`)
-    } catch (e: any) { toast(e.message) } finally { setBusy(''); load() }
-  }
-  const groups = (['classic', 'genre', 'studio', 'collection', 'era', 'network', 'show'] as const).map((g) => ({ g, items: (sug || []).filter((s) => s.group === g && !s.exists) })).filter((x) => x.items.length)
+  useEffect(() => { api.get<Channel[]>('/channels').then(setList).catch(() => setList([])) }, [])
+  const on = list?.filter((c) => c.enabled).length || 0
   return (
-    <Section title="Channels from your library" desc="They run all the time, like real TV: tune in and you join the show part-way through. FFmpeg only runs while someone is watching."
-      actions={<Link className="btn sm primary" to="new"><IconPlus /> New channel</Link>}>
-      {list && list.length > 0 && (
-        <ul className="tvs-list">
-          {list.map((c) => (
-            <li key={c.id} className="tvs-item">
-              <span className="tvs-num">{c.number}</span>
-              {c.logo ? <img className="tvs-logo" src={mediaUrl(`/api/channels/${c.id}/logo?v=${c.logo}`)} alt="" /> : brandOf(c.definition, c.look) ? <span className="tvs-logo"><BrandLogo kind={brandOf(c.definition, c.look)!.kind} name={brandOf(c.definition, c.look)!.name} label={false} /></span> : null}
-              <div className="tvs-item-text"><b>{c.name}</b><span>{c.description || ({ simple: 'Simple', rules: 'Rules', timetable: 'Timetable' } as const)[c.definition.mode]}</span></div>
-              <Switch checked={c.enabled} label={`${c.name} is on the air`} onChange={(v) => void setOn(c, v)} />
-              <Link className="btn sm ghost" to={`edit/${c.id}`}><IconEdit /> Edit</Link>
-              <button className="btn sm ghost" onClick={() => void remove(c)} aria-label={`Delete ${c.name}`}><IconTrash /></button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {sug && groups.length > 0 && <h3 className="tvs-h3">Add with one click</h3>}
-      {groups.map(({ g, items }) => (
-        <div key={g} className="tvs-sug-group">
-          <div className="tvs-sug-head"><h4 className="tvs-h4">{GROUP_NAMES[g]}</h4>{items.length > 1 && <button className="btn sm ghost" disabled={!!busy} onClick={() => void addAll(items)}><IconPlus /> Add all {items.length}</button>}</div>
-          <div className="tvs-sugs">
-            {items.map((s) => (
-              <div key={s.key} className="tvs-sug">
-                {brandOf(s.definition) ? <b className="tvs-sug-name"><BrandLogo kind={brandOf(s.definition)!.kind} name={brandOf(s.definition)!.name} label={false} className="tvs-sug-logo" /><span>{s.name}</span></b> : <b>{s.name}</b>}
-                <span>{s.description}</span>
-                <span className="tvs-dim">{s.stats.titles} titles · {fmtRuntime(s.stats.seconds)}</span>
-                <div className="tvs-sug-actions">
-                  <button className="btn sm primary" disabled={busy === s.key} onClick={() => void add(s)}><IconPlus /> Add</button>
-                  <Link className="btn sm ghost" to="new" state={{ suggestion: s }}>Change first</Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-      {sug && sug.length === 0 && <p className="muted">Nothing to suggest yet. Once a TV or film library has been scanned, channels you can add with one click appear here.</p>}
-      <Row label="Network facts" desc="Fills in the network and the original day and time of shows that don't have them yet, by asking your metadata services. Files are not touched. Network names are plain facts from metadata: nothing here is affiliated with, or endorsed by, any network.">
-        <button className="btn sm" disabled={facts?.running} onClick={() => api.post<typeof facts>('/channels/networks/refresh').then(setFacts).catch((e) => toast(e.message))}>
-          <IconRefresh /> {facts?.running ? `Asking… ${facts.done} of ${facts.total}` : 'Fill in missing facts'}
-        </button>
+    <Section title="Channels from your library" desc="Always-on channels made from your films and shows. Making and changing them, and the ones suggested from your library, are on their own page.">
+      <Row label="Your channels" desc={list === null ? '' : list.length === 0 ? 'None yet.' : `${list.length} ${list.length === 1 ? 'channel' : 'channels'}, ${on} on the air.`}>
+        <Link className="btn sm primary" to="/tv/channels"><IconEdit /> Open the channel list</Link>
       </Row>
     </Section>
   )
+}
+
+// Where the editor used to be, for bookmarks and links from before.
+function MovedEditor() {
+  const { id } = useParams()
+  return <Navigate to={id ? `/tv/channels/${id}` : '/tv/channels/new'} replace />
 }
 
 // -------------------------------------------------------------------- tuners

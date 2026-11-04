@@ -162,7 +162,7 @@ if (only('scroll')) {
   const t0 = Date.now()
   // At the bottom, the next page may still be on its way: wait for it before calling it the end.
   let lastHeight = 0, same = 0
-  while (same < 3 && Date.now() - t0 < 300000) {
+  while (same < 3 && Date.now() - t0 < 900000) {
     const h = await page.eval(`(scrollBy(0, 700), document.scrollingElement.scrollHeight + ':' + Math.round(scrollY + innerHeight))`)
     const [height, bottom] = h.split(':').map(Number)
     if (bottom >= height - 2) { await idle(500); if (height === lastHeight) same++ } else same = 0

@@ -53,6 +53,9 @@ func cmdServe(args []string) int {
 	cfg, err := config.Parse(args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		if hint := unwritableData(err, os.Getenv("WMS_DATA_DIR")); hint != "" {
+			fmt.Fprintln(os.Stderr, hint)
+		}
 		return 2
 	}
 	level := slog.LevelInfo

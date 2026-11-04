@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/modules"
@@ -49,6 +50,8 @@ func run(args []string) int {
 			return cmdDoctor(args[1:])
 		case "hardware":
 			return cmdHardware(args[1:])
+		case "health":
+			return cmdHealth(args[1:])
 		case "uninstall", "--uninstall", "-uninstall", "/uninstall":
 			return uninstall.RunCLI(args[1:], os.Stdin, os.Stdout)
 		case "--secure-service-data": // run by the Windows installer, as an administrator
@@ -72,6 +75,12 @@ func run(args []string) int {
 		case "help", "-h", "--help":
 			usage()
 			return 0
+		}
+		// A misspelt command would otherwise start a second server on the same data,
+		// as docker exec wittymediaserver wittymediaserver <typo> did.
+		if !strings.HasPrefix(args[0], "-") {
+			fmt.Fprintf(os.Stderr, "wittymediaserver: %q isn't a command. wittymediaserver help lists them.\n", args[0])
+			return 2
 		}
 	}
 	return cmdServe(args)
@@ -120,6 +129,8 @@ usage:
   wittymediaserver hardware [--json]
                              which graphics devices the server can use and which hardware encoders work,
                              and what to change when one can't be used (docker exec wittymediaserver ...)
+  wittymediaserver health
+                             exits 0 if the server on this machine answers: the container's health check
   wittymediaserver version
 
 Tools for looking inside discs are in each disc module's project, not in its download: wittydvd, wittybluray and wittycd.`)

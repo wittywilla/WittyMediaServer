@@ -153,8 +153,11 @@ Tuning shows a banner with the channel number, name, times, a progress bar and w
 | I or Enter | The banner |
 | R | The on-screen remote |
 | F | Full screen |
+| A, S | The next sound track, the next subtitles (when the channel has them) |
 | M, + and - | Mute and volume |
 | Escape | Back to the guide |
+
+**Sound and subtitles.** When what's on has more than one sound track, or subtitles or broadcast captions, the player's **Audio** and **Subtitles** buttons (and A and S, and the remote's buttons) choose between them, as in the library player. Everyone on a channel shares one stream, so a choice only changes what your player plays, and the language you choose is kept for the next programme and channel. Today a library channel's stream carries the programme's main sound track and no subtitles, so the buttons appear mostly for tuner channels with captions; other languages and subtitles in the shared stream are coming ([#173](https://github.com/wittywilla/WittyMediaServer/issues/173)).
 
 You can pause and rewind within what's kept: 5 minutes on library channels and 30 on tuner channels, unless you change **Pause buffer** under **Options**.
 

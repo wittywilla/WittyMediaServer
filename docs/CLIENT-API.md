@@ -1177,6 +1177,12 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /music/lyrics/{id}` | admin | Corrects a song's lyrics on this server: `{text}`, `{instrumental}` or `{provider, id}`. |
 | `DELETE /music/lyrics/{id}` | admin | Forgets the correction and any online answer. |
 | `DELETE /music/lyrics-cache` | admin | Forgets all lyrics fetched from online. |
+| `GET /music/links/{id}` | user | What a song or a music video is tied to (`tied`), with what's at both ends; admins also get `suggested`. Only items this person may see are listed. |
+| `GET /music/links/{id}/candidates` | admin | Videos for a song, or songs for a video, to tie by hand: `q` (the title when empty), `limit`. |
+| `GET /music/links` | admin | Suggestions waiting to be looked at: `limit`. |
+| `PUT /music/links` | admin | Ties a song to a music video for good: `{songId, videoId}`, with `syncMs` (where the song starts in the video) or `noSync`. A video has one song, so its old one is untied. |
+| `DELETE /music/links` | admin | Unties them: `song`, `video`. No match ties them again. |
+| `POST /music/links/match` | admin | Matches every song with every music video again now. Scans of music and music video libraries do this by themselves. |
 | `GET /podcasts` | user | Podcast subscriptions. |
 | `GET /podcasts/search` | admin | Search a podcast directory. |
 | `POST /podcasts` | admin | Subscribe. |

@@ -1,6 +1,7 @@
 package library
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/music"
 	"bytes"
 	"context"
 	"database/sql"
@@ -448,6 +449,9 @@ func (s *Scanner) indexCreatorVideo(ctx context.Context, lib *Library, c candida
 	if err := s.Store.saveVideoMeta(ctx, it, &vm); err != nil {
 		return err
 	}
+	if err := s.saveRecordingIDs(ctx, lib, it); err != nil {
+		return err
+	}
 	if side != nil && len(side.Comments) > 0 {
 		return s.Store.importComments(ctx, it.ID, side.Comments)
 	}
@@ -485,6 +489,9 @@ func musicVideoNames(it *Item, cr *creatorRow, vm *videoMeta, base string, side 
 		if len(n.Tags) > 0 {
 			vm.Tags = cleanTags(n.Tags)
 		}
+		if isrc, rec := music.CleanISRC(n.ISRC), music.CleanMBID(n.Recording+n.Track); isrc != "" || rec != "" {
+			it.recIDs = &[2]string{isrc, rec}
+		}
 		if n.Year > 0 {
 			y := n.Year
 			it.Year = &y
@@ -503,6 +510,10 @@ type musicVideoNFO struct {
 	Year   int      `xml:"year"`
 	Genres []string `xml:"genre"`
 	Tags   []string `xml:"tag"`
+	// Which recording it is, for tying it to its song.
+	ISRC      string `xml:"isrc"`
+	Recording string `xml:"musicbrainzrecordingid"`
+	Track     string `xml:"musicbrainztrackid"`
 }
 
 // readMusicVideoNFO reads the common sidecar for music videos.

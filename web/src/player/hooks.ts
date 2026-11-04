@@ -78,23 +78,33 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
 }
 
 // Auto-hide controls after inactivity (ms <= 0: never hide). Pointer, touch,
-// keyboard and controller input all count as activity.
+// keyboard and controller input all count as activity. While the video is
+// paused they stay, so a still picture always says it's paused; a disc's menu
+// is the exception, as the controls would cover its buttons.
 export function useIdle(ms = 3000, deps: unknown[] = []) {
   const ref = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     const el = ref.current
     if (!el) return
     let t: any
+    const hide = () => {
+      const v = el.querySelector('video')
+      if (v?.paused && !el.classList.contains('menu-mode')) return
+      el.classList.add('controls-hidden', 'hide-cursor')
+    }
     const show = () => {
       el.classList.remove('controls-hidden', 'hide-cursor')
       clearTimeout(t)
-      if (ms > 0) t = setTimeout(() => el.classList.add('controls-hidden', 'hide-cursor'), ms)
+      if (ms > 0) t = setTimeout(hide, ms)
     }
     show()
     el.addEventListener('mousemove', show)
     el.addEventListener('touchstart', show, { passive: true })
     window.addEventListener('keydown', show)
-    return () => { clearTimeout(t); el.removeEventListener('mousemove', show); el.removeEventListener('touchstart', show); window.removeEventListener('keydown', show) }
+    // A video's play and pause don't bubble, so they're caught on the way down.
+    el.addEventListener('pause', show, true)
+    el.addEventListener('play', show, true)
+    return () => { clearTimeout(t); el.removeEventListener('mousemove', show); el.removeEventListener('touchstart', show); window.removeEventListener('keydown', show); el.removeEventListener('pause', show, true); el.removeEventListener('play', show, true) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ms, ...deps])
   return ref

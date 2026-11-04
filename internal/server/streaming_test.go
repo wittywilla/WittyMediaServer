@@ -84,7 +84,7 @@ func TestSpeedTest(t *testing.T) {
 func TestLadderSpecs(t *testing.T) {
 	base := hls.Spec{ID: "v-x-n1", Duration: 600, Quality: ffmpeg.Quality{Preset: "veryfast", CRF: 21, AudioRate: "192k"},
 		Variant: &hls.Variant{BandwidthKbps: 9000, Codecs: "avc1.640028,mp4a.40.2", Width: 1920, Height: 1080, Range: "SDR"}}
-	rungs := []playback.Rung{{480, 1400}, {720, 2800}, {240, 400}}
+	rungs := []playback.Rung{{Height: 480, Kbps: 1400}, {Height: 720, Kbps: 2800}, {Height: 240, Kbps: 400}}
 	specs := ladderSpecs(base, "v-x-r1", rungs, 1920, 1080)
 	if len(specs) != 3 {
 		t.Fatalf("%d specs", len(specs))

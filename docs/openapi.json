@@ -6701,6 +6701,9 @@
           "maxHeight": {
             "type": "integer"
           },
+          "measuredKbps": {
+            "type": "integer"
+          },
           "profile": {
             "type": "string"
           },
@@ -6713,6 +6716,9 @@
                 "type": "null"
               }
             ]
+          },
+          "streaming": {
+            "type": "string"
           },
           "subtitle": {
             "anyOf": [
@@ -6747,8 +6753,10 @@
           "forceTranscode",
           "maxBitrateKbps",
           "maxHeight",
+          "measuredKbps",
           "profile",
           "startSec",
+          "streaming",
           "subtitle",
           "subtitleLanguage",
           "video"
@@ -6837,6 +6845,9 @@
                   "source": {
                     "type": "string"
                   },
+                  "streaming": {
+                    "type": "string"
+                  },
                   "subtitles": {
                     "type": "string"
                   },
@@ -6920,6 +6931,95 @@
           },
           "streamToken": {
             "type": "string"
+          },
+          "streaming": {
+            "anyOf": [
+              {
+                "properties": {
+                  "from": {
+                    "type": "string"
+                  },
+                  "ladder": {
+                    "items": {
+                      "properties": {
+                        "height": {
+                          "type": "integer"
+                        },
+                        "kbps": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "height",
+                        "kbps"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "measuredKbps": {
+                    "type": "integer"
+                  },
+                  "mode": {
+                    "type": "string"
+                  },
+                  "player": {
+                    "properties": {
+                      "bufferSec": {
+                        "type": "integer"
+                      },
+                      "firstRetryMs": {
+                        "type": "integer"
+                      },
+                      "maxBufferSec": {
+                        "type": "integer"
+                      },
+                      "maxRetryMs": {
+                        "type": "integer"
+                      },
+                      "resumeOnDrop": {
+                        "type": "boolean"
+                      },
+                      "retries": {
+                        "type": "integer"
+                      },
+                      "segmentTimeoutMs": {
+                        "type": "integer"
+                      },
+                      "stepDownOnStall": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "bufferSec",
+                      "firstRetryMs",
+                      "maxBufferSec",
+                      "maxRetryMs",
+                      "resumeOnDrop",
+                      "retries",
+                      "segmentTimeoutMs",
+                      "stepDownOnStall"
+                    ],
+                    "type": "object"
+                  },
+                  "segmentSec": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "from",
+                  "mode",
+                  "player"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "subtitleDelivery": {
             "type": "string"

@@ -167,6 +167,7 @@ var routeRules = map[string]string{
 	"GET /api/play/{sid}/stats":                      "Signed-in: Session started by this account",
 	"GET /api/play/{sid}/ws":                         "Signed-in; address token: Session started by this account. WebSocket: origin must match the host, messages limited in size",
 	"GET /api/playback/profiles":                     "Signed-in: Nothing: the built-in client profiles",
+	"GET /api/playback/speedtest":                    "Signed-in: Nothing: random bytes, 64 KB to 4 MB, sent within the limits for viewers away from home, as any stream is",
 	"GET /api/podcasts":                              "Signed-in: Library within the account's allowed libraries. Feed addresses for admins only",
 	"GET /api/prefs":                                 "Signed-in: Nothing: server-wide playback defaults",
 	"GET /api/radio":                                 "Signed-in: A radio library the account may open. limits. Stream addresses for admins only",

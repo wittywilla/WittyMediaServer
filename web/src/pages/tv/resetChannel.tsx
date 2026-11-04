@@ -47,7 +47,7 @@ export function resetNote(name: string, r: Reminders, watching: boolean) {
   ].filter(Boolean)
   if (said.length) parts.push(said.join(', ') + '.')
   if (r.dropped) {
-    const titles = r.droppedTitles?.length ? `: ${r.droppedTitles.join(', ')}${r.dropped > r.droppedTitles.length ? ' and more' : ''}` : ''
+    const titles = r.droppedTitles?.length ? `: ${r.droppedTitles.slice(0, 5).join(', ')}${r.droppedTitles.length > 5 ? ' and others' : ''}` : ''
     parts.push(`${count(r.dropped, 'reminder was', 'reminders were')} removed, as ${r.dropped === 1 ? 'that programme no longer airs' : 'those programmes no longer air'}${titles}.`)
   }
   return parts.join(' ')

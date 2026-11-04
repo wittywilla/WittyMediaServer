@@ -19,7 +19,8 @@ type ResetResult struct {
 	Kept    int `json:"kept"`    // the programme still airs when it did
 	Moved   int `json:"moved"`   // it airs at another time now, and the reminder went with it
 	Dropped int `json:"dropped"` // it no longer airs in the guide's two weeks
-	// DroppedTitles names what no longer airs, a few of them, for the note
+	// DroppedTitles names what no longer airs, up to six (a note shows five,
+	// and a sixth says there are others), for the note
 	// shown to whoever reset the channel.
 	DroppedTitles []string `json:"droppedTitles,omitempty"`
 }
@@ -154,7 +155,7 @@ func (s *Store) followReminders(ctx context.Context, c *Channel, now time.Time) 
 		default:
 			_, err = s.DB.ExecContext(ctx, `DELETE FROM tv_reminders WHERE id = ?`, r.id)
 			out.Dropped++
-			if len(out.DroppedTitles) < 5 && !slices.Contains(out.DroppedTitles, r.title) {
+			if len(out.DroppedTitles) < 6 && !slices.Contains(out.DroppedTitles, r.title) {
 				out.DroppedTitles = append(out.DroppedTitles, r.title)
 			}
 		}

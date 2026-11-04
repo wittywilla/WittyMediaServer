@@ -432,11 +432,12 @@ func (s *LiveSession) loop() {
 		s.restarted = false
 		s.mu.Unlock()
 		switch {
-		case restarted:
-			retries = 0
 		case isFatal(err):
 			s.fail(err)
 			return
+		case restarted:
+			// Ended on purpose: what the run said as it was stopped isn't a failure.
+			retries = 0
 		case err != nil || (time.Since(start) < 2*time.Second && !in.Slate && (in.Duration == 0 || in.Duration >= 3)):
 			// Failed, or ended at once. Give up after a few tries in a row: a
 			// stream that does not work must not keep FFmpeg spinning.

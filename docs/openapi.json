@@ -11097,7 +11097,7 @@
                           "type": "integer"
                         },
                         "droppedTitles": {
-                          "description": "Up to five titles that no longer air, for a note.",
+                          "description": "Up to six titles that no longer air, for a note: a sixth means there are others.",
                           "items": {
                             "type": "string"
                           },

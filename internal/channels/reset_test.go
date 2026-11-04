@@ -11,7 +11,16 @@ import (
 )
 
 // A reset changes what is on now, which an edit never does.
+// Both tests compare a day's schedule before and after; across midnight that's two days.
+func sameDay(t *testing.T) {
+	t.Helper()
+	if now := time.Now().UTC(); now.Hour() == 23 && now.Minute() >= 58 {
+		t.Skip("too near midnight to compare one day's schedule")
+	}
+}
+
 func TestResetStartsTheNewScheduleNow(t *testing.T) {
+	sameDay(t)
 	s, _ := testStore(t)
 	ctx := context.Background()
 	c := &Channel{Name: "Sunny", Definition: Definition{Rules: Rules{Networks: []string{"Sunny"}}}}
@@ -71,6 +80,7 @@ func TestResetStartsTheNewScheduleNow(t *testing.T) {
 // Reminders stay with a programme that still airs, follow it to a new time, or
 // go when it doesn't air any more.
 func TestResetFollowsReminders(t *testing.T) {
+	sameDay(t)
 	s, _ := testStore(t)
 	ctx := context.Background()
 	users := &auth.Service{DB: s.DB}

@@ -120,6 +120,12 @@ type Idle struct {
 	Goroutines  int
 	Threads     int
 	GCCycles    uint64 // during the reading
+	// WakeupsPerMin is how often the process's threads were switched in, counted by
+	// Linux (every thread's context switches); 0 elsewhere.
+	WakeupsPerMin float64
+	// FreedRSSMiB is RSS after asking Go to return everything it can at once: what's
+	// left above it was only waiting to go back to the system.
+	FreedRSSMiB float64
 	TopStacks   []string
 }
 
@@ -379,18 +385,46 @@ func plan(all []Statement, dbPath string) []Statement {
 func (s *server) idle(name string) Idle {
 	time.Sleep(*settle)
 	a := s.vars()
+	wa := switches(s.cmd.Process.Pid)
 	t0 := time.Now()
 	time.Sleep(*idleFor)
+	wb := switches(s.cmd.Process.Pid)
 	b := s.vars()
 	dt := time.Since(t0).Seconds()
 	gor := s.save("/debug/pprof/goroutine?debug=1", "goroutines-"+name+".txt")
 	s.save("/debug/pprof/heap", "heap-"+name+".pprof")
+	s.save("/debug/wms/free", "free-"+name+".txt")
+	time.Sleep(time.Second)
+	freed := s.vars()
 	return Idle{
+		WakeupsPerMin: float64(wb-wa) * 60 / dt, FreedRSSMiB: freed.RSS / (1 << 20),
 		Seconds: dt, CPUPercent: (b.CPUSec - a.CPUSec) * 100 / dt, RSSMiB: b.RSS / (1 << 20),
 		HeapLiveMiB: b.Runtime["/gc/heap/live:bytes"] / (1 << 20), GoMemMiB: b.Runtime["/memory/classes/total:bytes"] / (1 << 20),
 		Goroutines: b.Goroutines, Threads: b.Threads, GCCycles: uint64(b.Runtime["/gc/cycles/total:gc-cycles"] - a.Runtime["/gc/cycles/total:gc-cycles"]),
 		TopStacks: topStacks(gor),
 	}
+}
+
+// switches is how many times the threads of a process were switched in, on Linux.
+func switches(pid int) int64 {
+	tasks, err := os.ReadDir(fmt.Sprintf("/proc/%d/task", pid))
+	if err != nil {
+		return 0
+	}
+	var n int64
+	for _, t := range tasks {
+		b, err := os.ReadFile(fmt.Sprintf("/proc/%d/task/%s/status", pid, t.Name()))
+		if err != nil {
+			continue
+		}
+		for _, line := range strings.Split(string(b), "\n") {
+			if k, v, ok := strings.Cut(line, ":"); ok && strings.HasSuffix(k, "ctxt_switches") {
+				x, _ := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+				n += x
+			}
+		}
+	}
+	return n
 }
 
 // topStacks is the goroutine profile in short: how many wait in each function of ours.
@@ -545,13 +579,13 @@ func (s *server) route(path string) Route {
 func report(r *Results, w io.Writer) {
 	fmt.Fprintf(w, "\n## %s\n\n", r.When)
 	fmt.Fprintf(w, "Start-up, new data folder: %s ms. Again: %s ms.\n\n", spread(r.Startup.FirstMs), spread(r.Startup.WarmMs))
-	fmt.Fprintln(w, "| Idle | CPU % | RSS MiB | Go heap live MiB | Go total MiB | Goroutines | Threads | GCs |")
-	fmt.Fprintln(w, "|---|---|---|---|---|---|---|---|")
+	fmt.Fprintln(w, "| Idle | CPU % | RSS MiB | RSS after returning memory | Go heap live MiB | Go total MiB | Goroutines | Threads | GCs | Wake-ups a minute |")
+	fmt.Fprintln(w, "|---|---|---|---|---|---|---|---|---|---|")
 	for _, x := range []struct {
 		n string
 		i Idle
 	}{{"no libraries", r.IdleFresh}, {"after the scans", r.IdleAfter}} {
-		fmt.Fprintf(w, "| %s | %.3f | %.1f | %.1f | %.1f | %d | %d | %d |\n", x.n, x.i.CPUPercent, x.i.RSSMiB, x.i.HeapLiveMiB, x.i.GoMemMiB, x.i.Goroutines, x.i.Threads, x.i.GCCycles)
+		fmt.Fprintf(w, "| %s | %.3f | %.1f | %.1f | %.1f | %.1f | %d | %d | %d | %.0f |\n", x.n, x.i.CPUPercent, x.i.RSSMiB, x.i.FreedRSSMiB, x.i.HeapLiveMiB, x.i.GoMemMiB, x.i.Goroutines, x.i.Threads, x.i.GCCycles, x.i.WakeupsPerMin)
 	}
 	if len(r.Scans) > 0 {
 		fmt.Fprintln(w, "\n| Scan | Folder | Items | Seconds | CPU s | MiB allocated | Peak RSS MiB | Again: seconds | CPU s | MiB allocated |")

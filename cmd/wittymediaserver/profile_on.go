@@ -13,6 +13,7 @@ import (
 	"net/http/pprof"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"runtime/metrics"
 	"strings"
 	"sync"
@@ -46,6 +47,8 @@ func init() {
 	m.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	m.HandleFunc("/debug/wms", profileVars)
 	m.HandleFunc("/debug/wms/sql", profileSQL)
+	// How much of what the process holds is only waiting to go back to the system.
+	m.HandleFunc("/debug/wms/free", func(w http.ResponseWriter, _ *http.Request) { debug.FreeOSMemory() })
 	go (&http.Server{Handler: m, ReadHeaderTimeout: 10 * time.Second}).Serve(ln)
 }
 
@@ -57,6 +60,14 @@ var profileMetrics = []string{
 	"/gc/heap/allocs:objects",
 	"/memory/classes/total:bytes",
 	"/memory/classes/heap/released:bytes",
+	"/memory/classes/heap/free:bytes",
+	"/memory/classes/heap/objects:bytes",
+	"/memory/classes/heap/unused:bytes",
+	"/memory/classes/heap/stacks:bytes",
+	"/memory/classes/os-stacks:bytes",
+	"/memory/classes/metadata/other:bytes",
+	"/memory/classes/other:bytes",
+	"/memory/classes/profiling/buckets:bytes",
 	"/sched/goroutines:goroutines",
 	"/cpu/classes/gc/total:cpu-seconds",
 	"/cpu/classes/user:cpu-seconds",

@@ -406,7 +406,7 @@ For everyone: the version, the modules inside this server, the license, every ki
 
 For administrators, also:
 
-- **Updates**: **Check now**, **Update now** when there's a newer version, and **Check for updates automatically**. Twice a day the server asks GitHub for its list of releases and shows a dot on Settings when there's a newer one. Nothing about you or your library is sent, and nothing installs without you.
+- **Updates**: **Check now**; what's new in every version since yours; **Update now**, **Download the installer** or, in Docker, the commands that update the container, depending on how the server was installed; and **Check for updates automatically**. Twice a day the server asks GitHub for its list of releases and shows a dot on Settings when there's a newer one. Nothing about you or your library is sent, and nothing installs without you.
 - **This server**: the addresses to open it on other devices at home, the system, hardware video and the data folder.
 
 More: [Supported formats](SUPPORTED-FORMATS.md).

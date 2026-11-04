@@ -42,7 +42,9 @@ function CodeBlock({ v }: { v: string }) {
   )
 }
 
-type Ctx = { signedIn: boolean; from: string }
+// idPrefix and shift: for Markdown shown inside another page (the update card), whose own headings
+// and addresses come first.
+type Ctx = { signedIn: boolean; from: string; idPrefix?: string; shift?: number }
 
 function Inlines({ c, ctx }: { c: Inline[]; ctx: Ctx }): ReactNode {
   return c.map((n, i) => {
@@ -60,7 +62,7 @@ function Inlines({ c, ctx }: { c: Inline[]; ctx: Ctx }): ReactNode {
       case 'link': {
         const to = target(n.href)
         if (to?.kind === 'web') return <a key={i} href={to.href} target="_blank" rel="noreferrer noopener"><Inlines c={n.c} ctx={ctx} /><span className="sr-only"> (opens in a new tab)</span></a>
-        if (to?.kind === 'here') return <Link key={i} to={`${ctx.from}#${to.hash}`}><Inlines c={n.c} ctx={ctx} /></Link>
+        if (to?.kind === 'here') return <Link key={i} to={`${ctx.from}#${(ctx.idPrefix ?? '') + to.hash}`}><Inlines c={n.c} ctx={ctx} /></Link>
         const g = to?.kind === 'guide' ? guideByFile(to.file) : undefined
         if (g && to?.kind === 'guide') return <Link key={i} to={`/help/${slugOf(g.file)}${to.hash ? '#' + to.hash : ''}`}><Inlines c={n.c} ctx={ctx} /></Link>
         return <span key={i}><Inlines c={n.c} ctx={ctx} /></span>
@@ -73,8 +75,8 @@ function Blocks({ blocks, ctx }: { blocks: Block[]; ctx: Ctx }): ReactNode {
   return blocks.map((b, i) => {
     switch (b.t) {
       case 'heading': {
-        const H = `h${Math.min(b.level, 5)}` as 'h1'
-        return <H key={i} id={b.id} tabIndex={-1}><Inlines c={b.c} ctx={ctx} /></H>
+        const H = `h${Math.min(b.level + (ctx.shift ?? 0), 5)}` as 'h1'
+        return <H key={i} id={(ctx.idPrefix ?? '') + b.id} tabIndex={-1}><Inlines c={b.c} ctx={ctx} /></H>
       }
       case 'p': return <p key={i}><Inlines c={b.c} ctx={ctx} /></p>
       case 'hr': return <hr key={i} />
@@ -107,7 +109,7 @@ function Blocks({ blocks, ctx }: { blocks: Block[]; ctx: Ctx }): ReactNode {
   })
 }
 
-export function GuideBody({ blocks, signedIn }: { blocks: Block[]; signedIn: boolean }) {
+export function GuideBody({ blocks, signedIn, idPrefix, shift }: { blocks: Block[]; signedIn: boolean; idPrefix?: string; shift?: number }) {
   const { pathname } = useLocation()
-  return <><Blocks blocks={blocks} ctx={{ signedIn, from: pathname }} /></>
+  return <><Blocks blocks={blocks} ctx={{ signedIn, from: pathname, idPrefix, shift }} /></>
 }

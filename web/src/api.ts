@@ -190,15 +190,16 @@ let missing: { id: string; at: number } | null = null
 export const recentMissingModule = () => (missing && Date.now() - missing.at < 20000 ? missing.id : null)
 export const forgetMissingModule = () => { missing = null }
 
-async function send(method: string, path: string, body?: unknown): Promise<{ text: string; data: any }> {
+async function send(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<{ text: string; data: any }> {
   const headers: Record<string, string> = {}
   const tok = getToken()
   if (tok) headers['Authorization'] = 'Bearer ' + tok
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   let res: Response
   try {
-    res = await fetch(serverBase() + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' })
-  } catch {
+    res = await fetch(serverBase() + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin', signal })
+  } catch (e) {
+    if (signal?.aborted) throw e // given up on here, on purpose: nothing went wrong
     reportRequestFailure(method, path, 0, '')
     // The browser's own wording ("Failed to fetch") means nothing to people.
     throw new ApiError(0, "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote Access.")
@@ -234,10 +235,12 @@ export async function uploadFile<T>(path: string, body: Blob, method = 'POST'): 
   if (!res.ok) throw new ApiError(res.status, data?.error || res.statusText, data)
   return data as T
 }
-const req = <T>(method: string, path: string, body?: unknown) => send(method, path, body).then((r) => r.data as T)
+const req = <T>(method: string, path: string, body?: unknown, signal?: AbortSignal) => send(method, path, body, signal).then((r) => r.data as T)
 
 export const api = {
-  get: <T>(p: string) => req<T>('GET', p),
+  // signal: a request that's no longer wanted is given up on, so it stops holding one of
+  // the few connections a browser has to the server.
+  get: <T>(p: string, signal?: AbortSignal) => req<T>('GET', p, undefined, signal),
   text: (p: string) => send('GET', p).then((r) => r.text), // an answer that is plain text
   post: <T>(p: string, b?: unknown) => req<T>('POST', p, b ?? {}),
   put: <T>(p: string, b?: unknown) => req<T>('PUT', p, b ?? {}),

@@ -109,6 +109,12 @@ func learn(s *Sanitizer, dir string, logs []FileInfo, g *CrashGuard, limit int) 
 		if b, err := g.Read(c.ID); err == nil {
 			s.learnLines(bytes.NewReader(b), limit)
 		}
+		if p, err := g.PartPath(c.ID, PartFlight); err == nil {
+			if r, err := os.Open(p); err == nil {
+				s.learnLines(r, limit)
+				r.Close()
+			}
+		}
 	}
 	s.settle()
 }
@@ -138,7 +144,13 @@ sees it.
                   that matter. No passwords, tokens or API keys.
   logs/           recent log files. Passwords, tokens, API keys and setup codes
                   are removed from them.
-  crashes/        reports from when the server crashed or stopped unexpectedly.
+  crashes/        reports from when the server crashed, stopped unexpectedly or
+                  stopped answering, and the ones saved from Settings. Beside
+                  some: .flight.log, the last minutes of everything at the most
+                  detailed level; .goroutines.txt, what every part of the server
+                  was waiting for; .trace, an execution trace for "go tool
+                  trace", which holds only places in the program's code and
+                  timings, nothing of yours.
   diagnostics/    reports from WittyDiagnoser, if you ran it.
 
 `
@@ -204,6 +216,13 @@ func PreviewDir(dir string, g *CrashGuard, o BundleOptions) BundlePreview {
 			summary = scrub.Text(summary)
 		}
 		add("crashes/"+c.ID+".txt", "Crash report: "+summary, c.Size)
+		for _, part := range c.Parts {
+			if path, err := g.PartPath(c.ID, part); err == nil {
+				if st, err := os.Stat(path); err == nil {
+					add("crashes/"+c.ID+"."+part, partWords[part], st.Size())
+				}
+			}
+		}
 	}
 	for _, f := range logs {
 		if p.Scanned >= previewScanLines {
@@ -276,6 +295,11 @@ func WriteBundleDir(w io.Writer, dir string, g *CrashGuard, o BundleOptions) err
 		if err := write("crashes/"+c.ID+".txt", []byte(text)); err != nil {
 			return err
 		}
+		for _, part := range c.Parts {
+			if err := writePart(zw, g, c.ID, part, scrub); err != nil {
+				return err
+			}
+		}
 	}
 	for _, f := range logs {
 		out, err := zw.Create("logs/" + f.Name)
@@ -290,6 +314,50 @@ func WriteBundleDir(w io.Writer, dir string, g *CrashGuard, o BundleOptions) err
 		}
 	}
 	return nil
+}
+
+var partWords = map[string]string{
+	PartFlight:     "The last minutes before it, at the most detailed level",
+	PartGoroutines: "What every part of the server was waiting for",
+	PartTrace:      "An execution trace, for go tool trace",
+}
+
+// writePart adds the evidence beside a report: the flight recorder as log lines, the
+// stacks as a crash's text, the trace as it is.
+func writePart(zw *zip.Writer, g *CrashGuard, id, part string, scrub *Sanitizer) error {
+	path, err := g.PartPath(id, part)
+	if err != nil {
+		return nil
+	}
+	out, err := zw.Create("crashes/" + id + "." + part)
+	if err != nil {
+		return err
+	}
+	switch part {
+	case PartFlight:
+		return eachBundleLine(path, scrub, 0, func(line, _ []byte) error {
+			_, err := out.Write(line)
+			return err
+		})
+	case PartGoroutines:
+		b, err := readBounded(path, 4*maxCrashSize)
+		if err != nil {
+			return nil
+		}
+		text := Redact(string(b))
+		if scrub != nil {
+			text = scrubCrash(scrub, text)
+		}
+		_, err = io.WriteString(out, text)
+		return err
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+	_, err = io.Copy(out, io.LimitReader(f, 64<<20))
+	return err
 }
 
 // SanitizeLog copies any text log, sanitized: a line of ours is handled field by field,

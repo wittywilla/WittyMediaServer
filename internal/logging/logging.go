@@ -186,8 +186,9 @@ type Logger struct {
 	}
 	dir atomic.Pointer[string]
 
-	ring  ring
-	flood flood
+	ring   ring
+	flood  flood
+	flight flightRing // the last minutes of everything: flight.go
 
 	queue   chan *Record
 	console chan *Record
@@ -636,7 +637,7 @@ func (h *handler) Enabled(_ context.Context, lv slog.Level) bool {
 	if lv >= LevelCrash {
 		return true
 	}
-	if f := slog.Level(h.l.floor.Load()); lv >= f {
+	if f := slog.Level(h.l.floor.Load()); lv >= f || h.l.flightKeeps(lv) {
 		return true
 	}
 	t := h.l.table.Load()
@@ -693,6 +694,9 @@ func (h *handler) Handle(ctx context.Context, r slog.Record) (err error) {
 		rec.Cat = CatDefault
 	}
 	if r.Level < LevelCrash && !h.l.keeps(rec) {
+		if h.l.flight.on.Load() && r.Level >= slog.LevelDebug {
+			h.l.flight.add(rec) // only for a while, and only in memory
+		}
 		return nil
 	}
 	if !h.l.flood.allow(rec) {
@@ -792,6 +796,9 @@ func (h *handler) WithGroup(name string) slog.Handler {
 // for the file and the console. It never waits.
 func (l *Logger) publish(rec *Record) {
 	l.ring.add(rec)
+	if l.flight.on.Load() {
+		l.flight.add(rec)
+	}
 	select {
 	case l.queue <- rec:
 	default:

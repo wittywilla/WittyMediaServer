@@ -58,8 +58,11 @@ type Source interface {
 // UserAgent says who is asking, as LRCLIB's documentation asks of apps.
 const UserAgent = "WittyMediaServer (https://github.com/wittywilla/WittyMediaServer)"
 
+// RequestTime is how long one request to a source may take. A variable for tests.
+var RequestTime = 12 * time.Second
+
 func getJSON(ctx context.Context, c *http.Client, address string, out any) (int, error) {
-	cctx, cancel := context.WithTimeout(ctx, 12*time.Second)
+	cctx, cancel := context.WithTimeout(ctx, RequestTime)
 	defer cancel()
 	req, err := http.NewRequestWithContext(cctx, "GET", address, nil)
 	if err != nil {

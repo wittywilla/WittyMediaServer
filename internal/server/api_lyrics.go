@@ -19,6 +19,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/libtranscode/tdarr"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/lyrics"
 )
 
@@ -74,6 +75,7 @@ type lyricsReply struct {
 	CanEdit      bool          `json:"canEdit"` // this person may correct them for everyone
 	Tried        bool          `json:"tried"`   // online was asked and had nothing
 	Failed       string        `json:"failed,omitempty"`
+	Retry        bool          `json:"retry,omitempty"` // busy with another song: ask again in a moment
 }
 
 var lyricsNames = map[string][2]string{
@@ -243,11 +245,11 @@ var lyricsPublicBase = lyrics.LRCLIBHome
 // a cloud host's own secrets are, are no place for a lyrics server.
 var lyricsMirrorClient = &http.Client{
 	Timeout: 12 * time.Second,
-	Transport: &http.Transport{
+	Transport: logging.Calls(&http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
 		DialContext:         (&net.Dialer{Timeout: 10 * time.Second, Control: lyricsMirrorAddress}).DialContext,
 		TLSHandshakeTimeout: 10 * time.Second,
-	},
+	}, "library", "lyrics mirror"),
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 3 || req.URL.Host != via[0].URL.Host {
 			return errors.New("a lyrics server's redirect left its own address")
@@ -272,6 +274,87 @@ func lyricsMirrorAddress(_, address string, _ syscall.RawConn) error {
 // shouldn't hammer a free service.
 var lyricsAskSlot = make(chan struct{}, 1)
 
+// How long a request waits for its turn, and how long one look-up may take in all,
+// whichever sources it asks. A request that can't have its turn soon says so and is
+// asked again: every request waiting its turn holds one of the six connections a
+// browser has to a server, and with all six waiting the whole page stops (issue #17).
+// Variables for tests.
+var (
+	lyricsTurnWait = 2 * time.Second
+	lyricsBudget   = 20 * time.Second
+)
+
+// errLyricsBusy: another song's look-up is under way.
+var errLyricsBusy = errors.New("still looking up another song's lyrics: try again in a moment")
+
+// A source that doesn't answer is left alone for a while, and says so, instead of every
+// song waiting the whole time limit on it.
+const (
+	lyricsTripAfter = 3               // failures in a row
+	lyricsRestFor   = 5 * time.Minute // then one try, and if that fails, this long again
+)
+
+var lyricsBreakers struct {
+	sync.Mutex
+	by map[string]*lyricsBreaker
+}
+
+type lyricsBreaker struct {
+	fails int
+	until time.Time
+}
+
+// lyricsSourceKey tells sources apart: two LRCLIB servers are two sources.
+func lyricsSourceKey(src lyrics.Source) string {
+	if l, ok := src.(*lyrics.LRCLIB); ok {
+		return "lrclib " + l.Base
+	}
+	return src.Name()
+}
+
+// lyricsResting says until when a source is being left alone.
+func lyricsResting(key string, now time.Time) (time.Time, bool) {
+	lyricsBreakers.Lock()
+	defer lyricsBreakers.Unlock()
+	b := lyricsBreakers.by[key]
+	if b == nil || !now.Before(b.until) {
+		return time.Time{}, false
+	}
+	return b.until, true
+}
+
+// lyricsOutcome counts a source's answer. Not found is an answer; not answering isn't.
+func (s *Server) lyricsOutcome(key, name string, failed bool, now time.Time) {
+	lyricsBreakers.Lock()
+	if lyricsBreakers.by == nil {
+		lyricsBreakers.by = map[string]*lyricsBreaker{}
+	}
+	b := lyricsBreakers.by[key]
+	if b == nil {
+		b = &lyricsBreaker{}
+		lyricsBreakers.by[key] = b
+	}
+	if !failed {
+		recovered := b.fails >= lyricsTripAfter
+		b.fails, b.until = 0, time.Time{}
+		lyricsBreakers.Unlock()
+		if recovered {
+			s.Log.Info("a lyrics source is answering again", "cat", "library", "source", name)
+		}
+		return
+	}
+	b.fails++
+	tripped := b.fails >= lyricsTripAfter
+	if tripped {
+		b.until = now.Add(lyricsRestFor)
+	}
+	fails := b.fails
+	lyricsBreakers.Unlock()
+	if tripped {
+		s.Log.Warn("a lyrics source isn't answering, and is left alone for a while", "cat", "library", "source", name, "failures", fails, "for", lyricsRestFor.String())
+	}
+}
+
 // One look-up per track, however many people ask at once.
 var lyricsAsking sync.Map
 
@@ -294,21 +377,42 @@ func (s *Server) askOnline(ctx context.Context, it *library.Item) (*savedLyrics,
 		return nil, errors.New("still looking")
 	}
 	defer lyricsAsking.Delete(it.ID)
+	turn := time.NewTimer(lyricsTurnWait)
+	defer turn.Stop()
 	select {
 	case lyricsAskSlot <- struct{}{}:
 		defer func() { <-lyricsAskSlot }()
+	case <-turn.C:
+		return nil, errLyricsBusy
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
+	ctx, cancel := context.WithTimeout(ctx, lyricsBudget)
+	defer cancel()
 	var failed error
 	for _, src := range sources {
+		key := lyricsSourceKey(src)
+		if until, resting := lyricsResting(key, time.Now()); resting {
+			failed = fmt.Errorf("%s isn't answering: it will be asked again after %s", src.Name(), until.Format("15:04"))
+			continue
+		}
+		if ctx.Err() != nil {
+			break
+		}
 		f, err := src.Get(ctx, lyricsQuery(it))
 		if err != nil {
 			if !errors.Is(err, lyrics.ErrNotFound) {
 				failed = err
+				// The listener moving on isn't the source's fault.
+				if r := ctx.Err(); r == nil || errors.Is(r, context.DeadlineExceeded) {
+					s.lyricsOutcome(key, src.Name(), !errors.Is(err, lyrics.ErrNeedsPlan), time.Now())
+				}
+			} else {
+				s.lyricsOutcome(key, src.Name(), false, time.Now())
 			}
 			continue
 		}
+		s.lyricsOutcome(key, src.Name(), false, time.Now())
 		text := f.Synced
 		if strings.TrimSpace(text) == "" {
 			text = f.Plain
@@ -388,6 +492,7 @@ func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
 		fresh, err := s.askOnline(ctx, it)
 		if err != nil {
 			out.Failed = err.Error()
+			out.Retry = errors.Is(err, errLyricsBusy)
 		} else if fresh != nil {
 			saved = fresh
 		}

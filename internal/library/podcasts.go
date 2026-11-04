@@ -22,6 +22,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
 
@@ -48,19 +49,7 @@ type Podcast struct {
 // used to reach other devices (server-side request forgery).
 var SafeClient = &http.Client{
 	Timeout: 0, // episodes can be long; requests carry their own contexts
-	Transport: &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
-			c, err := safeDialer.DialContext(ctx, network, address)
-			if err != nil {
-				return nil, err
-			}
-			return &icyConn{Conn: c}, nil
-		},
-		TLSHandshakeTimeout:   15 * time.Second,
-		ResponseHeaderTimeout: 30 * time.Second,
-		MaxIdleConnsPerHost:   4,
-	},
+	Transport: logging.Calls(safeTransport, "library", "online"), // every call logged with its time: logging/calls.go
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 8 || (req.URL.Scheme != "http" && req.URL.Scheme != "https") {
 			return errors.New("too many or unsafe redirects")
@@ -68,6 +57,24 @@ var SafeClient = &http.Client{
 		return nil
 	},
 }
+
+// safeTransport is SafeClient's own, for clients that need a copy with something changed.
+var safeTransport = &http.Transport{
+	Proxy: http.ProxyFromEnvironment,
+	DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+		c, err := safeDialer.DialContext(ctx, network, address)
+		if err != nil {
+			return nil, err
+		}
+		return &icyConn{Conn: c}, nil
+	},
+	TLSHandshakeTimeout:   15 * time.Second,
+	ResponseHeaderTimeout: 30 * time.Second,
+	MaxIdleConnsPerHost:   4,
+}
+
+// SafeTransport is a copy of SafeClient's transport, to change.
+func SafeTransport() *http.Transport { return safeTransport.Clone() }
 
 var safeDialer = &net.Dialer{Timeout: 15 * time.Second, Control: func(_, address string, _ syscall.RawConn) error {
 	host, _, err := net.SplitHostPort(address)

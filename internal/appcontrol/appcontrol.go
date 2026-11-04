@@ -119,7 +119,11 @@ func (b *Blocked) Error() string {
 	if b.Ran {
 		s = "Windows' Smart App Control blocked " + names + ": it isn't signed by a publisher Windows trusts."
 	} else {
-		s = "Windows' Smart App Control is on, and " + names + " in " + b.What + " isn't signed by a publisher Windows trusts, so Windows would block it. Nothing was installed."
+		verb, it := "isn't", "it"
+		if len(b.Files) > 1 {
+			verb, it = "aren't", "them"
+		}
+		s = "Windows' Smart App Control is on, and " + names + " in " + b.What + " " + verb + " signed by a publisher Windows trusts, so Windows would block " + it + ". Nothing was installed."
 	}
 	if b.Fix != "" {
 		s += " " + b.Fix

@@ -236,6 +236,9 @@ func (p *proc) start() error {
 		return err
 	}
 	err = cmd.Start()
+	if blocked := appcontrol.Explain(err, p.path(), SignedFix); blocked != err {
+		return fmt.Errorf("could not start: %w", blocked) // Windows refused the program, not the sandbox
+	}
 	if err != nil && sandboxed && p.strict {
 		return fmt.Errorf("this system won't run it with the limits a module from another publisher needs: %w", err)
 	}

@@ -3,8 +3,10 @@ package diagnose
 import (
 	"context"
 	"path/filepath"
+	"sort"
 
 	"github.com/wittywilla/wittymediaserver/internal/appcontrol"
+	"github.com/wittywilla/wittymediaserver/internal/modules"
 )
 
 // checkSmartAppControl says whether Windows' Smart App Control is on and, when it is, which of
@@ -22,8 +24,24 @@ func checkSmartAppControl(_ context.Context, e *DoctorEnv) []Issue {
 		return []Issue{{Key: key, Severity: SevInfo, Title: "Smart App Control is in evaluation", Safety: SafetyManual,
 			What: "Windows is watching which programs run, and will turn Smart App Control on or off by itself. It blocks nothing yet. Once it's on, programs and libraries that aren't signed by a publisher Windows trusts can't run, and that includes modules and game cores that aren't signed yet."}}
 	}
-	files, err := appcontrol.Unsigned(filepath.Join(e.Data, "modules"))
-	if err != nil || len(files) == 0 {
+	// Only the versions in use: one kept for going back can't be blocked from running.
+	var files []string
+	states, _ := modules.ReadInstalledState(e.modulesDir())
+	for id, st := range states {
+		if st.Active == "" {
+			continue
+		}
+		dir := filepath.Join(e.modulesDir(), id, "versions", st.Active)
+		found, err := appcontrol.Unsigned(dir)
+		if err != nil {
+			continue
+		}
+		for _, f := range found {
+			files = append(files, id+" "+st.Active+": "+f)
+		}
+	}
+	sort.Strings(files)
+	if len(files) == 0 {
 		return []Issue{{Key: key, Severity: SevInfo, Title: "Smart App Control is on", Safety: SafetyManual,
 			What: "Windows runs only programs and libraries signed by a publisher it trusts, or that it knows. No installed module has one it would block."}}
 	}

@@ -181,7 +181,6 @@ func (s *Session) MarshalJSON() ([]byte, error) {
 
 // sessionState is what this side keeps of a session: its end, and what's to run then.
 type sessionState struct {
-	once    sync.Once
 	done    chan struct{}
 	cleanup func()
 }

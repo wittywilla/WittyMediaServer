@@ -239,6 +239,30 @@ func TestLiveArgs(t *testing.T) {
 	}
 }
 
+// A first run reads ahead so the picture comes at once. A copy reads further, since it can
+// only be cut at the file's keyframes and the channel plays from its second segment.
+func TestLiveStartBurst(t *testing.T) {
+	m := liveTestManager(t)
+	s := m.newLive(LiveSpec{ID: "x"})
+	readrateOnce.Do(func() {})
+	hasBurst = true
+	defer func() { hasBurst = false }()
+	in := &LiveInput{InputArgs: ffmpeg.FileInput("/m/a.mkv"), AudioIndex: 0}
+	for _, c := range []struct {
+		copy, burst bool
+		want        string
+	}{
+		{false, true, "-readrate 1 -readrate_initial_burst 12"},
+		{true, true, "-readrate 1 -readrate_initial_burst 24"},
+		{true, false, "-re"},
+	} {
+		in.CopyVideo = c.copy
+		if got := strings.Join(s.liveArgs(in, 1, c.burst), " "); !strings.Contains(got, c.want) {
+			t.Errorf("copy %v, first run %v: no %q in\n%s", c.copy, c.burst, c.want, got)
+		}
+	}
+}
+
 func TestRedactArgs(t *testing.T) {
 	got := ffmpeg.RedactArgs([]string{"-headers", "Authorization: Basic abc", "-i", "http://me:secret@host/x"})
 	if strings.Contains(got, "secret") || strings.Contains(got, "abc") {

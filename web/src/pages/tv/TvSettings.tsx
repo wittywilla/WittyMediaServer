@@ -50,11 +50,12 @@ function Overview() {
 // one holds only settings.
 function LibraryChannels() {
   const [list, setList] = useState<Channel[] | null>(null)
-  useEffect(() => { api.get<Channel[]>('/channels').then(setList).catch(() => setList([])) }, [])
+  const [err, setErr] = useState('')
+  useEffect(() => { api.get<Channel[]>('/channels').then(setList).catch((e) => setErr(e.message)) }, [])
   const on = list?.filter((c) => c.enabled).length || 0
   return (
     <Section title="Channels from your library" desc="Always-on channels made from your films and shows. Making and changing them, and the ones suggested from your library, are on their own page.">
-      <Row label="Your channels" desc={list === null ? '' : list.length === 0 ? 'None yet.' : `${list.length} ${list.length === 1 ? 'channel' : 'channels'}, ${on} on the air.`}>
+      <Row label="Your channels" desc={err ? `The list couldn't be read: ${err}` : list === null ? '' : list.length === 0 ? 'None yet.' : `${list.length} ${list.length === 1 ? 'channel' : 'channels'}, ${on} on the air.`}>
         <Link className="btn sm primary" to="/tv/channels"><IconEdit /> Open the channel list</Link>
       </Row>
     </Section>

@@ -103,14 +103,20 @@ export default function ChannelEditor() {
   const draftNow = useRef(draft)
   useEffect(() => { draftNow.current = draft }, [draft])
   const blocker = useBlocker(({ currentLocation, nextLocation }) => currentLocation.pathname !== nextLocation.pathname && !!draftNow.current && JSON.stringify(draftNow.current) !== baseline.current)
+  const blocked = blocker.state === 'blocked'
+  const blockerNow = useRef(blocker)
+  useEffect(() => { blockerNow.current = blocker }, [blocker])
+  // Once per time it's blocked, whatever else redraws the page meanwhile.
   useEffect(() => {
-    if (blocker.state !== 'blocked') return
+    if (!blocked) return
     void ask({ title: 'Leave without saving?', body: 'Your changes to this channel aren’t saved yet. They stay in this browser and come back the next time you open it.', confirm: 'Leave', cancel: 'Keep editing' })
-      .then((yes) => (yes ? blocker.proceed() : blocker.reset()))
-  }, [blocker])
+      .then((yes) => { const b = blockerNow.current; if (b.state === 'blocked') { if (yes) b.proceed(); else b.reset() } })
+  }, [blocked])
   // Back is where this page was opened from: the channel list, the guide or a
-  // settings page. Opened from a link or a bookmark, it's the channel list.
-  const cameFrom = loc.key !== 'default'
+  // settings page. Opened from a link or a bookmark, it's the channel list. The
+  // router numbers its history entries, and a redirect from an old address
+  // replaces the first one rather than adding to it.
+  const cameFrom = ((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0
   const back = () => (cameFrom ? nav(-1) : nav('/tv/channels'))
 
   const setDef = (patch: Partial<Definition>) => setDraft((d) => (d ? { ...d, definition: { ...d.definition, ...patch } } : d))

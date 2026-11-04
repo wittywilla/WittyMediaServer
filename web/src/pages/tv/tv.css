@@ -335,9 +335,10 @@ html.ten-foot .ctv-page .ctv-btn.icon, html.using-controller .ctv-page .ctv-btn.
 .ctv-msg-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .ctv-slate { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; pointer-events: none; font-family: var(--ctv-font); }
 .ctv-slate-card { padding: 22px 34px; text-align: center; color: var(--on-image); }
-.ctv-slate-ch { color: var(--ctv-accent); font-size: var(--text-xl); font-weight: 700; }
+.ctv-slate-ch { color: var(--on-image); opacity: .85; font-size: var(--text-xl); font-weight: 700; }
 .ctv-slate-msg { font-size: var(--text-4xl); font-weight: 700; text-shadow: 2px 2px 0 var(--scrim); }
-.ctv-slate-next { margin-top: 6px; font-size: var(--text-lg); color: var(--ctv-soft); }
+/* It's always over the picture, so its words are the picture's colours, never the theme's. */
+.ctv-slate-next { margin-top: 6px; font-size: var(--text-lg); color: var(--on-image); opacity: .85; text-shadow: 1px 1px 0 var(--scrim); }
 /* The same card in the guide's preview, sized to the preview however big it's made. */
 .ctv-preview-screen { container-type: inline-size; }
 .ctv-preview .ctv-slate-card { padding: 4cqw 5cqw; }

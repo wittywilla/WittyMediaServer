@@ -90,3 +90,21 @@
 /* The channel list and editor, a page of their own outside Settings. */
 .tvc-page { max-width: 860px; margin: 12px auto 0; }
 .tvc-back { margin-bottom: var(--sp-2); }
+
+/* Add live TV, a step at a time (TunerSetup.tsx). */
+.tvw-steps { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 var(--sp-3); padding: 0; counter-reset: tvw; }
+.tvw-steps li { counter-increment: tvw; display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 999px; background: var(--bg-3); color: var(--fg-2); font-size: var(--text-sm); }
+.tvw-steps li::before { content: counter(tvw); display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--bg-4); color: var(--fg); font-weight: 600; font-size: 12px; }
+.tvw-steps li.on { color: var(--fg); font-weight: 600; }
+.tvw-steps li.on::before { background: var(--accent); color: var(--on-accent, #fff); }
+.tvw-steps li.past::before { content: '✓'; }
+.tvw-h { margin: 0 0 var(--sp-3); font-size: var(--text-md); }
+.tvw-h:focus { outline: none; }
+.tvw-h:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tvw-kinds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tvw-kind { min-height: 72px; align-content: start; }
+.tvw-kind[disabled] { opacity: .55; cursor: not-allowed; }
+.tvw-find { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.tvw-result { display: grid; gap: 10px; }
+.tvw-result p { margin: 0; }
+@media (max-width: 600px) { .tvw-kinds { grid-template-columns: 1fr; } }

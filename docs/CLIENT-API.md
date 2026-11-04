@@ -1236,6 +1236,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /channels/{id}` | admin | Update channel. |
 | `DELETE /channels/{id}` | admin | Delete channel. |
 | `POST /channels/{id}/rebuild` | admin | Rebuild channel. |
+| `POST /channels/{id}/reset` | admin | Reset channel: throws away the schedule, what is on now included, and makes it again from the channel's current settings and matching titles. Body `{"startOver": true}` also starts every show from its first episode and shuffles again. Viewers move to the new schedule; reminders are kept, moved to the programme's new time, or removed. Answers `{ok, watching, reminders: {kept, moved, dropped, droppedTitles}}`. |
 | `GET /channels/{id}/history` | admin | Channel history. |
 | `POST /channels/{id}/restore` | admin | Restore channel. |
 | `GET /channels/{id}/logo` | user | Channel logo. |

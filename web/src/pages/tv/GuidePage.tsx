@@ -473,7 +473,7 @@ export default function GuidePage() {
         {logosShown && <LegalNote kind="logos" className="ctv-legal" />}
       </div>
 
-      {details && <DetailsDialog ch={details.ch} p={details.p} now={now} startDay={details.day} look={look} onClose={() => setDetails(null)} onWatch={() => watch(details.ch.key)} onRecord={() => { void record(details.ch, details.p); setDetails(null) }} />}
+      {details && <DetailsDialog ch={details.ch} p={details.p} now={now} startDay={details.day} look={look} onClose={() => setDetails(null)} onWatch={() => watch(details.ch.key)} onRecord={() => { void record(details.ch, details.p); setDetails(null) }} onReset={() => { getLineup().then(setLineup).catch(() => {}); loaded.current.clear(); setScrollTop((s) => s + 0.001) }} />}
       {lookOpen && <LookPanel look={look} onClose={() => setLookOpen(false)} />}
       {searchOpen && <SearchPanel onClose={closeSearch} onGo={(hit) => {
         setSearchOpen(false)

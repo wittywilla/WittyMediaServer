@@ -204,21 +204,41 @@ type Manager struct {
 
 	mu       sync.Mutex
 	sessions map[string]*Session
+	sweeping bool // under mu: the sweep runs only while there are sessions to look after
 }
 
 func NewManager(h *hls.Manager, tools *ffmpeg.Tools, cacheDir, baseURL string, log *slog.Logger) *Manager {
 	m := &Manager{HLS: h, Tools: tools, CacheDir: cacheDir, BaseURL: baseURL, Log: log, sessions: map[string]*Session{}}
-	logging.Loop("dvd sweep", m.sweep, "cat", "discs")
 	return m
 }
 
+// sweepEvery is how often open discs are looked at, while there are any.
+var sweepEvery = time.Minute
+
 func (m *Manager) sweep() {
-	for range time.Tick(time.Minute) {
+	t := time.NewTicker(sweepEvery)
+	defer t.Stop()
+	for range t.C {
 		for id, s := range m.list() { // a session busy with a slow step holds its own lock, never the manager's
 			if time.Since(s.lastUsed()) > 30*time.Minute {
 				m.CloseSession(id)
 			}
 		}
+		m.mu.Lock()
+		if len(m.sessions) == 0 {
+			m.sweeping = false // a quiet server isn't woken every minute to find nothing
+			m.mu.Unlock()
+			return
+		}
+		m.mu.Unlock()
+	}
+}
+
+// sweepSoon starts the sweep if it isn't running. m.mu is held.
+func (m *Manager) sweepSoon() {
+	if !m.sweeping {
+		m.sweeping = true
+		logging.Loop("dvd sweep", m.sweep, "cat", "discs")
 	}
 }
 
@@ -334,6 +354,7 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 	s.nav = o.NewNav(dvd.NavOptions{RegisterOptions: dvd.RegisterOptions{MenuLanguage: prefs.MenuLanguage, AudioLanguage: prefs.AudioLanguage, SubtitleLanguage: prefs.SubtitleLanguage, Angle: prefs.Angle, Region: prefs.DVDRegion, Parental: prefs.DVDParental, Country: prefs.Country}})
 	m.mu.Lock()
 	m.sessions[s.ID] = s
+	m.sweepSoon()
 	m.mu.Unlock()
 	return s, nil
 }

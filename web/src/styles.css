@@ -154,11 +154,14 @@ html.using-controller { font-size: 125%; --focus-width: 3px; --focus-offset: 3px
 html.using-controller, html.ten-foot { --focus: var(--fg); }
 @media (pointer: none) { :root { --focus: var(--fg); } }
 html.ten-foot { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; --card-w: 200px; --card-wide-w: 340px; --gutter: max(48px, 4vw); }
-/* The frame grows with the type, or the name in the side menu gets cut off and the bar is too short for what's in it. */
+/* The frame grows with the type, or the name in the side menu gets cut off and the bar is too short for what's in it.
+   The menu grows at every width: below 901px it's the drawer, which has the same type. */
+html.using-controller, html.ten-foot { --sidebar: min(300px, 85vw); }
+@media (pointer: none) { :root { --sidebar: min(300px, 85vw); } }
 @media (min-width: 901px) {
-  html.using-controller, html.ten-foot { --sidebar: 300px; --rail: 96px; --topbar-h: 80px; }
+  html.using-controller, html.ten-foot { --rail: 96px; --topbar-h: 80px; }
 }
-@media (min-width: 901px) and (pointer: none) { :root { --sidebar: 300px; --rail: 96px; --topbar-h: 80px; } }
+@media (min-width: 901px) and (pointer: none) { :root { --rail: 96px; --topbar-h: 80px; } }
 /* A controller on a phone: the type stays large, but a phone still has a phone's margin. */
 @media (max-width: 720px) {
   html.using-controller, html.ten-foot { --gutter: var(--sp-4); }

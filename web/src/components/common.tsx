@@ -119,7 +119,8 @@ export function BrandMark({ src }: { src?: string }) {
 // Brand is the name in the top-left corner: the custom name from
 // Settings -> Appearance, or WittyMediaServer.
 export function Brand({ name }: { name: string }) {
-  return name ? <span className="brand-name" title={name}>{name}</span> : <span>Witty<b>Media</b>Server</span>
+  // Where it has to wrap, it wraps between the words of the name, not inside one.
+  return name ? <span className="brand-name" title={name}>{name}</span> : <span>Witty<wbr /><b>Media</b><wbr />Server</span>
 }
 
 // UpdateDot: admins see that a newer version can be installed (Settings,

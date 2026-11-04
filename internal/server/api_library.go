@@ -690,9 +690,11 @@ func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool)
 		}
 	}
 	if src == library.LazyPoster {
-		width := qInt(r, "w", 480)
+		// A frame from the video. Each width is another frame taken by FFmpeg, so smaller
+		// asks get the one 480 wide that lists have always had.
+		width := max(qInt(r, "w", 480), 480)
 		if backdrop {
-			width = qInt(r, "w", 1920)
+			width = 1920
 		}
 		s.serveThumb(w, r, it, width)
 		return

@@ -224,7 +224,9 @@ func benchCases(cfg benchConfig) []benchCase {
 		{name: "audio-transcode", find: probeFind("audio", func(p *ffmpeg.Probe) bool {
 			return p.Video() == nil && len(p.Audio()) > 0 && p.Duration() > 120
 		}), run: playAudio},
-		{name: "live-channel-1080p", find: h264, run: playLive},
+		// A channel copies H.264 as it is (the default), and converts anything else.
+		{name: "live-channel-1080p", find: h264, run: playLive(true)},
+		{name: "live-channel-1080p-converted", find: h264, run: playLive(false)},
 		{name: "dvd-title", modules: []string{"wittydvd"}, find: discFind(`(?i)\.iso$`, "DVD"), run: playDisc},
 		{name: "bluray-title", modules: []string{"wittybluray"}, find: discFind(`(?i)\.iso$`, "Blu-ray", "BluRay ISOs"), run: playDisc},
 	}
@@ -692,7 +694,11 @@ func playAudio(b *bench, src string) benchResult {
 
 // playLive runs a channel's live session on a file, as a library channel does, for a while
 // at viewing speed. Its speed is 1 by design, so CPU is what it costs to keep up.
-func playLive(b *bench, src string) benchResult {
+func playLive(copyOK bool) func(b *bench, src string) benchResult {
+	return func(b *bench, src string) benchResult { return b.live(src, copyOK) }
+}
+
+func (b *bench) live(src string, copyOK bool) benchResult {
 	it := b.fileItem(src, "video")
 	ts := b.ts
 	req := httptest.NewRequest("GET", "/", nil)
@@ -706,14 +712,17 @@ func playLive(b *bench, src string) benchResult {
 		ID: id, Quality: q, MaxHeight: h, Preset: preset,
 		Feed: func(ctx context.Context, _ time.Time) (*hls.LiveInput, error) {
 			// Every run plays the programme from its start.
-			return ts.itemLiveInput(ctx, &channels.Programme{ItemID: it.ID}, 0, it.RuntimeSec, q, h, ts.tvSetting(ctx, "tvCopyVideo") == "1")
+			return ts.itemLiveInput(ctx, &channels.Programme{ItemID: it.ID}, 0, it.RuntimeSec, q, h, copyOK)
 		},
 	})
 	if err != nil {
 		return benchResult{Err: err.Error()}
 	}
 	defer ts.HLS.StopLive(id)
-	r := benchResult{Decision: "live", StartMs: ms(time.Since(t0))}
+	r := benchResult{Decision: "live, converted", StartMs: ms(time.Since(t0))}
+	if copyOK {
+		r.Decision = "live, copied"
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	if err := ls.WaitReady(ctx); err != nil {
@@ -773,7 +782,13 @@ func playDisc(b *bench, src string) benchResult {
 	if err := json.Unmarshal(data, &open); err != nil || open.Presentation.Media == nil {
 		return benchResult{Err: "the disc gave nothing to play: " + string(data)}
 	}
-	defer func() { _, _ = b.fetch("DELETE", "/api/dvd/"+open.SessionID, nil) }()
+	// A disc's stream outlives its session, for the next viewer: stop both, so each run starts afresh.
+	defer func() {
+		_, _ = b.fetch("DELETE", "/api/dvd/"+open.SessionID, nil)
+		if id, ok := strings.CutPrefix(open.Presentation.Media.URL, "/api/hls/"); ok {
+			_, _ = b.fetch("DELETE", "/api/hls/"+strings.Split(id, "/")[0], nil)
+		}
+	}()
 	r := benchResult{Decision: "disc", StartMs: ms(time.Since(t0))}
 	u := resolve(b.base+"/api/", open.Presentation.Media.URL)
 	if strings.HasPrefix(open.Presentation.Media.URL, "/") {

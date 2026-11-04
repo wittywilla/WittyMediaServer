@@ -324,7 +324,8 @@ type Handle struct {
 	rateDone int64
 	rate     float64
 
-	shares []float64 // each step's part of the whole, guarded by reg.mu
+	shares  []float64 // each step's part of the whole, guarded by reg.mu
+	counted [2]int64  // the Done and Total of the last step that counted anything, for when it ends
 }
 
 // ID is the task's id, or "" on a nil handle.
@@ -369,6 +370,9 @@ func (h *Handle) Phase(s string) {
 		t.Phase = clip(s)
 		if i := slices.Index(t.Steps, t.Phase); i >= 0 && i+1 != t.Step {
 			t.Step = i + 1
+			if t.Total > 0 {
+				h.counted = [2]int64{t.Done, t.Total}
+			}
 			t.Done, t.Total = 0, 0
 			h.rateAt, h.rate = time.Time{}, 0
 		}
@@ -558,6 +562,9 @@ func (h *Handle) end(st State, msg, fix, detail string) {
 	t := &h.t
 	t.State, t.Error, t.Fix, t.Detail = st, clip(msg), clip(fix), clip(detail)
 	t.UpdatedAt, t.FinishedAt = now.Unix(), now.Unix()
+	if st == Done && t.Total == 0 && h.counted[1] > 0 {
+		t.Done, t.Total = h.counted[0], h.counted[1] // what it counted, not a last step that counted nothing
+	}
 	if st == Done && t.Total > 0 {
 		t.Done = t.Total
 	}

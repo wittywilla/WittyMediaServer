@@ -457,8 +457,11 @@ func TestStepsMakeOneBar(t *testing.T) {
 	if got := r.Live()[0]; got.Step != 2 || got.Percent != 62.5 || got.Phase != "Waiting for the disk" {
 		t.Fatalf("a phase that isn't a step leaves the bar where it was: %+v", got)
 	}
+	h.Phase("Waiting for the disk")
+	h.Steps(Step{Name: "Finding files", Share: 1}, Step{Name: "Looking at each file", Share: 3}, Step{Name: "Tidying up", Share: 1})
+	h.Phase("Tidying up")
 	h.Finish(nil)
-	if got := r.Recent()[0]; got.Percent != 100 {
-		t.Fatalf("done is all of it: %+v", got)
+	if got := r.Recent()[0]; got.Percent != 100 || got.Done != 4 || got.Total != 4 {
+		t.Fatalf("done is all of it, and keeps what was counted rather than the last step's nothing: %+v", got)
 	}
 }

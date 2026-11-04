@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -100,36 +101,20 @@ func claim(cfg *config.Config, args []string) (*config.Config, int, bool) {
 		if !instance.Held(cfg.DataDir) {
 			return cfg, 0, true
 		}
-		r := instance.Find(context.Background(), cfg.DataDir, 10*time.Second)
-		if r.Service {
+		out := instance.WhenRunning(cfg.DataDir, cfg.Listen, args, !desktop.Headless(), true)
+		if out.Attach {
 			return cfg, 0, true // start() finds it answering and shows it
 		}
-		if desktop.Headless() {
-			fmt.Fprintln(os.Stderr, instance.Line(r, cfg.DataDir))
-			return cfg, instance.ExitRunning, false
+		if out.Again == nil {
+			return cfg, out.Code, false
 		}
-		if !r.Answering {
-			if _, err := desktop.Ask(instance.TitleRunning, instance.NotAnsweringText(r), []string{"OK"}); err != nil {
-				fmt.Fprintln(os.Stderr, instance.Line(r, cfg.DataDir))
-			}
-			return cfg, instance.ExitRunning, false
+		args = out.Again
+		next, err := config.Parse(args)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return cfg, 2, false
 		}
-		d := instance.Decide(instance.DesktopQuestion(r, cfg.DataDir, cfg.Listen))
-		switch d.Choice {
-		case instance.ChoiceOpen:
-			openURL(r.URL)
-			return cfg, 0, false
-		case instance.ChoiceAnother:
-			args = instance.WithAnother(args, cfg.Listen, d)
-			next, err := config.Parse(args)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return cfg, 2, false
-			}
-			cfg = next
-		default:
-			return cfg, 0, false
-		}
+		cfg = next
 	}
 	return cfg, instance.ExitRunning, false
 }
@@ -333,6 +318,12 @@ func (l *launcher) start() {
 		}
 		if taken && l.cmd == c {
 			l.wantRun, l.attached, l.lastErr = false, true, ""
+			// Shown at its own address, which needn't be this app's port.
+			if info, err := instance.Read(l.dataDir); err == nil && len(info.URLs) > 0 {
+				if u, err := url.Parse(info.URLs[0]); err == nil && u.Host != "" {
+					l.listen = u.Host
+				}
+			}
 		}
 		restart := l.wantRun && l.cmd == c
 		l.refreshLocked()

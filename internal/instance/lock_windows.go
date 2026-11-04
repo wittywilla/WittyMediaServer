@@ -10,9 +10,10 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// LockFileEx belongs to the handle, and Windows drops it when the process ends.
+// LockFileEx belongs to the handle, and Windows drops it when the process ends. The byte
+// locked is far past the end of the file, so others can still read the holder's number.
 func lockFile(f *os.File) error {
-	var ol windows.Overlapped
+	ol := windows.Overlapped{OffsetHigh: 1}
 	err := windows.LockFileEx(windows.Handle(f.Fd()), windows.LOCKFILE_EXCLUSIVE_LOCK|windows.LOCKFILE_FAIL_IMMEDIATELY, 0, 1, 0, &ol)
 	switch {
 	case err == nil:
@@ -26,6 +27,6 @@ func lockFile(f *os.File) error {
 }
 
 func unlockFile(f *os.File) {
-	var ol windows.Overlapped
+	ol := windows.Overlapped{OffsetHigh: 1}
 	_ = windows.UnlockFileEx(windows.Handle(f.Fd()), 0, 1, 0, &ol)
 }

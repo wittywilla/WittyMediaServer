@@ -75,7 +75,41 @@ func Acquire(dir string) (*Lock, error) {
 		f.Close()
 		return nil, err
 	}
+	// The holder's process number, which is always this run's: instance.json can be one
+	// left by a run that was killed, until this one writes its own.
+	if err := f.Truncate(0); err == nil {
+		_, _ = f.WriteAt([]byte(strconv.Itoa(os.Getpid())), 0)
+	}
 	return &Lock{dir: dir, id: newID(), f: f}, nil
+}
+
+// Holder is the process number of the server holding dir, or 0 when none does or it
+// can't be told.
+func Holder(dir string) int {
+	if !Held(dir) {
+		return 0
+	}
+	b, err := os.ReadFile(filepath.Join(dir, LockFile))
+	if err != nil || len(b) > 20 {
+		return 0
+	}
+	pid, _ := strconv.Atoi(strings.TrimSpace(string(b)))
+	return pid
+}
+
+// HeldBy says whether another process is running as a server on dir, and its process
+// number when that's known: this process holding it doesn't count, for the repairs a
+// server runs on itself. known is false for a folder no server of this version has used,
+// where a tool has to fall back on what it did before.
+func HeldBy(dir string) (pid int, running, known bool) {
+	if _, err := os.Stat(filepath.Join(dir, LockFile)); err != nil {
+		return 0, false, false
+	}
+	pid = Holder(dir)
+	if pid == os.Getpid() || !Held(dir) {
+		return 0, false, true
+	}
+	return pid, true, true
 }
 
 // AcquireWait is Acquire for a start that follows a restart: the process before this
@@ -191,8 +225,9 @@ func Find(ctx context.Context, dir string, wait time.Duration) Running {
 	ctx, cancel := context.WithTimeout(ctx, wait)
 	defer cancel()
 	var r Running
+	holder := Holder(dir)
 	for {
-		if info, err := Read(dir); err == nil {
+		if info, err := Read(dir); err == nil && (holder == 0 || info.PID == holder) {
 			r.Info = info
 			for _, u := range info.URLs {
 				if id, _ := HealthID(ctx, u); id != "" && id == info.Instance {
@@ -201,10 +236,16 @@ func Find(ctx context.Context, dir string, wait time.Duration) Running {
 				}
 			}
 		}
+		if r.PID == 0 {
+			r.PID = holder // instance.json isn't written yet, or is a killed run's
+		}
 		select {
 		case <-ctx.Done():
 			return r
 		case <-time.After(300 * time.Millisecond):
+		}
+		if holder == 0 {
+			holder = Holder(dir)
 		}
 	}
 }

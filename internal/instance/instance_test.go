@@ -158,11 +158,11 @@ func TestFindAnswering(t *testing.T) {
 	defer l.Release()
 	ts := httptest.NewServer(health(l.ID()))
 	defer ts.Close()
-	if err := l.Publish(Info{PID: 42, URLs: []string{"http://127.0.0.1:1", ts.URL}}); err != nil {
+	if err := l.Publish(Info{PID: os.Getpid(), URLs: []string{"http://127.0.0.1:1", ts.URL}}); err != nil {
 		t.Fatal(err)
 	}
 	r := Find(context.Background(), dir, 3*time.Second)
-	if !r.Answering || r.URL != ts.URL || r.PID != 42 {
+	if !r.Answering || r.URL != ts.URL || r.PID != os.Getpid() {
 		t.Fatalf("found %+v", r)
 	}
 	if line := Line(r, dir); !strings.Contains(line, ts.URL) || !strings.Contains(line, "already running") {
@@ -182,12 +182,12 @@ func TestFindNotFooledByAnotherProgram(t *testing.T) {
 	defer other.Close()
 	plain := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("hello")) }))
 	defer plain.Close()
-	if err := l.Publish(Info{PID: 7, URLs: []string{other.URL, plain.URL}}); err != nil {
+	if err := l.Publish(Info{PID: os.Getpid(), URLs: []string{other.URL, plain.URL}}); err != nil {
 		t.Fatal(err)
 	}
 	start := time.Now()
 	r := Find(context.Background(), dir, 700*time.Millisecond)
-	if r.Answering || r.PID != 7 {
+	if r.Answering || r.PID != os.Getpid() {
 		t.Fatalf("found %+v", r)
 	}
 	if time.Since(start) > 5*time.Second {
@@ -349,5 +349,87 @@ func TestRunningText(t *testing.T) {
 	}
 	if s := AnotherText("/x", 9798); !strings.Contains(s, "/x") || !strings.Contains(s, strconv.Itoa(9798)) {
 		t.Fatal(s)
+	}
+}
+
+// The lock file names its holder, so an instance.json left by a killed run isn't believed.
+func TestHolderAndStaleInfo(t *testing.T) {
+	dir := t.TempDir()
+	if _, running, known := HeldBy(dir); running || known {
+		t.Fatal("a folder never locked")
+	}
+	// What a killed run left: an instance.json with its process number and a dead address.
+	if err := os.WriteFile(filepath.Join(dir, InfoFile), []byte(`{"pid": 999999, "urls": ["http://127.0.0.1:1"], "instance": "old"}`), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	l, err := Acquire(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Release()
+	if h := Holder(dir); h != os.Getpid() {
+		t.Fatalf("holder %d, want %d", h, os.Getpid())
+	}
+	r := Find(context.Background(), dir, 500*time.Millisecond)
+	if r.PID != os.Getpid() || r.Instance == "old" {
+		t.Fatalf("believed a killed run's instance.json: %+v", r)
+	}
+	if !strings.Contains(Line(r, dir), "process "+strconv.Itoa(os.Getpid())) {
+		t.Fatal(Line(r, dir))
+	}
+	// This process holding it isn't "another server" to a repair it runs itself.
+	if _, running, known := HeldBy(dir); running || !known {
+		t.Fatalf("own lock: running %v known %v", running, known)
+	}
+}
+
+func TestRunningSeesAnotherProcess(t *testing.T) {
+	dir := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^$")
+	cmd.Env = append(os.Environ(), "WMS_INSTANCE_HOLD="+dir)
+	out, _ := cmd.StdoutPipe()
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = cmd.Process.Kill(); _ = cmd.Wait() }()
+	buf := make([]byte, 64)
+	if n, _ := out.Read(buf); !strings.HasPrefix(string(buf[:n]), "locked") {
+		t.Fatalf("helper: %q", buf[:n])
+	}
+	if pid, running, known := HeldBy(dir); !running || !known || pid != cmd.Process.Pid {
+		t.Fatalf("pid %d running %v known %v, want %d", pid, running, known, cmd.Process.Pid)
+	}
+}
+
+// A second server gets a config of its own, so nothing in the first one's points it at the
+// first one's folders.
+func TestPrepareAnother(t *testing.T) {
+	t.Setenv("WMS_TRANSCODE_DIR", "/the/first/servers/transcode")
+	folder := filepath.Join(t.TempDir(), "WittyMediaServer-2")
+	args, err := PrepareAnother([]string{"-config", "/first/wms.json"}, ":9797", Decision{Choice: ChoiceAnother, Folder: folder, Port: 9798})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"-config", "/first/wms.json", "-config", filepath.Join(folder, "wms.json"), "-data", folder, "-listen", ":9798", "-log-dir", filepath.Join(folder, "logs")}
+	if strings.Join(args, " ") != strings.Join(want, " ") {
+		t.Fatalf("args %q", args)
+	}
+	var conf map[string]string
+	b, err := os.ReadFile(filepath.Join(folder, "wms.json"))
+	if err != nil || json.Unmarshal(b, &conf) != nil || conf["dataDir"] != folder || conf["listen"] != ":9798" {
+		t.Fatalf("wms.json: %s %v", b, err)
+	}
+	if os.Getenv("WMS_TRANSCODE_DIR") != "" {
+		t.Fatal("the first server's transcode folder is still set")
+	}
+	// Again on the same folder: its wms.json, which may have been changed since, is kept.
+	if err := os.WriteFile(filepath.Join(folder, "wms.json"), []byte(`{"dataDir": "kept"}`), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := PrepareAnother(nil, "127.0.0.1:9797", Decision{Folder: folder, Port: 9799}); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(folder, "wms.json")); !strings.Contains(string(b), "kept") {
+		t.Fatalf("overwrote %s", b)
 	}
 }

@@ -42,33 +42,14 @@ func claimDataFolder(cfg *config.Config, args []string) (lock *instance.Lock, ne
 				return nil, cfg, 0, true, warn
 			}
 		}
-		r := instance.Find(context.Background(), cfg.DataDir, 10*time.Second)
-		if !askWhenRunning(cfg) {
-			fmt.Fprintln(os.Stderr, instance.Line(r, cfg.DataDir))
-			return nil, cfg, instance.ExitRunning, false, ""
+		out := instance.WhenRunning(cfg.DataDir, cfg.Listen, args, askWhenRunning(cfg), false)
+		if out.Again == nil {
+			return nil, cfg, out.Code, false, ""
 		}
-		if !r.Answering {
-			if _, err := desktop.Ask("WittyMediaServer is already running", instance.NotAnsweringText(r), []string{"OK"}); err != nil {
-				fmt.Fprintln(os.Stderr, instance.Line(r, cfg.DataDir))
-			}
-			return nil, cfg, instance.ExitRunning, false, ""
-		}
-		d := instance.Decide(instance.DesktopQuestion(r, cfg.DataDir, cfg.Listen))
-		switch d.Choice {
-		case instance.ChoiceOpen:
-			if err := desktop.OpenURL(r.URL); err != nil {
-				fmt.Fprintln(os.Stderr, instance.Line(r, cfg.DataDir))
-			}
-			return nil, cfg, 0, false, ""
-		case instance.ChoiceAnother:
-			args = instance.WithAnother(args, cfg.Listen, d)
-			if cfg, err = config.Parse(args); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return nil, nil, 2, false, ""
-			}
-			continue
-		default:
-			return nil, cfg, 0, false, ""
+		args = out.Again
+		if cfg, err = config.Parse(args); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return nil, nil, 2, false, ""
 		}
 	}
 	return nil, cfg, instance.ExitRunning, false, ""

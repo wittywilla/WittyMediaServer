@@ -2,8 +2,11 @@ package instance
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -174,10 +177,73 @@ func DesktopQuestion(r Running, dir, listen string) Question {
 	}
 }
 
-// WithAnother is args with the second server's folder and port added, which win over
-// any given before them.
-func WithAnother(args []string, listen string, d Decision) []string {
+// PrepareAnother gets the second server's folder ready and returns args to start it with.
+// It has a config file of its own in its folder: the first server's wms.json, or WMS_*
+// variables, can name a cache, transcode, artwork or log folder outside the data folder,
+// and two servers must never share those. That file is also how it's started again by
+// hand: wittymediaserver -config <folder>/wms.json.
+func PrepareAnother(args []string, listen string, d Decision) ([]string, error) {
 	host, _, _ := net.SplitHostPort(listen)
+	addr := net.JoinHostPort(host, strconv.Itoa(d.Port))
+	if err := os.MkdirAll(d.Folder, 0o750); err != nil {
+		return nil, err
+	}
+	conf := filepath.Join(d.Folder, "wms.json")
+	if _, err := os.Stat(conf); os.IsNotExist(err) {
+		b, _ := json.MarshalIndent(map[string]string{"dataDir": d.Folder, "listen": addr}, "", "  ")
+		if err := os.WriteFile(conf, append(b, '\n'), 0o640); err != nil {
+			return nil, err
+		}
+	}
+	for _, v := range []string{"WMS_CONFIG", "WMS_DATA_DIR", "WMS_LISTEN", "WMS_CACHE_DIR", "WMS_METADATA_DIR", "WMS_TRANSCODE_DIR", "WMS_LOG_DIR"} {
+		_ = os.Unsetenv(v) // for this process and what it starts: they'd point at the first server's
+	}
 	out := append([]string(nil), args...)
-	return append(out, "-data", d.Folder, "-listen", net.JoinHostPort(host, strconv.Itoa(d.Port)))
+	return append(out, "-config", conf, "-data", d.Folder, "-listen", addr, "-log-dir", filepath.Join(d.Folder, "logs")), nil
+}
+
+// Outcome is what a start that found its data folder in use does next.
+type Outcome struct {
+	Code   int      // exit with this, unless one of these is set:
+	Again  []string // start again with these arguments: a second server
+	Attach bool     // the tray app: show the service that's running there
+}
+
+// WhenRunning handles a start that found dir in use, for the server and the tray app
+// alike: one line when nobody is there to answer, the question when someone is. listen is
+// the address this start would have used. Only the tray app attaches to a service.
+func WhenRunning(dir, listen string, args []string, interactive, attachToService bool) Outcome {
+	wait := 10 * time.Second
+	if interactive {
+		wait = 3 * time.Second // someone is waiting, and the answer is the same: try again soon
+	}
+	r := Find(context.Background(), dir, wait)
+	if r.Service && attachToService {
+		return Outcome{Attach: true}
+	}
+	if !interactive {
+		fmt.Fprintln(os.Stderr, Line(r, dir))
+		return Outcome{Code: ExitRunning}
+	}
+	if !r.Answering {
+		if _, err := desktop.Ask(TitleRunning, NotAnsweringText(r), []string{"OK"}); err != nil {
+			fmt.Fprintln(os.Stderr, Line(r, dir))
+		}
+		return Outcome{Code: ExitRunning}
+	}
+	d := Decide(DesktopQuestion(r, dir, listen))
+	switch d.Choice {
+	case ChoiceOpen:
+		if err := desktop.OpenURL(r.URL); err != nil {
+			fmt.Fprintln(os.Stderr, Line(r, dir))
+		}
+	case ChoiceAnother:
+		next, err := PrepareAnother(args, listen, d)
+		if err != nil {
+			_, _ = desktop.Ask(TitleAnother, "The second server's folder couldn't be made: "+err.Error(), []string{"OK"})
+			return Outcome{Code: 1}
+		}
+		return Outcome{Again: next}
+	}
+	return Outcome{}
 }

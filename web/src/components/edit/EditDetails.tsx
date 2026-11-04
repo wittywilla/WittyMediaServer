@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, artPreviewUrl, type Item, type Show } from '../../api'
-import { IconCheck, IconClose, IconLock, IconRefresh, IconTrash, IconUnlock } from '../../icons'
+import { IconClose, IconImage, IconLock, IconRefresh, IconTrash, IconUnlock } from '../../icons'
 import { ask, Button, Dialog, IconButton } from '../../ui'
-import { fmtClock, joinOf, listOf, parseClock, sendPicture, undoBatch, type ArtChoice, type ArtKind, type MetaField, type Target, type TitleEditor } from '../../metadata'
+import { fmtClock, joinOf, listOf, parseClock, undoBatch, type ArtKind, type MetaField, type Target, type TitleEditor } from '../../metadata'
 import { toast } from '../../state'
 import LegalNote from '../LegalNote'
 import RatingField from '../RatingField'
 import { LogoRows } from './LogoChooser'
 import MatchPanel from './MatchPanel'
+import TitleArtPicker from './TitleArtPicker'
 import './edit.css'
 
 // Edit details: one dialog for a film, an episode or a show. Everything about a title is
@@ -78,6 +79,15 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
     setEd(next)
     onChanged()
     if (batch && what) setUndo({ batch, what })
+  }
+
+  // The artwork picker applied something: what was waiting to be saved for that picture is
+  // gone, as the picture now is what was chosen.
+  const artApplied = (next: TitleEditor, batch: string, what: string) => {
+    const moved = ART.map((a) => a.kind).filter((k) => next.fields[k]?.value !== ed?.fields[k]?.value)
+    const drop = <T,>(m: Record<string, T>) => { const n = { ...m }; for (const k of moved) delete n[k]; return n }
+    setDraft(drop); setLocks(drop)
+    applied(next, batch, what)
   }
 
   const save = async () => {
@@ -165,7 +175,7 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
                 <p className="muted ed-help">A locked field stays as it is: no scan, refresh, new match or file beside it can change it. Anything you type locks itself.</p>
                 <DetailFields {...fieldProps} />
               </section>
-              <ArtworkSection {...fieldProps} target={target} id={id} onApplied={applied} onError={setErr} />
+              <ArtworkSection {...fieldProps} target={target} id={id} onApplied={artApplied} />
               {!ed.disc && <PlaybackSection {...fieldProps} target={target} id={id} dirty={dirty} onError={setErr} />}
               <OrganiseSection ed={ed} target={target} id={id} onApplied={applied} onError={setErr} />
               {ed.kind !== 'episode' && (
@@ -325,34 +335,27 @@ const ART: { kind: ArtKind; label: string; hint: string; wide?: boolean }[] = [
   { kind: 'logo', label: 'Title logo', hint: 'The name as a picture, over its backdrop.', wide: true },
 ]
 
-function ArtworkSection(p: FieldProps & { target: Target; id: number; onApplied: (e: TitleEditor, b?: string, w?: string) => void; onError: (s: string) => void }) {
-  const [browse, setBrowse] = useState<ArtKind | null>(null)
+type ArtProps = FieldProps & { target: Target; id: number; onApplied: (e: TitleEditor, b: string, w: string) => void }
+
+function ArtworkSection(p: ArtProps) {
+  const [picking, setPicking] = useState<ArtKind | null>(null)
   const kinds = ART.filter((a) => p.ed.order.includes(a.kind))
   return (
     <section id="ed-artwork" className="ed-section" aria-labelledby="ed-artwork-h">
       <h3 id="ed-artwork-h">Artwork</h3>
+      <p className="muted ed-help">Change opens the picture picker: what each source has, a file of your own, an address or a frame from the video. A picture is used as soon as you apply it, and can be undone.</p>
       <div className="ed-art-grid">
-        {kinds.map((a) => <ArtSlot key={a.kind} a={a} p={p} open={browse === a.kind} onBrowse={() => setBrowse(browse === a.kind ? null : a.kind)} />)}
+        {kinds.map((a) => <ArtSlot key={a.kind} a={a} p={p} onChange={() => setPicking(a.kind)} />)}
       </div>
-      {browse && <ArtBrowser kind={browse} target={p.target} id={p.id} current={p.val(browse)} onPick={(u) => p.set(browse, u)} onClose={() => setBrowse(null)} />}
-      <LegalNote kind="webResults" />
+      {picking && <TitleArtPicker target={p.target} id={p.id} ed={p.ed} start={picking} onApplied={p.onApplied} onClose={() => setPicking(null)} />}
     </section>
   )
 }
 
-function ArtSlot({ a, p, open, onBrowse }: { a: (typeof ART)[number]; p: FieldProps & { target: Target; id: number; onApplied: (e: TitleEditor, b?: string, w?: string) => void; onError: (s: string) => void }; open: boolean; onBrowse: () => void }) {
-  const input = useRef<HTMLInputElement | null>(null)
+function ArtSlot({ a, p, onChange }: { a: (typeof ART)[number]; p: ArtProps; onChange: () => void }) {
   const [broken, setBroken] = useState(false)
   const value = p.val(a.kind)
   useEffect(() => setBroken(false), [value])
-  const upload = async (f?: File) => {
-    if (!f) return
-    p.onError('')
-    try {
-      const r = await sendPicture<{ editor: TitleEditor; batch: string }>(`/meta/${p.target}/${p.id}/art/${a.kind}`, f)
-      p.onApplied(r.editor, r.batch, `${a.label} changed.`)
-    } catch (e: any) { p.onError(e.message) }
-  }
   const showable = value && value !== 'lazy' && !broken
   return (
     <div className={'ed-art' + (a.kind === 'poster' ? ' tall' : ' wide')}>
@@ -366,60 +369,10 @@ function ArtSlot({ a, p, open, onBrowse }: { a: (typeof ART)[number]; p: FieldPr
         </div>
         <span className="ed-source">{value !== (p.ed.fields[a.kind]?.value ?? '') ? 'Not saved yet' : sourceWords(p.ed.fields[a.kind]) || a.hint}</span>
         <div className="ed-art-btns">
-          <button type="button" className={'btn sm' + (open ? ' active' : '')} aria-expanded={open} onClick={onBrowse}>Browse images</button>
-          <button type="button" className="btn sm" onClick={() => input.current?.click()}>Upload your own</button>
+          <button type="button" className="btn sm" aria-haspopup="dialog" aria-label={`Change the ${a.label.toLowerCase()}`} onClick={onChange}><IconImage size={16} /> Change</button>
           {value && <button type="button" className="btn sm ghost" onClick={() => p.set(a.kind, '')}>Remove</button>}
           {p.ed.fields[a.kind]?.canRevert && <button type="button" className="btn sm ghost" onClick={() => p.revert(a.kind)}>Revert</button>}
         </div>
-        <input ref={input} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden aria-label={`Upload a picture for ${a.label}`} onChange={(e) => { upload(e.target.files?.[0]); e.target.value = '' }} />
-      </div>
-    </div>
-  )
-}
-
-function ArtBrowser({ kind, target, id, current, onPick, onClose }: { kind: ArtKind; target: Target; id: number; current: string; onPick: (u: string) => void; onClose: () => void }) {
-  const [list, setList] = useState<ArtChoice[] | null>(null)
-  const [warn, setWarn] = useState<string[]>([])
-  const [url, setUrl] = useState('')
-  useEffect(() => {
-    setList(null)
-    api.get<{ candidates: ArtChoice[]; warnings: string[] }>(`/meta/${target}/${id}/artwork?kind=${kind}`)
-      .then((r) => { setList(r.candidates); setWarn(r.warnings) })
-      .catch((e) => { setList([]); setWarn([e.message]) })
-  }, [kind, target, id])
-  const box = useRef<HTMLDivElement | null>(null)
-  // Arrow keys along the grid, as well as Tab.
-  const arrows = (e: React.KeyboardEvent) => {
-    const keys: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 }
-    if (!(e.key in keys)) return
-    const items = [...(box.current?.querySelectorAll<HTMLButtonElement>('button') || [])]
-    const i = items.indexOf(document.activeElement as HTMLButtonElement)
-    if (i >= 0 && items[i + keys[e.key]]) { e.preventDefault(); items[i + keys[e.key]].focus() }
-  }
-  return (
-    <div className="ed-browser" aria-label={`Choose a ${kind}`} role="group">
-      <div className="ed-section-head">
-        <b>Choose a {kind === 'logo' ? 'title logo' : kind}</b>
-        <button type="button" className="btn sm ghost" onClick={onClose}>Close images</button>
-      </div>
-      {warn.map((w) => <p key={w} className="muted ed-help">{w}</p>)}
-      {!list ? <div className="loading-box"><div className="spinner" /></div> : list.length === 0 ? <p className="muted">No pictures were found. Upload your own, or paste an address below.</p> : (
-        <div className={'ed-choices ' + kind} ref={box} onKeyDown={arrows}>
-          {list.map((c) => {
-            const on = c.url === current
-            return (
-              <button type="button" key={c.url} className={'ed-choice' + (on ? ' on' : '')} aria-pressed={on} onClick={() => onPick(c.url)} aria-label={`${kind} from ${c.sourceLabel || 'this server'}${on ? ', chosen' : ''}`}>
-                <img src={artPreviewUrl(c.url)} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).closest('button')!.hidden = true }} />
-                <span className="ed-choice-src">{c.sourceLabel}</span>
-                {on && <span className="ed-choice-check" aria-hidden="true"><IconCheck size={18} /></span>}
-              </button>
-            )
-          })}
-        </div>
-      )}
-      <div className="field-row ed-url">
-        <input className="input" aria-label="An address of a picture" placeholder="Or paste a picture's web address" value={url} onChange={(e) => setUrl(e.target.value)} />
-        <button type="button" className="btn" disabled={!/^https?:\/\//i.test(url)} onClick={() => { onPick(url.trim()); setUrl('') }}>Use it</button>
       </div>
     </div>
   )

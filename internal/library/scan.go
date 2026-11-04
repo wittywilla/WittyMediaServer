@@ -63,6 +63,9 @@ type Scanner struct {
 	OnGamesScanned func()
 	// SaveMeta reports whether to write NFO/artwork beside the media.
 	SaveMeta func() bool
+	// NoPoster says what a video with no poster of its own gets: NoPosterFrame (also when
+	// nil), NoPosterTitle or NoPosterNone.
+	NoPoster func() string
 	Log      *slog.Logger
 	// Tasks is where scans show up in the activity panel. May be nil.
 	Tasks *tasks.Registry
@@ -828,13 +831,13 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		s.Store.keepLockedItem(ctx, it, existing, meta)
 	}
 	prov.note(it, it.Provider)
-	// Generated thumbnail as the last resort.
-	if it.Poster == "" && (it.Disc == nil || !it.Disc.Scrambled) {
-		if p, err := s.thumbnail(ctx, it); err == nil {
+	// A poster of our own as the last resort.
+	if it.Poster == "" {
+		if p, src, err := s.fallbackPoster(ctx, it); err != nil {
+			s.minorFailure(ctx, "could not make a poster", err, "file", c.path)
+		} else if p != "" {
 			it.Poster = p
-			prov.note(it, SourceFrame)
-		} else {
-			s.minorFailure(ctx, "could not make a thumbnail", err, "file", c.path)
+			prov.note(it, src)
 		}
 	}
 	if !meta.Locks["director"] && it.director != "" {
@@ -1225,8 +1228,13 @@ func (s *Scanner) probeDisc(ctx context.Context, it *Item) {
 
 // thumbnail grabs a frame ~20% into the feature and stores it in the cache.
 func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
+	return s.frameAt(ctx, it, "thumb-", 600)
+}
+
+// frameAt is thumbnail at a width, kept under a name that starts with prefix.
+func (s *Scanner) frameAt(ctx context.Context, it *Item, prefix string, width int) (string, error) {
 	h := sha1.Sum([]byte(it.Path))
-	name := "thumb-" + hex.EncodeToString(h[:8]) + ".jpg"
+	name := prefix + hex.EncodeToString(h[:8]) + ".jpg"
 	out := filepath.Join(s.ImagesDir, name)
 	if st, err := os.Stat(out); err == nil && st.Size() > 0 {
 		return "cache:" + name, nil
@@ -1275,7 +1283,7 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 			at = cell.Cell.Duration / 2
 		}
 	}
-	if err := s.Tools.Poster(tctx, input, at, 600, out); err != nil {
+	if err := s.Tools.Poster(tctx, input, at, width, out); err != nil {
 		return "", err
 	}
 	return "cache:" + name, nil

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
@@ -437,7 +438,9 @@ func (s *Server) handleMetaRefresh(w http.ResponseWriter, r *http.Request) {
 const maxArtUpload = 20 << 20
 
 // PUT /api/meta/{target}/{id}/art/{kind}, with the picture as the body. It's checked to
-// be a picture and kept in the image cache, under a name that's ours alone.
+// be a picture, written again from its pixels, and kept in the image cache under a name
+// that's ours alone. With ?stage=1 that's all: the answer is the picture's address, for
+// the artwork picker to show and apply later; otherwise it's the title's at once.
 func (s *Server) handleMetaArtUpload(w http.ResponseWriter, r *http.Request) {
 	t, ok := s.titleFromPath(w, r)
 	if !ok {
@@ -459,9 +462,9 @@ func (s *Server) handleMetaArtUpload(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 413, "the picture is too big: the limit is 20 MB")
 		return
 	}
-	ext := library.PictureExt(body)
-	if ext == "" {
-		writeErr(w, 400, "use a JPEG, PNG, WebP or GIF picture")
+	body, ext, err := library.CleanPicture(body)
+	if err != nil {
+		writeErr(w, 400, err.Error())
 		return
 	}
 	if err := os.MkdirAll(s.Cfg.ImagesDir, 0o755); err != nil {
@@ -472,6 +475,10 @@ func (s *Server) handleMetaArtUpload(w http.ResponseWriter, r *http.Request) {
 	name := "up-" + hex.EncodeToString(h[:10]) + ext
 	if err := os.WriteFile(filepath.Join(s.Cfg.ImagesDir, name), body, 0o644); err != nil {
 		writeErr(w, 500, err.Error())
+		return
+	}
+	if r.URL.Query().Get("stage") == "1" {
+		writeJSON(w, 200, map[string]string{"url": "cache:" + name})
 		return
 	}
 	ctx := r.Context()
@@ -490,6 +497,74 @@ func (s *Server) handleMetaArtUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]any{"editor": s.buildEditor(ctx, t), "batch": batch})
+}
+
+// POST /api/meta/{target}/{id}/frame: a picture from the video, for the artwork picker
+// to offer. Nothing changes until it's applied.
+func (s *Server) handleMetaFrame(w http.ResponseWriter, r *http.Request) {
+	t, ok := s.titleFromPath(w, r)
+	if !ok {
+		return
+	}
+	if t.Item == nil {
+		writeErr(w, 400, "a show has no video of its own: choose one of its episodes")
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Minute)
+	defer cancel()
+	u, err := s.Scanner.Frame(ctx, t.Item)
+	if err != nil {
+		s.Log.WarnContext(ctx, "could not take a frame for artwork", "cat", "library", "file", t.Item.Path, "err", err)
+		writeErr(w, 422, "no picture could be taken from this video")
+		return
+	}
+	writeJSON(w, 200, map[string]string{"url": u})
+}
+
+// POST /api/meta/{target}/{id}/titleposter {title, line, hue, frame}: a poster made from
+// the words given, on a colour or over a frame from the video (frame: true), for the
+// artwork picker to offer. Nothing changes until it's applied.
+func (s *Server) handleMetaTitlePoster(w http.ResponseWriter, r *http.Request) {
+	t, ok := s.titleFromPath(w, r)
+	if !ok {
+		return
+	}
+	var b struct {
+		Title string `json:"title"`
+		Line  string `json:"line"`
+		Hue   *int   `json:"hue"`
+		Frame bool   `json:"frame"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	p := library.TitlePoster{Title: b.Title, Line: b.Line, Hue: -1}
+	if b.Hue != nil {
+		p.Hue = *b.Hue
+	}
+	ctx := r.Context()
+	if b.Frame {
+		if t.Item == nil {
+			writeErr(w, 400, "a show has no video of its own: choose its colour instead")
+			return
+		}
+		fctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+		u, err := s.Scanner.Frame(fctx, t.Item)
+		cancel()
+		if err != nil {
+			s.Log.WarnContext(ctx, "could not take a frame for a title poster", "cat", "library", "file", t.Item.Path, "err", err)
+			writeErr(w, 422, "no picture could be taken from this video")
+			return
+		}
+		p.Frame = u
+	}
+	u, err := s.Scanner.MakeTitlePoster(p)
+	if err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"url": u, "hue": library.HueOf(strings.Join(strings.Fields(b.Title), " "))})
 }
 
 // GET /api/meta/{target}/{id}/artwork?kind=: every picture every source has for it, once.

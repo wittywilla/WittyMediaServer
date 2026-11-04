@@ -622,6 +622,8 @@ func (t *Title) sourceOf(f string) string {
 		switch {
 		case strings.HasPrefix(v, "cache:thumb-") || v == LazyPoster:
 			return SourceFrame
+		case strings.HasPrefix(v, "cache:made-"):
+			return SourceMade
 		case isRemote(v) || strings.HasPrefix(v, "cache:"):
 			if provider != "" {
 				return provider
@@ -642,7 +644,7 @@ func (t *Title) sourceOf(f string) string {
 // IsServiceSource: the value came from a metadata service, so a new match replaces it.
 func isServiceSource(src string) bool {
 	switch src {
-	case "", SourceYou, SourceFile, SourceNFO, SourceLocal, SourceFrame, SourceProbe:
+	case "", SourceYou, SourceFile, SourceNFO, SourceLocal, SourceFrame, SourceMade, SourceProbe:
 		return false
 	}
 	return true

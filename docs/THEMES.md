@@ -355,7 +355,7 @@ The interface is built from these classes. Combine them with the settings above.
 | `.toast` | notifications |
 | `.error`, `.ok`, `.muted` | message and text helpers |
 | `.spinner` | loading indicator |
-| `.art-grid`, `.art-choice` | artwork picker |
+| `.art-picker`, `.ap-grid`, `.ap-choice`, `.ap-preview` | artwork picker |
 | `.theme-grid`, `.theme-card`, `.theme-card.active` | theme picker |
 | `.hw-list`, `.hw-item`, `.profile` | transcoding settings |
 | `.auth-card` | sign-in / first-run card |

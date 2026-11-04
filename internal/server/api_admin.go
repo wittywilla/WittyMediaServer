@@ -26,10 +26,10 @@ var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeigh
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "musicbrainz", "animeIn", "animeTitles",
 	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "uploadAccountMb", "shareLinks", "mapTiles", "lanDiscovery", "radioDirectory", "radioChecks",
-	"legalOwnerNotice", "legalOwnerContact"}
+	"legalOwnerNotice", "legalOwnerContact", "noPoster"}
 
 // settingDefaults are returned when a key has never been saved.
-var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
+var settingDefaults = map[string]string{"saveMetadata": "1", "noPoster": library.NoPosterFrame, "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
 	"theme": "default", "directPlay": "1", "qualityMode": "easy", "qualityProfile": "balanced", "x264Preset": "veryfast", "crf": "21", "maxSpeed": "4",
 	"loginStyle": "profiles", "profilesRemote": "0", "kidsManagedBy": "adults", "insertSound": "1", "tvmaze": "1", "wikidata": "1", "musicbrainz": "1", "animeIn": "both", "animeTitles": "english",
 	// libraryGrouping: another folder of a kind joins that kind's library
@@ -188,6 +188,10 @@ func checkSetting(k, v string) error {
 			if _, err := strconv.ParseFloat(v, 64); err != nil {
 				return errors.New(k + " must be a number")
 			}
+		}
+	case "noPoster":
+		if v != library.NoPosterFrame && v != library.NoPosterTitle && v != library.NoPosterNone {
+			return errors.New("no poster must be frame, title or none")
 		}
 	case "audioCodec":
 		if v != "" && v != "aac" && v != "mp3" {

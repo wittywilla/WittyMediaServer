@@ -261,6 +261,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/meta/{target}/{id}/leave", s.requireAdmin(s.handleMetaLeave))
 	m.Handle("GET /api/meta/{target}/{id}/artwork", s.requireAdmin(s.handleMetaArtwork))
 	m.Handle("PUT /api/meta/{target}/{id}/art/{kind}", s.requireAdmin(s.handleMetaArtUpload))
+	m.Handle("POST /api/meta/{target}/{id}/frame", s.requireAdmin(s.handleMetaFrame))
+	m.Handle("POST /api/meta/{target}/{id}/titleposter", s.requireAdmin(s.handleMetaTitlePoster))
 	m.Handle("GET /api/meta/{target}/{id}/art/{kind}", a(s.handleTitleArt))
 	m.Handle("POST /api/meta/{target}/{id}/link", s.requireAdmin(s.handleMetaLink))
 	m.Handle("DELETE /api/meta/{target}/{id}/link", s.requireAdmin(s.handleMetaUnlink))

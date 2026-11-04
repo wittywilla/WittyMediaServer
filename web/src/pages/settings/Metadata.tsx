@@ -80,6 +80,16 @@ export default function MetadataSettings() {
         </Row>
       </Section>
 
+      <Section title="Artwork">
+        <Row label="When a film or video has no poster" desc="What a title gets when nothing beside it or from a source has a poster. You can change any title's poster, or make a title poster for it, from its page.">
+          <select className="select" value={s.noPoster || 'frame'} onChange={(e) => set('noPoster', e.target.value)}>
+            <option value="frame">A frame from the video</option>
+            <option value="title">A poster made from its title</option>
+            <option value="none">Nothing: a plain card</option>
+          </select>
+        </Row>
+      </Section>
+
       <Section title="Saving information">
         <Row label="Save information and artwork next to your media" desc="Writes standard NFO files and poster.jpg / fanart.jpg that other media servers can read too. Existing NFO files are kept as .nfo.bak.">
           <Switch label="Save next to media" checked={on('saveMetadata', '0')} onChange={(v) => set('saveMetadata', v ? '1' : '0')} />

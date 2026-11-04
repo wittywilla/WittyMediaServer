@@ -151,7 +151,9 @@ func TestResetFollowsReminders(t *testing.T) {
 		if r.Start == moves.Start {
 			t.Fatal("the reminder did not move")
 		}
-		if !slices.ContainsFunc(cells, func(p Programme) bool { return p.Start == r.Start && p.End == r.End && p.Title == moves.Title && p.Sub == moves.Sub }) {
+		if !slices.ContainsFunc(cells, func(p Programme) bool {
+			return p.Start == r.Start && p.End == r.End && p.Title == moves.Title && p.Sub == moves.Sub
+		}) {
 			t.Fatalf("moved to %d, where that programme isn't", r.Start)
 		}
 	}

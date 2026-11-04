@@ -76,5 +76,5 @@
 }
 
 /* The poster's own menu on a title's page: always shown, as a touch screen has no hover. */
-.detail .poster .poster-menu { position: absolute; right: var(--sp-2); bottom: var(--sp-2); background: var(--scrim); color: var(--on-image); border-color: transparent; backdrop-filter: blur(6px); }
+.detail .poster .poster-menu { position: absolute; right: var(--sp-2); bottom: var(--sp-2); background: var(--scrim); color: var(--on-image); border-color: transparent; }
 .detail .poster .poster-menu:hover, .detail .poster .poster-menu:focus-visible { background: var(--bg-2); color: var(--fg); }

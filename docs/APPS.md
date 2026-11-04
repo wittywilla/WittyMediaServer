@@ -154,6 +154,7 @@ Apps search your home network, and the servers they find are listed under **On y
 **If your server isn't listed:**
 
 - A firewall on the server may be blocking UDP ports 5353 and 9797.
+- On a Mac, the server may not be allowed on the local network. Turn on **WittyMediaServer** in **System Settings → Privacy & Security → Local Network**, then quit the app and open it again.
 - Your Wi-Fi may keep devices apart. Guest networks and "client isolation" do this.
 - The server may be in a container without host networking.
 - The server may only accept connections from its own computer.

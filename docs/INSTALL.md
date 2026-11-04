@@ -317,6 +317,8 @@ A server nobody can reach from a home network first, such as a rented one, also 
 
 **If other devices can't connect on Windows.** The installer's firewall rule covers networks you've marked private, not public ones. Set your network to **Private** in Windows' network settings.
 
+**If other devices can't find or connect on a Mac.** The first time the app starts the server, macOS asks whether WittyMediaServer may find devices on local networks. Choose **Allow**. If you didn't, turn it on in **System Settings → Privacy & Security → Local Network**, then quit the app and open it again.
+
 **Away from home.** It works once you turn on **Settings → Remote Access** and follow its steps. Until then the server refuses connections from outside your home, even if your router lets them through. [Remote access](REMOTE.md) explains each way in: a private VPN, which is the easiest and safest; forwarding a port with HTTPS; your own reverse proxy; or a rented server. The server refuses unencrypted connections from the internet, so use HTTPS, and strong passwords for every adult profile.
 
 ## Behind a reverse proxy

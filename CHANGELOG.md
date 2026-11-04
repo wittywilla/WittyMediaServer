@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **The Mac app's server can be found and reached on your network.** macOS's Local Network privacy blocked it without asking, so phones, TVs and other computers never listed it under **On your network**. The app and its server had only the signature the linker gives every program, all called "a.out", which macOS can't ask about by name. They're now signed as WittyMediaServer, and the first time the server reaches the network macOS asks whether it may: choose **Allow**. This is in the `.pkg`, and in an app built on a Mac. The release's `.tar.gz` is still built elsewhere, so its app isn't signed yet.
+
 ## 0.6.2-alpha
 
 - **The Windows installer updates an installed copy again.** Installing 0.6.1-alpha's `.msi` over 0.6.0-alpha stopped with "The error code is 2613" and put the old version back. The step that stops a running copy was placed where Windows Installer doesn't allow it, which only shows when one installer version replaces another. Every release's Windows installer is now tested installing over the one before, for everyone, for one account and as a service, before it's published.

@@ -482,13 +482,35 @@ func pdfString(b []byte) string {
 
 // djvuTool finds a program of DjVuLibre, which isn't part of this server. Nothing is
 // looked for in the folder the server runs from.
+//
+// Looking means trying every folder on PATH, and on Windows every extension in PATHEXT
+// too: 50 ms to seconds on a busy machine, for the formats page and each DjVu book in a
+// scan. So the answer is kept for a minute, which still notices DjVuLibre being installed.
 func djvuTool(name string) string {
+	djvuFound.Lock()
+	defer djvuFound.Unlock() // held while looking: the others asking want the same answer
+	if f, ok := djvuFound.m[name]; ok && time.Since(f.at) < djvuLookAgain {
+		return f.path
+	}
 	p, err := exec.LookPath(name)
 	if err != nil || !filepath.IsAbs(p) {
-		return ""
+		p = ""
 	}
+	djvuFound.m[name] = foundTool{p, time.Now()}
 	return p
 }
+
+const djvuLookAgain = time.Minute
+
+type foundTool struct {
+	path string
+	at   time.Time
+}
+
+var djvuFound = struct {
+	sync.Mutex
+	m map[string]foundTool
+}{m: map[string]foundTool{}}
 
 // HasDjVu says DjVu pages can be drawn on this machine.
 func HasDjVu() bool { return djvuTool("ddjvu") != "" }

@@ -21,7 +21,7 @@ To change a module, work in its repository. A change that crosses the line is tw
 
 ## Build and run
 
-The server needs only one other repository to build, WittyModule. Clone it beside this one, and run `dev-modules.mjs` once in each checkout:
+The server needs only WittyModule and the core libraries (WittyDisc) to build, at the versions `go.mod` names, which Go fetches by itself. To work on WittyModule alongside, clone it beside this one, and run `dev-modules.mjs` once in each checkout:
 
 ```bash
 git clone https://github.com/wittywilla/WittyModule

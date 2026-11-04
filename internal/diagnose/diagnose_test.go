@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wittywilla/wittydisc/isofs"
 	wittydvd "github.com/wittywilla/wittymediaserver/internal/dvd"
-	"github.com/wittywilla/wittymediaserver/internal/isofs"
 )
 
 // Every test makes its own small fixtures. Nothing here reads a real disc.

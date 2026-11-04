@@ -75,10 +75,11 @@ jobs:
         continue-on-error: true
         run: go run honnef.co/go/tools/cmd/staticcheck@2026.2.2 ./internal/... ./cmd/...
       # The server has no module's code in it: each is a program of its own, fetched and verified
-      # at run time. WittyModule is the one thing they share.
-      - name: Nothing but WittyModule from the modules
+      # at run time. What they share is WittyModule and the core libraries: shared code with no
+      # program of its own, pinned by go.mod. docs/plans/module-isolation.md.
+      - name: Nothing but WittyModule and core libraries from the modules
         run: |
-          found="$(for goos in linux windows darwin freebsd; do GOOS=$goos go list -deps -f '{{with .Module}}{{.Path}}{{end}}' ./... ; done | sort -u | grep '^github.com/wittywilla/' | grep -vE '/(wittymodule|wittymediaserver)$' || true)"
+          found="$(for goos in linux windows darwin freebsd; do GOOS=$goos go list -deps -f '{{with .Module}}{{.Path}}{{end}}' ./... ; done | sort -u | grep '^github.com/wittywilla/' | grep -vE '/(wittymodule|wittydisc|wittymediaserver)$' || true)"
           [ -z "$found" ] || { echo "$found"; exit 1; }
       - name: Cross-compile every release platform
         run: |

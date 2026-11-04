@@ -207,7 +207,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const hlsRef = useSource(video, info?.url || null, {
     startAt: () => pendingSeek.current,
     growing: info?.seek === 'restart',
-    robust, measuredKbps: info?.streaming?.measuredKbps, onNote,
+    robust, measuredKbps: info?.streaming?.measuredKbps, startHeight: info?.streaming?.ladder?.[0]?.height, onNote,
     onReopen: (at) => {
       const est = hlsRef.current?.bandwidthEstimate
       if (est) rememberSpeed(est / 1000) // what the connection was doing, for the new stream's start

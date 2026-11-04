@@ -33,7 +33,7 @@ const CLIMB_AFTER_MS = 60000 // smooth this long after stepping down: let the pl
 // for a new stream at that place when this one can't go on), and says what it did (onNote).
 export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: string | null,
   opts: { onReady?: () => void; onError?: (msg: string) => void; startAt?: () => number | null | undefined; logSession?: string | null; growing?: boolean
-    robust?: StreamingHints | null; measuredKbps?: number; onNote?: (n: NetNote) => void; onReopen?: (at: number) => void } = {}) {
+    robust?: StreamingHints | null; measuredKbps?: number; startHeight?: number; onNote?: (n: NetNote) => void; onReopen?: (at: number) => void } = {}) {
   const hlsRef = useRef<Hls | null>(null)
   const optsRef = useRef(opts)
   optsRef.current = opts
@@ -49,16 +49,18 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
     const robust = optsRef.current.robust
     if (isHls && mediaSourceWorks()) {
       const attach = (Hls: HlsClass) => {
+        // A rewrapped stream grows as it's made, which HLS calls live. It starts at its
+        // start, however far ahead it has got.
+        const startPos = optsRef.current.growing ? 0 : (start != null && start > 0.5 ? start : -1)
         const retry = robust && { maxNumRetry: robust.retries, retryDelayMs: robust.firstRetryMs, maxRetryDelayMs: robust.maxRetryMs, backoff: 'exponential' as const }
         const policy = (ttfb: number) => (retry ? { default: { maxTimeToFirstByteMs: ttfb, maxLoadTimeMs: ttfb * 2, timeoutRetry: retry, errorRetry: retry } } : undefined)
         const hls = new Hls({
           xhrSetup: (xhr) => { const t = getToken(); if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t); xhr.withCredentials = !serverBase() },
           maxBufferLength: 30, maxMaxBufferLength: 90, backBufferLength: 30,
           fragLoadingTimeOut: 60000, manifestLoadingTimeOut: 20000, fragLoadingMaxRetry: 6, levelLoadingMaxRetry: 6,
-          // A rewrapped stream grows as it's made, which HLS calls live. It starts at its
-          // start, however far ahead it has got.
-          startPosition: optsRef.current.growing ? 0 : (start != null && start > 0.5 ? start : -1), lowLatencyMode: false,
+          startPosition: startPos, lowLatencyMode: false,
           ...(robust && retry ? {
+            autoStartLoad: false, // until the start rung is set (below)
             maxBufferLength: robust.bufferSec, maxMaxBufferLength: robust.maxBufferSec,
             fragLoadPolicy: policy(robust.segmentTimeoutMs), playlistLoadPolicy: policy(20000), manifestLoadPolicy: policy(20000),
             // It starts at the rung the server listed first, chosen from the measured speed,
@@ -69,7 +71,17 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
         hlsRef.current = hls
         hls.loadSource(abs)
         hls.attachMedia(v)
-        hls.on(Hls.Events.MANIFEST_PARSED, () => { if (!destroyed) optsRef.current.onReady?.() })
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          // A robust stream starts at the rung the server chose from the measured speed, not
+          // the one hls.js would pick from its own first guess.
+          if (robust && retry) {
+            const h = optsRef.current.startHeight
+            const i = h ? hls.levels.findIndex((l) => l.height === h) : -1
+            if (i >= 0) hls.startLevel = i
+            hls.startLoad(startPos)
+          }
+          if (!destroyed) optsRef.current.onReady?.()
+        })
         // A stream the server no longer has (it restarted) would be retried for
         // ever behind a spinner; a busy server (503) is worth waiting for.
         let gone = 0

@@ -226,6 +226,8 @@ To use them:
 
 They also fill gaps to the time grid, and never count as watched. No break comes so near the end that you'd just wait for the programme to finish. The guide shows one programme with its breaks inside it, and its times are when it really starts and ends.
 
+Commercials are picked at random, but one that played lately waits until up to 24 others have (half of them, in a small library), unless it's the only one short enough for a gap. A video that one of the channel's bumper rules plays is a bumper on that channel, and isn't played as a commercial as well, unless the bumpers are all the commercials it has.
+
 Commercials come under a profile's limits like anything else: unrated ones hide a channel from a Kids profile, since viewers share one stream.
 
 ## Bumpers

@@ -711,7 +711,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		}
 	}
 	if k := c.unchanged(); k != nil && k.hasPoster && !k.hasDisc && !k.missing {
-		s.fixParsedTitle(ctx, &Item{ID: k.id, Path: c.path, Title: k.title, Provider: k.provider}, c.kind)
+		s.fixParsedTitle(ctx, &Item{ID: k.id, Path: c.path, Title: k.title, Provider: k.provider}, c.kind, lib.Type)
 		return nil
 	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
@@ -727,7 +727,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		if existing.Poster == "" {
 			s.findPoster(ctx, existing, c)
 		}
-		s.fixParsedTitle(ctx, existing, c.kind)
+		s.fixParsedTitle(ctx, existing, c.kind, lib.Type)
 		s.fillDiscContent(ctx, existing, lib.Type)
 		return nil
 	}
@@ -747,9 +747,9 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	}
 	// An id in the name says exactly what this is, and rules say how to read a folder's naming.
 	hint, hasHint := IDTag(c.path)
-	it.Title, it.Year = ParseName(stripIDTags(base))
+	it.Title, it.Year = itemName(lib.Type, stripIDTags(base))
 	// Folder name is often better than "VIDEO_TS"/"movie.mkv".
-	if parentTitle, parentYear := ParseName(stripIDTags(filepath.Base(filepath.Dir(c.path)))); c.kind != "dvd-folder" && c.kind != "bluray-folder" && it.Year == nil && parentYear != nil && !strings.EqualFold(filepath.Dir(c.path), lib.Paths[0]) {
+	if parentTitle, parentYear := ParseName(stripIDTags(filepath.Base(filepath.Dir(c.path)))); lib.Type != CommercialsType && c.kind != "dvd-folder" && c.kind != "bluray-folder" && it.Year == nil && parentYear != nil && !strings.EqualFold(filepath.Dir(c.path), lib.Paths[0]) {
 		it.Title, it.Year = parentTitle, parentYear
 	}
 	rules, _ := ctx.Value(rulesKey{}).(*ruleSet)
@@ -1282,9 +1282,10 @@ func (s *Scanner) thumbnail(ctx context.Context, it *Item) (string, error) {
 }
 
 // fixParsedTitle corrects the title of an unchanged item that was named from
-// its file by the earlier, faulty parse ("Dr.Story.The.Treeline" became
-// "Dr Story The"). Items matched online or retitled by hand keep theirs.
-func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind string) {
+// its file by an earlier, faulty parse ("Dr.Story.The.Treeline" became
+// "Dr Story The", and a commercial lost all its name after a second year).
+// Items matched online or retitled by hand keep theirs.
+func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind, libType string) {
 	if it.Provider != "" {
 		return
 	}
@@ -1293,7 +1294,12 @@ func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind string) {
 		base = filepath.Base(it.Path)
 	}
 	title, _ := ParseName(base)
-	if title == it.Title || it.Title != legacyTitle(base) || s.Store.TitleMeta(ctx, TargetItem, it.ID).Locks["title"] {
+	old := legacyTitle(base)
+	if libType == CommercialsType {
+		title, _ = ClipName(stripIDTags(base))
+		old, _ = ParseName(stripIDTags(base))
+	}
+	if title == it.Title || it.Title != old || s.Store.TitleMeta(ctx, TargetItem, it.ID).Locks["title"] {
 		return
 	}
 	if err := s.Store.retitle(ctx, it.ID, title); err != nil {

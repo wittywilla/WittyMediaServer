@@ -2,6 +2,7 @@ package hls
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -363,6 +364,10 @@ func (s *LiveSession) WaitReady(ctx context.Context) error {
 // the viewer gets a picture right away and has something to buffer.
 const startBurst = 12
 
+// LiveHeadStart is how far ahead of real time a stream starts out, which its
+// feed may keep to.
+const LiveHeadStart = startBurst * time.Second
+
 // loop runs FFmpeg input after input until the session is stopped.
 func (s *LiveSession) loop() {
 	defer s.m.forgetFailed(s)
@@ -634,12 +639,12 @@ func (in *LiveInput) fatalCause() error {
 
 // readRun picks up the segments FFmpeg has finished.
 func (s *LiveSession) readRun(r *liveRun) {
-	f, err := os.Open(r.playlist)
+	// A day of 4-second segments is about 2 MB of playlist.
+	b, err := readShared(r.playlist, 4<<20)
 	if err != nil {
 		return
 	}
-	defer f.Close()
-	sc := bufio.NewScanner(f)
+	sc := bufio.NewScanner(bytes.NewReader(b))
 	n := 0
 	var dur float64
 	for sc.Scan() {

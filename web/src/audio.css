@@ -81,7 +81,8 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* The words in the page's own colour: accent text on the accent's tint falls under 4.5:1 in some themes. */
 .ab-viz-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; margin: 0 2px; border: 1.5px solid var(--accent-line); border-radius: var(--r-full); background: var(--accent-soft); color: var(--fg); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; white-space: nowrap; }
 .ab-viz-pill svg { width: 18px; height: 18px; color: var(--accent-text); }
-.ab-viz-pill:hover, .ab-viz-pill:hover svg { background: var(--accent); color: var(--accent-fg); }
+.ab-viz-pill:hover { background: var(--accent); color: var(--accent-fg); }
+.ab-viz-pill:hover svg { color: inherit; }
 
 /* Phones: art, words, play, next, above the tab bar. All the rest is in the full player. */
 @media (max-width: 899px) {

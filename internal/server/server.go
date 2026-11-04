@@ -81,7 +81,7 @@ type Server struct {
 	// Instance is this run's random id, given out by /api/health so that a second start on
 	// the same data folder knows it's this server answering. Not a secret.
 	Instance string
-	logMods logModules          // how each module is logged
+	logMods  logModules // how each module is logged
 	// metaFolder is the editable metadata folder's export, running or last run.
 	metaFolder metaFolderJob
 	repair     repairState // Settings, Repair

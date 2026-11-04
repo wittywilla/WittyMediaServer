@@ -50,7 +50,7 @@ The table comes at the end. For the disc cases, make a catalogue of the two modu
 scripts/make-test-catalog.sh /tmp/wms-catalog /mnt/d/projects WittyDVD WittyBluray
 ```
 
-A whole run with three runs of each case takes 20 to 40 minutes on an 8-core laptop.
+A whole run with three runs of each case took 40 minutes on the laptop under [Figures](#figures), with other work on it.
 
 **To compare two versions,** build each one's test program and run them one after the other on the same machine with the same settings, ideally twice, alternating. Other work on the machine changes the timings a lot; it changes memory much less.
 
@@ -88,7 +88,7 @@ Each cell is the median of the runs, with the lowest and highest in brackets.
 Things that mislead:
 
 - **The first run of a case** reads the file from disk; the others find it in the system's cache. A film nobody has opened lately behaves like the first run.
-- **Other work on the machine** slows FFmpeg down: a build, a scan or another chat's tests. Run comparisons back to back and report the spread.
+- **Other work on the machine** slows FFmpeg down: a build, a scan or other tests. Run comparisons back to back and report the spread. On a busy Windows machine even starting FFmpeg can take seconds, because the 170 MB program is scanned each time.
 - **A copy's CPU** includes converting its sound, and the subtitle tracks a web player is offered, which are read in the background from the whole file.
 - **Memory grows with the machine's core count.** FFmpeg and libx264 start more threads on a bigger machine, and each thread holds pictures.
 
@@ -96,7 +96,25 @@ Things that mislead:
 
 Measured on a laptop with a 12th-generation Intel Core i7-12700H (14 cores, 20 threads) and 64 GB of memory, Windows 11, FFmpeg N-128142 (2026-10-28), libx264, with other work running on it.
 
-The first figures, for 0.6.2-alpha, are in the pull requests that change these numbers (see [#81](https://github.com/wittywilla/WittyMediaServer/issues/81)); this section keeps the latest.
+These are for 0.6.2-alpha, with the machine's processors fully busy with other work the whole time, so the times are slow and spread out. Processor seconds and memory hardly change with that. On a quieter moment, the same 1080p conversion had its first segment in 1 second and ran at 6.7 times real time.
+
+| Case | Decision | First segment ms | Speed × | CPU s per min | Peak MB | Seek ms |
+|---|---|---|---|---|---|---|
+| `remux-h264-1080p` | remux | 5102 (4010–8065) | 4.1 | 3.3 | 36 | 6658 (3355–7080) |
+| `x264-1080p` | transcode | 9892 (6016–13965) | 1.3 (0.5–2.2) | 66.8 | 880 | 5555 (5014–8415) |
+| `x264-1080p-to-720p-4M` | transcode | 3484 (3471–4620) | 2.1 | 46.3 | 440 | 2938 (2235–3877) |
+| `hevc-1080p-to-h264` | transcode | 4838 (3088–6466) | 1.6 | 80.6 | 903 | 4966 (3695–7063) |
+| `tonemap-4k-hdr-to-1080p` | transcode | 11522 (10443–12962) | 0.5 | 903.5 | 2440 | 12845 (11523–22350) |
+| `burn-text-subtitles` | transcode | 2689 (2546–3278) | 1.3 | 117.0 | 868 | 3576 (3233–3855) |
+| `burn-picture-subtitles` | transcode | 3033 (2835–9086) | 2.1 | 97.6 | 988 | 3434 (3399–4271) |
+| `audio-transcode` | audio-transcode | 309 (161–924) | 42.8 | 1.0 | 25 | 511 (426–1643) |
+| `live-channel-1080p` | live, copied | 23253 (20232–29486) | 1.0 | 2.4 | 40 | |
+| `dvd-title` | disc | 30444 | 1.6 | 21.7 | 119 | 2712 |
+| `bluray-title` | disc | 26681 | 2.6 | 45.3 | 372 | 2734 |
+
+The disc rows are one run each: the later runs found the first one's stream still there, which the benchmark now stops. Most of a disc's first segment is opening it (`Start ms` was 28 and 22 seconds), not FFmpeg.
+
+What the numbers show, and the changes made for them, are in [#81](https://github.com/wittywilla/WittyMediaServer/issues/81).
 
 ---
 

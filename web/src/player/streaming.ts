@@ -57,8 +57,10 @@ export async function measureSpeed(): Promise<number> {
       got += value.length
     }
   } catch { /* cut short: go by what arrived */ } finally { clearTimeout(limit) }
-  const ms = performance.now() - t1
-  if (got < 32 * 1024 || ms < 50) return 0
+  // A megabyte in a few milliseconds is a fast connection, not an unknown one: the clock
+  // can't tell such short times apart, so it counts as at least 5 ms.
+  const ms = Math.max(performance.now() - t1, 5)
+  if (got < 32 * 1024) return 0
   const kbps = (got * 8) / ms
   rememberSpeed(kbps)
   return Math.round(kbps)

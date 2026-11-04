@@ -202,7 +202,7 @@ func (t *Tools) testEncoder(ctx context.Context, log *slog.Logger, st *HWStatus,
 	if st.Vendor == "vaapi" && st.Reason != "" {
 		// A driver "missing" for a chip that has none here, such as WSL's own device.
 		for _, d := range GPUs() {
-			if d.Path == st.Device && d.Vendor == "other" {
+			if d.Path == st.Device && d.Vendor != "" && d.Vendor != "intel" && d.Vendor != "amd" {
 				st.Reason = "The graphics device " + d.Path + " isn't Intel's or AMD's (its driver is " + cmp.Or(d.Driver, "unknown") + "): VA-API here has drivers for those only."
 			}
 		}
@@ -251,8 +251,9 @@ func DeviceArgs(family string) []string {
 		return []string{"-vaapi_device", vaapi}
 	case "qsv":
 		// On Linux Quick Sync works through VA-API, on the first render node unless
-		// told: wrong when an AMD or NVIDIA card's node comes before Intel's.
-		if qsv != "" && unixGPU {
+		// told: wrong when an AMD or NVIDIA card's node comes before Intel's. When
+		// Intel's is the first, FFmpeg's own choice is left alone.
+		if qsv != "" && qsv != defaultVAAPIDevice && unixGPU {
 			return []string{"-init_hw_device", "qsv=qs:hw,child_device=" + qsv}
 		}
 	}

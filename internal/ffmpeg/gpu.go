@@ -23,6 +23,18 @@ type GPUDevice struct {
 	Fix     string `json:"fix,omitempty"`     // what to do about it
 }
 
+// OwnGroups are the process's group IDs, its main one first.
+func OwnGroups() []int {
+	gs := []int{os.Getgid()}
+	more, _ := os.Getgroups()
+	for _, g := range more {
+		if !slices.Contains(gs, g) {
+			gs = append(gs, g)
+		}
+	}
+	return gs
+}
+
 // InContainer says whether the server runs in a container (the image sets
 // WMS_DOCKER=1; Docker and Podman leave a file at the root too).
 func InContainer() bool {
@@ -80,13 +92,18 @@ func explainAccess(d *GPUDevice, denied, notAllowed bool, err error, container b
 		who += ", groups " + strings.Join(names, ",")
 	}
 	who += ")"
-	groupRW := len(d.Mode) == 4 && (d.Mode[2] == '6' || d.Mode[2] == '7')
+	rw := func(c byte) bool { return c == '6' || c == '7' }
+	ownerRW := len(d.Mode) == 4 && rw(d.Mode[1])
+	groupRW := len(d.Mode) == 4 && rw(d.Mode[2])
 	switch {
 	case notAllowed && container:
 		d.Problem = "The container can see " + d.Path + " but isn't allowed to use it."
 		d.Fix = "Pass the device with devices: - /dev/dri:/dev/dri (not as a volume), then recreate the container."
 	case denied && d.Group >= 0 && !groupRW:
 		d.Problem = fmt.Sprintf("%s can't open %s: only its owner may (permissions %s).", who, d.Path, d.Mode)
+		if !ownerRW {
+			d.Problem = fmt.Sprintf("%s can't open %s: its permissions (%s) let nobody but root use it.", who, d.Path, d.Mode)
+		}
 		d.Fix = fmt.Sprintf("On the host, let its group use it (sudo chmod g+rw %s, or the NAS's own setting for it), then add that group (%d).", d.Path, d.Group)
 		if container {
 			d.Fix += fmt.Sprintf(" In the compose file: group_add: [\"%d\"].", d.Group)
@@ -107,11 +124,15 @@ func explainAccess(d *GPUDevice, denied, notAllowed bool, err error, container b
 
 // pickRender chooses the render node for VA-API (and Quick Sync's device), by
 // vendor: an NVIDIA node has no VA-API driver here, so Intel and AMD come first.
+// A node whose vendor isn't known (FreeBSD has no /sys) may be anyone's, so it's
+// still tried, after one known to match.
 func pickRender(devs []GPUDevice, vendor string) (GPUDevice, bool) {
 	rank := func(d GPUDevice) int {
 		switch {
-		case vendor != "" && d.Vendor != vendor:
+		case vendor != "" && d.Vendor != "" && d.Vendor != vendor:
 			return -1
+		case vendor != "" && d.Vendor == "":
+			return 2
 		case d.Vendor == "intel" || d.Vendor == "amd":
 			return 3
 		case d.Vendor == "" || d.Vendor == "other":

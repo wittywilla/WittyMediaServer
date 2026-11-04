@@ -37,10 +37,10 @@ func cmdHardware(args []string) int {
 	gpus := ffmpeg.GPUs()
 	working := slices.ContainsFunc(list, func(h ffmpeg.HWStatus) bool { return h.Working })
 	if asJSON {
-		out, _ := json.MarshalIndent(map[string]any{"container": ffmpeg.InContainer(), "user": os.Getuid(), "groups": groups(), "gpus": gpus, "encoders": list}, "", "  ")
+		out, _ := json.MarshalIndent(map[string]any{"container": ffmpeg.InContainer(), "user": os.Getuid(), "groups": ffmpeg.OwnGroups(), "gpus": gpus, "encoders": list}, "", "  ")
 		fmt.Println(string(out))
 	} else {
-		fmt.Printf("FFmpeg: %s\nRunning as user %d, groups %v", tools.FFmpeg, os.Getuid(), groups())
+		fmt.Printf("FFmpeg: %s\nRunning as user %d, groups %v", tools.FFmpeg, os.Getuid(), ffmpeg.OwnGroups())
 		if ffmpeg.InContainer() {
 			fmt.Print(", in a container")
 		}
@@ -84,17 +84,6 @@ func cmdHardware(args []string) int {
 		return 1
 	}
 	return 0
-}
-
-func groups() []int {
-	g := []int{os.Getgid()}
-	more, _ := os.Getgroups()
-	for _, x := range more {
-		if !slices.Contains(g, x) {
-			g = append(g, x)
-		}
-	}
-	return g
 }
 
 func orDash(s string) string {

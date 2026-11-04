@@ -32,6 +32,11 @@ func TestExplainAccess(t *testing.T) {
 	if !strings.Contains(d.Problem, "only its owner") || !strings.Contains(d.Fix, "chmod g+rw") {
 		t.Errorf("owner only: %q / %q", d.Problem, d.Fix)
 	}
+	d = GPUDevice{Path: "/dev/dri/renderD128", Group: 0, Mode: "0000"}
+	explainAccess(&d, true, false, err, true, 999, []int{10})
+	if !strings.Contains(d.Problem, "nobody but root") {
+		t.Errorf("mode 0000: %q", d.Problem)
+	}
 
 	// Mounted as a volume, not passed as a device.
 	d = GPUDevice{Path: "/dev/dri/renderD128", Group: 105, Mode: "0660"}
@@ -59,6 +64,15 @@ func TestPickRender(t *testing.T) {
 	devs[1].Usable = false
 	if d, ok := pickRender(devs, ""); !ok || d.Path != "/dev/dri/renderD128" {
 		t.Errorf("only the NVIDIA node is left: %+v", d)
+	}
+	// FreeBSD has no /sys to say whose a node is: it's still tried, after a known match.
+	unknown := []GPUDevice{{Path: "/dev/dri/renderD128", Usable: true}}
+	if d, ok := pickRender(unknown, "intel"); !ok || d.Path != "/dev/dri/renderD128" {
+		t.Errorf("an unknown node should be tried for Quick Sync: %+v", d)
+	}
+	unknown = append(unknown, GPUDevice{Path: "/dev/dri/renderD129", Vendor: "intel", Usable: true})
+	if d, _ := pickRender(unknown, "intel"); d.Path != "/dev/dri/renderD129" {
+		t.Errorf("a known Intel node comes first: %+v", d)
 	}
 }
 
@@ -129,5 +143,12 @@ func TestDeviceArgsFollowTheDeviceFound(t *testing.T) {
 		}
 	} else if p.InputArgs != nil {
 		t.Errorf("Quick Sync on Windows needs no device: %q", p.InputArgs)
+	}
+	// Intel's node first: FFmpeg's own choice is the same, and is left alone.
+	hw.mu.Lock()
+	hw.qsv = defaultVAAPIDevice
+	hw.mu.Unlock()
+	if p := tools.planFor("h264_qsv", Quality{}); p.InputArgs != nil {
+		t.Errorf("Quick Sync on renderD128: %q", p.InputArgs)
 	}
 }

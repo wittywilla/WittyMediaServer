@@ -4457,7 +4457,6 @@
                 "required": [
                   "keepDays",
                   "maxSize",
-                  "since",
                   "writing"
                 ],
                 "type": "object"
@@ -4594,7 +4593,6 @@
             "required": [
               "keepDays",
               "maxSize",
-              "since",
               "writing"
             ],
             "type": "object"
@@ -8186,7 +8184,6 @@
             "required": [
               "keepDays",
               "maxSize",
-              "since",
               "writing"
             ],
             "type": "object"

@@ -228,9 +228,11 @@ func TestDiagnoseResolveLinks(t *testing.T) {
 
 // ---------------------------------------------------------------- jobs
 
+// waitFor gives a job two minutes. A check that walks real folders took 42 s on a machine busy
+// with other builds, and a passing test only waits as long as the job takes.
 func waitFor(t *testing.T, what string, ok func() bool) {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(2 * time.Minute)
 	for !ok() {
 		if time.Now().After(deadline) {
 			t.Fatal("timed out waiting for " + what)

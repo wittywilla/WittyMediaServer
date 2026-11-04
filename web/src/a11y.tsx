@@ -145,7 +145,8 @@ export function Announcer() {
       const main = document.getElementById('main')
       // Full-screen views (the reader, a TV channel, a game) have no #main, but do have a heading.
       const h1 = (main || document).querySelector('h1')?.textContent?.trim()
-      const loading = document.querySelector('.spinner, .loading-box, .skeleton-grid')
+      // The page's own loading, not a spinner elsewhere (the music player buffering).
+      const loading = (main || document).querySelector('.spinner, .loading-box, .skeleton-grid')
       if ((!main || !h1) && loading && performance.now() - began < 6000) { t = setTimeout(look, 250); return }
       announce(h1 ? `${h1}, page loaded` : `${document.title}, page loaded`)
       const active = document.activeElement

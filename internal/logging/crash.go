@@ -299,11 +299,32 @@ func (g *CrashGuard) writeReport(kind string, when time.Time, version, summary, 
 		b.WriteString(lastLines)
 		b.WriteString("\n")
 	}
-	p := filepath.Join(g.dir, id+".txt")
-	if err := os.WriteFile(p, []byte(b.String()), 0o640); err != nil {
+	if err := writeWhole(filepath.Join(g.dir, id+".txt"), []byte(b.String())); err != nil {
 		return Crash{}, err
 	}
 	return Crash{ID: id, Kind: kind, Time: when, Summary: summary, Version: version, Size: int64(b.Len())}, nil
+}
+
+// writeWhole writes a report under another name and then renames it, so List and Read never
+// see one half written: written in place, it shows up empty for a moment.
+func writeWhole(p string, b []byte) error {
+	f, err := os.CreateTemp(filepath.Dir(p), ".report-*")
+	if err != nil {
+		return err
+	}
+	tmp := f.Name()
+	defer os.Remove(tmp)
+	_, err = f.Write(b)
+	if err == nil {
+		err = f.Chmod(0o640)
+	}
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		return err
+	}
+	return os.Rename(tmp, p)
 }
 
 // readBounded reads a file, keeping its start and end if it is too long.

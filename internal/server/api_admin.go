@@ -224,6 +224,8 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 		"encoders":    encoders,
 		"hardware":    hwList,
 		"hwTested":    hwDone,
+		"gpus":        ffmpeg.GPUs(),
+		"container":   ffmpeg.InContainer(),
 		"dvdSessions": s.DVD.Count(),
 		"blurays":     s.BD.Count(),
 	})

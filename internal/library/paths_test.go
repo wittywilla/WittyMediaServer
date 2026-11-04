@@ -138,7 +138,7 @@ func TestScanSkipsLinksLeavingTheLibrary(t *testing.T) {
 	}
 	symlink(t, secret, filepath.Join(lib, "steal.pdf"))
 	symlink(t, real, filepath.Join(lib, "alias.pdf"))
-	got, err := discoverBooks(lib)
+	got, err := discoverBooks(lib, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,16 +239,16 @@ func TestEveryLibraryKindSkipsLinksOut(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for name, find := range map[string]func(string) ([]candidate, error){
+	for name, find := range map[string]func(string, walkStep) ([]candidate, error){
 		"photos":   discoverPhotos,
 		"creators": discoverCreatorVideos,
-		"games":    func(root string) ([]candidate, error) { return discoverGames(root, "snes") },
+		"games":    func(root string, _ walkStep) ([]candidate, error) { return discoverGames(root, "snes") },
 	} {
 		lib := t.TempDir()
 		for _, n := range []string{"secret.jpg", "secret.mp4", "secret.sfc"} {
 			symlink(t, filepath.Join(outside, n), filepath.Join(lib, "steal-"+n))
 		}
-		got, err := find(lib)
+		got, err := find(lib, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

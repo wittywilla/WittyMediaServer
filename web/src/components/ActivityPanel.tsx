@@ -80,7 +80,8 @@ function LiveTask({ task: t }: { task: Task }) {
       {t.state === 'paused' || waiting
         ? <Progress label={t.title} value={t.percent >= 0 ? t.percent : 0} />
         : <Progress label={t.title} value={t.percent >= 0 ? t.percent : undefined} showValue />}
-      {t.phase && <div className="act-phase">{t.phase}</div>}
+      {!!t.steps?.length && <Steps task={t} />}
+      {t.phase && t.phase !== t.steps?.[(t.step ?? 0) - 1] && <div className="act-phase">{t.phase}</div>}
       {facts.length > 0 && <div className="act-facts">{facts.join(' · ')}</div>}
       {t.item && <div className="act-item" title={t.path || t.item}>{t.item}</div>}
       {t.path && t.path !== t.item && <div className="act-path">{t.path}</div>}
@@ -93,6 +94,20 @@ function LiveTask({ task: t }: { task: Task }) {
         </div>
       )}
     </article>
+  )
+}
+
+// The phases of one bar, so it's plain why it doesn't start again at each.
+function Steps({ task: t }: { task: Task }) {
+  const on = t.step ?? 0
+  return (
+    <ol className="act-steps" aria-label="Steps">
+      {t.steps!.map((s, i) => (
+        <li key={s} className={i + 1 < on ? 'done' : i + 1 === on ? 'on' : undefined} aria-current={i + 1 === on ? 'step' : undefined}>
+          {i + 1 < on && <IconCheck size={14} />}{s}{i + 1 < on && <span className="sr-only">, done</span>}
+        </li>
+      ))}
+    </ol>
   )
 }
 

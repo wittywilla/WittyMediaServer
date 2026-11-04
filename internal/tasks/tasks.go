@@ -25,6 +25,7 @@ package tasks
 import (
 	"context"
 	"errors"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -87,6 +88,10 @@ type Task struct {
 	Title        string    `json:"title"`
 	State        State     `json:"state"`
 	Phase        string    `json:"phase,omitempty"`
+	// Steps are the phases a job goes through, named in order, and Step is the one it's on,
+	// from 1 (0: none of them). With them, Percent is across the whole job, not one phase.
+	Steps        []string  `json:"steps,omitempty"`
+	Step         int       `json:"step,omitempty"`
 	LibraryID    int64     `json:"libraryId,omitempty"`
 	LibraryName  string    `json:"libraryName,omitempty"`
 	Item         string    `json:"item,omitempty"` // the thing being worked on, for admins
@@ -320,6 +325,8 @@ type Handle struct {
 	rateAt   time.Time
 	rateDone int64
 	rate     float64
+
+	shares []float64 // each step's part of the whole, guarded by reg.mu
 }
 
 // ID is the task's id, or "" on a nil handle.
@@ -357,8 +364,45 @@ func (h *Handle) Begin() {
 // Title changes what it's called. No file paths: non-admins may read it.
 func (h *Handle) Title(s string) { h.update(func(t *Task) { t.Title = clip(s) }) }
 
-// Phase says which stage it's at: "Finding files", "Reading details".
-func (h *Handle) Phase(s string) { h.update(func(t *Task) { t.Phase = clip(s) }) }
+// Phase says which stage it's at: "Finding files", "Reading details". A phase named in
+// Steps moves the task on to it, and counts its own Progress from nothing.
+func (h *Handle) Phase(s string) {
+	h.update(func(t *Task) {
+		t.Phase = clip(s)
+		if i := slices.Index(t.Steps, t.Phase); i >= 0 && i+1 != t.Step {
+			t.Step = i + 1
+			t.Done, t.Total = 0, 0
+			h.rateAt, h.rate = time.Time{}, 0
+		}
+	})
+}
+
+// Step is one of the phases a job names with Steps, and its rough part of the work, on any
+// scale. 0 counts as 1.
+type Step struct {
+	Name  string
+	Share float64
+}
+
+// Steps names the phases a job goes through, in order, so the app shows one bar across them
+// with each phase named, rather than a bar that starts again at each. A phase that isn't
+// among them, such as waiting for a turn, leaves the bar where it was.
+func (h *Handle) Steps(steps ...Step) {
+	if h == nil {
+		return
+	}
+	names, shares := make([]string, len(steps)), make([]float64, len(steps))
+	for i, st := range steps {
+		names[i], shares[i] = clip(st.Name), st.Share
+		if shares[i] <= 0 {
+			shares[i] = 1
+		}
+	}
+	h.update(func(t *Task) {
+		t.Steps, h.shares = names, shares
+		t.Step = slices.Index(names, t.Phase) + 1
+	})
+}
 
 // Library says which library this is about.
 func (h *Handle) Library(id int64, name string) {
@@ -556,6 +600,9 @@ func (h *Handle) view() Task {
 	if t.Total > 0 {
 		t.Percent = min(100, float64(t.Done)*100/float64(t.Total))
 	}
+	if t.Step > 0 && t.Step <= len(h.shares) {
+		t.Percent = h.across(t)
+	}
 	if t.State.Finished() {
 		return t
 	}
@@ -567,6 +614,24 @@ func (h *Handle) view() Task {
 	t.CanPause = h.spec.Pausable && !h.pausing
 	t.CanResume = h.spec.Pausable && h.pausing
 	return t
+}
+
+// across is how far along the whole job is, from the steps behind it and the one it's on.
+func (h *Handle) across(t Task) float64 {
+	if t.State == Done {
+		return 100 // a step it had no need of is still behind it
+	}
+	var before, all float64
+	for i, w := range h.shares {
+		if i < t.Step-1 {
+			before += w
+		}
+		all += w
+	}
+	if t.Total > 0 {
+		before += h.shares[t.Step-1] * min(1, float64(t.Done)/float64(t.Total))
+	}
+	return min(100, before*100/all)
 }
 
 // ---------------------------------------------------------------- controls

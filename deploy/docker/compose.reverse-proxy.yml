@@ -1,0 +1,52 @@
+# WittyMediaServer behind Caddy, which gets an HTTPS certificate by itself.
+# Read docs/REMOTE.md first: this puts your sign-in page on the internet.
+#  1. Point a name such as media.example.com at your home's address, and forward ports 80 and
+#     443 on your router to this machine.
+#  2. Put that name in Caddyfile (next to this file) and in WMS_PUBLIC_URL below.
+#  3. docker compose -f compose.reverse-proxy.yml up -d
+# The server is only reachable through Caddy: port 9797 isn't published. Caddy has a fixed
+# address on a network of its own, and only that address is trusted to say who a visitor is.
+services:
+  wittymediaserver:
+    image: ghcr.io/wittywilla/wittymediaserver:alpha
+    container_name: wittymediaserver
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - WMS_PUBLIC_URL=https://media.example.com
+      - WMS_TRUSTED_PROXIES=172.30.97.2
+    volumes:
+      - ./config:/config
+      - /path/to/media:/media:ro
+    networks:
+      proxy:
+        ipv4_address: 172.30.97.3
+
+  caddy:
+    image: caddy:2
+    container_name: wittymediaserver-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy-data:/data
+      - ./caddy-config:/config
+    networks:
+      proxy:
+        ipv4_address: 172.30.97.2
+
+networks:
+  proxy:
+    ipam:
+      config:
+        - subnet: 172.30.97.0/24

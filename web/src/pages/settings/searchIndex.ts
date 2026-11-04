@@ -6,8 +6,9 @@
 
 export type SettingsPage = { to: string; label: string; hint: string }
 // section: the title of the section card it's in, which is also where the result jumps to.
-// at: an anchor that isn't a section title. words: other ways of saying it.
-export type Entry = { page: string; title: string; section?: string; at?: string; words?: string }
+// at: an anchor that isn't a section title. words: other ways of saying it. admin: only
+// administrators see it, on a page others see too.
+export type Entry = { page: string; title: string; section?: string; at?: string; words?: string; admin?: boolean }
 export type Result = { to: string; title: string; where: string; hint?: string }
 
 export const sectionId = (title: string) => title.toLowerCase().replace(/[’'"]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -16,8 +17,8 @@ export const ENTRIES: Entry[] = [
   // Appearance
   { page: 'appearance', title: 'Theme', section: 'Theme', words: 'themes look skin style dark mode light mode night automatic witty cinema evergreen high contrast light midnight paper true black oled' },
   { page: 'appearance', title: 'Light or dark, as this device is set', section: 'Theme', words: 'automatic dark mode light mode night follow system' },
-  { page: 'appearance', title: 'The theme everyone starts with', section: 'Theme', words: 'make default server theme for everyone' },
-  { page: 'appearance', title: 'Install a theme ZIP', section: 'Theme', words: 'upload download add theme file' },
+  { page: 'appearance', title: 'The theme everyone starts with', section: 'Theme', words: 'make default server theme for everyone', admin: true },
+  { page: 'appearance', title: 'Install a theme ZIP', section: 'Theme', words: 'upload download add theme file', admin: true },
   { page: 'appearance', title: 'Colours', section: 'Colours', words: 'make a theme custom theme accent background tint corners round square' },
   { page: 'appearance', title: 'Accent colour', section: 'Colours', words: 'buttons highlights custom' },
   { page: 'appearance', title: 'Corners', section: 'Colours', words: 'rounded square soft radius' },
@@ -29,7 +30,7 @@ export const ENTRIES: Entry[] = [
   { page: 'appearance', title: 'WittyTV colours', section: 'WittyTV', words: 'tv guide background programmes on now highlight accent text' },
   { page: 'appearance', title: 'TV guide preview, rows and hours', section: 'WittyTV', words: 'preview size side row size compact large hours now line progress logos episode names' },
   { page: 'appearance', title: 'Player', section: 'Player', words: 'video player controls seek bar timeline chapters hide controls picture fit fill zoom black bars subtitle size' },
-  { page: 'appearance', title: 'Name and logo', section: 'Name and logo', words: 'rename brand server name logo title browser tab' },
+  { page: 'appearance', title: 'Name and logo', section: 'Name and logo', words: 'rename brand server name logo title browser tab', admin: true },
 
   // Libraries and server
   { page: 'libraries', title: 'Folders of the same kind', section: 'Folders of the same kind', words: 'combine separate libraries grouping' },
@@ -54,7 +55,7 @@ export const ENTRIES: Entry[] = [
 
   // You
   { page: 'users', title: 'Kids profiles', words: 'children parental limits ratings' },
-  { page: 'users', title: 'Sign-in screen', section: 'Signing in', words: 'profiles login pin who is watching' },
+  { page: 'users', title: 'Sign-in screen', section: 'Signing in', words: 'profiles login pin who is watching', admin: true },
   { page: 'security', title: 'Two-factor sign-in', section: 'Two-factor sign-in', words: '2fa authenticator code' },
   { page: 'security', title: 'Your devices', section: 'Your devices', words: 'signed in sessions sign out' },
   { page: 'activity', title: 'History', section: 'History', words: 'statistics keep clear' },
@@ -82,8 +83,8 @@ export const norm = (s: string) => {
 const startsWord = (hay: string, w: string) => hay.startsWith(w) || hay.includes(' ' + w) || hay.includes('-' + w)
 
 // searchSettings: what matches every word typed, best first. pages are the ones this person may
-// open, so a setting on a page they can't see isn't offered.
-export function searchSettings(query: string, pages: SettingsPage[], extra: Result[] = []): Result[] {
+// open, so a setting on a page they can't see isn't offered, and nor is one only administrators see.
+export function searchSettings(query: string, pages: SettingsPage[], extra: Result[] = [], admin = true): Result[] {
   const words = norm(query).split(' ').filter(Boolean)
   if (!words.length) return []
   const byPage = new Map(pages.map((p) => [p.to, p]))
@@ -102,7 +103,7 @@ export function searchSettings(query: string, pages: SettingsPage[], extra: Resu
   for (const p of pages) consider({ to: `/settings/${p.to}`, title: p.label, where: 'Settings', hint: p.hint }, p.label, p.hint)
   for (const e of ENTRIES) {
     const p = byPage.get(e.page)
-    if (!p) continue
+    if (!p || (e.admin && !admin)) continue
     const at = e.at || (e.section ? sectionId(e.section) : '')
     consider({ to: `/settings/${p.to}${at ? '#' + at : ''}`, title: e.title, where: e.section && e.section !== e.title ? `${p.label}, ${e.section}` : p.label }, e.title, `${e.section || ''} ${p.label} ${e.words || ''}`)
   }

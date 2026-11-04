@@ -4,9 +4,10 @@ import assert from 'node:assert/strict'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import { ENTRIES, norm, searchSettings, sectionId } from './searchIndex.ts'
 
-const src = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')
+const src = fileURLToPath(new URL('../../', import.meta.url))
 const files = []
 const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (p.endsWith('.tsx')) files.push(readFileSync(p, 'utf8')) } }
 walk(src)
@@ -68,6 +69,9 @@ test('settings on pages someone can’t open aren’t offered', () => {
   const mine = PAGES.filter((p) => ['users', 'security', 'appearance'].includes(p.to))
   assert.ok(found('tuners', mine).length === 0)
   assert.ok(found('theme', mine).length > 0)
+  // On a page they can open, what only administrators see there isn't offered either.
+  assert.ok(searchSettings('logo', mine, [], false).every((r) => !r.to.endsWith('#name-and-logo')))
+  assert.ok(searchSettings('logo', mine, [], true).some((r) => r.to.endsWith('#name-and-logo')))
 })
 
 test('module pages can be found too', () => {

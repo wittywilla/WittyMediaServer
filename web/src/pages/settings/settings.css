@@ -317,8 +317,8 @@ a.mod-row:hover { background: var(--hover); }
 .set-toc a:hover { background: var(--hover); color: var(--fg); }
 .set-toc a[aria-current] { background: var(--accent-soft); color: var(--fg); font-weight: 600; }
 .set-toc a:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: -2px; }
-/* What a link jumps to lands below the top bar and the strip, not under them. */
-.set-main [id] { scroll-margin-top: calc(var(--topbar-h) + 72px); }
+/* What a link jumps to lands below the contents strip as well as the top bar (the page already leaves room for that). */
+.set-main [id] { scroll-margin-top: 56px; }
 .set-main .set-card-head h2:focus, .set-main h3:focus { outline: none; }
 /* Where a jump landed glows for a moment. */
 .set-flash { animation: set-flash 1.6s var(--ease-out); }

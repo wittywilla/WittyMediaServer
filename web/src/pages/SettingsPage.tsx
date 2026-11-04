@@ -130,7 +130,7 @@ export default function SettingsPage() {
       <nav className="set-nav" aria-label="Settings">
         <div className="set-nav-title">Settings</div>
         <SettingsSearch value={query} onChange={setQuery} />
-        {query.trim() ? <SettingsResults query={query} pages={pages} extra={moduleResults} onPick={() => setQuery('')} /> : <>
+        {query.trim() ? <SettingsResults query={query} pages={pages} extra={moduleResults} admin={!!user?.isAdmin} onPick={() => setQuery('')} /> : <>
         {groups.map((g) => (
           <div key={g.title} className="set-nav-group">
             <div className="set-nav-head">{g.title}</div>

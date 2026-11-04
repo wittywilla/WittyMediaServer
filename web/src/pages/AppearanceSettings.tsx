@@ -92,7 +92,8 @@ export default function AppearanceSettings() {
   const [naming, setNaming] = useState(false)
   const [themes, setThemes] = useState<ThemeMeta[]>([])
   const [mine, setMine] = useState(deviceTheme())
-  // The theme the pointer or the focus is on: the large preview shows it before it's chosen.
+  // The theme the pointer or the focus is on (its card, or a button on it): the large preview
+  // shows it before it's chosen.
   const [peek, setPeek] = useState<string | null>(null)
   const [custom, setCustom] = useUserPref<MakerInput | null>('customTheme', null)
   const fileRef = useRef<HTMLInputElement | null>(null)
@@ -166,8 +167,8 @@ export default function AppearanceSettings() {
         </div>
         <div className="theme-grid" role="radiogroup" aria-label="Themes" onMouseLeave={() => setPeek(null)}
           onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPeek(null) }}>
-          <div className={'theme-card' + (mine === AUTO_THEME ? ' active' : '')}>
-            <button type="button" className="theme-pick" role="radio" aria-checked={mine === AUTO_THEME} onClick={() => useHere(AUTO_THEME)} {...hover(AUTO_THEME)}>
+          <div className={'theme-card' + (mine === AUTO_THEME ? ' active' : '')} {...hover(AUTO_THEME)}>
+            <button type="button" className="theme-pick" role="radio" aria-checked={mine === AUTO_THEME} onClick={() => useHere(AUTO_THEME)}>
               <span className="theme-scene-pair" aria-hidden="true">
                 <ThemeScene colors={colorsOf('default')} radius={10} />
                 <ThemeScene colors={colorsOf('light')} radius={10} />
@@ -177,8 +178,8 @@ export default function AppearanceSettings() {
             </button>
           </div>
           {themes.map((t) => (
-            <div key={t.id} className={'theme-card' + (t.id === active ? ' active' : '')}>
-              <button type="button" className="theme-pick" role="radio" aria-checked={t.id === active} onClick={() => useHere(t.id)} {...hover(t.id)}>
+            <div key={t.id} className={'theme-card' + (t.id === active ? ' active' : '')} {...hover(t.id)}>
+              <button type="button" className="theme-pick" role="radio" aria-checked={t.id === active} onClick={() => useHere(t.id)}>
                 <ThemeScene colors={t.colors} radius={t.radius} preview={t.preview} />
                 <span className="theme-name">{t.name}{t.id === fallback && <span className="pill">default</span>}</span>
                 <span className="muted">{t.description || (t.author ? 'by ' + t.author : '')}</span>
@@ -191,8 +192,8 @@ export default function AppearanceSettings() {
             </div>
           ))}
           {custom && customMade && (
-            <div className={'theme-card' + (mine === CUSTOM_THEME ? ' active' : '')}>
-              <button type="button" className="theme-pick" role="radio" aria-checked={mine === CUSTOM_THEME} onClick={() => madeForDevice(custom)} {...hover(CUSTOM_THEME)}>
+            <div className={'theme-card' + (mine === CUSTOM_THEME ? ' active' : '')} {...hover(CUSTOM_THEME)}>
+              <button type="button" className="theme-pick" role="radio" aria-checked={mine === CUSTOM_THEME} onClick={() => { setCustomThemeCss(themeCss(custom)); useHere(CUSTOM_THEME) }}>
                 <ThemeScene colors={themeColors(customMade)} radius={customMade.radius} />
                 <span className="theme-name">{custom.name}</span>
                 <span className="muted">Made by you, for this device.</span>

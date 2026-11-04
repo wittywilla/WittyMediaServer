@@ -39,8 +39,10 @@ function PageToc() {
     let frame = 0, last = ''
     const read = () => {
       frame = 0
+      // Two sections of one title share an id; the contents link only the first.
+      const seen = new Set<string>()
       const found = [...page.querySelectorAll<HTMLElement>('section.set-card[id]')]
-        .filter((s) => !s.parentElement?.closest('.set-card'))
+        .filter((s) => !s.parentElement?.closest('.set-card') && !seen.has(s.id) && !!seen.add(s.id))
         .map((s) => ({ id: s.id, title: s.querySelector(':scope > header h2')?.textContent?.trim() || '' }))
         .filter((s) => s.title)
       const key = found.map((s) => s.id + ' ' + s.title).join('|')
@@ -49,8 +51,10 @@ function PageToc() {
       if (key !== last) { last = key; setItems(found.length >= TOC_FROM && !own ? found : []) }
     }
     const later = () => { if (!frame) frame = requestAnimationFrame(read) }
+    // Only a section coming or going matters, not every line a page adds (a live log).
+    const isSection = (n: Node) => n instanceof HTMLElement && (n.matches('section.set-card') || !!n.querySelector('section.set-card'))
     read()
-    const watch = new MutationObserver(later)
+    const watch = new MutationObserver((recs) => { if (recs.some((r) => [...r.addedNodes, ...r.removedNodes].some(isSection))) later() })
     watch.observe(page, { childList: true, subtree: true })
     return () => { watch.disconnect(); cancelAnimationFrame(frame) }
   }, [])
@@ -59,7 +63,7 @@ function PageToc() {
     let frame = 0
     const spy = () => {
       frame = 0
-      const line = (ref.current?.getBoundingClientRect().bottom || 0) + 24
+      const line = (ref.current?.getBoundingClientRect().bottom || 0) + 40
       let at = items[0].id
       for (const s of items) { const el = document.getElementById(s.id); if (el && el.getBoundingClientRect().top <= line) at = s.id }
       // At the foot of the page the last sections may never reach the line: the last one counts.

@@ -22,8 +22,8 @@ export function SettingsSearch({ value, onChange }: { value: string; onChange: (
   )
 }
 
-export function SettingsResults({ query, pages, extra, onPick }: { query: string; pages: SettingsPage[]; extra: Result[]; onPick: () => void }) {
-  const results = useMemo(() => searchSettings(query, pages, extra), [query, pages, extra])
+export function SettingsResults({ query, pages, extra, admin, onPick }: { query: string; pages: SettingsPage[]; extra: Result[]; admin: boolean; onPick: () => void }) {
+  const results = useMemo(() => searchSettings(query, pages, extra, admin), [query, pages, extra, admin])
   const head = useId()
   return (
     <div className="set-results" aria-labelledby={head}>

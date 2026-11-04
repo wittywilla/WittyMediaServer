@@ -358,8 +358,8 @@ func TestPhotoClustersNeverOverlap(t *testing.T) {
 // often busy, so only something far slower than that fails here, such as
 // joining groups pairwise instead of by square.
 func TestPhotoClustersManyPictures(t *testing.T) {
-	if testing.Short() {
-		t.Skip("fills a library with 100,000 pictures")
+	if testing.Short() || raceEnabled {
+		t.Skip("fills a library with 100,000 pictures, which the race detector makes far slower")
 	}
 	s, lib := galleryStore(t, "photos")
 	ctx := context.Background()
@@ -383,7 +383,7 @@ func TestPhotoClustersManyPictures(t *testing.T) {
 			t.Fatalf("zoom %d: %v", v.zoom, err)
 		}
 		t.Logf("zoom %d: %d groups in %v", v.zoom, len(c), took)
-		if took > 5*time.Second && !raceEnabled {
+		if took > 5*time.Second {
 			t.Errorf("zoom %d took %v", v.zoom, took)
 		}
 	}

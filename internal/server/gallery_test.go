@@ -443,6 +443,9 @@ func TestPhotoMapRoute(t *testing.T) {
 		_ = json.Unmarshal(w.Body.Bytes(), &a)
 		return w.Code, a
 	}
+	if code, a := get(ts.adult, "&fit=1"); code != 200 || len(a.Clusters) != 0 || a.Bounds == nil {
+		t.Errorf("fit alone is only the box: %d %+v", code, a)
+	}
 	if code, a := get(ts.adult, "&zoom=3&fit=1"); code != 200 || len(a.Clusters) != 1 || a.Clusters[0].Cover != id || a.Bounds == nil || a.Bounds.Count != 1 || a.Tiles != "" {
 		t.Errorf("the map: %d %+v", code, a)
 	}

@@ -690,7 +690,8 @@ func MercY(lat float64) float64 {
 
 // PhotoClusters groups located pictures for a map zoom level (0 shows the whole
 // world), within q.BBox when there is one, which a map asks for: the part in
-// view. Each group's cover is its newest picture. The rows are grouped here
+// view. Each square's cover is its newest picture, and a group joined from
+// several keeps the biggest one's. The rows are grouped here
 // rather than by SQLite, which is twice as quick: one pass, no sorting, a few
 // hundred squares held. cut says the smallest groups were left out, which
 // only happens to a caller asking for the whole world far too close up.

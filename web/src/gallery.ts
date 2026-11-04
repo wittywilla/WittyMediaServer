@@ -61,6 +61,7 @@ const UTC = { timeZone: 'UTC' } as const
 export const monthName = (ym: number) => new Date(Date.UTC(Math.floor(ym / 100), ym % 100 - 1, 1)).toLocaleDateString([], { ...UTC, month: 'long', year: 'numeric' })
 export const takenDate = (t: number) => new Date(t * 1000).toLocaleDateString([], { ...UTC, weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
 export const takenTime = (t: number) => new Date(t * 1000).toLocaleTimeString([], { ...UTC, hour: '2-digit', minute: '2-digit' })
+export const takenMonth = (t: number) => new Date(t * 1000).toLocaleDateString([], { ...UTC, month: 'long', year: 'numeric' })
 export const dayKey = (t: number) => Math.floor(t / 86400)
 
 export function fmtSize(n: number) {

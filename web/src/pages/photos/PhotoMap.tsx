@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { api, serverBase, type Library } from '../../api'
-import { photoThumb, type Photo, type PhotoCluster } from '../../gallery'
+import { photoThumb, takenMonth as monthYear, type Photo, type PhotoCluster } from '../../gallery'
 import { IconClose, IconDown, IconGlobe, IconHome, IconLeft, IconRight, IconUp } from '../../icons'
 import { isBackKey } from '../../ui/spatial'
 import {
@@ -25,7 +25,6 @@ const OUTLINE_KEY = 'wms.photoMap.outline' // this device chose the outline over
 const readOutline = () => { try { return localStorage.getItem(OUTLINE_KEY) === '1' } catch { return false } }
 const PIN = 52
 const compact = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 })
-const monthYear = (t: number) => new Date(t * 1000).toLocaleDateString([], { timeZone: 'UTC', month: 'long', year: 'numeric' })
 function when(c: PhotoCluster) {
   if (!c.from) return ''
   const a = monthYear(c.from), b = monthYear(c.to)
@@ -75,7 +74,7 @@ export default function PhotoMap({ lib, onOpen, onList }: { lib: Library; onOpen
 
   // First, where the pictures are, to start the map around them.
   useEffect(() => {
-    api.get<Answer>(`/photos/map?library=${lib.id}&zoom=0&fit=1`).then(setFirst).catch(() => setFailed(true))
+    api.get<Answer>(`/photos/map?library=${lib.id}&fit=1`).then(setFirst).catch(() => setFailed(true))
   }, [lib.id])
   useEffect(() => {
     if (!first || !size.w || !size.h) return
@@ -243,15 +242,20 @@ export default function PhotoMap({ lib, onOpen, onList }: { lib: Library; onOpen
     }
     openArea(c)
   }
+  // The pictures of one place, a page at a time. Only the last place asked for is shown,
+  // whichever answer comes back first.
+  const areaNow = useRef<{ group: PhotoCluster; photos: Photo[] } | null>(null)
   const openArea = (c: PhotoCluster, after = '', title = describe(c)) => {
     const pad = 1e-5
-    const bbox = boxParam({ south: c.south - pad, west: c.west - pad, north: c.north + pad, east: c.east + pad })
+    const bbox = boxParam({ south: Math.max(-90, c.south - pad), west: Math.max(-180, c.west - pad), north: Math.min(90, c.north + pad), east: Math.min(180, c.east + pad) })
+    const before = after && areaNow.current?.group === c ? areaNow.current.photos : []
+    areaNow.current = { group: c, photos: before }
     api.get<{ photos: Photo[]; nextCursor: string }>(`/photos/list?library=${lib.id}&limit=200&bbox=${bbox}${after ? `&cursor=${encodeURIComponent(after)}` : ''}`).then((r) => {
-      setArea((a) => {
-        const photos = after && a ? [...a.photos, ...r.photos] : r.photos
-        onList(photos)
-        return { title, photos, next: r.nextCursor, bbox, group: c }
-      })
+      if (areaNow.current?.group !== c) return // another place was chosen meanwhile
+      const photos = [...before, ...r.photos]
+      areaNow.current = { group: c, photos }
+      setArea({ title, photos, next: r.nextCursor, bbox, group: c })
+      onList(photos)
       if (!after) requestAnimationFrame(() => areaHead.current?.focus())
     }).catch(() => {})
   }
@@ -272,12 +276,12 @@ export default function PhotoMap({ lib, onOpen, onList }: { lib: Library; onOpen
     return out
   }, [tiles, view, s])
   useEffect(() => { tileLoads.current = { ok: 0, bad: 0 }; setTilesBroken(false) }, [tiles])
-  const tileDone = (ok: boolean) => {
+  const tileDone = (ok: boolean) => { // six failures in a row: the provider isn't answering (any more)
     const t = tileLoads.current
-    if (ok) t.ok++
-    else t.bad++
-    if (!t.ok && t.bad >= 6) setTilesBroken(true)
+    if (ok) { t.ok++; t.bad = 0 } else t.bad++
+    if (t.bad >= 6) setTilesBroken(true)
   }
+
 
   // Pins for each copy of the world in view, in reading order, so Tab and a
   // screen reader go left to right and top to bottom.
@@ -383,7 +387,7 @@ export default function PhotoMap({ lib, onOpen, onList }: { lib: Library; onOpen
           <div className="gal-sub">
             <h2 id={`${ids}-area`} ref={areaHead} tabIndex={-1}>{pictures(area.photos.length)}{area.next ? ' so far' : ''} <span className="muted">· {placeName(area.group.lat, area.group.lon)}</span></h2>
             <button type="button" className="btn sm ghost" onClick={() => { move(fitView(groupBox(area.group), sizeRef.current, MAX_ZOOM - 1), 0) }}>Show on the map</button>
-            <button type="button" className="btn sm ghost" onClick={() => setArea(null)}><IconClose /> Close</button>
+            <button type="button" className="btn sm ghost" onClick={() => { areaNow.current = null; setArea(null) }}><IconClose /> Close</button>
           </div>
           <div className="gal-grid small">
             {area.photos.map((p) => (

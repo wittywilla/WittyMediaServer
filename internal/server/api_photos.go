@@ -195,17 +195,19 @@ func (s *Server) handlePhotoFolders(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/photos/map?library=&zoom=&bbox=&fit=1 (and the list's filters): groups
 // of pictures for the part of the map in view. fit=1 adds the box around every
-// located picture, for the first view.
+// located picture, for the first view; without a zoom it's only that box.
 func (s *Server) handlePhotoMap(w http.ResponseWriter, r *http.Request) {
 	pq, err := s.photoQuery(r)
 	if err != nil {
 		writeLibErr(w, err)
 		return
 	}
-	c, cut, err := s.Store.PhotoClusters(r.Context(), pq, qInt(r, "zoom", 0))
-	if err != nil {
-		writeLibErr(w, err)
-		return
+	c, cut := []library.PhotoCluster{}, false
+	if !qBool(r, "fit") || r.URL.Query().Has("zoom") { // fit alone is the first view's question: just the box
+		if c, cut, err = s.Store.PhotoClusters(r.Context(), pq, qInt(r, "zoom", 0)); err != nil {
+			writeLibErr(w, err)
+			return
+		}
 	}
 	tiles, credit := s.onlineMap(r.Context())
 	out := map[string]any{"clusters": c, "truncated": cut, "tiles": tiles, "attribution": credit}

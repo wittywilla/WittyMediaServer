@@ -1,6 +1,6 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useState, type ReactNode } from 'react'
-import { fmtTime, mediaUrl, posterUrl, type Album, type Artist, type Item } from '../../api'
+import { artSet, CARD_SIZES, fitWidth, fmtTime, mediaUrl, posterUrl, sized, type Album, type Artist, type Item } from '../../api'
 import { PlaylistPicker, Pop } from '../../audio/controls'
 import { IconAddList, IconHeart, IconHeartOn, IconMore, IconStation } from '../../audio/icons'
 import { useAudio } from '../../audio/player'
@@ -55,7 +55,7 @@ export function SeeAllTile({ to, round }: { to: string; round?: boolean }) {
 export function AlbumTile({ libId, a, book, noArtist }: { libId: number; a: Album; book?: boolean; noArtist?: boolean }) {
   return (
     <Link to={albumLink(libId, a)} className="album-card mh-album" title={a.title}>
-      <div className={'album-cover' + (book ? ' book' : '')}>{a.coverItem ? <img src={coverUrl(a.coverItem)} alt="" loading="lazy" /> : <Placeholder title={a.title || 'Unknown'} />}</div>
+      <div className={'album-cover' + (book ? ' book' : '')}>{a.coverItem ? <img src={sized(coverUrl(a.coverItem), 320)} srcSet={artSet(coverUrl(a.coverItem))} sizes={CARD_SIZES} alt="" loading="lazy" /> : <Placeholder title={a.title || 'Unknown'} />}</div>
       <b>{a.title || 'Unknown album'}</b>
       <span className="muted">{[noArtist ? '' : a.artist, a.year].filter(Boolean).join(' · ')}</span>
     </Link>
@@ -69,7 +69,7 @@ export function SongRow({ t, onPlay }: { t: Item; onPlay: () => void }) {
   return (
     <div className={'mh-song' + (on ? ' on' : '')}>
       <button type="button" className="mh-song-play" onClick={onPlay} aria-label={`Play ${t.title}`} aria-current={on ? 'true' : undefined}>
-        <span className="mh-song-art">{t.poster && <img src={posterUrl(t)} alt="" loading="lazy" />}{on && playing && <i className="ab-eq" aria-hidden="true"><b /><b /><b /></i>}</span>
+        <span className="mh-song-art">{t.poster && <img src={sized(posterUrl(t), fitWidth(64))} alt="" loading="lazy" />}{on && playing && <i className="ab-eq" aria-hidden="true"><b /><b /><b /></i>}</span>
         <span className="mh-song-text"><b>{t.title}</b><small>{[t.artist || t.albumArtist, t.album].filter(Boolean).join(' · ')}</small></span>
         <span className="mh-song-time">{t.runtimeSec ? fmtTime(t.runtimeSec) : ''}</span>
       </button>

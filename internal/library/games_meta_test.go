@@ -790,7 +790,7 @@ func TestPosterThumb(t *testing.T) {
 	for _, c := range []struct {
 		src   string
 		width int
-	}{{"cache:game-small.png", 320}, {"cache:game-big.png", 0}, {"cache:game-big.png", 5000}, {"cache:missing.png", 320}, {"cache:../secret.png", 320}, {"https://example.test/a.png", 320}, {"", 320}} {
+	}{{"cache:game-small.png", 320}, {"cache:game-big.png", 0}, {"cache:game-big.png", 5000}, {"cache:game-big.png", 2560}, {"cache:missing.png", 320}, {"cache:../secret.png", 320}, {"https://example.test/a.png", 320}, {"", 320}} {
 		if got := f.g.PosterThumb(f.ctx, c.src, c.width); got != c.src {
 			t.Errorf("%q at %d: %q", c.src, c.width, got)
 		}

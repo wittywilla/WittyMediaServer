@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { api, fmtRuntime, fmtTime, posterUrl, type Album, type Artist, type Item, type Library } from '../api'
+import { api, fitWidth, fmtRuntime, fmtTime, posterUrl, sized, type Album, type Artist, type Item, type Library } from '../api'
 import { useArtColour } from '../audio/art'
 import { IconHeart, IconHeartOn, IconStation } from '../audio/icons'
 import { useAudio, type AudioMode } from '../audio/player'
@@ -143,7 +143,7 @@ function HomeTab({ lib, reload, onReload }: { lib: Library; reload: number; onRe
               const pct = t.progress && t.runtimeSec ? Math.min(100, (t.progress.positionSec / t.runtimeSec) * 100) : 0
               return (
                 <div key={t.id} className="mh-resume">
-                  <span className="mh-resume-art">{t.poster && <img src={posterUrl(t)} alt="" loading="lazy" />}</span>
+                  <span className="mh-resume-art">{t.poster && <img src={sized(posterUrl(t), fitWidth(96))} alt="" loading="lazy" />}</span>
                   <span className="mh-resume-text">
                     <b>{t.album || t.title}</b>
                     <small>{t.artist || t.albumArtist}</small>
@@ -346,7 +346,7 @@ function PlaylistsTab({ lib }: { lib: Library }) {
         <div className="mh-lists">
           {lists.filter((c) => !c.system).map((c) => (
             <Link key={c.id} to={`/collections/${c.id}`} className="mh-list mh-list-text">
-              <span className="mh-list-art">{c.coverId > 0 && <img src={coverUrl(c.coverId)} alt="" loading="lazy" />}</span>
+              <span className="mh-list-art">{c.coverId > 0 && <img src={sized(coverUrl(c.coverId), fitWidth(96))} alt="" loading="lazy" />}</span>
               <span className="mh-list-words"><b>{c.name}</b><small>{c.kind === 'smart' ? 'Smart playlist' : `${c.count} ${c.count === 1 ? 'item' : 'items'}`}</small></span>
             </Link>
           ))}

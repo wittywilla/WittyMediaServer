@@ -295,6 +295,21 @@ export const showBackdropUrl = (s: Show) => mediaUrlQ(`/api/shows/${s.id}/art/ba
 export const seasonPosterUrl = (s: Show, n: number) => mediaUrlQ(`/api/shows/${s.id}/art/season`, `n=${n}&v=${s.updatedAt}`)
 export const artPreviewUrl = (src: string) => mediaUrl(`/api/artwork/preview?src=${encodeURIComponent(src)}`)
 
+// Smaller pictures. The server keeps a copy of a poster or backdrop at each of these widths
+// (library.ThumbWidths) once one is asked for, so a card isn't sent a picture made for a cinema
+// screen, and a TV or phone doesn't spend megabytes of memory holding one.
+const ART_WIDTHS = [160, 320, 480, 640, 1280, 1920]
+// sized: an art address at a width. '' stays ''.
+export const sized = (url: string, w: number) => url && `${url}${url.includes('?') ? '&' : '?'}w=${w}`
+// artSet: a srcset of a poster at the widths a card or a list can want.
+export const artSet = (url: string, widths = ART_WIDTHS.slice(0, 4)) => widths.map((w) => `${sized(url, w)} ${w}w`).join(', ')
+// fitWidth: the smallest of those widths that fills css pixels on this screen.
+export const fitWidth = (css: number) => ART_WIDTHS.find((w) => w >= css * (window.devicePixelRatio || 1)) ?? 1920
+// What sizes says for a card's picture: the --card-w and --card-wide-w steps in styles.css, with
+// room for a grid cell to grow up to twice a card.
+export const CARD_SIZES = '(max-width: 520px) 34vw, (max-width: 1099px) 220px, 20vw'
+export const WIDE_CARD_SIZES = '(max-width: 520px) 64vw, (max-width: 1099px) 300px, 28vw'
+
 // Episode label, e.g. "S2 · E15–16".
 export function episodeLabel(it: Item): string {
   if (it.season == null || it.episode == null || it.episode < 0) return ''

@@ -1,4 +1,4 @@
-import { fmtTime, posterUrl } from '../api'
+import { fitWidth, fmtTime, posterUrl, sized } from '../api'
 import { Placeholder } from '../components/common'
 import { IconAudio, IconBack15, IconClose, IconDown, IconExpand, IconForward30, IconNext, IconPause, IconPlay, IconPrev, IconUp, IconVisualizer } from '../icons'
 import { AddToPlaylist, Like, Seek, Volume } from './controls'
@@ -14,7 +14,7 @@ export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boole
   if (!it) return null
   const sub = p.live ? (p.retrying ? 'Reconnecting…' : p.stationNow || 'Live') : [it.artist || it.albumArtist, it.album].filter(Boolean).join(' · ')
   const art = it.poster
-    ? <img src={posterUrl(it)} alt="" style={p.live ? { objectFit: 'contain' } : undefined} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+    ? <img src={sized(posterUrl(it), fitWidth(64))} alt="" style={p.live ? { objectFit: 'contain' } : undefined} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
     : p.live ? <Placeholder title={it.title} /> : <IconAudio />
   if (p.collapsed) {
     const pct = p.duration > 0 ? (p.time / p.duration) * 100 : 0

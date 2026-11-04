@@ -290,43 +290,43 @@ One issue per move, in the repository it lands in. Moves into the two new librar
 
 | # | Move | Where | Issue |
 |---|---|---|---|
-| 1 | A test that the packages meant to leave import nothing else of the server, so they stay movable | WittyMediaServer | ISSUE_BOUNDARY |
-| 2 | The server reads disc images with WittyDisc's `isofs` (the same code) and deletes its copy; the release check allows core libraries | WittyMediaServer | ISSUE_ISOFS |
-| 3 | The owner makes the WittyBroadcast and WittyGameCore repositories | WittyMediaServer (owner step) | ISSUE_REPOS |
+| 1 | A test that the packages meant to leave import nothing else of the server, so they stay movable | WittyMediaServer | [#103](https://github.com/wittywilla/WittyMediaServer/issues/103) |
+| 2 | The server reads disc images with WittyDisc's `isofs` (the same code) and deletes its copy; the release check allows core libraries | WittyMediaServer | [#104](https://github.com/wittywilla/WittyMediaServer/issues/104) |
+| 3 | The owner makes the WittyBroadcast and WittyGameCore repositories | WittyMediaServer (owner step) | [#105](https://github.com/wittywilla/WittyMediaServer/issues/105) |
 
 **For 0.8.0-alpha**, once those land:
 
 | # | Move | Where | Issue |
 |---|---|---|---|
-| 4 | `requireRanges` in the manifest and the store's rules, and libraries shown as built in | WittyModule | ISSUE_M_REQ |
-| 5 | The catalogue carries `requireRanges` | WittyModuleCatalog | ISSUE_K_REQ |
-| 6 | The server honours `requireRanges` in the store | WittyMediaServer | ISSUE_S_REQ |
-| 7 | `guard` (DVD and Blu-ray encryption detection) in WittyDisc | WittyDisc | ISSUE_D_GUARD |
-| 8 | WittyDVD calls `wittydisc/guard` | WittyDVD | ISSUE_V_GUARD |
-| 9 | WittyBluray calls `wittydisc/guard` | WittyBluray | ISSUE_B_GUARD |
-| 10 | The server's own disc checks use `wittydisc/guard` | WittyMediaServer | ISSUE_S_GUARD |
-| 11 | `cdtoc` (CD lookup) in WittyDisc | WittyDisc | ISSUE_D_CDTOC |
-| 12 | WittyCD uses `wittydisc/cdtoc` | WittyCD | ISSUE_C_CDTOC |
-| 13 | The server uses `wittydisc/cdtoc` and deletes `internal/cdlookup` | WittyMediaServer | ISSUE_S_CDTOC |
-| 14 | WittyBroadcast: `mpegts` and `xmltv`, from WittyTuner's | WittyMediaServer, until the repository exists | ISSUE_BROADCAST |
-| 15 | WittyTuner builds with WittyBroadcast | WittyTuner | ISSUE_T_BROADCAST |
-| 16 | WittyGameCore: `gameid`, `gameregion`, `gamearchive`, `zipsafe`, `hostsandbox`, then the metadata sources, from the server; the server builds with it | WittyMediaServer, until the repository exists | ISSUE_GAMECORE |
-| 17 | WittyPlay builds with WittyGameCore's `hostsandbox`, and identifies files with `gameid` | WittyPlay | ISSUE_P_GAMECORE |
-| 18 | `kit/facade` generates types only, for helpers | WittyModule | ISSUE_M_TYPES |
-| 19 | The server's `dvd`, `bluray`, `cd` and `tuner` types are generated | WittyMediaServer | ISSUE_S_TYPES |
+| 4 | `requireRanges` in the manifest and the store's rules, and libraries shown as built in | WittyModule | [WittyModule#2](https://github.com/wittywilla/WittyModule/issues/2) |
+| 5 | The catalogue carries `requireRanges` | WittyModuleCatalog | [WittyModuleCatalog#2](https://github.com/wittywilla/WittyModuleCatalog/issues/2) |
+| 6 | The server honours `requireRanges` in the store | WittyMediaServer | [#106](https://github.com/wittywilla/WittyMediaServer/issues/106) |
+| 7 | `guard` (DVD and Blu-ray encryption detection) in WittyDisc | WittyDisc | [WittyDisc#1](https://github.com/wittywilla/WittyDisc/issues/1) |
+| 8 | WittyDVD calls `wittydisc/guard` | WittyDVD | [WittyDVD#1](https://github.com/wittywilla/WittyDVD/issues/1) |
+| 9 | WittyBluray calls `wittydisc/guard` | WittyBluray | [WittyBluray#2](https://github.com/wittywilla/WittyBluray/issues/2) |
+| 10 | The server's own disc checks use `wittydisc/guard` | WittyMediaServer | [#107](https://github.com/wittywilla/WittyMediaServer/issues/107) |
+| 11 | `cdtoc` (CD lookup) in WittyDisc | WittyDisc | [WittyDisc#2](https://github.com/wittywilla/WittyDisc/issues/2) |
+| 12 | WittyCD uses `wittydisc/cdtoc` | WittyCD | [WittyCD#2](https://github.com/wittywilla/WittyCD/issues/2) |
+| 13 | The server uses `wittydisc/cdtoc` and deletes `internal/cdlookup` | WittyMediaServer | [#108](https://github.com/wittywilla/WittyMediaServer/issues/108) |
+| 14 | WittyBroadcast: `mpegts` and `xmltv`, from WittyTuner's | WittyMediaServer, until the repository exists | [#109](https://github.com/wittywilla/WittyMediaServer/issues/109) |
+| 15 | WittyTuner builds with WittyBroadcast | WittyTuner | [WittyTuner#2](https://github.com/wittywilla/WittyTuner/issues/2) |
+| 16 | WittyGameCore: `gameid`, `gameregion`, `gamearchive`, `zipsafe`, `hostsandbox`, then the metadata sources, from the server; the server builds with it | WittyMediaServer, until the repository exists | [#110](https://github.com/wittywilla/WittyMediaServer/issues/110) |
+| 17 | WittyPlay builds with WittyGameCore's `hostsandbox`, and identifies files with `gameid` | WittyPlay | [WittyPlay#19](https://github.com/wittywilla/WittyPlay/issues/19) |
+| 18 | `kit/facade` generates types only, for helpers | WittyModule | [WittyModule#3](https://github.com/wittywilla/WittyModule/issues/3) |
+| 19 | The server's `dvd`, `bluray`, `cd` and `tuner` types are generated | WittyMediaServer | [#111](https://github.com/wittywilla/WittyMediaServer/issues/111) |
 
 **Later**, each a release of its own module:
 
 | # | Move | Where | Issue |
 |---|---|---|---|
-| 20 | DVD presentation moves into WittyDVD, behind a transcoder interface; the common part into WittyDisc `present` | WittyDVD | ISSUE_V_PRESENT |
-| 21 | Blu-ray presentation moves into WittyBluray | WittyBluray | ISSUE_B_PRESENT |
-| 22 | The server hands disc sessions to the engines and keeps the transcoder and the checks | WittyMediaServer | ISSUE_S_PRESENT |
-| 23 | Sunshine set-up and control move into WittyRigs | WittyRigs | ISSUE_R_RIGS |
-| 24 | Book conversion moves into WittyEbook | WittyEbook | ISSUE_E_CONVERT |
-| 25 | Comic archives taken apart in WittyComics | WittyComics | ISSUE_CO_PAGES |
-| 26 | `StatsSource`, so WittyStats runs on other numbers | WittyStats | ISSUE_ST_SOURCE |
-| 27 | Read `api_couch.go` for protocol code that belongs in WittyCouch | WittyCouch | ISSUE_CU_REVIEW |
+| 20 | DVD presentation moves into WittyDVD, behind a transcoder interface; the common part into WittyDisc `present` | WittyDVD | [WittyDVD#2](https://github.com/wittywilla/WittyDVD/issues/2) |
+| 21 | Blu-ray presentation moves into WittyBluray | WittyBluray | [WittyBluray#3](https://github.com/wittywilla/WittyBluray/issues/3) |
+| 22 | The server hands disc sessions to the engines and keeps the transcoder and the checks | WittyMediaServer | [#112](https://github.com/wittywilla/WittyMediaServer/issues/112) |
+| 23 | Sunshine set-up and control move into WittyRigs | WittyRigs | [WittyRigs#1](https://github.com/wittywilla/WittyRigs/issues/1) |
+| 24 | Book conversion moves into WittyEbook | WittyEbook | [WittyEbook#2](https://github.com/wittywilla/WittyEbook/issues/2) |
+| 25 | Comic archives taken apart in WittyComics | WittyComics | [WittyComics#2](https://github.com/wittywilla/WittyComics/issues/2) |
+| 26 | `StatsSource`, so WittyStats runs on other numbers | WittyStats | [WittyStats#2](https://github.com/wittywilla/WittyStats/issues/2) |
+| 27 | Read `api_couch.go` for protocol code that belongs in WittyCouch | WittyCouch | [WittyCouch#3](https://github.com/wittywilla/WittyCouch/issues/3) |
 | 28 | "Using it without WittyMediaServer" in every module's README | each module, with its move | — |
 
 Each issue links back to [#98](https://github.com/wittywilla/WittyMediaServer/issues/98) and to the issues it needs first. The pull requests go in that order across repositories: the library, then the module, then the server, then the catalogue.

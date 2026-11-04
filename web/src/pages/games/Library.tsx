@@ -393,12 +393,10 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
             <IconSearch size={18} />
             <input ref={search} className="input gm-search" type="search" placeholder="Search these games" aria-label="Search these games" value={typed} onChange={(e) => setTyped(e.target.value)} />
           </label>
+          <ScanButton lib={lib} onStarted={() => setWatch((n) => n + 1)} />
           <Link className="btn ghost" to="/big" onClick={() => { setCouchOn(true); void document.documentElement.requestFullscreen?.().catch(() => {}) }} aria-label="Couch mode: full screen, made for controllers"><IconFull size={18} /> <span className="gm-hide-narrow">Couch mode</span></Link>
         </>}
-        actions={(consoleId || !links.couch) && <>
-          {consoleId && <Link className="btn ghost sm" to={links.library(lib.id)}>All consoles</Link>}
-          {!links.couch && <ScanButton lib={lib} onStarted={() => setWatch((n) => n + 1)} />}
-        </>}
+        actions={consoleId && <Link className="btn ghost sm" to={links.library(lib.id)}>All consoles</Link>}
       />
       {!links.couch && user?.isAdmin && <GameImportBar libraryId={lib.id} onChanged={() => { setWatch((n) => n + 1); setReviewVersion((n) => n + 1) }} />}
       {/* Up here because it wants someone's attention: the page can run to thousands of pixels. */}

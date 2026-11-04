@@ -637,28 +637,28 @@ func (h *handler) Enabled(_ context.Context, lv slog.Level) bool {
 	if lv >= LevelCrash {
 		return true
 	}
-	if f := slog.Level(h.l.floor.Load()); lv >= f || h.l.flightKeeps(lv) {
+	if f := slog.Level(h.l.floor.Load()); lv >= f {
 		return true
 	}
 	t := h.l.table.Load()
 	if h.cat != "" {
 		if t.mods == nil {
-			return lv >= t.by[h.cat]
+			return lv >= t.by[h.cat] || h.l.flightKeeps(lv)
 		}
 		if h.module != "" { // a logger that knows its module can answer without building anything
 			m, ok := t.mods[h.module]
 			switch {
 			case !ok:
-				return lv >= t.by[h.cat]
+				return lv >= t.by[h.cat] || h.l.flightKeeps(lv)
 			case len(m.topics) > 0:
 				return true // the line may have an option that's on
 			case m.hasLevel:
-				return lv >= m.level
+				return lv >= m.level || h.l.flightKeeps(lv)
 			}
-			return lv >= t.by[h.cat]
+			return lv >= t.by[h.cat] || h.l.flightKeeps(lv)
 		}
 	}
-	return lv >= t.min // the category or module may be among the message's attributes
+	return lv >= t.min || h.l.flightKeeps(lv) // the category or module may be among the message's attributes
 }
 
 func (h *handler) Handle(ctx context.Context, r slog.Record) (err error) {

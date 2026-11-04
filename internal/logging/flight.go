@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"runtime/trace"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -19,18 +20,24 @@ import (
 // leave no line at warn.
 //
 // What it costs: a debug line that the levels would have thrown away is now built,
-// cleaned and kept for a while. Bounded by size and age; the oldest go first.
+// cleaned and kept for a while, a couple of microseconds each. Bounded by size and age,
+// the oldest going first, and by how many such lines a second it takes: a loop that
+// logs every frame mustn't make the server slower for being watched.
 
 // Limits. Variables so tests can shrink them.
 var (
-	flightAge     = 10 * time.Minute
-	flightBytes   = 16 << 20
-	flightEntries = 1 << 17
+	flightAge       = 10 * time.Minute
+	flightBytes     = 16 << 20
+	flightEntries   = 1 << 17
+	flightPerSecond = int64(2000) // lines no file wants, beyond which they're only counted
 )
 
 type flightRing struct {
-	on    atomic.Bool
-	mu    sync.Mutex
+	on      atomic.Bool
+	sec     atomic.Int64 // the second being counted
+	count   atomic.Int64 // lines let in during it
+	skipped atomic.Int64 // left out for being too many, ever
+	mu      sync.Mutex
 	buf   []*Record
 	start int
 	n     int
@@ -109,6 +116,10 @@ func (l *Logger) WriteFlight(w io.Writer) (int, error) {
 			buf = buf[:0]
 		}
 	}
+	if n := l.flight.skipped.Load(); n > 0 {
+		buf = (&Record{Time: time.Now().Truncate(time.Microsecond), Lv: slog.LevelInfo, Level: "info", Cat: CatDefault,
+			Msg: "the flight recorder left lines out for coming too fast", Attrs: []Attr{{"skipped", strconv.FormatInt(n, 10)}}}).appendLine(buf)
+	}
 	if _, err := w.Write(buf); err != nil {
 		return 0, err
 	}
@@ -185,6 +196,20 @@ func WriteTrace(w io.Writer) (int64, error) {
 	return goTrace.fr.WriteTo(w)
 }
 
-// flightKeeps is Enabled's answer while the flight recorder is on: everything from
-// debug up is worth building, because it's kept for a while even if no file gets it.
-func (l *Logger) flightKeeps(lv slog.Level) bool { return lv >= slog.LevelDebug && l.flight.on.Load() }
+// flightKeeps is Enabled's answer, for a line no file wants, while the flight recorder
+// is on: worth building, because it's kept for a while, up to so many a second.
+func (l *Logger) flightKeeps(lv slog.Level) bool {
+	if lv < slog.LevelDebug || !l.flight.on.Load() {
+		return false
+	}
+	f := &l.flight
+	if now := time.Now().Unix(); f.sec.Load() != now {
+		f.sec.Store(now)
+		f.count.Store(0)
+	}
+	if f.count.Add(1) > flightPerSecond {
+		f.skipped.Add(1)
+		return false
+	}
+	return true
+}

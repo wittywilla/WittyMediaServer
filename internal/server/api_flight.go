@@ -111,6 +111,8 @@ func (s *Server) handleSaveEvidence(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, "it couldn't be saved: "+err.Error())
 		return
 	}
+	_ = s.Crashes.MarkSeen(c.ID) // the one who saved it has seen it: no banner for it
+	c.Seen = true
 	s.Log.InfoContext(r.Context(), "what just happened was saved", "cat", "server", "report", c.ID)
 	writeJSON(w, 200, c)
 }

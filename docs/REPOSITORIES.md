@@ -8,7 +8,7 @@ Every repository's README ends with a **Legal** section: no affiliation, no warr
 
 ## The list
 
-Every one is on GitHub under its final name, so nothing needs creating, renaming or deleting. All but WittyMediaRemoteMedia have local history that hasn't been pushed: [Publishing the modules](MODULES-CUTOVER.md) has the steps. WittyStats and WittyModuleCatalog are still empty there.
+Every one in this list is on GitHub under its final name, with its history, so none of them needs creating, renaming or deleting. More are [to make](#to-make).
 
 | Repository | What it's for |
 |---|---|
@@ -35,7 +35,16 @@ Every one is on GitHub under its final name, so nothing needs creating, renaming
 | WittyReader | The standalone reader app |
 | WittyMediaPlayer | The standalone desktop player |
 | WittyMediaClient | The client apps for desktop, Android, Apple and others |
-| WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app. Empty, and has no local copy: work not started. The roadmap is the only thing that names it |
+| WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app. Only a README, and no local copy: work not started. The roadmap is the only thing that names it |
+
+### To make
+
+The owner makes these, as below. A chat never creates a repository.
+
+| Repository | What it's for |
+|---|---|
+| wittymediaserver.com | The project's website as plain files, built and kept at `D:\projects\wittymediaserver.com` with local commits only. See [the website plan](plans/WEBSITE.md) |
+| .github | Issue forms and settings GitHub uses for every repository that has none of its own. Steps are in [#114](https://github.com/wittywilla/WittyMediaServer/issues/114) |
 
 **A new one on GitHub:** make it under `wittywilla`, as **Public**, with no README, `.gitignore` or licence.
 

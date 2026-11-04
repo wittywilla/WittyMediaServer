@@ -108,8 +108,8 @@ usage:
                              the logs as a ZIP, sanitized for sharing unless --raw; no server needed
   wittymediaserver logs sanitize [-data <dir>] [-o out.txt] <file>
                              a sanitized copy of any text log
-  wittymediaserver metadata export|check|apply [-data <dir>] [-library <id>] [--dry-run | --apply]
-                             write a text file for each title to fix by hand, say what's wrong with one, and apply them
+  wittymediaserver metadata export|check|apply|undo [-data <dir>] [-library <id>] [--dry-run | --apply]
+                             write a text file for each title to fix by hand, say what's wrong with one, apply them, and take one apply back
   wittymediaserver doctor [-data <dir>] [--fix] [--only <id,id or area>] [--safe-only] [--json] [--yes]
                              find and fix problems with metadata, data, modules and the install, even if the
                              server won't start. Without --fix it only looks. wittymediaserver doctor help says more

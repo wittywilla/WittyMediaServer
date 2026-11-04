@@ -37,7 +37,7 @@ wittymediaserver doctor --fix   # fixes what it can
 | **It says the server only accepts connections from this computer** | The server is set to listen only on this computer. Set `listen` to `:9797` in its [config file](CONFIG.md), then restart it |
 | **An app doesn't list the server** | Apps find it over UDP ports 5353 and 9797, which a firewall may block. Wi-Fi with client isolation or a guest network keeps devices apart, and a container needs host networking. Check **Settings → Profiles → Signing in → Let apps find this server**. Typing the server's address in the app always works. See [Apps and devices](APPS.md) |
 | **It doesn't work away from home** | That's expected until you turn on **Settings → Remote Access**. See [Remote access](REMOTE.md), which has [its own troubleshooting](REMOTE.md#when-it-doesnt-work) |
-| **"This server is only available on its home network."** | Remote Access is off, and the server sees you as outside. Turn it on from a device at home. Behind a reverse proxy, also list the proxy as trusted: see [Remote access](REMOTE.md#a-reverse-proxy-you-already-run) |
+| **"This server is only available on its home network."** | **Settings → Remote Access** is set to **Home network only**, and the server sees you as outside. Choose a way in from a device at home. Behind a reverse proxy, also list the proxy as trusted: see [Remote access](REMOTE.md#a-reverse-proxy-you-already-run) |
 | **An app warns that this isn't the server you used before** | Compare the fingerprint with the one on your server's **Sign in a TV** page. See [Apps and devices](APPS.md#if-the-app-warns-about-the-server) |
 
 ## Setting up and signing in

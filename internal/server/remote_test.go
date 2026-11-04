@@ -18,6 +18,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 )
 
 // A whole server without FFmpeg or media: enough for sign-in and settings.
@@ -822,5 +823,36 @@ func TestLoginSlotIsHeldUntilDone(t *testing.T) {
 	}
 	for _, f := range held[1:] {
 		f()
+	}
+}
+
+// The apps and the tray get the page's own words, and nobody else gets them.
+func TestRemoteStatusForAppsAndTheTray(t *testing.T) {
+	s, h := remoteServer(t, nil)
+	tok := adminToken(t, s, h)
+	if r := call(h, "GET", "/api/remote/status", lan, nil); r.code != 401 {
+		t.Errorf("someone at home with no account: %d", r.code)
+	}
+	if r := call(h, "GET", "/api/remote/status", "127.0.0.1", nil, "Host: localhost:9797", "X-Forwarded-For: 203.0.113.9"); r.code == 200 {
+		t.Errorf("through a proxy on this computer: %d", r.code)
+	}
+	var v remoteStanding
+	r := call(h, "GET", "/api/remote/status", "127.0.0.1", nil, "Host: localhost:9797")
+	if r.code != 200 {
+		t.Fatalf("the tray on this computer: %d %s", r.code, r.body)
+	}
+	r.json(t, &v)
+	if v.Subject != remote.SubjectHomeOnly || v.Level != "good" || !strings.Contains(v.Away, "by your choice") || v.State != "off" {
+		t.Errorf("home network only is working as chosen: %+v", v)
+	}
+	putRemote(t, h, tok, map[string]any{"enabled": true, "method": "proxy", "publicUrl": "https://media.example.com"})
+	call(h, "GET", "/api/remote/status", lan, nil, "Authorization: Bearer "+tok).json(t, &v)
+	if v.Subject != remote.SubjectNotYet || v.Level != "waiting" || v.PublicURL != "https://media.example.com" {
+		t.Errorf("chosen, not seen yet: %+v", v)
+	}
+	var page remoteView
+	call(h, "GET", "/api/remote", lan, nil, "Authorization: Bearer "+tok).json(t, &page)
+	if page.Subject != v.Subject || page.Summary != v.Summary || page.Away != v.Away {
+		t.Errorf("the page and the apps say different things: %+v / %+v", page.Standing, v.Standing)
 	}
 }

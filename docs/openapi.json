@@ -29249,6 +29249,36 @@
         "x-wms-auth": "admin"
       }
     },
+    "/remote/status": {
+      "get": {
+        "operationId": "getRemoteStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteStanding"
+                }
+              }
+            },
+            "description": "How remote access stands, in the words Settings → Remote Access uses. `level` is good (working as chosen, green), waiting (asked for, not working yet, amber) or fault (red). `subject` names what it's about with the short answer, such as \"Home network only\" or \"Reachable from away: yes\"; `summary` is the whole answer. Show them as they are: never a bare on or off."
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "How remote access stands, for a connection screen. Signed in, or from the server's own computer with no account (the tray icon).",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
     "/remote/test": {
       "post": {
         "operationId": "postRemoteTest",

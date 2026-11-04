@@ -1509,6 +1509,7 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | Route | Sign-in | What it does |
 |---|---|---|
 | `GET /remote` | admin | Remote. |
+| `GET /remote/status` | none | How remote access stands, in the settings page's own words: `level` (good, waiting or fault), `subject` (such as "Home network only" or "Reachable from away: yes"), `summary`, `home`, `away`, `checked`, `state` and `publicUrl`. Show them as they are, on a connection screen. Needs a sign-in, except from the server's own computer. |
 | `PUT /remote` | admin | Put remote. |
 | `POST /remote/test` | admin | Start test. |
 | `POST /remote/selfcheck` | admin | Self check. |

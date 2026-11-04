@@ -391,7 +391,7 @@ func schemaTypes() map[string]reflect.Type {
 		"CDView": ty(cdView{}), "CDMatch": ty(library.CDMatch{}), "DiscInfo": ty(library.DiscInfo{}), "DiscLabels": ty(library.DiscLabels{}), "Album": ty(library.Album{}), "Artist": ty(library.Artist{}), "Network": ty(library.Network{}),
 		"Podcast": ty(library.Podcast{}), "Annotation": ty(library.Annotation{}), "SearchHit": ty(library.SearchHit{}), "Agent": ty(library.Agent{}), "AgentResult": ty(library.AgentResult{}),
 		"ArtCandidate": ty(artCandidate{}), "DiscTitleView": ty(discTitle{}), "DiscChapterView": ty(discChapter{}), "DiscMenuView": ty(discMenu{}),
-		"PlayInfo": ty(playInfo{}), "Track": ty(trackInfo{}),
+		"PlayInfo": ty(playInfo{}), "Track": ty(trackInfo{}), "RemoteStanding": ty(remoteStanding{}),
 		"GameProfile": ty(wittyplay.Profile{}), "GameBackground": ty(library.GameBackground{}), "ControllerData": ty(wittyplay.ControllerData{}),
 		"Presentation": ty(dvdsession.Presentation{}), "PresentationMedia": ty(dvdsession.Media{}), "DiscMenu": ty(dvdsession.Menu{}), "DiscButton": ty(dvdsession.ButtonView{}),
 		"DiscTitlePlaying": ty(dvdsession.TitleView{}), "DiscTrack": ty(dvdsession.Track{}), "DiscAction": ty(dvdsession.Action{}), "SubEvent": ty(dvdsession.SubEvent{}),

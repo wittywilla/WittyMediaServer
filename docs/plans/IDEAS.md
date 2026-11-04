@@ -48,7 +48,7 @@ Sizes: **S** a patch, **M** a minor release item, **L** a headline feature, **XL
 |---|---|---|
 | **Localisation:** the whole UI, help and setup in other languages, with right-to-left support. Strings moved into message files, a translation workflow on GitHub, and locale-aware dates and numbers | L | The product is in English only (to verify); it's the largest single reach increase |
 | **Multi-server for one person:** WittyMediaClient showing two servers' libraries side by side (family member's server), each with its own sign-in | L | Common in households |
-| **Server-to-server sharing:** share one library with a friend's server, read-only, through the hosted relay or remote access, with limits | L | Expected of media servers |
+| **Server-to-server sharing:** share one library with a friend's server, read-only, through WittyRelay (the free hosted relay, once it exists) or remote access, with limits | L | Expected of media servers |
 | **Live TV time-shift for everyone:** start any library channel's current programme from the beginning, for one viewer | L | Natural after WittyTV sync |
 | **A plugin SDK guide and examples** for new custom modules (now "in development" only): when the owner opens custom modules, a template repository per delivery kind | L | Modules are their own projects |
 | **HDR everywhere:** HDR10 and HLG passthrough to HDR screens in every app, Dolby Vision profiles where licences and decoders allow, tone mapping in hardware | L | 4K libraries |

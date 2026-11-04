@@ -24,7 +24,7 @@ Keep the list in one place, so "are we there yet" has an answer:
 
 | Area | Features |
 |---|---|
-| Server | Single instance; studios combining; clear Remote Access; poster picker; library order and right-click menus; customisation everywhere; watch together; recordings in a series' folder; local AI for photos; hosted relay (greyed today); photo batch rotate and edit; sandbox on FreeBSD and macOS |
+| Server | Single instance; studios combining; clear Remote Access; poster picker; library order and right-click menus; customisation everywhere; watch together; recordings in a series' folder; local AI for photos; WittyRelay, the free hosted relay (greyed today); photo batch rotate and edit; sandbox on FreeBSD and macOS |
 | Modules | Release channels (Module API 4); every module's plan in [../modules](../README.md#module-plans) to its "somewhat implemented" line |
 | WittyTV | Live sync; full screen without retuning; guide focus; tuners: Windows BDA, DiSEqC, shared tuner for viewing and recording |
 | WittyPlay | Everything on the server and streamed (in-browser and on-device emulation are off the plan); every series in [WittyPlay's timeline](../modules/WittyPlay.md) at least started: signed cores, insert animations, core store, disc sets, server-side filters, encoder host, transport and remote, seamless sessions and hand-off, resources, thin native clients, the dashboard, playing together, more consoles |

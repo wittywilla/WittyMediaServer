@@ -409,7 +409,9 @@ type candidate struct {
 
 // discover lists playable things under a root: video files, disc images and
 // VIDEO_TS folders (a folder containing VIDEO_TS becomes one item).
-func discover(root string, step walkStep) ([]candidate, error) { return discoverVideos(root, true, step) }
+func discover(root string, step walkStep) ([]candidate, error) {
+	return discoverVideos(root, true, step)
+}
 
 // discoverClips is for commercials: short, small files are the whole point.
 func discoverClips(root string, step walkStep) ([]candidate, error) {

@@ -88,10 +88,8 @@ type Task struct {
 	Title        string    `json:"title"`
 	State        State     `json:"state"`
 	Phase        string    `json:"phase,omitempty"`
-	// Steps are the phases a job goes through, named in order, and Step is the one it's on,
-	// from 1 (0: none of them). With them, Percent is across the whole job, not one phase.
-	Steps        []string  `json:"steps,omitempty"`
-	Step         int       `json:"step,omitempty"`
+	Steps        []string  `json:"steps,omitempty"` // the phases it goes through, in order
+	Step         int       `json:"step,omitempty"`  // the one it's on, from 1 (0: none), and then Percent is across them all
 	LibraryID    int64     `json:"libraryId,omitempty"`
 	LibraryName  string    `json:"libraryName,omitempty"`
 	Item         string    `json:"item,omitempty"` // the thing being worked on, for admins

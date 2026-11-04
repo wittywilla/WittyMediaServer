@@ -601,6 +601,9 @@ func (h *Handle) view() Task {
 	if t.Step > 0 && t.Step <= len(h.shares) {
 		t.Percent = h.across(t)
 	}
+	if t.State == Done {
+		t.Percent = 100 // even when its last stage counted nothing
+	}
 	if t.State.Finished() {
 		return t
 	}
@@ -616,9 +619,6 @@ func (h *Handle) view() Task {
 
 // across is how far along the whole job is, from the steps behind it and the one it's on.
 func (h *Handle) across(t Task) float64 {
-	if t.State == Done {
-		return 100 // a step it had no need of is still behind it
-	}
 	var before, all float64
 	for i, w := range h.shares {
 		if i < t.Step-1 {

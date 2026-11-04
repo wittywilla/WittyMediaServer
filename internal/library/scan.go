@@ -1142,6 +1142,9 @@ func (s *Scanner) fillAudioFormats(ctx context.Context, libraryID int64) {
 		m.AudioFormat = format
 		_ = s.Store.saveTitleMeta(ctx, TargetItem, r.id, m)
 	}
+	if len(todo) > 0 {
+		task.Progress(int64(len(todo)), int64(len(todo)))
+	}
 }
 
 // findPoster looks once more for a picture for an unchanged item without one:

@@ -103,7 +103,7 @@ function Steps({ task: t }: { task: Task }) {
   return (
     <ol className="act-steps" aria-label="Steps">
       {t.steps!.map((s, i) => (
-        <li key={s} className={i + 1 < on ? 'done' : i + 1 === on ? 'on' : undefined} aria-current={i + 1 === on ? 'step' : undefined}>
+        <li key={i} className={i + 1 < on ? 'done' : i + 1 === on ? 'on' : undefined} aria-current={i + 1 === on ? 'step' : undefined}>
           {i + 1 < on && <IconCheck size={14} />}{s}{i + 1 < on && <span className="sr-only">, done</span>}
         </li>
       ))}

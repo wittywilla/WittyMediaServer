@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
@@ -123,6 +124,7 @@ type liveRegistry struct {
 	mu       sync.Mutex
 	sessions map[string]*LiveSession
 	once     sync.Once
+	dirSeq   atomic.Uint64 // numbers the sessions' folders
 }
 
 func (m *Manager) liveSweep() {
@@ -183,7 +185,9 @@ func (m *Manager) newLive(spec LiveSpec) *LiveSession {
 		spec.IdleSec = 45
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	dir := filepath.Join(m.root, "live-"+safeName(spec.ID))
+	// Its own folder, never the one a stopped session of this channel may still be clearing:
+	// that goes on for a few seconds on Windows, and would take the new one's segments with it.
+	dir := filepath.Join(m.root, fmt.Sprintf("live-%s-r%d", safeName(spec.ID), m.live.dirSeq.Add(1)))
 	s := &LiveSession{Spec: spec, Dir: dir, m: m, ctx: ctx, cancel: cancel, lastAt: time.Now(), anonAt: time.Now().Add(-viewerStale), target: spec.SegmentSec,
 		failed: make(chan struct{}), ready: make(chan struct{})}
 	s.log = m.sessionLog(s.logID())

@@ -257,6 +257,12 @@ func openMDNS(n localNet) (*mdnsConn, error) {
 	// network and no further.
 	_ = pc.SetMulticastTTL(255)
 	_ = pc.SetMulticastInterface(&n.ifi)
+	// Go turns multicast loopback off, which hid the server from this machine's
+	// own mDNS responder, and so from apps and simulators running beside it.
+	// On Windows the same switch decides what this socket hears from its own
+	// machine, so it's needed there to hear their questions. Our own packets come
+	// back too, but they are answers, and answer ignores those.
+	_ = pc.SetMulticastLoopback(true)
 	return &mdnsConn{n: n, c: c, pc: pc}, nil
 }
 

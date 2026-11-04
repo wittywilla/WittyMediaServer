@@ -2,6 +2,8 @@ package discovery
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -13,6 +15,7 @@ import (
 	"time"
 
 	"golang.org/x/net/dns/dnsmessage"
+	"golang.org/x/net/ipv4"
 )
 
 var testInfo = Info{ID: "0123456789abcdef0123456789abcdef", Name: "Home.Server", Version: "0.5.0", API: 1, Port: 9797}
@@ -119,10 +122,15 @@ func TestOtherQuestionsGetNoAnswer(t *testing.T) {
 			t.Errorf("%s: answered", name)
 		}
 	}
-	// A response is never answered, or two servers would talk forever.
+	// A response is never answered, or two servers would talk forever. With loopback
+	// on, the server hears its own announcements and answers too.
 	resp, _ := answer(question(t, 0, "_wittymedia._tcp.local.", dnsmessage.TypePTR, dnsmessage.ClassINET), mdnsPort, testInfo, testIPs)
-	if b, _ := answer(resp, mdnsPort, testInfo, testIPs); b != nil {
-		t.Error("answered a response")
+	hello, _ := announcement(testInfo, testIPs, false)
+	bye, _ := announcement(testInfo, testIPs, true)
+	for name, b := range map[string][]byte{"an answer": resp, "its announcement": hello, "its goodbye": bye} {
+		if r, _ := answer(b, mdnsPort, testInfo, testIPs); r != nil {
+			t.Errorf("answered %s", name)
+		}
 	}
 }
 
@@ -306,6 +314,99 @@ func TestOnARealNetwork(t *testing.T) {
 		if strings.Contains(string(b), "Discovery test") {
 			t.Error("still answering after being switched off")
 		}
+	}
+}
+
+// Programs on the server's own machine hear it: the system's mDNS responder there,
+// and so apps and simulators beside the server. A neighbour on this machine, in the
+// group on the mDNS port as a system responder is, hears the announcement and the
+// answer to a question it asks. Only with WMS_TEST_LAN=1, as above.
+func TestHeardOnItsOwnMachine(t *testing.T) {
+	if os.Getenv("WMS_TEST_LAN") != "1" {
+		t.Skip("set WMS_TEST_LAN=1 to try this on the network")
+	}
+	nets := (&Service{}).interfaces()
+	if len(nets) == 0 {
+		t.Skip("no network here that multicasts")
+	}
+	n := nets[0]
+	group := &net.UDPAddr{IP: mdnsGroup, Port: mdnsPort}
+	l, err := net.ListenMulticastUDP("udp4", &n.ifi, group)
+	if err != nil {
+		t.Skipf("can't use mDNS here: %v", err)
+	}
+	defer l.Close()
+	// Loopback on, as system responders have it: on Windows that's what lets this
+	// socket hear its own machine at all.
+	lp := ipv4.NewPacketConn(l)
+	_ = lp.SetMulticastInterface(&n.ifi)
+	if err := lp.SetMulticastLoopback(true); err != nil {
+		t.Skipf("no multicast loopback here: %v", err)
+	}
+	// A server of its own, so another one on this network can't answer for it.
+	id := make([]byte, 16)
+	_, _ = rand.Read(id)
+	info := testInfo
+	info.ID, info.Name = hex.EncodeToString(id), "Loopback test"
+	nm, err := namesFor(info)
+	if err != nil {
+		t.Fatal(err)
+	}
+	has := func(rs []dnsmessage.Resource, typ dnsmessage.Type) bool {
+		for _, r := range rs {
+			if r.Header.Type == typ && sameName(r.Header.Name, nm.instance) {
+				return true
+			}
+		}
+		return false
+	}
+	hear := func(ok func(dnsmessage.Message) bool) bool {
+		buf := make([]byte, 9000)
+		_ = l.SetReadDeadline(time.Now().Add(3 * time.Second))
+		for {
+			k, _, err := l.ReadFromUDP(buf)
+			if err != nil {
+				return false
+			}
+			var m dnsmessage.Message
+			if m.Unpack(buf[:k]) == nil && ok(m) {
+				return true
+			}
+		}
+	}
+	// First, that this machine loops multicast back at all: a question nobody answers.
+	check := "loopback-check-" + info.ID + ".local."
+	if _, err := l.WriteToUDP(question(t, 0, check, dnsmessage.TypeA, dnsmessage.ClassINET), group); err != nil {
+		t.Skipf("can't multicast here: %v", err)
+	}
+	if !hear(func(m dnsmessage.Message) bool {
+		return !m.Response && len(m.Questions) == 1 && strings.EqualFold(m.Questions[0].Name.String(), check)
+	}) {
+		t.Skip("this machine doesn't loop multicast back to itself")
+	}
+
+	c, err := openMDNS(n)
+	if err != nil {
+		t.Skipf("can't use mDNS here: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { c.serve(ctx, info, slog.New(slog.NewTextHandler(io.Discard, nil))); close(done) }()
+	defer func() { c.goodbye(info); cancel(); <-done }()
+
+	if !hear(func(m dnsmessage.Message) bool {
+		return m.Response && len(m.Answers) > 1 && has(m.Answers, dnsmessage.TypeSRV)
+	}) {
+		t.Fatal("this machine didn't hear the announcement")
+	}
+	// The answer has the TXT record alone, where an announcement has them all.
+	if _, err := l.WriteToUDP(question(t, 0, nm.instance.String(), dnsmessage.TypeTXT, dnsmessage.ClassINET), group); err != nil {
+		t.Fatal(err)
+	}
+	if !hear(func(m dnsmessage.Message) bool {
+		return m.Response && len(m.Answers) == 1 && has(m.Answers, dnsmessage.TypeTXT)
+	}) {
+		t.Fatal("a question from this machine got no answer it could hear")
 	}
 }
 

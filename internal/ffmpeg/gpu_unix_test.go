@@ -45,7 +45,7 @@ func TestFindGPUsIn(t *testing.T) {
 	if locked.Path != "/dev/dri/renderD128" || locked.Usable || locked.Problem == "" || locked.Mode != "0000" || locked.Group != os.Getgid() {
 		t.Errorf("a node it can't open: %+v", locked)
 	}
-	if !strings.Contains(locked.Problem, "only its owner") {
+	if !strings.Contains(locked.Problem, "nobody but root") {
 		t.Errorf("mode 0000 says who may open it: %q", locked.Problem)
 	}
 	if open.Path != "/dev/dri/renderD129" || !open.Usable || open.Vendor != "intel" || open.Driver != "i915" {

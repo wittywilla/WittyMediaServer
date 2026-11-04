@@ -45,11 +45,11 @@ func (s *Server) WatchChecks(base string) []logging.Check {
 	client := &http.Client{
 		Timeout: 2 * time.Second,
 		Transport: &http.Transport{
-			Proxy:               nil, // its own address, never through a proxy
-			DialContext:         (&net.Dialer{Timeout: 2 * time.Second}).DialContext,
-			MaxIdleConns:        1,
-			MaxIdleConnsPerHost: 1,
-			IdleConnTimeout:     30 * time.Second,
+			Proxy:       nil, // its own address, never through a proxy
+			DialContext: (&net.Dialer{Timeout: 2 * time.Second}).DialContext,
+			// A new connection each time, as a new visitor would make: one kept open would
+			// still answer when nobody else can get in.
+			DisableKeepAlives: true,
 		},
 	}
 	health := strings.TrimRight(base, "/") + "/api/health"

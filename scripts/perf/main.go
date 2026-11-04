@@ -153,12 +153,13 @@ type Route struct {
 // --- the server ---
 
 type server struct {
-	cmd   *exec.Cmd
-	stdin io.WriteCloser
-	base  string
-	prof  string
-	token string
-	data  string
+	cmd    *exec.Cmd
+	stdin  io.WriteCloser
+	base   string
+	prof   string
+	token  string
+	data   string
+	exited chan struct{} // closed when the process has ended
 }
 
 func start(data string) (*server, time.Duration) {
@@ -176,11 +177,25 @@ func start(data string) (*server, time.Duration) {
 	cmd.Stdout, cmd.Stderr = logf, logf
 	stdin, err := cmd.StdinPipe()
 	check(err)
-	s := &server{cmd: cmd, stdin: stdin, base: fmt.Sprintf("http://127.0.0.1:%d", *port), prof: fmt.Sprintf("http://127.0.0.1:%d", *port+1), data: data}
+	s := &server{cmd: cmd, stdin: stdin, base: fmt.Sprintf("http://127.0.0.1:%d", *port), prof: fmt.Sprintf("http://127.0.0.1:%d", *port+1), data: data, exited: make(chan struct{})}
+	// Something else answering on the port would be measured instead.
+	for _, p := range []int{*port, *port + 1} {
+		ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", p))
+		if err != nil {
+			panic(fmt.Sprintf("port %d is in use: stop what's there or choose another -port", p))
+		}
+		ln.Close()
+	}
 	t0 := time.Now()
 	check(cmd.Start())
+	go func() { _ = cmd.Wait(); close(s.exited) }()
 	c := http.Client{Timeout: time.Second}
 	for time.Since(t0) < 2*time.Minute {
+		select {
+		case <-s.exited:
+			panic("the server stopped while starting; see server.log")
+		default:
+		}
 		if r, err := c.Get(s.base + "/api/health"); err == nil {
 			r.Body.Close()
 			if r.StatusCode == 200 {
@@ -196,13 +211,11 @@ func start(data string) (*server, time.Duration) {
 // stop asks the server to stop as the tray app does, by closing its input.
 func (s *server) stop() {
 	_ = s.stdin.Close()
-	done := make(chan struct{})
-	go func() { _ = s.cmd.Wait(); close(done) }()
 	select {
-	case <-done:
+	case <-s.exited:
 	case <-time.After(30 * time.Second):
 		_ = s.cmd.Process.Kill()
-		<-done
+		<-s.exited
 	}
 	// The port is free again before the next start.
 	for i := 0; i < 100; i++ {

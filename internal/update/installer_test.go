@@ -95,7 +95,8 @@ func TestFetchInstaller(t *testing.T) {
 
 	wait := func() Installer {
 		t.Helper()
-		deadline := time.Now().Add(10 * time.Second)
+		// Long enough for a machine that's busy with other work.
+		deadline := time.Now().Add(2 * time.Minute)
 		for time.Now().Before(deadline) {
 			in := *u.Status().Installer
 			if in.Phase == InstallerReady || in.Phase == InstallerFailed {

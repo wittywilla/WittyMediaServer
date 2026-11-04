@@ -312,7 +312,8 @@ if (only === '' || only === 'live') {
     const t1 = await page.eval(`window.__v.currentTime`)
     const ev = await page.eval('window.__ev'), tunes = await count('/tune'), leaves = await count('/leave')
     expect(`${theme}: back in the preview by ${how}, still playing`, await page.eval(playing('.ctv-preview video')), ev)
-    expect(`${theme}: no tune, no leave, no new stream (${tunes} tunes, ${leaves} leaves)`, tunes === 0 && leaves === 0 && ev.loadstart === 0 && ev.emptied === 0,
+    // A programme ending on the way asks what's on now (a tune with the same viewer), which starts nothing.
+    expect(`${theme}: no tune, no leave, no new stream (${tunes} tunes, ${leaves} leaves)`, tunes <= 1 && leaves === 0 && ev.loadstart === 0 && ev.emptied === 0,
       { tunes, leaves, ev, net: await page.eval(`window.__net.filter((u) => !u.includes('/seg/')).slice(0, 12)`) })
     // A double-click is two clicks too, and a click on the picture is Play and Pause: those two are the only pauses.
     expect(`${theme}: never paused or went back in time (${t0.toFixed(1)} to ${t1.toFixed(1)} s)`, ev.pause - pausesBefore <= 2 && pausesBefore === 0 && t1 > t0 + 3, { t0, t1, pausesBefore, ev })
@@ -367,6 +368,14 @@ if (only === '' || only === 'live') {
   await page.eval(`window.__slow = 0`)
   expect("a guide slow to answer doesn't stop the channel", (await count('/tune')) === 0 && (await count('/leave')) === 0 && (await page.eval(playing('.ctv-preview video'))),
     { tunes: await count('/tune'), leaves: await count('/leave'), ev: await page.eval('window.__ev') })
+  // Moving the guide's highlight on leaves the channel at once, before the next one is tuned.
+  await openGuide(false)
+  await page.until(previewPlaying, 60000, 'the preview playing')
+  await page.eval(WATCH)
+  await page.eval(`document.querySelector('.ctv-cell[data-focused="1"]').focus()`)
+  await press('ArrowDown')
+  const flicked = await page.until(`window.__net.some((u) => u.includes('/leave'))`, 1200, 'a leave').then(() => true, () => false)
+  expect('moving the highlight on leaves the channel at once', flicked && (await count('/tune')) === 0, { leaves: await count('/leave'), tunes: await count('/tune') })
   // Leaving waits a moment, so coming straight back doesn't tune again; then it does leave.
   await setLook({ theme: 'modern', preview: 'off' })
   const first = (await call('GET', '/guide?list=1&limit=1')).channels[0].key

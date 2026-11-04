@@ -7,10 +7,11 @@ import { leaveChannel, makeViewer, preflight, tune, type TuneInfo } from './tvAp
 // going from one to the other, or full screen and back, never tunes again. TvHost attaches the
 // stream; the pages say which channel they want and where to show it, with useLive.
 //
-// Nobody wanting a channel any more isn't leaving yet: the picture is put aside, silent, and
-// the channel is left LEAVE_MS later, unless someone wants it again first. Changing to another
-// channel leaves the old one at once, so a tuner is free for the next. Closing the tab leaves
-// at once too.
+// A page that goes (the preview giving way to the watch view, or back) isn't leaving yet: the
+// picture is put aside, silent, and the channel is left LEAVE_MS later, unless someone wants it
+// again first. A page that stays but stops wanting the channel (the guide's highlight moving
+// on, the tab going to the background), changing to another channel, and closing the tab all
+// leave at once, so a tuner is free for the next.
 
 export const LEAVE_MS = 3000
 
@@ -78,7 +79,7 @@ function place(el: HTMLElement | null) {
   to.insertBefore(v, to.firstChild)
 }
 
-function settle() {
+function settle(leaveNow = false) {
   let top: Slot | undefined
   for (let i = slots.length - 1; i >= 0 && !top; i--) if (slots[i].key) top = slots[i]
   place(top?.el || null)
@@ -88,7 +89,9 @@ function settle() {
     if (top.key !== live.key) start(top.key)
     return
   }
-  if (live.key && leaveTimer === undefined) {
+  if (!live.key) return
+  if (leaveNow) { clearTimeout(leaveTimer); stop(); return }
+  if (leaveTimer === undefined) {
     liveVideo().muted = true
     leaveTimer = setTimeout(stop, LEAVE_MS)
   }
@@ -136,9 +139,10 @@ export function useLive(key: string, slot: React.RefObject<HTMLElement | null>):
   useLayoutEffect(() => {
     const s = me.current
     if (!s) return
+    const had = s.key
     s.key = key
     s.el = slot.current
-    settle()
+    settle(!!had && !key)
   }, [key, slot])
   return useLiveState()
 }

@@ -107,6 +107,7 @@ node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/th
 - **Style.** Match the code around you, and explain *why* in comments, not *what*. Interface work follows [the design guide](docs/DESIGN.md).
 - **Legal notes.** A new screen that shows third-party or web content, or where people add or share media, takes a `<LegalNote>`: [the checklist](docs/LEGAL-NOTICES-CHECKLIST.md) says which. A new outside service goes on the privacy list in `internal/legal/legal.json`, and a test fails otherwise.
 - **Examples.** No real films, shows, music, games or people in examples or test files: make something up. Pictures in the docs come from openly licensed media, taken with `web/scripts/shots-setup.mjs` and `web/scripts/shots.mjs`, and each is credited in [docs/images/CREDITS.md](docs/images/CREDITS.md). `scripts/docs-images.py` compresses them.
+- **FFmpeg.** A change to how FFmpeg is run is measured before and after, with [the benchmark](docs/FFMPEG-BENCHMARK.md), and the numbers go in the pull request.
 - **Copy protection.** Encrypted media is detected and refused. Never add a way around it, or a plugin hook for one, and never link to ROMs or BIOS files.
 - **Licences.** Contributions are under the Apache License 2.0 (see `LICENSE`). A new third-party component goes in `THIRD_PARTY_LICENSES.md`.
 - **Versions and changes.** Add what users will notice to `CHANGELOG.md`. `scripts/bump-server.sh` raises the server's version everywhere it's written, and a bump isn't a release.

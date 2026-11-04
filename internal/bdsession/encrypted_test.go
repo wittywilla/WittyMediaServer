@@ -2,6 +2,7 @@ package bdsession
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -73,5 +74,34 @@ func TestNoEngineSaysSo(t *testing.T) {
 	aStream(t, dir, clearUnit(), 4)
 	if _, err := Open(dir, nil); err != ErrNoEngine {
 		t.Fatalf("%v", err)
+	}
+}
+
+// A refused disc's session has no engine and nothing to navigate: everything a player can
+// still ask of it answers, closing it only forgets it, and the refusal stays the refusal.
+func TestRefusedDiscSessionClosesCleanly(t *testing.T) {
+	dir := t.TempDir()
+	aStream(t, dir, scrambledUnit(), 64)
+	m := &Manager{CacheDir: t.TempDir(), sessions: map[string]*Session{}}
+	s, err := m.Open(1, dir, Prefs{Owner: 1, Angle: 2}) // a remembered angle, with no navigator to tell
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := s.Start(context.Background())
+	if p.Kind != "stop" || !p.Scrambled || p.Reason != encryptedRefusal {
+		t.Fatalf("not refused: %+v", p)
+	}
+	if p := s.PlayTitle(context.Background(), 0, 0); p.Kind != "stop" || !p.Scrambled {
+		t.Fatalf("a title played: %+v", p)
+	}
+	if _, ok := s.SoundWAV(0); ok {
+		t.Error("a refused disc gave a sound")
+	}
+	if _, err := s.Subtitles(0, 0, 0, 10); err == nil {
+		t.Error("a refused disc gave subtitles")
+	}
+	m.CloseSession(s.ID)
+	if m.Count() != 0 {
+		t.Fatal("the session wasn't forgotten")
 	}
 }

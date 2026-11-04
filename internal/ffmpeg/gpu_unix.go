@@ -32,7 +32,7 @@ func findGPUsIn(dev, sys string) []GPUDevice {
 		paths = append(paths, dev+"/dxg")
 	}
 	container := InContainer()
-	uid, groups := os.Getuid(), ownGroups()
+	uid, groups := os.Getuid(), OwnGroups()
 	var out []GPUDevice
 	for _, p := range paths {
 		name := "/dev" + strings.TrimPrefix(p, dev) // what messages and FFmpeg's options call it
@@ -70,18 +70,6 @@ func findGPUsIn(dev, sys string) []GPUDevice {
 		out = append(out, d)
 	}
 	return out
-}
-
-// ownGroups are the process's group IDs, its main one first.
-func ownGroups() []int {
-	gs := []int{os.Getgid()}
-	more, _ := os.Getgroups()
-	for _, g := range more {
-		if g != gs[0] {
-			gs = append(gs, g)
-		}
-	}
-	return gs
 }
 
 // groupName is a group's name for a command line, or its number when this system

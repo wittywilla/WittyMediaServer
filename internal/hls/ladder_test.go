@@ -73,3 +73,24 @@ func TestLadderGroup(t *testing.T) {
 		t.Error("leaving one ladder ended another")
 	}
 }
+
+// At the transcode limit, the rung a player left gives way to the one it moved to, rather
+// than the new rung waiting (503) until the old one rests.
+func TestLadderRungGivesWayAtTheLimit(t *testing.T) {
+	m := testManager(t, 1)
+	hi := m.Ensure(Spec{ID: "v-a-r1-q720", Group: "v-a-r1", Duration: 60, SegmentSec: 2})
+	lo := m.Ensure(Spec{ID: "v-a-r1-q480", Group: "v-a-r1", Duration: 60, SegmentSec: 2})
+	running(hi, time.Now())
+	if err := m.makeRoom(lo); err != nil {
+		t.Fatalf("the new rung had to wait: %v", err)
+	}
+	if hi.Active() {
+		t.Error("the rung the player left is still converting")
+	}
+	// Someone else's stream, in use, still keeps its place.
+	other := m.Ensure(Spec{ID: "v-b-n1", Duration: 60})
+	running(other, time.Now())
+	if err := m.makeRoom(lo); err != ErrBusy {
+		t.Errorf("another viewer's stream gave way: %v", err)
+	}
+}

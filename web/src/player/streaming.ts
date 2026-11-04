@@ -69,10 +69,13 @@ export async function measureSpeed(): Promise<number> {
 // Whether a stream may be robust, so the connection is worth measuring first: this device
 // asked for it, or it follows the server, whose setting is robust (for viewers away from
 // home, which only the server can tell).
+// The server's setting is asked again after a minute, so a change in Settings reaches an open page.
 let serverMode: Promise<string> | null = null
+let askedAt = 0
 export async function mayBeRobust(): Promise<boolean> {
   const d = deviceStreaming()
   if (d !== 'auto') return d === 'robust'
+  if (Date.now() - askedAt > 60_000) { serverMode = null; askedAt = Date.now() }
   serverMode ??= fetch(serverBase() + '/api/capabilities', { cache: 'no-store' }).then((r) => r.json())
     .then((c: { playback?: { remoteStreaming?: string } }) => c.playback?.remoteStreaming || 'standard').catch(() => { serverMode = null; return 'standard' })
   return (await serverMode) === 'robust'

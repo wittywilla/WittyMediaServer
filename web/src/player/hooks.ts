@@ -226,6 +226,7 @@ function fileWatch(v: HTMLVideoElement, opts: Opts) {
   let lastTime = -1
   let stuckSince = 0
   let done = false
+  let started = false // a slow first frame is a slow start, not a stall
   const reopen = (text: string) => {
     if (done) return
     done = true
@@ -234,8 +235,9 @@ function fileWatch(v: HTMLVideoElement, opts: Opts) {
   }
   const tick = window.setInterval(() => {
     const moving = v.currentTime !== lastTime
+    if (moving && lastTime >= 0) started = true
     lastTime = v.currentTime
-    if (v.paused || v.ended || v.seeking || moving || v.readyState >= 3) { stuckSince = 0; return }
+    if (!started || v.paused || v.ended || v.seeking || moving || v.readyState >= 3) { stuckSince = 0; return }
     if (!stuckSince) stuckSince = Date.now()
     else if (Date.now() - stuckSince >= 6000) reopen('The file wasn’t arriving fast enough, so a steadier stream was asked for, from the same place.')
   }, 1000)

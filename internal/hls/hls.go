@@ -281,6 +281,7 @@ func (m *Manager) makeRoom(s *Session) error {
 	running := 0
 	var oldest *Session
 	var oldestUsed time.Time
+	var siblings []*Session // other rungs of s's ladder
 	for _, o := range m.session {
 		if o == s || o.Spec.Growing { // growing streams copy, and have their own limit
 			continue
@@ -288,12 +289,24 @@ func (m *Manager) makeRoom(s *Session) error {
 		o.mu.Lock()
 		active, used := o.job != nil && !o.job.finished(), o.lastUsed
 		o.mu.Unlock()
+		if active && s.Spec.Group != "" && o.Spec.Group == s.Spec.Group {
+			siblings = append(siblings, o)
+			continue
+		}
 		if active {
 			running++
 			if oldest == nil || used.Before(oldestUsed) {
 				oldest, oldestUsed = o, used
 			}
 		}
+	}
+	if running+len(siblings) < m.max {
+		return nil
+	}
+	// Another rung of the same ladder gives way first: the player has moved on from it
+	// (restSiblings would rest it shortly), and it mustn't keep the rung it moved to waiting.
+	for _, o := range siblings {
+		o.stop()
 	}
 	if running < m.max {
 		return nil
@@ -786,6 +799,7 @@ func (s *Session) Segment(ctx context.Context, n int) (string, error) {
 		return "", errors.New("segment out of range")
 	}
 	s.lastAsked.Store(int64(n))
+	s.restSiblings() // the player is on this rung now, whether its segment is made or not
 	p := s.segPath(n)
 	if fileReady(p) {
 		s.prune(n)
@@ -849,7 +863,6 @@ func (s *Session) ensureJob(n, from int) (*job, error) {
 	}
 	s.stopLocked()
 	s.mu.Unlock()
-	s.restSiblings()
 	// Without the session's lock: makeRoom looks at the other sessions.
 	if err := s.m.makeRoom(s); err != nil {
 		return nil, err
@@ -923,7 +936,9 @@ func (s *Session) WarmAt(sec float64) {
 		return
 	}
 	s.mu.Lock()
-	busy := (s.job != nil && !s.wantsStart(n)) || fileReady(s.segPath(n))
+	// A stream already converting is someone's: starting it at another place would take
+	// it away from them.
+	busy := (s.job != nil && !s.job.finished()) || fileReady(s.segPath(n))
 	s.mu.Unlock()
 	if busy {
 		return

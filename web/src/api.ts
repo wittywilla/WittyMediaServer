@@ -190,6 +190,8 @@ let missing: { id: string; at: number } | null = null
 export const recentMissingModule = () => (missing && Date.now() - missing.at < 20000 ? missing.id : null)
 export const forgetMissingModule = () => { missing = null }
 
+const parse = (text: string): any => { try { return text ? JSON.parse(text) : null } catch { return { error: text } } }
+
 async function send(method: string, path: string, body?: unknown): Promise<{ text: string; data: any }> {
   const headers: Record<string, string> = {}
   const tok = getToken()
@@ -204,8 +206,7 @@ async function send(method: string, path: string, body?: unknown): Promise<{ tex
     throw new ApiError(0, "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote Access.")
   }
   const text = await res.text()
-  let data: any = null
-  try { data = text ? JSON.parse(text) : null } catch { data = { error: text } }
+  const data = parse(text)
   if (res.status === 424 && data?.module) {
     missing = { id: String(data.module), at: Date.now() }
     throw new ApiError(res.status, data.error || res.statusText, data)
@@ -234,11 +235,25 @@ export async function uploadFile<T>(path: string, body: Blob, method = 'POST'): 
   if (!res.ok) throw new ApiError(res.status, data?.error || res.statusText, data)
   return data as T
 }
-const req = <T>(method: string, path: string, body?: unknown) => send(method, path, body).then((r) => r.data as T)
+// Asking for the same thing while it's already on its way waits for that answer rather than sending
+// again: a page opening has several parts that each want the account's settings, three times over
+// on Home, and a slow TV or phone pays for every request. Each caller gets its own copy of the
+// answer, so one changing what it was given can't change another's.
+const onTheWay = new Map<string, Promise<{ text: string; data: any }>>()
+function sendGet(path: string): Promise<{ text: string; data: any }> {
+  const key = getToken() + ' ' + serverBase() + path
+  const first = onTheWay.get(key)
+  if (first) return first.then((r) => ({ text: r.text, data: parse(r.text) }))
+  const p = send('GET', path).finally(() => { if (onTheWay.get(key) === p) onTheWay.delete(key) })
+  onTheWay.set(key, p)
+  return p
+}
+// A change: what was on its way before it may be out of date, so asking after it asks again.
+const req = <T>(method: string, path: string, body?: unknown) => { onTheWay.clear(); return send(method, path, body).then((r) => r.data as T) }
 
 export const api = {
-  get: <T>(p: string) => req<T>('GET', p),
-  text: (p: string) => send('GET', p).then((r) => r.text), // an answer that is plain text
+  get: <T>(p: string) => sendGet(p).then((r) => r.data as T),
+  text: (p: string) => sendGet(p).then((r) => r.text), // an answer that is plain text
   post: <T>(p: string, b?: unknown) => req<T>('POST', p, b ?? {}),
   put: <T>(p: string, b?: unknown) => req<T>('PUT', p, b ?? {}),
   patch: <T>(p: string, b?: unknown) => req<T>('PATCH', p, b ?? {}),

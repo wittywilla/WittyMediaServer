@@ -236,6 +236,7 @@ The image has a health check: every 30 seconds it asks the server itself, with `
 | `exec format error` | The wrong architecture was pulled, such as on an old 32-bit ARM board. Remove the image and pull again |
 | The page doesn't load from another device | The NAS's firewall, or another program on port 9797. Change the left side of `ports:` |
 | Hardware encoders all say they can't be used | [Hardware transcoding](#hardware-transcoding); `docker exec wittymediaserver wittymediaserver hardware` says which step |
+| Apps don't list the server under **On your network** | Finding servers uses multicast, which doesn't cross Docker's own network. Type the server's address in the app, or run the container with `network_mode: host` (then `ports:` isn't needed) |
 | Media folders are empty in the app | The folder isn't mounted, or the user in `user:` can't read it. `docker exec wittymediaserver ls /media` shows what the server sees |
 | *read-only file system* in the log | Something wants to write outside `/config` and `/tmp`. With `read_only: true`, `/tmp` must be a `tmpfs`. Anything else is a bug: please report it |
 

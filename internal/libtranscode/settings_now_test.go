@@ -33,4 +33,19 @@ func TestSettingsNowKeepsThemWhenTheReadFails(t *testing.T) {
 	if got := settingsNow(ctx, d, DefaultSettings()).MinFreeGB; got != 2 {
 		t.Fatalf("a good read gave %d GB", got)
 	}
+	// A run starts from readSettings, which says the read failed rather than give the defaults.
+	if _, err := readSettings(gone, d); err == nil {
+		t.Fatal("a failed read said nothing")
+	}
+	if s, err := readSettings(ctx, d); err != nil || s.MinFreeGB != 2 {
+		t.Fatalf("%+v %v", s, err)
+	}
+	empty, err := db.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer empty.Close()
+	if s, err := readSettings(ctx, empty); err != nil || s != DefaultSettings() {
+		t.Fatalf("nothing saved yet is the defaults: %+v %v", s, err)
+	}
 }

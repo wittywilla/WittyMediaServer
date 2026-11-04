@@ -281,7 +281,8 @@ input[type=range] { accent-color: var(--accent); }
 .btn.sm { min-height: var(--control-h-sm); padding: 0 var(--sp-3); gap: 6px; font-size: var(--text-sm); }
 .btn.big { min-height: var(--control-h-lg); padding: 0 var(--sp-6); font-size: var(--text-base); }
 .btn.icon { padding: 0; width: var(--control-h); border-radius: 50%; }
-.btn.square { width: var(--control-h); padding: 0; }
+/* A square button keeps its size in a crowded row: the words beside it wrap instead. */
+.btn.square { width: var(--control-h); padding: 0; flex: none; }
 .btn.sm.square { width: var(--control-h-sm); }
 .btn[disabled] { opacity: .45; }
 .btn[disabled]:hover { background: var(--bg-3); }

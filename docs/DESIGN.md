@@ -417,7 +417,7 @@ mask-image: linear-gradient(#000 80%, transparent); /* design-ok: a mask only re
 
 1. **Start from the page's job.** What is the one main action? That gets the `primary` button.
 2. **Use the frame.** Routes in `App.tsx` already get the side menu, top bar and gutter.
-3. **Title it** with `.toolbar` and an `h1` (settings pages: `PageHead`). Exactly one `h1`.
+3. **Title it** with `.toolbar` and an `h1` (settings pages: `PageHead`; a library's page: `LibraryHeader`, which every library page has). Exactly one `h1`.
 4. **Build from [shared parts](#components).** A grid of things:
 
    ```tsx

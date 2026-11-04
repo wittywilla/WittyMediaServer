@@ -133,14 +133,24 @@ export function Announcer() {
   }, [])
   useEffect(() => {
     if (first.current) { first.current = false; return }
-    const t = setTimeout(() => {
+    // A slow server or device can take seconds to draw the page (first-time setup shows a spinner
+    // until it knows its steps), so while it's loading it looks again for the heading. Focus moves only
+    // if it's still where it was when the address changed, or nowhere: never away from something
+    // chosen meanwhile.
+    const before = document.activeElement
+    const began = performance.now()
+    let t: ReturnType<typeof setTimeout>
+    const look = () => {
       if (document.querySelector(DIALOGS)) return
       const main = document.getElementById('main')
       const h1 = main?.querySelector('h1')?.textContent?.trim()
+      const loading = document.querySelector('.spinner, .loading-box, .skeleton-grid')
+      if ((!main || !h1) && loading && performance.now() - began < 6000) { t = setTimeout(look, 250); return }
       announce(h1 ? `${h1}, page loaded` : `${document.title}, page loaded`)
       const active = document.activeElement
-      if (main && (!active || active === document.body || !main.contains(active))) main.focus({ preventScroll: true })
-    }, 350)
+      if (main && (!active || active === document.body || !active.isConnected || (active === before && !main.contains(active)))) main.focus({ preventScroll: true })
+    }
+    t = setTimeout(look, 350)
     // Coming back: the page may still be loading what you left, so look a few times.
     const was = navType === 'POP' && usingKeys.current ? focusMemory.get(loc.key) : undefined
     const looks = [400, 800, 1500, 2500, 4000, 6000, 9000]

@@ -1159,6 +1159,15 @@
           "kind": {
             "type": "string"
           },
+          "parts": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "seen": {
             "type": "boolean"
           },
@@ -4556,6 +4565,9 @@
               "null"
             ]
           },
+          "flight": {
+            "type": "boolean"
+          },
           "health": {
             "properties": {
               "dropped": {
@@ -4634,6 +4646,9 @@
                 "type": "null"
               }
             ]
+          },
+          "trace": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -4642,11 +4657,13 @@
           "crashes",
           "dir",
           "files",
+          "flight",
           "health",
           "level",
           "levels",
           "modules",
-          "on"
+          "on",
+          "trace"
         ],
         "type": "object"
       },

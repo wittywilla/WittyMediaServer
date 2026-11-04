@@ -745,7 +745,24 @@ func (s *Session) Segment(ctx context.Context, n int) (string, error) {
 		case <-time.After(100 * time.Millisecond):
 		}
 	}
-	return "", errors.New("timed out waiting for segment")
+	return "", j.tooSlow(n)
+}
+
+// tooSlow says how far FFmpeg got before a wait for segment n ran out, which tells a machine too
+// busy to keep up (some finished) from a conversion that never got going (none, and what it said).
+func (j *job) tooSlow(n int) error {
+	got := "none of them yet"
+	if last := int(j.lastSeg.Load()); last >= j.startSeg {
+		got = fmt.Sprintf("%d to %d", j.startSeg, last)
+	}
+	said := strings.TrimSpace(j.stderr.String())
+	if len(said) > 500 {
+		said = said[len(said)-500:]
+	}
+	if said != "" {
+		said = "; FFmpeg last said: " + said
+	}
+	return fmt.Errorf("timed out waiting for segment %d: FFmpeg started at %d and had finished %s%s", n, j.startSeg, got, said)
 }
 
 // wantsStart: the running job (if any) won't reach segment n soon.

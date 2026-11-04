@@ -14,7 +14,9 @@
 .gm-ambient-layer { position: absolute; inset: 0; opacity: 0; transition: opacity var(--dur-4) var(--ease-standard); background: linear-gradient(180deg, var(--gm-tint, var(--bg-3)) 0%, var(--bg) 100%); }
 
 /* ---------------------------------------------------------------- page head */
-.gm-toolbar { position: relative; margin-bottom: var(--sp-3); }
+/* The library header, without its own background: the page's colour runs behind the top. So
+   it scrolls away with the page rather than staying, where the covers would pass under it. */
+.gm-page .lh-bar { position: relative; background: transparent; }
 .gm-search-box { position: relative; display: flex; align-items: center; flex: 0 1 18rem; min-width: 0; }
 .gm-search-box svg { position: absolute; left: var(--sp-3); color: var(--fg-3); pointer-events: none; }
 .gm-search { width: 100%; padding-left: 2.25rem; }
@@ -22,10 +24,10 @@
 @media (max-width: 600px) {
   .gm-search-box.at-top { display: none; }
   .gm-search-box.at-list { display: flex; flex: none; }
-  .gm-toolbar .count { display: none; } /* the list below says it too */
-  .gm-toolbar { gap: var(--sp-2); }
+  .gm-page .lh-name .count { display: none; } /* the list below says it too */
+  .gm-page .lh-bar { gap: var(--sp-2); }
   /* Icons alone beside the title; their words stay for screen readers. */
-  .gm-toolbar .btn:not(.sm) { width: var(--control-h); padding: 0; gap: 0; font-size: 0; justify-content: center; }
+  .gm-page .lh-end .btn:not(.sm) { width: var(--control-h); padding: 0; gap: 0; font-size: 0; justify-content: center; }
 }
 
 /* ---------------------------------------------------------------- hero */

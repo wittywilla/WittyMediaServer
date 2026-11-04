@@ -4,6 +4,7 @@ import { PromptBar, type Prompt } from './prompts'
 import { api, type GameConsole, type GameFacets, type Item, type Library } from '../../api'
 import { EmptyState, LoadError, Placeholder, ScanButton } from '../../components/common'
 import LegalNote from '../../components/LegalNote'
+import LibraryHeader from '../../components/LibraryHeader'
 import { IconFull, IconGamepad, IconPlay, IconSearch, IconSettings, IconStar, IconTune } from '../../icons'
 import { toast, useApp } from '../../state'
 import { Chip, CardRow, Sheet } from '../../ui'
@@ -383,22 +384,22 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
 
   return (
     <div className={'gm-page' + (showHeroHome || consoleHero.length > 0 ? ' has-hero' : '')} onClickCapture={remember}>
-      <div className="toolbar gm-toolbar">
-        {consoleId && <Link className="btn ghost sm" to={links.library(lib.id)}>All consoles</Link>}
-        <h1>{title}</h1>
-        {shownTotal != null && <span className="count">{shownTotal.toLocaleString()} {shownTotal === 1 ? 'game' : 'games'}</span>}
-        <div className="grow" />
-        {!links.couch && (
-          <>
-            <label className="gm-search-box at-top">
-              <IconSearch size={18} />
-              <input ref={search} className="input gm-search" type="search" placeholder="Search these games" aria-label="Search these games" value={typed} onChange={(e) => setTyped(e.target.value)} />
-            </label>
-            <ScanButton lib={lib} onStarted={() => setWatch((n) => n + 1)} />
-          </>
-        )}
-        {!links.couch && <Link className="btn ghost" to="/big" onClick={() => { setCouchOn(true); void document.documentElement.requestFullscreen?.().catch(() => {}) }} aria-label="Couch mode: full screen, made for controllers"><IconFull size={18} /> <span className="gm-hide-narrow">Couch mode</span></Link>}
-      </div>
+      <LibraryHeader
+        title={title}
+        sub={consoleId ? lib.name : undefined}
+        count={shownTotal != null ? `${shownTotal.toLocaleString()} ${shownTotal === 1 ? 'game' : 'games'}` : undefined}
+        end={!links.couch && <>
+          <label className="gm-search-box at-top">
+            <IconSearch size={18} />
+            <input ref={search} className="input gm-search" type="search" placeholder="Search these games" aria-label="Search these games" value={typed} onChange={(e) => setTyped(e.target.value)} />
+          </label>
+          <Link className="btn ghost" to="/big" onClick={() => { setCouchOn(true); void document.documentElement.requestFullscreen?.().catch(() => {}) }} aria-label="Couch mode: full screen, made for controllers"><IconFull size={18} /> <span className="gm-hide-narrow">Couch mode</span></Link>
+        </>}
+        actions={(consoleId || !links.couch) && <>
+          {consoleId && <Link className="btn ghost sm" to={links.library(lib.id)}>All consoles</Link>}
+          {!links.couch && <ScanButton lib={lib} onStarted={() => setWatch((n) => n + 1)} />}
+        </>}
+      />
       {!links.couch && user?.isAdmin && <GameImportBar libraryId={lib.id} onChanged={() => { setWatch((n) => n + 1); setReviewVersion((n) => n + 1) }} />}
       {/* Up here because it wants someone's attention: the page can run to thousands of pixels. */}
       {!links.couch && user?.isAdmin && <GameReviewBanner libraryId={lib.id} consoles={consoles} version={reviewVersion} onChanged={() => setWatch((n) => n + 1)} />}

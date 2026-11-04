@@ -43,7 +43,7 @@ if (!login?.token) throw new Error('sign-in failed: ' + JSON.stringify(login))
 await page.eval(`localStorage.setItem('wms.token', ${JSON.stringify(login.token)}); localStorage.setItem('wms.tenfoot', '0')`)
 await call('POST', '/legal/acknowledge')
 
-const KEYS = { Tab: 9, ArrowUp: 38, ArrowDown: 40, ArrowLeft: 37, ArrowRight: 39 }
+const KEYS = { Tab: 9, ArrowUp: 38, ArrowDown: 40, ArrowLeft: 37, ArrowRight: 39, Escape: 27 }
 const press = async (key, shift = false) => {
   const p = { key, code: key, windowsVirtualKeyCode: KEYS[key], modifiers: shift ? 8 : 0 }
   await page.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...p })
@@ -208,7 +208,11 @@ async function tabWalk(where) {
   }
   const now = new Set(await tagAll())
   const visited = new Set(order)
-  for (const k of all) if (now.has(k) && !visited.has(k)) fault(where, `Tab never reaches ${await nameOf(k)}`)
+  // A group that keeps only its chosen member in the Tab order (tabindex -1 on the rest, or radio
+  // buttons with one chosen) is reached
+  // by the arrows from there, as it should be.
+  const outOfOrder = new Set(await page.eval(`[...document.querySelectorAll('[data-k][tabindex="-1"], input[type=radio][data-k]:not(:checked)')].filter((e) => e.type !== 'radio' || document.querySelector('input[type=radio][name="' + e.name + '"]:checked')).map((e) => e.dataset.k)`))
+  for (const k of all) if (now.has(k) && !visited.has(k) && !outOfOrder.has(k)) fault(where, `Tab never reaches ${await nameOf(k)}`)
   // Shift+Tab goes back the way it came.
   if (order.length > 3) {
     await page.eval(`document.querySelector('[data-k="${order[3]}"]')?.focus()`)
@@ -233,11 +237,18 @@ async function arrowWalk(where) {
   while (queue.length && reached.size < MAX_ARROW_NODES && Date.now() < ends) {
     const k = queue.shift()
     for (const key of ['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft']) {
-      // An open drawer or dialog from the last press would hide the rest.
       await page.eval(`(() => { const e = document.querySelector('[data-k="${k}"]'); e?.focus({ preventScroll: false }) })()`)
       if ((await focusNow()).k !== k) break
       await press(key); await wait(35)
+      // Down on a menu button opens its menu, as it should. What's in a menu or a dialog isn't part
+      // of the page, so the walk notes it opened and closes it again, as a person would.
+      if (await page.eval(`(() => { const a = document.activeElement, from = document.querySelector('[data-k="${k}"]'); const o = a?.closest('[role=menu], [role=dialog], [role=listbox]'); return !!o && !o.contains(from) })()`)) {
+        if (process.env.WMS_DEBUG) console.log('   ', await nameOf(k), key, '-> opens a menu or dialog')
+        await press('Escape'); await wait(80)
+        continue
+      }
       const f = await focusNow()
+      if (process.env.WMS_DEBUG) console.log('   ', await nameOf(k), key, '->', f.k ? await nameOf(f.k) : '(nothing)')
       if (f.k === '?') { await tagAll(); continue }
       if (f.k && !reached.has(f.k)) {
         reached.add(f.k); queue.push(f.k)
@@ -249,7 +260,9 @@ async function arrowWalk(where) {
   }
   if (reached.size < MAX_ARROW_NODES && Date.now() < ends) {
     const now = new Set(await tagAll())
-    const missed = all.filter((k) => now.has(k) && !reached.has(k))
+    // The skip link is for Tab: across the room the arrows have no need of it.
+    const tabOnly = new Set(await page.eval(`[...document.querySelectorAll('.skip-link[data-k]')].map((e) => e.dataset.k)`))
+    const missed = all.filter((k) => now.has(k) && !reached.has(k) && !tabOnly.has(k))
     for (const k of missed.slice(0, 12)) fault(where, `big screen: the arrows can't reach ${await nameOf(k)}`)
     if (missed.length > 12) fault(where, `big screen: and ${missed.length - 12} more the arrows can't reach`)
   }

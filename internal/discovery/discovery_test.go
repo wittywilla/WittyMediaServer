@@ -5,11 +5,14 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net"
 	"os"
+	"runtime"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -391,7 +394,7 @@ func TestHeardOnItsOwnMachine(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
-	go func() { c.serve(ctx, info, slog.New(slog.NewTextHandler(io.Discard, nil))); close(done) }()
+	go func() { _ = c.serve(ctx, info, slog.New(slog.NewTextHandler(io.Discard, nil)), 0, false); close(done) }()
 	defer func() { c.goodbye(info); cancel(); <-done }()
 
 	if !hear(func(m dnsmessage.Message) bool {
@@ -421,5 +424,184 @@ func TestUDPListensWhereTheServerDoes(t *testing.T) {
 	}
 	if a := (&Service{Bind: net.ParseIP("fd00::5")}).udpAddr(); a != nil {
 		t.Errorf("this socket is IPv4 only, so an IPv6 address means no answers: %+v", a)
+	}
+}
+
+// ------------------------------------------------- a socket that hears nothing
+
+// testConn is a socket on this machine's loopback address standing in for one
+// network's: its "multicast" goes to to, or back to itself when to is nil, as
+// with loopback on.
+func testConn(t *testing.T, to *net.UDPAddr) *mdnsConn {
+	t.Helper()
+	c, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	if err != nil {
+		t.Skipf("no loopback address here: %v", err)
+	}
+	t.Cleanup(func() { c.Close() })
+	if to == nil {
+		to = c.LocalAddr().(*net.UDPAddr)
+	}
+	_, lo, _ := net.ParseCIDR("127.0.0.0/8")
+	n := localNet{ifi: net.Interface{Name: "test"}, nets: []*net.IPNet{lo}, addrs: []net.IP{net.IPv4(127, 0, 0, 1)}}
+	return &mdnsConn{n: n, c: c, group: to}
+}
+
+// sink is somewhere to send that never answers (a closed port can, on Windows).
+func sink(t *testing.T) *net.UDPAddr {
+	t.Helper()
+	c, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	if err != nil {
+		t.Skipf("no loopback address here: %v", err)
+	}
+	t.Cleanup(func() { c.Close() })
+	return c.LocalAddr().(*net.UDPAddr)
+}
+
+type lockedBuf struct {
+	mu sync.Mutex
+	b  strings.Builder
+}
+
+func (l *lockedBuf) Write(p []byte) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.b.Write(p)
+}
+
+func (l *lockedBuf) String() string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.b.String()
+}
+
+func TestReopenWait(t *testing.T) {
+	var got []string
+	for i := 0; i < 7; i++ {
+		got = append(got, reopenWait(i).String())
+	}
+	if s := strings.Join(got, " "); s != "5s 10s 20s 40s 1m0s 1m0s 1m0s" {
+		t.Errorf("waits: %s", s)
+	}
+}
+
+// A socket that hears nothing gives up only when told to; one that hears its
+// own announcement never does.
+func TestDeafSocket(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	serve := func(c *mdnsConn, deaf time.Duration) (context.CancelFunc, chan error) {
+		ctx, cancel := context.WithCancel(context.Background())
+		res := make(chan error, 1)
+		go func() { res <- c.serve(ctx, testInfo, log, deaf, false) }()
+		return cancel, res
+	}
+	cancel, res := serve(testConn(t, sink(t)), 200*time.Millisecond)
+	select {
+	case err := <-res:
+		if !errors.Is(err, errDeaf) {
+			t.Errorf("deaf socket: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Error("a deaf socket didn't give up")
+	}
+	cancel()
+	for name, c := range map[string]struct {
+		conn *mdnsConn
+		deaf time.Duration
+	}{
+		"hearing itself":         {testConn(t, nil), 200 * time.Millisecond},
+		"deaf, but told to wait": {testConn(t, sink(t)), 0},
+	} {
+		cancel, res := serve(c.conn, c.deaf)
+		select {
+		case err := <-res:
+			t.Errorf("%s: gave up: %v", name, err)
+		case <-time.After(800 * time.Millisecond):
+		}
+		cancel()
+		if err := <-res; !errors.Is(err, context.Canceled) {
+			t.Errorf("%s: ended with %v", name, err)
+		}
+	}
+}
+
+// keep opens a deaf network's socket again, less and less often, until one hears.
+func TestKeepReopensUntilHeard(t *testing.T) {
+	var logs lockedBuf
+	log := slog.New(slog.NewTextHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	first, again, hearing := testConn(t, sink(t)), testConn(t, sink(t)), testConn(t, nil)
+	var opens atomic.Int32
+	open := func(localNet) (*mdnsConn, error) {
+		switch opens.Add(1) {
+		case 1:
+			return nil, errors.New("not yet")
+		case 2:
+			return again, nil
+		}
+		return hearing, nil
+	}
+	var mu sync.Mutex
+	var waits []string
+	after := func(d time.Duration) <-chan time.Time {
+		mu.Lock()
+		waits = append(waits, d.String())
+		mu.Unlock()
+		ch := make(chan time.Time, 1)
+		ch <- time.Time{}
+		return ch
+	}
+	slot := &netSlot{n: first.n, c: first}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { keep(ctx, slot, testInfo, log, 300*time.Millisecond, open, after); close(done) }()
+	for end := time.Now().Add(10 * time.Second); slot.conn() != hearing; time.Sleep(20 * time.Millisecond) {
+		if time.Now().After(end) {
+			t.Fatalf("never reached a socket that hears; opened %d", opens.Load())
+		}
+	}
+	time.Sleep(time.Second) // it stays with the one that hears
+	cancel()
+	<-done
+	mu.Lock()
+	defer mu.Unlock()
+	if n := opens.Load(); n != 3 {
+		t.Errorf("opened %d times, want 3", n)
+	}
+	if s := strings.Join(waits, " "); s != "5s 10s 20s" {
+		t.Errorf("waited %s", s)
+	}
+	out := logs.String()
+	if n := strings.Count(out, "can't hear the local network"); n != 1 {
+		t.Errorf("warned %d times:\n%s", n, out)
+	}
+	if !strings.Contains(out, "hearing the local network again") {
+		t.Errorf("no word of hearing it again:\n%s", out)
+	}
+}
+
+// Where deafAfter is off, a quiet network's socket is left alone.
+func TestQuietIsFineElsewhere(t *testing.T) {
+	if runtime.GOOS != "darwin" && deafAfter != 0 {
+		t.Errorf("deafAfter is %v on %s", deafAfter, runtime.GOOS)
+	}
+	c := testConn(t, sink(t))
+	var opens atomic.Int32
+	open := func(localNet) (*mdnsConn, error) { opens.Add(1); return nil, errors.New("no") }
+	after := func(time.Duration) <-chan time.Time { return nil }
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		keep(ctx, &netSlot{n: c.n, c: c}, testInfo, slog.New(slog.NewTextHandler(io.Discard, nil)), 0, open, after)
+		close(done)
+	}()
+	select {
+	case <-done:
+		t.Error("gave up on a quiet network")
+	case <-time.After(800 * time.Millisecond):
+	}
+	cancel()
+	<-done
+	if opens.Load() != 0 {
+		t.Error("opened it again")
 	}
 }

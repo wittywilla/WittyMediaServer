@@ -292,13 +292,17 @@ function onKey(e: KeyboardEvent) {
     // In a book, arrows turn pages and scroll unless focus is on its toolbars.
     const reader = document.querySelector('.reader')
     if (reader) {
-      const bar = target?.closest('.reader-bar, .reader-foot, [role=dialog], .rd-panel')
+      // The music player's bar can sit under a book too, and counts as one of its toolbars.
+      const bar = target?.closest('.reader-bar, .reader-foot, .audio-bar, [role=dialog], .rd-panel')
       if (!bar) return
-      if (move(dir)) { e.preventDefault(); e.stopImmediatePropagation(); return } // or the page would turn too
-      // The other toolbar hides itself until it has the focus, so the arrows can't see it: go to it directly.
-      const across = dir === 'down' && bar.matches('.reader-bar') ? '.reader-foot' : dir === 'up' && bar.matches('.reader-foot') ? '.reader-bar' : ''
+      // The book's toolbars hide themselves until they have the focus, so the arrows can't see them:
+      // going up or down between them, or up from the music player, goes straight to the next one.
+      const across = dir === 'down' && bar.matches('.reader-bar') ? '.reader-foot'
+        : dir === 'up' && bar.matches('.reader-foot') ? '.reader-bar'
+        : dir === 'up' && bar.matches('.audio-bar') ? '.reader-foot' : ''
       const to = across && document.querySelector<HTMLElement>(`${across} button:not([disabled]), ${across} input:not([disabled])`)
       if (to) { to.focus({ preventScroll: true }); e.preventDefault(); e.stopImmediatePropagation(); return }
+      if (move(dir)) { e.preventDefault(); e.stopImmediatePropagation(); return } // or the page would turn too
       if (dir === 'up' || dir === 'down') { (target as HTMLElement).blur(); e.preventDefault(); e.stopImmediatePropagation() }
       return
     }

@@ -16,7 +16,7 @@
 /* ---------------------------------------------------------------- page head */
 /* The library header, without its own background: the page's colour runs behind the top. So
    it scrolls away with the page rather than staying, where the covers would pass under it. */
-.gm-page .lh-bar { position: relative; background: transparent; }
+.gm-page .lh-bar { position: static; background: transparent; }
 .gm-search-box { position: relative; display: flex; align-items: center; flex: 0 1 18rem; min-width: 0; }
 .gm-search-box svg { position: absolute; left: var(--sp-3); color: var(--fg-3); pointer-events: none; }
 .gm-search { width: 100%; padding-left: 2.25rem; }

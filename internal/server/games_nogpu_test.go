@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/wittywilla/wittymediaserver/internal/gameid/fixture"
 	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 	"github.com/wittywilla/wittymediaserver/internal/play/fakecore"
@@ -109,7 +110,7 @@ func gameFile(t *testing.T, name string, data []byte) string {
 }
 
 // The cores are placed, never loaded: anything that got as far as the runner would fail
-// with 500 on the runner that isn't there. 3DS and PlayStation 2 cores have no way to draw
+// with 500 on the runner that isn't there. 3DS and Dreamcast cores have no way to draw
 // without a card.
 func TestGPUGameSaysNotOnThisServerEverywhere(t *testing.T) {
 	modtest.Need(t, "wittyplay")
@@ -138,7 +139,7 @@ func TestGPUGameSaysNotOnThisServerEverywhere(t *testing.T) {
 		if c := cs["3ds"]; c.Ready || c.Reason != "gpu" || c.Message != gpuMessage("Nintendo 3DS", gpuPlatformReason) || c.GPUMissing != gpuPlatformReason {
 			t.Errorf("3ds in the list: %+v", c)
 		}
-		if c := cs["ps2"]; c.Ready || c.Reason != "gpu" {
+		if c := cs["dc"]; c.Ready || c.Reason != "gpu" {
 			t.Errorf("a console with no core yet, which no core could play here: %+v", c)
 		}
 		if c := cs["psp"]; c.Ready || c.Reason != "core" {
@@ -330,4 +331,34 @@ func TestOneConsoleFailingLeavesTheModuleAndOtherConsoles(t *testing.T) {
 	}
 	_ = json.Unmarshal(w.Body.Bytes(), &info)
 	g.do("DELETE", "/api/play/"+info.ID, g.admin, nil)
+}
+
+// PlayStation 2 on a server without a card: LRPS2 can have the processor draw, so a game says
+// it needs a BIOS until there's one, and then that it plays, slowly. Play! can't, so it's never
+// what a game falls back to here.
+func TestPS2DrawsOnTheProcessorWithABIOS(t *testing.T) {
+	modtest.Need(t, "wittyplay")
+	t.Setenv("WMS_WITTYPLAY_RUNNER", filepath.Join(t.TempDir(), "no-such-runner"))
+	g := newGameServer(t)
+	setGPU(g, stream.GPUProbe{Error: macNoGPU})
+	placeCores(t, g, "pcsx2", "play")
+	it := addGame(t, g, "ps2", gameFile(t, "Game.iso", fixture.PS2("SLUS_123.45")))
+
+	a := checkGame(t, g, it.ID)
+	if a.Ready || a.Reason != "bios" {
+		t.Fatalf("without a BIOS: %+v", a)
+	}
+	bios := filepath.Join(g.s.games().systemDir(), "pcsx2", "bios", "SCPH-39001_USA.BIN")
+	if err := os.MkdirAll(filepath.Dir(bios), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(bios, make([]byte, 4<<20), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if a := checkGame(t, g, it.ID); !a.Ready || !a.Software || a.Core == nil || a.Core.ID != "pcsx2" {
+		t.Errorf("with a BIOS: %+v", a)
+	}
+	if c := consolesByID(t, g, g.admin)["ps2"]; !c.Ready || !c.Software {
+		t.Errorf("ps2 in the list: %+v", c)
+	}
 }

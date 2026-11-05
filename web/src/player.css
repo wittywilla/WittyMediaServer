@@ -176,6 +176,10 @@
 /* ---------------------------------------------------------------- skip intro / watch next */
 .skip-intro { position: absolute; right: var(--sp-6); bottom: 110px; z-index: 6; min-height: var(--control-h); background: #fff; color: #111; font-weight: 600; border: 0; padding: 0 var(--sp-5); border-radius: var(--r-md); box-shadow: var(--e-3); }
 .skip-intro:hover { background: #e8eaf0; }
+/* What a robust stream's player just did ("Picture lowered to 480p…"). Over the picture,
+   so it stays dark in both themes, like the rest of the player's chrome. */
+.net-note { position: absolute; top: 84px; left: 50%; translate: -50% 0; z-index: 6; max-width: min(560px, calc(100% - 32px)); padding: var(--sp-2) var(--sp-4); border-radius: var(--r-md); background: var(--scrim); color: var(--on-image); font-size: var(--text-sm); line-height: 1.4; text-align: center; box-shadow: var(--e-3); pointer-events: none; }
+.net-note.lost { border-left: 3px solid var(--warn); }
 .watch-next { position: absolute; right: var(--sp-6); bottom: 110px; z-index: 6; width: 320px; max-width: calc(100% - 32px); background: rgb(20 22 28 / .98); border: 1px solid rgb(255 255 255 / .1); border-radius: var(--r-lg); padding: var(--sp-3); display: grid; gap: var(--sp-3); box-shadow: var(--e-3); animation: dialog-in var(--dur-3) var(--ease-out); }
 .watch-next .wn-head { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: var(--tracking-label); color: var(--fg-3); font-weight: 600; }
 .watch-next .wn-body { display: grid; grid-template-columns: 90px 1fr; gap: 12px; align-items: center; cursor: pointer; }
@@ -201,10 +205,16 @@
 .transcode label.check { flex-direction: row; align-items: center; display: flex; gap: 10px; }
 .hw-list { display: grid; gap: 8px; }
 .hw-item { display: flex !important; flex-direction: row !important; gap: 12px; align-items: center; padding: 10px 12px; border-radius: var(--r-md); background: var(--bg-3); }
-.hw-item.disabled { opacity: .45; }
+.hw-item.disabled > input, .hw-item.disabled .hw-name { opacity: .5; }
 .hw-item code { font-size: var(--text-2xs); color: var(--fg-3); margin-left: 6px; }
 .hw-status { font-size: var(--text-xs); color: var(--fg-3); }
 .hw-status.ok { color: var(--ok); }
+.hw-status.bad { color: var(--fg-2); }
+.hw-devices { margin-top: var(--sp-4); }
+.hw-devices h4 { margin: 0 0 var(--sp-2); font-size: var(--text-sm); }
+.hw-devices ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.hw-devices li { padding: 10px 12px; border-radius: var(--r-md); background: var(--bg-3); overflow-wrap: anywhere; }
+.hw-fix { font-size: var(--text-xs); color: var(--fg-2); margin-top: 2px; }
 .seg.big { align-items: center; }
 .seg.big button { min-height: calc(var(--control-h) - 8px); padding: 0 var(--sp-4); }
 .profiles { display: grid; gap: 8px; }

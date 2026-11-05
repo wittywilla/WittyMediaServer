@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { api, backdropUrl, codecName, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs, discName, isBluray } from '../api'
+import { api, backdropUrl, codecName, fitWidth, sized, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs, discName, isBluray } from '../api'
 import DiscSections from './DiscSections'
 import EditDetails, { type EditSection } from '../components/edit/EditDetails'
 import RefreshDialog from '../components/edit/RefreshDialog'
@@ -59,14 +59,14 @@ export default function ItemPage() {
   return (
     <>
       <div className="detail-hero">
-        <div className="bg" style={backdropUrl(it) ? { backgroundImage: `url(${backdropUrl(it)})` } : undefined} />
+        <div className="bg" style={backdropUrl(it) ? { backgroundImage: `url(${sized(backdropUrl(it), fitWidth(innerWidth))})` } : undefined} />
         <div className="shade" />
       </div>
       <div className="detail">
         <div>
           {/* A frame from the video: shown whole on a colour of its own. */}
           <div className={'poster' + (isGeneratedArt(it) ? ' generated' : '')} style={isGeneratedArt(it) ? { '--art-hue': artHue(it.title) } as React.CSSProperties : undefined}>
-            {it.poster && <img src={posterUrl(it)} alt="" />}
+            {it.poster && <img src={sized(posterUrl(it), fitWidth(260))} alt="" />}
             {user?.isAdmin && <PosterMenu target="item" id={it.id} onChanged={load} />}
           </div>
         </div>

@@ -91,6 +91,43 @@ func TestCustomThemeIsForAdministrators(t *testing.T) {
 	}
 }
 
+func TestMissingServerThemeIsTheDefault(t *testing.T) {
+	ts := newTestServer(t)
+	_, adminTok := ts.user(t, "owner", auth.KindAdult, true, "")
+	theme := func() string {
+		var st struct {
+			Theme string `json:"theme"`
+		}
+		w := ts.do(t, "GET", "/api/status", "", nil)
+		if err := json.Unmarshal(w.Body.Bytes(), &st); err != nil {
+			t.Fatalf("status: %s", w.Body)
+		}
+		return st.Theme
+	}
+	// Saved by another build, and not here.
+	if w := ts.do(t, "PUT", "/api/settings", adminTok, map[string]string{"theme": "witty"}); w.Code != 200 {
+		t.Fatalf("save: %d %s", w.Code, w.Body)
+	}
+	if got := theme(); got != "default" {
+		t.Errorf("a theme that isn't here: %q, want default", got)
+	}
+	colors := map[string]string{}
+	for _, k := range []string{"bg", "bg-2", "bg-3", "bg-4", "fg", "fg-2", "fg-3", "accent", "accent-2", "accent-fg", "accent-text", "control-line", "danger", "ok", "warn"} {
+		colors[k] = "#336699"
+	}
+	w := ts.do(t, "POST", "/api/themes/custom", adminTok, map[string]any{"name": "Made", "scheme": "dark", "colors": colors, "radius": 10})
+	var made struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &made); err != nil || made.ID == "" {
+		t.Fatalf("custom theme: %d %s", w.Code, w.Body)
+	}
+	ts.do(t, "PUT", "/api/settings", adminTok, map[string]string{"theme": made.ID})
+	if got := theme(); got != made.ID {
+		t.Errorf("a theme that is here: %q, want %q", got, made.ID)
+	}
+}
+
 func TestNavDefaultReachesEveryone(t *testing.T) {
 	ts := newTestServer(t)
 	_, adminTok := ts.user(t, "owner", auth.KindAdult, true, "")

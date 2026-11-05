@@ -144,6 +144,22 @@ There's no quality menu in the player. Quality comes from what the file is, what
 
 Occasionally a browser says it can play a file and then can't. The player notices and asks the server to convert it, once, without you doing anything.
 
+### Robust streaming
+
+For a slow or unreliable connection: a hotel's Wi-Fi, a phone on a train, a home connection that's slow to send. It favours keeping the video playing over the sharpest picture. An administrator can turn it on for everyone away from home, under [Playback & discs](SETTINGS.md#playback-and-discs), and each device can choose for itself, in the player's [viewing settings](#viewing-settings) or on that settings page. A device's own choice wins, at home or away, so it helps on poor Wi-Fi at home too.
+
+With it on:
+
+- **It measures your connection first**, in about a second, and starts at a steady quality that fits in part of it: 1080p, 720p, 480p, 360p or 240p, never above the film's own or the limits an administrator set.
+- **It steps down instead of stalling.** When the picture stops to wait, the player moves to the next quality down within a few seconds, and back up once things have been smooth for a minute.
+- **It keeps a bigger buffer**, a minute ahead rather than half that, so a short drop goes unnoticed.
+- **It keeps trying when the connection drops**, waiting a little longer each time, and picks up where you were once it's back. If the server has ended the stream meanwhile, it asks for a new one at the same place.
+- **Segments are two seconds long**, each starting with a full picture, so changing quality or picking up again is quick.
+- **A file that could play as it is** is still sent as it is when it needs no more than half of what the connection carries. If it stalls for long anyway, the player asks for the steady stream instead, from the same place.
+- **The player says what it did**, briefly over the picture ("Picture lowered to 480p to keep playing", "Reconnected after 12 s, at the same place"), and lists it under [How this is playing](#how-this-is-playing).
+
+It costs the server more work than standard streaming, since more videos are converted, but only one quality of each video is converted at a time.
+
 ### How this is playing
 
 Press the info button, or I, to see this. It says what the file is, what's happening to its picture, sound and subtitles, how much work that is for the server, and why it isn't simpler. Use it first when a film stutters or won't start.
@@ -164,6 +180,7 @@ The gear in the player. **Apply to** chooses **This video** or **Everything**. T
 - **Hide controls after** is 2, 3.5 or 6 seconds, or **Never**.
 - **Picture** is **Fit**, with black bars if needed, or **Fill screen**, which zooms and crops.
 - **3D video** is for a film stored **Side by side** or **Over-under**. **Show 3D as** gives one eye's view, or red and cyan for glasses.
+- **Streaming** is this device's choice of [robust streaming](#robust-streaming): **Server's choice**, **Standard** or **Robust**. It applies to everything on this device, and changing it picks the video up again at the same place.
 
 On discs there are also **Forced captions**, **Disc restrictions** and **Subtitle size**.
 

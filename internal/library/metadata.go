@@ -57,6 +57,37 @@ func isFileExt(ext string) bool {
 // ParseName guesses title and year from a file or folder name.
 func ParseName(name string) (title string, year *int) { return parseName(name, true) }
 
+// ClipName names a commercial from its file. All of the name is the title: in
+// "1999 Toyota 2000 Clearance Sale" the second year is part of what it's
+// called, not where a film's name ends. The year is the first one in it.
+func ClipName(name string) (title string, year *int) {
+	n := name
+	if isFileExt(filepath.Ext(name)) {
+		n = strings.TrimSuffix(name, filepath.Ext(name))
+	}
+	if m := clipYearRe.FindStringSubmatch(n); m != nil {
+		y, _ := strconv.Atoi(m[1])
+		year = &y
+	}
+	n = spacersRe.ReplaceAllString(n, " ")
+	n = wsRe.ReplaceAllString(strings.TrimSpace(n), " ")
+	if n == "" {
+		return parseName(name, true)
+	}
+	return n, year
+}
+
+// clipYearRe is a year standing on its own in a name, not part of a longer number.
+var clipYearRe = regexp.MustCompile(`(?:^|[^\d])((?:19|20)\d{2})(?:$|[^\d])`)
+
+// itemName is what a library calls a file before anything else is known.
+func itemName(libType, base string) (string, *int) {
+	if libType == CommercialsType {
+		return ClipName(base)
+	}
+	return ParseName(base)
+}
+
 // legacyTitle is what ParseName made of a scanned name before it kept dotted
 // last words and dropped catalogue numbers, so titles it got wrong can be
 // recognised and corrected (and titles someone typed are left alone).

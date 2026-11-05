@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/wittywilla/wittymediaserver/internal/isofs"
+	"github.com/wittywilla/wittydisc/isofs"
 )
 
 // The server's own refusal of encrypted discs. A helper may be a fork, and its word that a disc

@@ -31,6 +31,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/instance"
 	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
@@ -53,8 +54,17 @@ func cmdServe(args []string) int {
 	cfg, err := config.Parse(args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		if hint := unwritableData(err, os.Getenv("WMS_DATA_DIR")); hint != "" {
+			fmt.Fprintln(os.Stderr, hint)
+		}
 		return 2
 	}
+	// One server per data folder, before a reset, a restore or the database touches it.
+	lock, cfg, code, ok, lockWarn := claimDataFolder(cfg, args)
+	if !ok {
+		return code
+	}
+	defer lock.Release()
 	level := slog.LevelInfo
 	switch strings.ToLower(cfg.LogLevel) {
 	case "debug":
@@ -70,6 +80,12 @@ func cmdServe(args []string) int {
 	resetDone := reset.Apply(reset.Folders{Data: cfg.DataDir, Program: config.ProgramDir(), Config: cfg.ConfigFile})
 	repairDone := reset.ApplyRepair(cfg.DataDir)
 	restoreDone := backup.Apply(backup.Folders{Data: cfg.DataDir, Images: cfg.ImagesDir})
+	// A reset or restore has just moved folders away that Parse made: make them again,
+	// or every thumbnail fails until the next start.
+	if err := cfg.MakeFolders(); err != nil {
+		fmt.Fprintln(os.Stderr, "data folders:", err)
+		return 1
+	}
 	logs, err := logging.New(cfg.LogDir, level, os.Stderr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "log folder:", err)
@@ -92,6 +108,9 @@ func cmdServe(args []string) int {
 	}
 	if cfg.ConfigFile != "" {
 		log.Info("config", "file", cfg.ConfigFile, "portable", cfg.Portable)
+	}
+	if lockWarn != "" {
+		log.Warn(lockWarn, "cat", "server", "data", cfg.DataDir)
 	}
 
 	tools, err := ffmpeg.Locate(cfg.FFmpegPath, cfg.FFprobePath)
@@ -148,6 +167,12 @@ func cmdServe(args []string) int {
 			logs.SetFloor(slog.LevelDebug) // -log debug means everything, whatever the settings say
 		}
 		guard.SetLogDir(logs.Dir())
+	}
+
+	if ffmpeg.InContainer() {
+		if msg := puidMismatch(os.Getenv("PUID"), os.Getenv("PGID"), os.Getuid(), os.Getgid()); msg != "" {
+			log.Warn(msg)
+		}
 	}
 
 	// Find out which hardware encoders really work here, if any are to be used.
@@ -209,6 +234,9 @@ func cmdServe(args []string) int {
 	protect := []string{cfg.DataDir, cfg.CacheDir, cfg.TranscodeDir, cfg.ImagesDir, cfg.LogDir, cfg.ConfigFile, logs.Dir()}
 	updater := update.New(version, progDir, protect, library.SafeClient.Transport, log)
 	updater.LoadWithdrawals(filepath.Join(cfg.DataDir, "update-withdrawn.json"))
+	// An installer for a copy that can't replace its own files waits here for the admin to run it.
+	updater.DownloadDir = filepath.Join(cfg.CacheDir, "updates")
+	updater.CleanDownloads()
 	restartReq := make(chan struct{}, 1)
 	updater.Restart = func() {
 		select {
@@ -264,6 +292,7 @@ func cmdServe(args []string) int {
 		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner, GameMeta: gameMeta,
 		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, BD: bdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
 		Update: updater, Modules: modMgr, ModuleStores: modStores, Crashes: guard, Restart: updater.Restart,
+		Instance: lock.ID(),
 	}
 	if restoreDone != nil {
 		if restoreDone.OK {
@@ -292,12 +321,18 @@ func cmdServe(args []string) int {
 	}
 	ln, err := listen(cfg.Listen)
 	if err != nil {
-		log.Error("listen", "addr", cfg.Listen, "err", err)
+		why := portTaken(cfg.Listen, err)
+		log.Error("listen", "addr", cfg.Listen, "err", err, "why", why)
+		fmt.Fprintln(os.Stderr, why)
 		return 1
 	}
 	srv.Conns = &remote.ConnLimit{Total: cfg.MaxConnections, PerAddress: min(remote.DefaultPerAddress, cfg.MaxConnections), Policy: srv.NetPolicy, Log: log}
 	ln = srv.Conns.Wrap(ln)
 	log.Info("WittyMediaServer listening", "url", listenURL(cfg.Listen), "data", cfg.DataDir)
+	if err := lock.Publish(instance.Info{PID: os.Getpid(), Started: time.Now(), Version: version, URLs: []string{listenURL(cfg.Listen)},
+		Service: asService || os.Getenv("INVOCATION_ID") != ""}); err != nil {
+		log.Warn("could not say where this server is, for a second start to find it", "cat", "server", "err", err)
+	}
 	srv.LogStartup(context.Background())
 	if err := srv.Auth.HashStoredTokens(context.Background()); err != nil {
 		log.Warn("session tokens", "err", err)

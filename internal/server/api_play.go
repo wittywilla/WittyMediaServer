@@ -457,7 +457,7 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "video/mp2t")
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	counted, done := s.streams.served(s.capWriter(w, r), r, 0, id)
+	counted, done := s.streams.served(s.capWriter(w, r), r, 0, s.trackedStream(id))
 	defer done()
 	http.ServeFile(counted, r, p)
 }

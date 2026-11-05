@@ -105,9 +105,13 @@ func TestTheOnlyVersionRestsRatherThanGoing(t *testing.T) {
 	}
 }
 
+// A rest ends when its time is up. Time passes here by moving the rest's end into the past, not
+// by waiting out a short rest: on a busy machine (CI's race detector, with every package at once)
+// more than 50 ms went by between the third failure starting the rest and the first look at it,
+// and the test saw no rest at all.
 func TestARestEnds(t *testing.T) {
 	oldRest := restFor
-	restFor = 50 * time.Millisecond
+	restFor = time.Hour
 	defer func() { restFor = oldRest }()
 	w := newWorld(t)
 	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API, "crash"))
@@ -121,7 +125,9 @@ func TestARestEnds(t *testing.T) {
 	if m.Resting("wittyphotos") == nil {
 		t.Fatal("not resting")
 	}
-	time.Sleep(100 * time.Millisecond)
+	m.mu.Lock()
+	m.mods["wittyphotos"].restUntil = time.Now().Add(-time.Second) // the hour is up
+	m.mu.Unlock()
 	if err := m.Resting("wittyphotos"); err != nil {
 		t.Fatalf("still resting: %v", err)
 	}

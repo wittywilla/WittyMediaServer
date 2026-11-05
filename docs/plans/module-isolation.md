@@ -218,6 +218,7 @@ Why these three and no more:
 - **WittyDisc already is the disc core**: a library, `core`, required by both disc engines. It grows instead of a new one appearing. CD lookup joins it because it's what a disc *is*, and WittyCD can then drop its own copy.
 - **WittyBroadcast** can't go in WittyTuner, because the server must not build with a module, and WittyTuner can't be forked while a library can't be loaded at all. It holds detection only.
 - **WittyGameCore** is the biggest gap: a project wanting "games from files" today gets WittyPlay's runner and none of the identifying, unpacking or describing. `hostsandbox` goes with it because both WittyPlay's runner and the archive worker sandbox themselves with it, and WittyModule promises to have no dependencies (it needs `golang.org/x/sys`).
+  **One thing to settle first:** `gamearchive` and `gamemeta` read WittyPlay's console table (`wittyplay.ByID` and `Console`, through the server's generated stubs) to know which file types each console takes. WittyGameCore can't import WittyPlay while WittyPlay builds with WittyGameCore, so the table's facts (consoles, their names, file types and regions) move into WittyGameCore with `gameid`, and WittyPlay keeps only what it runs them with (cores, controls, settings). That is part of the WittyGameCore move, not of 0.7.0-alpha.
 - **Not proposed:** a separate library for disc menus or sessions. The shared part of `dvdsession` and `bdsession` is small once each engine owns its own steps, and it can live in WittyDisc (`present`) when that move comes.
 
 ---

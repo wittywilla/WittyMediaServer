@@ -6,9 +6,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"runtime"
 	"slices"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -264,4 +266,21 @@ func isAccessDenied(err error) bool { return isErrno(err, 10013) }
 func isErrno(err error, code syscall.Errno) bool {
 	var en syscall.Errno
 	return runtime.GOOS == "windows" && errors.As(err, &en) && en == code
+}
+
+// plainHost is a host name or IPv4 address that can go in a policy as it is.
+var plainHost = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$`)
+
+// appCSPFor is appCSP, also letting the page ask whether the server answers on another port of
+// the same host: how Settings → Network follows it to its new port after a restart. Only that
+// one address, /api/health, and only for a plain host name or IPv4 address.
+func appCSPFor(r *http.Request) string {
+	host := r.Host
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	if !plainHost.MatchString(host) {
+		return appCSP
+	}
+	return strings.Replace(appCSP, "connect-src 'self'", "connect-src 'self' http://"+host+":*/api/health", 1)
 }

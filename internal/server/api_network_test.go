@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -118,4 +119,20 @@ func emptyConfig(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return p
+}
+
+// The page may ask one thing of another port on its own host, so it can follow the server there,
+// and a made-up Host header can't add anything else to the policy.
+func TestAppPolicyFollowsThePort(t *testing.T) {
+	r := httptest.NewRequest("GET", "/", nil)
+	r.Host = "192.168.1.20:9797"
+	if got := appCSPFor(r); !strings.Contains(got, "connect-src 'self' http://192.168.1.20:*/api/health;") {
+		t.Errorf("%s", got)
+	}
+	for _, host := range []string{"evil; script-src *", "a b", "[::1]:9797", "x'y", ""} {
+		r.Host = host
+		if got := appCSPFor(r); got != appCSP {
+			t.Errorf("%q made the policy %s", host, got)
+		}
+	}
 }

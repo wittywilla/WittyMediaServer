@@ -743,7 +743,7 @@ func (s *Server) headers(next http.Handler) http.Handler {
 			// Handlers with their own needs replace this.
 			h.Set("Content-Security-Policy", apiCSP)
 		} else {
-			h.Set("Content-Security-Policy", appCSP)
+			h.Set("Content-Security-Policy", appCSPFor(r))
 			h.Set("Cross-Origin-Opener-Policy", "same-origin")
 			h.Set("Permissions-Policy", appPermissions)
 		}

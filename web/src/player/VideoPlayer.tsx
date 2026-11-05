@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { api, ApiError, episodeLabel, langName, mediaUrl, posterUrl, type Item, type PlaybackAnswer, type Show } from '../api'
+import { api, ApiError, episodeLabel, fitWidth, langName, mediaUrl, posterUrl, sized, type Item, type PlaybackAnswer, type Show } from '../api'
 import { IconBack, IconClose, IconExpand, IconInfo, IconMini, IconNext, IconPause, IconPlay } from '../icons'
 import { browserCapabilities } from './capabilities'
 import PlayInfoPanel from './PlayInfoPanel'
@@ -374,7 +374,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
                 ? (next.show ? `Because you watched ${item.showTitle || item.title}` : 'You might also like')
                 : upNext != null ? `Next episode in ${upNext}s` : 'Watch next'}</div>
               <div className="wn-body" onClick={() => nav(`/play/${next.item.id}`, { replace: true })}>
-                <div className={'wn-thumb' + (next.item.showId != null ? ' wide' : '')}>{next.item.poster && <img src={posterUrl(next.item)} alt="" />}</div>
+                <div className={'wn-thumb' + (next.item.showId != null ? ' wide' : '')}>{next.item.poster && <img src={sized(posterUrl(next.item), fitWidth(240))} alt="" />}</div>
                 <div>
                   <div className="wn-title">{next.show ? next.show.title : next.item.showTitle || next.item.title}</div>
                   <div className="muted" style={{ fontSize: 12 }}>{next.item.showId != null ? [episodeLabel(next.item), next.item.title].filter(Boolean).join(' · ') : next.item.year}</div>

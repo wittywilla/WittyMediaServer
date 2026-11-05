@@ -570,6 +570,15 @@ name>` to the address so the server can tell viewers apart, and send `POST /tv/{
 when leaving. A 503 means the channel is still starting: wait and ask again. Without `streamToken=1` no ticket
 is made, which is what the web player does.
 
+**Keeping to the same moment.** Every segment of a channel's playlist carries `EXT-X-PROGRAM-DATE-TIME`, the moment
+on the air it starts at, and the playlist says where players sit behind the newest segment with
+`EXT-X-SERVER-CONTROL:HOLD-BACK`. Every player on a channel that keeps to the same point by the server's clock
+shows the same moment: for a library channel (`kind: library`, made ahead of the clock) the server's time now,
+and for a tuner channel (`kind: tuner`, which arrives as it's broadcast) the server's time less three target
+durations. The hold-back starts a player at that point. `GET /time` answers `{"now": <milliseconds>}`: time a few
+requests and take the one with the shortest round trip to work out how far this device's clock is off. ExoPlayer
+(`LiveConfiguration`) and AVPlayer read the same tags.
+
 On a channel with `countProgress`, report watch progress for `now.itemId` as `positionSec` plus the seconds
 since `serverTime`, but only up to `partEnd`, when this stretch of the programme ends; a commercial break may
 follow. Ask `tune` again at `partEnd`: during a break `countProgress` is false, and after it `positionSec`
@@ -1295,6 +1304,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
 | `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |
 | `POST /tv/{key}/leave` | user | This viewer has gone: `viewer`. |
+| `GET /time` | user | The server's clock, `{"now": <milliseconds>}`, for keeping to the same moment on a channel. See "Live channels". |
 | `GET /tv/{key}/logo` | user | A tuner channel's logo, fetched and kept by the server, so the site a playlist names never sees the viewer. The `logo` in `/guide` and `/tune` is this address. |
 | `GET /tv/settings` | admin | TV settings. |
 | `PUT /tv/settings` | admin | Put TV settings. |

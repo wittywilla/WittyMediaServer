@@ -204,7 +204,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
             <div className="gm-blocked" role="status">
               <IconInfo />
               <div>
-                <strong>{check.reason === 'core' && !check.noBuild ? 'This game needs a core first' : check.reason === 'bios' ? 'This game needs a BIOS file' : check.reason === 'gpu' || check.noBuild ? 'Not on this server' : 'This console can’t play here yet'}</strong>
+                <strong>{check.reason === 'encrypted' ? 'This copy is encrypted' : check.reason === 'core' && !check.noBuild ? 'This game needs a core first' : check.reason === 'bios' ? 'This game needs a BIOS file' : check.reason === 'gpu' || check.noBuild ? 'Not on this server' : 'This console can’t play here yet'}</strong>
                 <p>{check.message}{check.reason === 'core' && !check.noBuild && (user?.isAdmin ? ' A core is the free program that plays these games. It takes one click to install.' : ' Ask whoever runs this server to install one.')}</p>
                 {(check.reason === 'gpu' || check.noBuild) && check.runsOn?.length ? <p>{runsOnWords(check.runsOn)} Every device can play them from such a server: the server runs the game and streams it.</p> : null}
               </div>

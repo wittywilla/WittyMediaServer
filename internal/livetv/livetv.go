@@ -153,6 +153,12 @@ type Manager struct {
 	// Stop ends everything at shutdown.
 	stopCtx context.Context
 	stop    context.CancelFunc
+	// Work the manager started on its own, which Close ends and waits for: see background.
+	bgMu      sync.Mutex
+	bgWork    sync.WaitGroup
+	bgRunning map[string]int // by name, to say what Close couldn't wait for
+	bgClosed  bool
+	closeOnce sync.Once
 	// AfterRecording is told when a recording has finished (to rescan a library).
 	AfterRecording func(path string)
 	// Folder answers where recordings go.
@@ -189,22 +195,11 @@ func (m *Manager) Start() {
 	if n == 0 {
 		return
 	}
-	m.epgOnce.Do(func() { logging.Loop("guide refresher", m.epgLoop, "cat", "tv") })
+	m.epgOnce.Do(func() { m.loop("guide refresher", m.epgLoop, "cat", "tv") })
 	m.dvrOnce.Do(func() {
 		m.failInterrupted()
-		logging.Loop("recording scheduler", m.dvrLoop, "cat", "tv")
+		m.loop("recording scheduler", m.dvrLoop, "cat", "tv")
 	})
-}
-
-// Close stops background work and releases sources.
-func (m *Manager) Close() {
-	m.stop()
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	for _, s := range m.sources {
-		_ = s.Close()
-	}
-	m.sources = map[int64]tuner.Source{}
 }
 
 // tunerLog is for what a tuner did, as opposed to what the guide or a recording did.
@@ -476,7 +471,7 @@ func (m *Manager) ensureGuide(ctx context.Context, id int64, s tuner.Source) {
 	_, _ = m.DB.ExecContext(ctx, `INSERT INTO epg_sources(name, url, auth, tuner_id) VALUES(?,?,?,?) ON CONFLICT(url) DO UPDATE SET auth = excluded.auth, tuner_id = excluded.tuner_id`,
 		"From "+info.Name, info.GuideURL, auth, id)
 	m.Start()
-	logging.Go("guide refresh", func() { m.refreshDue(context.WithoutCancel(ctx)) }, "cat", "tv")
+	m.background("guide refresh", m.refreshDue, "cat", "tv")
 }
 
 // saveChannels merges a channel list: what the owner chose stays, what has gone
@@ -569,7 +564,8 @@ func (m *Manager) StartScan(id int64, source string) error {
 	log := m.tunerLog().With("topic", "tuner", "tuner", id)
 	log.InfoContext(ctx, "channel scan started")
 	task := m.Tasks.Start(tasks.Spec{Type: tasks.TypeGuide, Title: "Finding channels on a tuner", Cancel: cancel, AdminOnly: true})
-	logging.Go("channel scan", func() {
+	// ctx, the scan's own, ends with the manager too.
+	started := m.background("channel scan", func(context.Context) {
 		defer cancel()
 		ch, err := s.Scan(ctx, tuner.ScanOptions{Source: source}, func(p tuner.Progress) {
 			m.mu.Lock()
@@ -619,6 +615,15 @@ func (m *Manager) StartScan(id int64, source string) error {
 			m.ensureGuide(context.Background(), id, s)
 		}
 	}, "cat", "tv", "session", session)
+	if !started {
+		cancel()
+		m.mu.Lock()
+		m.inUse[id]--
+		st.Running, st.Error = false, errStopping.Error()
+		m.mu.Unlock()
+		task.Finish(errStopping)
+		return errStopping
+	}
 	return nil
 }
 
@@ -1009,7 +1014,11 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 		wctx, cancel := context.WithCancel(ctx)
 		o.stopWatch = cancel
 		log := m.tunerLog().With("topic", "tuner", "tuner", c.TunerID, "channel", c.Name)
-		logging.Go("stream re-check", func() { o.watch(wctx, log) }, "cat", "tv")
+		// It ends with the stream, or with the manager.
+		m.background("stream re-check", func(stop context.Context) {
+			defer context.AfterFunc(stop, cancel)()
+			o.watch(wctx, log)
+		}, "cat", "tv")
 	}
 	return o, nil
 }

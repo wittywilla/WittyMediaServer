@@ -330,6 +330,10 @@ func (m *Manager) running() map[int64]context.CancelFunc {
 	return m.recordingCancels
 }
 
+// stoppedReason is why a recording the server's stopping cut short failed: said as it stops, or
+// at the next start if it couldn't say then.
+const stoppedReason = "the server stopped during this recording"
+
 // failInterrupted runs once at startup: anything marked as recording was
 // interrupted by a restart.
 func (m *Manager) failInterrupted() {
@@ -346,7 +350,7 @@ func (m *Manager) failInterrupted() {
 	}
 	rows.Close()
 	for _, id := range ids {
-		m.finish(id, "failed", "the server stopped during this recording", "")
+		m.finish(id, "failed", stoppedReason, "")
 	}
 }
 
@@ -360,18 +364,18 @@ func recSession(id int64) string { return "rec-" + strconv.FormatInt(id, 10) }
 
 // dvrLoop starts recordings when their time comes. It does almost nothing
 // when none are due.
-func (m *Manager) dvrLoop() {
+func (m *Manager) dvrLoop(ctx context.Context) {
 	t := time.NewTicker(15 * time.Second)
 	defer t.Stop()
 	n := 0
 	for {
 		if n%20 == 0 {
-			m.applyRules(m.stopCtx)
+			m.applyRules(ctx)
 		}
 		n++
-		m.startDue(m.stopCtx)
+		m.startDue(ctx)
 		select {
-		case <-m.stopCtx.Done():
+		case <-ctx.Done():
 			return
 		case <-t.C:
 		}
@@ -404,9 +408,9 @@ func (m *Manager) startDue(ctx context.Context) {
 		if n, err := res.RowsAffected(); err != nil || n == 0 {
 			continue
 		}
-		logging.Go("recording", func() {
+		started := m.background("recording", func(context.Context) {
 			task := m.Tasks.Start(tasks.Spec{Type: tasks.TypeRecording, Title: "Recording " + r.Title, AdminOnly: true})
-			m.record(r)
+			m.record(r) // it stops with the manager
 			var status, msg string
 			_ = m.DB.QueryRow(`SELECT status, error FROM recordings WHERE id = ?`, r.ID).Scan(&status, &msg)
 			if status == "failed" {
@@ -415,6 +419,9 @@ func (m *Manager) startDue(ctx context.Context) {
 				task.Finish(nil)
 			}
 		}, "cat", "tv", "session", recSession(r.ID))
+		if !started { // the server is stopping: it starts next time, if it's still on
+			_, _ = m.DB.Exec(`UPDATE recordings SET status = 'scheduled' WHERE id = ? AND status = 'recording'`, r.ID)
+		}
 	}
 }
 
@@ -475,6 +482,10 @@ func (m *Manager) record(r *Recording) {
 		return
 	}
 	opened, err := m.openForRecording(ctx, r.ChannelID)
+	if err != nil && m.stopCtx.Err() != nil {
+		m.finish(r.ID, "failed", stoppedReason, "")
+		return
+	}
 	if err != nil {
 		log.Warn("a recording couldn't start", "err", err)
 		m.finish(r.ID, "failed", PublicError(err), "")
@@ -501,7 +512,7 @@ func (m *Manager) record(r *Recording) {
 	var outOfRoom atomic.Bool
 	writing, stopLooking := context.WithCancel(ctx)
 	defer stopLooking()
-	logging.Go("recording disk space", func() {
+	m.background("recording disk space", func(context.Context) {
 		for {
 			select {
 			case <-writing.Done():
@@ -537,6 +548,12 @@ func (m *Manager) record(r *Recording) {
 	if err != nil && tuner.IsEncrypted(err) {
 		_ = os.Remove(path)
 		m.finish(r.ID, "failed", tuner.RefusalMessage(opened.Channel.Name, err).Error(), "")
+		return
+	}
+	if m.stopCtx.Err() != nil {
+		// What was recorded stays. The library sees it when it's next scanned: nothing new starts
+		// as the server stops.
+		m.finish(r.ID, "failed", stoppedReason, path)
 		return
 	}
 	// The deadline ending a recording is normal; so is a viewer cancelling it.
@@ -597,7 +614,7 @@ func (m *Manager) write(ctx context.Context, log *slog.Logger, o *Opened, path s
 	args = append(args, "-map", "0", "-c", "copy", "-f", "mpegts", "pipe:1")
 	run, cancel := context.WithCancel(ctx)
 	defer cancel()
-	logging.Go("recording re-check", func() {
+	m.background("recording re-check", func(context.Context) {
 		select {
 		case <-o.Refused():
 			cancel()

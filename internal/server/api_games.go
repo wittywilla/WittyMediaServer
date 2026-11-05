@@ -31,6 +31,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/play/cores"
 	"github.com/wittywilla/wittymediaserver/internal/play/ipc"
 	"github.com/wittywilla/wittymediaserver/internal/play/stream"
+	"github.com/wittywilla/wittymodule/service"
 )
 
 // Games: the API around WittyPlay. Sessions and streaming live in the module;
@@ -420,6 +421,10 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 			}
 			switch {
 			case *gpuWhy == "":
+				// A card, but the core it would start on draws wrongly on it on this system.
+				if v.Ready && len(v.Installed) > 0 && drawsWrongHere(v.Installed[0]) != "" && cpuOptions(v.Installed[0]) != nil {
+					v.Software, v.Notice = true, cardFaultNotice()
+				}
 			case s.canDrawOnCPU(&v):
 				if v.Ready { // with nothing installed, a core it could be is still needed first
 					v.Software, v.Notice = true, softwareNotice
@@ -707,7 +712,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	// never started, nor tried when another fails, unless the processor can draw for it. software
 	// says the processor draws this one.
 	noGPU := ""
-	software := false
+	software, notice := false, ""
 	if console.ID != wittyplay.TestConsole {
 		// BIOS files left in a folder beside the games are fetched first, for
 		// every core that might use one: by what they are, then by their names.
@@ -723,7 +728,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		core, blocked := pick.core, pick.blocked
-		software = pick.software
+		software, notice = pick.software, pick.notice
 		if core == nil && blocked != nil {
 			writeJSON(w, 409, map[string]any{"error": wittyplay.BIOSHelp(blocked.ID, console.Name), "needBios": true, "console": console.ID,
 				"file": wittyplay.MissingBIOS(blocked.ID, systemDir)})
@@ -765,7 +770,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			next := stream.CoreChoice{Core: other.Path, CoreID: other.ID, RunnerArgs: wittyplay.RunnerArgs(other.ID), GPU: wittyplay.Traits(other.ID).GPU, Options: wittyplay.StartOptions(console.ID, other.ID, resolution, systemDir)}
-			if noGPU != "" && s.coreDrawsOnGPU(other) {
+			if s.coreDrawsOnGPU(other) && (noGPU != "" || drawsWrongHere(other) != "") {
 				cpu := cpuOptions(other)
 				if cpu == nil {
 					continue
@@ -804,7 +809,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	rom, cleanup, newOnly, err := g.prepare3DS(rom, cleanup, console)
 	if err != nil {
 		if errors.Is(err, wittyplay.ErrEncrypted3DS) {
-			writeJSON(w, 422, map[string]any{"error": strings.TrimRight(err.Error(), ". ") + ". " + library.DecryptedCopyPlays, "encrypted": true, "console": console.ID})
+			writeJSON(w, 422, map[string]any{"error": encryptedMessage(), "encrypted": true, "console": console.ID})
 			return
 		}
 		writeErr(w, 422, err.Error())
@@ -881,7 +886,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	if software {
 		// Over whatever anyone chose: without these, the core asks for a graphics card that isn't here.
 		opts.CoreOptions = overOptions(opts.CoreOptions, cpuDrawing[coreID])
-		opts.Notices = append(opts.Notices, softwareNotice)
+		opts.Notices = append(opts.Notices, notice)
 	}
 	sess, err := g.mgr.Start(opts)
 	if err != nil {
@@ -974,6 +979,11 @@ func (s *Server) recordPlayTime(sess *stream.Session, userID, itemID int64) {
 	if err := s.Store.SetProgress(ctx, userID, itemID, library.Progress{PositionSec: total + played}); err != nil {
 		s.Log.Warn("could not save time played", "cat", "games", "session", sess.ID(), "err", err)
 	}
+}
+
+// encryptedMessage is why an encrypted 3DS game can't play, and what would.
+func encryptedMessage() string {
+	return strings.TrimRight(wittyplay.ErrEncrypted3DS.Error(), ". ") + ". " + library.DecryptedCopyPlays
 }
 
 // prepareROM returns the file a core should open. An archive is unpacked first, or
@@ -1214,6 +1224,27 @@ func streamRefused(w http.ResponseWriter, status int, code, text string) {
 
 // handlePlayStream connects a device over WebRTC, version 2: its hello and its offer in, what it
 // gets and the answer out. The server says whether it's away from home; the device doesn't.
+// A WittyPlay from before version 2 of the stream has no Session.Connect and no /stream route. Its
+// modes don't offer version 2 then, so clients keep to version 1, which works as it always has; a
+// client that asks for version 2 anyway is told what to update, not that something failed.
+const needsStreamV2 = "Version 2 of the stream needs a newer WittyPlay (0.3.5 or later). An administrator can update it in Settings, Modules. Version 1 (/play/{id}/webrtc and /play/{id}/ws) works meanwhile."
+
+// moduleLacks says a call failed because the module's version doesn't have it.
+func moduleLacks(err error) bool {
+	var ce *service.CallError
+	return errors.As(err, &ce) && ce.Code == "unknown-method"
+}
+
+// offersStreamV2 says the module's modes can be reached through version 2.
+func offersStreamV2(modes []stream.Mode) bool {
+	for _, m := range modes {
+		if m.Stream >= stream.StreamVersion {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 	sess := s.watchSession(r)
 	if sess == nil {
@@ -1239,6 +1270,11 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 		streamRefused(w, 400, "bad-hello", "The body must be {\"hello\": {...}, \"sdp\": \"...\"}.")
 		return
 	}
+	// Checked here as well as in the module, so the answer is the same whichever WittyPlay is in.
+	if b.Hello.V != stream.StreamVersion {
+		streamRefused(w, 400, "bad-hello", fmt.Sprintf("This server speaks version %d of the stream.", stream.StreamVersion))
+		return
+	}
 	// Someone who joined with a code drives the seat it gave them (game_seats.go).
 	if sess.UserID() != userFrom(r).ID {
 		if seat, ok := s.gameSvc.seats.seatOf(sess.ID(), userFrom(r).ID); ok {
@@ -1247,6 +1283,10 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 	}
 	got, err := sess.Connect(r.Context(), b.Hello, b.SDP, !clientFrom(r).Where.AtHome())
 	if err != nil {
+		if moduleLacks(err) {
+			streamRefused(w, 501, "needs-update", needsStreamV2)
+			return
+		}
 		var se *stream.StreamError
 		if errors.As(err, &se) && se.Status >= 400 && se.Status < 600 {
 			streamRefused(w, se.Status, se.Code, se.Text)
@@ -1275,6 +1315,11 @@ func (s *Server) handlePlayStreamWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer release()
+	// An older WittyPlay has no route to pass this to, and would only say "not found".
+	if !offersStreamV2(s.games().mgr.Modes(stream.ClientNative)) {
+		streamRefused(w, 501, "needs-update", needsStreamV2)
+		return
+	}
 	sess.ServeStream(w, r, !clientFrom(r).Where.AtHome())
 }
 

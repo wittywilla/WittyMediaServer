@@ -47,9 +47,12 @@ type launcher struct {
 	logFile    *serverOutput
 	running    bool
 	healthy    bool
-	wantRun    bool
-	lastErr    string
-	logPath    string
+	// answered: this run of the server has answered at least once, so not answering now
+	// means it stopped answering, not that it's still starting.
+	answered bool
+	wantRun  bool
+	lastErr  string
+	logPath  string
 	// attached: a server was already answering on this port, a background service most
 	// likely. Starting another would only fail, so this app just shows it.
 	attached bool
@@ -166,14 +169,14 @@ func (l *launcher) loop() {
 			openURL(l.url())
 		case <-l.mToggle.ClickedCh:
 			if l.isRunning() {
-				l.wantRun = false
+				l.want(false)
 				l.stop()
 			} else {
-				l.wantRun = true
+				l.want(true)
 				l.start()
 			}
 		case <-l.mRestart.ClickedCh:
-			l.wantRun = true
+			l.want(true)
 			l.stop()
 			l.start()
 		case <-l.mData.ClickedCh:
@@ -205,6 +208,21 @@ func (l *launcher) isRunning() bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	return l.running
+}
+
+// want says whether the server should be kept running. A choice made in the menu starts
+// the count of quick failures again.
+func (l *launcher) want(run bool) {
+	l.mu.Lock()
+	l.wantRun, l.fails = run, 0
+	l.mu.Unlock()
+}
+
+// wantsRestart: the server should be running and isn't.
+func (l *launcher) wantsRestart() bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.wantRun && !l.running
 }
 
 func (l *launcher) start() {
@@ -249,7 +267,7 @@ func (l *launcher) start() {
 		return
 	}
 	l.cmd, l.stdin, l.logFile, l.running, l.lastErr = cmd, stdin, f, true, ""
-	l.startedAt = time.Now()
+	l.startedAt, l.answered = time.Now(), false
 	go func(c *exec.Cmd) {
 		err := c.Wait()
 		// The server installed an update and asks to be started again.
@@ -291,7 +309,7 @@ func (l *launcher) start() {
 		if restart {
 			// Crashed: back off briefly and bring it back.
 			time.Sleep(3 * time.Second)
-			if l.wantRun && !l.isRunning() {
+			if l.wantsRestart() {
 				l.start()
 			}
 		}
@@ -448,6 +466,7 @@ func (l *launcher) health() {
 		l.healthy = ok
 		if ok {
 			l.fails = 0
+			l.answered = l.running
 		}
 		if changed {
 			l.refreshLocked()
@@ -483,6 +502,12 @@ func (l *launcher) refreshLocked() {
 	case l.running && l.healthy:
 		l.mStatus.SetTitle("● Running at " + l.url())
 		systray.SetTooltip("WittyMediaServer — running at " + l.url())
+		l.mToggle.SetTitle("Stop server")
+	case l.running && l.answered:
+		// Not "starting": a server that stops answering looks crashed from a browser, and
+		// someone looking here should see that it's still running, and can be restarted.
+		l.mStatus.SetTitle("◌ Running, but not answering")
+		systray.SetTooltip("WittyMediaServer — not answering")
 		l.mToggle.SetTitle("Stop server")
 	case l.running:
 		l.mStatus.SetTitle("◐ Starting…")

@@ -6,7 +6,7 @@ import { ChannelLogo } from './ChannelLogo'
 import { channelVars, setLook, surfaceOf, type Look } from './look'
 import Preview from './Preview'
 import { useReminders } from './reminders'
-import { fmtClock, fmtDay, fmtLeft, type GuideChannel, type Programme } from './tvApi'
+import { canOfferRecord, fmtClock, fmtDay, fmtLeft, type GuideChannel, type Programme } from './tvApi'
 import { SHAPES } from './tvThemes'
 
 // Whether a title has logo artwork, asked once per title for as long as the page is open.
@@ -110,7 +110,7 @@ export default function Hero({ ch, p, next, look, now, previewKey, previewName, 
           {ch && !ch.encrypted && later && <button className="ctv-btn" aria-label="Watch channel" onClick={() => onWatch(ch.key)}><IconFull size={16} /> <span>Watch channel</span></button>}
           {isTitle && p && <button className="ctv-btn" onClick={() => nav(`/play/${p.itemId}?mode=title&start=${p.clip?.start ? Math.floor(p.clip.start) : 0}${p.clip ? `&ttn=${p.clip.title}` : ''}`)} title="Play it from the beginning, on your own"><IconPrev size={16} /> <span>Start over</span></button>}
           {isTitle && p && <Link className="ctv-btn" aria-label={isFilm ? 'Open the film' : 'Open the show'} to={p.showId ? `/show/${p.showId}` : `/item/${p.itemId}`}><IconFilm size={16} /> <span>{isFilm ? 'Open the film' : 'Open the show'}</span></Link>}
-          {ch?.canRecord && p?.kind === 'broadcast' && p.end > now && <button className="ctv-btn" onClick={onRecord}>● Record</button>}
+          {canOfferRecord(ch, p, now) && <button className="ctv-btn" onClick={onRecord}>● Record</button>}
           {ch && <button className={'ctv-btn icon' + (ch.favourite ? ' fav' : '')} aria-pressed={!!ch.favourite} onClick={onFav} aria-label="Favourite channel" title="Favourite channel (F)"><IconStar size={17} /></button>}
           <button className="ctv-btn icon" onClick={onDown} aria-label="Channel down" title="Channel down"><IconDown size={18} /></button>
           <button className="ctv-btn icon" onClick={onUp} aria-label="Channel up" title="Channel up"><IconUp size={18} /></button>

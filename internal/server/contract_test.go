@@ -28,6 +28,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/libtranscode"
 	"github.com/wittywilla/wittymediaserver/internal/licenses"
+	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/metrics"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
@@ -416,6 +417,8 @@ func schemaTypes() map[string]reflect.Type {
 		"ModuleEvent": ty(modmgr.Event{}), "ModuleVersionList": ty(modmgr.VersionList{}), "ModuleVersion": ty(modmgr.VersionInfo{}), "ModuleWithdrawn": ty(wittymodule.Withdrawn{}),
 		"ModuleLibraryType": ty(modmgr.LibraryType{}), "ModuleRef": ty(modmgr.ModuleRef{}), "ModuleSource": ty(modmgr.SourceInfo{}), "ModuleWebBundle": ty(modmgr.WebBundle{}),
 		"LogPage": ty(logging.Page{}), "LogEntry": ty(logging.Record{}), "SystemSummary": ty(SystemSummary{}), "CrashReport": ty(logging.Crash{}), "BundlePreview": ty(logging.BundlePreview{}), "LogModule": ty(LogModule{}), "DiagnoseJob": ty(diagnose.View{}),
+		"GuideChannel": ty(guideChannel{}), "GuideProgramme": ty(guideProgramme{}), "TuneInfo": ty(tuneInfo{}), "GuideHit": ty(guideHit{}), "ChannelAlternative": ty(livetv.Alternative{}),
+		"ChannelSecurity": ty(securityInfo{}), "ChannelBrand": ty(channelBrand{}), "TVReminder": ty(reminderView{}), "ChannelView": ty(channelView{}), "TunerChannelView": ty(tunerChannelView{}),
 		"ResetView": ty(resetView{}), "ResetCopy": ty(reset.Copy{}), "ResetRequest": ty(reset.Request{}), "ResetResult": ty(reset.Result{}), "LegalNotice": ty(legal.Notice{}), "LegalSection": ty(legal.Section{}), "LegalService": ty(legal.Service{}),
 	}
 }
@@ -469,7 +472,12 @@ func (g *schemaGen) object(ty reflect.Type) map[string]any {
 				continue
 			}
 			if f.Anonymous && name == "" {
-				walk(f.Type)
+				// encoding/json promotes an embedded struct's fields, through a pointer too.
+				if f.Type.Kind() == reflect.Pointer {
+					walk(f.Type.Elem())
+				} else {
+					walk(f.Type)
+				}
 				continue
 			}
 			if name == "" {

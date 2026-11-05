@@ -104,8 +104,23 @@ export type GameConsole = {
   // Where each core on offer runs, how it draws there, and here: see pages/games/platforms.tsx.
   coreSupport?: Record<string, CoreSupport>
   customCores?: GameCore[]; defaultCore?: string; shared?: string[]; padLike?: string; logoName?: string
-  pad: { face: { id: number; label: string }[]; shoulder?: { id: number; label: string }[]; meta: { id: number; label: string }[]; sticks?: boolean }
+  pad: { face: { id: number; label: string }[]; shoulder?: { id: number; label: string }[]; meta: { id: number; label: string }[]; sticks?: boolean; pointer?: boolean; art?: string }
+  // Its era and years, how its games come, and what it can do (docs/GAMING-API.md, Consoles).
+  era?: 'first' | '8-bit' | '16-bit' | 'early-3d' | 'disc' | 'pocket'; launched?: number; ended?: number; media?: 'cart' | 'pocket' | 'disc'
+  capabilities?: GameCapabilities
+  // How its games stand on a shelf: its case and its cartridge or disc, as shapes to draw around a cover.
+  shelf?: { case: GameShelfShape; cart: GameShelfShape }
 }
+export type GameShelfShape = { kind: string; aspect: number; height: number }
+export type GameCapabilities = {
+  screens: { count: number; touch?: number; layouts?: string[]; options?: Record<string, { layout: string; values: Record<string, [string, string]>; swap?: string; swapValues?: [string, string] }> }
+  input: { ports: number; multitap?: number; sticks?: number; analogTriggers?: boolean; touch?: boolean; lightGun?: boolean; mouse?: boolean; motion?: boolean; keyboard?: boolean; mic?: boolean }
+  media: { discs?: boolean; memoryCards?: number; bios: 'none' | 'optional' | 'required'; region?: Record<string, string> }
+  play: { rumble?: boolean; rewindByDefault?: boolean }
+  picture: { aspect: string; integer?: boolean; look: string }
+}
+// What this account is playing now, and where (GET /games/playing).
+export type GamePlaying = { id: string; itemId: number; title: string; console: string; device?: string; startedAt?: number; seats?: { userId: number; name: string; seat: number }[] }
 export type Album = { artist: string; title: string; year?: number; tracks: number; durationSec: number; coverItem: number; addedAt: number; genre?: string }
 export type Artist = { name: string; albums: number; tracks: number; coverItem: number }
 export type Show = {

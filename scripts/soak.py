@@ -149,7 +149,7 @@ def make_media(root, ffmpeg):
     def ff(*a):
         subprocess.run([ffmpeg, "-hide_banner", "-loglevel", "error", "-nostdin", "-y", *a], check=True)
     films = os.path.join(root, "Movies")
-    for i, (name, src) in enumerate([("Test Pattern (2001)", "testsrc2"), ("Moving Colours (2002)", "smptehdbars"), ("Mandel (2003)", "mandelbrot")]):
+    for i, (name, src) in enumerate([("Test Pattern (2001)", "testsrc2"), ("Moving Colours (2002)", "smptehdbars"), ("Colour Bars (2003)", "pal100bars")]):
         d = os.path.join(films, name)
         os.makedirs(d, exist_ok=True)
         out = os.path.join(d, name + ".mkv")

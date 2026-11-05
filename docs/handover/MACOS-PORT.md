@@ -27,7 +27,7 @@ Read this page, then [Working on a Mac](../MACOS.md), then [the GitHub practices
 3. **Check the server builds and its tests pass here**, as in [Tests](../MACOS.md#tests). CI's `macos` job does the same on GitHub's runners, so a difference is about a real Mac.
 4. **Look at what's open** (below), and pick up the [order of work](#order-of-work).
 
-There is no `D:\` on the Mac. Every path in old notes, memories and plans that starts `D:\projects\<Repo>` means `~/projects/<Repo>` here, and `D:\0.FuturePlans` means [docs/plans](../plans/README.md) (only the plans the port needs were copied).
+There is no `D:\` on the Mac. Every path in old notes, memories and plans that starts `D:\projects\<Repo>` means `~/projects/<Repo>` here, and `D:\0.FuturePlans` means [docs/plans](../plans/README.md), where every plan now lives and is changed through pull requests.
 
 ## What the owner needs to bring from Windows
 
@@ -61,13 +61,13 @@ As of 2026-11-04. "Built" means in CI, on GitHub's Mac runners or cross-compiled
 
 ## Open issues and pull requests
 
-**Open when this was written:**
+**Pull requests from this work:**
 
 | | What | State |
 |---|---|---|
-| wittywilla/WittyMediaServer#99 | This: Mac CI, docs/MACOS.md, this hand-over, the tests fixed for a Mac, and a false "copy-protected" on some MKVs found by the Mac job | Draft, closes #85, #134 and #184 |
+| wittywilla/WittyMediaServer#99 | This: Mac CI, docs/MACOS.md, this hand-over, the tests fixed for a Mac | Closes #85 and #134. The false "copy-protected" on some MKVs that the Mac job also found (#184) was fixed on master by #243 |
 | wittywilla/WittyMediaClient#4 | CI green again: Apple build, theme data, script check | Draft, closes wittywilla/WittyMediaClient#3. Its FreeBSD job fails because FreeBSD's package repository had no Electron that day, unrelated |
-| wittywilla/WittyPlay#20 | The test probe builds on macOS and FreeBSD; WittyPlay 0.3.5 | Draft, closes wittywilla/WittyPlay#18 |
+| wittywilla/WittyPlay#20 | The test probe builds on macOS and FreeBSD; WittyPlay 0.3.5 | Merged |
 
 **Issues for a real Mac** (`not-run`, `platform:macos`):
 

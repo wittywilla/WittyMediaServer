@@ -203,7 +203,7 @@ Signing and notarising need **the Apple Developer Program, US$99 a year**, which
    spctl --assess --type install -v dist/mine/wittymediaserver-0.7.0-dev-macos-arm64.pkg
    ```
 
-**Not built yet:** signing in the release workflow. That needs the `.p12`, its password, and an App Store Connect API key for `notarytool` as secrets in a protected `release` environment, and a step that makes a throwaway keychain on the runner. The code signing plan covers it, together with WittyMediaClient, WittyReader and the modules' helpers, which have to be signed with the same Team ID. Signing also changes what can load what: a hardened program refuses libraries signed by another team, which is why game cores need signing by us.
+**Not built yet:** signing in the release workflow. That needs the `.p12`, its password, and an App Store Connect API key for `notarytool` as secrets in a protected `release` environment, and a step that makes a throwaway keychain on the runner. [The code signing plan](plans/design/code-signing-pipeline.md) covers it, together with WittyMediaClient, WittyReader and the modules' helpers, which have to be signed with the same Team ID. Signing also changes what can load what: a hardened program refuses libraries signed by another team, which is why game cores need signing by us.
 
 ## Where everything lives
 
@@ -259,7 +259,7 @@ Each of these has an issue labelled `platform:macos`. Those labelled `not-run` w
 - **Games:** the consoles drawn on a graphics card don't play on a Mac ([Games](GAMES.md)), there's no per-game CPU limit (priority only), and game cores downloaded from the libretro build server aren't signed by us, which a signed, hardened runner will refuse.
 - **WittyMediaPlayer** has no Mac build ([its design notes](https://github.com/wittywilla/WittyMediaPlayer/blob/main/DESIGN.md) list what a port needs).
 - **No signing**, so every program warns, until the owner joins the Apple Developer Program.
-- **Updating from the server's own page** isn't offered for a `.pkg` install yet.
+- **Updating from the server's own page** isn't offered for a `.pkg` install yet ([the plan](plans/design/server-updates.md)).
 
 ---
 

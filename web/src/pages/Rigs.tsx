@@ -4,6 +4,7 @@ import { PromptBar } from './games/prompts'
 import { api, posterUrl, type Item, type Library } from '../api'
 import { BackLink, EmptyState, LoadError, Placeholder, Spinner } from '../components/common'
 import LegalNote from '../components/LegalNote'
+import LibraryHeader from '../components/LibraryHeader'
 import { IconGamepad, IconPlay, IconSettings } from '../icons'
 import { toast, useApp } from '../state'
 import { heroCover, useCoverTint } from './games/data'
@@ -110,12 +111,11 @@ export default function RigLibrary({ lib }: { lib: Library }) {
   const { user } = useApp()
   return (
     <div className="gm-page">
-      <div className="toolbar">
-        <h1>{lib.name}</h1>
-        {total != null && <span className="count">{total.toLocaleString()} {total === 1 ? 'game' : 'games'}, played on this PC</span>}
-        <div className="grow" />
-        {user?.isAdmin && <Link className="btn ghost sm" to="/settings/couch"><IconSettings size={15} /> Manage</Link>}
-      </div>
+      <LibraryHeader
+        title={lib.name}
+        count={total != null ? `${total.toLocaleString()} ${total === 1 ? 'game' : 'games'}, played on this PC` : undefined}
+        end={user?.isAdmin && <Link className="btn ghost sm" to="/settings/couch"><IconSettings size={15} /> Manage</Link>}
+      />
       {rig && <RigStatus rig={rig} reload={reload} watchWake={watchWake} />}
       <VirtualGames query={`library=${lib.id}&kind=game&sort=title&desc=0`} version={rig?.state === 'online' ? 1 : 0} label={`${lib.name}: games`} onTotal={setTotal}
         card={(it) => <RigCard item={it} rig={lib.name} />}

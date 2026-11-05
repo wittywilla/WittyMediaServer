@@ -142,7 +142,7 @@ var tableParts = map[string]string{
 	"photo_meta": PartLibrary, "creators": PartLibrary, "video_meta": PartLibrary, "podcasts": PartLibrary, "radio_meta": PartLibrary,
 	"game_archives": PartLibrary, "game_meta": PartLibrary, "game_meta_sources": PartLibrary,
 	"game_files": PartLibrary, "game_review": PartLibrary, "game_decisions": PartLibrary, "game_discs": PartLibrary,
-	"ltc_rules": PartLibrary,
+	"ltc_rules": PartLibrary, "music_recording_ids": PartLibrary, "music_video_links": PartLibrary,
 
 	"settings": PartSettings,
 	"users":    PartUsers,

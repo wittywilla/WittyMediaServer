@@ -41,6 +41,24 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+// needForks skips a test of what a fork does where every fork is refused, as nothing boxes one in
+// (macOS and FreeBSD for now). TestForksAreRefusedWithoutASandbox is the test there.
+func needForks(t *testing.T) {
+	t.Helper()
+	if !sandboxAvailable {
+		t.Skip(ForkRefusal())
+	}
+}
+
+func TestForksAreRefusedWithoutASandbox(t *testing.T) {
+	if sandboxAvailable {
+		t.Skip("this system boxes in a fork")
+	}
+	if ForkRefusal() == "" {
+		t.Fatal("a fork would be let in with nothing to box it in")
+	}
+}
+
 var (
 	fakeHelper []byte
 	buildOnce  sync.Once

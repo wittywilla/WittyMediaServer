@@ -76,7 +76,7 @@ Smaller ones live beside the code, for `go test -bench`:
 | `internal/server`: `BenchmarkRequestLogged` | What request logging costs |
 | `internal/logging`, `internal/metrics`, `internal/sysinfo`, `internal/tasks` | The log, the statistics, readings of the machine, and progress with nobody watching |
 
-FFmpeg's own benchmark, for transcoding, is separate (#81).
+FFmpeg's own benchmark, for transcoding, is separate: [Measuring FFmpeg](FFMPEG-BENCHMARK.md) (#81).
 
 ## Results
 
@@ -150,7 +150,7 @@ Totals of statements over a whole run don't compare between runs: the benchmark 
 | A minimum hardware guide, from these figures and FFmpeg's | #113, PR #269 |
 | Start-up ran FFmpeg twice, one after the other, before the database opened | #164, PR #226 (by #81's work) |
 | `internal/hls` sweeps every 30 s from start-up, and its live sweep every 5 s once a live stream has been watched; `GameMeta` wakes every 5 minutes with no games | Noted in #215, for the chats changing `hls.go` and for later |
-| Go's memory settings (`GOGC`, `GOMEMLIMIT`) | Left as they are: the server's own heap is about 4 MB live while idle and its RSS peaked at 49 MB while scanning, and only 1 to 3 MB is ever waiting to go back to the system. The memory that matters is FFmpeg's (hundreds of MB a conversion, see #81), which these settings don't touch |
+| Go's memory settings (`GOGC`, `GOMEMLIMIT`) | Left as they are: the server's own heap is about 4 MB live while idle and its RSS peaked at 49 MB while scanning, and only 1 to 3 MB is ever waiting to go back to the system. The memory that matters is FFmpeg's (hundreds of MB a conversion, see [Measuring FFmpeg](FFMPEG-BENCHMARK.md#figures)), which these settings don't touch |
 | Missing indexes | None found for the demo media; the benchmark's plan list is there to catch one in a later release. Browse's `(? = 0 OR …)` on shows is noted above, not changed |
 | Scans with nothing changed, on a slow drive | Up to 43 s a library on `/mnt/d` with under a second of processor: the time is in looking through the folders, as each unchanged file is passed over without reading it. Not changed |
 | Not measured yet | Libraries that need a module (books, comics, photos, discs, games), and how long module helpers take to start: the benchmark doesn't install modules. Next time, with `WMS_TEST_CATALOG` |

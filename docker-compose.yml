@@ -1,5 +1,6 @@
 # WittyMediaServer in a container: docker compose up -d, then open http://<this computer>:9797/
-# Change the media lines to your own folders. More, including a NAS: docs/INSTALL.md.
+# Change the media lines to your own folders. More examples are in deploy/docker, and
+# docs/DOCKER.md explains every line, with a guide for each make of NAS.
 services:
   wittymediaserver:
     image: ghcr.io/wittywilla/wittymediaserver:alpha # the newest alpha; :latest is the newest full release
@@ -31,9 +32,11 @@ services:
       # Mount your media read-only wherever you like; add them as library folders in the UI.
       - /path/to/movies:/media/movies:ro
       - /path/to/dvds:/media/dvds:ro
-    # Optional hardware transcoding:
+    # Optional hardware transcoding (docs/TRANSCODING.md#in-docker):
     # devices:
-    #   - /dev/dri:/dev/dri          # Intel/AMD VAAPI
+    #   - /dev/dri:/dev/dri          # Intel/AMD: VAAPI and Quick Sync
+    # group_add:
+    #   - "105"                      # the group that owns /dev/dri/renderD128 on the host: ls -ln /dev/dri
     # deploy:
     #   resources:
     #     reservations:

@@ -347,6 +347,9 @@ func resolveBeside(dir, name string) (string, error) {
 		if st, err = os.Lstat(p); err != nil {
 			return "", err
 		}
+		if st.IsDir() {
+			return "", fmt.Errorf("the file %q this image needs isn't in its folder: %w", filepath.Base(rel), os.ErrNotExist)
+		}
 	}
 	// Any part of the way may be a link, not only the file's own name.
 	if !staysInside(dir, p) {

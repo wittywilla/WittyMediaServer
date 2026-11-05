@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"syscall"
@@ -31,6 +32,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/instance"
 	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
@@ -53,8 +55,17 @@ func cmdServe(args []string) int {
 	cfg, err := config.Parse(args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		if hint := unwritableData(err, os.Getenv("WMS_DATA_DIR")); hint != "" {
+			fmt.Fprintln(os.Stderr, hint)
+		}
 		return 2
 	}
+	// One server per data folder, before a reset, a restore or the database touches it.
+	lock, cfg, code, ok, lockWarn := claimDataFolder(cfg, args)
+	if !ok {
+		return code
+	}
+	defer lock.Release()
 	level := slog.LevelInfo
 	switch strings.ToLower(cfg.LogLevel) {
 	case "debug":
@@ -70,6 +81,12 @@ func cmdServe(args []string) int {
 	resetDone := reset.Apply(reset.Folders{Data: cfg.DataDir, Program: config.ProgramDir(), Config: cfg.ConfigFile})
 	repairDone := reset.ApplyRepair(cfg.DataDir)
 	restoreDone := backup.Apply(backup.Folders{Data: cfg.DataDir, Images: cfg.ImagesDir})
+	// A reset or restore has just moved folders away that Parse made: make them again,
+	// or every thumbnail fails until the next start.
+	if err := cfg.MakeFolders(); err != nil {
+		fmt.Fprintln(os.Stderr, "data folders:", err)
+		return 1
+	}
 	logs, err := logging.New(cfg.LogDir, level, os.Stderr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "log folder:", err)
@@ -78,6 +95,7 @@ func cmdServe(args []string) int {
 	defer logs.Close()
 	log := slog.New(logs.Handler())
 	slog.SetDefault(log)
+	logs.SetFlightRecorder(true) // from the first line; Settings may turn it off once they're read
 	if h := logs.Health(); h.Error != "" {
 		log.Error("the log folder can't be used: messages stay in memory until it can", "dir", cfg.LogDir, "err", h.Error)
 	}
@@ -92,6 +110,9 @@ func cmdServe(args []string) int {
 	}
 	if cfg.ConfigFile != "" {
 		log.Info("config", "file", cfg.ConfigFile, "portable", cfg.Portable)
+	}
+	if lockWarn != "" {
+		log.Warn(lockWarn, "cat", "server", "data", cfg.DataDir)
 	}
 
 	tools, err := ffmpeg.Locate(cfg.FFmpegPath, cfg.FFprobePath)
@@ -150,6 +171,12 @@ func cmdServe(args []string) int {
 		guard.SetLogDir(logs.Dir())
 	}
 
+	if ffmpeg.InContainer() {
+		if msg := puidMismatch(os.Getenv("PUID"), os.Getenv("PGID"), os.Getuid(), os.Getgid()); msg != "" {
+			log.Warn(msg)
+		}
+	}
+
 	// Find out which hardware encoders really work here, if any are to be used.
 	{
 		ctx := context.Background()
@@ -206,8 +233,11 @@ func cmdServe(args []string) int {
 	update.Cleanup(progDir)
 	layout.Current().ClearObsolete()
 	protect := []string{cfg.DataDir, cfg.CacheDir, cfg.TranscodeDir, cfg.ImagesDir, cfg.LogDir, cfg.ConfigFile, logs.Dir()}
-	updater := update.New(version, progDir, protect, library.SafeClient.Transport, log)
+	updater := update.New(version, progDir, protect, logging.Calls(library.SafeClient.Transport, "update", "updates"), log)
 	updater.LoadWithdrawals(filepath.Join(cfg.DataDir, "update-withdrawn.json"))
+	// An installer for a copy that can't replace its own files waits here for the admin to run it.
+	updater.DownloadDir = filepath.Join(cfg.CacheDir, "updates")
+	updater.CleanDownloads()
 	restartReq := make(chan struct{}, 1)
 	updater.Restart = func() {
 		select {
@@ -230,7 +260,7 @@ func cmdServe(args []string) int {
 			}
 			return nil
 		},
-		Transport: library.SafeClient.Transport, Log: log, Launcher: modulesLauncher(), LogEnv: logs.ModuleEnv,
+		Transport: logging.Calls(library.SafeClient.Transport, "modules", "modules"), Log: log, Launcher: modulesLauncher(), LogEnv: logs.ModuleEnv,
 		CheckEnabled: func() bool {
 			ctx := context.Background()
 			v := database.GetSetting(ctx, "moduleUpdateCheck", "")
@@ -246,7 +276,7 @@ func cmdServe(args []string) int {
 		},
 	})
 	defer modMgr.Close()
-	modStores := modules.NewStores(modules.StoresConfig{Manager: modMgr, Dir: filepath.Join(cfg.DataDir, "modules"), Transport: library.SafeClient.Transport, Log: log, CheckEnabled: modMgr.CheckEnabled})
+	modStores := modules.NewStores(modules.StoresConfig{Manager: modMgr, Dir: filepath.Join(cfg.DataDir, "modules"), Transport: logging.Calls(library.SafeClient.Transport, "modules", "module store"), Log: log, CheckEnabled: modMgr.CheckEnabled})
 	library.SetPhotoEngine(photoengine.PhotoEngine{M: modMgr})
 	livetv.SetEngine(modules.Tuners{M: modMgr})
 	cd.Open = modules.CDs{M: modMgr}.Open
@@ -263,6 +293,7 @@ func cmdServe(args []string) int {
 		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner, GameMeta: gameMeta,
 		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, BD: bdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
 		Update: updater, Modules: modMgr, ModuleStores: modStores, Crashes: guard, Restart: updater.Restart,
+		Instance: lock.ID(),
 	}
 	if restoreDone != nil {
 		if restoreDone.OK {
@@ -280,6 +311,7 @@ func cmdServe(args []string) int {
 		}
 	}
 	handler := srv.Handler()
+	srv.ApplyEvidenceSettings(context.Background())
 	srv.StartMetadata()
 	httpServer := &http.Server{
 		Addr:              cfg.Listen,
@@ -291,12 +323,18 @@ func cmdServe(args []string) int {
 	}
 	ln, err := listen(cfg.Listen)
 	if err != nil {
-		log.Error("listen", "addr", cfg.Listen, "err", err)
+		why := portTaken(cfg.Listen, err)
+		log.Error("listen", "addr", cfg.Listen, "err", err, "why", why)
+		fmt.Fprintln(os.Stderr, why)
 		return 1
 	}
 	srv.Conns = &remote.ConnLimit{Total: cfg.MaxConnections, PerAddress: min(remote.DefaultPerAddress, cfg.MaxConnections), Policy: srv.NetPolicy, Log: log}
 	ln = srv.Conns.Wrap(ln)
 	log.Info("WittyMediaServer listening", "url", listenURL(cfg.Listen), "data", cfg.DataDir)
+	if err := lock.Publish(instance.Info{PID: os.Getpid(), Started: time.Now(), Version: version, URLs: []string{listenURL(cfg.Listen)},
+		Service: asService || os.Getenv("INVOCATION_ID") != ""}); err != nil {
+		log.Warn("could not say where this server is, for a second start to find it", "cat", "server", "err", err)
+	}
 	srv.LogStartup(context.Background())
 	if err := srv.Auth.HashStoredTokens(context.Background()); err != nil {
 		log.Warn("session tokens", "err", err)
@@ -357,6 +395,8 @@ func cmdServe(args []string) int {
 	ctx, cancel := context.WithCancel(sigCtx)
 	defer cancel()
 	go gameMeta.Run(ctx)
+	// When the server stops answering, write down what it was doing: see internal/logging/hang.go.
+	logging.StartWatchdog(ctx, log, srv.WatchChecks(selfURL(ln.Addr()))...)
 	go func() {
 		// Windows asks a service to stop this way: it has no signals to send.
 		select {
@@ -415,6 +455,7 @@ func cmdServe(args []string) int {
 		defer close(stopped)
 		<-ctx.Done()
 		log.Info("shutting down")
+		logging.NoteStopping() // a stop while it wasn't answering keeps what it was doing
 		hlsMgr.StopAllLive()
 		hlsMgr.StopAll()
 		if srv.TV != nil {
@@ -490,6 +531,19 @@ func listenURL(addr string) string {
 		host = "localhost"
 	}
 	return "http://" + net.JoinHostPort(host, port)
+}
+
+// selfURL is how this machine reaches the server's own port, for the watchdog.
+func selfURL(a net.Addr) string {
+	t, ok := a.(*net.TCPAddr)
+	if !ok {
+		return "http://127.0.0.1"
+	}
+	ip := t.IP
+	if ip == nil || ip.IsUnspecified() {
+		ip = net.IPv4(127, 0, 0, 1)
+	}
+	return "http://" + net.JoinHostPort(ip.String(), strconv.Itoa(t.Port))
 }
 
 func parseLevelName(v string) (slog.Level, bool) {

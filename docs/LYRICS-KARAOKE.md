@@ -59,6 +59,10 @@ Timed lyrics show the line being sung in the middle of the panel. Press any line
 
 **If the timing is slightly off:** press **Sooner** or **Later**. Each press moves the words a quarter of a second, up to two minutes either way, and **Reset** puts them back. This is for you alone, it stays with that song, and it follows your account.
 
+### Music videos
+
+A music video tied to a song ([Music videos](MUSIC.md#music-videos)) shows the song's lyrics: press **Lyrics** under the video. They're the same lyrics, kept once for the song, so what's found online or corrected for one is there for the other. Timed lines follow the video, starting from where the song starts in it, and **Sooner** and **Later** move them for that video alone. A video that isn't tied to a song shows a `.lrc` or `.txt` file beside it with its name, and nothing is looked up online for it.
+
 ## Karaoke
 
 Karaoke is a big display for singing, made to read from across a room: the words fill in as they're sung, the next line waits below, and a three-second count comes before a line after a long break.

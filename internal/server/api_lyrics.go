@@ -19,6 +19,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/libtranscode/tdarr"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/lyrics"
 )
 
@@ -61,7 +62,11 @@ type savedLyrics struct {
 
 // What the player gets.
 type lyricsReply struct {
-	ItemID       int64         `json:"itemId"`
+	ItemID int64 `json:"itemId"`
+	// SongID: a music video shows its song's lyrics, and this is the song.
+	SongID int64 `json:"songId,omitempty"`
+	// StartMS is the timing before the person moves it: for a video, where its song starts.
+	StartMS      int64         `json:"startMs,omitempty"`
 	Source       string        `json:"source"` // "", override, sidecar, embedded, lrclib, mirror, musixmatch
 	SourceName   string        `json:"sourceName,omitempty"`
 	CreditURL    string        `json:"creditUrl,omitempty"`
@@ -74,6 +79,7 @@ type lyricsReply struct {
 	CanEdit      bool          `json:"canEdit"` // this person may correct them for everyone
 	Tried        bool          `json:"tried"`   // online was asked and had nothing
 	Failed       string        `json:"failed,omitempty"`
+	Retry        bool          `json:"retry,omitempty"` // busy with another song: ask again in a moment
 }
 
 var lyricsNames = map[string][2]string{
@@ -243,11 +249,11 @@ var lyricsPublicBase = lyrics.LRCLIBHome
 // a cloud host's own secrets are, are no place for a lyrics server.
 var lyricsMirrorClient = &http.Client{
 	Timeout: 12 * time.Second,
-	Transport: &http.Transport{
+	Transport: logging.Calls(&http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
 		DialContext:         (&net.Dialer{Timeout: 10 * time.Second, Control: lyricsMirrorAddress}).DialContext,
 		TLSHandshakeTimeout: 10 * time.Second,
-	},
+	}, "library", "lyrics mirror"),
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 3 || req.URL.Host != via[0].URL.Host {
 			return errors.New("a lyrics server's redirect left its own address")
@@ -272,6 +278,19 @@ func lyricsMirrorAddress(_, address string, _ syscall.RawConn) error {
 // shouldn't hammer a free service.
 var lyricsAskSlot = make(chan struct{}, 1)
 
+// How long a request waits for its turn, and how long one look-up may take in all,
+// whichever sources it asks. A request that can't have its turn soon says so and is
+// asked again: every request waiting its turn holds one of the six connections a
+// browser has to a server, and with all six waiting the whole page stops (issue #17).
+// Variables for tests.
+var (
+	lyricsTurnWait = 500 * time.Millisecond
+	lyricsBudget   = 20 * time.Second
+)
+
+// errLyricsBusy: another song's look-up is under way.
+var errLyricsBusy = errors.New("still looking up another song's lyrics: try again in a moment")
+
 // One look-up per track, however many people ask at once.
 var lyricsAsking sync.Map
 
@@ -283,32 +302,78 @@ func lyricsQuery(it *library.Item) lyrics.Query {
 	return lyrics.Query{Artist: artist, Title: it.Title, Album: it.Album, DurationSec: it.RuntimeSec}
 }
 
+// lyricsSourceKey tells sources apart for lyricsDown: by name, and for LRCLIB by address too,
+// so a mirror moved somewhere else is asked straight away.
+func lyricsSourceKey(src lyrics.Source) string {
+	if l, ok := src.(*lyrics.LRCLIB); ok {
+		return src.Name() + "|" + l.Base
+	}
+	return src.Name()
+}
+
+// lyricsSourceDown says a source couldn't be reached less than lyricsFailedFor ago.
+func (s *Server) lyricsSourceDown(key string) bool {
+	v, ok := s.lyricsDown.Load(key)
+	if !ok {
+		return false
+	}
+	if time.Since(v.(time.Time)) < lyricsFailedFor {
+		return true
+	}
+	s.lyricsDown.Delete(key)
+	return false
+}
+
 // askOnline tries each source in turn and keeps the answer. Only the artist, title,
-// album and length go out: never a path, a file name or who's listening.
-func (s *Server) askOnline(ctx context.Context, it *library.Item) (*savedLyrics, error) {
+// album and length go out: never a path, a file name or who's listening. A source that
+// couldn't be reached is left alone for lyricsFailedFor, unless again: with one look-up at
+// a time for the whole server, a service that's down would make every song wait on it.
+func (s *Server) askOnline(ctx context.Context, it *library.Item, again bool) (*savedLyrics, error) {
 	sources := s.lyricsSources(ctx)
 	if len(sources) == 0 || it.Title == "" {
 		return nil, nil
 	}
 	if _, busy := lyricsAsking.LoadOrStore(it.ID, true); busy {
-		return nil, errors.New("still looking")
+		return nil, errLyricsBusy // this song, for someone else: its answer will be kept
 	}
 	defer lyricsAsking.Delete(it.ID)
+	turn := time.NewTimer(lyricsTurnWait)
+	defer turn.Stop()
 	select {
 	case lyricsAskSlot <- struct{}{}:
 		defer func() { <-lyricsAskSlot }()
+	case <-turn.C:
+		return nil, errLyricsBusy
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
+	ctx, cancel := context.WithTimeout(ctx, lyricsBudget)
+	defer cancel()
 	var failed error
 	for _, src := range sources {
+		key := lyricsSourceKey(src)
+		if !again && s.lyricsSourceDown(key) {
+			failed = fmt.Errorf("%s couldn't be reached a few minutes ago, so it isn't being asked for a while", src.Name())
+			continue
+		}
 		f, err := src.Get(ctx, lyricsQuery(it))
 		if err != nil {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return nil, ctx.Err() // the listener moved on: not the source's fault
+			}
+			if ctx.Err() != nil { // the look-up's time ran out on this source
+				s.lyricsDown.Store(key, time.Now())
+				failed = errors.New("the lyrics sources took too long to answer")
+				break
+			}
 			if !errors.Is(err, lyrics.ErrNotFound) {
 				failed = err
+				s.lyricsDown.Store(key, time.Now())
+				s.Log.WarnContext(ctx, "a lyrics source couldn't be reached; leaving it alone for a while", "cat", "library", "source", src.Name(), "for", lyricsFailedFor.String(), "err", err)
 			}
 			continue
 		}
+		s.lyricsDown.Delete(key)
 		text := f.Synced
 		if strings.TrimSpace(text) == "" {
 			text = f.Plain
@@ -327,24 +392,58 @@ func (s *Server) askOnline(ctx context.Context, it *library.Item) (*savedLyrics,
 	return v, nil
 }
 
-func (s *Server) lyricsOffset(ctx context.Context, userID, itemID int64) int64 {
-	var ms int64
+// lyricsOffset is a person's own timing for an item, or def when they haven't moved it.
+func (s *Server) lyricsOffset(ctx context.Context, userID, itemID, def int64) int64 {
+	ms := def
 	_ = s.DB.QueryRowContext(ctx, `SELECT offset_ms FROM lyrics_offsets WHERE user_id = ? AND item_id = ?`, userID, itemID).Scan(&ms)
 	return ms
 }
 
-func (s *Server) lyricsItem(w http.ResponseWriter, r *http.Request) *library.Item {
+// lyricsTarget is the item asked about and the one whose lyrics they are. A music video
+// tied to a song this person may hear shares the song's, so a fetch or a correction made
+// from either is there for both; its timing starts from where the song starts in it.
+type lyricsTarget struct {
+	asked, it *library.Item
+	defaultMS int64 // the offset before the person moves it
+}
+
+func (s *Server) lyricsFor(w http.ResponseWriter, r *http.Request) *lyricsTarget {
 	id, ok := pathInt(r, "id")
 	if !ok {
 		writeErr(w, 400, "bad id")
 		return nil
 	}
 	it, err := s.visibleItem(r, id)
-	if err != nil || it.Kind != "audio" {
+	if err == nil && it.Kind == "audio" {
+		return &lyricsTarget{asked: it, it: it}
+	}
+	if err != nil || it.Kind != "video" || s.linkRole(r.Context(), it) != "video" {
 		writeErr(w, 404, "not found")
 		return nil
 	}
-	return it
+	t := &lyricsTarget{asked: it, it: it}
+	links, _ := s.musicLinks().Of(r.Context(), it.ID)
+	for _, l := range links {
+		if l.State != "tied" {
+			continue
+		}
+		if song, err := s.visibleItem(r, l.SongID); err == nil {
+			t.it = song
+			if l.SyncMS != nil {
+				t.defaultMS = *l.SyncMS
+			}
+			break
+		}
+	}
+	return t
+}
+
+// lyricsItem is the item whose lyrics are read or changed.
+func (s *Server) lyricsItem(w http.ResponseWriter, r *http.Request) *library.Item {
+	if t := s.lyricsFor(w, r); t != nil {
+		return t.it
+	}
+	return nil
 }
 
 func fillLyrics(out *lyricsReply, d lyrics.Doc, source string) {
@@ -361,13 +460,17 @@ func fillLyrics(out *lyricsReply, d lyrics.Doc, source string) {
 // GET /api/music/lyrics/{id}?fetch=1. Asks online only with fetch=1, which the
 // player sends when someone opens the lyrics, not for every track that plays.
 func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
-	it := s.lyricsItem(w, r)
-	if it == nil {
+	t := s.lyricsFor(w, r)
+	if t == nil {
 		return
 	}
+	it := t.it
 	ctx := r.Context()
 	u := userFrom(r)
-	out := lyricsReply{ItemID: it.ID, Lines: []lyrics.Line{}, CanEdit: u.IsAdmin, OffsetMS: s.lyricsOffset(ctx, u.ID, it.ID)}
+	out := lyricsReply{ItemID: t.asked.ID, Lines: []lyrics.Line{}, CanEdit: u.IsAdmin, OffsetMS: s.lyricsOffset(ctx, u.ID, t.asked.ID, t.defaultMS)}
+	if it != t.asked {
+		out.SongID, out.StartMS = it.ID, t.defaultMS
+	}
 	lib, _ := s.Store.Library(ctx, it.LibraryID)
 	music := lib != nil && lib.Type == "music"
 	out.Online = music && len(s.lyricsSources(ctx)) > 0
@@ -385,9 +488,10 @@ func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
 	saved := readSavedLyrics(s.lyricsCachePath(it.ID))
 	stale := saved != nil && saved.NotFound && time.Since(time.Unix(saved.At, 0)) > lyricsNotFoundFor
 	if music && qBool(r, "fetch") && out.Online && (saved == nil || stale || qBool(r, "again")) {
-		fresh, err := s.askOnline(ctx, it)
+		fresh, err := s.askOnline(ctx, it, qBool(r, "again"))
 		if err != nil {
 			out.Failed = err.Error()
+			out.Retry = errors.Is(err, errLyricsBusy)
 		} else if fresh != nil {
 			saved = fresh
 		}
@@ -405,12 +509,14 @@ func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, out)
 }
 
-// PUT /api/music/lyrics/{id}/offset {offsetMs}: each person's own.
+// PUT /api/music/lyrics/{id}/offset {offsetMs}: each person's own, for a song or for a
+// music video apart from its song.
 func (s *Server) handleLyricsOffset(w http.ResponseWriter, r *http.Request) {
-	it := s.lyricsItem(w, r)
-	if it == nil {
+	t := s.lyricsFor(w, r)
+	if t == nil {
 		return
 	}
+	it := t.asked
 	var in struct {
 		OffsetMS int64 `json:"offsetMs"`
 	}
@@ -418,12 +524,12 @@ func (s *Server) handleLyricsOffset(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	if in.OffsetMS < -120000 || in.OffsetMS > 120000 {
+	if d := in.OffsetMS - t.defaultMS; d < -120000 || d > 120000 { // a video's starts where its song does
 		writeErr(w, 400, "that's more than two minutes out")
 		return
 	}
 	var err error
-	if in.OffsetMS == 0 {
+	if in.OffsetMS == t.defaultMS {
 		_, err = s.DB.ExecContext(r.Context(), `DELETE FROM lyrics_offsets WHERE user_id = ? AND item_id = ?`, userFrom(r).ID, it.ID)
 	} else {
 		_, err = s.DB.ExecContext(r.Context(), `INSERT INTO lyrics_offsets(user_id, item_id, offset_ms) VALUES(?,?,?)

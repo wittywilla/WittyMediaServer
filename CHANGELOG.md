@@ -5,7 +5,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
-## 0.7.0-alpha (2026-11-05)
+## 0.7.0-alpha
 
 - **Layouts follow you, per console and shape of device.** `PUT /consoles/{console}/controls` keeps a `layout` for a phone upright or sideways, a tablet upright or sideways, a computer or a TV, and `saved.layouts` gives them all back. A layout places the on-screen controls, the menu button, the shortcuts bar and the picture, or each screen of a DS or 3DS apart, and `null` puts it back as it came. The server checks it itself. A two-screen console says where each screen sits in the frame (`pad.screens`, `capabilities.screens.frame`). WittyPlay's Edit layout uses all of this.
 - **A game's settings open where you press for them.** "Settings for this game" on a game's page opened far down the page, away from its button, with nothing to take you there. It now opens in a sheet over the page: from the side on a wide screen, up from the bottom on a phone, with focus in it. It closes with ×, Esc, a controller's B, a tap outside, or Back (a phone's gesture or the browser's button, which no longer leaves the page), and focus goes back to its button. A console's **Look and settings** opens that console's settings, not every game's. Every menu over a game is easy to leave as well, from WittyPlay's next version: Back and × Back to the game stay in view, and a phone's Back gesture closes a menu instead of leaving the game.

@@ -97,8 +97,16 @@
   .app:has(.home.editing) .topbar, .app:has(.legal-ack-bar) .topbar { margin-bottom: 0; }
   .app .topbar::before, .app:has(.hero, .detail-hero) .topbar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: rgb(var(--bg-rgb) / .85); box-shadow: 0 1px 0 var(--border); opacity: 0; animation: none; transition: opacity var(--dur-2) var(--ease-standard); }
   .app .topbar.under::before, .app:has(.hero, .detail-hero) .topbar.under::before { opacity: 1; -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); } /* design-ok: phones only, a 52-high bar, and only once scrolled under */
-  .app .topbar::after, .app:has(.hero, .detail-hero) .topbar::after { display: none; }
-  .app:has(.hero, .detail-hero) .topbar .section-row a { text-shadow: 0 0 2px rgb(var(--bg-rgb)), 0 0 8px rgb(var(--bg-rgb)); }
+  .app .topbar::after { display: none; }
+  /* Over a picture: a soft scrim of the page's colour behind the bar instead of a halo round the
+     words, 80% at the top, 70% behind the middle of the names and gone 32 below the bar, so the
+     names read even on a bright sky and stay sharp. It fades out as the surface above fades in. */
+  .app:has(.hero, .detail-hero) .topbar::after {
+    content: ''; display: block; position: absolute; left: 0; right: 0; top: 0; height: calc(100% + 32px); z-index: -1; pointer-events: none; animation: none; opacity: 1;
+    background: linear-gradient(rgb(var(--bg-rgb) / .8) 0, rgb(var(--bg-rgb) / .7) calc(var(--topbar-h) / 2), rgb(var(--bg-rgb) / 0) 100%); transition: opacity var(--dur-2) var(--ease-standard);
+  }
+  .app:has(.hero, .detail-hero) .topbar.under::after { opacity: 0; }
+  .app:has(.hero, .detail-hero) .topbar .section-row a { text-shadow: 0 1px 0 rgb(var(--bg-rgb) / .5); }
   .app .topbar.under .section-row a { text-shadow: none; }
   /* Settings' own way back is the bar's. */
   .set-back { display: none !important; }

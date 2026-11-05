@@ -231,8 +231,9 @@ A page has one `h1`, which the announcer reads aloud on every page change: `.too
   Hide anything; group into Watch, Listen, Read and Play dropdowns. A new library joins at the end.
 - **Whose arrangement**: a person's own, else the owner's (`Use for everyone`), else ours.
 - **Phones**: a row of sections scrolling sideways at the top; a floating bar at the bottom with Home,
-  TV, Search, the drawer and You. The row has no surface over a picture; once the page is scrolled
-  under it, it gains the page's colour at 85% with a blur and a hairline. Below Home, a library or a
+  TV, Search, the drawer and You. Over a picture the row has a soft scrim of the page's colour behind
+  it (80% at the top, 70% behind the names, gone 32 below), not a halo round the words; once the page
+  is scrolled under it, it gains the page's colour at 85% with a blur and a hairline. Below Home, a library or a
   tab's first page (an item, a show, an album, a settings page…) a round Back takes the row's place.
   You opens the You page (`/you`, `pages/YouPage.tsx`): the person and Switch profile, then grouped
   lists of everything about them, this device and, for an administrator, the server, each row

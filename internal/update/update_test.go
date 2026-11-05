@@ -284,8 +284,7 @@ func install(t *testing.T) string {
 	writeFile(t, filepath.Join(dir, "wms"), []byte("old wms"))
 	writeFile(t, filepath.Join(dir, "bin", layout.Exe(layout.ServerCommand)), []byte("old wms"))
 	writeFile(t, filepath.Join(dir, layout.Marker), []byte(`{"product":"WittyMediaServer","kind":"msi"}`))
-	writeFile(t, filepath.Join(dir, "settings.ini"), []byte("port = 8096
-"))
+	writeFile(t, filepath.Join(dir, "settings.ini"), []byte("port = 8096\n"))
 	writeFile(t, filepath.Join(dir, "LICENSE"), []byte("licence"))
 	writeFile(t, filepath.Join(dir, "bin", "ffmpeg.exe"), []byte("old ff"))
 	writeFile(t, filepath.Join(dir, "mine.txt"), []byte("the owner's own file"))
@@ -415,8 +414,7 @@ func TestApply(t *testing.T) {
 	files := []pkgFile{
 		{name: "pkg/" + filepath.ToSlash(exe), body: "new wms", mode: 0o755},
 		{name: "pkg/" + layout.Marker, body: `{"product":"WittyMediaServer","kind":"archive"}`},
-		{name: "pkg/settings.ini", body: "port = 9797
-"},
+		{name: "pkg/settings.ini", body: "port = 9797\n"},
 		{name: "pkg/LICENSE", body: "new licence"},
 		{name: "pkg/data/library.db", body: "EVIL"},
 	}
@@ -527,8 +525,7 @@ func TestApply(t *testing.T) {
 	if !strings.Contains(readFile(t, filepath.Join(dir, layout.Marker)), `"msi"`) {
 		t.Error("an update forgot how this copy was installed")
 	}
-	if readFile(t, filepath.Join(dir, "settings.ini")) != "port = 8096
-" {
+	if readFile(t, filepath.Join(dir, "settings.ini")) != "port = 8096\n" {
 		t.Error("an update put back the port someone chose")
 	}
 }

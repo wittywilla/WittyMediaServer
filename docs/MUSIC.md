@@ -8,6 +8,7 @@ Use this guide to set up your music, audiobooks and podcasts, and to get the mos
 - [Playing and the queue](#playing-and-the-queue)
 - [The full-screen player](#the-full-screen-player)
 - [Lyrics](#lyrics)
+- [Music videos](#music-videos)
 - [Visualizer](#visualizer)
 - [Sound](#sound)
 - [Audiobooks](#audiobooks)
@@ -144,6 +145,34 @@ Up, Down or OK moves onto the controls, and arrows then move between them, so a 
 ## Lyrics
 
 Lyrics follow the music in the full-screen player, and karaoke is one press from there. How they're found, what goes online and when, and how to add or fix them is in [Lyrics and karaoke](LYRICS-KARAOKE.md).
+
+## Music videos
+
+A song in a **Music** library and its video in a **Music videos & concerts** library ([Creator videos and music videos](CREATOR-VIDEOS.md#music-videos-and-concerts)) are tied together, so each can lead to the other.
+
+### How songs and videos are matched
+
+After a scan of either library, every video is compared with every song:
+
+| What matches | What happens |
+|---|---|
+| The same **ISRC**, from the tags or a video's `.nfo` (`<isrc>`) | Tied |
+| The same **MusicBrainz recording**, from the tags (as tagging programs write it) or the `.nfo` (`<musicbrainzrecordingid>`) | Tied |
+| The same artist and title, when exactly one song fits | Tied |
+| The same artist and title, but two songs fit (a single and its album), or one is another take (live, acoustic, a remix) | Suggested |
+| A title or an artist that is nearly the same | Suggested |
+
+Names are compared without case, accents, "feat." and what video titles add, such as "(Official Video)" or "[HD]". A nearly-the-same name is only ever a suggestion, which an admin confirms. Recordings of 20 minutes or more are concerts, and aren't tied to one song.
+
+When the two are the same length, give or take two seconds, they're taken to line up, so playback can go from one to the other at the same place.
+
+Codes in tags are read when a file is scanned, so files scanned before 0.7.0-alpha are matched by name until they change or the library is scanned again from scratch.
+
+### Tying and untying by hand
+
+Admins can tie a song to a video, untie them, and say where the song starts in the video when it has an intro. A video has one song, so tying it to another unties the first. What an admin ties or unties stays that way, whatever later scans find.
+
+A link only ever shows what a profile may see: a Kids profile that can't watch a video doesn't see that it exists.
 
 ## Visualizer
 

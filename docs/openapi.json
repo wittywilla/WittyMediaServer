@@ -6080,6 +6080,188 @@
         ],
         "type": "object"
       },
+      "MusicLink": {
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "how": {
+            "type": "string"
+          },
+          "songId": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "syncMs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "videoId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "how",
+          "songId",
+          "state",
+          "videoId"
+        ],
+        "type": "object"
+      },
+      "MusicLinkSide": {
+        "properties": {
+          "album": {
+            "type": "string"
+          },
+          "artist": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "libraryId": {
+            "type": "integer"
+          },
+          "runtimeSec": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "artist",
+          "id",
+          "libraryId",
+          "runtimeSec",
+          "title",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "MusicLinkView": {
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "how": {
+            "type": "string"
+          },
+          "song": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicLinkSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "songId": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "syncMs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "video": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicLinkSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "videoId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "how",
+          "song",
+          "songId",
+          "state",
+          "video",
+          "videoId"
+        ],
+        "type": "object"
+      },
+      "MusicLinks": {
+        "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
+          "itemId": {
+            "type": "integer"
+          },
+          "role": {
+            "type": "string"
+          },
+          "suggested": {
+            "items": {
+              "$ref": "#/components/schemas/MusicLinkView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "tied": {
+            "items": {
+              "$ref": "#/components/schemas/MusicLinkView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "canEdit",
+          "itemId",
+          "role",
+          "suggested",
+          "tied"
+        ],
+        "type": "object"
+      },
+      "MusicMatchResult": {
+        "properties": {
+          "suggested": {
+            "type": "integer"
+          },
+          "tied": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "suggested",
+          "tied"
+        ],
+        "type": "object"
+      },
       "Network": {
         "properties": {
           "genres": {
@@ -26325,6 +26507,277 @@
           "Music, audiobooks and podcasts"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/music/links": {
+      "delete": {
+        "operationId": "deleteMusicLinks",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "song",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unties a song and a music video, and no match ties them again.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getMusicLinks",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MusicLinkView"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Songs and music videos that might belong together, for an admin to look at.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putMusicLinks",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "noSync": {
+                    "type": "boolean"
+                  },
+                  "songId": {
+                    "type": "integer"
+                  },
+                  "syncMs": {
+                    "type": "integer"
+                  },
+                  "videoId": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "songId",
+                  "videoId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicLink"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ties a song to a music video for good: {songId, videoId}, with syncMs (where the song starts in the video) or noSync.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/music/links/match": {
+      "post": {
+        "operationId": "postMusicLinksMatch",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicMatchResult"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Matches every song with every music video again now.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/music/links/{id}": {
+      "get": {
+        "operationId": "getMusicLinksId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicLinks"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a song or a music video is tied to, and for admins what it might be.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/music/links/{id}/candidates": {
+      "get": {
+        "operationId": "getMusicLinksIdCandidates",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MusicLinkSide"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Songs for a video, or videos for a song, to tie by hand: q.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/music/loudness/{id}": {

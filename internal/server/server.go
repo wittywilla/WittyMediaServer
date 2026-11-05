@@ -173,6 +173,16 @@ func (s *Server) StartMetadata() {
 		s.Scanner.KickListings()
 	}
 	s.Scanner.OnGamesScanned = func() { s.logos().Kick() }
+	after := s.Scanner.AfterScan
+	s.Scanner.AfterScan = func(id int64) {
+		if after != nil {
+			after(id)
+		}
+		s.kickMusicMatch(id)
+	}
+	if s.DB.GetSetting(context.Background(), "music.linksMatched", "") == "" {
+		s.kickMusicMatch(0) // songs and videos scanned before links existed
+	}
 	if s.GameMeta != nil {
 		s.GameMeta.OnSettled = func() { s.logos().Kick() }
 	}
@@ -347,6 +357,12 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("PUT /api/music/lyrics/{id}", s.requireAdmin(s.handleLyricsSave))
 	m.Handle("DELETE /api/music/lyrics/{id}", s.requireAdmin(s.handleLyricsForget))
 	m.Handle("DELETE /api/music/lyrics-cache", s.requireAdmin(s.handleLyricsClearCache))
+	m.Handle("GET /api/music/links", s.requireAdmin(s.handleMusicLinkSuggestions))
+	m.Handle("PUT /api/music/links", s.requireAdmin(s.handleMusicLinkTie))
+	m.Handle("DELETE /api/music/links", s.requireAdmin(s.handleMusicLinkUntie))
+	m.Handle("POST /api/music/links/match", s.requireAdmin(s.handleMusicLinkMatch))
+	m.Handle("GET /api/music/links/{id}", a(s.handleMusicLinks))
+	m.Handle("GET /api/music/links/{id}/candidates", s.requireAdmin(s.handleMusicLinkCandidates))
 	m.Handle("GET /api/podcasts", a(s.handlePodcasts))
 	m.Handle("GET /api/podcasts/search", s.requireAdmin(s.handlePodcastSearch))
 	m.Handle("POST /api/podcasts", s.requireAdmin(s.handleSubscribe))

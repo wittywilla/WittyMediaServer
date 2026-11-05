@@ -31,6 +31,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/metrics"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/music"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 	"github.com/wittywilla/wittymediaserver/internal/play/cores"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
@@ -385,7 +386,7 @@ func schemaTypes() map[string]reflect.Type {
 	return map[string]reflect.Type{
 		"User": ty(auth.User{}), "UserView": ty(userView{}), "Access": ty(library.Access{}),
 		"Library": ty(library.Library{}), "Item": ty(library.Item{}), "Progress": ty(library.Progress{}), "Show": ty(library.Show{}), "Season": ty(library.Season{}),
-		"CDView": ty(cdView{}), "CDMatch": ty(library.CDMatch{}), "DiscInfo": ty(library.DiscInfo{}), "DiscLabels": ty(library.DiscLabels{}), "Album": ty(library.Album{}), "Artist": ty(library.Artist{}), "Network": ty(library.Network{}),
+		"CDView": ty(cdView{}), "CDMatch": ty(library.CDMatch{}), "DiscInfo": ty(library.DiscInfo{}), "DiscLabels": ty(library.DiscLabels{}), "Album": ty(library.Album{}), "Artist": ty(library.Artist{}), "MusicLinks": ty(MusicLinks{}), "MusicLinkView": ty(MusicLinkView{}), "MusicLinkSide": ty(MusicLinkSide{}), "MusicLink": ty(music.Link{}), "MusicMatchResult": ty(music.Result{}), "Network": ty(library.Network{}),
 		"Podcast": ty(library.Podcast{}), "Annotation": ty(library.Annotation{}), "SearchHit": ty(library.SearchHit{}), "Agent": ty(library.Agent{}), "AgentResult": ty(library.AgentResult{}),
 		"ArtCandidate": ty(artCandidate{}), "DiscTitleView": ty(discTitle{}), "DiscChapterView": ty(discChapter{}), "DiscMenuView": ty(discMenu{}),
 		"PlayInfo": ty(playInfo{}), "Track": ty(trackInfo{}), "RemoteStanding": ty(remoteStanding{}),

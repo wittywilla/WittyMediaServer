@@ -570,6 +570,11 @@ name>` to the address so the server can tell viewers apart, and send `POST /tv/{
 when leaving. A 503 means the channel is still starting: wait and ask again. Without `streamToken=1` no ticket
 is made, which is what the web player does.
 
+On a channel with `countProgress`, report watch progress for `now.itemId` as `positionSec` plus the seconds
+since `serverTime`, but only up to `partEnd`, when this stretch of the programme ends; a commercial break may
+follow. Ask `tune` again at `partEnd`: during a break `countProgress` is false, and after it `positionSec`
+carries on from where the programme stopped.
+
 Everything about a channel's ticket works as in [Stream tokens](#stream-tokens), and every request checks again
 that the account may watch that channel. An encrypted broadcast is refused with `security` saying why; this
 server never decrypts one.

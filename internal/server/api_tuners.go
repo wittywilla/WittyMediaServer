@@ -115,6 +115,10 @@ func (s *Server) handleTunerDiscover(w http.ResponseWriter, r *http.Request) {
 	if writeModuleMissing(w, err) {
 		return
 	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		writeErr(w, 504, "The search took too long and was stopped. Some devices don't answer a search: add yours by hand with its address.")
+		return
+	}
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return

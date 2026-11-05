@@ -1,0 +1,40 @@
+# Which game cores libretro's build server publishes for each platform: y, or n for none. A core
+# with no build here isn't offered to install. FreeBSD and Windows on ARM have no prebuilt cores.
+# Kept true by scripts/corebuilds, which CI runs every week: go run ./scripts/corebuilds -write <this file>
+#                        windows/x64 linux/x64 linux/arm64 linux/arm32 macos/x64 macos/arm64
+fceumm                 y y y y y y
+nestopia               y y y y y y
+mesen                  y y y y y y
+mednafen_supafaust     y y y n n n
+bsnes2014_performance  y y y n y y
+mesen-s                y y y n y y
+gambatte               y y y y y y
+sameboy                y y n n y y
+mgba                   y y y y y y
+vba_next               y y y y y y
+blastem                y y y n y y
+clownmdemu             y y y n y y
+gearsystem             y y y y y y
+smsplus                y y y n y y
+pcsx_rearmed           y y y y y y
+mednafen_psx           y y y y y y
+swanstation            y y y n y y
+mednafen_psx_hw        y y y n y y
+mednafen_pce_fast      y y y y y y
+stella2014             y y y y y y
+stella                 y y y n y y
+prosystem              y y y y y y
+handy                  y y y y y y
+mednafen_wswan         y y y y y y
+mednafen_ngp           y y y y y y
+mednafen_vb            y y y y y y
+mupen64plus_next       y y y n y y
+parallel_n64           y y y n y y
+melonds                y y y n y y
+desmume                y y y n y y
+azahar                 y y n n y y
+panda3ds               y y n n y y
+pcsx2                  y y y n y y
+play                   y y y n y y
+ppsspp                 y y y n y y
+flycast                y y y n y y

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -275,16 +276,66 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 			out["software"], out["notice"] = true, softwareNotice
 		}
 	case pick.noGPU != "":
-		// Not on this server, and why: the Play button would only be turned away.
+		// Not on this server, and why: the Play button would only be turned away. Where it would
+		// play, for whoever runs the server.
 		out["ready"], out["reason"], out["message"] = false, "gpu", gpuMessage(console.Name, pick.noGPU)
 		out["needsGpu"], out["gpuMissing"] = true, pick.noGPU
+		out["runsOn"] = consoleRunsOn(console)
 	case pick.blocked != nil:
 		out["ready"], out["reason"], out["message"] = false, "bios", wittyplay.BIOSHelp(pick.blocked.ID, console.Name)
 		out["file"] = wittyplay.MissingBIOS(pick.blocked.ID, systemDir)
 	default:
 		out["ready"], out["reason"], out["message"] = false, "core", "No core is installed for "+console.Name+"."
+		if alt := s.installableCore(ctx, console); alt != nil {
+			out["alternative"] = alt
+			out["message"] = "No core is installed for " + console.Name + ". " + alt.Name + " would play it on this server."
+		}
 	}
 	return out
+}
+
+// consoleRunsOn is where a console's games play: each platform where one of its cores is
+// published and can draw, with the best way it draws there.
+func consoleRunsOn(console *wittyplay.Console) []platformSupport {
+	rank := map[string]int{drawsGPU: 3, drawsCPU: 3, drawsCPUFallback: 2}
+	var out []platformSupport
+	for _, p := range buildPlatforms {
+		best := platformSupport{OS: p.OS, Arch: p.Arch}
+		for _, c := range console.Cores {
+			has, known := coreBuildFor(c.ID, p.GOOS, p.GOARCH)
+			if known && !has {
+				continue
+			}
+			d, note := drawsOn(c.ID, wittyplay.Traits(c.ID).GPU, p.GOOS, "")
+			if rank[d] > rank[best.Draws] {
+				best.Build, best.Draws, best.Note = true, d, note
+			}
+		}
+		if best.Build {
+			out = append(out, best)
+		}
+	}
+	return out
+}
+
+// installableCore is the first core on offer for a console that's published for this server and
+// can draw here: what installing would make play.
+func (s *Server) installableCore(ctx context.Context, console *wittyplay.Console) *coreAlternative {
+	noGPU, asked := "", false
+	for _, c := range console.Cores {
+		if has, known := coreBuildFor(c.ID, runtime.GOOS, runtime.GOARCH); known && !has {
+			continue
+		}
+		gpuCore := wittyplay.Traits(c.ID).GPU
+		if gpuCore && !asked {
+			noGPU, asked = s.gpuMissing(ctx), true
+		}
+		if d, _ := drawsOn(c.ID, gpuCore, runtime.GOOS, noGPU); d == drawsNone {
+			continue
+		}
+		return &coreAlternative{ID: c.ID, Name: c.Name, Console: console.Name}
+	}
+	return nil
 }
 
 // gameCountsEverywhere adds up each console's games across every library.

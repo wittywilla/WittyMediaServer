@@ -57,3 +57,27 @@ What a package holds, and the name of everything in it, is in one place: `intern
 | `design-check.py`, `design-check-baseline.json`, `design-tokens.py` | Hold the web app to its design standards. CI runs them. See [docs/DESIGN.md](../docs/DESIGN.md) |
 | `theme-contrast.py` | Checks the themes' contrast |
 | `ci-test-report.py` | Turns a failed test run into a short report in CI |
+| `soak.py` | A long soak run: keeps a test server busy for hours and fails on slow leaks or slow answers. See [Soak runs](#soak-runs) |
+
+## Soak runs
+
+Every test is minutes long, so a leak that takes hours, a goroutine or timer that piles up, or a lock only reached after a while, is never seen by them. `soak.py` keeps a test server busy the way a household would, for as long as you say (4 hours unless told otherwise), and watches it.
+
+**What it does:** music with online lyrics (from a stand-in lyrics service that answers quickly, slowly, with nothing, or not at all, so nothing goes online), skipping through songs now and then; a 1080p film converted while it plays; a library channel; a DVD menu when the DVD module is installed; a scan of every library every 30 minutes; and the web app's pages from four clients.
+
+**What it records, every minute:** the Go heap and the process's memory, goroutines, open files, FFmpeg processes, and how long `/api/health` and a library page take to answer. They go in `samples.csv`.
+
+**When it fails:** a measure that keeps rising (its last third 25% above its first, with the middle in between, after a 20-minute warm-up); `/api/health` slower than 2 seconds or a library page slower than 5 seconds, even once; FFmpeg still running 2½ minutes after everyone has left; the server stopping, or not stopping within a minute when asked; or its log saying it stopped answering, crashed, or found a data race. It writes `report.md` and `graph.svg` either way.
+
+On Linux, or in WSL, with the demo media:
+
+```bash
+go build -o /tmp/wms ./cmd/wittymediaserver
+python3 scripts/soak.py --binary /tmp/wms --media /mnt/d/WittyDemoMedia --out /tmp/soak --hours 4
+```
+
+Without the demo media, `--make-media` makes a small library with FFmpeg first. `--minutes 10` is a quick try; `--help` lists the limits. The server gets its own data folder in `--out`, so it can't touch another one, and it listens on 127.0.0.1 only.
+
+**On GitHub:** **Actions → soak → Run workflow**, with the hours (up to 5; GitHub stops a job at 6). It uses `--make-media`, and the report is in the run's summary and its `soak-report` download.
+
+Open files and FFmpeg processes are read from `/proc`, so the run is for Linux. On Windows the rest works, and open files are the process's handles.

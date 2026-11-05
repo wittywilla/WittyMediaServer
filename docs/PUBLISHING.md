@@ -32,6 +32,8 @@ Never commit disc images, media, API keys or a data folder. Run the checks in `C
 
 ## Publishing a release
 
+Before it, a soak run of at least 4 hours on Linux, and on Windows when a machine can be spared: [Soak runs](../scripts/README.md#soak-runs). It has to pass, or what it found has an issue.
+
 1. Run `scripts/bump-server.sh <version>`, and write the `CHANGELOG.md` section. The release page opens with what to download and where WittyMediaClient is, from `body` in `.github/workflows/release.yml`: keep what it says has been run the same as the README's.
 2. Tag it and push the tag. In GitHub Desktop: **History**, right-click the commit, **Create Tag**, then **Push origin**. Or:
 

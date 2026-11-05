@@ -188,6 +188,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/music/lyrics/{id}` | Admin | limits. An audio item |
 | `DELETE /api/music/lyrics-cache` | Admin | Nothing further |
 | `GET /api/music/links/{id}` | Signed-in | limits. A song or a music video. Only links whose two ends the account may see. Suggestions for admins only |
+| `GET /api/music/videos` | Signed-in | limits. Music video libraries only. A tied song shown only when the account may see it. Query length |
 | `GET /api/music/links/{id}/candidates` | Admin | limits. A song or a music video. Query length. At most 50 |
 | `GET /api/music/links` | Admin | limits. At most 500 |
 | `PUT /api/music/links` | Admin | limits. Both ends seen by the admin: a song of a music library and a video of a music video library. Offset up to ten minutes |

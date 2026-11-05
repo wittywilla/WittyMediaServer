@@ -114,3 +114,69 @@ func TestMusicVideoLinks(t *testing.T) {
 		t.Fatalf("%d links outlived their video", n)
 	}
 }
+
+// A music video as a scan leaves it: an item, its artist and its video_meta row.
+func musicVideo(t *testing.T, ts *testServer, lib int64, artist, title string, rating string) *library.Item {
+	t.Helper()
+	ctx := context.Background()
+	if _, err := ts.DB.ExecContext(ctx, `INSERT OR IGNORE INTO creators(library_id, key, name, added_at, updated_at) VALUES(?,?,?,0,0)`, lib, artist, artist); err != nil {
+		t.Fatal(err)
+	}
+	var cid int64
+	if err := ts.DB.QueryRowContext(ctx, `SELECT id FROM creators WHERE library_id = ? AND key = ?`, lib, artist).Scan(&cid); err != nil {
+		t.Fatal(err)
+	}
+	it := ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: filepath.Join(t.TempDir(), artist+" - "+title+".webm"), Title: title, Studio: artist, RuntimeSec: 200, ContentRating: rating})
+	if _, err := ts.DB.ExecContext(ctx, `INSERT INTO video_meta(item_id, library_id, creator_id, upload_date) VALUES(?,?,?,'2020-01-01')`, it.ID, lib, cid); err != nil {
+		t.Fatal(err)
+	}
+	return it
+}
+
+func TestMusicVideosSection(t *testing.T) {
+	ts := newTestServer(t)
+	_, admin := ts.user(t, "owner", "adult", true, "")
+	_, kid := ts.user(t, "kid", "kids", false, "")
+	music := ts.library(t, "music", t.TempDir())
+	one := ts.library(t, "musicvideos", t.TempDir())
+	two := ts.library(t, "musicvideos", t.TempDir())
+	ts.library(t, "channels", t.TempDir())
+	song := ts.item(t, &library.Item{LibraryID: music, Kind: "audio", Path: filepath.Join(t.TempDir(), "Tu.flac"), Title: "Tu", Artist: "All In", Album: "Firsts", RuntimeSec: 200, ContentRating: "G"})
+	tu := musicVideo(t, ts, one, "All In", "Tu", "G")
+	musicVideo(t, ts, two, "Alcest", "Les voyages de l'ame", "")
+	musicVideo(t, ts, one, "Tora", "Eat The Sun", "G")
+	ts.do(t, "POST", "/api/music/links/match", admin, nil)
+
+	get := func(token, query string) []MusicVideoCard {
+		t.Helper()
+		w := ts.do(t, "GET", "/api/music/videos"+query, token, nil)
+		var out struct {
+			Videos []MusicVideoCard `json:"videos"`
+		}
+		if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &out) != nil {
+			t.Fatalf("%d %s", w.Code, w.Body)
+		}
+		return out.Videos
+	}
+	all := get(admin, "")
+	if len(all) != 3 || all[0].Creator != "Alcest" || all[1].Creator != "All In" || all[2].Creator != "Tora" {
+		t.Fatalf("not every music video library, by artist: %+v", all)
+	}
+	if all[1].ID != tu.ID || all[1].Song == nil || all[1].Song.ID != song.ID || all[1].Song.Album != "Firsts" {
+		t.Fatalf("the tied song isn't shown: %+v", all[1])
+	}
+	if got := get(admin, "?search=tora"); len(got) != 1 || got[0].Creator != "Tora" {
+		t.Fatalf("search: %+v", got)
+	}
+	// The kid may see two of the videos (the unrated one is out) and the song.
+	if got := get(kid, ""); len(got) != 2 || got[0].Creator != "All In" || got[0].Song == nil {
+		t.Fatalf("profile limits: %+v", got)
+	}
+	// A song the profile can't see isn't shown on a video it can.
+	if _, err := ts.DB.ExecContext(context.Background(), `UPDATE items SET min_age = 18 WHERE id = ?`, song.ID); err != nil {
+		t.Fatal(err)
+	}
+	if got := get(kid, ""); len(got) != 2 || got[0].Song != nil {
+		t.Fatalf("a song the kid can't hear is shown: %+v", got[0])
+	}
+}

@@ -6262,6 +6262,132 @@
         ],
         "type": "object"
       },
+      "MusicVideoCard": {
+        "properties": {
+          "comments": {
+            "type": "integer"
+          },
+          "creator": {
+            "type": "string"
+          },
+          "creatorId": {
+            "type": "integer"
+          },
+          "durationSec": {
+            "type": "number"
+          },
+          "hasAvatar": {
+            "type": "boolean"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "libraryId": {
+            "type": "integer"
+          },
+          "likes": {
+            "type": "integer"
+          },
+          "origLikes": {
+            "type": "integer"
+          },
+          "origViews": {
+            "type": "integer"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "playlist": {
+            "type": "string"
+          },
+          "positionSec": {
+            "type": "number"
+          },
+          "reaction": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "song": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicLinkSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "syncMs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer"
+          },
+          "uploadDate": {
+            "type": "string"
+          },
+          "vertical": {
+            "type": "boolean"
+          },
+          "views": {
+            "type": "integer"
+          },
+          "watched": {
+            "type": "boolean"
+          },
+          "width": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "comments",
+          "creator",
+          "creatorId",
+          "durationSec",
+          "hasAvatar",
+          "height",
+          "id",
+          "libraryId",
+          "likes",
+          "origLikes",
+          "origViews",
+          "positionSec",
+          "reaction",
+          "tags",
+          "title",
+          "updatedAt",
+          "uploadDate",
+          "vertical",
+          "views",
+          "watched",
+          "width"
+        ],
+        "type": "object"
+      },
       "Network": {
         "properties": {
           "genres": {
@@ -27253,6 +27379,77 @@
           }
         ],
         "summary": "Tracks of one album, or all songs; an empty `album` or `artist` means none or unknown.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/music/videos": {
+      "get": {
+        "operationId": "getMusicVideos",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "more": {
+                      "type": "boolean"
+                    },
+                    "videos": {
+                      "items": {
+                        "$ref": "#/components/schemas/MusicVideoCard"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Music videos from every music video library this person can see, by artist, each with the song it's tied to.",
         "tags": [
           "Music, audiobooks and podcasts"
         ],

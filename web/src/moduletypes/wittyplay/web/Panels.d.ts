@@ -23,6 +23,17 @@ export declare function Back({ onClick, label }: {
     onClick: () => void;
     label?: string;
 }): import("react").JSX.Element;
+export declare function ConsoleChips({ consoles, chosen, onChoose, first, label }: {
+    consoles: {
+        id: string;
+        short: string;
+        name?: string;
+    }[];
+    chosen: string;
+    onChoose: (id: string) => void;
+    first?: string;
+    label?: string;
+}): import("react").JSX.Element;
 export declare function LevelPicker({ levels, level, onChange }: {
     levels: LevelChoice[];
     level: Level;

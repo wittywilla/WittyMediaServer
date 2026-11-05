@@ -314,7 +314,7 @@ On a new server with WittyTuner, first-time setup has a **Live TV** step with th
 | **External TV backend**: an HTTP M3U and XMLTV API, or SVDRP with an HTTP stream | All | Tried on stand-ins |
 | **Custom command**: your own program writes MPEG-TS to standard output | All | Tested with a small test program |
 
-The page labels each one **Tested**, **Tried on stand-ins**, **Not yet tried** or **Not built yet**. **Windows digital tuner (BDA)** is listed but not built: use a capture card through DirectShow, or an external backend.
+**Add live TV** says so when a kind hasn't been tried on real hardware yet, and lists why any kind isn't offered on this server. **Windows digital tuner (BDA)** is listed but not built: use a capture card through DirectShow, or an external backend.
 
 The custom command runs a program on the server, so a web session alone can't set one up. It stays off until the server is started with `WMS_TUNER_COMMANDS=1`.
 

@@ -166,6 +166,19 @@ func (s *Server) handleCheckTuner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Each question starts WittyTuner's helper afresh, which a small or busy machine can take a while to do.
+	// Checking a saved tuner's changed details: a password it was shown masked keeps the stored one.
+	if t.ID > 0 {
+		cur, err := s.TV.Tuner(r.Context(), t.ID)
+		if err != nil {
+			s.tunerError(w, r, err)
+			return
+		}
+		for k, v := range t.Options {
+			if v == livetv.Masked {
+				t.Options[k] = cur.Options[k]
+			}
+		}
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
 	defer cancel()
 	res, err := s.TV.Check(ctx, t.Driver, t.Name, t.Options)

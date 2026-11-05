@@ -105,7 +105,7 @@ export default function AddLiveTv({ onFinish, onLeave }: Props) {
 
       {stage === 'what' && (
         <What drivers={drivers} kind={kind} setKind={setKind} heading={heading('What do you have?')}
-          onNext={() => { setDriverId(''); setOpts({}); setName(''); setStage(search ? 'find' : 'details') }} onBack={onLeave} onSkip={onFinish} />
+          onNext={(k) => { setKind(k); setDriverId(''); setOpts({}); setName(''); setStage(KINDS.find((x) => x.kind === k)?.search ? 'find' : 'details') }} onBack={onLeave} onSkip={onFinish} />
       )}
       {stage === 'find' && (
         <Find heading={heading('Look for it')} kind={def} drivers={drivers}
@@ -170,9 +170,11 @@ function ProblemNotice({ p, title }: { p: TunerProblem; title?: string }) {
 
 // ------------------------------------------------------------------ what you have
 
-function What({ drivers, kind, setKind, heading, onNext, onBack, onSkip }: { drivers: Driver[]; kind: Kind; setKind: (k: Kind) => void; heading: ReactNode; onNext: () => void; onBack?: () => void; onSkip?: () => void }) {
+function What({ drivers, kind, setKind, heading, onNext, onBack, onSkip }: { drivers: Driver[]; kind: Kind; setKind: (k: Kind) => void; heading: ReactNode; onNext: (k: Kind) => void; onBack?: () => void; onSkip?: () => void }) {
   const have = KINDS.filter((k) => k.kind === 'other' ? drivers.some(usable) : drivers.some((d) => k.drivers.includes(d.id) && usable(d)))
   const away = KINDS.filter((k) => k.kind !== 'other' && !have.includes(k))
+  // Why a kind someone may be looking for isn't offered, such as one not built yet.
+  const notes = drivers.filter((d) => !usable(d) && d.note)
   const cards: Card<Kind>[] = have.map((k) => ({ value: k.kind, title: k.title, text: k.text }))
   return (
     <section>
@@ -180,9 +182,10 @@ function What({ drivers, kind, setKind, heading, onNext, onBack, onSkip }: { dri
       <p className="alt-lead">Choose what you’re adding. You can add as many as you like, one at a time. No channel lists or stream addresses come with the server: bring your own.</p>
       <ChoiceCards label="What you have" value={have.some((k) => k.kind === kind) ? kind : have[0]?.kind} onChange={setKind} cards={cards} />
       {away.length > 0 && <p className="tvs-dim alt-gap">Not on this server: {away.map((k) => k.title.toLowerCase()).join(', ')}. {away.some((k) => k.kind === 'local') && 'Cards and capture devices need drivers for the system the server runs on.'}</p>}
+      {notes.length > 0 && <ul className="tvs-dim alt-gap">{notes.map((d) => <li key={d.id}><b>{d.name}:</b> {d.note}</li>)}</ul>}
       <Actions back={onBack}>
         {onSkip && <Button variant="ghost" onClick={onSkip}>Skip for now</Button>}
-        <Button variant="primary" onClick={() => { if (!have.some((k) => k.kind === kind)) setKind(have[0].kind); onNext() }}>Next</Button>
+        <Button variant="primary" onClick={() => onNext(have.some((k) => k.kind === kind) ? kind : have[0].kind)}>Next</Button>
       </Actions>
     </section>
   )
@@ -241,7 +244,7 @@ function Details({ heading, kind, choices, driver, setDriver, name, setName, opt
   const missing = driver?.fields.filter((f) => f.required && !(opts[f.key] || f.default)) || []
   const runCheck = async () => {
     setChecking(true); setErr(''); setCheck(null)
-    try { setCheck(await api.post<TunerCheck>('/tuners/check', body())) } catch (e: any) { setErr(e.message) } finally { setChecking(false) }
+    try { setCheck(await api.post<TunerCheck>('/tuners/check', { ...body(), id: tuner?.id || 0 })) } catch (e: any) { setErr(e.message) } finally { setChecking(false) }
   }
   const save = async () => {
     setSaving(true); setErr('')

@@ -162,7 +162,7 @@ function ProblemNotice({ p, title }: { p: TunerProblem; title?: string }) {
     <Notice tone={tone} title={title}>
       <p>{p.message}</p>
       {p.kind === 'encrypted'
-        ? <p>That isn’t a fault in your setup: encrypted channels are listed, marked as encrypted, and never decrypted. <Link to="/tv/encrypted">What can I do?</Link></p>
+        ? <p><Link to="/tv/encrypted">What can I do about encrypted channels?</Link></p>
         : p.hint && <p>{p.hint}</p>}
     </Notice>
   )

@@ -52,6 +52,7 @@ import (
 )
 
 func cmdServe(args []string) int {
+	startedAt := time.Now()
 	cfg, err := config.Parse(args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -87,9 +88,20 @@ func cmdServe(args []string) int {
 		fmt.Fprintln(os.Stderr, "data folders:", err)
 		return 1
 	}
-	logs, err := logging.New(cfg.LogDir, level, os.Stderr)
+	// Armed before anything else can go wrong: a crash from here on leaves a report. It
+	// reads what the last run left before this one's standard error can replace it.
+	crashDir := filepath.Join(cfg.DataDir, "crash")
+	guard, lastRun, guardErr := logging.StartCrashGuard(crashDir, cfg.LogDir, version)
+	console := io.Writer(os.Stderr)
+	stderrFile := logging.CaptureStderr(crashDir)
+	if stderrFile != "" {
+		console = io.Discard // nothing reads it, and the log has its own files
+	}
+	logs, err := logging.New(cfg.LogDir, level, console)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "log folder:", err)
+		logging.NoteStop(logging.StopFatal, "the log folder can't be used: "+err.Error(), "")
+		guard.Close()
 		return 1
 	}
 	defer logs.Close()
@@ -99,15 +111,11 @@ func cmdServe(args []string) int {
 	if h := logs.Health(); h.Error != "" {
 		log.Error("the log folder can't be used: messages stay in memory until it can", "dir", cfg.LogDir, "err", h.Error)
 	}
-	// Armed before anything else can go wrong: a crash from here on leaves a report.
-	guard, lastRun, err := logging.StartCrashGuard(filepath.Join(cfg.DataDir, "crash"), cfg.LogDir, version)
-	if err != nil {
-		log.Warn("crash reports can't be kept", "err", err)
+	if guardErr != nil {
+		log.Warn("crash reports can't be kept", "err", guardErr)
 	}
-	defer guard.Close()
-	for _, c := range lastRun {
-		log.Error("the server stopped unexpectedly last time", "report", c.ID, "kind", c.Kind, "version", c.Version, "summary", c.Summary)
-	}
+	defer guard.Close() // a clean stop: how it ended goes in last-run.json
+	logStart(log, guard, lastRun, stderrFile)
 	if cfg.ConfigFile != "" {
 		log.Info("config", "file", cfg.ConfigFile, "portable", cfg.Portable)
 	}
@@ -118,7 +126,7 @@ func cmdServe(args []string) int {
 	tools, err := ffmpeg.Locate(cfg.FFmpegPath, cfg.FFprobePath)
 	if err != nil {
 		log.Error("ffmpeg", "err", err)
-		return 1
+		return stopOnError(log, "FFmpeg wasn't found", err)
 	}
 	log.Info("ffmpeg", "path", tools.FFmpeg, "version", tools.Version)
 	if repairDone != nil {
@@ -132,7 +140,7 @@ func cmdServe(args []string) int {
 	if err != nil {
 		log.Error("database", "err", err)
 		fmt.Fprintln(os.Stderr, "The database couldn't be opened. To find out why and repair it, run: wittymediaserver doctor")
-		return 1
+		return stopOnError(log, "the database couldn't be opened", err)
 	}
 	defer database.Close()
 
@@ -241,6 +249,8 @@ func cmdServe(args []string) int {
 	updater.CleanDownloads()
 	restartReq := make(chan struct{}, 1)
 	updater.Restart = func() {
+		// What asked for the restart says so first (a reset, a restore); otherwise it's an update.
+		logging.NoteStop(logging.StopUpdate, "", "")
 		select {
 		case restartReq <- struct{}{}:
 		default:
@@ -327,7 +337,7 @@ func cmdServe(args []string) int {
 		why := portTaken(cfg.Listen, err)
 		log.Error("listen", "addr", cfg.Listen, "err", err, "why", why)
 		fmt.Fprintln(os.Stderr, why)
-		return 1
+		return stopOnError(log, "it couldn't listen on "+cfg.Listen, err)
 	}
 	srv.Conns = &remote.ConnLimit{Total: cfg.MaxConnections, PerAddress: min(remote.DefaultPerAddress, cfg.MaxConnections), Policy: srv.NetPolicy, Log: log}
 	ln = srv.Conns.Wrap(ln)
@@ -391,10 +401,27 @@ func cmdServe(args []string) int {
 		}
 	}, "cat", "library")
 
-	sigCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-	ctx, cancel := context.WithCancel(sigCtx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	watchStopEvents()
+	sigs := make(chan os.Signal, 1)
+	if asService {
+		// The service manager says when to stop. Go turns a sign-out into SIGTERM, and a
+		// service given a console somehow must not stop for someone else signing out.
+		signal.Notify(sigs, os.Interrupt)
+	} else {
+		signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+	}
+	defer signal.Stop(sigs)
+	go func() {
+		select {
+		case sig := <-sigs:
+			noteSignal(sig)
+			signal.Stop(sigs) // a second Ctrl+C ends it at once, as before
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
 	go gameMeta.Run(ctx)
 	// When the server stops answering, write down what it was doing: see internal/logging/hang.go.
 	logging.StartWatchdog(ctx, log, srv.WatchChecks(selfURL(ln.Addr()))...)
@@ -410,7 +437,8 @@ func cmdServe(args []string) int {
 		// The tray launcher holds our stdin open; when it closes the pipe we
 		// shut down gracefully (Windows has no SIGTERM to deliver).
 		go func() {
-			_, _ = io.Copy(io.Discard, os.Stdin)
+			readTrayStop(os.Stdin)
+			logging.NoteStopIfNothingElse(logging.StopTrayGone, "its pipe to the server closed")
 			cancel()
 			time.Sleep(10 * time.Second)
 			log.Warn("shutdown took too long: stopping now")
@@ -455,7 +483,15 @@ func cmdServe(args []string) int {
 	go func() {
 		defer close(stopped)
 		<-ctx.Done()
-		log.Info("shutting down")
+		st := logging.StopNoted()
+		stopLine := []any{"cat", "server", "reason", st.Reason, "why", st.Words(), "uptime", logging.Uptime(time.Since(startedAt))}
+		if st.Detail != "" {
+			stopLine = append(stopLine, "detail", st.Detail)
+		}
+		if st.By != "" {
+			stopLine = append(stopLine, "by", st.By)
+		}
+		log.Warn("stopping", append(stopLine, srv.RunningNow()...)...)
 		logging.NoteStopping() // a stop while it wasn't answering keeps what it was doing
 		hlsMgr.StopAllLive()
 		hlsMgr.StopAll()
@@ -477,7 +513,7 @@ func cmdServe(args []string) int {
 	}()
 	if err := httpServer.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error("serve", "err", err)
-		return 1
+		return stopOnError(log, "it stopped serving", err)
 	}
 	<-stopped // Serve returns as soon as shutdown begins: don't close the database under it
 	if restarting.Load() {

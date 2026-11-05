@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 func hideWindow(cmd *exec.Cmd) {}
@@ -34,3 +36,7 @@ func setAutostart(on bool) error {
 	entry := "[Desktop Entry]\nType=Application\nName=WittyMediaServer\nComment=Media server tray launcher\nExec=" + exe + "\nIcon=wittymediaserver\nTerminal=false\nCategories=AudioVideo;\nX-GNOME-Autostart-enabled=true\n"
 	return os.WriteFile(p, []byte(entry), 0o644)
 }
+
+// endReason: the desktop closed the tray app without its Quit. A shutdown also stops the
+// server itself, which says so.
+func endReason() string { return logging.StopTrayClosed }

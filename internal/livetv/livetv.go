@@ -1051,6 +1051,8 @@ type Alternative struct {
 	Number string `json:"number"`
 	Name   string `json:"name"`
 	ATSC3  bool   `json:"atsc3,omitempty"`
+	// CanRecord: whether the profile asking may record it. The server fills it in.
+	CanRecord bool `json:"canRecord"`
 }
 
 var stationSuffix = []string{"atsc30", "atsc3", "nextgen", "nextgentv", "ngtv", "4k", "hd", "dt"}

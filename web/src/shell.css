@@ -144,9 +144,18 @@
 /* Comfortable touch targets on coarse pointers (the control sizes in styles.css follow too). */
 @media (pointer: coarse) { .nav-link, .topnav-link { min-height: 44px; } }
 
-/* Big screens (TVs and 4K monitors): scale the whole interface up a little. */
+/* Big screens (4K monitors, a TV used as a desktop): everything a quarter bigger. Not with CSS
+   zoom, which in Firefox and Chrome also scales viewport units and fixed positions: 100dvh came out
+   a quarter taller than the window (the sign-in screen scrolled and sat low), and a menu placed from
+   its button's position opened off the right of the screen. The base size grows, as at ten feet,
+   and the spacing grid and the frame grow with it. */
 @media (min-width: 2200px) {
-  body { zoom: 1.25; }
+  html { font-size: 125%; } /* design-ok: the base size, as ten-foot mode's (styles.css) */
+  :root {
+    --sp-1: 5px; --sp-2: 10px; --sp-3: 15px; --sp-4: 20px; --sp-5: 25px; --sp-6: 30px; --sp-8: 40px; --sp-10: 50px; --sp-12: 60px; --sp-16: 80px;
+    --gutter: 50px; --section-gap: 55px; --topbar-h: 80px; --rail: 96px; --sidebar: 300px;
+    --card-w: clamp(225px, 13.8vw, 375px); --card-wide-w: clamp(325px, 21vw, 525px);
+  }
 }
 
 /* ---------------------------------------------------------------- arranging the menu */

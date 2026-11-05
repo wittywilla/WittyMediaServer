@@ -356,7 +356,7 @@ func (s *Server) handleRemoteStanding(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 401, "authentication required")
 		return
 	}
-	v := s.remoteStatus(r, "")
+	v := s.remoteView(r, "", false)
 	if v.Level == "fault" && (u == nil || !u.IsAdmin) {
 		// What is wrong can name files on this computer: that is for administrators.
 		v.Summary = "A phone on mobile data can't connect: something is in the way. An administrator can see what in Settings, Remote Access."
@@ -390,6 +390,12 @@ func (s *Server) homeURLs() []string {
 }
 
 func (s *Server) remoteStatus(r *http.Request, applyErr string) remoteView {
+	return s.remoteView(r, applyErr, true)
+}
+
+// remoteView is the status; full adds what only the settings page shows (sign-in
+// protection, weak passwords), which the tray and the apps, asking often, don't need.
+func (s *Server) remoteView(r *http.Request, applyErr string, full bool) remoteView {
 	ctx := r.Context()
 	st := s.state()
 	cfg := st.cfg
@@ -410,12 +416,14 @@ func (s *Server) remoteStatus(r *http.Request, applyErr string) remoteView {
 	s.routerMu.Lock()
 	v.Router = s.router
 	s.routerMu.Unlock()
-	v.Lockouts, v.Failures = s.logins.snapshot()
-	v.WeakAdmins, _ = s.Auth.WeakAccounts(ctx)
-	if v.WeakAdmins == nil {
-		v.WeakAdmins = []auth.WeakAccount{}
+	v.WeakAdmins = []auth.WeakAccount{}
+	if full {
+		v.Lockouts, v.Failures = s.logins.snapshot()
+		if w, _ := s.Auth.WeakAccounts(ctx); w != nil {
+			v.WeakAdmins = w
+		}
+		v.No2FAAdmins = s.Auth.AdminsWithoutTwoFactor(ctx)
 	}
-	v.No2FAAdmins = s.Auth.AdminsWithoutTwoFactor(ctx)
 	v.VPNs = remote.FindVPNs(remote.Interfaces())
 	if v.VPNs == nil {
 		v.VPNs = []remote.VPNAddr{}

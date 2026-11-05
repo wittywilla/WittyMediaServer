@@ -211,6 +211,7 @@ function Chooser({ st, choice, save, busy }: { st: Status; choice: Choice; save:
       save({ enabled: true, method: s.method === 'netbird' ? 'netbird' : 'tailscale', ...(closes ? { httpsMode: 'off' as const, portMapping: false } : {}) }, 'Home and away, through a private network')
       return
     }
+    if (choice === 'home' && !await ask({ title: 'Let devices away from home in, through the internet?', body: 'This takes effect at once: as soon as a way in is set up below, anyone with the address can reach the sign-in page. Before you set one up, give every adult account a long, unique password and turn on two-factor sign-in.', confirm: 'Choose it' })) return
     save({ enabled: true, method: INTERNET.includes(s.method) ? s.method : 'router' }, 'Home and away, through the internet')
   }
   const cards = () => Array.from(box.current?.querySelectorAll<HTMLButtonElement>('button[role=radio]:not(:disabled)') || [])
@@ -238,7 +239,7 @@ function Chooser({ st, choice, save, busy }: { st: Status; choice: Choice; save:
         })}
         <div className="rem-method disabled" role="radio" aria-checked={false} aria-disabled="true">
           <span className="rem-mark" aria-hidden="true" />
-          <span><b>Home and away, through the WittyMedia relay<span className="set-badge">Coming later</span></b><small>A hosted relay that would connect you without any setup. It doesn’t exist yet: it’s planned as a future paid service, and nothing on this server uses it.</small></span>
+          <span><b>Home and away, through WittyRelay<span className="set-badge">Coming later</span></b><small>A hosted relay that would connect you without any setup. It doesn’t exist yet: it’s planned as a free service, and nothing on this server uses it.</small></span>
         </div>
       </div>
       {choice === 'home' && <HomeOnly />}

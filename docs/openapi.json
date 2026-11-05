@@ -7303,6 +7303,45 @@
         ],
         "type": "object"
       },
+      "RemoteStanding": {
+        "properties": {
+          "away": {
+            "type": "string"
+          },
+          "checked": {
+            "type": "string"
+          },
+          "home": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "publicUrl": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "away",
+          "checked",
+          "home",
+          "level",
+          "publicUrl",
+          "state",
+          "subject",
+          "summary"
+        ],
+        "type": "object"
+      },
       "ReportBandwidth": {
         "properties": {
           "bytes": {

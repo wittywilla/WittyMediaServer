@@ -90,7 +90,7 @@ A good defense starts by naming the attacker. These are the realistic ones, most
 
 **If you aren't sure, choose Tailscale.** It's easier than port forwarding, and it also works when your internet provider shares one address between customers, where port forwarding can't work at all.
 
-The **WittyMedia relay**, shown greyed out on the page, doesn't exist. It's a possible future paid service, and nothing on your server uses it.
+**WittyRelay**, shown greyed out on the page, doesn't exist yet. It's planned as a free service, and nothing on your server uses it.
 
 **The master switch:** **Settings → Remote Access** starts as **Home network only**. While that's chosen, the server refuses every connection from outside your home network, including through a VPN, even if your router or firewall lets it through. Devices at home aren't affected. The page has three choices, each saying who it lets in:
 

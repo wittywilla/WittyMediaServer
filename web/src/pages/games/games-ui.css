@@ -157,6 +157,9 @@ html.ten-foot .gm-page { --gm-cell: 210px; --gm-jump-gap: 140px; }
 .gm-blocked { display: flex; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border: 1px solid var(--warn); border-radius: var(--r-md); background: var(--warn-soft); max-width: 44rem; }
 .gm-blocked svg { flex: none; color: var(--warn); }
 .gm-blocked p { margin: var(--sp-1) 0 0; font-size: var(--text-sm); overflow-wrap: anywhere; }
+/* Plays, with something to know first: the processor draws it. */
+.gm-blocked.info { border-color: var(--accent-line); background: var(--accent-soft); }
+.gm-blocked.info svg { color: var(--accent-text); }
 .gm-about-wrap { display: grid; grid-template-columns: minmax(0, 72ch) minmax(16rem, 1fr); gap: var(--sp-8) clamp(var(--sp-8), 6vw, var(--sp-16)); align-items: start; margin-bottom: var(--section-gap); }
 .gm-about-wrap:not(:has(.gm-about)) { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 960px) { .gm-about-wrap { grid-template-columns: minmax(0, 1fr); } }

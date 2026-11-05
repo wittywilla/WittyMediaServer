@@ -713,6 +713,7 @@ func formatServer(t *testing.T, tools *ffmpeg.Tools) *testServer {
 	if err := os.MkdirAll(s.Scanner.ImagesDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(s.Close)
 	return &testServer{Server: s, h: s.Handler()}
 }
 

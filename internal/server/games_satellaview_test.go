@@ -3,9 +3,9 @@ package server
 import (
 	"encoding/json"
 	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
+	"github.com/wittywilla/wittymediaserver/internal/play/fakecore"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -26,10 +26,7 @@ func TestSatellaviewGameSaysWhatIsMissing(t *testing.T) {
 	t.Setenv("WMS_WITTYPLAY_RUNNER", runner)
 
 	coreFile := func(id string) string {
-		ext := ".so"
-		if runtime.GOOS == "windows" {
-			ext = ".dll"
-		}
+		ext := fakecore.Ext() // a Mac lists only .dylib
 		return filepath.Join(g.s.games().dir, "cores", id+"_libretro"+ext)
 	}
 	if err := os.MkdirAll(filepath.Dir(coreFile("x")), 0o755); err != nil {

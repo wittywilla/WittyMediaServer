@@ -273,6 +273,8 @@ defer logging.Recover("runner reader", "session", id)  // for a goroutine you st
 
 Use `Loop` for anything that must keep running. Don't recover where carrying on would be unsafe: a transaction half done, or a lock held across the panic (use `defer` for locks). HTTP handlers are already covered by the middleware.
 
+In `internal/server`, work a request starts and nobody waits for goes through `s.background("name", fn, "cat", "games")`, where `fn` takes a context. It runs like `logging.Go`, and `Server.Close` ends that context and waits for `fn`, before the database closes. A test's server is closed the same way when the test ends, so nothing writes into the test's folder while it's being removed.
+
 ### Child processes
 
 Every process the server starts leaves a record of how it ended, tied to its session:

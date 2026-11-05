@@ -143,6 +143,13 @@ type Server struct {
 	logoSvc       *library.Logos // the logo service, made when first wanted
 	// When the guide last told it about tuner channels: see noteTunerLogos.
 	tunerLogosNoted atomic.Int64
+
+	// Work the server started on its own, which Close ends and waits for: see background.
+	bgMu     sync.Mutex
+	bgWork   sync.WaitGroup
+	bgCtx    context.Context
+	bgStop   context.CancelFunc
+	bgClosed bool
 }
 
 type ctxKey int
@@ -172,7 +179,10 @@ func (s *Server) StartMetadata() {
 		s.logos().Kick()
 		s.Scanner.KickListings()
 	}
-	s.Scanner.OnGamesScanned = func() { s.logos().Kick() }
+	s.Scanner.OnGamesScanned = func() {
+		s.logos().Kick()
+		s.sweepBIOS(true) // BIOS files that came with the games, found by their checksums
+	}
 	after := s.Scanner.AfterScan
 	s.Scanner.AfterScan = func(id int64) {
 		if after != nil {

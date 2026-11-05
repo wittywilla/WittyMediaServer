@@ -178,8 +178,9 @@ func TestAnEarlierRunsGivingUpIsUndone(t *testing.T) {
 }
 
 // Issue #294: the start-up repair lifts only what slow starts and crashes did. A game runner
-// that stopped before the game was ready is the Mac sandbox fix's to decide on
-// (liftNestedSandboxBlocks), so it's left as it was here, on every system.
+// that stopped before the game was ready is the Mac sandbox fix's and the game-failures fix's to
+// decide on (liftNestedSandboxBlocks, liftGameFailureBlocks), so it's left as it was here, on
+// every system.
 func TestTheStartUpRepairLeavesTheMacFixItsOwn(t *testing.T) {
 	m := New(Config{Dir: t.TempDir(), Server: "0.6.2-alpha", Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	defer m.Close()

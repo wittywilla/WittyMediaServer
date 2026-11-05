@@ -36,6 +36,7 @@ func tvServer(t *testing.T) (h http.Handler, admin, kid string, s *Server) {
 		if s.TV != nil {
 			s.TV.Close()
 		}
+		s.Close()
 		d.Close()
 	})
 	ctx := context.Background()

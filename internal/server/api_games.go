@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
-	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -90,7 +88,10 @@ type gameService struct {
 
 	gpuMu       sync.Mutex
 	gpu         stream.GPUProbe
+	gpuAt       time.Time // when the last answer came in
 	gpuChecking bool
+
+	bios biosFinder // BIOS files found by their checksums
 
 	custom *customService
 
@@ -103,7 +104,8 @@ type gameService struct {
 // two, or half a minute if a security scanner holds the runner's first start, so it
 // happens in the background and nothing waits for it. An answer about the card is
 // final; a failure to ask gets asked again next time.
-func (g *gameService) gpuStatus(runner string, log *slog.Logger) stream.GPUProbe {
+func (s *Server) gpuStatus(runner string) stream.GPUProbe {
+	g := s.games()
 	g.gpuMu.Lock()
 	defer g.gpuMu.Unlock()
 	if runner == "" || g.gpuChecking || (g.gpu.Name != "" || (g.gpu.Error != "" && !g.gpu.Again)) {
@@ -111,18 +113,23 @@ func (g *gameService) gpuStatus(runner string, log *slog.Logger) stream.GPUProbe
 		out.Checking = g.gpuChecking
 		return out
 	}
-	g.gpuChecking = true
-	go func() {
+	started := s.background("graphics card check", func(ctx context.Context) {
 		// What a fault leaves: nothing learnt about the card, so it's asked again next time.
 		got := stream.GPUProbe{Error: "the check stopped on a fault in the server", Again: true}
 		defer func() {
 			g.gpuMu.Lock()
 			defer g.gpuMu.Unlock()
-			g.gpu, g.gpuChecking = got, false
+			g.gpu, g.gpuAt, g.gpuChecking = got, time.Now(), false
 		}()
-		defer logging.Recover("graphics card check", "cat", "games")
-		got = stream.ProbeGPU(runner, filepath.Join(g.dir, "probe"), log)
-	}()
+		got = stream.ProbeGPU(ctx, runner, filepath.Join(g.dir, "probe"))
+		if ctx.Err() != nil {
+			got = stream.GPUProbe{Error: "the server stopped before the check finished", Again: true}
+		}
+	}, "cat", "games")
+	if !started { // the server is stopping
+		return g.gpu
+	}
+	g.gpuChecking = true
 	return stream.GPUProbe{Checking: true}
 }
 
@@ -245,16 +252,6 @@ func (s *Server) awaitHardwareProbe(ctx context.Context) {
 	}
 }
 
-// runnerFailed says a game couldn't start because of the runner itself: it wouldn't
-// start, it went away before the game was ready, or it spoke nonsense. A runner that
-// says what is wrong is working, since that is usually a core or a game file.
-func runnerFailed(err error) bool {
-	var pe *fs.PathError
-	msg := err.Error()
-	return errors.Is(err, stream.ErrStopped) || errors.Is(err, stream.ErrRunnerDied) || (errors.As(err, &pe) && pe.Op == "write") ||
-		strings.HasPrefix(msg, "starting the game runner") || strings.HasPrefix(msg, "ipc:") || strings.HasPrefix(msg, "the runner described")
-}
-
 // configureGames sets how the next game runs, with no restart needed for a new
 // version of the runner. It returns which downloaded version that is, if any.
 func (s *Server) configureGames(ctx context.Context) (version string, err error) {
@@ -316,17 +313,27 @@ type consoleView struct {
 	GPUCores  []string     `json:"gpuCores,omitempty"`
 	// For an administrator: approved custom cores assigned to it, and which core it
 	// uses unless a game says otherwise.
-	Custom      []cores.Core        `json:"customCores,omitempty"`
-	DefaultCore string              `json:"defaultCore,omitempty"`
-	Ready       bool                `json:"ready"`
-	Pad         wittyplay.PadLayout `json:"pad"`
+	Custom      []cores.Core `json:"customCores,omitempty"`
+	DefaultCore string       `json:"defaultCore,omitempty"`
+	Ready       bool         `json:"ready"`
+	// When it isn't ready: why, as a word (unavailable, core or gpu) and in words for people.
+	// GPUMissing is the reason this server can't draw it, with reason gpu.
+	Reason     string `json:"reason,omitempty"`
+	Message    string `json:"message,omitempty"`
+	GPUMissing string `json:"gpuMissing,omitempty"`
+	// Software: there's no graphics card here, so the processor draws its games, and Notice
+	// says what that means for how they run.
+	Software bool                `json:"software,omitempty"`
+	Notice   string              `json:"notice,omitempty"`
+	Pad      wittyplay.PadLayout `json:"pad"`
 	// Count: with ?library=<id>, how many games that library holds for this console.
 	Count int `json:"count,omitempty"`
 	// For Settings, Consoles & cores: BIOS files in place, what's stopping it from starting
 	// if that's a missing BIOS, and how many games every library holds for it.
-	BiosFound  []string `json:"biosFound,omitempty"`
-	Blocked    string   `json:"blocked,omitempty"`
-	TotalGames int      `json:"totalGames,omitempty"`
+	BiosFound  []string       `json:"biosFound,omitempty"`
+	BiosFiles  []biosFileView `json:"biosFiles,omitempty"` // in the system folder, and where each came from
+	Blocked    string         `json:"blocked,omitempty"`
+	TotalGames int            `json:"totalGames,omitempty"`
 	// LogoName is the name to ask the logo service for, kind "console". See docs/METADATA.md.
 	LogoName string `json:"logoName,omitempty"`
 }
@@ -341,6 +348,7 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 	out := []consoleView{}
 	prefs := s.preferredCores(ctx)
 	customOn := s.customCoresOn(ctx)
+	var gpuWhy *string // asked once, and only if a console needs to know
 	for _, c := range wittyplay.All() {
 		if c.Hidden && !testing {
 			continue
@@ -377,9 +385,56 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 		// A core someone placed themselves shows up under every console it could
 		// serve only when we know it; anything else is chosen by name in Settings.
 		v.Ready = v.Unavailable == "" && (len(v.Installed) > 0 || c.ID == wittyplay.TestConsole)
+		// Every core it could play on draws on a graphics card, and this server has none it can use:
+		// the processor draws, where a core can have it, and otherwise its games can't play here.
+		if c.ID != wittyplay.TestConsole && v.Unavailable == "" && s.drawsOnlyOnGPU(&v) {
+			if gpuWhy == nil {
+				why := s.gpuMissing(ctx)
+				gpuWhy = &why
+			}
+			switch {
+			case *gpuWhy == "":
+			case s.canDrawOnCPU(&v):
+				if v.Ready { // with nothing installed, a core it could be is still needed first
+					v.Software, v.Notice = true, softwareNotice
+				}
+			default:
+				v.Ready, v.Reason, v.Message, v.GPUMissing = false, "gpu", gpuMessage(c.Name, *gpuWhy), *gpuWhy
+			}
+		}
+		switch {
+		case v.Ready || v.Reason != "":
+		case v.Unavailable != "":
+			v.Reason, v.Message = "unavailable", v.Unavailable
+		default:
+			v.Reason, v.Message = "core", "No core is installed for "+c.Name+"."
+		}
 		out = append(out, v)
 	}
 	return out
+}
+
+// canDrawOnCPU says one of the cores a console could play on here can have the processor draw:
+// those installed for it, or with none installed, those on offer.
+func (s *Server) canDrawOnCPU(v *consoleView) bool {
+	if len(v.Installed) == 0 {
+		return slices.ContainsFunc(v.Cores, func(c wittyplay.Core) bool { return cpuDrawing[c.ID] != nil })
+	}
+	return slices.ContainsFunc(v.Installed, func(c cores.Core) bool { return cpuOptions(c) != nil })
+}
+
+// drawsOnlyOnGPU says every core a console could play on here draws on a graphics card:
+// those installed for it, or with none installed, those on offer.
+func (s *Server) drawsOnlyOnGPU(v *consoleView) bool {
+	if len(v.Installed) == 0 {
+		return v.NeedsGPU
+	}
+	for _, c := range v.Installed {
+		if !s.coreDrawsOnGPU(c) {
+			return false
+		}
+	}
+	return true
 }
 
 // hideCustom takes out what an administrator chose to add, for everyone else: which custom
@@ -620,17 +675,27 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	var runnerArgs []string
 	gpu := false
 	var playing *cores.Core
+	// Why a game drawn on a graphics card can't run here, once it's been asked: such a core is
+	// never started, nor tried when another fails, unless the processor can draw for it. software
+	// says the processor draws this one.
+	noGPU := ""
+	software := false
 	if console.ID != wittyplay.TestConsole {
-		// Goes through preferredCore: it's what keeps a file nobody approved from being used.
-		preferred := s.preferredCore(ctx, console, it.ID)
 		// BIOS files left in a folder beside the games are fetched first, for
-		// every core that might use one.
+		// every core that might use one: by what they are, then by their names.
+		s.findBIOSNear(r.Context(), it.Path)
 		for _, want := range console.Cores {
 			if err := wittyplay.CollectBIOS(console, want.ID, it.Path, systemDir); err != nil {
 				s.Log.Warn("copying a BIOS", "console", console.ID, "err", err)
 			}
 		}
-		core, blocked := g.cores.Playable(console, preferred, systemDir)
+		pick := s.pickCore(ctx, console, it.ID, systemDir)
+		if pick.noGPU != "" {
+			writeJSON(w, 409, gpuRefusal(console, pick.noGPU))
+			return
+		}
+		core, blocked := pick.core, pick.blocked
+		software = pick.software
 		if core == nil && blocked != nil {
 			writeJSON(w, 409, map[string]any{"error": wittyplay.BIOSHelp(blocked.ID, console.Name), "needBios": true, "console": console.ID,
 				"file": wittyplay.MissingBIOS(blocked.ID, systemDir)})
@@ -649,16 +714,37 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		}
 		corePath, coreID = core.Path, core.ID
 		playing = core
-		gpu = wittyplay.Traits(core.ID).GPU || (core.Source == cores.SourceCustom && core.WantsGPU)
+		gpu = !software && (wittyplay.Traits(core.ID).GPU || (core.Source == cores.SourceCustom && core.WantsGPU))
 		runnerArgs = wittyplay.RunnerArgs(core.ID)
+		if software {
+			runnerArgs = withoutGPUArg(runnerArgs)
+		}
 		resolution := s.DB.GetSetting(ctx, "gamingResolution", "")
 		coreOptions = wittyplay.StartOptions(console.ID, core.ID, resolution, systemDir)
-		// If the game won't load on this core, the others get their turn.
-		for _, other := range g.cores.AllForConsole(console, core.ID)[1:] {
-			// A custom core only ever runs where an administrator assigned it, and after its check.
-			if other.Source != cores.SourceCustom && wittyplay.MissingBIOS(other.ID, systemDir) == "" {
-				fallbacks = append(fallbacks, stream.CoreChoice{Core: other.Path, CoreID: other.ID, RunnerArgs: wittyplay.RunnerArgs(other.ID), GPU: wittyplay.Traits(other.ID).GPU, Options: wittyplay.StartOptions(console.ID, other.ID, resolution, systemDir)})
+		if rule := wittyplay.Traits(core.ID).RequiredBIOS; rule != nil && rule.Option != "" {
+			if bios := s.regionBIOSFor(ctx, it, rule.Folder, coreOptions[rule.Option]); bios != "" {
+				coreOptions = withOption(coreOptions, rule.Option, bios)
 			}
+		}
+		// If the game won't load on this core, the others get their turn.
+		others := g.cores.AllForConsole(console, core.ID)[1:]
+		if slices.ContainsFunc(others, func(c cores.Core) bool { return s.coreDrawsOnGPU(c) }) {
+			noGPU = s.gpuMissing(ctx)
+		}
+		for _, other := range others {
+			// A custom core only ever runs where an administrator assigned it, and after its check.
+			if other.Source == cores.SourceCustom || wittyplay.MissingBIOS(other.ID, systemDir) != "" {
+				continue
+			}
+			next := stream.CoreChoice{Core: other.Path, CoreID: other.ID, RunnerArgs: wittyplay.RunnerArgs(other.ID), GPU: wittyplay.Traits(other.ID).GPU, Options: wittyplay.StartOptions(console.ID, other.ID, resolution, systemDir)}
+			if noGPU != "" && s.coreDrawsOnGPU(other) {
+				cpu := cpuOptions(other)
+				if cpu == nil {
+					continue
+				}
+				next.Options, next.GPU, next.RunnerArgs = overOptions(next.Options, cpu), false, withoutGPUArg(next.RunnerArgs)
+			}
+			fallbacks = append(fallbacks, next)
 		}
 	}
 	if gpu {
@@ -690,7 +776,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	rom, cleanup, newOnly, err := g.prepare3DS(rom, cleanup, console)
 	if err != nil {
 		if errors.Is(err, wittyplay.ErrEncrypted3DS) {
-			writeJSON(w, 422, map[string]any{"error": err.Error(), "encrypted": true, "console": console.ID})
+			writeJSON(w, 422, map[string]any{"error": strings.TrimRight(err.Error(), ". ") + ". " + library.DecryptedCopyPlays, "encrypted": true, "console": console.ID})
 			return
 		}
 		writeErr(w, 422, err.Error())
@@ -740,8 +826,12 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, 409, map[string]any{"error": wittyplay.LibdragonNeedsCore, "otherCore": true, "console": console.ID})
 			return
 		}
+		// It runs on the processor alone: WittyPlay gives it the settings for that.
 		corePath, coreID, playing, fallbacks = core[0].Path, core[0].ID, &core[0], nil
 		runnerArgs = wittyplay.RunnerArgs(core[0].ID)
+		if software {
+			runnerArgs = withoutGPUArg(runnerArgs)
+		}
 		coreOptions = wittyplay.StartOptions(console.ID, core[0].ID, s.DB.GetSetting(ctx, "gamingResolution", ""), systemDir)
 	}
 	s.Log.Debug("game prepared", "item", it.ID, "seconds", time.Since(began).Seconds())
@@ -760,6 +850,11 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		PreferDevices: wittyplay.Pad(console.ID).PreferDevices,
 	}
 	s.applyGameSettings(ctx, &opts, it, console, coreID, b.SafeMode)
+	if software {
+		// Over whatever anyone chose: without these, the core asks for a graphics card that isn't here.
+		opts.CoreOptions = overOptions(opts.CoreOptions, cpuDrawing[coreID])
+		opts.Notices = append(opts.Notices, softwareNotice)
+	}
 	sess, err := g.mgr.Start(opts)
 	if err != nil {
 		if opts.Cleanup != nil {
@@ -769,20 +864,32 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 503, err.Error())
 			return
 		}
-		if strings.Contains(err.Error(), stream.NoGPUText) {
-			writeErr(w, 409, "This game draws with a graphics card, and this server doesn't have one it can use. Games for older consoles still play.")
-			return
+		s.Log.WarnContext(r.Context(), "could not start a game", "cat", "games", "item", it.ID, "game", it.Title, "console", console.ID, "core", coreID, "err", err)
+		// Only WittyPlay's helper failing counts against its version. The runner stopping, a
+		// core crashing or refusing, a file it can't load: those belong to this game, its core
+		// or its console, and are recorded against the core, so that one console that can't
+		// run here never takes every other game off the server with it.
+		helper := errors.Is(err, stream.ErrHelper)
+		if version != "" && helper {
+			_ = s.Modules.ReportFailure(wittyPlayID, version, "its helper failed while starting a game: "+err.Error())
 		}
-		s.Log.WarnContext(r.Context(), "could not start a game", "cat", "games", "item", it.ID, "game", it.Title, "err", err)
-		// A custom core runs inside the runner, so its crash isn't a fault of this version.
-		if version != "" && runnerFailed(err) && (playing == nil || playing.Source != cores.SourceCustom) {
-			_ = s.Modules.ReportFailure(wittyPlayID, version, "the game runner stopped before the game was ready: "+err.Error())
-		}
-		if playing != nil {
+		if playing != nil && !helper {
 			s.noteCorePlay(ctx, playing.ID, it.ID, 1, 1, 0, err.Error())
 			if playing.Source == cores.SourceCustom {
 				s.auditCore(ctx, userFrom(r), "use-failed", playing.ID, fmt.Sprintf("item %d: %v", it.ID, err))
 			}
+		}
+		if msg := err.Error(); strings.Contains(msg, stream.NoGPUText) {
+			why := ""
+			if i := strings.Index(msg, "this server has "+stream.NoGPUText); i >= 0 {
+				why = plainGPUReason(msg[i:])
+			}
+			writeJSON(w, 409, gpuRefusal(console, why))
+			return
+		}
+		if helper {
+			writeErr(w, 500, "This game could not start: WittyPlay's helper stopped while starting it. Try again.")
+			return
 		}
 		writeErr(w, 500, "This game could not start. "+err.Error())
 		return
@@ -945,6 +1052,13 @@ func (s *Server) handleGamePrepare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	g := s.games()
+	// Not on this server says so here too, as play would, before anything is unpacked for it.
+	if console.ID != wittyplay.TestConsole {
+		if pick := s.pickCore(r.Context(), console, it.ID, g.systemDir()); pick.noGPU != "" {
+			writeJSON(w, 409, gpuRefusal(console, pick.noGPU))
+			return
+		}
+	}
 	ready := gamearchive.Status{State: "ready"}
 	discs, _ := s.Store.GameDiscs(r.Context(), it.ID)
 	anyArchive := gamearchive.IsArchive(it.Path)
@@ -1296,15 +1410,18 @@ func (s *Server) handleGaming(w http.ResponseWriter, r *http.Request) {
 	views := s.consoleViews(ctx)
 	counts := s.gameCountsEverywhere(ctx)
 	systemDir := g.systemDir()
+	s.sweepBIOS(false) // what's found shows the next time this is asked
+	records := g.biosRecords()
 	for i := range views {
 		v := &views[i]
 		v.TotalGames = counts[v.ID]
 		for _, b := range v.BIOS {
-			if _, err := os.Stat(filepath.Join(systemDir, filepath.FromSlash(b.File))); err == nil {
+			if _, err := os.Stat(filepath.Join(systemDir, filepath.FromSlash(b.File))); err == nil || (b.Required && biosRuleMet(&v.Console, systemDir)) {
 				v.BiosFound = append(v.BiosFound, b.File)
 			}
 		}
-		if len(v.Installed) > 0 {
+		v.BiosFiles = biosFilesFor(v.ID, systemDir, records, defaultBIOS(&v.Console, systemDir))
+		if len(v.Installed) > 0 && v.Reason != "gpu" { // a BIOS wouldn't help
 			console := v.Console
 			if core, blocked := g.cores.Playable(&console, v.DefaultCore, systemDir); core == nil && blocked != nil {
 				v.Blocked = wittyplay.MissingBIOS(blocked.ID, systemDir)
@@ -1313,7 +1430,7 @@ func (s *Server) handleGaming(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, 200, map[string]any{
 		"runner": runnerName, "encoders": enc, "consoles": views, "cores": g.cores.List(), "canDownload": cores.CanDownload(),
-		"coresDir": g.cores.Dir, "systemDir": g.systemDir(), "running": g.mgr.Count(), "unpackedBytes": g.archives.Used(), "gpu": g.gpuStatus(runner, s.Log), "biosFolder": wittyplay.BIOSFolderName,
+		"coresDir": g.cores.Dir, "systemDir": g.systemDir(), "running": g.mgr.Count(), "unpackedBytes": g.archives.Used(), "gpu": s.gpuStatus(runner), "biosFolder": wittyplay.BIOSFolderName,
 	})
 }
 

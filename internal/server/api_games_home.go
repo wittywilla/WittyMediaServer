@@ -208,6 +208,10 @@ type gameCheckBIOS struct {
 	For      string `json:"for"`
 	Required bool   `json:"required"`
 	Found    bool   `json:"found"`
+	// Using is the file a core that takes any name will start this game with, and From where
+	// the file was found, when it was found by its checksum.
+	Using string `json:"using,omitempty"`
+	From  string `json:"from,omitempty"`
 }
 
 // GET /api/games/{id}/check says what a game needs and whether this server has it, in
@@ -231,14 +235,26 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 	systemDir := g.systemDir()
 	// As pressing Play does: files left in a BIOS folder beside the games count.
 	if len(console.BIOS) > 0 {
+		s.findBIOSNear(ctx, it.Path)
 		for _, want := range console.Cores {
 			_ = wittyplay.CollectBIOS(console, want.ID, it.Path, systemDir)
 		}
 	}
+	records := g.biosRecords()
 	bios := make([]gameCheckBIOS, 0, len(console.BIOS))
 	for _, b := range console.BIOS {
 		_, err := os.Stat(filepath.Join(systemDir, filepath.FromSlash(b.File)))
-		bios = append(bios, gameCheckBIOS{File: b.File, For: b.For, Required: b.Required, Found: err == nil})
+		e := gameCheckBIOS{File: b.File, For: b.For, Required: b.Required, Found: err == nil}
+		if e.Found {
+			e.From = records[filepath.ToSlash(b.File)].From
+		} else if b.Required {
+			// A core that takes any file its rule accepts, under any name: the one it would use.
+			if rule, use := s.biosInUse(ctx, console, it, systemDir); use != "" {
+				e.Found, e.Using = true, use
+				e.From = records[filepath.ToSlash(filepath.Join(rule.Folder, use))].From
+			}
+		}
+		bios = append(bios, e)
 	}
 	out := map[string]any{"console": console.ID, "consoleName": console.Name, "bios": bios, "biosFolder": wittyplay.BIOSFolderName}
 	if console.ID == wittyplay.TestConsole {
@@ -249,14 +265,22 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 		out["ready"], out["reason"], out["message"] = false, "unavailable", console.Unavailable
 		return out
 	}
-	core, blocked := g.cores.Playable(console, s.preferredCore(ctx, console, it.ID), systemDir)
+	pick := s.pickCore(ctx, console, it.ID, systemDir)
 	switch {
-	case core != nil:
-		out["ready"], out["core"] = true, map[string]any{"id": core.ID, "name": core.Name, "license": core.License}
-		out["needsGpu"] = wittyplay.Traits(core.ID).GPU || core.WantsGPU
-	case blocked != nil:
-		out["ready"], out["reason"], out["message"] = false, "bios", wittyplay.BIOSHelp(blocked.ID, console.Name)
-		out["file"] = wittyplay.MissingBIOS(blocked.ID, systemDir)
+	case pick.core != nil:
+		out["ready"], out["core"] = true, map[string]any{"id": pick.core.ID, "name": pick.core.Name, "license": pick.core.License}
+		out["needsGpu"] = !pick.software && s.coreDrawsOnGPU(*pick.core)
+		if pick.software {
+			// It plays, drawn by the processor: how it may run, before anyone presses Play.
+			out["software"], out["notice"] = true, softwareNotice
+		}
+	case pick.noGPU != "":
+		// Not on this server, and why: the Play button would only be turned away.
+		out["ready"], out["reason"], out["message"] = false, "gpu", gpuMessage(console.Name, pick.noGPU)
+		out["needsGpu"], out["gpuMissing"] = true, pick.noGPU
+	case pick.blocked != nil:
+		out["ready"], out["reason"], out["message"] = false, "bios", wittyplay.BIOSHelp(pick.blocked.ID, console.Name)
+		out["file"] = wittyplay.MissingBIOS(pick.blocked.ID, systemDir)
 	default:
 		out["ready"], out["reason"], out["message"] = false, "core", "No core is installed for "+console.Name+"."
 	}

@@ -19,7 +19,8 @@ import '../games/games-ui.css'
 // A core is someone else's program, so nothing is installed without being asked for, with
 // its licence in view first.
 
-type ConsoleRow = GameConsole & { biosFound?: string[]; blocked?: string; totalGames?: number }
+type BiosFile = { file: string; from?: string; region?: string; using?: boolean }
+type ConsoleRow = GameConsole & { biosFound?: string[]; biosFiles?: BiosFile[]; blocked?: string; totalGames?: number }
 type Status = {
   runner: string; encoders: string[]; consoles: ConsoleRow[]; cores: GameCore[]; canDownload: boolean
   coresDir: string; systemDir: string; running: number; unpackedBytes?: number; biosFolder: string; gpu?: { name?: string; error?: string; checking?: boolean }
@@ -27,11 +28,14 @@ type Status = {
 
 type Standing = 'ready' | 'core' | 'bios' | 'gpu' | 'none'
 
+const regionWords: Record<string, string> = { usa: 'USA', europe: 'Europe', japan: 'Japan', asia: 'Asia', china: 'China', taiwan: 'Taiwan', russia: 'Russia' }
+
 function standingOf(c: ConsoleRow, gpuOk: boolean): Standing {
   if (c.unavailable) return 'none'
+  if (c.reason === 'gpu') return 'gpu'
   if (c.blocked) return 'bios'
   if (!c.ready) return 'core'
-  if (c.needsGpu && !gpuOk) return 'gpu'
+  if (c.needsGpu && !gpuOk && !c.software) return 'gpu'
   return 'ready'
 }
 
@@ -69,15 +73,35 @@ export default function GamingSettings() {
     if (!confirm) return
     const list = confirm
     setConfirm(null)
+    const instead: { id: string; name: string; license: string }[] = []
     for (const c of list) {
       setBusy(c.id)
       try {
         await api.post(`/gaming/cores/${c.id}/install`)
         toast(`${c.name} installed`)
-      } catch (e: any) { toast(e.message) }
+      } catch (e: any) {
+        // Not every core is built for every system (Beetle Supafaust has no build for a Mac with
+        // Apple silicon): offer the console's next one, with its licence in view as always.
+        const next = /404/.test(String(e.message)) ? nextCore(c.id) : undefined
+        if (next) {
+          toast(`${c.name} isn’t built for this server. ${next.name} is the next choice.`)
+          if (!instead.some((x) => x.id === next.id)) instead.push(next)
+        } else toast(e.message)
+      }
     }
     setBusy('')
     await refresh()
+    if (instead.length) setConfirm(instead)
+  }
+  // The core after this one on a console it's the first choice for, that this server offers.
+  const nextCore = (id: string) => {
+    for (const c of st?.consoles || []) {
+      const i = c.cores.findIndex((x) => x.id === id)
+      if (i !== 0) continue
+      const n = c.cores.slice(1).find((x) => offeredIds.has(x.id) && !installed.has(x.id))
+      if (n) return n
+    }
+    return undefined
   }
   const remove = async (id: string, name: string) => {
     setBusy(id)
@@ -87,6 +111,7 @@ export default function GamingSettings() {
     try { setSettings(await api.put<Record<string, string>>('/settings', patch)); toast('Saved') } catch (e: any) { toast(e.message) }
   }
   const installed = useMemo(() => new Map((st?.cores || []).map((c) => [c.id, c])), [st])
+  const offeredIds = useMemo(() => new Set((st?.consoles || []).filter((c) => !c.id.startsWith('custom-')).flatMap((c) => c.cores.map((x) => x.id))), [st])
   // Still being checked, or never checked, isn't the same as having none.
   const gpuOk = !st?.gpu?.error || !!st?.gpu?.name
   // The consoles someone actually has games for come first.
@@ -98,7 +123,7 @@ export default function GamingSettings() {
   const offered = new Set(st.consoles.filter((c) => !c.id.startsWith('custom-')).flatMap((c) => c.cores.map((x) => x.id)))
   const extra = st.cores.filter((c) => !known.has(c.id) && c.source !== 'custom')
   const readyCount = withGames.filter((c) => standingOf(c, gpuOk) === 'ready').length
-  const missing = st.canDownload ? withGames.filter((c) => !c.unavailable && !c.ready && c.cores.length > 0 && offered.has(c.cores[0].id)).map((c) => c.cores[0]) : []
+  const missing = st.canDownload ? withGames.filter((c) => !c.unavailable && !c.ready && c.reason !== 'gpu' && c.cores.length > 0 && offered.has(c.cores[0].id)).map((c) => c.cores[0]) : []
   const uniqueMissing = [...new Map(missing.map((c) => [c.id, c])).values()]
 
   const card = (c: ConsoleRow) => {
@@ -127,8 +152,9 @@ export default function GamingSettings() {
             <p>These games need your own copy of a BIOS file, such as <code>{c.blocked}</code>. Put it in a folder named <code>{st.biosFolder}</code> beside your {c.short} games, and it’s found the next time you press Play.</p>
           </div>
         )}
-        {s === 'gpu' && <p className="muted">Its games are drawn with a graphics card, and this server doesn’t have one it can use.</p>}
-        {s === 'ready' && c.needsGpu && <p className="muted">Uses this server’s graphics card.</p>}
+        {s === 'gpu' && <p className="muted">Its games are drawn with a graphics card, and this server doesn’t have one it can use{c.gpuMissing ? `: ${c.gpuMissing}` : ''}. Its games are listed, and can’t be started here.</p>}
+        {s === 'ready' && c.needsGpu && !c.software && <p className="muted">Uses this server’s graphics card.</p>}
+        {s === 'ready' && c.software && <p className="muted">This server has no graphics card games can use, so its processor draws these games. They can run slower than on a server with one, and keep several processor cores busy.</p>}
         <ConsoleCoreSelect console={c} onChanged={refresh} />
         {(c.cores.length > 1 || biosList.length > 0 || (c.customCores?.length ?? 0) > 0 || (s === 'ready' && c.cores.length > 0)) && (
           <details className="gm-setup-more">
@@ -165,6 +191,20 @@ export default function GamingSettings() {
                     </li>
                   ))}
                 </ul>
+                {(c.biosFiles?.length ?? 0) > 0 && (
+                  <>
+                    <p className="muted gm-setup-note">In this server’s BIOS folder:</p>
+                    <ul className="gm-checks">
+                      {c.biosFiles!.map((f) => (
+                        <li key={f.file} className="ok">
+                          <IconCheck size={16} />
+                          <span><code>{f.file.split('/').pop()}</code>
+                            <small>{[f.using ? 'In use' : '', f.region ? regionWords[f.region] || f.region : '', f.from ? `Found by its checksum in ${f.from}` : 'Put there by hand, or found by its name'].filter(Boolean).join('. ')}.</small></span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </>
             )}
           </details>
@@ -191,7 +231,7 @@ export default function GamingSettings() {
         <ol className="gm-bios-steps">
           <li>Make a folder named <code>{st.biosFolder}</code> inside a console’s games folder, such as <code>PS2/{st.biosFolder}</code>. Folders inside it are fine, and it’s never listed as a game.</li>
           <li>Put your BIOS files in it. Each console above lists the files it looks for.</li>
-          <li>Press Play. The server copies what it needs to its own BIOS folder, and leaves yours alone.</li>
+          <li>That’s all. The server recognises each file by its checksum, whatever it’s called, after a library scan or when you press Play, copies what a core needs to its own BIOS folder, and leaves yours alone. A file with the right name and the wrong contents is never used.</li>
         </ol>
         <p className="muted gm-long-path">You can also put files straight into <code>{st.systemDir}</code>. A PlayStation 2 BIOS goes in <code>pcsx2/bios</code> inside it.</p>
       </Section>

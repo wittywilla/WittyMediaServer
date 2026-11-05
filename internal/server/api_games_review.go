@@ -16,7 +16,6 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/gameid"
 	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittymediaserver/internal/logging"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
@@ -40,8 +39,7 @@ func (s *Server) gameReviewRoutes(m routes) {
 // scan that's going stops first, as it would save what it worked out under the old order.
 func (s *Server) gameRegionsChanged(setting string) {
 	gameregion.Set(setting)
-	logging.Go("game regions", func() {
-		ctx := context.Background()
+	s.background("game regions", func(ctx context.Context) {
 		libs, err := s.Store.Libraries(ctx)
 		if err != nil {
 			s.Log.Warn("putting a new order of regions to use", "cat", "library", "err", err)
@@ -55,9 +53,12 @@ func (s *Server) gameRegionsChanged(setting string) {
 			}
 		}
 		for _, id := range games {
-			for deadline := time.Now().Add(time.Minute); s.Scanner.Running(id) && time.Now().Before(deadline); {
+			for deadline := time.Now().Add(time.Minute); s.Scanner.Running(id) && time.Now().Before(deadline) && ctx.Err() == nil; {
 				time.Sleep(50 * time.Millisecond)
 			}
+		}
+		if ctx.Err() != nil {
+			return // the server is stopping
 		}
 		if err := s.Store.GameRegionsChanged(ctx); err != nil {
 			s.Log.Warn("putting a new order of regions to use", "cat", "library", "err", err)

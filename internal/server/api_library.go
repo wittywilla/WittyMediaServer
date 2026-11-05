@@ -689,13 +689,11 @@ func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool)
 			src = it.Poster
 		}
 	}
-	// ?w= asks for a smaller poster, for lists: a grid shows them a few hundred pixels
-	// wide, and the poster beside a film can be a few megabytes.
-	if !backdrop && qInt(r, "w", 0) > 0 && !strings.HasPrefix(src, "http") && (strings.HasPrefix(src, "cache:") || s.Store.LibraryFile(r.Context(), src)) {
-		src = s.GameMeta.PosterThumb(r.Context(), src, qInt(r, "w", 0))
-	}
+	src = s.smallerArt(r, src)
 	if src == library.LazyPoster {
-		width := qInt(r, "w", 480)
+		// A frame of the video. Each width is a picture FFmpeg makes, so the small ones
+		// lists ask for share the 480 one.
+		width := max(qInt(r, "w", 480), 480)
 		if backdrop {
 			width = 1920
 		}
@@ -703,6 +701,31 @@ func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool)
 		return
 	}
 	s.serveArtSrc(w, r, src)
+}
+
+// smallerArt is src, or a smaller copy of it when the request asks for one with ?w=:
+// lists show posters a few hundred pixels wide and backdrops at most a screen wide, and
+// the picture beside a film can be a few megabytes. The copy is made once and kept.
+// Only what serveArtSrc would serve is made smaller: a picture in the image cache, a
+// remote one once it's been fetched into it, or one inside a library's folders.
+func (s *Server) smallerArt(r *http.Request, src string) string {
+	width := qInt(r, "w", 0)
+	if width <= 0 || src == "" || src == library.LazyPoster {
+		return src
+	}
+	ctx := r.Context()
+	switch {
+	case strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://"):
+		p, err := s.cachedRemote(ctx, src)
+		if err != nil {
+			return src // serveArtSrc says why
+		}
+		src = "cache:" + filepath.Base(p)
+	case strings.HasPrefix(src, "cache:"):
+	case !s.Store.LibraryFile(ctx, src):
+		return src
+	}
+	return s.GameMeta.PosterThumb(ctx, src, width)
 }
 
 // serveArtSrc serves artwork from a cache name, a remote URL (cached) or a

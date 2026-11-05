@@ -37,6 +37,14 @@ type lab struct {
 
 var realTools *ffmpeg.Tools
 
+// with is the lab for a subtest: its helpers then fail that subtest, not the
+// test around it, and the reason is reported where it happened.
+func (l *lab) with(t *testing.T) *lab {
+	c := *l
+	c.t = t
+	return &c
+}
+
 func newLab(t *testing.T) *lab {
 	t.Helper()
 	if realTools == nil {
@@ -188,7 +196,7 @@ func (l *lab) wait(id int64) *Run {
 
 // String lets a failed test say what happened to a file, rather than print a pointer.
 func (f *FileRow) String() string {
-	return fmt.Sprintf("{%s %s %s: %s}", filepath.Base(f.Path), f.Verdict, f.State, f.Message)
+	return fmt.Sprintf("{%s %s %s: %s %s}", filepath.Base(f.Path), f.Verdict, f.State, f.Reason, f.Message)
 }
 
 func (l *lab) files(run *Run) []*FileRow {
@@ -1023,11 +1031,13 @@ func TestRealHDR(t *testing.T) {
 	if !has("libx265") {
 		t.Skip("no libx265 here")
 	}
+	// The tags go on the frames too: FFmpeg 9.0.2 writes an MKV's colours as unknown when they're
+	// only output options. The server's own conversions do the same (hdrColorParams).
 	hdr10 := []string{"-c:v", "libx265", "-preset", "ultrafast", "-pix_fmt", "yuv420p10le", "-x265-params",
 		"log-level=error:hdr10=1:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:master-display=G(13250,34500)B(7500,3000)R(34000,16000)WP(15635,16450)L(10000000,1):max-cll=1000,400",
-		"-color_primaries", "bt2020", "-color_trc", "smpte2084", "-colorspace", "bt2020nc", "-c:a", "aac"}
+		"-color_primaries", "bt2020", "-color_trc", "smpte2084", "-colorspace", "bt2020nc", "-vf", "setparams=color_primaries=bt2020:color_trc=smpte2084:colorspace=bt2020nc", "-c:a", "aac"}
 	hlg := []string{"-c:v", "libx265", "-preset", "ultrafast", "-pix_fmt", "yuv420p10le", "-x265-params", "log-level=error:colorprim=bt2020:transfer=arib-std-b67:colormatrix=bt2020nc",
-		"-color_primaries", "bt2020", "-color_trc", "arib-std-b67", "-colorspace", "bt2020nc", "-c:a", "aac"}
+		"-color_primaries", "bt2020", "-color_trc", "arib-std-b67", "-colorspace", "bt2020nc", "-vf", "setparams=color_primaries=bt2020:color_trc=arib-std-b67:colorspace=bt2020nc", "-c:a", "aac"}
 	src := l.gen("Hdr10.mkv", join(pic(2, "640x360"), tone(2, 300, "stereo"), hdr10)...)
 	l.gen("Hlg.mkv", join(pic(2, "640x360"), tone(2, 300, "stereo"), hlg)...)
 	v := Inspect(src, l.probe(src)).Video[0]
@@ -1036,12 +1046,14 @@ func TestRealHDR(t *testing.T) {
 	}
 	l.scan()
 	t.Run("save space leaves efficient HDR alone", func(t *testing.T) {
+		l := l.with(t)
 		r := l.run(preset(t, PresetSaveSpace), OutputReplace)
 		if r.Summary.Skip != 2 {
 			t.Fatalf("%+v", r.Summary)
 		}
 	})
 	t.Run("kept as HDR when it must be converted", func(t *testing.T) {
+		l := l.with(t)
 		p := preset(t, PresetSaveSpace)
 		p.Preset = PresetCustom
 		p.Video.MaxHeight = 240
@@ -1071,6 +1083,7 @@ func TestRealHDR(t *testing.T) {
 		}
 	})
 	t.Run("kept as HDR in AV1", func(t *testing.T) {
+		l := l.with(t)
 		if !has("libsvtav1") {
 			t.Skip("no AV1 encoder")
 		}
@@ -1096,6 +1109,7 @@ func TestRealHDR(t *testing.T) {
 		}
 	})
 	t.Run("made an ordinary picture", func(t *testing.T) {
+		l := l.with(t)
 		if l.tools.ToneMapFilter("hdr10") == "" {
 			t.Skip("this FFmpeg has no tone mapping filters")
 		}
@@ -1115,6 +1129,7 @@ func TestRealHDR(t *testing.T) {
 		}
 	})
 	t.Run("refused when asked", func(t *testing.T) {
+		l := l.with(t)
 		p := preset(t, PresetCompatible)
 		p.Preset = PresetCustom
 		p.Video.HDR = "refuse"
@@ -1127,6 +1142,7 @@ func TestRealHDR(t *testing.T) {
 		}
 	})
 	t.Run("H.264 can't carry HDR", func(t *testing.T) {
+		l := l.with(t)
 		p := preset(t, PresetSaveSpace)
 		p.Preset = PresetCustom
 		p.Video.Codec = "h264"
@@ -1220,6 +1236,7 @@ func TestRealDolbyVision(t *testing.T) {
 	}
 	l.scan()
 	t.Run("kept by leaving the picture alone", func(t *testing.T) {
+		l := l.with(t)
 		r := l.run(preset(t, PresetBest), OutputBeside)
 		if r.Summary.Done != 2 {
 			t.Fatalf("%+v %+v", r.Summary, l.files(r))
@@ -1236,6 +1253,7 @@ func TestRealDolbyVision(t *testing.T) {
 		}
 	})
 	t.Run("profile 5 refused, 8 converted from its base layer", func(t *testing.T) {
+		l := l.with(t)
 		if l.tools.ToneMapFilter("hdr10") == "" {
 			t.Skip("no tone mapping")
 		}
@@ -1265,6 +1283,7 @@ func TestRealDolbyVision(t *testing.T) {
 		}
 	})
 	t.Run("keep refuses what would need converting", func(t *testing.T) {
+		l := l.with(t)
 		p := preset(t, PresetSaveSpace)
 		p.Preset = PresetCustom
 		p.Video.MaxHeight = 240
@@ -1284,7 +1303,7 @@ func TestRealPictureOddities(t *testing.T) {
 	l.scan()
 	r := l.run(preset(t, PresetCompatible), OutputReplace)
 	for _, f := range l.files(r) {
-		t.Logf("%s: %s %s %s", filepath.Base(f.Path), f.Verdict, f.State, f.Message)
+		t.Logf("%s: %s %s %s %s", filepath.Base(f.Path), f.Verdict, f.State, f.Reason, f.Message)
 	}
 	if r.Summary.Failed != 0 {
 		t.Fatalf("%+v", r.Summary)
@@ -1689,7 +1708,86 @@ func TestRealCopyProtection(t *testing.T) {
 		if Detect(ts, l.probe(ts)) {
 			t.Fatal("an ordinary transport stream was called protected")
 		}
+		// #184: an interlaced MPEG-2 film was refused, for bytes outside its track list.
+		mp2 := l.gen("Interlaced MPEG-2.mkv", join(pic(2, "720x576"), tone(2, 300, "stereo"), []string{"-vf", "tinterlace=interleave_top,fieldorder=tff", "-flags", "+ildct+ilme", "-c:v", "mpeg2video", "-c:a", "aac"})...)
+		if Detect(mp2, l.probe(mp2)) {
+			t.Fatal("an ordinary interlaced MPEG-2 MKV was called protected")
+		}
 	})
+	t.Run("an encrypted Matroska track is refused", func(t *testing.T) {
+		l := newLab(t)
+		src := l.gen("Encrypted.mkv", join(pic(2, "320x240"), tone(2, 300, "stereo"), []string{"-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac"})...)
+		b, _ := os.ReadFile(src)
+		// No tool here writes an encrypted track, so one is made encrypted by writing its
+		// ContentEncodings into the first track, as a protected file carries them: a
+		// ContentEncoding of type 1 holding a ContentEncryption (AES).
+		enc := []byte{0x6D, 0x80, 0x8E, 0x62, 0x40, 0x8B, 0x50, 0x33, 0x81, 0x01, 0x50, 0x35, 0x84, 0x47, 0xE1, 0x81, 0x05}
+		if err := os.WriteFile(src, insertInFirstTrack(t, b, enc), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if !Detect(src, nil) {
+			t.Fatal("an encrypted track wasn't noticed")
+		}
+	})
+}
+
+// insertInFirstTrack puts an element at the end of a Matroska file's first track entry, and
+// grows the sizes of what holds it to match. Positions written elsewhere in the file (its seek
+// index and cues) aren't moved, which the protection check doesn't need.
+func insertInFirstTrack(t *testing.T, b, add []byte) []byte {
+	t.Helper()
+	type found struct {
+		start, sizeAt, sizeLen int
+		size                   int64
+	}
+	// find looks among the elements of b[from:to] for one with this ID.
+	find := func(from, to int, want uint32) found {
+		for off := from; off < to; {
+			id, size, body, _, ok := ebmlElement(b[off:to])
+			if !ok || size < 0 && id != want {
+				break
+			}
+			idLen := 1
+			for v := id >> 8; v > 0; v >>= 8 {
+				idLen++
+			}
+			bodyAt := off + (cap(b[off:to]) - cap(body)) // where the body starts, from the capacities
+			if id == want {
+				return found{start: off, sizeAt: off + idLen, sizeLen: bodyAt - off - idLen, size: size}
+			}
+			off = bodyAt + int(size)
+		}
+		t.Fatalf("no element %x", want)
+		return found{}
+	}
+	ebmlHead := find(0, len(b), 0x1A45DFA3)
+	seg := find(ebmlHead.sizeAt+ebmlHead.sizeLen+int(ebmlHead.size), len(b), mkvSegment)
+	segBody := seg.sizeAt + seg.sizeLen
+	tr := find(segBody, len(b), mkvTracks)
+	trBody := tr.sizeAt + tr.sizeLen
+	en := find(trBody, trBody+int(tr.size), mkvTrackEntry)
+	at := en.sizeAt + en.sizeLen + int(en.size)
+	out := append(append(append([]byte{}, b[:at]...), add...), b[at:]...)
+	grow := int64(len(add))
+	// The innermost first: each lies after the one holding it, so their positions stay put.
+	for _, e := range []found{en, tr, seg} {
+		if e.size < 0 {
+			continue // an unknown size holds anything
+		}
+		width := e.sizeLen
+		n := e.size + grow
+		for n >= int64(1)<<(7*width)-1 {
+			width++
+		}
+		field := make([]byte, width)
+		for i := range field {
+			field[i] = byte(n >> (8 * (width - 1 - i)))
+		}
+		field[0] |= byte(0x80 >> (width - 1))
+		out = append(append(append([]byte{}, out[:e.sizeAt]...), field...), out[e.sizeAt+e.sizeLen:]...)
+		grow += int64(width - e.sizeLen)
+	}
+	return out
 }
 
 func TestRealSafetyRules(t *testing.T) {

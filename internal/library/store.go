@@ -115,6 +115,7 @@ type Item struct {
 	series      string
 	director    string
 	audioFormat string
+	recIDs      *[2]string // ISRC and MusicBrainz recording, when the file was read
 }
 
 // DiscInfo is the cached summary of a DVD.

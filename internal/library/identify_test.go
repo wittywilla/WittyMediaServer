@@ -249,7 +249,7 @@ func TestDiscoverChecksNames(t *testing.T) {
 	write(t, filepath.Join(dir, "unnamed"), append([]byte("\x1A\x45\xDF\xA3\x01\x42\x82\x88matroska"), make([]byte, 1024)...))
 	write(t, filepath.Join(dir, "notes"), []byte(strings.Repeat("just some words ", 100)))
 	write(t, filepath.Join(dir, "half.mkv.part"), append([]byte("\x1A\x45\xDF\xA3"), make([]byte, 1024)...))
-	c, err := discoverClips(dir)
+	c, err := discoverClips(dir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func TestBooksLeaveOutNotes(t *testing.T) {
 	write(t, filepath.Join(dir, "Both.txt"), long)
 	write(t, filepath.Join(dir, "Both.epub"), []byte("PK\x03\x04"))
 	write(t, filepath.Join(dir, "Notes.md"), long)
-	c, err := discoverBooks(dir)
+	c, err := discoverBooks(dir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,6 +6,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -49,9 +50,12 @@ type launcher struct {
 	logFile    *serverOutput
 	running    bool
 	healthy    bool
-	wantRun    bool
-	lastErr    string
-	logPath    string
+	// answered: this run of the server has answered at least once, so not answering now
+	// means it stopped answering, not that it's still starting.
+	answered bool
+	wantRun  bool
+	lastErr  string
+	logPath  string
 	// attached: a server was already answering on this port, a background service most
 	// likely, or took this app's data folder first. Starting another would only fail, so
 	// this app just shows it.
@@ -62,7 +66,14 @@ type launcher struct {
 	// afterCrash: the next start is the tray bringing back a server that stopped by itself.
 	afterCrash bool
 
-	mStatus, mOpen, mToggle, mRestart, mData, mLog, mAuto, mAbout, mQuit *systray.MenuItem
+	// update is a newer version the server found, which the menu offers.
+	update string
+
+	mStatus, mUpdate, mOpen, mToggle, mRestart, mData, mLog, mAuto, mAbout, mQuit *systray.MenuItem
+
+	// mRemote says who can connect, in the server's own words (GET /api/remote/status).
+	mRemote     *systray.MenuItem
+	remoteAsked time.Time
 }
 
 func main() {
@@ -162,6 +173,10 @@ func (l *launcher) onReady() {
 	systray.SetTooltip("WittyMediaServer")
 	l.mStatus = systray.AddMenuItem("WittyMediaServer — starting…", "")
 	l.mStatus.Disable()
+	l.mRemote = systray.AddMenuItem("Remote Access", "Who can connect, and from where. Click to change it.")
+	l.mRemote.Hide()
+	l.mUpdate = systray.AddMenuItem("Update WittyMediaServer…", "See what's new and how to update")
+	l.mUpdate.Hide()
 	systray.AddSeparator()
 	l.mOpen = systray.AddMenuItem("Open WittyMediaServer", "Open the web app in your browser")
 	l.mToggle = systray.AddMenuItem("Stop server", "")
@@ -202,16 +217,20 @@ func (l *launcher) loop() {
 		select {
 		case <-l.mOpen.ClickedCh:
 			openURL(l.url())
+		case <-l.mRemote.ClickedCh:
+			openURL(l.url() + "/settings/remote")
+		case <-l.mUpdate.ClickedCh:
+			openURL(l.url() + "/settings/about#updates")
 		case <-l.mToggle.ClickedCh:
 			if l.isRunning() {
-				l.wantRun = false
+				l.want(false)
 				l.stop(logging.StopTrayStop)
 			} else {
-				l.wantRun = true
+				l.want(true)
 				l.start()
 			}
 		case <-l.mRestart.ClickedCh:
-			l.wantRun = true
+			l.want(true)
 			l.stop(logging.StopTrayRestart)
 			l.start()
 		case <-l.mData.ClickedCh:
@@ -243,6 +262,21 @@ func (l *launcher) isRunning() bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	return l.running
+}
+
+// want says whether the server should be kept running. A choice made in the menu starts
+// the count of quick failures again.
+func (l *launcher) want(run bool) {
+	l.mu.Lock()
+	l.wantRun, l.fails = run, 0
+	l.mu.Unlock()
+}
+
+// wantsRestart: the server should be running and isn't.
+func (l *launcher) wantsRestart() bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.wantRun && !l.running
 }
 
 func (l *launcher) start() {
@@ -291,7 +325,7 @@ func (l *launcher) start() {
 		return
 	}
 	l.cmd, l.stdin, l.logFile, l.running, l.lastErr = cmd, stdin, f, true, ""
-	l.startedAt = time.Now()
+	l.startedAt, l.answered = time.Now(), false
 	go func(c *exec.Cmd) {
 		err := c.Wait()
 		// The server installed an update and asks to be started again.
@@ -344,7 +378,7 @@ func (l *launcher) start() {
 		if restart {
 			// Crashed: back off briefly and bring it back.
 			time.Sleep(3 * time.Second)
-			if l.wantRun && !l.isRunning() {
+			if l.wantsRestart() {
 				l.mu.Lock()
 				l.afterCrash = true // its first log line says the tray started it again
 				l.mu.Unlock()
@@ -482,9 +516,17 @@ func (l *launcher) health() {
 		l.mu.Lock()
 		attached := l.attached
 		l.mu.Unlock()
+		newer := ""
+		if attached || l.isRunning() {
+			ok, newer = l.ask(c)
+		}
+		l.showRemote(c, ok)
+		l.mu.Lock()
+		if newer != l.update {
+			l.update = newer
+			l.showUpdate()
+		}
 		if attached {
-			ok = l.answering()
-			l.mu.Lock()
 			changed := ok != l.healthy
 			l.healthy = ok
 			if changed {
@@ -493,26 +535,91 @@ func (l *launcher) health() {
 			l.mu.Unlock()
 			continue
 		}
-		if l.isRunning() {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			req, _ := http.NewRequestWithContext(ctx, "GET", l.url()+"/api/health", nil)
-			if res, err := c.Do(req); err == nil {
-				res.Body.Close()
-				ok = res.StatusCode == 200
-			}
-			cancel()
-		}
-		l.mu.Lock()
 		changed := ok != l.healthy
 		l.healthy = ok
 		if ok {
 			l.fails = 0
+			l.answered = l.running
 		}
 		if changed {
 			l.refreshLocked()
 		}
 		l.mu.Unlock()
 	}
+}
+
+// showRemote puts how remote access stands in the menu, at most every half
+// minute, and hides the line while the server isn't answering.
+func (l *launcher) showRemote(c *http.Client, ok bool) {
+	if !ok {
+		l.mRemote.Hide()
+		l.remoteAsked = time.Time{}
+		return
+	}
+	if time.Since(l.remoteAsked) < 30*time.Second {
+		return
+	}
+	l.remoteAsked = time.Now()
+	subject, summary, err := readRemote(c, l.url())
+	if err != nil {
+		l.mRemote.Hide()
+		return
+	}
+	l.mRemote.SetTitle("Remote Access — " + subject)
+	l.mRemote.SetTooltip(summary + " Click to change it.")
+	l.mRemote.Show()
+}
+
+// readRemote asks the server how remote access stands. The tray needs no
+// account for this: the server answers its own computer.
+func readRemote(c *http.Client, base string) (subject, summary string, err error) {
+	res, err := c.Get(base + "/api/remote/status")
+	if err != nil {
+		return "", "", err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return "", "", fmt.Errorf("status %d", res.StatusCode)
+	}
+	var v struct{ Subject, Summary string }
+	if err := json.NewDecoder(io.LimitReader(res.Body, 64<<10)).Decode(&v); err != nil {
+		return "", "", err
+	}
+	if v.Subject == "" {
+		return "", "", fmt.Errorf("no subject")
+	}
+	return v.Subject, v.Summary, nil
+}
+
+// ask asks the server whether it's answering, and whether it has found a newer version: it
+// says so only to a program on its own computer.
+func (l *launcher) ask(c *http.Client) (ok bool, newer string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(ctx, "GET", l.url()+"/api/health", nil)
+	res, err := c.Do(req)
+	if err != nil {
+		return false, ""
+	}
+	defer res.Body.Close()
+	var h struct {
+		Update string `json:"update"`
+	}
+	_ = json.NewDecoder(io.LimitReader(res.Body, 4096)).Decode(&h)
+	if !update.Valid(h.Update) {
+		h.Update = ""
+	}
+	return res.StatusCode == http.StatusOK, h.Update
+}
+
+// showUpdate puts a newer version in the menu, or takes it out. Call with l.mu held.
+func (l *launcher) showUpdate() {
+	if l.update == "" {
+		l.mUpdate.Hide()
+		return
+	}
+	l.mUpdate.SetTitle("Update to " + l.update + "…")
+	l.mUpdate.Show()
 }
 
 func (l *launcher) refresh() {
@@ -542,6 +649,12 @@ func (l *launcher) refreshLocked() {
 	case l.running && l.healthy:
 		l.mStatus.SetTitle("● Running at " + l.url())
 		systray.SetTooltip("WittyMediaServer — running at " + l.url())
+		l.mToggle.SetTitle("Stop server")
+	case l.running && l.answered:
+		// Not "starting": a server that stops answering looks crashed from a browser, and
+		// someone looking here should see that it's still running, and can be restarted.
+		l.mStatus.SetTitle("◌ Running, but not answering")
+		systray.SetTooltip("WittyMediaServer — not answering")
 		l.mToggle.SetTitle("Stop server")
 	case l.running:
 		l.mStatus.SetTitle("◐ Starting…")

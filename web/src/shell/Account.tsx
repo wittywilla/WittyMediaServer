@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { api, cornerName, profileName } from '../api'
-import { IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
+import { IconDownload, IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
 import { Avatar } from '../pages/AuthPage'
 import { UpdateDot } from '../components/common'
 import { useApp } from '../state'
@@ -8,7 +8,7 @@ import { Menu, type MenuEntry } from '../ui/Menu'
 
 // What the account menu holds, in the top bar's corner and behind the phone's You tab.
 function useAccount() {
-  const { user, setUser, libraries } = useApp()
+  const { user, setUser, libraries, update } = useApp()
   const nav = useNavigate()
   const signOut = async () => { try { await api.post('/logout') } catch { /* ignore */ } nav('/', { replace: true }); setUser(null) }
   const items: MenuEntry[] = [
@@ -16,6 +16,8 @@ function useAccount() {
     { key: 'look', label: 'Appearance', icon: <IconPalette />, to: '/settings/appearance' },
     ...(libraries.some((l) => l.type === 'games') ? [{ key: 'pads', label: 'Controllers', icon: <IconGamepad />, to: '/controllers' }] : []),
     { key: 'settings', label: <>Settings<UpdateDot /></>, text: 'Settings', icon: <IconSettings />, to: '/settings' },
+    // Admins only: a newer version of the server, and the way to it.
+    ...(update && user?.isAdmin ? [{ key: 'update', label: `Update available: ${update}`, icon: <IconDownload />, to: '/settings/about#updates' }] : []),
     { key: 'help', label: 'Help', icon: <IconHelp />, to: '/help' },
     ...(user?.kind === 'adult' || user?.isAdmin ? [{ key: 'pair', label: 'Sign in a TV', icon: <IconTv />, to: '/pair' }] : []),
     { kind: 'separator', key: 'sep' },

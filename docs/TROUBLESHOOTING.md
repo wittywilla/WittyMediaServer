@@ -37,7 +37,7 @@ wittymediaserver doctor --fix   # fixes what it can
 | **It says the server only accepts connections from this computer** | The server is set to listen only on this computer. Set `listen` to `:9797` in its [config file](CONFIG.md), then restart it |
 | **An app doesn't list the server** | Apps find it over UDP ports 5353 and 9797, which a firewall may block. Wi-Fi with client isolation or a guest network keeps devices apart, and a container needs host networking. Check **Settings → Profiles → Signing in → Let apps find this server**. Typing the server's address in the app always works. See [Apps and devices](APPS.md) |
 | **It doesn't work away from home** | That's expected until you turn on **Settings → Remote Access**. See [Remote access](REMOTE.md), which has [its own troubleshooting](REMOTE.md#when-it-doesnt-work) |
-| **"This server is only available on its home network."** | Remote Access is off, and the server sees you as outside. Turn it on from a device at home. Behind a reverse proxy, also list the proxy as trusted: see [Remote access](REMOTE.md#a-reverse-proxy-you-already-run) |
+| **"This server is only available on its home network."** | **Settings → Remote Access** is set to **Home network only**, and the server sees you as outside. Choose a way in from a device at home. Behind a reverse proxy, also list the proxy as trusted: see [Remote access](REMOTE.md#a-reverse-proxy-you-already-run) |
 | **An app warns that this isn't the server you used before** | Compare the fingerprint with the one on your server's **Sign in a TV** page. See [Apps and devices](APPS.md#if-the-app-warns-about-the-server) |
 
 ## Setting up and signing in
@@ -120,7 +120,22 @@ Start with [If it won't play](PLAYING.md#if-it-wont-play) for anything to do wit
 | **"WittyMediaServer is already running"** | It is: a second start of the same data folder doesn't start a second server on it. **Open WittyMediaServer** opens the one that's running. **Start another server…** starts a separate one, with a data folder and port of its own (its own libraries, accounts and settings), never the same folder: two servers on one database would damage it |
 | **`wittymediaserver` says it's already running and exits with code 3** | A start without a desktop (a service, Docker, a terminal, a script) prints where the running server is and exits with code 3, instead of asking. The service files don't restart on that code. If it says the server is starting or not answering, wait a moment and try again; if it never answers, end it (Task Manager, `kill`) and start again. A server that crashed or was ended leaves nothing behind that blocks the next start |
 | **The server says port 9797 is in use** | It names what has it: another WittyMediaServer with a data folder of its own (the installed service, or a second server), or another program. Stop that, or use another port: set `listen` in the [config file](CONFIG.md), or start with `-listen :9798`. The message suggests a free one |
-| **Windows blocks the installer or the program** | Alpha builds aren't code-signed yet. Choose *More info*, then *Run anyway*. See [Installing](INSTALL.md) |
+| **Windows blocks the installer or the program** | Alpha builds aren't code-signed yet. If SmartScreen says "Windows protected your PC", choose *More info*, then *Run anyway*. If Smart App Control blocks it, see [Smart App Control on Windows](#smart-app-control-on-windows) |
+
+## Smart App Control on Windows
+
+Smart App Control is part of Windows 11's security: when it's on, Windows runs only programs and libraries that are signed by a publisher it trusts, or that Microsoft already knows. There's no way to allow one program, and **once it's turned off, Windows can't turn it on again without being reinstalled**. So we never ask you to turn it off, and you shouldn't need to.
+
+WittyMediaServer's programs aren't signed yet, so today Windows blocks them, the installer included, on a PC where it's on. Signed releases are being prepared. **Settings → About → This server** says whether it's on, and so does the [diagnoser](DIAGNOSER.md).
+
+| What you're seeing | What it means |
+|---|---|
+| **"Smart App Control is on, and … isn't signed by a publisher Windows trusts", installing a module** | Nothing was installed. WittyMediaServer's own modules will come signed. For a module from another store, ask its publisher for a signed build |
+| **"Smart App Control blocked …", starting a module** | Windows refused the module's program. Install a signed version when there is one |
+| **"… in this core isn't signed", installing a game core** | Game cores come unsigned from libretro's build server, so games can't start on this PC yet. Signed cores are planned |
+| **Smart App Control is in evaluation** | Windows is watching which programs run, and will turn it on or off by itself. It blocks nothing yet |
+
+To see whether a file is signed: right-click it in File Explorer, choose **Properties**, and look for a **Digital Signatures** tab. If it isn't there, the file isn't signed.
 
 ## Starting again
 

@@ -103,6 +103,7 @@ type Server struct {
 	TV         *livetv.Manager
 	silent     sync.Map // tuner channels whose sound can't be decoded here
 	logoMisses sync.Map // channel logos and sites that gave nothing lately, and when to try again
+	lyricsDown sync.Map // online lyrics sources that couldn't be reached lately, and when: see askOnline
 
 	mux        *http.ServeMux
 	logins     loginLimiter
@@ -172,6 +173,16 @@ func (s *Server) StartMetadata() {
 		s.Scanner.KickListings()
 	}
 	s.Scanner.OnGamesScanned = func() { s.logos().Kick() }
+	after := s.Scanner.AfterScan
+	s.Scanner.AfterScan = func(id int64) {
+		if after != nil {
+			after(id)
+		}
+		s.kickMusicMatch(id)
+	}
+	if s.DB.GetSetting(context.Background(), "music.linksMatched", "") == "" {
+		s.kickMusicMatch(0) // songs and videos scanned before links existed
+	}
 	if s.GameMeta != nil {
 		s.GameMeta.OnSettled = func() { s.logos().Kick() }
 	}
@@ -199,9 +210,7 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("GET /api/themes", s.handleThemes)
 	m.HandleFunc("GET /api/themes/{id}/download", s.handleThemeDownload)
 	m.HandleFunc("GET /api/themes/{id}/{file...}", s.handleThemeFile)
-	m.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]any{"ok": true, "instance": s.Instance})
-	})
+	m.HandleFunc("GET /api/health", s.handleHealth)
 	m.HandleFunc("GET /api/capabilities", s.handleCapabilities)
 	m.HandleFunc("POST /api/identity", s.handleIdentity)
 	m.HandleFunc("GET /api/themes/{id}/tokens.json", s.handleThemeTokens)
@@ -309,6 +318,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/pair/deny", a(s.handlePairDeny))
 	m.Handle("POST /api/pair/invite", a(s.handlePairInvite))
 	m.Handle("GET /api/playback/profiles", a(s.handlePlaybackProfiles))
+	m.Handle("GET /api/playback/speedtest", a(s.handleSpeedTest))
 	m.Handle("GET /api/media-types", a(s.handleMediaTypes))
 	m.Handle("POST /api/items/{id}/playback", a(s.handlePlayback))
 	m.Handle("POST /api/items/{id}/stream-token", a(s.handleItemStreamToken))
@@ -345,6 +355,13 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("PUT /api/music/lyrics/{id}", s.requireAdmin(s.handleLyricsSave))
 	m.Handle("DELETE /api/music/lyrics/{id}", s.requireAdmin(s.handleLyricsForget))
 	m.Handle("DELETE /api/music/lyrics-cache", s.requireAdmin(s.handleLyricsClearCache))
+	m.Handle("GET /api/music/links", s.requireAdmin(s.handleMusicLinkSuggestions))
+	m.Handle("PUT /api/music/links", s.requireAdmin(s.handleMusicLinkTie))
+	m.Handle("DELETE /api/music/links", s.requireAdmin(s.handleMusicLinkUntie))
+	m.Handle("POST /api/music/links/match", s.requireAdmin(s.handleMusicLinkMatch))
+	m.Handle("GET /api/music/links/{id}", a(s.handleMusicLinks))
+	m.Handle("GET /api/music/videos", a(s.handleMusicVideos))
+	m.Handle("GET /api/music/links/{id}/candidates", s.requireAdmin(s.handleMusicLinkCandidates))
 	m.Handle("GET /api/podcasts", a(s.handlePodcasts))
 	m.Handle("GET /api/podcasts/search", s.requireAdmin(s.handlePodcastSearch))
 	m.Handle("POST /api/podcasts", s.requireAdmin(s.handleSubscribe))
@@ -416,6 +433,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/update", s.requireAdmin(s.handleUpdate))
 	m.Handle("POST /api/update/check", s.requireAdmin(s.handleUpdateCheck))
 	m.Handle("POST /api/update/apply", s.requireAdmin(s.handleUpdateApply))
+	m.Handle("POST /api/update/installer", s.requireAdmin(s.handleUpdateInstaller))
+	m.Handle("GET /api/update/installer", s.requireAdmin(s.handleUpdateInstallerFile))
 	m.Handle("GET /api/modules", s.requireAdmin(s.handleModules))
 	m.Handle("POST /api/modules/check", s.requireAdmin(s.handleModulesCheck))
 	m.Handle("POST /api/modules/{id}/install", s.requireAdmin(s.handleModuleInstall))

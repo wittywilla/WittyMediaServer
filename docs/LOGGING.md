@@ -103,6 +103,8 @@ WARN stopping reason=tray-quit why="Quit was chosen in the tray icon" uptime=2h3
 
 The ZIP holds recent logs, crash reports, a summary of this server, a short README, and the newest three [WittyDiagnoser](DIAGNOSER.md#reports) reports with names hidden. It's made on your server when you ask, and nothing is ever uploaded.
 
+The README ends by saying what the ZIP holds: the dates its logs cover, how many crash reports there are (with no reports, `crashes/none.txt` says so), and anything from before a reset. A reset that keeps a copy moves the old logs and crash reports into that copy (`before-reset-…` in the data folder); those from the days you chose go in too, in a folder of the copy's name, and the README says how many older ones were left there.
+
 **Sanitized** replaces these with placeholders such as `[path-3]`:
 
 | Placeholder | Stands for |

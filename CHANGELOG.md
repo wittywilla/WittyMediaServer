@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Every core says which server platforms it runs on, and how it draws on yours.** Settings → Consoles & cores shows it for each core, the core choices say how each draws here, and a game the server can't run says which servers would. Every device plays what the server can run, since the server streams it.
+- **No more broken core downloads.** A core that isn't published for your server's platform isn't offered to install, and says what plays the same console instead: Beetle Supafaust has no macOS build, so a Mac suggests bsnes 2014 Performance. A weekly check finds a download that's gone before anyone meets it.
 - **PlayStation 2 plays on a Mac**, drawn by the processor like Nintendo 64 and PSP, with your own BIOS. On an Apple M3 Pro it ran mostly at full speed, slower in places, and the game's page says so first.
 - **BIOS files are found by what they are, not what they're called.** Keep them in a `BIOS` folder beside your games under any name: the server recognises each by its checksum after a library scan or when you press Play, copies what a core needs to its own BIOS folder, and never uses a file whose contents don't match. **Settings → Consoles & cores** shows each one's region, where it came from and which is in use, and a game's page names the file. A PlayStation 2 game starts on a BIOS from its own region when there's one.
 - **The game page no longer says a PlayStation 2 BIOS is missing when it's there** under another name than `scph39001.bin`.

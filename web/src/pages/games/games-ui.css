@@ -195,6 +195,9 @@ html.ten-foot .gm-page { --gm-cell: 210px; --gm-jump-gap: 140px; }
 .gm-checks .info svg { color: var(--fg-3); }
 .gm-checks span { display: grid; min-width: 0; }
 .gm-checks small { color: var(--fg-2); font-size: var(--text-xs); overflow-wrap: anywhere; }
+/* Where a core runs, and how it draws on this server: in Settings, the core choice and a game's page. */
+.gm-platforms { display: grid; gap: 2px; margin-top: var(--sp-1); min-width: 0; }
+.gm-platforms small { display: block; font-size: var(--text-xs); overflow-wrap: anywhere; }
 .gm-checks code { font-size: var(--text-xs); overflow-wrap: anywhere; }
 .gm-pad-list { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
 .gm-notes { width: 100%; resize: vertical; }

@@ -2626,6 +2626,38 @@
           "failures": {
             "type": "integer"
           },
+          "here": {
+            "anyOf": [
+              {
+                "properties": {
+                  "arch": {
+                    "type": "string"
+                  },
+                  "build": {
+                    "type": "boolean"
+                  },
+                  "draws": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "os": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "build",
+                  "draws",
+                  "os"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },

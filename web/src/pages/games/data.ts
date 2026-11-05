@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { api, mediaUrl, posterUrl, type GameConsole, type Item } from '../../api'
+import type { CoreAlternative, PlatformSupport } from './platforms'
 
 // What the game pages share: the one request for the home screen, what a game needs in
 // order to play, and where links go, which depends on whether couch mode is on.
@@ -15,6 +16,8 @@ export type GameCheck = {
   core?: { id: string; name: string; license: string }; needsGpu?: boolean; gpuMissing?: string
   // Plays, drawn by the server's processor as it has no graphics card games can use; notice is the speed caveat.
   software?: boolean; notice?: string
+  // With reason gpu: where its games would play. With reason core: a core that would play it here.
+  runsOn?: PlatformSupport[]; alternative?: CoreAlternative
   // using: the file a core that takes any name starts this game with; from: where it was found by its checksum.
   bios: { file: string; for: string; required: boolean; found: boolean; using?: string; from?: string }[]; biosFolder?: string
 }

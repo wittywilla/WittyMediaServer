@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import { IconClose, IconFull, IconMute, IconVolume } from '../../icons'
 import { PREVIEW_SIZES, previewSizeName, setLook, type Look } from './look'
 import { PREVIEW_MIN } from './tvThemes'
-import { liveNow, liveVideo, useLive } from './live'
+import { liveNow, liveVideo, useBackgroundPlay, useLive } from './live'
+import { letGo } from './backgroundPlay'
 import Slate from './Slate'
 
 // The little TV on the guide. It waits for the highlight to settle before
 // tuning, because each channel it shows runs a stream, and moving on leaves the
 // last at once, so a channel that was only flicked past stops. With the tab in the
-// background it stops altogether. The picture is the TV section's one player
-// (live.ts): the channel that was being watched carries on here without tuning
+// background it carries on, unless this device turned off "Keep playing when this tab is in
+// the background" (backgroundPlay.ts), when it stops until the tab is shown. The picture is the
+// TV section's one player (live.ts): the channel that was being watched carries on here without tuning
 // again, and carries on into the watch view the same way.
 //
 // It sits in the page's layout, not over it, so it can't cover anything. It starts at
@@ -29,6 +31,8 @@ export default function Preview({ channel, label, look, max, start }: { channel:
   const box = useRef<HTMLDivElement | null>(null)
   const screen = useRef<HTMLDivElement | null>(null)
   const [hidden, setHidden] = useState(() => document.hidden)
+  const { keep } = useBackgroundPlay()
+  const away = letGo(hidden, keep)
   // The channel this asks the player for: the highlighted one once it has settled, or at once
   // when it's the one already playing.
   const [want, setWant] = useState(() => (channel && channel === liveNow().key ? channel : ''))
@@ -43,12 +47,12 @@ export default function Preview({ channel, label, look, max, start }: { channel:
   }, [])
 
   useEffect(() => {
-    if (!channel || hidden) { setWant(''); return }
+    if (!channel || away) { setWant(''); return }
     if (channel === liveNow().key) { setWant(channel); return }
     setWant('')
     const t = setTimeout(() => setWant(channel), SETTLE_MS)
     return () => clearTimeout(t)
-  }, [channel, hidden])
+  }, [channel, away])
 
   useLayoutEffect(() => {
     const v = liveVideo()
@@ -68,7 +72,7 @@ export default function Preview({ channel, label, look, max, start }: { channel:
   }, [mine, live.ready]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (mine) liveVideo().muted = !look.previewSound }, [mine, look.previewSound])
   const failed = mine && !!live.err
-  const state = !channel || hidden ? 'idle' : failed ? 'failed' : mine && shown && live.playing ? 'playing' : 'tuning'
+  const state = !channel || away ? 'idle' : failed ? 'failed' : mine && shown && live.playing ? 'playing' : 'tuning'
   const msg = failed ? live.err : ''
   const info = mine ? live.info : null
 

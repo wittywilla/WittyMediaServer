@@ -323,9 +323,12 @@ type consoleView struct {
 	GPUMissing string `json:"gpuMissing,omitempty"`
 	// Software: there's no graphics card here, so the processor draws its games, and Notice
 	// says what that means for how they run.
-	Software bool                `json:"software,omitempty"`
-	Notice   string              `json:"notice,omitempty"`
-	Pad      wittyplay.PadLayout `json:"pad"`
+	Software bool   `json:"software,omitempty"`
+	Notice   string `json:"notice,omitempty"`
+	// CoreSupport is, for each core on offer, the server platforms it runs on and how it draws
+	// on each, and here. Every device plays what any of them runs: the server streams it.
+	CoreSupport map[string]coreSupport `json:"coreSupport,omitempty"`
+	Pad         wittyplay.PadLayout    `json:"pad"`
 	// Count: with ?library=<id>, how many games that library holds for this console.
 	Count int `json:"count,omitempty"`
 	// For Settings, Consoles & cores: BIOS files in place, what's stopping it from starting
@@ -357,13 +360,24 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 		if v.Cores == nil {
 			v.Cores = []wittyplay.Core{}
 		}
+		v.CoreSupport = map[string]coreSupport{}
 		for _, want := range c.Cores {
 			if got, ok := byID[want.ID]; ok {
 				v.Installed = append(v.Installed, got)
 			}
-			if wittyplay.Traits(want.ID).GPU {
+			gpuCore := wittyplay.Traits(want.ID).GPU
+			if gpuCore {
 				v.GPUCores = append(v.GPUCores, want.ID)
+				if gpuWhy == nil {
+					why := s.gpuMissing(ctx)
+					gpuWhy = &why
+				}
 			}
+			noGPU := ""
+			if gpuWhy != nil {
+				noGPU = *gpuWhy
+			}
+			v.CoreSupport[want.ID] = coreSupportFor(want.ID, gpuCore, noGPU)
 		}
 		v.NeedsGPU = len(c.Cores) > 0 && len(v.GPUCores) == len(c.Cores)
 		for _, got := range all {
@@ -1449,11 +1463,27 @@ func (s *Server) handleCoreInstall(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "this server does not offer that core")
 		return
 	}
+	// Not published for this platform: said plainly, with what to use instead, rather than
+	// found out from the download server's 404.
+	if has, known := coreBuildFor(id, runtime.GOOS, runtime.GOARCH); known && !has {
+		writeJSON(w, 409, noBuildRefusal(offeredCoreName(id), s.alternativeCore(r.Context(), id)))
+		return
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Minute)
 	defer cancel()
 	c, err := s.games().cores.Install(ctx, id)
 	if err != nil {
 		s.Log.WarnContext(r.Context(), "could not install a core", "cat", "games", "core", id, "err", err)
+		if strings.Contains(err.Error(), "404") {
+			// The table said it was there; the download server says not now.
+			out := noBuildRefusal(offeredCoreName(id), s.alternativeCore(r.Context(), id))
+			out["error"] = offeredCoreName(id) + " isn't on the download server for " + platformWords(runtime.GOOS, runtime.GOARCH) + " right now."
+			if alt, ok := out["alternative"].(*coreAlternative); ok {
+				out["error"] = out["error"].(string) + " " + alt.Name + " plays " + alt.Console + " games here instead."
+			}
+			writeJSON(w, 502, out)
+			return
+		}
 		writeErr(w, 502, "The core could not be installed: "+err.Error())
 		return
 	}

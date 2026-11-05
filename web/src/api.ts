@@ -1,6 +1,7 @@
 // Thin API client. The server sets an HttpOnly cookie on login; we also keep
 // the token in localStorage for native wrappers / cross-origin use.
 import { reportRequestFailure } from './errorReport'
+import type { CoreSupport } from './pages/games/platforms'
 
 export type User = { id: number; name: string; displayName?: string; showUsername?: boolean; isAdmin: boolean; createdAt: number; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; twoFactor?: boolean }
 // `name` is the username: unique, and what signing in uses. A profile name is what
@@ -98,6 +99,8 @@ export type GameConsole = {
   reason?: 'unavailable' | 'core' | 'gpu'; message?: string; gpuMissing?: string
   // Ready, with the processor drawing its games: no graphics card here. notice is the speed caveat.
   software?: boolean; notice?: string
+  // Where each core on offer runs, how it draws there, and here: see pages/games/platforms.tsx.
+  coreSupport?: Record<string, CoreSupport>
   customCores?: GameCore[]; defaultCore?: string; shared?: string[]; padLike?: string; logoName?: string
   pad: { face: { id: number; label: string }[]; shoulder?: { id: number; label: string }[]; meta: { id: number; label: string }[]; sticks?: boolean }
 }

@@ -153,6 +153,8 @@ If a game won't load on the chosen core, the other installed cores for that cons
 
 Each card lists the other cores offered, with their licenses. Non-commercial cores are never offered.
 
+Each core also says which server platforms it runs on, and how it draws on yours: on a graphics card, by the processor, or not at all. A core that isn't published for your server's platform isn't offered to install: Beetle Supafaust, for example, has no build for macOS, so a Mac server suggests bsnes 2014 Performance for Super Nintendo instead. Every device plays whatever your server can run, since the server runs the game and streams it.
+
 ### Consoles that need a graphics card
 
 Those consoles are drawn on the server's graphics card, and they run on Windows and Linux servers. Older consoles need no graphics card anywhere.

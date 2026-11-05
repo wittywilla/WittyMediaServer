@@ -36,7 +36,7 @@ trip through the app switcher loses nothing.
 |---|---|---|
 | `GET /games/home?library=` | user | The games home screen in one answer: `hero`, `continue` (`{item, plays, lastPlayed, save}`), `recent`, `favourites`, `favouriteIds`, `mostPlayed`, and `shelves` (`{kind: "genre" or "series", name, count, items}`) |
 | `GET /games/{id}/check` | user | What a game needs and whether this server has it: `{ready, reason, message, core, needsGpu, gpuMissing, software, notice, bios: [{file, for, required, found, using, from}]}`. For a BIOS a core takes under any name (PlayStation 2), `using` is the file this game starts with, and `from` is where the server found it by its checksum. `reason` is `core`, `bios`, `gpu` or `unavailable`, and `message` says it for people. See [Games this server can't draw](#games-this-server-cant-draw) |
-| `GET /games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed`, and when it isn't ready, `reason` (`unavailable`, `core` or `gpu`) and `message`. `gpuMissing`, `software` and `notice` as for a game's check. With `?library=<id>`, also `count`: that library's games for it |
+| `GET /games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed`, and when it isn't ready, `reason` (`unavailable`, `core` or `gpu`) and `message`. `gpuMissing`, `software` and `notice` as for a game's check. `coreSupport`: [which platforms each core runs on](#which-platforms-a-core-runs-on). With `?library=<id>`, also `count`: that library's games for it |
 | `GET /games/modes?client=native` | user | What this server can stream, best first |
 | `GET /consoles/{console}/controls?device=` | user | The controller as data |
 | `PUT /consoles/{console}/controls` | user | Saves one layout, or removes it |
@@ -99,8 +99,39 @@ presses Play, in the same words everywhere, and refuses to start such a game rat
 | `notice` | check, consoles | That speed caveat, in words for people |
 
 On a server with a card, none of these appear except `needsGpu`. A console whose cores can't draw without a card
-(PlayStation 2, Dreamcast, 3DS) shows `reason: "gpu"` even with no core installed, since installing one wouldn't help.
-Nintendo 64 and PSP have cores that can have the processor draw, so with none installed they say `reason: "core"`.
+(Dreamcast, 3DS) shows `reason: "gpu"` even with no core installed, since installing one wouldn't help. Nintendo 64,
+PSP and PlayStation 2 have cores that can have the processor draw, so with none installed they say `reason: "core"`.
+With `reason: "gpu"`, `runsOn` lists the server platforms its games would play on (see below).
+
+### Which platforms a core runs on
+
+Every device plays every game: the server runs it and streams it. What decides whether a game plays is the server's
+platform: whether its core is published there, and how it draws there. `GET /games/consoles` and `GET /gaming` give,
+for each console, `coreSupport`: for each core on offer, `{here, platforms}`.
+
+| Field | Meaning |
+|---|---|
+| `platforms` | One entry for each server platform: `{os, arch, build, draws, api, note}`. `os` is `windows`, `linux`, `macos` or `freebsd`; `arch` is `x64`, `arm64` or `arm32` (none for FreeBSD, which has no prebuilt cores) |
+| `here` | The same for this server, with this server's graphics card taken into account |
+| `build` | A download is published for that platform. Without one, the core isn't offered to install there |
+| `draws` | `gpu`: on the server's graphics card. `cpu`: by the processor, as the core always is. `cpu-fallback`: a graphics card's core drawn by the processor because the server has no card it can use, slower. `none`: it can't play there |
+| `api` | With `draws: "gpu"` only: how the runner reaches the card. `opengl` today, everywhere; `vulkan` and `metal` are reserved for when the runner offers them |
+| `note` | In words: what that means, or the speed measured, such as "Full speed on an Apple M3 Pro, on about one processor core." |
+
+Where it shows: Settings → Consoles & cores, for each console and each core; the core a console or a game plays with
+(`GET /gaming/games/{id}/core` gives each option's `here`); and a game's page, where `GET /games/{id}/check` adds:
+
+| Field | When | Meaning |
+|---|---|---|
+| `runsOn` | `reason: "gpu"` or `"core"` | `[{os, arch, build, draws, api, note}]`: the platforms where one of its console's cores plays it, with the best way it draws there |
+| `alternative` | `reason: "core"` | `{id, name, console}`: a core that would play it on this server, once installed |
+| `noBuild: true` | `reason: "core"` | Not one of its console's cores is published for this server's platform, so installing can't help: show it as not on this server, with `runsOn` |
+
+**Downloads.** `internal/server/corebuilds.txt` says which platforms each core is published for, from libretro's build
+server; CI checks every listed download weekly (`scripts/corebuilds`). `POST /gaming/cores/{id}/install` for a core
+with no build for this server answers 409 `{error, noBuild: true, platform, alternative}`, where `platform` is like
+`macos/arm64` and `alternative` is `{id, name, console}`: a core that plays the same console here. If the download
+server answers 404 anyway, the answer is 502 with the same fields.
 
 **A game in an archive** has to be unpacked before it starts, which can take minutes for a large disc on a small server.
 `POST /games/{id}/play` takes that long, which is fine as long as your HTTP client's timeout allows it. To show

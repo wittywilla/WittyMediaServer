@@ -11,6 +11,7 @@ import RegionOrder from './RegionOrder'
 import { PageHead, Section } from './ui'
 import LegalNote from '../../components/LegalNote'
 import '../games/games-ui.css'
+import { CorePlatforms, type CoreAlternative } from '../games/platforms'
 
 // Settings, Consoles & cores. What most people need is one screen: each console they have
 // games for, whether it's ready to play, and the one thing to do if it isn't. Everything
@@ -27,6 +28,13 @@ type Status = {
 }
 
 type Standing = 'ready' | 'core' | 'bios' | 'gpu' | 'none'
+
+// The core to suggest for a console: the first on offer that's published for this server and can
+// draw here, as the server says (coreSupport), or the first on offer when it doesn't say.
+const recommended = (c: GameConsole) => c.cores.find((x) => {
+  const h = c.coreSupport?.[x.id]?.here
+  return !h || (h.build && h.draws !== 'none')
+}) || c.cores[0]
 
 const regionWords: Record<string, string> = { usa: 'USA', europe: 'Europe', japan: 'Japan', asia: 'Asia', china: 'China', taiwan: 'Taiwan', russia: 'Russia' }
 
@@ -82,7 +90,8 @@ export default function GamingSettings() {
       } catch (e: any) {
         // Not every core is built for every system (Beetle Supafaust has no build for a Mac with
         // Apple silicon): offer the console's next one, with its licence in view as always.
-        const next = /404/.test(String(e.message)) ? nextCore(c.id) : undefined
+        const alt = e?.data?.alternative as CoreAlternative | undefined
+        const next = alt ? st?.consoles.flatMap((x) => x.cores).find((x) => x.id === alt.id) : /404/.test(String(e.message)) ? nextCore(c.id) : undefined
         if (next) {
           toast(`${c.name} isn’t built for this server. ${next.name} is the next choice.`)
           if (!instead.some((x) => x.id === next.id)) instead.push(next)
@@ -123,12 +132,12 @@ export default function GamingSettings() {
   const offered = new Set(st.consoles.filter((c) => !c.id.startsWith('custom-')).flatMap((c) => c.cores.map((x) => x.id)))
   const extra = st.cores.filter((c) => !known.has(c.id) && c.source !== 'custom')
   const readyCount = withGames.filter((c) => standingOf(c, gpuOk) === 'ready').length
-  const missing = st.canDownload ? withGames.filter((c) => !c.unavailable && !c.ready && c.reason !== 'gpu' && c.cores.length > 0 && offered.has(c.cores[0].id)).map((c) => c.cores[0]) : []
+  const missing = st.canDownload ? withGames.filter((c) => !c.unavailable && !c.ready && c.reason !== 'gpu' && recommended(c) && offered.has(recommended(c)!.id)).map((c) => recommended(c)!) : []
   const uniqueMissing = [...new Map(missing.map((c) => [c.id, c])).values()]
 
   const card = (c: ConsoleRow) => {
     const s = standingOf(c, gpuOk)
-    const first = c.cores[0]
+    const first = recommended(c)
     const needed = (c.bios || []).filter((b) => b.required)
     const found = new Set(c.biosFound || [])
     const biosList = c.bios || []
@@ -160,16 +169,19 @@ export default function GamingSettings() {
           <details className="gm-setup-more">
             <summary>Cores and BIOS files</summary>
             <ul className="gm-setup-cores">
-              {c.cores.map((core, i) => {
+              {c.cores.map((core) => {
                 const have = installed.get(core.id)
                 return (
                   <li key={core.id}>
-                    <span className="gaming-core"><span><b>{core.name}</b>{i === 0 && <span className="pill gaming-rec">Recommended</span>}</span><small className="muted">License: {core.license}{have && have.source !== 'installed' && have.source !== 'custom' ? ` · found in ${have.source === 'retroarch' ? 'your RetroArch folder' : 'a system folder'}` : have?.source === 'custom' ? ' · custom' : ''}</small></span>
+                    <span className="gaming-core"><span><b>{core.name}</b>{core.id === recommended(c)?.id && <span className="pill gaming-rec">Recommended</span>}</span><small className="muted">License: {core.license}{have && have.source !== 'installed' && have.source !== 'custom' ? ` · found in ${have.source === 'retroarch' ? 'your RetroArch folder' : 'a system folder'}` : have?.source === 'custom' ? ' · custom' : ''}</small>
+                      <CorePlatforms support={c.coreSupport?.[core.id]} /></span>
                     {have
                       ? have.source === 'installed'
                         ? <button type="button" className="btn sm ghost" disabled={!!busy} onClick={() => remove(core.id, core.name)} aria-label={`Remove ${core.name}`}>{busy === core.id ? 'Removing…' : 'Remove'}</button>
                         : <span className="muted">Ready</span>
-                      : st.canDownload && offered.has(core.id) && <button type="button" className="btn sm" disabled={!!busy} onClick={() => setConfirm([core])} aria-label={`Install ${core.name}`}>{busy === core.id ? 'Installing…' : 'Install'}</button>}
+                      : c.coreSupport?.[core.id] && !c.coreSupport[core.id].here.build
+                        ? <span className="muted">Not for this server</span>
+                        : st.canDownload && offered.has(core.id) && <button type="button" className="btn sm" disabled={!!busy} onClick={() => setConfirm([core])} aria-label={`Install ${core.name}`}>{busy === core.id ? 'Installing…' : 'Install'}</button>}
                   </li>
                 )
               })}

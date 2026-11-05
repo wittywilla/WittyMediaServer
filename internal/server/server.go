@@ -172,7 +172,10 @@ func (s *Server) StartMetadata() {
 		s.logos().Kick()
 		s.Scanner.KickListings()
 	}
-	s.Scanner.OnGamesScanned = func() { s.logos().Kick() }
+	s.Scanner.OnGamesScanned = func() {
+		s.logos().Kick()
+		s.sweepBIOS(true) // BIOS files that came with the games, found by their checksums
+	}
 	after := s.Scanner.AfterScan
 	s.Scanner.AfterScan = func(id int64) {
 		if after != nil {

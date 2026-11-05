@@ -270,7 +270,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
             {(check?.bios || []).filter((b) => b.required || b.found).map((b) => (
               <li key={b.file} className={b.found ? 'ok' : 'no'}>
                 {b.found ? <IconCheck size={16} /> : <IconInfo size={16} />}
-                <span><b>BIOS: <code>{b.file}</code></b><small>{b.found ? `Found. ${b.for}.` : `Not found yet. ${b.for}. Put your own copy in a folder named ${check?.biosFolder || 'BIOS'} beside these games.`}</small></span>
+                <span><b>BIOS: <code>{b.using || b.file}</code></b><small>{b.found ? `Found${b.from ? ' by its checksum' : ''}. ${b.for}.` : `Not found yet. ${b.for}. Put your own copy in a folder named ${check?.biosFolder || 'BIOS'} beside these games.`}</small></span>
               </li>
             ))}
             {c?.unavailable && <li className="no"><IconInfo size={16} /><span><b>Not playable here yet</b><small>{c.unavailable}</small></span></li>}

@@ -19,13 +19,16 @@ import '../games/games-ui.css'
 // A core is someone else's program, so nothing is installed without being asked for, with
 // its licence in view first.
 
-type ConsoleRow = GameConsole & { biosFound?: string[]; blocked?: string; totalGames?: number }
+type BiosFile = { file: string; from?: string; region?: string; using?: boolean }
+type ConsoleRow = GameConsole & { biosFound?: string[]; biosFiles?: BiosFile[]; blocked?: string; totalGames?: number }
 type Status = {
   runner: string; encoders: string[]; consoles: ConsoleRow[]; cores: GameCore[]; canDownload: boolean
   coresDir: string; systemDir: string; running: number; unpackedBytes?: number; biosFolder: string; gpu?: { name?: string; error?: string; checking?: boolean }
 }
 
 type Standing = 'ready' | 'core' | 'bios' | 'gpu' | 'none'
+
+const regionWords: Record<string, string> = { usa: 'USA', europe: 'Europe', japan: 'Japan', asia: 'Asia', china: 'China', taiwan: 'Taiwan', russia: 'Russia' }
 
 function standingOf(c: ConsoleRow, gpuOk: boolean): Standing {
   if (c.unavailable) return 'none'
@@ -167,6 +170,20 @@ export default function GamingSettings() {
                     </li>
                   ))}
                 </ul>
+                {(c.biosFiles?.length ?? 0) > 0 && (
+                  <>
+                    <p className="muted gm-setup-note">In this server’s BIOS folder:</p>
+                    <ul className="gm-checks">
+                      {c.biosFiles!.map((f) => (
+                        <li key={f.file} className="ok">
+                          <IconCheck size={16} />
+                          <span><code>{f.file.split('/').pop()}</code>
+                            <small>{[f.using ? 'In use' : '', f.region ? regionWords[f.region] || f.region : '', f.from ? `Found by its checksum in ${f.from}` : 'Put there by hand, or found by its name'].filter(Boolean).join('. ')}.</small></span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </>
             )}
           </details>
@@ -193,7 +210,7 @@ export default function GamingSettings() {
         <ol className="gm-bios-steps">
           <li>Make a folder named <code>{st.biosFolder}</code> inside a console’s games folder, such as <code>PS2/{st.biosFolder}</code>. Folders inside it are fine, and it’s never listed as a game.</li>
           <li>Put your BIOS files in it. Each console above lists the files it looks for.</li>
-          <li>Press Play. The server copies what it needs to its own BIOS folder, and leaves yours alone.</li>
+          <li>That’s all. The server recognises each file by its checksum, whatever it’s called, after a library scan or when you press Play, copies what a core needs to its own BIOS folder, and leaves yours alone. A file with the right name and the wrong contents is never used.</li>
         </ol>
         <p className="muted gm-long-path">You can also put files straight into <code>{st.systemDir}</code>. A PlayStation 2 BIOS goes in <code>pcsx2/bios</code> inside it.</p>
       </Section>

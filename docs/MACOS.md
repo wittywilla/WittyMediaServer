@@ -27,7 +27,7 @@ As of 0.7.0-alpha, 2026-11-04. "CI" means GitHub's Mac runners: virtual Macs, Ap
 | `.pkg` installer | Every pull request and release, unsigned | Installed, the service answers on port 9797, uninstalled, on both chips | No |
 | Bundled FFmpeg | Downloaded and checked against `scripts/ffmpeg.lock` | Runs, and lists VideoToolbox's encoders | No |
 | Module helpers (every module) | Every module's CI cross-compiles darwin/amd64 and darwin/arm64 | No | No |
-| Helper sandbox (`sandbox-exec`) | Yes | `TestMacHelperSandbox`: writing, removing, the network, Unix sockets and starting programs were all refused inside it, and a helper allowed more kept it | No |
+| Helper sandbox (`sandbox-exec`) | Yes | `TestMacHelperSandbox`: writing, removing, the network, Unix sockets and starting programs were all refused inside it, and a helper allowed more kept it. Signalling the server was not refused, though the profile asks for that | No |
 | Games (WittyPlay) | Yes | No | No |
 | WittyMediaClient desktop (`.dmg`) | Every push, on a Mac | No | No |
 | WittyMediaClient for Mac, iPhone, iPad, Apple TV | On a Mac in CI, unsigned | WittyKit's tests | No |

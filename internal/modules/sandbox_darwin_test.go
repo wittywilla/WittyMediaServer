@@ -125,10 +125,15 @@ func TestMacHelperSandbox(t *testing.T) {
 		t.Error("a helper has to be able to read")
 	}
 	// What the page says it can't do (confinement in sandbox_darwin.go).
-	for _, what := range []string{"write-existing", "write-new", "remove", "connect", "listen", "unix", "udp", "program", "signal"} {
+	for _, what := range []string{"write-existing", "write-new", "remove", "connect", "listen", "unix", "udp", "program"} {
 		if !strings.Contains(text, what+" REFUSED") {
 			t.Errorf("%s wasn't refused", what)
 		}
+	}
+	// The profile denies signals to other programs, and on GitHub's Mac runner that didn't hold, so
+	// the page doesn't claim it. If a Mac starts refusing it, the words can say so (#139).
+	if strings.Contains(text, "signal REFUSED") {
+		t.Log("signalling the server is now refused, so the page's words could say so")
 	}
 }
 

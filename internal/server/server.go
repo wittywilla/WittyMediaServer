@@ -100,6 +100,7 @@ type Server struct {
 	TV         *livetv.Manager
 	silent     sync.Map // tuner channels whose sound can't be decoded here
 	logoMisses sync.Map // channel logos and sites that gave nothing lately, and when to try again
+	lyricsDown sync.Map // online lyrics sources that couldn't be reached lately, and when: see askOnline
 
 	mux        *http.ServeMux
 	logins     loginLimiter

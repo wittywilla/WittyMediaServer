@@ -11591,6 +11591,93 @@
         "x-wms-auth": "admin"
       }
     },
+    "/channels/{id}/reset": {
+      "post": {
+        "description": "Throws away the channel's schedule, what is on now included, and makes it again from its current settings and the titles that match them now, as if it had always run that way. Each show carries on from where it was at the start of today unless `startOver` (which also picks a new shuffle). Anyone watching moves to the new schedule without an error; `watching` says whether anyone was. Every account's reminders for the channel's programmes still to start are kept, moved to the programme's new time, or removed when it no longer airs in the next 15 days. Library channels can't be recorded, so no recordings change.",
+        "operationId": "postChannelsIdReset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "startOver": {
+                    "description": "Start every show from its first episode, and shuffle again.",
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "watching": {
+                      "description": "The channel was running, and its viewers moved to the new schedule.",
+                      "type": "boolean"
+                    },
+                    "reminders": {
+                      "properties": {
+                        "dropped": {
+                          "type": "integer"
+                        },
+                        "droppedTitles": {
+                          "description": "Up to six titles that no longer air, for a note: a sixth means there are others.",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "kept": {
+                          "type": "integer"
+                        },
+                        "moved": {
+                          "type": "integer"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The channel has its new schedule."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reset channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/channels/{id}/restore": {
       "post": {
         "operationId": "postChannelsIdRestore",
@@ -32774,11 +32861,33 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "brandColouring": {
+                      "description": "How the name is coloured: auto, one, or pick: and the coloured ranges in code points (pick:5-10,16-22).",
+                      "type": "string"
+                    },
                     "brandLogo": {
                       "type": "string"
                     },
                     "brandName": {
                       "type": "string"
+                    },
+                    "brandParts": {
+                      "description": "The name to show (the default when brandName is empty), ready to draw: parts with accent in the theme colour.",
+                      "items": {
+                        "properties": {
+                          "accent": {
+                            "type": "boolean"
+                          },
+                          "text": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "legalAck": {
                       "description": "False while an administrator should still see the first-run notice.",
@@ -33485,8 +33594,30 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "brandColouring": {
+                      "description": "As in /status.",
+                      "type": "string"
+                    },
                     "brandName": {
                       "type": "string"
+                    },
+                    "brandParts": {
+                      "description": "As in /status: the name to show, ready to draw.",
+                      "items": {
+                        "properties": {
+                          "accent": {
+                            "type": "boolean"
+                          },
+                          "text": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "default": {
                       "type": "string"

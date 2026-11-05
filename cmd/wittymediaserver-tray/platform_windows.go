@@ -7,9 +7,11 @@ import (
 	"os/exec"
 	"syscall"
 
+	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 const runKey = `Software\Microsoft\Windows\CurrentVersion\Run`
@@ -63,4 +65,17 @@ func serviceInstalled() bool {
 	}
 	k.Close()
 	return true
+}
+
+var procGetSystemMetrics = windows.NewLazySystemDLL("user32.dll").NewProc("GetSystemMetrics")
+
+// endReason: Windows closes the tray app when it shuts down or signs out, and when an
+// installer's Restart Manager needs its files. The window message that would say which
+// isn't passed on by the tray library, so a shutdown is told apart by asking Windows.
+func endReason() string {
+	const smShuttingDown = 0x2000
+	if r, _, _ := procGetSystemMetrics.Call(smShuttingDown); r != 0 {
+		return logging.StopShutdown
+	}
+	return logging.StopTrayClosed
 }

@@ -8,3 +8,6 @@
 .tv-remind-actions .btn { min-height: 36px; }
 .player .tv-remind { position: absolute; top: 64px; bottom: auto; }
 @media (max-width: 720px) { .tv-remind-actions .btn { min-height: 44px; } }
+
+/* Reset channel's question (resetChannel.tsx). */
+.tv-reset-para { display: block; margin: 0 0 var(--sp-2); }

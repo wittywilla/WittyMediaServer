@@ -323,6 +323,7 @@ func (s *Server) handleRepairRestart(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, 202, map[string]any{"restarting": s.Restart != nil})
 	if s.Restart != nil {
+		logging.NoteStop(logging.StopRestartSetting, "a database repair", userFrom(r).Name)
 		time.AfterFunc(300*time.Millisecond, s.Restart)
 	}
 }

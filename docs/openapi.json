@@ -6262,6 +6262,132 @@
         ],
         "type": "object"
       },
+      "MusicVideoCard": {
+        "properties": {
+          "comments": {
+            "type": "integer"
+          },
+          "creator": {
+            "type": "string"
+          },
+          "creatorId": {
+            "type": "integer"
+          },
+          "durationSec": {
+            "type": "number"
+          },
+          "hasAvatar": {
+            "type": "boolean"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "libraryId": {
+            "type": "integer"
+          },
+          "likes": {
+            "type": "integer"
+          },
+          "origLikes": {
+            "type": "integer"
+          },
+          "origViews": {
+            "type": "integer"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "playlist": {
+            "type": "string"
+          },
+          "positionSec": {
+            "type": "number"
+          },
+          "reaction": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "song": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicLinkSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "syncMs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer"
+          },
+          "uploadDate": {
+            "type": "string"
+          },
+          "vertical": {
+            "type": "boolean"
+          },
+          "views": {
+            "type": "integer"
+          },
+          "watched": {
+            "type": "boolean"
+          },
+          "width": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "comments",
+          "creator",
+          "creatorId",
+          "durationSec",
+          "hasAvatar",
+          "height",
+          "id",
+          "libraryId",
+          "likes",
+          "origLikes",
+          "origViews",
+          "positionSec",
+          "reaction",
+          "tags",
+          "title",
+          "updatedAt",
+          "uploadDate",
+          "vertical",
+          "views",
+          "watched",
+          "width"
+        ],
+        "type": "object"
+      },
       "Network": {
         "properties": {
           "genres": {

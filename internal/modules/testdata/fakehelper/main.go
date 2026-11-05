@@ -27,6 +27,9 @@ func main() {
 	if slices.Contains(do, "die-at-start") {
 		os.Exit(3)
 	}
+	if slices.Contains(do, "slow-hello") {
+		time.Sleep(1500 * time.Millisecond) // a machine too busy to start it on time
+	}
 	if slices.Contains(do, "wrong-version") {
 		m.Version = "9.9.9"
 		raw, _ = json.Marshal(m)

@@ -38,6 +38,9 @@ func TestMain(m *testing.M) {
 	if len(os.Args) > 1 && os.Args[1] == SandboxFlag {
 		os.Exit(RunSandboxed(os.Args[2:]))
 	}
+	// Most tests fail a version a few times in a row on purpose: each counts. The tests of
+	// failures that come together (failing_test.go) set this themselves.
+	failSpacing = 0
 	os.Exit(m.Run())
 }
 
@@ -759,7 +762,14 @@ func TestHangingVersionIsKilled(t *testing.T) {
 	if time.Since(start) > 20*time.Second {
 		t.Fatal("took too long")
 	}
-	usesBuiltin(t, m)
+	// The only version there is rests rather than going out of use for good (issue #265), and
+	// the server's own way answers meanwhile.
+	if s := one(t, m); !strings.Contains(s.Notice, "resting") {
+		t.Fatalf("%+v", s)
+	}
+	if w, _ := (PhotoEngine{m}).Dimensions(filepath.Join(t.TempDir(), "missing.jpg")); w != 0 {
+		t.Fatal("not the built-in way while it rests")
+	}
 }
 
 func TestManualRollback(t *testing.T) {

@@ -69,7 +69,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"user":              u,
 		"brandName":         s.DB.GetSetting(r.Context(), "brandName", ""),
 		"brandLogo":         s.DB.GetSetting(r.Context(), "brandLogo", ""),
-		"theme":             s.DB.GetSetting(r.Context(), "theme", "default"),
+		"theme":             s.serverTheme(r.Context()),
 	})
 }
 

@@ -126,7 +126,7 @@ func newCustomService(dir, system string, placed []string, client *http.Client) 
 // checks each address as it connects so a name can't resolve its way somewhere
 // private, but with no proxy: through a proxy that check would only see the proxy.
 func customFetchClient() *http.Client {
-	tr := library.SafeClient.Transport.(*http.Transport).Clone()
+	tr := library.SafeTransport()
 	tr.Proxy = nil
 	return &http.Client{Transport: tr}
 }

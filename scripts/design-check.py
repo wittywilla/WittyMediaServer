@@ -24,6 +24,11 @@ that isn't listed must be clean. So:
 
 A line can opt out, when there is a real reason, by saying why:
   /* design-ok: the disc's own colour */      {/* design-ok: ... */}      // design-ok: ...
+
+In CSS, a drawing of a real object that keeps its own colours in every theme, such as
+a remote control, can say so once for the whole stretch. Its colours and corners are then
+its own; the other rules still apply:
+  /* design-ok-begin: a drawn remote control */   ...   /* design-ok-end */
 """
 import json, pathlib, re, sys
 
@@ -32,6 +37,8 @@ BASELINE = pathlib.Path('scripts/design-check-baseline.json')
 # Where colours and scales are defined, and code that isn't interface: not checked.
 SKIP = {'styles.css'}
 # Inside :root and theme blocks of styles.css colours are the definition.
+# What a drawing of an object, between design-ok-begin and design-ok-end, may have of its own.
+DRAWN_OWN = {'raw-colour', 'radius'}
 OK_COLOUR_WORDS = {'transparent', 'currentcolor', 'inherit'}
 
 CSS_COLOUR = re.compile(r'#[0-9a-fA-F]{3,8}\b|\brgba?\(\s*\d|\bhsla?\(\s*\d')
@@ -61,9 +68,14 @@ def good_radius(v):
 def css_problems(text):
     found = []
     text = re.sub(r'/\*(?!\s*design-ok).*?\*/', lambda m: '\n' * m.group(0).count('\n'), text, flags=re.S)
+    drawn = False
     for n, line in enumerate(text.split('\n'), 1):
+        if 'design-ok-begin' in line or 'design-ok-end' in line:
+            drawn = 'design-ok-begin' in line
+            continue
         if 'design-ok' in line:
             continue
+        start = len(found)
         # A declaration of a variable is a definition, not a use.
         body = re.sub(r'--[\w-]+:\s*[^;{}]+;', '', line)
         for m in CSS_COLOUR.finditer(body):
@@ -85,6 +97,8 @@ def css_problems(text):
             found.append((n, 'transition-all', 'transition: all'))
         if re.search(r'backdrop-filter:\s*(?!none)|[^-]filter:\s*blur', body):
             found.append((n, 'blur', 'blur'))
+        if drawn:
+            found[start:] = [f for f in found[start:] if f[1] not in DRAWN_OWN]
     return found
 
 

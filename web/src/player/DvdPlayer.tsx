@@ -11,8 +11,9 @@ import InsertDisc from './InsertDisc'
 import Remote, { RemoteBar, type RemoteKey } from './Remote'
 import TrackPicker, { type Tile } from './TrackPicker'
 import ViewSettings from './ViewSettings'
-import { discMemory, rememberDisc, useViewPrefs } from './viewPrefs'
+import { discMemory, rememberDisc, useViewPrefs, type ViewPrefs } from './viewPrefs'
 import { focusPlayerControls } from '../tv'
+import { announce } from '../a11y'
 
 haveHls(Hls)
 
@@ -530,6 +531,15 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
 
   const togglePlay = () => { const v = video.current; if (!v) return; if (stopped) { setStopped(false); v.play().catch(() => {}); return } if (v.paused) v.play().catch(() => {}); else if (!locked('pause')) v.pause() }
   const setRemote = (on: boolean) => view.update({ remote: on }, view.scope)
+  // 3D is said out loud as it changes, and when a disc opens with it on, as it changes
+  // everything on screen.
+  const stereoWords = prefs.stereo === 'sbs' ? 'side by side' : prefs.stereo === 'ou' ? 'over-under' : ''
+  const saidStereo = useRef<ViewPrefs['stereo']>('off')
+  useEffect(() => {
+    if (saidStereo.current === prefs.stereo) return
+    saidStereo.current = prefs.stereo
+    announce(stereoWords ? `3D on: ${stereoWords}, for this disc only` : '3D off')
+  }, [prefs.stereo, stereoWords])
   const back = () => chrome.minimize()
 
   const onRemote = (k: RemoteKey) => {
@@ -736,6 +746,12 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
               <h1>{item.title}</h1>
               <div className="sub">{pres?.kind === 'title' ? `${titleName} · ${chapters.length} scenes${hasPopup ? (popupOpen ? ' · pop-up menu (Esc closes)' : ' · Menu key: pop-up menu') : ''}` : pres?.kind === 'menu' ? (menu?.inTitle && buttons.length ? 'Interactive feature' : menu?.inTitle ? '' : `${discName(item)} menu`) : ''}</div>
             </div>
+            {stereoWords && (
+              <span className="stereo-chip" role="group" aria-label={`3D on: ${stereoWords}`}>
+                <span aria-hidden="true">3D<span className="stereo-words">: {stereoWords}</span></span>
+                <button type="button" className="btn sm" onClick={() => view.update({ stereo: 'off' }, view.scope)}>Turn off</button>
+              </span>
+            )}
             <button className="btn sm hide-narrow" onClick={titleMenu} title="Disc title menu (t)">Title menu</button>
             <button className="btn sm" onClick={rootMenu} title="Menu (m)"><IconMenu /> Menu</button>
             <button className="ibtn" onClick={back} title="Mini player"><IconMini /></button>
@@ -771,7 +787,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
             </div>
           )}
           {settingsOpen && (
-            <ViewSettings prefs={prefs} scope={view.scope} isDisc onClose={() => setSettingsOpen(false)}
+            <ViewSettings prefs={prefs} scope={view.scope} isDisc show3D onClose={() => setSettingsOpen(false)}
               onChange={(p) => view.update(p, view.scope)} onScope={view.setScope} />
           )}
           {picker && title && (

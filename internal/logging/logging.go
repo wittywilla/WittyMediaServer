@@ -186,8 +186,9 @@ type Logger struct {
 	}
 	dir atomic.Pointer[string]
 
-	ring  ring
-	flood flood
+	ring   ring
+	flood  flood
+	flight flightRing // the last minutes of everything: flight.go
 
 	queue   chan *Record
 	console chan *Record
@@ -642,22 +643,22 @@ func (h *handler) Enabled(_ context.Context, lv slog.Level) bool {
 	t := h.l.table.Load()
 	if h.cat != "" {
 		if t.mods == nil {
-			return lv >= t.by[h.cat]
+			return lv >= t.by[h.cat] || h.l.flightRoom(lv)
 		}
 		if h.module != "" { // a logger that knows its module can answer without building anything
 			m, ok := t.mods[h.module]
 			switch {
 			case !ok:
-				return lv >= t.by[h.cat]
+				return lv >= t.by[h.cat] || h.l.flightRoom(lv)
 			case len(m.topics) > 0:
 				return true // the line may have an option that's on
 			case m.hasLevel:
-				return lv >= m.level
+				return lv >= m.level || h.l.flightRoom(lv)
 			}
-			return lv >= t.by[h.cat]
+			return lv >= t.by[h.cat] || h.l.flightRoom(lv)
 		}
 	}
-	return lv >= t.min // the category or module may be among the message's attributes
+	return lv >= t.min || h.l.flightRoom(lv) // the category or module may be among the message's attributes
 }
 
 func (h *handler) Handle(ctx context.Context, r slog.Record) (err error) {
@@ -693,6 +694,9 @@ func (h *handler) Handle(ctx context.Context, r slog.Record) (err error) {
 		rec.Cat = CatDefault
 	}
 	if r.Level < LevelCrash && !h.l.keeps(rec) {
+		if h.l.flight.on.Load() && r.Level >= slog.LevelDebug && h.l.flightKeeps(r.Level) {
+			h.l.flight.add(rec) // only for a while, and only in memory
+		}
 		return nil
 	}
 	if !h.l.flood.allow(rec) {
@@ -792,6 +796,9 @@ func (h *handler) WithGroup(name string) slog.Handler {
 // for the file and the console. It never waits.
 func (l *Logger) publish(rec *Record) {
 	l.ring.add(rec)
+	if l.flight.on.Load() {
+		l.flight.add(rec)
+	}
 	select {
 	case l.queue <- rec:
 	default:

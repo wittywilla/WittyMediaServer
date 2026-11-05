@@ -74,7 +74,7 @@ export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<
 }
 
 function NoLyrics({ p, online, canEdit, tried, failed }: { p: PlayerView; online: boolean; canEdit: boolean; tried: boolean; failed?: string }) {
-  if (failed) return <p className="np-empty">The lyrics source couldn't be reached just now. It'll be tried again next time.</p>
+  if (failed) return <p className="np-empty">The lyrics source couldn't be reached just now. It'll be tried again next time this song is opened.</p>
   if (tried) return <p className="np-empty">No words found for this song online. {canEdit ? 'Fix lets you search under another name, or add them yourself.' : ''}</p>
   if (online) return <p className="np-empty">No words found for this song.</p>
   return (

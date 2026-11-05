@@ -1,0 +1,80 @@
+/* The artwork picker: a head and tabs, a grid that scrolls beside a preview that stays,
+   and a foot with Apply. Sized to the window, so nothing in it is ever off screen. */
+.modal.art-picker { max-width: 1120px; height: min(860px, calc(100dvh - 40px)); display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.art-picker > .ui-dialog-head { margin: 0; padding: var(--sp-5) var(--sp-6) var(--sp-2); }
+.art-picker > .ap-tabs { margin: 0 var(--sp-6); flex: none; }
+.art-picker > .actions { margin: 0; padding: var(--sp-3) var(--sp-6); border-top: 1px solid var(--border); align-items: center; flex: none; }
+.art-picker > .ap-note, .art-picker > .legal-note { margin: 0; padding: var(--sp-2) var(--sp-6) 0; font-size: var(--text-xs); flex: none; }
+.art-picker > .legal-note { padding-bottom: var(--sp-2); }
+.ap-count { margin-right: auto; font-size: var(--text-sm); }
+.ap-dot { display: inline-block; width: 8px; height: 8px; margin-left: var(--sp-2); border-radius: 50%; background: var(--accent); vertical-align: middle; }
+
+.ap-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; }
+.ap-body.wide, .ap-body.strip, .ap-body.logo { grid-template-columns: minmax(0, 1fr) 400px; }
+.ap-left { min-height: 0; overflow: auto; padding: var(--sp-4) var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-3); overscroll-behavior: contain; }
+.ap-warn, .ap-none { margin: 0; font-size: var(--text-sm); }
+.ap-err { margin: 0; }
+
+.ap-grid { display: grid; gap: var(--sp-3); padding: 3px; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); }
+.ap-grid.wide, .ap-grid.logo { grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)); }
+.ap-grid.strip { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.ap-choice { position: relative; display: block; padding: 0; border: 2px solid transparent; border-radius: var(--r-md); background: var(--bg-3); overflow: hidden; cursor: pointer; aspect-ratio: 2 / 3; transition: border-color var(--dur-2); }
+.ap-grid.wide .ap-choice, .ap-grid.logo .ap-choice { aspect-ratio: 16 / 9; }
+.ap-grid.strip .ap-choice { aspect-ratio: 758 / 140; }
+.ap-choice img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ap-grid.logo .ap-choice img, .ap-big.logo img { object-fit: contain; padding: var(--sp-3); }
+.ap-grid.logo .ap-choice, .ap-big.logo { background: repeating-conic-gradient(var(--bg-3) 0 25%, var(--bg-4) 0 50%) 0 0 / 20px 20px; }
+.ap-choice:hover { border-color: var(--border-strong); }
+.ap-choice.on { border-color: var(--accent); }
+.ap-choice:focus-visible { outline: var(--focus-width, 2px) solid var(--focus); outline-offset: 2px; }
+.ap-meta { position: absolute; left: var(--sp-1); right: var(--sp-1); bottom: var(--sp-1); display: flex; justify-content: space-between; gap: var(--sp-1); pointer-events: none; }
+.ap-meta span { min-width: 0; padding: 1px var(--sp-1); border-radius: var(--r-xs); background: var(--scrim); color: var(--on-image); font-size: var(--text-2xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ap-choice.now .ap-meta span:first-child { font-weight: 700; }
+.ap-check { position: absolute; right: var(--sp-1); top: var(--sp-1); display: flex; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: var(--r-full); background: var(--accent); color: var(--accent-fg); }
+
+.ap-own { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding-top: var(--sp-3); margin-top: auto; border-top: 1px solid var(--border); }
+.ap-address { display: flex; gap: var(--sp-2); flex: 1 1 260px; min-width: 0; margin: 0; }
+.ap-address .input { flex: 1; min-width: 0; }
+
+.ap-preview { min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border-left: 1px solid var(--border); }
+.ap-big { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r-lg); overflow: hidden; background: var(--bg-3); }
+.ap-big.tall { width: auto; max-width: 100%; height: min(456px, 52dvh); aspect-ratio: 2 / 3; margin-inline: auto; }
+.ap-big.strip { aspect-ratio: 758 / 140; }
+.ap-big img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ap-facts { display: flex; flex-direction: column; gap: 2px; font-size: var(--text-sm); color: var(--fg-2); }
+.ap-facts b { color: var(--fg); }
+.ap-hint { margin: 0; font-size: var(--text-sm); }
+
+/* Making a title poster: words, a second line, what's behind them. */
+.ap-maker { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-lg); background: var(--bg-3); margin: 0; }
+.ap-maker > label, .ap-maker-label { font-size: var(--text-sm); font-weight: 600; color: var(--fg-2); }
+.ap-maker-bg { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); }
+.ap-maker-bg label { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--text-sm); }
+.ap-maker-hue { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
+.ap-maker-hue input { flex: 1; min-width: 0; }
+.ap-swatch { flex: none; width: 28px; height: 42px; border-radius: var(--r-sm); border: 1px solid var(--border); }
+.ap-maker-go { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); font-size: var(--text-sm); }
+
+/* Phones: the whole screen, the preview on top and two to a row below it. */
+@media (max-width: 600px) {
+  .modal-backdrop:has(> .art-picker) { padding: 0; place-items: stretch; }
+  .modal.art-picker { height: 100dvh !important; max-height: 100dvh !important; border-radius: 0 !important; border-width: 0; padding: 0 0 env(safe-area-inset-bottom); }
+  .art-picker > .ui-dialog-head { padding: var(--sp-4) var(--sp-4) var(--sp-1); }
+  .art-picker > .ap-tabs { margin: 0 var(--sp-4); }
+  .art-picker > .actions, .art-picker > .ap-note, .art-picker > .legal-note { padding-inline: var(--sp-4); }
+  .art-picker > .legal-note { display: none; }
+  .ap-body, .ap-body.wide, .ap-body.strip, .ap-body.logo { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .ap-preview { order: -1; flex-direction: row; align-items: center; padding: var(--sp-3) var(--sp-4); border-left: 0; border-bottom: 1px solid var(--border); overflow: visible; }
+  .ap-big, .ap-big.tall { flex: none; width: 46%; height: auto; max-width: none; margin: 0; }
+  .ap-big.tall { width: auto; height: 26dvh; }
+  .ap-hint { display: none; }
+  .ap-left { padding: var(--sp-3) var(--sp-4); }
+  .ap-grid, .ap-grid.wide, .ap-grid.logo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
+  .ap-grid.strip { grid-template-columns: minmax(0, 1fr); }
+  .ap-address { flex-basis: 100%; }
+  .ap-maker { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* The poster's own menu on a title's page: always shown, as a touch screen has no hover. */
+.detail .poster .poster-menu { position: absolute; right: var(--sp-2); bottom: var(--sp-2); background: var(--scrim); color: var(--on-image); border-color: transparent; }
+.detail .poster .poster-menu:hover, .detail .poster .poster-menu:focus-visible { background: var(--bg-2); color: var(--fg); }

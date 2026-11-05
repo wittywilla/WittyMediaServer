@@ -54,24 +54,43 @@ type Manager struct {
 	BDJ      BDJConfig // nil = BD-J is off
 	mu       sync.Mutex
 	sessions map[string]*Session
+	sweeping bool // under mu: the sweep runs only while there are sessions to look after
+	// sweepEvery is how often open discs are looked at, while there are any.
+	sweepEvery time.Duration
 }
 
 // NewManager makes a manager; idle sessions are closed after 30 minutes.
 func NewManager(h *hls.Manager, tools *ffmpeg.Tools, cacheDir, baseURL string, log *slog.Logger) *Manager {
-	m := &Manager{HLS: h, Tools: tools, CacheDir: cacheDir, BaseURL: baseURL, Log: log, sessions: map[string]*Session{}}
+	m := &Manager{HLS: h, Tools: tools, CacheDir: cacheDir, BaseURL: baseURL, Log: log, sessions: map[string]*Session{}, sweepEvery: time.Minute}
 	// A server that was stopped hard leaves its sessions' copies of the discs' programs.
 	_ = os.RemoveAll(filepath.Join(cacheDir, "bdj", "sessions"))
-	logging.Loop("bluray sweep", m.sweep, "cat", "discs")
 	return m
 }
 
 func (m *Manager) sweep() {
-	for range time.Tick(time.Minute) {
+	t := time.NewTicker(m.sweepEvery)
+	defer t.Stop()
+	for range t.C {
 		for id, s := range m.list() { // a session busy with a slow step holds its own lock, never the manager's
 			if s.idleTooLong() {
 				m.CloseSession(id)
 			}
 		}
+		m.mu.Lock()
+		if len(m.sessions) == 0 {
+			m.sweeping = false // a quiet server isn't woken every minute to find nothing
+			m.mu.Unlock()
+			return
+		}
+		m.mu.Unlock()
+	}
+}
+
+// sweepSoon starts the sweep if it isn't running. m.mu is held.
+func (m *Manager) sweepSoon() {
+	if !m.sweeping {
+		m.sweeping = true
+		logging.Loop("bluray sweep", m.sweep, "cat", "discs")
 	}
 }
 
@@ -249,6 +268,7 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 	}
 	m.mu.Lock()
 	m.sessions[s.ID] = s
+	m.sweepSoon()
 	m.mu.Unlock()
 	return s, nil
 }
@@ -1008,9 +1028,7 @@ func min64(a, b int64) int64 {
 
 func (s *Session) listDir() string { return filepath.Join(s.m.CacheDir, "lists", s.key) }
 
-// videoFilter deinterlaces interlaced discs (480i, 576i, 1080i) and
-// tone-maps HDR (UHD discs: HDR10, HDR10+, Dolby Vision's HDR10 base layer)
-// to SDR, since browsers and the H.264 streams they play are SDR.
+// videoFilter deinterlaces interlaced discs (480i, 576i, 1080i).
 func (s *Session) videoFilter(it *bluray.PlayItem) string {
 	var chain []string
 	if len(it.Video) > 0 {
@@ -1023,20 +1041,33 @@ func (s *Session) videoFilter(it *bluray.PlayItem) string {
 				chain = append(chain, "bwdif=mode=send_frame:parity=auto:deint=interlaced")
 			}
 		}
-		if isHDR(v) {
-			// UHD Blu-ray's HDR is PQ: HDR10, HDR10+ and Dolby Vision's base layer.
-			if tm := s.m.Tools.ToneMapFilter("hdr10"); tm != "" {
-				chain = append(chain, tm)
-			}
-		}
 	}
 	return strings.Join(chain, ",")
+}
+
+// toneMap says the picture is HDR to map to SDR (UHD discs: HDR10, HDR10+, Dolby Vision's
+// HDR10 base layer), since browsers and the H.264 streams they play are SDR. UHD Blu-ray's HDR
+// is PQ throughout.
+func (s *Session) toneMap(it *bluray.PlayItem) string {
+	if len(it.Video) > 0 && isHDR(it.Video[0]) && s.m.Tools.ToneMapFilter("hdr10") != "" {
+		return "hdr10"
+	}
+	return ""
 }
 
 // isHDR says whether a video stream is high dynamic range: UHD discs flag
 // HDR10 and Dolby Vision, and BT.2020 colour means HDR in practice.
 func isHDR(v bluray.Stream) bool {
 	return v.Coding == 0x24 && (v.DynamicRange >= 1 || v.ColorSpace == 2)
+}
+
+// pictureHeight is a play item's picture height where it says (2160 for UHD), for how many
+// threads convert it; 0 for the rest, which are 1080 lines or less.
+func pictureHeight(it *bluray.PlayItem) int {
+	if len(it.Video) > 0 && it.Video[0].Format == 8 {
+		return 2160
+	}
+	return 0
 }
 
 // maxHeight caps the stream: 2160p sources are sent as 1080p unless the
@@ -1185,7 +1216,7 @@ func (s *Session) ensureHLS(pl *playing, it *bluray.PlayItem, audio *bluray.Stre
 		audioInput = 1
 	}
 	s.m.HLS.Ensure(hls.Spec{
-		ID: id, ItemID: s.ItemID, LogSession: s.ID, InputArgs: input, Duration: pl.duration, VideoFilter: s.videoFilter(it), Preset: s.preset(menu),
+		ID: id, ItemID: s.ItemID, LogSession: s.ID, InputArgs: input, Duration: pl.duration, VideoFilter: s.videoFilter(it), ToneMap: s.toneMap(it), Height: pictureHeight(it), Preset: s.preset(menu),
 		AudioIndex: audioIdx, AudioInput: audioInput, AudioChannels: channels, SubtitleIndex: -1, LowLatency: menu, HoldLastFrame: hold, SeekMargin: seekMargin, Holes: holes,
 		Quality: s.prefs.Quality, MaxHeight: s.maxHeight(it), AudioCodec: s.prefs.AudioCodec,
 	})

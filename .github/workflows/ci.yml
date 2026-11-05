@@ -22,20 +22,24 @@ jobs:
         with:
           fail-on-severity: high
 
+  # Commits from Windows lose the executable bit, and a release can't run what's left. A job of
+  # its own, so it answers in seconds rather than after the tests. Run through bash, so a check
+  # that lost its own bit still says which files.
+  executable-bits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Scripts are executable in git
+        run: bash scripts/check-executable.sh
+
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      # Commits from Windows lose the executable bit, and a release can't run what's left.
-      - name: Scripts are executable in git
-        run: |
-          bad=$(git ls-files -s -z | while IFS=$'	' read -r -d '' info f; do
-            case "$f" in *.sh) ;; *) head -c2 "$f" 2>/dev/null | grep -qa '^#!' || continue ;; esac
-            [ "${info%% *}" = 100755 ] || echo "$f"
-          done)
-          [ -z "$bad" ] || { echo "Not executable in git. Run git update-index --chmod=+x on:"; echo "$bad"; exit 1; }
       # The newest patch release, not the minimum go.mod names: every Go patch
       # fixes security problems in the standard library that binaries ship with.
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7

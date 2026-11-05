@@ -426,11 +426,13 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/tuners/discover` | Admin | 12-second limit |
 | `GET /api/tuners` | Admin | Options masked |
 | `POST /api/tuners` | Admin | Driver and options checked by the tuner manager |
+| `POST /api/tuners/check` | Admin | Playlist file place checked; options checked by the tuner manager; nothing saved; 90-second limit; masked passwords only from the tuner named |
 | `PUT /api/tuners/{id}` | Admin | Tuner exists. Options checked by the tuner manager |
 | `DELETE /api/tuners/{id}` | Admin | Tuner exists |
 | `POST /api/tuners/{id}/refresh` | Admin | Tuner exists |
 | `POST /api/tuners/{id}/scan` | Admin | Tuner exists. Source |
 | `GET /api/tuners/{id}/scan` | Admin | Numeric id |
+| `POST /api/tuners/{id}/test` | Admin | Tuner exists. Channel must be the tuner's. Opened as a viewer's would be: encrypted refused, tuner limits kept; 90-second limit |
 | `GET /api/tuners/{id}/channels` | Admin | Numeric id |
 | `POST /api/tuners/{id}/channels/enable` | Admin | Numeric id |
 | `PUT /api/tuner-channels/{id}` | Admin | Channel exists. Fields |

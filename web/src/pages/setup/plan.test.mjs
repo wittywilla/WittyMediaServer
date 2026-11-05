@@ -29,6 +29,12 @@ test('a module\'s step only appears when the module is on this server', () => {
   assert.ok(!ids(facts({ modules: ['wittycd'] })).includes('discs'), 'an audio CD has no menu to ask about')
 })
 
+test('live TV is offered only where WittyTuner is', () => {
+  assert.ok(!ids(facts()).includes('tv'))
+  const list = ids(facts({ modules: ['wittytuner'] }))
+  assert.ok(list.includes('tv') && list.indexOf('tv') < list.indexOf('done'))
+})
+
 test('a server with no store skips choosing modules, and goes on working', () => {
   const list = ids(facts({ store: false }))
   assert.ok(!list.includes('modules'))
@@ -56,7 +62,7 @@ test('every step that asks something says where to change it later, and that pag
     if (s.id === 'welcome' || s.id === 'account' || s.id === 'done') continue
     assert.ok(s.later, `${s.id} has nowhere to change it later`)
     const page = s.later.to.replace('/settings/', '').split('#')[0]
-    assert.ok(routes.includes(`path="${page}"`), `no settings page ${page}`)
+    assert.ok(routes.includes(`path="${page}"`) || routes.includes(`path="${page}/*"`), `no settings page ${page}`)
     const label = labels.find(([to]) => to === page)?.[1]
     assert.ok(s.later.where.startsWith('Settings, ' + label), `${s.id}: "${s.later.where}" isn't what the menu calls it: ${label}`)
   }

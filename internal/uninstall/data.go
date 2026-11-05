@@ -42,6 +42,8 @@ var DataEntries = map[string]string{
 	"restore-result.json":   "the last restore's result",
 	"repair-request.json":   "a waiting repair",
 	"repair-result.json":    "the last repair's result",
+	"instance.lock":         "what keeps a second server off this folder",
+	"instance.json":         "where the running server is",
 }
 
 // These have a question each. Recorded TV is media, and backups are the copy someone keeps

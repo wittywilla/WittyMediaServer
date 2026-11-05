@@ -13,6 +13,13 @@ on:
 permissions:
   contents: read
 
+# A newer commit on a pull request replaces that pull request's older runs, queued or running, so
+# the build machines aren't kept busy with commits nobody will merge. Every other run (a push to the
+# main branch, a schedule, one started by hand) has a group of its own and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   upgrade:
     runs-on: windows-latest

@@ -182,3 +182,65 @@ test('Android lays a pad out the standard way, even one it gives no name to, suc
   assert.deepEqual(keys, ['ArrowDown'])
   Object.defineProperty(globalThis, 'navigator', { configurable: true, value: nav })
 })
+
+describe('Up with nothing above, for an app that has a bar of its own over the page', () => {
+  // One button alone on the page, as the topmost row is when Up is pressed on it.
+  const button = (dialog: object | null = null) => ({
+    tagName: 'BUTTON', isContentEditable: false, parentElement: null,
+    closest: (q: string) => (dialog && q.includes('[role=dialog]') ? dialog : null),
+    matches: () => false, hasAttribute: () => false,
+    getBoundingClientRect: () => ({ left: 90, top: 24, right: 290, bottom: 90, width: 200, height: 66 }),
+  })
+  let sent: string[] = []
+  const press = (key: string, target: object) => {
+    const e = { key, target, altKey: false, ctrlKey: false, metaKey: false, defaultPrevented: false, preventDefault() { this.defaultPrevented = true }, stopImmediatePropagation() {} }
+    for (const f of listeners.get('keydown') || []) f(e)
+    return e
+  }
+  const page = (target: object, host: string | undefined, dialog: object | null = null) => {
+    const g = globalThis as any
+    g.document.activeElement = target
+    g.document.querySelectorAll = () => [target]
+    if (dialog) (dialog as any).querySelectorAll = () => [target]
+    g.document.documentElement.dataset.appUp = host
+    g.getComputedStyle = () => ({ visibility: 'visible', pointerEvents: 'auto', opacity: '1', overflowX: 'visible', overflowY: 'visible' })
+    g.innerHeight = 1080
+    g.location.assign = (to: string) => { sent.push(to) }
+  }
+  beforeEach(() => { sent = [] })
+  after(() => {
+    const g = globalThis as any
+    g.document.activeElement = null
+    delete g.document.documentElement.dataset.appUp
+  })
+
+  test('the page tells the app, at the address it gave', () => {
+    const b = button()
+    page(b, '/.wittymedia-app-up')
+    const e = press('ArrowUp', b)
+    assert.deepEqual(sent, ['/.wittymedia-app-up'])
+    assert.ok(e.defaultPrevented)
+  })
+
+  test('only Up: down, left and right with nothing that way stay on the page', () => {
+    const b = button()
+    page(b, '/.wittymedia-app-up')
+    for (const k of ['ArrowDown', 'ArrowLeft', 'ArrowRight']) press(k, b)
+    assert.deepEqual(sent, [])
+  })
+
+  test('with no app around the page, nothing happens', () => {
+    const b = button()
+    page(b, undefined)
+    press('ArrowUp', b)
+    assert.deepEqual(sent, [])
+  })
+
+  test('a dialog keeps its arrows', () => {
+    const dialog = {}
+    const b = button(dialog)
+    page(b, '/.wittymedia-app-up', dialog)
+    press('ArrowUp', b)
+    assert.deepEqual(sent, [])
+  })
+})

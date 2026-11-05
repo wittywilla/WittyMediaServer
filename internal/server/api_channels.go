@@ -1123,6 +1123,7 @@ func (s *Server) itemLiveInput(ctx context.Context, p *channels.Programme, off, 
 		in.AudioIndex = -1
 	}
 	if v := pr.Video(); v != nil {
+		in.Height = min(v.Width, v.Height)
 		interlaced := v.FieldOrder == "tt" || v.FieldOrder == "bb" || v.FieldOrder == "tb" || v.FieldOrder == "bt"
 		if interlaced {
 			in.VideoFilter = "bwdif=mode=send_frame:parity=auto:deint=interlaced"

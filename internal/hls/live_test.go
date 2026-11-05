@@ -241,6 +241,12 @@ func TestLiveArgs(t *testing.T) {
 			}
 		}
 	}
+	if _, enc4k := ffmpeg.StreamThreads(2160); enc4k > 0 {
+		big := strings.Join(m.newLive(LiveSpec{ID: "y"}).liveArgs(&LiveInput{InputArgs: ffmpeg.FileInput("/m/b.mkv"), AudioIndex: 0, Height: 2160}, 1, false), " ")
+		if !strings.Contains(big, fmt.Sprintf("-c:v libx264 -threads %d ", enc4k)) {
+			t.Errorf("a 4K channel with no limit gets 4K's threads:\n%s", big)
+		}
+	}
 	if strings.Contains(joined, "-threads") {
 		t.Errorf("a copy decodes no picture:\n%s", joined)
 	}

@@ -642,8 +642,8 @@ func TestStreamThreads(t *testing.T) {
 	}
 	expert := base
 	expert.Quality.VideoArgs = []string{"-preset", "fast", "-threads", "3"}
-	if got := line(expert); !strings.HasSuffix(strings.SplitN(got, "-threads 3", 2)[0], fmt.Sprintf("-threads %d -preset fast ", enc)) {
-		t.Errorf("expert options come after, so theirs counts:\n%s", got)
+	if got := line(expert); strings.Count(got, "-threads") != 2 || !strings.Contains(got, "-c:v libx264 -preset fast -threads 3") {
+		t.Errorf("expert options that set threads are left to do it (one for the decoder, theirs for libx264):\n%s", got)
 	}
 	copied := base
 	copied.CopyVideo, copied.Growing = true, true

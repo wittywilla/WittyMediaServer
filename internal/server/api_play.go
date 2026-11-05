@@ -260,7 +260,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: info.SubIndex, SubtitleText: s.textBurn(info.SubIndex, pr), Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r),
 	}
 	if v != nil {
-		spec.Height = v.Height
+		spec.Height = min(v.Width, v.Height)
 	}
 	s.HLS.Ensure(spec)
 	info.Type = "hls"

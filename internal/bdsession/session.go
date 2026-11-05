@@ -1036,6 +1036,15 @@ func isHDR(v bluray.Stream) bool {
 	return v.Coding == 0x24 && (v.DynamicRange >= 1 || v.ColorSpace == 2)
 }
 
+// pictureHeight is a play item's picture height where it says (2160 for UHD), for how many
+// threads convert it; 0 for the rest, which are 1080 lines or less.
+func pictureHeight(it *bluray.PlayItem) int {
+	if len(it.Video) > 0 && it.Video[0].Format == 8 {
+		return 2160
+	}
+	return 0
+}
+
 // maxHeight caps the stream: 2160p sources are sent as 1080p unless the
 // settings ask for a height of 2160 or more, since encoding 4K in software
 // is beyond most machines and most screens that play it are 1080p.
@@ -1182,7 +1191,7 @@ func (s *Session) ensureHLS(pl *playing, it *bluray.PlayItem, audio *bluray.Stre
 		audioInput = 1
 	}
 	s.m.HLS.Ensure(hls.Spec{
-		ID: id, ItemID: s.ItemID, LogSession: s.ID, InputArgs: input, Duration: pl.duration, VideoFilter: s.videoFilter(it), Preset: s.preset(menu),
+		ID: id, ItemID: s.ItemID, LogSession: s.ID, InputArgs: input, Duration: pl.duration, VideoFilter: s.videoFilter(it), Height: pictureHeight(it), Preset: s.preset(menu),
 		AudioIndex: audioIdx, AudioInput: audioInput, AudioChannels: channels, SubtitleIndex: -1, LowLatency: menu, HoldLastFrame: hold, SeekMargin: seekMargin, Holes: holes,
 		Quality: s.prefs.Quality, MaxHeight: s.maxHeight(it), AudioCodec: s.prefs.AudioCodec,
 	})

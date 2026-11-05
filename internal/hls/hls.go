@@ -68,8 +68,9 @@ type Spec struct {
 	SegmentSec   float64
 	MaxHeight    int    // 0 = source
 	VideoBitrate string // e.g. "8M"; empty = quality mode
-	// Height is the picture's height in the source, when known: with MaxHeight it says how
-	// big what comes out is, which decides how many threads convert it.
+	// Height is the shorter side of the source's picture, when known: its height, or its width
+	// for an upright one. With MaxHeight it says how big what comes out is, which decides how
+	// many threads convert it.
 	Height int
 	// Quality is the encoder choice and quality profile from Settings.
 	Quality    ffmpeg.Quality
@@ -909,6 +910,9 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string) 
 		outHeight = sp.MaxHeight
 	}
 	decThreads, encThreads := ffmpeg.StreamThreads(outHeight)
+	if ownThreads(sp.Quality) {
+		encThreads = 0 // the expert options say, and FFmpeg would warn about two
+	}
 	if !sp.CopyVideo {
 		args = append(args, plan.InputArgs...)
 		if plan.Name == "h264_nvenc" {
@@ -1112,6 +1116,11 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string) 
 		encoder = "copy"
 	}
 	return args, encoder, dir
+}
+
+// ownThreads: the expert options set libx264's threads themselves.
+func ownThreads(q ffmpeg.Quality) bool {
+	return slices.Contains(q.VideoArgs, "-threads") || slices.Contains(q.OutputArgs, "-threads")
 }
 
 // Hole is a stretch of an input's clock that the stream leaves out: whatever the

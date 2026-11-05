@@ -55,6 +55,9 @@ func (a *Attached) Version() string { return a.version }
 // no. Any other error means it failed, which counts against the version, and the job
 // loses the helper's state with it.
 func (a *Attached) Call(method string, params, out any) ([]byte, error) {
+	if err := a.m.Resting(a.id); err != nil {
+		return nil, err
+	}
 	blob, err := a.p.Call(method, params, out)
 	var ce *wittymodule.CallError
 	if err == nil || errors.As(err, &ce) {
@@ -68,6 +71,9 @@ func (a *Attached) Call(method string, params, out any) ([]byte, error) {
 // writes after that, until it ends or the job closes it, is the stream. The process is
 // the stream's own, so a helper keeps no pipe of the server's busy for anyone else.
 func (a *Attached) Stream(method string, params, out any) (io.ReadCloser, error) {
+	if err := a.m.Resting(a.id); err != nil {
+		return nil, err
+	}
 	r, err := a.p.Stream(method, params, out)
 	if err != nil {
 		var ce *wittymodule.CallError

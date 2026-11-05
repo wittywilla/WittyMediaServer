@@ -290,7 +290,7 @@ The page is called **Sharing & photos**. **Your links** is for everyone who has 
 
 - **Uploads:** **Allow uploads** lets adults add pictures and videos to Photos and Vertical videos libraries. It's on by default. **Largest upload** and **Room for each person** set the limits. Uploads also stop when under 2 GB is left on the disk.
 - **Links for people without an account:** **Allow links** is on by default. Turning it off stops every existing link too.
-- **Photo map** works offline with a plain outline of the world. **Online map address** is optional, and tells that provider roughly what area is being viewed.
+- **Photo map** works offline with a plain outline of the world. **Use an online map** is off by default; with it on, each viewer's device asks the provider at **Online map address** for the area being viewed, and the map shows **Credit to show on the map**. Each device can still choose the outline.
 - **Local AI** is planned and doesn't exist yet. The switch does nothing.
 - **Your links** lists your links, with **End link**. Administrators can tick **Everyone's**.
 

@@ -10,9 +10,11 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -417,7 +419,7 @@ type PhotoQuery struct {
 	Kind      string // photo | video
 	Search    string
 	Camera    string
-	BBox      *[4]float64 // south, west, north, east
+	BBox      *[4]float64 // south, west, north, east; west > east crosses longitude 180
 	Limit     int
 	Cursor    string // from the previous page
 }
@@ -476,9 +478,15 @@ func (q *PhotoQuery) where() (string, []any) {
 		w = append(w, "p.model = ?")
 		args = append(args, q.Camera)
 	}
-	if q.BBox != nil {
-		w = append(w, "p.lat IS NOT NULL AND p.lat BETWEEN ? AND ? AND p.lon BETWEEN ? AND ?")
-		args = append(args, q.BBox[0], q.BBox[2], q.BBox[1], q.BBox[3])
+	if b := q.BBox; b != nil {
+		w = append(w, "p.lat IS NOT NULL AND p.lat BETWEEN ? AND ?")
+		args = append(args, b[0], b[2])
+		if b[1] <= b[3] {
+			w = append(w, "p.lon BETWEEN ? AND ?")
+		} else { // across the date line: two pieces
+			w = append(w, "(p.lon >= ? OR p.lon <= ?)")
+		}
+		args = append(args, b[1], b[3])
 	}
 	return strings.Join(w, " AND "), args
 }
@@ -659,35 +667,158 @@ type PhotoCluster struct {
 	West  float64 `json:"west"`
 	North float64 `json:"north"`
 	East  float64 `json:"east"`
+	From  int64   `json:"from"` // when the first and the last were taken
+	To    int64   `json:"to"`
 }
 
-// PhotoClusters groups located pictures into cells that suit a map zoom level
-// (0 shows the whole world). The work is one GROUP BY, whatever the library's size.
-func (s *Store) PhotoClusters(ctx context.Context, q PhotoQuery, zoom int) ([]PhotoCluster, error) {
-	if zoom < 0 {
-		zoom = 0
-	}
-	if zoom > 18 {
-		zoom = 18
-	}
-	cell := 360.0 / float64(int64(1)<<(zoom+3))
+// The map is grouped as it's drawn: Web Mercator, 256 pixels across the world
+// at zoom 0 and twice that at each step, as online maps are. Pictures fall into
+// squares of mapCellPx, and groups whose pins would still overlap are joined,
+// so groups never pile up, near the poles or at the equator.
+const (
+	MapMaxZoom   = 20
+	mapCellPx    = 64
+	mapPinPx     = 56
+	mapMaxGroups = 5000 // in one answer; a screen's worth is a few hundred
+	mercLat      = 85.05112878
+)
+
+// MercX and MercY place a point on the map, as a share of the world's width from the top left.
+func MercX(lon float64) float64 { return (lon + 180) / 360 }
+
+func MercY(lat float64) float64 {
+	lat = math.Max(-mercLat, math.Min(mercLat, lat))
+	return math.Max(0, math.Min(1, 0.5-math.Log(math.Tan(math.Pi/4+lat*math.Pi/360))/(2*math.Pi)))
+}
+
+// PhotoClusters groups located pictures for a map zoom level (0 shows the whole
+// world), within q.BBox when there is one, which a map asks for: the part in
+// view. Each square's cover is its newest picture, and a group joined from
+// several keeps the biggest one's. The rows are grouped here
+// rather than by SQLite, which is twice as quick: one pass, no sorting, a few
+// hundred squares held. cut says the smallest groups were left out, which
+// only happens to a caller asking for the whole world far too close up.
+func (s *Store) PhotoClusters(ctx context.Context, q PhotoQuery, zoom int) (out []PhotoCluster, cut bool, err error) {
+	zoom = max(0, min(zoom, MapMaxZoom))
+	n := float64(int64(256/mapCellPx) << zoom) // squares across the world
 	w, args := q.where()
-	rows, err := s.DB.QueryContext(ctx, `SELECT AVG(p.lat), AVG(p.lon), COUNT(*), MAX(p.item_id), MIN(p.lat), MIN(p.lon), MAX(p.lat), MAX(p.lon)
-		FROM photo_meta p JOIN items i ON i.id = p.item_id WHERE `+w+` AND p.lat IS NOT NULL
-		GROUP BY CAST((p.lat + 90) / ? AS INTEGER), CAST((p.lon + 180) / ? AS INTEGER) LIMIT 3000`, append(args, cell, cell)...)
+	rows, err := s.DB.QueryContext(ctx, `SELECT p.item_id, p.lat, p.lon, p.taken_at
+		FROM photo_meta p JOIN items i ON i.id = p.item_id WHERE `+w+` AND p.lat IS NOT NULL`, args...)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	defer rows.Close()
-	out := []PhotoCluster{}
-	for rows.Next() {
-		var c PhotoCluster
-		if err := rows.Scan(&c.Lat, &c.Lon, &c.Count, &c.Cover, &c.South, &c.West, &c.North, &c.East); err != nil {
-			return nil, err
-		}
-		out = append(out, c)
+	type square struct{ x, y int64 }
+	type group struct {
+		PhotoCluster
+		lat, lon float64 // sums, for the middle
 	}
-	return out, rows.Err()
+	squares := map[square]*group{}
+	for rows.Next() {
+		var id, taken int64
+		var lat, lon float64
+		if err := rows.Scan(&id, &lat, &lon, &taken); err != nil {
+			return nil, false, err
+		}
+		sq := square{int64(MercX(lon) * n), int64(MercY(lat) * n)}
+		g := squares[sq]
+		if g == nil {
+			g = &group{PhotoCluster: PhotoCluster{South: lat, North: lat, West: lon, East: lon, From: taken, To: taken, Cover: id}}
+			squares[sq] = g
+		} else if taken > g.To || taken == g.To && id > g.Cover {
+			g.Cover = id
+		}
+		g.Count++
+		g.lat += lat
+		g.lon += lon
+		g.South, g.North = math.Min(g.South, lat), math.Max(g.North, lat)
+		g.West, g.East = math.Min(g.West, lon), math.Max(g.East, lon)
+		g.From, g.To = min(g.From, taken), max(g.To, taken)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false, err
+	}
+	cells := make([]PhotoCluster, 0, len(squares))
+	for _, g := range squares {
+		g.Lat, g.Lon = g.lat/float64(g.Count), g.lon/float64(g.Count)
+		cells = append(cells, g.PhotoCluster)
+	}
+	out = joinOverlapping(cells, zoom) // biggest first
+	if cut = len(out) > mapMaxGroups; cut {
+		out = out[:mapMaxGroups]
+	}
+	return out, cut, nil
+}
+
+// joinOverlapping folds groups whose pins would overlap at this zoom into the
+// biggest nearby, which keeps its place: pins stay on the busiest spot, and
+// every pin kept is at least mapPinPx from every other.
+func joinOverlapping(in []PhotoCluster, zoom int) []PhotoCluster {
+	world := float64(int64(256) << zoom)
+	at := func(c *PhotoCluster) (float64, float64) { return MercX(c.Lon) * world, MercY(c.Lat) * world }
+	sort.SliceStable(in, func(i, j int) bool { return in[i].Count > in[j].Count })
+	type square struct{ x, y int }
+	near := map[square][]int{} // kept groups by square of mapPinPx, so neighbours are in the 9 around
+	out := make([]PhotoCluster, 0, len(in))
+	for _, c := range in {
+		x, y := at(&c)
+		sq := square{int(math.Floor(x / mapPinPx)), int(math.Floor(y / mapPinPx))}
+		into := -1
+		for dx := -1; dx <= 1 && into < 0; dx++ {
+			for dy := -1; dy <= 1 && into < 0; dy++ {
+				for _, i := range near[square{sq.x + dx, sq.y + dy}] {
+					if ox, oy := at(&out[i]); math.Hypot(ox-x, oy-y) < mapPinPx {
+						into = i
+						break
+					}
+				}
+			}
+		}
+		if into < 0 {
+			near[sq] = append(near[sq], len(out))
+			out = append(out, c)
+			continue
+		}
+		k := &out[into]
+		k.Count += c.Count
+		k.South, k.North = math.Min(k.South, c.South), math.Max(k.North, c.North)
+		k.West, k.East = math.Min(k.West, c.West), math.Max(k.East, c.East)
+		k.From, k.To = min(k.From, c.From), max(k.To, c.To)
+	}
+	return out
+}
+
+// PhotoBounds is the smallest box holding every located picture a query finds,
+// to fit the map to them. West is greater than East when the box is shorter
+// the other way round the world, across the date line (Fiji and Samoa).
+type PhotoBounds struct {
+	South float64 `json:"south"`
+	West  float64 `json:"west"`
+	North float64 `json:"north"`
+	East  float64 `json:"east"`
+	Count int     `json:"count"`
+}
+
+// PhotoBounds is nil when nothing has a place.
+func (s *Store) PhotoBounds(ctx context.Context, q PhotoQuery) (*PhotoBounds, error) {
+	q.BBox = nil
+	w, args := q.where()
+	var b PhotoBounds
+	var south, north, west, east, eastFrom, westTo sql.NullFloat64
+	err := s.DB.QueryRowContext(ctx, `SELECT COUNT(*), MIN(p.lat), MAX(p.lat), MIN(p.lon), MAX(p.lon),
+		MIN(CASE WHEN p.lon >= 0 THEN p.lon END), MAX(CASE WHEN p.lon < 0 THEN p.lon END)
+		FROM photo_meta p JOIN items i ON i.id = p.item_id WHERE `+w+` AND p.lat IS NOT NULL`, args...).
+		Scan(&b.Count, &south, &north, &west, &east, &eastFrom, &westTo)
+	if err != nil || b.Count == 0 {
+		return nil, err
+	}
+	b.South, b.North, b.West, b.East = south.Float64, north.Float64, west.Float64, east.Float64
+	// From the most westerly picture east of Greenwich, on over the date line to
+	// the most easterly one west of it, when that's the shorter way.
+	if eastFrom.Valid && westTo.Valid && 360+westTo.Float64-eastFrom.Float64 < b.East-b.West {
+		b.West, b.East = eastFrom.Float64, westTo.Float64
+	}
+	return &b, nil
 }
 
 // ---------------------------------------------------------------------------

@@ -62,6 +62,7 @@ export const ENTRIES: Entry[] = [
   { page: 'sharing', title: 'Uploads', section: 'Uploads', words: 'upload size room storage' },
   { page: 'sharing', title: 'Links for people without an account', section: 'Links for people without an account', words: 'share link guest' },
   { page: 'sharing', title: 'Photo map', section: 'Photo map', words: 'map tiles address places' },
+  { page: 'sharing', title: 'Use an online map', section: 'Photo map', words: 'online map streets tiles provider internet outline privacy credit attribution licence' },
   { page: 'sharing', title: 'Local AI', section: 'Local AI', words: 'faces people places photos recognition' },
 
   // System

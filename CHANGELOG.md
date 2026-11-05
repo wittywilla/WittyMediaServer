@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **A theme made with the theme maker shows again.** The server's own security policy refused the stylesheet the page made for it, so the page fell back to the plain built-in look, in every browser. It's now applied in a way the policy allows.
+- **Menus always open on screen, and stay open.** A menu from a button, such as the account menu, is placed wholly on the screen even when its button can't be measured, and a list or row scrolling elsewhere on the page no longer closes it as it opens; the page scrolling its button away still does.
 - **With a WittyPlay older than 0.3.5, version 2 of the game stream says it needs an update** (`needs-update`), rather than failing with an error, and isn't offered. Version 1, which every app and the website use with that WittyPlay, plays as before.
 - **A game on several discs starts sooner.** Its archived discs are unpacked side by side instead of one after another. Final Fantasy VII, with its first disc as `.bin/.cue` and two more as `.7z`, waited two minutes to start from a USB drive before its first disc could play.
 - **An encrypted 3DS game's page says so before Play is pressed**, in the same words as Play: no server can play that copy, so it comes before anything this server lacks. A copy you decrypted yourself, from a console you own, will play.

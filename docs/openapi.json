@@ -6080,6 +6080,188 @@
         ],
         "type": "object"
       },
+      "MusicLink": {
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "how": {
+            "type": "string"
+          },
+          "songId": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "syncMs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "videoId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "how",
+          "songId",
+          "state",
+          "videoId"
+        ],
+        "type": "object"
+      },
+      "MusicLinkSide": {
+        "properties": {
+          "album": {
+            "type": "string"
+          },
+          "artist": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "libraryId": {
+            "type": "integer"
+          },
+          "runtimeSec": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "artist",
+          "id",
+          "libraryId",
+          "runtimeSec",
+          "title",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "MusicLinkView": {
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "how": {
+            "type": "string"
+          },
+          "song": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicLinkSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "songId": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "syncMs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "video": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicLinkSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "videoId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "how",
+          "song",
+          "songId",
+          "state",
+          "video",
+          "videoId"
+        ],
+        "type": "object"
+      },
+      "MusicLinks": {
+        "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
+          "itemId": {
+            "type": "integer"
+          },
+          "role": {
+            "type": "string"
+          },
+          "suggested": {
+            "items": {
+              "$ref": "#/components/schemas/MusicLinkView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "tied": {
+            "items": {
+              "$ref": "#/components/schemas/MusicLinkView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "canEdit",
+          "itemId",
+          "role",
+          "suggested",
+          "tied"
+        ],
+        "type": "object"
+      },
+      "MusicMatchResult": {
+        "properties": {
+          "suggested": {
+            "type": "integer"
+          },
+          "tied": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "suggested",
+          "tied"
+        ],
+        "type": "object"
+      },
       "Network": {
         "properties": {
           "genres": {

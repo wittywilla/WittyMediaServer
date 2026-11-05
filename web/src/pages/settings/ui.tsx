@@ -2,6 +2,7 @@ import { cloneElement, isValidElement, useEffect, useId, useRef, useState, type 
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, getPrefs } from '../../api'
 import { toast } from '../../state'
+import { Input, Select, Textarea } from '../../ui'
 import { jumpTo } from './jump'
 import { sectionId } from './searchIndex'
 
@@ -107,6 +108,9 @@ export function Section({ title, desc, actions, children, id }: { title: string;
   )
 }
 
+// A field on its own, the browser's or the app's own, which hand what they're given on to theirs.
+const LONE_FIELDS = new Set<unknown>(['select', 'input', 'textarea', Select, Input, Textarea])
+
 // stack: the control goes under the text (wide fields, groups of fields).
 // The row's title and description name and describe its control for screen
 // readers: a lone field is labelled by them directly, anything else is a
@@ -116,7 +120,7 @@ export function Row({ label, desc, badge, children, stack, dim }: { label: React
   const labelId = id + 'l', descId = desc ? id + 'd' : undefined
   let ctl = children
   let group = true
-  if (isValidElement(children) && typeof children.type === 'string' && ['select', 'input', 'textarea'].includes(children.type)) {
+  if (isValidElement(children) && LONE_FIELDS.has(children.type)) {
     const el = children as ReactElement<Record<string, unknown>>
     if (!el.props['aria-label'] && !el.props['aria-labelledby']) ctl = cloneElement(el, { 'aria-labelledby': labelId, 'aria-describedby': descId })
     group = false

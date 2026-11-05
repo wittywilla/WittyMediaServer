@@ -49,6 +49,14 @@ fi
 # What goes in a property list as text.
 xml() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
 
+# An address with a host in front stays as it was. Worked out here, not inside the property list
+# below: the Mac's /bin/sh misreads a case pattern's ) inside $( ).
+LISTEN_ENTRY=""
+case "$LISTEN" in
+  ""|:[0-9]*|0.0.0.0:[0-9]*) ;;
+  *) LISTEN_ENTRY="<key>WMS_LISTEN</key><string>$(xml "$LISTEN")</string>" ;;
+esac
+
 cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -61,7 +69,8 @@ cat > "$PLIST" <<EOF
   <key>EnvironmentVariables</key><dict>
     <key>WMS_DATA_DIR</key><string>$(xml "$DATA")</string>
     <key>WMS_NO_BROWSER</key><string>1</string>
-    <key>WMS_SUPERVISED</key><string>1</string>$(case "$LISTEN" in ""|:[0-9]*|0.0.0.0:[0-9]*) ;; *) printf '\n    <key>WMS_LISTEN</key><string>%s</string>' "$(xml "$LISTEN")" ;; esac)
+    <key>WMS_SUPERVISED</key><string>1</string>
+    $LISTEN_ENTRY
   </dict>
   <key>UserName</key><string>$(xml "$RUN_AS")</string>
   <key>RunAtLoad</key><true/>

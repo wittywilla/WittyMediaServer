@@ -4,7 +4,7 @@ export { Button, IconButton, LinkButton, btnClass, type ButtonSize, type ButtonV
 export { Tooltip } from './Tooltip'
 export { Field, Input, Select, Switch, Textarea } from './Field'
 export { Chip, Chips, Segmented, Tabs, type Option, type TabItem } from './Choice'
-export { AskHost, Dialog, Sheet, ask } from './Overlay'
+export { AskHost, Dialog, Sheet, ask, useBackCloses } from './Overlay'
 export { Menu, type MenuEntry } from './Menu'
 export { ToastHost, toast, type ToastOptions } from './Toast'
 export { Card, CardRow, EmptyState, LoadError, Notice, PageSkeleton, PosterCard, Progress, ProgressRing, Shelf, Skeleton, SkeletonGrid, Spinner, shapeFor, type PageShape, type PosterShape } from './Surface'

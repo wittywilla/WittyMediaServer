@@ -51,6 +51,17 @@ type ScreenCaps struct {
 	Layouts []string `json:"layouts,omitempty"`
 	// Options are how each core sets those layouts, by core ID.
 	Options map[string]ScreenOptions `json:"options,omitempty"`
+	// Frame is where each screen is in a frame of the stacked layout the core is started in, as
+	// fractions of the frame, so a client can draw each where the person placed it (Edit layout).
+	Frame []ScreenRect `json:"frame,omitempty"`
+}
+
+// ScreenRect is one screen's part of a frame.
+type ScreenRect struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	W float64 `json:"w"`
+	H float64 `json:"h"`
 }
 
 // ScreenOptions: the core option that picks a layout, and the value for each of ours, as it is and
@@ -200,11 +211,13 @@ var consoleTraitsTable = map[string]consoleTraits{
 		c.Input.Sticks = 1
 	})},
 	"nds": {Era: eraPocket, Launched: 2004, Ended: 2014, Media: mediaPocket, Caps: with(caps(1, lookClean, "4:3", true), func(c *ConsoleCapabilities) {
-		c.Screens = ScreenCaps{Count: 2, Touch: 2, Layouts: twoScreenLayouts, Options: map[string]ScreenOptions{"melonds": melonDSScreens}}
+		c.Screens = ScreenCaps{Count: 2, Touch: 2, Layouts: twoScreenLayouts, Options: map[string]ScreenOptions{"melonds": melonDSScreens},
+			Frame: []ScreenRect{{0, 0, 1, 0.5}, {0, 0.5, 1, 0.5}}} // Top/Bottom, no gap: the two halves
 		c.Input.Touch, c.Input.Mic = true, true
 	})},
 	"3ds": {Era: eraPocket, Launched: 2011, Ended: 2020, Media: mediaPocket, Caps: with(caps(1, lookClean, "5:3", false), func(c *ConsoleCapabilities) {
-		c.Screens = ScreenCaps{Count: 2, Touch: 2, Layouts: twoScreenLayouts, Options: map[string]ScreenOptions{"azahar": azaharScreens}}
+		c.Screens = ScreenCaps{Count: 2, Touch: 2, Layouts: twoScreenLayouts, Options: map[string]ScreenOptions{"azahar": azaharScreens},
+			Frame: []ScreenRect{{0, 0, 1, 0.5}, {0.1, 0.5, 0.8, 0.5}}} // the default layout: the bottom screen (320) centred under the top (400)
 		c.Input.Touch, c.Input.Sticks, c.Input.Motion, c.Input.Mic = true, 1, true, true
 		c.Media.Region = map[string]string{"azahar": "citra_region_value"}
 	})},

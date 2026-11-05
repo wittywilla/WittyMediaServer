@@ -576,6 +576,13 @@ func (s *Server) handleGameControls(w http.ResponseWriter, r *http.Request) {
 	if k, ok := saved[wittyplay.KindKeyboard][""]; ok {
 		keyboard = k
 	}
+	// What Edit layout kept, for every shape of device: they follow the account (game_layouts.go).
+	layouts := map[string]json.RawMessage{}
+	for shape, l := range saved[kindLayout] {
+		if layoutShapes[shape] {
+			layouts[shape] = l
+		}
+	}
 	touch := map[string]json.RawMessage{}
 	if device := r.URL.Query().Get("device"); gameDeviceRe.MatchString(device) {
 		for _, o := range []string{wittyplay.Landscape, wittyplay.Portrait} {
@@ -593,7 +600,7 @@ func (s *Server) handleGameControls(w http.ResponseWriter, r *http.Request) {
 			"gamepad": wittyplay.DefaultGamepadFor(id), "keyboard": wittyplay.DefaultKeyboardFor(id), "remote": wittyplay.DefaultRemote(), "options": wittyplay.DefaultOptions(id),
 			"touch": map[string]any{wittyplay.Landscape: wittyplay.DefaultTouch(id, wittyplay.Landscape), wittyplay.Portrait: wittyplay.DefaultTouch(id, wittyplay.Portrait)},
 		},
-		"saved":      map[string]any{"gamepad": gamepads, "keyboard": keyboard, "touch": touch},
+		"saved":      map[string]any{"gamepad": gamepads, "keyboard": keyboard, "touch": touch, "layouts": layouts},
 		"game":       game,
 		"profiles":   activeProfilesFor(profiles, id, game),
 		"background": background,
@@ -634,6 +641,12 @@ func (s *Server) handlePutGameControl(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		key = touchKey(b.Key, b.Orientation)
+	case kindLayout:
+		if !layoutShapes[b.Key] {
+			writeErr(w, 400, "a layout is for a shape of device: phone-portrait, phone-landscape, tablet-portrait, tablet-landscape, desktop or tv")
+			return
+		}
+		key = b.Key
 	default:
 		writeErr(w, 400, "unknown kind of layout")
 		return
@@ -641,7 +654,12 @@ func (s *Server) handlePutGameControl(w http.ResponseWriter, r *http.Request) {
 	var clean json.RawMessage
 	if len(b.Data) > 0 && string(b.Data) != "null" {
 		var err error
-		if clean, err = wittyplay.CleanControl(id, b.Kind, b.Data); err != nil {
+		if b.Kind == kindLayout {
+			clean, err = cleanLayout(controlKeys(id), b.Data)
+		} else {
+			clean, err = wittyplay.CleanControl(id, b.Kind, b.Data)
+		}
+		if err != nil {
 			writeErr(w, 400, err.Error())
 			return
 		}

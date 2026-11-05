@@ -1,4 +1,5 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { api, mediaUrl, uploadFile, type GameConsole } from '../../api'
 import { Spinner } from '../../components/common'
 import { toast, useApp } from '../../state'
@@ -24,7 +25,9 @@ export function GameSettingsPage() {
   const host = useSettingsHost(!!user?.isAdmin)
   const consoles = useConsoles()
   const say = useCallback((m: string) => toast(m), [])
-  return <Suspense fallback={<Spinner />}><SettingsScreen host={host} consoles={consoles} onError={say} /></Suspense>
+  // ?console=nes, from a console's page: its settings, not every game's.
+  const consoleId = useSearchParams()[0].get('console') || undefined
+  return <Suspense fallback={<Spinner />}><SettingsScreen key={consoleId} host={host} consoles={consoles} consoleId={consoleId} onError={say} /></Suspense>
 }
 
 let consolesCache: Promise<GameConsole[]> | null = null

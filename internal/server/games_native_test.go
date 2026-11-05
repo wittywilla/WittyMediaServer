@@ -102,6 +102,7 @@ func TestNativeClientPlaysAGame(t *testing.T) {
 			Gamepad  map[string]map[string]wittyplay.Binding `json:"gamepad"`
 			Keyboard map[string]string                       `json:"keyboard"`
 			Touch    map[string]wittyplay.TouchLayout        `json:"touch"`
+			Layouts  map[string]savedLayout                  `json:"layouts"`
 		} `json:"saved"`
 	}
 	var ctl controls
@@ -135,17 +136,37 @@ func TestNativeClientPlaysAGame(t *testing.T) {
 	if len(ctl.Saved.Touch) != 0 || len(ctl.Saved.Gamepad) != 1 {
 		t.Errorf("touch stays with its device, gamepads follow the account: %+v", ctl.Saved)
 	}
+	// Edit layout keeps one per shape of device, for the account.
+	layout := map[string]any{"controls": map[string]any{"dpad": map[string]float64{"x": 0.13, "y": 0.66, "size": 0.32, "opacity": 0.55}}, "menu": map[string]float64{"x": 0.96, "y": 0.06}, "screens": []map[string]float64{{"x": 0.5, "y": 0.4, "size": 0.8}}}
+	if c := call("PUT", "/api/consoles/snes/controls", map[string]any{"kind": "layout", "key": "phone-landscape", "data": layout}, nil); c != 200 {
+		t.Fatalf("saving a layout: %d", c)
+	}
+	ctl = controls{}
+	call("GET", "/api/consoles/snes/controls?device=another-device", nil, &ctl)
+	if l, ok := ctl.Saved.Layouts["phone-landscape"]; !ok || l.Controls["dpad"].X != 0.13 || len(l.Screens) != 1 || l.Menu == nil {
+		t.Errorf("a layout follows the account to any device: %+v", ctl.Saved.Layouts)
+	}
+	if c := call("PUT", "/api/consoles/snes/controls", map[string]any{"kind": "layout", "key": "phone-landscape", "data": nil}, nil); c != 200 {
+		t.Errorf("Reset to default: %d", c)
+	}
+	ctl = controls{}
+	call("GET", "/api/consoles/snes/controls", nil, &ctl)
+	if len(ctl.Saved.Layouts) != 0 {
+		t.Errorf("reset, it's gone: %+v", ctl.Saved.Layouts)
+	}
 	w := g.do("GET", "/api/consoles/snes/controls", g.other, nil)
 	if strings.Contains(w.Body.String(), "Pad Model") {
 		t.Error("another account must not see these layouts")
 	}
 	for name, body := range map[string]map[string]any{
-		"bad kind":            {"kind": "wheel", "data": map[string]any{}},
-		"bad layout":          {"kind": "gamepad", "key": "x", "data": map[string]any{"99": map[string]int{"b": 1}}},
-		"no device":           {"kind": "touch", "orientation": "portrait", "data": map[string]any{}},
-		"path in device name": {"kind": "touch", "key": "../x", "orientation": "portrait", "data": map[string]any{}},
-		"bad orientation":     {"kind": "touch", "key": "d", "orientation": "sideways", "data": map[string]any{}},
-		"no gamepad model":    {"kind": "gamepad", "data": map[string]any{}},
+		"bad kind":              {"kind": "wheel", "data": map[string]any{}},
+		"bad layout":            {"kind": "gamepad", "key": "x", "data": map[string]any{"99": map[string]int{"b": 1}}},
+		"no device":             {"kind": "touch", "orientation": "portrait", "data": map[string]any{}},
+		"path in device name":   {"kind": "touch", "key": "../x", "orientation": "portrait", "data": map[string]any{}},
+		"bad orientation":       {"kind": "touch", "key": "d", "orientation": "sideways", "data": map[string]any{}},
+		"no gamepad model":      {"kind": "gamepad", "data": map[string]any{}},
+		"a layout for no shape": {"kind": "layout", "key": "watch", "data": map[string]any{}},
+		"a layout with a control the console hasn't": {"kind": "layout", "key": "tv", "data": map[string]any{"controls": map[string]any{"wheel": map[string]float64{"x": 0.5, "y": 0.5, "size": 0.2, "opacity": 0.5}}}},
 	} {
 		if c := call("PUT", "/api/consoles/snes/controls", body, nil); c != 400 {
 			t.Errorf("%s: got %d", name, c)

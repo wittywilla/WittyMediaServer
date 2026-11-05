@@ -208,7 +208,8 @@ console needs data, not new screens:
 - `era` (`first`, `8-bit`, `16-bit`, `early-3d`, `disc`, `pocket`), `launched` and `ended` (years, roughly), and `media`
   (`cart`, `pocket`, `disc`).
 - `capabilities`: `screens` (`count`, which one takes `touch`, `layouts` and, by core, the core option and values that
-  set each layout and swap the screens), `input` (`ports`, `multitap`, `sticks`, `analogTriggers`, `touch`, `lightGun`,
+  set each layout and swap the screens; and `frame`, where each screen is in a frame of the stacked layout the core starts
+  in, as `[{x, y, w, h}]` fractions of the frame, for drawing each screen where someone placed it), `input` (`ports`, `multitap`, `sticks`, `analogTriggers`, `touch`, `lightGun`,
   `mouse`, `motion`, `keyboard`, `mic`), `media` (`discs`, `memoryCards`, `bios`: none, optional or required, and by core
   the option that sets the `region`), `play` (`rumble`, `rewindByDefault`) and `picture` (`aspect`, `integer`, and the
   `look`: the display preset it starts with). What a running core really has is in the session (`discs`, `devices`).
@@ -384,7 +385,7 @@ JSON text on the `events` data channel or the WebSocket. Ignore types you don't 
     "remote": { "8": "Enter" },
     "touch": { "landscape": { "dpad": { "x": 0.13, "y": 0.62, "size": 0.36, "opacity": 0.55 } }, "portrait": {} }
   },
-  "saved": { "gamepad": { "Some Pad Model": { "8": { "b": 5 } } }, "keyboard": null, "touch": {} }
+  "saved": { "gamepad": { "Some Pad Model": { "8": { "b": 5 } } }, "keyboard": null, "touch": {}, "layouts": {} }
 }
 ```
 
@@ -414,6 +415,18 @@ draw `Y` on a Super Nintendo and `□` on a PlayStation from the same data.
   and `size` is a fraction of the shorter side. A D-pad is a square of that size; `meta` buttons are about half as
   tall as wide. A control of kind `stick`, or a D-pad with `"stick": true`, is an analog stick: send how far a finger
   pushes it as the left stick, measured from its centre to its edge.
+- **Layouts** (`saved.layouts`) are what Edit layout keeps: where everything sits while playing, for each shape of device
+  (`phone-portrait`, `phone-landscape`, `tablet-portrait`, `tablet-landscape`, `desktop`, `tv`). They follow the account.
+  - `controls` places controls by `key` as a touch layout does.
+  - `menu` and `touchbar` are centres, `{x, y}`.
+  - `screens` is the picture, `[{x, y, size}]`, with `size` its height as a fraction of the play area's. A two-screen
+    console can have two, one per screen in the core's order, drawn from where `pad.screens` (or
+    `capabilities.screens.frame`) says each sits in the frame. Left out is the player's own fit.
+  - `faceTogether` and `screensTogether` are how the editor was left.
+  - With no layout for a shape, use `defaults.touch` for its orientation (desktop and TV are sideways), and an older
+    touch layout saved for this device, if there is one.
+- `pad.screens`, on a two-screen console, is each screen's part of the frame, `[{x, y, w, h, touch}]`. Over the screen
+  with `touch`, a press is the stylus except exactly on a control drawn over it.
 
 More in the same answer: `targets` lists everything this console can have mapped, in the order to show it, and `pad.art` says
 what shape of controller to draw (`one`, `two`, `four`, `six`, `handle` or `dual`). `defaults.options` is how sticks and turbo
@@ -432,10 +445,12 @@ way, with one layout per model per console. Profiles, below, do more, and win wh
 { "kind": "gamepad", "key": "Some Pad Model", "data": { "8": { "b": 5 } } }
 { "kind": "keyboard", "data": { "8": "KeyK" } }
 { "kind": "touch", "key": "my-device-id", "orientation": "landscape", "data": { "dpad": { "x": 0.2, "y": 0.6, "size": 0.3, "opacity": 0.6 } } }
+{ "kind": "layout", "key": "phone-landscape", "data": { "controls": { "dpad": { "x": 0.13, "y": 0.66, "size": 0.32, "opacity": 0.55 } }, "menu": { "x": 0.96, "y": 0.06 }, "screens": [{ "x": 0.5, "y": 0.5, "size": 1 }] } }
 ```
 
 Bad data answers 400 and saves nothing. Layouts follow the account to every device, except touch layouts, which
-belong to the `device` that saved them. A device id is yours to choose: up to 64 letters, digits, `.`, `_` or `-`.
+belong to the `device` that saved them. A `layout` is checked by the server, whatever version of WittyPlay is installed.
+`"data": null` for a layout is Reset to default. A device id is yours to choose: up to 64 letters, digits, `.`, `_` or `-`.
 
 ## Controller profiles
 

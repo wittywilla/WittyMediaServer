@@ -322,7 +322,7 @@ func (l *launcher) start() {
 		l.lastErr = err.Error()
 		return
 	}
-	args := []string{"serve", "-data", l.dataDir, "-watch-stdin"}
+	args := []string{"serve", "-watch-stdin", "-data", l.dataDir}
 	if l.listenGiven {
 		args = append(args, "-listen", l.listen)
 	}

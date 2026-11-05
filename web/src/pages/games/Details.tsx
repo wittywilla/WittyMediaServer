@@ -8,7 +8,7 @@ import { Placeholder, Spinner } from '../../components/common'
 import LegalNote from '../../components/LegalNote'
 import { IconCheck, IconDownload, IconEdit, IconGamepad, IconGlobe, IconImage, IconInfo, IconMore, IconPlay, IconRefresh, IconSettings, IconStar, IconTrash, IconTune, IconUsers } from '../../icons'
 import { toast, useApp } from '../../state'
-import { ask, Dialog, Menu, type MenuEntry } from '../../ui'
+import { ask, Dialog, Menu, Sheet, useBackCloses, type MenuEntry } from '../../ui'
 import { GameCredits, GameMatchBar, GameRatings, GameShots } from '../GameMeta'
 import { GameFixPanel, GameProblem, GameVersionLinks } from '../GameReview'
 import { SettingsScreen, useConsoles, useSettingsHost } from './consoles'
@@ -58,14 +58,19 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
   const [check, setCheck] = useState<GameCheck | null>(null)
   const [mine, setMine] = useState<GamePersonal | null>(null)
   const [resumeMode, setResumeMode] = useState('ask')
+  // Settings for this game open in a sheet over the page, where they're pressed: from the side on a wide
+  // screen, up from the bottom on a phone. They close with ×, Esc, a controller's B, Back or a tap outside,
+  // and focus goes back to what opened them (a11y.tsx), or to their button if that's gone (a menu's row).
   const [showSettings, setShowSettings] = useState(false)
-  // Settings for this game open below the page, and close from either end of them, with Esc, or with a
-  // controller's B, which comes as Esc: focus goes back to the button that opens them.
-  const settingsToggle = useRef<HTMLButtonElement>(null)
-  const hideSettings = useCallback(() => {
+  const settingsButton = useRef<HTMLButtonElement>(null)
+  const closeSettings = useCallback(() => {
     setShowSettings(false)
-    requestAnimationFrame(() => settingsToggle.current?.focus())
+    requestAnimationFrame(() => {
+      const now = document.activeElement
+      if (!now || now === document.body || !now.isConnected) settingsButton.current?.focus()
+    })
   }, [])
+  useBackCloses(showSettings, closeSettings, 'wmsGameSettings')
   const [note, setNote] = useState('')
   const [longRead, setLongRead] = useState(false)
   const [edit, setEdit] = useState(false)
@@ -121,7 +126,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
   }
   const moreItems: MenuEntry[] = [
     ...(ready ? [{ key: 'safe', label: 'Start with default settings', icon: <IconRefresh />, onSelect: () => nav(links.play(it.id, `safe=1${auto ? '&resume=1' : ''}`)) }] : []),
-    { key: 'settings', label: showSettings ? 'Hide settings for this game' : 'Settings for this game', icon: <IconTune />, onSelect: () => setShowSettings((s) => !s) },
+    { key: 'settings', label: 'Settings for this game', icon: <IconTune />, onSelect: () => setShowSettings(true) },
     { key: 'pads', label: 'Controllers', icon: <IconGamepad />, to: `/controllers?console=${encodeURIComponent(it.console || '')}` },
     ...(user?.isAdmin ? [
       { kind: 'separator' as const, key: 'sep' },
@@ -308,7 +313,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
         <section className="gm-panel" aria-labelledby="gm-cheats-h">
           <h2 id="gm-cheats-h">Cheats</h2>
           <p className="muted">{cheats > 0 ? `${cheats.toLocaleString()} ${cheats === 1 ? 'cheat' : 'cheats'} saved for this game. Turn them on and off from the game menu or below.` : 'No cheats saved. Add codes here, or from the game menu while you play.'}</p>
-          <div className="gm-panel-actions"><button ref={settingsToggle} type="button" className="btn sm" aria-expanded={showSettings} onClick={() => setShowSettings((s) => !s)}><IconTune size={16} /> {showSettings ? 'Hide' : 'Cheats and settings'}</button></div>
+          <div className="gm-panel-actions"><button ref={settingsButton} type="button" className="btn sm" aria-haspopup="dialog" onClick={(e) => { e.currentTarget.focus(); setShowSettings(true) }}><IconTune size={16} /> Cheats and settings</button></div>
         </section>
         {mine && (
           <section className="gm-panel" aria-labelledby="gm-notes-h">
@@ -319,15 +324,9 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
       </div>
 
       {showSettings && (
-        <section className="gm-section gm-settings" aria-label="Settings for this game"
-          onKeyDown={(e) => { if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); hideSettings() } }}>
-          <div className="gm-settings-head">
-            <h2 className="shelf-head">Settings for this game</h2>
-            <button type="button" className="btn sm" onClick={hideSettings}>Done</button>
-          </div>
+        <Sheet title={`Settings for ${it.title}`} onClose={closeSettings} className="gm-settings-sheet">
           <Suspense fallback={<Spinner />}><SettingsScreen host={settingsHost} consoles={consoleList} itemId={it.id} itemTitle={it.title} consoleId={it.console} onError={say} /></Suspense>
-          <div className="gm-panel-actions gm-settings-foot"><button type="button" className="btn sm" onClick={hideSettings}>Done</button></div>
-        </section>
+        </Sheet>
       )}
 
       <details className="gm-section gm-file">

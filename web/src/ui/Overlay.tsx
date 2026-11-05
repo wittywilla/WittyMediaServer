@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { IconClose } from '../icons'
 import { Button, IconButton } from './Button'
+import { openBackEntry } from './backEntry'
 
 // Dialog and Sheet. Both render into <body>, so nothing around them can clip or
 // cover them. a11y.tsx gives every one of them, wherever it came from, the same
@@ -65,6 +66,15 @@ export function Sheet({ title, onClose, children, actions, className }: Pick<Dia
       </div>
     </Layer>
   )
+}
+
+// useBackCloses: Back (a phone's gesture, the browser's button, a mouse's) closes something open
+// over the page, rather than leaving the page, for as long as open is true (backEntry.ts). mark
+// names its entry in the history; a sheet over a sheet needs its own.
+export function useBackCloses(open: boolean, close: () => void, mark: string) {
+  const closeRef = useRef(close)
+  closeRef.current = close
+  useEffect(() => (open ? openBackEntry(window.history, window, mark, () => closeRef.current()) : undefined), [open, mark])
 }
 
 // ---------------------------------------------------------------- asking

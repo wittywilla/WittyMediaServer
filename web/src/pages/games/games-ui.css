@@ -154,9 +154,11 @@ html.ten-foot .gm-page { --gm-cell: 210px; --gm-jump-gap: 140px; }
 .gm-resume img, .gm-resume .gm-save-blank { flex: none; width: 6rem; aspect-ratio: 4 / 3; object-fit: contain; border-radius: var(--r-xs); background: var(--bg-4); }
 .gm-resume span:last-child { display: grid; min-width: 0; }
 .gm-resume small { color: var(--fg-2); font-size: var(--text-xs); }
-/* Settings for this game, below the page: Done at both ends, so they close from wherever someone has got to. */
-.gm-settings-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
-.gm-settings-foot { margin-top: var(--sp-4); }
+/* Settings for a game, in a sheet over its page: wide enough for the picture beside its settings, and on a phone nearly the
+   whole height, so × stays at the top while the settings scroll. Inside, what sticks sticks to the sheet, not the page. */
+.modal.ui-sheet.gm-settings-sheet { width: min(52rem, 100vw); --tabbar-space: 0px; }
+.modal.gm-settings-sheet .wp-screen { --wp-screen-top: 0px; }
+@media (max-width: 600px) { .modal.ui-sheet.gm-settings-sheet { width: 100%; height: 92vh; height: 92dvh; } }
 .gm-blocked { display: flex; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border: 1px solid var(--warn); border-radius: var(--r-md); background: var(--warn-soft); max-width: 44rem; }
 .gm-blocked svg { flex: none; color: var(--warn); }
 .gm-blocked p { margin: var(--sp-1) 0 0; font-size: var(--text-sm); overflow-wrap: anywhere; }

@@ -196,15 +196,16 @@ export const forgetMissingModule = () => { missing = null }
 
 const parse = (text: string): any => { try { return text ? JSON.parse(text) : null } catch { return { error: text } } }
 
-async function send(method: string, path: string, body?: unknown): Promise<{ text: string; data: any }> {
+async function send(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<{ text: string; data: any }> {
   const headers: Record<string, string> = {}
   const tok = getToken()
   if (tok) headers['Authorization'] = 'Bearer ' + tok
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   let res: Response
   try {
-    res = await fetch(serverBase() + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' })
-  } catch {
+    res = await fetch(serverBase() + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin', signal })
+  } catch (e) {
+    if (signal?.aborted) throw e // given up on here, on purpose: nothing went wrong
     reportRequestFailure(method, path, 0, '')
     // The browser's own wording ("Failed to fetch") means nothing to people.
     throw new ApiError(0, "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote Access.")
@@ -256,7 +257,9 @@ function sendGet(path: string): Promise<{ text: string; data: any }> {
 const req = <T>(method: string, path: string, body?: unknown) => { onTheWay.clear(); return send(method, path, body).then((r) => r.data as T) }
 
 export const api = {
-  get: <T>(p: string) => sendGet(p).then((r) => r.data as T),
+  // signal: a request that's no longer wanted is given up on, so it stops holding one of the few
+  // connections a browser has to the server. One that can be given up is never shared with others.
+  get: <T>(p: string, signal?: AbortSignal) => (signal ? send('GET', p, undefined, signal) : sendGet(p)).then((r) => r.data as T),
   text: (p: string) => sendGet(p).then((r) => r.text), // an answer that is plain text
   post: <T>(p: string, b?: unknown) => req<T>('POST', p, b ?? {}),
   put: <T>(p: string, b?: unknown) => req<T>('PUT', p, b ?? {}),

@@ -255,6 +255,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/logs/crashes/{id}` | Admin | Report id |
 | `POST /api/logs/crashes/{id}/seen` | Admin | Report id |
 | `DELETE /api/logs/crashes/{id}` | Admin | Report id |
+| `GET /api/logs/crashes/{id}/{part}` | Admin | Report id, and the part from a fixed list |
+| `POST /api/logs/save` | Admin | A note of at most 500 characters |
 | `GET /api/logs/bundle` | Admin | Days, redaction |
 | `GET /api/logs/bundle/preview` | Admin | Days, redaction |
 | `GET /api/reset` | Admin | Nothing further |

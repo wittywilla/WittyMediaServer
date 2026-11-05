@@ -2,6 +2,7 @@ package gameid_test
 
 import (
 	"bytes"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -50,10 +51,12 @@ func FuzzSheet(f *testing.F) {
 			return
 		}
 		start := time.Now()
+		// In this system's own form: on Windows the files come back as \lib\games\a.bin.
+		root := filepath.FromSlash("/lib/games")
 		s, err := gameid.ParseSheet(ext, "game"+ext, strings.NewReader(in), "/lib/games", func(string) bool { return true })
 		if err == nil {
 			for _, p := range s.Files {
-				if !strings.HasPrefix(p, "/lib/games/") && p != "/lib/games" {
+				if !strings.HasPrefix(p, root+string(filepath.Separator)) && p != root {
 					t.Errorf("%q leads to %s", in, p)
 				}
 			}

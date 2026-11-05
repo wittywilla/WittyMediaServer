@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, fmtTime, type PlayInfo } from '../../api'
 import { EmptyState, Spinner } from '../../components/common'
@@ -12,6 +12,7 @@ import { Avatar, Comments, EditVideoDialog, LikeButtons, SubscribeButton, viewsO
 import '../../creators.css'
 import LegalNote from '../../components/LegalNote'
 import { WebLink } from '../../components/WebLink'
+import { VideoSongPanel } from '../music/SongVideo'
 
 // The watch page: the video, what it is and who made it, comments, and what to
 // watch next beside it.
@@ -21,8 +22,9 @@ const AUTONEXT = 'wms.channels.autoNext'
 export default function WatchPage() {
   const { id } = useParams()
   const nav = useNavigate()
-  const { user } = useApp()
+  const { user, libraries } = useApp()
   const [params] = useSearchParams()
+  const videoEl = useRef<HTMLVideoElement | null>(null)
   const [d, setD] = useState<VideoDetail | null>(null)
   const [err, setErr] = useState('')
   const [creator, setCreator] = useState<Creator | null>(null)
@@ -50,10 +52,13 @@ export default function WatchPage() {
   return (
     <div className={'ch-watch' + (theatre ? ' theatre' : '')}>
       <div className="ch-watch-main">
-        {d ? <InlinePlayer key={d.id} id={d.id} startAt={start} durationSec={d.durationSec} onEnded={() => { if (auto && next[0]) nav(`/watch/${next[0].id}`) }} className={d.vertical ? 'tall' : ''} onInfo={(i) => setChapters(i.chapters || [])} seekTo={seekTo} /> : <div className="player inline"><div className="center-spinner"><div className="spinner" /></div></div>}
+        {d ? <InlinePlayer key={d.id} id={d.id} startAt={start} durationSec={d.durationSec} onEnded={() => { if (auto && next[0]) nav(`/watch/${next[0].id}`) }} className={d.vertical ? 'tall' : ''} onInfo={(i) => setChapters(i.chapters || [])} seekTo={seekTo} videoRef={videoEl} /> : <div className="player inline"><div className="center-spinner"><div className="spinner" /></div></div>}
         {d && (
           <>
             <h1 className="ch-title">{d.title}</h1>
+            {libraries.find((l) => l.id === d.libraryId)?.type === 'musicvideos' && (
+              <VideoSongPanel videoId={d.id} videoTime={() => videoEl.current?.currentTime || 0} onPlaySong={() => videoEl.current?.pause()} />
+            )}
             <div className="ch-row">
               {creator && (
                 <div className="ch-owner">

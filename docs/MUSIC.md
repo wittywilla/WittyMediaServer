@@ -157,6 +157,13 @@ Each music library has a **Music videos** tab beside **Songs**, and a **Music vi
 
 Profile limits apply as everywhere: a video a profile can't watch isn't listed, and neither is a song it can't hear.
 
+### Going between a song and its video
+
+- **From a song:** its menu (**⋯**) has **Watch the video**, and so does the full-screen player, under the artist and in its **⋯** menu. A song with more than one video, such as a live one, lists each.
+- **From a video:** a music video's page shows its song under the title, with links to the artist and the album, and **Play the song**.
+
+When the two line up, going from one to the other carries on at the same place: the song stops and the video starts where the song was, or the other way round. When they don't, the other one starts from the beginning.
+
 ### How songs and videos are matched
 
 After a scan of either library, every video is compared with every song:
@@ -177,7 +184,13 @@ Codes in tags are read when a file is scanned, so files scanned before 0.7.0-alp
 
 ### Tying and untying by hand
 
-Admins can tie a song to a video, untie them, and say where the song starts in the video when it has an intro. A video has one song, so tying it to another unties the first. What an admin ties or unties stays that way, whatever later scans find.
+Admins tie and untie from a song's menu (**Tie to a music video…**, or **Music videos of this song…** once it has one) or from a video's page (**Tie to a song…** or **Change**). The window shows what's tied, what's suggested and why, and a search of the other side:
+
+- **Tie** ties them. A video has one song, so tying it to another unties the first.
+- **Not this one** turns a suggestion down, and **Untie** parts a pair.
+- **The song starts this many seconds into the video** is for a video with an intro, so switching lands in the right place. Leave it empty when the two are different takes and don't line up.
+
+What an admin ties or unties stays that way, whatever later scans find.
 
 A link only ever shows what a profile may see: a Kids profile that can't watch a video doesn't see that it exists.
 

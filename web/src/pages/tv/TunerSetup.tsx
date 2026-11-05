@@ -97,6 +97,12 @@ export default function TunerSetup({ drivers, start, onClose, onAdded }: { drive
     setBusy(true)
     try { setTuner(await api.post<Tuner>(`/tuners/${tuner.id}/refresh`)); forgetLineup() } catch (e: any) { toast(e.message) } finally { setBusy(false) }
   }
+  // A typo in an address is fixed where it was typed: the tuner that was saved goes.
+  const changeDetails = async () => {
+    if (!tuner) return
+    setBusy(true)
+    try { await api.del(`/tuners/${tuner.id}`); forgetLineup(); setTuner(null); setScan(null); setStep('details'); onAdded() } catch (e: any) { toast(e.message) } finally { setBusy(false) }
+  }
   const startScan = async () => {
     if (!tuner) return
     try { setScan(await api.post<ScanState>(`/tuners/${tuner.id}/scan`, { source: opts.source || '' })) } catch (e: any) { toast(e.message) }
@@ -224,6 +230,7 @@ export default function TunerSetup({ drivers, start, onClose, onAdded }: { drive
           {tuner.encrypted > 0 && <p className="tvs-note">Encrypted channels can't be played here, which isn't a fault in your setup. <Link to="/tv/encrypted">What can I do?</Link></p>}
           {driver?.scans && <p className="muted">{tuner.channels === 0 ? 'A tuner usually needs a scan to find its channels.' : 'A scan looks for channels the device doesn’t list by itself.'} It can take a few minutes.</p>}
           <div className="tvs-toolbar">
+            {tuner.lastError && <Button disabled={busy || !!scan?.running} onClick={() => void changeDetails()}>Remove it and change the details</Button>}
             {driver?.scans && <Button variant={tuner.channels === 0 ? 'primary' : 'default'} disabled={!!scan?.running} onClick={() => void startScan()}>{scan?.running ? `Scanning… ${scan.percent}%` : 'Scan for channels'}</Button>}
             <Button disabled={busy || !!scan?.running} icon={<IconRefresh />} onClick={() => void readAgain()}>Read the list again</Button>
           </div>

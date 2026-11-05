@@ -10,6 +10,7 @@
     "test:music": "node scripts/test-music.mjs",
     "test:pads": "node scripts/test-pads.mjs",
     "test:setup": "node scripts/test-setup.mjs",
+    "test:keys": "node scripts/test-keys.mjs",
     "test:tv": "node scripts/test-tv-themes.mjs"
   },
   "dependencies": {

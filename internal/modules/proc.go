@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/appcontrol"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymodule"
@@ -235,6 +236,9 @@ func (p *proc) start() error {
 		return err
 	}
 	err = cmd.Start()
+	if blocked := appcontrol.Explain(err, p.path(), SignedFix); blocked != err {
+		return fmt.Errorf("could not start: %w", blocked) // Windows refused the program, not the sandbox
+	}
 	if err != nil && sandboxed && p.strict {
 		return fmt.Errorf("this system won't run it with the limits a module from another publisher needs: %w", err)
 	}
@@ -250,7 +254,7 @@ func (p *proc) start() error {
 		err = cmd.Start()
 	}
 	if err != nil {
-		return fmt.Errorf("could not start: %w", err)
+		return fmt.Errorf("could not start: %w", appcontrol.Explain(err, p.path(), SignedFix))
 	}
 	started := time.Now()
 	memory := int64(hardMemoryMB)

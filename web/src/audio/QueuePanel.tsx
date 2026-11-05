@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { fmtTime, posterUrl } from '../api'
+import { fitWidth, fmtTime, posterUrl, sized } from '../api'
 import { IconClose, IconDown, IconUp } from '../icons'
 import { AddToPlaylist } from './controls'
 import type { PlayerView } from './types'
@@ -33,7 +33,7 @@ export function QueuePanel({ p, heading, onClose }: { p: PlayerView; heading: st
             onDragOver={(e) => { if (drag !== null) { e.preventDefault(); setOver(i) } }} onDragEnd={() => { setDrag(null); setOver(null) }}
             onDrop={(e) => { e.preventDefault(); if (drag !== null && drag !== i) p.moveInQueue(drag, i); setDrag(null); setOver(null) }}>
             <button type="button" className="np-q-play" onClick={() => p.jump(i)} aria-current={i === p.index ? 'true' : undefined}>
-              <span className="np-q-art">{q.poster && <img src={posterUrl(q)} alt="" loading="lazy" />}{i === p.index && p.playing && <i className="ab-eq" aria-hidden="true"><b /><b /><b /></i>}</span>
+              <span className="np-q-art">{q.poster && <img src={sized(posterUrl(q), fitWidth(64))} alt="" loading="lazy" />}{i === p.index && p.playing && <i className="ab-eq" aria-hidden="true"><b /><b /><b /></i>}</span>
               <span className="np-q-text"><b>{q.title}</b><small>{p.live ? (q.radio?.country || '') : q.artist || q.albumArtist || ''}</small></span>
               {!p.live && <span className="np-q-time">{fmtTime(q.runtimeSec)}</span>}
             </button>

@@ -14,11 +14,13 @@ import { browserCapabilities } from './capabilities'
 // One speed for the whole visit: the next video in a list starts at it too.
 let sessionRate = 1
 
-export default function InlinePlayer({ id, startAt, autoPlay = true, onEnded, durationSec = 0, compact, className = '', onInfo, seekTo }: {
+export default function InlinePlayer({ id, startAt, autoPlay = true, onEnded, durationSec = 0, compact, className = '', onInfo, seekTo, videoRef }: {
   id: number; startAt?: number; autoPlay?: boolean; onEnded?: () => void; durationSec?: number; compact?: boolean; className?: string
   onInfo?: (info: PlayInfo) => void; seekTo?: { at: number } // a new object jumps there
+  videoRef?: React.MutableRefObject<HTMLVideoElement | null> // for a page that needs the time, or to pause it
 }) {
-  const video = useRef<HTMLVideoElement | null>(null)
+  const own = useRef<HTMLVideoElement | null>(null)
+  const video = videoRef || own
   const root = useIdle(3000, [])
   const [info, setInfo] = useState<PlayInfo | null>(null)
   const [audio, setAudio] = useState(0)

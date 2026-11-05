@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageHelp } from '../components/HelpLink'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { api, posterUrl, type Item, type Show } from '../api'
+import { api, fitWidth, posterUrl, sized, type Item, type Show } from '../api'
 import { useAudio } from '../audio/player'
 import { BackLink, EmptyState, LoadError, ItemCard, ShowCard, Spinner } from '../components/common'
 import { canPost, type Collection, type CollectionRule } from '../gallery'
@@ -179,7 +179,7 @@ function CollectionDialog({ collection, onClose, onSaved }: { collection?: Colle
             </div>
             <div className="col-preview" aria-live="polite">
               {preview && <b>{preview.count} {preview.count === 1 ? 'match' : 'matches'}</b>}
-              <div className="col-preview-row">{preview?.items.filter((it) => it.poster).slice(0, 8).map((it) => <img key={it.id} src={posterUrl(it)} alt={it.title} title={it.title} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />)}</div>
+              <div className="col-preview-row">{preview?.items.filter((it) => it.poster).slice(0, 8).map((it) => <img key={it.id} src={sized(posterUrl(it), fitWidth(96))} alt={it.title} title={it.title} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />)}</div>
             </div>
           </fieldset>
         )}

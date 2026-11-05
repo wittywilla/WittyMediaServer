@@ -479,3 +479,14 @@ html.ten-foot, html.using-controller { --ctv-press: 48px; }
 html.ten-foot .ctv-swatch, html.using-controller .ctv-swatch { width: 48px; height: 48px; }
 .ctv-choice-opts label, .ctv-choice-checks label, .ctv-editor .seg button, .ctv-editor .btn, .ctv-colour-row input, .ctv-colour-row select, .ctv-look .btn, .ctv-details .btn, .ctv-details .seg button, .ctv-search .btn, .ctv-search .input, .ctv-search .select, .ctv-key, .ctv-list-page .ctv-btn { min-height: var(--ctv-press, 0); }
 .ctv-help-page .ctv-rec a { display: inline-flex; align-items: center; min-height: var(--ctv-press, 0); }
+
+/* ------------------------------------------------- Preview controls over the picture, in any theme.
+   No bar under it: the controls sit along the top of the picture and show only with the pointer
+   on it or focus in it, which leaves the bottom corner free to resize it by. They stay focusable
+   while hidden, so the keyboard and a remote reach them and showing them is what focus does. */
+.ctv[data-previewbar="over"] .ctv-preview-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 2; background: linear-gradient(var(--scrim), transparent); --ctv-text: var(--on-image); opacity: 0; transition: opacity var(--dur-2) ease; }
+.ctv[data-previewbar="over"] .ctv-preview:hover .ctv-preview-bar, .ctv[data-previewbar="over"] .ctv-preview:focus-within .ctv-preview-bar { opacity: 1; }
+.ctv[data-previewbar="over"] .ctv-preview-name { text-shadow: 0 1px 2px var(--scrim); }
+/* A touch screen has no pointer to rest on it and nothing to focus by, so there they stay. */
+@media (hover: none) { html:not(.ten-foot):not(.using-controller) .ctv[data-previewbar="over"] .ctv-preview-bar { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ctv[data-previewbar="over"] .ctv-preview-bar { transition: none; } }

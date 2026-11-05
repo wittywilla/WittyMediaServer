@@ -44,6 +44,12 @@ function write(key: string, v: object | null) {
   try { v ? localStorage.setItem(key, JSON.stringify(v)) : localStorage.removeItem(key) } catch { /* ignore */ }
 }
 
+// The choices for every video on this device, as Settings, Appearance shows them. A disc or
+// video with choices of its own keeps those.
+// 3D is never one of them: it's kept for one item at a time (saveView).
+export const globalView = (): ViewPrefs => ({ ...DEFAULT_VIEW, ...split(read(GLOBAL) || {})[0] })
+export const setGlobalView = (patch: Partial<ViewPrefs>) => write(GLOBAL, split({ ...(read(GLOBAL) || {}), ...patch })[0])
+
 export type Scope = 'item' | 'global'
 
 // clearStuck3D takes 3D out of the preferences saved for everything and for each

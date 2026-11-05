@@ -10,7 +10,7 @@ globalThis.localStorage = {
   setItem: (k, v) => store.set(k, String(v)),
   removeItem: (k) => store.delete(k),
 }
-const { loadView, saveView, saveScope } = await import('./viewPrefs.ts')
+const { loadView, saveView, saveScope, setGlobalView, globalView } = await import('./viewPrefs.ts')
 const get = (k) => JSON.parse(localStorage.getItem(k) || 'null')
 
 test('3D saved for everything by an earlier version is cleared', () => {
@@ -45,6 +45,11 @@ test('3D is kept for one disc, whatever Apply to says', () => {
   saveScope(1, loadView(1).prefs, 'global')
   assert.equal(get('wms.view').stereo, undefined)
   assert.equal(loadView(2).prefs.stereo, 'off')
+  // Appearance's settings for every video can't carry 3D either.
+  setGlobalView({ stereo: 'sbs', seekBar: false })
+  assert.equal(get('wms.view').stereo, undefined)
+  assert.equal(get('wms.view').seekBar, false)
+  assert.equal(globalView().stereo, 'off')
   // Off again: nothing kept.
   saveView(1, loadView(1).prefs, { stereo: 'off' }, 'item')
   assert.equal(localStorage.getItem('wms.view.3d.1'), null)

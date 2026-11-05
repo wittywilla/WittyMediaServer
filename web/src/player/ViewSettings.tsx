@@ -1,4 +1,5 @@
 import type { Scope, ViewPrefs } from './viewPrefs'
+import type { DeviceStreaming } from './streaming'
 
 type Change = (p: Partial<ViewPrefs>) => void
 
@@ -28,8 +29,10 @@ function Seg<T extends string | number>({ k, label, opts, prefs, onChange }: { k
 
 // The gear menu: viewing options that apply to this disc or to everything, and 3D,
 // which only ever applies to this disc (show3D: the disc player, which draws it).
-export default function ViewSettings({ prefs, scope, onChange, onScope, onClose, isDisc, show3D }: {
+export default function ViewSettings({ prefs, scope, onChange, onScope, onClose, isDisc, show3D, streaming, onStreaming }: {
   prefs: ViewPrefs; scope: Scope; onChange: Change; onScope: (s: Scope) => void; onClose: () => void; isDisc: boolean; show3D?: boolean
+  // This device's streaming choice, for videos (not discs). Changing it asks for the video again at the same place.
+  streaming?: DeviceStreaming; onStreaming?: (v: DeviceStreaming) => void
 }) {
   const p = { prefs, onChange }
   const one = isDisc ? 'this disc' : 'this video'
@@ -61,6 +64,15 @@ export default function ViewSettings({ prefs, scope, onChange, onScope, onClose,
         <Row label="3D video"><Seg k="stereo" label="3D video" opts={[['off', 'Off'], ['sbs', 'Side by side'], ['ou', 'Over-under']]} {...p} /></Row>
         {prefs.stereo !== 'off' && <Row label="Show 3D as"><Seg k="stereoOut" label="Show 3D as" opts={[['2d', '2D (one eye)'], ['anaglyph', 'Red/cyan glasses']]} {...p} /></Row>}
       </>}
+      {streaming && onStreaming && (
+        <Row label="Streaming">
+          <div className="seg" role="radiogroup" aria-label="Streaming on this device">
+            {([['auto', 'Server’s choice'], ['standard', 'Standard'], ['robust', 'Robust']] as [DeviceStreaming, string][]).map(([v, l]) => (
+              <button type="button" key={v} role="radio" aria-checked={streaming === v} className={streaming === v ? 'active' : ''} onClick={() => onStreaming(v)}>{l}</button>
+            ))}
+          </div>
+        </Row>
+      )}
       <p className="vs-note">{scope === 'item' ? `Seek bar, remote and picture: saved for ${one} on this device.` : 'Seek bar, remote and picture: saved for all videos on this device.'}{show3D ? ` 3D: saved for ${one}.` : ''}</p>
     </div>
   )

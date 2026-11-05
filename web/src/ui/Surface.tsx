@@ -110,7 +110,7 @@ export function EmptyState({ title, text, action, icon = <IconFilm /> }: { title
   return (
     <div className="empty">
       <span className="empty-ic" aria-hidden="true">{icon}</span>
-      <h3>{title}</h3>
+      <h2 className="empty-title">{title}</h2>
       {text && <p>{text}</p>}
       {action}
     </div>
@@ -124,7 +124,7 @@ export function LoadError({ what, onRetry }: { what: string; onRetry?: () => voi
   return (
     <div className="empty" role="alert">
       <span className="empty-ic" aria-hidden="true"><IconInfo /></span>
-      <h3>{what} couldn’t be loaded</h3>
+      <h2 className="empty-title">{what} couldn’t be loaded</h2>
       <p>The server didn’t answer properly. This is usually brief, and doesn’t mean anything has gone.</p>
       {onRetry && <button type="button" className="btn" onClick={onRetry}>Try again</button>}
       <LogsLink />

@@ -36,8 +36,11 @@ export function Done({ steps, onFinish }: { steps: StepInfo[]; onFinish: (to?: s
   const [addKids, setAddKids] = useState(false)
   const [kidsAdded, setKidsAdded] = useState(false)
   const [busy, setBusy] = useState(false)
+  // In the words Settings, Remote Access uses, from the one place they're written.
+  const [remote, setRemote] = useState<{ subject: string; away: string } | null>(null)
   useEffect(() => {
     void readOutcome().then(setOutcome)
+    api.get<{ subject: string; away: string }>('/remote/status').then(setRemote).catch(() => setRemote(null))
     api.get<{ lanUrls?: string[] }>('/system').then((s) => setLan(s.lanUrls || [])).catch(() => setLan([]))
   }, [])
   // Addresses other devices at home can open. This one may only be "localhost".
@@ -72,7 +75,7 @@ export function Done({ steps, onFinish }: { steps: StepInfo[]; onFinish: (to?: s
           {addrs.length > 0
             ? <><span>On the same home network (Wi-Fi or cable), open this address on your TV, phone, tablet or another computer:</span>{addrs.slice(0, 2).map((a) => <code key={a}>{a}</code>)}</>
             : <span>Right now this server only answers on this computer. To use it from your TV or phone, set <code>listen</code> to <code>:9797</code> in its config file and restart it.</span>}
-          <small className="oobe-disclaimer">Your server runs in your home, so for now it works only on your home network. To watch away from home, follow the steps in Settings, Remote Access when you’re ready.</small>
+          <small className="oobe-disclaimer">{remote ? <><b>{remote.subject}.</b> {remote.away}. </> : 'Your server runs in your home, so for now it works only on your home network. '}To watch away from home, choose how in Settings, Remote Access when you’re ready.</small>
         </div>
         <div className="oobe-next-card">
           <IconUsers size={22} />
@@ -84,7 +87,8 @@ export function Done({ steps, onFinish }: { steps: StepInfo[]; onFinish: (to?: s
           <IconPlug size={22} />
           <b>Also here when you want them</b>
           <span><b>Library transcoding</b> converts your files ahead of time, so they play anywhere without the server working as hard. It rewrites your files, so it stays off until you turn it on in Settings, Library transcoding.</span>
-          <span><b>TV channels</b> are made from your libraries in one press, in Settings, Channels &amp; tuners, once they’ve been scanned.</span>
+          <span><b>TV channels</b> are made from your libraries in one press, on the guide’s Channels page (<b>Edit channels</b>), once they’ve been scanned.</span>
+          <span><b>Live TV</b> from a tuner box, a TV card or a provider’s playlist: <b>Add live TV</b> in Settings, Channels &amp; tuners walks you through it, finding what it can and taking the rest by hand.</span>
         </div>
       </div>
       {addKids && <AddProfile admin initialKind="kids" onClose={() => setAddKids(false)} onDone={() => { setAddKids(false); setKidsAdded(true) }} />}

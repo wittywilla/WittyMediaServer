@@ -173,7 +173,7 @@ func TestLockedEPUBGivesWay(t *testing.T) {
 	write("Alone.epub", locked) // no other copy: it stays, and says why when it's opened
 	write("Open.epub", nil)
 	_ = os.WriteFile(filepath.Join(root, "Open.pdf"), []byte("%PDF-1.7 a book"), 0o644)
-	got, err := discoverBooks(root)
+	got, err := discoverBooks(root, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

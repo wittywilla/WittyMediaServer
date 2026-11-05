@@ -334,3 +334,5 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
   .np-chip.on, .np-styles > button.on, .kar-seg button.on { background: Highlight !important; color: HighlightText !important; }
   .kar-word { background: none; color: CanvasText; }
 }
+.np-video { margin-top: 10px; min-height: 40px; font-size: var(--text-sm); }
+.np-video:focus-visible { outline: 3px solid var(--np-white); outline-offset: 2px; }

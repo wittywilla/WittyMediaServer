@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!-- An Unraid template for WittyMediaServer: docs/DOCKER-UNRAID.md says how to add it. -->
+<Container version="2">
+  <Name>wittymediaserver</Name>
+  <Repository>ghcr.io/wittywilla/wittymediaserver:alpha</Repository>
+  <Registry>https://github.com/wittywilla/WittyMediaServer/pkgs/container/wittymediaserver</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/wittywilla/WittyMediaServer/issues</Support>
+  <Project>https://github.com/wittywilla/WittyMediaServer</Project>
+  <Overview>Your own media server: films, TV, music, photos, books, DVD and Blu-ray menus, and games. Runs as nobody:users with a read-only root. Hardware transcoding with Intel, AMD or NVIDIA graphics: see docs/DOCKER-UNRAID.md.</Overview>
+  <Category>MediaServer:Video MediaServer:Music MediaServer:Photos</Category>
+  <WebUI>http://[IP]:[PORT:9797]/</WebUI>
+  <Icon>https://raw.githubusercontent.com/wittywilla/WittyMediaServer/master/web/public/icon-512.png</Icon>
+  <ExtraParams>--user 99:100 --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true</ExtraParams>
+  <Config Name="Web UI" Target="9797" Default="9797" Mode="tcp" Description="The port to open in a browser." Type="Port" Display="always" Required="true" Mask="false">9797</Config>
+  <Config Name="Config" Target="/config" Default="/mnt/user/appdata/wittymediaserver" Mode="rw" Description="The database, settings, artwork and logs. Keep it on the cache pool." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/wittymediaserver</Config>
+  <Config Name="Media" Target="/media" Default="/mnt/user/Media" Mode="ro" Description="Your media, read-only. Add its folders as libraries in the app." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/Media</Config>
+  <Config Name="Intel or AMD graphics" Target="" Default="/dev/dri" Mode="" Description="For hardware transcoding. Remove it on a machine with neither." Type="Device" Display="always" Required="false" Mask="false">/dev/dri</Config>
+  <Config Name="Log level" Target="WMS_LOG" Default="info" Mode="" Description="error, warn, info or debug." Type="Variable" Display="advanced" Required="false" Mask="false">info</Config>
+</Container>

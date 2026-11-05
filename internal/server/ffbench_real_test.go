@@ -196,7 +196,10 @@ type benchCase struct {
 }
 
 func benchCases(cfg benchConfig) []benchCase {
-	h264 := probeFind("h264-1080", func(p *ffmpeg.Probe) bool { v := p.Video(); return v != nil && v.CodecName == "h264" && v.Height >= 1000 && v.Height <= 1100 })
+	h264 := probeFind("h264-1080", func(p *ffmpeg.Probe) bool {
+		v := p.Video()
+		return v != nil && v.CodecName == "h264" && v.Height >= 1000 && v.Height <= 1100
+	})
 	// Matroska, which browsers don't open, so the server copies the picture into HLS.
 	h264mkv := probeFind("h264-1080-mkv", func(p *ffmpeg.Probe) bool {
 		v := p.Video()
@@ -426,12 +429,12 @@ func (b *bench) settle() {
 }
 
 type playbackReply struct {
-	Decision   string  `json:"decision"`
-	Protocol   string  `json:"protocol"`
-	URL        string  `json:"url"`
-	StreamID   string  `json:"streamId"`
-	Duration   float64 `json:"durationSec"`
-	Subtitles  []struct {
+	Decision  string  `json:"decision"`
+	Protocol  string  `json:"protocol"`
+	URL       string  `json:"url"`
+	StreamID  string  `json:"streamId"`
+	Duration  float64 `json:"durationSec"`
+	Subtitles []struct {
 		Index int    `json:"index"`
 		Codec string `json:"codec"`
 		Text  bool   `json:"text"`

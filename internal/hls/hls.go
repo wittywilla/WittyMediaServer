@@ -43,7 +43,11 @@ type Spec struct {
 	InputArgs   []string // input options and -i
 	Duration    float64  // total seconds (required)
 	VideoFilter string   // extra -vf chain (deinterlace etc.); aspect normalisation is added automatically
-	AudioIndex  int      // ffmpeg audio stream index (a:N), -1 = no audio
+	// ToneMap: the picture is HDR of this range (as ffmpeg.Stream.Range says) and is mapped to
+	// an ordinary one, once it has been brought down to MaxHeight. The caller checks that this
+	// FFmpeg can (Tools.ToneMapFilter).
+	ToneMap    string
+	AudioIndex int // ffmpeg audio stream index (a:N), -1 = no audio
 	// VideoIndex is the picture's stream (v:N). It isn't always 0: cover art can come
 	// first, and some files hold several pictures.
 	VideoIndex int
@@ -997,7 +1001,9 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string) 
 			vf = append(vf, sp.VideoFilter)
 		}
 		vf = append(vf, "scale=trunc(iw*sar/2)*2:ih") // H.264 refuses an odd width, and widescreen NTSC comes to 853
-		if sp.MaxHeight > 0 {
+		if sp.ToneMap != "" {
+			vf = append(vf, ffmpeg.ToneMapTo(sp.ToneMap, sp.MaxHeight)) // which also brings it down to size
+		} else if sp.MaxHeight > 0 {
 			vf = append(vf, fmt.Sprintf("scale=-2:'min(ih,%d)'", sp.MaxHeight))
 		}
 		if sp.HoldLastFrame {

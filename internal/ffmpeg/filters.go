@@ -3,6 +3,7 @@ package ffmpeg
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -57,12 +58,22 @@ func (t *Tools) ToneMapFilter(rng string) string {
 // told first what they are, because a file may only say so in its container, and without
 // that zscale stops with "no path between colorspaces". They're told afterwards as well, so
 // the encoder marks what comes out as an ordinary picture.
-func ToneMapChain(rng string) string {
+func ToneMapChain(rng string) string { return ToneMapTo(rng, 0) }
+
+// ToneMapTo is that chain, bringing the picture down to at most maxHeight lines (0 = as it
+// is) on the way into linear light, so the rest of it works on the smaller picture. Mapping
+// works in floating point on every pixel: a 4K film shown at 1080p was mapped at its full size
+// and then shrunk, which took 69 processor seconds for 10 seconds of it, and 43 this way.
+func ToneMapTo(rng string, maxHeight int) string {
 	trc := "smpte2084"
 	if rng == "hlg" {
 		trc = "arib-std-b67"
 	}
+	size := ""
+	if maxHeight > 0 {
+		size = fmt.Sprintf("w=-2:h='min(ih,%d)':", maxHeight)
+	}
 	return "setparams=color_primaries=bt2020:color_trc=" + trc + ":colorspace=bt2020nc," +
-		"zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p," +
+		"zscale=" + size + "t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p," +
 		"setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709"
 }

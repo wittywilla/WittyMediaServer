@@ -22,16 +22,19 @@ function useMusicVideos(search: string) {
   const [items, setItems] = useState<MusicVideoCard[] | null>(null)
   const [more, setMore] = useState(false)
   const busy = useRef(false)
+  const asked = useRef(0) // a newer search makes an older answer stale
   const load = useCallback(async (from: number) => {
-    if (busy.current) return
+    if (busy.current && from > 0) return
     busy.current = true
+    const n = ++asked.current
     try {
       const u = new URLSearchParams({ limit: String(PAGE), offset: String(from) })
       if (search) u.set('search', search)
       const r = await api.get<Page>(`/music/videos?${u}`)
+      if (n !== asked.current) return
       setItems((x) => (from === 0 || !x ? r.videos : [...x, ...r.videos]))
       setMore(r.more)
-    } catch { setItems((x) => x || []) } finally { busy.current = false }
+    } catch { if (n === asked.current) setItems((x) => x || []) } finally { if (n === asked.current) busy.current = false }
   }, [search])
   useEffect(() => { setItems(null); void load(0) }, [load])
   return { items, more, loadMore: () => void load(items?.length || 0) }

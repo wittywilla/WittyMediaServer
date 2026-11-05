@@ -180,11 +180,11 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/music/extras/{id}/file` | Signed-in | limits. Name is one the listing gave. Opened inside a library, plain files only. Text up to 512 KB, as JSON. A PDF is sent as a PDF for the browser's own viewer, without the script-free policy, within the limit for viewers away from home |
 | `GET /api/music/artist` | Signed-in | limits, in the query. Name of up to 300 characters. Online biography only when the owner turned it on, its credit a Wikipedia address |
 | `GET /api/music/artist-photo` | Signed-in | limits: an artist with a song the account may see. Name of up to 300 characters. Opened inside a library. Pictures only |
-| `GET /api/music/lyrics/{id}` | Signed-in | limits. An audio item. own timing. Asks online only when the owner turned it on |
-| `PUT /api/music/lyrics/{id}/offset` | Signed-in | limits. own. Up to two minutes either way |
-| `POST /api/music/lyrics/{id}/search` | Admin | limits. An audio item. Online lyrics turned on. Query length |
-| `PUT /api/music/lyrics/{id}` | Admin | limits. An audio item. At most 256 KB, or a search result from a source that is turned on. Nothing is written beside the music |
-| `DELETE /api/music/lyrics/{id}` | Admin | limits. An audio item |
+| `GET /api/music/lyrics/{id}` | Signed-in | limits. An audio item, or a music video, which shares its song's when the account may see the song. own timing. Asks online only when the owner turned it on |
+| `PUT /api/music/lyrics/{id}/offset` | Signed-in | limits. An audio item or a music video. own. Up to two minutes either way of where it starts |
+| `POST /api/music/lyrics/{id}/search` | Admin | limits. An audio item, or a music video, which shares its song's when the account may see the song. Online lyrics turned on. Query length |
+| `PUT /api/music/lyrics/{id}` | Admin | limits. An audio item, or a music video, which shares its song's when the account may see the song. At most 256 KB, or a search result from a source that is turned on. Nothing is written beside the music |
+| `DELETE /api/music/lyrics/{id}` | Admin | limits. An audio item, or a music video, which shares its song's when the account may see the song |
 | `DELETE /api/music/lyrics-cache` | Admin | Nothing further |
 | `GET /api/music/links/{id}` | Signed-in | limits. A song or a music video. Only links whose two ends the account may see. Suggestions for admins only |
 | `GET /api/music/videos` | Signed-in | limits. Music video libraries only. A tied song shown only when the account may see it. Query length |

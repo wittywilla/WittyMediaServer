@@ -35,7 +35,7 @@ To add, update or remove modules on a server, see [Modules and the store](MODULE
 
 ## How a module runs
 
-The server has no module's source. Each module is a repository of its own at `github.com/wittywilla/<Repository>`, and arrives at run time as a signed archive. `go.mod` in the server names one thing from them, **WittyModule**, which holds the contract between the two sides and has no dependencies.
+The server has no module's source. Each module is a repository of its own at `github.com/wittywilla/<Repository>`, and arrives at run time as a signed archive. `go.mod` in the server names only **WittyModule**, which holds the contract between the two sides and has no dependencies, and **core libraries** such as WittyDisc: shared code with no program of its own, compiled into the server at the version `go.mod` pins, so no fork or release can change it. The server never builds with a module.
 
 `delivery` in the manifest says what kind of module it is:
 
@@ -55,7 +55,7 @@ The server keeps only the shape of what a module says:
 |---|---|
 | `internal/play/...`, `internal/couch/...` | Stubs written by `kit/facade` in WittyModule from `facade.json` in the module: the module's types, and functions that call its service. Never edited by hand, except `manual.go` |
 | `internal/dvd`, `internal/bluray`, `internal/cd`, `internal/tuner` | The types those modules answer in, kept as a copy. A helper and the server compile them separately, and they match by field name |
-| `internal/tuner/mpegts`, `internal/isofs` | The server's **own** encryption guard and disc image reader, so it refuses encrypted media itself, whatever a module says |
+| `internal/tuner/mpegts`, and `isofs` from WittyDisc | The server's **own** encryption guard and disc image reader, so it refuses encrypted media itself, whatever a module says |
 | `web/src/moduletypes` | The TypeScript types of the browser parts, from `scripts/sync-module-types.mjs`. Types only: nothing from them runs |
 
 Types are matched by name, in a self-describing format, so a field one side hasn't heard of is ignored. `wittymodule check` keeps a manifest honest, and a change the other side has to know of raises the API version.
@@ -261,7 +261,7 @@ A permission a server doesn't know means the version can't run there, and it's s
 - **Everywhere:** a small environment (`GOMEMLIMIT` of 256 MiB, `GOMAXPROCS` of 2), with `PATH` and a few more only for a module with `programs`.
 - **Linux:** the server starts itself as a launcher, which applies the limits and then becomes the program, so nothing in a program can skip them. It uses `PR_SET_NO_NEW_PRIVS`, an address space limit, Landlock for writes, a seccomp filter on 64-bit (no sockets unless it has `network`, no changing owners or modes, no reaching into another process), and namespaces where the system allows them.
 - **Windows:** a low-integrity token and a job with a 512 MB limit and no other processes. A helper goes into its job just after it starts, so for a moment it's outside: starting it suspended made helpers hang at random for half a minute in testing, so it isn't done.
-- **macOS:** the launcher starts the program in `sandbox-exec`, with a profile from `helperProfile` in `internal/modules/sandbox_profile.go`: no network, other programs, signals to others or writes outside its folders, unless it has the permission for those. The profile is tried on a program that does nothing before it's relied on, and a helper that won't start inside it starts without it, with the pages saying so. Written and compiled, and not yet run on a real Mac.
+- **macOS:** the launcher starts the program in `sandbox-exec`, with a profile from `helperProfile` in `internal/modules/sandbox_profile.go`: no network, other programs or writes outside its folders, unless it has the permission for those. The profile also denies signals to other programs, but on GitHub's Mac runner a helper could still signal the server, so that isn't claimed. The profile is tried on a program that does nothing before it's relied on, and a helper that won't start inside it starts without it, with the pages saying so. Written and compiled, and not yet run on a real Mac.
 - **FreeBSD:** a jail takes root, and Capsicum takes away opening files by name, which is how a helper reads your media. So the launcher sets what an ordinary account can give up for good, in `internal/modules/sandbox_freebsd.go`: `RLIMIT_NPROC` (no programs), `RLIMIT_SBSIZE` (no new socket of any kind), `RLIMIT_FSIZE` (no writing into a file), `RLIMIT_NPTS`, an address space limit and no new privileges, each only where it has no permission for that. It can still delete and rename this account's files, and signal its other programs. The server turns off being debugged, or a helper could get round all of it that way. As root, a helper also goes in a jail of its own over the whole file system, with no network, but root takes off the limits. Each of those was tried from inside a helper in a FreeBSD 15.1 virtual machine, with a real helper started the same way.
 - **Saying so:** `GET /api/modules` and the store's view carry `sandbox`, with `level` as `full`, `partial`, `limited` or `unconfined`, and a `title` and `words` when it isn't full. The Modules page and the store show those.
 
@@ -531,7 +531,7 @@ They land in `modules/` beside the program, or in `Contents/Resources/modules` i
 
 ## Developing a server and a module together
 
-A normal build of the server needs only WittyModule, at a released version. Nothing about a module needs to be beside it. How the repositories are set up on a development machine is in `docs/REPOSITORIES.md`.
+A normal build of the server needs only WittyModule and the core libraries `go.mod` names, at released versions. Nothing about a module needs to be beside it. How the repositories are set up on a development machine is in `docs/REPOSITORIES.md`.
 
 **A change that crosses the line** is two changes in two repositories. For WittyPlay and WittyCouch, the server's stubs come from the module's source, so a new exported function means running the generator from a WittyModule checkout, which rewrites `gen.go` on both sides. Anything it can't write goes in `manual.go`:
 

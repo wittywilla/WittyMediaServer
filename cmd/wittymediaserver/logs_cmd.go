@@ -19,6 +19,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/diagnose"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/server"
 )
 
 const logsUsage = `usage:
@@ -144,6 +145,7 @@ func cmdLogsZip(args []string) int {
 	}, "", "  ")
 	o := logging.BundleOptions{Days: days, Sanitize: !raw, Known: known, Extra: []logging.BundleFile{{Name: "summary.json", Description: "Version and system", Data: summary}}}
 	o.Extra = append(o.Extra, diagnose.NewManager(diagnose.Env{DataDir: cfg.DataDir}).BundleFiles(3)...)
+	o.Earlier = server.EarlierLogs(cfg.DataDir, cfg.LogDir)
 	f, err := os.OpenFile(out, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0o600)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

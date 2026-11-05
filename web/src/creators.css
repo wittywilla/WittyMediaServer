@@ -108,7 +108,6 @@
 }
 
 /* WittyChannels */
-.ch-bar { flex-wrap: wrap; gap: 10px; }
 .ch-tabs { flex-wrap: wrap; }
 .ch-search { display: flex; gap: 6px; }
 .ch-search .input { width: 220px; max-width: 45vw; }

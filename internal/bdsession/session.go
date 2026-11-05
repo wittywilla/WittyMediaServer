@@ -263,7 +263,7 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 		base = slog.Default()
 	}
 	s.log = base.With("cat", "discs", "module", "wittybluray", "session", s.ID)
-	if prefs.Angle > 0 {
+	if prefs.Angle > 0 && nav != nil { // a refused disc has nothing to navigate
 		s.nav.SetAngle(prefs.Angle)
 	}
 	m.mu.Lock()
@@ -308,10 +308,13 @@ func (s *Session) lastUsed() time.Time {
 	return s.last
 }
 
-// Close releases the disc.
+// Close releases the disc. A refused disc was never opened by an engine, and has nothing to
+// release.
 func (s *Session) Close() {
 	s.closeBDJ()
-	_ = s.disc.Close()
+	if s.disc.DiscEngine != nil {
+		_ = s.disc.Close()
+	}
 }
 
 // Current is the presentation now showing.
@@ -1620,6 +1623,9 @@ func (s *Session) EffectPNG(serial, n int) ([]byte, bool) {
 
 // SoundWAV is a button sound.
 func (s *Session) SoundWAV(id int) ([]byte, bool) {
+	if s.disc.DiscEngine == nil {
+		return nil, false
+	}
 	snd := s.disc.Sounds()
 	if snd == nil {
 		return nil, false

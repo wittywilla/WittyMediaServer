@@ -35,6 +35,9 @@ export type Skin = 'cable' | 'satellite' | 'midnight' | 'theme'
 export type TuneInfo = {
   key: string; kind: 'library' | 'tuner'; number: string; name: string; logo?: string; url: string
   now: Programme | null; next: Programme | null; playing?: Programme; description?: string; accent?: string; brand?: ChannelBrand; positionSec: number; serverTime: number
+  // On a channel that counts watch progress: when what is on the screen now ends,
+  // a stretch of `now` or a bumper or commercial in it.
+  partEnd?: number
   countProgress: boolean; canRecord: boolean; bufferSec: number
   atsc3?: boolean; security?: Security; notices?: string[]; alternative?: Alternative
 }

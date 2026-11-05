@@ -7,12 +7,18 @@ export type LyricWord = { t: number; text: string }
 export type LyricLine = { t: number; end?: number; text: string; words?: LyricWord[] }
 export type Lyrics = {
   itemId: number; source: string; sourceName?: string; creditUrl?: string; synced: boolean; lines: LyricLine[]; plain: string
-  instrumental?: boolean; offsetMs: number; online: boolean; canEdit: boolean; tried: boolean; failed?: string
+  instrumental?: boolean; offsetMs: number; online: boolean; canEdit: boolean; tried: boolean; failed?: string; retry?: boolean
+  songId?: number; startMs?: number // a music video showing its song's lyrics, and where the song starts in it
 }
 
 // A song's lyrics change rarely, so they're kept for as long as this page is open, and
-// asked for again only after someone has corrected them.
+// asked for again only after someone has corrected them. Not when the source couldn't be
+// reached: then the next time the song is opened asks again.
 const held = new Map<number, Lyrics>()
+
+// The server was busy with another song: ask again after this long, a few times.
+const RETRY_MS = 3000
+const RETRIES = 4
 
 export function useLyrics(itemId: number | undefined, wanted: boolean) {
   const [lyrics, setLyrics] = useState<Lyrics | null>(null)
@@ -25,15 +31,34 @@ export function useLyrics(itemId: number | undefined, wanted: boolean) {
     const have = held.get(itemId)
     if (have) { setLyrics(have); return }
     let gone = false
+    let tries = 0
+    let timer: ReturnType<typeof setTimeout> | undefined
+    // Moving on to another song gives this one up: a look-up nobody is waiting for
+    // mustn't hold a connection the next song needs (issue #17).
+    const stop = new AbortController()
     setLoading(true)
     setLyrics(null)
-    api.get<Lyrics>(`/music/lyrics/${itemId}?fetch=1`)
-      .then((l) => { held.set(itemId, l); if (!gone) setLyrics(l) })
-      .catch((e: Error) => { if (!gone) setFailed(e.message) })
-      .finally(() => { if (!gone) setLoading(false) })
-    return () => { gone = true }
+    const ask = () => {
+      api.get<Lyrics>(`/music/lyrics/${itemId}?fetch=1`, stop.signal)
+        .then((l) => {
+          if (gone) return
+          if (l.retry && ++tries < RETRIES) { timer = setTimeout(ask, RETRY_MS); return }
+          if (!l.failed) held.set(itemId, l)
+          setLyrics(l)
+          setLoading(false)
+        })
+        .catch((e: Error) => { if (!gone) { setFailed(e.message); setLoading(false) } })
+    }
+    ask()
+    return () => { gone = true; clearTimeout(timer); stop.abort() }
   }, [itemId, wanted, nonce])
-  const reload = useCallback(() => { if (itemId) held.delete(itemId); setNonce((n) => n + 1) }, [itemId])
+  // A song and its video share lyrics, so a correction to one is forgotten for both.
+  const reload = useCallback(() => {
+    if (!itemId) return
+    const song = held.get(itemId)?.songId || itemId
+    for (const [k, v] of held) if (k === itemId || k === song || v.songId === song) held.delete(k)
+    setNonce((n) => n + 1)
+  }, [itemId])
   const setOffset = useCallback((ms: number) => {
     setLyrics((l) => {
       if (!l) return l

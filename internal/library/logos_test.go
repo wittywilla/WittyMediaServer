@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 )
@@ -25,6 +26,30 @@ func logoStore(t *testing.T) *Store {
 	}
 	t.Cleanup(func() { d.Close() })
 	return &Store{DB: d}
+}
+
+// logoService is a logo service whose background work, which LookupLogos starts, has ended
+// before its store closes: on Windows a database still open can't be deleted with the test's
+// folder.
+func logoService(t *testing.T, l *Logos) *Logos {
+	t.Helper()
+	t.Cleanup(func() {
+		deadline := time.Now().Add(2 * time.Minute)
+		for {
+			l.mu.Lock()
+			running := l.running
+			l.mu.Unlock()
+			if !running {
+				return
+			}
+			if time.Now().After(deadline) {
+				t.Error("the logo service was still running when the test ended")
+				return
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+	})
+	return l
 }
 
 func pngOf(t *testing.T, m image.Image) []byte {
@@ -268,7 +293,7 @@ func TestLogoClaimsReadBesideOtherProperties(t *testing.T) {
 func TestLogoServiceAsksNobodyWithoutConsent(t *testing.T) {
 	s := logoStore(t)
 	src, calls := fakeWikimedia(t, "PD-textlogo")
-	l := &Logos{Store: s, Dir: t.TempDir(), Source: src, Gap: 1}
+	l := logoService(t, &Logos{Store: s, Dir: t.TempDir(), Source: src, Gap: 1})
 	ctx := context.Background()
 	got, err := l.LookupLogos(ctx, []LogoRef{{LogoStudio, "Acme Studio"}}, true)
 	if err != nil || len(got) != 1 || got[0].Has {
@@ -287,7 +312,7 @@ func TestLogoServiceDownloadsAfterConsentAndCredits(t *testing.T) {
 	s := logoStore(t)
 	src, _ := fakeWikimedia(t, "PD-textlogo")
 	dir := t.TempDir()
-	l := &Logos{Store: s, Dir: dir, Source: src, Gap: 1}
+	l := logoService(t, &Logos{Store: s, Dir: dir, Source: src, Gap: 1})
 	ctx := context.Background()
 	if _, err := s.EnsureLogo(ctx, LogoStudio, "Acme Studio"); err != nil {
 		t.Fatal(err)
@@ -325,7 +350,7 @@ func TestLogoServiceDownloadsAfterConsentAndCredits(t *testing.T) {
 func TestLogoServiceSkipsUnfreeFiles(t *testing.T) {
 	s := logoStore(t)
 	src, _ := fakeWikimedia(t, "CC BY-NC 4.0")
-	l := &Logos{Store: s, Dir: t.TempDir(), Source: src, Gap: 1}
+	l := logoService(t, &Logos{Store: s, Dir: t.TempDir(), Source: src, Gap: 1})
 	ctx := context.Background()
 	s.EnsureLogo(ctx, LogoStudio, "Acme Studio")
 	s.DB.SetSetting(ctx, "logoConsent", LogoConsentVersion)

@@ -1,6 +1,9 @@
-import { cloneElement, isValidElement, useEffect, useId, useState, type ReactElement, type ReactNode } from 'react'
+import { cloneElement, isValidElement, useEffect, useId, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { api, getPrefs } from '../../api'
 import { toast } from '../../state'
+import { jumpTo } from './jump'
+import { sectionId } from './searchIndex'
 
 // The building blocks of every settings page: a page header, section cards,
 // rows (what a setting is and does on the left, its control on the right),
@@ -8,16 +11,93 @@ import { toast } from '../../state'
 
 export function PageHead({ title, desc, actions }: { title: string; desc?: ReactNode; actions?: ReactNode }) {
   return (
-    <header className="set-head">
-      <div><h1>{title}</h1>{desc && <p>{desc}</p>}</div>
-      {actions && <div className="set-head-actions">{actions}</div>}
-    </header>
+    <>
+      <header className="set-head">
+        <div><h1>{title}</h1>{desc && <p>{desc}</p>}</div>
+        {actions && <div className="set-head-actions">{actions}</div>}
+      </header>
+      <PageToc />
+    </>
   )
 }
 
+// A long page's contents: a link to each of its sections, in a strip that stays at the top as
+// the page scrolls and marks the section you're in. It reads the sections from the page as
+// drawn, so it stays right as a page shows more or less, and only appears where there are
+// enough to need it.
+const TOC_FROM = 4
+
+function PageToc() {
+  const ref = useRef<HTMLElement | null>(null)
+  const [items, setItems] = useState<{ id: string; title: string }[]>([])
+  const [here, setHere] = useState('')
+  const { hash } = useLocation()
+  const navigate = useNavigate()
+  useEffect(() => {
+    const page = ref.current?.closest('.set-main') || ref.current?.parentElement
+    if (!page) return
+    let frame = 0, last = ''
+    const read = () => {
+      frame = 0
+      // Two sections of one title share an id; the contents link only the first.
+      const seen = new Set<string>()
+      const found = [...page.querySelectorAll<HTMLElement>('section.set-card[id]')]
+        .filter((s) => !s.parentElement?.closest('.set-card') && !seen.has(s.id) && !!seen.add(s.id))
+        .map((s) => ({ id: s.id, title: s.querySelector(':scope > header h2')?.textContent?.trim() || '' }))
+        .filter((s) => s.title)
+      const key = found.map((s) => s.id + ' ' + s.title).join('|')
+      // A page with contents of its own (Legal) keeps those.
+      const own = !!page.querySelector('nav[aria-label="On this page"]:not(.set-toc)')
+      if (key !== last) { last = key; setItems(found.length >= TOC_FROM && !own ? found : []) }
+    }
+    const later = () => { if (!frame) frame = requestAnimationFrame(read) }
+    // Only a section coming or going matters, not every line a page adds (a live log).
+    const isSection = (n: Node) => n instanceof HTMLElement && (n.matches('section.set-card') || !!n.querySelector('section.set-card'))
+    read()
+    const watch = new MutationObserver((recs) => { if (recs.some((r) => [...r.addedNodes, ...r.removedNodes].some(isSection))) later() })
+    watch.observe(page, { childList: true, subtree: true })
+    return () => { watch.disconnect(); cancelAnimationFrame(frame) }
+  }, [])
+  useEffect(() => {
+    if (!items.length) return
+    let frame = 0
+    const spy = () => {
+      frame = 0
+      const line = (ref.current?.getBoundingClientRect().bottom || 0) + 40
+      let at = items[0].id
+      for (const s of items) { const el = document.getElementById(s.id); if (el && el.getBoundingClientRect().top <= line) at = s.id }
+      // At the foot of the page the last sections may never reach the line: the last one counts.
+      if (innerHeight + scrollY >= document.documentElement.scrollHeight - 2) at = items[items.length - 1].id
+      setHere(at)
+    }
+    const later = () => { if (!frame) frame = requestAnimationFrame(spy) }
+    spy()
+    addEventListener('scroll', later, { passive: true })
+    addEventListener('resize', later, { passive: true })
+    return () => { removeEventListener('scroll', later); removeEventListener('resize', later); cancelAnimationFrame(frame) }
+  }, [items])
+  if (!items.length) return <span ref={ref} hidden />
+  return (
+    <nav className="set-toc" aria-label="On this page" ref={ref} data-nav-group>
+      <span className="set-toc-label" aria-hidden="true">On this page</span>
+      <ul>
+        {items.map((s) => (
+          <li key={s.id}>
+            <a href={'#' + s.id} aria-current={here === s.id ? 'location' : undefined} onClick={(e) => {
+              e.preventDefault()
+              if (hash === '#' + s.id) jumpTo(s.id); else navigate({ hash: s.id }, { replace: true })
+            }}>{s.title}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+// A section's id is its title in plain words, so a link or a search result can jump to it.
 export function Section({ title, desc, actions, children, id }: { title: string; desc?: ReactNode; actions?: ReactNode; children: ReactNode; id?: string }) {
   return (
-    <section className="set-card" id={id} aria-label={title}>
+    <section className="set-card" id={id || sectionId(title)} aria-label={title}>
       <header className="set-card-head">
         <div><h2>{title}</h2>{desc && <p>{desc}</p>}</div>
         {actions && <div className="set-card-actions">{actions}</div>}

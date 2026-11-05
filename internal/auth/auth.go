@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"flag"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -139,10 +140,23 @@ func (s *Service) HashStoredTokens(ctx context.Context) error {
 	return nil
 }
 
+// hashCost is bcrypt's work factor for every password hash made here.
+var hashCost = bcrypt.DefaultCost
+
+// QuickHashesForTests makes password hashes cheap, for test programs that make hundreds of
+// accounts: at the real cost, hashing is most of internal/server's test time. It refuses to run
+// outside a test program, where it would weaken every password set after it.
+func QuickHashesForTests() {
+	if flag.Lookup("test.v") == nil {
+		panic("auth: quick password hashes are only for tests")
+	}
+	hashCost = bcrypt.MinCost
+}
+
 // dummyHash is made when first needed: this slow on purpose, it would add up
 // to a second to every start and every command on a small machine.
 var dummyHash = sync.OnceValue(func() []byte {
-	h, _ := bcrypt.GenerateFromPassword([]byte("not a password"), bcrypt.DefaultCost)
+	h, _ := bcrypt.GenerateFromPassword([]byte("not a password"), hashCost)
 	return h
 })
 
@@ -178,7 +192,7 @@ func (s *Service) CreateProfile(ctx context.Context, name, password, kind string
 		if err := checkPassword(password, kind); err != nil {
 			return nil, err
 		}
-		b, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		b, err := bcrypt.GenerateFromPassword([]byte(password), hashCost)
 		if err != nil {
 			return nil, err
 		}
@@ -324,7 +338,7 @@ func (s *Service) SetPassword(ctx context.Context, id int64, password string) er
 	if err := checkPassword(password, u.Kind); err != nil {
 		return err
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), hashCost)
 	if err != nil {
 		return err
 	}

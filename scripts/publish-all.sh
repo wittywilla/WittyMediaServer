@@ -391,9 +391,9 @@ if should_run "$SERVER"; then
   prepare "$SERVER"
   pin "$SERVER"
   mkdir -p "$dir/web/dist" && touch "$dir/web/dist/.gitkeep"
-  found=$(cd "$dir" && for goos in linux windows darwin freebsd; do GOOS=$goos go list -deps -f '{{with .Module}}{{.Path}}{{end}}' ./... 2>/dev/null; done | sort -u | grep "^github.com/$OWNER/" | grep -vE '/(wittymodule|wittymediaserver)$' || true)
-  [ -z "$found" ] || die "the server still has code from: $found"
-  note "built from nothing but WittyModule"
+  found=$(cd "$dir" && for goos in linux windows darwin freebsd; do GOOS=$goos go list -deps -f '{{with .Module}}{{.Path}}{{end}}' ./... 2>/dev/null; done | sort -u | grep "^github.com/$OWNER/" | grep -vE '/(wittymodule|wittydisc|wittymediaserver)$' || true)
+  [ -z "$found" ] || die "the server builds with a module, not only WittyModule and core libraries: $found"
+  note "built from nothing but WittyModule and core libraries"
   if [ $skip_tests = 0 ]; then
     log=$work/$SERVER.log
     # The server embeds the built web app, so that comes first.

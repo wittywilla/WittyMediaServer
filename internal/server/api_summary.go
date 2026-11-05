@@ -1,7 +1,9 @@
 package server
 
 import (
+	"cmp"
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"runtime"
@@ -10,7 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
 
@@ -77,9 +81,20 @@ func (s *Server) SystemSummary(ctx context.Context) SystemSummary {
 			case h.Working:
 				status = "works"
 			case h.Tested:
-				status = "failed: " + h.Error
+				status = "failed: " + strings.TrimSpace(h.Reason+" "+h.Error)
+			case h.Reason != "":
+				status = "not used: " + h.Reason
 			}
 			out.Hardware = append(out.Hardware, h.Name+": "+status)
+		}
+		for _, d := range ffmpeg.GPUs() {
+			line := fmt.Sprintf("%s (%s, group %d, %s): ", d.Path, cmp.Or(d.Vendor, "unknown"), d.Group, d.Mode)
+			if d.Usable {
+				line += "can be used"
+			} else {
+				line += strings.TrimSpace(d.Problem + " " + d.Fix)
+			}
+			out.Hardware = append(out.Hardware, line)
 		}
 	}
 	add := func(role, p string) {
@@ -164,6 +179,9 @@ func (s *Server) LogStartup(ctx context.Context) {
 		s.Log.Log(ctx, lv, "folder", args...)
 	}
 	s.Log.Info("settings", "values", settingsText(sum.Settings), "secretsSet", strings.Join(sum.SecretsSet, ","), "libraries", libraryCounts(sum.Libraries))
+	if rs := s.loadRemote(ctx); rs.AllowPlainAway && (rs.Enabled || s.Cfg != nil && (s.Cfg.RemoteAccess || s.Cfg.PublicURL != "")) {
+		s.Log.Warn(remote.PlainAwayWarning, "cat", "remote")
+	}
 }
 
 func settingsText(m map[string]string) string {

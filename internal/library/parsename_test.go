@@ -78,3 +78,27 @@ func TestGuessDiscContent(t *testing.T) {
 		}
 	}
 }
+
+func TestClipNameKeepsTheWholeName(t *testing.T) {
+	for in, want := range map[string]string{
+		"2000 Toyota 2000 Clearance Sale Commercial.mp4": "2000 Toyota 2000 Clearance Sale Commercial",
+		"2000 2000 Flushes Cleaner Full Commercial":      "2000 2000 Flushes Cleaner Full Commercial",
+		"Big_Buck_Bunny.trailer.ogv":                     "Big Buck Bunny trailer",
+		"Copying Is Not Theft.webm":                      "Copying Is Not Theft",
+	} {
+		if got, _ := ClipName(in); got != want {
+			t.Errorf("ClipName(%q) = %q, want %q", in, got, want)
+		}
+	}
+	if _, y := ClipName("2000 Olympic Edition Regal 2001 Buick"); y == nil || *y != 2000 {
+		t.Errorf("year = %v, want the first one", y)
+	}
+	for _, in := range []string{"Copying Is Not Theft", "20000 Leagues Toy Commercial"} {
+		if _, y := ClipName(in); y != nil {
+			t.Errorf("%q: year = %v, want none", in, *y)
+		}
+	}
+	if _, y := ClipName("Copying Is Not Theft"); y != nil {
+		t.Errorf("year = %v, want none", *y)
+	}
+}

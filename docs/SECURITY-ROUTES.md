@@ -301,6 +301,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/modules/{id}/failed` | Signed-in | Known module. 4 KB body. Rate per account. Counts against a version only from an admin |
 | `GET /api/reach/{nonce}` | Public | Nonce of a running outside test |
 | `GET /api/remote` | Admin | Nothing further |
+| `GET /api/remote/status` | Signed-in, or this computer | no account only from the server's own computer, directly (the tray). What is wrong in a fault, which can name files, only for an admin |
 | `PUT /api/remote` | Admin | Method, outside address, network lists, limits, ports, HTTPS mode and its fields |
 | `POST /api/remote/test` | Admin | Address is one the server offered |
 | `POST /api/remote/selfcheck` | Admin | Outside address is set |

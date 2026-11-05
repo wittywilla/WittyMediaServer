@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 import type Hls from 'hls.js'
+import { BACKGROUND_KEY, STILL_HERE_MS, keepsPlaying, letGo, readChoice, resumeOnShow, sayStillHere, type Choice } from './backgroundPlay'
 import { leaveChannel, makeViewer, preflight, tune, type TuneInfo } from './tvApi'
 
 // One player for the whole TV section: one <video>, one stream, for as long as someone stays
@@ -10,8 +11,15 @@ import { leaveChannel, makeViewer, preflight, tune, type TuneInfo } from './tvAp
 // A page that goes (the preview giving way to the watch view, or back) isn't leaving yet: the
 // picture is put aside, silent, and the channel is left LEAVE_MS later, unless someone wants it
 // again first. A page that stays but stops wanting the channel (the guide's highlight moving
-// on, the tab going to the background), changing to another channel, and closing the tab all
-// leave at once, so a tuner is free for the next.
+// on), changing to another channel, and closing the tab all leave at once, so a tuner is free
+// for the next.
+//
+// A tab in the background keeps playing, sound and all, unless this device has turned off
+// "Keep playing when this tab is in the background" (backgroundPlay.ts). Kept, the player tells
+// the server every so often that it's still there, from a worker, whose timer browsers don't
+// slow down the way they do a background page's, so the server never takes a quiet background
+// player for one that has gone. Turned off, the channel is left when the page is hidden, and
+// tuned again when it's shown.
 
 export const LEAVE_MS = 3000
 
@@ -56,7 +64,85 @@ export function liveVideo(): HTMLVideoElement {
   document.body.appendChild(parking)
   parking.appendChild(video)
   window.addEventListener('pagehide', () => { if (live.key) leaveChannel(live.key, viewer) })
+  document.addEventListener('visibilitychange', onVisibility)
   return video
+}
+
+// ------------------------------------------------------------ playing in the background
+
+let hidden = typeof document !== 'undefined' && document.hidden
+let serverDefault: boolean | undefined
+const savedChoice = (): Choice => { try { return readChoice(localStorage.getItem(BACKGROUND_KEY)) } catch { return null } }
+let choice: Choice = savedChoice()
+export type BackgroundPlay = { keep: boolean; choice: Choice; serverDefault: boolean }
+let bg: BackgroundPlay = { keep: keepsPlaying(choice, serverDefault), choice, serverDefault: serverDefault !== false }
+const bgSubs = new Set<() => void>()
+// Marked on the page while it's off, for a desktop app that keeps its window looking visible
+// to stop background throttling: it lets the page be hidden again when this says off.
+function markPage() {
+  if (typeof document === 'undefined') return
+  if (bg.keep) delete document.documentElement.dataset.backgroundPlay
+  else document.documentElement.dataset.backgroundPlay = 'off'
+}
+markPage()
+function bgChanged() {
+  bg = { keep: keepsPlaying(choice, serverDefault), choice, serverDefault: serverDefault !== false }
+  markPage()
+  bgSubs.forEach((f) => f())
+  onVisibility()
+}
+export const keepPlaying = () => bg.keep
+const bgSubscribe = (f: () => void) => { bgSubs.add(f); return () => { bgSubs.delete(f) } }
+export const useBackgroundPlay = () => useSyncExternalStore(bgSubscribe, () => bg)
+// This device's own choice; null goes back to the server's.
+export function setBackgroundChoice(c: Choice) {
+  choice = c
+  try { if (c) localStorage.setItem(BACKGROUND_KEY, c); else localStorage.removeItem(BACKGROUND_KEY) } catch { /* kept for this visit */ }
+  bgChanged()
+}
+// What the server says a device that hasn't chosen does: backgroundPlay in /guide and /tune.
+export function noteBackgroundDefault(b: boolean | undefined) {
+  if (typeof b === 'boolean' && b !== serverDefault) { serverDefault = b; bgChanged() }
+}
+if (typeof window !== 'undefined') window.addEventListener('storage', (e) => { if (e.key === BACKGROUND_KEY) { choice = readChoice(e.newValue); bgChanged() } })
+
+function onVisibility() {
+  if (typeof document === 'undefined') return
+  const was = hidden
+  hidden = document.hidden
+  if (!video) return // no player yet: nothing to keep or let go
+  if (sayStillHere(hidden, bg.keep, live.key)) startTicker(); else stopTicker()
+  if (letGo(hidden, bg.keep) || (was && !hidden)) settle()
+  if (was && !hidden && video && resumeOnShow(bg.keep, video.paused, live.away) && live.ready) video.play().catch(() => {})
+}
+
+// The worker's tick, in place of a timer on the page.
+let ticker: Worker | null = null
+let tickerUrl = ''
+let tickerFallback: ReturnType<typeof setInterval> | undefined
+function startTicker() {
+  if (ticker || tickerFallback !== undefined) return
+  try {
+    tickerUrl = URL.createObjectURL(new Blob([`setInterval(() => postMessage(0), ${STILL_HERE_MS})`], { type: 'text/javascript' }))
+    ticker = new Worker(tickerUrl)
+    ticker.onmessage = stillHere
+  } catch {
+    stopTicker()
+    tickerFallback = setInterval(stillHere, STILL_HERE_MS)
+  }
+}
+function stopTicker() {
+  ticker?.terminate()
+  ticker = null
+  if (tickerUrl) URL.revokeObjectURL(tickerUrl)
+  tickerUrl = ''
+  clearInterval(tickerFallback)
+  tickerFallback = undefined
+}
+// Asking for the playlist is what a player does anyway, so it counts as this viewer watching.
+function stillHere() {
+  if (!sayStillHere(hidden, bg.keep, live.key)) { stopTicker(); return }
+  if (live.url) preflight(live.url, new AbortController().signal).catch(() => { /* the next tick tries again */ })
 }
 
 // hls.js, while there is a stream: TvHost lends its handle.
@@ -84,6 +170,8 @@ function place(el: HTMLElement | null) {
 function settle(leaveNow = false) {
   let top: Slot | undefined
   for (let i = slots.length - 1; i >= 0 && !top; i--) if (slots[i].key) top = slots[i]
+  // Hidden, on a device that doesn't keep playing: the channel goes now, and comes back when shown.
+  if (letGo(hidden, bg.keep)) { top = undefined; leaveNow = true }
   place(top?.el || null)
   if (top) {
     clearTimeout(leaveTimer)
@@ -107,6 +195,7 @@ function start(key: string) {
   tune(key, viewer, a.signal)
     .then(async (i) => {
       if (a.signal.aborted) return
+      noteBackgroundDefault(i.backgroundPlay)
       setLive({ info: i })
       const u = i.url + '?viewer=' + viewer
       await preflight(u, a.signal)
@@ -116,6 +205,7 @@ function start(key: string) {
 }
 
 function stop() {
+  stopTicker()
   leaveTimer = undefined
   ac?.abort()
   ac = null

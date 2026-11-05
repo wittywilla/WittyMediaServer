@@ -549,12 +549,23 @@ var tvSettings = map[string]string{
 	"tvTheme":            "",        // what a new viewer starts with: a WittyTV theme, or "" to go by the two below
 	"tvSkin":             "cable",   // cable | satellite | midnight | theme: from before there were themes
 	"tvLayout":           "classic", // classic | streaming: the same
-	"dvrFolder":          "",        // "" = recordings in the data folder
-	"dvrLibrary":         "",        // a library to rescan after recording
+	// tvBackgroundPlay: whether a device that hasn't chosen keeps playing a channel while its tab
+	// or app is in the background. Each device can choose for itself: see backgroundPlay.
+	"tvBackgroundPlay": "1",
+	"dvrFolder":        "", // "" = recordings in the data folder
+	"dvrLibrary":       "", // a library to rescan after recording
 }
 
 func (s *Server) tvSetting(ctx context.Context, k string) string {
 	return s.DB.GetSetting(ctx, k, tvSettings[k])
+}
+
+// backgroundPlay is what a device starts with for "Keep playing when this tab is in the
+// background": on, unless the owner set new devices to stop. A device's own choice is kept on
+// the device and wins. Either way the server never ends a channel because a player is in the
+// background: a player that stays keeps asking for the playlist (docs/CLIENT-API.md).
+func (s *Server) backgroundPlay(ctx context.Context) bool {
+	return s.tvSetting(ctx, "tvBackgroundPlay") != "0"
 }
 
 func (s *Server) tvSettingInt(ctx context.Context, k string) int {
@@ -632,7 +643,7 @@ func (s *Server) handlePutTVSettings(w http.ResponseWriter, r *http.Request) {
 				writeErr(w, 400, "unknown guide layout")
 				return
 			}
-		case "tvCopyVideo":
+		case "tvCopyVideo", "tvBackgroundPlay":
 			if v != "0" && v != "1" {
 				writeErr(w, 400, "bad value")
 				return
@@ -878,7 +889,8 @@ func (s *Server) handleGuide(w http.ResponseWriter, r *http.Request) {
 		return names[i] < names[j]
 	})
 	writeJSON(w, 200, map[string]any{"now": now.Unix(), "from": from.Unix(), "to": to.Unix(), "total": total, "offset": offset,
-		"channels": rows, "groups": names, "theme": s.tvSetting(ctx, "tvTheme"), "skin": s.tvSetting(ctx, "tvSkin"), "layout": s.tvSetting(ctx, "tvLayout")})
+		"channels": rows, "groups": names, "theme": s.tvSetting(ctx, "tvTheme"), "skin": s.tvSetting(ctx, "tvSkin"), "layout": s.tvSetting(ctx, "tvLayout"),
+		"backgroundPlay": s.backgroundPlay(ctx)})
 }
 
 func b2i(b bool) int {
@@ -941,14 +953,17 @@ type tuneInfo struct {
 	// screen now ends: this stretch of Now, or the bumper or commercial in it.
 	// Progress counts only up to the end of a stretch, so a break doesn't count
 	// as the programme; ask again then.
-	PartEnd       int64         `json:"partEnd,omitempty"`
-	ServerTime    int64         `json:"serverTime"`
-	CountProgress bool          `json:"countProgress"`
-	CanRecord     bool          `json:"canRecord"`
-	BufferSec     float64       `json:"bufferSec"`
-	ATSC3         bool          `json:"atsc3,omitempty"`
-	Security      *securityInfo `json:"security,omitempty"`
-	Notices       []string      `json:"notices,omitempty"`
+	PartEnd       int64 `json:"partEnd,omitempty"`
+	ServerTime    int64 `json:"serverTime"`
+	CountProgress bool  `json:"countProgress"`
+	CanRecord     bool  `json:"canRecord"`
+	// BackgroundPlay: whether a device that hasn't chosen keeps playing while it's in the
+	// background (see backgroundPlay). The same as the guide's.
+	BackgroundPlay bool          `json:"backgroundPlay"`
+	BufferSec      float64       `json:"bufferSec"`
+	ATSC3          bool          `json:"atsc3,omitempty"`
+	Security       *securityInfo `json:"security,omitempty"`
+	Notices        []string      `json:"notices,omitempty"`
 	// Alternative: the same station with sound, when this one has none.
 	Alternative *livetv.Alternative `json:"alternative,omitempty"`
 }
@@ -1041,6 +1056,7 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 		info.Playing = &p
 	}
 	info.BufferSec = float64(s.tvSettingInt(r.Context(), "tvLibraryBufferMin") * 60)
+	info.BackgroundPlay = s.backgroundPlay(r.Context())
 	if err := s.addLiveTicket(r, &info); err != nil {
 		writeErr(w, 500, err.Error())
 		return

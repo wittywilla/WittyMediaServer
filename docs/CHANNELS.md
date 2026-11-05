@@ -163,6 +163,8 @@ When nothing is scheduled, a channel shows a **We'll be right back** card with t
 
 You can pause and rewind within what's kept: 5 minutes on library channels and 30 on tuner channels, unless you change **Pause buffer** under **Options**.
 
+**In the background.** A channel keeps playing, with its sound, when you switch to another tab or app or minimise the window, so you can leave it on while you work. To stop that on one device, turn off **Keep playing when this tab is in the background**, in **Look** (under **Playing**) or in the player's settings (the gear). Then a channel stops when you switch away, which frees a tuner, and starts again at what's on now when you come back. It's that device's choice: your other devices keep their own. An administrator chooses what new devices start with under **Options**, **Keep playing in the background, on new devices**. The apps offer the same choice.
+
 **Everyone at the same moment.** Two people watching the same channel, on any accounts and devices, see the same moment, as with a real broadcast. Each player keeps to the server's clock (a tuner channel, which arrives as it's broadcast, about 12 seconds behind it) and corrects itself every 2 seconds: a little off, it plays 3% faster or slower until it's back, which nobody notices; far off, after a stall, it jumps straight there. A device whose own clock is wrong still keeps time, because the player asks the server's. Pausing and going back leave you where you chose, behind the others; **L** or **Live** brings you back to everyone else.
 
 ## Channels in one click

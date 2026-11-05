@@ -403,10 +403,12 @@ func TestProtectionMarks(t *testing.T) {
 			return append(append(append([]byte{}, id...), 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), body...)
 		}
 		var (
-			ebml       = el([]byte{0x1A, 0x45, 0xDF, 0xA3}, el([]byte{0x42, 0x82}, []byte("matroska")))
-			segment    = func(body ...[]byte) []byte { return unknown([]byte{0x18, 0x53, 0x80, 0x67}, bytes.Join(body, nil)...) }
-			tracks     = func(body ...[]byte) []byte { return el([]byte{0x16, 0x54, 0xAE, 0x6B}, body...) }
-			entry      = func(body ...[]byte) []byte { return el([]byte{0xAE}, append([][]byte{el([]byte{0xD7}, []byte{1})}, body...)...) }
+			ebml    = el([]byte{0x1A, 0x45, 0xDF, 0xA3}, el([]byte{0x42, 0x82}, []byte("matroska")))
+			segment = func(body ...[]byte) []byte { return unknown([]byte{0x18, 0x53, 0x80, 0x67}, bytes.Join(body, nil)...) }
+			tracks  = func(body ...[]byte) []byte { return el([]byte{0x16, 0x54, 0xAE, 0x6B}, body...) }
+			entry   = func(body ...[]byte) []byte {
+				return el([]byte{0xAE}, append([][]byte{el([]byte{0xD7}, []byte{1})}, body...)...)
+			}
 			encodings  = func(body ...[]byte) []byte { return el([]byte{0x6D, 0x80}, el([]byte{0x62, 0x40}, body...)) }
 			encType    = func(v byte) []byte { return el([]byte{0x50, 0x33}, []byte{v}) }
 			encryption = el([]byte{0x50, 0x35}, el([]byte{0x47, 0xE1}, []byte{5})) // AES

@@ -27,7 +27,7 @@ Use this guide to make always-on TV channels from your own library, add live TV 
 
 ## Your first channel
 
-1. Go to **Settings → Channels & tuners**.
+1. Open **TV guide** in the menu and press **Edit channels**, or go to **Settings → Channels & tuners** and press **Open the channel list**. Either way you reach **Channels**, the page for channels from your library (its address is `/tv/channels`).
 2. Under **Add with one click**, press **Add** on anything suggested. It's on the air straight away.
 3. Open **TV guide** in the menu. Move with the arrow keys or a remote, press Enter or OK to watch, and dial a channel with the number keys.
 
@@ -71,7 +71,7 @@ Up from the top row and Left from the first cell hand the arrows back, so a remo
 
 ## The look
 
-WittyTV has themes of its own, apart from the app's theme. Press **Look** on the guide, or open **Settings → Appearance** and find **WittyTV**. Each is drawn as a small picture of itself, and changes show straight away. A theme changes the guide, the player's banner and mini guide, recordings and the other TV pages, not only the grid.
+WittyTV has themes of its own, apart from the app's theme. Press **Look** on the guide, or open **Settings → Appearance** and choose **WittyTV** under **On this page**. Each is drawn as a small picture of itself, and changes show straight away. A theme changes the guide, the player's banner and mini guide, recordings and the other TV pages, not only the grid.
 
 ![The guide in the Satellite look, with a film playing](images/wittytv-satellite.webp)
 *The Satellite look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
@@ -135,6 +135,8 @@ The buttons under it also turn its sound on, go full screen and hide it.
 
 Tuning shows a banner with the channel number, name, times, a progress bar and what's next.
 
+When nothing is scheduled, a channel shows a **We'll be right back** card with the channel's name and what's coming up, in the watch view and in the guide's preview alike, so the picture never looks broken. It goes when the next programme starts.
+
 ![A small list of channels over the picture](images/wittytv-miniguide.webp)
 *The mini guide over a channel, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
 
@@ -162,13 +164,15 @@ You can pause and rewind within what's kept: 5 minutes on library channels and 3
 
 ## Channels in one click
 
-**Add with one click**, in **Settings → Channels & tuners**, offers what your library can fill: Classics such as Movies and Saturday morning, Genres, Studios, Your collections, Decades, TV networks and Marathons. **Add** puts one on the air, **Change first** opens it in the editor, and **Add all** does a whole group. A channel takes at least three titles, or it would be the same thing again and again.
+**Add with one click**, on the **Channels** page, offers what your library can fill: Classics such as Movies and Saturday morning, Genres, Studios, Your collections, Decades, TV networks and Marathons. **Add** puts one on the air, **Change first** opens it in the editor, and **Add all** does a whole group. A channel takes at least three titles, or it would be the same thing again and again.
 
 A network channel can run the network's shows all day, be limited to a decade, follow day parts from the genres that suit them, or put each show in its original day and time. A style is only offered when your library's details support it. **Fill in missing facts**, under **Network facts**, asks your metadata services about the network and original air times of shows that don't have them, without touching any files.
 
 ## Making your own channel
 
-Press **New channel**, or **Edit** on a channel. The editor has three levels, which are three views of the same channel. Moving between them never loses anything.
+On the **Channels** page, press **New channel**, or **Edit** on a channel. Admins can also press **Edit channel** in a library channel's details in the guide. Each channel's editor has an address of its own, `/tv/channels/<id>`, so it can be bookmarked or shared with another admin. **Back** returns to wherever you opened it from. Leaving with changes that aren't saved asks first; they're kept in this browser either way, and come back the next time you open the channel.
+
+The editor has three levels, which are three views of the same channel. Moving between them never loses anything.
 
 ![The page for making a channel](images/wittytv-new-channel.webp)
 *Making a channel.*
@@ -230,6 +234,8 @@ To use them:
 
 They also fill gaps to the time grid, and never count as watched. No break comes so near the end that you'd just wait for the programme to finish. The guide shows one programme with its breaks inside it, and its times are when it really starts and ends.
 
+Commercials are picked at random, but one that played lately waits until up to 24 others have (half of them, in a small library), unless it's the only one short enough for a gap. A video that one of the channel's bumper rules plays is a bumper on that channel, and isn't played as a commercial as well, unless the bumpers are all the commercials it has.
+
 Commercials come under a profile's limits like anything else: unrated ones hide a channel from a Kids profile, since viewers share one stream.
 
 ## Bumpers
@@ -290,9 +296,14 @@ These need the **WittyTuner** module. No channel lists or stream addresses come 
 ![The Channels and tuners page in Settings](images/settings-channels.webp)
 *Settings, Channels & tuners, on a server with no tuner attached.*
 
-1. Go to **Settings → Channels & tuners → Tuners and IPTV**.
-2. Press **Search for tuners**, or choose one under **Add a tuner** and fill it in.
-3. Press **Channels** on the tuner. **Read the list** or **Scan for channels** fills it, and you choose which show in the guide, renumber them, or set a guide id.
+1. Go to **Settings → Channels & tuners → Tuners and IPTV**. Without WittyTuner, it says so and offers to add it.
+2. Press **Add live TV**. It goes a step at a time:
+   1. **What you have**, in plain words: a playlist from a TV provider, one stream address, a tuner box on your network, a SAT>IP box, a TV card or capture device in this computer, or something else.
+   2. **Its details.** For a device, **Search for it** looks on your network and this computer; whatever it doesn't find, type in by hand, such as a tuner box's address. A playlist or stream is an address, or a file on the server. The server checks the details when you press **Add and read its channels**, and says what's wrong if it can't use them.
+   3. **Its channels.** They're read straight away, with how many are clear and how many encrypted. A tuner that scans offers **Scan for channels**, with its progress.
+   4. **Guide data**, for a playlist or stream: an XMLTV address, if your provider has one. **Skip** if the playlist names its own guide, or to add one later.
+3. **Search for tuners** lists devices it finds; **Set up** on one opens the same steps with its details filled in. **What WittyTuner can use** lists every kind with how far it's been tried, and **Add by hand** on any of them starts at its details.
+4. Press **Channels** on a tuner to choose which channels show in the guide, renumber them, or set a guide id. **Read the list** and **Scan for channels** are there too.
 
 **Streams at once** limits how many channels can be open on a tuner. Your changes stay when the list is read again.
 

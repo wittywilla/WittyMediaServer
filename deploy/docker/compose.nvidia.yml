@@ -1,0 +1,32 @@
+# WittyMediaServer with an NVIDIA card for hardware transcoding (NVENC).
+# The host needs NVIDIA's driver and the NVIDIA Container Toolkit:
+#   https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+# Check the toolkit with: docker run --rm --gpus all ubuntu nvidia-smi
+# Then tick NVIDIA NVENC in Settings -> Live transcoding, and check it with:
+#   docker exec wittymediaserver wittymediaserver hardware
+services:
+  wittymediaserver:
+    image: ghcr.io/wittywilla/wittymediaserver:alpha
+    container_name: wittymediaserver
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "9797:9797"
+    volumes:
+      - ./config:/config
+      - /path/to/media:/media:ro
+    # The image already asks for the video part of the driver (NVIDIA_DRIVER_CAPABILITIES).
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1 # or all
+              capabilities: [gpu]

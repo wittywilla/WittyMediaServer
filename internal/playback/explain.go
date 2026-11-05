@@ -24,6 +24,8 @@ type Explanation struct {
 	// Load is what it costs the server: none (it only sends the file), light (it copies
 	// or converts sound) or heavy (it converts the picture).
 	Load string `json:"load"`
+	// Streaming says how it is streamed, when that is the robust mode.
+	Streaming string `json:"streaming,omitempty"`
 }
 
 var reasonWords = map[string]string{
@@ -49,6 +51,7 @@ var reasonWords = map[string]string{
 	ReasonVideoTrack:   "Another video stream of the file was chosen.",
 	ReasonFlatten3D:    "A 3D picture is being shown in 2D.",
 	ReasonRemoteLimit:  "The file holds more data than this server allows for viewers away from home.",
+	ReasonRobust:       "Robust streaming is on, and the file holds more data than this connection comfortably carries, so it's sent at steady rates the player can step down between.",
 }
 
 // ReasonText puts a reason in words.

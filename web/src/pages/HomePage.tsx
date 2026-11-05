@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { HelpLink } from '../components/HelpLink'
 import { profileName, albumsOnce, api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Show, type Item, inMainMenus } from '../api'
 import { CardRow, ItemCard, ShowCard, Spinner } from '../components/common'
+import { UpdateBanner } from '../components/UpdateBanner'
 import { IconDown, IconGrip, IconInfo, IconPause, IconPlay, IconPlus, IconRefresh, IconRight, IconStar, IconUp, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import { useOpenItem } from '../openItem'
@@ -94,7 +95,7 @@ export default function HomePage() {
 
   if (err) return <HomeProblem offline={err.offline} message={err.message} retry={() => { refreshLibraries(); load() }} />
   if (!home) return <Spinner />
-  if (home.libraries.length === 0) return <Welcome admin={!!user?.isAdmin} name={user ? profileName(user) : ''} onAdded={refreshLibraries} />
+  if (home.libraries.length === 0) return <><UpdateBanner /><Welcome admin={!!user?.isAdmin} name={user ? profileName(user) : ''} onAdded={refreshLibraries} /></>
   const shown = editing ? ordered : ordered.filter((w) => !layout.hidden.includes(w.id))
   const scanning = libraries.some((l) => l.scanning)
   const empty = home.featured.length === 0 && home.hubs.every((h) => !h.items.length && !(h.shows || []).length)
@@ -107,6 +108,7 @@ export default function HomePage() {
           <button className="btn sm primary" onClick={() => setEditing(false)}>Done</button>
         </div>
       )}
+      {!editing && <UpdateBanner />}
       {!editing && (home.featured.length === 0 || layout.hidden.includes('hero')) && <Greeting name={user ? profileName(user) : ''} />}
       {!editing && empty && (
         <div className="home-card">

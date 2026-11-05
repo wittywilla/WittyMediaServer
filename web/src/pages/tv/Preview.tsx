@@ -4,6 +4,7 @@ import { IconClose, IconFull, IconMute, IconVolume } from '../../icons'
 import { PREVIEW_SIZES, previewSizeName, setLook, type Look } from './look'
 import { PREVIEW_MIN } from './tvThemes'
 import { liveNow, liveVideo, useLive } from './live'
+import Slate from './Slate'
 
 // The little TV on the guide. It waits for the highlight to settle before
 // tuning, because each channel it shows runs a stream, and moving on leaves the
@@ -118,9 +119,11 @@ export default function Preview({ channel, label, look, max, start }: { channel:
     <div className={'ctv-preview side-' + look.previewSide} ref={box} style={{ width }} role="group" aria-label={`Preview: ${label || 'no channel'}`}>
       <div className="ctv-preview-screen">
         <div className="ctv-preview-slot" ref={screen} />
+        {state === 'playing' && info?.now?.kind === 'slate' && <Slate name={info.name} next={info.next} />}
         {state !== 'playing' && (
           <div className="ctv-preview-msg" aria-live="polite">
-            {state === 'failed' ? <small>{msg.length > 90 ? 'Not available' : msg || 'Not available'}</small> : state === 'tuning' ? <small>{info ? 'Tuning…' : label}</small> : <small>{hidden ? 'Paused while this page is in the background' : 'No preview for this channel'}</small>}
+            {/* Only a failure is said aloud: moving through the guide already says each channel, and "Tuning…" on every move is noise. */}
+            {state === 'failed' ? <small>{msg.length > 90 ? 'Not available' : msg || 'Not available'}</small> : state === 'tuning' ? <small aria-hidden="true">{info ? 'Tuning…' : label}</small> : <small aria-hidden="true">{hidden ? 'Paused while this page is in the background' : 'No preview for this channel'}</small>}
           </div>
         )}
         <span className="ctv-preview-handle" role="slider" tabIndex={0} aria-label="Preview size" aria-orientation="horizontal"

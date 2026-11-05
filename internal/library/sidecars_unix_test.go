@@ -39,7 +39,7 @@ func TestPipesDontStopAScan(t *testing.T) {
 		_, _ = readPlain(filepath.Join(dir, "film.nfo"))
 		_, _ = readSidecar(filepath.Join(dir, "film.json"))
 		_, _ = discoverGames(dir, "auto")
-		got, _ := discover(dir)
+		got, _ := discover(dir, nil)
 		for _, c := range got {
 			if strings.Contains(c.path, "Disc") {
 				t.Errorf("a pipe passed for a disc: %s", c.path)

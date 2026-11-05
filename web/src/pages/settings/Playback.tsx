@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom'
 import { api } from '../../api'
 import { LoadError } from '../../components/common'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui'
+import { Segmented } from '../../ui'
+import { deviceStreaming, setDeviceStreaming, type DeviceStreaming } from '../../player/streaming'
 
 // How things play: the player, TV episode lists, and DVDs and Blu-rays.
 
@@ -28,6 +30,8 @@ export default function PlaybackSettings() {
           </select>
         </Row>
       </Section>
+
+      <StreamingSection value={s.remoteStreaming || 'standard'} set={(v) => set('remoteStreaming', v)} />
 
       <Section title="DVDs and Blu-rays" desc="Discs play with their real menus, like a disc player. Each disc can change these in its own Disc settings.">
         <Row label="When a disc is inserted">
@@ -72,6 +76,23 @@ export default function PlaybackSettings() {
       </Section>
       <SaveBar {...st} />
     </>
+  )
+}
+
+// Streaming: standard, or robust for poor connections. The server's choice is for viewers
+// away from home; each device can choose for itself, which wins wherever it is.
+function StreamingSection({ value, set }: { value: string; set: (v: string) => void }) {
+  const [device, setDevice] = useState<DeviceStreaming>(deviceStreaming)
+  return (
+    <Section title="Streaming" desc={<>How videos travel to viewers on a slow or unreliable connection. <HelpLink to="playing#robust-streaming">How robust streaming works</HelpLink></>}>
+      <Row label="For viewers away from home" desc="Standard sends the best picture the settings allow, as it always has. Robust favours staying smooth: it measures the viewer’s connection, starts at a steady rate that fits, steps down to a lower quality instead of stalling, keeps a bigger buffer and picks up where it was after the connection drops. It costs the server a little more, since converting is more often needed.">
+        <Segmented label="Streaming for viewers away from home" value={value === 'robust' ? 'robust' : 'standard'} onChange={set} options={[{ value: 'standard', label: 'Standard' }, { value: 'robust', label: 'Robust' }]} />
+      </Row>
+      <Row label="On this device" desc="This browser’s own choice, which wins over the server’s, at home or away: robust helps on poor Wi-Fi at home too. It’s saved on this device straight away, and other devices aren’t changed.">
+        <Segmented label="Streaming on this device" value={device} onChange={(v) => { setDeviceStreaming(v); setDevice(v) }}
+          options={[{ value: 'auto', label: 'Follow the server' }, { value: 'standard', label: 'Standard' }, { value: 'robust', label: 'Robust' }]} />
+      </Row>
+    </Section>
   )
 }
 

@@ -17,7 +17,8 @@
 // WMS_ONLY=sizes or WMS_ONLY=live runs part of it, and WMS_THEMES=modern,classic only those themes.
 //
 // "live" checks a channel is one stream from the guide's preview to the watch view, full screen and
-// back: no tune, no leave and no new stream on the way, by mouse, keys and remote, in every theme.
+// back: no tune, no leave and no new stream on the way, by mouse, keys and remote, in every theme;
+// and that the guide comes back to the channel left.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 const { launch } = await import(new URL((process.env.WITTYVISUALIZER || '../../../WittyVisualizer') + '/tests/cdp.mjs', import.meta.url))
@@ -324,6 +325,42 @@ if (only === '' || only === 'live') {
       { tunes, leaves, ev, net: await page.eval(`window.__net.filter((u) => !u.includes('/seg/')).slice(0, 12)`) })
     // A double-click is two clicks too, and a click on the picture is Play and Pause: those two are the only pauses.
     expect(`${theme}: never paused or went back in time (${t0.toFixed(1)} to ${t1.toFixed(1)} s)`, ev.pause - pausesBefore <= 2 && pausesBefore === 0 && t1 > t0 + 3, { t0, t1, pausesBefore, ev, seeks: await page.eval('window.__seeks') })
+  }
+  // The guide comes back to the channel left, however it was reached: the fifth channel from the
+  // guide, Up to the sixth, the last one dialled, then out by each way in turn. It's highlighted,
+  // has the keyboard and is on screen.
+  const lineup = (await call('GET', '/guide?list=1&limit=200')).channels
+  if (lineup.length >= 8) {
+    const [fifth, sixth, far] = [lineup[4], lineup[5], lineup[lineup.length - 2]]
+    const at = (key) => page.until(`location.pathname === '/tv/watch/${key}'`, 10000, 'channel ' + key)
+    const dial = async (num) => { for (const d of num) await press(d) }
+    n = 0
+    for (const theme of THEMES) {
+      const [how, exit] = exits[n++ % exits.length]
+      await setLook({ theme, preview: 'on' })
+      await page.eval(`localStorage.setItem('wms.remote.tv', '0')`)
+      await openGuide(false)
+      await page.until(`document.querySelector('.ctv-cell[data-focused="1"]')`, 10000, 'the highlight')
+      await page.eval(`document.querySelector('.ctv-cell[data-focused="1"]').focus()`)
+      await dial(fifth.number)
+      await page.until(`document.activeElement?.getAttribute('aria-label')?.startsWith('Channel ${fifth.number},')`, 5000, 'the guide dialled to ' + fifth.number)
+      await press('Enter'); await at(fifth.key)
+      await page.until(`document.querySelector('.ctv-player video')`, 10000, 'the player')
+      await press('ArrowUp'); await at(sixth.key)
+      await dial(far.number); await at(far.key)
+      await wait(500)
+      await exit()
+      await page.until(`document.querySelector('.ctv-grid .ctv-row')`, 10000, 'the guide')
+      const hit = await page.until(`document.activeElement?.getAttribute('aria-label')?.startsWith('Channel ${far.number},')`, 8000, `the guide on channel ${far.number}`).catch(() => false)
+      const where = await page.eval(`(() => {
+        const c = document.querySelector('.ctv-cell[data-focused="1"]'), box = document.querySelector('.ctv-rows').getBoundingClientRect()
+        if (!c) return null
+        const r = c.getBoundingClientRect()
+        return { label: c.getAttribute('aria-label'), focused: document.activeElement === c, shown: r.top >= box.top && r.bottom <= box.bottom, preview: document.querySelector('.ctv-preview-name')?.textContent }
+      })()`)
+      expect(`${theme}: out by ${how}, the guide highlights ${far.number}, the channel left, on screen`, !!hit && where?.focused && where?.shown && / on now/.test(where?.label || ''), where)
+      await shot(`back-to-guide-${theme}`)
+    }
   }
   // A guide slow to answer doesn't stop the channel either: the preview keeps it meanwhile.
   await setLook({ theme: 'modern', preview: 'on' })

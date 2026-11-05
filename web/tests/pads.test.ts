@@ -139,6 +139,36 @@ test('a hidden page ignores the controller', () => {
   assert.deepEqual(keys, [])
 })
 
+describe('which button confirms', () => {
+  // The ids browsers give, from Chromium and Firefox on Linux with the kernel's own drivers, and
+  // Firefox elsewhere, which may leave the vendor's leading zero off.
+  const pressA = (id: string, mapping: string, b: number) => {
+    pads = [{ ...makePad(), id, mapping, buttons: Array.from({ length: 18 }, () => ({ pressed: false, value: 0 })) }]
+    keys = []
+    tap(b, 80, 200)
+    return keys
+  }
+  for (const id of ['Microsoft X-Box 360 pad (STANDARD GAMEPAD Vendor: 045e Product: 028e)', 'Sony Interactive Entertainment DualSense Wireless Controller (STANDARD GAMEPAD Vendor: 054c Product: 0ce6)', '054c-09cc-Sony Interactive Entertainment Wireless Controller'])
+    test(`the bottom button on ${id.split(' (')[0]}`, () => assert.deepEqual(pressA(id, 'standard', 0), ['Enter']))
+  for (const id of ['Nintendo Switch Pro Controller (STANDARD GAMEPAD Vendor: 057e Product: 2009)', '057e-2009-Nintendo Switch Pro Controller', '57e-2009-Wireless Gamepad', '057e-2008-Nintendo Switch Combined Joy-Cons'])
+    test(`the right-hand button on ${id}`, () => {
+      assert.deepEqual(pressA(id, 'standard', 1), ['Enter'])
+      assert.deepEqual(pressA(id, 'standard', 0), ['Escape'])
+    })
+  test('a pad whose product id only looks like Nintendo\'s is not swapped', () => {
+    assert.deepEqual(pressA('Some Pad (STANDARD GAMEPAD Vendor: 1234 Product: 057e)', 'standard', 0), ['Enter'])
+  })
+
+  test('two Joy-Cons that joycond puts together, with no layout from the browser', () => {
+    const id = 'Nintendo Switch Combined Joy-Cons (Vendor: 057e Product: 2008)'
+    assert.deepEqual(pressA(id, '', 1), ['Enter'], 'A')
+    assert.deepEqual(pressA(id, '', 0), ['Escape'], 'B')
+    for (const [b, k] of [[14, 'ArrowUp'], [15, 'ArrowDown'], [16, 'ArrowLeft'], [17, 'ArrowRight'], [10, 'ContextMenu'], [9, 't'], [2, 'm']] as const)
+      assert.deepEqual(pressA(id, '', b), [k], `button ${b}`)
+    assert.deepEqual(pressA(id, '', 4), [], 'Capture does nothing')
+  })
+})
+
 test('Android lays a pad out the standard way, even one it gives no name to, such as a DualSense', () => {
   const nav = (globalThis as any).navigator
   const say = (userAgent: string) => Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { getGamepads: nav.getGamepads, userAgent } })

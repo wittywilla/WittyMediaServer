@@ -127,6 +127,17 @@
   /* The mini player sits above the bar. */
   .player.mini { bottom: calc(var(--tabbar-space) + var(--sp-2)) !important; }
 }
+/* Inside WittyMediaClient on a phone: the app draws its own strip, Back and floating bar round
+   the server's pages, and sets <html data-app="wittymediaclient"> before a page loads. The
+   website's own step aside, so there's one of each. The room kept at the foot (--tabbar-space)
+   stays, for the app's bar. The activity button stays at the top right on its own, without the
+   strip's scrim or surface (it has its own circle); with no button, the bar goes. */
+@media (max-width: 700px) {
+  html[data-app="wittymediaclient"] :is(.tabbar, .section-row, .section-row-brand, .top-back) { display: none; }
+  html[data-app="wittymediaclient"] .topbar .act-btn { margin-left: auto; }
+  html[data-app="wittymediaclient"] .app .topbar::before, html[data-app="wittymediaclient"] .app .topbar::after { display: none; }
+  html[data-app="wittymediaclient"] .app .topbar:not(:has(.act-btn)) { display: none; }
+}
 .search-page-box { display: none; }
 @media (max-width: 700px) {
   .search-page-box { display: flex; position: relative; align-items: center; margin-bottom: var(--sp-4); }

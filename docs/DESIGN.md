@@ -243,6 +243,10 @@ A page has one `h1`, which the announcer reads aloud on every page change: `.too
   (`PageSkeleton`) and placeholder art with the title on it are a phone's too. All of this is the
   same phone design as the WittyMediaClient apps (their `docs/APP-DESIGN.md`, One mobile design
   with the website, and You and settings); wider screens are as they were.
+- **Inside the app**: WittyMediaClient draws its own strip, Back and floating bar round the server's
+  pages, and sets `<html data-app="wittymediaclient">` before a page loads. At phone width the
+  website's own then step aside, so there's one of each: the room at the foot (`--tabbar-space`)
+  stays for the app's bar, the top bar keeps only the activity button, and with no button it goes.
 - **Activity**: `components/ActivitySlot.tsx`, left of the account menu, holds the activity button.
 
 ### Dialogs and sheets

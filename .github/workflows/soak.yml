@@ -1,0 +1,45 @@
+# A long soak run, started by hand: hours of ordinary use against a server built from the
+# chosen branch, watching for slow leaks and slow answers. See scripts/soak.py and
+# scripts/README.md. It makes a small library with FFmpeg, as the demo media isn't here.
+name: soak
+
+on:
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: How long to keep the server busy (GitHub stops a job after 6 hours)
+        default: "4"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.x"
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Build the server
+        run: |
+          mkdir -p web/dist && echo '<html></html>' > web/dist/index.html
+          go build -o "$RUNNER_TEMP/wms" ./cmd/wittymediaserver
+      - name: Soak
+        run: python3 scripts/soak.py --binary "$RUNNER_TEMP/wms" --make-media --out soak-out --hours "${{ inputs.hours }}"
+      - name: Report
+        if: always()
+        run: cat soak-out/report.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: soak-report
+          path: |
+            soak-out/report.md
+            soak-out/graph.svg
+            soak-out/samples.csv
+            soak-out/server.log
+          retention-days: 30

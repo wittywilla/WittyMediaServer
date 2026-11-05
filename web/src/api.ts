@@ -196,15 +196,16 @@ export const forgetMissingModule = () => { missing = null }
 
 const parse = (text: string): any => { try { return text ? JSON.parse(text) : null } catch { return { error: text } } }
 
-async function send(method: string, path: string, body?: unknown): Promise<{ text: string; data: any }> {
+async function send(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<{ text: string; data: any }> {
   const headers: Record<string, string> = {}
   const tok = getToken()
   if (tok) headers['Authorization'] = 'Bearer ' + tok
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   let res: Response
   try {
-    res = await fetch(serverBase() + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' })
-  } catch {
+    res = await fetch(serverBase() + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin', signal })
+  } catch (e) {
+    if (signal?.aborted) throw e // given up on here, on purpose: nothing went wrong
     reportRequestFailure(method, path, 0, '')
     // The browser's own wording ("Failed to fetch") means nothing to people.
     throw new ApiError(0, "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote Access.")
@@ -256,7 +257,9 @@ function sendGet(path: string): Promise<{ text: string; data: any }> {
 const req = <T>(method: string, path: string, body?: unknown) => { onTheWay.clear(); return send(method, path, body).then((r) => r.data as T) }
 
 export const api = {
-  get: <T>(p: string) => sendGet(p).then((r) => r.data as T),
+  // signal: a request that's no longer wanted is given up on, so it stops holding one of the few
+  // connections a browser has to the server. One that can be given up is never shared with others.
+  get: <T>(p: string, signal?: AbortSignal) => (signal ? send('GET', p, undefined, signal) : sendGet(p)).then((r) => r.data as T),
   text: (p: string) => sendGet(p).then((r) => r.text), // an answer that is plain text
   post: <T>(p: string, b?: unknown) => req<T>('POST', p, b ?? {}),
   put: <T>(p: string, b?: unknown) => req<T>('PUT', p, b ?? {}),
@@ -313,6 +316,22 @@ export const showPosterUrl = (s: Show) => mediaUrlQ(`/api/shows/${s.id}/art/post
 export const showBackdropUrl = (s: Show) => mediaUrlQ(`/api/shows/${s.id}/art/backdrop`, `v=${s.updatedAt}`)
 export const seasonPosterUrl = (s: Show, n: number) => mediaUrlQ(`/api/shows/${s.id}/art/season`, `n=${n}&v=${s.updatedAt}`)
 export const artPreviewUrl = (src: string) => mediaUrl(`/api/artwork/preview?src=${encodeURIComponent(src)}`)
+
+// Smaller pictures. The server keeps a copy of a picture at each of these widths
+// (library.ThumbWidths) once one is asked for, and sends the original where it makes none, so a
+// card isn't sent a picture made for a cinema screen and a TV or phone doesn't spend megabytes of
+// memory holding one.
+const ART_WIDTHS = [160, 320, 480, 640, 1280, 1920]
+// sized: an art address at a width. '' stays ''.
+export const sized = (url: string, w: number) => url && `${url}${url.includes('?') ? '&' : '?'}w=${w}`
+// artSet: a srcset of a poster at the widths a card or a list can want.
+export const artSet = (url: string, widths = ART_WIDTHS.slice(0, 4)) => widths.map((w) => `${sized(url, w)} ${w}w`).join(', ')
+// fitWidth: the smallest of those widths that fills css pixels on this screen.
+export const fitWidth = (css: number) => ART_WIDTHS.find((w) => w >= css * (window.devicePixelRatio || 1)) ?? 1920
+// What sizes says for a card's picture: the --card-w and --card-wide-w steps in styles.css, with
+// room for a grid cell to grow up to twice a card.
+export const CARD_SIZES = '(max-width: 520px) 34vw, (max-width: 1099px) 220px, 20vw'
+export const WIDE_CARD_SIZES = '(max-width: 520px) 64vw, (max-width: 1099px) 300px, 28vw'
 
 // Episode label, e.g. "S2 · E15–16".
 export function episodeLabel(it: Item): string {

@@ -52,7 +52,7 @@ jobs:
       - run: cd web && npm ci --ignore-scripts --no-audit --no-fund && npx tsc --noEmit -p . && npm run build
       - name: Theme contrast, design tokens and design rules
         run: python3 scripts/theme-contrast.py && python3 scripts/design-tokens.py --check && python3 scripts/design-check.py
-      - run: node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/themeMaker.test.mjs web/src/shell/navModel.test.mjs web/src/safeLink.test.mjs web/src/pages/setup/plan.test.mjs web/src/pages/tv/tvThemes.test.mjs web/src/pages/settings/searchIndex.test.mjs web/src/pages/photos/mapMath.test.mjs
+      - run: node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/themeMaker.test.mjs web/src/shell/navModel.test.mjs web/src/safeLink.test.mjs web/src/pages/setup/plan.test.mjs web/src/pages/tv/tvThemes.test.mjs web/src/pages/settings/searchIndex.test.mjs web/src/pages/photos/mapMath.test.mjs web/src/player/sync.test.mjs web/src/player/viewPrefs.test.mjs web/src/brandName.test.mjs
       - name: gofmt
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...
@@ -140,6 +140,78 @@ jobs:
           platforms: linux/arm64,linux/arm/v7
           build-args: VERSION=ci
           cache-from: type=gha
+
+  # The same checks on a Mac: Apple silicon (macos-latest) and Intel (macos-15-intel). The tests
+  # run on Apple silicon only; both build the app and the .pkg, install it, see the service answer,
+  # and uninstall it. Nothing here is signed. docs/MACOS.md says what this can't show.
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-latest, arch: arm64, tests: true }
+          - { runner: macos-15-intel, arch: amd64, tests: false }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - run: cd web && npm ci --ignore-scripts --no-audit --no-fund && npx tsc --noEmit -p . && npm run build
+      - run: go vet ./...
+      - name: Install FFmpeg
+        if: matrix.tests
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: brew install ffmpeg && ffmpeg -hide_banner -encoders | grep -i videotoolbox
+      - name: Tests
+        if: matrix.tests
+        run: |
+          WMS_TEST_LAN=1 go test ./... -count=1 -timeout 45m -json > "$RUNNER_TEMP/go-test.json" || failed=1
+          python3 scripts/ci-test-report.py "$RUNNER_TEMP/go-test.json"
+          exit ${failed:-0}
+      - name: Build the app, with its FFmpeg
+        run: |
+          SKIP_WEB=1 scripts/build-release.sh 0.0.0-ci darwin/${{ matrix.arch }}
+          app="dist/wittymediaserver-0.0.0-ci-darwin-${{ matrix.arch }}/WittyMediaServer.app/Contents"
+          test -x "$app/MacOS/WittyMediaServer"
+          test -x "$app/Helpers/wittymediaserver"
+          test -f "$app/Resources/icon.png"
+          test -x "dist/wittymediaserver-0.0.0-ci-darwin-${{ matrix.arch }}/Uninstall WittyMediaServer.app/Contents/MacOS/Uninstall WittyMediaServer"
+          file "$app/MacOS/WittyMediaServer" "$app/Helpers/wittymediaserver" "$app/Helpers/ffmpeg"
+          "$app/Helpers/wittymediaserver" version
+          "$app/Helpers/ffmpeg" -hide_banner -encoders | grep -i videotoolbox
+      - name: Make the .pkg
+        run: |
+          packaging/macos/build-pkg.sh 0.0.0-ci "dist/wittymediaserver-0.0.0-ci-darwin-${{ matrix.arch }}" ${{ matrix.arch }} installers
+          pkgutil --payload-files "installers/wittymediaserver-0.0.0-ci-macos-${{ matrix.arch }}.pkg" | grep -q 'Helpers/wittymediaserver$'
+      # What the installer and launchd do on a clean Mac, which only a Mac shows.
+      - name: Install it, the service answers, uninstall it
+        run: |
+          sudo installer -pkg "installers/wittymediaserver-0.0.0-ci-macos-${{ matrix.arch }}.pkg" -target /
+          test -L /usr/local/bin/wittymediaserver
+          sudo launchctl print system/com.wittywilla.wittymediaserver | head -20
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:9797/api/health && break; sleep 1; done
+          curl -fsS http://127.0.0.1:9797/api/health
+          sudo /usr/local/bin/wittymediaserver --uninstall --remove-data --yes
+          test ! -e /Applications/WittyMediaServer.app
+          test ! -e /Library/LaunchDaemons/com.wittywilla.wittymediaserver.plist
+          ! curl -fsS --max-time 2 http://127.0.0.1:9797/api/health
+      - name: The service's log, when something failed
+        if: failure()
+        run: |
+          sudo launchctl print system/com.wittywilla.wittymediaserver || true
+          sudo log show --last 10m --predicate 'process == "wittymediaserver"' --style compact | tail -100 || true
+          ls -la ~/Library/Application\ Support/WittyMediaServer 2>/dev/null || true
+          find ~/Library/Application\ Support/WittyMediaServer -name '*.log' -exec tail -50 {} \; 2>/dev/null || true
 
   # What the server does with real modules: each is built from its own repository at its main
   # branch, into a catalogue with a throwaway key that only a test build trusts.

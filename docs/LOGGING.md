@@ -9,6 +9,7 @@ The logs are under **Settings → WittyLog**, for administrators. WittyLog is th
 - [Choosing how much is recorded](#choosing-how-much-is-recorded)
 - [Catching a problem](#catching-a-problem)
 - [Crash reports](#crash-reports)
+- [Why it stopped](#why-it-stopped)
 - [Downloading logs to share](#downloading-logs-to-share)
 - [What sanitizing leaves in](#what-sanitizing-leaves-in)
 - [From the command line](#from-the-command-line)
@@ -61,9 +62,48 @@ When you need to see everything for a short while:
 4. It stops by itself, or press **Stop now**. Your usual settings aren't changed.
 5. [Download the logs](#downloading-logs-to-share).
 
+## When something has just gone wrong
+
+The server keeps the last 10 minutes of everything it says, at the most detailed level, in memory only. If something has just gone wrong (the music stopped, a page won't load, the server seems stuck), press **Save what just happened** at the top of any WittyLog tab, as soon as you can. It writes those minutes down, with what every part of the server is waiting for, as a report on the **Crash reports** tab and in the logs you download.
+
+It does the same by itself when:
+
+- **the server stops answering.** It asks itself every two seconds whether its web address and its database answer. After 10 seconds without an answer it writes a report, and again 30 seconds later, to tell stuck from slow. The log says `the server stopped answering`, then `the server is answering again`.
+- **the server is stopped while it isn't answering**, from the tray or the service, which is what someone does when it seems to have crashed.
+- **part of the server crashes** and it carries on.
+
+Both are on the **What to log** tab, under **Keep the last minutes**: the last 10 minutes (up to 16 MB of memory), and Go's execution trace of the last seconds (for a developer, with `go tool trace`; it costs a little speed). Turning either off forgets what it held. The newest five reports keep these files beside them.
+
 ## Crash reports
 
-If the server stopped unexpectedly, or part of it crashed and it carried on, a banner at the top of WittyLog says so, and the **Crash reports** tab has each report to read, download or delete. They're kept in the `crash` folder inside the data folder.
+If the server stopped unexpectedly, stopped answering, or part of it crashed and it carried on, a banner at the top of WittyLog says so, and the **Crash reports** tab has each report to read, download or delete, with the files kept beside it. They're kept in the `crash` folder inside the data folder.
+
+## Why it stopped
+
+Every stop writes one line, `stopping`, with the reason and what the server was in the middle of. Search the log for `stopping` to find them:
+
+```
+WARN stopping reason=tray-quit why="Quit was chosen in the tray icon" uptime=2h38m transcodes=1 games=0 connections=4 tasks=scan×1
+```
+
+| `reason` | What happened |
+|---|---|
+| `tray-quit`, `tray-stop`, `tray-restart` | **Quit**, **Stop server** or **Restart server** in the tray or menu-bar icon |
+| `tray-closed` | The desktop closed the tray app without a shutdown. On Windows that's usually an installer making room to update |
+| `tray-gone` | The tray app ended without saying why: it was ended in Task Manager, or crashed |
+| `service-stop` | The Windows service, systemd, launchd, rc.d or Docker stopped it |
+| `os-shutdown`, `os-logoff` | The computer shut down or restarted, or you signed out |
+| `console-closed` | Its console window was closed |
+| `signal` | Ctrl+C, or `kill` from a terminal |
+| `update` | It restarted to finish installing an update |
+| `restart-setting` | It restarted for a reset, a restore or a repair, with who asked |
+| `fatal-error` | It couldn't carry on: FFmpeg missing, the database or the port unavailable. The line says which |
+
+**Each start says how the last run ended.** The `started` line has `previous="stopped 2026-11-02 14:33 (tray-quit), ran 2h38m"`. When the last run didn't stop cleanly (a power cut, the process ended in Task Manager, a stop that hung), the start also logs an error, `the last run ended without stopping cleanly`, with its last log line, and writes a [crash report](#crash-reports). A stop that began and never finished says so, with the reason it began.
+
+`crash/last-run.json` holds how the last run ended, and `crash/runs.json` the last 20 runs.
+
+**Standard error.** A Windows service, or a launchd job with nowhere set for it, has nowhere to write what Go prints when it crashes. There, it goes to `crash/stderr-<process>.txt`, and a run that ends badly has it in its report. A terminal, the tray app's `console.log`, systemd's journal and Docker's log keep it themselves.
 
 ## Downloading logs to share
 
@@ -323,11 +363,24 @@ Clients report to `POST /api/logs/client` ([Client API](CLIENT-API.md)), signed 
 
 A client must never let reporting cause more errors: no retries in a loop, and a report that fails is dropped.
 
+### Calls to other places
+
+Every outgoing call goes through **`logging.Calls(transport, cat, source)`**: `library.SafeClient` already does, and so do updates and modules. It logs the host and path (never the query, which can hold a key), the status, the time to the first answer and the time in all, and the bytes. A fast answer is a Debug line, one slower than 2 seconds is Info, and a failure, a 5xx or one slower than 10 seconds is Warn. While it waits, the call is listed by `logging.InFlight`, which a hang's report includes. A new `http.Client` for the internet should start from `library.SafeTransport()` and wrap it the same way. For anything else slow that a hang's report should name, `end := logging.Begin("kind", "what")` and `defer end()`.
+
+### The flight recorder and the watchdog
+
+- **The flight recorder** (`flight.go`) keeps every line from Debug up for 10 minutes, whatever the levels say, up to 16 MB, and at most 2,000 a second of lines no file wants; past that they're only counted. Such a line costs a couple of microseconds; past the limit, about as much as a quiet line. Web requests reach it too (`logRequest`). Go's execution trace is kept beside it with `runtime/trace.FlightRecorder`.
+- **The watchdog** (`hang.go`) runs `Server.WatchChecks`: `GET /api/health` on its own address, and `SELECT 1`. After 10 seconds failing it writes a `hang` report: the goroutines grouped by where they wait, the calls in flight, the flight recorder and the trace. `logging.NoteStopping()` at the start of a shutdown does the same if the server isn't answering, or stopped answering in the last 10 minutes.
+- **`logging.SaveEvidence(kind, summary, details)`** is what all of them use, and what `POST /api/logs/save` calls.
+
+A hang shows up as a pile of goroutines waiting in one place: the report's first lines name it (`57 in server.(*Server).askOnline`). Nothing slow (a network call, a child process, a disk scan) may run while holding something every request needs: a lock, a database transaction, a shared slot. If it must wait for a turn, it waits briefly and says it's busy.
+
 ### Crash reports and the startup summary
 
 These are handled in one place, with nothing to add at call sites:
 
 - **`logging.StartCrashGuard`** (in `cmdServe`): a fatal Go error is written by the runtime to a file, and the next start turns it into a report. A start that finds the last run left without saying so writes an "unclean" report. Recovered panics write one too. They're in `<data>/crash/`, listed in the settings page and the bundle.
+- **Stop reasons** (`internal/logging/stop.go`): whatever makes the server stop calls `logging.NoteStop(reason, detail, by)` first, with a reason from the list there; the first one given is kept. `NoteStopIfNothingElse` is for a guess that anything more exact replaces. A new way to stop needs a reason on that list, with its words. The shutdown in `cmdServe` logs it with `Server.RunningNow`, and `CrashGuard.Close` keeps it in `last-run.json`.
 - **`Server.LogStartup`** writes version, modules, system, GPU and encoders, disk space and settings at each start. Settings appear only if listed in `summarySettings`, so a new secret can't slip in. Add any setting that changes how the server behaves to that list.
 
 ### What logging promises

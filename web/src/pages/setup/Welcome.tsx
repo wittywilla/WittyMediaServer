@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { api } from '../../api'
 import BrandDialog from '../../components/BrandDialog'
+import { Brand } from '../../components/common'
 import { IconAudio, IconBook, IconGamepad, IconPalette, IconTv, IconUsers } from '../../icons'
 import { Button, Field, Input } from '../../ui'
 import { WhereIsTheCode } from './parts'
@@ -16,7 +17,7 @@ const FEATURES = [
   { icon: <IconPalette />, title: 'Yours', text: 'It runs on your own computer. No account with anyone, and nothing is reported back.' },
 ]
 
-export function Welcome({ serverName, logo, onName, onStart }: { serverName: string; logo: string; onName: (name: string, logo: File | 'remove' | null) => void; onStart: () => void }) {
+export function Welcome({ serverName, colouring, logo, onName, onStart }: { serverName: string; colouring: string; logo: string; onName: (name: string, logo: File | 'remove' | null, colouring: string) => void; onStart: () => void }) {
   const [naming, setNaming] = useState(false)
   const [restoring, setRestoring] = useState(false)
   // While a backup is coming back, starting something else would only get in its way.
@@ -38,11 +39,11 @@ export function Welcome({ serverName, logo, onName, onStart }: { serverName: str
       <div className="oobe-name">
         <div className="oobe-name-now">
           <span className="muted">Your server is called</span>
-          <b>{serverName.trim() || 'WittyMediaServer'}</b>
+          <b><Brand name={serverName.trim()} colouring={colouring} /></b>
         </div>
         <Button onClick={() => setNaming(true)}>Rename…</Button>
       </div>
-      {naming && <BrandDialog name={serverName} logo={logo} onClose={() => setNaming(false)} onSave={onName} />}
+      {naming && <BrandDialog name={serverName} colouring={colouring} logo={logo} onClose={() => setNaming(false)} onSave={onName} />}
     </section>
   )
 }

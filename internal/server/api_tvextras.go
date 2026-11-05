@@ -27,6 +27,7 @@ func (s *Server) tvExtraRoutes(m *http.ServeMux) {
 	a := s.requireUser
 	ad := s.requireAdmin
 	m.Handle("GET /api/guide/search", a(s.handleGuideSearch))
+	m.Handle("GET /api/time", a(s.handleServerTime))
 	m.Handle("GET /api/tv/favourites", a(s.handleTVFavourites))
 	m.Handle("PUT /api/tv/favourites/{key}", a(s.handleSetTVFavourite))
 	m.Handle("DELETE /api/tv/favourites/{key}", a(s.handleSetTVFavourite))
@@ -39,6 +40,14 @@ func (s *Server) tvExtraRoutes(m *http.ServeMux) {
 	m.Handle("DELETE /api/channels/bumpers/item/{id}", ad(s.handleDeleteBumper))
 	m.Handle("GET /api/channels/discs", ad(s.handleChannelDiscs))
 	m.Handle("POST /api/channels/clip-preview", ad(s.handleClipPreview))
+}
+
+// GET /api/time: the server's clock, in milliseconds. Players time a few of these to work out
+// how far their own clock is off, so everyone on a channel can keep to the same moment (live
+// sync). TVs' clocks are often wrong.
+func (s *Server) handleServerTime(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, 200, map[string]int64{"now": time.Now().UnixMilli()})
 }
 
 // ---------------------------------------------------------------------------

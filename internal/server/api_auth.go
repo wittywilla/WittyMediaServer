@@ -52,6 +52,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if u != nil && u.IsAdmin && st.on && st.cfg.AllowPlainAway {
 		plainWarning = remote.PlainAwayWarning
 	}
+	brand, colouring, parts := s.brand(ctx)
 	writeJSON(w, 200, map[string]any{
 		// plainConnection: this very request crossed the internet unencrypted, so a
 		// password typed here can be read on the way. The sign-in page says so.
@@ -67,9 +68,12 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		// Setting up from another device takes the code the server wrote down.
 		"setupCodeRequired": setupRequired && s.setupNeedsCode(r),
 		"user":              u,
-		"brandName":         s.DB.GetSetting(r.Context(), "brandName", ""),
-		"brandLogo":         s.DB.GetSetting(r.Context(), "brandLogo", ""),
-		"theme":             s.serverTheme(r.Context()),
+		"brandName":         brand,
+		"brandColouring":    colouring,
+		// The name to show, ready to draw: parts with accent set are in the theme colour.
+		"brandParts": parts,
+		"brandLogo":  s.DB.GetSetting(r.Context(), "brandLogo", ""),
+		"theme":      s.serverTheme(r.Context()),
 	})
 }
 

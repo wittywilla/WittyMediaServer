@@ -49,11 +49,13 @@ func (s *Server) tunerRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/tuners/discover", ad(s.handleTunerDiscover))
 	m.Handle("GET /api/tuners", ad(s.handleTuners))
 	m.Handle("POST /api/tuners", ad(s.handleCreateTuner))
+	m.Handle("POST /api/tuners/check", ad(s.handleCheckTuner))
 	m.Handle("PUT /api/tuners/{id}", ad(s.handleUpdateTuner))
 	m.Handle("DELETE /api/tuners/{id}", ad(s.handleDeleteTuner))
 	m.Handle("POST /api/tuners/{id}/refresh", ad(s.handleRefreshTuner))
 	m.Handle("POST /api/tuners/{id}/scan", ad(s.handleScanTuner))
 	m.Handle("GET /api/tuners/{id}/scan", ad(s.handleScanProgress2))
+	m.Handle("POST /api/tuners/{id}/test", ad(s.handleTestTuner))
 	m.Handle("GET /api/tuners/{id}/channels", ad(s.handleTunerChannels))
 	m.Handle("POST /api/tuners/{id}/channels/enable", ad(s.handleEnableAllChannels))
 	m.Handle("PUT /api/tuner-channels/{id}", ad(s.handleEditTunerChannel))
@@ -113,6 +115,10 @@ func (s *Server) handleTunerDiscover(w http.ResponseWriter, r *http.Request) {
 	if writeModuleMissing(w, err) {
 		return
 	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		writeErr(w, 504, "The search took too long and was stopped. Some devices don't answer a search: add yours by hand with its address.")
+		return
+	}
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -149,6 +155,80 @@ func (s *Server) handleCreateTuner(w http.ResponseWriter, r *http.Request) {
 	}
 	got.Options = livetv.PublicOptions(got)
 	writeJSON(w, 200, got)
+}
+
+// POST /api/tuners/check: what a source says before it's saved, for the guided setup. Nothing is
+// kept. A source that doesn't check out is an answer, not a failure of this server, so it's 200.
+func (s *Server) handleCheckTuner(w http.ResponseWriter, r *http.Request) {
+	var t livetv.Tuner
+	if err := readJSON(r, &t); err != nil {
+		writeErr(w, 400, "those details could not be read")
+		return
+	}
+	if err := s.checkSourcePlace(r, t.Options["playlist"]); err != nil {
+		writeJSON(w, 200, map[string]any{"ok": false, "problem": livetv.Problem{Kind: "settings", Message: err.Error()}})
+		return
+	}
+	// Each question starts WittyTuner's helper afresh, which a small or busy machine can take a while to do.
+	// Checking a saved tuner's changed details: a password it was shown masked keeps the stored one.
+	if t.ID > 0 {
+		cur, err := s.TV.Tuner(r.Context(), t.ID)
+		if err != nil {
+			s.tunerError(w, r, err)
+			return
+		}
+		for k, v := range t.Options {
+			if v == livetv.Masked {
+				t.Options[k] = cur.Options[k]
+			}
+		}
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
+	defer cancel()
+	res, err := s.TV.Check(ctx, t.Driver, t.Name, t.Options)
+	if writeModuleMissing(w, err) {
+		return
+	}
+	if err != nil {
+		if livetv.PublicError(err) != err.Error() {
+			s.Log.InfoContext(r.Context(), "a tuner being set up didn't check out", "cat", "tv", "driver", t.Driver, "err", err)
+		}
+		writeJSON(w, 200, map[string]any{"ok": false, "problem": livetv.CheckProblem(t.Driver, err)})
+		return
+	}
+	writeJSON(w, 200, map[string]any{"ok": true, "result": res})
+}
+
+// POST /api/tuners/{id}/test: tunes one channel for a few seconds and says what arrived. The
+// channel is opened as a viewer's would be, so an encrypted one is refused the same way.
+func (s *Server) handleTestTuner(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	var b struct {
+		Channel int64 `json:"channel"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if _, err := s.TV.Tuner(r.Context(), id); err != nil {
+		s.tunerError(w, r, err)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
+	defer cancel()
+	res, err := s.TV.TestChannel(ctx, id, b.Channel)
+	if err != nil {
+		s.tunerError(w, r, err)
+		return
+	}
+	if res.Problem != nil && res.Problem.Kind == "encrypted" {
+		res.Problem.HelpURL = encryptedHelpURL
+	}
+	writeJSON(w, 200, res)
 }
 
 func (s *Server) handleUpdateTuner(w http.ResponseWriter, r *http.Request) {

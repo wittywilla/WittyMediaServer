@@ -31,9 +31,14 @@ import (
 //   - panic: a panic that was caught and logged. The server carried on.
 //   - unclean: the last run left without saying so, and without a fatal error:
 //     a power cut, a killed process, the system out of memory.
+//   - hang: the server stopped answering while it ran (see hang.go). Beside the
+//     report are every goroutine's stack, the flight recorder's last minutes and
+//     the execution trace.
+//   - saved: an admin asked for the same, because something had just gone wrong.
 
 const (
 	maxCrashFiles = 30
+	maxEvidence   = 5 // reports that keep the flight recorder, stacks and trace beside them
 	maxCrashSize  = 2 << 20
 	crashKeepDays = 90
 )
@@ -41,12 +46,14 @@ const (
 // Crash describes one report.
 type Crash struct {
 	ID      string    `json:"id"`
-	Kind    string    `json:"kind"` // fatal, panic, unclean
+	Kind    string    `json:"kind"` // fatal, panic, unclean, hang, saved
 	Time    time.Time `json:"time"`
 	Summary string    `json:"summary"`
 	Version string    `json:"version,omitempty"`
 	Size    int64     `json:"size"`
 	Seen    bool      `json:"seen"`
+	// Parts are the files kept beside the report: PartFlight, PartGoroutines, PartTrace.
+	Parts []string `json:"parts,omitempty"`
 }
 
 // runMarker says a server is running here. A clean shutdown removes it.
@@ -55,6 +62,8 @@ type runMarker struct {
 	Started time.Time `json:"started"`
 	PID     int       `json:"pid"`
 	LogDir  string    `json:"logDir,omitempty"` // the owner may have moved the logs
+	// Stopping: why it began to stop. A marker left with this set is a stop that didn't finish.
+	Stopping *Stop `json:"stopping,omitempty"`
 }
 
 // CrashGuard is one run of the server, watched.
@@ -64,6 +73,12 @@ type CrashGuard struct {
 	pending *os.File
 	marker  string
 	run     runMarker
+	// markerMu: the marker is written from wherever a stop is noted.
+	markerMu sync.Mutex
+	// previous is how the run before this one ended.
+	previous LastRun
+	// stderr is where this run's standard error went, when nothing else kept it.
+	stderr *os.File
 
 	mu     sync.Mutex
 	recent map[string]time.Time // recovered panics by where they happened
@@ -106,7 +121,13 @@ func StartCrashGuard(dir, logDir, version string) (*CrashGuard, []Crash, error) 
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, nil, err
 	}
-	found := g.collect(logDir)
+	found, prev := g.collect(logDir)
+	if !prev.Started.IsZero() {
+		g.previous = prev
+		g.record(prev)
+	} else if last, ok := readLastRun(dir); ok {
+		g.previous = last
+	}
 	g.prune()
 	me := os.Getpid()
 	f, err := os.OpenFile(filepath.Join(dir, fmt.Sprintf("pending-%d.txt", me)), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o640)
@@ -156,6 +177,7 @@ func RunningServer(crashDir string) (pid int, ok bool) {
 	return 0, false
 }
 
+// writeMarker is called with markerMu held, or before anyone else can see the guard.
 func (g *CrashGuard) writeMarker() error {
 	b, err := json.Marshal(g.run)
 	if err != nil {
@@ -166,7 +188,12 @@ func (g *CrashGuard) writeMarker() error {
 
 // SetLogDir notes where this run's logs are, for the report if it ends badly.
 func (g *CrashGuard) SetLogDir(dir string) {
-	if g == nil || g.marker == "" {
+	if g == nil {
+		return
+	}
+	g.markerMu.Lock()
+	defer g.markerMu.Unlock()
+	if g.marker == "" {
 		return
 	}
 	g.run.LogDir = dir
@@ -190,14 +217,27 @@ func (g *CrashGuard) Close() {
 		_ = os.Remove(name)
 		g.pending = nil
 	}
-	if g.marker != "" {
-		_ = os.Remove(g.marker)
+	g.markerMu.Lock()
+	marker := g.marker
+	g.marker = "" // a stop noted after this has no marker to write back
+	g.markerMu.Unlock()
+	if marker != "" {
+		g.record(LastRun{PID: g.run.PID, Version: g.version, Started: g.run.Started, Ended: time.Now(), Clean: true, Stop: StopNoted()})
+		_ = os.Remove(marker)
 	}
+	g.closeStderr()
 }
 
-// collect turns files left by earlier runs into reports.
-func (g *CrashGuard) collect(logDir string) []Crash {
+// collect turns files left by earlier runs into reports, and says how the newest of those
+// runs ended. A zero LastRun means every earlier run stopped cleanly.
+func (g *CrashGuard) collect(logDir string) ([]Crash, LastRun) {
 	var found []Crash
+	var prev LastRun
+	note := func(r LastRun) {
+		if prev.Started.IsZero() || r.Started.After(prev.Started) {
+			prev = r
+		}
+	}
 	entries, _ := os.ReadDir(g.dir)
 	fatalPIDs := map[int]bool{}
 	for _, e := range entries {
@@ -223,6 +263,7 @@ func (g *CrashGuard) collect(logDir string) []Crash {
 			if c, err := g.reportFromFatal(p, info, dir, m.Version); err == nil {
 				found = append(found, c)
 				fatalPIDs[pid] = true
+				note(LastRun{PID: pid, Version: m.Version, Started: m.Started, Ended: info.ModTime(), Stop: stopOf(m), Report: c.ID, LastLog: lastLogLines(dir, 1)})
 			}
 		}
 		_ = os.Remove(p)
@@ -247,12 +288,22 @@ func (g *CrashGuard) collect(logDir string) []Crash {
 				}
 				if c, err := g.reportFromUnclean(m, dir); err == nil {
 					found = append(found, c)
+					note(LastRun{PID: pid, Version: m.Version, Started: m.Started, Ended: c.Time, Stop: stopOf(m), Report: c.ID, LastLog: lastLogLines(dir, 1)})
 				}
 			}
 		}
 		_ = os.Remove(p)
+		g.removeStderr(pid)
 	}
-	return found
+	g.removeOldStderr()
+	return found, prev
+}
+
+func stopOf(m runMarker) Stop {
+	if m.Stopping == nil {
+		return Stop{}
+	}
+	return *m.Stopping
 }
 
 func (g *CrashGuard) readMarker(pid int) runMarker {
@@ -288,9 +339,18 @@ func (g *CrashGuard) reportFromUnclean(m runMarker, logDir string) (Crash, error
 	if files := listLogFiles(logDir); len(files) > 0 && files[0].Modified.After(when) {
 		when = files[0].Modified
 	}
-	return g.writeReport("unclean", when, m.Version,
-		"The server stopped without shutting down: a power cut, the computer restarting, the process being ended or the system running out of memory.",
-		fmt.Sprintf("Started: %s\nProcess: %d\nNo error was recorded by the server itself.\n", m.Started.Format(time.RFC3339), m.PID), last)
+	summary := "The server stopped without shutting down: a power cut, the computer restarting, the process being ended or the system running out of memory."
+	body := fmt.Sprintf("Started: %s\nProcess: %d\n", m.Started.Format(time.RFC3339), m.PID)
+	if m.Stopping != nil {
+		summary = "The server began to stop (" + shortStop(*m.Stopping) + ") and didn't finish: it was ended before it could, or stopping hung."
+		body += fmt.Sprintf("Stopping since: %s, because %s\n", m.Stopping.At.Format(time.RFC3339), m.Stopping.Words())
+	} else {
+		body += "No error was recorded by the server itself.\n"
+	}
+	if errText := g.readStderr(m.PID); errText != "" {
+		body += "\n--- what it wrote to standard error ---\n" + errText + "\n"
+	}
+	return g.writeReport("unclean", when, m.Version, summary, body, last)
 }
 
 func (g *CrashGuard) writeReport(kind string, when time.Time, version, summary, body, lastLines string) (Crash, error) {
@@ -410,10 +470,19 @@ func lastLogLines(logDir string, n int) string {
 func (g *CrashGuard) prune() {
 	list := g.List()
 	cutoff := time.Now().AddDate(0, 0, -crashKeepDays)
+	withParts := 0
 	for i, c := range list {
 		if i >= maxCrashFiles || c.Time.Before(cutoff) {
-			_ = os.Remove(filepath.Join(g.dir, c.ID+".txt"))
-			_ = os.Remove(filepath.Join(g.dir, c.ID+".seen"))
+			g.removeAll(c.ID)
+			continue
+		}
+		if len(c.Parts) > 0 {
+			// Each can be tens of megabytes: only the newest few keep theirs.
+			if withParts++; withParts > maxEvidence {
+				for _, p := range c.Parts {
+					_ = os.Remove(filepath.Join(g.dir, c.ID+"."+p))
+				}
+			}
 		}
 	}
 	// What a run that ended during a write left.
@@ -426,7 +495,7 @@ func (g *CrashGuard) prune() {
 	}
 }
 
-var crashName = regexp.MustCompile(`^crash-[0-9TZ.]+-(fatal|panic|unclean)$`)
+var crashName = regexp.MustCompile(`^crash-[0-9TZ.]+-(fatal|panic|unclean|hang|saved)$`)
 
 // IsCrashID accepts only our own report names (never a path).
 func IsCrashID(id string) bool { return crashName.MatchString(id) }
@@ -462,6 +531,7 @@ func (g *CrashGuard) List() []Crash {
 		if _, err := os.Stat(filepath.Join(g.dir, id+".seen")); err == nil {
 			c.Seen = true
 		}
+		c.Parts = g.parts(id)
 		out = append(out, c)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Time.After(out[j].Time) })
@@ -496,6 +566,47 @@ func (g *CrashGuard) Read(id string) ([]byte, error) {
 	return readBounded(filepath.Join(g.dir, id+".txt"), maxCrashSize*2)
 }
 
+// parts lists the evidence kept beside a report.
+func (g *CrashGuard) parts(id string) []string {
+	var out []string
+	for _, p := range evidenceParts {
+		if st, err := os.Stat(filepath.Join(g.dir, id+"."+p)); err == nil && st.Mode().IsRegular() {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// IsPart accepts only the names of evidence parts.
+func IsPart(part string) bool {
+	for _, p := range evidenceParts {
+		if p == part {
+			return true
+		}
+	}
+	return false
+}
+
+// PartPath is where one part of a report is, for sending it whole.
+func (g *CrashGuard) PartPath(id, part string) (string, error) {
+	if g == nil || !IsCrashID(id) || !IsPart(part) {
+		return "", os.ErrNotExist
+	}
+	p := filepath.Join(g.dir, id+"."+part)
+	if _, err := os.Stat(p); err != nil {
+		return "", err
+	}
+	return p, nil
+}
+
+func (g *CrashGuard) removeAll(id string) {
+	for _, p := range evidenceParts {
+		_ = os.Remove(filepath.Join(g.dir, id+"."+p))
+	}
+	_ = os.Remove(filepath.Join(g.dir, id+".seen"))
+	_ = os.Remove(filepath.Join(g.dir, id+".txt"))
+}
+
 // MarkSeen: the owner has seen this one, so it stops being pointed out.
 func (g *CrashGuard) MarkSeen(id string) error {
 	if g == nil || !IsCrashID(id) {
@@ -512,8 +623,11 @@ func (g *CrashGuard) Delete(id string) error {
 	if g == nil || !IsCrashID(id) {
 		return os.ErrNotExist
 	}
-	_ = os.Remove(filepath.Join(g.dir, id+".seen"))
-	return os.Remove(filepath.Join(g.dir, id+".txt"))
+	if _, err := os.Stat(filepath.Join(g.dir, id+".txt")); err != nil {
+		return err
+	}
+	g.removeAll(id)
+	return nil
 }
 
 // Dir is the folder holding the reports.
@@ -543,7 +657,18 @@ func (g *CrashGuard) recordPanic(where string, value any, stack []byte) {
 	}
 	summary := clean(Redact(fmt.Sprintf("A panic in %s was caught; the server carried on: %v", where, value)), 300)
 	body := Redact(string(stack))
-	_, _ = g.writeReport("panic", now, g.version, summary, body, "")
+	tail := ""
+	l := active.Load()
+	if l != nil {
+		tail = l.flightTail(80)
+	}
+	c, err := g.writeReport("panic", now, g.version, summary, body, tail)
+	if err == nil && l != nil && l.FlightRecorderOn() {
+		if f, err := os.OpenFile(filepath.Join(g.dir, c.ID+"."+PartFlight), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o640); err == nil {
+			_, _ = l.WriteFlight(f)
+			_ = f.Close()
+		}
+	}
 	g.prune()
 }
 

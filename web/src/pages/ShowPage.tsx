@@ -1,8 +1,9 @@
 import { SaveButton } from '../components/SaveToCollection'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { api, episodeLabel, fmtRuntime, fmtTime, getPrefs, posterUrl, seasonPosterUrl, showBackdropUrl, showPosterUrl, type Item, type Prefs, type ShowDetail } from '../api'
+import { api, episodeLabel, fitWidth, fmtRuntime, fmtTime, getPrefs, posterUrl, sized, seasonPosterUrl, showBackdropUrl, showPosterUrl, type Item, type Prefs, type ShowDetail } from '../api'
 import EditDetails, { type EditSection } from '../components/edit/EditDetails'
+import TitleArtPicker, { PosterMenu, appliedOnPage } from '../components/edit/TitleArtPicker'
 import RefreshDialog from '../components/edit/RefreshDialog'
 import TitleExtras, { TitleLogo } from '../components/edit/TitleExtras'
 import BrandLogo from '../components/BrandLogo'
@@ -21,6 +22,7 @@ export default function ShowPage() {
   const [err, setErr] = useState('')
   const [edit, setEdit] = useState<EditSection | ''>((params.get('edit') as EditSection) || '')
   const [refreshing, setRefreshing] = useState(false)
+  const [art, setArt] = useState(false)
   const [prefs, setPrefs] = useState<Prefs | null>(null)
   const [viewOverride, setViewOverride] = useState<'' | 'cards' | 'list' | null>(null)
   const load = () => api.get<ShowDetail>(`/shows/${id}`).then(setD).catch((e) => setErr(e.message))
@@ -47,11 +49,11 @@ export default function ShowPage() {
   return (
     <>
       <div className="detail-hero">
-        <div className="bg" style={{ backgroundImage: `url(${showBackdropUrl(show)})` }} />
+        <div className="bg" style={{ backgroundImage: `url(${sized(showBackdropUrl(show), fitWidth(innerWidth))})` }} />
         <div className="shade" />
       </div>
       <div className="detail">
-        <div><div className="poster"><img src={showPosterUrl(show)} alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} /></div></div>
+        <div><div className="poster"><img src={sized(showPosterUrl(show), fitWidth(260))} alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />{user?.isAdmin && <PosterMenu target="show" id={show.id} onChanged={load} />}</div></div>
         <div>
           <TitleLogo target="show" id={show.id} name={show.title} version={show.updatedAt} />
           <div className="meta">
@@ -68,7 +70,7 @@ export default function ShowPage() {
             </button>}
             <SaveButton showId={show.id} />
             {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('match')}><IconEdit /> Edit</button>}
-            {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('artwork')}><IconImage /> Artwork</button>}
+            {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
             {user?.isAdmin && <button className="btn ghost" onClick={() => setRefreshing(true)} title="See what's new about this, and choose what to take"><IconRefresh /> Refresh</button>}
           </div>
           {show.overview && <p className="overview">{show.overview}</p>}
@@ -77,7 +79,7 @@ export default function ShowPage() {
           <div className="season-tabs">
             {seasons.map((s) => (
               <button key={s.number} className={'season-tab' + (s.number === season ? ' active' : '')} onClick={() => setParams({ season: String(s.number) }, { replace: true })}>
-                <div className="season-poster">{<img src={seasonPosterUrl(show, s.number)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />}</div>
+                <div className="season-poster">{<img src={sized(seasonPosterUrl(show, s.number), fitWidth(200))} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />}</div>
                 <div className="t">{s.title}</div>
                 <div className="sub">{s.episodeCount} ep{s.unwatched > 0 && s.unwatched < s.episodeCount ? ` · ${s.unwatched} left` : s.unwatched === 0 ? ' · watched' : ''}</div>
               </button>
@@ -107,6 +109,7 @@ export default function ShowPage() {
           {show.network && <LogoNotice logos={[{ kind: 'network', name: show.network }]} />}
         </div>
       </div>
+      {art && <TitleArtPicker target="show" id={show.id} onClose={() => setArt(false)} onApplied={appliedOnPage(load)} />}
       {edit && <EditDetails target="show" id={show.id} start={edit} onClose={() => setEdit('')} onChanged={load} />}
       {refreshing && <RefreshDialog target="show" id={show.id} onClose={() => setRefreshing(false)} onChanged={load} />}
     </>
@@ -125,7 +128,7 @@ function EpisodeTable({ eps }: { eps: Item[] }) {
           const state = p?.watched ? <IconCheck size={16} /> : p?.resumeSec ? fmtTime(p.positionSec) : ''
           return (
             <tr key={e.id} onClick={() => nav(`/item/${e.id}`)}>
-              <td className="thumb-cell">{e.poster ? <img src={posterUrl(e)} alt="" loading="lazy" /> : <span />}</td>
+              <td className="thumb-cell">{e.poster ? <img src={sized(posterUrl(e), fitWidth(160))} alt="" loading="lazy" /> : <span />}</td>
               <td className="num">{episodeLabel(e).replace(/^S\d+ \u00b7 /, '') || '\u2013'}</td>
               <td><Link to={`/item/${e.id}`} onClick={(ev) => ev.stopPropagation()}>{e.title}</Link></td>
               <td className="muted">{e.aired || ''}</td>
@@ -147,7 +150,7 @@ function EpisodeRow({ ep }: { ep: Item }) {
     <div className="episode">
       {/* The title's link covers the whole row, so a click anywhere opens it; a remote or keyboard reaches both controls. */}
       <button type="button" className="thumb" aria-label={`Play ${ep.title}`} onClick={() => nav(`/play/${ep.id}`)}>
-        {ep.poster && <img src={posterUrl(ep)} alt="" loading="lazy" />}
+        {ep.poster && <img src={sized(posterUrl(ep), fitWidth(320))} alt="" loading="lazy" />}
         <span className="play"><span><IconPlay /></span></span>
         {pct > 0 && <span className="progress"><i style={{ width: pct + '%' }} /></span>}
         {ep.progress?.watched && <SeenBadge />}

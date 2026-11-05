@@ -3,6 +3,7 @@ package hls
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -73,6 +74,90 @@ func TestLivePlaylistSlidesAndKeepsSequence(t *testing.T) {
 	}
 	if _, ok := s.SegmentPath("../../secret"); ok {
 		t.Fatal("only known segment names may be served")
+	}
+}
+
+// Every segment says when on the air it starts, running on from one to the next, and the
+// playlist says how far behind players sit; a session started without a clock writes neither
+// date-time.
+func TestLivePlaylistProgramDateTimeAndHoldBack(t *testing.T) {
+	m := liveTestManager(t)
+	s := m.newLive(LiveSpec{ID: "c", WindowSec: 100})
+	s.addSegment("plain.ts", 4)
+	if p := string(s.Playlist(func(f string) string { return f })); strings.Contains(p, "PROGRAM-DATE-TIME") {
+		t.Fatalf("no air time without a clock:\n%s", p)
+	}
+	start := time.Date(2026, 11, 4, 20, 14, 6, 0, time.UTC)
+	s.mu.Lock()
+	s.air = start
+	s.mu.Unlock()
+	s.addSegment("a.ts", 4)
+	s.addSegment("b.ts", 3.5)
+	s.addSegment("c.ts", 4)
+	p := string(s.Playlist(func(f string) string { return f }))
+	for _, want := range []string{
+		"#EXT-X-SERVER-CONTROL:HOLD-BACK=12.000\n",
+		"#EXT-X-PROGRAM-DATE-TIME:2026-11-04T20:14:06.000Z\n#EXTINF:4.000,\na.ts",
+		"#EXT-X-PROGRAM-DATE-TIME:2026-11-04T20:14:10.000Z\n#EXTINF:3.500,\nb.ts",
+		"#EXT-X-PROGRAM-DATE-TIME:2026-11-04T20:14:13.500Z\n#EXTINF:4.000,\nc.ts",
+	} {
+		if !strings.Contains(p, want) {
+			t.Fatalf("missing %q:\n%s", want, p)
+		}
+	}
+}
+
+// A stream made ahead of the clock tells players to start that far back, at the clock, which is
+// the moment everyone else keeps to, rather than jumping back to it.
+func TestLiveHoldBackCoversALead(t *testing.T) {
+	m := liveTestManager(t)
+	s := m.newLive(LiveSpec{ID: "c", WindowSec: 100})
+	s.mu.Lock()
+	s.air = time.Now()
+	s.mu.Unlock()
+	for _, f := range []string{"a.ts", "b.ts", "c.ts", "d.ts", "e.ts"} {
+		s.addSegment(f, 4)
+	}
+	p := string(s.Playlist(func(f string) string { return f }))
+	i := strings.Index(p, "HOLD-BACK=")
+	if i < 0 {
+		t.Fatalf("no hold-back:\n%s", p)
+	}
+	var hold float64
+	if _, err := fmt.Sscanf(p[i+len("HOLD-BACK="):], "%g", &hold); err != nil {
+		t.Fatal(err)
+	}
+	// Five segments of 4 seconds made at once are 20 seconds ahead.
+	if hold < 19 || hold > 20.5 {
+		t.Fatalf("hold-back %.3f, want about 20:\n%s", hold, p)
+	}
+}
+
+// A new input carries the air time on, or moves it forward after a gap; it never goes back.
+func TestLiveAirTimeAcrossInputs(t *testing.T) {
+	m := liveTestManager(t)
+	var calls atomic.Int32
+	feed := func(ctx context.Context, at time.Time) (*LiveInput, error) {
+		calls.Add(1)
+		return &LiveInput{AudioIndex: 0}, nil
+	}
+	s := startFake(t, m, LiveSpec{ID: "x", Feed: feed}, fakeRun(2))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.WaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+	m.StopLive("x")
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.segs) < 2 {
+		t.Fatalf("segments: %d", len(s.segs))
+	}
+	for i := 1; i < len(s.segs); i++ {
+		a, b := s.segs[i-1], s.segs[i]
+		if a.Air.IsZero() || b.Air.Before(a.Air.Add(time.Duration(a.Dur*float64(time.Second)))) {
+			t.Fatalf("air time went back between %s (%v) and %s (%v)", a.File, a.Air, b.File, b.Air)
+		}
 	}
 }
 
@@ -263,6 +348,22 @@ func TestLiveArgs(t *testing.T) {
 	if !strings.Contains(joined, "-c:v copy") {
 		t.Errorf("copy mode: %s", joined)
 	}
+	if dec, enc := ffmpeg.StreamThreads(720); dec > 0 {
+		for _, want := range []string{fmt.Sprintf("-threads %d -re", dec), fmt.Sprintf("-c:v libx264 -threads %d ", enc)} {
+			if !strings.Contains(file, want) {
+				t.Errorf("a conversion on a big machine lacks %q:\n%s", want, file)
+			}
+		}
+	}
+	if _, enc4k := ffmpeg.StreamThreads(2160); enc4k > 0 {
+		big := strings.Join(m.newLive(LiveSpec{ID: "y"}).liveArgs(&LiveInput{InputArgs: ffmpeg.FileInput("/m/b.mkv"), AudioIndex: 0, Height: 2160}, 1, false), " ")
+		if !strings.Contains(big, fmt.Sprintf("-c:v libx264 -threads %d ", enc4k)) {
+			t.Errorf("a 4K channel with no limit gets 4K's threads:\n%s", big)
+		}
+	}
+	if strings.Contains(joined, "-threads") {
+		t.Errorf("a copy decodes no picture:\n%s", joined)
+	}
 	slate := strings.Join(s.liveArgs(&LiveInput{InputArgs: SlateInput(), Slate: true, Duration: 10, AudioIndex: -1}, 3, false), " ")
 	if !strings.Contains(slate, "anullsrc") || !strings.Contains(slate, "-map 1:a:0") {
 		t.Errorf("a slate has silence:\n%s", slate)
@@ -322,5 +423,45 @@ func TestGrowingStreamsSkipTheTranscodeLimit(t *testing.T) {
 	m.max = 0
 	if err := m.makeRoom(&Session{Spec: Spec{ID: "grow", Growing: true}, m: m}); err != nil {
 		t.Errorf("makeRoom: %v", err)
+	}
+}
+
+// A channel whose schedule was made again moves to it without anyone being
+// dropped: the run ends, the feed is asked again, and nothing is reported.
+func TestLiveRestartAsksTheFeedAgain(t *testing.T) {
+	m := liveTestManager(t)
+	var asked atomic.Int32
+	s := startFake(t, m, LiveSpec{ID: "x", Feed: func(ctx context.Context, at time.Time) (*LiveInput, error) {
+		asked.Add(1)
+		return &LiveInput{AudioIndex: 0, Duration: 3600}, nil
+	}}, fakeRun(2))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.WaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if m.RestartLive("nothing") {
+		t.Fatal("a channel nobody is watching isn't running")
+	}
+	for i := 1; i <= 3; i++ {
+		if !m.RestartLive("x") {
+			t.Fatal("the channel should be running")
+		}
+		for j := 0; asked.Load() < int32(i+1) && j < 100; j++ {
+			time.Sleep(20 * time.Millisecond)
+		}
+		if asked.Load() < int32(i+1) {
+			t.Fatalf("restart %d: the feed was asked %d times", i, asked.Load())
+		}
+	}
+	if err := s.Err(); err != nil || m.GetLive("x") != s {
+		t.Fatalf("a restart should leave the session running: %v", err)
+	}
+	// Three quick restarts are not a stream failing again and again.
+	for j := 0; j < 50 && !strings.Contains(string(s.Playlist(func(f string) string { return f })), "DISCONTINUITY"); j++ {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !strings.Contains(string(s.Playlist(func(f string) string { return f })), "#EXT-X-DISCONTINUITY") {
+		t.Fatal("the new programme should follow a discontinuity")
 	}
 }

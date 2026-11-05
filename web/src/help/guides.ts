@@ -10,7 +10,9 @@ const files = import.meta.glob([
   '../../../SECURITY.md',
   '!../../../docs/FFMPEG-BENCHMARK.md',
   '!../../../docs/LEGAL-NOTICES-CHECKLIST.md',
+  '!../../../docs/MACOS.md',
   '!../../../docs/MODULES-CUTOVER.md',
+  '!../../../docs/PERFORMANCE.md',
   '!../../../docs/PUBLISHING.md',
   '!../../../docs/REPOSITORIES.md',
   '!../../../docs/ROADMAP.md',
@@ -18,7 +20,7 @@ const files = import.meta.glob([
 ], { query: '?raw', import: 'default' }) as Record<string, () => Promise<string>>
 
 // For the people working on the project, and no use to anyone running it.
-export const notInHelp = ['FFMPEG-BENCHMARK', 'LEGAL-NOTICES-CHECKLIST', 'MODULES-CUTOVER', 'PUBLISHING', 'REPOSITORIES', 'ROADMAP', 'WITTYRETROARCH']
+export const notInHelp = ['FFMPEG-BENCHMARK', 'LEGAL-NOTICES-CHECKLIST', 'MACOS', 'MODULES-CUTOVER', 'PERFORMANCE', 'PUBLISHING', 'REPOSITORIES', 'ROADMAP', 'WITTYRETROARCH']
 
 export type Guide = { file: string; title: string; about: string }
 export type GuideGroup = { title: string; quiet?: boolean; guides: Guide[] }
@@ -63,6 +65,7 @@ export const GROUPS: GuideGroup[] = [
   ] },
   { title: 'Looking after the server', guides: [
     { file: 'INSTALL', title: 'Installing and updating', about: 'Each system’s installer, and what each program is.' },
+    { file: 'HARDWARE', title: 'What hardware it needs', about: 'Memory and processor for each thing it does, from measurements.' },
     { file: 'DOCKER', title: 'Docker', about: 'The image, its tags and folders, graphics cards, hardening and updating.' },
     { file: 'DOCKER-UGREEN', title: 'Docker on a UGREEN NAS', about: 'UGOS Pro’s Docker app, with Intel graphics.' },
     { file: 'DOCKER-SYNOLOGY', title: 'Docker on a Synology NAS', about: 'Container Manager on DSM 7.2.' },

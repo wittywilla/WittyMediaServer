@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
 )
 
@@ -80,6 +81,7 @@ func (s *Server) resetAndRestart(w http.ResponseWriter, r *http.Request, req res
 	s.Log.WarnContext(r.Context(), "the server was asked to reset", "cat", "server", "mode", req.Mode, "by", userFrom(r).Name)
 	writeJSON(w, 202, map[string]any{"restarting": s.Restart != nil})
 	if s.Restart != nil {
+		logging.NoteStop(logging.StopRestartSetting, "a reset ("+req.Mode+")", userFrom(r).Name)
 		time.AfterFunc(300*time.Millisecond, s.Restart) // so the answer arrives
 	}
 }

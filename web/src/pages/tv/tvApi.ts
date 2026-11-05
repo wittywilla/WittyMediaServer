@@ -87,6 +87,10 @@ export type Tuner = { id: number; driver: string; name: string; options: Record<
 export type TunerChannel = { logoSet?: string; logoUrl?: string; brand?: { kind: LogoKind; name: string }; id: number; tunerId: number; sourceId: string; number: string; name: string; group?: string; hd?: boolean; radio?: boolean; encrypted?: string; security: Security['state']; atsc3?: boolean; videoCodec?: string; audioCodec?: string; noRecord?: string; enabled: boolean; epgId?: string; numberSet?: string; nameSet?: string; epgSet?: string }
 export type ScanState = { running: boolean; percent: number; found: number; message?: string; error?: string; added: number; clear: number; encrypted: number; unknown: number }
 export type Found = { driver: string; name: string; detail?: string; options: Record<string, string> }
+// The guided setup's questions: what a source says before it's saved, and what one channel did when tried.
+export type TunerProblem = { kind: 'settings' | 'unreachable' | 'not-a-tuner' | 'unreadable' | 'empty' | 'encrypted' | 'busy' | 'no-signal' | 'no-picture' | 'other'; message: string; hint?: string; helpUrl?: string }
+export type TunerCheck = { ok: true; result: { detail?: string; maxStreams?: number; channels: number; encrypted: number; sample?: string[]; ownGuide?: boolean } } | { ok: false; problem: TunerProblem }
+export type TunerTest = { ok: boolean; channel?: { id: number; number: string; name: string }; problem?: TunerProblem; seconds: number; video?: string; audio?: string; clear?: boolean }
 export type EPGSource = { id: number; name: string; url: string; lastFetch: number | null; lastError: string; programmes: number; tunerId?: number }
 export type Recording = { id: number; channelId: number; channel: string; number: string; title: string; sub?: string; start: number; stop: number; status: 'scheduled' | 'recording' | 'done' | 'failed' | 'cancelled'; error?: string; path?: string; sizeBytes?: number; ruleId?: number }
 export type RecordingRule = { id: number; channelId: number; channel: string; title: string }

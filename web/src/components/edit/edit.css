@@ -101,17 +101,6 @@
 .ed-art-pic img { width: 100%; height: 100%; object-fit: contain; }
 .ed-art-info { min-width: 0; }
 .ed-art-btns { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-2); }
-.ed-browser { background: var(--bg-3); border-radius: var(--r-lg); padding: var(--sp-4); margin-top: var(--sp-4); }
-.ed-choices { display: grid; gap: var(--sp-3); max-height: 460px; overflow: auto; padding: 3px; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); }
-.ed-choices.backdrop, .ed-choices.banner, .ed-choices.logo { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
-.ed-choice { position: relative; display: block; padding: 0; border: 2px solid transparent; border-radius: var(--r-md); background: var(--bg-2); overflow: hidden; cursor: pointer; aspect-ratio: 2 / 3; }
-.ed-choices.backdrop .ed-choice, .ed-choices.banner .ed-choice, .ed-choices.logo .ed-choice { aspect-ratio: 16 / 9; }
-.ed-choice img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.ed-choices.logo .ed-choice img { object-fit: contain; }
-.ed-choice.on { border-color: var(--fg); }
-.ed-choice-src { position: absolute; left: var(--sp-1); bottom: var(--sp-1); padding: 1px var(--sp-1); border-radius: var(--r-xs); background: var(--scrim); color: var(--on-image); font-size: var(--text-2xs); }
-.ed-choice-check { position: absolute; right: var(--sp-1); top: var(--sp-1); display: flex; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: var(--r-full); background: var(--fg); color: var(--bg); }
-.ed-url { margin-top: var(--sp-3); }
 
 /* Organise */
 .ed-block { margin-top: var(--sp-4); }

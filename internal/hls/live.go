@@ -38,8 +38,10 @@ type LiveInput struct {
 	// Stdin feeds the input (MPEG-TS from a tuner); closed when the run ends.
 	Stdin       io.ReadCloser
 	VideoFilter string // deinterlacing and the like
-	AudioIndex  int    // ffmpeg a:N; -1 = none, silence is added
-	CopyVideo   bool   // H.264 sources pass through without converting
+	// Height is the shorter side of the input's picture, when known (as Spec.Height).
+	Height     int
+	AudioIndex int  // ffmpeg a:N; -1 = none, silence is added
+	CopyVideo  bool // H.264 sources pass through without converting
 	// Realtime: the input already arrives at viewing speed (a tuner, a live
 	// address), so FFmpeg must not be paced.
 	Realtime bool
@@ -81,6 +83,9 @@ type liveSeg struct {
 	Dur  float64
 	Disc bool // a discontinuity comes before this segment
 	At   time.Time
+	// Air is the moment on the air the segment starts at: what EXT-X-PROGRAM-DATE-TIME says,
+	// so every player on the channel can keep to the same moment.
+	Air time.Time
 }
 
 // LiveSession is one running channel.
@@ -111,6 +116,15 @@ type LiveSession struct {
 	runs    int
 	// nextDisc: the next segment follows a change of input.
 	nextDisc bool
+	// endRun ends the run going now; restarted says that was asked for, so
+	// the feed is asked again at once rather than the end counted as a failure.
+	endRun    context.CancelFunc
+	restarted bool
+	// air: the moment on the air the next segment starts at. It runs on with the segments,
+	// and only jumps forward (after a gap: a stream that failed and came back) when an input
+	// starts later than that. An input that starts early, as the first one's burst makes the
+	// next one do, carries the timeline on rather than taking it back.
+	air time.Time
 	// runner lets tests stand in for FFmpeg.
 	runner func(ctx context.Context, s *LiveSession, in *LiveInput, run int, burst bool) error
 }
@@ -331,6 +345,28 @@ func (m *Manager) LeaveLive(id, viewer string) {
 	})
 }
 
+// RestartLive ends what a running channel is playing and asks its feed what to
+// play now, as when a channel's schedule has been made again. Everyone watching
+// stays: the stream goes on after a discontinuity, with no error. It reports
+// whether the channel was running.
+func (m *Manager) RestartLive(id string) bool {
+	s := m.GetLive(id)
+	if s == nil {
+		return false
+	}
+	s.mu.Lock()
+	end := s.endRun
+	if end != nil {
+		s.restarted = true
+	}
+	s.mu.Unlock()
+	if end != nil {
+		s.log.Info("live stream restarted: its schedule changed")
+		end()
+	}
+	return true
+}
+
 // Err is why the session failed, if it did.
 func (s *LiveSession) Err() error {
 	s.mu.Lock()
@@ -386,23 +422,30 @@ func (s *LiveSession) loop() {
 	retries := 0
 	burst := true
 	for s.ctx.Err() == nil {
-		in, err := s.Spec.Feed(s.ctx, time.Now())
+		at := time.Now()
+		in, err := s.Spec.Feed(s.ctx, at)
 		if err != nil {
 			if s.ctx.Err() == nil {
 				s.fail(err)
 			}
 			return
 		}
+		runCtx, endRun := context.WithCancel(s.ctx)
 		s.mu.Lock()
 		s.runs++
 		run := s.runs
+		s.endRun = endRun
+		if s.air.IsZero() || at.After(s.air) {
+			s.air = at
+		}
 		s.mu.Unlock()
 		start := time.Now()
 		runner := s.runner
 		if runner == nil {
 			runner = runLiveFFmpeg
 		}
-		err = runner(s.ctx, s, in, run, burst && !in.Realtime)
+		err = runner(runCtx, s, in, run, burst && !in.Realtime)
+		endRun()
 		if in.Stdin != nil {
 			_ = in.Stdin.Close()
 		}
@@ -415,11 +458,17 @@ func (s *LiveSession) loop() {
 		burst = false
 		s.mu.Lock()
 		s.nextDisc = true
+		s.endRun = nil
+		restarted := s.restarted
+		s.restarted = false
 		s.mu.Unlock()
 		switch {
 		case isFatal(err):
 			s.fail(err)
 			return
+		case restarted:
+			// Ended on purpose: what the run said as it was stopped isn't a failure.
+			retries = 0
 		case err != nil || (time.Since(start) < 2*time.Second && !in.Slate && (in.Duration == 0 || in.Duration >= 3)):
 			// Failed, or ended at once. Give up after a few tries in a row: a
 			// stream that does not work must not keep FFmpeg spinning.
@@ -498,10 +547,21 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 		q.Preset = sp.Preset
 		plan = t.Plan(q)
 	}
+	outHeight := in.Height
+	if sp.MaxHeight > 0 && (outHeight == 0 || sp.MaxHeight < outHeight) {
+		outHeight = sp.MaxHeight
+	}
+	decThreads, encThreads := ffmpeg.StreamThreads(outHeight)
+	if ownThreads(sp.Quality) {
+		encThreads = 0
+	}
 	if !in.CopyVideo {
 		args = append(args, plan.InputArgs...)
 		if plan.Name == "h264_nvenc" {
 			args = append(args, "-hwaccel", "auto")
+		}
+		if decThreads > 0 {
+			args = append(args, "-threads", strconv.Itoa(decThreads))
 		}
 	}
 	if in.Stdin != nil {
@@ -549,6 +609,9 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 			vf = append(vf, plan.Upload)
 		}
 		args = append(args, "-vf", strings.Join(vf, ","), "-c:v", plan.Name)
+		if plan.Name == "libx264" && encThreads > 0 {
+			args = append(args, "-threads", strconv.Itoa(encThreads))
+		}
 		args = append(args, plan.Args...)
 		if rate := sp.Quality.MaxRate; rate != "" && len(sp.Quality.VideoArgs) == 0 {
 			args = append(args, "-maxrate", rate, "-bufsize", rate)
@@ -690,7 +753,10 @@ func (s *LiveSession) readRunFrom(r *liveRun, playlist string) {
 func (s *LiveSession) addSegment(file string, dur float64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.segs = append(s.segs, liveSeg{Seq: s.next, File: file, Dur: dur, Disc: s.nextDisc, At: time.Now()})
+	s.segs = append(s.segs, liveSeg{Seq: s.next, File: file, Dur: dur, Disc: s.nextDisc, At: time.Now(), Air: s.air})
+	if !s.air.IsZero() {
+		s.air = s.air.Add(time.Duration(dur * float64(time.Second)))
+	}
 	s.nextDisc = false
 	s.next++
 	if d := math.Ceil(dur); d > s.target {
@@ -731,16 +797,38 @@ func (s *LiveSession) Playlist(segURL func(file string) string) []byte {
 	if len(s.segs) > 0 {
 		first = s.segs[0].Seq
 	}
+	target := int(math.Ceil(s.target))
 	fmt.Fprintf(&b, "#EXTM3U\n#EXT-X-VERSION:6\n#EXT-X-TARGETDURATION:%d\n#EXT-X-MEDIA-SEQUENCE:%d\n#EXT-X-DISCONTINUITY-SEQUENCE:%d\n#EXT-X-INDEPENDENT-SEGMENTS\n",
-		int(math.Ceil(s.target)), first, s.disc)
+		target, first, s.disc)
+	// Where a player starts behind the newest segment, so that it starts at the moment every
+	// player then keeps to by the program date-times below (live sync). A stream made ahead of
+	// the clock (a library channel's start-up burst) starts players at the clock: as far back as
+	// it's ahead. Never less than three target durations, as HLS asks.
+	hold := float64(LiveHoldBack(target))
+	if n := len(s.segs); n > 0 && !s.segs[n-1].Air.IsZero() {
+		last := s.segs[n-1]
+		if lead := last.Air.Add(time.Duration(last.Dur * float64(time.Second))).Sub(time.Now()).Seconds(); lead > hold {
+			hold = lead
+		}
+	}
+	fmt.Fprintf(&b, "#EXT-X-SERVER-CONTROL:HOLD-BACK=%.3f\n", hold)
 	for i, x := range s.segs {
 		if x.Disc && i > 0 {
 			b.WriteString("#EXT-X-DISCONTINUITY\n")
+		}
+		if !x.Air.IsZero() {
+			fmt.Fprintf(&b, "#EXT-X-PROGRAM-DATE-TIME:%s\n", x.Air.UTC().Format("2006-01-02T15:04:05.000Z"))
 		}
 		fmt.Fprintf(&b, "#EXTINF:%.3f,\n%s\n", x.Dur, segURL(x.File))
 	}
 	return []byte(b.String())
 }
+
+// LiveHoldBack is the least a player sits behind the newest segment, in seconds, for a playlist
+// with this target duration: three of them, as HLS asks. A channel whose stream comes in as it's
+// broadcast (a tuner's) keeps that far behind the clock; one made ahead (a library channel's)
+// keeps to the clock itself.
+func LiveHoldBack(target int) int { return 3 * target }
 
 // SegmentPath finds a segment still in the window, by name.
 func (s *LiveSession) SegmentPath(file string) (string, bool) {

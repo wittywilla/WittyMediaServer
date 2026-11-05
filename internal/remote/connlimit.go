@@ -35,6 +35,13 @@ type ConnLimit struct {
 	refused  int
 }
 
+// Open is how many connections are open now.
+func (l *ConnLimit) Open() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.total
+}
+
 // Wrap counts the connections a listener accepts, and closes those over the limits.
 func (l *ConnLimit) Wrap(ln net.Listener) net.Listener { return &limitedListener{Listener: ln, l: l} }
 

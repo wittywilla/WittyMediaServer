@@ -536,6 +536,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		hidePaths(r, next...)
 		hubs = append(hubs, hub{Key: "nextup", Title: "Next up", Items: next})
 	}
+	var recent []*library.Item // their progress is read in one go, not a library at a time
 	for _, l := range libs {
 		if l.Hidden() {
 			continue
@@ -560,11 +561,12 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		if err != nil || len(items) == 0 {
 			continue
 		}
-		_ = s.Store.AttachProgress(ctx, u.ID, items)
+		recent = append(recent, items...)
 		hidePaths(r, items...)
 		id := l.ID
 		hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: items})
 	}
+	_ = s.Store.AttachProgress(ctx, u.ID, recent)
 	// Saved views this account pinned to Home, each a row of its own.
 	if views, err := s.Store.SavedViews(ctx, u.ID); err == nil {
 		for _, v := range views {

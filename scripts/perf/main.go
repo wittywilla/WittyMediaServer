@@ -120,8 +120,8 @@ type Idle struct {
 	Goroutines  int
 	Threads     int
 	GCCycles    uint64 // during the reading
-	// WakeupsPerMin is how often the process's threads were switched in, counted by
-	// Linux (every thread's context switches); 0 elsewhere.
+	// WakeupsPerMin is how often the process's threads woke from waiting, counted by
+	// Linux (every thread's voluntary context switches); 0 elsewhere.
 	WakeupsPerMin float64
 	// FreedRSSMiB is RSS after asking Go to return everything it can at once: what's
 	// left above it was only waiting to go back to the system.
@@ -418,7 +418,9 @@ func (s *server) idle(name string) Idle {
 	}
 }
 
-// switches is how many times the threads of a process were switched in, on Linux.
+// switches is how many times the threads of a process gave up the processor to wait, on
+// Linux: its own wake-ups. The times another program took the processor from it are left
+// out, as they say how busy the machine is.
 func switches(pid int) int64 {
 	tasks, err := os.ReadDir(fmt.Sprintf("/proc/%d/task", pid))
 	if err != nil {
@@ -431,7 +433,7 @@ func switches(pid int) int64 {
 			continue
 		}
 		for _, line := range strings.Split(string(b), "\n") {
-			if k, v, ok := strings.Cut(line, ":"); ok && strings.HasSuffix(k, "ctxt_switches") {
+			if k, v, ok := strings.Cut(line, ":"); ok && k == "voluntary_ctxt_switches" {
 				x, _ := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
 				n += x
 			}

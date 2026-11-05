@@ -142,6 +142,9 @@ func (c *loggedConn) QueryContext(ctx context.Context, query string, args []driv
 	if err != nil {
 		if err != driver.ErrSkip {
 			report(ctx, "query", query, err)
+			if Trace != nil {
+				Trace(query, time.Since(start))
+			}
 		}
 		return r, err
 	}
@@ -274,6 +277,9 @@ func (s *loggedStmt) QueryContext(ctx context.Context, args []driver.NamedValue)
 	}
 	if err != nil {
 		report(ctx, "query", s.query, err)
+		if Trace != nil {
+			Trace(s.query, time.Since(start))
+		}
 		return nil, err
 	}
 	return newRows(ctx, r, s.query, start), nil

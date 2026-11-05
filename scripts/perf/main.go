@@ -228,6 +228,9 @@ func (s *server) stop() {
 	}
 }
 
+// client gives up on an answer that doesn't come, so a hang is reported, not waited out.
+var client = &http.Client{Timeout: 5 * time.Minute}
+
 func (s *server) call(method, path string, body any) (int, []byte) {
 	var rd io.Reader
 	if body != nil {
@@ -239,7 +242,7 @@ func (s *server) call(method, path string, body any) (int, []byte) {
 	if s.token != "" {
 		req.Header.Set("Authorization", "Bearer "+s.token)
 	}
-	r, err := http.DefaultClient.Do(req)
+	r, err := client.Do(req)
 	if err != nil {
 		return 0, []byte(err.Error())
 	}
@@ -359,9 +362,29 @@ func (s *server) statements() []Statement {
 	return plan(s.sql().Statements, filepath.Join(s.data, "wms.db"))
 }
 
+// placeholders counts the ? of a statement, leaving out any inside quotes.
+func placeholders(q string) int {
+	n, quote := 0, rune(0)
+	for _, c := range q {
+		switch {
+		case quote != 0:
+			if c == quote {
+				quote = 0
+			}
+		case c == '\'' || c == '"':
+			quote = c
+		case c == '?':
+			n++
+		}
+	}
+	return n
+}
+
 func plan(all []Statement, dbPath string) []Statement {
 	sort.Slice(all, func(i, j int) bool { return all[i].Sec > all[j].Sec })
-	d, err := sql.Open("sqlite", "file:"+filepath.ToSlash(dbPath)+"?mode=ro")
+	// Escaped as db.Open escapes it: "file:" names are URIs.
+	name := strings.NewReplacer("%", "%25", "?", "%3F", "#", "%23").Replace(filepath.ToSlash(dbPath))
+	d, err := sql.Open("sqlite", "file:"+name+"?mode=ro")
 	check(err)
 	defer d.Close()
 	for i := range all {
@@ -372,7 +395,7 @@ func plan(all []Statement, dbPath string) []Statement {
 			continue
 		}
 		// The driver wants a value for each placeholder; NULL plans the same as any.
-		args := make([]any, strings.Count(q, "?"))
+		args := make([]any, placeholders(q))
 		rows, err := d.Query("EXPLAIN QUERY PLAN "+q, args...)
 		if err != nil {
 			all[i].Plan = []string{"(no plan: " + err.Error() + ")"}
@@ -406,7 +429,9 @@ func (s *server) idle(name string) Idle {
 	dt := time.Since(t0).Seconds()
 	gor := s.save("/debug/pprof/goroutine?debug=1", "goroutines-"+name+".txt")
 	s.save("/debug/pprof/heap", "heap-"+name+".pprof")
-	s.save("/debug/wms/free", "free-"+name+".txt")
+	if r, err := client.Post(s.prof+"/debug/wms/free", "", nil); err == nil {
+		r.Body.Close()
+	}
 	time.Sleep(time.Second)
 	freed := s.vars()
 	return Idle{
@@ -494,6 +519,8 @@ func (s *server) rescan(was Scan) Scan {
 	sc := Scan{Type: was.Type, Path: was.Path, ID: was.ID}
 	before := s.vars()
 	last := s.lastScan(was.ID)
+	// last_scan_at is in whole seconds: one second on, this scan's end can be told apart.
+	time.Sleep(time.Until(time.Unix(last+1, 0)))
 	t0 := time.Now()
 	if code, b := s.call("POST", fmt.Sprintf("/api/libraries/%d/scan", was.ID), nil); code != 202 {
 		sc.Error = fmt.Sprintf("%d %s", code, bytes.TrimSpace(b))
@@ -526,6 +553,7 @@ func (s *server) waitScan(sc *Scan, before vars, t0 time.Time, was int64) {
 	peak := before.RSS
 	// A scan asked for may not have begun at the first look, so it's done only once
 	// it has finished after the one before.
+	seen := false
 	for time.Since(t0) < *scanWait {
 		time.Sleep(250 * time.Millisecond)
 		v := s.vars()
@@ -533,7 +561,12 @@ func (s *server) waitScan(sc *Scan, before vars, t0 time.Time, was int64) {
 		_, b := s.call("GET", fmt.Sprintf("/api/libraries/%d/scan", lib.ID), nil)
 		var p struct{ Scanning bool }
 		_ = json.Unmarshal(b, &p)
-		if !p.Scanning && s.lastScan(lib.ID) > was {
+		if p.Scanning {
+			seen = true
+		} else if s.lastScan(lib.ID) > was {
+			break
+		} else if !seen && time.Since(t0) > time.Minute {
+			sc.Error = "the scan never began" // a library the scanner passes over
 			break
 		}
 	}

@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"regexp"
 	"runtime"
 	"runtime/debug"
 	"runtime/metrics"
@@ -48,8 +49,25 @@ func init() {
 	m.HandleFunc("/debug/wms", profileVars)
 	m.HandleFunc("/debug/wms/sql", profileSQL)
 	// How much of what the process holds is only waiting to go back to the system.
-	m.HandleFunc("/debug/wms/free", func(w http.ResponseWriter, _ *http.Request) { debug.FreeOSMemory() })
-	go (&http.Server{Handler: m, ReadHeaderTimeout: 10 * time.Second}).Serve(ln)
+	m.HandleFunc("POST /debug/wms/free", func(w http.ResponseWriter, _ *http.Request) { debug.FreeOSMemory() })
+	go (&http.Server{Handler: loopbackOnly(m), ReadHeaderTimeout: 10 * time.Second}).Serve(ln)
+}
+
+// loopbackOnly answers only requests addressed to this machine by number or as
+// localhost: a web page can point a name of its own at 127.0.0.1 (DNS rebinding), and
+// the heap profile holds whatever the server holds in memory.
+func loopbackOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host, _, err := net.SplitHostPort(r.Host)
+		if err != nil {
+			host = r.Host
+		}
+		if ip := net.ParseIP(host); host != "localhost" && (ip == nil || !ip.IsLoopback()) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 var profileMetrics = []string{
@@ -114,7 +132,13 @@ type sqlStat struct {
 	Sec   float64
 }
 
+// idList is a list of numbers written into a statement, as Store's ids() does.
+var idList = regexp.MustCompile(`IN \(\d+(\s*,\s*\d+)*\)`)
+
 func traceStatement(q string, took time.Duration) {
+	// A list of ids written in makes each page's statement different: they're one
+	// statement, run once per page, which is what finding one run per row needs to see.
+	q = idList.ReplaceAllString(q, "IN (…)")
 	sqlMu.Lock()
 	defer sqlMu.Unlock()
 	sqlCount++

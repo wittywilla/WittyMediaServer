@@ -213,10 +213,16 @@
 .transcode label.check { flex-direction: row; align-items: center; display: flex; gap: 10px; }
 .hw-list { display: grid; gap: 8px; }
 .hw-item { display: flex !important; flex-direction: row !important; gap: 12px; align-items: center; padding: 10px 12px; border-radius: var(--r-md); background: var(--bg-3); }
-.hw-item.disabled { opacity: .45; }
+.hw-item.disabled > input, .hw-item.disabled .hw-name { opacity: .5; }
 .hw-item code { font-size: var(--text-2xs); color: var(--fg-3); margin-left: 6px; }
 .hw-status { font-size: var(--text-xs); color: var(--fg-3); }
 .hw-status.ok { color: var(--ok); }
+.hw-status.bad { color: var(--fg-2); }
+.hw-devices { margin-top: var(--sp-4); }
+.hw-devices h4 { margin: 0 0 var(--sp-2); font-size: var(--text-sm); }
+.hw-devices ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.hw-devices li { padding: 10px 12px; border-radius: var(--r-md); background: var(--bg-3); overflow-wrap: anywhere; }
+.hw-fix { font-size: var(--text-xs); color: var(--fg-2); margin-top: 2px; }
 .seg.big { align-items: center; }
 .seg.big button { min-height: calc(var(--control-h) - 8px); padding: 0 var(--sp-4); }
 .profiles { display: grid; gap: 8px; }

@@ -50,6 +50,8 @@ func run(args []string) int {
 			return cmdBackup(args[1:])
 		case "doctor":
 			return cmdDoctor(args[1:])
+		case "hardware":
+			return cmdHardware(args[1:])
 		case "uninstall", "--uninstall", "-uninstall", "/uninstall":
 			return uninstall.RunCLI(args[1:], os.Stdin, os.Stdout)
 		case "--secure-service-data": // run by the Windows installer, as an administrator
@@ -118,6 +120,9 @@ usage:
                              server won't start. Without --fix it only looks. wittymediaserver doctor help says more
   wittymediaserver doctor remap --from <old> --to <new> [--fix]
                              a library's drive or folder moved: rewrite the paths
+  wittymediaserver hardware [--json]
+                             which graphics devices the server can use and which hardware encoders work,
+                             and what to change when one can't be used (docker exec wittymediaserver ...)
   wittymediaserver version
 
 Tools for looking inside discs are in each disc module's project, not in its download: wittydvd, wittybluray and wittycd.`)

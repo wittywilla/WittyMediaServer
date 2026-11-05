@@ -33,8 +33,10 @@ export default function TvHost() {
     return () => { h.off(ERROR, onErr) }
   }, [url, ready, hls])
   // When a programme ends, what's on now: for the banner, and for the slate's card wherever
-  // the picture is shown.
-  const end = info?.now?.end
+  // the picture is shown. On a channel that counts watch progress, also when each stretch
+  // of it and each break ends, so a break isn't counted as the programme.
+  const part = info?.partEnd, programme = info?.now?.end
+  const end = part && programme && part < programme ? part : programme
   useEffect(() => {
     if (!key || !end) return
     const wait = end * 1000 - Date.now() + 1500

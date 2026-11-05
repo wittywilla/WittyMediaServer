@@ -59,3 +59,36 @@ test('only the page moving the button away closes a menu on scroll', () => {
   assert.equal(movedAway(at, { ...at, top: -120, bottom: -84 }), true) // the page scrolled
   assert.equal(movedAway(at, null), true) // the button went away
 })
+
+test('on a big screen the account menu opens under its button, on screen', () => {
+  for (const view of [{ width: 2560, height: 1440 }, { width: 3008, height: 1692 }, { width: 3840, height: 2160 }]) {
+    const button = { left: view.width - 154, top: 18, right: view.width - 50, bottom: 63 }
+    const panel = { width: 275, height: 570 }
+    const p = placeMenu(button, panel, view, 'end')
+    assert.equal(p.left, button.right - panel.width)
+    assert.equal(p.top, button.bottom + EDGE)
+    assert.ok(onScreen(p, panel, view))
+  }
+})
+
+// Menus and tooltips are placed from where their button is on the screen, and whole-page layouts
+// use the window's height (100dvh). CSS zoom on the page scales both again, in Firefox and Chrome:
+// at 2200px and wider it put the account menu off the right of the screen and made the sign-in
+// screen a quarter taller than the window. Big screens grow by their tokens instead (shell.css).
+test('nothing zooms the whole page', async () => {
+  const { readFileSync, readdirSync, statSync } = await import('node:fs')
+  const { join } = await import('node:path')
+  const { fileURLToPath } = await import('node:url')
+  const root = fileURLToPath(new URL('..', import.meta.url))
+  const files = []
+  const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (p.endsWith('.css')) files.push(p) } }
+  walk(root)
+  for (const f of files) {
+    const css = readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+    for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const selectors = m[1].split(',').map((s) => s.trim())
+      const zooms = /(^|;|\s)zoom\s*:/.test(m[2])
+      if (zooms) assert.ok(!selectors.some((s) => /^(html|body|:root|#root)(\b|$)/.test(s) || s === 'html:root'), `${f}: ${m[1].trim()} sets zoom on the whole page`)
+    }
+  }
+})

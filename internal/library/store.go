@@ -72,6 +72,11 @@ type Item struct {
 	AddedAt     int64     `json:"addedAt"`
 	UpdatedAt   int64     `json:"updatedAt"`
 	Missing     bool      `json:"missing"`
+
+	// DiscSource: a video copied from a disc, "dvd" or "bluray", worked out from its name and
+	// type. Players give it that disc's remote, with no menus (docs/DVD.md, "The remote").
+	DiscSource string `json:"discSource,omitempty"`
+
 	// TV episodes (shows libraries):
 	ShowID     *int64 `json:"showId,omitempty"`
 	ShowTitle  string `json:"showTitle,omitempty"`
@@ -435,6 +440,9 @@ func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 	it.Provider, it.ProviderID = provider.String, providerID.String
 	it.RuntimeSec = runtime.Float64
 	it.Width, it.Height = int(width.Int64), int(height.Int64)
+	if it.Kind == "video" {
+		it.DiscSource = discSourceOf(it.Path, it.VideoCodec, it.Height)
+	}
 	it.SizeBytes, it.MTime = size.Int64, mtime.Int64
 	it.Missing = missing != 0
 	it.Genres = splitList(genres.String)

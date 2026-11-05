@@ -5,7 +5,8 @@ import { ReminderWatcher } from './pages/tv/reminders'
 import { api } from './api'
 import { getNavCollapsed, setNavCollapsed, useNavStyle } from './navPrefs'
 import HomePage from './pages/HomePage'
-import { EmptyState, Spinner, VersionTag } from './components/common'
+import { EmptyState, PageSkeleton, Spinner, VersionTag } from './components/common'
+import { shapeFor } from './ui/Surface'
 import { LinkButton } from './ui'
 import { AudioProvider } from './audio/player'
 import ConnectServer from './components/ConnectServer'
@@ -55,6 +56,7 @@ const ArtistPage = lazy(() => import('./pages/music/ArtistPage'))
 const ReaderPage = lazy(() => import('./pages/Reader'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
+const YouPage = lazy(() => import('./pages/YouPage'))
 const SetupWizard = lazy(() => import('./pages/SetupWizard'))
 // TV is its own part of the app, loaded when someone goes there.
 const GuidePage = lazy(() => import('./pages/tv/GuidePage'))
@@ -148,7 +150,7 @@ function AppFrame() {
         <LegalAckBar />
         <PlainAwayBar />
         <main className="content" id="main" tabIndex={-1}>
-          <Suspense fallback={<Spinner />}><PageRoutes /></Suspense>
+          <Suspense fallback={<RouteSkeleton />}><PageRoutes /></Suspense>
           <LegalNote kind="general" className="legal-foot" />
           <footer className="page-foot"><VersionTag version={version} /></footer>
         </main>
@@ -158,6 +160,10 @@ function AppFrame() {
   )
 }
 
+// While a page's code arrives: the shape of that page, not a spinner on an empty one.
+function RouteSkeleton() {
+  return <PageSkeleton shape={shapeFor(useLocation().pathname)} />
+}
 
 // Every page of the app, by its address. The usual frame and TV mode's frame both show them.
 export function PageRoutes() {
@@ -179,6 +185,7 @@ export function PageRoutes() {
       <Route path="/watch/:id" element={<Suspense fallback={<Spinner />}><WatchPage /></Suspense>} />
       <Route path="/creator/:id" element={<Suspense fallback={<Spinner />}><CreatorPage /></Suspense>} />
       <Route path="/search" element={<SearchPage />} />
+      <Route path="/you" element={<YouPage />} />
       <Route path="/fix-matches" element={<Suspense fallback={<Spinner />}><FixMatches /></Suspense>} />
       <Route path="/brand/:kind/:name" element={<Suspense fallback={<Spinner />}><BrandPage /></Suspense>} />
       <Route path="/pair" element={<PairPage />} />

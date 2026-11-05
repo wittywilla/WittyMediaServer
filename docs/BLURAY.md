@@ -4,6 +4,7 @@ Use this guide to add Blu-ray images and folders to your server, play them with 
 
 - [Adding discs](#adding-discs)
 - [Playing a disc](#playing-a-disc)
+- [The remote](#the-remote)
 - [Sound, subtitles and chapters](#sound-subtitles-and-chapters)
 - [3D, 4K and HDR](#3d-4k-and-hdr)
 - [BD-J (Java) menus](#bd-j-java-menus)
@@ -22,7 +23,7 @@ Use this guide to add Blu-ray images and folders to your server, play them with 
 2. Go to **Settings → Libraries → Add library**, and choose **DVDs, Blu-rays & CDs**. Images of films can also go in a **Movies** library, and images of a series in a **TV shows** library.
 3. Choose the folder that holds your discs, and press **Add library**.
 
-It takes `.iso` and `.img` images, among those listed in [Supported formats](SUPPORTED-FORMATS.md), and folders that hold `BDMV`. AVCHD discs and camcorder cards, and BDAV recordings, are read too.
+It takes `.iso` and `.img` images, among those listed in [Supported formats](SUPPORTED-FORMATS.md), and folders that hold `BDMV`, however its name is capitalised. A library can also be the `BDMV` folder itself. AVCHD discs and camcorder cards are read too, and folders that hold a `BDAV` recording play as a Blu-ray with no menus.
 
 A scan recognises a Blu-ray by its structure, not its name, and records its label, the feature's length, resolution, codec, languages, chapters, and whether it has menus. 3D discs get a "3D" genre. Without WittyBluray, a disc stays listed with nothing known about what's in it, and playing it offers to add the module. Adding it scans your disc libraries.
 
@@ -46,11 +47,20 @@ On a Blu-ray's page:
 
 **In a menu,** the arrow keys, the on-screen remote, a game controller or a TV remote move between buttons, and **OK** presses one. The disc's own program then runs, as its authors intended. **Top menu** returns to the top menu from the film.
 
-**Pop-up menus.** When the film carries one, the **Menu** key, or **M**, opens it over the picture while the film keeps playing. The arrows and OK work it, and **Esc** or **Menu** closes it. Discs use these for chapters, sound and subtitle choices with their own artwork.
+**Pop-up menus.** When the film carries one, **Menu** opens it over the picture while the film keeps playing: the remote's key, the **Menu** button at the top of the player or in the mini player, or **M**. The arrows and OK work it, and **Esc** or **Menu** closes it. Discs use these for chapters, sound and subtitle choices with their own artwork. **Top menu** always goes to the disc's top menu.
 
-Menu buttons make the disc's own sounds, pages play their transitions, and menus that move on by themselves after a while do so. Keys and the remote work as they do for [DVDs](DVD.md#the-remote-and-keyboard).
+Menu buttons make the disc's own sounds, pages play their transitions, and menus that move on by themselves after a while do so.
 
 A disc can forbid seeking or skipping at some points, as on a disc player. To ignore that, turn off **Disc restrictions** in the player's viewing settings.
+
+## The remote
+
+Press **Remote**, or **R**, for the WittyBluray remote. Its button is in the player's controls and in the mini player, at every screen size, and on a phone it opens as a sheet along the bottom. Its keys work as on the [DVD remote](DVD.md#the-remote), whose guide lists which keys work on which kind of copy, and why. On a Blu-ray:
+
+- **Top menu** goes to the top menu. **Menu** opens the film's pop-up menu, or with none, goes to the top menu.
+- **Red, green, yellow and blue** are on the remote, and on F1 to F4. Only Java menus use them, so they're greyed out otherwise.
+- **During a Java menu,** the arrows, OK, the digits, the colour keys and Menu all go to the disc's own program, even though it lists no buttons of its own.
+- **A copy of the film alone,** such as an `.m2ts` file from the disc's `STREAM` folder or an MKV made from the disc, gets the same remote with its menu keys greyed out and the line "This copy has no disc menus". Its chapters, sound and subtitles work.
 
 ## Sound, subtitles and chapters
 
@@ -78,6 +88,8 @@ To show those menus:
 4. Insert the disc.
 
 Each viewer's disc starts its own small Java process, with a 192 MB heap, which ends with the session. The disc's graphics reach the player as pictures at up to 12 a second, so fast animation looks less smooth than on a hardware player.
+
+A Java menu is worked with the remote's arrows, OK and colour keys. A tap or click on the picture reaches the menu only when the disc's program says it takes a pointer. Most don't, and Java menus that need one are rare.
 
 **How far this has been tested.** It has run with our own test discs and with open-source sample applications, **not yet on a retail disc**. None of the discs tried so far has Java menus. If an application can't run, the disc plays its main feature instead.
 
@@ -114,6 +126,7 @@ When reporting a problem, attach that report, and never the disc image.
 - BD-J graphics reach the player at up to 12 pictures a second.
 - It has been tested on custom-authored discs. Retail discs use more of the format: BD-J, 3D and Ultra HD HDR are written, and have only been tested on synthetic data or not at all.
 - On FreeBSD and macOS, the module's helper program runs without a sandbox. The BD-J limits above are separate from that.
+- Later: HD DVDs, Video CDs and Super Video CDs, and raw-sector images of video discs. A loose `.evo` file from an HD DVD plays as a copy, with the WittyDVD remote and no menus.
 
 ## For developers
 

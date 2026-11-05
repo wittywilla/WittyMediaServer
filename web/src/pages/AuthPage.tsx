@@ -5,6 +5,7 @@ import ConnectServer from '../components/ConnectServer'
 import { Brand, BrandMark, VersionTag } from '../components/common'
 import { IconBack } from '../icons'
 import { useApp } from '../state'
+import { avatarColor } from '../ui/avatarColor'
 import { useTvMode } from '../tvmode/mode'
 
 type Profile = { id: number; name: string; displayName?: string; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean }
@@ -146,11 +147,7 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
 }
 
 // Avatar: the profile's initial on a colour picked from its name, so each
-// person keeps the same colour on every device.
-// All dark enough for the white initial (4.5:1).
-const AVATAR_COLORS = ['#c9302f', '#b8500d', '#99690a', '#2e7d3c', '#0e7c6f', '#0a6fb8', '#3e5bd0', '#7f46b8', '#bd2f85', '#8d6444']
+// person keeps the same colour on every device (see ui/avatarColor).
 export function Avatar({ name, big }: { name: string; big?: boolean }) {
-  let h = 0
-  for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0
-  return <span className={'avatar-tile' + (big ? ' big' : '')} style={{ background: AVATAR_COLORS[h % AVATAR_COLORS.length] }} aria-hidden="true">{name.trim()[0]?.toUpperCase() || '?'}</span>
+  return <span className={'avatar-tile' + (big ? ' big' : '')} style={{ background: avatarColor(name) }} aria-hidden="true">{name.trim()[0]?.toUpperCase() || '?'}</span>
 }

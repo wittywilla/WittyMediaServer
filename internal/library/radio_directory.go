@@ -255,7 +255,13 @@ func ResetRadioDirectoryCache() {
 
 // directoryGet asks the directory, moving on to another server when one fails.
 func directoryGet(ctx context.Context, path string, q url.Values, out any) error {
-	servers := RadioDirectoryServers(ctx)
+	return directoryGetFrom(ctx, RadioDirectoryServers, SafeClient, path, q, out)
+}
+
+// directoryGetFrom is directoryGet with the servers and client given, for work that outlives
+// the request that started it and mustn't read the package's variables later.
+func directoryGetFrom(ctx context.Context, list func(context.Context) []string, client *http.Client, path string, q url.Values, out any) error {
+	servers := list(ctx)
 	if len(servers) > directoryTries {
 		servers = servers[:directoryTries]
 	}
@@ -264,7 +270,7 @@ func directoryGet(ctx context.Context, path string, q url.Values, out any) error
 		target += "?" + q.Encode()
 	}
 	for _, base := range servers {
-		if err := directoryAsk(ctx, base+target, out); err == nil {
+		if err := directoryAsk(ctx, client, base+target, out); err == nil {
 			return nil
 		}
 		if ctx.Err() != nil {
@@ -274,7 +280,7 @@ func directoryGet(ctx context.Context, path string, q url.Values, out any) error
 	return ErrDirectoryUnavailable
 }
 
-func directoryAsk(ctx context.Context, addr string, out any) error {
+func directoryAsk(ctx context.Context, client *http.Client, addr string, out any) error {
 	ctx, cancel := context.WithTimeout(ctx, directoryTimeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, addr, nil)
@@ -283,7 +289,7 @@ func directoryAsk(ctx context.Context, addr string, out any) error {
 	}
 	req.Header.Set("User-Agent", directoryUserAgent)
 	req.Header.Set("Accept", "application/json")
-	res, err := SafeClient.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -417,12 +423,15 @@ func directoryByURL(ctx context.Context, addr string) ([]DirectoryStation, error
 // so its popular lists mean something. It is counted once, when a station is
 // added; what anyone listens to afterwards isn't reported.
 func directoryClick(id string) {
+	// Taken now: it finishes after the request that added the station, and those can change
+	// in between (tests put back their stand-ins).
+	list, client := RadioDirectoryServers, SafeClient
 	go func() {
 		defer logging.Recover("radio directory click", "cat", "library")
 		ctx, cancel := context.WithTimeout(context.Background(), directoryTimeout)
 		defer cancel()
 		var ignored struct{}
-		_ = directoryGet(ctx, "/json/url/"+id, nil, &ignored)
+		_ = directoryGetFrom(ctx, list, client, "/json/url/"+id, nil, &ignored)
 	}()
 }
 

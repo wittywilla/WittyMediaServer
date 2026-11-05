@@ -108,6 +108,8 @@ usage:
   wittymediaserver config path            show the config file and folders in use
   wittymediaserver config init [--portable]
                              write a starter wms.json (next to the program with --portable)
+  wittymediaserver config port [<port>]
+                             show the port and where it comes from, or save one in settings.ini
   wittymediaserver reset-password [-data <dir>] [--generate] <name>
                              a new password for an account that can't sign in; --list shows the usernames
   wittymediaserver reset-2fa [-data <dir>] <name>

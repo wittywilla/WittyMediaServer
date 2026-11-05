@@ -119,6 +119,12 @@ func cmdServe(args []string) int {
 	if cfg.ConfigFile != "" {
 		log.Info("config", "file", cfg.ConfigFile, "portable", cfg.Portable)
 	}
+	if cfg.SettingsFile != "" {
+		log.Info("the port is set in a settings file", "file", cfg.SettingsFile, "listen", cfg.Listen)
+	}
+	for _, p := range cfg.SettingsProblems {
+		log.Warn("a line of the settings file was skipped: "+p, "cat", "server")
+	}
 	if lockWarn != "" {
 		log.Warn(lockWarn, "cat", "server", "data", cfg.DataDir)
 	}
@@ -528,7 +534,9 @@ func cmdServe(args []string) int {
 // arguments, before this one exits.
 func relaunch(cfg *config.Config, log *slog.Logger) int {
 	_, dockerErr := os.Stat("/.dockerenv")
-	if cfg.WatchStdin || os.Getenv("INVOCATION_ID") != "" || dockerErr == nil || os.Getenv("WMS_DOCKER") == "1" {
+	// The Windows service, and with WMS_SUPERVISED launchd and FreeBSD's daemon, start it again
+	// themselves: a copy started here as well would fight them for the port.
+	if cfg.WatchStdin || asService || os.Getenv("INVOCATION_ID") != "" || os.Getenv("WMS_SUPERVISED") == "1" || dockerErr == nil || os.Getenv("WMS_DOCKER") == "1" {
 		log.Info("restarting")
 		return update.ExitRestart
 	}

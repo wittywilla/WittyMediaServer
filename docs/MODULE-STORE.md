@@ -184,7 +184,7 @@ Choosing an older version warns you first, then asks for your password, because 
 
 ### What happens without you
 
-- **A version keeps failing.** After three failures in a row it's taken out of use, and the previous version takes over. For a part that runs in the browser, three reports within a day from an administrator's browser count. A bad file that a module refuses isn't a failure.
+- **A version keeps failing.** After three failures it's taken out of use, and the previous version takes over. Failures within two minutes of each other count as one: a helper that crashes takes the calls waiting on it down too. A helper that's slow to start, as on a very busy computer, is given a second start with twice as long (90 seconds) before that counts. If there's no previous version to go back to, it **rests** for 10 minutes instead of going out of use: discs and the other parts that need it say so, and when it'll be tried again, rather than waiting. A restart tries it straight away. For a part that runs in the browser, three reports within a day from an administrator's browser count. A bad file that a module refuses isn't a failure; an answer that breaks the rules counts every time.
 - **Its files change.** The server checks a module's files against their signature each time it starts one. If they've changed, that version goes out of use at once.
 - **A publisher withdraws a version.** Withdrawn because it's broken: you get a warning, and it isn't picked automatically. Withdrawn for security reasons: it can't be chosen, and it goes out of use straight away, even if pinned.
 - **A server update leaves a module out of range.** The server uses another version that fits, or goes without, and the page says what happened. The refused version stays on disk in case you go back to the older server.
@@ -238,7 +238,7 @@ The server starts each module's program with these limits:
 
 Settings, Modules and the store say what your system does, wherever it's short of a full sandbox.
 
-**On a Mac** that's Apple's own sandbox. It's checked before it's relied on, and if a helper won't start in it, it starts without it and the page says so. This hasn't been run on a real Mac yet.
+**On a Mac** that's Apple's own sandbox. It's checked before it's relied on, and if a helper won't start in it, it starts without it and the page says so. This hasn't been run on a real Mac yet. WittyPlay's helper runs outside it: a Mac can't start one sandbox inside another, and WittyPlay puts each game in a stricter sandbox of its own, with no network, no other programs and nothing to write but its saves.
 
 **On FreeBSD these are limits, not a sandbox.** FreeBSD can only really box a program in with an administrator's help. They were tried from inside a helper in a FreeBSD 15.1 virtual machine. If the server runs as root, a helper also goes in a jail, with no network and no sight of other programs, but being root it can change any file, so run it as an ordinary account if you can.
 

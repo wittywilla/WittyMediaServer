@@ -165,7 +165,7 @@ A server that has stopped stays on the list for up to 45 seconds. If it says it 
 
 ## Typing the address
 
-Choose **Enter an address** and type it. The server shows its address when it starts, and an administrator can find it at **Settings → About**. `192.168.1.20` is enough: the app adds `http://` and port 9797 by itself.
+Choose **Enter an address** and type it. The server shows its address when it starts, and an administrator can find it at **Settings → About**. `192.168.1.20` is enough: the app adds `http://` and port 9797 by itself. If the port was changed in **Settings → Network**, add it: `192.168.1.20:8096`.
 
 | You're connecting | Type |
 |---|---|

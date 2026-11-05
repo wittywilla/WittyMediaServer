@@ -4,13 +4,15 @@
 #
 #   sudo ./install.sh [--prefix /opt/wittymediaserver] [--data <folder>] [--port 9797] [--user wms]
 #
+# --port goes in settings.ini in the data folder, where Settings → Network changes it too. Left
+# out, the port stays what it was: one an earlier run of this script gave the service carries over.
 # The data folder defaults to /var/lib/wittymediaserver, or on FreeBSD /var/db/wittymediaserver.
 # On Debian, Ubuntu, Fedora and FreeBSD you can use the .deb, .rpm or .pkg instead. To remove it:
 #   sudo /opt/wittymediaserver/bin/wittymediaserver --uninstall
 set -e
 PREFIX=/opt/wittymediaserver
 DATA=""
-PORT=9797
+PORT=""
 USER_NAME=wms
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -35,7 +37,19 @@ if [ -z "$DATA" ]; then
   # Where earlier versions kept it on FreeBSD stays, if it's in use.
   if [ "$OS" = FreeBSD ] && [ ! -f "$DATA/wms.db" ]; then DATA=/var/db/wittymediaserver; fi
 fi
-echo "==> installing to $PREFIX (data: $DATA, port: $PORT)"
+# The port an earlier run gave the service, when it was only a port.
+if [ -z "$PORT" ]; then
+  old=""
+  case "$OS" in
+    Linux)   old=$(sed -n 's/^Environment=WMS_LISTEN=//p' /etc/systemd/system/wittymediaserver.service 2>/dev/null | head -n 1) ;;
+    FreeBSD) old=$(sysrc -qn wittymediaserver_listen 2>/dev/null || true)
+             [ -n "$old" ] || old=$(sed -n 's/^: ..wittymediaserver_listen:=\(.*\)}$/\1/p' /usr/local/etc/rc.d/wittymediaserver 2>/dev/null | head -n 1) ;;
+  esac
+  case "$old" in
+    :[0-9]*|0.0.0.0:[0-9]*) if [ "${old##*:}" != 9797 ]; then PORT="${old##*:}"; fi ;;
+  esac
+fi
+echo "==> installing to $PREFIX (data: $DATA)"
 mkdir -p "$PREFIX"
 install -d -m 0750 "$DATA" # holds password hashes and sessions; the service account gets it below
 if [ "$HERE" != "$PREFIX" ]; then
@@ -44,6 +58,8 @@ if [ "$HERE" != "$PREFIX" ]; then
   # A starter set of signed modules, in a package that has one.
   if [ -d "$HERE/modules" ]; then cp -R "$HERE/modules" "$PREFIX/"; fi
   cp "$HERE/install.sh" "$PREFIX/"
+  # The settings file beside the program: one someone changed stays.
+  if [ -f "$HERE/settings.ini" ] && [ ! -f "$PREFIX/settings.ini" ]; then cp "$HERE/settings.ini" "$PREFIX/"; fi
   [ -f "$HERE/WittyMediaServer" ] && cp "$HERE/WittyMediaServer" "$PREFIX/"
 fi
 chmod -R a+rX "$PREFIX"
@@ -75,6 +91,14 @@ case "$OS" in
 esac
 chown -R "$USER_NAME" "$DATA"
 chmod 750 "$DATA"
+# The service can't change the program's folder, so its port goes in the data folder's copy.
+if [ -n "$PORT" ]; then
+  "$PREFIX/bin/wittymediaserver" config port -data "$DATA" -in-data -port "$PORT"
+  chown -h "$USER_NAME" "$DATA/settings.ini" # -h: a link put there is never followed
+  if [ "$OS" = FreeBSD ]; then sysrc -x wittymediaserver_listen >/dev/null 2>&1 || true; fi
+fi
+PORT=$(sed -n 's/^[[:space:]]*port[[:space:]]*=[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$DATA/settings.ini" "$PREFIX/settings.ini" 2>/dev/null | head -n 1)
+[ -n "$PORT" ] || PORT=9797
 
 case "$OS" in
   Linux)
@@ -88,7 +112,6 @@ Wants=network-online.target
 Type=simple
 User=$USER_NAME
 Environment=WMS_DATA_DIR=$DATA
-Environment=WMS_LISTEN=:$PORT
 Environment=WMS_NO_BROWSER=1
 ExecStart=$PREFIX/bin/wittymediaserver serve
 Restart=on-failure
@@ -128,6 +151,7 @@ ReadWritePaths=$DATA
 # (graphics cards and tuners), PrivateUsers (the video and render groups), and ProtectSystem=strict
 # or ProtectHome, as saving information beside media writes into your media folders. To keep media
 # read-only, use the folder's permissions, or add ReadOnlyPaths= entries here.
+# The port is in Settings → Network, or $DATA/settings.ini.
 
 [Install]
 WantedBy=multi-user.target

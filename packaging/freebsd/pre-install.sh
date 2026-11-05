@@ -24,6 +24,15 @@ if [ -f "$RC" ] && ! pkg info -e wittymediaserver >/dev/null 2>&1; then
   fi
   rm -f /usr/local/share/applications/wittymediaserver.desktop
 fi
+# An upgrade replaces the settings.ini beside the program. A port someone set in it by hand moves
+# into the data folder's copy first, unless that copy has one of its own, which wins anyway.
+data=$(sysrc -qn wittymediaserver_data)
+[ -n "$data" ] || data=/var/db/wittymediaserver
+port=$(sed -n 's/^[[:space:]]*port[[:space:]]*=[[:space:]]*\([0-9][0-9]*\).*/\1/p' /usr/local/lib/wittymediaserver/settings.ini 2>/dev/null | head -n 1)
+if [ -n "$port" ] && [ "$port" != 9797 ] && [ -x /usr/local/lib/wittymediaserver/bin/wittymediaserver ] &&
+   ! grep -Eq '^[[:space:]]*port[[:space:]]*=' "$data/settings.ini" 2>/dev/null; then
+  /usr/local/lib/wittymediaserver/bin/wittymediaserver config port -data "$data" -in-data -port "$port" || true
+fi
 if ! pw usershow wms >/dev/null 2>&1; then
   pw useradd wms -d /var/db/wittymediaserver -s /usr/sbin/nologin -c "WittyMediaServer"
 fi

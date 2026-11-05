@@ -721,9 +721,14 @@ func (s *Server) smallerArt(r *http.Request, src string) string {
 			return src // serveArtSrc says why
 		}
 		src = "cache:" + filepath.Base(p)
-	case strings.HasPrefix(src, "cache:"):
-	case !s.Store.LibraryFile(ctx, src):
-		return src
+	case !strings.HasPrefix(src, "cache:"):
+		// Opened the way serveArtSrc opens it: once, and only inside a library.
+		f, _, err := s.Store.OpenLibraryFile(ctx, src)
+		if err != nil {
+			return src
+		}
+		defer f.Close()
+		return s.GameMeta.SmallCopyOf(ctx, f, src, width)
 	}
 	return s.GameMeta.PosterThumb(ctx, src, width)
 }

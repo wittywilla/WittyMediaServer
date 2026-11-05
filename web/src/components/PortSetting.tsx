@@ -46,6 +46,15 @@ async function waitFor(origin: string, seconds: number) {
   return false
 }
 
+// waitGone resolves once nothing answers at an origin any more, or after the time given.
+async function waitGone(origin: string, seconds: number) {
+  const until = Date.now() + seconds * 1000
+  while (Date.now() < until) {
+    try { await fetch(origin + '/api/health', { cache: 'no-store' }) } catch { return }
+    await sleep(500)
+  }
+}
+
 export function PortSetting({ view, onSaved, compact }: { view: NetworkView; onSaved: (v: NetworkView) => void; compact?: boolean }) {
   const id = useId()
   const [value, setValue] = useState(String(view.next))
@@ -93,8 +102,8 @@ export function PortSetting({ view, onSaved, compact }: { view: NetworkView; onS
       await api.post('/network/restart')
     } catch (e: any) { setRestart(''); setError(e.message); return }
     setRestart('waiting')
-    // The old server has to let go first, or this origin would still answer.
-    if (!follow) await sleep(4000)
+    // At the same address, the old server has to be gone first, or it would be the one answering.
+    if (!follow) await waitGone(target, 30)
     if (await waitFor(target, 90)) location.href = target + location.pathname + location.search
     else setRestart('lost')
   }

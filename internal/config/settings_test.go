@@ -64,6 +64,11 @@ func TestListenPrecedence(t *testing.T) {
 
 	check("wms.json", []string{"-config", withListen}, ":2222", FromConfig)
 
+	// What config init wrote before 0.7.0 doesn't stand in the way of the settings file.
+	oldStarter := filepath.Join(t.TempDir(), FileName)
+	writeFile(t, oldStarter, `{"listen": ":9797"}`)
+	check("an old starter wms.json", []string{"-config", oldStarter}, ":5555", FromSettings)
+
 	t.Setenv("WMS_LISTEN", ":3333")
 	check("WMS_LISTEN", []string{"-config", withListen}, ":3333", FromEnv)
 	check("-listen", []string{"-config", withListen, "-listen", "127.0.0.1:1111"}, "127.0.0.1:1111", FromFlag)

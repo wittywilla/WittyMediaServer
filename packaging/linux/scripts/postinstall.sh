@@ -25,7 +25,7 @@ SERVICE_DATA=$DATA
 for f in "$DROP_INS"/*.conf; do
   [ -f "$f" ] || continue
   d=$(sed -n 's/^Environment="\{0,1\}WMS_DATA_DIR=\([^"]*\)"\{0,1\}[[:space:]]*$/\1/p' "$f" | tail -n 1)
-  [ -n "$d" ] && SERVICE_DATA="$d"
+  if [ -n "$d" ]; then SERVICE_DATA="$d"; fi
 done
 LISTEN_LINE='^\(Environment="\{0,1\}WMS_LISTEN=\(0\.0\.0\.0\)\{0,1\}:\([0-9][0-9]*\)"\{0,1\}[[:space:]]*\)$'
 for f in "$DROP_INS"/*.conf; do

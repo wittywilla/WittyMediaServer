@@ -46,7 +46,7 @@ if [ -z "$PORT" ]; then
              [ -n "$old" ] || old=$(sed -n 's/^: ..wittymediaserver_listen:=\(.*\)}$/\1/p' /usr/local/etc/rc.d/wittymediaserver 2>/dev/null | head -n 1) ;;
   esac
   case "$old" in
-    :[0-9]*|0.0.0.0:[0-9]*) [ "${old##*:}" != 9797 ] && PORT="${old##*:}" ;;
+    :[0-9]*|0.0.0.0:[0-9]*) if [ "${old##*:}" != 9797 ]; then PORT="${old##*:}"; fi ;;
   esac
 fi
 echo "==> installing to $PREFIX (data: $DATA)"

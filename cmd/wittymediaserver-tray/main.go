@@ -304,7 +304,7 @@ func (l *launcher) start() {
 	if cfg, err := config.ParseOnly(l.args); err == nil && !l.listenGiven {
 		l.listen = cfg.Listen
 	}
-	if seen, ok := answering(l.listen); ok {
+	if seen, ok := answering(l.listen, l.seen); ok {
 		l.attached, l.seen = true, seen
 		l.refreshLocked()
 		return
@@ -481,13 +481,20 @@ func relaunchTray() error {
 	return cmd.Process.Release()
 }
 
-// answering says whether a WittyMediaServer already answers on this computer, and where: at this
-// app's address, listen, or for a background service moved to another port, wherever local
-// discovery says it is.
-func answering(listen string) (string, bool) {
+// answering says whether a WittyMediaServer already answers on this computer, and where: where
+// it was last seen, at this app's address, listen, or for a background service moved to another
+// port, wherever local discovery says it is. Without a service installed, a server found that way
+// would be a second one, on a folder of its own, which this app doesn't show.
+func answering(listen, seen string) (string, bool) {
+	if seen != "" && healthy(seen) {
+		return seen, true
+	}
 	own := listenURL(listen)
-	if healthy(own) {
+	if own != seen && healthy(own) {
 		return own, true
+	}
+	if !serviceInstalled() {
+		return "", false
 	}
 	if port, tls := discovery.AskLocal(700 * time.Millisecond); port != 0 {
 		scheme := "http"
@@ -549,9 +556,9 @@ func (l *launcher) health() {
 		l.mu.Unlock()
 		if attached {
 			l.mu.Lock()
-			listen := l.listen
+			listen, last := l.listen, l.seen
 			l.mu.Unlock()
-			seen, ok := answering(listen)
+			seen, ok := answering(listen, last)
 			l.mu.Lock()
 			changed := ok != l.healthy || (ok && seen != l.seen)
 			l.healthy = ok

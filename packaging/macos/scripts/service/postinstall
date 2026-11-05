@@ -13,7 +13,7 @@ if [ -f "$PLIST" ]; then
   DATA=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:WMS_DATA_DIR' "$PLIST" 2>/dev/null || true)
   LISTEN=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:WMS_LISTEN' "$PLIST" 2>/dev/null || true)
   case "$LISTEN" in
-    :[0-9]*|0.0.0.0:[0-9]*) [ "${LISTEN##*:}" != 9797 ] && PORT="${LISTEN##*:}" ;;
+    :[0-9]*|0.0.0.0:[0-9]*) if [ "${LISTEN##*:}" != 9797 ]; then PORT="${LISTEN##*:}"; fi ;;
   esac
   launchctl bootout system "$PLIST" 2>/dev/null || true
 fi

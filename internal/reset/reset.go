@@ -342,7 +342,8 @@ func Apply(f Folders) *Result {
 		}
 	}
 	// Deleting everything means that too.
-	keep := []string{}
+	// The port stays even then: deleting a library is no reason for every device's address to change.
+	keep := []string{"settings.ini"}
 	if r.Mode != ModeDelete {
 		for name := range keptThrough {
 			keep = append(keep, name)

@@ -53,3 +53,14 @@ func setAutostart(on bool) error {
 	}
 	return k.SetStringValue("WittyMediaServer", `"`+exe+`"`)
 }
+
+// serviceInstalled says the installer registered the background service. Only then is a server
+// found by asking on this computer one this app shows, rather than a second server of its own.
+func serviceInstalled() bool {
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Services\WittyMediaServer`, registry.QUERY_VALUE)
+	if err != nil {
+		return false
+	}
+	k.Close()
+	return true
+}

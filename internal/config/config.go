@@ -395,6 +395,9 @@ func ParseOnly(args []string) (*Config, error) {
 func (c *Config) resolveListen(fs *flag.FlagSet, f *File) error {
 	given := false
 	fs.Visit(func(fl *flag.Flag) { given = given || fl.Name == "listen" })
+	// Read whatever wins, so a typo in it is reported before anyone relies on the file.
+	port, file, problems := settingsPort(c.DataDir)
+	c.SettingsProblems = problems
 	switch {
 	case given:
 		if c.Listen == "" {
@@ -403,11 +406,11 @@ func (c *Config) resolveListen(fs *flag.FlagSet, f *File) error {
 		c.ListenFrom = FromFlag
 	case os.Getenv("WMS_LISTEN") != "":
 		c.Listen, c.ListenFrom = os.Getenv("WMS_LISTEN"), FromEnv
-	case f.Listen != "":
+	// ":9797" is what `config init` wrote before 0.7.0, when that was the only place for the port.
+	// It says nothing settings.ini doesn't, so it doesn't stand in the way of Settings.
+	case f.Listen != "" && f.Listen != ":"+strconv.Itoa(DefaultPort):
 		c.Listen, c.ListenFrom = f.Listen, FromConfig
 	default:
-		port, file, problems := settingsPort(c.DataDir)
-		c.SettingsProblems = problems
 		if port != 0 {
 			c.Listen, c.ListenFrom, c.SettingsFile = ":"+strconv.Itoa(port), FromSettings, file
 		} else {

@@ -14,6 +14,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/dvd"
@@ -51,6 +53,27 @@ func (o Opener) Open(path string) (*dvdsession.Engine, error) {
 	return open(a, report, o.Log, path)
 }
 
+// helperPath is the path a helper opens. WittyDVD looks inside a disc folder for VIDEO_TS by
+// that name, and a copied disc's may be "video_ts", which a file system that minds case
+// doesn't find. Such a disc opens at its VIDEO_TS folder itself, whose files the helper finds
+// in any case.
+func helperPath(path string) string {
+	st, err := os.Stat(path)
+	if err != nil || !st.IsDir() || strings.EqualFold(filepath.Base(path), "VIDEO_TS") {
+		return path
+	}
+	if st, err := os.Stat(filepath.Join(path, "VIDEO_TS")); err == nil && st.IsDir() {
+		return path
+	}
+	entries, _ := os.ReadDir(path)
+	for _, e := range entries {
+		if e.IsDir() && strings.EqualFold(e.Name(), "VIDEO_TS") {
+			return filepath.Join(path, e.Name())
+		}
+	}
+	return path
+}
+
 // Called with what the helper did wrong: failures that Attached.Call can't see.
 type reporter func(reason string)
 
@@ -58,6 +81,7 @@ func open(h helper, report reporter, log *slog.Logger, path string) (*dvdsession
 	if log == nil {
 		log = slog.Default()
 	}
+	path = helperPath(path)
 	r := &remote{h: h, report: report, log: log, path: path, checked: map[sample]bool{}, files: map[string]*os.File{}}
 	stop := func(err error) (*dvdsession.Engine, error) {
 		r.closeAll()

@@ -3557,6 +3557,9 @@
               }
             ]
           },
+          "discSource": {
+            "type": "string"
+          },
           "episode": {
             "anyOf": [
               {

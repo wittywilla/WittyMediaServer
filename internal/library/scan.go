@@ -482,15 +482,26 @@ func discoverVideos(root string, skipSamples bool, step walkStep) ([]candidate, 
 				out = append(out, candidate{path: p, kind: "dvd-folder", mtime: entryMTime(d)})
 				return filepath.SkipDir
 			}
-			if strings.EqualFold(name, "VIDEO_TS") {
-				return filepath.SkipDir
-			}
 			if plainFile(filepath.Join(p, "BDMV", "index.bdmv")) {
 				out = append(out, candidate{path: p, kind: "bluray-folder", mtime: entryMTime(d)})
 				return filepath.SkipDir
 			}
-			if strings.EqualFold(name, "BDMV") {
-				return filepath.SkipDir
+			if discStructureName(name) {
+				// A disc's structure named in another case, or a BDAV recording: the disc is
+				// the folder around it, or this folder itself when the library starts here.
+				if kind := discStructure(p); kind != "" {
+					disc := discAround(p, root)
+					st, _ := os.Stat(disc)
+					var mtime int64
+					if st != nil {
+						mtime = st.ModTime().Unix()
+					}
+					out = append(out, candidate{path: disc, kind: kind, mtime: mtime})
+					return filepath.SkipDir
+				}
+				if !strings.EqualFold(name, "BDAV") { // a BDAV folder that isn't a recording keeps its files
+					return filepath.SkipDir
+				}
 			}
 			return nil
 		}
@@ -516,7 +527,7 @@ func discoverVideos(root string, skipSamples bool, step walkStep) ([]candidate, 
 		}
 		return nil
 	})
-	return stackParts(out), bad.with(err)
+	return stackParts(dropInsideDiscs(out)), bad.with(err)
 }
 
 // The phases of a scan, as the activity panel names them.
@@ -851,7 +862,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	base := strings.TrimSuffix(filepath.Base(c.path), filepath.Ext(c.path))
 	dir := filepath.Dir(c.path)
 	if c.kind == "dvd-folder" || c.kind == "bluray-folder" {
-		base = filepath.Base(c.path)
+		base = discFolderName(c.path)
 		dir = c.path
 	}
 	// An id in the name says exactly what this is, and rules say how to read a folder's naming.
@@ -887,7 +898,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	// Sidecars.
 	it.Poster, it.Backdrop = localArtwork(dir, base)
 	if c.kind == "dvd-folder" || c.kind == "bluray-folder" {
-		p2, b2 := localArtwork(filepath.Dir(c.path), filepath.Base(c.path))
+		p2, b2 := localArtwork(filepath.Dir(c.path), discFolderName(c.path))
 		if it.Poster == "" {
 			it.Poster = p2
 		}
@@ -1025,11 +1036,8 @@ func (s *Scanner) adopted(path string, lib *Library) ([]candidate, error) {
 		return nil, err
 	}
 	if st.IsDir() {
-		if _, err := os.Stat(filepath.Join(path, "VIDEO_TS", "VIDEO_TS.IFO")); err == nil {
-			return []candidate{{path: path, kind: "dvd-folder", mtime: st.ModTime().Unix()}}, nil
-		}
-		if _, err := os.Stat(filepath.Join(path, "BDMV", "index.bdmv")); err == nil {
-			return []candidate{{path: path, kind: "bluray-folder", mtime: st.ModTime().Unix()}}, nil
+		if kind := discInside(path); kind != "" {
+			return []candidate{{path: path, kind: kind, mtime: st.ModTime().Unix()}}, nil
 		}
 		lib.Paths = append(lib.Paths, filepath.Dir(path))
 		return discover(path, nil)
@@ -1156,7 +1164,7 @@ func (s *Scanner) findPoster(ctx context.Context, it *Item, c candidate) {
 	base := strings.TrimSuffix(filepath.Base(c.path), filepath.Ext(c.path))
 	dir := filepath.Dir(c.path)
 	if c.kind == "dvd-folder" || c.kind == "bluray-folder" {
-		base, dir = filepath.Base(c.path), c.path
+		base, dir = discFolderName(c.path), c.path
 	}
 	p, _ := localArtwork(dir, base)
 	if p == "" && (it.Disc == nil || !it.Disc.Scrambled) {
@@ -1414,7 +1422,7 @@ func (s *Scanner) fixParsedTitle(ctx context.Context, it *Item, kind, libType st
 	}
 	base := strings.TrimSuffix(filepath.Base(it.Path), filepath.Ext(it.Path))
 	if kind == "dvd-folder" || kind == "bluray-folder" {
-		base = filepath.Base(it.Path)
+		base = discFolderName(it.Path)
 	}
 	title, _ := ParseName(base)
 	old := legacyTitle(base)

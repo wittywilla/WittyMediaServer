@@ -39,8 +39,10 @@ export default function TvHost() {
   const end = part && programme && part < programme ? part : programme
   useEffect(() => {
     if (!key || !end) return
-    const wait = end * 1000 - Date.now() + 1500
-    if (wait <= 0 || wait > 86400000) return
+    // An answer that came after the moment it ends (a slow server, or a page in the
+    // background whose timers wait) asks again shortly, rather than never.
+    const wait = Math.max(end * 1000 - Date.now() + 1500, 5000)
+    if (wait > 86400000) return
     const t = setTimeout(() => {
       api.get<TuneInfo>(`/tv/${key}/tune?viewer=${liveViewer()}`).then((i) => { if (liveNow().key === key) setLive({ info: i }) }).catch(() => {})
     }, wait)

@@ -58,22 +58,46 @@
 .gal-planned-tag { display: inline-flex; gap: 6px; align-items: center; font-size: var(--text-xs); font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--fg-2); }
 .gal-planned-tag svg { width: 15px; height: 15px; }
 
-/* Map */
-.gal-map-wrap { display: grid; gap: 16px; }
-.gal-map { position: relative; height: min(68vh, 680px); min-height: 320px; overflow: hidden; background: var(--bg-2); border-radius: var(--r-md); touch-action: none; cursor: grab; user-select: none; }
+/* Map: beside its list on a wide screen, above it on a narrow one */
+.gal-map-wrap { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1100px) {
+  .gal-map-wrap { grid-template-columns: minmax(0, 1fr) 300px; align-items: start; }
+  .gal-map-list { max-height: min(68vh, 680px); overflow-y: auto; }
+  .gal-map-area { grid-column: 1 / -1; }
+}
+.gal-map-main { display: grid; gap: 8px; min-width: 0; }
+.gal-map { position: relative; height: min(68vh, 680px); min-height: 320px; overflow: hidden; background: var(--bg-2); border-radius: var(--r-md); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; outline: none; }
 .gal-map:active { cursor: grabbing; }
-.gal-land { position: absolute; inset: 0; pointer-events: none; }
-.gal-land path { fill: var(--bg-4); stroke: var(--fg-3); stroke-opacity: .35; stroke-width: 1px; }
-.gal-tile-img { position: absolute; pointer-events: none; }
-.gal-pin { position: absolute; width: 52px; height: 52px; margin: -26px 0 0 -26px; padding: 0; border: 3px solid var(--on-image); border-radius: var(--r-md); background: var(--bg-3); box-shadow: 0 3px 10px var(--scrim); cursor: pointer; }
-.gal-pin img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: var(--r-sm); }
+.gal-map:focus-visible, .gal-map.moving { box-shadow: inset 0 0 0 3px var(--accent); }
+.gal-map.moving { cursor: move; }
+.gal-map-layer { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
+.gal-land { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.gal-land use { fill: var(--bg-4); stroke: var(--fg-3); stroke-opacity: .45; stroke-width: 1px; }
+.gal-map.online .gal-land { visibility: hidden; }
+.gal-tile-img { position: absolute; pointer-events: none; max-width: none; }
+.gal-pin { position: absolute; width: 52px; height: 52px; margin: -26px 0 0 -26px; padding: 0; border: 3px solid var(--on-image); border-radius: var(--r-md); background: var(--bg-3); box-shadow: 0 3px 10px var(--scrim); cursor: pointer; touch-action: none; }
+.gal-pin img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: var(--r-sm); pointer-events: none; }
 .gal-pin b { position: absolute; right: -10px; top: -10px; min-width: 22px; height: 22px; padding: 0 5px; display: grid; place-items: center; font-size: var(--text-2xs); border-radius: var(--r-md); background: var(--accent); color: var(--accent-fg); }
-.gal-pin:hover, .gal-pin:focus-visible { z-index: 3; outline: 3px solid var(--accent); outline-offset: 2px; transform: scale(1.08); }
+.gal-pin:hover, .gal-pin:focus-visible, .gal-pin.lit { z-index: 3; outline: 3px solid var(--accent); outline-offset: 2px; transform: scale(1.08); }
 .gal-map-ctl { position: absolute; right: 12px; top: 12px; display: grid; grid-template-columns: repeat(2, auto); gap: 6px; z-index: 4; }
 .gal-map-ctl .btn { background: var(--bg-3); }
-.gal-map-credit { position: absolute; left: 10px; bottom: 8px; font-size: var(--text-2xs); color: var(--fg-2); background: rgb(var(--bg-rgb) / .65); padding: 2px 7px; border-radius: var(--r-xs); pointer-events: none; }
-.gal-map-empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 320px; padding: 16px 20px; text-align: center; background: rgb(var(--bg-rgb) / .86); border-radius: var(--r-md); pointer-events: none; }
+.gal-map-ctl .btn.on { color: var(--accent-text, var(--accent)); }
+.gal-map-hint { position: absolute; left: 12px; top: 12px; max-width: calc(100% - 124px); margin: 0; padding: 6px 12px; font-size: var(--text-xs); background: rgb(var(--bg-rgb) / .9); border-radius: var(--r-md); pointer-events: none; z-index: 4; opacity: 0; }
+.gal-map-hint.shown { opacity: 1; }
+.gal-map-credit { position: absolute; left: 10px; bottom: 8px; max-width: calc(100% - 20px); font-size: var(--text-2xs); color: var(--fg-2); background: rgb(var(--bg-rgb) / .75); padding: 2px 7px; border-radius: var(--r-xs); pointer-events: none; z-index: 4; }
+.gal-map-empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(320px, calc(100% - 32px)); padding: 16px 20px; text-align: center; background: rgb(var(--bg-rgb) / .9); border-radius: var(--r-md); pointer-events: none; z-index: 4; }
 .gal-map-empty p { margin: 6px 0 0; color: var(--fg-2); font-size: var(--text-md); }
+.gal-map-note { margin: 0; font-size: var(--text-xs); }
+.gal-map-list { min-width: 0; }
+.gal-map-list h2 { margin: 0 0 8px; font-size: var(--text-lg); }
+.gal-map-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+@media (max-width: 1099px) { .gal-map-list ul { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); } }
+.gal-map-list li button { display: flex; gap: 10px; align-items: center; width: 100%; padding: 6px; border: 0; border-radius: var(--r-md); background: transparent; color: inherit; text-align: left; cursor: pointer; font: inherit; }
+.gal-map-list li button:hover, .gal-map-list li button:focus-visible { background: var(--bg-3); outline: 2px solid var(--accent); outline-offset: -2px; }
+.gal-map-list img { width: 48px; height: 48px; flex: none; object-fit: cover; border-radius: var(--r-sm); background: var(--bg-3); }
+.gal-map-list li span { display: grid; min-width: 0; }
+.gal-map-list li .muted { font-size: var(--text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gal-map-area > .btn { margin-top: 12px; }
 
 /* The viewer */
 .gal-viewer { position: fixed; inset: 0; z-index: var(--z-modal); display: grid; grid-template-rows: 1fr auto; background: var(--picture-bg); color: var(--on-image); --fg: #e8eaf0; --fg-2: #a9afbd; --fg-3: #6f7686; --bg-2: #171a21; --bg-3: #1f232c; --bg-4: #2a2f3a; color-scheme: dark; }

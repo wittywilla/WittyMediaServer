@@ -10,7 +10,10 @@ import TunerLogo from './TunerLogo'
 import { LogoConsentHint } from '../../components/edit/LogoChooser'
 import { forgetOwnerLook } from './look'
 import { fromLegacy, THEMES } from './tvThemes'
-import { forgetLineup, type Channel, type Driver, type DriverField, type EPGSource, type Found, type ScanState, type Tuner, type TunerChannel } from './tvApi'
+import { forgetLineup, type Channel, type Driver, type EPGSource, type Found, type ScanState, type Tuner, type TunerChannel } from './tvApi'
+import { Field, STATUS } from './tunerFields'
+import TunerSetup from './TunerSetup'
+import { ModuleMissing } from '../../components/ModuleMissing'
 import './tvsettings.css'
 import LegalNote from '../../components/LegalNote'
 
@@ -70,130 +73,88 @@ function MovedEditor() {
 
 // -------------------------------------------------------------------- tuners
 
-const STATUS: Record<Driver['status'], { label: string; desc: string }> = {
-  tested: { label: 'Tested', desc: 'Tested end to end.' },
-  mock: { label: 'Tried on stand-ins', desc: 'Built from the published protocol and tried against stand-in servers, not yet on real hardware.' },
-  untested: { label: 'Not yet tried', desc: 'Built from the published documentation. It has not been tried on real hardware yet, so please report what you find.' },
-  planned: { label: 'Not built yet', desc: '' },
-}
-
 function Tuners() {
   const [list, setList] = useState<Tuner[] | null>(null)
-  const [drivers, setDrivers] = useState<Driver[]>([])
+  const [drivers, setDrivers] = useState<Driver[] | null>(null)
+  const [noModule, setNoModule] = useState(false)
+  const [driversErr, setDriversErr] = useState('')
   const [found, setFound] = useState<Found[] | null>(null)
   const [searching, setSearching] = useState(false)
-  const [adding, setAdding] = useState<{ driver: Driver; options: Record<string, string>; name: string } | null>(null)
-  const load = () => api.get<Tuner[]>('/tuners').then(setList).catch((e) => toast(e.message))
-  useEffect(() => { void load(); api.get<Driver[]>('/tuners/drivers').then(setDrivers).catch(() => {}) }, [])
+  // The setup, open: from the start, at a device that was found, or at one kind by hand.
+  const [setup, setSetup] = useState<{ start?: Found } | null>(null)
+  const load = () => api.get<Tuner[]>('/tuners').then(setList).catch((e) => { if (e.status !== 424) toast(e.message) })
+  const loadDrivers = () => { setDriversErr(''); return api.get<Driver[]>('/tuners/drivers').then((d) => { setDrivers(d); setNoModule(false) }).catch((e) => { if (e.status === 424) setNoModule(true); else setDriversErr(e.message) }) }
+  useEffect(() => { void load(); void loadDrivers() }, [])
   const search = async () => {
     setSearching(true)
-    try { setFound(await api.get<Found[]>('/tuners/discover')) } catch (e: any) { toast(e.message) } finally { setSearching(false) }
+    // A search that doesn't finish found nothing: Add live TV takes it by hand.
+    try { setFound(await api.get<Found[]>('/tuners/discover')) } catch { setFound([]) } finally { setSearching(false) }
   }
   const remove = async (t: Tuner) => {
     if (!await ask({ title: `Remove “${t.name}” from this server?`, body: t.channels === 1 ? 'Its channel goes with it.' : `Its ${t.channels} channels go with it.`, confirm: 'Remove tuner', danger: true })) return
     try { await api.del(`/tuners/${t.id}`); forgetLineup(); void load() } catch (e: any) { toast(e.message) }
   }
+  const desc = <><Link to="/help/channels#live-tv-playlists">How tuners and playlists work.</Link> Add as many as you like, including streams a licensed device offers to home media servers. Encrypted channels are shown as encrypted and never decrypted (<Link to="/tv/encrypted">why, and what you can do</Link>). No channel lists or stream addresses come with the server: bring your own.</>
+  if (noModule) {
+    return (
+      <Section title="Tuners and IPTV" desc={desc}>
+        <p className="muted">Live TV from a tuner, a provider's playlist or a capture card needs the WittyTuner module. Channels from your library don't.</p>
+        <ModuleMissing ids={['wittytuner']} what="live TV" onReady={() => { void loadDrivers(); void load() }} />
+      </Section>
+    )
+  }
   return (
-    <Section title="Tuners and IPTV" desc={<><Link to="/help/channels#live-tv-playlists">How tuners and playlists work.</Link> Add as many as you like, including streams a licensed device offers to home media servers. Encrypted channels are shown as encrypted and never decrypted (<Link to="/tv/encrypted">why, and what you can do</Link>). No channel lists or stream addresses come with the server: bring your own.</>}
-      actions={<button className="btn sm" disabled={searching} onClick={() => void search()}><IconRefresh /> {searching ? 'Searching…' : 'Search for tuners'}</button>}>
-      {found && found.length === 0 && <p className="muted">No new tuners found on your network or this machine. You can still add one below.</p>}
+    <Section title="Tuners and IPTV" desc={desc}
+      actions={<>
+        <button className="btn sm" disabled={searching || !drivers} onClick={() => void search()}><IconRefresh /> {searching ? 'Searching…' : 'Search for tuners'}</button>
+        <button className="btn sm primary" disabled={!drivers} onClick={() => setSetup({})}><IconPlus /> Add live TV</button>
+      </>}>
+      {!drivers && !driversErr && <p className="muted" role="status">Getting WittyTuner ready…</p>}
+      {driversErr && <p className="tvs-error" role="alert">WittyTuner didn't answer: {driversErr} <button className="btn sm" onClick={() => void loadDrivers()}><IconRefresh /> Try again</button></p>}
+      {found && found.length === 0 && <p className="muted" role="status">No new tuners found on your network or this machine, or the search didn't finish. Press <b>Add live TV</b> to add one by its address.</p>}
       {found && found.length > 0 && (
-        <ul className="tvs-list">
-          {found.map((f, i) => {
-            const d = drivers.find((x) => x.id === f.driver)
-            return (
-              <li key={i} className="tvs-item">
-                <div className="tvs-item-text"><b>{f.name}</b><span>{f.detail || d?.name}</span></div>
-                {d && <button className="btn sm primary" onClick={() => setAdding({ driver: d, options: f.options, name: f.name })}><IconPlus /> Add</button>}
-              </li>
-            )
-          })}
+        <ul className="tvs-list" aria-label="Found on your network">
+          {found.map((f, i) => (
+            <li key={i} className="tvs-item">
+              <div className="tvs-item-text"><b>{f.name}</b><span>{f.detail || drivers?.find((x) => x.id === f.driver)?.name}</span></div>
+              {drivers?.some((x) => x.id === f.driver) && <button className="btn sm primary" onClick={() => setSetup({ start: f })} aria-label={`Set up ${f.name}`}><IconPlus /> Set up</button>}
+            </li>
+          ))}
         </ul>
       )}
+      {list && list.length === 0 && !found && <p className="muted">None yet. <b>Add live TV</b> walks you through it: a provider's playlist, one stream, a tuner box on your network, SAT&gt;IP or a TV card in this computer, found for you or typed in by hand.</p>}
       {list && list.length > 0 && (
-        <ul className="tvs-list">
+        <ul className="tvs-list" aria-label="Your tuners">
           {list.map((t) => (
             <li key={t.id} className="tvs-item">
               <div className="tvs-item-text">
                 <b>{t.name}</b>
-                <span>{drivers.find((d) => d.id === t.driver)?.name || t.driver} · {t.channels} {t.channels === 1 ? 'channel' : 'channels'}{t.clear > 0 ? ` · ${t.clear} clear` : ''}{t.encrypted > 0 ? ` · ${t.encrypted} encrypted` : ''}{t.inUse > 0 ? ` · ${t.inUse} in use` : ''}</span>
+                <span>{drivers?.find((d) => d.id === t.driver)?.name || t.driver} · {t.channels} {t.channels === 1 ? 'channel' : 'channels'}{t.clear > 0 ? ` · ${t.clear} clear` : ''}{t.encrypted > 0 ? ` · ${t.encrypted} encrypted` : ''}{t.inUse > 0 ? ` · ${t.inUse} in use` : ''}</span>
                 {t.lastError && <span className="tvs-error" role="alert">{t.lastError}</span>}
               </div>
-              <Link className="btn sm ghost" to={`tuner/${t.id}`}><IconEdit /> Channels</Link>
+              <Link className="btn sm ghost" to={`tuner/${t.id}`} aria-label={`Channels of ${t.name}`}><IconEdit /> Channels</Link>
               <button className="btn sm ghost" onClick={() => void remove(t)} aria-label={`Remove ${t.name}`}><IconTrash /></button>
             </li>
           ))}
         </ul>
       )}
-      <h3 className="tvs-h3">Add a tuner</h3>
-      <div className="tvs-drivers">
-        {drivers.map((d) => (
-          <div key={d.id} className={'tvs-driver' + (d.available ? '' : ' off')}>
-            <div className="tvs-driver-head"><b>{d.name}</b><span className={'tvs-status ' + d.status} title={STATUS[d.status]?.desc}>{STATUS[d.status]?.label}</span></div>
-            <p>{d.description}</p>
-            {d.note && <p className="tvs-dim">{d.note}</p>}
-            {d.available && <button className="btn sm" onClick={() => setAdding({ driver: d, options: {}, name: '' })}><IconPlus /> Add</button>}
+      {drivers && drivers.length > 0 && (
+        <details className="tvs-details">
+          <summary>What WittyTuner can use, and how well each has been tried</summary>
+          <div className="tvs-drivers">
+            {drivers.map((d) => (
+              <div key={d.id} className={'tvs-driver' + (d.available ? '' : ' off')}>
+                <div className="tvs-driver-head"><b>{d.name}</b><span className={'tvs-status ' + d.status} title={STATUS[d.status]?.desc}>{STATUS[d.status]?.label}</span></div>
+                <p>{d.description}</p>
+                {d.note && <p className="tvs-dim">{d.note}</p>}
+                {d.available && !d.planned && <button className="btn sm" onClick={() => setSetup({ start: { driver: d.id, name: '', options: {} } })} aria-label={`Add ${d.name} by hand`}><IconPlus /> Add by hand</button>}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      {adding && <TunerForm driver={adding.driver} initial={adding.options} initialName={adding.name} onClose={() => setAdding(null)} onDone={() => { setAdding(null); setFound(null); forgetLineup(); void load() }} />}
-    </Section>
-  )
-}
-
-function Field({ f, value, onChange }: { f: DriverField; value: string; onChange: (v: string) => void }) {
-  const id = 'tf-' + f.key
-  const help = f.help ? <small id={id + '-h'} className="tvs-help">{f.help}</small> : null
-  const aria = { id, 'aria-describedby': f.help ? id + '-h' : undefined, required: f.required }
-  if (f.kind === 'toggle') {
-    return <label className="check-row"><input type="checkbox" id={id} checked={(value || f.default) === '1'} onChange={(e) => onChange(e.target.checked ? '1' : '0')} /> {f.label}{help}</label>
-  }
-  return (
-    <label htmlFor={id}>{f.label}{f.required ? ' (needed)' : ''}
-      {f.kind === 'select' ? (
-        <select className="select" {...aria} value={value || f.default || ''} onChange={(e) => onChange(e.target.value)}>
-          {(f.options || []).map((o) => <option key={o} value={o}>{o || 'None'}</option>)}
-        </select>
-      ) : f.kind === 'textarea' ? (
-        <textarea className="input mono" rows={4} {...aria} value={value} onChange={(e) => onChange(e.target.value)} spellCheck={false} />
-      ) : (
-        <input className="input" type={f.kind === 'password' ? 'password' : f.kind === 'number' ? 'number' : 'text'} autoComplete={f.kind === 'password' ? 'new-password' : 'off'} {...aria} value={value} placeholder={f.default} onChange={(e) => onChange(e.target.value)} />
+        </details>
       )}
-      {help}
-    </label>
-  )
-}
-
-function TunerForm({ driver, initial, initialName, onClose, onDone }: { driver: Driver; initial: Record<string, string>; initialName: string; onClose: () => void; onDone: () => void }) {
-  const [name, setName] = useState(initialName)
-  const [opts, setOpts] = useState<Record<string, string>>(initial)
-  const [err, setErr] = useState('')
-  const [busy, setBusy] = useState(false)
-  const save = async () => {
-    setBusy(true); setErr('')
-    try {
-      await api.post('/tuners', { driver: driver.id, name: name.trim() || driver.name, options: opts })
-      toast(`${name.trim() || driver.name} added`)
-      onDone()
-    } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
-  }
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal wide" role="dialog" aria-modal="true" aria-labelledby="tf-h" onClick={(e) => e.stopPropagation()}>
-        <h2 id="tf-h">Add {driver.name}</h2>
-        <p className="muted">{driver.description}</p>
-        {driver.status !== 'tested' && <p className="tvs-note">{STATUS[driver.status]?.desc}</p>}
-        <form className="form" style={{ maxWidth: 'none' }} onSubmit={(e) => { e.preventDefault(); void save() }}>
-          <label>Name<input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} placeholder={driver.name} autoFocus /></label>
-          {driver.fields.map((f) => <Field key={f.key} f={f} value={opts[f.key] || ''} onChange={(v) => setOpts({ ...opts, [f.key]: v })} />)}
-          {err && <p className="tvs-error" role="alert">{err}</p>}
-          <div className="actions">
-            <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
-            <button className="btn primary" disabled={busy}>{busy ? 'Adding…' : 'Add'}</button>
-          </div>
-        </form>
-      </div>
-    </div>
+      {setup && drivers && <TunerSetup drivers={drivers} start={setup.start} onClose={() => setSetup(null)} onAdded={() => { setFound(null); void load() }} />}
+    </Section>
   )
 }
 

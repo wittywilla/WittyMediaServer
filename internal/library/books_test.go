@@ -50,7 +50,7 @@ func TestDiscoverBooksGroupsFormats(t *testing.T) {
 		_ = os.WriteFile(filepath.Join(dir, n), []byte("x"), 0o644)
 	}
 	_ = os.WriteFile(filepath.Join(root, "MolbyDick.epub"), []byte("x"), 0o644)
-	got, err := discoverBooks(root)
+	got, err := discoverBooks(root, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

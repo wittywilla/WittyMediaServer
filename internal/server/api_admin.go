@@ -26,7 +26,7 @@ var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeigh
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "brandColouring", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "musicbrainz", "animeIn", "animeTitles",
-	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "uploadAccountMb", "shareLinks", "mapTiles", "lanDiscovery", "radioDirectory", "radioChecks",
+	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "uploadAccountMb", "shareLinks", "mapTiles", "mapOnline", "mapAttribution", "lanDiscovery", "radioDirectory", "radioChecks",
 	"legalOwnerNotice", "legalOwnerContact"}
 
 // settingDefaults are returned when a key has never been saved.
@@ -43,9 +43,12 @@ var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu",
 	// until it is set, it follows updateCheck.
 	"moduleAutoInstall": "0",
 	// uploads and shareLinks: adults may add photos from their devices, and make
-	// links for people without an account. mapTiles (off when empty) is an online
-	// map provider's address for the photo map; nothing else ever contacts one.
-	"uploads": "1", "uploadMaxMb": "4096", "uploadAccountMb": "102400", "shareLinks": "1", "mapTiles": "",
+	// links for people without an account. mapTiles is an online map provider's
+	// address for the photo map, used only while mapOnline is on, and
+	// mapAttribution the credit it asks for; nothing else ever contacts one.
+	// mapOnline has no default on purpose: until it is set, an address alone
+	// turns the online map on, as it did before the switch.
+	"uploads": "1", "uploadMaxMb": "4096", "uploadAccountMb": "102400", "shareLinks": "1", "mapTiles": "", "mapAttribution": "",
 	// lanDiscovery: apps on the home network can find this server.
 	"lanDiscovery": "1",
 	// radioDirectory: search the free station directory, and refresh details of
@@ -194,6 +197,14 @@ func checkSetting(k, v string) error {
 	case "mapTiles":
 		if !validMapTiles(v) {
 			return errors.New("the map address must start with https:// and contain {z}, {x} and {y}")
+		}
+	case "mapOnline":
+		if v != "0" && v != "1" {
+			return errors.New("mapOnline is 0 or 1")
+		}
+	case "mapAttribution":
+		if len(v) > 200 || strings.ContainsAny(v, "<>\r\n") {
+			return errors.New("the map credit is one line of plain text, up to 200 characters")
 		}
 	case "ffmpegVideoArgs", "ffmpegOutputArgs":
 		return ffmpeg.CheckExpertArgs(ffmpeg.SplitArgs(v))

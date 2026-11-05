@@ -6,6 +6,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -64,6 +65,10 @@ type launcher struct {
 	fails     int
 
 	mStatus, mOpen, mToggle, mRestart, mData, mLog, mAuto, mAbout, mQuit *systray.MenuItem
+
+	// mRemote says who can connect, in the server's own words (GET /api/remote/status).
+	mRemote     *systray.MenuItem
+	remoteAsked time.Time
 }
 
 func main() {
@@ -163,6 +168,8 @@ func (l *launcher) onReady() {
 	systray.SetTooltip("WittyMediaServer")
 	l.mStatus = systray.AddMenuItem("WittyMediaServer — starting…", "")
 	l.mStatus.Disable()
+	l.mRemote = systray.AddMenuItem("Remote Access", "Who can connect, and from where. Click to change it.")
+	l.mRemote.Hide()
 	systray.AddSeparator()
 	l.mOpen = systray.AddMenuItem("Open WittyMediaServer", "Open the web app in your browser")
 	l.mToggle = systray.AddMenuItem("Stop server", "")
@@ -201,6 +208,8 @@ func (l *launcher) loop() {
 		select {
 		case <-l.mOpen.ClickedCh:
 			openURL(l.url())
+		case <-l.mRemote.ClickedCh:
+			openURL(l.url() + "/settings/remote")
 		case <-l.mToggle.ClickedCh:
 			if l.isRunning() {
 				l.want(false)
@@ -488,6 +497,7 @@ func (l *launcher) health() {
 		l.mu.Unlock()
 		if attached {
 			ok = l.answering()
+			l.showRemote(c, ok)
 			l.mu.Lock()
 			changed := ok != l.healthy
 			l.healthy = ok
@@ -506,6 +516,7 @@ func (l *launcher) health() {
 			}
 			cancel()
 		}
+		l.showRemote(c, ok)
 		l.mu.Lock()
 		changed := ok != l.healthy
 		l.healthy = ok
@@ -518,6 +529,49 @@ func (l *launcher) health() {
 		}
 		l.mu.Unlock()
 	}
+}
+
+// showRemote puts how remote access stands in the menu, at most every half
+// minute, and hides the line while the server isn't answering.
+func (l *launcher) showRemote(c *http.Client, ok bool) {
+	if !ok {
+		l.mRemote.Hide()
+		l.remoteAsked = time.Time{}
+		return
+	}
+	if time.Since(l.remoteAsked) < 30*time.Second {
+		return
+	}
+	l.remoteAsked = time.Now()
+	subject, summary, err := readRemote(c, l.url())
+	if err != nil {
+		l.mRemote.Hide()
+		return
+	}
+	l.mRemote.SetTitle("Remote Access — " + subject)
+	l.mRemote.SetTooltip(summary + " Click to change it.")
+	l.mRemote.Show()
+}
+
+// readRemote asks the server how remote access stands. The tray needs no
+// account for this: the server answers its own computer.
+func readRemote(c *http.Client, base string) (subject, summary string, err error) {
+	res, err := c.Get(base + "/api/remote/status")
+	if err != nil {
+		return "", "", err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return "", "", fmt.Errorf("status %d", res.StatusCode)
+	}
+	var v struct{ Subject, Summary string }
+	if err := json.NewDecoder(io.LimitReader(res.Body, 64<<10)).Decode(&v); err != nil {
+		return "", "", err
+	}
+	if v.Subject == "" {
+		return "", "", fmt.Errorf("no subject")
+	}
+	return v.Subject, v.Summary, nil
 }
 
 func (l *launcher) refresh() {

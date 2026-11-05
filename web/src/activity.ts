@@ -10,6 +10,8 @@ export type TaskState = 'queued' | 'running' | 'paused' | 'failed' | 'done' | 'c
 export type TaskProblem = { item?: string; message: string; count?: number; at: number }
 export type Task = {
   id: string; type: string; title: string; state: TaskState; phase?: string; libraryId?: number; libraryName?: string
+  // The phases it goes through, and which it's on from 1: the bar then covers all of them.
+  steps?: string[]; step?: number
   item?: string; path?: string; done: number; total: number; unit?: string; percent: number; rate?: number; etaSec?: number
   startedAt: number; updatedAt: number; finishedAt?: number; by?: string; source?: string; result?: string; error?: string; fix?: string; detail?: string
   problemCount?: number; problems?: TaskProblem[]; canPause: boolean; canResume: boolean; canCancel: boolean; canRetry: boolean

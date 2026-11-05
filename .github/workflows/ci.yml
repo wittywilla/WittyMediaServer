@@ -52,7 +52,7 @@ jobs:
       - run: cd web && npm ci --ignore-scripts --no-audit --no-fund && npx tsc --noEmit -p . && npm run build
       - name: Theme contrast, design tokens and design rules
         run: python3 scripts/theme-contrast.py && python3 scripts/design-tokens.py --check && python3 scripts/design-check.py
-      - run: node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/themeMaker.test.mjs web/src/shell/navModel.test.mjs web/src/safeLink.test.mjs web/src/pages/setup/plan.test.mjs web/src/pages/tv/tvThemes.test.mjs web/src/pages/settings/searchIndex.test.mjs web/src/brandName.test.mjs
+      - run: node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/themeMaker.test.mjs web/src/shell/navModel.test.mjs web/src/safeLink.test.mjs web/src/pages/setup/plan.test.mjs web/src/pages/tv/tvThemes.test.mjs web/src/pages/settings/searchIndex.test.mjs web/src/pages/photos/mapMath.test.mjs web/src/brandName.test.mjs
       - name: gofmt
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...
@@ -110,6 +110,36 @@ jobs:
           dist/wittymediaserver-ci-test-linux-amd64/bin/wittymediaserver version
           # A package holds no module unless a starter set was asked for.
           test ! -e dist/wittymediaserver-ci-test-linux-amd64/modules
+
+  # The container image: built and run as docs/DOCKER.md says, locked down, then built for
+  # the other architectures the release publishes, so a broken one shows before a tag does.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Build for amd64
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: wittymediaserver:ci
+          build-args: VERSION=ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Run it
+        run: scripts/test/docker-smoke.sh wittymediaserver:ci
+      - name: Build for arm64 and armv7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          platforms: linux/arm64,linux/arm/v7
+          build-args: VERSION=ci
+          cache-from: type=gha
 
   # What the server does with real modules: each is built from its own repository at its main
   # branch, into a catalogue with a throwaway key that only a test build trusts.

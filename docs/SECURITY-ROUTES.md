@@ -181,12 +181,19 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/music/extras/{id}/file` | Signed-in | limits. Name is one the listing gave. Opened inside a library, plain files only. Text up to 512 KB, as JSON. A PDF is sent as a PDF for the browser's own viewer, without the script-free policy, within the limit for viewers away from home |
 | `GET /api/music/artist` | Signed-in | limits, in the query. Name of up to 300 characters. Online biography only when the owner turned it on, its credit a Wikipedia address |
 | `GET /api/music/artist-photo` | Signed-in | limits: an artist with a song the account may see. Name of up to 300 characters. Opened inside a library. Pictures only |
-| `GET /api/music/lyrics/{id}` | Signed-in | limits. An audio item. own timing. Asks online only when the owner turned it on |
-| `PUT /api/music/lyrics/{id}/offset` | Signed-in | limits. own. Up to two minutes either way |
-| `POST /api/music/lyrics/{id}/search` | Admin | limits. An audio item. Online lyrics turned on. Query length |
-| `PUT /api/music/lyrics/{id}` | Admin | limits. An audio item. At most 256 KB, or a search result from a source that is turned on. Nothing is written beside the music |
-| `DELETE /api/music/lyrics/{id}` | Admin | limits. An audio item |
+| `GET /api/music/lyrics/{id}` | Signed-in | limits. An audio item, or a music video, which shares its song's when the account may see the song. own timing. Asks online only when the owner turned it on |
+| `PUT /api/music/lyrics/{id}/offset` | Signed-in | limits. An audio item or a music video. own. Up to two minutes either way of where it starts |
+| `POST /api/music/lyrics/{id}/search` | Admin | limits. An audio item, or a music video, which shares its song's when the account may see the song. Online lyrics turned on. Query length |
+| `PUT /api/music/lyrics/{id}` | Admin | limits. An audio item, or a music video, which shares its song's when the account may see the song. At most 256 KB, or a search result from a source that is turned on. Nothing is written beside the music |
+| `DELETE /api/music/lyrics/{id}` | Admin | limits. An audio item, or a music video, which shares its song's when the account may see the song |
 | `DELETE /api/music/lyrics-cache` | Admin | Nothing further |
+| `GET /api/music/links/{id}` | Signed-in | limits. A song or a music video. Only links whose two ends the account may see. Suggestions for admins only |
+| `GET /api/music/videos` | Signed-in | limits. Music video libraries only. A tied song shown only when the account may see it. Query length |
+| `GET /api/music/links/{id}/candidates` | Admin | limits. A song or a music video. Query length. At most 50 |
+| `GET /api/music/links` | Admin | limits. At most 500 |
+| `PUT /api/music/links` | Admin | limits. Both ends seen by the admin: a song of a music library and a video of a music video library. Offset up to ten minutes |
+| `DELETE /api/music/links` | Admin | limits. Both ends seen by the admin: a song of a music library and a video of a music video library |
+| `POST /api/music/links/match` | Admin | One round at a time |
 | `GET /api/podcasts` | Signed-in | Library within the account's allowed libraries. Feed addresses for admins only |
 | `GET /api/podcasts/search` | Admin | Query length |
 | `POST /api/podcasts` | Admin | A podcasts library. Feed address checked by the scanner |
@@ -301,12 +308,14 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/modules/{id}/failed` | Signed-in | Known module. 4 KB body. Rate per account. Counts against a version only from an admin |
 | `GET /api/reach/{nonce}` | Public | Nonce of a running outside test |
 | `GET /api/remote` | Admin | Nothing further |
-| `PUT /api/remote` | Admin | Method, outside address, network lists, limits, ports, HTTPS mode and its fields |
+| `GET /api/remote/status` | Signed-in, or this computer | no account only from the server's own computer, directly (the tray). What is wrong in a fault, which can name files, only for an admin |
+| `PUT /api/remote` | Admin | Method, outside address, network lists, limits, ports, HTTPS mode and its fields. Turning on unencrypted connections from away also needs `acceptPlainAway` and the admin's own password (and code) |
 | `POST /api/remote/test` | Admin | Address is one the server offered |
 | `POST /api/remote/selfcheck` | Admin | Outside address is set |
 | `POST /api/remote/router` | Admin | Nothing further |
 | `POST /api/remote/obtain` | Admin | HTTPS is on, in certificate-request mode |
 | `DELETE /api/remote/lockouts` | Admin | Nothing further |
+| `DELETE /api/remote/plain-sessions` | Admin | Nothing further |
 | `GET /api/sessions` | Signed-in | own. Everyone's with 'all=1', for an admin |
 | `DELETE /api/sessions` | Signed-in | own, except the current one |
 | `DELETE /api/sessions/{id}` | Signed-in | own. Any account's for an admin |

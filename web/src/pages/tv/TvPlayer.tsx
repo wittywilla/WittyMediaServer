@@ -118,16 +118,17 @@ export default function TvPlayer() {
   useEffect(() => {
     if (!info?.countProgress || !info.now?.itemId) return
     const p = info.now
-    const at = info.positionSec, atTime = info.serverTime
+    const at = info.positionSec, atTime = info.serverTime, stop = info.partEnd || Infinity
     const send = () => {
       const v = video.current
       if (!v || v.paused) return
-      const pos = at + (Date.now() / 1000 - atTime)
+      // Only this stretch counts: a break after it isn't the programme.
+      const pos = at + (Math.min(Date.now() / 1000, stop) - atTime)
       api.post(`/items/${p.itemId}/progress`, { positionSec: pos, durationSec: p.end - p.start }).catch(() => {})
     }
     const t = setInterval(send, 30000)
     return () => { clearInterval(t); send() }
-  }, [info?.countProgress, info?.now, info?.positionSec, info?.serverTime])
+  }, [info?.countProgress, info?.now, info?.positionSec, info?.serverTime, info?.partEnd])
 
   // Where the live edge is, and how far back the buffer goes.
   useEffect(() => {

@@ -14,7 +14,7 @@
   --accent: #7955ff;
   --accent-2: #6a4df0;
   --accent-fg: #fff;
-  --accent-text: var(--accent);
+  --accent-text: #9174ff; /* as the default theme has it: the accent itself is under 4.5:1 as text */
   --danger: #ff5c6c;
   --ok: #3ad29f;
   --warn: #e0a030;
@@ -569,6 +569,7 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .auth-card p { color: var(--fg-2); text-align: center; margin: 0 0 var(--sp-6); }
 .auth-card .form .btn { width: 100%; margin-top: var(--sp-1); }
 @media (max-width: 420px) { .auth-card { padding: var(--sp-6) var(--sp-5); } }
+.auth-plain { margin: 0 0 var(--sp-3); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--danger); border-radius: var(--r-sm); background: var(--danger-soft); color: var(--fg); font-size: var(--text-sm); line-height: 1.5; }
 .empty { display: grid; justify-items: center; text-align: center; color: var(--fg-2); padding: var(--sp-16) var(--sp-5); }
 .empty-ic { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: var(--sp-4); border-radius: 50%; background: var(--bg-3); color: var(--fg-3); }
 .empty-ic svg { width: 26px; height: 26px; }
@@ -662,6 +663,8 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .content:has(.legal-note:not(.legal-foot)) .legal-foot, .content:has(.set-shell) .legal-foot { display: none; }
 .legal-ack-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-2) var(--sp-4); background: var(--bg-2); border-bottom: 1px solid var(--border); color: var(--fg-2); font-size: var(--text-sm); }
 .legal-ack-bar p { flex: 1 1 32ch; margin: 0; max-width: 80ch; line-height: 1.5; }
+/* Unencrypted connections from away: stays until the setting goes. */
+.plain-away-bar { background: var(--danger-soft); border-bottom: 2px solid var(--danger); color: var(--fg); }
 .oobe-ack { display: flex; align-items: flex-start; gap: var(--sp-2); color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; }
 .oobe-ack input { flex: none; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); }
 .ctv-legal { margin: var(--sp-2) 0; padding: 0 var(--sp-3); max-width: none; color: var(--ctv-soft); }

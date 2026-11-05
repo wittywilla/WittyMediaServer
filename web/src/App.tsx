@@ -142,6 +142,7 @@ function AppFrame() {
       <div className="main">
         <TopBar onMenu={toggle} showMenu={side || !wide} topNav={style !== 'side'} menuOpen={open} wide={wide} />
         <LegalAckBar />
+        <PlainAwayBar />
         <main className="content" id="main" tabIndex={-1}>
           <Suspense fallback={<Spinner />}>
           <Routes>
@@ -190,6 +191,28 @@ function AppFrame() {
 // An address that isn't a page: say so, with the way home, rather than landing somewhere unexplained.
 function NotFound() {
   return <><h1 className="sr-only">Page not found</h1><EmptyState title="There’s no page here" text="The address may have changed, or it may be mistyped." action={<LinkButton variant="primary" to="/">Go to Home</LinkButton>} /></>
+}
+
+// PlainAwayBar: while the owner lets the internet in unencrypted, administrators
+// see it on every page, in the words Settings, Remote Access uses. It can't be
+// dismissed: it goes when the setting does.
+function PlainAwayBar() {
+  const { user } = useApp()
+  const [warning, setWarning] = useState('')
+  useEffect(() => {
+    if (!user?.isAdmin) { setWarning(''); return }
+    const load = () => api.get<{ plainAwayWarning?: string }>('/status').then((s) => setWarning(s.plainAwayWarning || '')).catch(() => {})
+    load()
+    const t = setInterval(() => { if (!document.hidden) load() }, 60000)
+    window.addEventListener('wms-remote-changed', load)
+    return () => { clearInterval(t); window.removeEventListener('wms-remote-changed', load) }
+  }, [user?.isAdmin])
+  if (!warning) return null
+  return (
+    <div className="legal-ack-bar plain-away-bar" role="region" aria-label="Security warning">
+      <p><b>Warning:</b> {warning} <Link to="/settings/remote">Remote Access</Link></p>
+    </div>
+  )
 }
 
 // LegalAckBar: the first-run notice, for an administrator who never went through

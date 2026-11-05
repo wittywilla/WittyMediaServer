@@ -3,7 +3,7 @@ import { api, isNativeShell, serverBase, setToken, type Library, type User } fro
 import { setLogVersion } from './errorReport'
 import { applyBrand, applyTheme, deviceTheme } from './theme'
 
-type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; brandColouring?: string; brandLogo?: string; theme?: string; update?: string; legalAck?: boolean }
+type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; brandColouring?: string; brandLogo?: string; theme?: string; update?: string; legalAck?: boolean; plainConnection?: boolean }
 
 type AppState = {
   user: User | null
@@ -36,6 +36,9 @@ type AppState = {
   // False until an administrator has seen the first-run legal notice.
   legalAck: boolean
   setLegalAck: (v: boolean) => void
+  // This page came over the internet unencrypted, which the owner allowed: a
+  // password typed here can be read on the way.
+  plainConnection: boolean
 }
 
 const Ctx = createContext<AppState>(null!)
@@ -55,6 +58,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [pickerLocal, setPickerLocal] = useState(false)
   const [update, setUpdate] = useState('')
   const [legalAck, setLegalAck] = useState(true)
+  const [plainConnection, setPlainConnection] = useState(false)
   const [needServer, setNeedServer] = useState(isNativeShell() && !serverBase())
   const setBrandName = (n: string, colouring = 'auto') => { setBrand(n); setBrandColouring(colouring); applyBrand(n) }
   const setServerTheme = (id: string) => { setServerThemeState(id); if (!deviceTheme()) applyTheme(id) }
@@ -71,6 +75,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setPickerLocal(!!s.pickerLocal)
       setUpdate(s.update || '')
       setLegalAck(s.legalAck !== false)
+      setPlainConnection(!!s.plainConnection)
       setVersion(s.version)
       setLogVersion(s.version)
       setBrandName(s.brandName || '', s.brandColouring || 'auto')
@@ -88,7 +93,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (u) { setSetup(false); refreshLibraries() } else setLibraries([])
   }
 
-  return <Ctx.Provider value={{ user, setupRequired, libraries, version, refreshLibraries, setUser, loading, brandName, brandColouring, brandLogo, setBrandLogo, serverTheme, setBrandName, setServerTheme, onboarding, setOnboarding, pickerLocal, needServer, update, setUpdate, legalAck, setLegalAck }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ user, setupRequired, libraries, version, refreshLibraries, setUser, loading, brandName, brandColouring, brandLogo, setBrandLogo, serverTheme, setBrandName, setServerTheme, onboarding, setOnboarding, pickerLocal, needServer, update, setUpdate, legalAck, setLegalAck, plainConnection }}>{children}</Ctx.Provider>
 }
 
 // Toasts live with the other shared parts; every page imports them from here.

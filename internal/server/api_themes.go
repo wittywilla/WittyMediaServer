@@ -25,11 +25,21 @@ func (s *Server) handleThemes(w http.ResponseWriter, r *http.Request) {
 	name, colouring, parts := s.brand(ctx)
 	writeJSON(w, 200, map[string]any{
 		"themes":         s.Themes.List(),
-		"default":        s.DB.GetSetting(ctx, "theme", "default"),
+		"default":        s.serverTheme(ctx),
 		"brandName":      name,
 		"brandColouring": colouring,
 		"brandParts":     parts,
 	})
+}
+
+// serverTheme is the theme new viewers start with. One that isn't here (saved by another build, or
+// its file removed by hand) would leave the app on its built-in colours, so they get the default.
+func (s *Server) serverTheme(ctx context.Context) string {
+	id := s.DB.GetSetting(ctx, "theme", "default")
+	if id == "auto" || s.Themes == nil || s.Themes.Has(id) {
+		return id
+	}
+	return "default"
 }
 
 // POST /api/themes/custom: a theme from the app's theme maker.

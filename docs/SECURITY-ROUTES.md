@@ -403,6 +403,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/channels/{id}` | Admin | Channel exists. Definition validated |
 | `DELETE /api/channels/{id}` | Admin | Channel exists |
 | `POST /api/channels/{id}/rebuild` | Admin | Channel exists |
+| `POST /api/channels/{id}/reset` | Admin | Channel exists; `startOver` is a boolean. Changes only that channel's schedule and every account's reminders for it |
 | `GET /api/channels/{id}/history` | Admin | Numeric id |
 | `POST /api/channels/{id}/restore` | Admin | Channel and history entry exist |
 | `GET /api/channels/{id}/logo` | Signed-in | Numeric id |

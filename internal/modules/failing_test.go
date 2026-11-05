@@ -2,6 +2,8 @@ package modules
 
 import (
 	"errors"
+	"io"
+	"log/slog"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -172,5 +174,30 @@ func TestAnEarlierRunsGivingUpIsUndone(t *testing.T) {
 	defer m3.Close()
 	if s := one(t, m3); s.Version == "0.2.0" && s.Notice == "" {
 		t.Fatalf("a version with changed files was let back in: %+v", s)
+	}
+}
+
+// Issue #294: the start-up repair lifts only what slow starts and crashes did. A game runner
+// that stopped before the game was ready is the Mac sandbox fix's to decide on
+// (liftNestedSandboxBlocks), so it's left as it was here, on every system.
+func TestTheStartUpRepairLeavesTheMacFixItsOwn(t *testing.T) {
+	m := New(Config{Dir: t.TempDir(), Server: "0.6.2-alpha", Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	defer m.Close()
+	for _, c := range []struct {
+		why    string
+		lifted bool
+	}{
+		{keptFailing + " (the helper didn't say hello: read |0: file already closed)", true},
+		{keptFailing + " (it stopped without answering)", true},
+		{runnerStopped + ": a sandbox refused it)", false},
+		{"Its files have changed since they were installed.", false},
+	} {
+		e := &entry{builtin: &wittymodule.Manifest{ID: "wittyplay", Name: "WittyPlay", Version: "0.1.0"}, state: moduleState{Active: "0.3.4", Blocked: map[string]string{"0.3.4": c.why}}}
+		m.mu.Lock()
+		m.giveAnotherChance("wittyplay", e)
+		m.mu.Unlock()
+		if lifted := e.state.Blocked["0.3.4"] == ""; lifted != c.lifted {
+			t.Errorf("%q: lifted %v, want %v", c.why, lifted, c.lifted)
+		}
 	}
 }

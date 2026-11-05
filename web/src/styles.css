@@ -14,7 +14,7 @@
   --accent: #7955ff;
   --accent-2: #6a4df0;
   --accent-fg: #fff;
-  --accent-text: var(--accent);
+  --accent-text: #9174ff; /* as the default theme has it: the accent itself is under 4.5:1 as text */
   --danger: #ff5c6c;
   --ok: #3ad29f;
   --warn: #e0a030;

@@ -113,3 +113,4 @@
 .alt-counts b { font-size: var(--text-lg); margin-right: var(--sp-1); }
 .alt .ui-notice p { margin: 0 0 var(--sp-1); }
 .alt .ui-notice p:last-child { margin-bottom: 0; }
+.alt .ui-notice a { color: var(--accent-text); text-decoration: underline; }

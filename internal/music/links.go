@@ -92,19 +92,35 @@ func (l *Links) Rematch(ctx context.Context) (Result, error) {
 	}
 	pairs := Match(songs, open, func(s, v int64) bool { return untied[key{s, v}] })
 
+	// Only what changed is written: a scan that finds nothing new writes nothing, and a
+	// suggestion keeps the time it was first made.
+	type was struct {
+		state, how string
+		sync       sql.NullInt64
+	}
+	old := map[key]was{}
+	rows, err = l.DB.QueryContext(ctx, `SELECT song_id, video_id, state, how, sync_ms FROM music_video_links WHERE by = ''`)
+	if err != nil {
+		return Result{}, err
+	}
+	for rows.Next() {
+		var k key
+		var w was
+		if err := rows.Scan(&k.song, &k.video, &w.state, &w.how, &w.sync); err != nil {
+			rows.Close()
+			return Result{}, err
+		}
+		old[k] = w
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return Result{}, err
+	}
 	tx, err := l.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return Result{}, err
 	}
 	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, `DELETE FROM music_video_links WHERE by = ''`); err != nil {
-		return Result{}, err
-	}
-	ins, err := tx.PrepareContext(ctx, `INSERT OR IGNORE INTO music_video_links(song_id, video_id, state, how, sync_ms, by, created_at, updated_at) VALUES(?,?,?,?,?,'',?,?)`)
-	if err != nil {
-		return Result{}, err
-	}
-	defer ins.Close()
 	now := time.Now().Unix()
 	var res Result
 	for _, p := range pairs {
@@ -115,7 +131,24 @@ func (l *Links) Rematch(ctx context.Context) (Result, error) {
 		} else {
 			res.Suggested++
 		}
-		if _, err := ins.ExecContext(ctx, p.SongID, p.VideoID, state, p.How, p.SyncMS, now, now); err != nil {
+		k := key{p.SongID, p.VideoID}
+		w, had := old[k]
+		delete(old, k)
+		sync := sql.NullInt64{}
+		if p.SyncMS != nil {
+			sync = sql.NullInt64{Int64: *p.SyncMS, Valid: true}
+		}
+		if had && w.state == state && w.how == p.How && w.sync == sync {
+			continue
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO music_video_links(song_id, video_id, state, how, sync_ms, by, created_at, updated_at) VALUES(?,?,?,?,?,'',?,?)
+			ON CONFLICT(song_id, video_id) DO UPDATE SET state = excluded.state, how = excluded.how, sync_ms = excluded.sync_ms, updated_at = excluded.updated_at
+			WHERE music_video_links.by = ''`, p.SongID, p.VideoID, state, p.How, p.SyncMS, now, now); err != nil {
+			return Result{}, err
+		}
+	}
+	for k := range old { // no longer found
+		if _, err := tx.ExecContext(ctx, `DELETE FROM music_video_links WHERE song_id = ? AND video_id = ? AND by = ''`, k.song, k.video); err != nil {
 			return Result{}, err
 		}
 	}

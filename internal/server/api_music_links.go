@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
@@ -292,7 +293,7 @@ func (s *Server) bothVisible(r *http.Request, ids ...int64) bool {
 
 // POST /api/music/links/match (admin): matches every song and video again now.
 func (s *Server) handleMusicLinkMatch(w http.ResponseWriter, r *http.Request) {
-	res, err := s.rematchMusic(r.Context())
+	res, err := s.rematchMusic(r.Context(), nil)
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -300,12 +301,19 @@ func (s *Server) handleMusicLinkMatch(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, res)
 }
 
-// One round of matching at a time.
-var musicMatching sync.Mutex
+// One round of matching at a time, and scans finishing while one waits share the next.
+var (
+	musicMatching    sync.Mutex
+	musicMatchQueued atomic.Bool
+)
 
-func (s *Server) rematchMusic(ctx context.Context) (music.Result, error) {
+// rematchMusic runs a round; started is called once it's this round's turn.
+func (s *Server) rematchMusic(ctx context.Context, started func()) (music.Result, error) {
 	musicMatching.Lock()
 	defer musicMatching.Unlock()
+	if started != nil {
+		started()
+	}
 	res, err := s.musicLinks().Rematch(ctx)
 	if err == nil {
 		_ = s.DB.SetSetting(ctx, "music.linksMatched", "1")
@@ -322,8 +330,11 @@ func (s *Server) kickMusicMatch(libraryID int64) {
 			return
 		}
 	}
+	if !musicMatchQueued.CompareAndSwap(false, true) {
+		return // the round already waiting will see this scan too
+	}
 	logging.Go("music video matching", func() {
-		if _, err := s.rematchMusic(context.Background()); err != nil {
+		if _, err := s.rematchMusic(context.Background(), func() { musicMatchQueued.Store(false) }); err != nil {
 			s.Log.Warn("couldn't match songs with music videos", "cat", "library", "err", err)
 		}
 	}, "cat", "library")

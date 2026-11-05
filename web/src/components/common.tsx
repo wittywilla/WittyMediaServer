@@ -1,4 +1,5 @@
-import { Fragment, memo } from 'react'
+import { Fragment, memo, type CSSProperties } from 'react'
+import { avatarColor } from '../ui/avatarColor'
 import { Link } from 'react-router-dom'
 import { PosterCard } from '../ui/Surface'
 import { brandParts, DEFAULT_NAME } from '../brandName'
@@ -7,7 +8,7 @@ import { toast, useApp } from '../state'
 import { IconCheck, IconLeft, IconRefresh } from '../icons'
 
 // The shared parts, under the names pages import them by.
-export { CardRow, EmptyState, LoadError, SkeletonGrid, Spinner } from '../ui/Surface'
+export { CardRow, EmptyState, LoadError, PageSkeleton, SkeletonGrid, Spinner } from '../ui/Surface'
 
 // The way back up: the library (or show) a page belongs to.
 export function BackLink({ to, label }: { to: string; label: string }) {
@@ -25,14 +26,16 @@ export const artHue = (title: string) => {
   return h
 }
 
-// Artwork for something without a picture: a colour of its own, worked out from
-// the title. The title itself is printed under the card, so it isn't repeated on
-// the art; label is a short word for the art alone, such as a console's name.
+// Artwork for something without a picture: a colour of its own, worked out from the
+// title, so it never changes. On a wide screen the title is printed under the card, so it
+// isn't repeated on the art; label is a short word for the art alone, such as a console's
+// name. On a phone it's the title's avatar colour (the same in every app) with the title
+// on it, as a poster would have (styles.css).
 export function Placeholder({ title, label }: { title: string; label?: string }) {
   const h = artHue(title)
   return (
-    <div className="ph art-ph" style={{ background: `linear-gradient(155deg, hsl(${h} 32% 32%), hsl(${(h + 40) % 360} 38% 15%))` }} aria-hidden="true">
-      {label && <b>{label}</b>}
+    <div className={'ph art-ph' + (label ? ' labelled' : '')} style={{ '--ph-art': `linear-gradient(155deg, hsl(${h} 32% 32%), hsl(${(h + 40) % 360} 38% 15%))`, '--ph': avatarColor(title) } as CSSProperties} aria-hidden="true">
+      <b>{label || title}</b>
     </div>
   )
 }

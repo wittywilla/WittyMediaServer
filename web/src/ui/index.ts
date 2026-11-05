@@ -7,6 +7,7 @@ export { Chip, Chips, Segmented, Tabs, type Option, type TabItem } from './Choic
 export { AskHost, Dialog, Sheet, ask } from './Overlay'
 export { Menu, type MenuEntry } from './Menu'
 export { ToastHost, toast, type ToastOptions } from './Toast'
-export { Card, CardRow, EmptyState, LoadError, Notice, PosterCard, Progress, ProgressRing, Shelf, Skeleton, SkeletonGrid, Spinner, type PosterShape } from './Surface'
+export { Card, CardRow, EmptyState, LoadError, Notice, PageSkeleton, PosterCard, Progress, ProgressRing, Shelf, Skeleton, SkeletonGrid, Spinner, shapeFor, type PageShape, type PosterShape } from './Surface'
+export { RowSheet, Rows, SheetRow } from './RowSheet'
 export { DataTable, type Column } from './DataTable'
 export { useUserPref, setUserPref, getUserPref } from './userPrefs'

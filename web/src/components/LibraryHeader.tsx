@@ -1,12 +1,15 @@
-import { useId, type ReactNode } from 'react'
-import { IconSortDown, IconSortUp } from '../icons'
-import { IconButton } from '../ui'
+import { useId, useState, type ReactNode } from 'react'
+import { IconMore, IconSortDown, IconSortUp } from '../icons'
+import { IconButton, RowSheet, Rows } from '../ui'
+import { useMedia } from '../shell/useNav'
 import './libraryheader.css'
 
 // The one header every library page has: a bar that stays in view with its name, how
 // many things are in it, how they're sorted and which way, and under it whatever else the
 // page offers. Sorting is a row of plain words, not a form, and each kind of library
-// lists its own.
+// lists its own. On a phone, the page's actions (an admin's tools: All films, Fix matches,
+// Categories, Scan) go behind one "⋯" beside Filters, as a sheet of rows, rather than
+// taking two rows of the screen.
 
 export type SortOption = { key: string; label: string; desc?: boolean }
 
@@ -28,6 +31,11 @@ export default function LibraryHeader({ title, sub, count, sorts, sort, desc, on
 }) {
   const id = useId()
   const current = sorts?.find((s) => s.key === sort)
+  const phone = useMedia('(max-width: 760px)')
+  const [tools, setTools] = useState(false)
+  const more = phone && !!actions && (
+    <IconButton label={`More for ${typeof title === 'string' ? title : 'this library'}`} hideTip aria-haspopup="dialog" onClick={() => setTools(true)}><IconMore /></IconButton>
+  )
   return (
     <header className="lh">
       <div className="lh-bar">
@@ -50,14 +58,15 @@ export default function LibraryHeader({ title, sub, count, sorts, sort, desc, on
             )}
           </div>
         )}
-        {end && <div className="lh-end">{end}</div>}
+        {(end || more) && <div className="lh-end">{end}{more}</div>}
       </div>
-      {(tabs || actions) && (
+      {(tabs || (actions && !phone)) && (
         <div className="lh-more">
           {tabs}
-          <div className="lh-actions">{actions}</div>
+          {!phone && <div className="lh-actions">{actions}</div>}
         </div>
       )}
+      {tools && phone && <RowSheet title={typeof title === 'string' ? title : 'Library'} onClose={() => setTools(false)}><Rows>{actions}</Rows></RowSheet>}
       {children}
     </header>
   )

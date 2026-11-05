@@ -11,8 +11,10 @@ import { SaveButton } from '../components/SaveToCollection'
 
 const GameDetails = lazy(() => import('./games/Details'))
 const RigGameDetails = lazy(() => import('./Rigs').then((m) => ({ default: m.RigGameDetails })))
-import { BackLink, EmptyState, LoadError, Spinner, artHue, isGeneratedArt } from '../components/common'
-import { IconDisc, IconEdit, IconImage, IconInfo, IconMenu, IconNext, IconPlay, IconRefresh, IconRight, IconSettings, IconStar } from '../icons'
+import { BackLink, EmptyState, LoadError, PageSkeleton, Spinner, artHue, isGeneratedArt } from '../components/common'
+import { IconDisc, IconEdit, IconImage, IconInfo, IconMenu, IconMore, IconNext, IconPlay, IconRefresh, IconRight, IconSettings, IconStar } from '../icons'
+import { IconButton, RowSheet, Rows, SheetRow } from '../ui'
+import { useMedia } from '../shell/useNav'
 import { toast, useApp } from '../state'
 import LegalNote from '../components/LegalNote'
 
@@ -29,6 +31,9 @@ export default function ItemPage() {
   const [discSettings, setDiscSettings] = useState(false)
   const [prefs, setPrefs] = useState<Prefs | null>(null)
   const [broken, setBroken] = useState(false)
+  const [more, setMore] = useState(false)
+  // A phone has one row: the main action, Save, and "⋯" for the rest.
+  const phone = useMedia('(max-width: 760px)')
   const load = () => { setBroken(false); return api.get<Item>(`/items/${id}`).then(setIt).catch((e) => { if (e.status >= 500) setBroken(true); else setErr(e.message) }) }
   useEffect(() => { load() }, [id])
   useEffect(() => { getPrefs().then(setPrefs) }, [])
@@ -36,7 +41,7 @@ export default function ItemPage() {
   useEffect(() => { if (params.get('edit')) { const p = new URLSearchParams(params); p.delete('edit'); setParams(p, { replace: true }) } }, []) // eslint-disable-line react-hooks/exhaustive-deps
   if (broken) return <LoadError what="This title" onRetry={load} />
   if (err) return <EmptyState icon={<IconInfo />} title="This title isn’t available" text="It may have been removed, or this profile may not be allowed to see it." action={<Link className="btn" to="/">Back to home</Link>} />
-  if (!it) return <Spinner />
+  if (!it) return <PageSkeleton shape="item" />
   if (it.kind === 'book') return <BookDetails it={it} />
   // Pictures and creator videos have their own places.
   const libType = libraries.find((l) => l.id === it.libraryId)?.type
@@ -56,6 +61,23 @@ export default function ItemPage() {
   const start = dvdStartMode(it)
   const fx = insertFxOn(it)
   const playable = !(disc && it.disc?.scrambled)
+  // What a phone puts behind "⋯": everything but the main action and Save.
+  const rest: { key: string; icon: React.ReactNode; label: string; run: () => void; disabled?: boolean }[] = disc ? [
+    resume
+      ? { key: 'resume', icon: <IconPlay />, label: `Resume from ${fmtTime(resume.positionSec)}`, disabled: !playable, run: () => nav(`/play/${it.id}?mode=title&ttn=${resume.discTitle || it.disc?.mainTitle || 1}`) }
+      : { key: 'title', icon: <IconPlay />, label: it.disc?.content === 'tv' ? 'Play from the start' : 'Play movie', disabled: !playable, run: () => nav(`/play/${it.id}?mode=title&start=0`) },
+    ...(it.disc?.hasMenus ? [{ key: 'menu', icon: <IconMenu />, label: 'Main menu', disabled: !playable, run: () => nav(`/play/${it.id}?mode=menu`) }] : []),
+    ...(user?.isAdmin ? [{ key: 'disc', icon: <IconSettings />, label: 'Disc settings', run: () => setDiscSettings(true) }] : []),
+  ] : [
+    ...(resume ? [{ key: 'start', icon: <IconPlay />, label: 'Play from start', run: () => nav(`/play/${it.id}?start=0`) }] : []),
+    ...(it.nextId ? [{ key: 'next', icon: <IconNext />, label: 'Next episode', run: () => nav(`/item/${it.nextId}`) }] : []),
+  ]
+  if (user?.isAdmin) rest.push(
+    { key: 'art', icon: <IconImage />, label: 'Artwork', run: () => setArt(true) },
+    { key: 'edit', icon: <IconEdit />, label: 'Edit', run: () => setEdit('match') },
+    ...(disc || it.showId == null ? [{ key: 'refresh', icon: <IconRefresh />, label: 'Refresh', run: () => setRefreshing(true) }] : []),
+  )
+  const moreButton = rest.length > 0 && <IconButton label="More" hideTip className="item-more" aria-haspopup="dialog" onClick={() => setMore(true)}><IconMore /></IconButton>
   return (
     <>
       <div className="detail-hero">
@@ -91,7 +113,21 @@ export default function ItemPage() {
             {it.rating && <span className="star"><IconStar /> {it.rating.toFixed(1)}</span>}
             {(it.genres || []).length > 0 && <span title={it.genres.join(', ')}>{it.genres.slice(0, 4).map((g, i) => <span key={g}>{i > 0 ? ', ' : ''}<Link to={`/library/${it.libraryId}?genre=${encodeURIComponent(g)}`}>{g}</Link></span>)}{it.genres.length > 4 ? '…' : ''}</span>}
           </div>
-          {disc ? (
+          {phone && disc ? (
+            <div className="actions item-actions disc-actions">
+              <button data-tv-first className="btn primary insert" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=${start}${fx ? '&insert=1' : ''}`)}><IconDisc /> Insert {discName(it)}</button>
+              {moreButton}
+              <div className="disc-hint muted">Insert {discName(it)} starts with the {start === 'menu' ? 'disc menu' : 'main feature'}{fx ? ' · with the tray effect' : ''}{user?.isAdmin ? ' — change it in Disc settings.' : '.'}</div>
+            </div>
+          ) : phone ? (
+            <div className="actions item-actions">
+              <button data-tv-first className="btn primary" onClick={() => nav(`/play/${it.id}`)} aria-label={resume ? `Resume from ${fmtTime(resume.positionSec)}` : undefined}>
+                <IconPlay /> {resume ? 'Resume' : 'Play'}
+              </button>
+              <SaveButton itemId={it.id} />
+              {moreButton}
+            </div>
+          ) : disc ? (
             <div className="actions disc-actions">
               <button data-tv-first className="btn primary insert" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=${start}${fx ? '&insert=1' : ''}`)}
                 title={start === 'menu' ? `Start the disc like a ${discName(it)} player: first-play, intros, then the main menu` : 'Start the disc straight into the main feature'}>
@@ -153,6 +189,11 @@ export default function ItemPage() {
           <LegalNote kind="metadata" />
         </div>
       </div>
+      {more && (
+        <RowSheet title={it.title} onClose={() => setMore(false)}>
+          <Rows>{rest.map((r) => <SheetRow key={r.key} icon={r.icon} label={r.label} disabled={r.disabled} onSelect={r.run} />)}</Rows>
+        </RowSheet>
+      )}
       {edit && <EditDetails target="item" id={it.id} start={edit} onClose={() => setEdit('')} onChanged={load} />}
       {art && <TitleArtPicker target="item" id={it.id} onClose={() => setArt(false)} onApplied={appliedOnPage(load)} />}
       {refreshing && <RefreshDialog target="item" id={it.id} onClose={() => setRefreshing(false)} onChanged={load} />}

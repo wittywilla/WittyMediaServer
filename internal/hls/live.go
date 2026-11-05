@@ -361,7 +361,15 @@ func (s *LiveSession) WaitReady(ctx context.Context) error {
 
 // startBurst is how many seconds a first run may run ahead of real time, so
 // the viewer gets a picture right away and has something to buffer.
-const startBurst = 12
+//
+// copyBurst is that for a copied picture. A copy can only be cut at the file's own keyframes,
+// often ten seconds apart, and a channel plays from its second segment: with 12 seconds, a
+// film like that took 12 seconds to start, and 3 with 24. It stays below the half minute a
+// library channel lets a run end early by before it fills the gap with a slate.
+const (
+	startBurst = 12
+	copyBurst  = 24
+)
 
 // loop runs FFmpeg input after input until the session is stopped.
 func (s *LiveSession) loop() {
@@ -492,7 +500,11 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 	}
 	if !in.Realtime {
 		if burst && s.m.burstSupported() {
-			args = append(args, "-readrate", "1", "-readrate_initial_burst", strconv.Itoa(startBurst))
+			ahead := startBurst
+			if in.CopyVideo {
+				ahead = copyBurst
+			}
+			args = append(args, "-readrate", "1", "-readrate_initial_burst", strconv.Itoa(ahead))
 		} else {
 			args = append(args, "-re")
 		}

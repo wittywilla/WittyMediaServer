@@ -58,6 +58,7 @@ const SetupWizard = lazy(() => import('./pages/SetupWizard'))
 // TV is its own part of the app, loaded when someone goes there.
 const GuidePage = lazy(() => import('./pages/tv/GuidePage'))
 const RecordingsPage = lazy(() => import('./pages/tv/RecordingsPage'))
+const ChannelsPage = lazy(() => import('./pages/tv/ChannelsPage'))
 const EncryptedHelp = lazy(() => import('./pages/tv/EncryptedHelp'))
 const TvPlayer = lazy(() => import('./pages/tv/TvPlayer'))
 // The TV section's one stream, shared by the guide's preview and the watch view.
@@ -165,6 +166,7 @@ function AppFrame() {
             <Route path="/pair" element={<PairPage />} />
             <Route path="/tv" element={<Suspense fallback={tvFallback}><GuidePage /></Suspense>} />
             <Route path="/tv/recordings" element={<Suspense fallback={tvFallback}><RecordingsPage /></Suspense>} />
+            <Route path="/tv/channels/*" element={<Suspense fallback={tvFallback}><ChannelsPage /></Suspense>} />
             <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
             <Route path="/controllers" element={<Suspense fallback={<Spinner />}><ControllersScreen /></Suspense>} />
             <Route path="/settings/*" element={<SettingsPage />} />

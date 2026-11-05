@@ -27,7 +27,7 @@ Use this guide to make always-on TV channels from your own library, add live TV 
 
 ## Your first channel
 
-1. Go to **Settings → Channels & tuners**.
+1. Open **TV guide** in the menu and press **Edit channels**, or go to **Settings → Channels & tuners** and press **Open the channel list**. Either way you reach **Channels**, the page for channels from your library (its address is `/tv/channels`).
 2. Under **Add with one click**, press **Add** on anything suggested. It's on the air straight away.
 3. Open **TV guide** in the menu. Move with the arrow keys or a remote, press Enter or OK to watch, and dial a channel with the number keys.
 
@@ -162,13 +162,15 @@ You can pause and rewind within what's kept: 5 minutes on library channels and 3
 
 ## Channels in one click
 
-**Add with one click**, in **Settings → Channels & tuners**, offers what your library can fill: Classics such as Movies and Saturday morning, Genres, Studios, Your collections, Decades, TV networks and Marathons. **Add** puts one on the air, **Change first** opens it in the editor, and **Add all** does a whole group. A channel takes at least three titles, or it would be the same thing again and again.
+**Add with one click**, on the **Channels** page, offers what your library can fill: Classics such as Movies and Saturday morning, Genres, Studios, Your collections, Decades, TV networks and Marathons. **Add** puts one on the air, **Change first** opens it in the editor, and **Add all** does a whole group. A channel takes at least three titles, or it would be the same thing again and again.
 
 A network channel can run the network's shows all day, be limited to a decade, follow day parts from the genres that suit them, or put each show in its original day and time. A style is only offered when your library's details support it. **Fill in missing facts**, under **Network facts**, asks your metadata services about the network and original air times of shows that don't have them, without touching any files.
 
 ## Making your own channel
 
-Press **New channel**, or **Edit** on a channel. The editor has three levels, which are three views of the same channel. Moving between them never loses anything.
+On the **Channels** page, press **New channel**, or **Edit** on a channel. Admins can also press **Edit channel** in a library channel's details in the guide. Each channel's editor has an address of its own, `/tv/channels/<id>`, so it can be bookmarked or shared with another admin. **Back** returns to wherever you opened it from. Leaving with changes that aren't saved asks first; they're kept in this browser either way, and come back the next time you open the channel.
+
+The editor has three levels, which are three views of the same channel. Moving between them never loses anything.
 
 ![The page for making a channel](images/wittytv-new-channel.webp)
 *Making a channel.*

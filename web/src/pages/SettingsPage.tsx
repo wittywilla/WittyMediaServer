@@ -61,7 +61,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'libraries', label: 'Libraries', icon: <IconLibrary />, admin: true, hint: 'Folders of movies, shows, music and books' },
     { to: 'metadata', label: 'Metadata agents', icon: <IconTag />, admin: true, hint: 'Where posters and plots come from' },
     { to: 'playback', label: 'Playback & discs', icon: <IconPlay />, admin: true, hint: 'Player, DVDs and Blu-rays' },
-    { to: 'channels', label: 'Channels & tuners', icon: <IconChannels />, admin: true, hint: 'TV channels from your library, tuners, IPTV and the guide' },
+    { to: 'channels', label: 'Channels & tuners', icon: <IconChannels />, admin: true, hint: 'Tuners, IPTV, guide data and WittyTV options' },
     { to: 'gaming', label: 'Consoles & cores', icon: <IconGamepad />, admin: true, hint: 'Which consoles this server can play, their cores, and game streaming' },
     { to: 'couch', label: 'Game PCs', icon: <IconDrive />, admin: true, hint: 'Who can play on PCs running Sunshine, and which ones' },
     { to: 'transcoding', label: 'Live transcoding', icon: <IconFilm />, admin: true, hint: 'While someone watches: quality, hardware and formats' },

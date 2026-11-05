@@ -407,7 +407,7 @@ export default function GuidePage() {
         <h1 className="sr-only">TV guide</h1>
         <EmptyState icon={<IconTv />} title="No channels yet"
           text={user?.isAdmin ? 'Make channels out of your library in one click, or add a tuner or an IPTV playlist.' : 'Ask whoever runs this server to set some up.'}
-          action={user?.isAdmin ? <Link className="btn primary" to="/settings/channels">Set up channels</Link> : undefined} />
+          action={user?.isAdmin ? <Link className="btn primary" to="/tv/channels">Set up channels</Link> : undefined} />
       </>
     )
   }
@@ -451,7 +451,7 @@ export default function GuidePage() {
           <button className="ctv-btn sm icon" onClick={openSearch} aria-haspopup="dialog" aria-label="Search the schedule" title="Search the schedule (S)"><IconSearch size={16} /></button>
           <button className="ctv-btn sm" onClick={() => setLookOpen(true)} aria-haspopup="dialog">Look</button>
           <Link className="ctv-btn sm hide-narrow" to="/tv/recordings">Recordings</Link>
-          {user?.isAdmin && <Link className="ctv-btn sm" to="/settings/channels" aria-label="Edit channels"><IconSettings size={16} /> <span className="hide-narrow">Edit channels</span></Link>}
+          {user?.isAdmin && <Link className="ctv-btn sm" to="/tv/channels" aria-label="Edit channels"><IconSettings size={16} /> <span className="hide-narrow">Edit channels</span></Link>}
         </div>
       </div>
 

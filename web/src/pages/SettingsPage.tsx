@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { fmtDateTime, api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
@@ -19,6 +19,8 @@ import GamingSettings from './settings/Gaming'
 import { ConsolePicker, GameSettingsPage } from './games/consoles'
 import { kindTitle, libraryKinds, missingKind, orList, type LibraryKind } from '../moduleStore'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
+import { jumpWhenReady } from './settings/jump'
+import { SettingsResults, SettingsSearch } from './settings/SettingsSearch'
 import TranscodeSettings from './TranscodeSettings'
 import './settings/settings.css'
 import LegalNote from '../components/LegalNote'
@@ -71,9 +73,9 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   { title: 'You', pages: [
     { to: 'users', label: 'Profiles', icon: <IconUsers />, hint: 'People, passwords and limits' },
     { to: 'security', label: 'Sign-in & security', icon: <IconLock />, hint: 'Your devices and two-factor sign-in' },
+    { to: 'appearance', label: 'Appearance', icon: <IconPalette />, hint: 'Theme, colours, layout, and the look of WittyTV and the player' },
     { to: 'games', label: 'My game settings', icon: <IconContrast />, hint: 'Picture, speed, shortcuts and more, for your games' },
     { to: 'activity', label: 'Activity', icon: <IconActivity />, hint: 'The button showing library scans and other background work' },
-    { to: 'appearance', label: 'Appearance', icon: <IconPalette />, hint: 'Themes, layout and name' },
     { to: 'sharing', label: 'Sharing & photos', icon: <IconImage />, hint: 'Uploads, links, the photo map' },
   ] },
   { title: 'Advanced', pages: [
@@ -95,8 +97,17 @@ export default function SettingsPage() {
   const { user, version } = useApp()
   const loc = useLocation()
   const modulePages = useModulePages().filter((p) => p.where === 'settings')
-  const groups = GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => !p.admin || user?.isAdmin) })).filter((g) => g.pages.length)
-  useEffect(() => { window.scrollTo({ top: 0 }) }, [loc.pathname])
+  const groups = useMemo(() => GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => !p.admin || user?.isAdmin) })).filter((g) => g.pages.length), [user?.isAdmin])
+  const pages = useMemo(() => groups.flatMap((g) => g.pages), [groups])
+  const moduleKey = modulePages.map((p) => `${p.module}/${p.id}/${p.title}`).join('|')
+  const moduleResults = useMemo(() => modulePages.map((p) => ({ to: `/m/${p.module}/${p.id}`, title: p.title, where: 'From modules' })), [moduleKey])
+  const [query, setQuery] = useState('')
+  // A link to part of a page (#section) goes to that part once the page is drawn; any other
+  // starts at the top.
+  useEffect(() => {
+    if (!loc.hash) { window.scrollTo({ top: 0 }); return }
+    return jumpWhenReady(decodeURIComponent(loc.hash.slice(1)))
+  }, [loc.pathname, loc.hash])
   const slug = loc.pathname.split('/')[2]
   const narrow = useNarrow()
   // A crash the owner hasn't looked at yet is pointed out on every settings page.
@@ -118,6 +129,8 @@ export default function SettingsPage() {
     <div className={'set-shell' + (slug ? '' : ' at-menu')}>
       <nav className="set-nav" aria-label="Settings">
         <div className="set-nav-title">Settings</div>
+        <SettingsSearch value={query} onChange={setQuery} />
+        {query.trim() ? <SettingsResults query={query} pages={pages} extra={moduleResults} admin={!!user?.isAdmin} onPick={() => setQuery('')} /> : <>
         {groups.map((g) => (
           <div key={g.title} className="set-nav-group">
             <div className="set-nav-head">{g.title}</div>
@@ -142,6 +155,7 @@ export default function SettingsPage() {
         <NavLink to="/settings/about#modules" className="set-nav-version" title="Version and modules">
           <VersionTag version={version} /><span>Version and modules</span>
         </NavLink>
+        </>}
       </nav>
       <div className="set-main">
         <div className="set-back"><BackLink to="/settings" label="Settings" /></div>
@@ -165,7 +179,11 @@ export default function SettingsPage() {
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />
           <Route path="transcoding" element={<TranscodeSettings />} />
           <Route path="library-transcoding" element={<Suspense fallback={null}><LibraryTranscoding /></Suspense>} />
-          <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: theme, layout and its name." /><AppearanceSettings /></>} />
+          <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: its theme and colours, where the menus sit, and the look of WittyTV and the player." /><AppearanceSettings /></>} />
+          {/* Other names people try for it, and its parts. */}
+          {['theme', 'themes', 'look', 'looks'].map((p) => <Route key={p} path={p} element={<Navigate to="/settings/appearance#theme" replace />} />)}
+          {['colours', 'colors'].map((p) => <Route key={p} path={p} element={<Navigate to="/settings/appearance#colours" replace />} />)}
+          {['wittytv', 'tv-look'].map((p) => <Route key={p} path={p} element={<Navigate to="/settings/appearance#wittytv" replace />} />)}
           <Route path="users" element={<Users />} />
           <Route path="sharing" element={<SharingSettings />} />
           <Route path="logs" element={<><PageHead title="WittyLog" desc="What the server records and for how long, and the logs as a ZIP to share, sanitized if you want. Nothing is ever sent anywhere." /><Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><LogSettings /></Suspense></>} />

@@ -283,9 +283,33 @@ func lyricsQuery(it *library.Item) lyrics.Query {
 	return lyrics.Query{Artist: artist, Title: it.Title, Album: it.Album, DurationSec: it.RuntimeSec}
 }
 
+// lyricsSourceKey tells sources apart for lyricsDown: by name, and for LRCLIB by address too,
+// so a mirror moved somewhere else is asked straight away.
+func lyricsSourceKey(src lyrics.Source) string {
+	if l, ok := src.(*lyrics.LRCLIB); ok {
+		return src.Name() + "|" + l.Base
+	}
+	return src.Name()
+}
+
+// lyricsSourceDown says a source couldn't be reached less than lyricsFailedFor ago.
+func (s *Server) lyricsSourceDown(key string) bool {
+	v, ok := s.lyricsDown.Load(key)
+	if !ok {
+		return false
+	}
+	if time.Since(v.(time.Time)) < lyricsFailedFor {
+		return true
+	}
+	s.lyricsDown.Delete(key)
+	return false
+}
+
 // askOnline tries each source in turn and keeps the answer. Only the artist, title,
-// album and length go out: never a path, a file name or who's listening.
-func (s *Server) askOnline(ctx context.Context, it *library.Item) (*savedLyrics, error) {
+// album and length go out: never a path, a file name or who's listening. A source that
+// couldn't be reached is left alone for lyricsFailedFor, unless again: with one look-up at
+// a time for the whole server, a service that's down would make every song wait on it.
+func (s *Server) askOnline(ctx context.Context, it *library.Item, again bool) (*savedLyrics, error) {
 	sources := s.lyricsSources(ctx)
 	if len(sources) == 0 || it.Title == "" {
 		return nil, nil
@@ -302,13 +326,24 @@ func (s *Server) askOnline(ctx context.Context, it *library.Item) (*savedLyrics,
 	}
 	var failed error
 	for _, src := range sources {
+		key := lyricsSourceKey(src)
+		if !again && s.lyricsSourceDown(key) {
+			failed = fmt.Errorf("%s couldn't be reached a few minutes ago, so it isn't being asked for a while", src.Name())
+			continue
+		}
 		f, err := src.Get(ctx, lyricsQuery(it))
 		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err() // the listener moved on: not the source's fault
+			}
 			if !errors.Is(err, lyrics.ErrNotFound) {
 				failed = err
+				s.lyricsDown.Store(key, time.Now())
+				s.Log.WarnContext(ctx, "a lyrics source couldn't be reached; leaving it alone for a while", "cat", "library", "source", src.Name(), "for", lyricsFailedFor.String(), "err", err)
 			}
 			continue
 		}
+		s.lyricsDown.Delete(key)
 		text := f.Synced
 		if strings.TrimSpace(text) == "" {
 			text = f.Plain
@@ -385,7 +420,7 @@ func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
 	saved := readSavedLyrics(s.lyricsCachePath(it.ID))
 	stale := saved != nil && saved.NotFound && time.Since(time.Unix(saved.At, 0)) > lyricsNotFoundFor
 	if music && qBool(r, "fetch") && out.Online && (saved == nil || stale || qBool(r, "again")) {
-		fresh, err := s.askOnline(ctx, it)
+		fresh, err := s.askOnline(ctx, it, qBool(r, "again"))
 		if err != nil {
 			out.Failed = err.Error()
 		} else if fresh != nil {

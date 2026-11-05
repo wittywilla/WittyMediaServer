@@ -28,11 +28,14 @@ import (
 // IsAudioLibrary reports whether a library type holds audio files.
 func IsAudioLibrary(t string) bool { return t == "music" || t == "audiobooks" || t == "podcasts" }
 
-func discoverAudio(root string) ([]candidate, error) {
+func discoverAudio(root string, step walkStep) ([]candidate, error) {
 	var out, sheets, raw []candidate
 	var bad unreadable
 	var unnamed sniffBudget
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err := step.next(); err != nil {
+			return err
+		}
 		if err != nil {
 			bad.note(err)
 			return nil // unreadable folders are skipped, not fatal
@@ -330,7 +333,7 @@ func (s *Scanner) MIDIAudio(ctx context.Context, it *Item) (string, error) {
 	if err := os.Rename(tmp, out); err != nil {
 		return "", err
 	}
-	trimCache(dir, maxConvertedCache)
+	trimCache(dir, "", maxConvertedCache)
 	return out, nil
 }
 

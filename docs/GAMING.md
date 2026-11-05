@@ -274,13 +274,11 @@ On Windows, use `-loopback`, or Windows Firewall will stop to ask. `scripts/buil
 
 A retro console at 2x is about 512x448 at 60 frames a second. Two sessions is the default limit. On Linux and macOS the runner runs at a slightly lower priority, so a film being transcoded comes first without the game being starved, except for games on a graphics card and the Nintendo DS, which keep normal priority. Windows has no such gentle setting: below-normal gets next to nothing while other programs are busy (one game measured 1 frame a second, against 61 at normal, with the machine under half busy). So on Windows it runs at normal priority, sharing fairly, and a software-rendered core uses about one CPU core. Audio costs about 1% of a core.
 
-## On-device play (not built)
+## On-device play (not planned)
 
-Every game runs on the server. Libretro cores also exist compiled to WebAssembly, and a second mode could send the ROM to the browser and run it there.
+Every game runs on the server and is streamed. The device you hold only decodes the picture, plays the sound and sends your presses: no game runs in a browser, a phone or a TV, and no copy of a game is sent to one. Libretro cores also exist compiled to WebAssembly, and that way was weighed and set aside in 2026-11.
 
-**Why it isn't built:** at home it wouldn't be faster. A game in a page runs in step with the page's frames, so a press waits half a refresh on average before the game looks at it, where a streamed game starts its next frame at once. An upscaled or 3D game is far beyond what a browser can run anyway. What it would buy is play over a poor connection, from servers too small to run games, and with no connection at all. What it would cost is a copy of the game on every device that plays it, a second way for saves and controllers to work, and it leaves out the usual cores for the Super Nintendo and the Genesis, whose licences don't allow it.
-
-If it's built: it would be downloaded only on request and served as separate files from a sandboxed frame, with nothing compiled into the app's bundle. It only works in a browser, so the server would list it as `browserOnly`, and TV apps would never see it. The player has been kept independent of the transport so that this can be added without a rewrite. The game page says plainly that it isn't available.
+**Why:** at home it wouldn't be faster. A game in a page runs in step with the page's frames, so a press waits half a refresh on average before the game looks at it, where a streamed game starts its next frame at once. An upscaled or 3D game is far beyond what a browser can run anyway. It would also need a copy of the game on every device that plays it, a second way for saves and controllers to work, and it leaves out the usual cores for the Super Nintendo and the Genesis, whose licences don't allow it. The plan is to make the stream itself better instead: lower delay, steadier sound and picture, and picture filters run on the server, so every device shows a game the same way.
 
 ## Libraries and scanning
 

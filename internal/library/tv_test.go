@@ -129,11 +129,11 @@ func TestCommercialsKeepSmallFiles(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "Soda Ad.mp4"), []byte("tiny"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	c, err := discoverClips(dir)
+	c, err := discoverClips(dir, nil)
 	if err != nil || len(c) != 1 {
 		t.Fatalf("a small commercial should be found: %v %+v", err, c)
 	}
-	c, err = discover(dir)
+	c, err = discover(dir, nil)
 	if err != nil || len(c) != 0 {
 		t.Fatalf("elsewhere, tiny videos are samples: %v %+v", err, c)
 	}

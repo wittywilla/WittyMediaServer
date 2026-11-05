@@ -35,10 +35,13 @@ func IsCreatorLibrary(t string) bool { return t == "shorts" || t == "channels" |
 // beside the media (the owner's own photos and archives are left as they are).
 func IsGalleryLibrary(t string) bool { return t == "photos" || IsCreatorLibrary(t) }
 
-func discoverCreatorVideos(root string) ([]candidate, error) {
+func discoverCreatorVideos(root string, step walkStep) ([]candidate, error) {
 	var out []candidate
 	var bad unreadable
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err := step.next(); err != nil {
+			return err
+		}
 		if err != nil {
 			bad.note(err)
 			return nil

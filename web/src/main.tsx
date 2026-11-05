@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 // Pages all over the app use these, and they come first so that styles.css has the last word.
 import './pages/games.css'
 import './pages/setup/setup.css'
@@ -22,12 +22,15 @@ installTVInput()
 installTenFoot()
 installErrorReporter()
 
+// One route that hands everything to App's own routes. A data router is what lets a page
+// with unsaved changes ask before it is left (useBlocker); the boundary inside it keeps a
+// page that fails showing this app's own error screen, not the router's.
+const router = createBrowserRouter([{ path: '*', element: <ErrorBoundary><App /></ErrorBoundary> }])
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </ErrorBoundary>
   </React.StrictMode>,
 )

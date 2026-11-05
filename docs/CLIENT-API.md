@@ -1500,6 +1500,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /games/settings` | user | Change one level: a patch (null removes a value), a whole settings file, or a reset. Server levels need an administrator. |
 | `POST /games/settings/validate` | user | Check a settings file without saving it: errors and ignored things, by line. |
 | `GET /games/recent` | user | A person's most recently played games, or favourites with ?favourites=1, with play counts. |
+| `GET /games/playing` | user | The game this account is playing now, the device it started on, and who joined it; 204 when none. For "Continue here". |
 | `GET /game-bezels` | user | A person's own images for around the picture. |
 | `POST /game-bezels` | user | Add an image, as the request body. PNG, JPEG or WebP, decoded and made again. |
 | `GET /game-bezels/{bezel}` | user | One of a person's images, as a PNG. |
@@ -1755,6 +1756,10 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `GET /play/{sid}/ws` | user | Play WS. |
 | `POST /play/{sid}/stream` | user | Connects a device over WebRTC, version 2: `{hello, sdp}` in, `{stream, sdp}` out. See [the stream](GAMING-STREAM.md). |
 | `GET /play/{sid}/stream` | user | Version 2's WebSocket: the same messages as over WebRTC, the hello first. |
+| `POST /play/join` | user | Join someone's game with their code: `{code}` answers `{sid, seat, itemId, title, console, host}`. Wrong codes are limited. |
+| `POST /play/{sid}/invite` | user | The host makes a four-letter code others can join with, for ten minutes. |
+| `GET /play/{sid}/seats` | user | The host and everyone who joined; the host also sees the code. |
+| `DELETE /play/{sid}/seats/{user}` | user | Frees a seat: the host frees anyone's, and anyone may leave. |
 | `POST /play/{sid}/action` | user | Play action. |
 | `GET /play/{sid}/stats` | user | A running game's numbers: frame rates, encode time, bitrate, drops. |
 | `GET /play/{sid}/screenshot` | user | The current picture as a PNG. |

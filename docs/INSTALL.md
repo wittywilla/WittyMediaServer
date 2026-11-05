@@ -2,7 +2,7 @@
 
 Install the server on Windows, macOS, Linux, FreeBSD, a NAS or in a container, keep it up to date, and find out what each program does.
 
-FFmpeg comes with the download, so there's nothing else to install first, apart from one FreeBSD case noted below. New to all this? [Getting started](GETTING_STARTED.md) walks through it with no command line. To remove it, see [Uninstalling](UNINSTALL.md).
+FFmpeg comes with the download, so there's nothing else to install first, apart from one FreeBSD case noted below. To check a computer is enough, see [What hardware it needs](HARDWARE.md). New to all this? [Getting started](GETTING_STARTED.md) walks through it with no command line. To remove it, see [Uninstalling](UNINSTALL.md).
 
 - [Which file to download](#which-file-to-download)
 - [What has been tested](#what-has-been-tested)

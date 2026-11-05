@@ -64,6 +64,7 @@ export const GROUPS: GuideGroup[] = [
   ] },
   { title: 'Looking after the server', guides: [
     { file: 'INSTALL', title: 'Installing and updating', about: 'Each system’s installer, and what each program is.' },
+    { file: 'HARDWARE', title: 'What hardware it needs', about: 'Memory and processor for each thing it does, from measurements.' },
     { file: 'DOCKER', title: 'Docker', about: 'The image, its tags and folders, graphics cards, hardening and updating.' },
     { file: 'DOCKER-UGREEN', title: 'Docker on a UGREEN NAS', about: 'UGOS Pro’s Docker app, with Intel graphics.' },
     { file: 'DOCKER-SYNOLOGY', title: 'Docker on a Synology NAS', about: 'Container Manager on DSM 7.2.' },

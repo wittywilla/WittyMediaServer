@@ -1087,7 +1087,7 @@ func streamRefused(w http.ResponseWriter, status int, code, text string) {
 // handlePlayStream connects a device over WebRTC, version 2: its hello and its offer in, what it
 // gets and the answer out. The server says whether it's away from home; the device doesn't.
 func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
-	sess := s.session(r)
+	sess := s.watchSession(r)
 	if sess == nil {
 		streamRefused(w, 404, "no-session", "No such game is being played.")
 		return
@@ -1111,6 +1111,12 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 		streamRefused(w, 400, "bad-hello", "The body must be {\"hello\": {...}, \"sdp\": \"...\"}.")
 		return
 	}
+	// Someone who joined with a code drives the seat it gave them (game_seats.go).
+	if sess.UserID() != userFrom(r).ID {
+		if seat, ok := s.gameSvc.seats.seatOf(sess.ID(), userFrom(r).ID); ok {
+			b.Hello.Seats = joinedSeats(seat)
+		}
+	}
 	got, err := sess.Connect(r.Context(), b.Hello, b.SDP, !clientFrom(r).Where.AtHome())
 	if err != nil {
 		var se *stream.StreamError
@@ -1127,7 +1133,9 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 
 // handlePlayStreamWS is version 2's fallback: the same messages on a WebSocket.
 func (s *Server) handlePlayStreamWS(w http.ResponseWriter, r *http.Request) {
-	sess := s.session(r)
+	// Someone who joined with a code may connect here too. The hello on this socket goes straight to
+	// WittyPlay, so their seat is the one their app asks for: GAMING-API.md, Seats.
+	sess := s.watchSession(r)
 	if sess == nil {
 		streamRefused(w, 404, "no-session", "No such game is being played.")
 		return

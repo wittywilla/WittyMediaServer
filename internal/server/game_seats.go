@@ -185,6 +185,30 @@ func (b *seatBook) holds(sid string, user int64) bool {
 	return t != nil && slices.ContainsFunc(t.holders, func(h seatHolder) bool { return h.UserID == user })
 }
 
+// seatOf is the seat someone joined a game in, as stream version 2 numbers players: 1 to 7, the
+// host being 0, or -1 for watching only. False when they didn't join it with a code.
+func (b *seatBook) seatOf(sid string, user int64) (int, bool) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if t := b.tables[sid]; t != nil {
+		for _, h := range t.holders {
+			if h.UserID == user {
+				return h.Seat, true
+			}
+		}
+	}
+	return 0, false
+}
+
+// joinedSeats is what a joined device's version 2 hello asks for: the seat its code gave it, or
+// none when it can only watch. Its own choice would be any player nobody holds.
+func joinedSeats(seat int) []int {
+	if seat < 0 {
+		return []int{}
+	}
+	return []int{seat}
+}
+
 // leave frees someone's seat. The host may free anyone's, and anyone may leave.
 func (b *seatBook) leave(sid string, by, user int64) bool {
 	b.mu.Lock()

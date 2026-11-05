@@ -127,3 +127,27 @@ func TestAFullGameCanStillBeWatched(t *testing.T) {
 		t.Fatalf("%+v %v", j, err)
 	}
 }
+
+// Over stream version 2, someone who joined with a code drives the seat it gave them, and a
+// watcher drives none, whatever their hello asked for.
+func TestJoinedSeatsOverStreamVersion2(t *testing.T) {
+	b := &seatBook{}
+	b.started("s1", 1, "Willow", "")
+	code, _, _ := b.invite("s1", 1)
+	j, _ := b.join(code, 2, "Pat")
+	if seat, ok := b.seatOf("s1", 2); !ok || seat != j.Seat || seat != 1 {
+		t.Fatalf("seatOf = %d %v, joined as %d", seat, ok, j.Seat)
+	}
+	if _, ok := b.seatOf("s1", 3); ok {
+		t.Fatal("someone who didn't join has a seat")
+	}
+	if _, ok := b.seatOf("s1", 1); ok {
+		t.Fatal("the host is found as a joiner")
+	}
+	if got := joinedSeats(1); len(got) != 1 || got[0] != 1 {
+		t.Fatalf("joinedSeats(1) = %v", got)
+	}
+	if got := joinedSeats(-1); got == nil || len(got) != 0 {
+		t.Fatalf("joinedSeats(-1) = %#v: a watcher must name no seats, not leave them out", got)
+	}
+}

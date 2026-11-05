@@ -141,7 +141,10 @@ always watch and play it. Anyone else signed in to this server needs a code: the
 Adults, Kids and Guest profiles join the same way, and only with a code; a profile whose limits wouldn't let it open
 the game can't join it (403). Wrong codes are limited per account (429 with `Retry-After`). Someone who joined may get
 the session, connect over WebRTC or the WebSocket and send their seat's controller states (`seat`, from 1; -1 means
-every seat is taken and they can only watch). Saving, loading, settings and stopping stay the host's. A seat ends when
+every seat is taken and they can only watch). Seats are numbered as [the stream](GAMING-STREAM.md)'s players, the host
+being 0. Over version 2's WebRTC (`POST /play/{sid}/stream`) the server sets a joined device's hello to its own seat, or
+to none for a watcher, whatever it asked for. Over version 2's WebSocket the hello goes straight to WittyPlay, so the
+app sends `seats: [seat]` itself. Saving, loading, settings and stopping stay the host's. A seat ends when
 the host frees it, its holder leaves (`DELETE /play/{sid}/seats/{user}`) or the game ends.
 
 Playing with someone on another server is reserved and not built: clients show **Multiplayer** greyed out.

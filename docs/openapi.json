@@ -11591,6 +11591,93 @@
         "x-wms-auth": "admin"
       }
     },
+    "/channels/{id}/reset": {
+      "post": {
+        "description": "Throws away the channel's schedule, what is on now included, and makes it again from its current settings and the titles that match them now, as if it had always run that way. Each show carries on from where it was at the start of today unless `startOver` (which also picks a new shuffle). Anyone watching moves to the new schedule without an error; `watching` says whether anyone was. Every account's reminders for the channel's programmes still to start are kept, moved to the programme's new time, or removed when it no longer airs in the next 15 days. Library channels can't be recorded, so no recordings change.",
+        "operationId": "postChannelsIdReset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "startOver": {
+                    "description": "Start every show from its first episode, and shuffle again.",
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "watching": {
+                      "description": "The channel was running, and its viewers moved to the new schedule.",
+                      "type": "boolean"
+                    },
+                    "reminders": {
+                      "properties": {
+                        "dropped": {
+                          "type": "integer"
+                        },
+                        "droppedTitles": {
+                          "description": "Up to six titles that no longer air, for a note: a sixth means there are others.",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "kept": {
+                          "type": "integer"
+                        },
+                        "moved": {
+                          "type": "integer"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The channel has its new schedule."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reset channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/channels/{id}/restore": {
       "post": {
         "operationId": "postChannelsIdRestore",

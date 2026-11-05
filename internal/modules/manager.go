@@ -347,7 +347,9 @@ func New(cfg Config) *Manager {
 func (m *Manager) giveAnotherChance(id string, e *entry) {
 	ver := e.state.Active
 	why := e.state.Blocked[ver]
-	if ver == "" || !strings.HasPrefix(why, keptFailing) || m.hasFallback(id, e, ver) {
+	// A game runner that stopped before the game was ready is liftNestedSandboxBlocks' to put
+	// back, on a Mac, where the server's own sandbox was to blame. Anywhere else it stays.
+	if ver == "" || !strings.HasPrefix(why, keptFailing) || strings.HasPrefix(why, runnerStopped) || m.hasFallback(id, e, ver) {
 		return
 	}
 	delete(e.state.Blocked, ver)

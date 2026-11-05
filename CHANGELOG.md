@@ -5,6 +5,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Comics whose pages are PNGs called .jpg get their cover.** Several public-domain comics name their PNG pages `000.jpg`, and the server's picture tool chose how to read a picture by its name, so their covers failed during scans ("bits 193 is invalid", "unsupported coding type") and the comics had none. It now reads what a picture really is from its first bytes, for every book and comic cover.
 - **A theme made with the theme maker shows again.** The server's own security policy refused the stylesheet the page made for it, so the page fell back to the plain built-in look, in every browser. It's now applied in a way the policy allows.
 - **On a big screen, the account menu opens and the sign-in screen fits.** At 2200 pixels wide and more the page was enlarged with CSS zoom, which Firefox and Chrome also apply to positions on the screen and to the window's height: the account menu opened off the right edge, so clicking your name seemed to do nothing, and the sign-in screen was a quarter taller than the window, so it scrolled and sat low. Big screens now grow their text, spacing and frame instead, and look much the same.
 - **Menus always open on screen, and stay open.** A menu from a button, such as the account menu, is placed wholly on the screen even when its button can't be measured, and a list or row scrolling elsewhere on the page no longer closes it as it opens; the page scrolling its button away still does.

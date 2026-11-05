@@ -5,6 +5,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **With a WittyPlay older than 0.3.5, version 2 of the game stream says it needs an update** (`needs-update`), rather than failing with an error, and isn't offered. Version 1, which every app and the website use with that WittyPlay, plays as before.
 - **A game on several discs starts sooner.** Its archived discs are unpacked side by side instead of one after another. Final Fantasy VII, with its first disc as `.bin/.cue` and two more as `.7z`, waited two minutes to start from a USB drive before its first disc could play.
 - **An encrypted 3DS game's page says so before Play is pressed**, in the same words as Play: no server can play that copy, so it comes before anything this server lacks. A copy you decrypted yourself, from a console you own, will play.
 - **Ready for a Mac's graphics card.** When WittyPlay's runner can draw on a Mac's card, PSP, PlayStation and PlayStation 2 games on Play! use it, at full speed on a fraction of a processor core. Nintendo 64 and LRPS2 stay drawn by the processor there, as their card renderers draw black pictures or nothing on a Mac, and the game page says why.

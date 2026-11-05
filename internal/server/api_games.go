@@ -31,6 +31,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/play/cores"
 	"github.com/wittywilla/wittymediaserver/internal/play/ipc"
 	"github.com/wittywilla/wittymediaserver/internal/play/stream"
+	"github.com/wittywilla/wittymodule/service"
 )
 
 // Games: the API around WittyPlay. Sessions and streaming live in the module;
@@ -1203,6 +1204,27 @@ func streamRefused(w http.ResponseWriter, status int, code, text string) {
 
 // handlePlayStream connects a device over WebRTC, version 2: its hello and its offer in, what it
 // gets and the answer out. The server says whether it's away from home; the device doesn't.
+// A WittyPlay from before version 2 of the stream has no Session.Connect and no /stream route. Its
+// modes don't offer version 2 then, so clients keep to version 1, which works as it always has; a
+// client that asks for version 2 anyway is told what to update, not that something failed.
+const needsStreamV2 = "Version 2 of the stream needs a newer WittyPlay (0.3.5 or later). An administrator can update it in Settings, Modules. Version 1 (/play/{id}/webrtc and /play/{id}/ws) works meanwhile."
+
+// moduleLacks says a call failed because the module's version doesn't have it.
+func moduleLacks(err error) bool {
+	var ce *service.CallError
+	return errors.As(err, &ce) && ce.Code == "unknown-method"
+}
+
+// offersStreamV2 says the module's modes can be reached through version 2.
+func offersStreamV2(modes []stream.Mode) bool {
+	for _, m := range modes {
+		if m.Stream >= stream.StreamVersion {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 	sess := s.session(r)
 	if sess == nil {
@@ -1228,8 +1250,17 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 		streamRefused(w, 400, "bad-hello", "The body must be {\"hello\": {...}, \"sdp\": \"...\"}.")
 		return
 	}
+	// Checked here as well as in the module, so the answer is the same whichever WittyPlay is in.
+	if b.Hello.V != stream.StreamVersion {
+		streamRefused(w, 400, "bad-hello", fmt.Sprintf("This server speaks version %d of the stream.", stream.StreamVersion))
+		return
+	}
 	got, err := sess.Connect(r.Context(), b.Hello, b.SDP, !clientFrom(r).Where.AtHome())
 	if err != nil {
+		if moduleLacks(err) {
+			streamRefused(w, 501, "needs-update", needsStreamV2)
+			return
+		}
 		var se *stream.StreamError
 		if errors.As(err, &se) && se.Status >= 400 && se.Status < 600 {
 			streamRefused(w, se.Status, se.Code, se.Text)
@@ -1256,6 +1287,11 @@ func (s *Server) handlePlayStreamWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer release()
+	// An older WittyPlay has no route to pass this to, and would only say "not found".
+	if !offersStreamV2(s.games().mgr.Modes(stream.ClientNative)) {
+		streamRefused(w, 501, "needs-update", needsStreamV2)
+		return
+	}
 	sess.ServeStream(w, r, !clientFrom(r).Where.AtHome())
 }
 

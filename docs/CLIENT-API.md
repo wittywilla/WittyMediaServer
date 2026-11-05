@@ -588,6 +588,44 @@ Everything about a channel's ticket works as in [Stream tokens](#stream-tokens),
 that the account may watch that channel. An encrypted broadcast is refused with `security` saying why; this
 server never decrypts one.
 
+### Recording
+
+**`canRecord` is the only signal for offering Record.** Show **Record**, **Record every airing** (a series), and any
+key or menu item that does either, only where `canRecord` is `true`. Where it is `false`, hide them: don't grey them
+out, and don't work it out yourself from `kind`, `encrypted`, `noRecord` or the profile. The server has already, and
+every client then offers the same thing.
+
+- **Only media from a tuner can be recorded.** A channel made from the library never has `canRecord: true`: what it
+  plays is already in the library.
+- A tuner channel has it when it is clear (not encrypted), isn't marked by its device or its owner as not to be
+  recorded (`noRecord` says why), and the profile asking may use recordings.
+
+The server always sends `canRecord`, `true` or `false`, wherever it describes a channel:
+
+| Where | Field |
+|---|---|
+| `GET /guide`, with any of `list=1`, `channel`, `kind`, `group`, `favourites`: the guide, the mini guide, the On now row, the channel list for dialling | `channels[].canRecord`, and `channels[].alternative.canRecord` |
+| `GET /tv/{key}/tune`: a live channel's details | `canRecord`, and `alternative.canRecord` |
+| A refused tune: 403 for an encrypted channel, 502 for HEVC the server can't decode | `alternative.canRecord` |
+| `GET /guide/search` | `[].canRecord`, for the hit's channel |
+| `GET /tv/reminders`, `POST /tv/reminders` | `canRecord`, for the reminder's channel |
+| `GET /channels`, and for an administrator `POST /channels`, `GET` and `PUT /channels/{id}`, and `POST /channels/{id}/restore` | `canRecord`: always `false` |
+| `GET /tuners/{id}/channels`, `PUT /tuner-channels/{id}` | `canRecord` |
+
+For one programme, offer Record when its channel's `canRecord` is `true`, the programme's `kind` is `broadcast`, and
+its `end` is still to come.
+
+`POST /recordings` (body: `channel`, `title`, `sub`, `start`, `stop`) and `POST /recording-rules` (body: `channel`,
+`title`) use the same rule, so they take what `canRecord` offered and refuse anything else, with `{"error": "…"}` in
+words to show as they are:
+
+| Status | When |
+|---|---|
+| 400 | A library channel: "library channels can't be recorded: what they play is already in your library". Also a `channel` that isn't a channel key, or a programme that has already finished, has no title, or is already being recorded. |
+| 403 | The profile may not use recordings ("this profile cannot use recordings"), the channel is encrypted, or it is marked not to be recorded ("{name} can't be recorded: {why}"). |
+| 404 | A tuner channel that is turned off, or that this profile can't see. |
+| 409 | 50 recordings already waiting, or 20 series rules, for an account that isn't an administrator. |
+
 ## Discs and their menus
 
 Discs don't need a browser: the disc engines run on the server, and a client only draws what it is told.
@@ -1341,8 +1379,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /guide` | user | Every channel this account may watch, with its programmes. Each can name `logo`, a picture of its own, or `brand`, for `POST /logos/lookup`. Beside them, `theme`, `layout` and `skin`: what a new viewer starts with. |
-| `GET /tv/{key}/tune` | user | What is on a channel, and starts its stream. `streamToken=1` adds `streamUrl` for players that can't set headers. See "Live channels". |
+| `GET /guide` | user | Every channel this account may watch, with its programmes. Each can name `logo`, a picture of its own, or `brand`, for `POST /logos/lookup`, and always has `canRecord`, the only signal for offering Record (see "Recording"). Beside them, `theme`, `layout` and `skin`: what a new viewer starts with. |
+| `GET /tv/{key}/tune` | user | What is on a channel, and starts its stream, with `canRecord`. `streamToken=1` adds `streamUrl` for players that can't set headers. See "Live channels". |
 | `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
 | `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |
 | `POST /tv/{key}/leave` | user | This viewer has gone: `viewer`. |
@@ -1351,7 +1389,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /tv/settings` | admin | TV settings. |
 | `PUT /tv/settings` | admin | Put TV settings. |
 | `PUT /libraries/{id}/main` | admin | Library show main. |
-| `GET /channels` | user | Channels. |
+| `GET /channels` | user | Library channels, each with `canRecord: false`. |
 | `POST /channels` | admin | Create channel. |
 | `POST /channels/preview` | admin | Channel preview. |
 | `GET /channels/suggestions` | admin | Channel suggestions. |
@@ -1370,11 +1408,11 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /channels/{id}/logo` | admin | Set channel logo. |
 | `DELETE /channels/{id}/logo` | admin | Delete channel logo. |
 | `GET /tv/encrypted-help` | user | Encrypted help. |
-| `GET /guide/search` | user | What is coming up that matches, soonest first. q (2 to 100 letters), days (1 to 14), limit. 429 with `Retry-After` when several searches are running. |
+| `GET /guide/search` | user | What is coming up that matches, soonest first, each with its channel's `canRecord`. q (2 to 100 letters), days (1 to 14), limit. 429 with `Retry-After` when several searches are running. |
 | `GET /tv/favourites` | user | This account's favourite channels, as channel keys. The guide marks them too. |
 | `PUT /tv/favourites/{key}` | user | Star a channel. |
 | `DELETE /tv/favourites/{key}` | user | Unstar a channel. |
-| `GET /tv/reminders` | user | This account's reminders still to come. |
+| `GET /tv/reminders` | user | This account's reminders still to come, each with its channel's `canRecord`. |
 | `POST /tv/reminders` | user | Body: channel, title, sub, start, end. The same programme twice is one reminder. |
 | `DELETE /tv/reminders/{id}` | user | One of this account's reminders. |
 | `GET /channels/bumpers` | admin | Videos uploaded for the purpose, chosen from any library, or in a commercials library. |
@@ -1403,7 +1441,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `POST /epg/sources/{id}/refresh` | admin | Refresh EPG source. |
 | `GET /epg/ids` | admin | EPGI ds. |
 | `GET /recordings` | user | This account's recordings, and an administrator's sees everyone's. |
-| `POST /recordings` | user | Schedule. 404 for a channel turned off, 409 at 50 waiting (not for an administrator). |
+| `POST /recordings` | user | Schedule. Only a channel whose `canRecord` is true: 400 for a library channel, 403 for an encrypted one, one marked not to be recorded, or a profile without recordings, 404 for a channel turned off, 409 at 50 waiting (not for an administrator). See "Recording". |
 | `DELETE /recordings/{id}` | user | Cancel a recording of this account's; an administrator, anyone's. |
 
 ### Games
@@ -1743,7 +1781,7 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `GET /reach/{nonce}` | none | Reach. |
 | `DELETE /users/{id}/2fa` | admin | User two factor reset. |
 | `GET /recording-rules` | user | This account's recording rules, and an administrator's sees everyone's. |
-| `POST /recording-rules` | user | Add recording rule. 404 for a channel turned off, 409 at 20 (not for an administrator). |
+| `POST /recording-rules` | user | Record every airing of a title. Only a channel whose `canRecord` is true, refused as `POST /recordings` is; 409 at 20 (not for an administrator). See "Recording". |
 | `DELETE /recording-rules/{id}` | user | Delete a recording rule of this account's; an administrator, anyone's. |
 | `GET /dvd/{sid}/menu/{serial}/effect/{n}` | user | DVD effect. |
 | `GET /dvd/{sid}/sound/{n}` | user | DVD sound. |

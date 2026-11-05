@@ -79,6 +79,18 @@ type channelView struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Logo        string `json:"logo"`
+	CanRecord   bool   `json:"canRecord"` // always false: see recordable.go
+}
+
+// libraryChannel is a library channel as an administrator edits it, with the
+// same canRecord as everywhere else: always false.
+type libraryChannel struct {
+	*channels.Channel
+	CanRecord bool `json:"canRecord"`
+}
+
+func (s *Server) libraryChannelOut(r *http.Request, c *channels.Channel) libraryChannel {
+	return libraryChannel{c, s.canRecord(r, nil)}
 }
 
 // PUT /api/libraries/{id}/main: whether a commercials library shows in the
@@ -111,14 +123,18 @@ func (s *Server) handleChannels(w http.ResponseWriter, r *http.Request) {
 	}
 	u := userFrom(r)
 	if u.IsAdmin {
-		writeJSON(w, 200, list)
+		all := make([]libraryChannel, 0, len(list))
+		for _, c := range list {
+			all = append(all, s.libraryChannelOut(r, c))
+		}
+		writeJSON(w, 200, all)
 		return
 	}
 	a := s.access(r)
 	out := []channelView{}
 	for _, c := range list {
 		if s.Channels.Visible(r.Context(), c, u, a) {
-			out = append(out, channelView{c.ID, c.Number, c.Name, c.Description, c.Logo})
+			out = append(out, channelView{c.ID, c.Number, c.Name, c.Description, c.Logo, s.canRecord(r, nil)})
 		}
 	}
 	writeJSON(w, 200, out)
@@ -148,7 +164,7 @@ func (s *Server) handleCreateChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.noteChannelLogo(r.Context(), &c)
-	writeJSON(w, 200, c)
+	writeJSON(w, 200, s.libraryChannelOut(r, &c))
 }
 
 // fillWatchedBy: "watched" and "unwatched" rules go by the person who wrote
@@ -182,7 +198,7 @@ func (s *Server) handleChannel(w http.ResponseWriter, r *http.Request) {
 		channelError(w, err)
 		return
 	}
-	writeJSON(w, 200, c)
+	writeJSON(w, 200, s.libraryChannelOut(r, c))
 }
 
 func (s *Server) handleUpdateChannel(w http.ResponseWriter, r *http.Request) {
@@ -213,7 +229,7 @@ func (s *Server) handleUpdateChannel(w http.ResponseWriter, r *http.Request) {
 		channelError(w, err)
 		return
 	}
-	writeJSON(w, 200, c)
+	writeJSON(w, 200, s.libraryChannelOut(r, c))
 }
 
 func (s *Server) handleDeleteChannel(w http.ResponseWriter, r *http.Request) {
@@ -304,7 +320,7 @@ func (s *Server) handleRestoreChannel(w http.ResponseWriter, r *http.Request) {
 		channelError(w, err)
 		return
 	}
-	writeJSON(w, 200, c)
+	writeJSON(w, 200, s.libraryChannelOut(r, c))
 }
 
 // handleChannelPreview shows what a draft would do without saving it: how
@@ -691,9 +707,11 @@ type guideChannel struct {
 	HD        bool          `json:"hd,omitempty"`
 	Radio     bool          `json:"radio,omitempty"`
 	Encrypted string        `json:"encrypted,omitempty"` // why it cannot be tuned
-	CanRecord bool          `json:"canRecord,omitempty"`
-	NoRecord  string        `json:"noRecord,omitempty"` // why not, when the device says
-	ATSC3     bool          `json:"atsc3,omitempty"`
+	// CanRecord is the only thing that says whether to offer Record: see recordable.go.
+	// Always sent; false for every library channel.
+	CanRecord bool   `json:"canRecord"`
+	NoRecord  string `json:"noRecord,omitempty"` // why not, when the device says
+	ATSC3     bool   `json:"atsc3,omitempty"`
 	// Security is the same wording for every client. Tuner channels only: a
 	// library channel plays the owner's own files.
 	Security    *securityInfo       `json:"security,omitempty"`
@@ -762,7 +780,7 @@ func (s *Server) libraryRows(ctx context.Context, u *http.Request) []guideChanne
 			continue
 		}
 		row := guideChannel{Key: "lib-" + strconv.FormatInt(c.ID, 10), Kind: "library", ID: c.ID, Number: c.Number, Name: c.Name,
-			Description: c.Description, Categories: c.GuideCategories(), Accent: c.Look.Accent, Brand: brandOf(c)}
+			Description: c.Description, Categories: c.GuideCategories(), Accent: c.Look.Accent, Brand: brandOf(c), CanRecord: s.canRecord(u, nil)}
 		if c.Logo != "" {
 			row.Logo = fmt.Sprintf("/api/channels/%d/logo?v=%s", c.ID, c.Logo)
 		}
@@ -999,7 +1017,8 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 	ls.Viewer(viewerName(r))
 	info := tuneInfo{Key: r.PathValue("key"), Kind: "library", Number: c.Number, Name: c.Name, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
 		Description: c.Description, Accent: c.Look.Accent, Brand: brandOf(c),
-		PositionSec: float64(now.Unix() - cur.Start + cur.Offset), ServerTime: now.Unix(), CountProgress: c.CountProgress && cur.Kind == channels.KindShow}
+		PositionSec: float64(now.Unix() - cur.Start + cur.Offset), ServerTime: now.Unix(), CountProgress: c.CountProgress && cur.Kind == channels.KindShow,
+		CanRecord: s.canRecord(r, nil)}
 	if c.CountProgress {
 		info.PartEnd = cur.End
 	}

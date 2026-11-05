@@ -8532,6 +8532,18 @@
           "state": {
             "type": "string"
           },
+          "step": {
+            "type": "integer"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "title": {
             "type": "string"
           },

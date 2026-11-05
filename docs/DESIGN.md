@@ -431,6 +431,20 @@ clean. After clearing some, `python scripts/design-check.py --update` lowers the
 mask-image: linear-gradient(#000 80%, transparent); /* design-ok: a mask only reads how solid it is */
 ```
 
+A drawing of a real object, which keeps its own colours in every theme, says so once around the
+whole drawing. Its colours and corners are then its own, and the other rules still apply. The DVD
+remote, the disc going into its tray and the CD player are drawn this way:
+
+```css
+/* design-ok-begin: a drawn remote control */
+.remote { background: linear-gradient(180deg, #2a2d35, #15171c); }
+/* design-ok-end */
+```
+
+Anything else in such a file still uses the tokens: the video player sets its own dark ones on
+`.player`, so its panels and buttons use `var(--bg-2)`, `var(--border)` and `var(--on-image)` rather
+than colours of their own.
+
 ## Adding a page
 
 1. **Start from the page's job.** What is the one main action? That gets the `primary` button.

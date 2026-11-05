@@ -4,17 +4,12 @@
   "raw-colour": 10
  },
  "oobe.css": {
-  "radius": 2,
+  "radius": 1,
   "raw-colour": 11
- },
- "pages/tv/tv.css": {
-  "raw-colour": 4
  },
  "player.css": {
   "blur": 2,
   "font-size": 1,
-  "radius": 6,
-  "raw-colour": 107,
   "z-index": 3
  },
  "player/Controls.tsx": {
@@ -31,8 +26,6 @@
   "icon-label": 7
  },
  "player/cd.css": {
-  "radius": 20,
-  "raw-colour": 96,
   "z-index": 1
  }
 }

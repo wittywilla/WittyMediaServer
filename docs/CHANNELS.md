@@ -155,10 +155,15 @@ When nothing is scheduled, a channel shows a **We'll be right back** card with t
 | I or Enter | The banner |
 | R | The on-screen remote |
 | F | Full screen |
+| A, S | The next sound track, the next subtitles (when the channel has them) |
 | M, + and - | Mute and volume |
 | Escape | Back to the guide |
 
+**Sound and subtitles.** When what's on has more than one sound track, or subtitles or broadcast captions, the player's **Audio** and **Subtitles** buttons (and A and S, and the remote's buttons) choose between them, as in the library player. Everyone on a channel shares one stream, so a choice only changes what your player plays, and the language you choose is kept for the next programme and channel. Today a library channel's stream carries the programme's main sound track and no subtitles, so the buttons appear mostly for tuner channels with captions; other languages ([#238](https://github.com/wittywilla/WittyMediaServer/issues/238)) and subtitles ([#239](https://github.com/wittywilla/WittyMediaServer/issues/239)) in the shared stream are planned.
+
 You can pause and rewind within what's kept: 5 minutes on library channels and 30 on tuner channels, unless you change **Pause buffer** under **Options**.
+
+**Everyone at the same moment.** Two people watching the same channel, on any accounts and devices, see the same moment, as with a real broadcast. Each player keeps to the server's clock (a tuner channel, which arrives as it's broadcast, about 12 seconds behind it) and corrects itself every 2 seconds: a little off, it plays 3% faster or slower until it's back, which nobody notices; far off, after a stall, it jumps straight there. A device whose own clock is wrong still keeps time, because the player asks the server's. Pausing and going back leave you where you chose, behind the others; **L** or **Live** brings you back to everyone else.
 
 ## Channels in one click
 
@@ -480,6 +485,7 @@ Definition
 | `GET /api/tv/{key}/tune` | Signed in | What's on, and the stream |
 | `GET /api/tv/{key}/live/playlist.m3u8`, `/seg/{name}` | Signed in | The shared stream |
 | `POST /api/tv/{key}/leave?viewer=` | Signed in | A player has gone |
+| `GET /api/time` | Signed in | The server's clock, for keeping viewers to the same moment |
 | `GET /api/tv/{key}/logo` | May watch the channel | A tuner channel's logo, through the server. Internet addresses only |
 | `GET /api/tv/encrypted-help` | Signed in | The help page behind the encrypted label |
 | `GET /api/channels` | Signed in | Library channels this account may see |

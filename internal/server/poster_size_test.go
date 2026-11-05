@@ -105,6 +105,18 @@ func TestArtAskedSmallerIsSmaller(t *testing.T) {
 		}
 	}
 
+	// A game's cover the same way, and a poster already smaller than asked comes whole.
+	game := ts.item(t, &library.Item{LibraryID: lib, Kind: "game", Path: filepath.Join(film, "Game.sfc"), Title: "Game", Poster: poster})
+	if b := ts.do(t, "GET", fmt.Sprintf("/api/items/%d/poster?w=300", game.ID), tok, nil); b.Code != 200 || jpegWidth(t, "game cover", b.Body.Bytes()) != 320 {
+		t.Errorf("game cover: %d", b.Code)
+	}
+	tiny := filepath.Join(film, "tiny.jpg")
+	tinySize := noisyJPEG(t, tiny, 200, 300)
+	little := ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: filepath.Join(film, "Little.mkv"), Title: "Little", Poster: tiny})
+	if b := ts.do(t, "GET", fmt.Sprintf("/api/items/%d/poster?w=300", little.ID), tok, nil); b.Code != 200 || b.Body.Len() != tinySize {
+		t.Errorf("a poster already small: %d, %d bytes of %d", b.Code, b.Body.Len(), tinySize)
+	}
+
 	// A poster named outside the library's folders stays refused, small or not.
 	outside := filepath.Join(t.TempDir(), "poster.jpg")
 	noisyJPEG(t, outside, 400, 600)

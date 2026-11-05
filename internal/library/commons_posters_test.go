@@ -48,6 +48,9 @@ func fakeWikis(t *testing.T, license string) (*Wikidata, *int) {
 		case strings.HasPrefix(r.URL.Path, "/c"):
 			commonsCalls++
 			w.Write(info)
+		case q.Get("action") == "wbsearchentities" && !strings.Contains(q.Get("search"), "Dr."):
+			// As Wikidata's name search does, a name without the stop finds nothing.
+			w.Write([]byte(`{"search":[]}`))
 		case q.Get("action") == "wbsearchentities":
 			w.Write(commonsFixture(t, "search.json"))
 		case q.Get("action") == "wbgetentities" && q.Get("props") == "labels":
@@ -55,7 +58,8 @@ func fakeWikis(t *testing.T, license string) (*Wikidata, *int) {
 		case q.Get("action") == "wbgetentities":
 			w.Write(commonsFixture(t, "entities.json"))
 		case q.Get("action") == "query":
-			w.Write([]byte(`{"query":{"search":[]}}`))
+			// Wikidata's full-text search, recorded for "The Cabinet of Dr Caligari", films and series only.
+			w.Write([]byte(`{"query":{"search":[{"title":"Q153886"},{"title":"Q7720893"},{"title":"Q7720891"}]}}`))
 		default:
 			w.WriteHeader(404)
 		}
@@ -229,5 +233,38 @@ func TestCommonsCreditsForAddresses(t *testing.T) {
 	again := CommonsCredits(context.Background(), w, addresses)
 	if *calls != before || len(again) != 2 {
 		t.Errorf("asked Commons again (%d then %d), %d credits", before, *calls, len(again))
+	}
+}
+
+// The scan's name for a film can lose a stop ("Dr Caligari"), which Wikidata's name search doesn't
+// forgive: the full-text search finds it, and only a film is taken from it.
+func TestEnrichFindsAFilmWhoseNameLostItsStop(t *testing.T) {
+	w, _ := fakeWikis(t, "")
+	year := 1920
+	it := &Item{Title: "The Cabinet of Dr Caligari", Year: &year}
+	if err := w.Enrich(context.Background(), it); err != nil {
+		t.Fatal(err)
+	}
+	if it.ProviderID != "Q153886" || it.Poster != caligariPoster {
+		t.Errorf("matched %q, poster %q", it.ProviderID, it.Poster)
+	}
+}
+
+// A film can have several release dates; any of them counts against the year a file names.
+func TestReleasedNearAnyOfAFilmsDates(t *testing.T) {
+	date := func(d string) struct{ Mainsnak wdSnak } {
+		var s wdSnak
+		s.Datavalue.Value, _ = json.Marshal(map[string]string{"time": d})
+		return struct{ Mainsnak wdSnak }{s}
+	}
+	// As Wikidata has Plan 9 from Outer Space: its premiere, its release, a later one.
+	plan9 := wdEntity{Claims: map[string][]struct{ Mainsnak wdSnak }{wdPublication: {date("+1957-03-15T00:00:00Z"), date("+1959-07-22T00:00:00Z"), date("+1995-06-02T00:00:00Z")}}}
+	for year, want := range map[int]bool{1959: true, 1960: true, 1957: true, 1995: true, 1970: false, 1954: false} {
+		if got := releasedNear(plan9, year); got != want {
+			t.Errorf("%d: %v", year, got)
+		}
+	}
+	if releasedNear(wdEntity{}, 1959) {
+		t.Error("a film with no date")
 	}
 }

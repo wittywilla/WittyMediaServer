@@ -487,26 +487,9 @@ const (
 // searchText looks through everything a film or series is called, for a name that doesn't
 // start the way its entry does: "Dr Story The Treeline" for "The Treeline".
 func (w *wikidataSource) searchText(ctx context.Context, q string) ([]MatchCandidate, error) {
-	var res struct {
-		Query struct {
-			Search []struct {
-				Title string `json:"title"`
-			} `json:"search"`
-		} `json:"query"`
-	}
-	v := url.Values{"action": {"query"}, "list": {"search"}, "srlimit": {"10"}, "format": {"json"},
-		"srsearch": {strings.ReplaceAll(q, `"`, " ") + " haswbstatement:" + wdInstanceOf + "=" + wdFilm + "|" + wdInstanceOf + "=" + wdSeries}}
-	if err := w.get(ctx, w.api()+"?"+v.Encode(), &res); err != nil {
+	ids, err := w.searchTextIDs(ctx, q)
+	if err != nil || len(ids) == 0 {
 		return nil, err
-	}
-	var ids []string
-	for _, r := range res.Query.Search {
-		if wikiIDRe.MatchString(r.Title) {
-			ids = append(ids, r.Title)
-		}
-	}
-	if len(ids) == 0 {
-		return nil, nil
 	}
 	ents, err := w.entities(ctx, ids, "claims|labels|descriptions")
 	if err != nil {
@@ -532,6 +515,29 @@ func (w *wikidataSource) searchText(ctx context.Context, q string) ([]MatchCandi
 		out = append(out, c)
 	}
 	return out, nil
+}
+
+// searchTextIDs: the films and series whose names, any of them, have these words, best first.
+func (w *Wikidata) searchTextIDs(ctx context.Context, q string) ([]string, error) {
+	var res struct {
+		Query struct {
+			Search []struct {
+				Title string `json:"title"`
+			} `json:"search"`
+		} `json:"query"`
+	}
+	v := url.Values{"action": {"query"}, "list": {"search"}, "srlimit": {"10"}, "format": {"json"},
+		"srsearch": {strings.ReplaceAll(q, `"`, " ") + " haswbstatement:" + wdInstanceOf + "=" + wdFilm + "|" + wdInstanceOf + "=" + wdSeries}}
+	if err := w.get(ctx, w.api()+"?"+v.Encode(), &res); err != nil {
+		return nil, err
+	}
+	var ids []string
+	for _, r := range res.Query.Search {
+		if wikiIDRe.MatchString(r.Title) {
+			ids = append(ids, r.Title)
+		}
+	}
+	return ids, nil
 }
 
 func (w *wikidataSource) Details(ctx context.Context, id string) (*MatchDetails, error) {

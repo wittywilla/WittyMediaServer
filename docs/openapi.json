@@ -9641,6 +9641,9 @@
       },
       "TuneInfo": {
         "properties": {
+          "backgroundPlay": {
+            "type": "boolean"
+          },
           "accent": {
             "type": "string"
           },
@@ -9763,6 +9766,7 @@
           }
         },
         "required": [
+          "backgroundPlay",
           "bufferSec",
           "canRecord",
           "countProgress",
@@ -18653,6 +18657,10 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "backgroundPlay": {
+                      "description": "Whether a device that hasn't chosen keeps playing a channel while it's in the background. A device's own choice wins. See Playing in the background in CLIENT-API.md.",
+                      "type": "boolean"
+                    },
                     "channels": {
                       "items": {
                         "$ref": "#/components/schemas/GuideChannel"
@@ -18691,6 +18699,7 @@
                     }
                   },
                   "required": [
+                    "backgroundPlay",
                     "channels",
                     "now",
                     "from",

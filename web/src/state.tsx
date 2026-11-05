@@ -41,7 +41,12 @@ type AppState = {
   plainConnection: boolean
 }
 
-const Ctx = createContext<AppState>(null!)
+// One context for the life of the page. While developing, a hot update of this file would otherwise make a
+// second one, and the parts of the page still holding the first find no app: useApp() answered null, and
+// Shell crashed on it ("Cannot destructure property 'user'"). A built server has no hot updates.
+const Ctx: React.Context<AppState> = import.meta.hot
+  ? ((import.meta.hot.data.appContext as React.Context<AppState> | undefined) ??= createContext<AppState>(null!))
+  : createContext<AppState>(null!)
 export const useApp = () => useContext(Ctx)
 
 export function AppProvider({ children }: { children: React.ReactNode }) {

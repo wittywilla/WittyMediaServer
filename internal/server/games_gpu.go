@@ -161,6 +161,18 @@ func drawsWrongHere(c cores.Core) string {
 	return cardFaults[hostOS][c.ID]
 }
 
+// rightOnTheCard is the first of a console's cores, other than first, that draws on a graphics
+// card and draws right on this system's: what plays when nobody chose a core and first draws
+// wrongly here. drawsOnCard says a core draws on the card and can start (its BIOS is here).
+func rightOnTheCard(list []cores.Core, first cores.Core, drawsOnCard func(cores.Core) bool) *cores.Core {
+	for _, c := range list {
+		if c.Source != cores.SourceCustom && c.ID != first.ID && drawsWrongHere(c) == "" && drawsOnCard(c) {
+			return &c
+		}
+	}
+	return nil
+}
+
 // cardFaultNotice is the speed caveat for a game the processor draws because its core draws
 // wrongly on this system's graphics card.
 func cardFaultNotice() string {
@@ -218,8 +230,21 @@ func (s *Server) pickCore(ctx context.Context, console *wittyplay.Console, itemI
 	}
 	why := s.gpuMissing(ctx)
 	if why == "" {
-		if core != nil && drawsWrongHere(*core) != "" && cpuOptions(*core) != nil {
-			return corePick{core: core, software: true, notice: cardFaultNotice()}
+		if core != nil && drawsWrongHere(*core) != "" {
+			// Nobody chose it: a core that draws right on this system's card plays instead, as
+			// Play! does PlayStation 2 on a Mac, where LRPS2 can't use the card and its
+			// processor drawing can't keep a race at full speed. A game Play! can't open still
+			// goes on to LRPS2, as the next core to try.
+			if preferred == "" {
+				if c := rightOnTheCard(g.cores.AllForConsole(console, ""), *core, func(c cores.Core) bool {
+					return s.coreDrawsOnGPU(c) && wittyplay.MissingBIOS(c.ID, systemDir) == ""
+				}); c != nil {
+					return corePick{core: c}
+				}
+			}
+			if cpuOptions(*core) != nil {
+				return corePick{core: core, software: true, notice: cardFaultNotice()}
+			}
 		}
 		return corePick{core: core, blocked: blocked}
 	}

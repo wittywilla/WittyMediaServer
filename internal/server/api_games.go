@@ -431,8 +431,10 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 			}
 			switch {
 			case *gpuWhy == "":
-				// A card, but the core it would start on draws wrongly on it on this system.
-				if v.Ready && len(v.Installed) > 0 && drawsWrongHere(v.Installed[0]) != "" && cpuOptions(v.Installed[0]) != nil {
+				// A card, but the core it would start on draws wrongly on it on this system, and
+				// no other installed core draws right on it (see pickCore).
+				if v.Ready && len(v.Installed) > 0 && drawsWrongHere(v.Installed[0]) != "" && cpuOptions(v.Installed[0]) != nil &&
+					(v.DefaultCore != "" || rightOnTheCard(v.Installed, v.Installed[0], s.coreDrawsOnGPU) == nil) {
 					v.Software, v.Notice = true, cardFaultNotice()
 				}
 			case s.canDrawOnCPU(&v):

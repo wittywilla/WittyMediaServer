@@ -626,6 +626,32 @@ words to show as they are:
 | 404 | A tuner channel that is turned off, or that this profile can't see. |
 | 409 | 50 recordings already waiting, or 20 series rules, for an account that isn't an administrator. |
 
+### Playing in the background
+
+A channel keeps playing, sound and all, when its tab, window or app goes to the background, for as long as
+it would in front: people leave it on while they work. Every client offers the same choice, **Keep playing when
+this tab is in the background** ("this app" in an app), in WittyTV's settings and in the player's settings.
+
+- **It's the device's own.** Keep it on the device, not with the account: the website keeps it in
+  `localStorage` under `wms.tv.backgroundPlay` (`"1"` or `"0"`). A device that hasn't chosen goes by
+  `backgroundPlay` (boolean), which `GET /guide` and `GET /tv/{key}/tune` always send: `true` unless the
+  owner turned off `tvBackgroundPlay` in `PUT /tv/settings` for new devices.
+- **On** (the default): don't stop, pause, mute or leave the channel because the client is in the
+  background. The server counts a viewer as gone after **30 seconds** without a request from it, and stops a
+  channel **45 seconds** after its last request, so a player that may go quiet in the background (muted,
+  paused, or slowed down by the system) asks for its playlist, `GET /tv/{key}/live/playlist.m3u8?viewer=<name>`,
+  at least every **15 seconds** while it's there. A browser keeps that timer in a worker, which background
+  tabs don't slow down. A pause the system made (a browser pausing a silent video in a background tab) isn't
+  the viewer's: play again when the client comes back. A pause the viewer asked for stays.
+- **Off:** going to the background leaves the channel at once, `POST /tv/{key}/leave?viewer=<name>`, which
+  frees a tuner, and stops the player. Coming back tunes in again with `GET /tv/{key}/tune` and plays at
+  what's on now.
+- While it's off, the website marks its page `<html data-background-play="off">`, for a desktop app that keeps
+  its window from being slowed down in the background (and so always looks visible): seeing that, the app lets
+  the page be hidden as a browser would.
+- The server never ends a channel because a client is in the background. It only stops one that nobody has
+  asked for in 45 seconds, or that its last viewer left.
+
 ## Discs and their menus
 
 Discs don't need a browser: the disc engines run on the server, and a client only draws what it is told.
@@ -1379,7 +1405,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /guide` | user | Every channel this account may watch, with its programmes. Each can name `logo`, a picture of its own, or `brand`, for `POST /logos/lookup`, and always has `canRecord`, the only signal for offering Record (see "Recording"). Beside them, `theme`, `layout` and `skin`: what a new viewer starts with. |
+| `GET /guide` | user | Every channel this account may watch, with its programmes. Each can name `logo`, a picture of its own, or `brand`, for `POST /logos/lookup`, and always has `canRecord`, the only signal for offering Record (see "Recording"). Beside them, `theme`, `layout` and `skin`: what a new viewer starts with, and `backgroundPlay`: whether a device that hasn't chosen keeps playing in the background. |
 | `GET /tv/{key}/tune` | user | What is on a channel, and starts its stream, with `canRecord`. `streamToken=1` adds `streamUrl` for players that can't set headers. See "Live channels". |
 | `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
 | `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |
@@ -1387,7 +1413,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /time` | user | The server's clock, `{"now": <milliseconds>}`, for keeping to the same moment on a channel. See "Live channels". |
 | `GET /tv/{key}/logo` | user | A tuner channel's logo, fetched and kept by the server, so the site a playlist names never sees the viewer. The `logo` in `/guide` and `/tune` is this address. |
 | `GET /tv/settings` | admin | TV settings. |
-| `PUT /tv/settings` | admin | Put TV settings. |
+| `PUT /tv/settings` | admin | Put TV settings. `tvBackgroundPlay` (`"1"` or `"0"`) is what a device that hasn't chosen does in the background; see "Playing in the background". |
 | `PUT /libraries/{id}/main` | admin | Library show main. |
 | `GET /channels` | user | Library channels, each with `canRecord: false`. |
 | `POST /channels` | admin | Create channel. |

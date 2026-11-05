@@ -4,6 +4,7 @@ import { IconCheck } from '../../icons'
 import { Button, Segmented, Sheet } from '../../ui'
 import { appColours, clearThemeColours, forgetPreviewSize, forgetTheme, PREVIEW_SIZES, pickTheme, previewSizeName, resetLook, setLook, setThemeColour, type Look } from './look'
 import { baseColours, FONTS, isHex, SHAPES, SLOTS, themeById, themeTokens, THEMES, type Font, type Shape, type Slot } from './tvThemes'
+import BackgroundPlayChoice from './BackgroundPlayChoice'
 import './tvthemes.css'
 
 // WittyTV's look, on the guide's Look panel and in Settings. The first thing is one big choice,
@@ -220,6 +221,7 @@ export function LookEditor({ look, inSettings }: { look: Look; inSettings?: bool
             <label><input type="checkbox" checked={look.art} onChange={(e) => setLook({ art: e.target.checked })} /> The programme's picture at the top, in the themes that have one</label>
           </div>
         </fieldset>
+        <BackgroundPlayChoice />
         {inSettings ? <p className="ctv-colour-note"><Link to="/tv">See it on the guide</Link></p> : <p className="ctv-colour-note">This is also in <Link to="/settings/appearance#wittytv">Settings, Appearance</Link>.</p>}
       </section>
     </div>

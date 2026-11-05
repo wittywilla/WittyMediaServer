@@ -28,7 +28,8 @@ const (
 	// A picture bigger than this isn't a cover, and decoding it could take all the memory
 	// a small machine has.
 	maxThumbPixels = 16 << 20
-	thumbMaxWidth  = 640
+	// Posters are asked for up to 640 wide, backdrops up to a screen's width.
+	thumbMaxWidth = 1920
 )
 
 var (

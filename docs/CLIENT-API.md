@@ -1346,11 +1346,13 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /tuners/discover` | admin | Tuner discover. |
 | `GET /tuners` | admin | Tuners. |
 | `POST /tuners` | admin | Create tuner. |
+| `POST /tuners/check` | admin | Check tuner: what a source says before it's saved. Answers `{ok, result}` or `{ok: false, problem: {kind, message, hint}}`, and keeps nothing. |
 | `PUT /tuners/{id}` | admin | Update tuner. |
 | `DELETE /tuners/{id}` | admin | Delete tuner. |
 | `POST /tuners/{id}/refresh` | admin | Refresh tuner. |
 | `POST /tuners/{id}/scan` | admin | Scan tuner. |
 | `GET /tuners/{id}/scan` | admin | Scan progress2. |
+| `POST /tuners/{id}/test` | admin | Test tuner: tunes one channel (`{channel}`, or 0 to let it choose) for a few seconds, as a viewer would. Encrypted channels are refused as everywhere else. |
 | `GET /tuners/{id}/channels` | admin | Tuner channels. |
 | `POST /tuners/{id}/channels/enable` | admin | Enable all channels. |
 | `PUT /tuner-channels/{id}` | admin | Edit tuner channel. `logo` is `""` to find it by name, `none`, or `kind\|name` in the logo service. |

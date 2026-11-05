@@ -106,7 +106,7 @@ Most settings are in the app. These are the ones a container sets with `environm
 |---|---|---|
 | `WMS_DATA_DIR` | `/config` | The server's own folder |
 | `WMS_TRANSCODE_DIR` | `/config/transcode` | Video while it's being converted |
-| `WMS_LISTEN` | `:9797` | The address and port inside the container. Change the left side of `ports:` instead |
+| `WMS_LISTEN` | `:9797` | The address and port inside the container. Change the left side of `ports:` instead, as **Settings → Network** says too |
 | `WMS_DOCKER` | `1` | Says it's a container: the server doesn't replace its own files, and its messages talk about compose files |
 | `XDG_CACHE_HOME` | `/config/cache/xdg` | Where graphics drivers keep their caches. Somewhere writable, for any user and a read-only root |
 | `NVIDIA_DRIVER_CAPABILITIES` | `compute,video,utility` | Asks the NVIDIA Container Toolkit for the video encoder as well as the card |

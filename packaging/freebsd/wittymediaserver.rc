@@ -8,7 +8,9 @@
 #   wittymediaserver_enable   YES to start at boot
 #   wittymediaserver_user     the account it runs as (%%USER%%)
 #   wittymediaserver_data     the folder for its library and settings (%%DATA%%)
-#   wittymediaserver_listen   the address to listen on (:%%PORT%%)
+#   wittymediaserver_listen   an address to listen on, such as 127.0.0.1:9797, which wins over
+#                             Settings, Network and settings.ini. Unset, the port is the one
+#                             in settings.ini in the data folder, or 9797
 
 . /etc/rc.subr
 
@@ -19,13 +21,13 @@ load_rc_config $name
 : ${wittymediaserver_enable:=NO}
 : ${wittymediaserver_user:=%%USER%%}
 : ${wittymediaserver_data:=%%DATA%%}
-: ${wittymediaserver_listen:=:%%PORT%%}
+: ${wittymediaserver_listen:=}
 
 pidfile=/var/run/${name}.pid
 command=/usr/sbin/daemon
 procname=/usr/sbin/daemon
-# -r starts it again if it stops, as it asks to after an update.
-command_args="-f -r -R 3 -P ${pidfile} -o ${wittymediaserver_data}/wms.log /usr/bin/env PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin WMS_NO_BROWSER=1 WMS_DATA_DIR=${wittymediaserver_data} WMS_LISTEN=${wittymediaserver_listen} %%PROGRAM%%/bin/wittymediaserver serve"
+# -r starts it again if it stops, as it asks to after an update. WMS_SUPERVISED tells it so.
+command_args="-f -r -R 3 -P ${pidfile} -o ${wittymediaserver_data}/wms.log /usr/bin/env PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin WMS_NO_BROWSER=1 WMS_SUPERVISED=1 WMS_DATA_DIR=${wittymediaserver_data} ${wittymediaserver_listen:+WMS_LISTEN=${wittymediaserver_listen}} %%PROGRAM%%/bin/wittymediaserver serve"
 start_precmd="${name}_precmd"
 
 wittymediaserver_precmd()

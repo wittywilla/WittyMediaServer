@@ -5,8 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +21,7 @@ import (
 // wittymediaserver config path            show the config file and folders in use
 // wittymediaserver config init            write a starter wms.json in the user config folder
 // wittymediaserver config init --portable write it next to the program (portable mode)
+// wittymediaserver config port [<port>]    show the port, or save one in settings.ini
 func cmdConfig(args []string) int {
 	if len(args) == 0 || args[0] == "path" {
 		cfg, err := config.Parse(nil)
@@ -30,12 +33,15 @@ func cmdConfig(args []string) int {
 		if file == "" {
 			file = "(none — using defaults; create one with: wittymediaserver config init)"
 		}
-		fmt.Printf("config file:   %s\nportable:      %v\ndata:          %s\nmetadata:      %s\ncache:         %s\ntranscode:     %s\nlogs:          %s\nlisten:        %s\n",
-			file, cfg.Portable, cfg.DataDir, cfg.ImagesDir, cfg.CacheDir, cfg.TranscodeDir, cfg.LogDir, cfg.Listen)
+		fmt.Printf("config file:   %s\nportable:      %v\ndata:          %s\nmetadata:      %s\ncache:         %s\ntranscode:     %s\nlogs:          %s\nlisten:        %s, %s\nsettings file: %s\n",
+			file, cfg.Portable, cfg.DataDir, cfg.ImagesDir, cfg.CacheDir, cfg.TranscodeDir, cfg.LogDir, cfg.Listen, listenFrom(cfg), config.SettingsSaveFile(cfg.DataDir))
 		return 0
 	}
+	if args[0] == "port" {
+		return cmdConfigPort(args[1:])
+	}
 	if args[0] != "init" {
-		fmt.Fprintln(os.Stderr, "usage: wittymediaserver config [path | init [--portable]]")
+		fmt.Fprintln(os.Stderr, "usage: wittymediaserver config [path | init [--portable] | port [<port>]]")
 		return 2
 	}
 	target := config.UserConfigFile()
@@ -65,6 +71,118 @@ func cmdConfig(args []string) int {
 	}
 	fmt.Println("wrote", target)
 	return 0
+}
+
+// listenFrom says in words where the address came from.
+func listenFrom(c *config.Config) string {
+	switch c.ListenFrom {
+	case config.FromFlag:
+		return "from -listen"
+	case config.FromEnv:
+		return "from WMS_LISTEN"
+	case config.FromConfig:
+		return "from " + c.ConfigFile
+	case config.FromSettings:
+		return "from " + c.SettingsFile
+	}
+	return "the default"
+}
+
+// cmdConfigPort shows the port, or saves one in the settings.ini Settings → Network uses, for the
+// next start. Installers carry an earlier install's port over with it:
+//
+//	wittymediaserver config port [-data <dir>] [<port>]
+//	wittymediaserver config port -data <dir> -in-data [-port <port>] [-from-command <an old service's command line>]
+//
+// -port wins. -from-command takes the port of -listen in the words after it. An empty -port, or
+// a command line with no -listen, is nothing to carry over. -in-data saves in the data folder's
+// copy, as a service started by install.sh can't change the one beside the program.
+func cmdConfigPort(args []string) int {
+	var rest []string
+	port, carrying, inData := "", false, false
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		switch name := strings.TrimLeft(a, "-"); {
+		case name == "port" && i+1 < len(args):
+			i++
+			carrying = true
+			if port == "" {
+				port = args[i]
+			}
+		case name == "in-data":
+			inData = true
+		case name == "from-command":
+			carrying = true
+			if port == "" {
+				port = listenInCommand(args[i+1:])
+			}
+			i = len(args)
+		case (name == "data" || name == "config") && i+1 < len(args):
+			rest = append(rest, a, args[i+1])
+			i++
+		case !strings.HasPrefix(a, "-") && port == "":
+			port = a
+		default:
+			rest = append(rest, a)
+		}
+	}
+	cfg, err := config.ParseOnly(rest)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	if port == "" {
+		if carrying {
+			fmt.Println("no port to carry over")
+			return 0
+		}
+		_, p, _ := net.SplitHostPort(cfg.Listen)
+		fmt.Printf("port %s, %s\nSettings → Network saves it in %s\n", p, listenFrom(cfg), config.SettingsSaveFile(cfg.DataDir))
+		return 0
+	}
+	n, err := strconv.Atoi(port)
+	if err != nil || n < config.MinPort || n > config.MaxPort {
+		fmt.Fprintf(os.Stderr, "%q isn't a port: a port is a number from %d to %d\n", port, config.MinPort, config.MaxPort)
+		return 2
+	}
+	file := config.SettingsSaveFile(cfg.DataDir)
+	if inData {
+		file = config.DataSettingsFile(cfg.DataDir)
+	}
+	if err := config.SavePort(file, n); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	fmt.Printf("port %d saved in %s, for the next start\n", n, file)
+	switch cfg.ListenFrom {
+	case config.FromFlag, config.FromEnv, config.FromConfig:
+		fmt.Printf("but %s, %s, wins over it: remove that to use this port\n", cfg.Listen, listenFrom(cfg))
+	}
+	return 0
+}
+
+// listenInCommand is the port of -listen in a command line, such as the Windows service's before
+// 0.7.0: `"...\wittymediaserver.exe" --windows-service serve -data "C:\ProgramData\..." -listen :8080`.
+// "" when there's none, or it isn't just a port on every network card.
+func listenInCommand(words []string) string {
+	for i, w := range words {
+		v := ""
+		switch {
+		case (w == "-listen" || w == "--listen") && i+1 < len(words):
+			v = words[i+1]
+		case strings.HasPrefix(w, "-listen=") || strings.HasPrefix(w, "--listen="):
+			v = w[strings.Index(w, "=")+1:]
+		default:
+			continue
+		}
+		if p, ok := strings.CutPrefix(strings.Trim(v, `"`), ":"); ok {
+			if _, err := strconv.Atoi(p); err == nil {
+				return p
+			}
+		}
+		return ""
+	}
+	return ""
 }
 
 // wittymediaserver reset-2fa [-data <dir>] <name>: the way back for an account whose phone

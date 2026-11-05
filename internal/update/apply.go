@@ -85,8 +85,8 @@ func Swap(dir, staged string, protect []string) ([]string, error) {
 			return nil
 		}
 		dst := filepath.Join(dir, rel)
-		// How this copy was installed stays true after an update.
-		if rel == layout.Marker && fileExists(dst) {
+		// How this copy was installed stays true after an update, and so does its port.
+		if (rel == layout.Marker || rel == "settings.ini") && fileExists(dst) { // config.SettingsName
 			return nil
 		}
 		for _, pr := range protect {

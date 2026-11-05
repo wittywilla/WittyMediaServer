@@ -130,6 +130,7 @@ export const settingsPages: Record<string, string> = {
   'Game PCs': 'couch',
   'Live transcoding': 'transcoding',
   'Library transcoding': 'library-transcoding',
+  Network: 'network',
   'Remote Access': 'remote',
   Profiles: 'users',
   'Sign-in & security': 'security',

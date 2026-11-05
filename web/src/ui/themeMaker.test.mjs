@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { contrast, makeTheme, themeCss } from './themeMaker.ts'
+import { contrast, makeTheme, themeCss, themeDeclarations } from './themeMaker.ts'
 
 const COLOURS = ['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff', '#ffffff', '#000000', '#808080', '#7955ff', '#e8a33a', '#123456', '#fedcba', '#2fb67c']
 
@@ -36,4 +36,19 @@ test('the stylesheet holds only what was made', () => {
 test('an accent that had to move says so; one that fits does not', () => {
   assert.equal(makeTheme({ name: 'x', scheme: 'dark', accent: '#2f6fed', tint: '#2f6fed', corners: 'soft' }).adjusted, false)
   assert.equal(makeTheme({ name: 'x', scheme: 'dark', accent: '#777777', tint: '#777777', corners: 'soft' }).adjusted, true)
+})
+
+// A made theme is applied through the CSSOM (theme.ts), as the server's content security policy refuses
+// a <style> element made by the page: every declaration of its stylesheet has to come through.
+test("a made theme's stylesheet comes back as all its declarations", () => {
+  const input = { name: 'x', scheme: 'light', accent: '#e8a33a', tint: '#123456', corners: 'soft' }
+  const css = themeCss(input)
+  const decls = themeDeclarations(css)
+  const names = decls.map(([n]) => n)
+  for (const k of Object.keys(makeTheme(input).vars)) assert.ok(names.includes('--' + k), k)
+  for (const k of ['color-scheme', '--bg-rgb', '--accent-rgb', '--radius']) assert.ok(names.includes(k), k)
+  assert.equal(decls.length, (css.match(/;/g) || []).length)
+  assert.deepEqual(decls.find(([n]) => n === 'color-scheme'), ['color-scheme', 'light'])
+  assert.deepEqual(themeDeclarations('not css'), [])
+  assert.deepEqual(themeDeclarations(':root{position:fixed;--ok:1}'), [['--ok', '1']]) // only the theme's own kinds of property
 })

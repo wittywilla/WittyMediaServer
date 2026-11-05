@@ -42,7 +42,10 @@ func TestDiagnoseJobIsReadWhileItAddsFindings(t *testing.T) {
 		}
 	}
 	// Until the report is saved, which is the last the job writes to its folder.
+	// The job is let go only once these reads have seen it running with findings,
+	// however long the worker takes to start: fifty reads can all come first.
 	deadline := time.Now().Add(2 * time.Minute)
+	stopped := false
 	for reads := 1; ; reads++ {
 		v, ok := m.JobView(j.ID)
 		if !ok {
@@ -54,8 +57,9 @@ func TestDiagnoseJobIsReadWhileItAddsFindings(t *testing.T) {
 			encode("the report", r)
 			_ = r.Redact().Text()
 		}
-		if reads == 50 {
+		if !stopped && reads >= 50 && v.State == StateRunning && len(v.Findings) >= 2 {
 			close(enough)
+			stopped = true
 		}
 		if v.Saved {
 			break

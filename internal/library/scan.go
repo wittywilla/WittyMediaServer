@@ -125,7 +125,7 @@ func (s *Scanner) StartBy(libraryID int64, by tasks.By) bool {
 			delete(s.Progress, libraryID)
 			s.mu.Unlock()
 		}()
-		err := s.scan(context.WithValue(ctx, taskKey{}, t), libraryID)
+		err := scanGuarded(func() error { return s.scan(context.WithValue(ctx, taskKey{}, t), libraryID) }, "cat", "library", "session", id)
 		t.Finish(err)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
@@ -166,7 +166,7 @@ func findUnlessCancelled(ctx context.Context, find func(string) ([]candidate, er
 	}
 	ch := make(chan found, 1)
 	logging.Go("library walk", func() {
-		list, err := find(root)
+		list, err := walkGuarded(find, root)
 		ch <- found{list, err}
 	}, "cat", "library")
 	select {
@@ -175,6 +175,35 @@ func findUnlessCancelled(ctx context.Context, find func(string) ([]candidate, er
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
+}
+
+// errWalkStopped: a walk ended on a fault of the server's own, so what it found can't be
+// trusted to be everything there is. The scan keeps that folder's items, as for a drive
+// that's away.
+var errWalkStopped = errors.New("the server hit a fault while reading this folder; it's in the log")
+
+// walkGuarded runs a walk, turning a panic into errWalkStopped: a waiter that's never
+// answered would hold the scan, and every scan and backup behind it, for ever.
+func walkGuarded(find func(string) ([]candidate, error), root string) (list []candidate, err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			logging.ReportPanic("library walk", p, "cat", "library")
+			list, err = nil, errWalkStopped
+		}
+	}()
+	return find(root)
+}
+
+// scanGuarded runs a whole scan, turning a panic into an error, so its activity entry
+// ends as failed instead of showing it running until the server restarts.
+func scanGuarded(scan func() error, attrs ...any) (err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			logging.ReportPanic("library scan", p, attrs...)
+			err = fmt.Errorf("the scan stopped on a fault in the server (%v)", p)
+		}
+	}()
+	return scan()
 }
 
 // scanResult says what came of a scan, for the activity history.
@@ -377,6 +406,14 @@ func (u *unreadable) with(err error) error {
 	return fmt.Errorf("%d folders or files could not be read, the first: %w", u.n, u.first)
 }
 
+// entryMTime is when an entry last changed, or 0 if it's gone since its folder was listed.
+func entryMTime(d os.DirEntry) int64 {
+	if st, err := d.Info(); err == nil {
+		return st.ModTime().Unix()
+	}
+	return 0
+}
+
 func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 	var out []candidate
 	var bad unreadable
@@ -392,16 +429,14 @@ func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 				return filepath.SkipDir
 			}
 			if plainFile(filepath.Join(p, "VIDEO_TS", "VIDEO_TS.IFO")) {
-				st, _ := d.Info()
-				out = append(out, candidate{path: p, kind: "dvd-folder", mtime: st.ModTime().Unix()})
+				out = append(out, candidate{path: p, kind: "dvd-folder", mtime: entryMTime(d)})
 				return filepath.SkipDir
 			}
 			if strings.EqualFold(name, "VIDEO_TS") {
 				return filepath.SkipDir
 			}
 			if plainFile(filepath.Join(p, "BDMV", "index.bdmv")) {
-				st, _ := d.Info()
-				out = append(out, candidate{path: p, kind: "bluray-folder", mtime: st.ModTime().Unix()})
+				out = append(out, candidate{path: p, kind: "bluray-folder", mtime: entryMTime(d)})
 				return filepath.SkipDir
 			}
 			if strings.EqualFold(name, "BDMV") {
@@ -549,12 +584,18 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		var c []candidate
 		var err error
 		if lib.Type == "games" {
-			c, err = find(root) // watches for a cancel as it goes, and shares what it finds with this scan
+			c, err = walkGuarded(find, root) // watches for a cancel as it goes, and shares what it finds with this scan
 		} else {
 			c, err = findUnlessCancelled(ctx, find, root)
 		}
 		if ctx.Err() != nil {
 			return ctx.Err() // before anything half-found is kept
+		}
+		if errors.Is(err, errWalkStopped) {
+			s.Log.ErrorContext(ctx, "could not read a library folder; keeping its items", "library", lib.Name, "dir", root, "err", err)
+			task.Problem(root, "This folder couldn't be read because of a fault in the server, so what it held is being kept for now. The log has the details.")
+			offline = append(offline, root)
+			continue
 		}
 		if err != nil {
 			s.Log.WarnContext(ctx, "could not read all of a library folder", "library", lib.Name, "dir", root, "err", err)

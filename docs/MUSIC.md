@@ -153,7 +153,7 @@ A song in a **Music** library and its video in a **Music videos & concerts** lib
 
 ### The Music videos section
 
-Each music library has a **Music videos** tab beside **Songs**, and a **Music videos** shelf on its front page with the newest ones. It lists the videos of every **Music videos & concerts** library you can see, grouped by artist, and you can find one by its title or artist. A video tied to a song in your music shows the song's album under it, which takes you there. Pressing a video plays it on its own page.
+Each music library has a **Music videos** tab beside **Songs**, and a **Music videos** shelf on its front page with the newest ones. It lists the videos of every **Music videos & concerts** library you can see, in order of artist, and you can find one by its title or artist. A video tied to a song in your music shows the song's album under it, which takes you there. Pressing a video plays it on its own page.
 
 Profile limits apply as everywhere: a video a profile can't watch isn't listed, and neither is a song it can't hear.
 

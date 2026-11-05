@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type Library } from '../../api'
 import { EmptyState, Spinner } from '../../components/common'
@@ -44,17 +44,9 @@ export function MusicVideosTab({ lib }: { lib: Library }) {
   const [q, setQ] = useState('')
   const [search, setSearch] = useState('')
   useEffect(() => { const t = setTimeout(() => setSearch(q.trim()), 250); return () => clearTimeout(t) }, [q])
+  // In artist order from the server, each tile naming its artist: most artists have one or
+  // two videos, so a heading each would leave the page mostly empty.
   const { items, more, loadMore } = useMusicVideos(search)
-  // In artist order from the server, so a page break only ever continues the last group.
-  const groups = useMemo(() => {
-    const out: { artist: string; videos: MusicVideoCard[] }[] = []
-    for (const v of items || []) {
-      const last = out[out.length - 1]
-      if (last && last.artist === v.creator) last.videos.push(v)
-      else out.push({ artist: v.creator, videos: [v] })
-    }
-    return out
-  }, [items])
   return (
     <>
       <div className="mh-filters">
@@ -64,13 +56,7 @@ export function MusicVideosTab({ lib }: { lib: Library }) {
       </div>
       {!items ? <Spinner /> : items.length === 0
         ? <EmptyState icon={<IconChannels />} title={search ? 'Nothing matches that' : 'No music videos yet'} text={search ? '' : 'Add a library of the kind Music videos & concerts, and its videos appear here by artist.'} />
-        : groups.map((g) => (
-          <Shelf key={g.artist} title={g.artist || 'Unknown artist'}>
-            <div className="cr-grid mh-videos">
-              {g.videos.map((v) => <MusicVideoTile key={v.id} v={v} lib={lib} />)}
-            </div>
-          </Shelf>
-        ))}
+        : <div className="cr-grid mh-videos">{items.map((v) => <MusicVideoTile key={v.id} v={v} lib={lib} />)}</div>}
       <LoadMore more={more} onMore={loadMore} />
     </>
   )
@@ -80,7 +66,7 @@ export function MusicVideosTab({ lib }: { lib: Library }) {
 export function MusicVideoTile({ v, lib }: { v: MusicVideoCard; lib: Library }) {
   return (
     <div className="mh-video">
-      <VideoTile v={v} to={`/watch/${v.id}`} showCreator={false} />
+      <VideoTile v={v} to={`/watch/${v.id}`} />
       {v.song && (
         <Link className="mh-video-song" to={v.song.libraryId === lib.id && v.song.album ? `/album/${lib.id}?artist=${encodeURIComponent(v.song.artist)}&album=${encodeURIComponent(v.song.album)}` : artistLink(v.song.libraryId, v.song.artist)}>
           <IconAudio size={14} /> <span>{v.song.album ? `On ${v.song.album}` : 'In your music'}</span>

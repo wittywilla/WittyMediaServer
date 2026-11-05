@@ -927,6 +927,10 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `POST /repair/fix` | admin | Fix from the last report: `{keys, allSafe, option, password, code}`. A fix that isn't `safe`, or any `option`, needs the password and any second step again. 202, then ask `GET /repair`. |
 | `POST /repair/remap` | admin | A library's folder moved: `{from, to}` says what would change, and adds `{apply: true, password, code}` to do it. |
 | `POST /repair/restart` | admin | Restart, for a fix that waits for the next start. 409 if none is waiting. |
+| `GET /network` | admin | The port: `{port, host, from, settingsFile, saveFile, locked, docker, next, canRestart, problems, addresses, discoveryPort, httpsPort}`. `from` is `flag`, `env`, `config`, `settings` or `default`; `locked` says where the port is set when this can't change it; `next` is the port after a restart. See [The port](CONFIG.md#the-port). |
+| `POST /network/check` | admin | `{port}`: whether the server could move there, `{port, ok, current, problems, warnings}`. In range, not a port browsers refuse, not Remote Access's HTTPS port, and free here, tried by listening for a moment. Saves nothing. |
+| `PUT /network` | admin | `{port}`: save it in settings.ini for the next start, after the same checks; 400 with the first problem. 409 when `-listen`, `WMS_LISTEN`, `wms.json` or Docker set the port. Answers as `GET /network`. |
+| `POST /network/restart` | admin | Restart, on the saved port. 202, then nothing answers until it's back, at the new port. 409 when it can't restart itself. |
 | `GET /update` | admin | What is installed and what is available (404 in builds that can't update themselves). |
 | `POST /update/check` | admin | Look for a new version now. |
 | `POST /update/apply` | admin | Download, verify and install the newest release, then restart. |

@@ -152,6 +152,11 @@
       <Component Id="Marker">
         <File Id="Marker" Source="!(bindpath.pkg)\package-info.json" KeyPath="yes" />
       </Component>
+      <!-- settings.ini, for someone to change the port in Notepad. Once it's there it's kept through
+           upgrades and repairs, as a changed one is theirs; Uninstall WittyMediaServer.exe removes it. -->
+      <Component Id="SettingsFile" NeverOverwrite="yes" Permanent="yes">
+        <File Id="SettingsFile" Source="!(bindpath.pkg)\settings.ini" KeyPath="yes" />
+      </Component>
 
       <!-- The server: Windows Installer registers a service for the file its component holds,
            so there are two components, of which one is installed. -->

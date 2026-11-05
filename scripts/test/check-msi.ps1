@@ -77,6 +77,8 @@ if ($svc.account -notmatch 'LocalService') { Fail "the service isn't under the l
 if ($svc.comp -ne 'ServerAsService') { Fail "the service is in the wrong component" }
 # A folder property ends in a backslash, which would escape the closing quote.
 if ($svc.args -match '\[ServiceDataFolder\]"') { Fail "the service's data folder argument ends in a backslash before its quote" } else { Ok "the service's arguments are quoted safely" }
+# The port is in settings.ini, where Settings → Network can change it: -listen would win over that.
+if ($svc.args -match '-listen') { Fail "the service is given -listen, which would win over settings.ini" } else { Ok "the service takes its port from settings.ini" }
 $tables = (Query $db 'SELECT Name FROM _Tables' @('n')).n
 $fwTable = $tables | Where-Object { $_ -match 'FirewallException' } | Select-Object -First 1
 if (-not $fwTable) {
@@ -86,6 +88,9 @@ if (-not $fwTable) {
   $fw = Query $db ("SELECT * FROM ``$fwTable``") $cols
   $fw | ForEach-Object { Write-Host "Firewall ($fwTable): $(($_.PSObject.Properties | Where-Object { $_.Value } | ForEach-Object { "$($_.Name)=$($_.Value)" }) -join ' ')" }
   if (@($fw).Count -ne 2) { Fail "there should be a rule for each of TCP and UDP" } else { Ok "a firewall rule for each of TCP and UDP" }
+  # TCP follows the program, not one port, so it goes on working when the port is changed.
+  $tcp = $fw | Where-Object { ($_.PSObject.Properties | Where-Object { $_.Value -match 'wittymediaserver\.exe' }) }
+  if (-not $tcp) { Fail "the TCP rule isn't for the server program, so it wouldn't follow a changed port" } else { Ok "the TCP rule is for the server program" }
 }
 
 $reg = Query $db 'SELECT `Registry`, `Root`, `Key`, `Name`, `Value`, `Component_` FROM `Registry`' @('id', 'root', 'key', 'name', 'value', 'comp')
@@ -101,6 +106,7 @@ $files = Query $db 'SELECT File, Component_, FileName, FileSize FROM File' @('id
 Write-Host "Files in the MSI: $($files.Count)"
 $files | ForEach-Object { Write-Host ("  {0,12} {1}" -f $_.size, $_.name) }
 if ($files | Where-Object { $_.name -match '(^|\|)wms\.exe$' }) { Fail "the MSI holds the forwarder" }
+if (-not ($files | Where-Object { $_.name -match '(^|\|)settings\.ini$' })) { Fail "no settings.ini beside the program" } else { Ok "settings.ini is beside the program" }
 
 $actions = Query $db 'SELECT Action, Condition, Sequence FROM InstallExecuteSequence' @('a', 'c', 's') | Sort-Object { [int]$_.s }
 $order = @{}
@@ -109,6 +115,7 @@ if ($order.StopRunningApp -ge $order.RemoveExistingProducts) { Fail "it stops th
 if ($order.SetAUTOSTART -le $order.FindRelatedProducts) { Fail "turning off start at sign-in is remembered before an upgrade is detected" } else { Ok "remembers start at sign-in once an upgrade is detected" }
 if ($order.SetScope -ge $order.FindRelatedProducts) { Fail "who it's for is settled after looking for what to upgrade" } else { Ok "settles who it's for before looking for what to upgrade" }
 if ($order.SecureServiceData -ge $order.StartServices) { Fail "the service would start before its folder is made private" } else { Ok "the service's folder is private before it first starts" }
+if (-not $order.CarryPort -or $order.CarryPort -le $order.SecureServiceData -or $order.CarryPort -ge $order.StartServices) { Fail "the service's port isn't carried over between securing its folder and starting it" } else { Ok "carries the service's port over before it starts" }
 if ($order.TakeOverOldCopyUser -le $order.InstallFiles) { Fail "it clears the old copy before the new one's there" }
 if ($order.TakeOverOldCopyUser -ge $order.WriteRegistryValues) { Fail "it would clear the new entries too" } else { Ok "clears the old copy between the new files and the new registry entries" }
 

@@ -26,6 +26,8 @@ wittymediaserver help                   this list, in short
 wittymediaserver config path            the config file and folders in use
 wittymediaserver config init            write a starter wms.json in your own config folder
 wittymediaserver config init --portable write it next to the program, for portable mode
+wittymediaserver config port            the port, where it comes from, and where Settings saves it
+wittymediaserver config port <port>     save a port in settings.ini, for the next start
 ```
 
 **Sign-in:**
@@ -130,6 +132,8 @@ The installers run three more themselves, and there's no reason to use them by h
 ## Flags
 
 Flags go after `wittymediaserver serve`. Each of them, with its variable and its name in `wms.json`, is in [What you can set](CONFIG.md#what-you-can-set): `-config`, `-data`, `-listen`, `-ffmpeg`, `-ffprobe`, `-java`, `-log`, `-log-dir`, `-max-transcodes`, `-max-connections`, `-public-url`, `-remote-access`, `-trusted-proxies`, `-setup-from-home`, `-allow-network-paths`, `-gaming-custom-cores`, `-open-browser`, `-watch-stdin` and `-dev`.
+
+The port is also in [settings.ini](CONFIG.md#the-port) beside the program, which **Settings → Network** changes; `-listen` wins over it.
 
 Everything else, such as API keys, metadata agents, transcoding, disc behaviour, themes and profiles, is set in the web app and kept in `wms.db` in the data folder. [Back up](BACKUP.md) to keep your libraries, people and watch history.
 

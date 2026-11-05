@@ -117,7 +117,11 @@ Start with [If it won't play](PLAYING.md#if-it-wont-play) for anything to do wit
 | What you're seeing | What to do |
 |---|---|
 | **The server won't start** | Run `wittymediaserver doctor` on that computer. It works when nothing else does, and says why: a damaged database, a mistake in `wms.json`, FFmpeg missing, the port taken. `wittymediaserver doctor --fix` repairs what can be repaired |
-| **The tray icon says "Stopped", with an address already in use** | Another copy, or the installed service, is using port 9797. Stop it, or use another port: set `listen` in the [config file](CONFIG.md), or start the tray app with `-listen :9798` |
+| **The tray icon says "Stopped", with an address already in use** | Another copy, or another program, is using the port. Stop it, or give the server another port: change `port` in [settings.ini](CONFIG.md#the-port) beside the program, then choose **Start** from the icon |
+| **Nothing opens after changing the port** | Open the new address, `http://<this computer>:<new port>`: bookmarks still have the old one. Still nothing? A firewall of your own, other than Windows' rule from the installer, needs the new port. To go back, set `port = 9797` in [settings.ini](CONFIG.md#the-port) and restart the server. `wittymediaserver config port` says which file it reads |
+| **Settings → Network says the port is set somewhere else** | `-listen`, `WMS_LISTEN` or `listen` in `wms.json` win over Settings, and the page says which and where. Remove it to choose the port in Settings. In Docker, change the published port in `docker-compose.yml` instead |
+| **A line of settings.ini was skipped** | The page and the log name the file and line. A port is a number from 1 to 65535, written `port = 8096`. Everything else on that line after `#` is a note |
+| **An app can't find the server after the port changed** | Apps that find it on the home network catch up by themselves. One set up by typing an address needs the new port: `192.168.1.20:8096` |
 | **Windows blocks the installer or the program** | Alpha builds aren't code-signed yet. Choose *More info*, then *Run anyway*. See [Installing](INSTALL.md) |
 
 ## Starting again

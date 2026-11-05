@@ -86,9 +86,30 @@ wittymediaserver doctor --json > /tmp/doctor.txt 2>&1; echo "doctor exit $?"
 curl -fsS http://127.0.0.1:9797/api/health
 echo
 
-say "upgrade: $new"
+say "a port given the way 0.6 said to, with systemctl edit"
+grep -q WMS_LISTEN /usr/lib/systemd/system/wittymediaserver.service && fail "the service sets the port, which would win over settings.ini"
+[ -f /usr/lib/wittymediaserver/settings.ini ] || fail "no settings.ini beside the program"
+mkdir -p /etc/systemd/system/wittymediaserver.service.d
+printf '[Service]\nEnvironment=WMS_LISTEN=:8181\n' > /etc/systemd/system/wittymediaserver.service.d/override.conf
+systemctl daemon-reload && systemctl restart wittymediaserver
+wait_up 8181
+
+say "upgrade: $new, which carries that port over"
 stat -c '%i' /var/lib/wittymediaserver/wms.db > /tmp/db-inode
 install_pkg "$new"
+wait_up 8181
+grep -E '^port = 8181$' /var/lib/wittymediaserver/settings.ini || fail "the port isn't in the data folder's settings.ini"
+grep -q '^Environment=WMS_LISTEN' /etc/systemd/system/wittymediaserver.service.d/override.conf && fail "WMS_LISTEN is still set, and wins over settings.ini"
+wittymediaserver config port | tee /tmp/port
+grep -q 'settings.ini' /tmp/port || fail "the port doesn't come from settings.ini"
+
+say "changing the port in settings.ini by hand"
+sed -i 's/^port = 8181$/port = 8282/' /var/lib/wittymediaserver/settings.ini
+systemctl restart wittymediaserver
+wait_up 8282
+rm -f /var/lib/wittymediaserver/settings.ini
+rm -rf /etc/systemd/system/wittymediaserver.service.d
+systemctl daemon-reload && systemctl restart wittymediaserver
 wait_up
 wittymediaserver version | tee /tmp/v
 grep -q 9.9.9 /tmp/v || fail "still the old version"

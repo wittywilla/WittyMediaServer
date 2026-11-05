@@ -43,6 +43,11 @@ try {
     go run ./scripts/genicon (Join-Path $res "icon.ico")
     go run ./scripts/genicon -bitmaps $res
     if ($LASTEXITCODE -ne 0) { throw "making the installer's pictures failed" }
+    # A package from before 0.7.0 has no settings.ini beside the program.
+    if (-not (Test-Path (Join-Path $pkg "settings.ini"))) {
+      go run ./scripts/settingsini -crlf (Join-Path $pkg "settings.ini")
+      if ($LASTEXITCODE -ne 0) { throw "writing settings.ini failed" }
+    }
   } finally { Pop-Location }
 
   $hasModules = if (Test-Path (Join-Path $pkg "modules")) { "1" } else { "0" }

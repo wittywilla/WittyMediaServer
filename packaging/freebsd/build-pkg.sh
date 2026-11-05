@@ -39,7 +39,7 @@ if [ -f "$STAGE/WittyMediaServer" ]; then
   cp "$STAGE/share/wittymediaserver.png" "$root/usr/local/share/icons/hicolor/256x256/apps/"
 fi
 cp "$STAGE/docs/"* "$root/usr/local/share/doc/wittymediaserver/"
-# The settings file beside the program, marked @config below, so pkg keeps one someone changed.
+# The settings file beside the program. pre-install carries a port someone set in it over.
 cp "$STAGE/settings.ini" "$lib/"
 printf '{"product":"WittyMediaServer","kind":"freebsd-pkg"}\n' > "$lib/package-info.json"
 ln -s ../lib/wittymediaserver/bin/wittymediaserver "$root/usr/local/bin/wittymediaserver"
@@ -81,7 +81,7 @@ scripts: {
 EOF
 
 # Everything under the root, and the folders that are ours alone.
-( cd "$root" && find . \( -type f -o -type l \) | sed 's|^\./|/|' | sort | sed 's|^/usr/local/lib/wittymediaserver/settings.ini$|@config &|' ) > "$work/plist"
+( cd "$root" && find . \( -type f -o -type l \) | sed 's|^\./|/|' | sort ) > "$work/plist"
 {
   echo "@dir /usr/local/lib/wittymediaserver/bin"
   echo "@dir /usr/local/lib/wittymediaserver"

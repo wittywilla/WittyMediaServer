@@ -50,6 +50,15 @@ if [ -f "$OLD_UNIT" ] && grep -Eq '^ExecStart=.*/(wms|wittymediaserver) serve' "
   rm -f /usr/local/share/applications/wittymediaserver.desktop
 fi
 
+# An upgrade replaces the settings.ini beside the program. A port someone set in it by hand moves
+# into the data folder's copy first, unless that copy has one of its own, which wins anyway.
+PROGRAM_INI=/usr/lib/wittymediaserver/settings.ini
+port=$(sed -n 's/^[[:space:]]*port[[:space:]]*=[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$PROGRAM_INI" 2>/dev/null | head -n 1)
+if [ -n "$port" ] && [ "$port" != 9797 ] && [ -x /usr/lib/wittymediaserver/bin/wittymediaserver ] &&
+   ! grep -Eq '^[[:space:]]*port[[:space:]]*=' "$DATA/settings.ini" 2>/dev/null; then
+  /usr/lib/wittymediaserver/bin/wittymediaserver config port -data "$DATA" -in-data -port "$port" || true
+fi
+
 if ! id wms >/dev/null 2>&1; then
   useradd --system --home-dir "$DATA" --no-create-home --shell /usr/sbin/nologin --comment "WittyMediaServer" wms 2>/dev/null \
     || useradd -r -d "$DATA" -M -s /sbin/nologin -c "WittyMediaServer" wms

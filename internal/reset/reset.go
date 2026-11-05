@@ -71,8 +71,9 @@ type Copy struct {
 
 // keptThrough stay where they are through a reset that keeps a copy. A backup made
 // before a reset is what someone restores from after it, and doctor's safety copies
-// and a waiting restore aren't part of what's being set aside.
-var keptThrough = map[string]bool{"backups": true}
+// and a waiting restore aren't part of what's being set aside. settings.ini holds the port,
+// which the address everyone uses depends on: a new install there still answers where it did.
+var keptThrough = map[string]bool{"backups": true, "settings.ini": true}
 
 // heldOpen may be open while a reset happens, by whatever started the server and keeps
 // its output: the tray app, for one. They move if they can, and stay behind if not.

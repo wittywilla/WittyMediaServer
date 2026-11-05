@@ -637,6 +637,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/repair/fix` | Admin | Keys from the last check, and fixes that can be made. Password and code for anything but what can't lose anything. Paths come only from the check |
 | `POST /api/repair/remap` | Admin | Path lengths. A full path to a folder that exists, outside the data folder, on this machine unless it's allowed or asked for at the server. Most of the library's files must be there. Password and code to apply it. No file moves |
 | `POST /api/repair/restart` | Admin | A fix is waiting for it |
+| `GET /api/network` | Admin | Nothing further. Shows file paths, as the rest of Settings does to an administrator |
+| `POST /api/network/check` | Admin | A port number only. Listens on it for a moment and closes it again |
+| `PUT /api/network` | Admin | A port number only, checked as above. Refused while `-listen`, `WMS_LISTEN`, `wms.json` or Docker set the port. Writes only the settings.ini that `config.SettingsSaveFile` chooses, never a path from the request, and is logged with who did it |
+| `POST /api/network/restart` | Admin | Nothing further. Logged with who asked |
 | `GET /api/system/tasks` | Signed-in | By the owner's setting. Tasks of libraries the account may open, or its own. No file names, errors or other people for anyone but an administrator |
 | `GET /api/system/tasks/stream` | Signed-in | As for the list. Limits on open streams, per account and overall. The account is looked at again as it runs |
 | `GET /api/system/tasks/history` | Signed-in | As for the list. Limit, type, state, library |

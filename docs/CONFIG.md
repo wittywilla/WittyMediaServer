@@ -4,6 +4,7 @@ Set what the server has to know before it starts: its port, where it keeps its d
 
 Everyday settings are in **Settings**, and you never need a config file. Without one the server uses its defaults.
 
+- [The port](#the-port)
 - [Where the config file goes](#where-the-config-file-goes)
 - [What you can set](#what-you-can-set)
 - [Security switches](#security-switches)
@@ -13,6 +14,44 @@ Everyday settings are in **Settings**, and you never need a config file. Without
 - [Folders the server uses](#folders-the-server-uses)
 - [Logs](#logs)
 - [For developers](#for-developers)
+
+## The port
+
+The port is the number at the end of the server's address: `9797` in `http://192.168.1.20:9797`. Change it if another program on the computer needs 9797, or you'd rather use a port of your own. You don't need a config file for it.
+
+**The easy way: Settings → Network**, for administrators. Type the new port, and it's checked as you type: a number from 1 to 65535 that nothing else on the computer is using, with a warning for ports below 1024, and a refusal for the ports browsers won't open. Choose **Save**, then **Restart now**, and the page opens again at the new address. The last page of the setup wizard has the same, under **Change the port**.
+
+**By hand: `settings.ini`.** A short text file beside the program, in the same folder as `WittyMediaServer.exe`. Open it in Notepad or any text editor, change the number after `port =`, save it, and restart the server. Lines starting with `#` are notes.
+
+```ini
+# The port browsers and apps connect to
+port = 8096
+```
+
+Where the program's folder can't be changed (Program Files, `/usr`, an app on a Mac), Settings saves in a copy in the server's [data folder](#folders-the-server-uses) instead, and that copy wins over the one beside the program. You can change that one by hand too:
+
+| How it's installed | The copy Settings saves in |
+|---|---|
+| Windows, the background service | `C:\ProgramData\WittyMediaServer\settings.ini` |
+| Windows, the app with the tray icon | `%LOCALAPPDATA%\WittyMediaServer\settings.ini` |
+| Windows, unzipped | `settings.ini` beside `WittyMediaServer.exe` |
+| macOS | `~/Library/Application Support/WittyMediaServer/settings.ini`, never inside the app: a changed app breaks its signature |
+| Linux `.deb` or `.rpm`, or `install.sh` | `/var/lib/wittymediaserver/settings.ini` |
+| FreeBSD package | `/var/db/wittymediaserver/settings.ini` |
+| [Portable mode](#portable-mode) | `data/settings.ini` |
+| Docker | None: change the published port in `docker-compose.yml`, below |
+
+From the command line, `wittymediaserver config port` says the port, where it comes from and where Settings saves it, and `wittymediaserver config port 8096` saves one. Run it as the account the server runs as, or as an administrator.
+
+A line the server can't use, such as a typo, is skipped: the server still starts, on the port it would use without that line, and **Settings → Network** and the log say which line it was.
+
+**What wins.** Strongest first: `-listen`, `WMS_LISTEN`, `listen` in `wms.json`, the data folder's `settings.ini`, the `settings.ini` beside the program, then 9797. When one of the first three is set, **Settings → Network** says where, and doesn't save somewhere that wouldn't count. The installers don't set any of them.
+
+**Upgrading from 0.6.** A port you gave the service before carries over into the data folder's `settings.ini` by itself, so it goes on answering where it did: the Windows installer's `PORT` (the service's `-listen`), a `WMS_LISTEN` in a `systemctl edit` override (commented out there afterwards), `wittymediaserver_listen` in FreeBSD's `rc.conf` (removed afterwards), `install.sh --port`, and the Mac service's `WMS_LISTEN`. One with an address in front, such as `127.0.0.1:9797`, stays where it is and keeps winning. A port you changed by hand in the `settings.ini` beside a Linux or FreeBSD package's program is carried into the data folder's copy before an upgrade replaces that file.
+
+**What follows the port.** Apps on the home network find the server again by themselves: they ask on UDP port 9797, which doesn't change. The tray or menu-bar icon opens the new address, and finds a background service on any port. The Windows installer's firewall rule is for the server program, so it covers any port. Remote Access keeps its own HTTPS port, so a router's port forwarding stays as it is. A firewall of your own, a reverse proxy, a VPN address you set up, bookmarks, and devices set up by typing the address need the new port.
+
+**Docker.** The port inside the container stays 9797, and the image sets `WMS_LISTEN` to it. Change the first number of the published port in `docker-compose.yml`, such as `"8096:9797"`, then run `docker compose up -d`. **Settings → Network** says so.
 
 ## Where the config file goes
 
@@ -45,7 +84,7 @@ A wrong name in the file stops the server with a clear message, instead of being
 
 **A service with a config file.** On Linux use `/etc/wittymediaserver/wms.json`, and on FreeBSD `/usr/local/etc/wittymediaserver/wms.json`. On a Mac the service runs as you, so it uses your own. On Windows, put it in `C:\Program Files\WittyMediaServer`.
 
-**Packaged services and the image set two things themselves.** The Linux, FreeBSD and Mac services set `WMS_DATA_DIR` and `WMS_LISTEN`, the Windows service passes `-data` and `-listen`, and the Docker image also sets `WMS_TRANSCODE_DIR`. These win over the file, so `listen` and `dataDir` in a config file do nothing there. See [Installing](INSTALL.md) for how to change them on each system.
+**Packaged services and the image set the data folder themselves.** The Linux, FreeBSD and Mac services set `WMS_DATA_DIR`, the Windows service passes `-data`, and the Docker image sets `WMS_TRANSCODE_DIR` and `WMS_LISTEN` too. These win over the file, so `dataDir` in a config file does nothing there. The port is in [settings.ini](#the-port). See [Installing](INSTALL.md) for how to change them on each system.
 
 ## What you can set
 
@@ -53,7 +92,7 @@ Every setting is optional. Most can be given three ways, and the strongest wins:
 
 | In `wms.json` | Flag | Variable | What it does, and its default |
 |---|---|---|---|
-| `listen` | `-listen` | `WMS_LISTEN` | The address and port. `:9797`, the default, is every network card on port 9797. `127.0.0.1:9797` keeps it to this computer |
+| `listen` | `-listen` | `WMS_LISTEN` | The address and port. `:9797` is every network card on port 9797, and `127.0.0.1:9797` keeps it to this computer. Each of these wins over the port in [settings.ini](#the-port), which is where to change only the port, and what Settings changes. Default: the port in `settings.ini`, or `:9797` |
 | `dataDir` | `-data` | `WMS_DATA_DIR` | The server's own folder: database, settings, users, watch history. Default: [see below](#folders-the-server-uses) |
 | `metadataDir` | | `WMS_METADATA_DIR` | Downloaded posters, backdrops and generated thumbnails. Default: `images` in the cache folder |
 | `cacheDir` | | `WMS_CACHE_DIR` | Other cached files, such as disc playlists and menu stills. It stays within limits: 4 GB of thumbnails, 1 GB of stills, 4 GB of unpacked comics, oldest first, and what's removed is made again when it's needed. Default: `cache` in the data folder |
@@ -86,7 +125,6 @@ Each is off, or empty, until you set it. A switch that's on in the file can't be
 
 ```json
 {
-  "listen": ":9797",
   "dataDir": "D:\\WittyMedia\\data",
   "metadataDir": "E:\\Artwork",
   "transcodeDir": "R:\\transcode",
@@ -135,7 +173,7 @@ Where there's a setting in `wms.json`, that's the simplest way. For a variable w
 | Linux service | `sudo systemctl edit wittymediaserver`, add `[Service]` and `Environment=WMS_NO_MODULE_FORKS=1`, save, then `sudo systemctl restart wittymediaserver` |
 | FreeBSD service | `sysrc wittymediaserver_env="WMS_NO_MODULE_FORKS=1"`, then `service wittymediaserver restart` |
 | Windows service | As an administrator: `reg add HKLM\SYSTEM\CurrentControlSet\Services\WittyMediaServer /v Environment /t REG_MULTI_SZ /d WMS_NO_MODULE_FORKS=1`, then `sc.exe stop WittyMediaServer` and `sc.exe start WittyMediaServer` |
-| Mac service | Add it under `EnvironmentVariables` in `/Library/LaunchDaemons/com.wittywilla.wittymediaserver.plist`, then `sudo launchctl bootout system <that file>` and `sudo launchctl bootstrap system <that file>`. A new `.pkg` writes this file again, keeping only the data folder and port, so add it again after updating |
+| Mac service | Add it under `EnvironmentVariables` in `/Library/LaunchDaemons/com.wittywilla.wittymediaserver.plist`, then `sudo launchctl bootout system <that file>` and `sudo launchctl bootstrap system <that file>`. A new `.pkg` writes this file again, keeping only the data folder and an address set with `WMS_LISTEN`, so add it again after updating |
 | Docker | Under `environment:` in the compose file, or `-e` with `docker run` |
 
 ## Portable mode
@@ -212,6 +250,7 @@ The first makes a ZIP, sanitized unless you add `--raw`. The second makes a sani
 | `-dev`, `WMS_DEV=1` | Serves `web/dist` from disk instead of the built-in copy |
 | `-watch-stdin`, `WMS_WATCH_STDIN=1` | Exits when stdin closes. The tray app uses it |
 | `WMS_RESTARTED=1` | Set by the server for the copy it starts after an update, so that it keeps trying the port |
+| `WMS_SUPERVISED=1` | Says a service manager starts the server again when it exits, so a restart asked for in Settings leaves that to it. The Windows service, the FreeBSD service and the Mac service set it; systemd is recognised by itself |
 | `WMS_WITTYPLAY_RUNNER` | Runs games with this program, in place of what the module brought |
 | `WMS_WITTYCOUCH_HOST` | Uses this program as the WittyCouch host |
 | `WMS_GAMING_TESTCORE=1` | Offers the built-in test console |

@@ -3,18 +3,21 @@
   finishes cleanly. Run on a throwaway Windows machine (CI), never on someone's own PC: it
   installs, starts and removes WittyMediaServer.
 
-    packaging\windows\test-upgrade.ps1 -OldMsi old.msi -NewMsi new.msi -Scope machine [-Service] [-ExpectFail] -LogDir logs
+    packaging\windows\test-upgrade.ps1 -OldMsi old.msi -NewMsi new.msi -Scope machine [-Service [-Port 8181]] [-ExpectFail] -LogDir logs
 
   Clean means: the new MSI exits 0 (not 3010, which says files were in use and need a restart),
   its log has no error 2613 or other installer error, the server started from the old copy has
   been stopped, and the installed version is the new one. -ExpectFail turns it round, to prove a
-  broken MSI is caught.
+  broken MSI is caught. -Port installs the old service on that port, and the upgrade, given no
+  port, has to carry it over: into settings.ini, with the service answering there and no -listen
+  left in its command line.
 #>
 param(
   [Parameter(Mandatory)][string]$OldMsi,
   [Parameter(Mandatory)][string]$NewMsi,
   [ValidateSet('machine', 'user')][string]$Scope = 'machine',
   [switch]$Service,
+  [int]$Port = 0,
   [switch]$ExpectFail,
   [Parameter(Mandatory)][string]$LogDir
 )
@@ -30,7 +33,10 @@ function Msi([string]$verb, [string]$file, [string]$log, [string[]]$props) {
 
 $props = if ($Scope -eq 'machine') { @('MSIINSTALLPERUSER=""', 'ALLUSERS=1') } else { @('MSIINSTALLPERUSER=1', 'ALLUSERS=2') }
 $props += 'AUTOSTART=""'
-if ($Service) { $props += @('INSTALLSERVICE=1', 'PORT=9797') }
+if ($Service) { $props += 'INSTALLSERVICE=1' }
+# The update is given no port: an old one has to carry over by itself.
+$newProps = $props
+if ($Port) { $props += "PORT=$Port"; $tag += "-port" }
 $dir = if ($Scope -eq 'machine') { Join-Path $env:ProgramFiles 'WittyMediaServer' } else { Join-Path $env:LOCALAPPDATA 'Programs\WittyMediaServer' }
 
 # 1. The old version, as someone has it now.
@@ -50,7 +56,7 @@ if (-not $Service) {
 
 # 3. The update.
 $newLog = Join-Path $LogDir "$tag-2-new.log"
-$code = Msi '/i' $NewMsi $newLog $props
+$code = Msi '/i' $NewMsi $newLog $newProps
 $log = Get-Content $newLog -Raw -Encoding Unicode
 $errors = [regex]::Matches($log, 'Error (\d{4})') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
 Write-Host "[$tag] new MSI exit $code; installer errors: $($errors -join ', ')"
@@ -71,6 +77,20 @@ if (-not (Test-Path $server)) { throw "[$tag] the server is missing after the up
 if ($Service) {
   $svc = Get-Service WittyMediaServer -ErrorAction SilentlyContinue
   if (-not $svc) { throw "[$tag] the service is gone after the upgrade" }
+}
+
+if ($Port) {
+  $ini = Join-Path $env:ProgramData 'WittyMediaServer\settings.ini'
+  $text = if (Test-Path $ini) { Get-Content $ini -Raw } else { '' }
+  if ($text -notmatch "(?m)^\s*port\s*=\s*$Port\s*$") { throw "[$tag] settings.ini doesn't have port $($Port): $text" }
+  $cmd = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\WittyMediaServer').ImagePath
+  if ($cmd -match '-listen') { throw "[$tag] the service still has -listen, which would win over settings.ini: $cmd" }
+  $up = $false
+  for ($i = 0; $i -lt 60 -and -not $up; $i++) {
+    try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 "http://127.0.0.1:$Port/api/health" | Out-Null; $up = $true } catch { Start-Sleep -Seconds 1 }
+  }
+  if (-not $up) { throw "[$tag] the service doesn't answer on port $Port after the upgrade" }
+  Write-Host "[$tag] port $Port carried over into $ini, and the service answers there"
 }
 
 # 4. Leave the machine as it was.

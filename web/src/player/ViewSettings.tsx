@@ -26,11 +26,13 @@ function Seg<T extends string | number>({ k, label, opts, prefs, onChange }: { k
   )
 }
 
-// The gear menu: viewing options that apply to this disc or to everything.
-export default function ViewSettings({ prefs, scope, onChange, onScope, onClose, isDisc }: {
-  prefs: ViewPrefs; scope: Scope; onChange: Change; onScope: (s: Scope) => void; onClose: () => void; isDisc: boolean
+// The gear menu: viewing options that apply to this disc or to everything, and 3D,
+// which only ever applies to this disc (show3D: the disc player, which draws it).
+export default function ViewSettings({ prefs, scope, onChange, onScope, onClose, isDisc, show3D }: {
+  prefs: ViewPrefs; scope: Scope; onChange: Change; onScope: (s: Scope) => void; onClose: () => void; isDisc: boolean; show3D?: boolean
 }) {
   const p = { prefs, onChange }
+  const one = isDisc ? 'this disc' : 'this video'
   return (
     <div className="view-settings" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} role="dialog" aria-label="Viewing settings"
       onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }}>
@@ -53,9 +55,13 @@ export default function ViewSettings({ prefs, scope, onChange, onScope, onClose,
       {isDisc && <Row label="Forced captions"><Toggle k="forcedSubs" label="Forced captions: signs and foreign-language lines the disc shows even with subtitles off" {...p} /></Row>}
       {isDisc && <Row label="Disc restrictions"><Toggle k="discLocks" label="Disc restrictions: obey a disc's bans on seeking and skipping, as a disc player does" {...p} /></Row>}
       {isDisc && <Row label="Subtitle size"><Seg k="subtitleSize" label="Subtitle size" opts={[[0.8, 'S'], [1, 'M'], [1.25, 'L'], [1.5, 'XL']]} {...p} /></Row>}
-      <Row label="3D video"><Seg k="stereo" label="3D video" opts={[['off', 'Off'], ['sbs', 'Side by side'], ['ou', 'Over-under']]} {...p} /></Row>
-      {prefs.stereo !== 'off' && <Row label="Show 3D as"><Seg k="stereoOut" label="Show 3D as" opts={[['2d', '2D (one eye)'], ['anaglyph', 'Red/cyan glasses']]} {...p} /></Row>}
-      <p className="vs-note">{scope === 'item' ? `Saved for ${isDisc ? 'this disc' : 'this video'} on this device.` : 'Saved for all videos on this device.'}</p>
+      {show3D && <>
+        <h5 className="vs-sub">3D ({one} only)</h5>
+        <p className="vs-note">3D settings never apply to other {isDisc ? 'discs' : 'videos'}. Use them only for a 3D picture: on a 2D one they show half of it, stretched.</p>
+        <Row label="3D video"><Seg k="stereo" label="3D video" opts={[['off', 'Off'], ['sbs', 'Side by side'], ['ou', 'Over-under']]} {...p} /></Row>
+        {prefs.stereo !== 'off' && <Row label="Show 3D as"><Seg k="stereoOut" label="Show 3D as" opts={[['2d', '2D (one eye)'], ['anaglyph', 'Red/cyan glasses']]} {...p} /></Row>}
+      </>}
+      <p className="vs-note">{scope === 'item' ? `Seek bar, remote and picture: saved for ${one} on this device.` : 'Seek bar, remote and picture: saved for all videos on this device.'}{show3D ? ` 3D: saved for ${one}.` : ''}</p>
     </div>
   )
 }

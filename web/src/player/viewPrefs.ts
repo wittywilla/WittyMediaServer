@@ -2,6 +2,10 @@ import { useCallback, useState } from 'react'
 
 // Viewing preferences for the player. Stored per browser, either for all
 // videos ("global") or for one item (a disc), which then wins.
+//
+// 3D is the exception: it's only ever kept for one item, whatever Apply to says.
+// Saved for everything, it once turned 3D on for every disc, and a 2D picture
+// shown as 3D is half of itself stretched to fill the screen.
 
 export type ViewPrefs = {
   seekBar: boolean         // show the timeline
@@ -21,6 +25,17 @@ export const DEFAULT_VIEW: ViewPrefs = { seekBar: true, chapterMarks: true, hide
 
 const GLOBAL = 'wms.view'
 const itemKey = (id: number) => `wms.view.item.${id}`
+const stereoKey = (id: number) => `wms.view.3d.${id}`
+
+type Stereo = Pick<ViewPrefs, 'stereo' | 'stereoOut'>
+// split: what's shared (by Apply to) and what's this item's 3D alone.
+function split(p: Partial<ViewPrefs>): [Partial<ViewPrefs>, Partial<Stereo>] {
+  const { stereo, stereoOut, ...shared } = p
+  const own: Partial<Stereo> = {}
+  if (stereo !== undefined) own.stereo = stereo
+  if (stereoOut !== undefined) own.stereoOut = stereoOut
+  return [shared, own]
+}
 
 function read(key: string): Partial<ViewPrefs> | null {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null } catch { return null }
@@ -31,28 +46,57 @@ function write(key: string, v: object | null) {
 
 export type Scope = 'item' | 'global'
 
+// clearStuck3D takes 3D out of the preferences saved for everything and for each
+// item, where earlier versions kept it (and where switching Apply to copied it).
+// Run whenever a player opens: a tab still on an older version may write it again.
+export function clearStuck3D() {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i)
+      if (!k || (k !== GLOBAL && !k.startsWith('wms.view.item.'))) continue
+      const v = read(k)
+      if (!v || !('stereo' in v || 'stereoOut' in v)) continue
+      const [shared] = split(v)
+      write(k, shared)
+    }
+  } catch { /* storage that can't be read has nothing stuck in it */ }
+}
+
+// loadView: the preferences in force for an item, and which scope they come from.
+export function loadView(itemId: number, remoteDefault = false): { prefs: ViewPrefs; scope: Scope } {
+  clearStuck3D()
+  const g = read(GLOBAL), i = read(itemKey(itemId)), d3 = read(stereoKey(itemId))
+  return { prefs: { ...DEFAULT_VIEW, remote: remoteDefault, ...(g || {}), ...(i || {}), ...(d3 || {}) } as ViewPrefs, scope: i ? 'item' : 'global' }
+}
+
+// saveView keeps a change: 3D for this item alone, the rest where scope says.
+export function saveView(itemId: number, cur: ViewPrefs, patch: Partial<ViewPrefs>, scope: Scope): ViewPrefs {
+  const prefs = { ...cur, ...patch }
+  const [shared, own] = split(patch)
+  if (Object.keys(own).length) {
+    write(stereoKey(itemId), prefs.stereo === 'off' && prefs.stereoOut === DEFAULT_VIEW.stereoOut ? null : { stereo: prefs.stereo, stereoOut: prefs.stereoOut })
+  }
+  if (scope === 'item') write(itemKey(itemId), split(prefs)[0])
+  else if (Object.keys(shared).length) { write(GLOBAL, { ...(read(GLOBAL) || {}), ...shared }); write(itemKey(itemId), null) }
+  return prefs
+}
+
+// saveScope moves an item's preferences to its own, or to everything. 3D stays put.
+export function saveScope(itemId: number, prefs: ViewPrefs, scope: Scope) {
+  const [shared] = split(prefs)
+  if (scope === 'item') write(itemKey(itemId), shared)
+  else { write(itemKey(itemId), null); write(GLOBAL, shared) }
+}
+
 // useViewPrefs returns the effective preferences for an item, which scope
 // they come from, and a setter that writes to the chosen scope.
 export function useViewPrefs(itemId: number, remoteDefault = false) {
-  const load = () => {
-    const g = read(GLOBAL), i = read(itemKey(itemId))
-    return { prefs: { ...DEFAULT_VIEW, remote: remoteDefault, ...(g || {}), ...(i || {}) } as ViewPrefs, scope: (i ? 'item' : 'global') as Scope }
-  }
-  const [state, setState] = useState(load)
+  const [state, setState] = useState(() => loadView(itemId, remoteDefault))
   const update = useCallback((patch: Partial<ViewPrefs>, scope: Scope) => {
-    setState((cur) => {
-      const prefs = { ...cur.prefs, ...patch }
-      if (scope === 'item') write(itemKey(itemId), prefs)
-      else { write(GLOBAL, { ...(read(GLOBAL) || {}), ...patch }); write(itemKey(itemId), null) }
-      return { prefs, scope }
-    })
+    setState((cur) => ({ prefs: saveView(itemId, cur.prefs, patch, scope), scope }))
   }, [itemId])
   const setScope = useCallback((scope: Scope) => {
-    setState((cur) => {
-      if (scope === 'item') write(itemKey(itemId), cur.prefs)
-      else { write(itemKey(itemId), null); write(GLOBAL, cur.prefs) }
-      return { ...cur, scope }
-    })
+    setState((cur) => { saveScope(itemId, cur.prefs, scope); return { ...cur, scope } })
   }, [itemId])
   return { prefs: state.prefs, scope: state.scope, update, setScope }
 }

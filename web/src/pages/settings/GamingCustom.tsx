@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { CoreWhere } from '../games/platforms'
 import { fmtDateTime, api, ApiError, getToken, serverBase, type GameConsole } from '../../api'
 import { Spinner } from '../../components/common'
 import LegalNote from '../../components/LegalNote'
@@ -746,7 +747,7 @@ export function ConsoleCoreSelect({ console: c, onChanged }: { console: GameCons
 
 // A game's own core, on its page, for administrators only.
 type GameCoreOption = { id: string; name: string; source: string; license: string; nonCommercial?: boolean; starts: number; failures: number; seconds: number; lastError?: string; best?: boolean }
-export function GameCorePicker({ itemId }: { itemId: number }) {
+export function GameCorePicker({ itemId, console: c }: { itemId: number; console?: GameConsole }) {
   const [info, setInfo] = useState<{ choice: string; effective: string; options: GameCoreOption[] } | null>(null)
   const load = () => api.get<{ choice: string; effective: string; options: GameCoreOption[] }>(`/gaming/games/${itemId}/core`).then(setInfo).catch(() => {})
   useEffect(() => { load() }, [itemId])
@@ -764,6 +765,8 @@ export function GameCorePicker({ itemId }: { itemId: number }) {
           {info.options.map((o) => <option key={o.id} value={o.id}>{o.name}{o.source === 'custom' ? ' (custom)' : ''}{o.best ? ' (has gone best here)' : ''}</option>)}
         </select>
       </label>
+      {/* Where the chosen core runs and how it draws, so the choice says what it means for this server. */}
+      <CoreWhere c={c} coreId={info.choice || info.effective} />
       <ul className="custom-gamecore-stats">
         {info.options.filter((o) => o.starts > 0).map((o) => (
           <li key={o.id}><b>{o.name}</b>: {o.starts} {o.starts === 1 ? 'start' : 'starts'}, {fmtHours(o.seconds)}{o.failures ? `, ${o.failures} failed` : ''}{o.lastError ? <small className="muted custom-detail">Last problem: {o.lastError}</small> : null}</li>

@@ -15,6 +15,7 @@ import { cachedHome, cardCover, consoleMap, forgetHome, getHome, heroCover, setC
 import { VirtualGames, type VirtualHandle } from './VirtualGames'
 import { useConsoleLogos } from './ConsoleMark'
 import { CollectionBand, GamesDock, OnTheGo, ResumeCard, Shelf, useShelfView, ViewSwitch, YoursOn } from './Shelves'
+import { ConsoleCores } from './platforms'
 import './games-ui.css'
 
 // The games home: covers at the top, what's being played, the consoles, shelves, then every
@@ -389,6 +390,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
       {showHeroHome && home!.continue.length === 0 && <Hero items={home!.hero} consoles={byId} resumable={resumable} title="Featured games" place={`${lib.id}`} />}
       {!isHome && consoleId && !narrowed && current && <CollectionBand c={current} count={current.count} first={consoleHero[0]} />}
       {!isHome && consoleId && !narrowed && current && <YoursOn c={current} />}
+      {!isHome && consoleId && !narrowed && current && <ConsoleCores c={current} />}
       {isHome && homeFailed && !home && <LoadError what="This library" onRetry={() => { void loadHome() }} />}
 
       {isHome && home && <OnTheGo list={home.continue.slice(1)} consoles={byId} />}

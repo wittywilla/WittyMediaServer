@@ -123,6 +123,28 @@ html.ten-foot .gm-page { --shelf-scale: 1.7; }
 .gm-resume { position: relative; }
 .gm-resume .gm-ribbon { right: var(--sp-4); top: -2px; width: 12px; height: 30px; }
 
+/* ---------------------------------------------------------------- where each core runs */
+.gm-core-where { display: block; margin-top: var(--sp-1); color: var(--fg-2); }
+.gm-cores { margin-top: var(--sp-6); max-width: 40rem; }
+.gm-cores h2 { margin: 0 0 var(--sp-2); font-size: var(--text-xl); }
+.gm-cores ul { display: grid; margin: 0; padding: 0; list-style: none; border-radius: var(--r-lg); background: var(--bg-2); overflow: hidden; }
+.gm-cores li { display: grid; gap: 2px; padding: var(--sp-3) var(--sp-4); }
+.gm-cores li + li { border-top: 1px solid var(--border); }
+.gm-cores li b { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--text-base); }
+.gm-cores li small { color: var(--fg-2); font-size: var(--text-sm); }
+.gm-core-on { display: inline-flex; align-items: center; gap: 2px; color: var(--ok); font-size: var(--text-xs); font-weight: 600; }
+.gm-cores > p { margin: var(--sp-2) 0 0; font-size: var(--text-sm); }
+.gm-elsewhere { display: flex; gap: var(--sp-3); margin-top: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-lg); background: var(--bg-2); }
+.gm-elsewhere > svg { flex: none; margin-top: 2px; color: var(--warn); }
+.gm-elsewhere strong { font-size: var(--text-base); }
+.gm-elsewhere p { margin: var(--sp-1) 0 0; color: var(--fg-2); font-size: var(--text-sm); }
+
+/* ---------------------------------------------------------------- TV mode and couch mode */
+/* APP-DESIGN's TV rule: focusables at least 16 apart, and room around a lifted game for its ring
+   (4 wide, 4 out), which the ledge's sideways scrolling would otherwise clip. */
+html.tv-mode .gm-ledge, html.ten-foot .gm-ledge { gap: calc(var(--tvu, 1px) * 16); padding-top: calc(var(--tvu, 1px) * 56); padding-bottom: calc(var(--tvu, 1px) * 16); }
+html.tv-mode .gm-onthego, html.ten-foot .gm-onthego { gap: calc(var(--tvu, 1px) * 24); padding-top: calc(var(--tvu, 1px) * 24); padding-bottom: calc(var(--tvu, 1px) * 16); }
+
 /* ---------------------------------------------------------------- reserved: multiplayer */
 .gm-reserved { opacity: .55; cursor: default; }
 

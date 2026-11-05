@@ -15,7 +15,7 @@ import { cachedHome, cardCover, consoleMap, forgetHome, getHome, heroCover, setC
 import { VirtualGames, type VirtualHandle } from './VirtualGames'
 import { useConsoleLogos } from './ConsoleMark'
 import { CollectionBand, GamesDock, OnTheGo, ResumeCard, Shelf, useShelfView, ViewSwitch, YoursOn } from './Shelves'
-import { ConsoleCores } from './platforms'
+import { ConsoleCores } from './ConsoleCores'
 import './games-ui.css'
 
 // The games home: covers at the top, what's being played, the consoles, shelves, then every

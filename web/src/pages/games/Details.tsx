@@ -14,10 +14,9 @@ import { GameFixPanel, GameProblem, GameVersionLinks } from '../GameReview'
 import { SettingsScreen, useConsoles, useSettingsHost } from './consoles'
 import { crispIfSmall, fmtPlayed, heroCover, saveThumb, useCoverTint, useGameLinks, type GameCheck } from './data'
 import { Ambient } from './Library'
+import './shelves.css'
 import type { SaveSlot } from '@wittywilla/wittyplay'
 import './games-ui.css'
-import './shelves.css'
-import { CoreWhere, NotOnThisServer, type CheckWhere } from './platforms'
 
 // A game's page: what it is, a big button to play it, where you left off, and everything
 // else about it below. Whatever's stopping a game from starting says so here, with the
@@ -191,7 +190,6 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
               <i className="gm-ribbon" aria-hidden="true" />
             </Link>
           )}
-          <NotOnThisServer check={check as CheckWhere | null} isAdmin={!!user?.isAdmin} />
           {check && !check.ready && (
             <div className="gm-blocked" role="status">
               <IconInfo />
@@ -259,7 +257,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
           <h2 id="gm-play-h">How you play it</h2>
           <ul className="gm-checks">
             <li className="ok"><IconCheck size={16} /><span><b>Runs on your server</b><small>and streams to this device, so this device needs no emulator and nothing downloads. Saves stay on the server, and follow you to every device. Playing on the device itself, without the server, isn’t available yet.</small></span></li>
-            {check?.core && <li className="ok"><IconCheck size={16} /><span><b>{check.core.name}</b><small>The core that plays this game. License: {check.core.license || 'not known'}.</small><CoreWhere c={c} coreId={check.core.id} /></span></li>}
+            {check?.core && <li className="ok"><IconCheck size={16} /><span><b>{check.core.name}</b><small>The core that plays this game. License: {check.core.license || 'not known'}.</small></span></li>}
             {check?.reason === 'core' && <li className="no"><IconInfo size={16} /><span><b>No core installed</b><small>{user?.isAdmin ? <>Install one in <Link to="/settings/gaming">Consoles &amp; cores</Link>.</> : 'Ask whoever runs this server.'}</small></span></li>}
             {check?.needsGpu && <li className="info"><IconInfo size={16} /><span><b>Uses the server’s graphics card</b><small>This console is drawn with one, so it needs a server that has one.</small></span></li>}
             {(check?.bios || []).filter((b) => b.required || b.found).map((b) => (
@@ -273,7 +271,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
             {/* Reserved and not built: playing with someone on another server. Never an action. */}
             <li className="info gm-reserved" aria-disabled="true"><IconGlobe size={16} /><span><b>Multiplayer</b><small>Play with someone on another server. Coming later.</small></span></li>
           </ul>
-          {user?.isAdmin && <Suspense fallback={null}><GameCorePicker itemId={it.id} console={c} /></Suspense>}
+          {user?.isAdmin && <Suspense fallback={null}><GameCorePicker itemId={it.id} /></Suspense>}
         </section>
         <section className="gm-panel" aria-labelledby="gm-controls-h">
           <h2 id="gm-controls-h">Controls</h2>

@@ -1,108 +1,71 @@
-import { Link } from 'react-router-dom'
-import type { GameConsole } from '../../api'
-import { IconCheck, IconInfo } from '../../icons'
-import type { GameCheck } from './data'
+// Which server platforms a core runs on, and how it draws there: the server's coreSupport, in
+// words. Every device plays every game, since the server runs it and streams it, so what
+// matters is the server's platform. See docs/GAMING-API.md, "Which platforms a core runs on".
 
-// Where each core runs: the server platforms it has a build for, how it draws there, and how fast,
-// as GET /games/consoles says in coreSupport (docs/GAMING-API.md). The server runs every game and
-// streams it, so every device plays whatever the server can run: that's said once, never per
-// device. A server that doesn't send coreSupport yet shows none of this.
+export type Draws = 'gpu' | 'cpu' | 'cpu-fallback' | 'none'
+export type PlatformSupport = { os: string; arch?: string; build: boolean; draws: Draws; api?: 'opengl' | 'vulkan' | 'metal'; note?: string }
+export type CoreSupport = { here: PlatformSupport; platforms: PlatformSupport[] }
+export type CoreAlternative = { id: string; name: string; console: string }
 
-export type CoreDraws = 'gpu' | 'cpu' | 'cpu-fallback' | 'none'
-export type CorePlace = { build?: boolean; draws: CoreDraws; api?: string; note?: string }
-export type CorePlatform = CorePlace & { os: string; arch: string }
-export type CoreSupport = { here?: CorePlace; platforms?: CorePlatform[] }
-export type WithSupport = GameConsole & { coreSupport?: Record<string, CoreSupport> }
-// What /games/{id}/check adds when a game can't play on this server.
-export type CheckWhere = GameCheck & { runsOn?: CorePlatform[]; alternative?: { id: string; name: string } }
-
-const OS: Record<string, string> = { windows: 'Windows', linux: 'Linux', macos: 'Mac', freebsd: 'FreeBSD' }
-const API: Record<string, string> = { metal: 'Metal', opengl: 'OpenGL', vulkan: 'Vulkan' }
-
-// A platform as people say it: a Mac with Apple silicon or an Intel Mac, Linux on Arm.
-export function platformName(os: string, arch: string) {
-  if (os === 'macos') return arch === 'x64' ? 'Intel Mac' : 'Mac with Apple silicon'
-  const name = OS[os] || os
-  return arch === 'arm64' ? `${name} on Arm` : arch === 'arm32' ? `${name} on 32-bit Arm` : name
+const osNames: Record<string, string> = { windows: 'Windows', linux: 'Linux', macos: 'macOS', freebsd: 'FreeBSD' }
+const archNames: Record<string, Record<string, string>> = {
+  linux: { arm64: 'ARM64', arm32: '32-bit ARM' },
+  macos: { x64: 'Intel', arm64: 'Apple silicon' },
 }
 
-export function drawsWords(p: CorePlace) {
-  if (p.draws === 'gpu') return `the graphics card${p.api && API[p.api] ? ` (${API[p.api]})` : ''}`
-  if (p.draws === 'cpu') return 'the processor'
-  if (p.draws === 'cpu-fallback') return 'the processor, slower than a graphics card'
-  return 'nothing here: it can’t draw'
+export const platformName = (p: { os: string; arch?: string }) => {
+  const os = osNames[p.os] || p.os
+  const arch = p.arch ? archNames[p.os]?.[p.arch] : undefined
+  return arch ? `${os} (${arch})` : os
 }
 
-// "Windows and Linux (graphics card), Mac with Apple silicon (processor, slower)", grouping
-// platforms that draw the same way.
-export function runsOnWords(list: CorePlatform[]) {
-  const usable = list.filter((p) => p.build !== false && p.draws !== 'none')
-  const groups = new Map<string, string[]>()
-  for (const p of usable) {
-    const how = p.draws === 'gpu' ? 'graphics card' : p.draws === 'cpu' ? 'processor' : 'processor, slower'
-    const names = groups.get(how) || []
-    const n = platformName(p.os, p.arch)
-    if (!names.includes(n)) names.push(n)
-    groups.set(how, names)
-  }
-  return [...groups].map(([how, names]) => `${joinAnd(names)} (${how})`).join('; ')
+export const drawsWords: Record<Draws, string> = {
+  gpu: 'on a graphics card',
+  cpu: 'by the processor',
+  'cpu-fallback': 'by the processor, slower',
+  none: 'can’t play',
 }
 
-const joinAnd = (l: string[]) => l.length < 2 ? l.join('') : `${l.slice(0, -1).join(', ')} and ${l[l.length - 1]}`
+// A few words for a list of cores: how this one does on this server.
+export const hereShort = (s?: CoreSupport) => {
+  if (!s) return ''
+  if (!s.here.build) return 'not for this server'
+  if (s.here.draws === 'none') return 'can’t draw here'
+  if (s.here.draws === 'cpu-fallback') return 'drawn by the processor here'
+  return ''
+}
 
-const EVERY_DEVICE = 'Every device plays it: the server runs the game and streams it.'
-
-// One core's line on a game's page: how it draws here, where else it runs.
-export function CoreWhere({ c, coreId }: { c?: GameConsole; coreId: string }) {
-  const s = (c as WithSupport | undefined)?.coreSupport?.[coreId]
-  if (!s) return null
+// A core's platforms: where it runs, how it draws on this server, and that every device plays it.
+export function CorePlatforms({ support, compact }: { support?: CoreSupport; compact?: boolean }) {
+  if (!support) return null
+  const runs = support.platforms.filter((p) => p.build && p.draws !== 'none')
+  const not = support.platforms.filter((p) => !p.build || p.draws === 'none')
+  const here = support.here
   return (
-    <small className="gm-core-where">
-      {s.here && <>Here it draws on {drawsWords(s.here)}{s.here.note ? `: ${s.here.note}` : ''}. </>}
-      {s.platforms && s.platforms.length > 0 && <>Runs on {runsOnWords(s.platforms)}. </>}
-      {EVERY_DEVICE}
-    </small>
+    <span className="gm-platforms">
+      <small>
+        <b>On this server: </b>
+        {!here.build ? (here.note || 'not published for it.') : here.draws === 'none' ? (here.note || 'can’t draw.') : `drawn ${drawsWords[here.draws]}.${here.note && here.draws !== 'cpu' ? ` ${here.note}` : ''}`}
+      </small>
+      {!compact && (
+        <small className="muted">
+          Runs on {runs.map((p) => `${platformName(p)}${p.draws === 'cpu-fallback' ? ', drawn by the processor' : p.draws === 'gpu' ? ', on a graphics card' : ''}`).join(runs.some((p) => p.draws !== 'cpu') ? '; ' : ', ') || 'no server platform yet'}.
+          {not.length > 0 && ` Not on ${not.map(platformName).join(', ')}.`} Every device plays it: the server streams the game.
+        </small>
+      )}
+    </span>
   )
 }
 
-// A console's cores and where each runs, on its collection page.
-export function ConsoleCores({ c }: { c: GameConsole }) {
-  const support = (c as WithSupport).coreSupport
-  if (!support || Object.keys(support).length === 0) return null
-  const names = new Map(c.cores.map((x) => [x.id, x.name]))
-  return (
-    <section className="gm-cores gm-section" aria-labelledby="gm-cores-h">
-      <h2 id="gm-cores-h">Where {c.short} games run</h2>
-      <ul>
-        {Object.entries(support).map(([id, s]) => {
-          const installed = c.installed.some((x) => x.id === id)
-          return (
-            <li key={id}>
-              <b>{names.get(id) || id}{installed && <span className="gm-core-on"><IconCheck size={14} /> On this server</span>}</b>
-              {s.here && <small>Here: {s.here.build === false ? 'no download for this server' : drawsWords(s.here)}{s.here.note ? `. ${s.here.note}` : ''}</small>}
-              {s.platforms && s.platforms.length > 0 && <small>Runs on {runsOnWords(s.platforms)}</small>}
-            </li>
-          )
-        })}
-      </ul>
-      <p className="muted">{EVERY_DEVICE}</p>
-    </section>
-  )
-}
+const orList = (names: string[]) => names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`
 
-// A game this server can't play, saying which servers could, and the core that would, if any.
-export function NotOnThisServer({ check, isAdmin }: { check: CheckWhere | null; isAdmin: boolean }) {
-  if (!check || check.ready || !check.runsOn || check.runsOn.length === 0) return null
-  return (
-    <div className="gm-elsewhere" role="status">
-      <IconInfo />
-      <div>
-        <strong>Not on this server</strong>
-        <p>This game plays on a server running {runsOnWords(check.runsOn)}. {EVERY_DEVICE}</p>
-        {check.alternative && (isAdmin
-          ? <p><Link to="/settings/gaming">Install {check.alternative.name}</Link>, which plays it here.</p>
-          : <p>{check.alternative.name} would play it here: ask whoever runs this server.</p>)}
-      </div>
-    </div>
-  )
+// Where a console's games would play, for a game this server can't run.
+export const runsOnWords = (runsOn?: PlatformSupport[]) => {
+  if (!runsOn?.length) return ''
+  const gpu = runsOn.filter((p) => p.draws === 'gpu').map(platformName)
+  const cpu = runsOn.filter((p) => p.draws === 'cpu' || p.draws === 'cpu-fallback').map(platformName)
+  const parts = []
+  if (gpu.length) parts.push(`${orList(gpu)} with a graphics card`)
+  if (cpu.length) parts.push(`${orList(cpu)}, drawn by the processor`)
+  return `These games play on servers running ${parts.join('; and on ')}.`
 }

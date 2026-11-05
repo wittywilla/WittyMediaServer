@@ -8,10 +8,8 @@ import (
 // A server with no disc open isn't woken to look for idle ones: the sweep starts with
 // the first disc and stops once none are left.
 func TestSweepOnlyWhileDiscsAreOpen(t *testing.T) {
-	was := sweepEvery
-	sweepEvery = 5 * time.Millisecond
-	t.Cleanup(func() { sweepEvery = was })
 	m := NewManager(nil, nil, t.TempDir(), "/api", nil)
+	m.sweepEvery = 5 * time.Millisecond
 	sweeping := func() bool {
 		m.mu.Lock()
 		defer m.mu.Unlock()

@@ -118,6 +118,7 @@ type LiveSession struct {
 	nextDisc bool
 	// endRun ends the run going now; restarted says that was asked for, so
 	// the feed is asked again at once rather than the end counted as a failure.
+	// Asked for between runs, it makes the feed's answer out of date instead.
 	endRun    context.CancelFunc
 	restarted bool
 	// air: the moment on the air the next segment starts at. It runs on with the segments,
@@ -356,12 +357,10 @@ func (m *Manager) RestartLive(id string) bool {
 	}
 	s.mu.Lock()
 	end := s.endRun
-	if end != nil {
-		s.restarted = true
-	}
+	s.restarted = true
 	s.mu.Unlock()
+	s.log.Info("live stream restarted: its schedule changed")
 	if end != nil {
-		s.log.Info("live stream restarted: its schedule changed")
 		end()
 	}
 	return true
@@ -423,6 +422,9 @@ func (s *LiveSession) loop() {
 	burst := true
 	for s.ctx.Err() == nil {
 		at := time.Now()
+		s.mu.Lock()
+		s.restarted = false // the feed's answer takes in every change made so far
+		s.mu.Unlock()
 		in, err := s.Spec.Feed(s.ctx, at)
 		if err != nil {
 			if s.ctx.Err() == nil {
@@ -432,6 +434,13 @@ func (s *LiveSession) loop() {
 		}
 		runCtx, endRun := context.WithCancel(s.ctx)
 		s.mu.Lock()
+		if s.restarted {
+			// The schedule changed while the feed was answering: ask it again.
+			s.mu.Unlock()
+			endRun()
+			in.release()
+			continue
+		}
 		s.runs++
 		run := s.runs
 		s.endRun = endRun
@@ -446,12 +455,7 @@ func (s *LiveSession) loop() {
 		}
 		err = runner(runCtx, s, in, run, burst && !in.Realtime)
 		endRun()
-		if in.Stdin != nil {
-			_ = in.Stdin.Close()
-		}
-		if in.Release != nil {
-			in.Release()
-		}
+		in.release()
 		if s.ctx.Err() != nil {
 			return
 		}
@@ -489,6 +493,16 @@ func (s *LiveSession) loop() {
 		default:
 			retries = 0
 		}
+	}
+}
+
+// release closes what a run was fed and frees what it held.
+func (in *LiveInput) release() {
+	if in.Stdin != nil {
+		_ = in.Stdin.Close()
+	}
+	if in.Release != nil {
+		in.Release()
 	}
 }
 

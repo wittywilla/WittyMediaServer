@@ -209,7 +209,7 @@ func TestEncrypted3DSIsRefusedPlainly(t *testing.T) {
 	if code != 422 || !a.Encrypted {
 		t.Fatalf("%d %+v", code, a)
 	}
-	if !strings.Contains(a.Error, "encrypted") || !strings.Contains(a.Error, "won't decrypt") {
+	if !strings.Contains(a.Error, "encrypted") || !strings.Contains(a.Error, "won't decrypt") || !strings.Contains(a.Error, "decrypted yourself") {
 		t.Errorf("message: %q", a.Error)
 	}
 	// Nothing was started, and nothing is left behind.

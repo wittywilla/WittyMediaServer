@@ -760,7 +760,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	rom, cleanup, newOnly, err := g.prepare3DS(rom, cleanup, console)
 	if err != nil {
 		if errors.Is(err, wittyplay.ErrEncrypted3DS) {
-			writeJSON(w, 422, map[string]any{"error": err.Error(), "encrypted": true, "console": console.ID})
+			writeJSON(w, 422, map[string]any{"error": strings.TrimRight(err.Error(), ". ") + ". " + library.DecryptedCopyPlays, "encrypted": true, "console": console.ID})
 			return
 		}
 		writeErr(w, 422, err.Error())

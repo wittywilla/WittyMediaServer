@@ -62,6 +62,7 @@ export const GROUPS: GuideGroup[] = [
   ] },
   { title: 'Looking after the server', guides: [
     { file: 'INSTALL', title: 'Installing and updating', about: 'Each system’s installer, and what each program is.' },
+    { file: 'HARDWARE', title: 'What hardware it needs', about: 'Memory and processor for each thing it does, from measurements.' },
     { file: 'UNINSTALL', title: 'Uninstalling', about: 'Removing everything, or keeping your data, on each system.' },
     { file: 'BACKUP', title: 'Backup and restore', about: 'A ZIP of your data, and bringing it back.' },
     { file: 'REPAIR', title: 'Repair', about: 'Finding and fixing problems, in the app or on the command line.' },

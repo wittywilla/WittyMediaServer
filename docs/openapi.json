@@ -6080,6 +6080,314 @@
         ],
         "type": "object"
       },
+      "MusicLink": {
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "how": {
+            "type": "string"
+          },
+          "songId": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "syncMs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "videoId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "how",
+          "songId",
+          "state",
+          "videoId"
+        ],
+        "type": "object"
+      },
+      "MusicLinkSide": {
+        "properties": {
+          "album": {
+            "type": "string"
+          },
+          "artist": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "libraryId": {
+            "type": "integer"
+          },
+          "runtimeSec": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "artist",
+          "id",
+          "libraryId",
+          "runtimeSec",
+          "title",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "MusicLinkView": {
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "how": {
+            "type": "string"
+          },
+          "song": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicLinkSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "songId": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "syncMs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "video": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicLinkSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "videoId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "how",
+          "song",
+          "songId",
+          "state",
+          "video",
+          "videoId"
+        ],
+        "type": "object"
+      },
+      "MusicLinks": {
+        "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
+          "itemId": {
+            "type": "integer"
+          },
+          "role": {
+            "type": "string"
+          },
+          "suggested": {
+            "items": {
+              "$ref": "#/components/schemas/MusicLinkView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "tied": {
+            "items": {
+              "$ref": "#/components/schemas/MusicLinkView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "canEdit",
+          "itemId",
+          "role",
+          "suggested",
+          "tied"
+        ],
+        "type": "object"
+      },
+      "MusicMatchResult": {
+        "properties": {
+          "suggested": {
+            "type": "integer"
+          },
+          "tied": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "suggested",
+          "tied"
+        ],
+        "type": "object"
+      },
+      "MusicVideoCard": {
+        "properties": {
+          "comments": {
+            "type": "integer"
+          },
+          "creator": {
+            "type": "string"
+          },
+          "creatorId": {
+            "type": "integer"
+          },
+          "durationSec": {
+            "type": "number"
+          },
+          "hasAvatar": {
+            "type": "boolean"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "libraryId": {
+            "type": "integer"
+          },
+          "likes": {
+            "type": "integer"
+          },
+          "origLikes": {
+            "type": "integer"
+          },
+          "origViews": {
+            "type": "integer"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "playlist": {
+            "type": "string"
+          },
+          "positionSec": {
+            "type": "number"
+          },
+          "reaction": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "song": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MusicLinkSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "syncMs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer"
+          },
+          "uploadDate": {
+            "type": "string"
+          },
+          "vertical": {
+            "type": "boolean"
+          },
+          "views": {
+            "type": "integer"
+          },
+          "watched": {
+            "type": "boolean"
+          },
+          "width": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "comments",
+          "creator",
+          "creatorId",
+          "durationSec",
+          "hasAvatar",
+          "height",
+          "id",
+          "libraryId",
+          "likes",
+          "origLikes",
+          "origViews",
+          "positionSec",
+          "reaction",
+          "tags",
+          "title",
+          "updatedAt",
+          "uploadDate",
+          "vertical",
+          "views",
+          "watched",
+          "width"
+        ],
+        "type": "object"
+      },
       "Network": {
         "properties": {
           "genres": {
@@ -6701,6 +7009,9 @@
           "maxHeight": {
             "type": "integer"
           },
+          "measuredKbps": {
+            "type": "integer"
+          },
           "profile": {
             "type": "string"
           },
@@ -6713,6 +7024,9 @@
                 "type": "null"
               }
             ]
+          },
+          "streaming": {
+            "type": "string"
           },
           "subtitle": {
             "anyOf": [
@@ -6747,8 +7061,10 @@
           "forceTranscode",
           "maxBitrateKbps",
           "maxHeight",
+          "measuredKbps",
           "profile",
           "startSec",
+          "streaming",
           "subtitle",
           "subtitleLanguage",
           "video"
@@ -6837,6 +7153,9 @@
                   "source": {
                     "type": "string"
                   },
+                  "streaming": {
+                    "type": "string"
+                  },
                   "subtitles": {
                     "type": "string"
                   },
@@ -6920,6 +7239,95 @@
           },
           "streamToken": {
             "type": "string"
+          },
+          "streaming": {
+            "anyOf": [
+              {
+                "properties": {
+                  "from": {
+                    "type": "string"
+                  },
+                  "ladder": {
+                    "items": {
+                      "properties": {
+                        "height": {
+                          "type": "integer"
+                        },
+                        "kbps": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "height",
+                        "kbps"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "measuredKbps": {
+                    "type": "integer"
+                  },
+                  "mode": {
+                    "type": "string"
+                  },
+                  "player": {
+                    "properties": {
+                      "bufferSec": {
+                        "type": "integer"
+                      },
+                      "firstRetryMs": {
+                        "type": "integer"
+                      },
+                      "maxBufferSec": {
+                        "type": "integer"
+                      },
+                      "maxRetryMs": {
+                        "type": "integer"
+                      },
+                      "resumeOnDrop": {
+                        "type": "boolean"
+                      },
+                      "retries": {
+                        "type": "integer"
+                      },
+                      "segmentTimeoutMs": {
+                        "type": "integer"
+                      },
+                      "stepDownOnStall": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "bufferSec",
+                      "firstRetryMs",
+                      "maxBufferSec",
+                      "maxRetryMs",
+                      "resumeOnDrop",
+                      "retries",
+                      "segmentTimeoutMs",
+                      "stepDownOnStall"
+                    ],
+                    "type": "object"
+                  },
+                  "segmentSec": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "from",
+                  "mode",
+                  "player"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "subtitleDelivery": {
             "type": "string"
@@ -7300,6 +7708,48 @@
           "favorite",
           "hls",
           "status"
+        ],
+        "type": "object"
+      },
+      "RemoteStanding": {
+        "properties": {
+          "away": {
+            "type": "string"
+          },
+          "checked": {
+            "type": "string"
+          },
+          "home": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "publicUrl": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warning": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "away",
+          "checked",
+          "home",
+          "level",
+          "publicUrl",
+          "state",
+          "subject",
+          "summary"
         ],
         "type": "object"
       },
@@ -8390,6 +8840,18 @@
           "state": {
             "type": "string"
           },
+          "step": {
+            "type": "integer"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "title": {
             "type": "string"
           },
@@ -8743,6 +9205,27 @@
       },
       "UpdateInfo": {
         "properties": {
+          "changes": {
+            "items": {
+              "properties": {
+                "notes": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "notes",
+                "version"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "notes": {
             "type": "string"
           },
@@ -8799,6 +9282,46 @@
           "error": {
             "type": "string"
           },
+          "image": {
+            "type": "string"
+          },
+          "installer": {
+            "anyOf": [
+              {
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  },
+                  "done": {
+                    "type": "integer"
+                  },
+                  "error": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "phase": {
+                    "type": "string"
+                  },
+                  "size": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "name",
+                  "size"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "latest": {
             "anyOf": [
               {
@@ -8808,6 +9331,9 @@
                 "type": "null"
               }
             ]
+          },
+          "method": {
+            "type": "string"
           },
           "page": {
             "type": "string"
@@ -8951,7 +9477,7 @@
       "name": "Apache-2.0"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.9.0"
+    "version": "1.10.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -26173,6 +26699,277 @@
         "x-wms-auth": "user"
       }
     },
+    "/music/links": {
+      "delete": {
+        "operationId": "deleteMusicLinks",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "song",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unties a song and a music video, and no match ties them again.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getMusicLinks",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MusicLinkView"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Songs and music videos that might belong together, for an admin to look at.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putMusicLinks",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "noSync": {
+                    "type": "boolean"
+                  },
+                  "songId": {
+                    "type": "integer"
+                  },
+                  "syncMs": {
+                    "type": "integer"
+                  },
+                  "videoId": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "songId",
+                  "videoId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicLink"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ties a song to a music video for good: {songId, videoId}, with syncMs (where the song starts in the video) or noSync.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/music/links/match": {
+      "post": {
+        "operationId": "postMusicLinksMatch",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicMatchResult"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Matches every song with every music video again now.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/music/links/{id}": {
+      "get": {
+        "operationId": "getMusicLinksId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicLinks"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a song or a music video is tied to, and for admins what it might be.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/music/links/{id}/candidates": {
+      "get": {
+        "operationId": "getMusicLinksIdCandidates",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MusicLinkSide"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Songs for a video, or videos for a song, to tie by hand: q.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/music/loudness/{id}": {
       "get": {
         "operationId": "getMusicLoudnessId",
@@ -26329,7 +27126,7 @@
             "bearer": []
           }
         ],
-        "summary": "A song's lyrics. Looks online only with fetch=1, when the owner has turned it on",
+        "summary": "A song's lyrics, or a music video's (its song's). Looks online only with fetch=1, when the owner has turned it on",
         "tags": [
           "Music, audiobooks and podcasts"
         ],
@@ -26646,6 +27443,77 @@
           }
         ],
         "summary": "Tracks of one album, or all songs; an empty `album` or `artist` means none or unknown.",
+        "tags": [
+          "Music, audiobooks and podcasts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/music/videos": {
+      "get": {
+        "operationId": "getMusicVideos",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "more": {
+                      "type": "boolean"
+                    },
+                    "videos": {
+                      "items": {
+                        "$ref": "#/components/schemas/MusicVideoCard"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Music videos from every music video library this person can see, by artist, each with the song it's tied to.",
         "tags": [
           "Music, audiobooks and podcasts"
         ],
@@ -27800,6 +28668,51 @@
           }
         ],
         "summary": "The built-in client profiles.",
+        "tags": [
+          "Playback"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/playback/speedtest": {
+      "get": {
+        "operationId": "getPlaybackSpeedTest",
+        "parameters": [
+          {
+            "description": "How many kilobytes: 64 to 4096, 512 by default.",
+            "in": "query",
+            "name": "kb",
+            "required": false,
+            "schema": {
+              "default": 512,
+              "maximum": 4096,
+              "minimum": 64,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bytes that don’t compress, for timing this connection before asking for a robust stream.",
         "tags": [
           "Playback"
         ],
@@ -29187,6 +30100,42 @@
         "x-wms-auth": "admin"
       }
     },
+    "/remote/plain-sessions": {
+      "delete": {
+        "operationId": "deleteRemotePlainSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ended": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "How many sessions were signed out."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sign out every session whose sign-in crossed the internet unencrypted.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/remote/router": {
       "post": {
         "operationId": "postRemoteRouter",
@@ -29247,6 +30196,36 @@
           "Remote access and signed-in devices"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/remote/status": {
+      "get": {
+        "operationId": "getRemoteStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteStanding"
+                }
+              }
+            },
+            "description": "How remote access stands, in the words Settings → Remote Access uses. `level` is good (working as chosen, green), waiting (asked for, not working yet, amber) or fault (red). `subject` names what it's about with the short answer, such as \"Home network only\" or \"Reachable from away: yes\"; `summary` is the whole answer. Show them as they are: never a bare on or off."
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "How remote access stands, for a connection screen. Signed in, or from the server's own computer with no account (the tray icon).",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "public"
       }
     },
     "/remote/test": {
@@ -31391,6 +32370,14 @@
                     "pickerLocal": {
                       "type": "boolean"
                     },
+                    "plainAwayWarning": {
+                      "description": "For administrators, while the owner allows unencrypted connections from away: the warning every page should show. Empty otherwise.",
+                      "type": "string"
+                    },
+                    "plainConnection": {
+                      "description": "This request crossed the internet unencrypted, which the owner allowed: a sign-in page should say a password typed here can be read on the way.",
+                      "type": "boolean"
+                    },
                     "setupRequired": {
                       "type": "boolean"
                     },
@@ -33423,6 +34410,65 @@
           }
         ],
         "summary": "Look for a new version now.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/update/installer": {
+      "get": {
+        "operationId": "getUpdateInstaller",
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The installer file."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The checked installer, to save on the device in use.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postUpdateInstaller",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download the installer for this system and check it against the release's signed checksums, for a copy that can't replace its own files.",
         "tags": [
           "Server"
         ],

@@ -431,7 +431,7 @@ than colours of their own.
 
 1. **Start from the page's job.** What is the one main action? That gets the `primary` button.
 2. **Use the frame.** Routes in `App.tsx` already get the side menu, top bar and gutter.
-3. **Title it** with `.toolbar` and an `h1` (settings pages: `PageHead`). Exactly one `h1`.
+3. **Title it** with `.toolbar` and an `h1` (settings pages: `PageHead`; a library's page: `LibraryHeader`, which every library page has). Exactly one `h1`.
 4. **Build from [shared parts](#components).** A grid of things:
 
    ```tsx
@@ -456,6 +456,9 @@ than colours of their own.
 8. **Keep logic out of components.** Fetching and shaping data goes in `api.ts` or the server, so the
    native apps get the same behaviour.
 9. **Check it** at 390, 820, 1440 and 1920 wide, with the keyboard alone, and in a dark and a light theme.
+   `npm run test:keys` in `web` walks every page with Tab and with the arrows on a test server, and
+   names any control with no name, focus that doesn't show or can't get somewhere, and pages with no
+   heading. `WMS_PAGES=/your/page` walks just yours. Its first lines say what it needs.
 
 ## Adding a step to first-time setup
 

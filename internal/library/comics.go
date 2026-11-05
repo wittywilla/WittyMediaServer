@@ -195,7 +195,7 @@ func (s *Scanner) ComicPageFile(ctx context.Context, p string, pages []string, n
 	if _, err := gamearchive.Unpack(uctx, p, dir, want, int64(len(want))*maxComicPage); err != nil {
 		return "", err
 	}
-	trimCache(filepath.Join(s.CacheDir, "comics"), maxComicCache)
+	trimCache(filepath.Join(s.CacheDir, "comics"), "", maxComicCache)
 	return out, nil
 }
 
@@ -205,6 +205,8 @@ var (
 	maxThumbCache = int64(4) << 30
 	maxStillCache = int64(1) << 30
 	maxListCache  = int64(64) << 20
+	// Small posters live among the real artwork, which is never trimmed: only they are.
+	maxPosterThumbs = int64(512) << 20
 )
 
 // trimCaches keeps the caches within their limits, at most once a day. It's done at the end of
@@ -219,13 +221,17 @@ func (s *Scanner) trimCaches() {
 	if !due {
 		return
 	}
-	trimCache(filepath.Join(s.CacheDir, "thumbs"), maxThumbCache)
-	trimCache(filepath.Join(s.CacheDir, "stills"), maxStillCache)
-	trimCache(filepath.Join(s.CacheDir, "lists"), maxListCache)
+	trimCache(filepath.Join(s.CacheDir, "thumbs"), "", maxThumbCache)
+	trimCache(filepath.Join(s.CacheDir, "stills"), "", maxStillCache)
+	trimCache(filepath.Join(s.CacheDir, "lists"), "", maxListCache)
+	if s.ImagesDir != "" {
+		trimCache(s.ImagesDir, "gamethumb-", maxPosterThumbs)
+	}
 }
 
 // trimCache removes the oldest folders or files until a cache holds no more than limit.
-func trimCache(root string, limit int64) {
+// With a prefix, only the files and folders whose names start with it count.
+func trimCache(root, prefix string, limit int64) {
 	entries, err := os.ReadDir(root)
 	if err != nil {
 		return
@@ -238,6 +244,9 @@ func trimCache(root string, limit int64) {
 	var items []item
 	var total int64
 	for _, e := range entries {
+		if !strings.HasPrefix(e.Name(), prefix) {
+			continue
+		}
 		p := filepath.Join(root, e.Name())
 		info, err := e.Info()
 		if err != nil {
@@ -328,7 +337,7 @@ func (s *Scanner) ComicPageImage(ctx context.Context, archive, name string, read
 	if err := s.Tools.ImageThumb(ctx, tmp.Name(), 0, 2560, 0, out); err != nil {
 		return "", err
 	}
-	trimCache(filepath.Join(s.CacheDir, "comics"), maxComicCache)
+	trimCache(filepath.Join(s.CacheDir, "comics"), "", maxComicCache)
 	return out, nil
 }
 
@@ -384,7 +393,7 @@ func (s *Scanner) BookEPUB(it *Item) (string, error) {
 	if err := os.Rename(tmp.Name(), out); err != nil {
 		return "", err
 	}
-	trimCache(dir, maxConvertedCache)
+	trimCache(dir, "", maxConvertedCache)
 	return out, nil
 }
 
@@ -482,13 +491,35 @@ func pdfString(b []byte) string {
 
 // djvuTool finds a program of DjVuLibre, which isn't part of this server. Nothing is
 // looked for in the folder the server runs from.
+//
+// Looking means trying every folder on PATH, and on Windows every extension in PATHEXT
+// too: 50 ms to seconds on a busy machine, for the formats page and each DjVu book in a
+// scan. So the answer is kept for a minute, which still notices DjVuLibre being installed.
 func djvuTool(name string) string {
+	djvuFound.Lock()
+	defer djvuFound.Unlock() // held while looking: the others asking want the same answer
+	if f, ok := djvuFound.m[name]; ok && time.Since(f.at) < djvuLookAgain {
+		return f.path
+	}
 	p, err := exec.LookPath(name)
 	if err != nil || !filepath.IsAbs(p) {
-		return ""
+		p = ""
 	}
+	djvuFound.m[name] = foundTool{p, time.Now()}
 	return p
 }
+
+const djvuLookAgain = time.Minute
+
+type foundTool struct {
+	path string
+	at   time.Time
+}
+
+var djvuFound = struct {
+	sync.Mutex
+	m map[string]foundTool
+}{m: map[string]foundTool{}}
 
 // HasDjVu says DjVu pages can be drawn on this machine.
 func HasDjVu() bool { return djvuTool("ddjvu") != "" }
@@ -612,7 +643,7 @@ func (s *Scanner) DjvuPageFile(ctx context.Context, it *Item, page int) (string,
 	if err := s.Tools.ImageThumb(dctx, tmp, 0, 2560, 0, out); err != nil {
 		return "", err
 	}
-	trimCache(filepath.Join(s.CacheDir, "comics"), maxComicCache)
+	trimCache(filepath.Join(s.CacheDir, "comics"), "", maxComicCache)
 	return out, nil
 }
 

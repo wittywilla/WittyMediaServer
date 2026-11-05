@@ -8,8 +8,11 @@ package discovery
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net"
+	"os"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -201,18 +204,19 @@ func (s *Service) udpAddr() *net.UDPAddr {
 func (s *Service) start(info Info, nets localNets) *running {
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
-	var conns []*mdnsConn
+	var slots []*netSlot
 	for _, n := range nets {
 		c, err := openMDNS(n)
 		if err != nil {
 			s.Log.Debug("could not listen for discovery on a network", "interface", n.ifi.Name, "err", err)
 			continue
 		}
-		conns = append(conns, c)
+		slot := &netSlot{n: n, c: c}
+		slots = append(slots, slot)
 		wg.Add(1)
 		logging.Go("discovery", func() {
 			defer wg.Done()
-			c.serve(ctx, info, s.Log)
+			keep(ctx, slot, info, s.Log, deafAfter, openMDNS, time.After)
 		}, "cat", "remote")
 	}
 	if addr := s.udpAddr(); addr != nil {
@@ -226,18 +230,90 @@ func (s *Service) start(info Info, nets localNets) *running {
 			}, "cat", "remote")
 		}
 	}
-	if len(conns) > 0 {
-		s.Log.Info("announcing on the local network", "service", ServiceType, "interfaces", len(conns))
+	if len(slots) > 0 {
+		s.Log.Info("announcing on the local network", "service", ServiceType, "interfaces", len(slots))
 	} else if len(nets) > 0 {
 		s.Log.Warn("could not announce on the local network; apps can still connect by address")
 	}
 	return &running{info: info, key: nets.key(), stop: func() {
-		for _, c := range conns {
-			c.goodbye(info)
+		for _, sl := range slots {
+			sl.conn().goodbye(info)
 		}
 		cancel()
 		wg.Wait()
 	}}
+}
+
+// deafAfter is how long a network's socket may hear nothing at all, not even its
+// own announcement, before it's opened again. Only on macOS, where a socket opened
+// while the system asks whether the server may use the local network stays blocked
+// after Allow. Elsewhere a quiet network is just quiet: 0 is off.
+var deafAfter = func() time.Duration {
+	if runtime.GOOS == "darwin" {
+		return 5 * time.Second
+	}
+	return 0
+}()
+
+// errDeaf: the socket heard nothing in time.
+var errDeaf = errors.New("heard nothing on this network")
+
+// reopenWait is how long to wait before opening a deaf network's socket again:
+// soon at first, for someone who has just allowed access, then once a minute.
+func reopenWait(tries int) time.Duration {
+	if tries >= 4 {
+		return time.Minute
+	}
+	return 5 * time.Second << tries
+}
+
+// netSlot holds one network's socket, which keep may replace.
+type netSlot struct {
+	n  localNet
+	mu sync.Mutex
+	c  *mdnsConn
+}
+
+func (s *netSlot) conn() *mdnsConn {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.c
+}
+
+func (s *netSlot) set(c *mdnsConn) {
+	s.mu.Lock()
+	s.c = c
+	s.mu.Unlock()
+}
+
+// keep answers on one network until ctx ends, opening its socket again while it
+// hears nothing (see deafAfter).
+func keep(ctx context.Context, slot *netSlot, info Info, log *slog.Logger, deaf time.Duration, open func(localNet) (*mdnsConn, error), after func(time.Duration) <-chan time.Time) {
+	name := slot.n.ifi.Name
+	for tries := 0; ; {
+		if err := slot.conn().serve(ctx, info, log, deaf, tries > 0); !errors.Is(err, errDeaf) || ctx.Err() != nil {
+			return
+		}
+		if tries == 0 {
+			log.Warn("can't hear the local network, so apps there can't find this server; if macOS asked, allow WittyMediaServer in System Settings, Privacy & Security, Local Network", "interface", name)
+		}
+		for {
+			wait := reopenWait(tries)
+			tries++
+			log.Debug("opening discovery on a network again", "interface", name, "in", wait)
+			select {
+			case <-ctx.Done():
+				return
+			case <-after(wait):
+			}
+			c, err := open(slot.n)
+			if err == nil {
+				slot.set(c)
+				break
+			}
+			log.Debug("could not listen for discovery on a network", "interface", name, "err", err)
+		}
+	}
 }
 
 // mdnsConn answers mDNS on one network.
@@ -245,6 +321,8 @@ type mdnsConn struct {
 	n  localNet
 	c  *net.UDPConn
 	pc *ipv4.PacketConn
+	// group is where multicast goes: the mDNS group, or a test's own socket.
+	group *net.UDPAddr
 }
 
 func openMDNS(n localNet) (*mdnsConn, error) {
@@ -257,14 +335,21 @@ func openMDNS(n localNet) (*mdnsConn, error) {
 	// network and no further.
 	_ = pc.SetMulticastTTL(255)
 	_ = pc.SetMulticastInterface(&n.ifi)
-	return &mdnsConn{n: n, c: c, pc: pc}, nil
+	// Go turns multicast loopback off, which hid the server from this machine's
+	// own mDNS responder, and so from apps and simulators running beside it.
+	// On Windows the same switch decides what this socket hears from its own
+	// machine, so it's needed there to hear their questions. Our own packets come
+	// back too, but they are answers, and answer ignores those.
+	_ = pc.SetMulticastLoopback(true)
+	return &mdnsConn{n: n, c: c, pc: pc, group: &net.UDPAddr{IP: mdnsGroup, Port: mdnsPort}}, nil
 }
 
-func (m *mdnsConn) send(b []byte, to *net.UDPAddr) {
+func (m *mdnsConn) send(b []byte, to *net.UDPAddr) error {
 	if to == nil {
-		to = &net.UDPAddr{IP: mdnsGroup, Port: mdnsPort}
+		to = m.group
 	}
-	_, _ = m.c.WriteToUDP(b, to)
+	_, err := m.c.WriteToUDP(b, to)
+	return err
 }
 
 // onThisNetwork: mDNS is for the local link only.
@@ -277,7 +362,10 @@ func (m *mdnsConn) onThisNetwork(ip net.IP) bool {
 	return false
 }
 
-func (m *mdnsConn) serve(ctx context.Context, info Info, log *slog.Logger) {
+// serve answers on this socket until ctx ends or the socket fails, and closes it.
+// With deaf set, a socket that hears nothing in that time, not even its own
+// announcement, gives up with errDeaf. again says it was opened again for that.
+func (m *mdnsConn) serve(ctx context.Context, info Info, log *slog.Logger, deaf time.Duration, again bool) error {
 	done := make(chan struct{})
 	defer close(done)
 	logging.Go("discovery", func() {
@@ -293,21 +381,41 @@ func (m *mdnsConn) serve(ctx context.Context, info Info, log *slog.Logger) {
 			select {
 			case <-ctx.Done():
 				return
+			case <-done:
+				return
 			case <-time.After(wait):
 			}
 			if b, err := announcement(info, m.n.addrs, false); err == nil {
-				m.send(b, nil)
+				if err := m.send(b, nil); err != nil {
+					log.Debug("could not announce on a network", "interface", m.n.ifi.Name, "err", err)
+				}
 			}
 		}
 	}, "cat", "remote")
+	heard := deaf <= 0
+	if !heard {
+		_ = m.c.SetReadDeadline(time.Now().Add(deaf))
+	}
 	buf := make([]byte, 9000)
 	for {
 		n, src, err := m.c.ReadFromUDP(buf)
 		if err != nil {
-			if ctx.Err() == nil { // it can't be found on this network until the next look
-				log.Warn("stopped answering discovery on a network", "interface", m.n.ifi.Name, "err", err)
+			if ctx.Err() != nil {
+				return ctx.Err()
 			}
-			return
+			if !heard && errors.Is(err, os.ErrDeadlineExceeded) {
+				return errDeaf
+			}
+			// It can't be found on this network until the next look.
+			log.Warn("stopped answering discovery on a network", "interface", m.n.ifi.Name, "err", err)
+			return err
+		}
+		if !heard {
+			heard = true
+			_ = m.c.SetReadDeadline(time.Time{})
+			if again {
+				log.Info("hearing the local network again", "interface", m.n.ifi.Name)
+			}
 		}
 		if !m.onThisNetwork(src.IP) {
 			continue
@@ -317,16 +425,16 @@ func (m *mdnsConn) serve(ctx context.Context, info Info, log *slog.Logger) {
 			continue
 		}
 		if unicast {
-			m.send(resp, src)
+			_ = m.send(resp, src)
 		} else {
-			m.send(resp, nil)
+			_ = m.send(resp, nil)
 		}
 	}
 }
 
 func (m *mdnsConn) goodbye(info Info) {
 	if b, err := announcement(info, m.n.addrs, true); err == nil {
-		m.send(b, nil)
+		_ = m.send(b, nil)
 	}
 }
 

@@ -344,3 +344,27 @@ func TestSettingsCheckTheLyricsMirrorAndMaskTheKey(t *testing.T) {
 		t.Fatalf("%s", w.Body)
 	}
 }
+
+// A source that can't be reached is left alone for a while: with one look-up at a time for
+// the whole server, every song would otherwise wait on it in turn.
+func TestLyricsSourceThatsDownIsLeftAlone(t *testing.T) {
+	ts := newTestServer(t)
+	_, admin := ts.user(t, "owner", "adult", true, "")
+	first, _ := musicSong(t, ts, nil)
+	second, _ := musicSong(t, ts, nil)
+	asked := fakeLRCLIB(t, func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(503) })
+	ts.do(t, "PUT", "/api/settings", admin, map[string]string{"lyricsOnline": "1"})
+	got := decodeLyrics(t, ts.do(t, "GET", fmt.Sprintf("/api/music/lyrics/%d?fetch=1", first.ID), admin, nil))
+	if got.Failed == "" || asked.Load() != 1 {
+		t.Fatalf("%+v, asked %d", got, asked.Load())
+	}
+	got = decodeLyrics(t, ts.do(t, "GET", fmt.Sprintf("/api/music/lyrics/%d?fetch=1", second.ID), admin, nil))
+	if got.Failed == "" || asked.Load() != 1 {
+		t.Fatalf("asked a source that was down a moment ago: %+v, asked %d", got, asked.Load())
+	}
+	// Someone asking again by hand is asked for.
+	decodeLyrics(t, ts.do(t, "GET", fmt.Sprintf("/api/music/lyrics/%d?fetch=1&again=1", second.ID), admin, nil))
+	if asked.Load() != 2 {
+		t.Fatalf("asked %d times", asked.Load())
+	}
+}

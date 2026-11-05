@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { HelpLink } from './HelpLink'
 import { Link } from 'react-router-dom'
+import { announce } from '../a11y'
 import { api, ApiError, type Library } from '../api'
 import { IconCheck, IconFolder, IconPlus, libIcon } from '../icons'
 import { PodcastFinder, PodcastWays } from '../pages/Podcasts'
@@ -87,7 +88,11 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
   const [adding, setAdding] = useState('') // the module being added
   const [addedNote, setAddedNote] = useState('')
   const [addErr, setAddErr] = useState('')
+  // Where the keyboard goes next: a kind's tile (back from its form, or once its library is made),
+  // or into the form that just opened. Without this it falls to the page, and Tab starts again at the top.
   const [focusKind, setFocusKind] = useState('')
+  const [focusForm, setFocusForm] = useState(false)
+  const form = useRef<HTMLDivElement>(null)
   const learn = async () => { const k = await libraryKinds(); setKinds(k); return k }
   useEffect(() => { void learn() }, [])
   // A module downloads and installs as the store does it, and then its kind moves up into the usable list.
@@ -110,6 +115,10 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
     if (focusKind) document.getElementById('libkind-' + focusKind)?.focus()
     setFocusKind('')
   }, [focusKind])
+  useEffect(() => {
+    if (focusForm) form.current?.querySelector<HTMLElement>('input, select, button:not([disabled])')?.focus()
+    setFocusForm(false)
+  }, [focusForm])
   const t = LIB_TYPES.find((x) => x.type === type)
   const same = existing.filter((l) => l.type === type && (type !== 'games' || (l.console || 'auto') === console_))
   const joining = same.find((l) => l.id === target)
@@ -118,6 +127,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
   const choose = (k: string) => {
     const s = existing.filter((l) => l.type === k)
     setType(k); setName(''); setTarget(grouping === 'combine' && s.length ? s[0].id : 0)
+    setFocusForm(true)
   }
   const pods = t?.type === 'podcasts'
   const noFolder = t?.type === 'radio'
@@ -137,7 +147,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
         : await api.post<Library>('/libraries', { name: newName, type, paths: allPaths, console: type === 'games' ? console_ : undefined })
       setManual('')
       if (pods) setFollowing(lib) // straight on to following shows
-      else { onAdded(lib); reset() }
+      else { onAdded(lib); announce(`${lib.name} added`); setFocusKind(lib.type); reset() }
     } catch (e: any) {
       if (e instanceof ApiError && e.data?.code === 'module-missing') {
         const mods: ModuleRef[] = e.data.modules || []
@@ -159,7 +169,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
             ? <>Episodes stream until you save them. On a show’s page, <b>Keep downloaded</b> saves its newest episodes to <b>{following.paths[0]}</b> each time its feed updates.</>
             : <>Episodes stream from the web. To download them, add a folder to this library later in Settings, Libraries.</>}
         </p>
-        <div className="oobe-actions"><span /><button type="button" className="btn primary" onClick={() => { onAdded(following); setFollowing(null); reset() }}>Done</button></div>
+        <div className="oobe-actions"><span /><button type="button" className="btn primary" onClick={() => { onAdded(following); setFollowing(null); setFocusKind(following.type); reset() }}>Done</button></div>
       </div>
     )
   }
@@ -211,7 +221,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
     )
   }
   return (
-    <div className="oobe-lib">
+    <div className="oobe-lib" ref={form}>
       <div className="oobe-lib-head"><span className="ic">{libIcon(t.type)}</span><b>{kindTitle(kinds, t.type, t.name)}</b></div>
       {pods && <PodcastWays />}
       {type === 'games' && <p className="su-games-line">{GAMES_LINE}</p>}
@@ -268,7 +278,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
         </div>
       )}
       <div className="oobe-actions">
-        <button type="button" className="btn ghost" onClick={() => { setType(null); setPaths([]); setManual(''); setErr(''); setRefusedShare(false); setMissing([]); setAddErr('') }}>Back</button>
+        <button type="button" className="btn ghost" onClick={() => { setFocusKind(t.type); setType(null); setPaths([]); setManual(''); setErr(''); setRefusedShare(false); setMissing([]); setAddErr('') }}>Back</button>
         <button type="button" className="btn primary" disabled={(!allPaths.length && !pods && !noFolder && !anime) || busy} onClick={add}>{busy ? 'Adding…' : pods ? 'Add, then follow shows' : joining ? `Add to ${joining.name}` : `Add ${newName}`}</button></div>
     </div>
   )

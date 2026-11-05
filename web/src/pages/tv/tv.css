@@ -250,6 +250,7 @@ html.ten-foot .ctv-page .ctv-btn.icon, html.using-controller .ctv-page .ctv-btn.
    its width only ever moves what is beside it. */
 .ctv-preview { position: relative; z-index: 1; min-width: 0; max-width: 100%; background: var(--ctv-picture); color: var(--on-image); border: 2px solid var(--ctv-line); box-shadow: var(--ctv-bevel); }
 .ctv-preview-screen { position: relative; aspect-ratio: 16 / 9; background: var(--ctv-picture); }
+.ctv-preview-slot { position: absolute; inset: 0; }
 .ctv-preview video { display: block; width: 100%; height: 100%; background: var(--ctv-picture); object-fit: contain; }
 .ctv-preview-msg { position: absolute; inset: 0; display: grid; place-items: center; padding: 8px; text-align: center; color: var(--on-image); font-size: var(--text-xs); }
 .ctv-preview-bar { display: flex; align-items: center; gap: 2px; height: 28px; padding: 0 2px; background: var(--ctv-panel); font-size: var(--text-xs); }
@@ -334,9 +335,16 @@ html.ten-foot .ctv-page .ctv-btn.icon, html.using-controller .ctv-page .ctv-btn.
 .ctv-msg-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .ctv-slate { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; pointer-events: none; font-family: var(--ctv-font); }
 .ctv-slate-card { padding: 22px 34px; text-align: center; color: var(--on-image); }
-.ctv-slate-ch { color: var(--ctv-accent); font-size: var(--text-xl); font-weight: 700; }
+.ctv-slate-ch { color: var(--on-image); opacity: .85; font-size: var(--text-xl); font-weight: 700; }
 .ctv-slate-msg { font-size: var(--text-4xl); font-weight: 700; text-shadow: 2px 2px 0 var(--scrim); }
-.ctv-slate-next { margin-top: 6px; font-size: var(--text-lg); color: var(--ctv-soft); }
+/* It's always over the picture, so its words are the picture's colours, never the theme's. */
+.ctv-slate-next { margin-top: 6px; font-size: var(--text-lg); color: var(--on-image); opacity: .85; text-shadow: 1px 1px 0 var(--scrim); }
+/* The same card in the guide's preview, sized to the preview however big it's made. */
+.ctv-preview-screen { container-type: inline-size; }
+.ctv-preview .ctv-slate-card { padding: 4cqw 5cqw; }
+.ctv-preview .ctv-slate-ch { font-size: clamp(10px, 3.6cqw, var(--text-xl)); }
+.ctv-preview .ctv-slate-msg { font-size: clamp(14px, 7cqw, var(--text-4xl)); line-height: 1.1; }
+.ctv-preview .ctv-slate-next { margin-top: 1cqw; font-size: clamp(9px, 3cqw, var(--text-lg)); }
 @media (max-width: 720px) {
   .ctv-banner { bottom: 84px; gap: 10px; padding: 8px; }
   .ctv-banner-ch { min-width: 62px; padding-right: 10px; }

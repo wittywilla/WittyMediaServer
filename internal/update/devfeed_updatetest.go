@@ -16,6 +16,7 @@ import (
 //	WMS_UPDATE_KEY   base64 public key of a throwaway signing key
 //	WMS_MODULE_FEED  address of folder with a <Repository>.json list per plugin
 //	WMS_MODULE_CATALOG  address of a module catalogue, signed with WMS_UPDATE_KEY
+//	WMS_UPDATE_CHANGELOG  address of a CHANGELOG.md, read for what's new
 //
 // Downloads may then also come from this machine (loopback addresses).
 // Release builds never include this file.
@@ -25,6 +26,7 @@ func init() {
 	}
 	devModuleFeed = os.Getenv("WMS_MODULE_FEED") // <address>/<Repository>.json
 	devCatalog = os.Getenv("WMS_MODULE_CATALOG")
+	devChangelog = os.Getenv("WMS_UPDATE_CHANGELOG")
 	f := os.Getenv("WMS_UPDATE_FEED")
 	if f != "" || devModuleFeed != "" || devCatalog != "" {
 		devFeedURL = f

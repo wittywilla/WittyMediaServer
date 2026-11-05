@@ -28,11 +28,14 @@ import (
 // IsAudioLibrary reports whether a library type holds audio files.
 func IsAudioLibrary(t string) bool { return t == "music" || t == "audiobooks" || t == "podcasts" }
 
-func discoverAudio(root string) ([]candidate, error) {
+func discoverAudio(root string, step walkStep) ([]candidate, error) {
 	var out, sheets, raw []candidate
 	var bad unreadable
 	var unnamed sniffBudget
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err := step.next(); err != nil {
+			return err
+		}
 		if err != nil {
 			bad.note(err)
 			return nil // unreadable folders are skipped, not fatal
@@ -182,6 +185,7 @@ func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, cov
 		it.Track = num(tag(tags, "track", "tracknumber"))
 		it.DiscNo = num(tag(tags, "disc", "discnumber"))
 		it.Overview = tag(tags, "comment", "description", "synopsis")
+		it.recIDs = recordingIDs(tags)
 		if g := tag(tags, "genre"); g != "" {
 			it.Genres = []string{g}
 		}
@@ -241,7 +245,10 @@ func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, cov
 		covers[key] = cover
 	}
 	it.Poster = cover
-	return s.Store.upsertItem(ctx, it)
+	if err := s.Store.upsertItem(ctx, it); err != nil {
+		return err
+	}
+	return s.saveRecordingIDs(ctx, lib, it)
 }
 
 var errNoProbe = errors.New("not read by FFmpeg")
@@ -330,7 +337,7 @@ func (s *Scanner) MIDIAudio(ctx context.Context, it *Item) (string, error) {
 	if err := os.Rename(tmp, out); err != nil {
 		return "", err
 	}
-	trimCache(dir, maxConvertedCache)
+	trimCache(dir, "", maxConvertedCache)
 	return out, nil
 }
 

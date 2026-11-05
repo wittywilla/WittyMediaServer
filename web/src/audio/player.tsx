@@ -52,7 +52,10 @@ type AudioCtx = {
   media: () => HTMLAudioElement | null
   playing: boolean
   nowPlaying: string // what a radio station says it is playing, if it says
-  play: (items: Item[], start?: number, mode?: AudioMode) => void
+  // at: where in the first song to start, in seconds (a song's video switching to it).
+  play: (items: Item[], start?: number, mode?: AudioMode, at?: number) => void
+  // Where the song playing is, in seconds.
+  position: () => number
   enqueue: (items: Item[]) => void
   playNext: (items: Item[]) => void
   toggle: () => void
@@ -89,6 +92,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const { user } = useApp()
   const kept = useRef(readKept(user?.id)).current
   // Back after a reload: nothing is fetched until someone presses play.
+  const startAt = useRef<{ id: number; at: number } | null>(null) // asked for by play()
   const waiting = useRef<{ id: number; at: number } | null>(kept ? { id: kept.queue[kept.index].id, at: kept.mode === 'radio' ? 0 : kept.place } : null)
   const standby = () => (audio.current === deckA.current ? deckB.current : deckA.current)
   const [queue, setQueue] = useState<Item[]>(kept?.queue || [])
@@ -324,7 +328,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     waiting.current = null
     dropPrepared()
     silenceOther()
-    const resume = books && current.progress && !current.progress.watched ? current.progress.positionSec : 0
+    const asked = startAt.current?.id === current.id ? startAt.current.at : 0
+    startAt.current = null
+    const resume = asked || (books && current.progress && !current.progress.watched ? current.progress.positionSec : 0)
     load(current, resume)
     a.play().catch(() => setPlaying(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -745,15 +751,19 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   const ctx = useMemo<AudioCtx>(() => ({
     queue, index, current, mode, playing, media: () => audio.current, nowPlaying: nowPlaying?.id === current?.id ? nowPlaying?.title || '' : '',
-    play: (items, start = 0, m = 'music') => {
+    position,
+    play: (items, start = 0, m = 'music', at = 0) => {
       if (cdOn.current) cd.actions.eject()
+      startAt.current = at > 0 && items[start] ? { id: items[start].id, at } : null
       setMode(m)
       setShuffleOn(false)
       unshuffled.current = null
       setQueue(items)
       setIndex(start)
       if (items[start]?.id === current?.id) {
-        if (waiting.current) waiting.current = { id: waiting.current.id, at: 0 }
+        startAt.current = null
+        if (waiting.current) waiting.current = { id: waiting.current.id, at }
+        else if (at > 0) seek(at)
         resume()
       } else waiting.current = null
     },

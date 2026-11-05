@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/couch/relay/fakehost"
 )
 
@@ -17,6 +18,7 @@ func TestMain(m *testing.M) {
 		fakehost.Run()
 		return
 	}
+	auth.QuickHashesForTests()
 	os.Exit(m.Run())
 }
 

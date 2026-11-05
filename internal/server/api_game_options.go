@@ -240,8 +240,9 @@ func (s *Server) handleGameSettingsPut(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
-	read := func() (*wittyplay.Layer, error) { return nil, nil }
-	write := func(*wittyplay.Layer) error { return nil }
+	// Every level below sets both, or answers and returns.
+	var read func() (*wittyplay.Layer, error)
+	var write func(*wittyplay.Layer) error
 	switch b.Level {
 	case wittyplay.LevelServer, wittyplay.LevelServerConsole:
 		if !u.IsAdmin {

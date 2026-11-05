@@ -54,6 +54,9 @@ func cmdServe(args []string) int {
 	cfg, err := config.Parse(args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		if hint := unwritableData(err, os.Getenv("WMS_DATA_DIR")); hint != "" {
+			fmt.Fprintln(os.Stderr, hint)
+		}
 		return 2
 	}
 	// One server per data folder, before a reset, a restore or the database touches it.
@@ -164,6 +167,12 @@ func cmdServe(args []string) int {
 			logs.SetFloor(slog.LevelDebug) // -log debug means everything, whatever the settings say
 		}
 		guard.SetLogDir(logs.Dir())
+	}
+
+	if ffmpeg.InContainer() {
+		if msg := puidMismatch(os.Getenv("PUID"), os.Getenv("PGID"), os.Getuid(), os.Getgid()); msg != "" {
+			log.Warn(msg)
+		}
 	}
 
 	// Find out which hardware encoders really work here, if any are to be used.

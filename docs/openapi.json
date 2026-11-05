@@ -30766,6 +30766,168 @@
         "x-wms-auth": "admin"
       }
     },
+    "/network": {
+      "get": {
+        "operationId": "getNetwork",
+        "summary": "The port it answers on, where that comes from, where a change is saved, and the port after a restart.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "putNetwork",
+        "summary": "Save a port in settings.ini for the next start, after the same checks as /network/check. 409 when -listen, WMS_LISTEN, wms.json or Docker set it.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "port": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  }
+                },
+                "required": [
+                  "port"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Saved; the same as GET.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/network/check": {
+      "post": {
+        "operationId": "postNetworkCheck",
+        "summary": "Whether the server could move to a port: in range, not refused by browsers, not Remote Access's, and free here. Nothing is saved.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "port": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  }
+                },
+                "required": [
+                  "port"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "What was found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/network/restart": {
+      "post": {
+        "operationId": "postNetworkRestart",
+        "summary": "Restart, on the saved port.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "202": {
+            "description": "Restarting."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/reset": {
       "get": {
         "operationId": "getReset",

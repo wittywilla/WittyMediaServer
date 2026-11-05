@@ -427,6 +427,28 @@ func TestUDPListensWhereTheServerDoes(t *testing.T) {
 	}
 }
 
+// The tray app asks the server on this computer where it is, whatever port that is.
+func TestAskLocal(t *testing.T) {
+	c, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	info := testInfo
+	info.Port = 8123
+	go serveUDP(ctx, c, info)
+	addr := c.LocalAddr().(*net.UDPAddr)
+	if port, _ := ask(addr, 3*time.Second); port != 8123 {
+		t.Errorf("port %d", port)
+	}
+	cancel()
+	time.Sleep(50 * time.Millisecond)
+	if port, _ := ask(addr, 300*time.Millisecond); port != 0 {
+		t.Errorf("nobody's there, but got port %d", port)
+	}
+}
+
 // ------------------------------------------------- a socket that hears nothing
 
 // testConn is a socket on this machine's loopback address standing in for one

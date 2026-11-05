@@ -44,6 +44,13 @@ func setAutostart(on bool) error {
 	return exec.Command("launchctl", "load", p).Run()
 }
 
+// serviceInstalled says the installer set up the background service. Only then is a server found
+// by asking on this computer one this app shows, rather than a second server of its own.
+func serviceInstalled() bool {
+	_, err := os.Stat("/Library/LaunchDaemons/com.wittywilla.wittymediaserver.plist")
+	return err == nil
+}
+
 // endReason: the desktop closed the tray app without its Quit. A shutdown also stops the
 // server itself, which says so.
 func endReason() string { return logging.StopTrayClosed }

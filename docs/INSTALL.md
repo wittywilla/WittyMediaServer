@@ -66,7 +66,7 @@ Each release also has `SHA256SUMS.txt`, a list of every file's checksum, and `SH
    - **Put a shortcut on the desktop.** There's always a Start menu entry.
    - **Add the wittymediaserver command to the command line,** in every new terminal.
    - **Run as a background service, always on** (for everyone only): it runs even when nobody is signed in, under the limited `LOCAL SERVICE` account. See below for what it needs.
-   - **Let other devices on my home network connect** (for everyone only): adds a Windows Firewall rule for networks you've marked private. It opens nothing to the internet. Installed just for you, Windows asks when the server first starts: choose **Allow**.
+   - **Let other devices on my home network connect** (for everyone only): adds a Windows Firewall rule for networks you've marked private. It opens nothing to the internet, and as it's for the server program, it goes on working when you change the port. Installed just for you, Windows asks when the server first starts: choose **Allow**.
 4. Leave **Open WittyMediaServer now** ticked to finish setting up in your browser.
 
 Running a newer installer over an installed copy updates it in place and keeps your choices. It also takes over from a copy that 0.5.2-alpha or older installed: the old program, boot task and firewall rule go, and your library stays where it is.
@@ -77,7 +77,7 @@ Running a newer installer over an installed copy updates it in place and keeps y
 
 ```powershell
 msiexec /i wittymediaserver-<version>-windows-amd64.msi /qn MSIINSTALLPERUSER=1 AUTOSTART=1 DESKTOPSHORTCUT=1 ADDTOPATH=1
-msiexec /i wittymediaserver-<version>-windows-amd64.msi /qn MSIINSTALLPERUSER="" INSTALLSERVICE=1 ADDFIREWALL=1 AUTOSTART="" PORT=9797
+msiexec /i wittymediaserver-<version>-windows-amd64.msi /qn MSIINSTALLPERUSER="" INSTALLSERVICE=1 ADDFIREWALL=1 AUTOSTART="" PORT=8096
 ```
 
 | Property | Means | If you don't say |
@@ -86,7 +86,7 @@ msiexec /i wittymediaserver-<version>-windows-amd64.msi /qn MSIINSTALLPERUSER=""
 | `AUTOSTART` | `1` starts the tray app at sign-in, `""` doesn't | `1` |
 | `DESKTOPSHORTCUT`, `ADDTOPATH` | `1` adds it | Off |
 | `INSTALLSERVICE`, `ADDFIREWALL` | `1` adds it, for everyone only | Off |
-| `PORT` | The port for the service and the firewall rule | `9797` |
+| `PORT` | The port, saved in [settings.ini](CONFIG.md#the-port) in the data folder: the service's, or the installing account's | What it was: 9797 on a new install, and on an upgrade, the port the service had |
 
 **Without installing.** Unzip the `.zip` anywhere and open `WittyMediaServer.exe`. Add a [`wms.json`](CONFIG.md#portable-mode) beside it to keep everything in that folder, on a USB drive for instance.
 
@@ -123,16 +123,10 @@ There's no package repository to add yet, so `apt upgrade` and `dnf upgrade` won
 | Program | `/usr/lib/wittymediaserver`, with the command at `/usr/bin/wittymediaserver` |
 | Library, accounts and settings | `/var/lib/wittymediaserver` |
 | The account it runs as | `wms`, which needs read permission on your media folders |
-| The port, data folder or anything else | `sudo systemctl edit wittymediaserver` |
+| The port | **Settings → Network**, or `/var/lib/wittymediaserver/settings.ini`: see [The port](CONFIG.md#the-port) |
+| The data folder or anything else | `sudo systemctl edit wittymediaserver` |
 
-For example, to use port 8080, put this in what `systemctl edit` opens, and save:
-
-```ini
-[Service]
-Environment=WMS_LISTEN=:8080
-```
-
-For a different data folder, set both of these, as the service can only write where it's told:
+A port set with `systemctl edit` before 0.7.0, as `WMS_LISTEN`, moves into `settings.ini` when you install this version. For a different data folder, set both of these, as the service can only write where it's told:
 
 ```ini
 [Service]
@@ -170,7 +164,8 @@ Then open `http://<this computer>:9797/` to finish setting up. As with FreeBSD's
 | Program | `/usr/local/lib/wittymediaserver`, with the command at `/usr/local/bin/wittymediaserver` |
 | Library, accounts and settings | `/var/db/wittymediaserver`, and the log is `wms.log` in there |
 | The account it runs as | `wms`, which needs read permission on your media folders |
-| The account, data folder or port | `sysrc wittymediaserver_user=media`, `sysrc wittymediaserver_data=/tank/witty`, `sysrc wittymediaserver_listen=:8080` |
+| The account or data folder | `sysrc wittymediaserver_user=media`, `sysrc wittymediaserver_data=/tank/witty` |
+| The port | **Settings → Network**, or `/var/db/wittymediaserver/settings.ini`: see [The port](CONFIG.md#the-port). `wittymediaserver_listen` from before 0.7.0 moves there when you update |
 | A settings file | `/usr/local/etc/wittymediaserver/wms.json` |
 
 **To update,** run `pkg add -f` with the newer package, then `service wittymediaserver start`, as `pkg` stops it. It also takes over from what `install.sh` installed, keeping its data folder, port and account. A package made for FreeBSD 14 needs `env IGNORE_OSVERSION=yes pkg add <file>` on 15, which hasn't been tried.
@@ -188,6 +183,8 @@ docker run -d --name wittymediaserver --restart unless-stopped   -p 9797:9797   
 Then open `http://<this computer>:9797/`. From another device, setup asks for the code that `docker logs wittymediaserver` shows.
 
 [Docker](DOCKER.md) has the rest: ready compose files (plain, locked down, Intel and AMD graphics, NVIDIA, behind a reverse proxy), the tags, every folder and setting, running as your own user, hardware transcoding, and updating. The image is for `amd64`, `arm64` and `armv7`, runs as an ordinary user, and works with a read-only root.
+
+**Another port:** change the first number of the published port, such as `"8096:9797"`, and run `docker compose up -d`. Inside the container it stays 9797, so **Settings → Network** can't change it.
 
 ## A NAS
 
@@ -264,7 +261,7 @@ A copy of 0.5.2-alpha or older takes the update as well, from a folder it can wr
 
 ## At home and away
 
-WittyMediaServer runs on your own computer, in your home. **Out of the box it's available on your home network only:** every device on the same Wi-Fi or cable network can open `http://<this computer's address>:9797`. The setup wizard and **Settings → About** show the address.
+WittyMediaServer runs on your own computer, in your home. **Out of the box it's available on your home network only:** every device on the same Wi-Fi or cable network can open `http://<this computer's address>:9797`. The setup wizard and **Settings → About** show the address, and **Settings → Network** changes its port.
 
 **Setting up from another device.** Until the first account exists, whoever makes it owns the server. On the computer running it, setup just works. From any other device, your phone included, setup asks for a **setup code**, because someone else on your network could otherwise get there first. Find it in either place:
 

@@ -207,7 +207,7 @@ func (m *Manager) askTuner(ctx context.Context, method string, call tuner.Helper
 				return nil, ctx.Err()
 			}
 			err = fmt.Errorf("it stopped before it finished: %w", err)
-			a.failedNow(err)
+			a.m.failed(a.id, a.e, a.version, err) // it broke, which may not be its own doing
 			return nil, fmt.Errorf("WittyTuner failed: %w", err)
 		}
 		if d.Progress == nil {
@@ -231,8 +231,8 @@ func (m *Manager) VersionInUse(id string) string {
 	return ""
 }
 
-// failedNow counts something this job saw against the version.
-func (a *Attached) failedNow(err error) { a.m.failed(a.id, a.e, a.version, err) }
+// failedNow counts something wrong this job saw the helper do against the version.
+func (a *Attached) failedNow(err error) { a.m.failed(a.id, a.e, a.version, &misbehaved{err}) }
 
 // tunerProxy is a tuner whose work a helper does.
 type tunerProxy struct {

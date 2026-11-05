@@ -28,6 +28,7 @@ if [ -f "$OLD_UNIT" ] && grep -Eq '^ExecStart=.*/(wms|wittymediaserver) serve' "
         echo "Environment=WMS_DATA_DIR=$old_data"
         echo "ReadWritePaths=$old_data"
       fi
+      # postinstall moves a port on its own into the data folder's settings.ini.
       [ -n "$old_listen" ] && [ "$old_listen" != ":9797" ] && echo "Environment=WMS_LISTEN=$old_listen"
       true
     } > "$DROP_IN"
@@ -47,6 +48,21 @@ if [ -f "$OLD_UNIT" ] && grep -Eq '^ExecStart=.*/(wms|wittymediaserver) serve' "
     rmdir "$old_prefix" 2>/dev/null || true
   fi
   rm -f /usr/local/share/applications/wittymediaserver.desktop
+fi
+
+# An upgrade replaces the settings.ini beside the program. A port someone set in it by hand moves
+# into the data folder's copy first, unless that copy has one of its own, which wins anyway.
+PROGRAM_INI=/usr/lib/wittymediaserver/settings.ini
+SERVICE_DATA=$DATA
+for f in /etc/systemd/system/wittymediaserver.service.d/*.conf; do
+  [ -f "$f" ] || continue
+  d=$(sed -n 's/^Environment="\{0,1\}WMS_DATA_DIR=\([^"]*\)"\{0,1\}[[:space:]]*$/\1/p' "$f" | tail -n 1)
+  if [ -n "$d" ]; then SERVICE_DATA="$d"; fi
+done
+port=$(sed -n 's/^[[:space:]]*port[[:space:]]*=[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$PROGRAM_INI" 2>/dev/null | head -n 1)
+if [ -n "$port" ] && [ "$port" != 9797 ] && [ -x /usr/lib/wittymediaserver/bin/wittymediaserver ] &&
+   ! grep -Eq '^[[:space:]]*port[[:space:]]*=' "$SERVICE_DATA/settings.ini" 2>/dev/null; then
+  /usr/lib/wittymediaserver/bin/wittymediaserver config port -data "$SERVICE_DATA" -in-data -port "$port" || true
 fi
 
 if ! id wms >/dev/null 2>&1; then

@@ -112,7 +112,7 @@ DIST=dist/mine scripts/build-release.sh 0.6.0-alpha                             
 DIST=dist/mine scripts/build-release.sh 0.6.0-alpha windows/amd64 linux/arm64      # just some
 ```
 
-On a computer that isn't a Mac, the macOS archives have no menu-bar app, as it needs a Mac to compile. The FreeBSD archives use FreeBSD's own FFmpeg unless you give them a static build, from `scripts/build-ffmpeg-static.sh`.
+On a computer that isn't a Mac, the macOS archives have no menu-bar app, as it needs a Mac to compile, and their apps aren't signed. Unsigned, macOS's Local Network privacy keeps the server off the network: run `packaging/macos/sign-app.sh <folder>` on a Mac, as the release does. The FreeBSD archives use FreeBSD's own FFmpeg unless you give them a static build, from `scripts/build-ffmpeg-static.sh`.
 
 Each installer is made from a folder that script built. `scripts/test/README.md` says what proves each works.
 

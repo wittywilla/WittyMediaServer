@@ -5,6 +5,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **The Mac app's server can be found and reached on your network.** macOS's Local Network privacy blocked it without asking, so phones, TVs and other computers never listed it under **On your network**. The app and its server had only the signature the linker gives every program, all called "a.out", which macOS can't ask about by name. They're now signed as WittyMediaServer, in the `.pkg` and the `.tar.gz`, and the first time the server reaches the network macOS asks whether it may: choose **Allow**.
 - **Apps on the server's own computer find it.** The server's announcements on the home network never reached the computer it runs on, so an app there, or the iPhone simulator on that Mac, could miss it under *On your network*, lose it after a couple of minutes, or keep showing it once it had stopped. Other devices on the network weren't affected.
 - **On a Mac, choosing Allow is enough: no restart.** When macOS asks whether the server may use the local network, what it had opened before the answer stayed blocked after **Allow**, so nothing found it until it was restarted. It now notices it can hear nothing and opens again, within a minute, and its log says when it can't hear the local network.
 

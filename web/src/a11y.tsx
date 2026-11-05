@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
 import { focusFirst, focusIsAnyonesChoice } from './tv'
+import { applyPageTitle } from './theme'
 import { isBackKey } from './ui/spatial'
 
 // Accessibility shared by every page: dialogs that hold the keyboard while
@@ -166,6 +167,13 @@ export function Announcer() {
     }, ms))
     return () => { clearTimeout(t); later.forEach(clearTimeout) }
   }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+  // The window's title names the page by its heading. A page may still be loading what its heading
+  // says, so it looks again a little later.
+  useEffect(() => {
+    const name = () => applyPageTitle(document.getElementById('main')?.querySelector('h1')?.textContent?.trim() || '')
+    const looks = [350, 1500, 4000, 9000].map((ms) => setTimeout(name, ms))
+    return () => looks.forEach(clearTimeout)
+  }, [loc.pathname])
   // Across the room nothing shows where you are until something has the focus, so a page starts
   // on its main action. It looks a few times, as a page may still be loading what it's going to show.
   useEffect(() => {

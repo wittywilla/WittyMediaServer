@@ -13,8 +13,9 @@
 // - Game controllers are read with the Gamepad API and turned into the same
 //   key presses. The browser's "standard" mapping covers XInput/Xbox,
 //   DualShock, DualSense and most generic pads; Nintendo layouts get A/B
-//   swapped so the right-hand button confirms; non-standard pads fall back
-//   to their first axes and buttons. The controller is only polled while one
+//   swapped so the right-hand button confirms; a few pads browsers have no
+//   layout for are laid out here (KNOWN_LAYOUTS); other non-standard pads
+//   fall back to their first axes and buttons. The controller is only polled while one
 //   is connected, so this costs nothing otherwise.
 
 import { isBackKey, nearest, ranked, type Dir } from './ui/spatial'
@@ -333,7 +334,17 @@ const STD: Record<number, string> = {
   12: 'ArrowUp', 13: 'ArrowDown', 14: 'ArrowLeft', 15: 'ArrowRight',
 }
 
-const isNintendo = (id: string) => /nintendo|pro controller|joy-?con|057e/i.test(id)
+// Nintendo's vendor id, as Chromium writes it ("Vendor: 057e") or Firefox does ("057e-2009-" or, on
+// some systems, "57e-2009-" with a name such as "Wireless Gamepad").
+const isNintendo = (id: string) => /nintendo|pro controller|joy-?con|vendor: 057e|^0?57e-/i.test(id)
+
+// Pads a browser has no layout for but that are known all the same: for each of their buttons, its
+// place in the standard layout (-1 for none). Two Joy-Cons that Linux's joycond puts together as one
+// pad come to Chromium like this, with the D-pad after everything else.
+const KNOWN_LAYOUTS: [RegExp, number[]][] = [
+  [/combined joy-?cons|057e\D+2008/i, [0, 1, 3, 2, -1, 4, 5, 6, 7, 8, 9, 16, 10, 11, 12, 13, 14, 15]],
+]
+const knownLayout = (p: Gamepad) => (standardLayout(p) ? null : KNOWN_LAYOUTS.find(([id]) => id.test(p.id))?.[1] || null)
 
 // A D-pad some pads report as one axis: -1 at up, on round clockwise in eight steps, and
 // out of that range at rest, which is what gives one away. Read as a stick it would
@@ -382,11 +393,14 @@ function keysDown(pads: readonly (Gamepad | null)[]) {
     const p = pads[n]
     if (!p) continue
     const swap = isNintendo(p.id)
-    if (standardLayout(p)) {
+    const known = knownLayout(p)
+    const standard = standardLayout(p) || !!known
+    if (standard) {
       for (let i = 0; i < p.buttons.length; i++) {
         if (!p.buttons[i].pressed) continue
-        let k = STD[i]
-        if (swap && (i === 0 || i === 1)) k = STD[1 - i]
+        const s = known ? known[i] ?? -1 : i
+        let k = STD[s]
+        if (swap && (s === 0 || s === 1)) k = STD[1 - s]
         if (k) down.add(k)
       }
     } else {
@@ -396,10 +410,10 @@ function keysDown(pads: readonly (Gamepad | null)[]) {
     }
     // Left stick (and D-pad axes on non-standard pads) as arrows, with a dead zone.
     const last = p.axes[p.axes.length - 1] ?? 0
-    if (!standardLayout(p) && Math.abs(last) > 1.05) hatPads.add(p.id)
+    if (!standard && Math.abs(last) > 1.05) hatPads.add(p.id)
     const hat = hatPads.has(p.id)
     if (hat && Math.abs(last) <= 1.05) for (const k of HAT_KEYS[Math.round((last + 1) * 3.5) & 7]) down.add(k)
-    const axes = standardLayout(p) || hat ? [[0, 1]] : [[0, 1], [p.axes.length - 2, p.axes.length - 1]]
+    const axes = standard || hat ? [[0, 1]] : [[0, 1], [p.axes.length - 2, p.axes.length - 1]]
     for (const [x, y] of axes) {
       const ax = p.axes[x] ?? 0, ay = p.axes[y] ?? 0
       if (Math.abs(ax) > 0.6 && Math.abs(ax) >= Math.abs(ay)) down.add(ax > 0 ? 'ArrowRight' : 'ArrowLeft')

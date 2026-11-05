@@ -196,7 +196,7 @@ What the server says back, in the answer and as the first event:
 | `width`, `height` | The encoded picture. It's often doubled: show it at `aspect`, not at its own shape |
 | `aspect`, `fps`, `turns` | As in the session. `fps` is the console's own rate, such as 60.0988 or 50.007 |
 | `rate` | The sound's sample rate: 48000 for Opus, the console's own for PCM |
-| `ports` | How many players this game takes input for: 4, or up to 8 where the core describes more ports (a multitap) |
+| `ports` | How many controller ports the core describes: at least 4, at most 8. Not every port is a player's: FCEUmm's fifth is the Famicom's expansion port (Arkanoid, Hyper Shot, Family Trainer), where Mesen-S's fifth is a fifth player through its multitap. The session's `devices` ([the games API](GAMING-API.md#playing-a-game)) says what each port takes; offer a port as a player when it takes a controller |
 | `motion` | Whether the core can read motion at all, below |
 | `motionOn` | The players whose motion it wants now, and how often. Send motion for these, if you hold them |
 | `leds` | The game's lights as they are now, below |
@@ -209,7 +209,7 @@ What the server says back, in the answer and as the first event:
 
 A game has up to 8 players (`ports`). Each device can hold some of them:
 
-- Players are 0 to 7; the stream's `ports` says how many this game has.
+- Players are 0 to 7; the stream's `ports` says how many ports this game has, and `devices` what each takes.
 - A hello with `"seats": [1]` takes player 2 for this device. To change, send `{"type": "seats", "ports": [0, 1]}`. Add
   `"take": true` to take a player another device has; otherwise that one is refused with an `error`. A device that
   connects again with the same `device` id gets its own players back.

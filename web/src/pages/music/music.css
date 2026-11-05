@@ -206,3 +206,19 @@ a.mh-list-text, .mh-list-text { flex: 1; min-width: 0; display: flex; color: inh
 .mv-tie-sync { display: grid; gap: 4px; flex: 1 1 100%; font-size: var(--text-sm); }
 .mv-tie-sync .input { max-width: 14rem; }
 .mv-tie-find { width: 100%; margin-bottom: 8px; }
+/* A music video's lyrics, under it. */
+.mv-lyrics { margin: 0 0 14px; }
+.mv-lyrics-body { margin-top: 10px; padding: 12px; border-radius: var(--r-md); background: var(--bg-2); }
+.mv-lines { list-style: none; margin: 0; padding: 0; max-height: min(48vh, 420px); overflow-y: auto; scrollbar-width: thin; }
+.mv-lines button { display: block; width: 100%; padding: 4px 6px; border: 0; border-radius: var(--r-sm, 6px); background: none; color: var(--fg-2, var(--fg)); font: inherit; font-size: var(--text-lg); font-weight: 600; text-align: left; cursor: pointer; }
+.mv-lines .past button { opacity: 0.6; }
+.mv-lines .now button { color: var(--fg); background: var(--accent-soft); }
+.mv-lines button:hover { background: var(--bg-3); }
+.mv-lines button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.mv-plain { margin: 0; max-height: min(48vh, 420px); overflow-y: auto; white-space: pre-wrap; font: inherit; }
+.mv-lyrics-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.mv-nudge { display: inline-flex; align-items: center; gap: 4px; }
+.mv-nudge-v { min-width: 5.5em; text-align: center; font-variant-numeric: tabular-nums; font-size: var(--text-sm); }
+.mv-lyrics-src { margin-left: auto; font-size: var(--text-sm); }
+.mv-lyrics-note { margin: 8px 0 0; font-size: var(--text-sm); }
+@media (prefers-reduced-motion: reduce) { .mv-lines { scroll-behavior: auto; } }

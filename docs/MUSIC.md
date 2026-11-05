@@ -162,6 +162,8 @@ Profile limits apply as everywhere: a video a profile can't watch isn't listed, 
 - **From a song:** its menu (**⋯**) has **Watch the video**, and so does the full-screen player, under the artist and in its **⋯** menu. A song with more than one video, such as a live one, lists each.
 - **From a video:** a music video's page shows its song under the title, with links to the artist and the album, and **Play the song**.
 
+A music video shows its song's lyrics too, under **Lyrics** on its page. See [Lyrics and karaoke](LYRICS-KARAOKE.md#music-videos).
+
 When the two line up, going from one to the other carries on at the same place: the song stops and the video starts where the song was, or the other way round. When they don't, the other one starts from the beginning.
 
 ### How songs and videos are matched

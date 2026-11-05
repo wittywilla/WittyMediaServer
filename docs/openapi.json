@@ -33490,6 +33490,42 @@
         "x-wms-auth": "public"
       }
     },
+    "/time": {
+      "get": {
+        "operationId": "getTime",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "now": {
+                      "description": "The server's clock, in milliseconds since 1970.",
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The server's clock."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The server's clock, for keeping to the same moment on a channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/tuner-channels/{id}": {
       "put": {
         "operationId": "putTunerChannelsId",

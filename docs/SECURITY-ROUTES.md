@@ -44,7 +44,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/themes/{id}/download` | Public | Theme id resolved by the theme manager |
 | `GET /api/themes/{id}/{file...}` | Public | Theme id and file name checked by the theme manager. Inert content policy |
 | `GET /api/themes/{id}/tokens.json` | Public | Theme id resolved by the theme manager |
-| `GET /api/health` | Public | Nothing: answers `ok`, and this run's random `instance` id, so that a second start on the same data folder knows the server answering is the one using it. The id is made fresh at every start and says nothing about the server |
+| `GET /api/health` | Public | Nothing: answers `ok`, and this run's random `instance` id, so that a second start on the same data folder knows the server answering is the one using it. The id is made fresh at every start and says nothing about the server. On the server's own computer it also names a newer version, for the tray menu |
 | `GET /api/capabilities` | Public | Describes the server to apps. Version left out for signed-out callers from the internet |
 | `POST /api/identity` | Public | Nonce format. Answers with a signature over it |
 | `POST /api/pair/start` | Public | Server is set up. Limits on open codes per address and for the server |
@@ -255,6 +255,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/logs/crashes/{id}` | Admin | Report id |
 | `POST /api/logs/crashes/{id}/seen` | Admin | Report id |
 | `DELETE /api/logs/crashes/{id}` | Admin | Report id |
+| `GET /api/logs/crashes/{id}/{part}` | Admin | Report id, and the part from a fixed list |
+| `POST /api/logs/save` | Admin | A note of at most 500 characters |
 | `GET /api/logs/bundle` | Admin | Days, redaction |
 | `GET /api/logs/bundle/preview` | Admin | Days, redaction |
 | `GET /api/reset` | Admin | Nothing further |
@@ -265,6 +267,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/update` | Admin | Build can update itself |
 | `POST /api/update/check` | Admin | Build can update itself. Answers younger than a minute are reused |
 | `POST /api/update/apply` | Admin | Signed release, checked by the updater |
+| `POST /api/update/installer` | Admin | Signed release; the installer is checked against its signed checksum before it is kept |
+| `GET /api/update/installer` | Admin | Only an installer that was downloaded and checked |
 | `GET /api/modulestore` | Admin | Nothing further |
 | `POST /api/modulestore/check` | Admin | Answers younger than a minute are reused for this project's catalogue |
 | `GET /api/modulestore/item/{store}/{id}` | Admin | Known store and module |
@@ -577,6 +581,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/diagnose/jobs/{id}` | Admin | Job exists |
 | `GET /api/diagnose/jobs/{id}/report` | Admin | Job exists. Format, redaction |
 | `GET /api/guide/search` | Signed-in | Channels the account may watch, and limits on what they show. 2 to 100 letters, up to two weeks ahead. A few searches at a time |
+| `GET /api/time` | Signed-in | Nothing: the server's clock |
 | `GET /api/tv/favourites` | Signed-in | own |
 | `PUT /api/tv/favourites/{key}` | Signed-in | own. A channel the account may watch. A limit per account |
 | `DELETE /api/tv/favourites/{key}` | Signed-in | own. A channel the account may watch |

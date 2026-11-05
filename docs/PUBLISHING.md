@@ -32,6 +32,8 @@ Never commit disc images, media, API keys or a data folder. Run the checks in `C
 
 ## Publishing a release
 
+Before it, a soak run of at least 4 hours on Linux, and on Windows when a machine can be spared: [Soak runs](../scripts/README.md#soak-runs). It has to pass, or what it found has an issue.
+
 1. Run `scripts/bump-server.sh <version>`, and write the `CHANGELOG.md` section. The release page opens with what to download and where WittyMediaClient is, from `body` in `.github/workflows/release.yml`: keep what it says has been run the same as the README's.
 2. Tag it and push the tag. In GitHub Desktop: **History**, right-click the commit, **Create Tag**, then **Push origin**. Or:
 
@@ -110,7 +112,7 @@ DIST=dist/mine scripts/build-release.sh 0.6.0-alpha                             
 DIST=dist/mine scripts/build-release.sh 0.6.0-alpha windows/amd64 linux/arm64      # just some
 ```
 
-On a computer that isn't a Mac, the macOS archives have no menu-bar app, as it needs a Mac to compile. The FreeBSD archives use FreeBSD's own FFmpeg unless you give them a static build, from `scripts/build-ffmpeg-static.sh`.
+On a computer that isn't a Mac, the macOS archives have no menu-bar app, as it needs a Mac to compile, and their apps aren't signed. Unsigned, macOS's Local Network privacy keeps the server off the network: run `packaging/macos/sign-app.sh <folder>` on a Mac, as the release does. The FreeBSD archives use FreeBSD's own FFmpeg unless you give them a static build, from `scripts/build-ffmpeg-static.sh`.
 
 Each installer is made from a folder that script built. `scripts/test/README.md` says what proves each works.
 

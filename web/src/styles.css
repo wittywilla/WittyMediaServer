@@ -775,6 +775,10 @@ main.content:focus { outline: none; }
 .upd-dot { display: inline-block; width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / .25); flex: none; }
 .tabbar a.tab-upd { position: relative; }
 .tabbar .upd-dot { position: absolute; top: var(--sp-1); right: calc(50% - 18px); margin: 0; }
+/* A newer version, for admins, at the top of Home and Settings. */
+.upd-banner { margin: 0 0 var(--sp-4); }
+.home > .upd-banner { margin: var(--sp-3) var(--gutter) 0; }
+.upd-banner-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 
 /* People who ask their system for more contrast get stronger secondary
    text and borders. */

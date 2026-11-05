@@ -116,8 +116,16 @@ jobs:
           path: |
             dist/*.zip
             dist/*.tar.gz
+            !dist/*-darwin-*.tar.gz
             dist/*.deb
             dist/*.rpm
+      # The Mac apps can't be signed here: installers-macos signs them and publishes these
+      # archives as archives-darwin.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: archives-darwin-unsigned
+          path: dist/*-darwin-*.tar.gz
+          if-no-files-found: error
 
   # The installers that need their own system's tools, from the same files.
   installers-windows:
@@ -188,18 +196,31 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+          cache: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: archives
+          name: archives-darwin-unsigned
           path: dist
-      - name: Build the .pkg files
+      - name: Sign the apps, pack the archives again and build the .pkg files
         run: |
           VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
-          mkdir stage
+          mkdir stage signed
           for a in arm64 amd64; do
-            tar -xzf "dist/wittymediaserver-$VERSION-darwin-$a.tar.gz" -C stage
-            packaging/macos/build-pkg.sh "$VERSION" "stage/wittymediaserver-$VERSION-darwin-$a" "$a" installers
+            name="wittymediaserver-$VERSION-darwin-$a"
+            tar -xzf "dist/$name.tar.gz" -C stage
+            # Unsigned, macOS's Local Network privacy keeps the server off the network.
+            packaging/macos/sign-app.sh "stage/$name"
+            go run ./scripts/pack "stage/$name" "signed/$name.tar.gz"
+            packaging/macos/build-pkg.sh "$VERSION" "stage/$name" "$a" installers
           done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: archives-darwin
+          path: signed/*.tar.gz
+          if-no-files-found: error
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: installers-macos
@@ -255,6 +276,10 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: archives
+          path: all
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: archives-darwin
           path: all
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -336,6 +361,10 @@ jobs:
           path: dist
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
+          name: archives-darwin
+          path: dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
           name: installers-windows
           path: dist
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
@@ -355,6 +384,46 @@ jobs:
         with:
           name: signature
           path: dist
+      # The changelog only: what's new comes first in the notes, where the server's Updates card
+      # finds it too.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          sparse-checkout: CHANGELOG.md
+          sparse-checkout-cone-mode: false
+          path: src
+          persist-credentials: false
+      - name: Release notes
+        env:
+          REF: ${{ github.ref_name }}
+        run: |
+          ver="${REF#v}"
+          # This version's section of the changelog, up to the next version's.
+          awk -v v="## $ver" '$0 == v { on = 1; next } on && /^## / { exit } on { print }' src/CHANGELOG.md > whats-new.md
+          grep -q '[^[:space:]]' whats-new.md || { echo "::error::CHANGELOG.md has no section for $ver"; exit 1; }
+          {
+            echo "## What's new in $ver"
+            cat whats-new.md
+            cat <<EOF
+
+          ## Which file to download
+
+          **These files are the server,** for the computer that holds your media. Most people want the installer for their system:
+
+          | System | File |
+          |---|---|
+          | Windows | \`.msi\` |
+          | macOS | \`.pkg\` |
+          | Debian, Ubuntu and relatives | \`.deb\` |
+          | Fedora, RHEL and relatives | \`.rpm\` |
+          | FreeBSD | \`.pkg\` |
+
+          \`amd64\` is most computers, and \`arm64\` is Apple silicon and many small boards. The [install guide](https://github.com/wittywilla/WittyMediaServer/blob/$REF/docs/INSTALL.md) covers the rest, and Docker. A server already installed finds the new version by itself: **Settings, About, Updates** has the right file for it.
+
+          **For phones, TVs and other computers, you don't need anything here.** Open the server's address in a web browser, or use the app, **[WittyMediaClient](https://github.com/wittywilla/WittyMediaClient/releases)**, which has its own releases.
+
+          WittyMediaClient adds Android, Android TV, iOS, tvOS and Plasma Big Screen. Android has been run on emulators only, and iOS and tvOS have never been built. A web browser is the way to reach everything today. See [Apps and devices](https://github.com/wittywilla/WittyMediaServer/blob/$REF/docs/APPS.md).
+          EOF
+          } > notes.md
       - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: |
@@ -367,26 +436,9 @@ jobs:
             dist/*SHA256SUMS.txt
             dist/*SHA256SUMS.txt.sig
           prerelease: ${{ contains(github.ref_name, '-') }}
-          # Goes above the generated notes. What's been run has to say what README.md's "Where it has
-          # been run" says.
-          body: |
-            ## Which file to download
-
-            **These files are the server,** for the computer that holds your media. Most people want the installer for their system:
-
-            | System | File |
-            |---|---|
-            | Windows | `.msi` |
-            | macOS | `.pkg` |
-            | Debian, Ubuntu and relatives | `.deb` |
-            | Fedora, RHEL and relatives | `.rpm` |
-            | FreeBSD | `.pkg` |
-
-            `amd64` is most computers, and `arm64` is Apple silicon and many small boards. The [install guide](https://github.com/wittywilla/WittyMediaServer/blob/${{ github.ref_name }}/docs/INSTALL.md) covers the rest, and Docker.
-
-            **For phones, TVs and other computers, you don't need anything here.** Open the server's address in a web browser, or use the app, **[WittyMediaClient](https://github.com/wittywilla/WittyMediaClient/releases)**, which has its own releases.
-
-            WittyMediaClient adds Android, Android TV, iOS, tvOS and Plasma Big Screen. Android has been run on emulators only, and iOS and tvOS have never been built. A web browser is the way to reach everything today. See [Apps and devices](https://github.com/wittywilla/WittyMediaServer/blob/${{ github.ref_name }}/docs/APPS.md).
+          # What's new, from the changelog, then which file to download. What's been run has to
+          # say what README.md's "Where it has been run" says.
+          body_path: notes.md
           generate_release_notes: true
 
   # Only for a tag, and only once its release is out.

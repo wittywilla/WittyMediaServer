@@ -1159,6 +1159,15 @@
           "kind": {
             "type": "string"
           },
+          "parts": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "seen": {
             "type": "boolean"
           },
@@ -4556,6 +4565,9 @@
               "null"
             ]
           },
+          "flight": {
+            "type": "boolean"
+          },
           "health": {
             "properties": {
               "dropped": {
@@ -4634,6 +4646,9 @@
                 "type": "null"
               }
             ]
+          },
+          "trace": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -4642,11 +4657,13 @@
           "crashes",
           "dir",
           "files",
+          "flight",
           "health",
           "level",
           "levels",
           "modules",
-          "on"
+          "on",
+          "trace"
         ],
         "type": "object"
       },
@@ -9205,6 +9222,27 @@
       },
       "UpdateInfo": {
         "properties": {
+          "changes": {
+            "items": {
+              "properties": {
+                "notes": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "notes",
+                "version"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "notes": {
             "type": "string"
           },
@@ -9261,6 +9299,46 @@
           "error": {
             "type": "string"
           },
+          "image": {
+            "type": "string"
+          },
+          "installer": {
+            "anyOf": [
+              {
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  },
+                  "done": {
+                    "type": "integer"
+                  },
+                  "error": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "phase": {
+                    "type": "string"
+                  },
+                  "size": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "name",
+                  "size"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "latest": {
             "anyOf": [
               {
@@ -9270,6 +9348,9 @@
                 "type": "null"
               }
             ]
+          },
+          "method": {
+            "type": "string"
           },
           "page": {
             "type": "string"
@@ -22474,6 +22555,65 @@
         "x-wms-auth": "admin"
       }
     },
+    "/logs/crashes/{id}/{part}": {
+      "get": {
+        "operationId": "getLogCrashPart",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "part",
+            "required": true,
+            "schema": {
+              "enum": [
+                "flight.log",
+                "goroutines.txt",
+                "trace"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What was kept beside a report: the last 10 minutes of the log (flight.log), every goroutine's stack (goroutines.txt) or the execution trace (trace).",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/logs/entries": {
       "get": {
         "operationId": "getLogEntries",
@@ -22656,6 +22796,52 @@
           }
         ],
         "summary": "Open the log folder on the server's own screen.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/logs/save": {
+      "post": {
+        "operationId": "postLogSave",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "note": {
+                    "description": "Up to 500 characters, added to the report's summary.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrashReport"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save what just happened: a report of kind saved, with the last 10 minutes of the log at the most detailed level, every goroutine's stack and the execution trace beside it.",
         "tags": [
           "Server"
         ],
@@ -33304,6 +33490,42 @@
         "x-wms-auth": "public"
       }
     },
+    "/time": {
+      "get": {
+        "operationId": "getTime",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "now": {
+                      "description": "The server's clock, in milliseconds since 1970.",
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The server's clock."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The server's clock, for keeping to the same moment on a channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/tuner-channels/{id}": {
       "put": {
         "operationId": "putTunerChannelsId",
@@ -34346,6 +34568,65 @@
           }
         ],
         "summary": "Look for a new version now.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/update/installer": {
+      "get": {
+        "operationId": "getUpdateInstaller",
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The installer file."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The checked installer, to save on the device in use.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postUpdateInstaller",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download the installer for this system and check it against the release's signed checksums, for a copy that can't replace its own files.",
         "tags": [
           "Server"
         ],

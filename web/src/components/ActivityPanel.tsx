@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react'
 import { STATE_NAMES, clearTaskHistory, fmtAgo, fmtCount, fmtDuration, fmtRate, taskAction, taskHistory, typeName, useActivity, type Task } from '../activity'
 import { IconCheck, IconClose, IconInfo, IconPause, IconPlay, IconRefresh, IconSettings, IconStop, IconTrash } from '../icons'
+import { useApp } from '../state'
 import { Button, Chip, Chips, EmptyState, IconButton, LinkButton, LoadError, Notice, Progress, Sheet, Spinner, Tabs, ask, toast } from '../ui'
 
 // The panel behind the activity button: what's going on, library by library, and what
@@ -10,6 +11,7 @@ type Tab = 'now' | 'history'
 
 export default function ActivityPanel({ onClose }: { onClose: () => void }) {
   const a = useActivity()
+  const { update, user } = useApp()
   const [tab, setTab] = useState<Tab>('now')
   const panel = useId()
   const going = a.tasks.length
@@ -22,6 +24,11 @@ export default function ActivityPanel({ onClose }: { onClose: () => void }) {
       <div id={panel} role="tabpanel" className="act-body">
         {!a.connected && a.loaded && <p className="act-offline" role="status">Reconnecting to the server. This may be out of date.</p>}
         {a.access.readOnly && <p className="act-readonly">You can see what the server is doing here. Only an administrator can change it.</p>}
+        {update && user?.isAdmin && tab === 'now' && (
+          <div className="act-update">
+            <Notice title="Update available" action={<LinkButton to="/settings/about#updates" size="sm" onClick={onClose}>What’s new</LinkButton>}>WittyMediaServer {update} can be installed.</Notice>
+          </div>
+        )}
         {tab === 'now' ? <Now tasks={a.tasks} /> : <History recent={a.recent} readOnly={a.access.readOnly} />}
       </div>
     </Sheet>

@@ -210,9 +210,7 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("GET /api/themes", s.handleThemes)
 	m.HandleFunc("GET /api/themes/{id}/download", s.handleThemeDownload)
 	m.HandleFunc("GET /api/themes/{id}/{file...}", s.handleThemeFile)
-	m.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]any{"ok": true, "instance": s.Instance})
-	})
+	m.HandleFunc("GET /api/health", s.handleHealth)
 	m.HandleFunc("GET /api/capabilities", s.handleCapabilities)
 	m.HandleFunc("POST /api/identity", s.handleIdentity)
 	m.HandleFunc("GET /api/themes/{id}/tokens.json", s.handleThemeTokens)
@@ -425,6 +423,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/logs/crashes/{id}", s.requireAdmin(s.handleCrash))
 	m.Handle("POST /api/logs/crashes/{id}/seen", s.requireAdmin(s.handleCrashSeen))
 	m.Handle("DELETE /api/logs/crashes/{id}", s.requireAdmin(s.handleCrashDelete))
+	m.Handle("GET /api/logs/crashes/{id}/{part}", s.requireAdmin(s.handleCrashPart))
+	m.Handle("POST /api/logs/save", s.requireAdmin(s.handleSaveEvidence))
 	m.Handle("GET /api/logs/bundle", s.requireAdmin(s.handleBundle))
 	m.Handle("GET /api/logs/bundle/preview", s.requireAdmin(s.handleBundlePreview))
 	m.Handle("GET /api/reset", s.requireAdmin(s.handleResetView))
@@ -435,6 +435,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/update", s.requireAdmin(s.handleUpdate))
 	m.Handle("POST /api/update/check", s.requireAdmin(s.handleUpdateCheck))
 	m.Handle("POST /api/update/apply", s.requireAdmin(s.handleUpdateApply))
+	m.Handle("POST /api/update/installer", s.requireAdmin(s.handleUpdateInstaller))
+	m.Handle("GET /api/update/installer", s.requireAdmin(s.handleUpdateInstallerFile))
 	m.Handle("GET /api/modules", s.requireAdmin(s.handleModules))
 	m.Handle("POST /api/modules/check", s.requireAdmin(s.handleModulesCheck))
 	m.Handle("POST /api/modules/{id}/install", s.requireAdmin(s.handleModuleInstall))
@@ -645,7 +647,8 @@ func (s *Server) logRequest(r *http.Request, id string, sw *statusWriter, start 
 	default:
 		lv = slog.LevelDebug
 	}
-	if !s.Logs.Accepts("http", lv) || quietPath(r.URL.Path) && lv < slog.LevelWarn {
+	// While the flight recorder is on, every request goes there, whatever the level says.
+	if !s.Logs.Accepts("http", lv) && !s.Logs.FlightRecorderOn() || quietPath(r.URL.Path) && lv < slog.LevelWarn {
 		return
 	}
 	ip := ""

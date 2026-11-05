@@ -2,7 +2,7 @@
 
 Install the server on Windows, macOS, Linux, FreeBSD, a NAS or in a container, keep it up to date, and find out what each program does.
 
-FFmpeg comes with the download, so there's nothing else to install first, apart from one FreeBSD case noted below. New to all this? [Getting started](GETTING_STARTED.md) walks through it with no command line. To remove it, see [Uninstalling](UNINSTALL.md).
+FFmpeg comes with the download, so there's nothing else to install first, apart from one FreeBSD case noted below. To check a computer is enough, see [What hardware it needs](HARDWARE.md). New to all this? [Getting started](GETTING_STARTED.md) walks through it with no command line. To remove it, see [Uninstalling](UNINSTALL.md).
 
 - [Which file to download](#which-file-to-download)
 - [What has been tested](#what-has-been-tested)
@@ -58,7 +58,7 @@ Each release also has `SHA256SUMS.txt`, a list of every file's checksum, and `SH
    | Needs an administrator | No | Yes |
    | Program | `%LOCALAPPDATA%\Programs\WittyMediaServer` | `C:\Program Files\WittyMediaServer` |
    | Library, accounts and settings | `%LOCALAPPDATA%\WittyMediaServer` | Each person's own, or with the service, `C:\ProgramData\WittyMediaServer` |
-   | **Update now** in Settings | Yes | No: run the new installer |
+   | **Update now** in Settings | Yes | No: **Download the installer** there, then run it |
    | Can run as a service | No | Yes |
 
 3. Choose how it should run. Each of these is optional.
@@ -240,7 +240,7 @@ The app restarts the server if it crashes. It stops trying after three failures 
 
 ## Updating
 
-Admins see a dot on **Settings** when a newer version is out. **Settings → About**, under **Updates**, shows the installed and the newest version with its release notes. **Update now** installs it:
+Admins see a banner at the top of Home and Settings when a newer version is out, with its first change in a few words: **Update**, **What's new**, or **Later**, which hides it until the next version. The activity panel, the account menu and the tray icon's menu say so too, and Settings has a dot. **Settings → About**, under **Updates**, shows the installed and the newest version, and what's new in every version since yours, from this changelog. **Update now** installs it:
 
 1. **Downloading:** the release's checksum list and its signature come from GitHub, over HTTPS, and only from GitHub.
 2. **Checking:** the checksum list must be signed with the release key built into the server, and the downloaded package must match its checksum. Anything else is refused and nothing changes.
@@ -249,15 +249,15 @@ Admins see a dot on **Settings** when a newer version is out. **Settings → Abo
 
 The server looks for new versions twice a day while **Check for updates automatically** is on, which it is to begin with. **Check now** asks at once. It only fetches GitHub's list of releases: nothing about you or your library is sent, and nothing is installed until an admin presses **Update now**.
 
-**Update now** needs a copy installed from a release package, in a folder the server can write. Otherwise Settings says why:
+**Update now** needs a copy installed from a release package, in a folder the server can write. Otherwise there's **Download the installer**: the server fetches the right file for its system and processor from the release, checks it against the release's signed checksums the same way, and keeps it in its cache folder. Settings then says where it is, gives the command that installs it where there is one, and offers **Save the installer** to save it on the device you're using.
 
 | Installed with | How to update |
 |---|---|
 | Windows installer, **Just me**, or an unpacked folder on Windows, Linux or FreeBSD | **Update now** |
-| Windows installer, **Everyone on this computer** | Run the new installer, as Windows protects Program Files |
-| `.deb`, `.rpm`, FreeBSD `.pkg` | Install the new package the same way, as your package manager owns these files |
-| `install.sh` | Unpack the new archive and run `sudo ./install.sh` again |
-| macOS | Run the new `.pkg` |
+| Windows installer, **Everyone on this computer** | **Download the installer**, then run it on the server's computer, as Windows protects Program Files. It updates in place |
+| `.deb`, `.rpm`, FreeBSD `.pkg` | **Download the installer**, then run the command Settings shows (`sudo apt install …`, `sudo dnf install …` or `pkg add -f …`), as your package manager owns these files. The server never runs it itself |
+| `install.sh` | **Download the installer** (the archive), unpack it and run `sudo ./install.sh` again |
+| macOS | **Download the installer**, then open the `.pkg` |
 | Docker | `docker compose pull`, then `docker compose up -d`. With `docker run`: `docker pull`, then remove and recreate the container. Your `/config` volume stays |
 
 A copy of 0.5.2-alpha or older takes the update as well, from a folder it can write. The server moves to `bin/` at the same time, and a small `wms` stays where the old server was, so whatever started it still can. Scripts of yours that call `wms` should change to `wittymediaserver`. In Docker that name has already gone.
@@ -276,6 +276,8 @@ It's never kept in the log files or shown in the log viewer. If you trust everyo
 A server nobody can reach from a home network first, such as a rented one, also needs [`remoteAccess`](CONFIG.md#security-switches) turned on, and HTTPS.
 
 **If other devices can't connect on Windows.** The installer's firewall rule covers networks you've marked private, not public ones. Set your network to **Private** in Windows' network settings.
+
+**If other devices can't find or connect on a Mac.** The first time the app starts the server, macOS asks whether WittyMediaServer may find devices on local networks. Choose **Allow**. If you didn't, turn it on in **System Settings → Privacy & Security → Local Network**. The server notices within a minute.
 
 **Away from home.** It works once you turn on **Settings → Remote Access** and follow its steps. Until then the server refuses connections from outside your home, even if your router lets them through. [Remote access](REMOTE.md) explains each way in: a private VPN, which is the easiest and safest; forwarding a port with HTTPS; your own reverse proxy; or a rented server. The server refuses unencrypted connections from the internet, so use HTTPS, and strong passwords for every adult profile.
 
@@ -296,6 +298,7 @@ The programs in this alpha aren't code-signed yet, so systems warn about them. E
 | System | What you see | What to do |
 |---|---|---|
 | **Windows** | "Windows protected your PC", from SmartScreen | Choose **More info**, then **Run anyway** |
+| **Windows 11,** with Smart App Control on | Windows blocks the installer, and offers only to turn Smart App Control off | Don't turn it off: Windows can't turn it back on without being reinstalled. Signed releases are being prepared. See [Smart App Control on Windows](TROUBLESHOOTING.md#smart-app-control-on-windows) |
 | **Windows,** for everyone | The administrator prompt says "Unknown publisher" | Choose **Yes** if you trust the download |
 | **macOS** | The Mac refuses to open the `.pkg` | Right-click it and choose **Open**, then **Open** again. If it still refuses, choose **Open Anyway** in **System Settings → Privacy & Security** |
 | **Linux, FreeBSD** | Nothing, for a file you install by name | Nothing. The packages carry no signature of their own |

@@ -125,13 +125,16 @@ export function BrandMark({ src }: { src?: string }) {
 // theme colour (brandName.ts). colouring overrides the server's (a preview).
 // Screen readers get the name once, whole, rather than in coloured pieces; the
 // tooltip (for a long name cut short) is on the hidden part, so it isn't read again.
+// Where it has to wrap, it wraps between the words of the name, not inside one.
 export function Brand({ name, colouring }: { name: string; colouring?: string }) {
   const { brandColouring } = useApp()
   const shown = name || DEFAULT_NAME
+  const parts = brandParts(shown, colouring ?? brandColouring)
+  const joined = (i: number) => i > 0 && !/\s$/u.test(parts[i - 1].text) && !/^\s/u.test(parts[i].text)
   return (
     <span className="brand-name">
       <span className="sr-only">{shown}</span>
-      <span aria-hidden="true" title={name || undefined}>{brandParts(shown, colouring ?? brandColouring).map((p, i) => <Fragment key={i}>{p.accent ? <b>{p.text}</b> : p.text}</Fragment>)}</span>
+      <span aria-hidden="true" title={name || undefined}>{parts.map((p, i) => <Fragment key={i}>{joined(i) && <wbr />}{p.accent ? <b>{p.text}</b> : p.text}</Fragment>)}</span>
     </span>
   )
 }

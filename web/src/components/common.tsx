@@ -121,14 +121,15 @@ export function BrandMark({ src }: { src?: string }) {
 // Brand is the name in the top-left corner: the custom name from
 // Settings -> Appearance, or WittyMediaServer, with every other word in the
 // theme colour (brandName.ts). colouring overrides the server's (a preview).
-// Screen readers get the name once, whole, rather than in coloured pieces.
+// Screen readers get the name once, whole, rather than in coloured pieces; the
+// tooltip (for a long name cut short) is on the hidden part, so it isn't read again.
 export function Brand({ name, colouring }: { name: string; colouring?: string }) {
   const { brandColouring } = useApp()
   const shown = name || DEFAULT_NAME
   return (
-    <span className="brand-name" title={name || undefined}>
+    <span className="brand-name">
       <span className="sr-only">{shown}</span>
-      <span aria-hidden="true">{brandParts(shown, colouring ?? brandColouring).map((p, i) => <Fragment key={i}>{p.accent ? <b>{p.text}</b> : p.text}</Fragment>)}</span>
+      <span aria-hidden="true" title={name || undefined}>{brandParts(shown, colouring ?? brandColouring).map((p, i) => <Fragment key={i}>{p.accent ? <b>{p.text}</b> : p.text}</Fragment>)}</span>
     </span>
   )
 }

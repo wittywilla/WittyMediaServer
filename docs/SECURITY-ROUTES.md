@@ -440,10 +440,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/epg/sources/{id}/refresh` | Admin | Numeric id |
 | `GET /api/epg/ids` | Admin | Nothing further |
 | `GET /api/recordings` | Tuner channels | own, and every account's for an administrator |
-| `POST /api/recordings` | Tuner channels | Channel turned on and visible. 50 waiting per account, none for an administrator |
+| `POST /api/recordings` | Tuner channels | canRecord: a tuner channel, turned on, visible, clear and not marked not to be recorded; never a library channel. 50 waiting per account, none for an administrator |
 | `DELETE /api/recordings/{id}` | Tuner channels | own, and every account's for an administrator |
 | `GET /api/recording-rules` | Tuner channels | own, and every account's for an administrator |
-| `POST /api/recording-rules` | Tuner channels | Channel turned on and visible. 20 per account, none for an administrator |
+| `POST /api/recording-rules` | Tuner channels | canRecord: a tuner channel, turned on, visible, clear and not marked not to be recorded; never a library channel. 20 per account, none for an administrator |
 | `DELETE /api/recording-rules/{id}` | Tuner channels | own, and every account's for an administrator |
 | `GET /api/games/consoles` | Signed-in | Counts: limits. Custom core assignments for admins only |
 | `GET /api/games/modes` | Signed-in | Client name |

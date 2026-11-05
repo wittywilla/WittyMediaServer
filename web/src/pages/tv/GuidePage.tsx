@@ -15,7 +15,7 @@ import Hero from './Hero'
 import SearchPanel from './SearchPanel'
 import { useReminders } from './reminders'
 import { liveNow } from './live'
-import { dayWord, fmtClock, fmtDay, fmtSpan, getLineup, forgetLineup, setFavourite, type GuideChannel, type GuidePage as Page, type Programme } from './tvApi'
+import { canOfferRecord, dayWord, fmtClock, fmtDay, fmtSpan, getLineup, forgetLineup, setFavourite, type GuideChannel, type GuidePage as Page, type Programme } from './tvApi'
 import './tv.css'
 import './tvthemes.css'
 import LegalNote from '../../components/LegalNote'
@@ -289,6 +289,7 @@ export default function GuidePage() {
   useEffect(() => () => clearTimeout(dialTimer.current), [])
 
   const record = async (ch: GuideChannel, p: Programme) => {
+    if (!canOfferRecord(ch, p, now)) return
     try {
       await api.post('/recordings', { channel: ch.key, title: p.title, sub: p.sub, start: p.start, stop: p.end })
       toast(`Recording ${p.title}`)
@@ -342,7 +343,7 @@ export default function GuidePage() {
       }
       case 'Enter': if (cur && curCell) activate(cur, curCell); break
       case 'i': case 'I': if (cur && curCell) setDetails({ ch: cur, p: curCell }); break
-      case 'r': case 'R': if (cur?.canRecord && curCell?.kind === 'broadcast') void record(cur, curCell); break
+      case 'r': case 'R': if (cur && curCell && canOfferRecord(cur, curCell, now)) void record(cur, curCell); break
       case 'f': case 'F': if (cur) void toggleFav(cur); break
       case 'd': case 'D': if (cur && curCell) setDetails({ ch: cur, p: curCell, day: true }); break
       case 'm': case 'M': if (cur && curCell && curCell.start > now) void reminders.toggle(cur.key, curCell); break

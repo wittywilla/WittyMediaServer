@@ -16,10 +16,12 @@ export type Programme = {
 }
 // Whether a channel is encrypted, in the server's words: every client shows the same.
 export type Security = { state: 'clear' | 'encrypted' | 'unknown'; label: string; detail: string; reason?: string; helpUrl?: string }
-export type Alternative = { key: string; number: string; name: string; atsc3?: boolean }
+export type Alternative = { key: string; number: string; name: string; atsc3?: boolean; canRecord: boolean }
 export type GuideChannel = {
   key: string; kind: 'library' | 'tuner'; id: number; number: string; name: string; group?: string; logo?: string
-  hd?: boolean; radio?: boolean; encrypted?: string; canRecord?: boolean; noRecord?: string; atsc3?: boolean
+  // The server's say on whether to offer Record: false for every library channel. See canOfferRecord.
+  canRecord: boolean
+  hd?: boolean; radio?: boolean; encrypted?: string; noRecord?: string; atsc3?: boolean
   security?: Security; alternative?: Alternative; notices?: string[]; programmes: Programme[]
   description?: string; categories?: string[]; accent?: string; favourite?: boolean; brand?: ChannelBrand
 }
@@ -175,6 +177,12 @@ export async function uploadBumper(file: File): Promise<{ itemId: number; title:
 }
 
 export const setFavourite = (key: string, on: boolean) => (on ? api.put(`/tv/favourites/${key}`, {}) : api.del(`/tv/favourites/${key}`))
+
+// canOfferRecord is the one test for showing Record or Record every airing, the R key included:
+// the server's canRecord, and a programme from the guide that hasn't finished. The server
+// refuses anything else (docs/CLIENT-API.md, "Recording").
+export const canOfferRecord = (ch: { canRecord?: boolean } | null | undefined, p: Programme | null | undefined, now: number): boolean =>
+  ch?.canRecord === true && p?.kind === 'broadcast' && p.end > now
 
 export const fmtClock = (u: number) => new Date(u * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 export const fmtDay = (u: number) => new Date(u * 1000).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })

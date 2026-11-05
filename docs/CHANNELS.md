@@ -358,7 +358,7 @@ Highlight a show on a tuner channel, and press **R** or **Record**. **Record eve
 
 - **Each person has their own.** You see and cancel your own recordings, and an administrator sees all of them. Up to 50 can be waiting and 20 series running per person, with no limit for an administrator. Only an administrator can delete a recording's file.
 - **Profiles.** It needs the profile's **Live TV** limit to allow tuner channels.
-- **Tuner channels only.** Library channels play what's already in your library, and encrypted channels are never recorded. **Can record** in a tuner's channel list marks a channel as not recordable, where a device's documents say so.
+- **Tuner channels only.** Library channels play what's already in your library, and encrypted channels are never recorded. **Can record** in a tuner's channel list marks a channel as not recordable, where a device's documents say so. The server decides this, so every app, the website and the TV apps alike, shows **Record** only where it can be recorded.
 - **Where they go.** `recordings` in the data folder by default. Under **Options**, **Recordings folder** chooses another, and **Library to update after a recording** rescans a library, so a folder inside it shows up there.
 - **Recordings come first.** When no tuner is free, a live viewer on that tuner is stopped, with a message. A viewer and a recording don't share one tuner yet.
 - **Disk space.** A recording stops and says so when under 2 GB is left on its disk. Old recordings aren't cleaned up automatically.

@@ -6,7 +6,7 @@ import { toast, useApp } from '../../state'
 import { Button, Dialog, LinkButton, Segmented } from '../../ui'
 import { type Look } from './look'
 import { useReminders } from './reminders'
-import { fmtClock, fmtDay, fmtLeft, fmtSpan, type GuideChannel, type GuidePage, type Programme } from './tvApi'
+import { canOfferRecord, fmtClock, fmtDay, fmtLeft, fmtSpan, type GuideChannel, type GuidePage, type Programme } from './tvApi'
 
 // More about a programme, or the whole of the channel's day: the same dialog,
 // so that one is a key press away from the other.
@@ -20,6 +20,7 @@ export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, 
     api.get<{ overview: string }>(`/items/${p.itemId}`).then((it) => setDesc(it.overview)).catch(() => {})
   }, [p.desc, p.itemId])
   const addSeries = async () => {
+    if (!canOfferRecord(ch, p, now)) return
     try { await api.post('/recording-rules', { channel: ch.key, title: p.title }); toast(`Every airing of ${p.title} will be recorded`); onClose() } catch (e) { toast((e as Error).message) }
   }
   const later = p.start > now
@@ -29,7 +30,7 @@ export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, 
       <Button variant="ghost" onClick={onClose}>Close</Button>
       {user?.isAdmin && ch.kind === 'library' && <LinkButton variant="ghost" to={`/tv/channels/${ch.id}`}>Edit channel</LinkButton>}
       {later && !ch.encrypted && p.kind !== 'none' && p.kind !== 'group' && <Button aria-pressed={reminded} onClick={() => void reminders.toggle(ch.key, p)}>{reminded ? '✓ Reminder set' : 'Remind me'}</Button>}
-      {ch.canRecord && p.kind === 'broadcast' && p.end > now && <><Button onClick={() => void addSeries()}>Record every airing</Button><Button onClick={onRecord}>Record this</Button></>}
+      {canOfferRecord(ch, p, now) && <><Button onClick={() => void addSeries()}>Record every airing</Button><Button onClick={onRecord}>Record this</Button></>}
       {ch.alternative && <LinkButton variant="primary" icon={<IconPlay />} to={`/tv/watch/${ch.alternative.key}`}>Watch {ch.alternative.number} {ch.alternative.name} instead</LinkButton>}
       {!ch.encrypted && <Button variant={ch.alternative ? 'default' : 'primary'} icon={<IconPlay />} onClick={onWatch}>Watch channel now</Button>}
     </>

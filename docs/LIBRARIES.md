@@ -182,7 +182,7 @@ See [Games](GAMES.md).
 
 ### Commercials
 
-Any layout, and short files are kept. These stay out of Home and search, and play on the [TV channels](CHANNELS.md) you choose them for.
+Any layout, and short files are kept. Each video is called by its whole file name, years and all: *2000 Toyota 2000 Clearance Sale* stays that, where a film library would read it as *2000 Toyota*, from 2000. These stay out of Home and search, and play on the [TV channels](CHANNELS.md) you choose them for.
 
 ## Scanning
 

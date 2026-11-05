@@ -1,14 +1,13 @@
 /* WittyPhotos, and the share dialog and public page it shares with the video
    libraries. Colours come from the theme's variables; the viewer is always dark. */
 
-.gal-bar { flex-wrap: wrap; gap: 10px; }
 .gal-tabs { flex-wrap: wrap; }
 .gal-search { max-width: 240px; }
 .gal-sub { display: flex; align-items: center; gap: 12px; margin: 4px 0 16px; flex-wrap: wrap; }
 .gal-sub h2 { margin: 0; font-size: var(--text-xl); }
 .gal-sub p { margin: 2px 0 0; }
 .gal-sub .grow { flex: 1; min-width: 180px; }
-.gal-selbar { position: sticky; top: 64px; z-index: 6; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--bg-3); border-radius: var(--radius); padding: 8px 12px; margin-bottom: 12px; }
+.gal-selbar { position: sticky; top: var(--topbar-h); z-index: var(--z-sticky); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--bg-3); border-radius: var(--radius); padding: 8px 12px; margin-bottom: 12px; }
 
 /* Timeline */
 .gal-timeline { display: flex; gap: 12px; align-items: flex-start; }

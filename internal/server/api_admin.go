@@ -96,9 +96,18 @@ func oneOf(list ...string) func(string) bool {
 var secretSettings = []string{"tmdbKey", "tvdbKey", "tvdbPin"}
 
 func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
-	out := map[string]string{}
+	saved, err := s.DB.Settings(r.Context()) // one statement, not one for each of the hundred
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	out := make(map[string]string, len(settingKeys))
 	for _, k := range settingKeys {
-		out[k] = s.DB.GetSetting(r.Context(), k, settingDefaults[k])
+		v, ok := saved[k]
+		if !ok {
+			v = settingDefaults[k]
+		}
+		out[k] = v
 	}
 	for _, k := range secretSettings {
 		if out[k] != "" {
@@ -235,6 +244,8 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 		"encoders":    encoders,
 		"hardware":    hwList,
 		"hwTested":    hwDone,
+		"gpus":        ffmpeg.GPUs(),
+		"container":   ffmpeg.InContainer(),
 		"dvdSessions": s.DVD.Count(),
 		"blurays":     s.BD.Count(),
 	})

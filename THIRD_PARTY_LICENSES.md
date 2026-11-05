@@ -9,9 +9,14 @@ text. That list is made from what's really compiled in (`internal/licenses`), an
 
 | Component | Licence | Notes |
 |---|---|---|
-| **FFmpeg** (`bin/ffmpeg`, `bin/ffprobe`) | GPL-2.0-or-later (builds include libx264) | Run as a separate process for probing, transcoding and stills. Windows/Linux builds from [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds); macOS builds from [ffmpeg.martin-riedl.de](https://ffmpeg.martin-riedl.de); FreeBSD built from source by `scripts/build-ffmpeg-static.sh`. Docker uses Alpine's `ffmpeg` package. Source: <https://ffmpeg.org>. If you need an LGPL-only deployment, point `WMS_FFMPEG` at an LGPL build with `libopenh264` or a hardware encoder; nothing in WittyMediaServer requires GPL components. |
+| **FFmpeg** (`bin/ffmpeg`, `bin/ffprobe`) | GPL-2.0-or-later (builds include libx264) | Run as a separate process for probing, transcoding and stills. Windows/Linux builds from [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds); macOS builds from [ffmpeg.martin-riedl.de](https://ffmpeg.martin-riedl.de); FreeBSD built from source by `scripts/build-ffmpeg-static.sh`. The Docker image uses Debian's `ffmpeg` package (GPL-2.0-or-later, with x264 and x265). Source: <https://ffmpeg.org>. If you need an LGPL-only deployment, point `WMS_FFMPEG` at an LGPL build with `libopenh264` or a hardware encoder; nothing in WittyMediaServer requires GPL components. |
 | libx264 (inside FFmpeg) | GPL-2.0-or-later | <https://www.videolan.org/developers/x264.html> |
 | LAME, Opus (inside FFmpeg) | LGPL-2.1 / BSD-3-Clause | |
+| Mesa VA-API drivers (Docker image, amd64) | MIT | AMD hardware transcoding. From Debian's `mesa-va-drivers`. <https://mesa3d.org> |
+| Intel media driver, with its encoding kernels (Docker image, amd64) | MIT; the kernels are redistributable binaries without source | Intel hardware transcoding, Broadwell and newer. From Debian's `intel-media-va-driver-non-free`, in its non-free section. <https://github.com/intel/media-driver> |
+| i965 VA-API driver and its shaders (Docker image, amd64) | MIT | Older Intel graphics. From Debian's `i965-va-driver-shaders`. <https://github.com/intel/intel-vaapi-driver> |
+| Intel oneVPL GPU runtime (Docker image, amd64) | MIT | Quick Sync. From Debian's `libmfx-gen1.2`. <https://github.com/intel/vpl-gpu-rt> |
+| vainfo (Docker image, amd64) | MIT | For checking the graphics by hand. <https://github.com/intel/libva-utils> |
 
 ## Connected to, never included
 

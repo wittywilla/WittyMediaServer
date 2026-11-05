@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api'
 import { IconPlay } from '../../icons'
-import { toast } from '../../state'
+import { toast, useApp } from '../../state'
 import { Button, Dialog, LinkButton, Segmented } from '../../ui'
 import { type Look } from './look'
 import { useReminders } from './reminders'
@@ -14,6 +14,7 @@ export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, 
   const [desc, setDesc] = useState(p.desc || '')
   const [day, setDay] = useState(!!startDay)
   const reminders = useReminders()
+  const { user } = useApp()
   useEffect(() => {
     if (p.desc || !p.itemId) return
     api.get<{ overview: string }>(`/items/${p.itemId}`).then((it) => setDesc(it.overview)).catch(() => {})
@@ -26,6 +27,7 @@ export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, 
   const actions = (
     <>
       <Button variant="ghost" onClick={onClose}>Close</Button>
+      {user?.isAdmin && ch.kind === 'library' && <LinkButton variant="ghost" to={`/tv/channels/${ch.id}`}>Edit channel</LinkButton>}
       {later && !ch.encrypted && p.kind !== 'none' && p.kind !== 'group' && <Button aria-pressed={reminded} onClick={() => void reminders.toggle(ch.key, p)}>{reminded ? '✓ Reminder set' : 'Remind me'}</Button>}
       {ch.canRecord && p.kind === 'broadcast' && p.end > now && <><Button onClick={() => void addSeries()}>Record every airing</Button><Button onClick={onRecord}>Record this</Button></>}
       {ch.alternative && <LinkButton variant="primary" icon={<IconPlay />} to={`/tv/watch/${ch.alternative.key}`}>Watch {ch.alternative.number} {ch.alternative.name} instead</LinkButton>}

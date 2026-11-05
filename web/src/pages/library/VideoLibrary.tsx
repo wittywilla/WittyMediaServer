@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, type Library } from '../../api'
 import BrandLogo from '../../components/BrandLogo'
@@ -37,9 +37,9 @@ const browseQuery = (params: URLSearchParams, extra: Record<string, string | num
   return q.toString()
 }
 
-export function RowCard({ row }: { row: BrowseRow }) {
+export const RowCard = memo(function RowCard({ row }: { row: BrowseRow }) {
   return row.type === 'item' ? <ItemCard item={row.item} /> : <ShowCard show={row.show} />
-}
+})
 
 // A row that asks for its titles when it comes near the screen, not before.
 function LazyShelf({ title, query, seeAll, count }: { title: string; query: string; seeAll: string; count?: number }) {

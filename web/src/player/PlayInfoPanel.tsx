@@ -12,8 +12,10 @@ function Fact({ k, v }: { k: string; v?: string }) {
   return <div className="playinfo-fact"><dt>{k}</dt><dd>{v}</dd></div>
 }
 
-export default function PlayInfoPanel({ info, onClose, onFlat3d, flattened, onVideo }: {
+export default function PlayInfoPanel({ info, netLog, onClose, onFlat3d, flattened, onVideo }: {
   info: PlaybackAnswer
+  // What a robust stream's player did while playing, oldest first.
+  netLog?: string[]
   onClose: () => void
   onFlat3d: (on: boolean) => void
   flattened: boolean
@@ -30,7 +32,14 @@ export default function PlayInfoPanel({ info, onClose, onFlat3d, flattened, onVi
           <Fact k="Sound" v={ex?.sound} />
           <Fact k="Subtitles" v={ex?.subtitles} />
           <Fact k="Work for the server" v={ex?.load ? LOAD[ex.load] : undefined} />
+          <Fact k="Streaming" v={ex?.streaming} />
         </dl>
+        {netLog && netLog.length > 0 && (
+          <>
+            <h3 className="playinfo-head">What the player did</h3>
+            <ul className="playinfo-reasons">{netLog.map((r, i) => <li key={i}>{r}</li>)}</ul>
+          </>
+        )}
         {ex && ex.reasons.length > 0 && (
           <>
             <h3 className="playinfo-head">Why it isn’t simpler</h3>

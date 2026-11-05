@@ -19,9 +19,10 @@ import (
 	"sync"
 )
 
-// Small covers for lists. Box art comes at full size, and a page of 120 games at a few
-// hundred kilobytes each is a lot for a phone or an old TV. A smaller copy is made the
-// first time one is asked for, and kept beside the original in the image cache.
+// Small posters and covers for lists. Box art and posters come at full size, and a page
+// of 120 at a few hundred kilobytes each is a lot for a phone or an old TV. A smaller copy
+// is made the first time one is asked for, and kept beside the original in the image
+// cache. (The files are still named gamethumb-, from when only games had them.)
 
 const (
 	// A picture bigger than this isn't a cover, and decoding it could take all the memory
@@ -36,13 +37,15 @@ var (
 )
 
 func gameThumbSlot() chan struct{} {
-	gameThumbOnce.Do(func() { gameThumbSlots = make(chan struct{}, max(1, runtime.NumCPU()/2)) })
+	// Each holds a decoded picture twice over, up to 128 MB for the largest allowed, so
+	// a page of new posters mustn't decode a dozen at once on a small machine.
+	gameThumbOnce.Do(func() { gameThumbSlots = make(chan struct{}, min(2, max(1, runtime.NumCPU()/2))) })
 	return gameThumbSlots
 }
 
-// PosterThumb returns a smaller copy of a game's cover as a "cache:" reference, or the
+// PosterThumb returns a smaller copy of a poster or cover as a "cache:" reference, or the
 // reference it was given when it can't or needn't be made smaller. src is a "cache:"
-// reference or a picture beside a game, already known to be inside a library.
+// reference or a picture beside the media, already known to be inside a library.
 func (g *GameMeta) PosterThumb(ctx context.Context, src string, width int) string {
 	if width <= 0 || width > thumbMaxWidth || src == "" {
 		return src

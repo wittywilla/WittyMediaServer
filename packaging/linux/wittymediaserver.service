@@ -13,6 +13,8 @@ Environment=WMS_NO_BROWSER=1
 ExecStart=/usr/lib/wittymediaserver/bin/wittymediaserver serve
 Restart=on-failure
 RestartSec=3
+# 3: another server already has the data folder. Starting again would only find it again.
+RestartPreventExitStatus=3
 TimeoutStopSec=20
 NoNewPrivileges=true
 ProtectSystem=full

@@ -357,6 +357,32 @@ func TestProtectionMarks(t *testing.T) {
 		if Detect(write("data.mkv", data), nil) {
 			t.Error("picture data called protection")
 		}
+		// As a muxer writes them: a seek index naming Tracks first, then the segment's
+		// details, whose random IDs can hold the marks, then the real track list.
+		el := func(id []byte, body ...byte) []byte {
+			return append(append(append([]byte{}, id...), 0x80|byte(len(body))), body...)
+		}
+		var (
+			idTracks   = []byte{0x16, 0x54, 0xAE, 0x6B}
+			seek       = el([]byte{0x11, 0x4D, 0x9B, 0x74}, el([]byte{0x4D, 0xBB}, el([]byte{0x53, 0xAB}, idTracks...)...)...)
+			info       = el([]byte{0x15, 0x49, 0xA9, 0x66}, el([]byte{0x73, 0xA4}, 0x6D, 0x80, 0x50, 0x35, 0x50, 0x33, 0x81, 0x01, 0, 0, 0, 0, 0, 0, 0, 0)...)
+			uidMarks   = el([]byte{0x73, 0xC5}, 0x6D, 0x80, 0x50, 0x35, 0, 0, 0, 1)
+			encrypted  = el([]byte{0x6D, 0x80}, el([]byte{0x62, 0x40}, append(el([]byte{0x50, 0x33}, 0x01), el([]byte{0x50, 0x35})...)...)...)
+			compressed = el([]byte{0x6D, 0x80}, el([]byte{0x62, 0x40}, el([]byte{0x50, 0x33}, 0x00)...)...)
+		)
+		segment := func(entry ...byte) []byte {
+			body := append(append(append([]byte{}, seek...), info...), el(idTracks, el([]byte{0xAE}, entry...)...)...)
+			return append(append(append([]byte{}, head[:5]...), 0x18, 0x53, 0x80, 0x67, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), body...)
+		}
+		if Detect(write("clear.mkv", segment(uidMarks...)), nil) {
+			t.Error("the marks in a seek index, the segment's IDs and a track's ID called protection")
+		}
+		if !Detect(write("track.mkv", segment(append(append([]byte{}, uidMarks...), encrypted...)...)), nil) {
+			t.Error("an encrypted track not found")
+		}
+		if Detect(write("zipped.mkv", segment(compressed...)), nil) {
+			t.Error("a compressed track called protection")
+		}
 	})
 	t.Run("asf", func(t *testing.T) {
 		enc := append(append([]byte{}, asfHeaderGUID...), make([]byte, 30)...)

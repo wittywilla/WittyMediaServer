@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, type Library } from '../../api'
 import { EmptyState, Spinner } from '../../components/common'
+import LibraryHeader from '../../components/LibraryHeader'
 import { canPost, dayKey, monthName, photoThumb, takenDate, type Photo, type PhotoAlbum, type PhotoFolder, type PhotoMonth } from '../../gallery'
 import { IconCheck, IconClose, IconImage, IconPlay, IconPlus, IconRefresh, IconTag } from '../../icons'
 import ShareDialog from '../../components/ShareDialog'
@@ -62,20 +63,21 @@ export default function PhotosLibrary({ lib }: { lib: Library }) {
   const showGrid = tab === 'timeline' || tab === 'favorites' || albumId !== null || folder !== null
   return (
     <div className="gal">
-      <div className="toolbar gal-bar">
-        <h1>{lib.name}</h1>
-        <div className="seg gal-tabs" role="tablist" aria-label="View">
-          {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => setTab(k)}>{l}</button>)}
-        </div>
-        <div style={{ flex: 1 }} />
-        {showGrid && !albumId && folder === null && (
+      <LibraryHeader
+        title={lib.name}
+        end={showGrid && !albumId && folder === null && (
           <input className="input gal-search" type="search" placeholder="Search names, folders, cameras" aria-label="Search this library" defaultValue={search}
             onKeyDown={(e) => { if (e.key === 'Enter') setSearch((e.target as HTMLInputElement).value.trim()) }} onBlur={(e) => setSearch(e.target.value.trim())} />
         )}
-        {showGrid && canPost(user) && <button className={'btn sm ' + (selecting ? 'primary' : 'ghost')} onClick={() => (selecting ? stopSelecting() : setSelecting(true))}>{selecting ? 'Done' : 'Select'}</button>}
-        {canPost(user) && <UploadButton lib={lib} onDone={() => setRefresh((r) => r + 1)} />}
-        {user?.isAdmin && <ScanButton lib={lib} onDone={() => setRefresh((r) => r + 1)} />}
-      </div>
+        tabs={<div className="seg gal-tabs" role="tablist" aria-label="View">
+          {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => setTab(k)}>{l}</button>)}
+        </div>}
+        actions={<>
+          {showGrid && canPost(user) && <button className={'btn sm ' + (selecting ? 'primary' : 'ghost')} onClick={() => (selecting ? stopSelecting() : setSelecting(true))}>{selecting ? 'Done' : 'Select'}</button>}
+          {canPost(user) && <UploadButton lib={lib} onDone={() => setRefresh((r) => r + 1)} />}
+          {user?.isAdmin && <ScanButton lib={lib} onDone={() => setRefresh((r) => r + 1)} />}
+        </>}
+      />
       {selecting && (
         <div className="gal-selbar" role="toolbar" aria-label="Selected pictures">
           <b>{selected.size} selected</b>

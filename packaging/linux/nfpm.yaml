@@ -45,6 +45,12 @@ contents:
   - src: ${STAGE}/package-info.json
     dst: /usr/lib/wittymediaserver/package-info.json
     file_info: {mode: 0644}
+  # The settings file beside the program. The service can't write here, so Settings → Network saves
+  # in /var/lib/wittymediaserver/settings.ini, and preinstall carries a port someone set here into
+  # that copy before an upgrade replaces this one.
+  - src: ${STAGE}/settings.ini
+    dst: /usr/lib/wittymediaserver/settings.ini
+    file_info: {mode: 0644}
 
   # The command, on everyone's PATH.
   - src: /usr/lib/wittymediaserver/bin/wittymediaserver

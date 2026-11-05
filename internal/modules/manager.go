@@ -58,7 +58,9 @@ const (
 	failLimit = 3
 	// A browser can't say a bundle worked, so its failures count within this long.
 	failWindow = 24 * time.Hour
-	maxEvents  = 20
+	// keptFailing starts the reason a version was taken out of use for failing.
+	keptFailing = "it kept failing"
+	maxEvents   = 20
 )
 
 // Report is what Settings shows.
@@ -205,6 +207,10 @@ type entry struct {
 	notice   string
 	fails    int
 	failedAt time.Time
+	// restUntil: the only version there is failed again and again, so it isn't asked for a
+	// while, rather than being taken out of use for good. Never saved: a restart tries again.
+	restUntil time.Time
+	restWhy   string
 
 	known      map[string]*knownRelease // verified, by version
 	badFiles   map[string]bool          // signed lists that failed, so they aren't fetched each check
@@ -324,6 +330,7 @@ func New(cfg Config) *Manager {
 		if liftGameFailureBlocks(id, m.mods[id], m.log) {
 			lifted = true
 		}
+		m.giveAnotherChance(id, m.mods[id])
 		m.resolve(id, m.mods[id])
 		// The kept catalogue was judged before anyone knew what's on disk, which made every
 		// installed module look as if its own version were an update.
@@ -338,6 +345,27 @@ func New(cfg Config) *Manager {
 		m.mu.Unlock()
 	}
 	return m
+}
+
+// giveAnotherChance lifts what an earlier run did to the only version of a module for failing
+// (issue #265): taken out of use, it left that part of the server with nothing until someone
+// installed it again. Files that changed stay out of use.
+func (m *Manager) giveAnotherChance(id string, e *entry) {
+	ver := e.state.Active
+	why := e.state.Blocked[ver]
+	// A game runner that stopped before the game was ready is liftNestedSandboxBlocks' to put
+	// back on a Mac, where the server's own sandbox was to blame, and liftGameFailureBlocks'
+	// anywhere, once: a game failing no longer counts against WittyPlay. Seen here, it came back
+	// after both, and stays.
+	if ver == "" || !strings.HasPrefix(why, keptFailing) || strings.HasPrefix(why, runnerStopped) || m.hasFallback(id, e, ver) {
+		return
+	}
+	delete(e.state.Blocked, ver)
+	e.note("another-chance", ver, "it was taken out of use for failing, with nothing to fall back on; it's being tried again")
+	m.log.Warn("modules: trying a version again that an earlier run took out of use", "module", id, "version", ver, "why", why)
+	if err := m.saveState(); err != nil {
+		m.log.Warn("modules: saving the state", "err", err)
+	}
 }
 
 func (m *Manager) modDir(id string) string { return filepath.Join(m.dir, id) }
@@ -682,6 +710,10 @@ func (e *entry) status(id string) Status {
 		}
 	}
 	st.Events = append(st.Events, e.state.Events...)
+	if !e.restUntil.IsZero() && time.Now().Before(e.restUntil) {
+		st.Notice = (&ErrResting{Name: e.builtin.Name, Until: e.restUntil, Why: e.restWhy}).Error()
+		st.State = StateFallback
+	}
 	return st
 }
 
@@ -713,6 +745,9 @@ func (m *Manager) Report() Report {
 var ErrUnknown = errors.New("there is no such module")
 
 func (m *Manager) call(id, method string, params, out any) (blob []byte, err error, handled bool) {
+	if m.Resting(id) != nil {
+		return nil, nil, false // the server's own way, as with no version, while it rests
+	}
 	m.mu.Lock()
 	e := m.mods[id]
 	var p *proc
@@ -737,6 +772,14 @@ func (m *Manager) call(id, method string, params, out any) (blob []byte, err err
 	return nil, nil, false
 }
 
+// Failures this close together are one incident: a helper that crashes takes the calls
+// waiting on it down too, and their restarts on a busy machine fail for the same reason.
+// Counting each would take a version out of use in seconds (issue #265). Variables for tests.
+var (
+	failSpacing = 2 * time.Minute
+	restFor     = 10 * time.Minute
+)
+
 // failed notes a version failing. Changed files end its use at once; anything else
 // gets a few tries, since one crash may be chance.
 func (m *Manager) failed(id string, e *entry, ver string, err error) {
@@ -750,10 +793,29 @@ func (m *Manager) failed(id string, e *entry, ver string, err error) {
 	if !e.failedAt.IsZero() && now.Sub(e.failedAt) > failWindow {
 		e.fails = 0
 	}
-	e.failedAt = now
-	e.fails++
+	untrusted := errors.Is(err, errUntrusted)
+	// A helper that did something wrong counts every time. One that crashed, hung or
+	// wouldn't start may have been the machine's fault rather than its own.
+	var bad *misbehaved
+	broke := !untrusted && !errors.As(err, &bad)
+	if !broke || e.failedAt.IsZero() || now.Sub(e.failedAt) >= failSpacing {
+		e.fails++
+		e.failedAt = now
+	}
 	e.note("failed", ver, plainFailure(err))
-	if e.fails < failLimit && !errors.Is(err, errUntrusted) {
+	if e.fails < failLimit && !untrusted {
+		if serr := m.saveState(); serr != nil {
+			m.log.Warn("modules: saving the state", "err", serr)
+		}
+		return
+	}
+	if broke && !m.hasFallback(id, e, ver) {
+		// Taking the only version there is out of use would leave this part of the server
+		// with none, after a restart too. It rests instead, and is tried again after.
+		e.fails, e.failedAt = 0, time.Time{}
+		e.restUntil, e.restWhy = now.Add(restFor), plainFailure(err)
+		m.log.Error("modules: a version kept failing and has no other to fall back on; resting it", "module", id, "version", ver, "until", e.restUntil.Format("15:04"), "err", err)
+		e.note("resting", ver, keptFailing+" ("+e.restWhy+"): it's tried again at "+e.restUntil.Format("15:04"))
 		if serr := m.saveState(); serr != nil {
 			m.log.Warn("modules: saving the state", "err", serr)
 		}
@@ -762,7 +824,7 @@ func (m *Manager) failed(id string, e *entry, ver string, err error) {
 	if e.state.Blocked == nil {
 		e.state.Blocked = map[string]string{}
 	}
-	e.state.Blocked[ver] = "it kept failing (" + plainFailure(err) + ")"
+	e.state.Blocked[ver] = keptFailing + " (" + plainFailure(err) + ")"
 	if errors.Is(err, errUntrusted) {
 		e.state.Blocked[ver] = sentence(err.Error())
 	}
@@ -772,6 +834,50 @@ func (m *Manager) failed(id string, e *entry, ver string, err error) {
 	if err := m.saveState(); err != nil {
 		m.log.Warn("modules: saving the state", "err", err)
 	}
+}
+
+// hasFallback says whether another version would take over if ver were taken out of use: the
+// one before it. Call with m.mu held.
+func (m *Manager) hasFallback(id string, e *entry, ver string) bool {
+	prev := e.state.Previous
+	if prev == "" || prev == ver || e.state.Blocked[prev] != "" || wittymodule.Compare(prev, e.builtin.Version) <= 0 {
+		return false
+	}
+	_, _, err := m.usable(id, e, prev)
+	return err == nil
+}
+
+// misbehaved marks a failure that's the helper's own doing, seen by the server: an answer that
+// breaks the rules, rather than a crash or a hang.
+type misbehaved struct{ error }
+
+func (e *misbehaved) Unwrap() error { return e.error }
+
+// ErrResting: a module's only version failed again and again, and is left alone for a while.
+type ErrResting struct {
+	Name  string
+	Until time.Time
+	Why   string
+}
+
+func (e *ErrResting) Error() string {
+	return fmt.Sprintf("%s stopped working several times in a row (%s), so it's resting until %s. It's tried again then, or straight away after a restart.", e.Name, e.Why, e.Until.Format("15:04"))
+}
+
+// Resting says whether a module is resting after failing again and again, as an *ErrResting.
+func (m *Manager) Resting(id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e := m.mods[id]
+	if e == nil || e.restUntil.IsZero() {
+		return nil
+	}
+	if time.Now().After(e.restUntil) {
+		e.restUntil, e.restWhy = time.Time{}, ""
+		m.log.Info("modules: trying a rested version again", "module", id, "version", e.man.Version)
+		return nil
+	}
+	return &ErrResting{Name: e.builtin.Name, Until: e.restUntil, Why: e.restWhy}
 }
 
 // plainFailure puts how a helper failed in words for the owner. A helper that dies
@@ -844,7 +950,7 @@ func (m *Manager) ReportFailure(id, ver, reason string) error {
 	if len(reason) > 500 {
 		reason = reason[:500]
 	}
-	m.failed(id, e, ver, errors.New(reason))
+	m.failed(id, e, ver, &misbehaved{errors.New(reason)})
 	return nil
 }
 

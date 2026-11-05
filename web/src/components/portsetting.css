@@ -1,0 +1,18 @@
+/* The port field of Settings → Network and the setup wizard. Every state is said in words; the
+   colours come from the theme's notices. */
+
+.port-setting { display: grid; gap: var(--sp-2); min-width: 0; }
+.port-row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.port-label { font-weight: 600; }
+.port-input { width: 9ch; min-width: 0; font-variant-numeric: tabular-nums; }
+.port-hint { color: var(--fg-2); font-size: var(--text-sm); }
+.port-ok { color: var(--fg); font-size: var(--text-sm); font-weight: 600; }
+.port-messages { display: grid; gap: var(--sp-2); }
+.port-messages:empty { display: none; }
+.port-setting code { overflow-wrap: anywhere; }
+.port-setting.compact .port-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.port-addrs { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.port-file { overflow-wrap: anywhere; font-size: var(--text-sm); }
+.port-problems { margin: var(--sp-1) 0 0; padding-left: 1.2em; overflow-wrap: anywhere; }
+.port-follows { margin: 0; padding-left: 1.2em; display: grid; gap: var(--sp-2); color: var(--fg-2); }
+.port-follows b { color: var(--fg); }

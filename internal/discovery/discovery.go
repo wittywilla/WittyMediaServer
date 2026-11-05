@@ -499,3 +499,32 @@ func serveUDP(ctx context.Context, c *net.UDPConn, info Info) {
 		_, _ = c.WriteToUDP(r, src)
 	}
 }
+
+// AskLocal asks a server on this computer where it answers, with the UDP question to 127.0.0.1:
+// the port it answers on, or 0 when none answers in time (or apps finding it is turned off). The
+// tray app finds a background service this way, whatever port that was moved to.
+func AskLocal(timeout time.Duration) (port int, tls bool) {
+	return ask(&net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: UDPPort}, timeout)
+}
+
+func ask(addr *net.UDPAddr, timeout time.Duration) (port int, tls bool) {
+	c, err := net.DialUDP("udp4", nil, addr)
+	if err != nil {
+		return 0, false
+	}
+	defer c.Close()
+	_ = c.SetDeadline(time.Now().Add(timeout))
+	if _, err := c.Write([]byte(UDPQuestion)); err != nil {
+		return 0, false
+	}
+	buf := make([]byte, 2048)
+	n, err := c.Read(buf)
+	if err != nil {
+		return 0, false
+	}
+	var a udpAnswer
+	if json.Unmarshal(buf[:n], &a) != nil || a.Service != "wittymediaserver" || a.Port < 1 || a.Port > 65535 {
+		return 0, false
+	}
+	return a.Port, a.TLS
+}

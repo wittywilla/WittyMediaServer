@@ -8,6 +8,7 @@ export const settingsHelp: Record<string, string> = {
   couch: 'game-rigs',
   transcoding: 'transcoding',
   'library-transcoding': 'library-transcoding',
+  network: 'config#the-port',
   remote: 'remote',
   users: 'accounts',
   security: 'accounts',

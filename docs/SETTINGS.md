@@ -29,6 +29,7 @@ Open Settings from your name at the top right. On a phone, it's in the **You** t
 | Make conversion easier on my computer | [Live transcoding](#live-transcoding) |
 | Use my graphics card to convert video | [Live transcoding](#live-transcoding) |
 | Convert files ahead of time | [Library transcoding](#library-transcoding) |
+| Change the port in the server's address | [Network](#network) |
 | Watch away from home | [Remote Access](#remote-access) |
 | Limit quality for viewers away from home | [Remote Access](#remote-access) |
 | Add a person, or a Kids or Guest profile | [Profiles](#profiles) |
@@ -189,6 +190,17 @@ Converts the files in a library ahead of time, so they play without being conver
 - **Connect your own Tdarr** links a Tdarr server you already run.
 
 More: [Library transcoding](LIBRARY-TRANSCODING.md), [Tdarr](TDARR.md).
+
+### Network
+
+The port this server answers on at home, the number at the end of its address, such as `9797` in `http://192.168.1.20:9797`. For administrators.
+
+- **Port** is checked as you type: free on this computer, in range, and not one browsers refuse. **Save** keeps it for the next start, and **Restart now** moves the server there and opens this page again at the new address.
+- **Saved in** is the [settings.ini](CONFIG.md#the-port) it's kept in, which you can also change in any text editor.
+- When the port is set somewhere stronger, such as `-listen` or Docker's published port, the page says where to change it instead.
+- **What follows the port** lists what catches up by itself, such as apps on the home network and the Windows firewall rule, and what needs the new port by hand, such as bookmarks.
+
+The last page of the setup wizard has the same, under **Change the port**. More: [The port](CONFIG.md#the-port).
 
 ### Remote Access
 

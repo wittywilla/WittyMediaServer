@@ -10,6 +10,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -229,7 +230,6 @@ func openAPIStub(r apiRoute) string {
 // Every route has to be in the OpenAPI file and in CLIENT-API.md, and nothing
 // may be documented that doesn't exist.
 func TestEveryRouteIsDocumented(t *testing.T) {
-	modtest.Need(t, "wittyplay")
 	doc, err := os.ReadFile(clientDoc)
 	if err != nil {
 		t.Fatal(err)
@@ -259,7 +259,6 @@ func TestEveryRouteIsDocumented(t *testing.T) {
 
 // What the docs say about sign-in must be what the code does.
 func TestDocumentedSignInMatchesTheCode(t *testing.T) {
-	modtest.Need(t, "wittyplay")
 	documented := map[string]documentedRoute{}
 	for _, r := range documentedRoutes(t) {
 		documented[r.method+" "+r.path] = r
@@ -302,7 +301,6 @@ func TestSignInIsEnforced(t *testing.T) {
 
 // The docs flag exactly the routes a stream token opens.
 func TestStreamTokenRoutesAreFlagged(t *testing.T) {
-	modtest.Need(t, "wittyplay")
 	var s Server
 	n := 0
 	for _, r := range documentedRoutes(t) {
@@ -321,7 +319,6 @@ func TestStreamTokenRoutesAreFlagged(t *testing.T) {
 
 // A basic check that the file is well-formed OpenAPI, for the tools reading it.
 func TestOpenAPIIsWellFormed(t *testing.T) {
-	modtest.Need(t, "wittyplay")
 	d := readOpenAPI(t)
 	if !strings.HasPrefix(d.OpenAPI, "3.1") {
 		t.Errorf("openapi version %q", d.OpenAPI)
@@ -391,7 +388,7 @@ func schemaTypes() map[string]reflect.Type {
 		"CDView": ty(cdView{}), "CDMatch": ty(library.CDMatch{}), "DiscInfo": ty(library.DiscInfo{}), "DiscLabels": ty(library.DiscLabels{}), "Album": ty(library.Album{}), "Artist": ty(library.Artist{}), "Network": ty(library.Network{}),
 		"Podcast": ty(library.Podcast{}), "Annotation": ty(library.Annotation{}), "SearchHit": ty(library.SearchHit{}), "Agent": ty(library.Agent{}), "AgentResult": ty(library.AgentResult{}),
 		"ArtCandidate": ty(artCandidate{}), "DiscTitleView": ty(discTitle{}), "DiscChapterView": ty(discChapter{}), "DiscMenuView": ty(discMenu{}),
-		"PlayInfo": ty(playInfo{}), "Track": ty(trackInfo{}),
+		"PlayInfo": ty(playInfo{}), "Track": ty(trackInfo{}), "RemoteStanding": ty(remoteStanding{}),
 		"GameProfile": ty(wittyplay.Profile{}), "GameBackground": ty(library.GameBackground{}), "ControllerData": ty(wittyplay.ControllerData{}),
 		"Presentation": ty(dvdsession.Presentation{}), "PresentationMedia": ty(dvdsession.Media{}), "DiscMenu": ty(dvdsession.Menu{}), "DiscButton": ty(dvdsession.ButtonView{}),
 		"DiscTitlePlaying": ty(dvdsession.TitleView{}), "DiscTrack": ty(dvdsession.Track{}), "DiscAction": ty(dvdsession.Action{}), "SubEvent": ty(dvdsession.SubEvent{}),
@@ -502,7 +499,6 @@ func canonical(t *testing.T, v any) string {
 }
 
 func TestSchemasMatchGoTypes(t *testing.T) {
-	modtest.Need(t, "wittyplay")
 	types := schemaTypes()
 	g := &schemaGen{names: map[reflect.Type]string{}, t: t}
 	for name, ty := range types {
@@ -566,9 +562,17 @@ var otherServers = map[string]bool{
 }
 
 func TestDocsNameNoOtherServers(t *testing.T) {
-	modtest.Need(t, "wittyplay")
 	word := regexp.MustCompile(`[A-Za-z]+`)
 	docs, err := filepath.Glob("../../docs/*.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = filepath.WalkDir("../../docs/plans", func(p string, d fs.DirEntry, err error) error {
+		if err == nil && !d.IsDir() && strings.HasSuffix(p, ".md") {
+			docs = append(docs, p)
+		}
+		return err
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

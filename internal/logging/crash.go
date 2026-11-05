@@ -18,6 +18,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/instance"
 )
 
 // Crash reports live in their own folder inside the data folder, apart from the
@@ -75,6 +77,9 @@ var activeGuard struct {
 // ServerRunning says whether another process is running as a server on the folder that
 // holds these crash reports, for tools that mustn't change its files underneath it.
 func ServerRunning(crashDir string) (pid int, running bool) {
+	if pid, running, known := instance.HeldBy(filepath.Dir(crashDir)); known {
+		return pid, running // the data folder's lock: exact, where a server of this version has run
+	}
 	entries, err := os.ReadDir(crashDir)
 	if err != nil {
 		return 0, false
@@ -128,6 +133,9 @@ func StartCrashGuard(dir, logDir, version string) (*CrashGuard, []Crash, error) 
 // run leaves in its crash folder and whether that process is still alive. A marker
 // whose process has gone is what a crash leaves, and isn't a running server.
 func RunningServer(crashDir string) (pid int, ok bool) {
+	if pid, running, known := instance.HeldBy(filepath.Dir(crashDir)); known {
+		return pid, running
+	}
 	entries, err := os.ReadDir(crashDir)
 	if err != nil {
 		return 0, false

@@ -4,6 +4,10 @@ Use this guide to find where a setting lives and what it does. It goes through e
 
 Open Settings from your name at the top right. On a phone, it's in the **You** tab at the bottom. On a wide screen the menu sits beside the page. On a narrower one the menu is a page of its own, with a one-line note on each item.
 
+**Finding a setting.** Type in **Search settings**, at the top of the menu: a page's name, a setting's name or a word for it, such as *dark mode*, *colour* or *subtitles*. What it finds takes the menu's place. Press Enter for the first, or move to another with the arrow keys or Tab. Escape empties the search and brings the menu back. Each result goes straight to its part of the page.
+
+**Long pages** have **On this page** under their title: a link to each section, which stays at the top as you scroll and marks the one you're in.
+
 **Who sees what.** Administrators see every page. Everyone else sees the pages listed under **You**, plus **About** and **Legal**. If you open an administrator's page without being one, you land on **Profiles**.
 
 **Saving.** Some pages save each change straight away. Others show a bar saying "You have unsaved changes", with **Save changes** and **Discard**. If you see that bar, nothing has been saved yet.
@@ -35,9 +39,13 @@ Open Settings from your name at the top right. On a phone, it's in the **You** t
 | Turn on two-factor sign-in | [Sign-in and security](#sign-in-and-security) |
 | Sign out a device I lost | [Sign-in and security](#sign-in-and-security) |
 | Hide the activity button | [Activity](#activity) |
-| Change the colours, or the menu layout | [Appearance](#appearance) |
+| Change the theme, or switch between light and dark | [Appearance](#appearance), **Theme** |
+| Make a theme in my own colours | [Appearance](#appearance), **Colours** |
+| Change the menu layout | [Appearance](#appearance), **Layout** |
 | Turn off the moving posters | [Appearance](#appearance), **Motion and big screens** |
 | Make text larger for a TV | [Appearance](#appearance), **Motion and big screens** |
+| Change how the TV guide looks | [Appearance](#appearance), **WittyTV** |
+| Hide the seek bar, or fill the screen with the picture | [Appearance](#appearance), **Player** |
 | Rename this server, or change its logo | [Appearance](#appearance), **Name and logo** |
 | Turn off uploads or share links | [Sharing and photos](#sharing-and-photos) |
 | Send logs to someone helping me | [WittyLog](#wittylog), **Download logs** |
@@ -96,6 +104,7 @@ The page is called **Playback & discs**. It sets how videos, shows and discs pla
 
 - **Fastest playback speed** is the highest speed the player offers. 4× is the recommended limit: above it, most browsers mute the sound, and a video being converted has to convert faster than it plays.
 - **TV episode layout** is the default for every show. A show can change it on its own page.
+- **Streaming for viewers away from home** is **Standard**, as it always was, or **Robust**, which favours staying smooth on poor connections. **On this device** is the browser's own choice, which wins over the server's at home or away. See [Robust streaming](PLAYING.md#robust-streaming).
 - **When a disc is inserted** starts with the disc's menu, or skips to the movie.
 - **Disc insert animation** and **Drive sounds** are the tray effect.
 - **Preferred languages** take two-letter codes such as `en` or `fr`, for menus, audio and subtitles on discs that offer them.
@@ -113,7 +122,7 @@ The page is called **Channels & tuners**.
 ![The Channels and tuners page in Settings](images/settings-channels.webp)
 *Settings, Channels & tuners.*
 
-- **Channels from your library** run all the time, like real TV. You tune in and join the show part-way through. **Network facts** fills in the network and original day and time of shows.
+- **Channels from your library** run all the time, like real TV. You tune in and join the show part-way through. They're made and changed on a page of their own, **Channels** (**Open the channel list**, or **Edit channels** in the guide), with the channels suggested from your library and **Network facts**, which fills in the network and original day and time of shows.
 - **Tuners and IPTV** adds tuners and internet TV lists. No channel lists or stream addresses come with the server. Encrypted channels are shown as encrypted and are never decrypted.
 - **Guide data** adds listings for tuner and IPTV channels, in XMLTV format.
 - **Options** holds the guide's starting layout and colours, how far back people can pause (**Pause buffer**), the largest picture on channels and where recordings go. Each person can change the guide's look on their own device with the **Look** button on the guide.
@@ -254,14 +263,17 @@ More: [Background tasks](TASKS.md), [Watching and listening](PLAYING.md#the-acti
 
 ### Appearance
 
-How this server looks for you.
+How this server looks for you, from the app's theme to the look of each part of it. **On this page** at the top jumps to each section, and **Search settings** finds any of them by name.
 
 ![The Appearance page in Settings](images/settings-appearance.webp)
 *Settings, Appearance.*
 
-- **Theme:** choosing one changes this device only. **Automatic** follows the device's light or dark setting. **Make a theme** builds your own from a few choices. Administrators also get **Make default** and **Install a theme ZIP…**.
+- **Theme:** a large preview shows the theme in use, and any other you point at or move to, before you choose it. Choosing one changes this device only. **Automatic** follows the device's light or dark setting. Administrators also get **Make default** and **Install a theme ZIP…**.
+- **Colours:** make a theme of your own from a few choices, with a preview as you go. **Use on this device**, or, for administrators, **Add for everyone**.
 - **Layout:** **Side menu**, **Top bar** or **Both**. Phones always have the bar at the bottom. Below that you can arrange the menu.
 - **Motion and big screens:** **Moving posters** is the tilt when your pointer crosses a poster. **Big screen mode** makes text larger and the focus outline stronger, on this device.
+- **WittyTV:** the TV guide's own theme, colours, preview and rows, the same as its **Look** panel. See [The look](CHANNELS.md#the-look).
+- **Player:** the seek bar, chapter marks, how soon the controls hide, fitting or filling the screen, and the size of disc subtitles, for every video on this device. A disc or video you've set differently from the player's own menu keeps its own.
 - **Name and logo** (administrators): **Rename…** changes what shows in the corner, on the sign-in page and in the browser tab.
 
 More: [Themes](THEMES.md), [Watching and listening](PLAYING.md#moving-posters).

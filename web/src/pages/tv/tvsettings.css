@@ -86,3 +86,7 @@
 .tvs-logo-cell .brand-logo-text { font-size: var(--text-xs); }
 .tvs-logo-forms { display: grid; gap: var(--sp-2); margin-bottom: var(--sp-4); }
 .tvs-logo-field { display: grid; gap: var(--sp-1); font-size: var(--text-sm); }
+
+/* The channel list and editor, a page of their own outside Settings. */
+.tvc-page { max-width: 860px; margin: 12px auto 0; }
+.tvc-back { margin-bottom: var(--sp-2); }

@@ -78,7 +78,9 @@ var librariesGz []byte
 // program isn't part of this one.
 var written = []Component{
 	{Group: GroupPrograms, Name: "FFmpeg", License: "GPL-2.0-or-later", URL: "https://ffmpeg.org/legal.html",
-		Note: "Bundled with release downloads as bin/ffmpeg and bin/ffprobe, to convert video. Those builds include libx264 (GPL-2.0-or-later), LAME (LGPL-2.1) and Opus (BSD-3-Clause). Source: ffmpeg.org. Set WMS_FFMPEG to use a different build."},
+		Note: "Bundled with release downloads as bin/ffmpeg and bin/ffprobe, to convert video. Those builds include libx264 (GPL-2.0-or-later), LAME (LGPL-2.1) and Opus (BSD-3-Clause). Source: ffmpeg.org. The Docker image uses Debian's ffmpeg package instead (GPL-2.0-or-later, with x264 and x265). Set WMS_FFMPEG to use a different build."},
+	{Group: GroupPrograms, Name: "Graphics drivers in the Docker image", License: "MIT (Intel's encoding kernels: redistributable binaries, Debian non-free)", URL: "https://github.com/intel/media-driver",
+		Note: "Only in the amd64 Docker image, from Debian, loaded by FFmpeg for hardware transcoding: Mesa's VA-API drivers (MIT, mesa3d.org), Intel's media driver with its encoding kernels (MIT; the kernels come without source, from Debian's non-free section), the i965 driver and its shaders (MIT), Intel's oneVPL runtime (MIT) and vainfo (MIT). Each package's copyright file is in the image under /usr/share/doc."},
 	{Group: GroupPrograms, Name: "Tdarr", License: "Proprietary (Tdarr's own EULA)", URL: "https://github.com/HaveAGitGat/Tdarr/blob/master/LICENSE.md",
 		Note: "Not bundled, downloaded or run. Library transcoding can connect to a copy someone installs themselves, over its HTTP API, if they turn that on. Whoever installs it agrees to its terms. No Tdarr code or plugin is included."},
 	{Group: GroupPrograms, Name: "RetroArch", License: "GPL-3.0", URL: "https://github.com/libretro/RetroArch",

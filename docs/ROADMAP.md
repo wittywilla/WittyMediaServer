@@ -4,16 +4,11 @@ See what's still to do on the project, and what has been tried in the real world
 
 Names follow [Modules](MODULES.md).
 
-## Finishing 0.6.0-alpha
+## Now: 0.7.0-alpha
 
-| Step | State |
-|---|---|
-| A beginner-friendly, modular setup wizard, asking about logos, lyrics, listings and modules | In progress |
-| A final pass over every screen, looking for faults | In progress |
-| A second security pass over moved modules, apps and the Windows and macOS paths | In progress |
-| Documentation and in-app help | In progress |
-| Cleaning up the repositories, files and code comments | Not started |
-| Heavy optimisation of the server and its resource use | Not started, and comes last |
+0.6.0-alpha was published on 2026-11-02, then 0.6.1-alpha and 0.6.2-alpha as urgent fixes. 0.7.0-alpha started on 2026-11-04, small but robust: its work is in the [0.7.0-alpha milestone](https://github.com/wittywilla/WittyMediaServer/milestone/1), one issue each, with the release checklist in [#84](https://github.com/wittywilla/WittyMediaServer/issues/84). Features wait as ideas in [Discussions](https://github.com/wittywilla/WittyMediaServer/discussions/categories/ideas) until work on them starts.
+
+The plans and designs for what comes after, each with what's done, in progress or planned, are in [Plans](plans/README.md).
 
 ## Still to build
 
@@ -22,11 +17,11 @@ Names follow [Modules](MODULES.md).
 | What | State |
 |---|---|
 | **Watch together:** a shared, synchronised player across profiles and devices | Not started. Best built with real networks to test across |
-| **Hosted relay:** a future paid way in from away | Not built. It's shown greyed out in **Settings → Remote Access** |
+| **WittyRelay:** a hosted way in from away, planned as a free service | Not built. It's shown greyed out in **Settings → Remote Access** |
 | **Photos:** batch rotate and edit | Not started |
 | **Local AI:** a plan document, with image recognition for photos as the first use | Not written. The marked placeholders are in: **People & places** in photos, and `GET /api/photos/ai` says it isn't available |
 | **Recordings in a series' own folder** | Not started. Recordings go to one folder, or a chosen library's |
-| **A minimum hardware document:** realistic specifications for the server and for disc playback | Not written |
+| **A minimum hardware document:** realistic specifications for the server and for disc playback | Not written: [#113](https://github.com/wittywilla/WittyMediaServer/issues/113) |
 | **Sandbox on FreeBSD and macOS:** a module's helper runs with none there, only a small environment and a soft memory limit | Not built |
 
 ### Discs, tuners and games
@@ -36,7 +31,6 @@ Names follow [Modules](MODULES.md).
 | **Blu-ray:** mixing in secondary audio and picture-in-picture, and MVC 3D decoding | Not built. FFmpeg has no MVC decoder, so it plays the 2D view |
 | **CDs:** CD+G from a raw `.sub` file, and double-byte CD-TEXT | Not built. The second is reported, and names come from elsewhere |
 | **Tuners:** Windows BDA tuning, DiSEqC, and a viewer and a recording sharing one tuner | Not built |
-| **Games in the browser:** in-browser emulation and on-device play | Designed, not built. See [Games](GAMING.md) |
 | **Game PCs:** a fallback for networks that block UDP, HEVC and AV1, and adapting the bitrate | Not built. See [Game PCs](GAME-RIGS.md) |
 | **A small Windows and macOS app** that makes a diagnostic file without a server | Not started. **Settings → WittyDiagnoser** does this with one |
 
@@ -75,7 +69,7 @@ These are written and tested as far as this machine allows, and haven't been tri
 
 | Not tried on | Waiting for |
 |---|---|
-| **A real copy of Windows:** the installers | A Windows Sandbox run: `scripts/test/README.md` |
+| **A clean copy of Windows 11** with Smart App Control on: the installers and every program | A code-signing certificate: [#65](https://github.com/wittywilla/WittyMediaServer/issues/65) |
 | **A real Mac:** anything at all, and iOS and tvOS | A Mac |
 | **FreeBSD hardware or arm64:** the amd64 package has run in virtual machines, and modules have only been built for it | A machine |
 | **Real TVs, TV remotes, phones and game controllers** | The owner's devices. Android has only run on emulators |
@@ -86,7 +80,7 @@ These are written and tested as far as this machine allows, and haven't been tri
 | **A real game with a real GPU** on a game PC | A gaming PC: [the checklist](GAME-RIGS.md#a-checklist-for-the-first-real-test) |
 | **Game delay on a real screen:** the figures are headless, on one machine | Someone playing, and a slow-motion camera |
 | **A real 3DS game:** the only file here is encrypted, so it's refused | An unencrypted dump |
-| **A real release from GitHub,** and every release workflow | Publishing |
+| **WittyMediaPlayer's release build** on GitHub's Windows machines | A fix: [WittyMediaPlayer#1](https://github.com/wittywilla/WittyMediaPlayer/issues/1) |
 | **The complete Docker image** | Module tags on GitHub |
 
 ---

@@ -475,11 +475,11 @@ type generator struct {
 	pools   map[string]*pool
 	filler  []Entry
 	fillerR rng
-	// lastFiller: the commercial picked last.
-	lastFiller int64
-	rules      []*ruleState
-	out        []Programme
-	err        error
+	// recent: the commercials picked last, newest at the end.
+	recent []int64
+	rules  []*ruleState
+	out    []Programme
+	err    error
 }
 
 // ruleState is a bumper rule ready to use.
@@ -541,10 +541,10 @@ func GenerateDay(def *Definition, seed uint64, day int, loc *time.Location, prev
 	dayStart := DayStart(day, loc)
 	dayEnd := DayStart(day+1, loc)
 	t := max(prev.Carry, dayStart.Unix())
-	if err := g.loadFiller(); err != nil {
+	if err := g.loadRules(); err != nil {
 		return nil, prev, err
 	}
-	if err := g.loadRules(); err != nil {
+	if err := g.loadFiller(); err != nil {
 		return nil, prev, err
 	}
 	for _, seg := range segments(def, dayStart, dayEnd) {
@@ -566,7 +566,9 @@ func GenerateDay(def *Definition, seed uint64, day int, loc *time.Location, prev
 }
 
 // loadFiller gathers everything this channel may play between programmes: its
-// bumper rules and each of its commercials libraries.
+// filler rules and each of its commercials libraries. A video one of its bumper
+// rules plays is a bumper on this channel, not a commercial as well, even when
+// it is in a commercials library.
 func (g *generator) loadFiller() error {
 	var sets []Rules
 	if r := g.def.Filler.Rules; r != nil {
@@ -577,7 +579,14 @@ func (g *generator) loadFiller() error {
 			sets = append(sets, r)
 		}
 	}
+	bumper := map[int64]bool{}
+	for _, r := range g.rules {
+		for _, e := range r.entries {
+			bumper[e.ID] = true
+		}
+	}
 	seen := map[int64]bool{}
+	var bumpers []Entry
 	for _, r := range sets {
 		entries, err := g.load(r, 1)
 		if err != nil {
@@ -588,8 +597,16 @@ func (g *generator) loadFiller() error {
 				continue
 			}
 			seen[e.ID] = true
+			if bumper[e.ID] {
+				bumpers = append(bumpers, e)
+				continue
+			}
 			g.filler = append(g.filler, e)
 		}
+	}
+	// Bumpers are all there is: then they are the commercials too.
+	if len(g.filler) == 0 {
+		g.filler = bumpers
 	}
 	return nil
 }
@@ -1068,24 +1085,51 @@ func shrinkBumpers(list []piece, excess int64, trim Trim) int64 {
 	return excess
 }
 
+// maxRecent: how many commercials go by before one may play again, at most.
+const maxRecent = 24
+
+// pickFiller chooses a commercial no longer than room. One that played lately
+// waits its turn, so a break of many doesn't show the same one twice; it plays
+// again only when nothing else fits.
 func (g *generator) pickFiller(room int64) *Entry {
 	if len(g.filler) == 0 || room <= 0 {
 		return nil
 	}
 	start := g.fillerR.intn(len(g.filler))
-	// The same video twice running only when there is nothing else to play.
-	if len(g.filler) > 1 && g.filler[start].itemID() == g.lastFiller {
-		start = (start + 1) % len(g.filler)
-	}
+	var again *Entry
 	for i := range g.filler {
 		e := &g.filler[(start+i)%len(g.filler)]
-		if e.Dur <= room {
-			g.lastFiller = e.itemID()
+		if e.Dur > room {
+			continue
+		}
+		if !slices.Contains(g.recent, e.itemID()) {
+			g.played(e)
 			return e
 		}
+		if again == nil || g.playedAt(e) < g.playedAt(again) {
+			again = e
+		}
 	}
-	return nil
+	if again != nil {
+		g.played(again)
+	}
+	return again
 }
+
+// played remembers a commercial, keeping as many as half the videos there are.
+func (g *generator) played(e *Entry) {
+	id := e.itemID()
+	if i := slices.Index(g.recent, id); i >= 0 {
+		g.recent = slices.Delete(g.recent, i, i+1)
+	}
+	g.recent = append(g.recent, id)
+	if n := min(maxRecent, len(g.filler)/2); len(g.recent) > n {
+		g.recent = g.recent[len(g.recent)-n:]
+	}
+}
+
+// playedAt is how far back a commercial is in what played lately: lower is longer ago.
+func (g *generator) playedAt(e *Entry) int { return slices.Index(g.recent, e.itemID()) }
 
 // pad fills [t, until) with filler that fits, then a slate, and returns where
 // it stopped: a gap too short for a slate is left for the next programme to

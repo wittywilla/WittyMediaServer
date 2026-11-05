@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // Each page of a DjVu book starts a program, for anyone who can open the book, so turning pages
@@ -23,7 +24,7 @@ func TestDjvuDrawsAFewAtATime(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(bin, "ddjvu"), []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	usePath(t, bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	book := filepath.Join(t.TempDir(), "book.djvu")
 	if err := os.WriteFile(book, []byte("AT&TFORM"), 0o644); err != nil {
 		t.Fatal(err)
@@ -65,7 +66,7 @@ func TestDjvuPageCountIsAskedOnce(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(bin, "djvused"), []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	usePath(t, bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	book := filepath.Join(t.TempDir(), "book.djvu")
 	if err := os.WriteFile(book, []byte("AT&TFORM"), 0o644); err != nil {
 		t.Fatal(err)
@@ -81,5 +82,44 @@ func TestDjvuPageCountIsAskedOnce(t *testing.T) {
 	}
 	if n := strings.Count(string(b), "x"); n != 1 {
 		t.Errorf("asked %d times", n)
+	}
+}
+
+// usePath sets PATH for one test, and forgets the DjVuLibre programs found before.
+func usePath(t *testing.T, path string) {
+	t.Setenv("PATH", path)
+	forget := func() {
+		djvuFound.Lock()
+		clear(djvuFound.m)
+		djvuFound.Unlock()
+	}
+	forget()
+	t.Cleanup(forget)
+}
+
+// The formats page asks whether DjVuLibre is there on every visit, and looking through
+// PATH costs a stat for each folder and, on Windows, each extension.
+func TestDjvuToolIsLookedForOnce(t *testing.T) {
+	usePath(t, t.TempDir())
+	if HasDjVu() {
+		t.Fatal("found in an empty PATH")
+	}
+	djvuFound.Lock()
+	djvuFound.m["ddjvu"] = foundTool{path: "/kept", at: time.Now()}
+	djvuFound.Unlock()
+	if got := djvuTool("ddjvu"); got != "/kept" {
+		t.Errorf("looked again: %q", got)
+	}
+	djvuFound.Lock()
+	djvuFound.m["ddjvu"] = foundTool{path: "/kept", at: time.Now().Add(-djvuLookAgain - time.Second)}
+	djvuFound.Unlock()
+	if got := djvuTool("ddjvu"); got != "" {
+		t.Errorf("an answer older than a minute was kept: %q", got)
+	}
+}
+
+func BenchmarkHasDjVu(b *testing.B) {
+	for b.Loop() {
+		HasDjVu()
 	}
 }

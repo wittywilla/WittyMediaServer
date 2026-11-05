@@ -2,11 +2,14 @@ package library
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 )
@@ -167,4 +170,50 @@ func TestUnchangedShowIsNotSavedAgain(t *testing.T) {
 	if again, _ := s.Store.Show(ctx, sh.ID, 0); again.UpdatedAt == 1 {
 		t.Fatal("a changed show was not written")
 	}
+}
+
+// A walk that fails on a fault of the server's own must still answer: the scan waits for it,
+// holding its turn at the disk, which every other scan and a backup wait for in their turn.
+func TestPanickingWalkEndsTheWait(t *testing.T) {
+	done := make(chan error, 1)
+	go func() {
+		_, err := findUnlessCancelled(context.Background(), func(string) ([]candidate, error) {
+			var st os.FileInfo
+			_ = st.ModTime() // what a folder gone mid-walk did
+			return nil, nil
+		}, t.TempDir())
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if !errors.Is(err, errWalkStopped) {
+			t.Fatalf("err = %v, want errWalkStopped", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("the walk panicked and nobody was told")
+	}
+}
+
+// A scan that panics ends as failed: its activity entry mustn't show it running for ever.
+func TestPanickingScanIsAnError(t *testing.T) {
+	err := scanGuarded(func() error { panic("boom") })
+	if err == nil || !strings.Contains(err.Error(), "boom") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+// A folder that's gone between being listed and being looked at has no time, not a crash.
+func TestEntryGoneSinceListing(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(dir, "x"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil || len(entries) != 1 {
+		t.Fatal(entries, err)
+	}
+	if err := os.Remove(filepath.Join(dir, "x")); err != nil {
+		t.Fatal(err)
+	}
+	_ = entryMTime(entries[0]) // 0 where Info reads the folder again, its time where the listing held it
 }

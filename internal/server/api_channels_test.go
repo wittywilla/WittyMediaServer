@@ -75,7 +75,7 @@ func TestTVRoutesNeedTheRightAccount(t *testing.T) {
 		{"POST", "/api/channels/from-network"}, {"POST", "/api/channels/networks/refresh"}, {"POST", "/api/channels/1/rebuild"},
 		{"GET", "/api/channels/1/history"}, {"POST", "/api/channels/1/restore"}, {"PUT", "/api/channels/1/logo"}, {"DELETE", "/api/channels/1/logo"},
 		{"GET", "/api/tuners"}, {"POST", "/api/tuners"}, {"PUT", "/api/tuners/1"}, {"DELETE", "/api/tuners/1"}, {"GET", "/api/tuners/drivers"}, {"GET", "/api/tuners/discover"},
-		{"POST", "/api/tuners/1/scan"}, {"POST", "/api/tuners/1/refresh"}, {"GET", "/api/tuners/1/channels"}, {"PUT", "/api/tuner-channels/1"},
+		{"POST", "/api/tuners/1/scan"}, {"POST", "/api/tuners/1/refresh"}, {"POST", "/api/tuners/check"}, {"POST", "/api/tuners/1/test"}, {"GET", "/api/tuners/1/channels"}, {"PUT", "/api/tuner-channels/1"},
 		{"GET", "/api/epg/sources"}, {"POST", "/api/epg/sources"}, {"DELETE", "/api/epg/sources/1"}, {"GET", "/api/tv/settings"}, {"PUT", "/api/tv/settings"},
 		{"PUT", "/api/libraries/1/main"},
 	}

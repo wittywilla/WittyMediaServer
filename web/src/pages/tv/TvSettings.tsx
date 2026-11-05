@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, Navigate, Route, Routes, useParams } from 'react-router-dom'
-import { fmtDateTime, api } from '../../api'
+import { Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { ApiError, fmtDateTime, api } from '../../api'
 import { ChooseFolderButton } from '../../components/FolderPicker'
 import { IconEdit, IconPlus, IconRefresh, IconTrash, IconTv } from '../../icons'
 import { toast, useApp } from '../../state'
 import { ask } from '../../ui'
 import { PageHead, Row, Section, Switch } from '../settings/ui'
 import TunerLogo from './TunerLogo'
+import TunerField from './TunerField'
+import AddLiveTv, { NeedsTuner } from './AddLiveTv'
 import { LogoConsentHint } from '../../components/edit/LogoChooser'
 import { forgetOwnerLook } from './look'
 import { fromLegacy, THEMES } from './tvThemes'
-import { forgetLineup, type Channel, type Driver, type DriverField, type EPGSource, type Found, type ScanState, type Tuner, type TunerChannel } from './tvApi'
+import { forgetLineup, type Channel, type Driver, type EPGSource, type Found, type ScanState, type Tuner, type TunerChannel } from './tvApi'
 import './tvsettings.css'
 import LegalNote from '../../components/LegalNote'
 
@@ -24,6 +26,7 @@ export default function TvSettings() {
       <Route path="new" element={<MovedEditor />} />
       <Route path="edit/:id" element={<MovedEditor />} />
       <Route path="tuner/:id" element={<TunerChannels />} />
+      <Route path="add" element={<AddPage />} />
       <Route path="*" element={<Navigate to="/settings/channels" replace />} />
     </Routes>
   )
@@ -70,21 +73,15 @@ function MovedEditor() {
 
 // -------------------------------------------------------------------- tuners
 
-const STATUS: Record<Driver['status'], { label: string; desc: string }> = {
-  tested: { label: 'Tested', desc: 'Tested end to end.' },
-  mock: { label: 'Tried on stand-ins', desc: 'Built from the published protocol and tried against stand-in servers, not yet on real hardware.' },
-  untested: { label: 'Not yet tried', desc: 'Built from the published documentation. It has not been tried on real hardware yet, so please report what you find.' },
-  planned: { label: 'Not built yet', desc: '' },
-}
-
 function Tuners() {
+  const nav = useNavigate()
   const [list, setList] = useState<Tuner[] | null>(null)
   const [drivers, setDrivers] = useState<Driver[]>([])
+  const [missing, setMissing] = useState(false)
   const [found, setFound] = useState<Found[] | null>(null)
   const [searching, setSearching] = useState(false)
-  const [adding, setAdding] = useState<{ driver: Driver; options: Record<string, string>; name: string } | null>(null)
   const load = () => api.get<Tuner[]>('/tuners').then(setList).catch((e) => toast(e.message))
-  useEffect(() => { void load(); api.get<Driver[]>('/tuners/drivers').then(setDrivers).catch(() => {}) }, [])
+  useEffect(() => { void load(); api.get<Driver[]>('/tuners/drivers').then(setDrivers).catch((e) => setMissing(e instanceof ApiError && e.status === 424)) }, [])
   const search = async () => {
     setSearching(true)
     try { setFound(await api.get<Found[]>('/tuners/discover')) } catch (e: any) { toast(e.message) } finally { setSearching(false) }
@@ -95,19 +92,20 @@ function Tuners() {
   }
   return (
     <Section title="Tuners and IPTV" desc={<><Link to="/help/channels#live-tv-playlists">How tuners and playlists work.</Link> Add as many as you like, including streams a licensed device offers to home media servers. Encrypted channels are shown as encrypted and never decrypted (<Link to="/tv/encrypted">why, and what you can do</Link>). No channel lists or stream addresses come with the server: bring your own.</>}
-      actions={<button className="btn sm" disabled={searching} onClick={() => void search()}><IconRefresh /> {searching ? 'Searching…' : 'Search for tuners'}</button>}>
-      {found && found.length === 0 && <p className="muted">No new tuners found on your network or this machine. You can still add one below.</p>}
+      actions={missing ? undefined : <>
+        <button className="btn sm" disabled={searching} onClick={() => void search()}><IconRefresh /> {searching ? 'Searching…' : 'Search for tuners'}</button>
+        <Link className="btn sm primary" to="add"><IconPlus /> Add live TV</Link>
+      </>}>
+      {missing && <NeedsTuner />}
+      {found && found.length === 0 && <p className="muted">No new tuners found on your network or this machine. Some don’t answer a search: <Link to="add">add one by hand</Link>.</p>}
       {found && found.length > 0 && (
-        <ul className="tvs-list">
-          {found.map((f, i) => {
-            const d = drivers.find((x) => x.id === f.driver)
-            return (
-              <li key={i} className="tvs-item">
-                <div className="tvs-item-text"><b>{f.name}</b><span>{f.detail || d?.name}</span></div>
-                {d && <button className="btn sm primary" onClick={() => setAdding({ driver: d, options: f.options, name: f.name })}><IconPlus /> Add</button>}
-              </li>
-            )
-          })}
+        <ul className="tvs-list" aria-label="Found">
+          {found.map((f, i) => (
+            <li key={i} className="tvs-item">
+              <div className="tvs-item-text"><b>{f.name}</b><span>{f.detail || drivers.find((x) => x.id === f.driver)?.name}</span></div>
+              <button className="btn sm primary" onClick={() => nav('add', { state: { found: f } })} aria-label={`Set up ${f.name}`}><IconPlus /> Set up</button>
+            </li>
+          ))}
         </ul>
       )}
       {list && list.length > 0 && (
@@ -125,75 +123,17 @@ function Tuners() {
           ))}
         </ul>
       )}
-      <h3 className="tvs-h3">Add a tuner</h3>
-      <div className="tvs-drivers">
-        {drivers.map((d) => (
-          <div key={d.id} className={'tvs-driver' + (d.available ? '' : ' off')}>
-            <div className="tvs-driver-head"><b>{d.name}</b><span className={'tvs-status ' + d.status} title={STATUS[d.status]?.desc}>{STATUS[d.status]?.label}</span></div>
-            <p>{d.description}</p>
-            {d.note && <p className="tvs-dim">{d.note}</p>}
-            {d.available && <button className="btn sm" onClick={() => setAdding({ driver: d, options: {}, name: '' })}><IconPlus /> Add</button>}
-          </div>
-        ))}
-      </div>
-      {adding && <TunerForm driver={adding.driver} initial={adding.options} initialName={adding.name} onClose={() => setAdding(null)} onDone={() => { setAdding(null); setFound(null); forgetLineup(); void load() }} />}
+      {!missing && list && list.length === 0 && <p className="muted">None yet. <b>Add live TV</b> takes you through it a step at a time, from a playlist, a stream address, a tuner on your network or a card in this computer.</p>}
     </Section>
   )
 }
 
-function Field({ f, value, onChange }: { f: DriverField; value: string; onChange: (v: string) => void }) {
-  const id = 'tf-' + f.key
-  const help = f.help ? <small id={id + '-h'} className="tvs-help">{f.help}</small> : null
-  const aria = { id, 'aria-describedby': f.help ? id + '-h' : undefined, required: f.required }
-  if (f.kind === 'toggle') {
-    return <label className="check-row"><input type="checkbox" id={id} checked={(value || f.default) === '1'} onChange={(e) => onChange(e.target.checked ? '1' : '0')} /> {f.label}{help}</label>
-  }
+function AddPage() {
   return (
-    <label htmlFor={id}>{f.label}{f.required ? ' (needed)' : ''}
-      {f.kind === 'select' ? (
-        <select className="select" {...aria} value={value || f.default || ''} onChange={(e) => onChange(e.target.value)}>
-          {(f.options || []).map((o) => <option key={o} value={o}>{o || 'None'}</option>)}
-        </select>
-      ) : f.kind === 'textarea' ? (
-        <textarea className="input mono" rows={4} {...aria} value={value} onChange={(e) => onChange(e.target.value)} spellCheck={false} />
-      ) : (
-        <input className="input" type={f.kind === 'password' ? 'password' : f.kind === 'number' ? 'number' : 'text'} autoComplete={f.kind === 'password' ? 'new-password' : 'off'} {...aria} value={value} placeholder={f.default} onChange={(e) => onChange(e.target.value)} />
-      )}
-      {help}
-    </label>
-  )
-}
-
-function TunerForm({ driver, initial, initialName, onClose, onDone }: { driver: Driver; initial: Record<string, string>; initialName: string; onClose: () => void; onDone: () => void }) {
-  const [name, setName] = useState(initialName)
-  const [opts, setOpts] = useState<Record<string, string>>(initial)
-  const [err, setErr] = useState('')
-  const [busy, setBusy] = useState(false)
-  const save = async () => {
-    setBusy(true); setErr('')
-    try {
-      await api.post('/tuners', { driver: driver.id, name: name.trim() || driver.name, options: opts })
-      toast(`${name.trim() || driver.name} added`)
-      onDone()
-    } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
-  }
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal wide" role="dialog" aria-modal="true" aria-labelledby="tf-h" onClick={(e) => e.stopPropagation()}>
-        <h2 id="tf-h">Add {driver.name}</h2>
-        <p className="muted">{driver.description}</p>
-        {driver.status !== 'tested' && <p className="tvs-note">{STATUS[driver.status]?.desc}</p>}
-        <form className="form" style={{ maxWidth: 'none' }} onSubmit={(e) => { e.preventDefault(); void save() }}>
-          <label>Name<input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} placeholder={driver.name} autoFocus /></label>
-          {driver.fields.map((f) => <Field key={f.key} f={f} value={opts[f.key] || ''} onChange={(v) => setOpts({ ...opts, [f.key]: v })} />)}
-          {err && <p className="tvs-error" role="alert">{err}</p>}
-          <div className="actions">
-            <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
-            <button className="btn primary" disabled={busy}>{busy ? 'Adding…' : 'Add'}</button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <>
+      <PageHead title="Add live TV" desc="A tuner, a playlist or a stream, a step at a time." actions={<Link className="btn" to="/settings/channels">Back</Link>} />
+      <section className="set-card"><div className="set-card-body"><AddLiveTv /></div></section>
+    </>
   )
 }
 
@@ -290,7 +230,7 @@ function TunerChannels() {
       {driver && opts && (
         <Section title="Settings" actions={<button className="btn sm primary" onClick={() => void saveSettings()}>Save</button>}>
           <div className="form" style={{ maxWidth: 'none' }}>
-            {driver.fields.map((f) => <Field key={f.key} f={f} value={opts[f.key] || ''} onChange={(v) => setOpts({ ...opts, [f.key]: v })} />)}
+            {driver.fields.map((f) => <TunerField key={f.key} f={f} value={opts[f.key] || ''} onChange={(v) => setOpts({ ...opts, [f.key]: v })} />)}
             <label htmlFor="tf-limit">Streams at once (0 = as the device says)
               <input className="input" id="tf-limit" type="number" min={0} value={limit} onChange={(e) => setLimit(e.target.value)} />
             </label>

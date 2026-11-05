@@ -165,7 +165,8 @@ func (s *Server) handleCheckTuner(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"ok": false, "problem": livetv.Problem{Kind: "settings", Message: err.Error()}})
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 45*time.Second)
+	// Each question starts WittyTuner's helper afresh, which a small or busy machine can take a while to do.
+	ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
 	defer cancel()
 	res, err := s.TV.Check(ctx, t.Driver, t.Name, t.Options)
 	if writeModuleMissing(w, err) {
@@ -200,7 +201,7 @@ func (s *Server) handleTestTuner(w http.ResponseWriter, r *http.Request) {
 		s.tunerError(w, r, err)
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), time.Minute)
+	ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
 	defer cancel()
 	res, err := s.TV.TestChannel(ctx, id, b.Channel)
 	if err != nil {

@@ -288,9 +288,16 @@ These need the **WittyTuner** module. No channel lists or stream addresses come 
 ![The Channels and tuners page in Settings](images/settings-channels.webp)
 *Settings, Channels & tuners, on a server with no tuner attached.*
 
-1. Go to **Settings → Channels & tuners → Tuners and IPTV**.
-2. Press **Search for tuners**, or choose one under **Add a tuner** and fill it in.
-3. Press **Channels** on the tuner. **Read the list** or **Scan for channels** fills it, and you choose which show in the guide, renumber them, or set a guide id.
+1. Go to **Settings → Channels & tuners → Tuners and IPTV**, and press **Add live TV**.
+2. Choose what you have: **a playlist from a provider**, **one stream address**, **a tuner box on my network**, **a SAT>IP server**, **a TV card or capture device**, **a TV server I already run**, or **something else**, which lists every kind by name. Only the kinds this server can use are offered.
+3. For something on your network or in this computer, it looks for it first. Press **Use this one**, or **Enter the details by hand** when it isn't found: some devices don't answer a search. A device found by **Search for tuners** on the settings page starts here too, with its details filled in.
+4. Fill in the details. **Check it** asks the source for its channels without saving anything, and says what it found: the model and how many tuners it has, how many channels, and how many are marked as encrypted. When it doesn't work it says why: nothing answered at that address, something answered but isn't that kind of device, or the playlist couldn't be read. **Add it** saves it, and the server checks the details again as it does.
+5. **Channels** shows how many are clear and how many encrypted. A device that finds its channels by scanning offers **Scan for channels**, with progress. Encrypted channels stay in the guide, marked as encrypted, and are never decrypted.
+6. **Try a channel** tunes one for a few seconds and says what came: the picture and sound, and whether the server saw it's clear. An encrypted channel is refused here as it is everywhere else.
+7. **Guide data** offers an XMLTV address when the source brings no guide of its own.
+8. The last step links to the guide and to the tuner's channel list, where you choose which show in the guide, renumber them, or set a guide id.
+
+On a new server with WittyTuner, first-time setup has a **Live TV** step with the same steps, which you can skip. Without WittyTuner, the section says so and links to installing it.
 
 **Streams at once** limits how many channels can be open on a tuner. Your changes stay when the list is read again.
 

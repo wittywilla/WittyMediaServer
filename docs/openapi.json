@@ -32481,6 +32481,37 @@
         "x-wms-auth": "admin"
       }
     },
+    "/tuners/check": {
+      "post": {
+        "operationId": "postTunersCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "{ok, result} when it answered, or {ok: false, problem: {kind, message, hint}}."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check tuner: what a source says before it's saved. Keeps nothing.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/tuners/discover": {
       "get": {
         "operationId": "getTunersDiscover",
@@ -32813,6 +32844,46 @@
           }
         ],
         "summary": "Scan tuner.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/tuners/{id}/test": {
+      "post": {
+        "operationId": "postTunersIdTest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "{ok, channel, problem, seconds, video, audio, clear}."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Test tuner: tunes one channel for a few seconds. Encrypted channels are refused.",
         "tags": [
           "Channels and live TV"
         ],

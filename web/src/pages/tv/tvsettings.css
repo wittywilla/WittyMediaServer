@@ -90,3 +90,26 @@
 /* The channel list and editor, a page of their own outside Settings. */
 .tvc-page { max-width: 860px; margin: 12px auto 0; }
 .tvc-back { margin-bottom: var(--sp-2); }
+
+/* Add live TV: the guided setup (AddLiveTv.tsx). */
+.alt { display: grid; gap: var(--sp-4); max-width: 60rem; }
+.alt-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--text-sm); color: var(--fg-2); }
+.alt-steps li { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.alt-steps li.on { color: var(--fg); font-weight: 600; }
+.alt-step-n { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; border: 2px solid var(--control-line); font-size: var(--text-xs); font-weight: 700; }
+.alt-steps li.on .alt-step-n { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
+.alt-steps li.done .alt-step-n { border-color: var(--accent-line, var(--accent)); color: var(--accent-text); }
+.alt-h { margin: 0 0 var(--sp-2); font-size: var(--text-xl); }
+.alt-h:focus { outline: none; }
+.alt-h:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: var(--r-xs); }
+.alt-lead { margin: 0 0 var(--sp-3); color: var(--fg-2); max-width: 46rem; }
+.alt-row { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.alt-gap { margin: var(--sp-3) 0; }
+.alt-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--border); }
+.alt-actions > .alt-row { margin-left: auto; justify-content: flex-end; }
+.alt-form { max-width: 40rem; }
+.alt-field { display: grid; gap: var(--sp-1); max-width: 28rem; margin-bottom: var(--sp-3); font-weight: 600; }
+.alt-counts { list-style: none; display: flex; flex-wrap: wrap; gap: var(--sp-4); margin: var(--sp-2) 0; padding: 0; }
+.alt-counts b { font-size: var(--text-lg); margin-right: var(--sp-1); }
+.alt .ui-notice p { margin: 0 0 var(--sp-1); }
+.alt .ui-notice p:last-child { margin-bottom: 0; }

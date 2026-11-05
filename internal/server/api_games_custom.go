@@ -1692,6 +1692,8 @@ type GameCoreOption struct {
 	Seconds       float64 `json:"seconds"`
 	LastError     string  `json:"lastError,omitempty"`
 	Best          bool    `json:"best,omitempty"`
+	// Here is how it draws on this server, for the cores this server offers.
+	Here *platformSupport `json:"here,omitempty"`
 }
 
 // GET /api/gaming/games/{id}/core: what would play this game, and what else could.
@@ -1706,9 +1708,19 @@ func (s *Server) handleGameCoreGet(w http.ResponseWriter, r *http.Request) {
 	var effective string
 	if console := wittyplay.ByID(it.Console); console != nil {
 		g := s.games()
+		noGPU, asked := "", false
 		for _, c := range g.cores.List() {
 			if !c.Unapproved && s.coreFitsConsole(console, c.ID) {
-				options = append(options, GameCoreOption{ID: c.ID, Name: c.Name, Source: c.Source, License: c.License, NonCommercial: c.NonCommercial})
+				o := GameCoreOption{ID: c.ID, Name: c.Name, Source: c.Source, License: c.License, NonCommercial: c.NonCommercial}
+				if c.Source != cores.SourceCustom {
+					gpuCore := wittyplay.Traits(c.ID).GPU
+					if gpuCore && !asked {
+						noGPU, asked = s.gpuMissing(ctx), true
+					}
+					here := coreSupportFor(c.ID, gpuCore, noGPU).Here
+					o.Here = &here
+				}
+				options = append(options, o)
 			}
 		}
 		if core := g.cores.ForConsole(console, s.preferredCore(ctx, console, it.ID)); core != nil {

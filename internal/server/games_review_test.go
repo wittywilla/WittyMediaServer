@@ -162,7 +162,7 @@ func TestNeedsALookThroughTheAPI(t *testing.T) {
 	var d library.GameDetails
 	w = g.do("GET", fmt.Sprintf("/api/games/%d/metadata", sealed.ID), g.admin, nil)
 	jsonBody(t, w, &d)
-	if d.Problem != "encrypted" || !strings.Contains(d.ProblemText, "won't decrypt") || d.DetectedBy != "bytes" || !strings.Contains(d.DetectWhy, "NCCH") {
+	if d.Problem != "encrypted" || !strings.Contains(d.ProblemText, "won't decrypt") || !strings.Contains(d.ProblemText, "decrypted yourself") || d.DetectedBy != "bytes" || !strings.Contains(d.DetectWhy, "NCCH") {
 		t.Fatalf("%+v", d)
 	}
 	w = g.do("GET", fmt.Sprintf("/api/games/%d/metadata", sealed.ID), g.other, nil)

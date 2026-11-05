@@ -121,7 +121,8 @@ func TestLiftNestedSandboxBlocks(t *testing.T) {
 }
 
 // A server starting with the fix puts the version back, and says so in its saved state, so it
-// doesn't again. Anywhere but a Mac, nothing changes.
+// doesn't again. A Mac's sandbox was the reason there; anywhere else, it's that games failing to
+// start no longer count against WittyPlay (liftGameFailureBlocks).
 func TestStartPutsBackWhatTheMacSandboxTookOutOfUse(t *testing.T) {
 	dir := t.TempDir()
 	builtin, err := json.Marshal(wittymodule.Manifest{ID: "wittyplay", Name: "WittyPlay", Version: "0.1.0", Repo: "wittywilla/WittyPlay",
@@ -145,16 +146,11 @@ func TestStartPutsBackWhatTheMacSandboxTookOutOfUse(t *testing.T) {
 	m.mu.Lock()
 	now := m.mods["wittyplay"].state
 	m.mu.Unlock()
-	if goos() != "darwin" {
-		if now.Blocked["0.3.4"] == "" || saved["wittyplay"].Blocked["0.3.4"] == "" {
-			t.Error("a version was put back in use off a Mac")
-		}
-		return
-	}
 	if now.Blocked["0.3.4"] != "" {
 		t.Errorf("0.3.4 is still out of use: %s", now.Blocked["0.3.4"])
 	}
-	if saved["wittyplay"].Blocked["0.3.4"] != "" || !saved["wittyplay"].NestedSandboxFixed {
+	// On a Mac the sandbox fix puts it back; anywhere, games that couldn't start no longer count.
+	if s := saved["wittyplay"]; s.Blocked["0.3.4"] != "" || s.NestedSandboxFixed != (goos() == "darwin") || !s.GameFailuresUncounted {
 		t.Errorf("the saved state doesn't say it was put back: %s", b)
 	}
 }

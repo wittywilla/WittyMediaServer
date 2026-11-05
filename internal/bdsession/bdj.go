@@ -93,7 +93,9 @@ type bdjState struct {
 	pause  *bool
 	seek   *float64
 	video  []int
-	active bool // the current presentation belongs to BD-J
+	// pointer: the applications listen for a pointer, so taps on the picture reach them.
+	pointer bool
+	active  bool // the current presentation belongs to BD-J
 	// A disc can ask for playlists and titles far faster than they can start, so
 	// only the newest request of each kind is carried out, at a steady pace.
 	pending map[string]*atomic.Int32
@@ -245,7 +247,6 @@ func argFloat(a []string, i int) float64 {
 // from disc code: numbers are checked like any other disc data.
 func (s *Session) bdjEvent(st *bdjState, e JavaEvent) {
 	ctx := context.Background()
-	r := s.nav.Registers()
 	switch e.Kind {
 	case "play":
 		s.bdjPlay(ctx, st, argInt(e.Args, 0), argInt(e.Args, 1), argInt(e.Args, 2), argFloat(e.Args, 3))
@@ -274,18 +275,32 @@ func (s *Session) bdjEvent(st *bdjState, e JavaEvent) {
 				st.host.Kick()
 			}
 		}
+	case "pointer":
+		// Whether the applications listen for a pointer: only then does a tap reach them.
+		if on := argInt(e.Args, 0) == 1; on != st.pointer {
+			st.pointer = on
+			if s.current != nil && s.current.BDJ != nil {
+				p, v := *s.current, *s.current.BDJ
+				v.Pointer = on
+				p.BDJ = &v
+				s.current = &p
+			}
+			st.host.Kick()
+		}
 	case "sound":
 		if id := argInt(e.Args, 0); id >= 0 && len(st.sounds) < 16 {
 			st.sounds = append(st.sounds, id)
 			st.host.Kick()
 		}
 	case "gpr":
+		r := s.nav.Registers()
 		if n := argInt(e.Args, 0); n >= 0 && n < len(r.GPR) && len(e.Args) > 1 {
 			if v, err := strconv.ParseUint(e.Args[1], 10, 32); err == nil {
 				r.GPR[n] = uint32(v)
 			}
 		}
 	case "psr":
+		r := s.nav.Registers()
 		// The same registers a disc's own commands may not change stay out of reach.
 		if n := argInt(e.Args, 0); n >= 0 && n < 128 && !playerSetting(n) && len(e.Args) > 1 {
 			if v, err := strconv.ParseUint(e.Args[1], 10, 32); err == nil {
@@ -411,7 +426,7 @@ func (s *Session) bdjOver(p *Presentation, st *bdjState) *Presentation {
 	if p == nil || st == nil {
 		return p
 	}
-	p.BDJ = &dvdsession.BDJView{PollURL: s.url("bdj"), Video: st.video}
+	p.BDJ = &dvdsession.BDJView{PollURL: s.url("bdj"), Video: st.video, Pointer: st.pointer}
 	return p
 }
 
@@ -523,6 +538,12 @@ func (s *Session) bdjAction(ctx context.Context, a Action) (p *Presentation, han
 	case "key":
 		if code, ok := bdjKeys[a.Key]; ok {
 			st.host.Send("key %d", code)
+		}
+		return s.current, true
+	case "pointer":
+		// A tap on the picture, for applications that take a pointer. Elsewhere it's nothing.
+		if st.pointer && a.X >= 0 && a.Y >= 0 && a.X < bdjWidth && a.Y < bdjHeight {
+			st.host.Send("pointer %d %d", a.X, a.Y)
 		}
 		return s.current, true
 	case "menu":

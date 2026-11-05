@@ -17,6 +17,7 @@ import { Ambient } from './Library'
 import './shelves.css'
 import type { SaveSlot } from '@wittywilla/wittyplay'
 import './games-ui.css'
+import { CorePlatforms, runsOnWords } from './platforms'
 
 // A game's page: what it is, a big button to play it, where you left off, and everything
 // else about it below. Whatever's stopping a game from starting says so here, with the
@@ -173,7 +174,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
               ? <Link data-tv-first className="btn primary big gm-play" to={links.play(it.id, 'resume=1')}><IconPlay /> Resume</Link>
               : ready && <Link data-tv-first className="btn primary big gm-play" to={links.play(it.id)}><IconPlay /> Play</Link>}
             {ready && auto && <Link className="btn big" to={links.play(it.id)}>Start over</Link>}
-            {!ready && check?.reason === 'core' && user?.isAdmin && <Link className="btn primary big" to="/settings/gaming"><IconSettings size={16} /> Install a core</Link>}
+            {!ready && check?.reason === 'core' && !check.noBuild && user?.isAdmin && <Link className="btn primary big" to="/settings/gaming"><IconSettings size={16} /> Install a core</Link>}
             {!ready && check?.reason === 'bios' && user?.isAdmin && <Link className="btn primary big" to="/settings/gaming"><IconSettings size={16} /> Set up {c?.short}</Link>}
             {mine && (
               <button type="button" className={'btn big square gm-fav' + (mine.favourite ? ' on' : '')} aria-pressed={mine.favourite} aria-label={mine.favourite ? 'Favourite' : 'Add to favourites'} title={mine.favourite ? 'Favourite' : 'Add to favourites'} onClick={() => putMeta({ favourite: !mine.favourite })}>
@@ -190,12 +191,22 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
               <i className="gm-ribbon" aria-hidden="true" />
             </Link>
           )}
+          {ready && check?.software && (
+            <div className="gm-blocked info" role="note">
+              <IconInfo />
+              <div>
+                <strong>Drawn by the server’s processor</strong>
+                <p>{check.notice}</p>
+              </div>
+            </div>
+          )}
           {check && !check.ready && (
             <div className="gm-blocked" role="status">
               <IconInfo />
               <div>
-                <strong>{check.reason === 'core' ? 'This game needs a core first' : check.reason === 'bios' ? 'This game needs a BIOS file' : 'This console can’t play here yet'}</strong>
-                <p>{check.message}{check.reason === 'core' && (user?.isAdmin ? ' A core is the free program that plays these games. It takes one click to install.' : ' Ask whoever runs this server to install one.')}</p>
+                <strong>{check.reason === 'core' && !check.noBuild ? 'This game needs a core first' : check.reason === 'bios' ? 'This game needs a BIOS file' : check.reason === 'gpu' || check.noBuild ? 'Not on this server' : 'This console can’t play here yet'}</strong>
+                <p>{check.message}{check.reason === 'core' && !check.noBuild && (user?.isAdmin ? ' A core is the free program that plays these games. It takes one click to install.' : ' Ask whoever runs this server to install one.')}</p>
+                {(check.reason === 'gpu' || check.noBuild) && check.runsOn?.length ? <p>{runsOnWords(check.runsOn)} Every device can play them from such a server: the server runs the game and streams it.</p> : null}
               </div>
             </div>
           )}
@@ -257,13 +268,15 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
           <h2 id="gm-play-h">How you play it</h2>
           <ul className="gm-checks">
             <li className="ok"><IconCheck size={16} /><span><b>Runs on your server</b><small>and streams to this device, so this device needs no emulator and nothing downloads. Saves stay on the server, and follow you to every device. Playing on the device itself, without the server, isn’t available yet.</small></span></li>
-            {check?.core && <li className="ok"><IconCheck size={16} /><span><b>{check.core.name}</b><small>The core that plays this game. License: {check.core.license || 'not known'}.</small></span></li>}
-            {check?.reason === 'core' && <li className="no"><IconInfo size={16} /><span><b>No core installed</b><small>{user?.isAdmin ? <>Install one in <Link to="/settings/gaming">Consoles &amp; cores</Link>.</> : 'Ask whoever runs this server.'}</small></span></li>}
-            {check?.needsGpu && <li className="info"><IconInfo size={16} /><span><b>Uses the server’s graphics card</b><small>This console is drawn with one, so it needs a server that has one.</small></span></li>}
+            {check?.core && <li className="ok"><IconCheck size={16} /><span><b>{check.core.name}</b><small>The core that plays this game. License: {check.core.license || 'not known'}.</small><CorePlatforms support={c?.coreSupport?.[check.core.id]} /></span></li>}
+            {check?.reason === 'core' && !check.noBuild && <li className="no"><IconInfo size={16} /><span><b>No core installed</b><small>{user?.isAdmin ? <>Install one in <Link to="/settings/gaming">Consoles &amp; cores</Link>.</> : 'Ask whoever runs this server.'}</small></span></li>}
+            {check?.needsGpu && check.reason !== 'gpu' && <li className="info"><IconInfo size={16} /><span><b>Uses the server’s graphics card</b><small>This console is drawn with one, so it needs a server that has one.</small></span></li>}
+            {check?.software && <li className="info"><IconInfo size={16} /><span><b>Drawn by the server’s processor</b><small>This server has no graphics card games can use, so its processor draws this console’s games. They can run slower than on a server with one.</small></span></li>}
+            {check?.reason === 'gpu' && <li className="no"><IconInfo size={16} /><span><b>Needs a graphics card this server can’t give it</b><small>{check.gpuMissing ? `Why: ${check.gpuMissing}.` : 'This server has none it can use.'}</small></span></li>}
             {(check?.bios || []).filter((b) => b.required || b.found).map((b) => (
               <li key={b.file} className={b.found ? 'ok' : 'no'}>
                 {b.found ? <IconCheck size={16} /> : <IconInfo size={16} />}
-                <span><b>BIOS: <code>{b.file}</code></b><small>{b.found ? `Found. ${b.for}.` : `Not found yet. ${b.for}. Put your own copy in a folder named ${check?.biosFolder || 'BIOS'} beside these games.`}</small></span>
+                <span><b>BIOS: <code>{b.using || b.file}</code></b><small>{b.found ? `Found${b.from ? ' by its checksum' : ''}. ${b.for}.` : `Not found yet. ${b.for}. Put your own copy in a folder named ${check?.biosFolder || 'BIOS'} beside these games.`}</small></span>
               </li>
             ))}
             {c?.unavailable && <li className="no"><IconInfo size={16} /><span><b>Not playable here yet</b><small>{c.unavailable}</small></span></li>}

@@ -5,7 +5,7 @@ Use this guide to add DVD images and folders to your server and play them with t
 - [Adding DVDs](#adding-dvds)
 - [Playing a disc](#playing-a-disc)
 - [Disc settings](#disc-settings)
-- [The remote and keyboard](#the-remote-and-keyboard)
+- [The remote](#the-remote)
 - [Sound and subtitles](#sound-and-subtitles)
 - [Interactive extras and games](#interactive-extras-and-games)
 - [On a small machine](#on-a-small-machine)
@@ -22,7 +22,7 @@ Use this guide to add DVD images and folders to your server and play them with t
 2. Go to **Settings → Libraries → Add library**, and choose **DVDs, Blu-rays & CDs**. Images of films can also go in a **Movies** library, and images of a series in a **TV shows** library.
 3. Choose the folder that holds your discs, and press **Add library**.
 
-It takes `.iso`, `.img`, `.udf` and other images, listed in [Supported formats](SUPPORTED-FORMATS.md), and folders that hold `VIDEO_TS`.
+It takes `.iso`, `.img`, `.udf` and other images, listed in [Supported formats](SUPPORTED-FORMATS.md), and folders that hold `VIDEO_TS`, however its name is capitalised. A library can also be the `VIDEO_TS` folder itself.
 
 A disc is recognised by its structure, not its name. Without WittyDVD, a disc stays listed with nothing known about what's in it, and playing it offers to add the module. Adding it scans your disc libraries.
 
@@ -62,15 +62,32 @@ The **Disc settings** button on a DVD's page, for administrators, has:
 
 The defaults for all of these, and DVD region and parental limits, are under **Settings → Playback & discs**.
 
-## The remote and keyboard
+## The remote
 
-Press **Remote**, or **R**, for an on-screen DVD remote. You can also hover and click on a menu's buttons with the mouse.
+Press **Remote**, or **R**, for an on-screen remote. A **Remote** button is in the player's controls and in the mini player, at every screen size. The remote stays hidden until you ask for it. You can also hover and click on a menu's buttons with the mouse.
+
+Every DVD and Blu-ray copy gets the same remote, named after the module it comes from. What its keys can do depends on what the copy still holds:
+
+| What's playing | Remote | Keys that work |
+|---|---|---|
+| A DVD image or `VIDEO_TS` folder | WittyDVD | Every key but the colour keys, which DVDs don't have |
+| A Blu-ray image or `BDMV` folder | WittyBluray | Every key. The colour keys work while a [Java menu](BLURAY.md#bd-j-java-menus) shows |
+| A disc with no menus, such as a BDAV recording | WittyDVD or WittyBluray | Everything but **Top menu**, and **Menu** unless the film has a pop-up menu, with the line "This disc has no menus" |
+| A loose `.vob`, `.evo` or `.vro` file, or a film copied from a DVD | WittyDVD | Play, pause, stop and seeking, previous and next chapter, a chapter by its number, sound and subtitles |
+| A `.m2ts`, `.mts` or `.m2t` file, or a film copied from a Blu-ray | WittyBluray | The same as a copy of a DVD |
+| Any other video | WittyMedia | The same, without chapters by number |
+
+**Why.** A disc's menus, buttons and camera angles are in its own program, which only an image or a whole folder carries. A copy of the film alone has none of it, so on a copy the menu keys stay on the remote but greyed out, with the line "This copy has no disc menus". Everything a film itself carries works: its chapters, sound tracks and subtitles.
+
+**A copy counts as from a disc** when its file type is one only discs use, when its name or its folder's name says so (`DVD`, `DVDRip`, `BluRay`, `BDRip`, `BRRip`, `BDRemux` and the like), or when it's named the way MakeMKV names a disc's titles (`title_t00.mkv`). Those count as a DVD when the video is MPEG-2 at DVD size, and as a Blu-ray otherwise. `.evo` files come from HD DVDs, which have no remote of their own yet.
+
+**On a phone,** and on any screen too short for the floating remote, the remote opens as a sheet along the bottom, upright or on its side. Its first page has the menu keys, arrows, sound, subtitles and playback. Its second has the digits and colour keys. **Top menu** is always on the first page.
 
 | Remote | Key | What it does |
 |---|---|---|
 | **Eject** | | Leaves the player |
-| **Top menu** | T | The disc's title menu |
-| **Menu** | M | The current title set's menu, which remembers your exact position |
+| **Top menu** | T | The disc's title menu. On a Blu-ray, its top menu |
+| **Menu** | M | The current title set's menu, which remembers your exact position. On a Blu-ray during the film, its pop-up menu |
 | Arrows | Arrow keys | Move the highlight along the disc's own button links |
 | **OK** | Enter | Presses the highlighted button |
 | **Return** | | Up one menu level, or back to the film |
@@ -81,6 +98,7 @@ Press **Remote**, or **R**, for an on-screen DVD remote. You can also hover and 
 | Back, forward | | Back 10 seconds, or forward 30 seconds |
 | Play, pause, stop | Space | Play and pause |
 | 0 to 9 | 0 to 9 | Press menu button *n*, or during the film, jump to chapter *n* |
+| Red, green, yellow, blue | F1 to F4 | Blu-ray Java menus only |
 
 A picture the disc holds until you act, with nothing to press, shows **Continue**. A warning or clip with no buttons shows **Skip**.
 
@@ -118,6 +136,7 @@ When reporting a problem, attach that report, and never the disc image.
 - There's no parental PIN. The parental level and country choose which version of a scene plays, and profiles limit what people can open.
 - On FreeBSD and macOS, the module's helper program runs without a sandbox.
 - Blu-rays have their own module and guide: see [Blu-rays](BLURAY.md).
+- Later: HD DVDs, Video CDs and Super Video CDs, and raw-sector images of video discs (`.bin` files with 2,352-byte sectors). Until then, a loose `.evo` file plays as a copy, with no menus.
 
 ## For developers
 

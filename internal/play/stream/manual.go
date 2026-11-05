@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -128,6 +129,13 @@ func (m *Manager) Configure(update func(*Config)) {
 	}
 }
 
+// ErrHelper is in the error when a game couldn't start because the module's helper itself
+// failed: it went away during the call, or answered something that isn't an answer. Anything
+// the helper says went wrong (the runner stopping, a core crashing or refusing, a game file it
+// can't use) is about that game, its core or its console, and comes back as the helper's own
+// error, without this.
+var ErrHelper = errors.New("WittyPlay's helper failed")
+
 // Start starts a game. What's for this side stays here: Cleanup runs when it's over, and
 // OnCoreOptions hears what a core says it offers.
 func (m *Manager) Start(opt Options) (*Session, error) {
@@ -146,11 +154,24 @@ func (m *Manager) Start(opt Options) (*Session, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	if err := service.Call(ctx, module, "stream.Manager.Start", nil, nil, []any{opt}, []any{&s}); err != nil {
+	if service.Dial == nil {
+		return nil, service.ErrNoService
+	}
+	// A helper that can't be started has been counted against its version already, by
+	// whatever started it: that error goes back as it is.
+	c, err := service.Dial(module)
+	if err != nil {
+		return nil, err
+	}
+	if err := c.Call(ctx, "stream.Manager.Start", nil, nil, []any{opt}, []any{&s}); err != nil {
+		var ce *service.CallError
+		if !errors.As(err, &ce) && ctx.Err() == nil {
+			return nil, fmt.Errorf("%w: %w", ErrHelper, err)
+		}
 		return nil, err
 	}
 	if s == nil {
-		return nil, errors.New("the game didn't start")
+		return nil, fmt.Errorf("%w: it answered without a game", ErrHelper)
 	}
 	st := stateOf(s.Sid)
 	st.cleanup = opt.Cleanup
@@ -266,10 +287,11 @@ func writeStreamError(w http.ResponseWriter, e *StreamError) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"error": e.Text, "code": e.Code})
 }
 
-// ProbeGPU finds out whether a core can draw on this machine's graphics card.
-func ProbeGPU(runner, dir string, _ *slog.Logger) GPUProbe {
+// ProbeGPU finds out whether a core can draw on this machine's graphics card. Ending ctx ends
+// the check, and nothing is learnt.
+func ProbeGPU(ctx context.Context, runner, dir string) GPUProbe {
 	var p GPUProbe
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 	_ = service.Call(ctx, module, "stream.ProbeGPU", nil, nil, []any{runner, dir}, []any{&p})
 	return p

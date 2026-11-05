@@ -1874,6 +1874,12 @@
           },
           "type": {
             "type": "string"
+          },
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
           }
         },
         "required": [
@@ -2625,6 +2631,41 @@
           },
           "failures": {
             "type": "integer"
+          },
+          "here": {
+            "anyOf": [
+              {
+                "properties": {
+                  "api": {
+                    "type": "string"
+                  },
+                  "arch": {
+                    "type": "string"
+                  },
+                  "build": {
+                    "type": "boolean"
+                  },
+                  "draws": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "os": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "build",
+                  "draws",
+                  "os"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "id": {
             "type": "string"
@@ -3556,6 +3597,9 @@
                 "type": "null"
               }
             ]
+          },
+          "discSource": {
+            "type": "string"
           },
           "episode": {
             "anyOf": [
@@ -7859,6 +7903,9 @@
             "anyOf": [
               {
                 "properties": {
+                  "pointer": {
+                    "type": "boolean"
+                  },
                   "pollUrl": {
                     "type": "string"
                   },

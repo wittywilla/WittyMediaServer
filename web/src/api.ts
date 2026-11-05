@@ -1,6 +1,7 @@
 // Thin API client. The server sets an HttpOnly cookie on login; we also keep
 // the token in localStorage for native wrappers / cross-origin use.
 import { reportRequestFailure } from './errorReport'
+import type { CoreSupport } from './pages/games/platforms'
 
 export type User = { id: number; name: string; displayName?: string; showUsername?: boolean; isAdmin: boolean; createdAt: number; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; twoFactor?: boolean }
 // `name` is the username: unique, and what signing in uses. A profile name is what
@@ -36,6 +37,8 @@ export type Item = {
   title: string; sortTitle: string; year: number | null; overview: string; tagline: string; genres: string[]
   rating: number | null; contentRating: string; studio: string; runtimeSec: number
   poster: string; backdrop: string; container: string; videoCodec: string; audioDirect?: boolean; reader?: 'epub' | 'cbz' | 'pdf'; width: number; height: number
+  // A video copied from a DVD or a Blu-ray: it gets that disc's remote, with no menus.
+  discSource?: 'dvd' | 'bluray'
   audioLangs: string[]; subLangs: string[]; disc?: DiscInfo; provider: string; providerId: string
   sizeBytes: number; addedAt: number; updatedAt: number; progress?: Progress
   showId?: number; showTitle?: string; season?: number; episode?: number; episodeEnd?: number; aired?: string; nextId?: number
@@ -94,6 +97,12 @@ export type GameCore = { id: string; name: string; license: string; source?: str
 export type GameConsole = {
   id: string; name: string; short: string; extensions: string[]; cores: GameCore[]; bios?: { file: string; for: string; required: boolean }[]
   unavailable?: string; installed: GameCore[]; ready: boolean; count?: number; needsGpu?: boolean
+  // When it isn't ready: why (gpu means this server can't draw its games), in words for people.
+  reason?: 'unavailable' | 'core' | 'gpu'; message?: string; gpuMissing?: string
+  // Ready, with the processor drawing its games: no graphics card here. notice is the speed caveat.
+  software?: boolean; notice?: string
+  // Where each core on offer runs, how it draws there, and here: see pages/games/platforms.tsx.
+  coreSupport?: Record<string, CoreSupport>
   customCores?: GameCore[]; defaultCore?: string; shared?: string[]; padLike?: string; logoName?: string
   pad: { face: { id: number; label: string }[]; shoulder?: { id: number; label: string }[]; meta: { id: number; label: string }[]; sticks?: boolean; pointer?: boolean; art?: string }
   // Its era and years, how its games come, and what it can do (docs/GAMING-API.md, Consoles).
@@ -170,8 +179,8 @@ export type DiscLabels = { titles: Record<string, string>; chapters: Record<stri
 export type SubEvent = { start: number; end: number; x: number; y: number; w: number; h: number; forced?: boolean; url: string
   text?: string; color?: string; outline?: string; size?: number; halign?: number; valign?: number; bold?: boolean; italic?: boolean }
 export type DvdMedia = { type: 'hls' | 'still' | 'none'; url?: string; loop: boolean; durationSec: number; stillSec: number; audio: boolean }
-export type Presentation = { kind: 'menu' | 'title' | 'stop'; serial: number; reason?: string; media?: DvdMedia; menu?: DvdMenu; title?: DvdTitle; scrambled?: boolean; timerSec?: number; pause?: boolean; bdj?: { pollUrl: string; video?: number[] } }
-export type DvdAction = { type: string; button?: number; key?: string; ttn?: number; chapter?: number; stream?: number; on?: boolean; menu?: string; positionSec?: number }
+export type Presentation = { kind: 'menu' | 'title' | 'stop'; serial: number; reason?: string; media?: DvdMedia; menu?: DvdMenu; title?: DvdTitle; scrambled?: boolean; timerSec?: number; pause?: boolean; bdj?: { pollUrl: string; video?: number[]; pointer?: boolean } }
+export type DvdAction = { type: string; button?: number; key?: string; ttn?: number; chapter?: number; stream?: number; on?: boolean; menu?: string; positionSec?: number; x?: number; y?: number }
 
 const TOKEN_KEY = 'wms.token'
 const SERVER_KEY = 'wms.server'

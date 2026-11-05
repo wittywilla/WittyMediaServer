@@ -90,7 +90,7 @@ func (s *Server) gpuMissing(ctx context.Context) string {
 	if !final && !checking && (at.IsZero() || time.Since(at) > gpuAskAgain) {
 		// Finding the runner checks its signature, so it's only done when the check runs.
 		runner, _, _ := s.gameRunner(ctx)
-		p = g.gpuStatus(runner, s.Log)
+		p = s.gpuStatus(runner)
 	}
 	return gpuMissingFrom(p, runtime.GOOS)
 }

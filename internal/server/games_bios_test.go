@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"os"
@@ -69,7 +70,7 @@ func TestBIOSFoundByChecksum(t *testing.T) {
 	if len(folders) != 2 {
 		t.Fatalf("BIOS folders: %v", folders)
 	}
-	if n := g.findBIOS(table, folders); n != 2 {
+	if n := g.findBIOS(context.Background(), table, folders); n != 2 {
 		t.Fatalf("copied %d", n)
 	}
 	sys := g.systemDir()
@@ -88,14 +89,14 @@ func TestBIOSFoundByChecksum(t *testing.T) {
 	}
 
 	// Looked at again: nothing more is copied.
-	if n := g.findBIOS(table, folders); n != 0 {
+	if n := g.findBIOS(context.Background(), table, folders); n != 0 {
 		t.Errorf("copied %d again", n)
 	}
 	// The same firmware already there under another name, as WittyPlay's own collector names it,
 	// isn't copied a second time, and is the one recorded.
 	g2 := &gameService{dir: t.TempDir()}
 	write(t, filepath.Join(g2.systemDir(), "pcsx2", "bios", "SCPH-39001_BIOS_V7_USA_160.BIN"), ps2)
-	g2.findBIOS(table, folders)
+	g2.findBIOS(context.Background(), table, folders)
 	if _, err := os.Stat(filepath.Join(g2.systemDir(), "pcsx2", "bios", "ps2-bios-usa-0160a.bin")); err == nil {
 		t.Error("copied beside the same firmware under another name")
 	}
@@ -105,7 +106,7 @@ func TestBIOSFoundByChecksum(t *testing.T) {
 	// Someone's own different file under the name is left alone.
 	g3 := &gameService{dir: t.TempDir()}
 	write(t, filepath.Join(g3.systemDir(), "scph5501.bin"), []byte("theirs"))
-	g3.findBIOS(table, folders)
+	g3.findBIOS(context.Background(), table, folders)
 	if got, _ := os.ReadFile(filepath.Join(g3.systemDir(), "scph5501.bin")); string(got) != "theirs" {
 		t.Errorf("replaced someone's own file: %q", got)
 	}

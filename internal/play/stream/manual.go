@@ -261,10 +261,11 @@ func (s *Session) ServeWS(w http.ResponseWriter, r *http.Request, mode string) {
 	}
 }
 
-// ProbeGPU finds out whether a core can draw on this machine's graphics card.
-func ProbeGPU(runner, dir string, _ *slog.Logger) GPUProbe {
+// ProbeGPU finds out whether a core can draw on this machine's graphics card. Ending ctx ends
+// the check, and nothing is learnt.
+func ProbeGPU(ctx context.Context, runner, dir string) GPUProbe {
 	var p GPUProbe
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 	_ = service.Call(ctx, module, "stream.ProbeGPU", nil, nil, []any{runner, dir}, []any{&p})
 	return p

@@ -41,7 +41,7 @@ Places come from EXIF GPS tags, and from the location tag of clips. Phones and s
 - **Albums:** yours, and those others have shared. An album belongs to whoever made it. Tick **Share with other profiles who can open this library** and every such profile can see it, each within their own limits. **Select**, in the timeline, adds many pictures at once.
 - **Favorites:** the heart on a picture. Favourites are per profile.
 - **Folders:** your folders, as they are on disk.
-- **Map:** pictures with a place, grouped as you zoom. Choosing a group zooms in, or lists its pictures.
+- **Map:** pictures with a place, grouped as you zoom so groups never cover each other. Choosing a group zooms in, or lists its pictures. Beside the map (below it on a phone) is the list of places in view, biggest first, which is also how a screen reader reads the map. See [The map](#the-map).
 - **People & places:** marked **Planned**. It's waiting on a local AI that doesn't exist yet, so nothing looks at your pictures today.
 
 ## The picture viewer
@@ -64,6 +64,19 @@ Press a picture to open it. **Details** shows its date, file, camera, exposure a
 
 On a touch screen, swipe to step.
 
+## The map
+
+Drag the map, or use the arrow buttons; the world goes round sideways, so the Pacific is one piece. Zoom with the wheel, a pinch, a double-click or a double tap, or **+** and **−**. The house button shows every picture again.
+
+| Key | What it does |
+|---|---|
+| Tab, or the arrows | From group to group, left to right and top to bottom, then the list of places |
+| Enter on a group | Zooms in on it, or lists its pictures when it's all in one spot |
+| Enter on the map | Moves the map with the arrows, until Enter, Esc or Back |
+| + − | Zoom in or out (Page Up and Page Down while moving the map) |
+
+**With a TV remote:** the arrows go from group to group and on to the list beside the map. To move the map itself, highlight the map and press OK; press OK or Back when done.
+
 ## The map and the internet
 
 The map needs nothing online. A small outline of the world's land comes with the app, from Natural Earth, which is public domain, and the groups of pictures come from your server.
@@ -71,9 +84,9 @@ The map needs nothing online. A small outline of the world's land comes with the
 ![Photos placed on a map of the world](images/photos-map.webp)
 *The map, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](images/CREDITS.md).*
 
-If you want streets and place names, an admin can give an online map's address in **Settings → Sharing & photos**, under **Photo map**. It's off by default.
+If you want streets and place names, an admin can turn on **Use an online map** in **Settings → Sharing & photos**, under **Photo map**, and give its address and the credit its provider asks to be shown. It's off by default.
 
-When it's on, **each viewer's device asks that provider for the parts of the map being looked at**, so the provider learns roughly what area is being viewed and from where. The pictures themselves stay on your server. Use a provider whose terms allow it.
+When it's on, **each viewer's device asks that provider for the parts of the map being looked at**, so the provider learns roughly what area is being viewed and from where. The map says so underneath, and shows the provider's credit. The pictures and their places stay on your server. Anyone can switch their own device back to the outline with the globe button on the map, and if the provider doesn't answer, the outline comes back by itself. Use a provider whose terms allow it.
 
 ## Uploads
 
@@ -126,7 +139,7 @@ Every route is in [Client API](CLIENT-API.md#every-route), and everything is on 
 | `GET /api/photos/list?library=&ym=&album=&folder=&favorites=&kind=&search=&bbox=&limit=&cursor=` | One page, newest first, with `nextCursor` |
 | `GET /api/photos/{id}` | One picture's details, including EXIF and place |
 | `GET /api/photos/folders?library=` | Folders |
-| `GET /api/photos/map?library=&zoom=` | Groups of pictures for a map zoom |
+| `GET /api/photos/map?library=&zoom=&bbox=&fit=1` | Groups of pictures for a map zoom (Web Mercator, 256 pixels across the world at zoom 0), in the box `south,west,north,east` (west greater than east crosses the date line). Each group has its place, count, newest picture, box and dates. `fit=1` adds `bounds`, the box around every placed picture. Takes the list's filters too |
 | `GET /api/items/{id}/image?w=` | A JPEG at 160, 320, 480, 640, 1280, 1920 or 2560 pixels. Without `w`, the original if it's a web format, otherwise a large JPEG |
 | `GET /api/items/{id}/original` | The file, to download |
 | `GET /api/items/{id}/motion` | A live photo's clip |

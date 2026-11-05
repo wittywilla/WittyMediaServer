@@ -542,7 +542,8 @@ const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, 
   return (
     <div className={'ctv-row' + (focusAt != null ? ' current' : '')} role="row" aria-rowindex={r + 2} style={{ top, height: rowH, ...accent }}>
       {ch ? (
-        <div className="ctv-ch" role="rowheader" aria-colindex={1} title={ch.name}>
+        // Named in words: the number and the logo or name beside it would run together as "101MOVIE CHANNEL".
+        <div className="ctv-ch" role="rowheader" aria-colindex={1} title={ch.name} aria-label={[`${ch.number} ${ch.name}`, ch.favourite && 'favourite', ch.encrypted && 'encrypted'].filter(Boolean).join(', ')}>
           <span className="ctv-num">{ch.number}</span>
           <ChannelMark ch={ch} look={look} on={on} />
           {ch.favourite && <span className="ctv-fav" role="img" aria-label="Favourite"><IconStar size={13} /></span>}

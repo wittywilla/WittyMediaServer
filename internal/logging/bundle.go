@@ -30,6 +30,15 @@ type BundleOptions struct {
 	Known    Known    // what the server can name exactly
 	Roots    []string // library folders, added to Known.Folders
 	Extra    []BundleFile
+	// Earlier are logs and crash reports set aside by a reset, newest first. Those from
+	// within Days go in beside today's, under their copy's name.
+	Earlier []Earlier
+}
+
+// Earlier is one copy a reset made: its name ("before-reset-20261102-165543"), the log
+// folder inside it and its crash folder, either of which may be missing.
+type Earlier struct {
+	Name, Logs, Crashes string
 }
 
 // BundleFile is something more to include.
@@ -98,41 +107,142 @@ func (o *BundleOptions) sanitizer() *Sanitizer {
 
 // learn goes through what's going in for names, before any of it is written, so a name is
 // hidden from the first file even if only the last one says what it is.
-func learn(s *Sanitizer, dir string, logs []FileInfo, g *CrashGuard, limit int) {
-	for _, f := range logs {
-		if r, err := os.Open(filepath.Join(dir, f.Name)); err == nil {
-			s.learnLines(r, limit)
-			r.Close()
-		}
-	}
-	for _, c := range g.List() {
-		if b, err := g.Read(c.ID); err == nil {
-			s.learnLines(bytes.NewReader(b), limit)
-		}
-		if p, err := g.PartPath(c.ID, PartFlight); err == nil {
-			if r, err := os.Open(p); err == nil {
+func learn(s *Sanitizer, dir string, logs []FileInfo, g *CrashGuard, earlier []earlierPart, limit int) {
+	learnFrom := func(dir string, logs []FileInfo, g *CrashGuard) {
+		for _, f := range logs {
+			if r, err := os.Open(filepath.Join(dir, f.Name)); err == nil {
 				s.learnLines(r, limit)
 				r.Close()
 			}
 		}
+		for _, c := range g.List() {
+			if b, err := g.Read(c.ID); err == nil {
+				s.learnLines(bytes.NewReader(b), limit)
+			}
+			if p, err := g.PartPath(c.ID, PartFlight); err == nil {
+				if r, err := os.Open(p); err == nil {
+					s.learnLines(r, limit)
+					r.Close()
+				}
+			}
+		}
+	}
+	learnFrom(dir, logs, g)
+	for _, e := range earlier {
+		learnFrom(e.Logs, e.logs, e.crashes)
 	}
 	s.settle()
 }
 
-// bundleLogs are the files to take, newest first, within the limits.
-func bundleLogs(dir string, o *BundleOptions) []FileInfo {
+// takeLogs are the files to take from a folder, newest first, within the limits, with
+// used bytes of log text already taken.
+func takeLogs(dir string, o *BundleOptions, used int64) ([]FileInfo, int64) {
 	cutoff := time.Now().AddDate(0, 0, -o.Days)
 	var out []FileInfo
-	var total int64
 	for _, f := range listLogFiles(dir) {
-		if f.Modified.Before(cutoff) || total+f.Size > o.MaxLogs {
+		if f.Modified.Before(cutoff) || used+f.Size > o.MaxLogs {
 			continue
 		}
-		total += f.Size
+		used += f.Size
 		out = append(out, f)
+	}
+	return out, used
+}
+
+// earlierPart is what goes in from one copy a reset made, and what was left out.
+type earlierPart struct {
+	Earlier
+	logs    []FileInfo
+	crashes *CrashGuard
+	reports []Crash
+	skipped int // log files left out, for being too old or too many
+}
+
+// bundleEarlier finds what goes in from before each reset, within what today's logs left
+// of the limit.
+func bundleEarlier(o *BundleOptions, used int64) []earlierPart {
+	var out []earlierPart
+	for _, e := range o.Earlier {
+		if !copyNameOK(e.Name) {
+			continue
+		}
+		p := earlierPart{Earlier: e}
+		if e.Logs != "" {
+			all := listLogFiles(e.Logs)
+			p.logs, used = takeLogs(e.Logs, o, used)
+			p.skipped = len(all) - len(p.logs)
+		}
+		if e.Crashes != "" {
+			p.crashes = OpenCrashReports(e.Crashes)
+			p.reports = p.crashes.List()
+		}
+		if len(p.logs) > 0 || len(p.reports) > 0 || p.skipped > 0 {
+			out = append(out, p)
+		}
 	}
 	return out
 }
+
+// copyNameOK accepts only the names a reset gives its copies: they become folders in the zip.
+func copyNameOK(name string) bool {
+	if !strings.HasPrefix(name, "before-reset-") || len(name) > 64 {
+		return false
+	}
+	for i := 0; i < len(name); i++ {
+		if c := name[i]; !(c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c == '-') {
+			return false
+		}
+	}
+	return true
+}
+
+// contents says, at the end of the readme, what this bundle covers: the person reading it
+// shouldn't have to wonder whether something is missing or just didn't happen.
+func contents(logs []FileInfo, crashes []Crash, earlier []earlierPart, days int) string {
+	var b strings.Builder
+	b.WriteString("What this one holds\n\n")
+	from, to := time.Time{}, time.Time{}
+	note := func(files []FileInfo) {
+		for _, f := range files {
+			if to.IsZero() || f.Modified.After(to) {
+				to = f.Modified
+			}
+			if from.IsZero() || f.Modified.Before(from) {
+				from = f.Modified
+			}
+		}
+	}
+	note(logs)
+	for _, e := range earlier {
+		note(e.logs)
+	}
+	if to.IsZero() {
+		fmt.Fprintf(&b, "  No log files from the last %d days.\n", days)
+	} else {
+		// A file's time is its last line: the oldest file started a little earlier.
+		fmt.Fprintf(&b, "  Log files last written between %s and %s, from the last %d days.\n", from.Format("2 Jan 2006 15:04"), to.Format("2 Jan 2006 15:04"), days)
+	}
+	n := len(crashes)
+	for _, e := range earlier {
+		n += len(e.reports)
+	}
+	if n == 0 {
+		b.WriteString("  No crash reports: the server hasn't crashed or stopped unexpectedly in the last 90 days.\n")
+	} else {
+		fmt.Fprintf(&b, "  %d crash reports.\n", n)
+	}
+	for _, e := range earlier {
+		fmt.Fprintf(&b, "  From before a reset, in %s: %d log files and %d crash reports", e.Name, len(e.logs), len(e.reports))
+		if e.skipped > 0 {
+			fmt.Fprintf(&b, ". %d older log files weren't included; they're still in that folder inside the data folder", e.skipped)
+		}
+		b.WriteString(".\n")
+	}
+	b.WriteString("\n")
+	return b.String()
+}
+
+const noCrashes = "No crash reports. The server hasn't crashed or stopped unexpectedly in the last 90 days,\nor the reports were deleted.\n"
 
 const bundleReadme = `WittyMediaServer support bundle
 
@@ -143,14 +253,16 @@ sees it.
   summary.json    the server's version, modules, system, disk space and settings
                   that matter. No passwords, tokens or API keys.
   logs/           recent log files. Passwords, tokens, API keys and setup codes
-                  are removed from them.
+                  are removed from them. Those from before a reset are in a
+                  folder named after the copy the reset made.
   crashes/        reports from when the server crashed, stopped unexpectedly or
-                  stopped answering, and the ones saved from Settings. Beside
-                  some: .flight.log, the last minutes of everything at the most
-                  detailed level; .goroutines.txt, what every part of the server
-                  was waiting for; .trace, an execution trace for "go tool
-                  trace", which holds only places in the program's code and
-                  timings, nothing of yours.
+                  stopped answering, and the ones saved from Settings, or
+                  none.txt when there are none. Beside some: .flight.log, the
+                  last minutes of everything at the most detailed level;
+                  .goroutines.txt, what every part of the server was waiting
+                  for; .trace, an execution trace for "go tool trace", which
+                  holds only places in the program's code and timings, nothing
+                  of yours.
   diagnostics/    reports from WittyDiagnoser, if you ran it.
 
 `
@@ -195,11 +307,13 @@ func PreviewDir(dir string, g *CrashGuard, o BundleOptions) BundlePreview {
 		p.Parts = append(p.Parts, BundlePart{name, desc, size})
 		p.Total += size
 	}
-	add("README.txt", "What this is", int64(len(readmeFor(o.Sanitize))))
 	scrub := o.sanitizer()
-	logs := bundleLogs(dir, &o)
+	logs, used := takeLogs(dir, &o, 0)
+	earlier := bundleEarlier(&o, used)
+	crashes := g.List()
+	add("README.txt", "What this is, and what it holds", int64(len(readmeFor(o.Sanitize))+len(contents(logs, crashes, earlier, o.Days))))
 	if scrub != nil {
-		learn(scrub, dir, logs, g, previewScanLines)
+		learn(scrub, dir, logs, g, earlier, previewScanLines)
 	}
 	for _, e := range o.Extra {
 		add(e.Name, e.Description, int64(len(e.Data)))
@@ -210,19 +324,33 @@ func PreviewDir(dir string, g *CrashGuard, o BundleOptions) BundlePreview {
 	for _, f := range logs {
 		add("logs/"+f.Name, "Log file from "+f.Modified.Format("2 Jan 2006"), f.Size)
 	}
-	for _, c := range g.List() {
+	crashPart := func(prefix string, c Crash) {
 		summary := c.Summary
 		if scrub != nil {
 			summary = scrub.Text(summary)
 		}
-		add("crashes/"+c.ID+".txt", "Crash report: "+summary, c.Size)
+		add(prefix+c.ID+".txt", "Crash report: "+summary, c.Size)
 		for _, part := range c.Parts {
 			if path, err := g.PartPath(c.ID, part); err == nil {
 				if st, err := os.Stat(path); err == nil {
-					add("crashes/"+c.ID+"."+part, partWords[part], st.Size())
+					add(prefix+c.ID+"."+part, partWords[part], st.Size())
 				}
 			}
 		}
+	}
+	for _, c := range crashes {
+		crashPart("crashes/", c)
+	}
+	for _, e := range earlier {
+		for _, f := range e.logs {
+			add("logs/"+e.Name+"/"+f.Name, "Log file from "+f.Modified.Format("2 Jan 2006")+", before a reset", f.Size)
+		}
+		for _, c := range e.reports {
+			crashPart("crashes/"+e.Name+"/", c)
+		}
+	}
+	if len(crashes) == 0 && !earlierCrashes(earlier) {
+		add("crashes/none.txt", "There are no crash reports", int64(len(noCrashes)))
 	}
 	for _, f := range logs {
 		if p.Scanned >= previewScanLines {
@@ -266,13 +394,15 @@ func WriteBundleDir(w io.Writer, dir string, g *CrashGuard, o BundleOptions) err
 		_, err = f.Write(data)
 		return err
 	}
-	if err := write("README.txt", []byte(readmeFor(o.Sanitize))); err != nil {
+	scrub := o.sanitizer()
+	logs, used := takeLogs(dir, &o, 0)
+	earlier := bundleEarlier(&o, used)
+	crashes := g.List()
+	if err := write("README.txt", []byte(readmeFor(o.Sanitize)+contents(logs, crashes, earlier, o.Days))); err != nil {
 		return err
 	}
-	scrub := o.sanitizer()
-	logs := bundleLogs(dir, &o)
 	if scrub != nil {
-		learn(scrub, dir, logs, g, 0)
+		learn(scrub, dir, logs, g, earlier, 0)
 	}
 	for _, e := range o.Extra {
 		data := e.Data
@@ -283,37 +413,71 @@ func WriteBundleDir(w io.Writer, dir string, g *CrashGuard, o BundleOptions) err
 			return err
 		}
 	}
-	for _, c := range g.List() {
-		b, err := g.Read(c.ID)
-		if err != nil {
-			continue
+	writeCrashes := func(prefix string, g *CrashGuard, list []Crash) error {
+		for _, c := range list {
+			b, err := g.Read(c.ID)
+			if err != nil {
+				continue
+			}
+			text := Redact(string(b))
+			if scrub != nil {
+				text = scrubCrash(scrub, text)
+			}
+			if err := write(prefix+c.ID+".txt", []byte(text)); err != nil {
+				return err
+			}
+			for _, part := range c.Parts {
+				if err := writePart(zw, prefix, g, c.ID, part, scrub); err != nil {
+					return err
+				}
+			}
 		}
-		text := Redact(string(b))
-		if scrub != nil {
-			text = scrubCrash(scrub, text)
-		}
-		if err := write("crashes/"+c.ID+".txt", []byte(text)); err != nil {
-			return err
-		}
-		for _, part := range c.Parts {
-			if err := writePart(zw, g, c.ID, part, scrub); err != nil {
+		return nil
+	}
+	writeLogs := func(prefix, dir string, logs []FileInfo) error {
+		for _, f := range logs {
+			out, err := zw.Create(prefix + f.Name)
+			if err != nil {
+				return err
+			}
+			if err := eachBundleLine(filepath.Join(dir, f.Name), scrub, 0, func(line, _ []byte) error {
+				_, err := out.Write(line)
+				return err
+			}); err != nil {
 				return err
 			}
 		}
+		return nil
 	}
-	for _, f := range logs {
-		out, err := zw.Create("logs/" + f.Name)
-		if err != nil {
+	if err := writeCrashes("crashes/", g, crashes); err != nil {
+		return err
+	}
+	if len(crashes) == 0 && !earlierCrashes(earlier) {
+		if err := write("crashes/none.txt", []byte(noCrashes)); err != nil {
 			return err
 		}
-		if err := eachBundleLine(filepath.Join(dir, f.Name), scrub, 0, func(line, _ []byte) error {
-			_, err := out.Write(line)
+	}
+	if err := writeLogs("logs/", dir, logs); err != nil {
+		return err
+	}
+	for _, e := range earlier {
+		if err := writeCrashes("crashes/"+e.Name+"/", e.crashes, e.reports); err != nil {
 			return err
-		}); err != nil {
+		}
+		if err := writeLogs("logs/"+e.Name+"/", e.Logs, e.logs); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func earlierCrashes(earlier []earlierPart) bool {
+	for _, e := range earlier {
+		if len(e.reports) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 var partWords = map[string]string{
@@ -324,12 +488,12 @@ var partWords = map[string]string{
 
 // writePart adds the evidence beside a report: the flight recorder as log lines, the
 // stacks as a crash's text, the trace as it is.
-func writePart(zw *zip.Writer, g *CrashGuard, id, part string, scrub *Sanitizer) error {
+func writePart(zw *zip.Writer, prefix string, g *CrashGuard, id, part string, scrub *Sanitizer) error {
 	path, err := g.PartPath(id, part)
 	if err != nil {
 		return nil
 	}
-	out, err := zw.Create("crashes/" + id + "." + part)
+	out, err := zw.Create(prefix + id + "." + part)
 	if err != nil {
 		return err
 	}

@@ -17,6 +17,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"github.com/wittywilla/wittymediaserver/internal/metafolder"
+	"github.com/wittywilla/wittymediaserver/internal/music"
 )
 
 // WittyShorts and WittyChannels: videos by creators, from files the owner
@@ -451,6 +452,9 @@ func (s *Scanner) indexCreatorVideo(ctx context.Context, lib *Library, c candida
 	if err := s.Store.saveVideoMeta(ctx, it, &vm); err != nil {
 		return err
 	}
+	if err := s.saveRecordingIDs(ctx, lib, it); err != nil {
+		return err
+	}
 	if side != nil && len(side.Comments) > 0 {
 		return s.Store.importComments(ctx, it.ID, side.Comments)
 	}
@@ -488,6 +492,9 @@ func musicVideoNames(it *Item, cr *creatorRow, vm *videoMeta, base string, side 
 		if len(n.Tags) > 0 {
 			vm.Tags = cleanTags(n.Tags)
 		}
+		if isrc, rec := music.CleanISRC(n.ISRC), music.CleanMBID(n.Recording+n.Track); isrc != "" || rec != "" {
+			it.recIDs = &[2]string{isrc, rec}
+		}
 		if n.Year > 0 {
 			y := n.Year
 			it.Year = &y
@@ -506,6 +513,10 @@ type musicVideoNFO struct {
 	Year   int      `xml:"year"`
 	Genres []string `xml:"genre"`
 	Tags   []string `xml:"tag"`
+	// Which recording it is, for tying it to its song.
+	ISRC      string `xml:"isrc"`
+	Recording string `xml:"musicbrainzrecordingid"`
+	Track     string `xml:"musicbrainztrackid"`
 }
 
 // readMusicVideoNFO reads the common sidecar for music videos.
@@ -878,9 +889,11 @@ type VideoQuery struct {
 	Liked      bool
 	History    bool
 	IDs        []int64
-	Sort       string // latest | oldest | popular | title
+	Sort       string // latest | oldest | popular | title | artist
 	Limit      int
 	Offset     int
+	// LibraryType: every library of this kind, as the music library's Music videos does.
+	LibraryType string
 }
 
 const videoCardCols = `i.id, i.library_id, i.title, IFNULL(i.runtime_sec, 0), IFNULL(i.width, 0), IFNULL(i.height, 0), v.vertical, IFNULL(c.id, 0), IFNULL(c.name, ''), IFNULL(c.avatar, '') <> '',
@@ -915,6 +928,10 @@ func (s *Store) Videos(ctx context.Context, q VideoQuery) ([]VideoCard, bool, er
 	if q.LibraryID != 0 {
 		w = append(w, "v.library_id = ?")
 		args = append(args, q.LibraryID)
+	}
+	if q.LibraryType != "" {
+		w = append(w, "v.library_id IN (SELECT id FROM libraries WHERE type = ?)")
+		args = append(args, q.LibraryType)
 	}
 	if q.CreatorID != 0 {
 		w = append(w, "v.creator_id = ?")
@@ -968,6 +985,8 @@ func (s *Store) Videos(ctx context.Context, q VideoQuery) ([]VideoCard, bool, er
 		order = "(v.orig_views + (SELECT IFNULL(SUM(st.plays), 0) FROM item_stats st WHERE st.item_id = i.id)) DESC, i.id DESC"
 	case "title":
 		order = "i.sort_title COLLATE NOCASE, i.id"
+	case "artist":
+		order = "IFNULL(c.name, '') COLLATE NOCASE, i.sort_title COLLATE NOCASE, i.id"
 	}
 	if q.History {
 		from += ` JOIN item_stats h ON h.item_id = i.id AND h.user_id = ? `

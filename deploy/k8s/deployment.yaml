@@ -23,7 +23,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: wms
-          image: ghcr.io/wittywilla/wittymediaserver:latest
+          image: ghcr.io/wittywilla/wittymediaserver:alpha # :latest once there is a full release; docs/DOCKER.md lists the tags
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -57,7 +57,11 @@ spec:
             capabilities: { drop: [ALL] }
           # For Intel/AMD VAAPI add:
           # resources.limits: { gpu.intel.com/i915: 1 }
+          # and, if the device plugin doesn't open the render node to everyone, the render
+          # group's number (ls -ln /dev/dri on the node) under spec.securityContext:
+          # supplementalGroups: [105]
           # For NVIDIA: resources.limits: { nvidia.com/gpu: 1 }
+          # Check with: kubectl exec -n wittymedia deploy/wms -- wittymediaserver hardware
       volumes:
         - name: config
           persistentVolumeClaim: { claimName: wms-config }

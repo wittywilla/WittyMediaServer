@@ -122,7 +122,8 @@ export default function Preview({ channel, label, look, max, start }: { channel:
         {state === 'playing' && info?.now?.kind === 'slate' && <Slate name={info.name} next={info.next} />}
         {state !== 'playing' && (
           <div className="ctv-preview-msg" aria-live="polite">
-            {state === 'failed' ? <small>{msg.length > 90 ? 'Not available' : msg || 'Not available'}</small> : state === 'tuning' ? <small>{info ? 'Tuning…' : label}</small> : <small>{hidden ? 'Paused while this page is in the background' : 'No preview for this channel'}</small>}
+            {/* Only a failure is said aloud: moving through the guide already says each channel, and "Tuning…" on every move is noise. */}
+            {state === 'failed' ? <small>{msg.length > 90 ? 'Not available' : msg || 'Not available'}</small> : state === 'tuning' ? <small aria-hidden="true">{info ? 'Tuning…' : label}</small> : <small aria-hidden="true">{hidden ? 'Paused while this page is in the background' : 'No preview for this channel'}</small>}
           </div>
         )}
         <span className="ctv-preview-handle" role="slider" tabIndex={0} aria-label="Preview size" aria-orientation="horizontal"

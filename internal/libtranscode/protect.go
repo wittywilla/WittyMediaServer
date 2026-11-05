@@ -48,7 +48,7 @@ func Detect(path string, p *ffmpeg.Probe) bool {
 	case isMP4Head(head):
 		return mp4Protected(f, st.Size())
 	case bytes.HasPrefix(head, []byte{0x1A, 0x45, 0xDF, 0xA3}):
-		return matroskaProtected(head)
+		return matroskaProtected(f, st.Size(), head)
 	case bytes.HasPrefix(head, asfHeaderGUID):
 		return asfProtected(head)
 	case isTransportStream(head, 188) || isTransportStream(head, 192):
@@ -183,6 +183,10 @@ const (
 	mkvEncoding      = 0x6240
 	mkvEncodingType  = 0x5033
 	mkvEncryptionElt = 0x5035
+	mkvSeekHead      = 0x114D9B74
+	mkvSeek          = 0x4DBB
+	mkvSeekID        = 0x53AB
+	mkvSeekPos       = 0x53AC
 )
 
 // matroskaProtected reads the track list for a ContentEncryption element, or a
@@ -190,7 +194,11 @@ const (
 // the segment's own Tracks element, and the content encodings inside it. Searching the bytes
 // found the seek index's mention of Tracks first, and then a file's random IDs and picture
 // data now and then held the marks by chance.
-func matroskaProtected(head []byte) bool {
+//
+// The track list is usually in the file's first few kilobytes. When it isn't (behind the
+// pictures, or longer than what was read), the segment's seek index says where it is, and it
+// is read from there: a file mustn't escape the check by putting its track list late.
+func matroskaProtected(f io.ReaderAt, size int64, head []byte) bool {
 	rest := head
 	for len(rest) > 0 {
 		id, _, body, next, ok := ebmlElement(rest)
@@ -201,28 +209,100 @@ func matroskaProtected(head []byte) bool {
 			rest = next // the EBML header, or anything before the segment
 			continue
 		}
-		return segmentProtected(body)
+		protected, done, at := segmentProtected(body)
+		if done || at < 0 {
+			return protected
+		}
+		// body shares head's memory: what's left of its capacity says where it starts.
+		return tracksAtProtected(f, size, int64(cap(head)-cap(body))+at)
 	}
 	return false
 }
 
 // segmentProtected finds the segment's Tracks among its children. A cluster means the
-// picture has started, and a child of unknown size can't be stepped over.
-func segmentProtected(seg []byte) bool {
+// picture has started, and a child of unknown size can't be stepped over. done says the
+// whole track list was read; otherwise at is where in the segment to read it from (from the
+// seek index, or a list cut short by the end of what was read), or -1 for nowhere.
+func segmentProtected(seg []byte) (protected, done bool, at int64) {
+	at = -1
 	rest := seg
 	for len(rest) > 0 {
 		id, size, body, next, ok := ebmlElement(rest)
 		switch {
-		case !ok || id == mkvCluster:
-			return false
-		case id == mkvTracks:
-			return encodingsProtected(body, false)
-		case size < 0:
-			return false
+		case ok && id == mkvTracks && size >= 0 && size > int64(len(body)):
+			return false, false, int64(cap(seg) - cap(rest))
+		case ok && id == mkvTracks:
+			return encodingsProtected(body, false), true, -1
+		case ok && id == mkvSeekHead:
+			if pos := seekPosition(body, mkvTracks); pos >= 0 {
+				at = pos
+			}
+		}
+		if !ok || id == mkvCluster || size < 0 {
+			return false, false, at
 		}
 		rest = next
 	}
-	return false
+	return false, false, at
+}
+
+// tracksAtProtected reads a track list where the file says it is, and looks in it.
+func tracksAtProtected(f io.ReaderAt, size, off int64) bool {
+	if off <= 0 || off >= size {
+		return false
+	}
+	buf := make([]byte, min(size-off, protectMoovMax))
+	n, err := f.ReadAt(buf, off)
+	if err != nil && err != io.EOF {
+		return false
+	}
+	id, _, body, _, ok := ebmlElement(buf[:n])
+	return ok && id == mkvTracks && encodingsProtected(body, false)
+}
+
+// seekPosition finds where a seek index says an element is, from the segment's start, or -1.
+func seekPosition(index []byte, want uint32) int64 {
+	rest := index
+	for len(rest) > 0 {
+		id, size, body, next, ok := ebmlElement(rest)
+		if !ok {
+			return -1
+		}
+		if id == mkvSeek {
+			var target uint32
+			pos := int64(-1)
+			inner := body
+			for len(inner) > 0 {
+				id, size, b, after, ok := ebmlElement(inner)
+				if !ok {
+					break
+				}
+				switch {
+				case id == mkvSeekID && len(b) <= 4:
+					for _, c := range b {
+						target = target<<8 | uint32(c)
+					}
+				case id == mkvSeekPos && len(b) <= 8:
+					pos = 0
+					for _, c := range b {
+						pos = pos<<8 | int64(c)
+					}
+				}
+				if size < 0 {
+					break
+				}
+				inner = after
+			}
+			if target == want && pos >= 0 {
+				return pos
+			}
+		}
+		if size < 0 {
+			return -1
+		}
+		rest = next
+	}
+	return -1
 }
 
 // encodingsProtected walks a track list. inside says it's within ContentEncodings, where

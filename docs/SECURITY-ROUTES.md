@@ -44,7 +44,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/themes/{id}/download` | Public | Theme id resolved by the theme manager |
 | `GET /api/themes/{id}/{file...}` | Public | Theme id and file name checked by the theme manager. Inert content policy |
 | `GET /api/themes/{id}/tokens.json` | Public | Theme id resolved by the theme manager |
-| `GET /api/health` | Public | Nothing: answers `ok`, and this run's random `instance` id, so that a second start on the same data folder knows the server answering is the one using it. The id is made fresh at every start and says nothing about the server |
+| `GET /api/health` | Public | Nothing: answers `ok`, and this run's random `instance` id, so that a second start on the same data folder knows the server answering is the one using it. The id is made fresh at every start and says nothing about the server. On the server's own computer it also names a newer version, for the tray menu |
 | `GET /api/capabilities` | Public | Describes the server to apps. Version left out for signed-out callers from the internet |
 | `POST /api/identity` | Public | Nonce format. Answers with a signature over it |
 | `POST /api/pair/start` | Public | Server is set up. Limits on open codes per address and for the server |
@@ -181,12 +181,19 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/music/extras/{id}/file` | Signed-in | limits. Name is one the listing gave. Opened inside a library, plain files only. Text up to 512 KB, as JSON. A PDF is sent as a PDF for the browser's own viewer, without the script-free policy, within the limit for viewers away from home |
 | `GET /api/music/artist` | Signed-in | limits, in the query. Name of up to 300 characters. Online biography only when the owner turned it on, its credit a Wikipedia address |
 | `GET /api/music/artist-photo` | Signed-in | limits: an artist with a song the account may see. Name of up to 300 characters. Opened inside a library. Pictures only |
-| `GET /api/music/lyrics/{id}` | Signed-in | limits. An audio item. own timing. Asks online only when the owner turned it on |
-| `PUT /api/music/lyrics/{id}/offset` | Signed-in | limits. own. Up to two minutes either way |
-| `POST /api/music/lyrics/{id}/search` | Admin | limits. An audio item. Online lyrics turned on. Query length |
-| `PUT /api/music/lyrics/{id}` | Admin | limits. An audio item. At most 256 KB, or a search result from a source that is turned on. Nothing is written beside the music |
-| `DELETE /api/music/lyrics/{id}` | Admin | limits. An audio item |
+| `GET /api/music/lyrics/{id}` | Signed-in | limits. An audio item, or a music video, which shares its song's when the account may see the song. own timing. Asks online only when the owner turned it on |
+| `PUT /api/music/lyrics/{id}/offset` | Signed-in | limits. An audio item or a music video. own. Up to two minutes either way of where it starts |
+| `POST /api/music/lyrics/{id}/search` | Admin | limits. An audio item, or a music video, which shares its song's when the account may see the song. Online lyrics turned on. Query length |
+| `PUT /api/music/lyrics/{id}` | Admin | limits. An audio item, or a music video, which shares its song's when the account may see the song. At most 256 KB, or a search result from a source that is turned on. Nothing is written beside the music |
+| `DELETE /api/music/lyrics/{id}` | Admin | limits. An audio item, or a music video, which shares its song's when the account may see the song |
 | `DELETE /api/music/lyrics-cache` | Admin | Nothing further |
+| `GET /api/music/links/{id}` | Signed-in | limits. A song or a music video. Only links whose two ends the account may see. Suggestions for admins only |
+| `GET /api/music/videos` | Signed-in | limits. Music video libraries only. A tied song shown only when the account may see it. Query length |
+| `GET /api/music/links/{id}/candidates` | Admin | limits. A song or a music video. Query length. At most 50 |
+| `GET /api/music/links` | Admin | limits. At most 500 |
+| `PUT /api/music/links` | Admin | limits. Both ends seen by the admin: a song of a music library and a video of a music video library. Offset up to ten minutes |
+| `DELETE /api/music/links` | Admin | limits. Both ends seen by the admin: a song of a music library and a video of a music video library |
+| `POST /api/music/links/match` | Admin | One round at a time |
 | `GET /api/podcasts` | Signed-in | Library within the account's allowed libraries. Feed addresses for admins only |
 | `GET /api/podcasts/search` | Admin | Query length |
 | `POST /api/podcasts` | Admin | A podcasts library. Feed address checked by the scanner |
@@ -260,6 +267,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/update` | Admin | Build can update itself |
 | `POST /api/update/check` | Admin | Build can update itself. Answers younger than a minute are reused |
 | `POST /api/update/apply` | Admin | Signed release, checked by the updater |
+| `POST /api/update/installer` | Admin | Signed release; the installer is checked against its signed checksum before it is kept |
+| `GET /api/update/installer` | Admin | Only an installer that was downloaded and checked |
 | `GET /api/modulestore` | Admin | Nothing further |
 | `POST /api/modulestore/check` | Admin | Answers younger than a minute are reused for this project's catalogue |
 | `GET /api/modulestore/item/{store}/{id}` | Admin | Known store and module |

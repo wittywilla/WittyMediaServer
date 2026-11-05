@@ -185,6 +185,7 @@ func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, cov
 		it.Track = num(tag(tags, "track", "tracknumber"))
 		it.DiscNo = num(tag(tags, "disc", "discnumber"))
 		it.Overview = tag(tags, "comment", "description", "synopsis")
+		it.recIDs = recordingIDs(tags)
 		if g := tag(tags, "genre"); g != "" {
 			it.Genres = []string{g}
 		}
@@ -244,7 +245,10 @@ func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, cov
 		covers[key] = cover
 	}
 	it.Poster = cover
-	return s.Store.upsertItem(ctx, it)
+	if err := s.Store.upsertItem(ctx, it); err != nil {
+		return err
+	}
+	return s.saveRecordingIDs(ctx, lib, it)
 }
 
 var errNoProbe = errors.New("not read by FFmpeg")

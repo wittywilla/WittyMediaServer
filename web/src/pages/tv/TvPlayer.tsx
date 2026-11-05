@@ -13,6 +13,7 @@ import { ChannelLogo } from './ChannelLogo'
 import { channelVars, previousChannel, rememberChannel, surfaceOf, themeRoot, useLook, type Look } from './look'
 import MiniGuide from './MiniGuide'
 import Slate from './Slate'
+import { useLiveTracks } from './tracks'
 import { liveHls, liveVideo, useLive } from './live'
 import { fmtClock, fmtSpan, forgetLineup, getLineup, type Alternative, type GuideChannel, type TuneInfo } from './tvApi'
 import './tv.css'
@@ -42,6 +43,7 @@ export default function TvPlayer() {
   const info = mine ? live.info : null
   const err = mine ? live.err : ''
   const picture = mine && live.playing
+  const tracks = useLiveTracks(video.current, liveHls, mine && live.ready)
   const [needClick, setNeedClick] = useState(false)
   const [banner, setBanner] = useState(true)
   const [remoteOn, setRemoteOnState] = useState(remoteSaved)
@@ -118,16 +120,17 @@ export default function TvPlayer() {
   useEffect(() => {
     if (!info?.countProgress || !info.now?.itemId) return
     const p = info.now
-    const at = info.positionSec, atTime = info.serverTime
+    const at = info.positionSec, atTime = info.serverTime, stop = info.partEnd || Infinity
     const send = () => {
       const v = video.current
       if (!v || v.paused) return
-      const pos = at + (Date.now() / 1000 - atTime)
+      // Only this stretch counts: a break after it isn't the programme.
+      const pos = at + (Math.min(Date.now() / 1000, stop) - atTime)
       api.post(`/items/${p.itemId}/progress`, { positionSec: pos, durationSec: p.end - p.start }).catch(() => {})
     }
     const t = setInterval(send, 30000)
     return () => { clearInterval(t); send() }
-  }, [info?.countProgress, info?.now, info?.positionSec, info?.serverTime])
+  }, [info?.countProgress, info?.now, info?.positionSec, info?.serverTime, info?.partEnd])
 
   // Where the live edge is, and how far back the buffer goes.
   useEffect(() => {
@@ -197,6 +200,8 @@ export default function TvPlayer() {
         case 'm': v.muted = !v.muted; break
         case 'f': toggleFullscreen(root.current); break
         case 'r': setRemoteOn(!remoteOn); break
+        case 'a': tracks.nextAudio(); break
+        case 's': tracks.nextSubtitle(); break
         case 'i': case 'Enter': e.preventDefault(); showBanner(); break
         case 'g': case 'G': case 'ContextMenu': e.preventDefault(); setMini(true); break
         case 'l': goLive(); break
@@ -222,9 +227,11 @@ export default function TvPlayer() {
       case 'play': if (v) { void v.play().catch(() => {}) } break
       case 'pause': v?.pause(); break
       case 'stop': case 'eject': guide(); break
+      case 'audio': tracks.nextAudio(); break
+      case 'subtitle': tracks.nextSubtitle(); break
     }
   }
-  const remoteEnabled = (k: RemoteKey) => k !== 'audio' && k !== 'subtitle' && k !== 'angle'
+  const remoteEnabled = (k: RemoteKey) => k === 'audio' ? tracks.audio.length > 1 : k === 'subtitle' ? tracks.subtitles.length > 0 : k !== 'angle'
   const togglePlay = () => { const v = video.current; if (v && !needClick) v.paused ? v.play().catch(() => {}) : v.pause() }
   const windowLen = Math.max(0, win.end - win.start)
   const isBehind = win.behind > 20
@@ -262,6 +269,7 @@ export default function TvPlayer() {
       {mini && <MiniGuide channel={key} onTune={tuneTo} onClose={() => setMini(false)} onFull={guide} />}
       <Controls video={video} duration={windowLen} offset={-win.start} onSeek={(t) => seekTo(win.start + t)} onFullscreen={() => toggleFullscreen(root.current)}
         remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} showChapterMarks={false}
+        audio={tracks.audio} subtitles={tracks.subtitles} onAudio={tracks.chooseAudio} onSubtitle={tracks.chooseSubtitle}
         extra={<>
           {isBehind && <button className="btn sm" onClick={goLive} title="Back to live (L)">● Live</button>}
           <button className="btn sm" onClick={() => void step(-1)} title="Channel down (Page Down)" aria-label="Channel down">CH −</button>

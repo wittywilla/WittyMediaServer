@@ -52,6 +52,9 @@ type backupState struct {
 	links      map[string]backupLink
 	poke       chan struct{}
 	last       *backup.Result
+	// soonest is how long a backup that's already due waits after a start or a change: a minute,
+	// so not all at once as the server starts. Tests set it before the schedule starts.
+	soonest time.Duration
 }
 
 type backupLink struct {
@@ -310,9 +313,6 @@ func (s *Server) setBackupSetting(key, value string) {
 
 var errBackupBusy = errors.New("a backup or restore is already running")
 
-// backupSoonest is how long a backup that's already due waits after a start or a change.
-var backupSoonest = time.Minute
-
 // POST /api/backup/create {parts, password}
 func (s *Server) handleBackupCreate(w http.ResponseWriter, r *http.Request) {
 	var b struct {
@@ -558,7 +558,11 @@ func (s *Server) StartBackupSchedule(ctx context.Context) {
 	st.mu.Lock()
 	st.poke = make(chan struct{}, 1)
 	poke := st.poke
+	soonest := st.soonest
 	st.mu.Unlock()
+	if soonest == 0 {
+		soonest = time.Minute
+	}
 	logging.Loop("backup schedule", func() {
 		for {
 			sc := s.loadBackupSchedule(ctx)
@@ -570,8 +574,8 @@ func (s *Server) StartBackupSchedule(ctx context.Context) {
 			var wait <-chan time.Time
 			if on {
 				d := time.Until(due)
-				if d < backupSoonest {
-					d = backupSoonest // not all at once as the server starts
+				if d < soonest {
+					d = soonest
 				}
 				wait = time.After(d)
 			}

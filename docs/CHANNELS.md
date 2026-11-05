@@ -155,8 +155,11 @@ When nothing is scheduled, a channel shows a **We'll be right back** card with t
 | I or Enter | The banner |
 | R | The on-screen remote |
 | F | Full screen |
+| A, S | The next sound track, the next subtitles (when the channel has them) |
 | M, + and - | Mute and volume |
 | Escape | Back to the guide |
+
+**Sound and subtitles.** When what's on has more than one sound track, or subtitles or broadcast captions, the player's **Audio** and **Subtitles** buttons (and A and S, and the remote's buttons) choose between them, as in the library player. Everyone on a channel shares one stream, so a choice only changes what your player plays, and the language you choose is kept for the next programme and channel. Today a library channel's stream carries the programme's main sound track and no subtitles, so the buttons appear mostly for tuner channels with captions; other languages ([#238](https://github.com/wittywilla/WittyMediaServer/issues/238)) and subtitles ([#239](https://github.com/wittywilla/WittyMediaServer/issues/239)) in the shared stream are planned.
 
 You can pause and rewind within what's kept: 5 minutes on library channels and 30 on tuner channels, unless you change **Pause buffer** under **Options**.
 
@@ -294,9 +297,14 @@ These need the **WittyTuner** module. No channel lists or stream addresses come 
 ![The Channels and tuners page in Settings](images/settings-channels.webp)
 *Settings, Channels & tuners, on a server with no tuner attached.*
 
-1. Go to **Settings → Channels & tuners → Tuners and IPTV**.
-2. Press **Search for tuners**, or choose one under **Add a tuner** and fill it in.
-3. Press **Channels** on the tuner. **Read the list** or **Scan for channels** fills it, and you choose which show in the guide, renumber them, or set a guide id.
+1. Go to **Settings → Channels & tuners → Tuners and IPTV**. Without WittyTuner, it says so and offers to add it.
+2. Press **Add live TV**. It goes a step at a time:
+   1. **What you have**, in plain words: a playlist from a TV provider, one stream address, a tuner box on your network, a SAT>IP box, a TV card or capture device in this computer, or something else.
+   2. **Its details.** For a device, **Search for it** looks on your network and this computer; whatever it doesn't find, type in by hand, such as a tuner box's address. A playlist or stream is an address, or a file on the server. The server checks the details when you press **Add and read its channels**, and says what's wrong if it can't use them.
+   3. **Its channels.** They're read straight away, with how many are clear and how many encrypted. A tuner that scans offers **Scan for channels**, with its progress.
+   4. **Guide data**, for a playlist or stream: an XMLTV address, if your provider has one. **Skip** if the playlist names its own guide, or to add one later.
+3. **Search for tuners** lists devices it finds; **Set up** on one opens the same steps with its details filled in. **What WittyTuner can use** lists every kind with how far it's been tried, and **Add by hand** on any of them starts at its details.
+4. Press **Channels** on a tuner to choose which channels show in the guide, renumber them, or set a guide id. **Read the list** and **Scan for channels** are there too.
 
 **Streams at once** limits how many channels can be open on a tuner. Your changes stay when the list is read again.
 

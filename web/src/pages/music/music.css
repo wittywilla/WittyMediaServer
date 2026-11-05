@@ -180,3 +180,45 @@ a.mh-list-text, .mh-list-text { flex: 1; min-width: 0; display: flex; color: inh
   .mh-filters .select { flex: 1 1 40%; }
 }
 @media (prefers-reduced-motion: reduce) { .cf-cover, .mh-artist-photo { transition: none; } }
+
+/* Music videos: video tiles, with the song a video is tied to under it. */
+.mh-videos { margin-bottom: 0; }
+.mh-video { display: grid; gap: 4px; min-width: 0; align-content: start; }
+.mh-video-row .mh-video { flex: 0 0 min(260px, 70vw); }
+.mh-video-song { display: inline-flex; align-items: center; gap: 6px; justify-self: start; max-width: 100%; padding: 2px 8px; border-radius: var(--r-pill, 999px); font-size: var(--text-sm); color: var(--fg-2, var(--fg)); background: var(--bg-2); text-decoration: none; }
+.mh-video-song span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mh-video-song:hover { background: var(--accent-soft); }
+.mh-video-song:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+/* A music video's song, on the video's page, and choosing it. */
+.mv-song { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; padding: 10px 12px; border-radius: var(--r-md); background: var(--bg-2); border: 1px solid var(--border, var(--bg-3)); }
+.mv-song-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--r-md); background: var(--accent-soft); color: var(--fg); flex: none; }
+.mv-song-text { display: grid; gap: 2px; flex: 1 1 180px; min-width: 0; }
+.mv-song-text b, .mv-song-text .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mv-song-text a { color: inherit; }
+.mv-song-text a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.mv-tie-head { margin: 16px 0 6px; font-size: var(--text-md); }
+.mv-tie-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.mv-tie-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 10px; border-radius: var(--r-md); background: var(--bg-2); }
+.mv-tie-side { display: grid; gap: 2px; flex: 1 1 200px; min-width: 0; }
+.mv-tie-side b { overflow-wrap: anywhere; }
+.mv-tie-why { font-size: var(--text-sm); }
+.mv-tie-acts { display: flex; gap: 6px; margin-left: auto; }
+.mv-tie-sync { display: grid; gap: 4px; flex: 1 1 100%; font-size: var(--text-sm); }
+.mv-tie-sync .input { max-width: 14rem; }
+.mv-tie-find { width: 100%; margin-bottom: 8px; }
+/* A music video's lyrics, under it. */
+.mv-lyrics { margin: 0 0 14px; }
+.mv-lyrics-body { margin-top: 10px; padding: 12px; border-radius: var(--r-md); background: var(--bg-2); }
+.mv-lines { list-style: none; margin: 0; padding: 0; max-height: min(48vh, 420px); overflow-y: auto; scrollbar-width: thin; }
+.mv-lines button { display: block; width: 100%; padding: 4px 6px; border: 0; border-radius: var(--r-sm, 6px); background: none; color: var(--fg-2, var(--fg)); font: inherit; font-size: var(--text-lg); font-weight: 600; text-align: left; cursor: pointer; }
+.mv-lines .past button { opacity: 0.6; }
+.mv-lines .now button { color: var(--fg); background: var(--accent-soft); }
+.mv-lines button:hover { background: var(--bg-3); }
+.mv-lines button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.mv-plain { margin: 0; max-height: min(48vh, 420px); overflow-y: auto; white-space: pre-wrap; font: inherit; }
+.mv-lyrics-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.mv-nudge { display: inline-flex; align-items: center; gap: 4px; }
+.mv-nudge-v { min-width: 5.5em; text-align: center; font-variant-numeric: tabular-nums; font-size: var(--text-sm); }
+.mv-lyrics-src { margin-left: auto; font-size: var(--text-sm); }
+.mv-lyrics-note { margin: 8px 0 0; font-size: var(--text-sm); }
+@media (prefers-reduced-motion: reduce) { .mv-lines { scroll-behavior: auto; } }

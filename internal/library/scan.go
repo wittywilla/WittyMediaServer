@@ -1195,6 +1195,11 @@ func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
 		}
 		done()
 	}
+	tags := []map[string]string{p.Format.Tags}
+	if v := p.Video(); v != nil {
+		tags = append(tags, v.Tags)
+	}
+	it.recIDs = recordingIDs(tags)
 	if v := p.Video(); v != nil {
 		it.VideoCodec = v.CodecName
 		it.Width, it.Height = v.DisplaySize()

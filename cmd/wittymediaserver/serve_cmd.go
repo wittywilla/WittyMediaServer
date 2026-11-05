@@ -55,6 +55,9 @@ func cmdServe(args []string) int {
 	cfg, err := config.Parse(args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		if hint := unwritableData(err, os.Getenv("WMS_DATA_DIR")); hint != "" {
+			fmt.Fprintln(os.Stderr, hint)
+		}
 		return 2
 	}
 	// One server per data folder, before a reset, a restore or the database touches it.
@@ -168,6 +171,12 @@ func cmdServe(args []string) int {
 		guard.SetLogDir(logs.Dir())
 	}
 
+	if ffmpeg.InContainer() {
+		if msg := puidMismatch(os.Getenv("PUID"), os.Getenv("PGID"), os.Getuid(), os.Getgid()); msg != "" {
+			log.Warn(msg)
+		}
+	}
+
 	// Find out which hardware encoders really work here, if any are to be used.
 	{
 		ctx := context.Background()
@@ -226,6 +235,9 @@ func cmdServe(args []string) int {
 	protect := []string{cfg.DataDir, cfg.CacheDir, cfg.TranscodeDir, cfg.ImagesDir, cfg.LogDir, cfg.ConfigFile, logs.Dir()}
 	updater := update.New(version, progDir, protect, logging.Calls(library.SafeClient.Transport, "update", "updates"), log)
 	updater.LoadWithdrawals(filepath.Join(cfg.DataDir, "update-withdrawn.json"))
+	// An installer for a copy that can't replace its own files waits here for the admin to run it.
+	updater.DownloadDir = filepath.Join(cfg.CacheDir, "updates")
+	updater.CleanDownloads()
 	restartReq := make(chan struct{}, 1)
 	updater.Restart = func() {
 		select {

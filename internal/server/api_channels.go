@@ -889,7 +889,12 @@ type tuneInfo struct {
 	Accent      string          `json:"accent,omitempty"`
 	Brand       *channelBrand   `json:"brand,omitempty"`
 	// PositionSec is how far into the title it is at ServerTime.
-	PositionSec   float64       `json:"positionSec"`
+	PositionSec float64 `json:"positionSec"`
+	// PartEnd, on a channel that counts watch progress, is when what is on the
+	// screen now ends: this stretch of Now, or the bumper or commercial in it.
+	// Progress counts only up to the end of a stretch, so a break doesn't count
+	// as the programme; ask again then.
+	PartEnd       int64         `json:"partEnd,omitempty"`
 	ServerTime    int64         `json:"serverTime"`
 	CountProgress bool          `json:"countProgress"`
 	CanRecord     bool          `json:"canRecord"`
@@ -966,6 +971,9 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 	info := tuneInfo{Key: r.PathValue("key"), Kind: "library", Number: c.Number, Name: c.Name, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
 		Description: c.Description, Accent: c.Look.Accent, Brand: brandOf(c),
 		PositionSec: float64(now.Unix() - cur.Start + cur.Offset), ServerTime: now.Unix(), CountProgress: c.CountProgress && cur.Kind == channels.KindShow}
+	if c.CountProgress {
+		info.PartEnd = cur.End
+	}
 	if c.Logo != "" {
 		info.Logo = fmt.Sprintf("/api/channels/%d/logo?v=%s", c.ID, c.Logo)
 	}

@@ -570,6 +570,11 @@ name>` to the address so the server can tell viewers apart, and send `POST /tv/{
 when leaving. A 503 means the channel is still starting: wait and ask again. Without `streamToken=1` no ticket
 is made, which is what the web player does.
 
+On a channel with `countProgress`, report watch progress for `now.itemId` as `positionSec` plus the seconds
+since `serverTime`, but only up to `partEnd`, when this stretch of the programme ends; a commercial break may
+follow. Ask `tune` again at `partEnd`: during a break `countProgress` is false, and after it `positionSec`
+carries on from where the programme stopped.
+
 Everything about a channel's ticket works as in [Stream tokens](#stream-tokens), and every request checks again
 that the account may watch that channel. An encrypted broadcast is refused with `security` saying why; this
 server never decrypts one.
@@ -990,6 +995,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `GET /update` | admin | What is installed and what is available (404 in builds that can't update themselves). |
 | `POST /update/check` | admin | Look for a new version now. |
 | `POST /update/apply` | admin | Download, verify and install the newest release, then restart. |
+| `POST /update/installer` | admin | Download the installer for this system, checked against the release's signed checksums, for a copy that can't replace its own files. |
+| `GET /update/installer` | admin | The checked installer, as a file to save. |
 | `GET /modules` | admin | Every module: version in use, supported range, status, what is available, what it needs, whether it is installed, and every kind of library and what it takes (404 in builds that can't update them). |
 | `POST /modules/check` | admin | Look for module updates now. Nothing else here goes online. |
 | `GET /modules/{id}/versions` | admin | Every version known, explained, without going online: release notes as plain text, whether each can be chosen, and why not. |
@@ -1232,12 +1239,19 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /music/extras/{id}/file` | user | One of those, by the `name` the list gave. |
 | `GET /music/artist` | user | An artist's page: albums, songs, and a biography if online information is on: `library`, `name`. |
 | `GET /music/artist-photo` | user | An artist's picture, or a cover of theirs: `library`, `name`. |
-| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. One song is looked up at a time: `retry: true` with `failed` says another song's look-up is under way, so ask again in a few seconds. A source that couldn't be reached is left alone for 15 minutes, and `failed` says so; `again=1` asks it anyway. Give the request up (close it) when the listener moves on. |
-| `PUT /music/lyrics/{id}/offset` | user | This person's timing correction: `{offsetMs}`, up to two minutes either way. |
+| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. For a music video tied to a song, the song's lyrics, with `songId`, and `startMs` (where the song starts in the video) as the starting `offsetMs`. One song is looked up at a time: `retry: true` with `failed` says another song's look-up is under way, so ask again in a few seconds. A source that couldn't be reached is left alone for 15 minutes, and `failed` says so; `again=1` asks it anyway. Give the request up (close it) when the listener moves on. |
+| `PUT /music/lyrics/{id}/offset` | user | This person's timing correction: `{offsetMs}`, up to two minutes either way of where it starts. A music video's is its own. |
 | `POST /music/lyrics/{id}/search` | admin | Online lyrics to choose from: `{q}`. |
 | `PUT /music/lyrics/{id}` | admin | Corrects a song's lyrics on this server: `{text}`, `{instrumental}` or `{provider, id}`. |
 | `DELETE /music/lyrics/{id}` | admin | Forgets the correction and any online answer. |
 | `DELETE /music/lyrics-cache` | admin | Forgets all lyrics fetched from online. |
+| `GET /music/links/{id}` | user | What a song or a music video is tied to (`tied`), with what's at both ends; admins also get `suggested`. Only items this person may see are listed. |
+| `GET /music/links/{id}/candidates` | admin | Videos for a song, or songs for a video, to tie by hand: `q` (the title when empty), `limit`. |
+| `GET /music/videos` | user | The **Music videos** section: videos from every music video library this person can see, by artist, each with the `song` it's tied to and `syncMs`: `search`, `sort` (`latest`), `limit`, `offset`. |
+| `GET /music/links` | admin | Suggestions waiting to be looked at: `limit`. |
+| `PUT /music/links` | admin | Ties a song to a music video for good: `{songId, videoId}`, with `syncMs` (where the song starts in the video) or `noSync`. A video has one song, so its old one is untied. |
+| `DELETE /music/links` | admin | Unties them: `song`, `video`. No match ties them again. |
+| `POST /music/links/match` | admin | Matches every song with every music video again now. Scans of music and music video libraries do this by themselves. |
 | `GET /podcasts` | user | Podcast subscriptions. |
 | `GET /podcasts/search` | admin | Search a podcast directory. |
 | `POST /podcasts` | admin | Subscribe. |

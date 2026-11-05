@@ -8,6 +8,7 @@ export type LyricLine = { t: number; end?: number; text: string; words?: LyricWo
 export type Lyrics = {
   itemId: number; source: string; sourceName?: string; creditUrl?: string; synced: boolean; lines: LyricLine[]; plain: string
   instrumental?: boolean; offsetMs: number; online: boolean; canEdit: boolean; tried: boolean; failed?: string; retry?: boolean
+  songId?: number; startMs?: number // a music video showing its song's lyrics, and where the song starts in it
 }
 
 // A song's lyrics change rarely, so they're kept for as long as this page is open, and
@@ -51,7 +52,13 @@ export function useLyrics(itemId: number | undefined, wanted: boolean) {
     ask()
     return () => { gone = true; clearTimeout(timer); stop.abort() }
   }, [itemId, wanted, nonce])
-  const reload = useCallback(() => { if (itemId) held.delete(itemId); setNonce((n) => n + 1) }, [itemId])
+  // A song and its video share lyrics, so a correction to one is forgotten for both.
+  const reload = useCallback(() => {
+    if (!itemId) return
+    const song = held.get(itemId)?.songId || itemId
+    for (const [k, v] of held) if (k === itemId || k === song || v.songId === song) held.delete(k)
+    setNonce((n) => n + 1)
+  }, [itemId])
   const setOffset = useCallback((ms: number) => {
     setLyrics((l) => {
       if (!l) return l

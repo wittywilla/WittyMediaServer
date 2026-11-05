@@ -16,6 +16,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/reset"
 )
 
 // Settings → Logs: what is logged, the viewer, crash reports and the support
@@ -347,7 +348,30 @@ func (s *Server) bundleOptions(r *http.Request) logging.BundleOptions {
 	if s.BundleExtras != nil {
 		o.Extra = append(o.Extra, s.BundleExtras()...)
 	}
+	if s.Cfg != nil {
+		o.Earlier = EarlierLogs(s.Cfg.DataDir, s.Cfg.LogDir)
+	}
 	return o
+}
+
+// EarlierLogs are where the logs and crash reports from before each reset went: into the
+// copy the reset made, newest first, the last three. A log folder outside the data folder
+// wasn't moved, so only the crash reports are there.
+func EarlierLogs(dataDir, logDir string) []logging.Earlier {
+	var out []logging.Earlier
+	rel, err := filepath.Rel(dataDir, logDir)
+	inside := err == nil && rel != "." && !strings.HasPrefix(rel, "..") && !filepath.IsAbs(rel)
+	for _, c := range reset.Copies(dataDir) {
+		if len(out) == 3 {
+			break
+		}
+		e := logging.Earlier{Name: c.Name, Crashes: filepath.Join(dataDir, c.Name, "crash")}
+		if inside {
+			e.Logs = filepath.Join(dataDir, c.Name, rel)
+		}
+		out = append(out, e)
+	}
+	return out
 }
 
 // GET /api/logs/bundle/preview (admin): what the bundle would hold, with a sample of how it

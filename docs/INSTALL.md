@@ -46,7 +46,7 @@ Each release also has `SHA256SUMS.txt`, a list of every file's checksum, and `SH
 | **macOS** | Never built or run. This has not been run on a real Mac yet |
 | **Linux** | The `.deb` and `.rpm` have been installed, upgraded and removed on Debian trixie, Ubuntu 26.04 and Fedora 43, on amd64, in containers with systemd running. The `arm64`, `armv7` and `386` packages haven't been run |
 | **FreeBSD** | The amd64 package and its service have been installed, upgraded and removed in FreeBSD 14.4 and 15.1 virtual machines. Real hardware and arm64 haven't been tried, modules have only been built for it, and a film hasn't been played there |
-| **Docker** | The image's last stage has been started and answers. The complete image hasn't been built yet |
+| **Docker** | The amd64 image has been built and run in WSL, locked down, as several users, upgraded from 0.6.2-alpha, with NVENC through WSL. arm64 and armv7 have been built, not run. No NAS yet. See [Docker](DOCKER.md#what-has-been-tried) |
 
 ## Windows
 
@@ -58,7 +58,7 @@ Each release also has `SHA256SUMS.txt`, a list of every file's checksum, and `SH
    | Needs an administrator | No | Yes |
    | Program | `%LOCALAPPDATA%\Programs\WittyMediaServer` | `C:\Program Files\WittyMediaServer` |
    | Library, accounts and settings | `%LOCALAPPDATA%\WittyMediaServer` | Each person's own, or with the service, `C:\ProgramData\WittyMediaServer` |
-   | **Update now** in Settings | Yes | No: run the new installer |
+   | **Update now** in Settings | Yes | No: **Download the installer** there, then run it |
    | Can run as a service | No | Yes |
 
 3. Choose how it should run. Each of these is optional.
@@ -182,66 +182,26 @@ Then open `http://<this computer>:9797/` to finish setting up. As with FreeBSD's
 ## Docker
 
 ```bash
-docker run -d --name wittymediaserver --restart unless-stopped \
-  -p 9797:9797 \
-  -v wms-config:/config \
-  -v /path/to/movies:/media/movies:ro \
-  -v /path/to/discs:/media/discs:ro \
-  ghcr.io/wittywilla/wittymediaserver:alpha
+docker run -d --name wittymediaserver --restart unless-stopped   -p 9797:9797   -v wms-config:/config   -v /path/to/media:/media:ro   ghcr.io/wittywilla/wittymediaserver:alpha
 ```
 
-Or save this as `docker-compose.yml`, change the media lines to your own folders, and run `docker compose up -d`:
+Then open `http://<this computer>:9797/`. From another device, setup asks for the code that `docker logs wittymediaserver` shows.
 
-```yaml
-services:
-  wittymediaserver:
-    image: ghcr.io/wittywilla/wittymediaserver:alpha # the newest alpha; :latest is the newest full release
-    container_name: wittymediaserver
-    restart: unless-stopped
-    # Runs as UID 1000. On a NAS, set this to your own account's UID and GID:
-    # user: "1000:1000"
-    # Nothing it needs writes outside /config and /tmp. Helpers run from /config, so don't mount it noexec.
-    read_only: true
-    tmpfs:
-      - /tmp
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    ports:
-      - "9797:9797"
-      # - "9443:9443"                # only if you use Remote Access with HTTPS
-    environment:
-      - WMS_LOG=info
-      - XDG_CACHE_HOME=/config/cache/xdg
-    volumes:
-      - wms-config:/config
-      # Mount your media read-only wherever you like, and add them as library folders in the app.
-      - /path/to/movies:/media/movies:ro
-      - /path/to/discs:/media/discs:ro
-volumes:
-  wms-config:
-```
-
-- **Then:** open `http://<this computer>:9797/`. From another device, setup asks for the code that `docker logs wittymediaserver` shows.
-- **Which systems:** `amd64`, `arm64` and `armv7` images.
-- **Permissions:** the image runs as UID 1000. `chown` your media, or use `--user`.
-- **Hardware transcoding:** pass `--device /dev/dri` for VAAPI, or use the NVIDIA container runtime. Then tick the encoder under **Settings → Live transcoding**.
-- **The command line:** `docker exec wittymediaserver wittymediaserver doctor`.
-- **To update:** see [Updating](#updating).
-- **Modules:** the image holds none. A server adds them from the store at run time.
+[Docker](DOCKER.md) has the rest: ready compose files (plain, locked down, Intel and AMD graphics, NVIDIA, behind a reverse proxy), the tags, every folder and setting, running as your own user, hardware transcoding, and updating. The image is for `amd64`, `arm64` and `armv7`, runs as an ordinary user, and works with a read-only root.
 
 ## A NAS
 
-Most NAS systems run containers, and that's the way to do it. There's no packaged app for each make.
+Most NAS systems run containers, and that's the way to do it. Each of these has a guide with its own screens, folders, user IDs and graphics steps:
 
 | | |
 |---|---|
-| **Synology** (Container Manager), **QNAP** (Container Station), **TrueNAS SCALE**, **Unraid** | Create a project or stack from [the file above](#docker) |
-| The `/config` volume | Keep it on a fast disk, an SSD if you have one, in a shared folder of its own. It holds the database and artwork |
-| Your media | Mount each share read-only at a folder under `/media` |
-| Permissions | The image runs as UID 1000. Set `user:` in the file to your NAS account's UID and GID, which `id` shows over SSH, and give that account read access to your media and write access to `/config` |
-| Hardware transcoding | Add `devices: ["/dev/dri:/dev/dri"]` on Intel and AMD, and tick the encoder under **Settings → Live transcoding** |
+| **UGREEN** (UGOS Pro) | [Docker on a UGREEN NAS](DOCKER-UGREEN.md) |
+| **Synology** (Container Manager) | [Docker on a Synology NAS](DOCKER-SYNOLOGY.md) |
+| **QNAP** (Container Station) | [Docker on a QNAP NAS](DOCKER-QNAP.md) |
+| **Unraid** | [Docker on Unraid](DOCKER-UNRAID.md) |
+| **TrueNAS SCALE** | [Docker on TrueNAS SCALE](DOCKER-TRUENAS.md) |
+| **Asustor** (ADM) | [Docker on an Asustor NAS](DOCKER-ASUSTOR.md) |
+| Anything else running Linux | [Docker on a Linux machine](DOCKER-LINUX.md) |
 | An older or 32-bit NAS | `armv7` and `amd64` images exist, but no 32-bit x86 one: run the `linux-386.tar.gz` archive by hand |
 
 If your NAS runs Debian underneath, as OpenMediaVault does, the `.deb` should work too. It hasn't been tried there.
@@ -280,7 +240,7 @@ The app restarts the server if it crashes. It stops trying after three failures 
 
 ## Updating
 
-Admins see a dot on **Settings** when a newer version is out. **Settings → About**, under **Updates**, shows the installed and the newest version with its release notes. **Update now** installs it:
+Admins see a banner at the top of Home and Settings when a newer version is out, with its first change in a few words: **Update**, **What's new**, or **Later**, which hides it until the next version. The activity panel, the account menu and the tray icon's menu say so too, and Settings has a dot. **Settings → About**, under **Updates**, shows the installed and the newest version, and what's new in every version since yours, from this changelog. **Update now** installs it:
 
 1. **Downloading:** the release's checksum list and its signature come from GitHub, over HTTPS, and only from GitHub.
 2. **Checking:** the checksum list must be signed with the release key built into the server, and the downloaded package must match its checksum. Anything else is refused and nothing changes.
@@ -289,15 +249,15 @@ Admins see a dot on **Settings** when a newer version is out. **Settings → Abo
 
 The server looks for new versions twice a day while **Check for updates automatically** is on, which it is to begin with. **Check now** asks at once. It only fetches GitHub's list of releases: nothing about you or your library is sent, and nothing is installed until an admin presses **Update now**.
 
-**Update now** needs a copy installed from a release package, in a folder the server can write. Otherwise Settings says why:
+**Update now** needs a copy installed from a release package, in a folder the server can write. Otherwise there's **Download the installer**: the server fetches the right file for its system and processor from the release, checks it against the release's signed checksums the same way, and keeps it in its cache folder. Settings then says where it is, gives the command that installs it where there is one, and offers **Save the installer** to save it on the device you're using.
 
 | Installed with | How to update |
 |---|---|
 | Windows installer, **Just me**, or an unpacked folder on Windows, Linux or FreeBSD | **Update now** |
-| Windows installer, **Everyone on this computer** | Run the new installer, as Windows protects Program Files |
-| `.deb`, `.rpm`, FreeBSD `.pkg` | Install the new package the same way, as your package manager owns these files |
-| `install.sh` | Unpack the new archive and run `sudo ./install.sh` again |
-| macOS | Run the new `.pkg` |
+| Windows installer, **Everyone on this computer** | **Download the installer**, then run it on the server's computer, as Windows protects Program Files. It updates in place |
+| `.deb`, `.rpm`, FreeBSD `.pkg` | **Download the installer**, then run the command Settings shows (`sudo apt install …`, `sudo dnf install …` or `pkg add -f …`), as your package manager owns these files. The server never runs it itself |
+| `install.sh` | **Download the installer** (the archive), unpack it and run `sudo ./install.sh` again |
+| macOS | **Download the installer**, then open the `.pkg` |
 | Docker | `docker compose pull`, then `docker compose up -d`. With `docker run`: `docker pull`, then remove and recreate the container. Your `/config` volume stays |
 
 A copy of 0.5.2-alpha or older takes the update as well, from a folder it can write. The server moves to `bin/` at the same time, and a small `wms` stays where the old server was, so whatever started it still can. Scripts of yours that call `wms` should change to `wittymediaserver`. In Docker that name has already gone.
@@ -336,6 +296,7 @@ The programs in this alpha aren't code-signed yet, so systems warn about them. E
 | System | What you see | What to do |
 |---|---|---|
 | **Windows** | "Windows protected your PC", from SmartScreen | Choose **More info**, then **Run anyway** |
+| **Windows 11,** with Smart App Control on | Windows blocks the installer, and offers only to turn Smart App Control off | Don't turn it off: Windows can't turn it back on without being reinstalled. Signed releases are being prepared. See [Smart App Control on Windows](TROUBLESHOOTING.md#smart-app-control-on-windows) |
 | **Windows,** for everyone | The administrator prompt says "Unknown publisher" | Choose **Yes** if you trust the download |
 | **macOS** | The Mac refuses to open the `.pkg` | Right-click it and choose **Open**, then **Open** again. If it still refuses, choose **Open Anyway** in **System Settings → Privacy & Security** |
 | **Linux, FreeBSD** | Nothing, for a file you install by name | Nothing. The packages carry no signature of their own |

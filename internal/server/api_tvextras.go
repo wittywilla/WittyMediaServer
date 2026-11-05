@@ -58,6 +58,8 @@ type guideHit struct {
 	Channel string `json:"channel"` // its key
 	Number  string `json:"number"`
 	Name    string `json:"name"`
+	// CanRecord is its channel's canRecord: whether to offer Record for this programme.
+	CanRecord bool `json:"canRecord"`
 	guideProgramme
 }
 
@@ -109,7 +111,7 @@ func (s *Server) handleGuideSearch(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		for _, p := range found {
-			hits = append(hits, guideHit{row.Key, row.Number, row.Name, fromSchedule(p)})
+			hits = append(hits, guideHit{row.Key, row.Number, row.Name, row.CanRecord, fromSchedule(p)})
 		}
 	}
 	if tuners := s.tunerRows(ctx, r); len(tuners) > 0 {
@@ -151,7 +153,7 @@ func (s *Server) findBroadcasts(ctx context.Context, rows []guideChannel, from, 
 			break
 		}
 		if row, ok := byGuide[key]; ok {
-			out = append(out, guideHit{row.Key, row.Number, row.Name, p})
+			out = append(out, guideHit{row.Key, row.Number, row.Name, row.CanRecord, p})
 		}
 	}
 	return out
@@ -202,18 +204,26 @@ func (s *Server) handleTVReminders(w http.ResponseWriter, r *http.Request) {
 	}
 	// A channel this account can't see any more says nothing about what is on it.
 	seen := map[string]bool{}
-	out := make([]channels.Reminder, 0, len(list))
+	record := map[string]bool{}
+	out := make([]reminderView, 0, len(list))
 	for _, e := range list {
 		ok, known := seen[e.Channel]
 		if !known {
 			ok = s.canSeeChannelKey(r, e.Channel)
 			seen[e.Channel] = ok
+			record[e.Channel] = ok && s.canRecordKey(r, e.Channel)
 		}
 		if ok {
-			out = append(out, e)
+			out = append(out, reminderView{e, record[e.Channel]})
 		}
 	}
 	writeJSON(w, 200, out)
+}
+
+// reminderView is a reminder with its channel's canRecord.
+type reminderView struct {
+	channels.Reminder
+	CanRecord bool `json:"canRecord"`
 }
 
 func (s *Server) handleAddTVReminder(w http.ResponseWriter, r *http.Request) {
@@ -236,7 +246,7 @@ func (s *Server) handleAddTVReminder(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	writeJSON(w, 200, b)
+	writeJSON(w, 200, reminderView{b, s.canRecordKey(r, b.Channel)})
 }
 
 func (s *Server) handleDeleteTVReminder(w http.ResponseWriter, r *http.Request) {

@@ -739,6 +739,103 @@
         ],
         "type": "object"
       },
+      "ChannelAlternative": {
+        "properties": {
+          "atsc3": {
+            "type": "boolean"
+          },
+          "canRecord": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "canRecord",
+          "key",
+          "name",
+          "number"
+        ],
+        "type": "object"
+      },
+      "ChannelBrand": {
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ChannelSecurity": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "helpUrl": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "label",
+          "state"
+        ],
+        "type": "object"
+      },
+      "ChannelView": {
+        "properties": {
+          "canRecord": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "logo": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "canRecord",
+          "description",
+          "id",
+          "logo",
+          "name",
+          "number"
+        ],
+        "type": "object"
+      },
       "ControllerData": {
         "properties": {
           "layouts": {
@@ -3145,6 +3242,247 @@
           "title",
           "user",
           "userId"
+        ],
+        "type": "object"
+      },
+      "GuideChannel": {
+        "properties": {
+          "accent": {
+            "type": "string"
+          },
+          "alternative": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChannelAlternative"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "atsc3": {
+            "type": "boolean"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChannelBrand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "canRecord": {
+            "type": "boolean"
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "encrypted": {
+            "type": "string"
+          },
+          "favourite": {
+            "type": "boolean"
+          },
+          "group": {
+            "type": "string"
+          },
+          "hd": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "noRecord": {
+            "type": "string"
+          },
+          "notices": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "number": {
+            "type": "string"
+          },
+          "programmes": {
+            "items": {
+              "$ref": "#/components/schemas/GuideProgramme"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "radio": {
+            "type": "boolean"
+          },
+          "security": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChannelSecurity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "canRecord",
+          "id",
+          "key",
+          "kind",
+          "name",
+          "number",
+          "programmes"
+        ],
+        "type": "object"
+      },
+      "GuideHit": {
+        "properties": {
+          "canRecord": {
+            "type": "boolean"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "canRecord",
+          "channel",
+          "name",
+          "number"
+        ],
+        "type": "object"
+      },
+      "GuideProgramme": {
+        "properties": {
+          "clip": {
+            "anyOf": [
+              {
+                "properties": {
+                  "end": {
+                    "type": "number"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "start": {
+                    "type": "number"
+                  },
+                  "title": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "end",
+                  "start",
+                  "title"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "desc": {
+            "type": "string"
+          },
+          "end": {
+            "type": "integer"
+          },
+          "episode": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "genre": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "season": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "showId": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "sub": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "trimmed": {
+            "type": "integer"
+          },
+          "year": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "end",
+          "kind",
+          "start",
+          "title"
         ],
         "type": "object"
       },
@@ -8765,6 +9103,40 @@
         ],
         "type": "object"
       },
+      "TVReminder": {
+        "properties": {
+          "canRecord": {
+            "type": "boolean"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "end": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "sub": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "canRecord",
+          "channel",
+          "end",
+          "id",
+          "start",
+          "title"
+        ],
+        "type": "object"
+      },
       "Task": {
         "properties": {
           "by": {
@@ -9217,6 +9589,242 @@
         "required": [
           "active",
           "max"
+        ],
+        "type": "object"
+      },
+      "TuneInfo": {
+        "properties": {
+          "accent": {
+            "type": "string"
+          },
+          "alternative": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChannelAlternative"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "atsc3": {
+            "type": "boolean"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChannelBrand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bufferSec": {
+            "type": "number"
+          },
+          "canRecord": {
+            "type": "boolean"
+          },
+          "countProgress": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GuideProgramme"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notices": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "now": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GuideProgramme"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "number": {
+            "type": "string"
+          },
+          "partEnd": {
+            "type": "integer"
+          },
+          "playing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GuideProgramme"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "positionSec": {
+            "type": "number"
+          },
+          "security": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChannelSecurity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "serverTime": {
+            "type": "integer"
+          },
+          "streamToken": {
+            "type": "string"
+          },
+          "streamUrl": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bufferSec",
+          "canRecord",
+          "countProgress",
+          "key",
+          "kind",
+          "name",
+          "next",
+          "now",
+          "number",
+          "positionSec",
+          "serverTime",
+          "url"
+        ],
+        "type": "object"
+      },
+      "TunerChannelView": {
+        "properties": {
+          "atsc3": {
+            "type": "boolean"
+          },
+          "audioCodec": {
+            "type": "string"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChannelBrand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "callsign": {
+            "type": "string"
+          },
+          "canRecord": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "encrypted": {
+            "type": "string"
+          },
+          "epgId": {
+            "type": "string"
+          },
+          "epgSet": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          },
+          "hd": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "logoSet": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nameSet": {
+            "type": "string"
+          },
+          "noRecord": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "numberSet": {
+            "type": "string"
+          },
+          "program": {
+            "type": "integer"
+          },
+          "radio": {
+            "type": "boolean"
+          },
+          "security": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "tunerId": {
+            "type": "integer"
+          },
+          "videoCodec": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "canRecord",
+          "enabled",
+          "id",
+          "name",
+          "number",
+          "security",
+          "sourceId",
+          "tunerId"
         ],
         "type": "object"
       },
@@ -10851,11 +11459,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "items": {
+                    "$ref": "#/components/schemas/ChannelView"
+                  },
+                  "type": "array"
                 }
               }
             },
-            "description": "See the guide for this kind of library."
+            "description": "Library channels. canRecord is always false: library channels are never recorded."
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -17887,11 +18498,58 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "properties": {
+                    "channels": {
+                      "items": {
+                        "$ref": "#/components/schemas/GuideChannel"
+                      },
+                      "type": "array"
+                    },
+                    "from": {
+                      "type": "integer"
+                    },
+                    "groups": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "layout": {
+                      "type": "string"
+                    },
+                    "now": {
+                      "type": "integer"
+                    },
+                    "offset": {
+                      "type": "integer"
+                    },
+                    "skin": {
+                      "type": "string"
+                    },
+                    "theme": {
+                      "type": "string"
+                    },
+                    "to": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "channels",
+                    "now",
+                    "from",
+                    "to",
+                    "total",
+                    "offset",
+                    "groups"
+                  ],
                   "type": "object"
                 }
               }
             },
-            "description": "See the guide for this kind of library."
+            "description": "Channels with their programmes. Every channel has canRecord, true or false. canRecord is the only signal for offering Record: see Recording in CLIENT-API.md."
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -17918,11 +18576,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "items": {
+                    "$ref": "#/components/schemas/GuideHit"
+                  },
+                  "type": "array"
                 }
               }
             },
-            "description": "What is coming up that matches, soonest first. q (2 to 100 letters), days (1 to 14), limit."
+            "description": "What is coming up that matches, soonest first. q (2 to 100 letters), days (1 to 14), limit. Each hit has its channel's canRecord."
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -30157,8 +30818,32 @@
         "x-wms-auth": "user"
       },
       "post": {
+        "description": "Record every airing of a title on one channel. Only a channel whose canRecord is true: the server applies the same rule and refuses anything else with {error}: 400 for a library channel, 403 for an encrypted channel, one marked not to be recorded, or a profile that can't use recordings, 404 for a channel turned off or not visible, 409 at the per-account limit.",
         "operationId": "postRecordingRules",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "channel": {
+                    "description": "A channel key from the guide, such as tun-12. A library channel (lib-…) is refused.",
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "channel",
+                  "title"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -30257,8 +30942,41 @@
         "x-wms-auth": "user"
       },
       "post": {
+        "description": "Schedule one programme. Only a channel whose canRecord is true: the server applies the same rule and refuses anything else with {error}: 400 for a library channel, 403 for an encrypted channel, one marked not to be recorded, or a profile that can't use recordings, 404 for a channel turned off or not visible, 409 at the per-account limit.",
         "operationId": "postRecordings",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "channel": {
+                    "description": "A channel key from the guide, such as tun-12. A library channel (lib-…) is refused.",
+                    "type": "string"
+                  },
+                  "start": {
+                    "type": "integer"
+                  },
+                  "stop": {
+                    "type": "integer"
+                  },
+                  "sub": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "channel",
+                  "title"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -33976,7 +34694,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/TunerChannelView"
                 }
               }
             },
@@ -34247,11 +34965,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "items": {
+                    "$ref": "#/components/schemas/TunerChannelView"
+                  },
+                  "type": "array"
                 }
               }
             },
-            "description": "See the guide for this kind of library."
+            "description": "A tuner's channels, each with canRecord."
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -34616,11 +35337,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "items": {
+                    "$ref": "#/components/schemas/TVReminder"
+                  },
+                  "type": "array"
                 }
               }
             },
-            "description": "This account's reminders still to come."
+            "description": "This account's reminders still to come, each with its channel's canRecord."
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -34645,7 +35369,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/TVReminder"
                 }
               }
             },
@@ -34965,11 +35689,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/TuneInfo"
                 }
               }
             },
-            "description": "See the guide for this kind of library."
+            "description": "What is on, the stream's address, and canRecord. canRecord is the only signal for offering Record: see Recording in CLIENT-API.md."
           },
           "default": {
             "$ref": "#/components/responses/Error"

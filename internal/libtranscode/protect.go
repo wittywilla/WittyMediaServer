@@ -173,28 +173,126 @@ func movieProtected(b []byte) bool {
 	return found
 }
 
+// Matroska element IDs the check reads.
+const (
+	mkvSegment       = 0x18538067
+	mkvTracks        = 0x1654AE6B
+	mkvCluster       = 0x1F43B675
+	mkvTrackEntry    = 0xAE
+	mkvEncodings     = 0x6D80
+	mkvEncoding      = 0x6240
+	mkvEncodingType  = 0x5033
+	mkvEncryptionElt = 0x5035
+)
+
 // matroskaProtected reads the track list for a ContentEncryption element, or a
-// ContentEncodingType of 1, which is what encryption is called there. Only the track list:
-// the rest of the file is picture data, which holds every byte sequence sooner or later.
+// ContentEncodingType of 1, which is what encryption is called there. It goes by structure:
+// the segment's own Tracks element, and the content encodings inside it. Searching the bytes
+// found the seek index's mention of Tracks first, and then a file's random IDs and picture
+// data now and then held the marks by chance.
 func matroskaProtected(head []byte) bool {
-	tracks := []byte{0x16, 0x54, 0xAE, 0x6B}
-	i := bytes.Index(head, tracks)
-	if i < 0 {
+	rest := head
+	for len(rest) > 0 {
+		id, _, body, next, ok := ebmlElement(rest)
+		if !ok {
+			return false
+		}
+		if id != mkvSegment {
+			rest = next // the EBML header, or anything before the segment
+			continue
+		}
+		return segmentProtected(body)
+	}
+	return false
+}
+
+// segmentProtected finds the segment's Tracks among its children. A cluster means the
+// picture has started, and a child of unknown size can't be stepped over.
+func segmentProtected(seg []byte) bool {
+	rest := seg
+	for len(rest) > 0 {
+		id, size, body, next, ok := ebmlElement(rest)
+		switch {
+		case !ok || id == mkvCluster:
+			return false
+		case id == mkvTracks:
+			return encodingsProtected(body, false)
+		case size < 0:
+			return false
+		}
+		rest = next
+	}
+	return false
+}
+
+// encodingsProtected walks a track list. inside says it's within ContentEncodings, where
+// encryption is written down. Only the containers that lead there are opened.
+func encodingsProtected(b []byte, inside bool) bool {
+	rest := b
+	for len(rest) > 0 {
+		id, size, body, next, ok := ebmlElement(rest)
+		if !ok {
+			return false
+		}
+		switch {
+		case inside && id == mkvEncryptionElt:
+			return true
+		case inside && id == mkvEncodingType && ebmlUintIs(body, 1):
+			return true
+		case id == mkvEncodings:
+			if encodingsProtected(body, true) {
+				return true
+			}
+		case id == mkvTrackEntry || (inside && id == mkvEncoding):
+			if encodingsProtected(body, inside) {
+				return true
+			}
+		}
+		if size < 0 {
+			return false
+		}
+		rest = next
+	}
+	return false
+}
+
+// ebmlUintIs says whether an element's unsigned integer body is v.
+func ebmlUintIs(body []byte, v uint64) bool {
+	if len(body) == 0 || len(body) > 8 {
 		return false
 	}
-	rest := head[i+len(tracks):]
-	size, used := ebmlSize(rest)
+	var n uint64
+	for _, c := range body {
+		n = n<<8 | uint64(c)
+	}
+	return n == v
+}
+
+// ebmlElement reads one element: its ID, its size (-1 for unknown), its body as far as b
+// holds it, and what follows it. ok is false for nonsense.
+func ebmlElement(b []byte) (id uint32, size int64, body, next []byte, ok bool) {
+	if len(b) == 0 || b[0] == 0 {
+		return 0, 0, nil, nil, false
+	}
+	n := 1
+	for mask := byte(0x80); b[0]&mask == 0; mask >>= 1 {
+		n++
+	}
+	if n > 4 || n > len(b) {
+		return 0, 0, nil, nil, false
+	}
+	for _, c := range b[:n] {
+		id = id<<8 | uint32(c)
+	}
+	size, used := ebmlSize(b[n:])
 	if used == 0 {
-		return false
+		return 0, 0, nil, nil, false
 	}
-	rest = rest[used:]
-	if size >= 0 && size < int64(len(rest)) {
-		rest = rest[:size]
+	rest := b[n+used:]
+	if size < 0 || size > int64(len(rest)) {
+		return id, size, rest, nil, true
 	}
-	if !bytes.Contains(rest, []byte{0x6D, 0x80}) {
-		return false // no ContentEncodings at all
-	}
-	return bytes.Contains(rest, []byte{0x50, 0x35}) || bytes.Contains(rest, []byte{0x50, 0x33, 0x81, 0x01})
+	return id, size, rest[:size], rest[size:], true
 }
 
 // ebmlSize reads an element's size. -1 means it says "unknown". used is 0 for nonsense.

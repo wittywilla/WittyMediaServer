@@ -4,6 +4,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
 
 // Choosing an encoder for a file kept on disk. Live playback has its own choices
@@ -164,6 +166,7 @@ func hardwareEncoder(name, codec, family string, q int, speed string) encoderCho
 		preset := map[string]string{"faster": "p3", "balanced": "p5", "slower": "p6"}[speed]
 		c.args = []string{"-preset", orDefault(preset, "p5"), "-tune", "hq", "-rc", "vbr", "-cq", strconv.Itoa(q + 2), "-b:v", "0", "-pix_fmt", "yuv420p"}
 	case "qsv":
+		c.inputArgs = ffmpeg.DeviceArgs("qsv")
 		preset := map[string]string{"faster": "faster", "balanced": "medium", "slower": "slow"}[speed]
 		c.args = []string{"-preset", orDefault(preset, "medium"), "-global_quality", strconv.Itoa(q + 2), "-pix_fmt", "nv12"}
 	case "videotoolbox":
@@ -172,7 +175,7 @@ func hardwareEncoder(name, codec, family string, q int, speed string) encoderCho
 		quality := map[string]string{"faster": "speed", "balanced": "balanced", "slower": "quality"}[speed]
 		c.args = []string{"-quality", orDefault(quality, "balanced"), "-rc", "cqp", "-qp_i", strconv.Itoa(q + 1), "-qp_p", strconv.Itoa(q + 3), "-pix_fmt", "yuv420p"}
 	case "vaapi":
-		c.inputArgs = []string{"-vaapi_device", "/dev/dri/renderD128"}
+		c.inputArgs = ffmpeg.DeviceArgs("vaapi")
 		c.filters = []string{"format=nv12", "hwupload"}
 		c.args = []string{"-qp", strconv.Itoa(q + 2)}
 	}

@@ -1,12 +1,14 @@
 package ffmpeg
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -39,19 +41,29 @@ type HWStatus struct {
 	Compiled bool   `json:"compiled"`
 	Tested   bool   `json:"tested"`
 	Working  bool   `json:"working"`
-	Error    string `json:"error,omitempty"`
+	Error    string `json:"error,omitempty"`  // the end of FFmpeg's message
+	Reason   string `json:"reason,omitempty"` // why it can't be used, in plain words
+	Device   string `json:"device,omitempty"` // the device it uses or was tried on
 }
 
 type hwState struct {
 	mu     sync.Mutex
 	status map[string]*HWStatus
+	gpus   []GPUDevice
+	vaapi  string // the render node for VA-API
+	qsv    string // the Intel render node Quick Sync is given, "" to let FFmpeg choose
 	done   bool
 	once   sync.Once
 }
 
 var hw = &hwState{status: map[string]*HWStatus{}}
 
-const vaapiDevice = "/dev/dri/renderD128"
+// defaultVAAPIDevice is used until the devices have been looked at.
+const defaultVAAPIDevice = "/dev/dri/renderD128"
+
+// unixGPU says whether this system's graphics devices are files in /dev that
+// can be looked at before a test encode.
+var unixGPU = runtime.GOOS == "linux" || runtime.GOOS == "freebsd"
 
 // StartHardwareProbe test-encodes in the background, once. It starts with the
 // server only if hardware encoding is switched on, else when Settings first
@@ -63,48 +75,48 @@ func (t *Tools) StartHardwareProbe() {
 	})
 }
 
-// ProbeHardware test-encodes a few frames with every compiled hardware
-// encoder.
+// ProbeHardware looks at the graphics devices, then test-encodes a few frames
+// with every compiled hardware encoder that could work with them.
 func (t *Tools) ProbeHardware(ctx context.Context) {
 	log := slog.Default().With("cat", "transcode")
+	gpus := FindGPUs()
+	container := InContainer()
+	for _, d := range gpus {
+		if d.Usable {
+			log.Info("graphics device found", "device", d.Path, "vendor", d.Vendor, "driver", d.Driver, "group", d.Group)
+		} else {
+			log.Warn("graphics device can't be used: "+d.Problem+" "+d.Fix, "device", d.Path, "vendor", d.Vendor, "group", d.Group, "mode", d.Mode)
+		}
+	}
+	vaapi, qsv := defaultVAAPIDevice, ""
+	if d, ok := pickRender(gpus, ""); ok {
+		vaapi = d.Path
+	}
+	if d, ok := pickRender(gpus, "intel"); ok {
+		qsv = d.Path
+	}
+	hw.mu.Lock()
+	hw.gpus, hw.vaapi, hw.qsv = gpus, vaapi, qsv
+	hw.mu.Unlock()
+	if unixGPU && len(gpus) == 0 {
+		log.Info("no graphics device found: " + whyNoRender(nil, "", "", container))
+	}
+
 	for _, e := range HWEncoders {
 		st := &HWStatus{HWEncoder: e, Compiled: t.Encoders[e.Name]}
-		if st.Compiled && !(e.Vendor == "apple" && runtime.GOOS != "darwin") && !(e.Vendor == "vaapi" && runtime.GOOS != "linux" && runtime.GOOS != "freebsd") {
-			plan := t.planFor(e.Name, Quality{})
-			args := []string{"-hide_banner", "-loglevel", "error", "-nostdin"}
-			args = append(args, plan.InputArgs...)
-			args = append(args, "-f", "lavfi", "-i", "color=c=black:s=320x240:r=25:d=0.4")
-			vf := "format=" + plan.PixFmt
-			if plan.Upload != "" {
-				vf += "," + plan.Upload
+		switch {
+		case !st.Compiled:
+		case e.Vendor == "apple" && runtime.GOOS != "darwin":
+		case e.Vendor == "vaapi" && !unixGPU:
+		default:
+			// Where the devices are files, an encoder with nothing to run on isn't
+			// started at all: on a small machine each test is a process that fails.
+			if reason := missingDevice(e.Vendor, gpus, container); reason != "" {
+				st.Reason = reason
+				log.Info("hardware encoder can't be used", "encoder", e.Name, "reason", reason)
+				break
 			}
-			args = append(args, "-vf", vf, "-c:v", plan.Name)
-			args = append(args, plan.Args...)
-			args = append(args, "-f", "null", "-")
-			cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-			cmd := Command(cctx, t.FFmpeg, args...)
-			var stderr logging.Tail
-			cmd.Stderr = &stderr
-			started := time.Now()
-			err := cmd.Run()
-			cancel()
-			// FFmpeg lists encoders this machine has no hardware for, so most of
-			// these failing says nothing is wrong: the details are only a debug line.
-			logging.ChildExit(log, "ffmpeg", err, true, &stderr, started, "encoder", e.Name)
-			st.Tested, st.Working = true, err == nil
-			if err == nil {
-				log.Info("hardware encoder works", "encoder", e.Name)
-			} else {
-				msg := strings.TrimSpace(stderr.String())
-				if i := strings.LastIndex(msg, "\n"); i > 0 && len(msg) > 300 {
-					msg = msg[i+1:]
-				}
-				if len(msg) > 300 {
-					msg = msg[:300]
-				}
-				st.Error = msg
-				log.Info("hardware encoder can't be used", "encoder", e.Name, "err", msg)
-			}
+			t.testEncoder(ctx, log, st, container)
 		}
 		hw.mu.Lock()
 		hw.status[e.Name] = st
@@ -113,6 +125,139 @@ func (t *Tools) ProbeHardware(ctx context.Context) {
 	hw.mu.Lock()
 	hw.done = true
 	hw.mu.Unlock()
+}
+
+// missingDevice says why an encoder has no device to work with here, "" when it
+// may have one (or this system can't tell before trying).
+func missingDevice(vendor string, gpus []GPUDevice, container bool) string {
+	if !unixGPU {
+		return ""
+	}
+	switch vendor {
+	case "vaapi":
+		if _, ok := pickRender(gpus, ""); !ok {
+			return whyNoRender(gpus, "", "", container)
+		}
+	case "intel":
+		if _, ok := pickRender(gpus, "intel"); !ok {
+			return whyNoRender(gpus, "intel", "Intel", container)
+		}
+	case "nvidia":
+		// Under WSL, and Docker Desktop on Windows, NVIDIA's driver is reached through /dev/dxg.
+		if slices.ContainsFunc(gpus, func(d GPUDevice) bool { return d.Path == "/dev/dxg" && d.Usable }) {
+			return ""
+		}
+		for _, d := range gpus {
+			if strings.HasPrefix(d.Path, "/dev/nvidia") {
+				if d.Usable {
+					return ""
+				}
+				return strings.TrimSpace(d.Problem + " " + d.Fix)
+			}
+		}
+		if container {
+			return "No NVIDIA device is in the container: run it with the NVIDIA Container Toolkit (gpus: all)."
+		}
+		return "No NVIDIA device (/dev/nvidia0) was found."
+	case "amd":
+		// AMF on Linux needs AMD's own driver; on an AMD chip, VA-API is the usual way.
+		if _, ok := pickRender(gpus, "amd"); !ok {
+			return whyNoRender(gpus, "amd", "AMD", container)
+		}
+	}
+	return ""
+}
+
+// testEncoder encodes a few black frames with one encoder.
+func (t *Tools) testEncoder(ctx context.Context, log *slog.Logger, st *HWStatus, container bool) {
+	plan := t.planFor(st.Name, Quality{})
+	st.Device = planDevice(plan)
+	args := []string{"-hide_banner", "-loglevel", "error", "-nostdin"}
+	args = append(args, plan.InputArgs...)
+	args = append(args, "-f", "lavfi", "-i", "color=c=black:s=320x240:r=25:d=0.4")
+	vf := "format=" + plan.PixFmt
+	if plan.Upload != "" {
+		vf += "," + plan.Upload
+	}
+	args = append(args, "-vf", vf, "-c:v", plan.Name)
+	args = append(args, plan.Args...)
+	args = append(args, "-f", "null", "-")
+	cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	cmd := Command(cctx, t.FFmpeg, args...)
+	var stderr logging.Tail
+	cmd.Stderr = &stderr
+	started := time.Now()
+	err := cmd.Run()
+	cancel()
+	// FFmpeg lists encoders this machine has no hardware for, so most of
+	// these failing says nothing is wrong: the details are only a debug line.
+	logging.ChildExit(log, "ffmpeg", err, true, &stderr, started, "encoder", st.Name)
+	st.Tested, st.Working = true, err == nil
+	if err == nil {
+		log.Info("hardware encoder works", "encoder", st.Name, "device", st.Device)
+		return
+	}
+	msg := strings.TrimSpace(stderr.String())
+	st.Reason = explainEncoderError(st.Vendor, msg, container)
+	if st.Vendor == "vaapi" && st.Reason != "" {
+		// A driver "missing" for a chip that has none here, such as WSL's own device.
+		for _, d := range GPUs() {
+			if d.Path == st.Device && d.Vendor != "" && d.Vendor != "intel" && d.Vendor != "amd" {
+				st.Reason = "The graphics device " + d.Path + " isn't Intel's or AMD's (its driver is " + cmp.Or(d.Driver, "unknown") + "): VA-API here has drivers for those only."
+			}
+		}
+	}
+	if i := strings.LastIndex(msg, "\n"); i > 0 && len(msg) > 300 {
+		msg = msg[i+1:]
+	}
+	if len(msg) > 300 {
+		msg = msg[:300]
+	}
+	st.Error = msg
+	log.Info("hardware encoder can't be used", "encoder", st.Name, "device", st.Device, "reason", st.Reason, "err", msg)
+}
+
+// planDevice is the device a plan's input options name, if any.
+func planDevice(p Plan) string {
+	for i, a := range p.InputArgs {
+		if a == "-vaapi_device" && i+1 < len(p.InputArgs) {
+			return p.InputArgs[i+1]
+		}
+		if _, dev, ok := strings.Cut(a, "child_device="); ok {
+			return dev
+		}
+	}
+	return ""
+}
+
+// GPUs are the graphics devices found by the last hardware test.
+func GPUs() []GPUDevice {
+	hw.mu.Lock()
+	defer hw.mu.Unlock()
+	return slices.Clone(hw.gpus)
+}
+
+// DeviceArgs are the input options that give a hardware encoder family (vaapi,
+// qsv) the device found for it, nil for one that needs none.
+func DeviceArgs(family string) []string {
+	hw.mu.Lock()
+	vaapi, qsv := hw.vaapi, hw.qsv
+	hw.mu.Unlock()
+	switch family {
+	case "vaapi":
+		if vaapi == "" {
+			vaapi = defaultVAAPIDevice
+		}
+		return []string{"-vaapi_device", vaapi}
+	case "qsv":
+		// On Linux Quick Sync works through VA-API, on the first render node unless
+		// told: wrong when an AMD or NVIDIA card's node comes before Intel's. When
+		// Intel's is the first, FFmpeg's own choice is left alone.
+		if qsv != "" && qsv != defaultVAAPIDevice && unixGPU {
+			return []string{"-init_hw_device", "qsv=qs:hw,child_device=" + qsv}
+		}
+	}
+	return nil
 }
 
 // HardwareStatus reports every known hardware encoder (testing still in
@@ -198,6 +343,7 @@ func (t *Tools) planFor(name string, q Quality) Plan {
 		p.Args = []string{"-preset", nvencPreset(q.Preset), "-tune", "ll", "-rc", "vbr", "-cq", strconv.Itoa(crf + 2), "-b:v", "0"}
 	case "h264_qsv":
 		p.PixFmt = "nv12"
+		p.InputArgs = DeviceArgs("qsv")
 		p.Args = []string{"-preset", qsvPreset(q.Preset), "-global_quality", strconv.Itoa(crf + 2)}
 	case "h264_videotoolbox":
 		vq := 102 - 2*crf // crf 21 -> q 60 (1-100, higher is better)
@@ -209,7 +355,7 @@ func (t *Tools) planFor(name string, q Quality) Plan {
 		p.Args = []string{"-quality", amfQuality(q.Preset), "-rc", "cqp", "-qp_i", strconv.Itoa(crf + 1), "-qp_p", strconv.Itoa(crf + 3)}
 	case "h264_vaapi":
 		p.PixFmt = "nv12"
-		p.InputArgs = []string{"-vaapi_device", vaapiDevice}
+		p.InputArgs = DeviceArgs("vaapi")
 		p.Upload = "hwupload"
 		p.Args = []string{"-qp", strconv.Itoa(crf + 2)}
 	case "libx264":

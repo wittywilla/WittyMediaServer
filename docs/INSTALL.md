@@ -42,7 +42,7 @@ Each release also has `SHA256SUMS.txt`, a list of every file's checksum, and `SH
 
 | System | How far it has been run |
 |---|---|
-| **Windows** | The `.msi` has been installed, upgraded and removed under Wine, and its contents inspected. It has not been installed on a real copy of Windows yet. The ARM64 `.msi` was built once and hasn't been checked |
+| **Windows** | The `.msi` has been installed on Windows 11, and upgraded and removed under Wine. Before each release it's installed over the one before on GitHub's Windows machines, for everyone, for one account and as a service, with the server running. The ARM64 `.msi` was built once and hasn't been checked |
 | **macOS** | Never built or run. This has not been run on a real Mac yet |
 | **Linux** | The `.deb` and `.rpm` have been installed, upgraded and removed on Debian trixie, Ubuntu 26.04 and Fedora 43, on amd64, in containers with systemd running. The `arm64`, `armv7` and `386` packages haven't been run |
 | **FreeBSD** | The amd64 package and its service have been installed, upgraded and removed in FreeBSD 14.4 and 15.1 virtual machines. Real hardware and arm64 haven't been tried, modules have only been built for it, and a film hasn't been played there |

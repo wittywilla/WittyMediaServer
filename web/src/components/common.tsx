@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { PosterCard } from '../ui/Surface'
 import { brandParts, DEFAULT_NAME } from '../brandName'
@@ -47,8 +47,10 @@ export function ScanButton({ lib, onStarted }: { lib: { id: number; name: string
 }
 
 // Episodes render as wide stills (16:9) with the show name; `wide` is set
-// automatically for episodes.
-export function ItemCard({ item, wide = item.showId != null }: { item: Item; wide?: boolean }) {
+// automatically for episodes. A card draws again only when its title changes: a grid
+// grows a page at a time and its page re-renders while a scan counts up, and a library
+// of a thousand titles would otherwise draw every card each time.
+export const ItemCard = memo(function ItemCard({ item, wide = item.showId != null }: { item: Item; wide?: boolean }) {
   const pct = item.progress && item.progress.durationSec > 0 && !item.progress.watched
     ? Math.min(100, (item.progress.positionSec / item.progress.durationSec) * 100) : 0
   const gen = isGeneratedArt(item)
@@ -72,14 +74,14 @@ export function ItemCard({ item, wide = item.showId != null }: { item: Item; wid
         : item.kind === 'book' ? item.artist || item.year || ''
         : [item.year, length].filter(Boolean).join(' · ')} />
   )
-}
+})
 
 // SeenBadge: the mark on a finished title.
 export function SeenBadge() {
   return <span className="badge seen" role="img" aria-label="Watched"><IconCheck /></span>
 }
 
-export function ShowCard({ show }: { show: Show }) {
+export const ShowCard = memo(function ShowCard({ show }: { show: Show }) {
   return (
     <PosterCard to={`/show/${show.id}`} name={show.title} title={show.title}
       art={<>
@@ -93,7 +95,7 @@ export function ShowCard({ show }: { show: Show }) {
       </>}
       sub={<span title={`${show.episodeCount} episodes`}>{[show.year, `${show.seasonCount} ${show.seasonCount === 1 ? 'season' : 'seasons'}`].filter(Boolean).join(' · ')}</span>} />
   )
-}
+})
 
 // VersionTag is the release line shown at the bottom of every page, e.g.
 // "WittyMediaServer 0.4.0 · ALPHA".

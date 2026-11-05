@@ -237,8 +237,10 @@ func (m *Manager) listen(ctx context.Context, o *Opened, res *TestResult, t0 tim
 		err   error
 	}
 	done := make(chan got, 1)
-	go func() {
+	started := m.background("tuner test", func(stop context.Context) {
 		var g got
+		defer func() { done <- g }()                                     // after a fault too: nothing is left waiting
+		defer context.AfterFunc(stop, func() { _ = o.Stream.Close() })() // ends the read
 		buf := make([]byte, 64<<10)
 		for g.n < testMaxBytes {
 			n, err := o.Stream.Reader.Read(buf)
@@ -258,8 +260,11 @@ func (m *Manager) listen(ctx context.Context, o *Opened, res *TestResult, t0 tim
 				break
 			}
 		}
-		done <- g
-	}()
+	}, "cat", "tv")
+	if !started {
+		res.Problem = &Problem{Kind: "other", Message: "The server is stopping."}
+		return
+	}
 	var g got
 	select {
 	case g = <-done:

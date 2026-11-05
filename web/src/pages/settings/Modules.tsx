@@ -50,6 +50,7 @@ function eventWords(e: ModuleEvent): string {
     case 'removed': return 'Removed from this server'
     case 'failed': return `${v || 'A version'} failed${e.detail ? `: ${e.detail}` : ''}`
     case 'taken-out-of-use': return `${v || 'A version'} was taken out of use${e.detail ? `: ${e.detail}` : ''}`
+    case 'put-back': return `${v || 'A version'} was put back in use${e.detail ? `: ${e.detail}` : ''}`
     case 'rolled-back': return `Went back from ${v || 'a version'}`
     case 'pinned': return `Kept on ${v || 'this version'}`
     case 'unpinned': return 'Automatic updates can move it again'

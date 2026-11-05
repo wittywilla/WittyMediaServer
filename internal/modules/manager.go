@@ -180,6 +180,9 @@ type moduleState struct {
 	DataHigh       int                      `json:"dataHigh,omitempty"`  // the newest data format used so far
 	Withdrawn      *wittymodule.Withdrawals `json:"withdrawn,omitempty"` // the newest signed list seen
 	Events         []Event                  `json:"events,omitempty"`
+	// NestedSandboxFixed: what a Mac took out of use while no game could start there has been put
+	// back, once (liftNestedSandboxBlocks).
+	NestedSandboxFixed bool `json:"nestedSandboxFixed,omitempty"`
 }
 
 type entry struct {
@@ -309,13 +312,24 @@ func New(cfg Config) *Manager {
 	}
 	sort.Strings(m.order)
 	m.loadKnown(saved)
+	lifted := false
 	for _, id := range m.order {
 		m.checkSavedSource(id, m.mods[id])
+		if liftNestedSandboxBlocks(goos(), id, m.mods[id], m.log) {
+			lifted = true
+		}
 		m.resolve(id, m.mods[id])
 		// The kept catalogue was judged before anyone knew what's on disk, which made every
 		// installed module look as if its own version were an update.
 		m.computeOffers(m.mods[id])
 		m.prune(id, m.mods[id])
+	}
+	if lifted {
+		m.mu.Lock()
+		if err := m.saveState(); err != nil {
+			m.log.Warn("modules: saving the state", "err", err)
+		}
+		m.mu.Unlock()
 	}
 	return m
 }
@@ -352,7 +366,7 @@ func (m *Manager) saveState() error {
 	saved := map[string]moduleState{}
 	for id, e := range m.mods {
 		s := e.state
-		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.NoAuto || s.Removed || s.Disabled || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 {
+		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.NoAuto || s.Removed || s.Disabled || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 || s.NestedSandboxFixed {
 			saved[id] = s
 		}
 	}
@@ -652,7 +666,11 @@ func (e *entry) status(id string) Status {
 		st.Withdrawn = nil // no version is in use for it to apply to
 	}
 	for i := len(e.state.Events) - 1; i >= 0; i-- {
-		if ev := e.state.Events[i]; ev.Kind == "failed" || ev.Kind == "taken-out-of-use" {
+		ev := e.state.Events[i]
+		if ev.Kind == "put-back" {
+			break // what failed before it was this server's fault
+		}
+		if ev.Kind == "failed" || ev.Kind == "taken-out-of-use" {
 			st.LastFail = ev.Detail
 			break
 		}

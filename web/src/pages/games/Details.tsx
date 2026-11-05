@@ -2,8 +2,8 @@ import { ChangeLogoButton } from '../../components/edit/LogoChooser'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PromptBar, useInputKind, type Prompt } from './prompts'
-import { api, backdropUrl, fmtDateTime, mediaUrl, uploadFile, type GameDetailsInfo, type Item } from '../../api'
-import ArtworkPicker from '../../components/ArtworkPicker'
+import { api, backdropUrl, fmtDateTime, mediaUrl, uploadFile, type ArtCandidate, type GameDetailsInfo, type Item } from '../../api'
+import ArtworkPicker, { ART_SOURCE } from '../../components/ArtworkPicker'
 import { Placeholder, Spinner } from '../../components/common'
 import LegalNote from '../../components/LegalNote'
 import { IconCheck, IconDownload, IconEdit, IconGamepad, IconImage, IconInfo, IconMore, IconPlay, IconRefresh, IconSettings, IconStar, IconTrash, IconTune } from '../../icons'
@@ -327,8 +327,12 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
       <LegalNote kind="games" />
       <PromptBar className="gm-prompts" always={links.couch} items={prompts} />
       {edit && <EditGame item={it} onClose={() => setEdit(false)} onSaved={() => { setEdit(false); reload?.() }} />}
-      {art && <ArtworkPicker base={`/items/${it.id}`} onClose={() => setArt(false)}
-        onPick={async (kind, url) => { await api.put<Item>(`/items/${it.id}`, { [kind]: url }); reload?.(); toast(kind === 'poster' ? 'Cover updated' : 'Backdrop updated') }} />}
+      {art && <ArtworkPicker title={`Artwork for ${it.title}`} onClose={() => setArt(false)}
+        kinds={[{ kind: 'poster', label: 'Cover', shape: 'tall' }, { kind: 'backdrop', label: 'Backdrop', shape: 'wide' }]}
+        current={(k) => (k === 'poster' ? it.poster : it.backdrop) || ''}
+        load={(k) => api.get<{ candidates: ArtCandidate[]; warning: string }>(`/items/${it.id}/artwork?kind=${k}`)
+          .then((r) => ({ candidates: r.candidates.map((c) => ({ url: c.url, sourceLabel: ART_SOURCE[c.source] || c.source })), warnings: r.warning ? [r.warning] : [] }))}
+        apply={async (changes) => { await api.put<Item>(`/items/${it.id}`, changes); reload?.(); toast('poster' in changes && !('backdrop' in changes) ? 'Cover updated' : 'Artwork updated') }} />}
     </div>
   )
 }

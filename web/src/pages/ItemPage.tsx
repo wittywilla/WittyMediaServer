@@ -4,6 +4,7 @@ import { api, backdropUrl, codecName, fitWidth, sized, dvdStartMode, episodeLabe
 import DiscSections from './DiscSections'
 import EditDetails, { type EditSection } from '../components/edit/EditDetails'
 import RefreshDialog from '../components/edit/RefreshDialog'
+import TitleArtPicker, { PosterMenu, appliedOnPage } from '../components/edit/TitleArtPicker'
 import TitleExtras, { TitleLogo } from '../components/edit/TitleExtras'
 import { BookDetails } from './Books'
 import { SaveButton } from '../components/SaveToCollection'
@@ -24,6 +25,7 @@ export default function ItemPage() {
   const [params, setParams] = useSearchParams()
   const [edit, setEdit] = useState<EditSection | ''>((params.get('edit') as EditSection) || '')
   const [refreshing, setRefreshing] = useState(false)
+  const [art, setArt] = useState(false)
   const [discSettings, setDiscSettings] = useState(false)
   const [prefs, setPrefs] = useState<Prefs | null>(null)
   const [broken, setBroken] = useState(false)
@@ -65,6 +67,7 @@ export default function ItemPage() {
           {/* A frame from the video: shown whole on a colour of its own. */}
           <div className={'poster' + (isGeneratedArt(it) ? ' generated' : '')} style={isGeneratedArt(it) ? { '--art-hue': artHue(it.title) } as React.CSSProperties : undefined}>
             {it.poster && <img src={sized(posterUrl(it), fitWidth(260))} alt="" />}
+            {user?.isAdmin && <PosterMenu target="item" id={it.id} onChanged={load} />}
           </div>
         </div>
         <div>
@@ -101,7 +104,7 @@ export default function ItemPage() {
               {user?.isAdmin && (
                 <div className="admin-tools" role="group" aria-label="Manage">
                   <button className="btn ghost square" onClick={() => setDiscSettings(true)} title="Disc settings" aria-label="Disc settings"><IconSettings /></button>
-                  <button className="btn ghost square" onClick={() => setEdit('artwork')} title="Artwork" aria-label="Artwork"><IconImage /></button>
+                  <button className="btn ghost square" aria-haspopup="dialog" onClick={() => setArt(true)} title="Artwork" aria-label="Artwork"><IconImage /></button>
                   <button className="btn ghost square" onClick={() => setEdit('match')} title="Edit details" aria-label="Edit details"><IconEdit /></button>
                   <button className="btn ghost square" onClick={() => setRefreshing(true)} title="Check for new details" aria-label="Check for new details"><IconRefresh /></button>
                 </div>
@@ -116,7 +119,7 @@ export default function ItemPage() {
               {resume && <button className="btn" onClick={() => nav(`/play/${it.id}?start=0`)}><IconPlay /> Play from start</button>}
               {it.nextId && <button className="btn" onClick={() => nav(`/item/${it.nextId}`)}><IconNext /> Next episode</button>}
               <SaveButton itemId={it.id} />
-              {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('artwork')}><IconImage /> Artwork</button>}
+              {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
               {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('match')}><IconEdit /> Edit</button>}
               {user?.isAdmin && it.showId == null && <button className="btn ghost" onClick={() => setRefreshing(true)} title="See what's new about this, and choose what to take"><IconRefresh /> Refresh</button>}
             </div>
@@ -151,6 +154,7 @@ export default function ItemPage() {
         </div>
       </div>
       {edit && <EditDetails target="item" id={it.id} start={edit} onClose={() => setEdit('')} onChanged={load} />}
+      {art && <TitleArtPicker target="item" id={it.id} onClose={() => setArt(false)} onApplied={appliedOnPage(load)} />}
       {refreshing && <RefreshDialog target="item" id={it.id} onClose={() => setRefreshing(false)} onChanged={load} />}
       {discSettings && <DiscSettings item={it} prefs={prefs} onClose={() => setDiscSettings(false)} onSaved={(x) => { setIt(x); setDiscSettings(false); toast('Disc settings saved') }} />}
     </>

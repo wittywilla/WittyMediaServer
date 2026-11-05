@@ -6,11 +6,12 @@ import { toast, useApp } from '../../state'
 import { Button, Dialog, LinkButton, Segmented } from '../../ui'
 import { type Look } from './look'
 import { useReminders } from './reminders'
+import { resetChannel } from './resetChannel'
 import { fmtClock, fmtDay, fmtLeft, fmtSpan, type GuideChannel, type GuidePage, type Programme } from './tvApi'
 
 // More about a programme, or the whole of the channel's day: the same dialog,
 // so that one is a key press away from the other.
-export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, onRecord }: { ch: GuideChannel; p: Programme; now: number; startDay?: boolean; look: Look; onClose: () => void; onWatch: () => void; onRecord: () => void }) {
+export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, onRecord, onReset }: { ch: GuideChannel; p: Programme; now: number; startDay?: boolean; look: Look; onClose: () => void; onWatch: () => void; onRecord: () => void; onReset?: () => void }) {
   const [desc, setDesc] = useState(p.desc || '')
   const [day, setDay] = useState(!!startDay)
   const reminders = useReminders()
@@ -28,6 +29,7 @@ export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, 
     <>
       <Button variant="ghost" onClick={onClose}>Close</Button>
       {user?.isAdmin && ch.kind === 'library' && <LinkButton variant="ghost" to={`/tv/channels/${ch.id}`}>Edit channel</LinkButton>}
+      {user?.isAdmin && ch.kind === 'library' && <Button variant="ghost" onClick={() => void resetChannel(ch.id, ch.name).then((done) => { if (done) { onReset?.(); onClose() } })}>Reset channel</Button>}
       {later && !ch.encrypted && p.kind !== 'none' && p.kind !== 'group' && <Button aria-pressed={reminded} onClick={() => void reminders.toggle(ch.key, p)}>{reminded ? '✓ Reminder set' : 'Remind me'}</Button>}
       {ch.canRecord && p.kind === 'broadcast' && p.end > now && <><Button onClick={() => void addSeries()}>Record every airing</Button><Button onClick={onRecord}>Record this</Button></>}
       {ch.alternative && <LinkButton variant="primary" icon={<IconPlay />} to={`/tv/watch/${ch.alternative.key}`}>Watch {ch.alternative.number} {ch.alternative.name} instead</LinkButton>}

@@ -63,6 +63,8 @@ type launcher struct {
 	// Crash-loop protection.
 	startedAt time.Time
 	fails     int
+	// afterCrash: the next start is the tray bringing back a server that stopped by itself.
+	afterCrash bool
 
 	// update is a newer version the server found, which the menu offers.
 	update string
@@ -196,8 +198,10 @@ func (l *launcher) onReady() {
 	}
 }
 
+// onExit: after Quit the server has already stopped. Otherwise the desktop is closing this
+// app (a shutdown, a sign-out, an installer), and the server is told which.
 func (l *launcher) onExit() {
-	l.stop()
+	l.stop(endReason())
 }
 
 func (l *launcher) setIcon(running bool) {
@@ -220,14 +224,14 @@ func (l *launcher) loop() {
 		case <-l.mToggle.ClickedCh:
 			if l.isRunning() {
 				l.want(false)
-				l.stop()
+				l.stop(logging.StopTrayStop)
 			} else {
 				l.want(true)
 				l.start()
 			}
 		case <-l.mRestart.ClickedCh:
 			l.want(true)
-			l.stop()
+			l.stop(logging.StopTrayRestart)
 			l.start()
 		case <-l.mData.ClickedCh:
 			openPath(l.dataDir)
@@ -247,7 +251,7 @@ func (l *launcher) loop() {
 		case <-l.mAbout.ClickedCh:
 			openURL(l.url() + "/settings/about")
 		case <-l.mQuit.ClickedCh:
-			l.stop()
+			l.stop(logging.StopTrayQuit)
 			systray.Quit()
 			return
 		}
@@ -302,6 +306,10 @@ func (l *launcher) start() {
 	cmd.Stderr = f
 	cmd.WaitDelay = 5 * time.Second // something it left behind holding stderr mustn't hide that it ended
 	hideWindow(cmd)
+	if l.afterCrash {
+		cmd.Env = append(os.Environ(), "WMS_TRAY_RESTART=1")
+		l.afterCrash = false
+	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		l.lastErr = err.Error()
@@ -371,6 +379,9 @@ func (l *launcher) start() {
 			// Crashed: back off briefly and bring it back.
 			time.Sleep(3 * time.Second)
 			if l.wantsRestart() {
+				l.mu.Lock()
+				l.afterCrash = true // its first log line says the tray started it again
+				l.mu.Unlock()
 				l.start()
 			}
 		}
@@ -466,7 +477,9 @@ func (l *launcher) answering() bool {
 	return res.StatusCode == http.StatusOK
 }
 
-func (l *launcher) stop() {
+// stop asks the server to stop, saying why first: the line it logs, and the next start's,
+// carry the reason.
+func (l *launcher) stop(reason string) {
 	l.mu.Lock()
 	cmd, stdin := l.cmd, l.stdin
 	l.cmd, l.stdin = nil, nil
@@ -475,6 +488,7 @@ func (l *launcher) stop() {
 		return
 	}
 	if stdin != nil {
+		_, _ = io.WriteString(stdin, "stop "+reason+"\n")
 		_ = stdin.Close() // graceful: the server exits when stdin closes
 	}
 	done := make(chan struct{})

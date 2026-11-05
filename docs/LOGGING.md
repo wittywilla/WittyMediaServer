@@ -9,6 +9,7 @@ The logs are under **Settings → WittyLog**, for administrators. WittyLog is th
 - [Choosing how much is recorded](#choosing-how-much-is-recorded)
 - [Catching a problem](#catching-a-problem)
 - [Crash reports](#crash-reports)
+- [Why it stopped](#why-it-stopped)
 - [Downloading logs to share](#downloading-logs-to-share)
 - [What sanitizing leaves in](#what-sanitizing-leaves-in)
 - [From the command line](#from-the-command-line)
@@ -76,6 +77,33 @@ Both are on the **What to log** tab, under **Keep the last minutes**: the last 1
 ## Crash reports
 
 If the server stopped unexpectedly, stopped answering, or part of it crashed and it carried on, a banner at the top of WittyLog says so, and the **Crash reports** tab has each report to read, download or delete, with the files kept beside it. They're kept in the `crash` folder inside the data folder.
+
+## Why it stopped
+
+Every stop writes one line, `stopping`, with the reason and what the server was in the middle of. Search the log for `stopping` to find them:
+
+```
+WARN stopping reason=tray-quit why="Quit was chosen in the tray icon" uptime=2h38m transcodes=1 games=0 connections=4 tasks=scan×1
+```
+
+| `reason` | What happened |
+|---|---|
+| `tray-quit`, `tray-stop`, `tray-restart` | **Quit**, **Stop server** or **Restart server** in the tray or menu-bar icon |
+| `tray-closed` | The desktop closed the tray app without a shutdown. On Windows that's usually an installer making room to update |
+| `tray-gone` | The tray app ended without saying why: it was ended in Task Manager, or crashed |
+| `service-stop` | The Windows service, systemd, launchd, rc.d or Docker stopped it |
+| `os-shutdown`, `os-logoff` | The computer shut down or restarted, or you signed out |
+| `console-closed` | Its console window was closed |
+| `signal` | Ctrl+C, or `kill` from a terminal |
+| `update` | It restarted to finish installing an update |
+| `restart-setting` | It restarted for a reset, a restore or a repair, with who asked |
+| `fatal-error` | It couldn't carry on: FFmpeg missing, the database or the port unavailable. The line says which |
+
+**Each start says how the last run ended.** The `started` line has `previous="stopped 2026-11-02 14:33 (tray-quit), ran 2h38m"`. When the last run didn't stop cleanly (a power cut, the process ended in Task Manager, a stop that hung), the start also logs an error, `the last run ended without stopping cleanly`, with its last log line, and writes a [crash report](#crash-reports). A stop that began and never finished says so, with the reason it began.
+
+`crash/last-run.json` holds how the last run ended, and `crash/runs.json` the last 20 runs.
+
+**Standard error.** A Windows service, or a launchd job with nowhere set for it, has nowhere to write what Go prints when it crashes. There, it goes to `crash/stderr-<process>.txt`, and a run that ends badly has it in its report. A terminal, the tray app's `console.log`, systemd's journal and Docker's log keep it themselves.
 
 ## Downloading logs to share
 
@@ -352,6 +380,7 @@ A hang shows up as a pile of goroutines waiting in one place: the report's first
 These are handled in one place, with nothing to add at call sites:
 
 - **`logging.StartCrashGuard`** (in `cmdServe`): a fatal Go error is written by the runtime to a file, and the next start turns it into a report. A start that finds the last run left without saying so writes an "unclean" report. Recovered panics write one too. They're in `<data>/crash/`, listed in the settings page and the bundle.
+- **Stop reasons** (`internal/logging/stop.go`): whatever makes the server stop calls `logging.NoteStop(reason, detail, by)` first, with a reason from the list there; the first one given is kept. `NoteStopIfNothingElse` is for a guess that anything more exact replaces. A new way to stop needs a reason on that list, with its words. The shutdown in `cmdServe` logs it with `Server.RunningNow`, and `CrashGuard.Close` keeps it in `last-run.json`.
 - **`Server.LogStartup`** writes version, modules, system, GPU and encoders, disk space and settings at each start. Settings appear only if listed in `summarySettings`, so a new secret can't slip in. Add any setting that changes how the server behaves to that list.
 
 ### What logging promises

@@ -819,6 +819,7 @@ func (s *Server) handleBackupRestore(w http.ResponseWriter, r *http.Request) {
 		restart := s.Restart
 		s.endBackup(func(j *backupJob) { j.Restarting = restart != nil; j.Inspection = nil })
 		if restart != nil {
+			logging.NoteStop(logging.StopRestartSetting, "restoring a backup", who)
 			time.AfterFunc(800*time.Millisecond, restart) // so the page sees this first
 		}
 	}, "cat", "server")
@@ -852,6 +853,7 @@ func (s *Server) handleBackupUndo(w http.ResponseWriter, r *http.Request) {
 	s.Log.WarnContext(r.Context(), "a restore is being undone", "cat", "server", "copy", b.Copy, "by", userFrom(r).Name)
 	writeJSON(w, 202, map[string]any{"restarting": s.Restart != nil})
 	if s.Restart != nil {
+		logging.NoteStop(logging.StopRestartSetting, "undoing a restore", userFrom(r).Name)
 		time.AfterFunc(300*time.Millisecond, s.Restart)
 	}
 }

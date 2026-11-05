@@ -1,9 +1,13 @@
 package library
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"net/http"
 	"strings"
 )
@@ -31,6 +35,69 @@ func PictureExt(b []byte) string {
 		return ""
 	}
 	return map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}[http.DetectContentType(b)]
+}
+
+// maxArtPixels is the largest picture an upload may be: big enough for any poster or
+// backdrop, small enough to decode on a modest machine.
+const maxArtPixels = 25_000_000
+
+// CleanPicture reads an uploaded picture and writes it again from its pixels, so nothing
+// but the picture survives: no location or camera details, no trailing data. A picture
+// with see-through parts (a logo) becomes a PNG, which keeps them; anything else a JPEG,
+// which keeps a large photo small.
+func CleanPicture(b []byte) (out []byte, ext string, err error) {
+	defer func() {
+		if p := recover(); p != nil { // decoders see whatever was sent
+			out, ext, err = nil, "", fmt.Errorf("this picture couldn't be read")
+		}
+	}()
+	if PictureExt(b) == "" {
+		return nil, "", errors.New("use a JPEG, PNG, WebP or GIF picture")
+	}
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(b))
+	if err != nil {
+		return nil, "", errors.New("use a JPEG, PNG, WebP or GIF picture")
+	}
+	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width*cfg.Height > maxArtPixels {
+		return nil, "", errors.New("the picture is too big: at most 25 megapixels")
+	}
+	img, _, err := image.Decode(bytes.NewReader(b))
+	if err != nil {
+		return nil, "", errors.New("this picture couldn't be read")
+	}
+	var buf bytes.Buffer
+	if format == "jpeg" || opaque(img) {
+		err, ext = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 90}), ".jpg"
+	} else {
+		err, ext = png.Encode(&buf, img), ".png"
+	}
+	if err != nil {
+		return nil, "", err
+	}
+	return buf.Bytes(), ext, nil
+}
+
+// opaque: nothing in the picture can be seen through.
+func opaque(img image.Image) bool {
+	if o, ok := img.(interface{ Opaque() bool }); ok {
+		return o.Opaque()
+	}
+	return false
+}
+
+// Frame is a picture from about a fifth of the way into a video or a disc's main
+// feature, kept in the image cache: the frame a title's poster is made from when nothing
+// else has one, large enough to be a backdrop.
+func (s *Scanner) Frame(ctx context.Context, it *Item) (string, error) {
+	if it.Disc != nil && it.Disc.Scrambled {
+		return "", errors.New("this disc is encrypted, so no picture can be taken from it")
+	}
+	switch it.Kind {
+	case "video", "dvd-iso", "dvd-folder", "bluray-iso", "bluray-folder":
+	default:
+		return "", errors.New("only a video or a disc has frames to take")
+	}
+	return s.frameAt(ctx, it, "frame-", 1280)
 }
 
 // SharesFolder: other media are beside this file, so the folder's pictures aren't all its own.

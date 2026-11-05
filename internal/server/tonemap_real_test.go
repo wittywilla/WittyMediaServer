@@ -58,13 +58,15 @@ func TestLiveToneMapOfUntaggedHDR(t *testing.T) {
 		rng    string
 		compat int
 		x265   string
+		height int // asked for: mapping brings it down to this
 	}{
 		// The stream itself says nothing.
-		{"PQ, untagged", "untagged-pq.mp4", "hdr10", 1, "log-level=error"},
-		{"HLG, untagged", "untagged-hlg.mp4", "hlg", 4, "log-level=error"},
+		{"PQ, untagged", "untagged-pq.mp4", "hdr10", 1, "log-level=error", 0},
+		{"HLG, untagged", "untagged-hlg.mp4", "hlg", 4, "log-level=error", 0},
 		// And the ordinary kind still has to work.
-		{"PQ, marked in the stream", "tagged-pq.mkv", "hdr10", 0, "log-level=error:hdr10=1:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc"},
-		{"HLG, marked in the stream", "tagged-hlg.mkv", "hlg", 0, "log-level=error:colorprim=bt2020:transfer=arib-std-b67:colormatrix=bt2020nc"},
+		{"PQ, marked in the stream", "tagged-pq.mkv", "hdr10", 0, "log-level=error:hdr10=1:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc", 0},
+		{"HLG, marked in the stream", "tagged-hlg.mkv", "hlg", 0, "log-level=error:colorprim=bt2020:transfer=arib-std-b67:colormatrix=bt2020nc", 0},
+		{"PQ, made smaller as it's mapped", "small-pq.mkv", "hdr10", 0, "log-level=error:hdr10=1:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc", 240},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -84,7 +86,11 @@ func TestLiveToneMapOfUntaggedHDR(t *testing.T) {
 			_, admin := ts.user(t, "owner", "adult", true, "")
 			lib := ts.library(t, "videos", filepath.Dir(path))
 			it := ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: path, Title: "Bright Sky", RuntimeSec: 4, Width: 640, Height: 360, VideoCodec: "hevc"})
-			w := ts.do(t, http.MethodPost, fmt.Sprintf("/api/items/%d/playback", it.ID), admin, map[string]any{"profile": "web"})
+			body := map[string]any{"profile": "web"}
+			if c.height > 0 {
+				body["maxHeight"] = c.height
+			}
+			w := ts.do(t, http.MethodPost, fmt.Sprintf("/api/items/%d/playback", it.ID), admin, body)
 			if w.Code != 200 {
 				t.Fatalf("playback: %d %s", w.Code, w.Body)
 			}
@@ -129,6 +135,9 @@ func TestLiveToneMapOfUntaggedHDR(t *testing.T) {
 			}
 			if v.ColorTransfer != "bt709" {
 				t.Fatalf("the picture should say it's an ordinary one now: %+v", v)
+			}
+			if c.height > 0 && (v.Height != c.height || v.Width != c.height*16/9/2*2) {
+				t.Fatalf("asked for %d lines, got %dx%d", c.height, v.Width, v.Height)
 			}
 			// It really decodes, to a picture that isn't all one colour.
 			check := exec.Command(tools.FFmpeg, "-hide_banner", "-nostdin", "-loglevel", "error", "-i", out, "-frames:v", "5", "-vf", "signalstats,metadata=print:file=-", "-f", "null", "-")

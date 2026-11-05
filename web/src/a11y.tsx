@@ -19,7 +19,7 @@ const visible = (e: Element) => (e as HTMLElement).offsetParent !== null || getC
 //   Tab stays inside while it is open;
 // - Escape closes it (by its backdrop, as clicking outside does), unless
 //   the dialog handled Escape itself;
-// - when it closes, focus goes back to what opened it.
+// - when it closes, focus goes back to what opened it, even inside another dialog.
 export function useDialogs() {
   useEffect(() => {
     const opened = new Map<Element, HTMLElement | null>()
@@ -51,7 +51,10 @@ export function useDialogs() {
       for (const [d, back] of opened) {
         if (d.isConnected && d.matches(DIALOGS)) continue
         opened.delete(d)
-        if (back?.isConnected && !top()) back.focus({ preventScroll: true })
+        // Back to what opened it: on the page, or in the dialog underneath (a picker
+        // stacked over the edit dialog returns to its Change button).
+        const under = top()
+        if (back?.isConnected && (!under || under.contains(back))) back.focus({ preventScroll: true })
       }
     }
     const mo = new MutationObserver(sweep)

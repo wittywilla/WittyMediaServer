@@ -100,6 +100,8 @@ func SourceLabel(src string) string {
 		return "Beside the file"
 	case SourceFrame:
 		return "From the video"
+	case SourceMade:
+		return "Made from its title"
 	case SourceProbe:
 		return "The file itself"
 	case SourceSaved:
@@ -1167,9 +1169,9 @@ func (s *Scanner) RemoveMatch(ctx context.Context, t *Title, user string) (strin
 	t.Meta.Suggestions, t.Meta.SuggestedAt = nil, 0
 	if t.Item != nil && t.Item.Poster == "" {
 		tctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		if p, err := s.thumbnail(tctx, t.Item); err == nil {
+		if p, src, err := s.fallbackPoster(tctx, t.Item); err == nil && p != "" {
 			t.Item.Poster = p
-			t.Meta.Sources["poster"] = SourceFrame
+			t.Meta.Sources["poster"] = src
 		}
 		cancel()
 	}

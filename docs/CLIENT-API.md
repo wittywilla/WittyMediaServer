@@ -570,6 +570,15 @@ name>` to the address so the server can tell viewers apart, and send `POST /tv/{
 when leaving. A 503 means the channel is still starting: wait and ask again. Without `streamToken=1` no ticket
 is made, which is what the web player does.
 
+**Keeping to the same moment.** Every segment of a channel's playlist carries `EXT-X-PROGRAM-DATE-TIME`, the moment
+on the air it starts at, and the playlist says where players sit behind the newest segment with
+`EXT-X-SERVER-CONTROL:HOLD-BACK`. Every player on a channel that keeps to the same point by the server's clock
+shows the same moment: for a library channel (`kind: library`, made ahead of the clock) the server's time now,
+and for a tuner channel (`kind: tuner`, which arrives as it's broadcast) the server's time less three target
+durations. The hold-back starts a player at that point. `GET /time` answers `{"now": <milliseconds>}`: time a few
+requests and take the one with the shortest round trip to work out how far this device's clock is off. ExoPlayer
+(`LiveConfiguration`) and AVPlayer read the same tags.
+
 On a channel with `countProgress`, report watch progress for `now.itemId` as `positionSec` plus the seconds
 since `serverTime`, but only up to `partEnd`, when this stretch of the programme ends; a commercial break may
 follow. Ask `tune` again at `partEnd`: during a break `countProgress` is false, and after it `positionSec`
@@ -996,7 +1005,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `PUT /agents` | admin | Replace the list of agents, 20 at most. |
 | `POST /agents/test` | admin | Ask an agent about a title without changing anything. |
 | `GET /logs` | admin | What is logged, where, and the log files. |
-| `PUT /logs` | admin | Change each category's level (`levels`), each module's level and advanced options (`modules`), or the folder, or record everything for a while (`recordMinutes`). Takes effect at once, with no restart. |
+| `PUT /logs` | admin | Change each category's level (`levels`), each module's level and advanced options (`modules`), or the folder, or record everything for a while (`recordMinutes`), or keep the last 10 minutes in memory (`flight`) and Go's execution trace of the last seconds (`trace`). Takes effect at once, with no restart. |
 | `GET /logs/files/{name}` | admin | Download one log file. |
 | `POST /logs/open` | admin | Open the log folder on the server's own screen. |
 | `POST /logs/client` | user | Report errors from a client: `{app, version, device, events: [{level, kind, message, stack, page, session, request, count, time}]}`. `session` is the stream, disc or game session in play, and `request` the `X-Request-Id` of a failed request. 64 KB and 25 events a request, 60 events a minute per account; 429 past that. 204 when stored, or when the owner turned app errors off. |
@@ -1006,6 +1015,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `GET /logs/crashes/{id}` | admin | One crash report's text. |
 | `DELETE /logs/crashes/{id}` | admin | Delete a crash report. |
 | `POST /logs/crashes/{id}/seen` | admin | Stop pointing this report out. |
+| `GET /logs/crashes/{id}/{part}` | admin | What was kept beside a report, listed in its `parts`: `flight.log` (the last 10 minutes at the most detailed level), `goroutines.txt` (every goroutine's stack) or `trace` (an execution trace for `go tool trace`). |
+| `POST /logs/save` | admin | Save what just happened: `{note}` is optional. Writes a report of kind `saved` with those three parts beside it, and returns it. |
 | `GET /logs/bundle` | admin | The logs as a zip, made on request: `days`, and `sanitize`, on unless it's `0`, which replaces names, addresses, titles and paths with placeholders (`redact` is its earlier name). Nothing is uploaded anywhere. |
 | `GET /logs/bundle/preview` | admin | What that zip would hold, with the same `days` and `sanitize`: `{parts, total, sample, sanitize, days, scanned, replaced, changed}`. `replaced` counts the places changed by kind, in the newest lines; `changed` is a few lines before and after. |
 | `GET /diagnose/targets` | admin | WittyDiagnoser: the libraries, data folders and known discs that can be checked. |
@@ -1190,7 +1201,9 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `POST /meta/{target}/{id}/suggest` | Admin | Search for a title and keep the best results. |
 | `POST /meta/{target}/{id}/leave` | Admin | It has no match, or is right as it is: stop asking. |
 | `GET /meta/{target}/{id}/artwork` | Admin | Every picture every source has for a title. |
-| `PUT /meta/{target}/{id}/art/{kind}` | Admin | Upload a poster, backdrop, banner or logo. The picture is the body. |
+| `PUT /meta/{target}/{id}/art/{kind}` | Admin | Upload a poster, backdrop, banner or logo. The picture is the body. It's decoded and written again from its pixels. With `?stage=1` it's only kept, and the answer is `{url}` to apply later with `PUT /meta/{target}/{id}`. |
+| `POST /meta/{target}/{id}/frame` | Admin | A frame from the video (items only), kept in the image cache: `{url}`. Nothing changes until it's applied. |
+| `POST /meta/{target}/{id}/titleposter` | Admin | A poster made from words: `{title, line, hue, frame}` (`hue` 0 to 359, or left out for the title's own colour; `frame: true` sets the words over a frame from the video). Answers `{url}`. Nothing changes until it's applied. A poster made here is the owner's choice once applied; one the scan makes for a title with no poster (setting `noPoster`) is named `cache:auto-…` and replaced by any real poster. |
 | `GET /meta/{target}/{id}/art/{kind}` | Signed in | A title's banner or logo. |
 | `POST /meta/{target}/{id}/link` | Admin | Make an item a bonus feature or another version of something. |
 | `DELETE /meta/{target}/{id}/link` | Admin | Make an attached item a title of its own again. |
@@ -1273,7 +1286,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /music/extras/{id}/file` | user | One of those, by the `name` the list gave. |
 | `GET /music/artist` | user | An artist's page: albums, songs, and a biography if online information is on: `library`, `name`. |
 | `GET /music/artist-photo` | user | An artist's picture, or a cover of theirs: `library`, `name`. |
-| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. For a music video tied to a song, the song's lyrics, with `songId`, and `startMs` (where the song starts in the video) as the starting `offsetMs`. |
+| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. For a music video tied to a song, the song's lyrics, with `songId`, and `startMs` (where the song starts in the video) as the starting `offsetMs`. One song is looked up at a time: `retry: true` with `failed` says another song's look-up is under way, so ask again in a few seconds. A source that couldn't be reached is left alone for 15 minutes, and `failed` says so; `again=1` asks it anyway. Give the request up (close it) when the listener moves on. |
 | `PUT /music/lyrics/{id}/offset` | user | This person's timing correction: `{offsetMs}`, up to two minutes either way of where it starts. A music video's is its own. |
 | `POST /music/lyrics/{id}/search` | admin | Online lyrics to choose from: `{q}`. |
 | `PUT /music/lyrics/{id}` | admin | Corrects a song's lyrics on this server: `{text}`, `{instrumental}` or `{provider, id}`. |
@@ -1329,6 +1342,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
 | `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |
 | `POST /tv/{key}/leave` | user | This viewer has gone: `viewer`. |
+| `GET /time` | user | The server's clock, `{"now": <milliseconds>}`, for keeping to the same moment on a channel. See "Live channels". |
 | `GET /tv/{key}/logo` | user | A tuner channel's logo, fetched and kept by the server, so the site a playlist names never sees the viewer. The `logo` in `/guide` and `/tune` is this address. |
 | `GET /tv/settings` | admin | TV settings. |
 | `PUT /tv/settings` | admin | Put TV settings. |
@@ -1368,11 +1382,13 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /tuners/discover` | admin | Tuner discover. |
 | `GET /tuners` | admin | Tuners. |
 | `POST /tuners` | admin | Create tuner. |
+| `POST /tuners/check` | admin | Check tuner: what a source says before it's saved. Answers `{ok, result}` or `{ok: false, problem: {kind, message, hint}}`, and keeps nothing. |
 | `PUT /tuners/{id}` | admin | Update tuner. |
 | `DELETE /tuners/{id}` | admin | Delete tuner. |
 | `POST /tuners/{id}/refresh` | admin | Refresh tuner. |
 | `POST /tuners/{id}/scan` | admin | Scan tuner. |
 | `GET /tuners/{id}/scan` | admin | Scan progress2. |
+| `POST /tuners/{id}/test` | admin | Test tuner: tunes one channel (`{channel}`, or 0 to let it choose) for a few seconds, as a viewer would. Encrypted channels are refused as everywhere else. |
 | `GET /tuners/{id}/channels` | admin | Tuner channels. |
 | `POST /tuners/{id}/channels/enable` | admin | Enable all channels. |
 | `PUT /tuner-channels/{id}` | admin | Edit tuner channel. `logo` is `""` to find it by name, `none`, or `kind\|name` in the logo service. |

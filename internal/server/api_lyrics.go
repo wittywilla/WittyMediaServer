@@ -19,6 +19,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/libtranscode/tdarr"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/lyrics"
 )
 
@@ -78,6 +79,7 @@ type lyricsReply struct {
 	CanEdit      bool          `json:"canEdit"` // this person may correct them for everyone
 	Tried        bool          `json:"tried"`   // online was asked and had nothing
 	Failed       string        `json:"failed,omitempty"`
+	Retry        bool          `json:"retry,omitempty"` // busy with another song: ask again in a moment
 }
 
 var lyricsNames = map[string][2]string{
@@ -247,11 +249,11 @@ var lyricsPublicBase = lyrics.LRCLIBHome
 // a cloud host's own secrets are, are no place for a lyrics server.
 var lyricsMirrorClient = &http.Client{
 	Timeout: 12 * time.Second,
-	Transport: &http.Transport{
+	Transport: logging.Calls(&http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
 		DialContext:         (&net.Dialer{Timeout: 10 * time.Second, Control: lyricsMirrorAddress}).DialContext,
 		TLSHandshakeTimeout: 10 * time.Second,
-	},
+	}, "library", "lyrics mirror"),
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 3 || req.URL.Host != via[0].URL.Host {
 			return errors.New("a lyrics server's redirect left its own address")
@@ -275,6 +277,19 @@ func lyricsMirrorAddress(_, address string, _ syscall.RawConn) error {
 // One look-up at a time for the whole server: a listener skipping through an album
 // shouldn't hammer a free service.
 var lyricsAskSlot = make(chan struct{}, 1)
+
+// How long a request waits for its turn, and how long one look-up may take in all,
+// whichever sources it asks. A request that can't have its turn soon says so and is
+// asked again: every request waiting its turn holds one of the six connections a
+// browser has to a server, and with all six waiting the whole page stops (issue #17).
+// Variables for tests.
+var (
+	lyricsTurnWait = 500 * time.Millisecond
+	lyricsBudget   = 20 * time.Second
+)
+
+// errLyricsBusy: another song's look-up is under way.
+var errLyricsBusy = errors.New("still looking up another song's lyrics: try again in a moment")
 
 // One look-up per track, however many people ask at once.
 var lyricsAsking sync.Map
@@ -319,15 +334,21 @@ func (s *Server) askOnline(ctx context.Context, it *library.Item, again bool) (*
 		return nil, nil
 	}
 	if _, busy := lyricsAsking.LoadOrStore(it.ID, true); busy {
-		return nil, errors.New("still looking")
+		return nil, errLyricsBusy // this song, for someone else: its answer will be kept
 	}
 	defer lyricsAsking.Delete(it.ID)
+	turn := time.NewTimer(lyricsTurnWait)
+	defer turn.Stop()
 	select {
 	case lyricsAskSlot <- struct{}{}:
 		defer func() { <-lyricsAskSlot }()
+	case <-turn.C:
+		return nil, errLyricsBusy
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
+	ctx, cancel := context.WithTimeout(ctx, lyricsBudget)
+	defer cancel()
 	var failed error
 	for _, src := range sources {
 		key := lyricsSourceKey(src)
@@ -337,8 +358,13 @@ func (s *Server) askOnline(ctx context.Context, it *library.Item, again bool) (*
 		}
 		f, err := src.Get(ctx, lyricsQuery(it))
 		if err != nil {
-			if ctx.Err() != nil {
+			if errors.Is(ctx.Err(), context.Canceled) {
 				return nil, ctx.Err() // the listener moved on: not the source's fault
+			}
+			if ctx.Err() != nil { // the look-up's time ran out on this source
+				s.lyricsDown.Store(key, time.Now())
+				failed = errors.New("the lyrics sources took too long to answer")
+				break
 			}
 			if !errors.Is(err, lyrics.ErrNotFound) {
 				failed = err
@@ -465,6 +491,7 @@ func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
 		fresh, err := s.askOnline(ctx, it, qBool(r, "again"))
 		if err != nil {
 			out.Failed = err.Error()
+			out.Retry = errors.Is(err, errLyricsBusy)
 		} else if fresh != nil {
 			saved = fresh
 		}

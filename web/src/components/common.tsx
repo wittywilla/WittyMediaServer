@@ -14,7 +14,8 @@ export function BackLink({ to, label }: { to: string; label: string }) {
   return <Link to={to} className="back-link"><IconLeft size={18} /><span>{label}</span></Link>
 }
 
-export const isGeneratedArt = (it: Item) => it.poster.startsWith('cache:thumb-')
+// A frame from the video as a poster, the scan's or one chosen in the artwork picker: shown whole.
+export const isGeneratedArt = (it: Item) => it.poster.startsWith('cache:thumb-') || it.poster.startsWith('cache:frame-')
 
 // A colour of its own for something without a real poster: worked out from its
 // title, so it never changes.

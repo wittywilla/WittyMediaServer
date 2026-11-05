@@ -61,9 +61,21 @@ When you need to see everything for a short while:
 4. It stops by itself, or press **Stop now**. Your usual settings aren't changed.
 5. [Download the logs](#downloading-logs-to-share).
 
+## When something has just gone wrong
+
+The server keeps the last 10 minutes of everything it says, at the most detailed level, in memory only. If something has just gone wrong (the music stopped, a page won't load, the server seems stuck), press **Save what just happened** at the top of any WittyLog tab, as soon as you can. It writes those minutes down, with what every part of the server is waiting for, as a report on the **Crash reports** tab and in the logs you download.
+
+It does the same by itself when:
+
+- **the server stops answering.** It asks itself every two seconds whether its web address and its database answer. After 10 seconds without an answer it writes a report, and again 30 seconds later, to tell stuck from slow. The log says `the server stopped answering`, then `the server is answering again`.
+- **the server is stopped while it isn't answering**, from the tray or the service, which is what someone does when it seems to have crashed.
+- **part of the server crashes** and it carries on.
+
+Both are on the **What to log** tab, under **Keep the last minutes**: the last 10 minutes (up to 16 MB of memory), and Go's execution trace of the last seconds (for a developer, with `go tool trace`; it costs a little speed). Turning either off forgets what it held. The newest five reports keep these files beside them.
+
 ## Crash reports
 
-If the server stopped unexpectedly, or part of it crashed and it carried on, a banner at the top of WittyLog says so, and the **Crash reports** tab has each report to read, download or delete. They're kept in the `crash` folder inside the data folder.
+If the server stopped unexpectedly, stopped answering, or part of it crashed and it carried on, a banner at the top of WittyLog says so, and the **Crash reports** tab has each report to read, download or delete, with the files kept beside it. They're kept in the `crash` folder inside the data folder.
 
 ## Downloading logs to share
 
@@ -322,6 +334,18 @@ Clients report to `POST /api/logs/client` ([Client API](CLIENT-API.md)), signed 
 - What each client's log must hide is tested from one list: `shared/data/redaction-cases.json` in that repository.
 
 A client must never let reporting cause more errors: no retries in a loop, and a report that fails is dropped.
+
+### Calls to other places
+
+Every outgoing call goes through **`logging.Calls(transport, cat, source)`**: `library.SafeClient` already does, and so do updates and modules. It logs the host and path (never the query, which can hold a key), the status, the time to the first answer and the time in all, and the bytes. A fast answer is a Debug line, one slower than 2 seconds is Info, and a failure, a 5xx or one slower than 10 seconds is Warn. While it waits, the call is listed by `logging.InFlight`, which a hang's report includes. A new `http.Client` for the internet should start from `library.SafeTransport()` and wrap it the same way. For anything else slow that a hang's report should name, `end := logging.Begin("kind", "what")` and `defer end()`.
+
+### The flight recorder and the watchdog
+
+- **The flight recorder** (`flight.go`) keeps every line from Debug up for 10 minutes, whatever the levels say, up to 16 MB, and at most 2,000 a second of lines no file wants; past that they're only counted. Such a line costs a couple of microseconds; past the limit, about as much as a quiet line. Web requests reach it too (`logRequest`). Go's execution trace is kept beside it with `runtime/trace.FlightRecorder`.
+- **The watchdog** (`hang.go`) runs `Server.WatchChecks`: `GET /api/health` on its own address, and `SELECT 1`. After 10 seconds failing it writes a `hang` report: the goroutines grouped by where they wait, the calls in flight, the flight recorder and the trace. `logging.NoteStopping()` at the start of a shutdown does the same if the server isn't answering, or stopped answering in the last 10 minutes.
+- **`logging.SaveEvidence(kind, summary, details)`** is what all of them use, and what `POST /api/logs/save` calls.
+
+A hang shows up as a pile of goroutines waiting in one place: the report's first lines name it (`57 in server.(*Server).askOnline`). Nothing slow (a network call, a child process, a disk scan) may run while holding something every request needs: a lock, a database transaction, a shared slot. If it must wait for a turn, it waits briefly and says it's busy.
 
 ### Crash reports and the startup summary
 

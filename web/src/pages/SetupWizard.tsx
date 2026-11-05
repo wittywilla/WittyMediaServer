@@ -13,6 +13,7 @@ import { Discs } from './setup/Discs'
 import { Done } from './setup/Done'
 import { Games } from './setup/Games'
 import { Listings } from './setup/Listings'
+import { Tv } from './setup/Tv'
 import { Logos } from './setup/Logos'
 import { Look } from './setup/Look'
 import { Media } from './setup/Media'
@@ -119,6 +120,7 @@ export default function SetupWizard() {
           {step.id === 'logos' && <Logos {...props} />}
           {step.id === 'music' && <Music {...props} />}
           {step.id === 'listings' && <Listings {...props} />}
+          {step.id === 'tv' && <Tv {...props} />}
           {step.id === 'look' && <Look {...props} />}
           {step.id === 'done' && <Done steps={steps} onFinish={finish} />}
         </main>

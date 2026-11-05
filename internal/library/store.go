@@ -648,7 +648,7 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	}
 	if q.HasArt {
 		// Not games: their backdrops are small in-game pictures, and the hero's button plays video.
-		where = append(where, "(IFNULL(i.backdrop, '') <> '' OR i.poster LIKE 'cache:thumb-%') AND i.kind <> 'game'")
+		where = append(where, "(IFNULL(i.backdrop, '') <> '' OR i.poster LIKE 'cache:thumb-%' OR i.poster LIKE 'cache:frame-%') AND i.kind <> 'game'")
 	}
 	if q.ShowID != 0 {
 		where = append(where, "i.show_id = ?")

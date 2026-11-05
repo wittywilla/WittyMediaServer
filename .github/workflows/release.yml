@@ -116,8 +116,16 @@ jobs:
           path: |
             dist/*.zip
             dist/*.tar.gz
+            !dist/*-darwin-*.tar.gz
             dist/*.deb
             dist/*.rpm
+      # The Mac apps can't be signed here: installers-macos signs them and publishes these
+      # archives as archives-darwin.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: archives-darwin-unsigned
+          path: dist/*-darwin-*.tar.gz
+          if-no-files-found: error
 
   # The installers that need their own system's tools, from the same files.
   installers-windows:
@@ -188,18 +196,31 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+          cache: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: archives
+          name: archives-darwin-unsigned
           path: dist
-      - name: Build the .pkg files
+      - name: Sign the apps, pack the archives again and build the .pkg files
         run: |
           VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
-          mkdir stage
+          mkdir stage signed
           for a in arm64 amd64; do
-            tar -xzf "dist/wittymediaserver-$VERSION-darwin-$a.tar.gz" -C stage
-            packaging/macos/build-pkg.sh "$VERSION" "stage/wittymediaserver-$VERSION-darwin-$a" "$a" installers
+            name="wittymediaserver-$VERSION-darwin-$a"
+            tar -xzf "dist/$name.tar.gz" -C stage
+            # Unsigned, macOS's Local Network privacy keeps the server off the network.
+            packaging/macos/sign-app.sh "stage/$name"
+            go run ./scripts/pack "stage/$name" "signed/$name.tar.gz"
+            packaging/macos/build-pkg.sh "$VERSION" "stage/$name" "$a" installers
           done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: archives-darwin
+          path: signed/*.tar.gz
+          if-no-files-found: error
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: installers-macos
@@ -255,6 +276,10 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: archives
+          path: all
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: archives-darwin
           path: all
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -333,6 +358,10 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: archives
+          path: dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: archives-darwin
           path: dist
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:

@@ -309,3 +309,34 @@ func benchQuery(b *testing.B, sdb *sql.DB) {
 		}
 	}
 }
+
+// Measuring builds count every statement through Trace: queries when their rows close,
+// and statements that change something when they've run.
+func TestTraceSeesQueriesAndChanges(t *testing.T) {
+	d, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	var mu sync.Mutex
+	seen := map[string]int{}
+	Trace = func(q string, took time.Duration) {
+		mu.Lock()
+		seen[q]++
+		mu.Unlock()
+	}
+	defer func() { Trace = nil }()
+	ctx := context.Background()
+	const set = `INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+	if err := d.SetSetting(ctx, "traced", "1"); err != nil {
+		t.Fatal(err)
+	}
+	if v := d.GetSetting(ctx, "traced", ""); v != "1" {
+		t.Fatalf("%q", v)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if seen[set] != 1 || seen[`SELECT value FROM settings WHERE key = ?`] != 1 {
+		t.Errorf("%v", seen)
+	}
+}

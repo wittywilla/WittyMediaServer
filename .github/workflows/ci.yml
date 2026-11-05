@@ -52,7 +52,7 @@ jobs:
       - run: cd web && npm ci --ignore-scripts --no-audit --no-fund && npx tsc --noEmit -p . && npm run build
       - name: Theme contrast, design tokens and design rules
         run: python3 scripts/theme-contrast.py && python3 scripts/design-tokens.py --check && python3 scripts/design-check.py
-      - run: node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/themeMaker.test.mjs web/src/shell/navModel.test.mjs web/src/safeLink.test.mjs web/src/pages/setup/plan.test.mjs web/src/pages/tv/tvThemes.test.mjs web/src/pages/settings/searchIndex.test.mjs web/src/pages/photos/mapMath.test.mjs web/src/brandName.test.mjs
+      - run: node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/themeMaker.test.mjs web/src/shell/navModel.test.mjs web/src/safeLink.test.mjs web/src/pages/setup/plan.test.mjs web/src/pages/tv/tvThemes.test.mjs web/src/pages/settings/searchIndex.test.mjs web/src/pages/photos/mapMath.test.mjs web/src/player/sync.test.mjs web/src/player/viewPrefs.test.mjs web/src/brandName.test.mjs
       - name: gofmt
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...

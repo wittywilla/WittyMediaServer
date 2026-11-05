@@ -265,7 +265,7 @@ func applyEpisodeMeta(it *Item, provider string, eps map[[2]int]EpisodeMeta, kee
 	if e.Aired != "" {
 		it.Aired = e.Aired
 	}
-	if (it.Poster == "" || isRemote(it.Poster) || strings.HasPrefix(it.Poster, "cache:thumb-")) && e.Image != "" {
+	if (it.Poster == "" || isRemote(it.Poster) || IsMadePoster(it.Poster)) && e.Image != "" {
 		it.Poster = e.Image
 	}
 	if it.RuntimeSec == 0 && e.RuntimeMin > 0 {

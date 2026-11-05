@@ -227,10 +227,9 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	if v != nil && (v.FieldOrder == "tt" || v.FieldOrder == "bb" || v.FieldOrder == "tb" || v.FieldOrder == "bt") {
 		vf = "bwdif=mode=send_frame:parity=auto:deint=interlaced"
 	}
-	if d.ToneMap {
-		if tm := s.Tools.ToneMapFilter(src.Range); tm != "" {
-			vf = strings.Trim(vf+","+tm, ",")
-		}
+	toneMap := ""
+	if d.ToneMap && s.Tools.ToneMapFilter(src.Range) != "" {
+		toneMap = src.Range
 	}
 	channels := 2
 	if info.AudioIndex < len(info.Audio) && info.Audio[info.AudioIndex].Channels > 2 && qBool(r, "surround") && q.CapRate == "" {
@@ -255,10 +254,14 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	if info.DurationSec <= 0 {
 		info.DurationSec = it.RuntimeSec // a bare stream doesn't say; the scan worked it out
 	}
-	s.HLS.Ensure(hls.Spec{
-		ID: hid, ItemID: it.ID, InputArgs: inputArgs, Source: it.Path, Duration: info.DurationSec, SeekMargin: pr.SeekMargin(), VideoFilter: vf, VideoIndex: pr.VideoIndex(), NoVideo: v == nil,
+	spec := hls.Spec{
+		ID: hid, ItemID: it.ID, InputArgs: inputArgs, Source: it.Path, Duration: info.DurationSec, SeekMargin: pr.SeekMargin(), VideoFilter: vf, ToneMap: toneMap, VideoIndex: pr.VideoIndex(), NoVideo: v == nil,
 		AudioIndex: audioIdx, AudioChannels: channels, SubtitleIndex: info.SubIndex, SubtitleText: s.textBurn(info.SubIndex, pr), Quality: q, MaxHeight: maxHeight, AudioCodec: s.audioCodec(r),
-	})
+	}
+	if v != nil {
+		spec.Height = min(v.Width, v.Height)
+	}
+	s.HLS.Ensure(spec)
 	info.Type = "hls"
 	info.URL = "/api/hls/" + hid + "/playlist.m3u8"
 	reason := "browser cannot play the file as is"

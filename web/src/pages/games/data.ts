@@ -61,6 +61,8 @@ export type GameLinks = {
   item: (id: number) => string
   library: (lib: number, query?: string) => string
   play: (id: number, query?: string) => string
+  // Where a controller's X goes to search, in couch mode and TV mode.
+  search?: string
 }
 const plain: GameLinks = {
   couch: false,

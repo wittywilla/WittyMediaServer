@@ -25,7 +25,7 @@ export const ENTRIES: Entry[] = [
   { page: 'appearance', title: 'Layout', section: 'Layout', words: 'navigation side menu top bar sidebar' },
   { page: 'appearance', title: 'Arrange the menu', at: 'navigation', words: 'reorder hide show menu items libraries group watch listen read play more menu folded' },
   { page: 'appearance', title: 'Moving posters', section: 'Motion and big screens', words: 'tilt animation motion' },
-  { page: 'appearance', title: 'Big screen mode', section: 'Motion and big screens', words: 'tv television ten foot larger text bigger focus outline sofa remote' },
+  { page: 'appearance', title: 'TV mode', section: 'Motion and big screens', words: 'tv television apple android big screen picture ten foot larger text bigger focus outline sofa remote controller gamepad couch' },
   { page: 'appearance', title: 'WittyTV look', section: 'WittyTV', words: 'tv guide theme classic satellite teletext newspaper big picture outline compact modern custom live tv' },
   { page: 'appearance', title: 'WittyTV colours', section: 'WittyTV', words: 'tv guide background programmes on now highlight accent text' },
   { page: 'appearance', title: 'TV guide preview, rows and hours', section: 'WittyTV', words: 'preview size side row size compact large hours now line progress logos episode names' },

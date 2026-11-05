@@ -35,6 +35,8 @@ const (
 	CmdQuit      byte = 71 // one byte: 1 sends a save state first; battery save is always sent
 	CmdDisc      byte = 72 // one byte: the disc to change to, from 0
 	CmdPointer   byte = 73 // PointerSize bytes: a touch screen or mouse
+	CmdTouches   byte = 74 // TouchesMark, a count, then TouchSize bytes a finger: every finger on a touch screen
+	CmdMotion    byte = 75 // MotionSize bytes: one player's accelerometer and gyroscope
 	CmdDevice    byte = 80 // DeviceSize bytes: plug a kind of controller into a port
 	CmdControl   byte = 96 // JSON: Control; how the game runs
 	CmdOption    byte = 97 // JSON: OptionSet; a core option, only ever one the core offered
@@ -124,6 +126,13 @@ type Event struct {
 	Rate     float64 `json:"rate,omitempty"`
 	Index    int     `json:"index,omitempty"`
 	Count    int     `json:"count,omitempty"`
+	// For "motion": whether the game wants this player's accelerometer and gyroscope now, and
+	// how often; Offered says the core can read motion at all. For "led": the light's State.
+	Accel   bool `json:"accel,omitempty"`
+	Gyro    bool `json:"gyro,omitempty"`
+	Hz      int  `json:"hz,omitempty"`
+	Offered bool `json:"offered,omitempty"`
+	State   int  `json:"state,omitempty"`
 	// Options is every option the core offers, for "options".
 	Options []Option `json:"options,omitempty"`
 	// Stats comes once a second while a game runs, for "stats".
@@ -264,6 +273,29 @@ const (
 	PointerMark = 0xFF
 )
 
+// Touches: several fingers at once. TouchesMark, a count up to MaxTouches, then for each
+// finger an id of the client's choosing, flags (bit 0: pressed), X and Y as a pointer has them.
+const (
+	TouchesMark = 0xFE
+	TouchSize   = 6
+	MaxTouches  = 10
+)
+
+// Touch is one finger.
+type Touch struct {
+	ID      byte
+	Pressed bool
+	X, Y    int16
+}
+
+// Motion: MotionMark, the player, then the accelerometer's X, Y and Z in 1/4096 g and the
+// gyroscope's X, Y and Z in 1/16 of a degree a second, each an i16. Axes are a device's own,
+// held as the console's controller: X to the right, Y up, Z towards the player.
+const (
+	MotionMark = 0xE1
+	MotionSize = 14
+)
+
 // Probe is what a core says about itself when test-loaded. It comes from code
 // nobody has vouched for, so the server cleans it before showing it to anyone.
 type Probe struct {
@@ -319,6 +351,17 @@ func ParseInput(p []byte) (int, uint16, int16, int16, int16, int16, bool) {
 	return r0, r1, r2, r3, r4, r5, r6
 }
 
+// ParseMotion reads one player's motion, in the units libretro's cores take: metres a second
+// squared and radians a second, as RetroArch passes on a phone's sensors.
+func ParseMotion(p []byte) (int, [3]float32, [3]float32, bool) {
+	var r0 int
+	var r1 [3]float32
+	var r2 [3]float32
+	var r3 bool
+	_ = service.Call(context.Background(), "wittyplay", "ipc.ParseMotion", nil, nil, []any{p}, []any{&r0, &r1, &r2, &r3})
+	return r0, r1, r2, r3
+}
+
 // ParsePointer reads a touch screen or mouse state.
 func ParsePointer(p []byte) (int16, int16, bool, bool) {
 	var r0 int16
@@ -327,6 +370,14 @@ func ParsePointer(p []byte) (int16, int16, bool, bool) {
 	var r3 bool
 	_ = service.Call(context.Background(), "wittyplay", "ipc.ParsePointer", nil, nil, []any{p}, []any{&r0, &r1, &r2, &r3})
 	return r0, r1, r2, r3
+}
+
+// ParseTouches reads every finger on a touch screen. The list may be empty: nothing touching.
+func ParseTouches(p []byte) ([]Touch, bool) {
+	var r0 []Touch
+	var r1 bool
+	_ = service.Call(context.Background(), "wittyplay", "ipc.ParseTouches", nil, nil, []any{p}, []any{&r0, &r1})
+	return r0, r1
 }
 
 // ParseTriggers reads the analog triggers of a state, which are 0 when it has none.

@@ -110,7 +110,7 @@ export declare class InputManager {
     private forgetGone;
     private flush;
     private press;
-    rumble(port: number, strength: number, effect?: number): void;
+    rumble(port: number, strength: number, effect?: number, ms?: number): void;
     private applyRumble;
     private stopRumble;
     testRumble(index: number): void;

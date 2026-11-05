@@ -28,6 +28,9 @@ export type PlayEvent = {
     count?: number;
     code?: string;
     seats?: Seat[];
+    ms?: number;
+    motor?: string;
+    state?: number;
 };
 export type Hello = {
     v: 2;

@@ -133,7 +133,7 @@ Everything a client says about itself, in one JSON object. It's the same over bo
 | `watch` | `false` for a controller with no picture or sound, such as a phone held as a pad beside a TV. Default `true` |
 | `video` | Codecs this device decodes in hardware, best first: `h264`, `vp8`, and for later `hevc`, `av1`. Over WebRTC the offer decides, and this breaks ties. Over the WebSocket, `h264`, else JPEG |
 | `audio` | `opus` and/or `pcm`, best first. WebRTC is always Opus. Over the WebSocket, leave out `opus` if you can't decode it |
-| `seats` | The players this device controls, 0 to 3, as below. Left out: version 1's way, any player nobody has taken |
+| `seats` | The players this device controls, 0 to 7, as below. Left out: version 1's way, any player nobody has taken |
 | `display.hz` | The screen's refresh rate, as exactly as you know it (59.94, 60, 50, 120). The server may run the game at it, below |
 | `display.width`, `height` | The screen's size in pixels. For the log, and later for choosing a picture size |
 | `latency` | `auto`, `fastest`, `balanced` or `steady`, as `emulation.latency` in [the games API](GAMING-API.md#settings) |
@@ -181,7 +181,8 @@ What the server says back, in the answer and as the first event:
   "type": "stream", "v": 2, "conn": "k3", "transport": "webrtc",
   "video": "h264", "audio": "opus",
   "width": 512, "height": 448, "aspect": 1.3333, "fps": 60.0988, "rate": 48000, "turns": 0,
-  "ports": 4, "motion": false, "pace": 60,
+  "ports": 4, "motion": true, "motionOn": [{"port": 0, "accel": true, "gyro": true, "hz": 60}],
+  "leds": [{"index": 0, "state": 1}], "pace": 60,
   "seats": [{"port": 0, "conn": "k3", "name": "Living room", "you": true}],
   "kbps": 5800, "away": false
 }
@@ -195,8 +196,10 @@ What the server says back, in the answer and as the first event:
 | `width`, `height` | The encoded picture. It's often doubled: show it at `aspect`, not at its own shape |
 | `aspect`, `fps`, `turns` | As in the session. `fps` is the console's own rate, such as 60.0988 or 50.007 |
 | `rate` | The sound's sample rate: 48000 for Opus, the console's own for PCM |
-| `ports` | How many players this game takes input for |
-| `motion` | Whether the game reads motion, below. `false` for every core today |
+| `ports` | How many players this game takes input for: 4, or up to 8 where the core describes more ports (a multitap) |
+| `motion` | Whether the core can read motion at all, below |
+| `motionOn` | The players whose motion it wants now, and how often. Send motion for these, if you hold them |
+| `leds` | The game's lights as they are now, below |
 | `pace` | The refresh rate the game is running at, when it's been matched to a screen (below), or `0` |
 | `seats` | Who has which player, below |
 | `kbps` | What the video starts at |
@@ -204,8 +207,9 @@ What the server says back, in the answer and as the first event:
 
 ### Seats: several players on several devices
 
-A game has 4 players (`ports`). Each device can hold some of them:
+A game has up to 8 players (`ports`). Each device can hold some of them:
 
+- Players are 0 to 7; the stream's `ports` says how many this game has.
 - A hello with `"seats": [1]` takes player 2 for this device. To change, send `{"type": "seats", "ports": [0, 1]}`. Add
   `"take": true` to take a player another device has; otherwise that one is refused with an `error`. A device that
   connects again with the same `device` id gets its own players back.
@@ -226,7 +230,7 @@ Binary messages, little-endian, on `input` or the WebSocket. The first byte says
 
 | Bytes | Field | Meaning |
 |---|---|---|
-| 0 | port | The player, 0 to 3 |
+| 0 | port | The player, 0 to 7 |
 | 1-2 | buttons | u16, a bit per RetroPad button, below |
 | 3-4, 5-6 | left stick | X, Y: i16, -32768 to 32767, with up negative |
 | 7-8, 9-10 | right stick | X, Y |
@@ -257,20 +261,60 @@ which bit comes from [the controller as data](GAMING-API.md#the-controller-as-da
 | 2-3 | X | i16, -32767 at the picture's left edge to 32767 at its right |
 | 4-5 | Y | i16, -32767 at the top to 32767 at the bottom |
 
-Send it when anything changes, every 250 ms while pressed, and a release three times.
+Send it when anything changes, every 250 ms while pressed, and a release three times. It's one finger; for several, use:
 
-**Motion:** 14 bytes. Send it only when the stream says `"motion": true`, at up to 60 a second while it changes:
+**Touches,** several fingers at once: 2 bytes, then 6 for each finger, up to 10.
+
+| Bytes | Field | Meaning |
+|---|---|---|
+| 0 | mark | 0xFE |
+| 1 | count | How many fingers follow, 0 to 10 |
+| then, for each finger: | | |
+| +0 | id | Yours to choose, so a finger keeps its place in the list while it moves |
+| +1 | flags | Bit 0: pressed |
+| +2-3, +4-5 | X, Y | i16, across the whole picture, as for one touch |
+
+Send the whole list when anything changes, and every 250 ms while a finger is down. When the last one lifts, send an empty
+list (count 0) three times. The core sees the fingers that are pressed, in the list's order: libretro's pointer 0 is the
+first, and its count is how many. The touch screen is the first player's, so either message needs player 0 (seats).
+
+**Motion:** 14 bytes, for a game that reads a controller's or a phone's movement:
 
 | Bytes | Field | Meaning |
 |---|---|---|
 | 0 | mark | 0xE1 |
 | 1 | port | The player |
-| 2-3, 4-5, 6-7 | accelerometer | X, Y, Z: i16 in 1/4096 g (±8 g), the device held as the console's controller, X right, Y up, Z towards the player |
-| 8-9, 10-11, 12-13 | gyroscope | X, Y, Z: i16 in 1/16 degree a second (±2048), about the same axes |
+| 2-3, 4-5, 6-7 | accelerometer | X, Y, Z: i16 in 1/4096 g (±8 g), gravity included, the device held as the console's controller: X right, Y up, Z towards the player |
+| 8-9, 10-11, 12-13 | gyroscope | X, Y, Z: i16 in 1/16 degree a second (±2048), turning about the same axes, anticlockwise positive |
 
-**Rumble** comes back as an event: `{"type": "rumble", "port": 0, "effect": 0, "strength": 0 to 65535}`. `effect` 0 is the
-strong motor and 1 the weak one. Play it on that player's controller, or the device itself, unless the account's profile
-says `noRumble`.
+Send it for a player you hold while the game wants it: the stream's `motionOn`, and then a
+`{"type": "motion", "offered": true, "port": 0, "accel": true, "gyro": false, "hz": 60}` event whenever that changes
+(`"offered": true` with no `port` says only that the core can read motion). Send it `hz` times a second (60 at most), and
+stop when neither `accel` nor `gyro` is on. The core reads it through libretro's sensor interface, in metres a second
+squared and radians a second, as RetroArch gives cores a phone's sensors. A core that never asks gets nothing. Servers on
+Windows or a 32-bit system don't offer the sensor interface yet: there the stream's `motion` stays `false`.
+
+**Rumble** comes back as an event:
+
+```json
+{"type": "rumble", "port": 0, "effect": 0, "motor": "strong", "strength": 40000, "ms": 300}
+```
+
+| Field | Meaning |
+|---|---|
+| `port` | The player. Only the device holding it gets it; with nobody holding it, every device |
+| `motor` | `strong`, the heavy, low motor (the left grip on most pads), or `weak`, the light, high one (the right). `effect` is the same as libretro numbers it: 0 strong, 1 weak |
+| `strength` | 0 to 65535. 0 stops that motor at once |
+| `ms` | How long to keep that motor at that strength if nothing else comes. While it's on, the server says it again every 200 ms, so it carries on smoothly; a connection that drops stops within `ms` |
+
+Play it on that player's controller, or the device itself, unless the account's profile says `noRumble`. A paused game's
+motors stop, and start again when it carries on. libretro has no trigger motors, so neither does this.
+
+**Lights:** `{"type": "led", "index": 0, "state": 1}` when the game sets one of its lights, and the stream's `leds` lists them
+as they are. `state` is 0 for off, otherwise on, or a brightness up to 255 for a core that has one. They're the console's
+own lights (a drive light, a lamp on an arcade cabinet), through libretro's LED interface. A client shows them where it has
+a light to spare. libretro has no colour light bar: light a controller's player number, or its light bar's colour, from
+`seats`.
 
 **Timing and control,** optional, as in version 1:
 
@@ -380,7 +424,8 @@ worst network sets the rate for all; a game is usually watched on one screen, an
 ## What each platform builds
 
 **Browsers** (WittyPlay's player): done. It sends a hello through `/stream` on both transports, holds seats for the players
-its controllers are on, decodes Opus over the WebSocket with WebCodecs, and reports the screen's refresh rate.
+its controllers are on, decodes Opus over the WebSocket with WebCodecs, reports the screen's refresh rate, and keeps rumble
+to its `ms`. Not yet: several fingers, motion and lights, which browsers give pages little of.
 
 **Apple** (Apple TV, iPhone, iPad, Vision Pro):
 
@@ -391,8 +436,14 @@ its controllers are on, decodes Opus over the WebSocket with WebCodecs, and repo
 3. Keep the current `ws-h264` code as the fallback, moved to `/stream` with a hello, and decode Opus with `AVAudioConverter`
    (`kAudioFormatOpus`), falling back to PCM by leaving `opus` out. Send `delayMs` reports twice a second from the `0x11`
    timestamps, or a slow network fills with video.
-4. Rumble from the `rumble` event through Core Haptics, only for the players this device holds.
-5. On tvOS, switch the display to the game's `fps` with `AVDisplayCriteria` where the TV has it, and send a `report` with the
+4. Rumble from the `rumble` event through Core Haptics: `motor` `strong` on the controller's `.leftHandle` locality and
+   `weak` on `.rightHandle` (or both on `.default` for one motor), each for `ms` unless renewed.
+5. Motion from `GCController.motion` (gravity plus user acceleration in g, rotation rate in radians a second), or Core Motion
+   on an iPhone or iPad held as a pad, while `motionOn` lists a player this device holds.
+6. Several fingers with `0xFE` on iPhone and iPad touch play; the Siri Remote stays one pointer.
+7. `led` events and `seats` on the controller's lights: `GCController.playerIndex`, and `GCDeviceLight` for a DualSense's
+   light bar.
+8. On tvOS, switch the display to the game's `fps` with `AVDisplayCriteria` where the TV has it, and send a `report` with the
    new `hz`.
 
 **Android** (phones, tablets, Android TV):
@@ -402,8 +453,14 @@ its controllers are on, decodes Opus over the WebSocket with WebCodecs, and repo
 2. Connect as above, with the same hello. Phones with `"watch": false` can be controllers for a game on a TV.
 3. The WebSocket fallback through `/stream`, with Opus decoded by `MediaCodec` (`audio/opus`), or PCM, and `delayMs`
    reports twice a second from the `0x11` timestamps.
-4. Rumble through the controller's `VibratorManager`, or the phone's own for touch play.
-5. On Android TV, call `Surface.setFrameRate(fps, FRAME_RATE_COMPATIBILITY_FIXED_SOURCE)` and report the new `hz`.
+4. Rumble through the controller's `VibratorManager`: with two vibrators, `strong` on the first and `weak` on the second,
+   each for `ms` unless renewed; the phone's own for touch play.
+5. Motion from the controller's own sensors (`InputDevice.getSensorManager()`, Android 12 and later) or the phone's
+   `SensorManager` when it's the pad, converting m/s² and rad/s to the wire's units, while `motionOn` lists a player this
+   device holds.
+6. Several fingers with `0xFE` for touch play.
+7. `led` events and `seats` on the controller's lights (`InputDevice.getLightsManager()`, Android 12 and later).
+8. On Android TV, call `Surface.setFrameRate(fps, FRAME_RATE_COMPATIBILITY_FIXED_SOURCE)` and report the new `hz`.
 
 **Every app:** use `/play/{sid}/stream` when a mode says `"stream": 2`, and the version 1 routes otherwise. The rest of the
 game API is unchanged.
@@ -411,7 +468,8 @@ game API is unchanged.
 ## Where it lives
 
 - WittyPlay: `stream/connect.go` (the hello, the stream and seats), `stream/viewer.go` (both transports), `stream/wsv2.go` (the
-  WebSocket), `stream/feedback.go` (rate), `host/` (pacing), `web/transport.ts`, `web/arrival.ts` and `web/refresh.ts` (the
+  WebSocket), `stream/feedback.go` (rate), `stream/haptics.go` (rumble, lights, motion), `libretro/libretro.go` and
+  `libretro/sensor_*.go` (the sensor and LED interfaces, several fingers), `host/` (pacing, and carrying them to the core), `web/transport.ts`, `web/arrival.ts` and `web/refresh.ts` (the
   browser's side), `cmd/wittyplay-probe` (measuring, with `-v2`, and `-impair` on TCP as well as UDP).
 - WittyMediaServer: `internal/server/api_games.go` (the two routes, and which devices count as away), `internal/play/stream`
   (the module's interface, generated).

@@ -43,24 +43,26 @@ type Display struct {
 
 // StreamInfo is what a connection gets: in the answer, and as the first event.
 type StreamInfo struct {
-	Type      string  `json:"type"` // "stream"
-	V         int     `json:"v"`
-	Conn      string  `json:"conn"`
-	Transport string  `json:"transport"` // webrtc | websocket
-	Video     string  `json:"video"`     // h264 | vp8 | jpeg | ""
-	Audio     string  `json:"audio"`     // opus | pcm | ""
-	Width     int     `json:"width"`
-	Height    int     `json:"height"`
-	Aspect    float64 `json:"aspect"`
-	FPS       float64 `json:"fps"`
-	Rate      int     `json:"rate"`
-	Turns     int     `json:"turns"`
-	Ports     int     `json:"ports"`
-	Motion    bool    `json:"motion"`
-	Pace      float64 `json:"pace"`
-	Seats     []Seat  `json:"seats"`
-	Kbps      int     `json:"kbps"`
-	Away      bool    `json:"away"`
+	Type      string       `json:"type"` // "stream"
+	V         int          `json:"v"`
+	Conn      string       `json:"conn"`
+	Transport string       `json:"transport"` // webrtc | websocket
+	Video     string       `json:"video"`     // h264 | vp8 | jpeg | ""
+	Audio     string       `json:"audio"`     // opus | pcm | ""
+	Width     int          `json:"width"`
+	Height    int          `json:"height"`
+	Aspect    float64      `json:"aspect"`
+	FPS       float64      `json:"fps"`
+	Rate      int          `json:"rate"`
+	Turns     int          `json:"turns"`
+	Ports     int          `json:"ports"`
+	Motion    bool         `json:"motion"`
+	MotionOn  []MotionWant `json:"motionOn"`
+	LEDs      []LEDState   `json:"leds"`
+	Pace      float64      `json:"pace"`
+	Seats     []Seat       `json:"seats"`
+	Kbps      int          `json:"kbps"`
+	Away      bool         `json:"away"`
 }
 
 // Seat is one player and the device that has it.
@@ -181,6 +183,20 @@ type GPUProbe struct {
 
 // EncodeStats counts frames through the encoder.
 type EncodeStats struct {
+}
+
+// MotionWant is a player whose motion the game reads now, and how often.
+type MotionWant struct {
+	Port  int  `json:"port"`
+	Accel bool `json:"accel"`
+	Gyro  bool `json:"gyro"`
+	Hz    int  `json:"hz"`
+}
+
+// LEDState is one of the game's lights.
+type LEDState struct {
+	Index int `json:"index"`
+	State int `json:"state"`
 }
 
 // Mode is a way a client can receive a game. The server says which ones it has, so
@@ -308,8 +324,10 @@ type Info struct {
 	Notices []string `json:"notices,omitempty"`
 }
 
-// MaxPlayers is how many players a browser may drive.
-const MaxPlayers = 4
+// MaxPlayers is how many players a game takes input for: as many as a core with a multitap
+// can have, through libretro's ports: the runner's MaxPorts, which a test holds this to. The stream
+// says how many this game has.
+const MaxPlayers = 8
 
 // MaxOfferSize bounds an SDP offer; a real one is a few kilobytes.
 const MaxOfferSize = 64 << 10

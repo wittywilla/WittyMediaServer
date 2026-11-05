@@ -15,11 +15,12 @@ import './ui/ui.css'
 import './audio.css'
 import './pages/settings/settings.css'
 import { installTVInput } from './tv'
-import { installTenFoot } from './ui/tenFoot'
+import { installTvMode } from './tvmode/mode'
+import './tvmode/tvmode.css'
 import { installErrorReporter } from './errorReport'
 
 installTVInput()
-installTenFoot()
+installTvMode()
 installErrorReporter()
 
 // One route that hands everything to App's own routes. A data router is what lets a page

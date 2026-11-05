@@ -135,10 +135,10 @@ To read books that are on your server, open them in a browser: see [Books](BOOKS
 
 There are two different things here.
 
-![The big-screen view, with large cards for a TV](images/big-screen.webp)
-*The big-screen view. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+![TV mode: Home, Libraries, Games, Live TV and Search along the top, You at the right, and the libraries as large tiles](images/tv-mode.webp)
+*TV mode's Libraries.*
 
-**Big screen mode** is for the whole web app on a TV across the room. It makes text larger and the outline around the selected item stronger. Turn it on at **Settings → Appearance → Motion and big screens**. It applies to that device only. On a TV browser with no easy way to reach Settings, add `?tv=1` to the server's address.
+**TV mode** is the whole web app laid out and driven like the Apple TV and Android TV apps, for a TV across the room. Home, Libraries, Games, Live TV and Search run along the top, with You at the right; everything is large, every button is a pill, and a ring shows what's selected. It works with a TV remote, a game controller, a keyboard, and still a mouse or a touch screen. Turn it on at **Settings → Appearance → Motion and big screens**, or with **TV mode** in your account menu at the top right. It applies to that device only. On a TV browser with no easy way to reach Settings, add `?tv=1` to the server's address; `?tv=0` turns it off. To leave it, open **You** and choose **Leave TV mode**. The desktop app on a TV (`--tv`) and on Plasma Bigscreen opens in TV mode by itself.
 
 **Couch mode** is for games on a sofa. It shows only your game libraries, full screen and large, with nothing that needs a mouse. Open it with the **Couch mode** button on a games library, or go to `/big` on your server, such as `http://192.168.1.20:9797/big`. See [Games](GAMES.md).
 

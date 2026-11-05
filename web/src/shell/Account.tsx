@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { api, cornerName, profileName } from '../api'
-import { IconDownload, IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
+import { IconDownload, IconFull, IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
 import { Avatar } from '../pages/AuthPage'
 import { UpdateDot } from '../components/common'
 import { useApp } from '../state'
 import { Menu, type MenuEntry } from '../ui/Menu'
+import { setTvMode } from '../tvmode/mode'
 
 // What the account menu holds, in the top bar's corner and behind the phone's You tab.
 function useAccount() {
@@ -14,6 +15,8 @@ function useAccount() {
   const items: MenuEntry[] = [
     { key: 'year', label: 'Your year', icon: <IconStar />, to: '/review' },
     { key: 'look', label: 'Appearance', icon: <IconPalette />, to: '/settings/appearance' },
+    // The Apple TV and Android TV layout, for a screen across the room.
+    { key: 'tvmode', label: 'TV mode', icon: <IconFull />, onSelect: () => { setTvMode(true); nav('/') } },
     ...(libraries.some((l) => l.type === 'games') ? [{ key: 'pads', label: 'Controllers', icon: <IconGamepad />, to: '/controllers' }] : []),
     { key: 'settings', label: <>Settings<UpdateDot /></>, text: 'Settings', icon: <IconSettings />, to: '/settings' },
     // Admins only: a newer version of the server, and the way to it.

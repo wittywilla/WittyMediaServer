@@ -22,7 +22,7 @@
 | Platform | Next step |
 |---|---|
 | Windows, Linux, macOS, FreeBSD desktop | Code signing on Windows and macOS (a purchase, the owner's call) |
-| Plasma Bigscreen | Run on real Bigscreen hardware or the owner's TV |
+| Plasma Bigscreen | Phase 1: the desktop app opens the server's [TV mode](../TV-MODE.md), every feature at once. Phase 2: a native Qt/QML Kirigami app (libmpv, CEC, SDL controllers). The plan, input, packaging and how to build and test it on the owner's PCs: [PLASMA-BIGSCREEN.md](https://github.com/wittywilla/WittyMediaClient/blob/main/docs/PLASMA-BIGSCREEN.md) in the client's repository |
 | Android phone (ARM, x86) | A release-signed APK and a store listing (the owner's account); Android 7 to 15 and tablets untested |
 | Android TV, Fire TV, Google TV | Real sticks; game mode (ALLM) where exposed; home screen channels |
 | iOS, tvOS | A Mac to build on; TestFlight with the owner's developer account |

@@ -4,14 +4,14 @@ import { setNavStyle, useNavStyle, type NavStyle } from '../../navPrefs'
 import { useApp } from '../../state'
 import { applyTheme, type ThemeMeta } from '../../theme'
 import { Button } from '../../ui'
-import { getTenFoot, setTenFoot } from '../../ui/tenFoot'
+import { setTvMode, useTvMode } from '../../tvmode/mode'
 import { ChoiceCards, LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
 
 export function Look({ info, next, back }: StepProps) {
   const { serverTheme, setServerTheme } = useApp()
   const [themes, setThemes] = useState<ThemeMeta[]>([])
   const [pick, setPick] = useState(serverTheme)
-  const [ten, setTen] = useState(getTenFoot)
+  const tv = useTvMode()
   const nav = useNavStyle()
   useEffect(() => { api.get<{ themes: ThemeMeta[] }>('/themes').then((r) => setThemes(r.themes)).catch(() => {}) }, [])
   const choose = (id: string) => { setPick(id); applyTheme(id) }
@@ -42,7 +42,7 @@ export function Look({ info, next, back }: StepProps) {
         { value: 'both', title: 'Both', text: 'The top bar and the side menu', pic: <span className="layout-pic pic-both" aria-hidden="true"><i className="s" /><i className="t" /><i className="c" /></span> },
       ]} />
       <div className="su-gap">
-        <TickRow kind="switch" checked={ten} onChange={(on) => { setTenFoot(on); setTen(on) }} title="This screen is across the room" text="Bigger words and a stronger outline around what’s selected, for a TV. Only on this device." />
+        <TickRow kind="switch" checked={tv} onChange={setTvMode} title="TV mode" text="Laid out and driven like the Apple TV and Android TV apps, with a remote or a controller, for a screen across the room. Only on this device." />
       </div>
       <LaterNote info={info} />
       <StepActions back={back}><Button variant="primary" size="big" onClick={save}>Continue</Button></StepActions>

@@ -111,7 +111,7 @@ A test server, filled with openly licensed media to show what it can do. No medi
 </tr>
 <tr>
 <td width="50%"><a href="docs/images/theme-light-home.webp"><img src="docs/images/theme-light-home.webp" alt="The home page in the Light theme"></a><br><b>Themes</b><br><sub>Open-licence and public-domain media, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
-<td width="50%"><a href="docs/images/big-screen.webp"><img src="docs/images/big-screen.webp" alt="The big-screen view for a TV"></a><br><b>A big-screen view for the couch</b><br><sub>Open-licence and public-domain media, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
+<td width="50%"><a href="docs/images/tv-mode.webp"><img src="docs/images/tv-mode.webp" alt="TV mode: the tabs along the top and the libraries as large tiles"></a><br><b>TV mode, like the TV apps, for the couch</b><br><sub>Driven with a remote or a game controller</sub></td>
 </tr>
 <tr>
 <td width="50%"><a href="docs/images/module-store.webp"><img src="docs/images/module-store.webp" alt="The module store"></a><br><b>Add only what you want from the store</b><br><sub>From a local test catalogue</sub></td>

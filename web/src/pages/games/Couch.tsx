@@ -13,6 +13,7 @@ import { consoleMap, GameLinksContext, setCouchOn, type GameLinks } from './data
 import GameDetails from './Details'
 import GamesLibrary, { GameCard } from './Library'
 import { VirtualGames } from './VirtualGames'
+import { getTvMode } from '../../tvmode/mode'
 import './games-ui.css'
 
 // Couch mode: the game library alone, full screen and large, with nothing that needs a
@@ -154,7 +155,8 @@ export default function CouchMode() {
   useEffect(() => {
     setCouchOn(true)
     document.documentElement.classList.add('ten-foot', 'gm-couch')
-    return () => { document.documentElement.classList.remove('ten-foot', 'gm-couch') }
+    // TV mode keeps the larger sizes after couch mode.
+    return () => { document.documentElement.classList.remove('gm-couch'); if (!getTvMode()) document.documentElement.classList.remove('ten-foot') }
   }, [])
   const exit = useCallback(() => {
     setCouchOn(false)

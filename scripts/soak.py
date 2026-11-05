@@ -342,17 +342,23 @@ def transcode(srv, run, lib):
         run.sleep(random.uniform(20, 60))
     loop(run, "transcode", one)
 
-def channel(srv, run):
+def channel(srv, run, libs):
     st, g = srv.call("GET", "/api/guide")
     chans = listing(g)
     if not chans:
         st, sug = srv.call("GET", "/api/channels/suggestions")
-        for s in (sug if isinstance(sug, list) else [])[:5]:
-            st, _ = srv.call("POST", "/api/channels", {"name": s["name"], "enabled": True, "definition": s["definition"]})
+        tries = [(s["name"], s["definition"]) for s in (sug if isinstance(sug, list) else [])[:5]]
+        # With no metadata there are no suggestions: everything in the video libraries will do.
+        video = [libs[n] for n in ("TV", "Movies") if n in libs]
+        if video:
+            tries.append(("Soak", {"mode": "simple", "rules": {"libraries": video, "allowUnrated": True}}))
+        for name, definition in tries:
+            st, out = srv.call("POST", "/api/channels", {"name": name, "enabled": True, "definition": definition})
             if st == 200:
                 st, g = srv.call("GET", "/api/guide")
                 chans = listing(g)
                 break
+            run.note("a channel couldn't be made: %s" % str(out)[:160])
     if not chans:
         run.note("no channel could be made: the channel is left out")
         return
@@ -612,7 +618,7 @@ def main():
         music(srv, run, libs["Music"])
     if "Movies" in libs:
         transcode(srv, run, libs["Movies"])
-    channel(srv, run)
+    channel(srv, run, libs)
     if "DVD" in libs:
         dvd(srv, run, libs["DVD"])
     pages(srv, run, libs, args.clients)

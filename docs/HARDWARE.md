@@ -73,7 +73,7 @@ A channel playing a 1080p file live, copied as it is, took 0.04 of a core and 40
 
 ## A NAS and Docker
 
-**Not measured yet.** The server's own needs are the same in a container. A NAS with an ARM or a low-power Intel processor will usually manage direct play for a household; converting video is where it struggles, unless its processor has a hardware encoder the server can use.
+**Not measured yet.** The server's own needs are the same in a container. A NAS with an ARM or a low-power Intel processor will usually manage direct play for a household; converting video is where it struggles, unless its processor has a hardware encoder the server can use. [Docker](DOCKER.md) says how to give a container the graphics, and has a guide for each NAS.
 
 ## Disk space
 
@@ -91,7 +91,7 @@ If you run the server on one of these, what it shows in **Statistics** while som
 ## Where the figures come from
 
 - **The server's own figures** come from its benchmark (#89 on GitHub, [wittywilla/WittyMediaServer#89](https://github.com/wittywilla/WittyMediaServer/issues/89)), run on 4 November 2026 on the 0.7.0-alpha work, on the demo media.
-- **FFmpeg's figures** come from FFmpeg's benchmark ([#81](https://github.com/wittywilla/WittyMediaServer/issues/81)), measured on 0.6.2-alpha.
+- **FFmpeg's figures** come from FFmpeg's benchmark, [Measuring FFmpeg](FFMPEG-BENCHMARK.md#figures), measured on 0.6.2-alpha.
 - **The machine** was a laptop with an Intel Core i7-12700H (14 cores, 20 threads) and 64 GB of memory, on Windows 11, with Linux in WSL on the same machine, and FFmpeg N-128142 with libx264. It was busy with other work the whole time, so times were slower than on a quiet machine. Memory and the processor time used change much less with that.
 
 These figures will be measured again for each release, and this page updated.

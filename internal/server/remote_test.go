@@ -18,6 +18,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 )
 
 // A whole server without FFmpeg or media: enough for sign-in and settings.
@@ -822,5 +823,173 @@ func TestLoginSlotIsHeldUntilDone(t *testing.T) {
 	}
 	for _, f := range held[1:] {
 		f()
+	}
+}
+
+// The apps and the tray get the page's own words, and nobody else gets them.
+func TestRemoteStatusForAppsAndTheTray(t *testing.T) {
+	s, h := remoteServer(t, nil)
+	tok := adminToken(t, s, h)
+	if r := call(h, "GET", "/api/remote/status", lan, nil); r.code != 401 {
+		t.Errorf("someone at home with no account: %d", r.code)
+	}
+	if r := call(h, "GET", "/api/remote/status", "127.0.0.1", nil, "Host: localhost:9797", "X-Forwarded-For: 203.0.113.9"); r.code == 200 {
+		t.Errorf("through a proxy on this computer: %d", r.code)
+	}
+	var v remoteStanding
+	r := call(h, "GET", "/api/remote/status", "127.0.0.1", nil, "Host: localhost:9797")
+	if r.code != 200 {
+		t.Fatalf("the tray on this computer: %d %s", r.code, r.body)
+	}
+	r.json(t, &v)
+	if v.Subject != remote.SubjectHomeOnly || v.Level != "good" || !strings.Contains(v.Away, "by your choice") || v.State != "off" {
+		t.Errorf("home network only is working as chosen: %+v", v)
+	}
+	putRemote(t, h, tok, map[string]any{"enabled": true, "method": "proxy", "publicUrl": "https://media.example.com"})
+	call(h, "GET", "/api/remote/status", lan, nil, "Authorization: Bearer "+tok).json(t, &v)
+	if v.Subject != remote.SubjectNotYet || v.Level != "waiting" || v.PublicURL != "https://media.example.com" {
+		t.Errorf("chosen, not seen yet: %+v", v)
+	}
+	var page remoteView
+	call(h, "GET", "/api/remote", lan, nil, "Authorization: Bearer "+tok).json(t, &page)
+	if page.Subject != v.Subject || page.Summary != v.Summary || page.Away != v.Away {
+		t.Errorf("the page and the apps say different things: %+v / %+v", page.Standing, v.Standing)
+	}
+}
+
+// Unencrypted connections from away: off until an admin knowingly turns them on,
+// and the sign-ins they carry are marked, short-lived and ended with the switch.
+func TestPlainFromAwayIsAChoiceWithConsequences(t *testing.T) {
+	s, h := remoteServer(t, nil)
+	tok := adminToken(t, s, h)
+	hdr := "Authorization: Bearer " + tok
+	v := putRemote(t, h, tok, map[string]any{"enabled": true, "method": "router"})
+	if v.Settings.AllowPlainAway || v.Warning != "" {
+		t.Fatalf("off by default: %+v", v.Settings)
+	}
+	login := map[string]string{"name": "Owner", "password": pass}
+	if r := call(h, "POST", "/api/login", public, login); r.code != 403 {
+		t.Fatalf("plain sign-in from the internet while off: %d", r.code)
+	}
+
+	// The confirmation: the warning accepted, and the admin's own password.
+	for _, c := range []struct {
+		name string
+		body map[string]any
+		code int
+	}{
+		{"nothing", map[string]any{"allowPlainAway": true}, 400},
+		{"no password", map[string]any{"allowPlainAway": true, "acceptPlainAway": true}, 403},
+		{"wrong password", map[string]any{"allowPlainAway": true, "acceptPlainAway": true, "password": "not it at all"}, 403},
+		{"not accepted", map[string]any{"allowPlainAway": true, "password": pass}, 400},
+	} {
+		if r := call(h, "PUT", "/api/remote", lan, c.body, hdr); r.code != c.code {
+			t.Errorf("%s: %d %s", c.name, r.code, r.body)
+		}
+	}
+	var still remoteView
+	call(h, "GET", "/api/remote", lan, nil, hdr).json(t, &still)
+	if still.Settings.AllowPlainAway {
+		t.Fatal("turned on without the confirmation")
+	}
+	// The password must never be saved with the settings.
+	v = putRemote(t, h, tok, map[string]any{"allowPlainAway": true, "acceptPlainAway": true, "password": pass})
+	if !v.Settings.AllowPlainAway || v.Warning != remote.PlainAwayWarning {
+		t.Fatalf("on: %+v %q", v.Settings, v.Warning)
+	}
+	if raw := s.DB.GetSetting(context.Background(), remoteSettingKey, ""); strings.Contains(raw, pass) || strings.Contains(raw, "acceptPlainAway") {
+		t.Fatalf("saved more than the settings: %s", raw)
+	}
+	var st map[string]any
+	call(h, "GET", "/api/status", lan, nil, hdr).json(t, &st)
+	if st["plainAwayWarning"] != remote.PlainAwayWarning || st["plainConnection"] != false {
+		t.Errorf("the admin sees it on every page; at home this connection is fine: %v %v", st["plainAwayWarning"], st["plainConnection"])
+	}
+
+	// A sign-in over plain HTTP from away works, says so, and is marked.
+	call(h, "GET", "/api/status", public, nil).json(t, &st)
+	if st["plainConnection"] != true || st["plainAwayWarning"] != "" {
+		t.Errorf("the sign-in page is told its connection isn't encrypted: %v %v", st["plainConnection"], st["plainAwayWarning"])
+	}
+	r := call(h, "POST", "/api/login", public, login)
+	if r.code != 200 {
+		t.Fatalf("plain sign-in once allowed: %d %s", r.code, r.body)
+	}
+	var out struct {
+		Token string `json:"token"`
+	}
+	r.json(t, &out)
+	cookie := r.h.Get("Set-Cookie")
+	if !strings.Contains(cookie, "HttpOnly") || !strings.Contains(cookie, "SameSite=Strict") || strings.Contains(cookie, "Secure") {
+		t.Errorf("the safest cookie there is without HTTPS: %s", cookie)
+	}
+	exp, err := http.ParseTime(strings.TrimSpace(strings.SplitN(strings.SplitN(cookie, "Expires=", 2)[1], ";", 2)[0]))
+	if err != nil || time.Until(exp) > auth.PlainAwayTTL+time.Minute {
+		t.Errorf("a cookie that crossed unencrypted lasts a day at most: %s", cookie)
+	}
+	// A session made over HTTPS, used once over plain HTTP from away, is marked too.
+	safe := call(h, "POST", "/api/login", public, login, "TLS: yes")
+	var safeOut struct {
+		Token string `json:"token"`
+	}
+	safe.json(t, &safeOut)
+	other := call(h, "POST", "/api/login", public, login, "TLS: yes")
+	var otherOut struct {
+		Token string `json:"token"`
+	}
+	other.json(t, &otherOut)
+	if r := call(h, "GET", "/api/me", public, nil, "Authorization: Bearer "+otherOut.Token); r.code != 200 {
+		t.Fatalf("plain use: %d", r.code)
+	}
+	var list []auth.Session
+	call(h, "GET", "/api/sessions?all=1", lan, nil, hdr).json(t, &list)
+	marked := map[string]bool{}
+	for _, x := range list {
+		marked[x.ID] = x.PlainAway
+	}
+	if !marked[auth.SessionID(out.Token)] || !marked[auth.SessionID(otherOut.Token)] || marked[auth.SessionID(safeOut.Token)] || marked[auth.SessionID(tok)] {
+		t.Errorf("marked: %v", marked)
+	}
+	call(h, "GET", "/api/remote", lan, nil, hdr).json(t, &v)
+	if v.PlainSessions != 2 {
+		t.Errorf("plain sessions: %d", v.PlainSessions)
+	}
+
+	// Turning it off ends them, and only them, and plain HTTP is refused again.
+	v = putRemote(t, h, tok, map[string]any{"allowPlainAway": false})
+	if v.Ended != 2 || v.PlainSessions != 0 || v.Warning != "" {
+		t.Errorf("off: ended %d, left %d, warning %q", v.Ended, v.PlainSessions, v.Warning)
+	}
+	for _, gone := range []string{out.Token, otherOut.Token} {
+		if r := call(h, "GET", "/api/me", lan, nil, "Authorization: Bearer "+gone); r.code != 401 {
+			t.Errorf("a session made in the clear still works: %d", r.code)
+		}
+	}
+	if r := call(h, "GET", "/api/me", public, nil, "TLS: yes", "Authorization: Bearer "+safeOut.Token); r.code != 200 {
+		t.Errorf("an HTTPS session was ended too: %d", r.code)
+	}
+	if r := call(h, "POST", "/api/login", public, login); r.code != 403 {
+		t.Errorf("plain sign-in after turning it off: %d", r.code)
+	}
+}
+
+// One click ends every session made in the clear, without turning anything off.
+func TestEndPlainSessions(t *testing.T) {
+	s, h := remoteServer(t, nil)
+	tok := adminToken(t, s, h)
+	putRemote(t, h, tok, map[string]any{"enabled": true, "allowPlainAway": true, "acceptPlainAway": true, "password": pass})
+	var out struct {
+		Token string `json:"token"`
+	}
+	call(h, "POST", "/api/login", public, map[string]string{"name": "Owner", "password": pass}).json(t, &out)
+	r := call(h, "DELETE", "/api/remote/plain-sessions", lan, nil, "Authorization: Bearer "+tok)
+	if r.code != 200 || !strings.Contains(r.body, `"ended":1`) {
+		t.Fatalf("%d %s", r.code, r.body)
+	}
+	if r := call(h, "GET", "/api/me", public, nil, "Authorization: Bearer "+out.Token); r.code != 401 {
+		t.Errorf("still signed in: %d", r.code)
+	}
+	if r := call(h, "GET", "/api/me", lan, nil, "Authorization: Bearer "+tok); r.code != 200 {
+		t.Errorf("the admin's own session at home was ended: %d", r.code)
 	}
 }

@@ -430,3 +430,38 @@ func BenchmarkProgressNobodyWatching(b *testing.B) {
 		h.Progress(int64(i), int64(b.N))
 	}
 }
+
+// A job with named steps shows one bar across them, each step counting its own work, rather
+// than a bar that starts again at every phase.
+func TestStepsMakeOneBar(t *testing.T) {
+	r := New(nil)
+	h := r.Start(Spec{Title: "Scanning Films", Phase: "Waiting for its turn"})
+	h.Steps(Step{Name: "Finding files", Share: 1}, Step{Name: "Looking at each file", Share: 3})
+	if got := r.Live()[0]; got.Step != 0 || got.Percent != -1 || len(got.Steps) != 2 {
+		t.Fatalf("not on a step yet: %+v", got)
+	}
+	h.Phase("Finding files")
+	h.Progress(5, 10)
+	if got := r.Live()[0]; got.Step != 1 || got.Percent != 12.5 {
+		t.Fatalf("half of the first quarter: %+v", got)
+	}
+	h.Phase("Looking at each file")
+	if got := r.Live()[0]; got.Step != 2 || got.Done != 0 || got.Total != 0 || got.Percent != 25 {
+		t.Fatalf("the second step starts where the first ended, and counts from nothing: %+v", got)
+	}
+	h.Progress(2, 4)
+	if got := r.Live()[0]; got.Percent != 62.5 {
+		t.Fatalf("half of the rest: %+v", got)
+	}
+	h.Phase("Waiting for the disk")
+	if got := r.Live()[0]; got.Step != 2 || got.Percent != 62.5 || got.Phase != "Waiting for the disk" {
+		t.Fatalf("a phase that isn't a step leaves the bar where it was: %+v", got)
+	}
+	h.Phase("Waiting for the disk")
+	h.Steps(Step{Name: "Finding files", Share: 1}, Step{Name: "Looking at each file", Share: 3}, Step{Name: "Tidying up", Share: 1})
+	h.Phase("Tidying up")
+	h.Finish(nil)
+	if got := r.Recent()[0]; got.Percent != 100 || got.Done != 4 || got.Total != 4 {
+		t.Fatalf("done is all of it, and keeps what was counted rather than the last step's nothing: %+v", got)
+	}
+}

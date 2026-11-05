@@ -5,6 +5,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Apps on the server's own computer find it.** The server's announcements on the home network never reached the computer it runs on, so an app there, or the iPhone simulator on that Mac, could miss it under *On your network*, lose it after a couple of minutes, or keep showing it once it had stopped. Other devices on the network weren't affected.
+- **On a Mac, choosing Allow is enough: no restart.** When macOS asks whether the server may use the local network, what it had opened before the answer stayed blocked after **Allow**, so nothing found it until it was restarted. It now notices it can hear nothing and opens again, within a minute, and its log says when it can't hear the local network.
+
 ## 0.6.2-alpha
 
 - **The Windows installer updates an installed copy again.** Installing 0.6.1-alpha's `.msi` over 0.6.0-alpha stopped with "The error code is 2613" and put the old version back. The step that stops a running copy was placed where Windows Installer doesn't allow it, which only shows when one installer version replaces another. Every release's Windows installer is now tested installing over the one before, for everyone, for one account and as a service, before it's published.

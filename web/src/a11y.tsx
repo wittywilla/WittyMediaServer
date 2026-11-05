@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
 import { focusFirst, focusIsAnyonesChoice } from './tv'
+import { applyPageTitle } from './theme'
 import { isBackKey } from './ui/spatial'
 
 // Accessibility shared by every page: dialogs that hold the keyboard while
@@ -133,14 +134,26 @@ export function Announcer() {
   }, [])
   useEffect(() => {
     if (first.current) { first.current = false; return }
-    const t = setTimeout(() => {
+    // A slow server or device can take seconds to draw the page (first-time setup shows a spinner
+    // until it knows its steps), so while it's loading it looks again for the heading. Focus moves only
+    // if it's still where it was when the address changed, or nowhere: never away from something
+    // chosen meanwhile.
+    const before = document.activeElement
+    const began = performance.now()
+    let t: ReturnType<typeof setTimeout>
+    const look = () => {
       if (document.querySelector(DIALOGS)) return
       const main = document.getElementById('main')
-      const h1 = main?.querySelector('h1')?.textContent?.trim()
+      // Full-screen views (the reader, a TV channel, a game) have no #main, but do have a heading.
+      const h1 = (main || document).querySelector('h1')?.textContent?.trim()
+      // The page's own loading, not a spinner elsewhere (the music player buffering).
+      const loading = (main || document).querySelector('.spinner, .loading-box, .skeleton-grid')
+      if ((!main || !h1) && loading && performance.now() - began < 6000) { t = setTimeout(look, 250); return }
       announce(h1 ? `${h1}, page loaded` : `${document.title}, page loaded`)
       const active = document.activeElement
-      if (main && (!active || active === document.body || !main.contains(active))) main.focus({ preventScroll: true })
-    }, 350)
+      if (main && (!active || active === document.body || !active.isConnected || (active === before && !main.contains(active)))) main.focus({ preventScroll: true })
+    }
+    t = setTimeout(look, 350)
     // Coming back: the page may still be loading what you left, so look a few times.
     const was = navType === 'POP' && usingKeys.current ? focusMemory.get(loc.key) : undefined
     const looks = [400, 800, 1500, 2500, 4000, 6000, 9000]
@@ -154,6 +167,13 @@ export function Announcer() {
     }, ms))
     return () => { clearTimeout(t); later.forEach(clearTimeout) }
   }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+  // The window's title names the page by its heading. A page may still be loading what its heading
+  // says, so it looks again a little later.
+  useEffect(() => {
+    const name = () => applyPageTitle(document.getElementById('main')?.querySelector('h1')?.textContent?.trim() || '')
+    const looks = [350, 1500, 4000, 9000].map((ms) => setTimeout(name, ms))
+    return () => looks.forEach(clearTimeout)
+  }, [loc.pathname])
   // Across the room nothing shows where you are until something has the focus, so a page starts
   // on its main action. It looks a few times, as a page may still be loading what it's going to show.
   useEffect(() => {

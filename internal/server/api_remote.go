@@ -33,12 +33,14 @@ func (s *Server) remoteRoutes(m *http.ServeMux) {
 	a, adm := s.requireUser, s.requireAdmin
 	m.HandleFunc("GET /api/reach/{nonce}", s.handleReach) // public: this is how the outside test gets in
 	m.Handle("GET /api/remote", adm(s.handleRemote))
+	m.HandleFunc("GET /api/remote/status", s.handleRemoteStanding) // signed in, or the tray on this computer
 	m.Handle("PUT /api/remote", adm(s.handlePutRemote))
 	m.Handle("POST /api/remote/test", adm(s.handleStartTest))
 	m.Handle("POST /api/remote/selfcheck", adm(s.handleSelfCheck))
 	m.Handle("POST /api/remote/router", adm(s.handleLookRouter))
 	m.Handle("POST /api/remote/obtain", adm(s.handleObtain))
 	m.Handle("DELETE /api/remote/lockouts", adm(s.handleClearLockouts))
+	m.Handle("DELETE /api/remote/plain-sessions", adm(s.handleEndPlainSessions))
 	m.Handle("GET /api/sessions", a(s.handleSessions))
 	m.Handle("DELETE /api/sessions", a(s.handleEndOtherSessions))
 	m.Handle("DELETE /api/sessions/{id}", a(s.handleEndSession))
@@ -68,6 +70,9 @@ type remoteSettings struct {
 	KeyFile        string `json:"keyFile"`
 	PortMapping    bool   `json:"portMapping"`
 	ExternalPort   int    `json:"externalPort"`
+	// AllowPlainAway lets the internet in without encryption, for an owner who
+	// knows the risk. Turning it on takes their password; see handlePutRemote.
+	AllowPlainAway bool `json:"allowPlainAway"`
 }
 
 const remoteSettingKey = "remoteAccess"
@@ -259,14 +264,32 @@ func (s *Server) applyNet(ctx context.Context) error {
 // PUT /api/remote: changes any of the settings; the rest stay.
 func (s *Server) handlePutRemote(w http.ResponseWriter, r *http.Request) {
 	prev := s.loadRemote(r.Context())
-	cur := prev
-	if err := readJSON(r, &cur); err != nil {
+	b := struct {
+		remoteSettings
+		// Turning on unencrypted connections from away takes both: the page's
+		// warning accepted, and the password (and code) of the admin.
+		AcceptPlainAway bool   `json:"acceptPlainAway"`
+		Password        string `json:"password"`
+		Code            string `json:"code"`
+	}{remoteSettings: prev}
+	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	cur := b.remoteSettings
 	if err := cur.validate(s.Cfg.Listen); err != nil {
 		writeErr(w, 400, err.Error())
 		return
+	}
+	plainOn, plainOff := cur.AllowPlainAway && !prev.AllowPlainAway, prev.AllowPlainAway && !cur.AllowPlainAway
+	if plainOn {
+		if !b.AcceptPlainAway {
+			writeErr(w, 400, "unencrypted connections from away need you to accept what they risk first")
+			return
+		}
+		if !s.confirmOwner(w, r, b.Password, b.Code) {
+			return
+		}
 	}
 	raw, _ := json.Marshal(cur)
 	if err := s.DB.SetSetting(r.Context(), remoteSettingKey, string(raw)); err != nil {
@@ -279,14 +302,42 @@ func (s *Server) handlePutRemote(w http.ResponseWriter, r *http.Request) {
 			s.Log.WarnContext(r.Context(), "could not forget the last outside test", "cat", "remote", "err", err)
 		}
 	}
-	s.Log.InfoContext(r.Context(), "remote access settings changed", "cat", "remote", "user", userFrom(r).Name, "enabled", cur.Enabled, "method", cur.Method, "https", cur.HTTPSMode, "mapping", cur.PortMapping)
+	s.Log.InfoContext(r.Context(), "remote access settings changed", "cat", "remote", "user", userFrom(r).Name, "enabled", cur.Enabled, "method", cur.Method, "https", cur.HTTPSMode, "mapping", cur.PortMapping, "plainAway", cur.AllowPlainAway)
+	if plainOn {
+		s.Log.WarnContext(r.Context(), "unencrypted connections from away are now allowed: passwords, sign-ins and what is watched can be read or changed on the way", "cat", "remote", "user", userFrom(r).Name)
+	}
+	ended := 0
+	if plainOff {
+		n, err := s.Auth.EndPlainAway(r.Context())
+		if err != nil {
+			s.Log.WarnContext(r.Context(), "could not end the sessions made without encryption", "cat", "remote", "err", err)
+		}
+		ended = n
+		s.Log.InfoContext(r.Context(), "unencrypted connections from away are refused again", "cat", "remote", "user", userFrom(r).Name, "sessionsEnded", n)
+	}
 	if err := s.applyNet(r.Context()); err != nil {
 		s.Log.WarnContext(r.Context(), "could not apply the remote access settings", "cat", "remote", "err", err)
 		// Saved and reported: the status shows what is wrong and how it stands.
-		writeJSON(w, 200, s.remoteStatus(r, err.Error()))
+		v := s.remoteStatus(r, err.Error())
+		v.Ended = ended
+		writeJSON(w, 200, v)
 		return
 	}
-	writeJSON(w, 200, s.remoteStatus(r, ""))
+	v := s.remoteStatus(r, "")
+	v.Ended = ended
+	writeJSON(w, 200, v)
+}
+
+// DELETE /api/remote/plain-sessions: signs out every device whose sign-in has
+// crossed the internet unencrypted.
+func (s *Server) handleEndPlainSessions(w http.ResponseWriter, r *http.Request) {
+	n, err := s.Auth.EndPlainAway(r.Context())
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	s.Log.InfoContext(r.Context(), "sessions made without encryption ended", "cat", "remote", "user", userFrom(r).Name, "count", n)
+	writeJSON(w, 200, map[string]any{"ended": n})
 }
 
 // ---------------------------------------------------------------- status
@@ -311,12 +362,11 @@ type notice struct {
 type remoteView struct {
 	Settings remoteSettings `json:"settings"`
 	Forced   bool           `json:"forced"`
-	State    string         `json:"state"` // off | ok | waiting | problem
-	Headline string         `json:"headline"`
-	Detail   string         `json:"detail"`
-	Routes   []route        `json:"routes"`
-	Notices  []notice       `json:"notices"`
-	You      youView        `json:"you"`
+	State    string         `json:"state"` // off | ok | waiting | problem, kept for older apps; Level says it better
+	remote.Standing
+	Routes  []route  `json:"routes"`
+	Notices []notice `json:"notices"`
+	You     youView  `json:"you"`
 	// VPNs are the overlay networks found on this machine.
 	VPNs []remote.VPNAddr `json:"vpns"`
 	// PublicURL is where the server is reached from outside, as far as known.
@@ -333,6 +383,10 @@ type remoteView struct {
 	WeakAdmins  []auth.WeakAccount `json:"weakAccounts"`
 	No2FAAdmins int                `json:"adminsWithout2fa"`
 	Error       string             `json:"error,omitempty"`
+	// PlainSessions counts the sessions whose sign-in crossed the internet
+	// unencrypted; Ended, after a change, how many that change signed out.
+	PlainSessions int `json:"plainSessions"`
+	Ended         int `json:"ended,omitempty"`
 }
 
 type youView struct {
@@ -344,6 +398,31 @@ type youView struct {
 
 func (s *Server) handleRemote(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, s.remoteStatus(r, ""))
+}
+
+// GET /api/remote/status: how remote access stands, in the words the settings
+// page uses, for the apps' connection screens and the tray icon's menu. Anyone
+// signed in may ask, and so may this computer itself, where the tray asks
+// without an account.
+func (s *Server) handleRemoteStanding(w http.ResponseWriter, r *http.Request) {
+	u, _ := s.signedIn(r)
+	if u == nil && !onThisMachine(r) {
+		writeErr(w, 401, "authentication required")
+		return
+	}
+	v := s.remoteView(r, "", false)
+	if v.Level == "fault" && (u == nil || !u.IsAdmin) {
+		// What is wrong can name files on this computer: that is for administrators.
+		v.Summary = "A phone on mobile data can't connect: something is in the way. An administrator can see what in Settings, Remote Access."
+	}
+	writeJSON(w, 200, remoteStanding{Standing: v.Standing, State: v.State, PublicURL: v.PublicURL})
+}
+
+// remoteStanding is GET /api/remote/status.
+type remoteStanding struct {
+	remote.Standing
+	State     string `json:"state"`     // off | ok | waiting | problem, as GET /api/remote
+	PublicURL string `json:"publicUrl"` // "" until there is one
 }
 
 // homeURLs are the addresses of this server on the home network.
@@ -365,6 +444,12 @@ func (s *Server) homeURLs() []string {
 }
 
 func (s *Server) remoteStatus(r *http.Request, applyErr string) remoteView {
+	return s.remoteView(r, applyErr, true)
+}
+
+// remoteView is the status; full adds what only the settings page shows (sign-in
+// protection, weak passwords), which the tray and the apps, asking often, don't need.
+func (s *Server) remoteView(r *http.Request, applyErr string, full bool) remoteView {
 	ctx := r.Context()
 	st := s.state()
 	cfg := st.cfg
@@ -385,12 +470,15 @@ func (s *Server) remoteStatus(r *http.Request, applyErr string) remoteView {
 	s.routerMu.Lock()
 	v.Router = s.router
 	s.routerMu.Unlock()
-	v.Lockouts, v.Failures = s.logins.snapshot()
-	v.WeakAdmins, _ = s.Auth.WeakAccounts(ctx)
-	if v.WeakAdmins == nil {
-		v.WeakAdmins = []auth.WeakAccount{}
+	v.WeakAdmins = []auth.WeakAccount{}
+	if full {
+		v.Lockouts, v.Failures = s.logins.snapshot()
+		if w, _ := s.Auth.WeakAccounts(ctx); w != nil {
+			v.WeakAdmins = w
+		}
+		v.No2FAAdmins = s.Auth.AdminsWithoutTwoFactor(ctx)
+		v.PlainSessions = s.Auth.PlainAwaySessions(ctx)
 	}
-	v.No2FAAdmins = s.Auth.AdminsWithoutTwoFactor(ctx)
 	v.VPNs = remote.FindVPNs(remote.Interfaces())
 	if v.VPNs == nil {
 		v.VPNs = []remote.VPNAddr{}
@@ -399,7 +487,7 @@ func (s *Server) remoteStatus(r *http.Request, applyErr string) remoteView {
 	v.LastProof = s.lastProof(ctx)
 
 	s.outside.mu.Lock()
-	seenNet, seenVPN, seenProxy, seenPlain := s.outside.internet, s.outside.vpn, s.outside.proxied, s.outside.plain
+	seenNet, seenVPN, seenProxy, seenPlain, seenPlainOK := s.outside.internet, s.outside.vpn, s.outside.proxied, s.outside.plain, s.outside.plainOK
 	unverPeer, unverAt := s.outside.unverPeer, s.outside.unverAt
 	s.outside.mu.Unlock()
 
@@ -416,7 +504,7 @@ func (s *Server) remoteStatus(r *http.Request, applyErr string) remoteView {
 		for _, n := range v.VPNs {
 			rt := route{Kind: "vpn", Label: n.Kind, State: "waiting", URLs: []string{"http://" + net.JoinHostPort(n.IP, homePort)}, LastSeen: unixOr0(seenVPN),
 				Detail: "Encrypted by " + n.Kind + ". Only your own signed-in devices can use this address."}
-			if !seenVPN.IsZero() {
+			if !seenVPN.IsZero() || (v.LastProof != nil && v.LastProof.Where == "vpn") {
 				rt.State = "ok"
 			}
 			if localOnly {
@@ -448,6 +536,21 @@ func (s *Server) remoteStatus(r *http.Request, applyErr string) remoteView {
 			}
 			v.Routes = append(v.Routes, rt)
 		}
+		if cfg.AllowPlainAway {
+			rt := route{Kind: "plain", Label: "The internet, unencrypted", State: "waiting", URLs: []string{}, LastSeen: unixOr0(seenPlainOK),
+				Detail: "Not encrypted: anyone between a device and this server can read or change passwords, sign-ins and what you watch."}
+			if ip := s.knownOutsideIP(); ip != "" && !localOnly {
+				rt.URLs = append(rt.URLs, "http://"+net.JoinHostPort(ip, homePort))
+				v.Addresses = append(v.Addresses, rt.URLs...)
+			}
+			if !seenPlainOK.IsZero() || (v.LastProof != nil && v.LastProof.Where == "internet" && v.LastProof.Via == "http") {
+				rt.State = "ok"
+			}
+			if localOnly && (st.policy == nil || len(st.policy.Trusted) == 0) {
+				rt.State, rt.Detail = "problem", "The server only listens on this computer, so nothing from the internet can reach it. Start it without a -listen limit."
+			}
+			v.Routes = append(v.Routes, rt)
+		}
 		if st.policy != nil && len(st.policy.Trusted) > 0 {
 			rt := route{Kind: "proxy", Label: "Your reverse proxy", State: "waiting", URLs: []string{}, LastSeen: unixOr0(seenProxy), Detail: "Forwarded addresses are believed only from the proxies you listed."}
 			if !seenProxy.IsZero() {
@@ -457,52 +560,22 @@ func (s *Server) remoteStatus(r *http.Request, applyErr string) remoteView {
 		}
 	}
 
-	proofed := v.LastProof != nil && time.Since(time.Unix(v.LastProof.At, 0)) < 7*24*time.Hour
+	v.Standing = s.describe(st, v.Routes, v.LastProof, localOnly)
 	switch {
 	case !st.on:
 		v.State = "off"
-		v.Headline = "Only your home network"
-		v.Detail = "Devices on your Wi-Fi or cable can use this server. Connections from anywhere else are refused, because Remote Access is off."
-	case len(v.Routes) == 1:
-		v.State = "waiting"
-		v.Headline = "Turned on, but no way in yet"
-		v.Detail = "Remote Access is on, and nothing can reach the server from outside yet. Choose a way of connecting below and follow its steps."
+	case v.Subject == remote.SubjectYes:
+		v.State = "ok"
+	case v.Level == "fault":
+		v.State = "problem"
 	default:
-		problems, oks := 0, 0
-		var okLabels []string
-		for _, rt := range v.Routes[1:] {
-			switch rt.State {
-			case "problem":
-				problems++
-			case "ok":
-				oks++
-				okLabels = append(okLabels, rt.Label)
-			}
-		}
-		switch {
-		case problems > 0 && oks == 0:
-			v.State = "problem"
-			v.Headline = "Something is in the way"
-			v.Detail = "See the problem below."
-		case oks > 0 || proofed:
-			v.State = "ok"
-			v.Headline = "Reachable from outside your home"
-			if len(okLabels) > 0 {
-				v.Detail = "Through " + strings.Join(okLabels, " and ") + "."
-			}
-			if proofed {
-				v.Detail = strings.TrimSpace(v.Detail + " Confirmed by the outside test.")
-			}
-		default:
-			v.State = "waiting"
-			v.Headline = "Ready, not confirmed yet"
-			v.Detail = "Everything is set up here, but no connection from outside has been seen yet. Run the outside test below."
-		}
+		v.State = "waiting"
 	}
 
 	// What the owner should know.
 	warn := func(text string) { v.Notices = append(v.Notices, notice{Level: "warn", Text: text}) }
-	if localOnly && st.on {
+	// Behind a proxy on this computer, listening here only is how it should be.
+	if localOnly && st.on && (st.policy == nil || len(st.policy.Trusted) == 0) {
 		warn("The server is set to listen on this computer only (the listen setting), so nothing from outside can reach it.")
 	}
 	if st.on {
@@ -534,10 +607,35 @@ func (s *Server) remoteStatus(r *http.Request, applyErr string) remoteView {
 		v.Notices = append(v.Notices, notice{Level: "warn", Trust: unverPeer,
 			Text: "Requests are arriving through a reverse proxy at " + unverPeer + " that isn't on your trusted list, so everyone behind it looks like one visitor from the internet, and their addresses are unknown. If that is your proxy, trust it."})
 	}
-	if !seenPlain.IsZero() && time.Since(seenPlain) < 24*time.Hour {
+	if !seenPlain.IsZero() && time.Since(seenPlain) < 24*time.Hour && !cfg.AllowPlainAway {
 		warn("Someone on the internet reached the server's plain, unencrypted port, and was turned away. If you opened that port on your router, close it: only the HTTPS port should be open.")
 	}
 	return v
+}
+
+// proofLasts is how long a passed outside test still says the way in works.
+const proofLasts = 7 * 24 * time.Hour
+
+// describe puts the status into the words every surface uses (see
+// remote.Describe). routes[0] is the home network.
+func (s *Server) describe(st *netState, routes []route, proof *reachHit, localOnly bool) remote.Standing {
+	f := remote.Facts{On: st.on, LocalOnly: localOnly, PlainAway: st.cfg.AllowPlainAway, Now: time.Now()}
+	if proof != nil && f.Now.Sub(time.Unix(proof.At, 0)) < proofLasts {
+		f.Proof = time.Unix(proof.At, 0)
+	}
+	for _, rt := range routes[1:] {
+		w := remote.Way{Kind: rt.Kind, Label: rt.Label, State: rt.State, Detail: rt.Detail}
+		if len(rt.URLs) > 0 {
+			w.URL = rt.URLs[0]
+		} else if rt.Kind == "proxy" {
+			w.URL = st.publicURL
+		}
+		if rt.LastSeen > 0 {
+			w.LastSeen = time.Unix(rt.LastSeen, 0)
+		}
+		f.Ways = append(f.Ways, w)
+	}
+	return remote.Describe(f)
 }
 
 // ---------------------------------------------------------------- the outside test

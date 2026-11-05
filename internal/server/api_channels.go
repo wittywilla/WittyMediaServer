@@ -889,7 +889,12 @@ type tuneInfo struct {
 	Accent      string          `json:"accent,omitempty"`
 	Brand       *channelBrand   `json:"brand,omitempty"`
 	// PositionSec is how far into the title it is at ServerTime.
-	PositionSec   float64       `json:"positionSec"`
+	PositionSec float64 `json:"positionSec"`
+	// PartEnd, on a channel that counts watch progress, is when what is on the
+	// screen now ends: this stretch of Now, or the bumper or commercial in it.
+	// Progress counts only up to the end of a stretch, so a break doesn't count
+	// as the programme; ask again then.
+	PartEnd       int64         `json:"partEnd,omitempty"`
 	ServerTime    int64         `json:"serverTime"`
 	CountProgress bool          `json:"countProgress"`
 	CanRecord     bool          `json:"canRecord"`
@@ -966,6 +971,9 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 	info := tuneInfo{Key: r.PathValue("key"), Kind: "library", Number: c.Number, Name: c.Name, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
 		Description: c.Description, Accent: c.Look.Accent, Brand: brandOf(c),
 		PositionSec: float64(now.Unix() - cur.Start + cur.Offset), ServerTime: now.Unix(), CountProgress: c.CountProgress && cur.Kind == channels.KindShow}
+	if c.CountProgress {
+		info.PartEnd = cur.End
+	}
 	if c.Logo != "" {
 		info.Logo = fmt.Sprintf("/api/channels/%d/logo?v=%s", c.ID, c.Logo)
 	}
@@ -1049,10 +1057,35 @@ func (s *Server) ensureLibraryLive(r *http.Request, c *channels.Channel) (*hls.L
 	})
 }
 
-// libraryFeed says what a library channel plays next. Runs are paced to real
-// time from a short head start, so a run can finish a little before its
-// programme's end: the next programme then starts on schedule rather than
-// repeating the end of this one.
+// feedHold is how far past its head start a channel's stream may get before
+// its feed waits for the clock, and the longest it waits at once: a player
+// keeps about three segments in hand, and a longer pause would empty them.
+const feedHold = 4 * time.Second
+
+// feedPlan says when a library channel's next run starts and from what moment
+// of the schedule. Runs are paced to real time from a short head start, so a
+// run can finish a little before its programme's end: the next programme then
+// starts on schedule rather than repeating the end of this one. Every file also
+// ends a moment before its slot, which is whole seconds, and a long break of
+// commercials would carry the stream ever further ahead of the guide; so once it
+// is more than a little past its head start, the feed waits, a few seconds a
+// run, until it is back to it. A file that ran out
+// long before its time gets a card for the rest (card, in seconds).
+func feedPlan(now time.Time, lastEnd int64) (at time.Time, wait time.Duration, card float64) {
+	end := time.Unix(lastEnd, 0)
+	ahead := end.Sub(now)
+	switch {
+	case ahead <= 0:
+		return now, 0, 0
+	case ahead > 30*time.Second:
+		return now, 0, ahead.Seconds()
+	case ahead > hls.LiveHeadStart+feedHold:
+		wait = feedHold
+	}
+	return end, wait, 0
+}
+
+// libraryFeed says what a library channel plays next: see feedPlan.
 func (s *Server) libraryFeed(id int64, q ffmpeg.Quality, maxHeight int, copyOK bool) hls.LiveFeed {
 	var lastEnd int64
 	return func(ctx context.Context, _ time.Time) (*hls.LiveInput, error) {
@@ -1060,26 +1093,23 @@ func (s *Server) libraryFeed(id int64, q ffmpeg.Quality, maxHeight int, copyOK b
 		if err != nil {
 			return nil, &hls.FatalError{Err: errors.New("this channel no longer exists")}
 		}
-		now := time.Now()
-		at := now
-		if lastEnd > now.Unix() {
-			if lastEnd-now.Unix() > 30 {
-				// The file ended well before the schedule said it would.
-				remain := float64(lastEnd - now.Unix())
-				return &hls.LiveInput{InputArgs: hls.SlateInput(), Slate: true, Duration: remain, AudioIndex: -1}, nil
+		at, wait, card := feedPlan(time.Now(), lastEnd)
+		if card > 0 {
+			return &hls.LiveInput{InputArgs: hls.SlateInput(), Slate: true, Duration: card, AudioIndex: -1}, nil
+		}
+		if wait > 0 {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(wait):
 			}
-			at = time.Unix(lastEnd, 0)
 		}
 		cur, _, err := s.Channels.Now(ctx, c, at)
 		if err != nil {
 			return nil, err
 		}
 		lastEnd = cur.End
-		off := max(at.Sub(time.Unix(cur.Start, 0)).Seconds(), 0)
-		remain := float64(cur.End) - float64(at.Unix())
-		if off < 1 {
-			off = 0
-		}
+		off, remain := runSpan(cur, at)
 		if cur.Kind != channels.KindSlate && cur.ItemID != 0 {
 			in, err := s.itemLiveInput(ctx, cur, off, remain, q, maxHeight, copyOK)
 			if err == nil {
@@ -1089,6 +1119,17 @@ func (s *Server) libraryFeed(id int64, q ffmpeg.Quality, maxHeight int, copyOK b
 		}
 		return &hls.LiveInput{InputArgs: hls.SlateInput(), Slate: true, Duration: remain, AudioIndex: -1}, nil
 	}
+}
+
+// runSpan is how far into a programme a run starts at, and how long it plays: to
+// the programme's end, to the fraction of a second, so that the next programme
+// isn't joined late. Less than a second in is the start.
+func runSpan(p *channels.Programme, at time.Time) (off, remain float64) {
+	off = max(at.Sub(time.Unix(p.Start, 0)).Seconds(), 0)
+	if off < 1 {
+		off = 0
+	}
+	return off, time.Unix(p.End, 0).Sub(at).Seconds()
 }
 
 // itemLiveInput prepares what a programme plays, from off seconds into it.

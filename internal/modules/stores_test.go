@@ -189,6 +189,7 @@ func webRelease(t *testing.T, starter string, key ed25519.PrivateKey, id, name, 
 }
 
 func TestAddingAStoreStepByStep(t *testing.T) {
+	needForks(t)
 	w := newStoresWorld(t, listedModule("wittydvd", "WittyDVD"))
 	pub, key := testKey(t)
 	publishStore(w.net, key, pub, 3, listedModule("wittydvd", "WittyDVD"), listedModule("wittytuner", "WittyTuner"), listedModule("bigclock", "Big Clock"))
@@ -290,6 +291,7 @@ func TestHostileCatalogues(t *testing.T) {
 }
 
 func TestChangingKeyIsARefusal(t *testing.T) {
+	needForks(t)
 	w := newStoresWorld(t)
 	pub, key := testKey(t)
 	publishStore(w.net, key, pub, 1, listedModule("wittydvd", "WittyDVD"))
@@ -455,6 +457,7 @@ func TestStoreWordsAreCleaned(t *testing.T) {
 }
 
 func TestForkRules(t *testing.T) {
+	needForks(t)
 	w := newStoresWorld(t, listedModule("wittydvd", "WittyDVD"), listedModule("wittytuner", "WittyTuner"))
 	pub, key := testKey(t)
 	publishStore(w.net, key, pub, 1, listedModule("wittytuner", "WittyTuner"), listedModule("bigclock", "Big Clock"), listedModule("wittydvd", "WittyDVD"))
@@ -761,6 +764,7 @@ func TestAutomaticUpdates(t *testing.T) {
 
 // A store's version of a module, from the warning to the module running, and back again.
 func TestAForkFromAStore(t *testing.T) {
+	needForks(t)
 	w := newStoresWorld(t, listedModule("wittycomics", "WittyComics"))
 	pub, key := testKey(t)
 	release := filepath.Join(t.TempDir(), "release")

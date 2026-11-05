@@ -1262,3 +1262,38 @@ func TestRedactKeysInAddresses(t *testing.T) {
 		}
 	}
 }
+
+// A report is written when things are going wrong, so it goes in under a name nobody lists
+// and is renamed once whole: a reader never sees half of one, and a run that ends during the
+// write leaves only a stray that's cleared away later.
+func TestCrashReportIsWholeOrNotThere(t *testing.T) {
+	g := OpenCrashReports(t.TempDir())
+	stray := filepath.Join(g.dir, ".writing-123")
+	if err := os.WriteFile(stray, []byte("half a rep"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if n := len(g.List()); n != 0 {
+		t.Fatalf("a report being written was listed: %d", n)
+	}
+	c, err := g.writeReport("panic", time.Now(), "test", "summary", "the stack", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if body, err := g.Read(c.ID); err != nil || !strings.Contains(string(body), "the stack") {
+		t.Fatalf("%v: %s", err, body)
+	}
+	if left, _ := filepath.Glob(filepath.Join(g.dir, ".writing-*")); len(left) != 1 {
+		t.Fatalf("left behind by the write: %v", left)
+	}
+	old := time.Now().Add(-2 * time.Hour)
+	if err := os.Chtimes(stray, old, old); err != nil {
+		t.Fatal(err)
+	}
+	g.prune()
+	if _, err := os.Stat(stray); !os.IsNotExist(err) {
+		t.Fatal("a stray from an interrupted write was kept")
+	}
+	if n := len(g.List()); n != 1 {
+		t.Fatalf("%d reports", n)
+	}
+}

@@ -68,7 +68,7 @@ func TestRedirectsAndPlaylistsCantReachThePrivateNetwork(t *testing.T) {
 	defer outer.Close()
 	outerAddr := outer.Listener.Addr().String()
 	real := SafeClient
-	base := SafeClient.Transport.(*http.Transport).Clone()
+	base := SafeTransport()
 	base.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
 		if address == outerAddr {
 			return (&net.Dialer{}).DialContext(ctx, network, address)
@@ -435,7 +435,7 @@ func TestOldServerAnswers(t *testing.T) {
 		}
 	}()
 	real := SafeClient
-	tr := real.Transport.(*http.Transport).Clone()
+	tr := SafeTransport()
 	tr.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
 		c, err := (&net.Dialer{Timeout: time.Second}).DialContext(ctx, network, address)
 		if err != nil {

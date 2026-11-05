@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
+	"github.com/wittywilla/wittymediaserver/internal/discovery"
 	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/trayicon"
@@ -42,6 +44,13 @@ type launcher struct {
 	dataDir    string
 	listen     string
 	configFile string
+	args       []string // the app's own arguments, read again before each start
+	// listenGiven: -listen came with the app, so it's passed on. Otherwise the server finds
+	// its port itself, in settings.ini, and Settings → Network can change it.
+	listenGiven bool
+	// seen is where the server this app shows answered, when that isn't listen: a background
+	// service on another port, found with discovery.AskLocal.
+	seen string
 	cmd        *exec.Cmd
 	stdin      io.WriteCloser
 	logFile    *serverOutput
@@ -76,7 +85,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
-	l.dataDir, l.listen, l.configFile = cfg.DataDir, cfg.Listen, cfg.ConfigFile
+	l.dataDir, l.listen, l.configFile, l.args = cfg.DataDir, cfg.Listen, cfg.ConfigFile, args
+	l.listenGiven = cfg.ListenFrom == config.FromFlag
 	if abs, err := filepath.Abs(l.dataDir); err == nil {
 		l.dataDir = abs
 	}
@@ -109,10 +119,25 @@ func findServer() string {
 	return pkg.ServerPath()
 }
 
+// url is the address of the server this app shows. l.mu is held.
 func (l *launcher) url() string {
-	host, port, err := net.SplitHostPort(l.listen)
+	if l.attached && l.seen != "" {
+		return l.seen
+	}
+	return listenURL(l.listen)
+}
+
+// currentURL is url, for callers that don't hold l.mu.
+func (l *launcher) currentURL() string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.url()
+}
+
+func listenURL(listen string) string {
+	host, port, err := net.SplitHostPort(listen)
 	if err != nil {
-		return "http://localhost:" + strings.TrimPrefix(l.listen, ":")
+		return "http://localhost:" + strings.TrimPrefix(listen, ":")
 	}
 	if host == "" || host == "0.0.0.0" || host == "::" {
 		host = "localhost"
@@ -163,7 +188,7 @@ func (l *launcher) loop() {
 	for {
 		select {
 		case <-l.mOpen.ClickedCh:
-			openURL(l.url())
+			openURL(l.currentURL())
 		case <-l.mToggle.ClickedCh:
 			if l.isRunning() {
 				l.wantRun = false
@@ -192,7 +217,7 @@ func (l *launcher) loop() {
 				l.mAuto.Uncheck()
 			}
 		case <-l.mAbout.ClickedCh:
-			openURL(l.url() + "/settings/about")
+			openURL(l.currentURL() + "/settings/about")
 		case <-l.mQuit.ClickedCh:
 			l.stop()
 			systray.Quit()
@@ -213,18 +238,25 @@ func (l *launcher) start() {
 	if l.running {
 		return
 	}
-	if l.answering() {
-		l.attached = true
+	// The port may have been changed in Settings → Network or settings.ini since the last start.
+	if cfg, err := config.ParseOnly(l.args); err == nil && !l.listenGiven {
+		l.listen = cfg.Listen
+	}
+	if seen, ok := answering(l.listen); ok {
+		l.attached, l.seen = true, seen
 		l.refreshLocked()
 		return
 	}
-	l.attached = false
+	l.attached, l.seen = false, ""
 	f, err := openServerOutput(l.logPath)
 	if err != nil {
 		l.lastErr = err.Error()
 		return
 	}
-	args := []string{"serve", "-data", l.dataDir, "-listen", l.listen, "-watch-stdin"}
+	args := []string{"serve", "-data", l.dataDir, "-watch-stdin"}
+	if l.listenGiven {
+		args = append(args, "-listen", l.listen)
+	}
 	if l.configFile != "" {
 		args = append(args, "-config", l.configFile)
 	}
@@ -376,10 +408,29 @@ func relaunchTray() error {
 	return cmd.Process.Release()
 }
 
-// answering says a WittyMediaServer already answers at this app's address.
-func (l *launcher) answering() bool {
+// answering says whether a WittyMediaServer already answers on this computer, and where: at this
+// app's address, listen, or for a background service moved to another port, wherever local
+// discovery says it is.
+func answering(listen string) (string, bool) {
+	own := listenURL(listen)
+	if healthy(own) {
+		return own, true
+	}
+	if port, tls := discovery.AskLocal(700 * time.Millisecond); port != 0 {
+		scheme := "http"
+		if tls {
+			scheme = "https"
+		}
+		if u := scheme + "://localhost:" + strconv.Itoa(port); u != own && healthy(u) {
+			return u, true
+		}
+	}
+	return "", false
+}
+
+func healthy(base string) bool {
 	c := &http.Client{Timeout: 1500 * time.Millisecond}
-	res, err := c.Get(l.url() + "/api/health")
+	res, err := c.Get(base + "/api/health")
 	if err != nil {
 		return false
 	}
@@ -424,10 +475,16 @@ func (l *launcher) health() {
 		attached := l.attached
 		l.mu.Unlock()
 		if attached {
-			ok = l.answering()
 			l.mu.Lock()
-			changed := ok != l.healthy
+			listen := l.listen
+			l.mu.Unlock()
+			seen, ok := answering(listen)
+			l.mu.Lock()
+			changed := ok != l.healthy || (ok && seen != l.seen)
 			l.healthy = ok
+			if ok {
+				l.seen = seen
+			}
 			if changed {
 				l.refreshLocked()
 			}
@@ -436,7 +493,7 @@ func (l *launcher) health() {
 		}
 		if l.isRunning() {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			req, _ := http.NewRequestWithContext(ctx, "GET", l.url()+"/api/health", nil)
+			req, _ := http.NewRequestWithContext(ctx, "GET", l.currentURL()+"/api/health", nil)
 			if res, err := c.Do(req); err == nil {
 				res.Body.Close()
 				ok = res.StatusCode == 200

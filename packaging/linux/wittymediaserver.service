@@ -8,7 +8,6 @@ Wants=network-online.target
 Type=simple
 User=wms
 Environment=WMS_DATA_DIR=/var/lib/wittymediaserver
-Environment=WMS_LISTEN=:9797
 Environment=WMS_NO_BROWSER=1
 ExecStart=/usr/lib/wittymediaserver/bin/wittymediaserver serve
 Restart=on-failure
@@ -47,7 +46,9 @@ ReadWritePaths=/var/lib/wittymediaserver
 # (graphics cards and tuners), PrivateUsers (the video and render groups), and ProtectSystem=strict
 # or ProtectHome, as saving information beside media writes into your media folders. To keep media
 # read-only, use the folder's permissions, or add ReadOnlyPaths= entries here.
-# To change this, the port, or the folder the data is in, run: sudo systemctl edit wittymediaserver
+# To change this, or the folder the data is in, run: sudo systemctl edit wittymediaserver
+# The port is in Settings → Network, or /var/lib/wittymediaserver/settings.ini. WMS_LISTEN set
+# here would win over both.
 
 [Install]
 WantedBy=multi-user.target

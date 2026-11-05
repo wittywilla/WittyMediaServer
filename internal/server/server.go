@@ -541,6 +541,7 @@ func (s *Server) Handler() http.Handler {
 	s.diagnoseRoutes(m)
 	s.metaFolderRoutes(m)
 	s.repairRoutes(m)
+	s.networkRoutes(m)
 	s.backupRoutes(m)
 
 	// Web UI (SPA)

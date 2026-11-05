@@ -28,6 +28,7 @@ if [ -f "$OLD_UNIT" ] && grep -Eq '^ExecStart=.*/(wms|wittymediaserver) serve' "
         echo "Environment=WMS_DATA_DIR=$old_data"
         echo "ReadWritePaths=$old_data"
       fi
+      # postinstall moves a port on its own into the data folder's settings.ini.
       [ -n "$old_listen" ] && [ "$old_listen" != ":9797" ] && echo "Environment=WMS_LISTEN=$old_listen"
       true
     } > "$DROP_IN"

@@ -8,7 +8,12 @@
   the firewall rule become possible. Every choice is a property, so admins can skip the questions:
 
     msiexec /i x.msi /qn MSIINSTALLPERUSER=1 AUTOSTART=1
-    msiexec /i x.msi /qn MSIINSTALLPERUSER="" INSTALLSERVICE=1 ADDFIREWALL=1 AUTOSTART="" PORT=9797
+    msiexec /i x.msi /qn MSIINSTALLPERUSER="" INSTALLSERVICE=1 ADDFIREWALL=1 AUTOSTART="" PORT=8096
+
+  PORT is optional. It goes into settings.ini in the data folder, the same file Settings → Network
+  saves in: C:\ProgramData\WittyMediaServer for the service, or the installing account's
+  %LOCALAPPDATA%\WittyMediaServer. Left out, the port stays what it was: an upgrade from a service
+  that 0.6 started with -listen carries that port over.
 
   Installed apps shows our own entry in place of the MSI's, because only that can ask whether to
   keep your library: Uninstall WittyMediaServer.exe asks, and then removes the MSI as well.
@@ -43,7 +48,12 @@
 
     <!-- Scope above starts this as just for this account, and Windows Installer then points
          Program Files at %LOCALAPPDATA%\Programs itself. MSIINSTALLPERUSER="" means everyone. -->
-    <Property Id="PORT" Value="9797" Secure="yes" />
+    <Property Id="PORT" Secure="yes" />
+    <!-- The service's command line from before 0.7.0, which had the port in it as -listen. Read
+         before the old copy is removed, for CarryPort below. -->
+    <Property Id="OLDSERVICECMD" Secure="yes">
+      <RegistrySearch Id="FindOldService" Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\WittyMediaServer" Name="ImagePath" Type="raw" />
+    </Property>
 
     <!-- The choices, with what someone gets by clicking Next. An upgrade keeps the last answers. -->
     <Property Id="AUTOSTART" Value="1" Secure="yes" />
@@ -90,6 +100,9 @@
       <Custom Action="TakeOverOldCopyMachine" After="TakeOverOldCopyUser" Condition="NOT REMOVE AND $(var.Everyone)" />
       <!-- Before the service first starts: it holds password hashes and sessions. -->
       <Custom Action="SecureServiceData" Before="StartServices" Condition="NOT REMOVE AND INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)" />
+      <!-- The port into settings.ini, once its folder is secured, and before the service starts. -->
+      <Custom Action="CarryPort" After="SecureServiceData" Condition="NOT REMOVE AND INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone)" />
+      <Custom Action="CarryPortUser" After="InstallFiles" Condition="NOT REMOVE AND PORT AND NOT (INSTALLSERVICE=&quot;1&quot; AND $(var.Everyone))" />
     </InstallExecuteSequence>
 
     <!-- Failing here never stops an install: all that's left is something to tidy by hand. -->
@@ -108,6 +121,15 @@
     <SetProperty Action="SetSecureServiceData" Id="SecureServiceData" Before="SecureServiceData" Sequence="execute"
                  Value="&quot;[BinFolder]wittymediaserver.exe&quot; --secure-service-data &quot;[CommonAppDataFolder]WittyMediaServer&quot;" />
     <CustomAction Id="SecureServiceData" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="deferred" Return="check" Impersonate="no" />
+
+    <!-- PORT if it was given, otherwise the port in the old service's command line, if any. The old
+         command line goes last, as words of its own. Failing leaves the port as it was. -->
+    <SetProperty Action="SetCarryPort" Id="CarryPort" Before="CarryPort" Sequence="execute"
+                 Value="&quot;[BinFolder]wittymediaserver.exe&quot; config port -data &quot;[CommonAppDataFolder]WittyMediaServer&quot; -in-data -port &quot;[PORT]&quot; -from-command [OLDSERVICECMD]" />
+    <CustomAction Id="CarryPort" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="deferred" Return="ignore" Impersonate="no" />
+    <SetProperty Action="SetCarryPortUser" Id="CarryPortUser" Before="CarryPortUser" Sequence="execute"
+                 Value="&quot;[BinFolder]wittymediaserver.exe&quot; config port -data &quot;[LocalAppDataFolder]WittyMediaServer&quot; -in-data -port &quot;[PORT]&quot;" />
+    <CustomAction Id="CarryPortUser" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="deferred" Return="ignore" Impersonate="yes" />
 
     <!-- Open the app at the end, if the box stays ticked. -->
     <CustomAction Id="OpenApp" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]WittyMediaServer.exe&quot;" Return="asyncNoWait" Impersonate="yes" />
@@ -141,7 +163,11 @@
         <ServiceInstall Id="Service" Name="WittyMediaServer" DisplayName="WittyMediaServer"
                         Description="Your media server, running in the background."
                         Type="ownProcess" Start="auto" ErrorControl="normal" Account="NT AUTHORITY\LocalService"
-                        Arguments="--windows-service serve -data &quot;[CommonAppDataFolder]WittyMediaServer&quot; -listen :[PORT]">
+                        Arguments="--windows-service serve -data &quot;[CommonAppDataFolder]WittyMediaServer&quot;">
+          <!-- The port is in settings.ini, not here, so Settings → Network can change it. Asked to
+               restart, the server exits with an error code, and the rule below starts it again:
+               that needs failure actions for an error code too, not only for a crash. -->
+          <ServiceConfig FailureActionsWhen="failedToStopOrReturnedError" OnInstall="yes" OnReinstall="yes" />
           <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart" RestartServiceDelayInSeconds="5" ResetPeriodInDays="1" />
         </ServiceInstall>
         <!-- Stopping is waited for, as its files can't be replaced until it has. Starting isn't: a
@@ -208,11 +234,13 @@
         <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Service" Type="string" Value="1" KeyPath="yes" />
       </Component>
       <!-- Only for everyone: lets other devices on the home network connect. A firewall that
-           refuses, or one that's switched off, doesn't stop the install: Windows just asks later. -->
+           refuses, or one that's switched off, doesn't stop the install: Windows just asks later.
+           The rule is for the server program, not one port, so it follows the port when it's
+           changed in Settings or settings.ini. Apps find the server on UDP 9797 whatever it is. -->
       <Component Id="FirewallRule" Guid="7d40b6f2-93e1-4c58-a06d-5e8f2b7c1a94" Condition="ADDFIREWALL=&quot;1&quot; AND $(var.Everyone)">
         <RegistryValue Root="HKLM" Key="Software\WittyWilla\WittyMediaServer" Name="Firewall" Type="string" Value="1" KeyPath="yes" />
         <fw:FirewallException Id="FirewallTcp" Name="WittyMediaServer" Description="Other devices on your home network connect to your media server."
-                              Port="[PORT]" Protocol="tcp" Scope="any" Profile="private" IgnoreFailure="yes" />
+                              Program="[BinFolder]wittymediaserver.exe" Protocol="tcp" Scope="any" Profile="private" IgnoreFailure="yes" />
         <fw:FirewallException Id="FirewallUdp" Name="WittyMediaServer" Description="Apps on your home network find your media server."
                               Port="5353,9797" Protocol="udp" Scope="localSubnet" Profile="private" IgnoreFailure="yes" />
       </Component>

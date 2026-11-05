@@ -13,6 +13,10 @@
 //     /usr/local/etc/wittymediaserver/wms.json.
 //
 // Relative paths inside a config file are relative to the file itself.
+//
+// The port also comes from settings.ini (settings.go), the plain file a person changes by hand
+// or from Settings → Network. The address is, strongest first: -listen, WMS_LISTEN, "listen" in
+// wms.json, the port in settings.ini, and DefaultPort.
 package config
 
 import (
@@ -70,6 +74,14 @@ type Config struct {
 
 	ConfigFile string // the file that was loaded ("" = none)
 	Portable   bool
+
+	// ListenFrom says where Listen came from: FromFlag, FromEnv, FromConfig, FromSettings or
+	// FromDefault. SettingsFile is the settings.ini that set it, with FromSettings.
+	ListenFrom   string
+	SettingsFile string
+	// SettingsProblems are lines of the settings files that were skipped, for the log and
+	// Settings → Network to show.
+	SettingsProblems []string
 }
 
 // File is the JSON config file. Every field is optional.
@@ -332,7 +344,7 @@ func ParseOnly(args []string) (*Config, error) {
 	var configFlag string
 	fs.StringVar(&configFlag, "config", "", "config file (WMS_CONFIG); see Help in the app, Config file and folders")
 	fs.StringVar(&c.DataDir, "data", env("WMS_DATA_DIR", or(rel(f.DataDir), dataDef)), "data directory (WMS_DATA_DIR)")
-	fs.StringVar(&c.Listen, "listen", env("WMS_LISTEN", or(f.Listen, ":"+strconv.Itoa(DefaultPort))), "listen address (WMS_LISTEN)")
+	fs.StringVar(&c.Listen, "listen", "", "listen address (WMS_LISTEN); default: the port in settings.ini, or :"+strconv.Itoa(DefaultPort))
 	fs.StringVar(&c.FFmpegPath, "ffmpeg", env("WMS_FFMPEG", rel(f.FFmpeg)), "path to ffmpeg (WMS_FFMPEG); default: bundled or PATH")
 	fs.StringVar(&c.FFprobePath, "ffprobe", env("WMS_FFPROBE", rel(f.FFprobe)), "path to ffprobe (WMS_FFPROBE)")
 	fs.StringVar(&c.JavaPath, "java", env("WMS_JAVA", rel(f.JavaPath)), "Java folder or program for Blu-ray menus (WMS_JAVA); default: found by itself")
@@ -352,6 +364,9 @@ func ParseOnly(args []string) (*Config, error) {
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
+	if err := c.resolveListen(fs, f); err != nil {
+		return nil, err
+	}
 	if c.MaxTranscode < 1 {
 		return nil, errors.New("max-transcodes must be at least 1")
 	}
@@ -365,10 +380,37 @@ func ParseOnly(args []string) (*Config, error) {
 	return c, nil
 }
 
-// Example is a starting point written by `wittymediaserver config init`.
+// resolveListen settles the address: -listen, WMS_LISTEN, "listen" in the config file, the port
+// in a settings.ini, or the default. Only the last two are what Settings → Network can change.
+func (c *Config) resolveListen(fs *flag.FlagSet, f *File) error {
+	given := false
+	fs.Visit(func(fl *flag.Flag) { given = given || fl.Name == "listen" })
+	switch {
+	case given:
+		if c.Listen == "" {
+			return errors.New("-listen needs an address, such as :9797")
+		}
+		c.ListenFrom = FromFlag
+	case os.Getenv("WMS_LISTEN") != "":
+		c.Listen, c.ListenFrom = os.Getenv("WMS_LISTEN"), FromEnv
+	case f.Listen != "":
+		c.Listen, c.ListenFrom = f.Listen, FromConfig
+	default:
+		port, file, problems := settingsPort(c.DataDir)
+		c.SettingsProblems = problems
+		if port != 0 {
+			c.Listen, c.ListenFrom, c.SettingsFile = ":"+strconv.Itoa(port), FromSettings, file
+		} else {
+			c.Listen, c.ListenFrom = ":"+strconv.Itoa(DefaultPort), FromDefault
+		}
+	}
+	return nil
+}
+
+// Example is a starting point written by `wittymediaserver config init`. The port isn't in it:
+// it's in settings.ini, where Settings → Network can change it too.
 const Example = `{
   "portable": false,
-  "listen": ":9797",
   "dataDir": "",
   "metadataDir": "",
   "cacheDir": "",

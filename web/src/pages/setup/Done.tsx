@@ -5,6 +5,7 @@ import type { ModuleReport } from '../../moduleStore'
 import type { ListingStatus } from '../../metadata'
 import { Button, Spinner } from '../../ui'
 import { AddProfile } from '../Profiles'
+import { PortSetting, useNetwork } from '../../components/PortSetting'
 import { describeOutcome, updateChoiceFrom, type Outcome, type StepInfo } from './plan'
 
 // The last page says what's really so, from the server, rather than what was pressed along the way.
@@ -36,6 +37,8 @@ export function Done({ steps, onFinish }: { steps: StepInfo[]; onFinish: (to?: s
   const [addKids, setAddKids] = useState(false)
   const [kidsAdded, setKidsAdded] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [portOpen, setPortOpen] = useState(false)
+  const net = useNetwork()
   useEffect(() => {
     void readOutcome().then(setOutcome)
     api.get<{ lanUrls?: string[] }>('/system').then((s) => setLan(s.lanUrls || [])).catch(() => setLan([]))
@@ -71,7 +74,10 @@ export function Done({ steps, onFinish }: { steps: StepInfo[]; onFinish: (to?: s
           <b>Watch on every screen at home</b>
           {addrs.length > 0
             ? <><span>On the same home network (Wi-Fi or cable), open this address on your TV, phone, tablet or another computer:</span>{addrs.slice(0, 2).map((a) => <code key={a}>{a}</code>)}</>
-            : <span>Right now this server only answers on this computer. To use it from your TV or phone, set <code>listen</code> to <code>:9797</code> in its config file and restart it.</span>}
+            : <span>Right now this server only answers on this computer. To use it from your TV or phone, set <code>listen</code> to <code>:{net.view?.port || 9797}</code> where it’s set (its config file, <code>-listen</code> or <code>WMS_LISTEN</code>) and restart it.</span>}
+          {net.view && (portOpen
+            ? <PortSetting view={net.view} onSaved={net.setView} compact />
+            : <span className="su-port">Port {net.view.next}{net.view.next !== net.view.port && ' after a restart'}. <Button size="sm" variant="ghost" onClick={() => setPortOpen(true)}>Change the port</Button></span>)}
           <small className="oobe-disclaimer">Your server runs in your home, so for now it works only on your home network. To watch away from home, follow the steps in Settings, Remote Access when you’re ready.</small>
         </div>
         <div className="oobe-next-card">

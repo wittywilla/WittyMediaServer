@@ -3,6 +3,8 @@
 package main
 
 import (
+	"os"
+
 	"golang.org/x/sys/windows/svc"
 )
 
@@ -19,6 +21,9 @@ func runAsService(args []string) (int, bool) {
 	if len(args) == 0 || args[0] != serviceFlag {
 		return 0, false
 	}
+	// Asked to restart, it exits with update.ExitRestart and the service manager's restart rule
+	// starts it again: see relaunch.
+	_ = os.Setenv("WMS_SUPERVISED", "1")
 	h := &serviceHandler{args: args[1:]}
 	if err := svc.Run(serviceName, h); err != nil {
 		return 1, true

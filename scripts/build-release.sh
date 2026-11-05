@@ -57,6 +57,7 @@ echo "==> building host tools"
 env -u GOOS -u GOARCH go build -o "$TOOLS/pack$HOSTEXE" ./scripts/pack
 env -u GOOS -u GOARCH go build -o "$TOOLS/genicon$HOSTEXE" ./scripts/genicon
 env -u GOOS -u GOARCH go build -o "$TOOLS/release-sign$HOSTEXE" ./scripts/sign
+env -u GOOS -u GOARCH go build -o "$TOOLS/settingsini$HOSTEXE" ./scripts/settingsini
 # Puts an icon, a description and a version on Windows programs, which is what Task Manager
 # and a file's Properties show. A build tool only: nothing of it ships.
 if ! [ -x "$TOOLS/go-winres$HOSTEXE" ]; then
@@ -271,6 +272,13 @@ for t in "${TARGETS[@]}"; do
   rm -f cmd/wittymediaserver/rsrc_windows_*.syso
   build_tray "$out" "$os" "$arch"
   marker "$out/package-info.json" archive
+  # The settings file a person changes the port in, beside the program. A Mac app has none: a
+  # changed app breaks its signature, so it uses the copy in Application Support.
+  case "$os" in
+    windows) "$TOOLS/settingsini$HOSTEXE" -crlf "$out/settings.ini" ;;
+    darwin)  ;;
+    *)       "$TOOLS/settingsini$HOSTEXE" "$out/settings.ini" ;;
+  esac
   # A starter set of signed modules, for a package that works offline (docs/MODULES.md). It's
   # only ever copied: nothing here builds a module.
   if [ -n "${WMS_STARTER:-}" ]; then

@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ebook"
-	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 )
 
@@ -295,7 +294,7 @@ func (s *Scanner) comicCover(ctx context.Context, archive, out string) error {
 	if err != nil {
 		return err
 	}
-	return s.Tools.Still(ctx, append([]string{"-f", "image2", "-max_pixels", maxCoverPixels}, ffmpeg.FileInput(p)...), 0, 400, out)
+	return s.Tools.Still(ctx, pictureInput(p), 0, 400, out)
 }
 
 // ComicPageImage makes sure a page can be shown: pictures a browser can't show become

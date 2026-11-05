@@ -155,7 +155,13 @@ Each card lists the other cores offered, with their licenses. Non-commercial cor
 
 ### Consoles that need a graphics card
 
-Those consoles are drawn on the server's graphics card, and they run on Windows and Linux servers. On macOS and FreeBSD, only the consoles marked "No" above can play. Older consoles need no graphics card anywhere.
+Those consoles are drawn on the server's graphics card, and they run on Windows and Linux servers. Older consoles need no graphics card anywhere.
+
+**On a Mac, FreeBSD, or any server without a card games can use:**
+
+- **Nintendo 64 and PSP still play.** The server's processor draws them instead, at the console's own resolution. A game's page says so before you press Play: they can run slower than with a card, and keep several of the server's processor cores busy. On an Apple M3 Pro, Nintendo 64 games ran at full speed on about one core, and a demanding PSP game ran at full speed most of the time, with dips, on three to five.
+- **PlayStation 2, Dreamcast and 3DS can't.** Their games stay listed, and their pages, the library and Settings say **Not on this server**, with the reason, instead of offering Play.
+- **PlayStation** plays on PCSX ReARMed, which needs no card. A server that would otherwise choose one of the faster PlayStation cores uses it instead.
 
 - **Settings → Consoles & cores → How games play → Advanced** names the card in use, or says why there isn't one. A card simulated on the CPU doesn't count, as it's far too slow.
 - **Running as a Windows service:** a service has no desktop, and consumer graphics drivers often refuse to draw there. Run the server in a signed-in session to play these consoles.

@@ -76,7 +76,7 @@ A cgo frontend would need a C toolchain for every platform in the release matrix
 
 ## Consoles that draw with a graphics card
 
-Nintendo 64, PlayStation 2, PSP, Dreamcast, 3DS and the faster PlayStation cores draw with OpenGL, so the server's graphics card renders the game and the result is streamed like any other frame. This runs on Windows and Linux servers: on anything else `libretro/gl_other.go` refuses, and those games say so.
+Nintendo 64, PlayStation 2, PSP, Dreamcast, 3DS and the faster PlayStation cores draw with OpenGL, so the server's graphics card renders the game and the result is streamed like any other frame. This runs on Windows and Linux servers: on anything else `libretro/gl_other.go` refuses. There, and on any server without a usable card, Nintendo 64 and PSP have the processor draw instead, and the other consoles say they can't play on this server: see [Without a graphics card](#without-a-graphics-card).
 
 **The choice: OpenGL in the built-in runner, using the system's own libraries through purego.** It needs no C compiler, no second program and no GPL code. Every core we offer for these consoles can use OpenGL. Vulkan isn't built: no core we offer needs it. Cores are told OpenGL is what's preferred, and those that can also draw with Vulkan or Direct3D use it.
 
@@ -91,11 +91,35 @@ Nintendo 64, PlayStation 2, PSP, Dreamcast, 3DS and the faster PlayStation cores
 - **Internal resolution** is a setting in Settings, Consoles & cores: Automatic, or 1x to 4x. Automatic is 2x on Nintendo 64, PlayStation, PSP and Dreamcast, and native otherwise (`DefaultResolution`). The per-core options are in `traits.go`. A choice a core doesn't offer is ignored, so an updated core can't break.
 - **PlayStation 2 stays native** because its games draw full-screen effects in small tiles, and the fixes that hold those together when upscaled are worked out per game by the core's own database, which doesn't always succeed. One racing game at 2x comes out in bands of the wrong colour with a grid over them, from the moment of a fresh start. A state loaded into a fresh runner hides it, because those fixes aren't applied to one, which makes it look intermittent. Native has no such seams, and a quarter of the pixels to draw, encode and send. Upscaling is still there to choose, game by game.
 - **How many at once:** two by default, set in Settings, Consoles & cores. Past that, starting another says the card is full. Software-rendered games don't count.
-- **No usable card:** the game says so plainly and older consoles carry on. OpenGL drawn by the CPU (`llvmpipe`, Microsoft's GDI renderer) doesn't count. Settings, Consoles & cores names the card in use, or says why there is none.
+- **No usable card:** OpenGL drawn by the CPU (`llvmpipe`, Microsoft's GDI renderer) doesn't count. Settings, Consoles & cores names the card in use, or says why there is none. What happens to these consoles then is in [Without a graphics card](#without-a-graphics-card).
 
 **What it costs.** [Where the time goes](#where-the-time-goes) has the numbers for each console. At 1280x960 on an RTX 3070, NVENC takes about 5 ms a frame. PlayStation 2 on an 8-core laptop runs at 45 to 60 frames a second in a race, with VU1 on a thread of its own (the core's database still turns that off for games known to hang with it) and without waiting on the graphics card at every read-back. Both are in `traits.go`.
 
 **What PPSSPP does by itself:** the first time a PSP game starts for an account, the core unpacks support files from that game's own disc into the save folder, about 20 MB. That's part of the core, which has no option to turn it off, and nothing in this server asks for it or sees the results.
+
+### Without a graphics card
+
+The runner's answer to "which card would you draw with?" (`stream.ProbeGPU`, asked once in the background) decides it, and until it's in, a Mac or FreeBSD server is taken to have none (`gpuMissingFrom` in `internal/server/games_gpu.go`). Then `pickCore` chooses, for the game page (`GET /games/{id}/check`), the console list, Prepare and Play alike:
+
+1. A core that needs no card plays as it always does.
+2. A card's core that can have the processor draw starts that way (`cpuDrawing`): its options for that are laid over everything else, it gets no `-gpu` room in the sandbox and doesn't count against the card's limit, and the game page, the console list and the session's `notices` carry a speed caveat.
+3. Anything else is **not on this server**: `reason: "gpu"`, with the runner's reason, everywhere a game can be started from, and Play and Prepare refuse with 409 before a runner starts. A crash on a context that was never there isn't left to happen.
+
+| Core | Options that have the processor draw | Measured on an Apple M3 Pro, macOS 27 |
+|---|---|---|
+| Mupen64Plus-Next | `mupen64plus-rdp-plugin=angrylion`, `mupen64plus-rsp-plugin=cxd4` | Banjo-Kazooie and Bomberman 64: full speed (the core ran 60 frames a second), about one core |
+| ParaLLEl N64 | `parallel-n64-gfxplugin=angrylion`, `parallel-n64-rspplugin=cxd4` | The same games: full speed, under one core. What libdragon homebrew already used |
+| PPSSPP | `ppsspp_backend=none` (its own software renderer; never asks for a context) | God of War: Ghost of Sparta: 58 frames a second on average, with dips to the 30s and 40s, on three to five cores |
+
+Measured in the runner alone, with no sandbox or encoder. Mupen64Plus-Next and PPSSPP were then streamed end to end from a Mac server to a browser, at normal speed, with libx264 taking 3 to 7 ms a frame. angrylion is the accurate Nintendo 64 renderer, so it draws at the console's own resolution and the internal resolution setting doesn't apply; PPSSPP's software renderer is forced to 1x the same way.
+
+Not built, and why:
+
+- **PlayStation 2:** LRPS2 has a software renderer (`pcsx2_renderer=Software (SW)`), which never asks for a context, but on ARM it falls back to a slow reference rasteriser, and it couldn't be tried without a BIOS. Play! has no software path.
+- **Dreamcast, 3DS and the faster PlayStation cores** have none either. On a Mac, PlayStation plays on PCSX ReARMed instead.
+- **OpenGL on a Mac** (a CGL context made through purego, as WGL and EGL are on the others) would bring back the card's own renderers for Nintendo 64, PSP and Dreamcast at higher resolutions. macOS stops at OpenGL 4.1, so it likely wouldn't help LRPS2 or Azahar. It's work in WittyPlay's runner, not here.
+- **Vulkan through MoltenVK** would cover LRPS2's Vulkan and paraLLEl-GS renderers, PPSSPP's Vulkan backend and paraLLEl-RDP: the runner would have to offer cores a Vulkan context, and ship MoltenVK. The largest of these.
+- **In the runner, whatever comes next:** where it can't make a context (`gl_other.go`), answering `SET_HW_RENDER` with "no" straight away would let PPSSPP and LRPS2 fall back to software by themselves, and the rest stop cleanly rather than crash after loading.
 
 ### Two graphics cards
 
@@ -237,6 +261,8 @@ Everything comes back by itself, with the last picture up until there's a new on
 | Runner dies | The game ends and the player says why. What was saved stays, and it starts again from there | |
 | Server dies | Nothing it started is left behind. Once it's back, the player finds the game is gone, as below | |
 | The game has gone from the server | The server or the module restarted, or this device was away too long. A player that finds this starts the game again from its last save. If that happens twice in two minutes, it says so instead | Module killed: playing again in about 5 s |
+
+**A game that won't start** is recorded against its core (`game_core_plays`, which Settings shows for custom cores), with the reason. It doesn't count against WittyPlay itself: only its helper going away or answering nonsense does (`stream.ErrHelper`), so one console's core crashing again and again can't take every other console's games away. See [Modules](MODULES.md).
 
 **The soak test:** `wittyplay-probe soak` ran a Nintendo 64 game for 65 minutes, through NVENC to a real browser, on a machine busy with other work. The game kept 60 frames a second and frame to screen stayed at 18 to 27 ms. Comparing the first ten minutes with the last: the runner 956 MB and 950 MB, the encoder 350 and 352, the server's heap 25 and 26, the page 12 and 17, goroutines 43 and 43, the runner's handles 380 and 384. Nothing grew. A second run took an NES game with its sound and run-ahead for 61 minutes: frame to screen stayed at 9 to 13 ms, a press at 10 to 14, the runner at 28 MB, and nothing was lost or dropped.
 

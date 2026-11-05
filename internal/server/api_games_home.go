@@ -249,14 +249,22 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 		out["ready"], out["reason"], out["message"] = false, "unavailable", console.Unavailable
 		return out
 	}
-	core, blocked := g.cores.Playable(console, s.preferredCore(ctx, console, it.ID), systemDir)
+	pick := s.pickCore(ctx, console, it.ID, systemDir)
 	switch {
-	case core != nil:
-		out["ready"], out["core"] = true, map[string]any{"id": core.ID, "name": core.Name, "license": core.License}
-		out["needsGpu"] = wittyplay.Traits(core.ID).GPU || core.WantsGPU
-	case blocked != nil:
-		out["ready"], out["reason"], out["message"] = false, "bios", wittyplay.BIOSHelp(blocked.ID, console.Name)
-		out["file"] = wittyplay.MissingBIOS(blocked.ID, systemDir)
+	case pick.core != nil:
+		out["ready"], out["core"] = true, map[string]any{"id": pick.core.ID, "name": pick.core.Name, "license": pick.core.License}
+		out["needsGpu"] = !pick.software && s.coreDrawsOnGPU(*pick.core)
+		if pick.software {
+			// It plays, drawn by the processor: how it may run, before anyone presses Play.
+			out["software"], out["notice"] = true, softwareNotice
+		}
+	case pick.noGPU != "":
+		// Not on this server, and why: the Play button would only be turned away.
+		out["ready"], out["reason"], out["message"] = false, "gpu", gpuMessage(console.Name, pick.noGPU)
+		out["needsGpu"], out["gpuMissing"] = true, pick.noGPU
+	case pick.blocked != nil:
+		out["ready"], out["reason"], out["message"] = false, "bios", wittyplay.BIOSHelp(pick.blocked.ID, console.Name)
+		out["file"] = wittyplay.MissingBIOS(pick.blocked.ID, systemDir)
 	default:
 		out["ready"], out["reason"], out["message"] = false, "core", "No core is installed for "+console.Name+"."
 	}

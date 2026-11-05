@@ -29,9 +29,10 @@ type Standing = 'ready' | 'core' | 'bios' | 'gpu' | 'none'
 
 function standingOf(c: ConsoleRow, gpuOk: boolean): Standing {
   if (c.unavailable) return 'none'
+  if (c.reason === 'gpu') return 'gpu'
   if (c.blocked) return 'bios'
   if (!c.ready) return 'core'
-  if (c.needsGpu && !gpuOk) return 'gpu'
+  if (c.needsGpu && !gpuOk && !c.software) return 'gpu'
   return 'ready'
 }
 
@@ -98,7 +99,7 @@ export default function GamingSettings() {
   const offered = new Set(st.consoles.filter((c) => !c.id.startsWith('custom-')).flatMap((c) => c.cores.map((x) => x.id)))
   const extra = st.cores.filter((c) => !known.has(c.id) && c.source !== 'custom')
   const readyCount = withGames.filter((c) => standingOf(c, gpuOk) === 'ready').length
-  const missing = st.canDownload ? withGames.filter((c) => !c.unavailable && !c.ready && c.cores.length > 0 && offered.has(c.cores[0].id)).map((c) => c.cores[0]) : []
+  const missing = st.canDownload ? withGames.filter((c) => !c.unavailable && !c.ready && c.reason !== 'gpu' && c.cores.length > 0 && offered.has(c.cores[0].id)).map((c) => c.cores[0]) : []
   const uniqueMissing = [...new Map(missing.map((c) => [c.id, c])).values()]
 
   const card = (c: ConsoleRow) => {
@@ -127,8 +128,9 @@ export default function GamingSettings() {
             <p>These games need your own copy of a BIOS file, such as <code>{c.blocked}</code>. Put it in a folder named <code>{st.biosFolder}</code> beside your {c.short} games, and it’s found the next time you press Play.</p>
           </div>
         )}
-        {s === 'gpu' && <p className="muted">Its games are drawn with a graphics card, and this server doesn’t have one it can use.</p>}
-        {s === 'ready' && c.needsGpu && <p className="muted">Uses this server’s graphics card.</p>}
+        {s === 'gpu' && <p className="muted">Its games are drawn with a graphics card, and this server doesn’t have one it can use{c.gpuMissing ? `: ${c.gpuMissing}` : ''}. Its games are listed, and can’t be started here.</p>}
+        {s === 'ready' && c.needsGpu && !c.software && <p className="muted">Uses this server’s graphics card.</p>}
+        {s === 'ready' && c.software && <p className="muted">This server has no graphics card games can use, so its processor draws these games. They can run slower than on a server with one, and keep several processor cores busy.</p>}
         <ConsoleCoreSelect console={c} onChanged={refresh} />
         {(c.cores.length > 1 || biosList.length > 0 || (c.customCores?.length ?? 0) > 0 || (s === 'ready' && c.cores.length > 0)) && (
           <details className="gm-setup-more">

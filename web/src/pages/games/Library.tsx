@@ -5,7 +5,7 @@ import { api, type GameConsole, type GameFacets, type Item, type Library } from 
 import { EmptyState, LoadError, Placeholder, ScanButton } from '../../components/common'
 import LegalNote from '../../components/LegalNote'
 import LibraryHeader from '../../components/LibraryHeader'
-import { IconFull, IconGamepad, IconPlay, IconSearch, IconSettings, IconStar, IconTune } from '../../icons'
+import { IconFull, IconGamepad, IconInfo, IconPlay, IconSearch, IconSettings, IconStar, IconTune } from '../../icons'
 import { toast, useApp } from '../../state'
 import { Chip, CardRow, Sheet } from '../../ui'
 import { GameMetaNotice } from '../GameMeta'
@@ -111,7 +111,7 @@ function Hero({ items: list, consoles, resumable, title, place }: { items: Item[
         <div className="gm-hero-actions">
           {ready
             ? <Link className="btn primary big gm-play" to={links.play(it.id, resume ? 'resume=1' : '')}><IconPlay /> {resume ? 'Resume' : 'Play'}</Link>
-            : <Link className="btn big" to={links.item(it.id)}><IconSettings size={16} /> Needs setting up</Link>}
+            : <Link className="btn big" to={links.item(it.id)}>{c?.reason === 'gpu' ? <><IconInfo size={16} /> Not on this server</> : <><IconSettings size={16} /> Needs setting up</>}</Link>}
           <Link className="btn big ghost" to={links.item(it.id)} aria-label={`About ${it.title}`}>About this game</Link>
         </div>
       </div>
@@ -145,9 +145,9 @@ function ConsoleTile({ c, lib }: { c: GameConsole; lib: number }) {
   const { user } = useApp()
   const n = c.count || 0
   return (
-    <Link to={links.library(lib, `console=${encodeURIComponent(c.id)}`)} className="gm-console" aria-label={`${c.name}: ${n.toLocaleString()} ${n === 1 ? 'game' : 'games'}${c.ready ? '' : ', not set up yet'}`}>
+    <Link to={links.library(lib, `console=${encodeURIComponent(c.id)}`)} className="gm-console" aria-label={`${c.name}: ${n.toLocaleString()} ${n === 1 ? 'game' : 'games'}${c.ready ? '' : c.reason === 'gpu' ? ', can’t play on this server' : ', not set up yet'}`}>
       <ConsoleMark console={c} size="lg" />
-      <small>{n.toLocaleString()} {n === 1 ? 'game' : 'games'}{!c.ready && user?.isAdmin ? ' · set up' : ''}</small>
+      <small>{n.toLocaleString()} {n === 1 ? 'game' : 'games'}{c.reason === 'gpu' ? ' · not on this server' : !c.ready && user?.isAdmin ? ' · set up' : ''}</small>
     </Link>
   )
 }
@@ -403,7 +403,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
       {!links.couch && user?.isAdmin && <GameReviewBanner libraryId={lib.id} consoles={consoles} version={reviewVersion} onChanged={() => setWatch((n) => n + 1)} />}
       {current && !current.ready && (
         <div className="game-note" role="status">
-          {current.unavailable || <>This server has no core for the {current.name} yet, so these games can’t start.{' '}
+          {(current.reason === 'gpu' && current.message) || current.unavailable || <>This server has no core for the {current.name} yet, so these games can’t start.{' '}
             {user?.isAdmin ? <Link to="/settings/gaming"><IconSettings size={15} /> Install one in Settings</Link> : 'Ask whoever runs this server to install one.'}</>}
         </div>
       )}

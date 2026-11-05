@@ -94,6 +94,10 @@ export type GameCore = { id: string; name: string; license: string; source?: str
 export type GameConsole = {
   id: string; name: string; short: string; extensions: string[]; cores: GameCore[]; bios?: { file: string; for: string; required: boolean }[]
   unavailable?: string; installed: GameCore[]; ready: boolean; count?: number; needsGpu?: boolean
+  // When it isn't ready: why (gpu means this server can't draw its games), in words for people.
+  reason?: 'unavailable' | 'core' | 'gpu'; message?: string; gpuMissing?: string
+  // Ready, with the processor drawing its games: no graphics card here. notice is the speed caveat.
+  software?: boolean; notice?: string
   customCores?: GameCore[]; defaultCore?: string; shared?: string[]; padLike?: string; logoName?: string
   pad: { face: { id: number; label: string }[]; shoulder?: { id: number; label: string }[]; meta: { id: number; label: string }[]; sticks?: boolean }
 }

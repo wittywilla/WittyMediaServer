@@ -65,7 +65,8 @@ func helperLauncher(system, id, launcher string) string {
 }
 
 // runnerStopped begins the reason a version is out of use when its game runner kept stopping
-// before the game was ready: the server reports each one (api_games.go), and three do it.
+// before the game was ready: the server reported each one (api_games.go), and three did it.
+// It no longer does (liftGameFailureBlocks), so nothing new is blocked with this reason.
 const runnerStopped = "it kept failing (the game runner stopped before the game was ready"
 
 // liftNestedSandboxBlocks puts back in use what a Mac took out of use before helperLauncher. No

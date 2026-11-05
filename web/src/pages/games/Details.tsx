@@ -186,11 +186,20 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
               <span><b>Pick up where you left off</b><small>{fmtDateTime(auto.updatedAt * 1000)}</small></span>
             </Link>
           )}
+          {ready && check?.software && (
+            <div className="gm-blocked info" role="note">
+              <IconInfo />
+              <div>
+                <strong>Drawn by the server’s processor</strong>
+                <p>{check.notice}</p>
+              </div>
+            </div>
+          )}
           {check && !check.ready && (
             <div className="gm-blocked" role="status">
               <IconInfo />
               <div>
-                <strong>{check.reason === 'core' ? 'This game needs a core first' : check.reason === 'bios' ? 'This game needs a BIOS file' : 'This console can’t play here yet'}</strong>
+                <strong>{check.reason === 'core' ? 'This game needs a core first' : check.reason === 'bios' ? 'This game needs a BIOS file' : check.reason === 'gpu' ? 'Not on this server' : 'This console can’t play here yet'}</strong>
                 <p>{check.message}{check.reason === 'core' && (user?.isAdmin ? ' A core is the free program that plays these games. It takes one click to install.' : ' Ask whoever runs this server to install one.')}</p>
               </div>
             </div>
@@ -255,7 +264,9 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
             <li className="ok"><IconCheck size={16} /><span><b>Runs on your server</b><small>and streams to this device, so this device needs no emulator and nothing downloads. Saves stay on the server, and follow you to every device. Playing on the device itself, without the server, isn’t available yet.</small></span></li>
             {check?.core && <li className="ok"><IconCheck size={16} /><span><b>{check.core.name}</b><small>The core that plays this game. License: {check.core.license || 'not known'}.</small></span></li>}
             {check?.reason === 'core' && <li className="no"><IconInfo size={16} /><span><b>No core installed</b><small>{user?.isAdmin ? <>Install one in <Link to="/settings/gaming">Consoles &amp; cores</Link>.</> : 'Ask whoever runs this server.'}</small></span></li>}
-            {check?.needsGpu && <li className="info"><IconInfo size={16} /><span><b>Uses the server’s graphics card</b><small>This console is drawn with one, so it needs a server that has one.</small></span></li>}
+            {check?.needsGpu && check.reason !== 'gpu' && <li className="info"><IconInfo size={16} /><span><b>Uses the server’s graphics card</b><small>This console is drawn with one, so it needs a server that has one.</small></span></li>}
+            {check?.software && <li className="info"><IconInfo size={16} /><span><b>Drawn by the server’s processor</b><small>This server has no graphics card games can use, so its processor draws this console’s games. They can run slower than on a server with one.</small></span></li>}
+            {check?.reason === 'gpu' && <li className="no"><IconInfo size={16} /><span><b>Needs a graphics card this server can’t give it</b><small>{check.gpuMissing ? `Why: ${check.gpuMissing}.` : 'This server has none it can use.'}</small></span></li>}
             {(check?.bios || []).filter((b) => b.required || b.found).map((b) => (
               <li key={b.file} className={b.found ? 'ok' : 'no'}>
                 {b.found ? <IconCheck size={16} /> : <IconInfo size={16} />}

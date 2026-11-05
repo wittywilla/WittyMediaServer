@@ -13,8 +13,8 @@ states, so there is no emulator or game logic to write. The routes are in `inter
 
 1. List games with `GET /items?library=<id>&kind=game`. A library's `console` and an item's `console` say which
    console it is. A game without a picture answers 404 on its poster: draw a placeholder, as for any item.
-2. `GET /games/consoles` says what each console has (`pad`) and whether it can be played now (`ready`,
-   `unavailable`).
+2. `GET /games/consoles` says what each console has (`pad`) and whether it can be played now (`ready`, and when
+   it can't, `reason` and `message`). See [Games this server can't draw](#games-this-server-cant-draw).
 3. `GET /consoles/{console}/controls?device=<your device id>` gives the controller as data (below).
 4. `GET /games/{id}/saves` lists saved states. If slot 0 exists, offer Resume.
 5. `POST /games/{id}/play` with `{"resume": true}` or `{"resume": false}` starts it and answers the session,
@@ -33,8 +33,8 @@ trip through the app switcher loses nothing.
 | Route | Sign-in | What it does |
 |---|---|---|
 | `GET /games/home?library=` | user | The games home screen in one answer: `hero`, `continue` (`{item, plays, lastPlayed, save}`), `recent`, `favourites`, `favouriteIds`, `mostPlayed`, and `shelves` (`{kind: "genre" or "series", name, count, items}`) |
-| `GET /games/{id}/check` | user | What a game needs and whether this server has it: `{ready, reason, message, core, needsGpu, bios: [{file, for, required, found}]}`. `reason` is `core`, `bios` or `unavailable` |
-| `GET /games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed`. With `?library=<id>`, also `count`: that library's games for it |
+| `GET /games/{id}/check` | user | What a game needs and whether this server has it: `{ready, reason, message, core, needsGpu, gpuMissing, software, notice, bios: [{file, for, required, found}]}`. `reason` is `core`, `bios`, `gpu` or `unavailable`, and `message` says it for people. See [Games this server can't draw](#games-this-server-cant-draw) |
+| `GET /games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed`, and when it isn't ready, `reason` (`unavailable`, `core` or `gpu`) and `message`. `gpuMissing`, `software` and `notice` as for a game's check. With `?library=<id>`, also `count`: that library's games for it |
 | `GET /games/modes?client=native` | user | What this server can stream, best first |
 | `GET /consoles/{console}/controls?device=` | user | The controller as data |
 | `PUT /consoles/{console}/controls` | user | Saves one layout, or removes it |
@@ -75,9 +75,28 @@ Starting a game can answer:
 |---|---|
 | 201 | Started: the session |
 | 404 | No such game for this account, or its file has gone |
-| 409 | Can't be played yet. `needCore: true` with `console` means an admin has to install a core. `needBios: true` with `console` and `file` means a BIOS is missing, and `error` says where to put it. `rig: true` means this game plays on a PC. Otherwise `error` says why, such as this server having no graphics card for this game |
+| 409 | Can't be played yet. `needCore: true` with `console` means an admin has to install a core. `needBios: true` with `console` and `file` means a BIOS is missing, and `error` says where to put it. `reason: "gpu"` with `needsGpu: true`, `gpuMissing` and `console` means it can't play on this server at all: its console is drawn on a graphics card, this server has none it can use, and no core for it can do without. Nothing was started. `rig: true` means this game plays on a PC. Otherwise `error` says why |
 | 422 | The file can't be used. `encrypted: true` means it's an encrypted 3DS file, which will never play: `error` says so. Nothing here decrypts a file |
 | 503 | The server is running as many games as it allows, or as many as its graphics card is allowed, or its game runner is missing |
+
+### Games this server can't draw
+
+Nintendo 64, PlayStation 2, PSP, Dreamcast, 3DS and the faster PlayStation cores draw on a graphics card. A server
+without one it can use (a Mac, FreeBSD, or a PC whose only OpenGL is drawn by its processor) says so before anyone
+presses Play, in the same words everywhere, and refuses to start such a game rather than letting the emulator crash:
+
+| Field | In | Meaning |
+|---|---|---|
+| `ready: false`, `reason: "gpu"` | check, consoles, play's 409, prepare's 409 | Not on this server. Show `message` (`error` on a 409) instead of Play. An admin can't fix it in Settings |
+| `message` | check, consoles | Not on this server, and why, for people. Play's `error` is the same text |
+| `gpuMissing` | check, consoles, play's 409 | Only the reason, such as `hardware-rendered games run on Windows and Linux servers`, for a sentence of your own |
+| `needsGpu` | check | The core it starts on draws on this server's graphics card |
+| `software: true` | check, consoles | It plays, but the server's processor draws it, as there's no card here. Show `notice` before it starts: it can run slower and keeps several of the server's cores busy. The session's `notices` say it again once it starts |
+| `notice` | check, consoles | That speed caveat, in words for people |
+
+On a server with a card, none of these appear except `needsGpu`. A console whose cores can't draw without a card
+(PlayStation 2, Dreamcast, 3DS) shows `reason: "gpu"` even with no core installed, since installing one wouldn't help.
+Nintendo 64 and PSP have cores that can have the processor draw, so with none installed they say `reason: "core"`.
 
 **A game in an archive** has to be unpacked before it starts, which can take minutes for a large disc on a small server.
 `POST /games/{id}/play` takes that long, which is fine as long as your HTTP client's timeout allows it. To show

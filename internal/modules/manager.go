@@ -183,6 +183,9 @@ type moduleState struct {
 	// NestedSandboxFixed: what a Mac took out of use while no game could start there has been put
 	// back, once (liftNestedSandboxBlocks).
 	NestedSandboxFixed bool `json:"nestedSandboxFixed,omitempty"`
+	// GameFailuresUncounted: what games failing to start took out of use, before only the helper
+	// failing counted, has been put back, once (liftGameFailureBlocks).
+	GameFailuresUncounted bool `json:"gameFailuresUncounted,omitempty"`
 }
 
 type entry struct {
@@ -318,6 +321,9 @@ func New(cfg Config) *Manager {
 		if liftNestedSandboxBlocks(goos(), id, m.mods[id], m.log) {
 			lifted = true
 		}
+		if liftGameFailureBlocks(id, m.mods[id], m.log) {
+			lifted = true
+		}
 		m.resolve(id, m.mods[id])
 		// The kept catalogue was judged before anyone knew what's on disk, which made every
 		// installed module look as if its own version were an update.
@@ -366,7 +372,7 @@ func (m *Manager) saveState() error {
 	saved := map[string]moduleState{}
 	for id, e := range m.mods {
 		s := e.state
-		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.NoAuto || s.Removed || s.Disabled || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 || s.NestedSandboxFixed {
+		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.NoAuto || s.Removed || s.Disabled || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 || s.NestedSandboxFixed || s.GameFailuresUncounted {
 			saved[id] = s
 		}
 	}
@@ -821,9 +827,10 @@ func (m *Manager) ReportBrowserFailure(id, ver, reason string, admin bool) error
 }
 
 // ReportFailure records a version failing where the server can't see it itself: a
-// bundle in someone's browser, or a program during a game. Three within a day and
+// bundle in someone's browser, or a helper during a game. Three within a day and
 // the version goes out of use. A report about any other version is ignored, so an
-// old tab can't count against what replaced it.
+// old tab can't count against what replaced it. A game that couldn't start because of
+// that game, its core or its console isn't one: see liftGameFailureBlocks.
 func (m *Manager) ReportFailure(id, ver, reason string) error {
 	m.mu.Lock()
 	e := m.mods[id]

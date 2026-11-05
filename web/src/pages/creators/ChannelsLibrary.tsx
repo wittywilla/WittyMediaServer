@@ -8,6 +8,7 @@ import { useApp, toast } from '../../state'
 import { Avatar, LoadMore, SubscribeButton, useVideoList, VideoTile } from './parts'
 import '../../creators.css'
 import LegalNote from '../../components/LegalNote'
+import LibraryHeader from '../../components/LibraryHeader'
 import { Dialog } from '../../ui/Overlay'
 import { Button } from '../../ui/Button'
 import { WebLink } from '../../components/WebLink'
@@ -51,18 +52,17 @@ export default function ChannelsLibrary({ lib }: { lib: Library }) {
   const music = lib.type === 'musicvideos'
   return (
     <div className="ch-page">
-      <div className="toolbar ch-bar">
-        <h1>{lib.name}</h1>
-        <div className="seg ch-tabs" role="tablist" aria-label="View">
-          {(music ? MUSIC_TABS : TABS).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k && !browsing} className={tab === k && !browsing ? 'active' : ''} onClick={() => { set({ tab: k === 'home' ? null : k, q: null, tag: null }); setText('') }}>{l}</button>)}
-        </div>
-        <div style={{ flex: 1 }} />
-        <form className="ch-search" role="search" onSubmit={(e) => { e.preventDefault(); set({ q: text.trim(), tag: null }) }}>
+      <LibraryHeader
+        title={lib.name}
+        end={<form className="ch-search" role="search" onSubmit={(e) => { e.preventDefault(); set({ q: text.trim(), tag: null }) }}>
           <input className="input" type="search" placeholder="Search this library" aria-label="Search this library" value={text} onChange={(e) => setText(e.target.value)} />
           <button className="btn" aria-label="Search"><IconSearch /></button>
-        </form>
-        {user?.isAdmin && <button className="btn sm ghost" disabled={scanning} onClick={rescan}><IconRefresh /> Scan</button>}
-      </div>
+        </form>}
+        tabs={<div className="seg ch-tabs" role="tablist" aria-label="View">
+          {(music ? MUSIC_TABS : TABS).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k && !browsing} className={tab === k && !browsing ? 'active' : ''} onClick={() => { set({ tab: k === 'home' ? null : k, q: null, tag: null }); setText('') }}>{l}</button>)}
+        </div>}
+        actions={user?.isAdmin && <button className="btn sm ghost" disabled={scanning} onClick={rescan}><IconRefresh /> Scan</button>}
+      />
       {tags.length > 0 && tab !== 'channels' && (
         <div className="ch-tags" role="group" aria-label="Topics">
           <button className={'ch-tag' + (!tag ? ' on' : '')} onClick={() => set({ tag: null })}>All</button>

@@ -7,6 +7,7 @@ import { IconCheck, IconGlobe, IconPause, IconPlay, IconPlus, IconRefresh, IconS
 import { toast, useApp } from '../state'
 import '../radio.css'
 import LegalNote from '../components/LegalNote'
+import LibraryHeader from '../components/LibraryHeader'
 import { ask, Dialog } from '../ui/Overlay'
 import { WebLink } from '../components/WebLink'
 import { safeLink } from '../safeLink'
@@ -123,14 +124,15 @@ export default function RadioLibrary({ lib }: { lib: Library }) {
 
   return (
     <>
-      <div className="toolbar">
-        <h1>{lib.name}</h1>
-        {stations && <span className="count">{stations.length} {stations.length === 1 ? 'station' : 'stations'}</span>}
-        <div className="grow" />
-        {all.length > 8 && <input className="input rd-filter" type="search" placeholder="Find a station" aria-label="Find a station in this library" value={text} onChange={(e) => setText(e.target.value)} />}
-        {user?.isAdmin && all.length > 0 && <button className="btn ghost" onClick={checkAll}><IconRefresh /> Check stations</button>}
-        {user?.isAdmin && <button className="btn primary" onClick={() => setAdding(true)}><IconPlus /> Add stations</button>}
-      </div>
+      <LibraryHeader
+        title={lib.name}
+        count={stations ? `${stations.length} ${stations.length === 1 ? 'station' : 'stations'}` : undefined}
+        end={all.length > 8 && <input className="input rd-filter" type="search" placeholder="Find a station" aria-label="Find a station in this library" value={text} onChange={(e) => setText(e.target.value)} />}
+        actions={user?.isAdmin && <>
+          {all.length > 0 && <button className="btn ghost" onClick={checkAll}><IconRefresh /> Check stations</button>}
+          <button className="btn primary" onClick={() => setAdding(true)}><IconPlus /> Add stations</button>
+        </>}
+      />
       {!stations && !failed && <SkeletonGrid square />}
       {failed && <EmptyState icon={libIcon('radio')} title="The stations can't be loaded" text="The server didn't answer." action={<button className="btn" onClick={load}><IconRefresh /> Try again</button>} />}
       {stations && !all.length && (

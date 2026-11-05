@@ -1,18 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import Hls from 'hls.js'
 import { api } from '../../api'
 import { announce } from '../../a11y'
 import { IconBack, IconPlay } from '../../icons'
 import { Controls } from '../../player/Controls'
-import { haveHls, toggleFullscreen, useIdle, useSource } from '../../player/hooks'
+import { haveHls, toggleFullscreen, useIdle } from '../../player/hooks'
 import Remote, { type RemoteKey } from '../../player/Remote'
 import { useLogo } from '../../components/BrandLogo'
 import LegalNote from '../../components/LegalNote'
 import { ChannelLogo } from './ChannelLogo'
 import { channelVars, previousChannel, rememberChannel, surfaceOf, themeRoot, useLook, type Look } from './look'
 import MiniGuide from './MiniGuide'
-import { fmtClock, fmtSpan, forgetLineup, getLineup, leaveChannel, makeViewer, preflight, tune, type Alternative, type GuideChannel, type Programme, type TuneInfo } from './tvApi'
+import Slate from './Slate'
+import { useLiveTracks } from './tracks'
+import { liveHls, liveVideo, useLive } from './live'
+import { fmtClock, fmtSpan, forgetLineup, getLineup, type Alternative, type GuideChannel, type TuneInfo } from './tvApi'
 import './tv.css'
 import './tvthemes.css'
 
@@ -20,7 +23,9 @@ haveHls(Hls)
 
 // Watching a channel: the app's player and on-screen remote, with channel keys
 // and the classic banner that drops in on every tune. Everyone on a channel
-// shares one stream; pausing keeps a place in the server's buffer.
+// shares one stream; pausing keeps a place in the server's buffer. The picture is
+// the TV section's one player (live.ts), carried over from the guide's preview
+// and back, so changing where it's shown never tunes again.
 
 const REMOTE_KEY = 'wms.remote.tv'
 const remoteSaved = () => { try { return localStorage.getItem(REMOTE_KEY) === '1' } catch { return false } }
@@ -30,11 +35,15 @@ export default function TvPlayer() {
   const nav = useNavigate()
   // Changing channel takes the place of the channel left, and remembers where they all came from.
   const from = useLocation().state as { fromGuide?: boolean } | null
-  const video = useRef<HTMLVideoElement | null>(null)
+  const video = useRef<HTMLVideoElement | null>(liveVideo())
+  const stage = useRef<HTMLDivElement | null>(null)
   const root = useIdle(4000, [])
-  const [info, setInfo] = useState<TuneInfo | null>(null)
-  const [url, setUrl] = useState<string | null>(null)
-  const [err, setErr] = useState('')
+  const live = useLive(key, stage)
+  const mine = live.key === key
+  const info = mine ? live.info : null
+  const err = mine ? live.err : ''
+  const picture = mine && live.playing
+  const tracks = useLiveTracks(video.current, liveHls, mine && live.ready)
   const [needClick, setNeedClick] = useState(false)
   const [banner, setBanner] = useState(true)
   const [remoteOn, setRemoteOnState] = useState(remoteSaved)
@@ -42,7 +51,6 @@ export default function TvPlayer() {
   const [win, setWin] = useState({ start: 0, end: 0, behind: 0 })
   const [alt, setAlt] = useState<Alternative | null>(null)
   const [mini, setMini] = useState(false)
-  const [picture, setPicture] = useState(false)
   // Shown the moment a channel is chosen, from what the list already knows: the
   // number and name don't wait for the stream.
   const [zap, setZap] = useState<GuideChannel | null>(null)
@@ -50,7 +58,6 @@ export default function TvPlayer() {
   const prevKey = useRef('')
   const bannerTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const look = useLook()
-  const viewer = useRef(makeViewer())
 
   const showBanner = useCallback(() => {
     setBanner(true)
@@ -59,84 +66,71 @@ export default function TvPlayer() {
   }, [])
   useEffect(() => () => clearTimeout(bannerTimer.current), [])
 
-  // Tune: ask what is on, then wait for the first picture before the player
-  // starts, so a refused or broken channel says why.
+  // The watch view is watched with sound, whatever the preview had.
+  useLayoutEffect(() => {
+    const v = video.current
+    if (!v) return
+    v.muted = false
+    v.removeAttribute('aria-hidden')
+    v.removeAttribute('tabindex')
+  }, [])
+  useEffect(() => {
+    const v = video.current
+    if (v) v.setAttribute('aria-label', info ? `Channel ${info.number}, ${info.name}` : 'TV')
+  }, [info])
+
+  // Each channel: the banner straight away, from what the list already knows. The stream
+  // itself is tuned by the TV section's player, which waits for the first picture so a
+  // refused or broken channel says why.
   useEffect(() => {
     if (prevKey.current && prevKey.current !== key) lastKey.current = prevKey.current
     prevKey.current = key
-    setInfo(null); setUrl(null); setErr(''); setNeedClick(false); setAlt(null); setPicture(false)
-    const ac = new AbortController()
+    setNeedClick(false); setAlt(null)
     showBanner()
     rememberChannel(key)
     setZap(null)
     getLineup().then((l) => { if (prevKey.current === key) setZap(l.find((c) => c.key === key) || null) }).catch(() => {})
-    const v = viewer.current
-    tune(key, v, ac.signal)
-      .then(async (i) => {
-        if (ac.signal.aborted) return
-        setInfo(i)
-        announce(`Channel ${i.number}, ${i.name}${i.now?.title ? ', ' + i.now.title : ''}${i.notices?.length ? '. ' + i.notices.join(' ') : ''}`)
-        const u = i.url + '?viewer=' + v
-        await preflight(u, ac.signal)
-        if (!ac.signal.aborted) setUrl(u)
-      })
-      .catch((e) => {
-        if (ac.signal.aborted) return
-        setErr(e.message)
-        // A channel refused now may have just shown itself to be encrypted.
-        forgetLineup()
-        getLineup().then((l) => setAlt(l.find((c) => c.key === key)?.alternative || null)).catch(() => {})
-      })
-    const gone = () => leaveChannel(key, v)
-    window.addEventListener('pagehide', gone)
-    return () => { ac.abort(); window.removeEventListener('pagehide', gone); gone() }
-  }, [key, showBanner])
-
-  const hlsRef = useSource(video, url, {
-    onReady: () => { video.current?.play().catch(() => setNeedClick(true)) },
-    onError: (m) => setErr(m),
-  })
-  // The stream can be refused after it started: a tuner taken for a recording,
-  // or a channel that turns out to be encrypted.
-  useEffect(() => {
-    const h = hlsRef.current
-    if (!h || !url) return
-    const onErr = (_: unknown, d: { fatal?: boolean; response?: { code?: number } }) => {
-      const code = d.response?.code
-      if (d.fatal && code && code !== 503) {
-        preflight(url, new AbortController().signal).catch((e) => { setErr(e.message); h.destroy() })
-      }
-    }
-    h.on(Hls.Events.ERROR, onErr)
-    return () => { h.off(Hls.Events.ERROR, onErr) }
-  }, [url, hlsRef])
-
-  // When a programme ends, the banner moves on.
-  const refresh = useCallback(() => {
-    api.get<TuneInfo>(`/tv/${key}/tune?viewer=${viewer.current}`).then((i) => { setInfo(i); showBanner() }).catch(() => {})
   }, [key, showBanner])
   useEffect(() => {
-    if (!info?.now?.end) return
-    const wait = info.now.end * 1000 - Date.now() + 1500
-    if (wait <= 0 || wait > 86400000) return
-    const t = setTimeout(refresh, wait)
-    return () => clearTimeout(t)
-  }, [info?.now?.end, refresh])
+    if (!info) return
+    announce(`Channel ${info.number}, ${info.name}${info.now?.title ? ', ' + info.now.title : ''}${info.notices?.length ? '. ' + info.notices.join(' ') : ''}`)
+  }, [info?.key]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!err) return
+    // A channel refused now may have just shown itself to be encrypted.
+    forgetLineup()
+    getLineup().then((l) => { if (prevKey.current === key) setAlt(l.find((c) => c.key === key)?.alternative || null) }).catch(() => {})
+  }, [err, key])
+  // Ready, or already playing in the preview: play, or ask for a click if the browser won't.
+  useEffect(() => {
+    if (!mine || !live.ready) return
+    video.current?.play().catch(() => setNeedClick(true))
+  }, [mine, live.ready])
+  useEffect(() => { if (picture) showBanner() }, [picture, showBanner])
+
+  // When a programme ends the TV section's player asks what's on next, and the banner moves on.
+  const nowStart = info?.now?.start
+  const seenStart = useRef(nowStart)
+  useEffect(() => {
+    if (nowStart !== undefined && seenStart.current !== undefined && nowStart !== seenStart.current) showBanner()
+    seenStart.current = nowStart
+  }, [nowStart, showBanner])
 
   // Counting towards watch progress, on the channels set up for it.
   useEffect(() => {
     if (!info?.countProgress || !info.now?.itemId) return
     const p = info.now
-    const at = info.positionSec, atTime = info.serverTime
+    const at = info.positionSec, atTime = info.serverTime, stop = info.partEnd || Infinity
     const send = () => {
       const v = video.current
       if (!v || v.paused) return
-      const pos = at + (Date.now() / 1000 - atTime)
+      // Only this stretch counts: a break after it isn't the programme.
+      const pos = at + (Math.min(Date.now() / 1000, stop) - atTime)
       api.post(`/items/${p.itemId}/progress`, { positionSec: pos, durationSec: p.end - p.start }).catch(() => {})
     }
     const t = setInterval(send, 30000)
     return () => { clearInterval(t); send() }
-  }, [info?.countProgress, info?.now, info?.positionSec, info?.serverTime])
+  }, [info?.countProgress, info?.now, info?.positionSec, info?.serverTime, info?.partEnd])
 
   // Where the live edge is, and how far back the buffer goes.
   useEffect(() => {
@@ -150,7 +144,7 @@ export default function TvPlayer() {
   }, [])
 
   const seekTo = (t: number) => { const v = video.current; if (v) v.currentTime = Math.max(win.start, Math.min(win.end, t)) }
-  const goLive = () => { const h = hlsRef.current; const v = video.current; if (v) { v.currentTime = h?.liveSyncPosition ?? win.end; v.play().catch(() => {}) } }
+  const goLive = () => { const h = liveHls(); const v = video.current; if (v) { v.currentTime = h?.liveSyncPosition ?? win.end; v.play().catch(() => {}) } }
 
   const step = useCallback(async (dir: 1 | -1) => {
     const list = await getLineup().catch(() => [] as GuideChannel[])
@@ -206,6 +200,8 @@ export default function TvPlayer() {
         case 'm': v.muted = !v.muted; break
         case 'f': toggleFullscreen(root.current); break
         case 'r': setRemoteOn(!remoteOn); break
+        case 'a': tracks.nextAudio(); break
+        case 's': tracks.nextSubtitle(); break
         case 'i': case 'Enter': e.preventDefault(); showBanner(); break
         case 'g': case 'G': case 'ContextMenu': e.preventDefault(); setMini(true); break
         case 'l': goLive(); break
@@ -231,9 +227,11 @@ export default function TvPlayer() {
       case 'play': if (v) { void v.play().catch(() => {}) } break
       case 'pause': v?.pause(); break
       case 'stop': case 'eject': guide(); break
+      case 'audio': tracks.nextAudio(); break
+      case 'subtitle': tracks.nextSubtitle(); break
     }
   }
-  const remoteEnabled = (k: RemoteKey) => k !== 'audio' && k !== 'subtitle' && k !== 'angle'
+  const remoteEnabled = (k: RemoteKey) => k === 'audio' ? tracks.audio.length > 1 : k === 'subtitle' ? tracks.subtitles.length > 0 : k !== 'angle'
   const togglePlay = () => { const v = video.current; if (v && !needClick) v.paused ? v.play().catch(() => {}) : v.pause() }
   const windowLen = Math.max(0, win.end - win.start)
   const isBehind = win.behind > 20
@@ -244,7 +242,7 @@ export default function TvPlayer() {
   return (
     <div className={'player ctv-player'} ref={root} tabIndex={-1} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)} {...playerRoot}>{/* design-ok: a click on the picture is the mouse's shortcut for Play and Pause */}
       <h1 className="sr-only">{info ? `Channel ${info.number}, ${info.name}` : 'Live TV'}</h1>
-      <div className="stage"><video ref={video} playsInline preload="auto" aria-label={info ? `Channel ${info.number}, ${info.name}` : 'TV'} onPlaying={() => { if (!picture) { setPicture(true); showBanner() } }} /></div>
+      <div className="stage" ref={stage} />
       {!picture && !err && !needClick && <div className="center-spinner"><div className="spinner" /></div>}
       {needClick && <div className="big-play"><button aria-label="Play" onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
       {err && (
@@ -271,6 +269,7 @@ export default function TvPlayer() {
       {mini && <MiniGuide channel={key} onTune={tuneTo} onClose={() => setMini(false)} onFull={guide} />}
       <Controls video={video} duration={windowLen} offset={-win.start} onSeek={(t) => seekTo(win.start + t)} onFullscreen={() => toggleFullscreen(root.current)}
         remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} showChapterMarks={false}
+        audio={tracks.audio} subtitles={tracks.subtitles} onAudio={tracks.chooseAudio} onSubtitle={tracks.chooseSubtitle}
         extra={<>
           {isBehind && <button className="btn sm" onClick={goLive} title="Back to live (L)">● Live</button>}
           <button className="btn sm" onClick={() => void step(-1)} title="Channel down (Page Down)" aria-label="Channel down">CH −</button>
@@ -326,14 +325,3 @@ function BannerRights({ ch, look }: { ch: Pick<TuneInfo, 'logo' | 'brand'>; look
   return <LegalNote kind="logosBrief" className="ctv-banner-legal" />
 }
 
-function Slate({ name, next }: { name: string; next: Programme | null }) {
-  return (
-    <div className="ctv-slate" aria-live="polite">
-      <div className="ctv-slate-card">
-        <div className="ctv-slate-ch">{name}</div>
-        <div className="ctv-slate-msg">We'll be right back</div>
-        {next && <div className="ctv-slate-next">Coming up at {fmtClock(next.start)}: {next.title}</div>}
-      </div>
-    </div>
-  )
-}

@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/wittywilla/wittydisc/isofs"
 	"github.com/wittywilla/wittymediaserver/internal/cd"
-	"github.com/wittywilla/wittymediaserver/internal/isofs"
 )
 
 // DiscOptions choose the long parts of a disc check.

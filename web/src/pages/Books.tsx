@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { PageHelp } from '../components/HelpLink'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { api, mediaUrl, posterUrl, type Album, type Item, type Library } from '../api'
+import { api, artSet, CARD_SIZES, mediaUrl, posterUrl, sized, type Album, type Item, type Library } from '../api'
 import { BackLink, EmptyState, ScanButton, SkeletonGrid } from '../components/common'
 import { IconBook } from '../icons'
 import { useApp } from '../state'
@@ -24,7 +24,7 @@ export function BookCard({ it }: { it: Item }) {
   return (
     <Link to={`/item/${it.id}`} className="album-card book-card">
       <div className="album-cover book">
-        {it.poster ? <img src={posterUrl(it)} alt="" loading="lazy" /> : <span><IconBook /></span>}
+        {it.poster ? <img src={sized(posterUrl(it), 320)} srcSet={artSet(posterUrl(it))} sizes={CARD_SIZES} alt="" loading="lazy" /> : <span><IconBook /></span>}
         {it.reading === 'rtl' && <span className="book-badge">Manga</span>}
         {pct > 0 && <span className="book-prog" style={{ width: pct + '%' }} />}
       </div>

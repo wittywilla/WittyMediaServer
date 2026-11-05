@@ -1,6 +1,7 @@
+import { memo } from 'react'
 import { Link } from 'react-router-dom'
 import { PosterCard } from '../ui/Surface'
-import { api, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, type Item, type Show } from '../api'
+import { api, artSet, CARD_SIZES, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, sized, WIDE_CARD_SIZES, type Item, type Show } from '../api'
 import { toast, useApp } from '../state'
 import { IconCheck, IconLeft, IconRefresh } from '../icons'
 
@@ -45,8 +46,10 @@ export function ScanButton({ lib, onStarted }: { lib: { id: number; name: string
 }
 
 // Episodes render as wide stills (16:9) with the show name; `wide` is set
-// automatically for episodes.
-export function ItemCard({ item, wide = item.showId != null }: { item: Item; wide?: boolean }) {
+// automatically for episodes. A card draws again only when its title changes: a grid
+// grows a page at a time and its page re-renders while a scan counts up, and a library
+// of a thousand titles would otherwise draw every card each time.
+export const ItemCard = memo(function ItemCard({ item, wide = item.showId != null }: { item: Item; wide?: boolean }) {
   const pct = item.progress && item.progress.durationSec > 0 && !item.progress.watched
     ? Math.min(100, (item.progress.positionSec / item.progress.durationSec) * 100) : 0
   const gen = isGeneratedArt(item)
@@ -58,7 +61,7 @@ export function ItemCard({ item, wide = item.showId != null }: { item: Item; wid
     <PosterCard to={`/item/${item.id}`} name={item.title} shape={audio ? 'square' : wide ? 'wide' : 'poster'} progress={pct}
       posterClass={gen && !wide ? 'generated' : undefined}
       posterStyle={gen && !wide ? { '--art-hue': artHue(item.title) } as React.CSSProperties : undefined}
-      art={item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <Placeholder title={item.title} />}
+      art={item.poster ? <img src={sized(posterUrl(item), 320)} srcSet={artSet(posterUrl(item))} sizes={wide ? WIDE_CARD_SIZES : CARD_SIZES} alt="" loading="lazy" /> : <Placeholder title={item.title} />}
       badges={<>
         {(isDisc(item) || cd) && <span className={'badge disc' + (isBluray(item) ? ' bluray' : '')}>{discName(item)}</span>}
         {item.progress?.watched && <SeenBadge />}
@@ -70,20 +73,20 @@ export function ItemCard({ item, wide = item.showId != null }: { item: Item; wid
         : item.kind === 'book' ? item.artist || item.year || ''
         : [item.year, length].filter(Boolean).join(' · ')} />
   )
-}
+})
 
 // SeenBadge: the mark on a finished title.
 export function SeenBadge() {
   return <span className="badge seen" role="img" aria-label="Watched"><IconCheck /></span>
 }
 
-export function ShowCard({ show }: { show: Show }) {
+export const ShowCard = memo(function ShowCard({ show }: { show: Show }) {
   return (
     <PosterCard to={`/show/${show.id}`} name={show.title} title={show.title}
       art={<>
         <Placeholder title={show.title} />
         {/* The server falls back to an episode still when there is no poster yet. */}
-        <img src={showPosterUrl(show)} alt="" loading="lazy" style={{ position: 'relative' }} onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
+        <img src={sized(showPosterUrl(show), 320)} srcSet={artSet(showPosterUrl(show))} sizes={CARD_SIZES} alt="" loading="lazy" style={{ position: 'relative' }} onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
       </>}
       badges={<>
         {show.unwatched > 0 && show.unwatched < show.episodeCount && <span className="badge count" role="img" aria-label={`${show.unwatched} unwatched`}>{show.unwatched}</span>}
@@ -91,7 +94,7 @@ export function ShowCard({ show }: { show: Show }) {
       </>}
       sub={<span title={`${show.episodeCount} episodes`}>{[show.year, `${show.seasonCount} ${show.seasonCount === 1 ? 'season' : 'seasons'}`].filter(Boolean).join(' · ')}</span>} />
   )
-}
+})
 
 // VersionTag is the release line shown at the bottom of every page, e.g.
 // "WittyMediaServer 0.4.0 · ALPHA".
@@ -119,7 +122,8 @@ export function BrandMark({ src }: { src?: string }) {
 // Brand is the name in the top-left corner: the custom name from
 // Settings -> Appearance, or WittyMediaServer.
 export function Brand({ name }: { name: string }) {
-  return name ? <span className="brand-name" title={name}>{name}</span> : <span>Witty<b>Media</b>Server</span>
+  // Where it has to wrap, it wraps between the words of the name, not inside one.
+  return name ? <span className="brand-name" title={name}>{name}</span> : <span>Witty<wbr /><b>Media</b><wbr />Server</span>
 }
 
 // UpdateDot: admins see that a newer version can be installed (Settings,

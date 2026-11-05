@@ -33,6 +33,7 @@ func installChecks() []Check {
 		{ID: "firewall", Area: AreaInstall, Title: "Will other devices be able to connect?", Run: checkFirewall},
 		{ID: "leftover-processes", Area: AreaInstall, Title: "Is FFmpeg still running from a server that stopped?", Run: checkLeftoverFFmpeg, Fix: fixProcesses},
 		{ID: "layout", Area: AreaInstall, Title: "Is the data folder in a safe place?", Run: checkLayout},
+		{ID: "smart-app-control", Area: AreaInstall, Title: "Does Windows' Smart App Control let the modules run?", Run: checkSmartAppControl},
 	}
 }
 

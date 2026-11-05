@@ -14,7 +14,7 @@
   --accent: #7955ff;
   --accent-2: #6a4df0;
   --accent-fg: #fff;
-  --accent-text: var(--accent);
+  --accent-text: #9174ff; /* as the default theme has it: the accent itself is under 4.5:1 as text */
   --danger: #ff5c6c;
   --ok: #3ad29f;
   --warn: #e0a030;
@@ -154,11 +154,15 @@ html.using-controller { font-size: 125%; --focus-width: 3px; --focus-offset: 3px
 html.using-controller, html.ten-foot { --focus: var(--fg); }
 @media (pointer: none) { :root { --focus: var(--fg); } }
 html.ten-foot { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; --card-w: 200px; --card-wide-w: 340px; --gutter: max(48px, 4vw); }
-/* The frame grows with the type, or the name in the side menu gets cut off and the bar is too short for what's in it. */
+/* The frame grows with the type, or the name in the side menu gets cut off and the bar is too short for what's in it.
+   The menu grows at every width: below 901px it's the drawer, which has the same type. */
+html.using-controller, html.ten-foot { --sidebar: min(300px, 85vw); }
+/* html:root, so a theme's own :root { --sidebar } loaded after this doesn't put it back to 240px. */
+@media (pointer: none) { html:root { --sidebar: min(300px, 85vw); } }
 @media (min-width: 901px) {
-  html.using-controller, html.ten-foot { --sidebar: 300px; --rail: 96px; --topbar-h: 80px; }
+  html.using-controller, html.ten-foot { --rail: 96px; --topbar-h: 80px; }
 }
-@media (min-width: 901px) and (pointer: none) { :root { --sidebar: 300px; --rail: 96px; --topbar-h: 80px; } }
+@media (min-width: 901px) and (pointer: none) { :root { --rail: 96px; --topbar-h: 80px; } }
 /* A controller on a phone: the type stays large, but a phone still has a phone's margin. */
 @media (max-width: 720px) {
   html.using-controller, html.ten-foot { --gutter: var(--sp-4); }
@@ -249,7 +253,10 @@ input[type=range] { accent-color: var(--accent); }
    the page scrolls. Browsers that can't tie that to scrolling keep the solid
    bar above the picture. Opacity only, so the scroll stays on the compositor. */
 @supports (animation-timeline: scroll()) {
-  .app:has(.hero, .detail-hero) .topbar { margin-bottom: calc(-1 * var(--topbar-h)); background: linear-gradient(rgb(var(--bg-rgb) / .78), rgb(var(--bg-rgb) / 0)); }
+  /* The words in the bar sit low in it, so the fade stays strong down to them, and each gets a
+     halo of the page's colour: readable on any picture, light or dark. */
+  .app:has(.hero, .detail-hero) .topbar { margin-bottom: calc(-1 * var(--topbar-h)); background: linear-gradient(rgb(var(--bg-rgb) / .9), rgb(var(--bg-rgb) / .8) 65%, rgb(var(--bg-rgb) / 0)); }
+  .app:has(.hero, .detail-hero) .topbar :is(.section-row a, .topnav-link, .top-brand) { text-shadow: 0 0 2px rgb(var(--bg-rgb)), 0 0 8px rgb(var(--bg-rgb)); }
   .app:has(.hero, .detail-hero) .topbar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--bg); opacity: 0; animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
   .app:has(.hero, .detail-hero) .topbar::after { animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
   .app:has(.home.editing) .topbar { margin-bottom: 0; background: var(--bg); }
@@ -281,7 +288,8 @@ input[type=range] { accent-color: var(--accent); }
 .btn.sm { min-height: var(--control-h-sm); padding: 0 var(--sp-3); gap: 6px; font-size: var(--text-sm); }
 .btn.big { min-height: var(--control-h-lg); padding: 0 var(--sp-6); font-size: var(--text-base); }
 .btn.icon { padding: 0; width: var(--control-h); border-radius: 50%; }
-.btn.square { width: var(--control-h); padding: 0; }
+/* A square button keeps its size in a crowded row: the words beside it wrap instead. */
+.btn.square { width: var(--control-h); padding: 0; flex: none; }
 .btn.sm.square { width: var(--control-h-sm); }
 .btn[disabled] { opacity: .45; }
 .btn[disabled]:hover { background: var(--bg-3); }
@@ -557,10 +565,11 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .auth-card p { color: var(--fg-2); text-align: center; margin: 0 0 var(--sp-6); }
 .auth-card .form .btn { width: 100%; margin-top: var(--sp-1); }
 @media (max-width: 420px) { .auth-card { padding: var(--sp-6) var(--sp-5); } }
+.auth-plain { margin: 0 0 var(--sp-3); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--danger); border-radius: var(--r-sm); background: var(--danger-soft); color: var(--fg); font-size: var(--text-sm); line-height: 1.5; }
 .empty { display: grid; justify-items: center; text-align: center; color: var(--fg-2); padding: var(--sp-16) var(--sp-5); }
 .empty-ic { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: var(--sp-4); border-radius: 50%; background: var(--bg-3); color: var(--fg-3); }
 .empty-ic svg { width: 26px; height: 26px; }
-.empty h3 { color: var(--fg); font-size: var(--text-lg); margin: 0 0 var(--sp-1); }
+.empty .empty-title { color: var(--fg); font-size: var(--text-lg); margin: 0 0 var(--sp-1); }
 .empty p { margin: 0 0 var(--sp-4); max-width: 46ch; font-size: var(--text-md); }
 .toast { position: fixed; bottom: calc(var(--sp-5) + var(--dock-space) + var(--tabbar-space)); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); background: var(--bg-4); color: var(--fg); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); border: 1px solid var(--border); box-shadow: var(--e-3); z-index: var(--z-toast); font-size: var(--text-md); font-weight: 500; animation: toast-in var(--dur-3) var(--ease-out); }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
@@ -650,6 +659,8 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .content:has(.legal-note:not(.legal-foot)) .legal-foot, .content:has(.set-shell) .legal-foot { display: none; }
 .legal-ack-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-2) var(--sp-4); background: var(--bg-2); border-bottom: 1px solid var(--border); color: var(--fg-2); font-size: var(--text-sm); }
 .legal-ack-bar p { flex: 1 1 32ch; margin: 0; max-width: 80ch; line-height: 1.5; }
+/* Unencrypted connections from away: stays until the setting goes. */
+.plain-away-bar { background: var(--danger-soft); border-bottom: 2px solid var(--danger); color: var(--fg); }
 .oobe-ack { display: flex; align-items: flex-start; gap: var(--sp-2); color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; }
 .oobe-ack input { flex: none; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); }
 .ctv-legal { margin: var(--sp-2) 0; padding: 0 var(--sp-3); max-width: none; color: var(--ctv-soft); }
@@ -764,6 +775,10 @@ main.content:focus { outline: none; }
 .upd-dot { display: inline-block; width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / .25); flex: none; }
 .tabbar a.tab-upd { position: relative; }
 .tabbar .upd-dot { position: absolute; top: var(--sp-1); right: calc(50% - 18px); margin: 0; }
+/* A newer version, for admins, at the top of Home and Settings. */
+.upd-banner { margin: 0 0 var(--sp-4); }
+.home > .upd-banner { margin: var(--sp-3) var(--gutter) 0; }
+.upd-banner-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 
 /* People who ask their system for more contrast get stronger secondary
    text and borders. */

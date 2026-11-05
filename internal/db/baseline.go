@@ -66,11 +66,16 @@ func ReadVersions(ctx context.Context, q interface {
 
 // BuildAt makes an empty database in dir with exactly these versions of the schema, and
 // returns it open on one connection with foreign keys off, ready to take rows.
+//
+// It and OpenPlainFile are for working copies only, never the live database, so their rollback
+// journal stays in memory: on disk, every statement made and deleted a journal file, and on
+// Windows each delete can wait on the virus scanner, which held a backup's check for minutes.
+// A crash loses only the copy, which is made again.
 func BuildAt(ctx context.Context, path string, v Versions) (*sql.DB, error) {
 	if v.Newer(CurrentVersions()) || v.Main < 1 {
 		return nil, errors.New("that schema version isn't one this program knows")
 	}
-	dsn := "file:" + escapeDBPath(path) + "?_pragma=foreign_keys(0)&_pragma=trusted_schema(0)&_pragma=synchronous(OFF)&_pragma=journal_mode(DELETE)"
+	dsn := "file:" + escapeDBPath(path) + "?_pragma=foreign_keys(0)&_pragma=trusted_schema(0)&_pragma=synchronous(OFF)&_pragma=journal_mode(MEMORY)"
 	d, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
@@ -136,7 +141,7 @@ func SnapshotTo(ctx context.Context, live *sql.DB, path string) error {
 // OpenPlainFile opens a working copy with no pool and no checks on foreign keys, for
 // rewriting one before it's used.
 func OpenPlainFile(path string) (*sql.DB, error) {
-	dsn := "file:" + escapeDBPath(path) + "?_pragma=foreign_keys(0)&_pragma=trusted_schema(0)&_pragma=synchronous(OFF)&_pragma=journal_mode(DELETE)"
+	dsn := "file:" + escapeDBPath(path) + "?_pragma=foreign_keys(0)&_pragma=trusted_schema(0)&_pragma=synchronous(OFF)&_pragma=journal_mode(MEMORY)"
 	d, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err

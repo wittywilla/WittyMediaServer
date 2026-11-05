@@ -27,7 +27,7 @@ As of 0.7.0-alpha, 2026-11-04. "CI" means GitHub's Mac runners: virtual Macs, Ap
 | `.pkg` installer | Every pull request and release, unsigned | Installed, the service answers on port 9797, uninstalled, on both chips | No |
 | Bundled FFmpeg | Downloaded and checked against `scripts/ffmpeg.lock` | Runs, and lists VideoToolbox's encoders | No |
 | Module helpers (every module) | Every module's CI cross-compiles darwin/amd64 and darwin/arm64 | No | No |
-| Helper sandbox (`sandbox-exec`) | Yes | No | No |
+| Helper sandbox (`sandbox-exec`) | Yes | `TestMacHelperSandbox`: writing, removing, the network, Unix sockets and starting programs were all refused inside it, and a helper allowed more kept it | No |
 | Games (WittyPlay) | Yes | No | No |
 | WittyMediaClient desktop (`.dmg`) | Every push, on a Mac | No | No |
 | WittyMediaClient for Mac, iPhone, iPad, Apple TV | On a Mac in CI, unsigned | WittyKit's tests | No |
@@ -216,7 +216,7 @@ Signing and notarising need **the Apple Developer Program, US$99 a year**, which
 | Settings file | `~/Library/Application Support/WittyMediaServer/wms.json` |
 | Logs | `~/Library/Application Support/WittyMediaServer/logs` |
 | Themes you add | `~/Library/Application Support/WittyMediaServer/themes` |
-| Modules | Inside the data folder; a starter set in `WittyMediaServer.app/Contents/Resources/modules` |
+| Modules | `~/Library/Application Support/WittyMediaServer/modules`; a starter set in `WittyMediaServer.app/Contents/Resources/modules` |
 | The background service | `/Library/LaunchDaemons/com.wittywilla.wittymediaserver.plist` |
 | Starting the menu-bar app at sign-in | `~/Library/LaunchAgents/com.wittywilla.wittymediaserver.tray.plist` |
 | The installer's record | `pkgutil --pkgs | grep wittywilla` |

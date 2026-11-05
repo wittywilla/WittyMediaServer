@@ -68,7 +68,8 @@ func TestMacHelperSandbox(t *testing.T) {
 		say("udp", err)
 		say("program", exec.Command("/bin/sh", "-c", "exit 0").Run())
 		if pid, _ := strconv.Atoi(os.Getenv("WMS_SANDBOX_OTHER")); pid > 0 {
-			say("signal", unix.Kill(pid, 0))
+			// A real signal, not 0, which only asks whether it exists. SIGCONT changes nothing here.
+			say("signal", unix.Kill(pid, unix.SIGCONT))
 		}
 		println("finished")
 		return

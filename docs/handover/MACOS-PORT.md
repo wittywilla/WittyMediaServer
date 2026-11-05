@@ -65,7 +65,7 @@ As of 2026-11-04. "Built" means in CI, on GitHub's Mac runners or cross-compiled
 
 | | What | State |
 |---|---|---|
-| wittywilla/WittyMediaServer#99 | This: Mac CI, docs/MACOS.md, this hand-over, the tests fixed for a Mac | Draft, closes #85 and #134 |
+| wittywilla/WittyMediaServer#99 | This: Mac CI, docs/MACOS.md, this hand-over, the tests fixed for a Mac, and a false "copy-protected" on some MKVs found by the Mac job | Draft, closes #85, #134 and #184 |
 | wittywilla/WittyMediaClient#4 | CI green again: Apple build, theme data, script check | Draft, closes wittywilla/WittyMediaClient#3. Its FreeBSD job fails because FreeBSD's package repository had no Electron that day, unrelated |
 | wittywilla/WittyPlay#20 | The test probe builds on macOS and FreeBSD; WittyPlay 0.3.5 | Draft, closes wittywilla/WittyPlay#18 |
 
@@ -97,7 +97,7 @@ Each step is issues first, one branch and draft pull request per issue, as the [
 2. **The server as people get it** (#136): build the app and `.pkg` on the Mac (`scripts/build-release.sh`, `packaging/macos/build-pkg.sh`), install it by double-click, use the menu-bar app, uninstall it. The owner clicks the system's questions; tell them exactly what to click.
 3. **The service and the Mac's questions** (#137): restart the Mac, firewall on, Local Network, a library in a protected folder. Where a silent failure is found, make the server say why: that's the biggest likely gap for real people.
 4. **Transcoding with VideoToolbox** (#138), with real files, against the CPU.
-5. **The helper sandbox** (#139): `go test ./internal/modules -run TestMac -v`, then every starter module under it. If it holds, propose setting `sandboxAvailable` true on a Mac (forks then allowed, and the fork tests stop skipping); that's a security decision for the owner.
+5. **The helper sandbox** (#139): on GitHub's runner it already refused everything it should (see the `macos` job's log); on the MacBook, `go test ./internal/modules -run TestMac -v`, then every starter module under it. If it holds, propose setting `sandboxAvailable` true on a Mac (forks then allowed, and the fork tests stop skipping); that's a security decision for the owner.
 6. **Modules one by one:** discs (WittyDVD, WittyBluray with Java: wittywilla/WittyBluray#4), WittyTuner (wittywilla/WittyTuner#3), WittyPhotos, readers. Faults go to the module's repository.
 7. **Games** (wittywilla/WittyPlay#23), then WittyCouch Host (wittywilla/WittyCouchHost#1).
 8. **WittyMediaClient**: the Apple apps (`apple/scripts/check-on-mac.sh`, wittywilla/WittyMediaClient#5), then the desktop app (#6). iPhone and Apple TV need signing.

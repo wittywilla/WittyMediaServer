@@ -153,6 +153,12 @@ func cmdServe(args []string) int {
 		guard.SetLogDir(logs.Dir())
 	}
 
+	if ffmpeg.InContainer() {
+		if msg := puidMismatch(os.Getenv("PUID"), os.Getenv("PGID"), os.Getuid(), os.Getgid()); msg != "" {
+			log.Warn(msg)
+		}
+	}
+
 	// Find out which hardware encoders really work here, if any are to be used.
 	{
 		ctx := context.Background()

@@ -41,6 +41,8 @@ Let the account own the server's folder:
 sudo chown -R 1000:100 /volume1/Docker/wittymediaserver
 ```
 
+> **Folders empty in the app, or "permission denied"?** The user and group numbers don't match your folders. [User and group IDs](DOCKER.md#asustor-user-and-group-ids) says how to tell, find the right ones and fix it.
+
 ## 3. Create the stack
 
 Open **Portainer**, choose the local environment, then **Stacks → Add stack**. Name it `wittymediaserver` and paste this into the web editor. Change the marked lines, and leave out `group_add` and `devices` on a model without graphics:

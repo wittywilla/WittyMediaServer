@@ -45,6 +45,8 @@ Then let your account own the server's folder:
 sudo chown -R 1026:100 /volume1/docker/wittymediaserver
 ```
 
+> **Folders empty in the app, or "permission denied"?** The user and group numbers don't match your folders. [User and group IDs](DOCKER.md#synology-user-and-group-ids) says how to tell, find the right ones and fix it.
+
 ## 3. Create the project
 
 In **Container Manager → Project → Create**: name it `wittymediaserver`, set the path to `/docker/wittymediaserver`, choose **Create docker-compose.yml**, and paste this. Change the marked lines, and leave out `group_add` and `devices` on a model without graphics:

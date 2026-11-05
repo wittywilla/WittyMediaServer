@@ -38,6 +38,8 @@ ls -ln /dev/dri
 
 The first two numbers go in `user:`. The fourth column of the `renderD128` line is the render group, for `group_add` (on most systems it's the `render` group: `getent group render`). No `/dev/dri` means no Intel or AMD graphics driver is loaded.
 
+> **Folders empty in the app, or "permission denied"?** The user and group numbers don't match your folders. [User and group IDs](DOCKER.md#linux-user-and-group-ids) says how to tell, find the right ones and fix it.
+
 ## 4. Write the compose file
 
 Save this as `compose.yml` in `~/wittymediaserver`, with your numbers and media folder:

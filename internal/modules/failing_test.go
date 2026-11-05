@@ -107,7 +107,7 @@ func TestTheOnlyVersionRestsRatherThanGoing(t *testing.T) {
 
 func TestARestEnds(t *testing.T) {
 	oldRest := restFor
-	restFor = 50 * time.Millisecond
+	restFor = time.Hour // a short one could end before it's looked at, on a busy machine
 	defer func() { restFor = oldRest }()
 	w := newWorld(t)
 	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API, "crash"))
@@ -121,7 +121,9 @@ func TestARestEnds(t *testing.T) {
 	if m.Resting("wittyphotos") == nil {
 		t.Fatal("not resting")
 	}
-	time.Sleep(100 * time.Millisecond)
+	m.mu.Lock()
+	m.mods["wittyphotos"].restUntil = time.Now().Add(-time.Second) // the hour has gone by
+	m.mu.Unlock()
 	if err := m.Resting("wittyphotos"); err != nil {
 		t.Fatalf("still resting: %v", err)
 	}

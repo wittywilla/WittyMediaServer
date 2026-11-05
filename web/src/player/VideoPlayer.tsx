@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, ApiError, episodeLabel, fitWidth, langName, mediaUrl, posterUrl, sized, type Item, type PlaybackAnswer, type Show } from '../api'
-import { IconBack, IconClose, IconExpand, IconInfo, IconMini, IconNext, IconPause, IconPlay } from '../icons'
+import { IconBack, IconClose, IconExpand, IconInfo, IconMini, IconNext, IconPause, IconPlay, IconRemote } from '../icons'
 import { browserCapabilities } from './capabilities'
 import PlayInfoPanel from './PlayInfoPanel'
 import { toast } from '../state'
@@ -11,7 +11,8 @@ import { Controls, useVideoState } from './Controls'
 import { haveHls, toggleFullscreen, useIdle, useSource, type NetNote } from './hooks'
 import { deviceStreaming, mayBeRobust, measureSpeed, rememberSpeed, setDeviceStreaming, type DeviceStreaming } from './streaming'
 import Hls from 'hls.js'
-import Remote, { DVD_ONLY, RemoteBar, type RemoteKey } from './Remote'
+import Remote, { RemoteBar, RemoteSheet, useSheetLayout, type RemoteKey } from './Remote'
+import { keyWorks, remoteLabel, remoteNote, videoForm } from './remoteKeys'
 import TrackPicker from './TrackPicker'
 import ViewSettings from './ViewSettings'
 import { useViewPrefs } from './viewPrefs'
@@ -61,8 +62,15 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const st = useVideoState(video)
   const offset = info?.timeOffsetSec || 0
   const now = st.time + offset
-  const remoteOn = prefs.remote
-  const setRemoteOn = (on: boolean) => view.update({ remote: on }, view.scope)
+  // A copy of a disc's film gets that disc's remote. On a phone, and in the mini player, the
+  // remote is a sheet, opened each time it's wanted rather than remembered.
+  const form = videoForm(item)
+  const copy = form !== 'video'
+  const sheetLayout = useSheetLayout()
+  const [sheetOpen, setSheetOpen] = useState(false)
+  useEffect(() => setSheetOpen(false), [mini])
+  const remoteOn = sheetLayout || mini ? sheetOpen : prefs.remote
+  const setRemoteOn = (on: boolean) => { if (sheetLayout || mini) setSheetOpen(on); else view.update({ remote: on }, view.scope) }
   const [upNext, setUpNext] = useState<number | null>(null)
   const [next, setNext] = useState<{ item: Item; show?: Show | null; recommended: boolean } | null>(null)
   const [nextDismissed, setNextDismissed] = useState(false)
@@ -281,6 +289,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         case 'm': v.muted = !v.muted; break
         case 'r': setRemoteOn(!remoteOn); break
         case 'i': setInfoOpen((o) => !o); break
+        case 'n': case 'MediaTrackNext': if (copy) onRemote('next'); break
+        case 'p': case 'MediaTrackPrevious': if (copy) onRemote('prev'); break
         case 'Escape': case 'GoBack': case 'BrowserBack': if (!document.fullscreenElement) { e.preventDefault(); chrome.minimize() } break
       }
     }
@@ -306,27 +316,41 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     if (burned) ask({ burn: null })
   }
   const duration = info?.durationSec || item.runtimeSec || 0
-  // The same remote as for discs; disc-only keys are greyed out.
+  const chapters = info?.chapters?.map((c) => c.start) || []
+  // A copy of a disc steps through its chapters, as the disc would. At the last one, next goes
+  // on to the next episode, if there is one.
+  const chapterStep = copy && chapters.length > 1
+  const stepChapter = (dir: 1 | -1) => {
+    const v = video.current
+    if (!v) return
+    const t = v.currentTime + offset
+    const cur = Math.max(0, chapters.filter((c) => c <= t + 1).length - 1)
+    if (dir === -1) { seek(t - chapters[cur] > 3 || cur === 0 ? chapters[cur] : chapters[cur - 1]); return }
+    if (cur < chapters.length - 1) seek(chapters[cur + 1])
+    else if (item.nextId) nav(nextHref)
+  }
+  // The same remote as for discs. What a key does without a disc's program is in remoteKeys.ts.
   const onRemote = (k: RemoteKey) => {
     const v = video.current
     switch (k) {
       case 'eject': chrome.close(); break
       case 'audio': if ((info?.audio.length || 0) > 1) setPicker('audio'); break
       case 'subtitle': if (info?.subtitles.length) setPicker('subtitle'); break
-      case 'rew': case 'prev': if (v) seek(v.currentTime + offset - (k === 'prev' ? 60 : 10)); break
+      case 'prev': if (chapterStep) stepChapter(-1); else if (v) seek(v.currentTime + offset - 60); break
+      case 'rew': if (v) seek(v.currentTime + offset - 10); break
       case 'ff': if (v) seek(v.currentTime + offset + 30); break
-      case 'next': if (item.nextId) nav(nextHref); else if (v) seek(v.currentTime + offset + 60); break
+      case 'next': if (chapterStep) stepChapter(1); else if (item.nextId) nav(nextHref); else if (v) seek(v.currentTime + offset + 60); break
       case 'play': v?.play().catch(() => {}); break
       case 'pause': v?.pause(); break
       case 'stop': if (v) { v.pause(); seek(0) } break
+      default:
+        if (k.startsWith('digit') && keyWorks(form, k, remoteState)) seek(chapters[Number(k.slice(5)) - 1])
     }
   }
-  const remoteEnabled = (k: RemoteKey) => {
-    if (DVD_ONLY.includes(k)) return false
-    if (k === 'audio') return (info?.audio.length || 0) > 1
-    if (k === 'subtitle') return (info?.subtitles.length || 0) > 0
-    return true
-  }
+  const remoteState = { audio: info?.audio.length, subtitles: info?.subtitles.length, chapters: chapters.length }
+  const remoteEnabled = (k: RemoteKey) => keyWorks(form, k, remoteState)
+  const keysNote = remoteNote(form, remoteState)
+  const label = remoteLabel(form)
   const subtitle = [item.showTitle, episodeLabel(item)].filter(Boolean).join(' · ')
   const trackLabel = (t: { language: string; title?: string }) => [langName(t.language), t.title].filter(Boolean).join(' · ')
   const togglePlay = () => { const v = video.current; if (v && !needClick) v.paused ? v.play().catch(() => {}) : v.pause() }
@@ -350,9 +374,11 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             <button className="ibtn" onClick={() => onRemote('rew')} title="Back 10 s"><IconBack /></button>
             <button className="ibtn big" onClick={togglePlay} title="Play/Pause">{st.playing ? <IconPause /> : <IconPlay />}</button>
             {item.nextId ? <button className="ibtn" onClick={() => nav(nextHref)} title="Next episode"><IconNext /></button> : <span />}
+            <button className={'ibtn keep' + (remoteOn ? ' on' : '')} onClick={() => setRemoteOn(!remoteOn)} title="Remote" aria-label="Remote" aria-pressed={remoteOn}><IconRemote /></button>
             <button className="ibtn" onClick={chrome.expand} title="Full player"><IconExpand /></button>
             <button className="ibtn" onClick={chrome.close} title="Stop"><IconClose /></button>
           </div>
+          {remoteOn && <RemoteSheet docked onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />}
         </div>
       ) : (
         <>
@@ -363,9 +389,11 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             {item.nextId && <button className="btn sm" onClick={() => nav(nextHref, { replace: true })} title="Next episode"><IconNext /> <span className="hide-narrow">Next episode</span></button>}
             <button className="ibtn" onClick={chrome.minimize} title="Mini player"><IconMini /></button>
           </div>
-          {remoteOn && (prefs.remoteStyle === 'bar'
-            ? <RemoteBar onKey={onRemote} enabled={remoteEnabled} disc={false} />
-            : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyMedia" />)}
+          {remoteOn && (sheetLayout
+            ? <RemoteSheet onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />
+            : prefs.remoteStyle === 'bar'
+              ? <RemoteBar onKey={onRemote} enabled={remoteEnabled} disc={copy} note={keysNote} />
+              : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />)}
           {inIntro && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(item.introEnd!) }}>Skip intro ›</button>}
           {pickIntro && <PickIntroBar item={item} time={now} mode={pickIntro} />}
           {next && (nearEnd || ended) && !nextDismissed && (
@@ -387,7 +415,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             </div>
           )}
           <Controls video={video} duration={duration} offset={offset} onSeek={seek} onFullscreen={() => toggleFullscreen(root.current)}
-            chapters={info?.chapters?.map((c) => c.start)} chapterNames={info?.chapters?.map((c) => c.title)}
+            chapters={chapters} chapterNames={info?.chapters?.map((c) => c.title)} copy={copy}
+            onPrev={chapterStep ? () => stepChapter(-1) : undefined} onNext={chapterStep ? () => stepChapter(1) : undefined}
             audio={info?.audio.map((a) => ({ id: a.index, label: [langName(a.language), a.title, a.codec?.toUpperCase(), a.channels ? a.channels + 'ch' : ''].filter(Boolean).join(' · '), active: a.index === audio }))}
             subtitles={info?.subtitles.map((s) => ({ id: s.index, label: trackLabel(s), active: s.index === sub }))}
             onAudio={(id) => switchTrack('audio', id)} onSubtitle={(id) => switchTrack('sub', id)} onPick={(k) => { if (k !== 'angle') setPicker(k) }}

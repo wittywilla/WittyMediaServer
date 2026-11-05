@@ -1,21 +1,26 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { IconClose, IconContrast, IconDown, IconEject, IconFf, IconLeft, IconNext, IconPause, IconPlay, IconPrev, IconRew, IconRight, IconStop, IconUp } from '../icons'
+import { useMedia } from '../shell/useNav'
+import { COLOUR_KEYS, type RemoteKey } from './remoteKeys'
 
-// Keys of a classic DVD remote. Disc-only keys are disabled for plain videos.
-export type RemoteKey =
-  | 'eject' | 'topmenu' | 'menu' | 'return' | 'up' | 'down' | 'left' | 'right' | 'enter'
-  | 'audio' | 'subtitle' | 'angle' | 'prev' | 'next' | 'rew' | 'ff' | 'play' | 'pause' | 'stop'
-  | `digit${0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}`
-
-export const DVD_ONLY: RemoteKey[] = ['topmenu', 'menu', 'return', 'up', 'down', 'left', 'right', 'enter', 'angle',
-  'digit0', 'digit1', 'digit2', 'digit3', 'digit4', 'digit5', 'digit6', 'digit7', 'digit8', 'digit9']
+// The on-screen remote of a disc player. Which keys work for what's playing is in remoteKeys.ts.
+export type { RemoteKey }
 
 type Props = {
   onKey: (k: RemoteKey) => void
   enabled: (k: RemoteKey) => boolean
   onClose: () => void
   label?: string
+  note?: string // why the menu keys are greyed out, when they are
 }
+
+const COLOUR_NAMES: Record<string, string> = { red: 'Red', green: 'Green', yellow: 'Yellow', blue: 'Blue' }
+const ejectTip = (label: string) => (label === 'WittyDVD' ? 'Eject the DVD' : label === 'WittyBluray' ? 'Eject the Blu-ray' : 'Stop and close')
+
+// The floating remote doesn't fit a phone, or a window as short as one on its side: there the
+// remote is a sheet along the bottom.
+export const useSheetLayout = () => useMedia('(max-width: 700px), (max-height: 560px)')
 
 // Where the remote sits, how big and how see-through it is; remembered per
 // browser. x/y are pixels from the player's top-left corner (null = default
@@ -31,7 +36,7 @@ function loadGeom(): Geom {
   } catch { return { x: null, y: null, scale: 1, alpha: ALPHAS[0] } }
 }
 
-export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD' }: Props) {
+export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD', note }: Props) {
   const [pressed, setPressed] = useState<RemoteKey | null>(null)
   const t = useRef<any>(null)
   useEffect(() => () => clearTimeout(t.current), [])
@@ -98,11 +103,12 @@ export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD' }: 
     <KeyCtx.Provider value={{ enabled, press, pressed }}>
     <div className="remote" ref={el} style={style} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} role="group" aria-label={label + ' remote'}>
       <div className="remote-head" onPointerDown={startDrag}>
-        <B k="eject" cls="round red" tip={label === 'WittyDVD' ? 'Eject the DVD' : label === 'WittyBluray' ? 'Eject the Blu-ray' : 'Stop and close'}><IconEject size={16} /></B>
+        <B k="eject" cls="round red" tip={ejectTip(label)}><IconEject size={16} /></B>
         <span className="remote-brand">{label}</span>
         <button type="button" className="rk round ghost" data-tip="See-through" aria-label="Change how see-through the remote is" onClick={(e) => { e.stopPropagation(); cycleAlpha() }}><IconContrast size={14} /></button>
         <button type="button" className="rk round ghost" data-tip="Close the Remote" aria-label="Close the Remote (r)" onClick={(e) => { e.stopPropagation(); onClose() }}><IconClose size={14} /></button>
       </div>
+      {note && <div className="remote-note" role="note">{note}</div>}
       <div className="remote-row2">
         <B k="topmenu" cls="pill" title="Top menu (disc title menu)">TOP MENU</B>
         <B k="menu" cls="pill" title="Menu (the root menu, or a Blu-ray's pop-up menu)">MENU</B>
@@ -133,6 +139,7 @@ export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD' }: 
         <B k="play" cls="accent" title="Play"><IconPlay size={16} /></B>
         <B k="pause" title="Pause"><IconPause size={16} /></B>
       </div>
+      <Colours />
       <div className="remote-digits">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => <B key={d} k={`digit${d}` as RemoteKey} title={`Button / chapter ${d}`}>{d}</B>)}
         <span />
@@ -164,12 +171,22 @@ function B({ k, children, cls = '', title, tip }: { k: RemoteKey; children: Reac
   )
 }
 
+// The colour keys, which Blu-ray Java menus use.
+function Colours() {
+  return (
+    <div className="remote-colours">
+      {COLOUR_KEYS.map((c) => <B key={c} k={c} cls={'colour ' + c} title={`${COLOUR_NAMES[c]} (F${COLOUR_KEYS.indexOf(c) + 1})`}><span aria-hidden="true" /></B>)}
+    </div>
+  )
+}
+
 // RemoteBar is the same remote laid out as one strip above the seek bar, for
 // viewers who prefer it out of the picture.
-export function RemoteBar({ onKey, enabled, disc = true }: { onKey: (k: RemoteKey) => void; enabled: (k: RemoteKey) => boolean; disc?: boolean }) {
+export function RemoteBar({ onKey, enabled, disc = true, note }: { onKey: (k: RemoteKey) => void; enabled: (k: RemoteKey) => boolean; disc?: boolean; note?: string }) {
   return (
     <KeyCtx.Provider value={{ enabled, press: onKey, pressed: null }}>
     <div className="remote-bar" role="toolbar" aria-label="Disc remote" onClick={(e) => e.stopPropagation()}>
+      {note && <span className="rb-note" role="note">{note}</span>}
       <BarKey k="topmenu" label="Top menu">TOP MENU</BarKey>
       <BarKey k="menu" label="Menu">MENU</BarKey>
       <BarKey k="return" label="Return">RETURN</BarKey>
@@ -187,6 +204,10 @@ export function RemoteBar({ onKey, enabled, disc = true }: { onKey: (k: RemoteKe
       <span className="rb-digits hide-narrow">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d) => <BarKey key={d} k={`digit${d}` as RemoteKey} label={`Button or chapter ${d}`}>{d}</BarKey>)}
       </span>
+      <span className="rb-sep hide-narrow" />
+      <span className="rb-colours hide-narrow">
+        {COLOUR_KEYS.map((c, i) => <BarKey key={c} k={c} label={`${COLOUR_NAMES[c]} (F${i + 1})`} cls={'colour ' + c}><span aria-hidden="true" /></BarKey>)}
+      </span>
       <BarKey k="eject" label={disc ? 'Eject the disc' : 'Stop and close'} cls="red"><IconEject size={14} /></BarKey>
     </div>
     </KeyCtx.Provider>
@@ -196,4 +217,77 @@ export function RemoteBar({ onKey, enabled, disc = true }: { onKey: (k: RemoteKe
 function BarKey({ k, children, label, cls = '' }: { k: RemoteKey; children: React.ReactNode; label: string; cls?: string }) {
   const { enabled, press } = useContext(KeyCtx)
   return <button type="button" className={'rb ' + cls} disabled={!enabled(k)} title={label} aria-label={label} onClick={(e) => { e.stopPropagation(); press(k) }}>{children}</button>
+}
+
+// RemoteSheet is the remote as a sheet along the bottom: on a phone, upright or on its side,
+// and over the page while the mini player plays (docked). Every key is on it: the first page
+// has the menus, arrows, tracks and playback, the second the digits and colour keys.
+export function RemoteSheet({ onKey, enabled, onClose, label = 'WittyDVD', note, docked = false }: Props & { docked?: boolean }) {
+  const [page, setPage] = useState<'keys' | 'numbers'>('keys')
+  const [pressed, setPressed] = useState<RemoteKey | null>(null)
+  const t = useRef<any>(null)
+  useEffect(() => () => clearTimeout(t.current), [])
+  const press = (k: RemoteKey) => { setPressed(k); clearTimeout(t.current); t.current = setTimeout(() => setPressed(null), 140); onKey(k) }
+  // Esc closes it, before anything else hears the key.
+  useEffect(() => {
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopImmediatePropagation(); e.preventDefault(); onClose() } }
+    window.addEventListener('keydown', onEsc, true)
+    return () => window.removeEventListener('keydown', onEsc, true)
+  }, [onClose])
+  const sheet = (
+    <KeyCtx.Provider value={{ enabled, press, pressed }}>
+    <div className={'remote remote-sheet' + (docked ? ' docked' : '')} role="dialog" aria-label={label + ' remote'}
+      onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+      <div className="sheet-head">
+        <B k="eject" cls="round red" title={ejectTip(label)}><IconEject size={16} /></B>
+        <span className="remote-brand">{label}</span>
+        <div className="sheet-pages" role="group" aria-label="Remote page">
+          <button type="button" className={'sheet-page' + (page === 'keys' ? ' on' : '')} aria-pressed={page === 'keys'} onClick={() => setPage('keys')}>Keys</button>
+          <button type="button" className={'sheet-page' + (page === 'numbers' ? ' on' : '')} aria-pressed={page === 'numbers'} onClick={() => setPage('numbers')}>1 2 3</button>
+        </div>
+        <button type="button" className="rk round ghost" aria-label="Close the remote" title="Close the remote" onClick={onClose}><IconClose size={14} /></button>
+      </div>
+      {note && <div className="remote-note" role="note">{note}</div>}
+      {page === 'keys' ? (
+        <div className="sheet-keys">
+          <div className="sheet-menus">
+            <B k="topmenu" cls="pill" title="Top menu (disc title menu)">TOP MENU</B>
+            <B k="menu" cls="pill" title="Menu (the root menu, or a Blu-ray's pop-up menu)">MENU</B>
+            <B k="return" cls="pill" title="Return (go back)">RETURN</B>
+          </div>
+          <div className="remote-dpad">
+            <B k="up" cls="d up" title="Up"><IconUp /></B>
+            <B k="left" cls="d left" title="Left"><IconLeft /></B>
+            <B k="enter" cls="d enter" title="Enter">OK</B>
+            <B k="right" cls="d right" title="Right"><IconRight /></B>
+            <B k="down" cls="d down" title="Down"><IconDown /></B>
+          </div>
+          <div className="sheet-tracks">
+            <B k="audio" cls="pill" title="Audio & language">AUDIO</B>
+            <B k="subtitle" cls="pill" title="Subtitles">SUBTITLE</B>
+            <B k="angle" cls="pill" title="Video version (camera angle)">ANGLE</B>
+          </div>
+          <div className="sheet-transport">
+            <B k="prev" title="Previous chapter"><IconPrev size={16} /></B>
+            <B k="rew" title="Rewind 10 s"><IconRew size={16} /></B>
+            <B k="play" cls="accent" title="Play"><IconPlay size={16} /></B>
+            <B k="pause" title="Pause"><IconPause size={16} /></B>
+            <B k="ff" title="Forward 30 s"><IconFf size={16} /></B>
+            <B k="next" title="Next chapter"><IconNext size={16} /></B>
+            <B k="stop" title="Stop"><IconStop size={14} /></B>
+          </div>
+        </div>
+      ) : (
+        <div className="sheet-numbers">
+          <div className="sheet-digits">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d) => <B key={d} k={`digit${d}` as RemoteKey} title={`Button / chapter ${d}`}>{d}</B>)}
+          </div>
+          <Colours />
+        </div>
+      )}
+    </div>
+    </KeyCtx.Provider>
+  )
+  // Docked, it sits over the page: the mini player is too small to hold it.
+  return docked ? createPortal(sheet, document.body) : sheet
 }

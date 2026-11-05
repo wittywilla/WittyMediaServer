@@ -2,6 +2,7 @@
 .player.controls-hidden .top, .player.controls-hidden .bottom, .player.controls-hidden .popover { opacity: 0; pointer-events: none; }
 .player.controls-hidden .remote { opacity: .45; }
 .player.controls-hidden .remote:hover, .player.controls-hidden .remote:focus-within { opacity: 1; }
+.player.controls-hidden .remote.remote-sheet { opacity: 1; } /* a sheet someone opened stays as it is */
 .player .top .grow { flex: 1; min-width: 0; }
 .player .top .grow h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -75,6 +76,56 @@
 .remote-dpad .rk.enter:disabled { background: linear-gradient(180deg, #4a4f5c, #343844); }
 .remote-digits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .remote-digits .rk { border-radius: var(--r-lg); font-size: var(--text-xs); }
+/* Why the menu keys are greyed out, when they are. */
+.remote-note { font-size: var(--text-2xs); line-height: 1.35; color: #c9ccd6; text-align: center; padding: 0 4px; }
+/* The colour keys: a bar of each colour on a key, as on a Blu-ray player's remote. */
+.remote-colours { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.remote .rk.colour { height: 22px; }
+.remote .rk.colour span, .remote-bar .rb.colour span { display: block; width: 70%; height: 5px; border-radius: 3px; background: currentColor; }
+.remote .rk.colour.red, .remote-bar .rb.colour.red { color: #f0605a; }
+.remote .rk.colour.green, .remote-bar .rb.colour.green { color: #4cc764; }
+.remote .rk.colour.yellow, .remote-bar .rb.colour.yellow { color: #f2c94c; }
+.remote .rk.colour.blue, .remote-bar .rb.colour.blue { color: #5a9cf8; }
+
+/* The remote as a sheet along the bottom: phones upright or on their side, short windows, and
+   over the page from the mini player (docked). Two pages: keys, then digits and colours. */
+.remote.remote-sheet {
+  position: absolute; inset: auto 0 0 0; width: auto; transform: none; z-index: 9; touch-action: manipulation; user-select: none;
+  border-radius: 22px 22px 0 0; gap: 10px; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; container-type: inline-size;
+  padding: 12px max(16px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+.remote.remote-sheet.docked {
+  position: fixed; z-index: var(--z-modal); inset: auto 20px calc(20px + min(400px, 100vw - 40px) * 9 / 16 + 12px) auto;
+  width: min(400px, calc(100vw - 40px)); max-height: calc(100vh - min(400px, 100vw - 40px) * 9 / 16 - 64px); border-radius: 22px; padding: 12px 14px 14px;
+}
+@media (max-width: 700px) {
+  .remote.remote-sheet.docked { inset: auto 8px calc(var(--tabbar-space) + var(--sp-2) + 72px) 8px; width: auto; max-height: calc(100vh - var(--tabbar-space) - 96px); }
+}
+.sheet-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sheet-head .remote-brand { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-head .rk.round.ghost { width: 36px; height: 36px; flex: none; }
+.sheet-head .rk.round { flex: none; }
+.sheet-pages { display: flex; padding: 2px; border-radius: 16px; background: rgba(255,255,255,.07); flex: none; }
+.sheet-page { min-height: 30px; padding: 0 14px; border: 0; border-radius: 14px; background: transparent; color: #c9ccd6; font-size: var(--text-2xs); font-weight: 700; letter-spacing: .5px; }
+.sheet-page.on { background: #3a3e48; color: #fff; box-shadow: 0 1px 0 rgba(255,255,255,.08) inset; }
+.sheet-keys { display: grid; grid-template-columns: 150px minmax(0, 1fr); grid-template-areas: "menus menus" "dpad tracks" "transport transport"; gap: 12px 16px; align-items: center; }
+.sheet-menus { grid-area: menus; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.sheet-keys .remote-dpad { grid-area: dpad; margin: 0; }
+.sheet-tracks { grid-area: tracks; display: grid; gap: 8px; }
+.sheet-transport { grid-area: transport; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.sheet-menus .rk, .sheet-tracks .rk, .sheet-transport .rk { height: 40px; }
+.sheet-numbers { display: grid; gap: 12px; }
+.sheet-digits { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.sheet-digits .rk { height: 44px; border-radius: var(--r-lg); font-size: var(--text-md); }
+.remote-sheet .remote-colours .rk { height: 36px; }
+/* On its side: everything on the first page in one row, so the picture keeps the top. */
+@container (min-width: 560px) {
+  .sheet-keys { grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr) minmax(0, 1.4fr); grid-template-areas: "menus dpad tracks transport"; }
+  .sheet-menus { grid-template-columns: minmax(0, 1fr); }
+  .sheet-transport { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .sheet-numbers { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: center; }
+  .remote-sheet .remote-colours { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 /* ---------------------------------------------------------------- Insert DVD */
 /* Everything is sized in cqw (1% of the drive's width) so the scene scales
@@ -229,7 +280,7 @@
 
 /* ---------------------------------------------------------------- appearance */
 /* The player is always dark, whatever theme is active. */
-.player { color: var(--on-image); --fg: #f1f2f5; --fg-2: #b4b9c6; --fg-3: #949aa8; --bg-2: #171a21; --bg-3: #1f232c; --bg-4: #2a2f3a; --bg: #0f1115; --bg-rgb: 15 17 21; --border: rgb(255 255 255 / .1); --border-strong: rgb(255 255 255 / .2); --hover: rgb(255 255 255 / .1); --control-line: #7b808c; --accent-text: #fff; color-scheme: dark; }
+.player, .remote-sheet { color: var(--on-image); --fg: #f1f2f5; --fg-2: #b4b9c6; --fg-3: #949aa8; --bg-2: #171a21; --bg-3: #1f232c; --bg-4: #2a2f3a; --bg: #0f1115; --bg-rgb: 15 17 21; --border: rgb(255 255 255 / .1); --border-strong: rgb(255 255 255 / .2); --hover: rgb(255 255 255 / .1); --control-line: #7b808c; --accent-text: #fff; color-scheme: dark; }
 .brand .brand-name { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .theme-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 6px 0 14px; }
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--sp-3); }
@@ -346,6 +397,7 @@
 .mini-btns .ibtn.big svg { width: 26px; height: 26px; }
 .mini-btns .mini-disc { padding: 4px 9px; font-size: var(--text-xs); }
 .mini-btns .ibtn:last-child { margin-left: auto; }
+.mini-btns .ibtn.on { color: var(--accent-text, var(--accent)); }
 
 /* Phones: a bar along the bottom (thumbnail video, title, buttons), above
    the page like a music app's now-playing bar. */
@@ -356,7 +408,8 @@
   .player.mini .big-play, .player.mini .center-spinner { right: auto; width: 114px; }
   .mini-bar { inset: 0 0 0 114px; padding: 4px 4px 4px 8px; background: var(--bg-2); flex-direction: row; align-items: center; opacity: 1 !important; }
   .mini-info { flex: 1; padding: 0; }
-  .mini-btns .ibtn:not(.big):not(:last-child):not(:nth-last-child(2)) { display: none; }
+  .mini-btns .ibtn:not(.big):not(.keep):not(:last-child):not(:nth-last-child(2)) { display: none; }
+  .mini-btns .mini-disc { display: none; } /* the remote's sheet has Top menu and Menu */
   .mini-btns .ibtn:last-child { margin-left: 0; }
 }
 
@@ -375,6 +428,9 @@
 .remote-bar .rb-sep { width: 1px; height: 20px; background: var(--border-strong); margin: 0 4px; flex: none; }
 .remote-bar .rb-digits { display: flex; gap: 3px; }
 .remote-bar .rb-digits .rb { min-width: 26px; padding: 0 6px; }
+.remote-bar .rb-colours { display: flex; gap: 3px; }
+.remote-bar .rb.colour { min-width: 30px; padding: 0 7px; }
+.remote-bar .rb-note { flex: none; padding: 0 6px; font-size: var(--text-2xs); color: var(--fg-2); white-space: nowrap; }
 
 .speed-btn { min-width: 46px; font-variant-numeric: tabular-nums; background: var(--hover); }
 .speed-pop { max-height: 60vh; overflow: auto; }

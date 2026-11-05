@@ -186,13 +186,13 @@ On discs there are also **Forced captions**, **Disc restrictions** and **Subtitl
 
 ## The remote on screen
 
-**Remote**, or R, shows a remote you can use with the mouse or by touch. You can drag it by its header, and it remembers where you put it. **In control bar** under Viewing settings shows its buttons in a strip instead. Keys that only make sense on a disc are greyed out for ordinary videos.
+**Remote**, or R, shows a remote you can use with the mouse or by touch. You can drag it by its header, and it remembers where you put it. **In control bar** under Viewing settings shows its buttons in a strip instead. On a phone, it opens as a sheet along the bottom. Keys that only make sense on a disc are greyed out for ordinary videos. A film copied from a DVD or Blu-ray gets that disc's remote, as [The remote](DVD.md#the-remote) explains.
 
 ## The mini player
 
 The back arrow or Esc shrinks a video into the corner while you carry on browsing. Esc leaves full screen first, if you're in it.
 
-The mini player has back 10 seconds, play and pause, next episode, **Full player** and **Stop**. Double-click it or click its title to bring back the full player.
+The mini player has back 10 seconds, play and pause, next episode, **Remote**, **Full player** and **Stop**. A disc's has previous and next chapter, **Menu** and **Title** too, which a phone keeps on the remote. **Remote** opens the remote over the page, so you can work a disc's menu while you browse. Double-click the mini player or click its title to bring back the full player.
 
 Music has a bar of its own along the bottom, which can fold away to a small picture. See [Music](MUSIC.md).
 

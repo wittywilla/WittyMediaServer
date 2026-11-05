@@ -1,4 +1,4 @@
-import type { ControlsData, Layout, Orientation } from './consoles';
+import { type ControlsData, type Layout, type Orientation } from './consoles';
 export declare function useOrientation(): Orientation;
 export type OnPoint = (clientX: number, clientY: number, phase: 'down' | 'move' | 'up') => void;
 export declare function TouchControls({ data, orientation, onMask, onStick, onPoint }: {

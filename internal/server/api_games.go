@@ -63,6 +63,8 @@ func (s *Server) gameRoutes(m routes) {
 	m.Handle("DELETE /api/play/{sid}", a(s.handlePlayStop))
 	m.Handle("POST /api/play/{sid}/webrtc", a(s.handlePlayWebRTC))
 	m.Handle("GET /api/play/{sid}/ws", a(s.handlePlayWS))
+	m.Handle("POST /api/play/{sid}/stream", a(s.handlePlayStream))
+	m.Handle("GET /api/play/{sid}/stream", a(s.handlePlayStreamWS))
 	m.Handle("POST /api/play/{sid}/action", a(s.handlePlayAction))
 	s.gameProfileRoutes(m)
 	m.Handle("GET /api/gaming", s.requireAdmin(s.handleGaming))
@@ -1183,6 +1185,69 @@ func (s *Server) handlePlayWS(w http.ResponseWriter, r *http.Request) {
 	}
 	defer release()
 	sess.ServeWS(w, r, r.URL.Query().Get("video"))
+}
+
+// streamRefused answers a refused version 2 connection: docs/GAMING-STREAM.md, Errors.
+func streamRefused(w http.ResponseWriter, status int, code, text string) {
+	writeJSON(w, status, map[string]string{"error": text, "code": code})
+}
+
+// handlePlayStream connects a device over WebRTC, version 2: its hello and its offer in, what it
+// gets and the answer out. The server says whether it's away from home; the device doesn't.
+func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
+	sess := s.session(r)
+	if sess == nil {
+		streamRefused(w, 404, "no-session", "No such game is being played.")
+		return
+	}
+	if !s.games().peers.offer(sess.ID(), time.Now()) {
+		w.Header().Set("Retry-After", "60")
+		streamRefused(w, 429, "busy", "Too many connections to this game. Try again in a minute.")
+		return
+	}
+	var b struct {
+		Hello stream.Hello `json:"hello"`
+		SDP   string       `json:"sdp"`
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, stream.MaxOfferSize+8<<10)
+	if err := readJSON(r, &b); err != nil {
+		var tooBig *http.MaxBytesError
+		if errors.As(err, &tooBig) {
+			streamRefused(w, 413, "too-large", "The connection offer is too large.")
+			return
+		}
+		streamRefused(w, 400, "bad-hello", "The body must be {\"hello\": {...}, \"sdp\": \"...\"}.")
+		return
+	}
+	got, err := sess.Connect(r.Context(), b.Hello, b.SDP, !clientFrom(r).Where.AtHome())
+	if err != nil {
+		var se *stream.StreamError
+		if errors.As(err, &se) && se.Status >= 400 && se.Status < 600 {
+			streamRefused(w, se.Status, se.Code, se.Text)
+			return
+		}
+		s.Log.WarnContext(r.Context(), "could not connect to a game", "cat", "games", "session", sess.ID(), "err", err)
+		streamRefused(w, 500, "failed", err.Error())
+		return
+	}
+	writeJSON(w, 200, got)
+}
+
+// handlePlayStreamWS is version 2's fallback: the same messages on a WebSocket.
+func (s *Server) handlePlayStreamWS(w http.ResponseWriter, r *http.Request) {
+	sess := s.session(r)
+	if sess == nil {
+		streamRefused(w, 404, "no-session", "No such game is being played.")
+		return
+	}
+	release, ok := s.games().peers.socket(sess.ID(), time.Now())
+	if !ok {
+		w.Header().Set("Retry-After", "10")
+		streamRefused(w, 429, "busy", "Too many connections to this game. Try again in a minute.")
+		return
+	}
+	defer release()
+	sess.ServeStream(w, r, !clientFrom(r).Where.AtHome())
 }
 
 func (s *Server) handlePlayAction(w http.ResponseWriter, r *http.Request) {

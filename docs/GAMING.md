@@ -176,6 +176,9 @@ A `.cia` is an install package, and Azahar's list of what it opens doesn't inclu
 
 ## Why WebRTC, and what happens when it can't connect
 
+Every device now connects the same way: [one stream for every device](GAMING-STREAM.md) has the decision, the
+measurements behind it and the wire protocol, version 2. This section is about the browser.
+
 Latency is the whole product. WebRTC has no segment buffering, it drops late frames rather than stalling, and the sender can tell a browser to keep no buffer at all. Input goes over an unreliable, unordered data channel carrying the complete pad state in every packet, so a lost packet is corrected by the next one.
 
 Not every network or browser allows it, so the player steps down by itself:
@@ -555,7 +558,7 @@ Anything else in the zip is ignored. Files for the BIOS folder never overwrite o
 Games have to work from TV apps as well, so nothing about a game is decided inside the web player:
 
 - **The server holds** sessions, saves, resume, play time, each console's controller and default layouts, and everyone's saved layouts. They're plain JSON, and the web player reads them like any other client.
-- **The protocol is standard:** WebRTC offer and answer over HTTP, data channels with documented messages, and a WebSocket with documented frames. A test (`TestNativeClientPlaysAGame`) plays a game this way with no browser.
+- **The protocol is standard, and one for every device:** WebRTC offer and answer over HTTP, data channels with documented messages, and a WebSocket carrying the same messages where UDP can't reach ([version 2](GAMING-STREAM.md)). A test (`TestNativeClientPlaysAGame`) plays a game both ways with no browser.
 - **The server says which modes a client can use.** Anything only a browser could do is marked `browserOnly` and is never offered to an app.
 - **Everything works with a D-pad.** A TV remote is a controller with its own default map, and Back opens the game's menu, which can press Start and Select for remotes that have neither.
 

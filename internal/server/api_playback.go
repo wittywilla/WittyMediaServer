@@ -586,7 +586,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	}
 
 	// HLS: the same stream is shared by viewers who get the same thing.
-	vf := ""
+	vf, toneMap := "", ""
 	if src.HasVideo && !d.CopyVideo {
 		if src.Interlaced {
 			vf = "bwdif=mode=send_frame:parity=auto:deint=interlaced"
@@ -596,10 +596,8 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 				vf = strings.Trim(vf+","+ffmpeg.FlattenFilter(src.Stereo, v.Width, v.Height), ",")
 			}
 		}
-		if d.ToneMap {
-			if tm := s.Tools.ToneMapFilter(src.Range); tm != "" {
-				vf = strings.Trim(vf+","+tm, ",")
-			}
+		if d.ToneMap && s.Tools.ToneMapFilter(src.Range) != "" {
+			toneMap = src.Range // mapped once the picture is the size it's sent at
 		}
 	}
 	audioIdx := chosen.Audio
@@ -627,7 +625,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	}
 	spec := hls.Spec{
 		ItemID:    it.ID,
-		InputArgs: inputArgs, Source: input, Duration: out.DurationSec, SeekMargin: pr.SeekMargin(), VideoFilter: vf, AudioIndex: audioIdx, AudioChannels: channels,
+		InputArgs: inputArgs, Source: input, Duration: out.DurationSec, SeekMargin: pr.SeekMargin(), VideoFilter: vf, ToneMap: toneMap, AudioIndex: audioIdx, AudioChannels: channels,
 		SubtitleIndex: burn, Quality: q, MaxHeight: req.MaxHeight, AudioCodec: audioCodec, VideoIndex: pr.VideoIndex() + videoPick, NoVideo: !src.HasVideo,
 	}
 	if burn >= 0 {

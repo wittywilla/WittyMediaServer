@@ -1028,9 +1028,7 @@ func min64(a, b int64) int64 {
 
 func (s *Session) listDir() string { return filepath.Join(s.m.CacheDir, "lists", s.key) }
 
-// videoFilter deinterlaces interlaced discs (480i, 576i, 1080i) and
-// tone-maps HDR (UHD discs: HDR10, HDR10+, Dolby Vision's HDR10 base layer)
-// to SDR, since browsers and the H.264 streams they play are SDR.
+// videoFilter deinterlaces interlaced discs (480i, 576i, 1080i).
 func (s *Session) videoFilter(it *bluray.PlayItem) string {
 	var chain []string
 	if len(it.Video) > 0 {
@@ -1043,14 +1041,18 @@ func (s *Session) videoFilter(it *bluray.PlayItem) string {
 				chain = append(chain, "bwdif=mode=send_frame:parity=auto:deint=interlaced")
 			}
 		}
-		if isHDR(v) {
-			// UHD Blu-ray's HDR is PQ: HDR10, HDR10+ and Dolby Vision's base layer.
-			if tm := s.m.Tools.ToneMapFilter("hdr10"); tm != "" {
-				chain = append(chain, tm)
-			}
-		}
 	}
 	return strings.Join(chain, ",")
+}
+
+// toneMap says the picture is HDR to map to SDR (UHD discs: HDR10, HDR10+, Dolby Vision's
+// HDR10 base layer), since browsers and the H.264 streams they play are SDR. UHD Blu-ray's HDR
+// is PQ throughout.
+func (s *Session) toneMap(it *bluray.PlayItem) string {
+	if len(it.Video) > 0 && isHDR(it.Video[0]) && s.m.Tools.ToneMapFilter("hdr10") != "" {
+		return "hdr10"
+	}
+	return ""
 }
 
 // isHDR says whether a video stream is high dynamic range: UHD discs flag
@@ -1214,7 +1216,7 @@ func (s *Session) ensureHLS(pl *playing, it *bluray.PlayItem, audio *bluray.Stre
 		audioInput = 1
 	}
 	s.m.HLS.Ensure(hls.Spec{
-		ID: id, ItemID: s.ItemID, LogSession: s.ID, InputArgs: input, Duration: pl.duration, VideoFilter: s.videoFilter(it), Height: pictureHeight(it), Preset: s.preset(menu),
+		ID: id, ItemID: s.ItemID, LogSession: s.ID, InputArgs: input, Duration: pl.duration, VideoFilter: s.videoFilter(it), ToneMap: s.toneMap(it), Height: pictureHeight(it), Preset: s.preset(menu),
 		AudioIndex: audioIdx, AudioInput: audioInput, AudioChannels: channels, SubtitleIndex: -1, LowLatency: menu, HoldLastFrame: hold, SeekMargin: seekMargin, Holes: holes,
 		Quality: s.prefs.Quality, MaxHeight: s.maxHeight(it), AudioCodec: s.prefs.AudioCodec,
 	})

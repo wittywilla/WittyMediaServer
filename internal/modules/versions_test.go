@@ -844,6 +844,7 @@ func TestRemovedModuleStaysQuiet(t *testing.T) {
 // A fork takes a stock module's place: its releases come from its repository, are held
 // to its key alone, and everything else works the same.
 func TestForkTakesAModulesPlace(t *testing.T) {
+	needForks(t)
 	w := newWorld(t)
 	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API)) // the stock release
 	m := w.manager()
@@ -963,6 +964,7 @@ func TestForkKeyInAnEditedStateFile(t *testing.T) {
 
 // Whoever runs the machine can say no to forks after one was chosen too.
 func TestForkLockForgetsASavedFork(t *testing.T) {
+	needForks(t)
 	w := newWorld(t)
 	m := w.manager()
 	defer m.Close()

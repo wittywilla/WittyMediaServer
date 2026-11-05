@@ -227,8 +227,17 @@ EOF
   <key>LSUIElement</key><true/>
   <key>LSMinimumSystemVersion</key><string>11.0</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSLocalNetworkUsageDescription</key><string>So the WittyMediaServer apps on your phone, TV and other computers can find this server and play your media.</string>
+  <key>NSBonjourServices</key><array><string>_wittymedia._tcp</string></array>
 </dict></plist>
 EOF
+  # Unsigned, macOS's Local Network privacy can't tell the server apart from any other
+  # program, and it never gets through. Without a Mac, build-pkg.sh signs it.
+  if [ "$(uname -s)" = Darwin ]; then
+    packaging/macos/sign-app.sh "$out"
+  else
+    echo "   (the macOS app isn't signed: that needs a Mac, and packaging/macos/build-pkg.sh does it)" >&2
+  fi
 }
 
 # Windows wants four numbers.

@@ -108,3 +108,10 @@
 .tvw-result { display: grid; gap: 10px; }
 .tvw-result p { margin: 0; }
 @media (max-width: 600px) { .tvw-kinds { grid-template-columns: 1fr; } }
+.tvw-answer, .tvw-problem { display: grid; gap: 4px; padding: 10px 12px; border-radius: var(--r-md); border: 1px solid; }
+.tvw-answer { border-color: color-mix(in srgb, var(--ok) 55%, transparent); background: var(--ok-soft); }
+.tvw-problem { border-color: color-mix(in srgb, var(--danger) 55%, transparent); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.tvw-answer p, .tvw-problem p, .tvs-note p { margin: 0; }
+.tvw-answer a, .tvw-problem a, .tvs-note a { color: var(--accent-text); text-decoration: underline; }
+.tvw-notes { margin: 0; padding-left: 1.2em; }
+.tvw-pick { display: grid; gap: 4px; max-width: 28rem; font-weight: 600; }

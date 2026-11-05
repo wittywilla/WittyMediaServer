@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"reflect"
 	"strings"
+	"time"
 
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -23,6 +24,11 @@ import (
 // query or transaction. database/sql looks for optional driver interfaces by
 // type assertion, so each is forwarded here; a method the driver doesn't have
 // answers the way database/sql expects from a driver without it.
+
+// Trace, when set, is told of every statement and how long it took, a query's
+// until its rows are closed. Only builds for measuring set it (docs/PERFORMANCE.md),
+// before the database opens; otherwise it costs one comparison per statement.
+var Trace func(query string, took time.Duration)
 
 // driverName is what db.Open opens: the same driver and DSN, with logging.
 const driverName = "wms-sqlite"
@@ -109,9 +115,16 @@ func (c *loggedConn) ExecContext(ctx context.Context, query string, args []drive
 	if !ok {
 		return nil, driver.ErrSkip // database/sql prepares it instead
 	}
+	var start time.Time
+	if Trace != nil {
+		start = time.Now()
+	}
 	r, err := e.ExecContext(ctx, query, args)
 	if err != nil && err != driver.ErrSkip {
 		report(ctx, "exec", query, err)
+	}
+	if Trace != nil && err != driver.ErrSkip {
+		Trace(query, time.Since(start))
 	}
 	return r, err
 }
@@ -121,14 +134,21 @@ func (c *loggedConn) QueryContext(ctx context.Context, query string, args []driv
 	if !ok {
 		return nil, driver.ErrSkip
 	}
+	var start time.Time
+	if Trace != nil {
+		start = time.Now()
+	}
 	r, err := q.QueryContext(ctx, query, args)
 	if err != nil {
 		if err != driver.ErrSkip {
 			report(ctx, "query", query, err)
+			if Trace != nil {
+				Trace(query, time.Since(start))
+			}
 		}
 		return r, err
 	}
-	return &loggedRows{Rows: r, ctx: ctx, query: query}, nil
+	return newRows(ctx, r, query, start), nil
 }
 
 func (c *loggedConn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
@@ -228,6 +248,10 @@ type loggedStmt struct {
 func (s *loggedStmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
 	var r driver.Result
 	var err error
+	if Trace != nil {
+		start := time.Now()
+		defer func() { Trace(s.query, time.Since(start)) }()
+	}
 	if e, ok := s.Stmt.(driver.StmtExecContext); ok {
 		r, err = e.ExecContext(ctx, args)
 	} else if err = ctx.Err(); err == nil {
@@ -242,6 +266,10 @@ func (s *loggedStmt) ExecContext(ctx context.Context, args []driver.NamedValue) 
 func (s *loggedStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
 	var r driver.Rows
 	var err error
+	var start time.Time
+	if Trace != nil {
+		start = time.Now()
+	}
 	if q, ok := s.Stmt.(driver.StmtQueryContext); ok {
 		r, err = q.QueryContext(ctx, args)
 	} else if err = ctx.Err(); err == nil {
@@ -249,9 +277,12 @@ func (s *loggedStmt) QueryContext(ctx context.Context, args []driver.NamedValue)
 	}
 	if err != nil {
 		report(ctx, "query", s.query, err)
+		if Trace != nil {
+			Trace(s.query, time.Since(start))
+		}
 		return nil, err
 	}
-	return &loggedRows{Rows: r, ctx: ctx, query: s.query}, nil
+	return newRows(ctx, r, s.query, start), nil
 }
 
 // CheckNamedValue: database/sql asks a statement before its connection, so this
@@ -287,6 +318,26 @@ type loggedRows struct {
 	driver.Rows
 	ctx   context.Context
 	query string
+}
+
+func newRows(ctx context.Context, r driver.Rows, query string, start time.Time) driver.Rows {
+	if Trace != nil {
+		return &tracedRows{loggedRows{Rows: r, ctx: ctx, query: query}, start}
+	}
+	return &loggedRows{Rows: r, ctx: ctx, query: query}
+}
+
+// tracedRows tells Trace when its rows are closed. Only measuring builds have them, so
+// the others don't carry the start time.
+type tracedRows struct {
+	loggedRows
+	start time.Time
+}
+
+func (r *tracedRows) Close() error {
+	err := r.Rows.Close()
+	Trace(r.query, time.Since(r.start))
+	return err
 }
 
 func (r *loggedRows) Next(dest []driver.Value) error {

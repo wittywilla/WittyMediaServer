@@ -155,10 +155,15 @@ When nothing is scheduled, a channel shows a **We'll be right back** card with t
 | I or Enter | The banner |
 | R | The on-screen remote |
 | F | Full screen |
+| A, S | The next sound track, the next subtitles (when the channel has them) |
 | M, + and - | Mute and volume |
 | Escape | Back to the guide |
 
+**Sound and subtitles.** When what's on has more than one sound track, or subtitles or broadcast captions, the player's **Audio** and **Subtitles** buttons (and A and S, and the remote's buttons) choose between them, as in the library player. Everyone on a channel shares one stream, so a choice only changes what your player plays, and the language you choose is kept for the next programme and channel. Today a library channel's stream carries the programme's main sound track and no subtitles, so the buttons appear mostly for tuner channels with captions; other languages ([#238](https://github.com/wittywilla/WittyMediaServer/issues/238)) and subtitles ([#239](https://github.com/wittywilla/WittyMediaServer/issues/239)) in the shared stream are planned.
+
 You can pause and rewind within what's kept: 5 minutes on library channels and 30 on tuner channels, unless you change **Pause buffer** under **Options**.
+
+**Everyone at the same moment.** Two people watching the same channel, on any accounts and devices, see the same moment, as with a real broadcast. Each player keeps to the server's clock (a tuner channel, which arrives as it's broadcast, about 12 seconds behind it) and corrects itself every 2 seconds: a little off, it plays 3% faster or slower until it's back, which nobody notices; far off, after a stall, it jumps straight there. A device whose own clock is wrong still keeps time, because the player asks the server's. Pausing and going back leave you where you chose, behind the others; **L** or **Live** brings you back to everyone else.
 
 ## Channels in one click
 
@@ -297,9 +302,11 @@ These need the **WittyTuner** module. No channel lists or stream addresses come 
 1. Go to **Settings → Channels & tuners → Tuners and IPTV**. Without WittyTuner, it says so and offers to add it.
 2. Press **Add live TV**. It goes a step at a time:
    1. **What you have**, in plain words: a playlist from a TV provider, one stream address, a tuner box on your network, a SAT>IP box, a TV card or capture device in this computer, or something else.
-   2. **Its details.** For a device, **Search for it** looks on your network and this computer; whatever it doesn't find, type in by hand, such as a tuner box's address. A playlist or stream is an address, or a file on the server. The server checks the details when you press **Add and read its channels**, and says what's wrong if it can't use them.
+   2. **Its details.** For a device, **Search for it** looks on your network and this computer; whatever it doesn't find, type in by hand, such as a tuner box's address. A playlist or stream is an address, or a file on the server. **Check it** asks for its channels without saving anything, and says what it found: the model and how many tuners it has, how many channels, and how many are marked as encrypted. When it doesn't work it says which way: nothing answered at that address, something answered but isn't that kind of device, or the playlist couldn't be read (a web page about a playlist isn't the playlist). The server checks the details again when you press **Add and read its channels**.
    3. **Its channels.** They're read straight away, with how many are clear and how many encrypted. A tuner that scans offers **Scan for channels**, with its progress.
-   4. **Guide data**, for a playlist or stream: an XMLTV address, if your provider has one. **Skip** if the playlist names its own guide, or to add one later.
+   4. **Try a channel** tunes one for a few seconds, as watching it would, and says what came: the picture and sound, and whether the server saw it's clear. An encrypted channel is refused here as it is everywhere else. **Skip** if you'd rather not.
+   5. **Guide data**, for a playlist or stream: an XMLTV address, if your provider has one. **Skip** if the playlist names its own guide, or to add one later.
+On a new server with WittyTuner, first-time setup has a **Live TV** step that opens the same steps, which you can skip.
 3. **Search for tuners** lists devices it finds; **Set up** on one opens the same steps with its details filled in. **What WittyTuner can use** lists every kind with how far it's been tried, and **Add by hand** on any of them starts at its details.
 4. Press **Channels** on a tuner to choose which channels show in the guide, renumber them, or set a guide id. **Read the list** and **Scan for channels** are there too.
 
@@ -480,6 +487,7 @@ Definition
 | `GET /api/tv/{key}/tune` | Signed in | What's on, and the stream |
 | `GET /api/tv/{key}/live/playlist.m3u8`, `/seg/{name}` | Signed in | The shared stream |
 | `POST /api/tv/{key}/leave?viewer=` | Signed in | A player has gone |
+| `GET /api/time` | Signed in | The server's clock, for keeping viewers to the same moment |
 | `GET /api/tv/{key}/logo` | May watch the channel | A tuner channel's logo, through the server. Internet addresses only |
 | `GET /api/tv/encrypted-help` | Signed in | The help page behind the encrypted label |
 | `GET /api/channels` | Signed in | Library channels this account may see |

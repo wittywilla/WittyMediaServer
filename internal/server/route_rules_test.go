@@ -188,6 +188,7 @@ var routeRules = map[string]string{
 	"GET /api/shows/networks":                        "Signed-in: limits",
 	"GET /api/shows/{id}":                            "Signed-in: limits, on the show and its episodes. Paths for admins only",
 	"GET /api/shows/{id}/art/{kind}":                 "Signed-in; address token: limits. Pictures only",
+	"GET /api/time":                                  "Signed-in: Nothing: the server's clock",
 	"GET /api/tv/encrypted-help":                     "Signed-in: Nothing: fixed text",
 	"GET /api/tv/favourites":                         "Signed-in: own",
 	"GET /api/tv/reminders":                          "Signed-in: own",

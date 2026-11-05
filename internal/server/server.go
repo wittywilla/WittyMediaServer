@@ -275,6 +275,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/meta/{target}/{id}/leave", s.requireAdmin(s.handleMetaLeave))
 	m.Handle("GET /api/meta/{target}/{id}/artwork", s.requireAdmin(s.handleMetaArtwork))
 	m.Handle("PUT /api/meta/{target}/{id}/art/{kind}", s.requireAdmin(s.handleMetaArtUpload))
+	m.Handle("POST /api/meta/{target}/{id}/frame", s.requireAdmin(s.handleMetaFrame))
+	m.Handle("POST /api/meta/{target}/{id}/titleposter", s.requireAdmin(s.handleMetaTitlePoster))
 	m.Handle("GET /api/meta/{target}/{id}/art/{kind}", a(s.handleTitleArt))
 	m.Handle("POST /api/meta/{target}/{id}/link", s.requireAdmin(s.handleMetaLink))
 	m.Handle("DELETE /api/meta/{target}/{id}/link", s.requireAdmin(s.handleMetaUnlink))
@@ -423,6 +425,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/logs/crashes/{id}", s.requireAdmin(s.handleCrash))
 	m.Handle("POST /api/logs/crashes/{id}/seen", s.requireAdmin(s.handleCrashSeen))
 	m.Handle("DELETE /api/logs/crashes/{id}", s.requireAdmin(s.handleCrashDelete))
+	m.Handle("GET /api/logs/crashes/{id}/{part}", s.requireAdmin(s.handleCrashPart))
+	m.Handle("POST /api/logs/save", s.requireAdmin(s.handleSaveEvidence))
 	m.Handle("GET /api/logs/bundle", s.requireAdmin(s.handleBundle))
 	m.Handle("GET /api/logs/bundle/preview", s.requireAdmin(s.handleBundlePreview))
 	m.Handle("GET /api/reset", s.requireAdmin(s.handleResetView))
@@ -646,7 +650,8 @@ func (s *Server) logRequest(r *http.Request, id string, sw *statusWriter, start 
 	default:
 		lv = slog.LevelDebug
 	}
-	if !s.Logs.Accepts("http", lv) || quietPath(r.URL.Path) && lv < slog.LevelWarn {
+	// While the flight recorder is on, every request goes there, whatever the level says.
+	if !s.Logs.Accepts("http", lv) && !s.Logs.FlightRecorderOn() || quietPath(r.URL.Path) && lv < slog.LevelWarn {
 		return
 	}
 	ip := ""

@@ -2,7 +2,7 @@
 
 Install the server on Windows, macOS, Linux, FreeBSD, a NAS or in a container, keep it up to date, and find out what each program does.
 
-FFmpeg comes with the download, so there's nothing else to install first, apart from one FreeBSD case noted below. New to all this? [Getting started](GETTING_STARTED.md) walks through it with no command line. To remove it, see [Uninstalling](UNINSTALL.md).
+FFmpeg comes with the download, so there's nothing else to install first, apart from one FreeBSD case noted below. To check a computer is enough, see [What hardware it needs](HARDWARE.md). New to all this? [Getting started](GETTING_STARTED.md) walks through it with no command line. To remove it, see [Uninstalling](UNINSTALL.md).
 
 - [Which file to download](#which-file-to-download)
 - [What has been tested](#what-has-been-tested)
@@ -273,6 +273,8 @@ It's never kept in the log files or shown in the log viewer. If you trust everyo
 A server nobody can reach from a home network first, such as a rented one, also needs [`remoteAccess`](CONFIG.md#security-switches) turned on, and HTTPS.
 
 **If other devices can't connect on Windows.** The installer's firewall rule covers networks you've marked private, not public ones. Set your network to **Private** in Windows' network settings.
+
+**If other devices can't find or connect on a Mac.** The first time the app starts the server, macOS asks whether WittyMediaServer may find devices on local networks. Choose **Allow**. If you didn't, turn it on in **System Settings → Privacy & Security → Local Network**. The server notices within a minute.
 
 **Away from home.** It works once you turn on **Settings → Remote Access** and follow its steps. Until then the server refuses connections from outside your home, even if your router lets them through. [Remote access](REMOTE.md) explains each way in: a private VPN, which is the easiest and safest; forwarding a port with HTTPS; your own reverse proxy; or a rented server. The server refuses unencrypted connections from the internet, so use HTTPS, and strong passwords for every adult profile.
 

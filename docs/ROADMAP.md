@@ -17,7 +17,7 @@ The plans and designs for what comes after, each with what's done, in progress o
 | What | State |
 |---|---|
 | **Watch together:** a shared, synchronised player across profiles and devices | Not started. Best built with real networks to test across |
-| **Hosted relay:** a future paid way in from away | Not built. It's shown greyed out in **Settings → Remote Access** |
+| **WittyRelay:** a hosted way in from away, planned as a free service | Not built. It's shown greyed out in **Settings → Remote Access** |
 | **Photos:** batch rotate and edit | Not started |
 | **Local AI:** a plan document, with image recognition for photos as the first use | Not written. The marked placeholders are in: **People & places** in photos, and `GET /api/photos/ai` says it isn't available |
 | **Recordings in a series' own folder** | Not started. Recordings go to one folder, or a chosen library's |

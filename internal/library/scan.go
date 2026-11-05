@@ -157,23 +157,51 @@ func (s *Scanner) HoldScans(ctx context.Context) (release func(), err error) {
 }
 
 // findUnlessCancelled walks a folder, and doesn't keep whoever cancelled waiting. A slow
-// network share can take minutes to walk. The walk only reads, and goes on by itself until it
-// has finished, which costs nothing but its own time.
-func findUnlessCancelled(ctx context.Context, find func(string) ([]candidate, error), root string) ([]candidate, error) {
+// network share can take minutes to walk, and one that hangs may never answer, so the walk
+// has a goroutine of its own and stops at the next file it reaches once cancelled.
+//
+// Asked to pause, it stops at the next file too, and the scan's own pause, which gives up its
+// turn at the disk, runs here in the scan's goroutine while the walk waits for it.
+func findUnlessCancelled(ctx context.Context, find func(string, walkStep) ([]candidate, error), root string, pauseWanted func() bool, pause func() error) ([]candidate, error) {
 	type found struct {
 		list []candidate
 		err  error
 	}
 	ch := make(chan found, 1)
+	held, goOn := make(chan struct{}), make(chan error, 1)
+	step := func() error {
+		if err := ctx.Err(); err != nil || !pauseWanted() {
+			return err
+		}
+		select {
+		case held <- struct{}{}:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		select {
+		case err := <-goOn:
+			return err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 	logging.Go("library walk", func() {
-		list, err := walkGuarded(find, root)
+		list, err := walkGuarded(find, root, step)
 		ch <- found{list, err}
 	}, "cat", "library")
-	select {
-	case f := <-ch:
-		return f.list, f.err
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	for {
+		select {
+		case f := <-ch:
+			return f.list, f.err
+		case <-held:
+			err := pause()
+			goOn <- err
+			if err != nil {
+				return nil, err
+			}
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
 }
 
@@ -184,14 +212,14 @@ var errWalkStopped = errors.New("the server hit a fault while reading this folde
 
 // walkGuarded runs a walk, turning a panic into errWalkStopped: a waiter that's never
 // answered would hold the scan, and every scan and backup behind it, for ever.
-func walkGuarded(find func(string) ([]candidate, error), root string) (list []candidate, err error) {
+func walkGuarded(find func(string, walkStep) ([]candidate, error), root string, step walkStep) (list []candidate, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 			logging.ReportPanic("library walk", p, "cat", "library")
 			list, err = nil, errWalkStopped
 		}
 	}()
-	return find(root)
+	return find(root, step)
 }
 
 // scanGuarded runs a whole scan, turning a panic into an error, so its activity entry
@@ -381,10 +409,26 @@ type candidate struct {
 
 // discover lists playable things under a root: video files, disc images and
 // VIDEO_TS folders (a folder containing VIDEO_TS becomes one item).
-func discover(root string) ([]candidate, error) { return discoverVideos(root, true) }
+func discover(root string, step walkStep) ([]candidate, error) {
+	return discoverVideos(root, true, step)
+}
 
 // discoverClips is for commercials: short, small files are the whole point.
-func discoverClips(root string) ([]candidate, error) { return discoverVideos(root, false) }
+func discoverClips(root string, step walkStep) ([]candidate, error) {
+	return discoverVideos(root, false, step)
+}
+
+// walkStep is called at each thing a folder walk comes to, and an error from it stops the
+// walk. A scan uses it to pause at the next file, not once the whole folder has been walked.
+// nil does nothing.
+type walkStep func() error
+
+func (w walkStep) next() error {
+	if w == nil {
+		return nil
+	}
+	return w()
+}
 
 // unreadable remembers what a walk couldn't open. The walk carries on past it,
 // and the scan, which is handed it as an error along with what was found, logs it.
@@ -414,11 +458,14 @@ func entryMTime(d os.DirEntry) int64 {
 	return 0
 }
 
-func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
+func discoverVideos(root string, skipSamples bool, step walkStep) ([]candidate, error) {
 	var out []candidate
 	var bad unreadable
 	var unnamed sniffBudget
 	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
+		if err := step.next(); err != nil {
+			return err
+		}
 		if err != nil {
 			bad.note(err)
 			return nil
@@ -468,6 +515,17 @@ func discoverVideos(root string, skipSamples bool) ([]candidate, error) {
 	})
 	return stackParts(out), bad.with(err)
 }
+
+// The phases of a scan, as the activity panel names them.
+const (
+	phaseFinding    = "Finding files"
+	phaseLooking    = "Looking at each file"
+	phaseTidying    = "Tidying up"
+	phaseSound      = "Reading sound formats"
+	phaseWorkingOut = "Working out what each file is"
+	phaseListing    = "Listing the games"
+	phaseVersions   = "Putting versions of a game together"
+)
 
 func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	lib, err := s.Store.Library(ctx, libraryID)
@@ -547,10 +605,18 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		}
 		defer archives.close()
 	}
+	// One bar across the whole scan, each phase named, with a rough idea of how long each takes.
 	if lib.Type == "games" {
-		task.Phase("Working out what each file is")
+		task.Steps(tasks.Step{Name: phaseWorkingOut, Share: 4}, tasks.Step{Name: phaseListing, Share: 4},
+			tasks.Step{Name: phaseTidying, Share: 1}, tasks.Step{Name: phaseVersions, Share: 1})
+		task.Phase(phaseWorkingOut)
 	} else {
-		task.Phase("Finding files")
+		steps := []tasks.Step{{Name: phaseFinding, Share: 2}, {Name: phaseLooking, Share: 6}, {Name: phaseTidying, Share: 1}}
+		if matchableLibrary(lib.Type) || lib.Type == "videos" {
+			steps = append(steps, tasks.Step{Name: phaseSound, Share: 1})
+		}
+		task.Steps(steps...)
+		task.Phase(phaseFinding)
 	}
 	for _, root := range lib.Paths {
 		if err := pausePoint(); err != nil {
@@ -578,15 +644,14 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			find = discoverCreatorVideos
 		case lib.Type == CommercialsType, lib.Type == "videos":
 			find = discoverClips
-		case lib.Type == "games":
-			find = func(root string) ([]candidate, error) { return archives.discover(root, lib.Console) }
 		}
 		var c []candidate
 		var err error
 		if lib.Type == "games" {
-			c, err = walkGuarded(find, root) // watches for a cancel as it goes, and shares what it finds with this scan
+			// pauses and watches for a cancel as it goes, and shares what it finds with this scan
+			c, err = walkGuarded(func(root string, _ walkStep) ([]candidate, error) { return archives.discover(root, lib.Console) }, root, nil)
 		} else {
-			c, err = findUnlessCancelled(ctx, find, root)
+			c, err = findUnlessCancelled(ctx, find, root, task.PauseWanted, pausePoint)
 		}
 		if ctx.Err() != nil {
 			return ctx.Err() // before anything half-found is kept
@@ -644,10 +709,10 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	}
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
 	if lib.Type == "games" {
-		task.Phase("Listing the games")
+		task.Phase(phaseListing)
 		task.Unit("games")
 	} else {
-		task.Phase("Looking at each file")
+		task.Phase(phaseLooking)
 	}
 	task.Progress(0, int64(len(all)))
 	keep := map[string]bool{}
@@ -704,7 +769,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	}
 	task.Progress(int64(len(all)), int64(len(all)))
 	task.Item("", "")
-	task.Phase("Tidying up")
+	task.Phase(phaseTidying)
 	if err := s.Store.markMissing(ctx, libraryID, keep, offline); err != nil {
 		return err
 	}
@@ -728,7 +793,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		"offline", len(offline), "took", time.Since(started).Round(time.Second).String())
 	task.Result(scanResult(len(all), failed+problems, time.Since(started)))
 	if lib.Type == "games" {
-		task.Phase("Putting versions of a game together")
+		task.Phase(phaseVersions)
 		if err := s.Store.linkGameVersions(ctx, lib); err != nil {
 			s.Log.WarnContext(ctx, "could not put versions of a game together", "library", lib.Name, "err", err)
 		}
@@ -964,7 +1029,7 @@ func (s *Scanner) adopted(path string, lib *Library) ([]candidate, error) {
 			return []candidate{{path: path, kind: "bluray-folder", mtime: st.ModTime().Unix()}}, nil
 		}
 		lib.Paths = append(lib.Paths, filepath.Dir(path))
-		return discover(path)
+		return discover(path, nil)
 	}
 	kind := "video"
 	if isVideoDiscImage(path, filepath.Base(path)) {
@@ -1055,12 +1120,13 @@ func (s *Scanner) fillAudioFormats(ctx context.Context, libraryID int64) {
 	rows.Close()
 	task := scanTask(ctx)
 	if len(todo) > 0 {
-		task.Phase("Reading sound formats")
+		task.Phase(phaseSound)
 	}
-	for _, r := range todo {
+	for i, r := range todo {
 		if task.Wait(ctx) != nil {
 			return
 		}
+		task.Progress(int64(i), int64(len(todo)))
 		task.Item(filepath.Base(r.path), r.path)
 		pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		p, err := s.Tools.ProbeFile(pctx, r.path)
@@ -1075,6 +1141,9 @@ func (s *Scanner) fillAudioFormats(ctx context.Context, libraryID int64) {
 		m := s.Store.TitleMeta(ctx, TargetItem, r.id)
 		m.AudioFormat = format
 		_ = s.Store.saveTitleMeta(ctx, TargetItem, r.id, m)
+	}
+	if len(todo) > 0 {
+		task.Progress(int64(len(todo)), int64(len(todo)))
 	}
 }
 

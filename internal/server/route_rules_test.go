@@ -178,6 +178,7 @@ var routeRules = map[string]string{
 	"GET /api/recording-rules":                       "Tuner channels: own, and every account's for an administrator",
 	"GET /api/recordings":                            "Tuner channels: own, and every account's for an administrator",
 	"GET /api/rigs":                                  "Signed-in: Game PCs with a game the account may see. Addresses for admins only",
+	"GET /api/remote/status":                         "Signed-in, or this computer: no account only from the server's own computer, directly (the tray). What is wrong in a fault, which can name files, only for an admin",
 	"GET /api/sessions":                              "Signed-in: own. Everyone's with 'all=1', for an admin",
 	"GET /api/shares":                                "Signed-in: own. Everyone's with 'all=1', for an admin",
 	"GET /api/shows":                                 "Signed-in: limits, in the query. Paths for admins only",

@@ -29,6 +29,9 @@ type Session struct {
 	Via       string `json:"via"`   // http | https | proxy
 	Streaming bool   `json:"streaming"`
 	Current   bool   `json:"current"`
+	// PlainAway: its token has crossed the internet unencrypted, so anyone on
+	// the way may have it. See MarkPlainAway.
+	PlainAway bool `json:"plainAway"`
 }
 
 // SessionID is the public name of a token.
@@ -46,6 +49,7 @@ func SessionID(token string) string {
 type seen struct {
 	at, written, streamed time.Time
 	ip, where, via        string
+	plain                 bool // marked plain_away already
 }
 
 type activity struct {
@@ -104,7 +108,7 @@ func (s *Service) forget(key string) {
 // caller, whose session is marked.
 func (s *Service) Sessions(ctx context.Context, userID int64, current string) ([]Session, error) {
 	_, _ = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE expires_at < ?`, db.Now())
-	q := `SELECT s.token, s.user_id, u.name, IFNULL(s.device, ''), s.created_at, s.expires_at, IFNULL(s.last_seen, s.created_at), IFNULL(s.last_ip, ''), IFNULL(s.last_where, ''), IFNULL(s.last_via, '')
+	q := `SELECT s.token, s.user_id, u.name, IFNULL(s.device, ''), s.created_at, s.expires_at, IFNULL(s.last_seen, s.created_at), IFNULL(s.last_ip, ''), IFNULL(s.last_where, ''), IFNULL(s.last_via, ''), s.plain_away
 	      FROM sessions s JOIN users u ON u.id = s.user_id`
 	var args []any
 	if userID != 0 {
@@ -121,13 +125,13 @@ func (s *Service) Sessions(ctx context.Context, userID int64, current string) ([
 	for rows.Next() {
 		var token string
 		var v Session
-		if err := rows.Scan(&token, &v.UserID, &v.UserName, &v.Device, &v.CreatedAt, &v.ExpiresAt, &v.LastSeen, &v.IP, &v.Where, &v.Via); err != nil {
+		if err := rows.Scan(&token, &v.UserID, &v.UserName, &v.Device, &v.CreatedAt, &v.ExpiresAt, &v.LastSeen, &v.IP, &v.Where, &v.Via, &v.PlainAway); err != nil {
 			return nil, err
 		}
 		v.ID = SessionID(token)
 		v.Current = current != "" && token == storedToken(current)
 		s.act.mu.Lock()
-		if e := s.act.m[token]; e != nil {
+		if e := s.act.m[token]; e != nil && !e.at.IsZero() {
 			v.LastSeen, v.IP, v.Where, v.Via = e.at.Unix(), e.ip, e.where, e.via
 			v.Streaming = now.Sub(e.streamed) < streamHold
 		}
@@ -170,6 +174,76 @@ func (s *Service) EndSession(ctx context.Context, userID int64, id string) (bool
 	s.forget(target) // target is already the stored form
 	_, err = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE token = ?`, target)
 	return err == nil, err
+}
+
+// PlainAwayTTL is the longest a session lasts once its token has crossed the
+// internet unencrypted: whoever read it on the way can use it only this long.
+const PlainAwayTTL = 24 * time.Hour
+
+// MarkPlainAway notes that a session's token was just sent or used without
+// encryption from away from home, and cuts its life to PlainAwayTTL. It says
+// whether the session wasn't marked before, so the first time can be logged.
+func (s *Service) MarkPlainAway(ctx context.Context, token string) bool {
+	key := storedToken(token)
+	s.act.mu.Lock()
+	if e := s.act.m[key]; e != nil && e.plain {
+		s.act.mu.Unlock()
+		return false
+	}
+	s.act.mu.Unlock()
+	res, err := s.DB.ExecContext(ctx, `UPDATE sessions SET plain_away = 1, expires_at = MIN(expires_at, ?) WHERE token = ? AND plain_away = 0`, time.Now().Add(PlainAwayTTL).Unix(), key)
+	if err != nil {
+		return false
+	}
+	s.act.mu.Lock()
+	if s.act.m == nil {
+		s.act.m = map[string]*seen{}
+	}
+	if e := s.act.m[key]; e != nil {
+		e.plain = true
+	} else {
+		s.act.m[key] = &seen{plain: true}
+	}
+	s.act.mu.Unlock()
+	n, _ := res.RowsAffected()
+	return n > 0
+}
+
+// PlainAwaySessions counts the sessions MarkPlainAway marked that haven't ended.
+func (s *Service) PlainAwaySessions(ctx context.Context) int {
+	var n int
+	_ = s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM sessions WHERE plain_away = 1 AND expires_at >= ?`, db.Now()).Scan(&n)
+	return n
+}
+
+// EndPlainAway signs out every session MarkPlainAway marked, and says how many.
+func (s *Service) EndPlainAway(ctx context.Context) (int, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT token FROM sessions WHERE plain_away = 1`)
+	if err != nil {
+		return 0, err
+	}
+	var keys []string
+	for rows.Next() {
+		var k string
+		if err := rows.Scan(&k); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		keys = append(keys, k)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	for _, k := range keys {
+		s.forget(k)
+	}
+	res, err := s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE plain_away = 1`)
+	if err != nil {
+		return 0, err
+	}
+	n, _ := res.RowsAffected()
+	return int(n), nil
 }
 
 // ---------------------------------------------------------------- weak passwords

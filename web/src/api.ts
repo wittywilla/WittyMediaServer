@@ -9,7 +9,7 @@ export const profileName = (u: Pick<User, 'name' | 'displayName'>) => u.displayN
 // What the corner of the screen says, which is each person's choice.
 export const cornerName = (u: Pick<User, 'name' | 'displayName' | 'showUsername'>) => u.showUsername ? u.name : profileName(u)
 // A device signed in to an account.
-export type Session = { id: string; userId: number; userName: string; device: string; createdAt: number; expiresAt: number; lastSeen: number; ip: string; where: string; via: string; streaming: boolean; current: boolean }
+export type Session = { id: string; userId: number; userName: string; device: string; createdAt: number; expiresAt: number; lastSeen: number; ip: string; where: string; via: string; streaming: boolean; current: boolean; plainAway?: boolean }
 // What an account may see (null = no limits). maxAge -1 = no age limit.
 export type Access = {
   maxAge: number; allowUnrated: boolean; libraries: number[]; blockGenres: string[]

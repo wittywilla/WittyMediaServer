@@ -100,11 +100,14 @@ func WebSafeImage(name string) bool { return mediatypes.IsWebImage(name) }
 // to the picture rather than the timeline.
 const motionClipMax = 40 << 20
 
-func discoverPhotos(root string) ([]candidate, error) {
+func discoverPhotos(root string, step walkStep) ([]candidate, error) {
 	var out []candidate
 	var bad unreadable
 	var unnamed sniffBudget
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err := step.next(); err != nil {
+			return err
+		}
 		if err != nil {
 			bad.note(err)
 			return nil // unreadable folders are skipped, not fatal

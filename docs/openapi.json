@@ -7420,6 +7420,48 @@
         ],
         "type": "object"
       },
+      "RemoteStanding": {
+        "properties": {
+          "away": {
+            "type": "string"
+          },
+          "checked": {
+            "type": "string"
+          },
+          "home": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "publicUrl": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warning": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "away",
+          "checked",
+          "home",
+          "level",
+          "publicUrl",
+          "state",
+          "subject",
+          "summary"
+        ],
+        "type": "object"
+      },
       "ReportBandwidth": {
         "properties": {
           "bytes": {
@@ -8506,6 +8548,18 @@
           },
           "state": {
             "type": "string"
+          },
+          "step": {
+            "type": "integer"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "title": {
             "type": "string"
@@ -29454,6 +29508,42 @@
         "x-wms-auth": "admin"
       }
     },
+    "/remote/plain-sessions": {
+      "delete": {
+        "operationId": "deleteRemotePlainSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ended": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "How many sessions were signed out."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sign out every session whose sign-in crossed the internet unencrypted.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/remote/router": {
       "post": {
         "operationId": "postRemoteRouter",
@@ -29514,6 +29604,36 @@
           "Remote access and signed-in devices"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/remote/status": {
+      "get": {
+        "operationId": "getRemoteStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteStanding"
+                }
+              }
+            },
+            "description": "How remote access stands, in the words Settings → Remote Access uses. `level` is good (working as chosen, green), waiting (asked for, not working yet, amber) or fault (red). `subject` names what it's about with the short answer, such as \"Home network only\" or \"Reachable from away: yes\"; `summary` is the whole answer. Show them as they are: never a bare on or off."
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "How remote access stands, for a connection screen. Signed in, or from the server's own computer with no account (the tray icon).",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "public"
       }
     },
     "/remote/test": {
@@ -31656,6 +31776,14 @@
                       "type": "boolean"
                     },
                     "pickerLocal": {
+                      "type": "boolean"
+                    },
+                    "plainAwayWarning": {
+                      "description": "For administrators, while the owner allows unencrypted connections from away: the warning every page should show. Empty otherwise.",
+                      "type": "string"
+                    },
+                    "plainConnection": {
+                      "description": "This request crossed the internet unencrypted, which the owner allowed: a sign-in page should say a password typed here can be read on the way.",
                       "type": "boolean"
                     },
                     "setupRequired": {

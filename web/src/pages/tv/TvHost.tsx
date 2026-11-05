@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { useSource } from '../../player/hooks'
-import { lendHls, liveVideo, setLive, useLiveState } from './live'
-import { preflight } from './tvApi'
+import { api } from '../../api'
+import { lendHls, liveNow, liveVideo, liveViewer, setLive, useLiveState } from './live'
+import { preflight, type TuneInfo } from './tvApi'
 
 // The TV section's one stream (see live.ts). It's mounted beside the pages rather than in one,
 // so the guide, the watch view and full screen all play the same one without starting again.
 export default function TvHost() {
-  const { url, ready } = useLiveState()
+  const { key, info, url, ready } = useLiveState()
   const video = useRef<HTMLVideoElement | null>(liveVideo())
   const hls = useSource(video, url, {
     onReady: () => setLive({ ready: true }),
@@ -31,5 +32,21 @@ export default function TvHost() {
     h.on(ERROR, onErr)
     return () => { h.off(ERROR, onErr) }
   }, [url, ready, hls])
+  // When a programme ends, what's on now: for the banner, and for the slate's card wherever
+  // the picture is shown. On a channel that counts watch progress, also when each stretch
+  // of it and each break ends, so a break isn't counted as the programme.
+  const part = info?.partEnd, programme = info?.now?.end
+  const end = part && programme && part < programme ? part : programme
+  useEffect(() => {
+    if (!key || !end) return
+    // An answer that came after the moment it ends (a slow server, or a page in the
+    // background whose timers wait) asks again shortly, rather than never.
+    const wait = Math.max(end * 1000 - Date.now() + 1500, 5000)
+    if (wait > 86400000) return
+    const t = setTimeout(() => {
+      api.get<TuneInfo>(`/tv/${key}/tune?viewer=${liveViewer()}`).then((i) => { if (liveNow().key === key) setLive({ info: i }) }).catch(() => {})
+    }, wait)
+    return () => clearTimeout(t)
+  }, [key, end])
   return null
 }

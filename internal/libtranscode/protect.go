@@ -48,7 +48,7 @@ func Detect(path string, p *ffmpeg.Probe) bool {
 	case isMP4Head(head):
 		return mp4Protected(f, st.Size())
 	case bytes.HasPrefix(head, []byte{0x1A, 0x45, 0xDF, 0xA3}):
-		return matroskaProtected(head)
+		return matroskaProtected(f, st.Size(), head)
 	case bytes.HasPrefix(head, asfHeaderGUID):
 		return asfProtected(head)
 	case isTransportStream(head, 188) || isTransportStream(head, 192):
@@ -173,28 +173,206 @@ func movieProtected(b []byte) bool {
 	return found
 }
 
+// Matroska element IDs the check reads.
+const (
+	mkvSegment       = 0x18538067
+	mkvTracks        = 0x1654AE6B
+	mkvCluster       = 0x1F43B675
+	mkvTrackEntry    = 0xAE
+	mkvEncodings     = 0x6D80
+	mkvEncoding      = 0x6240
+	mkvEncodingType  = 0x5033
+	mkvEncryptionElt = 0x5035
+	mkvSeekHead      = 0x114D9B74
+	mkvSeek          = 0x4DBB
+	mkvSeekID        = 0x53AB
+	mkvSeekPos       = 0x53AC
+)
+
 // matroskaProtected reads the track list for a ContentEncryption element, or a
-// ContentEncodingType of 1, which is what encryption is called there. Only the track list:
-// the rest of the file is picture data, which holds every byte sequence sooner or later.
-func matroskaProtected(head []byte) bool {
-	tracks := []byte{0x16, 0x54, 0xAE, 0x6B}
-	i := bytes.Index(head, tracks)
-	if i < 0 {
+// ContentEncodingType of 1, which is what encryption is called there. It goes by structure:
+// the segment's own Tracks element, and the content encodings inside it. Searching the bytes
+// found the seek index's mention of Tracks first, and then a file's random IDs and picture
+// data now and then held the marks by chance.
+//
+// The track list is usually in the file's first few kilobytes. When it isn't (behind the
+// pictures, or longer than what was read), the segment's seek index says where it is, and it
+// is read from there: a file mustn't escape the check by putting its track list late.
+func matroskaProtected(f io.ReaderAt, size int64, head []byte) bool {
+	rest := head
+	for len(rest) > 0 {
+		id, _, body, next, ok := ebmlElement(rest)
+		if !ok {
+			return false
+		}
+		if id != mkvSegment {
+			rest = next // the EBML header, or anything before the segment
+			continue
+		}
+		protected, done, at := segmentProtected(body)
+		if done || at < 0 {
+			return protected
+		}
+		// body shares head's memory: what's left of its capacity says where it starts.
+		return tracksAtProtected(f, size, int64(cap(head)-cap(body))+at)
+	}
+	return false
+}
+
+// segmentProtected finds the segment's Tracks among its children. A cluster means the
+// picture has started, and a child of unknown size can't be stepped over. done says the
+// whole track list was read; otherwise at is where in the segment to read it from (from the
+// seek index, or a list cut short by the end of what was read), or -1 for nowhere.
+func segmentProtected(seg []byte) (protected, done bool, at int64) {
+	at = -1
+	rest := seg
+	for len(rest) > 0 {
+		id, size, body, next, ok := ebmlElement(rest)
+		switch {
+		case ok && id == mkvTracks && size >= 0 && size > int64(len(body)):
+			return false, false, int64(cap(seg) - cap(rest))
+		case ok && id == mkvTracks:
+			return encodingsProtected(body, false), true, -1
+		case ok && id == mkvSeekHead:
+			if pos := seekPosition(body, mkvTracks); pos >= 0 {
+				at = pos
+			}
+		}
+		if !ok || id == mkvCluster || size < 0 {
+			return false, false, at
+		}
+		rest = next
+	}
+	return false, false, at
+}
+
+// tracksAtProtected reads a track list where the file says it is, and looks in it.
+func tracksAtProtected(f io.ReaderAt, size, off int64) bool {
+	if off <= 0 || off >= size {
 		return false
 	}
-	rest := head[i+len(tracks):]
-	size, used := ebmlSize(rest)
+	buf := make([]byte, min(size-off, protectMoovMax))
+	n, err := f.ReadAt(buf, off)
+	if err != nil && err != io.EOF {
+		return false
+	}
+	id, _, body, _, ok := ebmlElement(buf[:n])
+	return ok && id == mkvTracks && encodingsProtected(body, false)
+}
+
+// seekPosition finds where a seek index says an element is, from the segment's start, or -1.
+func seekPosition(index []byte, want uint32) int64 {
+	rest := index
+	for len(rest) > 0 {
+		id, size, body, next, ok := ebmlElement(rest)
+		if !ok {
+			return -1
+		}
+		if id == mkvSeek {
+			var target uint32
+			pos := int64(-1)
+			inner := body
+			for len(inner) > 0 {
+				id, size, b, after, ok := ebmlElement(inner)
+				if !ok {
+					break
+				}
+				switch {
+				case id == mkvSeekID && len(b) <= 4:
+					for _, c := range b {
+						target = target<<8 | uint32(c)
+					}
+				case id == mkvSeekPos && len(b) <= 8:
+					pos = 0
+					for _, c := range b {
+						pos = pos<<8 | int64(c)
+					}
+				}
+				if size < 0 {
+					break
+				}
+				inner = after
+			}
+			if target == want && pos >= 0 {
+				return pos
+			}
+		}
+		if size < 0 {
+			return -1
+		}
+		rest = next
+	}
+	return -1
+}
+
+// encodingsProtected walks a track list. inside says it's within ContentEncodings, where
+// encryption is written down. Only the containers that lead there are opened.
+func encodingsProtected(b []byte, inside bool) bool {
+	rest := b
+	for len(rest) > 0 {
+		id, size, body, next, ok := ebmlElement(rest)
+		if !ok {
+			return false
+		}
+		switch {
+		case inside && id == mkvEncryptionElt:
+			return true
+		case inside && id == mkvEncodingType && ebmlUintIs(body, 1):
+			return true
+		case id == mkvEncodings:
+			if encodingsProtected(body, true) {
+				return true
+			}
+		case id == mkvTrackEntry || (inside && id == mkvEncoding):
+			if encodingsProtected(body, inside) {
+				return true
+			}
+		}
+		if size < 0 {
+			return false
+		}
+		rest = next
+	}
+	return false
+}
+
+// ebmlUintIs says whether an element's unsigned integer body is v.
+func ebmlUintIs(body []byte, v uint64) bool {
+	if len(body) == 0 || len(body) > 8 {
+		return false
+	}
+	var n uint64
+	for _, c := range body {
+		n = n<<8 | uint64(c)
+	}
+	return n == v
+}
+
+// ebmlElement reads one element: its ID, its size (-1 for unknown), its body as far as b
+// holds it, and what follows it. ok is false for nonsense.
+func ebmlElement(b []byte) (id uint32, size int64, body, next []byte, ok bool) {
+	if len(b) == 0 || b[0] == 0 {
+		return 0, 0, nil, nil, false
+	}
+	n := 1
+	for mask := byte(0x80); b[0]&mask == 0; mask >>= 1 {
+		n++
+	}
+	if n > 4 || n > len(b) {
+		return 0, 0, nil, nil, false
+	}
+	for _, c := range b[:n] {
+		id = id<<8 | uint32(c)
+	}
+	size, used := ebmlSize(b[n:])
 	if used == 0 {
-		return false
+		return 0, 0, nil, nil, false
 	}
-	rest = rest[used:]
-	if size >= 0 && size < int64(len(rest)) {
-		rest = rest[:size]
+	rest := b[n+used:]
+	if size < 0 || size > int64(len(rest)) {
+		return id, size, rest, nil, true
 	}
-	if !bytes.Contains(rest, []byte{0x6D, 0x80}) {
-		return false // no ContentEncodings at all
-	}
-	return bytes.Contains(rest, []byte{0x50, 0x35}) || bytes.Contains(rest, []byte{0x50, 0x33, 0x81, 0x01})
+	return id, size, rest[:size], rest[size:], true
 }
 
 // ebmlSize reads an element's size. -1 means it says "unknown". used is 0 for nonsense.

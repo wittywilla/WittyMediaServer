@@ -249,18 +249,28 @@ func Parse(args []string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := c.MakeFolders(); err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+// MakeFolders makes the folders the server keeps things in, those that are missing kept
+// private. Parse does it; so does the start of a server after a reset or a restore has
+// moved them all away (issue #66), and nothing it writes then should need a restart.
+func (c *Config) MakeFolders() error {
 	for _, d := range []string{c.DataDir, c.TranscodeDir, c.CacheDir, c.ImagesDir, c.LogDir} {
 		_, missing := os.Stat(d)
 		if err := os.MkdirAll(d, 0o750); err != nil {
-			return nil, err
+			return err
 		}
 		if os.IsNotExist(missing) {
 			if err := makePrivate(d); err != nil {
-				return nil, err
+				return err
 			}
 		}
 	}
-	return c, nil
+	return nil
 }
 
 // ParseOnly is Parse with nothing made on disk, for commands that only look, or that have

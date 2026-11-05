@@ -12,9 +12,10 @@ import LegalNote from '../../components/LegalNote'
 import { ChannelLogo } from './ChannelLogo'
 import { channelVars, previousChannel, rememberChannel, surfaceOf, themeRoot, useLook, type Look } from './look'
 import MiniGuide from './MiniGuide'
+import Slate from './Slate'
 import { useLiveTracks } from './tracks'
-import { liveHls, liveNow, liveVideo, liveViewer, setLive, useLive } from './live'
-import { fmtClock, fmtSpan, forgetLineup, getLineup, type Alternative, type GuideChannel, type Programme, type TuneInfo } from './tvApi'
+import { liveHls, liveVideo, useLive } from './live'
+import { fmtClock, fmtSpan, forgetLineup, getLineup, type Alternative, type GuideChannel, type TuneInfo } from './tvApi'
 import './tv.css'
 import './tvthemes.css'
 
@@ -107,32 +108,29 @@ export default function TvPlayer() {
   }, [mine, live.ready])
   useEffect(() => { if (picture) showBanner() }, [picture, showBanner])
 
-  // When a programme ends, the banner moves on.
-  const refresh = useCallback(() => {
-    api.get<TuneInfo>(`/tv/${key}/tune?viewer=${liveViewer()}`).then((i) => { if (liveNow().key === key) { setLive({ info: i }); showBanner() } }).catch(() => {})
-  }, [key, showBanner])
+  // When a programme ends the TV section's player asks what's on next, and the banner moves on.
+  const nowStart = info?.now?.start
+  const seenStart = useRef(nowStart)
   useEffect(() => {
-    if (!info?.now?.end) return
-    const wait = info.now.end * 1000 - Date.now() + 1500
-    if (wait <= 0 || wait > 86400000) return
-    const t = setTimeout(refresh, wait)
-    return () => clearTimeout(t)
-  }, [info?.now?.end, refresh])
+    if (nowStart !== undefined && seenStart.current !== undefined && nowStart !== seenStart.current) showBanner()
+    seenStart.current = nowStart
+  }, [nowStart, showBanner])
 
   // Counting towards watch progress, on the channels set up for it.
   useEffect(() => {
     if (!info?.countProgress || !info.now?.itemId) return
     const p = info.now
-    const at = info.positionSec, atTime = info.serverTime
+    const at = info.positionSec, atTime = info.serverTime, stop = info.partEnd || Infinity
     const send = () => {
       const v = video.current
       if (!v || v.paused) return
-      const pos = at + (Date.now() / 1000 - atTime)
+      // Only this stretch counts: a break after it isn't the programme.
+      const pos = at + (Math.min(Date.now() / 1000, stop) - atTime)
       api.post(`/items/${p.itemId}/progress`, { positionSec: pos, durationSec: p.end - p.start }).catch(() => {})
     }
     const t = setInterval(send, 30000)
     return () => { clearInterval(t); send() }
-  }, [info?.countProgress, info?.now, info?.positionSec, info?.serverTime])
+  }, [info?.countProgress, info?.now, info?.positionSec, info?.serverTime, info?.partEnd])
 
   // Where the live edge is, and how far back the buffer goes.
   useEffect(() => {
@@ -327,14 +325,3 @@ function BannerRights({ ch, look }: { ch: Pick<TuneInfo, 'logo' | 'brand'>; look
   return <LegalNote kind="logosBrief" className="ctv-banner-legal" />
 }
 
-function Slate({ name, next }: { name: string; next: Programme | null }) {
-  return (
-    <div className="ctv-slate" aria-live="polite">
-      <div className="ctv-slate-card">
-        <div className="ctv-slate-ch">{name}</div>
-        <div className="ctv-slate-msg">We'll be right back</div>
-        {next && <div className="ctv-slate-next">Coming up at {fmtClock(next.start)}: {next.title}</div>}
-      </div>
-    </div>
-  )
-}

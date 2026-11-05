@@ -1,0 +1,19 @@
+# WittyMediaServer, the plainest way: docker compose up -d, then open http://<this machine>:9797/
+# Change the two media lines to your own folders. Everything else can stay.
+# The other files here add hardening, graphics cards and a reverse proxy: docs/DOCKER.md.
+services:
+  wittymediaserver:
+    image: ghcr.io/wittywilla/wittymediaserver:alpha # the newest alpha; a version such as :0.7.0-alpha never changes
+    container_name: wittymediaserver
+    restart: unless-stopped
+    ports:
+      - "9797:9797"
+    volumes:
+      - wms-config:/config # the database, settings, artwork and logs: keep it, and back it up
+      - /path/to/movies:/media/movies:ro
+      - /path/to/tv:/media/tv:ro
+
+# A volume Docker looks after. To keep /config in a folder of your own instead, see
+# "Folders" in docs/DOCKER.md: the folder has to belong to the user the server runs as.
+volumes:
+  wms-config:

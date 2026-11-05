@@ -196,6 +196,8 @@ export function LookEditor({ look, inSettings }: { look: Look; inSettings?: bool
         {look.preview !== 'off' && (
           <>
             <Choice label="Preview side" value={look.previewSide} onChange={(v) => setLook({ previewSide: v })} options={[{ v: 'right', label: 'Right' }, { v: 'left', label: 'Left' }]} />
+            <Choice label="Preview controls" value={look.previewBar} onChange={(v) => setLook({ previewBar: v })} options={[{ v: 'bar', label: 'In a bar under it' }, { v: 'over', label: 'Over the picture, when it has focus' }]}
+              hint="Over the picture leaves just the picture and its corner to resize it by. The controls show when the pointer is on it, or when it has focus from the keyboard or a remote." />
             <fieldset className="ctv-choice">
               <legend>Preview size</legend>
               <div className="ctv-choice-opts">

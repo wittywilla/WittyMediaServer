@@ -35,7 +35,7 @@ To add, update or remove modules on a server, see [Modules and the store](MODULE
 
 ## How a module runs
 
-The server has no module's source. Each module is a repository of its own at `github.com/wittywilla/<Repository>`, and arrives at run time as a signed archive. `go.mod` in the server names one thing from them, **WittyModule**, which holds the contract between the two sides and has no dependencies.
+The server has no module's source. Each module is a repository of its own at `github.com/wittywilla/<Repository>`, and arrives at run time as a signed archive. `go.mod` in the server names only **WittyModule**, which holds the contract between the two sides and has no dependencies, and **core libraries** such as WittyDisc: shared code with no program of its own, compiled into the server at the version `go.mod` pins, so no fork or release can change it. The server never builds with a module.
 
 `delivery` in the manifest says what kind of module it is:
 
@@ -55,7 +55,7 @@ The server keeps only the shape of what a module says:
 |---|---|
 | `internal/play/...`, `internal/couch/...` | Stubs written by `kit/facade` in WittyModule from `facade.json` in the module: the module's types, and functions that call its service. Never edited by hand, except `manual.go` |
 | `internal/dvd`, `internal/bluray`, `internal/cd`, `internal/tuner` | The types those modules answer in, kept as a copy. A helper and the server compile them separately, and they match by field name |
-| `internal/tuner/mpegts`, `internal/isofs` | The server's **own** encryption guard and disc image reader, so it refuses encrypted media itself, whatever a module says |
+| `internal/tuner/mpegts`, and `isofs` from WittyDisc | The server's **own** encryption guard and disc image reader, so it refuses encrypted media itself, whatever a module says |
 | `web/src/moduletypes` | The TypeScript types of the browser parts, from `scripts/sync-module-types.mjs`. Types only: nothing from them runs |
 
 Types are matched by name, in a self-describing format, so a field one side hasn't heard of is ignored. `wittymodule check` keeps a manifest honest, and a change the other side has to know of raises the API version.
@@ -531,7 +531,7 @@ They land in `modules/` beside the program, or in `Contents/Resources/modules` i
 
 ## Developing a server and a module together
 
-A normal build of the server needs only WittyModule, at a released version. Nothing about a module needs to be beside it. How the repositories are set up on a development machine is in `docs/REPOSITORIES.md`.
+A normal build of the server needs only WittyModule and the core libraries `go.mod` names, at released versions. Nothing about a module needs to be beside it. How the repositories are set up on a development machine is in `docs/REPOSITORIES.md`.
 
 **A change that crosses the line** is two changes in two repositories. For WittyPlay and WittyCouch, the server's stubs come from the module's source, so a new exported function means running the generator from a WittyModule checkout, which rewrites `gen.go` on both sides. Anything it can't write goes in `manual.go`:
 

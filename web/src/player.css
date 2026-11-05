@@ -98,6 +98,10 @@
   position: fixed; z-index: var(--z-modal); inset: auto 20px calc(20px + min(400px, 100vw - 40px) * 9 / 16 + 12px) auto;
   width: min(400px, calc(100vw - 40px)); max-height: calc(100vh - min(400px, 100vw - 40px) * 9 / 16 - 64px); border-radius: 22px; padding: 12px 14px 14px;
 }
+/* A short window (a phone on its side): beside the mini player rather than above it, where there's room. */
+@media (max-height: 560px) and (min-width: 701px) {
+  .remote.remote-sheet.docked { inset: auto calc(32px + min(400px, 100vw - 40px)) 20px auto; width: min(420px, calc(100vw - min(400px, 100vw - 40px) - 52px)); max-height: calc(100vh - 40px); }
+}
 @media (max-width: 700px) {
   .remote.remote-sheet.docked { inset: auto 8px calc(var(--tabbar-space) + var(--sp-2) + 72px) 8px; width: auto; max-height: calc(100vh - var(--tabbar-space) - 96px); }
 }
@@ -118,6 +122,12 @@
 .sheet-digits { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
 .sheet-digits .rk { height: 44px; border-radius: var(--r-lg); font-size: var(--text-md); }
 .remote-sheet .remote-colours .rk { height: 36px; }
+/* Short screens (a small phone on its side): a little tighter, so the whole sheet shows without scrolling. */
+@media (max-height: 500px) {
+  .remote.remote-sheet { gap: 8px; padding-top: 8px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  .remote-sheet .remote-dpad { zoom: .86; }
+  .sheet-menus .rk, .sheet-tracks .rk, .sheet-transport .rk { height: 36px; }
+}
 /* On its side: everything on the first page in one row, so the picture keeps the top. */
 @container (min-width: 560px) {
   .sheet-keys { grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr) minmax(0, 1.4fr); grid-template-areas: "menus dpad tracks transport"; }

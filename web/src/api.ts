@@ -103,6 +103,8 @@ export type GameConsole = {
   software?: boolean; notice?: string
   // Where each core on offer runs, how it draws there, and here: see pages/games/platforms.tsx.
   coreSupport?: Record<string, CoreSupport>
+  // What each core on offer is good at beside the console's others (docs/GAMING-API.md, Choosing a core).
+  coreAbout?: Record<string, { strength?: 'accuracy' | 'speed' | 'balanced'; about: string }>
   customCores?: GameCore[]; defaultCore?: string; shared?: string[]; padLike?: string; logoName?: string
   pad: { face: { id: number; label: string }[]; shoulder?: { id: number; label: string }[]; meta: { id: number; label: string }[]; sticks?: boolean; pointer?: boolean; art?: string }
   // Its era and years, how its games come, and what it can do (docs/GAMING-API.md, Consoles).

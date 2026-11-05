@@ -138,6 +138,44 @@ with no build for this server answers 409 `{error, noBuild: true, platform, alte
 `macos/arm64` and `alternative` is `{id, name, console}`: a core that plays the same console here. If the download
 server answers 404 anyway, the answer is 502 with the same fields.
 
+### Choosing a core
+
+What a core picker needs, for an administrator: a console's default (`GET /gaming/consoles/{console}/core`) or one
+game's own core (`GET /gaming/games/{id}/core`). Both answer:
+
+| Field | Meaning |
+|---|---|
+| `console` | The console's id |
+| `choice` | The core chosen at this level (the game's own, or the console's default), or `""` for none |
+| `consoleDefault` | For a game: its console's default, or none |
+| `effective` | The core that plays now, once a missing BIOS or graphics card is taken into account; `""` when none would |
+| `canDownload` | This server's platform has prebuilt cores to install |
+| `choices` | Every core that can play the console, in the server's order of preference, then the administrator's own |
+
+Each choice is `{id, name, license, installed, source, canInstall, recommended, strength, about, support, bios}`:
+
+| Field | Meaning |
+|---|---|
+| `installed`, `source` | It's on this server, and from where: `installed`, `retroarch`, `system` or `custom` |
+| `canInstall` | It isn't installed, and installing it here would work: published for this platform, able to draw here, and this platform has downloads |
+| `recommended` | The one this server would pick: the first published for this platform that can draw here |
+| `strength` | What it's chosen for beside the console's other cores: `accuracy`, `speed` or `balanced`. None for a console's only core, or a custom one |
+| `about` | One line on what it's good at, such as "The most accurate, and plays every game. Uses more of the processor." |
+| `support` | `{here, platforms}`, as `coreSupport` above |
+| `bios` | When it won't start without a BIOS file of the owner's own: `{files, found}`, any one of `files` |
+| `starts`, `failures`, `seconds`, `lastError`, `best` | For a game: how it has gone on that game |
+
+`GET /games/consoles` gives the same `strength` and `about` for each core as `coreAbout`, for anyone.
+
+To choose a core that isn't installed: `POST /gaming/cores/{id}/install`, then the `PUT` beside the `GET` with
+`{core}`, which only takes an installed core. While the install runs, `GET /gaming/cores/{id}/install` answers
+`{installing, received, total}` in bytes (`total` 0 when the download server gave no size; a core with support files,
+such as PPSSPP, counts again from 0 for those). The website asks about four times a second. An older WittyPlay module
+always answers `installing: false`; show the install as under way without a size.
+
+A save state is made by one core and only loads in that core; in-game saves (battery saves and memory cards) stay with
+the game. `GET /games/{id}/saves` says which core made each state (`core`, its name).
+
 **A game in an archive** has to be unpacked before it starts, which can take minutes for a large disc on a small server.
 `POST /games/{id}/play` takes that long, which is fine as long as your HTTP client's timeout allows it. To show
 progress, call `POST /games/{id}/prepare` about once a second until `state` is `ready`, and then call play:

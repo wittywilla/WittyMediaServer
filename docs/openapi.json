@@ -17542,6 +17542,44 @@
       }
     },
     "/gaming/consoles/{console}/core": {
+      "get": {
+        "operationId": "getGamingConsolesConsoleCore",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "console",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "choice, effective, canDownload and choices: see GAMING-API.md, Choosing a core."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A console's cores for the core picker, installed or not, and its default.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      },
       "put": {
         "operationId": "putGamingConsolesConsoleCore",
         "parameters": [
@@ -17635,6 +17673,44 @@
       }
     },
     "/gaming/cores/{id}/install": {
+      "get": {
+        "operationId": "getGamingCoresIdInstall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "installing, received and total, in bytes."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How far an install under way has got.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
       "post": {
         "operationId": "postGamingCoresIdInstall",
         "parameters": [

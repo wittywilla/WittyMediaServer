@@ -136,8 +136,5 @@
 .custom-audit ul { list-style: none; margin: var(--sp-2) 0 0; padding: 0; max-height: 320px; overflow: auto; display: grid; gap: var(--sp-2); }
 .custom-audit li { display: grid; gap: 1px; }
 .custom-detail { display: block; overflow-wrap: anywhere; color: var(--fg-3); font-size: var(--text-xs); }
-.custom-gamecore { margin-top: var(--sp-3); font-size: var(--text-sm); max-width: 460px; }
-.custom-gamecore summary { cursor: pointer; color: var(--fg-2); min-height: 32px; }
-.custom-gamecore-stats { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-1); }
 .linkish { background: none; border: 0; padding: 0; color: var(--accent-text); text-decoration: underline; cursor: pointer; font: inherit; }
 

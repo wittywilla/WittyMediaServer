@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, getToken, mediaUrl, posterUrl, serverBase, type Item } from '../api'
 import { LoadError, Spinner } from '../components/common'
@@ -17,6 +17,14 @@ import './games.css'
 // is opened.
 
 const GamePlayer = lazyModule<any>('wittyplay', (m) => m.default) // eslint-disable-line @typescript-eslint/no-explicit-any
+const CorePicker = lazy(() => import('./games/CorePicker'))
+
+// chooseCore, for an administrator: the game menu's way to the core picker, drawn by this page over
+// the player. It answers restart (start the game again on the new core, without resuming: a state
+// from the old core won't load in it), later (the next start uses it) or none (nothing changed). A
+// player from before it doesn't ask, and keeps its own way to Settings.
+export type CoreChoiceAnswer = 'restart' | 'later' | 'none'
+type HostWithCores = PlayHost & { chooseCore?: () => Promise<CoreChoiceAnswer> }
 const Controllers = lazyModule<any>('wittyplay', (m) => m.ControllersPage) // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Controller profiles and the background, through the same routes a TV app uses.
@@ -60,16 +68,18 @@ export function GamePage() {
   const [params] = useSearchParams()
   const [it, setIt] = useState<Item | null>(null)
   const [err, setErr] = useState('')
+  const [choosing, setChoosing] = useState<{ answer: (a: CoreChoiceAnswer) => void } | null>(null)
   const { user } = useApp()
   const settingsHost = useSettingsHost(!!user?.isAdmin)
   useEffect(() => { Promise.all([api.get<Item>(`/items/${id}`), getConsoles().then((l) => { for (const c of l) knownConsoles.set(c.id, c.short) }).catch(() => {})]).then(([i]) => setIt(i)).catch((e) => setErr(e.message)) }, [id])
-  const host = useMemo<PlayHost | null>(() => {
+  const host = useMemo<HostWithCores | null>(() => {
     if (!it) return null
     return {
       ...settingsHost,
       itemId: it.id, title: it.title, consoleId: it.console || '', consoleName: consoleName(it.console || ''), resume: params.get('resume') === '1', safeMode: params.get('safe') === '1',
       startSlot: Number(params.get('slot') || 0) || undefined, cover: it.poster ? `${posterUrl(it)}&w=480` : undefined,
       openSettings: () => nav('/settings/gaming'),
+      chooseCore: user?.isAdmin ? () => new Promise<CoreChoiceAnswer>((answer) => setChoosing({ answer })) : undefined,
       prepare: () => api.post<PrepareStatus>(`/games/${it.id}/prepare`),
       start: (resume, safeMode) => api.post<SessionInfo>(`/games/${it.id}/play`, { resume, safeMode, client: 'browser' }).then((s) => { setLogSession(s.id); return s }),
       report: (level, message) => reportClient({ level, kind: 'game', message, module: 'wittyplay' }),
@@ -96,10 +106,20 @@ export function GamePage() {
       action: (sid, type, slot, on, extra) => api.post(`/play/${sid}/action`, { type, slot: slot ?? 0, on: !!on, ...extra }),
       close: () => nav(getTvMode() ? `/games/game/${it.id}` : couchOn() ? `/big/game/${it.id}` : `/item/${it.id}`, { replace: true }),
     }
-  }, [it, settingsHost])
+  }, [it, settingsHost, user?.isAdmin])
   if (err) return <div className="wp-page-error" role="alert"><LoadError what="This game" onRetry={() => window.location.reload()} /><p className="muted">{err}</p></div>
   if (!host) return <Spinner />
-  return <Suspense fallback={<Spinner />}><GamePlayer host={host} /></Suspense>
+  return (
+    <>
+      <Suspense fallback={<Spinner />}><GamePlayer host={host} /></Suspense>
+      {choosing && it && (
+        <Suspense fallback={null}>
+          <CorePicker scope={{ kind: 'game', itemId: it.id, title: it.title, consoleShort: consoleName(it.console || '') }} playing
+            onClose={(picked) => { choosing.answer(!picked ? 'none' : picked.restart ? 'restart' : 'later'); setChoosing(null) }} />
+        </Suspense>
+      )}
+    </>
+  )
 }
 
 const consoleName = (id: string) => knownConsoles.get(id) || id.toUpperCase()

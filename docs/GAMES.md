@@ -126,7 +126,9 @@ The core downloads from buildbot.libretro.com, the libretro project's build serv
 
 Cores on this list that are already in a RetroArch folder on the same machine are found and used.
 
-If a game won't load on the chosen core, the other installed cores for that console are tried. To change a console's core, use the choice on its card. Administrators can pick a core for one game on that game's page, which also shows how each core has gone on it.
+If a game won't load on the chosen core, the other installed cores for that console are tried.
+
+**Choosing another core.** Press **Change core** on a console's card, or beside the core on a game's page to change it for that game alone. Each core says what it's good at (accuracy, speed or a balance of the two), how it draws on your server and where else it runs, whether it needs a BIOS file of your own, and whether it's installed. Choose one that isn't, read its license, and press **Install and use**: it downloads, with its progress, and plays from the next start. On a game's page the picker also shows how each core has gone on that game. Your in-game saves stay whichever core plays a game, but a save state only loads in the core that made it, so states from another core wait until you switch back.
 
 | Console | First choice | Needs a graphics card | BIOS file |
 |---|---|---|---|
@@ -151,7 +153,27 @@ If a game won't load on the chosen core, the other installed cores for that cons
 | Dreamcast | Flycast | Yes | Optional |
 | Nintendo 3DS | Azahar | Yes | No |
 
-Each card lists the other cores offered, with their licenses. Non-commercial cores are never offered.
+Each card lists the other cores offered, with their licenses:
+
+| Console | Other cores |
+|---|---|
+| NES, Famicom | Nestopia UE, Mesen, QuickNES |
+| Super Nintendo | bsnes 2014 Performance, Mesen-S, bsnes |
+| Game Boy, Color | SameBoy, mGBA, Gearboy |
+| Game Boy Advance | VBA Next, VBA-M, gpSP |
+| Mega Drive, Genesis | ClownMDEmu |
+| Master System, Game Gear | SMS Plus GX |
+| PlayStation | Beetle PSX, SwanStation, Beetle PSX HW (the last three need a BIOS file) |
+| PC Engine | Beetle PCE, Beetle SuperGrafx |
+| Atari 2600 | Stella |
+| Lynx | Beetle Lynx (needs `lynxboot.img`) |
+| Neo Geo Pocket | RACE |
+| Nintendo DS | DeSmuME |
+| Nintendo 64 | ParaLLEl N64 |
+| PlayStation 2 | Play! |
+| Nintendo 3DS | Panda3DS |
+
+Non-commercial cores, such as Snes9x, Genesis Plus GX and PicoDrive, are never offered.
 
 Each core also says which server platforms it runs on, and how it draws on yours: on a graphics card, by the processor, or not at all. A core that isn't published for your server's platform isn't offered to install: Beetle Supafaust, for example, has no build for macOS, so a Mac server suggests bsnes 2014 Performance for Super Nintendo instead. Every device plays whatever your server can run, since the server runs the game and streams it.
 
@@ -185,13 +207,13 @@ You can also put files straight in the BIOS folder named on that page. A PlaySta
 | Console | File names | Used for |
 |---|---|---|
 | PlayStation 2 | `scph39001.bin`, or any other model's BIOS image | LRPS2 needs one, and any region will do. With a whole set, a game starts on one from its own region, or a late first-generation US model |
-| PlayStation | `scph5501.bin`, `scph5500.bin`, `scph5502.bin` | US, Japanese and European consoles. PCSX ReARMed runs most games without one |
+| PlayStation | `scph5501.bin`, `scph5500.bin`, `scph5502.bin` | US, Japanese and European consoles. PCSX ReARMed runs most games without one; Beetle PSX and SwanStation need one |
 | NES | `disksys.rom` | Famicom Disk System games |
 | Super Nintendo | `BS-X.bin` | Satellaview games in `.bs` files, on Mesen-S |
 | Game Boy Advance | `gba_bios.bin` | Better accuracy |
 | PC Engine | `syscard3.pce` | CD games |
 | Atari 7800 | `7800 BIOS (U).rom` | The start-up screen |
-| Lynx | `lynxboot.img` | Most games |
+| Lynx | `lynxboot.img` | Most games on Handy; Beetle Lynx needs it |
 | Nintendo DS | `bios7.bin`, `bios9.bin`, `firmware.bin` | Accuracy, and the start-up menu, on melonDS |
 | Dreamcast | `dc/dc_boot.bin`, `dc/dc_flash.bin` | Better compatibility, and the console's settings |
 

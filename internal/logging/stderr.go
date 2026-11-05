@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -62,6 +63,27 @@ func (g *CrashGuard) readStderr(pid int) string {
 		return ""
 	}
 	return strings.TrimSpace(Redact(string(b)))
+}
+
+// removeOldStderr clears what earlier runs left with no marker beside them: a file a
+// clean stop couldn't remove because it was still open (Windows), say. Those ended cleanly,
+// so there's nothing in them a report needs.
+func (g *CrashGuard) removeOldStderr() {
+	entries, _ := os.ReadDir(g.dir)
+	for _, e := range entries {
+		n, ok := strings.CutPrefix(e.Name(), "stderr-")
+		if !ok {
+			continue
+		}
+		pid, err := strconv.Atoi(strings.TrimSuffix(n, ".txt"))
+		if err != nil || pid == os.Getpid() || pidAlive(pid) {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(g.dir, fmt.Sprintf("run-%d.json", pid))); err == nil {
+			continue // a run still to be reported
+		}
+		_ = os.Remove(filepath.Join(g.dir, e.Name()))
+	}
 }
 
 // removeStderr: an earlier run's file, once it's in a report or wasn't needed.

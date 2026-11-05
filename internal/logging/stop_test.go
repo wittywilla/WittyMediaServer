@@ -177,3 +177,44 @@ func TestRunsKeepsTheLastTwenty(t *testing.T) {
 		t.Fatalf("%+v", last)
 	}
 }
+
+// A stop noted after a clean Close mustn't put the marker back: the next start would call
+// a clean stop unclean.
+func TestNoteAfterCloseLeavesNoMarker(t *testing.T) {
+	resetStop()
+	t.Cleanup(resetStop)
+	dir := t.TempDir()
+	g, _, err := StartCrashGuard(filepath.Join(dir, "crash"), dir, "v")
+	if err != nil {
+		t.Fatal(err)
+	}
+	marker := g.marker
+	g.Close()
+	g.noteStopping(Stop{Reason: StopSignal}) // as a stop noted at that very moment would
+	if _, err := os.Stat(marker); !os.IsNotExist(err) {
+		t.Fatalf("the marker came back: %v", err)
+	}
+	g.Close() // twice: one run, recorded once
+	if runs := Runs(filepath.Join(dir, "crash")); len(runs) != 1 {
+		t.Fatalf("%d runs recorded", len(runs))
+	}
+}
+
+// An empty stderr file a clean stop couldn't remove is cleared at the next start; one with
+// a marker beside it waits for its report.
+func TestOldStderrFilesCleared(t *testing.T) {
+	resetStop()
+	t.Cleanup(resetStop)
+	dir := t.TempDir()
+	crashDir := filepath.Join(dir, "crash")
+	_ = os.MkdirAll(crashDir, 0o755)
+	_ = os.WriteFile(filepath.Join(crashDir, stderrName(999997)), nil, 0o640)
+	g, _, err := StartCrashGuard(crashDir, dir, "v")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer g.Close()
+	if _, err := os.Stat(filepath.Join(crashDir, stderrName(999997))); !os.IsNotExist(err) {
+		t.Fatal("an old empty stderr file stayed")
+	}
+}

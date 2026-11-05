@@ -181,11 +181,14 @@ func (g *CrashGuard) writeMarker() error {
 
 // SetLogDir notes where this run's logs are, for the report if it ends badly.
 func (g *CrashGuard) SetLogDir(dir string) {
-	if g == nil || g.marker == "" {
+	if g == nil {
 		return
 	}
 	g.markerMu.Lock()
 	defer g.markerMu.Unlock()
+	if g.marker == "" {
+		return
+	}
 	g.run.LogDir = dir
 	_ = g.writeMarker()
 }
@@ -207,9 +210,13 @@ func (g *CrashGuard) Close() {
 		_ = os.Remove(name)
 		g.pending = nil
 	}
-	if g.marker != "" {
+	g.markerMu.Lock()
+	marker := g.marker
+	g.marker = "" // a stop noted after this has no marker to write back
+	g.markerMu.Unlock()
+	if marker != "" {
 		g.record(LastRun{PID: g.run.PID, Version: g.version, Started: g.run.Started, Ended: time.Now(), Clean: true, Stop: StopNoted()})
-		_ = os.Remove(g.marker)
+		_ = os.Remove(marker)
 	}
 	g.closeStderr()
 }
@@ -281,6 +288,7 @@ func (g *CrashGuard) collect(logDir string) ([]Crash, LastRun) {
 		_ = os.Remove(p)
 		g.removeStderr(pid)
 	}
+	g.removeOldStderr()
 	return found, prev
 }
 

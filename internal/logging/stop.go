@@ -231,11 +231,14 @@ func readLastRun(dir string) (LastRun, bool) {
 // noteStopping writes the reason into this run's marker: a stop that hangs, and is then
 // ended by force, still says what it was doing.
 func (g *CrashGuard) noteStopping(s Stop) {
-	if g == nil || g.marker == "" {
+	if g == nil {
 		return
 	}
 	g.markerMu.Lock()
 	defer g.markerMu.Unlock()
+	if g.marker == "" { // closed: the run has ended cleanly already
+		return
+	}
 	g.run.Stopping = &s
 	_ = g.writeMarker()
 }

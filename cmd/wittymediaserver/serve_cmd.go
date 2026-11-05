@@ -383,7 +383,13 @@ func cmdServe(args []string) int {
 	defer cancel()
 	watchStopEvents()
 	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+	if asService {
+		// The service manager says when to stop. Go turns a sign-out into SIGTERM, and a
+		// service given a console somehow must not stop for someone else signing out.
+		signal.Notify(sigs, os.Interrupt)
+	} else {
+		signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+	}
 	defer signal.Stop(sigs)
 	go func() {
 		select {

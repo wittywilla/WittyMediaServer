@@ -22,7 +22,7 @@ const (
 	apiVersion = 1
 	// apiRevision counts additions within the version: a client that needs
 	// something new can check for it, or look for a feature name below.
-	apiRevision = 9
+	apiRevision = 10
 	apiPrefix   = "/api/v1/"
 )
 
@@ -70,7 +70,7 @@ var serverFeatures = []string{
 	"game-controller-profiles", "game-settings", "custom-game-cores", "game-rigs", "library-transcoding",
 	"channels", "live-tv", "live-tv-stream-tokens", "tv-favourites", "tv-reminders", "recordings",
 	"browse", "saved-views", "metadata-editing", "logos", "streaming-listings",
-	"music-home", "music-radio", "lyrics", "min-client-versions",
+	"music-home", "music-radio", "lyrics", "min-client-versions", "robust-streaming",
 }
 
 // minClientVersions names the oldest version of each app this server still works with, by
@@ -128,6 +128,10 @@ func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 				"reportProgressMinSec":  5,
 			},
 			"directPlay": s.DB.GetSetting(ctx, "directPlay", "1") == "1",
+			// remoteStreaming is the server's streaming mode for viewers away from home.
+			// A device can choose its own with streaming in /playback.
+			"remoteStreaming": s.DB.GetSetting(ctx, remoteStreamingKey, playback.StreamStandard),
+			"streamingModes":  []string{playback.StreamStandard, playback.StreamRobust},
 		},
 		"libraryTypes": []string{"movies", "discs", "shows", "anime", "videos", "music", "audiobooks", "podcasts", "books", "radio", "games", "photos"},
 		"itemKinds":    []string{"video", "dvd-iso", "dvd-folder", "bluray-iso", "bluray-folder", "cd-image", "audio", "book", "radio", "game", "photo"},

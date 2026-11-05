@@ -12,6 +12,7 @@ import { QueuePanel } from './QueuePanel'
 import { ReadPanel, useExtras } from './ReadPanel'
 import { SoundPanel } from './SoundPanel'
 import type { PlayerView } from './types'
+import { placeIn, useMusicLinks } from '../pages/music/links'
 import { acceptedFlashNotice, shaderEffects, shaderSession, trackingMedia, VisualizerView, type ShaderEffect } from './visualizer'
 import './nowplaying.css'
 
@@ -170,6 +171,14 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
     if (now && !isNative(style)) { setShown(''); setPrefs({ style: now }) }
     loadShaders()
   }
+  // A song's music video, to go to at the same place.
+  const video = useMusicLinks(p.mode === 'music' && !p.live && !p.cdActive ? it.id : undefined)?.tied[0]
+  const watchVideo = () => {
+    if (!video) return
+    const at = placeIn('video', p.position(), video, video.video.runtimeSec)
+    if (p.playing) p.toggle()
+    p.goTowards(`/watch/${video.videoId}${at ? `?t=${Math.floor(at)}` : ''}`)
+  }
   const subtitle = p.live ? (p.retrying ? 'Reconnecting…' : p.stationNow || 'Live') : it.artist || it.albumArtist || ''
   const placeLine = p.books ? 'Chapters' : p.live ? 'Stations' : 'Queue'
 
@@ -201,6 +210,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
                 {canSing && <button type="button" role="menuitem" onClick={() => { p.startRadio(it); close() }}><IconStation size={18} /> Start a station from this song</button>}
                 {p.albumUrl && <button type="button" role="menuitem" onClick={() => p.goTowards(p.albumUrl)}>{p.live ? 'Go to station' : p.books ? 'Go to book' : 'Go to album'}</button>}
                 {p.artistUrl && <button type="button" role="menuitem" onClick={() => p.goTowards(p.artistUrl)}>Go to artist</button>}
+                {video && <button type="button" role="menuitem" onClick={() => { close(); watchVideo() }}>Watch the video</button>}
                 <button type="button" role="menuitem" onClick={p.stop}><IconClose size={18} /> Stop and close</button>
               </div>
             )}
@@ -221,6 +231,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
             {p.artistUrl && !p.live
               ? <button type="button" className="np-artist" onClick={() => p.goTowards(p.artistUrl)}>{subtitle}</button>
               : <p className="np-artist plain">{subtitle}</p>}
+            {video && <button type="button" className="np-chip np-video" onClick={watchVideo} title="Watch the video, from here when the two line up"><IconPlay size={16} /> Watch the video</button>}
           </div>
           {!p.live && (
             <div className="np-seek">

@@ -18,6 +18,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/instance"
 )
 
 // Crash reports live in their own folder inside the data folder, apart from the
@@ -29,9 +31,14 @@ import (
 //   - panic: a panic that was caught and logged. The server carried on.
 //   - unclean: the last run left without saying so, and without a fatal error:
 //     a power cut, a killed process, the system out of memory.
+//   - hang: the server stopped answering while it ran (see hang.go). Beside the
+//     report are every goroutine's stack, the flight recorder's last minutes and
+//     the execution trace.
+//   - saved: an admin asked for the same, because something had just gone wrong.
 
 const (
 	maxCrashFiles = 30
+	maxEvidence   = 5 // reports that keep the flight recorder, stacks and trace beside them
 	maxCrashSize  = 2 << 20
 	crashKeepDays = 90
 )
@@ -39,12 +46,14 @@ const (
 // Crash describes one report.
 type Crash struct {
 	ID      string    `json:"id"`
-	Kind    string    `json:"kind"` // fatal, panic, unclean
+	Kind    string    `json:"kind"` // fatal, panic, unclean, hang, saved
 	Time    time.Time `json:"time"`
 	Summary string    `json:"summary"`
 	Version string    `json:"version,omitempty"`
 	Size    int64     `json:"size"`
 	Seen    bool      `json:"seen"`
+	// Parts are the files kept beside the report: PartFlight, PartGoroutines, PartTrace.
+	Parts []string `json:"parts,omitempty"`
 }
 
 // runMarker says a server is running here. A clean shutdown removes it.
@@ -75,6 +84,9 @@ var activeGuard struct {
 // ServerRunning says whether another process is running as a server on the folder that
 // holds these crash reports, for tools that mustn't change its files underneath it.
 func ServerRunning(crashDir string) (pid int, running bool) {
+	if pid, running, known := instance.HeldBy(filepath.Dir(crashDir)); known {
+		return pid, running // the data folder's lock: exact, where a server of this version has run
+	}
 	entries, err := os.ReadDir(crashDir)
 	if err != nil {
 		return 0, false
@@ -128,6 +140,9 @@ func StartCrashGuard(dir, logDir, version string) (*CrashGuard, []Crash, error) 
 // run leaves in its crash folder and whether that process is still alive. A marker
 // whose process has gone is what a crash leaves, and isn't a running server.
 func RunningServer(crashDir string) (pid int, ok bool) {
+	if pid, running, known := instance.HeldBy(filepath.Dir(crashDir)); known {
+		return pid, running
+	}
 	entries, err := os.ReadDir(crashDir)
 	if err != nil {
 		return 0, false
@@ -299,8 +314,24 @@ func (g *CrashGuard) writeReport(kind string, when time.Time, version, summary, 
 		b.WriteString(lastLines)
 		b.WriteString("\n")
 	}
-	p := filepath.Join(g.dir, id+".txt")
-	if err := os.WriteFile(p, []byte(b.String()), 0o640); err != nil {
+	// Whole or not at all: it's written when things are going wrong, and the server may not
+	// last the write. Under its own name it's listed, and read, before it holds anything.
+	tmp, err := os.CreateTemp(g.dir, ".writing-*")
+	if err != nil {
+		return Crash{}, err
+	}
+	defer os.Remove(tmp.Name()) // nothing left once renamed
+	_, err = tmp.WriteString(b.String())
+	if cerr := tmp.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = os.Chmod(tmp.Name(), 0o640)
+	}
+	if err == nil {
+		err = os.Rename(tmp.Name(), filepath.Join(g.dir, id+".txt"))
+	}
+	if err != nil {
 		return Crash{}, err
 	}
 	return Crash{ID: id, Kind: kind, Time: when, Summary: summary, Version: version, Size: int64(b.Len())}, nil
@@ -386,15 +417,32 @@ func lastLogLines(logDir string, n int) string {
 func (g *CrashGuard) prune() {
 	list := g.List()
 	cutoff := time.Now().AddDate(0, 0, -crashKeepDays)
+	withParts := 0
 	for i, c := range list {
 		if i >= maxCrashFiles || c.Time.Before(cutoff) {
-			_ = os.Remove(filepath.Join(g.dir, c.ID+".txt"))
-			_ = os.Remove(filepath.Join(g.dir, c.ID+".seen"))
+			g.removeAll(c.ID)
+			continue
+		}
+		if len(c.Parts) > 0 {
+			// Each can be tens of megabytes: only the newest few keep theirs.
+			if withParts++; withParts > maxEvidence {
+				for _, p := range c.Parts {
+					_ = os.Remove(filepath.Join(g.dir, c.ID+"."+p))
+				}
+			}
+		}
+	}
+	// What a run that ended during a write left.
+	if left, _ := filepath.Glob(filepath.Join(g.dir, ".writing-*")); len(left) > 0 {
+		for _, p := range left {
+			if st, err := os.Stat(p); err == nil && time.Since(st.ModTime()) > time.Hour {
+				_ = os.Remove(p)
+			}
 		}
 	}
 }
 
-var crashName = regexp.MustCompile(`^crash-[0-9TZ.]+-(fatal|panic|unclean)$`)
+var crashName = regexp.MustCompile(`^crash-[0-9TZ.]+-(fatal|panic|unclean|hang|saved)$`)
 
 // IsCrashID accepts only our own report names (never a path).
 func IsCrashID(id string) bool { return crashName.MatchString(id) }
@@ -430,6 +478,7 @@ func (g *CrashGuard) List() []Crash {
 		if _, err := os.Stat(filepath.Join(g.dir, id+".seen")); err == nil {
 			c.Seen = true
 		}
+		c.Parts = g.parts(id)
 		out = append(out, c)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Time.After(out[j].Time) })
@@ -464,6 +513,47 @@ func (g *CrashGuard) Read(id string) ([]byte, error) {
 	return readBounded(filepath.Join(g.dir, id+".txt"), maxCrashSize*2)
 }
 
+// parts lists the evidence kept beside a report.
+func (g *CrashGuard) parts(id string) []string {
+	var out []string
+	for _, p := range evidenceParts {
+		if st, err := os.Stat(filepath.Join(g.dir, id+"."+p)); err == nil && st.Mode().IsRegular() {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// IsPart accepts only the names of evidence parts.
+func IsPart(part string) bool {
+	for _, p := range evidenceParts {
+		if p == part {
+			return true
+		}
+	}
+	return false
+}
+
+// PartPath is where one part of a report is, for sending it whole.
+func (g *CrashGuard) PartPath(id, part string) (string, error) {
+	if g == nil || !IsCrashID(id) || !IsPart(part) {
+		return "", os.ErrNotExist
+	}
+	p := filepath.Join(g.dir, id+"."+part)
+	if _, err := os.Stat(p); err != nil {
+		return "", err
+	}
+	return p, nil
+}
+
+func (g *CrashGuard) removeAll(id string) {
+	for _, p := range evidenceParts {
+		_ = os.Remove(filepath.Join(g.dir, id+"."+p))
+	}
+	_ = os.Remove(filepath.Join(g.dir, id+".seen"))
+	_ = os.Remove(filepath.Join(g.dir, id+".txt"))
+}
+
 // MarkSeen: the owner has seen this one, so it stops being pointed out.
 func (g *CrashGuard) MarkSeen(id string) error {
 	if g == nil || !IsCrashID(id) {
@@ -480,8 +570,11 @@ func (g *CrashGuard) Delete(id string) error {
 	if g == nil || !IsCrashID(id) {
 		return os.ErrNotExist
 	}
-	_ = os.Remove(filepath.Join(g.dir, id+".seen"))
-	return os.Remove(filepath.Join(g.dir, id+".txt"))
+	if _, err := os.Stat(filepath.Join(g.dir, id+".txt")); err != nil {
+		return err
+	}
+	g.removeAll(id)
+	return nil
 }
 
 // Dir is the folder holding the reports.
@@ -511,7 +604,18 @@ func (g *CrashGuard) recordPanic(where string, value any, stack []byte) {
 	}
 	summary := clean(Redact(fmt.Sprintf("A panic in %s was caught; the server carried on: %v", where, value)), 300)
 	body := Redact(string(stack))
-	_, _ = g.writeReport("panic", now, g.version, summary, body, "")
+	tail := ""
+	l := active.Load()
+	if l != nil {
+		tail = l.flightTail(80)
+	}
+	c, err := g.writeReport("panic", now, g.version, summary, body, tail)
+	if err == nil && l != nil && l.FlightRecorderOn() {
+		if f, err := os.OpenFile(filepath.Join(g.dir, c.ID+"."+PartFlight), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o640); err == nil {
+			_, _ = l.WriteFlight(f)
+			_ = f.Close()
+		}
+	}
 	g.prune()
 }
 

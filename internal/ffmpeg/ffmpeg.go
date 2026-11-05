@@ -77,20 +77,37 @@ func Locate(ffmpegPath, ffprobePath string) (*Tools, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if out, _, err := Run(ctx, t.FFmpeg, []string{"-hide_banner", "-version"}); err == nil {
-		if line, _, ok := bytes.Cut(out, []byte("\n")); ok {
-			t.Version = strings.TrimSpace(string(line))
-		}
+	out, banner, err := t.encoderList(ctx)
+	if err != nil {
+		return t, nil
 	}
-	if out, _, err := Run(ctx, t.FFmpeg, []string{"-hide_banner", "-encoders"}); err == nil {
-		for _, line := range strings.Split(string(out), "\n") {
-			f := strings.Fields(line)
-			if len(f) >= 2 && len(f[0]) == 6 && f[0][0] == 'V' || len(f) >= 2 && len(f[0]) == 6 && f[0][0] == 'A' {
-				t.Encoders[f[1]] = true
-			}
+	if line, _, _ := strings.Cut(banner, "\n"); strings.HasPrefix(line, "ffmpeg version") {
+		t.Version = strings.TrimSpace(line)
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		f := strings.Fields(line)
+		if len(f) >= 2 && len(f[0]) == 6 && f[0][0] == 'V' || len(f) >= 2 && len(f[0]) == 6 && f[0][0] == 'A' {
+			t.Encoders[f[1]] = true
 		}
 	}
 	return t, nil
+}
+
+// encoderList asks FFmpeg for its encoders, and gets its version too: without -hide_banner it
+// names itself first on standard error. That's one start instead of two before the server can
+// listen. A start takes a tenth of a second on Linux, and from half a second to well over one
+// on a busy Windows machine, where the 170 MB program is scanned each time.
+func (t *Tools) encoderList(ctx context.Context) (list []byte, banner string, err error) {
+	cmd := Command(ctx, t.FFmpeg, "-nostdin", "-encoders")
+	var stdout bytes.Buffer
+	stderr := &logging.Tail{} // the banner is at the start, which it keeps
+	cmd.Stdout, cmd.Stderr = &stdout, stderr
+	started := time.Now()
+	if err := cmd.Run(); err != nil {
+		logging.ChildExit(slog.Default().With("cat", "transcode"), "ffmpeg", err, false, stderr, started, "args", "-encoders")
+		return nil, "", err
+	}
+	return stdout.Bytes(), stderr.String(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -565,6 +582,9 @@ func ConcatInputArgs(list string) []string {
 // Still grabs one frame as JPEG/PNG (by extension of out). inputArgs is
 // everything up to and including -i; atSec seeks (input-side) when > 0.
 func (t *Tools) Still(ctx context.Context, inputArgs []string, atSec float64, width int, out string) error {
+	if err := outFolder(out); err != nil {
+		return err
+	}
 	args := []string{"-hide_banner", "-loglevel", "error", "-y"}
 	if atSec > 0 {
 		args = append(args, "-ss", strconv.FormatFloat(atSec, 'f', 3, 64))
@@ -592,6 +612,9 @@ func (t *Tools) Still(ctx context.Context, inputArgs []string, atSec float64, wi
 // a tenth of the work and a third of the memory of decoding up to the moment on every core (measured
 // on a 7 GB film: 110 ms and 77 MB against 2560 ms and 219 MB). If that finds nothing, it's Still.
 func (t *Tools) Poster(ctx context.Context, inputArgs []string, atSec float64, width int, out string) error {
+	if err := outFolder(out); err != nil {
+		return err
+	}
 	if atSec <= 0 {
 		return t.Still(ctx, inputArgs, atSec, width, out)
 	}
@@ -618,6 +641,9 @@ func (t *Tools) Poster(ctx context.Context, inputArgs []string, atSec float64, w
 // shrink halves a JPEG that many times while decoding (0 to 3). Rotation is
 // always done here rather than by FFmpeg, whose handling differs by version.
 func (t *Tools) ImageThumb(ctx context.Context, path string, orientation, width, shrink int, out string) error {
+	if err := outFolder(out); err != nil {
+		return err
+	}
 	args := []string{"-hide_banner", "-loglevel", "error", "-y", "-noautorotate", "-threads", "1"}
 	if shrink > 0 {
 		args = append(args, "-lowres", strconv.Itoa(shrink))
@@ -646,6 +672,12 @@ func (t *Tools) ImageThumb(ctx context.Context, path string, orientation, width,
 		return fmt.Errorf("ffmpeg image: %w: %s", err, shortFormats(stderr.String()))
 	}
 	return nil
+}
+
+// outFolder makes the folder a picture is written to: a cache folder can be removed while
+// the server runs (a reset, someone tidying up), and FFmpeg won't make it.
+func outFolder(out string) error {
+	return os.MkdirAll(filepath.Dir(out), 0o755)
 }
 
 // Command prepares an ffmpeg/ffprobe process. On Windows it never opens a

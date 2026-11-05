@@ -17,7 +17,7 @@ A theme changes how WittyMediaServer looks: its colours, its corners, even its f
 ![The home page in the Light theme](images/theme-light-home.webp)
 *The Light theme. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 1. Open **Settings → Appearance**.
-2. Click a theme. It applies straight away, on this device only, and other devices aren't affected.
+2. Point at a theme, or move to it with the keyboard or a remote, to see it in the large preview at the top. Click it, or press Enter or OK, to use it. It applies straight away, on this device only, and other devices aren't affected.
 
 **Automatic** follows your device's light or dark setting. **Follow the server's** puts this device back on the server's theme. If you're an administrator, **Make default** sets the theme everyone starts with, including on the sign-in page.
 
@@ -38,7 +38,7 @@ If you were using one of the older colour themes, such as Dark Red, you've been 
 
 This is the quickest way, and the result is always easy to read.
 
-1. On **Settings → Appearance**, press **Make a theme**.
+1. On **Settings → Appearance**, go to **Colours** (or press **Make your own** under the themes). The preview beside it changes as you choose.
 2. Give it a **Name**, and choose **Dark** or **Light**.
 3. Pick an **Accent**, the colour of buttons and highlights, and a **Background tint**, a hint of colour in the page.
 4. Choose **Corners**: **Crisp**, **Soft** or **Round**.
@@ -154,7 +154,7 @@ You can also copy the ZIP into the server's `themes` folder and reload the page.
 - **Size.** ZIPs up to 25 MB, each file up to 10 MB, and up to 200 files. Keep images small, as WebP and AVIF give the smallest files.
 - **File names** are plain relative paths: no `..`, no absolute paths, no backslashes.
 - **Ids** are letters, digits, `.`, `-` and `_`, up to 64 characters. A built-in theme's id is taken, so give your copy a new one. A built-in theme can't be removed.
-- **Who can install.** Only administrators can install or remove themes on the server. Anyone can use **Make a theme** on their own device.
+- **Who can install.** Only administrators can install or remove themes on the server. Anyone can make a theme under **Colours** for their own device.
 - **Theme files are public,** because the sign-in page is themed too, so don't put anything private in one.
 - **Apps use the colours.** The native apps read a theme's settings, not its own CSS rules or pictures, so a theme that has those looks plainer there.
 

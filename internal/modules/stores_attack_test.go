@@ -78,6 +78,7 @@ func TestStoreForkObeysTheMachinesLock(t *testing.T) {
 
 // "Off, it isn't fetched or shown, and nothing new can be installed from it."
 func TestATurnedOffStoreInstallsNothingNew(t *testing.T) {
+	needForks(t)
 	w, store, publish, make1 := aForkWorld(t)
 	if err := w.s.UseFork(store, "wittycomics", "admin", true, ""); err != nil {
 		t.Fatal(err)
@@ -241,6 +242,7 @@ func TestLookalikeNamesAreCaught(t *testing.T) {
 // The key shown when an admin was asked has to be the key that gets pinned, whatever the store has
 // said since.
 func TestForkPinsTheKeyTheAdminSaw(t *testing.T) {
+	needForks(t)
 	w, store, _, _ := aForkWorld(t)
 	d, err := w.s.Detail(store, "wittycomics")
 	if err != nil || d.Fingerprint == "" {

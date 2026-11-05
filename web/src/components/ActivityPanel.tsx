@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react'
 import { STATE_NAMES, clearTaskHistory, fmtAgo, fmtCount, fmtDuration, fmtRate, taskAction, taskHistory, typeName, useActivity, type Task } from '../activity'
 import { IconCheck, IconClose, IconInfo, IconPause, IconPlay, IconRefresh, IconSettings, IconStop, IconTrash } from '../icons'
+import { useApp } from '../state'
 import { Button, Chip, Chips, EmptyState, IconButton, LinkButton, LoadError, Notice, Progress, Sheet, Spinner, Tabs, ask, toast } from '../ui'
 
 // The panel behind the activity button: what's going on, library by library, and what
@@ -10,6 +11,7 @@ type Tab = 'now' | 'history'
 
 export default function ActivityPanel({ onClose }: { onClose: () => void }) {
   const a = useActivity()
+  const { update, user } = useApp()
   const [tab, setTab] = useState<Tab>('now')
   const panel = useId()
   const going = a.tasks.length
@@ -22,6 +24,11 @@ export default function ActivityPanel({ onClose }: { onClose: () => void }) {
       <div id={panel} role="tabpanel" className="act-body">
         {!a.connected && a.loaded && <p className="act-offline" role="status">Reconnecting to the server. This may be out of date.</p>}
         {a.access.readOnly && <p className="act-readonly">You can see what the server is doing here. Only an administrator can change it.</p>}
+        {update && user?.isAdmin && tab === 'now' && (
+          <div className="act-update">
+            <Notice title="Update available" action={<LinkButton to="/settings/about#updates" size="sm" onClick={onClose}>What’s new</LinkButton>}>WittyMediaServer {update} can be installed.</Notice>
+          </div>
+        )}
         {tab === 'now' ? <Now tasks={a.tasks} /> : <History recent={a.recent} readOnly={a.access.readOnly} />}
       </div>
     </Sheet>
@@ -80,7 +87,8 @@ function LiveTask({ task: t }: { task: Task }) {
       {t.state === 'paused' || waiting
         ? <Progress label={t.title} value={t.percent >= 0 ? t.percent : 0} />
         : <Progress label={t.title} value={t.percent >= 0 ? t.percent : undefined} showValue />}
-      {t.phase && <div className="act-phase">{t.phase}</div>}
+      {!!t.steps?.length && <Steps task={t} />}
+      {t.phase && t.phase !== t.steps?.[(t.step ?? 0) - 1] && <div className="act-phase">{t.phase}</div>}
       {facts.length > 0 && <div className="act-facts">{facts.join(' · ')}</div>}
       {t.item && <div className="act-item" title={t.path || t.item}>{t.item}</div>}
       {t.path && t.path !== t.item && <div className="act-path">{t.path}</div>}
@@ -93,6 +101,20 @@ function LiveTask({ task: t }: { task: Task }) {
         </div>
       )}
     </article>
+  )
+}
+
+// The phases of one bar, so it's plain why it doesn't start again at each.
+function Steps({ task: t }: { task: Task }) {
+  const on = t.step ?? 0
+  return (
+    <ol className="act-steps" aria-label="Steps">
+      {t.steps!.map((s, i) => (
+        <li key={i} className={i + 1 < on ? 'done' : i + 1 === on ? 'on' : undefined} aria-current={i + 1 === on ? 'step' : undefined}>
+          {i + 1 < on && <IconCheck size={14} />}{s}{i + 1 < on && <span className="sr-only">, done</span>}
+        </li>
+      ))}
+    </ol>
   )
 }
 

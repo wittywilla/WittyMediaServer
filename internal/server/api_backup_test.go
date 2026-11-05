@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -410,14 +411,15 @@ func TestNextBackupTime(t *testing.T) {
 // A schedule that's due makes a backup by itself, and keeps only the newest.
 func TestScheduledBackupRuns(t *testing.T) {
 	b := newBackupServer(t)
-	old := backupSoonest
-	backupSoonest = 10 * time.Millisecond
-	defer func() { backupSoonest = old }()
+	// On the server rather than in a package variable: the schedule's loop can outlive the test
+	// by a moment, and putting a variable back under it was a data race.
+	b.backup.soonest = 10 * time.Millisecond
 	f := b.backupFolders()
 	if err := os.MkdirAll(f.Dir(), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"wms-backup-auto-20200101-000000.zip", "wms-backup-auto-20200102-000000.zip"} {
+	old := []string{"wms-backup-auto-20200101-000000.zip", "wms-backup-auto-20200102-000000.zip"}
+	for _, name := range old {
 		if err := os.WriteFile(filepath.Join(f.Dir(), name), []byte("old"), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -456,12 +458,13 @@ func TestScheduledBackupRuns(t *testing.T) {
 				found = append(found, i)
 			}
 		}
-		if len(found) == 1 && !strings.Contains(found[0].Name, "2020") && found[0].Protected {
+		if len(found) == 1 && !slices.Contains(old, found[0].Name) && found[0].Protected {
 			break
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	if len(found) != 1 || strings.Contains(found[0].Name, "2020") || !found[0].Protected {
+	// By name, not by "2020" in it: a backup made at 16:20:20 is named ...-162020.zip.
+	if len(found) != 1 || slices.Contains(old, found[0].Name) || !found[0].Protected {
 		t.Fatalf("%+v", found)
 	}
 	// It opens with the password it was set up with.

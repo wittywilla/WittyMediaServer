@@ -12,19 +12,33 @@ const KIND_WORDS: Record<string, string> = {
   fatal: 'Stopped by an internal error',
   panic: 'Caught; the server carried on',
   unclean: 'Stopped without shutting down',
+  hang: 'Stopped answering',
+  saved: 'Saved from Settings',
+}
+
+// What can be kept beside a report, for whoever looks into it.
+const PART_WORDS: Record<string, string> = {
+  'flight.log': 'The last 10 minutes',
+  'goroutines.txt': 'What it was waiting for',
+  trace: 'Execution trace',
 }
 
 const crashDownload = (id: string) => `/logs/crashes/${encodeURIComponent(id)}?download=1`
+const partDownload = (id: string, part: string) => `/logs/crashes/${encodeURIComponent(id)}/${encodeURIComponent(part)}`
+
+const bannerTitle = (c: Crash) => c.kind === 'panic' ? `Part of the server crashed on ${fmtDate(c.time)}`
+  : c.kind === 'hang' ? `The server stopped answering on ${fmtDate(c.time)}`
+  : `The server stopped unexpectedly on ${fmtDate(c.time)}`
 
 // What the top of the page says about reports not yet looked at.
 export function CrashBanner({ crashes, onSeen }: { crashes: Crash[]; onSeen: (id: string) => void }) {
-  const unseen = crashes.filter((c) => !c.seen)
+  const unseen = crashes.filter((c) => !c.seen && c.kind !== 'saved')
   if (!unseen.length) return null
   const c = unseen[0]
   return (
     <div className="lg-banner bad" role="alert">
       <div className="lg-banner-text">
-        <b>{c.kind === 'panic' ? `Part of the server crashed on ${fmtDate(c.time)}` : `The server stopped unexpectedly on ${fmtDate(c.time)}`}</b>
+        <b>{bannerTitle(c)}</b>
         {c.summary && <p>{c.summary}</p>}
         {unseen.length > 1 && <p>There {unseen.length === 2 ? 'is 1 more report' : `are ${unseen.length - 1} more reports`} you haven’t looked at.</p>}
       </div>
@@ -74,7 +88,7 @@ export default function Crashes({ crashes, reload, onSeen }: { crashes: Crash[];
     } catch (e: any) { toast(e.message) }
   }
   return (
-    <Section title="Crash reports" desc="Written when the server crashes or stops without shutting down. They stay on this server for 90 days. Passwords and tokens are left out.">
+    <Section title="Crash reports" desc="Written when the server crashes, stops without shutting down or stops answering, and when you save what just happened. They stay on this server for 90 days; the newest five keep the detail beside them. Passwords and tokens are left out.">
       {crashes.length === 0
         ? <div className="set-empty"><IconCheck size={28} /><b>No crashes</b><p>Nothing has gone wrong that needed a report.</p></div>
         : (
@@ -91,6 +105,7 @@ export default function Crashes({ crashes, reload, onSeen }: { crashes: Crash[];
                 <div className="lg-actions">
                   <button type="button" className="btn sm" aria-expanded={open === c.id} onClick={() => show(open === c.id ? '' : c.id)}>{open === c.id ? 'Hide' : 'View'}</button>
                   <DownloadButton path={crashDownload(c.id)} name={c.id + '.txt'}>Download</DownloadButton>
+                  {(c.parts || []).map((p) => <DownloadButton key={p} path={partDownload(c.id, p)} name={`${c.id}.${p}`}>{PART_WORDS[p] || p}</DownloadButton>)}
                   <button type="button" className="btn sm ghost danger-hover" onClick={() => setDeleting(c)}><IconTrash /> Delete</button>
                 </div>
                 {open === c.id && <Report crash={c} onSeen={onSeen} />}

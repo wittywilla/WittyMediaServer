@@ -171,6 +171,9 @@ func scanTask(rows *sql.Rows) (Task, error) {
 	if t.Total > 0 {
 		t.Percent = min(100, float64(t.Done)*100/float64(t.Total))
 	}
+	if t.State == Done {
+		t.Percent = 100
+	}
 	if problems != "" {
 		_ = json.Unmarshal([]byte(problems), &t.Problems)
 	}

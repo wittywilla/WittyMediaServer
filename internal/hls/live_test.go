@@ -107,15 +107,15 @@ func TestLivePlaylistProgramDateTimeAndHoldBack(t *testing.T) {
 	}
 }
 
-// A stream made ahead of the clock tells players to start that much further back, so they start
-// at the moment everyone else is at rather than jumping back to it.
+// A stream made ahead of the clock tells players to start that far back, at the clock, which is
+// the moment everyone else keeps to, rather than jumping back to it.
 func TestLiveHoldBackCoversALead(t *testing.T) {
 	m := liveTestManager(t)
 	s := m.newLive(LiveSpec{ID: "c", WindowSec: 100})
 	s.mu.Lock()
 	s.air = time.Now()
 	s.mu.Unlock()
-	for _, f := range []string{"a.ts", "b.ts", "c.ts"} {
+	for _, f := range []string{"a.ts", "b.ts", "c.ts", "d.ts", "e.ts"} {
 		s.addSegment(f, 4)
 	}
 	p := string(s.Playlist(func(f string) string { return f }))
@@ -127,9 +127,9 @@ func TestLiveHoldBackCoversALead(t *testing.T) {
 	if _, err := fmt.Sscanf(p[i+len("HOLD-BACK="):], "%g", &hold); err != nil {
 		t.Fatal(err)
 	}
-	// Three segments of 4 seconds made at once are 12 seconds ahead: 12 more than the usual 12.
-	if hold < 23 || hold > 24.5 {
-		t.Fatalf("hold-back %.3f, want about 24:\n%s", hold, p)
+	// Five segments of 4 seconds made at once are 20 seconds ahead.
+	if hold < 19 || hold > 20.5 {
+		t.Fatalf("hold-back %.3f, want about 20:\n%s", hold, p)
 	}
 }
 

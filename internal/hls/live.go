@@ -721,15 +721,15 @@ func (s *LiveSession) Playlist(segURL func(file string) string) []byte {
 	target := int(math.Ceil(s.target))
 	fmt.Fprintf(&b, "#EXTM3U\n#EXT-X-VERSION:6\n#EXT-X-TARGETDURATION:%d\n#EXT-X-MEDIA-SEQUENCE:%d\n#EXT-X-DISCONTINUITY-SEQUENCE:%d\n#EXT-X-INDEPENDENT-SEGMENTS\n",
 		target, first, s.disc)
-	// Where a player starts behind the newest segment: so that it plays what's on the air
-	// LiveHoldBack seconds ago, which is where every player then keeps to by the program
-	// date-times below (live sync). A stream made ahead of the clock (the first input's burst)
-	// adds that lead; never less than three target durations, as HLS asks.
+	// Where a player starts behind the newest segment, so that it starts at the moment every
+	// player then keeps to by the program date-times below (live sync). A stream made ahead of
+	// the clock (a library channel's start-up burst) starts players at the clock: as far back as
+	// it's ahead. Never less than three target durations, as HLS asks.
 	hold := float64(LiveHoldBack(target))
 	if n := len(s.segs); n > 0 && !s.segs[n-1].Air.IsZero() {
 		last := s.segs[n-1]
-		if lead := last.Air.Add(time.Duration(last.Dur * float64(time.Second))).Sub(time.Now()).Seconds(); lead > 0 {
-			hold += lead
+		if lead := last.Air.Add(time.Duration(last.Dur * float64(time.Second))).Sub(time.Now()).Seconds(); lead > hold {
+			hold = lead
 		}
 	}
 	fmt.Fprintf(&b, "#EXT-X-SERVER-CONTROL:HOLD-BACK=%.3f\n", hold)
@@ -745,8 +745,10 @@ func (s *LiveSession) Playlist(segURL func(file string) string) []byte {
 	return []byte(b.String())
 }
 
-// LiveHoldBack is how far behind the clock everyone on a channel plays, in seconds, for a playlist
-// with this target duration: three of them, the least HLS allows behind the newest segment.
+// LiveHoldBack is the least a player sits behind the newest segment, in seconds, for a playlist
+// with this target duration: three of them, as HLS asks. A channel whose stream comes in as it's
+// broadcast (a tuner's) keeps that far behind the clock; one made ahead (a library channel's)
+// keeps to the clock itself.
 func LiveHoldBack(target int) int { return 3 * target }
 
 // SegmentPath finds a segment still in the window, by name.

@@ -261,8 +261,16 @@ if (only === '' || only === 'live') {
     window.__net.length = 0
     const v = document.querySelector('.ctv-preview video, .ctv-player video')
     window.__v = v
-    window.__ev = { loadstart: 0, emptied: 0, pause: 0 }
-    if (!v.__counted) { v.__counted = true; for (const k of ['loadstart', 'emptied', 'pause']) v.addEventListener(k, () => window.__ev[k]++) }
+    window.__ev = { loadstart: 0, emptied: 0, pause: 0, seeking: 0, waiting: 0 }
+    window.__seeks = []
+    if (!v.__counted) {
+      v.__counted = true
+      for (const k of ['loadstart', 'emptied', 'pause', 'seeking', 'waiting']) v.addEventListener(k, () => window.__ev[k]++)
+      // Where each jump went from and to, and how far behind live sync measured it then.
+      let last = v.currentTime
+      v.addEventListener('timeupdate', () => { if (!v.seeking) last = v.currentTime })
+      v.addEventListener('seeking', () => window.__seeks.push([+last.toFixed(1), +v.currentTime.toFixed(1), v.dataset.behind || null]))
+    }
     return v.currentTime
   })()`
   const count = (what) => page.eval(`window.__net.filter((u) => u.includes(${JSON.stringify(what)})).length`)
@@ -315,7 +323,7 @@ if (only === '' || only === 'live') {
     expect(`${theme}: no tune, no leave, no new stream (${tunes} tunes, ${leaves} leaves)`, tunes <= 1 && leaves === 0 && ev.loadstart === 0 && ev.emptied === 0,
       { tunes, leaves, ev, net: await page.eval(`window.__net.filter((u) => !u.includes('/seg/')).slice(0, 12)`) })
     // A double-click is two clicks too, and a click on the picture is Play and Pause: those two are the only pauses.
-    expect(`${theme}: never paused or went back in time (${t0.toFixed(1)} to ${t1.toFixed(1)} s)`, ev.pause - pausesBefore <= 2 && pausesBefore === 0 && t1 > t0 + 3, { t0, t1, pausesBefore, ev })
+    expect(`${theme}: never paused or went back in time (${t0.toFixed(1)} to ${t1.toFixed(1)} s)`, ev.pause - pausesBefore <= 2 && pausesBefore === 0 && t1 > t0 + 3, { t0, t1, pausesBefore, ev, seeks: await page.eval('window.__seeks') })
   }
   // A guide slow to answer doesn't stop the channel either: the preview keeps it meanwhile.
   await setLook({ theme: 'modern', preview: 'on' })
@@ -347,7 +355,8 @@ if (only === '' || only === 'live') {
   await page.eval(WATCH)
   await press('Escape'); await page.until(`document.querySelector('.ctv-grid .ctv-row')`, 10000, 'the guide')
   await wait(1000)
-  expect('leaving waits a moment', (await count('/leave')) === 0, await count('/leave'))
+  const tuneLeave = () => page.eval(`window.__net.filter((u) => u.includes('/tune') || u.includes('/leave')).map((u) => u.slice(u.indexOf('/api')))`)
+  expect('leaving waits a moment', (await count('/leave')) === 0, await tuneLeave())
   await page.until(`document.querySelector('.ctv-cell[data-focused="1"]')`, 10000, 'the highlight')
   await page.eval(`document.querySelector('.ctv-cell[data-focused="1"]').focus()`)
   await press('Enter')

@@ -51,26 +51,29 @@ export default function TvHost() {
       const h = hls.current
       const at = h?.playingDate
       if (!on || !h || !at) return
-      // Everyone keeps to the server's clock less three target durations (LiveHoldBack); the
-      // playlist's own hold-back can be longer, only to start players there.
-      const target = 3 * (h.levels[Math.max(0, h.currentLevel)]?.details?.targetduration || 4)
-      const behind = (Date.now() + clock.offset - target * 1000 - at.getTime()) / 1000
+      // Everyone keeps to the server's clock: a library channel is made ahead of it, so to the
+      // clock itself; a tuner's comes in as it's broadcast, so three target durations behind it
+      // (LiveHoldBack on the server). The playlist's hold-back starts players there.
+      const details = h.levels[Math.max(0, h.currentLevel)]?.details
+      const target = 3 * (details?.targetduration || 4)
+      const lag = liveNow().info?.kind === 'tuner' ? target : 0
+      const behind = (Date.now() + clock.offset - lag * 1000 - at.getTime()) / 1000
       v.dataset.behind = behind.toFixed(3) // for tests and anyone curious
       if (v.paused || v.seeking || liveNow().away) {
         if (nudging) { v.playbackRate = 1; nudging = false }
         return
       }
-      // A stream running late (a server that can't make it at full speed) can't be caught up:
-      // everyone goes as far as a segment and a second behind its newest segment, and waits
-      // for it there, together, rather than chasing it into stalls.
-      const end = v.seekable.length ? v.seekable.end(v.seekable.length - 1) : v.currentTime
+      // The nearest a player goes to the newest segment in the playlist (not the end of what it
+      // has loaded, which is what a live video's seekable range ends at): three target
+      // durations, as HLS asks. A stream running late (a server that can't make it at full
+      // speed) can't be caught up, so everyone waits for it there, together.
       const start = v.seekable.length ? v.seekable.start(0) : v.currentTime
-      const margin = target / 3 + 1
-      const step = behind > 0 && end - v.currentTime <= margin + 0.5 ? { rate: 1 } : syncStep(behind, nudging)
+      const nearest = details?.edge != null ? details.edge - target : v.currentTime
+      const step = behind > 0 && v.currentTime >= nearest - 0.5 ? { rate: 1 } : syncStep(behind, nudging)
       if ('seekBy' in step) {
         v.playbackRate = 1
         nudging = false
-        v.currentTime = Math.max(start, Math.min(end - margin, v.currentTime + step.seekBy))
+        v.currentTime = Math.max(start, Math.min(nearest, v.currentTime + step.seekBy))
       } else {
         v.playbackRate = step.rate
         nudging = step.rate !== 1

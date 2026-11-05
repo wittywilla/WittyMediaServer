@@ -514,9 +514,10 @@ is made, which is what the web player does.
 
 **Keeping to the same moment.** Every segment of a channel's playlist carries `EXT-X-PROGRAM-DATE-TIME`, the moment
 on the air it starts at, and the playlist says where players sit behind the newest segment with
-`EXT-X-SERVER-CONTROL:HOLD-BACK`. Every player on a channel that keeps to "the server's time now, less three
-target durations" shows the same moment; the hold-back is that plus however far the stream is made ahead of the
-clock, so a player starting there starts at the same moment. `GET /time` answers `{"now": <milliseconds>}`: time a few
+`EXT-X-SERVER-CONTROL:HOLD-BACK`. Every player on a channel that keeps to the same point by the server's clock
+shows the same moment: for a library channel (`kind: library`, made ahead of the clock) the server's time now,
+and for a tuner channel (`kind: tuner`, which arrives as it's broadcast) the server's time less three target
+durations. The hold-back starts a player at that point. `GET /time` answers `{"now": <milliseconds>}`: time a few
 requests and take the one with the shortest round trip to work out how far this device's clock is off. ExoPlayer
 (`LiveConfiguration`) and AVPlayer read the same tags.
 

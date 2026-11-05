@@ -689,38 +689,19 @@ func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool)
 			src = it.Poster
 		}
 	}
+	// Games: ?w= asks for a smaller cover, for lists.
+	if it.Kind == "game" && !backdrop && qInt(r, "w", 0) > 0 && !strings.HasPrefix(src, "http") && (strings.HasPrefix(src, "cache:") || s.Store.LibraryFile(r.Context(), src)) {
+		src = s.GameMeta.PosterThumb(r.Context(), src, qInt(r, "w", 0))
+	}
 	if src == library.LazyPoster {
-		// A frame from the video. Each width is another frame taken by FFmpeg, so smaller
-		// asks get the one 480 wide that lists have always had.
-		width := max(qInt(r, "w", 480), 480)
+		width := qInt(r, "w", 480)
 		if backdrop {
 			width = 1920
 		}
 		s.serveThumb(w, r, it, width)
 		return
 	}
-	s.serveArtSrc(w, r, s.smallerArt(r, src))
-}
-
-// smallerArt is a smaller copy of a picture when ?w= asks for one, made the first time and kept in
-// the image cache, or src as it is. Posters and backdrops come at whatever size they were found at,
-// often far more than a card or a phone shows, and each one shown at full size also takes megabytes
-// of the device's memory. Only pictures in the cache or in a library are read.
-func (s *Server) smallerArt(r *http.Request, src string) string {
-	width := qInt(r, "w", 0)
-	if width <= 0 || src == "" || s.GameMeta == nil {
-		return src
-	}
-	if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
-		p, err := s.cachedRemote(r.Context(), src)
-		if err != nil {
-			return src
-		}
-		src = "cache:" + filepath.Base(p)
-	} else if !strings.HasPrefix(src, "cache:") && !s.Store.LibraryFile(r.Context(), src) {
-		return src
-	}
-	return s.GameMeta.PosterThumb(r.Context(), src, width)
+	s.serveArtSrc(w, r, src)
 }
 
 // serveArtSrc serves artwork from a cache name, a remote URL (cached) or a

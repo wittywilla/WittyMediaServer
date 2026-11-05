@@ -360,8 +360,8 @@ let sinceFullRead = 0
 
 // The pads seen to report their D-pad on one axis (see gamepad.ts).
 const hatPads = new Set<string>()
-const onAndroid = /Android/.test(navigator.userAgent)
-const keysDown = (pads: readonly (Gamepad | null)[]) => padKeys(pads, { android: onAndroid, hats: hatPads })
+// Read each time, as it was before the mapping moved out: cheap, and a test can change it.
+const keysDown = (pads: readonly (Gamepad | null)[]) => padKeys(pads, { android: /Android/.test(navigator.userAgent), hats: hatPads })
 
 function poll() {
   const pads = navigator.getGamepads ? navigator.getGamepads() : []

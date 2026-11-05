@@ -476,7 +476,7 @@ func (g *schemaGen) object(ty reflect.Type) map[string]any {
 				name = f.Name
 			}
 			props[name] = g.of(f.Type)
-			if !strings.Contains(opts, "omitempty") {
+			if !strings.Contains(opts, "omitempty") && !strings.Contains(opts, "omitzero") {
 				required = append(required, name)
 			}
 		}

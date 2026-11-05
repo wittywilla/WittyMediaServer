@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
+import { api } from '../../api'
 import { useSource } from '../../player/hooks'
-import { lendHls, liveVideo, setLive, useLiveState } from './live'
+import { clockOffset, syncStep, type ClockSample } from '../../player/sync'
+import { lendHls, liveNow, liveVideo, setLive, useLiveState } from './live'
 import { preflight } from './tvApi'
 
 // The TV section's one stream (see live.ts). It's mounted beside the pages rather than in one,
@@ -31,5 +33,73 @@ export default function TvHost() {
     h.on(ERROR, onErr)
     return () => { h.off(ERROR, onErr) }
   }, [url, ready, hls])
+
+  // Live sync: everyone on a channel at the same moment, "the server's time now, less the
+  // hold-back", by the program date-times on its segments. Checked every 2 seconds from what's in
+  // hand, with no requests beyond a few for the clock. A pause or going back leaves it be (away),
+  // except a pause too short to mean it: a double-click for full screen is two clicks.
+  useEffect(() => {
+    if (!url || !ready) return
+    const v = liveVideo()
+    let on = true, nudging = false, pausedAt = 0
+    const onPause = () => { pausedAt = Date.now(); setLive({ away: true }) }
+    const onPlay = () => { if (pausedAt && Date.now() - pausedAt < 1500) setLive({ away: false }); pausedAt = 0 }
+    v.addEventListener('pause', onPause)
+    v.addEventListener('play', onPlay)
+    void measureClock()
+    const t = setInterval(() => {
+      const h = hls.current
+      const at = h?.playingDate
+      if (!on || !h || !at) return
+      // Everyone keeps to the server's clock less three target durations (LiveHoldBack); the
+      // playlist's own hold-back can be longer, only to start players there.
+      const target = 3 * (h.levels[Math.max(0, h.currentLevel)]?.details?.targetduration || 4)
+      const behind = (Date.now() + clock.offset - target * 1000 - at.getTime()) / 1000
+      v.dataset.behind = behind.toFixed(3) // for tests and anyone curious
+      if (v.paused || v.seeking || liveNow().away) {
+        if (nudging) { v.playbackRate = 1; nudging = false }
+        return
+      }
+      // A stream running late (a slow server) can't be caught up past its newest segment:
+      // that's a wait for everyone, not something to chase.
+      const toEdge = v.seekable.length ? v.seekable.end(v.seekable.length - 1) - v.currentTime : 0
+      const step = behind > 0 && toEdge < target * 0.75 ? { rate: 1 } : syncStep(behind, nudging)
+      if ('seekBy' in step) {
+        const end = v.seekable.length ? v.seekable.end(v.seekable.length - 1) - 1 : v.currentTime
+        const start = v.seekable.length ? v.seekable.start(0) : v.currentTime
+        v.playbackRate = 1
+        nudging = false
+        v.currentTime = Math.max(start, Math.min(end, v.currentTime + step.seekBy))
+      } else {
+        v.playbackRate = step.rate
+        nudging = step.rate !== 1
+      }
+    }, 2000)
+    return () => {
+      on = false
+      clearInterval(t)
+      v.removeEventListener('pause', onPause)
+      v.removeEventListener('play', onPlay)
+      v.playbackRate = 1
+      delete v.dataset.behind
+    }
+  }, [url, ready, hls])
   return null
+}
+
+// How far the server's clock is from this device's, from the best of three timed requests,
+// measured again every 10 minutes at most.
+const clock = { offset: 0, at: 0 }
+async function measureClock() {
+  if (clock.at && Date.now() - clock.at < 600000) return
+  clock.at = Date.now()
+  const samples: ClockSample[] = []
+  for (let i = 0; i < 3; i++) {
+    const sent = Date.now()
+    try {
+      const r = await api.get<{ now: number }>('/time')
+      samples.push({ sent, server: r.now, got: Date.now() })
+    } catch { /* an older server: keep this device's clock */ }
+  }
+  if (samples.length) clock.offset = clockOffset(samples)
 }

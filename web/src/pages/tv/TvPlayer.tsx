@@ -143,8 +143,9 @@ export default function TvPlayer() {
     return () => clearInterval(t)
   }, [])
 
-  const seekTo = (t: number) => { const v = video.current; if (v) v.currentTime = Math.max(win.start, Math.min(win.end, t)) }
-  const goLive = () => { const h = liveHls(); const v = video.current; if (v) { v.currentTime = h?.liveSyncPosition ?? win.end; v.play().catch(() => {}) } }
+  const seekTo = (t: number) => { const v = video.current; if (v) { setLive({ away: true }); v.currentTime = Math.max(win.start, Math.min(win.end, t)) } }
+  // Back to where everyone on the channel is: live sync takes it from there.
+  const goLive = () => { const h = liveHls(); const v = video.current; if (v) { setLive({ away: false }); v.currentTime = h?.liveSyncPosition ?? win.end; v.play().catch(() => {}) } }
 
   const step = useCallback(async (dir: 1 | -1) => {
     const list = await getLineup().catch(() => [] as GuideChannel[])

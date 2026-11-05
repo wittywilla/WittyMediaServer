@@ -512,6 +512,14 @@ name>` to the address so the server can tell viewers apart, and send `POST /tv/{
 when leaving. A 503 means the channel is still starting: wait and ask again. Without `streamToken=1` no ticket
 is made, which is what the web player does.
 
+**Keeping to the same moment.** Every segment of a channel's playlist carries `EXT-X-PROGRAM-DATE-TIME`, the moment
+on the air it starts at, and the playlist says where players sit behind the newest segment with
+`EXT-X-SERVER-CONTROL:HOLD-BACK`. Every player on a channel that keeps to "the server's time now, less three
+target durations" shows the same moment; the hold-back is that plus however far the stream is made ahead of the
+clock, so a player starting there starts at the same moment. `GET /time` answers `{"now": <milliseconds>}`: time a few
+requests and take the one with the shortest round trip to work out how far this device's clock is off. ExoPlayer
+(`LiveConfiguration`) and AVPlayer read the same tags.
+
 Everything about a channel's ticket works as in [Stream tokens](#stream-tokens), and every request checks again
 that the account may watch that channel. An encrypted broadcast is refused with `security` saying why; this
 server never decrypts one.
@@ -1220,6 +1228,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
 | `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |
 | `POST /tv/{key}/leave` | user | This viewer has gone: `viewer`. |
+| `GET /time` | user | The server's clock, `{"now": <milliseconds>}`, for keeping to the same moment on a channel. See "Live channels". |
 | `GET /tv/{key}/logo` | user | A tuner channel's logo, fetched and kept by the server, so the site a playlist names never sees the viewer. The `logo` in `/guide` and `/tune` is this address. |
 | `GET /tv/settings` | admin | TV settings. |
 | `PUT /tv/settings` | admin | Put TV settings. |

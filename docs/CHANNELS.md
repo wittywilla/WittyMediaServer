@@ -158,6 +158,8 @@ Tuning shows a banner with the channel number, name, times, a progress bar and w
 
 You can pause and rewind within what's kept: 5 minutes on library channels and 30 on tuner channels, unless you change **Pause buffer** under **Options**.
 
+**Everyone at the same moment.** Two people watching the same channel, on any accounts and devices, see the same moment, as with a real broadcast. Each player keeps to the server's clock, a fixed distance behind the newest part of the stream (three segments, about 12 seconds), and corrects itself every 2 seconds: a little off, it plays 3% faster or slower until it's back, which nobody notices; far off, after a stall, it jumps straight there. A device whose own clock is wrong still keeps time, because the player asks the server's. Pausing and going back leave you where you chose, behind the others; **L** or **Live** brings you back to everyone else.
+
 ## Channels in one click
 
 **Add with one click**, in **Settings → Channels & tuners**, offers what your library can fill: Classics such as Movies and Saturday morning, Genres, Studios, Your collections, Decades, TV networks and Marathons. **Add** puts one on the air, **Change first** opens it in the editor, and **Add all** does a whole group. A channel takes at least three titles, or it would be the same thing again and again.
@@ -469,6 +471,7 @@ Definition
 | `GET /api/tv/{key}/tune` | Signed in | What's on, and the stream |
 | `GET /api/tv/{key}/live/playlist.m3u8`, `/seg/{name}` | Signed in | The shared stream |
 | `POST /api/tv/{key}/leave?viewer=` | Signed in | A player has gone |
+| `GET /api/time` | Signed in | The server's clock, for keeping viewers to the same moment |
 | `GET /api/tv/{key}/logo` | May watch the channel | A tuner channel's logo, through the server. Internet addresses only |
 | `GET /api/tv/encrypted-help` | Signed in | The help page behind the encrypted label |
 | `GET /api/channels` | Signed in | Library channels this account may see |

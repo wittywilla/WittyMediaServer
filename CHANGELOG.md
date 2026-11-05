@@ -5,6 +5,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **A game's settings close from wherever you've got to.** "Settings for this game" on a game's page has **Done** at its top and its foot, and Esc or a controller's B closes it too, back to the button that opened it. Every menu over a game is easy to leave as well, from WittyPlay's next version: Back and × Back to the game stay in view, and a phone's Back gesture closes a menu instead of leaving the game.
 - **WittyPlay's games home is shelves.** Each console is a shelf, and its games stand on it as their console's own kind of case, covers showing (a box, a clamshell, a jewel case, a keep case), as cartridges, cards or discs, or as spines on a bookshelf: a switch above the shelves, kept on each device. Where you left off leads the page with the picture you stopped at; a console's page opens with its collection band; a game playing on another of your devices offers **Continue here**. A game's page says **Moments** for its save states.
 - **Rewind is on by default for the 8-bit, 16-bit and older handheld consoles**, whose games take little memory to rewind. An administrator can still turn it off for everyone, and anyone for themselves.
 - **Play one game from several devices.** The host of a game makes a four-letter code that lasts ten minutes, and anyone signed in to the server joins with it, if their profile may open that game. Saving, loading and stopping stay the host's.

@@ -59,6 +59,13 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
   const [mine, setMine] = useState<GamePersonal | null>(null)
   const [resumeMode, setResumeMode] = useState('ask')
   const [showSettings, setShowSettings] = useState(false)
+  // Settings for this game open below the page, and close from either end of them, with Esc, or with a
+  // controller's B, which comes as Esc: focus goes back to the button that opens them.
+  const settingsToggle = useRef<HTMLButtonElement>(null)
+  const hideSettings = useCallback(() => {
+    setShowSettings(false)
+    requestAnimationFrame(() => settingsToggle.current?.focus())
+  }, [])
   const [note, setNote] = useState('')
   const [longRead, setLongRead] = useState(false)
   const [edit, setEdit] = useState(false)
@@ -301,7 +308,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
         <section className="gm-panel" aria-labelledby="gm-cheats-h">
           <h2 id="gm-cheats-h">Cheats</h2>
           <p className="muted">{cheats > 0 ? `${cheats.toLocaleString()} ${cheats === 1 ? 'cheat' : 'cheats'} saved for this game. Turn them on and off from the game menu or below.` : 'No cheats saved. Add codes here, or from the game menu while you play.'}</p>
-          <div className="gm-panel-actions"><button type="button" className="btn sm" aria-expanded={showSettings} onClick={() => setShowSettings((s) => !s)}><IconTune size={16} /> {showSettings ? 'Hide' : 'Cheats and settings'}</button></div>
+          <div className="gm-panel-actions"><button ref={settingsToggle} type="button" className="btn sm" aria-expanded={showSettings} onClick={() => setShowSettings((s) => !s)}><IconTune size={16} /> {showSettings ? 'Hide' : 'Cheats and settings'}</button></div>
         </section>
         {mine && (
           <section className="gm-panel" aria-labelledby="gm-notes-h">
@@ -312,9 +319,14 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
       </div>
 
       {showSettings && (
-        <section className="gm-section" aria-label="Settings for this game">
-          <h2 className="shelf-head">Settings for this game</h2>
+        <section className="gm-section gm-settings" aria-label="Settings for this game"
+          onKeyDown={(e) => { if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); hideSettings() } }}>
+          <div className="gm-settings-head">
+            <h2 className="shelf-head">Settings for this game</h2>
+            <button type="button" className="btn sm" onClick={hideSettings}>Done</button>
+          </div>
           <Suspense fallback={<Spinner />}><SettingsScreen host={settingsHost} consoles={consoleList} itemId={it.id} itemTitle={it.title} consoleId={it.console} onError={say} /></Suspense>
+          <div className="gm-panel-actions gm-settings-foot"><button type="button" className="btn sm" onClick={hideSettings}>Done</button></div>
         </section>
       )}
 

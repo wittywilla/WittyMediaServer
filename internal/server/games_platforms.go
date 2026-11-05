@@ -167,6 +167,23 @@ func drawsOn(id string, gpuCore bool, goos, noGPU string) (string, string) {
 	return drawsNone, "Needs a graphics card, and the server can't give it one here."
 }
 
+// drawsHere is drawsOn for this server, which has asked its runner: noGPU is "" when there's a card
+// it can use, whatever the system. A core that draws wrongly on a card on this system has the
+// processor draw it (cardFaults).
+func drawsHere(id string, gpuCore bool, noGPU string) (string, string) {
+	if gpuCore && noGPU == "" {
+		if why := cardFaults[hostOS][id]; why != "" && cpuDrawing[id] != nil {
+			note := cpuSpeedNotes[id]
+			if note == "" {
+				note = "Slower than on a graphics card."
+			}
+			return drawsCPUFallback, "Drawn by the processor, as " + why + ". " + note
+		}
+		return drawsGPU, "Needs a graphics card in the server."
+	}
+	return drawsOn(id, gpuCore, hostOS, noGPU)
+}
+
 // coreSupportFor works out where a core runs. gpuCore is whether it draws on a graphics card;
 // noGPU is why this server has none it can use, or "".
 func coreSupportFor(id string, gpuCore bool, noGPU string) coreSupport {
@@ -187,7 +204,7 @@ func coreSupportFor(id string, gpuCore bool, noGPU string) coreSupport {
 	has, known := coreBuildFor(id, runtime.GOOS, runtime.GOARCH)
 	here := platformSupport{OS: osName(runtime.GOOS), Arch: archName(runtime.GOARCH), Build: has || !known}
 	if here.Build {
-		here.Draws, here.Note = drawsOn(id, gpuCore, runtime.GOOS, noGPU)
+		here.Draws, here.Note = drawsHere(id, gpuCore, noGPU)
 	} else {
 		here.Draws, here.Note = drawsNone, "Not published for "+platformWords(runtime.GOOS, runtime.GOARCH)+"."
 	}
@@ -238,7 +255,7 @@ func (s *Server) alternativeCore(ctx context.Context, id string) *coreAlternativ
 				if !asked {
 					noGPU, asked = s.gpuMissing(ctx), true
 				}
-				if d, _ := drawsOn(other.ID, true, runtime.GOOS, noGPU); d == drawsNone {
+				if d, _ := drawsHere(other.ID, true, noGPU); d == drawsNone {
 					continue
 				}
 			}

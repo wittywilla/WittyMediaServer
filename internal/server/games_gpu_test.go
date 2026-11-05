@@ -194,6 +194,14 @@ func encryptedCCI() []byte {
 	return b
 }
 
+// plainCCI is a 3DS cartridge dump whose program says it isn't encrypted: a copy someone
+// decrypted themselves.
+func plainCCI() []byte {
+	b := encryptedCCI()
+	copy(b[0x4000:], fixture.NCCH(true, false, 0x2000))
+	return b
+}
+
 func TestEncrypted3DSIsRefusedPlainly(t *testing.T) {
 	modtest.Need(t, "wittyplay")
 	t.Setenv("WMS_WITTYPLAY_RUNNER", filepath.Join(t.TempDir(), "no-such-runner"))

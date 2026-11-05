@@ -281,7 +281,7 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 		out["needsGpu"] = !pick.software && s.coreDrawsOnGPU(*pick.core)
 		if pick.software {
 			// It plays, drawn by the processor: how it may run, before anyone presses Play.
-			out["software"], out["notice"] = true, softwareNotice
+			out["software"], out["notice"] = true, pick.notice
 		}
 	case pick.noGPU != "":
 		// Not on this server, and why: the Play button would only be turned away. Where it would
@@ -343,7 +343,7 @@ func (s *Server) installableCore(ctx context.Context, console *wittyplay.Console
 		if gpuCore && !asked {
 			noGPU, asked = s.gpuMissing(ctx), true
 		}
-		if d, _ := drawsOn(c.ID, gpuCore, runtime.GOOS, noGPU); d == drawsNone {
+		if d, _ := drawsHere(c.ID, gpuCore, noGPU); d == drawsNone {
 			continue
 		}
 		return &coreAlternative{ID: c.ID, Name: c.Name, Console: console.Name}

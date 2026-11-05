@@ -560,7 +560,7 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .empty { display: grid; justify-items: center; text-align: center; color: var(--fg-2); padding: var(--sp-16) var(--sp-5); }
 .empty-ic { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: var(--sp-4); border-radius: 50%; background: var(--bg-3); color: var(--fg-3); }
 .empty-ic svg { width: 26px; height: 26px; }
-.empty h3 { color: var(--fg); font-size: var(--text-lg); margin: 0 0 var(--sp-1); }
+.empty .empty-title { color: var(--fg); font-size: var(--text-lg); margin: 0 0 var(--sp-1); }
 .empty p { margin: 0 0 var(--sp-4); max-width: 46ch; font-size: var(--text-md); }
 .toast { position: fixed; bottom: calc(var(--sp-5) + var(--dock-space) + var(--tabbar-space)); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); background: var(--bg-4); color: var(--fg); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); border: 1px solid var(--border); box-shadow: var(--e-3); z-index: var(--z-toast); font-size: var(--text-md); font-weight: 500; animation: toast-in var(--dur-3) var(--ease-out); }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }

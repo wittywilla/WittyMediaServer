@@ -35,7 +35,7 @@ trip through the app switcher loses nothing.
 | Route | Sign-in | What it does |
 |---|---|---|
 | `GET /games/home?library=` | user | The games home screen in one answer: `hero`, `continue` (`{item, plays, lastPlayed, save}`), `recent`, `favourites`, `favouriteIds`, `mostPlayed`, and `shelves` (`{kind: "genre" or "series", name, count, items}`) |
-| `GET /games/{id}/check` | user | What a game needs and whether this server has it: `{ready, reason, message, core, needsGpu, gpuMissing, software, notice, bios: [{file, for, required, found, using, from}]}`. For a BIOS a core takes under any name (PlayStation 2), `using` is the file this game starts with, and `from` is where the server found it by its checksum. `reason` is `core`, `bios`, `gpu` or `unavailable`, and `message` says it for people. See [Games this server can't draw](#games-this-server-cant-draw) |
+| `GET /games/{id}/check` | user | What a game needs and whether this server has it: `{ready, reason, message, core, needsGpu, gpuMissing, software, notice, encrypted, bios: [{file, for, required, found, using, from}]}`. For a BIOS a core takes under any name (PlayStation 2), `using` is the file this game starts with, and `from` is where the server found it by its checksum. `reason` is `core`, `bios`, `gpu` or `unavailable`, and `message` says it for people. See [Games this server can't draw](#games-this-server-cant-draw) |
 | `GET /games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed`, and when it isn't ready, `reason` (`unavailable`, `core` or `gpu`) and `message`. `gpuMissing`, `software` and `notice` as for a game's check. `coreSupport`: [which platforms each core runs on](#which-platforms-a-core-runs-on). With `?library=<id>`, also `count`: that library's games for it |
 | `GET /games/modes?client=native` | user | What this server can stream, best first |
 | `GET /consoles/{console}/controls?device=` | user | The controller as data |
@@ -80,7 +80,7 @@ Starting a game can answer:
 | 201 | Started: the session |
 | 404 | No such game for this account, or its file has gone |
 | 409 | Can't be played yet. `needCore: true` with `console` means an admin has to install a core. `needBios: true` with `console` and `file` means a BIOS is missing, and `error` says where to put it. `reason: "gpu"` with `needsGpu: true`, `gpuMissing` and `console` means it can't play on this server at all: its console is drawn on a graphics card, this server has none it can use, and no core for it can do without. Nothing was started. `rig: true` means this game plays on a PC. Otherwise `error` says why |
-| 422 | The file can't be used. `encrypted: true` means it's an encrypted 3DS file, which will never play: `error` says so. Nothing here decrypts a file |
+| 422 | The file can't be used. `encrypted: true` means it's an encrypted 3DS file, which will never play: `error` says so. Nothing here decrypts a file. A game's check says the same first: `reason: "encrypted"`, `encrypted: true`, and `message` is this `error`, before any reason this server could fix |
 | 503 | The server is running as many games as it allows, or as many as its graphics card is allowed, or its game runner is missing |
 
 ### Games this server can't draw

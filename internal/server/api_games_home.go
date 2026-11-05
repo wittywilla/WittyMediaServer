@@ -266,6 +266,14 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 		out["ready"], out["reason"], out["message"] = false, "unavailable", console.Unavailable
 		return out
 	}
+	// An encrypted copy can't play on any server, so that comes before what this one lacks, and
+	// says the same as Play would.
+	if console.ID == "3ds" {
+		if info, err := wittyplay.Inspect3DS(it.Path); err == nil && info.Encrypted {
+			out["ready"], out["reason"], out["message"], out["encrypted"] = false, "encrypted", encryptedMessage(), true
+			return out
+		}
+	}
 	pick := s.pickCore(ctx, console, it.ID, systemDir)
 	switch {
 	case pick.core != nil:

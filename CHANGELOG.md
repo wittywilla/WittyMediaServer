@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **A game on several discs starts sooner.** Its archived discs are unpacked side by side instead of one after another. Final Fantasy VII, with its first disc as `.bin/.cue` and two more as `.7z`, waited two minutes to start from a USB drive before its first disc could play.
+- **An encrypted 3DS game's page says so before Play is pressed**, in the same words as Play: no server can play that copy, so it comes before anything this server lacks. A copy you decrypted yourself, from a console you own, will play.
 - **Every core says which server platforms it runs on, and how it draws on yours.** Settings → Consoles & cores shows it for each core, the core choices say how each draws here, and a game the server can't run says which servers would. Every device plays what the server can run, since the server streams it.
 - **No more broken core downloads.** A core that isn't published for your server's platform isn't offered to install, and says what plays the same console instead: Beetle Supafaust has no macOS build, so a Mac suggests bsnes 2014 Performance. A weekly check finds a download that's gone before anyone meets it.
 - **PlayStation 2 plays on a Mac**, drawn by the processor like Nintendo 64 and PSP, with your own BIOS. On an Apple M3 Pro it ran mostly at full speed, slower in places, and the game's page says so first.

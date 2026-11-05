@@ -790,7 +790,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	rom, cleanup, newOnly, err := g.prepare3DS(rom, cleanup, console)
 	if err != nil {
 		if errors.Is(err, wittyplay.ErrEncrypted3DS) {
-			writeJSON(w, 422, map[string]any{"error": strings.TrimRight(err.Error(), ". ") + ". " + library.DecryptedCopyPlays, "encrypted": true, "console": console.ID})
+			writeJSON(w, 422, map[string]any{"error": encryptedMessage(), "encrypted": true, "console": console.ID})
 			return
 		}
 		writeErr(w, 422, err.Error())
@@ -954,6 +954,11 @@ func (s *Server) recordPlayTime(sess *stream.Session, userID, itemID int64) {
 	if err := s.Store.SetProgress(ctx, userID, itemID, library.Progress{PositionSec: total + played}); err != nil {
 		s.Log.Warn("could not save time played", "cat", "games", "session", sess.ID(), "err", err)
 	}
+}
+
+// encryptedMessage is why an encrypted 3DS game can't play, and what would.
+func encryptedMessage() string {
+	return strings.TrimRight(wittyplay.ErrEncrypted3DS.Error(), ". ") + ". " + library.DecryptedCopyPlays
 }
 
 // prepareROM returns the file a core should open. An archive is unpacked first, or

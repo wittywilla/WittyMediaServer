@@ -205,9 +205,25 @@ func TestEncrypted3DSIsRefusedPlainly(t *testing.T) {
 		t.Fatal(err)
 	}
 	it := addGame(t, g, "3ds", dir)
+	// The game's page says so before Play is pressed, in Play's words, with a card or without:
+	// no server can play this copy, so that comes before what this one lacks.
+	check := func() map[string]any {
+		var c map[string]any
+		w := g.do("GET", "/api/games/"+itoa64(it.ID)+"/check", g.admin, nil)
+		if err := json.Unmarshal(w.Body.Bytes(), &c); err != nil {
+			t.Fatalf("%d %s", w.Code, w.Body)
+		}
+		return c
+	}
 	code, a := play(t, g, it.ID)
 	if code != 422 || !a.Encrypted {
 		t.Fatalf("%d %+v", code, a)
+	}
+	for _, p := range []stream.GPUProbe{{Name: "a test card"}, {Error: "no card here"}} {
+		setGPU(g, p)
+		if c := check(); c["ready"] != false || c["reason"] != "encrypted" || c["encrypted"] != true || c["message"] != a.Error {
+			t.Errorf("check with %+v: %v", p, c)
+		}
 	}
 	if !strings.Contains(a.Error, "encrypted") || !strings.Contains(a.Error, "won't decrypt") || !strings.Contains(a.Error, "decrypted yourself") {
 		t.Errorf("message: %q", a.Error)

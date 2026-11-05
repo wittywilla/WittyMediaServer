@@ -153,6 +153,36 @@ func TestLiveWaitReadyAndStopCleansUp(t *testing.T) {
 	t.Fatal("segments were not deleted")
 }
 
+// A channel tuned again while the last session's folder is still being cleared keeps its own.
+func TestLiveRestartHasItsOwnFolder(t *testing.T) {
+	m := liveTestManager(t)
+	feed := func(ctx context.Context, at time.Time) (*LiveInput, error) { return &LiveInput{AudioIndex: 0}, nil }
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	old := startFake(t, m, LiveSpec{ID: "x", Feed: feed}, fakeRun(3))
+	if err := old.WaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+	m.StopLive("x")
+	now := startFake(t, m, LiveSpec{ID: "x", Feed: feed}, fakeRun(3))
+	defer m.StopLive("x")
+	if now.Dir == old.Dir {
+		t.Fatalf("both sessions write in %s", now.Dir)
+	}
+	if err := now.WaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 40; i++ {
+		if _, err := os.Stat(old.Dir); os.IsNotExist(err) {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if _, err := os.Stat(now.Dir); err != nil {
+		t.Fatalf("the new session's folder went with the old one's: %v", err)
+	}
+}
+
 func TestLiveFatalErrorEndsSession(t *testing.T) {
 	m := liveTestManager(t)
 	refused := errors.New("encrypted")

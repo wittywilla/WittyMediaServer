@@ -99,7 +99,7 @@ Nintendo 64, PlayStation 2, PSP, Dreamcast, 3DS and the faster PlayStation cores
 
 ### Without a graphics card
 
-The runner's answer to "which card would you draw with?" (`stream.ProbeGPU`, asked once in the background) decides it, and until it's in, a Mac or FreeBSD server is taken to have none (`gpuMissingFrom` in `internal/server/games_gpu.go`). Then `pickCore` chooses, for the game page (`GET /games/{id}/check`), the console list, Prepare and Play alike:
+The runner's answer to "which card would you draw with?" (`stream.ProbeGPU`, asked once in the background) decides it, and until it's in, a Mac or FreeBSD server is taken to have none (`gpuMissingFrom` in `internal/server/games_gpu.go`). A PlayStation 2 game with no BIOS for LRPS2 says it needs one, rather than that it can't play here. Then `pickCore` chooses, for the game page (`GET /games/{id}/check`), the console list, Prepare and Play alike:
 
 1. A core that needs no card plays as it always does.
 2. A card's core that can have the processor draw starts that way (`cpuDrawing`): its options for that are laid over everything else, it gets no `-gpu` room in the sandbox and doesn't count against the card's limit, and the game page, the console list and the session's `notices` carry a speed caveat.
@@ -110,13 +110,13 @@ The runner's answer to "which card would you draw with?" (`stream.ProbeGPU`, ask
 | Mupen64Plus-Next | `mupen64plus-rdp-plugin=angrylion`, `mupen64plus-rsp-plugin=cxd4` | Banjo-Kazooie and Bomberman 64: full speed (the core ran 60 frames a second), about one core |
 | ParaLLEl N64 | `parallel-n64-gfxplugin=angrylion`, `parallel-n64-rspplugin=cxd4` | The same games: full speed, under one core. What libdragon homebrew already used |
 | PPSSPP | `ppsspp_backend=none` (its own software renderer; never asks for a context) | God of War: Ghost of Sparta: 58 frames a second on average, with dips to the 30s and 40s, on three to five cores |
+| LRPS2 | `pcsx2_renderer=Software (SW)` (hands frames over without a context) | Crash Bandicoot: The Wrath of Cortex, with the owner's SCPH-39001 BIOS: its 3D intro mostly at 60 frames a second, down to 6 to 20 in stretches; streamed to a browser at 60 |
 
 Measured in the runner alone, with no sandbox or encoder. Mupen64Plus-Next and PPSSPP were then streamed end to end from a Mac server to a browser, at normal speed, with libx264 taking 3 to 7 ms a frame. angrylion is the accurate Nintendo 64 renderer, so it draws at the console's own resolution and the internal resolution setting doesn't apply; PPSSPP's software renderer is forced to 1x the same way.
 
 Not built, and why:
 
-- **PlayStation 2:** LRPS2 has a software renderer (`pcsx2_renderer=Software (SW)`), which never asks for a context, but on ARM it falls back to a slow reference rasteriser, and it couldn't be tried without a BIOS. Play! has no software path.
-- **Dreamcast, 3DS and the faster PlayStation cores** have none either. On a Mac, PlayStation plays on PCSX ReARMed instead.
+- **Play!** (PlayStation 2 without a BIOS), **Dreamcast, 3DS and the faster PlayStation cores** have no software path. On a Mac, PlayStation plays on PCSX ReARMed instead, and PlayStation 2 needs LRPS2 and a BIOS.
 - **OpenGL on a Mac** (a CGL context made through purego, as WGL and EGL are on the others) would bring back the card's own renderers for Nintendo 64, PSP and Dreamcast at higher resolutions. macOS stops at OpenGL 4.1, so it likely wouldn't help LRPS2 or Azahar. It's work in WittyPlay's runner, not here.
 - **Vulkan through MoltenVK** would cover LRPS2's Vulkan and paraLLEl-GS renderers, PPSSPP's Vulkan backend and paraLLEl-RDP: the runner would have to offer cores a Vulkan context, and ship MoltenVK. The largest of these.
 - **In the runner, whatever comes next:** where it can't make a context (`gl_other.go`), answering `SET_HW_RENDER` with "no" straight away would let PPSSPP and LRPS2 fall back to software by themselves, and the rest stop cleanly rather than crash after loading.

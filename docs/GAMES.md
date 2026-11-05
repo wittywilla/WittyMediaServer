@@ -159,8 +159,8 @@ Those consoles are drawn on the server's graphics card, and they run on Windows 
 
 **On a Mac, FreeBSD, or any server without a card games can use:**
 
-- **Nintendo 64 and PSP still play.** The server's processor draws them instead, at the console's own resolution. A game's page says so before you press Play: they can run slower than with a card, and keep several of the server's processor cores busy. On an Apple M3 Pro, Nintendo 64 games ran at full speed on about one core, and a demanding PSP game ran at full speed most of the time, with dips, on three to five.
-- **PlayStation 2, Dreamcast and 3DS can't.** Their games stay listed, and their pages, the library and Settings say **Not on this server**, with the reason, instead of offering Play.
+- **Nintendo 64, PSP and PlayStation 2 still play.** The server's processor draws them instead, at the console's own resolution. A game's page says so before you press Play: they can run slower than with a card, and keep several of the server's processor cores busy. On an Apple M3 Pro, Nintendo 64 games ran at full speed on about one core, a demanding PSP game ran at full speed most of the time, with dips, on three to five, and a PlayStation 2 game ran mostly at full speed, slower in places. PlayStation 2 still needs your own BIOS, below.
+- **Dreamcast and 3DS can't.** Their games stay listed, and their pages, the library and Settings say **Not on this server**, with the reason, instead of offering Play.
 - **PlayStation** plays on PCSX ReARMed, which needs no card. A server that would otherwise choose one of the faster PlayStation cores uses it instead.
 
 - **Settings → Consoles & cores → How games play → Advanced** names the card in use, or says why there isn't one. A card simulated on the CPU doesn't count, as it's far too slow.
@@ -173,14 +173,16 @@ Those consoles are drawn on the server's graphics card, and they run on Windows 
 A BIOS is firmware copied from a console. Some consoles need one, and some games play better with one. The app never downloads one or says where to find one: it has to be your own, from a console you own.
 
 1. Make a folder named `BIOS` inside a console's games folder, such as `PS2/BIOS`. Any capitalisation works, and folders inside it are fine. It's never listed as games.
-2. Put your files in it. **Settings → Consoles & cores**, under **Cores and BIOS files** on each card, lists the names it looks for and says which have been found.
-3. Press Play. The server copies what it needs to its own BIOS folder and leaves yours alone.
+2. Put your files in it, named however you like: `PSX BIOS (USA).bin` is found as `scph5501.bin`. The server recognises each one by its checksum (from libretro's list of known firmware), so a file with the right name and the wrong contents is never used.
+3. That's all. After a library scan, or when you press Play, the server copies what a core needs to its own BIOS folder and leaves yours alone. **Settings → Consoles & cores**, under **Cores and BIOS files** on each card, lists what it found, its region, which folder it came from, and which one is in use.
+
+**Regions:** a PlayStation 2 game starts on a BIOS from its own region when you have one, going by its disc's serial or its file name, and otherwise on the one shown as in use: a late first-generation US model when you have a whole set. Other consoles' cores pick by name.
 
 You can also put files straight in the BIOS folder named on that page. A PlayStation 2 BIOS goes in `pcsx2/bios` inside it.
 
 | Console | File names | Used for |
 |---|---|---|
-| PlayStation 2 | `scph39001.bin`, or another BIOS image | LRPS2 needs one, and any region will do. With a whole set, a late first-generation US model is picked |
+| PlayStation 2 | `scph39001.bin`, or any other model's BIOS image | LRPS2 needs one, and any region will do. With a whole set, a game starts on one from its own region, or a late first-generation US model |
 | PlayStation | `scph5501.bin`, `scph5500.bin`, `scph5502.bin` | US, Japanese and European consoles. PCSX ReARMed runs most games without one |
 | NES | `disksys.rom` | Famicom Disk System games |
 | Super Nintendo | `BS-X.bin` | Satellaview games in `.bs` files, on Mesen-S |

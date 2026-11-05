@@ -90,6 +90,8 @@ type gameService struct {
 	gpuAt       time.Time // when the last answer came in
 	gpuChecking bool
 
+	bios biosFinder // BIOS files found by their checksums
+
 	custom *customService
 
 	peers peerLimits
@@ -321,9 +323,10 @@ type consoleView struct {
 	Count int `json:"count,omitempty"`
 	// For Settings, Consoles & cores: BIOS files in place, what's stopping it from starting
 	// if that's a missing BIOS, and how many games every library holds for it.
-	BiosFound  []string `json:"biosFound,omitempty"`
-	Blocked    string   `json:"blocked,omitempty"`
-	TotalGames int      `json:"totalGames,omitempty"`
+	BiosFound  []string       `json:"biosFound,omitempty"`
+	BiosFiles  []biosFileView `json:"biosFiles,omitempty"` // in the system folder, and where each came from
+	Blocked    string         `json:"blocked,omitempty"`
+	TotalGames int            `json:"totalGames,omitempty"`
 	// LogoName is the name to ask the logo service for, kind "console". See docs/METADATA.md.
 	LogoName string `json:"logoName,omitempty"`
 }
@@ -672,7 +675,8 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	software := false
 	if console.ID != wittyplay.TestConsole {
 		// BIOS files left in a folder beside the games are fetched first, for
-		// every core that might use one.
+		// every core that might use one: by what they are, then by their names.
+		s.findBIOSNear(it.Path)
 		for _, want := range console.Cores {
 			if err := wittyplay.CollectBIOS(console, want.ID, it.Path, systemDir); err != nil {
 				s.Log.Warn("copying a BIOS", "console", console.ID, "err", err)
@@ -710,6 +714,11 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		}
 		resolution := s.DB.GetSetting(ctx, "gamingResolution", "")
 		coreOptions = wittyplay.StartOptions(console.ID, core.ID, resolution, systemDir)
+		if rule := wittyplay.Traits(core.ID).RequiredBIOS; rule != nil && rule.Option != "" {
+			if bios := s.regionBIOSFor(ctx, it, rule.Folder, coreOptions[rule.Option]); bios != "" {
+				coreOptions = withOption(coreOptions, rule.Option, bios)
+			}
+		}
 		// If the game won't load on this core, the others get their turn.
 		others := g.cores.AllForConsole(console, core.ID)[1:]
 		if slices.ContainsFunc(others, func(c cores.Core) bool { return s.coreDrawsOnGPU(c) }) {
@@ -760,7 +769,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	rom, cleanup, newOnly, err := g.prepare3DS(rom, cleanup, console)
 	if err != nil {
 		if errors.Is(err, wittyplay.ErrEncrypted3DS) {
-			writeJSON(w, 422, map[string]any{"error": err.Error(), "encrypted": true, "console": console.ID})
+			writeJSON(w, 422, map[string]any{"error": strings.TrimRight(err.Error(), ". ") + ". " + library.DecryptedCopyPlays, "encrypted": true, "console": console.ID})
 			return
 		}
 		writeErr(w, 422, err.Error())
@@ -1331,14 +1340,17 @@ func (s *Server) handleGaming(w http.ResponseWriter, r *http.Request) {
 	views := s.consoleViews(ctx)
 	counts := s.gameCountsEverywhere(ctx)
 	systemDir := g.systemDir()
+	s.sweepBIOS(false) // what's found shows the next time this is asked
+	records := g.biosRecords()
 	for i := range views {
 		v := &views[i]
 		v.TotalGames = counts[v.ID]
 		for _, b := range v.BIOS {
-			if _, err := os.Stat(filepath.Join(systemDir, filepath.FromSlash(b.File))); err == nil {
+			if _, err := os.Stat(filepath.Join(systemDir, filepath.FromSlash(b.File))); err == nil || (b.Required && biosRuleMet(&v.Console, systemDir)) {
 				v.BiosFound = append(v.BiosFound, b.File)
 			}
 		}
+		v.BiosFiles = biosFilesFor(v.ID, systemDir, records, defaultBIOS(&v.Console, systemDir))
 		if len(v.Installed) > 0 && v.Reason != "gpu" { // a BIOS wouldn't help
 			console := v.Console
 			if core, blocked := g.cores.Playable(&console, v.DefaultCore, systemDir); core == nil && blocked != nil {

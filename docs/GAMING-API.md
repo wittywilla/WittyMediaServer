@@ -33,7 +33,7 @@ trip through the app switcher loses nothing.
 | Route | Sign-in | What it does |
 |---|---|---|
 | `GET /games/home?library=` | user | The games home screen in one answer: `hero`, `continue` (`{item, plays, lastPlayed, save}`), `recent`, `favourites`, `favouriteIds`, `mostPlayed`, and `shelves` (`{kind: "genre" or "series", name, count, items}`) |
-| `GET /games/{id}/check` | user | What a game needs and whether this server has it: `{ready, reason, message, core, needsGpu, gpuMissing, software, notice, bios: [{file, for, required, found}]}`. `reason` is `core`, `bios`, `gpu` or `unavailable`, and `message` says it for people. See [Games this server can't draw](#games-this-server-cant-draw) |
+| `GET /games/{id}/check` | user | What a game needs and whether this server has it: `{ready, reason, message, core, needsGpu, gpuMissing, software, notice, bios: [{file, for, required, found, using, from}]}`. For a BIOS a core takes under any name (PlayStation 2), `using` is the file this game starts with, and `from` is where the server found it by its checksum. `reason` is `core`, `bios`, `gpu` or `unavailable`, and `message` says it for people. See [Games this server can't draw](#games-this-server-cant-draw) |
 | `GET /games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed`, and when it isn't ready, `reason` (`unavailable`, `core` or `gpu`) and `message`. `gpuMissing`, `software` and `notice` as for a game's check. With `?library=<id>`, also `count`: that library's games for it |
 | `GET /games/modes?client=native` | user | What this server can stream, best first |
 | `GET /consoles/{console}/controls?device=` | user | The controller as data |

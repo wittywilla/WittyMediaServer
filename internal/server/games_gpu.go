@@ -113,15 +113,16 @@ func (s *Server) coreDrawsOnGPU(c cores.Core) bool {
 // processor draw instead, with these options laid over everything else. A server with no card
 // it can use starts them this way. Each was seen drawing games correctly on an Apple M3 Pro with
 // no graphics context at all: Nintendo 64 at full speed on about one core (angrylion draws, cxd4
-// runs the graphics microcode, as angrylion needs), and PSP mostly at full speed on four or five
-// (PPSSPP's own software renderer; "none" never asks the runner for a context). docs/GAMING.md
-// has the figures. Cores missing here have no such mode, or none seen to work: LRPS2 has one,
-// slow on ARM and untested for want of a BIOS; Play!, Flycast, Azahar and the faster PlayStation
-// cores have none.
+// runs the graphics microcode, as angrylion needs), PSP mostly at full speed on four or five
+// (PPSSPP's own software renderer; "none" never asks the runner for a context), and PlayStation 2
+// mostly at full speed, slower in places (LRPS2's "Software (SW)" renderer, which hands frames
+// over without a context). docs/GAMING.md has the figures. Cores missing here have no such mode:
+// Play!, Flycast, Azahar and the faster PlayStation cores.
 var cpuDrawing = map[string]map[string]string{
 	"mupen64plus_next": {"mupen64plus-rdp-plugin": "angrylion", "mupen64plus-rsp-plugin": "cxd4"},
 	"parallel_n64":     {"parallel-n64-gfxplugin": "angrylion", "parallel-n64-rspplugin": "cxd4"},
 	"ppsspp":           {"ppsspp_backend": "none"},
+	"pcsx2":            {"pcsx2_renderer": "Software (SW)"},
 }
 
 // softwareNotice is the speed caveat for a game the processor draws, shown before it starts and
@@ -188,8 +189,12 @@ func (s *Server) pickCore(ctx context.Context, console *wittyplay.Console, itemI
 		bios := wittyplay.MissingBIOS(c.ID, systemDir) == ""
 		switch {
 		case s.coreDrawsOnGPU(c):
-			if onCPU == nil && bios && cpuOptions(c) != nil {
+			switch {
+			case cpuOptions(c) == nil:
+			case bios && onCPU == nil:
 				onCPU = &c
+			case !bios && needsBIOS == nil:
+				needsBIOS = &c // it would play here, drawn by the processor, with a BIOS
 			}
 		case bios:
 			return corePick{core: &c}

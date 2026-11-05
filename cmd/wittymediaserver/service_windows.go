@@ -3,7 +3,10 @@
 package main
 
 import (
+	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
+
+	"github.com/wittywilla/wittymediaserver/internal/instance"
 )
 
 // serviceName is what the installer registers the server as.
@@ -19,6 +22,7 @@ func runAsService(args []string) (int, bool) {
 	if len(args) == 0 || args[0] != serviceFlag {
 		return 0, false
 	}
+	asService = true
 	h := &serviceHandler{args: args[1:]}
 	if err := svc.Run(serviceName, h); err != nil {
 		return 1, true
@@ -41,6 +45,11 @@ func (h *serviceHandler) Execute(_ []string, requests <-chan svc.ChangeRequest, 
 		case code := <-done:
 			h.code = code
 			status <- svc.Status{State: svc.StopPending}
+			if code == instance.ExitRunning {
+				// Another server has the data folder. Said in Windows' own words, and the
+				// restart rule (for crashes) doesn't apply to a service that stopped by itself.
+				return false, uint32(windows.ERROR_SERVICE_ALREADY_RUNNING)
+			}
 			// A code that isn't zero tells the service manager to apply its restart rule.
 			return false, uint32(code)
 		case req := <-requests:

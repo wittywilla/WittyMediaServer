@@ -8,6 +8,7 @@ const files = import.meta.glob([
   '../../../docs/*.md',
   '../../../CHANGELOG.md',
   '../../../SECURITY.md',
+  '!../../../docs/FFMPEG-BENCHMARK.md',
   '!../../../docs/LEGAL-NOTICES-CHECKLIST.md',
   '!../../../docs/MODULES-CUTOVER.md',
   '!../../../docs/PUBLISHING.md',
@@ -17,7 +18,7 @@ const files = import.meta.glob([
 ], { query: '?raw', import: 'default' }) as Record<string, () => Promise<string>>
 
 // For the people working on the project, and no use to anyone running it.
-export const notInHelp = ['LEGAL-NOTICES-CHECKLIST', 'MODULES-CUTOVER', 'PUBLISHING', 'REPOSITORIES', 'ROADMAP', 'WITTYRETROARCH']
+export const notInHelp = ['FFMPEG-BENCHMARK', 'LEGAL-NOTICES-CHECKLIST', 'MODULES-CUTOVER', 'PUBLISHING', 'REPOSITORIES', 'ROADMAP', 'WITTYRETROARCH']
 
 export type Guide = { file: string; title: string; about: string }
 export type GuideGroup = { title: string; quiet?: boolean; guides: Guide[] }
@@ -62,6 +63,14 @@ export const GROUPS: GuideGroup[] = [
   ] },
   { title: 'Looking after the server', guides: [
     { file: 'INSTALL', title: 'Installing and updating', about: 'Each system’s installer, and what each program is.' },
+    { file: 'DOCKER', title: 'Docker', about: 'The image, its tags and folders, graphics cards, hardening and updating.' },
+    { file: 'DOCKER-UGREEN', title: 'Docker on a UGREEN NAS', about: 'UGOS Pro’s Docker app, with Intel graphics.' },
+    { file: 'DOCKER-SYNOLOGY', title: 'Docker on a Synology NAS', about: 'Container Manager on DSM 7.2.' },
+    { file: 'DOCKER-QNAP', title: 'Docker on a QNAP NAS', about: 'Container Station 3.' },
+    { file: 'DOCKER-UNRAID', title: 'Docker on Unraid', about: 'A template, or Compose Manager.' },
+    { file: 'DOCKER-TRUENAS', title: 'Docker on TrueNAS SCALE', about: 'A custom app from YAML, 24.10 and later.' },
+    { file: 'DOCKER-ASUSTOR', title: 'Docker on an Asustor NAS', about: 'Portainer on ADM.' },
+    { file: 'DOCKER-LINUX', title: 'Docker on a Linux machine', about: 'Docker Engine and Compose, step by step.' },
     { file: 'UNINSTALL', title: 'Uninstalling', about: 'Removing everything, or keeping your data, on each system.' },
     { file: 'BACKUP', title: 'Backup and restore', about: 'A ZIP of your data, and bringing it back.' },
     { file: 'REPAIR', title: 'Repair', about: 'Finding and fixing problems, in the app or on the command line.' },

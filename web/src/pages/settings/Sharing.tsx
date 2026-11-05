@@ -14,6 +14,8 @@ function ServerSharing() {
   const st = useServerSettings()
   const { s, set, on } = st
   if (!s) return st.failed ? <LoadError what="This page" onRetry={st.retry} /> : null
+  // Unset on servers from before the switch: an address alone meant on.
+  const mapOn = s.mapOnline === '1' || (s.mapOnline !== '0' && !!s.mapTiles)
   return (
     <>
       <Section title="Uploads" desc="Adults can add pictures and videos to Photos and Vertical videos libraries from their devices. Files are saved in an Uploads folder inside the library's first folder and never replace anything.">
@@ -36,9 +38,15 @@ function ServerSharing() {
           <Switch label="Allow links" checked={on('shareLinks')} onChange={(v) => set('shareLinks', v ? '1' : '0')} />
         </Row>
       </Section>
-      <Section title="Photo map" desc="The map works without the internet, with a plain outline of the world. An online map shows streets and places, but it means the viewer's device asks that provider for the parts of the map being looked at, so the provider learns roughly what area is being viewed and from where. Off by default.">
-        <Row label="Online map address" desc={<>Optional. An https address containing {'{z}'}, {'{x}'} and {'{y}'}, from a provider whose terms allow it. Leave empty to stay offline.</>} stack>
-          <input className="input" value={s.mapTiles || ''} onChange={(e) => set('mapTiles', e.target.value)} placeholder="https://…/{z}/{x}/{y}.png" spellCheck={false} />
+      <Section title="Photo map" desc="The map works without the internet, with a plain outline of the world. An online map shows streets and places, but it means the viewer's device asks that provider for the parts of the map being looked at, so the provider learns roughly what area is being viewed and from where. The pictures and their places stay here. Off by default.">
+        <Row label="Use an online map" desc="The map says so underneath, and each device can still choose the outline. If the provider doesn't answer, the outline comes back by itself.">
+          <Switch label="Use an online map" checked={mapOn} onChange={(v) => set('mapOnline', v ? '1' : '0')} />
+        </Row>
+        <Row label="Online map address" desc={<>An https address containing {'{z}'}, {'{x}'} and {'{y}'} ({'{s}'} too, if the provider asks for it), from a provider whose terms allow it.</>} stack dim={!mapOn}>
+          <input className="input" aria-label="Online map address" value={s.mapTiles || ''} disabled={!mapOn} onChange={(e) => set('mapTiles', e.target.value)} placeholder="https://…/{z}/{x}/{y}.png" spellCheck={false} />
+        </Row>
+        <Row label="Credit to show on the map" desc="What the provider asks to be shown, such as its name and its data's licence. One line of plain text." stack dim={!mapOn}>
+          <input className="input" aria-label="Credit to show on the map" value={s.mapAttribution || ''} disabled={!mapOn} onChange={(e) => set('mapAttribution', e.target.value)} maxLength={200} spellCheck={false} />
         </Row>
       </Section>
       <Section title="Local AI" desc="Planned, not available yet.">

@@ -6,10 +6,12 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,6 +24,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
+	"github.com/wittywilla/wittymediaserver/internal/instance"
 	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/trayicon"
@@ -47,17 +50,25 @@ type launcher struct {
 	logFile    *serverOutput
 	running    bool
 	healthy    bool
-	wantRun    bool
-	lastErr    string
-	logPath    string
+	// answered: this run of the server has answered at least once, so not answering now
+	// means it stopped answering, not that it's still starting.
+	answered bool
+	wantRun  bool
+	lastErr  string
+	logPath  string
 	// attached: a server was already answering on this port, a background service most
-	// likely. Starting another would only fail, so this app just shows it.
+	// likely, or took this app's data folder first. Starting another would only fail, so
+	// this app just shows it.
 	attached bool
 	// Crash-loop protection.
 	startedAt time.Time
 	fails     int
 
 	mStatus, mOpen, mToggle, mRestart, mData, mLog, mAuto, mAbout, mQuit *systray.MenuItem
+
+	// mRemote says who can connect, in the server's own words (GET /api/remote/status).
+	mRemote     *systray.MenuItem
+	remoteAsked time.Time
 }
 
 func main() {
@@ -76,6 +87,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
+	cfg, code, ok := claim(cfg, args)
+	if !ok {
+		os.Exit(code)
+	}
 	l.dataDir, l.listen, l.configFile = cfg.DataDir, cfg.Listen, cfg.ConfigFile
 	if abs, err := filepath.Abs(l.dataDir); err == nil {
 		l.dataDir = abs
@@ -83,6 +98,33 @@ func main() {
 	l.logPath = filepath.Join(cfg.LogDir, "console.log")
 	l.wantRun = !hasArg("-no-autostart")
 	systray.Run(l.onReady, l.onExit)
+}
+
+// claim asks, before a second server starts on a data folder that has one: open the
+// running one (the default), start another on a folder and port of its own, or exit. A
+// server the service manager runs is shown instead, as before. It returns the config to
+// start with, and whether to.
+func claim(cfg *config.Config, args []string) (*config.Config, int, bool) {
+	for range 5 {
+		if !instance.Held(cfg.DataDir) {
+			return cfg, 0, true
+		}
+		out := instance.WhenRunning(cfg.DataDir, cfg.Listen, args, !desktop.Headless(), true)
+		if out.Attach {
+			return cfg, 0, true // start() finds it answering and shows it
+		}
+		if out.Again == nil {
+			return cfg, out.Code, false
+		}
+		args = out.Again
+		next, err := config.Parse(args)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return cfg, 2, false
+		}
+		cfg = next
+	}
+	return cfg, instance.ExitRunning, false
 }
 
 func hasArg(s string) bool {
@@ -126,6 +168,8 @@ func (l *launcher) onReady() {
 	systray.SetTooltip("WittyMediaServer")
 	l.mStatus = systray.AddMenuItem("WittyMediaServer — starting…", "")
 	l.mStatus.Disable()
+	l.mRemote = systray.AddMenuItem("Remote Access", "Who can connect, and from where. Click to change it.")
+	l.mRemote.Hide()
 	systray.AddSeparator()
 	l.mOpen = systray.AddMenuItem("Open WittyMediaServer", "Open the web app in your browser")
 	l.mToggle = systray.AddMenuItem("Stop server", "")
@@ -164,16 +208,18 @@ func (l *launcher) loop() {
 		select {
 		case <-l.mOpen.ClickedCh:
 			openURL(l.url())
+		case <-l.mRemote.ClickedCh:
+			openURL(l.url() + "/settings/remote")
 		case <-l.mToggle.ClickedCh:
 			if l.isRunning() {
-				l.wantRun = false
+				l.want(false)
 				l.stop()
 			} else {
-				l.wantRun = true
+				l.want(true)
 				l.start()
 			}
 		case <-l.mRestart.ClickedCh:
-			l.wantRun = true
+			l.want(true)
 			l.stop()
 			l.start()
 		case <-l.mData.ClickedCh:
@@ -205,6 +251,21 @@ func (l *launcher) isRunning() bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	return l.running
+}
+
+// want says whether the server should be kept running. A choice made in the menu starts
+// the count of quick failures again.
+func (l *launcher) want(run bool) {
+	l.mu.Lock()
+	l.wantRun, l.fails = run, 0
+	l.mu.Unlock()
+}
+
+// wantsRestart: the server should be running and isn't.
+func (l *launcher) wantsRestart() bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.wantRun && !l.running
 }
 
 func (l *launcher) start() {
@@ -249,11 +310,13 @@ func (l *launcher) start() {
 		return
 	}
 	l.cmd, l.stdin, l.logFile, l.running, l.lastErr = cmd, stdin, f, true, ""
-	l.startedAt = time.Now()
+	l.startedAt, l.answered = time.Now(), false
 	go func(c *exec.Cmd) {
 		err := c.Wait()
 		// The server installed an update and asks to be started again.
 		updated := c.ProcessState != nil && c.ProcessState.ExitCode() == update.ExitRestart
+		// Another server took the data folder first: show that one, and don't try again.
+		taken := c.ProcessState != nil && c.ProcessState.ExitCode() == instance.ExitRunning
 		l.mu.Lock()
 		if l.cmd == c {
 			l.running = false
@@ -280,6 +343,15 @@ func (l *launcher) start() {
 		if l.fails >= 3 {
 			l.wantRun = false
 		}
+		if taken && l.cmd == c {
+			l.wantRun, l.attached, l.lastErr = false, true, ""
+			// Shown at its own address, which needn't be this app's port.
+			if info, err := instance.Read(l.dataDir); err == nil && len(info.URLs) > 0 {
+				if u, err := url.Parse(info.URLs[0]); err == nil && u.Host != "" {
+					l.listen = u.Host
+				}
+			}
+		}
 		restart := l.wantRun && l.cmd == c
 		l.refreshLocked()
 		l.mu.Unlock()
@@ -291,7 +363,7 @@ func (l *launcher) start() {
 		if restart {
 			// Crashed: back off briefly and bring it back.
 			time.Sleep(3 * time.Second)
-			if l.wantRun && !l.isRunning() {
+			if l.wantsRestart() {
 				l.start()
 			}
 		}
@@ -425,6 +497,7 @@ func (l *launcher) health() {
 		l.mu.Unlock()
 		if attached {
 			ok = l.answering()
+			l.showRemote(c, ok)
 			l.mu.Lock()
 			changed := ok != l.healthy
 			l.healthy = ok
@@ -443,17 +516,62 @@ func (l *launcher) health() {
 			}
 			cancel()
 		}
+		l.showRemote(c, ok)
 		l.mu.Lock()
 		changed := ok != l.healthy
 		l.healthy = ok
 		if ok {
 			l.fails = 0
+			l.answered = l.running
 		}
 		if changed {
 			l.refreshLocked()
 		}
 		l.mu.Unlock()
 	}
+}
+
+// showRemote puts how remote access stands in the menu, at most every half
+// minute, and hides the line while the server isn't answering.
+func (l *launcher) showRemote(c *http.Client, ok bool) {
+	if !ok {
+		l.mRemote.Hide()
+		l.remoteAsked = time.Time{}
+		return
+	}
+	if time.Since(l.remoteAsked) < 30*time.Second {
+		return
+	}
+	l.remoteAsked = time.Now()
+	subject, summary, err := readRemote(c, l.url())
+	if err != nil {
+		l.mRemote.Hide()
+		return
+	}
+	l.mRemote.SetTitle("Remote Access — " + subject)
+	l.mRemote.SetTooltip(summary + " Click to change it.")
+	l.mRemote.Show()
+}
+
+// readRemote asks the server how remote access stands. The tray needs no
+// account for this: the server answers its own computer.
+func readRemote(c *http.Client, base string) (subject, summary string, err error) {
+	res, err := c.Get(base + "/api/remote/status")
+	if err != nil {
+		return "", "", err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return "", "", fmt.Errorf("status %d", res.StatusCode)
+	}
+	var v struct{ Subject, Summary string }
+	if err := json.NewDecoder(io.LimitReader(res.Body, 64<<10)).Decode(&v); err != nil {
+		return "", "", err
+	}
+	if v.Subject == "" {
+		return "", "", fmt.Errorf("no subject")
+	}
+	return v.Subject, v.Summary, nil
 }
 
 func (l *launcher) refresh() {
@@ -465,11 +583,11 @@ func (l *launcher) refresh() {
 func (l *launcher) refreshLocked() {
 	if l.attached {
 		if l.healthy {
-			l.mStatus.SetTitle("● Running as a background service at " + l.url())
+			l.mStatus.SetTitle("● Running at " + l.url() + ", started outside this app")
 			systray.SetTooltip("WittyMediaServer — running at " + l.url())
 			l.mOpen.Enable()
 		} else {
-			l.mStatus.SetTitle("○ The background service isn't answering")
+			l.mStatus.SetTitle("○ The server started outside this app isn't answering")
 			systray.SetTooltip("WittyMediaServer — not answering")
 			l.mOpen.Disable()
 		}
@@ -483,6 +601,12 @@ func (l *launcher) refreshLocked() {
 	case l.running && l.healthy:
 		l.mStatus.SetTitle("● Running at " + l.url())
 		systray.SetTooltip("WittyMediaServer — running at " + l.url())
+		l.mToggle.SetTitle("Stop server")
+	case l.running && l.answered:
+		// Not "starting": a server that stops answering looks crashed from a browser, and
+		// someone looking here should see that it's still running, and can be restarted.
+		l.mStatus.SetTitle("◌ Running, but not answering")
+		systray.SetTooltip("WittyMediaServer — not answering")
 		l.mToggle.SetTitle("Stop server")
 	case l.running:
 		l.mStatus.SetTitle("◐ Starting…")

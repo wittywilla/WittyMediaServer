@@ -9,7 +9,7 @@ export const profileName = (u: Pick<User, 'name' | 'displayName'>) => u.displayN
 // What the corner of the screen says, which is each person's choice.
 export const cornerName = (u: Pick<User, 'name' | 'displayName' | 'showUsername'>) => u.showUsername ? u.name : profileName(u)
 // A device signed in to an account.
-export type Session = { id: string; userId: number; userName: string; device: string; createdAt: number; expiresAt: number; lastSeen: number; ip: string; where: string; via: string; streaming: boolean; current: boolean }
+export type Session = { id: string; userId: number; userName: string; device: string; createdAt: number; expiresAt: number; lastSeen: number; ip: string; where: string; via: string; streaming: boolean; current: boolean; plainAway?: boolean }
 // What an account may see (null = no limits). maxAge -1 = no age limit.
 export type Access = {
   maxAge: number; allowUnrated: boolean; libraries: number[]; blockGenres: string[]
@@ -119,13 +119,17 @@ export type PlayInfo = {
 }
 // The answer to POST /items/{id}/playback for a video. See docs/CLIENT-API.md.
 export type PlaybackSubtitle = { index: number; language: string; languageName?: string; title?: string; codec: string; forced?: boolean; sdh?: boolean; text: boolean; delivery: 'none' | 'embedded' | 'sidecar' | 'hls' | 'burn'; url?: string }
-export type PlaybackExplain = { summary: string; source: string; picture: string; sound: string; subtitles?: string; reasons: string[]; load: 'none' | 'light' | 'heavy' }
+export type PlaybackExplain = { summary: string; source: string; picture: string; sound: string; subtitles?: string; reasons: string[]; load: 'none' | 'light' | 'heavy'; streaming?: string }
+// How a video is streamed, and what the player should do for that (see docs/CLIENT-API.md, Robust streaming).
+export type StreamingHints = { bufferSec: number; maxBufferSec: number; retries: number; firstRetryMs: number; maxRetryMs: number; segmentTimeoutMs: number; resumeOnDrop: boolean; stepDownOnStall: boolean }
+export type PlaybackStreaming = { mode: 'standard' | 'robust'; from: 'default' | 'server' | 'device'; segmentSec?: number; measuredKbps?: number; ladder?: { height: number; kbps: number }[]; player: StreamingHints }
 export type PlaybackAnswer = {
   decision: 'direct' | 'remux' | 'transcode' | string; reasons: string[]; protocol: string; url: string; streamId?: string; durationSec: number; container?: string
   seek: 'native' | 'restart' | 'none'; startAtSec: number; timeOffsetSec: number; resumeSec: number
   audio: Track[]; subtitles: PlaybackSubtitle[]; audioIndex: number; subtitleIndex: number; subtitleDelivery: string
   chapters?: { start: number; title: string }[]; explain?: PlaybackExplain
   videos?: { index: number; codec: string; width: number; height: number; title?: string }[]; videoIndex?: number; stereo?: string; flattened?: boolean
+  streaming?: PlaybackStreaming
 }
 export type DvdButton = { n: number; x1: number; y1: number; x2: number; y2: number; up: number; down: number; left: number; right: number; auto: boolean; lit: boolean; cmd: string; frames?: number; fps?: number; num?: number; soundSelect?: number; soundPress?: number }
 export type DvdMenu = {
@@ -190,6 +194,8 @@ let missing: { id: string; at: number } | null = null
 export const recentMissingModule = () => (missing && Date.now() - missing.at < 20000 ? missing.id : null)
 export const forgetMissingModule = () => { missing = null }
 
+const parse = (text: string): any => { try { return text ? JSON.parse(text) : null } catch { return { error: text } } }
+
 async function send(method: string, path: string, body?: unknown): Promise<{ text: string; data: any }> {
   const headers: Record<string, string> = {}
   const tok = getToken()
@@ -204,8 +210,7 @@ async function send(method: string, path: string, body?: unknown): Promise<{ tex
     throw new ApiError(0, "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote Access.")
   }
   const text = await res.text()
-  let data: any = null
-  try { data = text ? JSON.parse(text) : null } catch { data = { error: text } }
+  const data = parse(text)
   if (res.status === 424 && data?.module) {
     missing = { id: String(data.module), at: Date.now() }
     throw new ApiError(res.status, data.error || res.statusText, data)
@@ -234,11 +239,25 @@ export async function uploadFile<T>(path: string, body: Blob, method = 'POST'): 
   if (!res.ok) throw new ApiError(res.status, data?.error || res.statusText, data)
   return data as T
 }
-const req = <T>(method: string, path: string, body?: unknown) => send(method, path, body).then((r) => r.data as T)
+// Asking for the same thing while it's already on its way waits for that answer rather than sending
+// again: a page opening has several parts that each want the account's settings, three times over
+// on Home, and a slow TV or phone pays for every request. Each caller gets its own copy of the
+// answer, so one changing what it was given can't change another's.
+const onTheWay = new Map<string, Promise<{ text: string; data: any }>>()
+function sendGet(path: string): Promise<{ text: string; data: any }> {
+  const key = getToken() + ' ' + serverBase() + path
+  const first = onTheWay.get(key)
+  if (first) return first.then((r) => ({ text: r.text, data: parse(r.text) }))
+  const p = send('GET', path).finally(() => { if (onTheWay.get(key) === p) onTheWay.delete(key) })
+  onTheWay.set(key, p)
+  return p
+}
+// A change: what was on its way before it may be out of date, so asking after it asks again.
+const req = <T>(method: string, path: string, body?: unknown) => { onTheWay.clear(); return send(method, path, body).then((r) => r.data as T) }
 
 export const api = {
-  get: <T>(p: string) => req<T>('GET', p),
-  text: (p: string) => send('GET', p).then((r) => r.text), // an answer that is plain text
+  get: <T>(p: string) => sendGet(p).then((r) => r.data as T),
+  text: (p: string) => sendGet(p).then((r) => r.text), // an answer that is plain text
   post: <T>(p: string, b?: unknown) => req<T>('POST', p, b ?? {}),
   put: <T>(p: string, b?: unknown) => req<T>('PUT', p, b ?? {}),
   patch: <T>(p: string, b?: unknown) => req<T>('PATCH', p, b ?? {}),

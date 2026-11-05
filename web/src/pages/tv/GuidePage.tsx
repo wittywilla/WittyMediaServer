@@ -14,6 +14,7 @@ import DetailsDialog from './Details'
 import Hero from './Hero'
 import SearchPanel from './SearchPanel'
 import { useReminders } from './reminders'
+import { liveNow } from './live'
 import { dayWord, fmtClock, fmtDay, fmtSpan, getLineup, forgetLineup, setFavourite, type GuideChannel, type GuidePage as Page, type Programme } from './tvApi'
 import './tv.css'
 import './tvthemes.css'
@@ -367,8 +368,9 @@ export default function GuidePage() {
   const timeHeads = useMemo(() => Array.from({ length: slots }, (_, i) => from + i * SLOT), [from, slots])
   const pct = (u: number) => ((u - from) / (to - from)) * 100
   const totalRows = total ?? 0
-  // What the little TV shows: settled on by the preview itself.
-  const previewKey = look.preview === 'off' ? '' : look.preview === 'last' ? (lastChannel() || (cur && !cur.encrypted ? cur.key : '')) : (cur && !cur.encrypted ? cur.key : '')
+  // What the little TV shows: settled on by the preview itself. Until the rows come, it keeps
+  // what was already playing, so coming back from a channel doesn't stop it.
+  const previewKey = look.preview === 'off' ? '' : look.preview === 'last' ? (lastChannel() || (cur && !cur.encrypted ? cur.key : '')) : cur ? (cur.encrypted ? '' : cur.key) : liveNow().key
   const previewName = useMemo(() => {
     if (!previewKey) return ''
     const c = cur?.key === previewKey ? cur : lineup.find((x) => x.key === previewKey)

@@ -13,8 +13,11 @@
 //
 // WMS_ATTACH=127.0.0.1:9333 runs it all in something already running with a debugging port, such
 // as the desktop client or an Android web view, rather than a browser of its own. A web view can't
-// pretend to be another size, so give it the size it is: WMS_SIZES=tv or WMS_SIZES=phone. WMS_ONLY=audit
-// or WMS_ONLY=sizes runs part of it, and WMS_THEMES=modern,classic only those themes.
+// pretend to be another size, so give it the size it is: WMS_SIZES=tv or WMS_SIZES=phone. WMS_ONLY=audit,
+// WMS_ONLY=sizes or WMS_ONLY=live runs part of it, and WMS_THEMES=modern,classic only those themes.
+//
+// "live" checks a channel is one stream from the guide's preview to the watch view, full screen and
+// back: no tune, no leave and no new stream on the way, by mouse, keys and remote, in every theme.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 const { launch } = await import(new URL((process.env.WITTYVISUALIZER || '../../../WittyVisualizer') + '/tests/cdp.mjs', import.meta.url))
@@ -76,10 +79,10 @@ await page.eval(`localStorage.setItem('wms.token', ${JSON.stringify(login.token)
 await call('POST', '/legal/acknowledge')
 const me = login.user.id
 const shot = async (name) => writeFileSync(join(out, `tv-${name}.png`), await page.shot())
-const KEYS = { ArrowUp: 38, ArrowDown: 40, ArrowLeft: 37, ArrowRight: 39, Enter: 13, Escape: 27 }
+const KEYS = { ArrowUp: 38, ArrowDown: 40, ArrowLeft: 37, ArrowRight: 39, Enter: 13, Escape: 27, f: 70, r: 82, GoBack: 166 }
 const press = async (key) => {
   const windowsVirtualKeyCode = KEYS[key]
-  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key, code: key, windowsVirtualKeyCode, text: key === 'Enter' ? '\r' : undefined })
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key, code: key, windowsVirtualKeyCode, text: key === 'Enter' ? '\r' : key.length === 1 ? key : undefined })
   await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key, code: key, windowsVirtualKeyCode })
 }
 // A look put straight on the account and the device, the way it's kept.
@@ -113,7 +116,7 @@ const measure = `(() => {
 // ---------------------------------------- every theme at every size
 await setLook({})
 const wantedSize = ([n]) => !process.env.WMS_SIZES || process.env.WMS_SIZES.split(',').includes(n)
-for (const [name, s] of only === 'audit' ? [] : Object.entries(SIZES).filter(wantedSize)) {
+for (const [name, s] of only === 'audit' || only === 'live' ? [] : Object.entries(SIZES).filter(wantedSize)) {
   await size(s)
   await openGuide(s.ten)
   for (const theme of THEMES) {
@@ -131,7 +134,7 @@ for (const [name, s] of only === 'audit' ? [] : Object.entries(SIZES).filter(wan
   }
 }
 
-if (only !== 'audit') {
+if (only !== 'audit' && only !== 'live') {
 // ---------------------------------------- moving an earlier look over
 await size(SIZES.desktop)
 await page.eval(`localStorage.setItem('wms.tv.look.${me}', JSON.stringify({ layout: 'classic', colours: 'custom', customBg: '#10203a', customAccent: '#ffb300', previewSize: 'l', previewPos: 'bl', density: 'large' }))`)
@@ -228,6 +231,138 @@ for (const theme of ['teletext', 'listings', 'modern']) {
   }
 }
 
+}
+
+// ---------------------------------------- one stream, wherever it's shown
+// The guide's preview, the watch view and full screen are places to show one stream. Going between
+// them mustn't tune, leave or start a new stream: no /tune or /leave, and no new load on the video.
+if (only === '' || only === 'live') {
+  const click = async (sel, count = 1) => {
+    const r = await page.eval(`(() => { const e = ${sel}; if (!e) return null; const b = e.getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2] })()`)
+    if (!r) throw new Error('nothing to click: ' + sel)
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: r[0], y: r[1] })
+    for (let i = 1; i <= count; i++) {
+      await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: r[0], y: r[1], button: 'left', clickCount: i })
+      await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: r[0], y: r[1], button: 'left', clickCount: i })
+    }
+  }
+  // What the page asks the server, and what happens to the video, from here on.
+  const WATCH = `(() => {
+    if (!window.__net) {
+      window.__net = []
+      // window.__slow holds the guide's answers back that long, like a busy server.
+      const f = window.fetch; window.fetch = function (u) {
+        const url = String(u && u.url || u), args = arguments
+        window.__net.push(url)
+        return window.__slow && url.includes('/api/guide?') ? new Promise((d) => setTimeout(d, window.__slow)).then(() => f.apply(this, args)) : f.apply(this, args)
+      }
+      const o = XMLHttpRequest.prototype.open; XMLHttpRequest.prototype.open = function (m, u) { window.__net.push(String(u)); return o.apply(this, arguments) }
+    }
+    window.__net.length = 0
+    const v = document.querySelector('.ctv-preview video, .ctv-player video')
+    window.__v = v
+    window.__ev = { loadstart: 0, emptied: 0, pause: 0 }
+    if (!v.__counted) { v.__counted = true; for (const k of ['loadstart', 'emptied', 'pause']) v.addEventListener(k, () => window.__ev[k]++) }
+    return v.currentTime
+  })()`
+  const count = (what) => page.eval(`window.__net.filter((u) => u.includes(${JSON.stringify(what)})).length`)
+  const playing = (sel) => `(() => { const v = document.querySelector('${sel}'); return !!v && v === window.__v && !v.paused && v.readyState >= 2 })()`
+  const previewPlaying = `(() => { const v = document.querySelector('.ctv-preview video'); return !!v && !v.paused && v.currentTime > 0.3 && !document.querySelector('.ctv-preview-msg') })()`
+  const fsOn = () => page.eval(`!!document.fullscreenElement`)
+  await size(SIZES.desktop)
+  const exits = [
+    ['Escape', () => press('Escape')],
+    ['the back button', () => click(`document.querySelector('.ctv-player .top .ibtn')`)],
+    ["a TV remote's Back", () => press('GoBack')],
+    ["the remote's top menu", async () => {
+      if (!(await page.eval(`!!document.querySelector('.remote')`))) await press('r')
+      await page.until(`document.querySelector('.remote [aria-label^="Top menu"]')`, 4000, 'the remote')
+      await click(`document.querySelector('.remote [aria-label^="Top menu"]')`)
+    }],
+    ['the Guide button', () => click(`[...document.querySelectorAll('.ctv-player .btn')].find((b) => b.textContent === 'Guide')`)],
+  ]
+  let n = 0
+  for (const theme of THEMES) {
+    const [how, exit] = exits[n++ % exits.length]
+    await setLook({ theme, preview: 'on' })
+    await page.eval(`localStorage.setItem('wms.remote.tv', '0')`)
+    await openGuide(false)
+    await page.until(previewPlaying, 60000, `the preview playing in ${theme}`)
+    const t0 = await page.eval(WATCH)
+    // By mouse, from the preview to the watch view.
+    await click(`document.querySelector('.ctv-preview-bar button[aria-label^="Watch"]')`)
+    await page.until(`document.querySelector('.ctv-player .stage video') === window.__v`, 10000, 'the same video in the watch view')
+    await wait(800)
+    expect(`${theme}: the preview carries on into the watch view`, await page.eval(playing('.ctv-player video')), await page.eval('window.__ev'))
+    // Full screen and back, by key, the button and a double-click.
+    await press('f'); await wait(600); const byKey = await fsOn(); await press('f'); await wait(600)
+    const fsButton = `document.querySelector('.ctv-player [aria-label="Fullscreen"]')`
+    await click(fsButton); await wait(600); const byButton = await fsOn(); await click(fsButton); await wait(600)
+    expect(`${theme}: F and the button go full screen and back`, byKey && byButton && !(await fsOn()), [byKey, byButton])
+    const pausesBefore = await page.eval('window.__ev.pause')
+    await click(`document.querySelector('.ctv-player .stage')`, 2); await wait(600); const byDouble = await fsOn()
+    await click(`document.querySelector('.ctv-player .stage')`, 2); await wait(600)
+    expect(`${theme}: a double-click goes full screen and back`, byDouble && !(await fsOn()), byDouble)
+    expect(`${theme}: still playing after full screen`, await page.eval(playing('.ctv-player video')))
+    // Back to the guide, where the preview shows the same stream.
+    await exit()
+    await page.until(`document.querySelector('.ctv-preview video') === window.__v`, 10000, `the same video back in the preview, by ${how}`)
+    await wait(1200)
+    const t1 = await page.eval(`window.__v.currentTime`)
+    const ev = await page.eval('window.__ev'), tunes = await count('/tune'), leaves = await count('/leave')
+    expect(`${theme}: back in the preview by ${how}, still playing`, await page.eval(playing('.ctv-preview video')), ev)
+    // A programme ending on the way asks what's on now (a tune with the same viewer), which starts nothing.
+    expect(`${theme}: no tune, no leave, no new stream (${tunes} tunes, ${leaves} leaves)`, tunes <= 1 && leaves === 0 && ev.loadstart === 0 && ev.emptied === 0,
+      { tunes, leaves, ev, net: await page.eval(`window.__net.filter((u) => !u.includes('/seg/')).slice(0, 12)`) })
+    // A double-click is two clicks too, and a click on the picture is Play and Pause: those two are the only pauses.
+    expect(`${theme}: never paused or went back in time (${t0.toFixed(1)} to ${t1.toFixed(1)} s)`, ev.pause - pausesBefore <= 2 && pausesBefore === 0 && t1 > t0 + 3, { t0, t1, pausesBefore, ev })
+  }
+  // A guide slow to answer doesn't stop the channel either: the preview keeps it meanwhile.
+  await setLook({ theme: 'modern', preview: 'on' })
+  await openGuide(false)
+  await page.until(previewPlaying, 60000, 'the preview playing')
+  await page.eval(WATCH)
+  await click(`document.querySelector('.ctv-preview-bar button[aria-label^="Watch"]')`)
+  await page.until(`document.querySelector('.ctv-player .stage video') === window.__v`, 10000, 'the watch view')
+  await page.eval(`window.__slow = 4500`)
+  await press('Escape')
+  await page.until(`document.querySelector('.ctv-preview video') === window.__v`, 10000, 'the preview')
+  await wait(5500)
+  await page.eval(`window.__slow = 0`)
+  expect("a guide slow to answer doesn't stop the channel", (await count('/tune')) === 0 && (await count('/leave')) === 0 && (await page.eval(playing('.ctv-preview video'))),
+    { tunes: await count('/tune'), leaves: await count('/leave'), ev: await page.eval('window.__ev') })
+  // Moving the guide's highlight on leaves the channel at once, before the next one is tuned.
+  await openGuide(false)
+  await page.until(previewPlaying, 60000, 'the preview playing')
+  await page.eval(WATCH)
+  await page.eval(`document.querySelector('.ctv-cell[data-focused="1"]').focus()`)
+  await press('ArrowDown')
+  const flicked = await page.until(`window.__net.some((u) => u.includes('/leave'))`, 1200, 'a leave').then(() => true, () => false)
+  expect('moving the highlight on leaves the channel at once', flicked && (await count('/tune')) === 0, { leaves: await count('/leave'), tunes: await count('/tune') })
+  // Leaving waits a moment, so coming straight back doesn't tune again; then it does leave.
+  await setLook({ theme: 'modern', preview: 'off' })
+  const first = (await call('GET', '/guide?list=1&limit=1')).channels[0].key
+  await page.go(server + '/tv/watch/' + first)
+  await page.until(`(() => { const v = document.querySelector('.ctv-player video'); return !!v && !v.paused && v.currentTime > 0.3 })()`, 60000, 'the channel playing')
+  await page.eval(WATCH)
+  await press('Escape'); await page.until(`document.querySelector('.ctv-grid .ctv-row')`, 10000, 'the guide')
+  await wait(1000)
+  expect('leaving waits a moment', (await count('/leave')) === 0, await count('/leave'))
+  await page.until(`document.querySelector('.ctv-cell[data-focused="1"]')`, 10000, 'the highlight')
+  await page.eval(`document.querySelector('.ctv-cell[data-focused="1"]').focus()`)
+  await press('Enter')
+  await page.until(`document.querySelector('.ctv-player .stage video') === window.__v`, 10000, 'the watch view again')
+  await wait(700)
+  expect("coming straight back doesn't tune again", (await count('/tune')) === 0 && (await page.eval('window.__ev.loadstart')) === 0, { tunes: await count('/tune'), ev: await page.eval('window.__ev') })
+  // Changing channel leaves the old one at once.
+  await press('ArrowUp')
+  await page.until(`window.__net.some((u) => u.includes('/leave'))`, 3000, 'leaving the channel changed from')
+  expect('changing channel tunes once and leaves the last at once', (await count('/tune')) === 1, await count('/tune'))
+  await page.eval(`window.__net.length = 0`)
+  await press('Escape'); await page.until(`document.querySelector('.ctv-grid .ctv-row')`, 10000, 'the guide')
+  await wait(4200)
+  expect('with nothing showing it, the channel is left after a few seconds', (await count('/leave')) === 1, await count('/leave'))
+  await setLook({})
 }
 
 // ---------------------------------------- names, focus, sizes and words, on every screen
@@ -336,7 +471,7 @@ const keyOn = async (key) => {
   await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key, code: key, windowsVirtualKeyCode: key.toUpperCase().charCodeAt(0) })
 }
 const closeDialog = async () => { await press('Escape'); await wait(350) }
-for (const [name, s] of only === 'sizes' ? [] : Object.entries(SCREENS).filter(([n]) => !process.env.WMS_SIZES || process.env.WMS_SIZES.split(',').includes(n))) {
+for (const [name, s] of only === 'sizes' || only === 'live' ? [] : Object.entries(SCREENS).filter(([n]) => !process.env.WMS_SIZES || process.env.WMS_SIZES.split(',').includes(n))) {
   await size(s)
   // A phone's pointer is a finger, which is what makes its controls big enough for one.
   await page.send('Emulation.setTouchEmulationEnabled', { enabled: !!s.mobile, maxTouchPoints: s.mobile ? 5 : 1 })
@@ -393,7 +528,7 @@ for (const [name, s] of only === 'sizes' ? [] : Object.entries(SCREENS).filter((
 }
 
 // ---------------------------------------- a controller, in every theme
-if (only !== 'sizes') {
+if (only !== 'sizes' && only !== 'live') {
   if (wantedSize(['tv'])) await size(SIZES.tv)
   await page.send('Emulation.setTouchEmulationEnabled', { enabled: false })
   await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `
@@ -469,7 +604,7 @@ if (only !== 'sizes') {
 }
 
 // ---------------------------------------- touch
-if (only !== 'sizes' && !attached) {
+if (only !== 'sizes' && only !== 'live' && !attached) {
   await size(SIZES.phone)
   await page.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 })
   const tap = async (sel) => {

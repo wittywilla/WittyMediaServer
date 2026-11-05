@@ -60,6 +60,8 @@ const GuidePage = lazy(() => import('./pages/tv/GuidePage'))
 const RecordingsPage = lazy(() => import('./pages/tv/RecordingsPage'))
 const EncryptedHelp = lazy(() => import('./pages/tv/EncryptedHelp'))
 const TvPlayer = lazy(() => import('./pages/tv/TvPlayer'))
+// The TV section's one stream, shared by the guide's preview and the watch view.
+const TvHost = lazy(() => import('./pages/tv/TvHost'))
 const tvFallback = <div className="center"><div className="spinner" /></div>
 
 export default function App() {
@@ -94,6 +96,7 @@ function Shell() {
   const isPlayer = loc.pathname.startsWith('/play/')
   const isReader = loc.pathname.startsWith('/read/')
   const isTvPlayer = loc.pathname.startsWith('/tv/watch/')
+  const isTv = loc.pathname === '/tv' || loc.pathname.startsWith('/tv/')
   const isGame = loc.pathname.startsWith('/game/')
   const isCouchMode = loc.pathname === '/big' || loc.pathname.startsWith('/big/')
   const isStream = /^\/couch\/\d+\/play\//.test(loc.pathname) || loc.pathname.startsWith('/couch-rig/')
@@ -106,6 +109,7 @@ function Shell() {
         : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
         : isPlayer ? null : <AppFrame />}
       <PlayerDock />
+      {isTv && <Suspense fallback={null}><TvHost /></Suspense>}
       <ReminderWatcher />
     </AudioProvider>
   )

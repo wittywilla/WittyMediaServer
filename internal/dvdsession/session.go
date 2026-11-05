@@ -54,6 +54,9 @@ type BDJView struct {
 	// Video is where the applications have placed the video, on a 1920x1080
 	// frame (x, y, w, h); empty = full screen.
 	Video []int `json:"video,omitempty"`
+	// Pointer: the applications take a pointer, so a tap or click on the picture
+	// goes to them (action "pointer").
+	Pointer bool `json:"pointer,omitempty"`
 }
 
 // Media describes the picture/sound for the current step.
@@ -444,7 +447,7 @@ func (s *Session) OpenMenu(ctx context.Context, kind string, vts int) *Presentat
 
 // Action is a client input.
 type Action struct {
-	Type    string `json:"type"` // press | select | key | ended | title | menu | resume | chapter | audio | subtitle | tick
+	Type    string `json:"type"` // press | select | key | ended | title | menu | resume | chapter | audio | subtitle | tick | pointer
 	Button  int    `json:"button"`
 	Key     string `json:"key"` // up down left right enter menu title resume next prev
 	TTN     int    `json:"ttn"`
@@ -455,6 +458,9 @@ type Action struct {
 	// PositionSec is where the viewer is in the current title stream; sent
 	// with menu calls so Resume can continue from the same point.
 	PositionSec float64 `json:"positionSec"`
+	// X and Y: where a pointer action touched the picture, on a 1920x1080 frame.
+	X int `json:"x,omitempty"`
+	Y int `json:"y,omitempty"`
 }
 
 // Do applies an action and returns the new presentation.

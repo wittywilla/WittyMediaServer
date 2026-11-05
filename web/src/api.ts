@@ -36,6 +36,8 @@ export type Item = {
   title: string; sortTitle: string; year: number | null; overview: string; tagline: string; genres: string[]
   rating: number | null; contentRating: string; studio: string; runtimeSec: number
   poster: string; backdrop: string; container: string; videoCodec: string; audioDirect?: boolean; reader?: 'epub' | 'cbz' | 'pdf'; width: number; height: number
+  // A video copied from a DVD or a Blu-ray: it gets that disc's remote, with no menus.
+  discSource?: 'dvd' | 'bluray'
   audioLangs: string[]; subLangs: string[]; disc?: DiscInfo; provider: string; providerId: string
   sizeBytes: number; addedAt: number; updatedAt: number; progress?: Progress
   showId?: number; showTitle?: string; season?: number; episode?: number; episodeEnd?: number; aired?: string; nextId?: number
@@ -155,8 +157,8 @@ export type DiscLabels = { titles: Record<string, string>; chapters: Record<stri
 export type SubEvent = { start: number; end: number; x: number; y: number; w: number; h: number; forced?: boolean; url: string
   text?: string; color?: string; outline?: string; size?: number; halign?: number; valign?: number; bold?: boolean; italic?: boolean }
 export type DvdMedia = { type: 'hls' | 'still' | 'none'; url?: string; loop: boolean; durationSec: number; stillSec: number; audio: boolean }
-export type Presentation = { kind: 'menu' | 'title' | 'stop'; serial: number; reason?: string; media?: DvdMedia; menu?: DvdMenu; title?: DvdTitle; scrambled?: boolean; timerSec?: number; pause?: boolean; bdj?: { pollUrl: string; video?: number[] } }
-export type DvdAction = { type: string; button?: number; key?: string; ttn?: number; chapter?: number; stream?: number; on?: boolean; menu?: string; positionSec?: number }
+export type Presentation = { kind: 'menu' | 'title' | 'stop'; serial: number; reason?: string; media?: DvdMedia; menu?: DvdMenu; title?: DvdTitle; scrambled?: boolean; timerSec?: number; pause?: boolean; bdj?: { pollUrl: string; video?: number[]; pointer?: boolean } }
+export type DvdAction = { type: string; button?: number; key?: string; ttn?: number; chapter?: number; stream?: number; on?: boolean; menu?: string; positionSec?: number; x?: number; y?: number }
 
 const TOKEN_KEY = 'wms.token'
 const SERVER_KEY = 'wms.server'

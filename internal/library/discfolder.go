@@ -1,6 +1,7 @@
 package library
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,14 +14,19 @@ import (
 
 // discStructure says what disc dir is the structure of, when dir is a VIDEO_TS, BDMV or BDAV
 // folder: "dvd-folder", "bluray-folder" or "". A BDAV folder is a recording, with clips and
-// no program: it plays as a Blu-ray with no menus.
+// no program: it plays as a Blu-ray with no menus. Only files count as the disc's files, and
+// a folder as its folder: a pipe by such a name would hold the scan.
 func discStructure(dir string) string {
-	has := func(names ...string) bool {
-		entries, err := os.ReadDir(dir)
-		if err != nil {
-			return false
-		}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return ""
+	}
+	has := func(folder bool, names ...string) bool {
 		for _, e := range entries {
+			linked := e.Type()&fs.ModeSymlink != 0
+			if (folder && !e.IsDir()) || (!folder && !plainMode(e.Type()) && !(linked && plainFile(filepath.Join(dir, e.Name())))) {
+				continue
+			}
 			for _, n := range names {
 				if strings.EqualFold(e.Name(), n) {
 					return true
@@ -31,15 +37,15 @@ func discStructure(dir string) string {
 	}
 	switch strings.ToUpper(filepath.Base(dir)) {
 	case "VIDEO_TS":
-		if has("VIDEO_TS.IFO") {
+		if has(false, "VIDEO_TS.IFO") {
 			return "dvd-folder"
 		}
 	case "BDMV":
-		if has("index.bdmv", "INDEX.BDM") {
+		if has(false, "index.bdmv", "INDEX.BDM") {
 			return "bluray-folder"
 		}
 	case "BDAV":
-		if has("CLIPINF", "info.bdav") {
+		if has(true, "CLIPINF") || has(false, "info.bdav") {
 			return "bluray-folder"
 		}
 	}

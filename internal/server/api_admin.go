@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/appcontrol"
 	"github.com/wittywilla/wittymediaserver/internal/brandname"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -265,6 +266,8 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 		"container":   ffmpeg.InContainer(),
 		"dvdSessions": s.DVD.Count(),
 		"blurays":     s.BD.Count(),
+		// Windows only: whether Smart App Control is on, in words.
+		"smartAppControl": appcontrol.Words(appcontrol.State()),
 	})
 }
 

@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { api, type Library } from '../../api'
+import { api, artSet, sized, WIDE_CARD_SIZES, type Library } from '../../api'
 import BrandLogo from '../../components/BrandLogo'
 import { EmptyState, ItemCard, LoadError, ScanButton, ShowCard, SkeletonGrid, Spinner, artHue } from '../../components/common'
 import { Button, LinkButton, Notice, Shelf as ShelfRow } from '../../ui'
@@ -70,7 +70,7 @@ function CategoryCard({ c, to, name, sub }: { c: Pick<Category, 'art'>; to: stri
   const h = artHue(name)
   return (
     <Link to={to} className="lib-cat" style={{ '--art-hue': h } as React.CSSProperties} aria-label={`${name}, ${sub}`}>
-      {art && !broken && <img src={artPictureUrl(art)} alt="" loading="lazy" onError={() => setBroken(true)} />}
+      {art && !broken && <img src={sized(artPictureUrl(art), 480)} srcSet={artSet(artPictureUrl(art), [320, 480, 640, 1280])} sizes={WIDE_CARD_SIZES} alt="" loading="lazy" onError={() => setBroken(true)} />}
       <span className="lib-cat-text"><b>{name}</b><span>{sub}</span></span>
     </Link>
   )

@@ -37,6 +37,14 @@ type lab struct {
 
 var realTools *ffmpeg.Tools
 
+// with is the lab for a subtest: its helpers then fail that subtest, not the
+// test around it, and the reason is reported where it happened.
+func (l *lab) with(t *testing.T) *lab {
+	c := *l
+	c.t = t
+	return &c
+}
+
 func newLab(t *testing.T) *lab {
 	t.Helper()
 	if realTools == nil {
@@ -1023,11 +1031,13 @@ func TestRealHDR(t *testing.T) {
 	if !has("libx265") {
 		t.Skip("no libx265 here")
 	}
+	// The tags go on the frames too: FFmpeg 9.0.2 writes an MKV's colours as unknown when they're
+	// only output options. The server's own conversions do the same (hdrColorParams).
 	hdr10 := []string{"-c:v", "libx265", "-preset", "ultrafast", "-pix_fmt", "yuv420p10le", "-x265-params",
 		"log-level=error:hdr10=1:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:master-display=G(13250,34500)B(7500,3000)R(34000,16000)WP(15635,16450)L(10000000,1):max-cll=1000,400",
-		"-color_primaries", "bt2020", "-color_trc", "smpte2084", "-colorspace", "bt2020nc", "-c:a", "aac"}
+		"-color_primaries", "bt2020", "-color_trc", "smpte2084", "-colorspace", "bt2020nc", "-vf", "setparams=color_primaries=bt2020:color_trc=smpte2084:colorspace=bt2020nc", "-c:a", "aac"}
 	hlg := []string{"-c:v", "libx265", "-preset", "ultrafast", "-pix_fmt", "yuv420p10le", "-x265-params", "log-level=error:colorprim=bt2020:transfer=arib-std-b67:colormatrix=bt2020nc",
-		"-color_primaries", "bt2020", "-color_trc", "arib-std-b67", "-colorspace", "bt2020nc", "-c:a", "aac"}
+		"-color_primaries", "bt2020", "-color_trc", "arib-std-b67", "-colorspace", "bt2020nc", "-vf", "setparams=color_primaries=bt2020:color_trc=arib-std-b67:colorspace=bt2020nc", "-c:a", "aac"}
 	src := l.gen("Hdr10.mkv", join(pic(2, "640x360"), tone(2, 300, "stereo"), hdr10)...)
 	l.gen("Hlg.mkv", join(pic(2, "640x360"), tone(2, 300, "stereo"), hlg)...)
 	v := Inspect(src, l.probe(src)).Video[0]
@@ -1036,12 +1046,14 @@ func TestRealHDR(t *testing.T) {
 	}
 	l.scan()
 	t.Run("save space leaves efficient HDR alone", func(t *testing.T) {
+		l := l.with(t)
 		r := l.run(preset(t, PresetSaveSpace), OutputReplace)
 		if r.Summary.Skip != 2 {
 			t.Fatalf("%+v", r.Summary)
 		}
 	})
 	t.Run("kept as HDR when it must be converted", func(t *testing.T) {
+		l := l.with(t)
 		p := preset(t, PresetSaveSpace)
 		p.Preset = PresetCustom
 		p.Video.MaxHeight = 240
@@ -1071,6 +1083,7 @@ func TestRealHDR(t *testing.T) {
 		}
 	})
 	t.Run("kept as HDR in AV1", func(t *testing.T) {
+		l := l.with(t)
 		if !has("libsvtav1") {
 			t.Skip("no AV1 encoder")
 		}
@@ -1096,6 +1109,7 @@ func TestRealHDR(t *testing.T) {
 		}
 	})
 	t.Run("made an ordinary picture", func(t *testing.T) {
+		l := l.with(t)
 		if l.tools.ToneMapFilter("hdr10") == "" {
 			t.Skip("this FFmpeg has no tone mapping filters")
 		}
@@ -1115,6 +1129,7 @@ func TestRealHDR(t *testing.T) {
 		}
 	})
 	t.Run("refused when asked", func(t *testing.T) {
+		l := l.with(t)
 		p := preset(t, PresetCompatible)
 		p.Preset = PresetCustom
 		p.Video.HDR = "refuse"
@@ -1127,6 +1142,7 @@ func TestRealHDR(t *testing.T) {
 		}
 	})
 	t.Run("H.264 can't carry HDR", func(t *testing.T) {
+		l := l.with(t)
 		p := preset(t, PresetSaveSpace)
 		p.Preset = PresetCustom
 		p.Video.Codec = "h264"
@@ -1220,6 +1236,7 @@ func TestRealDolbyVision(t *testing.T) {
 	}
 	l.scan()
 	t.Run("kept by leaving the picture alone", func(t *testing.T) {
+		l := l.with(t)
 		r := l.run(preset(t, PresetBest), OutputBeside)
 		if r.Summary.Done != 2 {
 			t.Fatalf("%+v %+v", r.Summary, l.files(r))
@@ -1236,6 +1253,7 @@ func TestRealDolbyVision(t *testing.T) {
 		}
 	})
 	t.Run("profile 5 refused, 8 converted from its base layer", func(t *testing.T) {
+		l := l.with(t)
 		if l.tools.ToneMapFilter("hdr10") == "" {
 			t.Skip("no tone mapping")
 		}
@@ -1265,6 +1283,7 @@ func TestRealDolbyVision(t *testing.T) {
 		}
 	})
 	t.Run("keep refuses what would need converting", func(t *testing.T) {
+		l := l.with(t)
 		p := preset(t, PresetSaveSpace)
 		p.Preset = PresetCustom
 		p.Video.MaxHeight = 240
@@ -1284,7 +1303,7 @@ func TestRealPictureOddities(t *testing.T) {
 	l.scan()
 	r := l.run(preset(t, PresetCompatible), OutputReplace)
 	for _, f := range l.files(r) {
-		t.Logf("%s: %s %s %s", filepath.Base(f.Path), f.Verdict, f.State, f.Message)
+		t.Logf("%s: %s %s %s %s", filepath.Base(f.Path), f.Verdict, f.State, f.Reason, f.Message)
 	}
 	if r.Summary.Failed != 0 {
 		t.Fatalf("%+v", r.Summary)

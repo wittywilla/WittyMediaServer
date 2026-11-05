@@ -1,8 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { HelpLink } from '../components/HelpLink'
-import { profileName, albumsOnce, api, ApiError, backdropUrl, discName, fmtRuntime, isDisc, posterUrl, type Home, type Hub, type Show, type Item, inMainMenus } from '../api'
+import { profileName, albumsOnce, api, ApiError, backdropUrl, discName, fitWidth, fmtRuntime, isDisc, posterUrl, sized, type Home, type Hub, type Show, type Item, inMainMenus } from '../api'
 import { CardRow, ItemCard, ShowCard, Spinner } from '../components/common'
+import { UpdateBanner } from '../components/UpdateBanner'
 import { IconDown, IconGrip, IconInfo, IconPause, IconPlay, IconPlus, IconRefresh, IconRight, IconStar, IconUp, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import { useOpenItem } from '../openItem'
@@ -94,7 +95,7 @@ export default function HomePage() {
 
   if (err) return <HomeProblem offline={err.offline} message={err.message} retry={() => { refreshLibraries(); load() }} />
   if (!home) return <Spinner />
-  if (home.libraries.length === 0) return <Welcome admin={!!user?.isAdmin} name={user ? profileName(user) : ''} onAdded={refreshLibraries} />
+  if (home.libraries.length === 0) return <><UpdateBanner /><Welcome admin={!!user?.isAdmin} name={user ? profileName(user) : ''} onAdded={refreshLibraries} /></>
   const shown = editing ? ordered : ordered.filter((w) => !layout.hidden.includes(w.id))
   const scanning = libraries.some((l) => l.scanning)
   const empty = home.featured.length === 0 && home.hubs.every((h) => !h.items.length && !(h.shows || []).length)
@@ -107,6 +108,7 @@ export default function HomePage() {
           <button className="btn sm primary" onClick={() => setEditing(false)}>Done</button>
         </div>
       )}
+      {!editing && <UpdateBanner />}
       {!editing && (home.featured.length === 0 || layout.hidden.includes('hero')) && <Greeting name={user ? profileName(user) : ''} />}
       {!editing && empty && (
         <div className="home-card">
@@ -251,8 +253,8 @@ function Shuffle() {
     <section className="hub">
       <div className="hub-head"><h2>Can’t decide?</h2></div>
       <div className="shuffle">
-        <div className="shuffle-art" style={backdropUrl(it) ? { backgroundImage: `url(${backdropUrl(it)})` } : undefined} />
-        <img className="shuffle-poster" src={posterUrl(it)} alt="" loading="lazy" />
+        <div className="shuffle-art" style={backdropUrl(it) ? { backgroundImage: `url(${sized(backdropUrl(it), fitWidth(innerWidth))})` } : undefined} />
+        <img className="shuffle-poster" src={sized(posterUrl(it), fitWidth(240))} alt="" loading="lazy" />
         <div className="shuffle-info">
           <h3>{it.title}</h3>
           <div className="muted">{[it.year, fmtRuntime(it.runtimeSec), it.genres.slice(0, 2).join(', ')].filter(Boolean).join(' · ')}</div>
@@ -282,9 +284,12 @@ function Hero({ items }: { items: Home['featured'] }) {
   }, [items.length, paused, hold])
   const it = items[i]
   if (!it) return null
+  const n = items.length
+  const near = (k: number) => k === i || k === (i + 1) % n || k === (i + n - 1) % n
   return (
     <div className="hero" onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)} onFocus={() => setHold(true)} onBlur={() => setHold(false)}>
-      {items.map((x, k) => <div key={x.id} className="bg" style={{ backgroundImage: backdropUrl(x) ? `url(${backdropUrl(x)})` : undefined, opacity: k === i ? 1 : 0 }} />)}
+      {/* The slide showing, the one fading out and the next: the rest wait to be shown. */}
+      {items.map((x, k) => <div key={x.id} className="bg" style={{ backgroundImage: backdropUrl(x) && near(k) ? `url(${sized(backdropUrl(x), fitWidth(innerWidth))})` : undefined, opacity: k === i ? 1 : 0 }} />)}
       <div className="shade" />
       <div className="info">
         <h1>{it.title}</h1>

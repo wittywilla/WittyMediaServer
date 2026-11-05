@@ -406,6 +406,7 @@ func TestWithin(t *testing.T) {
 // TestApply runs a whole update against a fake release server: signature,
 // checksum, download, swap and restart, with the data folder untouched.
 func TestApply(t *testing.T) {
+	skipOnMac(t)
 	priv, pub := newKey(t)
 	exe := filepath.Join("bin", layout.Exe(layout.ServerCommand))
 	ver := "9.9.9-alpha"
@@ -527,6 +528,7 @@ func TestApply(t *testing.T) {
 
 // A package manager owns its files: Settings says how to update, and doesn't touch them.
 func TestPackagedCopiesPointToTheirInstaller(t *testing.T) {
+	skipOnMac(t)
 	for kind, want := range map[string]string{layout.KindDeb: "apt", layout.KindRPM: "dnf", layout.KindPkg: "installer", layout.KindFreeBSD: "pkg add"} {
 		dir := install(t)
 		writeFile(t, filepath.Join(dir, layout.Marker), []byte(`{"product":"WittyMediaServer","kind":"`+kind+`"}`))
@@ -540,6 +542,7 @@ func TestPackagedCopiesPointToTheirInstaller(t *testing.T) {
 
 // A copy from before 0.6.0, or built from source, can't replace its own files.
 func TestNoMarkerNoUpdate(t *testing.T) {
+	skipOnMac(t)
 	dir := install(t)
 	if err := os.Remove(filepath.Join(dir, layout.Marker)); err != nil {
 		t.Fatal(err)
@@ -572,4 +575,35 @@ func cmpInt(a, b int) int {
 		return 1
 	}
 	return 0
+}
+
+// skipOnMac: a Mac never replaces its own files, whatever installed them. TestAMacPointsToItsInstaller.
+func skipOnMac(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "darwin" {
+		t.Skip("a Mac's copy is updated by its installer")
+	}
+}
+
+// On a Mac, the app is replaced by running the new installer, however it got there.
+func TestAMacPointsToItsInstaller(t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Skip("for a Mac")
+	}
+	for _, kind := range []string{layout.KindPkg, layout.KindArchive, ""} {
+		dir := install(t)
+		marker := filepath.Join(dir, layout.Marker)
+		if kind == "" {
+			if err := os.Remove(marker); err != nil {
+				t.Fatal(err)
+			}
+		} else {
+			writeFile(t, marker, []byte(`{"product":"WittyMediaServer","kind":"`+kind+`"}`))
+		}
+		u := New("0.3.0-alpha", dir, nil, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+		u.Restart = func() {}
+		if got := u.cannotApply(); !strings.Contains(got, "On a Mac") {
+			t.Errorf("%q: %q", kind, got)
+		}
+	}
 }

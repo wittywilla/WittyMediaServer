@@ -2,7 +2,7 @@ import { Fragment, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { PosterCard } from '../ui/Surface'
 import { brandParts, DEFAULT_NAME } from '../brandName'
-import { api, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, type Item, type Show } from '../api'
+import { api, artSet, CARD_SIZES, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, sized, WIDE_CARD_SIZES, type Item, type Show } from '../api'
 import { toast, useApp } from '../state'
 import { IconCheck, IconLeft, IconRefresh } from '../icons'
 
@@ -62,7 +62,7 @@ export const ItemCard = memo(function ItemCard({ item, wide = item.showId != nul
     <PosterCard to={`/item/${item.id}`} name={item.title} shape={audio ? 'square' : wide ? 'wide' : 'poster'} progress={pct}
       posterClass={gen && !wide ? 'generated' : undefined}
       posterStyle={gen && !wide ? { '--art-hue': artHue(item.title) } as React.CSSProperties : undefined}
-      art={item.poster ? <img src={posterUrl(item)} alt="" loading="lazy" /> : <Placeholder title={item.title} />}
+      art={item.poster ? <img src={sized(posterUrl(item), 320)} srcSet={artSet(posterUrl(item))} sizes={wide ? WIDE_CARD_SIZES : CARD_SIZES} alt="" loading="lazy" /> : <Placeholder title={item.title} />}
       badges={<>
         {(isDisc(item) || cd) && <span className={'badge disc' + (isBluray(item) ? ' bluray' : '')}>{discName(item)}</span>}
         {item.progress?.watched && <SeenBadge />}
@@ -87,7 +87,7 @@ export const ShowCard = memo(function ShowCard({ show }: { show: Show }) {
       art={<>
         <Placeholder title={show.title} />
         {/* The server falls back to an episode still when there is no poster yet. */}
-        <img src={showPosterUrl(show)} alt="" loading="lazy" style={{ position: 'relative' }} onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
+        <img src={sized(showPosterUrl(show), 320)} srcSet={artSet(showPosterUrl(show))} sizes={CARD_SIZES} alt="" loading="lazy" style={{ position: 'relative' }} onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
       </>}
       badges={<>
         {show.unwatched > 0 && show.unwatched < show.episodeCount && <span className="badge count" role="img" aria-label={`${show.unwatched} unwatched`}>{show.unwatched}</span>}

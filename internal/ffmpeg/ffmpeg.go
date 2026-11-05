@@ -77,20 +77,37 @@ func Locate(ffmpegPath, ffprobePath string) (*Tools, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if out, _, err := Run(ctx, t.FFmpeg, []string{"-hide_banner", "-version"}); err == nil {
-		if line, _, ok := bytes.Cut(out, []byte("\n")); ok {
-			t.Version = strings.TrimSpace(string(line))
-		}
+	out, banner, err := t.encoderList(ctx)
+	if err != nil {
+		return t, nil
 	}
-	if out, _, err := Run(ctx, t.FFmpeg, []string{"-hide_banner", "-encoders"}); err == nil {
-		for _, line := range strings.Split(string(out), "\n") {
-			f := strings.Fields(line)
-			if len(f) >= 2 && len(f[0]) == 6 && f[0][0] == 'V' || len(f) >= 2 && len(f[0]) == 6 && f[0][0] == 'A' {
-				t.Encoders[f[1]] = true
-			}
+	if line, _, _ := strings.Cut(banner, "\n"); strings.HasPrefix(line, "ffmpeg version") {
+		t.Version = strings.TrimSpace(line)
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		f := strings.Fields(line)
+		if len(f) >= 2 && len(f[0]) == 6 && f[0][0] == 'V' || len(f) >= 2 && len(f[0]) == 6 && f[0][0] == 'A' {
+			t.Encoders[f[1]] = true
 		}
 	}
 	return t, nil
+}
+
+// encoderList asks FFmpeg for its encoders, and gets its version too: without -hide_banner it
+// names itself first on standard error. That's one start instead of two before the server can
+// listen. A start takes a tenth of a second on Linux, and from half a second to well over one
+// on a busy Windows machine, where the 170 MB program is scanned each time.
+func (t *Tools) encoderList(ctx context.Context) (list []byte, banner string, err error) {
+	cmd := Command(ctx, t.FFmpeg, "-nostdin", "-encoders")
+	var stdout bytes.Buffer
+	stderr := &logging.Tail{} // the banner is at the start, which it keeps
+	cmd.Stdout, cmd.Stderr = &stdout, stderr
+	started := time.Now()
+	if err := cmd.Run(); err != nil {
+		logging.ChildExit(slog.Default().With("cat", "transcode"), "ffmpeg", err, false, stderr, started, "args", "-encoders")
+		return nil, "", err
+	}
+	return stdout.Bytes(), stderr.String(), nil
 }
 
 // ---------------------------------------------------------------------------

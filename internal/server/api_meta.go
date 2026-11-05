@@ -564,7 +564,7 @@ func (s *Server) handleMetaTitlePoster(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	writeJSON(w, 200, map[string]any{"url": u, "hue": library.HueOf(strings.Join(strings.Fields(b.Title), " "))})
+	writeJSON(w, 200, map[string]string{"url": u})
 }
 
 // GET /api/meta/{target}/{id}/artwork?kind=: every picture every source has for it, once.

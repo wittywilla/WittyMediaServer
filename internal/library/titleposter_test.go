@@ -70,15 +70,16 @@ func TestFallbackPosterFollowsTheSetting(t *testing.T) {
 	mode := NoPosterTitle
 	s := &Scanner{ImagesDir: t.TempDir(), NoPoster: func() string { return mode }}
 	p, src, err := s.fallbackPoster(context.Background(), it)
-	if err != nil || !strings.HasPrefix(p, "cache:made-") || src != SourceMade {
+	if err != nil || !strings.HasPrefix(p, "cache:auto-") || src != SourceMade || !IsMadePoster(p) {
 		t.Fatalf("title: %q %q %v", p, src, err)
 	}
 	mode = NoPosterNone
 	if p, _, err := s.fallbackPoster(context.Background(), it); p != "" || err != nil {
 		t.Errorf("none: %q %v", p, err)
 	}
-	// A made poster is one of ours: a real one replaces it, and it's never written beside the media.
-	if !IsMadePoster("cache:made-1.jpg") || !IsMadePoster("cache:thumb-1.jpg") || IsMadePoster("cache:up-1.jpg") {
+	// One the scan made is ours: a real one replaces it, and it's never written beside the media.
+	// One a person made in the picker is theirs: written beside the media like any choice.
+	if IsMadePoster("cache:made-1.jpg") || !IsMadePoster("cache:thumb-1.jpg") || IsMadePoster("cache:up-1.jpg") {
 		t.Error("IsMadePoster")
 	}
 	tt := &Title{Item: &Item{Poster: "cache:made-1.jpg"}, Meta: &TitleMeta{Sources: map[string]string{}}}

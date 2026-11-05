@@ -81,7 +81,7 @@ export default function MetadataSettings() {
       </Section>
 
       <Section title="Artwork">
-        <Row label="When a film or video has no poster" desc="What a title gets when nothing beside it or from a source has a poster. You can change any title's poster, or make a title poster for it, from its page.">
+        <Row label="When a film or video has no poster" desc="What a title gets when nothing beside it or from a source has a poster. Titles already in your libraries keep what they have until they're scanned again or you choose another; any title's poster, including a title poster, can be changed from its page.">
           <select className="select" value={s.noPoster || 'frame'} onChange={(e) => set('noPoster', e.target.value)}>
             <option value="frame">A frame from the video</option>
             <option value="title">A poster made from its title</option>

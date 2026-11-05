@@ -41,7 +41,7 @@ export default function TitleArtPicker({ target, id, start, ed: given, onApplied
       frame={target === 'item' ? () => api.post<{ url: string }>(`/meta/item/${id}/frame`).then((r) => r.url) : undefined}
       maker={kinds.some((k) => k.kind === 'poster') ? {
         title: value('title') || ed.name, line: value('year'), hasVideo: target === 'item',
-        make: (o) => api.post<{ url: string; hue: number }>(`/meta/${target}/${id}/titleposter`, o),
+        make: (o) => api.post<{ url: string }>(`/meta/${target}/${id}/titleposter`, o),
       } : undefined}
       note={beside === null ? undefined : beside
         ? 'Saving beside the media is on, so what you apply is also written next to it (poster.jpg, fanart.jpg or <name>-poster.jpg), where other media software can find it.'

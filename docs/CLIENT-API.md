@@ -1091,7 +1091,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /meta/{target}/{id}/artwork` | Admin | Every picture every source has for a title. |
 | `PUT /meta/{target}/{id}/art/{kind}` | Admin | Upload a poster, backdrop, banner or logo. The picture is the body. It's decoded and written again from its pixels. With `?stage=1` it's only kept, and the answer is `{url}` to apply later with `PUT /meta/{target}/{id}`. |
 | `POST /meta/{target}/{id}/frame` | Admin | A frame from the video (items only), kept in the image cache: `{url}`. Nothing changes until it's applied. |
-| `POST /meta/{target}/{id}/titleposter` | Admin | A poster made from words: `{title, line, hue, frame}` (`hue` 0 to 359, or left out for the title's own colour; `frame: true` sets the words over a frame from the video). Answers `{url}`. Nothing changes until it's applied. |
+| `POST /meta/{target}/{id}/titleposter` | Admin | A poster made from words: `{title, line, hue, frame}` (`hue` 0 to 359, or left out for the title's own colour; `frame: true` sets the words over a frame from the video). Answers `{url}`. Nothing changes until it's applied. A poster made here is the owner's choice once applied; one the scan makes for a title with no poster (setting `noPoster`) is named `cache:auto-…` and replaced by any real poster. |
 | `GET /meta/{target}/{id}/art/{kind}` | Signed in | A title's banner or logo. |
 | `POST /meta/{target}/{id}/link` | Admin | Make an item a bonus feature or another version of something. |
 | `DELETE /meta/{target}/{id}/link` | Admin | Make an attached item a title of its own again. |

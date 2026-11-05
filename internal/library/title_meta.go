@@ -622,7 +622,7 @@ func (t *Title) sourceOf(f string) string {
 		switch {
 		case strings.HasPrefix(v, "cache:thumb-") || v == LazyPoster:
 			return SourceFrame
-		case strings.HasPrefix(v, "cache:made-"):
+		case strings.HasPrefix(v, "cache:made-") || strings.HasPrefix(v, "cache:auto-"):
 			return SourceMade
 		case isRemote(v) || strings.HasPrefix(v, "cache:"):
 			if provider != "" {

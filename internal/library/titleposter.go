@@ -47,6 +47,9 @@ type TitlePoster struct {
 	Line  string `json:"line"`  // a second, smaller line, such as the year
 	Hue   int    `json:"hue"`   // 0 to 359; -1 is the title's own colour
 	Frame string `json:"frame"` // a cache: picture to set the words over, or ""
+	// Auto: made by the scan for a title with no poster, not chosen by anyone. It's
+	// named apart, so a real poster replaces it and it's never written beside the media.
+	Auto bool `json:"-"`
 }
 
 const (
@@ -76,10 +79,11 @@ func HueOf(title string) int {
 	return h
 }
 
-// IsMadePoster: a poster this server made itself (a frame, or a title poster), which a
-// picture from a source or beside the file may replace.
+// IsMadePoster: a poster this server made by itself because there was none (a frame, or
+// a title poster), which a picture from a source or beside the file may replace. One a
+// person made and chose in the artwork picker is theirs, like any other choice.
 func IsMadePoster(v string) bool {
-	return strings.HasPrefix(v, "cache:thumb-") || strings.HasPrefix(v, "cache:made-")
+	return strings.HasPrefix(v, "cache:thumb-") || strings.HasPrefix(v, "cache:auto-")
 }
 
 // fallbackPoster is what a video with no poster of its own gets, by the noPoster setting:
@@ -95,7 +99,7 @@ func (s *Scanner) fallbackPoster(ctx context.Context, it *Item) (string, string,
 		if it.Year != nil && *it.Year > 0 {
 			line = fmt.Sprint(*it.Year)
 		}
-		p, err := s.MakeTitlePoster(TitlePoster{Title: it.Title, Line: line, Hue: -1})
+		p, err := s.MakeTitlePoster(TitlePoster{Title: it.Title, Line: line, Hue: -1, Auto: true})
 		return p, SourceMade, err
 	case NoPosterFrame:
 		if it.Disc != nil && it.Disc.Scrambled {
@@ -139,6 +143,9 @@ func (s *Scanner) MakeTitlePoster(p TitlePoster) (string, error) {
 	}
 	sum := sha1.Sum([]byte(strings.Join([]string{madeVersion, p.Title, p.Line, fmt.Sprint(p.Hue), p.Frame}, "\x00")))
 	name := "made-" + hex.EncodeToString(sum[:10]) + ".jpg"
+	if p.Auto {
+		name = "auto-" + hex.EncodeToString(sum[:10]) + ".jpg"
+	}
 	out := filepath.Join(s.ImagesDir, name)
 	if st, err := os.Stat(out); err == nil && st.Size() > 0 {
 		return "cache:" + name, nil
@@ -184,14 +191,15 @@ func drawTitlePoster(p TitlePoster, under image.Image) ([]byte, error) {
 	img := image.NewRGBA(image.Rect(0, 0, madeW, madeH))
 	// The same colours as a card without a poster: lighter at the top left, darker below.
 	top, bottom := hsl(float64(p.Hue), .32, .32), hsl(float64((p.Hue+40)%360), .38, .15)
-	for y := 0; y < madeH; y++ {
-		for x := 0; x < madeW; x++ {
-			t := (float64(y)*0.94 + float64(x)*0.34) / (madeH*0.94 + madeW*0.34)
-			img.SetRGBA(x, y, mix(top, bottom, t))
-		}
-	}
 	textTop := 0.0 // where the words sit: the middle, or low over a picture
-	if under != nil {
+	if under == nil {
+		for y := 0; y < madeH; y++ {
+			for x := 0; x < madeW; x++ {
+				t := (float64(y)*0.94 + float64(x)*0.34) / (madeH*0.94 + madeW*0.34)
+				img.SetRGBA(x, y, mix(top, bottom, t))
+			}
+		}
+	} else {
 		// Cover the poster with the frame, then darken it towards the bottom for the words.
 		b := under.Bounds()
 		scale := math.Max(float64(madeW)/float64(b.Dx()), float64(madeH)/float64(b.Dy()))

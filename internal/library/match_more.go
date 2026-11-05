@@ -42,8 +42,9 @@ func PictureExt(b []byte) string {
 const maxArtPixels = 25_000_000
 
 // CleanPicture reads an uploaded picture and writes it again from its pixels, so nothing
-// but the picture survives: no location or camera details, no trailing data. A JPEG stays
-// a JPEG; anything else becomes a PNG, which keeps transparency for logos.
+// but the picture survives: no location or camera details, no trailing data. A picture
+// with see-through parts (a logo) becomes a PNG, which keeps them; anything else a JPEG,
+// which keeps a large photo small.
 func CleanPicture(b []byte) (out []byte, ext string, err error) {
 	defer func() {
 		if p := recover(); p != nil { // decoders see whatever was sent
@@ -65,7 +66,7 @@ func CleanPicture(b []byte) (out []byte, ext string, err error) {
 		return nil, "", errors.New("this picture couldn't be read")
 	}
 	var buf bytes.Buffer
-	if format == "jpeg" {
+	if format == "jpeg" || opaque(img) {
 		err, ext = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 90}), ".jpg"
 	} else {
 		err, ext = png.Encode(&buf, img), ".png"
@@ -74,6 +75,14 @@ func CleanPicture(b []byte) (out []byte, ext string, err error) {
 		return nil, "", err
 	}
 	return buf.Bytes(), ext, nil
+}
+
+// opaque: nothing in the picture can be seen through.
+func opaque(img image.Image) bool {
+	if o, ok := img.(interface{ Opaque() bool }); ok {
+		return o.Opaque()
+	}
+	return false
 }
 
 // Frame is a picture from about a fifth of the way into a video or a disc's main

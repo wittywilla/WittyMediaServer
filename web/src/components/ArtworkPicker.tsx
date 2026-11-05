@@ -22,7 +22,7 @@ export type PickerChoice = { url: string; sourceLabel: string; own?: boolean }
 type Found = { candidates: PickerChoice[]; warnings: string[] }
 
 export type MakeOptions = { title: string; line: string; hue: number | null; frame: boolean }
-export type Maker = { title: string; line: string; hasVideo: boolean; make: (o: MakeOptions) => Promise<{ url: string; hue: number }> }
+export type Maker = { title: string; line: string; hasVideo: boolean; make: (o: MakeOptions) => Promise<{ url: string }> }
 
 export const ART_KINDS: PickerKind[] = [
   { kind: 'poster', label: 'Poster', shape: 'tall' },
@@ -266,7 +266,8 @@ function TitleMaker({ maker, busy, onMake }: { maker: Maker; busy: boolean; onMa
   const [hue, setHue] = useState<number | null>(null)
   const [frame, setFrame] = useState(false)
   const id = useId()
-  const own = artHue(words || maker.title)
+  // The server's colour for these words: spaces don't count.
+  const own = artHue(words.trim().split(/\s+/).join(' ') || maker.title)
   const shown = hue ?? own
   return (
     <form className="ap-maker" aria-label="Title poster" onSubmit={(e) => { e.preventDefault(); onMake({ title: words, line, hue, frame }) }}>

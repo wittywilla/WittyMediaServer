@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -178,5 +179,75 @@ func TestMusicVideosSection(t *testing.T) {
 	}
 	if got := get(kid, ""); len(got) != 2 || got[0].Song != nil {
 		t.Fatalf("a song the kid can't hear is shown: %+v", got[0])
+	}
+}
+
+func TestVideoSharesItsSongsLyrics(t *testing.T) {
+	ts := newTestServer(t)
+	_, admin := ts.user(t, "owner", "adult", true, "")
+	_, other := ts.user(t, "friend", "adult", false, "")
+	song, _ := musicSong(t, ts, map[string]string{"01 A Made Up Song.lrc": "[00:01.00]First\n[00:02.50]Second\n"})
+	dir := t.TempDir()
+	videoPath := filepath.Join(dir, "An Artist - A Made Up Song.webm")
+	lonePath := filepath.Join(dir, "Someone - Alone.webm")
+	for p, body := range map[string]string{videoPath: "x", lonePath: "x", filepath.Join(dir, "Someone - Alone.lrc"): "[00:03.00]Only mine\n"} {
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	lib := ts.library(t, "musicvideos", dir)
+	video := ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: videoPath, Title: "A Made Up Song (Official Video)", Studio: "An Artist", RuntimeSec: 210})
+	lone := ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: lonePath, Title: "Alone", Studio: "Someone", RuntimeSec: 100})
+	if w := ts.do(t, "PUT", "/api/music/links", admin, map[string]any{"songId": song.ID, "videoId": video.ID, "syncMs": 4000}); w.Code != 200 {
+		t.Fatalf("tie: %d %s", w.Code, w.Body)
+	}
+	lyricsOf := func(token string, id int64) lyricsReply {
+		t.Helper()
+		return decodeLyrics(t, ts.do(t, "GET", fmt.Sprintf("/api/music/lyrics/%d", id), token, nil))
+	}
+
+	got := lyricsOf(other, video.ID)
+	if got.ItemID != video.ID || got.SongID != song.ID || got.Source != "sidecar" || !got.Synced || len(got.Lines) != 2 || got.OffsetMS != 4000 {
+		t.Fatalf("the video doesn't show its song's lyrics, four seconds on: %+v", got)
+	}
+
+	// Each person moves the video's timing apart from the song's, and back.
+	ts.do(t, "PUT", fmt.Sprintf("/api/music/lyrics/%d/offset", video.ID), other, map[string]int64{"offsetMs": 4500})
+	if got := lyricsOf(other, video.ID); got.OffsetMS != 4500 {
+		t.Fatalf("the video's own timing: %+v", got)
+	}
+	if got := lyricsOf(other, song.ID); got.OffsetMS != 0 {
+		t.Fatalf("moving the video moved the song: %+v", got)
+	}
+	if got := lyricsOf(admin, video.ID); got.OffsetMS != 4000 {
+		t.Fatalf("one person's timing reached another: %+v", got)
+	}
+	ts.do(t, "PUT", fmt.Sprintf("/api/music/lyrics/%d/offset", video.ID), other, map[string]int64{"offsetMs": 4000})
+	var n int
+	_ = ts.DB.QueryRow(`SELECT COUNT(*) FROM lyrics_offsets WHERE item_id = ?`, video.ID).Scan(&n)
+	if n != 0 {
+		t.Fatal("the timing back where it starts is still kept")
+	}
+	if w := ts.do(t, "PUT", fmt.Sprintf("/api/music/lyrics/%d/offset", video.ID), other, map[string]int64{"offsetMs": 4000 + 130000}); w.Code != 400 {
+		t.Fatalf("more than two minutes from where it starts: %d", w.Code)
+	}
+
+	// A correction made from the video is the song's, for both.
+	text := "[00:01.00]Corrected\n"
+	if w := ts.do(t, "PUT", fmt.Sprintf("/api/music/lyrics/%d", video.ID), admin, map[string]any{"text": text}); w.Code != 200 {
+		t.Fatalf("correct: %d %s", w.Code, w.Body)
+	}
+	for _, id := range []int64{song.ID, video.ID} {
+		if got := lyricsOf(other, id); got.Source != "override" || len(got.Lines) != 1 || got.Lines[0].Text != "Corrected" {
+			t.Fatalf("the correction isn't shared (%d): %+v", id, got)
+		}
+	}
+	if _, err := os.Stat(ts.lyricsOverridePath(song.ID)); err != nil {
+		t.Fatalf("the correction isn't kept for the song: %v", err)
+	}
+
+	// A video with no song has lyrics of its own, from beside it.
+	if got := lyricsOf(other, lone.ID); got.SongID != 0 || got.Source != "sidecar" || len(got.Lines) != 1 || got.OffsetMS != 0 {
+		t.Fatalf("a video's own lyrics: %+v", got)
 	}
 }

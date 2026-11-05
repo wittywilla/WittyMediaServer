@@ -26908,7 +26908,7 @@
             "bearer": []
           }
         ],
-        "summary": "A song's lyrics. Looks online only with fetch=1, when the owner has turned it on",
+        "summary": "A song's lyrics, or a music video's (its song's). Looks online only with fetch=1, when the owner has turned it on",
         "tags": [
           "Music, audiobooks and podcasts"
         ],

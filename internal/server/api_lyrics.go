@@ -61,7 +61,11 @@ type savedLyrics struct {
 
 // What the player gets.
 type lyricsReply struct {
-	ItemID       int64         `json:"itemId"`
+	ItemID int64 `json:"itemId"`
+	// SongID: a music video shows its song's lyrics, and this is the song.
+	SongID int64 `json:"songId,omitempty"`
+	// StartMS is the timing before the person moves it: for a video, where its song starts.
+	StartMS      int64         `json:"startMs,omitempty"`
 	Source       string        `json:"source"` // "", override, sidecar, embedded, lrclib, mirror, musixmatch
 	SourceName   string        `json:"sourceName,omitempty"`
 	CreditURL    string        `json:"creditUrl,omitempty"`
@@ -327,24 +331,58 @@ func (s *Server) askOnline(ctx context.Context, it *library.Item) (*savedLyrics,
 	return v, nil
 }
 
-func (s *Server) lyricsOffset(ctx context.Context, userID, itemID int64) int64 {
-	var ms int64
+// lyricsOffset is a person's own timing for an item, or def when they haven't moved it.
+func (s *Server) lyricsOffset(ctx context.Context, userID, itemID, def int64) int64 {
+	ms := def
 	_ = s.DB.QueryRowContext(ctx, `SELECT offset_ms FROM lyrics_offsets WHERE user_id = ? AND item_id = ?`, userID, itemID).Scan(&ms)
 	return ms
 }
 
-func (s *Server) lyricsItem(w http.ResponseWriter, r *http.Request) *library.Item {
+// lyricsTarget is the item asked about and the one whose lyrics they are. A music video
+// tied to a song this person may hear shares the song's, so a fetch or a correction made
+// from either is there for both; its timing starts from where the song starts in it.
+type lyricsTarget struct {
+	asked, it *library.Item
+	defaultMS int64 // the offset before the person moves it
+}
+
+func (s *Server) lyricsFor(w http.ResponseWriter, r *http.Request) *lyricsTarget {
 	id, ok := pathInt(r, "id")
 	if !ok {
 		writeErr(w, 400, "bad id")
 		return nil
 	}
 	it, err := s.visibleItem(r, id)
-	if err != nil || it.Kind != "audio" {
+	if err == nil && it.Kind == "audio" {
+		return &lyricsTarget{asked: it, it: it}
+	}
+	if err != nil || it.Kind != "video" || s.linkRole(r.Context(), it) != "video" {
 		writeErr(w, 404, "not found")
 		return nil
 	}
-	return it
+	t := &lyricsTarget{asked: it, it: it}
+	links, _ := s.musicLinks().Of(r.Context(), it.ID)
+	for _, l := range links {
+		if l.State != "tied" {
+			continue
+		}
+		if song, err := s.visibleItem(r, l.SongID); err == nil {
+			t.it = song
+			if l.SyncMS != nil {
+				t.defaultMS = *l.SyncMS
+			}
+			break
+		}
+	}
+	return t
+}
+
+// lyricsItem is the item whose lyrics are read or changed.
+func (s *Server) lyricsItem(w http.ResponseWriter, r *http.Request) *library.Item {
+	if t := s.lyricsFor(w, r); t != nil {
+		return t.it
+	}
+	return nil
 }
 
 func fillLyrics(out *lyricsReply, d lyrics.Doc, source string) {
@@ -361,13 +399,17 @@ func fillLyrics(out *lyricsReply, d lyrics.Doc, source string) {
 // GET /api/music/lyrics/{id}?fetch=1. Asks online only with fetch=1, which the
 // player sends when someone opens the lyrics, not for every track that plays.
 func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
-	it := s.lyricsItem(w, r)
-	if it == nil {
+	t := s.lyricsFor(w, r)
+	if t == nil {
 		return
 	}
+	it := t.it
 	ctx := r.Context()
 	u := userFrom(r)
-	out := lyricsReply{ItemID: it.ID, Lines: []lyrics.Line{}, CanEdit: u.IsAdmin, OffsetMS: s.lyricsOffset(ctx, u.ID, it.ID)}
+	out := lyricsReply{ItemID: t.asked.ID, Lines: []lyrics.Line{}, CanEdit: u.IsAdmin, OffsetMS: s.lyricsOffset(ctx, u.ID, t.asked.ID, t.defaultMS)}
+	if it != t.asked {
+		out.SongID, out.StartMS = it.ID, t.defaultMS
+	}
 	lib, _ := s.Store.Library(ctx, it.LibraryID)
 	music := lib != nil && lib.Type == "music"
 	out.Online = music && len(s.lyricsSources(ctx)) > 0
@@ -405,12 +447,14 @@ func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, out)
 }
 
-// PUT /api/music/lyrics/{id}/offset {offsetMs}: each person's own.
+// PUT /api/music/lyrics/{id}/offset {offsetMs}: each person's own, for a song or for a
+// music video apart from its song.
 func (s *Server) handleLyricsOffset(w http.ResponseWriter, r *http.Request) {
-	it := s.lyricsItem(w, r)
-	if it == nil {
+	t := s.lyricsFor(w, r)
+	if t == nil {
 		return
 	}
+	it := t.asked
 	var in struct {
 		OffsetMS int64 `json:"offsetMs"`
 	}
@@ -418,12 +462,12 @@ func (s *Server) handleLyricsOffset(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	if in.OffsetMS < -120000 || in.OffsetMS > 120000 {
+	if d := in.OffsetMS - t.defaultMS; d < -120000 || d > 120000 { // a video's starts where its song does
 		writeErr(w, 400, "that's more than two minutes out")
 		return
 	}
 	var err error
-	if in.OffsetMS == 0 {
+	if in.OffsetMS == t.defaultMS {
 		_, err = s.DB.ExecContext(r.Context(), `DELETE FROM lyrics_offsets WHERE user_id = ? AND item_id = ?`, userFrom(r).ID, it.ID)
 	} else {
 		_, err = s.DB.ExecContext(r.Context(), `INSERT INTO lyrics_offsets(user_id, item_id, offset_ms) VALUES(?,?,?)

@@ -13,6 +13,7 @@ import '../../creators.css'
 import LegalNote from '../../components/LegalNote'
 import { WebLink } from '../../components/WebLink'
 import { VideoSongPanel } from '../music/SongVideo'
+import { VideoLyrics } from '../music/VideoLyrics'
 
 // The watch page: the video, what it is and who made it, comments, and what to
 // watch next beside it.
@@ -57,7 +58,10 @@ export default function WatchPage() {
           <>
             <h1 className="ch-title">{d.title}</h1>
             {libraries.find((l) => l.id === d.libraryId)?.type === 'musicvideos' && (
-              <VideoSongPanel videoId={d.id} videoTime={() => videoEl.current?.currentTime || 0} onPlaySong={() => videoEl.current?.pause()} />
+              <>
+                <VideoSongPanel videoId={d.id} videoTime={() => videoEl.current?.currentTime || 0} onPlaySong={() => videoEl.current?.pause()} />
+                <VideoLyrics key={d.id} videoId={d.id} video={videoEl} />
+              </>
             )}
             <div className="ch-row">
               {creator && (

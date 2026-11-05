@@ -1171,8 +1171,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /music/extras/{id}/file` | user | One of those, by the `name` the list gave. |
 | `GET /music/artist` | user | An artist's page: albums, songs, and a biography if online information is on: `library`, `name`. |
 | `GET /music/artist-photo` | user | An artist's picture, or a cover of theirs: `library`, `name`. |
-| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. |
-| `PUT /music/lyrics/{id}/offset` | user | This person's timing correction: `{offsetMs}`, up to two minutes either way. |
+| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. For a music video tied to a song, the song's lyrics, with `songId`, and `startMs` (where the song starts in the video) as the starting `offsetMs`. |
+| `PUT /music/lyrics/{id}/offset` | user | This person's timing correction: `{offsetMs}`, up to two minutes either way of where it starts. A music video's is its own. |
 | `POST /music/lyrics/{id}/search` | admin | Online lyrics to choose from: `{q}`. |
 | `PUT /music/lyrics/{id}` | admin | Corrects a song's lyrics on this server: `{text}`, `{instrumental}` or `{provider, id}`. |
 | `DELETE /music/lyrics/{id}` | admin | Forgets the correction and any online answer. |

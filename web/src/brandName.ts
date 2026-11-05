@@ -163,8 +163,8 @@ export function pieces(r: string[], cuts: Set<number>): [number, number][] {
 
 // letters: the name as people see its characters (an accent or an emoji made
 // of several characters stays whole), each with the offset it starts at.
+const seg = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null
 export function letters(name: string): [number, string][] {
-  const seg = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null
   const units = seg ? Array.from(seg.segment(name), (s) => s.segment) : Array.from(name)
   let at = 0
   return units.map((u) => { const l: [number, string] = [at, u]; at += Array.from(u).length; return l })

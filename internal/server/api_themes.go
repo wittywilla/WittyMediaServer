@@ -1,21 +1,34 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
 	"strings"
 
+	"github.com/wittywilla/wittymediaserver/internal/brandname"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 )
+
+// brand is the server's own name ("" for the default), how it is coloured,
+// and the name to show split ready to draw, for /status and /themes.
+func (s *Server) brand(ctx context.Context) (name, colouring string, parts []brandname.Part) {
+	name = s.DB.GetSetting(ctx, "brandName", "")
+	colouring = s.DB.GetSetting(ctx, "brandColouring", brandname.Auto)
+	return name, colouring, brandname.Parts(firstNonEmpty(name, brandname.Default), colouring)
+}
 
 // GET /api/themes (public: the login page is themed too)
 func (s *Server) handleThemes(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	name, colouring, parts := s.brand(ctx)
 	writeJSON(w, 200, map[string]any{
-		"themes":    s.Themes.List(),
-		"default":   s.DB.GetSetting(ctx, "theme", "default"),
-		"brandName": s.DB.GetSetting(ctx, "brandName", ""),
+		"themes":         s.Themes.List(),
+		"default":        s.DB.GetSetting(ctx, "theme", "default"),
+		"brandName":      name,
+		"brandColouring": colouring,
+		"brandParts":     parts,
 	})
 }
 

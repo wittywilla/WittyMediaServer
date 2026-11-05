@@ -127,6 +127,16 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		strings.HasPrefix(s.DB.GetSetting(r.Context(), "brandColouring", ""), brandname.Pick) {
 		in["brandColouring"] = brandname.Auto
 	}
+	// Everything is checked before anything is saved: a refused value mustn't leave
+	// half a change behind (a new name kept with words chosen for the old one).
+	for _, k := range settingKeys {
+		if v, ok := in[k]; ok && !strings.Contains(v, "•") {
+			if err := checkSetting(k, strings.TrimSpace(v)); err != nil {
+				writeErr(w, 400, err.Error())
+				return
+			}
+		}
+	}
 	for _, k := range settingKeys {
 		v, ok := in[k]
 		if !ok {
@@ -136,10 +146,6 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		v = strings.TrimSpace(v)
-		if err := checkSetting(k, v); err != nil {
-			writeErr(w, 400, err.Error())
-			return
-		}
 		if slices.Contains(library.GameSourceKeys, k) && s.DB.GetSetting(r.Context(), k, "") != v {
 			gameKeyChanged = true
 		}

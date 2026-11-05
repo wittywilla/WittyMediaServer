@@ -66,6 +66,13 @@ func TestBrandColouring(t *testing.T) {
 	if got := ts.DB.GetSetting(context.Background(), "brandColouring", ""); got != "one" {
 		t.Errorf("after refusals: %q", got)
 	}
+	// A refused colouring leaves the name as it was too.
+	if w := ts.do(t, "PUT", "/api/settings", admin, map[string]string{"brandName": "Elsewhere", "brandColouring": "pick:9-3"}); w.Code != 400 {
+		t.Errorf("name with a bad colouring: %d", w.Code)
+	}
+	if got := ts.DB.GetSetting(context.Background(), "brandName", ""); got != "Kim's TV Room" {
+		t.Errorf("name changed by a refused request: %q", got)
+	}
 	// Only an administrator names the server.
 	_, kid := ts.account(t, "Kid", "kids", false)
 	if w := ts.do(t, "PUT", "/api/settings", kid, map[string]string{"brandColouring": "auto"}); w.Code != 403 {

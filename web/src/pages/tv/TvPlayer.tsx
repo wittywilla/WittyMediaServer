@@ -7,8 +7,10 @@ import { IconBack, IconPlay } from '../../icons'
 import { Controls } from '../../player/Controls'
 import { haveHls, toggleFullscreen, useIdle } from '../../player/hooks'
 import Remote, { type RemoteKey } from '../../player/Remote'
+import { Dialog } from '../../ui'
 import { useLogo } from '../../components/BrandLogo'
 import LegalNote from '../../components/LegalNote'
+import BackgroundPlayChoice from './BackgroundPlayChoice'
 import { ChannelLogo } from './ChannelLogo'
 import { channelVars, previousChannel, rememberChannel, surfaceOf, themeRoot, useLook, type Look } from './look'
 import MiniGuide from './MiniGuide'
@@ -51,6 +53,7 @@ export default function TvPlayer() {
   const [win, setWin] = useState({ start: 0, end: 0, behind: 0 })
   const [alt, setAlt] = useState<Alternative | null>(null)
   const [mini, setMini] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   // Shown the moment a channel is chosen, from what the list already knows: the
   // number and name don't wait for the stream.
   const [zap, setZap] = useState<GuideChannel | null>(null)
@@ -268,8 +271,9 @@ export default function TvPlayer() {
       {remoteOn && <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyTV" />}
       {banner && !mini && (info ? <Banner info={info} look={look} /> : zap && <ZapBanner ch={zap} look={look} />)}
       {mini && <MiniGuide channel={key} onTune={tuneTo} onClose={() => setMini(false)} onFull={guide} />}
+      {settingsOpen && <Dialog title="Player settings" onClose={() => setSettingsOpen(false)}><BackgroundPlayChoice /></Dialog>}
       <Controls video={video} duration={windowLen} offset={-win.start} onSeek={(t) => seekTo(win.start + t)} onFullscreen={() => toggleFullscreen(root.current)}
-        remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} showChapterMarks={false}
+        remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} showChapterMarks={false} onSettings={() => setSettingsOpen(true)}
         audio={tracks.audio} subtitles={tracks.subtitles} onAudio={tracks.chooseAudio} onSubtitle={tracks.chooseSubtitle}
         extra={<>
           {isBehind && <button className="btn sm" onClick={goLive} title="Back to live (L)">● Live</button>}

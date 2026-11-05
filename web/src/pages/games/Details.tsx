@@ -11,20 +11,21 @@ import { toast, useApp } from '../../state'
 import { ask, Dialog, Menu, Sheet, useBackCloses, type MenuEntry } from '../../ui'
 import { GameCredits, GameMatchBar, GameRatings, GameShots } from '../GameMeta'
 import { GameFixPanel, GameProblem, GameVersionLinks } from '../GameReview'
-import { SettingsScreen, useConsoles, useSettingsHost } from './consoles'
+import { getConsoles, SettingsScreen, useConsoles, useSettingsHost } from './consoles'
 import { crispIfSmall, fmtPlayed, heroCover, saveThumb, useCoverTint, useGameLinks, type GameCheck } from './data'
 import { Ambient } from './Library'
 import './shelves.css'
 import type { SaveSlot } from '@wittywilla/wittyplay'
 import './games-ui.css'
 import { CorePlatforms, runsOnWords } from './platforms'
+import type { CorePickerScope } from './CorePicker'
 
 // A game's page: what it is, a big button to play it, where you left off, and everything
 // else about it below. Whatever's stopping a game from starting says so here, with the
 // way to fix it, rather than waiting for someone to press Play.
 
-// Only administrators ever see this, so nobody else downloads the settings code for it.
-const GameCorePicker = lazy(() => import('../settings/GamingCustom').then((m) => ({ default: m.GameCorePicker })))
+// Only administrators ever choose a core, so nobody else downloads the picker.
+const CorePicker = lazy(() => import('./CorePicker'))
 
 type GamePersonal = { favourite: boolean; note: string; plays: number; lastPlayed: number; cheats: { name?: string; enabled?: boolean }[]; hasBattery?: boolean }
 
@@ -56,6 +57,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
   const [saves, setSaves] = useState<SaveSlot[]>([])
   const [meta, setMeta] = useState<GameDetailsInfo | null>(null)
   const [check, setCheck] = useState<GameCheck | null>(null)
+  const [picker, setPicker] = useState<CorePickerScope | null>(null)
   const [mine, setMine] = useState<GamePersonal | null>(null)
   const [resumeMode, setResumeMode] = useState('ask')
   // Settings for this game open in a sheet over the page, where they're pressed: from the side on a wide
@@ -186,7 +188,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
               ? <Link data-tv-first className="btn primary big gm-play" to={links.play(it.id, 'resume=1')}><IconPlay /> Resume</Link>
               : ready && <Link data-tv-first className="btn primary big gm-play" to={links.play(it.id)}><IconPlay /> Play</Link>}
             {ready && auto && <Link className="btn big" to={links.play(it.id)}>Start over</Link>}
-            {!ready && check?.reason === 'core' && !check.noBuild && user?.isAdmin && <Link className="btn primary big" to="/settings/gaming"><IconSettings size={16} /> Install a core</Link>}
+            {!ready && check?.reason === 'core' && !check.noBuild && user?.isAdmin && c && <button type="button" className="btn primary big" onClick={() => setPicker({ kind: 'console', consoleId: c.id, consoleShort: c.short })}><IconSettings size={16} /> Choose a core</button>}
             {!ready && check?.reason === 'bios' && user?.isAdmin && <Link className="btn primary big" to="/settings/gaming"><IconSettings size={16} /> Set up {c?.short}</Link>}
             {mine && (
               <button type="button" className={'btn big square gm-fav' + (mine.favourite ? ' on' : '')} aria-pressed={mine.favourite} aria-label={mine.favourite ? 'Favourite' : 'Add to favourites'} title={mine.favourite ? 'Favourite' : 'Add to favourites'} onClick={() => putMeta({ favourite: !mine.favourite })}>
@@ -280,8 +282,17 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
           <h2 id="gm-play-h">How you play it</h2>
           <ul className="gm-checks">
             <li className="ok"><IconCheck size={16} /><span><b>Runs on your server</b><small>and streams to this device, so this device needs no emulator and nothing downloads. Saves stay on the server, and follow you to every device. Playing on the device itself, without the server, isn’t available yet.</small></span></li>
-            {check?.core && <li className="ok"><IconCheck size={16} /><span><b>{check.core.name}</b><small>The core that plays this game. License: {check.core.license || 'not known'}.</small><CorePlatforms support={c?.coreSupport?.[check.core.id]} /></span></li>}
-            {check?.reason === 'core' && !check.noBuild && <li className="no"><IconInfo size={16} /><span><b>No core installed</b><small>{user?.isAdmin ? <>Install one in <Link to="/settings/gaming">Consoles &amp; cores</Link>.</> : 'Ask whoever runs this server.'}</small></span></li>}
+            {check?.core && (
+              <li className="ok gm-core-line"><IconCheck size={16} /><span>
+                <b>{check.core.name}</b>
+                <small>{c?.coreAbout?.[check.core.id]?.about ? `${c.coreAbout[check.core.id].about} ` : ''}The core that plays this game. License: {check.core.license || 'not known'}.</small>
+                <CorePlatforms support={c?.coreSupport?.[check.core.id]} />
+                {user?.isAdmin && c && <button type="button" className="btn sm gm-core-change" onClick={() => setPicker({ kind: 'game', itemId: it.id, title: it.title, consoleShort: c.short })}>Change core</button>}
+              </span></li>
+            )}
+            {check?.reason === 'core' && !check.noBuild && <li className="no gm-core-line"><IconInfo size={16} /><span><b>No core installed</b>{user?.isAdmin && c
+              ? <><small>A core is the free program that plays these games.</small><button type="button" className="btn sm gm-core-change" onClick={() => setPicker({ kind: 'console', consoleId: c.id, consoleShort: c.short })}>Choose a core</button></>
+              : <small>Ask whoever runs this server.</small>}</span></li>}
             {check?.needsGpu && check.reason !== 'gpu' && <li className="info"><IconInfo size={16} /><span><b>Uses the server’s graphics card</b><small>This console is drawn with one, so it needs a server that has one.</small></span></li>}
             {check?.software && <li className="info"><IconInfo size={16} /><span><b>Drawn by the server’s processor</b><small>This server has no graphics card games can use, so its processor draws this console’s games. They can run slower than on a server with one.</small></span></li>}
             {check?.reason === 'gpu' && <li className="no"><IconInfo size={16} /><span><b>Needs a graphics card this server can’t give it</b><small>{check.gpuMissing ? `Why: ${check.gpuMissing}.` : 'This server has none it can use.'}</small></span></li>}
@@ -296,7 +307,6 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
             {/* Reserved and not built: playing with someone on another server. Never an action. */}
             <li className="info gm-reserved" aria-disabled="true"><IconGlobe size={16} /><span><b>Multiplayer</b><small>Play with someone on another server. Coming later.</small></span></li>
           </ul>
-          {user?.isAdmin && <Suspense fallback={null}><GameCorePicker itemId={it.id} /></Suspense>}
         </section>
         <section className="gm-panel" aria-labelledby="gm-controls-h">
           <h2 id="gm-controls-h">Controls</h2>
@@ -345,6 +355,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
       </details>
       {meta && <GameCredits d={meta} />}
       <LegalNote kind="games" />
+      {picker && <Suspense fallback={null}><CorePicker scope={picker} onClose={() => { setPicker(null); void loadCheck(); void getConsoles(true) }} /></Suspense>}
       <PromptBar className="gm-prompts" always={links.couch} items={prompts} />
       {edit && <EditGame item={it} onClose={() => setEdit(false)} onSaved={() => { setEdit(false); reload?.() }} />}
       {art && <ArtworkPicker title={`Artwork for ${it.title}`} onClose={() => setArt(false)}

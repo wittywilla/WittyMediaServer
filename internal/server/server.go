@@ -246,6 +246,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("PUT /api/logos/consent", s.requireAdmin(s.handleLogoConsent))
 	m.Handle("POST /api/logos/lookup", a(s.handleLogoLookup))
 	m.Handle("GET /api/logos/credits", a(s.handleLogoCredits))
+	m.Handle("GET /api/artwork/credits", a(s.handleArtworkCredits))
 	m.Handle("GET /api/logos", s.requireAdmin(s.handleLogoList))
 	m.Handle("GET /api/logos/preview", s.requireAdmin(s.handleLogoPreview))
 	m.Handle("GET /api/logos/{id}/image", a(s.handleLogoImage))

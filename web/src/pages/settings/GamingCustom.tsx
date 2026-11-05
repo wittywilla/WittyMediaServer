@@ -6,7 +6,6 @@ import { toast } from '../../state'
 import { getConsoles } from '../games/consoles'
 import { Row, Section, Switch } from './ui'
 import { ask } from '../../ui/Overlay'
-import { hereShort, type PlatformSupport } from '../games/platforms'
 
 // Settings, Consoles & cores: an administrator's own cores and consoles. A core is a program
 // that runs on the server, so the page says so before anything else, asks for the
@@ -725,57 +724,5 @@ export default function CustomCoresSection({ onChanged }: { onChanged: () => voi
         </PasswordDialog>
       )}
     </>
-  )
-}
-
-// A console's core, for its card in Settings, Consoles & cores.
-export function ConsoleCoreSelect({ console: c, onChanged }: { console: GameConsole; onChanged: () => void }) {
-  const list = c.installed
-  if (!list || list.length < 2) return null
-  const value = c.defaultCore || ''
-  return (
-    <label className="custom-field custom-select">Plays with
-      <select className="select" value={value} onChange={async (e) => {
-        try { await api.put(`/gaming/consoles/${c.id}/core`, { core: e.target.value }); toast('Saved'); onChanged() } catch (x: any) { toast(x.message) }
-      }}>
-        <option value="">First one here</option>
-        {list.map((x) => {
-          const here = hereShort(c.coreSupport?.[x.id])
-          return <option key={x.id} value={x.id}>{x.name}{x.source === 'custom' ? ' (custom)' : ''}{here ? ` (${here})` : ''}</option>
-        })}
-      </select>
-    </label>
-  )
-}
-
-// A game's own core, on its page, for administrators only.
-type GameCoreOption = { id: string; name: string; source: string; license: string; nonCommercial?: boolean; starts: number; failures: number; seconds: number; lastError?: string; best?: boolean; here?: PlatformSupport }
-export function GameCorePicker({ itemId }: { itemId: number }) {
-  const [info, setInfo] = useState<{ choice: string; effective: string; options: GameCoreOption[] } | null>(null)
-  const load = () => api.get<{ choice: string; effective: string; options: GameCoreOption[] }>(`/gaming/games/${itemId}/core`).then(setInfo).catch(() => {})
-  useEffect(() => { load() }, [itemId])
-  if (!info || info.options.length < 2) return null
-  const set = async (core: string) => {
-    try { await api.put(`/gaming/games/${itemId}/core`, { core }); toast('Saved'); await load() } catch (e: any) { toast(e.message) }
-  }
-  const shown = info.options.find((o) => o.id === (info.choice || info.effective))
-  return (
-    <details className="custom-gamecore">
-      <summary>Core: {shown?.name || 'none'}{info.choice ? ' (just for this game)' : ''}</summary>
-      <label className="custom-field">Play this game with
-        <select className="select" value={info.choice} onChange={(e) => set(e.target.value)}>
-          <option value="">The console’s core</option>
-          {info.options.map((o) => {
-            const here = o.here ? hereShort({ here: o.here, platforms: [] }) : ''
-            return <option key={o.id} value={o.id}>{o.name}{o.source === 'custom' ? ' (custom)' : ''}{o.best ? ' (has gone best here)' : ''}{here ? ` (${here})` : ''}</option>
-          })}
-        </select>
-      </label>
-      <ul className="custom-gamecore-stats">
-        {info.options.filter((o) => o.starts > 0).map((o) => (
-          <li key={o.id}><b>{o.name}</b>: {o.starts} {o.starts === 1 ? 'start' : 'starts'}, {fmtHours(o.seconds)}{o.failures ? `, ${o.failures} failed` : ''}{o.lastError ? <small className="muted custom-detail">Last problem: {o.lastError}</small> : null}</li>
-        ))}
-      </ul>
-    </details>
   )
 }

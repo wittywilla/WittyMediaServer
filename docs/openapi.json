@@ -9641,6 +9641,9 @@
       },
       "TuneInfo": {
         "properties": {
+          "backgroundPlay": {
+            "type": "boolean"
+          },
           "accent": {
             "type": "string"
           },
@@ -9763,6 +9766,7 @@
           }
         },
         "required": [
+          "backgroundPlay",
           "bufferSec",
           "canRecord",
           "countProgress",
@@ -10441,6 +10445,36 @@
         "summary": "Change a highlight's colour or note.",
         "tags": [
           "Books"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/artwork/credits": {
+      "get": {
+        "operationId": "getArtworkCredits",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Where each poster or backdrop from Wikimedia Commons came from: its page, licence and author.",
+        "tags": [
+          "Metadata"
         ],
         "x-wms-auth": "user"
       }
@@ -17542,6 +17576,44 @@
       }
     },
     "/gaming/consoles/{console}/core": {
+      "get": {
+        "operationId": "getGamingConsolesConsoleCore",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "console",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "choice, effective, canDownload and choices: see GAMING-API.md, Choosing a core."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A console's cores for the core picker, installed or not, and its default.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      },
       "put": {
         "operationId": "putGamingConsolesConsoleCore",
         "parameters": [
@@ -17635,6 +17707,44 @@
       }
     },
     "/gaming/cores/{id}/install": {
+      "get": {
+        "operationId": "getGamingCoresIdInstall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "installing, received and total, in bytes."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How far an install under way has got.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
       "post": {
         "operationId": "postGamingCoresIdInstall",
         "parameters": [
@@ -18577,6 +18687,10 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "backgroundPlay": {
+                      "description": "Whether a device that hasn't chosen keeps playing a channel while it's in the background. A device's own choice wins. See Playing in the background in CLIENT-API.md.",
+                      "type": "boolean"
+                    },
                     "channels": {
                       "items": {
                         "$ref": "#/components/schemas/GuideChannel"
@@ -18615,6 +18729,7 @@
                     }
                   },
                   "required": [
+                    "backgroundPlay",
                     "channels",
                     "now",
                     "from",

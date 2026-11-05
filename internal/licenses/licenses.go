@@ -98,7 +98,7 @@ var written = []Component{
 	{Group: GroupServices, Name: "TheTVDB", License: "TheTVDB's terms", URL: "https://thetvdb.com",
 		Note: "Used with your own key. TV information and images are provided by TheTVDB."},
 	{Group: GroupServices, Name: "TVmaze", License: "CC BY-SA 4.0", URL: "https://www.tvmaze.com/api", Note: "TV information, without keys."},
-	{Group: GroupServices, Name: "Wikidata", License: "CC0", URL: "https://www.wikidata.org", Note: "Facts about movies and games."},
+	{Group: GroupServices, Name: "Wikidata", License: "CC0", URL: "https://www.wikidata.org", Note: "Facts about movies and games. A film's poster from Wikimedia Commons where it has a free one, each under its own licence, credited on the Legal page."},
 	{Group: GroupServices, Name: "Wikipedia", License: "CC BY-SA 4.0", URL: "https://en.wikipedia.org/wiki/Wikipedia:Text_of_the_Creative_Commons_Attribution-ShareAlike_4.0_International_License",
 		Note: "Plot summaries, credited where they're shown."},
 	{Group: GroupServices, Name: "AniList", License: "AniList's terms", URL: "https://anilist.co/terms", Note: "Anime information."},

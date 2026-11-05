@@ -1,0 +1,225 @@
+{
+ "entities": {
+  "Q153886": {
+   "type": "item",
+   "id": "Q153886",
+   "descriptions": {
+    "en": {
+     "language": "en",
+     "value": "1920 film by Robert Wiene"
+    }
+   },
+   "claims": {
+    "P57": [
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": {
+         "entity-type": "item",
+         "numeric-id": 76552,
+         "id": "Q76552"
+        }
+       }
+      }
+     }
+    ],
+    "P136": [
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": {
+         "entity-type": "item",
+         "numeric-id": 226730,
+         "id": "Q226730"
+        }
+       }
+      }
+     },
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": {
+         "entity-type": "item",
+         "numeric-id": 200092,
+         "id": "Q200092"
+        }
+       }
+      }
+     },
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": {
+         "entity-type": "item",
+         "numeric-id": 959790,
+         "id": "Q959790"
+        }
+       }
+      }
+     },
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": {
+         "entity-type": "item",
+         "numeric-id": 1135802,
+         "id": "Q1135802"
+        }
+       }
+      }
+     }
+    ],
+    "P31": [
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": {
+         "entity-type": "item",
+         "numeric-id": 11424,
+         "id": "Q11424"
+        }
+       }
+      }
+     }
+    ],
+    "P577": [
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": {
+         "time": "+1920-02-27T00:00:00Z",
+         "timezone": 0,
+         "before": 0,
+         "after": 0,
+         "precision": 11,
+         "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+        }
+       }
+      }
+     }
+    ],
+    "P2047": [
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": {
+         "amount": "+77",
+         "unit": "http://www.wikidata.org/entity/Q7727"
+        }
+       }
+      }
+     }
+    ],
+    "P272": [
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": {
+         "entity-type": "item",
+         "numeric-id": 705676,
+         "id": "Q705676"
+        }
+       }
+      }
+     }
+    ],
+    "P3383": [
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": "CABINETOFDRCALIGARI-poster.jpg"
+       }
+      }
+     }
+    ],
+    "P18": [
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": "Das Cabinet des Dr. Caligari.JPG"
+       }
+      }
+     }
+    ]
+   },
+   "sitelinks": {
+    "enwiki": {
+     "title": "The Cabinet of Dr. Caligari"
+    }
+   }
+  },
+  "Q7720893": {
+   "type": "item",
+   "id": "Q7720893",
+   "descriptions": {
+    "en": {
+     "language": "en",
+     "value": "2005 film"
+    }
+   },
+   "claims": {
+    "P31": [
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": {
+         "entity-type": "item",
+         "numeric-id": 11424,
+         "id": "Q11424"
+        }
+       }
+      }
+     }
+    ],
+    "P136": [
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": {
+         "entity-type": "item",
+         "numeric-id": 200092,
+         "id": "Q200092"
+        }
+       }
+      }
+     }
+    ],
+    "P577": [
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": {
+         "time": "+2005-01-01T00:00:00Z",
+         "timezone": 0,
+         "before": 0,
+         "after": 0,
+         "precision": 9,
+         "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+        }
+       }
+      }
+     }
+    ],
+    "P57": [
+     {
+      "mainsnak": {
+       "datavalue": {
+        "value": {
+         "entity-type": "item",
+         "numeric-id": 95894287,
+         "id": "Q95894287"
+        }
+       }
+      }
+     }
+    ]
+   },
+   "sitelinks": {
+    "enwiki": {
+     "title": "The Cabinet of Dr. Caligari (2005 film)"
+    }
+   }
+  }
+ },
+ "success": 1
+}

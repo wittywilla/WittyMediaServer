@@ -201,3 +201,40 @@ func TestArtistCreditIsALinkToTheArticle(t *testing.T) {
 		t.Errorf("%d bytes of biography", len(out.Bio))
 	}
 }
+
+// The credits of posters from Wikimedia Commons name titles: a limited account is told only of the ones it may see.
+func TestArtworkCreditsKeepToWhatAnAccountMaySee(t *testing.T) {
+	f := newMusicFixture(t)
+	ctx := context.Background()
+	poster := "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Credits_test_poster.jpg/500px-Credits_test_poster.jpg"
+	if _, err := f.DB.ExecContext(ctx, `UPDATE items SET poster = ? WHERE id = ?`, poster, f.song.ID); err != nil {
+		t.Fatal(err)
+	}
+	commons := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"query":{"pages":{"1":{"title":"File:Credits test poster.jpg","imageinfo":[{"thumburl":"` + poster + `",
+			"descriptionurl":"https://commons.wikimedia.org/wiki/File:Credits_test_poster.jpg",
+			"extmetadata":{"LicenseShortName":{"value":"CC BY 4.0"},"LicenseUrl":{"value":"https://creativecommons.org/licenses/by/4.0"},"Artist":{"value":"<a href=\"x\">A. Painter</a>"}}}]}}}}`))
+	}))
+	defer commons.Close()
+	was := commonsWiki
+	commonsWiki = func() *library.Wikidata { return &library.Wikidata{Client: commons.Client(), CommonsAPI: commons.URL} }
+	defer func() { commonsWiki = was }()
+
+	var got struct {
+		Pictures []struct {
+			Title, Kind, Page, License, LicenseURL, Credit string
+		} `json:"pictures"`
+	}
+	w := f.do(t, "GET", "/api/artwork/credits", f.adult, nil)
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		t.Fatalf("%v %s", err, w.Body)
+	}
+	if len(got.Pictures) != 1 || got.Pictures[0].Kind != "poster" || got.Pictures[0].License != "CC BY 4.0" || got.Pictures[0].Credit != "A. Painter" ||
+		got.Pictures[0].Page != "https://commons.wikimedia.org/wiki/File:Credits_test_poster.jpg" {
+		t.Fatalf("an account with no limits: %s", w.Body)
+	}
+	_, tok := f.user(t, "limited-credits", "adult", false, noLibraryForYou)
+	if body := f.do(t, "GET", "/api/artwork/credits", tok, nil).Body.String(); strings.Contains(body, "Credits_test_poster") {
+		t.Errorf("a limited account was told about a title it may not see: %s", body)
+	}
+}

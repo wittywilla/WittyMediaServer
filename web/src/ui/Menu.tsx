@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type 
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { isBackKey } from './spatial'
+import { movedAway, placeMenu, type Box } from './menuPlace'
 
 // A menu that opens from a button. It renders into <body> at a place worked out
 // from the button, so a bar, a scrolling panel or a player beside it can never
@@ -27,15 +28,18 @@ export function Menu({ trigger, items, label, head, align = 'end', className }: 
 
   const close = useCallback((refocus: boolean) => { setOpen(false); setPos(null); if (refocus) button.current?.focus({ preventScroll: true }) }, [])
 
+  // Where the button was when the menu was placed: a scroll closes the menu only if it moved it.
+  const anchorAt = useRef<Box | null>(null)
+  const anchorBox = () => {
+    const r = button.current?.getBoundingClientRect()
+    return r && (r.width || r.height) ? { left: r.left, top: r.top, right: r.right, bottom: r.bottom } : null
+  }
   const place = useCallback(() => {
-    const a = button.current?.getBoundingClientRect(), p = panel.current
-    if (!a || !p) return
-    const w = p.offsetWidth, h = p.scrollHeight
-    const below = innerHeight - a.bottom - EDGE * 2, above = a.top - EDGE * 2
-    const up = h > below && above > below
-    const maxHeight = Math.max(120, up ? above : below)
-    const left = align === 'end' ? a.right - w : a.left
-    setPos({ left: Math.max(EDGE, Math.min(left, innerWidth - w - EDGE)), top: up ? Math.max(EDGE, a.top - Math.min(h, maxHeight) - EDGE) : a.bottom + EDGE, maxHeight })
+    const p = panel.current
+    if (!p) return
+    // A button that isn't laid out still gets its menu, on screen (placeMenu), never a hidden one.
+    anchorAt.current = anchorBox()
+    setPos(placeMenu(anchorAt.current, { width: p.offsetWidth, height: p.scrollHeight }, { width: innerWidth, height: innerHeight }, align, EDGE))
   }, [align])
 
   useLayoutEffect(() => { if (open) place() }, [open, place, items.length])
@@ -54,7 +58,9 @@ export function Menu({ trigger, items, label, head, align = 'end', className }: 
   useEffect(() => {
     if (!open) return
     const outside = (e: Event) => { if (!panel.current?.contains(e.target as Node) && !button.current?.contains(e.target as Node)) close(false) }
-    const scrolled = (e: Event) => { if (!panel.current?.contains(e.target as Node)) close(false) }
+    // The page scrolling the button away closes it; a row scrolling elsewhere, or a scroll event that
+    // moved nothing (Firefox sends some), doesn't, or the menu could shut as it opens.
+    const scrolled = (e: Event) => { if (!panel.current?.contains(e.target as Node) && movedAway(anchorAt.current, anchorBox())) close(false) }
     window.addEventListener('pointerdown', outside)
     window.addEventListener('resize', place)
     window.addEventListener('scroll', scrolled, { capture: true, passive: true })

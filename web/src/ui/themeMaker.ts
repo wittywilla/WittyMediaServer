@@ -92,6 +92,22 @@ export function themeCss(i: MakerInput, t = makeTheme(i)) {
   return `:root{color-scheme:${i.scheme};${lines}--bg-rgb:${rgbList(t.vars.bg)};--accent-rgb:${rgbList(t.vars.accent)};--radius:${t.radius}px;}`
 }
 
+// themeDeclarations: a made theme's stylesheet (themeCss, one rule on :root) as its declarations, to
+// set one by one on the page's root element. The server's content security policy (style-src 'self')
+// refuses a <style> element made by the page, but not properties set through the CSSOM.
+export function themeDeclarations(css: string): [string, string][] {
+  const open = css.indexOf('{'), close = css.lastIndexOf('}')
+  if (open < 0 || close < open) return []
+  const out: [string, string][] = []
+  for (const decl of css.slice(open + 1, close).split(';')) {
+    const at = decl.indexOf(':')
+    if (at < 0) continue
+    const name = decl.slice(0, at).trim(), value = decl.slice(at + 1).trim()
+    if (/^(--[\w-]+|color-scheme)$/.test(name) && value) out.push([name, value])
+  }
+  return out
+}
+
 // What the theme cards need to draw a made theme, in the names theme.json uses.
 export function themeColors(t: MadeTheme): Record<string, string> {
   const v = t.vars

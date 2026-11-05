@@ -58,7 +58,9 @@ export default function TvHost() {
     if (!url || !ready) return
     const v = liveVideo()
     let on = true, nudging = false, pausedAt = 0
-    const onPause = () => { pausedAt = Date.now(); setLive({ away: true }) }
+    // A silent video paused while the page is hidden was paused by the browser, not the viewer:
+    // it starts again when the page is shown (live.ts). With sound, only the viewer pauses it.
+    const onPause = () => { if (document.hidden && v.muted) return; pausedAt = Date.now(); setLive({ away: true }) }
     const onPlay = () => { if (pausedAt && Date.now() - pausedAt < 1500) setLive({ away: false }); pausedAt = 0 }
     v.addEventListener('pause', onPause)
     v.addEventListener('play', onPlay)

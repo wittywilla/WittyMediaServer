@@ -71,6 +71,7 @@ func (s *Server) gameRoutes(m routes) {
 	s.gameProfileRoutes(m)
 	m.Handle("GET /api/gaming", s.requireAdmin(s.handleGaming))
 	m.Handle("POST /api/gaming/cores/{id}/install", s.requireAdmin(s.handleCoreInstall))
+	m.Handle("GET /api/gaming/cores/{id}/install", s.requireAdmin(s.handleCoreInstallProgress))
 	m.Handle("DELETE /api/gaming/cores/{id}", s.requireAdmin(s.handleCoreRemove))
 	m.Handle("DELETE /api/gaming/unpacked", s.requireAdmin(s.handleUnpackedClear))
 	s.gameOptionRoutes(m)
@@ -333,7 +334,10 @@ type consoleView struct {
 	// CoreSupport is, for each core on offer, the server platforms it runs on and how it draws
 	// on each, and here. Every device plays what any of them runs: the server streams it.
 	CoreSupport map[string]coreSupport `json:"coreSupport,omitempty"`
-	Pad         wittyplay.PadLayout    `json:"pad"`
+	// CoreAbout is, for each core on offer, what it's good at beside the console's others
+	// (core_notes.go).
+	CoreAbout map[string]coreNote `json:"coreAbout,omitempty"`
+	Pad       wittyplay.PadLayout `json:"pad"`
 	// Count: with ?library=<id>, how many games that library holds for this console.
 	Count int `json:"count,omitempty"`
 	// Era, years, how its games come and what it can do (game_traits.go).
@@ -391,6 +395,12 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 				noGPU = *gpuWhy
 			}
 			v.CoreSupport[want.ID] = coreSupportFor(want.ID, gpuCore, noGPU)
+			if n := coreNoteFor(want.ID); n != nil {
+				if v.CoreAbout == nil {
+					v.CoreAbout = map[string]coreNote{}
+				}
+				v.CoreAbout[want.ID] = *n
+			}
 		}
 		v.NeedsGPU = len(c.Cores) > 0 && len(v.GPUCores) == len(c.Cores)
 		for _, got := range all {
@@ -421,8 +431,10 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 			}
 			switch {
 			case *gpuWhy == "":
-				// A card, but the core it would start on draws wrongly on it on this system.
-				if v.Ready && len(v.Installed) > 0 && drawsWrongHere(v.Installed[0]) != "" && cpuOptions(v.Installed[0]) != nil {
+				// A card, but the core it would start on draws wrongly on it on this system, and
+				// no other installed core draws right on it (see pickCore).
+				if v.Ready && len(v.Installed) > 0 && drawsWrongHere(v.Installed[0]) != "" && cpuOptions(v.Installed[0]) != nil &&
+					(v.DefaultCore != "" || rightOnTheCard(v.Installed, v.Installed[0], s.coreDrawsOnGPU) == nil) {
 					v.Software, v.Notice = true, cardFaultNotice()
 				}
 			case s.canDrawOnCPU(&v):

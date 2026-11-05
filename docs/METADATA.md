@@ -32,7 +32,7 @@ Sources are used in this order, and later ones only fill gaps:
 | 5 | Your [custom agents](#custom-agents), in their order | Anything your own service knows |
 | 6 | TMDB and TheTVDB, if you added a key | Overview, genres, rating, network, posters, backdrops, episode titles |
 | 7 | TVmaze, for TV, until you add a TheTVDB key | Overview, genres, network, status, posters, backdrops, season posters, episode titles and stills |
-| 8 | Wikidata and Wikipedia, for films, until you add a TMDB key | Year, genres, US rating, runtime, plot summary, no posters |
+| 8 | Wikidata and Wikipedia, for films, until you add a TMDB key | Year, genres, US rating, runtime, plot summary, and a poster from Wikimedia Commons where the film has a free one (credited under Settings → Legal) |
 | 9 | AniList, for Anime libraries | Titles in your chosen language, plots, posters, episode numbering |
 | 10 | A generated thumbnail | A frame 20% into the video |
 

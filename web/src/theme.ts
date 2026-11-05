@@ -1,4 +1,5 @@
 import { serverBase } from './api'
+import { themeDeclarations } from './ui/themeMaker'
 
 // Themes are ZIPs on the server (see docs/THEMES.md). The server default can
 // be overridden per device; the choice lives in localStorage.
@@ -24,11 +25,18 @@ const CUSTOM_CSS = 'wms.customTheme'
 export const CUSTOM_THEME = 'custom'
 export const customThemeCss = () => { try { return localStorage.getItem(CUSTOM_CSS) || '' } catch { return '' } }
 export const setCustomThemeCss = (css: string) => { try { localStorage.setItem(CUSTOM_CSS, css) } catch { /* it lasts until the page reloads */ } }
+// It's set as properties on <html>, through the CSSOM: the server's content security policy
+// (style-src 'self') refuses a <style> element made here, which left the page with no theme at all.
+let customProps: string[] = []
+function clearCustom() {
+  const root = document.documentElement.style
+  for (const p of customProps) root.removeProperty(p)
+  customProps = []
+}
 function applyCustom(css: string) {
   document.querySelectorAll('link[data-wms-theme]').forEach((l) => l.remove())
-  let st = document.getElementById('wms-custom-theme') as HTMLStyleElement | null
-  if (!st) { st = document.createElement('style'); st.id = 'wms-custom-theme'; document.head.appendChild(st) }
-  st.textContent = css
+  clearCustom()
+  for (const [name, value] of themeDeclarations(css)) { document.documentElement.style.setProperty(name, value); customProps.push(name) }
   document.documentElement.dataset.theme = CUSTOM_THEME
 }
 
@@ -51,7 +59,7 @@ export function applyTheme(wantedId: string, version = '') {
   if (lightDevice) lightDevice.onchange = wantedId === AUTO_THEME ? () => applyTheme(AUTO_THEME, version) : null
   const id = resolveTheme(wantedId)
   if (id === CUSTOM_THEME && customThemeCss()) { wanted = ''; applyCustom(customThemeCss()); return }
-  document.getElementById('wms-custom-theme')?.remove()
+  clearCustom()
   const href = `${serverBase()}/api/themes/${encodeURIComponent(id || 'default')}/theme.css${version ? '?v=' + version : ''}`
   wanted = href
   document.documentElement.dataset.theme = id || 'default'

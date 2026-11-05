@@ -461,9 +461,11 @@ func (w *wikidataSource) Search(ctx context.Context, q string, _ *int) ([]MatchC
 	if err != nil {
 		return nil, err
 	}
+	posters := w.commonsPosters(ctx, ents)
 	out := make([]MatchCandidate, 0, len(ids))
 	for _, id := range ids {
 		c := info[id]
+		c.Poster = posters[id]
 		if e, ok := ents[id]; ok {
 			if cl := e.Claims[wdPublication]; len(cl) > 0 {
 				if y, err := strconv.Atoi(firstN(cl[0].Mainsnak.time(), 4)); err == nil {
@@ -485,6 +487,38 @@ const (
 // searchText looks through everything a film or series is called, for a name that doesn't
 // start the way its entry does: "Dr Story The Treeline" for "The Treeline".
 func (w *wikidataSource) searchText(ctx context.Context, q string) ([]MatchCandidate, error) {
+	ids, err := w.searchTextIDs(ctx, q)
+	if err != nil || len(ids) == 0 {
+		return nil, err
+	}
+	ents, err := w.entities(ctx, ids, "claims|labels|descriptions")
+	if err != nil {
+		return nil, err
+	}
+	posters := w.commonsPosters(ctx, ents)
+	out := make([]MatchCandidate, 0, len(ids))
+	for _, id := range ids {
+		e, ok := ents[id]
+		if !ok {
+			continue
+		}
+		kind := wdWhat(e.Descriptions["en"].Value)
+		if kind == "" {
+			kind = "movie"
+		}
+		c := MatchCandidate{Source: "wikidata", ID: id, Kind: kind, Title: e.Labels["en"].Value, Overview: e.Descriptions["en"].Value, Poster: posters[id]}
+		if cl := e.Claims[wdPublication]; len(cl) > 0 {
+			if y, err := strconv.Atoi(firstN(cl[0].Mainsnak.time(), 4)); err == nil {
+				c.Year = &y
+			}
+		}
+		out = append(out, c)
+	}
+	return out, nil
+}
+
+// searchTextIDs: the films and series whose names, any of them, have these words, best first.
+func (w *Wikidata) searchTextIDs(ctx context.Context, q string) ([]string, error) {
 	var res struct {
 		Query struct {
 			Search []struct {
@@ -503,32 +537,7 @@ func (w *wikidataSource) searchText(ctx context.Context, q string) ([]MatchCandi
 			ids = append(ids, r.Title)
 		}
 	}
-	if len(ids) == 0 {
-		return nil, nil
-	}
-	ents, err := w.entities(ctx, ids, "claims|labels|descriptions")
-	if err != nil {
-		return nil, err
-	}
-	out := make([]MatchCandidate, 0, len(ids))
-	for _, id := range ids {
-		e, ok := ents[id]
-		if !ok {
-			continue
-		}
-		kind := wdWhat(e.Descriptions["en"].Value)
-		if kind == "" {
-			kind = "movie"
-		}
-		c := MatchCandidate{Source: "wikidata", ID: id, Kind: kind, Title: e.Labels["en"].Value, Overview: e.Descriptions["en"].Value}
-		if cl := e.Claims[wdPublication]; len(cl) > 0 {
-			if y, err := strconv.Atoi(firstN(cl[0].Mainsnak.time(), 4)); err == nil {
-				c.Year = &y
-			}
-		}
-		out = append(out, c)
-	}
-	return out, nil
+	return ids, nil
 }
 
 func (w *wikidataSource) Details(ctx context.Context, id string) (*MatchDetails, error) {
@@ -613,6 +622,9 @@ func (w *wikidataSource) Details(ctx context.Context, id string) (*MatchDetails,
 	}
 	if d.Overview == "" {
 		d.Overview = e.Descriptions["en"].Value
+	}
+	if p := w.commonsPoster(ctx, e); p != "" {
+		d.Poster, d.Posters = p, []string{p}
 	}
 	return d, nil
 }

@@ -82,7 +82,7 @@ A good defense starts by naming the attacker. These are the realistic ones, most
 
 | Way in | Seen by the internet? | Skill needed | Our view |
 |---|---|---|---|
-| **Stay at home** (Remote Access off) | **No** | None | Safest. The default |
+| **Stay at home** (**Home network only**) | **No** | None | Safest. The default |
 | **[Tailscale or NetBird](#the-recommended-way-a-private-network)** | **No.** Only your own signed-in devices can connect | Low: install an app | **Use this.** It's right for almost everyone |
 | **[A rented server (VPS)](#a-rented-server-vps)** | The rented server, not your home | High, and you now look after a server on the internet | For people who need visitors with no app, and know how to keep a server safe |
 | **[Your own reverse proxy](#a-reverse-proxy-you-already-run)** | **Yes**, the sign-in page | High | Only if you already run one and keep it updated |
@@ -90,9 +90,15 @@ A good defense starts by naming the attacker. These are the realistic ones, most
 
 **If you aren't sure, choose Tailscale.** It's easier than port forwarding, and it also works when your internet provider shares one address between customers, where port forwarding can't work at all.
 
-The **WittyMedia relay**, shown greyed out on the page, doesn't exist. It's a possible future paid service, and nothing on your server uses it.
+**WittyRelay**, shown greyed out on the page, doesn't exist yet. It's planned as a free service, and nothing on your server uses it.
 
-**The master switch:** while **Remote Access** is off, the server refuses every connection from outside your home network, including through a VPN, even if your router or firewall lets it through. Devices at home aren't affected.
+**The master switch:** **Settings → Remote Access** starts as **Home network only**. While that's chosen, the server refuses every connection from outside your home network, including through a VPN, even if your router or firewall lets it through. Devices at home aren't affected. The page has three choices, each saying who it lets in:
+
+| Choice | Who can connect |
+|---|---|
+| **Home network only** | Only devices on your Wi-Fi or cable at home. A phone on mobile data can't connect |
+| **Home and away, through a private network** | Devices at home, and your own devices anywhere once they've joined your private network with Tailscale or NetBird |
+| **Home and away, through the internet** | Devices at home, and anyone anywhere who has the address: they reach the sign-in page. Through a port on your router, a reverse proxy you already run, or a rented server |
 
 ## Things you must never do
 
@@ -116,13 +122,13 @@ The **WittyMedia relay**, shown greyed out on the page, doesn't exist. It's a po
 Ask this honestly, because every option below adds risk you don't have at home.
 
 - **Watching in another room:** you don't need any of this. That's already your home network.
-- **A trip or two a year:** turn Remote Access on before you go and off when you're back.
+- **A trip or two a year:** choose a way in before you go, and **Home network only** again when you're back.
 - **You regularly watch away from home:** use a [private network](#the-recommended-way-a-private-network).
 - **Family in another house:** a private network still works. Each person installs one app and signs in.
 
 ## Step 2: Lock down your accounts
 
-Do all of this **before** you turn on Remote Access.
+Do all of this **before** you let devices away from home in.
 
 1. **Use a long, unique password on every adult account.** Four or more unrelated random words is good, or better, let a password manager make one. **Remote Access** warns about a weak password, but it only learns how strong a password is when someone signs in with it, so an account shows as *Not checked yet* until then.
 2. **Turn on two-factor sign-in.** This is the most useful thing you can do after a good password.
@@ -167,9 +173,9 @@ Assume that one day someone gets in. These decide how bad that day is.
 2. **Keep it running.**
    - **Windows with Tailscale:** in its tray menu, turn on *Run unattended*, so it stays connected when nobody is signed in to the computer.
    - **Tailscale:** by default a device's sign-in expires after some months. In its admin console, turn off key expiry for the server, or remote access will stop by itself while you're away.
-3. **Find the server's new address.** **Settings → Remote Access** notices the VPN and shows it under **How do you want to connect?**, such as `100.101.102.103`.
+3. **Find the server's new address.** **Settings → Remote Access** notices the VPN once you choose **Home and away, through a private network**, and shows its address at the top of the page, such as `100.101.102.103`.
 4. **On your phone or laptop**, install the same app and sign in with the **same account**.
-5. **In Settings → Remote Access**, turn on **Remote Access**.
+5. **In Settings → Remote Access**, choose **Home and away, through a private network**, then Tailscale or NetBird.
 6. **On your phone, with the VPN app on,** open `http://100.101.102.103:9797`, using your own address. Bookmark it, or enter it in [the app](APPS.md#typing-the-address).
 7. **[Test it](#testing-it-from-outside).**
 
@@ -199,8 +205,8 @@ Visitors reach the rented server, and it passes them on over a private tunnel. N
 2. On the rented server: install updates, turn on automatic security updates, allow SSH sign-in by key only, and turn on a firewall that allows only ports 22, 80 and 443.
 3. Install Tailscale or NetBird on both machines (or WireGuard, if you know it).
 4. On the rented server, install Caddy, and pass visitors to your home computer's private address, as shown below.
-5. In **Settings → Remote Access**, choose **A rented server (VPS)**. Enter the outside address, and the rented server's address on the private network as the proxy.
-6. Turn on **Remote Access**, and [test it](#testing-it-from-outside).
+5. In **Settings → Remote Access**, choose **Home and away, through the internet**, then **A rented server (VPS)**. Enter the outside address, and the rented server's address on the private network as the proxy.
+6. [Test it](#testing-it-from-outside).
 
 The Caddy file for step 4:
 
@@ -215,7 +221,7 @@ media.example.com {
 There's no home network to set it up from. Your media and accounts then live on a computer you don't physically control, so think about who runs it and what their terms allow.
 
 - **Safer: use an SSH tunnel.** Run `ssh -L 9797:127.0.0.1:9797 you@server`, open `http://localhost:9797`, and go through setup and Settings as if at home.
-- **Riskier: start it with `-remote-access`** (or `WMS_REMOTE_ACCESS=1`, or `"remoteAccess": true` in the [config file](CONFIG.md)). This turns on Remote Access and locks the switch on the page.
+- **Riskier: start it with `-remote-access`** (or `WMS_REMOTE_ACCESS=1`, or `"remoteAccess": true` in the [config file](CONFIG.md)). This lets devices away from home in, and **Home network only** can't be chosen on the page.
 
 > **`-remote-access` on a server that isn't set up yet:** whoever completes setup becomes its administrator. From outside, setup needs the setup code on the server's console, and wrong codes are limited, but **don't leave it sitting there.** Have HTTPS in front of it first, then create the first account right away.
 >
@@ -227,7 +233,7 @@ There's no home network to set it up from. Your media and accounts then live on 
 
 > **Advanced, and on the internet.** This is for people who already run a reverse proxy and keep it updated. **Your sign-in page is public, and everything under [port forwarding](#forwarding-a-port-on-your-router) about passwords and attacks applies here too.** Getting the trusted proxy setting wrong can make strangers look like they're at home.
 
-Your proxy handles HTTPS and passes requests to the server's home port. In **Settings → Remote Access**, choose **A reverse proxy you already run**. Two settings matter:
+Your proxy handles HTTPS and passes requests to the server's home port. In **Settings → Remote Access**, choose **Home and away, through the internet**, then **A reverse proxy you already run**. Two settings matter:
 
 - **The outside address**, such as `https://media.example.com`.
 - **The proxy's address, as this server sees it.** On the same machine, that's `127.0.0.1`. Forwarded addresses are believed from these machines **only, and from nobody by default**. Until yours is listed, everyone behind it counts as one visitor from the internet: safe, but sign-in limits then hit everybody at once. The page offers to trust a proxy when it sees one at home.
@@ -292,7 +298,7 @@ If you go ahead, do **all** of this. Do [Step 2](#step-2-lock-down-your-accounts
 
 The server enforces one part itself: it refuses unencrypted connections from the internet.
 
-In **Settings → Remote Access**, choose **Forward a port on your router**.
+In **Settings → Remote Access**, choose **Home and away, through the internet**, then **A port on your router**.
 
 1. **Check that it can work at all.** Press **Check my router**. This only asks the router what it can do, and changes nothing. If it says your outside address is shared (CGNAT), port forwarding can't work. [Use a private network](#the-recommended-way-a-private-network).
 2. **Give this computer a fixed home address.** Otherwise the router may later send the internet to a different device.
@@ -304,29 +310,40 @@ In **Settings → Remote Access**, choose **Forward a port on your router**.
    - **Let's Encrypt** is free and renews by itself. Enter your domain name and accept their agreement. Let's Encrypt learns your domain name and any email you give, and the certificate is listed publicly.
    - **My own certificate:** enter the full paths of the certificate and key files. When something renews the files, the server picks them up within a minute. **Don't use a self-signed certificate:** you'd have to teach yourself to click through the warning that protects you.
 5. **Forward exactly one port.** On your router, forward outside port **443** (TCP) to this computer's fixed address, port **9443**. The manual calls this "port forwarding" or "virtual server". Let's Encrypt connects to your outside port 443 to check that the domain is yours, so that port must lead here. With your own certificate, any outside port works. **Forward only this port. Never forward 9797.** Don't choose "all ports", and don't use "DMZ".
-6. **Turn on Remote Access.** Press **Get the certificate now** if you chose Let's Encrypt.
+6. **Get the certificate.** Press **Get the certificate now** if you chose Let's Encrypt.
 7. **[Test it](#testing-it-from-outside) right away, and read how the connection was seen.** If a phone on mobile data shows as *at home*, **stop and undo the forward**: see the warning in that section.
 8. **Keep watching it.** Do the [regular checks](#regular-checks). Close the forward when you won't need it for a while.
 
 > **"Do this automatically" (UPnP or NAT-PMP).** The server can ask the router to open the port for you. It's off by default, only the HTTPS port is ever opened, and the server closes it again when this is turned off or the server stops. **We suggest leaving it off and forwarding by hand**, so you know exactly what's open. UPnP also lets programs on your home network open ports without asking, which is why many security guides recommend turning it off on the router altogether. If this feature fails, don't turn on UPnP on your router to fix it. Forward the port by hand instead.
 
-**Undoing all this:** turn off **Remote Access**, delete the rule on your router, then check from your phone on mobile data that your `https://` address no longer answers.
+**Undoing all this:** choose **Home network only**, delete the rule on your router, then check from your phone on mobile data that your `https://` address no longer answers.
 
 ## Testing it from outside
 
 Do this every time you change anything. A server can't really tell from inside whether the internet can reach it, so the test uses **your own phone**. No service on the internet is involved, and nothing is sent anywhere.
 
-1. Under **Test it from outside**, press **Start the test**. The page shows a QR code and a secret address, good for 15 minutes.
+1. Under **Check from outside**, press **Check with my phone**. The page shows a QR code and a secret address, good for 15 minutes.
 2. On your phone, **turn off Wi-Fi** so it uses mobile data. Keep your VPN on, if you use one.
 3. Scan the code. The page on your phone says whether it worked, and the settings page updates by itself with where the connection came from and how.
 
 The test page shows nothing about your server. A test from your home network is noticed, and doesn't count.
 
-> **Read how the connection was seen. It's the most important check on this page.** If your phone on mobile data shows as *at home*, **your server thinks strangers are family.** They could see profile names and use password-free Kids and Guest profiles. Some routers and Docker Desktop cause this by hiding visitors' real addresses: see [How the server decides](#how-the-server-decides). **Turn off Remote Access until it's fixed.** A private network avoids the problem.
+> **Read how the connection was seen. It's the most important check on this page.** If your phone on mobile data shows as *at home*, **your server thinks strangers are family.** They could see profile names and use password-free Kids and Guest profiles. Some routers and Docker Desktop cause this by hiding visitors' real addresses: see [How the server decides](#how-the-server-decides). **Choose Home network only until it's fixed.** A private network avoids the problem.
 
 **Check from this computer** looks at what can be seen from inside: whether your domain name leads to your router, whether the HTTPS port is open, and whether the address answers. It only uses your computer's usual name server. Many routers won't connect a computer at home to their own outside address, so a failure of the last step doesn't mean it fails from outside.
 
-The status at the top of the page shows what the server has really seen. It says it's reachable only after a passed test or a real encrypted connection from outside.
+### Reading the status
+
+The card at the top of **Settings → Remote Access** answers one question: who can connect right now, and from where. It never says only "on" or "off". It shows what the server has really seen, and says a phone on mobile data can connect only after a passed check or a real connection from outside. The same words are on the setup wizard's last page, in the tray icon's menu and in the apps.
+
+| The card says | Colour | What it means |
+|---|---|---|
+| **Home network only** | Green | Working as you chose: devices at home can connect, and devices away from home aren't allowed, by your choice |
+| **Reachable from away: yes** | Green | A device away from home has connected, or your phone passed the check, recently. The card says through what and at which address |
+| **Reachable from away: not yet** | Amber | You chose to let devices away from home in, and it isn't working yet: a step is unfinished, or nothing from outside has arrived. Often the router isn't forwarding yet. Run the check |
+| **Reachable from away: no** | Red | Something is broken, such as the HTTPS port not opening or a certificate failing. The card says what |
+
+Below that, **Devices at home** and **Devices away from home** each get their own line, then how it was checked.
 
 **For a port you forwarded, also check what you exposed.** From your phone on mobile data, try `http://<your address>:9797`. It should **not** show your server. If it does, you've forwarded the wrong port, so close it now.
 
@@ -338,9 +355,10 @@ Each of these exists for a reason, and each one gives something up. Leave them o
 
 | Setting | Where | What it risks | Do this instead |
 |---|---|---|---|
+| **Allow unencrypted connections from away** | **Remote Access** | **Passwords, sign-ins, stream addresses and what you watch cross the internet readable and changeable by anyone on the way.** See [Unencrypted connections from away](#unencrypted-connections-from-away) | A private network, or HTTPS |
 | **Also count as my home network** | **Remote Access → Advanced** | **Anyone from those addresses is treated as family**: they see profile names and can use password-free profiles, with no HTTPS requirement. A wrong range can mean strangers | List only networks you fully control. Most people should leave it empty |
 | **Trusted reverse proxies**, listed too widely | **Remote Access → Advanced** | **Those machines can claim any visitor address**, so an attacker can claim to be at home and avoid sign-in limits | Only your proxy's exact address |
-| **`-remote-access`, `WMS_REMOTE_ACCESS=1`, `remoteAccess`, or `publicUrl`** | Start-up options and [config file](CONFIG.md) | Remote Access is on, and the switch on the page can't turn it off | Use the switch on the page. See [A rented server](#a-rented-server-vps) |
+| **`-remote-access`, `WMS_REMOTE_ACCESS=1`, `remoteAccess`, or `publicUrl`** | Start-up options and [config file](CONFIG.md) | Devices away from home are let in, and **Home network only** can't be chosen on the page | Choose on the page instead. See [A rented server](#a-rented-server-vps) |
 | **Custom game cores** | `WMS_GAMING_CUSTOM_CORES=1` on the machine, then **Settings → Consoles & cores** | They're programs from outside this project, running on your server. A sandbox limits them, but limits can have bugs | Leave it off, or only use cores you trust, and never from a stranger's link |
 | **Modules from someone's fork, or from another store** | **Settings → Modules** | You're trusting that person with code on your server. The project doesn't check it | Use the project's own modules. If this server is someone else's to run, `WMS_NO_MODULE_FORKS=1` keeps forks off |
 | **`setupFromHome`** | Config file, `-setup-from-home`, `WMS_SETUP_FROM_HOME=1` | Anyone on your network can make the first account on a fresh server and own it | Read the setup code from the console or `setup-code.txt` |
@@ -364,6 +382,29 @@ Each of these exists for a reason, and each one gives something up. Leave them o
 | **Allow uploads** (on by default) | **Settings → Sharing & photos** | Someone who gets into an account may be able to fill your disk | Turn it off if you don't use it |
 | **Update checks** | **Settings → About**, **Settings → Modules** | **Turning these off is the unsafe choice.** You'd miss fixes | Keep them on. Install updates soon |
 | **Reset** | **Settings → Reset** | Anyone with an admin password can wipe the server from anywhere | A strong admin password with two-factor sign-in. Keep backups |
+
+### Unencrypted connections from away
+
+> **Leave this off unless you can say exactly why you need it.** With it on, anyone between a device and your server can read and change what passes, and nothing on the screen will show they did.
+
+This server refuses unencrypted (`http://`) connections from the internet. **Allow unencrypted connections from away**, under **Settings → Remote Access**, lets them in. It's for people who reach their server through a network or tunnel of their own that the server can't recognise, and who accept the risk. **It doesn't change "never forward port 9797"**: forwarding the home port to the internet with this on puts your password on every network between you and home.
+
+**What anyone on the way can do while it's on**, on a café's or hotel's Wi-Fi, the mobile network, or any network on the route that someone has broken into:
+
+- Read your **password** as you sign in, and the sign-in that keeps a device signed in afterwards.
+- Read **stream addresses**, which play your media without a password while they last.
+- See **what you watch, listen to and search for**.
+- **Change the pages** on the way, for example to ask for your password again.
+
+**What the server still does:**
+
+- It's **off by default, for administrators only**, and turning it on asks you to accept the risk in plain words and type your password (and code, with two-factor sign-in).
+- While it's on, **the status at the top of Remote Access, a bar at the top of every page for administrators, and the server log** say so, and the log says so again at every start. A sign-in page reached this way says the connection isn't encrypted.
+- **Every sign-in that crosses the internet unencrypted is marked**, in **People connected from outside** as *Signed in unencrypted*, and **lasts a day at most**. One button signs them all out, and **turning this off signs them all out** too.
+- Cookies sent this way are `HttpOnly` and `SameSite=Strict`, and last a day. They can't be `Secure` without HTTPS.
+- Requests to read a page are still sent to your `https://` address, if you have one.
+
+**Safer instead:** a [private network](#the-recommended-way-a-private-network) encrypts everything without this setting, and so does HTTPS through [your router](#forwarding-a-port-on-your-router) or [a reverse proxy](#a-reverse-proxy-you-already-run).
 
 ## Letting other people in
 
@@ -394,7 +435,7 @@ Everyone you invite adds a password you don't control and devices you can't see.
 
 Signs include a device or sign-in you don't recognize, an account you didn't make, settings you didn't change, a share link you didn't create, files missing or changed, or sign-ins from an unexpected place. Move quickly, and in this order.
 
-1. **Cut it off.** Turn off **Remote Access** and remove any forward on your router. If you can't reach the settings, unplug the computer from the network. **Don't delete anything yet.**
+1. **Cut it off.** Choose **Home network only** in **Remote Access** and remove any forward on your router. If you can't reach the settings, unplug the computer from the network. **Don't delete anything yet.**
 2. **Save the evidence.** Download the logs from **Settings → WittyLog → Download logs**, with **Sanitize for sharing** off so you have the full addresses for yourself, and note the date and what you saw.
 3. **From a different, clean device, change passwords** for your email and your private network's account, and anything that shared a password with this server.
 4. **Check the computer.** Run a full malware scan, and look for programs and accounts you don't recognize. A scan finding nothing doesn't prove the machine is clean. **If you have any real reason to think programs were run on it, the only trustworthy fix is to reinstall the system from scratch** and restore your media from a backup you trust.
@@ -402,16 +443,16 @@ Signs include a device or sign-in you don't recognize, an account you didn't mak
 6. **Replace your API keys:** TMDB, TheTVDB, IGDB, RAWG, ScreenScraper, TheGamesDB and any others you added. Revoke the old ones on those services' sites.
 7. **Consider a clean start.** **Settings → Reset** gives you a new install. **Reset doesn't clean the computer**, and if you keep a copy, that copy may hold whatever the intruder changed. Don't bring it back without good reason.
 8. **Check your other devices** on the home network, and change your router's password.
-9. **Don't turn Remote Access back on the same way.** Use a [private network](#the-recommended-way-a-private-network).
+9. **Don't let devices away from home in the same way again.** Use a [private network](#the-recommended-way-a-private-network).
 10. **Report it if it matters.** If personal or financial information may have been taken, or someone is targeting you, think about telling the relevant services or the police. If you found a security bug in WittyMediaServer, report it privately using **Report a vulnerability** on the [project's security page](https://github.com/wittywilla/WittyMediaServer/security), and don't post the details publicly.
 
 ## What the server protects by itself, and what it doesn't
 
 **Always on:**
 
-- **Encryption from the internet.** Unencrypted requests from the internet are refused or sent to your HTTPS address, so a wrongly forwarded plain port can't expose your password. Browsers that have used HTTPS keep using it for a week.
+- **Encryption from the internet.** Unencrypted requests from the internet are refused or sent to your HTTPS address, so a wrongly forwarded plain port can't expose your password. Browsers that have used HTTPS keep using it for a week. The one exception is [Allow unencrypted connections from away](#unencrypted-connections-from-away), off unless an administrator turns it on.
 - **Sign-in limits.** After 5 wrong tries for one name from one address, each further try waits longer, up to 15 minutes. Away from home there are also limits on one address trying many names (20 wrong tries, and an IPv6 network counts as one address) and one name tried from many addresses (30). Counts are kept until an address has been quiet for six hours. One address alone can't lock a name for anyone else, and **nobody on the internet can lock you out at home.** Wrong tries are shown on the page, where you can also clear the locks. Only a few passwords are checked at once, so a flood of attempts can't take the whole machine.
-- **Cookies** are `HttpOnly`, `SameSite=Lax` and, over HTTPS, `Secure`.
+- **Cookies** are `HttpOnly`, `SameSite=Lax` and, over HTTPS, `Secure`. A cookie sent unencrypted to the internet is `SameSite=Strict` and lasts a day.
 - **Other websites** can't read answers from the server unless they hold a sign-in token, and can't act with your cookie. This matters at home too: any page you visit could otherwise ask a server on your network who its profiles are.
 - **Your password is asked for again**, with your two-factor code if you have it on, so a device you left signed in can't do these: adding or removing an administrator, changing another administrator's password, resetting the server, changing where a module comes from, going back to an older version of one, adding a module store, and taking back an **Update All**.
 - **Password-free Kids and Guest profiles** only work at home, sign-ins made earlier included, and profile names aren't shown elsewhere unless you turn that on. The version isn't shown to anyone not signed in on the internet.
@@ -443,7 +484,7 @@ For viewers on poor connections, also consider **Robust** streaming under **Sett
 
 The apps ask for your server's address: see [Apps and devices](APPS.md#typing-the-address).
 
-- **They refuse an unencrypted `http://` address on the internet**, because your password would travel unencrypted. Use `https://`. Private addresses, including Tailscale and NetBird ones, are fine.
+- **They refuse an unencrypted `http://` address on the internet**, because your password would travel unencrypted. Use `https://`. Private addresses, including Tailscale and NetBird ones, are fine. [Allow unencrypted connections from away](#unencrypted-connections-from-away) is for the server only: it doesn't change what the apps accept.
 - **Desktop app:** **Change server** in the title bar. **Android:** **Change server** on the sign-in screen and on your Profile.
 - **Two-factor accounts on phone and TV apps** can't type their code at a password sign-in yet. Sign in with a code instead.
 
@@ -495,8 +536,10 @@ Forwarded addresses are read only from the proxies you listed, from the right: e
 
 | What you see | What it means | What to do |
 |---|---|---|
-| "Only your home network" | Remote Access is off | Turn it on |
-| "This server is only available on its home network" in a browser | The server sees you as outside, and Remote Access is off | Turn it on from home. Behind a proxy, also list it as trusted |
+| **Home network only** | Working as chosen: only devices at home can connect | To watch away from home, choose a private network. See [Reading the status](#reading-the-status) |
+| **Reachable from away: not yet** | You chose to let devices away from home in, but nothing from outside has arrived | Finish the steps for your choice, then run the check. With a port on your router, check the forward |
+| **Reachable from away: no** | Something is in the way, and the card says what | Fix what it names. Ask before you turn off any protection |
+| "This server is only available on its home network" in a browser | The server sees you as outside, and **Home network only** is chosen | Choose a way in from home. Behind a proxy, also list it as trusted |
 | "This server only accepts encrypted connections…" | You came in over plain HTTP from the internet | Use the `https://` address. On the router, forward the HTTPS port and **not 9797** |
 | "Your router's outside address is shared" | Your provider shares one address between customers (CGNAT), or there's a second router in front | Port forwarding can't work. Use Tailscale, NetBird or a rented server, or ask your provider for a public address |
 | "port … can't be opened" | Something else uses the HTTPS port. On Linux, ports below 1024 need extra rights | Choose another port. **Don't run the server as root** to get around it |
@@ -505,7 +548,7 @@ Forwarded addresses are read only from the proxies you listed, from the right: e
 | Someone reached "the server's plain, unencrypted port" | Port 9797 is open on your router | **Close it now.** Only the HTTPS port should be forwarded |
 | "Too many wrong tries" | Sign-in limits | Wait, try from home, or press **Let everyone try again**. **If it wasn't you, someone's guessing**: check that password is strong and turn on two-factor sign-in |
 | A browser warns about the certificate | The certificate is wrong or expired, or someone's in the way | **Don't continue.** Check from another network and look at the certificate's status on the page |
-| A phone on mobile data shows as *at home* | Something hides visitors' real addresses | **Turn off Remote Access.** See [How the server decides](#how-the-server-decides) |
+| A phone on mobile data shows as *at home* | Something hides visitors' real addresses | **Choose Home network only.** See [How the server decides](#how-the-server-decides) |
 | The test works, but video stutters | Not enough upload speed | Lower the [limits](#limits-for-viewers-away-from-home) |
 
 ---

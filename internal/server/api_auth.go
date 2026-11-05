@@ -46,20 +46,30 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	// An administrator who never saw the first-run notice sees it once (a server
 	// set up before it existed, or one set up from a script).
 	legalAck := u == nil || !u.IsAdmin || s.legalAcked(ctx)
+	// While the owner lets the internet in unencrypted, administrators see it on every page.
+	st := s.state()
+	plainWarning := ""
+	if u != nil && u.IsAdmin && st.on && st.cfg.AllowPlainAway {
+		plainWarning = remote.PlainAwayWarning
+	}
 	writeJSON(w, 200, map[string]any{
-		"legalAck":      legalAck,
-		"update":        newer,
-		"onboarding":    onboarding,
-		"pickerLocal":   onThisMachine(r),
-		"name":          "WittyMediaServer",
-		"version":       version,
-		"setupRequired": setupRequired,
+		// plainConnection: this very request crossed the internet unencrypted, so a
+		// password typed here can be read on the way. The sign-in page says so.
+		"plainConnection":  plainAway(r),
+		"plainAwayWarning": plainWarning,
+		"legalAck":         legalAck,
+		"update":           newer,
+		"onboarding":       onboarding,
+		"pickerLocal":      onThisMachine(r),
+		"name":             "WittyMediaServer",
+		"version":          version,
+		"setupRequired":    setupRequired,
 		// Setting up from another device takes the code the server wrote down.
 		"setupCodeRequired": setupRequired && s.setupNeedsCode(r),
 		"user":              u,
 		"brandName":         s.DB.GetSetting(r.Context(), "brandName", ""),
 		"brandLogo":         s.DB.GetSetting(r.Context(), "brandLogo", ""),
-		"theme":             s.DB.GetSetting(r.Context(), "theme", "default"),
+		"theme":             s.serverTheme(r.Context()),
 	})
 }
 
@@ -79,10 +89,17 @@ type credentials struct {
 const maxCredentialBytes = 16 << 10
 
 func (s *Server) setCookie(w http.ResponseWriter, r *http.Request, token string) {
-	http.SetCookie(w, &http.Cookie{
+	c := &http.Cookie{
 		Name: auth.CookieName, Value: token, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode,
 		Secure: remote.SecureHint(r), Expires: time.Now().Add(90 * 24 * time.Hour),
-	})
+	}
+	if plainAway(r) {
+		// As safe as a cookie gets without HTTPS: never sent by another site's
+		// links either, and gone when the session ends.
+		c.SameSite, c.Expires = http.SameSiteStrictMode, time.Now().Add(auth.PlainAwayTTL)
+		s.notePlainSession(r, token)
+	}
+	http.SetCookie(w, c)
 }
 
 // setupMu makes "is there an account yet?" and creating the first admin one

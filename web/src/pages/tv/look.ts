@@ -10,6 +10,9 @@ import { chooseTheme, contrast, FALLBACK_APP, FONT_STACKS, isHex, legacyOf, read
 export { contrast, readableOn } from './tvThemes'
 export type PreviewMode = 'highlight' | 'last' | 'off'
 export type PreviewSide = 'right' | 'left'
+// Where the preview's controls are: in a bar under the picture, or over it only while it has
+// focus or the pointer, which leaves a plain picture with its corner to resize it by.
+export type PreviewBar = 'bar' | 'over'
 export type Look = {
   theme: ThemeId
   shape: Shape
@@ -34,11 +37,12 @@ export type Look = {
   // theme. The page holds either to what fits.
   previewW?: number
   previewSound: boolean
+  previewBar: PreviewBar
   surfaces: { bg: 'dark' | 'light'; hi: 'dark' | 'light' }
 }
 
-const SETTINGS: Required<Pick<Saved, 'density' | 'hours' | 'nowLine' | 'progress' | 'subtitles' | 'logos' | 'art' | 'preview' | 'previewSound'>> = {
-  density: 'normal', hours: 0, nowLine: true, progress: true, subtitles: true, logos: true, art: true, preview: 'highlight', previewSound: false,
+const SETTINGS: Required<Pick<Saved, 'density' | 'hours' | 'nowLine' | 'progress' | 'subtitles' | 'logos' | 'art' | 'preview' | 'previewSound' | 'previewBar'>> = {
+  density: 'normal', hours: 0, nowLine: true, progress: true, subtitles: true, logos: true, art: true, preview: 'highlight', previewSound: false, previewBar: 'bar',
 }
 
 // The sizes the preview snaps to, and their names. Any size between works too.
@@ -195,7 +199,7 @@ function resolve(saved: Saved, suggestion: Suggestion, ownerLook: OwnerLook, app
   const dark = (c: string) => (readableOn(c) === '#ffffff' ? 'dark' : 'light') as 'dark' | 'light'
   return {
     ...SETTINGS, ...saved, theme, shape, font: theme === 'custom' ? custom.font : '', source: chosen.source, colours, tokens, bg, custom,
-    previewSide: saved.previewSide || SHAPES[shape].side, surfaces: { bg: dark(bg), hi: dark(hi) },
+    previewSide: saved.previewSide || SHAPES[shape].side, previewBar: saved.previewBar === 'over' ? 'over' : 'bar', surfaces: { bg: dark(bg), hi: dark(hi) },
   }
 }
 
@@ -226,10 +230,10 @@ export function useLook(): Look {
 }
 
 // What the guide's root element and the player's need, so every TV screen is dressed the same.
-export function themeRoot(look: Look): { 'data-shape': Shape; 'data-tvtheme': ThemeId; style: React.CSSProperties } {
+export function themeRoot(look: Look): { 'data-shape': Shape; 'data-tvtheme': ThemeId; 'data-previewbar': PreviewBar; style: React.CSSProperties } {
   const style = { ...look.tokens } as Record<string, string>
   if (look.font) style['--ctv-font'] = FONT_STACKS[look.font]
-  return { 'data-shape': look.shape, 'data-tvtheme': look.theme, style: style as React.CSSProperties }
+  return { 'data-shape': look.shape, 'data-tvtheme': look.theme, 'data-previewbar': look.previewBar, style: style as React.CSSProperties }
 }
 
 // An accent pushed far enough from the background to be seen, whatever was picked.

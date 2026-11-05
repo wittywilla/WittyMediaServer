@@ -27,6 +27,10 @@ html.using-controller .act-btn { width: 3rem; height: 3rem; } /* at least 48 at 
 .act-title { font-size: var(--text-md); font-weight: 600; overflow-wrap: anywhere; }
 .act-sub, .act-facts, .act-phase { color: var(--fg-2); font-size: var(--text-sm); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .act-sub { color: var(--fg-3); font-size: var(--text-xs); }
+.act-steps { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); margin: 0; padding: 0; list-style: none; color: var(--fg-2); font-size: var(--text-sm); }
+.act-steps li { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.act-steps li.on { color: var(--fg); font-weight: 600; }
+.act-steps li.done svg { color: var(--ok); }
 .act-state { flex: none; display: inline-flex; align-items: center; gap: var(--sp-1); padding: 2px var(--sp-2); border: 1px solid var(--border-strong); border-radius: var(--r-full); color: var(--fg-2); font-size: var(--text-xs); white-space: nowrap; }
 .act-state.failed { border-color: var(--danger); color: var(--danger); }
 .act-state.done { border-color: var(--ok); color: var(--ok); }

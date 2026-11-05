@@ -72,7 +72,7 @@ export default function AuthPage() {
 }
 
 function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: () => void }) {
-  const { setUser, brandName } = useApp()
+  const { setUser, brandName, plainConnection } = useApp()
   const [name, setName] = useState(profile?.name || '')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
@@ -127,6 +127,7 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
         ? <div className="auth-profile"><Avatar name={profileName(profile)} big /><h2>{profileName(profile)}</h2></div>
         : <div className="brand"><BrandMark /><Brand name={brandName} /></div>}
       <p>{profile ? 'Enter your password or PIN.' : 'Sign in to your media server.'}</p>
+      {plainConnection && <p className="auth-plain" role="alert"><b>This connection isn’t encrypted.</b> Your password can be read or changed by anyone between this device and the server. The owner allowed this. Sign in only on a network you trust.</p>}
       <div className="form">
         {!profile && <label>Username<input className="input" autoFocus value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" /></label>}
         <label>{profile ? <span className="sr-only">Password</span> : 'Password'}

@@ -49,7 +49,7 @@ const minTextBook = 2 << 10
 // Files from digital-library downloads that are not a readable book.
 var junkBookRe = regexp.MustCompile(`(?i)(_lcp\.epub|_jp2\.zip|_djvu\.(txt|xml)|_hocr.*|_chocr.*|_scandata\.xml|_page_numbers\.json|_daisy.*|_text\.pdf)$`)
 
-func discoverBooks(root string) ([]candidate, error) {
+func discoverBooks(root string, step walkStep) ([]candidate, error) {
 	type pick struct {
 		c    candidate
 		rank int
@@ -58,6 +58,9 @@ func discoverBooks(root string) ([]candidate, error) {
 	var bad unreadable
 	var unnamed sniffBudget
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err := step.next(); err != nil {
+			return err
+		}
 		if err != nil {
 			bad.note(err)
 			return nil

@@ -123,7 +123,7 @@ The page is called **Channels & tuners**.
 *Settings, Channels & tuners.*
 
 - **Channels from your library** run all the time, like real TV. You tune in and join the show part-way through. They're made and changed on a page of their own, **Channels** (**Open the channel list**, or **Edit channels** in the guide), with the channels suggested from your library and **Network facts**, which fills in the network and original day and time of shows.
-- **Tuners and IPTV** adds tuners and internet TV lists. No channel lists or stream addresses come with the server. Encrypted channels are shown as encrypted and are never decrypted.
+- **Tuners and IPTV** adds tuners and internet TV lists. **Add live TV** goes a step at a time, from what you have to its channels and guide data, finding devices where it can and taking the rest by hand. No channel lists or stream addresses come with the server. Encrypted channels are shown as encrypted and are never decrypted.
 - **Guide data** adds listings for tuner and IPTV channels, in XMLTV format.
 - **Options** holds the guide's starting layout and colours, how far back people can pause (**Pause buffer**), the largest picture on channels and where recordings go. Each person can change the guide's look on their own device with the **Look** button on the guide.
 
@@ -290,7 +290,7 @@ The page is called **Sharing & photos**. **Your links** is for everyone who has 
 
 - **Uploads:** **Allow uploads** lets adults add pictures and videos to Photos and Vertical videos libraries. It's on by default. **Largest upload** and **Room for each person** set the limits. Uploads also stop when under 2 GB is left on the disk.
 - **Links for people without an account:** **Allow links** is on by default. Turning it off stops every existing link too.
-- **Photo map** works offline with a plain outline of the world. **Online map address** is optional, and tells that provider roughly what area is being viewed.
+- **Photo map** works offline with a plain outline of the world. **Use an online map** is off by default; with it on, each viewer's device asks the provider at **Online map address** for the area being viewed, and the map shows **Credit to show on the map**. Each device can still choose the outline.
 - **Local AI** is planned and doesn't exist yet. The switch does nothing.
 - **Your links** lists your links, with **End link**. Administrators can tick **Everyone's**.
 

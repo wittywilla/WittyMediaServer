@@ -1,0 +1,26 @@
+# WittyMediaServer with Intel or AMD graphics for hardware transcoding (VA-API and Quick Sync).
+# Before starting: run  ls -ln /dev/dri  on the host and put the group number of renderD128
+# (the fourth column) under group_add. Then tick the encoder in Settings -> Live transcoding.
+# Check it with: docker exec wittymediaserver wittymediaserver hardware
+services:
+  wittymediaserver:
+    image: ghcr.io/wittywilla/wittymediaserver:alpha
+    container_name: wittymediaserver
+    restart: unless-stopped
+    user: "1000:1000"
+    group_add:
+      - "105" # the group that owns /dev/dri/renderD128 on the host, by number
+    devices:
+      - /dev/dri:/dev/dri # as a device, not a volume
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "9797:9797"
+    volumes:
+      - ./config:/config
+      - /path/to/media:/media:ro

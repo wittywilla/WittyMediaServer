@@ -307,8 +307,24 @@ func (g *CrashGuard) writeReport(kind string, when time.Time, version, summary, 
 		b.WriteString(lastLines)
 		b.WriteString("\n")
 	}
-	p := filepath.Join(g.dir, id+".txt")
-	if err := os.WriteFile(p, []byte(b.String()), 0o640); err != nil {
+	// Whole or not at all: it's written when things are going wrong, and the server may not
+	// last the write. Under its own name it's listed, and read, before it holds anything.
+	tmp, err := os.CreateTemp(g.dir, ".writing-*")
+	if err != nil {
+		return Crash{}, err
+	}
+	defer os.Remove(tmp.Name()) // nothing left once renamed
+	_, err = tmp.WriteString(b.String())
+	if cerr := tmp.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = os.Chmod(tmp.Name(), 0o640)
+	}
+	if err == nil {
+		err = os.Rename(tmp.Name(), filepath.Join(g.dir, id+".txt"))
+	}
+	if err != nil {
 		return Crash{}, err
 	}
 	return Crash{ID: id, Kind: kind, Time: when, Summary: summary, Version: version, Size: int64(b.Len())}, nil
@@ -398,6 +414,14 @@ func (g *CrashGuard) prune() {
 		if i >= maxCrashFiles || c.Time.Before(cutoff) {
 			_ = os.Remove(filepath.Join(g.dir, c.ID+".txt"))
 			_ = os.Remove(filepath.Join(g.dir, c.ID+".seen"))
+		}
+	}
+	// What a run that ended during a write left.
+	if left, _ := filepath.Glob(filepath.Join(g.dir, ".writing-*")); len(left) > 0 {
+		for _, p := range left {
+			if st, err := os.Stat(p); err == nil && time.Since(st.ModTime()) > time.Hour {
+				_ = os.Remove(p)
+			}
 		}
 	}
 }

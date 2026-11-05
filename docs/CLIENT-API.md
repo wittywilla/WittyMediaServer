@@ -570,6 +570,11 @@ name>` to the address so the server can tell viewers apart, and send `POST /tv/{
 when leaving. A 503 means the channel is still starting: wait and ask again. Without `streamToken=1` no ticket
 is made, which is what the web player does.
 
+On a channel with `countProgress`, report watch progress for `now.itemId` as `positionSec` plus the seconds
+since `serverTime`, but only up to `partEnd`, when this stretch of the programme ends; a commercial break may
+follow. Ask `tune` again at `partEnd`: during a break `countProgress` is false, and after it `positionSec`
+carries on from where the programme stopped.
+
 Everything about a channel's ticket works as in [Stream tokens](#stream-tokens), and every request checks again
 that the account may watch that channel. An encrypted broadcast is refused with `security` saying why; this
 server never decrypts one.
@@ -1230,12 +1235,19 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /music/extras/{id}/file` | user | One of those, by the `name` the list gave. |
 | `GET /music/artist` | user | An artist's page: albums, songs, and a biography if online information is on: `library`, `name`. |
 | `GET /music/artist-photo` | user | An artist's picture, or a cover of theirs: `library`, `name`. |
-| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. |
-| `PUT /music/lyrics/{id}/offset` | user | This person's timing correction: `{offsetMs}`, up to two minutes either way. |
+| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. For a music video tied to a song, the song's lyrics, with `songId`, and `startMs` (where the song starts in the video) as the starting `offsetMs`. |
+| `PUT /music/lyrics/{id}/offset` | user | This person's timing correction: `{offsetMs}`, up to two minutes either way of where it starts. A music video's is its own. |
 | `POST /music/lyrics/{id}/search` | admin | Online lyrics to choose from: `{q}`. |
 | `PUT /music/lyrics/{id}` | admin | Corrects a song's lyrics on this server: `{text}`, `{instrumental}` or `{provider, id}`. |
 | `DELETE /music/lyrics/{id}` | admin | Forgets the correction and any online answer. |
 | `DELETE /music/lyrics-cache` | admin | Forgets all lyrics fetched from online. |
+| `GET /music/links/{id}` | user | What a song or a music video is tied to (`tied`), with what's at both ends; admins also get `suggested`. Only items this person may see are listed. |
+| `GET /music/links/{id}/candidates` | admin | Videos for a song, or songs for a video, to tie by hand: `q` (the title when empty), `limit`. |
+| `GET /music/videos` | user | The **Music videos** section: videos from every music video library this person can see, by artist, each with the `song` it's tied to and `syncMs`: `search`, `sort` (`latest`), `limit`, `offset`. |
+| `GET /music/links` | admin | Suggestions waiting to be looked at: `limit`. |
+| `PUT /music/links` | admin | Ties a song to a music video for good: `{songId, videoId}`, with `syncMs` (where the song starts in the video) or `noSync`. A video has one song, so its old one is untied. |
+| `DELETE /music/links` | admin | Unties them: `song`, `video`. No match ties them again. |
+| `POST /music/links/match` | admin | Matches every song with every music video again now. Scans of music and music video libraries do this by themselves. |
 | `GET /podcasts` | user | Podcast subscriptions. |
 | `GET /podcasts/search` | admin | Search a podcast directory. |
 | `POST /podcasts` | admin | Subscribe. |
@@ -1568,12 +1580,14 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | Route | Sign-in | What it does |
 |---|---|---|
 | `GET /remote` | admin | Remote. |
+| `GET /remote/status` | none | How remote access stands, in the settings page's own words: `level` (good, waiting or fault), `subject` (such as "Home network only" or "Reachable from away: yes"), `summary`, `home`, `away`, `checked`, `state` and `publicUrl`, and `warning` while the owner allows unencrypted connections from away: show it as it is, and prominently. Show them as they are, on a connection screen. Needs a sign-in, except from the server's own computer. |
 | `PUT /remote` | admin | Put remote. |
 | `POST /remote/test` | admin | Start test. |
 | `POST /remote/selfcheck` | admin | Self check. |
 | `POST /remote/router` | admin | Look router. |
 | `POST /remote/obtain` | admin | Obtain. |
 | `DELETE /remote/lockouts` | admin | Clear lockouts. |
+| `DELETE /remote/plain-sessions` | admin | Sign out every session whose sign-in crossed the internet unencrypted (`plainAway` in `GET /sessions`). Answers `{ended}`. |
 | `GET /sessions` | user | Sessions. |
 | `DELETE /sessions` | user | End other sessions. |
 | `DELETE /sessions/{id}` | user | End session. |

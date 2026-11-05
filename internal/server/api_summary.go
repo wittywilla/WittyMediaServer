@@ -14,6 +14,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
 
@@ -178,6 +179,9 @@ func (s *Server) LogStartup(ctx context.Context) {
 		s.Log.Log(ctx, lv, "folder", args...)
 	}
 	s.Log.Info("settings", "values", settingsText(sum.Settings), "secretsSet", strings.Join(sum.SecretsSet, ","), "libraries", libraryCounts(sum.Libraries))
+	if rs := s.loadRemote(ctx); rs.AllowPlainAway && (rs.Enabled || s.Cfg != nil && (s.Cfg.RemoteAccess || s.Cfg.PublicURL != "")) {
+		s.Log.Warn(remote.PlainAwayWarning, "cat", "remote")
+	}
 }
 
 func settingsText(m map[string]string) string {

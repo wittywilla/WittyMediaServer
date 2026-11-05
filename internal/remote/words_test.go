@@ -90,3 +90,18 @@ func TestTheGuideUsesTheSameWords(t *testing.T) {
 		}
 	}
 }
+
+// The warning stays as long as unencrypted connections from away take effect.
+func TestPlainAwayIsAlwaysSaid(t *testing.T) {
+	for _, f := range []Facts{{On: true, PlainAway: true}, {On: true, PlainAway: true, Ways: []Way{{Kind: "plain", State: "ok", URL: "http://203.0.113.7:9797"}}}} {
+		if s := Describe(f); s.Warning != PlainAwayWarning {
+			t.Errorf("%+v: %q", f, s.Warning)
+		}
+	}
+	if s := Describe(Facts{PlainAway: true}); s.Warning != "" {
+		t.Errorf("home network only lets nobody in, encrypted or not: %q", s.Warning)
+	}
+	if s := Describe(Facts{On: true, Ways: []Way{{Kind: "plain", State: "ok", URL: "http://203.0.113.7:9797"}}, PlainAway: true}); !strings.Contains(s.Summary, "unencrypted") {
+		t.Errorf("the way in says it's unencrypted: %q", s.Summary)
+	}
+}

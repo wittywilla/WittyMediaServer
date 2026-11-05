@@ -302,12 +302,13 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/reach/{nonce}` | Public | Nonce of a running outside test |
 | `GET /api/remote` | Admin | Nothing further |
 | `GET /api/remote/status` | Signed-in, or this computer | no account only from the server's own computer, directly (the tray). What is wrong in a fault, which can name files, only for an admin |
-| `PUT /api/remote` | Admin | Method, outside address, network lists, limits, ports, HTTPS mode and its fields |
+| `PUT /api/remote` | Admin | Method, outside address, network lists, limits, ports, HTTPS mode and its fields. Turning on unencrypted connections from away also needs `acceptPlainAway` and the admin's own password (and code) |
 | `POST /api/remote/test` | Admin | Address is one the server offered |
 | `POST /api/remote/selfcheck` | Admin | Outside address is set |
 | `POST /api/remote/router` | Admin | Nothing further |
 | `POST /api/remote/obtain` | Admin | HTTPS is on, in certificate-request mode |
 | `DELETE /api/remote/lockouts` | Admin | Nothing further |
+| `DELETE /api/remote/plain-sessions` | Admin | Nothing further |
 | `GET /api/sessions` | Signed-in | own. Everyone's with 'all=1', for an admin |
 | `DELETE /api/sessions` | Signed-in | own, except the current one |
 | `DELETE /api/sessions/{id}` | Signed-in | own. Any account's for an admin |

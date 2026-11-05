@@ -355,6 +355,7 @@ Each of these exists for a reason, and each one gives something up. Leave them o
 
 | Setting | Where | What it risks | Do this instead |
 |---|---|---|---|
+| **Allow unencrypted connections from away** | **Remote Access** | **Passwords, sign-ins, stream addresses and what you watch cross the internet readable and changeable by anyone on the way.** See [Unencrypted connections from away](#unencrypted-connections-from-away) | A private network, or HTTPS |
 | **Also count as my home network** | **Remote Access → Advanced** | **Anyone from those addresses is treated as family**: they see profile names and can use password-free profiles, with no HTTPS requirement. A wrong range can mean strangers | List only networks you fully control. Most people should leave it empty |
 | **Trusted reverse proxies**, listed too widely | **Remote Access → Advanced** | **Those machines can claim any visitor address**, so an attacker can claim to be at home and avoid sign-in limits | Only your proxy's exact address |
 | **`-remote-access`, `WMS_REMOTE_ACCESS=1`, `remoteAccess`, or `publicUrl`** | Start-up options and [config file](CONFIG.md) | Devices away from home are let in, and **Home network only** can't be chosen on the page | Choose on the page instead. See [A rented server](#a-rented-server-vps) |
@@ -381,6 +382,29 @@ Each of these exists for a reason, and each one gives something up. Leave them o
 | **Allow uploads** (on by default) | **Settings → Sharing & photos** | Someone who gets into an account may be able to fill your disk | Turn it off if you don't use it |
 | **Update checks** | **Settings → About**, **Settings → Modules** | **Turning these off is the unsafe choice.** You'd miss fixes | Keep them on. Install updates soon |
 | **Reset** | **Settings → Reset** | Anyone with an admin password can wipe the server from anywhere | A strong admin password with two-factor sign-in. Keep backups |
+
+### Unencrypted connections from away
+
+> **Leave this off unless you can say exactly why you need it.** With it on, anyone between a device and your server can read and change what passes, and nothing on the screen will show they did.
+
+This server refuses unencrypted (`http://`) connections from the internet. **Allow unencrypted connections from away**, under **Settings → Remote Access**, lets them in. It's for people who reach their server through a network or tunnel of their own that the server can't recognise, and who accept the risk. **It doesn't change "never forward port 9797"**: forwarding the home port to the internet with this on puts your password on every network between you and home.
+
+**What anyone on the way can do while it's on**, on a café's or hotel's Wi-Fi, the mobile network, or any network on the route that someone has broken into:
+
+- Read your **password** as you sign in, and the sign-in that keeps a device signed in afterwards.
+- Read **stream addresses**, which play your media without a password while they last.
+- See **what you watch, listen to and search for**.
+- **Change the pages** on the way, for example to ask for your password again.
+
+**What the server still does:**
+
+- It's **off by default, for administrators only**, and turning it on asks you to accept the risk in plain words and type your password (and code, with two-factor sign-in).
+- While it's on, **the status at the top of Remote Access, a bar at the top of every page for administrators, and the server log** say so, and the log says so again at every start. A sign-in page reached this way says the connection isn't encrypted.
+- **Every sign-in that crosses the internet unencrypted is marked**, in **People connected from outside** as *Signed in unencrypted*, and **lasts a day at most**. One button signs them all out, and **turning this off signs them all out** too.
+- Cookies sent this way are `HttpOnly` and `SameSite=Strict`, and last a day. They can't be `Secure` without HTTPS.
+- Requests to read a page are still sent to your `https://` address, if you have one.
+
+**Safer instead:** a [private network](#the-recommended-way-a-private-network) encrypts everything without this setting, and so does HTTPS through [your router](#forwarding-a-port-on-your-router) or [a reverse proxy](#a-reverse-proxy-you-already-run).
 
 ## Letting other people in
 
@@ -426,9 +450,9 @@ Signs include a device or sign-in you don't recognize, an account you didn't mak
 
 **Always on:**
 
-- **Encryption from the internet.** Unencrypted requests from the internet are refused or sent to your HTTPS address, so a wrongly forwarded plain port can't expose your password. Browsers that have used HTTPS keep using it for a week.
+- **Encryption from the internet.** Unencrypted requests from the internet are refused or sent to your HTTPS address, so a wrongly forwarded plain port can't expose your password. Browsers that have used HTTPS keep using it for a week. The one exception is [Allow unencrypted connections from away](#unencrypted-connections-from-away), off unless an administrator turns it on.
 - **Sign-in limits.** After 5 wrong tries for one name from one address, each further try waits longer, up to 15 minutes. Away from home there are also limits on one address trying many names (20 wrong tries, and an IPv6 network counts as one address) and one name tried from many addresses (30). Counts are kept until an address has been quiet for six hours. One address alone can't lock a name for anyone else, and **nobody on the internet can lock you out at home.** Wrong tries are shown on the page, where you can also clear the locks. Only a few passwords are checked at once, so a flood of attempts can't take the whole machine.
-- **Cookies** are `HttpOnly`, `SameSite=Lax` and, over HTTPS, `Secure`.
+- **Cookies** are `HttpOnly`, `SameSite=Lax` and, over HTTPS, `Secure`. A cookie sent unencrypted to the internet is `SameSite=Strict` and lasts a day.
 - **Other websites** can't read answers from the server unless they hold a sign-in token, and can't act with your cookie. This matters at home too: any page you visit could otherwise ask a server on your network who its profiles are.
 - **Your password is asked for again**, with your two-factor code if you have it on, so a device you left signed in can't do these: adding or removing an administrator, changing another administrator's password, resetting the server, changing where a module comes from, going back to an older version of one, adding a module store, and taking back an **Update All**.
 - **Password-free Kids and Guest profiles** only work at home, sign-ins made earlier included, and profile names aren't shown elsewhere unless you turn that on. The version isn't shown to anyone not signed in on the internet.
@@ -460,7 +484,7 @@ For viewers on poor connections, also consider **Robust** streaming under **Sett
 
 The apps ask for your server's address: see [Apps and devices](APPS.md#typing-the-address).
 
-- **They refuse an unencrypted `http://` address on the internet**, because your password would travel unencrypted. Use `https://`. Private addresses, including Tailscale and NetBird ones, are fine.
+- **They refuse an unencrypted `http://` address on the internet**, because your password would travel unencrypted. Use `https://`. Private addresses, including Tailscale and NetBird ones, are fine. [Allow unencrypted connections from away](#unencrypted-connections-from-away) is for the server only: it doesn't change what the apps accept.
 - **Desktop app:** **Change server** in the title bar. **Android:** **Change server** on the sign-in screen and on your Profile.
 - **Two-factor accounts on phone and TV apps** can't type their code at a password sign-in yet. Sign in with a code instead.
 

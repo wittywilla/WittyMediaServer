@@ -7,6 +7,8 @@ import { toast } from '../../state'
 import QrCode from './QrCode'
 import { LoadError } from '../../components/common'
 import { PageHead, Row, Section, Switch } from './ui'
+import { OwnerFields } from './ConfirmOwner'
+import { Button, Dialog } from '../../ui'
 import './remote.css'
 import LegalNote from '../../components/LegalNote'
 import { ask } from '../../ui/Overlay'
@@ -21,13 +23,13 @@ type Settings = {
   enabled: boolean; method: '' | 'tailscale' | 'netbird' | 'router' | 'proxy' | 'vps'; publicUrl: string
   trustedProxies: string; homeNets: string; awayNets: string; maxHeight: number; maxBitrate: string
   httpsMode: 'off' | 'acme' | 'cert'; httpsPort: number; domain: string; email: string; acceptTerms: boolean
-  certFile: string; keyFile: string; portMapping: boolean; externalPort: number
+  certFile: string; keyFile: string; portMapping: boolean; externalPort: number; allowPlainAway: boolean
 }
 type Route = { kind: string; label: string; state: 'ok' | 'waiting' | 'problem'; urls: string[]; detail?: string; lastSeen?: number }
 type Notice = { level: 'warn' | 'info'; text: string; trust?: string; link?: string }
 type Hit = { at: number; where: string; via: string; ip: string; proof: boolean }
 type Probe = { found: boolean; protocol?: string; externalIp?: string; shared?: boolean; error?: string; at: number }
-type Standing = { level: 'good' | 'waiting' | 'fault'; subject: string; summary: string; home: string; away: string; checked: string }
+type Standing = { level: 'good' | 'waiting' | 'fault'; subject: string; summary: string; home: string; away: string; checked: string; warning?: string }
 type Status = Standing & {
   settings: Settings; forced: boolean; state: 'off' | 'ok' | 'waiting' | 'problem'
   routes: Route[]; notices: Notice[]; you: { where: string; via: string; ip: string; through?: string }
@@ -37,6 +39,7 @@ type Status = Standing & {
   router?: Probe; test?: { url: string; expires: number; hit?: Hit }; lastProof?: Hit; addresses: string[]
   lockouts: { kind: string; addr?: string; name?: string; until: number; fails: number }[]; failures: number
   weakAccounts: { name: string; isAdmin: boolean; unknown: boolean }[]; adminsWithout2fa: number; error?: string
+  plainSessions: number; ended?: number
 }
 type Step = { name: string; state: 'ok' | 'warn' | 'fail'; detail: string }
 type Save = (c: Partial<Settings>, d?: string) => Promise<boolean>
@@ -105,13 +108,15 @@ export default function RemoteAccess() {
     const t = setInterval(() => { if (!document.hidden) load().catch(() => {}) }, live ? 2500 : 15000)
     return () => clearInterval(t)
   }, [load, live])
+  // The bar on every page reads the same status, so it hears of changes at once.
+  const applied = (n: Status) => { setSt(n); window.dispatchEvent(new Event('wms-remote-changed')) }
   const save: Save = async (change, done) => {
     setBusy(true)
     try {
       const n = await api.put<Status>('/remote', change)
-      setSt(n)
+      applied(n)
       if (n.error) toast(n.error)
-      else if (done) toast(done)
+      else if (done) toast(n.ended ? `${done}. ${n.ended === 1 ? 'One device was' : `${n.ended} devices were`} signed out.` : done)
       return true
     } catch (e: any) { toast(e.message); return false } finally { setBusy(false) }
   }
@@ -124,6 +129,7 @@ export default function RemoteAccess() {
       <PageHead title="Remote Access" desc="Who can use this server, and from where. It starts as home network only, and this server doesn't contact anyone for remote access unless a step below says so." />
       <StatusCard st={st} save={save} busy={busy} />
       <Chooser st={st} choice={choice} save={save} busy={busy} />
+      {(choice !== 'home' || s.allowPlainAway) && <PlainAway st={st} save={save} busy={busy} applied={applied} reload={load} />}
       {choice !== 'home' && <OutsideTest st={st} reload={load} />}
       {choice !== 'home' && <Limits s={s} save={save} busy={busy} />}
       <People />
@@ -155,6 +161,7 @@ function StatusCard({ st, save, busy }: { st: Status; save: Save; busy: boolean 
           <li className={awayOk ? 'yes' : 'no'}><span aria-hidden="true">{awayOk ? <IconCheck size={16} /> : <IconClose size={16} />}</span>{st.away}</li>
         </ul>
         <p className="rem-checked">{st.checked}</p>
+        {st.warning && <p className="rem-plain-warn"><span aria-hidden="true"><IconShield size={18} /></span><span><b>Warning:</b> {st.warning}{st.plainSessions > 0 && <> {st.plainSessions === 1 ? 'One device is' : `${st.plainSessions} devices are`} signed in that way.</>}</span></p>}
       </div>
       {st.notices.length > 0 && (
         <ul className="rem-notices">
@@ -449,6 +456,76 @@ function VpsSteps({ st, save, busy }: { st: Status; save: Save; busy: boolean })
   )
 }
 
+// ------------------------------------------------------------------ unencrypted from away
+
+// Off unless an administrator knowingly turns it on. Turning it on takes the
+// warning accepted and their password; turning it off signs out every device
+// that signed in that way.
+function PlainAway({ st, save, busy, applied, reload }: { st: Status; save: Save; busy: boolean; applied: (n: Status) => void; reload: () => Promise<void> }) {
+  const on = st.settings.allowPlainAway
+  const [asking, setAsking] = useState(false)
+  const turn = async (v: boolean) => {
+    if (v) { setAsking(true); return }
+    const n = st.plainSessions
+    if (n > 0 && !await ask({ title: 'Refuse unencrypted connections from away again?', body: `${n === 1 ? 'One device signed in' : `${n} devices signed in`} without encryption, so ${n === 1 ? 'it is' : 'they are'} signed out too.`, confirm: 'Refuse them and sign out' })) return
+    save({ allowPlainAway: false }, 'Unencrypted connections from away are refused again')
+  }
+  const endAll = async () => {
+    if (!await ask({ title: 'Sign out every device that signed in without encryption?', body: 'They’d have to sign in again.', confirm: 'Sign them out', danger: true })) return
+    try { const r = await api.del<{ ended: number }>('/remote/plain-sessions'); toast(r.ended === 1 ? 'One device signed out' : `${r.ended} devices signed out`); await reload() } catch (e: any) { toast(e.message) }
+  }
+  return (
+    <Section title="Unencrypted connections from away" desc="This server refuses unencrypted (http://) connections from the internet, so that passwords can’t be read on the way. Some people reach their server through a network or tunnel of their own that the server can’t recognise, and accept the risk. Leave this off unless you’re one of them.">
+      <Row label="Allow unencrypted connections from away" desc={on ? 'On. Sign-ins made this way are marked, last a day at most, and are signed out when you turn this off.' : 'Off. Connections from the internet must use HTTPS.'}>
+        <Switch label="Allow unencrypted connections from away" checked={on} disabled={busy} onChange={turn} />
+      </Row>
+      {on && st.plainSessions > 0 && (
+        <div className="rem-actions">
+          <button type="button" className="btn sm" onClick={endAll}>Sign out the {st.plainSessions === 1 ? 'device' : `${st.plainSessions} devices`} that signed in unencrypted</button>
+        </div>
+      )}
+      {asking && <PlainAwayConfirm onClose={() => setAsking(false)} onDone={(n) => { applied(n); setAsking(false); toast('Unencrypted connections from away are allowed') }} />}
+    </Section>
+  )
+}
+
+function PlainAwayConfirm({ onClose, onDone }: { onClose: () => void; onDone: (n: Status) => void }) {
+  const [accept, setAccept] = useState(false)
+  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
+  const [err, setErr] = useState('')
+  const [working, setWorking] = useState(false)
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (working || !accept) return
+    setWorking(true); setErr('')
+    try { onDone(await api.put<Status>('/remote', { allowPlainAway: true, acceptPlainAway: true, password, code })) } catch (x: any) { setErr(x.message); setCode(''); setWorking(false) }
+  }
+  return (
+    <Dialog alert size="sm" title="Allow unencrypted connections from away?" onClose={onClose}
+      actions={<>
+        <Button variant="ghost" onClick={onClose}>Keep them refused</Button>
+        <Button variant="danger" type="submit" form="rem-plain-form" busy={working} disabled={!accept || !password}>Allow them</Button>
+      </>}>
+      <form id="rem-plain-form" className="ui-dialog-form" onSubmit={submit}>
+        <div className="ms-ask">
+          <p>Without encryption, <b>anyone between a device and this server</b> can read or change what passes: a café’s Wi-Fi, a hotel’s network, the mobile network, or anyone who has broken into one of them. That includes:</p>
+          <ul>
+            <li><b>Passwords</b> typed to sign in, and the sign-ins that keep devices signed in.</li>
+            <li><b>Stream addresses</b>, which play your media without a password.</li>
+            <li><b>What you watch and listen to</b>, and what you search for.</li>
+            <li><b>The pages themselves</b>, which can be changed on the way to trick you.</li>
+          </ul>
+          <p>Use it only on networks you trust, or behind a VPN or tunnel of your own. A private network such as Tailscale or NetBird is safer, and doesn’t need this.</p>
+        </div>
+        <label className="check-row rem-accept"><input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} /> <span>I understand that anyone on the way can read my password and what I watch, and I accept that.</span></label>
+        <OwnerFields password={password} code={code} setPassword={setPassword} setCode={setCode} />
+        {err && <p className="error" role="alert">{err}</p>}
+      </form>
+    </Dialog>
+  )
+}
+
 // ------------------------------------------------------------------ the outside test
 
 function OutsideTest({ st, reload }: { st: Status; reload: () => Promise<void> }) {
@@ -536,7 +613,7 @@ function People() {
     const t = setInterval(() => { if (!document.hidden) load() }, 15000)
     return () => clearInterval(t)
   }, [load])
-  const away = (list || []).filter((v) => v.where === 'vpn' || v.where === 'internet')
+  const away = (list || []).filter((v) => v.where === 'vpn' || v.where === 'internet' || v.plainAway)
   const end = async (v: Session) => {
     if (!await ask({ title: `Sign ${v.userName} out on ${v.device || 'this device'}?`, body: 'They’d have to sign in again.', confirm: 'Sign out', danger: true })) return
     try { await api.del(`/sessions/${v.id}`); toast('Signed out'); load() } catch (e: any) { toast(e.message) }
@@ -552,6 +629,7 @@ function People() {
                 <b>{v.userName}</b> · {v.device || 'Unknown device'}
                 {v.streaming && <span className="set-pill live">Streaming</span>}
                 {v.current && <span className="set-badge">This device</span>}
+                {v.plainAway && <span className="set-badge rem-plain-badge">Signed in unencrypted</span>}
                 <small>{shortWhere[v.where]} · {viaLabel(v.where, v.via)} · {v.ip} · {ago(v.lastSeen)}</small>
               </div>
               {!v.current && <button type="button" className="btn sm ghost danger-hover" onClick={() => end(v)} aria-label={`Sign ${v.userName} out on ${v.device}`}><IconTrash /> Sign out</button>}

@@ -32699,11 +32699,33 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "brandColouring": {
+                      "description": "How the name is coloured: auto, one, or pick: and the coloured ranges in code points (pick:5-10,16-22).",
+                      "type": "string"
+                    },
                     "brandLogo": {
                       "type": "string"
                     },
                     "brandName": {
                       "type": "string"
+                    },
+                    "brandParts": {
+                      "description": "The name to show (the default when brandName is empty), ready to draw: parts with accent in the theme colour.",
+                      "items": {
+                        "properties": {
+                          "accent": {
+                            "type": "boolean"
+                          },
+                          "text": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "legalAck": {
                       "description": "False while an administrator should still see the first-run notice.",
@@ -33410,8 +33432,30 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "brandColouring": {
+                      "description": "As in /status.",
+                      "type": "string"
+                    },
                     "brandName": {
                       "type": "string"
+                    },
+                    "brandParts": {
+                      "description": "As in /status: the name to show, ready to draw.",
+                      "items": {
+                        "properties": {
+                          "accent": {
+                            "type": "boolean"
+                          },
+                          "text": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "default": {
                       "type": "string"

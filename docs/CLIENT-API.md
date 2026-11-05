@@ -748,6 +748,42 @@ variables, so theme authors write one file and the apps get the same colours:
   guide only covers the data.
 - `GET /branding/logo` and `brandName` in `/status` replace the name and icon, where the owner set them.
 
+### Drawing the server's name
+
+The name is drawn with every other word in the theme colour, the way WittyMediaServer is drawn as
+Witty**Media**Server. `/status` has it ready to draw:
+
+```json
+"brandName": "Willow's Movies",
+"brandColouring": "auto",
+"brandParts": [{ "text": "Willow's " }, { "text": "Movies", "accent": true }]
+```
+
+- **Draw `brandParts`** in order, in one line of text: parts with `accent: true` in the theme's
+  `accent-text` colour, the others in `fg`, all the same weight. It is there for the default name too
+  (`brandName` is then `""`), so an app needs no rule of its own. Joined, the parts are the name.
+- **Screen readers get the name once, whole**: give the text one accessibility label, `brandName` (or
+  WittyMediaServer when it's empty), and keep the coloured pieces out of the accessibility tree
+  (`accessibilityElement` with a label on Apple, `contentDescription` on the view holding the spans on
+  Android).
+- **Long names wrap** to a second or third line in a side menu rather than being cut off; a top bar
+  shortens it with an ellipsis. The parts can break anywhere a normal line can.
+- A server older than this has no `brandParts`: draw `brandName` in one colour, or the default name as
+  Witty, Media in the theme colour, Server.
+
+`brandColouring` is how the owner chose it, kept with the name in `PUT /settings`:
+
+| Value | Meaning |
+|---|---|
+| `auto` (or empty) | Every other word, starting with the second. Words split at spaces, and inside joined words at a capital after a small letter (MyHome), before the last capital of a run followed by two small letters (TVRoom, but TVs stays whole), between a small letter and a digit (Movies4K), and before a capital after a dash, `_`, `/`, `&`, `+`, `\|` or `:`. Scripts without capital letters split at spaces only. |
+| `one` | The whole name in one colour. |
+| `pick:5-10,16-22` | The ranges in the theme colour, as start-end offsets in characters (Unicode code points, not UTF-16 units), the end not included, in order and not overlapping, up to 80. `pick:` alone colours nothing. |
+
+An app that renames the server sends both `brandName` and `brandColouring`. If it sends only a new
+name, chosen ranges no longer fit it, so the server goes back to `auto`. Anything else is refused with
+400. An app showing a rename window of its own can offer the same three choices; the rule and its cases
+are in `internal/brandname` (`testdata/cases.json`).
+
 ## Choices that follow the account
 
 `GET` and `PUT /me/ui` hold one JSON object of up to 16 KB for the account, so choices follow the person

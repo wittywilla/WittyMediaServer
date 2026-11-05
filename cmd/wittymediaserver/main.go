@@ -21,6 +21,9 @@ func main() {
 // serviceStop closes when Windows' service manager asks the server to stop.
 var serviceStop = make(chan struct{})
 
+// asService: Windows' service manager started this process.
+var asService bool
+
 func run(args []string) int {
 	if len(args) > 0 {
 		switch args[0] {
@@ -47,6 +50,8 @@ func run(args []string) int {
 			return cmdBackup(args[1:])
 		case "doctor":
 			return cmdDoctor(args[1:])
+		case "hardware":
+			return cmdHardware(args[1:])
 		case "uninstall", "--uninstall", "-uninstall", "/uninstall":
 			return uninstall.RunCLI(args[1:], os.Stdin, os.Stdout)
 		case "--secure-service-data": // run by the Windows installer, as an administrator
@@ -108,13 +113,16 @@ usage:
                              the logs as a ZIP, sanitized for sharing unless --raw; no server needed
   wittymediaserver logs sanitize [-data <dir>] [-o out.txt] <file>
                              a sanitized copy of any text log
-  wittymediaserver metadata export|check|apply [-data <dir>] [-library <id>] [--dry-run | --apply]
-                             write a text file for each title to fix by hand, say what's wrong with one, and apply them
+  wittymediaserver metadata export|check|apply|undo [-data <dir>] [-library <id>] [--dry-run | --apply]
+                             write a text file for each title to fix by hand, say what's wrong with one, apply them, and take one apply back
   wittymediaserver doctor [-data <dir>] [--fix] [--only <id,id or area>] [--safe-only] [--json] [--yes]
                              find and fix problems with metadata, data, modules and the install, even if the
                              server won't start. Without --fix it only looks. wittymediaserver doctor help says more
   wittymediaserver doctor remap --from <old> --to <new> [--fix]
                              a library's drive or folder moved: rewrite the paths
+  wittymediaserver hardware [--json]
+                             which graphics devices the server can use and which hardware encoders work,
+                             and what to change when one can't be used (docker exec wittymediaserver ...)
   wittymediaserver version
 
 Tools for looking inside discs are in each disc module's project, not in its download: wittydvd, wittybluray and wittycd.`)

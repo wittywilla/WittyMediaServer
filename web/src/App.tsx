@@ -58,8 +58,11 @@ const SetupWizard = lazy(() => import('./pages/SetupWizard'))
 // TV is its own part of the app, loaded when someone goes there.
 const GuidePage = lazy(() => import('./pages/tv/GuidePage'))
 const RecordingsPage = lazy(() => import('./pages/tv/RecordingsPage'))
+const ChannelsPage = lazy(() => import('./pages/tv/ChannelsPage'))
 const EncryptedHelp = lazy(() => import('./pages/tv/EncryptedHelp'))
 const TvPlayer = lazy(() => import('./pages/tv/TvPlayer'))
+// The TV section's one stream, shared by the guide's preview and the watch view.
+const TvHost = lazy(() => import('./pages/tv/TvHost'))
 const tvFallback = <div className="center"><div className="spinner" /></div>
 
 export default function App() {
@@ -94,6 +97,7 @@ function Shell() {
   const isPlayer = loc.pathname.startsWith('/play/')
   const isReader = loc.pathname.startsWith('/read/')
   const isTvPlayer = loc.pathname.startsWith('/tv/watch/')
+  const isTv = loc.pathname === '/tv' || loc.pathname.startsWith('/tv/')
   const isGame = loc.pathname.startsWith('/game/')
   const isCouchMode = loc.pathname === '/big' || loc.pathname.startsWith('/big/')
   const isStream = /^\/couch\/\d+\/play\//.test(loc.pathname) || loc.pathname.startsWith('/couch-rig/')
@@ -106,6 +110,7 @@ function Shell() {
         : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
         : isPlayer ? null : <AppFrame />}
       <PlayerDock />
+      {isTv && <Suspense fallback={null}><TvHost /></Suspense>}
       <ReminderWatcher />
     </AudioProvider>
   )
@@ -161,6 +166,7 @@ function AppFrame() {
             <Route path="/pair" element={<PairPage />} />
             <Route path="/tv" element={<Suspense fallback={tvFallback}><GuidePage /></Suspense>} />
             <Route path="/tv/recordings" element={<Suspense fallback={tvFallback}><RecordingsPage /></Suspense>} />
+            <Route path="/tv/channels/*" element={<Suspense fallback={tvFallback}><ChannelsPage /></Suspense>} />
             <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
             <Route path="/controllers" element={<Suspense fallback={<Spinner />}><ControllersScreen /></Suspense>} />
             <Route path="/settings/*" element={<SettingsPage />} />

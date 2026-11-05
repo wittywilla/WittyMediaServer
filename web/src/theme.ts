@@ -77,6 +77,17 @@ export function applyTheme(wantedId: string, version = '') {
   document.head.appendChild(link)
 }
 
+let brand = 'WittyMediaServer'
+let page = ''
+
 export function applyBrand(name: string) {
-  document.title = name || 'WittyMediaServer'
+  brand = name || 'WittyMediaServer'
+  applyPageTitle(page)
+}
+
+// applyPageTitle puts the page's own name before the server's in the window's title, so browser
+// tabs, history and a screen reader's list of windows can tell the pages apart.
+export function applyPageTitle(name: string) {
+  page = name
+  document.title = name && name !== brand ? `${name} · ${brand}` : brand
 }

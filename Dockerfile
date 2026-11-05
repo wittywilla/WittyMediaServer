@@ -30,15 +30,33 @@ RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$T
 # start, and a compatibility layer leaves several cores unable to load. libgl1 is
 # linked by a few software-rendered cores that never use it.
 FROM debian:trixie-slim@sha256:f6b08b09a05725f9431502d3b5714f5c4576e82c1a84fa1debe0c24a7e0c3ec4
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certificates tzdata tini wget libgl1 \
- && rm -rf /var/lib/apt/lists/* \
- && groupadd -g 1000 wms && useradd -u 1000 -g wms -m wms \
- && mkdir -p /config /media && chown wms:wms /config
+ARG TARGETARCH
+# Debian's FFmpeg has VA-API, Quick Sync and NVENC built in, but not the drivers they
+# load, which are only recommended packages. On amd64 (Intel and AMD graphics):
+# mesa-va-drivers for AMD, Intel's media driver for 5th generation (Broadwell) and newer
+# with its encoding kernels from non-free, i965 with its shaders for older chips, and
+# the oneVPL runtime for Quick Sync. vainfo is for checking by hand. NVIDIA's libraries
+# come from the host through the NVIDIA Container Toolkit, when the container starts.
+RUN set -eux; \
+    gpu=""; \
+    if [ "$TARGETARCH" = amd64 ]; then \
+      sed -i 's/^Components: main$/Components: main non-free/' /etc/apt/sources.list.d/debian.sources; \
+      gpu="mesa-va-drivers intel-media-va-driver-non-free i965-va-driver-shaders libmfx-gen1.2 vainfo"; \
+    fi; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ffmpeg ca-certificates tzdata tini wget libgl1 $gpu; \
+    rm -rf /var/lib/apt/lists/*; \
+    groupadd -g 1000 wms && useradd -u 1000 -g wms -m wms; \
+    mkdir -p /config /media && chown wms:wms /config
 COPY --from=build /out/wittymediaserver /usr/local/bin/
+# The graphics drivers keep a cache under XDG_CACHE_HOME, which has to be writable by
+# whatever user the container runs as, with a read-only root too.
 ENV WMS_DOCKER=1 \
     WMS_DATA_DIR=/config \
     WMS_LISTEN=:9797 \
-    WMS_TRANSCODE_DIR=/config/transcode
+    WMS_TRANSCODE_DIR=/config/transcode \
+    XDG_CACHE_HOME=/config/cache/xdg \
+    NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
 EXPOSE 9797
 VOLUME ["/config"]
 USER wms

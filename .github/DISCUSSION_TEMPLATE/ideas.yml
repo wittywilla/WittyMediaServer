@@ -1,0 +1,24 @@
+title: ""
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Look through the [planned features](https://github.com/wittywilla/WittyMediaServer/discussions/categories/ideas?discussions_q=label%3Aplanned) first: if yours is there, upvote it and add what you'd need from it. Something broken goes in [Issues](https://github.com/wittywilla/WittyMediaServer/issues/new/choose) instead.
+  - type: textarea
+    id: need
+    attributes:
+      label: What you'd like to do
+      description: The need, in your own words, rather than how it should be built.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: What happens today
+      description: How you manage now, and what's missing or awkward.
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: Which part, and which devices.
+      placeholder: TV guide on Android TV, music on phones…

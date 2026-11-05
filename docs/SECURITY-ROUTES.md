@@ -44,7 +44,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/themes/{id}/download` | Public | Theme id resolved by the theme manager |
 | `GET /api/themes/{id}/{file...}` | Public | Theme id and file name checked by the theme manager. Inert content policy |
 | `GET /api/themes/{id}/tokens.json` | Public | Theme id resolved by the theme manager |
-| `GET /api/health` | Public | Nothing: answers `ok` |
+| `GET /api/health` | Public | Nothing: answers `ok`, and this run's random `instance` id, so that a second start on the same data folder knows the server answering is the one using it. The id is made fresh at every start and says nothing about the server |
 | `GET /api/capabilities` | Public | Describes the server to apps. Version left out for signed-out callers from the internet |
 | `POST /api/identity` | Public | Nonce format. Answers with a signature over it |
 | `POST /api/pair/start` | Public | Server is set up. Limits on open codes per address and for the server |
@@ -147,6 +147,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/pair/deny` | Adult | Code, with a limit on wrong codes |
 | `POST /api/pair/invite` | Adult | Target is the caller or a profile the caller manages. One open code per person, limit on open codes |
 | `GET /api/playback/profiles` | Signed-in | Nothing: the built-in client profiles |
+| `GET /api/playback/speedtest` | Signed-in | Nothing: random bytes, 64 KB to 4 MB, sent within the limits for viewers away from home, as any stream is |
 | `POST /api/items/{id}/playback` | Signed-in | limits. Known profile, start time, track numbers, sizes |
 | `POST /api/items/{id}/stream-token` | Signed-in | limits. Needs a real sign-in |
 | `GET /api/items/{id}/subtitles/{file}` | Signed-in; ticket | limits. Item is a video. Name is 'n.vtt' and a text track |

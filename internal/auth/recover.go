@@ -59,7 +59,7 @@ func RecoverPassword(ctx context.Context, d *db.DB, name, password string) (*Rec
 	if err := checkPassword(password, a.Kind); err != nil {
 		return nil, err
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), hashCost)
 	if err != nil {
 		return nil, err
 	}

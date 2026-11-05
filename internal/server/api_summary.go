@@ -1,7 +1,9 @@
 package server
 
 import (
+	"cmp"
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"runtime"
@@ -10,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 )
@@ -77,9 +80,20 @@ func (s *Server) SystemSummary(ctx context.Context) SystemSummary {
 			case h.Working:
 				status = "works"
 			case h.Tested:
-				status = "failed: " + h.Error
+				status = "failed: " + strings.TrimSpace(h.Reason+" "+h.Error)
+			case h.Reason != "":
+				status = "not used: " + h.Reason
 			}
 			out.Hardware = append(out.Hardware, h.Name+": "+status)
+		}
+		for _, d := range ffmpeg.GPUs() {
+			line := fmt.Sprintf("%s (%s, group %d, %s): ", d.Path, cmp.Or(d.Vendor, "unknown"), d.Group, d.Mode)
+			if d.Usable {
+				line += "can be used"
+			} else {
+				line += strings.TrimSpace(d.Problem + " " + d.Fix)
+			}
+			out.Hardware = append(out.Hardware, line)
 		}
 	}
 	add := func(role, p string) {

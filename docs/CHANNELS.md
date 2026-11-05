@@ -27,7 +27,7 @@ Use this guide to make always-on TV channels from your own library, add live TV 
 
 ## Your first channel
 
-1. Go to **Settings → Channels & tuners**.
+1. Open **TV guide** in the menu and press **Edit channels**, or go to **Settings → Channels & tuners** and press **Open the channel list**. Either way you reach **Channels**, the page for channels from your library (its address is `/tv/channels`).
 2. Under **Add with one click**, press **Add** on anything suggested. It's on the air straight away.
 3. Open **TV guide** in the menu. Move with the arrow keys or a remote, press Enter or OK to watch, and dial a channel with the number keys.
 
@@ -71,7 +71,7 @@ Up from the top row and Left from the first cell hand the arrows back, so a remo
 
 ## The look
 
-WittyTV has themes of its own, apart from the app's theme. Press **Look** on the guide, or open **Settings → Appearance** and find **WittyTV**. Each is drawn as a small picture of itself, and changes show straight away. A theme changes the guide, the player's banner and mini guide, recordings and the other TV pages, not only the grid.
+WittyTV has themes of its own, apart from the app's theme. Press **Look** on the guide, or open **Settings → Appearance** and choose **WittyTV** under **On this page**. Each is drawn as a small picture of itself, and changes show straight away. A theme changes the guide, the player's banner and mini guide, recordings and the other TV pages, not only the grid.
 
 ![The guide in the Satellite look, with a film playing](images/wittytv-satellite.webp)
 *The Satellite look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
@@ -129,9 +129,13 @@ It snaps to Small, Medium, Large, Extra large and Huge, and any size between wor
 
 The buttons under it also turn its sound on, go full screen and hide it.
 
+**One picture, not two.** The preview and the full-screen view are the same stream in two places. Going full screen from the preview, using F or the button, and coming back to the guide carry on from where the picture was: nothing tunes again, and nothing jumps back. On the way back the guide keeps the channel in the preview while it loads.
+
 ## Watching a channel
 
 Tuning shows a banner with the channel number, name, times, a progress bar and what's next.
+
+When nothing is scheduled, a channel shows a **We'll be right back** card with the channel's name and what's coming up, in the watch view and in the guide's preview alike, so the picture never looks broken. It goes when the next programme starts.
 
 ![A small list of channels over the picture](images/wittytv-miniguide.webp)
 *The mini guide over a channel, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
@@ -158,13 +162,15 @@ You can pause and rewind within what's kept: 5 minutes on library channels and 3
 
 ## Channels in one click
 
-**Add with one click**, in **Settings → Channels & tuners**, offers what your library can fill: Classics such as Movies and Saturday morning, Genres, Studios, Your collections, Decades, TV networks and Marathons. **Add** puts one on the air, **Change first** opens it in the editor, and **Add all** does a whole group. A channel takes at least three titles, or it would be the same thing again and again.
+**Add with one click**, on the **Channels** page, offers what your library can fill: Classics such as Movies and Saturday morning, Genres, Studios, Your collections, Decades, TV networks and Marathons. **Add** puts one on the air, **Change first** opens it in the editor, and **Add all** does a whole group. A channel takes at least three titles, or it would be the same thing again and again.
 
 A network channel can run the network's shows all day, be limited to a decade, follow day parts from the genres that suit them, or put each show in its original day and time. A style is only offered when your library's details support it. **Fill in missing facts**, under **Network facts**, asks your metadata services about the network and original air times of shows that don't have them, without touching any files.
 
 ## Making your own channel
 
-Press **New channel**, or **Edit** on a channel. The editor has three levels, which are three views of the same channel. Moving between them never loses anything.
+On the **Channels** page, press **New channel**, or **Edit** on a channel. Admins can also press **Edit channel** in a library channel's details in the guide. Each channel's editor has an address of its own, `/tv/channels/<id>`, so it can be bookmarked or shared with another admin. **Back** returns to wherever you opened it from. Leaving with changes that aren't saved asks first; they're kept in this browser either way, and come back the next time you open the channel.
+
+The editor has three levels, which are three views of the same channel. Moving between them never loses anything.
 
 ![The page for making a channel](images/wittytv-new-channel.webp)
 *Making a channel.*
@@ -225,6 +231,8 @@ To use them:
 3. Choose **After each show, play** 0 to 5 commercials, and optionally **During a programme, a break every** so many minutes, with 1 to 5 commercials.
 
 They also fill gaps to the time grid, and never count as watched. No break comes so near the end that you'd just wait for the programme to finish. The guide shows one programme with its breaks inside it, and its times are when it really starts and ends.
+
+Commercials are picked at random, but one that played lately waits until up to 24 others have (half of them, in a small library), unless it's the only one short enough for a gap. A video that one of the channel's bumper rules plays is a bumper on that channel, and isn't played as a commercial as well, unless the bumpers are all the commercials it has.
 
 Commercials come under a profile's limits like anything else: unrated ones hide a channel from a Kids profile, since viewers share one stream.
 
@@ -412,7 +420,7 @@ A channel is treated as ATSC 3.0 when its source names HEVC or AC-4. The server 
 ## What costs what
 
 - **An idle channel costs nothing.** A day's schedule is worked out the first time something needs that day, then kept. Days nobody watched are worked out as needed, so an unwatched channel still moves on as real TV would.
-- **Watching.** Everyone on a channel shares one stream, and FFmpeg stops about 45 seconds after the last request, deleting what it kept and releasing any tuner. A player says when it leaves, so a channel only flicked past stops about two seconds later.
+- **Watching.** Everyone on a channel shares one stream, and FFmpeg stops about 45 seconds after the last request, deleting what it kept and releasing any tuner. A player says when it leaves, so a channel only flicked past stops about two seconds later. The web app says so 3 seconds after the page showing it goes (the guide's preview giving way to full screen, or back), unless it's shown again first, and at once on moving the guide's highlight on, changing channel or closing the tab.
 - **Pass H.264 through**, under **Options**, sends video the browser can already play as it is, which is much lighter on the machine. Turn it off only if channels stutter when shows change. Sound is always stereo AAC, so a stream stays playable across programmes.
 - **The limit.** Live sessions that convert count against how many conversions may run at once, and a viewer is told plainly when the server is full. **Largest picture on channels** is lighter on small machines.
 - **The preview.** It waits for the highlight to settle, then shares the channel's ordinary stream, so a channel someone else is watching costs nothing extra. It stops while the page is in the background, and dragging changes only its own width. **On a tuner, a preview uses up a tuner**, which is why it can be pointed at the last channel or hidden.

@@ -12,7 +12,7 @@ export type GameHome = {
   hero: Item[]; continue: GameContinue[]; recent: Item[]; favourites: Item[]; favouriteIds: number[]; mostPlayed: Item[]; shelves: GameShelf[]
 }
 export type GameCheck = {
-  ready: boolean; reason?: 'core' | 'bios' | 'gpu' | 'unavailable' | 'unknown'; message?: string; file?: string; console?: string; consoleName?: string
+  ready: boolean; reason?: 'core' | 'bios' | 'gpu' | 'encrypted' | 'unavailable' | 'unknown'; message?: string; encrypted?: boolean; file?: string; console?: string; consoleName?: string
   core?: { id: string; name: string; license: string }; needsGpu?: boolean; gpuMissing?: string
   // Plays, drawn by the server's processor as it has no graphics card games can use; notice is the speed caveat.
   software?: boolean; notice?: string

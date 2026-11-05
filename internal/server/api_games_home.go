@@ -266,6 +266,14 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 		out["ready"], out["reason"], out["message"] = false, "unavailable", console.Unavailable
 		return out
 	}
+	// An encrypted copy can't play on any server, so that comes before what this one lacks, and
+	// says the same as Play would.
+	if console.ID == "3ds" {
+		if info, err := wittyplay.Inspect3DS(it.Path); err == nil && info.Encrypted {
+			out["ready"], out["reason"], out["message"], out["encrypted"] = false, "encrypted", encryptedMessage(), true
+			return out
+		}
+	}
 	pick := s.pickCore(ctx, console, it.ID, systemDir)
 	switch {
 	case pick.core != nil:
@@ -273,7 +281,7 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 		out["needsGpu"] = !pick.software && s.coreDrawsOnGPU(*pick.core)
 		if pick.software {
 			// It plays, drawn by the processor: how it may run, before anyone presses Play.
-			out["software"], out["notice"] = true, softwareNotice
+			out["software"], out["notice"] = true, pick.notice
 		}
 	case pick.noGPU != "":
 		// Not on this server, and why: the Play button would only be turned away. Where it would
@@ -335,7 +343,7 @@ func (s *Server) installableCore(ctx context.Context, console *wittyplay.Console
 		if gpuCore && !asked {
 			noGPU, asked = s.gpuMissing(ctx), true
 		}
-		if d, _ := drawsOn(c.ID, gpuCore, runtime.GOOS, noGPU); d == drawsNone {
+		if d, _ := drawsHere(c.ID, gpuCore, noGPU); d == drawsNone {
 			continue
 		}
 		return &coreAlternative{ID: c.ID, Name: c.Name, Console: console.Name}

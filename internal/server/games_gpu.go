@@ -129,6 +129,48 @@ var cpuDrawing = map[string]map[string]string{
 // when it does.
 const softwareNotice = "This server has no graphics card games can use, so its processor draws this game instead, at the console's own resolution. It may run slower than on a server with a card, and keeps several processor cores busy while it plays."
 
+// cardFaults are cores whose drawing on a graphics card goes wrong on a system, as seen with real
+// games, so that there they're drawn by the processor even where the runner can use a card. On a
+// Mac (an Apple M3 Pro, OpenGL 4.1 through a CGL context), with the owner's games:
+//   - Mupen64Plus-Next's GLideN64 handed over black pictures for Super Mario 64 and Banjo-Kazooie.
+//     Without its framebuffer emulation it drew Super Mario 64 at full speed, but Banjo-Kazooie at
+//     38 frames a second, going black after half a minute. The processor draws both at 60.
+//   - ParaLLEl N64's OpenGL plugins drew nothing at all.
+//   - LRPS2's OpenGL renderer needs GL_ARB_shading_language_420pack, which macOS doesn't have, and
+//     made no picture.
+//
+// PPSSPP, SwanStation, Beetle PSX HW and Play! drew their games correctly at full speed there, on
+// the card, and aren't listed. Each listed core has a way for the processor to draw it.
+var cardFaults = map[string]map[string]string{
+	"darwin": {
+		"mupen64plus_next": "GLideN64 draws black pictures with a Mac's OpenGL",
+		"parallel_n64":     "its OpenGL plugins draw nothing with a Mac's OpenGL",
+		"pcsx2":            "its OpenGL renderer needs an extension a Mac's OpenGL doesn't have",
+	},
+}
+
+// hostOS is the system this server runs on. Tests change it.
+var hostOS = runtime.GOOS
+
+// drawsWrongHere says why a core's drawing on a graphics card goes wrong on this server's
+// system, or "" when it doesn't, as far as is known. Never for a custom core.
+func drawsWrongHere(c cores.Core) string {
+	if c.Source == cores.SourceCustom {
+		return ""
+	}
+	return cardFaults[hostOS][c.ID]
+}
+
+// cardFaultNotice is the speed caveat for a game the processor draws because its core draws
+// wrongly on this system's graphics card.
+func cardFaultNotice() string {
+	where := "this server's system"
+	if hostOS == "darwin" {
+		where = "a Mac"
+	}
+	return "On " + where + " this console's games are drawn by the server's processor, at the console's own resolution, since its emulator doesn't draw them correctly on the graphics card there. They may run slower than on a card, and keep several processor cores busy while they play."
+}
+
 // cpuOptions are the options that have a core drawn by the processor, or nil if it can't be.
 // Never for a custom core: what it offers isn't known.
 func cpuOptions(c cores.Core) map[string]string {
@@ -150,7 +192,8 @@ func withoutGPUArg(args []string) []string {
 // corePick is the core a game would start on, as pressing Play would choose it.
 type corePick struct {
 	core     *cores.Core // what it starts on, or nil
-	software bool        // it draws on a graphics card, which this server hasn't got, so the processor draws it
+	software bool        // it draws on a graphics card, which this server hasn't got or draws it wrongly, so the processor draws it
+	notice   string      // with software: the speed caveat, and why
 	blocked  *cores.Core // with no core: the one wanted, which is missing a BIOS
 	noGPU    string      // with no core: why what could play it can't draw on this server
 }
@@ -175,10 +218,13 @@ func (s *Server) pickCore(ctx context.Context, console *wittyplay.Console, itemI
 	}
 	why := s.gpuMissing(ctx)
 	if why == "" {
+		if core != nil && drawsWrongHere(*core) != "" && cpuOptions(*core) != nil {
+			return corePick{core: core, software: true, notice: cardFaultNotice()}
+		}
 		return corePick{core: core, blocked: blocked}
 	}
 	if core != nil && cpuOptions(*core) != nil {
-		return corePick{core: core, software: true}
+		return corePick{core: core, software: true, notice: softwareNotice}
 	}
 	var needsBIOS, onCPU *cores.Core
 	for _, c := range g.cores.AllForConsole(console, preferred) {
@@ -204,7 +250,7 @@ func (s *Server) pickCore(ctx context.Context, console *wittyplay.Console, itemI
 	}
 	switch {
 	case onCPU != nil:
-		return corePick{core: onCPU, software: true}
+		return corePick{core: onCPU, software: true, notice: softwareNotice}
 	case needsBIOS != nil:
 		return corePick{blocked: needsBIOS} // it would play here, with a BIOS
 	}

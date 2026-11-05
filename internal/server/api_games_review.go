@@ -10,12 +10,14 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/gameid"
 	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
@@ -403,15 +405,36 @@ func (g *gameService) prepareDiscs(ctx context.Context, discs []library.GameDisc
 		return "", nil, err
 	}
 	ends = append(ends, func() { _ = os.RemoveAll(dir) })
+	// Every disc is made ready at once: unpacking is what takes the time, and the cache unpacks
+	// two at a time. One after the other, Final Fantasy VII from a USB drive took two minutes to
+	// start, for its two archived discs, though its first disc needed no unpacking at all.
+	type ready struct {
+		rom     string
+		release func()
+		err     error
+	}
+	got := make([]ready, len(discs))
+	var wg sync.WaitGroup
+	for i, d := range discs {
+		wg.Add(1)
+		got[i].err = errors.New("this disc could not be made ready")
+		logging.Go("preparing a disc", func() {
+			defer wg.Done()
+			got[i].rom, got[i].release, got[i].err = g.prepareROM(ctx, d.Path, console, "")
+		}, "cat", "games")
+	}
+	wg.Wait()
+	for _, r := range got {
+		if r.release != nil {
+			ends = append(ends, r.release)
+		}
+	}
 	var list strings.Builder
-	for _, d := range discs {
-		one, release, err := g.prepareROM(ctx, d.Path, console, "")
-		if err != nil {
-			return "", nil, err
+	for i, d := range discs {
+		if got[i].err != nil {
+			return "", nil, got[i].err
 		}
-		if release != nil {
-			ends = append(ends, release)
-		}
+		one := got[i].rom
 		sub := "disc" + strconv.Itoa(d.Disc)
 		if err := os.Mkdir(filepath.Join(dir, sub), 0o700); err != nil {
 			return "", nil, err

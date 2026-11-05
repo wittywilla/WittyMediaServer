@@ -16019,6 +16019,37 @@
         "x-wms-auth": "user"
       }
     },
+    "/games/playing": {
+      "get": {
+        "operationId": "getGamesPlaying",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The game this account is playing now, the device it started on, and who joined it. 204 when it isn't playing one.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/games/settings": {
       "get": {
         "operationId": "getGamesSettings",
@@ -29639,6 +29670,158 @@
           }
         ],
         "summary": "Play WS.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/play/join": {
+      "post": {
+        "operationId": "postPlayJoin",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Join someone's game with the code they were given: answers the session, the seat, and the game.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/play/{sid}/invite": {
+      "post": {
+        "operationId": "postPlaySidInvite",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A code others can join this game with, for ten minutes. The host only.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/play/{sid}/seats": {
+      "get": {
+        "operationId": "getPlaySidSeats",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Who is playing this game: its host and everyone who joined. The host also sees the code.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/play/{sid}/seats/{user}": {
+      "delete": {
+        "operationId": "deletePlaySidSeatsUser",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "user",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Frees a seat: the host frees anyone's, and anyone may leave.",
         "tags": [
           "Server"
         ],

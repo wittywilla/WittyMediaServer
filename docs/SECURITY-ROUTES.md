@@ -465,13 +465,18 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/games/{id}/saves/{slot}/file` | Signed-in | limits. A game. Slots 1 and up. At most 256 MB, header checked, limits per game and per account, imports at once |
 | `GET /api/games/{id}/battery` | Signed-in; address token | limits. A game. own folder |
 | `PUT /api/games/{id}/battery` | Signed-in | limits. A game not being played. At most 64 MB, limits per game and per account, imports at once |
-| `GET /api/play/{sid}` | Signed-in | Session started by this account |
+| `GET /api/play/{sid}` | Signed-in | Session started by this account, or joined with its code |
 | `DELETE /api/play/{sid}` | Signed-in | Session started by this account |
-| `POST /api/play/{sid}/webrtc` | Signed-in | Session started by this account. Offer size |
-| `GET /api/play/{sid}/ws` | Signed-in; address token | Session started by this account. WebSocket: origin must match the host, messages limited in size |
+| `POST /api/play/{sid}/webrtc` | Signed-in | Session started by this account, or joined with its code. Offer size |
+| `GET /api/play/{sid}/ws` | Signed-in; address token | Session started by this account, or joined with its code. WebSocket: origin must match the host, messages limited in size |
 | `POST /api/play/{sid}/action` | Signed-in | Session started by this account. Known action |
 | `GET /api/play/{sid}/stats` | Signed-in | Session started by this account |
 | `GET /api/play/{sid}/screenshot` | Signed-in; address token | Session started by this account |
+| `GET /api/games/playing` | Signed-in | own: the game this account is playing |
+| `POST /api/play/join` | Signed-in | A live code for a running game; wrong codes limited per account; the game visible to this profile |
+| `POST /api/play/{sid}/invite` | Signed-in | Session started by this account |
+| `GET /api/play/{sid}/seats` | Signed-in | Session started by this account, or joined with its code; the code only for the host |
+| `DELETE /api/play/{sid}/seats/{user}` | Signed-in | The host, or the person leaving |
 | `GET /api/game-controllers` | Signed-in | Nothing: known controllers |
 | `GET /api/game-profiles` | Signed-in | own |
 | `POST /api/game-profiles` | Signed-in | own. Size, fields cleaned. Game: limits, and on that console |

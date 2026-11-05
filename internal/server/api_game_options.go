@@ -104,9 +104,12 @@ func (s *Server) serverGameLayer(ctx context.Context, console string) *wittyplay
 
 // gameLayers reads every level that applies, least specific first.
 func (s *Server) gameLayers(ctx context.Context, userID int64, console string, itemID int64) []wittyplay.NamedLayer {
-	out := []wittyplay.NamedLayer{{Level: wittyplay.LevelServer, Layer: s.serverGameLayer(ctx, "")}}
+	server := s.serverGameLayer(ctx, "")
+	out := []wittyplay.NamedLayer{{Level: wittyplay.LevelServer, Layer: server}}
 	if console != "" {
-		out = append(out, wittyplay.NamedLayer{Level: wittyplay.LevelServerConsole, Layer: s.serverGameLayer(ctx, console)})
+		everyone := s.serverGameLayer(ctx, console)
+		withRewindDefault(console, server, everyone)
+		out = append(out, wittyplay.NamedLayer{Level: wittyplay.LevelServerConsole, Layer: everyone})
 	}
 	add := func(level, c string, id int64) {
 		l, err := s.Store.GameLayer(ctx, userID, c, id)

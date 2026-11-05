@@ -147,6 +147,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/pair/deny` | Adult | Code, with a limit on wrong codes |
 | `POST /api/pair/invite` | Adult | Target is the caller or a profile the caller manages. One open code per person, limit on open codes |
 | `GET /api/playback/profiles` | Signed-in | Nothing: the built-in client profiles |
+| `GET /api/playback/speedtest` | Signed-in | Nothing: random bytes, 64 KB to 4 MB, sent within the limits for viewers away from home, as any stream is |
 | `POST /api/items/{id}/playback` | Signed-in | limits. Known profile, start time, track numbers, sizes |
 | `POST /api/items/{id}/stream-token` | Signed-in | limits. Needs a real sign-in |
 | `GET /api/items/{id}/subtitles/{file}` | Signed-in; ticket | limits. Item is a video. Name is 'n.vtt' and a text track |

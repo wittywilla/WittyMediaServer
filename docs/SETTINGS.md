@@ -104,6 +104,7 @@ The page is called **Playback & discs**. It sets how videos, shows and discs pla
 
 - **Fastest playback speed** is the highest speed the player offers. 4× is the recommended limit: above it, most browsers mute the sound, and a video being converted has to convert faster than it plays.
 - **TV episode layout** is the default for every show. A show can change it on its own page.
+- **Streaming for viewers away from home** is **Standard**, as it always was, or **Robust**, which favours staying smooth on poor connections. **On this device** is the browser's own choice, which wins over the server's at home or away. See [Robust streaming](PLAYING.md#robust-streaming).
 - **When a disc is inserted** starts with the disc's menu, or skips to the movie.
 - **Disc insert animation** and **Drive sounds** are the tray effect.
 - **Preferred languages** take two-letter codes such as `en` or `fr`, for menus, audio and subtitles on discs that offer them.

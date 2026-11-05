@@ -310,6 +310,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/pair/deny", a(s.handlePairDeny))
 	m.Handle("POST /api/pair/invite", a(s.handlePairInvite))
 	m.Handle("GET /api/playback/profiles", a(s.handlePlaybackProfiles))
+	m.Handle("GET /api/playback/speedtest", a(s.handleSpeedTest))
 	m.Handle("GET /api/media-types", a(s.handleMediaTypes))
 	m.Handle("POST /api/items/{id}/playback", a(s.handlePlayback))
 	m.Handle("POST /api/items/{id}/stream-token", a(s.handleItemStreamToken))

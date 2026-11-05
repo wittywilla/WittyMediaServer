@@ -119,13 +119,17 @@ export type PlayInfo = {
 }
 // The answer to POST /items/{id}/playback for a video. See docs/CLIENT-API.md.
 export type PlaybackSubtitle = { index: number; language: string; languageName?: string; title?: string; codec: string; forced?: boolean; sdh?: boolean; text: boolean; delivery: 'none' | 'embedded' | 'sidecar' | 'hls' | 'burn'; url?: string }
-export type PlaybackExplain = { summary: string; source: string; picture: string; sound: string; subtitles?: string; reasons: string[]; load: 'none' | 'light' | 'heavy' }
+export type PlaybackExplain = { summary: string; source: string; picture: string; sound: string; subtitles?: string; reasons: string[]; load: 'none' | 'light' | 'heavy'; streaming?: string }
+// How a video is streamed, and what the player should do for that (see docs/CLIENT-API.md, Robust streaming).
+export type StreamingHints = { bufferSec: number; maxBufferSec: number; retries: number; firstRetryMs: number; maxRetryMs: number; segmentTimeoutMs: number; resumeOnDrop: boolean; stepDownOnStall: boolean }
+export type PlaybackStreaming = { mode: 'standard' | 'robust'; from: 'default' | 'server' | 'device'; segmentSec?: number; measuredKbps?: number; ladder?: { height: number; kbps: number }[]; player: StreamingHints }
 export type PlaybackAnswer = {
   decision: 'direct' | 'remux' | 'transcode' | string; reasons: string[]; protocol: string; url: string; streamId?: string; durationSec: number; container?: string
   seek: 'native' | 'restart' | 'none'; startAtSec: number; timeOffsetSec: number; resumeSec: number
   audio: Track[]; subtitles: PlaybackSubtitle[]; audioIndex: number; subtitleIndex: number; subtitleDelivery: string
   chapters?: { start: number; title: string }[]; explain?: PlaybackExplain
   videos?: { index: number; codec: string; width: number; height: number; title?: string }[]; videoIndex?: number; stereo?: string; flattened?: boolean
+  streaming?: PlaybackStreaming
 }
 export type DvdButton = { n: number; x1: number; y1: number; x2: number; y2: number; up: number; down: number; left: number; right: number; auto: boolean; lit: boolean; cmd: string; frames?: number; fps?: number; num?: number; soundSelect?: number; soundPress?: number }
 export type DvdMenu = {

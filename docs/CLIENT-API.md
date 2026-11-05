@@ -338,7 +338,7 @@ Only `profile` is needed. Leave out `audio` and `subtitle` and the server picks 
 (`audioLanguage` and `subtitleLanguage` say what the viewer prefers; see
 [the rules](#rules-every-client-shares)). Leave out `startSec` and it resumes where the viewer stopped.
 `forceTranscode` asks for a conversion, `burnSubtitle` draws the chosen subtitle into the picture
-(for heavily styled ASS).
+(for heavily styled ASS). `streaming` and `measuredKbps` are for [robust streaming](#robust-streaming).
 
 ```json
 {
@@ -382,7 +382,7 @@ Only `profile` is needed. Leave out `audio` and `subtitle` and the server picks 
 The server always tries them in this order. `reasons` are stable names, worth showing in a
 "playback info" screen, and `explain` puts the same thing in plain words to show as they are. The names: `container`, `video-codec`, `video-tag`, `video-height`, `video-bitrate`,
 `video-depth`, `video-range`, `interlaced`, `audio-codec`, `audio-channels`, `audio-track`, `subtitle`,
-`burn-subtitle`, `forced`, `direct-play-off`, `remux-unavailable`, `hls-video-codec`, `no-video`, `split-file`, `video-track`, `flatten-3d`, `remote-limit`.
+`burn-subtitle`, `forced`, `direct-play-off`, `remux-unavailable`, `hls-video-codec`, `no-video`, `split-file`, `video-track`, `flatten-3d`, `remote-limit`, `robust-stream`.
 
 **Files, not just tracks.** Subtitle files beside a video come after the file's own tracks in `subtitles`, and work the
 same. A film split across files (`CD1`, `CD2`) is one item, with `split-file` among its reasons. `videos` lists the
@@ -412,6 +412,64 @@ playlist are switched in the player.
 **Stopping.** `DELETE /hls/{streamId}` when the viewer leaves: it stops the conversion straight away.
 Streams also pause after 90 seconds with no requests, and go after 10 minutes. A long pause can
 therefore end in a 404: call `/playback` again.
+
+### Robust streaming
+
+Every video answer has `streaming`, which says how it is sent and what the player should do for that:
+
+```json
+"streaming": {
+  "mode": "robust",
+  "from": "device",
+  "segmentSec": 2,
+  "measuredKbps": 4000,
+  "ladder": [{"height": 480, "kbps": 1400}, {"height": 720, "kbps": 2800}, {"height": 360, "kbps": 800}, {"height": 240, "kbps": 400}],
+  "player": {"bufferSec": 60, "maxBufferSec": 120, "retries": 8, "firstRetryMs": 500, "maxRetryMs": 8000,
+             "segmentTimeoutMs": 30000, "resumeOnDrop": true, "stepDownOnStall": true}
+}
+```
+
+`mode` is `standard`, how every stream has always been sent, or `robust`, which favours staying smooth
+on a poor connection over the sharpest picture. `from` says who chose it: `default`, `server` (its
+setting, `playback.remoteStreaming` in `/capabilities`, which applies to viewers away from home) or
+`device`. **Let the person choose** Standard, Robust or the server's choice on the device, and send it as
+`streaming` (`standard`, `robust`, or `auto` or nothing to follow the server). A device's choice wins
+wherever it is, so robust helps on poor Wi-Fi at home too.
+
+**Measure first.** When the device chose robust, or follows a server whose `remoteStreaming` is `robust`,
+time `GET /playback/speedtest` (up to 4 MB of bytes that don't compress, sent within the limits for
+viewers away from home) for about a second, counting from the first bytes, and send the result as
+`measuredKbps`. Keep it for a few minutes, and keep the player's own estimate when a video ends. Without
+one, the server assumes a connection that carries 480p.
+
+**What the server does in robust mode.** A file whose bitrate is no more than half of `measuredKbps` is
+still sent as it is (or rewrapped); anything else is converted (reason `robust-stream`) to a ladder of
+steady rates, listed in `ladder` in the order of the master playlist in `url`. The first is where it
+starts, the best rung that fits in 60% of `measuredKbps`; one rung above it and every rung below follow.
+Segments are two seconds long and each starts with a keyframe, aligned across rungs, so a player can
+change rung, or pick up after a drop, at any of them. Only the rung being fetched is converted: one the
+player has left rests after a few seconds. `DELETE /hls/{streamId}` ends every rung.
+
+**What the player does**, with the numbers in `player`:
+
+- Keep `bufferSec` ahead (`maxBufferSec` at most), and wait up to `segmentTimeoutMs` for a segment to start
+  arriving: the server may be starting a conversion for it.
+- Retry a failed segment or playlist `retries` times, waiting `firstRetryMs`, then twice that each time, up
+  to `maxRetryMs`.
+- `stepDownOnStall`: when the picture has stalled for 3 seconds and there's a lower rung, switch to it at
+  once and hold the player there for a minute of smooth playing, rather than wait for its bandwidth
+  estimate to catch up. Pick a lower rung by `RESOLUTION` or `BANDWIDTH` in the master playlist.
+- `resumeOnDrop`: when the connection is lost, keep the position and keep retrying, sooner when the device
+  says it's back online. When the stream answers 404, or the stream token has run out (401, 403), or
+  the picture has been stalled for 25 seconds with nothing arriving, or the connection has been gone for
+  about a minute, call `/playback` again with `startSec` at the position and the same choices. If that
+  fails because the connection is still gone, keep asking, waiting longer each time.
+- A file sent as it is can't step down: when it stalls for 6 seconds or its connection fails, call
+  `/playback` again at the position, with `forceTranscode` after a stall.
+- Say what it did, briefly ("Picture lowered to 480p to keep playing", "Reconnected after 12 s, at the
+  same place"). `explain.streaming` puts the mode in words for an information screen.
+
+In `standard` mode `player` holds the numbers the web player has always used, and nothing changes.
 
 ## What each TV plays
 
@@ -1115,6 +1173,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 |---|---|---|
 | `POST /items/{id}/playback` | user | The way to play anything: say what this client can play, get a decision, ready-to-use addresses, tracks, where to start and what comes next. |
 | `GET /playback/profiles` | user | The built-in client profiles. |
+| `GET /playback/speedtest` | user | `kb` kilobytes (64 to 4096, 512 by default) that don't compress, to time this connection before asking for a [robust stream](#robust-streaming). |
 | `GET /media-types` | user | Every file type, codec and container the server knows: extensions, how each plays, which libraries take it, what it needs, and whether this machine has that (`available`). Read this rather than keep a list. |
 | `POST /items/{id}/stream-token` | user | A stream token for this item's media (see "Stream tokens"). Needs a real sign-in, not another stream token. |
 | `GET /items/{id}/play` | user | The web player's older way to ask: decides for a browser only. Apps use `/items/{id}/playback`. |

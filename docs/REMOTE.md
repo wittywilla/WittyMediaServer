@@ -437,6 +437,8 @@ Home connections are often slow when sending. Under **Settings → Remote Access
 
 Choose a limit below your connection's upload speed, divided by how many people may watch at once.
 
+For viewers on poor connections, also consider **Robust** streaming under **Settings → Playback & discs**: it measures each viewer's connection, starts at a steady rate that fits, steps down instead of stalling and picks up where it was after a drop. The limits here still apply to it. See [Robust streaming](PLAYING.md#robust-streaming).
+
 ## The apps
 
 The apps ask for your server's address: see [Apps and devices](APPS.md#typing-the-address).

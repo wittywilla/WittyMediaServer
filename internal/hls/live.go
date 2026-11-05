@@ -38,8 +38,10 @@ type LiveInput struct {
 	// Stdin feeds the input (MPEG-TS from a tuner); closed when the run ends.
 	Stdin       io.ReadCloser
 	VideoFilter string // deinterlacing and the like
-	AudioIndex  int    // ffmpeg a:N; -1 = none, silence is added
-	CopyVideo   bool   // H.264 sources pass through without converting
+	// Height is the shorter side of the input's picture, when known (as Spec.Height).
+	Height     int
+	AudioIndex int  // ffmpeg a:N; -1 = none, silence is added
+	CopyVideo  bool // H.264 sources pass through without converting
 	// Realtime: the input already arrives at viewing speed (a tuner, a live
 	// address), so FFmpeg must not be paced.
 	Realtime bool
@@ -510,10 +512,21 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 		q.Preset = sp.Preset
 		plan = t.Plan(q)
 	}
+	outHeight := in.Height
+	if sp.MaxHeight > 0 && (outHeight == 0 || sp.MaxHeight < outHeight) {
+		outHeight = sp.MaxHeight
+	}
+	decThreads, encThreads := ffmpeg.StreamThreads(outHeight)
+	if ownThreads(sp.Quality) {
+		encThreads = 0
+	}
 	if !in.CopyVideo {
 		args = append(args, plan.InputArgs...)
 		if plan.Name == "h264_nvenc" {
 			args = append(args, "-hwaccel", "auto")
+		}
+		if decThreads > 0 {
+			args = append(args, "-threads", strconv.Itoa(decThreads))
 		}
 	}
 	if in.Stdin != nil {
@@ -561,6 +574,9 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 			vf = append(vf, plan.Upload)
 		}
 		args = append(args, "-vf", strings.Join(vf, ","), "-c:v", plan.Name)
+		if plan.Name == "libx264" && encThreads > 0 {
+			args = append(args, "-threads", strconv.Itoa(encThreads))
+		}
 		args = append(args, plan.Args...)
 		if rate := sp.Quality.MaxRate; rate != "" && len(sp.Quality.VideoArgs) == 0 {
 			args = append(args, "-maxrate", rate, "-bufsize", rate)

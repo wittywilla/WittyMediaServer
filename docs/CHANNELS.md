@@ -135,6 +135,8 @@ The buttons under it also turn its sound on, go full screen and hide it.
 
 Tuning shows a banner with the channel number, name, times, a progress bar and what's next.
 
+When nothing is scheduled, a channel shows a **We'll be right back** card with the channel's name and what's coming up, in the watch view and in the guide's preview alike, so the picture never looks broken. It goes when the next programme starts.
+
 ![A small list of channels over the picture](images/wittytv-miniguide.webp)
 *The mini guide over a channel, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
 

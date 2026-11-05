@@ -774,6 +774,7 @@ main.content:focus { outline: none; }
 .brand-pick-letters { gap: 0; font-weight: 700; }
 .brand-pick-letter { display: inline-flex; align-items: center; min-height: 44px; white-space: pre; }
 .brand-pick-letter.on { color: var(--brand-accent); }
+.brand-pick-letter.space { min-width: var(--sp-5); }
 .brand-pick-gap { display: inline-flex; align-items: center; justify-content: center; width: 24px; min-height: 44px; padding: 0; border: 0; border-radius: var(--r-sm); background: transparent; cursor: pointer; }
 .brand-pick-gap i { width: 2px; height: 1.1em; border-radius: var(--r-full); background: var(--border); }
 .brand-pick-gap:hover i, .brand-pick-gap:focus-visible i { background: var(--fg-3); }

@@ -101,7 +101,7 @@ export function BrandColouring({ name, choice, onChange }: { name: string; choic
           ) : (
             <div className="brand-pick brand-pick-letters" role="group" aria-label="Where the words split" aria-describedby="brand-pick-help" onKeyDown={moveAlong}>
               {letters(name).map(([i, l]) => {
-                const letter = <span key={'l' + i} className={'brand-pick-letter' + (choice.mask[i] ? ' on' : '')} aria-hidden="true">{isSpace(l) ? '\u00a0' : l}</span>
+                const letter = <span key={'l' + i} className={'brand-pick-letter' + (choice.mask[i] ? ' on' : '') + (isSpace(l) ? ' space' : '')} aria-hidden="true">{isSpace(l) ? '\u00a0' : l}</span>
                 if (!splittable.has(i)) return letter
                 const cut = choice.cuts.has(i)
                 const left = list.find(([, b]) => b === i), right = list.find(([a]) => a === i), whole = list.find(([a, b]) => a < i && i < b)

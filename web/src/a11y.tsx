@@ -154,7 +154,8 @@ export function Announcer() {
       if ((!main || !h1) && loading && performance.now() - began < 6000) { t = setTimeout(look, 250); return }
       announce(h1 ? `${h1}, page loaded` : `${document.title}, page loaded`)
       const active = document.activeElement
-      if (main && (!active || active === document.body || !active.isConnected || (active === before && !main.contains(active)))) main.focus({ preventScroll: true })
+      // A bar that keeps the focus when it changes the page (TV mode's tabs) keeps it.
+      if (main && (!active || active === document.body || !active.isConnected || (active === before && !main.contains(active) && !active.closest('[data-keep-focus]')))) main.focus({ preventScroll: true })
     }
     t = setTimeout(look, 350)
     // Coming back: the page may still be loading what you left, so look a few times.

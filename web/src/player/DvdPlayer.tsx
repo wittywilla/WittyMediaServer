@@ -15,6 +15,7 @@ import ViewSettings from './ViewSettings'
 import { discMemory, rememberDisc, useViewPrefs, type ViewPrefs } from './viewPrefs'
 import { focusPlayerControls } from '../tv'
 import { announce } from '../a11y'
+import { getTvMode } from '../tvmode/mode'
 
 haveHls(Hls)
 
@@ -560,7 +561,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     saidStereo.current = prefs.stereo
     announce(stereoWords ? `3D on: ${stereoWords}, for this disc only` : '3D off')
   }, [prefs.stereo, stereoWords])
-  const back = () => chrome.minimize()
+  // In TV mode Back stops the disc and leaves, as a TV app does; otherwise it carries on in the corner.
+  const back = () => (getTvMode() ? chrome.close() : chrome.minimize())
 
   const onRemote = (k: RemoteKey) => {
     const v = video.current

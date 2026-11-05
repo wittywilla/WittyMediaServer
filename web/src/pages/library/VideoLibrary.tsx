@@ -210,7 +210,7 @@ export default function VideoLibrary({ lib }: { lib: Library }) {
         desc={desc}
         onSort={chooseSort}
         onDirection={sort && sort !== 'shuffle' && sort !== 'newest' && sort !== 'oldest' ? (d) => setParam('desc', d ? '1' : '') : undefined}
-        end={<Button variant="ghost" icon={<IconTune />} onClick={() => setFilters(true)} aria-haspopup="dialog">Filters{activeCount > 0 ? ` (${activeCount})` : ''}</Button>}
+        end={<Button variant="ghost" icon={<IconTune />} onClick={() => setFilters(true)} aria-haspopup="dialog" data-tv-options>Filters{activeCount > 0 ? ` (${activeCount})` : ''}</Button>}
         actions={<>
           {grid && !noShelves && <Button variant="ghost" onClick={clearAll}>Back to shelves</Button>}
           {!grid && <LinkButton variant="ghost" to={`${here}?view=all`}>{allName}</LinkButton>}

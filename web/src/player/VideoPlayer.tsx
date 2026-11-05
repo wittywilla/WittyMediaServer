@@ -16,6 +16,7 @@ import { keyWorks, remoteLabel, remoteNote, videoForm } from './remoteKeys'
 import TrackPicker from './TrackPicker'
 import ViewSettings from './ViewSettings'
 import { useViewPrefs } from './viewPrefs'
+import { getTvMode } from '../tvmode/mode'
 
 haveHls(Hls)
 
@@ -291,7 +292,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         case 'i': setInfoOpen((o) => !o); break
         case 'n': case 'MediaTrackNext': if (copy) onRemote('next'); break
         case 'p': case 'MediaTrackPrevious': if (copy) onRemote('prev'); break
-        case 'Escape': case 'GoBack': case 'BrowserBack': if (!document.fullscreenElement) { e.preventDefault(); chrome.minimize() } break
+        // Back leaves the player. In TV mode that stops it, as a TV app does; otherwise it carries on in the corner.
+        case 'Escape': case 'GoBack': case 'BrowserBack': if (!document.fullscreenElement) { e.preventDefault(); if (getTvMode()) chrome.close(); else chrome.minimize() } break
       }
     }
     window.addEventListener('keydown', onKey)

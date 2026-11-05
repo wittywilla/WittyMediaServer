@@ -206,7 +206,7 @@ Everything works with arrow keys and OK alone, so a TV remote or a game controll
 
 **In the player,** the arrows belong to the picture: left and right jump 10 seconds, and up and down change the volume. Press **OK** to reach the controls. It goes first to anything asking for an answer, such as **Skip intro**, then to the controls. To give the arrows back to the picture, move up or down past the last control.
 
-**On a TV across the room,** turn on **Big screen mode** under [Appearance](SETTINGS.md#appearance) for larger text and a stronger outline around what's selected. On a TV browser with no easy way to reach Settings, add `?tv=1` to the server's address. `?tv=0` turns it off again. For games on a sofa, see [Couch mode](APPS.md#big-screens).
+**On a TV across the room,** turn on **TV mode** under [Appearance](SETTINGS.md#appearance): the app as the Apple TV and Android TV apps have it, with Home, Libraries, Games, Live TV, Search and You along the top. On a TV browser with no easy way to reach Settings, add `?tv=1` to the server's address. `?tv=0` turns it off again. In TV mode, up from a page's first row reaches the bar along the top; **Back** goes from inside a page to the bar, from the bar to Home, and from a page opened from one of them back to it; and **Back** in the player stops it. For games on a sofa, see [Couch mode](APPS.md#big-screens).
 
 **Game controllers** connect by themselves. Nintendo layouts have A and B swapped, so the right-hand button still confirms.
 
@@ -217,10 +217,10 @@ Everything works with arrow keys and OK alone, so a TV remote or a game controll
 | B or Circle | Back | |
 | X or Square | | Play or pause |
 | Y or Triangle | | Mute, or a disc's menu |
-| Bumpers | | Previous and next scene on a disc |
+| Bumpers | In TV mode, the tab to the left or right | Previous and next scene on a disc |
 | Triggers | | Rewind and fast-forward on a disc |
 | View, Share or Select | | A disc's title menu |
-| Menu, Options or Start | | A disc's menu |
+| Menu, Options or Start | In TV mode, the page's options: Customize on Home, Look in the TV guide, Filters on a library | A disc's menu |
 
 These have been run with simulated key presses and no real remote or controller. While a game is playing, the controller belongs to the game: see [Games](GAMES.md).
 

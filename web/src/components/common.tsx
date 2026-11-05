@@ -24,12 +24,15 @@ export const artHue = (title: string) => {
   return h
 }
 
-// Artwork for something without a picture: the title's own colour (the avatar rule, so
-// it's the same in every app and never changes), with the title on it, as a poster
-// would have. label replaces the title with a short word, such as a console's name.
+// Artwork for something without a picture: a colour of its own, worked out from the
+// title, so it never changes. On a wide screen the title is printed under the card, so it
+// isn't repeated on the art; label is a short word for the art alone, such as a console's
+// name. On a phone it's the title's avatar colour (the same in every app) with the title
+// on it, as a poster would have (styles.css).
 export function Placeholder({ title, label }: { title: string; label?: string }) {
+  const h = artHue(title)
   return (
-    <div className="ph art-ph" style={{ '--ph': avatarColor(title) } as CSSProperties} aria-hidden="true">
+    <div className={'ph art-ph' + (label ? ' labelled' : '')} style={{ '--ph-art': `linear-gradient(155deg, hsl(${h} 32% 32%), hsl(${(h + 40) % 360} 38% 15%))`, '--ph': avatarColor(title) } as CSSProperties} aria-hidden="true">
       <b>{label || title}</b>
     </div>
   )

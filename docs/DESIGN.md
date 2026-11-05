@@ -200,7 +200,7 @@ Every interactive part has these states, which come free:
 | `Card` | a surface holding related things | |
 | `PosterCard` | a title with artwork | `shape`: `wide`, `square`. The `ItemCard` and `ShowCard` the libraries use render the same classes |
 | `Shelf`, `CardRow` | a titled row of cards | The arrows are the mouse's extra way along; a remote moves card by card |
-| `Skeleton`, `SkeletonGrid`, `PageSkeleton`, `Spinner` | loading | They wait a moment, so a fast load shows nothing. `PageSkeleton` is a whole page's shapes (`home`, `library`, `item`, `search`); `shapeFor(path)` picks one for an address |
+| `Skeleton`, `SkeletonGrid`, `PageSkeleton`, `Spinner` | loading | They wait a moment, so a fast load shows nothing. `PageSkeleton` is a whole page's shapes on a phone (`home`, `library`, `item`, `search`), and a spinner on a wider screen; `shapeFor(path)` picks one for an address |
 | `RowSheet`, `Rows`, `SheetRow` | a phone's "⋯": a page's other actions, as a sheet of rows | Choosing a row closes it. Any `Button` or `LinkButton` put in `Rows` becomes a row, so a page can hand it the buttons it shows in a row on a wide screen |
 | `EmptyState` | nothing here | Says why, and what to do |
 | `LoadError` | it couldn't load | With a retry |
@@ -209,8 +209,8 @@ Every interactive part has these states, which come free:
 | `DataTable` | sortable rows | Real table semantics, `aria-sort`, stacks into labelled rows on phones |
 
 Also: `.pill` (rating and small labels), `.meta` (a line of facts, dots between them automatically),
-`.badge` on artwork, `Placeholder` (art for something with no picture: the title's own colour, by the
-avatar rule in `ui/avatarColor.ts`, with the title in white over its lower third), `BackLink`, `ScanButton`, and
+`.badge` on artwork, `Placeholder` (art for something with no picture; on a phone, the title's own
+colour by the avatar rule in `ui/avatarColor.ts`, with the title in white over its lower third), `BackLink`, `ScanButton`, and
 in Settings `PageHead`, `Section`, `Row` and `SaveBar`.
 
 ## Patterns
@@ -234,10 +234,14 @@ A page has one `h1`, which the announcer reads aloud on every page change: `.too
   TV, Search, the drawer and You. The row has no surface over a picture; once the page is scrolled
   under it, it gains the page's colour at 85% with a blur and a hairline. Below Home, a library or a
   tab's first page (an item, a show, an album, a settings page…) a round Back takes the row's place.
-  You opens a sheet from the bottom: the person, Switch profile, then the account menu's places. A
-  page's other actions go behind one "⋯" (`RowSheet`): an item's beside Play and Save, a library's
-  beside Filters. This is the same phone design as the WittyMediaClient apps (their
-  `docs/APP-DESIGN.md`, One mobile design with the website).
+  You opens the You page (`/you`, `pages/YouPage.tsx`): the person and Switch profile, then grouped
+  lists of everything about them, this device and, for an administrator, the server, each row
+  leading to the page for it, then this server and Sign out. It's a phone's only: a wider screen has
+  the account menu, and `/you` there goes to Profiles. A page's other actions go behind one "⋯"
+  (`RowSheet`): an item's beside Play and Save, a library's beside Filters. Loading shapes
+  (`PageSkeleton`) and placeholder art with the title on it are a phone's too. All of this is the
+  same phone design as the WittyMediaClient apps (their `docs/APP-DESIGN.md`, One mobile design
+  with the website, and You and settings); wider screens are as they were.
 - **Activity**: `components/ActivitySlot.tsx`, left of the account menu, holds the activity button.
 
 ### Dialogs and sheets

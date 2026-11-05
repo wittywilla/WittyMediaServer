@@ -1,18 +1,22 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { api, cornerName, profileName } from '../api'
 import { IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
 import { Avatar } from '../pages/AuthPage'
 import { UpdateDot } from '../components/common'
 import { useApp } from '../state'
 import { Menu, type MenuEntry } from '../ui/Menu'
-import { RowSheet, Rows, SheetRow } from '../ui/RowSheet'
 
-// What the account menu holds, in the top bar's corner and behind the phone's You tab.
-function useAccount() {
-  const { user, setUser, libraries } = useApp()
+// Signing out, which is also how a profile is switched: back to "Who's watching?".
+export function useSignOut() {
+  const { setUser } = useApp()
   const nav = useNavigate()
-  const signOut = async () => { try { await api.post('/logout') } catch { /* ignore */ } nav('/', { replace: true }); setUser(null) }
+  return async () => { try { await api.post('/logout') } catch { /* ignore */ } nav('/', { replace: true }); setUser(null) }
+}
+
+// What the account menu holds, in the top bar's corner.
+function useAccount() {
+  const { user, libraries } = useApp()
+  const signOut = useSignOut()
   const items: MenuEntry[] = [
     { key: 'year', label: 'Your year', icon: <IconStar />, to: '/review' },
     { key: 'look', label: 'Appearance', icon: <IconPalette />, to: '/settings/appearance' },
@@ -27,9 +31,7 @@ function useAccount() {
   const role = user?.isAdmin ? 'Administrator' : user?.kind === 'kids' ? 'Kids profile' : user?.kind === 'guest' ? 'Guest' : 'Profile'
   const shown = user ? profileName(user) : ''
   const head = <><b>{shown}</b><span>{user && user.name !== shown ? `${user.name} · ${role}` : role}</span></>
-  // The apps' words for the same thing (You's header).
-  const roleName = user?.isAdmin ? 'Administrator' : user?.kind === 'kids' ? 'Kids' : user?.kind === 'guest' ? 'Guest' : 'Adult'
-  return { user, items, head, shown, roleName, signOut }
+  return { user, items, head, shown }
 }
 
 // ProfileMenu: the avatar in the corner, with settings, switching profiles
@@ -49,32 +51,13 @@ export function ProfileMenu() {
   )
 }
 
-// The phone's You tab: a sheet from the bottom, as the apps' You page begins: the person,
-// with Switch profile, then the same places as the account menu.
+// The phone's You tab: the You page (pages/YouPage.tsx), as in the apps.
 export function YouTab() {
-  const { user, items, shown, roleName, signOut } = useAccount()
-  const [open, setOpen] = useState(false)
-  const places = items.filter((it): it is Exclude<MenuEntry, { kind: 'separator' | 'heading' }> => it.kind !== 'separator' && it.kind !== 'heading' && it.key !== 'switch' && it.key !== 'out')
+  const { user } = useApp()
+  const shown = user ? profileName(user) : ''
   return (
-    <>
-      <button type="button" className="tab-you" aria-label={`You, ${shown}`} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
-        <Avatar name={shown || '?'} /><UpdateDot />
-      </button>
-      {open && user && (
-        <RowSheet title="You" className="you-sheet" onClose={() => setOpen(false)} head={
-          <div className="you-head">
-            <Avatar name={shown || '?'} />
-            <b className="you-name">{shown}</b>
-            <span className="you-sub">@{user.name} · {roleName}</span>
-            <button type="button" className="btn" onClick={signOut}><IconUsers /> Switch profile</button>
-          </div>
-        }>
-          <Rows label="Places">
-            {places.map((it) => <SheetRow key={it.key} icon={it.icon} label={it.label} to={it.to} onSelect={it.onSelect} />)}
-          </Rows>
-          <Rows><SheetRow icon={<IconLogout />} label="Sign out" danger onSelect={signOut} /></Rows>
-        </RowSheet>
-      )}
-    </>
+    <NavLink to="/you" className="tab-you" aria-label={`You, ${shown}`}>
+      <Avatar name={shown || '?'} /><UpdateDot />
+    </NavLink>
   )
 }

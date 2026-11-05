@@ -79,15 +79,19 @@
 .ui-skel.round { border-radius: 50%; }
 .ui-skel-lines { display: grid; gap: var(--sp-2); }
 @media (prefers-reduced-motion: reduce) { .ui-skel { animation: none; } }
-/* A page's shapes while it loads (PageSkeleton, SkeletonGrid): the card colour at 60%, with a
-   slow light passing over. Still with reduced motion. They wait a moment, so a quick load
-   shows nothing. */
-.skel, .skeleton-grid > div { position: relative; overflow: hidden; background: var(--bg-3); background: color-mix(in srgb, var(--bg-3) 60%, transparent); }
-.skel { display: block; width: 100%; height: 1em; border-radius: var(--r-xs); }
-.skel::after, .skeleton-grid > div::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fg) 6%, transparent), transparent); transform: translateX(-100%); animation: skel-light 1.2s var(--ease-standard) infinite; }
+/* A phone's page while it loads (PageSkeleton, and SkeletonGrid there): the card colour at
+   60%, with a slow light passing over, as the apps. Still with reduced motion. They wait a
+   moment, so a quick load shows nothing. A wider screen keeps its spinner and grey cards. */
+.skel { position: relative; overflow: hidden; display: block; width: 100%; height: 1em; border-radius: var(--r-xs); background: var(--bg-3); background: color-mix(in srgb, var(--bg-3) 60%, transparent); }
+.skel::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fg) 6%, transparent), transparent); transform: translateX(-100%); animation: skel-light 1.2s var(--ease-standard) infinite; }
 @keyframes skel-light { to { transform: translateX(100%); } }
+.page-skel { animation: fade-in var(--dur-3) ease-out .25s backwards; }
+@media (max-width: 760px) {
+  .skeleton-grid { animation: fade-in var(--dur-3) ease-out .25s backwards; }
+  .skeleton-grid > div { position: relative; overflow: hidden; opacity: 1; animation: none; background: color-mix(in srgb, var(--bg-3) 60%, transparent); }
+  .skeleton-grid > div::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fg) 6%, transparent), transparent); transform: translateX(-100%); animation: skel-light 1.2s var(--ease-standard) infinite; }
+}
 @media (prefers-reduced-motion: reduce) { .skel::after, .skeleton-grid > div::after { display: none; } }
-.page-skel, .skeleton-grid { animation: fade-in var(--dur-3) ease-out .25s backwards; }
 .skel-lines { display: grid; gap: var(--sp-3); align-content: start; }
 .skel-actions { display: flex; gap: var(--sp-2); }
 .skel-actions .skel { flex: none; border-radius: var(--r-md); }

@@ -45,16 +45,6 @@
 .avatar-btn .avatar-tile { width: 36px; height: 36px; font-size: var(--text-base); font-weight: 700; border-radius: 50%; transition: box-shadow var(--dur-2); }
 .avatar-btn:hover .avatar-tile, .avatar-btn[aria-expanded="true"] .avatar-tile { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--border-strong); }
 
-/* ---------------------------------------------------------------- the phone's You sheet */
-.modal.you-sheet { position: relative; }
-.you-sheet .ui-dialog-head { position: absolute; top: var(--sp-4); right: var(--sp-4); z-index: 1; margin: 0; }
-.you-sheet .ui-dialog-head h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.you-head { display: grid; justify-items: center; gap: var(--sp-1); margin: 0 0 var(--sp-5); text-align: center; }
-.you-head .avatar-tile { width: 64px; height: 64px; margin-bottom: var(--sp-2); border-radius: 22%; font-size: var(--text-3xl); }
-.you-name { font-size: var(--text-2xl); font-weight: var(--weight-heading); letter-spacing: var(--tracking-heading); line-height: var(--leading-tight); overflow-wrap: anywhere; }
-.you-sub { color: var(--fg-2); font-size: var(--text-sm); overflow-wrap: anywhere; }
-.you-head .btn { margin-top: var(--sp-3); }
-
 /* The version, where no side menu shows it. */
 .page-foot { display: none; margin-top: var(--section-gap); text-align: center; }
 .nav-top .page-foot { display: block; }

@@ -55,6 +55,7 @@ const ArtistPage = lazy(() => import('./pages/music/ArtistPage'))
 const ReaderPage = lazy(() => import('./pages/Reader'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
+const YouPage = lazy(() => import('./pages/YouPage'))
 const SetupWizard = lazy(() => import('./pages/SetupWizard'))
 // TV is its own part of the app, loaded when someone goes there.
 const GuidePage = lazy(() => import('./pages/tv/GuidePage'))
@@ -163,6 +164,7 @@ function AppFrame() {
             <Route path="/watch/:id" element={<Suspense fallback={<Spinner />}><WatchPage /></Suspense>} />
             <Route path="/creator/:id" element={<Suspense fallback={<Spinner />}><CreatorPage /></Suspense>} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/you" element={<YouPage />} />
             <Route path="/fix-matches" element={<Suspense fallback={<Spinner />}><FixMatches /></Suspense>} />
             <Route path="/brand/:kind/:name" element={<Suspense fallback={<Spinner />}><BrandPage /></Suspense>} />
             <Route path="/pair" element={<PairPage />} />

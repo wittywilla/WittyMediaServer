@@ -395,15 +395,23 @@ input[type=range] { accent-color: var(--accent); }
 }
 .card .poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .card .poster .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--fg-3); padding: var(--sp-3); text-align: center; font-weight: 600; }
-/* Designed placeholder art (see Placeholder): the title's colour (--ph) rising from the
-   card's, with the title in white over the lower third, where the colour is solid. The
-   colours are dark enough for white words, so it reads in every theme. */
-.art-ph { position: absolute; inset: 0; display: flex !important; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: var(--sp-1);
-  padding: var(--sp-3) !important; text-align: left !important; color: var(--on-image) !important; font-size: initial;
-  background: linear-gradient(180deg, var(--bg-3) 0%, var(--ph, var(--bg-4)) 64%); container-type: size; }
-.art-ph b { position: relative; font-size: var(--text-base); font-weight: 600; line-height: var(--leading-snug); overflow: hidden; overflow-wrap: anywhere; hyphens: auto; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
-/* Too small to read (a mini player's picture): the colour alone. */
-@container (max-width: 72px) { .art-ph b { display: none; } }
+/* Designed placeholder art (see Placeholder): a colour of its own (--ph-art), and a label if
+   it has one. The title itself is printed under the card. */
+.art-ph { position: absolute; inset: 0; display: flex !important; flex-direction: column; justify-content: center; align-items: center; gap: var(--sp-1);
+  padding: var(--sp-3) !important; text-align: left !important; color: var(--on-image) !important; font-size: initial; background: var(--ph-art); }
+.art-ph::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,.08), transparent 40%), radial-gradient(120% 60% at 0% 0%, rgba(255,255,255,.10), transparent 60%); pointer-events: none; }
+.art-ph b { position: relative; font-size: var(--text-lg); font-weight: var(--weight-heading); line-height: var(--leading-tight); opacity: .85; overflow-wrap: anywhere; }
+.art-ph:not(.labelled) b { display: none; }
+/* A phone, as the apps: the title's colour (--ph) rising from the card's, with the title in
+   white over the lower third, where the colour is solid. Those colours are dark enough for
+   white words, so it reads in every theme. Too small to read (a mini player's picture): the
+   colour alone. */
+@media (max-width: 760px) {
+  .art-ph { justify-content: flex-end; align-items: flex-start; background: linear-gradient(180deg, var(--bg-3) 0%, var(--ph, var(--bg-4)) 64%); container-type: size; }
+  .art-ph::before { content: none; }
+  .art-ph b, .art-ph:not(.labelled) b { display: -webkit-box; font-size: var(--text-base); font-weight: 600; line-height: var(--leading-snug); opacity: 1; overflow: hidden; hyphens: auto; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+  @container (max-width: 72px) { .art-ph b, .art-ph:not(.labelled) b { display: none; } }
+}
 .card .poster .play { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; opacity: 0; transition: opacity var(--dur-2); background: rgb(0 0 0 / .32); }
 @media (hover: hover) { .card:hover .poster .play { opacity: 1; } }
 .card:focus-visible .poster .play, .card:focus-within .poster .play { opacity: 1; }
@@ -432,13 +440,14 @@ input[type=range] { accent-color: var(--accent); }
 /* ---------------------------------------------------------------- loading */
 /* Grey shapes where the cards will land, shown only if loading takes a moment. */
 .skeleton-grid { pointer-events: none; }
-.skeleton-grid > div { aspect-ratio: 2 / 3; border-radius: var(--r-md); } /* their colour and light: ui.css, with PageSkeleton's */
+.skeleton-grid > div { aspect-ratio: 2 / 3; border-radius: var(--r-md); background: var(--bg-3); opacity: 0; animation: skeleton 1.6s var(--ease-standard) .2s infinite; }
 .skeleton-grid.square > div { aspect-ratio: 1; }
 @keyframes skeleton { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 .loading-box { display: grid; place-items: center; padding: var(--sp-16); }
 .spinner { width: 28px; height: 28px; border: 3px solid var(--bg-4); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite, fade-in var(--dur-2) ease-out .2s backwards; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { .skeleton-grid > div { animation: none; opacity: .8; } }
 
 /* ---------------------------------------------------------------- toolbar */
 .toolbar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin: var(--sp-2) 0 var(--sp-5); }

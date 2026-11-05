@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { recentMissingModule } from '../api'
 import LogsLink from '../components/LogsLink'
 import { ModuleMissing } from '../components/ModuleMissing'
+import { useMedia } from '../shell/useNav'
 import { IconFilm, IconInfo, IconLeft, IconPlay, IconRight } from '../icons'
 
 // What the content sits on: Card, the poster card, Shelf (a titled row of them),
@@ -113,6 +114,9 @@ export type PageShape = 'home' | 'library' | 'item' | 'search' | 'page'
 // backdrop, poster and buttons, search's box and results. The shapes use the page's own
 // classes, so nothing moves when the real page takes their place.
 export function PageSkeleton({ shape = 'page' }: { shape?: PageShape }) {
+  // A phone's, as the apps; a wider screen keeps its spinner.
+  const phone = useMedia('(max-width: 760px)')
+  if (!phone) return <Spinner />
   const line = (w: string, h?: string) => <i className="skel" style={{ width: w, height: h }} />
   const posters = (n: number) => Array.from({ length: n }, (_, i) => <div key={i} className="card"><i className="skel skel-poster" />{line('80%', '0.875rem')}{line('50%', '0.75rem')}</div>)
   let body: ReactNode

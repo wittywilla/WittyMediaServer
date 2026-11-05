@@ -121,7 +121,7 @@ function SectionRow({ list }: { list: NavItem[] }) {
 
 // The pages a phone's row of sections and bar at the bottom lead to. Anything else is
 // below one of them, and has a Back button in the row's place.
-const TAB_PAGES = ['/', '/tv', '/search', '/settings']
+const TAB_PAGES = ['/', '/tv', '/search', '/you', '/settings']
 const pathOf = (to: string) => to.split(/[?#]/)[0]
 
 // Where Back goes when there's nothing in this tab's history to go back through, such as

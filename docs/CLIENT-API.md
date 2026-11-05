@@ -1670,6 +1670,8 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `DELETE /play/{sid}` | user | Play stop. |
 | `POST /play/{sid}/webrtc` | user | Play web RTC. |
 | `GET /play/{sid}/ws` | user | Play WS. |
+| `POST /play/{sid}/stream` | user | Connects a device over WebRTC, version 2: `{hello, sdp}` in, `{stream, sdp}` out. See [the stream](GAMING-STREAM.md). |
+| `GET /play/{sid}/stream` | user | Version 2's WebSocket: the same messages as over WebRTC, the hello first. |
 | `POST /play/{sid}/action` | user | Play action. |
 | `GET /play/{sid}/stats` | user | A running game's numbers: frame rates, encode time, bitrate, drops. |
 | `GET /play/{sid}/screenshot` | user | The current picture as a PNG. |

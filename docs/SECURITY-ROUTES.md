@@ -3,7 +3,7 @@
 Every route of the server: who may call it and what it validates. `TestRouteTableMatchesTheCode` keeps this table and the code
 together. [SECURITY-REVIEW.md](SECURITY-REVIEW.md) describes the model behind it.
 
-Nothing else listens for HTTP: the HTTPS port serves this same handler. One route is a WebSocket: `GET /api/play/{sid}/ws`.
+Nothing else listens for HTTP: the HTTPS port serves this same handler. Two routes are WebSockets: `GET /api/play/{sid}/ws` and `GET /api/play/{sid}/stream`.
 
 Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served wherever `GET` is.
 
@@ -464,6 +464,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/play/{sid}` | Signed-in | Session started by this account |
 | `POST /api/play/{sid}/webrtc` | Signed-in | Session started by this account. Offer size |
 | `GET /api/play/{sid}/ws` | Signed-in; address token | Session started by this account. WebSocket: origin must match the host, messages limited in size |
+| `POST /api/play/{sid}/stream` | Signed-in | Session started by this account. Hello checked, offer size |
+| `GET /api/play/{sid}/stream` | Signed-in; address token | Session started by this account. WebSocket: origin must match the host, a hello first, messages limited in size |
 | `POST /api/play/{sid}/action` | Signed-in | Session started by this account. Known action |
 | `GET /api/play/{sid}/stats` | Signed-in | Session started by this account |
 | `GET /api/play/{sid}/screenshot` | Signed-in; address token | Session started by this account |

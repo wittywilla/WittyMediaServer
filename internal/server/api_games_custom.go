@@ -77,6 +77,7 @@ func (s *Server) customRoutes(m routes) {
 	m.Handle("POST /api/gaming/custom/consoles", s.requireAdmin(on(s.handleCustomConsolePost)))
 	m.Handle("PUT /api/gaming/custom/consoles/{id}", s.requireAdmin(on(s.handleCustomConsolePut)))
 	m.Handle("DELETE /api/gaming/custom/consoles/{id}", s.requireAdmin(s.handleCustomConsoleDelete))
+	m.Handle("GET /api/gaming/consoles/{console}/core", s.requireAdmin(s.handleConsoleCoreGet))
 	m.Handle("PUT /api/gaming/consoles/{console}/core", s.requireAdmin(s.handleConsoleCore))
 	m.Handle("GET /api/gaming/games/{id}/core", s.requireAdmin(s.handleGameCoreGet))
 	m.Handle("PUT /api/gaming/games/{id}/core", s.requireAdmin(s.handleGameCorePut))
@@ -1696,7 +1697,8 @@ type GameCoreOption struct {
 	Here *platformSupport `json:"here,omitempty"`
 }
 
-// GET /api/gaming/games/{id}/core: what would play this game, and what else could.
+// GET /api/gaming/games/{id}/core: what would play this game, and what else could: choices for
+// the picker (core_choices.go), and options, the installed ones, for clients from before it.
 func (s *Server) handleGameCoreGet(w http.ResponseWriter, r *http.Request) {
 	it, ok := s.gameItem(r)
 	if !ok {
@@ -1705,8 +1707,8 @@ func (s *Server) handleGameCoreGet(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	options := []GameCoreOption{}
-	var effective string
-	if console := wittyplay.ByID(it.Console); console != nil {
+	console := wittyplay.ByID(it.Console)
+	if console != nil {
 		g := s.games()
 		noGPU, asked := "", false
 		for _, c := range g.cores.List() {
@@ -1723,12 +1725,16 @@ func (s *Server) handleGameCoreGet(w http.ResponseWriter, r *http.Request) {
 				options = append(options, o)
 			}
 		}
-		if core := g.cores.ForConsole(console, s.preferredCore(ctx, console, it.ID)); core != nil {
-			effective = core.ID
-		}
 		s.markBestCore(ctx, it.ID, options)
 	}
-	writeJSON(w, 200, map[string]any{"choice": s.gameCoreChoice(ctx, it.ID), "effective": effective, "options": options})
+	// The picker's view of the same, with the cores that aren't installed yet. options stays for
+	// clients from before it: only the installed ones.
+	out := map[string]any{"choice": s.gameCoreChoice(ctx, it.ID), "effective": "", "options": options, "choices": []coreChoice{}}
+	if console != nil {
+		v := s.coreChoices(ctx, console, it.ID)
+		out["effective"], out["consoleDefault"], out["choices"], out["canDownload"], out["console"] = v.Effective, v.ConsoleDefault, v.Choices, v.CanDownload, v.Console
+	}
+	writeJSON(w, 200, out)
 }
 
 // markBestCore fills in how each core has done on this game, and marks the one that has

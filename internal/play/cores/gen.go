@@ -352,6 +352,18 @@ func (m *Manager) Install(ctx context.Context, id string) (*Core, error) {
 	return r0, err
 }
 
+// InstallProgress says how far an Install under way has got with the file it's fetching now:
+// the bytes received, and the size the download server gave, 0 when it didn't give one. A core
+// with support files fetches those after itself, and the count starts again for them. ok is
+// false when the core isn't being installed.
+func (m *Manager) InstallProgress(id string) (int64, int64, bool) {
+	var r0 int64
+	var r1 int64
+	var r2 bool
+	_ = service.Call(context.Background(), "wittyplay", "cores.Manager.InstallProgress", m, m, []any{id}, []any{&r0, &r1, &r2})
+	return r0, r1, r2
+}
+
 // List returns the cores here. A core installed through us wins over the same
 // core elsewhere.
 func (m *Manager) List() []Core {

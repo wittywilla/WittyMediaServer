@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type GameConsole, type GameCore } from '../../api'
 import { LoadError, Spinner } from '../../components/common'
@@ -6,12 +6,15 @@ import { IconCheck, IconGamepad, IconInfo } from '../../icons'
 import { toast } from '../../state'
 import { Dialog } from '../../ui'
 import { getConsoles } from '../games/consoles'
-import CustomCoresSection, { ConsoleCoreSelect, licenseText } from './GamingCustom'
+import CustomCoresSection, { licenseText } from './GamingCustom'
 import RegionOrder from './RegionOrder'
 import { PageHead, Section } from './ui'
 import LegalNote from '../../components/LegalNote'
 import '../games/games-ui.css'
 import { CorePlatforms, type CoreAlternative } from '../games/platforms'
+import type { CorePickerScope } from '../games/CorePicker'
+
+const CorePicker = lazy(() => import('../games/CorePicker'))
 
 // Settings, Consoles & cores. What most people need is one screen: each console they have
 // games for, whether it's ready to play, and the one thing to do if it isn't. Everything
@@ -57,6 +60,7 @@ export default function GamingSettings() {
   const [st, setSt] = useState<Status | null>(null)
   const [busy, setBusy] = useState('')
   const [confirm, setConfirm] = useState<{ id: string; name: string; license: string }[] | null>(null)
+  const [picker, setPicker] = useState<CorePickerScope | null>(null)
   const [settings, setSettings] = useState<Record<string, string> | null>(null)
   const [failed, setFailed] = useState(false)
   const load = () => api.get<Status>('/gaming').then(setSt).catch(() => setFailed(true))
@@ -164,7 +168,17 @@ export default function GamingSettings() {
         {s === 'gpu' && <p className="muted">Its games are drawn with a graphics card, and this server doesn’t have one it can use{c.gpuMissing ? `: ${c.gpuMissing}` : ''}. Its games are listed, and can’t be started here.</p>}
         {s === 'ready' && c.needsGpu && !c.software && <p className="muted">Uses this server’s graphics card.</p>}
         {s === 'ready' && c.software && <p className="muted">This server has no graphics card games can use, so its processor draws these games. They can run slower than on a server with one, and keep several processor cores busy.</p>}
-        <ConsoleCoreSelect console={c} onChanged={refresh} />
+        {s !== 'none' && (c.cores.length > 0 || (c.customCores?.length ?? 0) > 0) && (() => {
+          // What plays these games now: the default chosen here, or the first core installed.
+          const now = (c.defaultCore && c.installed.find((x) => x.id === c.defaultCore)) || c.installed[0]
+          return (
+            <div className="gm-setup-core">
+              <span><small className="muted">{c.defaultCore ? 'Plays with' : 'Plays with, automatically'}</small><b>{now ? now.name : 'No core yet'}</b>
+                {now && c.coreAbout?.[now.id] && <small className="muted">{c.coreAbout[now.id].about}</small>}</span>
+              <button type="button" className="btn sm" disabled={!!busy} onClick={() => setPicker({ kind: 'console', consoleId: c.id, consoleShort: c.short })}>{now ? 'Change core' : 'Choose a core'}</button>
+            </div>
+          )
+        })()}
         {(c.cores.length > 1 || biosList.length > 0 || (c.customCores?.length ?? 0) > 0 || (s === 'ready' && c.cores.length > 0)) && (
           <details className="gm-setup-more">
             <summary>Cores and BIOS files</summary>
@@ -343,6 +357,7 @@ export default function GamingSettings() {
       )}
       <CustomCoresSection onChanged={refresh} />
       <LegalNote kind="cores" className="set-legal" />
+      {picker && <Suspense fallback={null}><CorePicker scope={picker} onClose={() => { setPicker(null); void refresh() }} /></Suspense>}
       {confirm && (
         <Dialog title={confirm.length === 1 ? `Install ${confirm[0].name}?` : `Install ${confirm.length} cores?`} onClose={() => setConfirm(null)}
           actions={<><button type="button" className="btn ghost" onClick={() => setConfirm(null)}>Cancel</button><button type="button" className="btn primary" autoFocus onClick={install}>Install</button></>}>

@@ -1791,6 +1791,7 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `GET /play/{sid}/screenshot` | user | The current picture as a PNG. |
 | `GET /gaming` | admin | Gaming. |
 | `POST /gaming/cores/{id}/install` | admin | Core install. |
+| `GET /gaming/cores/{id}/install` | admin | How far an install under way has got: `{installing, received, total}` in bytes, `total` 0 when the download server gave no size. An older WittyPlay always answers `installing: false`. |
 | `DELETE /gaming/cores/{id}` | admin | Core remove. |
 | `DELETE /gaming/unpacked` | admin | Empty the unpacked games cache. |
 | `GET /gaming/custom` | admin | Custom cores and consoles: whether they're on, what's here, the cores folder and the audit log. |
@@ -1808,8 +1809,9 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `POST /gaming/custom/consoles` | admin | Add a custom console. |
 | `PUT /gaming/custom/consoles/{id}` | admin | Change a custom console. |
 | `DELETE /gaming/custom/consoles/{id}` | admin | Remove a custom console. |
+| `GET /gaming/consoles/{console}/core` | admin | A console's cores for the core picker, installed or not, and its default: see [Choosing a core](GAMING-API.md#choosing-a-core). |
 | `PUT /gaming/consoles/{console}/core` | admin | Choose a console's core. |
-| `GET /gaming/games/{id}/core` | admin | What plays a game, and how each core has gone on it. |
+| `GET /gaming/games/{id}/core` | admin | What plays a game, and how each core has gone on it: the picker's `choices`, and `options`, the installed ones, for older clients. |
 | `PUT /gaming/games/{id}/core` | admin | Choose a core for one game. |
 | `GET /reach/{nonce}` | none | Reach. |
 | `DELETE /users/{id}/2fa` | admin | User two factor reset. |

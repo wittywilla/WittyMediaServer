@@ -497,6 +497,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/game-background/image` | Signed-in | own. PNG, JPEG or WebP of at most 10 MB and 24 megapixels, drawn again as a new JPEG |
 | `GET /api/gaming` | Admin | Nothing further |
 | `POST /api/gaming/cores/{id}/install` | Admin | Core id format. Offered by this server |
+| `GET /api/gaming/cores/{id}/install` | Admin | Core id format. Reads only how far its download has got |
 | `DELETE /api/gaming/cores/{id}` | Admin | Core id format. Installed by this server |
 | `DELETE /api/gaming/unpacked` | Admin | Nothing further |
 | `GET /api/games/settings/schema` | Signed-in | Nothing: fixed description |
@@ -533,6 +534,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/gaming/custom/consoles` | Admin | Custom cores on. Console JSON size and fields |
 | `PUT /api/gaming/custom/consoles/{id}` | Admin | Custom cores on. Console JSON size and fields |
 | `DELETE /api/gaming/custom/consoles/{id}` | Admin | No library is set to it |
+| `GET /api/gaming/consoles/{console}/core` | Admin | Known console |
 | `PUT /api/gaming/consoles/{console}/core` | Admin | Known console. Core allowed for it |
 | `GET /api/gaming/games/{id}/core` | Admin | A game |
 | `PUT /api/gaming/games/{id}/core` | Admin | A game. Core allowed for it |

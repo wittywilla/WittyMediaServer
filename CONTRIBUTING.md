@@ -2,6 +2,12 @@
 
 For developers changing the server. This page covers how to build it, test it and send a change, even if you haven't worked on a Go or React project before.
 
+## Reporting a problem or asking for a feature
+
+- **Something's broken:** open an [issue](https://github.com/wittywilla/WittyMediaServer/issues/new/choose). Issues are only for faults.
+- **An idea or a feature request:** post it in [Discussions → Ideas](https://github.com/wittywilla/WittyMediaServer/discussions/categories/ideas), or upvote one that's there. Features the maintainer plans carry the **planned** label. A planned feature becomes an issue or pull request when work on it starts.
+- **A security problem:** report it privately, as [SECURITY.md](SECURITY.md) says.
+
 ## What you need
 
 | Tool | Version | Get it |

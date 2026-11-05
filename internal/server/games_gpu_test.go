@@ -6,13 +6,14 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/gameid/fixture"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/play/fakecore"
+	"github.com/wittywilla/wittymediaserver/internal/play/stream"
 )
 
 // What someone is told when a game can't start, and what is found for them, through
@@ -57,15 +58,23 @@ func placeCores(t *testing.T, g *gameServer, ids ...string) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	ext := ".so"
-	if runtime.GOOS == "windows" {
-		ext = ".dll"
-	}
+	ext := fakecore.Ext() // .dylib on a Mac, where a .so is never listed
 	for _, id := range ids {
 		if err := os.WriteFile(filepath.Join(dir, id+"_libretro"+ext), []byte("x"), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
+}
+
+// canDraw gives a test server a graphics card games can draw on, whatever this machine has:
+// for what happens on a server that can run these consoles.
+func canDraw(g *gameServer) { setGPU(g, stream.GPUProbe{Name: "a test card"}) }
+
+func setGPU(g *gameServer, p stream.GPUProbe) {
+	gs := g.s.games()
+	gs.gpuMu.Lock()
+	gs.gpu, gs.gpuAt = p, time.Now()
+	gs.gpuMu.Unlock()
 }
 
 func play(t *testing.T, g *gameServer, id int64) (int, playAnswer) {
@@ -80,6 +89,7 @@ func TestPS2SaysWhichBIOSIsMissingAndFindsOne(t *testing.T) {
 	modtest.Need(t, "wittyplay")
 	t.Setenv("WMS_WITTYPLAY_RUNNER", filepath.Join(t.TempDir(), "no-such-runner"))
 	g := newGameServer(t)
+	canDraw(g)
 	placeCores(t, g, "pcsx2")
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "Game.iso"), fixture.PS2("SLUS_123.45"), 0o644); err != nil {
@@ -124,6 +134,7 @@ func TestPlain3DSPackageGetsPastTheRefusal(t *testing.T) {
 	modtest.Need(t, "wittyplay")
 	t.Setenv("WMS_WITTYPLAY_RUNNER", filepath.Join(t.TempDir(), "no-such-runner"))
 	g := newGameServer(t)
+	canDraw(g)
 	placeCores(t, g, "azahar")
 	for _, c := range []struct {
 		name      string
@@ -187,6 +198,7 @@ func TestEncrypted3DSIsRefusedPlainly(t *testing.T) {
 	modtest.Need(t, "wittyplay")
 	t.Setenv("WMS_WITTYPLAY_RUNNER", filepath.Join(t.TempDir(), "no-such-runner"))
 	g := newGameServer(t)
+	canDraw(g)
 	placeCores(t, g, "azahar")
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "Game.3ds"), encryptedCCI(), 0o644); err != nil {
@@ -197,7 +209,7 @@ func TestEncrypted3DSIsRefusedPlainly(t *testing.T) {
 	if code != 422 || !a.Encrypted {
 		t.Fatalf("%d %+v", code, a)
 	}
-	if !strings.Contains(a.Error, "encrypted") || !strings.Contains(a.Error, "won't decrypt") {
+	if !strings.Contains(a.Error, "encrypted") || !strings.Contains(a.Error, "won't decrypt") || !strings.Contains(a.Error, "decrypted yourself") {
 		t.Errorf("message: %q", a.Error)
 	}
 	// Nothing was started, and nothing is left behind.

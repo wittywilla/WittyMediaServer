@@ -57,6 +57,7 @@ func newTestServerWith(t *testing.T, tools *ffmpeg.Tools) *testServer {
 		Auth:    &auth.Service{DB: d}, HLS: h, DVD: dvdsession.NewManager(h, tools, dir, "/api", log), BD: bdsession.NewManager(h, tools, dir, "/api", log),
 		Themes: &themes.Manager{Dir: filepath.Join(dir, "themes")}, Web: fstest.MapFS{"index.html": {Data: []byte("<html></html>")}}, Version: "test",
 	}
+	t.Cleanup(s.Close) // before the database closes: work a request started may still be using it
 	return &testServer{Server: s, h: s.Handler()}
 }
 

@@ -1,0 +1,35 @@
+name: core downloads
+# Every game core the server offers to install is published for the platforms
+# internal/server/corebuilds.txt says, so a 404 is found here before anyone meets it in
+# Settings. It asks the build server for headers only, and downloads nothing.
+on:
+  schedule:
+    - cron: "41 6 * * 1"
+  pull_request:
+    paths:
+      - internal/server/corebuilds.txt
+      - scripts/corebuilds/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer commit on a pull request replaces that pull request's older runs, queued or running, so
+# the build machines aren't kept busy with commits nobody will merge. Every other run (a push to the
+# main branch, a schedule, one started by hand) has a group of its own and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+      - name: every listed download answers, and nothing new is missing from the list
+        run: go run ./scripts/corebuilds internal/server/corebuilds.txt

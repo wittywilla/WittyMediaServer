@@ -516,6 +516,7 @@ func cmdServe(args []string) int {
 		}
 		_ = httpServer.Close() // long streams: their contexts end, and their FFmpeg with them
 		hlsMgr.StopAll()
+		srv.Close() // what requests started on their own, and the activity on its way to the database
 	}()
 	if err := httpServer.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error("serve", "err", err)

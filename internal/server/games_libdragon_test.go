@@ -2,9 +2,9 @@ package server
 
 import (
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/play/fakecore"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -25,10 +25,7 @@ func TestLibdragonGameSaysWhichCoreItNeeds(t *testing.T) {
 	}
 	t.Setenv("WMS_WITTYPLAY_RUNNER", runner)
 
-	ext := ".so"
-	if runtime.GOOS == "windows" {
-		ext = ".dll"
-	}
+	ext := fakecore.Ext() // a Mac lists only .dylib
 	core := filepath.Join(g.s.games().dir, "cores", "mupen64plus_next_libretro"+ext)
 	if err := os.MkdirAll(filepath.Dir(core), 0o755); err != nil {
 		t.Fatal(err)

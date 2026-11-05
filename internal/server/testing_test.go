@@ -45,6 +45,7 @@ func newContractServer(t *testing.T) *contractServer {
 		Auth: &auth.Service{DB: d}, HLS: h, DVD: dvdsession.NewManager(h, nil, dir+"/dvd", "/api", log), BD: bdsession.NewManager(h, nil, dir+"/bd", "/api", log),
 		Themes: &themes.Manager{Dir: dir + "/themes"}, Web: fstest.MapFS{"index.html": {Data: []byte("<html>app</html>")}}, Version: "test",
 	}
+	t.Cleanup(s.Close)
 	return &contractServer{Server: s, h: s.Handler()}
 }
 

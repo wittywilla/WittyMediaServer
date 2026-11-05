@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { api, mediaUrl, posterUrl, type GameConsole, type Item } from '../../api'
+import type { CoreAlternative, PlatformSupport } from './platforms'
 
 // What the game pages share: the one request for the home screen, what a game needs in
 // order to play, and where links go, which depends on whether couch mode is on.
@@ -11,9 +12,14 @@ export type GameHome = {
   hero: Item[]; continue: GameContinue[]; recent: Item[]; favourites: Item[]; favouriteIds: number[]; mostPlayed: Item[]; shelves: GameShelf[]
 }
 export type GameCheck = {
-  ready: boolean; reason?: 'core' | 'bios' | 'unavailable' | 'unknown'; message?: string; file?: string; console?: string; consoleName?: string
-  core?: { id: string; name: string; license: string }; needsGpu?: boolean
-  bios: { file: string; for: string; required: boolean; found: boolean }[]; biosFolder?: string
+  ready: boolean; reason?: 'core' | 'bios' | 'gpu' | 'unavailable' | 'unknown'; message?: string; file?: string; console?: string; consoleName?: string
+  core?: { id: string; name: string; license: string }; needsGpu?: boolean; gpuMissing?: string
+  // Plays, drawn by the server's processor as it has no graphics card games can use; notice is the speed caveat.
+  software?: boolean; notice?: string
+  // With reason gpu: where its games would play. With reason core: a core that would play it here.
+  runsOn?: PlatformSupport[]; alternative?: CoreAlternative; noBuild?: boolean
+  // using: the file a core that takes any name starts this game with; from: where it was found by its checksum.
+  bios: { file: string; for: string; required: boolean; found: boolean; using?: string; from?: string }[]; biosFolder?: string
 }
 
 // A page back from a game shows what it showed at once, and then catches up.

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { api, getPrefs } from '../../../api'
 import { IconShield } from '../../../icons'
 import { toast } from '../../../state'
-import { Row, Section } from '../ui'
+import { Row, Section, Switch } from '../ui'
 import type { LogsView } from './types'
 
 export const LEVELS: { v: string; label: string }[] = [
@@ -34,6 +34,10 @@ export default function WhatToLog({ view, onView }: { view: LogsView; onView: (v
       if (id === 'clients') void getPrefs(true) // this app stops or starts reporting
     } catch (e: any) { toast(e.message) } finally { setBusy('') }
   }
+  const keep = async (what: 'flight' | 'trace', on: boolean) => {
+    setBusy(what)
+    try { onView(await api.put<LogsView>('/logs', { [what]: on })) } catch (e: any) { toast(e.message) } finally { setBusy('') }
+  }
   const record = async () => {
     setBusy('record')
     try { onView(await api.put<LogsView>('/logs', { recordMinutes: minutes })); toast('Recording everything') } catch (e: any) { toast(e.message) } finally { setBusy('') }
@@ -47,6 +51,14 @@ export default function WhatToLog({ view, onView }: { view: LogsView; onView: (v
             {[10, 30, 60, 120].map((m) => <option key={m} value={m}>{m < 60 ? `${m} minutes` : m === 60 ? '1 hour' : `${m / 60} hours`}</option>)}
           </select>
           <button type="button" className="btn primary" disabled={busy === 'record' || !!view.recordingUntil} onClick={() => void record()}>{view.recordingUntil ? 'Recording…' : 'Record everything'}</button>
+        </Row>
+      </Section>
+      <Section title="Keep the last minutes" desc="Kept in memory only, and written down when the server stops answering, when part of it crashes, or when you press Save what just happened. Nothing is written otherwise.">
+        <Row label="The last 10 minutes, in full detail" desc="Everything every area and module says, whatever its level below, including the titles of what is played. Up to 16 MB of memory.">
+          <Switch checked={view.flight} disabled={busy === 'flight'} label="Keep the last 10 minutes" onChange={(v) => void keep('flight', v)} />
+        </Row>
+        <Row label="What the program was doing" desc="Go’s execution trace of the last seconds, for a developer to read with go tool trace. It holds places in the program and timings, nothing of yours, and costs a little speed.">
+          <Switch checked={view.trace} disabled={busy === 'trace'} label="Keep an execution trace" onChange={(v) => void keep('trace', v)} />
         </Row>
       </Section>
       <Section title="What to log" desc="How much each part of the server writes down. Changes work straight away, with no restart. Off still records crashes. Modules can have a level of their own, under Modules.">

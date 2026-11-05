@@ -261,6 +261,8 @@ export function Shelf({ id, title, items, consoles, console: c, faceFirst, lette
         <h2 className={`gm-shelf-name ${eraClass(c)}`}>{title}</h2>
         {c?.era && <span className="gm-shelf-era">{ERA_NAMES[c.era]}</span>}
         {count != null && <span className="gm-shelf-count">{count.toLocaleString()}</span>}
+        {/* A console this server can't play yet: reason gpu (from the server games work) means it never will. */}
+        {c && !c.ready && <span className="gm-shelf-note">{(c as GameConsole & { reason?: string }).reason === 'gpu' ? 'Not on this server' : 'Needs setting up'}</span>}
         {to && <Link className="gm-shelf-all" to={to} aria-label={`All of ${title}`}>All <IconRight size={14} /></Link>}
       </div>
       <div className={`gm-ledge view-${view}`} data-nav-row>{out}</div>

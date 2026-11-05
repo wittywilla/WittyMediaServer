@@ -186,6 +186,12 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/music/lyrics/{id}` | Admin | limits. An audio item. At most 256 KB, or a search result from a source that is turned on. Nothing is written beside the music |
 | `DELETE /api/music/lyrics/{id}` | Admin | limits. An audio item |
 | `DELETE /api/music/lyrics-cache` | Admin | Nothing further |
+| `GET /api/music/links/{id}` | Signed-in | limits. A song or a music video. Only links whose two ends the account may see. Suggestions for admins only |
+| `GET /api/music/links/{id}/candidates` | Admin | limits. A song or a music video. Query length. At most 50 |
+| `GET /api/music/links` | Admin | limits. At most 500 |
+| `PUT /api/music/links` | Admin | limits. Both ends seen by the admin: a song of a music library and a video of a music video library. Offset up to ten minutes |
+| `DELETE /api/music/links` | Admin | limits. Both ends seen by the admin: a song of a music library and a video of a music video library |
+| `POST /api/music/links/match` | Admin | One round at a time |
 | `GET /api/podcasts` | Signed-in | Library within the account's allowed libraries. Feed addresses for admins only |
 | `GET /api/podcasts/search` | Admin | Query length |
 | `POST /api/podcasts` | Admin | A podcasts library. Feed address checked by the scanner |

@@ -151,6 +151,7 @@ var routeRules = map[string]string{
 	"GET /api/music/home":                            "Signed-in: limits, in the query. own plays. Paths for admins only",
 	"GET /api/music/likes":                           "Signed-in: own. limits, in the query",
 	"GET /api/music/loudness/{id}":                   "Signed-in: limits. An audio item inside a library. Values held to a range",
+	"GET /api/music/links/{id}":                      "Signed-in: limits. A song or a music video. Only links whose two ends the account may see. Suggestions for admins only",
 	"GET /api/music/lyrics/{id}":                     "Signed-in: limits. An audio item. own timing. Asks online only when the owner turned it on",
 	"GET /api/music/radio/{id}":                      "Signed-in: limits, on the song and what is suggested. 2 to 200 songs. Paths for admins only",
 	"GET /api/music/songs":                           "Signed-in: limits, in the query. own plays. Search of up to 200 characters, at most 5000 songs. Paths for admins only",

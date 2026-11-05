@@ -16,7 +16,8 @@ runs, with H.264 decoded in hardware through VideoToolbox and MediaCodec.
 a rented server in front, or a guest Wi-Fi that blocks it. It's a property of the network, not the platform, so every client
 has it. JPEG stays for a server with no H.264 encoder at all.
 
-Version 1 (`/play/{sid}/webrtc` and `/play/{sid}/ws`) keeps working, unchanged, until every app has moved.
+Version 1 (`/play/{sid}/webrtc` and `/play/{sid}/ws`) keeps working, unchanged, until every app has moved. Version 2 needs
+WittyPlay 0.3.5 or later; with an older one, the server's `modes` don't offer it, and its routes answer `needs-update`.
 
 ### Why
 
@@ -399,6 +400,7 @@ for the server's log.
 | 424 | `no-module` | WittyPlay isn't installed on this server |
 | 429 | `busy` | Too many connections at once. Wait for `Retry-After` |
 | 500 | `failed` | Something went wrong starting it. Try again, then fall back |
+| 501 | `needs-update` | This server's WittyPlay is older than version 2 of the stream (before 0.3.5). Its `modes` don't say `"stream": 2` then, so a client that follows them never sees this. Use version 1's routes |
 
 While connected, refusals come as `{"type": "error", "code": "...", "text": "..."}`: `seat-taken` (with `port`), `bad-seat`
 and `bad-message`. The game ending comes as `{"type": "ended", "code": "...", "text": "..."}`, and the connection then closes:

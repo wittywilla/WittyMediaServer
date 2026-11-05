@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -566,7 +567,10 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		id := l.ID
 		hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: items})
 	}
-	_ = s.Store.AttachProgress(ctx, u.ID, recent)
+	// In pages: past 500 titles AttachProgress reads everything this account has played.
+	for page := range slices.Chunk(recent, 500) {
+		_ = s.Store.AttachProgress(ctx, u.ID, page)
+	}
 	// Saved views this account pinned to Home, each a row of its own.
 	if views, err := s.Store.SavedViews(ctx, u.ID); err == nil {
 		for _, v := range views {

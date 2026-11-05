@@ -277,7 +277,7 @@ func (s *Scanner) applyAgentResult(ctx context.Context, a *Agent, it *Item, r *A
 	if it.RuntimeSec == 0 && r.RuntimeMinutes > 0 && r.RuntimeMinutes < 10000 {
 		it.RuntimeSec = float64(r.RuntimeMinutes * 60)
 	}
-	if (it.Poster == "" || strings.HasPrefix(it.Poster, "cache:thumb-")) && r.Poster != "" {
+	if (it.Poster == "" || IsMadePoster(it.Poster)) && r.Poster != "" {
 		if ref, err := s.agentImage(ctx, a, r.Poster); err == nil {
 			it.Poster = ref
 		}

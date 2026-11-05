@@ -208,6 +208,7 @@ func cmdServe(args []string) int {
 		return library.ParseAgents(database.GetSetting(context.Background(), "agents", ""))
 	}
 	scanner.SaveMeta = func() bool { return database.GetSetting(context.Background(), "saveMetadata", "1") == "1" }
+	scanner.NoPoster = func() string { return database.GetSetting(context.Background(), "noPoster", library.NoPosterFrame) }
 	gamemeta.UserAgent = "WittyMediaServer/" + version + " (https://github.com/wittywilla/WittyMediaServer)"
 	gameMeta := library.NewGameMeta(store, cfg.ImagesDir, cfg.CacheDir, log)
 	gameMeta.SaveMeta, gameMeta.Save = scanner.SaveMeta, scanner.SaveItemMetadata

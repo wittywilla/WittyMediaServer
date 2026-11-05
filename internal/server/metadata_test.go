@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"image/png"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -107,6 +108,99 @@ func TestArtUploadIsChecked(t *testing.T) {
 	}
 	if meta := ts.Store.TitleMeta(t.Context(), library.TargetItem, it.ID); !meta.Locks["poster"] {
 		t.Error("an upload should lock the poster")
+	}
+
+	// The picker's upload waits for Apply: the picture is kept, the title doesn't change.
+	// What's kept is the picture alone, written again: anything after it is gone.
+	before := got.Poster
+	w := ts.do(t, "PUT", base+"backdrop?stage=1", admin, append(pic.Bytes(), []byte("<script>alert(1)</script>")...))
+	if w.Code != 200 {
+		t.Fatalf("staged: %d %s", w.Code, w.Body)
+	}
+	var staged struct {
+		URL string `json:"url"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &staged); err != nil || !strings.HasPrefix(staged.URL, "cache:up-") || !strings.HasSuffix(staged.URL, ".png") {
+		t.Fatalf("staged: %q %v", staged.URL, err)
+	}
+	if got, _ := ts.Store.Item(t.Context(), it.ID); got.Poster != before || got.Backdrop != "" {
+		t.Errorf("a staged upload changed the title: %q %q", got.Poster, got.Backdrop)
+	}
+	kept, err := os.ReadFile(filepath.Join(ts.Cfg.ImagesDir, strings.TrimPrefix(staged.URL, "cache:")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(kept, []byte("script")) {
+		t.Error("what came after the picture was kept")
+	}
+	if w := ts.do(t, "PUT", "/api/meta/item/"+strconv.FormatInt(it.ID, 10), admin, map[string]any{"fields": map[string]string{"backdrop": staged.URL}}); w.Code != 200 {
+		t.Fatalf("applying it: %d %s", w.Code, w.Body)
+	}
+	if got, _ := ts.Store.Item(t.Context(), it.ID); got.Backdrop != staged.URL {
+		t.Errorf("applied: %q", got.Backdrop)
+	}
+}
+
+// A title poster is made from the words given, and only applied when asked.
+func TestTitlePosterRoute(t *testing.T) {
+	ts := newTestServer(t)
+	_, admin := ts.user(t, "owner", "adult", true, "")
+	_, kid := ts.user(t, "kid", "kids", false, "")
+	lib := ts.library(t, "movies", t.TempDir())
+	it := metaItem(t, ts, lib, "A Quiet Pier")
+	base := "/api/meta/item/" + strconv.FormatInt(it.ID, 10)
+	if w := ts.do(t, "POST", base+"/titleposter", kid, map[string]any{"title": "x"}); w.Code != http.StatusForbidden {
+		t.Errorf("a kid: %d", w.Code)
+	}
+	w := ts.do(t, "POST", base+"/titleposter", admin, map[string]any{"title": "My Own Words", "line": "1999", "hue": 200})
+	if w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	var made struct {
+		URL string `json:"url"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &made); err != nil || !strings.HasPrefix(made.URL, "cache:made-") {
+		t.Fatalf("%q %v", made.URL, err)
+	}
+	if got, _ := ts.Store.Item(t.Context(), it.ID); got.Poster == made.URL {
+		t.Error("making one applied it")
+	}
+	if w := ts.do(t, "POST", base+"/titleposter", admin, map[string]any{"title": ""}); w.Code != http.StatusBadRequest {
+		t.Errorf("no words: %d", w.Code)
+	}
+	// Applied over the poster it had, and it says where it came from.
+	w = ts.do(t, "PUT", base, admin, map[string]any{"fields": map[string]string{"poster": made.URL}})
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"source":"you"`) {
+		t.Fatalf("applying: %d %s", w.Code, w.Body)
+	}
+	// The setting takes only what it means.
+	if w := ts.do(t, "PUT", "/api/settings", admin, map[string]string{"noPoster": "title"}); w.Code != 200 {
+		t.Errorf("noPoster title: %d %s", w.Code, w.Body)
+	}
+	if w := ts.do(t, "PUT", "/api/settings", admin, map[string]string{"noPoster": "../x"}); w.Code != http.StatusBadRequest {
+		t.Errorf("noPoster nonsense: %d", w.Code)
+	}
+}
+
+// A frame is only for a title with a video, and only for administrators.
+func TestArtFrameRoute(t *testing.T) {
+	ts := newTestServer(t)
+	_, admin := ts.user(t, "owner", "adult", true, "")
+	_, kid := ts.user(t, "kid", "kids", false, "")
+	lib := ts.library(t, "movies", t.TempDir())
+	it := metaItem(t, ts, lib, "A Quiet Pier")
+	route := "/api/meta/item/" + strconv.FormatInt(it.ID, 10) + "/frame"
+	if w := ts.do(t, "POST", route, kid, nil); w.Code != http.StatusForbidden {
+		t.Errorf("a kid: %d", w.Code)
+	}
+	// No FFmpeg here and no file: it says so in words, without the file's path.
+	w := ts.do(t, "POST", route, admin, nil)
+	if w.Code != http.StatusUnprocessableEntity || strings.Contains(w.Body.String(), "Pier") {
+		t.Errorf("no video to read: %d %s", w.Code, w.Body)
+	}
+	book := ts.item(t, &library.Item{LibraryID: lib, Kind: "book", Path: filepath.Join(t.TempDir(), "b.epub"), Title: "B"})
+	if w := ts.do(t, "POST", "/api/meta/item/"+strconv.FormatInt(book.ID, 10)+"/frame", admin, nil); w.Code == 200 {
+		t.Errorf("a book has no frames: %d", w.Code)
 	}
 }
 

@@ -24051,6 +24051,60 @@
         "x-wms-auth": "user"
       }
     },
+    "/meta/{target}/{id}/frame": {
+      "post": {
+        "operationId": "postMetaTargetIdFrame",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "url": {
+                      "description": "The picture's address in the image cache, to apply with PUT /meta/{target}/{id}.",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A frame from the video (items only), kept in the image cache. Nothing changes until it's applied.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/meta/{target}/{id}/leave": {
       "post": {
         "operationId": "postMetaTargetIdLeave",
@@ -24617,6 +24671,91 @@
           }
         ],
         "summary": "Search for a title and keep the best results.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/meta/{target}/{id}/titleposter": {
+      "post": {
+        "operationId": "postMetaTargetIdTitleposter",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "frame": {
+                    "description": "Set the words over a frame from the video (items only).",
+                    "type": "boolean"
+                  },
+                  "hue": {
+                    "description": "0 to 359; left out for the title's own colour.",
+                    "type": "integer"
+                  },
+                  "line": {
+                    "description": "A second, smaller line, up to 60 letters.",
+                    "type": "string"
+                  },
+                  "title": {
+                    "description": "The words, up to 120 letters.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "title"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "url": {
+                      "description": "The picture's address in the image cache, to apply with PUT /meta/{target}/{id}.",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A poster made from words, on a colour or over a frame from the video. Nothing changes until it's applied.",
         "tags": [
           "Metadata"
         ],

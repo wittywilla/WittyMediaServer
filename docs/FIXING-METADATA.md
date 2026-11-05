@@ -81,11 +81,20 @@ Each field says where its value came from:
 
 ## Artwork
 
-Press **Artwork** on a title's page, or go to that section. Poster, backdrop, banner and title logo each have:
+Press **Artwork** on a title's page, **Change** on its poster, or **Change** beside a picture in the edit dialog's Artwork section. Each opens the artwork picker, a window of its own in the middle of the screen (the whole screen on a phone), with a tab for each kind of picture the title has: poster, backdrop, banner and title logo.
 
-- **Browse images:** a grid from every source, with a tick on the chosen one. You can also paste a picture's web address and press **Use it**.
-- **Upload your own:** JPEG, PNG, WebP or GIF, up to 20 MB. It's checked to be a real picture.
-- **Remove**, and **Revert** where there's something to go back to.
+- **The grid** has every picture from every source, each with where it came from and its size. The one in use says **In use**.
+- **The preview** on the right shows the highlighted picture large, at the shape it's shown.
+- **Upload a file:** JPEG, PNG, WebP or GIF, up to 20 MB and 25 megapixels. The server checks it's a real picture and writes it again from its pixels, so nothing else in the file (such as where a photo was taken) is kept.
+- **Paste a picture's address:** a web address, or a picture in one of your libraries, then **Preview**.
+- **Use a frame from the video**, for a film or an episode.
+- **Make a title poster:** the title's words as a poster, on a colour of its own or over a frame from the video. Change the words, add a second line such as the year, and pick the colour. It can be used for any title, even one that has a poster.
+
+Nothing changes until **Apply**, which uses every picture you chose, on every tab, at once, and can be undone. **Cancel**, Escape or Back leaves everything as it was. By keyboard or remote: the arrows move in the grid, Enter previews, and Enter again applies.
+
+The edit dialog also has **Remove**, and **Revert** where there's something to go back to.
+
+**A film with no poster** gets a frame from its video. Under **Settings → Metadata agents → Artwork**, choose a poster made from its title instead, or nothing (a plain card). A picture beside the file or from a source always comes first, and replaces one the server made.
 
 Pictures from sources are fetched by your server, so no browser or app contacts them. Without a TMDB key, films have only what's in their folder, because Wikidata has no posters. TV shows get theirs from TVmaze.
 

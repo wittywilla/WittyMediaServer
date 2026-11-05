@@ -74,10 +74,15 @@ func (s *Server) gate(next http.Handler) http.Handler {
 			s.refuse(w, r, "This server is only available on its home network.")
 			return
 		}
-		// An unverified proxy's word is good enough here: the only person
-		// fooled by a false claim of HTTPS is whoever sent it.
-		if c.Where == remote.Internet && !c.Secure && !(c.Unverified && remote.SecureHint(r)) {
-			s.outside.notePlain()
+		if plainAway(r) {
+			// The owner may accept the risk, knowingly: see Settings, Remote Access.
+			// Sessions that cross like this are marked (notePlainSession).
+			allowed := st.cfg.AllowPlainAway
+			if allowed {
+				s.outside.notePlainAllowed()
+			} else {
+				s.outside.notePlain()
+			}
 			if (r.Method == http.MethodGet || r.Method == http.MethodHead) && strings.HasPrefix(st.publicURL, "https://") {
 				// Not RequestURI: for a request line without a leading slash that gives
 				// the text as it came, and "https://here" + "@elsewhere/" is elsewhere.
@@ -88,11 +93,33 @@ func (s *Server) gate(next http.Handler) http.Handler {
 				http.Redirect(w, r, to, http.StatusPermanentRedirect)
 				return
 			}
-			s.refuse(w, r, "This server only accepts encrypted connections from outside its home network.")
-			return
+			if !allowed {
+				s.refuse(w, r, "This server only accepts encrypted connections from outside its home network.")
+				return
+			}
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// plainAway: the request came from the internet without encryption. An
+// unverified proxy's word is good enough here: the only person fooled by a
+// false claim of HTTPS is whoever sent it.
+func plainAway(r *http.Request) bool {
+	c := clientFrom(r)
+	return c.Where == remote.Internet && !c.Secure && !(c.Unverified && remote.SecureHint(r))
+}
+
+// notePlainSession marks a session whose token just crossed the internet
+// unencrypted, which also cuts its life to a day, and logs the first time.
+func (s *Server) notePlainSession(r *http.Request, token string) {
+	if token == "" || auth.IsStreamToken(token) || !plainAway(r) {
+		return
+	}
+	if s.Auth.MarkPlainAway(r.Context(), token) {
+		s.Log.WarnContext(r.Context(), "a sign-in crossed the internet unencrypted, because unencrypted connections from away are allowed: anyone on the way may have it. It ends within a day, or end it now in Settings, Remote Access",
+			"cat", "remote", "from", clientFrom(r).IP.String(), "session", auth.SessionID(token))
+	}
 }
 
 func (s *Server) refuse(w http.ResponseWriter, r *http.Request, msg string) {
@@ -115,6 +142,7 @@ func (s *Server) touchSession(r *http.Request, token string) {
 	p := r.URL.Path
 	streaming := strings.HasPrefix(p, "/api/hls/") || strings.HasSuffix(p, "/file") || strings.HasSuffix(p, "/stream")
 	s.Auth.Touch(r.Context(), token, c.IP.String(), c.Where.String(), viaName(c, r), streaming)
+	s.notePlainSession(r, token)
 }
 
 func viaName(c remote.Client, r *http.Request) string {
@@ -177,8 +205,9 @@ type outsideSeen struct {
 	internet  time.Time
 	vpn       time.Time
 	proxied   time.Time
-	plain     time.Time
-	unverPeer string // a machine that passes on requests without being trusted
+	plain     time.Time // refused for being unencrypted
+	plainOK   time.Time // let in unencrypted, by the owner's choice
+	unverPeer string    // a machine that passes on requests without being trusted
 	unverAt   time.Time
 }
 
@@ -208,6 +237,12 @@ func (o *outsideSeen) note(c remote.Client) {
 func (o *outsideSeen) notePlain() {
 	o.mu.Lock()
 	o.plain = time.Now()
+	o.mu.Unlock()
+}
+
+func (o *outsideSeen) notePlainAllowed() {
+	o.mu.Lock()
+	o.plainOK = time.Now()
 	o.mu.Unlock()
 }
 

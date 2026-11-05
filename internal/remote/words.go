@@ -22,6 +22,8 @@ type Standing struct {
 	Home    string `json:"home"`    // devices at home
 	Away    string `json:"away"`    // devices away from home
 	Checked string `json:"checked"` // how that is known
+	// Warning stays while the owner lets the internet in unencrypted.
+	Warning string `json:"warning,omitempty"`
 }
 
 // The subjects. docs/REMOTE.md lists each one, which a test checks.
@@ -35,9 +37,13 @@ const (
 // Subjects are all of them, for the docs test.
 var Subjects = []string{SubjectHomeOnly, SubjectYes, SubjectNotYet, SubjectNo}
 
+// PlainAwayWarning is said wherever it matters while unencrypted connections
+// from away are allowed: the status card, the dashboard and the apps.
+const PlainAwayWarning = "Unencrypted connections from away are allowed. Anyone between a device and this server can read or change passwords, sign-ins and what you watch. Use this only on networks you trust, or behind your own VPN or tunnel."
+
 // Way is one way in from away, as the status found it.
 type Way struct {
-	Kind     string // vpn | https | proxy
+	Kind     string // vpn | https | proxy | plain
 	Label    string // Tailscale, NetBird, VPN, "the internet, over HTTPS", "your reverse proxy"
 	URL      string // where to connect, if known
 	State    string // ok | waiting | problem
@@ -49,6 +55,7 @@ type Way struct {
 type Facts struct {
 	On        bool // connections from away are allowed
 	LocalOnly bool // the server listens on this computer only
+	PlainAway bool // the owner lets the internet in without encryption
 	Ways      []Way
 	Proof     time.Time // when the outside test last passed (zero: never, or too long ago)
 	Now       time.Time
@@ -62,6 +69,9 @@ func Describe(f Facts) Standing {
 	s := Standing{Home: "Devices at home: can connect"}
 	if f.LocalOnly {
 		s.Home = "Devices at home: only this computer, because the server listens on this computer only"
+	}
+	if f.On && f.PlainAway {
+		s.Warning = PlainAwayWarning
 	}
 	if !f.On {
 		s.Level, s.Subject = "good", SubjectHomeOnly
@@ -156,6 +166,8 @@ func (w Way) how() string {
 		return "through " + w.Label + at + ", with " + w.Label + " switched on"
 	case "proxy":
 		return "through your reverse proxy" + at
+	case "plain":
+		return "over the internet unencrypted" + at
 	}
 	return "over the internet" + at
 }

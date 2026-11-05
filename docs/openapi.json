@@ -7328,6 +7328,9 @@
           },
           "summary": {
             "type": "string"
+          },
+          "warning": {
+            "type": "string"
           }
         },
         "required": [
@@ -29226,6 +29229,42 @@
         "x-wms-auth": "admin"
       }
     },
+    "/remote/plain-sessions": {
+      "delete": {
+        "operationId": "deleteRemotePlainSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ended": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "How many sessions were signed out."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sign out every session whose sign-in crossed the internet unencrypted.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/remote/router": {
       "post": {
         "operationId": "postRemoteRouter",
@@ -31458,6 +31497,14 @@
                       "type": "boolean"
                     },
                     "pickerLocal": {
+                      "type": "boolean"
+                    },
+                    "plainAwayWarning": {
+                      "description": "For administrators, while the owner allows unencrypted connections from away: the warning every page should show. Empty otherwise.",
+                      "type": "string"
+                    },
+                    "plainConnection": {
+                      "description": "This request crossed the internet unencrypted, which the owner allowed: a sign-in page should say a password typed here can be read on the way.",
                       "type": "boolean"
                     },
                     "setupRequired": {

@@ -468,6 +468,8 @@ var migrations = []string{
 	 UPDATE sessions SET home_only = 1 WHERE user_id IN (SELECT id FROM users WHERE password_hash = '');`,
 	// 30: numbers a file said were infinite. One of these blanked every list holding it.
 	clearInfinities,
+	// 31: sessions whose token crossed the internet unencrypted, so they can be ended together.
+	`ALTER TABLE sessions ADD COLUMN plain_away INTEGER NOT NULL DEFAULT 0;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

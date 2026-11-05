@@ -175,7 +175,7 @@ function B({ k, children, cls = '', title, tip }: { k: RemoteKey; children: Reac
 function Colours() {
   return (
     <div className="remote-colours">
-      {COLOUR_KEYS.map((c) => <B key={c} k={c} cls={'colour ' + c} title={`${COLOUR_NAMES[c]} (F${COLOUR_KEYS.indexOf(c) + 1})`}><span aria-hidden="true" /></B>)}
+      {COLOUR_KEYS.map((c) => <B key={c} k={c} cls={'colour key-' + c} title={`${COLOUR_NAMES[c]} (F${COLOUR_KEYS.indexOf(c) + 1})`}><span aria-hidden="true" /></B>)}
     </div>
   )
 }
@@ -206,7 +206,7 @@ export function RemoteBar({ onKey, enabled, disc = true, note }: { onKey: (k: Re
       </span>
       <span className="rb-sep hide-narrow" />
       <span className="rb-colours hide-narrow">
-        {COLOUR_KEYS.map((c, i) => <BarKey key={c} k={c} label={`${COLOUR_NAMES[c]} (F${i + 1})`} cls={'colour ' + c}><span aria-hidden="true" /></BarKey>)}
+        {COLOUR_KEYS.map((c, i) => <BarKey key={c} k={c} label={`${COLOUR_NAMES[c]} (F${i + 1})`} cls={'colour key-' + c}><span aria-hidden="true" /></BarKey>)}
       </span>
       <BarKey k="eject" label={disc ? 'Eject the disc' : 'Stop and close'} cls="red"><IconEject size={14} /></BarKey>
     </div>

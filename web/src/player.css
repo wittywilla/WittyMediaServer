@@ -82,10 +82,10 @@
 .remote-colours { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .remote .rk.colour { height: 22px; }
 .remote .rk.colour span, .remote-bar .rb.colour span { display: block; width: 70%; height: 5px; border-radius: 3px; background: currentColor; }
-.remote .rk.colour.red, .remote-bar .rb.colour.red { color: #f0605a; }
-.remote .rk.colour.green, .remote-bar .rb.colour.green { color: #4cc764; }
-.remote .rk.colour.yellow, .remote-bar .rb.colour.yellow { color: #f2c94c; }
-.remote .rk.colour.blue, .remote-bar .rb.colour.blue { color: #5a9cf8; }
+.remote .rk.colour.key-red, .remote-bar .rb.colour.key-red { color: #f0605a; }
+.remote .rk.colour.key-green, .remote-bar .rb.colour.key-green { color: #4cc764; }
+.remote .rk.colour.key-yellow, .remote-bar .rb.colour.key-yellow { color: #f2c94c; }
+.remote .rk.colour.key-blue, .remote-bar .rb.colour.key-blue { color: #5a9cf8; }
 
 /* The remote as a sheet along the bottom: phones upright or on their side, short windows, and
    over the page from the mini player (docked). Two pages: keys, then digits and colours. */
@@ -356,6 +356,9 @@
 
 .remote-toggle svg { width: 16px; height: 16px; }
 @media (max-width: 700px) { .hide-narrow { display: none !important; } .remote-toggle span { display: none; } .player .ctl .time { min-width: 0; } }
+/* A phone on its side is wide but short: the player keeps the phone's row of controls, and the
+   phone's own buttons do the volume. */
+@media (max-height: 500px) and (pointer: coarse) { .player .hide-narrow { display: none !important; } .player .remote-toggle span { display: none; } }
 /* Phones: one row of controls that fits. The time sits over the seek bar,
    chapter steps give way to the chapter list, and long subtitles of the top
    bar are cut short instead of wrapping. */

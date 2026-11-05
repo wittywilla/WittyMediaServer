@@ -205,7 +205,7 @@ func (s *Scanner) indexBook(ctx context.Context, lib *Library, c candidate) erro
 				if err != nil {
 					return err
 				}
-				return s.Tools.Still(ctx, append([]string{"-f", "image2", "-max_pixels", maxCoverPixels}, ffmpeg.FileInput(p)...), 0, 400, out)
+				return s.Tools.Still(ctx, pictureInput(p), 0, 400, out)
 			}
 		}
 	case ebook.Convertible(format):
@@ -245,6 +245,44 @@ func (s *Scanner) indexBook(ctx context.Context, lib *Library, c candidate) erro
 
 const maxCoverPixels = "100000000"
 
+// pictureInput is FFmpeg's input for a picture that becomes a cover. As image2 picks its decoder by the file's
+// name, a PNG called 000.jpg (as comics often have their pages) was read as a JPEG and failed ("bits 193 is
+// invalid", "unsupported coding type"), and the book got no cover. So the decoder comes from the picture's first
+// bytes, and the name decides only when they say nothing FFmpeg needs told.
+func pictureInput(path string) []string {
+	args := []string{"-f", "image2", "-max_pixels", maxCoverPixels}
+	if f, err := os.Open(path); err == nil {
+		head := make([]byte, 16)
+		n, _ := io.ReadFull(f, head)
+		f.Close()
+		if dec := pictureDecoder(head[:n]); dec != "" {
+			args = append(args, "-c:v", dec)
+		}
+	}
+	return append(args, ffmpeg.FileInput(path)...)
+}
+
+// pictureDecoder names FFmpeg's decoder for a picture from its first bytes, or "" when they aren't one of these.
+func pictureDecoder(head []byte) string {
+	switch {
+	case bytes.HasPrefix(head, []byte{0xFF, 0xD8, 0xFF}):
+		return "mjpeg"
+	case bytes.HasPrefix(head, []byte("\x89PNG\r\n\x1a\n")):
+		return "png"
+	case bytes.HasPrefix(head, []byte("GIF87a")), bytes.HasPrefix(head, []byte("GIF89a")):
+		return "gif"
+	case len(head) >= 12 && bytes.HasPrefix(head, []byte("RIFF")) && string(head[8:12]) == "WEBP":
+		return "webp"
+	case bytes.HasPrefix(head, []byte("BM")) && len(head) >= 14:
+		return "bmp"
+	case bytes.HasPrefix(head, []byte("II*\x00")), bytes.HasPrefix(head, []byte("MM\x00*")):
+		return "tiff"
+	case bytes.HasPrefix(head, []byte{0x00, 0x00, 0x00, 0x0C, 'j', 'P', ' ', ' '}), bytes.HasPrefix(head, []byte{0xFF, 0x4F, 0xFF, 0x51}):
+		return "jpeg2000"
+	}
+	return ""
+}
+
 // coverFromBytes makes a cover from a picture that's already in memory.
 func (s *Scanner) coverFromBytes(ctx context.Context, img []byte, ext, out string) error {
 	if err := os.MkdirAll(s.ImagesDir, 0o755); err != nil {
@@ -260,7 +298,7 @@ func (s *Scanner) coverFromBytes(ctx context.Context, img []byte, ext, out strin
 		return err
 	}
 	tmp.Close()
-	return s.Tools.Still(ctx, append([]string{"-f", "image2", "-max_pixels", maxCoverPixels}, ffmpeg.FileInput(tmp.Name())...), 0, 400, out)
+	return s.Tools.Still(ctx, pictureInput(tmp.Name()), 0, 400, out)
 }
 
 // makeCover turns an image inside an archive into a 400 px cover.
@@ -290,7 +328,7 @@ func (s *Scanner) makeCover(ctx context.Context, archive, entry, out string) err
 	tmp.Close()
 	// Read as a picture whatever its contents claim to be, and refuse sizes no
 	// cover has: a tiny file can claim 30000 x 30000 pixels (gigabytes of memory).
-	return s.Tools.Still(ctx, append([]string{"-f", "image2", "-max_pixels", maxCoverPixels}, ffmpeg.FileInput(tmp.Name())...), 0, 400, out)
+	return s.Tools.Still(ctx, pictureInput(tmp.Name()), 0, 400, out)
 }
 
 // ---------------------------------------------------------------- CBZ

@@ -7,8 +7,10 @@ import TitleArtPicker, { PosterMenu, appliedOnPage } from '../components/edit/Ti
 import RefreshDialog from '../components/edit/RefreshDialog'
 import TitleExtras, { TitleLogo } from '../components/edit/TitleExtras'
 import BrandLogo from '../components/BrandLogo'
-import { BackLink, EmptyState, SeenBadge, Spinner } from '../components/common'
-import { IconCheck, IconEdit, IconImage, IconInfo, IconPlay, IconRefresh } from '../icons'
+import { BackLink, EmptyState, PageSkeleton, SeenBadge } from '../components/common'
+import { IconCheck, IconEdit, IconImage, IconInfo, IconMore, IconPlay, IconRefresh } from '../icons'
+import { IconButton, RowSheet, Rows, SheetRow } from '../ui'
+import { useMedia } from '../shell/useNav'
 import { toast, useApp } from '../state'
 import LegalNote from '../components/LegalNote'
 import LogoNotice from '../components/LogoNotice'
@@ -25,13 +27,16 @@ export default function ShowPage() {
   const [art, setArt] = useState(false)
   const [prefs, setPrefs] = useState<Prefs | null>(null)
   const [viewOverride, setViewOverride] = useState<'' | 'cards' | 'list' | null>(null)
+  const [more, setMore] = useState(false)
+  // A phone has one row, as an item's page does: Play, Save, and "⋯" for an admin's tools.
+  const phone = useMedia('(max-width: 760px)')
   const load = () => api.get<ShowDetail>(`/shows/${id}`).then(setD).catch((e) => setErr(e.message))
   useEffect(() => { load(); setViewOverride(null) }, [id])
   useEffect(() => { getPrefs().then(setPrefs) }, [])
   // Coming back from picking a time in the player opens where it was.
   useEffect(() => { if (params.get('edit')) { const p = new URLSearchParams(params); p.delete('edit'); setParams(p, { replace: true }) } }, []) // eslint-disable-line react-hooks/exhaustive-deps
   if (err) return <EmptyState icon={<IconInfo />} title="This show didn’t load" text={err} />
-  if (!d) return <Spinner />
+  if (!d) return <PageSkeleton shape="item" />
   const { show, seasons, episodes } = d
   const seasonParam = params.get('season')
   const season = seasonParam != null ? Number(seasonParam) : (episodes.find((e) => e.id === d.nextUpId)?.season ?? seasons.find((s) => s.number > 0)?.number ?? seasons[0]?.number ?? 0)
@@ -64,7 +69,15 @@ export default function ShowPage() {
             <span>{show.seasonCount} {show.seasonCount === 1 ? 'season' : 'seasons'} · {show.episodeCount} episodes</span>
             {(show.genres || []).length > 0 && <span>{show.genres.join(', ')}</span>}
           </div>
-          <div className="actions">
+          {phone ? (
+            <div className="actions item-actions">
+              {next && <button data-tv-first className="btn primary" onClick={() => nav(`/play/${next.id}`)} aria-label={nextResume ? `Resume ${episodeLabel(next)} from ${fmtTime(nextResume.positionSec)}` : undefined}>
+                <IconPlay /> {nextResume ? `Resume ${episodeLabel(next)}` : `Play ${episodeLabel(next) || next.title}`}
+              </button>}
+              <SaveButton showId={show.id} />
+              {user?.isAdmin && <IconButton label="More" hideTip className="item-more" aria-haspopup="dialog" onClick={() => setMore(true)}><IconMore /></IconButton>}
+            </div>
+          ) : <div className="actions">
             {next && <button data-tv-first className="btn primary" onClick={() => nav(`/play/${next.id}`)}>
               <IconPlay /> {nextResume ? `Resume ${episodeLabel(next)} from ${fmtTime(nextResume.positionSec)}` : `Play ${episodeLabel(next) || next.title}`}
             </button>}
@@ -72,7 +85,16 @@ export default function ShowPage() {
             {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('match')}><IconEdit /> Edit</button>}
             {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
             {user?.isAdmin && <button className="btn ghost" onClick={() => setRefreshing(true)} title="See what's new about this, and choose what to take"><IconRefresh /> Refresh</button>}
-          </div>
+          </div>}
+          {more && (
+            <RowSheet title={show.title} onClose={() => setMore(false)}>
+              <Rows>
+                <SheetRow icon={<IconImage />} label="Artwork" onSelect={() => setArt(true)} />
+                <SheetRow icon={<IconEdit />} label="Edit" onSelect={() => setEdit('match')} />
+                <SheetRow icon={<IconRefresh />} label="Refresh" onSelect={() => setRefreshing(true)} />
+              </Rows>
+            </RowSheet>
+          )}
           {show.overview && <p className="overview">{show.overview}</p>}
           <TitleExtras target="show" id={show.id} libraryId={show.libraryId} />
 

@@ -399,11 +399,23 @@ input[type=range] { accent-color: var(--accent); }
 }
 .card .poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .card .poster .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--fg-3); padding: var(--sp-3); text-align: center; font-weight: 600; }
-/* Designed placeholder art (see Placeholder). */
+/* Designed placeholder art (see Placeholder): a colour of its own (--ph-art), and a label if
+   it has one. The title itself is printed under the card. */
 .art-ph { position: absolute; inset: 0; display: flex !important; flex-direction: column; justify-content: center; align-items: center; gap: var(--sp-1);
-  padding: var(--sp-3) !important; text-align: left !important; color: var(--on-image) !important; font-size: initial; }
+  padding: var(--sp-3) !important; text-align: left !important; color: var(--on-image) !important; font-size: initial; background: var(--ph-art); }
 .art-ph::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,.08), transparent 40%), radial-gradient(120% 60% at 0% 0%, rgba(255,255,255,.10), transparent 60%); pointer-events: none; }
 .art-ph b { position: relative; font-size: var(--text-lg); font-weight: var(--weight-heading); line-height: var(--leading-tight); opacity: .85; overflow-wrap: anywhere; }
+.art-ph:not(.labelled) b { display: none; }
+/* A phone, as the apps: the title's colour (--ph) rising from the card's, with the title in
+   white over the lower third, where the colour is solid. Those colours are dark enough for
+   white words, so it reads in every theme. Too small to read (a mini player's picture): the
+   colour alone. */
+@media (max-width: 760px) {
+  .art-ph { justify-content: flex-end; align-items: flex-start; background: linear-gradient(180deg, var(--bg-3) 0%, var(--ph, var(--bg-4)) 64%); container-type: size; }
+  .art-ph::before { content: none; }
+  .art-ph b, .art-ph:not(.labelled) b { display: -webkit-box; font-size: var(--text-base); font-weight: 600; line-height: var(--leading-snug); opacity: 1; overflow: hidden; hyphens: auto; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+  @container (max-width: 72px) { .art-ph b, .art-ph:not(.labelled) b { display: none; } }
+}
 .card .poster .play { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; opacity: 0; transition: opacity var(--dur-2); background: rgb(0 0 0 / .32); }
 @media (hover: hover) { .card:hover .poster .play { opacity: 1; } }
 .card:focus-visible .poster .play, .card:focus-within .poster .play { opacity: 1; }
@@ -426,6 +438,8 @@ input[type=range] { accent-color: var(--accent); }
 .card.wide .poster { aspect-ratio: 16 / 9; }
 .card.square .poster { aspect-ratio: 1; }
 .card.wide .title { -webkit-line-clamp: 1; }
+/* Search on a phone: three across, as a row of posters is, not two filling the screen. */
+@media (max-width: 760px) { .grid.search-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 /* ---------------------------------------------------------------- loading */
 /* Grey shapes where the cards will land, shown only if loading takes a moment. */
@@ -513,6 +527,15 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
   .detail .poster { width: 132px; }
   .detail .actions .btn { flex: 1 1 auto; }
   .detail .admin-tools { flex: 1 1 100%; }
+  /* The backdrop fades into the page: the picture itself goes, so there's no line where it ends. */
+  .detail-hero .bg { -webkit-mask-image: linear-gradient(#000 40%, transparent); mask-image: linear-gradient(#000 40%, transparent); } /* design-ok: a mask only reads how solid it is */
+  .detail-hero .shade { background: linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .7) 30%, rgb(var(--bg-rgb) / .35) 65%, rgb(var(--bg-rgb) / .15) 100%); }
+  /* One row: the main action, Save, and "⋯" for the rest. */
+  .detail .item-actions { flex-wrap: nowrap; }
+  .detail .item-actions.disc-actions { flex-wrap: wrap; }
+  .detail .item-actions .btn.primary { flex: 1 1 auto; }
+  .detail .item-actions .btn:not(.primary) { flex: none; }
+  .detail .item-actions .disc-hint { flex: 1 1 100%; }
 }
 
 /* ---------------------------------------------------------------- forms & panels */

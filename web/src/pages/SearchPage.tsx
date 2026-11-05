@@ -57,10 +57,10 @@ export default function SearchPage() {
     <>
       <div className="toolbar"><h1>Search</h1><span className="count">“{q}”</span></div>
       <PhoneBox q={q} />
-      {!items ? <SkeletonGrid /> : items.length + shows.length === 0 ? <EmptyState icon={<IconSearch />} title="No results" text={q ? `Nothing on this server matches “${q}”. Try a shorter or different word.` : 'Type what you’re looking for in the search box.'} /> : (
+      {!items ? <SkeletonGrid className="search-grid" /> : items.length + shows.length === 0 ? <EmptyState icon={<IconSearch />} title="No results" text={q ? `Nothing on this server matches “${q}”. Try a shorter or different word.` : 'Type what you’re looking for in the search box.'} /> : (
         <>
-          {shows.length > 0 && <><h2 className="shelf-head">Shows</h2><div className="grid">{shows.map((s) => <ShowCard key={s.id} show={s} />)}</div></>}
-          {items.length > 0 && <>{shows.length > 0 && <h2 className="shelf-head">Everything else</h2>}<div className="grid">{items.map((it) => <ItemCard key={it.id} item={it} />)}</div></>}
+          {shows.length > 0 && <><h2 className="shelf-head">Shows</h2><div className="grid search-grid">{shows.map((s) => <ShowCard key={s.id} show={s} />)}</div></>}
+          {items.length > 0 && <>{shows.length > 0 && <h2 className="shelf-head">Everything else</h2>}<div className="grid search-grid">{items.map((it) => <ItemCard key={it.id} item={it} />)}</div></>}
           <LegalNote kind="searchResults" />
         </>
       )}

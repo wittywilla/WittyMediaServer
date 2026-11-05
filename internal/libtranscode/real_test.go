@@ -37,6 +37,14 @@ type lab struct {
 
 var realTools *ffmpeg.Tools
 
+// with is the lab for a subtest: its helpers then fail that subtest, not the
+// test around it, and the reason is reported where it happened.
+func (l *lab) with(t *testing.T) *lab {
+	c := *l
+	c.t = t
+	return &c
+}
+
 func newLab(t *testing.T) *lab {
 	t.Helper()
 	if realTools == nil {
@@ -1036,12 +1044,14 @@ func TestRealHDR(t *testing.T) {
 	}
 	l.scan()
 	t.Run("save space leaves efficient HDR alone", func(t *testing.T) {
+		l := l.with(t)
 		r := l.run(preset(t, PresetSaveSpace), OutputReplace)
 		if r.Summary.Skip != 2 {
 			t.Fatalf("%+v", r.Summary)
 		}
 	})
 	t.Run("kept as HDR when it must be converted", func(t *testing.T) {
+		l := l.with(t)
 		p := preset(t, PresetSaveSpace)
 		p.Preset = PresetCustom
 		p.Video.MaxHeight = 240
@@ -1071,6 +1081,7 @@ func TestRealHDR(t *testing.T) {
 		}
 	})
 	t.Run("kept as HDR in AV1", func(t *testing.T) {
+		l := l.with(t)
 		if !has("libsvtav1") {
 			t.Skip("no AV1 encoder")
 		}
@@ -1096,6 +1107,7 @@ func TestRealHDR(t *testing.T) {
 		}
 	})
 	t.Run("made an ordinary picture", func(t *testing.T) {
+		l := l.with(t)
 		if l.tools.ToneMapFilter("hdr10") == "" {
 			t.Skip("this FFmpeg has no tone mapping filters")
 		}
@@ -1115,6 +1127,7 @@ func TestRealHDR(t *testing.T) {
 		}
 	})
 	t.Run("refused when asked", func(t *testing.T) {
+		l := l.with(t)
 		p := preset(t, PresetCompatible)
 		p.Preset = PresetCustom
 		p.Video.HDR = "refuse"
@@ -1127,6 +1140,7 @@ func TestRealHDR(t *testing.T) {
 		}
 	})
 	t.Run("H.264 can't carry HDR", func(t *testing.T) {
+		l := l.with(t)
 		p := preset(t, PresetSaveSpace)
 		p.Preset = PresetCustom
 		p.Video.Codec = "h264"
@@ -1220,6 +1234,7 @@ func TestRealDolbyVision(t *testing.T) {
 	}
 	l.scan()
 	t.Run("kept by leaving the picture alone", func(t *testing.T) {
+		l := l.with(t)
 		r := l.run(preset(t, PresetBest), OutputBeside)
 		if r.Summary.Done != 2 {
 			t.Fatalf("%+v %+v", r.Summary, l.files(r))
@@ -1236,6 +1251,7 @@ func TestRealDolbyVision(t *testing.T) {
 		}
 	})
 	t.Run("profile 5 refused, 8 converted from its base layer", func(t *testing.T) {
+		l := l.with(t)
 		if l.tools.ToneMapFilter("hdr10") == "" {
 			t.Skip("no tone mapping")
 		}
@@ -1265,6 +1281,7 @@ func TestRealDolbyVision(t *testing.T) {
 		}
 	})
 	t.Run("keep refuses what would need converting", func(t *testing.T) {
+		l := l.with(t)
 		p := preset(t, PresetSaveSpace)
 		p.Preset = PresetCustom
 		p.Video.MaxHeight = 240

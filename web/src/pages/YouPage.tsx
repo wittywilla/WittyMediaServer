@@ -50,7 +50,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 
 export default function YouPage() {
   const phone = useMedia('(max-width: 760px)')
-  const { user, libraries, version, brandName, serverTheme } = useApp()
+  const { user, libraries, version, brandName, serverTheme, update } = useApp()
   const signOut = useSignOut()
   const [twoStep, setTwoStep] = useState<boolean | null | undefined>(undefined) // null: the server doesn't offer it
   const [devices, setDevices] = useState<number | null>(null)
@@ -72,6 +72,8 @@ export default function YouPage() {
   const shown = profileName(user)
   const role = user.isAdmin ? 'Administrator' : user.kind === 'kids' ? 'Kids' : user.kind === 'guest' ? 'Guest' : 'Adult'
   const games = libraries.some((l) => l.type === 'games' && l.console !== 'rig')
+  // An administrator with a newer version waiting is taken to it, as the account menu does.
+  const newer = !!update && user.isAdmin
   const mine = deviceTheme()
   const themeName = mine === AUTO_THEME ? 'Automatic' : mine === CUSTOM_THEME ? 'Your own' : themes.find((t) => t.id === (mine || serverTheme))?.name || ''
   const address = (serverBase() || window.location.origin).replace(/\/+$/, '')
@@ -137,7 +139,7 @@ export default function YouPage() {
       </>}
       <Group title="Help and about">
         <Row to="/help" icon={<IconHelp />} tint={TINT.gold} label="Help" />
-        <Row to="/settings/about" icon={<IconInfo />} tint={TINT.quiet} label={<>About this server<UpdateDot /></>} value={version} />
+        <Row to={newer ? '/settings/about#updates' : '/settings/about'} icon={<IconInfo />} tint={TINT.quiet} label={<>About this server<UpdateDot /></>} value={newer ? 'Update available' : version} />
         <Row to="/legal" icon={<IconShield />} tint={TINT.quiet} label="Legal" />
         <Row to="/settings/about#licenses" icon={<IconBook />} tint={TINT.quiet} label="Licences" />
       </Group>

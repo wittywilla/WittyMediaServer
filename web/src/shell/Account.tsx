@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { api, cornerName, profileName } from '../api'
-import { IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
+import { IconDownload, IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
 import { Avatar } from '../pages/AuthPage'
 import { UpdateDot } from '../components/common'
 import { useApp } from '../state'
@@ -15,13 +15,15 @@ export function useSignOut() {
 
 // What the account menu holds, in the top bar's corner.
 function useAccount() {
-  const { user, libraries } = useApp()
+  const { user, libraries, update } = useApp()
   const signOut = useSignOut()
   const items: MenuEntry[] = [
     { key: 'year', label: 'Your year', icon: <IconStar />, to: '/review' },
     { key: 'look', label: 'Appearance', icon: <IconPalette />, to: '/settings/appearance' },
     ...(libraries.some((l) => l.type === 'games') ? [{ key: 'pads', label: 'Controllers', icon: <IconGamepad />, to: '/controllers' }] : []),
     { key: 'settings', label: <>Settings<UpdateDot /></>, text: 'Settings', icon: <IconSettings />, to: '/settings' },
+    // Admins only: a newer version of the server, and the way to it.
+    ...(update && user?.isAdmin ? [{ key: 'update', label: `Update available: ${update}`, icon: <IconDownload />, to: '/settings/about#updates' }] : []),
     { key: 'help', label: 'Help', icon: <IconHelp />, to: '/help' },
     ...(user?.kind === 'adult' || user?.isAdmin ? [{ key: 'pair', label: 'Sign in a TV', icon: <IconTv />, to: '/pair' }] : []),
     { kind: 'separator', key: 'sep' },

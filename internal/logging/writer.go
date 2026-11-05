@@ -18,7 +18,7 @@ import (
 type Health struct {
 	Writing   bool      `json:"writing"`             // lines are reaching the disk
 	Error     string    `json:"error,omitempty"`     // why they aren't
-	Since     time.Time `json:"since,omitempty"`     // when that started
+	Since     time.Time `json:"since,omitzero"`      // when that started; left out while all is well
 	Lost      int64     `json:"lost,omitempty"`      // lines that could not be written
 	Dropped   int64     `json:"dropped,omitempty"`   // lines dropped because the disk could not keep up
 	Quieted   int64     `json:"quieted,omitempty"`   // lines left out while the disk is nearly full

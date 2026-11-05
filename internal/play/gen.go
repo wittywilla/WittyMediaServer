@@ -139,6 +139,16 @@ type PadButton struct {
 	Label string `json:"label"`
 }
 
+// ScreenFrame is one screen's part of a frame, as fractions of it. Touch: the stylus is for
+// this one.
+type ScreenFrame struct {
+	X     float64 `json:"x"`
+	Y     float64 `json:"y"`
+	W     float64 `json:"w"`
+	H     float64 `json:"h"`
+	Touch bool    `json:"touch,omitempty"`
+}
+
 // PadLayout says what a console's controller has.
 type PadLayout struct {
 	Face     []PadButton `json:"face"` // main buttons, left to right
@@ -146,6 +156,9 @@ type PadLayout struct {
 	Meta     []PadButton `json:"meta"` // Select, Start and their relatives
 	Sticks   bool        `json:"sticks,omitempty"`
 	Pointer  bool        `json:"pointer,omitempty"` // has a touch screen: clients send pointer states
+	// Screens: where each of a two-screen console's screens is in the frame, in the stacked
+	// layout its core is started in. A client can draw each where the person placed it.
+	Screens []ScreenFrame `json:"screens,omitempty"`
 	// Extra buttons a gamepad can reach but an on-screen controller leaves out, such
 	// as stick clicks.
 	Extra []PadButton `json:"extra,omitempty"`

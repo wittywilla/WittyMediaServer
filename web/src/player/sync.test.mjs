@@ -1,11 +1,12 @@
 // The live sync rules, fed with made-up drifts and clocks.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { clockOffset, RATE, SEEK, syncStep } from './sync.ts'
+import { clockOffset, RATE, SEEK, SETTLED, STILL, syncStep } from './sync.ts'
 
-test('a small drift is left alone', () => {
-  assert.deepEqual(syncStep(0.3, false), { rate: 1 })
-  assert.deepEqual(syncStep(-0.49, false), { rate: 1 })
+test('a small drift is left alone, small enough for two viewers to be within a quarter second', () => {
+  assert.deepEqual(syncStep(0.1, false), { rate: 1 })
+  assert.deepEqual(syncStep(-0.11, false), { rate: 1 })
+  assert.ok(2 * STILL < 0.25)
 })
 
 test('a medium drift plays a little faster when behind and slower when ahead', () => {
@@ -14,8 +15,10 @@ test('a medium drift plays a little faster when behind and slower when ahead', (
 })
 
 test('catching up carries on until it has settled, then stops', () => {
-  assert.deepEqual(syncStep(0.3, true), { rate: 1 + RATE })
-  assert.deepEqual(syncStep(0.1, true), { rate: 1 })
+  assert.deepEqual(syncStep(0.1, true), { rate: 1 + RATE })
+  assert.deepEqual(syncStep(0.03, true), { rate: 1 })
+  // One check's worth of catching up (2 s at the changed rate) can't jump over the settled band.
+  assert.ok(2 * RATE < 2 * SETTLED)
 })
 
 test('a large drift, or a stall, jumps straight there', () => {

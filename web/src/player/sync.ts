@@ -1,14 +1,15 @@
 // Keeping a live picture at the same moment as everyone else's. Every segment of a channel says
-// when on the air it starts (EXT-X-PROGRAM-DATE-TIME) and the playlist says how far behind the
-// newest one to sit (HOLD-BACK), so every player that keeps to "the server's time now, less the
-// hold-back" shows the same moment. These are the rules for that, apart from any player, so a
-// watch-together feature can use the same ones.
+// when on the air it starts (EXT-X-PROGRAM-DATE-TIME), so every player that keeps to "the server's
+// time now, less three target durations" shows the same moment (the playlist's HOLD-BACK starts it
+// there). These are the rules for that, apart from any player, so a watch-together feature can use
+// the same ones.
 
 // Under STILL seconds off, nothing is done; up to SEEK, the picture plays RATE faster or slower
 // until it's within SETTLED (3% is too little to notice, and audio keeps its pitch); beyond
-// that, or after a stall, it jumps.
-export const STILL = 0.5
-export const SETTLED = 0.15
+// that, or after a stall, it jumps. With these, two viewers rest within a quarter of a second
+// of each other.
+export const STILL = 0.12
+export const SETTLED = 0.04
 export const SEEK = 3
 export const RATE = 0.03
 

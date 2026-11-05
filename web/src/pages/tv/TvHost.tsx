@@ -60,16 +60,16 @@ export default function TvHost() {
         if (nudging) { v.playbackRate = 1; nudging = false }
         return
       }
-      // A stream running late (a slow server) can't be caught up past its newest segment:
-      // that's a wait for everyone, not something to chase.
-      const toEdge = v.seekable.length ? v.seekable.end(v.seekable.length - 1) - v.currentTime : 0
-      const step = behind > 0 && toEdge < target * 0.75 ? { rate: 1 } : syncStep(behind, nudging)
+      // A stream running late (a server that can't make it at full speed) can't be caught up:
+      // everyone waits for it the same distance behind its newest segment, rather than chasing
+      // it and stalling.
+      const end = v.seekable.length ? v.seekable.end(v.seekable.length - 1) : v.currentTime
+      const start = v.seekable.length ? v.seekable.start(0) : v.currentTime
+      const step = behind > 0 && end - v.currentTime <= target + 0.5 ? { rate: 1 } : syncStep(behind, nudging)
       if ('seekBy' in step) {
-        const end = v.seekable.length ? v.seekable.end(v.seekable.length - 1) - 1 : v.currentTime
-        const start = v.seekable.length ? v.seekable.start(0) : v.currentTime
         v.playbackRate = 1
         nudging = false
-        v.currentTime = Math.max(start, Math.min(end, v.currentTime + step.seekBy))
+        v.currentTime = Math.max(start, Math.min(end - target, v.currentTime + step.seekBy))
       } else {
         v.playbackRate = step.rate
         nudging = step.rate !== 1

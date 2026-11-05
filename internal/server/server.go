@@ -425,6 +425,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/logs/crashes/{id}", s.requireAdmin(s.handleCrash))
 	m.Handle("POST /api/logs/crashes/{id}/seen", s.requireAdmin(s.handleCrashSeen))
 	m.Handle("DELETE /api/logs/crashes/{id}", s.requireAdmin(s.handleCrashDelete))
+	m.Handle("GET /api/logs/crashes/{id}/{part}", s.requireAdmin(s.handleCrashPart))
+	m.Handle("POST /api/logs/save", s.requireAdmin(s.handleSaveEvidence))
 	m.Handle("GET /api/logs/bundle", s.requireAdmin(s.handleBundle))
 	m.Handle("GET /api/logs/bundle/preview", s.requireAdmin(s.handleBundlePreview))
 	m.Handle("GET /api/reset", s.requireAdmin(s.handleResetView))
@@ -647,7 +649,8 @@ func (s *Server) logRequest(r *http.Request, id string, sw *statusWriter, start 
 	default:
 		lv = slog.LevelDebug
 	}
-	if !s.Logs.Accepts("http", lv) || quietPath(r.URL.Path) && lv < slog.LevelWarn {
+	// While the flight recorder is on, every request goes there, whatever the level says.
+	if !s.Logs.Accepts("http", lv) && !s.Logs.FlightRecorderOn() || quietPath(r.URL.Path) && lv < slog.LevelWarn {
 		return
 	}
 	ip := ""

@@ -262,7 +262,7 @@ html.ten-foot .ctv-page .ctv-btn.icon, html.using-controller .ctv-page .ctv-btn.
 .ctv-preview-handle { position: absolute; bottom: 0; width: 26px; height: 26px; cursor: nwse-resize; touch-action: none; }
 .side-right .ctv-preview-handle { left: 0; cursor: nesw-resize; }
 .side-left .ctv-preview-handle { right: 0; }
-.ctv-preview-handle::before { content: ""; position: absolute; bottom: 4px; width: 14px; height: 14px; opacity: .9; border-bottom: 3px solid var(--on-image); filter: drop-shadow(0 0 2px #000); }
+.ctv-preview-handle::before { content: ""; position: absolute; bottom: 4px; width: 14px; height: 14px; opacity: .9; border-bottom: 3px solid var(--on-image); filter: drop-shadow(0 0 2px var(--scrim)); }
 .side-right .ctv-preview-handle::before { left: 4px; border-left: 3px solid var(--on-image); }
 .side-left .ctv-preview-handle::before { right: 4px; border-right: 3px solid var(--on-image); }
 .ctv-preview-handle:hover::before { opacity: 1; }

@@ -6,6 +6,7 @@
 .player .top .grow h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------------------------------------------------------------- DVD remote */
+/* design-ok-begin: a drawn remote control, then a disc and tray, which keep their own colours */
 .remote {
   --ra: .92; /* background opacity, set from the remote's transparency button */
   position: absolute; z-index: 7; width: 208px; padding: 14px 12px 16px; transform-origin: top left;
@@ -124,6 +125,8 @@
 @keyframes ins-led { to { opacity: .2 } }
 @media (prefers-reduced-motion: reduce) { .insert-disc .tray, .insert-disc .disc { animation-duration: .01s; } }
 
+/* design-ok-end */
+
 /* ---------------------------------------------------------------- DVD subtitles */
 .sub-layer { position: absolute; z-index: 1; pointer-events: none; transition: translate var(--dur-3) ease; }
 .player:not(.controls-hidden) .sub-layer { translate: 0 calc(-1 * var(--lift, 0px)); }
@@ -147,7 +150,7 @@
 .episode .t::after { content: ''; position: absolute; inset: 0; border-radius: var(--r-lg); }
 .episode .thumb { position: relative; z-index: 1; display: block; width: 100%; padding: 0; border: 0; color: inherit; aspect-ratio: 16/9; border-radius: var(--r-md); overflow: hidden; background: var(--bg-3); }
 .episode .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.episode .thumb .play { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; background: rgb(0 0 0 / .32); transition: opacity var(--dur-2); z-index: 2; }
+.episode .thumb .play { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; background: color-mix(in srgb, var(--scrim) 47%, transparent); transition: opacity var(--dur-2); z-index: 2; }
 .episode:hover .thumb .play, .episode .thumb:focus-visible .play { opacity: 1; }
 .episode .thumb .play span { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; }
 .episode .thumb .play svg { width: 20px; height: 20px; margin-left: 2px; }
@@ -174,13 +177,13 @@
 .episode-table td.num { color: var(--fg-3); font-weight: 600; white-space: nowrap; }
 
 /* ---------------------------------------------------------------- skip intro / watch next */
-.skip-intro { position: absolute; right: var(--sp-6); bottom: 110px; z-index: 6; min-height: var(--control-h); background: #fff; color: #111; font-weight: 600; border: 0; padding: 0 var(--sp-5); border-radius: var(--r-md); box-shadow: var(--e-3); }
-.skip-intro:hover { background: #e8eaf0; }
+.skip-intro { position: absolute; right: var(--sp-6); bottom: 110px; z-index: 6; min-height: var(--control-h); background: var(--on-image); color: var(--bg); font-weight: 600; border: 0; padding: 0 var(--sp-5); border-radius: var(--r-md); box-shadow: var(--e-3); }
+.skip-intro:hover { background: color-mix(in srgb, var(--on-image) 90%, var(--bg)); }
 /* What a robust stream's player just did ("Picture lowered to 480p…"). Over the picture,
    so it stays dark in both themes, like the rest of the player's chrome. */
 .net-note { position: absolute; top: 84px; left: 50%; translate: -50% 0; z-index: 6; max-width: min(560px, calc(100% - 32px)); padding: var(--sp-2) var(--sp-4); border-radius: var(--r-md); background: var(--scrim); color: var(--on-image); font-size: var(--text-sm); line-height: 1.4; text-align: center; box-shadow: var(--e-3); pointer-events: none; }
 .net-note.lost { border-left: 3px solid var(--warn); }
-.watch-next { position: absolute; right: var(--sp-6); bottom: 110px; z-index: 6; width: 320px; max-width: calc(100% - 32px); background: rgb(20 22 28 / .98); border: 1px solid rgb(255 255 255 / .1); border-radius: var(--r-lg); padding: var(--sp-3); display: grid; gap: var(--sp-3); box-shadow: var(--e-3); animation: dialog-in var(--dur-3) var(--ease-out); }
+.watch-next { position: absolute; right: var(--sp-6); bottom: 110px; z-index: 6; width: 320px; max-width: calc(100% - 32px); background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-3); display: grid; gap: var(--sp-3); box-shadow: var(--e-3); animation: dialog-in var(--dur-3) var(--ease-out); }
 .watch-next .wn-head { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: var(--tracking-label); color: var(--fg-3); font-weight: 600; }
 .watch-next .wn-body { display: grid; grid-template-columns: 90px 1fr; gap: 12px; align-items: center; cursor: pointer; }
 .watch-next .wn-thumb { aspect-ratio: 2/3; border-radius: var(--r-sm); overflow: hidden; background: var(--bg-3); }
@@ -226,7 +229,7 @@
 
 /* ---------------------------------------------------------------- appearance */
 /* The player is always dark, whatever theme is active. */
-.player { color: #fff; --fg: #f1f2f5; --fg-2: #b4b9c6; --fg-3: #949aa8; --bg-2: #171a21; --bg-3: #1f232c; --bg-4: #2a2f3a; --bg: #0f1115; --bg-rgb: 15 17 21; --border: rgb(255 255 255 / .1); --border-strong: rgb(255 255 255 / .2); --hover: rgb(255 255 255 / .1); --control-line: #7b808c; --accent-text: #fff; color-scheme: dark; }
+.player { color: var(--on-image); --fg: #f1f2f5; --fg-2: #b4b9c6; --fg-3: #949aa8; --bg-2: #171a21; --bg-3: #1f232c; --bg-4: #2a2f3a; --bg: #0f1115; --bg-rgb: 15 17 21; --border: rgb(255 255 255 / .1); --border-strong: rgb(255 255 255 / .2); --hover: rgb(255 255 255 / .1); --control-line: #7b808c; --accent-text: #fff; color-scheme: dark; }
 .brand .brand-name { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .theme-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 6px 0 14px; }
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--sp-3); }
@@ -262,15 +265,15 @@
 .player .still { z-index: 0; }
 
 /* ------------------------------------------------ track picker (TV-style tiles) */
-.picker-backdrop { position: absolute; inset: 0; z-index: 20; background: rgb(0 0 0 / .84);
+.picker-backdrop { position: absolute; inset: 0; z-index: 20; background: rgb(var(--bg-rgb) / .84);
   display: grid; place-items: center; padding: var(--sp-6); animation: fade-in var(--dur-2) ease-out; }
 .picker { width: min(900px, 100%); max-height: 100%; overflow: auto; text-align: center; }
 .picker h2 { margin: 0 0 6px; font-size: var(--page-title); letter-spacing: var(--tracking-display); }
 .picker-hint { color: var(--fg-2); max-width: 62ch; margin: 0 auto var(--sp-4); font-size: var(--text-md); }
 .picker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 180px)); justify-content: center; gap: 16px; margin: 18px 0 22px; }
-.picker-tile { position: relative; aspect-ratio: 1; border-radius: var(--r-lg); border: 2px solid rgb(255 255 255 / .1); background: rgb(255 255 255 / .07);
-  color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: var(--sp-3); transition: background var(--dur-2), border-color var(--dur-2); }
-.picker-tile:hover, .picker-tile:focus-visible { background: rgb(255 255 255 / .16); outline: none; border-color: #fff; }
+.picker-tile { position: relative; aspect-ratio: 1; border-radius: var(--r-lg); border: 2px solid var(--border); background: color-mix(in srgb, var(--on-image) 7%, transparent);
+  color: var(--on-image); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: var(--sp-3); transition: background var(--dur-2), border-color var(--dur-2); }
+.picker-tile:hover, .picker-tile:focus-visible { background: color-mix(in srgb, var(--on-image) 16%, transparent); outline: none; border-color: var(--on-image); }
 .picker-tile.active { border-color: var(--accent); background: rgb(var(--accent-rgb) / .22); }
 .picker-tile .pt-title { font-size: var(--text-lg); font-weight: 600; line-height: 1.2; }
 .picker-tile .pt-sub { font-size: var(--text-sm); color: var(--fg-2); }
@@ -281,7 +284,7 @@
 
 /* ------------------------------------------------ viewing settings (gear) */
 .view-settings { position: absolute; right: var(--sp-4); bottom: 78px; z-index: 12; width: min(380px, calc(100% - 32px)); max-height: calc(100% - 150px); overflow: auto;
-  background: rgb(20 22 28 / .98); border: 1px solid rgb(255 255 255 / .1); border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-4); box-shadow: var(--e-3); animation: dialog-in var(--dur-2) var(--ease-out); }
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-4); box-shadow: var(--e-3); animation: dialog-in var(--dur-2) var(--ease-out); }
 .view-settings .vs-head { display: flex; align-items: center; justify-content: space-between; }
 .view-settings h4 { margin: var(--sp-1) 0; font-size: var(--text-base); }
 .vs-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: 9px 0; border-bottom: 1px solid var(--border); font-size: var(--text-md); }
@@ -289,7 +292,7 @@
 .vs-row .seg button { padding: 5px 9px; }
 .vs-note { color: var(--fg-3); font-size: var(--text-xs); margin: var(--sp-3) 0 0; }
 .switch { width: 44px; height: 24px; border-radius: var(--r-lg); border: 0; background: var(--control-line); position: relative; padding: 0; transition: background var(--dur-2); flex: none; }
-.switch i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform var(--dur-2); }
+.switch i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--on-image); transition: transform var(--dur-2); }
 .switch.on { background: var(--accent); }
 .switch.on i { transform: translateX(20px); }
 
@@ -310,11 +313,11 @@
   .player .top .grow { min-width: 0; }
   .player .top h1 { font-size: var(--text-lg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .player .top .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--text-xs); }
-  .remote-bar { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+  .remote-bar { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); } /* design-ok: a mask's opacity, not a colour */
 }
 
 /* Controller / keyboard focus: always visible on the player and on TV. */
-.player button:focus-visible, .player .seek:focus-visible, .player [tabindex]:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.player button:focus-visible, .player .seek:focus-visible, .player [tabindex]:focus-visible { outline: 2px solid var(--on-image); outline-offset: 2px; }
 
 /* ------------------------------------------------ mini player */
 .player.mini { inset: auto 20px 20px auto; width: min(400px, calc(100vw - 40px)); height: auto; aspect-ratio: 16 / 9; border-radius: var(--r-md); z-index: var(--z-dock);
@@ -323,7 +326,7 @@
 .player.mini .big-play button { width: 54px; height: 54px; }
 .player.mini .big-play svg { width: 26px; height: 26px; }
 .player.mini .overlay-msg .box { padding: 10px 12px; font-size: var(--text-sm); }
-.mini-bar { position: absolute; inset: auto 0 0 0; z-index: 8; padding: 26px 8px 6px; background: linear-gradient(transparent, rgba(0,0,0,.85));
+.mini-bar { position: absolute; inset: auto 0 0 0; z-index: 8; padding: 26px 8px 6px; background: linear-gradient(transparent, rgb(var(--bg-rgb) / .85));
   display: flex; flex-direction: column; gap: 2px; transition: opacity var(--dur-3); }
 .player.mini.controls-hidden .mini-bar { opacity: 0; }
 .player.mini:hover .mini-bar, .player.mini:focus-within .mini-bar { opacity: 1; }
@@ -352,21 +355,21 @@
 
 /* ------------------------------------------------ remote docked in the control bar */
 .remote-bar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 96px; z-index: 6; display: flex; align-items: center; gap: 4px;
-  width: max-content; max-width: calc(100% - 24px); overflow-x: auto; padding: 6px 8px; border-radius: var(--r-md); background: rgb(16 18 23 / .9); transition: opacity var(--dur-3); scrollbar-width: none; }
+  width: max-content; max-width: calc(100% - 24px); overflow-x: auto; padding: 6px 8px; border-radius: var(--r-md); background: rgb(var(--bg-rgb) / .9); transition: opacity var(--dur-3); scrollbar-width: none; }
 .player.controls-hidden .remote-bar { opacity: 0; pointer-events: none; }
 .player.menu-mode .remote-bar { bottom: 70px; }
-.remote-bar .rb { flex: none; height: 30px; min-width: 30px; padding: 0 9px; border-radius: var(--r-md); border: 0; background: rgba(255,255,255,.1); color: #fff;
+.remote-bar .rb { flex: none; height: 30px; min-width: 30px; padding: 0 9px; border-radius: var(--r-md); border: 0; background: var(--hover); color: var(--on-image);
   font-size: var(--text-2xs); font-weight: 700; letter-spacing: .5px; display: grid; place-items: center; }
 .remote-bar .rb svg { fill: currentColor; }
-.remote-bar .rb:hover:not(:disabled) { background: rgba(255,255,255,.2); }
+.remote-bar .rb:hover:not(:disabled) { background: color-mix(in srgb, var(--on-image) 20%, transparent); }
 .remote-bar .rb:disabled { opacity: .3; }
 .remote-bar .rb.accent { background: var(--accent); color: var(--accent-fg); }
-.remote-bar .rb.red { background: #b03a2e; }
-.remote-bar .rb-sep { width: 1px; height: 20px; background: rgba(255,255,255,.15); margin: 0 4px; flex: none; }
+.remote-bar .rb.red { background: #b03a2e; } /* design-ok: the remote's red key */
+.remote-bar .rb-sep { width: 1px; height: 20px; background: var(--border-strong); margin: 0 4px; flex: none; }
 .remote-bar .rb-digits { display: flex; gap: 3px; }
 .remote-bar .rb-digits .rb { min-width: 26px; padding: 0 6px; }
 
-.speed-btn { min-width: 46px; font-variant-numeric: tabular-nums; background: rgba(255,255,255,.1); }
+.speed-btn { min-width: 46px; font-variant-numeric: tabular-nums; background: var(--hover); }
 .speed-pop { max-height: 60vh; overflow: auto; }
 .player .ctl .range.vol { width: 88px; }
 /* Leave room under the page for the mini player. */
@@ -385,20 +388,20 @@
 
 /* Scenes: the scene picker over the picture, laid out like the disc page. */
 .scene-panel { position: absolute; left: 20px; right: 20px; bottom: 70px; z-index: 6; max-height: min(64vh, 620px); overflow: auto; overscroll-behavior: contain;
-  padding: 14px 18px 18px; border-radius: var(--r-lg); background: rgb(14 15 19 / .98);
-  border: 1px solid rgb(255 255 255 / .1); box-shadow: var(--e-3); color: #f1f2f5; animation: fade-in .15s ease-out; }
+  padding: 14px 18px 18px; border-radius: var(--r-lg); background: var(--bg);
+  border: 1px solid var(--border); box-shadow: var(--e-3); color: var(--fg); animation: fade-in .15s ease-out; }
 .scene-panel-head { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; position: sticky; top: -14px; padding: 4px 0; z-index: 1; background: inherit; }
-.scene-panel-head h3 { margin: 0; font-size: var(--text-lg); color: #fff; }
+.scene-panel-head h3 { margin: 0; font-size: var(--text-lg); color: var(--on-image); }
 .scene-panel-head .muted { font-size: var(--text-sm); color: var(--fg-2); margin-right: auto; }
 .scene-panel .scene-grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px 12px; }
-.scene-panel .scene-thumb { background: #22252c; }
-.scene-panel .scene-name { color: #e8e9ee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scene-panel .scene-thumb { background: var(--bg-3); }
+.scene-panel .scene-name { color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .scene-panel .scene-name .muted { color: var(--fg-3); }
-.scene-panel .scene.now .scene-thumb { outline: 2px solid #fff; outline-offset: 2px; }
-.scene-panel .scene.now .scene-name { color: #fff; font-weight: 600; }
+.scene-panel .scene.now .scene-thumb { outline: 2px solid var(--on-image); outline-offset: 2px; }
+.scene-panel .scene.now .scene-name { color: var(--on-image); font-weight: 600; }
 .scene-now { position: absolute; left: 6px; top: 6px; background: var(--accent); color: var(--accent-fg); font-size: var(--text-2xs); font-weight: 700; padding: 1px 6px; border-radius: var(--r-xs); }
-.scene-num { display: grid; place-items: center; width: 100%; height: 100%; font-size: var(--text-3xl); font-weight: 700; color: rgba(255,255,255,.35); }
-.player .ctl .ibtn.on { background: rgb(255 255 255 / .18); }
+.scene-num { display: grid; place-items: center; width: 100%; height: 100%; font-size: var(--text-3xl); font-weight: 700; color: color-mix(in srgb, var(--on-image) 35%, transparent); }
+.player .ctl .ibtn.on { background: color-mix(in srgb, var(--on-image) 18%, transparent); }
 @media (max-width: 700px) {
   .scene-panel { left: 8px; right: 8px; bottom: 64px; padding: 12px; max-height: 58vh; }
   .scene-panel .scene-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -417,7 +420,7 @@ kbd { display: inline-block; padding: 1px var(--sp-2); border-radius: var(--r-sm
 @media (max-width: 520px) { .kbd-list > div { grid-template-columns: 1fr; gap: 4px; } }
 /* Controls stay visible while keyboard focus is on them. */
 .player.controls-hidden .top:focus-within, .player.controls-hidden .bottom:focus-within { opacity: 1; pointer-events: auto; }
-.swatch-auto { background: linear-gradient(135deg, #14161d 50%, #f4f5f8 50%); }
+.swatch-auto { background: linear-gradient(135deg, #14161d 50%, #f4f5f8 50%); } /* design-ok: a picture of a dark and a light theme */
 
 /* How this is playing */
 .playinfo-summary { margin: 0 0 12px; }

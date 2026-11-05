@@ -54,24 +54,43 @@ type Manager struct {
 	BDJ      BDJConfig // nil = BD-J is off
 	mu       sync.Mutex
 	sessions map[string]*Session
+	sweeping bool // under mu: the sweep runs only while there are sessions to look after
+	// sweepEvery is how often open discs are looked at, while there are any.
+	sweepEvery time.Duration
 }
 
 // NewManager makes a manager; idle sessions are closed after 30 minutes.
 func NewManager(h *hls.Manager, tools *ffmpeg.Tools, cacheDir, baseURL string, log *slog.Logger) *Manager {
-	m := &Manager{HLS: h, Tools: tools, CacheDir: cacheDir, BaseURL: baseURL, Log: log, sessions: map[string]*Session{}}
+	m := &Manager{HLS: h, Tools: tools, CacheDir: cacheDir, BaseURL: baseURL, Log: log, sessions: map[string]*Session{}, sweepEvery: time.Minute}
 	// A server that was stopped hard leaves its sessions' copies of the discs' programs.
 	_ = os.RemoveAll(filepath.Join(cacheDir, "bdj", "sessions"))
-	logging.Loop("bluray sweep", m.sweep, "cat", "discs")
 	return m
 }
 
 func (m *Manager) sweep() {
-	for range time.Tick(time.Minute) {
+	t := time.NewTicker(m.sweepEvery)
+	defer t.Stop()
+	for range t.C {
 		for id, s := range m.list() { // a session busy with a slow step holds its own lock, never the manager's
 			if s.idleTooLong() {
 				m.CloseSession(id)
 			}
 		}
+		m.mu.Lock()
+		if len(m.sessions) == 0 {
+			m.sweeping = false // a quiet server isn't woken every minute to find nothing
+			m.mu.Unlock()
+			return
+		}
+		m.mu.Unlock()
+	}
+}
+
+// sweepSoon starts the sweep if it isn't running. m.mu is held.
+func (m *Manager) sweepSoon() {
+	if !m.sweeping {
+		m.sweeping = true
+		logging.Loop("bluray sweep", m.sweep, "cat", "discs")
 	}
 }
 
@@ -249,6 +268,7 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 	}
 	m.mu.Lock()
 	m.sessions[s.ID] = s
+	m.sweepSoon()
 	m.mu.Unlock()
 	return s, nil
 }

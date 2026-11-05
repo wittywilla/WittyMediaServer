@@ -35,6 +35,10 @@ type logsView struct {
 	Modules    []LogModule        `json:"modules"` // each with a level of its own and its advanced options
 	// RecordingUntil: everything is being recorded until then, to catch a problem.
 	RecordingUntil *time.Time `json:"recordingUntil,omitempty"`
+	// Flight: the last minutes are kept in memory, for when something goes wrong. Trace:
+	// Go's execution trace of the last seconds is kept too. See api_flight.go.
+	Flight bool `json:"flight"`
+	Trace  bool `json:"trace"`
 }
 
 func (s *Server) logsView(r *http.Request) logsView {
@@ -54,7 +58,8 @@ func (s *Server) logsView(r *http.Request) logsView {
 	if t := s.Logs.RecordingUntil(); !t.IsZero() {
 		recording = &t
 	}
-	return logsView{RecordingUntil: recording, Dir: s.Logs.Dir(), Level: logging.LevelName(s.Logs.Level()), Categories: logging.Categories, Levels: s.Logs.Levels(), On: on, Files: files, CanOpen: onThisMachine(r), Health: s.Logs.Health(), Crashes: crashes, Modules: s.logModuleViews(r.Context())}
+	return logsView{RecordingUntil: recording, Dir: s.Logs.Dir(), Level: logging.LevelName(s.Logs.Level()), Categories: logging.Categories, Levels: s.Logs.Levels(), On: on, Files: files, CanOpen: onThisMachine(r), Health: s.Logs.Health(), Crashes: crashes, Modules: s.logModuleViews(r.Context()),
+		Flight: s.Logs.FlightRecorderOn(), Trace: logging.TraceRecorderOn()}
 }
 
 // GET /api/logs (admin)
@@ -76,6 +81,10 @@ func (s *Server) handlePutLogs(w http.ResponseWriter, r *http.Request) {
 		ModulesSeen bool                       `json:"modulesSeen"`
 		// RecordMinutes: record everything for this long, up to 4 hours. 0 stops it.
 		RecordMinutes *int `json:"recordMinutes"`
+		// Flight and Trace: keep the last minutes, and the execution trace, for when
+		// something goes wrong.
+		Flight *bool `json:"flight"`
+		Trace  *bool `json:"trace"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -132,6 +141,14 @@ func (s *Server) handlePutLogs(w http.ResponseWriter, r *http.Request) {
 		}
 		s.Logs.SetLevels(want)
 		s.saveLogLevels(r)
+	}
+	if b.Flight != nil || b.Trace != nil {
+		for k, v := range map[string]*bool{"logFlight": b.Flight, "logTrace": b.Trace} {
+			if v != nil {
+				s.saveLogSetting(r, k, map[bool]string{true: "1", false: "0"}[*v])
+			}
+		}
+		s.ApplyEvidenceSettings(ctx)
 	}
 	if b.RecordMinutes != nil {
 		if m := *b.RecordMinutes; m < 0 || m > 240 {

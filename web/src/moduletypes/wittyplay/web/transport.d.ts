@@ -1,4 +1,6 @@
-export type TransportKind = 'webrtc' | 'ws-h264' | 'ws-jpeg';
+import { type LatencyMeter } from './latency';
+export type LatencyMode = 'auto' | 'fastest' | 'balanced' | 'steady';
+export type TransportKind = 'webrtc' | 'webrtc-direct' | 'ws-h264' | 'ws-jpeg';
 export type Mode = 'auto' | TransportKind;
 export declare const TRANSPORT_LABELS: Record<TransportKind, string>;
 export type Stats = {
@@ -24,6 +26,51 @@ export type PlayEvent = {
     turns?: number;
     index?: number;
     count?: number;
+    code?: string;
+    seats?: Seat[];
+};
+export type Hello = {
+    v: 2;
+    app?: string;
+    device?: string;
+    name?: string;
+    watch?: boolean;
+    video?: string[];
+    audio?: string[];
+    seats?: number[];
+    display?: {
+        hz?: number;
+        width?: number;
+        height?: number;
+    };
+    latency?: string;
+    maxKbps?: number;
+};
+export type Seat = {
+    port: number;
+    conn: string;
+    name?: string;
+    you?: boolean;
+};
+export type StreamInfo = {
+    type: 'stream';
+    v: number;
+    conn: string;
+    transport: string;
+    video: string;
+    audio: string;
+    width: number;
+    height: number;
+    aspect: number;
+    fps: number;
+    rate: number;
+    turns: number;
+    ports: number;
+    motion: boolean;
+    pace: number;
+    seats: Seat[];
+    kbps: number;
+    away: boolean;
 };
 export interface Transport {
     readonly kind: TransportKind;
@@ -37,12 +84,24 @@ export interface Transport {
     setVolume(volume: number, muted: boolean): void;
     setAudioBuffer(b: AudioBuffer_): void;
     captureStream(): MediaStream | null;
+    measure(meter: LatencyMeter | null): void;
+    setLatency(mode: LatencyMode): void;
     onEvent?: (e: PlayEvent) => void;
-    onLost?: () => void;
+    onLost?: (why: string) => void;
+    onWaiting?: () => void;
+    onStall?: (stalled: boolean) => void;
+    control?(msg: object): void;
 }
 export type Signal = {
     answer(sdp: string, prefer?: string): Promise<string>;
     wsUrl(video: string): string;
+    stream?(hello: Hello, sdp: string): Promise<{
+        stream: StreamInfo;
+        sdp: string;
+    }>;
+    streamUrl?(): string;
+    hello?(): Hello;
 };
 export declare function plan(mode: Mode, allowed: string[]): TransportKind[];
 export declare function make(kind: TransportKind, signal: Signal): Transport;
+export declare function whenShown(el: HTMLVideoElement | HTMLCanvasElement, shown: () => void, maxMs?: number): () => void;

@@ -86,6 +86,12 @@ export function GamePage() {
         const url = mediaUrl(`/api/play/${sid}/ws?video=${video}`)
         return (url.startsWith('http') ? url : window.location.origin + url).replace(/^http/, 'ws')
       },
+      // Version 2 of the stream, the same for every device: docs/GAMING-STREAM.md.
+      stream: (sid, hello, sdp) => api.post(`/play/${sid}/stream`, { hello, sdp }),
+      streamUrl: (sid) => {
+        const url = mediaUrl(`/api/play/${sid}/stream`)
+        return (url.startsWith('http') ? url : window.location.origin + url).replace(/^http/, 'ws')
+      },
       action: (sid, type, slot, on, extra) => api.post(`/play/${sid}/action`, { type, slot: slot ?? 0, on: !!on, ...extra }),
       close: () => nav(couchOn() ? `/big/game/${it.id}` : `/item/${it.id}`, { replace: true }),
     }

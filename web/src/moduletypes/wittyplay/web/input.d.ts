@@ -68,6 +68,10 @@ export declare class InputManager {
     private keyButton;
     pulse(id: number): void;
     setSender(send: (msg: Uint8Array) => void): void;
+    private stamper;
+    private stamped;
+    private stampedView;
+    setStamper(s: (() => number) | null): void;
     setPointer(x: number, y: number, pressed: boolean): void;
     private beatPointer;
     setEnabled(on: boolean): void;
@@ -75,6 +79,9 @@ export declare class InputManager {
     start(): void;
     stop(): void;
     private tick;
+    private lastFrame;
+    private late;
+    private lateCheck;
     private wantFrames;
     private rawPads;
     private padEvent;
@@ -85,6 +92,7 @@ export declare class InputManager {
     previewProfile(index: number, profile: Profile | null): void;
     setPadPort(index: number, port: number): void;
     get keyboardPlayer(): number;
+    ports(): number[];
     setKeyboardPort(port: number): void;
     get touchPlayer(): number;
     setTouchPort(port: number): void;

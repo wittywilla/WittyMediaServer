@@ -173,7 +173,15 @@ type Control struct {
 	// ShiftMs moves when frames start, once, by this many milliseconds, to land them just
 	// before a viewer's display wants them. Later is positive.
 	ShiftMs *float64 `json:"shiftMs,omitempty"`
+	// DisplayHz is the refresh rate of the screen the game is shown on. When it's within
+	// DisplayPaceLimit of the game's own rate, frames come at the screen's rate instead, so
+	// that none is dropped or shown twice. 0 goes back to the game's own.
+	DisplayHz *float64 `json:"displayHz,omitempty"`
 }
+
+// DisplayPaceLimit is how far a screen's rate may be from a game's for the game to keep to
+// the screen: 1% changes the pitch of its sound by less than anyone hears.
+const DisplayPaceLimit = 0.01
 
 // Save slots: 0 is automatic and 1 to MaxStateSlot belong to a person. The other two
 // are kept for mistakes: what was running before the last load, and the automatic save

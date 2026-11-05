@@ -223,10 +223,21 @@ func TestStreamTokenScope(t *testing.T) {
 	}
 }
 
+// Version 2's offer goes by fetch, which can carry a header, so only its WebSocket takes a
+// token in the address.
+func TestVersion2OfferTakesNoTokenInTheAddress(t *testing.T) {
+	r := httptest.NewRequest("POST", "/api/play/0123abcd/stream?token=t", nil)
+	if got := TokenFrom(r); got != "" {
+		t.Errorf("a POST took %q from its address", got)
+	}
+}
+
 // A game's WebSocket and its save pictures can't carry a header in a browser.
 func TestTokenInAddressForGameRoutes(t *testing.T) {
 	for path, want := range map[string]string{
 		"/api/play/0123abcd/ws?token=t":      "t",
+		"/api/play/0123abcd/stream?token=t":  "t",
+		"/api/play/0123abcd/streams?token=t": "",
 		"/api/games/7/saves/1/thumb?token=t": "t",
 		"/api/play/0123abcd/action?token=t":  "",
 		"/api/games/7/saves?token=t":         "",

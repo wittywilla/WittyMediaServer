@@ -42,11 +42,11 @@ Each release also has `SHA256SUMS.txt`, a list of every file's checksum, and `SH
 
 | System | How far it has been run |
 |---|---|
-| **Windows** | The `.msi` has been installed, upgraded and removed under Wine, and its contents inspected. It has not been installed on a real copy of Windows yet. The ARM64 `.msi` was built once and hasn't been checked |
+| **Windows** | The `.msi` has been installed on Windows 11, and upgraded and removed under Wine. Before each release it's installed over the one before on GitHub's Windows machines, for everyone, for one account and as a service, with the server running. The ARM64 `.msi` was built once and hasn't been checked |
 | **macOS** | Never built or run. This has not been run on a real Mac yet |
 | **Linux** | The `.deb` and `.rpm` have been installed, upgraded and removed on Debian trixie, Ubuntu 26.04 and Fedora 43, on amd64, in containers with systemd running. The `arm64`, `armv7` and `386` packages haven't been run |
 | **FreeBSD** | The amd64 package and its service have been installed, upgraded and removed in FreeBSD 14.4 and 15.1 virtual machines. Real hardware and arm64 haven't been tried, modules have only been built for it, and a film hasn't been played there |
-| **Docker** | The image's last stage has been started and answers. The complete image hasn't been built yet |
+| **Docker** | The amd64 image has been built and run in WSL, locked down, as several users, upgraded from 0.6.2-alpha, with NVENC through WSL. arm64 and armv7 have been built, not run. No NAS yet. See [Docker](DOCKER.md#what-has-been-tried) |
 
 ## Windows
 
@@ -177,67 +177,28 @@ Then open `http://<this computer>:9797/` to finish setting up. As with FreeBSD's
 ## Docker
 
 ```bash
-docker run -d --name wittymediaserver --restart unless-stopped \
-  -p 9797:9797 \
-  -v wms-config:/config \
-  -v /path/to/movies:/media/movies:ro \
-  -v /path/to/discs:/media/discs:ro \
-  ghcr.io/wittywilla/wittymediaserver:alpha
+docker run -d --name wittymediaserver --restart unless-stopped   -p 9797:9797   -v wms-config:/config   -v /path/to/media:/media:ro   ghcr.io/wittywilla/wittymediaserver:alpha
 ```
 
-Or save this as `docker-compose.yml`, change the media lines to your own folders, and run `docker compose up -d`:
+Then open `http://<this computer>:9797/`. From another device, setup asks for the code that `docker logs wittymediaserver` shows.
 
-```yaml
-services:
-  wittymediaserver:
-    image: ghcr.io/wittywilla/wittymediaserver:alpha # the newest alpha; :latest is the newest full release
-    container_name: wittymediaserver
-    restart: unless-stopped
-    # Runs as UID 1000. On a NAS, set this to your own account's UID and GID:
-    # user: "1000:1000"
-    # Nothing it needs writes outside /config and /tmp. Helpers run from /config, so don't mount it noexec.
-    read_only: true
-    tmpfs:
-      - /tmp
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    ports:
-      - "9797:9797"
-      # - "9443:9443"                # only if you use Remote Access with HTTPS
-    environment:
-      - WMS_LOG=info
-      - XDG_CACHE_HOME=/config/cache/xdg
-    volumes:
-      - wms-config:/config
-      # Mount your media read-only wherever you like, and add them as library folders in the app.
-      - /path/to/movies:/media/movies:ro
-      - /path/to/discs:/media/discs:ro
-volumes:
-  wms-config:
-```
+[Docker](DOCKER.md) has the rest: ready compose files (plain, locked down, Intel and AMD graphics, NVIDIA, behind a reverse proxy), the tags, every folder and setting, running as your own user, hardware transcoding, and updating. The image is for `amd64`, `arm64` and `armv7`, runs as an ordinary user, and works with a read-only root.
 
-- **Then:** open `http://<this computer>:9797/`. From another device, setup asks for the code that `docker logs wittymediaserver` shows.
-- **Another port:** change the first number of `"9797:9797"`, such as `"8096:9797"`, and run `docker compose up -d`. Inside the container it stays 9797, so **Settings → Network** can't change it.
-- **Which systems:** `amd64`, `arm64` and `armv7` images.
-- **Permissions:** the image runs as UID 1000. `chown` your media, or use `--user`.
-- **Hardware transcoding:** pass `--device /dev/dri` for VAAPI, or use the NVIDIA container runtime. Then tick the encoder under **Settings → Live transcoding**.
-- **The command line:** `docker exec wittymediaserver wittymediaserver doctor`.
-- **To update:** see [Updating](#updating).
-- **Modules:** the image holds none. A server adds them from the store at run time.
+**Another port:** change the first number of the published port, such as `"8096:9797"`, and run `docker compose up -d`. Inside the container it stays 9797, so **Settings → Network** can't change it.
 
 ## A NAS
 
-Most NAS systems run containers, and that's the way to do it. There's no packaged app for each make.
+Most NAS systems run containers, and that's the way to do it. Each of these has a guide with its own screens, folders, user IDs and graphics steps:
 
 | | |
 |---|---|
-| **Synology** (Container Manager), **QNAP** (Container Station), **TrueNAS SCALE**, **Unraid** | Create a project or stack from [the file above](#docker) |
-| The `/config` volume | Keep it on a fast disk, an SSD if you have one, in a shared folder of its own. It holds the database and artwork |
-| Your media | Mount each share read-only at a folder under `/media` |
-| Permissions | The image runs as UID 1000. Set `user:` in the file to your NAS account's UID and GID, which `id` shows over SSH, and give that account read access to your media and write access to `/config` |
-| Hardware transcoding | Add `devices: ["/dev/dri:/dev/dri"]` on Intel and AMD, and tick the encoder under **Settings → Live transcoding** |
+| **UGREEN** (UGOS Pro) | [Docker on a UGREEN NAS](DOCKER-UGREEN.md) |
+| **Synology** (Container Manager) | [Docker on a Synology NAS](DOCKER-SYNOLOGY.md) |
+| **QNAP** (Container Station) | [Docker on a QNAP NAS](DOCKER-QNAP.md) |
+| **Unraid** | [Docker on Unraid](DOCKER-UNRAID.md) |
+| **TrueNAS SCALE** | [Docker on TrueNAS SCALE](DOCKER-TRUENAS.md) |
+| **Asustor** (ADM) | [Docker on an Asustor NAS](DOCKER-ASUSTOR.md) |
+| Anything else running Linux | [Docker on a Linux machine](DOCKER-LINUX.md) |
 | An older or 32-bit NAS | `armv7` and `amd64` images exist, but no 32-bit x86 one: run the `linux-386.tar.gz` archive by hand |
 
 If your NAS runs Debian underneath, as OpenMediaVault does, the `.deb` should work too. It hasn't been tried there.

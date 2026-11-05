@@ -251,7 +251,7 @@ internal/server        routes, streaming, security, the built-in web app
 | `internal/modules` | The store, catalogue, signatures, sandboxes, and starting helpers |
 | `internal/play`, `internal/couch` | Stubs written by a generator from each module's source: its types, and functions that call its service |
 | `internal/dvd`, `internal/bluray`, `internal/cd`, `internal/tuner` | The types those modules answer in, kept as a copy |
-| `internal/isofs`, `internal/tuner/mpegts` | The server's own disc image reader and encryption guard, so it refuses encrypted media itself, whatever a module says |
+| `isofs` from WittyDisc, `internal/tuner/mpegts` | The server's own disc image reader and encryption guard, so it refuses encrypted media itself, whatever a module says |
 | `internal/library` | Libraries, scanning, shows, music, books, metadata, watch state |
 | `internal/channels`, `internal/livetv` | WittyTV: channels, the guide, tuners and recording |
 | `internal/dvdsession`, `internal/bdsession` | One viewer's DVD or Blu-ray: presentations, menus, subtitles, streams |
@@ -293,7 +293,7 @@ go build -o WittyMediaServer ./cmd/wittymediaserver-tray # the tray app (Windows
 go test ./...
 ```
 
-- A build needs only one thing from the module repositories: WittyModule, at the version `go.mod` names. Until that's published, point at a checkout once in each checkout of the server: `node scripts/dev-modules.mjs WittyModule=<folder>`.
+- A build needs only WittyModule and the core libraries (WittyDisc) from the module repositories, at the versions `go.mod` names, and never a module. Until that's published, point at a checkout once in each checkout of the server: `node scripts/dev-modules.mjs WittyModule=<folder>`.
 - Tests of what the server does with a real module need a catalogue: `WMS_TEST_CATALOG=<folder> go test ./...`, from `scripts/make-test-catalog.sh`. They skip without one.
 
 Release archives for every platform:

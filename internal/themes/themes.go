@@ -275,6 +275,12 @@ func (m *Manager) File(id, name string) ([]byte, string, error) {
 }
 
 // ZipPath returns the theme's file for downloading.
+// Has says whether a theme of that id is here, a retired id counting as the theme that replaced it.
+func (m *Manager) Has(id string) bool {
+	_, err := m.zipPath(id)
+	return err == nil
+}
+
 func (m *Manager) ZipPath(id string) (string, error) { return m.zipPath(id) }
 
 // Add validates an uploaded theme ZIP and stores it as <id>.zip. The id comes

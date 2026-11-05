@@ -53,6 +53,7 @@ const (
 	ReasonVideoTrack   = "video-track"       // another video stream of the file was chosen
 	ReasonFlatten3D    = "flatten-3d"        // a 3D picture shown as 2D
 	ReasonRemoteLimit  = "remote-limit"      // more data than viewers away from home are allowed
+	ReasonRobust       = "robust-stream"     // more data than a robust stream's measured connection comfortably carries
 )
 
 // Profile says what a client can play. The built-in ones are a safe default
@@ -311,6 +312,9 @@ type Request struct {
 	VideoIndex     int  // which of the file's video streams, when it has several
 	Flatten3D      bool // show one eye of a 3D picture
 	OverLimit      bool // the file sent as it is would be over the limit for viewers away from home
+	// Robust: the stream is robust (see ChooseStreamMode) and the file sent as it is would
+	// not fit the connection comfortably (FitsRobust), so it is converted to a ladder.
+	Robust bool
 }
 
 // Decision is how the file will play.
@@ -355,6 +359,9 @@ func Decide(p Profile, src Source, q Request) Decision {
 		}
 		if q.OverLimit {
 			picture = append(picture, ReasonRemoteLimit)
+		}
+		if q.Robust {
+			picture = append(picture, ReasonRobust)
 		}
 	}
 	var direct []string

@@ -54,7 +54,7 @@ The **Now** tab groups work by library, with the server's own work after that, u
 
 - what it is, who started it and when;
 - how far along it is, its speed and about how long is left, when that's known;
-- which stage it's at, and what it's working on now;
+- which stage it's at, and what it's working on now. A library scan lists its stages under one bar that runs from start to end, with those done ticked, rather than a bar that starts again at each;
 - how many problems it has met. Open that to read them. The first 50 are kept here, and **Settings → WittyLog** has the rest.
 
 If the panel says **Reconnecting to the server**, what you're looking at may be out of date.
@@ -66,7 +66,7 @@ Only tasks that can stop safely offer these buttons, so not every task has both.
 - **Pause** and **Resume** are offered on library scans, finding suggested matches, finding out about games, and library transcoding.
 - **Cancel** is offered on library scans, backups and restores, repairs, WittyDiagnoser checks, finding suggested matches, streaming listings, library transcoding, and finding channels on a tuner.
 
-Both take effect when the job next reaches a point where it can stop, which is usually within a moment. A task says **Pausing…** until then. Pausing a scan of anything but games waits until the scan has finished walking through the folders.
+Both take effect when the job next reaches a point where it can stop, which is usually within a moment. A task says **Pausing…** until then. A scan stops at the next file, even while it's still walking through the folders.
 
 A cancelled scan can be run again, and picks up where it stopped: files it has already seen, unchanged, take almost no time.
 
@@ -129,6 +129,7 @@ logging.Go("backup", func() {
 |---|---|
 | `Start(spec)`, `Queue(spec)` | A task running now, or one waiting its turn, which `Begin()` then starts |
 | `Phase(s)` | Says which stage it's at, such as "Finding files" |
+| `Steps(steps...)` | Names the stages it goes through, in order, each with a rough share of the work, so the app shows one bar across them all with each stage named. `Phase` with one of those names moves it on, and that stage's `Progress` counts from nothing. A phase that isn't one of them, such as waiting for a turn, leaves the bar where it was |
 | `Progress(done, total)`, `Add(n)` | How far along. A total of 0 means nobody knows yet, and the app shows it as busy. The speed and time left come from these |
 | `Item(name, path)` | What it's working on now |
 | `Problem(item, message)`, `ProblemN` | One thing went wrong and the task carries on. The first 50 are kept and the count goes on. Write the message for a person: what happened and what to do |

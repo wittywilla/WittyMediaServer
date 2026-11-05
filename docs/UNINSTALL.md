@@ -60,6 +60,7 @@ When it's finished, it lists what it removed and what it couldn't. On Windows an
 | `transcode` | Temporary video |
 | `logs`, `wms.log` | Logs |
 | `crash` | Crash reports |
+| `instance.lock`, `instance.json` | What keeps a second server off the folder, and where the running one is |
 | `diagnostics` | Saved diagnostic reports |
 | `certs` | HTTPS certificates |
 | `branding` | Your server's logo |

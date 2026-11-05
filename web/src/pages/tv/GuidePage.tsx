@@ -7,13 +7,14 @@ import { IconLeft, IconRight, IconSearch, IconSettings, IconStar, IconTv } from 
 import { toast, useApp } from '../../state'
 import { lookupLogo } from '../../components/BrandLogo'
 import LookPanel from './LookPanel'
-import { channelVars, lastChannel, previousChannel, setLook, setOwnerLook, surfaceOf, themeRoot, useLook, type Look } from './look'
+import { channelVars, forgetJustWatched, justWatched, lastChannel, previousChannel, setLook, setOwnerLook, surfaceOf, themeRoot, useLook, type Look } from './look'
 import { previewAuto, previewLimit, rowHeight, SHAPES } from './tvThemes'
 import { ChannelMark } from './ChannelLogo'
 import DetailsDialog from './Details'
 import Hero from './Hero'
 import SearchPanel from './SearchPanel'
 import { useReminders } from './reminders'
+import { liveNow } from './live'
 import { dayWord, fmtClock, fmtDay, fmtSpan, getLineup, forgetLineup, setFavourite, type GuideChannel, type GuidePage as Page, type Programme } from './tvApi'
 import './tv.css'
 import './tvthemes.css'
@@ -102,6 +103,8 @@ export default function GuidePage() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [err, setErr] = useState('')
   const [focus, setFocus] = useState<Focus>(() => ({ row: 0, at: Date.now() / 1000 }))
+  // Back from a channel, by any way out of it: that channel is highlighted once the rows come.
+  const [back, setBack] = useState(justWatched)
   const [details, setDetails] = useState<{ ch: GuideChannel; p: Programme; day?: boolean } | null>(null)
   const [dial, setDial] = useState('')
   const [width, setWidth] = useState(() => window.innerWidth)
@@ -198,6 +201,19 @@ export default function GuidePage() {
     const t = setInterval(() => { loaded.current.clear(); setScrollTop((s) => s + 0.001) }, 5 * 60000)
     return () => clearInterval(t)
   }, [])
+
+  // The channel just left, in the middle of the rows, at now, with the keyboard on it.
+  useEffect(() => {
+    if (!back || total == null || !lineup.length) return
+    setBack('')
+    forgetJustWatched()
+    const i = lineup.findIndex((c) => c.key === back)
+    if (i < 0) return
+    const el = scroller.current
+    if (el) el.scrollTop = Math.max(0, i * rowH - (el.clientHeight - rowH) / 2)
+    wantFocus.current = true
+    setFocus({ row: i, at: Date.now() / 1000 })
+  }, [back, total, lineup, rowH])
 
   const cur = rows[focus.row]
   const cells = useMemo(() => cellsFor(cur, from, to, pxPerSec), [cur, from, to, pxPerSec])
@@ -367,8 +383,9 @@ export default function GuidePage() {
   const timeHeads = useMemo(() => Array.from({ length: slots }, (_, i) => from + i * SLOT), [from, slots])
   const pct = (u: number) => ((u - from) / (to - from)) * 100
   const totalRows = total ?? 0
-  // What the little TV shows: settled on by the preview itself.
-  const previewKey = look.preview === 'off' ? '' : look.preview === 'last' ? (lastChannel() || (cur && !cur.encrypted ? cur.key : '')) : (cur && !cur.encrypted ? cur.key : '')
+  // What the little TV shows: settled on by the preview itself. Until the rows come, it keeps
+  // what was already playing, or the channel just left, so coming back doesn't stop it.
+  const previewKey = look.preview === 'off' ? '' : look.preview === 'last' ? (lastChannel() || (cur && !cur.encrypted ? cur.key : '')) : back || (cur ? (cur.encrypted ? '' : cur.key) : liveNow().key)
   const previewName = useMemo(() => {
     if (!previewKey) return ''
     const c = cur?.key === previewKey ? cur : lineup.find((x) => x.key === previewKey)
@@ -390,7 +407,7 @@ export default function GuidePage() {
         <h1 className="sr-only">TV guide</h1>
         <EmptyState icon={<IconTv />} title="No channels yet"
           text={user?.isAdmin ? 'Make channels out of your library in one click, or add a tuner or an IPTV playlist.' : 'Ask whoever runs this server to set some up.'}
-          action={user?.isAdmin ? <Link className="btn primary" to="/settings/channels">Set up channels</Link> : undefined} />
+          action={user?.isAdmin ? <Link className="btn primary" to="/tv/channels">Set up channels</Link> : undefined} />
       </>
     )
   }
@@ -434,7 +451,7 @@ export default function GuidePage() {
           <button className="ctv-btn sm icon" onClick={openSearch} aria-haspopup="dialog" aria-label="Search the schedule" title="Search the schedule (S)"><IconSearch size={16} /></button>
           <button className="ctv-btn sm" onClick={() => setLookOpen(true)} aria-haspopup="dialog">Look</button>
           <Link className="ctv-btn sm hide-narrow" to="/tv/recordings">Recordings</Link>
-          {user?.isAdmin && <Link className="ctv-btn sm" to="/settings/channels" aria-label="Edit channels"><IconSettings size={16} /> <span className="hide-narrow">Edit channels</span></Link>}
+          {user?.isAdmin && <Link className="ctv-btn sm" to="/tv/channels" aria-label="Edit channels"><IconSettings size={16} /> <span className="hide-narrow">Edit channels</span></Link>}
         </div>
       </div>
 
@@ -525,7 +542,8 @@ const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, 
   return (
     <div className={'ctv-row' + (focusAt != null ? ' current' : '')} role="row" aria-rowindex={r + 2} style={{ top, height: rowH, ...accent }}>
       {ch ? (
-        <div className="ctv-ch" role="rowheader" aria-colindex={1} title={ch.name}>
+        // Named in words: the number and the logo or name beside it would run together as "101MOVIE CHANNEL".
+        <div className="ctv-ch" role="rowheader" aria-colindex={1} title={ch.name} aria-label={[`${ch.number} ${ch.name}`, ch.favourite && 'favourite', ch.encrypted && 'encrypted'].filter(Boolean).join(', ')}>
           <span className="ctv-num">{ch.number}</span>
           <ChannelMark ch={ch} look={look} on={on} />
           {ch.favourite && <span className="ctv-fav" role="img" aria-label="Favourite"><IconStar size={13} /></span>}

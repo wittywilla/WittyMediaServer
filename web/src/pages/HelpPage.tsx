@@ -7,6 +7,7 @@ import { parse, plain, type Block } from '../help/markdown'
 import { search, type Hit } from '../help/search'
 import { IconRight, IconSearch } from '../icons'
 import { useApp } from '../state'
+import { applyPageTitle } from '../theme'
 import '../help/help.css'
 
 // Help: the guides from docs/, built into the web app, so it all works with no internet and
@@ -147,9 +148,8 @@ function GuideView({ guide, signedIn }: { guide: Guide; signedIn: boolean }) {
   }, [guide])
   const blocks = useMemo<Block[]>(() => (md && md.file === guide.file ? parse(md.text) : []), [md, guide.file])
   useEffect(() => {
-    const was = document.title
-    document.title = `${guide.title}: Help`
-    return () => { document.title = was }
+    applyPageTitle(`${guide.title}: Help`)
+    return () => applyPageTitle('')
   }, [guide.title])
   const article = useRef<HTMLElement>(null)
   useArrowScroll(article)

@@ -2,11 +2,15 @@ package library
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
 )
@@ -166,5 +170,114 @@ func TestUnchangedShowIsNotSavedAgain(t *testing.T) {
 	}
 	if again, _ := s.Store.Show(ctx, sh.ID, 0); again.UpdatedAt == 1 {
 		t.Fatal("a changed show was not written")
+	}
+}
+
+// A walk that fails on a fault of the server's own must still answer: the scan waits for it,
+// holding its turn at the disk, which every other scan and a backup wait for in their turn.
+func TestPanickingWalkEndsTheWait(t *testing.T) {
+	done := make(chan error, 1)
+	go func() {
+		_, err := findUnlessCancelled(context.Background(), func(string, walkStep) ([]candidate, error) {
+			var st os.FileInfo
+			_ = st.ModTime() // what a folder gone mid-walk did
+			return nil, nil
+		}, t.TempDir(), func() bool { return false }, func() error { return nil })
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if !errors.Is(err, errWalkStopped) {
+			t.Fatalf("err = %v, want errWalkStopped", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("the walk panicked and nobody was told")
+	}
+}
+
+// A scan that panics ends as failed: its activity entry mustn't show it running for ever.
+func TestPanickingScanIsAnError(t *testing.T) {
+	err := scanGuarded(func() error { panic("boom") })
+	if err == nil || !strings.Contains(err.Error(), "boom") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+// A folder that's gone between being listed and being looked at has no time, not a crash.
+func TestEntryGoneSinceListing(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(dir, "x"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil || len(entries) != 1 {
+		t.Fatal(entries, err)
+	}
+	if err := os.Remove(filepath.Join(dir, "x")); err != nil {
+		t.Fatal(err)
+	}
+	_ = entryMTime(entries[0]) // 0 where Info reads the folder again, its time where the listing held it
+}
+
+// Pausing a scan while it walks a big folder takes effect at the next file, not once the
+// whole folder has been walked, and cancelling a paused walk lets it go.
+func TestPauseStopsTheWalkAtTheNextFile(t *testing.T) {
+	var wanted atomic.Bool
+	wanted.Store(true)
+	var reached atomic.Int32
+	find := func(root string, step walkStep) ([]candidate, error) {
+		for range 3 {
+			if err := step.next(); err != nil {
+				return nil, err
+			}
+			reached.Add(1)
+		}
+		return []candidate{{path: filepath.Join(root, "a.mkv")}}, nil
+	}
+	paused, release := make(chan struct{}), make(chan struct{})
+	pause := func() error {
+		wanted.Store(false)
+		close(paused)
+		<-release
+		return nil
+	}
+	type result struct {
+		c   []candidate
+		err error
+	}
+	done := make(chan result, 1)
+	go func() {
+		c, err := findUnlessCancelled(context.Background(), find, "root", wanted.Load, pause)
+		done <- result{c, err}
+	}()
+	select {
+	case <-paused:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the walk never paused")
+	}
+	if n := reached.Load(); n != 0 {
+		t.Fatalf("the walk went on past %d files while paused", n)
+	}
+	close(release)
+	got := <-done
+	if got.err != nil || len(got.c) != 1 || reached.Load() != 3 {
+		t.Fatalf("after resuming, the walk finishes: %+v, %d files", got, reached.Load())
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	wanted.Store(true)
+	go func() {
+		c, err := findUnlessCancelled(ctx, find, "root", wanted.Load, func() error { <-ctx.Done(); return ctx.Err() })
+		done <- result{c, err}
+	}()
+	time.Sleep(20 * time.Millisecond)
+	cancel()
+	select {
+	case got := <-done:
+		if !errors.Is(got.err, context.Canceled) || got.c != nil {
+			t.Fatalf("cancelled while paused: %+v", got)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("cancelling a paused walk didn't let it go")
 	}
 }

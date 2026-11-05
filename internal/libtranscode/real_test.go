@@ -188,7 +188,7 @@ func (l *lab) wait(id int64) *Run {
 
 // String lets a failed test say what happened to a file, rather than print a pointer.
 func (f *FileRow) String() string {
-	return fmt.Sprintf("{%s %s %s: %s}", filepath.Base(f.Path), f.Verdict, f.State, f.Message)
+	return fmt.Sprintf("{%s %s %s: %s %s}", filepath.Base(f.Path), f.Verdict, f.State, f.Reason, f.Message)
 }
 
 func (l *lab) files(run *Run) []*FileRow {
@@ -1689,7 +1689,86 @@ func TestRealCopyProtection(t *testing.T) {
 		if Detect(ts, l.probe(ts)) {
 			t.Fatal("an ordinary transport stream was called protected")
 		}
+		// #184: an interlaced MPEG-2 film was refused, for bytes outside its track list.
+		mp2 := l.gen("Interlaced MPEG-2.mkv", join(pic(2, "720x576"), tone(2, 300, "stereo"), []string{"-vf", "tinterlace=interleave_top,fieldorder=tff", "-flags", "+ildct+ilme", "-c:v", "mpeg2video", "-c:a", "aac"})...)
+		if Detect(mp2, l.probe(mp2)) {
+			t.Fatal("an ordinary interlaced MPEG-2 MKV was called protected")
+		}
 	})
+	t.Run("an encrypted Matroska track is refused", func(t *testing.T) {
+		l := newLab(t)
+		src := l.gen("Encrypted.mkv", join(pic(2, "320x240"), tone(2, 300, "stereo"), []string{"-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac"})...)
+		b, _ := os.ReadFile(src)
+		// No tool here writes an encrypted track, so one is made encrypted by writing its
+		// ContentEncodings into the first track, as a protected file carries them: a
+		// ContentEncoding of type 1 holding a ContentEncryption (AES).
+		enc := []byte{0x6D, 0x80, 0x8E, 0x62, 0x40, 0x8B, 0x50, 0x33, 0x81, 0x01, 0x50, 0x35, 0x84, 0x47, 0xE1, 0x81, 0x05}
+		if err := os.WriteFile(src, insertInFirstTrack(t, b, enc), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if !Detect(src, nil) {
+			t.Fatal("an encrypted track wasn't noticed")
+		}
+	})
+}
+
+// insertInFirstTrack puts an element at the end of a Matroska file's first track entry, and
+// grows the sizes of what holds it to match. Positions written elsewhere in the file (its seek
+// index and cues) aren't moved, which the protection check doesn't need.
+func insertInFirstTrack(t *testing.T, b, add []byte) []byte {
+	t.Helper()
+	type found struct {
+		start, sizeAt, sizeLen int
+		size                   int64
+	}
+	// find looks among the elements of b[from:to] for one with this ID.
+	find := func(from, to int, want uint32) found {
+		for off := from; off < to; {
+			id, size, body, _, ok := ebmlElement(b[off:to])
+			if !ok || size < 0 && id != want {
+				break
+			}
+			idLen := 1
+			for v := id >> 8; v > 0; v >>= 8 {
+				idLen++
+			}
+			bodyAt := off + (cap(b[off:to]) - cap(body)) // where the body starts, from the capacities
+			if id == want {
+				return found{start: off, sizeAt: off + idLen, sizeLen: bodyAt - off - idLen, size: size}
+			}
+			off = bodyAt + int(size)
+		}
+		t.Fatalf("no element %x", want)
+		return found{}
+	}
+	ebmlHead := find(0, len(b), 0x1A45DFA3)
+	seg := find(ebmlHead.sizeAt+ebmlHead.sizeLen+int(ebmlHead.size), len(b), mkvSegment)
+	segBody := seg.sizeAt + seg.sizeLen
+	tr := find(segBody, len(b), mkvTracks)
+	trBody := tr.sizeAt + tr.sizeLen
+	en := find(trBody, trBody+int(tr.size), mkvTrackEntry)
+	at := en.sizeAt + en.sizeLen + int(en.size)
+	out := append(append(append([]byte{}, b[:at]...), add...), b[at:]...)
+	grow := int64(len(add))
+	// The innermost first: each lies after the one holding it, so their positions stay put.
+	for _, e := range []found{en, tr, seg} {
+		if e.size < 0 {
+			continue // an unknown size holds anything
+		}
+		width := e.sizeLen
+		n := e.size + grow
+		for n >= int64(1)<<(7*width)-1 {
+			width++
+		}
+		field := make([]byte, width)
+		for i := range field {
+			field[i] = byte(n >> (8 * (width - 1 - i)))
+		}
+		field[0] |= byte(0x80 >> (width - 1))
+		out = append(append(append([]byte{}, out[:e.sizeAt]...), field...), out[e.sizeAt+e.sizeLen:]...)
+		grow += int64(width - e.sizeLen)
+	}
+	return out
 }
 
 func TestRealSafetyRules(t *testing.T) {

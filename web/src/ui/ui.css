@@ -79,6 +79,56 @@
 .ui-skel.round { border-radius: 50%; }
 .ui-skel-lines { display: grid; gap: var(--sp-2); }
 @media (prefers-reduced-motion: reduce) { .ui-skel { animation: none; } }
+/* A page's shapes while it loads (PageSkeleton, SkeletonGrid): the card colour at 60%, with a
+   slow light passing over. Still with reduced motion. They wait a moment, so a quick load
+   shows nothing. */
+.skel, .skeleton-grid > div { position: relative; overflow: hidden; background: var(--bg-3); background: color-mix(in srgb, var(--bg-3) 60%, transparent); }
+.skel { display: block; width: 100%; height: 1em; border-radius: var(--r-xs); }
+.skel::after, .skeleton-grid > div::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fg) 6%, transparent), transparent); transform: translateX(-100%); animation: skel-light 1.2s var(--ease-standard) infinite; }
+@keyframes skel-light { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .skel::after, .skeleton-grid > div::after { display: none; } }
+.page-skel, .skeleton-grid { animation: fade-in var(--dur-3) ease-out .25s backwards; }
+.skel-lines { display: grid; gap: var(--sp-3); align-content: start; }
+.skel-actions { display: flex; gap: var(--sp-2); }
+.skel-actions .skel { flex: none; border-radius: var(--r-md); }
+.page-skel .card { display: grid; gap: var(--sp-2); }
+.page-skel .skel-poster { height: auto; aspect-ratio: 2 / 3; border-radius: var(--r-md); }
+.skel-hero { background: linear-gradient(color-mix(in srgb, var(--bg-3) 60%, transparent), transparent); }
+.skel-hero .info { display: grid; gap: var(--sp-3); }
+.skel-tiles > .skel { height: 64px; border-radius: var(--r-lg); }
+.page-skel .hub > .skel:first-child { margin-bottom: var(--sp-3); }
+.skel-row { overflow: hidden; }
+.skel-bar { justify-content: space-between; }
+.skel-chips { display: flex; gap: var(--sp-2); margin: var(--sp-1) 0 var(--sp-5); }
+.skel-chips .skel { border-radius: var(--r-full); }
+.skel-detail-poster { height: auto; aspect-ratio: 2 / 3; border-radius: var(--r-lg); }
+.search-skel > .skel { margin-bottom: var(--sp-5); border-radius: var(--r-md); }
+@media (max-width: 760px) { .skel-detail-poster { width: 132px; } }
+/* Not the version line in the middle of an empty page. */
+.content:has(> .page-skel) > :is(.legal-foot, .page-foot) { visibility: hidden; }
+
+/* ---------------------------------------------------------------- a sheet of rows (RowSheet) */
+.ui-rows-wrap { display: grid; gap: var(--sp-4); }
+.ui-rows { display: grid; border-radius: var(--r-lg); background: var(--bg-3); overflow: hidden; }
+/* Any button or link put in it is a row. */
+.ui-rows > :is(.ui-row, .btn, a) {
+  position: relative; display: flex; align-items: center; justify-content: flex-start; gap: var(--sp-3); width: 100%; min-height: 52px; padding: 0 var(--sp-4);
+  border: 0; border-radius: 0; background: none; color: var(--fg); font: inherit; font-size: var(--text-base); font-weight: 500; text-align: left; white-space: normal; transform: none;
+}
+.ui-rows > * + *::before { content: ''; position: absolute; top: 0; left: calc(var(--sp-4) + 20px + var(--sp-3)); right: 0; border-top: 1px solid var(--border); }
+/* A row with no icon keeps its words in line with the others'. */
+.ui-rows > :is(.btn, a):not(:has(> svg, > .ui-row-ic)) { padding-left: calc(var(--sp-4) + 20px + var(--sp-3)); }
+.ui-rows > :is(.ui-row, .btn, a):hover { background: var(--hover); }
+.ui-rows > :is(.ui-row, .btn, a):active { background: var(--pressed); transform: none; }
+.ui-rows > :is(.ui-row, .btn, a):focus-visible { outline-offset: calc(-1 * var(--focus-width)); }
+.ui-rows > :is(.ui-row, .btn)[disabled] { opacity: .45; }
+.ui-rows > :is(.ui-row, .btn, a) svg { flex: none; width: 20px; height: 20px; color: var(--fg-2); }
+.ui-rows > .btn.active, .ui-rows > .btn[aria-pressed="true"] { color: var(--accent-text); }
+.ui-row-ic { display: grid; place-items: center; flex: none; width: 20px; }
+.ui-row-text { flex: 1; min-width: 0; }
+.ui-rows svg.ui-row-go { width: 18px; height: 18px; color: var(--fg-3); }
+.ui-row.danger, .ui-row.danger svg { color: var(--danger); }
+.ui-rows .lib-badge { margin-left: auto; }
 
 /* ---------------------------------------------------------------- progress */
 .ui-progress { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; --bar: var(--accent); }

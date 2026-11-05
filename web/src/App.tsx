@@ -5,7 +5,8 @@ import { ReminderWatcher } from './pages/tv/reminders'
 import { api } from './api'
 import { getNavCollapsed, setNavCollapsed, useNavStyle } from './navPrefs'
 import HomePage from './pages/HomePage'
-import { EmptyState, Spinner, VersionTag } from './components/common'
+import { EmptyState, PageSkeleton, Spinner, VersionTag } from './components/common'
+import { shapeFor } from './ui/Surface'
 import { LinkButton } from './ui'
 import { AudioProvider } from './audio/player'
 import ConnectServer from './components/ConnectServer'
@@ -143,7 +144,7 @@ function AppFrame() {
         <TopBar onMenu={toggle} showMenu={side || !wide} topNav={style !== 'side'} menuOpen={open} wide={wide} />
         <LegalAckBar />
         <main className="content" id="main" tabIndex={-1}>
-          <Suspense fallback={<Spinner />}>
+          <Suspense fallback={<RouteSkeleton />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/library/:id" element={<LibraryPage />} />
@@ -186,6 +187,11 @@ function AppFrame() {
   )
 }
 
+
+// While a page's code arrives: the shape of that page, not a spinner on an empty one.
+function RouteSkeleton() {
+  return <PageSkeleton shape={shapeFor(useLocation().pathname)} />
+}
 
 // An address that isn't a page: say so, with the way home, rather than landing somewhere unexplained.
 function NotFound() {

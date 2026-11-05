@@ -1,4 +1,5 @@
-import { memo } from 'react'
+import { memo, type CSSProperties } from 'react'
+import { avatarColor } from '../ui/avatarColor'
 import { Link } from 'react-router-dom'
 import { PosterCard } from '../ui/Surface'
 import { api, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, type Item, type Show } from '../api'
@@ -6,7 +7,7 @@ import { toast, useApp } from '../state'
 import { IconCheck, IconLeft, IconRefresh } from '../icons'
 
 // The shared parts, under the names pages import them by.
-export { CardRow, EmptyState, LoadError, SkeletonGrid, Spinner } from '../ui/Surface'
+export { CardRow, EmptyState, LoadError, PageSkeleton, SkeletonGrid, Spinner } from '../ui/Surface'
 
 // The way back up: the library (or show) a page belongs to.
 export function BackLink({ to, label }: { to: string; label: string }) {
@@ -23,14 +24,13 @@ export const artHue = (title: string) => {
   return h
 }
 
-// Artwork for something without a picture: a colour of its own, worked out from
-// the title. The title itself is printed under the card, so it isn't repeated on
-// the art; label is a short word for the art alone, such as a console's name.
+// Artwork for something without a picture: the title's own colour (the avatar rule, so
+// it's the same in every app and never changes), with the title on it, as a poster
+// would have. label replaces the title with a short word, such as a console's name.
 export function Placeholder({ title, label }: { title: string; label?: string }) {
-  const h = artHue(title)
   return (
-    <div className="ph art-ph" style={{ background: `linear-gradient(155deg, hsl(${h} 32% 32%), hsl(${(h + 40) % 360} 38% 15%))` }} aria-hidden="true">
-      {label && <b>{label}</b>}
+    <div className="ph art-ph" style={{ '--ph': avatarColor(title) } as CSSProperties} aria-hidden="true">
+      <b>{label || title}</b>
     </div>
   )
 }

@@ -200,7 +200,8 @@ Every interactive part has these states, which come free:
 | `Card` | a surface holding related things | |
 | `PosterCard` | a title with artwork | `shape`: `wide`, `square`. The `ItemCard` and `ShowCard` the libraries use render the same classes |
 | `Shelf`, `CardRow` | a titled row of cards | The arrows are the mouse's extra way along; a remote moves card by card |
-| `Skeleton`, `SkeletonGrid`, `Spinner` | loading | They wait a moment, so a fast load shows nothing |
+| `Skeleton`, `SkeletonGrid`, `PageSkeleton`, `Spinner` | loading | They wait a moment, so a fast load shows nothing. `PageSkeleton` is a whole page's shapes (`home`, `library`, `item`, `search`); `shapeFor(path)` picks one for an address |
+| `RowSheet`, `Rows`, `SheetRow` | a phone's "⋯": a page's other actions, as a sheet of rows | Choosing a row closes it. Any `Button` or `LinkButton` put in `Rows` becomes a row, so a page can hand it the buttons it shows in a row on a wide screen |
 | `EmptyState` | nothing here | Says why, and what to do |
 | `LoadError` | it couldn't load | With a retry |
 | `Notice` | something to know, in the page | `tone` as for toasts |
@@ -208,7 +209,8 @@ Every interactive part has these states, which come free:
 | `DataTable` | sortable rows | Real table semantics, `aria-sort`, stacks into labelled rows on phones |
 
 Also: `.pill` (rating and small labels), `.meta` (a line of facts, dots between them automatically),
-`.badge` on artwork, `Placeholder` (art for something with no picture), `BackLink`, `ScanButton`, and
+`.badge` on artwork, `Placeholder` (art for something with no picture: the title's own colour, by the
+avatar rule in `ui/avatarColor.ts`, with the title in white over its lower third), `BackLink`, `ScanButton`, and
 in Settings `PageHead`, `Section`, `Row` and `SaveBar`.
 
 ## Patterns
@@ -229,7 +231,13 @@ A page has one `h1`, which the announcer reads aloud on every page change: `.too
   Hide anything; group into Watch, Listen, Read and Play dropdowns. A new library joins at the end.
 - **Whose arrangement**: a person's own, else the owner's (`Use for everyone`), else ours.
 - **Phones**: a row of sections scrolling sideways at the top; a floating bar at the bottom with Home,
-  TV, Search, the drawer and You.
+  TV, Search, the drawer and You. The row has no surface over a picture; once the page is scrolled
+  under it, it gains the page's colour at 85% with a blur and a hairline. Below Home, a library or a
+  tab's first page (an item, a show, an album, a settings page…) a round Back takes the row's place.
+  You opens a sheet from the bottom: the person, Switch profile, then the account menu's places. A
+  page's other actions go behind one "⋯" (`RowSheet`): an item's beside Play and Save, a library's
+  beside Filters. This is the same phone design as the WittyMediaClient apps (their
+  `docs/APP-DESIGN.md`, One mobile design with the website).
 - **Activity**: `components/ActivitySlot.tsx`, left of the account menu, holds the activity button.
 
 ### Dialogs and sheets
@@ -380,7 +388,8 @@ address, which keeps them on).
 ## Keeping it fast
 
 - **No blur on anything that scrolls or covers video.** `backdrop-filter` and `filter: blur` repaint
-  every frame. Use a solid or nearly solid colour.
+  every frame. Use a solid or nearly solid colour. The one exception is a phone's top bar while the
+  page is scrolled under it: 52 high, phones only, and solid with reduced transparency.
 - **No per-card effects.** One listener and one element can serve a library of thousands, as moving
   posters do. A filter on each of 2,000 cards is a slideshow.
 - **Long lists use `content-visibility`**: `.grid` and `.album-grid` already do.

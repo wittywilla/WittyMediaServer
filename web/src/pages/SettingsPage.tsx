@@ -58,6 +58,16 @@ const useNarrow = () => useSyncExternalStore((changed) => {
 }, () => window.matchMedia(NARROW).matches)
 
 type Page = { to: string; label: string; icon: React.ReactNode; admin?: boolean; hint: string }
+
+// Each row's colour on a phone, where the menu is a grouped list with tinted icon tiles: the
+// same colours as the apps' You page (WittyMediaClient's docs/APP-DESIGN.md, You and
+// settings). The owner's tools, Server and System, are all the one quiet colour.
+const QUIET = '#5d6474'
+const TINTS: Record<string, string> = {
+  users: '#b8500d', security: '#2e7d3c', appearance: '#0e7c6f', games: '#7f46b8', activity: '#99690a', sharing: '#0a6fb8',
+  reset: 'var(--danger)', help: '#99690a',
+}
+const tint = (to: string) => ({ '--tint': TINTS[to] || QUIET }) as React.CSSProperties
 const GROUPS: { title: string; pages: Page[] }[] = [
   { title: 'Server', pages: [
     { to: 'libraries', label: 'Libraries', icon: <IconLibrary />, admin: true, hint: 'Folders of movies, shows, music and books' },
@@ -136,7 +146,7 @@ export default function SettingsPage() {
             <div className="set-nav-head">{g.title}</div>
             {g.pages.map((p) => (
               <NavLink key={p.to} to={`/settings/${p.to}`} className="set-nav-link" title={p.hint}>
-                <span className="set-nav-icon">{p.icon}</span><span className="set-nav-text"><span>{p.label}</span><small className="set-nav-hint">{p.hint}</small></span>{p.to === 'about' && <UpdateDot />}
+                <span className="set-nav-icon" style={tint(p.to)}>{p.icon}</span><span className="set-nav-text"><span>{p.label}</span><small className="set-nav-hint">{p.hint}</small></span>{p.to === 'about' && <UpdateDot />}<IconRight className="set-nav-go" />
               </NavLink>
             ))}
           </div>
@@ -146,12 +156,12 @@ export default function SettingsPage() {
             <div className="set-nav-head">From modules</div>
             {modulePages.map((p) => (
               <NavLink key={p.module + p.id} to={`/m/${p.module}/${p.id}`} className="set-nav-link">
-                <span className="set-nav-icon"><IconPlug /></span><span className="set-nav-text"><span>{p.title}</span></span>
+                <span className="set-nav-icon" style={tint('')}><IconPlug /></span><span className="set-nav-text"><span>{p.title}</span></span><IconRight className="set-nav-go" />
               </NavLink>
             ))}
           </div>
         )}
-        <div className="set-nav-group"><NavLink to="/help" className="set-nav-link" title="Guides to everything here, built in"><span className="set-nav-icon"><IconHelp /></span><span className="set-nav-text"><span>Help</span><small className="set-nav-hint">Guides to everything here, built in</small></span></NavLink></div>
+        <div className="set-nav-group"><NavLink to="/help" className="set-nav-link" title="Guides to everything here, built in"><span className="set-nav-icon" style={tint('help')}><IconHelp /></span><span className="set-nav-text"><span>Help</span><small className="set-nav-hint">Guides to everything here, built in</small></span><IconRight className="set-nav-go" /></NavLink></div>
         <NavLink to="/settings/about#modules" className="set-nav-version" title="Version and modules">
           <VersionTag version={version} /><span>Version and modules</span>
         </NavLink>

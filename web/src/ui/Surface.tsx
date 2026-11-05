@@ -102,8 +102,61 @@ export function Skeleton({ w, h, round, lines }: { w?: number | string; h?: numb
 }
 
 // SkeletonGrid: grey shapes where a grid of cards will land.
-export function SkeletonGrid({ square, count = 12 }: { square?: boolean; count?: number }) {
-  return <div className={(square ? 'album-grid' : 'grid') + ' skeleton-grid' + (square ? ' square' : '')} aria-busy="true" aria-label="Loading">{Array.from({ length: count }, (_, i) => <div key={i} />)}</div>
+export function SkeletonGrid({ square, count = 12, className }: { square?: boolean; count?: number; className?: string }) {
+  return <div className={(square ? 'album-grid' : 'grid') + ' skeleton-grid' + (square ? ' square' : '') + (className ? ' ' + className : '')} aria-busy="true" aria-label="Loading">{Array.from({ length: count }, (_, i) => <div key={i} />)}</div>
+}
+
+export type PageShape = 'home' | 'library' | 'item' | 'search' | 'page'
+
+// PageSkeleton: a whole page in grey shapes, the form of what's coming, in place of a
+// spinner on an empty page: Home's hero and rows, a library's header and grid, an item's
+// backdrop, poster and buttons, search's box and results. The shapes use the page's own
+// classes, so nothing moves when the real page takes their place.
+export function PageSkeleton({ shape = 'page' }: { shape?: PageShape }) {
+  const line = (w: string, h?: string) => <i className="skel" style={{ width: w, height: h }} />
+  const posters = (n: number) => Array.from({ length: n }, (_, i) => <div key={i} className="card"><i className="skel skel-poster" />{line('80%', '0.875rem')}{line('50%', '0.75rem')}</div>)
+  let body: ReactNode
+  if (shape === 'home') {
+    body = <>
+      <div className="hero skel-hero"><div className="shade" />
+        <div className="info skel-lines">{line('70%', '2rem')}{line('45%')}{line('90%')}<div className="skel-actions">{line('6.5rem', 'var(--control-h)')}{line('6.5rem', 'var(--control-h)')}</div></div>
+      </div>
+      <div className="hub">{line('9rem', '1.25rem')}<div className="lib-tiles skel-tiles">{Array.from({ length: 4 }, (_, i) => <i key={i} className="skel" />)}</div></div>
+      <div className="hub">{line('12rem', '1.25rem')}<div className="row skel-row">{posters(6)}</div></div>
+    </>
+  } else if (shape === 'library') {
+    body = <>
+      <div className="lh-bar skel-bar">{line('8rem', '1.75rem')}{line('6rem', 'var(--control-h)')}</div>
+      <div className="skel-chips">{line('4.5rem', '2rem')}{line('7rem', '2rem')}{line('6rem', '2rem')}</div>
+      <div className="grid">{posters(12)}</div>
+    </>
+  } else if (shape === 'item') {
+    body = <>
+      <div className="detail-hero skel-hero" />
+      <div className="detail">
+        <div><i className="skel skel-detail-poster" /></div>
+        <div className="skel-lines">{line('5rem', '0.75rem')}{line('60%', '2rem')}{line('40%')}<div className="skel-actions">{line('9rem', 'var(--control-h)')}{line('6rem', 'var(--control-h)')}{line('var(--control-h)', 'var(--control-h)')}</div>{line('100%')}{line('100%')}{line('70%')}</div>
+      </div>
+    </>
+  } else if (shape === 'search') {
+    body = <>
+      <div className="toolbar">{line('7rem', '1.75rem')}</div>
+      {line('100%', 'var(--control-h)')}
+      <div className="grid search-grid skel-gap">{posters(9)}</div>
+    </>
+  } else {
+    body = <div className="skel-lines">{line('10rem', '1.75rem')}{line('100%')}{line('100%')}{line('60%')}</div>
+  }
+  return <div className={'page-skel ' + shape + '-skel'} role="status" aria-label="Loading" aria-busy="true">{body}</div>
+}
+
+// The shape of the page an address leads to, for loading it.
+export function shapeFor(path: string): PageShape {
+  if (path === '/') return 'home'
+  if (path.startsWith('/library/')) return 'library'
+  if (path.startsWith('/item/') || path.startsWith('/show/')) return 'item'
+  if (path === '/search') return 'search'
+  return 'page'
 }
 
 export function EmptyState({ title, text, action, icon = <IconFilm /> }: { title: string; text?: ReactNode; action?: ReactNode; icon?: ReactNode }) {

@@ -45,6 +45,16 @@
 .avatar-btn .avatar-tile { width: 36px; height: 36px; font-size: var(--text-base); font-weight: 700; border-radius: 50%; transition: box-shadow var(--dur-2); }
 .avatar-btn:hover .avatar-tile, .avatar-btn[aria-expanded="true"] .avatar-tile { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--border-strong); }
 
+/* ---------------------------------------------------------------- the phone's You sheet */
+.modal.you-sheet { position: relative; }
+.you-sheet .ui-dialog-head { position: absolute; top: var(--sp-4); right: var(--sp-4); z-index: 1; margin: 0; }
+.you-sheet .ui-dialog-head h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.you-head { display: grid; justify-items: center; gap: var(--sp-1); margin: 0 0 var(--sp-5); text-align: center; }
+.you-head .avatar-tile { width: 64px; height: 64px; margin-bottom: var(--sp-2); border-radius: 22%; font-size: var(--text-3xl); }
+.you-name { font-size: var(--text-2xl); font-weight: var(--weight-heading); letter-spacing: var(--tracking-heading); line-height: var(--leading-tight); overflow-wrap: anywhere; }
+.you-sub { color: var(--fg-2); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.you-head .btn { margin-top: var(--sp-3); }
+
 /* The version, where no side menu shows it. */
 .page-foot { display: none; margin-top: var(--section-gap); text-align: center; }
 .nav-top .page-foot { display: block; }
@@ -66,7 +76,10 @@
 }
 
 /* ---------------------------------------------------------------- phone: sections and the bar */
-.tabbar, .section-row, .section-row-brand { display: none; }
+.tabbar, .section-row, .section-row-brand, .top-back { display: none; }
+@media (max-width: 700px) and (prefers-reduced-transparency: reduce) {
+  .app .topbar.under::before, .app:has(.hero, .detail-hero) .topbar.under::before { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; } /* design-ok: this turns the blur off */
+}
 @media (max-width: 700px) {
   :root { --topbar-h: 52px; }
   html:has(.tabbar) { --tabbar-space: calc(var(--tabbar-h) + var(--sp-4) + env(safe-area-inset-bottom)); }
@@ -79,6 +92,26 @@
   .section-row a { flex: none; display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--fg-2); font-size: var(--text-base); font-weight: 700; white-space: nowrap; }
   .section-row a.active { color: var(--fg); box-shadow: inset 0 -2px var(--accent-text); }
   .section-row-brand { display: flex; flex: 1; }
+  /* The row fades out at its end, before the activity button, so a name is never cut off by it. */
+  .section-row { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--sp-5)), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - var(--sp-5)), transparent); } /* design-ok: a mask only reads how solid it is */
+  /* Below a tab's first page: Back in the row's place, and the activity button at the far end. */
+  .top-back { position: relative; display: grid; place-items: center; flex: none; width: 40px; height: 40px; margin-right: auto; padding: 0; border: 0; border-radius: 50%; background: rgb(var(--bg-rgb) / .7); color: var(--fg); transition: transform var(--dur-1); }
+  .top-back::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; } /* a 44 target around the 40 circle */
+  .top-back:active { transform: scale(.975); }
+  .topbar .act-btn { width: 40px; height: 40px; min-height: 40px; border-color: transparent; border-radius: 50%; background: rgb(var(--bg-rgb) / .7); }
+  /* The bar has no surface of its own over a picture or at the top of a page; once the page
+     is scrolled under it, it gains the page's colour at 85% with a blur, and a hairline.
+     Phones only, and only while scrolled under: it's 52 high, and a phone can afford it. */
+  .app .topbar, .app:has(.hero, .detail-hero) .topbar { background: transparent; }
+  .app:has(.hero, .detail-hero) .topbar { margin-bottom: calc(-1 * var(--topbar-h)); }
+  .app:has(.home.editing) .topbar, .app:has(.legal-ack-bar) .topbar { margin-bottom: 0; }
+  .app .topbar::before, .app:has(.hero, .detail-hero) .topbar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: rgb(var(--bg-rgb) / .85); box-shadow: 0 1px 0 var(--border); opacity: 0; animation: none; transition: opacity var(--dur-2) var(--ease-standard); }
+  .app .topbar.under::before, .app:has(.hero, .detail-hero) .topbar.under::before { opacity: 1; -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); } /* design-ok: phones only, a 52-high bar, and only once scrolled under */
+  .app .topbar::after, .app:has(.hero, .detail-hero) .topbar::after { display: none; }
+  .app:has(.hero, .detail-hero) .topbar .section-row a { text-shadow: 0 0 2px rgb(var(--bg-rgb)), 0 0 8px rgb(var(--bg-rgb)); }
+  .app .topbar.under .section-row a { text-shadow: none; }
+  /* Settings' own way back is the bar's. */
+  .set-back { display: none !important; }
   /* The same row, from the music pages: the bar's own takes over here. */
   .app .mh-libs { display: none; }
   .tabbar {

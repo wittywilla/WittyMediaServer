@@ -5,6 +5,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **On a Mac whose WittyPlay can use the graphics card, PlayStation 2 plays on Play!, on the card.** LRPS2 comes first for PlayStation 2, but can't use a Mac's card, so it would still have drawn on the processor, which can't keep a Gran Turismo 4 race at full speed. A game Play! can't open still goes on to LRPS2, and someone who chose LRPS2 keeps it.
 - **With a WittyPlay older than 0.3.5, version 2 of the game stream says it needs an update** (`needs-update`), rather than failing with an error, and isn't offered. Version 1, which every app and the website use with that WittyPlay, plays as before.
 - **A game on several discs starts sooner.** Its archived discs are unpacked side by side instead of one after another. Final Fantasy VII, with its first disc as `.bin/.cue` and two more as `.7z`, waited two minutes to start from a USB drive before its first disc could play.
 - **An encrypted 3DS game's page says so before Play is pressed**, in the same words as Play: no server can play that copy, so it comes before anything this server lacks. A copy you decrypted yourself, from a console you own, will play.

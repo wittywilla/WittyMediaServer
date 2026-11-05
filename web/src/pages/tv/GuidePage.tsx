@@ -371,6 +371,8 @@ export default function GuidePage() {
   // next key can arrive.
   useLayoutEffect(() => {
     if (!wantFocus.current) return
+    // TV mode's tabs keep the focus when they open the guide: the arrows come down into it from there.
+    if (document.activeElement?.closest('[data-keep-focus]')) { wantFocus.current = false; return }
     const el = grid.current?.querySelector<HTMLElement>('[data-focused="1"]')
     if (el) { wantFocus.current = false; el.focus({ preventScroll: true }) }
   })
@@ -449,7 +451,7 @@ export default function GuidePage() {
             </select>
           </label>
           <button className="ctv-btn sm icon" onClick={openSearch} aria-haspopup="dialog" aria-label="Search the schedule" title="Search the schedule (S)"><IconSearch size={16} /></button>
-          <button className="ctv-btn sm" onClick={() => setLookOpen(true)} aria-haspopup="dialog">Look</button>
+          <button className="ctv-btn sm" onClick={() => setLookOpen(true)} aria-haspopup="dialog" data-tv-options>Look</button>
           <Link className="ctv-btn sm hide-narrow" to="/tv/recordings">Recordings</Link>
           {user?.isAdmin && <Link className="ctv-btn sm" to="/tv/channels" aria-label="Edit channels"><IconSettings size={16} /> <span className="hide-narrow">Edit channels</span></Link>}
         </div>

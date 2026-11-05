@@ -44,7 +44,7 @@ Open Settings from your name at the top right. On a phone, it's in the **You** t
 | Make a theme in my own colours | [Appearance](#appearance), **Colours** |
 | Change the menu layout | [Appearance](#appearance), **Layout** |
 | Turn off the moving posters | [Appearance](#appearance), **Motion and big screens** |
-| Make text larger for a TV | [Appearance](#appearance), **Motion and big screens** |
+| Use this device as a TV | [Appearance](#appearance), **Motion and big screens** |
 | Change how the TV guide looks | [Appearance](#appearance), **WittyTV** |
 | Hide the seek bar, or fill the screen with the picture | [Appearance](#appearance), **Player** |
 | Rename this server, or change its logo | [Appearance](#appearance), **Name and logo** |
@@ -283,7 +283,7 @@ How this server looks for you, from the app's theme to the look of each part of 
 - **Theme:** a large preview shows the theme in use, and any other you point at or move to, before you choose it. Choosing one changes this device only. **Automatic** follows the device's light or dark setting. Administrators also get **Make default** and **Install a theme ZIP…**.
 - **Colours:** make a theme of your own from a few choices, with a preview as you go. **Use on this device**, or, for administrators, **Add for everyone**.
 - **Layout:** **Side menu**, **Top bar** or **Both**. Phones always have the bar at the bottom. Below that you can arrange the menu.
-- **Motion and big screens:** **Moving posters** is the tilt when your pointer crosses a poster. **Big screen mode** makes text larger and the focus outline stronger, on this device.
+- **Motion and big screens:** **Moving posters** is the tilt when your pointer crosses a poster. **TV mode** lays the app out and drives it like the Apple TV and Android TV apps, with a remote or a controller, on this device. See [Big screens](APPS.md#big-screens).
 - **WittyTV:** the TV guide's own theme, colours, preview and rows, the same as its **Look** panel. See [The look](CHANNELS.md#the-look).
 - **Player:** the seek bar, chapter marks, how soon the controls hide, fitting or filling the screen, and the size of disc subtitles, for every video on this device. A disc or video you've set differently from the player's own menu keeps its own.
 - **Name and logo** (administrators): **Rename…** changes what shows in the corner, on the sign-in page and in the browser tab.

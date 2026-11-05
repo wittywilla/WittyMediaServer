@@ -81,7 +81,7 @@ function ThemeMaker({ start, admin, onClose, onDevice, onServer }: { start: Make
 }
 
 export default function AppearanceSettings() {
-  const { user, brandName, setBrandName, brandLogo, setBrandLogo, serverTheme, setServerTheme } = useApp()
+  const { user, brandName, brandColouring, setBrandName, brandLogo, setBrandLogo, serverTheme, setServerTheme } = useApp()
   const [naming, setNaming] = useState(false)
   const [themes, setThemes] = useState<ThemeMeta[]>([])
   const [mine, setMine] = useState(deviceTheme())
@@ -98,9 +98,9 @@ export default function AppearanceSettings() {
   const makeDefault = async (id: string) => {
     try { await api.put('/settings', { theme: id }); setServerTheme(id); toast('Everyone starts with this theme now', { tone: 'ok' }) } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }
-  const saveBrand = async (n: string, logo: File | 'remove' | null) => {
-    await api.put('/settings', { brandName: n })
-    setBrandName(n)
+  const saveBrand = async (n: string, logo: File | 'remove' | null, colouring: string) => {
+    await api.put('/settings', { brandName: n, brandColouring: colouring })
+    setBrandName(n, colouring)
     if (logo === 'remove') { await api.del('/branding/logo'); setBrandLogo('') } else if (logo) setBrandLogo(await uploadLogo(logo))
     toast('Saved', { tone: 'ok' })
   }
@@ -199,7 +199,7 @@ export default function AppearanceSettings() {
             <Button onClick={() => setNaming(true)}>Rename…</Button>
           </div>
           <p className="small-note">Shown in the corner, on the sign-in page and in the browser tab. The license notice in Settings, About always remains.</p>
-          {naming && <BrandDialog name={brandName} logo={brandLogo ? logoUrl(brandLogo) : ''} onClose={() => setNaming(false)} onSave={saveBrand} />}
+          {naming && <BrandDialog name={brandName} colouring={brandColouring} logo={brandLogo ? logoUrl(brandLogo) : ''} onClose={() => setNaming(false)} onSave={saveBrand} />}
         </div>
       )}
     </>

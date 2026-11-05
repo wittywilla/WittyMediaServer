@@ -3,7 +3,7 @@ import { api, isNativeShell, serverBase, setToken, type Library, type User } fro
 import { setLogVersion } from './errorReport'
 import { applyBrand, applyTheme, deviceTheme } from './theme'
 
-type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; brandLogo?: string; theme?: string; update?: string; legalAck?: boolean }
+type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; brandColouring?: string; brandLogo?: string; theme?: string; update?: string; legalAck?: boolean }
 
 type AppState = {
   user: User | null
@@ -16,10 +16,12 @@ type AppState = {
   // Name shown in the top-left corner ('' = WittyMediaServer) and the
   // server's default theme.
   brandName: string
+  // How it is coloured: 'auto', 'one' or the chosen words (brandName.ts).
+  brandColouring: string
   brandLogo: string // the custom logo's version, '' = the app icon
   setBrandLogo: (v: string) => void
   serverTheme: string
-  setBrandName: (n: string) => void
+  setBrandName: (n: string, colouring?: string) => void
   setServerTheme: (id: string) => void
   // The setup wizard is still running (after the admin account exists).
   onboarding: boolean
@@ -46,6 +48,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [version, setVersion] = useState('')
   const [loading, setLoading] = useState(true)
   const [brandName, setBrand] = useState('')
+  const [brandColouring, setBrandColouring] = useState('auto')
   const [brandLogo, setBrandLogo] = useState('')
   const [serverTheme, setServerThemeState] = useState('default')
   const [onboarding, setOnboarding] = useState(false)
@@ -53,7 +56,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [update, setUpdate] = useState('')
   const [legalAck, setLegalAck] = useState(true)
   const [needServer, setNeedServer] = useState(isNativeShell() && !serverBase())
-  const setBrandName = (n: string) => { setBrand(n); applyBrand(n) }
+  const setBrandName = (n: string, colouring = 'auto') => { setBrand(n); setBrandColouring(colouring); applyBrand(n) }
   const setServerTheme = (id: string) => { setServerThemeState(id); if (!deviceTheme()) applyTheme(id) }
 
   const refreshLibraries = useCallback(async () => {
@@ -70,7 +73,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLegalAck(s.legalAck !== false)
       setVersion(s.version)
       setLogVersion(s.version)
-      setBrandName(s.brandName || '')
+      setBrandName(s.brandName || '', s.brandColouring || 'auto')
       setBrandLogo(s.brandLogo || '')
       setServerThemeState(s.theme || 'default')
       applyTheme(deviceTheme() || s.theme || 'default')
@@ -85,7 +88,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (u) { setSetup(false); refreshLibraries() } else setLibraries([])
   }
 
-  return <Ctx.Provider value={{ user, setupRequired, libraries, version, refreshLibraries, setUser, loading, brandName, brandLogo, setBrandLogo, serverTheme, setBrandName, setServerTheme, onboarding, setOnboarding, pickerLocal, needServer, update, setUpdate, legalAck, setLegalAck }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ user, setupRequired, libraries, version, refreshLibraries, setUser, loading, brandName, brandColouring, brandLogo, setBrandLogo, serverTheme, setBrandName, setServerTheme, onboarding, setOnboarding, pickerLocal, needServer, update, setUpdate, legalAck, setLegalAck }}>{children}</Ctx.Provider>
 }
 
 // Toasts live with the other shared parts; every page imports them from here.

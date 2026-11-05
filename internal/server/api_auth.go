@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/brandname"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
 )
@@ -46,6 +47,8 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	// An administrator who never saw the first-run notice sees it once (a server
 	// set up before it existed, or one set up from a script).
 	legalAck := u == nil || !u.IsAdmin || s.legalAcked(ctx)
+	brand := s.DB.GetSetting(ctx, "brandName", "")
+	colouring := s.DB.GetSetting(ctx, "brandColouring", brandname.Auto)
 	writeJSON(w, 200, map[string]any{
 		"legalAck":      legalAck,
 		"update":        newer,
@@ -57,9 +60,12 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		// Setting up from another device takes the code the server wrote down.
 		"setupCodeRequired": setupRequired && s.setupNeedsCode(r),
 		"user":              u,
-		"brandName":         s.DB.GetSetting(r.Context(), "brandName", ""),
-		"brandLogo":         s.DB.GetSetting(r.Context(), "brandLogo", ""),
-		"theme":             s.DB.GetSetting(r.Context(), "theme", "default"),
+		"brandName":         brand,
+		"brandColouring":    colouring,
+		// The name to show, ready to draw: parts with accent set are in the theme colour.
+		"brandParts": brandname.Parts(firstNonEmpty(brand, brandname.Default), colouring),
+		"brandLogo":  s.DB.GetSetting(r.Context(), "brandLogo", ""),
+		"theme":      s.DB.GetSetting(r.Context(), "theme", "default"),
 	})
 }
 

@@ -1,5 +1,7 @@
+import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { PosterCard } from '../ui/Surface'
+import { brandParts, DEFAULT_NAME } from '../brandName'
 import { api, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, type Item, type Show } from '../api'
 import { toast, useApp } from '../state'
 import { IconCheck, IconLeft, IconRefresh } from '../icons'
@@ -117,9 +119,18 @@ export function BrandMark({ src }: { src?: string }) {
 }
 
 // Brand is the name in the top-left corner: the custom name from
-// Settings -> Appearance, or WittyMediaServer.
-export function Brand({ name }: { name: string }) {
-  return name ? <span className="brand-name" title={name}>{name}</span> : <span>Witty<b>Media</b>Server</span>
+// Settings -> Appearance, or WittyMediaServer, with every other word in the
+// theme colour (brandName.ts). colouring overrides the server's (a preview).
+// Screen readers get the name once, whole, rather than in coloured pieces.
+export function Brand({ name, colouring }: { name: string; colouring?: string }) {
+  const { brandColouring } = useApp()
+  const shown = name || DEFAULT_NAME
+  return (
+    <span className="brand-name" title={name || undefined}>
+      <span className="sr-only">{shown}</span>
+      <span aria-hidden="true">{brandParts(shown, colouring ?? brandColouring).map((p, i) => <Fragment key={i}>{p.accent ? <b>{p.text}</b> : p.text}</Fragment>)}</span>
+    </span>
+  )
 }
 
 // UpdateDot: admins see that a newer version can be installed (Settings,

@@ -53,6 +53,7 @@ func newGameServer(t *testing.T) *gameServer {
 		}
 		return tok
 	}
+	t.Cleanup(s.Close)
 	t.Cleanup(s.StopGames)
 	g := &gameServer{s: s, h: s.Handler(), admin: token("admin", true), other: token("other", false), kid: token("third", false)}
 	return g

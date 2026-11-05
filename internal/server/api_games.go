@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -103,7 +102,8 @@ type gameService struct {
 // two, or half a minute if a security scanner holds the runner's first start, so it
 // happens in the background and nothing waits for it. An answer about the card is
 // final; a failure to ask gets asked again next time.
-func (g *gameService) gpuStatus(runner string, log *slog.Logger) stream.GPUProbe {
+func (s *Server) gpuStatus(runner string) stream.GPUProbe {
+	g := s.games()
 	g.gpuMu.Lock()
 	defer g.gpuMu.Unlock()
 	if runner == "" || g.gpuChecking || (g.gpu.Name != "" || (g.gpu.Error != "" && !g.gpu.Again)) {
@@ -111,8 +111,7 @@ func (g *gameService) gpuStatus(runner string, log *slog.Logger) stream.GPUProbe
 		out.Checking = g.gpuChecking
 		return out
 	}
-	g.gpuChecking = true
-	go func() {
+	started := s.background("graphics card check", func(ctx context.Context) {
 		// What a fault leaves: nothing learnt about the card, so it's asked again next time.
 		got := stream.GPUProbe{Error: "the check stopped on a fault in the server", Again: true}
 		defer func() {
@@ -120,9 +119,15 @@ func (g *gameService) gpuStatus(runner string, log *slog.Logger) stream.GPUProbe
 			defer g.gpuMu.Unlock()
 			g.gpu, g.gpuAt, g.gpuChecking = got, time.Now(), false
 		}()
-		defer logging.Recover("graphics card check", "cat", "games")
-		got = stream.ProbeGPU(runner, filepath.Join(g.dir, "probe"), log)
-	}()
+		got = stream.ProbeGPU(ctx, runner, filepath.Join(g.dir, "probe"))
+		if ctx.Err() != nil {
+			got = stream.GPUProbe{Error: "the server stopped before the check finished", Again: true}
+		}
+	}, "cat", "games")
+	if !started { // the server is stopping
+		return g.gpu
+	}
+	g.gpuChecking = true
 	return stream.GPUProbe{Checking: true}
 }
 
@@ -676,7 +681,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	if console.ID != wittyplay.TestConsole {
 		// BIOS files left in a folder beside the games are fetched first, for
 		// every core that might use one: by what they are, then by their names.
-		s.findBIOSNear(it.Path)
+		s.findBIOSNear(r.Context(), it.Path)
 		for _, want := range console.Cores {
 			if err := wittyplay.CollectBIOS(console, want.ID, it.Path, systemDir); err != nil {
 				s.Log.Warn("copying a BIOS", "console", console.ID, "err", err)
@@ -1360,7 +1365,7 @@ func (s *Server) handleGaming(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, 200, map[string]any{
 		"runner": runnerName, "encoders": enc, "consoles": views, "cores": g.cores.List(), "canDownload": cores.CanDownload(),
-		"coresDir": g.cores.Dir, "systemDir": g.systemDir(), "running": g.mgr.Count(), "unpackedBytes": g.archives.Used(), "gpu": g.gpuStatus(runner, s.Log), "biosFolder": wittyplay.BIOSFolderName,
+		"coresDir": g.cores.Dir, "systemDir": g.systemDir(), "running": g.mgr.Count(), "unpackedBytes": g.archives.Used(), "gpu": s.gpuStatus(runner), "biosFolder": wittyplay.BIOSFolderName,
 	})
 }
 

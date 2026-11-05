@@ -235,7 +235,7 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 	systemDir := g.systemDir()
 	// As pressing Play does: files left in a BIOS folder beside the games count.
 	if len(console.BIOS) > 0 {
-		s.findBIOSNear(it.Path)
+		s.findBIOSNear(ctx, it.Path)
 		for _, want := range console.Cores {
 			_ = wittyplay.CollectBIOS(console, want.ID, it.Path, systemDir)
 		}

@@ -143,6 +143,13 @@ type Server struct {
 	logoSvc       *library.Logos // the logo service, made when first wanted
 	// When the guide last told it about tuner channels: see noteTunerLogos.
 	tunerLogosNoted atomic.Int64
+
+	// Work the server started on its own, which Close ends and waits for: see background.
+	bgMu     sync.Mutex
+	bgWork   sync.WaitGroup
+	bgCtx    context.Context
+	bgStop   context.CancelFunc
+	bgClosed bool
 }
 
 type ctxKey int

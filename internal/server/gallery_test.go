@@ -48,6 +48,7 @@ func newGalleryServer(t *testing.T) *galleryServer {
 	store := &library.Store{DB: d}
 	scanner := library.NewScanner(store, nil, filepath.Join(dir, "cache"), func() string { return "" }, log)
 	s := &Server{Cfg: &config.Config{ImagesDir: filepath.Join(dir, "images")}, DB: d, Log: log, Store: store, Scanner: scanner, Auth: &auth.Service{DB: d}}
+	t.Cleanup(s.Close)
 	ts := &galleryServer{t: t, s: s, h: s.Handler()}
 	lib, err := store.CreateLibrary(ctx, "Photos", "photos", []string{t.TempDir()})
 	if err != nil {

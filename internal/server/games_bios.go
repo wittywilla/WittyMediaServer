@@ -174,24 +174,28 @@ func biosFoldersInLibrary(roots []string) []string {
 
 // findBIOS looks through BIOS folders for files the table knows, and puts each into the system
 // folder. It says how many it put there; files already there count when they came from here.
-func (g *gameService) findBIOS(table biosTable, folders []string) int {
+// It stops between files when ctx ends.
+func (g *gameService) findBIOS(ctx context.Context, table biosTable, folders []string) int {
 	put, seen := 0, 0
 	for _, folder := range folders {
-		g.walkBIOS(table, folder, 0, &seen, &put)
+		g.walkBIOS(ctx, table, folder, 0, &seen, &put)
 	}
 	return put
 }
 
-func (g *gameService) walkBIOS(table biosTable, dir string, depth int, seen, put *int) {
+func (g *gameService) walkBIOS(ctx context.Context, table biosTable, dir string, depth int, seen, put *int) {
 	ents, err := os.ReadDir(dir)
 	if err != nil {
 		return
 	}
 	for _, e := range ents {
+		if ctx.Err() != nil {
+			return
+		}
 		p := filepath.Join(dir, e.Name())
 		if e.IsDir() {
 			if depth < biosWalkDepth && !strings.HasPrefix(e.Name(), ".") {
-				g.walkBIOS(table, p, depth+1, seen, put)
+				g.walkBIOS(ctx, table, p, depth+1, seen, put)
 			}
 			continue
 		}
@@ -325,8 +329,8 @@ func (g *gameService) noteBIOS(r biosRecord) {
 }
 
 // findBIOSNear looks beside a game, when it's checked or started.
-func (s *Server) findBIOSNear(gamePath string) {
-	s.games().findBIOS(biosKnown, biosFoldersNear(gamePath))
+func (s *Server) findBIOSNear(ctx context.Context, gamePath string) {
+	s.games().findBIOS(ctx, biosKnown, biosFoldersNear(gamePath))
 }
 
 // sweepBIOS looks through every games library's BIOS folders, in the background, after a scan
@@ -340,13 +344,13 @@ func (s *Server) sweepBIOS(force bool) {
 	}
 	g.bios.sweeping, g.bios.lastSweep = true, time.Now()
 	g.bios.mu.Unlock()
-	go func() {
+	started := s.background("BIOS sweep", func(ctx context.Context) {
 		defer func() {
 			g.bios.mu.Lock()
 			g.bios.sweeping = false
 			g.bios.mu.Unlock()
 		}()
-		libs, err := s.Store.Libraries(context.Background())
+		libs, err := s.Store.Libraries(ctx)
 		if err != nil {
 			return
 		}
@@ -356,10 +360,15 @@ func (s *Server) sweepBIOS(force bool) {
 				roots = append(roots, l.Paths...)
 			}
 		}
-		if n := g.findBIOS(biosKnown, biosFoldersInLibrary(roots)); n > 0 {
+		if n := g.findBIOS(ctx, biosKnown, biosFoldersInLibrary(roots)); n > 0 {
 			s.Log.Info("BIOS files found by their checksums", "cat", "games", "copied", n)
 		}
-	}()
+	}, "cat", "games")
+	if !started { // the server is stopping
+		g.bios.mu.Lock()
+		g.bios.sweeping = false
+		g.bios.mu.Unlock()
+	}
 }
 
 // biosRegion is a BIOS file's region: what it was recognised as, or what its name says.

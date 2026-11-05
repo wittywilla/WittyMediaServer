@@ -483,8 +483,8 @@ func (s *Server) handleRefreshEPGSource(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 400, "bad id")
 		return
 	}
-	logging.Go("guide refresh", func() {
-		if err := s.TV.FetchSource(context.WithoutCancel(r.Context()), id); err != nil {
+	s.background("guide refresh", func(ctx context.Context) {
+		if err := s.TV.FetchSource(ctx, id); err != nil && ctx.Err() == nil {
 			s.Log.WarnContext(r.Context(), "guide refresh failed", "cat", "tv", "source", id, "err", err)
 		}
 	}, "cat", "tv")

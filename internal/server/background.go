@@ -27,10 +27,10 @@ func (s *Server) background(where string, fn func(ctx context.Context), attrs ..
 	return true
 }
 
-// Close ends the server's own background work and waits for it, then for the activity still on its
-// way to the database. The database is closed after it, by whoever opened it. The server calls it
-// once it has stopped answering; a test, when it ends, so nothing writes into its folder as that is
-// removed. It can be called more than once.
+// Close ends the server's own background work and waits for it, then Live TV's, then the activity
+// still on its way to the database. The database is closed after it, by whoever opened it. The
+// server calls it once it has stopped answering; a test, when it ends, so nothing writes into its
+// folder as that is removed. It can be called more than once.
 func (s *Server) Close() {
 	s.bgMu.Lock()
 	s.bgClosed = true
@@ -39,5 +39,8 @@ func (s *Server) Close() {
 	}
 	s.bgMu.Unlock()
 	s.bgWork.Wait()
+	if s.TV != nil {
+		s.TV.Close() // the server closed it already as it stopped; a test's is closed here
+	}
 	s.Tasks.Settle()
 }

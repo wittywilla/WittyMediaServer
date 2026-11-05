@@ -94,3 +94,27 @@ func TestEveryConsoleTheModuleKnowsHasARow(t *testing.T) {
 		t.Errorf("no row for %s (%s)", c.ID, c.Name)
 	}
 }
+
+// Every console with a row has a case and a cartridge (or disc) to draw, of a known kind and shape.
+func TestEveryConsoleHasACaseAndACartridge(t *testing.T) {
+	cases := []string{"box", "clamshell", "jewel", "keep"}
+	carts := []string{"cart", "card", "disc"}
+	for id, row := range consoleTraitsTable {
+		l, ok := shelfLooks[id]
+		if !ok {
+			t.Errorf("%s has no case or cartridge", id)
+			continue
+		}
+		if !slices.Contains(cases, l.Case.Kind) || !slices.Contains(carts, l.Cart.Kind) {
+			t.Errorf("%s: %+v", id, l)
+		}
+		for _, sh := range []ShelfShape{l.Case, l.Cart} {
+			if sh.Aspect < 0.4 || sh.Aspect > 2 || sh.Height <= 0 || sh.Height > 1 {
+				t.Errorf("%s: shape %+v", id, sh)
+			}
+		}
+		if (row.Media == mediaDisc) != (l.Cart.Kind == "disc") && id != "psp" {
+			t.Errorf("%s: a disc console's games are discs, and only theirs", id)
+		}
+	}
+}

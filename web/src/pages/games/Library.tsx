@@ -7,13 +7,14 @@ import LegalNote from '../../components/LegalNote'
 import LibraryHeader from '../../components/LibraryHeader'
 import { IconFull, IconGamepad, IconPlay, IconSearch, IconSettings, IconStar, IconTune } from '../../icons'
 import { toast, useApp } from '../../state'
-import { Chip, CardRow, Sheet } from '../../ui'
+import { Chip, Sheet } from '../../ui'
 import { GameMetaNotice } from '../GameMeta'
 import { GameImportBar, GameReviewBanner } from '../GameReview'
 import { CoverFlow } from './CoverFlow'
-import { cachedHome, cardCover, consoleMap, crispIfSmall, fmtAgo, fmtPlayed, forgetHome, getHome, heroCover, saveThumb, setCouchOn, useCoverTint, useGameLinks, type GameContinue, type GameHome } from './data'
+import { cachedHome, cardCover, consoleMap, forgetHome, getHome, heroCover, setCouchOn, useCoverTint, useGameLinks, type GameHome } from './data'
 import { VirtualGames, type VirtualHandle } from './VirtualGames'
-import { ConsoleMark, useConsoleLogos } from './ConsoleMark'
+import { useConsoleLogos } from './ConsoleMark'
+import { CollectionBand, GamesDock, OnTheGo, ResumeCard, Shelf, useShelfView, ViewSwitch, YoursOn } from './Shelves'
 import './games-ui.css'
 
 // The games home: covers at the top, what's being played, the consoles, shelves, then every
@@ -119,49 +120,6 @@ function Hero({ items: list, consoles, resumable, title, place }: { items: Item[
   )
 }
 
-function ContinueCard({ e, console: c }: { e: GameContinue; console?: GameConsole }) {
-  const links = useGameLinks()
-  const it = e.item
-  const ready = c?.ready ?? true
-  const played = it.progress?.positionSec || 0
-  const thumb = e.save?.hasThumb ? saveThumb(it.id, e.save.slot, e.save.updatedAt) : null
-  return (
-    <Link to={ready ? links.play(it.id, e.save ? 'resume=1' : '') : links.item(it.id)} className="gm-cont" data-gm-item={it.id}
-      aria-label={`${e.save ? 'Resume' : 'Play'} ${it.title}${c ? ', ' + c.short : ''}, last played ${fmtAgo(e.lastPlayed)}`}>
-      <span className="gm-cont-shot">
-        {thumb ? <img src={thumb} alt="" decoding="async" onLoad={crispIfSmall} /> : it.poster ? <img className="soft" src={cardCover(it)} alt="" decoding="async" /> : <Placeholder title={it.title} label={c?.short} />}
-        <span className="gm-cont-play"><IconPlay /></span>
-      </span>
-      <span className="gm-cont-text">
-        <b>{it.title}</b>
-        <small>{[c?.short, played > 60 ? fmtPlayed(played) : '', fmtAgo(e.lastPlayed)].filter(Boolean).join(' · ')}</small>
-      </span>
-    </Link>
-  )
-}
-
-function ConsoleTile({ c, lib }: { c: GameConsole; lib: number }) {
-  const links = useGameLinks()
-  const { user } = useApp()
-  const n = c.count || 0
-  return (
-    <Link to={links.library(lib, `console=${encodeURIComponent(c.id)}`)} className="gm-console" aria-label={`${c.name}: ${n.toLocaleString()} ${n === 1 ? 'game' : 'games'}${c.ready ? '' : ', not set up yet'}`}>
-      <ConsoleMark console={c} size="lg" />
-      <small>{n.toLocaleString()} {n === 1 ? 'game' : 'games'}{!c.ready && user?.isAdmin ? ' · set up' : ''}</small>
-    </Link>
-  )
-}
-
-function ShelfOf({ title, items, consoles, favs, to, wide }: { title: string; items: Item[]; consoles: Map<string, GameConsole>; favs: Set<number>; to?: string; wide?: boolean }) {
-  if (items.length === 0) return null
-  return (
-    <section className={'hub gm-section' + (wide ? ' wide' : '')} data-gm-section aria-label={title}>
-      <div className="hub-head"><h2>{title}</h2>{to && <Link to={to} aria-label={`See all ${title}`}>See all</Link>}</div>
-      <CardRow>{items.map((it) => <GameCard key={it.id} item={it} console={consoles.get(it.console || '')} fav={favs.has(it.id)} />)}</CardRow>
-    </section>
-  )
-}
-
 function FiltersSheet({ facets, params, set, onClose }: { facets: GameFacets | null; params: URLSearchParams; set: (k: string, v: string) => void; onClose: () => void }) {
   const Group = ({ title, name, options }: { title: string; name: string; options: { value: string; label: string }[] }) => {
     if (options.length === 0) return null
@@ -217,6 +175,11 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [lettersOpen, setLettersOpen] = useState(false)
   const [favs, setFavs] = useState<Set<number>>(() => new Set(cachedHome(lib.id)?.favouriteIds || []))
+  // Shelves: which spine is pulled out (shelf:item), each console's games, and the games for two.
+  const [pulled, setPulled] = useState<string | null>(null)
+  const [view, setView] = useShelfView()
+  const [byConsole, setByConsole] = useState<Record<string, Item[]>>({})
+  const [forTwo, setForTwo] = useState<Item[]>([])
   const grid = useRef<VirtualHandle>(null)
   const search = useRef<HTMLInputElement>(null)
 
@@ -264,6 +227,19 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
 
   const byId = useMemo(() => consoleMap(consoles), [consoles])
   const present = useMemo(() => consoles.filter((c) => (c.count || 0) > 0).sort((a, b) => (b.count || 0) - (a.count || 0)), [consoles])
+  // A shelf for each console with games, most games first, and one of games for two or more.
+  const shelfConsoles = present.slice(0, 8).map((c) => c.id).join(',')
+  useEffect(() => {
+    if (!shelfConsoles) return
+    let on = true
+    const ids = shelfConsoles.split(',')
+    Promise.all(ids.map((id) => api.get<{ items: Item[] }>(`/items?library=${lib.id}&kind=game&console=${encodeURIComponent(id)}&sort=popular&desc=0&limit=24`).then((r) => [id, r.items || []] as const).catch(() => [id, []] as const)))
+      .then((all) => { if (on) setByConsole(Object.fromEntries(all)) })
+    api.get<{ items: Item[] }>(`/items?library=${lib.id}&kind=game&players=2&sort=popular&desc=0&limit=24`).then((r) => { if (on) setForTwo(r.items || []) }).catch(() => {})
+    return () => { on = false }
+  }, [lib.id, shelfConsoles, version])
+  const progress = useMemo(() => new Map((home?.continue || []).map((e) => [e.item.id, e])), [home])
+  const pull = useMemo(() => ({ pulled, onPull: setPulled, view }), [pulled, view])
   const everything = present.reduce((n, c) => n + (c.count || 0), 0)
   const logosShown = useConsoleLogos(isHome ? present : [])
   const current = consoleId ? byId.get(consoleId) : undefined
@@ -408,32 +384,32 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
         </div>
       )}
 
-      {showHeroHome && <Hero items={home!.hero} consoles={byId} resumable={resumable} title="Featured games" place={`${lib.id}`} />}
-      {!isHome && consoleId && !narrowed && consoleHero.length > 0 && <Hero items={consoleHero} consoles={byId} resumable={resumable} title={`${current?.short || 'These'} games`} place={`${lib.id}/${consoleId}`} />}
+      {/* Where you left off is the one obvious next step; with nothing in progress, the featured covers. */}
+      {isHome && home && home.continue.length > 0 && <ResumeCard e={home.continue[0]} c={byId.get(home.continue[0].item.console || '')} />}
+      {showHeroHome && home!.continue.length === 0 && <Hero items={home!.hero} consoles={byId} resumable={resumable} title="Featured games" place={`${lib.id}`} />}
+      {!isHome && consoleId && !narrowed && current && <CollectionBand c={current} count={current.count} first={consoleHero[0]} />}
+      {!isHome && consoleId && !narrowed && current && <YoursOn c={current} />}
       {isHome && homeFailed && !home && <LoadError what="This library" onRetry={() => { void loadHome() }} />}
 
-      {isHome && home && home.continue.length > 0 && (
-        <section className="hub gm-section" data-gm-section aria-label="Continue playing">
-          <div className="hub-head"><h2>Continue playing</h2></div>
-          <CardRow>{home.continue.map((e) => <ContinueCard key={e.item.id} e={e} console={byId.get(e.item.console || '')} />)}</CardRow>
-        </section>
-      )}
-      {isHome && present.length > 0 && (
-        <section className="hub gm-section" data-gm-section aria-label="Consoles">
-          <div className="hub-head"><h2>Consoles</h2><a href="#gm-all" onClick={(e) => { e.preventDefault(); document.getElementById('gm-all')?.scrollIntoView(); document.querySelector<HTMLElement>('#gm-all .chip')?.focus({ preventScroll: true }) }}>All {everything.toLocaleString()} games</a></div>
-          <CardRow>{present.map((c) => <ConsoleTile key={c.id} c={c} lib={lib.id} />)}</CardRow>
-          {logosShown && <LegalNote kind="logos" />}
-        </section>
-      )}
+      {isHome && home && <OnTheGo list={home.continue.slice(1)} consoles={byId} />}
+      {/* A shelf for each console, then the shelves the server picks: as cases, cartridges or spines. */}
+      {isHome && present.length > 0 && <ViewSwitch view={view} onView={(v) => { setPulled(null); setView(v) }} />}
+      {isHome && present.slice(0, 8).map((c) => (
+        <Shelf key={c.id} id={'c-' + c.id} title={c.short} console={c} count={c.count} items={byConsole[c.id] || []} consoles={byId} faceFirst
+          to={links.library(lib.id, `console=${encodeURIComponent(c.id)}`)} favs={favs} progress={progress} {...pull} />
+      ))}
+      {isHome && <Shelf id="two" title="Made for two" items={forTwo} consoles={byId} to={links.library(lib.id, 'players=2')} favs={favs} progress={progress} {...pull} />}
       {isHome && home && (
         <>
-          <ShelfOf title="Recently added" items={home.recent} consoles={byId} favs={favs} to={links.library(lib.id, 'sort=added')} />
-          <ShelfOf title="Favourites" items={home.favourites} consoles={byId} favs={favs} />
-          <ShelfOf title="Most played" items={home.mostPlayed} consoles={byId} favs={favs} />
-          {seriesShelves.map((s) => <ShelfOf key={'s' + s.name} title={s.name} items={s.items} consoles={byId} favs={favs} to={links.library(lib.id, 'series=' + encodeURIComponent(s.name))} />)}
-          {genreShelves.map((s) => <ShelfOf key={'g' + s.name} title={s.name} items={s.items} consoles={byId} favs={favs} to={links.library(lib.id, 'genre=' + encodeURIComponent(s.name))} />)}
+          <Shelf id="fav" title="Favourites" items={home.favourites} consoles={byId} favs={favs} progress={progress} {...pull} />
+          <Shelf id="recent" title="Recently added" items={home.recent} consoles={byId} to={links.library(lib.id, 'sort=added')} favs={favs} progress={progress} {...pull} />
+          <Shelf id="most" title="Most played" items={home.mostPlayed} consoles={byId} favs={favs} progress={progress} {...pull} />
+          {seriesShelves.map((s) => <Shelf key={'s' + s.name} id={'s-' + s.name} title={s.name} items={s.items} consoles={byId} letters to={links.library(lib.id, 'series=' + encodeURIComponent(s.name))} favs={favs} progress={progress} {...pull} />)}
+          {genreShelves.map((s) => <Shelf key={'g' + s.name} id={'g-' + s.name} title={s.name} items={s.items} consoles={byId} to={links.library(lib.id, 'genre=' + encodeURIComponent(s.name))} favs={favs} progress={progress} {...pull} />)}
         </>
       )}
+      {isHome && logosShown && <LegalNote kind="logos" />}
+      {consoleId && !narrowed && home && <OnTheGo list={home.continue.filter((e) => e.item.console === consoleId)} consoles={byId} />}
 
       {!links.couch && user?.isAdmin && (isHome || unmatched) && <GameMetaNotice unmatched={unmatched} onUnmatched={(on) => set('unmatched', on ? '1' : '')} onProgress={() => { setVersion((n) => n + 1) }} />}
       <section className="gm-section gm-all" id="gm-all" data-gm-section aria-label="Games">
@@ -466,6 +442,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
             : <EmptyState icon={<IconGamepad />} title="No games here yet" text="Put your own game files in this library’s folder and scan it. Zipped games and multi-disc sets work too." />} />
       </section>
       <LegalNote kind="games" />
+      {!links.couch && <GamesDock />}
       {filtersOpen && <FiltersSheet facets={facets} params={params} set={set} onClose={() => setFiltersOpen(false)} />}
       {lettersOpen && <LetterSheet letters={letters} onJump={(o) => grid.current?.jumpTo(o)} onClose={() => setLettersOpen(false)} />}
       <PromptBar className="gm-prompts" always={links.couch} items={prompts} />

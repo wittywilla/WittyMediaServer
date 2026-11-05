@@ -330,6 +330,7 @@ type consoleView struct {
 	Ended        int                  `json:"ended,omitempty"`
 	Media        string               `json:"media,omitempty"`
 	Capabilities *ConsoleCapabilities `json:"capabilities,omitempty"`
+	Shelf        *ShelfLook           `json:"shelf,omitempty"` // its case and cartridge, for the games home
 	// For Settings, Consoles & cores: BIOS files in place, what's stopping it from starting
 	// if that's a missing BIOS, and how many games every library holds for it.
 	BiosFound  []string `json:"biosFound,omitempty"`

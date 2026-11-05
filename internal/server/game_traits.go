@@ -259,6 +259,7 @@ func addTraits(v *consoleView) {
 		c.Input.Touch = true
 	}
 	v.Capabilities = &c
+	v.Shelf = shelfLookFor(v.Console)
 }
 
 // rewindByDefault: the consoles whose games rewind unless someone says otherwise.
@@ -298,4 +299,57 @@ func withRewindDefault(console string, server, serverConsole *wittyplay.Layer) {
 		serverConsole.Values = map[string]any{}
 	}
 	serverConsole.Values[rewindKey] = true
+}
+
+// ShelfLook is how a console's games stand on a shelf: its case, and its cartridge or disc, as
+// shapes a client draws itself around the game's own cover. They follow the console's real forms
+// in proportion and material (a cardboard box, a plastic clamshell, a CD jewel case, a DVD-style
+// keep case, a cartridge, a card, a disc), never a maker's banners, logos, colours or exact outline.
+type ShelfLook struct {
+	Case ShelfShape `json:"case"`
+	Cart ShelfShape `json:"cart"`
+}
+
+// ShelfShape: Kind is what it is; Aspect its front's width over height; Height how tall it stands
+// beside the others of its kind (a full-size box or keep case is 1, a handheld's box about 0.6).
+type ShelfShape struct {
+	Kind   string  `json:"kind"`
+	Aspect float64 `json:"aspect"`
+	Height float64 `json:"height"`
+}
+
+// Case kinds: box (cardboard), clamshell (plastic, cartridge era), jewel (CD), keep (DVD-style).
+// Cartridge kinds: cart, card (HuCard, DS and 3DS cards), disc.
+var shelfLooks = map[string]ShelfLook{
+	"a2600": {Case: ShelfShape{"box", 0.72, 1}, Cart: ShelfShape{"cart", 0.85, 0.75}},
+	"a7800": {Case: ShelfShape{"box", 0.72, 1}, Cart: ShelfShape{"cart", 0.85, 0.75}},
+	"nes":   {Case: ShelfShape{"box", 0.71, 1}, Cart: ShelfShape{"cart", 0.89, 1}},
+	"sms":   {Case: ShelfShape{"clamshell", 0.71, 1}, Cart: ShelfShape{"cart", 0.8, 0.85}},
+	"snes":  {Case: ShelfShape{"box", 1.39, 0.68}, Cart: ShelfShape{"cart", 1.18, 0.82}},
+	"md":    {Case: ShelfShape{"clamshell", 0.71, 1}, Cart: ShelfShape{"cart", 0.83, 0.88}},
+	"pce":   {Case: ShelfShape{"jewel", 1, 0.66}, Cart: ShelfShape{"card", 1.58, 0.45}},
+	"gb":    {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"cart", 0.88, 0.5}},
+	"gba":   {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"cart", 1.6, 0.45}},
+	"gg":    {Case: ShelfShape{"clamshell", 0.75, 0.75}, Cart: ShelfShape{"cart", 1.28, 0.5}},
+	"lynx":  {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"card", 1.4, 0.45}},
+	"ws":    {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"cart", 1.4, 0.45}},
+	"ngp":   {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"cart", 1.3, 0.45}},
+	"vb":    {Case: ShelfShape{"box", 1.39, 0.68}, Cart: ShelfShape{"cart", 0.9, 0.7}},
+	"n64":   {Case: ShelfShape{"box", 1.39, 0.68}, Cart: ShelfShape{"cart", 1.12, 0.78}},
+	"ps1":   {Case: ShelfShape{"jewel", 1, 0.66}, Cart: ShelfShape{"disc", 1, 0.66}},
+	"dc":    {Case: ShelfShape{"jewel", 1, 0.66}, Cart: ShelfShape{"disc", 1, 0.66}},
+	"ps2":   {Case: ShelfShape{"keep", 0.71, 1}, Cart: ShelfShape{"disc", 1, 0.66}},
+	"psp":   {Case: ShelfShape{"keep", 0.58, 0.95}, Cart: ShelfShape{"disc", 1, 0.45}},
+	"nds":   {Case: ShelfShape{"keep", 0.91, 0.72}, Cart: ShelfShape{"card", 0.94, 0.45}},
+	"3ds":   {Case: ShelfShape{"keep", 0.91, 0.72}, Cart: ShelfShape{"card", 0.94, 0.45}},
+}
+
+func shelfLookFor(c wittyplay.Console) *ShelfLook {
+	if l, ok := shelfLooks[c.ID]; ok {
+		return &l
+	}
+	if l, ok := shelfLooks[c.PadLike]; ok && c.PadLike != "" {
+		return &l
+	}
+	return nil
 }

@@ -1,0 +1,182 @@
+/* Shelves: the games home, as WittyMediaClient's docs/WITTYPLAY-EXPERIENCE.md draws it. Sizes are
+   the phone's; wider screens and TV mode scale them with --shelf-scale. Tokens only, except the
+   drawn spines and ribbons, which keep their own light like any drawn object. */
+
+.gm-page { --shelf-scale: 1; }
+@media (min-width: 761px) { .gm-page { --shelf-scale: 1.25; } }
+@media (min-width: 1400px) { .gm-page { --shelf-scale: 1.4; } }
+html.ten-foot .gm-page { --shelf-scale: 1.7; }
+
+/* ---------------------------------------------------------------- where you left off */
+.gm-resume-card { position: relative; display: block; height: calc(214px * var(--shelf-scale)); max-width: 56rem; margin: var(--sp-3) 0 0; border-radius: var(--r-lg); overflow: hidden; background: var(--bg-3); box-shadow: var(--e-2); color: var(--on-image); text-decoration: none; }
+.gm-resume-pic { position: absolute; inset: 0; }
+.gm-resume-pic img { width: 100%; height: 100%; object-fit: cover; animation: gm-drift 14s ease-in-out infinite alternate; }
+.gm-resume-pic img.crisp, .gm-otg-pic img.crisp, .gm-faceout-art img.crisp { image-rendering: pixelated; }
+.gm-resume-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, var(--scrim) 0%, transparent 70%); pointer-events: none; }
+.gm-resume-text { position: absolute; left: var(--sp-4); right: calc(var(--sp-4) + 7.5rem); bottom: var(--sp-3); z-index: 2; display: grid; gap: 2px; min-width: 0; }
+.gm-resume-text small { font-size: var(--text-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; opacity: .85; }
+.gm-resume-text b { font-size: var(--text-2xl); font-weight: 600; letter-spacing: -.02em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gm-resume-text span { font-size: var(--text-sm); opacity: .9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gm-resume-go { position: absolute; right: var(--sp-4); bottom: var(--sp-3); z-index: 2; }
+.gm-resume-card .gm-ribbon { right: var(--sp-6); width: 18px; height: 46px; }
+.gm-resume-card:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
+@keyframes gm-drift { from { transform: scale(1.04) translate(-1.5%, -1%); } to { transform: scale(1.14) translate(2%, 1.5%); } }
+
+/* ---------------------------------------------------------------- the other games in progress */
+.gm-onthego { display: flex; gap: var(--sp-3); overflow-x: auto; margin: 0 calc(-1 * var(--gutter)); padding: var(--sp-4) var(--gutter) var(--sp-1); scrollbar-width: none; }
+.gm-onthego::-webkit-scrollbar { display: none; }
+.gm-otg { position: relative; flex: none; width: calc(152px * var(--shelf-scale)); display: grid; gap: 2px; color: inherit; text-decoration: none; }
+.gm-otg-pic { position: relative; display: block; aspect-ratio: 4 / 3; border-radius: var(--r-md); overflow: hidden; background: var(--bg-3); }
+.gm-otg-pic img { width: 100%; height: 100%; object-fit: cover; }
+.gm-otg-pic .ph { position: absolute; inset: 0; }
+.gm-otg b { margin-top: var(--sp-2); font-size: var(--text-md); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gm-otg small { color: var(--fg-3); font-size: var(--text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gm-otg .gm-ribbon { right: var(--sp-3); width: 12px; height: 30px; }
+.gm-otg:focus-visible { outline: none; }
+.gm-otg:focus-visible .gm-otg-pic { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
+
+/* ---------------------------------------------------------------- shelves */
+.gm-shelf { margin-top: var(--sp-6); }
+.gm-shelf-head { display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; }
+.gm-shelf-name { margin: 0; font-size: var(--text-xl); font-weight: 600; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* A console's name in its era's type. */
+.gm-shelf-name.era-8-bit, .gm-band-name.era-8-bit, .gm-shelf-name.era-first, .gm-band-name.era-first { font-family: var(--font-mono); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.gm-shelf-name.era-pocket, .gm-band-name.era-pocket { font-family: var(--font-mono); font-weight: 600; letter-spacing: -.01em; }
+.gm-shelf-name.era-16-bit, .gm-band-name.era-16-bit { font-weight: 800; letter-spacing: -.03em; }
+.gm-shelf-name.era-early-3d, .gm-band-name.era-early-3d { font-weight: 700; font-style: italic; }
+.gm-shelf-name.era-disc, .gm-band-name.era-disc { font-weight: 300; text-transform: uppercase; letter-spacing: .14em; }
+.gm-shelf-era { color: var(--fg-3); font-size: var(--text-2xs); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.gm-shelf-count { color: var(--fg-3); font-size: var(--text-sm); }
+.gm-shelf-all { margin-left: auto; display: inline-flex; align-items: center; gap: 2px; color: var(--fg-2); font-size: var(--text-sm); font-weight: 500; white-space: nowrap; }
+
+/* The ledge: spines stand on it, with room above for ribbons and a spine lifting. */
+.gm-ledge { display: flex; align-items: flex-end; gap: 3px; overflow-x: auto; margin: 0 calc(-1 * var(--gutter)); padding: calc(var(--sp-6) + 2px) var(--gutter) 0; border-bottom: 3px solid var(--border); box-shadow: 0 10px 14px -12px var(--scrim); scrollbar-width: none; scroll-padding-inline: var(--gutter); }
+.gm-ledge::-webkit-scrollbar { display: none; }
+.gm-ledge > * { flex: none; }
+
+/* design-ok-begin: drawn spines and ribbons keep their own light in every theme, like a picture */
+.gm-spine { --h: 176px; position: relative; width: calc(var(--sw) * 1px * var(--shelf-scale)); height: calc(var(--h) * var(--shelf-scale)); padding: 0; border: 0; border-radius: var(--r-xs) var(--r-xs) 1px 1px; color: var(--on-image); cursor: pointer;
+  background: linear-gradient(90deg, rgb(255 255 255 / .14), rgb(255 255 255 / 0) 28%, rgb(0 0 0 / .22)), var(--tint); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .18);
+  transition: transform var(--dur-2) var(--ease-out); -webkit-tap-highlight-color: transparent; }
+.gm-spine::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background-image: radial-gradient(circle, rgb(255 255 255 / .22) 0 34%, transparent 37%); background-size: var(--grain) var(--grain); opacity: .35; -webkit-mask-image: linear-gradient(180deg, #000, transparent 70%); mask-image: linear-gradient(180deg, #000, transparent 70%); pointer-events: none; }
+.gm-spine.media-pocket { --h: 136px; }
+.gm-spine.media-disc { width: calc(24px * var(--shelf-scale)); background: linear-gradient(90deg, rgb(255 255 255 / .35), rgb(255 255 255 / 0) 18%), var(--tint); }
+.gm-ribbon { position: absolute; top: -2px; width: 14px; height: 40px; background: var(--accent); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); z-index: 3; box-shadow: 0 2px 6px rgb(0 0 0 / .4); pointer-events: none; }
+/* design-ok-end */
+.gm-spine-title { position: absolute; top: calc(24px * var(--shelf-scale)); left: 0; right: 0; bottom: calc(30px * var(--shelf-scale)); writing-mode: vertical-rl; display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: var(--text-sm); font-weight: 600; line-height: 1; text-shadow: 0 1px 2px var(--scrim); }
+.gm-spine-foot { position: absolute; left: 4px; right: 4px; bottom: 6px; height: calc(18px * var(--shelf-scale)); line-height: calc(18px * var(--shelf-scale)); border-radius: var(--r-xs); background: var(--scrim); font-family: var(--font-mono); font-size: var(--text-2xs); font-weight: 700; text-align: center; overflow: hidden; }
+.gm-spine-fav { position: absolute; top: 5px; left: 50%; transform: translateX(-50%); opacity: .9; }
+.gm-spine .gm-ribbon { left: calc(50% - 7px); top: -16px; height: 34px; }
+.gm-spine.media-disc .gm-spine-title, .gm-spine.media-disc .gm-spine-foot { display: none; }
+@media (hover: hover) { .gm-spine:hover { transform: translateY(-4px); } }
+.gm-spine:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); transform: translateY(-10px) scale(var(--focus-scale)); }
+
+.gm-faceout { position: relative; width: calc(120px * var(--shelf-scale)); height: calc(160px * var(--shelf-scale)); padding: 0; border: 0; background: none; cursor: pointer; transform: translateY(-6px); -webkit-tap-highlight-color: transparent; }
+.gm-faceout.media-pocket { width: calc(104px * var(--shelf-scale)); height: calc(136px * var(--shelf-scale)); }
+.gm-faceout-art { position: absolute; inset: 0; display: block; border-radius: var(--r-sm); overflow: hidden; background: var(--bg-3); box-shadow: var(--e-3); }
+.gm-faceout-art img { width: 100%; height: 100%; object-fit: cover; }
+.gm-faceout-art .ph { position: absolute; inset: 0; }
+.gm-faceout .gm-ribbon { right: var(--sp-3); }
+.gm-faceout.pulled { animation: gm-pull var(--dur-3) var(--ease-out); }
+.gm-faceout.pulled .gm-faceout-art { outline: 2px solid var(--accent); outline-offset: 2px; }
+.gm-faceout:focus-visible { outline: none; }
+.gm-faceout:focus-visible .gm-faceout-art { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
+@keyframes gm-pull { from { width: var(--sw0, 40px); transform: translateY(0); } }
+
+.gm-divider { align-self: flex-end; display: flex; justify-content: center; width: 22px; height: 64px; padding-top: 5px; border-radius: var(--r-xs) var(--r-xs) 0 0; background: var(--bg-3); box-shadow: inset 0 0 0 1px var(--border); color: var(--fg-2); font-family: var(--font-mono); font-size: var(--text-2xs); font-weight: 700; }
+
+/* A pulled-out game's card, under its shelf. */
+.gm-pulled { display: grid; gap: 2px; max-width: 40rem; margin-top: var(--sp-3); padding: var(--sp-3) var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--bg-2); animation: gm-rise var(--dur-3) var(--ease-out); }
+.gm-pulled b { font-size: var(--text-lg); font-weight: 600; }
+.gm-pulled small { color: var(--fg-2); font-size: var(--text-sm); }
+.gm-pulled-left { display: flex; align-items: center; gap: var(--sp-2); color: var(--fg) !important; }
+.gm-pulled-left i { width: 8px; height: 8px; border-radius: var(--r-full); background: var(--accent); }
+.gm-pulled-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-2); }
+@keyframes gm-rise { from { opacity: 0; transform: translateY(8px); } }
+
+/* ---------------------------------------------------------------- a console's collection */
+.gm-band { position: relative; display: grid; align-content: end; gap: 2px; min-height: calc(220px * var(--shelf-scale)); margin: 0 calc(-1 * var(--gutter)) var(--sp-4); padding: var(--sp-6) var(--gutter) var(--sp-6); overflow: hidden; background: var(--tint); color: var(--on-image); }
+.gm-band::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle, rgb(255 255 255 / .18) 0 34%, transparent 36%); background-size: var(--grain) var(--grain); -webkit-mask-image: linear-gradient(180deg, #000, transparent); mask-image: linear-gradient(180deg, #000, transparent); pointer-events: none; } /* design-ok: the band's grain is drawn light on its own colour */
+.gm-band > * { position: relative; }
+.gm-band-kicker { font-size: var(--text-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; opacity: .85; }
+.gm-band-name { margin: var(--sp-1) 0 0; font-size: var(--text-5xl); font-weight: 800; letter-spacing: -.03em; line-height: 1.05; overflow-wrap: anywhere; }
+.gm-band-facts { font-size: var(--text-base); opacity: .9; }
+
+.gm-yours { margin-top: var(--sp-4); }
+.gm-yours h2 { margin: 0 0 var(--sp-2); font-size: var(--text-xl); }
+.gm-yours-list { display: grid; max-width: 40rem; border-radius: var(--r-lg); background: var(--bg-2); overflow: hidden; }
+.gm-yours-list a { display: flex; align-items: center; gap: var(--sp-3); min-height: 52px; padding: var(--sp-2) var(--sp-4); color: inherit; text-decoration: none; }
+.gm-yours-list a + a { border-top: 1px solid var(--border); }
+.gm-yours-list a span { flex: 1; min-width: 0; }
+.gm-yours-list a > svg:last-child { color: var(--fg-3); }
+.gm-yours-list a:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: calc(-1 * var(--focus-width)); }
+
+/* ---------------------------------------------------------------- the dock */
+.gm-dock { position: sticky; bottom: calc(var(--tabbar-space, 0px) + var(--sp-4)); z-index: var(--z-sticky); display: flex; align-items: center; gap: var(--sp-3); max-width: 32rem; margin: var(--sp-6) auto 0; padding: var(--sp-2); border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--bg-2); box-shadow: var(--e-3); }
+.gm-dock img { width: 44px; height: 44px; border-radius: var(--r-sm); object-fit: cover; background: var(--bg-3); }
+.gm-dock-text { flex: 1; display: grid; min-width: 0; }
+.gm-dock-text b { font-size: var(--text-md); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gm-dock-text small { display: flex; align-items: center; gap: var(--sp-2); color: var(--fg-2); font-size: var(--text-xs); }
+.gm-dock-text small i { width: 8px; height: 8px; border-radius: var(--r-full); background: var(--ok); }
+
+/* ---------------------------------------------------------------- a game's page */
+.gm-resume { position: relative; }
+.gm-resume .gm-ribbon { right: var(--sp-4); top: -2px; width: 12px; height: 30px; }
+
+/* ---------------------------------------------------------------- reserved: multiplayer */
+.gm-reserved { opacity: .55; cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gm-resume-pic img, .gm-faceout.pulled, .gm-pulled { animation: none; }
+  .gm-spine { transition: none; }
+}
+
+/* ---------------------------------------------------------------- the three views */
+.gm-views { flex-wrap: nowrap; margin-top: var(--sp-5); }
+.gm-ledge.view-cases, .gm-ledge.view-carts { gap: var(--sp-3); padding-top: var(--sp-8); }
+
+/* Cases: each game in its console's kind of case, cover showing. Heights are the cases' own,
+   so a handheld's box stands lower than a cartridge console's. */
+.gm-case, .gm-cart { --base: 176px; position: relative; height: calc(var(--base) * var(--h, 1) * var(--shelf-scale)); aspect-ratio: var(--aspect, .72); padding: 0; border: 0; background: none; cursor: pointer; transition: transform var(--dur-2) var(--ease-out); -webkit-tap-highlight-color: transparent; }
+.gm-cart { --base: 150px; }
+.gm-case-art, .gm-cart-label { position: absolute; display: block; overflow: hidden; background: var(--bg-3); }
+.gm-case-art img, .gm-cart-label img { width: 100%; height: 100%; object-fit: cover; }
+.gm-case-art .ph, .gm-cart-label .ph { position: absolute; inset: 0; }
+.gm-case .gm-ribbon, .gm-cart .gm-ribbon { right: 12%; top: -8px; }
+.gm-item-fav { position: absolute; z-index: 3; top: var(--sp-2); left: var(--sp-2); padding: 3px; border-radius: var(--r-full); background: var(--scrim); color: var(--warn); box-sizing: content-box; }
+@media (hover: hover) { .gm-case:hover, .gm-cart:hover { transform: translateY(-4px); } }
+.gm-case.pulled, .gm-cart.pulled { transform: translateY(-10px); }
+.gm-case:focus-visible, .gm-cart:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); transform: translateY(-10px) scale(var(--focus-scale)); }
+
+/* design-ok-begin: drawn cases, cartridges and discs keep their own plastic, card and light in every theme */
+.gm-case, .gm-cart { --plastic: color-mix(in srgb, var(--fg) 12%, var(--bg-4)); --plastic-edge: color-mix(in srgb, var(--fg) 22%, var(--bg-4)); }
+.gm-case.pulled .gm-case-art, .gm-cart.pulled .gm-cart-label { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+
+/* A cardboard box: the cover is the box, with its top and side catching the light. */
+.gm-case.kind-box .gm-case-art { inset: 0; border-radius: 2px; box-shadow: var(--e-3), inset 0 1px 0 rgb(255 255 255 / .25), inset -3px 0 0 rgb(0 0 0 / .18); }
+/* A plastic clamshell: the cover behind clear plastic in a frame. */
+.gm-case.kind-clamshell { border-radius: 4px; background: var(--plastic); box-shadow: var(--e-3), inset 0 0 0 1px var(--plastic-edge); }
+.gm-case.kind-clamshell .gm-case-art { inset: 4% 5% 4% 7%; border-radius: 1px; }
+/* A CD jewel case: square, a hinge down the left, clear front. */
+.gm-case.kind-jewel { border-radius: 3px; background: linear-gradient(90deg, var(--plastic-edge) 0 9%, rgb(255 255 255 / .06) 9% 100%); box-shadow: var(--e-3), inset 0 0 0 1px rgb(255 255 255 / .18); }
+.gm-case.kind-jewel .gm-case-art { inset: 3% 3% 3% 11%; border-radius: 1px; }
+.gm-case.kind-jewel::before { content: ''; position: absolute; left: 2%; top: 4%; bottom: 4%; width: 5%; background: repeating-linear-gradient(180deg, rgb(255 255 255 / .18) 0 2px, transparent 2px 6px); z-index: 1; }
+/* A DVD-style keep case: a plastic frame all round, rounder corners, the cover under a sleeve. */
+.gm-case.kind-keep { border-radius: 6px; background: var(--plastic); box-shadow: var(--e-3), inset 0 0 0 1px var(--plastic-edge); }
+.gm-case.kind-keep .gm-case-art { inset: 5% 5% 5% 8%; border-radius: 2px; }
+/* Clear plastic shines across the cover. */
+.gm-case:not(.kind-box)::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(120deg, rgb(255 255 255 / .16) 0%, rgb(255 255 255 / 0) 38%, rgb(255 255 255 / 0) 70%, rgb(255 255 255 / .08) 100%); pointer-events: none; z-index: 2; }
+
+/* A cartridge: a plastic shell, the cover on a label, grip lines below it. */
+.gm-cart.kind-cart { border-radius: 7px 7px 4px 4px; background: linear-gradient(180deg, var(--plastic) 0 70%, var(--plastic-edge) 70% 72%, var(--plastic) 72%); box-shadow: var(--e-3), inset 0 0 0 1px var(--plastic-edge), inset 0 2px 0 rgb(255 255 255 / .12); }
+.gm-cart.kind-cart .gm-cart-label { inset: 8% 10% 33% 10%; border-radius: 3px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .25); }
+.gm-cart.kind-cart::after { content: ''; position: absolute; left: 22%; right: 22%; bottom: 8%; height: 16%; background: repeating-linear-gradient(180deg, rgb(0 0 0 / .22) 0 2px, transparent 2px 5px); border-radius: 2px; pointer-events: none; }
+/* A card (HuCard, DS and 3DS cards): flat, mostly label, contacts along one edge. */
+.gm-cart.kind-card { border-radius: 5px; background: var(--plastic); box-shadow: var(--e-3), inset 0 0 0 1px var(--plastic-edge); }
+.gm-cart.kind-card .gm-cart-label { inset: 8% 8% 22% 8%; border-radius: 3px; }
+.gm-cart.kind-card::after { content: ''; position: absolute; left: 12%; right: 12%; bottom: 6%; height: 9%; background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--warn) 70%, var(--plastic)) 0 5%, transparent 5% 9%); pointer-events: none; }
+/* A disc: the cover printed on its face, a clear ring and the hole in the middle. */
+.gm-cart.kind-disc { border-radius: 50%; background: conic-gradient(from 30deg, rgb(255 255 255 / .35), rgb(160 200 255 / .25), rgb(255 220 160 / .3), rgb(255 255 255 / .35)); box-shadow: var(--e-3); }
+.gm-cart.kind-disc .gm-cart-label { inset: 3%; border-radius: 50%; -webkit-mask-image: radial-gradient(circle, transparent 17%, #000 18%); mask-image: radial-gradient(circle, transparent 17%, #000 18%); }
+.gm-cart.kind-disc::after { content: ''; position: absolute; inset: 35%; border-radius: 50%; background: radial-gradient(circle, var(--bg) 0 30%, rgb(255 255 255 / .45) 31% 42%, rgb(255 255 255 / .1) 43%); pointer-events: none; }
+/* design-ok-end */

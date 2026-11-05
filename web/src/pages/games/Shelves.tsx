@@ -1,18 +1,22 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
-import { api, mediaUrlQ, type GameConsole, type GamePlaying, type Item } from '../../api'
+import { api, mediaUrlQ, type GameConsole, type GamePlaying, type GameShelfShape, type Item } from '../../api'
 import { Placeholder } from '../../components/common'
+import { Chip } from '../../ui'
 import { IconGamepad, IconPlay, IconRight, IconStar, IconTune } from '../../icons'
 import { cardCover, crispIfSmall, fmtAgo, fmtPlayed, saveThumb, useGameLinks, type GameContinue } from './data'
 import './shelves.css'
 
 // Shelves: the games home (WittyMediaClient's docs/WITTYPLAY-EXPERIENCE.md, the contract every
-// device builds to). Each console is a shelf of spines in its covers' colours; pressing one pulls
-// it out to face you, with Resume or Play under the shelf. A game in progress has a ribbon. Above
-// the shelves is where you left off, the one obvious next step.
+// device builds to). Each console is a shelf, and its games stand on it three ways, by choice:
+// Cases (the default: each game in its console's kind of case, cover showing), Cartridges (each
+// game as its cartridge, card or disc, cover on the label) and Shelf (spines, as books stand).
+// Pressing one pulls it out, with Resume or Play under the shelf. A game in progress has a ribbon.
+// Above the shelves is where you left off, the one obvious next step.
 //
-// Nothing here is a console maker's: a spine is a tinted strip with the title, the console's short
-// name and its era's grain, never a box's real spine.
+// Nothing here is a console maker's: cases and cartridges are drawn here as plain shapes in each
+// console's proportions and materials, around the game's own cover; a spine is a tinted strip with
+// the title, the console's short name and its era's grain, never a box's real spine.
 
 export const ERA_NAMES: Record<string, string> = { first: 'The first consoles', '8-bit': '8-bit', '16-bit': '16-bit', 'early-3d': 'Early 3D', disc: 'Disc era', pocket: 'Pocket' }
 // The grain behind a console's spines and band: the size of its era's pixel.
@@ -102,6 +106,67 @@ export function useTints(items: Item[]) {
 
 type PullProps = { pulled: string | null; onPull: (key: string | null) => void }
 
+// ---------------------------------------------------------------- the three views
+
+export type ShelfView = 'cases' | 'carts' | 'spines'
+const VIEW_KEY = 'wms.gm.shelfView'
+export const SHELF_VIEWS: { id: ShelfView; label: string }[] = [{ id: 'cases', label: 'Cases' }, { id: 'carts', label: 'Cartridges' }, { id: 'spines', label: 'Shelf' }]
+
+// The view is this device's choice, kept here only.
+export function useShelfView(): [ShelfView, (v: ShelfView) => void] {
+  const [view, setView] = useState<ShelfView>(() => {
+    try { const v = localStorage.getItem(VIEW_KEY); if (v === 'carts' || v === 'spines') return v } catch { /* the default, then */ }
+    return 'cases'
+  })
+  const set = (v: ShelfView) => { setView(v); try { localStorage.setItem(VIEW_KEY, v) } catch { /* for this visit only */ } }
+  return [view, set]
+}
+
+export function ViewSwitch({ view, onView }: { view: ShelfView; onView: (v: ShelfView) => void }) {
+  return (
+    <div className="gm-views chips" role="group" aria-label="How games stand on the shelves">
+      {SHELF_VIEWS.map((v) => <Chip key={v.id} selected={view === v.id} onClick={() => onView(v.id)}>{v.label}</Chip>)}
+    </div>
+  )
+}
+
+// A console's case and cartridge, from the server; for a console it doesn't describe, a box and
+// a cartridge, or a keep case and a disc for disc consoles.
+const caseOf = (c?: GameConsole): GameShelfShape => c?.shelf?.case || (c?.media === 'disc' ? { kind: 'keep', aspect: 0.71, height: 1 } : { kind: 'box', aspect: 0.72, height: 1 })
+const cartOf = (c?: GameConsole): GameShelfShape => c?.shelf?.cart || (c?.media === 'disc' ? { kind: 'disc', aspect: 1, height: 0.66 } : { kind: 'cart', aspect: 0.88, height: 0.85 })
+
+function Cover({ it, c }: { it: Item; c?: GameConsole }) {
+  return it.poster ? <img src={cardCover(it)} alt="" decoding="async" loading="lazy" onLoad={crispIfSmall} /> : <Placeholder title={it.title} label={c?.short} />
+}
+
+// A game in its case, cover showing.
+function GameCase({ it, c, ribbon, fav, shelf, pulled, onPull }: { it: Item; c?: GameConsole; ribbon: boolean; fav: boolean; shelf: string } & PullProps) {
+  const key = `${shelf}:${it.id}`, on = pulled === key, sh = caseOf(c)
+  return (
+    <button type="button" className={`gm-case kind-${sh.kind}${on ? ' pulled' : ''}`} data-gm-item={it.id} style={{ '--aspect': sh.aspect, '--h': sh.height } as CSSProperties}
+      aria-label={`${it.title}${c ? ', ' + c.short : ''}${ribbon ? ', in progress' : ''}${fav ? ', a favourite' : ''}${on ? ', chosen' : ''}`} aria-expanded={on}
+      onClick={() => onPull(on ? null : key)}>
+      <span className="gm-case-art"><Cover it={it} c={c} /></span>
+      {ribbon && <i className="gm-ribbon" aria-hidden="true" />}
+      {fav && <IconStar className="gm-item-fav" size={12} />}
+    </button>
+  )
+}
+
+// A game as its cartridge, card or disc, cover on the label.
+function GameCart({ it, c, ribbon, fav, shelf, pulled, onPull }: { it: Item; c?: GameConsole; ribbon: boolean; fav: boolean; shelf: string } & PullProps) {
+  const key = `${shelf}:${it.id}`, on = pulled === key, sh = cartOf(c)
+  return (
+    <button type="button" className={`gm-cart kind-${sh.kind}${on ? ' pulled' : ''}`} data-gm-item={it.id} style={{ '--aspect': sh.aspect, '--h': sh.height } as CSSProperties}
+      aria-label={`${it.title}${c ? ', ' + c.short : ''}${ribbon ? ', in progress' : ''}${fav ? ', a favourite' : ''}${on ? ', chosen' : ''}`} aria-expanded={on}
+      onClick={() => onPull(on ? null : key)}>
+      <span className="gm-cart-label"><Cover it={it} c={c} /></span>
+      {ribbon && <i className="gm-ribbon" aria-hidden="true" />}
+      {fav && <IconStar className="gm-item-fav" size={12} />}
+    </button>
+  )
+}
+
 function Spine({ it, c, ribbon, fav, shelf, pulled, onPull }: { it: Item; c?: GameConsole; ribbon: boolean; fav: boolean; shelf: string } & PullProps) {
   const key = `${shelf}:${it.id}`
   const width = 34 + Math.min(14, Math.round(it.title.length * 0.55))
@@ -169,23 +234,26 @@ export type ShelfProps = {
   to?: string
   favs: Set<number>
   progress: Map<number, GameContinue>
+  view: ShelfView
 } & PullProps
 
-export function Shelf({ id, title, items, consoles, console: c, faceFirst, letters, count, to, favs, progress, pulled, onPull }: ShelfProps) {
+export function Shelf({ id, title, items, consoles, console: c, faceFirst, letters, count, to, favs, progress, view, pulled, onPull }: ShelfProps) {
   useTints(items)
   if (items.length === 0) return null
   const chosen = pulled?.startsWith(id + ':') ? items.find((it) => `${id}:${it.id}` === pulled) : undefined
   const out: React.ReactNode[] = []
   items.forEach((it, i) => {
-    if (letters) {
+    if (letters && view === 'spines') {
       const l = initial(it.title), before = i ? initial(items[i - 1].title) : ''
       if (l !== before) out.push(<span key={'l' + l} className="gm-divider" aria-hidden="true">{l}</span>)
     }
     const ic = consoles.get(it.console || '')
     const ribbon = !!progress.get(it.id)?.save
-    out.push(i === 0 && faceFirst && pulled !== `${id}:${it.id}`
-      ? <FaceOut key={it.id} it={it} c={ic} ribbon={ribbon} shelf={id} pulled={pulled} onPull={onPull} />
-      : <Spine key={it.id} it={it} c={ic} ribbon={ribbon} fav={favs.has(it.id)} shelf={id} pulled={pulled} onPull={onPull} />)
+    const fav = favs.has(it.id)
+    out.push(view === 'cases' ? <GameCase key={it.id} it={it} c={ic} ribbon={ribbon} fav={fav} shelf={id} pulled={pulled} onPull={onPull} />
+      : view === 'carts' ? <GameCart key={it.id} it={it} c={ic} ribbon={ribbon} fav={fav} shelf={id} pulled={pulled} onPull={onPull} />
+      : i === 0 && faceFirst && pulled !== `${id}:${it.id}` ? <FaceOut key={it.id} it={it} c={ic} ribbon={ribbon} shelf={id} pulled={pulled} onPull={onPull} />
+      : <Spine key={it.id} it={it} c={ic} ribbon={ribbon} fav={fav} shelf={id} pulled={pulled} onPull={onPull} />)
   })
   return (
     <section className="gm-shelf gm-section" data-gm-section aria-label={title}>
@@ -195,7 +263,7 @@ export function Shelf({ id, title, items, consoles, console: c, faceFirst, lette
         {count != null && <span className="gm-shelf-count">{count.toLocaleString()}</span>}
         {to && <Link className="gm-shelf-all" to={to} aria-label={`All of ${title}`}>All <IconRight size={14} /></Link>}
       </div>
-      <div className="gm-ledge">{out}</div>
+      <div className={`gm-ledge view-${view}`}>{out}</div>
       {chosen && <PulledInfo it={chosen} c={consoles.get(chosen.console || '')} cont={progress.get(chosen.id)} />}
     </section>
   )

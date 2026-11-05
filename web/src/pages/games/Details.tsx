@@ -6,7 +6,7 @@ import { api, backdropUrl, fmtDateTime, mediaUrl, uploadFile, type ArtCandidate,
 import ArtworkPicker, { ART_SOURCE } from '../../components/ArtworkPicker'
 import { Placeholder, Spinner } from '../../components/common'
 import LegalNote from '../../components/LegalNote'
-import { IconCheck, IconDownload, IconEdit, IconGamepad, IconImage, IconInfo, IconMore, IconPlay, IconRefresh, IconSettings, IconStar, IconTrash, IconTune } from '../../icons'
+import { IconCheck, IconDownload, IconEdit, IconGamepad, IconGlobe, IconImage, IconInfo, IconMore, IconPlay, IconRefresh, IconSettings, IconStar, IconTrash, IconTune, IconUsers } from '../../icons'
 import { toast, useApp } from '../../state'
 import { ask, Dialog, Menu, type MenuEntry } from '../../ui'
 import { GameCredits, GameMatchBar, GameRatings, GameShots } from '../GameMeta'
@@ -16,6 +16,7 @@ import { crispIfSmall, fmtPlayed, heroCover, saveThumb, useCoverTint, useGameLin
 import { Ambient } from './Library'
 import type { SaveSlot } from '@wittywilla/wittyplay'
 import './games-ui.css'
+import './shelves.css'
 
 // A game's page: what it is, a big button to play it, where you left off, and everything
 // else about it below. Whatever's stopping a game from starting says so here, with the
@@ -26,7 +27,8 @@ const GameCorePicker = lazy(() => import('../settings/GamingCustom').then((m) =>
 
 type GamePersonal = { favourite: boolean; note: string; plays: number; lastPlayed: number; cheats: { name?: string; enabled?: boolean }[]; hasBattery?: boolean }
 
-const slotName = (s: number) => (s === 0 ? 'Automatic save' : s === 100 ? 'Before the last load' : s === 101 ? 'Before starting over' : `Slot ${s}`)
+// WittyPlay's words for save states (WittyMediaClient docs/WITTYPLAY-EXPERIENCE.md, Words).
+const slotName = (s: number) => (s === 0 ? 'Where you left off' : s === 100 ? 'Before you loaded' : s === 101 ? 'Before starting over' : `Moment ${s}`)
 
 const fmtReleased = (d: string) => {
   const [y, m, day] = d.split('-').map(Number)
@@ -95,6 +97,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
   const back = backdropUrl(it)
   const sizeText = it.sizeBytes ? (it.sizeBytes >= 1e9 ? `${(it.sizeBytes / 1e9).toFixed(1)} GB` : `${Math.max(1, Math.round(it.sizeBytes / 1e6))} MB`) : ''
   const cheats = mine?.cheats?.length || 0
+  const seats = c?.capabilities?.input.ports || 0
 
   const putMeta = async (patch: Partial<GamePersonal>) => {
     try { setMine(await api.put<GamePersonal>(`/games/${it.id}/meta`, patch)) } catch (e: any) { toast(e.message) }
@@ -183,7 +186,8 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
           {auto && ready && (
             <Link className="gm-resume" to={links.play(it.id, 'resume=1')} aria-label={`Resume from ${fmtDateTime(auto.updatedAt * 1000)}`}>
               {auto.hasThumb ? <img src={saveThumb(it.id, 0, auto.updatedAt)} alt="" loading="lazy" onLoad={crispIfSmall} /> : <span className="gm-save-blank" />}
-              <span><b>Pick up where you left off</b><small>{fmtDateTime(auto.updatedAt * 1000)}</small></span>
+              <span><b>Where you left off</b><small>{fmtDateTime(auto.updatedAt * 1000)}</small></span>
+              <i className="gm-ribbon" aria-hidden="true" />
             </Link>
           )}
           {check && !check.ready && (
@@ -229,7 +233,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
 
       {saves.length > 0 && (
         <section className="hub gm-section" data-gm-section aria-labelledby="gm-saves-h">
-          <div className="hub-head"><h2 id="gm-saves-h">Save states</h2></div>
+          <div className="hub-head"><h2 id="gm-saves-h">Moments</h2></div>
           <ul className="gm-saves">
             {[...(auto ? [auto] : []), ...others].map((s) => (
               <li key={s.slot}>
@@ -250,7 +254,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
 
       <div className="gm-panels" data-gm-section>
         <section className="gm-panel" aria-labelledby="gm-play-h">
-          <h2 id="gm-play-h">How it plays</h2>
+          <h2 id="gm-play-h">How you play it</h2>
           <ul className="gm-checks">
             <li className="ok"><IconCheck size={16} /><span><b>Runs on your server</b><small>and streams to this device, so this device needs no emulator and nothing downloads. Saves stay on the server, and follow you to every device. Playing on the device itself, without the server, isn’t available yet.</small></span></li>
             {check?.core && <li className="ok"><IconCheck size={16} /><span><b>{check.core.name}</b><small>The core that plays this game. License: {check.core.license || 'not known'}.</small></span></li>}
@@ -263,6 +267,9 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
               </li>
             ))}
             {c?.unavailable && <li className="no"><IconInfo size={16} /><span><b>Not playable here yet</b><small>{c.unavailable}</small></span></li>}
+            {seats > 0 && <li className="info"><IconUsers size={16} /><span><b>Seats</b><small>{seats === 1 ? 'One player.' : `Up to ${seats} players on one screen${c?.capabilities?.input.multitap ? `, ${c.capabilities.input.multitap} with a multitap` : ''}.`}</small></span></li>}
+            {/* Reserved and not built: playing with someone on another server. Never an action. */}
+            <li className="info gm-reserved" aria-disabled="true"><IconGlobe size={16} /><span><b>Multiplayer</b><small>Play with someone on another server. Coming later.</small></span></li>
           </ul>
           {user?.isAdmin && <Suspense fallback={null}><GameCorePicker itemId={it.id} /></Suspense>}
         </section>

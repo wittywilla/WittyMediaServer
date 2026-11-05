@@ -182,7 +182,8 @@ func TestNativeClientPlaysAGame(t *testing.T) {
 		ID      string `json:"id"`
 		Console string `json:"console"`
 		Modes   []struct {
-			ID string `json:"id"`
+			ID     string `json:"id"`
+			Stream int    `json:"stream"`
 		} `json:"modes"`
 	}
 	if c := call("POST", "/api/games/"+itoa64(item.ID)+"/play", map[string]any{"resume": false}, &sess); c != 201 {
@@ -283,6 +284,89 @@ func TestNativeClientPlaysAGame(t *testing.T) {
 		t.Fatalf("first message: %v %s", err, b)
 	}
 	c.Close(websocket.StatusNormalClosure, "")
+
+	// Version 2, where this WittyPlay has it. One from before it says what to update instead, on
+	// both routes, and version 1 above has played regardless.
+	v2 := false
+	for _, m := range sess.Modes {
+		v2 = v2 || m.Stream >= 2
+	}
+	if !v2 {
+		w := g.do("POST", "/api/play/"+sess.ID+"/stream", g.admin, map[string]any{"hello": map[string]any{"v": 2}, "sdp": "x"})
+		if w.Code != 501 || !strings.Contains(w.Body.String(), `"needs-update"`) {
+			t.Fatalf("version 2 on a WittyPlay without it: %d %s", w.Code, w.Body.String())
+		}
+		_, res, err := websocket.Dial(ctx, srv.URL+"/api/play/"+sess.ID+"/stream", &websocket.DialOptions{HTTPHeader: http.Header{"Authorization": {"Bearer " + g.admin}}})
+		if err == nil || res == nil || res.StatusCode != 501 {
+			t.Fatalf("version 2's WebSocket on a WittyPlay without it: %v %v", res, err)
+		}
+		t.Log("this WittyPlay has no version 2 of the stream, and says so")
+	} else {
+		// Version 2, as docs/GAMING-STREAM.md has it: the hello and the offer through one route.
+		pc2, err := webrtc.NewPeerConnection(webrtc.Configuration{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer pc2.Close()
+		for _, kind := range []webrtc.RTPCodecType{webrtc.RTPCodecTypeVideo, webrtc.RTPCodecTypeAudio} {
+			if _, err := pc2.AddTransceiverFromKind(kind, webrtc.RTPTransceiverInit{Direction: webrtc.RTPTransceiverDirectionRecvonly}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := pc2.CreateDataChannel("events", nil); err != nil {
+			t.Fatal(err)
+		}
+		offer2, err := pc2.CreateOffer(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		gathered2 := webrtc.GatheringCompletePromise(pc2)
+		if err := pc2.SetLocalDescription(offer2); err != nil {
+			t.Fatal(err)
+		}
+		<-gathered2
+		var connected struct {
+			Stream struct {
+				V         int    `json:"v"`
+				Conn      string `json:"conn"`
+				Transport string `json:"transport"`
+				Audio     string `json:"audio"`
+				Away      bool   `json:"away"`
+				Seats     []struct {
+					Port int  `json:"port"`
+					You  bool `json:"you"`
+				} `json:"seats"`
+			} `json:"stream"`
+			SDP string `json:"sdp"`
+		}
+		hello := map[string]any{"v": 2, "app": "test", "device": "appletv-1", "seats": []int{1}, "display": map[string]any{"hz": 60}}
+		if c := call("POST", "/api/play/"+sess.ID+"/stream", map[string]any{"hello": hello, "sdp": pc2.LocalDescription().SDP}, &connected); c != 200 {
+			t.Fatalf("stream: %d", c)
+		}
+		st := connected.Stream
+		if st.V != 2 || st.Conn == "" || st.Transport != "webrtc" || st.Audio != "opus" || st.Away || len(st.Seats) != 1 || st.Seats[0].Port != 1 || !st.Seats[0].You || connected.SDP == "" {
+			t.Fatalf("version 2's answer: %+v", connected)
+		}
+		if err := pc2.SetRemoteDescription(webrtc.SessionDescription{Type: webrtc.SDPTypeAnswer, SDP: connected.SDP}); err != nil {
+			t.Fatal(err)
+		}
+
+		// Its WebSocket, with a bearer header: the hello first, and the stream's description back.
+		c2, _, err := websocket.Dial(ctx, srv.URL+"/api/play/"+sess.ID+"/stream", &websocket.DialOptions{HTTPHeader: http.Header{"Authorization": {"Bearer " + g.admin}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		c2.SetReadLimit(1 << 24)
+		if err := c2.Write(ctx, websocket.MessageText, []byte(`{"type":"hello","v":2,"device":"phone-1","watch":false,"seats":[2]}`)); err != nil {
+			t.Fatal(err)
+		}
+		typ, b, err = c2.Read(ctx)
+		if err != nil || typ != websocket.MessageText || !strings.Contains(string(b), `"type":"stream"`) || !strings.Contains(string(b), `"transport":"websocket"`) {
+			t.Fatalf("version 2's first message: %v %s", err, b)
+		}
+		c2.Close(websocket.StatusNormalClosure, "")
+
+	}
 
 	if c := call("DELETE", "/api/play/"+sess.ID, nil, nil); c != 200 {
 		t.Fatalf("stop: %d", c)

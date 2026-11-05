@@ -108,7 +108,7 @@ The rest of **Look**:
 - **Row size** and **Hours across the screen**.
 - **Show:** a line at the current time down all channels, how far into each programme it is, episode names and details, and channel logos.
 
-**Room at the top.** Every theme leaves the same room above the first line of a TV page. It grows with the window, and across the room, in **Big screen mode** or with a controller or remote, it and the sides clear TV overscan, which can crop up to about 5% off each edge.
+**Room at the top.** Every theme leaves the same room above the first line of a TV page. It grows with the window, and across the room, in **TV mode** or with a controller or remote, it and the sides clear TV overscan, which can crop up to about 5% off each edge.
 
 Each channel can also have its own colour, in its editor, on its row, at the top of the guide and on its banner.
 

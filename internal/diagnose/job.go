@@ -246,12 +246,12 @@ func (m *Manager) runJob(j *Job) {
 	stopNow := j.wanted
 	j.report.State = StateRunning
 	j.report.Started = time.Now().UnixMilli()
-	subject := j.report.Subject
+	kind, subject := j.report.Kind, j.report.Subject
 	j.mu.Unlock()
 	if stopNow {
 		cancel()
 	}
-	j.log.Info("WittyDiagnoser started", "kind", j.report.Kind, "file", subject)
+	j.log.Info("WittyDiagnoser started", "kind", kind, "file", subject)
 	task := m.env.Tasks.Start(tasks.Spec{Type: tasks.TypeDiagnose, Title: "WittyDiagnoser is checking something", Cancel: func() { m.Cancel(j.ID) }, AdminOnly: true})
 	task.Item(filepath.Base(subject), subject)
 	j.mu.Lock()
@@ -429,9 +429,16 @@ func (j *Job) View() *View {
 	return &View{Report: *j.snapshotLocked(), Phase: j.phase, Fraction: j.fraction, Saved: j.saved}
 }
 
+// snapshotLocked copies the report, down to each finding's lists, so the copy can be
+// encoded or saved after the lock is let go while the job carries on. j.mu is held.
 func (j *Job) snapshotLocked() *Report {
 	r := j.report
-	r.Findings = append([]Finding{}, j.report.Findings...)
+	r.Findings = make([]Finding, len(j.report.Findings))
+	for i, f := range j.report.Findings {
+		f.Details = slices.Clone(f.Details)
+		f.Names = slices.Clone(f.Names)
+		r.Findings[i] = f
+	}
 	sortFindings(r.Findings)
 	r.Counts = make(map[Severity]int, len(j.report.Counts))
 	for k, v := range j.report.Counts {
@@ -470,7 +477,13 @@ func (j *Job) SetLabel(label string) {
 }
 
 // Add records a finding. Full paths are taken out here, whatever made them.
+//
+// The job keeps lists of its own: the caller's may be handed to more than one
+// finding (one drive's health lines go to every folder on it), and scrubbing them
+// in place would change a finding already recorded while someone reads it.
 func (j *Job) Add(f Finding) {
+	f.Details = slices.Clone(f.Details)
+	f.Names = slices.Clone(f.Names)
 	f.Title = j.scrubText(f.Title)
 	f.What = j.scrubText(f.What)
 	f.Fix = j.scrubText(f.Fix)

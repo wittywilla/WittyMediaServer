@@ -105,9 +105,13 @@ func TestTheOnlyVersionRestsRatherThanGoing(t *testing.T) {
 	}
 }
 
+// A rest ends when its time is up. Time passes here by moving the rest's end into the past, not
+// by waiting out a short rest: on a busy machine (CI's race detector, with every package at once)
+// more than 50 ms went by between the third failure starting the rest and the first look at it,
+// and the test saw no rest at all.
 func TestARestEnds(t *testing.T) {
 	oldRest := restFor
-	restFor = time.Hour // a short one could end before it's looked at, on a busy machine
+	restFor = time.Hour
 	defer func() { restFor = oldRest }()
 	w := newWorld(t)
 	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API, "crash"))
@@ -122,7 +126,7 @@ func TestARestEnds(t *testing.T) {
 		t.Fatal("not resting")
 	}
 	m.mu.Lock()
-	m.mods["wittyphotos"].restUntil = time.Now().Add(-time.Second) // the hour has gone by
+	m.mods["wittyphotos"].restUntil = time.Now().Add(-time.Second) // the hour is up
 	m.mu.Unlock()
 	if err := m.Resting("wittyphotos"); err != nil {
 		t.Fatalf("still resting: %v", err)
@@ -180,8 +184,9 @@ func TestAnEarlierRunsGivingUpIsUndone(t *testing.T) {
 }
 
 // Issue #294: the start-up repair lifts only what slow starts and crashes did. A game runner
-// that stopped before the game was ready is the Mac sandbox fix's to decide on
-// (liftNestedSandboxBlocks), so it's left as it was here, on every system.
+// that stopped before the game was ready is the Mac sandbox fix's and the game-failures fix's to
+// decide on (liftNestedSandboxBlocks, liftGameFailureBlocks), so it's left as it was here, on
+// every system.
 func TestTheStartUpRepairLeavesTheMacFixItsOwn(t *testing.T) {
 	m := New(Config{Dir: t.TempDir(), Server: "0.6.2-alpha", Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	defer m.Close()

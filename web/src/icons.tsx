@@ -89,4 +89,15 @@ export const IconGlobe = (p: P) => <S {...p} d="M12 2a10 10 0 100 20 10 10 0 000
 export const IconNetwork = (p: P) => <S {...p} d="M13 22h8v-7h-3v-4h-5V9h3V2H8v7h3v2H6v4H3v7h8v-7H8v-2h8v2h-3z" />
 export const IconLock = (p: P) => <S {...p} d="M18 8h-1V6a5 5 0 00-10 0v2H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V10a2 2 0 00-2-2zM9 6a3 3 0 016 0v2H9zm3 11a2 2 0 110-4 2 2 0 010 4z" />
 export const IconUnlock = (p: P) => <S {...p} d="M12 2a5 5 0 00-5 5h2a3 3 0 016 0v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm0 12a2 2 0 110 4 2 2 0 010-4z" />
+// The You page's rows (pages/YouPage.tsx), the same meanings as the apps' icons.
+export const IconPerson = (p: P) => <S {...p} d="M12 12a4 4 0 100-8 4 4 0 000 8zm0 2c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z" />
+export const IconKey = (p: P) => <S {...p} d="M12.7 10A6 6 0 001 12a6 6 0 0011.7 2H17v4h4v-4h2v-4zM7 14a2 2 0 110-4 2 2 0 010 4z" />
+export const IconDevices = (p: P) => <S {...p} d="M4 6h18V4H4a2 2 0 00-2 2v11H0v3h14v-3H4zm19 2h-6a1 1 0 00-1 1v10a1 1 0 001 1h6a1 1 0 001-1V9a1 1 0 00-1-1zm-1 9h-4v-7h4z" />
+export const IconLink = (p: P) => <S {...p} d="M3.9 12c0-1.7 1.4-3.1 3.1-3.1h4V7H7a5 5 0 000 10h4v-1.9H7c-1.7 0-3.1-1.4-3.1-3.1zM8 13h8v-2H8zm9-6h-4v1.9h4c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1h-4V17h4a5 5 0 000-10z" />
+export const IconStack = (p: P) => <S {...p} d="M3 5H1v16a2 2 0 002 2h16v-2H3zm18-4H7a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V3a2 2 0 00-2-2zm0 16H7V3h14z" />
+export const IconBolt = (p: P) => <S {...p} d="M7 2v11h3v9l7-12h-4l4-8z" />
+export const IconSparkles = (p: P) => <S {...p} d="M19 9l1.3-2.8L23 5l-2.7-1.3L19 1l-1.3 2.7L15 5l2.7 1.2zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12zM19 15l-1.3 2.8L15 19l2.7 1.3L19 23l1.3-2.7L23 19l-2.7-1.2z" />
+export const IconWand = (p: P) => <S {...p} d="M7.5 5.6L10 7 8.6 4.5 10 2 7.5 3.4 5 2l1.4 2.5L5 7zm12 9.8L17 14l1.4 2.5L17 19l2.5-1.4L22 19l-1.4-2.5L22 14zM22 2l-2.5 1.4L17 2l1.4 2.5L17 7l2.5-1.4L22 7l-1.4-2.5zm-7.6 5.3a1 1 0 00-1.4 0L1.3 19a1 1 0 000 1.4l2.3 2.3a1 1 0 001.4 0L16.7 11a1 1 0 000-1.4zm-1 5.5l-2.2-2.2 2.5-2.4 2.1 2.1z" />
+export const IconBrush = (p: P) => <S {...p} d="M7 14a3 3 0 00-3 3c0 1.3-1.2 2-2 2 .9 1.2 2.5 2 4 2a4 4 0 004-4 3 3 0 00-3-3zm13.7-9.4l-1.3-1.3a1 1 0 00-1.4 0L9 12.3l2.8 2.7 8.9-9a1 1 0 000-1.4z" />
+export const IconServer = (p: P) => <S {...p} d="M20 13H4a1 1 0 00-1 1v6a1 1 0 001 1h16a1 1 0 001-1v-6a1 1 0 00-1-1zM7 19a2 2 0 110-4 2 2 0 010 4zM20 3H4a1 1 0 00-1 1v6a1 1 0 001 1h16a1 1 0 001-1V4a1 1 0 00-1-1zM7 9a2 2 0 110-4 2 2 0 010 4z" />
 export const libIcon = (type: string) => (type === 'games' ? <IconGamepad /> : type === 'photos' ? <IconImage /> : type === 'shorts' ? <IconShorts /> : type === 'channels' || type === 'musicvideos' ? <IconChannels /> : type === 'radio' ? <IconRadio /> : type === 'movies' ? <IconFilm /> : type === 'shows' ? <IconTv /> : type === 'anime' ? <IconAnime /> : type === 'music' ? <IconAudio /> : type === 'podcasts' ? <IconMic /> : type === 'audiobooks' ? <IconHeadphones /> : type === 'books' ? <IconBook /> : type === 'videos' ? <IconCamera /> : <IconDisc />)

@@ -1,8 +1,8 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import ActivitySlot from '../components/ActivitySlot'
 import { Brand, BrandMark } from '../components/common'
-import { IconDown, IconMenu, IconMore, IconSearch, IconSettings, IconSidebar } from '../icons'
+import { IconDown, IconLeft, IconMenu, IconMore, IconSearch, IconSettings, IconSidebar } from '../icons'
 import { useApp } from '../state'
 import { Menu, type MenuEntry } from '../ui/Menu'
 import { ProfileMenu } from './Account'
@@ -103,12 +103,9 @@ function TopNav() {
 
 // The row of sections on a phone, scrolling sideways with your thumb. Home and TV
 // are on the bar at the bottom, so they aren't here too.
-function SectionRow() {
-  const items = useNavItems()
-  const { prefs } = useNavPrefs()
+function SectionRow({ list }: { list: NavItem[] }) {
   const { brandName } = useApp()
   const { pathname: path } = useLocation()
-  const list = useMemo(() => arrange(items, prefs).filter((it) => it.id !== 'home' && it.id !== 'tv'), [items, prefs])
   const row = useRef<HTMLElement | null>(null)
   useEffect(() => {
     const el = row.current, on = el?.querySelector<HTMLElement>('.active')
@@ -122,15 +119,54 @@ function SectionRow() {
   )
 }
 
+// The pages a phone's row of sections and bar at the bottom lead to. Anything else is
+// below one of them, and has a Back button in the row's place.
+const TAB_PAGES = ['/', '/tv', '/search', '/you', '/settings']
+const pathOf = (to: string) => to.split(/[?#]/)[0]
+
+// Where Back goes when there's nothing in this tab's history to go back through, such as
+// a page opened from a link: the page above it.
+function above(path: string) {
+  for (const top of ['/settings', '/tv']) if (path.startsWith(top + '/')) return top
+  return '/'
+}
+
+// Back, on a phone: a round button where the row of sections would be.
+function TopBack() {
+  const nav = useNavigate()
+  const { pathname } = useLocation()
+  const back = () => { if ((window.history.state?.idx ?? 0) > 0) nav(-1); else nav(above(pathname)) }
+  return <button type="button" className="top-back" onClick={back} aria-label="Back"><IconLeft size={24} /></button>
+}
+
+// The bar gains its surface once the page is scrolled under it. A class set straight on
+// the bar, only when it changes: no React state for scrolling.
+function useUnder(bar: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    let frame = 0
+    const check = () => { frame = 0; bar.current?.classList.toggle('under', window.scrollY > 2) }
+    const later = () => { if (!frame) frame = requestAnimationFrame(check) }
+    check()
+    window.addEventListener('scroll', later, { passive: true })
+    return () => { window.removeEventListener('scroll', later); cancelAnimationFrame(frame) }
+  }, [bar])
+}
+
 export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide }: { onMenu: () => void; showMenu: boolean; topNav: boolean; menuOpen: boolean; wide: boolean }) {
   const nav = useNavigate()
   const loc = useLocation()
   const [q, setQ] = useState('')
   useEffect(() => { if (!loc.pathname.startsWith('/search')) setQ('') }, [loc.pathname])
   const { brandName } = useApp()
+  const items = useNavItems()
+  const { prefs } = useNavPrefs()
+  const list = useMemo(() => arrange(items, prefs).filter((it) => it.id !== 'home' && it.id !== 'tv'), [items, prefs])
+  const bar = useRef<HTMLElement | null>(null)
+  useUnder(bar)
+  const top = TAB_PAGES.includes(loc.pathname) || list.some((it) => pathOf(it.to) === loc.pathname)
   return (
-    <header className="topbar">
-      <SectionRow />
+    <header className="topbar" ref={bar}>
+      {top ? <SectionRow list={list} /> : <TopBack />}
       {showMenu && (
         <button type="button" className="btn icon menu-toggle" onClick={onMenu} aria-expanded={menuOpen} aria-label={wide ? (menuOpen ? 'Fold the side menu' : 'Open the side menu') : 'Open the menu'}>
           {wide ? <IconSidebar /> : <IconMenu />}

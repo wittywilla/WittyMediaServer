@@ -483,8 +483,8 @@ func (s *Server) handleRefreshEPGSource(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 400, "bad id")
 		return
 	}
-	logging.Go("guide refresh", func() {
-		if err := s.TV.FetchSource(context.WithoutCancel(r.Context()), id); err != nil {
+	s.background("guide refresh", func(ctx context.Context) {
+		if err := s.TV.FetchSource(ctx, id); err != nil && ctx.Err() == nil {
 			s.Log.WarnContext(r.Context(), "guide refresh failed", "cat", "tv", "source", id, "err", err)
 		}
 	}, "cat", "tv")
@@ -613,8 +613,7 @@ func (s *Server) noteTunerLogos(list []*livetv.Channel) {
 	if now-last < tunerLogoRecheck || !s.tunerLogosNoted.CompareAndSwap(last, now) {
 		return
 	}
-	logging.Go("tuner logos", func() {
-		ctx := context.Background()
+	s.background("tuner logos", func(ctx context.Context) {
 		if s.Store.LogoConsent(ctx) != "yes" {
 			return
 		}
@@ -629,11 +628,15 @@ func (s *Server) noteTunerLogos(list []*livetv.Channel) {
 				break
 			}
 			if _, err := s.Store.EnsureLogo(ctx, b.Kind, b.Name); err != nil {
-				s.Log.WarnContext(ctx, "could not note a channel's logo", "cat", "tv", "channel", c.Name, "err", err)
+				if ctx.Err() == nil {
+					s.Log.WarnContext(ctx, "could not note a channel's logo", "cat", "tv", "channel", c.Name, "err", err)
+				}
 				return
 			}
 		}
-		s.logos().Kick()
+		if ctx.Err() == nil {
+			s.logos().Kick()
+		}
 	}, "cat", "tv")
 }
 

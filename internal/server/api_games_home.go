@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -208,6 +209,10 @@ type gameCheckBIOS struct {
 	For      string `json:"for"`
 	Required bool   `json:"required"`
 	Found    bool   `json:"found"`
+	// Using is the file a core that takes any name will start this game with, and From where
+	// the file was found, when it was found by its checksum.
+	Using string `json:"using,omitempty"`
+	From  string `json:"from,omitempty"`
 }
 
 // GET /api/games/{id}/check says what a game needs and whether this server has it, in
@@ -231,14 +236,26 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 	systemDir := g.systemDir()
 	// As pressing Play does: files left in a BIOS folder beside the games count.
 	if len(console.BIOS) > 0 {
+		s.findBIOSNear(ctx, it.Path)
 		for _, want := range console.Cores {
 			_ = wittyplay.CollectBIOS(console, want.ID, it.Path, systemDir)
 		}
 	}
+	records := g.biosRecords()
 	bios := make([]gameCheckBIOS, 0, len(console.BIOS))
 	for _, b := range console.BIOS {
 		_, err := os.Stat(filepath.Join(systemDir, filepath.FromSlash(b.File)))
-		bios = append(bios, gameCheckBIOS{File: b.File, For: b.For, Required: b.Required, Found: err == nil})
+		e := gameCheckBIOS{File: b.File, For: b.For, Required: b.Required, Found: err == nil}
+		if e.Found {
+			e.From = records[filepath.ToSlash(b.File)].From
+		} else if b.Required {
+			// A core that takes any file its rule accepts, under any name: the one it would use.
+			if rule, use := s.biosInUse(ctx, console, it, systemDir); use != "" {
+				e.Found, e.Using = true, use
+				e.From = records[filepath.ToSlash(filepath.Join(rule.Folder, use))].From
+			}
+		}
+		bios = append(bios, e)
 	}
 	out := map[string]any{"console": console.ID, "consoleName": console.Name, "bios": bios, "biosFolder": wittyplay.BIOSFolderName}
 	if console.ID == wittyplay.TestConsole {
@@ -249,18 +266,89 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 		out["ready"], out["reason"], out["message"] = false, "unavailable", console.Unavailable
 		return out
 	}
-	core, blocked := g.cores.Playable(console, s.preferredCore(ctx, console, it.ID), systemDir)
+	// An encrypted copy can't play on any server, so that comes before what this one lacks, and
+	// says the same as Play would.
+	if console.ID == "3ds" {
+		if info, err := wittyplay.Inspect3DS(it.Path); err == nil && info.Encrypted {
+			out["ready"], out["reason"], out["message"], out["encrypted"] = false, "encrypted", encryptedMessage(), true
+			return out
+		}
+	}
+	pick := s.pickCore(ctx, console, it.ID, systemDir)
 	switch {
-	case core != nil:
-		out["ready"], out["core"] = true, map[string]any{"id": core.ID, "name": core.Name, "license": core.License}
-		out["needsGpu"] = wittyplay.Traits(core.ID).GPU || core.WantsGPU
-	case blocked != nil:
-		out["ready"], out["reason"], out["message"] = false, "bios", wittyplay.BIOSHelp(blocked.ID, console.Name)
-		out["file"] = wittyplay.MissingBIOS(blocked.ID, systemDir)
+	case pick.core != nil:
+		out["ready"], out["core"] = true, map[string]any{"id": pick.core.ID, "name": pick.core.Name, "license": pick.core.License}
+		out["needsGpu"] = !pick.software && s.coreDrawsOnGPU(*pick.core)
+		if pick.software {
+			// It plays, drawn by the processor: how it may run, before anyone presses Play.
+			out["software"], out["notice"] = true, pick.notice
+		}
+	case pick.noGPU != "":
+		// Not on this server, and why: the Play button would only be turned away. Where it would
+		// play, for whoever runs the server.
+		out["ready"], out["reason"], out["message"] = false, "gpu", gpuMessage(console.Name, pick.noGPU)
+		out["needsGpu"], out["gpuMissing"] = true, pick.noGPU
+		out["runsOn"] = consoleRunsOn(console)
+	case pick.blocked != nil:
+		out["ready"], out["reason"], out["message"] = false, "bios", wittyplay.BIOSHelp(pick.blocked.ID, console.Name)
+		out["file"] = wittyplay.MissingBIOS(pick.blocked.ID, systemDir)
 	default:
 		out["ready"], out["reason"], out["message"] = false, "core", "No core is installed for "+console.Name+"."
+		out["runsOn"] = consoleRunsOn(console)
+		if alt := s.installableCore(ctx, console); alt != nil {
+			out["alternative"] = alt
+			out["message"] = "No core is installed for " + console.Name + ". " + alt.Name + " would play it on this server."
+		} else {
+			// Not one of its cores is published for this platform: installing can't help here.
+			out["noBuild"] = true
+			out["message"] = "No core for " + console.Name + " is published for " + platformWords(runtime.GOOS, runtime.GOARCH) + ", so its games can't play on this server."
+		}
 	}
 	return out
+}
+
+// consoleRunsOn is where a console's games play: each platform where one of its cores is
+// published and can draw, with the best way it draws there.
+func consoleRunsOn(console *wittyplay.Console) []platformSupport {
+	rank := map[string]int{drawsGPU: 3, drawsCPU: 3, drawsCPUFallback: 2}
+	var out []platformSupport
+	for _, p := range buildPlatforms {
+		best := platformSupport{OS: p.OS, Arch: p.Arch}
+		for _, c := range console.Cores {
+			has, known := coreBuildFor(c.ID, p.GOOS, p.GOARCH)
+			if known && !has {
+				continue
+			}
+			d, note := drawsOn(c.ID, wittyplay.Traits(c.ID).GPU, p.GOOS, "")
+			if rank[d] > rank[best.Draws] {
+				best.Build, best.Draws, best.Note = true, d, note
+			}
+		}
+		if best.Build {
+			out = append(out, withAPI(best))
+		}
+	}
+	return out
+}
+
+// installableCore is the first core on offer for a console that's published for this server and
+// can draw here: what installing would make play.
+func (s *Server) installableCore(ctx context.Context, console *wittyplay.Console) *coreAlternative {
+	noGPU, asked := "", false
+	for _, c := range console.Cores {
+		if has, known := coreBuildFor(c.ID, runtime.GOOS, runtime.GOARCH); known && !has {
+			continue
+		}
+		gpuCore := wittyplay.Traits(c.ID).GPU
+		if gpuCore && !asked {
+			noGPU, asked = s.gpuMissing(ctx), true
+		}
+		if d, _ := drawsHere(c.ID, gpuCore, noGPU); d == drawsNone {
+			continue
+		}
+		return &coreAlternative{ID: c.ID, Name: c.Name, Console: console.Name}
+	}
+	return nil
 }
 
 // gameCountsEverywhere adds up each console's games across every library.

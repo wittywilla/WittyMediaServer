@@ -5,6 +5,8 @@ import ConnectServer from '../components/ConnectServer'
 import { Brand, BrandMark, VersionTag } from '../components/common'
 import { IconBack } from '../icons'
 import { useApp } from '../state'
+import { avatarColor } from '../ui/avatarColor'
+import { useTvMode } from '../tvmode/mode'
 
 type Profile = { id: number; name: string; displayName?: string; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean }
 
@@ -13,6 +15,8 @@ type Profile = { id: number; name: string; displayName?: string; kind: 'adult' |
 // and password form. The server decides which, see GET /api/profiles.
 export default function AuthPage() {
   const { brandName, version, setUser } = useApp()
+  // On a TV the username shows under a profile name that differs from it, as in the apps.
+  const tv = useTvMode()
   const [tapErr, setTapErr] = useState('')
   // Kids and Guest profiles without a password sign in with one tap.
   const pick = async (p: Profile) => {
@@ -49,6 +53,7 @@ export default function AuthPage() {
               <button type="button" className="who-tile" autoFocus={i === 0} onClick={() => pick(p)}>
                 <Avatar name={profileName(p)} big />
                 <span className="who-name">{profileName(p)}</span>
+                {tv && profileName(p) !== p.name && <span className="who-user">@{p.name}</span>}
                 {p.kind !== 'adult' && <span className={'who-kind kind-' + p.kind}>{p.kind === 'kids' ? 'Kids' : 'Guest'}</span>}
               </button>
             </li>
@@ -72,6 +77,7 @@ export default function AuthPage() {
 
 function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: () => void }) {
   const { setUser, brandName, plainConnection } = useApp()
+  const tv = useTvMode()
   const [name, setName] = useState(profile?.name || '')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
@@ -123,7 +129,7 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
     <form className="auth-card" onSubmit={submit}>
       {onBack && <button type="button" className="ibtn auth-back" onClick={onBack} aria-label="Back to profiles"><IconBack /></button>}
       {profile
-        ? <div className="auth-profile"><Avatar name={profileName(profile)} big /><h2>{profileName(profile)}</h2></div>
+        ? <div className="auth-profile"><Avatar name={profileName(profile)} big /><h2>{profileName(profile)}</h2>{tv && profileName(profile) !== profile.name && <span className="who-user">@{profile.name}</span>}</div>
         : <div className="brand"><BrandMark /><Brand name={brandName} /></div>}
       <p>{profile ? 'Enter your password or PIN.' : 'Sign in to your media server.'}</p>
       {plainConnection && <p className="auth-plain" role="alert"><b>This connection isn’t encrypted.</b> Your password can be read or changed by anyone between this device and the server. The owner allowed this. Sign in only on a network you trust.</p>}
@@ -141,11 +147,7 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
 }
 
 // Avatar: the profile's initial on a colour picked from its name, so each
-// person keeps the same colour on every device.
-// All dark enough for the white initial (4.5:1).
-const AVATAR_COLORS = ['#c9302f', '#b8500d', '#99690a', '#2e7d3c', '#0e7c6f', '#0a6fb8', '#3e5bd0', '#7f46b8', '#bd2f85', '#8d6444']
+// person keeps the same colour on every device (see ui/avatarColor).
 export function Avatar({ name, big }: { name: string; big?: boolean }) {
-  let h = 0
-  for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0
-  return <span className={'avatar-tile' + (big ? ' big' : '')} style={{ background: AVATAR_COLORS[h % AVATAR_COLORS.length] }} aria-hidden="true">{name.trim()[0]?.toUpperCase() || '?'}</span>
+  return <span className={'avatar-tile' + (big ? ' big' : '')} style={{ background: avatarColor(name) }} aria-hidden="true">{name.trim()[0]?.toUpperCase() || '?'}</span>
 }

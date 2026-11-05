@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { api, recentMissingModule, dvdTrackLabel, getPrefs, insertFxOn, langName, mediaUrl, posterUrl, type DiscView, type DvdAction, type DvdButton, type Item, type Presentation, type SubEvent, discName, isBluray } from '../api'
+import { api, recentMissingModule, dvdTrackLabel, getPrefs, insertFxOn, langName, mediaUrl, posterUrl, type DiscView, type DvdAction, type DvdButton, type Item, type Presentation, type SubEvent, discName } from '../api'
 import { ModuleMissing } from '../components/ModuleMissing'
 import { setLogSession } from '../errorReport'
 import { IconBack, IconClose, IconExpand, IconMenu, IconMini, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings } from '../icons'
@@ -8,12 +8,14 @@ import { Controls, useVideoState } from './Controls'
 import { haveHls, toggleFullscreen, useIdle, useSource } from './hooks'
 import Hls from 'hls.js'
 import InsertDisc from './InsertDisc'
-import Remote, { RemoteBar, type RemoteKey } from './Remote'
+import Remote, { RemoteBar, RemoteSheet, useSheetLayout, type RemoteKey } from './Remote'
+import { COLOUR_KEYS, discForm, keyWorks, remoteLabel, remoteNote } from './remoteKeys'
 import TrackPicker, { type Tile } from './TrackPicker'
 import ViewSettings from './ViewSettings'
 import { discMemory, rememberDisc, useViewPrefs, type ViewPrefs } from './viewPrefs'
 import { focusPlayerControls } from '../tv'
 import { announce } from '../a11y'
+import { getTvMode } from '../tvmode/mode'
 
 haveHls(Hls)
 
@@ -255,6 +257,17 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   const pos = () => video.current?.currentTime || 0
   const titleMenu = () => act({ type: 'menu', menu: 'title', positionSec: pres?.kind === 'title' ? pos() : 0 })
   const rootMenu = () => act({ type: 'menu', menu: 'root', positionSec: pres?.kind === 'title' ? pos() : 0 })
+  // A tap on the picture, for a Java menu that takes a pointer: where it landed on the disc's
+  // 1920x1080 frame.
+  const bdjTap = (e: React.MouseEvent) => {
+    const id = sidRef.current, s = stage.current?.getBoundingClientRect()
+    if (!id || !s || !rect) return false
+    const x = Math.round(((e.clientX - s.left - rect.left) / rect.width) * 1920)
+    const y = Math.round(((e.clientY - s.top - rect.top) / rect.height) * 1080)
+    if (x < 0 || y < 0 || x >= 1920 || y >= 1080) return false
+    api.post(`/dvd/${id}/action`, { type: 'pointer', x, y }).catch(() => {})
+    return true
+  }
 
   // Media source.
   const mediaUrlStr = pres?.media?.type === 'hls' ? pres.media.url! : null
@@ -404,6 +417,9 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
 
   const hasPopup = pres?.kind === 'title' && !!menu?.popup && buttons.length > 0
   const inMenu = (pres?.kind === 'menu' && buttons.length > 0 && showButtons) || (hasPopup && popupOpen)
+  // Menu, from the remote, the keyboard and the buttons alike: a Blu-ray's pop-up menu while the
+  // film plays, else the menu. A Java menu has its own pop-up.
+  const menuKey = () => { if (bdjOn) bdjKey('menu'); else if (hasPopup) setPopupOpen((o) => !o); else rootMenu() }
 
   // Animated highlights (Blu-ray menus): cycle the selected button's frames.
   const selectedBtn = buttons.find((b) => b.n === selected)
@@ -530,7 +546,12 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   }, [title])
 
   const togglePlay = () => { const v = video.current; if (!v) return; if (stopped) { setStopped(false); v.play().catch(() => {}); return } if (v.paused) v.play().catch(() => {}); else if (!locked('pause')) v.pause() }
-  const setRemote = (on: boolean) => view.update({ remote: on }, view.scope)
+  // On a phone, and in the mini player, the remote is a sheet, opened each time it's wanted.
+  const sheetLayout = useSheetLayout()
+  const [sheetOpen, setSheetOpen] = useState(false)
+  useEffect(() => setSheetOpen(false), [mini])
+  const remoteOn = sheetLayout || mini ? sheetOpen : prefs.remote
+  const setRemote = (on: boolean) => { if (sheetLayout || mini) setSheetOpen(on); else view.update({ remote: on }, view.scope) }
   // 3D is said out loud as it changes, and when a disc opens with it on, as it changes
   // everything on screen.
   const stereoWords = prefs.stereo === 'sbs' ? 'side by side' : prefs.stereo === 'ou' ? 'over-under' : ''
@@ -540,15 +561,16 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     saidStereo.current = prefs.stereo
     announce(stereoWords ? `3D on: ${stereoWords}, for this disc only` : '3D off')
   }, [prefs.stereo, stereoWords])
-  const back = () => chrome.minimize()
+  // In TV mode Back stops the disc and leaves, as a TV app does; otherwise it carries on in the corner.
+  const back = () => (getTvMode() ? chrome.close() : chrome.minimize())
 
   const onRemote = (k: RemoteKey) => {
     const v = video.current
-    if (bdjOn && (k === 'up' || k === 'down' || k === 'left' || k === 'right' || k === 'enter' || k === 'menu' || k.startsWith('digit'))) { bdjKey(k); return }
+    if (bdjOn && (k === 'up' || k === 'down' || k === 'left' || k === 'right' || k === 'enter' || k === 'menu' || k.startsWith('digit') || COLOUR_KEYS.includes(k))) { bdjKey(k); return }
     switch (k) {
       case 'eject': chrome.close(); break
       case 'topmenu': titleMenu(); break
-      case 'menu': if (hasPopup) setPopupOpen((o) => !o); else rootMenu(); break
+      case 'menu': menuKey(); break
       case 'return': if (popupOpen) setPopupOpen(false); else act({ type: 'key', key: 'return', positionSec: pres?.kind === 'title' ? pos() : 0 }); break
       case 'up': case 'down': case 'left': case 'right': move(k); break
       case 'enter': if (inMenu && selected) pressButton(selected); break
@@ -569,16 +591,16 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
         }
     }
   }
-  const remoteEnabled = (k: RemoteKey) => {
-    switch (k) {
-      case 'up': case 'down': case 'left': case 'right': case 'enter': return inMenu
-      case 'audio': return (title?.audio.length || 0) > 1
-      case 'subtitle': return (title?.subtitles.length || 0) > 0
-      case 'angle': return (title?.angles || 1) > 1
-      case 'rew': case 'ff': case 'play': case 'pause': case 'stop': return pres?.media?.type === 'hls'
-      default: return true
-    }
+  // Which keys work now (remoteKeys.ts): a Java menu takes the arrows, OK and colour keys
+  // though it lists no buttons.
+  const form = discForm(item)
+  const remoteState = {
+    inMenu, bdj: bdjOn, popup: hasPopup, hasMenus: item.disc?.hasMenus, playing: pres?.media?.type === 'hls',
+    audio: title?.audio.length, subtitles: title?.subtitles.length, angles: title?.angles, chapters: chapters.length,
   }
+  const remoteEnabled = (k: RemoteKey) => keyWorks(form, k, remoteState)
+  const keysNote = remoteNote(form, remoteState)
+  const label = remoteLabel(form)
 
   // The picture and the disc's menus have the arrow keys until the viewer goes
   // to the controls.
@@ -615,9 +637,9 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
           break
         case 'Enter': if (inMenu) { e.preventDefault(); pressButton(selected) } break
         case ' ': case 'k': case 'MediaPlayPause': e.preventDefault(); togglePlay(); break
-        case 'm': case 'ContextMenu': if (hasPopup) setPopupOpen((o) => !o); else rootMenu(); break
+        case 'm': case 'ContextMenu': menuKey(); break
         case 't': titleMenu(); break
-        case 'r': setRemote(!prefs.remote); break
+        case 'r': setRemote(!remoteOn); break
         case 'f': toggleFullscreen(root.current); break
         case 'a': onRemote('audio'); break
         case 's': onRemote('subtitle'); break
@@ -672,7 +694,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   return (
     <div className={'player dvd' + (mini ? ' mini' : '') + (pres?.kind !== 'title' ? ' menu-mode' : '')} ref={root} tabIndex={-1}
       onDoubleClick={() => (mini ? chrome.expand() : toggleFullscreen(root.current))}
-      onClick={() => { if (pres?.kind === 'title' && !needClick) togglePlay() }}>
+      onClick={(e) => { if (bdjOn && bdj?.pointer && !mini && bdjTap(e)) return; if (pres?.kind === 'title' && !needClick) togglePlay() }}>
       <div className={'stage' + (prefs.stereo !== 'off' ? ` stereo-${prefs.stereo}` : '')} ref={stage}>
         {/* The video element stays mounted (stills are drawn over it) so the
             picture never blanks between clips. */}
@@ -713,7 +735,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
         )}
         {bdjOn && bdjFrame && rect && <img className="bdj-layer" src={mediaUrl(bdjFrame)} alt="" style={{ position: 'absolute', left: rect.left, top: rect.top, width: rect.width, height: rect.height, pointerEvents: 'none' }} />}
         {pres?.kind === 'title' && title && rect && <SubtitleLayer video={video} title={title} rect={rect} size={prefs.subtitleSize} forced={prefs.forcedSubs}
-          stageH={stage.current?.clientHeight || 0} clear={prefs.remote && prefs.remoteStyle === 'bar' ? 150 : 104} />}
+          stageH={stage.current?.clientHeight || 0} clear={remoteOn && prefs.remoteStyle === 'bar' && !sheetLayout ? 150 : 104} />}
       </div>
       {/* Announces what is on screen to screen readers. */}
       <div className="sr-only" role="status" aria-live="polite">
@@ -735,9 +757,12 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
       )}
 
       {mini ? (
-        <MiniBar item={item} subtitle={pres?.kind === 'title' ? titleName : `${discName(item)} menu`} playing={st.playing} isTitle={pres?.kind === 'title'}
-          onPlay={togglePlay} onPrev={() => onRemote('prev')} onNext={() => onRemote('next')}
-          onMenu={rootMenu} onTitleMenu={titleMenu} onExpand={chrome.expand} onClose={chrome.close} />
+        <>
+          <MiniBar item={item} subtitle={pres?.kind === 'title' ? titleName : `${discName(item)} menu`} playing={st.playing} isTitle={pres?.kind === 'title'}
+            onPlay={togglePlay} onPrev={() => onRemote('prev')} onNext={() => onRemote('next')}
+            onMenu={menuKey} onTitleMenu={titleMenu} remoteOn={remoteOn} onRemote={() => setRemote(!remoteOn)} onExpand={chrome.expand} onClose={chrome.close} />
+          {remoteOn && <RemoteSheet docked onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemote(false)} label={label} note={keysNote} />}
+        </>
       ) : (
         <>
           <div className="top" onClick={(e) => e.stopPropagation()}>
@@ -753,12 +778,14 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
               </span>
             )}
             <button className="btn sm hide-narrow" onClick={titleMenu} title="Disc title menu (t)">Title menu</button>
-            <button className="btn sm" onClick={rootMenu} title="Menu (m)"><IconMenu /> Menu</button>
+            <button className="btn sm" onClick={menuKey} title={hasPopup || bdjOn ? 'Pop-up menu (m)' : 'Menu (m)'}><IconMenu /> Menu</button>
             <button className="ibtn" onClick={back} title="Mini player"><IconMini /></button>
           </div>
-          {prefs.remote && (prefs.remoteStyle === 'bar'
-            ? <RemoteBar onKey={onRemote} enabled={remoteEnabled} />
-            : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemote(false)} label={isBluray(item) ? 'WittyBluray' : 'WittyDVD'} />)}
+          {remoteOn && (sheetLayout
+            ? <RemoteSheet onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemote(false)} label={label} note={keysNote} />
+            : prefs.remoteStyle === 'bar'
+              ? <RemoteBar onKey={onRemote} enabled={remoteEnabled} note={keysNote} />
+              : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemote(false)} label={label} note={keysNote} />)}
           {pres?.kind === 'title' && (
             <Controls disc video={video} duration={title?.durationSec || 0} chapters={chapters} chapterNames={chapterNames} onSeek={seek}
               chapterThumb={title ? (i) => mediaUrl(`/api/items/${item.id}/disc/thumb/${title.ttn}/${discTitle?.chapters[i]?.n ?? i + 1}`) : undefined}
@@ -766,7 +793,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
               audio={audioOpts} subtitles={subOpts} onAudio={switchAudio} onSubtitle={switchSub}
               onPick={setPicker} angles={title?.angles || 1}
               showSeek={prefs.seekBar && !locked('seek')} showChapterMarks={prefs.chapterMarks}
-              remoteOn={prefs.remote} onRemote={() => setRemote(!prefs.remote)} onSettings={() => setSettingsOpen((o) => !o)}
+              remoteOn={remoteOn} onRemote={() => setRemote(!remoteOn)} onSettings={() => setSettingsOpen((o) => !o)}
               onFullscreen={() => toggleFullscreen(root.current)} />
           )}
           {pres?.kind !== 'title' && (
@@ -780,7 +807,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
                 {!bdjOn && pres?.media?.type === 'hls' && (pres.media.loop || pres.media.stillSec === 0) && buttons.length === 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Skip</button>}
                 {/* A picture held until the viewer acts, with nothing to press: a player's Play key goes on. */}
                 {pres?.media?.type === 'still' && pres.media.stillSec < 0 && buttons.length === 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Continue</button>}
-                <button className={'btn sm remote-toggle' + (prefs.remote ? ' primary' : '')} onClick={() => setRemote(!prefs.remote)} aria-pressed={prefs.remote} title="Show or hide the on-screen remote (r)"><IconRemote /> <span>Remote</span></button>
+                <button className={'btn sm remote-toggle' + (remoteOn ? ' primary' : '')} onClick={() => setRemote(!remoteOn)} aria-pressed={remoteOn} title="Show or hide the on-screen remote (r)"><IconRemote /> <span>Remote</span></button>
                 <button className="ibtn" onClick={() => setSettingsOpen((o) => !o)} title="Viewing settings"><IconSettings /></button>
                 <button className="ibtn" onClick={() => toggleFullscreen(root.current)} title="Fullscreen (f)">⛶</button>
               </div>
@@ -802,9 +829,10 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
 
 // MiniBar is the control strip of the minimized player: the essentials of a
 // disc remote plus restore and stop.
-function MiniBar({ item, subtitle, playing, isTitle, onPlay, onPrev, onNext, onMenu, onTitleMenu, onExpand, onClose }: {
+function MiniBar({ item, subtitle, playing, isTitle, onPlay, onPrev, onNext, onMenu, onTitleMenu, remoteOn, onRemote, onExpand, onClose }: {
   item: Item; subtitle: string; playing: boolean; isTitle: boolean
-  onPlay: () => void; onPrev: () => void; onNext: () => void; onMenu: () => void; onTitleMenu: () => void; onExpand: () => void; onClose: () => void
+  onPlay: () => void; onPrev: () => void; onNext: () => void; onMenu: () => void; onTitleMenu: () => void
+  remoteOn: boolean; onRemote: () => void; onExpand: () => void; onClose: () => void
 }) {
   const stop = (f: () => void) => (e: React.MouseEvent) => { e.stopPropagation(); f() }
   return (
@@ -818,7 +846,8 @@ function MiniBar({ item, subtitle, playing, isTitle, onPlay, onPrev, onNext, onM
         <button className="ibtn big" onClick={stop(onPlay)} title={isTitle ? 'Play/Pause' : 'Play/Pause menu video'}>{playing ? <IconPause /> : <IconPlay />}</button>
         <button className="ibtn" onClick={stop(onNext)} title="Next chapter"><IconNext /></button>
         <button className="btn sm mini-disc" onClick={stop(onMenu)} title="Disc menu">Menu</button>
-        <button className="btn sm mini-disc hide-narrow" onClick={stop(onTitleMenu)} title="Title menu">Title</button>
+        <button className="btn sm mini-disc" onClick={stop(onTitleMenu)} title="Title menu">Title</button>
+        <button className={'ibtn keep' + (remoteOn ? ' on' : '')} onClick={stop(onRemote)} title="Remote" aria-label="Remote" aria-pressed={remoteOn}><IconRemote /></button>
         <button className="ibtn" onClick={stop(onExpand)} title="Full player"><IconExpand /></button>
         <button className="ibtn" onClick={stop(onClose)} title="Stop"><IconClose /></button>
       </div>

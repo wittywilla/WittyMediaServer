@@ -5,7 +5,8 @@ import { ReminderWatcher } from './pages/tv/reminders'
 import { api } from './api'
 import { getNavCollapsed, setNavCollapsed, useNavStyle } from './navPrefs'
 import HomePage from './pages/HomePage'
-import { EmptyState, Spinner, VersionTag } from './components/common'
+import { EmptyState, PageSkeleton, Spinner, VersionTag } from './components/common'
+import { shapeFor } from './ui/Surface'
 import { LinkButton } from './ui'
 import { AudioProvider } from './audio/player'
 import ConnectServer from './components/ConnectServer'
@@ -20,6 +21,7 @@ import { Sidebar } from './shell/Sidebar'
 import { TabBar } from './shell/TabBar'
 import { TopBar } from './shell/TopBar'
 import { useMedia, useNavPrefs } from './shell/useNav'
+import { useTvMode } from './tvmode/mode'
 
 const PairPage = lazy(() => import('./pages/PairPage'))
 const SharedPage = lazy(() => import('./pages/SharedPage'))
@@ -54,6 +56,7 @@ const ArtistPage = lazy(() => import('./pages/music/ArtistPage'))
 const ReaderPage = lazy(() => import('./pages/Reader'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
+const YouPage = lazy(() => import('./pages/YouPage'))
 const SetupWizard = lazy(() => import('./pages/SetupWizard'))
 // TV is its own part of the app, loaded when someone goes there.
 const GuidePage = lazy(() => import('./pages/tv/GuidePage'))
@@ -64,6 +67,8 @@ const TvPlayer = lazy(() => import('./pages/tv/TvPlayer'))
 // The TV section's one stream, shared by the guide's preview and the watch view.
 const TvHost = lazy(() => import('./pages/tv/TvHost'))
 const tvFallback = <div className="center"><div className="spinner" /></div>
+// TV mode's frame, loaded only when TV mode is on.
+const TvFrame = lazy(() => import('./tvmode/TvFrame'))
 
 export default function App() {
   useDialogs()
@@ -80,6 +85,7 @@ export default function App() {
 function Shell() {
   const { user, loading, setupRequired, onboarding, needServer } = useApp()
   const loc = useLocation()
+  const tvMode = useTvMode()
   useLayoutEffect(() => { if (user) loadUserPrefs(user.id) }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   // A link someone was sent: no account, no app around it.
   if (loc.pathname.startsWith('/s/')) return <Suspense fallback={null}><Routes><Route path="/s/:token" element={<SharedPage />} /></Routes></Suspense>
@@ -108,7 +114,7 @@ function Shell() {
         : isCouchMode ? <Suspense fallback={<Spinner />}><Routes><Route path="/big/*" element={<CouchMode />} /></Routes></Suspense>
         : isGame ? <Suspense fallback={<Spinner />}><Routes><Route path="/game/:id" element={<GamePage />} /></Routes></Suspense>
         : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
-        : isPlayer ? null : <AppFrame />}
+        : isPlayer ? null : tvMode ? <Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense> : <AppFrame />}
       <PlayerDock />
       {isTv && <Suspense fallback={null}><TvHost /></Suspense>}
       <ReminderWatcher />
@@ -144,40 +150,7 @@ function AppFrame() {
         <LegalAckBar />
         <PlainAwayBar />
         <main className="content" id="main" tabIndex={-1}>
-          <Suspense fallback={<Spinner />}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/library/:id" element={<LibraryPage />} />
-            <Route path="/item/:id" element={<ItemPage />} />
-            <Route path="/show/:id" element={<ShowPage />} />
-            <Route path="/album/:lib" element={<AlbumPage />} />
-            <Route path="/artist/:lib" element={<Suspense fallback={<Spinner />}><ArtistPage /></Suspense>} />
-            <Route path="/radio/:id" element={<Suspense fallback={<Spinner />}><RadioStationPage /></Suspense>} />
-            <Route path="/cd/:id" element={<CdPlayer />} />
-            <Route path="/couch" element={<Suspense fallback={<Spinner />}><CouchPage /></Suspense>} />
-            <Route path="/couch/:id" element={<Suspense fallback={<Spinner />}><CouchHostPage /></Suspense>} />
-            <Route path="/collections" element={<Suspense fallback={<Spinner />}><CollectionsPage /></Suspense>} />
-            <Route path="/collections/:id" element={<Suspense fallback={<Spinner />}><CollectionPage /></Suspense>} />
-            <Route path="/review" element={<Suspense fallback={<Spinner />}><ReviewPage /></Suspense>} />
-            <Route path="/watch/:id" element={<Suspense fallback={<Spinner />}><WatchPage /></Suspense>} />
-            <Route path="/creator/:id" element={<Suspense fallback={<Spinner />}><CreatorPage /></Suspense>} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/fix-matches" element={<Suspense fallback={<Spinner />}><FixMatches /></Suspense>} />
-            <Route path="/brand/:kind/:name" element={<Suspense fallback={<Spinner />}><BrandPage /></Suspense>} />
-            <Route path="/pair" element={<PairPage />} />
-            <Route path="/tv" element={<Suspense fallback={tvFallback}><GuidePage /></Suspense>} />
-            <Route path="/tv/recordings" element={<Suspense fallback={tvFallback}><RecordingsPage /></Suspense>} />
-            <Route path="/tv/channels/*" element={<Suspense fallback={tvFallback}><ChannelsPage /></Suspense>} />
-            <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
-            <Route path="/controllers" element={<Suspense fallback={<Spinner />}><ControllersScreen /></Suspense>} />
-            <Route path="/settings/*" element={<SettingsPage />} />
-            <Route path="/m/:module/:page" element={<Suspense fallback={<Spinner />}><ModulePage /></Suspense>} />
-            <Route path="/help" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
-            <Route path="/help/:guide" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
-            <Route path="/design" element={<DesignPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          </Suspense>
+          <Suspense fallback={<RouteSkeleton />}><PageRoutes /></Suspense>
           <LegalNote kind="general" className="legal-foot" />
           <footer className="page-foot"><VersionTag version={version} /></footer>
         </main>
@@ -187,6 +160,49 @@ function AppFrame() {
   )
 }
 
+// While a page's code arrives: the shape of that page, not a spinner on an empty one.
+function RouteSkeleton() {
+  return <PageSkeleton shape={shapeFor(useLocation().pathname)} />
+}
+
+// Every page of the app, by its address. The usual frame and TV mode's frame both show them.
+export function PageRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/library/:id" element={<LibraryPage />} />
+      <Route path="/item/:id" element={<ItemPage />} />
+      <Route path="/show/:id" element={<ShowPage />} />
+      <Route path="/album/:lib" element={<AlbumPage />} />
+      <Route path="/artist/:lib" element={<Suspense fallback={<Spinner />}><ArtistPage /></Suspense>} />
+      <Route path="/radio/:id" element={<Suspense fallback={<Spinner />}><RadioStationPage /></Suspense>} />
+      <Route path="/cd/:id" element={<CdPlayer />} />
+      <Route path="/couch" element={<Suspense fallback={<Spinner />}><CouchPage /></Suspense>} />
+      <Route path="/couch/:id" element={<Suspense fallback={<Spinner />}><CouchHostPage /></Suspense>} />
+      <Route path="/collections" element={<Suspense fallback={<Spinner />}><CollectionsPage /></Suspense>} />
+      <Route path="/collections/:id" element={<Suspense fallback={<Spinner />}><CollectionPage /></Suspense>} />
+      <Route path="/review" element={<Suspense fallback={<Spinner />}><ReviewPage /></Suspense>} />
+      <Route path="/watch/:id" element={<Suspense fallback={<Spinner />}><WatchPage /></Suspense>} />
+      <Route path="/creator/:id" element={<Suspense fallback={<Spinner />}><CreatorPage /></Suspense>} />
+      <Route path="/search" element={<SearchPage />} />
+      <Route path="/you" element={<YouPage />} />
+      <Route path="/fix-matches" element={<Suspense fallback={<Spinner />}><FixMatches /></Suspense>} />
+      <Route path="/brand/:kind/:name" element={<Suspense fallback={<Spinner />}><BrandPage /></Suspense>} />
+      <Route path="/pair" element={<PairPage />} />
+      <Route path="/tv" element={<Suspense fallback={tvFallback}><GuidePage /></Suspense>} />
+      <Route path="/tv/recordings" element={<Suspense fallback={tvFallback}><RecordingsPage /></Suspense>} />
+      <Route path="/tv/channels/*" element={<Suspense fallback={tvFallback}><ChannelsPage /></Suspense>} />
+      <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
+      <Route path="/controllers" element={<Suspense fallback={<Spinner />}><ControllersScreen /></Suspense>} />
+      <Route path="/settings/*" element={<SettingsPage />} />
+      <Route path="/m/:module/:page" element={<Suspense fallback={<Spinner />}><ModulePage /></Suspense>} />
+      <Route path="/help" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
+      <Route path="/help/:guide" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
+      <Route path="/design" element={<DesignPage />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  )
+}
 
 // An address that isn't a page: say so, with the way home, rather than landing somewhere unexplained.
 function NotFound() {

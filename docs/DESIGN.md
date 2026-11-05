@@ -200,7 +200,8 @@ Every interactive part has these states, which come free:
 | `Card` | a surface holding related things | |
 | `PosterCard` | a title with artwork | `shape`: `wide`, `square`. The `ItemCard` and `ShowCard` the libraries use render the same classes |
 | `Shelf`, `CardRow` | a titled row of cards | The arrows are the mouse's extra way along; a remote moves card by card |
-| `Skeleton`, `SkeletonGrid`, `Spinner` | loading | They wait a moment, so a fast load shows nothing |
+| `Skeleton`, `SkeletonGrid`, `PageSkeleton`, `Spinner` | loading | They wait a moment, so a fast load shows nothing. `PageSkeleton` is a whole page's shapes on a phone (`home`, `library`, `item`, `search`), and a spinner on a wider screen; `shapeFor(path)` picks one for an address |
+| `RowSheet`, `Rows`, `SheetRow` | a phone's "⋯": a page's other actions, as a sheet of rows | Choosing a row closes it. Any `Button` or `LinkButton` put in `Rows` becomes a row, so a page can hand it the buttons it shows in a row on a wide screen |
 | `EmptyState` | nothing here | Says why, and what to do |
 | `LoadError` | it couldn't load | With a retry |
 | `Notice` | something to know, in the page | `tone` as for toasts |
@@ -208,7 +209,8 @@ Every interactive part has these states, which come free:
 | `DataTable` | sortable rows | Real table semantics, `aria-sort`, stacks into labelled rows on phones |
 
 Also: `.pill` (rating and small labels), `.meta` (a line of facts, dots between them automatically),
-`.badge` on artwork, `Placeholder` (art for something with no picture), `BackLink`, `ScanButton`, and
+`.badge` on artwork, `Placeholder` (art for something with no picture; on a phone, the title's own
+colour by the avatar rule in `ui/avatarColor.ts`, with the title in white over its lower third), `BackLink`, `ScanButton`, and
 in Settings `PageHead`, `Section`, `Row` and `SaveBar`.
 
 ## Patterns
@@ -229,7 +231,22 @@ A page has one `h1`, which the announcer reads aloud on every page change: `.too
   Hide anything; group into Watch, Listen, Read and Play dropdowns. A new library joins at the end.
 - **Whose arrangement**: a person's own, else the owner's (`Use for everyone`), else ours.
 - **Phones**: a row of sections scrolling sideways at the top; a floating bar at the bottom with Home,
-  TV, Search, the drawer and You.
+  TV, Search, the drawer and You. Over a picture the row has a soft scrim of the page's colour behind
+  it (80% at the top, 70% behind the names, gone 32 below), not a halo round the words; once the page
+  is scrolled under it, it gains the page's colour at 85% with a blur and a hairline. Below Home, a library or a
+  tab's first page (an item, a show, an album, a settings page…) a round Back takes the row's place.
+  You opens the You page (`/you`, `pages/YouPage.tsx`): the person and Switch profile, then grouped
+  lists of everything about them, this device and, for an administrator, the server, each row
+  leading to the page for it, then this server and Sign out. It's a phone's only: a wider screen has
+  the account menu, and `/you` there goes to Profiles. A page's other actions go behind one "⋯"
+  (`RowSheet`): an item's beside Play and Save, a library's beside Filters. Loading shapes
+  (`PageSkeleton`) and placeholder art with the title on it are a phone's too. All of this is the
+  same phone design as the WittyMediaClient apps (their `docs/APP-DESIGN.md`, One mobile design
+  with the website, and You and settings); wider screens are as they were.
+- **Inside the app**: WittyMediaClient draws its own strip, Back, activity button and floating bar
+  round the server's pages, and sets `<html data-app="wittymediaclient">` before a page loads. At
+  phone width the website's own top bar and floating bar then step aside, so there's one of each;
+  the room at the foot (`--tabbar-space`) stays for the app's bar.
 - **Activity**: `components/ActivitySlot.tsx`, left of the account menu, holds the activity button.
 
 ### Dialogs and sheets
@@ -324,6 +341,9 @@ history entry. A pointer has no such place to return to, so this is only for key
 An app showing this page in a TV's web view reads what has its own Back from `<html data-own-back>`, a
 selector the page sets, so the list has one home: `OWN_BACK` in `tv.ts`. An app can also set `<html data-app-back="/address">`: when
 Back has nothing left to go back through, the page goes to that address, for the app to catch. It's how a controller's B leaves a web view.
+`<html data-app-up="/address">` is the same for Up: when Up finds nothing above it on the page itself (not in a
+dialog, a menu or the player), the page goes to that address. It's how a remote's Up leaves a web view for a bar the
+app draws above it, as Android TV's Live TV tab does over the guide. Neither address is ever loaded: the app catches it.
 
 `data-nav-skip` on a control: the arrows don't stop on it from outside. A programme grid has this on every cell but the
 highlighted one, so it's one stop however many cells are drawn. Moving up or down the page never jumps over a `role=grid`.
@@ -374,13 +394,21 @@ and radii are multiples of the theme's `radius`.
 - **Back always works**: every view has a way out with the Back button.
 
 In the web app these apply through `html.using-controller` (a controller in use), `@media (pointer:
-none)` (a device with no pointer) and `html.ten-foot` (*Big screen mode* in Appearance, or `?tv=1` in the
-address, which keeps them on).
+none)` (a device with no pointer) and `html.ten-foot` (TV mode, and couch mode).
+
+**TV mode** (`html.tv-mode`: Appearance, the account menu, or `?tv=1`) goes further: the app as the Apple TV
+and Android TV apps are, from WittyMediaClient's `docs/APP-DESIGN.md`, On a TV. Its own frame and screens are in
+`web/src/tvmode/`, every size in TV units (`--tvu`, a point on a 1920×1080 TV), and with it off nothing of it
+reaches the page. [plans/TV-MODE.md](plans/TV-MODE.md) is its contract. Two attributes are for it and work anywhere:
+`data-nav-entry="selector"` on a group says where focus lands when it's entered from outside (the top bar: the
+chosen tab), and `data-keep-focus` on a bar keeps the focus on it when one of its links changes the page.
+`data-tv-options` marks a page's options, which a controller's Start opens in TV mode.
 
 ## Keeping it fast
 
 - **No blur on anything that scrolls or covers video.** `backdrop-filter` and `filter: blur` repaint
-  every frame. Use a solid or nearly solid colour.
+  every frame. Use a solid or nearly solid colour. The one exception is a phone's top bar while the
+  page is scrolled under it: 52 high, phones only, and solid with reduced transparency.
 - **No per-card effects.** One listener and one element can serve a library of thousands, as moving
   posters do. A filter on each of 2,000 cards is a slideshow.
 - **Long lists use `content-visibility`**: `.grid` and `.album-grid` already do.

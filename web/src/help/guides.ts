@@ -99,6 +99,7 @@ export const GROUPS: GuideGroup[] = [
     { file: 'CLIENT-API', title: 'Client API', about: 'Every route, for anyone writing an app.' },
     { file: 'SECURITY-ROUTES', title: 'Who may call what', about: 'Every route and the role it needs.' },
     { file: 'GAMING-API', title: 'Games API', about: 'The game routes, for apps.' },
+    { file: 'GAMING-STREAM', title: 'Games: the stream', about: 'One stream for every device: why, and its wire protocol.' },
     { file: 'GAMING', title: 'Games: how it’s built', about: 'The design of the game engine.' },
     { file: 'DVD-QUIRKS', title: 'DVD disc quirks', about: 'What odd discs do, and how each is handled.' },
     { file: 'BLURAY-QUIRKS', title: 'Blu-ray disc quirks', about: 'The same for Blu-rays.' },

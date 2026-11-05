@@ -1874,6 +1874,12 @@
           },
           "type": {
             "type": "string"
+          },
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
           }
         },
         "required": [
@@ -2625,6 +2631,41 @@
           },
           "failures": {
             "type": "integer"
+          },
+          "here": {
+            "anyOf": [
+              {
+                "properties": {
+                  "api": {
+                    "type": "string"
+                  },
+                  "arch": {
+                    "type": "string"
+                  },
+                  "build": {
+                    "type": "boolean"
+                  },
+                  "draws": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "os": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "build",
+                  "draws",
+                  "os"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "id": {
             "type": "string"
@@ -3556,6 +3597,9 @@
                 "type": "null"
               }
             ]
+          },
+          "discSource": {
+            "type": "string"
           },
           "episode": {
             "anyOf": [
@@ -7859,6 +7903,9 @@
             "anyOf": [
               {
                 "properties": {
+                  "pointer": {
+                    "type": "boolean"
+                  },
                   "pollUrl": {
                     "type": "string"
                   },
@@ -29639,6 +29686,84 @@
           }
         ],
         "summary": "Play WS.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/play/{sid}/stream": {
+      "get": {
+        "operationId": "getPlaySidStream",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Version 2's WebSocket: the same messages as over WebRTC, the hello first.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postPlaySidStream",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Connects a device over WebRTC, version 2: {hello, sdp} in, {stream, sdp} out. See GAMING-STREAM.md.",
         "tags": [
           "Server"
         ],

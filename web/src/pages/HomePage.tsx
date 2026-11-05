@@ -2,11 +2,12 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react
 import { Link, useNavigate } from 'react-router-dom'
 import { HelpLink } from '../components/HelpLink'
 import { profileName, albumsOnce, api, ApiError, backdropUrl, discName, fitWidth, fmtRuntime, isDisc, posterUrl, sized, type Home, type Hub, type Show, type Item, inMainMenus } from '../api'
-import { CardRow, ItemCard, ShowCard, Spinner } from '../components/common'
+import { CardRow, ItemCard, PageSkeleton, ShowCard, Spinner } from '../components/common'
 import { UpdateBanner } from '../components/UpdateBanner'
 import { IconDown, IconGrip, IconInfo, IconPause, IconPlay, IconPlus, IconRefresh, IconRight, IconStar, IconUp, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import { useOpenItem } from '../openItem'
+import { useTvMode } from '../tvmode/mode'
 
 // The home page is a column of widgets. Everyone can reorder and hide them
 // ("Customize"); the layout is saved to the account, so it follows the
@@ -28,6 +29,7 @@ export default function HomePage() {
   const [editing, setEditing] = useState(false)
   const [dragId, setDragId] = useState<string | null>(null)
   const { libraries, user, refreshLibraries } = useApp()
+  const tv = useTvMode()
   // The problem card stays up while retrying, so the page doesn't flicker.
   const load = useCallback(() => {
     api.get<Home>('/home').then((h) => { setHome(h); setErr(null) }).catch((e) => setErr({ offline: e instanceof ApiError && e.status === 0, message: e.message }))
@@ -61,7 +63,8 @@ export default function HomePage() {
     const jump: Hub = { key: 'jump', title: 'Jump back in', items: going.flatMap((h) => h.items), shows: going.flatMap((h) => h.shows || []) }
     const list: Widget[] = [
       { id: 'hero', title: 'Featured', render: () => (home.featured.length > 0 ? <Hero items={home.featured} /> : null) },
-      { id: 'libraries', title: 'Your libraries', render: () => <LibraryTiles /> },
+      // On a TV, Libraries is a tab of its own.
+      { id: 'libraries', title: 'Your libraries', render: () => (tv ? null : <LibraryTiles />) },
       { id: 'jump', title: 'Jump back in', render: () => <HubRow hub={jump} /> },
       { id: 'onnow', title: 'On TV now', render: () => <Suspense fallback={null}><OnNowRow /></Suspense> },
       { id: 'foryou', title: 'Recommended for you', render: () => (forYou ? <HubRow hub={{ key: 'foryou', title: forYou.because ? `Because you watch ${forYou.because}` : 'Recommended for you', items: forYou.items || [], shows: forYou.shows || [] }} /> : null) },
@@ -72,7 +75,7 @@ export default function HomePage() {
     for (const h of home.hubs) if (h.key.startsWith('recent-')) list.push(hub(h))
     list.push({ id: 'shuffle', title: 'Can’t decide?', render: () => <Shuffle /> })
     return list
-  }, [forYou, home])
+  }, [forYou, home, tv])
 
   // Saved order first, then any widget the person has not placed yet.
   const ordered = useMemo(() => {
@@ -94,7 +97,7 @@ export default function HomePage() {
   const toggle = (id: string) => save({ ...layout, hidden: layout.hidden.includes(id) ? layout.hidden.filter((x) => x !== id) : [...layout.hidden, id] })
 
   if (err) return <HomeProblem offline={err.offline} message={err.message} retry={() => { refreshLibraries(); load() }} />
-  if (!home) return <Spinner />
+  if (!home) return <PageSkeleton shape="home" />
   if (home.libraries.length === 0) return <><UpdateBanner /><Welcome admin={!!user?.isAdmin} name={user ? profileName(user) : ''} onAdded={refreshLibraries} /></>
   const shown = editing ? ordered : ordered.filter((w) => !layout.hidden.includes(w.id))
   const scanning = libraries.some((l) => l.scanning)
@@ -144,7 +147,7 @@ export default function HomePage() {
       {/* A page action, not a heading: at the foot of the page. */}
       {!editing && (
         <div className="home-foot">
-          <button className="btn sm ghost" onClick={() => { setEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }} title="Rearrange or hide sections of the home page">Customize home</button>
+          <button className="btn sm ghost" data-tv-options onClick={() => { setEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }} title="Rearrange or hide sections of the home page">Customize home</button>
         </div>
       )}
     </div>
@@ -214,6 +217,11 @@ const NOUNS: Record<string, [string, string]> = {
   games: ['game', 'games'], music: ['track', 'tracks'], audiobooks: ['file', 'files'], podcasts: ['episode', 'episodes'], books: ['book', 'books'],
   photos: ['picture', 'pictures'], shorts: ['video', 'videos'], channels: ['video', 'videos'], musicvideos: ['video', 'videos'], radio: ['station', 'stations'],
 }
+// countOf: how much a library holds, in its own words ("1,204 titles"), or that it's being scanned.
+export function countOf(l: { type: string; itemCount: number; scanning?: boolean }) {
+  const [one, many] = NOUNS[l.type] || ['item', 'items']
+  return l.scanning ? 'Scanning…' : `${l.itemCount.toLocaleString()} ${l.itemCount === 1 ? one : many}`
+}
 function LibraryTiles() {
   const { libraries: allLibraries, user } = useApp()
   const libraries = allLibraries.filter(inMainMenus)
@@ -222,15 +230,12 @@ function LibraryTiles() {
     <section className="hub">
       <div className="hub-head"><h2>Your libraries</h2>{user?.isAdmin && <Link to="/settings/libraries">Manage <IconRight /></Link>}</div>
       <div className="lib-tiles">
-        {libraries.map((l) => {
-          const [one, many] = NOUNS[l.type] || ['item', 'items']
-          return (
-            <Link key={l.id} to={`/library/${l.id}`} className="lib-tile">
-              <span className="lib-tile-ic">{libIcon(l.type)}</span>
-              <span className="lib-tile-txt"><b>{l.name}</b><span className="muted">{l.scanning ? 'Scanning…' : `${l.itemCount.toLocaleString()} ${l.itemCount === 1 ? one : many}`}</span></span>
-            </Link>
-          )
-        })}
+        {libraries.map((l) => (
+          <Link key={l.id} to={`/library/${l.id}`} className="lib-tile">
+            <span className="lib-tile-ic">{libIcon(l.type)}</span>
+            <span className="lib-tile-txt"><b>{l.name}</b><span className="muted">{countOf(l)}</span></span>
+          </Link>
+        ))}
         {user?.isAdmin && (
           <Link to="/settings/libraries" className="lib-tile add">
             <span className="lib-tile-ic" aria-hidden="true"><IconPlus /></span>

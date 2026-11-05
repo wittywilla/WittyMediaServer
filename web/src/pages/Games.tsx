@@ -8,6 +8,7 @@ import { couchOn } from './games/data'
 import { getConsoles, knownConsoles, useConsoles, useSettingsHost } from './games/consoles'
 import type { Background, ControllerData, ControlsData, PlayHost, PrepareStatus, Profile, ProfileHost, SessionInfo } from '@wittywilla/wittyplay'
 import { lazyModule } from '../moduleBundles'
+import { getTvMode } from '../tvmode/mode'
 import './games.css'
 
 // Games: what the game pages share, and the page that holds the player. The library and a
@@ -86,8 +87,14 @@ export function GamePage() {
         const url = mediaUrl(`/api/play/${sid}/ws?video=${video}`)
         return (url.startsWith('http') ? url : window.location.origin + url).replace(/^http/, 'ws')
       },
+      // Version 2 of the stream, the same for every device: docs/GAMING-STREAM.md.
+      stream: (sid, hello, sdp) => api.post(`/play/${sid}/stream`, { hello, sdp }),
+      streamUrl: (sid) => {
+        const url = mediaUrl(`/api/play/${sid}/stream`)
+        return (url.startsWith('http') ? url : window.location.origin + url).replace(/^http/, 'ws')
+      },
       action: (sid, type, slot, on, extra) => api.post(`/play/${sid}/action`, { type, slot: slot ?? 0, on: !!on, ...extra }),
-      close: () => nav(couchOn() ? `/big/game/${it.id}` : `/item/${it.id}`, { replace: true }),
+      close: () => nav(getTvMode() ? `/games/game/${it.id}` : couchOn() ? `/big/game/${it.id}` : `/item/${it.id}`, { replace: true }),
     }
   }, [it, settingsHost])
   if (err) return <div className="wp-page-error" role="alert"><LoadError what="This game" onRetry={() => window.location.reload()} /><p className="muted">{err}</p></div>

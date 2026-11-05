@@ -213,6 +213,27 @@ a.mod-row:hover { background: var(--hover); }
   .set-nav-link { min-height: 56px; padding: var(--sp-2); }
   .set-nav-hint { display: block; color: var(--fg-2); font-size: var(--text-sm); font-weight: 400; line-height: 1.4; }
 }
+.set-nav-go { display: none; }
+/* A phone: the apps' grouped list. Each group is a card, each row a tinted icon tile, its
+   words and their one-line explanation, and a chevron; hairlines between rows start after
+   the tile. --tint is the row's colour (SettingsPage). */
+@media (max-width: 760px) {
+  .set-nav { gap: var(--sp-6); }
+  .set-nav-title { margin-left: 0; }
+  .set-nav-group { gap: 0; }
+  .set-nav-head { padding: 0 var(--sp-4) var(--sp-2); color: var(--fg-2); }
+  .set-nav-group > .set-nav-link { position: relative; gap: var(--sp-3); min-height: 64px; padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-4); border-radius: 0; background: var(--bg-2); color: var(--fg); }
+  .set-nav-group > .set-nav-link:is(:first-child, .set-nav-head + *) { border-top-left-radius: var(--r-lg); border-top-right-radius: var(--r-lg); }
+  .set-nav-group > .set-nav-link:last-child { border-bottom-left-radius: var(--r-lg); border-bottom-right-radius: var(--r-lg); }
+  .set-nav-group > .set-nav-link + .set-nav-link::before { content: ''; position: absolute; top: 0; right: 0; left: calc(var(--sp-4) + 28px + var(--sp-3)); border-top: 1px solid var(--border); }
+  .set-nav-group > .set-nav-link:hover { background: var(--bg-3); }
+  .set-nav-group > .set-nav-link.active { background: var(--bg-2); font-weight: 500; }
+  .set-nav-icon, .set-nav-link.active .set-nav-icon { border-radius: 25%; background: color-mix(in srgb, var(--tint) 22%, var(--bg-2)); color: color-mix(in srgb, var(--tint) 65%, var(--fg)); }
+  .set-nav-text { flex: 1; }
+  .set-nav-text > span { font-size: var(--text-base); }
+  .set-nav-go { display: block; flex: none; width: 18px; height: 18px; color: var(--fg-3); }
+  .set-nav-link .upd-dot { margin: 0; }
+}
 @media (max-width: 600px) {
   .set-head { flex-direction: column; align-items: stretch; }
   .set-card-head { padding: var(--sp-4) var(--sp-4) var(--sp-1); flex-direction: column; }

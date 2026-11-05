@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, episodeLabel, fitWidth, fmtRuntime, fmtTime, getPrefs, posterUrl, sized, seasonPosterUrl, showBackdropUrl, showPosterUrl, type Item, type Prefs, type ShowDetail } from '../api'
 import EditDetails, { type EditSection } from '../components/edit/EditDetails'
+import TitleArtPicker, { PosterMenu, appliedOnPage } from '../components/edit/TitleArtPicker'
 import RefreshDialog from '../components/edit/RefreshDialog'
 import TitleExtras, { TitleLogo } from '../components/edit/TitleExtras'
 import BrandLogo from '../components/BrandLogo'
@@ -21,6 +22,7 @@ export default function ShowPage() {
   const [err, setErr] = useState('')
   const [edit, setEdit] = useState<EditSection | ''>((params.get('edit') as EditSection) || '')
   const [refreshing, setRefreshing] = useState(false)
+  const [art, setArt] = useState(false)
   const [prefs, setPrefs] = useState<Prefs | null>(null)
   const [viewOverride, setViewOverride] = useState<'' | 'cards' | 'list' | null>(null)
   const load = () => api.get<ShowDetail>(`/shows/${id}`).then(setD).catch((e) => setErr(e.message))
@@ -51,7 +53,7 @@ export default function ShowPage() {
         <div className="shade" />
       </div>
       <div className="detail">
-        <div><div className="poster"><img src={sized(showPosterUrl(show), fitWidth(260))} alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} /></div></div>
+        <div><div className="poster"><img src={sized(showPosterUrl(show), fitWidth(260))} alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />{user?.isAdmin && <PosterMenu target="show" id={show.id} onChanged={load} />}</div></div>
         <div>
           <TitleLogo target="show" id={show.id} name={show.title} version={show.updatedAt} />
           <div className="meta">
@@ -68,7 +70,7 @@ export default function ShowPage() {
             </button>}
             <SaveButton showId={show.id} />
             {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('match')}><IconEdit /> Edit</button>}
-            {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('artwork')}><IconImage /> Artwork</button>}
+            {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
             {user?.isAdmin && <button className="btn ghost" onClick={() => setRefreshing(true)} title="See what's new about this, and choose what to take"><IconRefresh /> Refresh</button>}
           </div>
           {show.overview && <p className="overview">{show.overview}</p>}
@@ -107,6 +109,7 @@ export default function ShowPage() {
           {show.network && <LogoNotice logos={[{ kind: 'network', name: show.network }]} />}
         </div>
       </div>
+      {art && <TitleArtPicker target="show" id={show.id} onClose={() => setArt(false)} onApplied={appliedOnPage(load)} />}
       {edit && <EditDetails target="show" id={show.id} start={edit} onClose={() => setEdit('')} onChanged={load} />}
       {refreshing && <RefreshDialog target="show" id={show.id} onClose={() => setRefreshing(false)} onChanged={load} />}
     </>

@@ -243,7 +243,7 @@ func (s *Scanner) SaveItemMetadata(ctx context.Context, it *Item) error {
 	}
 	posterPath, backdropPath, nfoPath := ArtPaths(it)
 	var errs []error
-	if it.Poster != "" && !strings.HasPrefix(it.Poster, "cache:thumb-") {
+	if it.Poster != "" && !IsMadePoster(it.Poster) {
 		if err := s.writeArt(ctx, it.Poster, posterPath); err != nil {
 			errs = append(errs, err)
 		} else {

@@ -275,6 +275,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/meta/{target}/{id}/leave", s.requireAdmin(s.handleMetaLeave))
 	m.Handle("GET /api/meta/{target}/{id}/artwork", s.requireAdmin(s.handleMetaArtwork))
 	m.Handle("PUT /api/meta/{target}/{id}/art/{kind}", s.requireAdmin(s.handleMetaArtUpload))
+	m.Handle("POST /api/meta/{target}/{id}/frame", s.requireAdmin(s.handleMetaFrame))
+	m.Handle("POST /api/meta/{target}/{id}/titleposter", s.requireAdmin(s.handleMetaTitlePoster))
 	m.Handle("GET /api/meta/{target}/{id}/art/{kind}", a(s.handleTitleArt))
 	m.Handle("POST /api/meta/{target}/{id}/link", s.requireAdmin(s.handleMetaLink))
 	m.Handle("DELETE /api/meta/{target}/{id}/link", s.requireAdmin(s.handleMetaUnlink))
@@ -567,6 +569,7 @@ func (s *Server) Handler() http.Handler {
 	s.diagnoseRoutes(m)
 	s.metaFolderRoutes(m)
 	s.repairRoutes(m)
+	s.networkRoutes(m)
 	s.backupRoutes(m)
 
 	// Web UI (SPA)
@@ -769,7 +772,7 @@ func (s *Server) headers(next http.Handler) http.Handler {
 			// Handlers with their own needs replace this.
 			h.Set("Content-Security-Policy", apiCSP)
 		} else {
-			h.Set("Content-Security-Policy", appCSP)
+			h.Set("Content-Security-Policy", appCSPFor(r))
 			h.Set("Cross-Origin-Opener-Policy", "same-origin")
 			h.Set("Permissions-Policy", appPermissions)
 		}

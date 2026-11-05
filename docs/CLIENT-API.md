@@ -748,6 +748,42 @@ variables, so theme authors write one file and the apps get the same colours:
   guide only covers the data.
 - `GET /branding/logo` and `brandName` in `/status` replace the name and icon, where the owner set them.
 
+### Drawing the server's name
+
+The name is drawn with every other word in the theme colour, the way WittyMediaServer is drawn as
+Witty**Media**Server. `/status` has it ready to draw:
+
+```json
+"brandName": "Willow's Movies",
+"brandColouring": "auto",
+"brandParts": [{ "text": "Willow's " }, { "text": "Movies", "accent": true }]
+```
+
+- **Draw `brandParts`** in order, in one line of text: parts with `accent: true` in the theme's
+  `accent-text` colour, the others in `fg`, all the same weight. It is there for the default name too
+  (`brandName` is then `""`), so an app needs no rule of its own. Joined, the parts are the name.
+- **Screen readers get the name once, whole**: give the text one accessibility label, `brandName` (or
+  WittyMediaServer when it's empty), and keep the coloured pieces out of the accessibility tree
+  (`accessibilityElement` with a label on Apple, `contentDescription` on the view holding the spans on
+  Android).
+- **Long names wrap** to a second or third line in a side menu rather than being cut off; a top bar
+  shortens it with an ellipsis. The parts can break anywhere a normal line can.
+- A server older than this has no `brandParts`: draw `brandName` in one colour, or the default name as
+  Witty, Media in the theme colour, Server.
+
+`brandColouring` is how the owner chose it, kept with the name in `PUT /settings`:
+
+| Value | Meaning |
+|---|---|
+| `auto` (or empty) | Every other word, starting with the second. Words split at spaces, and inside joined words at a capital after a small letter (MyHome), before the last capital of a run followed by two small letters (TVRoom, but TVs stays whole), between a small letter and a digit (Movies4K), and before a capital after a dash, `_`, `/`, `&`, `+`, `\|` or `:`. Scripts without capital letters split at spaces only. |
+| `one` | The whole name in one colour. |
+| `pick:5-10,16-22` | The ranges in the theme colour, as start-end offsets in characters (Unicode code points, not UTF-16 units), the end not included, in order and not overlapping, up to 80. `pick:` alone colours nothing. |
+
+An app that renames the server sends both `brandName` and `brandColouring`. If it sends only a new
+name, chosen ranges no longer fit it, so the server goes back to `auto`. Anything else is refused with
+400. An app showing a rename window of its own can offer the same three choices; the rule and its cases
+are in `internal/brandname` (`testdata/cases.json`).
+
 ## Choices that follow the account
 
 `GET` and `PUT /me/ui` hold one JSON object of up to 16 KB for the account, so choices follow the person
@@ -1001,6 +1037,10 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `POST /repair/fix` | admin | Fix from the last report: `{keys, allSafe, option, password, code}`. A fix that isn't `safe`, or any `option`, needs the password and any second step again. 202, then ask `GET /repair`. |
 | `POST /repair/remap` | admin | A library's folder moved: `{from, to}` says what would change, and adds `{apply: true, password, code}` to do it. |
 | `POST /repair/restart` | admin | Restart, for a fix that waits for the next start. 409 if none is waiting. |
+| `GET /network` | admin | The port: `{port, host, from, settingsFile, saveFile, locked, docker, next, canRestart, problems, addresses, discoveryPort, httpsPort}`. `from` is `flag`, `env`, `config`, `settings` or `default`; `locked` says where the port is set when this can't change it; `next` is the port after a restart. See [The port](CONFIG.md#the-port). |
+| `POST /network/check` | admin | `{port}`: whether the server could move there, `{port, ok, current, problems, warnings}`. In range, not a port browsers refuse, not Remote Access's HTTPS port, and free here, tried by listening for a moment. Saves nothing. |
+| `PUT /network` | admin | `{port}`: save it in settings.ini for the next start, after the same checks; 400 with the first problem. 409 when `-listen`, `WMS_LISTEN`, `wms.json` or Docker set the port. Answers as `GET /network`. |
+| `POST /network/restart` | admin | Restart, on the saved port. 202, then nothing answers until it's back, at the new port. 409 when it can't restart itself. |
 | `GET /update` | admin | What is installed and what is available (404 in builds that can't update themselves). |
 | `POST /update/check` | admin | Look for a new version now. |
 | `POST /update/apply` | admin | Download, verify and install the newest release, then restart. |
@@ -1165,7 +1205,9 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `POST /meta/{target}/{id}/suggest` | Admin | Search for a title and keep the best results. |
 | `POST /meta/{target}/{id}/leave` | Admin | It has no match, or is right as it is: stop asking. |
 | `GET /meta/{target}/{id}/artwork` | Admin | Every picture every source has for a title. |
-| `PUT /meta/{target}/{id}/art/{kind}` | Admin | Upload a poster, backdrop, banner or logo. The picture is the body. |
+| `PUT /meta/{target}/{id}/art/{kind}` | Admin | Upload a poster, backdrop, banner or logo. The picture is the body. It's decoded and written again from its pixels. With `?stage=1` it's only kept, and the answer is `{url}` to apply later with `PUT /meta/{target}/{id}`. |
+| `POST /meta/{target}/{id}/frame` | Admin | A frame from the video (items only), kept in the image cache: `{url}`. Nothing changes until it's applied. |
+| `POST /meta/{target}/{id}/titleposter` | Admin | A poster made from words: `{title, line, hue, frame}` (`hue` 0 to 359, or left out for the title's own colour; `frame: true` sets the words over a frame from the video). Answers `{url}`. Nothing changes until it's applied. A poster made here is the owner's choice once applied; one the scan makes for a title with no poster (setting `noPoster`) is named `cache:auto-…` and replaced by any real poster. |
 | `GET /meta/{target}/{id}/art/{kind}` | Signed in | A title's banner or logo. |
 | `POST /meta/{target}/{id}/link` | Admin | Make an item a bonus feature or another version of something. |
 | `DELETE /meta/{target}/{id}/link` | Admin | Make an attached item a title of its own again. |
@@ -1321,6 +1363,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /channels/{id}` | admin | Update channel. |
 | `DELETE /channels/{id}` | admin | Delete channel. |
 | `POST /channels/{id}/rebuild` | admin | Rebuild channel. |
+| `POST /channels/{id}/reset` | admin | Reset channel: throws away the schedule, what is on now included, and makes it again from the channel's current settings and matching titles. Body `{"startOver": true}` also starts every show from its first episode and shuffles again. Viewers move to the new schedule; reminders are kept, moved to the programme's new time, or removed. Answers `{ok, watching, reminders: {kept, moved, dropped, droppedTitles}}`. |
 | `GET /channels/{id}/history` | admin | Channel history. |
 | `POST /channels/{id}/restore` | admin | Restore channel. |
 | `GET /channels/{id}/logo` | user | Channel logo. |
@@ -1344,11 +1387,13 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /tuners/discover` | admin | Tuner discover. |
 | `GET /tuners` | admin | Tuners. |
 | `POST /tuners` | admin | Create tuner. |
+| `POST /tuners/check` | admin | Check tuner: what a source says before it's saved. Answers `{ok, result}` or `{ok: false, problem: {kind, message, hint}}`, and keeps nothing. |
 | `PUT /tuners/{id}` | admin | Update tuner. |
 | `DELETE /tuners/{id}` | admin | Delete tuner. |
 | `POST /tuners/{id}/refresh` | admin | Refresh tuner. |
 | `POST /tuners/{id}/scan` | admin | Scan tuner. |
 | `GET /tuners/{id}/scan` | admin | Scan progress2. |
+| `POST /tuners/{id}/test` | admin | Test tuner: tunes one channel (`{channel}`, or 0 to let it choose) for a few seconds, as a viewer would. Encrypted channels are refused as everywhere else. |
 | `GET /tuners/{id}/channels` | admin | Tuner channels. |
 | `POST /tuners/{id}/channels/enable` | admin | Enable all channels. |
 | `PUT /tuner-channels/{id}` | admin | Edit tuner channel. `logo` is `""` to find it by name, `none`, or `kind\|name` in the logo service. |

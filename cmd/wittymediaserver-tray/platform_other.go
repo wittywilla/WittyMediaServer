@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 func hideWindow(cmd *exec.Cmd) {}
@@ -34,3 +36,18 @@ func setAutostart(on bool) error {
 	entry := "[Desktop Entry]\nType=Application\nName=WittyMediaServer\nComment=Media server tray launcher\nExec=" + exe + "\nIcon=wittymediaserver\nTerminal=false\nCategories=AudioVideo;\nX-GNOME-Autostart-enabled=true\n"
 	return os.WriteFile(p, []byte(entry), 0o644)
 }
+
+// serviceInstalled says a package or install.sh set up the background service. Only then is a
+// server found by asking on this computer one this app shows, rather than a second server of its own.
+func serviceInstalled() bool {
+	for _, p := range []string{"/etc/systemd/system/multi-user.target.wants/wittymediaserver.service", "/usr/local/etc/rc.d/wittymediaserver"} {
+		if _, err := os.Stat(p); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+// endReason: the desktop closed the tray app without its Quit. A shutdown also stops the
+// server itself, which says so.
+func endReason() string { return logging.StopTrayClosed }

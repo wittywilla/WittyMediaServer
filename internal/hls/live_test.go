@@ -425,3 +425,43 @@ func TestGrowingStreamsSkipTheTranscodeLimit(t *testing.T) {
 		t.Errorf("makeRoom: %v", err)
 	}
 }
+
+// A channel whose schedule was made again moves to it without anyone being
+// dropped: the run ends, the feed is asked again, and nothing is reported.
+func TestLiveRestartAsksTheFeedAgain(t *testing.T) {
+	m := liveTestManager(t)
+	var asked atomic.Int32
+	s := startFake(t, m, LiveSpec{ID: "x", Feed: func(ctx context.Context, at time.Time) (*LiveInput, error) {
+		asked.Add(1)
+		return &LiveInput{AudioIndex: 0, Duration: 3600}, nil
+	}}, fakeRun(2))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.WaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if m.RestartLive("nothing") {
+		t.Fatal("a channel nobody is watching isn't running")
+	}
+	for i := 1; i <= 3; i++ {
+		if !m.RestartLive("x") {
+			t.Fatal("the channel should be running")
+		}
+		for j := 0; asked.Load() < int32(i+1) && j < 100; j++ {
+			time.Sleep(20 * time.Millisecond)
+		}
+		if asked.Load() < int32(i+1) {
+			t.Fatalf("restart %d: the feed was asked %d times", i, asked.Load())
+		}
+	}
+	if err := s.Err(); err != nil || m.GetLive("x") != s {
+		t.Fatalf("a restart should leave the session running: %v", err)
+	}
+	// Three quick restarts are not a stream failing again and again.
+	for j := 0; j < 50 && !strings.Contains(string(s.Playlist(func(f string) string { return f })), "DISCONTINUITY"); j++ {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !strings.Contains(string(s.Playlist(func(f string) string { return f })), "#EXT-X-DISCONTINUITY") {
+		t.Fatal("the new programme should follow a discontinuity")
+	}
+}

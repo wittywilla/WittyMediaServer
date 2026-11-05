@@ -17,6 +17,29 @@ for g in video render; do
   if getent group "$g" >/dev/null 2>&1; then usermod -aG "$g" "$RUN_AS" 2>/dev/null || true; fi
 done
 
+# The port is chosen in Settings → Network and settings.ini now. One the service had from
+# WMS_LISTEN, in a drop-in that an earlier install left or systemctl edit made, moves into the
+# data folder's settings.ini, where both can change it. An address with a host in front stays.
+DROP_INS=/etc/systemd/system/wittymediaserver.service.d
+SERVICE_DATA=$DATA
+for f in "$DROP_INS"/*.conf; do
+  [ -f "$f" ] || continue
+  d=$(sed -n 's/^Environment="\{0,1\}WMS_DATA_DIR=\([^"]*\)"\{0,1\}[[:space:]]*$/\1/p' "$f" | tail -n 1)
+  if [ -n "$d" ]; then SERVICE_DATA="$d"; fi
+done
+LISTEN_LINE='^\(Environment="\{0,1\}WMS_LISTEN=\(0\.0\.0\.0\)\{0,1\}:\([0-9][0-9]*\)"\{0,1\}[[:space:]]*\)$'
+for f in "$DROP_INS"/*.conf; do
+  [ -f "$f" ] || continue
+  port=$(sed -n "s/$LISTEN_LINE/\\3/p" "$f" | tail -n 1)
+  [ -n "$port" ] || continue
+  if /usr/lib/wittymediaserver/bin/wittymediaserver config port -data "$SERVICE_DATA" -in-data -port "$port"; then
+    chown -h "$RUN_AS" "$SERVICE_DATA/settings.ini" 2>/dev/null || true # -h: a link put there is never followed
+    sed -i "s|$LISTEN_LINE|# Moved to $SERVICE_DATA/settings.ini, where Settings, Network changes it: \\1|" "$f"
+  fi
+done
+PORT=$(sed -n 's/^[[:space:]]*port[[:space:]]*=[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$SERVICE_DATA/settings.ini" 2>/dev/null | head -n 1)
+[ -n "$PORT" ] || PORT=9797
+
 if command -v update-desktop-database >/dev/null 2>&1; then update-desktop-database -q /usr/share/applications 2>/dev/null || true; fi
 if command -v gtk-update-icon-cache >/dev/null 2>&1; then gtk-update-icon-cache -q /usr/share/icons/hicolor 2>/dev/null || true; fi
 
@@ -32,7 +55,7 @@ if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
 fi
 cat <<EOF
 
-WittyMediaServer is installed. Open http://$(hostname 2>/dev/null || echo localhost):9797/ to finish setup.
+WittyMediaServer is installed. Open http://$(hostname 2>/dev/null || echo localhost):$PORT/ to finish setup.
 Status:  systemctl status wittymediaserver
 Remove:  sudo wittymediaserver --uninstall (asks about your data)
 

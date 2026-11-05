@@ -50,6 +50,8 @@ export const ENTRIES: Entry[] = [
   { page: 'transcoding', title: 'Hardware encoders', section: 'Hardware encoders', words: 'gpu nvenc quick sync vaapi amf videotoolbox acceleration' },
   { page: 'transcoding', title: 'Picture quality', section: 'Picture quality', words: 'bitrate encoder speed preset crf' },
   { page: 'transcoding', title: 'Allow direct play', section: 'Playback', words: 'maximum resolution sound format' },
+  { page: 'network', title: 'Port', section: 'Port', words: 'address listen 9797 port number url settings.ini change port in use' },
+  { page: 'network', title: 'What follows the port', section: 'What follows the port', words: 'firewall apps find discovery bookmarks reverse proxy' },
   { page: 'remote', title: 'Limits for viewers away from home', section: 'Limits for viewers away from home', words: 'bandwidth resolution data' },
   { page: 'remote', title: 'Sign-in protection', section: 'Sign-in protection', words: 'wrong passwords lockout' },
 

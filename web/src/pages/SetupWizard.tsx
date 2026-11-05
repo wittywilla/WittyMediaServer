@@ -13,6 +13,7 @@ import { Discs } from './setup/Discs'
 import { Done } from './setup/Done'
 import { Games } from './setup/Games'
 import { Listings } from './setup/Listings'
+import { Tv } from './setup/Tv'
 import { Logos } from './setup/Logos'
 import { Look } from './setup/Look'
 import { Media } from './setup/Media'
@@ -30,7 +31,7 @@ import './setup/setup.css'
 // someone can go back, or come back tomorrow, without losing anything.
 
 export default function SetupWizard() {
-  const { user, setUser, setOnboarding, brandName, setBrandName, setBrandLogo, version, refreshLibraries } = useApp()
+  const { user, setUser, setOnboarding, brandName, brandColouring, setBrandName, setBrandLogo, version, refreshLibraries } = useApp()
   const loc = useLocation()
   const navigate = useNavigate()
   const signedIn = !!user
@@ -50,6 +51,7 @@ export default function SetupWizard() {
   useEffect(() => { if (signedIn) void refresh() }, [signedIn, refresh])
 
   const [serverName, setServerName] = useState(brandName)
+  const [colouring, setColouring] = useState(brandColouring)
   // A logo chosen on the welcome page waits until the account exists, as only an administrator
   // may store one, and is uploaded then.
   const [pendingLogo, setPendingLogo] = useState<File | null>(null)
@@ -75,8 +77,8 @@ export default function SetupWizard() {
   const go = (id: StepId) => navigate(pathOf(id))
   const props: StepProps = { info: step, facts, refresh, next: () => { if (next) go(next.id) }, back: back ? () => go(back.id) : undefined }
   const finish = async (to = '/') => {
-    try { await api.put('/settings', { setupDone: '1', ...(serverName.trim() ? { brandName: serverName.trim() } : {}) }) } catch { /* it asks again next time */ }
-    if (serverName.trim()) setBrandName(serverName.trim())
+    try { await api.put('/settings', { setupDone: '1', brandColouring: colouring, ...(serverName.trim() ? { brandName: serverName.trim() } : {}) }) } catch { /* it asks again next time */ }
+    setBrandName(serverName.trim() || brandName, colouring)
     await refreshLibraries()
     navigate(to, { replace: true })
     setOnboarding(false)
@@ -87,7 +89,7 @@ export default function SetupWizard() {
       <div className="oobe-glow" aria-hidden="true" />
       <div className="oobe-shell">
         <header className="oobe-head">
-          <div className="brand"><img className="brand-mark" src={logoPreview || '/icon.svg'} alt="" /><Brand name={serverName || brandName} /></div>
+          <div className="brand"><img className="brand-mark" src={logoPreview || '/icon.svg'} alt="" /><Brand name={serverName || brandName} colouring={colouring} /></div>
           <div className="su-progress">
             <div className="su-progress-line">
               <p className="su-progress-words">Step {number.at} of {number.of}: {step.label}</p>
@@ -98,8 +100,8 @@ export default function SetupWizard() {
         </header>
 
         <main id="main" tabIndex={-1} className="oobe-card su-card-main" key={step.id}>
-          {step.id === 'welcome' && <Welcome serverName={serverName} logo={logoPreview} onStart={() => go('account')}
-            onName={(n, logo) => { setServerName(n); if (logo === 'remove') setPendingLogo(null); else if (logo) setPendingLogo(logo) }} />}
+          {step.id === 'welcome' && <Welcome serverName={serverName} colouring={colouring} logo={logoPreview} onStart={() => go('account')}
+            onName={(n, logo, c) => { setServerName(n); setColouring(c); if (logo === 'remove') setPendingLogo(null); else if (logo) setPendingLogo(logo) }} />}
           {step.id === 'account' && <Account back={() => go('welcome')} onDone={(u, tok) => {
             setToken(tok)
             setOnboarding(true) // keep setup open after signing in
@@ -118,6 +120,7 @@ export default function SetupWizard() {
           {step.id === 'logos' && <Logos {...props} />}
           {step.id === 'music' && <Music {...props} />}
           {step.id === 'listings' && <Listings {...props} />}
+          {step.id === 'tv' && <Tv {...props} />}
           {step.id === 'look' && <Look {...props} />}
           {step.id === 'done' && <Done steps={steps} onFinish={finish} />}
         </main>

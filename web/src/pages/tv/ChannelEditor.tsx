@@ -10,6 +10,7 @@ import { ChangeLogoButton, LogoConsentHint } from '../../components/edit/LogoCho
 import LegalNote from '../../components/LegalNote'
 import { BumperSection } from './BumperEditor'
 import DiscScenes from './DiscScenes'
+import { resetChannel } from './resetChannel'
 import './tveditor.css'
 import { brandOf, DAYS, emptyDefinition, type ChannelLook, type CommercialPick, fmtClock, forgetLineup, fullDay, uploadLogo, type Block, type Channel, type Definition, type EditorOptions, type Order, type PoolStats, type Programme, type Rules, type Suggestion, type Visibility } from './tvApi'
 
@@ -234,6 +235,10 @@ export default function ChannelEditor() {
             <label className="btn sm">Upload your own logo<input className="sr-only" type="file" accept="image/png,image/jpeg" onChange={(e) => void onLogo(e.target.files?.[0])} /></label>
             {logo && <button className="btn sm ghost" onClick={() => void removeLogo()}>Remove the logo</button>}
             <button className="btn sm ghost" onClick={() => void reshuffle()}>Make a new schedule</button>
+          </div>
+          <div className="tvs-toolbar">
+            <button className="btn sm danger" disabled={dirty} aria-describedby="ch-reset-h" onClick={() => void resetChannel(Number(id), saved?.name || draft.name)}>Reset channel</button>
+            <small className="tvs-help" id="ch-reset-h">{dirty ? 'Save your changes first: a reset uses the saved settings.' : 'Rebuilds the schedule now, from these settings and the files that match them, instead of after what’s on now.'}</small>
           </div>
           <p className="muted" style={{ fontSize: 13 }}>No logos come with the server. Use only pictures you have the right to use.</p>
           <LegalNote kind="logos" className="set-legal" />

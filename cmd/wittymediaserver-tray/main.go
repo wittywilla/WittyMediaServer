@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -24,6 +25,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
+	"github.com/wittywilla/wittymediaserver/internal/discovery"
 	"github.com/wittywilla/wittymediaserver/internal/instance"
 	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
@@ -45,11 +47,18 @@ type launcher struct {
 	dataDir    string
 	listen     string
 	configFile string
-	cmd        *exec.Cmd
-	stdin      io.WriteCloser
-	logFile    *serverOutput
-	running    bool
-	healthy    bool
+	args       []string // the app's own arguments, read again before each start
+	// listenGiven: -listen came with the app, so it's passed on. Otherwise the server finds
+	// its port itself, in settings.ini, and Settings → Network can change it.
+	listenGiven bool
+	// seen is where the server this app shows answered, when that isn't listen: a background
+	// service on another port, found with discovery.AskLocal.
+	seen    string
+	cmd     *exec.Cmd
+	stdin   io.WriteCloser
+	logFile *serverOutput
+	running bool
+	healthy bool
 	// answered: this run of the server has answered at least once, so not answering now
 	// means it stopped answering, not that it's still starting.
 	answered bool
@@ -63,6 +72,8 @@ type launcher struct {
 	// Crash-loop protection.
 	startedAt time.Time
 	fails     int
+	// afterCrash: the next start is the tray bringing back a server that stopped by itself.
+	afterCrash bool
 
 	// update is a newer version the server found, which the menu offers.
 	update string
@@ -94,7 +105,9 @@ func main() {
 	if !ok {
 		os.Exit(code)
 	}
-	l.dataDir, l.listen, l.configFile = cfg.DataDir, cfg.Listen, cfg.ConfigFile
+	// After claim, a second server on a folder and port of its own was given -listen: it keeps that.
+	l.dataDir, l.listen, l.configFile, l.args = cfg.DataDir, cfg.Listen, cfg.ConfigFile, args
+	l.listenGiven = cfg.ListenFrom == config.FromFlag
 	if abs, err := filepath.Abs(l.dataDir); err == nil {
 		l.dataDir = abs
 	}
@@ -154,10 +167,25 @@ func findServer() string {
 	return pkg.ServerPath()
 }
 
+// url is the address of the server this app shows. l.mu is held.
 func (l *launcher) url() string {
-	host, port, err := net.SplitHostPort(l.listen)
+	if l.attached && l.seen != "" {
+		return l.seen
+	}
+	return listenURL(l.listen)
+}
+
+// currentURL is url, for callers that don't hold l.mu.
+func (l *launcher) currentURL() string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.url()
+}
+
+func listenURL(listen string) string {
+	host, port, err := net.SplitHostPort(listen)
 	if err != nil {
-		return "http://localhost:" + strings.TrimPrefix(l.listen, ":")
+		return "http://localhost:" + strings.TrimPrefix(listen, ":")
 	}
 	if host == "" || host == "0.0.0.0" || host == "::" {
 		host = "localhost"
@@ -196,8 +224,10 @@ func (l *launcher) onReady() {
 	}
 }
 
+// onExit: after Quit the server has already stopped. Otherwise the desktop is closing this
+// app (a shutdown, a sign-out, an installer), and the server is told which.
 func (l *launcher) onExit() {
-	l.stop()
+	l.stop(endReason())
 }
 
 func (l *launcher) setIcon(running bool) {
@@ -212,22 +242,22 @@ func (l *launcher) loop() {
 	for {
 		select {
 		case <-l.mOpen.ClickedCh:
-			openURL(l.url())
+			openURL(l.currentURL())
 		case <-l.mRemote.ClickedCh:
-			openURL(l.url() + "/settings/remote")
+			openURL(l.currentURL() + "/settings/remote")
 		case <-l.mUpdate.ClickedCh:
-			openURL(l.url() + "/settings/about#updates")
+			openURL(l.currentURL() + "/settings/about#updates")
 		case <-l.mToggle.ClickedCh:
 			if l.isRunning() {
 				l.want(false)
-				l.stop()
+				l.stop(logging.StopTrayStop)
 			} else {
 				l.want(true)
 				l.start()
 			}
 		case <-l.mRestart.ClickedCh:
 			l.want(true)
-			l.stop()
+			l.stop(logging.StopTrayRestart)
 			l.start()
 		case <-l.mData.ClickedCh:
 			openPath(l.dataDir)
@@ -245,9 +275,9 @@ func (l *launcher) loop() {
 				l.mAuto.Uncheck()
 			}
 		case <-l.mAbout.ClickedCh:
-			openURL(l.url() + "/settings/about")
+			openURL(l.currentURL() + "/settings/about")
 		case <-l.mQuit.ClickedCh:
-			l.stop()
+			l.stop(logging.StopTrayQuit)
 			systray.Quit()
 			return
 		}
@@ -281,18 +311,25 @@ func (l *launcher) start() {
 	if l.running {
 		return
 	}
-	if l.answering() {
-		l.attached = true
+	// The port may have been changed in Settings → Network or settings.ini since the last start.
+	if cfg, err := config.ParseOnly(l.args); err == nil && !l.listenGiven {
+		l.listen = cfg.Listen
+	}
+	if seen, ok := answering(l.listen, l.seen); ok {
+		l.attached, l.seen = true, seen
 		l.refreshLocked()
 		return
 	}
-	l.attached = false
+	l.attached, l.seen = false, ""
 	f, err := openServerOutput(l.logPath)
 	if err != nil {
 		l.lastErr = err.Error()
 		return
 	}
-	args := []string{"serve", "-data", l.dataDir, "-listen", l.listen, "-watch-stdin"}
+	args := []string{"serve", "-watch-stdin", "-data", l.dataDir}
+	if l.listenGiven {
+		args = append(args, "-listen", l.listen)
+	}
 	if l.configFile != "" {
 		args = append(args, "-config", l.configFile)
 	}
@@ -302,6 +339,10 @@ func (l *launcher) start() {
 	cmd.Stderr = f
 	cmd.WaitDelay = 5 * time.Second // something it left behind holding stderr mustn't hide that it ended
 	hideWindow(cmd)
+	if l.afterCrash {
+		cmd.Env = append(os.Environ(), "WMS_TRAY_RESTART=1")
+		l.afterCrash = false
+	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		l.lastErr = err.Error()
@@ -371,6 +412,9 @@ func (l *launcher) start() {
 			// Crashed: back off briefly and bring it back.
 			time.Sleep(3 * time.Second)
 			if l.wantsRestart() {
+				l.mu.Lock()
+				l.afterCrash = true // its first log line says the tray started it again
+				l.mu.Unlock()
 				l.start()
 			}
 		}
@@ -455,10 +499,36 @@ func relaunchTray() error {
 	return cmd.Process.Release()
 }
 
-// answering says a WittyMediaServer already answers at this app's address.
-func (l *launcher) answering() bool {
+// answering says whether a WittyMediaServer already answers on this computer, and where: where
+// it was last seen, at this app's address, listen, or for a background service moved to another
+// port, wherever local discovery says it is. Without a service installed, a server found that way
+// would be a second one, on a folder of its own, which this app doesn't show.
+func answering(listen, seen string) (string, bool) {
+	if seen != "" && healthy(seen) {
+		return seen, true
+	}
+	own := listenURL(listen)
+	if own != seen && healthy(own) {
+		return own, true
+	}
+	if !serviceInstalled() {
+		return "", false
+	}
+	if port, tls := discovery.AskLocal(700 * time.Millisecond); port != 0 {
+		scheme := "http"
+		if tls {
+			scheme = "https"
+		}
+		if u := scheme + "://localhost:" + strconv.Itoa(port); u != own && healthy(u) {
+			return u, true
+		}
+	}
+	return "", false
+}
+
+func healthy(base string) bool {
 	c := &http.Client{Timeout: 1500 * time.Millisecond}
-	res, err := c.Get(l.url() + "/api/health")
+	res, err := c.Get(base + "/api/health")
 	if err != nil {
 		return false
 	}
@@ -466,7 +536,9 @@ func (l *launcher) answering() bool {
 	return res.StatusCode == http.StatusOK
 }
 
-func (l *launcher) stop() {
+// stop asks the server to stop, saying why first: the line it logs, and the next start's,
+// carry the reason.
+func (l *launcher) stop(reason string) {
 	l.mu.Lock()
 	cmd, stdin := l.cmd, l.stdin
 	l.cmd, l.stdin = nil, nil
@@ -475,6 +547,7 @@ func (l *launcher) stop() {
 		return
 	}
 	if stdin != nil {
+		_, _ = io.WriteString(stdin, "stop "+reason+"\n")
 		_ = stdin.Close() // graceful: the server exits when stdin closes
 	}
 	done := make(chan struct{})
@@ -513,6 +586,16 @@ func (l *launcher) health() {
 			l.showUpdate()
 		}
 		if attached {
+			// Not where it was: a background service may have moved to another port.
+			if !ok {
+				listen := l.listen
+				l.mu.Unlock()
+				seen, found := answering(listen, "")
+				l.mu.Lock()
+				if found {
+					l.seen, ok = seen, true
+				}
+			}
 			changed := ok != l.healthy
 			l.healthy = ok
 			if changed {
@@ -546,7 +629,7 @@ func (l *launcher) showRemote(c *http.Client, ok bool) {
 		return
 	}
 	l.remoteAsked = time.Now()
-	subject, summary, err := readRemote(c, l.url())
+	subject, summary, err := readRemote(c, l.currentURL())
 	if err != nil {
 		l.mRemote.Hide()
 		return
@@ -582,7 +665,7 @@ func readRemote(c *http.Client, base string) (subject, summary string, err error
 func (l *launcher) ask(c *http.Client) (ok bool, newer string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	req, _ := http.NewRequestWithContext(ctx, "GET", l.url()+"/api/health", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", l.currentURL()+"/api/health", nil)
 	res, err := c.Do(req)
 	if err != nil {
 		return false, ""

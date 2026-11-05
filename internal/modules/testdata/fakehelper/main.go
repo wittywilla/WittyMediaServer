@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"time"
@@ -26,6 +27,9 @@ func main() {
 	do := m.Capabilities["test"]
 	if slices.Contains(do, "die-at-start") {
 		os.Exit(3)
+	}
+	if slices.Contains(do, "slow-hello") {
+		time.Sleep(1500 * time.Millisecond) // a machine too busy to start it on time
 	}
 	if slices.Contains(do, "wrong-version") {
 		m.Version = "9.9.9"
@@ -50,6 +54,13 @@ func main() {
 				return nil, nil, &wittymodule.CallError{Code: "no-preview", Message: "no embedded preview"}
 			}
 			return nil, []byte("jpeg from " + m.Version), nil
+		case "sandbox":
+			// What WittyPlay's helper does on a Mac with each game: start it in a sandbox of its own.
+			out, err := exec.Command("/usr/bin/sandbox-exec", "-p", "(version 1)(allow default)(deny network*)", "/usr/bin/true").CombinedOutput()
+			if err != nil {
+				return nil, nil, &wittymodule.CallError{Code: "sandbox", Message: err.Error() + ": " + string(out)}
+			}
+			return map[string]bool{"ok": true}, nil, nil
 		}
 		return nil, nil, &wittymodule.CallError{Code: "unknown-method", Message: "no such thing"}
 	})

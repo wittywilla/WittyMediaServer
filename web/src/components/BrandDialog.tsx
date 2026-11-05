@@ -2,23 +2,33 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getToken, serverBase } from '../api'
 import { Brand } from './common'
+import { BrandColouring, colouringOf, startChoice } from './BrandColouring'
+import { DEFAULT_NAME } from '../brandName'
 import { Dialog } from '../ui/Overlay'
 
 // The server's name and logo: a window with a live preview of the corner of
-// the screen, a name box and a logo upload. Used by setup and by Settings,
-// Appearance.
+// the screen, a name box, how the name is coloured and a logo upload. Used by
+// setup and by Settings, Appearance.
 
 const MAX_LOGO = 2 << 20
 
-// logo: what is shown now (an address), or '' for the app icon.
-// onSave gets the name and the logo change: a new File, 'remove', or null
-// for no change.
-export default function BrandDialog({ name, logo, onSave, onClose }: {
-  name: string; logo: string
-  onSave: (name: string, logo: File | 'remove' | null) => Promise<void> | void
+// logo: what is shown now (an address), or '' for the app icon. colouring:
+// the brandColouring setting (brandName.ts). onSave gets the name, the logo
+// change (a new File, 'remove', or null for no change) and the colouring.
+export default function BrandDialog({ name, colouring = 'auto', logo, onSave, onClose }: {
+  name: string; colouring?: string; logo: string
+  onSave: (name: string, logo: File | 'remove' | null, colouring: string) => Promise<void> | void
   onClose: () => void
 }) {
   const [n, setN] = useState(name)
+  const [choice, setChoice] = useState(() => startChoice(name.trim() || DEFAULT_NAME, colouring))
+  const shown = n.trim() || DEFAULT_NAME
+  const chosen = colouringOf(shown, choice)
+  // A new name starts the chosen words again from the automatic split.
+  const rename = (v: string) => {
+    if (v.trim() !== n.trim()) setChoice((c) => ({ ...startChoice(v.trim() || DEFAULT_NAME, 'auto'), mode: c.mode }))
+    setN(v)
+  }
   const [file, setFile] = useState<File | 'remove' | null>(null)
   const [preview, setPreview] = useState(logo)
   const [err, setErr] = useState('')
@@ -44,7 +54,7 @@ export default function BrandDialog({ name, logo, onSave, onClose }: {
   }
   const save = async () => {
     setBusy(true); setErr('')
-    try { await onSave(n.trim(), file); onClose() } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+    try { await onSave(n.trim(), file, chosen); onClose() } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
   const mark = file === 'remove' || !preview ? '/icon.svg' : preview
   // A portal, so the window never takes on the styles of the page it opens from.
@@ -56,21 +66,23 @@ export default function BrandDialog({ name, logo, onSave, onClose }: {
         <div className="brand-preview" aria-label="Preview">
           <span className="brand-preview-label">Preview</span>
           <div className="brand-preview-bar">
-            <div className="brand"><img className="brand-mark" src={mark} alt="" /><Brand name={n.trim()} /></div>
+            <div className="brand"><img className="brand-mark" src={mark} alt="" /><Brand name={n.trim()} colouring={chosen} /></div>
             <span className="brand-preview-search" />
             <span className="brand-preview-avatar" />
           </div>
           <div className="brand-preview-card">
-            <div className="brand"><img className="brand-mark" src={mark} alt="" /><Brand name={n.trim()} /></div>
+            <div className="brand"><img className="brand-mark" src={mark} alt="" /><Brand name={n.trim()} colouring={chosen} /></div>
             <span className="muted">Who's watching?</span>
           </div>
         </div>
 
         <label className="brand-field">Server name
-          <input className="input" autoFocus value={n} maxLength={40} onChange={(e) => setN(e.target.value)} placeholder="WittyMediaServer"
+          <input className="input" autoFocus value={n} maxLength={40} onChange={(e) => rename(e.target.value)} placeholder="WittyMediaServer"
             onKeyDown={(e) => { if (e.key === 'Enter') save() }} />
           <span className="muted">Leave empty to use “WittyMediaServer”.</span>
         </label>
+
+        <BrandColouring name={shown} choice={choice} onChange={setChoice} />
 
         <div className="brand-field">Logo
           <div className="brand-logo-row">

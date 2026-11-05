@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/appcontrol"
@@ -25,7 +26,6 @@ import (
 // Limits on a helper. The call limit is generous because a call may read a large
 // file from a slow network share.
 const (
-	helloTimeout = 45 * time.Second // the first run of a new program can be held up by a virus scanner
 	idleTimeout  = time.Minute
 	softMemory   = "256MiB"
 	hardMemoryMB = 512
@@ -33,6 +33,15 @@ const (
 
 // callTimeout is a var so tests can shorten it.
 var callTimeout = 60 * time.Second
+
+// helloTimeout is how long a helper has to say hello: the first run of a new program can be
+// held up by a virus scanner. One that's only slow, on a machine too busy to start it in that
+// time, is given a second start with twice as long before it counts as failing (issue #265).
+// A var so tests can shorten it.
+var helloTimeout = 45 * time.Second
+
+// errSlowHello: the helper was still starting when its time ran out.
+var errSlowHello = errors.New("it was still starting when its time ran out")
 
 // errUntrusted: a helper's files no longer match their signature.
 var errUntrusted = errors.New("files have changed since they were installed")
@@ -200,9 +209,18 @@ func (p *proc) newCmd() *exec.Cmd {
 	return cmd
 }
 
-// start runs the helper and checks that it is what its manifest says. Call with
-// p.mu held.
+// start runs the helper and checks that it is what its manifest says, giving one that's
+// only slow to start a second go with twice the time. Call with p.mu held.
 func (p *proc) start() error {
+	err := p.startWithin(helloTimeout)
+	if errors.Is(err, errSlowHello) && !p.closed {
+		p.log.Warn("modules: a helper was slow to start; trying again with longer", "version", p.man.Version, "waited", helloTimeout.String())
+		err = p.startWithin(2 * helloTimeout)
+	}
+	return err
+}
+
+func (p *proc) startWithin(helloWait time.Duration) error {
 	if p.closed {
 		return errors.New("this version is no longer in use")
 	}
@@ -273,9 +291,13 @@ func (p *proc) start() error {
 
 	// Closing our end too: killing a helper doesn't end a child of its that still holds
 	// the pipe, and a read on it would never return.
-	stop := time.AfterFunc(helloTimeout, func() { _ = cmd.Process.Kill(); _ = stdout.Close() })
+	var slow atomic.Bool
+	stop := time.AfterFunc(helloWait, func() { slow.Store(true); _ = cmd.Process.Kill(); _ = stdout.Close() })
 	hello, err := conn.ReadHello()
 	stop.Stop()
+	if err != nil && slow.Load() {
+		err = fmt.Errorf("%w (%s): %v", errSlowHello, helloWait, err)
+	}
 	if err == nil {
 		switch {
 		case hello.Module != p.man.ID:
@@ -297,7 +319,7 @@ func (p *proc) start() error {
 			p.log.Warn("modules: a helper wouldn't start in its sandbox, so it's starting without one", "version", p.man.Version, "err", err, "said", t.Last(errStderr))
 			launcherFailed.Store(true)
 			p.launch = ""
-			return p.start()
+			return p.startWithin(helloWait)
 		}
 		return fmt.Errorf("%w %s", err, t.Last(errStderr))
 	}

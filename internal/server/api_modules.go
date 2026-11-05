@@ -11,6 +11,7 @@ import (
 	"path"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -467,7 +468,16 @@ func writeModuleErr(w http.ResponseWriter, err error) {
 // writeModuleMissing answers a request a missing module could have answered, and says whether
 // that's what happened. 424 means the request was fine and depends on something that isn't
 // here: the page explains itself and offers to install it, rather than showing an error.
+//
+// A module that's resting, after its only version failed again and again, answers 503 with
+// when it's tried again: the page says so rather than waiting (issue #265).
 func writeModuleMissing(w http.ResponseWriter, err error) bool {
+	var resting *modmgr.ErrResting
+	if errors.As(err, &resting) {
+		w.Header().Set("Retry-After", strconv.Itoa(max(1, int(time.Until(resting.Until).Seconds()))))
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": resting.Error(), "resting": true, "until": resting.Until.UnixMilli()})
+		return true
+	}
 	var missing *modmgr.ErrMissing
 	if !errors.As(err, &missing) {
 		return false

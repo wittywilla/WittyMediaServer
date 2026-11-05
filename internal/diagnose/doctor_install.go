@@ -314,8 +314,8 @@ func checkPort(ctx context.Context, e *DoctorEnv) []Issue {
 	_, port, ok := listenPort(e.Listen)
 	if !ok {
 		return []Issue{{Key: "port:address", Severity: SevProblem, Title: "The listen address can't be used", Safety: SafetyManual,
-			What:  "The server is told to listen on \"" + e.Listen + "\", which isn't an address and a port.",
-			Fix:   "Correct it, such as :9797.",
+			What: "The server is told to listen on \"" + e.Listen + "\", which isn't an address and a port.",
+			Fix:  "Correct it, such as :9797.",
 			Steps: []string{"Correct \"listen\" in wms.json, -listen or WMS_LISTEN. :9797 means every network card on port 9797.",
 				"To change only the port, remove that, and set it in settings.ini or Settings → Network: wittymediaserver config port says where."}}}
 	}

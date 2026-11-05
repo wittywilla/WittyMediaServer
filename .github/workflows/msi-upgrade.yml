@@ -45,6 +45,17 @@ jobs:
           # web app doesn't matter for that: a page stands in for it.
           New-Item -ItemType Directory -Force web\dist | Out-Null
           if (-not (Test-Path web\dist\index.html)) { Set-Content web\dist\index.html '<!doctype html>' }
+          # With a version, as a release has: Windows Installer keeps a versioned file over one
+          # without, so an unversioned server would lose to the old one it replaces.
+          $env:GOBIN = "$env:RUNNER_TEMP\bin"
+          go install github.com/tc-hib/go-winres@v0.3.3
+          go run ./scripts/genicon "$env:RUNNER_TEMP\icon.ico"
+          Push-Location cmd\wittymediaserver
+          & "$env:RUNNER_TEMP\bin\go-winres.exe" simply --arch amd64 --out rsrc --manifest cli --icon "$env:RUNNER_TEMP\icon.ico" `
+            --product-name WittyMediaServer --product-version 0.6.2-alpha --file-version 0.6.2.0 `
+            --file-description "WittyMediaServer: the server and its command line" --original-filename wittymediaserver.exe --copyright "Copyright WittyWilla"
+          Pop-Location
+          if ($LASTEXITCODE -ne 0) { throw "go-winres failed" }
           go build -trimpath -o stage\wittymediaserver-0.6.1-alpha-windows-amd64\bin\wittymediaserver.exe ./cmd/wittymediaserver
           if ($LASTEXITCODE -ne 0) { throw "building the server failed" }
           packaging\windows\build-msi.ps1 -Version 0.6.2-alpha -PackageDir stage\wittymediaserver-0.6.1-alpha-windows-amd64 -Arch amd64 -OutDir new

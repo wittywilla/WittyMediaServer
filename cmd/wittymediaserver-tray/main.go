@@ -53,12 +53,12 @@ type launcher struct {
 	listenGiven bool
 	// seen is where the server this app shows answered, when that isn't listen: a background
 	// service on another port, found with discovery.AskLocal.
-	seen string
-	cmd        *exec.Cmd
-	stdin      io.WriteCloser
-	logFile    *serverOutput
-	running    bool
-	healthy    bool
+	seen    string
+	cmd     *exec.Cmd
+	stdin   io.WriteCloser
+	logFile *serverOutput
+	running bool
+	healthy bool
 	// answered: this run of the server has answered at least once, so not answering now
 	// means it stopped answering, not that it's still starting.
 	answered bool

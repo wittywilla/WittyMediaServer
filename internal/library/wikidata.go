@@ -17,10 +17,12 @@ import (
 // year, genres, the US rating (so parental controls work) and a short plot
 // from the film's English Wikipedia article. No key is needed. Wikidata is
 // public domain (CC0); Wikipedia text is CC BY-SA 4.0 and credited in the
-// app. Posters are not taken from there (they are copyrighted).
+// app. A poster comes only from Wikimedia Commons, where a film has a free one,
+// credited with its licence and author (commons_posters.go).
 type Wikidata struct {
-	Client *http.Client
-	API    string // tests
+	Client     *http.Client
+	API        string // tests
+	CommonsAPI string // tests
 }
 
 const wikiUA = "WittyMediaServer/0.4 (https://github.com/wittywilla/WittyMediaServer)"
@@ -117,7 +119,7 @@ func (w *Wikidata) entities(ctx context.Context, ids []string, props string) (ma
 		Entities map[string]wdEntity `json:"entities"`
 	}
 	q := url.Values{"action": {"wbgetentities"}, "ids": {strings.Join(ids, "|")}, "props": {props}, "languages": {"en"}, "sitefilter": {"enwiki"}, "format": {"json"}}
-	err := w.get(ctx, "https://www.wikidata.org/w/api.php?"+q.Encode(), &res)
+	err := w.get(ctx, w.api()+"?"+q.Encode(), &res)
 	return res.Entities, err
 }
 
@@ -131,7 +133,7 @@ func (w *Wikidata) Enrich(ctx context.Context, it *Item) error {
 		} `json:"search"`
 	}
 	q := url.Values{"action": {"wbsearchentities"}, "search": {it.Title}, "language": {"en"}, "type": {"item"}, "limit": {"10"}, "format": {"json"}}
-	if err := w.get(ctx, "https://www.wikidata.org/w/api.php?"+q.Encode(), &search); err != nil {
+	if err := w.get(ctx, w.api()+"?"+q.Encode(), &search); err != nil {
 		return err
 	}
 	var cands []string
@@ -234,6 +236,9 @@ func (w *Wikidata) Enrich(ctx context.Context, it *Item) error {
 		if it.Overview == "" {
 			it.Overview = best.Descriptions["en"].Value
 		}
+	}
+	if it.Poster == "" {
+		it.Poster = w.commonsPoster(ctx, *best)
 	}
 	if it.Provider == "" {
 		it.Provider, it.ProviderID = "wikidata", best.ID

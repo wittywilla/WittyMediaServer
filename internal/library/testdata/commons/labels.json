@@ -1,0 +1,67 @@
+{
+ "entities": {
+  "Q226730": {
+   "id": "Q226730",
+   "labels": {
+    "en": {
+     "language": "en",
+     "value": "silent film"
+    }
+   }
+  },
+  "Q200092": {
+   "id": "Q200092",
+   "labels": {
+    "en": {
+     "language": "en",
+     "value": "horror film"
+    }
+   }
+  },
+  "Q959790": {
+   "id": "Q959790",
+   "labels": {
+    "en": {
+     "language": "en",
+     "value": "crime film"
+    }
+   }
+  },
+  "Q1135802": {
+   "id": "Q1135802",
+   "labels": {
+    "en": {
+     "language": "en",
+     "value": "art film"
+    }
+   }
+  },
+  "Q76552": {
+   "id": "Q76552",
+   "labels": {
+    "en": {
+     "language": "en",
+     "value": "Robert Wiene"
+    }
+   }
+  },
+  "Q705676": {
+   "id": "Q705676",
+   "labels": {
+    "en": {
+     "language": "en",
+     "value": "Babelsberg Studio"
+    }
+   }
+  },
+  "Q95894287": {
+   "id": "Q95894287",
+   "labels": {
+    "en": {
+     "language": "en",
+     "value": "David Lee Fisher"
+    }
+   }
+  }
+ }
+}

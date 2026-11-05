@@ -383,6 +383,13 @@ func (s *Server) handleArtwork(w http.ResponseWriter, r *http.Request) {
 			}
 		} else if it.ShowID == nil {
 			warn = "Add a TMDB API key in Settings for online artwork."
+			// A film matched through Wikidata may have a free poster on Wikimedia Commons.
+			if !backdrop && it.Provider == "wikidata" {
+				if p := library.WikidataPoster(ctx, &library.Wikidata{}, it.ProviderID); p != "" {
+					add(artCandidate{URL: p, Source: "wikimedia"})
+					warn = "Add a TMDB API key in Settings for more online artwork."
+				}
+			}
 		}
 	}
 	if out == nil {

@@ -461,9 +461,11 @@ func (w *wikidataSource) Search(ctx context.Context, q string, _ *int) ([]MatchC
 	if err != nil {
 		return nil, err
 	}
+	posters := w.commonsPosters(ctx, ents)
 	out := make([]MatchCandidate, 0, len(ids))
 	for _, id := range ids {
 		c := info[id]
+		c.Poster = posters[id]
 		if e, ok := ents[id]; ok {
 			if cl := e.Claims[wdPublication]; len(cl) > 0 {
 				if y, err := strconv.Atoi(firstN(cl[0].Mainsnak.time(), 4)); err == nil {
@@ -510,6 +512,7 @@ func (w *wikidataSource) searchText(ctx context.Context, q string) ([]MatchCandi
 	if err != nil {
 		return nil, err
 	}
+	posters := w.commonsPosters(ctx, ents)
 	out := make([]MatchCandidate, 0, len(ids))
 	for _, id := range ids {
 		e, ok := ents[id]
@@ -520,7 +523,7 @@ func (w *wikidataSource) searchText(ctx context.Context, q string) ([]MatchCandi
 		if kind == "" {
 			kind = "movie"
 		}
-		c := MatchCandidate{Source: "wikidata", ID: id, Kind: kind, Title: e.Labels["en"].Value, Overview: e.Descriptions["en"].Value}
+		c := MatchCandidate{Source: "wikidata", ID: id, Kind: kind, Title: e.Labels["en"].Value, Overview: e.Descriptions["en"].Value, Poster: posters[id]}
 		if cl := e.Claims[wdPublication]; len(cl) > 0 {
 			if y, err := strconv.Atoi(firstN(cl[0].Mainsnak.time(), 4)); err == nil {
 				c.Year = &y
@@ -613,6 +616,9 @@ func (w *wikidataSource) Details(ctx context.Context, id string) (*MatchDetails,
 	}
 	if d.Overview == "" {
 		d.Overview = e.Descriptions["en"].Value
+	}
+	if p := w.commonsPoster(ctx, e); p != "" {
+		d.Poster, d.Posters = p, []string{p}
 	}
 	return d, nil
 }

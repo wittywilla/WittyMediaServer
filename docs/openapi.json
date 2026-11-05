@@ -10445,6 +10445,36 @@
         "x-wms-auth": "user"
       }
     },
+    "/artwork/credits": {
+      "get": {
+        "operationId": "getArtworkCredits",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Where each poster or backdrop from Wikimedia Commons came from: its page, licence and author.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/artwork/preview": {
       "get": {
         "operationId": "getArtworkPreview",

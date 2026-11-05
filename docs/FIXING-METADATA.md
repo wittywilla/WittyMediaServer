@@ -96,7 +96,7 @@ The edit dialog also has **Remove**, and **Revert** where there's something to g
 
 **A film with no poster** gets a frame from its video. Under **Settings → Metadata agents → Artwork**, choose a poster made from its title instead, or nothing (a plain card). A picture beside the file or from a source always comes first, and replaces one the server made.
 
-Pictures from sources are fetched by your server, so no browser or app contacts them. Without a TMDB key, films have only what's in their folder, because Wikidata has no posters. TV shows get theirs from TVmaze.
+Pictures from sources are fetched by your server, so no browser or app contacts them. Without a TMDB key, a film gets the poster in its folder, or else a free one from Wikimedia Commons where Wikidata names one: mostly older and public-domain films, as most posters aren't free. Each one's licence and author are listed under **Settings → Legal**, in *Posters from Wikimedia Commons*. TV shows get theirs from TVmaze.
 
 With **Save information and artwork next to your media** on, the chosen poster and backdrop are also copied to the standard names beside the file, and the NFO is rewritten. A hand-written one is kept as `.nfo.bak`.
 

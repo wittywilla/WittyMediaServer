@@ -62,6 +62,8 @@ type runMarker struct {
 	Started time.Time `json:"started"`
 	PID     int       `json:"pid"`
 	LogDir  string    `json:"logDir,omitempty"` // the owner may have moved the logs
+	// Stopping: why it began to stop. A marker left with this set is a stop that didn't finish.
+	Stopping *Stop `json:"stopping,omitempty"`
 }
 
 // CrashGuard is one run of the server, watched.
@@ -71,6 +73,12 @@ type CrashGuard struct {
 	pending *os.File
 	marker  string
 	run     runMarker
+	// markerMu: the marker is written from wherever a stop is noted.
+	markerMu sync.Mutex
+	// previous is how the run before this one ended.
+	previous LastRun
+	// stderr is where this run's standard error went, when nothing else kept it.
+	stderr *os.File
 
 	mu     sync.Mutex
 	recent map[string]time.Time // recovered panics by where they happened
@@ -113,7 +121,13 @@ func StartCrashGuard(dir, logDir, version string) (*CrashGuard, []Crash, error) 
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, nil, err
 	}
-	found := g.collect(logDir)
+	found, prev := g.collect(logDir)
+	if !prev.Started.IsZero() {
+		g.previous = prev
+		g.record(prev)
+	} else if last, ok := readLastRun(dir); ok {
+		g.previous = last
+	}
 	g.prune()
 	me := os.Getpid()
 	f, err := os.OpenFile(filepath.Join(dir, fmt.Sprintf("pending-%d.txt", me)), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o640)
@@ -163,6 +177,7 @@ func RunningServer(crashDir string) (pid int, ok bool) {
 	return 0, false
 }
 
+// writeMarker is called with markerMu held, or before anyone else can see the guard.
 func (g *CrashGuard) writeMarker() error {
 	b, err := json.Marshal(g.run)
 	if err != nil {
@@ -173,7 +188,12 @@ func (g *CrashGuard) writeMarker() error {
 
 // SetLogDir notes where this run's logs are, for the report if it ends badly.
 func (g *CrashGuard) SetLogDir(dir string) {
-	if g == nil || g.marker == "" {
+	if g == nil {
+		return
+	}
+	g.markerMu.Lock()
+	defer g.markerMu.Unlock()
+	if g.marker == "" {
 		return
 	}
 	g.run.LogDir = dir
@@ -197,14 +217,27 @@ func (g *CrashGuard) Close() {
 		_ = os.Remove(name)
 		g.pending = nil
 	}
-	if g.marker != "" {
-		_ = os.Remove(g.marker)
+	g.markerMu.Lock()
+	marker := g.marker
+	g.marker = "" // a stop noted after this has no marker to write back
+	g.markerMu.Unlock()
+	if marker != "" {
+		g.record(LastRun{PID: g.run.PID, Version: g.version, Started: g.run.Started, Ended: time.Now(), Clean: true, Stop: StopNoted()})
+		_ = os.Remove(marker)
 	}
+	g.closeStderr()
 }
 
-// collect turns files left by earlier runs into reports.
-func (g *CrashGuard) collect(logDir string) []Crash {
+// collect turns files left by earlier runs into reports, and says how the newest of those
+// runs ended. A zero LastRun means every earlier run stopped cleanly.
+func (g *CrashGuard) collect(logDir string) ([]Crash, LastRun) {
 	var found []Crash
+	var prev LastRun
+	note := func(r LastRun) {
+		if prev.Started.IsZero() || r.Started.After(prev.Started) {
+			prev = r
+		}
+	}
 	entries, _ := os.ReadDir(g.dir)
 	fatalPIDs := map[int]bool{}
 	for _, e := range entries {
@@ -230,6 +263,7 @@ func (g *CrashGuard) collect(logDir string) []Crash {
 			if c, err := g.reportFromFatal(p, info, dir, m.Version); err == nil {
 				found = append(found, c)
 				fatalPIDs[pid] = true
+				note(LastRun{PID: pid, Version: m.Version, Started: m.Started, Ended: info.ModTime(), Stop: stopOf(m), Report: c.ID, LastLog: lastLogLines(dir, 1)})
 			}
 		}
 		_ = os.Remove(p)
@@ -254,12 +288,22 @@ func (g *CrashGuard) collect(logDir string) []Crash {
 				}
 				if c, err := g.reportFromUnclean(m, dir); err == nil {
 					found = append(found, c)
+					note(LastRun{PID: pid, Version: m.Version, Started: m.Started, Ended: c.Time, Stop: stopOf(m), Report: c.ID, LastLog: lastLogLines(dir, 1)})
 				}
 			}
 		}
 		_ = os.Remove(p)
+		g.removeStderr(pid)
 	}
-	return found
+	g.removeOldStderr()
+	return found, prev
+}
+
+func stopOf(m runMarker) Stop {
+	if m.Stopping == nil {
+		return Stop{}
+	}
+	return *m.Stopping
 }
 
 func (g *CrashGuard) readMarker(pid int) runMarker {
@@ -295,9 +339,18 @@ func (g *CrashGuard) reportFromUnclean(m runMarker, logDir string) (Crash, error
 	if files := listLogFiles(logDir); len(files) > 0 && files[0].Modified.After(when) {
 		when = files[0].Modified
 	}
-	return g.writeReport("unclean", when, m.Version,
-		"The server stopped without shutting down: a power cut, the computer restarting, the process being ended or the system running out of memory.",
-		fmt.Sprintf("Started: %s\nProcess: %d\nNo error was recorded by the server itself.\n", m.Started.Format(time.RFC3339), m.PID), last)
+	summary := "The server stopped without shutting down: a power cut, the computer restarting, the process being ended or the system running out of memory."
+	body := fmt.Sprintf("Started: %s\nProcess: %d\n", m.Started.Format(time.RFC3339), m.PID)
+	if m.Stopping != nil {
+		summary = "The server began to stop (" + shortStop(*m.Stopping) + ") and didn't finish: it was ended before it could, or stopping hung."
+		body += fmt.Sprintf("Stopping since: %s, because %s\n", m.Stopping.At.Format(time.RFC3339), m.Stopping.Words())
+	} else {
+		body += "No error was recorded by the server itself.\n"
+	}
+	if errText := g.readStderr(m.PID); errText != "" {
+		body += "\n--- what it wrote to standard error ---\n" + errText + "\n"
+	}
+	return g.writeReport("unclean", when, m.Version, summary, body, last)
 }
 
 func (g *CrashGuard) writeReport(kind string, when time.Time, version, summary, body, lastLines string) (Crash, error) {

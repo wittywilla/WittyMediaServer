@@ -142,7 +142,7 @@ func TestHeadersSetPolicyForAPI(t *testing.T) {
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = w.Write([]byte("<script>alert(1)</script>"))
 	}))
-	for path, want := range map[string]string{"/api/items/1/stream": apiCSP, "/": appCSP} {
+	for path, want := range map[string]string{"/api/items/1/stream": apiCSP, "/": appCSPFor(httptest.NewRequest("GET", "/", nil))} {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
 		if got := w.Header().Get("Content-Security-Policy"); got != want {

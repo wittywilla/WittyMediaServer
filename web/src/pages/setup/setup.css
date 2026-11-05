@@ -141,3 +141,5 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
   .oobe-next-card .btn.sm, .oobe-hint .btn.sm { min-height: 2.75rem; }
 }
 .su-progress-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-1) var(--sp-3); font-size: var(--text-sm); }
+.su-port { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--fg-2); }
+.oobe-next-card .port-setting { justify-self: stretch; }

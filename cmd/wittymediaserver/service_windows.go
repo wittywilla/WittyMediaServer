@@ -7,6 +7,7 @@ import (
 	"golang.org/x/sys/windows/svc"
 
 	"github.com/wittywilla/wittymediaserver/internal/instance"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // serviceName is what the installer registers the server as.
@@ -58,6 +59,11 @@ func (h *serviceHandler) Execute(_ []string, requests <-chan svc.ChangeRequest, 
 				status <- req.CurrentStatus
 			case svc.Stop, svc.Shutdown:
 				status <- svc.Status{State: svc.StopPending}
+				if req.Cmd == svc.Shutdown {
+					logging.NoteStop(logging.StopShutdown, "Windows told its services", "")
+				} else {
+					logging.NoteStop(logging.StopService, "the Windows service was stopped", "")
+				}
 				close(serviceStop)
 				h.code = <-done
 				return false, 0

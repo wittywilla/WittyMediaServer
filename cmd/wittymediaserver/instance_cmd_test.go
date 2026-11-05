@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -32,10 +34,24 @@ func TestMain(m *testing.M) {
 }
 
 type testServer struct {
-	cmd *exec.Cmd
-	out *bytes.Buffer
-	dir string
+	cmd   *exec.Cmd
+	out   *syncBuffer
+	dir   string
+	stdin io.WriteCloser // with -watch-stdin, as the tray app runs it
 }
+
+// syncBuffer is the server's output, read while it's still being written.
+type syncBuffer struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.b.Write(p)
+}
+func (b *syncBuffer) String() string { b.mu.Lock(); defer b.mu.Unlock(); return b.b.String() }
 
 func freePort(t *testing.T) int {
 	t.Helper()
@@ -49,20 +65,29 @@ func freePort(t *testing.T) int {
 
 // startServer runs a server on its own folder, with an empty config file so nothing from
 // this machine's own config is used, and never a browser or a dialog.
-func startServer(t *testing.T, dir string, port int) *testServer {
+func startServer(t *testing.T, dir string, port int, extra ...string) *testServer {
 	t.Helper()
 	conf := filepath.Join(t.TempDir(), "wms.json")
 	if err := os.WriteFile(conf, []byte("{}"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(os.Args[0], "-test.run=^$", "--", "serve", "-config", conf, "-data", dir, "-listen", "127.0.0.1:"+strconv.Itoa(port))
+	cmd := exec.Command(os.Args[0], append([]string{"-test.run=^$", "--", "serve", "-config", conf, "-data", dir, "-listen", "127.0.0.1:" + strconv.Itoa(port)}, extra...)...)
 	cmd.Env = append(os.Environ(), "WMS_TEST_RUN_SERVER=1", "WMS_NO_BROWSER=1", "WMS_NO_DIALOG=1", "WMS_DATA_DIR=", "WMS_LISTEN=", "WMS_CONFIG=", "WMS_RESTARTED=")
-	var out bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &out, &out
+	out := &syncBuffer{}
+	cmd.Stdout, cmd.Stderr = out, out
+	s := &testServer{cmd: cmd, out: out, dir: dir}
+	for _, a := range extra {
+		if a == "-watch-stdin" {
+			in, err := cmd.StdinPipe()
+			if err != nil {
+				t.Fatal(err)
+			}
+			s.stdin = in
+		}
+	}
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
-	s := &testServer{cmd: cmd, out: &out, dir: dir}
 	t.Cleanup(func() {
 		if cmd.ProcessState == nil {
 			_ = cmd.Process.Kill()
@@ -118,7 +143,7 @@ func TestSecondStart(t *testing.T) {
 	dataA := filepath.Join(root, "a")
 	portA := freePort(t)
 	first := startServer(t, dataA, portA)
-	r := instance.Find(context.Background(), dataA, 90*time.Second)
+	r := instance.Find(context.Background(), dataA, serverUp)
 	if !r.Answering {
 		t.Fatalf("the first server didn't come up:\n%s", first.out.String())
 	}
@@ -140,7 +165,7 @@ func TestSecondStart(t *testing.T) {
 	t.Run("another folder and port", func(t *testing.T) {
 		dataB := filepath.Join(root, "b")
 		other := startServer(t, dataB, freePort(t))
-		rb := instance.Find(context.Background(), dataB, 90*time.Second)
+		rb := instance.Find(context.Background(), dataB, serverUp)
 		if !rb.Answering || rb.Instance == r.Instance {
 			t.Fatalf("second server: %+v\n%s", rb, other.out.String())
 		}
@@ -180,10 +205,14 @@ func TestSecondStart(t *testing.T) {
 		}
 		_ = first.cmd.Wait()
 		again := startServer(t, dataA, freePort(t))
-		ra := instance.Find(context.Background(), dataA, 90*time.Second)
+		ra := instance.Find(context.Background(), dataA, serverUp)
 		if !ra.Answering || ra.PID != again.cmd.Process.Pid {
 			t.Fatalf("after a kill: %+v\n%s", ra, again.out.String())
 		}
 		_ = again.cmd.Process.Kill()
 	})
 }
+
+// serverUp is how long a test server gets to start: a busy machine scanning a new test
+// program can take minutes over what's a second or two anywhere else.
+const serverUp = 3 * time.Minute

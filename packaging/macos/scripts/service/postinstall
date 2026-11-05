@@ -4,13 +4,17 @@
 set -e
 PLIST=/Library/LaunchDaemons/com.wittywilla.wittymediaserver.plist
 
-# Keep whatever an earlier install chose.
+# Keep whatever an earlier install chose. Its port, from before 0.7.0, moves into settings.ini below;
+# an address with a host in front stays as WMS_LISTEN.
 DATA=""
-PORT=9797
+PORT=""
+LISTEN=""
 if [ -f "$PLIST" ]; then
   DATA=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:WMS_DATA_DIR' "$PLIST" 2>/dev/null || true)
   LISTEN=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:WMS_LISTEN' "$PLIST" 2>/dev/null || true)
-  [ -n "$LISTEN" ] && PORT="${LISTEN#:}"
+  case "$LISTEN" in
+    :[0-9]*|0.0.0.0:[0-9]*) if [ "${LISTEN##*:}" != 9797 ]; then PORT="${LISTEN##*:}"; fi ;;
+  esac
   launchctl bootout system "$PLIST" 2>/dev/null || true
 fi
 
@@ -36,9 +40,22 @@ fi
 mkdir -p "$DATA"
 chown -h "$RUN_AS" "$DATA"
 chmod -h 700 "$DATA"
+# The port is in settings.ini now, where Settings → Network changes it. Written as the person it's
+# for, so nothing they put in their folder is read or changed as root.
+if [ -n "$PORT" ]; then
+  sudo -u "$RUN_AS" /Applications/WittyMediaServer.app/Contents/Helpers/wittymediaserver config port -data "$DATA" -in-data -port "$PORT" || true
+fi
 
 # What goes in a property list as text.
 xml() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
+
+# An address with a host in front stays as it was. Worked out here, not inside the property list
+# below: the Mac's /bin/sh misreads a case pattern's ) inside $( ).
+LISTEN_ENTRY=""
+case "$LISTEN" in
+  ""|:[0-9]*|0.0.0.0:[0-9]*) ;;
+  *) LISTEN_ENTRY="<key>WMS_LISTEN</key><string>$(xml "$LISTEN")</string>" ;;
+esac
 
 cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -51,8 +68,9 @@ cat > "$PLIST" <<EOF
   </array>
   <key>EnvironmentVariables</key><dict>
     <key>WMS_DATA_DIR</key><string>$(xml "$DATA")</string>
-    <key>WMS_LISTEN</key><string>:$(xml "$PORT")</string>
     <key>WMS_NO_BROWSER</key><string>1</string>
+    <key>WMS_SUPERVISED</key><string>1</string>
+    $LISTEN_ENTRY
   </dict>
   <key>UserName</key><string>$(xml "$RUN_AS")</string>
   <key>RunAtLoad</key><true/>

@@ -34,6 +34,7 @@ var DataEntries = map[string]string{
 	"wittycouch":            "game streaming pairings",
 	"metadata":              "text files for fixing titles by hand",
 	"setup-code.txt":        "the code for setting up from another network",
+	"settings.ini":          "the port, as Settings or you set it",
 	"update-withdrawn.json": "which releases were withdrawn",
 	"reset-request.json":    "a waiting reset",
 	"reset-result.json":     "the last reset's result",

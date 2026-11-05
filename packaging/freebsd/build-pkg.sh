@@ -39,9 +39,11 @@ if [ -f "$STAGE/WittyMediaServer" ]; then
   cp "$STAGE/share/wittymediaserver.png" "$root/usr/local/share/icons/hicolor/256x256/apps/"
 fi
 cp "$STAGE/docs/"* "$root/usr/local/share/doc/wittymediaserver/"
+# The settings file beside the program. pre-install carries a port someone set in it over.
+cp "$STAGE/settings.ini" "$lib/"
 printf '{"product":"WittyMediaServer","kind":"freebsd-pkg"}\n' > "$lib/package-info.json"
 ln -s ../lib/wittymediaserver/bin/wittymediaserver "$root/usr/local/bin/wittymediaserver"
-sed -e 's|%%USER%%|wms|g' -e 's|%%DATA%%|/var/db/wittymediaserver|g' -e 's|%%PORT%%|9797|g' \
+sed -e 's|%%USER%%|wms|g' -e 's|%%DATA%%|/var/db/wittymediaserver|g' \
     -e 's|%%PROGRAM%%|/usr/local/lib/wittymediaserver|g' packaging/freebsd/wittymediaserver.rc > "$root/usr/local/etc/rc.d/wittymediaserver"
 chmod 755 "$root/usr/local/etc/rc.d/wittymediaserver" "$lib/bin/"*
 
@@ -59,7 +61,7 @@ licenselogic: single
 licenses: [APACHE20]
 message: [
   {
-    message: "WittyMediaServer is installed.\n\nStart it now, and at every boot:\n  sysrc wittymediaserver_enable=YES\n  service wittymediaserver start\nThen open http://<this computer>:9797/ to finish setup. If it says FFmpeg is missing: pkg install ffmpeg\nRemove: wittymediaserver --uninstall (asks about your data)\n",
+    message: "WittyMediaServer is installed.\n\nStart it now, and at every boot:\n  sysrc wittymediaserver_enable=YES\n  service wittymediaserver start\nThen open http://<this computer>:9797/ to finish setup. Another port: Settings, Network, or /var/db/wittymediaserver/settings.ini. If it says FFmpeg is missing: pkg install ffmpeg\nRemove: wittymediaserver --uninstall (asks about your data)\n",
     type: install
   },
   {

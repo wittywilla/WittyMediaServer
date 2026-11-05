@@ -24,7 +24,7 @@ const (
 func programEntry(name string) bool {
 	switch strings.ToLower(name) {
 	case "bin", "modules", "docs", "share", ".update", "package-info.json", "wms.exe", "wms", "install.sh", "readme.txt",
-		"wittymediaserver.exe", "wittymediaserver", "uninstall wittymediaserver.exe":
+		"wittymediaserver.exe", "wittymediaserver", "uninstall wittymediaserver.exe", "settings.ini":
 		return true
 	}
 	if strings.HasSuffix(strings.ToLower(name), ".old") {

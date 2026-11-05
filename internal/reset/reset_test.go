@@ -263,6 +263,24 @@ func TestAStartCutOffCarriesOn(t *testing.T) {
 	}
 }
 
+// The port in the data folder's settings.ini stays through a reset: the address everyone uses
+// doesn't change because the library started again.
+func TestResetKeepsThePort(t *testing.T) {
+	for _, mode := range []string{ModeKeepCopy, ModeDelete} {
+		f := install(t)
+		write(t, filepath.Join(f.Data, "settings.ini"), "port = 8096\n")
+		if err := Ask(f.Data, Request{Mode: mode, At: time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)}); err != nil {
+			t.Fatal(err)
+		}
+		if res := Apply(f); res == nil || !res.OK {
+			t.Fatalf("%s: %+v", mode, res)
+		}
+		if read(t, filepath.Join(f.Data, "settings.ini")) != "port = 8096\n" {
+			t.Fatalf("%s: the port went with the reset", mode)
+		}
+	}
+}
+
 // The server that's starting holds its data folder's lock while the reset happens: the
 // lock stays where it is, held, and the reset carries on around it.
 func TestTheRunningServersLockStays(t *testing.T) {

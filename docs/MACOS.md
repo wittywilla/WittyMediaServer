@@ -28,7 +28,7 @@ As of 0.7.0-alpha, 2026-11-04. "CI" means GitHub's Mac runners: virtual Macs, Ap
 | Bundled FFmpeg | Downloaded and checked against `scripts/ffmpeg.lock` | Runs, and lists VideoToolbox's encoders | No |
 | Module helpers (every module) | Every module's CI cross-compiles darwin/amd64 and darwin/arm64 | No | No |
 | Helper sandbox (`sandbox-exec`) | Yes | `TestMacHelperSandbox`: writing, removing, the network, Unix sockets and starting programs were all refused inside it, and a helper allowed more kept it. Signalling the server was not refused, though the profile asks for that | No |
-| Games (WittyPlay) | Yes | No | No |
+| Games (WittyPlay) | Yes | No | Yes, from the app as the build makes it, on macOS 27 on Apple silicon: a Game Boy game on Gambatte and an NES game on FCEUmm started, and one played in a browser. Before, every game failed as "The emulator crashed": see [Modules](MODULES.md) |
 | WittyMediaClient desktop (`.dmg`) | Every push, on a Mac | No | No |
 | WittyMediaClient for Mac, iPhone, iPad, Apple TV | On a Mac in CI, unsigned | WittyKit's tests | No |
 | WittyReader (`.dmg`) | Every release, on a Mac | No | No |
@@ -254,8 +254,8 @@ A Mac asks before a program does several things a media server needs. None of th
 Each of these has an issue labelled `platform:macos`. Those labelled `not-run` were written and checked as far as possible, and need a real Mac.
 
 - [Everything listed as `platform:macos` on the server](https://github.com/wittywilla/WittyMediaServer/issues?q=is%3Aopen+label%3Aplatform%3Amacos), and in [every repository](https://github.com/search?q=org%3Awittywilla+label%3Aplatform%3Amacos+is%3Aopen&type=issues).
-- **Never run on a real Mac:** the menu-bar app, the `.pkg` with a person at the screen, the uninstaller app, the service after a restart, the firewall, local network and privacy questions above, VideoToolbox transcoding, the helper sandbox, games, disc modules, WittyTuner's capture devices, the Mac's drive health and system figures.
-- **Module helpers run without a sandbox on a Mac** for now: the `sandbox-exec` profile is written and compiled but not trusted until it's seen working, so a fork from another publisher can't be chosen. See [Modules](MODULES.md) and [Module store](MODULE-STORE.md#using-someones-fork).
+- **Never run on a real Mac:** the menu-bar app, the `.pkg` with a person at the screen, the uninstaller app, the service after a restart, the firewall, local network and privacy questions above, VideoToolbox transcoding, the helper sandbox, disc modules, WittyTuner's capture devices, the Mac's drive health and system figures.
+- **Module helpers run in the `sandbox-exec` profile on a Mac**, except WittyPlay's: a Mac can't start one sandbox inside another, and WittyPlay gives each game a stricter one of its own. The profile isn't trusted for a fork until it's seen working, so a fork from another publisher can't be chosen. See [Modules](MODULES.md) and [Module store](MODULE-STORE.md#using-someones-fork).
 - **Games:** the consoles drawn on a graphics card don't play on a Mac ([Games](GAMES.md)), there's no per-game CPU limit (priority only), and game cores downloaded from the libretro build server aren't signed by us, which a signed, hardened runner will refuse.
 - **WittyMediaPlayer** has no Mac build ([its design notes](https://github.com/wittywilla/WittyMediaPlayer/blob/main/DESIGN.md) list what a port needs).
 - **No signing**, so every program warns, until the owner joins the Apple Developer Program.

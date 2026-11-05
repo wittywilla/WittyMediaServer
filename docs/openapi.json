@@ -11591,6 +11591,93 @@
         "x-wms-auth": "admin"
       }
     },
+    "/channels/{id}/reset": {
+      "post": {
+        "description": "Throws away the channel's schedule, what is on now included, and makes it again from its current settings and the titles that match them now, as if it had always run that way. Each show carries on from where it was at the start of today unless `startOver` (which also picks a new shuffle). Anyone watching moves to the new schedule without an error; `watching` says whether anyone was. Every account's reminders for the channel's programmes still to start are kept, moved to the programme's new time, or removed when it no longer airs in the next 15 days. Library channels can't be recorded, so no recordings change.",
+        "operationId": "postChannelsIdReset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "startOver": {
+                    "description": "Start every show from its first episode, and shuffle again.",
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "watching": {
+                      "description": "The channel was running, and its viewers moved to the new schedule.",
+                      "type": "boolean"
+                    },
+                    "reminders": {
+                      "properties": {
+                        "dropped": {
+                          "type": "integer"
+                        },
+                        "droppedTitles": {
+                          "description": "Up to six titles that no longer air, for a note: a sixth means there are others.",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "kept": {
+                          "type": "integer"
+                        },
+                        "moved": {
+                          "type": "integer"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The channel has its new schedule."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reset channel.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/channels/{id}/restore": {
       "post": {
         "operationId": "postChannelsIdRestore",
@@ -30679,6 +30766,168 @@
         "x-wms-auth": "admin"
       }
     },
+    "/network": {
+      "get": {
+        "operationId": "getNetwork",
+        "summary": "The port it answers on, where that comes from, where a change is saved, and the port after a restart.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "putNetwork",
+        "summary": "Save a port in settings.ini for the next start, after the same checks as /network/check. 409 when -listen, WMS_LISTEN, wms.json or Docker set it.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "port": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  }
+                },
+                "required": [
+                  "port"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Saved; the same as GET.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/network/check": {
+      "post": {
+        "operationId": "postNetworkCheck",
+        "summary": "Whether the server could move to a port: in range, not refused by browsers, not Remote Access's, and free here. Nothing is saved.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "port": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  }
+                },
+                "required": [
+                  "port"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "What was found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/network/restart": {
+      "post": {
+        "operationId": "postNetworkRestart",
+        "summary": "Restart, on the saved port.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "202": {
+            "description": "Restarting."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/reset": {
       "get": {
         "operationId": "getReset",
@@ -32612,11 +32861,33 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "brandColouring": {
+                      "description": "How the name is coloured: auto, one, or pick: and the coloured ranges in code points (pick:5-10,16-22).",
+                      "type": "string"
+                    },
                     "brandLogo": {
                       "type": "string"
                     },
                     "brandName": {
                       "type": "string"
+                    },
+                    "brandParts": {
+                      "description": "The name to show (the default when brandName is empty), ready to draw: parts with accent in the theme colour.",
+                      "items": {
+                        "properties": {
+                          "accent": {
+                            "type": "boolean"
+                          },
+                          "text": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "legalAck": {
                       "description": "False while an administrator should still see the first-run notice.",
@@ -33323,8 +33594,30 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "brandColouring": {
+                      "description": "As in /status.",
+                      "type": "string"
+                    },
                     "brandName": {
                       "type": "string"
+                    },
+                    "brandParts": {
+                      "description": "As in /status: the name to show, ready to draw.",
+                      "items": {
+                        "properties": {
+                          "accent": {
+                            "type": "boolean"
+                          },
+                          "text": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "default": {
                       "type": "string"

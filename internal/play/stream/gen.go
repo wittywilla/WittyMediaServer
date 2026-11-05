@@ -15,6 +15,115 @@ import (
 	time "time"
 )
 
+// StreamVersion is the version a mode says it can be reached with, in Mode.Stream.
+const StreamVersion = 2
+
+// Hello is what a client says about itself as it connects.
+type Hello struct {
+	Type    string   `json:"type,omitempty"` // "hello", over a WebSocket
+	V       int      `json:"v"`
+	App     string   `json:"app,omitempty"`
+	Device  string   `json:"device,omitempty"`
+	Name    string   `json:"name,omitempty"`
+	Watch   *bool    `json:"watch,omitempty"` // false: a controller only; left out is true
+	Video   []string `json:"video,omitempty"` // codecs it decodes, best first
+	Audio   []string `json:"audio,omitempty"` // opus, pcm
+	Seats   []int    `json:"seats"`           // the players it drives; nil: any nobody holds
+	Display Display  `json:"display"`
+	Latency string   `json:"latency,omitempty"`
+	MaxKbps int      `json:"maxKbps,omitempty"`
+}
+
+// Display is the screen a client shows the game on.
+type Display struct {
+	Hz     float64 `json:"hz,omitempty"`
+	Width  int     `json:"width,omitempty"`
+	Height int     `json:"height,omitempty"`
+}
+
+// StreamInfo is what a connection gets: in the answer, and as the first event.
+type StreamInfo struct {
+	Type      string       `json:"type"` // "stream"
+	V         int          `json:"v"`
+	Conn      string       `json:"conn"`
+	Transport string       `json:"transport"` // webrtc | websocket
+	Video     string       `json:"video"`     // h264 | vp8 | jpeg | ""
+	Audio     string       `json:"audio"`     // opus | pcm | ""
+	Width     int          `json:"width"`
+	Height    int          `json:"height"`
+	Aspect    float64      `json:"aspect"`
+	FPS       float64      `json:"fps"`
+	Rate      int          `json:"rate"`
+	Turns     int          `json:"turns"`
+	Ports     int          `json:"ports"`
+	Motion    bool         `json:"motion"`
+	MotionOn  []MotionWant `json:"motionOn"`
+	LEDs      []LEDState   `json:"leds"`
+	Pace      float64      `json:"pace"`
+	Seats     []Seat       `json:"seats"`
+	Kbps      int          `json:"kbps"`
+	Away      bool         `json:"away"`
+}
+
+// Seat is one player and the device that has it.
+type Seat struct {
+	Port int    `json:"port"`
+	Conn string `json:"conn"`
+	Name string `json:"name,omitempty"`
+	You  bool   `json:"you,omitempty"`
+}
+
+// Connected is the answer to a WebRTC connection: what it gets, and the SDP.
+type Connected struct {
+	Stream StreamInfo `json:"stream"`
+	SDP    string     `json:"sdp"`
+}
+
+// StreamError is a refusal with its HTTP status and a code a client can act on.
+type StreamError struct {
+	Status int    `json:"status"`
+	Code   string `json:"code"`
+	Text   string `json:"text"`
+}
+
+func (e *StreamError) Error() string { return e.Text }
+
+// What a refusal can say.
+const (
+	CodeBadHello  = "bad-hello"
+	CodeNoSession = "no-session"
+	CodeTooLarge  = "too-large"
+	CodeNoCodec   = "no-codec"
+	CodeBusy      = "busy"
+	CodeFailed    = "failed"
+	CodeSeatTaken = "seat-taken"
+	CodeBadSeat   = "bad-seat"
+	CodeBadMsg    = "bad-message"
+)
+
+// Why a game ended, in the "ended" event.
+const (
+	EndStopped = "stopped"
+	EndQuit    = "quit"
+	EndCrashed = "crashed"
+	EndIdle    = "idle"
+	EndEvicted = "evicted"
+)
+
+// ConnStats is one connection's part of the stats event.
+type ConnStats struct {
+	Transport string  `json:"transport"`
+	Video     string  `json:"video"`
+	Audio     string  `json:"audio"`
+	Kbps      float64 `json:"kbps"`
+	Share     float64 `json:"share"`
+	RTTMs     float64 `json:"rttMs"`
+	Lost      float64 `json:"lost"`
+	QueueMs   float64 `json:"queueMs"`
+	Dropped   int64   `json:"dropped"`
+	Seats     []int   `json:"seats"`
+}
+
 // Save slots. 0 is automatic, 1 to MaxSlot are a person's own, and two more are kept
 // for mistakes: the state from before the last load, and the automatic save that the
 // last "start over" would otherwise have lost.
@@ -76,6 +185,20 @@ type GPUProbe struct {
 type EncodeStats struct {
 }
 
+// MotionWant is a player whose motion the game reads now, and how often.
+type MotionWant struct {
+	Port  int  `json:"port"`
+	Accel bool `json:"accel"`
+	Gyro  bool `json:"gyro"`
+	Hz    int  `json:"hz"`
+}
+
+// LEDState is one of the game's lights.
+type LEDState struct {
+	Index int `json:"index"`
+	State int `json:"state"`
+}
+
 // Mode is a way a client can receive a game. The server says which ones it has, so
 // a client never has to guess, and new modes can appear without breaking old clients.
 type Mode struct {
@@ -87,6 +210,9 @@ type Mode struct {
 	// BrowserOnly marks a mode only a web browser can use. None exists yet; in-browser
 	// emulation will be one, and is left out of the answer for native clients.
 	BrowserOnly bool `json:"browserOnly,omitempty"`
+	// Stream is the version of /play/{sid}/stream this mode can be reached through: 2. Left
+	// out, only version 1's own route.
+	Stream int `json:"stream,omitempty"`
 }
 
 // Client kinds a server can be asked about.
@@ -198,8 +324,10 @@ type Info struct {
 	Notices []string `json:"notices,omitempty"`
 }
 
-// MaxPlayers is how many players a browser may drive.
-const MaxPlayers = 4
+// MaxPlayers is how many players a game takes input for: as many as a core with a multitap
+// can have, through libretro's ports: the runner's MaxPorts, which a test holds this to. The stream
+// says how many this game has.
+const MaxPlayers = 8
 
 // MaxOfferSize bounds an SDP offer; a real one is a few kilobytes.
 const MaxOfferSize = 64 << 10
@@ -334,6 +462,14 @@ func (s *Session) Apply(c ipc.Control, coreOptions map[string]string) error {
 func (s *Session) ChangeDisc(index int) error {
 	err := service.Call(context.Background(), "wittyplay", "stream.Session.ChangeDisc", s, s, []any{index}, nil)
 	return err
+}
+
+// Connect answers a version 2 connection over WebRTC. away says the server counts the device
+// as away from home, which it starts lower for.
+func (s *Session) Connect(ctx context.Context, hello Hello, offer string, away bool) (Connected, error) {
+	var r0 Connected
+	err := service.Call(ctx, "wittyplay", "stream.Session.Connect", s, s, []any{hello, offer, away}, []any{&r0})
+	return r0, err
 }
 
 // CoreID is the core this session started with.

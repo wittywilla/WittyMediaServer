@@ -261,6 +261,32 @@ func (s *Session) ServeWS(w http.ResponseWriter, r *http.Request, mode string) {
 	}
 }
 
+// ServeStream passes a version 2 WebSocket straight to the module. away is the server's word on
+// where the device is, and replaces anything the address said.
+func (s *Session) ServeStream(w http.ResponseWriter, r *http.Request, away bool) {
+	if service.Proxy == nil {
+		writeStreamError(w, &StreamError{Status: http.StatusFailedDependency, Code: "no-module", Text: "WittyPlay isn't on this server"})
+		return
+	}
+	q := r.URL.Query()
+	q.Del("token")
+	q.Del("away")
+	if away {
+		q.Set("away", "1")
+	}
+	r.URL.RawQuery = q.Encode()
+	if err := service.Proxy(module, w, r, "/stream/"+s.Sid); err != nil {
+		writeStreamError(w, &StreamError{Status: http.StatusFailedDependency, Code: "no-module", Text: err.Error()})
+	}
+}
+
+// writeStreamError answers a refused stream as docs/GAMING-STREAM.md says: the words and a code.
+func writeStreamError(w http.ResponseWriter, e *StreamError) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(e.Status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": e.Text, "code": e.Code})
+}
+
 // ProbeGPU finds out whether a core can draw on this machine's graphics card. Ending ctx ends
 // the check, and nothing is learnt.
 func ProbeGPU(ctx context.Context, runner, dir string) GPUProbe {
@@ -271,4 +297,7 @@ func ProbeGPU(ctx context.Context, runner, dir string) GPUProbe {
 	return p
 }
 
-func init() { service.RegisterErrorType[ProbeError]("stream.ProbeError") }
+func init() {
+	service.RegisterErrorType[ProbeError]("stream.ProbeError")
+	service.RegisterErrorType[StreamError]("stream.StreamError")
+}

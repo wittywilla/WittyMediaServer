@@ -45,6 +45,8 @@ type Info struct {
 	Prerelease bool   `json:"prerelease"`
 	Signed     bool   `json:"signed"`
 	Size       int64  `json:"size"`
+	// Changes is what changed in each version after the running one, newest first.
+	Changes []Change `json:"changes,omitempty"`
 }
 
 // Status is what Settings shows.
@@ -62,6 +64,11 @@ type Status struct {
 	CanApply   bool   `json:"canApply"`
 	Reason     string `json:"reason,omitempty"` // why this copy can't update itself
 	Page       string `json:"page"`
+	// Method is how an admin updates this copy (MethodApply, MethodInstaller, MethodDocker),
+	// or "" when only the release page can help.
+	Method    string     `json:"method,omitempty"`
+	Installer *Installer `json:"installer,omitempty"` // with MethodInstaller
+	Image     string     `json:"image,omitempty"`     // with MethodDocker: the image to pull
 }
 
 // Updater checks for, downloads and installs releases.
@@ -77,6 +84,8 @@ type Updater struct {
 	// Restart is called once the new files are in place; it should stop the
 	// server and start the new version.
 	Restart func()
+	// DownloadDir is where an installer is kept for the admin to run. Empty: none is offered.
+	DownloadDir string
 
 	mu       sync.Mutex
 	rel      *Release
@@ -89,6 +98,12 @@ type Updater struct {
 
 	withdrawn     *wittymodule.Withdrawals // the newest signed list seen
 	withdrawnFile string                   // where it is kept
+
+	kind       string    // how this copy was installed, read with reason
+	dl         Installer // the installer download
+	dlBusy     bool
+	changes    []Change // what's new, read from the changelog for changesFor
+	changesFor string
 }
 
 // New prepares an updater for the program in dir.
@@ -109,17 +124,27 @@ func (u *Updater) Status() Status {
 	defer u.mu.Unlock()
 	st := u.st
 	st.Withdrawn = u.withdrawnReason(u.Current)
-	st.CanApply, st.Reason = false, ""
+	st.CanApply, st.Reason, st.Method, st.Installer, st.Image = false, "", "", nil, ""
 	if st.Latest != nil {
 		if time.Since(u.reasonAt) > 30*time.Second {
 			u.reason, u.reasonAt = u.cannotApply(), time.Now()
 		}
-		if reason := u.reason; reason != "" {
-			st.Reason = reason
-		} else if !st.Latest.Signed {
+		switch reason := u.reason; {
+		case inContainer():
+			st.Reason, st.Method, st.Image = reason, MethodDocker, u.dockerImage()
+		case !st.Latest.Signed:
 			st.Reason = "This release is not signed, so it can't be installed from here. Download it from GitHub."
-		} else {
-			st.CanApply = true
+		case reason == "":
+			st.CanApply, st.Method = true, MethodApply
+		default:
+			st.Reason = reason
+			if a, ok := u.installerAsset(u.rel); ok {
+				in := Installer{Name: a.Name, Size: a.Size}
+				if u.dl.Name == a.Name {
+					in = u.dl
+				}
+				st.Method, st.Installer = MethodInstaller, &in
+			}
 		}
 	}
 	return st
@@ -156,11 +181,27 @@ func (u *Updater) Check(ctx context.Context, maxAge time.Duration) Status {
 	u.checking = ch
 	u.mu.Unlock()
 
-	cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	cctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	rels, err := u.fetchReleases(cctx)
+	var rel *Release
+	var changes []Change
 	if err == nil {
 		if werr := u.readWithdrawals(cctx, rels); werr != nil {
 			u.Log.Warn("the list of withdrawn versions could not be read", "err", werr)
+		}
+		u.mu.Lock()
+		rel = latest(rels, u.Current, runtime.GOOS, runtime.GOARCH, u.withdrawn)
+		cached := rel != nil && u.changesFor == rel.Version
+		changes = u.changes
+		u.mu.Unlock()
+		// The changelog is read once for each new version found, not at every check.
+		if rel != nil && !cached {
+			var fromLog bool
+			if changes, fromLog = u.readChanges(cctx, rels, rel); fromLog {
+				u.mu.Lock()
+				u.changes, u.changesFor = changes, rel.Version
+				u.mu.Unlock()
+			}
 		}
 	}
 	cancel()
@@ -177,13 +218,12 @@ func (u *Updater) Check(ctx context.Context, maxAge time.Duration) Status {
 		return u.Status()
 	}
 	u.st.CheckError = ""
-	rel := latest(rels, u.Current, runtime.GOOS, runtime.GOARCH, u.withdrawn)
 	u.rel = rel
 	if rel == nil {
 		u.st.Latest = nil
 	} else {
 		u.st.Latest = &Info{Version: rel.Version, Title: rel.Title, Notes: rel.Notes, URL: rel.Page,
-			Prerelease: rel.Prerelease, Signed: rel.Signed(), Size: rel.Archive.Size}
+			Prerelease: rel.Prerelease, Signed: rel.Signed(), Size: rel.Archive.Size, Changes: changes}
 		if !rel.Published.IsZero() {
 			u.st.Latest.Published = rel.Published.UnixMilli()
 		}
@@ -218,20 +258,20 @@ func (u *Updater) cannotApply() string {
 	switch {
 	case u.Restart == nil:
 		return "This server can't restart itself."
-	case runtime.GOOS == "darwin":
-		return "On a Mac, download the new installer and run it. Your library and settings are kept."
-	case fileExists("/.dockerenv") || os.Getenv("WMS_DOCKER") == "1":
+	case inContainer():
 		return "This server runs in a container: pull the new image and recreate the container."
+	case runtime.GOOS == "darwin":
+		return "On a Mac, the new version comes as an installer: download it, then open it. Your library and settings are kept."
 	}
 	switch u.Kind() {
 	case layout.KindDeb:
-		return "This copy was installed with a .deb package. Update it the same way: download the new one and run sudo apt install ./" + layout.ServerCommand + "-<version>-linux-<arch>.deb. Your library and settings are kept."
+		return "This copy was installed with a .deb package, which your package manager looks after. Download the new one here, then install it with apt as the computer's administrator. Your library and settings are kept."
 	case layout.KindRPM:
-		return "This copy was installed with an .rpm package. Update it the same way: download the new one and run sudo dnf install ./" + layout.ServerCommand + "-<version>-linux-<arch>.rpm. Your library and settings are kept."
+		return "This copy was installed with an .rpm package, which your package manager looks after. Download the new one here, then install it with dnf as the computer's administrator. Your library and settings are kept."
 	case layout.KindFreeBSD:
-		return "This copy was installed with a FreeBSD package. Update it the same way: download the new one and run pkg add -f wittymediaserver-<version>-freebsd-<arch>.pkg. Your library and settings are kept."
+		return "This copy was installed with a FreeBSD package, which pkg looks after. Download the new one here, then install it with pkg add as root. Your library and settings are kept."
 	case layout.KindPkg:
-		return "On a Mac, download the new installer and run it. Your library and settings are kept."
+		return "On a Mac, the new version comes as an installer: download it, then open it. Your library and settings are kept."
 	case layout.KindMSI, layout.KindArchive:
 	default:
 		return "This copy wasn't installed from a release package, so it can't replace its own files."
@@ -246,7 +286,7 @@ func (u *Updater) cannotApply() string {
 	}
 	if !writable(u.Dir) {
 		if runtime.GOOS == "windows" {
-			return "WittyMediaServer can't write to its program folder (" + u.Dir + "). Download the new installer and run it: it updates in place and keeps your library and settings."
+			return "Windows protects the program folder (" + u.Dir + "), so this copy can't replace its own files. Download the new installer and run it: it updates in place and keeps your library and settings."
 		}
 		return "WittyMediaServer can't write to its program folder (" + u.Dir + "). Unpack the new package and run its install.sh as root."
 	}
@@ -378,7 +418,13 @@ func (u *Updater) install(ctx context.Context, rel *Release) error {
 	// 2. The package, hashed while it downloads.
 	u.phase(PhaseDownloading)
 	archive := filepath.Join(work, rel.Archive.Name)
-	if err := u.download(ctx, rel.Archive, archive, want); err != nil {
+	err = u.download(ctx, rel.Archive, archive, want, func(n int64) {
+		u.mu.Lock()
+		u.st.Done += n
+		u.task.Progress(u.st.Done, u.st.Total)
+		u.mu.Unlock()
+	}, func() { u.phase(PhaseVerifying) })
+	if err != nil {
 		return err
 	}
 
@@ -406,8 +452,9 @@ func (u *Updater) install(ctx context.Context, rel *Release) error {
 	return nil
 }
 
-// download saves an asset to dst and checks its SHA-256 against want.
-func (u *Updater) download(ctx context.Context, a Asset, dst, want string) error {
+// download saves an asset to dst and checks its SHA-256 against want, telling got how much has
+// come, and verifying when it's all there.
+func (u *Updater) download(ctx context.Context, a Asset, dst, want string, got func(n int64), verifying func()) error {
 	res, err := u.get(ctx, a.URL, "application/octet-stream")
 	if err != nil {
 		return fmt.Errorf("download: %w", err)
@@ -425,8 +472,7 @@ func (u *Updater) download(ctx context.Context, a Asset, dst, want string) error
 		return err
 	}
 	h := sha256.New()
-	pw := &progress{u: u}
-	n, err := io.Copy(io.MultiWriter(f, h, pw), io.LimitReader(res.Body, limit+1))
+	n, err := io.Copy(io.MultiWriter(f, h, progress(got)), io.LimitReader(res.Body, limit+1))
 	if cerr := f.Close(); err == nil {
 		err = cerr
 	}
@@ -436,19 +482,16 @@ func (u *Updater) download(ctx context.Context, a Asset, dst, want string) error
 	if n > limit {
 		return errors.New("download: the file is larger than the release says")
 	}
-	u.phase(PhaseVerifying)
-	if got := hex.EncodeToString(h.Sum(nil)); got != want {
+	verifying()
+	if sum := hex.EncodeToString(h.Sum(nil)); sum != want {
 		return fmt.Errorf("the download of %s does not match its signed checksum; it was not installed", a.Name)
 	}
 	return nil
 }
 
-type progress struct{ u *Updater }
+type progress func(n int64)
 
-func (p *progress) Write(b []byte) (int, error) {
-	p.u.mu.Lock()
-	p.u.st.Done += int64(len(b))
-	p.u.task.Progress(p.u.st.Done, p.u.st.Total)
-	p.u.mu.Unlock()
+func (p progress) Write(b []byte) (int, error) {
+	p(int64(len(b)))
 	return len(b), nil
 }

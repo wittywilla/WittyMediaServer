@@ -993,6 +993,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `GET /update` | admin | What is installed and what is available (404 in builds that can't update themselves). |
 | `POST /update/check` | admin | Look for a new version now. |
 | `POST /update/apply` | admin | Download, verify and install the newest release, then restart. |
+| `POST /update/installer` | admin | Download the installer for this system, checked against the release's signed checksums, for a copy that can't replace its own files. |
+| `GET /update/installer` | admin | The checked installer, as a file to save. |
 | `GET /modules` | admin | Every module: version in use, supported range, status, what is available, what it needs, whether it is installed, and every kind of library and what it takes (404 in builds that can't update them). |
 | `POST /modules/check` | admin | Look for module updates now. Nothing else here goes online. |
 | `GET /modules/{id}/versions` | admin | Every version known, explained, without going online: release notes as plain text, whether each can be chosen, and why not. |

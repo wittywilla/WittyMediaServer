@@ -2,6 +2,7 @@ package hls
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
@@ -127,6 +129,7 @@ type liveRegistry struct {
 	mu       sync.Mutex
 	sessions map[string]*LiveSession
 	once     sync.Once
+	dirSeq   atomic.Uint64 // numbers the sessions' folders
 }
 
 func (m *Manager) liveSweep() {
@@ -187,7 +190,9 @@ func (m *Manager) newLive(spec LiveSpec) *LiveSession {
 		spec.IdleSec = 45
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	dir := filepath.Join(m.root, "live-"+safeName(spec.ID))
+	// Its own folder, never the one a stopped session of this channel may still be clearing:
+	// that goes on for a few seconds on Windows, and would take the new one's segments with it.
+	dir := filepath.Join(m.root, fmt.Sprintf("live-%s-r%d", safeName(spec.ID), m.live.dirSeq.Add(1)))
 	s := &LiveSession{Spec: spec, Dir: dir, m: m, ctx: ctx, cancel: cancel, lastAt: time.Now(), anonAt: time.Now().Add(-viewerStale), target: spec.SegmentSec,
 		failed: make(chan struct{}), ready: make(chan struct{})}
 	s.log = m.sessionLog(s.logID())
@@ -387,7 +392,19 @@ func (s *LiveSession) WaitReady(ctx context.Context) error {
 
 // startBurst is how many seconds a first run may run ahead of real time, so
 // the viewer gets a picture right away and has something to buffer.
-const startBurst = 12
+//
+// copyBurst is that for a copied picture. A copy can only be cut at the file's own keyframes,
+// often ten seconds apart, and a channel plays from its second segment: with 12 seconds, a
+// film like that took 12 seconds to start, and 3 with 24. It stays below the half minute a
+// library channel lets a run end early by before it fills the gap with a slate.
+const (
+	startBurst = 12
+	copyBurst  = 24
+)
+
+// LiveHeadStart is how far ahead of real time a stream starts out, which its
+// feed may keep to.
+const LiveHeadStart = startBurst * time.Second
 
 // loop runs FFmpeg input after input until the session is stopped.
 func (s *LiveSession) loop() {
@@ -527,7 +544,11 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 	}
 	if !in.Realtime {
 		if burst && s.m.burstSupported() {
-			args = append(args, "-readrate", "1", "-readrate_initial_burst", strconv.Itoa(startBurst))
+			ahead := startBurst
+			if in.CopyVideo {
+				ahead = copyBurst
+			}
+			args = append(args, "-readrate", "1", "-readrate_initial_burst", strconv.Itoa(ahead))
 		} else {
 			args = append(args, "-re")
 		}
@@ -631,6 +652,9 @@ func runLiveFFmpeg(ctx context.Context, s *LiveSession, in *LiveInput, run int, 
 		select {
 		case err := <-done:
 			s.readRun(r)
+			// A last update that couldn't replace the playlist (something else,
+			// such as a virus scanner, had it open) is still in FFmpeg's temporary file.
+			s.readRunFrom(r, r.playlist+".tmp")
 			logging.ChildExit(s.log, "ffmpeg", err, ctx.Err() != nil, &stderr, started, "run", run, "args", cmdline)
 			if ctx.Err() != nil {
 				return nil
@@ -668,13 +692,17 @@ func (in *LiveInput) fatalCause() error {
 }
 
 // readRun picks up the segments FFmpeg has finished.
-func (s *LiveSession) readRun(r *liveRun) {
-	f, err := os.Open(r.playlist)
+func (s *LiveSession) readRun(r *liveRun) { s.readRunFrom(r, r.playlist) }
+
+// readRunFrom picks up the segments a playlist of the run lists that haven't been
+// picked up yet.
+func (s *LiveSession) readRunFrom(r *liveRun, playlist string) {
+	// A day of 4-second segments is about 2 MB of playlist.
+	b, err := readShared(playlist, 4<<20)
 	if err != nil {
 		return
 	}
-	defer f.Close()
-	sc := bufio.NewScanner(f)
+	sc := bufio.NewScanner(bytes.NewReader(b))
 	n := 0
 	var dur float64
 	for sc.Scan() {

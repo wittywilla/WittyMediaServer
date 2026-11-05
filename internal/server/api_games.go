@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/appcontrol"
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/layout"
@@ -110,11 +111,15 @@ func (g *gameService) gpuStatus(runner string, log *slog.Logger) stream.GPUProbe
 	}
 	g.gpuChecking = true
 	go func() {
+		// What a fault leaves: nothing learnt about the card, so it's asked again next time.
+		got := stream.GPUProbe{Error: "the check stopped on a fault in the server", Again: true}
+		defer func() {
+			g.gpuMu.Lock()
+			defer g.gpuMu.Unlock()
+			g.gpu, g.gpuChecking = got, false
+		}()
 		defer logging.Recover("graphics card check", "cat", "games")
-		got := stream.ProbeGPU(runner, filepath.Join(g.dir, "probe"), log)
-		g.gpuMu.Lock()
-		defer g.gpuMu.Unlock()
-		g.gpu, g.gpuChecking = got, false
+		got = stream.ProbeGPU(runner, filepath.Join(g.dir, "probe"), log)
 	}()
 	return stream.GPUProbe{Checking: true}
 }
@@ -1269,6 +1274,17 @@ func (s *Server) handleCoreInstall(w http.ResponseWriter, r *http.Request) {
 		s.Log.WarnContext(r.Context(), "could not install a core", "cat", "games", "core", id, "err", err)
 		writeErr(w, 502, "The core could not be installed: "+err.Error())
 		return
+	}
+	// The cores offered come unsigned from libretro's build server, and Windows' Smart App Control
+	// wouldn't let one load: taken out again, with the reason, rather than left to fail a game.
+	lib := filepath.Join(s.games().cores.Dir, id+"_libretro.dll")
+	if runtime.GOOS == "windows" {
+		if err := appcontrol.CheckInstall(lib, "this core", "Signed game cores are planned; until then, games can't start on a PC with Smart App Control on."); err != nil {
+			_ = s.games().cores.Remove(id)
+			s.Log.WarnContext(r.Context(), "core refused: Smart App Control", "cat", "games", "core", id)
+			writeErr(w, 409, err.Error())
+			return
+		}
 	}
 	s.Log.InfoContext(r.Context(), "core installed", "cat", "games", "core", id, "sha256", c.SHA256)
 	writeJSON(w, 200, c)

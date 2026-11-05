@@ -689,8 +689,9 @@ func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool)
 			src = it.Poster
 		}
 	}
-	// Games: ?w= asks for a smaller cover, for lists.
-	if it.Kind == "game" && !backdrop && qInt(r, "w", 0) > 0 && !strings.HasPrefix(src, "http") && (strings.HasPrefix(src, "cache:") || s.Store.LibraryFile(r.Context(), src)) {
+	// ?w= asks for a smaller poster, for lists: a grid shows them a few hundred pixels
+	// wide, and the poster beside a film can be a few megabytes.
+	if !backdrop && qInt(r, "w", 0) > 0 && !strings.HasPrefix(src, "http") && (strings.HasPrefix(src, "cache:") || s.Store.LibraryFile(r.Context(), src)) {
 		src = s.GameMeta.PosterThumb(r.Context(), src, qInt(r, "w", 0))
 	}
 	if src == library.LazyPoster {

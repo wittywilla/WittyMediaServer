@@ -57,3 +57,4 @@ What a package holds, and the name of everything in it, is in one place: `intern
 | `design-check.py`, `design-check-baseline.json`, `design-tokens.py` | Hold the web app to its design standards. CI runs them. See [docs/DESIGN.md](../docs/DESIGN.md) |
 | `theme-contrast.py` | Checks the themes' contrast |
 | `ci-test-report.py` | Turns a failed test run into a short report in CI |
+| `check-executable.sh` | Fails when a script is in git without its executable bit, which commits from Windows lose. CI runs it |

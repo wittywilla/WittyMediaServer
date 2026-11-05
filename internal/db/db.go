@@ -468,6 +468,8 @@ var migrations = []string{
 	 UPDATE sessions SET home_only = 1 WHERE user_id IN (SELECT id FROM users WHERE password_hash = '');`,
 	// 30: numbers a file said were infinite. One of these blanked every list holding it.
 	clearInfinities,
+	// 31: sessions whose token crossed the internet unencrypted, so they can be ended together.
+	`ALTER TABLE sessions ADD COLUMN plain_away INTEGER NOT NULL DEFAULT 0;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {
@@ -527,6 +529,24 @@ func (d *DB) GetSetting(ctx context.Context, key, def string) string {
 		return def
 	}
 	return v
+}
+
+// Settings is every setting saved, in one statement, for pages that show many at once.
+func (d *DB) Settings(ctx context.Context) (map[string]string, error) {
+	rows, err := d.QueryContext(ctx, `SELECT key, value FROM settings`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]string{}
+	for rows.Next() {
+		var k, v string
+		if err := rows.Scan(&k, &v); err != nil {
+			return nil, err
+		}
+		out[k] = v
+	}
+	return out, rows.Err()
 }
 
 func (d *DB) SetSetting(ctx context.Context, key, value string) error {

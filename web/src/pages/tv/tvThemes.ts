@@ -263,6 +263,7 @@ export type Saved = {
   previewSide?: 'right' | 'left'
   previewW?: number
   previewSound?: boolean
+  previewBar?: 'bar' | 'over'
 }
 
 export type OwnerLook = { theme?: string; layout?: string; skin?: string }

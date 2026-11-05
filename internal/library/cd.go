@@ -685,7 +685,7 @@ func (s *Scanner) flacOfSheetAudio(path string) (string, error) {
 	if err := os.Rename(tmp, out); err != nil {
 		return "", err
 	}
-	trimCache(dir, maxConvertedCache)
+	trimCache(dir, "", maxConvertedCache)
 	return out, nil
 }
 

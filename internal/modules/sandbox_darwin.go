@@ -91,5 +91,5 @@ func confinement(launcher string) SandboxInfo {
 		return unconfined()
 	}
 	return SandboxInfo{Level: SandboxLimited, Title: "Modules run in Apple's sandbox here",
-		Words: "A module's helper can't change files outside its own folder, can't reach the network or start other programs unless it needs to, and can't signal other programs. It can still read anything this server's account can read. Modules from other publishers are refused on a Mac for now."}
+		Words: "A module's helper can't change files outside its own folder, can't reach the network or start other programs unless it needs to. It can still read anything this server's account can read, and signal this server's other programs. Modules from other publishers are refused on a Mac for now."}
 }

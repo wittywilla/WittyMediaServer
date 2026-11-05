@@ -61,6 +61,8 @@ const RecordingsPage = lazy(() => import('./pages/tv/RecordingsPage'))
 const ChannelsPage = lazy(() => import('./pages/tv/ChannelsPage'))
 const EncryptedHelp = lazy(() => import('./pages/tv/EncryptedHelp'))
 const TvPlayer = lazy(() => import('./pages/tv/TvPlayer'))
+// The TV section's one stream, shared by the guide's preview and the watch view.
+const TvHost = lazy(() => import('./pages/tv/TvHost'))
 const tvFallback = <div className="center"><div className="spinner" /></div>
 
 export default function App() {
@@ -95,6 +97,7 @@ function Shell() {
   const isPlayer = loc.pathname.startsWith('/play/')
   const isReader = loc.pathname.startsWith('/read/')
   const isTvPlayer = loc.pathname.startsWith('/tv/watch/')
+  const isTv = loc.pathname === '/tv' || loc.pathname.startsWith('/tv/')
   const isGame = loc.pathname.startsWith('/game/')
   const isCouchMode = loc.pathname === '/big' || loc.pathname.startsWith('/big/')
   const isStream = /^\/couch\/\d+\/play\//.test(loc.pathname) || loc.pathname.startsWith('/couch-rig/')
@@ -107,6 +110,7 @@ function Shell() {
         : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
         : isPlayer ? null : <AppFrame />}
       <PlayerDock />
+      {isTv && <Suspense fallback={null}><TvHost /></Suspense>}
       <ReminderWatcher />
     </AudioProvider>
   )
@@ -138,6 +142,7 @@ function AppFrame() {
       <div className="main">
         <TopBar onMenu={toggle} showMenu={side || !wide} topNav={style !== 'side'} menuOpen={open} wide={wide} />
         <LegalAckBar />
+        <PlainAwayBar />
         <main className="content" id="main" tabIndex={-1}>
           <Suspense fallback={<Spinner />}>
           <Routes>
@@ -186,6 +191,28 @@ function AppFrame() {
 // An address that isn't a page: say so, with the way home, rather than landing somewhere unexplained.
 function NotFound() {
   return <><h1 className="sr-only">Page not found</h1><EmptyState title="There’s no page here" text="The address may have changed, or it may be mistyped." action={<LinkButton variant="primary" to="/">Go to Home</LinkButton>} /></>
+}
+
+// PlainAwayBar: while the owner lets the internet in unencrypted, administrators
+// see it on every page, in the words Settings, Remote Access uses. It can't be
+// dismissed: it goes when the setting does.
+function PlainAwayBar() {
+  const { user } = useApp()
+  const [warning, setWarning] = useState('')
+  useEffect(() => {
+    if (!user?.isAdmin) { setWarning(''); return }
+    const load = () => api.get<{ plainAwayWarning?: string }>('/status').then((s) => setWarning(s.plainAwayWarning || '')).catch(() => {})
+    load()
+    const t = setInterval(() => { if (!document.hidden) load() }, 60000)
+    window.addEventListener('wms-remote-changed', load)
+    return () => { clearInterval(t); window.removeEventListener('wms-remote-changed', load) }
+  }, [user?.isAdmin])
+  if (!warning) return null
+  return (
+    <div className="legal-ack-bar plain-away-bar" role="region" aria-label="Security warning">
+      <p><b>Warning:</b> {warning} <Link to="/settings/remote">Remote Access</Link></p>
+    </div>
+  )
 }
 
 // LegalAckBar: the first-run notice, for an administrator who never went through

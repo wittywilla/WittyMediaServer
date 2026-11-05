@@ -101,9 +101,25 @@ func docsFiles(t *testing.T) []string {
 	return files
 }
 
+// The plans in docs/plans, in folders of their own. They aren't guides, and aren't in Help.
+func planFiles(t *testing.T) []string {
+	t.Helper()
+	var files []string
+	err := filepath.WalkDir(filepath.Join(repo, "docs", "plans"), func(p string, d fs.DirEntry, err error) error {
+		if err == nil && !d.IsDir() && strings.HasSuffix(p, ".md") {
+			files = append(files, p)
+		}
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return files
+}
+
 // Every link between the documents leads to a file and a heading that are there.
 func TestLinksLeadSomewhere(t *testing.T) {
-	files := docsFiles(t)
+	files := append(docsFiles(t), planFiles(t)...)
 	for _, f := range []string{"README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md"} {
 		files = append(files, filepath.Join(repo, f))
 	}
@@ -383,7 +399,7 @@ func TestGuidesAreTidy(t *testing.T) {
 func TestProgramNamesAreCurrent(t *testing.T) {
 	old := regexp.MustCompile(`(^|[^\w./-])(\./)?wms(\.exe)? (serve|doctor|config|backup|logs|metadata|dvd|bluray|cd|version|update|hash|uninstall)\b|cmd/wms\b|wms-tray|wms-setup`)
 	allowed := []string{"CHANGELOG.md", "INSTALL.md", "UNINSTALL.md"}
-	for _, file := range docsFiles(t) {
+	for _, file := range append(docsFiles(t), planFiles(t)...) {
 		if slices.Contains(allowed, filepath.Base(file)) {
 			continue
 		}

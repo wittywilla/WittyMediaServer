@@ -1,0 +1,57 @@
+name: Something's broken
+description: WittyMediaServer, or one of its pages, isn't working as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Issues are for things that are broken. **Ideas and feature requests go in [Discussions → Ideas](https://github.com/wittywilla/WittyMediaServer/discussions/categories/ideas)**, where people can upvote them. **Security problems go through [private reporting](https://github.com/wittywilla/WittyMediaServer/security/advisories/new)**, never here.
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: What you did, and what went wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen again
+      description: Steps, if you know them. "It happened once while I was playing music" helps too.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: In Settings → About.
+      placeholder: 0.6.2-alpha
+    validations:
+      required: true
+  - type: dropdown
+    id: system
+    attributes:
+      label: The server runs on
+      options: [Windows, macOS, Linux, FreeBSD, Docker, Other]
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Where you saw it
+      description: The browser or app, and the device.
+      placeholder: Firefox on Windows, WittyMediaClient on Android TV…
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        In **Settings → WittyLog**, download a support bundle with **Sanitise** on, and attach it here, or paste the lines from around the time it happened. A bundle without sanitising holds your file names and network addresses: read it before attaching.
+  - type: textarea
+    id: pictures
+    attributes:
+      label: Screenshots

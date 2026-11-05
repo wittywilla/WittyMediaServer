@@ -286,9 +286,14 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 		out["file"] = wittyplay.MissingBIOS(pick.blocked.ID, systemDir)
 	default:
 		out["ready"], out["reason"], out["message"] = false, "core", "No core is installed for "+console.Name+"."
+		out["runsOn"] = consoleRunsOn(console)
 		if alt := s.installableCore(ctx, console); alt != nil {
 			out["alternative"] = alt
 			out["message"] = "No core is installed for " + console.Name + ". " + alt.Name + " would play it on this server."
+		} else {
+			// Not one of its cores is published for this platform: installing can't help here.
+			out["noBuild"] = true
+			out["message"] = "No core for " + console.Name + " is published for " + platformWords(runtime.GOOS, runtime.GOARCH) + ", so its games can't play on this server."
 		}
 	}
 	return out
@@ -312,7 +317,7 @@ func consoleRunsOn(console *wittyplay.Console) []platformSupport {
 			}
 		}
 		if best.Build {
-			out = append(out, best)
+			out = append(out, withAPI(best))
 		}
 	}
 	return out

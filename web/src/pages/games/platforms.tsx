@@ -3,7 +3,7 @@
 // matters is the server's platform. See docs/GAMING-API.md, "Which platforms a core runs on".
 
 export type Draws = 'gpu' | 'cpu' | 'cpu-fallback' | 'none'
-export type PlatformSupport = { os: string; arch?: string; build: boolean; draws: Draws; note?: string }
+export type PlatformSupport = { os: string; arch?: string; build: boolean; draws: Draws; api?: 'opengl' | 'vulkan' | 'metal'; note?: string }
 export type CoreSupport = { here: PlatformSupport; platforms: PlatformSupport[] }
 export type CoreAlternative = { id: string; name: string; console: string }
 

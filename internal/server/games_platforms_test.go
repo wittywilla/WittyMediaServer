@@ -75,6 +75,17 @@ func TestHowACoreDraws(t *testing.T) {
 	if has, known := coreBuildFor("mednafen_supafaust", runtime.GOOS, runtime.GOARCH); known && s.Here.Build != has {
 		t.Errorf("here: %+v", s.Here)
 	}
+	// How a card is reached is said where one is used, and only there.
+	for _, p := range coreSupportFor("flycast", true, "").Platforms {
+		if (p.Draws == drawsGPU) != (p.API == "opengl") {
+			t.Errorf("flycast on %s/%s: draws %s, api %q", p.OS, p.Arch, p.Draws, p.API)
+		}
+	}
+	for _, p := range s.Platforms {
+		if p.API != "" {
+			t.Errorf("a core the processor draws has an api: %+v", p)
+		}
+	}
 }
 
 func TestANoBuildRefusalSaysWhatToUse(t *testing.T) {
@@ -133,5 +144,41 @@ func TestACoreWithNoBuildHereIsRefusedWithAnAlternative(t *testing.T) {
 	cs := consolesByID(t, g, g.other)[console]
 	if s, ok := cs.CoreSupport[missing]; !ok || s.Here.Build || s.Here.Draws != drawsNone || len(s.Platforms) == 0 {
 		t.Errorf("the consoles list: %+v", cs.CoreSupport[missing])
+	}
+}
+
+// A game whose console has no core installed says where it plays, and which core would play it
+// here, or that none can: the game page's "Not on this server" reads these.
+func TestAGameWithNoCoreSaysWhereItPlays(t *testing.T) {
+	modtest.Need(t, "wittyplay")
+	g := newGameServer(t)
+	it := addGame(t, g, "snes", gameFile(t, "Game.sfc", make([]byte, 512<<10)))
+	w := g.do("GET", "/api/games/"+itoa64(it.ID)+"/check", g.admin, nil)
+	var a struct {
+		Reason      string            `json:"reason"`
+		Message     string            `json:"message"`
+		RunsOn      []platformSupport `json:"runsOn"`
+		Alternative *coreAlternative  `json:"alternative"`
+		NoBuild     bool              `json:"noBuild"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &a); err != nil || a.Reason != "core" {
+		t.Fatalf("%d %s", w.Code, w.Body.String())
+	}
+	if len(a.RunsOn) == 0 {
+		t.Error("no platforms it plays on")
+	}
+	for _, p := range a.RunsOn {
+		if !p.Build || p.Draws == drawsNone {
+			t.Errorf("listed where it doesn't play: %+v", p)
+		}
+	}
+	if a.Alternative == nil || a.NoBuild {
+		t.Fatalf("Super Nintendo has a core for every platform this runs on: %+v", a)
+	}
+	if has, known := coreBuildFor(a.Alternative.ID, runtime.GOOS, runtime.GOARCH); known && !has {
+		t.Errorf("suggested a core that isn't published here: %+v", a.Alternative)
+	}
+	if !strings.Contains(a.Message, a.Alternative.Name) {
+		t.Errorf("the message doesn't name it: %q", a.Message)
 	}
 }

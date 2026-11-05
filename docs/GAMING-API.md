@@ -107,10 +107,11 @@ for each console, `coreSupport`: for each core on offer, `{here, platforms}`.
 
 | Field | Meaning |
 |---|---|
-| `platforms` | One entry for each server platform: `{os, arch, build, draws, note}`. `os` is `windows`, `linux`, `macos` or `freebsd`; `arch` is `x64`, `arm64` or `arm32` (none for FreeBSD, which has no prebuilt cores) |
+| `platforms` | One entry for each server platform: `{os, arch, build, draws, api, note}`. `os` is `windows`, `linux`, `macos` or `freebsd`; `arch` is `x64`, `arm64` or `arm32` (none for FreeBSD, which has no prebuilt cores) |
 | `here` | The same for this server, with this server's graphics card taken into account |
 | `build` | A download is published for that platform. Without one, the core isn't offered to install there |
 | `draws` | `gpu`: on the server's graphics card. `cpu`: by the processor, as the core always is. `cpu-fallback`: a graphics card's core drawn by the processor because the server has no card it can use, slower. `none`: it can't play there |
+| `api` | With `draws: "gpu"` only: how the runner reaches the card. `opengl` today, everywhere; `vulkan` and `metal` are reserved for when the runner offers them |
 | `note` | In words: what that means, or the speed measured, such as "Full speed on an Apple M3 Pro, on about one processor core." |
 
 Where it shows: Settings → Consoles & cores, for each console and each core; the core a console or a game plays with
@@ -118,8 +119,9 @@ Where it shows: Settings → Consoles & cores, for each console and each core; t
 
 | Field | When | Meaning |
 |---|---|---|
-| `runsOn` | `reason: "gpu"` | `[{os, arch, build, draws, note}]`: the platforms where one of its console's cores plays it, with the best way it draws there |
+| `runsOn` | `reason: "gpu"` or `"core"` | `[{os, arch, build, draws, api, note}]`: the platforms where one of its console's cores plays it, with the best way it draws there |
 | `alternative` | `reason: "core"` | `{id, name, console}`: a core that would play it on this server, once installed |
+| `noBuild: true` | `reason: "core"` | Not one of its console's cores is published for this server's platform, so installing can't help: show it as not on this server, with `runsOn` |
 
 **Downloads.** `internal/server/corebuilds.txt` says which platforms each core is published for, from libretro's build
 server; CI checks every listed download weekly (`scripts/corebuilds`). `POST /gaming/cores/{id}/install` for a core

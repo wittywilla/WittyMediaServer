@@ -171,7 +171,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
               ? <Link data-tv-first className="btn primary big gm-play" to={links.play(it.id, 'resume=1')}><IconPlay /> Resume</Link>
               : ready && <Link data-tv-first className="btn primary big gm-play" to={links.play(it.id)}><IconPlay /> Play</Link>}
             {ready && auto && <Link className="btn big" to={links.play(it.id)}>Start over</Link>}
-            {!ready && check?.reason === 'core' && user?.isAdmin && <Link className="btn primary big" to="/settings/gaming"><IconSettings size={16} /> Install a core</Link>}
+            {!ready && check?.reason === 'core' && !check.noBuild && user?.isAdmin && <Link className="btn primary big" to="/settings/gaming"><IconSettings size={16} /> Install a core</Link>}
             {!ready && check?.reason === 'bios' && user?.isAdmin && <Link className="btn primary big" to="/settings/gaming"><IconSettings size={16} /> Set up {c?.short}</Link>}
             {mine && (
               <button type="button" className={'btn big square gm-fav' + (mine.favourite ? ' on' : '')} aria-pressed={mine.favourite} aria-label={mine.favourite ? 'Favourite' : 'Add to favourites'} title={mine.favourite ? 'Favourite' : 'Add to favourites'} onClick={() => putMeta({ favourite: !mine.favourite })}>
@@ -200,9 +200,9 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
             <div className="gm-blocked" role="status">
               <IconInfo />
               <div>
-                <strong>{check.reason === 'core' ? 'This game needs a core first' : check.reason === 'bios' ? 'This game needs a BIOS file' : check.reason === 'gpu' ? 'Not on this server' : 'This console can’t play here yet'}</strong>
-                <p>{check.message}{check.reason === 'core' && (user?.isAdmin ? ' A core is the free program that plays these games. It takes one click to install.' : ' Ask whoever runs this server to install one.')}</p>
-                {check.reason === 'gpu' && check.runsOn?.length ? <p>{runsOnWords(check.runsOn)} Every device can play them from such a server: the server runs the game and streams it.</p> : null}
+                <strong>{check.reason === 'core' && !check.noBuild ? 'This game needs a core first' : check.reason === 'bios' ? 'This game needs a BIOS file' : check.reason === 'gpu' || check.noBuild ? 'Not on this server' : 'This console can’t play here yet'}</strong>
+                <p>{check.message}{check.reason === 'core' && !check.noBuild && (user?.isAdmin ? ' A core is the free program that plays these games. It takes one click to install.' : ' Ask whoever runs this server to install one.')}</p>
+                {(check.reason === 'gpu' || check.noBuild) && check.runsOn?.length ? <p>{runsOnWords(check.runsOn)} Every device can play them from such a server: the server runs the game and streams it.</p> : null}
               </div>
             </div>
           )}

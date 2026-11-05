@@ -126,7 +126,21 @@ type platformSupport struct {
 	Arch  string `json:"arch,omitempty"` // x64, arm64, arm32
 	Build bool   `json:"build"`          // it can be downloaded for this platform
 	Draws string `json:"draws"`          // gpu, cpu, cpu-fallback or none
-	Note  string `json:"note,omitempty"` // in words: what that means, or how fast it was
+	// API is how it reaches the graphics card, with draws gpu: opengl, or vulkan or metal should
+	// the runner ever offer those. WittyPlay's runner draws through OpenGL everywhere it can.
+	API  string `json:"api,omitempty"`
+	Note string `json:"note,omitempty"` // in words: what that means, or how fast it was
+}
+
+// gpuAPI is the graphics interface a runner draws on a card through.
+const gpuAPI = "opengl"
+
+// withAPI fills in API for an entry that draws on a graphics card.
+func withAPI(p platformSupport) platformSupport {
+	if p.Draws == drawsGPU {
+		p.API = gpuAPI
+	}
+	return p
 }
 
 // coreSupport is how a core runs everywhere, and on this server.
@@ -165,7 +179,7 @@ func coreSupportFor(id string, gpuCore bool, noGPU string) coreSupport {
 		} else {
 			ps.Draws, ps.Note = drawsOn(id, gpuCore, p.GOOS, "")
 		}
-		out.Platforms = append(out.Platforms, ps)
+		out.Platforms = append(out.Platforms, withAPI(ps))
 	}
 	out.Platforms = append(out.Platforms, platformSupport{OS: "freebsd", Draws: drawsNone,
 		Note: "No prebuilt cores for FreeBSD: build one, or install it from ports, and put it in the cores folder."})
@@ -177,7 +191,7 @@ func coreSupportFor(id string, gpuCore bool, noGPU string) coreSupport {
 	} else {
 		here.Draws, here.Note = drawsNone, "Not published for "+platformWords(runtime.GOOS, runtime.GOARCH)+"."
 	}
-	out.Here = here
+	out.Here = withAPI(here)
 	return out
 }
 

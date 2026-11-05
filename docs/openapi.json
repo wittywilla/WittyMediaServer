@@ -2630,6 +2630,9 @@
             "anyOf": [
               {
                 "properties": {
+                  "api": {
+                    "type": "string"
+                  },
                   "arch": {
                     "type": "string"
                   },

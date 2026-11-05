@@ -17,7 +17,7 @@ export type GameCheck = {
   // Plays, drawn by the server's processor as it has no graphics card games can use; notice is the speed caveat.
   software?: boolean; notice?: string
   // With reason gpu: where its games would play. With reason core: a core that would play it here.
-  runsOn?: PlatformSupport[]; alternative?: CoreAlternative
+  runsOn?: PlatformSupport[]; alternative?: CoreAlternative; noBuild?: boolean
   // using: the file a core that takes any name starts this game with; from: where it was found by its checksum.
   bios: { file: string; for: string; required: boolean; found: boolean; using?: string; from?: string }[]; biosFolder?: string
 }

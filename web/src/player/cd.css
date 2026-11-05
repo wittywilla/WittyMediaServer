@@ -1,6 +1,7 @@
 /* The CD player: a desktop media player of the early 2000s, as we'd draw one. It is an
    object, so it stays dark in every theme, with the theme's accent running through its
    frame and its lit display. The disc loading screen's lid and disc sit inside it. */
+/* design-ok-begin: a drawn CD player, dark in every theme with the theme's accent mixed in */
 
 .cdp-page { position: relative; padding-bottom: var(--sp-6); }
 .cdp-insert { position: fixed; inset: 0; z-index: 60; background: #000; }
@@ -201,9 +202,11 @@
   .cdp-disc, .cdp-key, .cdp-cdg { transition: none; }
 }
 
+/* design-ok-end */
+
 /* ---------------------------------------------------------------- outside it */
 .cdp-credit, .cdp-keyhelp { font-size: var(--text-xs); margin: var(--sp-2) auto 0; max-width: 1180px; }
-.cdp-keyhelp kbd { font: inherit; padding: 0 4px; border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); border-radius: 3px; }
+.cdp-keyhelp kbd { font: inherit; padding: 0 4px; border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); border-radius: var(--r-xs); }
 @media (pointer: coarse), (max-width: 720px) { .cdp-keyhelp { display: none; } }
 
 /* Choosing which album it is. */

@@ -1,0 +1,13 @@
+# Issues are for things that are broken. Everything else has its own place, so the issue list
+# stays a list of faults.
+blank_issues_enabled: false
+contact_links:
+  - name: Ideas and feature requests
+    url: https://github.com/wittywilla/WittyMediaServer/discussions/categories/ideas
+    about: Suggest something new or upvote what's planned. Planned features carry the "planned" label.
+  - name: Questions and help
+    url: https://github.com/wittywilla/WittyMediaServer/discussions/categories/q-a
+    about: Setting up, using the app, or "is this a bug?".
+  - name: A security problem
+    url: https://github.com/wittywilla/WittyMediaServer/security/advisories/new
+    about: Report it privately, never in a public issue.

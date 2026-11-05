@@ -29,6 +29,11 @@ function write(key: string, v: object | null) {
   try { v ? localStorage.setItem(key, JSON.stringify(v)) : localStorage.removeItem(key) } catch { /* ignore */ }
 }
 
+// The choices for every video on this device, as Settings, Appearance shows them. A disc or
+// video with choices of its own keeps those.
+export const globalView = (): ViewPrefs => ({ ...DEFAULT_VIEW, ...(read(GLOBAL) || {}) })
+export const setGlobalView = (patch: Partial<ViewPrefs>) => write(GLOBAL, { ...(read(GLOBAL) || {}), ...patch })
+
 export type Scope = 'item' | 'global'
 
 // useViewPrefs returns the effective preferences for an item, which scope

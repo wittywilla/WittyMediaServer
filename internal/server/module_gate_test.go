@@ -26,6 +26,10 @@ func auditRows(t *testing.T, ts *testServer, action string) int {
 // A stolen session used to be able to move a module to its own repository, signed with its own key.
 // Its code then ran on the server, and as a web bundle, in every viewer's browser.
 func TestModuleForkAsksForThePasswordAndCanBeLocked(t *testing.T) {
+	t.Setenv(modmgr.LockForks, "") // only the system decides here, not a lock left in the environment
+	if why := modmgr.ForkRefusal(); why != "" {
+		t.Skip(why) // macOS and FreeBSD, where nothing boxes a fork in yet
+	}
 	ts := newTestServer(t)
 	ts.Modules = modmgr.New(modmgr.Config{Dir: filepath.Join(t.TempDir(), "modules"), Server: "0.6.0-alpha", Builtins: modmgr.ServerManifests(), Known: true, Log: slog.New(slog.DiscardHandler)})
 	t.Cleanup(ts.Modules.Close)

@@ -243,3 +243,31 @@ func TestInfiniteNumbersAreCleared(t *testing.T) {
 		t.Errorf("%v %v", rating, err)
 	}
 }
+
+func TestSettingsReadsEverySavedOne(t *testing.T) {
+	d, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	ctx := context.Background()
+	if err := d.SetSetting(ctx, "a", "1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.SetSetting(ctx, "b", ""); err != nil {
+		t.Fatal(err)
+	}
+	got, err := d.Settings(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v, ok := got["a"]; !ok || v != "1" {
+		t.Errorf("a: %q %v", v, ok)
+	}
+	if v, ok := got["b"]; !ok || v != "" {
+		t.Errorf("b, saved empty: %q %v", v, ok)
+	}
+	if _, ok := got["c"]; ok {
+		t.Error("c was never saved")
+	}
+}

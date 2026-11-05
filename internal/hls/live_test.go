@@ -154,6 +154,36 @@ func TestLiveWaitReadyAndStopCleansUp(t *testing.T) {
 	t.Fatal("segments were not deleted")
 }
 
+// A channel tuned again while the last session's folder is still being cleared keeps its own.
+func TestLiveRestartHasItsOwnFolder(t *testing.T) {
+	m := liveTestManager(t)
+	feed := func(ctx context.Context, at time.Time) (*LiveInput, error) { return &LiveInput{AudioIndex: 0}, nil }
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	old := startFake(t, m, LiveSpec{ID: "x", Feed: feed}, fakeRun(3))
+	if err := old.WaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+	m.StopLive("x")
+	now := startFake(t, m, LiveSpec{ID: "x", Feed: feed}, fakeRun(3))
+	defer m.StopLive("x")
+	if now.Dir == old.Dir {
+		t.Fatalf("both sessions write in %s", now.Dir)
+	}
+	if err := now.WaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 40; i++ {
+		if _, err := os.Stat(old.Dir); os.IsNotExist(err) {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if _, err := os.Stat(now.Dir); err != nil {
+		t.Fatalf("the new session's folder went with the old one's: %v", err)
+	}
+}
+
 func TestLiveFatalErrorEndsSession(t *testing.T) {
 	m := liveTestManager(t)
 	refused := errors.New("encrypted")
@@ -253,6 +283,30 @@ func TestLiveArgs(t *testing.T) {
 	slate := strings.Join(s.liveArgs(&LiveInput{InputArgs: SlateInput(), Slate: true, Duration: 10, AudioIndex: -1}, 3, false), " ")
 	if !strings.Contains(slate, "anullsrc") || !strings.Contains(slate, "-map 1:a:0") {
 		t.Errorf("a slate has silence:\n%s", slate)
+	}
+}
+
+// A first run reads ahead so the picture comes at once. A copy reads further, since it can
+// only be cut at the file's keyframes and the channel plays from its second segment.
+func TestLiveStartBurst(t *testing.T) {
+	m := liveTestManager(t)
+	s := m.newLive(LiveSpec{ID: "x"})
+	readrateOnce.Do(func() {})
+	hasBurst = true
+	defer func() { hasBurst = false }()
+	in := &LiveInput{InputArgs: ffmpeg.FileInput("/m/a.mkv"), AudioIndex: 0}
+	for _, c := range []struct {
+		copy, burst bool
+		want        string
+	}{
+		{false, true, "-readrate 1 -readrate_initial_burst 12"},
+		{true, true, "-readrate 1 -readrate_initial_burst 24"},
+		{true, false, "-re"},
+	} {
+		in.CopyVideo = c.copy
+		if got := strings.Join(s.liveArgs(in, 1, c.burst), " "); !strings.Contains(got, c.want) {
+			t.Errorf("copy %v, first run %v: no %q in\n%s", c.copy, c.burst, c.want, got)
+		}
 	}
 }
 

@@ -25,6 +25,7 @@ import (
 // FFmpeg.
 
 func TestLiveToneMapOfUntaggedHDR(t *testing.T) {
+	t.Parallel() // as TestFormatTable
 	tools, err := ffmpeg.Locate(os.Getenv("WMS_FFMPEG"), os.Getenv("WMS_FFPROBE"))
 	if err != nil || !tools.Encoders["libx265"] || !tools.Encoders["libx264"] {
 		t.Skip("needs FFmpeg with libx264 and libx265")

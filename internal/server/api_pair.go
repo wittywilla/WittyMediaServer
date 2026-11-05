@@ -305,6 +305,7 @@ func (s *Server) handlePairRedeem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.Log.InfoContext(r.Context(), "device signed in with a code", "cat", "auth", "device", device, "user", u.Name, "from", ipOf(r))
+	s.notePlainSession(r, tok)
 	writeJSON(w, 200, map[string]any{"status": "approved", "token": tok, "user": u})
 }
 
@@ -580,6 +581,7 @@ func (s *Server) handlePairPoll(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.Log.InfoContext(r.Context(), "device signed in by pairing", "cat", "auth", "device", p.device, "user", u.Name)
+		s.notePlainSession(r, tok)
 		writeJSON(w, 200, map[string]any{"status": "approved", "token": tok, "user": u})
 	default:
 		writeJSON(w, 200, map[string]any{"status": "pending", "intervalSec": int(pairInterval.Seconds())})

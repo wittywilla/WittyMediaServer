@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/appcontrol"
+	"github.com/wittywilla/wittymediaserver/internal/brandname"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
@@ -24,14 +25,14 @@ import (
 var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage",
 	"serverName", "audioCodec", "lowPower", "bdjEnabled", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "dvdStart", "insertFx", "episodeView",
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
-	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "maxSpeed",
+	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "brandColouring", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "musicbrainz", "animeIn", "animeTitles",
 	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "uploadAccountMb", "shareLinks", "mapTiles", "mapOnline", "mapAttribution", "lanDiscovery", "radioDirectory", "radioChecks",
-	"legalOwnerNotice", "legalOwnerContact"}
+	"legalOwnerNotice", "legalOwnerContact", "noPoster"}
 
 // settingDefaults are returned when a key has never been saved.
-var settingDefaults = map[string]string{"saveMetadata": "1", "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
-	"theme": "default", "directPlay": "1", "qualityMode": "easy", "qualityProfile": "balanced", "x264Preset": "veryfast", "crf": "21", "maxSpeed": "4",
+var settingDefaults = map[string]string{"saveMetadata": "1", "noPoster": library.NoPosterFrame, "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
+	"theme": "default", "brandColouring": brandname.Auto, "directPlay": "1", "qualityMode": "easy", "qualityProfile": "balanced", "x264Preset": "veryfast", "crf": "21", "maxSpeed": "4",
 	"loginStyle": "profiles", "profilesRemote": "0", "kidsManagedBy": "adults", "insertSound": "1", "tvmaze": "1", "wikidata": "1", "musicbrainz": "1", "animeIn": "both", "animeTitles": "english",
 	// libraryGrouping: another folder of a kind joins that kind's library
 	// ("combine"), or becomes a library of its own ("separate").
@@ -133,6 +134,22 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	gameKeyChanged := false
 	regionsWere := s.DB.GetSetting(r.Context(), "gamingRegionOrder", "")
+	// Words chosen for one name don't fit another: a new name sent without its
+	// colouring (by an older app) goes back to the automatic split.
+	if n, ok := in["brandName"]; ok && in["brandColouring"] == "" && strings.TrimSpace(n) != s.DB.GetSetting(r.Context(), "brandName", "") &&
+		strings.HasPrefix(s.DB.GetSetting(r.Context(), "brandColouring", ""), brandname.Pick) {
+		in["brandColouring"] = brandname.Auto
+	}
+	// Everything is checked before anything is saved: a refused value mustn't leave
+	// half a change behind (a new name kept with words chosen for the old one).
+	for _, k := range settingKeys {
+		if v, ok := in[k]; ok && !strings.Contains(v, "•") {
+			if err := checkSetting(k, strings.TrimSpace(v)); err != nil {
+				writeErr(w, 400, err.Error())
+				return
+			}
+		}
+	}
 	for _, k := range settingKeys {
 		v, ok := in[k]
 		if !ok {
@@ -142,10 +159,6 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		v = strings.TrimSpace(v)
-		if err := checkSetting(k, v); err != nil {
-			writeErr(w, 400, err.Error())
-			return
-		}
 		if slices.Contains(library.GameSourceKeys, k) && s.DB.GetSetting(r.Context(), k, "") != v {
 			gameKeyChanged = true
 		}
@@ -210,13 +223,21 @@ func checkSetting(k, v string) error {
 				return errors.New(k + " must be a number")
 			}
 		}
+	case "noPoster":
+		if v != library.NoPosterFrame && v != library.NoPosterTitle && v != library.NoPosterNone {
+			return errors.New("no poster must be frame, title or none")
+		}
 	case "audioCodec":
 		if v != "" && v != "aac" && v != "mp3" {
 			return errors.New("the audio codec must be aac or mp3")
 		}
 	case "serverName", "brandName":
-		if len([]rune(v)) > 80 {
+		if len([]rune(v)) > brandname.MaxRunes {
 			return errors.New("the name must be at most 80 characters")
+		}
+	case "brandColouring":
+		if !brandname.Valid(v) {
+			return errors.New(`the colouring is "auto", "one", or "pick:" and ranges such as 5-10`)
 		}
 	}
 	return nil

@@ -218,6 +218,10 @@ input[type=range] { accent-color: var(--accent); }
 .brand img { width: 28px; height: 28px; }
 .brand span { color: var(--fg); }
 .brand span b { color: var(--brand-accent); font-weight: 700; }
+/* The words of the server's name in the theme colour, wherever the name is drawn. */
+.brand-name b { color: var(--brand-accent); font-weight: inherit; }
+/* Its copy for screen readers isn't copied with the name. */
+.brand-name > .sr-only { user-select: none; }
 .nav-section { color: var(--fg-3); font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-label); padding: var(--sp-5) var(--sp-3) var(--sp-2); }
 .nav-link { display: flex; align-items: center; gap: var(--sp-3); min-height: 40px; padding: 0 var(--sp-3); border-radius: var(--r-md); color: var(--fg-2); font-weight: 500; font-size: var(--text-md); transition: background var(--dur-2), color var(--dur-2); }
 .nav-link:hover { background: var(--hover); color: var(--fg); }
@@ -793,6 +797,22 @@ main.content:focus { outline: none; }
 .brand-logo-big { width: 64px; height: 64px; object-fit: contain; border-radius: var(--r-md); background: var(--bg-3); padding: 6px; flex: none; }
 .brand-logo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 .brand-logo-actions .muted { flex-basis: 100%; }
+/* Colouring: the words as buttons, or the gaps between letters as buttons. */
+.brand-colouring .seg { justify-self: start; max-width: 100%; }
+.brand-pick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1); padding: var(--sp-2); border-radius: var(--r-md); background: var(--bg); border: 1px solid var(--border); font-size: var(--text-lg); letter-spacing: var(--tracking-heading); }
+.brand-pick-word { min-height: 44px; padding: 0 var(--sp-2); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--bg-2); color: var(--fg); font: inherit; font-weight: 700; cursor: pointer; }
+.brand-pick-word:hover { background: var(--bg-3); }
+.brand-pick-word.on { color: var(--brand-accent); border-color: currentColor; }
+/* The second half of a word split in two touches the first. */
+.brand-pick-word.brand-pick-joined { margin-left: calc(-1 * var(--sp-1) - 1px); border-left-style: dashed; }
+.brand-pick-letters { gap: 0; font-weight: 700; }
+.brand-pick-letter { display: inline-flex; align-items: center; min-height: 44px; white-space: pre; }
+.brand-pick-letter.on { color: var(--brand-accent); }
+.brand-pick-letter.space { min-width: var(--sp-5); }
+.brand-pick-gap { display: inline-flex; align-items: center; justify-content: center; width: 24px; min-height: 44px; padding: 0; border: 0; border-radius: var(--r-sm); background: transparent; cursor: pointer; }
+.brand-pick-gap i { width: 2px; height: 1.1em; border-radius: var(--r-full); background: var(--border); }
+.brand-pick-gap:hover i, .brand-pick-gap:focus-visible i { background: var(--fg-3); }
+.brand-pick-gap.on i { width: 4px; background: var(--accent); }
 
 /* A newer version can be installed (admins): a dot beside Settings. */
 .upd-dot { display: inline-block; width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / .25); flex: none; }

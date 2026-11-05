@@ -38,8 +38,10 @@ type LiveInput struct {
 	// Stdin feeds the input (MPEG-TS from a tuner); closed when the run ends.
 	Stdin       io.ReadCloser
 	VideoFilter string // deinterlacing and the like
-	AudioIndex  int    // ffmpeg a:N; -1 = none, silence is added
-	CopyVideo   bool   // H.264 sources pass through without converting
+	// Height is the shorter side of the input's picture, when known (as Spec.Height).
+	Height     int
+	AudioIndex int  // ffmpeg a:N; -1 = none, silence is added
+	CopyVideo  bool // H.264 sources pass through without converting
 	// Realtime: the input already arrives at viewing speed (a tuner, a live
 	// address), so FFmpeg must not be paced.
 	Realtime bool
@@ -114,6 +116,10 @@ type LiveSession struct {
 	runs    int
 	// nextDisc: the next segment follows a change of input.
 	nextDisc bool
+	// endRun ends the run going now; restarted says that was asked for, so
+	// the feed is asked again at once rather than the end counted as a failure.
+	endRun    context.CancelFunc
+	restarted bool
 	// air: the moment on the air the next segment starts at. It runs on with the segments,
 	// and only jumps forward (after a gap: a stream that failed and came back) when an input
 	// starts later than that. An input that starts early, as the first one's burst makes the
@@ -339,6 +345,28 @@ func (m *Manager) LeaveLive(id, viewer string) {
 	})
 }
 
+// RestartLive ends what a running channel is playing and asks its feed what to
+// play now, as when a channel's schedule has been made again. Everyone watching
+// stays: the stream goes on after a discontinuity, with no error. It reports
+// whether the channel was running.
+func (m *Manager) RestartLive(id string) bool {
+	s := m.GetLive(id)
+	if s == nil {
+		return false
+	}
+	s.mu.Lock()
+	end := s.endRun
+	if end != nil {
+		s.restarted = true
+	}
+	s.mu.Unlock()
+	if end != nil {
+		s.log.Info("live stream restarted: its schedule changed")
+		end()
+	}
+	return true
+}
+
 // Err is why the session failed, if it did.
 func (s *LiveSession) Err() error {
 	s.mu.Lock()
@@ -402,9 +430,11 @@ func (s *LiveSession) loop() {
 			}
 			return
 		}
+		runCtx, endRun := context.WithCancel(s.ctx)
 		s.mu.Lock()
 		s.runs++
 		run := s.runs
+		s.endRun = endRun
 		if s.air.IsZero() || at.After(s.air) {
 			s.air = at
 		}
@@ -414,7 +444,8 @@ func (s *LiveSession) loop() {
 		if runner == nil {
 			runner = runLiveFFmpeg
 		}
-		err = runner(s.ctx, s, in, run, burst && !in.Realtime)
+		err = runner(runCtx, s, in, run, burst && !in.Realtime)
+		endRun()
 		if in.Stdin != nil {
 			_ = in.Stdin.Close()
 		}
@@ -427,11 +458,17 @@ func (s *LiveSession) loop() {
 		burst = false
 		s.mu.Lock()
 		s.nextDisc = true
+		s.endRun = nil
+		restarted := s.restarted
+		s.restarted = false
 		s.mu.Unlock()
 		switch {
 		case isFatal(err):
 			s.fail(err)
 			return
+		case restarted:
+			// Ended on purpose: what the run said as it was stopped isn't a failure.
+			retries = 0
 		case err != nil || (time.Since(start) < 2*time.Second && !in.Slate && (in.Duration == 0 || in.Duration >= 3)):
 			// Failed, or ended at once. Give up after a few tries in a row: a
 			// stream that does not work must not keep FFmpeg spinning.
@@ -510,10 +547,21 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 		q.Preset = sp.Preset
 		plan = t.Plan(q)
 	}
+	outHeight := in.Height
+	if sp.MaxHeight > 0 && (outHeight == 0 || sp.MaxHeight < outHeight) {
+		outHeight = sp.MaxHeight
+	}
+	decThreads, encThreads := ffmpeg.StreamThreads(outHeight)
+	if ownThreads(sp.Quality) {
+		encThreads = 0
+	}
 	if !in.CopyVideo {
 		args = append(args, plan.InputArgs...)
 		if plan.Name == "h264_nvenc" {
 			args = append(args, "-hwaccel", "auto")
+		}
+		if decThreads > 0 {
+			args = append(args, "-threads", strconv.Itoa(decThreads))
 		}
 	}
 	if in.Stdin != nil {
@@ -561,6 +609,9 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 			vf = append(vf, plan.Upload)
 		}
 		args = append(args, "-vf", strings.Join(vf, ","), "-c:v", plan.Name)
+		if plan.Name == "libx264" && encThreads > 0 {
+			args = append(args, "-threads", strconv.Itoa(encThreads))
+		}
 		args = append(args, plan.Args...)
 		if rate := sp.Quality.MaxRate; rate != "" && len(sp.Quality.VideoArgs) == 0 {
 			args = append(args, "-maxrate", rate, "-bufsize", rate)

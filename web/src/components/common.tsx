@@ -1,7 +1,8 @@
-import { memo, type CSSProperties } from 'react'
+import { Fragment, memo, type CSSProperties } from 'react'
 import { avatarColor } from '../ui/avatarColor'
 import { Link } from 'react-router-dom'
 import { PosterCard } from '../ui/Surface'
+import { brandParts, DEFAULT_NAME } from '../brandName'
 import { api, artSet, CARD_SIZES, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, sized, WIDE_CARD_SIZES, type Item, type Show } from '../api'
 import { toast, useApp } from '../state'
 import { IconCheck, IconLeft, IconRefresh } from '../icons'
@@ -14,7 +15,8 @@ export function BackLink({ to, label }: { to: string; label: string }) {
   return <Link to={to} className="back-link"><IconLeft size={18} /><span>{label}</span></Link>
 }
 
-export const isGeneratedArt = (it: Item) => it.poster.startsWith('cache:thumb-')
+// A frame from the video as a poster, the scan's or one chosen in the artwork picker: shown whole.
+export const isGeneratedArt = (it: Item) => it.poster.startsWith('cache:thumb-') || it.poster.startsWith('cache:frame-')
 
 // A colour of its own for something without a real poster: worked out from its
 // title, so it never changes.
@@ -123,10 +125,22 @@ export function BrandMark({ src }: { src?: string }) {
 }
 
 // Brand is the name in the top-left corner: the custom name from
-// Settings -> Appearance, or WittyMediaServer.
-export function Brand({ name }: { name: string }) {
-  // Where it has to wrap, it wraps between the words of the name, not inside one.
-  return name ? <span className="brand-name" title={name}>{name}</span> : <span>Witty<wbr /><b>Media</b><wbr />Server</span>
+// Settings -> Appearance, or WittyMediaServer, with every other word in the
+// theme colour (brandName.ts). colouring overrides the server's (a preview).
+// Screen readers get the name once, whole, rather than in coloured pieces; the
+// tooltip (for a long name cut short) is on the hidden part, so it isn't read again.
+// Where it has to wrap, it wraps between the words of the name, not inside one.
+export function Brand({ name, colouring }: { name: string; colouring?: string }) {
+  const { brandColouring } = useApp()
+  const shown = name || DEFAULT_NAME
+  const parts = brandParts(shown, colouring ?? brandColouring)
+  const joined = (i: number) => i > 0 && !/\s$/u.test(parts[i - 1].text) && !/^\s/u.test(parts[i].text)
+  return (
+    <span className="brand-name">
+      <span className="sr-only">{shown}</span>
+      <span aria-hidden="true" title={name || undefined}>{parts.map((p, i) => <Fragment key={i}>{joined(i) && <wbr />}{p.accent ? <b>{p.text}</b> : p.text}</Fragment>)}</span>
+    </span>
+  )
 }
 
 // UpdateDot: admins see that a newer version can be installed (Settings,

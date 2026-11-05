@@ -348,6 +348,22 @@ func TestLiveArgs(t *testing.T) {
 	if !strings.Contains(joined, "-c:v copy") {
 		t.Errorf("copy mode: %s", joined)
 	}
+	if dec, enc := ffmpeg.StreamThreads(720); dec > 0 {
+		for _, want := range []string{fmt.Sprintf("-threads %d -re", dec), fmt.Sprintf("-c:v libx264 -threads %d ", enc)} {
+			if !strings.Contains(file, want) {
+				t.Errorf("a conversion on a big machine lacks %q:\n%s", want, file)
+			}
+		}
+	}
+	if _, enc4k := ffmpeg.StreamThreads(2160); enc4k > 0 {
+		big := strings.Join(m.newLive(LiveSpec{ID: "y"}).liveArgs(&LiveInput{InputArgs: ffmpeg.FileInput("/m/b.mkv"), AudioIndex: 0, Height: 2160}, 1, false), " ")
+		if !strings.Contains(big, fmt.Sprintf("-c:v libx264 -threads %d ", enc4k)) {
+			t.Errorf("a 4K channel with no limit gets 4K's threads:\n%s", big)
+		}
+	}
+	if strings.Contains(joined, "-threads") {
+		t.Errorf("a copy decodes no picture:\n%s", joined)
+	}
 	slate := strings.Join(s.liveArgs(&LiveInput{InputArgs: SlateInput(), Slate: true, Duration: 10, AudioIndex: -1}, 3, false), " ")
 	if !strings.Contains(slate, "anullsrc") || !strings.Contains(slate, "-map 1:a:0") {
 		t.Errorf("a slate has silence:\n%s", slate)
@@ -407,5 +423,45 @@ func TestGrowingStreamsSkipTheTranscodeLimit(t *testing.T) {
 	m.max = 0
 	if err := m.makeRoom(&Session{Spec: Spec{ID: "grow", Growing: true}, m: m}); err != nil {
 		t.Errorf("makeRoom: %v", err)
+	}
+}
+
+// A channel whose schedule was made again moves to it without anyone being
+// dropped: the run ends, the feed is asked again, and nothing is reported.
+func TestLiveRestartAsksTheFeedAgain(t *testing.T) {
+	m := liveTestManager(t)
+	var asked atomic.Int32
+	s := startFake(t, m, LiveSpec{ID: "x", Feed: func(ctx context.Context, at time.Time) (*LiveInput, error) {
+		asked.Add(1)
+		return &LiveInput{AudioIndex: 0, Duration: 3600}, nil
+	}}, fakeRun(2))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.WaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if m.RestartLive("nothing") {
+		t.Fatal("a channel nobody is watching isn't running")
+	}
+	for i := 1; i <= 3; i++ {
+		if !m.RestartLive("x") {
+			t.Fatal("the channel should be running")
+		}
+		for j := 0; asked.Load() < int32(i+1) && j < 100; j++ {
+			time.Sleep(20 * time.Millisecond)
+		}
+		if asked.Load() < int32(i+1) {
+			t.Fatalf("restart %d: the feed was asked %d times", i, asked.Load())
+		}
+	}
+	if err := s.Err(); err != nil || m.GetLive("x") != s {
+		t.Fatalf("a restart should leave the session running: %v", err)
+	}
+	// Three quick restarts are not a stream failing again and again.
+	for j := 0; j < 50 && !strings.Contains(string(s.Playlist(func(f string) string { return f })), "DISCONTINUITY"); j++ {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !strings.Contains(string(s.Playlist(func(f string) string { return f })), "#EXT-X-DISCONTINUITY") {
+		t.Fatal("the new programme should follow a discontinuity")
 	}
 }

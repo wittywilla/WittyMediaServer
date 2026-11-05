@@ -54,6 +54,7 @@ func (s *Server) channelRoutes(m *http.ServeMux) {
 	m.Handle("PUT /api/channels/{id}", ad(s.handleUpdateChannel))
 	m.Handle("DELETE /api/channels/{id}", ad(s.handleDeleteChannel))
 	m.Handle("POST /api/channels/{id}/rebuild", ad(s.handleRebuildChannel))
+	m.Handle("POST /api/channels/{id}/reset", ad(s.handleResetChannel))
 	m.Handle("GET /api/channels/{id}/history", ad(s.handleChannelHistory))
 	m.Handle("POST /api/channels/{id}/restore", ad(s.handleRestoreChannel))
 	m.Handle("GET /api/channels/{id}/logo", a(s.handleChannelLogo))
@@ -241,6 +242,34 @@ func (s *Server) handleRebuildChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})
+}
+
+// POST /api/channels/{id}/reset: the schedule made again from the channel's
+// settings and the titles that match them now, what is on now included.
+// Anyone watching moves to the new schedule; reminders follow their programme
+// or go, and the answer says how many.
+func (s *Server) handleResetChannel(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	var b struct {
+		StartOver bool `json:"startOver"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	res, err := s.Channels.Reset(r.Context(), id, b.StartOver)
+	if err != nil {
+		channelError(w, err)
+		return
+	}
+	watching := s.HLS != nil && s.HLS.RestartLive("lib-"+strconv.FormatInt(id, 10))
+	s.Log.InfoContext(r.Context(), "channel reset", "cat", "tv", "channel", id, "startOver", b.StartOver, "watching", watching,
+		"remindersKept", res.Kept, "remindersMoved", res.Moved, "remindersDropped", res.Dropped)
+	writeJSON(w, 200, map[string]any{"ok": true, "watching": watching, "reminders": res})
 }
 
 func (s *Server) handleChannelHistory(w http.ResponseWriter, r *http.Request) {
@@ -1088,12 +1117,23 @@ func feedPlan(now time.Time, lastEnd int64) (at time.Time, wait time.Duration, c
 // libraryFeed says what a library channel plays next: see feedPlan.
 func (s *Server) libraryFeed(id int64, q ffmpeg.Quality, maxHeight int, copyOK bool) hls.LiveFeed {
 	var lastEnd int64
+	var lastRev int
 	return func(ctx context.Context, _ time.Time) (*hls.LiveInput, error) {
 		c, err := s.Channels.Get(ctx, id)
 		if err != nil {
 			return nil, &hls.FatalError{Err: errors.New("this channel no longer exists")}
 		}
-		at, wait, card := feedPlan(time.Now(), lastEnd)
+		now := time.Now()
+		if lastRev != 0 && c.Rev != lastRev && lastEnd > now.Unix() {
+			// The schedule was made again. An edit keeps what is on now, so it
+			// still ends when it did; after a reset it doesn't, and the channel
+			// goes straight to what the new schedule has on now.
+			if cur, _, err := s.Channels.Now(ctx, c, now); err == nil && cur.End != lastEnd {
+				lastEnd = 0
+			}
+		}
+		lastRev = c.Rev
+		at, wait, card := feedPlan(now, lastEnd)
 		if card > 0 {
 			return &hls.LiveInput{InputArgs: hls.SlateInput(), Slate: true, Duration: card, AudioIndex: -1}, nil
 		}
@@ -1164,6 +1204,7 @@ func (s *Server) itemLiveInput(ctx context.Context, p *channels.Programme, off, 
 		in.AudioIndex = -1
 	}
 	if v := pr.Video(); v != nil {
+		in.Height = min(v.Width, v.Height)
 		interlaced := v.FieldOrder == "tt" || v.FieldOrder == "bb" || v.FieldOrder == "tb" || v.FieldOrder == "bt"
 		if interlaced {
 			in.VideoFilter = "bwdif=mode=send_frame:parity=auto:deint=interlaced"

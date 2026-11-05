@@ -104,7 +104,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/meta/{target}/{id}/suggest` | Admin | Title exists |
 | `POST /api/meta/{target}/{id}/leave` | Admin | Title exists |
 | `GET /api/meta/{target}/{id}/artwork` | Admin | Title exists. Known kind of artwork |
-| `PUT /api/meta/{target}/{id}/art/{kind}` | Admin | Title exists and has that artwork. JPEG, PNG, WebP or GIF of at most 20 MB. Stored under a name the server makes |
+| `PUT /api/meta/{target}/{id}/art/{kind}` | Admin | Title exists and has that artwork. JPEG, PNG, WebP or GIF of at most 20 MB and 25 megapixels, decoded and written again from its pixels (nothing else in the file is kept). Stored under a name the server makes. `?stage=1` stores it without applying it |
+| `POST /api/meta/{target}/{id}/frame` | Admin | Title exists and is an item with video. An encrypted disc is refused, nothing is decrypted. Stored under a name the server makes; errors don't name the file |
+| `POST /api/meta/{target}/{id}/titleposter` | Admin | Title exists. Words at most 120 and 60 letters, drawn by the server with its own fonts. Over a frame only from the image cache, by a name with no path in it. Stored under a name the server makes |
 | `GET /api/meta/{target}/{id}/art/{kind}` | Signed-in | limits. Banner or logo. Pictures only |
 | `POST /api/meta/{target}/{id}/link` | Admin | Not a show. Attached to one film or show that exists, not to itself. Known kind of link |
 | `DELETE /api/meta/{target}/{id}/link` | Admin | Title exists |
@@ -417,6 +419,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/channels/{id}` | Admin | Channel exists. Definition validated |
 | `DELETE /api/channels/{id}` | Admin | Channel exists |
 | `POST /api/channels/{id}/rebuild` | Admin | Channel exists |
+| `POST /api/channels/{id}/reset` | Admin | Channel exists; `startOver` is a boolean. Changes only that channel's schedule and every account's reminders for it |
 | `GET /api/channels/{id}/history` | Admin | Numeric id |
 | `POST /api/channels/{id}/restore` | Admin | Channel and history entry exist |
 | `GET /api/channels/{id}/logo` | Signed-in | Numeric id |
@@ -428,11 +431,13 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/tuners/discover` | Admin | 12-second limit |
 | `GET /api/tuners` | Admin | Options masked |
 | `POST /api/tuners` | Admin | Driver and options checked by the tuner manager |
+| `POST /api/tuners/check` | Admin | Playlist file place checked; options checked by the tuner manager; nothing saved; 90-second limit; masked passwords only from the tuner named |
 | `PUT /api/tuners/{id}` | Admin | Tuner exists. Options checked by the tuner manager |
 | `DELETE /api/tuners/{id}` | Admin | Tuner exists |
 | `POST /api/tuners/{id}/refresh` | Admin | Tuner exists |
 | `POST /api/tuners/{id}/scan` | Admin | Tuner exists. Source |
 | `GET /api/tuners/{id}/scan` | Admin | Numeric id |
+| `POST /api/tuners/{id}/test` | Admin | Tuner exists. Channel must be the tuner's. Opened as a viewer's would be: encrypted refused, tuner limits kept; 90-second limit |
 | `GET /api/tuners/{id}/channels` | Admin | Numeric id |
 | `POST /api/tuners/{id}/channels/enable` | Admin | Numeric id |
 | `PUT /api/tuner-channels/{id}` | Admin | Channel exists. Fields |

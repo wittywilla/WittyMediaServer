@@ -188,7 +188,7 @@ func (l *lab) wait(id int64) *Run {
 
 // String lets a failed test say what happened to a file, rather than print a pointer.
 func (f *FileRow) String() string {
-	return fmt.Sprintf("{%s %s %s: %s}", filepath.Base(f.Path), f.Verdict, f.State, f.Message)
+	return fmt.Sprintf("{%s %s %s: %s %s}", filepath.Base(f.Path), f.Verdict, f.State, f.Reason, f.Message)
 }
 
 func (l *lab) files(run *Run) []*FileRow {

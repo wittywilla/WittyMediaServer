@@ -17,7 +17,6 @@ const internal = "github.com/wittywilla/wittymediaserver/internal/"
 // movable is each package that is to leave the server (docs/plans/module-isolation.md), with
 // what else of the server it may import until then. A package's own folders are always allowed.
 var movable = map[string][]string{
-	"isofs":            nil, // WittyDisc
 	"dvd":              nil, // generated from WittyDVD
 	"bluray":           nil, // generated from WittyBluray
 	"cd":               nil, // generated from WittyCD

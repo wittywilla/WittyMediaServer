@@ -17,11 +17,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittydisc/isofs"
 	"github.com/wittywilla/wittymediaserver/internal/cd"
 	"github.com/wittywilla/wittymediaserver/internal/dvd"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
-	"github.com/wittywilla/wittymediaserver/internal/isofs"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"

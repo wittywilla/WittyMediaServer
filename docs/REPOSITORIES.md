@@ -54,7 +54,7 @@ Each desktop product makes its own installers, with the same rules for names and
 
 ### The server needs almost none of them
 
-A build of the server needs only WittyModule. Until its new version is published, point at a checkout of it, once in each checkout of the server. This writes a `go.work` that git ignores:
+A build of the server needs only WittyModule and the core libraries `go.mod` names (WittyDisc), never a module. Until a new version of one is published, point at a checkout of it, once in each checkout of the server. This writes a `go.work` that git ignores:
 
 ```bash
 node scripts/dev-modules.mjs WittyModule=D:/projects/WittyModule

@@ -563,6 +563,9 @@ func (m *Manager) newProcFor(id string, e *entry, man *wittymodule.Manifest, dir
 	}
 	p.strict = e.state.Source != nil
 	p.launch = m.cfg.Launcher
+	if !p.strict {
+		p.launch = helperLauncher(goos(), id, p.launch)
+	}
 	p.logEnv = m.cfg.LogEnv
 	return p
 }

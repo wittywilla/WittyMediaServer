@@ -41,3 +41,20 @@ func unconfined() SandboxInfo {
 
 // launcherFailed: helpers wouldn't start in the launcher here, and went on without it.
 var launcherFailed atomic.Bool
+
+// ownSandbox are the modules whose helper puts each program it starts in a sandbox of its own,
+// as WittyPlay does with every game.
+var ownSandbox = map[string]bool{"wittyplay": true}
+
+// helperLauncher is the launcher a module's own helper starts through. A fork always has it, and
+// it refuses forks on a Mac. A Mac won't start one sandbox inside another: sandbox-exec, run by a
+// helper already in the launcher's, fails with "sandbox_apply: Operation not permitted", so every
+// game failed to start, as "The emulator crashed". There, a helper that boxes in what it starts
+// goes without the launcher, and what it starts keeps its own sandbox, the tighter of the two:
+// WittyPlay's game runner has no network, starts nothing and writes only its saves.
+func helperLauncher(system, id, launcher string) string {
+	if system == "darwin" && ownSandbox[id] {
+		return ""
+	}
+	return launcher
+}

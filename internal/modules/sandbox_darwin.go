@@ -15,7 +15,9 @@ import (
 // A Mac's own tool for boxing in a program is sandbox-exec. Apple has marked it deprecated, and it
 // still ships and still works. It's the same one game runners use here. It's checked before it's
 // relied on, as nothing else says whether a later macOS still takes this profile, and if it won't
-// the page says that helpers aren't confined. Written and compiled, and never run on a real Mac.
+// the page says that helpers aren't confined. On a real Mac (macOS 27, Apple silicon) helpers start
+// in it, and a program in it can't start a sandbox of its own, so WittyPlay's helper goes without
+// it: see helperLauncher.
 
 const sandboxExec = "/usr/bin/sandbox-exec"
 
@@ -91,5 +93,5 @@ func confinement(launcher string) SandboxInfo {
 		return unconfined()
 	}
 	return SandboxInfo{Level: SandboxLimited, Title: "Modules run in Apple's sandbox here",
-		Words: "A module's helper can't change files outside its own folder, can't reach the network or start other programs unless it needs to, and can't signal other programs. It can still read anything this server's account can read. Modules from other publishers are refused on a Mac for now."}
+		Words: "A module's helper can't change files outside its own folder, can't reach the network or start other programs unless it needs to, and can't signal other programs. It can still read anything this server's account can read. WittyPlay's helper runs outside it, since a Mac can't start one sandbox inside another, and each game it runs gets a stricter sandbox of its own. Modules from other publishers are refused on a Mac for now."}
 }

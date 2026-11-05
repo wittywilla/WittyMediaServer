@@ -295,9 +295,10 @@ export const showBackdropUrl = (s: Show) => mediaUrlQ(`/api/shows/${s.id}/art/ba
 export const seasonPosterUrl = (s: Show, n: number) => mediaUrlQ(`/api/shows/${s.id}/art/season`, `n=${n}&v=${s.updatedAt}`)
 export const artPreviewUrl = (src: string) => mediaUrl(`/api/artwork/preview?src=${encodeURIComponent(src)}`)
 
-// Smaller pictures. The server keeps a copy of a poster or backdrop at each of these widths
-// (library.ThumbWidths) once one is asked for, so a card isn't sent a picture made for a cinema
-// screen, and a TV or phone doesn't spend megabytes of memory holding one.
+// Smaller pictures. The server keeps a copy of a picture at each of these widths
+// (library.ThumbWidths) once one is asked for, and sends the original where it makes none, so a
+// card isn't sent a picture made for a cinema screen and a TV or phone doesn't spend megabytes of
+// memory holding one.
 const ART_WIDTHS = [160, 320, 480, 640, 1280, 1920]
 // sized: an art address at a width. '' stays ''.
 export const sized = (url: string, w: number) => url && `${url}${url.includes('?') ? '&' : '?'}w=${w}`

@@ -112,10 +112,10 @@ type LiveSession struct {
 	runs    int
 	// nextDisc: the next segment follows a change of input.
 	nextDisc bool
-	// air: the moment on the air the next segment starts at. It runs on with the segments, and
-	// only jumps forward: after a gap (a stream that failed and came back), when an input
-	// starts later than that, and when segments are made slower than real time. An input that
-	// starts early, as the first one's burst makes the next one do, carries it on.
+	// air: the moment on the air the next segment starts at. It runs on with the segments,
+	// and only jumps forward (after a gap: a stream that failed and came back) when an input
+	// starts later than that. An input that starts early, as the first one's burst makes the
+	// next one do, carries the timeline on rather than taking it back.
 	air time.Time
 	// runner lets tests stand in for FFmpeg.
 	runner func(ctx context.Context, s *LiveSession, in *LiveInput, run int, burst bool) error
@@ -674,19 +674,10 @@ func (s *LiveSession) readRun(r *liveRun) {
 func (s *LiveSession) addSegment(file string, dur float64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	now := time.Now()
-	length := time.Duration(dur * float64(time.Second))
-	air := s.air
-	if !air.IsZero() {
-		// A stream made slower than real time (a busy or small server) falls behind its
-		// timeline. Its segments are dated by when they were made instead, so the dates keep to
-		// the clock and players to each other: everyone still sees the same date on a segment.
-		if made := now.Add(-length); made.After(air) {
-			air = made
-		}
-		s.air = air.Add(length)
+	s.segs = append(s.segs, liveSeg{Seq: s.next, File: file, Dur: dur, Disc: s.nextDisc, At: time.Now(), Air: s.air})
+	if !s.air.IsZero() {
+		s.air = s.air.Add(time.Duration(dur * float64(time.Second)))
 	}
-	s.segs = append(s.segs, liveSeg{Seq: s.next, File: file, Dur: dur, Disc: s.nextDisc, At: now, Air: air})
 	s.nextDisc = false
 	s.next++
 	if d := math.Ceil(dur); d > s.target {

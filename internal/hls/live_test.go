@@ -87,8 +87,7 @@ func TestLivePlaylistProgramDateTimeAndHoldBack(t *testing.T) {
 	if p := string(s.Playlist(func(f string) string { return f })); strings.Contains(p, "PROGRAM-DATE-TIME") {
 		t.Fatalf("no air time without a clock:\n%s", p)
 	}
-	// Ahead of the clock, as a burst makes a stream: the timeline runs on as it is.
-	start := time.Now().Add(time.Hour).Truncate(time.Second).UTC()
+	start := time.Date(2026, 11, 4, 20, 14, 6, 0, time.UTC)
 	s.mu.Lock()
 	s.air = start
 	s.mu.Unlock()
@@ -96,39 +95,15 @@ func TestLivePlaylistProgramDateTimeAndHoldBack(t *testing.T) {
 	s.addSegment("b.ts", 3.5)
 	s.addSegment("c.ts", 4)
 	p := string(s.Playlist(func(f string) string { return f }))
-	at := func(sec float64) string {
-		return start.Add(time.Duration(sec * float64(time.Second))).Format("2006-01-02T15:04:05.000Z")
-	}
 	for _, want := range []string{
-		"#EXT-X-SERVER-CONTROL:HOLD-BACK=",
-		"#EXT-X-PROGRAM-DATE-TIME:" + at(0) + "\n#EXTINF:4.000,\na.ts",
-		"#EXT-X-PROGRAM-DATE-TIME:" + at(4) + "\n#EXTINF:3.500,\nb.ts",
-		"#EXT-X-PROGRAM-DATE-TIME:" + at(7.5) + "\n#EXTINF:4.000,\nc.ts",
+		"#EXT-X-SERVER-CONTROL:HOLD-BACK=12.000\n",
+		"#EXT-X-PROGRAM-DATE-TIME:2026-11-04T20:14:06.000Z\n#EXTINF:4.000,\na.ts",
+		"#EXT-X-PROGRAM-DATE-TIME:2026-11-04T20:14:10.000Z\n#EXTINF:3.500,\nb.ts",
+		"#EXT-X-PROGRAM-DATE-TIME:2026-11-04T20:14:13.500Z\n#EXTINF:4.000,\nc.ts",
 	} {
 		if !strings.Contains(p, want) {
 			t.Fatalf("missing %q:\n%s", want, p)
 		}
-	}
-}
-
-// A stream made slower than real time is dated by when its segments were made, so its dates keep
-// to the clock; with nothing made ahead, players start three target durations back.
-func TestLiveSlowStreamKeepsToTheClock(t *testing.T) {
-	m := liveTestManager(t)
-	s := m.newLive(LiveSpec{ID: "c", WindowSec: 100})
-	s.mu.Lock()
-	s.air = time.Now().Add(-time.Hour) // an hour behind, as a stream made far too slowly would be
-	s.mu.Unlock()
-	s.addSegment("a.ts", 4)
-	s.mu.Lock()
-	got := s.segs[0].Air
-	s.mu.Unlock()
-	if off := time.Since(got); off < 3*time.Second || off > 6*time.Second {
-		t.Fatalf("a segment made just now should start about 4 s ago, not %v ago", off)
-	}
-	p := string(s.Playlist(func(f string) string { return f }))
-	if !strings.Contains(p, "HOLD-BACK=12.0") {
-		t.Fatalf("hold-back without a lead:\n%s", p)
 	}
 }
 

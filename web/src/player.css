@@ -291,6 +291,7 @@
 /* 3D is on: said in the top bar, with a way off in one press. */
 .stereo-chip { display: inline-flex; align-items: center; gap: var(--sp-2); padding: 3px 4px 3px var(--sp-3); border-radius: var(--r-full); background: var(--accent); color: var(--accent-fg); font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
 .stereo-chip .btn { min-height: 28px; padding: 0 var(--sp-3); border-radius: var(--r-full); background: color-mix(in srgb, var(--accent-fg) 18%, transparent); color: inherit; border: 0; }
+@media (max-width: 600px) { .stereo-chip .stereo-words { display: none; } } /* a phone keeps room for the title */
 .stereo-chip .btn:hover, .stereo-chip .btn:focus-visible { background: color-mix(in srgb, var(--accent-fg) 32%, transparent); }
 .switch { width: 44px; height: 24px; border-radius: var(--r-lg); border: 0; background: var(--control-line); position: relative; padding: 0; transition: background var(--dur-2); flex: none; }
 .switch i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform var(--dur-2); }

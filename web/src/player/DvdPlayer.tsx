@@ -11,7 +11,7 @@ import InsertDisc from './InsertDisc'
 import Remote, { RemoteBar, type RemoteKey } from './Remote'
 import TrackPicker, { type Tile } from './TrackPicker'
 import ViewSettings from './ViewSettings'
-import { discMemory, rememberDisc, useViewPrefs } from './viewPrefs'
+import { discMemory, rememberDisc, useViewPrefs, type ViewPrefs } from './viewPrefs'
 import { focusPlayerControls } from '../tv'
 import { announce } from '../a11y'
 
@@ -531,9 +531,10 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
 
   const togglePlay = () => { const v = video.current; if (!v) return; if (stopped) { setStopped(false); v.play().catch(() => {}); return } if (v.paused) v.play().catch(() => {}); else if (!locked('pause')) v.pause() }
   const setRemote = (on: boolean) => view.update({ remote: on }, view.scope)
-  // 3D is said out loud as it changes, as it changes everything on screen.
+  // 3D is said out loud as it changes, and when a disc opens with it on, as it changes
+  // everything on screen.
   const stereoWords = prefs.stereo === 'sbs' ? 'side by side' : prefs.stereo === 'ou' ? 'over-under' : ''
-  const saidStereo = useRef(prefs.stereo)
+  const saidStereo = useRef<ViewPrefs['stereo']>('off')
   useEffect(() => {
     if (saidStereo.current === prefs.stereo) return
     saidStereo.current = prefs.stereo
@@ -747,7 +748,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
             </div>
             {stereoWords && (
               <span className="stereo-chip" role="group" aria-label={`3D on: ${stereoWords}`}>
-                <span aria-hidden="true">3D: {stereoWords}</span>
+                <span aria-hidden="true">3D<span className="stereo-words">: {stereoWords}</span></span>
                 <button type="button" className="btn sm" onClick={() => view.update({ stereo: 'off' }, view.scope)}>Turn off</button>
               </span>
             )}

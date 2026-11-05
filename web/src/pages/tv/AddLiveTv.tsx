@@ -73,7 +73,7 @@ export default function AddLiveTv({ onFinish, onLeave }: Props) {
 
   if (missing) return <NeedsTuner onFinish={onFinish} />
   if (loadErr) return <Notice tone="danger" title="The kinds of tuner couldn’t be read" action={<Button onClick={load}>Try again</Button>}>{loadErr}</Notice>
-  if (!drivers) return <Spinner />
+  if (!drivers) return <div className="alt-row" role="status"><Spinner /> <span>Asking WittyTuner what this server can use…</span></div>
 
   const def = KINDS.find((k) => k.kind === kind)!
   const choices = kind === 'other' ? drivers.filter(usable) : drivers.filter((d) => def.drivers.includes(d.id) && usable(d))

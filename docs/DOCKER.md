@@ -18,7 +18,7 @@ WittyMediaServer in a container, on a NAS, a Linux server or Docker Desktop: the
 - [The image](#the-image)
 - [Folders](#folders)
 - [Settings](#settings)
-- [The user it runs as](#the-user-it-runs-as)
+- [User and group IDs](#user-and-group-ids)
 - [Locked down](#locked-down)
 - [Hardware transcoding](#hardware-transcoding)
 - [Behind a reverse proxy](#behind-a-reverse-proxy)
@@ -118,15 +118,76 @@ Most settings are in the app. These are the ones a container sets with `environm
 | `WMS_CACHE_DIR`, `WMS_METADATA_DIR`, `WMS_LOG_DIR` | | Move the cache, the artwork or the logs out of `/config` |
 | `TZ` | | Your time zone, such as `Europe/London`, for the times in logs and the TV guide |
 
-## The user it runs as
+## User and group IDs
 
-The image runs as user and group `1000`, never as root. Any other numbers work: set `user:` to the account that owns your folders, which `id` shows on the host.
+Inside the container, the server is a user and a group, by number. It can only see a media folder that number may read, and only keep its data in a folder that number may write. The image runs as `1000:1000`. Any other numbers work, so the usual fix is to make them match the account that owns your folders on the host.
 
-```yaml
-    user: "1026:100"
+**Signs the numbers are wrong:**
+
+- A library is empty, or a folder you know has files looks empty in the app's folder browser.
+- The folder browser, a library scan or the log says *permission denied*.
+- The container stops at once, and its log says it *can't write /config*.
+
+**Find the right numbers** on the host:
+
+```sh
+id <your account>        # uid=1026(you) gid=100(users) groups=100(users),101(administrators)
+ls -ln /path/to/media    # the third and fourth columns: the owner's and group's numbers
 ```
 
-Nothing in the image needs a name for that user, and the server never asks for more powers. On a NAS, use an ordinary account, not `admin` or `root`.
+Your NAS's own **Users** page shows the same account, and the folder's **Permissions** page who may read it. The sections below say where those are on each make.
+
+**Fix it**, in order of preference:
+
+1. **Run as that account:** `user: "1026:100"` in the compose file (`--user 1026:100` with `docker run`), with the numbers from `id`. Then recreate the container.
+2. **Add a group the media belongs to:** if the folders belong to a group your account isn't the main member of, add it by number: `group_add: ["101"]`. The same goes for the graphics card's group, see [Hardware transcoding](#hardware-transcoding).
+3. **Change the folder's permissions on the NAS:** give that account (or **Everyone**) read access to your media, and read and write to the server's own folder. On the command line: `sudo chown -R 1026:100 /volume1/docker/wittymediaserver` for the server's folder, and `chmod -R a+rX /volume1/Media` for media anyone may read.
+
+**PUID and PGID.** Some images take `PUID` and `PGID` settings and switch to those numbers after starting as root. This image never starts as root, which is why it works with every line of [Locked down](#locked-down), so it doesn't use them: `user: "PUID:PGID"` does the same job. If you set `PUID` or `PGID` and they don't match the user it runs as, the server says so in its log when it starts.
+
+Nothing in the image needs a name for that user, and the server never asks for more powers. Use an ordinary account, not `admin` or `root`.
+
+### UGREEN: user and group IDs
+
+- **Find them:** over SSH (**Control Panel → Terminal → SSH**), `id` for your account and `ls -ln /volume1` for your shared folders. The account you sign in to UGOS with is the one to use. Accounts made in UGOS can have numbers below 1000, such as `999` with group `10`, so check rather than assume `1000`.
+- **Fix them:** set `user:` to your numbers in the project, and recreate it. To give an account access to a folder, use **Files**, right-click the shared folder, **Properties → Permissions**, or **Control Panel → User → Edit → Permissions**.
+- See [Docker on a UGREEN NAS](DOCKER-UGREEN.md#2-find-your-user-and-the-render-group).
+
+### Synology: user and group IDs
+
+- **Find them:** over SSH (**Control Panel → Terminal & SNMP**), `id <account>`. The first account made on DSM is usually `1026`, the next `1027`, and the `users` group is `100`. `ls -ln /volume1` shows who owns each shared folder.
+- **Fix them:** set `user:` to the account's numbers. Give it access in **Control Panel → Shared Folder → Edit → Permissions**: **Read/Write** on `docker`, **Read only** on your media. DSM also keeps its own access lists on top of the numbers, so a folder can look right with `ls -ln` and still refuse the account until it's ticked there.
+- See [Docker on a Synology NAS](DOCKER-SYNOLOGY.md#2-find-your-user-and-the-render-group).
+
+### QNAP: user and group IDs
+
+- **Find them:** over SSH, `id <account>`. Ordinary accounts start at `1000`, and the `everyone` group is `100`. `admin` is `0`, root: don't use it. `ls -ln /share` shows the shared folders.
+- **Fix them:** set `user:` to the account's numbers. Give it access in **Control Panel → Privilege → Shared Folders → Edit Shared Folder Permission**: Read/Write on `Container`, Read only on your media.
+- See [Docker on a QNAP NAS](DOCKER-QNAP.md#2-find-your-user-and-the-render-group).
+
+### Unraid: user and group IDs
+
+- **Find them:** Unraid's shares belong to `nobody:users`, which is `99:100`, and that's the right pair almost always. In the terminal, `ls -ln /mnt/user` shows it.
+- **Fix them:** the template already runs as `99:100` (in **Extra Parameters**). If a share was copied in with other owners, run **Tools → New Permissions** on it, or `chown -R 99:100 /mnt/user/appdata/wittymediaserver`.
+- See [Docker on Unraid](DOCKER-UNRAID.md#the-folders-and-the-user).
+
+### TrueNAS SCALE: user and group IDs
+
+- **Find them:** apps run as the `apps` user, `568:568`. **Credentials → Users** shows each account's number; in **System → Shell**, `ls -ln /mnt/tank` shows who owns each dataset.
+- **Fix them:** keep `user: "568:568"`, and give `apps` access: **Datasets → <dataset> → Permissions → Edit**, add the `apps` user, **Read** for media and **Modify** for the server's own dataset. A dataset with the **Apps** preset has that already. To run as your own account instead, use its numbers from **Credentials → Users**.
+- See [Docker on TrueNAS SCALE](DOCKER-TRUENAS.md#1-make-the-datasets).
+
+### Asustor: user and group IDs
+
+- **Find them:** over SSH (**Services → Terminal**), `id <account>`. `admin` is usually `999`; accounts you make start at `1000`, and the `users` group is `100`. `ls -ln /volume1` shows the shared folders.
+- **Fix them:** set `user:` to the account's numbers. Give it access in **Access Control → Shared Folders → Access Right**: Read & Write on `Docker`, Read Only on your media.
+- See [Docker on an Asustor NAS](DOCKER-ASUSTOR.md#2-find-your-user-and-the-render-group).
+
+### Linux: user and group IDs
+
+- **Find them:** `id -u` and `id -g` for your own account, `getent group render` for the graphics group, `ls -ln /srv/media` for a folder's owner.
+- **Fix them:** set `user:` to those numbers. For a folder only a group may read, add it with `group_add`, or `sudo chmod -R g+rX` it for its group. `sudo chown -R "$(id -u):$(id -g)" ./config` for the server's folder.
+- See [Docker on a Linux machine](DOCKER-LINUX.md#3-find-your-user-and-the-render-group).
 
 ## Locked down
 
@@ -232,12 +293,12 @@ The image has a health check: every 30 seconds it asks the server itself, with `
 
 | You see | Why, and what to do |
 |---|---|
-| The container stops at once, and the log says `/config` *can't be written* | The folder belongs to another user. `chown` it to the numbers in `user:` (see [Folders](#folders)) |
+| The container stops at once, and the log says `/config` *can't be written* | The folder belongs to another user. `chown` it to the numbers in `user:` (see [User and group IDs](#user-and-group-ids)) |
 | `exec format error` | The wrong architecture was pulled, such as on an old 32-bit ARM board. Remove the image and pull again |
 | The page doesn't load from another device | The NAS's firewall, or another program on port 9797. Change the left side of `ports:` |
 | Hardware encoders all say they can't be used | [Hardware transcoding](#hardware-transcoding); `docker exec wittymediaserver wittymediaserver hardware` says which step |
 | Apps don't list the server under **On your network** | Finding servers uses multicast, which doesn't cross Docker's own network. Type the server's address in the app, or run the container with `network_mode: host` (then `ports:` isn't needed) |
-| Media folders are empty in the app | The folder isn't mounted, or the user in `user:` can't read it. `docker exec wittymediaserver ls /media` shows what the server sees |
+| Media folders are empty in the app | The folder isn't mounted, or the user in `user:` can't read it: see [User and group IDs](#user-and-group-ids). `docker exec wittymediaserver ls -ln /media` shows what the server sees |
 | *read-only file system* in the log | Something wants to write outside `/config` and `/tmp`. With `read_only: true`, `/tmp` must be a `tmpfs`. Anything else is a bug: please report it |
 
 `docker exec wittymediaserver wittymediaserver doctor` checks the data, modules and install, and `wittymediaserver logs zip` makes a log bundle to share.

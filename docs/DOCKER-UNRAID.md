@@ -25,6 +25,8 @@ WittyMediaServer on Unraid 6.12 or 7, from the template in this project or as a 
 | Your media | A share such as `/mnt/user/Media` |
 | The user | `99:100`, Unraid's `nobody:users`, which owns everything in your shares |
 
+> **Folders empty in the app, or "permission denied"?** The user and group numbers don't match your folders. [User and group IDs](DOCKER.md#unraid-user-and-group-ids) says how to tell, find the right ones and fix it.
+
 ## With the template
 
 1. Copy [the template](https://github.com/wittywilla/WittyMediaServer/blob/master/deploy/unraid/wittymediaserver.xml) to the flash drive, as `/boot/config/plugins/dockerMan/templates-user/my-wittymediaserver.xml`. From the Unraid terminal (**>_** at the top right):

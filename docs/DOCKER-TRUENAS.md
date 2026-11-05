@@ -25,6 +25,8 @@ In **Datasets**, on your pool (called `tank` here):
 - `tank/apps/wittymediaserver`, with the **Apps** preset. Its owner is the `apps` user, `568:568`, which the app runs as.
 - Your media can stay where it is, such as `tank/media`. Give the `apps` user read access: **Datasets → media → Permissions → Edit**, add `apps` with Read.
 
+> **Folders empty in the app, or "permission denied"?** The user and group numbers don't match your folders. [User and group IDs](DOCKER.md#truenas-scale-user-and-group-ids) says how to tell, find the right ones and fix it.
+
 ## 2. Find the render group
 
 For Intel or AMD graphics, open **System → Shell** and run:

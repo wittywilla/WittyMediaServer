@@ -46,6 +46,8 @@ crw-rw---- 1 0 105 226, 128 ... renderD128
 
 The fourth column, **105** here, is the render group. It goes under `group_add`. If that line shows `crw-------` (only the owner may use it), see [Only root may open the render node](DOCKER.md#only-root-may-open-the-render-node).
 
+> **Folders empty in the app, or "permission denied"?** The user and group numbers don't match your folders. [User and group IDs](DOCKER.md#ugreen-user-and-group-ids) says how to tell, find the right ones and fix it.
+
 ## 3. Create the project
 
 In **Docker → Project → Create**, name it `wittymediaserver`, choose `/volume1/docker/wittymediaserver` as its path, and paste this. Change the three marked lines:

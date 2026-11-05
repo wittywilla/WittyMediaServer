@@ -176,3 +176,12 @@ a.mh-list-text, .mh-list-text { flex: 1; min-width: 0; display: flex; color: inh
   .mh-filters .select { flex: 1 1 40%; }
 }
 @media (prefers-reduced-motion: reduce) { .cf-cover, .mh-artist-photo { transition: none; } }
+
+/* Music videos: video tiles, with the song a video is tied to under it. */
+.mh-videos { margin-bottom: 0; }
+.mh-video { display: grid; gap: 4px; min-width: 0; align-content: start; }
+.mh-video-row .mh-video { flex: 0 0 min(260px, 70vw); }
+.mh-video-song { display: inline-flex; align-items: center; gap: 6px; justify-self: start; max-width: 100%; padding: 2px 8px; border-radius: var(--r-pill, 999px); font-size: var(--text-sm); color: var(--fg-2, var(--fg)); background: var(--bg-2); text-decoration: none; }
+.mh-video-song span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mh-video-song:hover { background: var(--accent-soft); }
+.mh-video-song:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }

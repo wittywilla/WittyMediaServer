@@ -339,3 +339,60 @@ func (s *Server) kickMusicMatch(libraryID int64) {
 		}
 	}, "cat", "library")
 }
+
+// MusicVideoCard is a music video in a music library's Music videos, with the song it's
+// tied to, when this person may see that song.
+type MusicVideoCard struct {
+	library.VideoCard
+	Song   *MusicLinkSide `json:"song,omitempty"`
+	SyncMS *int64         `json:"syncMs,omitempty"`
+}
+
+// GET /api/music/videos?search=&sort=&limit=&offset=: the videos of every music video
+// library this person can see, by artist (or newest first with sort=latest).
+func (s *Server) handleMusicVideos(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	sort := "artist"
+	if q.Get("sort") == "latest" {
+		sort = "latest"
+	}
+	search := strings.TrimSpace(q.Get("search"))
+	if len(search) > 200 {
+		writeErr(w, 400, "that search is too long")
+		return
+	}
+	cards, more, err := s.Store.Videos(r.Context(), library.VideoQuery{LibraryType: "musicvideos", UserID: userFrom(r).ID, Access: s.access(r),
+		Search: search, Sort: sort, Limit: qInt(r, "limit", 60), Offset: max(0, qInt(r, "offset", 0))})
+	if err != nil {
+		writeLibErr(w, err)
+		return
+	}
+	ids := make([]int64, len(cards))
+	for i, c := range cards {
+		ids[i] = c.ID
+	}
+	links, err := s.musicLinks().Tied(r.Context(), ids)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	views, err := s.linkViews(r, links) // only songs this person may see
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	byVideo := make(map[int64]MusicLinkView, len(views))
+	for _, v := range views {
+		if _, ok := byVideo[v.VideoID]; !ok {
+			byVideo[v.VideoID] = v
+		}
+	}
+	out := make([]MusicVideoCard, len(cards))
+	for i, c := range cards {
+		out[i].VideoCard = c
+		if v, ok := byVideo[c.ID]; ok {
+			out[i].Song, out[i].SyncMS = v.Song, v.SyncMS
+		}
+	}
+	writeJSON(w, 200, map[string]any{"videos": out, "more": more})
+}

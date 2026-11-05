@@ -12,6 +12,7 @@ import LegalNote from '../components/LegalNote'
 import LibraryHeader, { type SortOption } from '../components/LibraryHeader'
 import CoverFlow, { type Cover } from './music/CoverFlow'
 import { AlbumTile, albumLink, ArtistTile, artistLink, coverUrl, LibrarySwitch, SeeAllTile, Shelf, shuffledCopy, SongRow, TrackMenu } from './music/parts'
+import { hasMusicVideos, MusicVideosShelf, MusicVideosTab } from './music/MusicVideos'
 
 // Music, audiobook and podcast libraries. The front page has what you came back for: a shelf
 // of covers, artists, albums and songs, each with its "see all". Those pages sort and filter.
@@ -23,7 +24,8 @@ type Home = { hero: Album[]; albums: Album[]; artists: Artist[]; songs: Item[]; 
 export default function AudioLibrary({ lib }: { lib: Library }) {
   const books = lib.type === 'audiobooks'
   const pods = lib.type === 'podcasts'
-  const { user } = useApp()
+  const { user, libraries } = useApp()
+  const videos = lib.type === 'music' && hasMusicVideos(libraries)
   const [adding, setAdding] = useState(false)
   const [reload, setReload] = useState(0)
   const [params, setParams] = useSearchParams()
@@ -40,7 +42,7 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
   const chooseSort = (key: string, d: boolean) => { const p = new URLSearchParams(params); p.set('sort', key); if (d) p.set('desc', '1'); else p.delete('desc'); setParams(p) }
   const tabs: [string, string][] = pods ? [['home', 'Home'], ['albums', 'Podcasts']]
     : books ? [['home', 'Home'], ['albums', 'Books'], ['artists', 'Authors']]
-      : [['home', 'Home'], ['albums', 'Albums'], ['artists', 'Artists'], ['songs', 'Songs'], ['playlists', 'Playlists']]
+      : [['home', 'Home'], ['albums', 'Albums'], ['artists', 'Artists'], ['songs', 'Songs'], ...(videos ? [['videos', 'Music videos'] as [string, string]] : []), ['playlists', 'Playlists']]
   return (
     <div className="mh">
       <LibrarySwitch />
@@ -64,6 +66,7 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
       {tab === 'albums' && <AlbumsTab lib={lib} params={params} set={set} reload={reload} onReload={() => setReload((n) => n + 1)} />}
       {tab === 'artists' && <ArtistsTab lib={lib} sort={sort} desc={desc} />}
       {tab === 'songs' && <SongsTab lib={lib} params={params} set={set} />}
+      {tab === 'videos' && videos && <MusicVideosTab lib={lib} />}
       {tab === 'playlists' && <PlaylistsTab lib={lib} />}
       {pods && <LegalNote kind="webMedia" />}
     </div>
@@ -73,7 +76,7 @@ export default function AudioLibrary({ lib }: { lib: Library }) {
 function HomeTab({ lib, reload, onReload }: { lib: Library; reload: number; onReload: () => void }) {
   const books = lib.type === 'audiobooks'
   const pods = lib.type === 'podcasts'
-  const { user } = useApp()
+  const { user, libraries } = useApp()
   const [home, setHome] = useState<Home | null>(null)
   const [failed, setFailed] = useState(false)
   const [hero, setHero] = useState<Album | null>(null)
@@ -179,6 +182,7 @@ function HomeTab({ lib, reload, onReload }: { lib: Library; reload: number; onRe
           </div>
         </Shelf>
       )}
+      {lib.type === 'music' && hasMusicVideos(libraries) && <MusicVideosShelf lib={lib} />}
       {home.recent.length > 0 && !books && !pods && (
         <Shelf title="Played lately" to="?tab=songs&view=recent">
           <div className="mh-songs">

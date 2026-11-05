@@ -76,6 +76,7 @@ A music library opens on **Home**: a row of covers to flip through, with what yo
 | **Albums** | Sort by title, artist, year, recently added or most played, either way round. Filter by genre |
 | **Artists** | Sort by name or most albums, and find one by name |
 | **Songs** | Choose **All songs**, **Liked**, **Most played**, **Played lately** or **Newest**. Search, sort, filter by genre, and press **Play** or **Shuffle** |
+| **Music videos** | The videos of every **Music videos & concerts** library you can see, by artist, with the album of the song each is tied to. Only there when the server has such a library. See [Music videos](#music-videos) |
 | **Playlists** | The same four lists ready to play, and your own playlists |
 
 **An album's page** has **Play**, **Shuffle**, **Station**, **Play next**, **Add to queue** and **Like all**. An album on more than one disc is divided by disc. Below the tracks are **Other versions** of it, such as a deluxe or remastered release, and **More by** that artist.
@@ -149,6 +150,12 @@ Lyrics follow the music in the full-screen player, and karaoke is one press from
 ## Music videos
 
 A song in a **Music** library and its video in a **Music videos & concerts** library ([Creator videos and music videos](CREATOR-VIDEOS.md#music-videos-and-concerts)) are tied together, so each can lead to the other.
+
+### The Music videos section
+
+Each music library has a **Music videos** tab beside **Songs**, and a **Music videos** shelf on its front page with the newest ones. It lists the videos of every **Music videos & concerts** library you can see, grouped by artist, and you can find one by its title or artist. A video tied to a song in your music shows the song's album under it, which takes you there. Pressing a video plays it on its own page.
+
+Profile limits apply as everywhere: a video a profile can't watch isn't listed, and neither is a song it can't hear.
 
 ### How songs and videos are matched
 

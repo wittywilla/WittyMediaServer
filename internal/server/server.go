@@ -355,6 +355,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("DELETE /api/music/links", s.requireAdmin(s.handleMusicLinkUntie))
 	m.Handle("POST /api/music/links/match", s.requireAdmin(s.handleMusicLinkMatch))
 	m.Handle("GET /api/music/links/{id}", a(s.handleMusicLinks))
+	m.Handle("GET /api/music/videos", a(s.handleMusicVideos))
 	m.Handle("GET /api/music/links/{id}/candidates", s.requireAdmin(s.handleMusicLinkCandidates))
 	m.Handle("GET /api/podcasts", a(s.handlePodcasts))
 	m.Handle("GET /api/podcasts/search", s.requireAdmin(s.handlePodcastSearch))

@@ -61,15 +61,16 @@ export default function TvHost() {
         return
       }
       // A stream running late (a server that can't make it at full speed) can't be caught up:
-      // everyone waits for it the same distance behind its newest segment, rather than chasing
-      // it and stalling.
+      // everyone goes as far as a segment and a second behind its newest segment, and waits
+      // for it there, together, rather than chasing it into stalls.
       const end = v.seekable.length ? v.seekable.end(v.seekable.length - 1) : v.currentTime
       const start = v.seekable.length ? v.seekable.start(0) : v.currentTime
-      const step = behind > 0 && end - v.currentTime <= target + 0.5 ? { rate: 1 } : syncStep(behind, nudging)
+      const margin = target / 3 + 1
+      const step = behind > 0 && end - v.currentTime <= margin + 0.5 ? { rate: 1 } : syncStep(behind, nudging)
       if ('seekBy' in step) {
         v.playbackRate = 1
         nudging = false
-        v.currentTime = Math.max(start, Math.min(end - target, v.currentTime + step.seekBy))
+        v.currentTime = Math.max(start, Math.min(end - margin, v.currentTime + step.seekBy))
       } else {
         v.playbackRate = step.rate
         nudging = step.rate !== 1

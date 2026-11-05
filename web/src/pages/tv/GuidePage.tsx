@@ -14,7 +14,7 @@ import DetailsDialog from './Details'
 import Hero from './Hero'
 import SearchPanel from './SearchPanel'
 import { useReminders } from './reminders'
-import { liveNow } from './live'
+import { liveNow, noteBackgroundDefault } from './live'
 import { canOfferRecord, dayWord, fmtClock, fmtDay, fmtSpan, getLineup, forgetLineup, setFavourite, type GuideChannel, type GuidePage as Page, type Programme } from './tvApi'
 import './tv.css'
 import './tvthemes.css'
@@ -189,6 +189,7 @@ export default function GuidePage() {
       setTotal(g.total)
       setGroups((was) => (filter.group || filter.favourites || filter.kind ? [...new Set([...was, ...g.groups])] : g.groups))
       setOwnerLook({ theme: g.theme, layout: g.layout, skin: g.skin })
+      noteBackgroundDefault(g.backgroundPlay)
       setRows((r) => { const n = { ...r }; (g.channels || []).forEach((c, i) => { n[g.offset + i] = c }); return n })
       setErr('')
     } catch (e) { loaded.current.delete(key); setErr((e as Error).message) }

@@ -333,6 +333,9 @@ function Options() {
       <Row label="Pass H.264 through" desc="Video the browser can already play is sent as it is. Much lighter on the machine; turn it off only if channels stutter when shows change.">
         <Switch checked={s.tvCopyVideo === '1'} label="Pass H.264 through" onChange={(v) => void set('tvCopyVideo', v ? '1' : '0')} />
       </Row>
+      <Row label="Keep playing in the background, on new devices" desc="Whether a channel carries on when a viewer switches to another tab or app. Each device can choose for itself in WittyTV's look and in the player; this is what one starts with.">
+        <Switch checked={s.tvBackgroundPlay !== '0'} label="Keep playing in the background, on new devices" onChange={(v) => void set('tvBackgroundPlay', v ? '1' : '0')} />
+      </Row>
       <Row label="Pause buffer, library channels (minutes)" desc="How far back viewers can pause and rewind. Kept on disk only while someone is watching.">
         <input className="input tvs-short" type="number" min={1} max={240} defaultValue={s.tvLibraryBufferMin} onBlur={(e) => void set('tvLibraryBufferMin', e.target.value)} />
       </Row>

@@ -769,7 +769,7 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 	now := time.Now()
 	logo, brand := tunerLogo(c)
 	info := tuneInfo{Key: r.PathValue("key"), Kind: "tuner", Number: c.Number, Name: c.Name, Logo: logo, Brand: brand, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
-		ServerTime: now.Unix(), CanRecord: s.canRecord(r, c), BufferSec: float64(s.tvSettingInt(r.Context(), "tvTunerBufferMin") * 60),
+		ServerTime: now.Unix(), CanRecord: s.canRecord(r, c), BackgroundPlay: s.backgroundPlay(r.Context()), BufferSec: float64(s.tvSettingInt(r.Context(), "tvTunerBufferMin") * 60),
 		Notices: s.channelNotices(c), ATSC3: c.ATSC3, Security: securityOf(c)}
 	if s.silentChannel(c) {
 		info.Alternative = s.clearAlternative(r, id)

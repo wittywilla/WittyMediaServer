@@ -32,7 +32,11 @@ export type EncryptedHelpPage = {
   title: string; sections: { heading: string; paragraphs?: string[]; bullets?: string[] }[]
   devicesIntro: string; devices: { name: string; facts: string; source: string; url: string }[]; checked: string; note: string
 }
-export type GuidePage = { now: number; from: number; to: number; total: number; offset: number; channels: GuideChannel[]; groups: string[]; skin: Skin; layout: 'classic' | 'streaming'; theme?: string }
+export type GuidePage = {
+  now: number; from: number; to: number; total: number; offset: number; channels: GuideChannel[]; groups: string[]; skin: Skin; layout: 'classic' | 'streaming'; theme?: string
+  // What a device that hasn't chosen does with "Keep playing when this tab is in the background".
+  backgroundPlay?: boolean
+}
 export type Skin = 'cable' | 'satellite' | 'midnight' | 'theme'
 export type TuneInfo = {
   key: string; kind: 'library' | 'tuner'; number: string; name: string; logo?: string; url: string
@@ -40,7 +44,7 @@ export type TuneInfo = {
   // On a channel that counts watch progress: when what is on the screen now ends,
   // a stretch of `now` or a bumper or commercial in it.
   partEnd?: number
-  countProgress: boolean; canRecord: boolean; bufferSec: number
+  countProgress: boolean; canRecord: boolean; bufferSec: number; backgroundPlay?: boolean
   atsc3?: boolean; security?: Security; notices?: string[]; alternative?: Alternative
 }
 

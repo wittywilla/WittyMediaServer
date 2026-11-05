@@ -45,22 +45,15 @@ func gameThumbSlot() chan struct{} {
 	return gameThumbSlots
 }
 
-// PosterThumb returns a smaller copy of a poster or cover as a "cache:" reference, or the
-// reference it was given when it can't or needn't be made smaller. src is a "cache:"
-// reference or a picture beside the media, already known to be inside a library.
+// PosterThumb returns a smaller copy of a picture in the image cache, src a "cache:"
+// reference, as a "cache:" reference, or src when it can't or needn't be made smaller.
+// A picture beside the media goes to SmallCopyOf, opened inside its library.
 func (g *GameMeta) PosterThumb(ctx context.Context, src string, width int) string {
-	if width <= 0 || width > thumbMaxWidth || src == "" || isRemote(src) {
+	name, ok := strings.CutPrefix(src, "cache:")
+	if !ok || name == "" || name != filepath.Base(name) || width <= 0 || width > thumbMaxWidth {
 		return src
 	}
-	path := src
-	if strings.HasPrefix(src, "cache:") {
-		name := strings.TrimPrefix(src, "cache:")
-		if name == "" || name != filepath.Base(name) {
-			return src
-		}
-		path = filepath.Join(g.ImagesDir, name)
-	}
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Join(g.ImagesDir, name))
 	if err != nil {
 		return src
 	}
@@ -87,6 +80,11 @@ func (g *GameMeta) SmallCopyOf(ctx context.Context, f *os.File, src string, widt
 	if st, err := os.Stat(out); err == nil && !st.IsDir() {
 		return "cache:" + name
 	}
+	// Before waiting for a turn: a picture already small enough, or one that can't be
+	// read, mustn't queue behind the large ones being decoded.
+	if !worthShrinking(f, width) {
+		return src
+	}
 	select {
 	case gameThumbSlot() <- struct{}{}:
 		defer func() { <-gameThumbSlot() }()
@@ -101,15 +99,22 @@ func (g *GameMeta) SmallCopyOf(ctx context.Context, f *os.File, src string, widt
 
 var errThumbNotNeeded = errors.New("no smaller copy needed")
 
-func makeGameThumb(f io.ReadSeeker, out string, width int) error {
+// worthShrinking reads a picture's header: it's one this can decode, wider than width,
+// and not so large that decoding it could take all of a small machine's memory. f is left
+// at its start, for whoever reads it next.
+func worthShrinking(f io.ReadSeeker, width int) bool {
 	if _, err := f.Seek(0, io.SeekStart); err != nil {
-		return err
+		return false
 	}
 	cfg, _, err := image.DecodeConfig(f)
-	if err != nil {
-		return err
+	if _, serr := f.Seek(0, io.SeekStart); serr != nil {
+		return false
 	}
-	if cfg.Width <= width || cfg.Height <= 0 || cfg.Width*cfg.Height > maxThumbPixels {
+	return err == nil && cfg.Width > width && cfg.Height > 0 && cfg.Width*cfg.Height <= maxThumbPixels
+}
+
+func makeGameThumb(f io.ReadSeeker, out string, width int) error {
+	if !worthShrinking(f, width) {
 		return errThumbNotNeeded
 	}
 	if _, err := f.Seek(0, 0); err != nil {
@@ -123,7 +128,8 @@ func makeGameThumb(f io.ReadSeeker, out string, width int) error {
 	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(filepath.Dir(out), ".gamethumb-*")
+	// Named like the copies, so that one a crash leaves behind is trimmed with them.
+	tmp, err := os.CreateTemp(filepath.Dir(out), "gamethumb-part-*")
 	if err != nil {
 		return err
 	}

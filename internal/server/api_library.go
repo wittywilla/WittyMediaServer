@@ -689,48 +689,58 @@ func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool)
 			src = it.Poster
 		}
 	}
-	src = s.smallerArt(r, src)
 	if src == library.LazyPoster {
-		// A frame of the video. Each width is a picture FFmpeg makes, so the small ones
-		// lists ask for share the 480 one.
-		width := max(qInt(r, "w", 480), 480)
+		width := qInt(r, "w", 480)
+		if it.Kind != "photo" {
+			// A frame of a video. Each width is a picture FFmpeg makes, so the small ones
+			// lists ask for share the 480 one.
+			width = max(width, 480)
+		}
 		if backdrop {
 			width = 1920
 		}
 		s.serveThumb(w, r, it, width)
 		return
 	}
-	s.serveArtSrc(w, r, src)
+	s.serveArtSized(w, r, src)
 }
 
-// smallerArt is src, or a smaller copy of it when the request asks for one with ?w=:
-// lists show posters a few hundred pixels wide and backdrops at most a screen wide, and
-// the picture beside a film can be a few megabytes. The copy is made once and kept.
-// Only what serveArtSrc would serve is made smaller: a picture in the image cache, a
-// remote one once it's been fetched into it, or one inside a library's folders.
-func (s *Server) smallerArt(r *http.Request, src string) string {
+// serveArtSized is serveArtSrc, with a smaller copy when the request asks for one with
+// ?w=: lists show posters a few hundred pixels wide and backdrops at most a screen wide,
+// and the picture beside a film can be a few megabytes. The copy is made once and kept.
+// Only what serveArtSrc would serve is made smaller, found the way it finds it: a picture
+// in the image cache, a remote one once it's been fetched into it, or one inside a
+// library's folders, opened once.
+func (s *Server) serveArtSized(w http.ResponseWriter, r *http.Request, src string) {
 	width := qInt(r, "w", 0)
 	if width <= 0 || src == "" || src == library.LazyPoster {
-		return src
+		s.serveArtSrc(w, r, src)
+		return
 	}
 	ctx := r.Context()
 	switch {
 	case strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://"):
 		p, err := s.cachedRemote(ctx, src)
 		if err != nil {
-			return src // serveArtSrc says why
+			s.serveArtSrc(w, r, src) // which says why
+			return
 		}
 		src = "cache:" + filepath.Base(p)
 	case !strings.HasPrefix(src, "cache:"):
-		// Opened the way serveArtSrc opens it: once, and only inside a library.
 		f, _, err := s.Store.OpenLibraryFile(ctx, src)
 		if err != nil {
-			return src
+			writeErr(w, 404, "no artwork")
+			return
 		}
-		defer f.Close()
-		return s.GameMeta.SmallCopyOf(ctx, f, src, width)
+		if small := s.GameMeta.SmallCopyOf(ctx, f, src, width); small != src {
+			f.Close()
+			s.serveArtSrc(w, r, small)
+			return
+		}
+		s.serveArtFile(w, r, f, filepath.Clean(src)) // the original, from what was checked
+		return
 	}
-	return s.GameMeta.PosterThumb(ctx, src, width)
+	s.serveArtSrc(w, r, s.GameMeta.PosterThumb(ctx, src, width))
 }
 
 // serveArtSrc serves artwork from a cache name, a remote URL (cached) or a

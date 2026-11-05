@@ -2,6 +2,7 @@ import { type ControlsData, type SaveControl } from './consoles';
 import type { ControllerData } from './mapping';
 import { type SettingsHost } from './settings';
 import { type PortChoice, type ProfileHost } from './Studio';
+import { type Hello, type StreamInfo } from './transport';
 import './play.css';
 export type SessionInfo = {
     id: string;
@@ -22,6 +23,7 @@ export type SessionInfo = {
     discs?: number;
     modes: {
         id: string;
+        stream?: number;
     }[];
     devices?: PortChoice[];
     safeMode?: boolean;
@@ -47,6 +49,9 @@ export interface PlayHost extends SettingsHost {
     consoleName: string;
     resume: boolean;
     safeMode: boolean;
+    startSlot?: number;
+    cover?: string;
+    openSettings?(): void;
     prepare?(): Promise<PrepareStatus>;
     start(resume: boolean, safeMode: boolean): Promise<SessionInfo>;
     relaunch(opts: {
@@ -56,6 +61,11 @@ export interface PlayHost extends SettingsHost {
     stop(sessionId: string): Promise<void>;
     answer(sessionId: string, sdp: string, prefer?: string): Promise<string>;
     wsUrl(sessionId: string, video: string): string;
+    stream?(sessionId: string, hello: Hello, sdp: string): Promise<{
+        stream: StreamInfo;
+        sdp: string;
+    }>;
+    streamUrl?(sessionId: string): string;
     action(sessionId: string, type: string, slot?: number, on?: boolean, extra?: {
         port?: number;
         device?: number;

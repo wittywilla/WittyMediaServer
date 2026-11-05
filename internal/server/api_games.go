@@ -409,6 +409,10 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 			}
 			switch {
 			case *gpuWhy == "":
+				// A card, but the core it would start on draws wrongly on it on this system.
+				if v.Ready && len(v.Installed) > 0 && drawsWrongHere(v.Installed[0]) != "" && cpuOptions(v.Installed[0]) != nil {
+					v.Software, v.Notice = true, cardFaultNotice()
+				}
 			case s.canDrawOnCPU(&v):
 				if v.Ready { // with nothing installed, a core it could be is still needed first
 					v.Software, v.Notice = true, softwareNotice
@@ -694,7 +698,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	// never started, nor tried when another fails, unless the processor can draw for it. software
 	// says the processor draws this one.
 	noGPU := ""
-	software := false
+	software, notice := false, ""
 	if console.ID != wittyplay.TestConsole {
 		// BIOS files left in a folder beside the games are fetched first, for
 		// every core that might use one: by what they are, then by their names.
@@ -710,7 +714,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		core, blocked := pick.core, pick.blocked
-		software = pick.software
+		software, notice = pick.software, pick.notice
 		if core == nil && blocked != nil {
 			writeJSON(w, 409, map[string]any{"error": wittyplay.BIOSHelp(blocked.ID, console.Name), "needBios": true, "console": console.ID,
 				"file": wittyplay.MissingBIOS(blocked.ID, systemDir)})
@@ -752,7 +756,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			next := stream.CoreChoice{Core: other.Path, CoreID: other.ID, RunnerArgs: wittyplay.RunnerArgs(other.ID), GPU: wittyplay.Traits(other.ID).GPU, Options: wittyplay.StartOptions(console.ID, other.ID, resolution, systemDir)}
-			if noGPU != "" && s.coreDrawsOnGPU(other) {
+			if s.coreDrawsOnGPU(other) && (noGPU != "" || drawsWrongHere(other) != "") {
 				cpu := cpuOptions(other)
 				if cpu == nil {
 					continue
@@ -791,7 +795,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	rom, cleanup, newOnly, err := g.prepare3DS(rom, cleanup, console)
 	if err != nil {
 		if errors.Is(err, wittyplay.ErrEncrypted3DS) {
-			writeJSON(w, 422, map[string]any{"error": strings.TrimRight(err.Error(), ". ") + ". " + library.DecryptedCopyPlays, "encrypted": true, "console": console.ID})
+			writeJSON(w, 422, map[string]any{"error": encryptedMessage(), "encrypted": true, "console": console.ID})
 			return
 		}
 		writeErr(w, 422, err.Error())
@@ -868,7 +872,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	if software {
 		// Over whatever anyone chose: without these, the core asks for a graphics card that isn't here.
 		opts.CoreOptions = overOptions(opts.CoreOptions, cpuDrawing[coreID])
-		opts.Notices = append(opts.Notices, softwareNotice)
+		opts.Notices = append(opts.Notices, notice)
 	}
 	sess, err := g.mgr.Start(opts)
 	if err != nil {
@@ -955,6 +959,11 @@ func (s *Server) recordPlayTime(sess *stream.Session, userID, itemID int64) {
 	if err := s.Store.SetProgress(ctx, userID, itemID, library.Progress{PositionSec: total + played}); err != nil {
 		s.Log.Warn("could not save time played", "cat", "games", "session", sess.ID(), "err", err)
 	}
+}
+
+// encryptedMessage is why an encrypted 3DS game can't play, and what would.
+func encryptedMessage() string {
+	return strings.TrimRight(wittyplay.ErrEncrypted3DS.Error(), ". ") + ". " + library.DecryptedCopyPlays
 }
 
 // prepareROM returns the file a core should open. An archive is unpacked first, or

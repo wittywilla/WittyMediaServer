@@ -275,6 +275,8 @@ Use `Loop` for anything that must keep running. Don't recover where carrying on 
 
 In `internal/server`, work a request starts and nobody waits for goes through `s.background("name", fn, "cat", "games")`, where `fn` takes a context. It runs like `logging.Go`, and `Server.Close` ends that context and waits for `fn`, before the database closes. A test's server is closed the same way when the test ends, so nothing writes into the test's folder while it's being removed.
 
+In `internal/livetv`, everything the manager starts on its own goes through `m.background("name", fn, "cat", "tv")`, and its loops through `m.loop`, which starts one again after a panic as `logging.Loop` does. `fn`'s context ends when the manager stops. `Manager.Close` ends it and waits for `fn`, for 10 seconds at most, saying what was still running, and `Server.Close` closes the manager before the database closes.
+
 ### Child processes
 
 Every process the server starts leaves a record of how it ended, tied to its session:

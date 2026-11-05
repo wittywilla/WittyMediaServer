@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
-	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/tuner/mpegts"
 	"github.com/wittywilla/wittymediaserver/internal/tuner/xmltv"
@@ -121,8 +120,8 @@ func (m *Manager) AddSource(ctx context.Context, name, place string) (*EPGSource
 	}
 	id, _ := res.LastInsertId()
 	m.Start()
-	logging.Go("guide refresh", func() {
-		if err := m.FetchSource(context.WithoutCancel(ctx), id); err != nil {
+	m.background("guide refresh", func(ctx context.Context) {
+		if err := m.FetchSource(ctx, id); err != nil && ctx.Err() == nil {
 			m.Log.Warn("guide refresh failed", "name", name, "err", err)
 		}
 	}, "cat", "tv")
@@ -141,14 +140,14 @@ func (m *Manager) DeleteSource(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (m *Manager) epgLoop() {
+func (m *Manager) epgLoop(ctx context.Context) {
 	t := time.NewTicker(30 * time.Minute)
 	defer t.Stop()
 	for {
-		m.refreshDue(m.stopCtx)
-		m.pruneGuide(m.stopCtx)
+		m.refreshDue(ctx)
+		m.pruneGuide(ctx)
 		select {
-		case <-m.stopCtx.Done():
+		case <-ctx.Done():
 			return
 		case <-t.C:
 		}
@@ -464,12 +463,11 @@ func (m *Manager) broadcastEvents(c *Channel) func(mpegts.Event) {
 		}
 		list := buf
 		buf, last = nil, time.Now()
-		logging.Go("guide from broadcast", func() { m.storeBroadcast(key, list) }, "cat", "tv")
+		m.background("guide from broadcast", func(ctx context.Context) { m.storeBroadcast(ctx, key, list) }, "cat", "tv")
 	}
 }
 
-func (m *Manager) storeBroadcast(key string, list []mpegts.Event) {
-	ctx := m.stopCtx
+func (m *Manager) storeBroadcast(ctx context.Context, key string, list []mpegts.Event) {
 	for _, e := range list {
 		stop := e.Start.Add(e.Duration)
 		if !stop.After(time.Now()) || e.Start.After(time.Now().AddDate(0, 0, epgKeepDays)) {

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -118,7 +119,7 @@ func TestGPUGameSaysNotOnThisServerEverywhere(t *testing.T) {
 	g := newGameServer(t)
 	setGPU(g, stream.GPUProbe{Error: macNoGPU})
 	placeCores(t, g, "azahar", "fceumm")
-	threeDS := addGame(t, g, "3ds", gameFile(t, "Game.3ds", encryptedCCI()))
+	threeDS := addGame(t, g, "3ds", gameFile(t, "Game.3ds", plainCCI()))
 	nes := addGame(t, g, "nes", gameFile(t, "Game.nes", append([]byte("NES\x1a\x01\x01"), make([]byte, 16384+8192)...)))
 
 	// The game's page.
@@ -239,7 +240,9 @@ func TestTheProcessorDrawsWhereACoreCan(t *testing.T) {
 		t.Errorf("given a graphics driver's room: %v", got.Args)
 	}
 
-	// With a card, it draws on the card as it always did.
+	// With a card, it draws on the card as it always did, where the card draws it right.
+	t.Cleanup(func() { hostOS = runtime.GOOS })
+	hostOS = "linux"
 	canDraw(g)
 	if a := checkGame(t, g, n64.ID); !a.Ready || a.Software || !a.NeedsGPU {
 		t.Errorf("with a card: %+v", a)
@@ -360,5 +363,109 @@ func TestPS2DrawsOnTheProcessorWithABIOS(t *testing.T) {
 	}
 	if c := consolesByID(t, g, g.admin)["ps2"]; !c.Ready || !c.Software {
 		t.Errorf("ps2 in the list: %+v", c)
+	}
+}
+
+// Every core said to draw wrongly on a system's graphics card can be drawn by the processor there:
+// otherwise the rule would take its console away rather than move it.
+func TestEveryCardFaultHasAProcessorPath(t *testing.T) {
+	for goos, faults := range cardFaults {
+		for id, why := range faults {
+			if cpuDrawing[id] == nil {
+				t.Errorf("%s on %s: listed (%s) with no way for the processor to draw it", id, goos, why)
+			}
+		}
+	}
+}
+
+// What a server says about how a core draws here follows its own card: on a Mac whose runner can
+// use the card, the cores that draw right there use it and the rest are drawn by the processor.
+func TestHowACoreDrawsOnAMacWithACard(t *testing.T) {
+	t.Cleanup(func() { hostOS = runtime.GOOS })
+	hostOS = "darwin"
+	for _, c := range []struct {
+		id, noGPU, want string
+	}{
+		{"ppsspp", "", drawsGPU},
+		{"play", "", drawsGPU},
+		{"swanstation", "", drawsGPU},
+		{"mupen64plus_next", "", drawsCPUFallback},
+		{"parallel_n64", "", drawsCPUFallback},
+		{"pcsx2", "", drawsCPUFallback},
+		// No card it can use: as before.
+		{"ppsspp", macNoGPU, drawsCPUFallback},
+		{"play", macNoGPU, drawsNone},
+		{"mupen64plus_next", macNoGPU, drawsCPUFallback},
+	} {
+		got, note := drawsHere(c.id, true, c.noGPU)
+		if got != c.want {
+			t.Errorf("%s (no card: %q): %s, want %s: %s", c.id, c.noGPU, got, c.want, note)
+		}
+		if c.noGPU == "" && got == drawsCPUFallback && !strings.Contains(note, "Mac") {
+			t.Errorf("%s: the note doesn't say why: %s", c.id, note)
+		}
+	}
+	// Elsewhere, a card draws them all.
+	hostOS = "linux"
+	if got, _ := drawsHere("mupen64plus_next", true, ""); got != drawsGPU {
+		t.Errorf("on Linux with a card: %s", got)
+	}
+}
+
+// On a Mac whose runner can use the graphics card, a Nintendo 64 game is still drawn by the
+// processor, as GLideN64 draws black pictures there, and says why; a PSP game uses the card.
+func TestAMacCardDrawsOnlyWhatItDrawsRight(t *testing.T) {
+	modtest.Need(t, "wittyplay")
+	t.Cleanup(func() { hostOS = runtime.GOOS })
+	hostOS = "darwin"
+	runner := filepath.Join(t.TempDir(), "recordrunner")
+	if out, err := exec.Command("go", "build", "-o", runner, "./testdata/recordrunner").CombinedOutput(); err != nil {
+		t.Fatalf("%v: %s", err, out)
+	}
+	t.Setenv("WMS_WITTYPLAY_RUNNER", runner)
+	g := newGameServer(t)
+	setGPU(g, stream.GPUProbe{Name: "Apple M3 Pro"})
+	placeCores(t, g, "mupen64plus_next", "ppsspp")
+	n64 := addGame(t, g, "n64", gameFile(t, "Game.z64", append([]byte{0x80, 0x37, 0x12, 0x40}, make([]byte, 4092)...)))
+
+	a := checkGame(t, g, n64.ID)
+	if !a.Ready || !a.Software || a.NeedsGPU || a.Notice != cardFaultNotice() || !strings.Contains(a.Notice, "On a Mac") {
+		t.Fatalf("check: %+v", a)
+	}
+	if c := consolesByID(t, g, g.other)["n64"]; !c.Ready || !c.Software || c.Notice != cardFaultNotice() {
+		t.Errorf("n64 in the list: %+v", c)
+	}
+	if w := g.do("POST", "/api/games/"+itoa64(n64.ID)+"/play", g.admin, map[string]any{"client": "native"}); w.Code == 409 || w.Code == 201 {
+		t.Fatalf("play: %d %s", w.Code, w.Body.String())
+	}
+	var got struct {
+		Args []string `json:"args"`
+		Load struct {
+			Options map[string]string `json:"options"`
+		} `json:"load"`
+	}
+	found := false
+	_ = filepath.WalkDir(g.s.games().dir, func(p string, d os.DirEntry, err error) error {
+		if err == nil && d.Name() == "runner.json" {
+			b, _ := os.ReadFile(p)
+			found = json.Unmarshal(b, &got) == nil
+		}
+		return nil
+	})
+	if !found {
+		t.Fatal("the runner was never started")
+	}
+	for k, v := range cpuDrawing["mupen64plus_next"] {
+		if got.Load.Options[k] != v {
+			t.Errorf("%s = %q, want %q: %v", k, got.Load.Options[k], v, got.Load.Options)
+		}
+	}
+	if slices.Contains(got.Args, "-gpu") {
+		t.Errorf("given the card: %v", got.Args)
+	}
+
+	psp := addGame(t, g, "psp", gameFile(t, "Game.iso", fixture.PSP("GAME", "ULUS10000")))
+	if a := checkGame(t, g, psp.ID); !a.Ready || a.Software || !a.NeedsGPU {
+		t.Errorf("psp on the card: %+v", a)
 	}
 }

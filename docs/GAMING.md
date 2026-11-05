@@ -76,7 +76,7 @@ A cgo frontend would need a C toolchain for every platform in the release matrix
 
 ## Consoles that draw with a graphics card
 
-Nintendo 64, PlayStation 2, PSP, Dreamcast, 3DS and the faster PlayStation cores draw with OpenGL, so the server's graphics card renders the game and the result is streamed like any other frame. This runs on Windows and Linux servers: on anything else `libretro/gl_other.go` refuses. There, and on any server without a usable card, Nintendo 64 and PSP have the processor draw instead, and the other consoles say they can't play on this server: see [Without a graphics card](#without-a-graphics-card).
+Nintendo 64, PlayStation 2, PSP, Dreamcast, 3DS and the faster PlayStation cores draw with OpenGL, so the server's graphics card renders the game and the result is streamed like any other frame. This runs on Windows and Linux servers, and on a Mac with a runner that makes an OpenGL context there (see [A Mac's graphics card](#a-macs-graphics-card)); elsewhere the runner refuses at once. There, and on any server without a usable card, Nintendo 64 and PSP have the processor draw instead, and the other consoles say they can't play on this server: see [Without a graphics card](#without-a-graphics-card).
 
 **The choice: OpenGL in the built-in runner, using the system's own libraries through purego.** It needs no C compiler, no second program and no GPL code. Every core we offer for these consoles can use OpenGL. Vulkan isn't built: no core we offer needs it. Cores are told OpenGL is what's preferred, and those that can also draw with Vulkan or Direct3D use it.
 
@@ -116,10 +116,27 @@ Measured in the runner alone, with no sandbox or encoder. Mupen64Plus-Next and P
 
 Not built, and why:
 
-- **Play!** (PlayStation 2 without a BIOS), **Dreamcast, 3DS and the faster PlayStation cores** have no software path. On a Mac, PlayStation plays on PCSX ReARMed instead, and PlayStation 2 needs LRPS2 and a BIOS.
-- **OpenGL on a Mac** (a CGL context made through purego, as WGL and EGL are on the others) would bring back the card's own renderers for Nintendo 64, PSP and Dreamcast at higher resolutions. macOS stops at OpenGL 4.1, so it likely wouldn't help LRPS2 or Azahar. It's work in WittyPlay's runner, not here.
+- **Dreamcast, 3DS, Play! and the faster PlayStation cores** have no software path. On a Mac without a card, PlayStation plays on PCSX ReARMed instead, and PlayStation 2 needs LRPS2 and a BIOS.
 - **Vulkan through MoltenVK** would cover LRPS2's Vulkan and paraLLEl-GS renderers, PPSSPP's Vulkan backend and paraLLEl-RDP: the runner would have to offer cores a Vulkan context, and ship MoltenVK. The largest of these.
-- **In the runner, whatever comes next:** where it can't make a context (`gl_other.go`), answering `SET_HW_RENDER` with "no" straight away would let PPSSPP and LRPS2 fall back to software by themselves, and the rest stop cleanly rather than crash after loading.
+
+### A Mac's graphics card
+
+WittyPlay's runner can make an OpenGL context on a Mac (CGL, OpenGL 4.1: the `mac-opengl` work, not yet in a release). The runner then names the card, such as "Apple M3 Pro", and the server uses it. Measured in the runner alone on an Apple M3 Pro with the owner's own games, 30 to 60 seconds each, on a Mac that was busy with other work:
+
+| Console and game | Core, and how it drew | Frames a second | Processor |
+|---|---|---|---|
+| PSP, God of War: Ghost of Sparta | PPSSPP, OpenGL | 59.6 on average | 0.16 of a core, against 3 to 5 cores with the processor drawing |
+| PlayStation, Final Fantasy VII | SwanStation, OpenGL | 59.6 | 0.14 of a core |
+| PlayStation, Final Fantasy VII | Beetle PSX HW, OpenGL | 60 | 0.3 of a core |
+| PlayStation 2, Final Fantasy X International | Play!, OpenGL | 60.5 | 0.36 of a core |
+| PlayStation 2, Gran Turismo 4 | Play!, OpenGL | 60 once loaded; it stalls while loading | 0.27 of a core |
+| Nintendo 64, Super Mario 64 and Banjo-Kazooie | Mupen64Plus-Next, GLideN64 | 38 to 56, and every picture black | 0.25 of a core |
+| Nintendo 64, Super Mario 64 | the same, framebuffer emulation off | 60, drawn | 0.22 of a core |
+| Nintendo 64, Banjo-Kazooie | the same, framebuffer emulation off | 38, black after half a minute | 0.24 of a core |
+| Nintendo 64, Super Mario 64 | ParaLLEl N64, Glide64 | no pictures at all | |
+| PlayStation 2, Crash Bandicoot and Final Fantasy X | LRPS2, OpenGL | no picture: it needs `GL_ARB_shading_language_420pack`, which a Mac doesn't have | |
+
+So on a Mac with a card, Mupen64Plus-Next, ParaLLEl N64 and LRPS2 are still drawn by the processor (`cardFaults` in `internal/server/games_gpu.go`), which draws Nintendo 64 at full speed on about one core. The game page, the console list and the session say why, and Settings shows them as drawn by the processor. Everything else uses the card. Dreamcast and 3DS weren't measured: the owner's games have no Dreamcast disc, and their only 3DS game is an encrypted eShop package, which no core opens. The Nintendo DS needs no card: melonDS draws Zelda: Phantom Hourglass at 60 frames a second on 0.22 of a core.
 
 ### Two graphics cards
 

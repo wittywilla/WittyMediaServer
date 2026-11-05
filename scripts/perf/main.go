@@ -483,7 +483,7 @@ func (s *server) scan(typ, path string) Scan {
 	var lib struct{ ID int64 }
 	check(json.Unmarshal(b, &lib))
 	sc.ID = lib.ID
-	s.waitScan(&sc, before, t0)
+	s.waitScan(&sc, before, t0, 0)
 	return sc
 }
 
@@ -491,18 +491,39 @@ func (s *server) scan(typ, path string) Scan {
 func (s *server) rescan(was Scan) Scan {
 	sc := Scan{Type: was.Type, Path: was.Path, ID: was.ID}
 	before := s.vars()
+	last := s.lastScan(was.ID)
 	t0 := time.Now()
 	if code, b := s.call("POST", fmt.Sprintf("/api/libraries/%d/scan", was.ID), nil); code != 202 {
 		sc.Error = fmt.Sprintf("%d %s", code, bytes.TrimSpace(b))
 		return sc
 	}
-	s.waitScan(&sc, before, t0)
+	s.waitScan(&sc, before, t0, last)
 	return sc
 }
 
-func (s *server) waitScan(sc *Scan, before vars, t0 time.Time) {
+// lastScan is when a library's last scan finished, in Unix seconds, 0 for never.
+func (s *server) lastScan(id int64) int64 {
+	_, b := s.call("GET", "/api/libraries", nil)
+	var ls []struct {
+		ID         int64
+		LastScanAt *int64
+	}
+	_ = json.Unmarshal(b, &ls)
+	for _, l := range ls {
+		if l.ID == id && l.LastScanAt != nil {
+			return *l.LastScanAt
+		}
+	}
+	return 0
+}
+
+// waitScan waits for the scan of sc's library that finishes after was (its last scan
+// before this one was asked for, in Unix seconds).
+func (s *server) waitScan(sc *Scan, before vars, t0 time.Time, was int64) {
 	lib := struct{ ID int64 }{sc.ID}
 	peak := before.RSS
+	// A scan asked for may not have begun at the first look, so it's done only once
+	// it has finished after the one before.
 	for time.Since(t0) < *scanWait {
 		time.Sleep(250 * time.Millisecond)
 		v := s.vars()
@@ -510,7 +531,7 @@ func (s *server) waitScan(sc *Scan, before vars, t0 time.Time) {
 		_, b := s.call("GET", fmt.Sprintf("/api/libraries/%d/scan", lib.ID), nil)
 		var p struct{ Scanning bool }
 		_ = json.Unmarshal(b, &p)
-		if !p.Scanning {
+		if !p.Scanning && s.lastScan(lib.ID) > was {
 			break
 		}
 	}

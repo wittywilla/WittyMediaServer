@@ -36,6 +36,7 @@ func remoteServer(t *testing.T, cfg *config.Config) (*Server, http.Handler) {
 		cfg.Listen = ":9797"
 	}
 	s := &Server{Cfg: cfg, DB: d, Log: slog.New(slog.DiscardHandler), Auth: &auth.Service{DB: d}, Store: &library.Store{DB: d}, Tools: &ffmpeg.Tools{}, Web: fstest.MapFS{"index.html": {Data: []byte("app")}}}
+	t.Cleanup(s.Close)
 	return s, s.Handler()
 }
 

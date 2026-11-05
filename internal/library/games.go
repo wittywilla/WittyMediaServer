@@ -137,11 +137,15 @@ func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 	return ix.mergeGames(found), bad.with(err)
 }
 
+// DecryptedCopyPlays is what a person with an encrypted game can do: nothing here decrypts one,
+// or looks for keys, but a copy they decrypted themselves plays like any other game.
+const DecryptedCopyPlays = "A copy you decrypted yourself, from a console you own, will play."
+
 // problemText says why a game on the list can't play as it is.
 func problemText(v gameVerdict) string {
 	switch v.Problem {
 	case "encrypted":
-		return "This game file is encrypted, as it came from the console or the store. It can't be played here, and this server won't decrypt it."
+		return "This game file is encrypted, as it came from the console or the store. It can't be played here, and this server won't decrypt it. " + DecryptedCopyPlays
 	}
 	return v.Proof
 }

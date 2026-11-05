@@ -103,9 +103,10 @@ export function StateTags({ item }: { item: StoreItem }) {
 // ------------------------------------------------------------------- what's new
 
 // A version's changelog, as text. Nothing in it can become markup: it's only ever text nodes.
+// With nothing in it but headings, such as the version's number, there's no news either.
 export function ChangeNotes({ text }: { text?: string }) {
   const blocks = changelogBlocks(text || '')
-  if (!blocks.length) return <p className="st-notes-none">{NOTHING_NOTABLE}</p>
+  if (!blocks.some((b) => b.kind !== 'h')) return <p className="st-notes-none">{NOTHING_NOTABLE}</p>
   return (
     <div className="st-notes">
       {blocks.map((b, i) => b.kind === 'ul'
@@ -118,7 +119,8 @@ export function ChangeNotes({ text }: { text?: string }) {
 // The latest news across what's installed, newest first, with an update's news first of all.
 export function WhatsNew({ view, limit = 5 }: { view: StoreView; limit?: number }) {
   const installed = view.items.filter((i) => i.status?.installed && i.kind !== 'server')
-  const withNews = installed.filter((i) => (i.status?.latest?.notes || i.changelog || '').trim())
+  // An update is news even when it says nothing about itself.
+  const withNews = installed.filter((i) => i.status?.latest || (i.changelog || '').trim())
   const order = (i: StoreItem) => (i.status?.latest ? 1 : 0)
   const shown = [...withNews].sort((a, b) => order(b) - order(a) || (b.released || '').localeCompare(a.released || '')).slice(0, limit)
   return (

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useBlocker, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { fmtDateTime, api, fmtRuntime, mediaUrl, type Item, type UserView } from '../../api'
 import { IconPlus, IconTrash } from '../../icons'
 import { toast, useApp } from '../../state'
@@ -98,6 +98,26 @@ export default function ChannelEditor() {
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty])
+  // Leaving for another page asks first. What is checked is the draft as it is at
+  // that moment, so leaving straight after a save doesn't ask.
+  const draftNow = useRef(draft)
+  useEffect(() => { draftNow.current = draft }, [draft])
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => currentLocation.pathname !== nextLocation.pathname && !!draftNow.current && JSON.stringify(draftNow.current) !== baseline.current)
+  const blocked = blocker.state === 'blocked'
+  const blockerNow = useRef(blocker)
+  useEffect(() => { blockerNow.current = blocker }, [blocker])
+  // Once per time it's blocked, whatever else redraws the page meanwhile.
+  useEffect(() => {
+    if (!blocked) return
+    void ask({ title: 'Leave without saving?', body: 'Your changes to this channel aren’t saved yet. They stay in this browser and come back the next time you open it.', confirm: 'Leave', cancel: 'Keep editing' })
+      .then((yes) => { const b = blockerNow.current; if (b.state === 'blocked') { if (yes) b.proceed(); else b.reset() } })
+  }, [blocked])
+  // Back is where this page was opened from: the channel list, the guide or a
+  // settings page. Opened from a link or a bookmark, it's the channel list. The
+  // router numbers its history entries, and a redirect from an old address
+  // replaces the first one rather than adding to it.
+  const cameFrom = ((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0
+  const back = () => (cameFrom ? nav(-1) : nav('/tv/channels'))
 
   const setDef = (patch: Partial<Definition>) => setDraft((d) => (d ? { ...d, definition: { ...d.definition, ...patch } } : d))
   const setRules = (patch: Partial<Rules>) => setDraft((d) => (d ? { ...d, definition: { ...d.definition, rules: { ...d.definition.rules, ...patch } } } : d))
@@ -113,7 +133,7 @@ export default function ChannelEditor() {
       baseline.current = JSON.stringify(draft)
       forgetLineup()
       toast(id ? 'Saved. Changes start after what is on now.' : `${draft.name} is on the air`)
-      nav('/settings/channels')
+      back()
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
   const discard = () => {
@@ -150,7 +170,7 @@ export default function ChannelEditor() {
   return (
     <>
       <PageHead title={id ? `Edit ${saved?.name || 'channel'}` : 'New channel'} desc="Set as little or as much as you like. Moving between the levels below never loses anything."
-        actions={<Link className="btn" to="/settings/channels">Back</Link>} />
+        actions={<Link className="btn" to="/tv/channels" onClick={(e) => { if (cameFrom) { e.preventDefault(); back() } }}>Back</Link>} />
       {restored && <p className="tvs-note" role="status">Your unsaved changes from last time are back. <button className="btn sm ghost" onClick={discard}>Discard them</button></p>}
 
       <Section title="The channel">

@@ -8,6 +8,7 @@ Use this guide to set up your music, audiobooks and podcasts, and to get the mos
 - [Playing and the queue](#playing-and-the-queue)
 - [The full-screen player](#the-full-screen-player)
 - [Lyrics](#lyrics)
+- [Music videos](#music-videos)
 - [Visualizer](#visualizer)
 - [Sound](#sound)
 - [Audiobooks](#audiobooks)
@@ -75,6 +76,7 @@ A music library opens on **Home**: a row of covers to flip through, with what yo
 | **Albums** | Sort by title, artist, year, recently added or most played, either way round. Filter by genre |
 | **Artists** | Sort by name or most albums, and find one by name |
 | **Songs** | Choose **All songs**, **Liked**, **Most played**, **Played lately** or **Newest**. Search, sort, filter by genre, and press **Play** or **Shuffle** |
+| **Music videos** | The videos of every **Music videos & concerts** library you can see, by artist, with the album of the song each is tied to. Only there when the server has such a library. See [Music videos](#music-videos) |
 | **Playlists** | The same four lists ready to play, and your own playlists |
 
 **An album's page** has **Play**, **Shuffle**, **Station**, **Play next**, **Add to queue** and **Like all**. An album on more than one disc is divided by disc. Below the tracks are **Other versions** of it, such as a deluxe or remastered release, and **More by** that artist.
@@ -144,6 +146,55 @@ Up, Down or OK moves onto the controls, and arrows then move between them, so a 
 ## Lyrics
 
 Lyrics follow the music in the full-screen player, and karaoke is one press from there. How they're found, what goes online and when, and how to add or fix them is in [Lyrics and karaoke](LYRICS-KARAOKE.md).
+
+## Music videos
+
+A song in a **Music** library and its video in a **Music videos & concerts** library ([Creator videos and music videos](CREATOR-VIDEOS.md#music-videos-and-concerts)) are tied together, so each can lead to the other.
+
+### The Music videos section
+
+Each music library has a **Music videos** tab beside **Songs**, and a **Music videos** shelf on its front page with the newest ones. It lists the videos of every **Music videos & concerts** library you can see, in order of artist, and you can find one by its title or artist. A video tied to a song in your music shows the song's album under it, which takes you there. Pressing a video plays it on its own page.
+
+Profile limits apply as everywhere: a video a profile can't watch isn't listed, and neither is a song it can't hear.
+
+### Going between a song and its video
+
+- **From a song:** its menu (**⋯**) has **Watch the video**, and so does the full-screen player, under the artist and in its **⋯** menu. A song with more than one video, such as a live one, lists each.
+- **From a video:** a music video's page shows its song under the title, with links to the artist and the album, and **Play the song**.
+
+A music video shows its song's lyrics too, under **Lyrics** on its page. See [Lyrics and karaoke](LYRICS-KARAOKE.md#music-videos).
+
+When the two line up, going from one to the other carries on at the same place: the song stops and the video starts where the song was, or the other way round. When they don't, the other one starts from the beginning.
+
+### How songs and videos are matched
+
+After a scan of either library, every video is compared with every song:
+
+| What matches | What happens |
+|---|---|
+| The same **ISRC**, from the tags or a video's `.nfo` (`<isrc>`) | Tied |
+| The same **MusicBrainz recording**, from the tags (as tagging programs write it) or the `.nfo` (`<musicbrainzrecordingid>`) | Tied |
+| The same artist and title, when exactly one song fits | Tied |
+| The same artist and title, but two songs fit (a single and its album), or one is another take (live, acoustic, a remix) | Suggested |
+| A title or an artist that is nearly the same | Suggested |
+
+Names are compared without case, accents, "feat." and what video titles add, such as "(Official Video)" or "[HD]". A nearly-the-same name is only ever a suggestion, which an admin confirms. Recordings of 20 minutes or more are concerts, and aren't tied to one song.
+
+When the two are the same length, give or take two seconds, they're taken to line up, so playback can go from one to the other at the same place.
+
+Codes in tags are read when a file is scanned, so files scanned before 0.7.0-alpha are matched by name until they change or the library is scanned again from scratch.
+
+### Tying and untying by hand
+
+Admins tie and untie from a song's menu (**Tie to a music video…**, or **Music videos of this song…** once it has one) or from a video's page (**Tie to a song…** or **Change**). The window shows what's tied, what's suggested and why, and a search of the other side:
+
+- **Tie** ties them. A video has one song, so tying it to another unties the first.
+- **Not this one** turns a suggestion down, and **Untie** parts a pair.
+- **The song starts this many seconds into the video** is for a video with an intro, so switching lands in the right place. Leave it empty when the two are different takes and don't line up.
+
+What an admin ties or unties stays that way, whatever later scans find.
+
+A link only ever shows what a profile may see: a Kids profile that can't watch a video doesn't see that it exists.
 
 ## Visualizer
 

@@ -292,6 +292,9 @@ func TestActivityStream(t *testing.T) {
 	defer closeA()
 	ru, closeU := open(adult)
 	defer closeU()
+	// A stream that never sends what's waited for ends here, rather than at the run's limit.
+	stuck := time.AfterFunc(time.Minute, func() { closeA(); closeU() })
+	defer stuck.Stop()
 	if e, _ := next(ra); e != "snapshot" {
 		t.Fatal(e)
 	}
@@ -305,15 +308,28 @@ func TestActivityStream(t *testing.T) {
 	h := ts.Tasks.Start(tasks.Spec{Title: "Scanning Films", LibraryID: lib.ID})
 	h.Item("Made Up.mkv", "/secret/Made Up.mkv")
 	h.Progress(1, 4)
-	e, data := next(ra)
-	if e != "update" || !strings.Contains(data, "/secret/") || !strings.Contains(data, `"active":1`) {
-		t.Fatalf("admin: %s %s", e, data)
+	// Updates aren't merged: the one for Start can go before Item and Progress land, with a
+	// summary worked out a moment later. So each side reads until the change has reached it.
+	for {
+		e, data := next(ra)
+		if e != "update" || !strings.Contains(data, `"active":1`) {
+			t.Fatalf("admin: %s %s", e, data)
+		}
+		if strings.Contains(data, "/secret/") {
+			break
+		}
 	}
-	e, data = next(ru)
-	if e != "update" || strings.Contains(data, "secret") || strings.Contains(data, "Made Up") || !strings.Contains(data, "Scanning Films") {
-		t.Fatalf("adult: %s %s", e, data)
+	for {
+		e, data := next(ru)
+		if e != "update" || strings.Contains(data, "secret") || strings.Contains(data, "Made Up") || !strings.Contains(data, "Scanning Films") {
+			t.Fatalf("adult: %s %s", e, data)
+		}
+		if strings.Contains(data, `"done":1`) {
+			break
+		}
 	}
 	h.Finish(nil)
+	var data string
 	for {
 		_, data = next(ru)
 		if strings.Contains(data, `"state":"done"`) {

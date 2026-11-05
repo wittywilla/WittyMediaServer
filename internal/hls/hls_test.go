@@ -606,3 +606,21 @@ func TestPreviewFoldersAreCleared(t *testing.T) {
 		t.Error("left behind for good")
 	}
 }
+
+// A wait that runs out says how far FFmpeg got: a format table row once timed out with nothing
+// more to go on.
+func TestTooSlowSaysHowFarItGot(t *testing.T) {
+	j := &job{startSeg: 4}
+	j.lastSeg.Store(3)
+	fmt.Fprint(&j.stderr, "Error opening input file\n")
+	if err := j.tooSlow(4).Error(); !strings.Contains(err, "none of them yet") || strings.Contains(err, "Error opening") {
+		t.Fatal(err) // what FFmpeg said is for the log, not for viewers
+	}
+	if got := j.stderrTail(500); got != "Error opening input file" {
+		t.Fatal(got)
+	}
+	j.lastSeg.Store(6)
+	if err := j.tooSlow(9).Error(); !strings.Contains(err, "segment 9") || !strings.Contains(err, "4 to 6") {
+		t.Fatal(err)
+	}
+}

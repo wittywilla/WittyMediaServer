@@ -721,6 +721,9 @@ func TestFormatTable(t *testing.T) {
 	if testing.Short() {
 		t.Skip("makes real samples and plays them")
 	}
+	// The slowest tests here, each with a server and an FFmpeg of its own: together they take
+	// the time of the longest, not the sum.
+	t.Parallel()
 	tools, err := ffmpeg.Locate("", "")
 	if err != nil {
 		t.Skip("no FFmpeg here")
@@ -1577,6 +1580,7 @@ func TestHostileFiles(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs FFmpeg on bad files")
 	}
+	t.Parallel() // as TestFormatTable
 	tools, err := ffmpeg.Locate("", "")
 	if err != nil {
 		t.Skip("no FFmpeg here")

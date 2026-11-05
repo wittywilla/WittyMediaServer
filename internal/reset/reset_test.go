@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/instance"
 )
 
 func write(t *testing.T, path, text string) {
@@ -258,5 +260,38 @@ func TestAStartCutOffCarriesOn(t *testing.T) {
 	}
 	if read(t, filepath.Join(partway, "wms.db")) != "accounts" || read(t, filepath.Join(partway, "games", "save.srm")) != "a save" {
 		t.Fatal("the copy is incomplete")
+	}
+}
+
+// The server that's starting holds its data folder's lock while the reset happens: the
+// lock stays where it is, held, and the reset carries on around it.
+func TestTheRunningServersLockStays(t *testing.T) {
+	for _, mode := range []string{ModeKeepCopy, ModeDelete} {
+		f := install(t)
+		lock, err := instance.Acquire(f.Data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := lock.Publish(instance.Info{PID: os.Getpid()}); err != nil {
+			t.Fatal(err)
+		}
+		if err := Ask(f.Data, Request{Mode: mode, At: time.Now()}); err != nil {
+			t.Fatal(err)
+		}
+		res := Apply(f)
+		if res == nil || !res.OK {
+			t.Fatalf("%s: %+v", mode, res)
+		}
+		if !instance.Held(f.Data) {
+			// Held is true for any handle but its own, so this says the lock is still in place.
+			t.Fatalf("%s: the lock moved", mode)
+		}
+		if _, err := instance.Read(f.Data); err != nil {
+			t.Fatalf("%s: instance.json moved: %v", mode, err)
+		}
+		if _, err := os.Stat(filepath.Join(f.Data, "wms.db")); err == nil {
+			t.Fatalf("%s: the database wasn't reset", mode)
+		}
+		lock.Release()
 	}
 }

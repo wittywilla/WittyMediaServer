@@ -17,12 +17,37 @@
 
 <p align="center">
   <a href="docs/GETTING_STARTED.md"><b>Get started</b></a> ·
-  <a href="docs/INSTALL.md">Install</a> ·
+  <a href="#install">Install</a> ·
   <a href="#guides">Guides</a> ·
   <a href="CHANGELOG.md">What's new</a>
 </p>
 
 > **Alpha.** Version 0.6.0-alpha is still changing quickly and can fail or lose data. Keep backups, and back up your data folder before you upgrade.
+
+## Install
+
+Install the server on the computer or NAS that holds your media. Downloads are on the **[Releases page](https://github.com/wittywilla/WittyMediaServer/releases)**, and FFmpeg comes with them. When it's running, open `http://<that computer>:9797/` in a browser to set it up.
+
+| On | Do this | Full guide |
+|---|---|---|
+| **Windows** 10 or 11 | Download `windows-amd64.msi` (`arm64` for ARM PCs), open it, and choose who it's for. Setup opens in your browser | [Windows](docs/INSTALL.md#windows) |
+| **macOS** 11 or later | Download `macos-arm64.pkg` (Apple silicon) or `macos-amd64.pkg` (Intel), open it, then open **WittyMediaServer** from Applications. *Not yet run on a real Mac* | [macOS](docs/INSTALL.md#macos) |
+| **Debian, Ubuntu** | `sudo apt install ./wittymediaserver-<version>-linux-amd64.deb`: the service is running | [Linux](docs/INSTALL.md#linux) |
+| **Fedora, RHEL** | `sudo dnf install ./wittymediaserver-<version>-linux-amd64.rpm`: the service is running | [Linux](docs/INSTALL.md#linux) |
+| **Any other Linux** | Unpack `linux-amd64.tar.gz` (or `arm64`, `armv7`, `386`), then `sudo ./install.sh` for a service, or `./WittyMediaServer` to just run it | [Linux](docs/INSTALL.md#linux) |
+| **FreeBSD** 14 or later | `pkg add wittymediaserver-<version>-freebsd-amd64.pkg`, `sysrc wittymediaserver_enable=YES`, `service wittymediaserver start` | [FreeBSD](docs/INSTALL.md#freebsd) |
+| **Docker** | `docker run -d -p 9797:9797 -v wms-config:/config -v /path/to/media:/media:ro ghcr.io/wittywilla/wittymediaserver:alpha`, or a [ready compose file](deploy/docker/compose.yml) | [Docker](docs/DOCKER.md) |
+| **A NAS** | Docker, with a guide for each: [UGREEN](docs/DOCKER-UGREEN.md) · [Synology](docs/DOCKER-SYNOLOGY.md) · [QNAP](docs/DOCKER-QNAP.md) · [Unraid](docs/DOCKER-UNRAID.md) · [TrueNAS SCALE](docs/DOCKER-TRUENAS.md) · [Asustor](docs/DOCKER-ASUSTOR.md) | [A NAS](docs/INSTALL.md#a-nas) |
+
+**Then watch from any device.** Every phone, tablet, computer and TV with a browser can open the server's address and use everything. The app, **WittyMediaClient**, adds finding the server by itself and a TV-friendly view. It's early: [Apps and devices](docs/APPS.md) says how far each has been run.
+
+| Device | Get WittyMediaClient |
+|---|---|
+| Windows, macOS, Linux, FreeBSD, Plasma Big Screen | The installer for your system from the [WittyMediaClient releases page](https://github.com/wittywilla/WittyMediaClient/releases) (`.exe`, `.dmg`, `.deb`, `.rpm`, `.pacman`, `.AppImage`, `.pkg`) |
+| Android phones, tablets and TVs | The `.apk` from the same page, installed by hand (`adb install` on a TV). *Run on emulators only so far* |
+| iPhone, iPad, Apple TV | Not available yet: use the browser. Apple TV has no browser, so it can't be used yet |
+
+[Getting started](docs/GETTING_STARTED.md) walks through everything with no command line, and [Installing](docs/INSTALL.md) covers services, updating, and what each download is.
 
 <!-- hero -->
 <p align="center"><a href="docs/images/home.webp"><img src="docs/images/home.webp" alt="The home page, with a large picture from a film and a row of libraries" width="100%"></a><br><sub>The home page. <a href="https://commons.wikimedia.org/wiki/File:WING_IT!_-_Blender_Open_Movie-full_movie.webm">Wing It!</a>, Blender Studio, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Everything shown is <a href="docs/images/CREDITS.md">openly licensed</a>.</sub></p>
@@ -98,23 +123,17 @@ A test server, filled with openly licensed media to show what it can do. No medi
 
 ## Get started
 
-1. Download the installer for your computer from the [Releases page](https://github.com/wittywilla/WittyMediaServer/releases).
-2. Open **WittyMediaServer**. Your browser opens first-time setup.
+1. [Install it](#install) on the computer or NAS that holds your media.
+2. Open `http://<that computer>:9797/`. On a desktop, the installer opens it for you.
 3. Create your account, point it at your folders and press **Start watching**.
 
-Those downloads are the server, for the computer that holds your media. **To watch on another device,** open the server's address in a web browser, or use the app, [WittyMediaClient](https://github.com/wittywilla/WittyMediaClient/releases), which has its own Releases page. It's for phones, TVs and other computers, and it's early: see [Where it has been run](#where-it-has-been-run).
-
-The full walkthrough is in [Getting started](docs/GETTING_STARTED.md), [First-time setup](docs/FIRST-TIME-SETUP.md) shows every page of it with pictures, and [Installing](docs/INSTALL.md) covers services, Docker and a NAS:
-
-```bash
-docker run -d -p 9797:9797 -v wms-config:/config -v /path/to/media:/media:ro ghcr.io/wittywilla/wittymediaserver:alpha
-```
+[Getting started](docs/GETTING_STARTED.md) has the full walkthrough, and [First-time setup](docs/FIRST-TIME-SETUP.md) shows every page of it with pictures.
 
 The server is on your home network only until you turn on **Settings → Remote Access** and follow its steps. See [Remote access](docs/REMOTE.md).
 
 ## Where it has been run
 
-The server is written for Windows, Linux, macOS and FreeBSD. Linux gets the most testing. The Windows installers have been tested under Wine, not on real Windows. Nothing has been run on a real Mac yet. FreeBSD has been cross-compiled, not run.
+The server is written for Windows, Linux, macOS and FreeBSD, and runs in Docker. Linux gets the most testing, with its packages installed, upgraded and removed on Debian, Ubuntu and Fedora. The Windows installers have been tested under Wine, not on real Windows. Nothing has been run on a real Mac yet. FreeBSD's package and service have run in virtual machines. The Docker image has run in WSL, not yet on a NAS. [What has been tested](docs/INSTALL.md#what-has-been-tested) has the details.
 
 WittyMediaClient adds Android, Android TV, iOS, tvOS and Plasma Big Screen. Android has been run on emulators only, and iOS and tvOS have never been built. A web browser is the way to reach everything today. See [Apps and devices](docs/APPS.md).
 
@@ -126,7 +145,8 @@ WittyMediaClient adds Android, Android TV, iOS, tvOS and Plasma Big Screen. Andr
 |---|---|
 | [Getting started](docs/GETTING_STARTED.md) | From install to your first film |
 | [First-time setup, step by step](docs/FIRST-TIME-SETUP.md) | Every page of setup, with a picture of each |
-| [Installing](docs/INSTALL.md) | Downloads, the tray app, services, Docker, updating and removing it |
+| [Installing](docs/INSTALL.md) | Downloads, the tray app, services, updating and removing it |
+| [Docker](docs/DOCKER.md) | The image, compose files, graphics cards, and a guide for each make of NAS |
 | [Libraries](docs/LIBRARIES.md) | Adding your media, and naming your files |
 | [Accounts and profiles](docs/ACCOUNTS.md) | People, passwords, limits and sign-in |
 | [Apps and devices](docs/APPS.md) | Every device, and how far each has been run |

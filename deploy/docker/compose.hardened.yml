@@ -1,0 +1,23 @@
+# WittyMediaServer, locked down: your own user, nothing written outside /config and /tmp,
+# no extra powers. Everything the server does works like this. docs/DOCKER.md explains each line.
+services:
+  wittymediaserver:
+    image: ghcr.io/wittywilla/wittymediaserver:alpha
+    container_name: wittymediaserver
+    restart: unless-stopped
+    # The user and group the server runs as. Use the IDs that own the config folder
+    # (id <name> on the host shows them). The folder must be writable by them.
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "9797:9797"
+    volumes:
+      # Modules and game cores run from here, so don't mount it noexec.
+      - ./config:/config
+      - /path/to/media:/media:ro

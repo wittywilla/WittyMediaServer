@@ -2,6 +2,12 @@
 
 For developers changing the server. This page covers how to build it, test it and send a change, even if you haven't worked on a Go or React project before.
 
+## Reporting a problem or asking for a feature
+
+- **Something's broken:** open an [issue](https://github.com/wittywilla/WittyMediaServer/issues/new/choose). Issues are only for faults.
+- **An idea or a feature request:** post it in [Discussions → Ideas](https://github.com/wittywilla/WittyMediaServer/discussions/categories/ideas), or upvote one that's there. Features the maintainer plans carry the **planned** label. A planned feature becomes an issue or pull request when work on it starts.
+- **A security problem:** report it privately, as [SECURITY.md](SECURITY.md) says.
+
 ## What you need
 
 | Tool | Version | Get it |
@@ -21,7 +27,7 @@ To change a module, work in its repository. A change that crosses the line is tw
 
 ## Build and run
 
-The server needs only one other repository to build, WittyModule. Clone it beside this one, and run `dev-modules.mjs` once in each checkout:
+The server needs only WittyModule and the core libraries (WittyDisc) to build, at the versions `go.mod` names, which Go fetches by itself. To work on WittyModule alongside, clone it beside this one, and run `dev-modules.mjs` once in each checkout:
 
 ```bash
 git clone https://github.com/wittywilla/WittyModule
@@ -65,12 +71,36 @@ cd web && npx tsc --noEmit -p . && npm run build
 
 `gofmt -l .` must print nothing. The tests need more than Go's default 10 minutes: `internal/server` alone is slow, and takes longer on a busy machine.
 
+**Then on Windows too, before a release.** Some faults only show there: files held open, paths with `\`, programs that take a while to stop. From PowerShell:
+
+```powershell
+cd web; npm run build; cd ..
+go test ./... -count=1 -timeout 60m
+```
+
+- Build the web app first. Without `web/dist`, `cmd/wittymediaserver` and `web` stop with "pattern all:dist: no matching files found".
+- In a worktree, or any checkout `dev-modules.mjs` didn't set up, Go says the folder "is contained in a module that is not one of the workspace modules". Run `$env:GOWORK = "off"` first, and Go uses the published WittyModule that `go.sum` names.
+- Allow an hour. Windows starts programs more slowly than Linux, and the slowest packages take more than 30 minutes there.
+- [Windows go test failures](https://github.com/wittywilla/WittyMediaServer/issues/133) lists what fails on Windows today.
+
+**If every package fails at once on Windows**, with "An Application Control policy has blocked this file" or a bare `exit status 1`, Windows' Smart App Control is stopping the test programs. Go builds each package's tests as a new, unsigned program in your temporary folder, and Smart App Control only lets through programs that are signed or that Microsoft already knows. There's no way to allow a folder, so building them somewhere else doesn't help. To check, in PowerShell:
+
+```powershell
+(Get-MpComputerStatus).SmartAppControlState
+Get-WinEvent -LogName Microsoft-Windows-CodeIntegrity/Operational -MaxEvents 200 | Where-Object Message -match 'go-build' | Select-Object -First 3 TimeCreated, Message
+```
+
+`On` or `Eval` with `go-build` lines means it's blocking them: run the tests in WSL instead. Whether to turn Smart App Control off is a decision about your PC's security, not this project's. Windows may not let you turn it back on without a reset, so this guide doesn't ask you to.
+
 CI also runs these, which you can run yourself from the top of the repository:
 
 ```bash
 python3 scripts/theme-contrast.py && python3 scripts/design-tokens.py --check && python3 scripts/design-check.py
-node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/themeMaker.test.mjs web/src/shell/navModel.test.mjs web/src/safeLink.test.mjs
+bash scripts/check-executable.sh
+node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/themeMaker.test.mjs web/src/shell/navModel.test.mjs web/src/safeLink.test.mjs web/src/pages/setup/plan.test.mjs web/src/pages/tv/tvThemes.test.mjs web/src/pages/settings/searchIndex.test.mjs
 ```
+
+**Scripts made or changed on Windows** lose their executable bit in git, and `check-executable.sh` fails on them. Give it back with `git update-index --chmod=+x <file>`, or add a new script with `git add --chmod=+x <file>`.
 
 **Tests of what the server does with a real module** need a catalogue, and are skipped without one. Make it with `scripts/make-test-catalog.sh`, then set `WMS_TEST_CATALOG` to its folder.
 
@@ -107,6 +137,7 @@ node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/th
 - **Style.** Match the code around you, and explain *why* in comments, not *what*. Interface work follows [the design guide](docs/DESIGN.md).
 - **Legal notes.** A new screen that shows third-party or web content, or where people add or share media, takes a `<LegalNote>`: [the checklist](docs/LEGAL-NOTICES-CHECKLIST.md) says which. A new outside service goes on the privacy list in `internal/legal/legal.json`, and a test fails otherwise.
 - **Examples.** No real films, shows, music, games or people in examples or test files: make something up. Pictures in the docs come from openly licensed media, taken with `web/scripts/shots-setup.mjs` and `web/scripts/shots.mjs`, and each is credited in [docs/images/CREDITS.md](docs/images/CREDITS.md). `scripts/docs-images.py` compresses them.
+- **FFmpeg.** A change to how FFmpeg is run is measured before and after, with [the benchmark](docs/FFMPEG-BENCHMARK.md), and the numbers go in the pull request.
 - **Copy protection.** Encrypted media is detected and refused. Never add a way around it, or a plugin hook for one, and never link to ROMs or BIOS files.
 - **Licences.** Contributions are under the Apache License 2.0 (see `LICENSE`). A new third-party component goes in `THIRD_PARTY_LICENSES.md`.
 - **Versions and changes.** Add what users will notice to `CHANGELOG.md`. `scripts/bump-server.sh` raises the server's version everywhere it's written, and a bump isn't a release.

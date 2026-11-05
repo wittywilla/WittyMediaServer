@@ -1,0 +1,4 @@
+# For compose.reverse-proxy.yml: change the name to your own.
+media.example.com {
+	reverse_proxy wittymediaserver:9797
+}

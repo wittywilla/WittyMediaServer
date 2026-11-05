@@ -338,7 +338,7 @@ Only `profile` is needed. Leave out `audio` and `subtitle` and the server picks 
 (`audioLanguage` and `subtitleLanguage` say what the viewer prefers; see
 [the rules](#rules-every-client-shares)). Leave out `startSec` and it resumes where the viewer stopped.
 `forceTranscode` asks for a conversion, `burnSubtitle` draws the chosen subtitle into the picture
-(for heavily styled ASS).
+(for heavily styled ASS). `streaming` and `measuredKbps` are for [robust streaming](#robust-streaming).
 
 ```json
 {
@@ -382,7 +382,7 @@ Only `profile` is needed. Leave out `audio` and `subtitle` and the server picks 
 The server always tries them in this order. `reasons` are stable names, worth showing in a
 "playback info" screen, and `explain` puts the same thing in plain words to show as they are. The names: `container`, `video-codec`, `video-tag`, `video-height`, `video-bitrate`,
 `video-depth`, `video-range`, `interlaced`, `audio-codec`, `audio-channels`, `audio-track`, `subtitle`,
-`burn-subtitle`, `forced`, `direct-play-off`, `remux-unavailable`, `hls-video-codec`, `no-video`, `split-file`, `video-track`, `flatten-3d`, `remote-limit`.
+`burn-subtitle`, `forced`, `direct-play-off`, `remux-unavailable`, `hls-video-codec`, `no-video`, `split-file`, `video-track`, `flatten-3d`, `remote-limit`, `robust-stream`.
 
 **Files, not just tracks.** Subtitle files beside a video come after the file's own tracks in `subtitles`, and work the
 same. A film split across files (`CD1`, `CD2`) is one item, with `split-file` among its reasons. `videos` lists the
@@ -412,6 +412,64 @@ playlist are switched in the player.
 **Stopping.** `DELETE /hls/{streamId}` when the viewer leaves: it stops the conversion straight away.
 Streams also pause after 90 seconds with no requests, and go after 10 minutes. A long pause can
 therefore end in a 404: call `/playback` again.
+
+### Robust streaming
+
+Every video answer has `streaming`, which says how it is sent and what the player should do for that:
+
+```json
+"streaming": {
+  "mode": "robust",
+  "from": "device",
+  "segmentSec": 2,
+  "measuredKbps": 4000,
+  "ladder": [{"height": 480, "kbps": 1400}, {"height": 720, "kbps": 2800}, {"height": 360, "kbps": 800}, {"height": 240, "kbps": 400}],
+  "player": {"bufferSec": 60, "maxBufferSec": 120, "retries": 8, "firstRetryMs": 500, "maxRetryMs": 8000,
+             "segmentTimeoutMs": 30000, "resumeOnDrop": true, "stepDownOnStall": true}
+}
+```
+
+`mode` is `standard`, how every stream has always been sent, or `robust`, which favours staying smooth
+on a poor connection over the sharpest picture. `from` says who chose it: `default`, `server` (its
+setting, `playback.remoteStreaming` in `/capabilities`, which applies to viewers away from home) or
+`device`. **Let the person choose** Standard, Robust or the server's choice on the device, and send it as
+`streaming` (`standard`, `robust`, or `auto` or nothing to follow the server). A device's choice wins
+wherever it is, so robust helps on poor Wi-Fi at home too.
+
+**Measure first.** When the device chose robust, or follows a server whose `remoteStreaming` is `robust`,
+time `GET /playback/speedtest` (up to 4 MB of bytes that don't compress, sent within the limits for
+viewers away from home) for about a second, counting from the first bytes, and send the result as
+`measuredKbps`. Keep it for a few minutes, and keep the player's own estimate when a video ends. Without
+one, the server assumes a connection that carries 480p.
+
+**What the server does in robust mode.** A file whose bitrate is no more than half of `measuredKbps` is
+still sent as it is (or rewrapped); anything else is converted (reason `robust-stream`) to a ladder of
+steady rates, listed in `ladder` in the order of the master playlist in `url`. The first is where it
+starts, the best rung that fits in 60% of `measuredKbps`; one rung above it and every rung below follow.
+Segments are two seconds long and each starts with a keyframe, aligned across rungs, so a player can
+change rung, or pick up after a drop, at any of them. Only the rung being fetched is converted: one the
+player has left rests after a few seconds. `DELETE /hls/{streamId}` ends every rung.
+
+**What the player does**, with the numbers in `player`:
+
+- Keep `bufferSec` ahead (`maxBufferSec` at most), and wait up to `segmentTimeoutMs` for a segment to start
+  arriving: the server may be starting a conversion for it.
+- Retry a failed segment or playlist `retries` times, waiting `firstRetryMs`, then twice that each time, up
+  to `maxRetryMs`.
+- `stepDownOnStall`: when the picture has stalled for 3 seconds and there's a lower rung, switch to it at
+  once and hold the player there for a minute of smooth playing, rather than wait for its bandwidth
+  estimate to catch up. Pick a lower rung by `RESOLUTION` or `BANDWIDTH` in the master playlist.
+- `resumeOnDrop`: when the connection is lost, keep the position and keep retrying, sooner when the device
+  says it's back online. When the stream answers 404, or the stream token has run out (401, 403), or
+  the picture has been stalled for 25 seconds with nothing arriving, or the connection has been gone for
+  about a minute, call `/playback` again with `startSec` at the position and the same choices. If that
+  fails because the connection is still gone, keep asking, waiting longer each time.
+- A file sent as it is can't step down: when it stalls for 6 seconds or its connection fails, call
+  `/playback` again at the position, with `forceTranscode` after a stall.
+- Say what it did, briefly ("Picture lowered to 480p to keep playing", "Reconnected after 12 s, at the
+  same place"). `explain.streaming` puts the mode in words for an information screen.
+
+In `standard` mode `player` holds the numbers the web player has always used, and nothing changes.
 
 ## What each TV plays
 
@@ -511,6 +569,20 @@ address with a stream token for that channel alone. AVPlayer always needs that o
 name>` to the address so the server can tell viewers apart, and send `POST /tv/{key}/leave?viewer=<name>`
 when leaving. A 503 means the channel is still starting: wait and ask again. Without `streamToken=1` no ticket
 is made, which is what the web player does.
+
+**Keeping to the same moment.** Every segment of a channel's playlist carries `EXT-X-PROGRAM-DATE-TIME`, the moment
+on the air it starts at, and the playlist says where players sit behind the newest segment with
+`EXT-X-SERVER-CONTROL:HOLD-BACK`. Every player on a channel that keeps to the same point by the server's clock
+shows the same moment: for a library channel (`kind: library`, made ahead of the clock) the server's time now,
+and for a tuner channel (`kind: tuner`, which arrives as it's broadcast) the server's time less three target
+durations. The hold-back starts a player at that point. `GET /time` answers `{"now": <milliseconds>}`: time a few
+requests and take the one with the shortest round trip to work out how far this device's clock is off. ExoPlayer
+(`LiveConfiguration`) and AVPlayer read the same tags.
+
+On a channel with `countProgress`, report watch progress for `now.itemId` as `positionSec` plus the seconds
+since `serverTime`, but only up to `partEnd`, when this stretch of the programme ends; a commercial break may
+follow. Ask `tune` again at `partEnd`: during a break `countProgress` is false, and after it `positionSec`
+carries on from where the programme stopped.
 
 Everything about a channel's ticket works as in [Stream tokens](#stream-tokens), and every request checks again
 that the account may watch that channel. An encrypted broadcast is refused with `security` saying why; this
@@ -897,7 +969,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `PUT /agents` | admin | Replace the list of agents, 20 at most. |
 | `POST /agents/test` | admin | Ask an agent about a title without changing anything. |
 | `GET /logs` | admin | What is logged, where, and the log files. |
-| `PUT /logs` | admin | Change each category's level (`levels`), each module's level and advanced options (`modules`), or the folder, or record everything for a while (`recordMinutes`). Takes effect at once, with no restart. |
+| `PUT /logs` | admin | Change each category's level (`levels`), each module's level and advanced options (`modules`), or the folder, or record everything for a while (`recordMinutes`), or keep the last 10 minutes in memory (`flight`) and Go's execution trace of the last seconds (`trace`). Takes effect at once, with no restart. |
 | `GET /logs/files/{name}` | admin | Download one log file. |
 | `POST /logs/open` | admin | Open the log folder on the server's own screen. |
 | `POST /logs/client` | user | Report errors from a client: `{app, version, device, events: [{level, kind, message, stack, page, session, request, count, time}]}`. `session` is the stream, disc or game session in play, and `request` the `X-Request-Id` of a failed request. 64 KB and 25 events a request, 60 events a minute per account; 429 past that. 204 when stored, or when the owner turned app errors off. |
@@ -907,6 +979,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `GET /logs/crashes/{id}` | admin | One crash report's text. |
 | `DELETE /logs/crashes/{id}` | admin | Delete a crash report. |
 | `POST /logs/crashes/{id}/seen` | admin | Stop pointing this report out. |
+| `GET /logs/crashes/{id}/{part}` | admin | What was kept beside a report, listed in its `parts`: `flight.log` (the last 10 minutes at the most detailed level), `goroutines.txt` (every goroutine's stack) or `trace` (an execution trace for `go tool trace`). |
+| `POST /logs/save` | admin | Save what just happened: `{note}` is optional. Writes a report of kind `saved` with those three parts beside it, and returns it. |
 | `GET /logs/bundle` | admin | The logs as a zip, made on request: `days`, and `sanitize`, on unless it's `0`, which replaces names, addresses, titles and paths with placeholders (`redact` is its earlier name). Nothing is uploaded anywhere. |
 | `GET /logs/bundle/preview` | admin | What that zip would hold, with the same `days` and `sanitize`: `{parts, total, sample, sanitize, days, scanned, replaced, changed}`. `replaced` counts the places changed by kind, in the newest lines; `changed` is a few lines before and after. |
 | `GET /diagnose/targets` | admin | WittyDiagnoser: the libraries, data folders and known discs that can be checked. |
@@ -930,6 +1004,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `GET /update` | admin | What is installed and what is available (404 in builds that can't update themselves). |
 | `POST /update/check` | admin | Look for a new version now. |
 | `POST /update/apply` | admin | Download, verify and install the newest release, then restart. |
+| `POST /update/installer` | admin | Download the installer for this system, checked against the release's signed checksums, for a copy that can't replace its own files. |
+| `GET /update/installer` | admin | The checked installer, as a file to save. |
 | `GET /modules` | admin | Every module: version in use, supported range, status, what is available, what it needs, whether it is installed, and every kind of library and what it takes (404 in builds that can't update them). |
 | `POST /modules/check` | admin | Look for module updates now. Nothing else here goes online. |
 | `GET /modules/{id}/versions` | admin | Every version known, explained, without going online: release notes as plain text, whether each can be chosen, and why not. |
@@ -1115,6 +1191,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 |---|---|---|
 | `POST /items/{id}/playback` | user | The way to play anything: say what this client can play, get a decision, ready-to-use addresses, tracks, where to start and what comes next. |
 | `GET /playback/profiles` | user | The built-in client profiles. |
+| `GET /playback/speedtest` | user | `kb` kilobytes (64 to 4096, 512 by default) that don't compress, to time this connection before asking for a [robust stream](#robust-streaming). |
 | `GET /media-types` | user | Every file type, codec and container the server knows: extensions, how each plays, which libraries take it, what it needs, and whether this machine has that (`available`). Read this rather than keep a list. |
 | `POST /items/{id}/stream-token` | user | A stream token for this item's media (see "Stream tokens"). Needs a real sign-in, not another stream token. |
 | `GET /items/{id}/play` | user | The web player's older way to ask: decides for a browser only. Apps use `/items/{id}/playback`. |
@@ -1171,12 +1248,19 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /music/extras/{id}/file` | user | One of those, by the `name` the list gave. |
 | `GET /music/artist` | user | An artist's page: albums, songs, and a biography if online information is on: `library`, `name`. |
 | `GET /music/artist-photo` | user | An artist's picture, or a cover of theirs: `library`, `name`. |
-| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. |
-| `PUT /music/lyrics/{id}/offset` | user | This person's timing correction: `{offsetMs}`, up to two minutes either way. |
+| `GET /music/lyrics/{id}` | user | A song's lyrics. Looks online only with `fetch=1`, and only if the owner has turned it on. For a music video tied to a song, the song's lyrics, with `songId`, and `startMs` (where the song starts in the video) as the starting `offsetMs`. One song is looked up at a time: `retry: true` with `failed` says another song's look-up is under way, so ask again in a few seconds. A source that couldn't be reached is left alone for 15 minutes, and `failed` says so; `again=1` asks it anyway. Give the request up (close it) when the listener moves on. |
+| `PUT /music/lyrics/{id}/offset` | user | This person's timing correction: `{offsetMs}`, up to two minutes either way of where it starts. A music video's is its own. |
 | `POST /music/lyrics/{id}/search` | admin | Online lyrics to choose from: `{q}`. |
 | `PUT /music/lyrics/{id}` | admin | Corrects a song's lyrics on this server: `{text}`, `{instrumental}` or `{provider, id}`. |
 | `DELETE /music/lyrics/{id}` | admin | Forgets the correction and any online answer. |
 | `DELETE /music/lyrics-cache` | admin | Forgets all lyrics fetched from online. |
+| `GET /music/links/{id}` | user | What a song or a music video is tied to (`tied`), with what's at both ends; admins also get `suggested`. Only items this person may see are listed. |
+| `GET /music/links/{id}/candidates` | admin | Videos for a song, or songs for a video, to tie by hand: `q` (the title when empty), `limit`. |
+| `GET /music/videos` | user | The **Music videos** section: videos from every music video library this person can see, by artist, each with the `song` it's tied to and `syncMs`: `search`, `sort` (`latest`), `limit`, `offset`. |
+| `GET /music/links` | admin | Suggestions waiting to be looked at: `limit`. |
+| `PUT /music/links` | admin | Ties a song to a music video for good: `{songId, videoId}`, with `syncMs` (where the song starts in the video) or `noSync`. A video has one song, so its old one is untied. |
+| `DELETE /music/links` | admin | Unties them: `song`, `video`. No match ties them again. |
+| `POST /music/links/match` | admin | Matches every song with every music video again now. Scans of music and music video libraries do this by themselves. |
 | `GET /podcasts` | user | Podcast subscriptions. |
 | `GET /podcasts/search` | admin | Search a podcast directory. |
 | `POST /podcasts` | admin | Subscribe. |
@@ -1220,6 +1304,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
 | `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |
 | `POST /tv/{key}/leave` | user | This viewer has gone: `viewer`. |
+| `GET /time` | user | The server's clock, `{"now": <milliseconds>}`, for keeping to the same moment on a channel. See "Live channels". |
 | `GET /tv/{key}/logo` | user | A tuner channel's logo, fetched and kept by the server, so the site a playlist names never sees the viewer. The `logo` in `/guide` and `/tune` is this address. |
 | `GET /tv/settings` | admin | TV settings. |
 | `PUT /tv/settings` | admin | Put TV settings. |
@@ -1509,12 +1594,14 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | Route | Sign-in | What it does |
 |---|---|---|
 | `GET /remote` | admin | Remote. |
+| `GET /remote/status` | none | How remote access stands, in the settings page's own words: `level` (good, waiting or fault), `subject` (such as "Home network only" or "Reachable from away: yes"), `summary`, `home`, `away`, `checked`, `state` and `publicUrl`, and `warning` while the owner allows unencrypted connections from away: show it as it is, and prominently. Show them as they are, on a connection screen. Needs a sign-in, except from the server's own computer. |
 | `PUT /remote` | admin | Put remote. |
 | `POST /remote/test` | admin | Start test. |
 | `POST /remote/selfcheck` | admin | Self check. |
 | `POST /remote/router` | admin | Look router. |
 | `POST /remote/obtain` | admin | Obtain. |
 | `DELETE /remote/lockouts` | admin | Clear lockouts. |
+| `DELETE /remote/plain-sessions` | admin | Sign out every session whose sign-in crossed the internet unencrypted (`plainAway` in `GET /sessions`). Answers `{ended}`. |
 | `GET /sessions` | user | Sessions. |
 | `DELETE /sessions` | user | End other sessions. |
 | `DELETE /sessions/{id}` | user | End session. |

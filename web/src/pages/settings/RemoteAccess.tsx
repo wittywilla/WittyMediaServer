@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { HelpLink } from '../../components/HelpLink'
 import { Link } from 'react-router-dom'
 import { api, type Session } from '../../api'
@@ -7,12 +7,14 @@ import { toast } from '../../state'
 import QrCode from './QrCode'
 import { LoadError } from '../../components/common'
 import { PageHead, Row, Section, Switch } from './ui'
+import { OwnerFields } from './ConfirmOwner'
+import { Button, Dialog } from '../../ui'
 import './remote.css'
 import LegalNote from '../../components/LegalNote'
 import { ask } from '../../ui/Overlay'
 import { Segmented } from '../../ui/Choice'
 
-// Settings → Remote Access: reaching the server from outside the home. It says
+// Settings → Remote Access: who can use the server, and from where. It says
 // plainly whether that works, from where and how; guides the owner through one
 // way of connecting; and proves it with their own phone instead of asking some
 // service on the internet.
@@ -21,14 +23,15 @@ type Settings = {
   enabled: boolean; method: '' | 'tailscale' | 'netbird' | 'router' | 'proxy' | 'vps'; publicUrl: string
   trustedProxies: string; homeNets: string; awayNets: string; maxHeight: number; maxBitrate: string
   httpsMode: 'off' | 'acme' | 'cert'; httpsPort: number; domain: string; email: string; acceptTerms: boolean
-  certFile: string; keyFile: string; portMapping: boolean; externalPort: number
+  certFile: string; keyFile: string; portMapping: boolean; externalPort: number; allowPlainAway: boolean
 }
 type Route = { kind: string; label: string; state: 'ok' | 'waiting' | 'problem'; urls: string[]; detail?: string; lastSeen?: number }
 type Notice = { level: 'warn' | 'info'; text: string; trust?: string; link?: string }
 type Hit = { at: number; where: string; via: string; ip: string; proof: boolean }
 type Probe = { found: boolean; protocol?: string; externalIp?: string; shared?: boolean; error?: string; at: number }
-type Status = {
-  settings: Settings; forced: boolean; state: 'off' | 'ok' | 'waiting' | 'problem'; headline: string; detail: string
+type Standing = { level: 'good' | 'waiting' | 'fault'; subject: string; summary: string; home: string; away: string; checked: string; warning?: string }
+type Status = Standing & {
+  settings: Settings; forced: boolean; state: 'off' | 'ok' | 'waiting' | 'problem'
   routes: Route[]; notices: Notice[]; you: { where: string; via: string; ip: string; through?: string }
   vpns: { kind: string; ip: string }[]; publicUrl: string; homePort: string
   https: { mode: string; running: boolean; port: number; error?: string; obtaining?: boolean; cert?: { names: string[]; issuer: string; notAfter: number; daysLeft: number; selfSigned: boolean } }
@@ -36,8 +39,10 @@ type Status = {
   router?: Probe; test?: { url: string; expires: number; hit?: Hit }; lastProof?: Hit; addresses: string[]
   lockouts: { kind: string; addr?: string; name?: string; until: number; fails: number }[]; failures: number
   weakAccounts: { name: string; isAdmin: boolean; unknown: boolean }[]; adminsWithout2fa: number; error?: string
+  plainSessions: number; ended?: number
 }
 type Step = { name: string; state: 'ok' | 'warn' | 'fail'; detail: string }
+type Save = (c: Partial<Settings>, d?: string) => Promise<boolean>
 
 const whereLabel: Record<string, string> = { machine: 'on this computer', home: 'on your home network', vpn: 'through your VPN', internet: 'from the internet' }
 const shortWhere: Record<string, string> = { machine: 'This computer', home: 'At home', vpn: 'VPN', internet: 'Internet' }
@@ -65,10 +70,30 @@ function CopyLine({ value }: { value: string }) {
   return <span className="rem-copy"><code>{value}</code><button type="button" className="btn sm ghost" onClick={copy} aria-label={`Copy ${value}`}>Copy</button></span>
 }
 
+// One way in, in words. Never a bare on or off: each says what it means.
 function Badge({ state }: { state: string }) {
-  const text = state === 'ok' ? 'Working' : state === 'problem' ? 'Problem' : state === 'off' ? 'Off' : 'Waiting'
+  const text = state === 'ok' ? 'Working' : state === 'problem' ? 'Problem' : 'Not confirmed yet'
   return <span className={'rem-badge ' + state}>{state === 'ok' ? <IconCheck size={14} /> : state === 'problem' ? <IconClose size={14} /> : <IconInfo size={14} />}{text}</span>
 }
+
+// Who each choice lets in. The rest of the page follows the one chosen.
+type Choice = 'home' | 'private' | 'internet'
+const PRIVATE: Settings['method'][] = ['tailscale', 'netbird']
+const INTERNET: Settings['method'][] = ['router', 'proxy', 'vps']
+
+function choiceOf(st: Status): Choice {
+  const s = st.settings
+  if (!s.enabled && !st.forced) return 'home'
+  if (PRIVATE.includes(s.method)) return 'private'
+  if (INTERNET.includes(s.method)) return 'internet'
+  return s.httpsMode !== 'off' || s.publicUrl || s.trustedProxies ? 'internet' : 'private'
+}
+
+const CHOICES: { id: Choice; name: string; tag?: string; who: string }[] = [
+  { id: 'home', name: 'Home network only', tag: 'Safest', who: 'Only devices on your Wi-Fi or cable at home. A phone on mobile data can’t connect.' },
+  { id: 'private', name: 'Home and away, through a private network', tag: 'Recommended', who: 'Devices at home, and your own devices anywhere once they’ve joined your private network with Tailscale or NetBird. Nothing is opened on your router, so the internet can’t see this server.' },
+  { id: 'internet', name: 'Home and away, through the internet', who: 'Devices at home, and anyone anywhere who has the address: they reach the sign-in page. Through a port on your router, a reverse proxy you already run, or a rented server, always encrypted with HTTPS.' },
+]
 
 export default function RemoteAccess() {
   const [st, setSt] = useState<Status | null>(null)
@@ -83,52 +108,30 @@ export default function RemoteAccess() {
     const t = setInterval(() => { if (!document.hidden) load().catch(() => {}) }, live ? 2500 : 15000)
     return () => clearInterval(t)
   }, [load, live])
-  const save = async (change: Partial<Settings>, done?: string) => {
+  // The bar on every page reads the same status, so it hears of changes at once.
+  const applied = (n: Status) => { setSt(n); window.dispatchEvent(new Event('wms-remote-changed')) }
+  const save: Save = async (change, done) => {
     setBusy(true)
     try {
       const n = await api.put<Status>('/remote', change)
-      setSt(n)
+      applied(n)
       if (n.error) toast(n.error)
-      else if (done) toast(done)
+      else if (done) toast(n.ended ? `${done}. ${n.ended === 1 ? 'One device was' : `${n.ended} devices were`} signed out.` : done)
       return true
     } catch (e: any) { toast(e.message); return false } finally { setBusy(false) }
   }
   if (!st && failed) return <LoadError what="Remote Access" onRetry={() => { setFailed(false); load().catch(() => setFailed(true)) }} />
   if (!st) return <PageHead title="Remote Access" desc="Loading…" />
   const s = st.settings
-  const on = s.enabled || st.forced
-  const turn = async (v: boolean) => {
-    if (!v && !['machine', 'home'].includes(st.you.where) && !await ask({ title: 'Turn this off while you’re away from home?', body: 'You’re connected from outside your home, so this cuts your connection too. You can only turn it on again from home.', confirm: 'Turn it off', danger: true })) return
-    save({ enabled: v }, v ? 'Remote Access is on' : 'Remote Access is off')
-  }
+  const choice = choiceOf(st)
   return (
     <>
-      <PageHead title="Remote Access" desc="Watch and listen when you are away from home, without opening your server to the whole internet by accident. Everything here is off until you turn it on, and this server doesn't contact anyone to do it unless a step below says so." />
-      <StatusCard st={st} />
-      <Section title="Allow connections from outside your home">
-        <Row label="Remote Access" desc={st.forced
-          ? 'Turned on by the server’s configuration (the remoteAccess or publicUrl setting), so it can’t be turned off here.'
-          : 'While this is off, the server refuses every connection from outside your home network, even if your router lets it through.'}>
-          <Switch label="Remote Access" checked={on} disabled={st.forced || busy} onChange={turn} />
-        </Row>
-        {st.notices.length > 0 && (
-          <ul className="rem-notices">
-            {st.notices.map((n, i) => (
-              <li key={i} className={n.level}>
-                <span className="rem-notice-icon" aria-hidden="true">{n.level === 'warn' ? <IconShield size={18} /> : <IconInfo size={18} />}</span>
-                <span>
-                  {n.level === 'warn' && <span className="sr-only">Warning: </span>}{n.text}
-                  {n.link && <> <Link to={n.link}>Go there</Link></>}
-                  {n.trust && <> <button type="button" className="btn sm" disabled={busy} onClick={() => save({ trustedProxies: [s.trustedProxies, n.trust].filter(Boolean).join(', ') }, 'Proxy trusted')}>Trust {n.trust}</button></>}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
-      <Chooser st={st} save={save} busy={busy} />
-      <OutsideTest st={st} reload={load} />
-      <Limits s={s} save={save} busy={busy} />
+      <PageHead title="Remote Access" desc="Who can use this server, and from where. It starts as home network only, and this server doesn't contact anyone for remote access unless a step below says so." />
+      <StatusCard st={st} save={save} busy={busy} />
+      <Chooser st={st} choice={choice} save={save} busy={busy} />
+      {(choice !== 'home' || s.allowPlainAway) && <PlainAway st={st} save={save} busy={busy} applied={applied} reload={load} />}
+      {choice !== 'home' && <OutsideTest st={st} reload={load} />}
+      {choice !== 'home' && <Limits s={s} save={save} busy={busy} />}
       <People />
       <Protection st={st} reload={load} />
       <Advanced s={s} save={save} busy={busy} />
@@ -139,62 +142,162 @@ export default function RemoteAccess() {
 
 // ------------------------------------------------------------------ status
 
-function StatusCard({ st }: { st: Status }) {
+// The answer first: who can connect right now, from where, and how that is
+// known, in the words the server gives every surface.
+function StatusCard({ st, save, busy }: { st: Status; save: Save; busy: boolean }) {
   const you = `${whereLabel[st.you.where] || st.you.where}, ${viaLabel(st.you.where, st.you.via)}`
+  const level = st.level === 'good' ? 'ok' : st.level === 'fault' ? 'problem' : 'waiting'
+  // Not plain ok and problem: those are app-wide classes that colour all the text.
+  const homeOk = st.routes[0]?.urls.length > 0 || st.you.where === 'machine'
+  const awayOk = st.state === 'ok'
+  const ways = st.routes.slice(1)
   return (
-    <section className={'set-card rem-status ' + st.state} aria-label="Status" aria-live="polite">
-      <div className="rem-status-head">
-        <div><h2>{st.headline}</h2><p>{st.detail}</p></div>
-        <Badge state={st.state} />
+    <section className={'set-card rem-status rem-' + st.level} aria-labelledby="rem-subject">
+      <div aria-live="polite">
+        <h2 id="rem-subject" className="rem-subject"><span className="rem-level" aria-hidden="true">{level === 'ok' ? <IconCheck size={20} /> : level === 'problem' ? <IconClose size={20} /> : <IconInfo size={20} />}</span>{st.subject}</h2>
+        <p className="rem-summary">{st.summary}</p>
+        <ul className="rem-who">
+          <li className={homeOk ? 'yes' : 'part'}><span aria-hidden="true">{homeOk ? <IconCheck size={16} /> : <IconInfo size={16} />}</span>{st.home}</li>
+          <li className={awayOk ? 'yes' : 'no'}><span aria-hidden="true">{awayOk ? <IconCheck size={16} /> : <IconClose size={16} />}</span>{st.away}</li>
+        </ul>
+        <p className="rem-checked">{st.checked}</p>
+        {st.warning && <p className="rem-plain-warn"><span aria-hidden="true"><IconShield size={18} /></span><span><b>Warning:</b> {st.warning}{st.plainSessions > 0 && <> {st.plainSessions === 1 ? 'One device is' : `${st.plainSessions} devices are`} signed in that way.</>}</span></p>}
       </div>
-      <ul className="rem-routes">
-        {st.routes.map((r) => (
+      {st.notices.length > 0 && (
+        <ul className="rem-notices">
+          {st.notices.map((n, i) => (
+            <li key={i} className={n.level}>
+              <span className="rem-notice-icon" aria-hidden="true">{n.level === 'warn' ? <IconShield size={18} /> : <IconInfo size={18} />}</span>
+              <span>
+                {n.level === 'warn' && <span className="sr-only">Warning: </span>}{n.text}
+                {n.link && <> <Link to={n.link}>Go there</Link></>}
+                {n.trust && <> <button type="button" className="btn sm" disabled={busy} onClick={() => save({ trustedProxies: [st.settings.trustedProxies, n.trust].filter(Boolean).join(', ') }, 'Proxy trusted')}>Trust {n.trust}</button></>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <ul className="rem-routes" aria-label="Addresses">
+        <li>
+          <div className="rem-route-top"><b>At home</b></div>
+          {st.routes[0]?.urls.map((u) => <CopyLine key={u} value={u} />)}
+          {st.routes[0]?.urls.length === 0 && <small>This server only accepts connections from this computer.</small>}
+        </li>
+        {ways.map((r) => (
           <li key={r.kind + r.label}>
-            <div className="rem-route-top"><b>{r.label}</b><Badge state={r.state} /></div>
+            <div className="rem-route-top"><b>Away, {r.kind === 'vpn' ? `through ${r.label}` : r.label.charAt(0).toLowerCase() + r.label.slice(1)}</b><Badge state={r.state} /></div>
             {r.urls.map((u) => <CopyLine key={u} value={u} />)}
-            {r.kind === 'home' && r.urls.length === 0 && <small>This server only accepts connections from this computer.</small>}
             {r.detail && <small>{r.detail}</small>}
-            {r.kind !== 'home' && <small>Last connection: {ago(r.lastSeen)}</small>}
+            <small>Last connection: {ago(r.lastSeen)}</small>
           </li>
         ))}
       </ul>
-      <p className="rem-you">You are connected {you}{st.you.through ? `, via ${st.you.through}` : ''}.</p>
+      <p className="rem-you">You’re connected {you}{st.you.through ? `, via ${st.you.through}` : ''}.</p>
     </section>
   )
 }
 
-// ------------------------------------------------------------------ choosing a way in
+// ------------------------------------------------------------------ choosing who can connect
 
-const METHODS: { id: Settings['method']; name: string; tag?: string; text: string }[] = [
-  { id: 'tailscale', name: 'Tailscale', tag: 'Easiest', text: 'A private network between your own devices. Install one app on each; nothing is opened to the internet, and it works even when your provider shares its addresses.' },
-  { id: 'netbird', name: 'NetBird', text: 'The same idea as Tailscale, and open source: use their service, or run its coordinator yourself.' },
-  { id: 'router', name: 'Forward a port on your router', text: 'Anyone with the address can reach the sign-in page, so it needs HTTPS and strong passwords. Works from any device, with no app to install.' },
-  { id: 'proxy', name: 'A reverse proxy you already run', text: 'Caddy, nginx or Traefik in front of this server handles HTTPS. For people who have one, or want one.' },
+// Cards that choose with a click, Enter or the space bar, never just by passing
+// over them: arrowing through to reach what's below mustn't let the internet in.
+function Chooser({ st, choice, save, busy }: { st: Status; choice: Choice; save: Save; busy: boolean }) {
+  const s = st.settings
+  const box = useRef<HTMLDivElement | null>(null)
+  const away = !['machine', 'home'].includes(st.you.where)
+  const choose = async (c: Choice) => {
+    if (c === choice || busy) return
+    if (c === 'home') {
+      if (away && !await ask({ title: 'Choose home network only while you’re away from home?', body: 'You’re connected from outside your home, so this cuts your connection too. You can only choose something else again from home.', confirm: 'Home network only', danger: true })) return
+      save({ enabled: false }, 'Home network only: connections from away are refused')
+      return
+    }
+    if (c === 'private') {
+      const closes = s.httpsMode !== 'off' || s.portMapping
+      if (closes && !await ask({ title: 'Close the HTTPS port as well?', body: 'A private network doesn’t need it. This turns off HTTPS and automatic port mapping, so nothing on this server is open to the internet. Also delete any port forward you made on your router.', confirm: 'Close it and use a private network' })) return
+      save({ enabled: true, method: s.method === 'netbird' ? 'netbird' : 'tailscale', ...(closes ? { httpsMode: 'off' as const, portMapping: false } : {}) }, 'Home and away, through a private network')
+      return
+    }
+    if (choice === 'home' && !await ask({ title: 'Let devices away from home in, through the internet?', body: 'This takes effect at once: as soon as a way in is set up below, anyone with the address can reach the sign-in page. Before you set one up, give every adult account a long, unique password and turn on two-factor sign-in.', confirm: 'Choose it' })) return
+    save({ enabled: true, method: INTERNET.includes(s.method) ? s.method : 'router' }, 'Home and away, through the internet')
+  }
+  const cards = () => Array.from(box.current?.querySelectorAll<HTMLButtonElement>('button[role=radio]:not(:disabled)') || [])
+  const onKey = (e: KeyboardEvent) => {
+    const all = cards()
+    const at = all.indexOf(document.activeElement as HTMLButtonElement)
+    const to = ({ ArrowDown: at + 1, ArrowRight: at + 1, ArrowUp: at - 1, ArrowLeft: at - 1, Home: 0, End: all.length - 1 } as Record<string, number>)[e.key]
+    if (at < 0 || to === undefined || !all[to]) return
+    e.preventDefault()
+    all[to].focus()
+  }
+  return (
+    <Section title="Who can connect" desc="Choose one. You can change your mind at any time, and only what your choice needs is shown below it.">
+      <div ref={box} className="rem-methods" role="radiogroup" aria-label="Who can connect" onKeyDown={onKey}>
+        {CHOICES.map((c) => {
+          const locked = c.id === 'home' && st.forced
+          return (
+            <button key={c.id} type="button" role="radio" aria-checked={choice === c.id} tabIndex={choice === c.id ? 0 : -1} disabled={locked}
+              className={'rem-method' + (choice === c.id ? ' on' : '') + (locked ? ' disabled' : '')} onClick={() => choose(c.id)}>
+              <span className="rem-mark" aria-hidden="true">{choice === c.id && <IconCheck size={14} />}</span>
+              <span><b>{c.name}{c.tag && <span className="set-badge">{c.tag}</span>}</b><small>{c.who}</small>
+                {locked && <small><b>Can’t be chosen here:</b> the server’s configuration (the remoteAccess or publicUrl setting) lets devices away from home in.</small>}</span>
+            </button>
+          )
+        })}
+        <div className="rem-method disabled" role="radio" aria-checked={false} aria-disabled="true">
+          <span className="rem-mark" aria-hidden="true" />
+          <span><b>Home and away, through WittyRelay<span className="set-badge">Coming later</span></b><small>A hosted relay that would connect you without any setup. It doesn’t exist yet: it’s planned as a free service, and nothing on this server uses it.</small></span>
+        </div>
+      </div>
+      {choice === 'home' && <HomeOnly />}
+      {choice === 'private' && <PrivateSteps st={st} save={save} busy={busy} />}
+      {choice === 'internet' && <InternetSteps st={st} save={save} busy={busy} />}
+    </Section>
+  )
+}
+
+function HomeOnly() {
+  return (
+    <div className="rem-steps">
+      <p className="rem-note">Nothing to set up. Your TV, phone and computers at home use the addresses above. Connections from anywhere else are refused by this server itself, even if your router lets them through. To watch away from home, a private network is the safe way, and <HelpLink to="remote#the-recommended-way-a-private-network">the guide</HelpLink> walks you through it.</p>
+    </div>
+  )
+}
+
+function PrivateSteps({ st, save, busy }: { st: Status; save: Save; busy: boolean }) {
+  const kind = st.settings.method === 'netbird' ? 'NetBird' : 'Tailscale'
+  return (
+    <>
+      <div className="rem-subrow">
+        <Segmented label="Private network app" value={kind} onChange={(v) => { if (!busy) save({ method: v === 'NetBird' ? 'netbird' : 'tailscale' }) }}
+          options={[{ value: 'Tailscale', label: 'Tailscale' }, { value: 'NetBird', label: 'NetBird' }]} />
+      </div>
+      <VpnSteps st={st} kind={kind} />
+    </>
+  )
+}
+
+const INTERNET_WAYS: { id: Settings['method']; name: string; text: string }[] = [
+  { id: 'router', name: 'A port on your router', text: 'Anyone with the address can reach the sign-in page, so it needs HTTPS and strong passwords. Works from any device, with no app to install.' },
+  { id: 'proxy', name: 'A reverse proxy you already run', text: 'Caddy, nginx or Traefik in front of this server handles HTTPS. For people who already run one and keep it updated.' },
   { id: 'vps', name: 'A rented server (VPS)', text: 'A small server on the internet receives visitors and passes them to your home over a private tunnel, so your home address stays private and no port opens at home.' },
 ]
 
-function Chooser({ st, save, busy }: { st: Status; save: (c: Partial<Settings>, d?: string) => Promise<boolean>; busy: boolean }) {
-  const s = st.settings
-  const method = s.method
+function InternetSteps({ st, save, busy }: { st: Status; save: Save; busy: boolean }) {
+  const method = INTERNET.includes(st.settings.method) ? st.settings.method : 'router'
+  const way = INTERNET_WAYS.find((w) => w.id === method)!
   return (
-    <Section title="How do you want to connect?" desc="Pick one to see exactly what to do. You can change your mind at any time.">
-      <div className="rem-methods" role="radiogroup" aria-label="Way of connecting">
-        {METHODS.map((m) => (
-          <label key={m.id} className={'rem-method' + (method === m.id ? ' on' : '')}>
-            <input type="radio" name="remote-method" checked={method === m.id} disabled={busy} onChange={() => save({ method: m.id })} />
-            <span><b>{m.name}{m.tag && <span className="set-badge">{m.tag}</span>}</b><small>{m.text}</small></span>
-          </label>
-        ))}
-        <div className="rem-method disabled" aria-disabled="true">
-          <input type="radio" name="remote-method" disabled aria-label="Hosted relay (coming later)" />
-          <span><b>WittyMedia relay<span className="set-badge">Coming later</span></b><small>A hosted relay that connects you without any setup. It doesn't exist yet: it is planned as a future paid service, and nothing on this server uses it.</small></span>
-        </div>
+    <>
+      <p className="rem-note warn"><b>With this choice your sign-in page is on the internet.</b> Scanners find it and keep trying. Use long, unique passwords and two-factor sign-in, and keep this server updated. Never forward port {st.homePort}: it’s the unencrypted door, for home only. A private network avoids all of this.</p>
+      <div className="rem-subrow">
+        <Segmented label="Way in from the internet" value={method} onChange={(v) => { if (!busy) save({ method: v }) }}
+          options={INTERNET_WAYS.map((w) => ({ value: w.id, label: w.name }))} />
       </div>
-      {(method === 'tailscale' || method === 'netbird') && <VpnSteps st={st} kind={method === 'tailscale' ? 'Tailscale' : 'NetBird'} />}
+      <p className="muted rem-way">{way.text}</p>
       {method === 'router' && <RouterSteps st={st} save={save} busy={busy} />}
       {method === 'proxy' && <ProxySteps st={st} save={save} busy={busy} />}
       {method === 'vps' && <VpsSteps st={st} save={save} busy={busy} />}
-    </Section>
+    </>
   )
 }
 
@@ -211,15 +314,14 @@ function VpnSteps({ st, kind }: { st: Status; kind: 'Tailscale' | 'NetBird' }) {
       <ol>
         <Done yes={found.length > 0}>On this computer, install {kind} from <a href={site} target="_blank" rel="noreferrer">{site.replace('https://', '')}</a> and sign in. You make a free account with {kind}, a service that isn't part of WittyMediaServer.{found.length > 0 && <> Found it: this computer is <code>{found[0].ip}</code>.</>}</Done>
         <Done yes={false}>Install {kind} on your phone or laptop too, and sign in with the same account.</Done>
-        <Done yes={st.settings.enabled || st.forced}>Turn on <b>Remote Access</b> above.</Done>
-        <Done yes={!!st.lastProof}>Keep {kind} switched on on your phone and open <code>http://{found[0]?.ip || `your-${kind.toLowerCase()}-address`}:{port}</code>. Bookmark it, or enter it in the WittyMedia app. Then run the test below.</Done>
+        <Done yes={!!st.lastProof}>Keep {kind} switched on on your phone and open <code>http://{found[0]?.ip || `your-${kind.toLowerCase()}-address`}:{port}</code>. Bookmark it, or enter it in the WittyMedia app. Then run the check below.</Done>
       </ol>
       <p className="rem-note">{kind} helps your devices find each other. Your video travels directly between them whenever it can, encrypted so that only your devices can read it. No port is opened on your router. Devices on your VPN count as away from home: they get the limits below and need a password.</p>
     </div>
   )
 }
 
-function CertForm({ st, save, busy }: { st: Status; save: (c: Partial<Settings>, d?: string) => Promise<boolean>; busy: boolean }) {
+function CertForm({ st, save, busy }: { st: Status; save: Save; busy: boolean }) {
   const s = st.settings
   const [mode, setMode] = useState(s.httpsMode)
   const [domain, setDomain] = useState(s.domain)
@@ -256,7 +358,7 @@ function CertForm({ st, save, busy }: { st: Status; save: (c: Partial<Settings>,
   )
 }
 
-function RouterSteps({ st, save, busy }: { st: Status; save: (c: Partial<Settings>, d?: string) => Promise<boolean>; busy: boolean }) {
+function RouterSteps({ st, save, busy }: { st: Status; save: Save; busy: boolean }) {
   const s = st.settings
   const [looking, setLooking] = useState(false)
   const [probe, setProbe] = useState<Probe | undefined>(st.router)
@@ -297,15 +399,14 @@ function RouterSteps({ st, save, busy }: { st: Status; save: (c: Partial<Setting
             </p>
           )}
         </Done>
-        <Done yes={st.settings.enabled || st.forced}>Turn on <b>Remote Access</b> above.</Done>
-        <Done yes={!!st.lastProof}>Run the test below with your phone on mobile data.</Done>
+        <Done yes={!!st.lastProof}>Run the check below with your phone on mobile data.</Done>
       </ol>
       <p className="rem-note">This server refuses unencrypted connections from the internet, so a wrongly forwarded plain port can't expose your password. Anyone can still reach the sign-in page, so use long passwords, and consider two-factor sign-in.</p>
     </div>
   )
 }
 
-function TrustForm({ st, save, busy }: { st: Status; save: (c: Partial<Settings>, d?: string) => Promise<boolean>; busy: boolean }) {
+function TrustForm({ st, save, busy }: { st: Status; save: Save; busy: boolean }) {
   const s = st.settings
   const [url, setUrl] = useState(s.publicUrl)
   const [proxies, setProxies] = useState(s.trustedProxies)
@@ -321,7 +422,7 @@ function TrustForm({ st, save, busy }: { st: Status; save: (c: Partial<Settings>
 
 const CADDY = (host: string, target: string) => `${host} {\n    reverse_proxy ${target}\n}`
 
-function ProxySteps({ st, save, busy }: { st: Status; save: (c: Partial<Settings>, d?: string) => Promise<boolean>; busy: boolean }) {
+function ProxySteps({ st, save, busy }: { st: Status; save: Save; busy: boolean }) {
   const host = st.settings.publicUrl.replace(/^https:\/\//, '') || 'media.example.com'
   return (
     <div className="rem-steps">
@@ -331,14 +432,13 @@ function ProxySteps({ st, save, busy }: { st: Status; save: (c: Partial<Settings
           For nginx, also pass <code>X-Forwarded-For</code> and <code>X-Forwarded-Proto</code>, and turn off body-size limits. <HelpLink to="remote#a-reverse-proxy-you-already-run">The guide</HelpLink> has a full example.
         </li>
         <Done yes={!!st.settings.trustedProxies && !!st.settings.publicUrl}>Tell this server about it:<TrustForm st={st} save={save} busy={busy} /></Done>
-        <Done yes={st.settings.enabled || st.forced}>Turn on <b>Remote Access</b> above.</Done>
-        <Done yes={!!st.lastProof}>Run the test below with your phone on mobile data.</Done>
+        <Done yes={!!st.lastProof}>Run the check below with your phone on mobile data.</Done>
       </ol>
     </div>
   )
 }
 
-function VpsSteps({ st, save, busy }: { st: Status; save: (c: Partial<Settings>, d?: string) => Promise<boolean>; busy: boolean }) {
+function VpsSteps({ st, save, busy }: { st: Status; save: Save; busy: boolean }) {
   const vpn = st.vpns[0]?.ip
   return (
     <div className="rem-steps">
@@ -349,11 +449,80 @@ function VpsSteps({ st, save, busy }: { st: Status; save: (c: Partial<Settings>,
           <pre className="rem-pre">{CADDY(st.settings.publicUrl.replace(/^https:\/\//, '') || 'media.example.com', `${vpn || '100.x.y.z'}:${st.homePort}`)}</pre>
         </li>
         <Done yes={!!st.settings.trustedProxies && !!st.settings.publicUrl}>Tell this server about it. The proxy's address is the rented server's address on your private network:<TrustForm st={st} save={save} busy={busy} /></Done>
-        <Done yes={st.settings.enabled || st.forced}>Turn on <b>Remote Access</b> above.</Done>
-        <Done yes={!!st.lastProof}>Run the test below with your phone on mobile data.</Done>
+        <Done yes={!!st.lastProof}>Run the check below with your phone on mobile data.</Done>
       </ol>
       <p className="rem-note">Running this server itself on a rented machine? Reach this page through an SSH tunnel, or start it with <code>-remote-access</code>: see <HelpLink to="remote#the-server-itself-on-a-rented-machine">the guide</HelpLink>.</p>
     </div>
+  )
+}
+
+// ------------------------------------------------------------------ unencrypted from away
+
+// Off unless an administrator knowingly turns it on. Turning it on takes the
+// warning accepted and their password; turning it off signs out every device
+// that signed in that way.
+function PlainAway({ st, save, busy, applied, reload }: { st: Status; save: Save; busy: boolean; applied: (n: Status) => void; reload: () => Promise<void> }) {
+  const on = st.settings.allowPlainAway
+  const [asking, setAsking] = useState(false)
+  const turn = async (v: boolean) => {
+    if (v) { setAsking(true); return }
+    const n = st.plainSessions
+    if (n > 0 && !await ask({ title: 'Refuse unencrypted connections from away again?', body: `${n === 1 ? 'One device signed in' : `${n} devices signed in`} without encryption, so ${n === 1 ? 'it is' : 'they are'} signed out too.`, confirm: 'Refuse them and sign out' })) return
+    save({ allowPlainAway: false }, 'Unencrypted connections from away are refused again')
+  }
+  const endAll = async () => {
+    if (!await ask({ title: 'Sign out every device that signed in without encryption?', body: 'They’d have to sign in again.', confirm: 'Sign them out', danger: true })) return
+    try { const r = await api.del<{ ended: number }>('/remote/plain-sessions'); toast(r.ended === 1 ? 'One device signed out' : `${r.ended} devices signed out`); await reload() } catch (e: any) { toast(e.message) }
+  }
+  return (
+    <Section title="Unencrypted connections from away" desc="This server refuses unencrypted (http://) connections from the internet, so that passwords can’t be read on the way. Some people reach their server through a network or tunnel of their own that the server can’t recognise, and accept the risk. Leave this off unless you’re one of them.">
+      <Row label="Allow unencrypted connections from away" desc={on ? 'On. Sign-ins made this way are marked, last a day at most, and are signed out when you turn this off.' : 'Off. Connections from the internet must use HTTPS.'}>
+        <Switch label="Allow unencrypted connections from away" checked={on} disabled={busy} onChange={turn} />
+      </Row>
+      {on && st.plainSessions > 0 && (
+        <div className="rem-actions">
+          <button type="button" className="btn sm" onClick={endAll}>Sign out the {st.plainSessions === 1 ? 'device' : `${st.plainSessions} devices`} that signed in unencrypted</button>
+        </div>
+      )}
+      {asking && <PlainAwayConfirm onClose={() => setAsking(false)} onDone={(n) => { applied(n); setAsking(false); toast('Unencrypted connections from away are allowed') }} />}
+    </Section>
+  )
+}
+
+function PlainAwayConfirm({ onClose, onDone }: { onClose: () => void; onDone: (n: Status) => void }) {
+  const [accept, setAccept] = useState(false)
+  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
+  const [err, setErr] = useState('')
+  const [working, setWorking] = useState(false)
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (working || !accept) return
+    setWorking(true); setErr('')
+    try { onDone(await api.put<Status>('/remote', { allowPlainAway: true, acceptPlainAway: true, password, code })) } catch (x: any) { setErr(x.message); setCode(''); setWorking(false) }
+  }
+  return (
+    <Dialog alert size="sm" title="Allow unencrypted connections from away?" onClose={onClose}
+      actions={<>
+        <Button variant="ghost" onClick={onClose}>Keep them refused</Button>
+        <Button variant="danger" type="submit" form="rem-plain-form" busy={working} disabled={!accept || !password}>Allow them</Button>
+      </>}>
+      <form id="rem-plain-form" className="ui-dialog-form" onSubmit={submit}>
+        <div className="ms-ask">
+          <p>Without encryption, <b>anyone between a device and this server</b> can read or change what passes: a café’s Wi-Fi, a hotel’s network, the mobile network, or anyone who has broken into one of them. That includes:</p>
+          <ul>
+            <li><b>Passwords</b> typed to sign in, and the sign-ins that keep devices signed in.</li>
+            <li><b>Stream addresses</b>, which play your media without a password.</li>
+            <li><b>What you watch and listen to</b>, and what you search for.</li>
+            <li><b>The pages themselves</b>, which can be changed on the way to trick you.</li>
+          </ul>
+          <p>Use it only on networks you trust, or behind a VPN or tunnel of your own. A private network such as Tailscale or NetBird is safer, and doesn’t need this.</p>
+        </div>
+        <label className="check-row rem-accept"><input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} /> <span>I understand that anyone on the way can read my password and what I watch, and I accept that.</span></label>
+        <OwnerFields password={password} code={code} setPassword={setPassword} setCode={setCode} />
+        {err && <p className="error" role="alert">{err}</p>}
+      </form>
+    </Dialog>
   )
 }
 
@@ -373,15 +542,15 @@ function OutsideTest({ st, reload }: { st: Status; reload: () => Promise<void> }
   }
   const hit = st.test?.hit
   return (
-    <Section title="Test it from outside" desc="The only real test is a device that is really outside. Your own phone does it, so no service on the internet is involved and nothing is sent anywhere.">
+    <Section title="Check from outside" desc="The only real check is a device that is really outside. Your own phone does it, on mobile data, so no service on the internet is involved and nothing is sent anywhere.">
       {st.addresses.length === 0
-        ? <p className="muted">There is nothing to test yet: turn on Remote Access and finish the steps above.</p>
+        ? <p className="muted">Nothing to check yet: finish the steps above first.</p>
         : <>
           {st.addresses.length > 1 && (
             <Row label="Address to test"><select className="select" value={addr} onChange={(e) => setAddress(e.target.value)}>{st.addresses.map((a) => <option key={a} value={a}>{a}</option>)}</select></Row>
           )}
           <div className="rem-actions">
-            <button type="button" className="btn primary sm" onClick={start}>{st.test ? 'Start again' : 'Start the test'}</button>
+            <button type="button" className="btn primary sm" onClick={start}>{st.test ? 'Start again' : 'Check with my phone'}</button>
             {st.publicUrl && <button type="button" className="btn sm" disabled={checking} onClick={check}>{checking ? 'Checking…' : 'Check from this computer'}</button>}
           </div>
           {st.test && (
@@ -415,7 +584,7 @@ function OutsideTest({ st, reload }: { st: Status; reload: () => Promise<void> }
 
 // ------------------------------------------------------------------ limits
 
-function Limits({ s, save, busy }: { s: Settings; save: (c: Partial<Settings>, d?: string) => Promise<boolean>; busy: boolean }) {
+function Limits({ s, save, busy }: { s: Settings; save: Save; busy: boolean }) {
   return (
     <Section title="Limits for viewers away from home" desc="Home internet connections are often slow when sending. These apply to each stream of anyone away from home, including over a VPN. Playback at home is never affected.">
       <Row label="Highest resolution" desc="Larger files are converted first, which takes work from this computer.">
@@ -444,7 +613,7 @@ function People() {
     const t = setInterval(() => { if (!document.hidden) load() }, 15000)
     return () => clearInterval(t)
   }, [load])
-  const away = (list || []).filter((v) => v.where === 'vpn' || v.where === 'internet')
+  const away = (list || []).filter((v) => v.where === 'vpn' || v.where === 'internet' || v.plainAway)
   const end = async (v: Session) => {
     if (!await ask({ title: `Sign ${v.userName} out on ${v.device || 'this device'}?`, body: 'They’d have to sign in again.', confirm: 'Sign out', danger: true })) return
     try { await api.del(`/sessions/${v.id}`); toast('Signed out'); load() } catch (e: any) { toast(e.message) }
@@ -460,6 +629,7 @@ function People() {
                 <b>{v.userName}</b> · {v.device || 'Unknown device'}
                 {v.streaming && <span className="set-pill live">Streaming</span>}
                 {v.current && <span className="set-badge">This device</span>}
+                {v.plainAway && <span className="set-badge rem-plain-badge">Signed in unencrypted</span>}
                 <small>{shortWhere[v.where]} · {viaLabel(v.where, v.via)} · {v.ip} · {ago(v.lastSeen)}</small>
               </div>
               {!v.current && <button type="button" className="btn sm ghost danger-hover" onClick={() => end(v)} aria-label={`Sign ${v.userName} out on ${v.device}`}><IconTrash /> Sign out</button>}
@@ -508,7 +678,7 @@ function Protection({ st, reload }: { st: Status; reload: () => Promise<void> })
 
 // ------------------------------------------------------------------ advanced
 
-function Advanced({ s, save, busy }: { s: Settings; save: (c: Partial<Settings>, d?: string) => Promise<boolean>; busy: boolean }) {
+function Advanced({ s, save, busy }: { s: Settings; save: Save; busy: boolean }) {
   const [url, setUrl] = useState(s.publicUrl)
   const [home, setHome] = useState(s.homeNets)
   const [away, setAway] = useState(s.awayNets)

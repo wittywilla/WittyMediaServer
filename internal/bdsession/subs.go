@@ -21,6 +21,9 @@ const maxSubPics = 3000
 func (s *Session) Subtitles(ttn, n int, from, to float64) ([]SubEvent, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.disc.DiscEngine == nil {
+		return nil, fmt.Errorf("no such playlist") // a refused disc has none to read
+	}
 	pl := s.disc.Playlist(ttn)
 	if pl == nil {
 		return nil, fmt.Errorf("no such playlist")

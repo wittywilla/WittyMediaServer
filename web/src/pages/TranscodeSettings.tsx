@@ -9,7 +9,9 @@ import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './se
 // can't play the file as it is. Files aren't changed. Converting them ahead of time is
 // Library transcoding, a page of its own.
 
-type HW = { name: string; label: string; vendor: string; compiled: boolean; tested: boolean; working: boolean; error?: string }
+type HW = { name: string; label: string; vendor: string; compiled: boolean; tested: boolean; working: boolean; error?: string; reason?: string; device?: string }
+// A graphics device the server found, and why it can't use one (Linux and FreeBSD).
+type GPU = { path: string; vendor?: string; driver?: string; group: number; mode?: string; usable: boolean; problem?: string; fix?: string }
 type Mode = 'easy' | 'advanced' | 'expert'
 
 const PROFILES: { id: string; name: string; text: string; hw: string }[] = [
@@ -25,10 +27,12 @@ export default function TranscodeSettings() {
   const { s, set, on, dirty, busy, discard } = st
   const [hw, setHw] = useState<HW[]>([])
   const [hwDone, setHwDone] = useState(false)
+  const [gpus, setGpus] = useState<GPU[]>([])
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>
-    const load = () => api.get<{ hardware?: HW[]; hwTested?: boolean }>('/system').then((r) => {
+    const load = () => api.get<{ hardware?: HW[]; hwTested?: boolean; gpus?: GPU[] }>('/system').then((r) => {
       setHw(r.hardware || [])
+      setGpus(r.gpus || [])
       setHwDone(!!r.hwTested)
       if (!r.hwTested) t = setTimeout(load, 2000) // only until the first test has finished
     }).catch(() => {})
@@ -44,8 +48,10 @@ export default function TranscodeSettings() {
   // An older setting that the list of encoders replaced: saving says it's gone.
   const save = () => { set('hwAccel', ''); st.save() }
   const status = (h: HW) => !h.compiled ? 'Not included in this FFmpeg build'
-    : !h.tested ? (hwDone ? 'Not supported on this operating system' : 'Testing…')
-      : h.working ? 'Working on this machine' : 'Not found on this machine'
+    : h.working ? 'Working on this machine' + (h.device ? ' (' + h.device + ')' : '')
+      : h.reason ? h.reason
+        : !h.tested ? (hwDone ? 'Not supported on this operating system' : 'Testing…')
+          : 'Not found on this machine'
   const crf = Number(s.crf || 21)
   return (
     <div className="transcode">
@@ -70,7 +76,7 @@ export default function TranscodeSettings() {
               <label key={h.name} className={'hw-item' + (usable ? '' : ' disabled')} title={h.error || status(h)}>
                 <input type="checkbox" disabled={!usable} checked={usable && enabled.has(h.name)} onChange={(e) => toggleHW(h.name, e.target.checked)} />
                 <div>
-                  <div><b>{h.label}</b> <code>{h.name}</code></div>
+                  <div className="hw-name"><b>{h.label}</b> <code>{h.name}</code></div>
                   <div className={'hw-status' + (usable ? ' ok' : '')}>{status(h)}</div>
                 </div>
               </label>
@@ -78,6 +84,20 @@ export default function TranscodeSettings() {
           })}
           {hw.length === 0 && <div className="muted">Loading…</div>}
         </div>
+        {gpus.length > 0 && (
+          <div className="hw-devices">
+            <h4>Graphics devices found</h4>
+            <ul>
+              {gpus.map((g) => (
+                <li key={g.path}>
+                  <code>{g.path}</code> {[g.vendor && g.vendor !== 'other' ? g.vendor[0].toUpperCase() + g.vendor.slice(1) : '', g.driver, g.group >= 0 ? 'group ' + g.group : ''].filter(Boolean).join(', ')}
+                  <div className={'hw-status' + (g.usable ? ' ok' : ' bad')}>{g.usable ? 'The server can use it' : g.problem}</div>
+                  {g.fix && <div className="hw-fix">{g.fix}</div>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </Section>
 
       <Section title="Picture quality" desc="These apply to streams started after saving." actions={

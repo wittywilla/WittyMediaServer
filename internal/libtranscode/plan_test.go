@@ -1,6 +1,7 @@
 package libtranscode
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"slices"
@@ -356,6 +357,102 @@ func TestProtectionMarks(t *testing.T) {
 		data = append(data, 0x6D, 0x80, 0x50, 0x35, 0x50, 0x33, 0x81, 0x01)
 		if Detect(write("data.mkv", data), nil) {
 			t.Error("picture data called protection")
+		}
+		// As a muxer writes them: a seek index naming Tracks first, then the segment's
+		// details, whose random IDs can hold the marks, then the real track list.
+		el := func(id []byte, body ...byte) []byte {
+			return append(append(append([]byte{}, id...), 0x80|byte(len(body))), body...)
+		}
+		var (
+			idTracks   = []byte{0x16, 0x54, 0xAE, 0x6B}
+			seek       = el([]byte{0x11, 0x4D, 0x9B, 0x74}, el([]byte{0x4D, 0xBB}, el([]byte{0x53, 0xAB}, idTracks...)...)...)
+			info       = el([]byte{0x15, 0x49, 0xA9, 0x66}, el([]byte{0x73, 0xA4}, 0x6D, 0x80, 0x50, 0x35, 0x50, 0x33, 0x81, 0x01, 0, 0, 0, 0, 0, 0, 0, 0)...)
+			uidMarks   = el([]byte{0x73, 0xC5}, 0x6D, 0x80, 0x50, 0x35, 0, 0, 0, 1)
+			encrypted  = el([]byte{0x6D, 0x80}, el([]byte{0x62, 0x40}, append(el([]byte{0x50, 0x33}, 0x01), el([]byte{0x50, 0x35})...)...)...)
+			compressed = el([]byte{0x6D, 0x80}, el([]byte{0x62, 0x40}, el([]byte{0x50, 0x33}, 0x00)...)...)
+		)
+		segment := func(entry ...byte) []byte {
+			body := append(append(append([]byte{}, seek...), info...), el(idTracks, el([]byte{0xAE}, entry...)...)...)
+			return append(append(append([]byte{}, head[:5]...), 0x18, 0x53, 0x80, 0x67, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), body...)
+		}
+		if Detect(write("clear.mkv", segment(uidMarks...)), nil) {
+			t.Error("the marks in a seek index, the segment's IDs and a track's ID called protection")
+		}
+		if !Detect(write("track.mkv", segment(append(append([]byte{}, uidMarks...), encrypted...)...)), nil) {
+			t.Error("an encrypted track not found")
+		}
+		if Detect(write("zipped.mkv", segment(compressed...)), nil) {
+			t.Error("a compressed track called protection")
+		}
+	})
+	t.Run("matroska, by structure", func(t *testing.T) {
+		el := func(id []byte, body ...[]byte) []byte {
+			var b []byte
+			for _, x := range body {
+				b = append(b, x...)
+			}
+			out := append([]byte{}, id...)
+			if len(b) < 0x7F {
+				out = append(out, 0x80|byte(len(b)))
+			} else {
+				out = append(out, 0x40|byte(len(b)>>8), byte(len(b)))
+			}
+			return append(out, b...)
+		}
+		unknown := func(id []byte, body ...byte) []byte {
+			return append(append(append([]byte{}, id...), 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), body...)
+		}
+		var (
+			ebml    = el([]byte{0x1A, 0x45, 0xDF, 0xA3}, el([]byte{0x42, 0x82}, []byte("matroska")))
+			segment = func(body ...[]byte) []byte { return unknown([]byte{0x18, 0x53, 0x80, 0x67}, bytes.Join(body, nil)...) }
+			tracks  = func(body ...[]byte) []byte { return el([]byte{0x16, 0x54, 0xAE, 0x6B}, body...) }
+			entry   = func(body ...[]byte) []byte {
+				return el([]byte{0xAE}, append([][]byte{el([]byte{0xD7}, []byte{1})}, body...)...)
+			}
+			encodings  = func(body ...[]byte) []byte { return el([]byte{0x6D, 0x80}, el([]byte{0x62, 0x40}, body...)) }
+			encType    = func(v byte) []byte { return el([]byte{0x50, 0x33}, []byte{v}) }
+			encryption = el([]byte{0x50, 0x35}, el([]byte{0x47, 0xE1}, []byte{5})) // AES
+			// Every mark the old check looked for, as bytes inside a codec's private data.
+			lookalike = el([]byte{0x63, 0xA2}, []byte{0x16, 0x54, 0xAE, 0x6B, 0x6D, 0x80, 0x88, 0x50, 0x35, 0x80, 0x50, 0x33, 0x81, 0x01})
+			seekHead  = func(pos byte) []byte {
+				return el([]byte{0x11, 0x4D, 0x9B, 0x74}, el([]byte{0x4D, 0xBB}, el([]byte{0x53, 0xAB}, []byte{0x16, 0x54, 0xAE, 0x6B}), el([]byte{0x53, 0xAC}, []byte{pos})))
+			}
+			cluster = unknown([]byte{0x1F, 0x43, 0xB6, 0x75}, 0xE7, 0x81, 0x00)
+		)
+		mkv := func(segBody ...[]byte) []byte { return append(append([]byte{}, ebml...), segment(segBody...)...) }
+		for _, c := range []struct {
+			name      string
+			file      []byte
+			protected bool
+		}{
+			{"encryption", mkv(tracks(entry(encodings(encType(1), encryption)))), true},
+			{"encryption alone", mkv(tracks(entry(encodings(encryption)))), true},
+			{"encryption by type alone", mkv(tracks(entry(encodings(encType(1))))), true},
+			{"a second track encrypted", mkv(tracks(entry(lookalike), entry(encodings(encryption)))), true},
+			// Compression, which is also a content encoding, isn't protection.
+			{"compression", mkv(tracks(entry(encodings(encType(0))))), false},
+			// #184: the track list's ID in the seek index first, and the marks in codec data.
+			{"marks in codec data", mkv(seekHead(0x18), tracks(entry(lookalike))), false},
+			// The marks in picture data, after the track list, mean nothing.
+			{"marks in pictures", mkv(tracks(entry()), unknown([]byte{0x1F, 0x43, 0xB6, 0x75}, lookalike...)), false},
+			// A track list behind pictures whose length isn't known is found by the seek index.
+			{"encryption found by the seek index", func() []byte {
+				head := seekHead(0)
+				pos := len(head) + len(cluster)
+				return mkv(seekHead(byte(pos)), cluster, tracks(entry(encodings(encryption))))
+			}(), true},
+			// And one past what's read at first, behind 2.2 MB of padding.
+			{"encryption past the first read", func() []byte {
+				pad := append([]byte{0xEC, 0x10, 0x22, 0x00, 0x00}, make([]byte, 0x220000)...) // Void, 4-byte size
+				index := func(pos int) []byte {
+					return el([]byte{0x11, 0x4D, 0x9B, 0x74}, el([]byte{0x4D, 0xBB}, el([]byte{0x53, 0xAB}, []byte{0x16, 0x54, 0xAE, 0x6B}), el([]byte{0x53, 0xAC}, []byte{byte(pos >> 16), byte(pos >> 8), byte(pos)})))
+				}
+				return mkv(index(len(index(0))+len(pad)), pad, tracks(entry(encodings(encryption))))
+			}(), true},
+		} {
+			if got := Detect(write(strings.ReplaceAll(c.name, " ", "-")+".mkv", c.file), nil); got != c.protected {
+				t.Errorf("%s: protected %v, want %v", c.name, got, c.protected)
+			}
 		}
 	})
 	t.Run("asf", func(t *testing.T) {

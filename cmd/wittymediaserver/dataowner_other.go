@@ -31,3 +31,16 @@ func dataOwnerOK(data string) error {
 	}
 	return fmt.Errorf("the server's files belong to %s, and this is running as root, which would stop the server opening them. Run it as that account: sudo -u %s wittymediaserver <command> -data %s", who, who, data)
 }
+
+// ownerOf says who owns a folder, as a sentence for a message, "" when it can't tell.
+func ownerOf(dir string) string {
+	st, err := os.Stat(dir)
+	if err != nil {
+		return ""
+	}
+	sys, ok := st.Sys().(*syscall.Stat_t)
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("It belongs to %d:%d. ", sys.Uid, sys.Gid)
+}

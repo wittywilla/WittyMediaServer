@@ -102,7 +102,7 @@ function scopeOf(el: Element | null): ParentNode {
 
 // A row, a menu or any other set of controls that belong together: coming back
 // to one lands where you left it, not on whatever happens to be nearest.
-const GROUPS = '[data-nav-group], .row, .topnav, .sidebar, .set-nav, .tabbar, .section-row'
+const GROUPS = '[data-nav-group], [data-nav-row], .row, .topnav, .sidebar, .set-nav, .tabbar, .section-row'
 const lastIn = new WeakMap<Element, HTMLElement>()
 const groupOf = (el: Element | null) => el?.closest(GROUPS) || null
 const COLUMNS = '.sidebar, .set-nav'
@@ -142,7 +142,7 @@ function move(dir: Dir): boolean {
   const can = (el: HTMLElement) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, cur)
   // A row's own heading: the row is what's under it, even with few cards and See all far off to
   // the right, where what's straight down is the next row's See all and to the left the side menu.
-  const head = cur.closest('.hub-head')
+  const head = cur.closest('.hub-head, [data-nav-head]')
   if (head && (dir === 'down' || dir === 'left')) {
     const inRow = others.filter((el) => head.parentElement?.contains(el) && !head.contains(el) && can(el))
     const row = inRow[0] && groupOf(inRow[0])
@@ -153,7 +153,11 @@ function move(dir: Dir): boolean {
   // A side column is left and entered sideways. Going down a page mustn't fall into the side menu because the
   // menu's last link happens to be lower, and the menu's last link mustn't fall into the page.
   const col = cur.closest(COLUMNS)
-  const onward = dir === 'left' || dir === 'right' ? others : others.filter((el) => { const c = el.closest(COLUMNS); return c === col || (col?.matches('.set-nav') && el.closest('.topbar')) })
+  // data-nav-row: one line of things, such as a games shelf, which up and down always leave. What stands on a
+  // shelf can be of different heights, and the focused one lifts, so a neighbour's middle can sit lower.
+  const line = dir === 'up' || dir === 'down' ? cur.closest('[data-nav-row]') : null
+  const onward = (dir === 'left' || dir === 'right' ? others : others.filter((el) => { const c = el.closest(COLUMNS); return c === col || (col?.matches('.set-nav') && el.closest('.topbar')) }))
+    .filter((el) => !line?.contains(el))
   let best = ranked(boxes.get(cur)!, onward, (el) => boxes.get(el)!, dir).find(can)
   // A programme grid is never jumped over on the way up or down the page, however far to the side it starts
   // and however close what's beyond it. It's the reason for the page.
@@ -165,11 +169,12 @@ function move(dir: Dir): boolean {
   }
   // Past the end of a row: on to its See all if it has one. What's off to the side on some other row isn't
   // where someone going along this one means to go.
-  const row = cur.closest('.row, [data-nav-group]')
+  const row = cur.closest('.row, [data-nav-group], [data-nav-row]')
   if (best && dir === 'right' && row && !row.contains(best)) {
     const a = boxes.get(cur)!, b = boxes.get(best)!
     if (b.top >= a.bottom || b.bottom <= a.top) {
-      const seeAll = row.closest('.hub')?.querySelector<HTMLElement>('.hub-head a')
+      // A row's heading is a .hub-head, or data-nav-head beside a data-nav-row.
+      const seeAll = row.closest('.hub')?.querySelector<HTMLElement>('.hub-head a') || row.parentElement?.querySelector<HTMLElement>(':scope > [data-nav-head] a')
       if (seeAll) focus(seeAll)
       return !!seeAll
     }

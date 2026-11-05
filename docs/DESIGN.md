@@ -303,6 +303,9 @@ focus restoration.
 - Nothing is hover-only: what hover reveals also appears on `:focus-visible`, or isn't needed.
 - `data-nav-group` on a set of controls that belong together makes coming back land where you left.
   Rows, the top bar, the side menu and the phone bars already are groups.
+- `data-nav-row` on one line of things whose items differ in height or lift when focused, such as a games shelf:
+  Up and Down always leave it, and Right past its end goes to the link in the `data-nav-head` beside it, as a
+  `.hub-head` is for a row. It's a group too.
 - `data-focus-key="..."` on a control with no `href` lets Back return to it.
 - `data-tv-first` on a page's main action (Play on an item) is where focus lands when someone arrives with a
   remote. Without one, it's a primary button on screen, and otherwise the first control in the page, passing over text fields and the links in the headings of rows.
@@ -315,7 +318,7 @@ focus restoration.
 past the current one in that direction count. The distance along the direction counts in full; the
 distance across it is penalised heavily, and more for left and right, so a far card on this row beats a
 near one on the next. Lowest score wins. On entering a group, the last focused control in it wins if
-it's also that way. From the link in a row's heading, Down and Left go into that row first, as it may be
+it's also that way. From the link in a row's heading (`.hub-head` or `data-nav-head`), Down and Left go into that row first, as it may be
 short or scrolled away and nowhere near straight ahead.
 
 **Back**: `GoBack`, `BrowserBack`, keyCode 461 and 10009, and Backspace outside a text field, close the

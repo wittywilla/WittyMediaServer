@@ -257,13 +257,13 @@ export function Shelf({ id, title, items, consoles, console: c, faceFirst, lette
   })
   return (
     <section className="gm-shelf gm-section" data-gm-section aria-label={title}>
-      <div className="gm-shelf-head">
+      <div className="gm-shelf-head" data-nav-head>
         <h2 className={`gm-shelf-name ${eraClass(c)}`}>{title}</h2>
         {c?.era && <span className="gm-shelf-era">{ERA_NAMES[c.era]}</span>}
         {count != null && <span className="gm-shelf-count">{count.toLocaleString()}</span>}
         {to && <Link className="gm-shelf-all" to={to} aria-label={`All of ${title}`}>All <IconRight size={14} /></Link>}
       </div>
-      <div className={`gm-ledge view-${view}`}>{out}</div>
+      <div className={`gm-ledge view-${view}`} data-nav-row>{out}</div>
       {chosen && <PulledInfo it={chosen} c={consoles.get(chosen.console || '')} cont={progress.get(chosen.id)} />}
     </section>
   )
@@ -299,7 +299,7 @@ export function OnTheGo({ list, consoles }: { list: GameContinue[]; consoles: Ma
   const links = useGameLinks()
   if (list.length === 0) return null
   return (
-    <section className="gm-onthego gm-section" data-gm-section aria-label="Continue playing">
+    <section className="gm-onthego gm-section" data-gm-section data-nav-row aria-label="Continue playing">
       {list.map((e) => {
         const it = e.item, c = consoles.get(it.console || '')
         const pic = e.save?.hasThumb ? saveThumb(it.id, e.save.slot, e.save.updatedAt) : it.poster ? cardCover(it) : ''

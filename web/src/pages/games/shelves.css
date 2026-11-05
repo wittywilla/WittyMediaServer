@@ -144,6 +144,9 @@ html.ten-foot .gm-page { --shelf-scale: 1.7; }
    (4 wide, 4 out), which the ledge's sideways scrolling would otherwise clip. */
 html.tv-mode .gm-ledge, html.ten-foot .gm-ledge { gap: calc(var(--tvu, 1px) * 16); padding-top: calc(var(--tvu, 1px) * 56); padding-bottom: calc(var(--tvu, 1px) * 16); }
 html.tv-mode .gm-onthego, html.ten-foot .gm-onthego { gap: calc(var(--tvu, 1px) * 24); padding-top: calc(var(--tvu, 1px) * 24); padding-bottom: calc(var(--tvu, 1px) * 16); }
+/* With a remote or a controller nothing floats over the shelves: the arrows would take the dock for what's below. It waits
+   at the foot of the page, after the last shelf. */
+html.tv-mode .gm-dock, html.ten-foot .gm-dock, html.using-controller .gm-dock { position: static; }
 
 /* ---------------------------------------------------------------- reserved: multiplayer */
 .gm-reserved { opacity: .55; cursor: default; }

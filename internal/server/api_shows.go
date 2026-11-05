@@ -245,7 +245,7 @@ func (s *Server) handleShowArt(w http.ResponseWriter, r *http.Request) {
 		// No artwork yet (no TheTVDB key, no local files): use an episode still.
 		src = s.Store.EpisodePoster(r.Context(), id, s.access(r))
 	}
-	s.serveArtSrc(w, r, src)
+	s.serveArtSized(w, r, src)
 }
 
 // artCandidate is one choice in the artwork picker.

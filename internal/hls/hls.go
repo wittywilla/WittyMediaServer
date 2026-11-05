@@ -43,7 +43,11 @@ type Spec struct {
 	InputArgs   []string // input options and -i
 	Duration    float64  // total seconds (required)
 	VideoFilter string   // extra -vf chain (deinterlace etc.); aspect normalisation is added automatically
-	AudioIndex  int      // ffmpeg audio stream index (a:N), -1 = no audio
+	// ToneMap: the picture is HDR of this range (as ffmpeg.Stream.Range says) and is mapped to
+	// an ordinary one, once it has been brought down to MaxHeight. The caller checks that this
+	// FFmpeg can (Tools.ToneMapFilter).
+	ToneMap    string
+	AudioIndex int // ffmpeg audio stream index (a:N), -1 = no audio
 	// VideoIndex is the picture's stream (v:N). It isn't always 0: cover art can come
 	// first, and some files hold several pictures.
 	VideoIndex int
@@ -68,6 +72,10 @@ type Spec struct {
 	SegmentSec   float64
 	MaxHeight    int    // 0 = source
 	VideoBitrate string // e.g. "8M"; empty = quality mode
+	// Height is the shorter side of the source's picture, when known: its height, or its width
+	// for an upright one. With MaxHeight it says how big what comes out is, which decides how
+	// many threads convert it.
+	Height int
 	// Quality is the encoder choice and quality profile from Settings.
 	Quality    ffmpeg.Quality
 	LowLatency bool // menus: tiny segments, zerolatency
@@ -996,26 +1004,67 @@ func (j *job) finished() bool {
 }
 
 func (s *Session) startLocked(fromSeg int) (*job, error) {
-	sp := s.Spec
 	// The segments of an idle session may have been cleaned up.
 	if err := os.MkdirAll(s.Dir, 0o755); err != nil {
 		s.log.Warn("could not make the stream's folder", "dir", s.Dir, "err", err)
 	}
+	args, encoder, dir := s.commandLine(fromSeg)
+	cmd := ffmpeg.Command(context.Background(), s.tools.FFmpeg, args...)
+	if s.Spec.FMP4 {
+		cmd.Dir = dir
+	}
+	j := &job{startSeg: fromSeg, cmd: cmd, done: make(chan struct{})}
+	j.lastSeg.Store(int64(fromSeg) - 1)
+	cmd.Stderr = &j.stderr
+	cmdline := ffmpeg.RedactArgs(args)
+	s.log.Info("transcode started", "segment", fromSeg, "encoder", encoder, "height", s.Spec.MaxHeight)
+	s.log.Debug("ffmpeg command", "args", cmdline)
+	started := time.Now()
+	if err := cmd.Start(); err != nil {
+		s.log.Error("ffmpeg could not start", "reason", logging.ExitReason(err), "err", err, "args", cmdline)
+		return nil, err
+	}
+	s.job = j
+	logID := s.logID
+	logging.Go("ffmpeg wait", func() {
+		j.err = cmd.Wait()
+		close(j.done)
+		logging.ChildExit(s.logger(), "ffmpeg", j.err, j.stopped.Load(), &j.stderr, started, "segment", fromSeg, "args", cmdline)
+	}, "cat", "transcode", "session", logID)
+	logging.Go("ffmpeg watch", func() { s.watch(j) }, "cat", "transcode", "session", logID)
+	return j, nil
+}
+
+// commandLine is FFmpeg's command for this stream from segment fromSeg on, what makes its
+// picture ("copy" when nothing does), and the folder FFmpeg runs in.
+func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string) {
+	sp := s.Spec
 	start := float64(fromSeg) * sp.SegmentSec
 	// Damaged discs and rips often carry runs of broken audio frames; ffmpeg
 	// would abort once 2/3 of the frames failed to decode and leave the
 	// stream unfinished, so decode errors never end a transcode.
-	args := []string{"-hide_banner", "-loglevel", "warning", "-nostdin", "-y", "-max_error_rate", "1"}
+	args = []string{"-hide_banner", "-loglevel", "warning", "-nostdin", "-y", "-max_error_rate", "1"}
 	plan := s.tools.Plan(sp.Quality)
 	if sp.Preset != "" && plan.Name == "libx264" && len(sp.Quality.VideoArgs) == 0 {
 		q := sp.Quality
 		q.Preset = sp.Preset
 		plan = s.tools.Plan(q)
 	}
+	outHeight := sp.Height
+	if sp.MaxHeight > 0 && (outHeight == 0 || sp.MaxHeight < outHeight) {
+		outHeight = sp.MaxHeight
+	}
+	decThreads, encThreads := ffmpeg.StreamThreads(outHeight)
+	if ownThreads(sp.Quality) {
+		encThreads = 0 // the expert options say, and FFmpeg would warn about two
+	}
 	if !sp.CopyVideo {
 		args = append(args, plan.InputArgs...)
 		if plan.Name == "h264_nvenc" {
 			args = append(args, "-hwaccel", "auto")
+		}
+		if decThreads > 0 { // the first input's decoder: the picture's
+			args = append(args, "-threads", strconv.Itoa(decThreads))
 		}
 	}
 	if sp.Growing {
@@ -1093,7 +1142,9 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 			vf = append(vf, sp.VideoFilter)
 		}
 		vf = append(vf, "scale=trunc(iw*sar/2)*2:ih") // H.264 refuses an odd width, and widescreen NTSC comes to 853
-		if sp.MaxHeight > 0 {
+		if sp.ToneMap != "" {
+			vf = append(vf, ffmpeg.ToneMapTo(sp.ToneMap, sp.MaxHeight)) // which also brings it down to size
+		} else if sp.MaxHeight > 0 {
 			vf = append(vf, fmt.Sprintf("scale=-2:'min(ih,%d)'", sp.MaxHeight))
 		}
 		if sp.HoldLastFrame {
@@ -1123,6 +1174,9 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		}
 		enc := plan.Name
 		args = append(args, "-c:v", enc)
+		if enc == "libx264" && encThreads > 0 {
+			args = append(args, "-threads", strconv.Itoa(encThreads)) // before the expert options, which may set their own
+		}
 		args = append(args, plan.Args...)
 		if rate := firstNonEmpty(sp.VideoBitrate, sp.Quality.MaxRate); rate != "" && len(sp.Quality.VideoArgs) == 0 && sp.Quality.CapRate == "" {
 			args = append(args, "-maxrate", rate, "-bufsize", rate)
@@ -1175,7 +1229,7 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		"-f", "hls",
 		"-hls_time", strconv.FormatFloat(sp.SegmentSec, 'f', 3, 64),
 	)
-	dir := s.Dir
+	dir = s.Dir
 	if sp.FMP4 {
 		// FFmpeg writes the init segment relative to where it runs, whatever
 		// the other paths say, so it runs in the stream's folder.
@@ -1204,34 +1258,16 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		"-hls_segment_filename", filepath.Join(dir, "seg%05d"+s.SegmentExt()),
 		filepath.Join(dir, fmt.Sprintf("ffmpeg-%d.m3u8", fromSeg)),
 	)
-	cmd := ffmpeg.Command(context.Background(), s.tools.FFmpeg, args...)
-	if sp.FMP4 {
-		cmd.Dir = dir
-	}
-	j := &job{startSeg: fromSeg, cmd: cmd, done: make(chan struct{})}
-	j.lastSeg.Store(int64(fromSeg) - 1)
-	cmd.Stderr = &j.stderr
-	cmdline := ffmpeg.RedactArgs(args)
-	encoder := plan.Name
+	encoder = plan.Name
 	if sp.CopyVideo {
 		encoder = "copy"
 	}
-	s.log.Info("transcode started", "segment", fromSeg, "encoder", encoder, "height", sp.MaxHeight)
-	s.log.Debug("ffmpeg command", "args", cmdline)
-	started := time.Now()
-	if err := cmd.Start(); err != nil {
-		s.log.Error("ffmpeg could not start", "reason", logging.ExitReason(err), "err", err, "args", cmdline)
-		return nil, err
-	}
-	s.job = j
-	logID := s.logID
-	logging.Go("ffmpeg wait", func() {
-		j.err = cmd.Wait()
-		close(j.done)
-		logging.ChildExit(s.logger(), "ffmpeg", j.err, j.stopped.Load(), &j.stderr, started, "segment", fromSeg, "args", cmdline)
-	}, "cat", "transcode", "session", logID)
-	logging.Go("ffmpeg watch", func() { s.watch(j) }, "cat", "transcode", "session", logID)
-	return j, nil
+	return args, encoder, dir
+}
+
+// ownThreads: the expert options set libx264's threads themselves.
+func ownThreads(q ffmpeg.Quality) bool {
+	return slices.Contains(q.VideoArgs, "-threads") || slices.Contains(q.OutputArgs, "-threads")
 }
 
 // Hole is a stretch of an input's clock that the stream leaves out: whatever the

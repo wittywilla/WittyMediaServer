@@ -348,3 +348,27 @@ func TestTunerChannelLogoChoiceAndCredits(t *testing.T) {
 		t.Errorf("found by name: %s", w.Body)
 	}
 }
+
+// The guided setup's two questions: a check that can't be read is refused, and a test of a
+// tuner that isn't there says so rather than tuning anything.
+func TestTunerCheckAndTestAnswers(t *testing.T) {
+	h, admin, _, _ := tvServer(t)
+	if w := tvCall(h, "POST", "/api/tuners/check", admin, "not json"); w.Code != 400 {
+		t.Errorf("unreadable check: %d %s", w.Code, w.Body)
+	}
+	if w := tvCall(h, "POST", "/api/tuners/9/test", admin, "{}"); w.Code != 404 {
+		t.Errorf("test of a tuner that isn't there: %d %s", w.Code, w.Body)
+	}
+	if w := tvCall(h, "POST", "/api/tuners/x/test", admin, "{}"); w.Code != 400 {
+		t.Errorf("bad id: %d", w.Code)
+	}
+	// A playlist file elsewhere on the server is refused before anything is asked of WittyTuner.
+	w := tvCall(h, "POST", "/api/tuners/check", admin, `{"driver":"iptv","name":"x","options":{"playlist":"/nowhere/at/all.m3u"}}`)
+	var got struct {
+		OK      bool           `json:"ok"`
+		Problem livetv.Problem `json:"problem"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil || w.Code != 200 || got.OK || got.Problem.Kind != "settings" {
+		t.Errorf("%d %s", w.Code, w.Body)
+	}
+}

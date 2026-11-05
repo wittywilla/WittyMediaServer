@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { Spinner } from '../components/common'
 import { IconDownload, IconRefresh } from '../icons'
@@ -8,7 +8,7 @@ import Bundle from './settings/logs/Bundle'
 import Crashes, { CrashBanner } from './settings/logs/Crashes'
 import Files from './settings/logs/Files'
 import LogModules from './settings/logs/LogModules'
-import type { Health, LogsView } from './settings/logs/types'
+import type { Crash, Health, LogsView } from './settings/logs/types'
 import Viewer from './settings/logs/Viewer'
 import WhatToLog from './settings/logs/WhatToLog'
 import './settings/logs/logs.css'
@@ -42,6 +42,8 @@ export default function LogSettings() {
   const [view, setView] = useState<LogsView | null>(null)
   const [health, setHealth] = useState<Health | null>(null)
   const [err, setErr] = useState('')
+  const [saving, setSaving] = useState(false)
+  const navigate = useNavigate()
   const asked = params.get('tab') || ''
   const tab = params.get('session') || params.get('module') ? 'viewer' : TABS.some((t) => t.id === asked) ? asked : 'viewer'
 
@@ -75,6 +77,16 @@ export default function LogSettings() {
   if (!view) return <Spinner />
   const problems = health ? healthProblems(health) : []
   const stopRecording = () => { api.put<LogsView>('/logs', { recordMinutes: 0 }).then(onView).catch((e) => toast(e.message)) }
+  // "Something just went wrong": keep the last minutes before they're gone.
+  const saveNow = async () => {
+    setSaving(true)
+    try {
+      const c = await api.post<Crash>('/logs/save')
+      await load()
+      toast('Saved. It’s under Crash reports, and in the logs you download.')
+      navigate(`?tab=crashes&crash=${encodeURIComponent(c.id)}`)
+    } catch (e: any) { toast(e.message) } finally { setSaving(false) }
+  }
   return (
     <>
       <CrashBanner crashes={view.crashes} onSeen={markSeen} />
@@ -106,6 +118,10 @@ export default function LogSettings() {
           <Link className="btn sm" to="?tab=bundle"><IconDownload /> Download logs as ZIP</Link>
         </p>
       )}
+      <p className="lg-dl-row">
+        <span>{view.flight ? 'Something just went wrong? Keep the last 10 minutes, in full detail, before they’re gone.' : 'Something just went wrong? Keep what every part of the server is doing right now.'}</span>
+        <button type="button" className="btn sm" disabled={saving} onClick={() => void saveNow()}>{saving ? 'Saving…' : 'Save what just happened'}</button>
+      </p>
       {tab === 'viewer' && <Viewer categories={view.categories} modules={view.modules} onHealth={onHealth} />}
       {tab === 'levels' && <WhatToLog view={view} onView={onView} />}
       {tab === 'modules' && <LogModules view={view} onView={onView} />}

@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"syscall"
@@ -106,6 +107,7 @@ func cmdServe(args []string) int {
 	defer logs.Close()
 	log := slog.New(logs.Handler())
 	slog.SetDefault(log)
+	logs.SetFlightRecorder(true) // from the first line; Settings may turn it off once they're read
 	if h := logs.Health(); h.Error != "" {
 		log.Error("the log folder can't be used: messages stay in memory until it can", "dir", cfg.LogDir, "err", h.Error)
 	}
@@ -214,6 +216,7 @@ func cmdServe(args []string) int {
 		return library.ParseAgents(database.GetSetting(context.Background(), "agents", ""))
 	}
 	scanner.SaveMeta = func() bool { return database.GetSetting(context.Background(), "saveMetadata", "1") == "1" }
+	scanner.NoPoster = func() string { return database.GetSetting(context.Background(), "noPoster", library.NoPosterFrame) }
 	gamemeta.UserAgent = "WittyMediaServer/" + version + " (https://github.com/wittywilla/WittyMediaServer)"
 	gameMeta := library.NewGameMeta(store, cfg.ImagesDir, cfg.CacheDir, log)
 	gameMeta.SaveMeta, gameMeta.Save = scanner.SaveMeta, scanner.SaveItemMetadata
@@ -239,7 +242,7 @@ func cmdServe(args []string) int {
 	update.Cleanup(progDir)
 	layout.Current().ClearObsolete()
 	protect := []string{cfg.DataDir, cfg.CacheDir, cfg.TranscodeDir, cfg.ImagesDir, cfg.LogDir, cfg.ConfigFile, logs.Dir()}
-	updater := update.New(version, progDir, protect, library.SafeClient.Transport, log)
+	updater := update.New(version, progDir, protect, logging.Calls(library.SafeClient.Transport, "update", "updates"), log)
 	updater.LoadWithdrawals(filepath.Join(cfg.DataDir, "update-withdrawn.json"))
 	// An installer for a copy that can't replace its own files waits here for the admin to run it.
 	updater.DownloadDir = filepath.Join(cfg.CacheDir, "updates")
@@ -268,7 +271,7 @@ func cmdServe(args []string) int {
 			}
 			return nil
 		},
-		Transport: library.SafeClient.Transport, Log: log, Launcher: modulesLauncher(), LogEnv: logs.ModuleEnv,
+		Transport: logging.Calls(library.SafeClient.Transport, "modules", "modules"), Log: log, Launcher: modulesLauncher(), LogEnv: logs.ModuleEnv,
 		CheckEnabled: func() bool {
 			ctx := context.Background()
 			v := database.GetSetting(ctx, "moduleUpdateCheck", "")
@@ -284,7 +287,7 @@ func cmdServe(args []string) int {
 		},
 	})
 	defer modMgr.Close()
-	modStores := modules.NewStores(modules.StoresConfig{Manager: modMgr, Dir: filepath.Join(cfg.DataDir, "modules"), Transport: library.SafeClient.Transport, Log: log, CheckEnabled: modMgr.CheckEnabled})
+	modStores := modules.NewStores(modules.StoresConfig{Manager: modMgr, Dir: filepath.Join(cfg.DataDir, "modules"), Transport: logging.Calls(library.SafeClient.Transport, "modules", "module store"), Log: log, CheckEnabled: modMgr.CheckEnabled})
 	library.SetPhotoEngine(photoengine.PhotoEngine{M: modMgr})
 	livetv.SetEngine(modules.Tuners{M: modMgr})
 	cd.Open = modules.CDs{M: modMgr}.Open
@@ -319,6 +322,7 @@ func cmdServe(args []string) int {
 		}
 	}
 	handler := srv.Handler()
+	srv.ApplyEvidenceSettings(context.Background())
 	srv.StartMetadata()
 	httpServer := &http.Server{
 		Addr:              cfg.Listen,
@@ -419,6 +423,8 @@ func cmdServe(args []string) int {
 		}
 	}()
 	go gameMeta.Run(ctx)
+	// When the server stops answering, write down what it was doing: see internal/logging/hang.go.
+	logging.StartWatchdog(ctx, log, srv.WatchChecks(selfURL(ln.Addr()))...)
 	go func() {
 		// Windows asks a service to stop this way: it has no signals to send.
 		select {
@@ -486,6 +492,7 @@ func cmdServe(args []string) int {
 			stopLine = append(stopLine, "by", st.By)
 		}
 		log.Warn("stopping", append(stopLine, srv.RunningNow()...)...)
+		logging.NoteStopping() // a stop while it wasn't answering keeps what it was doing
 		hlsMgr.StopAllLive()
 		hlsMgr.StopAll()
 		if srv.TV != nil {
@@ -561,6 +568,19 @@ func listenURL(addr string) string {
 		host = "localhost"
 	}
 	return "http://" + net.JoinHostPort(host, port)
+}
+
+// selfURL is how this machine reaches the server's own port, for the watchdog.
+func selfURL(a net.Addr) string {
+	t, ok := a.(*net.TCPAddr)
+	if !ok {
+		return "http://127.0.0.1"
+	}
+	ip := t.IP
+	if ip == nil || ip.IsUnspecified() {
+		ip = net.IPv4(127, 0, 0, 1)
+	}
+	return "http://" + net.JoinHostPort(ip.String(), strconv.Itoa(t.Port))
 }
 
 func parseLevelName(v string) (slog.Level, bool) {

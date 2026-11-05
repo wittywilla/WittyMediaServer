@@ -8,7 +8,8 @@
 #   APPLE_APP_IDENTITY        "Developer ID Application: ..." signs the apps and every helper
 #   APPLE_INSTALLER_IDENTITY  "Developer ID Installer: ..." signs the .pkg
 #   APPLE_NOTARY_PROFILE      a stored notarytool profile; also staples the ticket on
-# Without them the .pkg is unsigned: people have to right-click it and choose Open.
+# Without them the apps are signed ad hoc and the .pkg isn't signed: people have to
+# right-click it and choose Open.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -29,14 +30,9 @@ printf '{"product":"WittyMediaServer","kind":"pkg"}\n' > "$root/Applications/Wit
 ln -s /Applications/WittyMediaServer.app/Contents/Helpers/wittymediaserver "$root/usr/local/bin/wittymediaserver"
 chmod +x "$root/Applications/WittyMediaServer.app/Contents/Helpers/"* "$root/Applications/WittyMediaServer.app/Contents/MacOS/"*
 
-if [ -n "${APPLE_APP_IDENTITY:-}" ]; then
-  # From the inside out, each with the hardened runtime notarising asks for.
-  for f in "$root/Applications/WittyMediaServer.app/Contents/Helpers/"*; do
-    codesign --force --options runtime --timestamp --sign "$APPLE_APP_IDENTITY" "$f"
-  done
-  codesign --force --options runtime --timestamp --sign "$APPLE_APP_IDENTITY" "$root/Applications/WittyMediaServer.app"
-  codesign --force --options runtime --timestamp --sign "$APPLE_APP_IDENTITY" "$root/Applications/Uninstall WittyMediaServer.app"
-fi
+# Signed again here, as package-info.json changed what the app's signature covers. Ad hoc
+# without APPLE_APP_IDENTITY, which Local Network privacy still needs.
+packaging/macos/sign-app.sh "$root/Applications" "${APPLE_APP_IDENTITY:--}"
 
 # Two parts, so the service can be left out from the installer's Customize button.
 pkgbuild --root "$root" --identifier com.wittywilla.wittymediaserver.app --version "$NUMERIC" \

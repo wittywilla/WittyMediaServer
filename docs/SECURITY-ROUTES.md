@@ -581,6 +581,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/diagnose/jobs/{id}` | Admin | Job exists |
 | `GET /api/diagnose/jobs/{id}/report` | Admin | Job exists. Format, redaction |
 | `GET /api/guide/search` | Signed-in | Channels the account may watch, and limits on what they show. 2 to 100 letters, up to two weeks ahead. A few searches at a time |
+| `GET /api/time` | Signed-in | Nothing: the server's clock |
 | `GET /api/tv/favourites` | Signed-in | own |
 | `PUT /api/tv/favourites/{key}` | Signed-in | own. A channel the account may watch. A limit per account |
 | `DELETE /api/tv/favourites/{key}` | Signed-in | own. A channel the account may watch |

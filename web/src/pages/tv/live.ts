@@ -19,8 +19,10 @@ export type Live = {
   key: string; info: TuneInfo | null; url: string | null; err: string
   // The stream is attached (ready) and has shown a picture (playing).
   ready: boolean; playing: boolean
+  // The viewer paused or went back, so live sync leaves this player be until Back to live.
+  away: boolean
 }
-const IDLE: Live = { key: '', info: null, url: null, err: '', ready: false, playing: false }
+const IDLE: Live = { key: '', info: null, url: null, err: '', ready: false, playing: false, away: false }
 
 let live = IDLE
 const viewer = makeViewer()

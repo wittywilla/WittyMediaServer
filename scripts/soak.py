@@ -144,7 +144,7 @@ class Threaded(socketserver.ThreadingMixIn, http.server.HTTPServer):
 # ---------------------------------------------------------------- media for a run without the demo media
 
 def make_media(root, ffmpeg):
-    """A small library made with FFmpeg's own test pictures and tones: three 1080p films, an
+    """A small library made with FFmpeg's own test pictures and tones: three five-minute 1080p films, an
     album of songs with tags, and a show. Enough to soak on a machine without the demo media."""
     def ff(*a):
         subprocess.run([ffmpeg, "-hide_banner", "-loglevel", "error", "-nostdin", "-y", *a], check=True)
@@ -154,7 +154,7 @@ def make_media(root, ffmpeg):
         os.makedirs(d, exist_ok=True)
         out = os.path.join(d, name + ".mkv")
         if not os.path.exists(out):
-            ff("-f", "lavfi", "-t", "600", "-i", "%s=s=1920x1080:r=24" % src, "-f", "lavfi", "-t", "600", "-i", "sine=f=%d" % (220 + 110 * i),
+            ff("-f", "lavfi", "-t", "300", "-i", "%s=s=1920x1080:r=24" % src, "-f", "lavfi", "-t", "300", "-i", "sine=f=%d" % (220 + 110 * i),
                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "30", "-c:a", "aac", "-shortest", out)
     album = os.path.join(root, "Music", "Test Artist", "Test Album")
     os.makedirs(album, exist_ok=True)
@@ -168,7 +168,7 @@ def make_media(root, ffmpeg):
     for i in range(1, 7):
         out = os.path.join(show, "Test Show - S01E%02d.mkv" % i)
         if not os.path.exists(out):
-            ff("-f", "lavfi", "-t", "300", "-i", "testsrc=s=1280x720:r=24", "-f", "lavfi", "-t", "300", "-i", "sine=f=%d" % (300 + 50 * i),
+            ff("-f", "lavfi", "-t", "120", "-i", "testsrc=s=1280x720:r=24", "-f", "lavfi", "-t", "120", "-i", "sine=f=%d" % (300 + 50 * i),
                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "32", "-c:a", "aac", "-shortest", out)
 
 # ---------------------------------------------------------------- what is happening

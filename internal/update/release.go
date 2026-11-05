@@ -56,9 +56,10 @@ type Release struct {
 	Page       string
 	Published  time.Time
 	Prerelease bool
-	Archive    Asset // the package for this OS and architecture
-	Sums       Asset // wittymediaserver-<version>-SHA256SUMS.txt
-	Sig        Asset // its .sig
+	Archive    Asset            // the package for this OS and architecture
+	Sums       Asset            // wittymediaserver-<version>-SHA256SUMS.txt
+	Sig        Asset            // its .sig
+	Assets     map[string]Asset // every file, by name (the installers among them)
 }
 
 // Signed: the release carries a checksum list and its signature.
@@ -132,10 +133,11 @@ func latest(rels []ghRelease, current, goos, goarch string, withdrawn *wittymodu
 		if (stable && (g.Prerelease || strings.Contains(ver, "-"))) || (withdrawn != nil && withdrawn.Find(ver) != nil) {
 			continue
 		}
-		r := &Release{Version: ver, Title: g.Name, Notes: g.Body, Page: g.HTMLURL, Published: g.PublishedAt, Prerelease: g.Prerelease}
+		r := &Release{Version: ver, Title: g.Name, Notes: g.Body, Page: g.HTMLURL, Published: g.PublishedAt, Prerelease: g.Prerelease, Assets: map[string]Asset{}}
 		want := ArchiveName(ver, goos, goarch)
 		for _, a := range g.Assets {
 			as := Asset{Name: a.Name, URL: a.URL, Size: a.Size}
+			r.Assets[a.Name] = as
 			switch a.Name {
 			case want:
 				r.Archive = as

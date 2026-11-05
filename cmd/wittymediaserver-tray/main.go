@@ -73,7 +73,10 @@ type launcher struct {
 	startedAt time.Time
 	fails     int
 
-	mStatus, mOpen, mToggle, mRestart, mData, mLog, mAuto, mAbout, mQuit *systray.MenuItem
+	// update is a newer version the server found, which the menu offers.
+	update string
+
+	mStatus, mUpdate, mOpen, mToggle, mRestart, mData, mLog, mAuto, mAbout, mQuit *systray.MenuItem
 
 	// mRemote says who can connect, in the server's own words (GET /api/remote/status).
 	mRemote     *systray.MenuItem
@@ -196,6 +199,8 @@ func (l *launcher) onReady() {
 	l.mStatus.Disable()
 	l.mRemote = systray.AddMenuItem("Remote Access", "Who can connect, and from where. Click to change it.")
 	l.mRemote.Hide()
+	l.mUpdate = systray.AddMenuItem("Update WittyMediaServer…", "See what's new and how to update")
+	l.mUpdate.Hide()
 	systray.AddSeparator()
 	l.mOpen = systray.AddMenuItem("Open WittyMediaServer", "Open the web app in your browser")
 	l.mToggle = systray.AddMenuItem("Stop server", "")
@@ -236,6 +241,8 @@ func (l *launcher) loop() {
 			openURL(l.currentURL())
 		case <-l.mRemote.ClickedCh:
 			openURL(l.currentURL() + "/settings/remote")
+		case <-l.mUpdate.ClickedCh:
+			openURL(l.currentURL() + "/settings/about#updates")
 		case <-l.mToggle.ClickedCh:
 			if l.isRunning() {
 				l.want(false)
@@ -554,35 +561,35 @@ func (l *launcher) health() {
 		l.mu.Lock()
 		attached := l.attached
 		l.mu.Unlock()
+		newer := ""
+		if attached || l.isRunning() {
+			ok, newer = l.ask(c)
+		}
+		l.showRemote(c, ok)
+		l.mu.Lock()
+		if newer != l.update {
+			l.update = newer
+			l.showUpdate()
+		}
 		if attached {
-			l.mu.Lock()
-			listen, last := l.listen, l.seen
-			l.mu.Unlock()
-			seen, ok := answering(listen, last)
-			l.mu.Lock()
-			changed := ok != l.healthy || (ok && seen != l.seen)
-			l.healthy = ok
-			if ok {
-				l.seen = seen
+			// Not where it was: a background service may have moved to another port.
+			if !ok {
+				listen := l.listen
+				l.mu.Unlock()
+				seen, found := answering(listen, "")
+				l.mu.Lock()
+				if found {
+					l.seen, ok = seen, true
+				}
 			}
+			changed := ok != l.healthy
+			l.healthy = ok
 			if changed {
 				l.refreshLocked()
 			}
 			l.mu.Unlock()
-			l.showRemote(c, ok)
 			continue
 		}
-		if l.isRunning() {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			req, _ := http.NewRequestWithContext(ctx, "GET", l.currentURL()+"/api/health", nil)
-			if res, err := c.Do(req); err == nil {
-				res.Body.Close()
-				ok = res.StatusCode == 200
-			}
-			cancel()
-		}
-		l.showRemote(c, ok)
-		l.mu.Lock()
 		changed := ok != l.healthy
 		l.healthy = ok
 		if ok {
@@ -637,6 +644,37 @@ func readRemote(c *http.Client, base string) (subject, summary string, err error
 		return "", "", fmt.Errorf("no subject")
 	}
 	return v.Subject, v.Summary, nil
+}
+
+// ask asks the server whether it's answering, and whether it has found a newer version: it
+// says so only to a program on its own computer.
+func (l *launcher) ask(c *http.Client) (ok bool, newer string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(ctx, "GET", l.currentURL()+"/api/health", nil)
+	res, err := c.Do(req)
+	if err != nil {
+		return false, ""
+	}
+	defer res.Body.Close()
+	var h struct {
+		Update string `json:"update"`
+	}
+	_ = json.NewDecoder(io.LimitReader(res.Body, 4096)).Decode(&h)
+	if !update.Valid(h.Update) {
+		h.Update = ""
+	}
+	return res.StatusCode == http.StatusOK, h.Update
+}
+
+// showUpdate puts a newer version in the menu, or takes it out. Call with l.mu held.
+func (l *launcher) showUpdate() {
+	if l.update == "" {
+		l.mUpdate.Hide()
+		return
+	}
+	l.mUpdate.SetTitle("Update to " + l.update + "…")
+	l.mUpdate.Show()
 }
 
 func (l *launcher) refresh() {

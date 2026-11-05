@@ -9205,6 +9205,27 @@
       },
       "UpdateInfo": {
         "properties": {
+          "changes": {
+            "items": {
+              "properties": {
+                "notes": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "notes",
+                "version"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "notes": {
             "type": "string"
           },
@@ -9261,6 +9282,46 @@
           "error": {
             "type": "string"
           },
+          "image": {
+            "type": "string"
+          },
+          "installer": {
+            "anyOf": [
+              {
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  },
+                  "done": {
+                    "type": "integer"
+                  },
+                  "error": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "phase": {
+                    "type": "string"
+                  },
+                  "size": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "name",
+                  "size"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "latest": {
             "anyOf": [
               {
@@ -9270,6 +9331,9 @@
                 "type": "null"
               }
             ]
+          },
+          "method": {
+            "type": "string"
           },
           "page": {
             "type": "string"
@@ -34508,6 +34572,65 @@
           }
         ],
         "summary": "Look for a new version now.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/update/installer": {
+      "get": {
+        "operationId": "getUpdateInstaller",
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The installer file."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The checked installer, to save on the device in use.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postUpdateInstaller",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download the installer for this system and check it against the release's signed checksums, for a copy that can't replace its own files.",
         "tags": [
           "Server"
         ],

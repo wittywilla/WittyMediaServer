@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { fmtDateTime, api, type Library } from '../api'
+import { api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { SettingsHelp } from '../components/HelpLink'
 import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common'
@@ -26,7 +26,8 @@ import './settings/settings.css'
 import LegalNote from '../components/LegalNote'
 import { ask, Dialog } from '../ui/Overlay'
 import { Segmented } from '../ui/Choice'
-import { WebLink } from '../components/WebLink'
+import { UpdateBanner } from '../components/UpdateBanner'
+import { Updates } from './settings/Updates'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const ModuleStore = lazy(() => import('./settings/store/ModuleStore'))
@@ -168,6 +169,7 @@ export default function SettingsPage() {
             <button type="button" className="btn icon" aria-label="Dismiss this notice" title="Dismiss" onClick={dismissCrashes}><IconClose /></button>
           </div>
         )}
+        {slug !== 'about' && <UpdateBanner />}
         <Routes>
           <Route index element={narrow ? null : <Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
           <Route path="libraries" element={<Libraries />} />
@@ -488,6 +490,7 @@ function About() {
             <div><dt>Built with</dt><dd>{sys.go}</dd></div>
             <div className="wide"><dt>Data folder</dt><dd className="mono">{sys.dataDir}</dd></div>
             <div className="wide"><dt>FFmpeg</dt><dd className="mono">{sys.ffmpegInfo}</dd></div>
+            {sys.smartAppControl && <div className="wide"><dt>Windows Smart App Control</dt><dd>{sys.smartAppControl}. <Link to="/help/troubleshooting#smart-app-control-on-windows">What this means</Link></dd></div>}
           </dl>
         </Section>
       )}
@@ -519,132 +522,4 @@ function About() {
       </Section>
     </>
   )
-}
-
-// ------------------------------------------------------------------ updates
-
-type UpdateInfo = { version: string; title: string; notes: string; url: string; published?: number; prerelease: boolean; signed: boolean; size: number }
-type UpdateStatus = {
-  current: string; latest?: UpdateInfo; checkedAt?: number; checkError?: string; withdrawn?: string
-  phase: 'idle' | 'downloading' | 'verifying' | 'installing' | 'restarting' | 'failed'
-  done?: number; total?: number; error?: string; canApply: boolean; reason?: string; page: string
-}
-const ACTIVE = ['downloading', 'verifying', 'installing', 'restarting']
-const mb = (n = 0) => (n / 1048576).toFixed(n < 10485760 ? 1 : 0)
-
-// Updates: what is installed, what GitHub has, and installing it with one
-// click. The server verifies the release's signature and checksum, swaps
-// the program's files (never the data) and restarts; this card follows
-// along and reloads the page once the new version answers.
-function Updates() {
-  const { setUpdate } = useApp()
-  const [st, setSt] = useState<UpdateStatus | null>(null)
-  const [auto, setAuto] = useState(true)
-  const [checking, setChecking] = useState(false)
-  const [slow, setSlow] = useState(false) // the server has not come back yet
-  const from = useRef('')
-  const show = (n: UpdateStatus) => { setSt(n); setUpdate(n.latest?.version || '') }
-  useEffect(() => {
-    api.get<UpdateStatus>('/update').then(show).catch((e) => toast(e.message))
-    api.get<Record<string, string>>('/settings').then((s) => setAuto(s.updateCheck !== '0')).catch(() => {})
-  }, [])
-
-  // While installing: follow the progress, then wait for the new version.
-  const active = !!st && ACTIVE.includes(st.phase)
-  useEffect(() => {
-    if (!active || !st) return
-    if (!from.current) from.current = st.current
-    const started = Date.now()
-    const t = setInterval(async () => {
-      try {
-        const n = await api.get<UpdateStatus>('/update')
-        if (n.current !== from.current) { window.location.reload(); return } // the new version is running
-        setSt(n)
-      } catch {
-        setSt((s) => s && { ...s, phase: 'restarting' }) // unreachable while it restarts
-      }
-      setSlow(Date.now() - started > 3 * 60_000)
-    }, 1000)
-    return () => clearInterval(t)
-  }, [active])
-
-  const check = async () => {
-    setChecking(true)
-    try {
-      const n = await api.post<UpdateStatus>('/update/check')
-      show(n)
-      if (n.checkError) toast(n.checkError)
-      else if (!n.latest) toast('You have the newest version')
-    } catch (e: any) { toast(e.message) } finally { setChecking(false) }
-  }
-  const apply = async () => {
-    if (!st?.latest || !await ask({ title: `Install WittyMediaServer ${st.latest.version}?`, body: 'The server restarts, which pauses anything playing for a moment. Your library and settings are kept.', confirm: 'Install and restart' })) return
-    try { from.current = st.current; setSt(await api.post<UpdateStatus>('/update/apply')) } catch (e: any) { toast(e.message) }
-  }
-  const setAutoCheck = async (v: boolean) => {
-    setAuto(v)
-    try { await api.put('/settings', { updateCheck: v ? '1' : '0' }) } catch (e: any) { setAuto(!v); toast(e.message) }
-  }
-
-  const l = st?.latest
-  return (
-    <Section title="Updates" desc="New versions of WittyMediaServer are published on GitHub. Each one is signed, and this server installs only releases whose signature and checksum it can verify."
-      actions={<button className="btn ghost sm" onClick={check} disabled={checking || active}><IconRefresh /> {checking ? 'Checking…' : 'Check now'}</button>}>
-      <Row label="Installed version" desc={st?.checkedAt ? `Last checked ${fmtDateTime(st.checkedAt)}` : 'Not checked yet'}>
-        <span className="mod-ver">{st?.current || '…'}</span>
-      </Row>
-      {st?.withdrawn && <p className="upd-msg warn" role="alert">This version was withdrawn by the project: {st.withdrawn}. Update as soon as a newer one is offered.</p>}
-      {st?.checkError && <p className="upd-msg warn">The last check didn’t work: {st.checkError}</p>}
-      {st && !l && !st.checkError && !!st.checkedAt && <p className="upd-msg">You have the newest version.</p>}
-      {st && l && (
-        <div className="upd-new">
-          <div className="upd-head">
-            <div>
-              <b>{l.title || `Version ${l.version}`}</b>
-              <span className="muted">Version {l.version}{l.prerelease && ' · pre-release'}{l.published ? ` · ${new Date(l.published).toLocaleDateString()}` : ''}{l.size ? ` · ${mb(l.size)} MB` : ''}</span>
-            </div>
-            {st.canApply && !active && <button className="btn primary sm" onClick={apply}>Update now</button>}
-          </div>
-          {l.notes && <ReleaseNotes text={l.notes} />}
-          <WebLink href={l.url || st.page}>Release page on GitHub ›</WebLink>
-          {!st.canApply && st.reason && <p className="upd-msg">{st.reason}</p>}
-        </div>
-      )}
-      {st && st.phase !== 'idle' && (
-        <div className={'upd-progress' + (st.phase === 'failed' ? ' failed' : '')} role="status" aria-live="polite">
-          {st.phase === 'downloading' && <>
-            <span>Downloading… {mb(st.done)}{st.total ? ` of ${mb(st.total)}` : ''} MB</span>
-            <progress max={st.total || undefined} value={st.total ? st.done || 0 : undefined} />
-          </>}
-          {st.phase === 'verifying' && <span>Checking the signature and checksum…</span>}
-          {st.phase === 'installing' && <span>Installing the new files…</span>}
-          {st.phase === 'restarting' && <span>{slow
-            ? 'The server hasn’t come back yet. If it doesn’t, start WittyMediaServer again (tray icon or Start menu); the new version is installed.'
-            : 'Restarting… this page reloads by itself when the new version is running.'}</span>}
-          {st.phase === 'failed' && <span>The update didn’t install, and the server keeps running the version it has: {st.error}</span>}
-        </div>
-      )}
-      <Row label="Check for updates automatically" desc="Twice a day the server asks GitHub for its list of releases and shows a dot on Settings when there is a newer one. Nothing about you or your library is sent, and nothing installs without you.">
-        <Switch checked={auto} onChange={setAutoCheck} label="Check for updates automatically" />
-      </Row>
-    </Section>
-  )
-}
-
-// ReleaseNotes shows the release's Markdown as text with headings and
-// bullet points; no HTML from the release is ever rendered.
-function ReleaseNotes({ text }: { text: string }) {
-  const blocks: React.ReactNode[] = []
-  let items: string[] = []
-  const flush = () => { if (items.length) { blocks.push(<ul key={blocks.length}>{items.map((t, i) => <li key={i}>{t}</li>)}</ul>); items = [] } }
-  for (const raw of text.replace(/\r/g, '').split('\n')) {
-    const line = raw.trim().replace(/\*\*|__|`/g, '')
-    if (/^[-*+] /.test(line)) { items.push(line.slice(2)); continue }
-    flush()
-    if (!line) continue
-    if (line.startsWith('#')) blocks.push(<b key={blocks.length} className="upd-h">{line.replace(/^#+\s*/, '')}</b>)
-    else blocks.push(<p key={blocks.length}>{line}</p>)
-  }
-  flush()
-  return <div className="upd-notes">{blocks}</div>
 }

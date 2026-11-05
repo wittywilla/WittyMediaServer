@@ -124,7 +124,22 @@ Start with [If it won't play](PLAYING.md#if-it-wont-play) for anything to do wit
 | **Settings → Network says the port is set somewhere else** | `-listen`, `WMS_LISTEN` or `listen` in `wms.json` win over Settings, and the page says which and where. Remove it to choose the port in Settings. In Docker, change the published port in `docker-compose.yml` instead |
 | **A line of settings.ini was skipped** | The page and the log name the file and line. A port is a number from 1 to 65535, written `port = 8096`. Everything else on that line after `#` is a note |
 | **An app can't find the server after the port changed** | Apps that find it on the home network catch up by themselves. One set up by typing an address needs the new port: `192.168.1.20:8096` |
-| **Windows blocks the installer or the program** | Alpha builds aren't code-signed yet. Choose *More info*, then *Run anyway*. See [Installing](INSTALL.md) |
+| **Windows blocks the installer or the program** | Alpha builds aren't code-signed yet. If SmartScreen says "Windows protected your PC", choose *More info*, then *Run anyway*. If Smart App Control blocks it, see [Smart App Control on Windows](#smart-app-control-on-windows) |
+
+## Smart App Control on Windows
+
+Smart App Control is part of Windows 11's security: when it's on, Windows runs only programs and libraries that are signed by a publisher it trusts, or that Microsoft already knows. There's no way to allow one program, and **once it's turned off, Windows can't turn it on again without being reinstalled**. So we never ask you to turn it off, and you shouldn't need to.
+
+WittyMediaServer's programs aren't signed yet, so today Windows blocks them, the installer included, on a PC where it's on. Signed releases are being prepared. **Settings → About → This server** says whether it's on, and so does the [diagnoser](DIAGNOSER.md).
+
+| What you're seeing | What it means |
+|---|---|
+| **"Smart App Control is on, and … isn't signed by a publisher Windows trusts", installing a module** | Nothing was installed. WittyMediaServer's own modules will come signed. For a module from another store, ask its publisher for a signed build |
+| **"Smart App Control blocked …", starting a module** | Windows refused the module's program. Install a signed version when there is one |
+| **"… in this core isn't signed", installing a game core** | Game cores come unsigned from libretro's build server, so games can't start on this PC yet. Signed cores are planned |
+| **Smart App Control is in evaluation** | Windows is watching which programs run, and will turn it on or off by itself. It blocks nothing yet |
+
+To see whether a file is signed: right-click it in File Explorer, choose **Properties**, and look for a **Digital Signatures** tab. If it isn't there, the file isn't signed.
 
 ## Starting again
 

@@ -239,6 +239,9 @@ func cmdServe(args []string) int {
 	protect := []string{cfg.DataDir, cfg.CacheDir, cfg.TranscodeDir, cfg.ImagesDir, cfg.LogDir, cfg.ConfigFile, logs.Dir()}
 	updater := update.New(version, progDir, protect, library.SafeClient.Transport, log)
 	updater.LoadWithdrawals(filepath.Join(cfg.DataDir, "update-withdrawn.json"))
+	// An installer for a copy that can't replace its own files waits here for the admin to run it.
+	updater.DownloadDir = filepath.Join(cfg.CacheDir, "updates")
+	updater.CleanDownloads()
 	restartReq := make(chan struct{}, 1)
 	updater.Restart = func() {
 		select {

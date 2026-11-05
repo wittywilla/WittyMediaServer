@@ -1208,6 +1208,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /items/{id}/poster` | user, `st` | Poster image. For games, `w=320` (up to 640) asks for a smaller copy, for lists. |
 | `GET /items/{id}/backdrop` | user, `st` | Backdrop image (the poster if it has none). |
 | `GET /items/{id}/artwork` | admin | Artwork to choose from. |
+| `GET /artwork/credits` | Signed in | Each poster or backdrop from Wikimedia Commons on a title the account may see: its page, licence and author, as the licences ask. |
 | `GET /artwork/preview` | admin | One artwork candidate as an image. |
 | `GET /items/{id}/recommend` | user | What to watch when this ends and there is no next episode: an `item`, with its `show` for a series. |
 | `GET /shows` | user | List and filter shows. |

@@ -995,8 +995,9 @@ func (s *Scanner) lookUpItem(ctx context.Context, it *Item, lib *Library, only s
 		if err := t.Enrich(ctx, it); err != nil {
 			s.minorFailure(ctx, "metadata lookup failed", err, "source", "tmdb", "title", it.Title)
 		}
-	} else if key == "" && movieLike && (lib.Type == "movies" || lib.Type == "discs") && it.Overview == "" && (s.WikidataOn == nil || s.WikidataOn()) && (only == "" || only == "auto" || only == "wikidata") {
-		// No TMDB key: basic facts and the rating from Wikidata (no key needed).
+	} else if key == "" && movieLike && (lib.Type == "movies" || lib.Type == "discs") && (it.Overview == "" || it.Poster == "") && (s.WikidataOn == nil || s.WikidataOn()) && (only == "" || only == "auto" || only == "wikidata") {
+		// No TMDB key: basic facts and the rating from Wikidata (no key needed), and a free poster from
+		// Wikimedia Commons where the film has one.
 		if err := (&Wikidata{}).Enrich(ctx, it); err != nil {
 			s.minorFailure(ctx, "metadata lookup failed", err, "source", "wikidata", "title", it.Title)
 		}

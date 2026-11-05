@@ -17,10 +17,12 @@ import (
 // year, genres, the US rating (so parental controls work) and a short plot
 // from the film's English Wikipedia article. No key is needed. Wikidata is
 // public domain (CC0); Wikipedia text is CC BY-SA 4.0 and credited in the
-// app. Posters are not taken from there (they are copyrighted).
+// app. A poster comes only from Wikimedia Commons, where a film has a free one,
+// credited with its licence and author (commons_posters.go).
 type Wikidata struct {
-	Client *http.Client
-	API    string // tests
+	Client     *http.Client
+	API        string // tests
+	CommonsAPI string // tests
 }
 
 const wikiUA = "WittyMediaServer/0.4 (https://github.com/wittywilla/WittyMediaServer)"
@@ -117,7 +119,7 @@ func (w *Wikidata) entities(ctx context.Context, ids []string, props string) (ma
 		Entities map[string]wdEntity `json:"entities"`
 	}
 	q := url.Values{"action": {"wbgetentities"}, "ids": {strings.Join(ids, "|")}, "props": {props}, "languages": {"en"}, "sitefilter": {"enwiki"}, "format": {"json"}}
-	err := w.get(ctx, "https://www.wikidata.org/w/api.php?"+q.Encode(), &res)
+	err := w.get(ctx, w.api()+"?"+q.Encode(), &res)
 	return res.Entities, err
 }
 
@@ -131,16 +133,26 @@ func (w *Wikidata) Enrich(ctx context.Context, it *Item) error {
 		} `json:"search"`
 	}
 	q := url.Values{"action": {"wbsearchentities"}, "search": {it.Title}, "language": {"en"}, "type": {"item"}, "limit": {"10"}, "format": {"json"}}
-	if err := w.get(ctx, "https://www.wikidata.org/w/api.php?"+q.Encode(), &search); err != nil {
+	if err := w.get(ctx, w.api()+"?"+q.Encode(), &search); err != nil {
 		return err
 	}
 	var cands []string
+	byText := false // found by the full-text search, which finds series too
 	for _, r := range search.Search {
 		d := strings.ToLower(r.Description)
 		if (strings.Contains(d, "film") || strings.Contains(d, "movie")) &&
 			!containsAny(d, "series", "franchise", "trilogy", "soundtrack", "character", "festival", "studio", "company", "book") {
 			cands = append(cands, r.ID)
 		}
+	}
+	if len(cands) == 0 {
+		// A name that doesn't start the way the film's entry does, such as "The Cabinet of Dr Caligari" for
+		// "The Cabinet of Dr. Caligari": everything films are called is searched instead.
+		ids, err := w.searchTextIDs(ctx, it.Title)
+		if err != nil {
+			return err
+		}
+		cands, byText = ids, true
 	}
 	if len(cands) == 0 {
 		return ErrNotFound
@@ -157,11 +169,10 @@ func (w *Wikidata) Enrich(ctx context.Context, it *Item) error {
 		if !ok {
 			continue
 		}
-		year := 0
-		if c := e.Claims[wdPublication]; len(c) > 0 {
-			year, _ = strconv.Atoi(firstN(c[0].Mainsnak.time(), 4))
+		if byText && !isA(e, wdFilm) {
+			continue
 		}
-		if it.Year == nil || (year != 0 && abs(year-*it.Year) <= 1) {
+		if it.Year == nil || releasedNear(e, *it.Year) {
 			best = &e
 			break
 		}
@@ -235,10 +246,34 @@ func (w *Wikidata) Enrich(ctx context.Context, it *Item) error {
 			it.Overview = best.Descriptions["en"].Value
 		}
 	}
+	if it.Poster == "" {
+		it.Poster = w.commonsPoster(ctx, *best)
+	}
 	if it.Provider == "" {
 		it.Provider, it.ProviderID = "wikidata", best.ID
 	}
 	return nil
+}
+
+// isA: whether an entity is an instance of this kind of thing.
+func isA(e wdEntity, kind string) bool {
+	for _, c := range e.Claims[wdInstanceOf] {
+		if c.Mainsnak.itemID() == kind {
+			return true
+		}
+	}
+	return false
+}
+
+// releasedNear: whether any of a film's release dates is within a year of this one. A film can have several:
+// Plan 9 from Outer Space's first is its premiere in 1957, and a file names 1959, when it came out.
+func releasedNear(e wdEntity, year int) bool {
+	for _, c := range e.Claims[wdPublication] {
+		if y, err := strconv.Atoi(firstN(c.Mainsnak.time(), 4)); err == nil && y != 0 && abs(y-year) <= 1 {
+			return true
+		}
+	}
+	return false
 }
 
 func firstN(s string, n int) string {

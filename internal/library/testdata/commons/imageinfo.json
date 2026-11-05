@@ -1,0 +1,42 @@
+{
+ "query": {
+  "pages": {
+   "1094204": {
+    "pageid": 1094204,
+    "title": "File:CABINETOFDRCALIGARI-poster.jpg",
+    "imageinfo": [
+     {
+      "thumburl": "https://upload.wikimedia.org/wikipedia/commons/7/74/CABINETOFDRCALIGARI-poster.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "descriptionurl": "https://commons.wikimedia.org/wiki/File:CABINETOFDRCALIGARI-poster.jpg",
+      "extmetadata": {
+       "Artist": {
+        "value": "Unknown author<span style=\"display: none;\">Unknown author</span>"
+       },
+       "LicenseShortName": {
+        "value": "Public domain"
+       }
+      }
+     }
+    ]
+   },
+   "6034321": {
+    "pageid": 6034321,
+    "title": "File:Plan nine from outer space.jpg",
+    "imageinfo": [
+     {
+      "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Plan_nine_from_outer_space.jpg/500px-Plan_nine_from_outer_space.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "descriptionurl": "https://commons.wikimedia.org/wiki/File:Plan_nine_from_outer_space.jpg",
+      "extmetadata": {
+       "Artist": {
+        "value": "Distributors Corporation of America"
+       },
+       "LicenseShortName": {
+        "value": "Public domain"
+       }
+      }
+     }
+    ]
+   }
+  }
+ }
+}

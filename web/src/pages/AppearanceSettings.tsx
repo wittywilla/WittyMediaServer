@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { IconDownload, IconPlus } from '../icons'
 import { api, getToken, mediaUrl, serverBase } from '../api'
 import BrandDialog, { uploadLogo } from '../components/BrandDialog'
@@ -16,7 +16,7 @@ import { ask } from '../ui/Overlay'
 import { Notice } from '../ui/Surface'
 import { makeTheme, themeColors, themeCss, type MakerInput } from '../ui/themeMaker'
 import { tiltBlocked } from '../ui/tilt'
-import { getTenFoot, setTenFoot } from '../ui/tenFoot'
+import { setTvMode, useTvMode } from '../tvmode/mode'
 import { useUserPref } from '../ui/userPrefs'
 import { jumpTo } from './settings/jump'
 import { Row, Section } from './settings/ui'
@@ -257,15 +257,16 @@ function LayoutSection() {
 // Moving posters, and this screen's distance from the sofa.
 function MotionSection() {
   const [tilt, setTilt] = useUserPref('posterTilt', true)
-  const [ten, setTen] = useState(getTenFoot)
+  const tv = useTvMode()
+  const go = useNavigate()
   const blocked = tiltBlocked()
   return (
     <Section title="Motion and big screens">
       <Row label="Moving posters" desc={<>Movie and show posters lean toward the pointer, or settle in as a remote reaches them. {blocked ? `Off here: ${blocked}` : 'Follows you to your other devices.'}</>}>
         <Switch label="Moving posters" checked={tilt && !blocked} disabled={!!blocked} onChange={(on) => setTilt(on).catch(() => toast('Could not save that', { tone: 'danger' }))} />
       </Row>
-      <Row label="Big screen mode" desc="Larger text and a stronger focus outline, for a TV across the room. This device only.">
-        <Switch label="Big screen mode" checked={ten} onChange={(on) => { setTenFoot(on); setTen(on) }} />
+      <Row label="TV mode" desc="Laid out and driven like the Apple TV and Android TV apps, with a remote or a controller, for a screen across the room. Only on this device.">
+        <Switch label="TV mode" checked={tv} onChange={(on) => { setTvMode(on); if (on) go('/') }} />
       </Row>
     </Section>
   )

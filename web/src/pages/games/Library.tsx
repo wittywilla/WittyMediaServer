@@ -325,7 +325,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
       const pad = !e.isTrusted
       const itemOf = () => Number((document.activeElement as HTMLElement | null)?.closest?.('[data-gm-item]')?.getAttribute('data-gm-item') || (document.activeElement as HTMLElement | null)?.getAttribute?.('data-gm-flow') || 0)
       if (e.key === 'PageUp' || e.key === 'PageDown') { e.preventDefault(); sectionJump(e.key === 'PageUp' ? -1 : 1) }
-      else if (pad && e.key === ' ') { e.preventDefault(); search.current?.focus(); if (links.couch) nav('/big/search') }
+      else if (pad && e.key === ' ') { e.preventDefault(); search.current?.focus(); if (links.couch) nav(links.search || '/big/search') }
       else if ((pad && e.key === 'm') || (!pad && e.key === 'f')) { const id = itemOf(); if (id) { e.preventDefault(); void toggleFav(id) } }
       else if (pad && e.key === 't') { e.preventDefault(); cycleSort() }
       else if (pad && e.key === 'ContextMenu' && !links.couch) { e.preventDefault(); setCouchOn(true); nav('/big') }

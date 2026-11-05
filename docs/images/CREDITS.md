@@ -12,7 +12,6 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `anime.webp` | An Anime library. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `audiobook-page.webp` | An audiobook's page. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `audiobooks.webp` | Audiobooks, public-domain readings credited in [the list](CREDITS.md). |
-| `big-screen.webp` | The big-screen view. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `bluray-item.webp` | A Blu-ray image's page. [Sita Sings the Blues](https://archive.org/details/SitaSingsTheBlues_201812), Nina Paley, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
 | `bluray-menu.webp` | A Blu-ray image, in a browser. [Sita Sings the Blues](https://archive.org/details/SitaSingsTheBlues_201812), Nina Paley, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
 | `bluray-refused.webp` | A copy-protected pressing gets a plain message, and nothing unlocks it. [Big Buck Bunny](https://peach.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), from a disc pressed by Imagion AG. |
@@ -121,6 +120,7 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `theme-light-home.webp` | The Light theme. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `theme-midnight-home.webp` | The Midnight theme. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `theme-paper-movies.webp` | The Paper theme. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
+| `tv-mode.webp` | TV mode's Libraries. No media is pictured. |
 | `tv-show-page.webp` | A show's page. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `tv-shows.webp` | A TV shows library. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `wittytv-bigpicture.webp` | The Big picture look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |

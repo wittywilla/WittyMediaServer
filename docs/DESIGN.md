@@ -391,8 +391,15 @@ and radii are multiples of the theme's `radius`.
 - **Back always works**: every view has a way out with the Back button.
 
 In the web app these apply through `html.using-controller` (a controller in use), `@media (pointer:
-none)` (a device with no pointer) and `html.ten-foot` (*Big screen mode* in Appearance, or `?tv=1` in the
-address, which keeps them on).
+none)` (a device with no pointer) and `html.ten-foot` (TV mode, and couch mode).
+
+**TV mode** (`html.tv-mode`: Appearance, the account menu, or `?tv=1`) goes further: the app as the Apple TV
+and Android TV apps are, from WittyMediaClient's `docs/APP-DESIGN.md`, On a TV. Its own frame and screens are in
+`web/src/tvmode/`, every size in TV units (`--tvu`, a point on a 1920×1080 TV), and with it off nothing of it
+reaches the page. [plans/TV-MODE.md](plans/TV-MODE.md) is its contract. Two attributes are for it and work anywhere:
+`data-nav-entry="selector"` on a group says where focus lands when it's entered from outside (the top bar: the
+chosen tab), and `data-keep-focus` on a bar keeps the focus on it when one of its links changes the page.
+`data-tv-options` marks a page's options, which a controller's Start opens in TV mode.
 
 ## Keeping it fast
 

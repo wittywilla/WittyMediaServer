@@ -1,10 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { api, cornerName, profileName } from '../api'
-import { IconDownload, IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
+import { IconDownload, IconFull, IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
 import { Avatar } from '../pages/AuthPage'
 import { UpdateDot } from '../components/common'
 import { useApp } from '../state'
 import { Menu, type MenuEntry } from '../ui/Menu'
+import { setTvMode } from '../tvmode/mode'
 
 // Signing out, which is also how a profile is switched: back to "Who's watching?".
 export function useSignOut() {
@@ -16,10 +17,13 @@ export function useSignOut() {
 // What the account menu holds, in the top bar's corner.
 function useAccount() {
   const { user, libraries, update } = useApp()
+  const nav = useNavigate()
   const signOut = useSignOut()
   const items: MenuEntry[] = [
     { key: 'year', label: 'Your year', icon: <IconStar />, to: '/review' },
     { key: 'look', label: 'Appearance', icon: <IconPalette />, to: '/settings/appearance' },
+    // The Apple TV and Android TV layout, for a screen across the room.
+    { key: 'tvmode', label: 'TV mode', icon: <IconFull />, onSelect: () => { setTvMode(true); nav('/') } },
     ...(libraries.some((l) => l.type === 'games') ? [{ key: 'pads', label: 'Controllers', icon: <IconGamepad />, to: '/controllers' }] : []),
     { key: 'settings', label: <>Settings<UpdateDot /></>, text: 'Settings', icon: <IconSettings />, to: '/settings' },
     // Admins only: a newer version of the server, and the way to it.

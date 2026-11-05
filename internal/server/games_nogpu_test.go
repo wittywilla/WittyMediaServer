@@ -469,3 +469,43 @@ func TestAMacCardDrawsOnlyWhatItDrawsRight(t *testing.T) {
 		t.Errorf("psp on the card: %+v", a)
 	}
 }
+
+// On a Mac whose runner can use the graphics card, PlayStation 2 plays on Play!, on the card,
+// where nobody chose a core: LRPS2 comes first, but can't use a Mac's card, and its processor
+// drawing couldn't keep a Gran Turismo 4 race at full speed. Someone who chose LRPS2 keeps it.
+func TestAMacCardPlaysPS2OnPlay(t *testing.T) {
+	modtest.Need(t, "wittyplay")
+	t.Cleanup(func() { hostOS = runtime.GOOS })
+	hostOS = "darwin"
+	t.Setenv("WMS_WITTYPLAY_RUNNER", filepath.Join(t.TempDir(), "no-such-runner"))
+	g := newGameServer(t)
+	setGPU(g, stream.GPUProbe{Name: "Apple M3 Pro"})
+	placeCores(t, g, "pcsx2", "play")
+	bios := filepath.Join(g.s.games().systemDir(), "pcsx2", "bios", "SCPH-39001_USA.BIN")
+	if err := os.MkdirAll(filepath.Dir(bios), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(bios, make([]byte, 4<<20), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	it := addGame(t, g, "ps2", gameFile(t, "Game.iso", fixture.PS2("SLUS_123.45")))
+
+	a := checkGame(t, g, it.ID)
+	if !a.Ready || a.Software || !a.NeedsGPU || a.Core == nil || a.Core.ID != "play" {
+		t.Fatalf("check: %+v", a)
+	}
+	if c := consolesByID(t, g, g.admin)["ps2"]; !c.Ready || c.Software || c.Notice != "" {
+		t.Errorf("ps2 in the list: %+v", c)
+	}
+
+	// Chosen, LRPS2 plays, drawn by the processor, and says why.
+	if err := g.s.DB.SetSetting(context.Background(), "gamingCores", `{"ps2":"pcsx2"}`); err != nil {
+		t.Fatal(err)
+	}
+	if a := checkGame(t, g, it.ID); !a.Ready || !a.Software || a.Core == nil || a.Core.ID != "pcsx2" || a.Notice != cardFaultNotice() {
+		t.Errorf("chosen: %+v", a)
+	}
+	if c := consolesByID(t, g, g.admin)["ps2"]; !c.Software || c.Notice != cardFaultNotice() {
+		t.Errorf("chosen, in the list: %+v", c)
+	}
+}

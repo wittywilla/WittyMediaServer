@@ -145,7 +145,7 @@ func (c *loggedConn) QueryContext(ctx context.Context, query string, args []driv
 		}
 		return r, err
 	}
-	return &loggedRows{Rows: r, ctx: ctx, query: query, start: start}, nil
+	return newRows(ctx, r, query, start), nil
 }
 
 func (c *loggedConn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
@@ -246,7 +246,6 @@ func (s *loggedStmt) ExecContext(ctx context.Context, args []driver.NamedValue) 
 	var r driver.Result
 	var err error
 	if Trace != nil {
-		defer Trace(s.query, 0)
 		start := time.Now()
 		defer func() { Trace(s.query, time.Since(start)) }()
 	}
@@ -277,7 +276,7 @@ func (s *loggedStmt) QueryContext(ctx context.Context, args []driver.NamedValue)
 		report(ctx, "query", s.query, err)
 		return nil, err
 	}
-	return &loggedRows{Rows: r, ctx: ctx, query: s.query, start: start}, nil
+	return newRows(ctx, r, s.query, start), nil
 }
 
 // CheckNamedValue: database/sql asks a statement before its connection, so this
@@ -313,14 +312,25 @@ type loggedRows struct {
 	driver.Rows
 	ctx   context.Context
 	query string
-	start time.Time // for Trace
 }
 
-func (r *loggedRows) Close() error {
-	err := r.Rows.Close()
+func newRows(ctx context.Context, r driver.Rows, query string, start time.Time) driver.Rows {
 	if Trace != nil {
-		Trace(r.query, time.Since(r.start))
+		return &tracedRows{loggedRows{Rows: r, ctx: ctx, query: query}, start}
 	}
+	return &loggedRows{Rows: r, ctx: ctx, query: query}
+}
+
+// tracedRows tells Trace when its rows are closed. Only measuring builds have them, so
+// the others don't carry the start time.
+type tracedRows struct {
+	loggedRows
+	start time.Time
+}
+
+func (r *tracedRows) Close() error {
+	err := r.Rows.Close()
+	Trace(r.query, time.Since(r.start))
 	return err
 }
 

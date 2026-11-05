@@ -202,6 +202,17 @@ function firstOf(list: HTMLElement[], boxes: Map<HTMLElement, DOMRect>): HTMLEle
   return shown.find((el) => el.matches('[data-tv-first]')) || shown.find((el) => el.matches('.btn.primary') && onScreen(el)) || shown.find((el) => !typing(el) && !el.matches('select') && !el.closest('.hub-head, .mh-shelf-head') && onScreen(el)) || shown[0]
 }
 
+// Up with nothing above it, on the page itself: an app showing this page under a bar of its own (Android TV's
+// top bar over the guide) can't see that from outside, as the page has the arrows. So, as for Back, it says
+// where to send it, <html data-app-up="/address">, and the page goes there for the app to catch. Not from a
+// dialog, a menu or the player, whose arrows stay in them.
+function upToApp(target: Element | null, e: KeyboardEvent) {
+  const out = document.documentElement.dataset.appUp
+  if (!out || !target || target === document.body || scopeOf(target) !== document) return
+  e.preventDefault()
+  window.location.assign(out)
+}
+
 // focusFirst: for a page that has just arrived on a screen across the room, where a remote has
 // nothing to see until something has the focus.
 // A TV's web view gives focus to some link of its own choosing when it opens. That wasn't anyone's decision,
@@ -311,6 +322,7 @@ function onKey(e: KeyboardEvent) {
     }
     const left = move(dir)
     if (left || target?.tagName === 'SELECT') e.preventDefault()
+    else if (dir === 'up') upToApp(target, e)
     return
   }
   if (isBackKey(e) || (e.key === 'Backspace' && !typing(target))) {
@@ -360,8 +372,8 @@ let sinceFullRead = 0
 
 // The pads seen to report their D-pad on one axis (see gamepad.ts).
 const hatPads = new Set<string>()
-const onAndroid = /Android/.test(navigator.userAgent)
-const keysDown = (pads: readonly (Gamepad | null)[]) => padKeys(pads, { android: onAndroid, hats: hatPads })
+// Read each time, as it was before the mapping moved out: cheap, and a test can change it.
+const keysDown = (pads: readonly (Gamepad | null)[]) => padKeys(pads, { android: /Android/.test(navigator.userAgent), hats: hatPads })
 
 function poll() {
   const pads = navigator.getGamepads ? navigator.getGamepads() : []

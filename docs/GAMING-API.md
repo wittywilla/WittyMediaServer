@@ -19,7 +19,9 @@ states, so there is no emulator or game logic to write. The routes are in `inter
 4. `GET /games/{id}/saves` lists saved states. If slot 0 exists, offer Resume.
 5. `POST /games/{id}/play` with `{"resume": true}` or `{"resume": false}` starts it and answers the session,
    including `modes`.
-6. Connect with the first mode in `modes` you can use. The game starts once a viewer is connected.
+6. Connect with the first mode in `modes` you can use. The game starts once a viewer is connected. A mode with
+   `"stream": 2` takes **version 2 of the stream**, one route and the same messages for every device:
+   [the stream](GAMING-STREAM.md). New apps should use it; what follows here is version 1, which keeps working.
 7. Send controller states. Show a menu of your own for saving, loading and quitting.
 8. `DELETE /play/{sid}` saves and stops it. The answer comes once everything is written.
 
@@ -60,6 +62,8 @@ trip through the app switcher loses nothing.
 | `GET /play/{sid}` | owner | The session |
 | `POST /play/{sid}/webrtc` | owner | Connects over WebRTC. Body: `{"sdp": offer, "prefer": ""}`; answers `{"sdp": answer}` |
 | `GET /play/{sid}/ws?video=h264` | owner | Connects over a WebSocket; `video` is `h264` or `jpeg` |
+| `POST /play/{sid}/stream` | owner | Version 2: connects over WebRTC. Body `{"hello": {...}, "sdp": offer}`; answers `{"stream": {...}, "sdp": answer}`. [The stream](GAMING-STREAM.md) |
+| `GET /play/{sid}/stream` | owner | Version 2's WebSocket, the same messages: the hello first, as text |
 | `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}`, `{"type": "disc", "slot": n}` to change disc, from 0, in a game whose session says it has `discs` above 1, `{"type": "device", "port": n, "device": id}`. [More while a game is running](#while-a-game-is-running) |
 | `DELETE /play/{sid}` | owner | Saves and stops |
 | `GET /gaming`, `POST /gaming/cores/{id}/install`, `DELETE /gaming/cores/{id}`, `DELETE /gaming/unpacked` | admin | Server setup. An app can leave this to the web interface |
@@ -107,7 +111,8 @@ someone change it, send a `device` action. Anything the emulator didn't offer an
 
 `GET /games/modes?client=native` answers `{client, modes}`, and the session's `modes` is the same list: what you can use, best first. Use the first one
 you support, and move to the next if it doesn't show a picture within about 12 seconds. Ignore ids you don't
-know, because more may appear. A mode with `browserOnly` set is never listed for a native client, and leaving
+know, because more may appear. `"stream": 2` on a mode means it can be reached through version 2 of the stream,
+[one way for every device](GAMING-STREAM.md), which is what the web player uses. A mode with `browserOnly` set is never listed for a native client, and leaving
 out `client` counts as native. No such mode exists today.
 
 | `id` | Video | Audio | Input | Needs |

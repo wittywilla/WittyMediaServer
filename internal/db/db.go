@@ -529,6 +529,24 @@ func (d *DB) GetSetting(ctx context.Context, key, def string) string {
 	return v
 }
 
+// Settings is every setting saved, in one statement, for pages that show many at once.
+func (d *DB) Settings(ctx context.Context) (map[string]string, error) {
+	rows, err := d.QueryContext(ctx, `SELECT key, value FROM settings`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]string{}
+	for rows.Next() {
+		var k, v string
+		if err := rows.Scan(&k, &v); err != nil {
+			return nil, err
+		}
+		out[k] = v
+	}
+	return out, rows.Err()
+}
+
 func (d *DB) SetSetting(ctx context.Context, key, value string) error {
 	_, err := d.ExecContext(ctx, `INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key, value)
 	return err

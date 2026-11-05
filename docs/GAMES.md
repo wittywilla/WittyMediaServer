@@ -2,7 +2,7 @@
 
 Play your own console games in a browser or the app, with whatever controller you have. This guide takes you from a folder of games to playing, and covers saves, controllers, streaming and what to do when a game won't start.
 
-Games run on your server and stream to the device you're holding, so that device needs no emulator and no copy of the game. Saves stay on the server and follow your account. Playing on the device itself, with no server, isn't built.
+Games run on your server and stream to the device you're holding, so that device needs no emulator and no copy of the game. Saves stay on the server and follow your account. Games never run on the device itself: every one is played on the server.
 
 No games, BIOS files or cores come with WittyMediaServer. Games are yours to bring. This part of the app is the **WittyPlay** module. If it isn't on your server, the add-library screen offers to add it: see [Modules](MODULE-STORE.md).
 

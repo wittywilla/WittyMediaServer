@@ -31,9 +31,11 @@ services:
       # Mount your media read-only wherever you like; add them as library folders in the UI.
       - /path/to/movies:/media/movies:ro
       - /path/to/dvds:/media/dvds:ro
-    # Optional hardware transcoding:
+    # Optional hardware transcoding (docs/TRANSCODING.md#in-docker):
     # devices:
-    #   - /dev/dri:/dev/dri          # Intel/AMD VAAPI
+    #   - /dev/dri:/dev/dri          # Intel/AMD: VAAPI and Quick Sync
+    # group_add:
+    #   - "105"                      # the group that owns /dev/dri/renderD128 on the host: ls -ln /dev/dri
     # deploy:
     #   resources:
     #     reservations:

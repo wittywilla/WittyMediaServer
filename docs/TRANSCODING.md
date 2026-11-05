@@ -60,7 +60,7 @@ Your graphics chip can convert video for a fraction of the processor work, which
 | **Intel Quick Sync** | Intel CPUs with built-in graphics, and Intel Arc, on Windows and Linux |
 | **Apple VideoToolbox** | Macs. This has not been run on a real Mac yet |
 | **AMD AMF** | Radeon cards and Ryzen APUs, on Windows |
-| **VAAPI** | Intel and AMD graphics on Linux, through `/dev/dri/renderD128`. FreeBSD also tries it, and it has not been run there |
+| **VAAPI** | Intel and AMD graphics on Linux, through the first render node in `/dev/dri` that the server can open, Intel's or AMD's before any other. FreeBSD also tries it, and it has not been run there |
 
 1. Go to **Settings → Live transcoding → Hardware encoders**.
 2. Tick the ones you want. The first that works, in the order above, is used. With none ticked, it's all software.
@@ -70,12 +70,47 @@ Each is tested when the server starts, and the page says what it found:
 
 | What it says | What it means |
 |---|---|
-| **Working on this machine** | Ready to tick |
-| **Not found on this machine** | FFmpeg has it, and your hardware or driver doesn't. Hover over it for the reason |
+| **Working on this machine** | Ready to tick. On Linux it names the device, such as `/dev/dri/renderD128` |
+| **A reason in plain words** | Such as *isn't in group 105, which owns /dev/dri/renderD128*, or *the VA-API driver for this graphics chip isn't installed*, with what to do about it |
+| **Not found on this machine** | FFmpeg has it, and your hardware or driver doesn't. Hover over it for FFmpeg's own message |
 | **Not included in this FFmpeg build** | Your FFmpeg wasn't built with it |
 | **Not supported on this operating system** | Such as VideoToolbox on Linux |
 
-**In Docker,** pass the graphics chip into the container: `--device /dev/dri` for VAAPI and Quick Sync, or `--gpus all` with the NVIDIA container toolkit for NVENC.
+On Linux and FreeBSD, **Graphics devices found** below the list shows each device in `/dev/dri` (and NVIDIA's `/dev/nvidia0`), who owns it, and whether the server can open it. An encoder with no device it could use isn't test-run at all, which saves a few seconds of work on a small machine. The log says the same at each start, under `transcode`: `graphics device found` or `graphics device can't be used`, with the fix.
+
+The same check from the command line, with the server running or not:
+
+```sh
+wittymediaserver hardware
+docker exec wittymediaserver wittymediaserver hardware   # in a container
+```
+
+It lists the devices and encoders, says what to change for any it can't use, and exits with 0 when at least one hardware encoder works.
+
+### Linux: the render group
+
+The server's user has to be allowed to open the render node. Most Linux systems give it to the `render` group (some use `video`):
+
+```sh
+ls -ln /dev/dri          # the fourth column is the group's number, such as 105
+sudo usermod -aG render wittymediaserver   # the user the service runs as; then restart it
+```
+
+### In Docker
+
+Three things have to be right, and the server says which one isn't:
+
+1. **The device is passed in:** `devices: - /dev/dri:/dev/dri` in the compose file (`--device /dev/dri` with `docker run`). As a volume it can be seen and not used.
+2. **The container's user may open it:** add the number of the group that owns `/dev/dri/renderD128` *on the host* with `group_add`. A container's own `/etc/group` doesn't know the host's render group, so use its number from `ls -ln /dev/dri`:
+
+   ```yaml
+       group_add:
+         - "105"     # the group's number from ls -ln /dev/dri on the host
+   ```
+
+3. **The drivers are in the image.** The image from `ghcr.io/wittywilla/wittymediaserver` has Intel's and AMD's VA-API drivers and Intel's Quick Sync runtime on amd64. NVIDIA's come from the host: install the NVIDIA Container Toolkit and start the container with `gpus: all` (or `--gpus all`).
+
+`docker exec wittymediaserver vainfo --display drm --device /dev/dri/renderD128` shows what the driver can do, on amd64.
 
 ## Quality modes
 

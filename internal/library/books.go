@@ -244,6 +244,9 @@ const maxCoverPixels = "100000000"
 
 // coverFromBytes makes a cover from a picture that's already in memory.
 func (s *Scanner) coverFromBytes(ctx context.Context, img []byte, ext, out string) error {
+	if err := os.MkdirAll(s.ImagesDir, 0o755); err != nil {
+		return err
+	}
 	tmp, err := os.CreateTemp(s.ImagesDir, "cover-*"+ext)
 	if err != nil {
 		return err
@@ -269,6 +272,9 @@ func (s *Scanner) makeCover(ctx context.Context, archive, entry, out string) err
 		return err
 	}
 	defer f.Close()
+	if err := os.MkdirAll(s.ImagesDir, 0o755); err != nil {
+		return err
+	}
 	tmp, err := os.CreateTemp(s.ImagesDir, "cover-*"+path.Ext(entry))
 	if err != nil {
 		return err

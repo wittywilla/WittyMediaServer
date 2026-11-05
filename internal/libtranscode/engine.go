@@ -657,7 +657,10 @@ func (e *Engine) convertAll(ctx context.Context, run int64, lib *library.Library
 		}
 		return nil
 	}
-	s := LoadSettings(ctx, e.DB)
+	s, err := readSettings(ctx, e.DB)
+	if err != nil {
+		return fmt.Errorf("couldn't read the transcoding settings, so nothing was converted: %w", err)
+	}
 	env := e.Env(ctx)
 	totalInt := int64(max(total, 1))
 	var doneSec atomic.Int64 // thousandths of a second, finished work
@@ -716,7 +719,7 @@ func (e *Engine) convertAll(ctx context.Context, run int64, lib *library.Library
 		}
 		return nil
 	}
-	err := send(todo)
+	err = send(todo)
 	close(jobs)
 	wg.Wait()
 	if err == nil {
@@ -1023,7 +1026,9 @@ func (e *Engine) encode(ctx context.Context, f *part, s Settings, t *tasks.Handl
 	stop()
 	<-watcherDone
 	logging.ChildExit(e.Log, "ffmpeg", err, errors.Is(ctx.Err(), context.Canceled), &stderr, started, "file", f.src.Path)
-	if nr := why.Load(); nr != nil {
+	// The watcher can look at the drive a moment after FFmpeg has finished: a file that came out
+	// whole wasn't stopped, whatever it found.
+	if nr := why.Load(); nr != nil && err != nil {
 		return nr
 	}
 	if err != nil {
@@ -1048,6 +1053,9 @@ func (e *Engine) watch(ctx context.Context, cmd *exec.Cmd, f *part, t *tasks.Han
 			}
 			return
 		case <-tick.C:
+			if ctx.Err() != nil {
+				continue // it has ended, and the case above sees to that
+			}
 		}
 		s = settingsNow(ctx, e.DB, s)
 		words := e.holdWords(s)

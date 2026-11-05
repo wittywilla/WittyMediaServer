@@ -8,7 +8,7 @@ Every repository's README ends with a **Legal** section: no affiliation, no warr
 
 ## The list
 
-Every one in this list is on GitHub under its final name, so none of them needs creating, renaming or deleting; two more are [to make](#to-make). All but WittyMediaRemoteMedia have local history that hasn't been pushed: [Publishing the modules](MODULES-CUTOVER.md) has the steps. WittyStats and WittyModuleCatalog are still empty there.
+Every one in this list is on GitHub under its final name, with its history, so none of them needs creating, renaming or deleting. More are [to make](#to-make).
 
 | Repository | What it's for |
 |---|---|
@@ -35,16 +35,18 @@ Every one in this list is on GitHub under its final name, so none of them needs 
 | WittyReader | The standalone reader app |
 | WittyMediaPlayer | The standalone desktop player |
 | WittyMediaClient | The client apps for desktop, Android, Apple and others |
-| WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app. Empty, and has no local copy: work not started. The roadmap is the only thing that names it |
+| WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app. Only a README, and no local copy: work not started. The roadmap is the only thing that names it |
 
 ### To make
 
-Two core libraries planned in [Modules that stand on their own](plans/module-isolation.md#core-libraries), so code the server and a module share has a home of its own. Steps are in [#105](https://github.com/wittywilla/WittyMediaServer/issues/105).
+The owner makes these, as below. A chat never creates a repository.
 
 | Repository | What it's for |
 |---|---|
-| WittyBroadcast | Reading MPEG transport streams and XMLTV guides, including the check that refuses scrambled channels. Built with by WittyTuner and the server. **Apache-2.0** |
-| WittyGameCore | What a game file is, the region order, reading game archives safely, game metadata sources, and the sandbox a game runner puts itself in. Built with by WittyPlay and the server. **Apache-2.0** |
+| wittymediaserver.com | The project's website as plain files, built and kept at `D:\projects\wittymediaserver.com` with local commits only. See [the website plan](plans/WEBSITE.md) |
+| .github | Issue forms and settings GitHub uses for every repository that has none of its own. Steps are in [#114](https://github.com/wittywilla/WittyMediaServer/issues/114) |
+| WittyBroadcast | Reading MPEG transport streams and XMLTV guides, including the check that refuses scrambled channels. Built with by WittyTuner and the server. **Apache-2.0**. A core library from [Modules that stand on their own](plans/module-isolation.md#core-libraries); steps in [#105](https://github.com/wittywilla/WittyMediaServer/issues/105) |
+| WittyGameCore | What a game file is, the region order, reading game archives safely, game metadata sources, and the sandbox a game runner puts itself in. Built with by WittyPlay and the server. **Apache-2.0**. A core library, as above; steps in [#105](https://github.com/wittywilla/WittyMediaServer/issues/105) |
 
 **A new one on GitHub:** make it under `wittywilla`, as **Public**, with no README, `.gitignore` or licence.
 
@@ -54,7 +56,7 @@ Each desktop product makes its own installers, with the same rules for names and
 
 ### The server needs almost none of them
 
-A build of the server needs only WittyModule. Until its new version is published, point at a checkout of it, once in each checkout of the server. This writes a `go.work` that git ignores:
+A build of the server needs only WittyModule and the core libraries `go.mod` names (WittyDisc), never a module. Until a new version of one is published, point at a checkout of it, once in each checkout of the server. This writes a `go.work` that git ignores:
 
 ```bash
 node scripts/dev-modules.mjs WittyModule=D:/projects/WittyModule

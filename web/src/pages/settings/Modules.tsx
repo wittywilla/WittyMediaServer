@@ -659,13 +659,10 @@ function VersionRow({ v, working, onChoose }: { v: VersionInfo; working: boolean
       {v.withdrawn && <p className="ms-bad">Withdrawn {severity(v.withdrawn.severity)}: {v.withdrawn.reason}</p>}
       {v.refused && !/withdrawn/i.test(v.refused) && <p className="ms-why">Can’t be chosen: {v.refused}</p>}
       {v.blocked && !v.withdrawn && <p className="ms-why">Taken out of use before: {v.blocked}</p>}
-      {v.notes && (
-        <details className="ms-more">
-          <summary>Release notes</summary>
-          {/* Plain text on purpose: they must never become markup. */}
-          <div className="ms-notes">{v.notes}</div>
-        </details>
-      )}
+      <details className="ms-more">
+        <summary>Release notes</summary>
+        <ChangeNotes text={v.notes} />
+      </details>
     </li>
   )
 }

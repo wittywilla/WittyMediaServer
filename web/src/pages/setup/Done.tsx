@@ -84,7 +84,7 @@ export function Done({ steps, onFinish }: { steps: StepInfo[]; onFinish: (to?: s
           <IconPlug size={22} />
           <b>Also here when you want them</b>
           <span><b>Library transcoding</b> converts your files ahead of time, so they play anywhere without the server working as hard. It rewrites your files, so it stays off until you turn it on in Settings, Library transcoding.</span>
-          <span><b>TV channels</b> are made from your libraries in one press, in Settings, Channels &amp; tuners, once they’ve been scanned.</span>
+          <span><b>TV channels</b> are made from your libraries in one press, on the guide’s Channels page (<b>Edit channels</b>), once they’ve been scanned.</span>
         </div>
       </div>
       {addKids && <AddProfile admin initialKind="kids" onClose={() => setAddKids(false)} onDone={() => { setAddKids(false); setKidsAdded(true) }} />}

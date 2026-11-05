@@ -297,7 +297,16 @@ func (u *Updater) Apply() error {
 	logging.Go("update", func() {
 		ctx, cancel := context.WithTimeout(logging.WithSession(context.Background(), session), time.Hour)
 		defer cancel()
-		err := u.install(ctx, &rel)
+		err := func() (err error) {
+			// A fault ends it as failed: otherwise it stays busy, and no try can follow.
+			defer func() {
+				if p := recover(); p != nil {
+					logging.ReportPanic("update", p, "cat", "update", "session", session)
+					err = fmt.Errorf("the update stopped on a fault in the server (%v)", p)
+				}
+			}()
+			return u.install(ctx, &rel)
+		}()
 		u.mu.Lock()
 		u.busy = false
 		if err != nil {

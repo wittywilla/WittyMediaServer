@@ -159,7 +159,7 @@ The plan: give the shared code a home in a few **core libraries**, each a Go mod
 
 | Server | Module | Difference |
 |---|---|---|
-| `internal/isofs/isofs.go` | `WittyDisc/isofs/isofs.go` | None |
+| `internal/isofs/isofs.go` | `WittyDisc/isofs/isofs.go` | None. Gone since [#124](https://github.com/wittywilla/WittyMediaServer/pull/124): the server builds with WittyDisc's |
 | `internal/tuner/xmltv/xmltv.go` | `WittyTuner/xmltv/xmltv.go` | None |
 | `internal/cdlookup/cdlookup.go` | `WittyCD/lookup/lookup.go` | 12 lines (its package name, and `cd.TOC` from the server's copy of types) |
 | `internal/play/hostsandbox/*` | `WittyPlay/hostsandbox/*` | 22 lines in `sandbox.go`; the module has FreeBSD and macOS limits the server's copy lacks |
@@ -291,8 +291,8 @@ One issue per move, in the repository it lands in. Moves into the two new librar
 
 | # | Move | Where | Issue |
 |---|---|---|---|
-| 1 | A test that the packages meant to leave import nothing else of the server, so they stay movable | WittyMediaServer | [#103](https://github.com/wittywilla/WittyMediaServer/issues/103) |
-| 2 | The server reads disc images with WittyDisc's `isofs` (the same code) and deletes its copy; the release check allows core libraries | WittyMediaServer | [#104](https://github.com/wittywilla/WittyMediaServer/issues/104) |
+| 1 | A test that the packages meant to leave import nothing else of the server, so they stay movable | WittyMediaServer | [#103](https://github.com/wittywilla/WittyMediaServer/issues/103): **done**, [#117](https://github.com/wittywilla/WittyMediaServer/pull/117) |
+| 2 | The server reads disc images with WittyDisc's `isofs` (the same code) and deletes its copy; the release check allows core libraries | WittyMediaServer | [#104](https://github.com/wittywilla/WittyMediaServer/issues/104): **done**, [#124](https://github.com/wittywilla/WittyMediaServer/pull/124) |
 | 3 | The owner makes the WittyBroadcast and WittyGameCore repositories | WittyMediaServer (owner step) | [#105](https://github.com/wittywilla/WittyMediaServer/issues/105) |
 
 **For 0.8.0-alpha**, once those land:

@@ -345,7 +345,7 @@ func (s *Server) handleTunerChannels(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]tunerChannelView, 0, len(list))
 	for _, c := range list {
-		out = append(out, viewTunerChannel(c))
+		out = append(out, s.viewTunerChannel(r, c))
 	}
 	writeJSON(w, 200, out)
 }
@@ -353,13 +353,14 @@ func (s *Server) handleTunerChannels(w http.ResponseWriter, r *http.Request) {
 // tunerChannelView is a tuner channel for its settings page: as it's stored, with what it wears.
 type tunerChannelView struct {
 	*livetv.Channel
-	LogoURL string        `json:"logoUrl,omitempty"`
-	Brand   *channelBrand `json:"brand,omitempty"`
+	LogoURL   string        `json:"logoUrl,omitempty"`
+	Brand     *channelBrand `json:"brand,omitempty"`
+	CanRecord bool          `json:"canRecord"`
 }
 
-func viewTunerChannel(c *livetv.Channel) tunerChannelView {
+func (s *Server) viewTunerChannel(r *http.Request, c *livetv.Channel) tunerChannelView {
 	u, b := tunerLogo(c)
-	return tunerChannelView{c, u, b}
+	return tunerChannelView{c, u, b, s.canRecord(r, c)}
 }
 
 func (s *Server) handleEnableAllChannels(w http.ResponseWriter, r *http.Request) {
@@ -415,7 +416,7 @@ func (s *Server) handleEditTunerChannel(w http.ResponseWriter, r *http.Request) 
 		}
 		forgetTunerLogosNoted(s)
 	}
-	writeJSON(w, 200, viewTunerChannel(c))
+	writeJSON(w, 200, s.viewTunerChannel(r, c))
 }
 
 // checkTunerLogoChoice bounds what a person can set as a channel's logo: nothing, none, or the
@@ -513,11 +514,12 @@ func (s *Server) tunerRows(ctx context.Context, r *http.Request) []guideChannel 
 		return nil
 	}
 	alts := livetv.Alternatives(list, s.silentChannel)
+	byID := channelsByID(list)
 	out := make([]guideChannel, 0, len(list))
 	for _, c := range list {
 		logo, brand := tunerLogo(c)
 		row := guideChannel{Key: "tun-" + strconv.FormatInt(c.ID, 10), Kind: "tuner", ID: c.ID, Number: c.Number, Name: c.Name, Group: c.Group, Logo: logo, Brand: brand, HD: c.HD, Radio: c.Radio,
-			Encrypted: c.Encrypted, CanRecord: c.Encrypted == "" && c.NoRecord == "", NoRecord: c.NoRecord, ATSC3: c.ATSC3, Security: securityOf(c), Alternative: alts[c.ID], Notices: s.channelNotices(c)}
+			Encrypted: c.Encrypted, CanRecord: s.canRecord(r, c), NoRecord: c.NoRecord, ATSC3: c.ATSC3, Security: securityOf(c), Alternative: s.withRecord(r, alts[c.ID], byID), Notices: s.channelNotices(c)}
 		out = append(out, row)
 	}
 	s.noteTunerLogos(list)
@@ -752,7 +754,7 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 		return
 	}
 	if strings.EqualFold(c.VideoCodec, "hevc") && !s.Tools.CanDecode("hevc") {
-		writeJSON(w, 502, map[string]any{"error": c.Name + " uses HEVC video, which this server's FFmpeg can't decode.", "alternative": s.clearAlternative(r.Context(), c.ID)})
+		writeJSON(w, 502, map[string]any{"error": c.Name + " uses HEVC video, which this server's FFmpeg can't decode.", "alternative": s.clearAlternative(r, c.ID)})
 		return
 	}
 	ls, err := s.ensureTunerLive(r, id)
@@ -764,10 +766,10 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 	now := time.Now()
 	logo, brand := tunerLogo(c)
 	info := tuneInfo{Key: r.PathValue("key"), Kind: "tuner", Number: c.Number, Name: c.Name, Logo: logo, Brand: brand, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
-		ServerTime: now.Unix(), CanRecord: c.NoRecord == "", BufferSec: float64(s.tvSettingInt(r.Context(), "tvTunerBufferMin") * 60),
+		ServerTime: now.Unix(), CanRecord: s.canRecord(r, c), BufferSec: float64(s.tvSettingInt(r.Context(), "tvTunerBufferMin") * 60),
 		Notices: s.channelNotices(c), ATSC3: c.ATSC3, Security: securityOf(c)}
 	if s.silentChannel(c) {
-		info.Alternative = s.clearAlternative(r.Context(), id)
+		info.Alternative = s.clearAlternative(r, id)
 	}
 	if list, err := s.TV.Guide(r.Context(), c, now, now.Add(12*time.Hour)); err == nil {
 		if len(list) > 0 && list[0].Start <= now.Unix() {
@@ -800,12 +802,20 @@ func securityOf(c *livetv.Channel) *securityInfo {
 }
 
 // clearAlternative: the same station from a clear source, if there is one.
-func (s *Server) clearAlternative(ctx context.Context, id int64) *livetv.Alternative {
-	list, err := s.TV.GuideChannels(ctx)
+func (s *Server) clearAlternative(r *http.Request, id int64) *livetv.Alternative {
+	list, err := s.TV.GuideChannels(r.Context())
 	if err != nil {
 		return nil
 	}
-	return livetv.Alternatives(list, s.silentChannel)[id]
+	return s.withRecord(r, livetv.Alternatives(list, s.silentChannel)[id], channelsByID(list))
+}
+
+func channelsByID(list []*livetv.Channel) map[int64]*livetv.Channel {
+	out := make(map[int64]*livetv.Channel, len(list))
+	for _, c := range list {
+		out[c.ID] = c
+	}
+	return out
 }
 
 // tuneRefused answers a channel that can't be tuned. An encrypted one says so
@@ -816,7 +826,7 @@ func (s *Server) tuneRefused(w http.ResponseWriter, r *http.Request, id int64, e
 		return
 	}
 	writeJSON(w, 403, map[string]any{"error": err.Error(), "encrypted": true, "label": tuner.EncryptedLabel, "helpUrl": encryptedHelpURL,
-		"alternative": s.clearAlternative(r.Context(), id)})
+		"alternative": s.clearAlternative(r, id)})
 }
 
 // GET /api/tv/encrypted-help: what encrypted channels are and what to do, from
@@ -1001,14 +1011,8 @@ func hasCaptureInput(input []string) bool {
 // Recordings
 // ---------------------------------------------------------------------------
 
-// canRecord: recordings are of tuner channels, for accounts that may use them.
-func (s *Server) canRecord(r *http.Request) bool {
-	u := userFrom(r)
-	return u != nil && (u.IsAdmin || s.access(r).CanWatchChannels("tuner"))
-}
-
 func (s *Server) handleRecordings(w http.ResponseWriter, r *http.Request) {
-	if !s.canRecord(r) {
+	if !s.mayRecord(r) {
 		writeErr(w, 403, "this profile cannot use recordings")
 		return
 	}
@@ -1039,7 +1043,7 @@ const (
 )
 
 func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
-	if !s.canRecord(r) {
+	if !s.mayRecord(r) {
 		writeErr(w, 403, "this profile cannot use recordings")
 		return
 	}
@@ -1054,12 +1058,8 @@ func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	id, ok := recordableChannel(w, b.Channel)
+	id, ok := s.recordableChannel(w, r, b.Channel)
 	if !ok {
-		return
-	}
-	if !s.canWatchTuner(r, id) {
-		writeErr(w, 404, "channel not found")
 		return
 	}
 	if u := userFrom(r); !u.IsAdmin {
@@ -1076,23 +1076,8 @@ func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, rec)
 }
 
-// recordableChannel: library channels are not recorded. Their programmes are
-// already the owner's files.
-func recordableChannel(w http.ResponseWriter, key string) (int64, bool) {
-	kind, id, ok := parseKey(key)
-	if !ok {
-		writeErr(w, 400, "bad channel")
-		return 0, false
-	}
-	if kind != "tun" {
-		writeErr(w, 400, "library channels can't be recorded: what they play is already in your library")
-		return 0, false
-	}
-	return id, true
-}
-
 func (s *Server) handleCancelRecording(w http.ResponseWriter, r *http.Request) {
-	if !s.canRecord(r) {
+	if !s.mayRecord(r) {
 		writeErr(w, 403, "this profile cannot use recordings")
 		return
 	}
@@ -1117,7 +1102,7 @@ func (s *Server) handleCancelRecording(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRecordingRules(w http.ResponseWriter, r *http.Request) {
-	if !s.canRecord(r) {
+	if !s.mayRecord(r) {
 		writeErr(w, 403, "this profile cannot use recordings")
 		return
 	}
@@ -1139,7 +1124,7 @@ func (s *Server) handleRecordingRules(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAddRecordingRule(w http.ResponseWriter, r *http.Request) {
-	if !s.canRecord(r) {
+	if !s.mayRecord(r) {
 		writeErr(w, 403, "this profile cannot use recordings")
 		return
 	}
@@ -1151,12 +1136,8 @@ func (s *Server) handleAddRecordingRule(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 400, err.Error())
 		return
 	}
-	id, ok := recordableChannel(w, b.Channel)
+	id, ok := s.recordableChannel(w, r, b.Channel)
 	if !ok {
-		return
-	}
-	if !s.canWatchTuner(r, id) {
-		writeErr(w, 404, "channel not found")
 		return
 	}
 	if u := userFrom(r); !u.IsAdmin {
@@ -1174,7 +1155,7 @@ func (s *Server) handleAddRecordingRule(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleDeleteRecordingRule(w http.ResponseWriter, r *http.Request) {
-	if !s.canRecord(r) {
+	if !s.mayRecord(r) {
 		writeErr(w, 403, "this profile cannot use recordings")
 		return
 	}

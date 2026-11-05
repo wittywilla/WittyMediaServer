@@ -289,7 +289,7 @@ Press `Esc`, Start and Select together, or the button in the corner. The game pa
 ![The My game settings page](images/settings-games.webp)
 *Settings, My game settings.*
 
-The tiles include **Save**, **Load**, **Rewind**, **Fast forward**, **Screenshot**, **Controllers**, **Settings**, **More** and **Save and quit**. **Rewind** is off until you turn it on, as it costs the server memory all the time. Fast-forward and slow motion have no sound.
+The tiles include **Save**, **Load**, **Rewind**, **Fast forward**, **Screenshot**, **Controllers**, **Settings**, **More** and **Save and quit**. **Rewind** is on by default for the 8-bit, 16-bit and older handheld consoles, whose games take little memory to rewind, and off for the others until you turn it on, as it costs the server memory all the time. An administrator can turn it off for everyone under **Everyone**. Fast-forward and slow motion have no sound.
 
 Games can contain flashing images, and fast-forward can make them flash quickly. **Tube flicker**, under **Picture**, makes the picture flicker. It's off by default, and stays off when your device asks for reduced motion.
 

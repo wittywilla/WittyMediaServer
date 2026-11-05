@@ -36,7 +36,8 @@ trip through the app switcher loses nothing.
 |---|---|---|
 | `GET /games/home?library=` | user | The games home screen in one answer: `hero`, `continue` (`{item, plays, lastPlayed, save}`), `recent`, `favourites`, `favouriteIds`, `mostPlayed`, and `shelves` (`{kind: "genre" or "series", name, count, items}`) |
 | `GET /games/{id}/check` | user | What a game needs and whether this server has it: `{ready, reason, message, core, needsGpu, gpuMissing, software, notice, encrypted, bios: [{file, for, required, found, using, from}]}`. For a BIOS a core takes under any name (PlayStation 2), `using` is the file this game starts with, and `from` is where the server found it by its checksum. `reason` is `core`, `bios`, `gpu` or `unavailable`, and `message` says it for people. See [Games this server can't draw](#games-this-server-cant-draw) |
-| `GET /games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed`, and when it isn't ready, `reason` (`unavailable`, `core` or `gpu`) and `message`. `gpuMissing`, `software` and `notice` as for a game's check. `coreSupport`: [which platforms each core runs on](#which-platforms-a-core-runs-on). With `?library=<id>`, also `count`: that library's games for it |
+| `GET /games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed`, and its `era`, years, `media`, `capabilities` and `shelf` ([below](#what-a-console-can-do)). When it isn't ready, `reason` (`unavailable`, `core` or `gpu`) and `message`. `gpuMissing`, `software` and `notice` as for a game's check. `coreSupport`: [which platforms each core runs on](#which-platforms-a-core-runs-on). With `?library=<id>`, also `count`: that library's games for it |
+| `GET /games/playing` | user | The game this account is playing now: `{id, itemId, title, console, device, startedAt, seats}`, or 204. What a device needs to offer "Continue here" |
 | `GET /games/modes?client=native` | user | What this server can stream, best first |
 | `GET /consoles/{console}/controls?device=` | user | The controller as data |
 | `PUT /consoles/{console}/controls` | user | Saves one layout, or removes it |
@@ -66,6 +67,10 @@ trip through the app switcher loses nothing.
 | `GET /play/{sid}/stream` | owner | Version 2's WebSocket, the same messages: the hello first, as text |
 | `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}`, `{"type": "disc", "slot": n}` to change disc, from 0, in a game whose session says it has `discs` above 1, `{"type": "device", "port": n, "device": id}`. [More while a game is running](#while-a-game-is-running) |
 | `DELETE /play/{sid}` | owner | Saves and stops |
+| `POST /play/{sid}/invite` | owner | A code others can join this game with: `{code, expiresAt}`, four letters, ten minutes. See [Seats](#seats) |
+| `POST /play/join` | user | `{code}` joins someone's game: `{sid, seat, itemId, title, console, host}` |
+| `GET /play/{sid}/seats` | owner or joined | `{host, seats, code?}`: the host, who joined and their seats; the code for the host only |
+| `DELETE /play/{sid}/seats/{user}` | owner or that person | Frees a seat |
 | `GET /gaming`, `POST /gaming/cores/{id}/install`, `DELETE /gaming/cores/{id}`, `DELETE /gaming/unpacked` | admin | Server setup. An app can leave this to the web interface |
 | `/gaming/custom/...`, `/gaming/consoles/{console}/core`, `/gaming/games/{id}/core` | admin | An administrator's own cores and custom consoles, listed in [the client API](CLIENT-API.md). An app can leave this to the web interface too. A custom console is like any other console to every route here: its ID starts with `custom-`, and `pad` may be a whole RetroPad |
 
@@ -156,6 +161,43 @@ best choice is already plugged in, so a PlayStation game starts with sticks and 
 someone change it, send a `device` action. Anything the emulator didn't offer answers 422.
 
 **Save slots:** 0 is the automatic one, written when a game stops, and can only be loaded. 1 to 99 are manual. 100 is the game from before the last load, and 101 the automatic save from before starting over: both can only be loaded.
+
+## What a console can do
+
+`GET /games/consoles` gives every console what a client needs to lay out its games and build its game menu, so a new
+console needs data, not new screens:
+
+- `era` (`first`, `8-bit`, `16-bit`, `early-3d`, `disc`, `pocket`), `launched` and `ended` (years, roughly), and `media`
+  (`cart`, `pocket`, `disc`).
+- `capabilities`: `screens` (`count`, which one takes `touch`, `layouts` and, by core, the core option and values that
+  set each layout and swap the screens), `input` (`ports`, `multitap`, `sticks`, `analogTriggers`, `touch`, `lightGun`,
+  `mouse`, `motion`, `keyboard`, `mic`), `media` (`discs`, `memoryCards`, `bios`: none, optional or required, and by core
+  the option that sets the `region`), `play` (`rumble`, `rewindByDefault`) and `picture` (`aspect`, `integer`, and the
+  `look`: the display preset it starts with). What a running core really has is in the session (`discs`, `devices`).
+- `shelf`: how its games stand on a shelf, for a games home. `case` and `cart`, each `{kind, aspect, height}`: the case is
+  a `box`, `clamshell`, `jewel` or `keep` case; the cartridge a `cart`, `card` or `disc`; `aspect` is the front's width over
+  its height, and `height` how tall it stands beside others of its kind (a full-size box is 1). Draw them as plain
+  shapes around the game's own cover: never a console maker's banners, logos, colours or outlines.
+
+Rewind is on by default for consoles with `rewindByDefault` (the 8-bit, 16-bit and older handheld ones, whose states fit
+the default rewind memory): it shows as the everyone-on-this-console setting until an administrator says otherwise, and
+a person's own choice wins over both.
+
+## Seats
+
+Playing one game together from several devices. The account that starts a game is its host, and its own devices can
+always watch and play it. Anyone else signed in to this server needs a code: the host asks for one
+(`POST /play/{sid}/invite`), four letters that last ten minutes, and the other device sends it to `POST /play/join`.
+Adults, Kids and Guest profiles join the same way, and only with a code; a profile whose limits wouldn't let it open
+the game can't join it (403). Wrong codes are limited per account (429 with `Retry-After`). Someone who joined may get
+the session, connect over WebRTC or the WebSocket and send their seat's controller states (`seat`, from 1; -1 means
+every seat is taken and they can only watch). Seats are numbered as [the stream](GAMING-STREAM.md)'s players, the host
+being 0. Over version 2's WebRTC (`POST /play/{sid}/stream`) the server sets a joined device's hello to its own seat, or
+to none for a watcher, whatever it asked for. Over version 2's WebSocket the hello goes straight to WittyPlay, so the
+app sends `seats: [seat]` itself. Saving, loading, settings and stopping stay the host's. A seat ends when
+the host frees it, its holder leaves (`DELETE /play/{sid}/seats/{user}`) or the game ends.
+
+Playing with someone on another server is reserved and not built: clients show **Multiplayer** greyed out.
 
 ## Modes
 

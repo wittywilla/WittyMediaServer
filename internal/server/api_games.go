@@ -67,6 +67,7 @@ func (s *Server) gameRoutes(m routes) {
 	m.Handle("POST /api/play/{sid}/stream", a(s.handlePlayStream))
 	m.Handle("GET /api/play/{sid}/stream", a(s.handlePlayStreamWS))
 	m.Handle("POST /api/play/{sid}/action", a(s.handlePlayAction))
+	s.seatRoutes(m)
 	s.gameProfileRoutes(m)
 	m.Handle("GET /api/gaming", s.requireAdmin(s.handleGaming))
 	m.Handle("POST /api/gaming/cores/{id}/install", s.requireAdmin(s.handleCoreInstall))
@@ -97,6 +98,9 @@ type gameService struct {
 	custom *customService
 
 	peers peerLimits
+
+	// seats: who started each game, on what, and who joined it with a code (game_seats.go).
+	seats seatBook
 
 	programs sync.Mutex // the program copied out of a 3DS package, while it's looked at or made
 }
@@ -332,6 +336,13 @@ type consoleView struct {
 	Pad         wittyplay.PadLayout    `json:"pad"`
 	// Count: with ?library=<id>, how many games that library holds for this console.
 	Count int `json:"count,omitempty"`
+	// Era, years, how its games come and what it can do (game_traits.go).
+	Era          string               `json:"era,omitempty"`
+	Launched     int                  `json:"launched,omitempty"`
+	Ended        int                  `json:"ended,omitempty"`
+	Media        string               `json:"media,omitempty"`
+	Capabilities *ConsoleCapabilities `json:"capabilities,omitempty"`
+	Shelf        *ShelfLook           `json:"shelf,omitempty"` // its case and cartridge, for the games home
 	// For Settings, Consoles & cores: BIOS files in place, what's stopping it from starting
 	// if that's a missing BIOS, and how many games every library holds for it.
 	BiosFound  []string       `json:"biosFound,omitempty"`
@@ -358,6 +369,7 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 			continue
 		}
 		v := consoleView{Console: c, Installed: []cores.Core{}, Pad: wittyplay.Pad(c.ID), LogoName: library.ConsoleLogoName(c.ID)}
+		addTraits(&v)
 		if v.Cores == nil {
 			v.Cores = []wittyplay.Core{}
 		}
@@ -663,6 +675,8 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		Resume   bool   `json:"resume"`
 		Client   string `json:"client"`   // browser, or anything else for a native app
 		SafeMode bool   `json:"safeMode"` // with default settings, no cheats and no patches
+		// Device names what's starting it, for "Continue here" on the account's other devices.
+		Device string `json:"device"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -928,6 +942,12 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		watcher := userFrom(r)
 		logging.Go("game core watch", func() { s.watchCorePlay(sess, playing, watcher, it.ID) }, "cat", "games", "session", sess.ID())
 	}
+	host := userFrom(r)
+	hostName := host.DisplayName
+	if hostName == "" {
+		hostName = host.Name
+	}
+	s.noteGameStarted(sess, userID, hostName, deviceName(b.Device, r))
 	if err := s.Store.NoteGamePlayed(ctx, userID, it.ID); err != nil {
 		s.Log.Warn("recording a play", "err", err)
 	}
@@ -1136,7 +1156,7 @@ func (s *Server) session(r *http.Request) *stream.Session {
 }
 
 func (s *Server) handlePlayGet(w http.ResponseWriter, r *http.Request) {
-	sess := s.session(r)
+	sess := s.watchSession(r)
 	if sess == nil {
 		writeErr(w, 404, "not found")
 		return
@@ -1157,7 +1177,7 @@ func (s *Server) handlePlayStop(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePlayWebRTC(w http.ResponseWriter, r *http.Request) {
-	sess := s.session(r)
+	sess := s.watchSession(r)
 	if sess == nil {
 		writeErr(w, 404, "not found")
 		return
@@ -1185,7 +1205,7 @@ func (s *Server) handlePlayWebRTC(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePlayWS(w http.ResponseWriter, r *http.Request) {
-	sess := s.session(r)
+	sess := s.watchSession(r)
 	if sess == nil {
 		writeErr(w, 404, "not found")
 		return
@@ -1228,7 +1248,7 @@ func offersStreamV2(modes []stream.Mode) bool {
 }
 
 func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
-	sess := s.session(r)
+	sess := s.watchSession(r)
 	if sess == nil {
 		streamRefused(w, 404, "no-session", "No such game is being played.")
 		return
@@ -1257,6 +1277,12 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 		streamRefused(w, 400, "bad-hello", fmt.Sprintf("This server speaks version %d of the stream.", stream.StreamVersion))
 		return
 	}
+	// Someone who joined with a code drives the seat it gave them (game_seats.go).
+	if sess.UserID() != userFrom(r).ID {
+		if seat, ok := s.gameSvc.seats.seatOf(sess.ID(), userFrom(r).ID); ok {
+			b.Hello.Seats = joinedSeats(seat)
+		}
+	}
 	got, err := sess.Connect(r.Context(), b.Hello, b.SDP, !clientFrom(r).Where.AtHome())
 	if err != nil {
 		if moduleLacks(err) {
@@ -1277,7 +1303,9 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 
 // handlePlayStreamWS is version 2's fallback: the same messages on a WebSocket.
 func (s *Server) handlePlayStreamWS(w http.ResponseWriter, r *http.Request) {
-	sess := s.session(r)
+	// Someone who joined with a code may connect here too. The hello on this socket goes straight to
+	// WittyPlay, so their seat is the one their app asks for: GAMING-API.md, Seats.
+	sess := s.watchSession(r)
 	if sess == nil {
 		streamRefused(w, 404, "no-session", "No such game is being played.")
 		return

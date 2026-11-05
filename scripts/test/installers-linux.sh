@@ -87,7 +87,7 @@ curl -fsS http://127.0.0.1:9797/api/health
 echo
 
 say "a port given the way 0.6 said to, with systemctl edit"
-grep -q WMS_LISTEN /usr/lib/systemd/system/wittymediaserver.service && fail "the service sets the port, which would win over settings.ini"
+grep -q '^Environment=WMS_LISTEN' /usr/lib/systemd/system/wittymediaserver.service && fail "the service sets the port, which would win over settings.ini"
 [ -f /usr/lib/wittymediaserver/settings.ini ] || fail "no settings.ini beside the program"
 mkdir -p /etc/systemd/system/wittymediaserver.service.d
 printf '[Service]\nEnvironment=WMS_LISTEN=:8181\n' > /etc/systemd/system/wittymediaserver.service.d/override.conf

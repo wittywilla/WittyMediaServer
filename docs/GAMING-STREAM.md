@@ -131,7 +131,7 @@ Everything a client says about itself, in one JSON object. It's the same over bo
 | `device` | This device's id, as used for touch layouts: up to 64 letters, digits, `.`, `_` or `-` |
 | `name` | What other players see this device as, up to 40 characters. Empty is fine |
 | `watch` | `false` for a controller with no picture or sound, such as a phone held as a pad beside a TV. Default `true` |
-| `video` | Codecs this device decodes in hardware, best first: `h264`, `vp8`, and for later `hevc`, `av1`. Over WebRTC the offer decides, and this breaks ties. Over the WebSocket, `h264`, else JPEG |
+| `video` | Codecs this device decodes in hardware, best first: `h264`, `vp8`, and for later `hevc`, `av1`. Over WebRTC the offer decides, and this breaks ties. Over the WebSocket: H.264 when the server has it, unless the list puts `jpeg` before `h264`; an empty list, or none, is H.264. Send `["jpeg"]` for JPEG |
 | `audio` | `opus` and/or `pcm`, best first. WebRTC is always Opus. Over the WebSocket, leave out `opus` if you can't decode it |
 | `seats` | The players this device controls, 0 to 7, as below. Left out: version 1's way, any player nobody has taken |
 | `display.hz` | The screen's refresh rate, as exactly as you know it (59.94, 60, 50, 120). The server may run the game at it, below |

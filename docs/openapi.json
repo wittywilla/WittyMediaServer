@@ -1874,6 +1874,12 @@
           },
           "type": {
             "type": "string"
+          },
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
           }
         },
         "required": [
@@ -3591,6 +3597,9 @@
                 "type": "null"
               }
             ]
+          },
+          "discSource": {
+            "type": "string"
           },
           "episode": {
             "anyOf": [
@@ -7894,6 +7903,9 @@
             "anyOf": [
               {
                 "properties": {
+                  "pointer": {
+                    "type": "boolean"
+                  },
                   "pollUrl": {
                     "type": "string"
                   },

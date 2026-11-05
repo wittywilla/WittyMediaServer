@@ -33,6 +33,7 @@ type Props = {
   showChapterMarks?: boolean
   extra?: React.ReactNode
   disc?: boolean // the keyboard help lists the disc keys
+  copy?: boolean // a copy of a disc's film: N and P step through its chapters
   offset?: number // media time -> displayed time offset
 }
 
@@ -65,7 +66,7 @@ export function useVideoState(video: React.RefObject<HTMLVideoElement | null>) {
 }
 
 export function Controls({ video, duration, chapters = [], chapterNames, chapterThumb, onSeek, onPrev, onNext, audio, subtitles, onAudio, onSubtitle, onPick, angles = 1,
-  onFullscreen, onSettings, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false }: Props) {
+  onFullscreen, onSettings, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false }: Props) {
   const st = useVideoState(video)
   const [pop, setPop] = useState<'audio' | 'subs' | 'chapters' | 'speed' | null>(null)
   const [maxSpeed, setMaxSpeed] = useState(4)
@@ -191,7 +192,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           {speeds.map((s) => <button key={s} className={s === rate ? 'active' : ''} onClick={() => { changeSpeed(s); setPop(null) }}>{s === 1 ? 'Normal' : `${s}×`}{s > 4 && <span className="muted" style={{ marginLeft: 'auto', fontSize: 11 }}>may be muted</span>}</button>)}
         </div>
       )}
-      {help && <ShortcutHelp disc={disc} onClose={() => setHelp(false)} />}
+      {help && <ShortcutHelp disc={disc} copy={copy} onClose={() => setHelp(false)} />}
       {pop === 'chapters' && (
         <ScenePanel chapters={chapters} name={chapName} thumb={chapterThumb} current={curChapter - 1}
           onPick={(c) => { onSeek(c); setPop(null) }} onClose={() => setPop(null)} />
@@ -236,7 +237,8 @@ function ScenePanel({ chapters, name, thumb, current, onPick, onClose }: {
 
 // ShortcutHelp: every key the player understands, in one list.
 // The third column keeps a line to discs, or to everything else: the two handle some keys differently.
-const KEYS: [string, string, ('disc' | 'file')?][] = [
+// chapters: discs, and copies of a disc's film.
+const KEYS: [string, string, ('disc' | 'file' | 'chapters')?][] = [
   ['Space or K', 'Play or pause'],
   ['← and →', 'Back 10 seconds, forward 10 seconds'],
   ['Page Up and Page Down', 'Forward or back a minute (on the timeline)'],
@@ -250,20 +252,21 @@ const KEYS: [string, string, ('disc' | 'file')?][] = [
   ['M', 'The disc’s menu, or its pop-up menu', 'disc'],
   ['T', 'The disc’s title menu', 'disc'],
   ['A and S', 'Next sound track, next subtitles', 'disc'],
-  ['N and P', 'Next chapter, previous chapter', 'disc'],
+  ['N and P', 'Next chapter, previous chapter', 'chapters'],
   ['1 to 9', 'Jump to that scene, or press that menu button', 'disc'],
   ['Arrow keys and Enter', 'Move around a disc menu and choose', 'disc'],
+  ['F1 to F4', 'The red, green, yellow and blue keys of a Blu-ray’s Java menu', 'disc'],
   ['↑ and ↓', 'Reach the player’s buttons', 'disc'],
   ['Esc', 'Close a window, or shrink the player'],
   ['?', 'This list'],
 ]
-function ShortcutHelp({ disc, onClose }: { disc: boolean; onClose: () => void }) {
+function ShortcutHelp({ disc, copy, onClose }: { disc: boolean; copy: boolean; onClose: () => void }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal kbd-modal" role="dialog" aria-modal="true" aria-labelledby="kbd-h" onClick={(e) => e.stopPropagation()}>
         <h2 id="kbd-h">Keyboard shortcuts</h2>
         <dl className="kbd-list">
-          {KEYS.filter(([, , only]) => !only || only === (disc ? 'disc' : 'file')).map(([k, what]) => <div key={k}><dt><kbd>{k}</kbd></dt><dd>{what}</dd></div>)}
+          {KEYS.filter(([, , only]) => !only || (only === 'chapters' ? disc || copy : only === (disc ? 'disc' : 'file'))).map(([k, what]) => <div key={k}><dt><kbd>{k}</kbd></dt><dd>{what}</dd></div>)}
         </dl>
         <p className="small-note">Game controllers and TV remotes work too: the D-pad moves, A or OK chooses, B goes back.</p>
         <div className="actions"><button className="btn primary" onClick={onClose}>Close</button></div>

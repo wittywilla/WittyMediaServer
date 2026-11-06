@@ -113,6 +113,7 @@ func (w *watchdog) run(ctx context.Context) {
 // round asks every check, each on its own goroutine: one that never returns mustn't
 // stop the others being asked, and isn't asked again until it does.
 func (w *watchdog) round(ctx context.Context) {
+	limit := watchLimit // read once: a check that never answers outlives the round
 	var wg sync.WaitGroup
 	for _, c := range w.checks {
 		w.mu.Lock()
@@ -137,19 +138,19 @@ func (w *watchdog) round(ctx context.Context) {
 				w.running[c.Name] = false
 				w.mu.Unlock()
 			}()
-			cctx, cancel := context.WithTimeout(ctx, watchLimit)
+			cctx, cancel := context.WithTimeout(ctx, limit)
 			defer cancel()
 			done <- c.Run(cctx)
 		}()
 		go func() {
 			defer wg.Done()
-			t := time.NewTimer(watchLimit + time.Second)
+			t := time.NewTimer(limit + time.Second)
 			defer t.Stop()
 			select {
 			case err := <-done:
 				w.note(c.Name, asked, err)
 			case <-t.C:
-				w.note(c.Name, asked, fmt.Errorf("no answer in %s", watchLimit))
+				w.note(c.Name, asked, fmt.Errorf("no answer in %s", limit))
 			}
 		}()
 	}

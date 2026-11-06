@@ -107,7 +107,8 @@ func TestWatchdogWritesDownAHang(t *testing.T) {
 	log.Debug("lyrics asked for", "cat", "library", "item", 7)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	stopped := make(chan struct{})
+	defer func() { cancel(); <-stopped }() // before the timings are put back
 	w := newWatchdog(log, []Check{{Name: "web", Run: func(ctx context.Context) error {
 		shared.Lock() // what every request needed
 		shared.Unlock()
@@ -115,7 +116,7 @@ func TestWatchdogWritesDownAHang(t *testing.T) {
 	}}})
 	got := make(chan Crash, 4)
 	w.onHang = func(c Crash) { got <- c }
-	go w.run(ctx)
+	go func() { w.run(ctx); close(stopped) }()
 
 	var c Crash
 	select {

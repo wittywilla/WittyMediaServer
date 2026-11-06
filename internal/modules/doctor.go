@@ -94,7 +94,7 @@ func CheckInstalled(dir, id, ver, server string, st InstalledState) *VersionProb
 	if err := verifyInstalled(vdir, man, keys); err != nil {
 		return &VersionProblem{ProblemSignature, err}
 	}
-	if err := man.Supports(server, wittymodule.MinAPI, wittymodule.API); err != nil {
+	if err := supports(man, server); err != nil {
 		return &VersionProblem{ProblemVersion, err}
 	}
 	return nil

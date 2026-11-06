@@ -404,7 +404,7 @@ func (m *Manager) computeOffers(e *entry) {
 			continue
 		}
 		o := k.offer()
-		if err := k.man.Supports(m.cfg.Server, wittymodule.MinAPI, wittymodule.API); err != nil {
+		if err := supports(k.man, m.cfg.Server); err != nil {
 			if tooNew == nil {
 				o.Reason = sentence(err.Error())
 				tooNew = o
@@ -540,7 +540,7 @@ type VersionList struct {
 // anything is downloaded. Call with m.mu held.
 func (m *Manager) judge(e *entry, man *wittymodule.Manifest) (refused, warning string) {
 	ver := man.Version
-	if err := man.Supports(m.cfg.Server, wittymodule.MinAPI, wittymodule.API); err != nil {
+	if err := supports(man, m.cfg.Server); err != nil {
 		return sentence(err.Error()), ""
 	}
 	if !e.absent && man.Delivery != e.builtin.Delivery {

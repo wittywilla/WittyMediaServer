@@ -148,7 +148,9 @@ func fitOf(name string, v *wittymodule.CatalogVersion, server string) Fit {
 	if wittymodule.Compare(v.MinServer, MinModuleServer) < 0 && wittymodule.Compare(server, MinModuleServer) >= 0 {
 		return Fit{Kind: FitTooOld, Why: fmt.Sprintf("%s %s was built for an older server, so it can't run here. %s", name, v.Version, PolicyWords)}
 	}
-	if err := v.Supports(name, server, wittymodule.MinAPI, wittymodule.API); err != nil {
+	vw := v
+	vw.MaxServer = widen(vw.MaxServer)
+	if err := vw.Supports(name, server, wittymodule.MinAPI, wittymodule.API); err != nil {
 		f := Explain(name, err.Error())
 		switch f.Kind {
 		case FailTooOld:

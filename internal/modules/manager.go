@@ -482,7 +482,7 @@ func (m *Manager) usable(id string, e *entry, ver string) (*wittymodule.Manifest
 	if err := verifyInstalled(dir, man, m.keysFor(e)); err != nil {
 		return nil, "", err
 	}
-	if err := man.Supports(m.cfg.Server, wittymodule.MinAPI, wittymodule.API); err != nil {
+	if err := supports(man, m.cfg.Server); err != nil {
 		return nil, "", err
 	}
 	if !e.absent && man.Delivery != e.builtin.Delivery {

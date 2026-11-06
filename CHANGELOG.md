@@ -5,6 +5,10 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+## 0.7.1-alpha
+
+- Modules made for earlier 0.x servers (such as 0.6.x) now install and run on this server when their module API fits.
+
 ## 0.7.0-alpha
 
 - **Layouts follow you, per console and shape of device.** `PUT /consoles/{console}/controls` keeps a `layout` for a phone upright or sideways, a tablet upright or sideways, a computer or a TV, and `saved.layouts` gives them all back. A layout places the on-screen controls, the menu button, the shortcuts bar and the picture, or each screen of a DS or 3DS apart, and `null` puts it back as it came. The server checks it itself. A two-screen console says where each screen sits in the frame (`pad.screens`, `capabilities.screens.frame`). WittyPlay's Edit layout uses all of this.

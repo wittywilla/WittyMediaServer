@@ -429,7 +429,7 @@ func TestOlderCompatibleReleaseIsOfferedUnderATooNewOne(t *testing.T) {
 
 func TestServerUpgradeOutOfRangeFallsBack(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.4.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.4.9", wittymodule.API))
 	m := w.manager()
 	check(t, m)
 	if s := installWait(t, m); s.Version != "0.2.0" {

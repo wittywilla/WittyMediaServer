@@ -5,6 +5,10 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+## 0.7.2-alpha
+
+- Fixed: updating any module failed with "the catalogue and the release disagree" on 0.7.1-alpha.
+
 ## 0.7.1-alpha
 
 - Modules made for earlier 0.x servers (such as 0.6.x) now install and run on this server when their module API fits.

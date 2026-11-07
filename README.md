@@ -12,7 +12,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="Licence: Apache-2.0" src="https://img.shields.io/badge/licence-Apache--2.0-blue.svg"></a>
   <img alt="Runs on Windows, macOS, Linux, FreeBSD and Docker" src="https://img.shields.io/badge/runs%20on-Windows%20·%20macOS%20·%20Linux%20·%20FreeBSD%20·%20Docker-8b6cff.svg">
-  <img alt="Version 0.7.x-alpha versions" src="https://img.shields.io/badge/version-0.6.0--alpha-orange.svg">
+  <img alt="Version 0.7.x-alpha versions" src="https://img.shields.io/badge/version-0.7.2--alpha-orange.svg">
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
   <a href="CHANGELOG.md">What's new</a>
 </p>
 
-> **Alpha.** Version 0.6.0-alpha is still changing quickly and can fail or lose data. Keep backups, and back up your data folder before you upgrade.
+> **Alpha.** Version 0.7.x-alpha versions are still changing quickly and can fail or lose data. Keep backups, and back up your data folder before you upgrade.
 
 ## Install
 

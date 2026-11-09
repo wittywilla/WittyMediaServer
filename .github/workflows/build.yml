@@ -1,0 +1,358 @@
+name: build
+# Builds every program for every platform a release ships, on every push and pull request, so a
+# platform nobody builds by hand (Windows ARM, 32-bit Linux, FreeBSD) breaks here and not on a
+# tag. Nothing is signed or published: the artifacts are kept a week for looking at.
+on:
+  push:
+    branches: [v0.8.0-alpha, master, main]
+  pull_request:
+  workflow_dispatch:
+
+# Every job asks for only what it needs.
+permissions: {}
+
+# A newer commit on a pull request replaces that pull request's older runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GO_LDFLAGS_BASE: -s -w
+
+jobs:
+  # The web client, built once and handed to every server build: the server embeds web/dist.
+  web:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - run: cd web && npm ci --ignore-scripts --no-audit --no-fund && npm run build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: web-dist
+          path: web/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  # Pure Go, cross-compiled: the server, the tray app (no CGO off macOS), the uninstaller and
+  # the wms forwarder, as scripts/build-release.sh builds them.
+  linux:
+    needs: web
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: amd64, goarch: amd64, goarm: "" }
+          - { arch: arm64, goarch: arm64, goarm: "" }
+          - { arch: armv7, goarch: arm, goarm: "7" }
+          - { arch: "386", goarch: "386", goarm: "" }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: web-dist
+          path: web/dist
+      - name: go vet
+        if: matrix.arch == 'amd64'
+        run: go vet ./...
+      - name: Build linux/${{ matrix.arch }}
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          out="dist/linux-$ARCH"; mkdir -p "$out"
+          go build -trimpath -ldflags="$GO_LDFLAGS_BASE -X main.version=$VERSION" -o "$out/wittymediaserver" ./cmd/wittymediaserver
+          go build -trimpath -ldflags="$GO_LDFLAGS_BASE -X main.version=$VERSION" -o "$out/WittyMediaServer" ./cmd/wittymediaserver-tray
+          go build -trimpath -ldflags="$GO_LDFLAGS_BASE -X main.version=$VERSION" -o "$out/wittymediaserver-uninstall" ./cmd/wittymediaserver-uninstall
+          go build -trimpath -ldflags="$GO_LDFLAGS_BASE" -o "$out/wms" ./cmd/wms-forwarder
+          ls -la "$out"
+      # The build machine is amd64, so only that one can be run here.
+      - name: It runs
+        if: matrix.arch == 'amd64'
+        run: dist/linux-amd64/wittymediaserver version
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: wittymediaserver-linux-${{ matrix.arch }}
+          path: dist/linux-${{ matrix.arch }}
+          if-no-files-found: error
+          retention-days: 7
+
+  # Built on Windows itself. The tray (fyne.io/systray) is pure Go on Windows, as
+  # scripts/build-release.sh builds it with CGO_ENABLED=0, so arm64 cross-compiles from the
+  # amd64 runner; the amd64 server is run to see that it starts.
+  windows:
+    needs: web
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: web-dist
+          path: web/dist
+      - name: Build windows/${{ matrix.arch }}
+        shell: pwsh
+        env:
+          CGO_ENABLED: "0"
+          GOOS: windows
+          GOARCH: ${{ matrix.arch }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          if ($env:GITHUB_REF_TYPE -ne 'tag') { $version = "dev-$($env:GITHUB_SHA.Substring(0,8))" }
+          $out = "dist\windows-$env:ARCH"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          go build -trimpath -ldflags "-s -w -X main.version=$version" -o "$out\wittymediaserver.exe" ./cmd/wittymediaserver
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go build -trimpath -ldflags "-s -w -H=windowsgui -X main.version=$version" -o "$out\WittyMediaServer.exe" ./cmd/wittymediaserver-tray
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go build -trimpath -ldflags "-s -w -H=windowsgui -X main.version=$version" -o "$out\Uninstall WittyMediaServer.exe" ./cmd/wittymediaserver-uninstall
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go build -trimpath -ldflags "-s -w" -o "$out\wms.exe" ./cmd/wms-forwarder
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem $out
+      - name: It runs
+        if: matrix.arch == 'amd64'
+        shell: pwsh
+        run: |
+          & "dist\windows-amd64\wittymediaserver.exe" version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: wittymediaserver-windows-${{ matrix.arch }}
+          path: dist/windows-${{ matrix.arch }}
+          if-no-files-found: error
+          retention-days: 7
+
+  # The Mac app needs CGO (Cocoa), so both architectures are built on a Mac, as release.yml's
+  # tray-macos does, and the server is also joined into one universal binary.
+  macos:
+    needs: web
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: web-dist
+          path: web/dist
+      - name: Build darwin/arm64 and darwin/amd64
+        env:
+          CGO_ENABLED: "1"
+          GOOS: darwin
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          for arch in arm64 amd64; do
+            out="dist/darwin-$arch"; mkdir -p "$out"
+            GOARCH=$arch go build -trimpath -ldflags="$GO_LDFLAGS_BASE -X main.version=$VERSION" -o "$out/wittymediaserver" ./cmd/wittymediaserver
+            GOARCH=$arch go build -trimpath -ldflags="$GO_LDFLAGS_BASE -X main.version=$VERSION" -o "$out/WittyMediaServer" ./cmd/wittymediaserver-tray
+            GOARCH=$arch go build -trimpath -ldflags="$GO_LDFLAGS_BASE -X main.version=$VERSION" -o "$out/Uninstall WittyMediaServer" ./cmd/wittymediaserver-uninstall
+            GOARCH=$arch go build -trimpath -ldflags="$GO_LDFLAGS_BASE" -o "$out/wms" ./cmd/wms-forwarder
+            file "$out"/*
+          done
+      - name: Universal server binary
+        run: |
+          mkdir -p dist/darwin-universal
+          lipo -create -output dist/darwin-universal/wittymediaserver dist/darwin-arm64/wittymediaserver dist/darwin-amd64/wittymediaserver
+          lipo -create -output dist/darwin-universal/WittyMediaServer dist/darwin-arm64/WittyMediaServer dist/darwin-amd64/WittyMediaServer
+          lipo -info dist/darwin-universal/*
+      # Apple silicon runs both slices: the native one, and the Intel one through Rosetta.
+      - name: They run
+        run: |
+          dist/darwin-arm64/wittymediaserver version
+          dist/darwin-universal/wittymediaserver version
+          arch -x86_64 dist/darwin-amd64/wittymediaserver version || echo "::notice::Rosetta isn't on this runner; the amd64 binary wasn't run"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: wittymediaserver-darwin-arm64
+          path: dist/darwin-arm64
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: wittymediaserver-darwin-amd64
+          path: dist/darwin-amd64
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: wittymediaserver-darwin-universal
+          path: dist/darwin-universal
+          if-no-files-found: error
+          retention-days: 7
+
+  # Cross-compiled on Linux, then the amd64 server is started in a FreeBSD VM: the only way
+  # to see that it runs on FreeBSD at all.
+  freebsd:
+    needs: web
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: web-dist
+          path: web/dist
+      - name: Build freebsd/amd64 and freebsd/arm64
+        env:
+          CGO_ENABLED: "0"
+          GOOS: freebsd
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          for arch in amd64 arm64; do
+            out="dist/freebsd-$arch"; mkdir -p "$out"
+            GOARCH=$arch go build -trimpath -ldflags="$GO_LDFLAGS_BASE -X main.version=$VERSION" -o "$out/wittymediaserver" ./cmd/wittymediaserver
+            GOARCH=$arch go build -trimpath -ldflags="$GO_LDFLAGS_BASE -X main.version=$VERSION" -o "$out/WittyMediaServer" ./cmd/wittymediaserver-tray
+            GOARCH=$arch go build -trimpath -ldflags="$GO_LDFLAGS_BASE -X main.version=$VERSION" -o "$out/wittymediaserver-uninstall" ./cmd/wittymediaserver-uninstall
+            GOARCH=$arch go build -trimpath -ldflags="$GO_LDFLAGS_BASE" -o "$out/wms" ./cmd/wms-forwarder
+            ls -la "$out"
+          done
+      - name: It runs on FreeBSD
+        uses: vmactions/freebsd-vm@c46abacb49f09938ca4e1702d15d836285d694cc # v1
+        with:
+          release: "14.4"
+          usesh: true
+          run: |
+            set -e
+            uname -a
+            chmod +x dist/freebsd-amd64/wittymediaserver
+            dist/freebsd-amd64/wittymediaserver version
+            dist/freebsd-amd64/wittymediaserver version | grep -q wittymediaserver
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: wittymediaserver-freebsd-amd64
+          path: dist/freebsd-amd64
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: wittymediaserver-freebsd-arm64
+          path: dist/freebsd-arm64
+          if-no-files-found: error
+          retention-days: 7
+
+  # The container image for the three architectures the release publishes, never pushed. The
+  # Dockerfile builds the web client itself (web/dist is in .dockerignore), so this job doesn't
+  # need the web job's files; it waits for it so a broken web build fails once, not twice.
+  docker:
+    needs: web
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Build for amd64, arm64 and armv7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: false
+          load: false
+          tags: wittymediaserver:ci
+          build-args: VERSION=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      # The amd64 image again, from the cache, into the local Docker so it can be run.
+      - name: Load the amd64 image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: wittymediaserver:ci
+          build-args: VERSION=${{ github.sha }}
+          cache-from: type=gha
+      - name: Run it
+        run: |
+          docker run --rm wittymediaserver:ci version
+          scripts/test/docker-smoke.sh wittymediaserver:ci
+
+  # One place to look: what each platform did, and a failure when any did not build.
+  summary:
+    needs: [web, linux, windows, macos, freebsd, docker]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    env:
+      RESULT_WEB: ${{ needs.web.result }}
+      RESULT_LINUX: ${{ needs.linux.result }}
+      RESULT_WINDOWS: ${{ needs.windows.result }}
+      RESULT_MACOS: ${{ needs.macos.result }}
+      RESULT_FREEBSD: ${{ needs.freebsd.result }}
+      RESULT_DOCKER: ${{ needs.docker.result }}
+    steps:
+      - name: Results
+        run: |
+          failed=0
+          {
+            echo "## Build results"
+            echo
+            echo "| Job | Result |"
+            echo "|---|---|"
+            for job in WEB LINUX WINDOWS MACOS FREEBSD DOCKER; do
+              eval "result=\$RESULT_$job"
+              case "$result" in
+                success) mark="✅" ;;
+                skipped) mark="⏭️" ;;
+                *) mark="❌"; failed=1 ;;
+              esac
+              echo "| $(echo "$job" | tr '[:upper:]' '[:lower:]') | $mark $result |"
+              echo "$job: $result" >&2
+            done
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          for job in WEB LINUX WINDOWS MACOS FREEBSD DOCKER; do
+            eval "result=\$RESULT_$job"
+            [ "$result" = success ] || [ "$result" = skipped ] || failed=1
+          done
+          [ "$failed" = 0 ] || { echo "::error::a build failed"; exit 1; }

@@ -50,7 +50,7 @@ export default function LicenseList() {
   return (
     <div className="lic">
       <p className="lic-summary">
-        WittyMediaServer itself, and every Witty module, is <b>Apache-2.0</b>. It’s built with {built} open-source libraries,
+        WittyMediaServer itself, and every Witty module, is <b>AGPL-3.0-or-later</b>. It’s built with {built} open-source libraries,
         all listed here with their full license text.
       </p>
       <ul className="lic-totals" aria-label="Libraries by license">

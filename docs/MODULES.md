@@ -63,7 +63,7 @@ Types are matched by name, in a self-describing format, so a field one side hasn
 A module's repository carries:
 
 - **README.md:** what it does, ending with a **Legal** section.
-- **LICENSE:** Apache-2.0, except WittyCouch Host, which is GPL-3.0 because it's built on Moonlight's code.
+- **LICENSE:** AGPL-3.0-or-later. WittyCouch Host is AGPL-3.0-or-later too, with Moonlight-derived parts under GPL-3.0 because it's built on Moonlight's code.
 - **NOTICE:** credits `<name>, developed by WittyWilla`. The licence requires anyone who redistributes the code or builds on it to keep that attribution.
 - **THIRD-PARTY-NOTICES.txt**, written by `wittymodule pack` into each archive: the license of every library in its programs. The server shows it at `GET /api/modules/{id}/notices`.
 
@@ -86,7 +86,7 @@ Every module has a `module.json`, shipped in its releases and covered by their s
   "name": "WittyPhotos",
   "version": "0.3.0",
   "repo": "wittywilla/WittyPhotos",
-  "license": "Apache-2.0",
+  "license": "AGPL-3.0-or-later",
   "delivery": "helper",
   "entry": "wittyphotos-module",
   "api": 3,
@@ -406,7 +406,7 @@ https://github.com/wittywilla/WittyModuleCatalog/releases/download/catalog/catal
           "api": 3,
           "minServer": "0.6.0-alpha",
           "maxServer": "0.6.x",
-          "license": "Apache-2.0",
+          "license": "AGPL-3.0-or-later",
           "permissions": [],
           "released": "2026-11-01",
           "prerelease": false,

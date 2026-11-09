@@ -88,7 +88,7 @@
       "id": "wittycouch",
       "name": "WittyCouch",
       "summary": "Play the games on any PC running Sunshine, in your browser.",
-      "description": "Play the games on a PC running Sunshine from your browser, with controllers, keyboard, mouse and touch. It finds PCs, pairs with them using a PIN, lists their games, and starts, resumes and quits them. A device that can't play in a page can hand off to the separately installed Moonlight app.\n\nPlaying needs WittyCouch Host, a separate program under the GPL-3.0. Without it, everything but playing still works.\n\nA real browser has played a real stream from a real Sunshine, but real games on real gaming PCs haven't been tried yet. It connects to a PC someone else may run, and what that PC offers isn't provided or checked. No games come with it. It isn't an official Moonlight or Sunshine project.",
+      "description": "Play the games on a PC running Sunshine from your browser, with controllers, keyboard, mouse and touch. It finds PCs, pairs with them using a PIN, lists their games, and starts, resumes and quits them. A device that can't play in a page can hand off to the separately installed Moonlight app.\n\nPlaying needs WittyCouch Host, a separate program under the AGPL-3.0-or-later with Moonlight-derived parts under the GPL-3.0. Without it, everything but playing still works.\n\nA real browser has played a real stream from a real Sunshine, but real games on real gaming PCs haven't been tried yet. It connects to a PC someone else may run, and what that PC offers isn't provided or checked. No games come with it. It isn't an official Moonlight or Sunshine project.",
       "icon": {
         "url": "wittycouch.png",
         "size": 2632,
@@ -108,8 +108,8 @@
     {
       "id": "wittycouchhost",
       "name": "WittyCouch Host",
-      "summary": "The separate GPL-3.0 program that carries WittyCouch's game streams, built on Moonlight's code.",
-      "description": "A small program that is started for each game stream. It connects to a PC running Sunshine and passes on whole video frames and audio packets, without decoding them.\n\nIt is a separate program under the GPL-3.0, built on Moonlight's streaming core. WittyMediaServer and its browser client are Apache-2.0 and don't contain or link any of it: they only exchange messages with it. Each release carries the full source beside its programs.\n\nWindows and Linux x64 have taken real streams from a real Sunshine. Linux arm64 has only been run under emulation, and macOS hasn't been tried by hand. A stream is treated as if it might be hostile, so the program runs with tight limits. It isn't an official Moonlight or Sunshine project, and no games come with it.",
+      "summary": "The separate AGPL-3.0 program (with GPL-3.0 Moonlight parts) that carries WittyCouch's game streams, built on Moonlight's code.",
+      "description": "A small program that is started for each game stream. It connects to a PC running Sunshine and passes on whole video frames and audio packets, without decoding them.\n\nIt is a separate program under the AGPL-3.0-or-later, with Moonlight-derived parts under the GPL-3.0, built on Moonlight's streaming core. WittyMediaServer and its browser client are AGPL-3.0-or-later and don't contain or link any of it: they only exchange messages with it. Each release carries the full source beside its programs.\n\nWindows and Linux x64 have taken real streams from a real Sunshine. Linux arm64 has only been run under emulation, and macOS hasn't been tried by hand. A stream is treated as if it might be hostile, so the program runs with tight limits. It isn't an official Moonlight or Sunshine project, and no games come with it.",
       "icon": {
         "url": "wittycouchhost.png",
         "size": 3388,

@@ -1,6 +1,6 @@
 # Third-party notices
 
-WittyMediaServer (Apache-2.0, see LICENSE and NOTICE) bundles or depends on the following open-source components.
+WittyMediaServer (AGPL-3.0-or-later, see LICENSE and NOTICE) bundles or depends on the following open-source components.
 
 **Settings, About** lists every library in the program you're running, with its version, license and full license
 text. That list is made from what's really compiled in (`internal/licenses`), and this file is the summary of it.

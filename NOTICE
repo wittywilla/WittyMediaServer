@@ -5,10 +5,10 @@ https://github.com/wittywilla/WittyMediaServer
 This product includes software developed by WittyWilla as part of the
 WittyMediaServer project ("WittyMediaServer, developed by WittyWilla").
 
-Under the Apache License, Version 2.0 (Section 4(d)), any redistribution of
-this software or derivative works must reproduce the attribution notices in
-this NOTICE file - in a NOTICE file, in documentation, or in an "About"
-display of the derivative work.
+This software is licensed under the GNU Affero General Public License v3.0
+or (at your option) any later version: see LICENSE. If you redistribute it or
+build on it, please keep the attribution notices in this NOTICE file - in a
+NOTICE file, in documentation, or in an "About" display.
 
 Third-party components are listed in THIRD_PARTY_LICENSES.md. In particular,
 release packages bundle FFmpeg (GPL-licensed builds) as a separate executable;

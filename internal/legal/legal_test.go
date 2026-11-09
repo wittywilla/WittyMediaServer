@@ -81,7 +81,7 @@ func TestEveryKindExistsAndLinksToASection(t *testing.T) {
 // What the Legal page has to cover.
 func TestLegalPageCoversEverything(t *testing.T) {
 	want := map[string]string{
-		"terms":           "Apache License 2.0",
+		"terms":           "GNU Affero General Public License v3.0 or later",
 		"no-warranty":     "AS IS",
 		"no-affiliation":  "endorsed by",
 		"third-party":     "not endorsed or certified by TMDB",

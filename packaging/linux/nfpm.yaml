@@ -10,7 +10,7 @@ section: video
 priority: optional
 maintainer: WittyWilla <noreply@users.noreply.github.com>
 homepage: https://github.com/wittywilla/WittyMediaServer
-license: Apache-2.0
+license: AGPL-3.0-or-later
 description: |-
   Your own media server: films, shows, music, photos, books, discs, TV and games
   Runs as a background service, with a web app for every device on your home network.

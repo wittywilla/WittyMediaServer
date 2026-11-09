@@ -58,7 +58,7 @@ export default function WittyRigsSettings() {
         )}
       </Section>
       {st.enabled && st.rig && <RigCard rig={st.rig} onChange={load} />}
-      <Section title="License"><p>WittyRigs is Apache-2.0. Sunshine itself is {st.license}: <WebLink href={st.source}>source</WebLink>. Neither contains the other.</p></Section>
+      <Section title="License"><p>WittyRigs is AGPL-3.0-or-later. Sunshine itself is {st.license}: <WebLink href={st.source}>source</WebLink>. Neither contains the other.</p></Section>
       <LegalNote kind="games" className="set-legal" />
     </>
   )

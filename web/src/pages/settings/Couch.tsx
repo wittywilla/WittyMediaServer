@@ -56,7 +56,7 @@ export default function CouchSettings() {
           ? <p>WittyCouch Host is installed and working.</p>
           : <div className="rig-note" role="status">
               <p><b>WittyCouch Host isn’t installed on this server.</b> People can add and pair PCs, and the Moonlight app still works, but they can’t play in the page until it is.</p>
-              <p>It’s a module: <Link to="/settings/modules/store/wittycouchhost">add it from the module store</Link>. It’s GPL-3.0 software, with its source alongside, and it runs as a program of its own beside this one, which stays Apache-2.0. See <a href="https://github.com/wittywilla/WittyCouchHost" target="_blank" rel="noreferrer noopener">its project</a>.</p>
+              <p>It’s a module: <Link to="/settings/modules/store/wittycouchhost">add it from the module store</Link>. It’s AGPL-3.0-or-later software with Moonlight-derived parts under the GPL-3.0, with its source alongside, and it runs as a program of its own beside this one, which is AGPL-3.0-or-later too. See <a href="https://github.com/wittywilla/WittyCouchHost" target="_blank" rel="noreferrer noopener">its project</a>.</p>
             </div>}
       </Section>
       <Section title="Who may connect" desc="This has the server connect wherever a person says, so it’s yours to decide. It only ever speaks this one protocol, and nothing else is reachable through it.">

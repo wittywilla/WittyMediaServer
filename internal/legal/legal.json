@@ -6,7 +6,7 @@
       "title": "Terms of use",
       "body": [
         "WittyMediaServer is free, open-source software that people install and run themselves. The WittyMediaServer project publishes the software. It doesn't run this server or any other, and it can't see or control what's on one.",
-        "**The license comes first.** The software is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). You may use, change and share it under that license, keeping its notices. Nothing on this page takes away a right the license gives you. If this page and the license disagree about the software, the license wins.",
+        "**The license comes first.** The software is licensed under the [GNU Affero General Public License v3.0 or later](https://www.gnu.org/licenses/agpl-3.0.html). You may use, change and share it under that license, keeping its notices and offering its source to those who use it over a network. Nothing on this page takes away a right the license gives you. If this page and the license disagree about the software, the license wins.",
         "**Using this software, you agree to:**",
         "- use it only with media you have the right to use, and share only what you have the right to share;",
         "- follow the laws that apply to you, and the terms of any outside service you connect it to;",
@@ -21,7 +21,7 @@
       "title": "No warranty",
       "body": [
         "This is alpha software and can fail or lose data, so keep backups.",
-        "As the Apache License 2.0 says in full, the software is provided on an **“AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND**, either express or implied. You alone decide whether it's right to use, and you take the risks of using it. Except where the law requires it or someone has agreed to it in writing, no contributor is liable for damages arising from using it or being unable to use it. Sections 7 and 8 of the license are the exact terms.",
+        "As the GNU Affero General Public License says in full, the software is provided **“AS IS” WITHOUT WARRANTY OF ANY KIND**, either expressed or implied. You alone decide whether it's right to use, and you take the risks of using it. Except where the law requires it or someone has agreed to it in writing, no contributor is liable for damages arising from using it or being unable to use it. Sections 15 and 16 of the license are the exact terms.",
         "The same goes for every Witty module. Modules and other add-ons from anywhere else come from whoever published them."
       ]
     },

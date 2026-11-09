@@ -10150,7 +10150,8 @@
   "info": {
     "description": "What apps and tools can rely on. docs/CLIENT-API.md explains how the pieces fit together. A test fails when a route is missing here, and schemas are generated from the server's Go types.",
     "license": {
-      "name": "Apache-2.0"
+      "name": "AGPL-3.0-or-later",
+      "url": "https://www.gnu.org/licenses/agpl-3.0.html"
     },
     "title": "WittyMediaServer client API",
     "version": "1.10.0"

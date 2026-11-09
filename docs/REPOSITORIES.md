@@ -20,9 +20,9 @@ Every one in this list is on GitHub under its final name, with its history, so n
 | WittyBluray | The Blu-ray engine, and in `wittyblurayplayer/` its copy for WittyMediaPlayer |
 | WittyCD | The CD image engine and on-screen CD player |
 | WittyPlay | Console games streamed from the server |
-| WittyCouch | A client in the page for playing on a game PC: its relay, protocol code and player. **Apache-2.0** |
-| WittyCouchHost | The separate program built on Moonlight's own code, which speaks to the PC. **GPL-3.0**, with source offered beside each release |
-| WittyRigs | An advanced option: hosting demanding games on the server's own hardware, using a separately installed Sunshine. **Apache-2.0** |
+| WittyCouch | A client in the page for playing on a game PC: its relay, protocol code and player. **AGPL-3.0-or-later** |
+| WittyCouchHost | The separate program built on Moonlight's own code, which speaks to the PC. **AGPL-3.0-or-later**, with Moonlight-derived parts **GPL-3.0** and source offered beside each release |
+| WittyRigs | An advanced option: hosting demanding games on the server's own hardware, using a separately installed Sunshine. **AGPL-3.0-or-later** |
 | WittyIntegratedFileBrowser | The built-in file browser |
 | WittyPhotos | Photo processing |
 | WittyTuner | TV tuners and IPTV |
@@ -45,8 +45,8 @@ The owner makes these, as below. A chat never creates a repository.
 |---|---|
 | wittymediaserver.com | The project's website as plain files, built and kept at `D:\projects\wittymediaserver.com` with local commits only. See [the website plan](plans/WEBSITE.md) |
 | .github | Issue forms and settings GitHub uses for every repository that has none of its own. Steps are in [#114](https://github.com/wittywilla/WittyMediaServer/issues/114) |
-| WittyBroadcast | Reading MPEG transport streams and XMLTV guides, including the check that refuses scrambled channels. Built with by WittyTuner and the server. **Apache-2.0**. A core library from [Modules that stand on their own](plans/module-isolation.md#core-libraries); steps in [#105](https://github.com/wittywilla/WittyMediaServer/issues/105) |
-| WittyGameCore | What a game file is, the region order, reading game archives safely, game metadata sources, and the sandbox a game runner puts itself in. Built with by WittyPlay and the server. **Apache-2.0**. A core library, as above; steps in [#105](https://github.com/wittywilla/WittyMediaServer/issues/105) |
+| WittyBroadcast | Reading MPEG transport streams and XMLTV guides, including the check that refuses scrambled channels. Built with by WittyTuner and the server. **AGPL-3.0-or-later**. A core library from [Modules that stand on their own](plans/module-isolation.md#core-libraries); steps in [#105](https://github.com/wittywilla/WittyMediaServer/issues/105) |
+| WittyGameCore | What a game file is, the region order, reading game archives safely, game metadata sources, and the sandbox a game runner puts itself in. Built with by WittyPlay and the server. **AGPL-3.0-or-later**. A core library, as above; steps in [#105](https://github.com/wittywilla/WittyMediaServer/issues/105) |
 
 **A new one on GitHub:** make it under `wittywilla`, as **Public**, with no README, `.gitignore` or licence.
 

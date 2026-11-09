@@ -35,7 +35,7 @@ LABEL org.opencontainers.image.title="WittyMediaServer" \
       org.opencontainers.image.description="Your own media server: films, TV, music, photos, books, DVD and Blu-ray menus, and games" \
       org.opencontainers.image.source="https://github.com/wittywilla/WittyMediaServer" \
       org.opencontainers.image.documentation="https://github.com/wittywilla/WittyMediaServer/blob/master/docs/DOCKER.md" \
-      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later" \
       org.opencontainers.image.version="${VERSION}"
 # Manuals, translations of programs' messages and changelogs are no use here. Each
 # package's copyright file stays, as its licence asks.

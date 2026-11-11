@@ -17,6 +17,20 @@ import (
 // MaxCanvas is the largest canvas taken as an upload.
 const MaxCanvas = 30 << 20
 
+// Limits on a canvas found beside the media. A canvas loops behind a title on every
+// device that opens it, a phone on mobile data included, so a whole film someone named
+// canvas.mp4 is not taken for one.
+const (
+	// MaxCanvasSidecar is the largest file beside the media taken for a canvas.
+	MaxCanvasSidecar = 64 << 20
+	// MaxCanvasSeconds is the longest.
+	MaxCanvasSeconds = 60
+)
+
+// GeneratedMark is an empty file, in an item's folder of uploads, that says its canvas was
+// cut from the video by the server rather than uploaded.
+const GeneratedMark = ".canvas-generated"
+
 // CanvasExts are the kinds of file a canvas can be, most wanted first.
 var CanvasExts = []string{".mp4", ".webm"}
 

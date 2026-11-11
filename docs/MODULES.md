@@ -214,11 +214,13 @@ When the server passes a person's request through to a service, it says who they
 
 The server always removes every `X-Witty-` header a browser sent (including `X-Witty-Service-Token`) before it sets its own, along with its own sign-in: the `Authorization` header and its sign-in cookie. A request with no `X-Witty-User` didn't come from a signed-in person, and a service should refuse it. The server's own calls to a service (`/call/...`) carry no identity.
 
-WittyPlay's Docker backend is reached this way, under `/api/modules/wittyplay`:
+WittyPlay's standalone emulators are reached this way, under `/api/modules/wittyplay`:
 
-- `/docker/status`, `/docker/settings`, `/docker/emulators`, `/docker/installed` and `/docker/emulators/{id}[/install]` are for administrators. The server checks that itself before passing them on, and WittyPlay checks `X-Witty-Admin` as well.
-- `/docker/sessions/{sid}/connect` and `DELETE /docker/sessions/{sid}` are for anyone signed in. WittyPlay decides whose session it is.
-- `/kasm/{sid}/...` is the KasmVNC desktop, its WebSocket included, for anyone signed in. A WebSocket from another site is refused. WittyPlay also wants the session's ticket. Cookies it sets are moved under `/api/modules/wittyplay/kasm/`.
+- `/docker/status`, `/docker/diagnostics`, `/docker/settings`, `/docker/emulators`, `/docker/installed` and `/docker/emulators/{id}[/install]` are for administrators. The server checks that itself before passing them on, and WittyPlay checks `X-Witty-Admin` as well.
+- `/docker/emulators/{id}/settings`, `/docker/sessions` and `/docker/sessions/{sid}[/connect|/pause|/resume]` are for anyone signed in. WittyPlay decides whose settings and whose session a request touches.
+- Requests are held to 256 KB and answers to 4 MB and 45 seconds, an answer's cookies are dropped, and the server adds `X-Wittyplay-System-Dir` (its BIOS folder) over whatever a client sent.
+- **Starting a game isn't passed through.** `POST /api/games/{id}/play/emulator` is the server's own route: it checks the account may play the game, finds the file, and calls the module (`docker.Launch`) with it. A module route that takes a path from a browser would let anyone read any file the emulator can be pointed at.
+- `/kasm/{sid}/{ticket}/...` is an emulator's desktop, and is the one module route that asks for no sign-in. What it serves comes out of a container, so it's answered with `Content-Security-Policy: … sandbox` and shown in a sandboxed frame, where it has no origin of the server's and a browser sends no cookie. The session's random 256-bit ticket in the address is the way in; nobody's identity is passed on; nothing can be written.
 
 See [SECURITY-ROUTES.md](SECURITY-ROUTES.md) for the full list.
 

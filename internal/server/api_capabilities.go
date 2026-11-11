@@ -80,6 +80,7 @@ var serverFeatures = []string{
 	"sdui-data", "sdui-form-factors", "sdui-topshelf", "pair-admin-confirm", "pair-session-info", "theme-variants",
 	"canvas-generate", "stems-approximate", "stems-separate", "intro-detection",
 	"profile-switching", "profile-avatars", "parental-controls", "screen-time",
+	"canvas", "karaoke-stems", "skip-markers", "where-to-watch-xref", "module-identity", "standalone-emulators",
 }
 
 // minClientVersions names the oldest version of each app this server still works with, by

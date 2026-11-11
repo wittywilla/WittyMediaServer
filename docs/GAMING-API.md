@@ -30,6 +30,28 @@ is stopped and saved after 60 seconds with nobody connected, and after 30 minute
 changes. The picture comes back if you reconnect within the first limit, so a brief network drop or a
 trip through the app switcher loses nothing.
 
+## Playing with a standalone emulator
+
+A server whose `features` include `standalone-emulators` may offer a game in a standalone emulator as well as on a core.
+
+1. `GET /games/{id}/emulators` answers `{"emulators": [{"id", "name", "version", "stream", "ready", "why", "experimental", "needsBios"}]}`. The list is empty when nothing is set up for the game's console: offer nothing then. When `ready` is false, `why` is a sentence to show beside a disabled button.
+2. `POST /games/{id}/play/emulator` with `{"emulator": "<id>"}` starts it: `201` and
+
+   ```json
+   {"id": "…", "emulator": "pcsx2", "name": "PCSX2", "backend": "docker+webrtc",
+    "connect": "/api/v1/modules/wittyplay/docker/sessions/…/connect",
+    "stop": "/api/v1/modules/wittyplay/docker/sessions/…",
+    "pause": "…/pause", "resume": "…/resume",
+    "width": 1280, "height": 720, "fps": 60, "players": 4, "notices": []}
+   ```
+
+   `409` with `{"error", "code"}` is a refusal to show as it is (not installed, needs firmware, this server is too small for it …); `503` means as many are running as are allowed. Posting again for the same game while it runs answers the same session, so a reloaded page rejoins it.
+3. `backend` ending in `+webrtc`: connect exactly as to a core's game over WebRTC ([the stream](GAMING-STREAM.md#webrtc)): a `recvonly` video and audio transceiver, the `input` and `events` data channels, then `POST` `{"hello", "offer"}` to `connect` and apply the answer's SDP. Send pad states for players 0 to `players - 1`, and pointer or touch messages for the mouse. There are no seats, save states, core options or timing messages: build only picture, sound, input, pause and stop.
+4. `backend` `docker+kasmvnc`: the answer has `kasmUrl` instead of `connect`. Show it in a frame sandboxed with `allow-scripts allow-pointer-lock`, **never** `allow-same-origin`, and send no sign-in with it: the ticket in the address is the whole of the way in.
+5. `POST pause`, `POST resume`, `DELETE stop`. On `events`, `{"type": "ended", "reason", "text"}` says the game is over and why. A game with nobody connected for two minutes is stopped.
+
+Each emulator's settings are data: `GET /modules/wittyplay/docker/emulators/{id}/settings?game=<id>` gives a `schema` to draw a form from and the values in three layers (`admin`, `user`, `game`); `PUT` the same address with `{"scope": "user"|"game"|"admin", "game", "values"}`. A field's `scope` says who may set it.
+
 ## Routes
 
 | Route | Sign-in | What it does |

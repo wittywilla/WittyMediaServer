@@ -3,7 +3,7 @@
 Every route of the server: who may call it and what it validates. `TestRouteTableMatchesTheCode` keeps this table and the code
 together. [SECURITY-REVIEW.md](SECURITY-REVIEW.md) describes the model behind it.
 
-Nothing else listens for HTTP: the HTTPS port serves this same handler. Three routes are WebSockets: `GET /api/play/{sid}/ws`, `GET /api/play/{sid}/stream`, and WittyPlay's KasmVNC desktop under `GET /api/modules/wittyplay/kasm/{sid}/{rest...}`.
+Nothing else listens for HTTP: the HTTPS port serves this same handler. Three routes are WebSockets: `GET /api/play/{sid}/ws`, `GET /api/play/{sid}/stream`, and WittyPlay's KasmVNC desktop under `GET /api/modules/wittyplay/kasm/{sid}/{ticket}/{rest...}`.
 
 Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served wherever `GET` is.
 
@@ -344,11 +344,14 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/modules/wittyplay/docker/emulators/{id}` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
 | `POST /api/modules/wittyplay/docker/sessions/{sid}/connect` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User set. WittyPlay answers only the session's player |
 | `DELETE /api/modules/wittyplay/docker/sessions/{sid}` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay answers only the session's player or an admin |
-| `GET /api/modules/wittyplay/kasm/{sid}/{rest...}` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers and this server's sign-in dropped, X-Witty-User set. WittyPlay answers only the session's player, with the session's ticket. WebSocket: origin must match the host |
-| `POST /api/modules/wittyplay/kasm/{sid}/{rest...}` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers and this server's sign-in dropped, X-Witty-User set. WittyPlay answers only the session's player, with the session's ticket. WebSocket: origin must match the host |
-| `PUT /api/modules/wittyplay/kasm/{sid}/{rest...}` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers and this server's sign-in dropped, X-Witty-User set. WittyPlay answers only the session's player, with the session's ticket. WebSocket: origin must match the host |
-| `PATCH /api/modules/wittyplay/kasm/{sid}/{rest...}` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers and this server's sign-in dropped, X-Witty-User set. WittyPlay answers only the session's player, with the session's ticket. WebSocket: origin must match the host |
-| `DELETE /api/modules/wittyplay/kasm/{sid}/{rest...}` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers and this server's sign-in dropped, X-Witty-User set. WittyPlay answers only the session's player, with the session's ticket. WebSocket: origin must match the host |
+| `GET /api/modules/wittyplay/docker/diagnostics` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
+| `DELETE /api/modules/wittyplay/docker/emulators/{id}/install` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
+| `GET /api/modules/wittyplay/docker/emulators/{id}/settings` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay answers the caller's own layers and the administrator's, never another account's |
+| `PUT /api/modules/wittyplay/docker/emulators/{id}/settings` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. 256 KB body. WittyPlay checks every value against its schema, lets only an admin write the admin layer or an admin-only setting, and writes only the caller's own layers |
+| `GET /api/modules/wittyplay/docker/sessions` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay lists only the caller's own, or all for an admin |
+| `POST /api/modules/wittyplay/docker/sessions/{sid}/pause` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User set. WittyPlay answers only the session's player |
+| `POST /api/modules/wittyplay/docker/sessions/{sid}/resume` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User set. WittyPlay answers only the session's player |
+| `GET /api/modules/wittyplay/kasm/{sid}/{ticket}/{rest...}` | Public, with a session's ticket | The address holds a session's own random 256-bit ticket, which only the person who started the game is given and which ends with it. Names of the wrong shape are refused here; WittyPlay checks the ticket in constant time and answers anything else as not found. Reading only. Nobody's identity or sign-in is passed on. The answer is sandboxed away from this server's origin, sets no cookie and redirects nowhere else. WebSocket: from the sandboxed frame or this site only |
 | `GET /api/reach/{nonce}` | Public | Nonce of a running outside test |
 | `GET /api/remote` | Admin | Nothing further |
 | `GET /api/remote/status` | Signed-in, or this computer | no account only from the server's own computer, directly (the tray). What is wrong in a fault, which can name files, only for an admin |
@@ -495,6 +498,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/consoles/{console}/controls` | Signed-in | Known console. own. Size, kind, device name, layout cleaned |
 | `POST /api/games/{id}/prepare` | Signed-in | limits. A game on a known, available console |
 | `POST /api/games/{id}/play` | Signed-in | limits. A game on a known, available console. Core allowed, file refused if encrypted. Limit on games at once |
+| `GET /api/games/{id}/emulators` | Signed-in | limits. A game on a known console. Answers a list, empty unless WittyPlay offers one |
+| `POST /api/games/{id}/play/emulator` | Signed-in | limits. A game on a known console, its file in a library. 4 KB body, the emulator named by id. The server gives WittyPlay the file; WittyPlay refuses what is not installed, too large for this machine, or over its limit on emulators at once |
 | `GET /api/games/{id}/saves` | Signed-in | limits. A game. own folder, built from numbers |
 | `GET /api/games/{id}/saves/{slot}/thumb` | Signed-in; address token | limits. A game. Slot number. own folder |
 | `DELETE /api/games/{id}/saves/{slot}` | Signed-in | limits. A game. Slot number. own folder |

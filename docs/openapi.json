@@ -18891,6 +18891,86 @@
         "x-wms-auth": "user"
       }
     },
+    "/games/{id}/emulators": {
+      "get": {
+        "operationId": "getGamesIdEmulators",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The standalone emulators set up to play this game: {emulators: [{id, name, version, stream, ready, why}]}. Empty when WittyPlay has none.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/play/emulator": {
+      "post": {
+        "operationId": "postGamesIdPlayEmulator",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start this game in a standalone emulator: {emulator} in; 201 with the session and where to connect, stop, pause and resume it.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/games/{id}/prepare": {
       "post": {
         "operationId": "postGamesIdPrepare",
@@ -41420,6 +41500,44 @@
           "Games"
         ],
         "x-wms-auth": "admin"
+      },
+      "delete": {
+        "operationId": "deleteModulesWittyplayDockerEmulatorsIdInstall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel an emulator's install. What had been downloaded is kept for the next try.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/modules/wittyplay/docker/emulators/{id}": {
@@ -41542,27 +41660,9 @@
         "x-wms-auth": "user"
       }
     },
-    "/modules/wittyplay/kasm/{sid}/{rest}": {
+    "/modules/wittyplay/docker/diagnostics": {
       "get": {
-        "operationId": "getModulesWittyplayKasmSidRest",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "sid",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "rest",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "operationId": "getModulesWittyplayDockerDiagnostics",
         "responses": {
           "200": {
             "content": {
@@ -41583,26 +41683,20 @@
             "bearer": []
           }
         ],
-        "summary": "The KasmVNC desktop of a game in a container, WebSocket included: only for its player, with the session's ticket.",
+        "summary": "A look over everything standalone emulators depend on here, in plain words: {host, checks}.",
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "user"
-      },
-      "post": {
-        "operationId": "postModulesWittyplayKasmSidRest",
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/wittyplay/docker/emulators/{id}/settings": {
+      "get": {
+        "operationId": "getModulesWittyplayDockerEmulatorsIdSettings",
         "parameters": [
           {
             "in": "path",
-            "name": "sid",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "rest",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -41629,18 +41723,176 @@
             "bearer": []
           }
         ],
-        "summary": "The KasmVNC desktop of a game in a container, WebSocket included: only for its player, with the session's ticket.",
+        "summary": "An emulator's settings as this account sees them: the schema, each layer and what they come to. `?game=` adds one game's.",
         "tags": [
           "Games"
         ],
         "x-wms-auth": "user"
       },
       "put": {
-        "operationId": "putModulesWittyplayKasmSidRest",
+        "operationId": "putModulesWittyplayDockerEmulatorsIdSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set an emulator's settings: {scope: admin, user or game, game, values}. Checked against the schema.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/modules/wittyplay/docker/sessions": {
+      "get": {
+        "operationId": "getModulesWittyplayDockerSessions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Games running in standalone emulators: the caller's own, or everyone's for an administrator.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/modules/wittyplay/docker/sessions/{sid}/pause": {
+      "post": {
+        "operationId": "postModulesWittyplayDockerSessionsSidPause",
         "parameters": [
           {
             "in": "path",
             "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Freeze a game in a standalone emulator. The player's own only.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/modules/wittyplay/docker/sessions/{sid}/resume": {
+      "post": {
+        "operationId": "postModulesWittyplayDockerSessionsSidResume",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Let a paused game in a standalone emulator go on. The player's own only.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/modules/wittyplay/kasm/{sid}/{ticket}/{rest}": {
+      "get": {
+        "operationId": "getModulesWittyplayKasmSidTicketRest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ticket",
             "required": true,
             "schema": {
               "type": "string"
@@ -41670,108 +41922,12 @@
             "$ref": "#/components/responses/Error"
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "The KasmVNC desktop of a game in a container, WebSocket included: only for its player, with the session's ticket.",
+        "summary": "The KasmVNC desktop of a game in a container, and its WebSocket. The session's ticket in the address is the way in.",
         "tags": [
           "Games"
         ],
-        "x-wms-auth": "user"
-      },
-      "patch": {
-        "operationId": "patchModulesWittyplayKasmSidRest",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "sid",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "rest",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "OK."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "The KasmVNC desktop of a game in a container, WebSocket included: only for its player, with the session's ticket.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "user"
-      },
-      "delete": {
-        "operationId": "deleteModulesWittyplayKasmSidRest",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "sid",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "rest",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "OK."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "The KasmVNC desktop of a game in a container, WebSocket included: only for its player, with the session's ticket.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "user"
+        "x-wms-auth": "public",
+        "security": []
       }
     },
     "/remote-control": {

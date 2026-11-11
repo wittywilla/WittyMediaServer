@@ -14,6 +14,7 @@ import { ask, Dialog, Menu, Sheet, useBackCloses, type MenuEntry } from '../../u
 import { GameCredits, GameMatchBar, GameRatings, GameShots } from '../GameMeta'
 import { GameFixPanel, GameProblem, GameVersionLinks } from '../GameReview'
 import { getConsoles, SettingsScreen, useConsoles, useSettingsHost } from './consoles'
+import { EmulatorChoices } from './EmulatorChoices'
 import { crispIfSmall, fmtPlayed, heroCover, saveThumb, useCoverTint, useGameLinks, type GameCheck } from './data'
 import { Ambient } from './Library'
 import './shelves.css'
@@ -200,6 +201,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
             <Menu label="More for this game" items={moreItems} align="start"
               trigger={(p) => <button type="button" {...p} ref={p.ref as React.Ref<HTMLButtonElement>} className="btn big square" aria-label="More"><IconMore size={20} /></button>} />
           </div>
+          <EmulatorChoices it={it} />
           {auto && ready && (
             <Link className="gm-resume" to={links.play(it.id, 'resume=1')} aria-label={`Resume from ${fmtDateTime(auto.updatedAt * 1000)}`}>
               {auto.hasThumb ? <img src={saveThumb(it.id, 0, auto.updatedAt)} alt="" loading="lazy" onLoad={crispIfSmall} /> : <span className="gm-save-blank" />}

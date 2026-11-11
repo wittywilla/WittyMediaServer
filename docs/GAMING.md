@@ -70,9 +70,20 @@ No console needs the fork. The server would use it if it found a program named `
 
 Cores are the same files RetroArch uses, and a RetroArch install's cores are found.
 
-### Standalone emulators in Docker (optional)
+### Standalone emulators (optional)
 
-WittyPlay can also run a standalone emulator (PCSX2, Cemu, xemu, Flycast and others) in a hardened container, one per game, instead of a core in the runner. It streams into the same WebRTC session, or through KasmVNC behind an authenticated proxy for emulators that need a desktop. It's off by default (`docker.enabled`), libretro cores always stay in the process sandbox, and a server without Docker carries on as before. The design, security model, setup and limits are in WittyPlay's [docs/DOCKER-BACKEND.md](https://github.com/wittywilla/WittyPlay/blob/master/docs/DOCKER-BACKEND.md). The server reaches its routes under `/api/modules/wittyplay/docker/...` and `/api/modules/wittyplay/kasm/...`. Only administrators can change its settings or install emulators, and only the player can open a game's desktop. See [MODULES.md](MODULES.md#who-is-asking).
+WittyPlay can also run a standalone emulator (PCSX2, PPSSPP, Flycast, melonDS and others), downloaded from its own project, in a hardened Docker container or a bubblewrap sandbox, one per game, and stream it over WebRTC. It's off until an administrator turns it on in **Settings, Standalone emulators**; cores are untouched, and a game goes to an emulator only when someone picks **Play with …** on its page. Nothing is bundled: no emulator, game, BIOS or key.
+
+What the server does, and WittyPlay doesn't:
+
+- **It decides who may play what.** `GET /api/v1/games/{id}/emulators` and `POST /api/v1/games/{id}/play/emulator` load the game the way every other route does, so an account's libraries and ratings apply, and a game they hide is "not found". The server finds the game's file (unpacking an archive, as for a core) and gives WittyPlay that file, the account and the emulator's name. A browser never names a file.
+- **It passes the rest through** under `/api/v1/modules/wittyplay/docker/…`, as the person signed in, checking administrators' routes itself as well. See [MODULES.md](MODULES.md#who-is-asking).
+- **It keeps an emulator's desktop off its own origin.** The few emulators shown as a desktop (KasmVNC) are served from inside a container, so their page is sandboxed and reached by a per-session ticket.
+- A game in an emulator shows in Activity like any other, and its time counts toward "Continue playing".
+
+Where they differ from a core's game: no save states, rewind, cheats, core options or seats; pads become keys, each of four players their own, with no analogue or rumble; and remote players need the same UDP port and public address a core's game does (no STUN server unless you set one, and no TURN relay).
+
+**Reaching a Docker daemon that runs as root is as good as being root on the machine.** The settings page says so beside the switch, Diagnostics says whether the daemon is rootless, and a rootless Docker, Podman or the local sandbox are the ways round it. The design, the security model, setup, the emulators and their licences, the delay budget, and a plain list of what hasn't yet been run on a real Docker host are in WittyPlay's [docs/DOCKER-BACKEND.md](https://github.com/wittywilla/WittyPlay/blob/master/docs/DOCKER-BACKEND.md).
 
 ### Why no cgo
 

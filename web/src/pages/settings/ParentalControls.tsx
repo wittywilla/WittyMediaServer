@@ -276,7 +276,7 @@ export function ActivityDialog({ user, onClose }: { user: UserView; onClose: () 
               const total = a.days.find((d) => d.day === day)
               return (
                 <div className="pc-day" key={day}>
-                  <div className="pc-day-head"><b>{dayText(day)}</b><span className="muted">{total ? `${hm(total.screenSec)} of screen time${total.extraSec ? `, ${hm(total.extraSec)} of it extra` : ''}` : ''}</span></div>
+                  <div className="pc-day-head"><b>{dayText(day)}</b><span className="muted">{total ? `${hm(total.screenSec)} of screen time${total.extraSec ? `, with ${hm(total.extraSec)} extra given` : ''}` : ''}</span></div>
                   <ul className="pc-rows">
                     {a.watched.filter((w) => w.day === day).map((w) => (
                       <li key={w.itemId}><span>{w.showTitle ? `${w.showTitle}: ` : ''}{w.title || 'A title that has gone'}</span><span className="muted">{hm(w.seconds)}</span></li>
@@ -287,7 +287,7 @@ export function ActivityDialog({ user, onClose }: { user: UserView; onClose: () 
             })}
           </section>
           <section>
-            <h3>What was refused</h3>
+            <h3>What was refused, and extra time</h3>
             {a.events.length === 0 && <p className="muted">Nothing.</p>}
             <ul className="pc-rows">
               {a.events.map((e, i) => (

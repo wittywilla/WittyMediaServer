@@ -149,6 +149,7 @@ WittyMediaClient adds Android, Android TV, iOS, tvOS and Plasma Big Screen. Andr
 | [Docker](docs/DOCKER.md) | The image, compose files, graphics cards, and a guide for each make of NAS |
 | [Libraries](docs/LIBRARIES.md) | Adding your media, and naming your files |
 | [Accounts and profiles](docs/ACCOUNTS.md) | People, passwords, limits and sign-in |
+| [Profiles and parental controls](docs/PROFILES.md) | Switching profile on a shared screen, limits, screen time and reports |
 | [Apps and devices](docs/APPS.md) | Every device, and how far each has been run |
 | [Settings tour](docs/SETTINGS.md) | Where every setting lives |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Common problems, by what you're seeing |

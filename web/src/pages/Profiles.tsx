@@ -83,7 +83,7 @@ export default function Profiles() {
                     <Button size="sm" aria-label={`Name and picture for ${profileName(u)}`} onClick={() => setNaming(u)}>Name and picture</Button>
                     <Button size="sm" aria-label={`${passwordWord(u)} for ${profileName(u)}`} onClick={() => setSettingPw(u)}>{passwordWord(u)}</Button>
                     {!u.isAdmin && <Button size="sm" aria-label={`Limits for ${profileName(u)}`} onClick={() => setEditing(u)}>Limits</Button>}
-                    {!u.isAdmin && <Button size="sm" aria-label={`What ${profileName(u)} watched, and more time`} onClick={() => setWatching(u)}>Activity</Button>}
+                    {!u.isAdmin && <Button size="sm" aria-label={`Report for ${profileName(u)}: what they watched, and more time`} onClick={() => setWatching(u)}>Report</Button>}
                     <IconButton label={`Remove ${profileName(u)}`} size="sm" variant="danger" onClick={() => del(u)}><IconTrash /></IconButton>
                   </div>
                 )}

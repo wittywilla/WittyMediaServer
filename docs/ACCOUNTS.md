@@ -1,6 +1,6 @@
 # Accounts and profiles
 
-This guide helps you add the people who use your server, decide what each may do, and look after passwords and sign-ins. Everyone's profile is under **Settings → Profiles**, and their own sign-ins under **Settings → Sign-in & security**.
+This guide helps you add the people who use your server, decide what each may do, and look after passwords and sign-ins. Everyone's profile is under **Settings → Profiles**, and their own sign-ins under **Settings → Sign-in & security**. Switching profile on a shared screen, screen time and the rest of parental controls are in [Profiles and parental controls](PROFILES.md).
 
 - [Who can do what](#who-can-do-what)
 - [Add a profile](#add-a-profile)
@@ -67,7 +67,7 @@ For visitors. A new Guest profile starts at *Teens 13+*, with no Live TV. A pass
 
 ## Limits
 
-Press **Limits** beside someone under **Settings → Profiles** to set their age limit, the libraries they can open, genres to hide, titles to always or never allow, and their Live TV. [Hiding things, and who sees what](LIBRARIES.md#hiding-things-and-who-sees-what) explains each one.
+Press **Limits** beside someone under **Settings → Profiles** to set their age limit, the libraries they can open, genres to hide, titles to always or never allow, and their Live TV. [Hiding things, and who sees what](LIBRARIES.md#hiding-things-and-who-sees-what) explains each one. There's also an age for each kind of media, collections and tags, what the profile may do, and screen time: see [Profiles and parental controls](PROFILES.md).
 
 | Age limit | What it allows |
 |---|---|
@@ -85,7 +85,7 @@ Each person has two names.
 - **Username:** what they sign in with. It has to be theirs alone, and `Sam` and `sam` count as the same name. Up to 40 characters.
 - **Profile name:** what they're called around the app, such as on the *Who's watching?* screen. Anyone can have the same one. Up to 60 characters, and optional. Without one, the username is used.
 
-**To change yours,** go to **Settings → Profiles → Your account** and press **Save names**. Adults and administrators can do this for themselves. **To change someone else's,** press **Names** beside them, if you manage them. Kids and Guests keep the names they were given.
+**To change yours,** go to **Settings → Profiles → Your account** and press **Save names**. Adults and administrators can do this for themselves. **To change someone else's,** press **Name and picture** beside them, if you manage them. Kids and Guests keep the names they were given, unless you let them [change their own name and picture](PROFILES.md#a-picture-for-each-profile).
 
 **To choose which shows,** turn on **Show my username at the top right, not my profile name**. It's in the same place, and everyone can choose this for themselves, Kids and Guests too.
 

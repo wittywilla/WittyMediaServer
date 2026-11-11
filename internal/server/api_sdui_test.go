@@ -152,7 +152,7 @@ func TestSDUIConfigPutNeedsIfMatchAndValidates(t *testing.T) {
 	}
 	etag := w.Header().Get("ETag")
 	cfg := decode[sduistore.Config](t, w)
-	if cfg.ETag != etag || cfg.Revision != 1 || len(cfg.Screens) != 5 {
+	if cfg.ETag != etag || cfg.Revision != 1 || len(cfg.Screens) != len(sdui.DefaultScreens()) {
 		t.Fatalf("config: rev %d etag %q/%q screens %d", cfg.Revision, cfg.ETag, etag, len(cfg.Screens))
 	}
 	if w := ts.do(t, "GET", "/api/sdui/config", admin, nil, "If-None-Match", etag); w.Code != 304 {

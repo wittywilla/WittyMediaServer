@@ -265,10 +265,61 @@ jobs:
           path: installers/*.pkg
           if-no-files-found: error
 
+  # The AppImage, Flatpak and snap, for the two processors a desktop or a home server has. Made
+  # from the same folders as the .deb and .rpm; nothing is compiled again.
+  installers-linux:
+    needs: archives
+    if: ${{ !cancelled() && needs.archives.result == 'success' }}
+    # 24.04 by name: the snap is built on the machine itself, which has to be its base, core24.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: archives
+          path: dist
+      # The arm64 Flatpak's build commands run in the arm64 SDK.
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+        with:
+          platforms: arm64
+      - name: Install Flatpak and Snapcraft
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          sudo snap install snapcraft --classic
+          # flatpak-builder's sandbox needs user namespaces, which Ubuntu 24.04 refuses a program
+          # it has no profile for. This machine is thrown away after the job.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      - name: Build the AppImage, the Flatpak and the snap
+        env:
+          SNAPCRAFT_BUILD_ENVIRONMENT: host
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          mkdir -p stage installers
+          for a in amd64 arm64; do
+            tar -xzf "dist/wittymediaserver-$VERSION-linux-$a.tar.gz" -C stage
+            packaging/linux/appimage/build-appimage.sh "$VERSION" "stage/wittymediaserver-$VERSION-linux-$a" "$a" installers
+            packaging/linux/flatpak/build-flatpak.sh "$VERSION" "stage/wittymediaserver-$VERSION-linux-$a" "$a" installers
+            packaging/linux/snap/build-snap.sh "$VERSION" "stage/wittymediaserver-$VERSION-linux-$a" "$a" installers
+          done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: installers-linux
+          path: |
+            installers/*.AppImage
+            installers/*.flatpak
+            installers/*.snap
+          if-no-files-found: error
+
   # One checksum list for everything people can download.
   checksums:
-    needs: [archives, installers-windows, installers-macos, installers-freebsd]
-    if: ${{ !cancelled() && needs.archives.result == 'success' && needs.installers-windows.result == 'success' && needs.installers-macos.result == 'success' && needs.installers-freebsd.result == 'success' }}
+    needs: [archives, installers-windows, installers-macos, installers-freebsd, installers-linux]
+    if: ${{ !cancelled() && needs.archives.result == 'success' && needs.installers-windows.result == 'success' && needs.installers-macos.result == 'success' && needs.installers-freebsd.result == 'success' && needs.installers-linux.result == 'success' }}
     runs-on: ubuntu-latest
     permissions: {}
     steps:
@@ -293,11 +344,15 @@ jobs:
         with:
           name: installers-freebsd
           path: all
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: installers-linux
+          path: all
       - name: Write the checksum list
         run: |
           VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
           mkdir sums
-          (cd all && find . -maxdepth 1 -type f \( -name '*.zip' -o -name '*.tar.gz' -o -name '*.msi' -o -name '*.pkg' -o -name '*.deb' -o -name '*.rpm' \) -printf '%f\0' | sort -z | xargs -0 sha256sum --) > "sums/wittymediaserver-$VERSION-SHA256SUMS.txt"
+          (cd all && find . -maxdepth 1 -type f \( -name '*.zip' -o -name '*.tar.gz' -o -name '*.msi' -o -name '*.pkg' -o -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.flatpak' -o -name '*.snap' \) -printf '%f\0' | sort -z | xargs -0 sha256sum --) > "sums/wittymediaserver-$VERSION-SHA256SUMS.txt"
           test -s "sums/wittymediaserver-$VERSION-SHA256SUMS.txt"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
@@ -377,6 +432,10 @@ jobs:
           path: dist
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
+          name: installers-linux
+          path: dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
           name: sums
           path: dist
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
@@ -415,6 +474,7 @@ jobs:
           | macOS | \`.pkg\` |
           | Debian, Ubuntu and relatives | \`.deb\` |
           | Fedora, RHEL and relatives | \`.rpm\` |
+          | Any other Linux | \`.AppImage\`, \`.flatpak\` or \`.snap\` (amd64 and arm64; new, and not run yet) |
           | FreeBSD | \`.pkg\` |
 
           \`amd64\` is most computers, and \`arm64\` is Apple silicon and many small boards. The [install guide](https://github.com/wittywilla/WittyMediaServer/blob/$REF/docs/INSTALL.md) covers the rest, and Docker. A server already installed finds the new version by itself: **Settings, About, Updates** has the right file for it.
@@ -433,6 +493,9 @@ jobs:
             dist/*.pkg
             dist/*.deb
             dist/*.rpm
+            dist/*.AppImage
+            dist/*.flatpak
+            dist/*.snap
             dist/*SHA256SUMS.txt
             dist/*SHA256SUMS.txt.sig
           prerelease: ${{ contains(github.ref_name, '-') }}
@@ -440,6 +503,18 @@ jobs:
           # say what README.md's "Where it has been run" says.
           body_path: notes.md
           generate_release_notes: true
+
+  # The release's tracking issue gets its files ticked off. A release this workflow publishes
+  # starts no other workflow by being published, so it's called from here.
+  tracking:
+    needs: publish
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      issues: write
+    uses: ./.github/workflows/release-tracking.yml
+    with:
+      version: ${{ github.ref_name }}
+      published: true
 
   # Only for a tag, and only once its release is out.
   docker:

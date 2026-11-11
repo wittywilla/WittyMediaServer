@@ -1,0 +1,16 @@
+# What packaging/linux/appimage/build-appimage.sh downloads, by exact file and SHA-256, the way
+# scripts/ffmpeg.lock names FFmpeg. A download that doesn't match stops the build.
+#
+# appimagetool runs on the build machine, so it is picked by that machine's processor. The
+# runtime is the small program at the front of every AppImage, so it is picked by the processor
+# the AppImage is for. It's the static one: it needs no libfuse on the computer that runs it.
+#
+# Moving to newer ones is one deliberate change here: pick a numbered release (never
+# "continuous") from github.com/AppImage/appimagetool/releases and
+# github.com/AppImage/type2-runtime/releases, and take each file's sha256 from the release page.
+#
+# name  sha256  address
+appimagetool-x86_64 ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0 https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
+appimagetool-aarch64 f0837e7448a0c1e4e650a93bb3e85802546e60654ef287576f46c71c126a9158 https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-aarch64.AppImage
+runtime-x86_64 2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64
+runtime-aarch64 00cbdfcf917cc6c0ff6d3347d59e0ca1f7f45a6df1a428a0d6d8a78664d87444 https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-aarch64

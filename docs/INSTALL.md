@@ -32,6 +32,7 @@ These files are the server, for the computer that holds your media. **For a phon
 | macOS 11 or later | `macos-arm64.pkg` (Apple silicon), `macos-amd64.pkg` (Intel) | `darwin-arm64.tar.gz`, `darwin-amd64.tar.gz` |
 | Debian, Ubuntu and relatives | `linux-amd64.deb`, also `arm64`, `armv7`, `386` | `linux-amd64.tar.gz`, and the same |
 | Fedora, RHEL and relatives | `linux-amd64.rpm`, also `arm64`, `armv7`, `386` | `linux-amd64.tar.gz`, and the same |
+| Any other Linux | `linux-amd64.AppImage`, `linux-amd64.flatpak` or `linux-amd64.snap`, also `arm64`: see [AppImage, Flatpak and snap](#appimage-flatpak-and-snap) | `linux-amd64.tar.gz`, and the same |
 | FreeBSD 14 or later | `freebsd-amd64.pkg`, `freebsd-arm64.pkg` | `freebsd-amd64.tar.gz`, `freebsd-arm64.tar.gz` |
 
 For containers, the image is `ghcr.io/wittywilla/wittymediaserver`: see [Docker](#docker).
@@ -44,7 +45,7 @@ Each release also has `SHA256SUMS.txt`, a list of every file's checksum, and `SH
 |---|---|
 | **Windows** | The `.msi` has been installed on Windows 11, and upgraded and removed under Wine. Before each release it's installed over the one before on GitHub's Windows machines, for everyone, for one account and as a service, with the server running. The ARM64 `.msi` was built once and hasn't been checked |
 | **macOS** | Never built or run. This has not been run on a real Mac yet |
-| **Linux** | The `.deb` and `.rpm` have been installed, upgraded and removed on Debian trixie, Ubuntu 26.04 and Fedora 43, on amd64, in containers with systemd running. The `arm64`, `armv7` and `386` packages haven't been run |
+| **Linux** | The `.deb` and `.rpm` have been installed, upgraded and removed on Debian trixie, Ubuntu 26.04 and Fedora 43, on amd64, in containers with systemd running. The `arm64`, `armv7` and `386` packages haven't been run. **The AppImage, the Flatpak and the snap are new in 0.8.0-alpha and have never been built or run**: use the `.deb`, the `.rpm` or the `.tar.gz` for anything you rely on |
 | **FreeBSD** | The amd64 package and its service have been installed, upgraded and removed in FreeBSD 14.4 and 15.1 virtual machines. Real hardware and arm64 haven't been tried, modules have only been built for it, and a film hasn't been played there |
 | **Docker** | The amd64 image has been built and run in WSL, locked down, as several users, upgraded from 0.6.2-alpha, with NVENC through WSL. arm64 and armv7 have been built, not run. No NAS yet. See [Docker](DOCKER.md#what-has-been-tried) |
 
@@ -144,6 +145,43 @@ sudo ./install.sh --prefix /srv/witty --data /tank/witty --port 8080 --user medi
 ```
 
 **Without installing.** Run `./WittyMediaServer`, or `./bin/wittymediaserver serve` with no tray icon.
+
+### AppImage, Flatpak and snap
+
+Three more ways to get the same server, for a distribution the `.deb` and `.rpm` don't fit. Each is for `amd64` and `arm64`. **None of them has been run yet.** They come from the Releases page, not from Flathub or the Snap Store.
+
+| | Install and start | Your library, accounts and settings |
+|---|---|---|
+| **AppImage** | `chmod +x wittymediaserver-<version>-linux-amd64.AppImage`, then open it. On a computer with no desktop, run it with `serve` after its name | `~/.local/share/wittymediaserver`, as for the `.tar.gz` |
+| **Flatpak** | `flatpak install ./wittymediaserver-<version>-linux-amd64.flatpak`, then **WittyMediaServer** in the app menu, or `flatpak run com.wittywilla.WittyMediaServer`. Flatpak needs the Flathub remote, for the runtime | `~/.var/app/com.wittywilla.WittyMediaServer/data/wittymediaserver` |
+| **Snap** | `sudo snap install --dangerous ./wittymediaserver-<version>-linux-amd64.snap`. `--dangerous` is snap's word for a file that didn't come from its store. The service starts by itself | `/var/snap/wittymediaserver/common` |
+
+The AppImage and the Flatpak open the tray app, which starts the server for your account, as the `.tar.gz` does. The snap runs a service and has no tray app: `snap services wittymediaserver` and `sudo snap logs wittymediaserver` show it. With anything after its name, each one is the server's command line: `./wittymediaserver-….AppImage version`, `flatpak run com.wittywilla.WittyMediaServer version`, `sudo wittymediaserver reset-password`.
+
+**A Flatpak and a snap are shut in, and see little of your computer until you say so.**
+
+- **Flatpak** reads your Videos, Music and Pictures folders, and can't change them. For a library anywhere else, or to let the server save beside your media:
+
+  ```bash
+  flatpak override --user --filesystem=/mnt/media com.wittywilla.WittyMediaServer          # read and write
+  flatpak override --user --filesystem=/mnt/films:ro com.wittywilla.WittyMediaServer       # read only
+  flatpak override --user --device=all com.wittywilla.WittyMediaServer                     # disc drives and TV tuners
+  ```
+
+- **Snap** sees none of your files to begin with:
+
+  ```bash
+  sudo snap connect wittymediaserver:home               # media in a home folder, read only
+  sudo snap connect wittymediaserver:removable-media    # drives under /media, /mnt and /run/media, read and write
+  sudo snap connect wittymediaserver:dvb                # TV tuners
+  sudo snap connect wittymediaserver:camera             # capture devices
+  ```
+
+  A library has to be in a home folder or under `/media`, `/mnt` or `/run/media`.
+
+A module's helper program is boxed in by the server itself, which a Flatpak or a snap may not allow inside its own. **Settings → Modules** says if it couldn't be, and modules from other publishers are then refused.
+
+None of the three replaces its own files, so **Update now** isn't offered. Download the new file and open or install it the same way: your data stays. To remove one: delete the AppImage, `flatpak uninstall com.wittywilla.WittyMediaServer`, or `sudo snap remove wittymediaserver`. `snap remove --purge` and `flatpak uninstall --delete-data` take the library's database and settings with them, never your media.
 
 Run either a service or the tray app on a port, not both by hand. The tray app notices a server already answering, and only shows it.
 
@@ -253,6 +291,7 @@ The server looks for new versions twice a day while **Check for updates automati
 | Windows installer, **Just me**, or an unpacked folder on Windows, Linux or FreeBSD | **Update now** |
 | Windows installer, **Everyone on this computer** | **Download the installer**, then run it on the server's computer, as Windows protects Program Files. It updates in place |
 | `.deb`, `.rpm`, FreeBSD `.pkg` | **Download the installer**, then run the command Settings shows (`sudo apt install …`, `sudo dnf install …` or `pkg add -f …`), as your package manager owns these files. The server never runs it itself |
+| AppImage, Flatpak, snap | Download the new file from the Releases page, and open or install it as you did the first: see [AppImage, Flatpak and snap](#appimage-flatpak-and-snap). Settings may offer the `.tar.gz` instead, which isn't the one for these |
 | `install.sh` | **Download the installer** (the archive), unpack it and run `sudo ./install.sh` again |
 | macOS | **Download the installer**, then open the `.pkg` |
 | Docker | `docker compose pull`, then `docker compose up -d`. With `docker run`: `docker pull`, then remove and recreate the container. Your `/config` volume stays |

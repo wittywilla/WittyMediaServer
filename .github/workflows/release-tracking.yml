@@ -1,0 +1,81 @@
+name: release tracking
+# Keeps one issue per release, "Release <version> tracking", labelled release, with the checklist
+# in .github/release-checklist.md. It is opened, or brought up to date, when a release branch
+# (v0.8.0-alpha, v0.9.0-beta, v1.0.0) is made or this is started by hand. Once the release is
+# published, the lines that name a file are ticked from the files the release has, and the issue
+# is closed when nothing is left. scripts/release-tracking.sh does the work, and running it
+# twice changes nothing the second time.
+on:
+  push:
+    # Only the push that makes the branch does anything: see the job's "if".
+    branches: ["v[0-9]*"]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version, such as 0.8.0-alpha
+        required: true
+        type: string
+      published:
+        description: The release is published. Tick what it proves, and close the issue when nothing is left
+        type: boolean
+        default: false
+  # release.yml calls this after it publishes: a release published with the workflow's own
+  # token starts no workflow by itself.
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      published:
+        type: boolean
+        default: false
+
+# The job asks for only what it needs.
+permissions: {}
+
+# One at a time for a version, so two starts can't both find no issue and open two.
+concurrency:
+  group: release-tracking-${{ inputs.version || github.event.release.tag_name || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  issue:
+    # Called or started by hand, a published release, or the push that made a release branch.
+    if: ${{ inputs.version != '' || github.event_name == 'release' || (github.event_name == 'push' && github.event.created) }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      # The checklist and the script only. The repository is public, so this needs no permission.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          sparse-checkout: |
+            .github/release-checklist.md
+            scripts/release-tracking.sh
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Open, update or tick the tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PUBLISHED: ${{ inputs.published }}
+          EVENT: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            version="$INPUT_VERSION"; mode=open
+            [ "$INPUT_PUBLISHED" = true ] && mode=published
+          elif [ "$EVENT" = release ]; then
+            version="$RELEASE_TAG"; mode=published
+          else
+            version="$BRANCH"; mode=open
+            # A branch such as v2-experiments is nobody's release.
+            if ! printf '%s' "$version" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta)[0-9A-Za-z.-]*)?$'; then
+              echo "::notice::$version isn't a release branch: nothing to do"
+              exit 0
+            fi
+          fi
+          bash scripts/release-tracking.sh "$mode" "$version"

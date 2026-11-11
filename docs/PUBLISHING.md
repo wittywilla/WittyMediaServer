@@ -43,10 +43,12 @@ Before it, a soak run of at least 4 hours on Linux, and on Windows when a machin
    ```
 
 3. Watch the **Actions** tab. `.github/workflows/release.yml` builds everything, stops at the `release` environment for the owner's approval if it requires one, signs the checksum list, and publishes.
-4. Check the **Releases** page lists the archives for all ten platforms, the installers (Windows `.msi`, macOS `.pkg`, Linux `.deb` and `.rpm`, FreeBSD `.pkg`), `SHA256SUMS.txt` and `SHA256SUMS.txt.sig`.
+4. Check the **Releases** page lists the archives for all ten platforms, the installers (Windows `.msi`, macOS `.pkg`, Linux `.deb`, `.rpm`, `.AppImage`, `.flatpak` and `.snap`, FreeBSD `.pkg`), `SHA256SUMS.txt` and `SHA256SUMS.txt.sig`.
 5. Give the release a short summary. Installed servers show it as the notes under **Settings → About**.
 
 A tag with a suffix such as `-alpha` is published as a pre-release, and its Docker image is tagged `alpha`. Only a tag with no suffix moves `latest`.
+
+**The tracking issue.** Making a release branch (`v0.8.0-alpha`), or starting the **release tracking** workflow by hand with a version, opens an issue called "Release <version> tracking", labelled `release`, with the checklist in `.github/release-checklist.md`. Starting it again brings the issue up to date and keeps its ticks. Once the release is published, the workflow ticks every line whose files the release has, says in a comment what's left, and closes the issue when nothing is. `scripts/release-tracking.sh` does the same from your own computer, and `DRY_RUN=1` only says what it would do.
 
 **To retry,** delete the tag on GitHub under **Releases**, then **Tags**, make it again on the new commit, and push.
 
@@ -118,10 +120,15 @@ Each installer is made from a folder that script built. `scripts/test/README.md`
 
 ```bash
 packaging/linux/build-packages.sh 0.6.0-alpha dist/mine/wittymediaserver-0.6.0-alpha-linux-amd64 amd64   # .deb and .rpm, needs nfpm
+packaging/linux/appimage/build-appimage.sh 0.6.0-alpha dist/mine/wittymediaserver-0.6.0-alpha-linux-amd64 amd64   # .AppImage, on Linux; downloads appimagetool
+packaging/linux/flatpak/build-flatpak.sh 0.6.0-alpha dist/mine/wittymediaserver-0.6.0-alpha-linux-amd64 amd64     # .flatpak, needs flatpak-builder
+packaging/linux/snap/build-snap.sh 0.6.0-alpha dist/mine/wittymediaserver-0.6.0-alpha-linux-amd64 amd64           # .snap, needs snapcraft
 packaging/linux/make-repository.sh dist/mine out                                                         # an apt and dnf repository
 packaging/macos/build-pkg.sh 0.6.0-alpha dist/mine/wittymediaserver-0.6.0-alpha-darwin-arm64 arm64       # .pkg, on a Mac
 packaging/freebsd/build-pkg.sh 0.6.0-alpha dist/mine/wittymediaserver-0.6.0-alpha-freebsd-amd64 amd64    # .pkg, on FreeBSD
 ```
+
+The AppImage, the Flatpak and the snap are for `amd64` and `arm64`, and are made in the `installers-linux` job. **None of the three has been built or run**, here or on GitHub: the first run of `build.yml` with them in is their first build. They are in the signed checksum list like every other file, and nothing puts them on Flathub or in the Snap Store. `appimagetool` and the AppImage runtime are pinned by hash in `packaging/linux/appimage/tools.lock`. The server doesn't yet know these three kinds by name (`internal/layout`), so an installed one refuses **Update now**, which is right, but may offer the `.tar.gz` as its installer.
 
 ```powershell
 packaging\windows\build-msi.ps1 -Version 0.6.0-alpha -PackageDir dist\mine\wittymediaserver-0.6.0-alpha-windows-amd64 -Arch amd64

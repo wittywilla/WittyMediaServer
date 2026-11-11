@@ -35,6 +35,11 @@ func setAutostart(on bool) error {
 	if err != nil {
 		return err
 	}
+	// Inside an AppImage the program runs from a folder that is gone when it closes
+	// (/tmp/.mount_...): the file to start at login is the AppImage itself.
+	if img := os.Getenv("APPIMAGE"); img != "" {
+		exe = img
+	}
 	_ = os.MkdirAll(filepath.Dir(p), 0o755)
 	entry := "[Desktop Entry]\nType=Application\nName=WittyMediaServer\nComment=Media server tray launcher\nExec=" + exe + "\nIcon=wittymediaserver\nTerminal=false\nCategories=AudioVideo;\nX-GNOME-Autostart-enabled=true\n"
 	return os.WriteFile(p, []byte(entry), 0o644)

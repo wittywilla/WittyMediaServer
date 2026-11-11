@@ -29,6 +29,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - Fixed: on an Intel Mac, Apple VideoToolbox never worked: FFmpeg there won't start it with a quality setting, so the server's test encode failed. It now gets a bitrate for the picture's size there, for streams and library transcoding; Apple silicon is unchanged (#138).
 - Fixed: on a Mac, the menu-bar app's `Info.plist` now says why it asks for Desktop, Documents, Downloads, removable and network drives, and a capture device's camera and microphone (#137).
 - Fixed: on a Mac, installing over an earlier background service whose property list couldn't be read took the error message for the data folder's name, and the uninstaller couldn't find a data folder with `&` in its name (#136).
+- Added: the server as an AppImage, a Flatpak (`com.wittywilla.WittyMediaServer`) and a snap, for `amd64` and `arm64`, on the Releases page beside the `.deb` and `.rpm` and in the same signed checksum list. The AppImage and the Flatpak open the tray app; the snap runs a service. None of the three has been run yet, and none replaces its own files: a new version is downloaded and installed the same way. See [docs/INSTALL.md](docs/INSTALL.md#appimage-flatpak-and-snap).
 
 ## 0.7.2-alpha
 

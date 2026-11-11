@@ -275,6 +275,12 @@ func (u *Updater) cannotApply() string {
 		return "This copy was installed with a FreeBSD package, which pkg looks after. Download the new one here, then install it with pkg add as root. Your library and settings are kept."
 	case layout.KindPkg:
 		return "On a Mac, the new version comes as an installer: download it, then open it. Your library and settings are kept."
+	case layout.KindAppImage:
+		return "This copy is an AppImage: one file that can't change itself. Download the new one here, make it executable and run it in place of this one. Your library and settings are kept."
+	case layout.KindFlatpak:
+		return "This copy is a Flatpak, which flatpak looks after. Download the new one here, then install it with flatpak install. Your library and settings are kept."
+	case layout.KindSnap:
+		return "This copy is a Snap, which snap looks after. Download the new one here, then install it with snap install as the computer's administrator. Your library and settings are kept."
 	case layout.KindMSI, layout.KindArchive:
 	default:
 		return "This copy wasn't installed from a release package, so it can't replace its own files."

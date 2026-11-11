@@ -298,7 +298,7 @@ port = ` + strconv.Itoa(port) + `
 // folder, and an update or upgrade puts its own files back.
 func Managed(kind string) bool {
 	switch kind {
-	case layout.KindMSI, layout.KindDeb, layout.KindRPM, layout.KindPkg, layout.KindFreeBSD:
+	case layout.KindMSI, layout.KindDeb, layout.KindRPM, layout.KindPkg, layout.KindFreeBSD, layout.KindAppImage, layout.KindFlatpak, layout.KindSnap:
 		return true
 	}
 	return false

@@ -1,0 +1,87 @@
+# The snap of WittyMediaServer, made with Snapcraft from a folder that scripts/build-release.sh
+# built. packaging/linux/snap/build-snap.sh runs this, with that folder beside it as "stage" and
+# ${VERSION} and ${GRADE} filled in: nothing is compiled here.
+name: wittymediaserver
+title: WittyMediaServer
+version: "${VERSION}"
+summary: Your own media server for films, shows, music, photos, books and games
+description: |
+  WittyMediaServer runs on the computer that holds your media, and plays it on every device on
+  your home network: in a web browser, or in the WittyMediaClient app. It looks after films,
+  shows, music, photos, books, DVDs and Blu-rays with their own menus, TV channels made from
+  your library, and games. FFmpeg comes with it.
+
+  The snap runs the server as a background service. Open http://<this computer>:9797/ to finish
+  setting up. The snap can read nothing of yours until you connect it:
+
+      sudo snap connect wittymediaserver:home               # media in a home folder, read-only
+      sudo snap connect wittymediaserver:removable-media    # drives under /media, /mnt and /run/media
+
+  The command is wittymediaserver, for example: sudo wittymediaserver reset-password
+license: AGPL-3.0-or-later
+website: https://github.com/wittywilla/WittyMediaServer
+source-code: https://github.com/wittywilla/WittyMediaServer
+issues: https://github.com/wittywilla/WittyMediaServer/issues
+icon: snap/gui/wittymediaserver.png
+
+base: core24
+# devel for a version with a suffix such as -alpha, stable for one without.
+grade: ${GRADE}
+confinement: strict
+
+# Nothing is compiled, so either processor's snap can be made on either.
+platforms:
+  amd64:
+    build-on: [amd64, arm64]
+    build-for: [amd64]
+  arm64:
+    build-on: [amd64, arm64]
+    build-for: [arm64]
+
+# The library, accounts and settings: /var/snap/wittymediaserver/common, which a new version of
+# the snap keeps and never copies. The command line uses the service's, as root.
+environment:
+  WMS_DATA_DIR: $SNAP_COMMON
+
+plugs:
+  # The service runs as root, and root isn't the owner of the media in your home folder: without
+  # "read: all" the home plug would show it nothing. With it, the plug isn't connected until
+  # you connect it.
+  home:
+    read: all
+
+apps:
+  # The service.
+  daemon:
+    command: bin/wittymediaserver serve
+    daemon: simple
+    install-mode: enable
+    # The server ends with 75 when it wants starting again, after a reset or a changed port.
+    restart-condition: on-failure
+    restart-delay: 3s
+    stop-timeout: 20s
+    environment:
+      WMS_NO_BROWSER: "1"
+    plugs: &plugs
+      - network
+      - network-bind
+      # Your media: see the description. Neither is connected until you connect it.
+      - home
+      - removable-media
+      # Graphics cards, for hardware transcoding.
+      - opengl
+      # DVDs, Blu-rays and CDs in a drive.
+      - optical-drive
+      # TV tuners and capture devices. Not connected until you connect them.
+      - dvb
+      - camera
+
+  # The command line: wittymediaserver version, sudo wittymediaserver reset-password, ...
+  wittymediaserver:
+    command: bin/wittymediaserver
+    plugs: *plugs
+
+parts:
+  wittymediaserver:
+    plugin: dump
+    source: stage

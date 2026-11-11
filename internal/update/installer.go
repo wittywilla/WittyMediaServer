@@ -82,6 +82,12 @@ func InstallerName(ver, goos, goarch, kind string) string {
 		if goos == "freebsd" {
 			return base + "freebsd-" + goarch + ".pkg"
 		}
+	case layout.KindAppImage, layout.KindFlatpak, layout.KindSnap:
+		// Made for these two only (packaging/linux/appimage, flatpak, snap).
+		if goos == "linux" && (goarch == "amd64" || goarch == "arm64") {
+			ext := map[string]string{layout.KindAppImage: ".AppImage", layout.KindFlatpak: ".flatpak", layout.KindSnap: ".snap"}[kind]
+			return base + "linux-" + goarch + ext
+		}
 	default:
 		return ArchiveName(ver, goos, goarch)
 	}
@@ -281,6 +287,14 @@ func installCommand(kind, path string) string {
 		return "pkg add -f " + shellQuote(path)
 	case layout.KindPkg:
 		return "sudo installer -pkg " + shellQuote(path) + " -target /"
+	case layout.KindAppImage:
+		return "chmod +x " + shellQuote(path)
+	case layout.KindFlatpak:
+		return "flatpak install " + shellQuote(path)
+	case layout.KindSnap:
+		// --dangerous: a file from the release, not from the store, so snap can't check who made it.
+		// The server checked its signed checksum when it downloaded it.
+		return "sudo snap install --dangerous " + shellQuote(path)
 	}
 	return ""
 }

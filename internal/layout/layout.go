@@ -53,6 +53,10 @@ const (
 	KindRPM     = "rpm"         // Fedora, RHEL, openSUSE and relatives
 	KindPkg     = "pkg"         // the macOS installer
 	KindFreeBSD = "freebsd-pkg" // FreeBSD's pkg
+	// One file that holds the whole program, read-only: nothing inside can be replaced.
+	KindAppImage = "appimage" // an AppImage someone downloaded and runs
+	KindFlatpak  = "flatpak"  // a Flatpak bundle
+	KindSnap     = "snap"     // a Snap
 )
 
 // Package is where a copy of the server is.

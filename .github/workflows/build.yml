@@ -96,6 +96,82 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # The AppImage, the Flatpak and the snap, made the way release.yml makes them: from the folders
+  # scripts/build-release.sh builds, with FFmpeg in them. The amd64 ones are then run.
+  linux-packages:
+    needs: web
+    # 24.04 by name: the snap is built on the machine itself, which has to be its base, core24.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: web-dist
+          path: web/dist
+      # The arm64 Flatpak's build commands run in the arm64 SDK.
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+        with:
+          platforms: arm64
+      - name: Install Flatpak and Snapcraft
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          sudo snap install snapcraft --classic
+          # flatpak-builder's sandbox needs user namespaces, which Ubuntu 24.04 refuses a program
+          # it has no profile for. This machine is thrown away after the job.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      - name: Build the package folders
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          SKIP_WEB=1 STRICT_FFMPEG=1 scripts/build-release.sh "$VERSION" linux/amd64 linux/arm64
+      - name: Build the AppImage, the Flatpak and the snap
+        env:
+          SNAPCRAFT_BUILD_ENVIRONMENT: host
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          for a in amd64 arm64; do
+            packaging/linux/appimage/build-appimage.sh "$VERSION" "dist/wittymediaserver-$VERSION-linux-$a" "$a" packages
+            packaging/linux/flatpak/build-flatpak.sh "$VERSION" "dist/wittymediaserver-$VERSION-linux-$a" "$a" packages
+            packaging/linux/snap/build-snap.sh "$VERSION" "dist/wittymediaserver-$VERSION-linux-$a" "$a" packages
+          done
+          ls -la packages
+      # The build machine is amd64, so only those can be run here.
+      - name: The AppImage runs
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          # Unpacks itself to run: the build machine may have no FUSE.
+          "packages/wittymediaserver-$VERSION-linux-amd64.AppImage" --appimage-extract-and-run version | grep wittymediaserver
+      - name: The Flatpak runs
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          flatpak install --user --noninteractive "packages/wittymediaserver-$VERSION-linux-amd64.flatpak"
+          flatpak run com.wittywilla.WittyMediaServer version | grep wittymediaserver
+      - name: The snap's service answers
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
+          sudo snap install --dangerous "packages/wittymediaserver-$VERSION-linux-amd64.snap"
+          snap run wittymediaserver version | grep wittymediaserver
+          curl -sf --retry 15 --retry-delay 2 --retry-connrefused http://127.0.0.1:9797/api/health | grep -q '"ok":true' \
+            || { sudo snap logs -n 50 wittymediaserver; exit 1; }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: wittymediaserver-linux-packages
+          path: |
+            packages/*.AppImage
+            packages/*.flatpak
+            packages/*.snap
+          if-no-files-found: error
+          retention-days: 7
+
   # Built on Windows itself. The tray (fyne.io/systray) is pure Go on Windows, as
   # scripts/build-release.sh builds it with CGO_ENABLED=0, so arm64 cross-compiles from the
   # amd64 runner; the amd64 server is run to see that it starts.
@@ -320,13 +396,14 @@ jobs:
 
   # One place to look: what each platform did, and a failure when any did not build.
   summary:
-    needs: [web, linux, windows, macos, freebsd, docker]
+    needs: [web, linux, linux-packages, windows, macos, freebsd, docker]
     if: always()
     runs-on: ubuntu-latest
     permissions: {}
     env:
       RESULT_WEB: ${{ needs.web.result }}
       RESULT_LINUX: ${{ needs.linux.result }}
+      RESULT_LINUX_PACKAGES: ${{ needs.linux-packages.result }}
       RESULT_WINDOWS: ${{ needs.windows.result }}
       RESULT_MACOS: ${{ needs.macos.result }}
       RESULT_FREEBSD: ${{ needs.freebsd.result }}
@@ -340,7 +417,7 @@ jobs:
             echo
             echo "| Job | Result |"
             echo "|---|---|"
-            for job in WEB LINUX WINDOWS MACOS FREEBSD DOCKER; do
+            for job in WEB LINUX LINUX_PACKAGES WINDOWS MACOS FREEBSD DOCKER; do
               eval "result=\$RESULT_$job"
               case "$result" in
                 success) mark="✅" ;;
@@ -351,7 +428,7 @@ jobs:
               echo "$job: $result" >&2
             done
           } | tee -a "$GITHUB_STEP_SUMMARY"
-          for job in WEB LINUX WINDOWS MACOS FREEBSD DOCKER; do
+          for job in WEB LINUX LINUX_PACKAGES WINDOWS MACOS FREEBSD DOCKER; do
             eval "result=\$RESULT_$job"
             [ "$result" = success ] || [ "$result" = skipped ] || failed=1
           done

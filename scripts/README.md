@@ -12,6 +12,7 @@ Nothing in this folder ships to people, apart from what a build makes. What does
 | `cmd/wms-forwarder` | Ships as `wms` in the `.zip` and `.tar.gz` only, so a copy of 0.5.2-alpha can update. Goes once that's past |
 | `packaging/windows` | The `.msi`, made with the WiX Toolset |
 | `packaging/linux` | The `.deb` and `.rpm`, made with nFPM. Their service, scripts and repository layout |
+| `packaging/linux/appimage`, `flatpak`, `snap` | The AppImage, the Flatpak and the snap, each made from the same folder by a script of its own. `launcher.sh` is what the first two run. None has been built or run yet |
 | `packaging/macos` | The Mac `.pkg`, made with Apple's tools. Needs a Mac |
 | `packaging/freebsd` | The FreeBSD `.pkg`, made with `pkg create`, and the rc.d service. Needs FreeBSD |
 | `packaging/install.sh` | The service installer in the Linux and FreeBSD `.tar.gz` |

@@ -1,0 +1,55 @@
+# The Flatpak of WittyMediaServer, made with flatpak-builder from a folder that
+# scripts/build-release.sh built. packaging/linux/flatpak/build-flatpak.sh runs this, with that
+# folder beside it as "stage": nothing is compiled here.
+app-id: com.wittywilla.WittyMediaServer
+# The programs are static, so the runtime only has to be there: it brings xdg-open, and the
+# graphics drivers that hardware transcoding uses.
+runtime: org.freedesktop.Platform
+runtime-version: "25.08"
+sdk: org.freedesktop.Sdk
+command: wittymediaserver
+
+# What the sandbox lets through, and no more. There is no window, so no X11 or Wayland.
+finish-args:
+  # The server listens on your network, and fetches metadata and updates' release notes.
+  - --share=network
+  # Graphics cards, for hardware transcoding.
+  - --device=dri
+  # Where a desktop keeps media. Read-only: the server's own files are in its data folder.
+  # A library anywhere else, a drive, or saving beside your media, needs an override of your
+  # own, which docs/INSTALL.md shows.
+  - --filesystem=xdg-videos:ro
+  - --filesystem=xdg-music:ro
+  - --filesystem=xdg-pictures:ro
+  # The tray icon.
+  - --talk-name=org.kde.StatusNotifierWatcher
+
+modules:
+  - name: wittymediaserver
+    buildsystem: simple
+    build-options:
+      # Go programs and the static FFmpeg are already stripped, and stripping them again here
+      # has nothing to gain.
+      strip: false
+      no-debuginfo: true
+    build-commands:
+      # The same layout as every other package: internal/layout.
+      - mkdir -p "${FLATPAK_DEST}/lib/wittymediaserver"
+      - cp -R bin "${FLATPAK_DEST}/lib/wittymediaserver/"
+      - install -m 0755 WittyMediaServer "${FLATPAK_DEST}/lib/wittymediaserver/WittyMediaServer"
+      - install -m 0644 package-info.json "${FLATPAK_DEST}/lib/wittymediaserver/package-info.json"
+      - if [ -d modules ]; then cp -R modules "${FLATPAK_DEST}/lib/wittymediaserver/"; fi
+      # The command: the tray app, or with anything after it the server's command line.
+      - install -m 0755 launcher.sh "${FLATPAK_DEST}/lib/wittymediaserver/launcher.sh"
+      - mkdir -p "${FLATPAK_DEST}/bin"
+      - ln -s ../lib/wittymediaserver/launcher.sh "${FLATPAK_DEST}/bin/wittymediaserver"
+      # In the app menu and in software centres.
+      - install -D -m 0644 "${FLATPAK_ID}.desktop" "${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop"
+      - install -D -m 0644 share/wittymediaserver.png "${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/${FLATPAK_ID}.png"
+      - install -D -m 0644 "${FLATPAK_ID}.metainfo.xml" "${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml"
+      # Licences and notes.
+      - mkdir -p "${FLATPAK_DEST}/share/licenses/${FLATPAK_ID}"
+      - cp -R docs/. "${FLATPAK_DEST}/share/licenses/${FLATPAK_ID}/"
+    sources:
+      - type: dir
+        path: stage

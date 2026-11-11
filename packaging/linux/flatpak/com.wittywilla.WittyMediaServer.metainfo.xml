@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- What software centres show for the Flatpak and the AppImage. metainfo.sh fills in @VERSION@,
+     @RELEASE_TYPE@ and @DATE@ when a package is built. -->
+<component type="desktop-application">
+  <id>com.wittywilla.WittyMediaServer</id>
+  <name>WittyMediaServer</name>
+  <summary>Your own media server for films, shows, music, photos, books and games</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0-or-later</project_license>
+  <developer id="com.wittywilla">
+    <name>WittyWilla and contributors</name>
+  </developer>
+  <description>
+    <p>WittyMediaServer runs on the computer that holds your media, and plays it on every device on your home network: in a web browser, or in the WittyMediaClient app.</p>
+    <p>It looks after films, shows, music, photos, books, DVDs and Blu-rays with their own menus, TV channels made from your library, and games. FFmpeg comes with it.</p>
+    <p>This package opens an app with a tray icon, which starts and stops the server and opens it in your browser. Everything else is done in the browser.</p>
+  </description>
+  <launchable type="desktop-id">com.wittywilla.WittyMediaServer.desktop</launchable>
+  <url type="homepage">https://github.com/wittywilla/WittyMediaServer</url>
+  <url type="bugtracker">https://github.com/wittywilla/WittyMediaServer/issues</url>
+  <url type="help">https://github.com/wittywilla/WittyMediaServer/blob/master/docs/INSTALL.md</url>
+  <url type="vcs-browser">https://github.com/wittywilla/WittyMediaServer</url>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Video</category>
+    <category>Network</category>
+  </categories>
+  <screenshots>
+    <screenshot type="default">
+      <caption>The home page</caption>
+      <image>https://raw.githubusercontent.com/wittywilla/WittyMediaServer/master/docs/images/home.webp</image>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="@VERSION@" type="@RELEASE_TYPE@" date="@DATE@">
+      <url type="details">https://github.com/wittywilla/WittyMediaServer/blob/master/CHANGELOG.md</url>
+    </release>
+  </releases>
+</component>

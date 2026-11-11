@@ -120,6 +120,27 @@ func TestInstallerName(t *testing.T) {
 	if got := installCommand("rpm", "/home/a b/it's.rpm"); got != `sudo dnf install '/home/a b/it'\''s.rpm'` {
 		t.Error(got)
 	}
+	for kind, want := range map[string]string{
+		"appimage": "chmod +x /d/x.AppImage",
+		"flatpak":  "flatpak install /d/x.flatpak",
+		"snap":     "sudo snap install --dangerous /d/x.snap",
+	} {
+		if got := installCommand(kind, "/d/x."+map[string]string{"appimage": "AppImage", "flatpak": "flatpak", "snap": "snap"}[kind]); got != want {
+			t.Errorf("%s: %q", kind, got)
+		}
+	}
+	// The single-file Linux packages are made for amd64 and arm64 only, and never offered an archive.
+	for _, c := range []struct{ arch, kind, want string }{
+		{"amd64", "appimage", "wittymediaserver-1.0.0-linux-amd64.AppImage"},
+		{"arm64", "flatpak", "wittymediaserver-1.0.0-linux-arm64.flatpak"},
+		{"amd64", "snap", "wittymediaserver-1.0.0-linux-amd64.snap"},
+		{"arm", "appimage", ""},
+		{"386", "snap", ""},
+	} {
+		if got := InstallerName("1.0.0", "linux", c.arch, c.kind); got != c.want {
+			t.Errorf("%s on %s: %q, want %q", c.kind, c.arch, got, c.want)
+		}
+	}
 	if installCommand("msi", `C:\x.msi`) != "" {
 		t.Error("a command for the Windows installer")
 	}

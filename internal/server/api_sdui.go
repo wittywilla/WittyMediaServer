@@ -588,6 +588,16 @@ func (s *Server) renderPage(w http.ResponseWriter, r *http.Request) (sdui.Docume
 			h.Write([]byte(r.Header.Get(name)))
 			h.Write([]byte{0})
 		}
+		// The profile's limits, and whether its time is up, are part of what was asked: a
+		// render from before a parent changed them, or before the time ran out, is not the
+		// answer to this request.
+		h.Write([]byte(u.Restrictions))
+		h.Write([]byte{0})
+		if a := accessFor(u); a != nil && !a.Time.Empty() {
+			if v := a.Time.Check(s.clock(), s.parentalInit().tracker.Usage(r.Context(), u.ID)); !v.Allowed {
+				h.Write([]byte("time-up"))
+			}
+		}
 		key = hex.EncodeToString(h.Sum(nil))
 		st.mu.Lock()
 		got, ok := st.recent[key]

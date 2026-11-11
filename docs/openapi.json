@@ -25085,6 +25085,98 @@
         "x-wms-auth": "user"
       }
     },
+    "/karaoke/status": {
+      "get": {
+        "operationId": "getKaraokeStatus",
+        "parameters": [
+          {
+            "description": "1 looks for an installed separator again.",
+            "in": "query",
+            "name": "look",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "approximate": {
+                      "description": "FFmpeg is there for the quick version.",
+                      "type": "boolean"
+                    },
+                    "auto": {
+                      "enum": [
+                        "auto",
+                        "admin",
+                        "never"
+                      ],
+                      "type": "string"
+                    },
+                    "cacheMB": {
+                      "type": "integer"
+                    },
+                    "machine": {
+                      "type": "string"
+                    },
+                    "separator": {
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "enum": [
+                            "config",
+                            "found",
+                            ""
+                          ],
+                          "type": "string"
+                        },
+                        "usable": {
+                          "description": "False on a machine too small to run it.",
+                          "type": "boolean"
+                        },
+                        "version": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "songs": {
+                      "type": "integer"
+                    },
+                    "usedBytes": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The separator found, the owner's switch, and how much is kept."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What this server makes karaoke versions with",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/legal": {
       "get": {
         "operationId": "getLegal",
@@ -28896,6 +28988,258 @@
           "Media extras"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/media/{id}/karaoke": {
+      "get": {
+        "operationId": "getMediaIdKaraoke",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "canImprove": {
+                      "type": "boolean"
+                    },
+                    "improving": {
+                      "description": "A really separated version is being made while this one plays.",
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "description": "The reason as a sentence for people.",
+                      "type": "string"
+                    },
+                    "mix": {
+                      "description": "parts: play every stem at its own gain. blend: full at m*v and instrumental at m*(1-v), for a voice level v and a music level m.",
+                      "enum": [
+                        "parts",
+                        "blend",
+                        ""
+                      ],
+                      "type": "string"
+                    },
+                    "pollSec": {
+                      "description": "Ask again after this many seconds; 0 when nothing will change by itself.",
+                      "type": "integer"
+                    },
+                    "progress": {
+                      "description": "0 to 100 of what is being made, -1 when there is no telling.",
+                      "type": "integer"
+                    },
+                    "quality": {
+                      "description": "What stems holds: really separated, or the quick approximate version.",
+                      "enum": [
+                        "stems",
+                        "approximate",
+                        ""
+                      ],
+                      "type": "string"
+                    },
+                    "reason": {
+                      "description": "When unavailable: not-a-song, not-a-file, off, admin-only, mono, no-ffmpeg, busy, rate-limited, failed, not-made.",
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "ready",
+                        "preparing",
+                        "unavailable"
+                      ],
+                      "type": "string"
+                    },
+                    "stems": {
+                      "items": {
+                        "properties": {
+                          "defaultGain": {
+                            "type": "number"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mime": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "enum": [
+                              "vocals",
+                              "music",
+                              "full"
+                            ],
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "version": {
+                      "description": "Changes when the stems do: load them again.",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The karaoke of the song."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A song's karaoke: what can be played now and what is being made",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/media/{id}/karaoke/prepare": {
+      "post": {
+        "operationId": "postMediaIdKaraokePrepare",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "canImprove": {
+                      "type": "boolean"
+                    },
+                    "improving": {
+                      "description": "A really separated version is being made while this one plays.",
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "description": "The reason as a sentence for people.",
+                      "type": "string"
+                    },
+                    "mix": {
+                      "description": "parts: play every stem at its own gain. blend: full at m*v and instrumental at m*(1-v), for a voice level v and a music level m.",
+                      "enum": [
+                        "parts",
+                        "blend",
+                        ""
+                      ],
+                      "type": "string"
+                    },
+                    "pollSec": {
+                      "description": "Ask again after this many seconds; 0 when nothing will change by itself.",
+                      "type": "integer"
+                    },
+                    "progress": {
+                      "description": "0 to 100 of what is being made, -1 when there is no telling.",
+                      "type": "integer"
+                    },
+                    "quality": {
+                      "description": "What stems holds: really separated, or the quick approximate version.",
+                      "enum": [
+                        "stems",
+                        "approximate",
+                        ""
+                      ],
+                      "type": "string"
+                    },
+                    "reason": {
+                      "description": "When unavailable: not-a-song, not-a-file, off, admin-only, mono, no-ffmpeg, busy, rate-limited, failed, not-made.",
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "ready",
+                        "preparing",
+                        "unavailable"
+                      ],
+                      "type": "string"
+                    },
+                    "stems": {
+                      "items": {
+                        "properties": {
+                          "defaultGain": {
+                            "type": "number"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mime": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "enum": [
+                              "vocals",
+                              "music",
+                              "full"
+                            ],
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "version": {
+                      "description": "Changes when the stems do: load them again.",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The karaoke of the song, after starting what was missing."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start making a song's karaoke version if it has none, and answer as GET does",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/media/{id}/markers": {

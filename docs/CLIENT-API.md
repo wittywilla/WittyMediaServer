@@ -1517,7 +1517,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 A song's or title's looping video, a song's separated parts for karaoke, where to skip in a
 video, and where else a title can be watched. Feature names: `canvas`, `karaoke-stems`,
 `skip-markers`, `where-to-watch-xref`, and `canvas-generate`, `stems-approximate`,
-`stems-separate`, `intro-detection` for what the server can make itself. `{id}` is an item, as in
+`stems-separate`, `intro-detection` for what the server can make itself, and `karaoke-auto` for karaoke an app
+asks for in one call. `{id}` is an item, as in
 `/items/{id}`. The routes that make something answer 202 with `task`: follow it at `/system/tasks`.
 
 | Route | Sign-in | What it does |
@@ -1528,12 +1529,15 @@ video, and where else a title can be watched. Feature names: `canvas`, `karaoke-
 | `PUT /media/{id}/canvas` | admin | Upload a canvas: an MP4 or WebM of at most 30 MB as the body. It replaces any upload, and wins over a file beside the media. |
 | `DELETE /media/{id}/canvas` | admin | Forget the uploaded canvas. One beside the media stays. |
 | `POST /media/{id}/canvas/generate` | admin | Cut a canvas from a video file: `{startSec?, durationSec?}` (2 to 15 s; by default a quarter of the way in, 5 to 8 s by the size of the machine). Silent H.264 MP4, at most 720p (480p or 360p on a small machine), its end cross-faded into its start so it loops. 202 `{task}`. 400 for a song or a disc, 503 when FFmpeg has no H.264 encoder. |
-| `GET /media/{id}/stems` | user | `{stems: [{name, url, mime, size, multitrack?, source, approximate?}], names, separation}`: `source` is `upload`, `sidecar`, `separated` (the owner's separator made it) or `approximate`; `separation.approximate` and `separation.external` each say `{available, reason?, task?, note?}`. In full: a song's parts, from `vocals`, `instrumental`, `drums`, `bass`, `other`, and `multitrack` for a Native Instruments `.stem.mp4` holding all of them as audio tracks. |
+| `GET /media/{id}/stems` | user | `{stems: [{name, url, mime, size, multitrack?, source, approximate?}], names, separation}`: `source` is `upload`, `sidecar`, `separated` (the owner's separator made it) or `approximate`; `separation.approximate` and `separation.external` each say `{available, reason?, task?, note?}`. `separation.best` is `separator`, `approximate` or empty: the best this server can make; `separation.separator` names the separator in use (`Demucs`), whether found on the machine or named in its configuration. In full: a song's parts, from `vocals`, `instrumental`, `drums`, `bass`, `other`, and `multitrack` for a Native Instruments `.stem.mp4` holding all of them as audio tracks. |
 | `GET /media/{id}/stems/{stem}` | user, `st` | One part, with byte ranges. `accompaniment` is another name for `instrumental`. |
 | `PUT /media/{id}/stems/{stem}` | admin | Upload a part: FLAC, WAV, Ogg, M4A, AAC, MP3 or WebM of at most 200 MB as the body (`multitrack`: an MP4). The server doesn't separate songs itself. |
 | `DELETE /media/{id}/stems/{stem}` | admin | Forget an uploaded part. |
 | `POST /media/{id}/stems/approximate` | user | Make an approximate `instrumental` with FFmpeg alone (what the two channels share is cancelled). 202 `{task}`; 200 `{exists: true}` when there is an instrumental already. It is listed with `approximate: true` and gives way to a real one. Say so to the person: the voice is quieter, not gone, and the music is mono. Mono songs fail. 503 without FFmpeg. |
 | `POST /media/{id}/stems/separate` | admin | Run the separator the owner installed on the song. 202 `{task}`; 409 when none is set up (`separation.external.reason` is `not-configured`). The parts it writes are listed with `source: "separated"`. |
+| `GET /media/{id}/karaoke` | user | Feature `karaoke-auto`. The one answer an app needs to play karaoke: `{state, quality, mix, stems: [{id, label, role, url, mime, defaultGain}], version, improving, progress, canImprove, reason?, message?, pollSec}`. See [Karaoke that sets itself up](#karaoke-that-sets-itself-up). Starts nothing. |
+| `POST /media/{id}/karaoke/prepare` | user | The same answer, after starting what is missing: the quick version, and behind it the real one if the server has a separator. No body. Idempotent: call it once when someone opens karaoke on a song. |
+| `GET /karaoke/status` | admin | For Settings: `{separator: {available, usable, name, version, source}, approximate, machine, auto, cacheMB, usedBytes, songs}`. `source` is `found` (installed on the machine and found by the server) or `config`. `look=1` looks again. |
 | `GET /media/{id}/markers` | user | `{intro, recap, credits, commercials: [...], source, sources}`, each range `{startSec, endSec}`. `source` is where the most trusted came from: `manual`, `skip.json`, `edl`, `chapters`, `detected`, `show` or `none`. |
 | `PUT /media/{id}/markers` | admin | Set them by hand: `{intro: {start, end}, recap, credits: {start, end?}, commercials: [...]}`. A credits range without an end runs to the end. No scan replaces this; `{"reset": true}` goes back to what the files say. |
 | `POST /shows/{id}/detect-intros` | admin | Compare the sound of a season's episodes and keep the stretch they share as `intro` (15 s to 3 min, in the first 10 minutes) and `credits` (in the last 7) markers, `source: "detected"`. `{season?}`. 202 `{task, episodes, seasons}`; 409 when a run is under way or there aren't two episodes to compare. Trusted less than chapters, more than the show's own intro. |
@@ -1543,6 +1547,27 @@ video, and where else a title can be watched. Feature names: `canvas`, `karaoke-
 `POST /items/{id}/playback` also gives `recap`, `credits` and `commercials` beside `intro` for a
 video (an intro set by hand, or in a `.skip.json` or `.edl`, replaces the chapter's), and `stems`
 for a song, with the stream token already in each `url`.
+
+
+#### Karaoke that sets itself up
+
+With `karaoke-auto`, an app doesn't choose between stems, separators and approximations. When
+someone opens karaoke on a song, `POST /media/{id}/karaoke/prepare` once, then play what the answer
+says, and `GET /media/{id}/karaoke` again every `pollSec` seconds while it isn't 0.
+
+| Field | What it means |
+|---|---|
+| `state` | `ready`: play `stems`. `preparing`: nothing to play yet, keep the normal track and say "Preparing karaoke…" with `progress`. `unavailable`: keep the normal track and show `message`. |
+| `quality` | `stems` (really separated: "Separated") or `approximate` (FFmpeg's quick version: "Quick version"). |
+| `mix` | `parts`: one stem with `role: "vocals"` and one or more with `role: "music"` (`instrumental`, or `drums`, `bass`, `other`); play all of them in step, each at its own gain, and the Vocals control is the vocals stem's gain. `blend`: exactly two stems, `full` (the whole song) and `instrumental`; for a voice level `v` and a music level `m`, both 0 to 1, play `full` at `m·v` and `instrumental` at `m·(1−v)`, linearly. |
+| `stems` | What to play. `url` is relative to the server and takes byte ranges; what the server made is AAC in an MP4, the same length and delay for every stem of a song. A stem the owner put beside the song can be any audio type: if one can't be played, go back to the normal track. `defaultGain` is where its control starts. |
+| `version` | Changes when the stems change. When it does (the real version replacing the quick one), load the new ones and carry on from the same place. |
+| `improving`, `progress` | A real version is being made while the quick one plays: "Preparing a better version… 40%". `progress` is -1 when the separator doesn't say. |
+| `reason` | `not-a-song`, `not-a-file`, `off` (the owner turned it off), `admin-only`, `mono`, `no-ffmpeg`, `busy`, `rate-limited`, `failed`, `not-made` (nobody has asked yet: `prepare` will). |
+
+The stems must start together and stay together to the sample: decode them and mix them on one
+clock, not as separate players. Fetching a stem counts as playing for screen time, and follows the
+account's limits, as `GET /media/{id}/stems/{stem}` does; `full` is one more name that route takes.
 
 ### Books
 

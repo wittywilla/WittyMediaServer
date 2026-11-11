@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -42,6 +43,11 @@ type separationInfo struct {
 	Approximate separationWay `json:"approximate"`
 	// External: the owner's separator can be asked for (by an administrator).
 	External separationWay `json:"external"`
+	// Best is the best this server can make: "separator" or "approximate", "" for neither.
+	// Separator names the one in use ("Demucs"), found on the machine or named in its
+	// configuration.
+	Best      string `json:"best"`
+	Separator string `json:"separator,omitempty"`
 }
 
 type separationWay struct {
@@ -57,10 +63,8 @@ type separationWay struct {
 const approxNote = "Approximate: made by cancelling what the left and right channels share. The voice is quieter, not gone, and the music is mono."
 
 func (s *Server) separatorWords() []string {
-	if s.Cfg == nil || strings.TrimSpace(s.Cfg.StemSeparator) == "" {
-		return nil
-	}
-	return ffmpeg.SplitArgs(s.Cfg.StemSeparator)
+	words, _, _, _ := s.separator(context.Background())
+	return words
 }
 
 func (s *Server) separationFor(r *http.Request, it *library.Item) separationInfo {
@@ -81,9 +85,16 @@ func (s *Server) separationFor(r *http.Request, it *library.Item) separationInfo
 		}
 	}
 	out.External = separationWay{Reason: base, Task: s.mediaJobTask(fmt.Sprintf("stems-separate:%d", it.ID))}
+	words, name, _, _ := s.separator(r.Context())
+	switch {
+	case words != nil:
+		out.Best, out.Separator = "separator", name
+	case s.Tools != nil && s.Tools.FFmpeg != "":
+		out.Best = "approximate"
+	}
 	if base == "" {
 		switch {
-		case s.separatorWords() == nil:
+		case words == nil:
 			out.External.Reason = "not-configured"
 		case !userFrom(r).IsAdmin:
 			out.External.Reason = "admin-only"
@@ -169,23 +180,38 @@ func (s *Server) makeApproxInstrumental(ctx context.Context, it *library.Item, d
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(dir, ".wms-*.tmp")
-	if err != nil {
-		return err
+	// The instrumental, and the whole song encoded the same way beside it, so an app can
+	// blend the two sample for sample.
+	var tmps [2]string
+	for i := range tmps {
+		tmp, err := os.CreateTemp(dir, ".wms-*.tmp")
+		if err != nil {
+			return err
+		}
+		tmp.Close()
+		tmps[i] = tmp.Name()
+		defer os.Remove(tmp.Name())
 	}
-	tmp.Close()
-	defer os.Remove(tmp.Name())
 	args := append([]string{"-v", "error", "-nostdin", "-y", "-threads", "1"}, ffmpeg.FileInput(it.Path)...)
-	args = append(args, mediaextras.ApproxArgs(tmp.Name())...)
+	args = append(args, mediaextras.ApproxPairArgs(tmps[0], tmps[1])...)
 	cctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
 	defer cancel()
 	if _, tail, err := ffmpeg.Run(cctx, s.Tools.FFmpeg, args, "for", "approximate instrumental", "item", it.ID); err != nil {
 		return fmt.Errorf("FFmpeg couldn't make it: %w: %s", err, tail)
 	}
-	if fi, err := os.Stat(tmp.Name()); err != nil || fi.Size() == 0 || fi.Size() > mediaextras.MaxStem {
-		return errors.New("FFmpeg made nothing usable")
+	for _, p := range tmps {
+		if fi, err := os.Stat(p); err != nil || fi.Size() == 0 || fi.Size() > mediaextras.MaxStem {
+			return errors.New("FFmpeg made nothing usable")
+		}
 	}
-	return os.Rename(tmp.Name(), filepath.Join(dir, "instrumental"+mediaextras.ApproxExt))
+	if err := os.Rename(tmps[1], filepath.Join(dir, mediaextras.ApproxFull+mediaextras.ApproxExt)); err != nil {
+		return err
+	}
+	if err := os.Rename(tmps[0], filepath.Join(dir, "instrumental"+mediaextras.ApproxExt)); err != nil {
+		return err
+	}
+	s.karaokeTidy(ctx, it)
+	return nil
 }
 
 // POST /api/media/{id}/stems/separate: run the owner's separator on the song, and keep the
@@ -235,7 +261,13 @@ func (s *Server) separateStems(ctx context.Context, it *library.Item, words []st
 	cmd := exec.CommandContext(cctx, prog, args...)
 	cmd.Dir = work
 	said := &logging.Tail{}
-	cmd.Stdout, cmd.Stderr = said, said
+	s.karaoke.setProgress(it.ID, 0)
+	defer s.karaoke.setProgress(it.ID, -1)
+	out := io.MultiWriter(said, &percentWatcher{last: -1, say: func(pct int) {
+		s.karaoke.setProgress(it.ID, pct)
+		task.Progress(int64(pct), 100)
+	}})
+	cmd.Stdout, cmd.Stderr = out, out
 	cmd.WaitDelay = 10 * time.Second
 	started := time.Now()
 	if err := ffmpeg.RunLow(cmd); err != nil {
@@ -249,6 +281,7 @@ func (s *Server) separateStems(ctx context.Context, it *library.Item, words []st
 		return fmt.Errorf("the separator failed: %w: %s", err, said)
 	}
 	task.Phase("Keeping the parts")
+	s.compactStems(ctx, work, 0)
 	dst := filepath.Join(s.extrasRoot(), mediaextras.Key(it.ID, it.Path), "stems")
 	kept, err := mediaextras.CollectStems(work, dst)
 	if err != nil {
@@ -263,10 +296,13 @@ func (s *Server) separateStems(ctx context.Context, it *library.Item, words []st
 		names = append(names, k)
 	}
 	_ = os.WriteFile(filepath.Join(dst, mediaextras.SeparatedList), []byte(strings.Join(names, "\n")+"\n"), 0o644)
-	// A real instrumental replaces the approximate one.
-	if list["instrumental"] {
-		_ = os.Remove(filepath.Join(filepath.Dir(dst), mediaextras.ApproxDir, "instrumental"+mediaextras.ApproxExt))
+	// Real parts replace the approximate pair.
+	if list["instrumental"] || list["vocals"] {
+		approx := filepath.Join(filepath.Dir(dst), mediaextras.ApproxDir)
+		_ = os.Remove(filepath.Join(approx, "instrumental"+mediaextras.ApproxExt))
+		_ = os.Remove(filepath.Join(approx, mediaextras.ApproxFull+mediaextras.ApproxExt))
 	}
+	s.karaokeTidy(ctx, it)
 	task.Result(fmt.Sprintf("Kept %s.", strings.Join(kept, ", ")))
 	s.Log.Info("a song was separated into stems", "cat", "library", "item", it.ID, "parts", kept, "took", time.Since(started).Round(time.Second).String())
 	return nil

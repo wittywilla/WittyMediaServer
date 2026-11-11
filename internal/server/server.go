@@ -123,8 +123,9 @@ type Server struct {
 	stream    streamTokens
 	radio     radioLive
 	pair      pairings
-	introJob  introJob  // finding intros by ear: one run at a time
-	mediaJobs mediaJobs // stems and canvases being made: one at a time
+	introJob  introJob    // finding intros by ear: one run at a time
+	mediaJobs mediaJobs   // stems and canvases being made: one at a time
+	karaoke   karaokeAuto // the separator found, and who asked for what lately
 	subtitles subtitleFiles
 	idOnce    sync.Once
 	id        *identity.Identity
@@ -610,6 +611,7 @@ func (s *Server) Handler() http.Handler {
 	s.sduiRoutes(m)
 	s.themeRoutes(m)
 	s.mediaExtrasRoutes(m)
+	s.karaokeRoutes(m)
 	s.remoteControlRoutes(m)
 	s.syncplayRoutes(m)
 	s.p2pRoutes(m)

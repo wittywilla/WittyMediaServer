@@ -102,7 +102,7 @@ func CollectStems(dir, dst string) ([]string, error) {
 				}
 				continue
 			}
-			name := StemName(strings.TrimSuffix(e.Name(), filepath.Ext(e.Name())))
+			name := separatorPart(strings.TrimSuffix(e.Name(), filepath.Ext(e.Name())))
 			if name == "" || name == Multitrack || seen[name] {
 				continue
 			}

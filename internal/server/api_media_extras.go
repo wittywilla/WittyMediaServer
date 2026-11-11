@@ -389,6 +389,17 @@ func (s *Server) handleStemFile(w http.ResponseWriter, r *http.Request) {
 	if it == nil {
 		return
 	}
+	dir := filepath.Join(s.extrasRoot(), mediaextras.Key(it.ID, it.Path))
+	// "full" is the whole song, for blending against an instrumental (see api_karaoke_auto.go).
+	if r.PathValue("stem") == mediaextras.ApproxFull {
+		if f, mime, _, ok := s.karaokeFull(r.Context(), it); ok {
+			mediaextras.TouchKaraoke(dir)
+			s.serveExtra(w, r, f, mime)
+			return
+		}
+		writeErr(w, 404, "no such stem")
+		return
+	}
 	name := mediaextras.StemName(r.PathValue("stem"))
 	if name == "" {
 		writeErr(w, 404, "no such stem")
@@ -396,6 +407,9 @@ func (s *Server) handleStemFile(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, st := range s.stemsOf(r.Context(), it) {
 		if st.Name == name {
+			if st.Uploaded {
+				mediaextras.TouchKaraoke(dir)
+			}
 			s.serveExtra(w, r, extraFile{path: st.Path, source: st.Source, library: !st.Uploaded}, st.MIME)
 			return
 		}

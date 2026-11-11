@@ -99,7 +99,7 @@ var serverFeatures = []string{
 	"canvas", "karaoke-stems", "skip-markers", "where-to-watch-xref", "module-identity",
 	"remote-protocol", "syncplay",
 	"sdui-data", "sdui-form-factors", "sdui-topshelf", "pair-admin-confirm", "pair-session-info", "theme-variants",
-	"canvas-generate", "stems-approximate", "stems-separate", "intro-detection",
+	"canvas-generate", "stems-approximate", "stems-separate", "intro-detection", "karaoke-auto",
 	"profile-switching", "profile-avatars", "parental-controls", "screen-time",
 	"standalone-emulators",
 	// What 0.8.0's parts do together: see apiRevision 15 above.

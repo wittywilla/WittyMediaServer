@@ -1923,6 +1923,7 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `POST /p2p/devices` | user | Put this device's key on the list, under your account: `{id, name, platform}`. An app does this once, while it reaches the server some other way. |
 | `DELETE /p2p/devices/{id}` | user | Take a device off the list. Its open connections close at once. |
 | `POST /p2p/invite` | user | An invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only. Works once, for 15 minutes. |
+| `POST /p2p/join` | user | `{code, userId, password, otp}`: the code a device away from home is showing, typed in by someone signed in. The device finds the server by it, is put on the list and signed in. Adults only; signing a device in as an administrator takes the administrator's password again (403 with `reason: "password-required"` without it). Works once, for 15 minutes. 409 when peer-to-peer connections or their address book are off. Feature `p2p-join`. |
 | `GET /p2p/settings` | admin | The owner's choices, how every layer is doing in plain words (`steps`), who is contacted (`thirdParties`) and every device. |
 | `PUT /p2p/settings` | admin | Change them. Turning the feature on needs `accept: true`. |
 | `GET /p2p/status` | admin | Only how every layer is doing, for a page that stays open. |

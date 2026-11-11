@@ -57,6 +57,7 @@ func (s *Server) p2pRoutes(m *http.ServeMux) {
 	m.Handle("POST /api/p2p/devices", a(s.handleP2PAddDevice))
 	m.Handle("DELETE /api/p2p/devices/{id}", a(s.handleP2PRemoveDevice))
 	m.Handle("POST /api/p2p/invite", a(s.handleP2PInvite))
+	m.Handle("POST /api/p2p/join", a(s.handleP2PJoin))
 	m.Handle("GET /api/p2p/settings", adm(s.handleP2PSettings))
 	m.Handle("PUT /api/p2p/settings", adm(s.handlePutP2PSettings))
 	m.Handle("GET /api/p2p/status", adm(s.handleP2PStatus))

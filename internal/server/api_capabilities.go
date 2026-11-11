@@ -100,6 +100,8 @@ var serverFeatures = []string{
 	// What 0.8.0's parts do together: see apiRevision 15 above.
 	"parental-feature-switches", "sdui-limits", "session-end-streams",
 	"p2p",
+	// A device away from home shows a code, and someone signed in types it in: POST /api/v1/p2p/join.
+	"p2p-join",
 }
 
 // minClientVersions names the oldest version of each app this server still works with, by

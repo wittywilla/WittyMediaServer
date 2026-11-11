@@ -43708,6 +43708,74 @@
         }
       }
     },
+    "/p2p/join": {
+      "post": {
+        "operationId": "postP2pJoin",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "expiresInSec": {
+                      "type": "integer"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The code a device away from home is showing (eight letters and digits), typed in by someone signed in: the device finds the server by it, is put on the list and signed in, as this account or a Kids or Guest profile it manages. Adults only; an administrator's password again to sign a device in as an administrator. Works once, for 15 minutes. Needs the address book layer.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "integer"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "otp": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
     "/p2p/settings": {
       "get": {
         "operationId": "getP2pSettings",

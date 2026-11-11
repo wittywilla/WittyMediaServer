@@ -86,6 +86,7 @@ type Node struct {
 	started time.Time
 
 	enrolAll, enrolPeer, enrolAddr *window
+	joins                          joins // codes typed into the server, waiting for their devices: join.go
 
 	mu           sync.Mutex
 	streams      map[peer.ID]int
@@ -174,6 +175,7 @@ func StartNode(cfg NodeConfig) (*Node, error) {
 	}
 	h.SetStreamHandler(ProtoHTTP, n.handleHTTP)
 	h.SetStreamHandler(ProtoEnrol, n.handleEnrol)
+	h.SetStreamHandler(ProtoJoin, n.handleJoin)
 	h.Network().Notify(&network.NotifyBundle{DisconnectedF: func(_ network.Network, c network.Conn) {
 		n.mu.Lock()
 		delete(n.buckets, c)

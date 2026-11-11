@@ -52,3 +52,29 @@ func TestKeysInvitesAndBadConfigs(t *testing.T) {
 		t.Fatal("enrolled on a closed session")
 	}
 }
+
+// A device that shows a code: the code's shape, a search that can be given
+// up, and configurations that are refused before anything starts. (The
+// package underneath tests a join that succeeds, in a network of its own;
+// one here would look for the public address book.)
+func TestJoinCodesAndGivingUp(t *testing.T) {
+	code, err := NewJoinCode()
+	if err != nil || len(code) != 9 || code[4] != '-' {
+		t.Fatalf("%q %v", code, err)
+	}
+	if _, err := StartJoin("not json"); err == nil {
+		t.Fatal("anything is taken for a configuration")
+	}
+	if _, err := StartJoin(`{"key":"nope","code":"` + code + `"}`); err == nil {
+		t.Fatal("a join started with no key")
+	}
+	key, _ := NewKey()
+	j, err := StartJoin(`{"key":"` + key + `","code":"not one"}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if answer, err := j.Wait(); err == nil {
+		t.Fatalf("a code that isn't one was looked for: %s", answer)
+	}
+	j.Cancel() // giving up twice, or after the end, is harmless
+}

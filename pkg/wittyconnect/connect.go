@@ -95,6 +95,52 @@ func DeviceID(key string) (string, error) {
 // ParseInvite reads an invite link.
 func ParseInvite(link string) (p2p.Invite, error) { return p2p.ParseInvite(link) }
 
+// NewJoinCode makes the code a device with no keyboard shows, for someone
+// signed in to type into the server: see Join.
+func NewJoinCode() (string, error) { return p2p.NewJoinCode() }
+
+// JoinConfig is what a device that shows a code looks for its server with.
+type JoinConfig struct {
+	// Key is this device's key, and Code what NewJoinCode made.
+	Key  string `json:"key"`
+	Code string `json:"code"`
+	// Name and Platform are what the server's list will call the device.
+	Name     string `json:"name"`
+	Platform string `json:"platform"`
+	// NoRelay and NoHolePunch turn layers off. The address book can't be: it
+	// is how a device that knows only a code finds the server.
+	NoRelay      bool     `json:"noRelay"`
+	NoHolePunch  bool     `json:"noHolePunch"`
+	StaticRelays []string `json:"staticRelays"`
+
+	// Tune changes the search before it starts, for tests.
+	Tune func(*p2p.JoinConfig) `json:"-"`
+}
+
+// JoinResult is the server that took the code, and its answer: on OK, the
+// server's connection ID and addresses to start a connection with, and a
+// sign-in code to redeem over it.
+type JoinResult = p2p.JoinResult
+
+// Join is for a device away from home that has never met its server and
+// can't take an invite link in: a TV. It shows a code; this waits until
+// someone signed in has typed that code into the server (POST
+// /api/v1/p2p/join), finds the server through the address book, and has this
+// device's key put on its list. Give ctx the fifteen minutes a code lasts.
+// docs/P2P.md, "Joining by a code", is the design.
+func Join(ctx context.Context, cfg JoinConfig) (JoinResult, error) {
+	seed, err := p2p.DecodeSeed(cfg.Key)
+	if err != nil {
+		return JoinResult{}, errors.New("this device has no connection key")
+	}
+	jc := p2p.JoinConfig{Seed: seed, Code: cfg.Code, Name: cfg.Name, Platform: cfg.Platform, StaticRelays: cfg.StaticRelays,
+		Layers: p2p.Layers{DHT: true, Relay: !cfg.NoRelay, HolePunch: !cfg.NoHolePunch && !cfg.NoRelay}}
+	if cfg.Tune != nil {
+		cfg.Tune(&jc)
+	}
+	return p2p.Join(ctx, jc)
+}
+
 // Connector is a running connection and its local address.
 type Connector struct {
 	client *p2p.Client

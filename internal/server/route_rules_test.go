@@ -12,6 +12,7 @@ var routeRules = map[string]string{
 	"POST /api/p2p/devices":                                     "Signed-in: A session token, not a stream token. A well-formed Ed25519 device ID that isn't the server's own. A key listed for another account is refused. At most 32 per account, 512 in all",
 	"DELETE /api/p2p/devices/{id}":                              "Signed-in: own. Any account's for an admin. Someone else's answers as if there were none",
 	"POST /api/p2p/invite":                                      "Adult: Target is the caller or a profile the caller manages. Peer-to-peer connections are on. Limit on open invites",
+	"POST /api/p2p/join":                                        "Adult: Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Peer-to-peer connections and their address book are on. A well-formed code. Limit on codes waiting",
 	"DELETE /api/annotations/{aid}":                             "Signed-in: own",
 	"DELETE /api/collections/{id}":                              "Signed-in: Collection's owner or an admin. Not a system list",
 	"DELETE /api/collections/{id}/items":                        "Signed-in: Collection's owner or an admin. 1 to 2000",

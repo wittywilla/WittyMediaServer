@@ -24,7 +24,10 @@ import (
 // Open to anyone, on purpose. Adding a route here should be a decision: the
 // sign-in screen needs these, and nothing behind them is private.
 var publicRoutes = map[string]bool{
-	"GET /api/status":                  true,
+	"GET /api/status": true,
+	// A standalone emulator's desktop, shown in a sandboxed frame that carries no sign-in: the
+	// session's 256-bit ticket in the address is the way in, checked by WittyPlay.
+	"GET /api/modules/wittyplay/kasm/{sid}/{ticket}/{rest...}": true,
 	"POST /api/setup":                  true,
 	"POST /api/login":                  true,
 	"POST /api/logout":                 true,

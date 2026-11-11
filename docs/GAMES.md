@@ -452,6 +452,29 @@ To keep them off whatever else is set, start the server with `WMS_GAMING_NO_CUST
 
 **A console this server doesn't have:** press **Add a console** under **Custom consoles**, and give it a name, a short name and its file extensions.
 
+## Standalone emulators
+
+A core is the usual way to play, and the only one most servers need. For a console no core plays well (PlayStation 2, say), an administrator can also install a **standalone emulator**: the same program you'd run on a desktop, such as PCSX2, PPSSPP, Flycast or melonDS. The server runs it in a locked-down container, one per game, and streams it to you like any other game. This is off until an administrator turns it on.
+
+**For everyone.** When one is set up for a game's console, the game's page shows **Play with PCSX2** (or whichever) under Play. If it's greyed out, the sentence beside it says why: firmware is missing, or this server is too small for it. **Emulator settings** beside it holds your own choices (resolution scale, widescreen, the most bitrate), for all your games or just this one. What's different from a core's game:
+
+- There are no save states, rewind, cheats or game menu. Save inside the game, the way the console did. Its memory cards and settings are kept on the server, yours alone.
+- Your controller's buttons are passed on as keys, so sticks work as four directions, not by degrees, and there's no rumble. Up to four players, where the emulator has been told their keys.
+- **Pause** freezes the emulator; **Stop** ends it. Leaving the page without stopping leaves it running for two minutes, so a reload carries on where you were. One game at a time for each person.
+- A few emulators are shown as their own desktop inside the page rather than as a stream: click inside it to use the keyboard and mouse.
+
+**For administrators: Settings, Standalone emulators.**
+
+1. Read the warning beside the switch. Turning this on lets the server start containers, and a Docker daemon that runs as root can do anything on the machine: a rootless Docker, Podman, or "this machine's own sandbox" (Linux, no Docker needed) is the safer choice. **Docker and the sandbox** on that page says what it found, line by line.
+2. Turn it on, and install an emulator from the list. Each is someone else's program under its own licence, which is shown before anything is downloaded; the download comes from the emulator's own project and is checked before it's used. Nothing else comes with it: no games, and no BIOS.
+3. With Docker, an emulator also needs a container image, which this project hasn't published yet: the list says so beside each one, and WittyPlay's own guide says how to build it.
+4. Firmware goes where a core's does: see [BIOS files](#bios-files). The list shows which files each emulator looks for and whether they're there.
+5. **Settings** on an installed emulator sets it up for everyone: the graphics backend, the stream's size, and which key each controller button presses. **Running now** lists games in emulators, with Stop.
+
+A small server is told plainly what it can't run: on a Raspberry Pi 3 every emulator says it needs more memory than there is, and nothing is started. Cores are the way to play there.
+
+This is new, and has been tested against a stand-in for Docker rather than played on a real one: see [What hasn't been tried](#what-hasnt-been-tried).
+
 ## Console icons
 
 Consoles show their short names as text, such as `SNES` and `PS2`. Icons are an optional download, and nothing comes with the app.
@@ -484,6 +507,7 @@ For anything else, the server's log has the core's own words: see [Logging](LOGG
 
 ## What hasn't been tried
 
+- **Standalone emulators** haven't yet played a game on a real Docker host, and their container image hasn't been built. The checks on who may play what, on what a container is given, on downloads and on settings are all tested; the picture, the sound and the keys reaching a real emulator are not. WittyPlay's guide lists it all.
 - **Browsers and devices:** Firefox, Safari, phones and TVs haven't been run with game streaming, and neither has a real controller or TV remote.
 - **Networks:** no real network has been run. Every delay figure is from one machine, as above.
 - **3DS:** no retail game, as above.

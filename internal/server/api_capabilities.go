@@ -75,7 +75,7 @@ var serverFeatures = []string{
 	"browse", "saved-views", "metadata-editing", "logos", "streaming-listings",
 	"music-home", "music-radio", "lyrics", "min-client-versions", "robust-streaming",
 	"sdui", "sdui-diff", "theme-engine", "theme-module-overrides",
-	"canvas", "karaoke-stems", "skip-markers", "where-to-watch-xref", "module-identity",
+	"canvas", "karaoke-stems", "skip-markers", "where-to-watch-xref", "module-identity", "standalone-emulators",
 }
 
 // minClientVersions names the oldest version of each app this server still works with, by

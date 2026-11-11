@@ -1603,6 +1603,8 @@ for a song, with the stream token already in each `url`.
 | `GET /consoles/{console}/controls` | user | Game controls. |
 | `PUT /consoles/{console}/controls` | user | Put game control. |
 | `POST /games/{id}/play` | user | Game play. |
+| `GET /games/{id}/emulators` | user | The standalone emulators set up to play this game: {emulators: [{id, name, version, stream, ready, why}]}. Empty when WittyPlay has none. |
+| `POST /games/{id}/play/emulator` | user | Start this game in a standalone emulator: {emulator} in; 201 with the session and where to connect, stop, pause and resume it. |
 | `POST /games/{id}/prepare` | user | Game prepare. |
 | `GET /games/{id}/versions` | user | A game's other versions and its discs. See [GAMING-API.md](GAMING-API.md). |
 | `PUT /games/{id}/version` | admin | Which file in its archive to play. |
@@ -1677,11 +1679,14 @@ for a song, with the stream token already in each `url`.
 | `DELETE /modules/wittyplay/docker/emulators/{id}` | admin | Uninstall a standalone emulator. Refused while someone plays with it. |
 | `POST /modules/wittyplay/docker/sessions/{sid}/connect` | user | WebRTC for a game in a container: {hello, offer} in, the same answer a core's game gives. |
 | `DELETE /modules/wittyplay/docker/sessions/{sid}` | user | Stop a game in a container: the player's own, or any for an administrator. |
-| `GET /modules/wittyplay/kasm/{sid}/{rest}` | user | The KasmVNC desktop of a game in a container, and its WebSocket. Open the `kasmUrl` a start gives, under `/modules/wittyplay`. |
-| `POST /modules/wittyplay/kasm/{sid}/{rest}` | user | The KasmVNC desktop of a game in a container. Open the `kasmUrl` a start gives, under `/modules/wittyplay`. |
-| `PUT /modules/wittyplay/kasm/{sid}/{rest}` | user | The KasmVNC desktop of a game in a container. Open the `kasmUrl` a start gives, under `/modules/wittyplay`. |
-| `PATCH /modules/wittyplay/kasm/{sid}/{rest}` | user | The KasmVNC desktop of a game in a container. Open the `kasmUrl` a start gives, under `/modules/wittyplay`. |
-| `DELETE /modules/wittyplay/kasm/{sid}/{rest}` | user | The KasmVNC desktop of a game in a container. Open the `kasmUrl` a start gives, under `/modules/wittyplay`. |
+| `GET /modules/wittyplay/docker/diagnostics` | admin | A look over everything standalone emulators depend on here, in plain words: {host, checks}. |
+| `DELETE /modules/wittyplay/docker/emulators/{id}/install` | admin | Cancel an emulator's install. What had been downloaded is kept for the next try. |
+| `GET /modules/wittyplay/docker/emulators/{id}/settings` | user | An emulator's settings as this account sees them: the schema, each layer and what they come to. `?game=` adds one game's. |
+| `PUT /modules/wittyplay/docker/emulators/{id}/settings` | user | Set an emulator's settings: {scope: admin, user or game, game, values}. Checked against the schema. |
+| `GET /modules/wittyplay/docker/sessions` | user | Games running in standalone emulators: the caller's own, or everyone's for an administrator. |
+| `POST /modules/wittyplay/docker/sessions/{sid}/pause` | user | Freeze a game in a standalone emulator. The player's own only. |
+| `POST /modules/wittyplay/docker/sessions/{sid}/resume` | user | Let a paused game in a standalone emulator go on. The player's own only. |
+| `GET /modules/wittyplay/kasm/{sid}/{ticket}/{rest}` | public | The KasmVNC desktop of a game in a container, and its WebSocket. Open the `kasmUrl` a start gives, as it is, in a frame sandboxed with `allow-scripts allow-pointer-lock` and never `allow-same-origin`: the ticket in it is the whole of the way in. |
 
 ### Game PCs
 

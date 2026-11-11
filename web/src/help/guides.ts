@@ -131,6 +131,7 @@ export const settingsPages: Record<string, string> = {
   'Playback & discs': 'playback',
   'Channels & tuners': 'channels',
   'Consoles & cores': 'gaming',
+  'Standalone emulators': 'emulators',
   'Game PCs': 'couch',
   'Live transcoding': 'transcoding',
   'Library transcoding': 'library-transcoding',

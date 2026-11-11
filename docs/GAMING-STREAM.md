@@ -467,6 +467,10 @@ to its `ms`. Not yet: several fingers, motion and lights, which browsers give pa
 **Every app:** use `/play/{sid}/stream` when a mode says `"stream": 2`, and the version 1 routes otherwise. The rest of the
 game API is unchanged.
 
+## Games in a standalone emulator
+
+A game started with `POST /games/{id}/play/emulator` is not a session of this protocol, though it borrows its WebRTC half. WittyPlay relays RTP that an FFmpeg beside the emulator made, so there is no WebSocket mode, no `timing` channel, no seats, no rewind and no stats message; the hello is checked the same way, the answer is the same `Connected`, and the first `events` message is the same stream description. Its bitrate follows what the browser reports losing, in a few large steps. See [the API](GAMING-API.md#playing-with-a-standalone-emulator).
+
 ## Where it lives
 
 - WittyPlay: `stream/connect.go` (the hello, the stream and seats), `stream/viewer.go` (both transports), `stream/wsv2.go` (the

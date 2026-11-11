@@ -7,6 +7,7 @@ export const settingsHelp: Record<string, string> = {
   playback: 'settings#playback-and-discs',
   channels: 'channels',
   gaming: 'games',
+  emulators: 'games#standalone-emulators',
   couch: 'game-rigs',
   transcoding: 'transcoding',
   'library-transcoding': 'library-transcoding',

@@ -97,7 +97,7 @@ CI also runs these, which you can run yourself from the top of the repository:
 ```bash
 python3 scripts/theme-contrast.py && python3 scripts/design-tokens.py --check && python3 scripts/design-check.py
 bash scripts/check-executable.sh
-node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/themeMaker.test.mjs web/src/shell/navModel.test.mjs web/src/safeLink.test.mjs web/src/pages/setup/plan.test.mjs web/src/pages/tv/tvThemes.test.mjs web/src/pages/settings/searchIndex.test.mjs
+node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/themeMaker.test.mjs web/src/shell/navModel.test.mjs web/src/safeLink.test.mjs web/src/pages/setup/plan.test.mjs web/src/pages/tv/tvThemes.test.mjs web/src/pages/settings/searchIndex.test.mjs web/src/pages/games/emulatorsLogic.test.mjs
 ```
 
 **Scripts made or changed on Windows** lose their executable bit in git, and `check-executable.sh` fails on them. Give it back with `git update-index --chmod=+x <file>`, or add a new script with `git add --chmod=+x <file>`.

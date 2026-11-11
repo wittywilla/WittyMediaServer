@@ -757,8 +757,7 @@
             "type": "string"
           },
           "source": {
-            "type": "string",
-            "description": "upload, generated, sidecar or metadata-folder"
+            "type": "string"
           },
           "url": {
             "type": "string"
@@ -766,21 +765,19 @@
           "width": {
             "type": "integer"
           },
+          "canGenerate": {
+            "type": "boolean"
+          },
           "reason": {
-            "type": "string",
-            "description": "Why a file that was found isn't used: too-big (over 64 MB) or too-long (over 60 s)."
+            "type": "string"
           },
           "task": {
-            "type": "string",
-            "description": "The task making one now."
-          },
-          "canGenerate": {
-            "type": "boolean",
-            "description": "An administrator can have one cut from the video."
+            "type": "string"
           }
         },
         "required": [
           "available",
+          "canGenerate",
           "loop"
         ],
         "type": "object"
@@ -8831,15 +8828,38 @@
             ]
           },
           "scheme": {
-            "type": "string",
-            "description": "dark, light, or auto for the automatic theme."
+            "type": "string"
           },
           "variants": {
-            "type": "object",
-            "description": "The theme's looks by scheme: one for an ordinary theme, dark and light for the automatic one.",
             "additionalProperties": {
-              "$ref": "#/components/schemas/ThemeVariant"
-            }
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "modules": {
+                  "additionalProperties": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "type": "object"
+                },
+                "tokens": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                }
+              },
+              "required": [
+                "id",
+                "modules",
+                "tokens"
+              ],
+              "type": "object"
+            },
+            "type": "object"
           }
         },
         "required": [
@@ -8848,8 +8868,10 @@
           "modules",
           "overrides",
           "revision",
+          "scheme",
           "source",
           "tokens",
+          "variants",
           "warnings"
         ],
         "type": "object"
@@ -8951,8 +8973,7 @@
             "type": "string"
           },
           "formFactor": {
-            "type": "string",
-            "description": "tv, phone, tablet, desktop or web"
+            "type": "string"
           }
         },
         "type": "object"
@@ -9057,7 +9078,126 @@
             "type": "integer"
           },
           "layout": {
-            "$ref": "#/components/schemas/SDUILayout"
+            "anyOf": [
+              {
+                "properties": {
+                  "canvas": {
+                    "properties": {
+                      "height": {
+                        "type": "integer"
+                      },
+                      "width": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "height",
+                      "width"
+                    ],
+                    "type": "object"
+                  },
+                  "class": {
+                    "type": "string"
+                  },
+                  "externalLinks": {
+                    "type": "boolean"
+                  },
+                  "focusEngine": {
+                    "type": "boolean"
+                  },
+                  "formFactor": {
+                    "type": "string"
+                  },
+                  "gridColumns": {
+                    "type": "integer"
+                  },
+                  "images": {
+                    "additionalProperties": {
+                      "properties": {
+                        "aspect": {
+                          "type": "string"
+                        },
+                        "height": {
+                          "type": "integer"
+                        },
+                        "width": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "aspect",
+                        "height",
+                        "width"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "object"
+                  },
+                  "maxGridItems": {
+                    "type": "integer"
+                  },
+                  "maxItems": {
+                    "type": "integer"
+                  },
+                  "maxSections": {
+                    "type": "integer"
+                  },
+                  "safeArea": {
+                    "properties": {
+                      "bottom": {
+                        "type": "integer"
+                      },
+                      "left": {
+                        "type": "integer"
+                      },
+                      "right": {
+                        "type": "integer"
+                      },
+                      "top": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "bottom",
+                      "left",
+                      "right",
+                      "top"
+                    ],
+                    "type": "object"
+                  },
+                  "scale": {
+                    "type": "integer"
+                  },
+                  "scroll": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "additionalProperties": {
+                      "type": "integer"
+                    },
+                    "type": "object"
+                  },
+                  "truncated": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "externalLinks",
+                  "focusEngine",
+                  "formFactor",
+                  "maxGridItems",
+                  "maxItems",
+                  "maxSections",
+                  "safeArea",
+                  "scale",
+                  "scroll"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -9142,7 +9282,40 @@
             ]
           },
           "focus": {
-            "$ref": "#/components/schemas/SDUIFocus"
+            "anyOf": [
+              {
+                "properties": {
+                  "default": {
+                    "type": "boolean"
+                  },
+                  "down": {
+                    "type": "string"
+                  },
+                  "focusable": {
+                    "type": "boolean"
+                  },
+                  "group": {
+                    "type": "string"
+                  },
+                  "left": {
+                    "type": "string"
+                  },
+                  "order": {
+                    "type": "integer"
+                  },
+                  "right": {
+                    "type": "string"
+                  },
+                  "up": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -9616,15 +9789,13 @@
             "type": "integer"
           },
           "source": {
-            "type": "string",
-            "description": "upload, sidecar, separated or approximate"
+            "type": "string"
           },
           "url": {
             "type": "string"
           },
           "approximate": {
-            "type": "boolean",
-            "description": "FFmpeg's centre-channel removal, not a real stem."
+            "type": "boolean"
           }
         },
         "required": [
@@ -10505,8 +10676,7 @@
             "type": "string"
           },
           "variant": {
-            "type": "string",
-            "description": "dark or light, when the warning is about one look of the automatic theme."
+            "type": "string"
           }
         },
         "required": [
@@ -11277,157 +11447,61 @@
         ],
         "type": "object"
       },
-      "SDUIImageRef": {
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string"
-          },
-          "width": {
-            "type": "integer"
-          },
-          "height": {
-            "type": "integer"
-          },
-          "aspect": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "url",
-          "width",
-          "height",
-          "aspect"
-        ]
-      },
-      "SDUITopShelf": {
-        "type": "object",
-        "properties": {
-          "version": {
-            "type": "integer"
-          },
-          "style": {
-            "type": "string",
-            "description": "sectioned"
-          },
-          "expiresInSec": {
-            "type": "integer"
-          },
-          "sections": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "title": {
-                  "type": "string"
-                },
-                "items": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "shape": {
-                        "type": "string",
-                        "description": "poster, wide or square"
-                      },
-                      "image": {
-                        "$ref": "#/components/schemas/SDUIImageRef"
-                      },
-                      "progress": {
-                        "type": "number"
-                      },
-                      "displayRoute": {
-                        "type": "string"
-                      },
-                      "playRoute": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "title",
-                      "shape",
-                      "displayRoute"
-                    ]
-                  }
-                }
-              },
-              "required": [
-                "title",
-                "items"
-              ]
-            }
-          }
-        },
-        "required": [
-          "version",
-          "style",
-          "sections",
-          "expiresInSec"
-        ]
-      },
       "PairInfo": {
-        "type": "object",
         "properties": {
           "code": {
-            "type": "string"
-          },
-          "sessionId": {
-            "type": "string"
-          },
-          "device": {
-            "type": "string"
-          },
-          "platform": {
-            "type": "string"
-          },
-          "ip": {
             "type": "string"
           },
           "createdAt": {
             "type": "integer"
           },
+          "device": {
+            "type": "string"
+          },
           "expiresAt": {
             "type": "integer"
+          },
+          "ip": {
+            "type": "string"
           },
           "needsPin": {
             "type": "boolean"
           },
-          "twoFactor": {
-            "type": "boolean",
-            "description": "The approver has two-factor sign-in: confirming their password takes a code too."
+          "platform": {
+            "type": "string"
           },
           "profiles": {
-            "type": "array",
             "items": {
-              "type": "object",
               "properties": {
                 "id": {
                   "type": "integer"
                 },
-                "name": {
-                  "type": "string"
-                },
                 "kind": {
                   "type": "string"
                 },
+                "name": {
+                  "type": "string"
+                },
                 "needsPassword": {
-                  "type": "boolean",
-                  "description": "Signing the device in as this profile needs the approver's password again (an administrator's own account)."
+                  "description": "Signing the device in as this profile needs the approver's password again (an administrator's own account).",
+                  "type": "boolean"
                 }
               },
               "required": [
                 "id",
                 "name",
                 "kind"
-              ]
-            }
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "twoFactor": {
+            "description": "The approver has two-factor sign-in: confirming their password takes a code too.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -11435,125 +11509,148 @@
           "device",
           "profiles",
           "needsPin"
-        ]
+        ],
+        "type": "object"
       },
       "SDUIFocus": {
-        "type": "object",
         "properties": {
+          "default": {
+            "description": "Focus starts here. Exactly one node per rendered screen that has anything focusable.",
+            "type": "boolean"
+          },
+          "down": {
+            "type": "string"
+          },
           "focusable": {
             "type": "boolean"
           },
-          "order": {
-            "type": "integer",
-            "description": "Place in the screen's focus order, from 1."
-          },
-          "default": {
-            "type": "boolean",
-            "description": "Focus starts here. Exactly one node per rendered screen that has anything focusable."
-          },
           "group": {
-            "type": "string",
-            "description": "ID of the row or bar the node is in."
-          },
-          "up": {
-            "type": "string"
-          },
-          "down": {
+            "description": "ID of the row or bar the node is in.",
             "type": "string"
           },
           "left": {
             "type": "string"
           },
-          "right": {
-            "type": "string"
-          }
-        }
-      },
-      "SDUILayout": {
-        "type": "object",
-        "properties": {
-          "formFactor": {
-            "type": "string",
-            "description": "tv, phone, tablet, desktop or web"
-          },
-          "class": {
-            "type": "string",
-            "description": "hd or 4k, for tv"
-          },
-          "canvas": {
-            "type": "object",
-            "properties": {
-              "width": {
-                "type": "integer"
-              },
-              "height": {
-                "type": "integer"
-              }
-            }
-          },
-          "scale": {
+          "order": {
+            "description": "Place in the screen's focus order, from 1.",
             "type": "integer"
           },
-          "safeArea": {
-            "type": "object",
+          "right": {
+            "type": "string"
+          },
+          "up": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SDUIImageRef": {
+        "properties": {
+          "aspect": {
+            "type": "string"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "url",
+          "width",
+          "height",
+          "aspect"
+        ],
+        "type": "object"
+      },
+      "SDUILayout": {
+        "properties": {
+          "canvas": {
             "properties": {
-              "top": {
+              "height": {
                 "type": "integer"
               },
-              "right": {
-                "type": "integer"
-              },
-              "bottom": {
-                "type": "integer"
-              },
-              "left": {
+              "width": {
                 "type": "integer"
               }
-            }
+            },
+            "type": "object"
           },
-          "scroll": {
+          "class": {
+            "description": "hd or 4k, for tv",
             "type": "string"
+          },
+          "externalLinks": {
+            "type": "boolean"
           },
           "focusEngine": {
             "type": "boolean"
           },
-          "text": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer"
-            }
-          },
-          "images": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "properties": {
-                "width": {
-                  "type": "integer"
-                },
-                "height": {
-                  "type": "integer"
-                },
-                "aspect": {
-                  "type": "string"
-                }
-              }
-            }
+          "formFactor": {
+            "description": "tv, phone, tablet, desktop or web",
+            "type": "string"
           },
           "gridColumns": {
             "type": "integer"
           },
-          "maxSections": {
+          "images": {
+            "additionalProperties": {
+              "properties": {
+                "aspect": {
+                  "type": "string"
+                },
+                "height": {
+                  "type": "integer"
+                },
+                "width": {
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            },
+            "type": "object"
+          },
+          "maxGridItems": {
             "type": "integer"
           },
           "maxItems": {
             "type": "integer"
           },
-          "maxGridItems": {
+          "maxSections": {
             "type": "integer"
           },
-          "externalLinks": {
-            "type": "boolean"
+          "safeArea": {
+            "properties": {
+              "bottom": {
+                "type": "integer"
+              },
+              "left": {
+                "type": "integer"
+              },
+              "right": {
+                "type": "integer"
+              },
+              "top": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "scale": {
+            "type": "integer"
+          },
+          "scroll": {
+            "type": "string"
+          },
+          "text": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
           },
           "truncated": {
             "type": "boolean"
@@ -11569,35 +11666,108 @@
           "maxItems",
           "maxGridItems",
           "externalLinks"
-        ]
+        ],
+        "type": "object"
+      },
+      "SDUITopShelf": {
+        "properties": {
+          "expiresInSec": {
+            "type": "integer"
+          },
+          "sections": {
+            "items": {
+              "properties": {
+                "items": {
+                  "items": {
+                    "properties": {
+                      "displayRoute": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "image": {
+                        "$ref": "#/components/schemas/SDUIImageRef"
+                      },
+                      "playRoute": {
+                        "type": "string"
+                      },
+                      "progress": {
+                        "type": "number"
+                      },
+                      "shape": {
+                        "description": "poster, wide or square",
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "shape",
+                      "displayRoute"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "items"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "style": {
+            "description": "sectioned",
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "style",
+          "sections",
+          "expiresInSec"
+        ],
+        "type": "object"
       },
       "ThemeVariant": {
-        "type": "object",
         "properties": {
           "id": {
             "type": "string"
           },
-          "tokens": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
           "modules": {
-            "type": "object",
             "additionalProperties": {
-              "type": "object",
               "additionalProperties": {
                 "type": "string"
-              }
-            }
+              },
+              "type": "object"
+            },
+            "type": "object"
+          },
+          "tokens": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
           }
         },
         "required": [
           "id",
           "tokens",
           "modules"
-        ]
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -30208,13 +30378,13 @@
                   "userId": {
                     "type": "integer"
                   },
-                  "password": {
-                    "type": "string",
-                    "description": "The approver's own password. Needed when the device will be signed in as an administrator; otherwise 403 with reason password-required."
-                  },
                   "otp": {
-                    "type": "string",
-                    "description": "The approver's two-factor code, when they have two-factor sign-in and password is needed."
+                    "description": "The approver's two-factor code, when they have two-factor sign-in and password is needed.",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "The approver's own password. Needed when the device will be signed in as an administrator; otherwise 403 with reason password-required.",
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -30367,13 +30537,13 @@
                   "userId": {
                     "type": "integer"
                   },
-                  "password": {
-                    "type": "string",
-                    "description": "The approver's own password. Needed when the device will be signed in as an administrator; otherwise 403 with reason password-required."
-                  },
                   "otp": {
-                    "type": "string",
-                    "description": "The approver's two-factor code, when they have two-factor sign-in and password is needed."
+                    "description": "The approver's two-factor code, when they have two-factor sign-in and password is needed.",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "The approver's own password. Needed when the device will be signed in as an administrator; otherwise 403 with reason password-required.",
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -38661,76 +38831,76 @@
             "description": "The ETag of the render the client has."
           },
           {
+            "description": "hd (default) or 4k, for a TV: an Apple TV HD is sent fewer rows and smaller pictures. Also X-WMS-Device-Class.",
+            "in": "query",
             "name": "deviceClass",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "hd (default) or 4k, for a TV: an Apple TV HD is sent fewer rows and smaller pictures. Also X-WMS-Device-Class."
+            }
           },
           {
+            "description": "The component catalogue revision the client was built against; newer types are sent as their fallback. Also X-WMS-SDUI-Catalog.",
+            "in": "query",
             "name": "catalog",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "The component catalogue revision the client was built against; newer types are sent as their fallback. Also X-WMS-SDUI-Catalog."
+            }
           },
           {
+            "description": "For the library screen: which library. 404 when the account may not open it.",
+            "in": "query",
             "name": "library",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "For the library screen: which library. 404 when the account may not open it."
+            }
           },
           {
+            "description": "For the detail screen: an item. 404 when the account may not see it.",
+            "in": "query",
             "name": "item",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "For the detail screen: an item. 404 when the account may not see it."
+            }
           },
           {
+            "description": "For the detail screen: a show, in place of item.",
+            "in": "query",
             "name": "show",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "For the detail screen: a show, in place of item."
+            }
           },
           {
+            "description": "For the search screen: what to look for, at least two letters.",
+            "in": "query",
             "name": "q",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "For the search screen: what to look for, at least two letters."
+            }
           },
           {
+            "description": "For the library screen: title (default), added or year.",
+            "in": "query",
             "name": "sort",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "For the library screen: title (default), added or year."
+            }
           },
           {
-            "name": "offset",
+            "description": "For the library screen: how many titles to skip.",
             "in": "query",
+            "name": "offset",
             "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "For the library screen: how many titles to skip."
+            }
           }
         ]
       }
@@ -38857,76 +39027,76 @@
             "description": "Comma-separated names of what the client can do; each becomes a flag the screen's conditions test. Also X-WMS-Capabilities."
           },
           {
+            "description": "hd (default) or 4k, for a TV: an Apple TV HD is sent fewer rows and smaller pictures. Also X-WMS-Device-Class.",
+            "in": "query",
             "name": "deviceClass",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "hd (default) or 4k, for a TV: an Apple TV HD is sent fewer rows and smaller pictures. Also X-WMS-Device-Class."
+            }
           },
           {
+            "description": "The component catalogue revision the client was built against; newer types are sent as their fallback. Also X-WMS-SDUI-Catalog.",
+            "in": "query",
             "name": "catalog",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "The component catalogue revision the client was built against; newer types are sent as their fallback. Also X-WMS-SDUI-Catalog."
+            }
           },
           {
+            "description": "For the library screen: which library. 404 when the account may not open it.",
+            "in": "query",
             "name": "library",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "For the library screen: which library. 404 when the account may not open it."
+            }
           },
           {
+            "description": "For the detail screen: an item. 404 when the account may not see it.",
+            "in": "query",
             "name": "item",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "For the detail screen: an item. 404 when the account may not see it."
+            }
           },
           {
+            "description": "For the detail screen: a show, in place of item.",
+            "in": "query",
             "name": "show",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "For the detail screen: a show, in place of item."
+            }
           },
           {
+            "description": "For the search screen: what to look for, at least two letters.",
+            "in": "query",
             "name": "q",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "For the search screen: what to look for, at least two letters."
+            }
           },
           {
+            "description": "For the library screen: title (default), added or year.",
+            "in": "query",
             "name": "sort",
-            "in": "query",
             "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "For the library screen: title (default), added or year."
+            }
           },
           {
-            "name": "offset",
+            "description": "For the library screen: how many titles to skip.",
             "in": "query",
+            "name": "offset",
             "required": false,
             "schema": {
               "type": "integer"
-            },
-            "description": "For the library screen: how many titles to skip."
+            }
           }
         ]
       }
@@ -39686,13 +39856,13 @@
                   "userId": {
                     "type": "integer"
                   },
-                  "password": {
-                    "type": "string",
-                    "description": "The approver's own password. Needed when the device will be signed in as an administrator; otherwise 403 with reason password-required."
-                  },
                   "otp": {
-                    "type": "string",
-                    "description": "The approver's two-factor code, when they have two-factor sign-in and password is needed."
+                    "description": "The approver's two-factor code, when they have two-factor sign-in and password is needed.",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "The approver's own password. Needed when the device will be signed in as an administrator; otherwise 403 with reason password-required.",
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -40036,55 +40206,55 @@
                       }
                     },
                     "separation": {
-                      "type": "object",
                       "properties": {
                         "approximate": {
-                          "type": "object",
                           "properties": {
                             "available": {
                               "type": "boolean"
                             },
-                            "reason": {
-                              "type": "string",
-                              "description": "not-a-song, not-a-file, no-ffmpeg, not-configured or admin-only"
-                            },
-                            "task": {
+                            "note": {
                               "type": "string"
                             },
-                            "note": {
+                            "reason": {
+                              "description": "not-a-song, not-a-file, no-ffmpeg, not-configured or admin-only",
+                              "type": "string"
+                            },
+                            "task": {
                               "type": "string"
                             }
                           },
                           "required": [
                             "available"
-                          ]
+                          ],
+                          "type": "object"
                         },
                         "external": {
-                          "type": "object",
                           "properties": {
                             "available": {
                               "type": "boolean"
                             },
-                            "reason": {
-                              "type": "string",
-                              "description": "not-a-song, not-a-file, no-ffmpeg, not-configured or admin-only"
-                            },
-                            "task": {
+                            "note": {
                               "type": "string"
                             },
-                            "note": {
+                            "reason": {
+                              "description": "not-a-song, not-a-file, no-ffmpeg, not-configured or admin-only",
+                              "type": "string"
+                            },
+                            "task": {
                               "type": "string"
                             }
                           },
                           "required": [
                             "available"
-                          ]
+                          ],
+                          "type": "object"
                         }
                       },
                       "required": [
                         "approximate",
                         "external"
-                      ]
+                      ],
+                      "type": "object"
                     }
                   },
                   "required": [
@@ -41043,24 +41213,23 @@
         "x-wms-auth": "user"
       }
     },
-    "/media/{id}/stems/approximate": {
-      "post": {
-        "operationId": "postMediaIdStemsApproximate",
-        "summary": "Make an approximate instrumental with FFmpeg, by cancelling what the left and right channels share, and keep it. Not a real stem: it is listed with approximate: true. 202 with a task; 200 when an instrumental already exists. Stereo songs that are files in a library only.",
-        "tags": [
-          "Media extras"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
+    "/auth/pair/{session}/info": {
+      "get": {
+        "operationId": "getAuthPairInfo",
         "parameters": [
           {
-            "name": "id",
             "in": "path",
+            "name": "session",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The k= from the QR code; a wrong one is refused.",
+            "in": "query",
+            "name": "k",
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -41068,373 +41237,319 @@
         ],
         "responses": {
           "200": {
-            "description": "An instrumental is already there.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    },
-                    "exists": {
-                      "type": "boolean"
-                    },
-                    "approximate": {
-                      "type": "boolean"
-                    },
-                    "source": {
-                      "type": "string"
-                    }
-                  }
+                  "$ref": "#/components/schemas/PairInfo"
                 }
               }
-            }
-          },
-          "202": {
-            "description": "Queued.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    },
-                    "task": {
-                      "type": "string",
-                      "description": "The task making it; follow it with GET /system/tasks."
-                    },
-                    "already": {
-                      "type": "boolean",
-                      "description": "True when this was already queued."
-                    }
-                  },
-                  "required": [
-                    "ok"
-                  ]
-                }
-              }
-            }
+            },
+            "description": "Success."
           },
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
-      }
-    },
-    "/media/{id}/stems/separate": {
-      "post": {
-        "operationId": "postMediaIdStemsSeparate",
-        "summary": "Run the stem separator the server's owner installed (stemSeparator in the server's own configuration) on a song, as a background task, and keep the parts it writes. 409 when none is set up.",
-        "tags": [
-          "Media extras"
-        ],
-        "x-wms-auth": "admin",
+        },
         "security": [
           {
             "bearer": []
           }
         ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+        "summary": "Secure pairing: what is asking, by session, for an app that scanned the QR code, before anyone approves. Adults only. Wrong sessions count toward the limit on wrong codes.",
+        "tags": [
+          "Sign-in and accounts"
         ],
-        "responses": {
-          "200": {
-            "description": "Not used; see 202.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    },
-                    "task": {
-                      "type": "string",
-                      "description": "The task making it; follow it with GET /system/tasks."
-                    },
-                    "already": {
-                      "type": "boolean",
-                      "description": "True when this was already queued."
-                    }
-                  },
-                  "required": [
-                    "ok"
-                  ]
-                }
-              }
-            }
-          },
-          "202": {
-            "description": "Queued.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    },
-                    "task": {
-                      "type": "string",
-                      "description": "The task making it; follow it with GET /system/tasks."
-                    },
-                    "already": {
-                      "type": "boolean",
-                      "description": "True when this was already queued."
-                    }
-                  },
-                  "required": [
-                    "ok"
-                  ]
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
+        "x-wms-auth": "user"
       }
     },
     "/media/{id}/canvas/generate": {
       "post": {
         "operationId": "postMediaIdCanvasGenerate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "durationSec": {
+                    "description": "2 to 15 seconds. Default: 5 to 8, by the size of the machine.",
+                    "type": "number"
+                  },
+                  "startSec": {
+                    "description": "Where the clip starts. Default: a quarter of the way in.",
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "already": {
+                      "description": "True when this was already queued.",
+                      "type": "boolean"
+                    },
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "task": {
+                      "description": "The task making it; follow it with GET /system/tasks.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not used; see 202."
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "already": {
+                      "description": "True when this was already queued.",
+                      "type": "boolean"
+                    },
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "task": {
+                      "description": "The task making it; follow it with GET /system/tasks.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Queued."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Cut a short, silent, looping canvas from a video file, as a background task. It becomes the item's uploaded canvas, with source generated.",
         "tags": [
           "Media extras"
         ],
-        "x-wms-auth": "admin",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/media/{id}/stems/approximate": {
+      "post": {
+        "operationId": "postMediaIdStemsApproximate",
         "parameters": [
           {
-            "name": "id",
             "in": "path",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "startSec": {
-                    "type": "number",
-                    "description": "Where the clip starts. Default: a quarter of the way in."
-                  },
-                  "durationSec": {
-                    "type": "number",
-                    "description": "2 to 15 seconds. Default: 5 to 8, by the size of the machine."
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Not used; see 202.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
                   "properties": {
+                    "approximate": {
+                      "type": "boolean"
+                    },
+                    "exists": {
+                      "type": "boolean"
+                    },
                     "ok": {
                       "type": "boolean"
                     },
-                    "task": {
-                      "type": "string",
-                      "description": "The task making it; follow it with GET /system/tasks."
-                    },
-                    "already": {
-                      "type": "boolean",
-                      "description": "True when this was already queued."
+                    "source": {
+                      "type": "string"
                     }
                   },
-                  "required": [
-                    "ok"
-                  ]
+                  "type": "object"
                 }
               }
-            }
+            },
+            "description": "An instrumental is already there."
           },
           "202": {
-            "description": "Queued.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
                   "properties": {
+                    "already": {
+                      "description": "True when this was already queued.",
+                      "type": "boolean"
+                    },
                     "ok": {
                       "type": "boolean"
                     },
                     "task": {
-                      "type": "string",
-                      "description": "The task making it; follow it with GET /system/tasks."
-                    },
-                    "already": {
-                      "type": "boolean",
-                      "description": "True when this was already queued."
+                      "description": "The task making it; follow it with GET /system/tasks.",
+                      "type": "string"
                     }
                   },
                   "required": [
                     "ok"
-                  ]
+                  ],
+                  "type": "object"
                 }
               }
-            }
+            },
+            "description": "Queued."
           },
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
-      }
-    },
-    "/shows/{id}/detect-intros": {
-      "post": {
-        "operationId": "postShowsIdDetectIntros",
-        "summary": "Find the intro and credits a season's episodes share by comparing their sound, as a background task, and keep them as markers with source detected. One run at a time on the server.",
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make an approximate instrumental with FFmpeg, by cancelling what the left and right channels share, and keep it. Not a real stem: it is listed with approximate: true. 202 with a task; 200 when an instrumental already exists. Stereo songs that are files in a library only.",
         "tags": [
           "Media extras"
         ],
-        "x-wms-auth": "admin",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/media/{id}/stems/separate": {
+      "post": {
+        "operationId": "postMediaIdStemsSeparate",
         "parameters": [
           {
-            "name": "id",
             "in": "path",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "season": {
-                    "type": "integer",
-                    "description": "Only this season. Default: every season with at least two episodes that are files."
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Not used; see 202.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
                   "properties": {
+                    "already": {
+                      "description": "True when this was already queued.",
+                      "type": "boolean"
+                    },
                     "ok": {
                       "type": "boolean"
                     },
                     "task": {
+                      "description": "The task making it; follow it with GET /system/tasks.",
                       "type": "string"
-                    },
-                    "episodes": {
-                      "type": "integer"
-                    },
-                    "seasons": {
-                      "type": "integer"
                     }
-                  }
+                  },
+                  "required": [
+                    "ok"
+                  ],
+                  "type": "object"
                 }
               }
-            }
+            },
+            "description": "Not used; see 202."
           },
           "202": {
-            "description": "Started.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
                   "properties": {
+                    "already": {
+                      "description": "True when this was already queued.",
+                      "type": "boolean"
+                    },
                     "ok": {
                       "type": "boolean"
                     },
                     "task": {
+                      "description": "The task making it; follow it with GET /system/tasks.",
                       "type": "string"
-                    },
-                    "episodes": {
-                      "type": "integer"
-                    },
-                    "seasons": {
-                      "type": "integer"
                     }
-                  }
+                  },
+                  "required": [
+                    "ok"
+                  ],
+                  "type": "object"
                 }
               }
-            }
+            },
+            "description": "Queued."
           },
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Run the stem separator the server's owner installed (stemSeparator in the server's own configuration) on a song, as a background task, and keep the parts it writes. 409 when none is set up.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/sdui/topshelf": {
       "get": {
         "operationId": "getSduiTopshelf",
-        "summary": "Content for a tvOS Top Shelf extension: what this account was watching and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged.",
-        "tags": [
-          "Server-driven UI"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
         "parameters": [
           {
-            "name": "deviceClass",
+            "description": "hd (default) or 4k. Also X-WMS-Device-Class.",
             "in": "query",
+            "name": "deviceClass",
             "required": false,
             "schema": {
               "type": "string"
-            },
-            "description": "hd (default) or 4k. Also X-WMS-Device-Class."
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Success.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SDUITopShelf"
                 }
               }
-            }
+            },
+            "description": "Success."
           },
           "304": {
             "description": "Not modified."
@@ -41442,56 +41557,111 @@
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
-      }
-    },
-    "/auth/pair/{session}/info": {
-      "get": {
-        "operationId": "getAuthPairInfo",
-        "summary": "Secure pairing: what is asking, by session, for an app that scanned the QR code, before anyone approves. Adults only. Wrong sessions count toward the limit on wrong codes.",
-        "tags": [
-          "Sign-in and accounts"
-        ],
-        "x-wms-auth": "user",
+        },
         "security": [
           {
             "bearer": []
           }
         ],
+        "summary": "Content for a tvOS Top Shelf extension: what this account was watching and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/shows/{id}/detect-intros": {
+      "post": {
+        "operationId": "postShowsIdDetectIntros",
         "parameters": [
           {
-            "name": "session",
             "in": "path",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "k",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "The k= from the QR code; a wrong one is refused."
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "season": {
+                    "description": "Only this season. Default: every season with at least two episodes that are files.",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
-            "description": "Success.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PairInfo"
+                  "properties": {
+                    "episodes": {
+                      "type": "integer"
+                    },
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "seasons": {
+                      "type": "integer"
+                    },
+                    "task": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
                 }
               }
-            }
+            },
+            "description": "Not used; see 202."
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "episodes": {
+                      "type": "integer"
+                    },
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "seasons": {
+                      "type": "integer"
+                    },
+                    "task": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Started."
           },
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Find the intro and credits a season's episodes share by comparing their sound, as a background task, and keep them as markers with source detected. One run at a time on the server.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
       }
     }
   },

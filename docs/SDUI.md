@@ -508,7 +508,7 @@ renders for a bare guest and a loaded admin.
 
 Rendered for an account on an Apple TV HD (`formFactor=tv`), with two titles
 being watched and one library. Abridged; the full files are the goldens in
-[`pkg/sdui/testdata/`](../pkg/sdui/testdata/): `home.tvhd.golden.json`,
+`pkg/sdui/testdata/`: [`home.tvhd.golden.json`](../pkg/sdui/testdata/home.tvhd.golden.json),
 `home.tv4k.golden.json`, `home.phone.golden.json` and `home.web.golden.json`
 are this same screen for each device.
 

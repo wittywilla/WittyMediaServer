@@ -142,7 +142,8 @@ func TestModuleColoursReachRenderedScreens(t *testing.T) {
 	w := ts.do(t, "GET", "/api/sdui/config", admin, nil)
 	cfg := decode[sduistore.Config](t, w)
 	doc, err := sdui.NewDocument("games").
-		Root(sdui.ScreenNode("games").Child(sdui.ShelfOf("games-shelf", "Games").Module("wittyplay"))).Build()
+		Root(sdui.ScreenNode("games").Child(sdui.ShelfOf("games-shelf", "Games").Module("wittyplay").
+			Child(sdui.CardOf("games-card", sdui.Item{Title: "A game"})))).Build() // a row with nothing in it isn't sent
 	if err != nil {
 		t.Fatal(err)
 	}

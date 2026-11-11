@@ -16,7 +16,8 @@ func TestPendingCodesEndWithTheSessionThatMadeThem(t *testing.T) {
 	u, stolen := ts.user(t, "owner", "adult", true, "")
 	id := fmt.Sprintf("/api/users/%d/password", u.ID)
 
-	w := ts.do(t, "POST", "/api/pair/invite", stolen, map[string]any{})
+	// An administrator's own code takes their password: this thief has that too.
+	w := ts.do(t, "POST", "/api/pair/invite", stolen, map[string]any{"password": "correct-horse-1"})
 	var in struct {
 		Code string `json:"code"`
 	}
@@ -31,7 +32,7 @@ func TestPendingCodesEndWithTheSessionThatMadeThem(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &started); err != nil || started.Code == "" {
 		t.Fatalf("%d %s", w.Code, w.Body)
 	}
-	if w := ts.do(t, "POST", "/api/pair/approve", stolen, map[string]any{"code": started.Code}); w.Code != 200 {
+	if w := ts.do(t, "POST", "/api/pair/approve", stolen, map[string]any{"code": started.Code, "password": "correct-horse-1"}); w.Code != 200 {
 		t.Fatalf("%d %s", w.Code, w.Body)
 	}
 
@@ -59,7 +60,7 @@ func TestPendingCodesEndWithTheSessionThatMadeThem(t *testing.T) {
 func TestPendingCodesWorkWhileTheSessionLasts(t *testing.T) {
 	ts := newTestServer(t)
 	_, tok := ts.user(t, "owner", "adult", true, "")
-	w := ts.do(t, "POST", "/api/pair/invite", tok, map[string]any{})
+	w := ts.do(t, "POST", "/api/pair/invite", tok, map[string]any{"password": "correct-horse-1"})
 	var in struct {
 		Code string `json:"code"`
 	}
@@ -77,7 +78,7 @@ func TestPendingCodesWorkWhileTheSessionLasts(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &started); err != nil {
 		t.Fatal(err)
 	}
-	if w := ts.do(t, "POST", "/api/pair/approve", tok, map[string]any{"code": started.Code}); w.Code != 200 {
+	if w := ts.do(t, "POST", "/api/pair/approve", tok, map[string]any{"code": started.Code, "password": "correct-horse-1"}); w.Code != 200 {
 		t.Fatalf("%d %s", w.Code, w.Body)
 	}
 	if w := ts.do(t, "POST", "/api/pair/poll", "", map[string]string{"deviceSecret": started.DeviceSecret}); w.Code != 200 {

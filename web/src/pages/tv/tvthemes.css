@@ -354,7 +354,8 @@ html.ten-foot .ctv-page[data-shape="outline"] { --ctv-grid-edge: var(--ctv-edge)
    own colours lends them too; one that follows the app already has them. */
 .ctv-player .top, .ctv-player .bottom { font-family: var(--ctv-font); }
 .ctv-player .bottom .btn { border-radius: var(--ctv-r); }
-.ctv-player[data-tvtheme="classic"], .ctv-player[data-tvtheme="satellite"], .ctv-player[data-tvtheme="teletext"], .ctv-player[data-tvtheme="listings"] { --accent: var(--ctv-accent); --accent-text: var(--ctv-accent); --focus: var(--ctv-accent); }
+/* With the accent goes what's written on it: the app's white is unreadable on Classic's yellow. */
+.ctv-player[data-tvtheme="classic"], .ctv-player[data-tvtheme="satellite"], .ctv-player[data-tvtheme="teletext"], .ctv-player[data-tvtheme="listings"] { --accent: var(--ctv-accent); --accent-text: var(--ctv-accent); --accent-2: var(--ctv-accent); --accent-fg: var(--ctv-accent-text); --focus: var(--ctv-accent); }
 
 /* ------------------------------------------------- a small picture of each theme */
 .ctv-pic { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--r-sm); background: var(--ctv-bg); }

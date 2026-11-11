@@ -257,22 +257,18 @@ func (f *walkFixture) playingWhatIsHidden(t *testing.T, userID int64) (room stri
 	if w := ts.do(t, "PUT", fmt.Sprintf("/api/remote-control/accounts/%d", userID), f.admin, map[string]any{"controlOthers": true}); w.Code != 200 {
 		t.Fatalf("%d %s", w.Code, w.Body)
 	}
-	w := ts.do(t, "POST", "/api/remote-control/devices", f.admin, map[string]any{"v": 1, "deviceId": f.tv, "name": "Den", "kind": "tv",
-		"capabilities": map[string]any{"mediaKinds": []string{"video", "audio", "game", "book", "photo", "radio"}, "features": []string{"queue"}}})
-	if w.Code != 200 {
-		t.Fatalf("%d %s", w.Code, w.Body)
-	}
-	f.tv, _ = body(w)["deviceId"].(string)
-	// A device's reports are paced; the walk's are closer together than a real device's.
-	for tries := 0; ; tries++ {
-		w := ts.do(t, "POST", "/api/remote-control/devices/"+f.tv+"/state", f.admin, map[string]any{"v": 1, "status": "playing", "itemId": ids[0], "queue": ids, "durationSec": 100})
-		if w.Code == 200 {
-			break
-		}
-		if w.Code != 429 || tries > 100 {
+	// The TV is announced again only once it has been forgotten: a device that never opens
+	// its channel is kept for half a minute, and its reports are paced.
+	if d, here := ts.remoteHub().Device(f.tv); !here || d.State.ItemID == 0 {
+		w := ts.do(t, "POST", "/api/remote-control/devices", f.admin, map[string]any{"v": 1, "deviceId": f.tv, "name": "Den", "kind": "tv",
+			"capabilities": map[string]any{"mediaKinds": []string{"video", "audio", "game", "book", "photo", "radio"}, "features": []string{"queue"}}})
+		if w.Code != 200 {
 			t.Fatalf("%d %s", w.Code, w.Body)
 		}
-		time.Sleep(100 * time.Millisecond)
+		f.tv, _ = body(w)["deviceId"].(string)
+		if w := ts.do(t, "POST", "/api/remote-control/devices/"+f.tv+"/state", f.admin, map[string]any{"v": 1, "status": "playing", "itemId": ids[0], "queue": ids, "durationSec": 100}); w.Code != 200 {
+			t.Fatalf("%d %s", w.Code, w.Body)
+		}
 	}
 	if f.room.ID != "" {
 		ts.do(t, "DELETE", "/api/syncplay/rooms/"+f.room.ID+"?member="+f.room.You, f.admin, nil)

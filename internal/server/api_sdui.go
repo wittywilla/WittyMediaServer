@@ -288,6 +288,11 @@ func (s *Server) renderContext(r *http.Request, doc sdui.Document, ov map[string
 		"user":   map[string]any{"name": firstNonEmpty(u.DisplayName, u.Name), "kind": u.Kind, "isAdmin": u.IsAdmin},
 		"server": map[string]any{"name": s.ServerName(r.Context()), "version": s.Version},
 	}
+	// What this profile has been kept from isn't in the conditions (sdui_limits.go); what
+	// it may not see isn't in the data.
+	if _, err := s.sduiLimits(r, doc.Screen, &ctx); err != nil {
+		return ctx, err
+	}
 	if err := s.sduiData(r, doc.Screen, ctx.Profile, ctx.Data, ctx.Flags); err != nil {
 		return ctx, err
 	}
@@ -354,6 +359,14 @@ func (s *Server) renderScreen(w http.ResponseWriter, r *http.Request) (sdui.Docu
 	ctx, err := s.renderContext(r, doc, cfg.Theme.Modules)
 	if errors.Is(err, errNoScreenData) {
 		writeErr(w, 404, "not found")
+		return sdui.Document{}, false
+	}
+	if errors.Is(err, errScreenTimeUp) {
+		// The player's frame is for playing: the same answer as the playback routes give.
+		u := userFrom(r)
+		v := accessFor(u).Time.Check(s.clock(), s.parentalInit().tracker.Usage(r.Context(), u.ID))
+		w.Header().Set("X-WMS-Screen-Time-Left", "0")
+		writeJSON(w, 403, map[string]any{"error": v.Message(), "code": "screen-time", "screenTime": screenTimeView(v)})
 		return sdui.Document{}, false
 	}
 	if err != nil {

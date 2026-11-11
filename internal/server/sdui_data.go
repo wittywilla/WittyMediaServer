@@ -232,9 +232,9 @@ func (s *Server) sduiData(r *http.Request, screen string, l *sdui.Layout, data m
 		flags["librariesEmpty"] = len(items) == 0
 		data["libraries"] = map[string]any{"items": items}
 	case "library":
-		id := int64(qInt(r, "library", 0))
-		lib, err := s.Store.Library(ctx, id)
-		if id <= 0 || err != nil || !acc.AllowsLibrary(id) {
+		// One the account may open: within its limits, and not a games library with games off.
+		lib, ok := s.sduiLibrary(r, int64(qInt(r, "library", 0)))
+		if !ok {
 			return errNoScreenData
 		}
 		sort, desc := "title", false

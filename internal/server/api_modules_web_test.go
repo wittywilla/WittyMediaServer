@@ -99,12 +99,23 @@ func installedBundle(t *testing.T, script, style string) *modmgr.Manager {
 	if err := m.Install(id); err != nil {
 		t.Fatal(err)
 	}
-	for deadline := time.Now().Add(30 * time.Second); len(m.WebBundles()) == 0; time.Sleep(10 * time.Millisecond) {
+	// The bundle comes into use a moment before the install lets go of the module, and
+	// a rollback or another install in that moment is refused as busy.
+	for deadline := time.Now().Add(30 * time.Second); len(m.WebBundles()) == 0 || !moduleIdle(m, id); time.Sleep(10 * time.Millisecond) {
 		if time.Now().After(deadline) {
 			t.Fatalf("the bundle never came into use: %+v", m.Report())
 		}
 	}
 	return m
+}
+
+func moduleIdle(m *modmgr.Manager, id string) bool {
+	for _, st := range m.Report().Modules {
+		if st.ID == id {
+			return st.Phase == modmgr.PhaseIdle
+		}
+	}
+	return false
 }
 
 // findBrowser looks for something that can load a page for real. WMS_TEST_BROWSER names

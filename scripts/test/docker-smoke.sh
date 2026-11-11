@@ -30,7 +30,9 @@ done
 if [ "$state" = healthy ]; then ok "healthy, read-only, no capabilities, as 4242:4242"; else bad "health: ${state:-none}"; docker logs "$name" 2>&1 | tail -20; fi
 port=$(docker port "$name" 9797/tcp | head -n1 | sed 's/.*://')
 if curl -sf "http://127.0.0.1:$port/api/health" | grep -q '"ok":true'; then ok "answers on the published port"; else bad "no answer on port $port"; fi
-if docker logs "$name" 2>&1 | grep -q "no accounts yet"; then ok "first start asks for setup"; else bad "no setup message"; fi
+# Not grep -q: it stops reading at the match, docker logs dies writing to it, and
+# pipefail calls that a failure.
+if docker logs "$name" 2>&1 | grep "no accounts yet" >/dev/null; then ok "first start asks for setup"; else bad "no setup message"; fi
 if docker exec "$name" sh -c 'touch /usr/local/bin/x' 2>/dev/null; then bad "the root file system is writable"; else ok "the root file system is read-only"; fi
 
 # 2. The hardware report, with no graphics passed in.

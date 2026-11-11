@@ -468,3 +468,34 @@ func TestLiveRestartAsksTheFeedAgain(t *testing.T) {
 		t.Fatal("the new programme should follow a discontinuity")
 	}
 }
+
+// A schedule made again while the feed is still answering makes that answer out of
+// date: it's put down and the feed asked again, rather than the change being lost.
+func TestLiveRestartWhileTheFeedAnswers(t *testing.T) {
+	m := liveTestManager(t)
+	var asked, released atomic.Int32
+	answering, answer := make(chan struct{}), make(chan struct{})
+	s := startFake(t, m, LiveSpec{ID: "x", Feed: func(ctx context.Context, at time.Time) (*LiveInput, error) {
+		if asked.Add(1) == 1 {
+			close(answering)
+			<-answer
+		}
+		return &LiveInput{AudioIndex: 0, Duration: 3600, Release: func() { released.Add(1) }}, nil
+	}}, fakeRun(2))
+	<-answering
+	if !m.RestartLive("x") {
+		t.Fatal("the channel should be running")
+	}
+	close(answer)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.WaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if n := asked.Load(); n != 2 {
+		t.Fatalf("the feed was asked %d times", n)
+	}
+	if released.Load() != 1 {
+		t.Fatal("the out-of-date answer should be let go")
+	}
+}

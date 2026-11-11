@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Publishes every repository in the order they depend on each other: pushes, tags, waits for each
 # release, and checks what came out. This is the one command for a release of the whole project.
 #
@@ -9,13 +11,14 @@
 #
 #   --repos <folder>      where the repositories are           (default: beside this one)
 #   --branch <name>       publish this branch of a module repository, where it has one, as its main
-#   --server-branch <n>   the server's branch                  (default: release/0.6.0-alpha)
+#   --server-branch <n>   the server's branch                  (default: v0.8.0-alpha)
 #   --work <folder>       where to work                        (default: a new folder in your home)
 #   --from <Repository>   start here, having published everything before it
 #   --skip-tests          for a second dry run of something that passed
 #   --no-server-tag       --apply stops short of tagging the server, which starts its release
 #
-# Needs git, go, node, python3, and for anything on GitHub, gh signed in. Run it in WSL or on Linux.
+# Needs git, go, node, python3, and for anything on GitHub, gh signed in. Run it in WSL, on Linux or
+# on macOS (its own bash 3.2 and BSD sed will do).
 # docs/MODULES-CUTOVER.md says what a person has to do first.
 set -euo pipefail
 
@@ -33,7 +36,7 @@ PLAYER_COPIES=(WittyDVD:wittydvdplayer WittyBluray:wittyblurayplayer)
 # here would be just what it looks for.
 NAMES_FILE=${WMS_FORBIDDEN_NAMES:-}
 
-apply=0 branch="" server_branch=release/0.6.0-alpha work="" from="" skip_tests=0 server_tag=1
+apply=0 branch="" server_branch=v0.8.0-alpha work="" from="" skip_tests=0 server_tag=1
 repos=$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd)
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -182,7 +185,8 @@ pin() { # <repo>: uses what was just published, and commits that
   local r=$1 go_dir
   go_dir=$(go_folder "$r")
   [ -f "$go_dir/go.mod" ] || return 0
-  sed -i -E '/github\.com\/wittywilla\/witty(module|disc) /d' "$go_dir/go.sum" 2>/dev/null || true
+  # -i.bak, then removing it: the one form of sed -i both GNU and BSD (macOS) sed take.
+  { sed -E -i.bak '/github\.com\/wittywilla\/witty(module|disc) /d' "$go_dir/go.sum" && rm -f "$go_dir/go.sum.bak"; } 2>/dev/null || true
   (
     cd "$go_dir"
     if [ "$r" = WittyMediaPlayer ]; then
@@ -221,7 +225,7 @@ lock() { # <repo>: locks what a module's bundle is built with, where nothing els
   local r=$1
   [ -f "$dir/package.json" ] && [ ! -f "$dir/package-lock.json" ] && grep -q 'build:bundle' "$dir/package.json" || return 0
   if [ $apply = 0 ]; then note "would lock its npm packages"; return 0; fi
-  sed -i -E "s|\"github:$OWNER/WittyInk\"|\"github:$OWNER/WittyInk#v$ink_version\"|" "$dir/package.json"
+  sed -E -i.bak "s|\"github:$OWNER/WittyInk\"|\"github:$OWNER/WittyInk#v$ink_version\"|" "$dir/package.json" && rm -f "$dir/package.json.bak"
   if (cd "$dir" && npm install --package-lock-only --ignore-scripts --no-audit --no-fund >/dev/null 2>&1); then
     git -C "$dir" add package.json package-lock.json
     git -C "$dir" commit -qm "Locks what the bundle is built with"

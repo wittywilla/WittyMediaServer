@@ -540,6 +540,11 @@ device:
   condition or left out: a navigation without it gets it at the end.
 - A profile's own order and hidden entries (`navigation/personal`) apply
   here as they do to a page. Settings can't be hidden by a profile either.
+- For a profile that may rearrange, the answer carries `personal`, in the
+  shape a page's has: `{editable, allow: ["reorder", "hide"], sections,
+  url}`. `sections` are all the entries the profile could have, in its
+  order, hidden ones included and marked, which is what "Arrange the menu"
+  lists; the body it PUTs to `url` is `{order, hidden}`.
 
 The built-in navigation: Home, Search, Live TV (where the profile may watch
 it), the libraries (behind More on a phone; one "Libraries" entry on a

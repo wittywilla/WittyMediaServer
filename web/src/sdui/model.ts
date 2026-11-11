@@ -422,7 +422,9 @@ export function applyItems(section: Node, answer: { items?: Node[]; next?: strin
   const props: Props = { ...(section.props || {}), ...(answer.props || {}) }
   if (answer.next) props.more = { url: answer.next }
   else delete props.more
-  const next: Node = { ...section, props, children: [...had, ...(answer.items || [])] }
+  // Cards that arrive later join the section's focus group at the end, in the order sent.
+  const arrived = (answer.items || []).map((c) => (c.focus || !c.action ? c : { ...c, focus: { order: 0, group: section.id } }))
+  const next: Node = { ...section, props, children: [...had, ...arrived] }
   if (answer.state === 'empty' || answer.state === 'error') next.state = answer.state
   else delete next.state
   return next

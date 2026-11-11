@@ -21,13 +21,14 @@ const SIDEWAYS = new Set(['Shelf', 'Tabs', 'SeasonList'])
 // focusMap: the page's stops in order. `columns` says how many columns a grid is drawn
 // with now, which the page knows and the document only suggests.
 export function focusMap(root: Node, columns: (gridId: string, sent: number) => number = (_id, sent) => sent): FocusMap {
-  const focusable: { node: Node; holder: Node | null }[] = []
-  const walk = (x: Node, holder: Node | null) => {
-    if (x.focus) focusable.push({ node: x, holder })
-    for (const c of x.children || []) walk(c, x)
+  // Document order is reading order, and is what `focus.order` numbers; cards that arrived
+  // later joined their group at the end, where the document has them.
+  const focusable: { node: Node }[] = []
+  const walk = (x: Node) => {
+    if (x.focus) focusable.push({ node: x })
+    for (const c of x.children || []) walk(c)
   }
-  walk(root, null)
-  focusable.sort((a, b) => a.node.focus!.order - b.node.focus!.order)
+  walk(root)
   const holders = new Map<string, Node>()
   const find = (x: Node) => { holders.set(x.id, x); x.children?.forEach(find) }
   find(root)

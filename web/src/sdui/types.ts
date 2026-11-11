@@ -110,7 +110,7 @@ export type NavItem = {
   placement: string // primary | more | end
 }
 
-export type Navigation = { version: number; formFactor: string; etag?: string; items: NavItem[]; personal?: { editable?: boolean; url?: string } }
+export type Navigation = { version: number; formFactor: string; etag?: string; items: NavItem[]; personal?: PersonalInfo }
 
 // The spec's fallback profile, for a document that came without one: the web's.
 export const WEB_LAYOUT: Layout = {

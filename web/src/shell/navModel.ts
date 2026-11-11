@@ -3,7 +3,12 @@
 // What the main menu holds and in what order. Plain data and arithmetic, so the
 // same rules can be tested here and ported to the native clients.
 
-export type NavItem = { id: string; label: string; to: string; kind?: string; end?: boolean }
+// icon, placement and screen come with a server's menu (GET /sdui/navigation): the icon's name, where the entry
+// sits (primary, more, end) and, for one of the app's own screens, which.
+export type NavItem = { id: string; label: string; to: string; kind?: string; end?: boolean; icon?: string; placement?: string; screen?: string }
+
+// A library's entry: "lib:3" as the web app named it, "lib-3" in a server's menu.
+export const isLibrary = (id: string) => id.startsWith('lib:') || id.startsWith('lib-')
 
 export type NavPrefs = {
   order?: string[]
@@ -28,7 +33,7 @@ export function groupOf(item: NavItem, prefs: NavPrefs): string {
   const chosen = prefs.groups?.[item.id]
   if (chosen !== undefined) return chosen
   if (item.id === 'couch') return 'Play'
-  return (item.id.startsWith('lib:') && (KIND_GROUP[item.kind || ''] || 'Watch')) || ''
+  return (isLibrary(item.id) && (KIND_GROUP[item.kind || ''] || 'Watch')) || ''
 }
 
 // arrange: the items someone will see, in their order. A library added since they

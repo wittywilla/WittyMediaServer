@@ -234,9 +234,10 @@ Anything signed in to your server can be played on from anything else: choose a 
 
 - On a title's page, **Play on…** lists your other devices. Pick one and it starts there.
 - In the player, **Play on another device** in the top bar hands over what you're watching, at the same place with the same sound and subtitles, and stops it here.
-- The same list is a small remote for each device that's playing: what's on, how far along, pause and play, back 10 seconds, forward 30, stop, and its volume.
+- **Play on another device** in the menu under your name opens the same list from anywhere.
+- The list is also a small remote for each device that's playing: what's on, how far along, pause and play, back 10 seconds, forward 30, stop, and its volume.
 
-A browser tab shows in the list while the app is open in it. You see devices signed in as **your** account. An administrator can let an account control devices signed in as others, such as a TV on a Kids profile, under **Settings → Sharing & photos → Play on other devices**. Nobody's limits change: you can't play something on another device that its account, or yours, isn't allowed to see.
+A browser tab shows in the list while the app is open and showing in it, or playing something. The web player can be played on with films, episodes and other videos; discs with menus and music don't answer yet. You see devices signed in as **your** account. An administrator can let an account control devices signed in as others, such as a TV on a Kids profile, under **Settings → Sharing & photos → Play on other devices**. Nobody's limits change: you can't play something on another device that its account, or yours, isn't allowed to see.
 
 To turn it off for a browser, go to **Play on…** and switch off **Let other devices play here**. For how apps talk to each other, see [the Remote Protocol](REMOTE-PROTOCOL.md).
 

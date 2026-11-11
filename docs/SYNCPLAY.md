@@ -20,15 +20,17 @@ You are the **host**. To begin with only you can play, pause and seek. Turn on *
 
 Everyone needs an account on your server, and a way to reach it: your home network, or [remote access](REMOTE.md).
 
+In the web app, watch parties are for films, episodes and other videos. Discs with menus, music and live channels aren't kept in step.
+
 ## Joining one
 
-Open any film or episode, press **Watch party**, type the code and press **Join**. Capitals, spaces and dashes don't matter. The player opens at the place the party has got to, even if it started without you.
+Choose **Watch party** in the menu under your name, or on any film or episode's page, type the code and press **Join**. Capitals, spaces and dashes don't matter. The player opens at the place the party has got to, even if it started without you.
 
 If you've been invited by name, the party is listed there too, and you can join it without the code.
 
 ## While you watch
 
-A bar across the top of the app shows the party's name, its code and who is there. Beside each person:
+**Watch party** in the player's top bar shows the party's name, its code and who is there. Beside each person:
 
 | It says | It means |
 |---|---|
@@ -42,8 +44,9 @@ A bar across the top of the app shows the party's name, its code and who is ther
 - **Play, pause and seek** work as usual, for whoever is allowed to control. Everyone else's player follows within a moment.
 - **Waiting for everyone.** If someone's video stalls, the party pauses for them and carries on when they're ready. It waits 15 seconds at most, then goes on without them, and they catch up when they can. The host can turn **Wait for everyone** off.
 - **If your connection drops**, you have two minutes to come back to the same place in the party, as host if you were.
-- **Leaving.** Press **Leave**, or close the player. If the host leaves, whoever has been there longest becomes host.
-- **The next episode.** When one ends, the party moves on to the next thing in its queue, if it has one.
+- **Leaving.** Press **Leave**, or close the player. Shrinking it to the mini player keeps you in. If the host leaves, whoever has been there longest becomes host. The host can also make someone else host, or remove someone, from the **⋯** beside their name.
+- **Something else.** With the party open, **Watch party** on another title's page offers to watch that in the party instead.
+- **The next episode.** A party started in the web app is for one title; when it ends, pick the next as above. Apps can give a party a queue, which it then plays through.
 
 A party ends when its host closes it, when everyone has been gone for five minutes, or when the server restarts: parties are kept in the server's memory and not written down.
 

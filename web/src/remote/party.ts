@@ -209,6 +209,9 @@ type PlayerHooks = {
   loaded: () => boolean
   // blocked: the browser won't start playback without a tap, so the player should ask for one.
   blocked?: () => void
+  // cheapSeek: a seek is quick (a file, or a stream listed whole), so a paused picture can be
+  // put on the exact frame. False for a stream that starts again from wherever it's sent.
+  cheapSeek?: () => boolean
 }
 
 // usePartySync keeps a video element in step with the room while the room is playing
@@ -235,8 +238,11 @@ export function usePartySync(video: React.RefObject<HTMLVideoElement | null>, it
     // one took, and another isn't tried until this one has had its chance.
     let seekAt = 0, lag = 0
     const quiet = (fn: () => void) => { quietUntil = performance.now() + 700; fn() }
+    let lastStill = -1
     const jump = (target: number, playing: boolean) => {
       if (v.seeking || (seekAt && performance.now() - seekAt < 5000)) return
+      // A paused picture is sent to a place once: if it can't get there (past the end), asking again won't help.
+      if (!playing) { if (target === lastStill) return; lastStill = target } else lastStill = -1
       seekAt = performance.now()
       quiet(() => latest.current.seek(target + (playing ? lag : 0)))
     }
@@ -245,6 +251,7 @@ export function usePartySync(video: React.RefObject<HTMLVideoElement | null>, it
       if (Date.now() - toldOff > 8000) { toldOff = Date.now(); toast('Only the host controls this watch party.') }
     }
 
+    let startTimer: ReturnType<typeof setTimeout> | undefined
     const tick = () => {
       const cur = mine()
       if (!cur || !latest.current.loaded()) return
@@ -255,8 +262,10 @@ export function usePartySync(video: React.RefObject<HTMLVideoElement | null>, it
       const playing = !s.paused && !s.waiting && now >= s.atMs
       if (!playing) {
         if (!v.paused) quiet(() => v.pause())
-        if (Math.abs(target - pos) > 0.5) jump(target, false)
-        nudging = false
+        if (Math.abs(target - pos) > (latest.current.cheapSeek?.() ? 0.08 : 0.5)) jump(target, false)
+        // A start set for a moment from now is kept to the millisecond, not to the next tick.
+        if (!s.paused && !s.waiting && now < s.atMs) { clearTimeout(startTimer); startTimer = setTimeout(tick, Math.max(0, s.atMs - now)) }
+        if (nudging) { nudging = false; v.playbackRate = s.rate }
       } else if (!v.ended) {
         if (v.paused) quiet(() => { v.play().catch((e) => { if (e?.name === 'NotAllowedError') latest.current.blocked?.() }) })
         const step = syncStep(target - pos, nudging)
@@ -305,9 +314,13 @@ export function usePartySync(video: React.RefObject<HTMLVideoElement | null>, it
     v.addEventListener('play', onPlay)
     v.addEventListener('ended', onEnded)
     const t = setInterval(tick, 500)
+    // And at once when the room changes, rather than up to half a second later.
+    const unsubscribe = subscribe(tick)
     tick()
     return () => {
       clearInterval(t)
+      clearTimeout(startTimer)
+      unsubscribe()
       v.removeEventListener('pause', onPause)
       v.removeEventListener('play', onPlay)
       v.removeEventListener('ended', onEnded)

@@ -220,7 +220,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
 
   // A watch party playing this: the room says where the picture is, and a seek here is a
   // seek for everyone (docs/SYNCPLAY.md). Otherwise seeking is this player's own business.
-  const party = usePartySync(video, item.id, { seek: rawSeek, offset: () => offset, loaded: () => !!info, blocked: () => setNeedClick(true) })
+  const party = usePartySync(video, item.id, { seek: rawSeek, offset: () => offset, loaded: () => !!info, blocked: () => setNeedClick(true), cheapSeek: () => info?.seek !== 'restart' })
   inParty.current = party.active
   const seek = useCallback((t: number) => { if (party.active) party.seek(t); else rawSeek(t) }, [party.active, rawSeek]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -436,6 +436,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const openOver = (what: 'device' | 'party') => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); setSendTo(what) }
   const waitingFor = party.room?.state.waiting ? party.room.members.filter((m) => !m.you && (m.state === 'loading' || m.state === 'buffering')).map((m) => m.name) : null
   return (
+    <>
     <div className={'player' + (mini ? ' mini' : '')} ref={root} tabIndex={-1} onClick={togglePlay}
       onDoubleClick={() => (mini ? chrome.expand() : toggleFullscreen(root.current))}>
       <div className="stage">
@@ -445,13 +446,6 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       {note && !mini && <div className={'net-note' + (note.kind === 'lost' ? ' lost' : '')} role="status" aria-live="polite">{note.text}</div>}
       {needClick && <div className="big-play"><button onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
       {waitingFor && !mini && <div className="wp-note" role="status" aria-live="polite">{waitingFor.length ? `Waiting for ${waitingFor.join(', ')}` : 'Waiting for everyone to be ready'}</div>}
-      {sendTo && (
-        <Suspense fallback={null}>
-          {sendTo === 'device'
-            ? <PlayOn onClose={() => setSendTo(null)} source={{ kind: 'playing', itemId: item.id, title: item.title, positionSec: () => (video.current?.currentTime || 0) + offset, audio: String(audio), subtitle: sub == null || sub < 0 ? 'off' : String(sub), stop: chrome.close }} />
-            : <WatchParty onClose={() => setSendTo(null)} item={{ id: item.id, title: item.title, positionSec: () => (video.current?.currentTime || 0) + offset }} />}
-        </Suspense>
-      )}
       {err && <div className="overlay-msg"><div className="box">Playback failed: {err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={chrome.close}>Back</button></div></div>}
       {mini ? (
         <div className="mini-bar" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
@@ -529,5 +523,14 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         </>
       )}
     </div>
+    {/* Beside the player, not inside it: a click in a dialog isn't a click on the picture. */}
+    {sendTo && (
+      <Suspense fallback={null}>
+        {sendTo === 'device'
+          ? <PlayOn onClose={() => setSendTo(null)} source={{ kind: 'playing', itemId: item.id, title: item.title, positionSec: () => (video.current?.currentTime || 0) + offset, audio: String(audio), subtitle: sub == null || sub < 0 ? 'off' : String(sub), stop: chrome.close }} />
+          : <WatchParty onClose={() => setSendTo(null)} item={{ id: item.id, title: item.title, positionSec: () => (video.current?.currentTime || 0) + offset }} />}
+      </Suspense>
+    )}
+    </>
   )
 }

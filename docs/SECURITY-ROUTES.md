@@ -14,6 +14,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
   someone not signed in is limited to 16 KB and 15 seconds, and JSON to 1 MB unless the table says otherwise.
 - State-changing requests signed in by cookie are refused when they come from another origin.
 - `/api/` responses carry a script-free content policy unless the table says otherwise.
+- For an account with limits, every signed-in route is first checked against what the account may do (`classify` in
+  `internal/server/parental.go`): a route that is part of a feature turned off for it (games, recording, share links, comments,
+  downloads) answers 403, an account kept to the home network isn't signed in anywhere else, and a route that plays something
+  answers 403 when the account's screen time or hours are over. `TestEveryRouteIsClassed` fails on a route nobody classed.
 
 ## Words used in the table
 
@@ -27,7 +31,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | Admin | An administrator |
 | ticket | Also accepts a stream token (`?st=`) made for that item, for reading only |
 | address token | Also accepts a token in the address (`?token=`), for `GET` and `HEAD` |
-| limits | The account's limits are applied: libraries, age rating, blocked genres, allowed and blocked titles. A title outside them answers "not found" |
+| limits | The account's limits are applied: libraries, age rating (for each kind of media), genres, tags, collections, allowed and blocked titles. A title outside them answers "not found" |
 | own | Looked up together with the signed-in account's ID. Another account's answers "not found" |
 | Nothing | The route takes no input to check |
 
@@ -246,6 +250,17 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/users/{id}/access` | Signed-in | Caller may manage that account. Not their own, not an administrator's |
 | `PUT /api/users/{id}/password` | Signed-in | Own password for adults, with the current one and an attempt limit. Another account's if the caller may manage it. Length rules |
 | `DELETE /api/users/{id}/2fa` | Admin | Not their own, not another administrator's |
+| `GET /api/profiles/household` | Signed-in | Names, kinds and pictures of every profile, where the sign-in screen shows profiles, or anywhere for an adult's account. No limits and no passwords |
+| `POST /api/profiles/switch` | Signed-in | 16 KB body. The other profile's password or PIN, and code, with the attempt limits of signing in. A profile with no password only at home with the profile screen on. Ends the session it came from |
+| `GET /api/me/limits` | Signed-in | own. Names no titles |
+| `GET /api/me/screen-time` | Signed-in | own |
+| `POST /api/me/screen-time/extra` | Signed-in | own. 16 KB body. The parents' PIN, or the name and password of an account that manages the caller, each with an attempt limit. 1 to 240 minutes |
+| `POST /api/users/{id}/screen-time/extra` | Signed-in | Caller may manage that account. Not their own, not an administrator's. 1 to 240 minutes |
+| `GET /api/users/{id}/activity` | Signed-in | Caller may manage that account. Not their own, not an administrator's. 1 to 90 days |
+| `DELETE /api/users/{id}/activity` | Signed-in | Caller may manage that account. Not their own, not an administrator's |
+| `GET /api/parental/ratings` | Signed-in | Nothing: fixed lists |
+| `GET /api/parental/pin` | Admin | Nothing further. Says only whether a PIN is set |
+| `PUT /api/parental/pin` | Admin | The caller's own password, and code with two-factor sign-in, with an attempt limit. PIN of 4 to 12 digits, kept only scrambled |
 | `GET /api/fs` | Admin | Folder listing through the file browser |
 | `POST /api/fs/pick` | Admin | Only from a browser on the server's own machine |
 | `POST /api/metadata/test` | Admin | Provider and key |
@@ -713,7 +728,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/theme/modules/{module}` | Admin | Module id by form. Known colour tokens, colour values only, at most 64. If-Match, when sent, must be the current ETag of ui_config.json |
 | `DELETE /api/theme/modules/{module}` | Admin | Module id by form. If-Match, when sent, must be the current ETag of ui_config.json |
 | `GET /api/media-types` | Signed-in | Nothing: known formats and whether this server can play them. Which FFmpeg it runs for admins only |
-| `PUT /api/users/{id}/profile` | Signed-in | Caller may manage that account, or it's their own. Which name shows is anyone's own choice. Names: an adult's own, or a manager's. Username has no invisible characters and differs from every other, ignoring case. Display name cleaned and cut to 60 characters |
+| `PUT /api/users/{id}/profile` | Signed-in | Caller may manage that account, or it's their own. Which name shows is anyone's own choice. Username: an adult's own, or a manager's. Profile name and picture: their own unless their limits turn that off, or a manager's. Picture is one of a fixed list. Username has no invisible characters and differs from every other, ignoring case. Display name cleaned and cut to 60 characters |
 | `GET /api/media/{id}/canvas` | Signed-in | limits. Song, video or disc. An upload in the server's own folder, or a file beside the media that is inside a library once links are followed, or a plain file in the metadata folder named for the item |
 | `GET /api/items/{id}/canvas` | Signed-in | limits. As `GET /api/media/{id}/canvas` |
 | `GET /api/media/{id}/canvas/file` | Signed-in; ticket; address token | limits. As the canvas: only a file the listing would name. Type from its name, MP4 or WebM only. Inert content policy. Limit for viewers away from home |

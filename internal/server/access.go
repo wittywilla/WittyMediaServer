@@ -42,7 +42,8 @@ func accessFor(u *auth.User) *library.Access {
 	return &a
 }
 
-func (s *Server) access(r *http.Request) *library.Access { return accessFor(userFrom(r)) }
+// access is the signed-in account's limits, ready to answer for one title.
+func (s *Server) access(r *http.Request) *library.Access { return s.accessOf(r.Context(), userFrom(r)) }
 
 // visibleItem loads an item the signed-in account may see.
 func (s *Server) visibleItem(r *http.Request, id int64) (*library.Item, error) {
@@ -59,6 +60,7 @@ func (s *Server) visibleItem(r *http.Request, id int64) (*library.Item, error) {
 		sh, _ = s.Store.ShowFacts(r.Context(), *it.ShowID)
 	}
 	if !a.AllowsItem(it, sh) {
+		s.noteHidden(r, it, sh) // whoever manages this profile can see what it asked for
 		return nil, library.ErrNotFound
 	}
 	return it, nil

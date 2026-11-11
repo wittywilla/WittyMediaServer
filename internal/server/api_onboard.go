@@ -92,12 +92,13 @@ func (s *Server) handleProfiles(w http.ResponseWriter, r *http.Request) {
 		DisplayName string `json:"displayName"`
 		Kind        string `json:"kind"`
 		HasPassword bool   `json:"hasPassword"`
+		Avatar      string `json:"avatar"`
 	}
 	out := make([]profile, 0, len(users))
 	for _, u := range users {
 		// Away from home nobody can sign in without a password, and nobody
 		// needs to know which profiles have none.
-		out = append(out, profile{ID: u.ID, Name: u.Name, DisplayName: u.DisplayName, Kind: u.Kind, HasPassword: u.HasPassword || !onLocalNetwork(r)})
+		out = append(out, profile{ID: u.ID, Name: u.Name, DisplayName: u.DisplayName, Kind: u.Kind, HasPassword: u.HasPassword || !onLocalNetwork(r), Avatar: u.Avatar})
 	}
 	writeJSON(w, 200, map[string]any{"style": "profiles", "profiles": out})
 }

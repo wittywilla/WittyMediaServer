@@ -87,6 +87,9 @@ func newWalkFixture(t *testing.T) *walkFixture {
 	ts := newTestServer(t)
 	ctx := context.Background()
 	f := &walkFixture{ts: ts}
+	// The owner's TV in the walk never opens its channel. It mustn't be forgotten for that
+	// while the walk, which can be slow on a busy machine, is still going.
+	ts.remoteHub().Limits.AnnounceGrace = time.Hour
 	_, f.admin = ts.user(t, "boss", "adult", true, "")
 	root := t.TempDir()
 	secret := []byte("file of " + hiddenWord)

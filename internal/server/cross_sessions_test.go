@@ -340,9 +340,8 @@ func TestEmulatorGamesFollowTheProfile(t *testing.T) {
 	t.Setenv("WMS_WITTYPLAY_RUNNER", "/nonexistent/runner")
 	got := fakeWittyPlayService(t)
 	held := holdEmulators(t)
-	was := emulatorWatchEvery
-	emulatorWatchEvery = 20 * time.Millisecond
-	t.Cleanup(func() { emulatorWatchEvery = was })
+	was := emulatorWatchEvery.Swap(int64(20 * time.Millisecond))
+	t.Cleanup(func() { emulatorWatchEvery.Store(was) })
 	ts := newTestServer(t)
 	game, _ := ps2Game(t, ts, "Open Game", "ESRB E")
 	_, admin := ts.user(t, "boss", "adult", true, "")

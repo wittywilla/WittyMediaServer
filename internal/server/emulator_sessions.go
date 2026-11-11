@@ -7,6 +7,7 @@ import (
 	"context"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
@@ -86,11 +87,14 @@ func (e *emulatorGames) stop(s *Server, match func(*emulatorGame) bool) int {
 
 // emulatorWatchEvery is how often a game played by a profile with limits is looked at. It
 // has to be well inside parental.Gap, so that playing counts as one stretch of screen time.
-var emulatorWatchEvery = 20 * time.Second
+// It is read by games as they start, so a test that shortens it does so safely.
+var emulatorWatchEvery atomic.Int64
+
+func init() { emulatorWatchEvery.Store(int64(20 * time.Second)) }
 
 // watchEmulator keeps a game started by a profile with limits within them until it ends.
 func (s *Server) watchEmulator(g emulatorGame, ended <-chan struct{}) {
-	t := time.NewTicker(emulatorWatchEvery)
+	t := time.NewTicker(time.Duration(emulatorWatchEvery.Load()))
 	defer t.Stop()
 	ctx := context.Background()
 	for {

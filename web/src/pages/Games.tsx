@@ -20,6 +20,8 @@ import './games.css'
 
 const GamePlayer = lazyModule<any>('wittyplay', (m) => m.default) // eslint-disable-line @typescript-eslint/no-explicit-any
 const CorePicker = lazy(() => import('./games/CorePicker'))
+// A game played with a standalone emulator has a player of its own: /game/{id}?emulator=.
+const EmulatorPlay = lazy(() => import('./games/EmulatorPlay'))
 
 // chooseCore, for an administrator: the game menu's way to the core picker, drawn by this page over
 // the player. It answers restart (start the game again on the new core, without resuming: a state
@@ -111,6 +113,8 @@ export function GamePage() {
   }, [it, settingsHost, user?.isAdmin])
   if (err) return <div className="wp-page-error" role="alert"><LoadError what="This game" onRetry={() => window.location.reload()} /><p className="muted">{err}</p></div>
   if (!host) return <Spinner />
+  const emulator = params.get('emulator')
+  if (emulator && it) return <Suspense fallback={<Spinner />}><EmulatorPlay it={it} emulator={emulator} onClose={host.close} /></Suspense>
   return (
     <>
       <Suspense fallback={<Spinner />}><GamePlayer host={host} /></Suspense>

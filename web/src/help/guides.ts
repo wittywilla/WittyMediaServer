@@ -97,6 +97,7 @@ export const GROUPS: GuideGroup[] = [
   { title: 'For developers', quiet: true, guides: [
     { file: 'MODULES', title: 'Making a module', about: 'Manifests, helpers and publishing.' },
     { file: 'CLIENT-API', title: 'Client API', about: 'Every route, for anyone writing an app.' },
+    { file: 'SDUI', title: 'Server-driven screens', about: 'Screens the server describes and every app draws, and how to change them.' },
     { file: 'SECURITY-ROUTES', title: 'Who may call what', about: 'Every route and the role it needs.' },
     { file: 'GAMING-API', title: 'Games API', about: 'The game routes, for apps.' },
     { file: 'GAMING-STREAM', title: 'Games: the stream', about: 'One stream for every device: why, and its wire protocol.' },

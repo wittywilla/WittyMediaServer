@@ -1,0 +1,275 @@
+{
+  "version": 1,
+  "screen": "home",
+  "theme": {
+    "id": "default"
+  },
+  "root": {
+    "type": "Screen",
+    "id": "home",
+    "props": {
+      "scroll": true,
+      "title": "Home"
+    },
+    "style": {
+      "direction": "column",
+      "gap": 32,
+      "background": "token:bg"
+    },
+    "children": [
+      {
+        "type": "Toolbar",
+        "id": "home-toolbar",
+        "children": [
+          {
+            "type": "Text",
+            "id": "home-greeting",
+            "props": {
+              "text": "Willow",
+              "variant": "pageTitle"
+            }
+          },
+          {
+            "type": "Spacer",
+            "id": "home-toolbar-gap",
+            "props": {
+              "size": 0
+            },
+            "style": {
+              "width": "auto"
+            }
+          },
+          {
+            "type": "SearchBar",
+            "id": "home-search",
+            "props": {
+              "placeholder": "Search your libraries"
+            },
+            "action": "goSearch"
+          },
+          {
+            "type": "Button",
+            "id": "home-settings-btn",
+            "props": {
+              "icon": "settings",
+              "label": "Settings",
+              "variant": "ghost"
+            },
+            "action": "goSettings"
+          }
+        ]
+      },
+      {
+        "type": "HeroBanner",
+        "id": "home-hero",
+        "props": {
+          "items": [
+            {
+              "itemId": "m1",
+              "title": "Metropolis"
+            }
+          ],
+          "title": "Featured"
+        },
+        "style": {
+          "height": "42vh",
+          "aspectRatio": "16/9"
+        }
+      },
+      {
+        "type": "PosterRow",
+        "id": "home-continue",
+        "props": {
+          "cardShape": "wide",
+          "title": "Continue watching"
+        },
+        "children": [
+          {
+            "type": "Card",
+            "id": "home-continue-card-0",
+            "props": {
+              "badges": [
+                "HD"
+              ],
+              "imageUrl": "/img/m1.jpg",
+              "itemId": "m1",
+              "kind": "movie",
+              "progress": 0.4,
+              "subtitle": "1927",
+              "title": "Metropolis"
+            },
+            "children": [
+              {
+                "type": "ProgressBar",
+                "id": "home-continue-card-0-progress",
+                "props": {
+                  "value": 0.4
+                }
+              }
+            ],
+            "action": "openItem"
+          }
+        ]
+      },
+      {
+        "type": "PosterRow",
+        "id": "home-recent",
+        "props": {
+          "items": [
+            {
+              "title": "Metropolis"
+            }
+          ],
+          "title": "Recently added"
+        },
+        "children": [
+          {
+            "type": "Card",
+            "id": "home-recent-card-0",
+            "props": {
+              "badges": [
+                "HD"
+              ],
+              "imageUrl": "/img/m1.jpg",
+              "itemId": "m1",
+              "kind": "movie",
+              "progress": 0.4,
+              "subtitle": "1927",
+              "title": "Metropolis"
+            },
+            "children": [
+              {
+                "type": "ProgressBar",
+                "id": "home-recent-card-0-progress",
+                "props": {
+                  "value": 0.4
+                }
+              }
+            ],
+            "action": "openItem"
+          },
+          {
+            "type": "Card",
+            "id": "home-recent-card-1",
+            "props": {
+              "itemId": "g1",
+              "kind": "game",
+              "module": "wittyplay",
+              "title": "Dragon Blaster"
+            },
+            "style": {
+              "module": "wittyplay",
+              "tokens": {
+                "accent": "#3ad29f"
+              }
+            },
+            "action": "openItem"
+          }
+        ]
+      },
+      {
+        "type": "PosterRow",
+        "id": "home-recommended",
+        "props": {
+          "title": "Recommended for you"
+        }
+      },
+      {
+        "type": "Shelf",
+        "id": "home-games",
+        "props": {
+          "items": [
+            {
+              "title": "Dragon Blaster"
+            }
+          ],
+          "title": "Jump back into a game"
+        },
+        "style": {
+          "module": "wittyplay",
+          "tokens": {
+            "accent": "#3ad29f"
+          }
+        }
+      },
+      {
+        "type": "Shelf",
+        "id": "home-livetv",
+        "props": {
+          "title": "On now"
+        },
+        "style": {
+          "module": "wittytv"
+        }
+      },
+      {
+        "type": "Shelf",
+        "id": "home-retro",
+        "props": {
+          "title": "Retro picks"
+        },
+        "style": {
+          "module": "wittyplay",
+          "tokens": {
+            "accent": "#3ad29f"
+          }
+        },
+        "children": [
+          {
+            "type": "Card",
+            "id": "home-retro-card-0",
+            "props": {
+              "itemId": "g1",
+              "kind": "game",
+              "module": "wittyplay",
+              "title": "Dragon Blaster"
+            },
+            "style": {
+              "module": "wittyplay",
+              "tokens": {
+                "accent": "#3ad29f"
+              }
+            },
+            "action": "openItem"
+          }
+        ]
+      }
+    ]
+  },
+  "actions": {
+    "back": {
+      "type": "back"
+    },
+    "goHome": {
+      "type": "navigate",
+      "target": "/"
+    },
+    "goLibrary": {
+      "type": "navigate",
+      "target": "/library"
+    },
+    "goSearch": {
+      "type": "navigate",
+      "target": "/search"
+    },
+    "goSettings": {
+      "type": "navigate",
+      "target": "/settings"
+    },
+    "openItem": {
+      "type": "navigate",
+      "target": "/item"
+    },
+    "playItem": {
+      "type": "play",
+      "target": "$itemId"
+    }
+  },
+  "meta": {
+    "title": "Home",
+    "generatedAt": "2026-01-01T00:00:00Z",
+    "etag": "W/\"sha256-56890ba97c1af9b4a6922bc726b71a88\"",
+    "source": "template:home",
+    "ttlSeconds": 60
+  }
+}

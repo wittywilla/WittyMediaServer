@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package modules
 
 import (
@@ -39,7 +42,7 @@ func TestProfileQuotesAFoldersName(t *testing.T) {
 // What each thing a helper may be allowed does to its profile.
 func TestProfileGivesOnlyWhatsAsked(t *testing.T) {
 	bare := helperProfile(0, "/prog", nil)
-	for _, want := range []string{`(deny network*)`, `(deny process-exec*)`, `(allow process-exec (literal "/prog"))`, `(deny process-fork)`, `(deny file-write*)`, `(deny signal (target others))`} {
+	for _, want := range []string{`(deny network*)`, `(deny process-exec*)`, `(allow process-exec (literal "/prog"))`, `(deny process-fork)`, `(deny file-write*)`, `(deny signal)(allow signal (target same-sandbox))`} {
 		if !strings.Contains(bare, want) {
 			t.Errorf("a bare helper's profile has no %s: %s", want, bare)
 		}

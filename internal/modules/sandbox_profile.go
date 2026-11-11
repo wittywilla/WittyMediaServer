@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package modules
 
 import (
@@ -23,7 +26,9 @@ func helperProfile(mode int, program string, writable []string) string {
 		// Only what it was started as, which sandbox-exec is about to do once it's in the sandbox.
 		b.WriteString(`(deny process-exec*)(allow process-exec (literal ` + sbplString(program) + `))(deny process-fork)`)
 	}
-	b.WriteString(`(deny signal (target others))`)
+	// Signals only within its own sandbox: itself and what it starts. (target others) reads as the
+	// same, and on a Mac it let a helper signal any program of the same account (#139).
+	b.WriteString(`(deny signal)(allow signal (target same-sandbox))`)
 	b.WriteString(`(deny file-write*)(allow file-write-data (literal "/dev/null") (literal "/dev/stdout") (literal "/dev/stderr"))`)
 	for _, d := range writable {
 		if strings.HasPrefix(d, "/") { // a Mac's, wherever this is tested

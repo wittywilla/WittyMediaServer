@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package modules
 
 import (
@@ -93,5 +96,5 @@ func confinement(launcher string) SandboxInfo {
 		return unconfined()
 	}
 	return SandboxInfo{Level: SandboxLimited, Title: "Modules run in Apple's sandbox here",
-		Words: "A module's helper can't change files outside its own folder, can't reach the network or start other programs unless it needs to. It can still read anything this server's account can read, and signal this server's other programs. WittyPlay's helper runs outside it, since a Mac can't start one sandbox inside another, and each game it runs gets a stricter sandbox of its own. Modules from other publishers are refused on a Mac for now."}
+		Words: "A module's helper can't change files outside its own folder, can't reach the network or start other programs unless it needs to, and can't signal programs outside its own sandbox. It can still read anything this server's account can read. WittyPlay's helper runs outside it, since a Mac can't start one sandbox inside another, and each game it runs gets a stricter sandbox of its own. Modules from other publishers are refused on a Mac for now."}
 }

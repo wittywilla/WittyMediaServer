@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package server
 
 import (
@@ -312,7 +315,8 @@ func (s *Server) spa() http.Handler {
 		}
 		b, err := fs.ReadFile(s.Web, "index.html")
 		if err != nil {
-			http.Error(w, "web UI not built", 500)
+			// A build without the client (web/dist holds only .gitkeep) still runs.
+			http.Error(w, "Web UI not built — run npm run build in web/", 500)
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")

@@ -41574,6 +41574,436 @@
           }
         }
       }
+    },
+    "/p2p": {
+      "get": {
+        "operationId": "getP2p",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "device",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "serverId": {
+                      "type": "string"
+                    },
+                    "serverName": {
+                      "type": "string"
+                    },
+                    "addrs": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "devicesOnly": {
+                      "type": "boolean"
+                    },
+                    "enrolled": {
+                      "type": "boolean"
+                    },
+                    "layers": {
+                      "type": "object"
+                    },
+                    "staticRelays": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether peer-to-peer connections are on, and what an app needs for them: `serverId` (what to dial), `addrs` (where the server was last reachable, to keep as hints), `devicesOnly`, `layers`. `?device=<id>` adds `enrolled`. See P2P.md.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/p2p/devices": {
+      "get": {
+        "operationId": "getP2pDevices",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The devices that may connect peer to peer: yours, or everyone's with `?all=1` for an admin. Each has `id`, `name`, `platform`, `lastSeen`, and `connected` with its `path` (direct or relayed).",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postP2pDevices",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put this device's key on the list, under your account: `{id, name, platform}`. An app does this once, while it reaches the server some other way.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "platform": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/p2p/devices/{id}": {
+      "delete": {
+        "operationId": "deleteP2pDevicesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a device off the list. Its open connections close at once.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/p2p/invite": {
+      "post": {
+        "operationId": "postP2pInvite",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "link": {
+                      "type": "string"
+                    },
+                    "expiresInSec": {
+                      "type": "integer"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only. Works once, for 15 minutes.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/p2p/settings": {
+      "get": {
+        "operationId": "getP2pSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The owner's choices, how every layer is doing in plain words (`steps`), who is contacted (`thirdParties`) and every device.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putP2pSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change them. Turning the feature on needs `accept: true`.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/p2p/status": {
+      "get": {
+        "operationId": "getP2pStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Only how every layer is doing, for a page that stays open.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/p2p/test": {
+      "post": {
+        "operationId": "postP2pTest",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Connect to this server as an app away from home would, from a second node, and say how far it got.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/p2p/rotate": {
+      "post": {
+        "operationId": "postP2pRotate",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Give the server a new connection key and ID: `{password, code}`. Every device must learn the new ID.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        }
+      }
     }
   },
   "security": [

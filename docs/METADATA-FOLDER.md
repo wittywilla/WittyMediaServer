@@ -60,6 +60,7 @@ metadata/
 | `show.json` | The show itself |
 | `S01E01 Pilot [item-311].json` | One episode |
 | `...-poster.jpg`, `poster.jpg` | Only if you put one there. See [A wrong poster](#a-wrong-poster) |
+| `...-canvas.mp4`, `...-canvas.webm` | Only if you put one there: a short looping video played behind the title. See [Canvas](MUSIC.md#canvas-a-looping-video-behind-the-song) |
 
 The number in square brackets is how the server knows which title a file is for. Everything else in the name is only there to help you find it, so you can rename a file as long as the brackets stay. A file stays where it is if you rename the title, so its name may be out of date. That does no harm.
 

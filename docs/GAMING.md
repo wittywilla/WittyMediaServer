@@ -70,6 +70,10 @@ No console needs the fork. The server would use it if it found a program named `
 
 Cores are the same files RetroArch uses, and a RetroArch install's cores are found.
 
+### Standalone emulators in Docker (optional)
+
+WittyPlay can also run a standalone emulator (PCSX2, Cemu, xemu, Flycast and others) in a hardened container, one per game, instead of a core in the runner. It streams into the same WebRTC session, or through KasmVNC behind an authenticated proxy for emulators that need a desktop. It's off by default (`docker.enabled`), libretro cores always stay in the process sandbox, and a server without Docker carries on as before. The design, security model, setup and limits are in WittyPlay's [docs/DOCKER-BACKEND.md](https://github.com/wittywilla/WittyPlay/blob/master/docs/DOCKER-BACKEND.md). The server reaches its routes under `/api/modules/wittyplay/docker/...` and `/api/modules/wittyplay/kasm/...`. Only administrators can change its settings or install emulators, and only the player can open a game's desktop. See [MODULES.md](MODULES.md#who-is-asking).
+
 ### Why no cgo
 
 A cgo frontend would need a C toolchain for every platform in the release matrix. We use [purego](https://github.com/ebitengine/purego) (Apache-2.0) to open the core and to receive its callbacks. It's linked **only** into `wittyplay-game-runner`, because on Linux it changes how the runtime starts threads and makes the binary depend on the system's libc.

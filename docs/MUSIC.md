@@ -143,6 +143,21 @@ Press the artwork or title in the bar, or **Full screen**. **F** then fills the 
 
 Up, Down or OK moves onto the controls, and arrows then move between them, so a remote or a controller reaches everything.
 
+### Canvas: a looping video behind the song
+
+A song or an album can have a *canvas*: a short, silent video that loops behind the full-screen player. Put it beside the music:
+
+| File | Plays behind |
+|---|---|
+| `01 Song.canvas.mp4` or `.webm` | That song |
+| `.canvas/01 Song.mp4` | That song, kept in a hidden folder |
+| `canvas.mp4` or `canvas.webm` in the album's folder | Every song in the album without its own |
+| `.canvas/canvas.mp4` | The same, in a hidden folder |
+
+You can also put one in the [metadata folder](METADATA-FOLDER.md), named like the title's file with `-canvas.mp4` on the end, such as `My Film (2001) [item-123]-canvas.mp4`. Films, episodes and discs can have one the same way, and a `canvas.mp4` in a show's folder covers its episodes.
+
+Keep it short (3 to 8 seconds is usual), silent, and small: an upload can be up to 30 MB. MP4 (H.264) plays everywhere; WebM plays in browsers and Android. An administrator can upload one for any song or title, which is kept in the server's own folder and wins over one beside the media. Apps ask `GET /api/v1/media/{id}/canvas`. See [the client API](CLIENT-API.md#media-extras).
+
 ## Lyrics
 
 Lyrics follow the music in the full-screen player, and karaoke is one press from there. How they're found, what goes online and when, and how to add or fix them is in [Lyrics and karaoke](LYRICS-KARAOKE.md).

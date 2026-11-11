@@ -39,6 +39,36 @@ chooses to trust, such as a reverse proxy listed as trusted, a fork of a module,
   option, or shown to people who don't need it.
 - **Secrets stay out of logs, addresses and error messages.** Support bundles are redacted again on the way out.
 
+## Signing a device in with a PIN
+
+Secure pairing (`/api/auth/pair`, [CLIENT-API.md](CLIENT-API.md#with-a-qr-code-and-a-pin-secure-pairing)) signs a
+TV in when someone approves it from a phone and types the PIN the TV shows. What it's built against:
+
+- **Shoulder-surfing and photos.** The PIN is an RFC 6238 TOTP (HMAC-SHA1, 6 digits, 30-second steps) from a
+  160-bit random secret made for that session. The secret stays in the server's memory and isn't in any answer, log
+  or backup. A PIN someone saw is good for at most its own step and the next (90 seconds at the very most), and
+  only once: when a PIN is accepted, its step and every earlier one are spent. The 8-letter code the session also
+  carries isn't enough to approve it by any route.
+- **Guessing.** One guess has 3 PINs in the window (±1 step), so a chance of 3 in 10^6. Five wrong
+  PINs end the session, so one session falls to guessing with a chance of at most 5 × 3 / 10^6 = 1.5 × 10^-5.
+  Each guess needs a signed-in adult account, and wrong ones count against that account and address the way
+  wrong codes and passwords do, with waits that grow. Starting sessions is limited per address, and per IPv6 /64, as for
+  codes: 4 open at once, 12 in 10 minutes, 256 on the server, with a share kept for the home network. A
+  session lasts 5 minutes either way.
+- **A changed QR code.** The QR code names the server's ID, its address and the session, with an HMAC-SHA256
+  check (96 bits) under a key held only in memory. An app sends the check back, and a code that was altered is refused,
+  which counts as a wrong PIN. The app should also compare `s` with the server ID it pinned before
+  signing in. The check proves only that this server made the code. Nobody should approve a request
+  they didn't start, which the page says.
+- **Collecting the sign-in.** As with codes, only the device holding the 256-bit `deviceSecret` can poll or
+  read the PIN. The secret is sent in a header rather than in the address, and is stored only as a hash. The token is handed
+  out once, and only while the approver's own session still stands.
+- **Timing.** PINs and QR checks are compared in constant time, and every PIN in the window is computed and
+  compared whichever one matches.
+
+What it doesn't defend against: someone who has the approver's signed-in phone, or who can see the TV
+*and* is signed in as an adult on this server at that moment.
+
 ## What a helper is held to
 
 A module's helper is someone's code handling a hostile file. How much the system can do about that differs, so here it is, and

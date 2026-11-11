@@ -113,6 +113,38 @@ The player calls chapters **scenes**. They show as small marks on the timeline, 
 
 The server works out where the intro is from the file's chapters. If it can't, an administrator can set it by hand: open the title's **Edit**, go to **Skip intro**, and type where it ends or choose **Pick in player**. Setting it on a show covers every episode with no intro of its own. See [Metadata](METADATA.md). Discs have their own menus, so they don't offer this.
 
+### Recaps, credits and adverts
+
+The server also finds a **recap** of earlier episodes, the **credits**, and advert breaks left in a recording, so apps can offer to skip them too.
+
+It reads them from, most trusted first:
+
+1. What an administrator set by hand. No scan ever changes this.
+2. A `.skip.json` beside the file (`Film.skip.json` or `Film.mkv.skip.json`).
+3. An `.edl` beside the file (`Film.edl` or `Film.mkv.edl`).
+4. The file's chapter names, in English, German, French, Spanish and romanized Japanese: *Intro*, *Opening*, *OP*, *Vorspann*; *Previously on*, *Recap*, *Was bisher geschah*, *Précédemment*, *Anteriormente*, *Arasuji*; *Credits*, *End Credits*, *Outro*, *Ending*, *ED*, *Abspann*, *Générique de fin*, *Créditos*.
+5. The intro set for the whole show.
+
+Each kind is taken from the most trusted source that has it, so an EDL's advert breaks can sit beside a chapter's credits.
+
+**An EDL** is the MPlayer-style edit list many recording tools write: one range a line, as start, end and type, in seconds or as `hh:mm:ss.ms`. Type `3` (an advert) and `0` (a cut) are advert breaks; `1` and `2` are ignored. A word after the type names the range instead:
+
+```
+0       45.5    3   recap
+62      151.5   3   intro
+600     780     3
+1290    1380    3   credits
+```
+
+**A `.skip.json`** says the same in JSON. A credits range without an `end` runs to the end of the file:
+
+```json
+{"intro": {"start": 62, "end": 151.5}, "recap": {"start": 0, "end": 45.5},
+ "credits": {"start": 1290}, "commercials": [{"start": 600, "end": 780}]}
+```
+
+A range that doesn't make sense (one that ends before it starts, or a file that can't be read) is ignored. Apps read them all from `GET /api/v1/media/{id}/markers`, and the player gets them with the intro when something starts. An administrator sets them with `PUT` on the same address, and `{"reset": true}` goes back to what the files say. See [the client API](CLIENT-API.md#media-extras).
+
 ## What's next
 
 In the last 30 seconds, a card offers what to watch next. At the end of an episode it counts down from 8 seconds, then plays the next episode. **Dismiss** stops it. After a film or the last episode, it suggests something else instead, and doesn't start by itself.

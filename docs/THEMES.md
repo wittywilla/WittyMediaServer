@@ -387,6 +387,31 @@ The built-in stylesheet switches to the mobile layout at `max-width: 900px` (the
 
 Theme files need no sign-in: `GET /api/themes`, `GET /api/themes/<id>/theme.css`, `GET /api/themes/<id>/<file>`, `GET /api/themes/<id>/tokens.json` and `GET /api/themes/<id>/download`. Making a theme on the server is `POST /api/themes/custom` (administrators), which accepts only plain `#rrggbb` colours. See [Client API](CLIENT-API.md#themes-and-design-data).
 
+### The theme engine
+
+On top of the themes, the server keeps colour overrides and resolves, for each account, the one set of colours it sees. `GET /api/theme` (any signed-in account; also `/api/v1/theme`) answers with it, in three layers, later winning:
+
+1. **The server's theme**, the same `theme` setting `/api/themes` reports as `default`, with the administrator's **global overrides**.
+2. **The account's own choice**: `theme` in `/api/me/ui`, when it names a theme that's installed. It replaces the server's theme and, with it, the global overrides, which were chosen for that theme.
+3. **Module overrides**: colours for the parts of the interface that belong to one module, such as `wittyplay`'s shelves, layered over either. They are under `modules` in the answer, and server-driven screens get them too: a node with `style.module` set receives them in `style.tokens` (see [SDUI](SDUI.md#theme-and-module-override-semantics)).
+
+The answer is `{id, source, tokens, overrides, modules: {<module>: {tokens, overrides}}, warnings, etag, revision}`, with an `ETag` header; send it back as `If-None-Match` for a 304.
+
+Administrators change the overrides with:
+
+| Route | What it does |
+|---|---|
+| `PUT /api/theme/global` | `{"id": "midnight", "tokens": {"accent": "#ff8800"}}`: the server's theme and global overrides. Either may be left out; `"tokens": {}` removes the overrides. |
+| `GET /api/theme/modules/{module}` | A module's overrides. |
+| `PUT /api/theme/modules/{module}` | `{"tokens": {"accent": "#3ad29f"}}`: replaces them. |
+| `DELETE /api/theme/modules/{module}` | Removes them. |
+
+**Token names** are the colour names in `theme.json` `colors`: `bg`, `bg2`, `bg3`, `bg4`, `fg`, `fg2`, `fg3`, `accent`, `accentHover`, `accentFg`, `accentText`, `brandAccent`, `danger`, `ok`, `warn`, `border`, `borderStrong`, `controlLine`, `hover`, `pressed`, `accentSoft`, `accentLine`, `okSoft`, `warnSoft`, `dangerSoft`, `focus`, `onImage`, `scrim` and `overlay`. **Colours** are `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb()` or `rgba()`, and come back as `#RRGGBB` or `#RRGGBBAA`. Anything else, or an unknown name, is refused with 400, so nothing but a colour reaches a stylesheet.
+
+**Readability.** Every answer lists in `warnings` the text colours an override leaves below WCAG AA (4.5:1), with the same pairs and formula as `scripts/theme-contrast.py`: `fg`, `fg2`, `fg3`, `accentText`, `danger`, `ok` and `warn` on `bg`, `bg2` and `bg3`, and `accentFg` on `accent`. Only pairs the override touches are reported, and translucent colours are skipped. A warning doesn't stop the change; it's there for the settings page to show.
+
+The overrides live in the `theme` section of `ui_config.json` in the data folder, with the server-driven screens, so they have its revisions, `If-Match` (412 when someone changed them in between) and rollback: see [SDUI](SDUI.md#ui_configjson). `/api/themes` and `/api/themes/<id>/tokens.json` are unchanged, and still give a theme's own colours.
+
 ---
 
 <sub>WittyMediaServer documentation</sub>

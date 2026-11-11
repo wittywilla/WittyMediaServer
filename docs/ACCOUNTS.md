@@ -166,6 +166,8 @@ A TV or an app can be signed in without typing a password on it. An adult or adm
 
 **Approve a code only if you started it.** Approving signs that device in as the person you chose. If someone sends you a code and asks you to approve it, say no.
 
+**Your TV shows a QR code and a PIN that changes:** this is secure pairing, for apps that support it. Scan the QR code with your phone, or open the address under it, and type the 6-digit PIN the TV shows *now*. The PIN changes every 30 seconds and works once, so someone who saw it over your shoulder, or in a photo, can't use it later. Five wrong PINs end the request, and it lasts 5 minutes; after either, start again on the TV.
+
 The page also shows this server's fingerprint. If the app shows one, the two should match. [Apps and devices](APPS.md#signing-in) has what each app shows. The native apps don't yet ask for a two-factor code with a password, so an account with two-factor sign-in uses a code there.
 
 ## If you forget your password

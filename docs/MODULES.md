@@ -203,6 +203,25 @@ It starts the same way and says hello. The server then calls `service`, and it a
 
 It's held to the same limits as a helper, except where its manifest asks for what the server's list allows.
 
+### Who is asking
+
+When the server passes a person's request through to a service, it says who they are in two headers, and the service may trust them because only the server holds the token:
+
+| Header | Value |
+| --- | --- |
+| `X-Witty-User` | The signed-in account's id |
+| `X-Witty-Admin` | `1` for an administrator, and absent otherwise |
+
+The server always removes every `X-Witty-` header a browser sent (including `X-Witty-Service-Token`) before it sets its own, along with its own sign-in: the `Authorization` header and its sign-in cookie. A request with no `X-Witty-User` didn't come from a signed-in person, and a service should refuse it. The server's own calls to a service (`/call/...`) carry no identity.
+
+WittyPlay's Docker backend is reached this way, under `/api/modules/wittyplay`:
+
+- `/docker/status`, `/docker/settings`, `/docker/emulators`, `/docker/installed` and `/docker/emulators/{id}[/install]` are for administrators. The server checks that itself before passing them on, and WittyPlay checks `X-Witty-Admin` as well.
+- `/docker/sessions/{sid}/connect` and `DELETE /docker/sessions/{sid}` are for anyone signed in. WittyPlay decides whose session it is.
+- `/kasm/{sid}/...` is the KasmVNC desktop, its WebSocket included, for anyone signed in. A WebSocket from another site is refused. WittyPlay also wants the session's ticket. Cookies it sets are moved under `/api/modules/wittyplay/kasm/`.
+
+See [SECURITY-ROUTES.md](SECURITY-ROUTES.md) for the full list.
+
 For WittyPlay and WittyCouch, `kit/facade` in WittyModule writes the stubs on both sides from `facade.json`: see [Developing a server and a module together](#developing-a-server-and-a-module-together).
 
 ## Writing a web part

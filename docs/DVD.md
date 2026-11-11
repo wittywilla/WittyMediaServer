@@ -49,6 +49,8 @@ Below those, **Feature Presentation** has **Play feature** and its **Scenes**, a
 
 **Play movie** also works on discs that guard their feature, as many refuse a direct jump unless their own Play button was used. WittyDVD enters the film anyway, and picks the sound and subtitles from your preferred languages.
 
+To find the film, **Play movie** ranks every title rather than taking the longest. Titles that repeat or shuffle another's scenes, point at video that isn't there, or are made of tiny fragments count as decoys, and the title the disc itself starts gains ground. A disc of several episodes of similar length plays them in order. CSS-scrambled discs are still refused: the ranking reads only what is never encrypted. [DVD quirks](DVD-QUIRKS.md#finding-the-film-among-decoys) has the details, and the diagnose report shows why each title scored as it did.
+
 ## Disc settings
 
 The **Disc settings** button on a DVD's page, for administrators, has:

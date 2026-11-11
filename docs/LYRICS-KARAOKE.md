@@ -89,6 +89,25 @@ It needs timed lyrics. Without times it shows the words and says so. Use a timed
 
 Voice and key go back to normal when you leave karaoke, and don't carry over to the next time. Both need the sound to be routed through the browser's audio engine, so they don't work with a server on a different address from the page, and on iPhones and iPads they stop when the screen locks. This hasn't been run on a real iPhone or iPad yet.
 
+### Stems: the real vocal track
+
+Removing the middle of the mix is a guess. The real thing is a song split into its parts, or *stems*: the voice alone, and the music without it. The server doesn't split songs itself, because doing it well takes a large model and a lot of time. It plays stems you already have, made by a tool such as [Demucs](https://github.com/facebookresearch/demucs) or Spleeter, or bought as a Native Instruments `.stem.mp4`.
+
+Put them beside the song, named after it. Any of these works, for a song called `01 Song.flac`:
+
+| Where | Example |
+|---|---|
+| The song's name, a dot and the part | `01 Song.vocals.flac`, `01 Song.instrumental.m4a` |
+| A folder named after the song | `01 Song.stems/vocals.wav`, `01 Song.stems/drums.wav` |
+| A `stems` folder beside the album | `stems/01 Song/vocals.wav`, or `stems/01 Song.bass.mp3` |
+| A Native Instruments file, every part in one | `01 Song.stem.mp4` |
+
+The parts are `vocals`, `instrumental` (also called `accompaniment` or `no_vocals`, which is what Demucs writes with `--two-stems vocals`), `drums`, `bass` and `other`. They can be FLAC, WAV, M4A, MP3, Ogg, Opus, AAC or WebM. A link to somewhere outside your libraries is ignored.
+
+With Demucs, for example, `demucs -n htdemucs "01 Song.flac"` writes `separated/htdemucs/01 Song/vocals.wav`, `drums.wav`, `bass.wav` and `other.wav`. Move that `01 Song` folder beside the song and rename it `01 Song.stems`.
+
+An administrator can also upload a part for a song, which is kept in the server's own folder and never beside your music. Apps see what a song has in `GET /api/v1/media/{id}/stems`, and the player gets the list when a song starts. See [the client API](CLIENT-API.md#media-extras).
+
 ### Keys
 
 | Key | What it does |

@@ -78,9 +78,21 @@ No retail BD-J disc, UHD disc or real MVC disc has been available for testing ye
 
 ### Finding the feature among decoys
 
-Some discs carry hundreds of playlists built to defeat "longest wins": clips repeated many times, clips that aren't on the disc, times past a clip's end, or the real film's clips in the wrong order. WittyBluray counts each stretch of a clip once, and rejects a playlist that names what can't be read. Among those within 10% of the longest, it prefers the one the disc's program names, then the one whose clips meet in time, as a shuffled copy has the same length but its seams don't meet, then one with chapters.
+Some discs carry hundreds of playlists built to defeat "longest wins". WittyBluray scores every playlist instead, in minutes of distinct video, and adds or takes away points for what it finds. The diagnose report gives each playlist's score with the reasons for it.
 
-This uses structure only and doesn't compare pictures, so a disc whose real clips don't meet in time and whose program hides the choice can still pick wrongly. Choosing a title from the disc's own menu, or from **Bonus Features**, avoids the guess.
+- **Distinct video.** Each stretch of a clip counts once, however often a playlist repeats it, so a playlist padded with repeats gains nothing and loses points for the time it spends replaying.
+- **Shuffled and duplicate copies.** Playlists that hold the same stretches are compared by how naturally they run: whether each piece starts where the last one ended, in time or on the disc. The most natural one stands, and copies in a scrambled order count as decoys. An exact copy in the same order is the same film, so it only loses a tie.
+- **Missing clips.** A playlist that names a clip that isn't on the disc, or an empty one, or times past a clip's end, is a decoy and is never chosen ahead of one that plays.
+- **Segment spam.** A playlist made mostly of tiny pieces, under a second or a few seconds each, is a decoy.
+- **The disc's own program.** WittyBluray reads the disc's first-play and Title 1 instructions without running them, and follows where they lead. A playlist the disc plays first by itself gains points, and short playlists passed on the way are taken as intros. Playlists any title plays gain a little too.
+- **Java (BD-J) discs.** The program of a disc whose first play or Title 1 is a Java application isn't read for this, so the choice comes from the structure alone, plus a small hint when the application lists only a few playlists. The report says so.
+- **Smaller signals.** Even chapter lengths, more soundtracks and subtitles, and more data on the disc each add a little. A 3D twin gives way to its 2D playlist, as 3D plays here as 2D.
+
+TV discs are found the same way: several clean playlists of similar length become episodes, in the order a play-all playlist gives, if there is one.
+
+None of this decrypts anything. It reads only the parts of a disc that are never encrypted, and a disc protected with AACS or BD+ is still refused, whatever its playlists score.
+
+The ranking reads structure, never pictures, so a disc whose program chooses the film in ways only a running player can see may still pick wrongly. Choosing a title from the disc's own menu, or from **Bonus Features**, avoids the guess.
 
 ## Clips and time
 

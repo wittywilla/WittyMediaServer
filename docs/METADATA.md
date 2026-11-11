@@ -188,6 +188,21 @@ Titles then show **Also listed on** on their page, and a shelf and filter appear
 
 Turning it off forgets everything it fetched.
 
+### Where to watch
+
+Apps can also ask where one title can be watched: `GET /api/v1/media/{id}/where-to-watch` for a title on the server, and `GET /api/v1/discover/where-to-watch?tmdb=603&type=movie` for any title on TMDB. The answer puts what's here (in which quality, and every version) next to the services that offer it in your region, grouped as included with a subscription, free, free with adverts, to rent and to buy, each with its logo and a link to TMDB's page of offers.
+
+| | |
+|---|---|
+| **Source** | The same TMDB watch providers as the listings, credited to JustWatch on every answer (`attribution`) |
+| **Needs** | Your own free TMDB key. Without one, the answer still says whether the title is here, with no services and `reason: "no-api-key"` |
+| **Sent** | Only the TMDB id of the title asked about, and the region. Nothing about you |
+| **Region** | The listings region, or `US`. An app can ask for another with `region` |
+| **Kept** | As long as listings (two weeks). **Check now** under listings, or turning listings off, forgets them |
+| **Who sees what** | Someone who can't see a title isn't told it's on the server |
+
+Other sources can be added beside TMDB later without changing what apps get. See [the client API](CLIENT-API.md#media-extras).
+
 ## The logo service
 
 This gives you logos for studios, networks, consoles, game studios and streaming services, in every part of the app. **Nothing is bundled, and nothing is downloaded until an administrator agrees.** Until then, and for anything with no logo, the app shows the name in plain text, and that's a finished look rather than a gap.

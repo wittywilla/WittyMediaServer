@@ -92,8 +92,26 @@ File names in the tables are in the WittyDVD project, unless they start with `in
 |---|---|---|---|
 | **CSS scrambling** | Encrypted sectors, with PES scrambling control bits set | Decrypts with licensed keys | **Refused.** Scrambled packs are detected in menu scans and subtitle reads (`PackScrambled`), and the disc stops with a message. The server checks for itself, whatever a helper says. Nothing here decrypts anything |
 | **Broken IFO, intact backup** | VIDEO_TS.IFO or VTS_xx_0.IFO is unreadable, zeroed or truncated, and the .BUP copy is fine | Reads the backup | The .BUP is used when the IFO file is missing or doesn't parse (`readIFO`). Tested with a zeroed title set IFO and a truncated VMG |
-| **Junk titles and PGCs** | Damaged or decoy structures: titles that replay the feature's cells in scrambled order or many times over, cells pointing outside the VOB, unreadable sectors, PGCs that link in circles | Follows only what the menus do, so it never meets the junk | Nothing is decrypted or removed. WittyDVD follows the disc's navigation like a hardware player, and doesn't stop on what it can't play. Unplayable cells are skipped, and **Play movie** chooses the title with the most distinct video, preferring titles that play their cells in disc order over decoys of the same length. Hop and step limits on the navigator and VM (`maxHops`, `maxVMSteps`) stop circular links with a message. Tested with a synthetic decoy title and a junk-cell loop |
+| **Junk titles and PGCs** | Damaged or decoy structures: titles that replay the feature's cells in scrambled order or many times over, cells pointing outside the VOB, unreadable sectors, PGCs that link in circles | Follows only what the menus do, so it never meets the junk | Nothing is decrypted or removed. WittyDVD follows the disc's navigation like a hardware player, and doesn't stop on what it can't play. Unplayable cells are skipped, and **Play movie** chooses the film by ranking every title (see [Finding the film among decoys](#finding-the-film-among-decoys)). Hop and step limits on the navigator and VM (`maxHops`, `maxVMSteps`) stop circular links with a message. Tested with synthetic decoy titles, a shuffled-cell decoy, cell spam and a junk-cell loop |
 | **Bad sectors in images** | Zero-filled where the disc couldn't be read | Skips | A cell that doesn't start with a NAV pack plays without buttons instead of stopping. The interleave scan stops at the first sector that isn't a NAV pack and uses what it has. Subtitle reads skip what they can't parse |
+
+### Finding the film among decoys
+
+Discs that guard their film can carry dozens of titles of the same length. **Play movie** scores every title in minutes of distinct video, and adds or takes away points for what it finds. The diagnose report gives each title's score with the reasons for it.
+
+- **Distinct video.** Each cell counts once, however often a title replays it, so padding with repeats gains nothing and loses points for the time it takes.
+- **Shuffled and duplicate copies.** A title holding most of another's cells in a scrambled order is a decoy. A copy in the same order is the same film, so it only loses a tie.
+- **Broken structure.** Cells outside the video files, cells that claim more than four hours, chains of programs that loop back on themselves, and chapter lists that point nowhere all cost points, and the worst make a title a decoy.
+- **Cell spam.** A title made mostly of cells under a second long, or of empty ones, is a decoy.
+- **The disc's own program.** WittyDVD dry-runs the disc's first-play program, as a player would when the disc goes in, and a title it reaches by itself gains points. Short titles on the way are taken as intros. Titles that a menu jumps to gain a little, and the title behind the first menu's default button gains most, in the diagnose report.
+- **Damaged index files.** Each title set's index is kept twice on the disc. When the two differ, the copy with fewer problems is used, and the report says which.
+- **Smaller signals.** Even chapter lengths, more soundtracks and subtitles, and the largest title set each add a little.
+
+TV discs are found the same way: three or more clean titles of similar length become episodes, in the order a play-all title gives, if there is one.
+
+None of this decrypts anything. It reads only the parts of a DVD that are never encrypted, and a CSS-scrambled disc is still refused, whatever its titles score.
+
+The ranking reads structure, never pictures. A disc that only tells the film apart through its menu, or picks it from player settings, can still pick wrongly with **Play movie**. Choosing a title from the disc's menu, or from **Bonus Features**, avoids the guess.
 
 ## Regions and parental management
 

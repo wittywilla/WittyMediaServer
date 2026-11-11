@@ -247,7 +247,9 @@ func (s *Server) handlePairInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		UserID int64 `json:"userId"`
+		UserID   int64  `json:"userId"`
+		Password string `json:"password"`
+		OTP      string `json:"otp"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, "expected a JSON body")
@@ -256,6 +258,9 @@ func (s *Server) handlePairInvite(w http.ResponseWriter, r *http.Request) {
 	target, ok := s.pairTarget(r, me, b.UserID)
 	if !ok {
 		writeErr(w, 403, "you can't sign a device in as that profile")
+		return
+	}
+	if !s.confirmAdminGrant(w, r, target, b.Password, b.OTP) {
 		return
 	}
 	in, err := s.pair.newInvite(me.ID, target.ID, tokenFrom(r))
@@ -571,6 +576,11 @@ func (s *Server) handlePairStart(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	// An administrator can turn the code-only way off: every device then has to show a PIN.
+	if s.DB.GetSetting(r.Context(), "pairRequirePin", "0") == "1" {
+		writeJSON(w, 426, map[string]any{"error": "This server signs devices in with a PIN. Update the app, or sign in with a password.", "reason": "pin-required", "use": "/api/v1/auth/pair"})
+		return
+	}
 	p, secret, err := s.pair.start(device, platform, ipOf(r), addressKey(r), !clientFrom(r).Where.AtHome())
 	if !pairStartOK(w, err) {
 		return
@@ -707,27 +717,40 @@ func (s *Server) handlePairInfo(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	// Profiles this person can put on the device instead of their own.
-	me := userFrom(r)
+	writeJSON(w, 200, s.pairInfo(r, userFrom(r), p))
+}
+
+// pairInfo is what someone about to approve a pairing is shown: the device, and the
+// profiles they can put on it instead of their own.
+func (s *Server) pairInfo(r *http.Request, me *auth.User, p *pairing) map[string]any {
 	type choice struct {
 		ID   int64  `json:"id"`
 		Name string `json:"name"`
 		Kind string `json:"kind"`
+		// NeedsPassword: signing the device in as this profile asks for the approver's
+		// password again (an administrator's own account).
+		NeedsPassword bool `json:"needsPassword,omitempty"`
 	}
-	profiles := []choice{{me.ID, me.Name, me.Kind}}
+	profiles := []choice{{me.ID, me.Name, me.Kind, me.IsAdmin}}
 	if users, err := s.Auth.Users(r.Context()); err == nil {
 		for _, u := range users {
 			if u.ID != me.ID && !u.IsAdmin && s.canManage(r, me, u.Kind) {
-				profiles = append(profiles, choice{u.ID, u.Name, u.Kind})
+				profiles = append(profiles, choice{u.ID, u.Name, u.Kind, false})
 			}
 		}
 	}
-	writeJSON(w, 200, map[string]any{
+	out := map[string]any{
 		"code": showPairCode(p.code), "device": p.device, "platform": p.platform, "ip": p.ip,
 		"createdAt": p.created.Unix(), "expiresAt": p.expires.Unix(), "profiles": profiles,
 		// Started with /api/auth/pair: approving takes the PIN the device shows.
 		"needsPin": p.pinKey != nil,
-	})
+		// The approver has two-factor sign-in: confirming their password takes a code too.
+		"twoFactor": me.TwoFactor,
+	}
+	if p.id != "" {
+		out["sessionId"] = p.id
+	}
+	return out
 }
 
 // POST /api/pair/approve {code, userId}: signs the device in, as this account
@@ -742,6 +765,10 @@ func (s *Server) handlePairApprove(w http.ResponseWriter, r *http.Request) {
 		Code   string `json:"code"`
 		UserID int64  `json:"userId"`
 		PIN    string `json:"pin"` // for a device that started with /api/auth/pair
+		// The approver's own password (and two-factor code), when the device will be
+		// signed in as an administrator.
+		Password string `json:"password"`
+		OTP      string `json:"otp"`
 	}
 	waiting, k, ok := s.pairCodeFrom(w, r, &b, func() string { return b.Code })
 	if !ok {
@@ -750,6 +777,9 @@ func (s *Server) handlePairApprove(w http.ResponseWriter, r *http.Request) {
 	target, allowed := s.pairTarget(r, me, b.UserID)
 	if !allowed {
 		writeErr(w, 403, "you can't sign a device in as that profile")
+		return
+	}
+	if !s.confirmAdminGrant(w, r, target, b.Password, b.OTP) {
 		return
 	}
 	// A device with a PIN is never signed in by its code alone, whichever way it is approved.
@@ -780,7 +810,9 @@ func (s *Server) handlePairDeny(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	s.pair.answer(b.Code, 0, 0, "")
+	if p := s.pair.answer(b.Code, 0, 0, ""); p != nil {
+		s.Log.InfoContext(r.Context(), "pairing refused", "cat", "auth", "device", p.device, "user", userFrom(r).Name, "ip", p.ip)
+	}
 	s.logins.ok(k)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }

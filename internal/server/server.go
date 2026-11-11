@@ -337,6 +337,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/pair/approve", a(s.handlePairApprove))
 	m.Handle("POST /api/pair/deny", a(s.handlePairDeny))
 	m.Handle("POST /api/pair/invite", a(s.handlePairInvite))
+	m.Handle("GET /api/auth/pair/{session}/info", a(s.handleAuthPairInfo))
 	m.Handle("POST /api/auth/pair/{session}/approve", a(s.handleAuthPairApprove))
 	m.Handle("POST /api/auth/pair/{session}/deny", a(s.handleAuthPairDeny))
 	m.Handle("GET /api/playback/profiles", a(s.handlePlaybackProfiles))

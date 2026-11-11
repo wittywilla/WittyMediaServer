@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError, isNativeShell, profileName, setToken, type User } from '../api'
 import ConnectServer from '../components/ConnectServer'
+import { PairDevice } from '../components/PairDevice'
 import { Brand, BrandMark, VersionTag } from '../components/common'
 import { IconBack } from '../icons'
 import { useApp } from '../state'
@@ -35,6 +36,8 @@ export default function AuthPage() {
   const [chosen, setChosen] = useState<Profile | null>(null)
   const [other, setOther] = useState(false)
   const [changing, setChanging] = useState(false)
+  // Signing in by being approved from a phone: a QR code and a PIN, no password typed here.
+  const [pairing, setPairing] = useState(false)
   useEffect(() => {
     api.get<{ style: 'profiles' | 'classic'; profiles?: Profile[] }>('/profiles')
       .then((r) => { setStyle(r.profiles?.length ? r.style : 'classic'); setProfiles(r.profiles || []) })
@@ -42,6 +45,8 @@ export default function AuthPage() {
   }, [])
   if (!style) return <div className="center"><div className="spinner" /></div>
   if (changing) return <ConnectServer onCancel={() => setChanging(false)} />
+  if (pairing) return <div className="center"><PairDevice onBack={() => setPairing(false)} /></div>
+  const withPhone = <button type="button" className="btn ghost" onClick={() => setPairing(true)}>Sign in with your phone</button>
   const changeServer = isNativeShell() && <button type="button" className="btn ghost sm" onClick={() => setChanging(true)}>Change server</button>
 
   if (style === 'profiles' && !chosen && !other) {
@@ -63,6 +68,7 @@ export default function AuthPage() {
         </ul>
         {tapErr && <div className="error" role="alert">{tapErr}</div>}
         <button type="button" className="btn ghost" onClick={() => setOther(true)}>Sign in with another account</button>
+        {withPhone}
         {changeServer}
         <div className="auth-version"><VersionTag version={version} /> · <Link to="/help">Help</Link> · <Link to="/legal">Legal</Link></div>
       </div>
@@ -71,6 +77,7 @@ export default function AuthPage() {
   return (
     <div className="center">
       <PasswordForm profile={chosen} onBack={style === 'profiles' ? () => { setChosen(null); setOther(false) } : undefined} />
+      {!chosen && withPhone}
       {changeServer}
       <div className="auth-version"><VersionTag version={version} /> · <Link to="/help">Help</Link> · <Link to="/legal">Legal</Link></div>
     </div>

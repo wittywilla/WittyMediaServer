@@ -143,25 +143,20 @@ func (s *Server) signInsEnded(e auth.SessionEnd) {
 	}
 	// The streams first, so that each says why it ended rather than that its seat went.
 	s.open.stop(endedSignedOut, func(o *openStream) bool { return gone(o.session, o.user) })
-	if s.remoteCtl.hub != nil {
-		if e.Session != "" {
-			s.remoteCtl.hub.RemoveSession(e.Session)
-		} else {
-			s.remoteCtl.hub.RemoveUser(e.UserID, e.Keep)
-		}
+	// Both are made when first wanted, and are empty and cheap until something is in them.
+	if e.Session != "" {
+		s.remoteHub().RemoveSession(e.Session)
+	} else {
+		s.remoteHub().RemoveUser(e.UserID, e.Keep)
 	}
-	if s.watch.engine != nil {
-		s.watch.engine.DropSeats(func(u syncplay.User) bool { return gone(seatSession(u.Seat), u.ID) })
-	}
+	s.syncEngine().DropSeats(func(u syncplay.User) bool { return gone(seatSession(u.Seat), u.ID) })
 	s.emus.stop(s, func(g *emulatorGame) bool { return gone(g.session, g.user) })
 }
 
 // accountGone is signInsEnded for an account that no longer exists: what it was invited to
 // goes too. Its sign-ins are already announced by internal/auth.
 func (s *Server) accountGone(userID int64) {
-	if s.watch.engine != nil {
-		s.watch.engine.Uninvite(userID)
-	}
+	s.syncEngine().Uninvite(userID)
 }
 
 // limitsChanged is called when an account's limits were just saved, or it was given more
@@ -193,15 +188,13 @@ func (s *Server) limitsChanged(ctx context.Context, userID int64) {
 	if !a.Can(library.FeatureGames) {
 		s.emus.stop(s, func(g *emulatorGame) bool { return g.user == userID })
 	}
-	if e := s.watch.engine; e != nil {
-		if !a.Can(library.FeatureSyncplay) {
-			s.open.stop(endedFeatureOff, mine(openParty))
-			e.DropSeats(func(m syncplay.User) bool { return m.ID == userID })
-			e.Uninvite(userID)
-		} else {
-			e.Recheck(userID)
-			e.SetTimeUp(userID, s.timeIsUp(ctx, u, a))
-		}
+	if e := s.syncEngine(); !a.Can(library.FeatureSyncplay) {
+		s.open.stop(endedFeatureOff, mine(openParty))
+		e.DropSeats(func(m syncplay.User) bool { return m.ID == userID })
+		e.Uninvite(userID)
+	} else {
+		e.Recheck(userID)
+		e.SetTimeUp(userID, s.timeIsUp(ctx, u, a))
 	}
 	// Whoever is watching devices may now see more or less of what they play.
 	s.open.nudge(mine(openRemoteEvents))

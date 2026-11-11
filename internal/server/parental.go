@@ -222,10 +222,9 @@ func (s *Server) forgetRules() {
 	s.parental.mu.Unlock()
 	// A watch party asked what each member may see when they sat down. A collection that
 	// limits go by has just changed, or someone's limits have, so it asks again.
-	if e := s.watch.engine; e != nil {
-		for _, id := range e.Seated() {
-			e.Recheck(id)
-		}
+	e := s.syncEngine()
+	for _, id := range e.Seated() {
+		e.Recheck(id)
 	}
 }
 

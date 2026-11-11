@@ -23,6 +23,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/mediaextras"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
@@ -1228,6 +1229,8 @@ func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
 	for _, st := range FindSubtitles(it.Path) {
 		it.SubLangs = append(it.SubLangs, orUnd(st.Language))
 	}
+	// Recap and credits chapters, kept beside the item (markers.go).
+	it.markers = chapterMarkers(p)
 	// "Skip intro": an Intro/Opening chapter marks the intro exactly.
 	for _, ch := range p.Chapters {
 		if introChapter(ch.Tags["title"]) {
@@ -1244,10 +1247,10 @@ func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
 	}
 }
 
-var introRe = regexp.MustCompile(`(?i)\b(intro|opening|op|theme|title sequence|opening credits)\b`)
-
+// introChapter: a chapter whose name marks the intro, in English or another language. An
+// "Ending Theme" or "Outro" is the credits, and a "Previously on" the recap.
 func introChapter(title string) bool {
-	return introRe.MatchString(title) && !strings.Contains(strings.ToLower(title), "outro")
+	return mediaextras.ChapterKind(title) == mediaextras.KindIntro
 }
 
 func orUnd(s string) string {

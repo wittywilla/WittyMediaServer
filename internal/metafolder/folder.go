@@ -36,6 +36,13 @@ type Entry struct {
 	Kind string // json, nfo, picture
 }
 
+// IsCanvasName says a file is a title's looping video ("My Film [item-12]-canvas.mp4"),
+// which the server plays behind the title and this folder's own check leaves alone.
+func IsCanvasName(name string) bool {
+	low := strings.ToLower(name)
+	return strings.HasSuffix(low, "-canvas.mp4") || strings.HasSuffix(low, "-canvas.webm")
+}
+
 // ignoredName: what editors and systems leave around, and says nothing.
 func ignoredName(name string) bool {
 	low := strings.ToLower(name)
@@ -98,6 +105,8 @@ func Walk(root string, each func(Entry)) []Problem {
 					kind = "nfo"
 				case pictureNames[ext]:
 					kind = "picture"
+				case IsCanvasName(name):
+					continue // a looping video for the title, read by the server's media extras
 				case ext == ".svg":
 					ps = append(ps, Problem{File: childRel, Msg: "SVG pictures aren't accepted, because they can hold scripts. Use a JPEG, PNG, WebP or GIF", Severity: SevWarning})
 					continue

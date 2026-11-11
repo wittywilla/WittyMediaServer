@@ -118,6 +118,9 @@ func (s *Scanner) SetListings(ctx context.Context, on bool, region string, accep
 		if err := s.Store.DB.SetSetting(ctx, "listingsConsent", "0"); err != nil {
 			return err
 		}
+		if err := s.Store.ClearWatchCache(ctx); err != nil {
+			return err
+		}
 		if _, err := s.Store.DB.ExecContext(ctx, `DELETE FROM listings`); err != nil {
 			return err
 		}
@@ -254,8 +257,12 @@ func StopListings() {
 // gently. It does nothing if the owner hasn't turned listings on.
 func (s *Scanner) KickListings() { s.kickListings(false) }
 
-// RecheckListings checks everything again now, however lately it was checked.
-func (s *Scanner) RecheckListings() { s.kickListings(true) }
+// RecheckListings checks everything again now, however lately it was checked, and forgets
+// the kept where-to-watch answers so that they're asked for again too.
+func (s *Scanner) RecheckListings() {
+	_ = s.Store.ClearWatchCache(context.Background())
+	s.kickListings(true)
+}
 
 func (s *Scanner) kickListings(all bool) {
 	ctx := context.Background()
@@ -430,38 +437,180 @@ type listingOffer struct{ key, name, offer string }
 // watchProviders reads which services include a title with a subscription, for free or with
 // adverts. Rentals and purchases aren't "what's on" a service, so they're left out.
 func (t *TMDB) watchProviders(ctx context.Context, kind, id, region string) ([]listingOffer, error) {
+	all, err := t.WatchOffers(ctx, kind, id, region)
+	if err != nil || all == nil {
+		return nil, err
+	}
+	seen := map[string]bool{}
+	var out []listingOffer
+	for _, o := range all.Offers {
+		offer := ""
+		switch o.Type {
+		case WatchStream:
+			offer = "subscription"
+		case WatchFree, WatchAds:
+			offer = o.Type
+		default:
+			continue
+		}
+		if !seen[o.Key] && len(out) < 50 {
+			seen[o.Key] = true
+			out = append(out, listingOffer{o.Key, o.Name, offer})
+		}
+	}
+	return out, nil
+}
+
+type tmdbProvider struct {
+	ID       int    `json:"provider_id"`
+	Name     string `json:"provider_name"`
+	Logo     string `json:"logo_path"`
+	Priority int    `json:"display_priority"`
+}
+
+// Kinds of watch offer.
+const (
+	WatchStream = "stream" // with a subscription
+	WatchFree   = "free"
+	WatchAds    = "ads"
+	WatchRent   = "rent"
+	WatchBuy    = "buy"
+)
+
+// WatchOffer is one service offering a title one way.
+type WatchOffer struct {
+	ProviderID int    `json:"providerId"`
+	Key        string `json:"key"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	Logo       string `json:"logo,omitempty"` // a full address on TMDB's image host
+	Priority   int    `json:"priority"`
+}
+
+// WatchOffers is everything TMDB says about a title in one region.
+type WatchOffers struct {
+	// Link is TMDB's page for the title's offers in the region, which links on to each service.
+	Link   string       `json:"link,omitempty"`
+	Offers []WatchOffer `json:"offers"`
+}
+
+// WatchOffers reads every way a title can be watched in a region: kind is movie or tv, id
+// TMDB's. Nothing known in the region is an empty answer, not an error. The data is
+// JustWatch's, and has to be credited as such (ListingAttribution).
+func (t *TMDB) WatchOffers(ctx context.Context, kind, id, region string) (*WatchOffers, error) {
+	if kind != "movie" && kind != "tv" {
+		return nil, errors.New("kind is movie or tv")
+	}
 	var r struct {
 		Results map[string]struct {
+			Link     string         `json:"link"`
 			Flatrate []tmdbProvider `json:"flatrate"`
 			Free     []tmdbProvider `json:"free"`
 			Ads      []tmdbProvider `json:"ads"`
+			Rent     []tmdbProvider `json:"rent"`
+			Buy      []tmdbProvider `json:"buy"`
 		} `json:"results"`
 	}
 	if err := t.get(ctx, "/"+kind+"/"+url.PathEscape(id)+"/watch/providers", url.Values{}, &r); err != nil {
 		return nil, err
 	}
+	out := &WatchOffers{Offers: []WatchOffer{}}
 	res, ok := r.Results[region]
 	if !ok {
-		return nil, nil
+		return out, nil
+	}
+	if u, err := url.Parse(res.Link); err == nil && u.Scheme == "https" && (u.Host == "www.themoviedb.org" || u.Host == "themoviedb.org") {
+		out.Link = res.Link
 	}
 	seen := map[string]bool{}
-	var out []listingOffer
-	add := func(list []tmdbProvider, offer string) {
+	add := func(list []tmdbProvider, typ string) {
 		for _, p := range list {
 			name := cleanBrandName(p.Name)
 			k := BrandKey(name)
-			if k != "" && !seen[k] && len(out) < 50 {
-				seen[k] = true
-				out = append(out, listingOffer{k, name, offer})
+			if k == "" || seen[typ+"|"+k] || len(out.Offers) >= 200 {
+				continue
 			}
+			seen[typ+"|"+k] = true
+			o := WatchOffer{ProviderID: p.ID, Key: k, Name: name, Type: typ, Priority: p.Priority}
+			if strings.HasPrefix(p.Logo, "/") && !strings.Contains(p.Logo, "..") && len(p.Logo) < 200 {
+				o.Logo = tmdbImage + "w92" + p.Logo
+			}
+			out.Offers = append(out.Offers, o)
 		}
 	}
-	add(res.Flatrate, "subscription")
-	add(res.Free, "free")
-	add(res.Ads, "ads")
+	add(res.Flatrate, WatchStream)
+	add(res.Free, WatchFree)
+	add(res.Ads, WatchAds)
+	add(res.Rent, WatchRent)
+	add(res.Buy, WatchBuy)
 	return out, nil
 }
 
-type tmdbProvider struct {
-	Name string `json:"provider_name"`
+// TMDBClient is a TMDB client with the scanner's key, or nil without one.
+func (s *Scanner) TMDBClient() *TMDB {
+	if s.TMDBKey == nil || s.TMDBKey() == "" {
+		return nil
+	}
+	return &TMDB{Key: s.TMDBKey(), Base: s.TMDBBase}
+}
+
+// ListingTMDB says which TMDB title the listings matched a local title with, if any.
+func (s *Store) ListingTMDB(ctx context.Context, target string, id int64) (kind, tmdbID string) {
+	_ = s.DB.QueryRowContext(ctx, `SELECT tmdb_kind, tmdb_id FROM listing_titles WHERE target = ? AND target_id = ? AND tmdb_id != '' ORDER BY checked_at DESC LIMIT 1`, target, id).Scan(&kind, &tmdbID)
+	return
+}
+
+// ------------------------------------------------------------------ where to watch cache
+
+// WatchCacheMaxAge is how long a where-to-watch answer is kept: the same as listings.
+const WatchCacheMaxAge = listingMaxAge
+
+// WatchCacheGet reads a kept answer, and when it was fetched.
+func (s *Store) WatchCacheGet(ctx context.Context, source, kind, id, region string) (string, int64, bool) {
+	var body string
+	var at int64
+	err := s.DB.QueryRowContext(ctx, `SELECT body, fetched_at FROM watch_offers_cache WHERE source = ? AND kind = ? AND tmdb_id = ? AND region = ?`, source, kind, id, region).Scan(&body, &at)
+	return body, at, err == nil
+}
+
+// WatchCachePut keeps an answer. Old answers are dropped on the way.
+func (s *Store) WatchCachePut(ctx context.Context, source, kind, id, region, body string) error {
+	now := db.Now()
+	if _, err := s.DB.ExecContext(ctx, `DELETE FROM watch_offers_cache WHERE fetched_at < ?`, now-int64(WatchCacheMaxAge/time.Second)); err != nil {
+		return err
+	}
+	_, err := s.DB.ExecContext(ctx, `INSERT INTO watch_offers_cache(source, kind, tmdb_id, region, fetched_at, body) VALUES(?,?,?,?,?,?)
+		ON CONFLICT(source, kind, tmdb_id, region) DO UPDATE SET fetched_at = excluded.fetched_at, body = excluded.body`, source, kind, id, region, now, body)
+	return err
+}
+
+// ClearWatchCache forgets every kept answer, as checking the listings again does.
+func (s *Store) ClearWatchCache(ctx context.Context) error {
+	_, err := s.DB.ExecContext(ctx, `DELETE FROM watch_offers_cache`)
+	return err
+}
+
+// ByTMDB finds the titles here matched with a TMDB id: films (and discs) for movie, shows
+// for tv. Missing ones are left out. Who may see them is for the caller to check.
+func (s *Store) ByTMDB(ctx context.Context, kind, id string) (items []int64, shows []int64) {
+	q := `SELECT id FROM items WHERE provider = 'tmdb' AND provider_id = ? AND missing = 0 AND show_id IS NULL ORDER BY id LIMIT 20`
+	if kind == "tv" {
+		q = `SELECT id FROM shows WHERE provider = 'tmdb-tv' AND provider_id = ? AND missing = 0 ORDER BY id LIMIT 20`
+	}
+	rows, err := s.DB.QueryContext(ctx, q, id)
+	if err != nil {
+		return nil, nil
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var n int64
+		if rows.Scan(&n) == nil {
+			if kind == "tv" {
+				shows = append(shows, n)
+			} else {
+				items = append(items, n)
+			}
+		}
+	}
+	return items, shows
 }

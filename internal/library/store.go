@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/mediaextras"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
@@ -120,7 +121,8 @@ type Item struct {
 	series      string
 	director    string
 	audioFormat string
-	recIDs      *[2]string // ISRC and MusicBrainz recording, when the file was read
+	recIDs      *[2]string           // ISRC and MusicBrainz recording, when the file was read
+	markers     *mediaextras.Markers // skip markers its chapters name, when the file was read
 }
 
 // DiscInfo is the cached summary of a DVD.
@@ -801,6 +803,9 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 		}
 		it.ID, _ = res.LastInsertId()
 		it.AddedAt, it.UpdatedAt = now, now
+		if err := s.SaveScannedMarkers(ctx, it.ID, it.markers); err != nil {
+			return err
+		}
 		return s.saveScanBrands(ctx, it)
 	}
 	_, err := s.DB.ExecContext(ctx, `UPDATE items SET kind=?, title=?, sort_title=?, year=?, overview=?, tagline=?, genres=?, rating=?,
@@ -815,6 +820,9 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 		it.Artist, it.Album, it.AlbumArtist, it.Track, it.DiscNo, it.Reading, it.Console, it.CDDisc, it.ID)
 	it.UpdatedAt = now
 	if err != nil {
+		return err
+	}
+	if err := s.SaveScannedMarkers(ctx, it.ID, it.markers); err != nil {
 		return err
 	}
 	return s.saveScanBrands(ctx, it)

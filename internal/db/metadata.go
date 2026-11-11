@@ -102,6 +102,16 @@ var metadataMigrations = []string{
 	 CREATE TRIGGER IF NOT EXISTS listings_show_gone AFTER DELETE ON shows BEGIN
 	   DELETE FROM listings WHERE target = 'show' AND target_id = OLD.id;
 	   DELETE FROM listing_titles WHERE target = 'show' AND target_id = OLD.id; END;`,
+	// 10: where-to-watch answers, by TMDB id and region, kept as long as listings are, and
+	// the skip markers of each video. scanned is what the scan read from chapters and is
+	// rewritten by each scan; manual is what an administrator set, which no scan touches.
+	`CREATE TABLE IF NOT EXISTS watch_offers_cache (
+	   source TEXT NOT NULL, kind TEXT NOT NULL, tmdb_id TEXT NOT NULL, region TEXT NOT NULL,
+	   fetched_at INTEGER NOT NULL, body TEXT NOT NULL,
+	   PRIMARY KEY(source, kind, tmdb_id, region)) WITHOUT ROWID;
+	 CREATE TABLE IF NOT EXISTS media_markers (
+	   item_id INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
+	   scanned TEXT NOT NULL DEFAULT '', manual TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL DEFAULT 0);`,
 }
 
 func (d *DB) migrateMetadata(ctx context.Context) error {

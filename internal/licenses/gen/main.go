@@ -33,11 +33,30 @@ import (
 // patterns below don't catch.
 var overrides = map[string]string{
 	"github.com/klauspost/compress": "BSD-3-Clause, Apache-2.0 and MIT",
+	// Protocol Labs' "permissive license stack": either license, at the user's choice.
+	"github.com/ipfs/boxo":                  "Apache-2.0 or MIT",
+	"github.com/multiformats/go-base36":     "Apache-2.0 or MIT",
+	"github.com/multiformats/go-multicodec": "Apache-2.0 or MIT",
+	// Forks of other projects' code, which keep that code's license beside their own.
+	"github.com/libp2p/go-yamux/v5":      "MPL-2.0 and BSD-3-Clause",
+	"github.com/libp2p/go-buffer-pool":   "MIT and BSD-3-Clause",
+	"go.opentelemetry.io/otel":           "Apache-2.0 and BSD-3-Clause",
+	"go.opentelemetry.io/otel/metric":    "Apache-2.0 and BSD-3-Clause",
+	"go.opentelemetry.io/otel/trace":     "Apache-2.0 and BSD-3-Clause",
+	"github.com/hashicorp/golang-lru":    "MPL-2.0",
+	"github.com/hashicorp/golang-lru/v2": "MPL-2.0",
 }
 
 const inHouse = "github.com/wittywilla/"
 
 func main() {
+	// gen -notices <package> <file>: the same list for one program, as a text file to ship
+	// beside it. The client apps' build uses it for the peer-to-peer helper, which is built
+	// from this repository but shipped with them.
+	if len(os.Args) == 4 && os.Args[1] == "-notices" {
+		writeNotices(os.Args[2], os.Args[3])
+		return
+	}
 	out := licenses.File{}
 	text := map[string]int{}
 	add := func(group, name, url, license, body string) {
@@ -53,10 +72,14 @@ func main() {
 	goroot, err := output("", "go", "env", "GOROOT")
 	check(err)
 	std, err := os.ReadFile(filepath.Join(strings.TrimSpace(goroot), "LICENSE"))
+	if err != nil {
+		// Some packagings of Go (Homebrew's) keep the license one folder up.
+		std, err = os.ReadFile(filepath.Join(strings.TrimSpace(goroot), "..", "LICENSE"))
+	}
 	check(err)
 	add(licenses.GroupServer, "The Go runtime and standard library", "https://go.dev", "BSD-3-Clause", string(std))
 
-	mods := goModules()
+	mods := goModules("./cmd/wittymediaserver", "./cmd/wittymediaserver-tray", "./cmd/wittymediaserver-uninstall")
 	var paths []string
 	for p := range mods {
 		paths = append(paths, p)
@@ -83,10 +106,13 @@ func main() {
 
 // goModules finds every module compiled into a program a release ships, on any
 // platform, since some are only used on one.
-func goModules() map[string]string {
-	targets := []string{"./cmd/wittymediaserver", "./cmd/wittymediaserver-tray", "./cmd/wittymediaserver-uninstall"}
+func goModules(targets ...string) map[string]string {
+	return goModulesFor([]string{"linux", "windows", "darwin", "freebsd"}, targets...)
+}
+
+func goModulesFor(systems []string, targets ...string) map[string]string {
 	mods := map[string]string{}
-	for _, goos := range []string{"linux", "windows", "darwin", "freebsd"} {
+	for _, goos := range systems {
 		args := append([]string{"list", "-e", "-deps", "-f", `{{with .Module}}{{if not .Main}}{{.Path}}|{{.Dir}}{{end}}{{end}}`}, targets...)
 		cmd := exec.Command("go", args...)
 		cmd.Env = append(os.Environ(), "GOOS="+goos, "CGO_ENABLED=0")
@@ -102,6 +128,44 @@ func goModules() map[string]string {
 		}
 	}
 	return mods
+}
+
+// writeNotices lists every module in one program, with each license's text once.
+func writeNotices(target, file string) {
+	// The helper also goes into the phone and TV apps.
+	mods := goModulesFor([]string{"linux", "windows", "darwin", "freebsd", "android", "ios"}, target)
+	var paths []string
+	for p := range mods {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+	goroot, err := output("", "go", "env", "GOROOT")
+	check(err)
+	std, err := os.ReadFile(filepath.Join(strings.TrimSpace(goroot), "LICENSE"))
+	if err != nil {
+		std, err = os.ReadFile(filepath.Join(strings.TrimSpace(goroot), "..", "LICENSE"))
+	}
+	check(err)
+	var b strings.Builder
+	fmt.Fprintf(&b, "Third-party notices for %s\n", filepath.Base(target))
+	b.WriteString("\nThis program is part of WittyMediaServer (https://github.com/wittywilla/WittyMediaServer), which is\n" +
+		"licensed under the GNU Affero General Public License v3.0 or later. Its source is in that repository.\n" +
+		"It is built with the libraries below. Each is listed with its license, and the full text of every\n" +
+		"license and notice follows the list.\n\n")
+	type entry struct{ name, license, body string }
+	entries := []entry{{"The Go runtime and standard library (https://go.dev)", "BSD-3-Clause", strings.TrimSpace(string(std))}}
+	for _, p := range paths {
+		body := readLicenses(mods[p])
+		entries = append(entries, entry{p, name(p, body, ""), body})
+	}
+	for _, e := range entries {
+		fmt.Fprintf(&b, "  %-58s %s\n", e.name, e.license)
+	}
+	for _, e := range entries {
+		fmt.Fprintf(&b, "\n\n================================================================================\n%s\n%s\n================================================================================\n\n%s\n", e.name, e.license, e.body)
+	}
+	check(os.WriteFile(file, []byte(b.String()), 0o644))
+	fmt.Printf("%d libraries in %s\n", len(entries), file)
 }
 
 var versionSuffix = regexp.MustCompile(`/v[0-9]+$`)

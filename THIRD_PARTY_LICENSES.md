@@ -32,7 +32,7 @@ text. That list is made from what's really compiled in (`internal/licenses`), an
 | golang.org/x/crypto (password hashing; the Let's Encrypt client, used only if you choose it), golang.org/x/net, golang.org/x/image (reading WebP pictures, and resizing) | BSD-3-Clause |
 | golang.org/x/crypto (password hashing; the Let's Encrypt client, used only if you choose it), golang.org/x/net | BSD-3-Clause |
 | golang.org/x/image (decoding WebP images people upload for around a game's picture) | BSD-3-Clause |
-| github.com/pion/webrtc and its family (ice, dtls, srtp, sctp, rtp, rtcp, interceptor and others) | MIT |
+| github.com/pion/webrtc and its family (ice, dtls, srtp, sctp, rtp, rtcp, stun, turn, interceptor and others). Compiled in because go-libp2p names its WebRTC transport, which this server doesn't turn on | MIT |
 | github.com/coder/websocket | ISC |
 | github.com/bodgit/sevenzip, github.com/bodgit/plumbing, github.com/bodgit/windows (reading .7z game archives) | BSD-3-Clause |
 | github.com/nwaples/rardecode (reading .rar game archives) | BSD-2-Clause |
@@ -41,8 +41,42 @@ text. That list is made from what's really compiled in (`internal/licenses`), an
 | github.com/spf13/afero, go4.org/readerutil (used by github.com/bodgit/sevenzip) | Apache-2.0 |
 | github.com/hashicorp/golang-lru (used by github.com/bodgit/sevenzip) | MPL-2.0. Unmodified; its source is at <https://github.com/hashicorp/golang-lru> |
 | github.com/google/uuid, github.com/dustin/go-humanize, github.com/mattn/go-isatty, github.com/ncruces/go-strftime, github.com/remyoudompheng/bigfft, golang.org/x/sys, golang.org/x/exp, golang.org/x/text (reading the text encodings of books and subtitles) | BSD / MIT |
+| **github.com/libp2p/go-libp2p**, go-libp2p-kad-dht, go-libp2p-kbucket, go-libp2p-record, go-libp2p-routing-helpers, go-libp2p-asn-util, go-msgio, go-cidranger, go-flow-metrics (peer-to-peer connections: the node itself, hole punching, relays, the public address book) | MIT. Copyright (c) 2014 Juan Batiz-Benet and the libp2p contributors |
+| github.com/libp2p/go-yamux (several streams over one connection) | MPL-2.0 and BSD-3-Clause. Unmodified; its source is at <https://github.com/libp2p/go-yamux> |
+| github.com/libp2p/go-buffer-pool | MIT and BSD-3-Clause |
+| github.com/libp2p/go-netroute, github.com/google/gopacket (finding which network card leads where) | BSD-3-Clause |
+| github.com/libp2p/go-reuseport | ISC |
+| github.com/quic-go/quic-go, qpack, webtransport-go (QUIC, the transport peer-to-peer connections prefer) | MIT |
+| github.com/flynn/noise (the Noise handshake, for peer-to-peer connections over TCP) | BSD-3-Clause |
+| github.com/multiformats/go-multiaddr, go-multiaddr-dns, go-multiaddr-fmt, go-multibase, go-multihash, go-multistream, go-varint, github.com/mr-tron/base58, github.com/ipfs/go-cid, go-datastore, go-log, github.com/ipld/go-ipld-prime, github.com/polydawn/refmt, github.com/jbenet/go-temp-err-catcher, github.com/whyrusleeping/go-keyspace, github.com/libp2p/go-libp2p's other small parts (addresses, names and records as the IPFS network writes them) | MIT |
+| github.com/ipfs/boxo, github.com/multiformats/go-multicodec, github.com/multiformats/go-base36 | Apache-2.0 or MIT, at your choice |
+| github.com/multiformats/go-base32, github.com/spaolacci/murmur3, github.com/pbnjay/memory, github.com/munnerz/goautoneg, github.com/dunglas/httpsfv, filippo.io/bigmod, gonum.org/v1/gonum, google.golang.org/protobuf, golang.org/x/sync, golang.org/x/time | BSD-3-Clause |
+| github.com/gorilla/websocket, github.com/huin/goupnp, github.com/marten-seemann/tcp, github.com/mikioh/tcpinfo, github.com/mikioh/tcpopt | BSD-2-Clause |
+| github.com/decred/dcrd/dcrec/secp256k1, filippo.io/keygen (key types other nodes on the network use) | ISC |
+| github.com/minio/sha256-simd, github.com/jackpal/go-nat-pmp, github.com/prometheus/client_golang, client_model, common and procfs, github.com/go-logr/logr and stdr, go.opentelemetry.io/auto/sdk (pulled in by go-libp2p; no metrics are collected or sent) | Apache-2.0. The Prometheus libraries' NOTICE files are kept with their license texts |
+| go.opentelemetry.io/otel, with its metric and trace packages (pulled in by go-libp2p; nothing is traced or sent) | Apache-2.0 and BSD-3-Clause |
+| github.com/hashicorp/golang-lru v1 (used by go-libp2p's dependencies) | MPL-2.0. Unmodified; its source is at <https://github.com/hashicorp/golang-lru> |
+| go.uber.org/fx, dig, multierr and zap, github.com/benbjohnson/clock, github.com/filecoin-project/go-clock, github.com/beorn7/perks, github.com/cespare/xxhash, github.com/davidlazar/go-crypto, github.com/klauspost/cpuid, github.com/koron/go-ssdp, lukechampine.com/blake3 (used by go-libp2p) | MIT |
+| github.com/wlynxg/anet (used by pion) | BSD-3-Clause |
 
 Run `go version -m wms` on a binary for the exact module list and versions.
+
+## Peer-to-peer connections
+
+Peer-to-peer connections ([docs/P2P.md](docs/P2P.md)) are built on **go-libp2p** and its family, listed above. All of it
+is under permissive licenses (MIT, BSD, ISC, Apache-2.0) or the MPL-2.0, which the AGPL-3.0-or-later and the client apps'
+GPL-3.0-or-later can both be combined with. Nothing in it was changed. One test helper, `simulated` in
+`internal/p2p/holepunch_test.go`, is adapted from go-libp2p's own tests and says so in its header, with go-libp2p's
+copyright line; the tests also use github.com/marcopolo/simnet (BSD-3-Clause), which no release contains.
+
+`wittyconnect`, the helper program the desktop app starts, and the library the phone and TV apps link, are built from
+this repository (`cmd/wittyconnect`, `pkg/wittyconnect`) and ship with WittyMediaClient, not with the server.
+`go run ./internal/licenses/gen -notices ./cmd/wittyconnect <file>` writes the notices file that goes with them:
+every library in it, with each license's full text.
+
+When turned on, the feature talks to other people's computers: the public IPFS network's bootstrap nodes
+(`bootstrap.libp2p.io`), its address book, and relays. They are not part of this software and nothing of theirs is
+bundled. [docs/REMOTE.md](docs/REMOTE.md#peer-to-peer-connections) says what they see.
 
 ## Modules
 

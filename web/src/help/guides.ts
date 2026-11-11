@@ -101,6 +101,7 @@ export const GROUPS: GuideGroup[] = [
     { file: 'MODULES', title: 'Making a module', about: 'Manifests, helpers and publishing.' },
     { file: 'CLIENT-API', title: 'Client API', about: 'Every route, for anyone writing an app.' },
     { file: 'REMOTE-PROTOCOL', title: 'Remote Protocol', about: 'One app playing on and steering another: every message.' },
+    { file: 'P2P', title: 'Peer-to-peer connections', about: 'Reaching a server with nothing set up on the router: the design, the protocol and the threat model.' },
     { file: 'SDUI', title: 'Server-driven screens', about: 'Screens the server describes and every app draws, and how to change them.' },
     { file: 'SECURITY-ROUTES', title: 'Who may call what', about: 'Every route and the role it needs.' },
     { file: 'GAMING-API', title: 'Games API', about: 'The game routes, for apps.' },

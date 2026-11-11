@@ -101,7 +101,7 @@
       "id": "cryptography",
       "title": "Encryption in this software",
       "body": [
-        "This software uses standard encryption and signing to protect connections, passwords and updates: TLS, WebRTC's DTLS and SRTP, bcrypt, SHA-256, HMAC and Ed25519, plus RSA, ECDSA and AES for connections to gaming PCs, from Go's standard library and other widely used open-source packages. It has no encryption algorithm of its own, and it doesn't decrypt media. Rules on exporting, importing or using encryption software differ between countries, and following them where you are is up to you."
+        "This software uses standard encryption and signing to protect connections, passwords and updates: TLS, WebRTC's DTLS and SRTP, bcrypt, SHA-256, HMAC and Ed25519, plus RSA, ECDSA and AES for connections to gaming PCs, and QUIC's TLS 1.3 and the Noise protocol (with ChaCha20-Poly1305) for peer-to-peer connections, from Go's standard library and other widely used open-source packages. It has no encryption algorithm of its own, and it doesn't decrypt media. Rules on exporting, importing or using encryption software differ between countries, and following them where you are is up to you."
       ]
     },
     {
@@ -424,6 +424,16 @@
       "gets": "Your domain name, and an email address if you give one. Certificates are public, so the domain name becomes public too.",
       "when": "Only if you choose it for HTTPS: to issue and renew the certificate.",
       "control": "Settings, Remote Access",
+      "setting": "/settings/remote"
+    },
+    {
+      "name": "Peer-to-peer connections (the public IPFS network and its relays)",
+      "hosts": [
+        "bootstrap.libp2p.io"
+      ],
+      "gets": "This server's connection ID (the public half of a key), its IP addresses and port, and that it runs this software. A relay also sees the IP address of a device connecting through it, when, and how much is sent. Never what is sent: that is encrypted between the device and this server. No file names, accounts or passwords.",
+      "when": "Off until an administrator turns it on. Then all the time: the server keeps itself in the network's address book and holds a place on a relay or two. The starting points are run by the libp2p project's sponsors; the address book and the relays are other people's computers, chosen by the network.",
+      "control": "Settings, Remote Access, Peer-to-peer connections. The address book, relays, hole punching and asking the router can each be turned off there",
       "setting": "/settings/remote"
     },
     {

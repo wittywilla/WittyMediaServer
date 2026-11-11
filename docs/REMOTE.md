@@ -30,6 +30,7 @@ Use this guide to reach your server safely when you're away from home. You don't
   - [Step 3: Reduce what an intruder would get](#step-3-reduce-what-an-intruder-would-get)
 - **The ways in, safest first**
   - [The recommended way: a private network](#the-recommended-way-a-private-network)
+  - [Peer-to-peer connections](#peer-to-peer-connections)
   - [A rented server (VPS)](#a-rented-server-vps)
   - [A reverse proxy you already run](#a-reverse-proxy-you-already-run)
   - [Forwarding a port on your router](#forwarding-a-port-on-your-router)
@@ -84,6 +85,7 @@ A good defense starts by naming the attacker. These are the realistic ones, most
 |---|---|---|---|
 | **Stay at home** (**Home network only**) | **No** | None | Safest. The default |
 | **[Tailscale or NetBird](#the-recommended-way-a-private-network)** | **No.** Only your own signed-in devices can connect | Low: install an app | **Use this.** It's right for almost everyone |
+| **[Peer-to-peer connections](#peer-to-peer-connections)** | **Not the sign-in page.** Only devices you paired can connect. Your home's internet address can be found by someone who has your server's connection ID | Low: one switch, and the app | For people who don't want an account with anyone. Newer and less proven than Tailscale; safer than forwarding a port |
 | **[A rented server (VPS)](#a-rented-server-vps)** | The rented server, not your home | High, and you now look after a server on the internet | For people who need visitors with no app, and know how to keep a server safe |
 | **[Your own reverse proxy](#a-reverse-proxy-you-already-run)** | **Yes**, the sign-in page | High | Only if you already run one and keep it updated |
 | **[Forwarding a port](#forwarding-a-port-on-your-router)** | **Yes**, the sign-in page, directly from your home | Medium to do, high to do safely | **Not recommended.** The easiest way to get this wrong |
@@ -192,6 +194,94 @@ Devices on your VPN count as *away from home*: they get the [limits](#limits-for
 > **Everyone on your private network can reach the server's sign-in page.** Remove old phones and laptops from the device list. A forgotten device is a way in.
 
 **Why not a "tunnel" service?** Some companies offer a public address that tunnels to your home with no open port. It feels like a private network, but **it's a public sign-in page on the internet, the same as port forwarding**. Their servers can often also see everything passing through, including passwords, and their terms may restrict streaming video.
+
+## Peer-to-peer connections
+
+The app on your phone, TV or laptop finds its own way to your server and connects to it directly. **Nothing is set up on your router, nothing is rented, and there's no account with anyone.** It's built into the server and the apps, and it's off until you turn it on.
+
+**How it compares.** It's the same idea as a private network: only devices you've approved can connect, and everything is encrypted between the device and your server. The differences are worth knowing:
+
+| | Tailscale or NetBird | Peer-to-peer connections | Forwarding a port |
+|---|---|---|---|
+| Who can reach the sign-in page | Devices on your private network | Devices on your server's own list | **Anyone on the internet** |
+| Set up on the router | Nothing | Nothing | A forwarded port |
+| An account with a company | Yes | No | No |
+| Who helps devices find each other | That company's servers | Volunteers' computers on a public network | Nobody: you give out an address |
+| How proven | Used by millions, audited | **New in this release, never audited** | As old as the internet, and attacked constantly |
+| Works from a web browser | Yes | **No: it needs the app** | Yes |
+| Works with every router | Nearly | With most. Not when both ends have a strict router and nobody offers a relay: see below | If your provider gives you a real address |
+
+**Our view:** if you're happy to make an account, Tailscale is still the better choice, because it has been tested by far more people than this has. If you aren't, this is much safer than forwarding a port, because strangers never see a sign-in page to attack.
+
+### What it exposes
+
+Read this before turning it on. It's the honest list.
+
+- **Your server becomes one of many computers on a public network** (the IPFS network), which is how apps find it. Other computers on that network, run by people you don't know, learn your server's **connection ID** (a long name starting `12D3KooW`, the public half of a key), your **home's internet address**, and that it runs WittyMediaServer.
+- **Anyone who has your connection ID can look up your home's internet address.** They can't connect with it. Treat the ID like your address: not a secret, not something to post. The server only gives it to signed-in accounts.
+- **Relays see who talks to whom.** When a direct connection can't be made straight away, a relay (another volunteer's computer, or another WittyMediaServer owner's) introduces your device to your server. It sees both internet addresses, when, and how much is sent. **It can't see what is sent**: that's encrypted with a key only your server holds.
+- **Your router may be asked to open a port**, if it offers that (UPnP, NAT-PMP or PCP) and you leave that switch on. The server asks for one port, renews it, and removes it when you turn this off. What listens on that port answers only your paired devices.
+- **It's new code facing the internet.** A mistake in it, or in the libraries it's built on, could be a way in that none of the above accounts for. That's true of every way on this page; it's most true of the newest.
+
+**Nobody on that network ever sees** your media, your file names, your passwords, your accounts, or what you watch.
+
+### Turning it on
+
+**Before you start:** do [Step 2](#step-2-lock-down-your-accounts) and [Step 3](#step-3-reduce-what-an-intruder-would-get). A paired device still needs a password, and it should be a good one.
+
+1. Go to **Settings → Remote Access → Peer-to-peer connections**. The page lists everyone who'll be contacted. Tick the box and choose **Turn on peer-to-peer connections**.
+2. **Pair your devices while they're at home.** Open the app on each phone, TV and laptop while it's on your home network and signed in. Within a minute it adds itself to **Devices that may connect**. That's all: from then on, when the app can't find your server at home, it connects this way by itself.
+3. **A device that isn't at home** (yours while travelling, or a relative's) needs an invite. Choose **Invite a device that isn't at home**, and send them the link or show them the code. In the app they choose **Enter an address** and paste the link. It works once, for fifteen minutes, and signs the device in as you, so send it the way you'd send a password.
+4. **[Test it](#testing-peer-to-peer-connections).**
+
+You don't have to change the three choices at the top of the page. Peer-to-peer connections work with **Home network only** chosen, which keeps every other way in closed.
+
+### What the page tells you
+
+Each line says how one way of connecting is doing. The app tries them best first, and switches to a better one when it can, without stopping what's playing.
+
+| Line | What it means |
+|---|---|
+| **Reachable from outside** | Whether other computers on the internet managed to connect straight to your server. "No" is normal behind a home router, and isn't a fault |
+| **IPv6** | If your connection has IPv6 and your router agreed to let connections through, devices that also have IPv6 connect directly |
+| **Port on your router** | Whether your router opened a port when asked. If it says your provider **shares addresses (CGNAT)** or there's **a second router**, an open port can't be reached and isn't used |
+| **Hole punching** | Your device and your server connect to each other at the same moment, so both routers let it through. Works with most home and mobile networks. A router described as **strict** or **symmetric** usually defeats it |
+| **Public address book** | Whether your server has reached the network apps find it on |
+| **Relays** | Which relays your server has a place on. **Public relays** only introduce; **community relays** can carry a whole film, slowly, when nothing else works |
+
+**When it can't connect.** If hole punching fails (a strict router at home, or on the network your phone is on) and there's no community relay, the app says a direct connection couldn't be made. Try another network: a different Wi-Fi, or mobile data. If your home router is the strict one, look for a setting called UPnP in it, or use a private network instead.
+
+**Community relays** are other WittyMediaServer owners who turned on **Help other servers**. If your server can be reached from outside, you can turn it on too: up to 16 other people's connections may then pass through your internet connection, 2 GiB each at most, and you see none of it.
+
+### Testing peer-to-peer connections
+
+**Test my connection** on the page checks that your server can be found by its ID and answers. It runs from your own computer, so it can't check your router. The real test is the same as for every other way:
+
+1. On your phone, open the app while you're on your home Wi-Fi and signed in. Wait a minute.
+2. **Turn off Wi-Fi**, so the phone uses mobile data, and open the app again.
+3. It should connect within about half a minute the first time. In **Settings → Remote Access**, the device shows as **Connected directly** or **Connected through a relay**.
+
+On a computer, the desktop app's title bar says how it's connected: **direct**, or **through a relay**.
+
+### Taking a device off
+
+**Settings → Remote Access → Peer-to-peer connections → Devices that may connect** lists every device, whose it is, when it was added and when it last connected. **Remove** cuts it off at once. It stays signed in, so it still works at home: to stop that too, sign it out under **Sign-in & security**.
+
+- **Lost a phone?** Remove it here and sign it out, then change that account's password.
+- **Think your connection ID got out?** Under **More**, **Make a new ID** gives the server a new one. Every device then needs to learn it: the apps do that by themselves next time they're at home.
+- **Turning the whole thing off** closes every connection, removes the port from your router, and stops talking to the network. Your devices stay on the list for when you turn it on again.
+
+Devices connected this way count as *away from home*: they get the [limits](#limits-for-viewers-away-from-home), always need a password, and can't use password-free profiles.
+
+> **Ways to undo this safety.**
+>
+> **Turning off "Only paired devices"** lets anyone with your connection ID reach the sign-in page and try passwords. Leave it on.
+>
+> **An invite link is a way in for fifteen minutes.** Don't post one, and don't send one over something you wouldn't send a password over.
+>
+> **Every device on the list can reach the sign-in page.** Remove old phones and laptops. A forgotten device is a way in.
+
+Developers: [P2P.md](P2P.md) has the design, the protocol and the threat model.
 
 ## A rented server (VPS)
 
@@ -509,6 +599,7 @@ The server contacts nobody for remote access unless you choose one of these:
 | Let's Encrypt | Let's Encrypt, to get and renew the certificate | Your domain name, any email you gave, your internet address. Certificates are public |
 | Automatic port mapping, or **Check my router** | Your router, on your home network only | That this computer wants a port open |
 | Tailscale, NetBird | These are their apps, not part of the server | See their privacy policies |
+| Peer-to-peer connections | The public IPFS network: its starting points at `bootstrap.libp2p.io`, then other people's computers that keep its address book, and relays. Your router, if it offers to open ports | Your server's connection ID, your internet address, that it runs this software. A relay also sees the address of a device connecting through it, and how much is sent. Never what is sent |
 | **Check from this computer** | The name server your computer already uses, and your own address | Your domain name |
 
 Nothing else for remote access. The outside test uses your phone. Metadata services and other online features are separate, and are listed in **Settings → Legal**.
@@ -522,7 +613,7 @@ Who counts as at home decides who gets trusted, so it's worth understanding.
 
 - **At home:** this computer, private addresses (`192.168.x.x`, `10.x.x.x`, `172.16.x.x` to `172.31.x.x`, `fc00::/7`, link-local), and IPv6 addresses on this computer's own network, if that network card also has a private IPv4 address.
 - **VPN:** `100.64.0.0/10` and `fd7a:115c:a1e0::/48`, the addresses Tailscale and NetBird use.
-- **Internet:** everything else.
+- **Internet:** everything else, and **every peer-to-peer connection, whatever address it comes from**. That's decided when the connection is accepted, not from an address, so it can't be made to look like home.
 
 Under **Advanced** you can add networks to either side. List a **WireGuard** or other VPN with private addresses under **Count as away from home**, **or it looks like home**.
 

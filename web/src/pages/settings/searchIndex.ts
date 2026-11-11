@@ -56,6 +56,7 @@ export const ENTRIES: Entry[] = [
   { page: 'network', title: 'What follows the port', section: 'What follows the port', words: 'firewall apps find discovery bookmarks reverse proxy' },
   { page: 'remote', title: 'Limits for viewers away from home', section: 'Limits for viewers away from home', words: 'bandwidth resolution data' },
   { page: 'remote', title: 'Sign-in protection', section: 'Sign-in protection', words: 'wrong passwords lockout' },
+  { page: 'remote', title: 'Peer-to-peer connections', section: 'Peer-to-peer connections', words: 'p2p away from home no port forwarding router nat hole punching relay invite paired devices upnp cgnat libp2p direct connection' },
 
   // You
   { page: 'users', title: 'Kids profiles', words: 'children parental limits ratings' },

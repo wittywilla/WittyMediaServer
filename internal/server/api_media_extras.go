@@ -39,6 +39,7 @@ func (s *Server) mediaExtrasRoutes(m *http.ServeMux) {
 	m.Handle("DELETE /api/media/{id}/stems/{stem}", s.requireAdmin(s.handleStemDelete))
 	m.Handle("GET /api/media/{id}/markers", a(s.handleMarkers))
 	m.Handle("PUT /api/media/{id}/markers", s.requireAdmin(s.handleMarkersPut))
+	m.Handle("POST /api/shows/{id}/detect-intros", s.requireAdmin(s.handleDetectIntros))
 	m.Handle("GET /api/media/{id}/where-to-watch", a(s.handleWhereToWatch))
 	m.Handle("GET /api/discover/where-to-watch", a(s.handleDiscoverWhereToWatch))
 }
@@ -466,6 +467,9 @@ func (s *Server) mediaMarkers(ctx context.Context, it *library.Item) mediaextras
 		ch.Intro = &r
 	}
 	layers = append(layers, mediaextras.Layer{Source: mediaextras.SourceChapters, Markers: ch})
+	if stored.Detected != nil {
+		layers = append(layers, mediaextras.Layer{Source: mediaextras.SourceDetected, Markers: *stored.Detected})
+	}
 	if it.ShowID != nil {
 		if sh, err := s.Store.Show(ctx, *it.ShowID, 0); err == nil && sh.IntroEnd != nil && *sh.IntroEnd > 0 {
 			r := mediaextras.Range{EndSec: *sh.IntroEnd}

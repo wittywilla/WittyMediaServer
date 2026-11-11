@@ -11,7 +11,6 @@
 .pair-steps { margin: 0 0 var(--sp-3); padding-left: var(--sp-5); text-align: left; }
 .pair-inline { font-variant-numeric: tabular-nums; letter-spacing: .08em; white-space: nowrap; }
 .qr { width: min(60vw, 240px); height: auto; border-radius: var(--radius-sm); }
-/* design-check: a QR code is dark on light whatever the theme: cameras read nothing else */
-.qr-paper { fill: #ffffff; }
-.qr-ink { fill: #000000; }
+.qr-paper { fill: #ffffff; } /* design-ok: a QR code is dark on light whatever the theme, as cameras read nothing else */
+.qr-ink { fill: #000000; } /* design-ok: as above */
 .pair-countdown { width: min(60vw, 240px); height: 6px; accent-color: var(--accent); }

@@ -120,6 +120,7 @@ type Server struct {
 	stream    streamTokens
 	radio     radioLive
 	pair      pairings
+	introJob  introJob // finding intros by ear: one run at a time
 	subtitles subtitleFiles
 	idOnce    sync.Once
 	id        *identity.Identity

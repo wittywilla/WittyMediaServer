@@ -115,6 +115,9 @@ var metadataMigrations = []string{
 	 CREATE TABLE IF NOT EXISTS media_markers (
 	   item_id INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
 	   scanned TEXT NOT NULL DEFAULT '', manual TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL DEFAULT 0);`,
+	// What comparing a season's episodes by ear found (internal/introdetect), kept apart
+	// from what a scan read and what someone set, so neither overwrites the other.
+	`ALTER TABLE media_markers ADD COLUMN detected TEXT NOT NULL DEFAULT '';`,
 }
 
 func (d *DB) migrateMetadata(ctx context.Context) error {

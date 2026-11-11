@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package libtranscode
 
 import (
@@ -57,7 +60,7 @@ func chooseEncoder(target string, depth int, hdr bool, p Policy, env Env, v Vide
 		for _, family := range hardwareOrder(env.Hardware) {
 			name := hardwareName(codec, family)
 			if env.Encoders[name] && slices.Contains(env.Hardware, name) {
-				c := hardwareEncoder(name, codec, family, q, p.Video.Speed)
+				c := hardwareEncoder(name, codec, family, q, p.Video.Speed, outputHeight(v.Height, p.Video.MaxHeight))
 				if env.Threads > 0 {
 					c.args = append(c.args, "-threads", strconv.Itoa(env.Threads))
 				}
@@ -159,7 +162,8 @@ func x265HDR(v VideoStream) []string {
 	return out
 }
 
-func hardwareEncoder(name, codec, family string, q int, speed string) encoderChoice {
+// hardwareEncoder: height is how high the picture comes out, 0 when that isn't known.
+func hardwareEncoder(name, codec, family string, q int, speed string, height int) encoderChoice {
 	c := encoderChoice{name: name, codec: codec}
 	switch family {
 	case "nvenc":
@@ -170,6 +174,10 @@ func hardwareEncoder(name, codec, family string, q int, speed string) encoderCho
 		preset := map[string]string{"faster": "faster", "balanced": "medium", "slower": "slow"}[speed]
 		c.args = []string{"-preset", orDefault(preset, "medium"), "-global_quality", strconv.Itoa(q + 2), "-pix_fmt", "nv12"}
 	case "videotoolbox":
+		if !ffmpeg.VideoToolboxQuality {
+			c.args = videoToolboxRate(codec, height)
+			break
+		}
 		c.args = []string{"-q:v", strconv.Itoa(clampInt(102-2*q, 1, 100)), "-pix_fmt", "yuv420p"}
 	case "amf":
 		quality := map[string]string{"faster": "speed", "balanced": "balanced", "slower": "quality"}[speed]
@@ -180,6 +188,29 @@ func hardwareEncoder(name, codec, family string, q int, speed string) encoderCho
 		c.args = []string{"-qp", strconv.Itoa(q + 2)}
 	}
 	return c
+}
+
+// videoToolboxRate is what VideoToolbox gets where it takes no quality setting (an Intel
+// Mac: see ffmpeg.VideoToolboxQuality): a bitrate for the picture's size, about what the
+// quality setting gives a film at 1080p, 6 Mb/s for H.264 and 4 for H.265.
+func videoToolboxRate(codec string, height int) []string {
+	if height <= 0 {
+		height = 1080
+	}
+	kbps := 6000
+	if codec != "h264" {
+		kbps = 4000
+	}
+	kbps = max(kbps*height*height/(1080*1080), 500)
+	return []string{"-b:v", strconv.Itoa(kbps) + "k", "-pix_fmt", "yuv420p"}
+}
+
+// outputHeight is how high the converted picture comes out.
+func outputHeight(height, maxHeight int) int {
+	if maxHeight > 0 && height > maxHeight {
+		return maxHeight
+	}
+	return height
 }
 
 func clampInt(v, lo, hi int) int {

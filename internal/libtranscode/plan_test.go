@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package libtranscode
 
 import (
@@ -8,6 +11,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
 
 // atomic32 is a counter the running-controls test shares with the engine.
@@ -301,6 +306,27 @@ func TestHardwareOnlyForOrdinaryPictures(t *testing.T) {
 	}
 	if !slices.Contains(stepsOf(Decide(src, p, env, PlanOptions{}), "video")[0].args, "-x265-params") {
 		t.Fatal("no HDR description")
+	}
+}
+
+// An Intel Mac's FFmpeg won't open VideoToolbox with -q:v, so it gets a bitrate for the size.
+func TestVideoToolboxOnEachChip(t *testing.T) {
+	defer func(was bool) { ffmpeg.VideoToolboxQuality = was }(ffmpeg.VideoToolboxQuality)
+	env := testEnv()
+	env.Encoders["hevc_videotoolbox"] = true
+	env.Hardware = []string{"hevc_videotoolbox"}
+	p, _ := PresetPolicy(PresetSaveSpace)
+	p.Video.SkipBelowKbps = 0
+	src := &Source{Path: "/m/a.mkv", Ext: "mkv", Duration: 60, Video: []VideoStream{{Index: 0, Codec: "mpeg2video", PixFmt: "yuv420p", Width: 1920, Height: 1080, Depth: 8, Range: "sdr"}}}
+	for _, quality := range []bool{true, false} {
+		ffmpeg.VideoToolboxQuality = quality
+		st := stepsOf(Decide(src, p, env, PlanOptions{}), "video")[0]
+		if st.encoder != "hevc_videotoolbox" || slices.Contains(st.args, "-q:v") == !quality || slices.Contains(st.args, "-b:v") == quality {
+			t.Errorf("quality %v: %s %v", quality, st.encoder, st.args)
+		}
+	}
+	if args := videoToolboxRate("h264", 720); !slices.Equal(args, []string{"-b:v", "2666k", "-pix_fmt", "yuv420p"}) {
+		t.Errorf("720p: %v", args)
 	}
 }
 

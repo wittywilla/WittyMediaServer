@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package libtranscode
 
 import (
@@ -132,7 +135,7 @@ func (e *Engine) testEncoder(ctx context.Context, name, codec, family string) bo
 	if known {
 		return ok
 	}
-	c := hardwareEncoder(name, codec, family, 23, "balanced")
+	c := hardwareEncoder(name, codec, family, 23, "balanced", 240)
 	args := []string{"-hide_banner", "-loglevel", "error", "-nostdin"}
 	args = append(args, c.inputArgs...)
 	args = append(args, "-f", "lavfi", "-i", "color=c=black:s=320x240:r=25:d=0.4")

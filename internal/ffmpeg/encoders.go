@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package ffmpeg
 
 import (
@@ -334,6 +337,12 @@ func StreamThreads(height int) (decode, encode int) {
 
 const streamThreads = 8
 
+// VideoToolboxQuality says VideoToolbox takes a constant quality (-q:v). FFmpeg allows that
+// on Apple silicon only: an Intel Mac's FFmpeg refuses to open the encoder with it ("-q:v
+// qscale not available for encoder. Use -b:v bitrate instead."), so there it's given a bitrate.
+// The server and the FFmpeg it uses are built for the same chip. A variable, for the tests.
+var VideoToolboxQuality = runtime.GOARCH == "arm64"
+
 var numCPU = runtime.NumCPU // tests pretend to be other machines
 
 // Plan picks the encoder for a quality profile.
@@ -372,6 +381,10 @@ func (t *Tools) planFor(name string, q Quality) Plan {
 		p.InputArgs = DeviceArgs("qsv")
 		p.Args = []string{"-preset", qsvPreset(q.Preset), "-global_quality", strconv.Itoa(crf + 2)}
 	case "h264_videotoolbox":
+		if !VideoToolboxQuality {
+			p.Args = []string{"-b:v", "6M", "-realtime", "1"} // as libopenh264's, for want of a quality setting
+			break
+		}
 		vq := 102 - 2*crf // crf 21 -> q 60 (1-100, higher is better)
 		if vq < 1 {
 			vq = 1

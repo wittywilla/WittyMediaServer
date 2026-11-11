@@ -41,7 +41,7 @@ function TopBar({ tab }: { tab: TabId }) {
         {TV_TABS.map((t) => (
           <Link key={t.id} to={t.path} replace data-tab={t.id} className={'tvm-pill' + (t.id === 'you' ? ' tvm-you' : '')}
             aria-current={t.id === tab ? 'page' : undefined} aria-label={t.id === 'you' ? `You, ${shown}` : undefined}>
-            {t.id === 'you' ? <Avatar name={shown || '?'} /> : ICONS[t.id]}
+            {t.id === 'you' ? <Avatar name={shown || '?'} avatar={user?.avatar} /> : ICONS[t.id]}
             <span>{t.id === 'you' ? shown : t.label}</span>
           </Link>
         ))}

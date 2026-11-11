@@ -5,11 +5,12 @@ import { api, profileName, type Access, type Item, type Library, type Show, type
 import { IconTrash } from '../icons'
 import { toast, useApp } from '../state'
 import { Button, IconButton } from '../ui/Button'
-import { Segmented } from '../ui/Choice'
+import { Segmented, Tabs } from '../ui/Choice'
 import { Field, Input, Switch } from '../ui/Field'
 import { ask, Dialog } from '../ui/Overlay'
 import { Avatar } from './AuthPage'
 import LegalNote from '../components/LegalNote'
+import { ActivityDialog, AvatarPicker, CollectionRules, FeatureSwitches, KindLimits, ParentPin, TagRules, TimeRulesEditor, useParentalLists } from './settings/ParentalControls'
 import './profiles.css'
 
 // Settings → Users: your account, the profiles you may manage, and their
@@ -37,6 +38,9 @@ export default function Profiles() {
   const [removing, setRemoving] = useState<User | null>(null)
   const [naming, setNaming] = useState<UserView | null>(null)
   const [settingPw, setSettingPw] = useState<UserView | null>(null)
+  const [watching, setWatching] = useState<UserView | null>(null)
+  const [mine, setMine] = useState<{ features: Record<string, boolean> } | null>(null)
+  useEffect(() => { api.get<{ features: Record<string, boolean> }>('/me/limits').then(setMine).catch(() => {}) }, [user?.id])
   const load =() => api.get<UserView[]>('/users').then(setUsers).catch(() => setUsers([]))
   useEffect(() => { load() }, [])
   const changePw = async () => { try { await api.put(`/users/${user!.id}/password`, { password: mypw, current: curpw }); setMypw(''); setCurpw(''); toast('Password changed; other devices are signed out') } catch (e: any) { toast(e.message) } }
@@ -51,8 +55,8 @@ export default function Profiles() {
       <div className="panel">
         <h2>Your account</h2>
         <div className="form">
-          <div className="profile-me"><Avatar name={user ? profileName(user) : '?'} /> <b>{user && profileName(user)}</b> <span className="pill">{user?.isAdmin ? 'Administrator' : KIND_LABEL[user?.kind || 'adult']}</span></div>
-          {user && <YourNames key={user.name + (user.displayName || '')} canRename={!restricted} onSaved={setUser} />}
+          <div className="profile-me"><Avatar name={user ? profileName(user) : '?'} avatar={user?.avatar} /> <b>{user && profileName(user)}</b> <span className="pill">{user?.isAdmin ? 'Administrator' : KIND_LABEL[user?.kind || 'adult']}</span></div>
+          {user && <YourNames key={user.name + (user.displayName || '') + (user.avatar || '')} canRename={!restricted && mine?.features.editProfile !== false} canLook={user.isAdmin || !!mine?.features.editProfile} onSaved={setUser} />}
           {restricted
             ? <p className="muted">This profile's password and limits are managed by the adults of this server.</p>
             : <form className="field-row" onSubmit={(e) => { e.preventDefault(); changePw() }}>
@@ -69,16 +73,17 @@ export default function Profiles() {
           <div className="list">
             {users.map((u) => (
               <div className="list-item profile-row" key={u.id}>
-                <Avatar name={profileName(u)} />
+                <Avatar name={profileName(u)} avatar={u.avatar} />
                 <div className="grow">
                   <b>{profileName(u)}</b> <span className={'pill kind-' + u.kind}>{u.isAdmin ? 'Administrator' : KIND_LABEL[u.kind]}</span>
                   <div className="sub">{u.displayName && u.displayName !== u.name ? `Signs in as ${u.name} · ` : ''}{u.isAdmin ? 'No limits' : summary(u)}</div>
                 </div>
                 {u.id !== user!.id && (
                   <div className="profile-actions">
-                    <Button size="sm" aria-label={`Names for ${profileName(u)}`} onClick={() => setNaming(u)}>Names</Button>
+                    <Button size="sm" aria-label={`Name and picture for ${profileName(u)}`} onClick={() => setNaming(u)}>Name and picture</Button>
                     <Button size="sm" aria-label={`${passwordWord(u)} for ${profileName(u)}`} onClick={() => setSettingPw(u)}>{passwordWord(u)}</Button>
                     {!u.isAdmin && <Button size="sm" aria-label={`Limits for ${profileName(u)}`} onClick={() => setEditing(u)}>Limits</Button>}
+                    {!u.isAdmin && <Button size="sm" aria-label={`What ${profileName(u)} watched, and more time`} onClick={() => setWatching(u)}>Activity</Button>}
                     <IconButton label={`Remove ${profileName(u)}`} size="sm" variant="danger" onClick={() => del(u)}><IconTrash /></IconButton>
                   </div>
                 )}
@@ -96,6 +101,8 @@ export default function Profiles() {
       {removing && <RemoveAdmin user={removing} onClose={() => setRemoving(null)} onDone={() => { setRemoving(null); load() }} />}
       {naming && <NamesDialog user={naming} onClose={() => setNaming(null)} onSaved={() => { setNaming(null); load() }} />}
       {settingPw && <PasswordDialog user={settingPw} onClose={() => setSettingPw(null)} onSaved={() => { setSettingPw(null); load() }} />}
+      {watching && <ActivityDialog user={watching} onClose={() => setWatching(null)} />}
+      {user?.isAdmin && <ParentPin />}
     </>
   )
 }
@@ -113,8 +120,9 @@ function YourPassword({ password, code, setPassword, setCode, autoFocus }: { pas
 }
 
 // Your own names, and which one the corner of the screen shows.
-function YourNames({ canRename, onSaved }: { canRename: boolean; onSaved: (u: User) => void }) {
+function YourNames({ canRename, canLook, onSaved }: { canRename: boolean; canLook: boolean; onSaved: (u: User) => void }) {
   const { user } = useApp()
+  const [picking, setPicking] = useState(false)
   const [display, setDisplay] = useState(user?.displayName || '')
   const [username, setUsername] = useState(user?.name || '')
   const [err, setErr] = useState('')
@@ -127,6 +135,9 @@ function YourNames({ canRename, onSaved }: { canRename: boolean; onSaved: (u: Us
   const choose = async (on: boolean) => {
     try { onSaved(await api.put<User>(`/users/${user.id}/profile`, { showUsername: on })) } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }
+  const picture = async (avatar: string) => {
+    try { onSaved(await api.put<User>(`/users/${user.id}/profile`, { avatar })) } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
+  }
   return (
     <>
       {canRename && (
@@ -136,6 +147,9 @@ function YourNames({ canRename, onSaved }: { canRename: boolean; onSaved: (u: Us
           <Button disabled={!changed || !username.trim()}>Save names</Button>
         </form>
       )}
+      {canLook && (picking
+        ? <AvatarPicker value={user.avatar || ''} onChange={picture} />
+        : <div><Button size="sm" onClick={() => setPicking(true)}>Change your picture</Button></div>)}
       <div className="set-row-inline">
         <span id="show-username">Show my username at the top right, not my profile name</span>
         <Switch labelledBy="show-username" checked={!!user.showUsername} onChange={choose} />
@@ -174,17 +188,19 @@ function RemoveAdmin({ user: target, onClose, onDone }: { user: User; onClose: (
 function NamesDialog({ user, onClose, onSaved }: { user: UserView; onClose: () => void; onSaved: () => void }) {
   const [display, setDisplay] = useState(user.displayName || '')
   const [username, setUsername] = useState(user.name)
+  const [avatar, setAvatar] = useState(user.avatar || '')
   const [err, setErr] = useState('')
   const save = async () => {
     setErr('')
-    try { await api.put(`/users/${user.id}/profile`, { displayName: display, username }); toast('Names saved', { tone: 'ok' }); onSaved() } catch (e) { setErr((e as Error).message) }
+    try { await api.put(`/users/${user.id}/profile`, { displayName: display, username, avatar }); toast('Saved', { tone: 'ok' }); onSaved() } catch (e) { setErr((e as Error).message) }
   }
   return (
-    <Dialog title={`Names for ${profileName(user)}`} size="sm" onClose={onClose}
-      actions={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!username.trim()} onClick={save}>Save names</Button></>}>
+    <Dialog title={`Name and picture for ${profileName(user)}`} onClose={onClose}
+      actions={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!username.trim()} onClick={save}>Save</Button></>}>
       <div className="form full">
         <Field label="Profile name" hint="What they’re called around the app."><Input autoFocus value={display} maxLength={60} placeholder={user.name} onChange={(e) => setDisplay(e.target.value)} /></Field>
         <Field label="Username" hint="What they sign in with." error={err}><Input value={username} maxLength={40} onChange={(e) => setUsername(e.target.value)} /></Field>
+        <AvatarPicker value={avatar} onChange={setAvatar} />
       </div>
     </Dialog>
   )
@@ -254,6 +270,10 @@ function summary(u: UserView): string {
   const parts = [AGE_LEVELS.find((l) => l.age === a.maxAge)?.label || `Up to age ${a.maxAge}`]
   if (a.libraries?.length) parts.push(`${a.libraries.length} ${a.libraries.length === 1 ? 'library' : 'libraries'}`)
   if (!a.liveTv) parts.push('no Live TV')
+  if (a.kinds && Object.keys(a.kinds).length) parts.push('ages by kind')
+  if (a.time && (a.time.schoolDayMinutes || a.time.weekendMinutes || a.time.from || a.time.schoolNightUntil || a.time.weekendUntil)) parts.push('screen time')
+  const off = (a.off || []).filter((f) => f !== 'editProfile')
+  if (off.length) parts.push(`${off.length} ${off.length === 1 ? 'thing' : 'things'} turned off`)
   if (!u.hasPassword) parts.push('no password')
   return parts.join(' · ')
 }
@@ -332,6 +352,8 @@ function LimitsEditor({ user, admin, onClose, onSaved }: { user: UserView; admin
   const [q, setQ] = useState('')
   const [found, setFound] = useState<{ key: string; id: number; show: boolean; title: string }[]>([])
   const [clearPw, setClearPw] = useState(false)
+  const [tab, setTab] = useState<'watch' | 'do' | 'time'>('watch')
+  const lists = useParentalLists()
   useEffect(() => {
     api.get<Library[]>('/libraries').then(setLibs).catch(() => {})
     Promise.all([api.get<string[]>('/genres'), api.get<string[]>('/shows/genres')]).then(([g1, g2]) => setGenres([...new Set([...g1, ...g2])].sort())).catch(() => {})
@@ -372,9 +394,27 @@ function LimitsEditor({ user, admin, onClose, onSaved }: { user: UserView; admin
   return (
     <Dialog title={`Limits for ${profileName(user)}`} size="wide" onClose={onClose}
       actions={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>Save limits</Button></>}>
-        <div className="limits">
+        <Tabs className="pc-tabs" label="Limits" value={tab} onChange={setTab} panelId="limits-panel"
+          items={[{ value: 'watch', label: 'What they see' }, { value: 'do', label: 'What they can do' }, { value: 'time', label: 'Screen time' }]} />
+        <div className="limits" id="limits-panel" role="tabpanel">
+          {tab === 'time' && <TimeRulesEditor access={a} set={set} />}
+          {tab === 'do' && <>
+            <FeatureSwitches access={a} set={set} kind={user.kind} />
+            <h3>Live TV</h3>
+            <label className="check-row"><input type="checkbox" checked={a.liveTv} onChange={(e) => set({ liveTv: e.target.checked })} /> Live TV</label>
+            <label className="check-row indent"><input type="checkbox" disabled={!a.liveTv} checked={a.libraryChannels} onChange={(e) => set({ libraryChannels: e.target.checked })} /> Channels made from this server's libraries</label>
+            <label className="check-row indent"><input type="checkbox" disabled={!a.liveTv} checked={a.tunerChannels} onChange={(e) => set({ tunerChannels: e.target.checked })} /> Antenna, cable and internet TV channels (tuners, IPTV)</label>
+            {user.kind !== 'adult' && user.hasPassword && admin !== undefined && (
+              <label className="check-row limits-clear"><input type="checkbox" checked={clearPw} onChange={(e) => setClearPw(e.target.checked)} /> Remove the password (sign in with a tap on the home network)</label>
+            )}
+          </>}
+          {tab === 'watch' && <>
           <AgePicker value={a.maxAge} onChange={(n) => set({ maxAge: n })} />
           {a.maxAge >= 0 && <label className="check-row"><input type="checkbox" checked={a.allowUnrated} onChange={(e) => set({ allowUnrated: e.target.checked })} /> Also show titles without a rating <span className="muted">(home videos, unmatched files)</span></label>}
+
+          <h3>A different age for some kinds</h3>
+          <p className="muted">Films, TV, games, music and books are rated by different boards. Each can have its own limit, shown with what it allows in each country’s ratings.</p>
+          <KindLimits access={a} set={set} lists={lists} />
 
           <h3>Libraries</h3>
           <p className="muted">Leave all unticked to allow every library.</p>
@@ -400,15 +440,21 @@ function LimitsEditor({ user, admin, onClose, onSaved }: { user: UserView; admin
           <div className="chips"><span className="muted">Always:</span>{chips(a.allowShows, 's', 'allowShows')}{chips(a.allowItems, 'i', 'allowItems')}</div>
           <div className="chips"><span className="muted">Never:</span>{chips(a.blockShows, 's', 'blockShows')}{chips(a.blockItems, 'i', 'blockItems')}</div>
 
-          <LegalNote kind="ratings" />
-          <h3>Live TV</h3>
-          <label className="check-row"><input type="checkbox" checked={a.liveTv} onChange={(e) => set({ liveTv: e.target.checked })} /> Live TV</label>
-          <label className="check-row indent"><input type="checkbox" disabled={!a.liveTv} checked={a.libraryChannels} onChange={(e) => set({ libraryChannels: e.target.checked })} /> Channels made from this server's libraries</label>
-          <label className="check-row indent"><input type="checkbox" disabled={!a.liveTv} checked={a.tunerChannels} onChange={(e) => set({ tunerChannels: e.target.checked })} /> Antenna, cable and internet TV channels (tuners, IPTV)</label>
+          {genres.length > 0 && <>
+            <h3>Show only these genres</h3>
+            <p className="muted">Leave all unticked to show every genre that isn’t hidden above.</p>
+            <div className="check-grid">
+              {genres.map((g) => <label key={g} className="check-row"><input type="checkbox" checked={(a.onlyGenres || []).includes(g)} onChange={() => set({ onlyGenres: (a.onlyGenres || []).includes(g) ? (a.onlyGenres || []).filter((x) => x !== g) : [...(a.onlyGenres || []), g] })} /> {g}</label>)}
+            </div>
+          </>}
 
-          {user.kind !== 'adult' && user.hasPassword && admin !== undefined && (
-            <label className="check-row limits-clear"><input type="checkbox" checked={clearPw} onChange={(e) => setClearPw(e.target.checked)} /> Remove the password (sign in with a tap on the home network)</label>
-          )}
+          <h3>Collections</h3>
+          <p className="muted">Allow or hide everything in a collection, whatever its rating. A collection made from a rule can’t be used: it has no list of titles to go by.</p>
+          <CollectionRules access={a} set={set} />
+          <TagRules access={a} set={set} />
+
+          <LegalNote kind="ratings" />
+          </>}
         </div>
     </Dialog>
   )

@@ -5,7 +5,7 @@
 import { reportRequestFailure } from './errorReport'
 import type { CoreSupport } from './pages/games/platforms'
 
-export type User = { id: number; name: string; displayName?: string; showUsername?: boolean; isAdmin: boolean; createdAt: number; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; twoFactor?: boolean }
+export type User = { id: number; name: string; displayName?: string; showUsername?: boolean; isAdmin: boolean; createdAt: number; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; twoFactor?: boolean; avatar?: string }
 // `name` is the username: unique, and what signing in uses. A profile name is what
 // people are called around the app, and anyone can have the same one.
 export const profileName = (u: Pick<User, 'name' | 'displayName'>) => u.displayName || u.name
@@ -18,7 +18,25 @@ export type Access = {
   maxAge: number; allowUnrated: boolean; libraries: number[]; blockGenres: string[]
   allowItems: number[]; blockItems: number[]; allowShows: number[]; blockShows: number[]
   liveTv: boolean; libraryChannels: boolean; tunerChannels: boolean
+  // An age limit of its own for a kind of media: film, tv, game, music, book.
+  kinds?: Record<string, KindLimit>
+  onlyGenres?: string[]; blockTags?: string[]
+  allowCollections?: number[]; blockCollections?: number[]
+  // What the profile may not do: games, recordings, downloads, sharing, comments, remote, editProfile.
+  off?: string[]
+  time?: TimeRules | null
 }
+export type KindLimit = { maxAge: number; allowUnrated: boolean }
+// When a profile may play, and for how long a day. Minutes of 0 and times of '' are no limit.
+export type TimeRules = { schoolDayMinutes: number; weekendMinutes: number; from: string; schoolNightUntil: string; weekendUntil: string }
+// How long a profile may still play today (GET /me/screen-time). remainingSec -1 = nothing stops it.
+export type ScreenTime = { allowed: boolean; reason?: string; allowanceSec: number; usedSec: number; extraSec: number; remainingSec: number; message?: string; until?: number; nextAt?: number }
+// What the signed-in profile may do (GET /me/limits), for hiding what is off.
+export type MyLimits = { limited: boolean; kind: string; features: Record<string, boolean>; maxAge: number; time: TimeRules | null; screenTime: ScreenTime; parentPin: boolean }
+export type RatingSystem = { id: string; name: string; country: string; kinds: string[]; ratings: { label: string; age: number }[] }
+export type ParentalLists = { kinds: string[]; systems: RatingSystem[]; features: string[]; avatars: string[]; avatarColours: string[]; maxExtraMinutes: number }
+// A profile as the list for switching has it (GET /profiles/household).
+export type HouseholdProfile = { id: number; name: string; displayName?: string; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; avatar?: string; current: boolean }
 export type UserView = User & { access: Access | null }
 export type Library = {
   id: number; name: string; type: string; console?: string; paths: string[]; createdAt: number
@@ -242,6 +260,11 @@ async function send(method: string, path: string, body?: unknown, signal?: Abort
   const data = parse(text)
   if (res.status === 424 && data?.module) {
     missing = { id: String(data.module), at: Date.now() }
+    throw new ApiError(res.status, data.error || res.statusText, data)
+  }
+  if (res.status === 403 && data?.code === 'screen-time') {
+    // This profile's time is up: the screen-time watcher (shell/ScreenTime.tsx) says so.
+    window.dispatchEvent(new CustomEvent('wms:screen-time', { detail: data.screenTime }))
     throw new ApiError(res.status, data.error || res.statusText, data)
   }
   if (!res.ok) {

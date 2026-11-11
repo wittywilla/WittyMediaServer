@@ -323,6 +323,12 @@ func TestFeaturesTurnedOff(t *testing.T) {
 	if w := ts.do(t, "GET", fmt.Sprintf("/api/items/%d", film.ID), off, nil); w.Code != 200 {
 		t.Errorf("a film, with games off: %d", w.Code)
 	}
+	if w := ts.do(t, "GET", "/api/libraries", off, nil); strings.Contains(w.Body.String(), `"type":"games"`) || !strings.Contains(w.Body.String(), `"type":"movies"`) {
+		t.Errorf("libraries, with games off: %s", w.Body)
+	}
+	if w := ts.do(t, "GET", "/api/libraries", on, nil); !strings.Contains(w.Body.String(), `"type":"games"`) {
+		t.Errorf("libraries for an account with no limits: %s", w.Body)
+	}
 	// Their own name and picture.
 	profile := fmt.Sprintf("/api/users/%d/profile", limited.ID)
 	for _, body := range []map[string]any{{"displayName": "New name"}, {"avatar": "rocket:blue"}, {"username": "other"}} {

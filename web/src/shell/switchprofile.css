@@ -1,0 +1,16 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* Switching profile, and the screen-time notices. */
+.sw-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: var(--sp-3); }
+.sw-tile { display: grid; justify-items: center; gap: var(--sp-2); width: 100%; min-height: 44px; padding: var(--sp-4) var(--sp-2); background: var(--bg-3); border: 1px solid transparent; border-radius: var(--r-md); color: var(--fg); cursor: pointer; }
+.sw-tile:hover { background: var(--bg-4); }
+.sw-tile.current { border-color: var(--border-strong); }
+.sw-tile:disabled { opacity: .6; cursor: default; }
+.sw-name { font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sw-sub { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: 1.2em; color: var(--fg-3); font-size: var(--text-xs); }
+.sw-chosen { display: flex; align-items: center; gap: var(--sp-3); }
+
+/* A few minutes left: a quiet line at the foot of the page, above the phone's tab bar. */
+.st-left { position: fixed; z-index: var(--z-toast); left: 50%; transform: translateX(-50%); bottom: calc(var(--sp-4) + env(safe-area-inset-bottom, 0px) + var(--tabbar-space)); display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4); background: var(--bg-2); border: 1px solid var(--border-strong); border-radius: var(--r-full); box-shadow: var(--shadow); color: var(--fg); font-size: var(--text-sm); pointer-events: none; }
+.st-ask { display: grid; gap: var(--sp-3); }
+.st-when { color: var(--fg-2); margin: 0; }

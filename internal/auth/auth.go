@@ -282,7 +282,7 @@ func (s *Service) SetDisplayName(ctx context.Context, id int64, name string) err
 // Avatars a profile can choose from, and the colours behind them. The apps draw
 // them; the server only keeps the choice, so no picture is ever uploaded.
 var (
-	AvatarNames   = []string{"star", "rocket", "cat", "dog", "fox", "owl", "robot", "dino", "unicorn", "ball", "flower", "music", "book", "gamepad", "planet", "heart"}
+	AvatarNames   = []string{"star", "heart", "moon", "sun", "bolt", "diamond", "crown", "flower", "music", "planet", "paw", "tree", "rocket", "gamepad", "book"}
 	AvatarColours = []string{"red", "orange", "yellow", "green", "teal", "blue", "purple", "pink"}
 )
 

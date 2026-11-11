@@ -137,19 +137,17 @@ func (s *Server) viewerError(r *http.Request, err error) string {
 	return msg
 }
 
-// visibleLibraries drops libraries an account may not open.
+// visibleLibraries drops libraries an account may not open: those its limits
+// leave out, and the games libraries of an account that may not play games.
 func (s *Server) visibleLibraries(ctx context.Context, a *library.Access) ([]library.Library, error) {
 	libs, err := s.Store.Libraries(ctx)
-	if err != nil || a == nil || len(a.Libraries) == 0 {
+	if err != nil || a == nil || (len(a.Libraries) == 0 && a.Can(library.FeatureGames)) {
 		return libs, err
 	}
 	out := libs[:0]
 	for _, l := range libs {
-		for _, id := range a.Libraries {
-			if l.ID == id {
-				out = append(out, l)
-				break
-			}
+		if a.AllowsLibrary(l.ID) && (l.Type != "games" || a.Can(library.FeatureGames)) {
+			out = append(out, l)
 		}
 	}
 	return out, nil

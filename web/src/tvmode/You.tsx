@@ -11,6 +11,7 @@ import { Avatar } from '../pages/AuthPage'
 import { useApp } from '../state'
 import { AUTO_THEME, deviceTheme, type ThemeMeta } from '../theme'
 import { setTvMode } from './mode'
+import { useSwitchProfile } from '../shell/SwitchProfile'
 
 // You, as on Apple TV: the person on the left third, and on the right two-thirds the groups of the apps'
 // You page (WittyMediaClient docs/APP-DESIGN.md, You and settings), each row opening the website's own page
@@ -44,6 +45,7 @@ export default function You() {
   const role = admin ? 'Administrator' : user.kind === 'kids' ? 'Kids' : user.kind === 'guest' ? 'Guest' : 'Adult'
   const signOut = async () => { try { await api.post('/logout') } catch { /* signed out here all the same */ } nav('/', { replace: true }); setUser(null) }
   const leave = () => { setTvMode(false); nav('/', { replace: true }) }
+  const sw = useSwitchProfile()
 
   const only = <T,>(on: boolean, rows: T[]) => (on ? rows : [])
   const groups: Group[] = [
@@ -103,11 +105,12 @@ export default function You() {
     <div className="tvm-you-page">
       <h1 className="sr-only">You</h1>
       <section className="tvm-you-head" aria-label={shown}>
-        <Avatar name={shown || '?'} big />
+        <Avatar name={shown || '?'} avatar={user.avatar} big />
         <h2>{shown}</h2>
         <p>@{user.name} · {role}</p>
         <div className="tvm-you-actions" data-nav-group>
-          <button type="button" className="btn" onClick={signOut}><IconUsers /> Switch profile</button>
+          <button type="button" className="btn" onClick={sw.start}><IconUsers /> Switch profile</button>
+          {sw.dialog}
           <button type="button" className="btn" onClick={leave}>Leave TV mode</button>
           <button type="button" className="btn danger" onClick={signOut}><IconLogout /> Sign out</button>
         </div>

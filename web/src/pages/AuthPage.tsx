@@ -8,9 +8,10 @@ import { Brand, BrandMark, VersionTag } from '../components/common'
 import { IconBack } from '../icons'
 import { useApp } from '../state'
 import { avatarColor } from '../ui/avatarColor'
+import { AvatarShape, parseAvatar } from '../ui/avatars'
 import { useTvMode } from '../tvmode/mode'
 
-type Profile = { id: number; name: string; displayName?: string; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean }
+type Profile = { id: number; name: string; displayName?: string; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; avatar?: string }
 
 // Sign-in. On the home network this is a "Who's watching?" screen with a
 // tile per profile; elsewhere (or when an admin chose it) the classic name
@@ -53,7 +54,7 @@ export default function AuthPage() {
           {profiles!.map((p, i) => (
             <li key={p.id}>
               <button type="button" className="who-tile" autoFocus={i === 0} onClick={() => pick(p)}>
-                <Avatar name={profileName(p)} big />
+                <Avatar name={profileName(p)} avatar={p.avatar} big />
                 <span className="who-name">{profileName(p)}</span>
                 {tv && profileName(p) !== p.name && <span className="who-user">@{p.name}</span>}
                 {p.kind !== 'adult' && <span className={'who-kind kind-' + p.kind}>{p.kind === 'kids' ? 'Kids' : 'Guest'}</span>}
@@ -131,7 +132,7 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
     <form className="auth-card" onSubmit={submit}>
       {onBack && <button type="button" className="ibtn auth-back" onClick={onBack} aria-label="Back to profiles"><IconBack /></button>}
       {profile
-        ? <div className="auth-profile"><Avatar name={profileName(profile)} big /><h2>{profileName(profile)}</h2>{tv && profileName(profile) !== profile.name && <span className="who-user">@{profile.name}</span>}</div>
+        ? <div className="auth-profile"><Avatar name={profileName(profile)} avatar={profile.avatar} big /><h2>{profileName(profile)}</h2>{tv && profileName(profile) !== profile.name && <span className="who-user">@{profile.name}</span>}</div>
         : <div className="brand"><BrandMark /><Brand name={brandName} /></div>}
       <p>{profile ? 'Enter your password or PIN.' : 'Sign in to your media server.'}</p>
       {plainConnection && <p className="auth-plain" role="alert"><b>This connection isn’t encrypted.</b> Your password can be read or changed by anyone between this device and the server. The owner allowed this. Sign in only on a network you trust.</p>}
@@ -150,6 +151,9 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
 
 // Avatar: the profile's initial on a colour picked from its name, so each
 // person keeps the same colour on every device (see ui/avatarColor).
-export function Avatar({ name, big }: { name: string; big?: boolean }) {
+// A profile that chose a picture shows that instead (ui/avatars).
+export function Avatar({ name, big, avatar }: { name: string; big?: boolean; avatar?: string }) {
+  const chosen = parseAvatar(avatar)
+  if (chosen) return <span className={'avatar-tile' + (big ? ' big' : '')} style={{ background: chosen.background }} aria-hidden="true"><AvatarShape shape={chosen.shape} /></span>
   return <span className={'avatar-tile' + (big ? ' big' : '')} style={{ background: avatarColor(name) }} aria-hidden="true">{name.trim()[0]?.toUpperCase() || '?'}</span>
 }

@@ -1,0 +1,30 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* Settings, Profiles: the parts of a profile's limits, and what a parent sees of its day. */
+.pc-tabs { margin-bottom: var(--sp-3); }
+.pc-kinds, .pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--sp-3) var(--sp-4); align-items: start; }
+.pc-kind { display: grid; gap: var(--sp-1); }
+.pc-switches, .pc-collections { display: grid; gap: var(--sp-2); }
+.pc-switch { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); min-height: 44px; padding: var(--sp-2) var(--sp-3); background: var(--bg-3); border-radius: var(--r-md); }
+.pc-switch .hint { color: var(--fg-3); font-size: var(--text-xs); }
+.pc-time { display: grid; gap: var(--sp-3); }
+
+.pc-avatars { border: 0; padding: 0; margin: 0; display: grid; gap: var(--sp-2); }
+.pc-avatars legend { font-weight: 600; padding: 0; margin-bottom: var(--sp-2); }
+.pc-avatar-grid { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.pc-avatar, .pc-colour { display: grid; place-items: center; min-width: 44px; min-height: 44px; padding: var(--sp-1); background: none; border: 2px solid transparent; border-radius: var(--r-md); color: var(--fg); cursor: pointer; }
+.pc-avatar.none { padding: 0 var(--sp-3); background: var(--bg-3); font-size: var(--text-sm); }
+.pc-avatar.on, .pc-colour.on { border-color: var(--fg); }
+.pc-avatar .avatar-tile { width: 36px; height: 36px; }
+.pc-colour span { width: 28px; height: 28px; border-radius: 50%; }
+
+.pc-activity { display: grid; gap: var(--sp-5); max-height: 64vh; overflow: auto; padding-right: var(--sp-1); }
+.pc-activity h3 { margin: 0 0 var(--sp-2); font-size: var(--text-base); }
+.pc-activity p { margin: 0 0 var(--sp-2); }
+.pc-give { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.pc-day { margin-bottom: var(--sp-3); }
+.pc-day-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-1); }
+.pc-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-1); }
+.pc-rows li { display: flex; justify-content: space-between; gap: var(--sp-4); padding: var(--sp-2) var(--sp-3); background: var(--bg-3); border-radius: var(--r-sm); font-size: var(--text-sm); }
+.pc-rows li span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.pc-rows li .muted { flex: none; }

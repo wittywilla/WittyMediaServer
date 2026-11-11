@@ -90,6 +90,8 @@ const FEATURES: { id: string; label: string; hint: string; adultOnly?: boolean; 
   { id: 'downloads', label: 'Downloads', hint: 'Save a copy of a photo or video to their device.' },
   { id: 'sharing', label: 'Share links', hint: 'Make links that open a photo, video or album without signing in.', adultOnly: true },
   { id: 'comments', label: 'Comments', hint: 'Read and write comments.', kidsLabel: 'Read comments. Kids and Guest profiles never write them.' },
+  { id: 'syncplay', label: 'Watch parties', hint: 'Start a watch party, or join one with its code. They only ever see what their limits allow.' },
+  { id: 'remoteControl', label: 'Playing on other devices', hint: 'Play on and steer other devices. Off, their own devices can still be played on by whoever is allowed to.' },
   { id: 'remote', label: 'Use away from home', hint: 'Off keeps this profile to your home network: it is signed out everywhere else.' },
   { id: 'editProfile', label: 'Change their own name and picture', hint: 'Their username and password stay with whoever manages them.' },
 ]
@@ -229,7 +231,7 @@ const hm = (sec: number) => {
 }
 const dayText = (day: number) => new Date(Math.floor(day / 10000), Math.floor(day / 100) % 100 - 1, day % 100).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })
 const REFUSED: Record<string, string> = { blocked: 'Asked for a hidden title', time: 'Tried to play when time was up', feature: 'Tried something that is turned off', extra: 'Was given more time' }
-const WHY: Record<string, string> = { allowance: 'the day’s time was used up', bedtime: 'it was past bedtime', early: 'it was too early', games: 'games', recordings: 'recording', downloads: 'downloads', sharing: 'share links', comments: 'comments' }
+const WHY: Record<string, string> = { allowance: 'the day’s time was used up', bedtime: 'it was past bedtime', early: 'it was too early', games: 'games', recordings: 'recording', downloads: 'downloads', sharing: 'share links', comments: 'comments', syncplay: 'watch parties', remoteControl: 'playing on other devices' }
 
 type Activity = {
   days: { day: number; screenSec: number; extraSec: number }[]

@@ -9,17 +9,20 @@ import { clockOffset, syncStep, type ClockSample } from '../player/sync'
 import { toast } from '../state'
 import { call, readEvents, sleep, steadyNow } from './stream'
 
-export type PartyMember = { id: string; userId: number; name: string; host: boolean; you?: boolean; state: 'ready' | 'loading' | 'buffering' | 'lagging' | 'away' | 'blocked'; rttMs: number }
+export type PartyMember = { id: string; userId: number; name: string; host: boolean; you?: boolean; state: 'ready' | 'loading' | 'buffering' | 'lagging' | 'away' | 'blocked' | 'time-up'; rttMs: number }
 export type PartyState = { rev: number; seq: number; itemId: number; index: number; positionSec: number; atMs: number; paused: boolean; waiting: boolean; rate: number }
 export type PartyRoom = {
   id: string; code: string; name: string; policy: 'host' | 'everyone'; waitForAll: boolean; hostId: string; you: string; canControl: boolean; blocked: boolean
+  // This profile's screen time is over: it sits out, keeping its place, until it has more.
+  timeUp?: boolean
   members: PartyMember[]; queue: number[]; items: { id: number; title?: string; kind?: string; runtimeSec?: number }[]; state: PartyState; serverTimeMs: number; leadMs: number
 }
 export type PartyListing = { id: string; name: string; hostName: string; members: number; memberId?: string; invited?: boolean }
-export type PartyInfo = { enabled: boolean; canCreate: boolean; rooms: PartyListing[] }
+// canJoin is false when watch parties are turned off for this profile. An older server doesn't say.
+export type PartyInfo = { enabled: boolean; canCreate: boolean; canJoin?: boolean; rooms: PartyListing[] }
 
 export const MEMBER_WORDS: Record<PartyMember['state'], string> = {
-  ready: 'Ready', loading: 'Loading', buffering: 'Buffering', lagging: 'Catching up', away: 'Away', blocked: 'Can’t watch this one',
+  ready: 'Ready', loading: 'Loading', buffering: 'Buffering', lagging: 'Catching up', away: 'Away', blocked: 'Can’t watch this one', 'time-up': 'Out of screen time',
 }
 
 const ROOM_KEY = 'wms.party.room'
@@ -96,6 +99,7 @@ async function pings(ctl: AbortController) {
 const CLOSED: Record<string, string> = {
   closed: 'The watch party has ended.', removed: 'You were removed from the watch party.', 'signed-out': 'The watch party ended for this device.',
   'server-stopping': 'The server is restarting, which ends the watch party.',
+  'feature-off': 'Watch parties have been turned off for this profile.',
 }
 
 async function listen(ctl: AbortController) {

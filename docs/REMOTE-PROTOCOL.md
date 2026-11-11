@@ -394,7 +394,7 @@ Every refusal is `{ "error": "<a sentence fit to show>", "code": "<for programs>
 | 403 | `disabled` | Remote control is turned off on this server |
 | 403 | `no-session` | A device route was called with something that isn't a sign-in |
 | 403 | `not-allowed-there` | The account that device is signed in as may not play that |
-| 403 | `screen-time` | The caller's screen time is over: nothing can be started. `screenTime` isn't sent here; ask `GET /me/screen-time` |
+| 403 | `screen-time` | The caller's screen time is over: nothing can be started. The answer has `screenTime`, as from a playback route |
 | 403 | `screen-time-there` | Screen time is over for the profile the device is signed in as |
 | 403 | `feature-off` | Playing on other devices is turned off for this profile (`feature: "remoteControl"`) |
 | 404 | `no-device` | No such device, or not one you may control, or (on device routes) not yours |

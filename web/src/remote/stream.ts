@@ -27,7 +27,12 @@ export async function call<T>(method: string, path: string, body?: unknown, sign
   const text = await res.text()
   let data: any = null
   try { data = text ? JSON.parse(text) : null } catch { data = { error: text } }
-  if (!res.ok) throw new ApiError(res.status, data?.error || res.statusText, data)
+  if (!res.ok) {
+    // This profile's time is up: the screen-time watcher (shell/ScreenTime.tsx) says so, as
+    // it does when a page's own request is refused for it.
+    if (res.status === 403 && data?.code === 'screen-time' && data.screenTime) window.dispatchEvent(new CustomEvent('wms:screen-time', { detail: data.screenTime }))
+    throw new ApiError(res.status, data?.error || res.statusText, data)
+  }
   return data as T
 }
 

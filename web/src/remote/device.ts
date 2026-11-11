@@ -171,4 +171,7 @@ export function stopDevice() {
   wanted = false
   document.removeEventListener('visibilitychange', sync)
   stop(true)
+  // Signed out, or another profile: whoever is here next is a new device, not this one.
+  deviceId = ''
+  try { sessionStorage.removeItem(ID_KEY) } catch { /* nothing was kept */ }
 }

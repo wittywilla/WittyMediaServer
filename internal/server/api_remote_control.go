@@ -662,6 +662,13 @@ func (s *Server) handleRemoteCommand(w http.ResponseWriter, r *http.Request) {
 		// Resume, next and previous name no item (the device plays its own queue, which
 		// its own limits made), but they start playing, so screen time is asked about.
 		if status, code, msg := s.checkPlay(ctx, u, d, cmd.Items()); status != 0 {
+			if code == "screen-time" {
+				// The caller's own time: the same answer as from a playback route, so an
+				// app shows the same notice.
+				v := accessFor(u).Time.Check(s.clock(), s.parentalInit().tracker.Usage(ctx, u.ID))
+				writeJSON(w, status, map[string]any{"error": msg, "code": code, "screenTime": screenTimeView(v)})
+				return
+			}
 			remoteError(w, status, code, msg)
 			return
 		}

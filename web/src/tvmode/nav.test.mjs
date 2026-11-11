@@ -4,6 +4,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { backStep, stepTab, tabPath, tabRootOf, tvKey, TV_TABS } from './nav.ts'
+import { tabsFromMenu } from './nav.ts'
 
 test('the bar is Home, Libraries, Games, Live TV, Search, then You', () => {
   assert.deepEqual(TV_TABS.map((t) => t.label), ['Home', 'Libraries', 'Games', 'Live TV', 'Search', 'You'])
@@ -57,4 +58,24 @@ test('the bumpers and Start, but not while typing', () => {
   assert.equal(tvKey({ key: 'PageDown' }, true), null)
   assert.equal(tvKey({ key: 'Enter' }, false), null)
   assert.equal(tvKey({ key: 'ArrowUp' }, false), null)
+})
+
+test('a server\'s menu becomes the bar: its order, the end entries last, Settings behind You', () => {
+  const menu = [
+    { id: 'home', label: 'Home', to: '/', icon: 'home', placement: 'primary' },
+    { id: 'search', label: 'Search', to: '/search', icon: 'search', placement: 'end' },
+    { id: 'libraries', label: 'Libraries', to: '/libraries', icon: 'library', placement: 'primary' },
+    { id: 'you', label: 'You', to: '/you', placement: 'end', screen: 'profiles' },
+    { id: 'settings', label: 'Settings', to: '/settings', placement: 'end', screen: 'settings' },
+  ]
+  const tabs = tabsFromMenu(menu)
+  assert.deepEqual(tabs.map((t) => t.id), ['home', 'search', 'libraries', 'you'])
+  assert.equal(tabRootOf('/libraries', tabs), 'libraries')
+  assert.equal(tabRootOf('/library/3', tabs), null)
+  assert.equal(stepTab('home', 1, tabs), 'search')
+  assert.equal(stepTab('you', 1, tabs), null)
+  assert.equal(tabPath('libraries', tabs), '/libraries')
+  assert.equal(backStep({ tab: 'home', inBar: true, first: 'home' }), 'leave')
+  // With no You to reach it from, Settings stays in the bar.
+  assert.deepEqual(tabsFromMenu(menu.filter((m) => m.id !== 'you')).map((t) => t.id), ['home', 'search', 'libraries', 'settings'])
 })

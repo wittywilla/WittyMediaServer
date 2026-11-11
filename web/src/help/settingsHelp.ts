@@ -3,6 +3,7 @@
 // The guide for each settings page: its place in the tour, or a guide of its own.
 export const settingsHelp: Record<string, string> = {
   libraries: 'libraries',
+  pages: 'pages',
   metadata: 'metadata',
   playback: 'settings#playback-and-discs',
   channels: 'channels',

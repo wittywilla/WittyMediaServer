@@ -88,8 +88,6 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 .sdui-hero:hover .sdui-hero-arrow { opacity: .85; }
 .sdui-hero-arrow svg { width: 20px; height: 20px; }
 .sdui.ff-tv .sdui-hero { height: auto; aspect-ratio: 1920 / 620; min-height: 0; margin-inline: 0; border-radius: var(--r-lg); }
-.sdui.ff-phone .sdui-hero { height: auto; min-height: 0; aspect-ratio: 2 / 3; max-height: 70vh; }
-.sdui.ff-phone .sdui-hero.banner { aspect-ratio: 16 / 9; }
 
 /* A title's header. */
 .sdui-detail .detail.compact { grid-template-columns: minmax(0, 1fr); margin-top: 0; }
@@ -200,4 +198,4 @@ a.sdui-row:hover, button.sdui-row:hover { background: var(--hover); }
 .sdui-arrange .nav-custom-row.drop { outline: 2px dashed var(--focus); }
 .sdui-arrange .nav-custom-row.locked { background: transparent; border: 1px dashed var(--border); }
 .sdui-locked { font-size: var(--text-sm); flex: none; }
-.sdui-card-menu { z-index: 60; }
+.sdui-card-menu { z-index: var(--z-popover); }

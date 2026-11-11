@@ -37,6 +37,13 @@ export const ENTRIES: Entry[] = [
   // Libraries and server
   { page: 'libraries', title: 'Folders of the same kind', section: 'Folders of the same kind', words: 'combine separate libraries grouping' },
   { page: 'libraries', title: 'Add a library', words: 'folder scan media movies shows music' },
+  { page: 'pages', title: 'Change Home for everyone', words: 'home page rows sections shelves hero spotlight layout arrange server-driven sdui editor customise customize everyone', admin: true },
+  { page: 'pages', title: 'Change a library’s page or a title’s page', words: 'library page detail page item page rows grid filter tabs sections editor', admin: true },
+  { page: 'pages', title: 'The menu for everyone', words: 'navigation menu entries tab bar sidebar top menu order hide add entry phone tablet television', admin: true },
+  { page: 'pages', title: 'Make a page of your own', words: 'new page custom page family night collection page create', admin: true },
+  { page: 'pages', title: 'Ready-made pages and sections', words: 'presets gallery templates streaming minimal kids music live tv photo frame', admin: true },
+  { page: 'pages', title: 'Draft, preview and publish', words: 'draft preview publish discard try phone tablet television desktop', admin: true },
+  { page: 'pages', title: 'Page history, import and export', words: 'history revisions go back rollback undo import export file json backup pages', admin: true },
   { page: 'metadata', title: 'Built-in agents', section: 'Built-in agents', words: 'tvmaze wikidata wikipedia musicbrainz anilist radio browser posters plots' },
   { page: 'metadata', title: 'Anime', section: 'Anime', words: 'anilist title language romaji japanese english' },
   { page: 'metadata', title: 'Save information and artwork next to your media', section: 'Saving information', words: 'nfo poster fanart files write media folders' },

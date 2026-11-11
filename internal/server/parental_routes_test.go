@@ -190,6 +190,7 @@ var plainRoutes = []string{
 	"GET /api/p2p/devices",
 	"POST /api/p2p/devices",
 	"POST /api/p2p/invite",
+	"POST /api/p2p/join",
 	"DELETE /api/remote-control/devices/{id}",
 	"DELETE /api/syncplay/rooms/{id}",
 	"GET /api/auth/pair/{session}/info",

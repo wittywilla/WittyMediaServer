@@ -12,6 +12,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -24,6 +26,41 @@ type Listener interface {
 	// path is one of connecting, offline, local, direct, relayed.
 	OnState(state string)
 }
+
+// A phone or a TV box ends an app that takes too much memory, and gives no
+// warning worth the name: an Apple TV HD has 2 GB for everything. So inside an
+// app the Go part collects sooner than a program of its own would (at half
+// again what is live, not double) and is told to keep under a soft limit. The
+// node's own limits (docs/P2P.md, Limits) are what keep it small; this keeps
+// what it has let go of from lingering.
+const defaultMemoryLimitMB = 64
+
+var tuneOnce sync.Once
+
+func tune() {
+	tuneOnce.Do(func() {
+		if os.Getenv("GOGC") == "" {
+			debug.SetGCPercent(50)
+		}
+		if os.Getenv("GOMEMLIMIT") == "" {
+			debug.SetMemoryLimit(defaultMemoryLimitMB << 20)
+		}
+	})
+}
+
+// SetMemoryLimit changes the soft limit on the Go part's memory, in megabytes,
+// for an app that knows its device better. Below 16 is taken as 16.
+func SetMemoryLimit(megabytes int) {
+	tune()
+	if megabytes < 16 {
+		megabytes = 16
+	}
+	debug.SetMemoryLimit(int64(megabytes) << 20)
+}
+
+// FreeMemory gives back to the system what the Go part holds and isn't using.
+// Call it when the system warns that memory is short.
+func FreeMemory() { debug.FreeOSMemory() }
 
 // NewKey makes this device's connection key. Keep it in the system's secure
 // storage (Keychain, Keystore): the server knows the device by it.
@@ -56,6 +93,7 @@ type Session struct {
 //
 // It returns once the local address is listening. listener may be nil.
 func Start(config string, listener Listener) (*Session, error) {
+	tune()
 	var cfg wittyconnect.Config
 	if err := json.Unmarshal([]byte(config), &cfg); err != nil {
 		return nil, errors.New("the configuration isn't valid JSON")
@@ -161,3 +199,61 @@ func (s *Session) Close() {
 		c.Close()
 	}
 }
+
+// NewJoinCode makes the code a device with no keyboard shows ("K7QM-2XHD"),
+// for someone signed in to type into the server. Pass it to StartJoin.
+func NewJoinCode() (string, error) { return wittyconnect.NewJoinCode() }
+
+// Joining is a device showing a code and waiting for its server.
+type Joining struct {
+	cancel context.CancelFunc
+	done   chan struct{}
+	answer string
+	err    error
+}
+
+// StartJoin begins looking for the server that is told this device's code.
+// config is JSON:
+//
+//	{"key":"...","code":"K7QM-2XHD","name":"Living room","platform":"tvOS",
+//	 "noRelay":false,"noHolePunch":false,"staticRelays":[]}
+//
+// It returns at once. Wait blocks until there is an answer; Cancel gives up.
+// The code is good for fifteen minutes, after which Wait fails.
+func StartJoin(config string) (*Joining, error) {
+	tune()
+	var cfg wittyconnect.JoinConfig
+	if err := json.Unmarshal([]byte(config), &cfg); err != nil {
+		return nil, errors.New("the configuration isn't valid JSON")
+	}
+	if _, err := wittyconnect.DeviceID(cfg.Key); err != nil {
+		return nil, errors.New("this device has no connection key")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	j := &Joining{cancel: cancel, done: make(chan struct{})}
+	go func() {
+		defer close(j.done)
+		defer cancel()
+		res, err := wittyconnect.Join(ctx, cfg)
+		if err != nil {
+			j.err = err
+			return
+		}
+		b, _ := json.Marshal(res)
+		j.answer = string(b)
+	}()
+	return j, nil
+}
+
+// Wait blocks until the server has answered, so call it off the main thread.
+// The answer is JSON: {"ok":true,"serverId":"12D3KooW...","code":"123456",
+// "serverName":"...","addrs":["/ip4/..."]} to start a connection with and a
+// sign-in code to redeem over it, or {"ok":false,"reason":"expired","error":"..."}.
+// An error means nobody typed the code in before it ran out, or Cancel was called.
+func (j *Joining) Wait() (string, error) {
+	<-j.done
+	return j.answer, j.err
+}
+
+// Cancel stops looking. Wait then returns an error.
+func (j *Joining) Cancel() { j.cancel() }

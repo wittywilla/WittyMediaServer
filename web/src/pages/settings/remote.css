@@ -97,6 +97,7 @@
 /* Peer-to-peer connections: one section holding several short lists. */
 .p2p-head { margin: var(--sp-5) 0 var(--sp-2); font-size: var(--text-sm); font-weight: 700; }
 .p2p-gap { margin-top: var(--sp-3); }
+.p2p-code { max-width: 12em; font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
 .p2p-more { margin-top: var(--sp-4); }
 .p2p-more > summary { cursor: pointer; font-size: var(--text-sm); font-weight: 600; color: var(--fg-2); }
 

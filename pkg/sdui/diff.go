@@ -25,7 +25,7 @@ const (
 	PatchRemove PatchOp = "remove"
 	// PatchReplace replaces the node at Path ("#id") with Node — all fields
 	// except Children, which are patched separately — or, for document-level
-	// paths ("/page", "/layout", "/theme", "/personal", "/catalog", "/meta",
+	// paths ("/page", "/layout", "/theme", "/personal", "/screenTime", "/catalog", "/meta",
 	// "/root"), sets Value (or Node for "/root"); a null Value clears the field.
 	PatchReplace PatchOp = "replace"
 	// PatchMove moves the node From ("#id") to Path ("#parent/children/i").
@@ -71,7 +71,7 @@ func Diff(old, new Document) []Patch {
 }
 
 // headFields are the document-level fields a patch can replace.
-var headFields = []string{"catalog", "page", "layout", "theme", "personal", "meta"}
+var headFields = []string{"catalog", "page", "layout", "theme", "personal", "screenTime", "meta"}
 
 // head is a document's fields other than its tree, as JSON values.
 func head(d Document) map[string]any {

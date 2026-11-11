@@ -290,6 +290,7 @@ Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 | `layout` | Layout | The [device profile](#device-profiles) the page was fitted to: lay out with these numbers. |
 | `theme` | ThemeScope, *omit* | `{scope, tokens}`: the page's theme scope and the colour tokens it overrides. |
 | `root` | Node | The tree. Its type is `Page`. |
+| `screenTime` | ScreenTime, *omit* | `{reason, message, nextAt}`, present when the profile's screen time is over: see [Profiles with limits](#profiles-with-limits). |
 | `personal` | PersonalInfo, *omit* | What the profile may change about this page and what it has changed: see [Personalisation](#personalisation). |
 | `meta` | Meta | `{etag, generatedAt, source, configRevision, ttlSeconds}`. `source` is `config` or `draft`. Ask again after `ttlSeconds` (0: only when something happens). |
 
@@ -586,6 +587,51 @@ hide and pin what isn't `locked`, and PUTs the result to `url`:
   does. Home's order and hidden rows from before pages were server-driven
   carry over: the built-in Home's sections have the same IDs.
 
+## Profiles with limits
+
+Titles are one half of a profile's limits ([PROFILES.md](PROFILES.md)), and
+every data source follows every kind of them: libraries, an age for each kind
+of media, genres hidden or the only ones allowed, tags, collections, single
+titles. A library, title or collection asked for by number that the profile
+may not open is 404, a games library included when games are off for it; so
+is a section's own page of items.
+
+The other half is what a profile may do. For a profile that has been kept
+from something, the server answers `feature` and `module` conditions as if
+the thing weren't on the server at all, `can` conditions say no, and the data
+sources and buttons that belong to it answer nothing. A page needs no
+conditions of its own for this, and one an administrator wrote is covered
+like the built-in ones.
+
+| For the profile | Conditions that are false | And |
+|---|---|---|
+| Games off | `can: games`; features `game-metadata`, `game-controller-profiles`, `game-settings`, `custom-game-cores`, `game-rigs`, `standalone-emulators`; modules `wittyplay`, `wittycouch`, `wittyrigs` | Games libraries are in no page, row or navigation entry; `continuePlaying` is empty. |
+| Live TV off | `can: liveTv`; features `live-tv`, `live-tv-stream-tokens`, `tv-favourites`, `tv-reminders`, `recordings`; modules `wittytv`, `wittytuner` | `liveNow` and channel search are empty; the built-in Live TV entry is not in the navigation. |
+| Recording off | `can: recordings`; feature `recordings` | `recordings` is empty. |
+| Watch parties off | `can: syncplay`; feature `syncplay` | No **Watch party** button. |
+| Playing on other devices off | `can: remoteControl`; feature `remote-protocol` | No **Play on…** button. |
+| Downloads or sharing off | `can: downloads`, `can: sharing` | No **Download** or **Share** button. |
+| Rearranging pages off | `can: editLayout` | `personal.editable` is false; see [Personalisation](#personalisation). |
+| Screen time over | feature `playback`; the flag `screenTimeUp` is true | See below. |
+
+All of this is decided after anything the client sent: a client can't claim a
+feature back through `capabilities`, nor set or clear `screenTimeUp`. A
+profile's own arrangement can't bring anything back either: it only orders,
+hides and pins sections that are on the page for that profile.
+
+**When screen time is over**, pages still render, so the profile can browse,
+but nothing in them offers to play: no **Play**, **Resume** or **Play from the
+start** button, no `play` action on a card, track or banner, no `playId`, and
+no `playRoute` on Top Shelf. The document carries `screenTime`: `{reason,
+message, nextAt}` (when there is time again, Unix seconds) for an app to show,
+and a section with `"when": {"flag": "screenTimeUp"}` is shown. The player is
+the app's own screen, so there is no page to refuse: the playback routes
+answer 403 with `code: "screen-time"`, as they do for any app. While there is
+time left nothing in a page changes with the clock, so its ETag holds; ask
+`GET /me/screen-time` for the time left.
+
+The feature `sdui-limits` in `/capabilities` says a server does all this.
+
 ## Theme scopes
 
 Colours come from the theme engine ([THEMES.md](THEMES.md)); a page never
@@ -619,7 +665,8 @@ is. The validator refuses a link that is neither.
 
 Every route is under `/api/v1/sdui`. `sdui`, `sdui-diff`, `sdui-pages`,
 `sdui-catalog`, `sdui-navigation`, `sdui-personal` and `sdui-editor` in
-`/capabilities` `features` say a server has them. Route by route:
+`/capabilities` `features` say a server has them, with `sdui-data`,
+`sdui-form-factors`, `sdui-topshelf` and `sdui-limits`. Route by route:
 [CLIENT-API.md](CLIENT-API.md#server-driven-ui) and `docs/openapi.json`.
 
 ### For every app
@@ -782,7 +829,7 @@ diff. Nodes are matched by `id`.
 | `remove` | `#<id>` | | Remove the node and its subtree. |
 | `replace` | `#<id>` | `node` | Replace every field of the node **except `children`**. |
 | `replace` | `/root` | `node` | Replace the whole tree. |
-| `replace` | `/page`, `/layout`, `/theme`, `/personal`, `/catalog`, `/meta` | `value` | Set the document-level field; `null` clears it. |
+| `replace` | `/page`, `/layout`, `/theme`, `/personal`, `/screenTime`, `/catalog`, `/meta` | `value` | Set the document-level field; `null` clears it. |
 | `move` | `#<parentId>/children/<n>` | `from: "#<id>"` | Move a child of the same parent to index `n`. |
 
 Patches apply in order; indices refer to the children as they stand after
@@ -2322,11 +2369,11 @@ Every source also takes `map`: `{"subtitle": "studio"}` puts another field of th
 | `admin` | bool | Administrator. Only administrators (on) or only everyone else (off). |
 | `feature` | string, at most 64 | Server feature. A name from /capabilities features, such as live-tv. |
 | `module` | string, at most 64 | Module installed. A module's ID, such as wittyplay. |
-| `can` | enum: games, recordings, downloads, sharing, comments, remote, editProfile, editLayout, liveTv | Profile may use. One of the profile's parental feature switches. |
+| `can` | enum: games, recordings, downloads, sharing, comments, syncplay, remoteControl, remote, editProfile, editLayout, liveTv | Profile may use. One of the profile's parental feature switches. |
 | `hasLibrary` | enum: movies, discs, shows, anime, videos, shorts, channels, musicvideos, commercials, music, audiobooks, podcasts, radio, books, photos, games | Has a library of kind. The profile can open at least one such library. |
 | `libraryKind` | enum: movies, discs, shows, anime, videos, shorts, channels, musicvideos, commercials, music, audiobooks, podcasts, radio, books, photos, games | This library is of kind. On a library page. |
 | `capability` | string, at most 64 | Device capability. Something the client said it has: hdr, touch, pointer, keyboard. |
-| `flag` | enum: setupIncomplete, scanning, librariesEmpty, hasQuery | The server says |
+| `flag` | enum: setupIncomplete, scanning, librariesEmpty, hasQuery, screenTimeUp | The server says |
 | `minWidth` | int 0 to 10000 | Window at least. Points wide. |
 | `maxWidth` | int 0 to 10000 | Window at most. Points wide. |
 | `timeFrom` | string, at most 5 | From time of day. HH:MM on the server's clock. |

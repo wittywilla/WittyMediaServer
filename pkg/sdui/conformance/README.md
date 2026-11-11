@@ -27,6 +27,18 @@ lists them). Every file has the same shape:
 }
 ```
 
+The files are stored compact, one line each, to keep the repository small.
+To read one:
+
+```sh
+jq . pkg/sdui/conformance/fixtures/home-tv-hd.json | less
+python3 -m json.tool pkg/sdui/conformance/fixtures/home-tv-hd.json   # without jq
+jq '.expected.layout.visible[] | select(.type == "Shelf")' pkg/sdui/conformance/fixtures/home-tv-hd.json
+```
+
+and to see what a contract change did to one, `git diff --word-diff=porcelain`
+or `diff <(git show HEAD~1:path | jq .) <(jq . path)`.
+
 There are two halves to every case.
 
 **The server's half: `input` → `expected.document`.** The Go tests in this

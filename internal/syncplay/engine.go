@@ -98,6 +98,7 @@ const (
 	MemberLagging   = "lagging"   // the room stopped waiting for it
 	MemberAway      = "away"      // not heard from lately; its seat is kept for a while
 	MemberBlocked   = "blocked"   // may not see what's playing
+	MemberTimeUp    = "time-up"   // its account's screen time is over for now
 )
 
 var (
@@ -115,6 +116,7 @@ var (
 	ErrStale       = errors.New("someone else changed the watch party first")
 	ErrNoMember    = errors.New("no such member")
 	ErrTooManyInvs = errors.New("too many people are invited already")
+	ErrTimeUp      = errors.New("this profile's screen time is over")
 )
 
 // User is who is acting: an account, and the device it is on. Seat is what makes a seat
@@ -135,6 +137,7 @@ type member struct {
 	lagging  bool
 	away     bool // its stream closed; cleared when it is heard from
 	blocked  bool
+	timeUp   bool // its account's screen time is over: it sits out until it has more
 	cooldown time.Time
 	rttMs    float64
 	sees     []bool // by queue place: may this account see it
@@ -272,7 +275,7 @@ func (r *room) posAt(now time.Time) float64 {
 func (r *room) freeze(now time.Time) { r.pos, r.at = r.posAt(now), now }
 
 // counts: whether the room waits for this member.
-func (m *member) counts() bool { return !m.away && !m.blocked && !m.lagging }
+func (m *member) counts() bool { return !m.away && !m.blocked && !m.timeUp && !m.lagging }
 
 func (r *room) gateOpen() bool {
 	for _, m := range r.members {
@@ -407,16 +410,19 @@ type MemberView struct {
 
 // View is a room as one member sees it. What they may not see isn't in it.
 type View struct {
-	ID         string       `json:"id"`
-	Code       string       `json:"code"`
-	Name       string       `json:"name"`
-	Policy     string       `json:"policy"`
-	WaitForAll bool         `json:"waitForAll"`
-	HostID     string       `json:"hostId"`
-	You        string       `json:"you"`
-	CanControl bool         `json:"canControl"`
-	Blocked    bool         `json:"blocked"` // you may not see what's playing now
-	Members    []MemberView `json:"members"`
+	ID         string `json:"id"`
+	Code       string `json:"code"`
+	Name       string `json:"name"`
+	Policy     string `json:"policy"`
+	WaitForAll bool   `json:"waitForAll"`
+	HostID     string `json:"hostId"`
+	You        string `json:"you"`
+	CanControl bool   `json:"canControl"`
+	Blocked    bool   `json:"blocked"` // you may not see what's playing now
+	// TimeUp: your screen time is over. The room goes on without you, and you are told
+	// nothing more of what it plays until you have time again.
+	TimeUp  bool         `json:"timeUp,omitempty"`
+	Members []MemberView `json:"members"`
 	// Queue holds item ids, with 0 where this member may not see the item.
 	Queue        []int64 `json:"queue"`
 	State        State   `json:"state"`
@@ -428,6 +434,8 @@ func (m *member) state() string {
 	switch {
 	case m.blocked:
 		return MemberBlocked
+	case m.timeUp:
+		return MemberTimeUp
 	case m.away:
 		return MemberAway
 	case m.lagging:
@@ -441,12 +449,12 @@ func (m *member) state() string {
 }
 
 func (r *room) mayControl(m *member) bool {
-	return !m.blocked && (r.policy == PolicyEveryone || m.id == r.host)
+	return !m.blocked && !m.timeUp && (r.policy == PolicyEveryone || m.id == r.host)
 }
 
 func (e *Engine) view(r *room, me *member, now time.Time) View {
 	v := View{ID: r.id, Code: r.code, Name: r.name, Policy: r.policy, WaitForAll: r.waitForAll, HostID: r.host, You: me.id,
-		CanControl: r.mayControl(me), Blocked: me.blocked, ServerTimeMs: now.UnixMilli(), LeadMs: e.lead(r).Milliseconds(),
+		CanControl: r.mayControl(me), Blocked: me.blocked, TimeUp: me.timeUp, ServerTimeMs: now.UnixMilli(), LeadMs: e.lead(r).Milliseconds(),
 		State: State{Rev: r.rev, Seq: r.seq, Index: r.index, PositionSec: r.pos, AtMs: r.at.UnixMilli(), Paused: r.paused, Waiting: r.waiting, Rate: r.rate}}
 	v.Queue = make([]int64, len(r.queue))
 	for i, id := range r.queue {
@@ -454,7 +462,7 @@ func (e *Engine) view(r *room, me *member, now time.Time) View {
 			v.Queue[i] = id
 		}
 	}
-	if !me.blocked {
+	if !me.blocked && !me.timeUp {
 		v.State.ItemID = r.queue[r.index]
 	}
 	v.Members = make([]MemberView, 0, len(r.members))
@@ -964,6 +972,9 @@ func (e *Engine) Do(roomID, memberID string, userID int64, c Command) (View, err
 	}
 	e.heard(r, m, now)
 	if !r.mayControl(m) {
+		if m.timeUp {
+			return View{}, ErrTimeUp
+		}
 		if m.blocked {
 			return View{}, ErrCantSee
 		}
@@ -1103,6 +1114,130 @@ func (e *Engine) Ping(roomID, memberID string, userID int64, rttMs float64) erro
 		m.rttMs = min(rttMs, 10000)
 	}
 	return nil
+}
+
+// Seated is every account with a seat in some room, once each. The server asks it so as to
+// look at those accounts' screen time and switches, and nobody else's.
+func (e *Engine) Seated() []int64 {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	seen := map[int64]bool{}
+	var out []int64
+	for _, r := range e.rooms {
+		for _, m := range r.members {
+			if !seen[m.user.ID] {
+				seen[m.user.ID] = true
+				out = append(out, m.user.ID)
+			}
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
+}
+
+// SetTimeUp says whether an account's screen time is over. While it is, its seats sit out:
+// the room doesn't wait for them, they can't steer it, and they aren't told what it plays.
+// They keep their seats, so that more time from a parent puts them straight back.
+func (e *Engine) SetTimeUp(userID int64, up bool) {
+	now := e.cfg.Now()
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	for _, r := range e.rooms {
+		touched := false
+		for _, m := range r.members {
+			if m.user.ID == userID && m.timeUp != up {
+				m.timeUp, touched = up, true
+				if !up {
+					m.ready, m.stalled = false, false // its player has to load again
+					m.lagging = r.playing()           // and catches up without stopping the others
+				}
+			}
+		}
+		if touched {
+			r.changed()
+			e.settle(r, now)
+		}
+	}
+}
+
+// Recheck asks again what an account may see, in every room it has a seat in: after its
+// limits changed. A member who may no longer see what is playing is blocked at once, like
+// one who never could.
+func (e *Engine) Recheck(userID int64) {
+	type seat struct {
+		room, member string
+		queue        []int64
+	}
+	e.mu.Lock()
+	var seats []seat
+	for _, r := range e.rooms {
+		for _, m := range r.members {
+			if m.user.ID == userID {
+				seats = append(seats, seat{r.id, m.id, slices.Clone(r.queue)})
+			}
+		}
+	}
+	e.mu.Unlock()
+	if len(seats) == 0 {
+		return
+	}
+	// Asked without the lock: it reads the database.
+	sees := make([][]bool, len(seats))
+	for i, st := range seats {
+		sees[i] = e.seesAll(userID, st.queue)
+	}
+	now := e.cfg.Now()
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	for i, st := range seats {
+		r := e.rooms[st.room]
+		if r == nil {
+			continue
+		}
+		m := r.members[st.member]
+		if m == nil || !slices.Equal(r.queue, st.queue) {
+			continue // the queue changed meanwhile, and that asked afresh itself
+		}
+		if slices.Equal(m.sees, sees[i]) {
+			continue
+		}
+		m.sees = sees[i]
+		was := m.blocked
+		r.reblock()
+		if m.blocked && !was {
+			m.ready, m.stalled = false, false
+		}
+		r.changed()
+		e.settle(r, now)
+	}
+}
+
+// DropSeats takes away every seat that match says to: a sign-in that ended, an account that
+// was deleted or may no longer use watch parties. It says how many went.
+func (e *Engine) DropSeats(match func(User) bool) int {
+	now := e.cfg.Now()
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	n := 0
+	for _, r := range e.rooms {
+		for _, m := range r.sorted() {
+			if match(m.user) {
+				e.removeMember(r, m, now)
+				n++
+			}
+		}
+	}
+	return n
+}
+
+// Uninvite takes back every invitation an account has: it was deleted, or may no longer
+// use watch parties.
+func (e *Engine) Uninvite(userID int64) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	for _, r := range e.rooms {
+		delete(r.invited, userID)
+	}
 }
 
 // Listen is a member's stream opening. The channel says "look again" and closes when the

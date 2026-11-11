@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -20,11 +21,23 @@ import (
 )
 
 // testClock is a clock a test turns.
-type testClock struct{ t time.Time }
+// The server also reads it from work it does in the background, so it is locked.
+type testClock struct {
+	mu sync.Mutex
+	t  time.Time
+}
 
-func (c *testClock) now() time.Time         { return c.t }
-func (c *testClock) add(d time.Duration)    { c.t = c.t.Add(d) }
-func (c *testClock) set(day int, at string) { c.t = mustTime(day, at) }
+func (c *testClock) now() time.Time { c.mu.Lock(); defer c.mu.Unlock(); return c.t }
+func (c *testClock) add(d time.Duration) {
+	c.mu.Lock()
+	c.t = c.t.Add(d)
+	c.mu.Unlock()
+}
+func (c *testClock) set(day int, at string) {
+	c.mu.Lock()
+	c.t = mustTime(day, at)
+	c.mu.Unlock()
+}
 func mustTime(day int, at string) time.Time { // day 2 is Monday 2 November 2026
 	t, err := time.ParseInLocation("2006-01-02 15:04", fmt.Sprintf("2026-11-%02d %s", day, at), time.Local)
 	if err != nil {

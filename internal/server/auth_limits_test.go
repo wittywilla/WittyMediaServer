@@ -145,6 +145,22 @@ func TestQuietDoesntStartCountsOverSoon(t *testing.T) {
 	}
 }
 
+// The ticket that opens an emulator's desktop is the only thing that does, and it is in the
+// address: it must not reach the log, by either name of the route or inside an error's text.
+func TestEmulatorTicketsAreHiddenInTheLog(t *testing.T) {
+	ticket := strings.Repeat("0123456789abcdef", 4)
+	for _, p := range []string{
+		"/api/modules/wittyplay/kasm/abcdef0123/" + ticket + "/vnc.html",
+		"/api/v1/modules/wittyplay/kasm/abcdef0123/" + ticket + "/websockify",
+		`Get "http://127.0.0.1:41000/kasm/abcdef0123/` + ticket + `/": connection refused`,
+	} {
+		got := redactPath(p)
+		if strings.Contains(got, ticket) || !strings.Contains(got, "abcdef0123") {
+			t.Errorf("%s came out as %s", p, got)
+		}
+	}
+}
+
 func TestShareSecretsAreHiddenUnderTheVersionedAPI(t *testing.T) {
 	for _, p := range []string{"/api/share/SECRET/image/4", "/api/v1/share/SECRET/image/4", "/api/v2/share/SECRET", "/s/SECRET"} {
 		if got := redactPath(p); strings.Contains(got, "SECRET") {

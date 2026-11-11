@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -43,6 +44,8 @@ type sduiResolver struct {
 	gotLibs bool
 	subject *sdui.Item
 	gotSubj bool
+	// noPlay: the profile's screen time is over, so nothing offers to play.
+	noPlay bool
 }
 
 func (s *Server) newSDUIResolver(r *http.Request, vars map[string]string) *sduiResolver {
@@ -163,9 +166,24 @@ func (rv *sduiResolver) item(it *library.Item) sdui.Item {
 	}
 	if playable {
 		out.PlayID = id
-		out.Can = append(rv.can("play"), "watchLater", "watched", "playOn", "watchParty")
+		out.Can = append(rv.can("play"), "watchLater", "watched")
+		if rv.acc.Can(library.FeatureRemoteControl) {
+			out.Can = append(out.Can, "playOn")
+		}
+		if rv.acc.Can(library.FeatureSyncplay) {
+			out.Can = append(out.Can, "watchParty")
+		}
+	}
+	if rv.noPlay {
+		rv.unplayable(&out)
 	}
 	return out
+}
+
+// unplayable takes what plays out of an item: the profile's screen time is over.
+func (rv *sduiResolver) unplayable(it *sdui.Item) {
+	it.PlayID, it.NextID = "", ""
+	it.Can = slices.DeleteFunc(it.Can, func(c string) bool { return c == "play" || c == "playOn" || c == "watchParty" })
 }
 
 func (rv *sduiResolver) show(sh *library.Show) sdui.Item {
@@ -545,7 +563,7 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 	case "liveNow":
 		return page(rv.channels(src.Bool("favourites"), "", req.Offset+req.Limit+1, true), req), nil
 	case "recordings":
-		if s.TV == nil || !s.mayRecord(rv.r) {
+		if s.TV == nil || !s.mayRecord(rv.r) || !rv.acc.Can(library.FeatureRecordings) {
 			return sdui.SourceResult{}, nil
 		}
 		list, err := s.TV.Recordings(rv.ctx)
@@ -881,6 +899,9 @@ func (rv *sduiResolver) Subject() (*sdui.Item, error) {
 				if a.CoverItem != 0 {
 					it.PlayID, it.Can = itoa(a.CoverItem), rv.can("play")
 				}
+				if rv.noPlay {
+					rv.unplayable(&it)
+				}
 				rv.subject = &it
 				break
 			}
@@ -904,6 +925,9 @@ func (rv *sduiResolver) Subject() (*sdui.Item, error) {
 		}
 		if it.NextID != "" {
 			it.Can = append([]string{"play"}, it.Can...)
+		}
+		if rv.noPlay {
+			rv.unplayable(&it)
 		}
 		rv.subject = &it
 	case v["item"] != "":
@@ -1002,6 +1026,9 @@ func (rv *sduiResolver) Facets(lib string, fields []string) ([]sdui.Facet, error
 // middle of, then what's new in the first libraries it may open.
 func (s *Server) sduiTopShelfRows(r *http.Request) []sdui.TopShelfRow {
 	rv := s.newSDUIResolver(r, map[string]string{})
+	limits := &sdui.RenderContext{}
+	s.sduiLimits(r, limits)
+	rv.noPlay = limits.Flags["screenTimeUp"]
 	var rows []sdui.TopShelfRow
 	if res, _ := rv.Items(sdui.SourceRequest{Source: sdui.Source{"type": "continueWatching", "media": "watch"}, Limit: sdui.MaxTopShelfItems}); len(res.Items) > 0 {
 		rows = append(rows, sdui.TopShelfRow{Title: "Continue watching", Items: res.Items})

@@ -15,6 +15,7 @@ import './remote.css'
 import LegalNote from '../../components/LegalNote'
 import { ask } from '../../ui/Overlay'
 import { Segmented } from '../../ui/Choice'
+import PeerToPeer from './PeerToPeer'
 
 // Settings → Remote Access: who can use the server, and from where. It says
 // plainly whether that works, from where and how; guides the owner through one
@@ -50,6 +51,8 @@ const whereLabel: Record<string, string> = { machine: 'on this computer', home: 
 const shortWhere: Record<string, string> = { machine: 'This computer', home: 'At home', vpn: 'VPN', internet: 'Internet' }
 
 function viaLabel(where: string, via: string) {
+  if (via === 'p2p') return 'peer to peer, encrypted to this server'
+  if (via === 'p2p-relay') return 'peer to peer through a relay, encrypted to this server'
   if (via === 'https') return 'encrypted with HTTPS'
   if (via === 'proxy') return 'through a reverse proxy'
   if (where === 'vpn') return 'encrypted by the VPN'
@@ -131,6 +134,7 @@ export default function RemoteAccess() {
       <PageHead title="Remote Access" desc="Who can use this server, and from where. It starts as home network only, and this server doesn't contact anyone for remote access unless a step below says so." />
       <StatusCard st={st} save={save} busy={busy} />
       <Chooser st={st} choice={choice} save={save} busy={busy} />
+      <PeerToPeer />
       {(choice !== 'home' || s.allowPlainAway) && <PlainAway st={st} save={save} busy={busy} applied={applied} reload={load} />}
       {choice !== 'home' && <OutsideTest st={st} reload={load} />}
       {choice !== 'home' && <Limits s={s} save={save} busy={busy} />}

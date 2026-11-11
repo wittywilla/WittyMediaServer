@@ -159,7 +159,12 @@ const (
 func TestWittyPlayKasmIsBoxedIn(t *testing.T) {
 	got := fakeWittyPlayService(t)
 	ts := newTestServer(t)
-	_, adult := ts.user(t, "grown", auth.KindAdult, false, "")
+	grown, adult := ts.user(t, "grown", auth.KindAdult, false, "")
+	// A desktop the server didn't start isn't passed on at all, right ticket or not.
+	if w := ts.do(t, "GET", "/api/modules/wittyplay"+kasmPath+"/vnc.html", adult, nil); w.Code != 404 || len(got()) != 0 {
+		t.Fatalf("a desktop nobody started here: %d, and the module heard %d requests", w.Code, len(got()))
+	}
+	ts.emus.add(&emulatorGame{id: kasmSid, user: grown.ID})
 	for _, base := range []string{"/api/modules/wittyplay", "/api/v1/modules/wittyplay"} {
 		before := len(got())
 		w := ts.do(t, "GET", base+kasmPath+"/vnc.html?x=1&token=abc", adult, nil, "Cookie", auth.CookieName+"=sess; other=1", "X-Witty-User", "999", "X-Wittyplay-System-Dir", "/etc")
@@ -214,7 +219,8 @@ func TestWittyPlayKasmIsBoxedIn(t *testing.T) {
 func TestWittyPlayKasmWebSocketPassesThrough(t *testing.T) {
 	got := fakeWittyPlayService(t)
 	ts := newTestServer(t)
-	_, tok := ts.user(t, "player", auth.KindAdult, false, "")
+	player, tok := ts.user(t, "player", auth.KindAdult, false, "")
+	ts.emus.add(&emulatorGame{id: kasmSid, user: player.ID})
 	front := httptest.NewServer(ts.h)
 	t.Cleanup(front.Close)
 	addr := strings.TrimPrefix(front.URL, "http://")

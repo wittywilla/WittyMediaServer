@@ -183,7 +183,8 @@ type Condition struct {
 	// Module: this module is installed and on.
 	Module string `json:"module,omitempty"`
 	// Can: the profile may use this (games, recordings, downloads, sharing,
-	// comments, remote, liveTv, editLayout): its parental feature switches.
+	// comments, syncplay, remoteControl, remote, liveTv, editLayout): its
+	// parental feature switches.
 	Can string `json:"can,omitempty"`
 	// HasLibrary: the profile can open at least one library of this kind.
 	HasLibrary string `json:"hasLibrary,omitempty"`
@@ -192,7 +193,7 @@ type Condition struct {
 	// Capability: the client said it has this (capabilities=hdr,touch).
 	Capability string `json:"capability,omitempty"`
 	// Flag: something the server knows is so: setupIncomplete, scanning,
-	// librariesEmpty, hasQuery.
+	// librariesEmpty, hasQuery, screenTimeUp.
 	Flag string `json:"flag,omitempty"`
 	// MinWidth and MaxWidth bound the window's width in points, inclusive.
 	// They pass when the client didn't say how wide it is.
@@ -281,7 +282,19 @@ type Document struct {
 	// Personal says what the profile may change about this page and what it
 	// has changed, so an app can offer "Customise" without knowing the page.
 	Personal *PersonalInfo `json:"personal,omitempty"`
-	Meta     Meta          `json:"meta,omitzero"`
+	// ScreenTime is present when the profile's screen time is over: nothing
+	// in the page offers to play, and this says why and until when.
+	ScreenTime *ScreenTime `json:"screenTime,omitempty"`
+	Meta       Meta        `json:"meta,omitzero"`
+}
+
+// ScreenTime says a profile's time for playing is over.
+type ScreenTime struct {
+	// Reason is the rule that ended it; Message says so in words to show.
+	Reason  string `json:"reason,omitempty"`
+	Message string `json:"message"`
+	// NextAt is when there is time again, Unix seconds; 0 when not known.
+	NextAt int64 `json:"nextAt,omitempty"`
 }
 
 // PageInfo identifies a rendered page.

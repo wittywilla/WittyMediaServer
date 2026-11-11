@@ -28,7 +28,7 @@ export const sendCommand = (deviceId: string, cmd: RemoteCommand) => call<{ ok: 
 function useDevices() {
   const [devices, setDevices] = useState<RemoteDevice[] | null>(null)
   const [error, setError] = useState('')
-  const [off, setOff] = useState(false)
+  const [off, setOff] = useState<'' | 'server' | 'profile'>('')
   const [again, setAgain] = useState(0)
   // How far the server's clock is ahead of this one, near enough for a progress line.
   const ahead = useRef(0)
@@ -43,13 +43,20 @@ function useDevices() {
       let wait = 1500
       while (!ctl.signal.aborted) {
         try {
+          let bye = ''
           await readEvents('/remote-control/events', (event, data) => {
-            if (event === 'snapshot') { ahead.current = data.serverTimeMs - steadyNow(); setDevices(data.devices); setError(''); wait = 1500 }
+            if (event === 'bye') bye = data?.reason || ''
+            else if (event === 'snapshot') { ahead.current = data.serverTimeMs - steadyNow(); setDevices(data.devices); setError(''); wait = 1500 }
             else if (event === 'device') merge(data)
             else if (event === 'gone') setDevices((list) => (list || []).filter((x) => x.id !== data.id))
           }, ctl.signal)
+          // The server ended it for good: turned off for this profile, or the sign-in is over.
+          if (bye === 'feature-off') { setOff('profile'); return }
+          if (bye === 'signed-out') return
         } catch (e) {
-          if (e instanceof ApiError && e.data?.code === 'disabled') { setOff(true); return }
+          if (e instanceof ApiError && e.data?.code === 'disabled') { setOff('server'); return }
+          if (e instanceof ApiError && e.data?.code === 'feature-off') { setOff('profile'); return }
+          if (e instanceof ApiError && e.status === 401) return
           if (!ctl.signal.aborted) setError((e as Error).message)
         }
         await sleep(wait, ctl.signal)
@@ -138,12 +145,13 @@ export default function PlayOn({ source, onClose }: { source?: PlayOnSource; onC
   return (
     <Dialog title="Play on another device" onClose={onClose} className="rc-dialog"
       description={source ? (source.kind === 'playing' ? `Move “${source.title}” to another device, at the same place.` : `Start “${source.title}” on another device.`) : undefined}>
-      {off ? <Notice tone="info" title="Playing on other devices is turned off">An administrator can turn it on under Settings, Sharing &amp; photos.</Notice>
+      {off === 'profile' ? <Notice tone="info" title="Playing on other devices is turned off for this profile">Whoever manages this profile can turn it on under Settings, Profiles, Limits. Other people can still play on this device.</Notice>
+        : off ? <Notice tone="info" title="Playing on other devices is turned off">An administrator can turn it on under Settings, Sharing &amp; photos.</Notice>
         : error && !devices ? <LoadError what="Your devices" onRetry={retry} />
         : !devices ? <Spinner />
         : others.length === 0 ? <EmptyState icon={<IconDevices />} title="No other devices right now" text="Open the app on another device signed in as you, and it shows here." />
         : <ul className="rc-list">{others.map((d) => <DeviceRow key={d.id} d={d} source={source} ahead={ahead.current} onDone={onClose} />)}</ul>}
-      {!off && (
+      {off !== 'server' && (
         <div className="rc-here">
           <div><div className="rc-name" id="rc-here-label">Let other devices play here</div><div className="rc-state">This browser shows in the list on your other devices while the app is open.</div></div>
           <Switch labelledBy="rc-here-label" checked={target} onChange={(v) => { setTargetEnabled(v); setTarget(v) }} />

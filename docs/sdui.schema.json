@@ -594,6 +594,9 @@
         "root": {
           "$ref": "#/$defs/Node"
         },
+        "screenTime": {
+          "$ref": "#/$defs/ScreenTime"
+        },
         "theme": {
           "$ref": "#/$defs/ThemeScope"
         },
@@ -1551,6 +1554,23 @@
       },
       "required": [
         "pattern"
+      ],
+      "type": "object"
+    },
+    "ScreenTime": {
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "nextAt": {
+          "type": "integer"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "message"
       ],
       "type": "object"
     },

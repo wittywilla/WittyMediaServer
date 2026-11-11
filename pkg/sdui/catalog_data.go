@@ -43,9 +43,9 @@ var (
 	// PersonalKinds are what a profile may change about a page.
 	PersonalKinds = []string{"reorder", "hide", "pin", "density", "cardSize", "defaultTab"}
 	// CanFeatures are what a "can" condition may ask about.
-	CanFeatures = []string{"games", "recordings", "downloads", "sharing", "comments", "remote", "editProfile", "editLayout", "liveTv"}
+	CanFeatures = []string{"games", "recordings", "downloads", "sharing", "comments", "syncplay", "remoteControl", "remote", "editProfile", "editLayout", "liveTv"}
 	// Flags are what a "flag" condition may ask about.
-	Flags = []string{"setupIncomplete", "scanning", "librariesEmpty", "hasQuery"}
+	Flags = []string{"setupIncomplete", "scanning", "librariesEmpty", "hasQuery", "screenTimeUp"}
 	// NativeScreens are the screens every app draws itself and SDUI only
 	// links to. Settings is one of them on purpose: it is never an SDUI page.
 	NativeScreens = []string{"settings", "guide", "profiles", "downloads", "remote", "nowPlaying", "pair", "collections", "player", "livePlayer", "reader", "game", "download", "share", "playOn", "watchParty"}
@@ -668,11 +668,11 @@ func buildConditions() []ConditionSpec {
 		c("admin", pBool("", "Administrator", "Only administrators (on) or only everyone else (off).", false)),
 		c("feature", pStr("", "Server feature", "A name from /capabilities features, such as live-tv.", 64)),
 		c("module", pStr("", "Module installed", "A module's ID, such as wittyplay.", 64)),
-		c("can", pEnum("", "Profile may use", "One of the profile's parental feature switches.", "", "games|Games", "recordings|Recordings", "downloads|Downloads", "sharing|Sharing", "comments|Comments", "remote|Away from home", "editProfile|Edit its profile", "editLayout|Rearrange pages", "liveTv|Live TV")),
+		c("can", pEnum("", "Profile may use", "One of the profile's parental feature switches.", "", "games|Games", "recordings|Recordings", "downloads|Downloads", "sharing|Sharing", "comments|Comments", "syncplay|Watch parties", "remoteControl|Play on other devices", "remote|Away from home", "editProfile|Edit its profile", "editLayout|Rearrange pages", "liveTv|Live TV")),
 		c("hasLibrary", pEnum("", "Has a library of kind", "The profile can open at least one such library.", "", LibraryKinds...)),
 		c("libraryKind", pEnum("", "This library is of kind", "On a library page.", "", LibraryKinds...)),
 		c("capability", pStr("", "Device capability", "Something the client said it has: hdr, touch, pointer, keyboard.", 64)),
-		c("flag", pEnum("", "The server says", "", "", "setupIncomplete|First-time setup isn't finished", "scanning|A library is being scanned", "librariesEmpty|There are no libraries", "hasQuery|Something was searched for")),
+		c("flag", pEnum("", "The server says", "", "", "setupIncomplete|First-time setup isn't finished", "scanning|A library is being scanned", "librariesEmpty|There are no libraries", "hasQuery|Something was searched for", "screenTimeUp|The profile's screen time is over")),
 		c("minWidth", pInt("", "Window at least", "Points wide.", 0, 0, 10000)),
 		c("maxWidth", pInt("", "Window at most", "Points wide.", 0, 0, 10000)),
 		c("timeFrom", pStr("", "From time of day", "HH:MM on the server's clock.", 5)),

@@ -58,6 +58,11 @@ A watch party never lets anyone see more than their own account may.
 - Someone whose account isn't allowed to see what's playing can't join, and isn't told what it is. They're told only that it's something they can't watch.
 - If a party moves on to something a member isn't allowed to see, they keep their place, see no title, and can't control anything until it moves on again.
 - Each person's video comes to them the usual way. Quality limits for people watching from away, and each account's own limits, apply to each person exactly as when they watch alone.
+- Every kind of limit a profile can have counts here: libraries, ages, genres, tags, collections and single titles. If someone's limits change during a party, the party follows at once.
+- **Watch parties can be turned off for a profile** ([Limits → What they can do](PROFILES.md#what-a-profile-can-do)). That profile can then neither start nor join one, and a seat it had goes at once.
+- **Screen time.** Nobody starts or joins a party when their screen time is over. If a member's time runs out during a party, their own video stops as it would alone, and they sit out: the party doesn't wait for them, and they can't control it. They keep their place, and are back the moment a parent gives more time.
+- Inviting someone isn't a share link, and there's no chat, so the **Share links** and **Comments** switches change nothing here.
+- Switching profile on a device, or signing it out, gives up that device's place in the party at once.
 
 ## Settings
 
@@ -281,6 +286,9 @@ After a reconnect: join again (same `device`), open the stream, ping a few times
 ### Who may do what
 
 - **Starting**: by the `syncplayCreate` setting (`everyone`, `adults`, `admins`), and only for items the account may see. An item it may not see answers `404`, as everywhere.
+- **A profile's own switch comes first.** With `syncplay` off in a profile's limits, every room route but leaving answers `403` with `code: "feature-off"` and `feature: "syncplay"`, whatever `syncplayCreate` says. `GET /syncplay` stays open and says `canCreate: false` and `canJoin: false`, and lists no rooms. `POST …/leave` and `DELETE` on a room are never refused for a switch or for time.
+- **Screen time.** `POST /syncplay/rooms` and `POST /syncplay/join` are refused when the profile's time is up: `403`, code `screen-time`, with `screenTime` as the playback routes send it. A seated member whose time runs out gets `timeUp: true` in its view, `state.itemId` of 0 and `canControl: false`; the others see its state as `time-up`, and the room no longer waits for it. A command from it answers `403`, code `screen-time`. Stop the player and show the time-up notice; when `timeUp` goes back to false, load again and report `ready`. The server looks every five seconds, and at once when more time is given.
+- **Limits are asked again** when a member's limits are saved, and for limits by collection or tag about every half minute, so a member can become `blocked` in the middle of an item.
 - **Joining**: any signed-in account with the code, or an invited account by the room's id. The account must be allowed to see what the room is playing **now**, by its library, rating and title limits; otherwise `403` with code `cant-watch`, and nothing in the answer says what the room is playing. Wrong codes are counted per account: ten, then one more every six seconds.
 - **A room's id alone opens nothing.** It works only for an account that was invited or already has a seat.
 - **Every room route but those two** needs the caller's own seat: the `member` id together with the account it belongs to. Anything else answers `404`, as if the room weren't there.
@@ -288,7 +296,8 @@ After a reconnect: join again (same `device`), open the stream, ping a few times
 - **Titles** are sent to a member only for items their account may see, asked afresh when the stream opens and every 25 seconds after.
 - **A list of invitations** names the room and its host, never what it's playing.
 - **The video itself** never passes through a room. Each member fetches it through the playback routes with their own sign-in, where their own limits and the limits for [viewers away from home](REMOTE.md) apply.
-- **Streams** look at their sign-in again every 25 seconds: signing out ends the stream and gives up the seat.
+- **A seat belongs to a sign-in, and ends with it, at once.** Signing out, switching profile on that device, being signed out from elsewhere, a new password or the account being removed: the stream gets `closed` with `reason: "signed-out"` and the seat is given up. `reason: "feature-off"` means watch parties were turned off for the profile. Don't reconnect after either. An app that switches profile joins again with its new sign-in, as a new member.
+- **Streams** also look at their sign-in again every 25 seconds, which catches a sign-in that simply ran out.
 
 ### Limits and errors
 

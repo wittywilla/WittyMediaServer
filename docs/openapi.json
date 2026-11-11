@@ -10214,6 +10214,16 @@
           "root": {
             "$ref": "#/components/schemas/SDUINode"
           },
+          "screenTime": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SDUIScreenTime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "theme": {
             "anyOf": [
               {
@@ -11289,6 +11299,23 @@
         },
         "required": [
           "pattern"
+        ],
+        "type": "object"
+      },
+      "SDUIScreenTime": {
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "nextAt": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
         ],
         "type": "object"
       },
@@ -13638,7 +13665,7 @@
       "url": "https://www.gnu.org/licenses/agpl-3.0.html"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.14.0"
+    "version": "1.15.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -19751,7 +19778,7 @@
         ],
         "summary": "Forget what every source said about every game and ask again. Locked games stay.",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "admin"
       }
@@ -19778,7 +19805,7 @@
         ],
         "summary": "Every source, in the order they're believed: what it needs, costs and sends, and whether it's on. Key values are never included.",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "admin"
       },
@@ -19803,7 +19830,7 @@
         ],
         "summary": "Set the sources' order and whether each is on: {sources: [{id, on}]}. Costs no requests: the answers are kept.",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "admin"
       }
@@ -19840,7 +19867,7 @@
         ],
         "summary": "Does this work? {fields: {setting: value}}. A field left out uses what's saved. Saves nothing. Answers {ok, message} or {ok: false, error}.",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "admin"
       }
@@ -19867,7 +19894,7 @@
         ],
         "summary": "How the background lookup is going, by console.",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "admin"
       }
@@ -19925,7 +19952,7 @@
         ],
         "summary": "What a library's games can be filtered by, with how many there are. Query: library, console. Only counts what this account can see.",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "user"
       }
@@ -19962,7 +19989,7 @@
         ],
         "summary": "The games home screen in one answer",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "user"
       }
@@ -20218,7 +20245,7 @@
         ],
         "summary": "One of a game's pictures, from the art list in its metadata. The server fetches it from the source the first time anyone looks.",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "user"
       }
@@ -20451,7 +20478,7 @@
         ],
         "summary": "What a game needs in order to play",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "user"
       }
@@ -20587,7 +20614,7 @@
             "bearer": []
           }
         ],
-        "summary": "The standalone emulators set up to play this game: {emulators: [{id, name, version, stream, ready, why}]}. Empty when WittyPlay has none.",
+        "summary": "The standalone emulators set up to play this game: {emulators: [{id, name, version, stream, ready, why}]}. Empty when WittyPlay has none. 403 feature-off with games turned off for the profile.",
         "tags": [
           "Games"
         ],
@@ -20704,7 +20731,7 @@
         ],
         "summary": "Everything known about a game beyond what its item holds: match, dates, makers, players, scores, age ratings, pictures, and credits to show.",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "user"
       }
@@ -20741,7 +20768,7 @@
         ],
         "summary": "This match is wrong and there's no right one: forget what sources filled in, and lock it so it isn't found again.",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "admin"
       },
@@ -20776,7 +20803,7 @@
         ],
         "summary": "This is the right game: {source, id, lock}. Lock defaults to true. With no source, only sets the lock.",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "admin"
       }
@@ -20813,7 +20840,7 @@
         ],
         "summary": "Ask the sources about this game again, in the background.",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "admin"
       }
@@ -20850,7 +20877,7 @@
         ],
         "summary": "Games this might be, from every source in use, for fixing a match. Query: q (default: its title). Answers results and failed, the sources that didn't answer.",
         "tags": [
-          "games"
+          "Games"
         ],
         "x-wms-auth": "admin"
       }
@@ -21140,7 +21167,7 @@
             "bearer": []
           }
         ],
-        "summary": "Start this game in a standalone emulator: {emulator} in; 201 with the session and where to connect, stop, pause and resume it.",
+        "summary": "Start this game in a standalone emulator: {emulator} in; 201 with the session and where to connect, stop, pause and resume it. 403 feature-off with games turned off for the profile, 403 screen-time when its time is up. The game is ended when the sign-in that started it ends, when the profile's screen time runs out, and when games are turned off for it.",
         "tags": [
           "Games"
         ],
@@ -28309,7 +28336,7 @@
             "bearer": []
           }
         ],
-        "summary": "What this profile may do: features (games, recordings, downloads, sharing, comments, writeComments, remote, editProfile, liveTv), its age limits (maxAge, kinds), its time rules and screenTime now. For hiding what is off.",
+        "summary": "What this profile may do: features (games, recordings, downloads, sharing, comments, writeComments, syncplay, remoteControl, remote, editProfile, liveTv), its age limits (maxAge, kinds), its time rules and screenTime now. For hiding what is off.",
         "tags": [
           "Sign-in and accounts"
         ],
@@ -31886,7 +31913,7 @@
           }
         },
         "security": [],
-        "summary": "The KasmVNC desktop of a game in a container, and its WebSocket. The session's ticket in the address is the way in.",
+        "summary": "The KasmVNC desktop of a game in a container, and its WebSocket. The session's ticket in the address is the way in. 404 unless this server started that game, it is still going, and the profile that started it may still play.",
         "tags": [
           "Games"
         ],
@@ -34542,6 +34569,436 @@
         "summary": "Restart, on the saved port.",
         "tags": [
           "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/p2p": {
+      "get": {
+        "operationId": "getP2p",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "device",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "addrs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "devicesOnly": {
+                      "type": "boolean"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "enrolled": {
+                      "type": "boolean"
+                    },
+                    "layers": {
+                      "type": "object"
+                    },
+                    "serverId": {
+                      "type": "string"
+                    },
+                    "serverName": {
+                      "type": "string"
+                    },
+                    "staticRelays": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether peer-to-peer connections are on, and what an app needs for them: `serverId` (what to dial), `addrs` (where the server was last reachable, to keep as hints), `devicesOnly`, `layers`. `?device=\u003cid\u003e` adds `enrolled`. See P2P.md.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/p2p/devices": {
+      "get": {
+        "operationId": "getP2pDevices",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The devices that may connect peer to peer: yours, or everyone's with `?all=1` for an admin. Each has `id`, `name`, `platform`, `lastSeen`, and `connected` with its `path` (direct or relayed).",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postP2pDevices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "platform": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put this device's key on the list, under your account: `{id, name, platform}`. An app does this once, while it reaches the server some other way.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/p2p/devices/{id}": {
+      "delete": {
+        "operationId": "deleteP2pDevicesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a device off the list. Its open connections close at once.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/p2p/invite": {
+      "post": {
+        "operationId": "postP2pInvite",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "userId": {
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "expiresInSec": {
+                      "type": "integer"
+                    },
+                    "link": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only. Works once, for 15 minutes.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/p2p/rotate": {
+      "post": {
+        "operationId": "postP2pRotate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Give the server a new connection key and ID: `{password, code}`. Every device must learn the new ID.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/p2p/settings": {
+      "get": {
+        "operationId": "getP2pSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The owner's choices, how every layer is doing in plain words (`steps`), who is contacted (`thirdParties`) and every device.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putP2pSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change them. Turning the feature on needs `accept: true`.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/p2p/status": {
+      "get": {
+        "operationId": "getP2pStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Only how every layer is doing, for a page that stays open.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/p2p/test": {
+      "post": {
+        "operationId": "postP2pTest",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Connect to this server as an app away from home would, from a second node, and say how far it got.",
+        "tags": [
+          "Remote access and signed-in devices"
         ],
         "x-wms-auth": "admin"
       }
@@ -37550,7 +38007,7 @@
             "bearer": []
           }
         ],
-        "summary": "The Remote Protocol's versions, limits and vocabulary, and whether this account may control devices signed in as other accounts. See REMOTE-PROTOCOL.md.",
+        "summary": "The Remote Protocol's versions, limits and vocabulary, and whether this account may control devices signed in as other accounts. See REMOTE-PROTOCOL.md. canControl is false with playing on other devices turned off for this profile (parental controls); its own device can still announce itself. Never refused.",
         "tags": [
           "Remote control"
         ],
@@ -37659,7 +38116,7 @@
             "bearer": []
           }
         ],
-        "summary": "The devices this account may control, each with what it last said it was doing.",
+        "summary": "The devices this account may control, each with what it last said it was doing. 403 feature-off with playing on other devices turned off for the profile.",
         "tags": [
           "Remote control"
         ],
@@ -37825,7 +38282,7 @@
             "bearer": []
           }
         ],
-        "summary": "The device's channel, as server-sent events: hello, then a command for each thing it is asked to do.",
+        "summary": "The device's channel, as server-sent events: hello, then a command for each thing it is asked to do. Ends with bye and reason signed-out the moment the sign-in ends: signing out, switching profile, a new password, the account removed.",
         "tags": [
           "Remote control"
         ],
@@ -37874,7 +38331,7 @@
             "bearer": []
           }
         ],
-        "summary": "Ask a device to do something and wait for its answer: play, pause, resume, stop, seek, next, previous, volume, mute, audio, subtitle, rate, navigate or cast.",
+        "summary": "Ask a device to do something and wait for its answer: play, pause, resume, stop, seek, next, previous, volume, mute, audio, subtitle, rate, navigate or cast. The limits of the caller and of the account the device is signed in as both apply: 404 no-item, 403 not-allowed-there, 403 screen-time (the caller's time is up) or screen-time-there (the device's profile's) for anything that starts playing, 403 feature-off with playing on other devices turned off for the caller.",
         "tags": [
           "Remote control"
         ],
@@ -37953,7 +38410,7 @@
             "bearer": []
           }
         ],
-        "summary": "Server-sent events for controllers: a snapshot of devices, then each one as it appears, changes or goes.",
+        "summary": "Server-sent events for controllers: a snapshot of devices, then each one as it appears, changes or goes. Sent again at once when limits or who may control whom change. Ends with a bye event and a reason: signed-out the moment the sign-in ends, feature-off when playing on other devices is turned off. 403 feature-off for a profile kept from it.",
         "tags": [
           "Remote control"
         ],
@@ -42919,7 +43376,7 @@
             "bearer": []
           }
         ],
-        "summary": "Whether watch parties are on, the drift rules and limits, and this account's rooms and invitations. See SYNCPLAY.md.",
+        "summary": "Whether watch parties are on, the drift rules and limits, and this account's rooms and invitations. See SYNCPLAY.md. canCreate and canJoin say what this profile may do: both false with watch parties turned off for it (parental controls), and no rooms are listed then. Never refused.",
         "tags": [
           "Watch parties"
         ],
@@ -42958,7 +43415,7 @@
             "bearer": []
           }
         ],
-        "summary": "Join a watch party by its code, or come back to a seat.",
+        "summary": "Join a watch party by its code, or come back to a seat. 403 feature-off with watch parties turned off for the profile; 403 screen-time when its time is up; 403 cant-watch when its limits hide what is playing.",
         "tags": [
           "Watch parties"
         ],
@@ -42997,7 +43454,7 @@
             "bearer": []
           }
         ],
-        "summary": "Start a watch party for an item or a queue, as its host.",
+        "summary": "Start a watch party for an item or a queue, as its host. 403 feature-off with watch parties turned off for the profile; 403 screen-time when its time is up.",
         "tags": [
           "Watch parties"
         ],
@@ -43093,7 +43550,7 @@
             "bearer": []
           }
         ],
-        "summary": "The room, as one of its members sees it.",
+        "summary": "The room, as one of its members sees it. timeUp is true, and nothing of what is playing is sent, for a member whose screen time is over.",
         "tags": [
           "Watch parties"
         ],
@@ -43238,7 +43695,7 @@
             "bearer": []
           }
         ],
-        "summary": "Server-sent events: the room, whole, whenever anything about it changes.",
+        "summary": "Server-sent events: the room, whole, whenever anything about it changes. Ends with a closed event and a reason: signed-out the moment the sign-in ends (signing out, switching profile), feature-off when watch parties are turned off for the profile.",
         "tags": [
           "Watch parties"
         ],
@@ -47065,6 +47522,14 @@
     {
       "description": "Watching together, in step, from different places. See SYNCPLAY.md.",
       "name": "Watch parties"
+    },
+    {
+      "description": "Disc images of audio CDs: tracks, sound, CD+G graphics and finding out what a disc is.",
+      "name": "Audio CDs"
+    },
+    {
+      "description": "Games streamed from a PC in the house (WittyCouch), and game rigs. See GAME-RIGS.md.",
+      "name": "Game PCs"
     }
   ]
 }

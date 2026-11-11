@@ -54,7 +54,9 @@ func clientFrom(r *http.Request) remote.Client {
 func (s *Server) identify(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := s.state().policy.Resolve(r)
-		if !c.Where.AtHome() {
+		if !c.Where.AtHome() && !c.P2P {
+			// A peer-to-peer connection says nothing about whether the address
+			// and certificate in Settings work, which is what this records.
 			s.outside.note(c)
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), clientKey, c)))
@@ -73,7 +75,10 @@ func (s *Server) gate(next http.Handler) http.Handler {
 			return
 		}
 		st := s.state()
-		if !st.on {
+		// A peer-to-peer connection only exists while its own switch is on, and
+		// is let in by the device list, so it doesn't need the other switch.
+		// Everything else about being away from home still applies to it.
+		if !st.on && !(c.P2P && s.p2pOn()) {
 			s.refuse(w, r, "This server is only available on its home network.")
 			return
 		}
@@ -150,6 +155,10 @@ func (s *Server) touchSession(r *http.Request, token string) {
 
 func viaName(c remote.Client, r *http.Request) string {
 	switch {
+	case c.P2P && c.P2PRelayed:
+		return "p2p-relay"
+	case c.P2P:
+		return "p2p"
 	case c.Proxied || c.Unverified:
 		return "proxy"
 	case r.TLS != nil:

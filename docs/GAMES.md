@@ -462,6 +462,7 @@ A core is the usual way to play, and the only one most servers need. For a conso
 - Your controller's buttons are passed on as keys, so sticks work as four directions, not by degrees, and there's no rumble. Up to four players, where the emulator has been told their keys.
 - **Pause** freezes the emulator; **Stop** ends it. Leaving the page without stopping leaves it running for two minutes, so a reload carries on where you were. One game at a time for each person.
 - A few emulators are shown as their own desktop inside the page rather than as a stream: click inside it to use the keyboard and mouse.
+- The game belongs to the profile, on the device, that started it. Signing out, or switching to another profile on that device, ends it. For a profile with [limits](PROFILES.md), the time it runs counts as screen time, and it's ended when the time is up or when games are turned off for the profile.
 
 **For administrators: Settings, Standalone emulators.**
 

@@ -198,6 +198,8 @@ Where a playing device is **now**: `positionSec + (serverNow - stateAt) / 1000 �
 | `device` | one device | It appeared, or something about it changed |
 | `gone` | `{ "id": "..." }` | It left, or you may no longer control it |
 
+A last event, `bye` with `{ "reason": ... }`, says why the server is ending the stream: `signed-out` (the sign-in ended), `feature-off` (remote control was turned off, for the server or for this profile) or `server-stopping`. After `signed-out` or `feature-off`, don't reconnect.
+
 Each `device` event is whole, never a difference. The server sends at most a few a second, and a controller that reads slowly gets fewer of them, each the latest: it never falls behind into a backlog. Keep this stream open only while a list of devices or a remote is on screen.
 
 ### Send a command
@@ -342,8 +344,20 @@ State updates are different on purpose. They are **latest-wins**: a controller t
 - **Other accounts' devices are off limits by default**, to see or to control, for administrators too. An administrator can allow particular accounts to control devices signed in as *any* account: in the web app under **Settings → Sharing & photos → Play on other devices**, or with `PUT /remote-control/accounts/{id}`. This is for households: a parent's phone steering the TV that is signed in as a Kids profile.
 - **Limits are never widened.** A `play` (or `cast`) is refused unless every item named is one the **caller** may see *and* one the **device's own account** may see. A Kids profile allowed to control the living room TV can't put on a film it couldn't open itself: to it the item doesn't exist (`404`, code `no-item`). A parent can't make a Kids profile's tablet play what that profile is limited from: `403`, code `not-allowed-there`. Queues are checked item by item, and one refusal refuses the whole command.
 - **What a device is playing is shown only to those who may see it.** A controller whose account may not see the item gets `hidden: true` and a state with no item, position, tracks or queue. Entries in a queue that the controller may not see are sent as `0`.
-- **Everything is looked at again as it runs.** A stream checks its sign-in every 25 seconds: signing a device out, or turning remote control off, ends its channel and removes it. A change to who may control what takes effect on the next request, and on open event streams at the next 25-second check.
+- **A sign-in that ends takes its device with it, at once.** Signing out, switching to another profile on that device, being signed out from another device or by an administrator, a new password, the account being removed: the channel gets `bye` with `reason: "signed-out"`, the device leaves every controller's list, and a controller's own stream from that sign-in gets `bye` too. An app that switches profile announces itself again with its new sign-in, and is then a new device of the new profile.
+- **A change to who may control what shows at once.** When an administrator gives or takes away an account's leave to control other accounts' devices, or anyone's limits change, open event streams are sent a fresh `snapshot` straight away.
+- **Everything is looked at again as it runs** as well: a stream checks its sign-in and the server's switch every 25 seconds, which catches a sign-in that simply ran out.
 - **A stream token is refused**, since it is for media and not for acting as a person.
+
+## Parental controls
+
+Profiles can have limits ([PROFILES.md](PROFILES.md)). Here is what they mean for remote control. The rule throughout: **the limits of the account a device is signed in as decide what plays on it, and the limits of the caller decide what the caller may ask for.** Both are checked on the server for every command; neither side's app is trusted with it.
+
+- **Every kind of limit on titles counts**, on both sides: libraries, an age for each kind of media, genres hidden or the only ones allowed, tags, collections, single titles, and games turned off. It's the same check the item routes make.
+- **Screen time.** `play`, `cast`, `resume`, `next` and `previous` start something, so they're refused when time is up: `403` with code `screen-time` when it's the caller's time, and `screen-time-there` when it's the time of the profile the device is signed in as. That holds for every caller, an administrator included. `pause`, `stop`, `seek`, volume, tracks and `navigate` are never refused for time. What a device plays is fetched by the device with its own sign-in, so it counts as its own profile's screen time whoever started it, and stops when that time runs out.
+- **The "Playing on other devices" switch** (`remoteControl` in a profile's limits). With it off, the controller's routes (`GET /remote-control/devices`, `GET /remote-control/events`, `POST …/commands`) answer `403` with `code: "feature-off"` and `feature: "remoteControl"`, for the profile's own devices too. The device's routes are not affected: the profile's devices announce themselves, report and obey as before, so a parent with leave can still play on and pause a child's TV. `GET /remote-control` stays open and says `canControl: false`; an app hides its remote and its **Play on…** then, and still announces itself.
+- **What a device is playing** is hidden from a controller who may not see it by any of those limits (`hidden: true`).
+- **Turning the switch off** while a controller's stream is open ends it at once with `bye`, `reason: "feature-off"`.
 
 ## Limits
 
@@ -380,6 +394,9 @@ Every refusal is `{ "error": "<a sentence fit to show>", "code": "<for programs>
 | 403 | `disabled` | Remote control is turned off on this server |
 | 403 | `no-session` | A device route was called with something that isn't a sign-in |
 | 403 | `not-allowed-there` | The account that device is signed in as may not play that |
+| 403 | `screen-time` | The caller's screen time is over: nothing can be started. The answer has `screenTime`, as from a playback route |
+| 403 | `screen-time-there` | Screen time is over for the profile the device is signed in as |
+| 403 | `feature-off` | Playing on other devices is turned off for this profile (`feature: "remoteControl"`) |
 | 404 | `no-device` | No such device, or not one you may control, or (on device routes) not yours |
 | 404 | `no-item` | No such item, or not one you may see |
 | 404 | `no-command` | The command being answered is no longer waiting |

@@ -10,6 +10,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 ## What applies to every request
 
 - Requests from outside the home network are refused until the owner turns remote access on, and then need HTTPS or a VPN.
+- Requests that arrive over a peer-to-peer connection ([P2P.md](P2P.md)) reach this same handler. They always count as coming from
+  outside the home network, whatever address the connection has, and are let in only while peer-to-peer connections are on.
 - Requests with a body are limited to 32 MB and 2 minutes, except the routes that set their own limit. A route that takes a body from
   someone not signed in is limited to 16 KB and 15 seconds, and JSON to 1 MB unless the table says otherwise.
 - State-changing requests signed in by cookie are refused when they come from another origin.
@@ -351,7 +353,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/modules/wittyplay/docker/sessions` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay lists only the caller's own, or all for an admin |
 | `POST /api/modules/wittyplay/docker/sessions/{sid}/pause` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User set. WittyPlay answers only the session's player |
 | `POST /api/modules/wittyplay/docker/sessions/{sid}/resume` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User set. WittyPlay answers only the session's player |
-| `GET /api/modules/wittyplay/kasm/{sid}/{ticket}/{rest...}` | Public, with a session's ticket | The address holds a session's own random 256-bit ticket, which only the person who started the game is given and which ends with it. Names of the wrong shape are refused here; WittyPlay checks the ticket in constant time and answers anything else as not found. Reading only. Nobody's identity or sign-in is passed on. The answer is sandboxed away from this server's origin, sets no cookie and redirects nowhere else. WebSocket: from the sandboxed frame or this site only |
+| `GET /api/modules/wittyplay/kasm/{sid}/{ticket}/{rest...}` | Public, with a session's ticket | The address holds a session's own random 256-bit ticket, which only the person who started the game is given and which ends with it. Names of the wrong shape are refused here; WittyPlay checks the ticket in constant time and answers anything else as not found. Reading only. Nobody's identity or sign-in is passed on. The answer is sandboxed away from this server's origin, sets no cookie and redirects nowhere else. WebSocket: from the sandboxed frame or this site only Passed on only for a game this server started and that hasn't ended, and only while the profile that started it may still play (games not turned off for it, screen time left); every refusal is the same 404. The ticket is kept out of the log |
 | `GET /api/reach/{nonce}` | Public | Nonce of a running outside test |
 | `GET /api/remote` | Admin | Nothing further |
 | `GET /api/remote/status` | Signed-in, or this computer | no account only from the server's own computer, directly (the tray). What is wrong in a fault, which can name files, only for an admin |
@@ -362,6 +364,16 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/remote/obtain` | Admin | HTTPS is on, in certificate-request mode |
 | `DELETE /api/remote/lockouts` | Admin | Nothing further |
 | `DELETE /api/remote/plain-sessions` | Admin | Nothing further |
+| `GET /api/p2p` | Signed-in | Nothing further. The server's connection ID only for signed-in accounts. `device` says whether that device is the caller's own |
+| `GET /api/p2p/devices` | Signed-in | own. Everyone's with 'all=1', for an admin |
+| `POST /api/p2p/devices` | Signed-in | A session token, not a stream token. A well-formed Ed25519 device ID that isn't the server's own. A key listed for another account is refused. At most 32 per account, 512 in all |
+| `DELETE /api/p2p/devices/{id}` | Signed-in | own. Any account's for an admin. Someone else's answers as if there were none |
+| `POST /api/p2p/invite` | Adult | Target is the caller or a profile the caller manages. Peer-to-peer connections are on. Limit on open invites |
+| `GET /api/p2p/settings` | Admin | Nothing further |
+| `PUT /api/p2p/settings` | Admin | Port, layers, relay limit, own relays (each a multiaddr ending in a valid ID). Turning it on, or letting unlisted devices in, also needs `accept` |
+| `GET /api/p2p/status` | Admin | Nothing further |
+| `POST /api/p2p/test` | Admin | Peer-to-peer connections are on. One test at a time |
+| `POST /api/p2p/rotate` | Admin | The admin's own password (and code), with an attempt limit |
 | `GET /api/sessions` | Signed-in | own. Everyone's with 'all=1', for an admin |
 | `DELETE /api/sessions` | Signed-in | own, except the current one |
 | `DELETE /api/sessions/{id}` | Signed-in | own. Any account's for an admin |
@@ -498,8 +510,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/consoles/{console}/controls` | Signed-in | Known console. own. Size, kind, device name, layout cleaned |
 | `POST /api/games/{id}/prepare` | Signed-in | limits. A game on a known, available console |
 | `POST /api/games/{id}/play` | Signed-in | limits. A game on a known, available console. Core allowed, file refused if encrypted. Limit on games at once |
-| `GET /api/games/{id}/emulators` | Signed-in | limits. A game on a known console. Answers a list, empty unless WittyPlay offers one |
-| `POST /api/games/{id}/play/emulator` | Signed-in | limits. A game on a known console, its file in a library. 4 KB body, the emulator named by id. The server gives WittyPlay the file; WittyPlay refuses what is not installed, too large for this machine, or over its limit on emulators at once |
+| `GET /api/games/{id}/emulators` | Signed-in | limits. A game on a known console. Answers a list, empty unless WittyPlay offers one. Not with games turned off for the profile |
+| `POST /api/games/{id}/play/emulator` | Signed-in | limits. A game on a known console, its file in a library. 4 KB body, the emulator named by id. The server gives WittyPlay the file; WittyPlay refuses what is not installed, too large for this machine, or over its limit on emulators at once. Not with games turned off for the profile, nor when its screen time is over. The game is the sign-in's that started it: ended when that sign-in ends, when the profile's time runs out, and when games are turned off for it |
 | `GET /api/games/{id}/saves` | Signed-in | limits. A game. own folder, built from numbers |
 | `GET /api/games/{id}/saves/{slot}/thumb` | Signed-in; address token | limits. A game. Slot number. own folder |
 | `DELETE /api/games/{id}/saves/{slot}` | Signed-in | limits. A game. Slot number. own folder |
@@ -727,13 +739,13 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/sdui/navigation/personal` | Signed-in | own arrangement only |
 | `PUT /api/sdui/navigation/personal` | Signed-in | own arrangement only. The profile's editLayout switch and the server's personalisation switch (403). 8 KB, strict JSON, IDs by form |
 | `DELETE /api/sdui/navigation/personal` | Signed-in | own arrangement only. The same switches as saving |
-| `GET /api/sdui/pages/{page}` | Signed-in | Page name by form. Device parameters by form: platform, form factor, device class, catalogue revision, components, views, viewport, locale, capabilities. Filled only with what the account may see: every data source is read through its limits, whatever the page names, and a library, title or collection asked for by number that it may not open is not found. Rows and cards cut to the device's budget. Its own arrangement only. A preview token only for the administrator it was made for (403) |
+| `GET /api/sdui/pages/{page}` | Signed-in | Page name by form. Device parameters by form: platform, form factor, device class, catalogue revision, components, views, viewport, locale, capabilities. Filled only with what the account may see: every data source is read through its limits, whatever the page names, and a library, title or collection asked for by number that it may not open is not found. Rows and cards cut to the device's budget. Its own arrangement only. A preview token only for the administrator it was made for (403). What the profile is kept from (games, Live TV, recording, watch parties, playing on other devices) is taken out of the page's conditions, data sources and buttons, after anything the client said, and its own arrangement can't bring it back. With screen time over: no playback feature, nothing offers to play, and the document says so |
 | `GET /api/sdui/pages/{page}/diff` | Signed-in | As the page. since: an ETag of at most 200 characters, compared only with the account's own earlier renders |
 | `GET /api/sdui/pages/{page}/sections/{section}/items` | Signed-in | As the page. Section ID at most 128 characters and must be a section of that page for this account; cursor 0 to 100000; season a number. Filled only with what the account may see: every data source is read through its limits, whatever the page names |
 | `GET /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists |
 | `PUT /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists. The profile's editLayout switch and the server's personalisation switch (403). 8 KB, strict JSON, IDs by form, at most 64 pages a profile |
 | `DELETE /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists. The same switches as saving |
-| `GET /api/sdui/topshelf` | Signed-in | limits. The account's own continue-watching and what is new in libraries it may open, at most 4 rows of 10. Device class by form |
+| `GET /api/sdui/topshelf` | Signed-in | limits. The account's own continue-watching and what is new in libraries it may open, at most 4 rows of 10. Device class by form. No games with games turned off for the profile |
 | `GET /api/sdui/config` | Admin | Nothing |
 | `PUT /api/sdui/config` | Admin | If-Match must be the current ETag (412 otherwise, 428 when missing), or target=draft. 16 MB body, strict JSON: no unknown fields. Every page and the navigation through the SDUI validator: known components and sources only, routes on this server only, pictures from this server only; theme overrides name known colour tokens and colour values only |
 | `GET /api/sdui/config/history` | Admin | Nothing |
@@ -780,29 +792,29 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/shows/{id}/detect-intros` | Admin | A show. Season by form. One run at a time on the server; at most 60 episodes a season, 10 minutes of each one's sound, FFmpeg at low priority. Writes only detected markers, never ones a person set |
 | `GET /api/media/{id}/where-to-watch` | Signed-in | limits. Versions the account may see only. Region two letters. Sends only a TMDB id and region to TMDB, with the owner's key; answers kept as long as listings |
 | `GET /api/discover/where-to-watch` | Signed-in | limits, for whether it's in the library. TMDB id digits only, type movie or tv, region two letters |
-| `GET /api/remote-control` | Signed-in | Nothing: the protocol's versions and limits. own setting for controlling other accounts' devices |
-| `GET /api/remote-control/devices` | Signed-in | By the owner's switch. own devices, and other accounts' only where an administrator has allowed this account that. What a device plays is shown only where limits allow the caller to see it |
+| `GET /api/remote-control` | Signed-in | Nothing: the protocol's versions and limits. own setting for controlling other accounts' devices Whether this profile may steer devices at all (parental controls) |
+| `GET /api/remote-control/devices` | Signed-in | By the owner's switch. own devices, and other accounts' only where an administrator has allowed this account that. What a device plays is shown only where limits allow the caller to see it. Not for a profile with playing on other devices turned off |
 | `POST /api/remote-control/devices` | Signed-in | By the owner's switch. A real sign-in, not a stream token. 8 KB body. Name cut to 60 characters, kind and capabilities kept only where known. Limits on devices, per account and overall. An id is taken back only by the sign-in that had it |
 | `DELETE /api/remote-control/devices/{id}` | Signed-in | own, and only from the sign-in that announced it |
-| `GET /api/remote-control/devices/{id}/channel` | Signed-in | own, and only from the sign-in that announced it. Limits on open streams, per account and overall. The sign-in is looked at again as it runs |
+| `GET /api/remote-control/devices/{id}/channel` | Signed-in | own, and only from the sign-in that announced it. Limits on open streams, per account and overall. The sign-in is looked at again as it runs. Ended at once when the sign-in ends |
 | `POST /api/remote-control/devices/{id}/state` | Signed-in | own, and only from the sign-in that announced it. 32 KB body. Rate limit. Numbers made finite and in range, strings cut, lists bounded |
 | `POST /api/remote-control/devices/{id}/ack` | Signed-in | own, and only from the sign-in that announced it. A command that is waiting for this device |
-| `POST /api/remote-control/devices/{id}/commands` | Signed-in | By the owner's switch. own device, or another account's where an administrator has allowed this account that. 8 KB body. Known command, values in range. Rate limit per account. Only what the device said it can do. To play: limits of the caller and limits of the device's own account, for every item named. To cast: both devices ones the caller may control |
-| `GET /api/remote-control/events` | Signed-in | As for the list of devices. Limits on open streams, per account and overall. The account is looked at again as it runs |
+| `POST /api/remote-control/devices/{id}/commands` | Signed-in | By the owner's switch. own device, or another account's where an administrator has allowed this account that. 8 KB body. Known command, values in range. Rate limit per account. Only what the device said it can do. To play: limits of the caller and limits of the device's own account, for every item named. To cast: both devices ones the caller may control. Not for a profile with playing on other devices turned off. Nothing is started when screen time is over for the caller or for the device's own account, whoever the caller is |
+| `GET /api/remote-control/events` | Signed-in | As for the list of devices. Limits on open streams, per account and overall. The account is looked at again as it runs. Not for a profile with playing on other devices turned off. Ended at once when the sign-in ends or the profile loses that; sent again at once when limits or who may control whom change |
 | `GET /api/remote-control/accounts` | Admin | Nothing further |
 | `PUT /api/remote-control/accounts/{id}` | Admin | Account exists. Logged with who changed it |
-| `GET /api/syncplay` | Signed-in | Nothing: the rules clients keep in step by. own rooms and invitations, never what a room is playing |
-| `POST /api/syncplay/rooms` | Signed-in | By the owner's switch and who may start one. A real sign-in, not a stream token. 8 KB body. limits, for every item in the queue. 1 to 200 items. Limits on rooms, per account and overall |
-| `POST /api/syncplay/join` | Signed-in | By the owner's switch. A real sign-in. A six-letter code, with wrong tries counted per account; or a room id, only for an account invited or already seated. limits on what is playing: an account that may not see it is refused and told nothing about it. Limit on members |
-| `GET /api/syncplay/rooms/{id}` | Signed-in | own seat in the room. limits on every title shown |
+| `GET /api/syncplay` | Signed-in | Nothing: the rules clients keep in step by. own rooms and invitations, never what a room is playing. Whether this profile may start or join one (parental controls); no rooms listed for one that may not |
+| `POST /api/syncplay/rooms` | Signed-in | By the owner's switch and who may start one. A real sign-in, not a stream token. 8 KB body. limits, for every item in the queue. 1 to 200 items. Limits on rooms, per account and overall. Not for a profile with watch parties turned off, nor when its screen time is over |
+| `POST /api/syncplay/join` | Signed-in | By the owner's switch. A real sign-in. A six-letter code, with wrong tries counted per account; or a room id, only for an account invited or already seated. limits on what is playing: an account that may not see it is refused and told nothing about it. Limit on members. Not for a profile with watch parties turned off, nor when its screen time is over |
+| `GET /api/syncplay/rooms/{id}` | Signed-in | own seat in the room. limits on every title shown. Not for a profile with watch parties turned off. Nothing of what is playing for a member whose screen time is over |
 | `PUT /api/syncplay/rooms/{id}` | Signed-in | own seat, and it is the host's. Policy is host or everyone. Name cut to 60 characters |
 | `DELETE /api/syncplay/rooms/{id}` | Signed-in | own seat, and it is the host's; or an administrator |
-| `GET /api/syncplay/rooms/{id}/events` | Signed-in | own seat in the room. limits on every title shown. Limits on open streams, per account and overall. The sign-in is looked at again as it runs |
+| `GET /api/syncplay/rooms/{id}/events` | Signed-in | own seat in the room. limits on every title shown. Limits on open streams, per account and overall. The sign-in is looked at again as it runs. Not for a profile with watch parties turned off. Ended at once, and the seat given up, when the sign-in ends or the profile loses watch parties. limits asked again when they change |
 | `POST /api/syncplay/rooms/{id}/leave` | Signed-in | own seat in the room |
 | `POST /api/syncplay/rooms/{id}/host` | Signed-in | own seat, and it is the host's. The other member exists |
 | `POST /api/syncplay/rooms/{id}/kick` | Signed-in | own seat, and it is the host's. The other member exists and isn't the host |
 | `POST /api/syncplay/rooms/{id}/invite` | Signed-in | own seat, and it is the host's. 1 to 64 accounts that exist. Limit on invitations. An invitation gives no access to anything |
-| `POST /api/syncplay/rooms/{id}/command` | Signed-in | own seat in the room. The host, or anyone where the room allows it; never a member who may not see what is playing. Known command, finite values in range. A new queue: limits of the caller for every item. Rate limit per seat |
+| `POST /api/syncplay/rooms/{id}/command` | Signed-in | own seat in the room. The host, or anyone where the room allows it; never a member who may not see what is playing. Known command, finite values in range. A new queue: limits of the caller for every item. Rate limit per seat. Never a member whose screen time is over. Not for a profile with watch parties turned off |
 | `POST /api/syncplay/rooms/{id}/report` | Signed-in | own seat in the room. State is ready or buffering. Rate limit per seat |
 | `POST /api/syncplay/rooms/{id}/ping` | Signed-in | own seat in the room. Rate limit per seat |
 | `/` (any method, everything else) | Public | Files of the web app, or its page. An unknown `/api/` address answers 404 |

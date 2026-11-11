@@ -18,12 +18,18 @@ import (
 
 var update = flag.Bool("update", false, "rewrite fixtures/*.json from the cases")
 
+// encode writes a fixture: compact, one line, so that sixty of them are a megabyte and a
+// half rather than five. `jq . file` or `python3 -m json.tool file` prints one to read.
 func encode(t *testing.T, v any) []byte {
+	return encodeIndent(t, v, "")
+}
+
+func encodeIndent(t *testing.T, v any, indent string) []byte {
 	t.Helper()
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)
-	enc.SetIndent("", " ")
+	enc.SetIndent("", indent)
 	if err := enc.Encode(v); err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +106,7 @@ func TestFixturesAreCurrent(t *testing.T) {
 	if len(index.Cases) < 40 {
 		t.Errorf("the kit has %d cases; it promises at least 40", len(index.Cases))
 	}
-	want := encode(t, index)
+	want := encodeIndent(t, index, " ")
 	path := filepath.Join("fixtures", "index.json")
 	if *update {
 		if err := os.WriteFile(path, want, 0o644); err != nil {

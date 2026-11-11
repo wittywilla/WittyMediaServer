@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/syncplay"
 	"github.com/wittywilla/wittymediaserver/internal/wittyremote"
 )
@@ -31,6 +32,17 @@ import (
 //     home, the transcoder's limits and every check on those routes apply to each member
 //     as they would alone.
 //   - Rooms are kept in memory. A restart ends them.
+//   - Parental controls (parental.go, live_ends.go). A profile with "syncplay" off can
+//     neither start nor join a watch party, whatever syncplayCreate says, and loses its
+//     seats the moment it is turned off. Every kind of limit on titles is asked of every
+//     member for every item, and asked again when a member's limits change. Starting or
+//     joining is refused when a profile's screen time is over; a member whose time runs
+//     out during a party sits out (the room doesn't wait for them, they can't steer it and
+//     aren't told what it plays) and is back the moment they have time again. Inviting
+//     accounts is not making a share link, and there is no chat: the "sharing" and
+//     "comments" switches have nothing to say here.
+//   - A seat belongs to a sign-in. When the sign-in ends (signing out, switching profile
+//     on that device, the account deleted) the seat goes with it at once.
 
 func init() {
 	settingKeys = append(settingKeys, "syncplay", "syncplayCreate")
@@ -44,10 +56,23 @@ func init() {
 
 const syncplayOff = "Watch parties are turned off on this server."
 
+// syncTickEvery is how often the rooms' clocks are moved on, and partyWatchEvery how many
+// of those pass between looks at the members' screen time and switches. Variables so that
+// a test needn't wait.
+var (
+	syncTickEvery   = time.Second
+	partyWatchEvery = 5
+)
+
+// partyRecheckEvery: every this many looks at the members (so about every half minute), a
+// member whose limits go by a collection or a tag is asked about again.
+const partyRecheckEvery = 6
+
 type watchParties struct {
 	once    sync.Once
 	engine  *syncplay.Engine
 	ticking atomic.Bool
+	looks   atomic.Int64 // how many times the members have been looked at
 	streams taskStreamCounts
 	rates   rateKeys
 }
@@ -127,8 +152,9 @@ func (s *Server) syncTick() {
 	}
 	ok := s.background("syncplay", func(ctx context.Context) {
 		defer s.watch.ticking.Store(false)
-		t := time.NewTicker(time.Second)
+		t := time.NewTicker(syncTickEvery)
 		defer t.Stop()
+		n := 0
 		for {
 			select {
 			case <-ctx.Done():
@@ -138,6 +164,9 @@ func (s *Server) syncTick() {
 				e.Tick()
 				if e.Rooms() == 0 {
 					return
+				}
+				if n++; n%partyWatchEvery == 0 {
+					s.watchPartyMembers(ctx)
 				}
 			}
 		}
@@ -149,6 +178,7 @@ func (s *Server) syncTick() {
 
 func (s *Server) syncplayRoutes(m *http.ServeMux) {
 	a := s.requireUser
+	s.watchSignIns()
 	m.Handle("GET /api/syncplay", a(s.handleSyncplay))
 	m.Handle("POST /api/syncplay/rooms", a(s.handleSyncCreate))
 	m.Handle("POST /api/syncplay/join", a(s.handleSyncJoin))
@@ -170,6 +200,11 @@ func (s *Server) syncplayOn(ctx context.Context) bool {
 }
 
 func (s *Server) mayCreateParty(ctx context.Context, u *auth.User) bool {
+	// The profile's own switch comes first: with watch parties off for it, the server's
+	// setting can't give them back.
+	if !accessFor(u).Can(library.FeatureSyncplay) {
+		return false
+	}
 	switch s.DB.GetSetting(ctx, "syncplayCreate", "everyone") {
 	case "admins":
 		return u.IsAdmin
@@ -214,6 +249,8 @@ func syncError(w http.ResponseWriter, err error) {
 		code, status = "host-only", 403
 	case errors.Is(err, syncplay.ErrCantSee):
 		code, status = "cant-watch", 403
+	case errors.Is(err, syncplay.ErrTimeUp):
+		code, status = "screen-time", 403
 	case errors.Is(err, syncplay.ErrFull):
 		code, status = "full", 409
 	case errors.Is(err, syncplay.ErrTooMany), errors.Is(err, syncplay.ErrTooManyInvs):
@@ -299,6 +336,8 @@ func (s *Server) handleSyncplay(w http.ResponseWriter, r *http.Request) {
 	out := map[string]any{
 		"enabled":   s.syncplayOn(ctx),
 		"canCreate": s.syncplayOn(ctx) && s.mayCreateParty(ctx, u),
+		// canJoin: false when watch parties are off for this profile (parental controls).
+		"canJoin": s.syncplayOn(ctx) && accessFor(u).Can(library.FeatureSyncplay),
 		"drift": map[string]any{
 			"stillSec": syncplay.DriftStill, "settledSec": syncplay.DriftSettled, "seekSec": syncplay.DriftSeek, "rate": syncplay.DriftRate,
 		},
@@ -311,7 +350,7 @@ func (s *Server) handleSyncplay(w http.ResponseWriter, r *http.Request) {
 		"rooms":        []syncplay.Listing{},
 		"serverTimeMs": time.Now().UnixMilli(),
 	}
-	if su, ok := syncUser(r, r.URL.Query().Get("device")); ok && s.syncplayOn(ctx) {
+	if su, ok := syncUser(r, r.URL.Query().Get("device")); ok && s.syncplayOn(ctx) && accessFor(u).Can(library.FeatureSyncplay) {
 		out["rooms"] = s.syncEngine().RoomsFor(su)
 	}
 	writeJSON(w, 200, out)
@@ -677,6 +716,8 @@ func (s *Server) handleSyncEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer e.Unlisten(room, member, ch)
+	open := s.open.add(openParty, sessionOf(r), u.ID)
+	defer s.open.remove(open)
 	s.syncTick()
 	ctx := r.Context()
 	titles := &syncTitles{s: s, user: u.ID}
@@ -690,7 +731,9 @@ func (s *Server) handleSyncEvents(w http.ResponseWriter, r *http.Request) {
 	}
 	closed := func() {
 		why := "replaced"
-		if _, err := e.View(room, member, u.ID); errors.Is(err, syncplay.ErrNoRoom) {
+		if because := open.reason(); because != "" {
+			why = because // the sign-in ended, or watch parties were turned off for the profile
+		} else if _, err := e.View(room, member, u.ID); errors.Is(err, syncplay.ErrNoRoom) {
 			why = "closed"
 		} else if err != nil {
 			why = "removed"
@@ -710,8 +753,12 @@ func (s *Server) handleSyncEvents(w http.ResponseWriter, r *http.Request) {
 		case <-s.streamsEnding():
 			es.send("closed", map[string]any{"reason": "server-stopping"})
 			return
-		case _, open := <-ch:
-			if !open || !send() {
+		case <-open.end:
+			_ = e.Leave(room, member, u.ID)
+			es.send("closed", map[string]any{"reason": open.reason()})
+			return
+		case _, more := <-ch:
+			if !more || !send() {
 				closed()
 				return
 			}

@@ -432,7 +432,7 @@ func schemaTypes() map[string]reflect.Type {
 		"SDUIVariant": ty(sdui.Variant{}), "SDUIMatch": ty(sdui.Match{}), "SDUIRepeat": ty(sdui.Repeat{}), "SDUIPersonalPolicy": ty(sdui.PersonalPolicy{}),
 		"SDUINavigation": ty(sdui.Navigation{}), "SDUINavItem": ty(sdui.NavItem{}), "SDUINavDocument": ty(sdui.NavDocument{}), "SDUINavEntry": ty(sdui.NavEntry{}),
 		"SDUIPersonal": ty(sdui.Personal{}), "SDUIPersonalInfo": ty(sdui.PersonalInfo{}), "SDUIPersonalSection": ty(sdui.PersonalSection{}), "SDUIPageInfo": ty(sdui.PageInfo{}),
-		"SDUIThemeScope": ty(sdui.ThemeScope{}), "SDUISectionItems": ty(sdui.SectionItems{}), "SDUIIssue": ty(sdui.Issue{}), "SDUIPreset": ty(sdui.Preset{}),
+		"SDUIThemeScope": ty(sdui.ThemeScope{}), "SDUIScreenTime": ty(sdui.ScreenTime{}), "SDUISectionItems": ty(sdui.SectionItems{}), "SDUIIssue": ty(sdui.Issue{}), "SDUIPreset": ty(sdui.Preset{}),
 		"SDUICatalogue": ty(sdui.Catalogue{}), "SDUIComponentSpec": ty(sdui.ComponentSpec{}), "SDUIPropSpec": ty(sdui.PropSpec{}), "SDUISourceSpec": ty(sdui.SourceSpec{}),
 		"SDUICardStyleSpec": ty(sdui.CardStyleSpec{}), "SDUIConditionSpec": ty(sdui.ConditionSpec{}), "SDUIPageKindSpec": ty(sdui.PageKindSpec{}), "SDUIRouteSpec": ty(sdui.RouteSpec{}),
 		"SDUICommandSpec": ty(sdui.CommandSpec{}), "SDUINativeScreenSpec": ty(sdui.NativeScreenSpec{}), "SDUIEnumOption": ty(sdui.EnumOption{}),

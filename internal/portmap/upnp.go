@@ -28,8 +28,11 @@ import (
 type upnpClient struct {
 	control string // the service's control address
 	service string // its full type
-	localIP string // this machine, as the router sees it
-	http    *http.Client
+	// fw6 and fw6Service are the router's IPv6 firewall service, if it has one:
+	// see upnp6.go.
+	fw6, fw6Service string
+	localIP         string // this machine, as the router sees it
+	http            *http.Client
 }
 
 func (c *upnpClient) Protocol() string { return "UPnP" }
@@ -100,9 +103,9 @@ func (c *upnpClient) ExternalIP(ctx context.Context) (netip.Addr, error) {
 	return netip.ParseAddr(string(m[1]))
 }
 
-func (c *upnpClient) add(ctx context.Context, external, internal, lease int) error {
+func (c *upnpClient) add(ctx context.Context, proto string, external, internal, lease int) error {
 	var b strings.Builder
-	b.WriteString(`<NewRemoteHost></NewRemoteHost><NewExternalPort>` + strconv.Itoa(external) + `</NewExternalPort><NewProtocol>TCP</NewProtocol>`)
+	b.WriteString(`<NewRemoteHost></NewRemoteHost><NewExternalPort>` + strconv.Itoa(external) + `</NewExternalPort><NewProtocol>` + strings.ToUpper(proto) + `</NewProtocol>`)
 	b.WriteString(`<NewInternalPort>` + strconv.Itoa(internal) + `</NewInternalPort><NewInternalClient>`)
 	_ = xml.EscapeText(&b, []byte(c.localIP))
 	b.WriteString(`</NewInternalClient><NewEnabled>1</NewEnabled><NewPortMappingDescription>` + description + `</NewPortMappingDescription>`)
@@ -112,10 +115,19 @@ func (c *upnpClient) add(ctx context.Context, external, internal, lease int) err
 }
 
 func (c *upnpClient) Map(ctx context.Context, external, internal int) (int, time.Duration, error) {
-	err := c.add(ctx, external, internal, leaseSeconds)
+	return c.MapProto(ctx, TCP, external, internal)
+}
+
+func (c *upnpClient) Unmap(ctx context.Context, external, internal int) error {
+	return c.UnmapProto(ctx, TCP, external, internal)
+}
+
+// MapProto is Map for TCP or UDP.
+func (c *upnpClient) MapProto(ctx context.Context, proto string, external, internal int) (int, time.Duration, error) {
+	err := c.add(ctx, proto, external, internal, leaseSeconds)
 	var ue *upnpError
 	if errors.As(err, &ue) && ue.code == 725 {
-		if err = c.add(ctx, external, internal, 0); err == nil {
+		if err = c.add(ctx, proto, external, internal, 0); err == nil {
 			return external, 0, nil
 		}
 	}
@@ -125,8 +137,9 @@ func (c *upnpClient) Map(ctx context.Context, external, internal int) (int, time
 	return external, leaseSeconds * time.Second, nil
 }
 
-func (c *upnpClient) Unmap(ctx context.Context, external, internal int) error {
-	_, err := c.soap(ctx, "DeletePortMapping", `<NewRemoteHost></NewRemoteHost><NewExternalPort>`+strconv.Itoa(external)+`</NewExternalPort><NewProtocol>TCP</NewProtocol>`)
+// UnmapProto is Unmap for TCP or UDP.
+func (c *upnpClient) UnmapProto(ctx context.Context, proto string, external, internal int) error {
+	_, err := c.soap(ctx, "DeletePortMapping", `<NewRemoteHost></NewRemoteHost><NewExternalPort>`+strconv.Itoa(external)+`</NewExternalPort><NewProtocol>`+strings.ToUpper(proto)+`</NewProtocol>`)
 	return err
 }
 
@@ -319,5 +332,12 @@ func openRouter(ctx context.Context, location string, from, local netip.Addr) (*
 	if err != nil || ctl.Host != u.Host || ctl.Scheme != "http" {
 		return nil, errors.New("the router's description is not usable")
 	}
-	return &upnpClient{control: ctl.String(), service: strings.TrimSpace(svc.Type), localIP: local.String(), http: hc}, nil
+	c := &upnpClient{control: ctl.String(), service: strings.TrimSpace(svc.Type), localIP: local.String(), http: hc}
+	if fw := firewallService(root.Device); fw != nil {
+		// Held to the same rule as the forwarding service: it stays on the router.
+		if u6, err := u.Parse(strings.TrimSpace(fw.Control)); err == nil && u6.Host == u.Host && u6.Scheme == "http" {
+			c.fw6, c.fw6Service = u6.String(), strings.TrimSpace(fw.Type)
+		}
+	}
+	return c, nil
 }

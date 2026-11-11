@@ -209,11 +209,18 @@ func (s *Server) handleGamePlayEmulator(w http.ResponseWriter, r *http.Request) 
 	}
 	sess := res.Session
 	ended := make(chan struct{})
+	// Whose it is, for as long as it runs: see emulator_sessions.go.
+	game := emulatorGame{id: sess.ID, session: sessionOf(r), user: u.ID, item: it.ID}
+	s.emus.add(&game)
 	logging.Go("emulator session end", func() {
 		waitForEmulator(sess.ID)
+		s.emus.remove(sess.ID)
 		close(ended)
 		done()
 	}, "cat", "games", "session", sess.ID)
+	if accessFor(u) != nil {
+		logging.Go("emulator limits", func() { s.watchEmulator(game, ended) }, "cat", "games", "session", sess.ID)
+	}
 	s.streams.game(sess.ID, u.ID, u.Name, it.Title, ended, func() GameView {
 		return GameView{Core: sess.Name, Width: sess.Width, Height: sess.Height}
 	})

@@ -12,6 +12,8 @@ import { BookDetails } from './Books'
 import { SaveButton } from '../components/SaveToCollection'
 
 const GameDetails = lazy(() => import('./games/Details'))
+import { useRemoteAllowed } from '../remote/allowed'
+
 const PlayOn = lazy(() => import('../remote/PlayOn'))
 const WatchParty = lazy(() => import('../remote/WatchParty'))
 const RigGameDetails = lazy(() => import('./Rigs').then((m) => ({ default: m.RigGameDetails })))
@@ -37,6 +39,7 @@ export default function ItemPage() {
   const [broken, setBroken] = useState(false)
   const [more, setMore] = useState(false)
   const [sendTo, setSendTo] = useState<'device' | 'party' | null>(null)
+  const may = useRemoteAllowed()
   // A phone has one row: the main action, Save, and "⋯" for the rest.
   const phone = useMedia('(max-width: 760px)')
   const load = () => { setBroken(false); return api.get<Item>(`/items/${id}`).then(setIt).catch((e) => { if (e.status >= 500) setBroken(true); else setErr(e.message) }) }
@@ -76,8 +79,8 @@ export default function ItemPage() {
   ] : [
     ...(resume ? [{ key: 'start', icon: <IconPlay />, label: 'Play from start', run: () => nav(`/play/${it.id}?start=0`) }] : []),
     ...(it.nextId ? [{ key: 'next', icon: <IconNext />, label: 'Next episode', run: () => nav(`/item/${it.nextId}`) }] : []),
-    { key: 'device', icon: <IconDevices />, label: 'Play on…', run: () => setSendTo('device') },
-    { key: 'party', icon: <IconUsers />, label: 'Watch party', run: () => setSendTo('party') },
+    ...(may.playOn ? [{ key: 'device', icon: <IconDevices />, label: 'Play on…', run: () => setSendTo('device') }] : []),
+    ...(may.party ? [{ key: 'party', icon: <IconUsers />, label: 'Watch party', run: () => setSendTo('party') }] : []),
   ]
   if (user?.isAdmin) rest.push(
     { key: 'art', icon: <IconImage />, label: 'Artwork', run: () => setArt(true) },
@@ -161,8 +164,8 @@ export default function ItemPage() {
               </button>
               {resume && <button className="btn" onClick={() => nav(`/play/${it.id}?start=0`)}><IconPlay /> Play from start</button>}
               {it.nextId && <button className="btn" onClick={() => nav(`/item/${it.nextId}`)}><IconNext /> Next episode</button>}
-              <button className="btn" aria-haspopup="dialog" onClick={() => setSendTo('device')}><IconDevices /> Play on…</button>
-              <button className="btn" aria-haspopup="dialog" onClick={() => setSendTo('party')}><IconUsers /> Watch party</button>
+              {may.playOn && <button className="btn" aria-haspopup="dialog" onClick={() => setSendTo('device')}><IconDevices /> Play on…</button>}
+              {may.party && <button className="btn" aria-haspopup="dialog" onClick={() => setSendTo('party')}><IconUsers /> Watch party</button>}
               <SaveButton itemId={it.id} />
               {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
               {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('match')}><IconEdit /> Edit</button>}

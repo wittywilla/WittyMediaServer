@@ -81,13 +81,32 @@ func classify(pattern string) routeClass {
 	case under("/api/games", "/api/play", "/api/consoles", "/api/couch", "/api/rigs", "/api/modules/wittyplay", "/api/game-profiles",
 		"/api/game-bezels", "/api/game-background", "/api/game-controllers"):
 		c.feature = library.FeatureGames
-		playing := under("/api/play", "/api/couch/sessions", "/api/modules/wittyplay") ||
-			(method == "POST" && ends("/play", "/prepare", "/start", "/stream", "/webrtc"))
+		// Under WittyPlay's own routes everything is a game being played, except an
+		// emulator's settings, the list of one's games, and pausing one.
+		emulator := under("/api/modules/wittyplay") && !ends("/settings", "/docker/sessions", "/pause")
+		playing := under("/api/play", "/api/couch/sessions") || emulator ||
+			(method == "POST" && ends("/play", "/play/emulator", "/prepare", "/start", "/stream", "/webrtc"))
 		if playing && !stops {
 			c.time = timePlay
 		}
 	case under("/api/recordings", "/api/recording-rules"):
 		c.feature = library.FeatureRecordings
+	case under("/api/syncplay/rooms", "/api/syncplay/join") && !stops && !ends("/leave"):
+		// Watch parties. GET /api/syncplay itself stays open: it is how an app learns that
+		// they are off for this profile. Starting or joining one is starting to watch, so it
+		// is refused when time is up; what is watched then counts through the playback
+		// routes each member's own player uses. Leaving and ending one are always allowed.
+		c.feature = library.FeatureSyncplay
+		if method == "POST" && (path == "/api/syncplay/rooms" || path == "/api/syncplay/join") {
+			c.time = timePlay
+		}
+	case path == "/api/remote-control/devices" && method == "GET", path == "/api/remote-control/events",
+		path == "/api/remote-control/devices/{id}/commands":
+		// The controller's side of WittyRemote. A device's own side (announcing itself,
+		// its channel, its state, its answers) is no feature: a profile kept from steering
+		// other devices can still be played on by whoever may. Whether a command plays
+		// something when time is up is decided where the command is read (checkPlay).
+		c.feature = library.FeatureRemoteControl
 	case path == "/api/shares" && method == "POST":
 		c.feature = library.FeatureSharing
 	case path == "/api/items/{id}/comments", under("/api/comments"):
@@ -112,12 +131,14 @@ func classify(pattern string) routeClass {
 
 // What someone is told when a feature is off for their profile.
 var featureRefusal = map[string]string{
-	library.FeatureGames:      "Games are turned off for this profile.",
-	library.FeatureRecordings: "Recording is turned off for this profile.",
-	library.FeatureSharing:    "Share links are turned off for this profile.",
-	library.FeatureComments:   "Comments are turned off for this profile.",
-	library.FeatureDownloads:  "Downloads are turned off for this profile.",
-	library.FeatureRemote:     "This profile can only be used at home.",
+	library.FeatureGames:         "Games are turned off for this profile.",
+	library.FeatureRecordings:    "Recording is turned off for this profile.",
+	library.FeatureSharing:       "Share links are turned off for this profile.",
+	library.FeatureComments:      "Comments are turned off for this profile.",
+	library.FeatureDownloads:     "Downloads are turned off for this profile.",
+	library.FeatureRemote:        "This profile can only be used at home.",
+	library.FeatureSyncplay:      "Watch parties are turned off for this profile.",
+	library.FeatureRemoteControl: "Playing on other devices is turned off for this profile.",
 }
 
 // parentalState is what the server remembers between requests.
@@ -199,6 +220,12 @@ func (s *Server) forgetRules() {
 	s.parental.mu.Lock()
 	s.parental.rules = nil
 	s.parental.mu.Unlock()
+	// A watch party asked what each member may see when they sat down. A collection that
+	// limits go by has just changed, or someone's limits have, so it asks again.
+	e := s.syncEngine()
+	for _, id := range e.Seated() {
+		e.Recheck(id)
+	}
 }
 
 // remoteAllowed: an account kept to the home network isn't signed in anywhere else.
@@ -458,5 +485,6 @@ func (s *Server) grantExtra(ctx context.Context, userID int64, minutes int, by s
 	}
 	s.parentalInit().tracker.Forget(ctx, userID)
 	_, _ = s.DB.ExecContext(ctx, `INSERT INTO profile_events(user_id, at, kind, title, detail) VALUES(?,?,?,?,?)`, userID, now.Unix(), "extra", by, strconv.Itoa(minutes))
+	s.limitsChanged(ctx, userID) // a watch party it was sitting out of has it back now
 	return nil
 }

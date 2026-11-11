@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -451,6 +452,13 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 	if err := s.sduiDevice(r, ctx); err != nil {
 		return nil, 400, err
 	}
+	// What this profile has been kept from isn't in the conditions, and with its screen
+	// time over nothing offers to play (sdui_limits.go); what it may not see isn't in the
+	// data. After the device's own parameters, so a client can't say otherwise.
+	ctx.Features = append(slices.Clone(serverFeatures), "playback")
+	s.sduiLimits(r, ctx)
+	rv.noPlay = ctx.Flags["screenTimeUp"]
+	_, hiddenModules := profileHidden(accessFor(u))
 	for _, k := range sduiFilterParams {
 		if v := q.Get(k); v != "" && len(v) <= 200 && takes[k] {
 			ctx.Params[k] = v
@@ -516,7 +524,7 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 	ctx.Flags["setupIncomplete"] = u.IsAdmin && s.DB.GetSetting(r.Context(), "setupDone", "") == "0"
 	ctx.Flags["hasQuery"] = len([]rune(vars["query"])) >= 2
 	for _, mod := range pageModules(&pg) {
-		if s.Modules != nil && s.Modules.Installed(mod) {
+		if s.Modules != nil && s.Modules.Installed(mod) && !slices.Contains(hiddenModules, mod) {
 			ctx.Modules = append(ctx.Modules, mod)
 		}
 	}
@@ -720,6 +728,9 @@ func (s *Server) handleSDUINavigation(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	ctx.Features = slices.Clone(serverFeatures)
+	s.sduiLimits(r, ctx)
+	_, hiddenModules := profileHidden(acc)
 	rv := s.newSDUIResolver(r, ctx.Vars)
 	var libs []sdui.NavLibrary
 	seen := map[string]bool{}
@@ -736,7 +747,7 @@ func (s *Server) handleSDUINavigation(w http.ResponseWriter, r *http.Request) {
 		nav = *cfg.Navigation
 	}
 	for i := range nav.Items {
-		if c := nav.Items[i].When; c != nil && c.Module != "" && s.Modules != nil && s.Modules.Installed(c.Module) {
+		if c := nav.Items[i].When; c != nil && c.Module != "" && s.Modules != nil && s.Modules.Installed(c.Module) && !slices.Contains(hiddenModules, c.Module) {
 			ctx.Modules = append(ctx.Modules, c.Module)
 		}
 	}

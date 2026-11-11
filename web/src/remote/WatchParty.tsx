@@ -24,6 +24,7 @@ function Start({ item, onDone }: { item?: PartyItem; onDone: () => void }) {
   if (failed) return <Notice tone="warn">{failed}</Notice>
   if (!info) return <Spinner />
   if (!info.enabled) return <Notice tone="info" title="Watch parties are turned off">An administrator can turn them on under Settings, Sharing &amp; photos.</Notice>
+  if (info.canJoin === false) return <Notice tone="info" title="Watch parties are turned off for this profile">Whoever manages this profile can turn them on under Settings, Profiles, Limits.</Notice>
   const start = async () => {
     if (!item) return
     setBusy('start')
@@ -88,7 +89,9 @@ function Room({ room, item, onClose }: { room: PartyRoom; item?: PartyItem; onCl
         <div><div className="wp-code-label">Code</div><div className="wp-code-value" aria-label={`Code ${room.code.split('').join(' ')}`}>{room.code}</div></div>
         <IconButton label="Copy the code" onClick={copy}><IconCopy /></IconButton>
       </div>
-      {room.blocked
+      {room.timeUp
+        ? <Notice tone="info" title="Your screen time is over">You keep your place. The others carry on, and you join in again when you have more time.</Notice>
+        : room.blocked
         ? <Notice tone="info" title="This one isn’t available on this account">You keep your place, and join in again when the party moves on.</Notice>
         : playing?.title && <p className="muted">Watching {playing.title}{room.state.waiting ? ' · waiting for everyone to be ready' : room.state.paused ? ' · paused' : ''}</p>}
       <ul className="rc-list" aria-label="People">

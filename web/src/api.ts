@@ -22,7 +22,7 @@ export type Access = {
   kinds?: Record<string, KindLimit>
   onlyGenres?: string[]; blockTags?: string[]
   allowCollections?: number[]; blockCollections?: number[]
-  // What the profile may not do: games, recordings, downloads, sharing, comments, remote, editProfile.
+  // What the profile may not do: games, recordings, downloads, sharing, comments, syncplay, remoteControl, remote, editProfile.
   off?: string[]
   time?: TimeRules | null
 }

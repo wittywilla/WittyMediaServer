@@ -437,11 +437,19 @@ var shareTokenRe = regexp.MustCompile(`(/api/(?:v[0-9]+/)?share/|/s/)[A-Za-z0-9_
 // redactPath hides the secret of a shared link from request logs, which people
 // attach to bug reports.
 func redactPath(p string) string {
+	if strings.Contains(p, "/kasm/") {
+		// An emulator's desktop is opened by the ticket in its address, and by nothing else.
+		p = kasmTicketRe.ReplaceAllString(p, "${1}REDACTED")
+	}
 	if !strings.Contains(p, "/s/") && !strings.Contains(p, "/share/") {
 		return p
 	}
 	return shareTokenRe.ReplaceAllString(p, "${1}REDACTED")
 }
+
+// kasmTicketRe finds the ticket in the address of an emulator's desktop
+// (/api/modules/wittyplay/kasm/{session}/{ticket}/...), wherever in a line it is.
+var kasmTicketRe = regexp.MustCompile(`(/kasm/[^/\s"]+/)[0-9A-Fa-f]{16,}`)
 
 // logWatched adds the time since a player's last report to the account's daily
 // record. Jumps don't count as watching: the gap is capped at a generous report

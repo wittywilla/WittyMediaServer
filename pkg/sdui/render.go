@@ -107,6 +107,8 @@ type RenderContext struct {
 	// whether it may have one.
 	Personal       *Personal
 	CanPersonalise bool
+	// ScreenTime, when the profile's time is over, is sent with the document.
+	ScreenTime *ScreenTime
 	// Resolver answers the page's data sources.
 	Resolver Resolver
 	// BasePath is where the SDUI routes are: "/api/v1/sdui".
@@ -203,6 +205,7 @@ func Render(page Page, ctx *RenderContext) (Document, error) {
 	if page.Scope != "" {
 		doc.Theme = &ThemeScope{Scope: page.Scope, Tokens: copyTokens(ctx.Scopes[page.Scope])}
 	}
+	doc.ScreenTime = ctx.ScreenTime
 	doc.Meta.GeneratedAt = ctx.Now.UTC()
 	doc.Meta.ETag = ETag(doc)
 	return doc, nil

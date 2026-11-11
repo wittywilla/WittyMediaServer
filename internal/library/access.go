@@ -192,10 +192,15 @@ const (
 	FeatureRemote      = "remote"      // use the server away from home
 	FeatureEditProfile = "editProfile" // change their own name and picture
 	FeatureEditLayout  = "editLayout"  // rearrange pages for themselves: order, hidden rows, card sizes
+	// FeatureSyncplay: watch parties, starting one and joining one.
+	// FeatureRemoteControl: playing on and steering other devices. A profile
+	// without it can still be played on and steered by whoever may.
+	FeatureSyncplay      = "syncplay"
+	FeatureRemoteControl = "remoteControl"
 )
 
 // Features lists them in the order Settings shows them.
-var Features = []string{FeatureGames, FeatureRecordings, FeatureDownloads, FeatureSharing, FeatureComments, FeatureRemote, FeatureEditProfile, FeatureEditLayout}
+var Features = []string{FeatureGames, FeatureRecordings, FeatureDownloads, FeatureSharing, FeatureComments, FeatureSyncplay, FeatureRemoteControl, FeatureRemote, FeatureEditProfile, FeatureEditLayout}
 
 // ForKind makes the limits say what the kind of profile decides: a Kids or
 // Guest profile's name and picture are for whoever manages it, unless they

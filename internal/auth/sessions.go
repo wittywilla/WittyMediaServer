@@ -176,6 +176,9 @@ func (s *Service) EndSession(ctx context.Context, userID int64, id string) (bool
 	}
 	s.forget(target) // target is already the stored form
 	_, err = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE token = ?`, target)
+	if err == nil {
+		s.ended(SessionEnd{Session: id})
+	}
 	return err == nil, err
 }
 
@@ -244,6 +247,9 @@ func (s *Service) EndPlainAway(ctx context.Context) (int, error) {
 	res, err := s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE plain_away = 1`)
 	if err != nil {
 		return 0, err
+	}
+	for _, k := range keys {
+		s.ended(SessionEnd{Session: SessionID(k)})
 	}
 	n, _ := res.RowsAffected()
 	return int(n), nil

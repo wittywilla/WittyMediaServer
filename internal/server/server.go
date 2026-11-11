@@ -133,6 +133,7 @@ type Server struct {
 	applyMu   sync.Mutex // one change of the remote access settings at a time
 	reach     reachTest
 	outside   outsideSeen
+	p2p       p2pState // peer-to-peer connections: see api_p2p.go
 	routerMu  sync.Mutex
 	router    *portmap.Probe // the latest "check my router"
 
@@ -156,6 +157,9 @@ type Server struct {
 	// WittyRemote and watch parties: see api_remote_control.go and api_syncplay.go.
 	remoteCtl remoteCtl
 	watch     watchParties
+	// What sign-ins have open, ended when they end: see live_ends.go and emulator_sessions.go.
+	open openStreams
+	emus emulatorGames
 
 	// Work the server started on its own, which Close ends and waits for: see background.
 	bgMu     sync.Mutex
@@ -608,6 +612,7 @@ func (s *Server) Handler() http.Handler {
 	s.mediaExtrasRoutes(m)
 	s.remoteControlRoutes(m)
 	s.syncplayRoutes(m)
+	s.p2pRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

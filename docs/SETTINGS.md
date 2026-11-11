@@ -233,7 +233,7 @@ Everyone who uses this server, with their passwords and what they may watch.
 - **Everyone on this server** (administrators) or **Kids profiles you manage** (adults) lists people, with **Names**, **Limits** and a remove button. Removing a profile deletes its watch history too, and can't be undone.
 - **Password** or **Password or PIN** beside someone gives them a new one, for a forgotten password. See [If you forget your password](ACCOUNTS.md#if-you-forget-your-password).
 - **Add profile** makes an **Adult**, **Kids** or **Guest** profile. Other adults may add Kids profiles only, unless an administrator keeps that to themselves. A Kids or Guest profile with no password signs in with a tap, and only on your home network.
-- **Limits** sets an age level, which libraries are allowed, genres to hide, titles always or never allowed, and Live TV.
+- **Limits** sets an age level, for everything or for each kind of media, which libraries are allowed, genres to hide or the only ones to show, tags and collections, titles always or never allowed, and Live TV. **What they can do** turns off games, recording, downloads, share links, comments, watch parties, playing on other devices, use away from home, and changing their own name and picture. **Screen time** sets how long and when. See [Profiles and parental controls](PROFILES.md).
 - **Signing in** (administrators) chooses **Profiles** or **Classic**, whether to **Show profiles outside your home**, **Let apps find this server**, and **Who may manage Kids profiles**.
 
 More: [Accounts and profiles](ACCOUNTS.md).
@@ -305,7 +305,7 @@ The page is called **Sharing & photos**. **Your links** is for everyone who has 
 - **Photo map** works offline with a plain outline of the world. **Use an online map** is off by default; with it on, each viewer's device asks the provider at **Online map address** for the area being viewed, and the map shows **Credit to show on the map**. Each device can still choose the outline.
 - **Local AI** is planned and doesn't exist yet. The switch does nothing.
 - **Play on other devices:** **Allow playing on other devices** is on by default: any signed-in device can be played on, and steered, from another signed in as the same account. Under it is every account with a switch, **Can control other people's devices**, off for everyone to begin with. Turn it on for the accounts that should be able to steer devices signed in as someone else, such as a parent's for the TV on a Kids profile. It never lets anyone play what they, or that device's account, aren't allowed to see.
-- **Watch parties:** **Allow watch parties** is on by default. **Who can start one** is **Everyone**, **Adults** or **Only administrators**; anyone signed in can join one they have the code for.
+- **Watch parties:** **Allow watch parties** is on by default. **Who can start one** is **Everyone**, **Adults** or **Only administrators**; anyone signed in can join one they have the code for. Both, and playing on other devices, can also be turned off for one profile, under **Profiles → Limits → What they can do**.
 - **Your links** lists your links, with **End link**. Administrators can tick **Everyone's**.
 
 More: [Photos](PHOTOS.md), [Vertical videos](SHORTS.md), [Playing on another device](PLAYING.md#playing-on-another-device), [Watch parties](SYNCPLAY.md).

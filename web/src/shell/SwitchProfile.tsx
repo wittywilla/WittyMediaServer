@@ -33,7 +33,6 @@ export function useSwitchProfile() {
 }
 
 function SwitchProfile({ onClose, onSignOut }: { onClose: () => void; onSignOut: () => void }) {
-  const { setUser } = useApp()
   const nav = useNavigate()
   const [profiles, setProfiles] = useState<HouseholdProfile[] | null>(null)
   const [chosen, setChosen] = useState<HouseholdProfile | null>(null)
@@ -53,7 +52,11 @@ function SwitchProfile({ onClose, onSignOut }: { onClose: () => void; onSignOut:
       setToken(r.token)
       onClose()
       nav('/', { replace: true })
-      setUser(r.user)
+      // Start the page afresh as the new profile, rather than handing it the page as it is.
+      // What the profile before had on screen, had fetched, or was still playing in the
+      // corner is not the new one's to see, and a request still on its way would be answered
+      // (and written in a parent's report) as the new profile's.
+      window.location.reload()
     } catch (e) {
       if (e instanceof ApiError && e.data?.twoFactor) {
         if (needCode) setErr(e.message)

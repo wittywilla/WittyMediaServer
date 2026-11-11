@@ -15,6 +15,15 @@
     "schemas": {
       "Access": {
         "properties": {
+          "allowCollections": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "allowItems": {
             "items": {
               "type": "integer"
@@ -35,6 +44,15 @@
           },
           "allowUnrated": {
             "type": "boolean"
+          },
+          "blockCollections": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "blockGenres": {
             "items": {
@@ -63,6 +81,33 @@
               "null"
             ]
           },
+          "blockTags": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "kinds": {
+            "additionalProperties": {
+              "properties": {
+                "allowUnrated": {
+                  "type": "boolean"
+                },
+                "maxAge": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "allowUnrated",
+                "maxAge"
+              ],
+              "type": "object"
+            },
+            "type": "object"
+          },
           "libraries": {
             "items": {
               "type": "integer"
@@ -80,6 +125,67 @@
           },
           "maxAge": {
             "type": "integer"
+          },
+          "off": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "on": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "onlyGenres": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "time": {
+            "anyOf": [
+              {
+                "properties": {
+                  "from": {
+                    "type": "string"
+                  },
+                  "schoolDayMinutes": {
+                    "type": "integer"
+                  },
+                  "schoolNightUntil": {
+                    "type": "string"
+                  },
+                  "weekendMinutes": {
+                    "type": "integer"
+                  },
+                  "weekendUntil": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "from",
+                  "schoolDayMinutes",
+                  "schoolNightUntil",
+                  "weekendMinutes",
+                  "weekendUntil"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "tunerChannels": {
             "type": "boolean"
@@ -11126,6 +11232,9 @@
       },
       "User": {
         "properties": {
+          "avatar": {
+            "type": "string"
+          },
           "createdAt": {
             "type": "integer"
           },
@@ -11155,6 +11264,7 @@
           }
         },
         "required": [
+          "avatar",
           "createdAt",
           "displayName",
           "hasPassword",
@@ -11178,6 +11288,9 @@
                 "type": "null"
               }
             ]
+          },
+          "avatar": {
+            "type": "string"
           },
           "createdAt": {
             "type": "integer"
@@ -11209,6 +11322,7 @@
         },
         "required": [
           "access",
+          "avatar",
           "createdAt",
           "displayName",
           "hasPassword",
@@ -38073,6 +38187,453 @@
         "summary": "User two factor reset.",
         "tags": [
           "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/profiles/household": {
+      "get": {
+        "operationId": "getProfilesHousehold",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The profiles this device can switch to, as GET /profiles lists them, with avatar and current. Empty where the sign-in screen hides profiles, unless an adult asks.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/profiles/switch": {
+      "post": {
+        "operationId": "postProfilesSwitch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "device": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Switch this device to another profile: {name, password, code, device} as /login. Answers a new token and user, and ends the session it was called with. A wrong password is 403 and the device stays signed in.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/limits": {
+      "get": {
+        "operationId": "getMeLimits",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What this profile may do: features (games, recordings, downloads, sharing, comments, writeComments, remote, editProfile, liveTv), its age limits (maxAge, kinds), its time rules and screenTime now. For hiding what is off.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/screen-time": {
+      "get": {
+        "operationId": "getMeScreenTime",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How long this profile may still play today: allowed, reason (allowance, bedtime, early), remainingSec (-1 = no limit), until and nextAt in Unix seconds, and a message to show.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/screen-time/extra": {
+      "post": {
+        "operationId": "postMeScreenTimeExtra",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "minutes": {
+                    "type": "integer"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "pin": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ask a parent: {minutes, pin} or {minutes, name, password} gives this profile more time today. 403 for a wrong PIN or password, 429 after too many.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/users/{id}/screen-time/extra": {
+      "post": {
+        "operationId": "postUsersScreenTimeExtra",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "minutes": {
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Give a profile you manage more time today: {minutes}.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/users/{id}/activity": {
+      "delete": {
+        "operationId": "deleteUsersActivity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forget what was written down about a profile you manage. Today's screen time stays.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getUsersActivity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a profile you manage watched and when (watched), its screen time by day (days), and what it asked for and was refused (events: blocked, time, feature, extra). days in the query, 14 unless given.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/parental/ratings": {
+      "get": {
+        "operationId": "getParentalRatings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The rating systems a limit can be chosen from (systems, each rating with its age), the kinds of media a limit can be set for, the features that can be turned off, and the avatars and avatarColours a profile can have.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/parental/pin": {
+      "get": {
+        "operationId": "getParentalPin",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether the parents' PIN is set.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putParentalPin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "current": {
+                    "type": "string"
+                  },
+                  "pin": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the parents' PIN ({pin, current, code}), which gives extra screen time on a child's device, or remove it with pin empty.",
+        "tags": [
+          "Sign-in and accounts"
         ],
         "x-wms-auth": "admin"
       }

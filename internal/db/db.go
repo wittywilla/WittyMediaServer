@@ -473,6 +473,37 @@ var migrations = []string{
 	clearInfinities,
 	// 31: sessions whose token crossed the internet unencrypted, so they can be ended together.
 	`ALTER TABLE sessions ADD COLUMN plain_away INTEGER NOT NULL DEFAULT 0;`,
+	// 32: parental controls. A picture for each profile; the screen time each profile with
+	// limits has had each day, counted by the server's clock, with the extra time a parent
+	// gave; what such a profile watched, kept apart from the history it can clear itself; and
+	// what it asked for and was refused. The triggers copy watching time as it is written.
+	`ALTER TABLE users ADD COLUMN avatar TEXT NOT NULL DEFAULT '';
+	 CREATE TABLE IF NOT EXISTS screen_time (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, day INTEGER NOT NULL,
+	   seconds INTEGER NOT NULL DEFAULT 0, extra_seconds INTEGER NOT NULL DEFAULT 0, extra_until INTEGER NOT NULL DEFAULT 0,
+	   PRIMARY KEY(user_id, day));
+	 CREATE TABLE IF NOT EXISTS profile_watch (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, day INTEGER NOT NULL, item_id INTEGER NOT NULL,
+	   seconds REAL NOT NULL DEFAULT 0, title TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT '', last_at INTEGER NOT NULL DEFAULT 0,
+	   PRIMARY KEY(user_id, day, item_id));
+	 CREATE TABLE IF NOT EXISTS profile_events (
+	   id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, at INTEGER NOT NULL,
+	   kind TEXT NOT NULL, item_id INTEGER NOT NULL DEFAULT 0, title TEXT NOT NULL DEFAULT '', detail TEXT NOT NULL DEFAULT '');
+	 CREATE INDEX IF NOT EXISTS profile_events_user ON profile_events(user_id, id DESC);
+	 CREATE TRIGGER IF NOT EXISTS profile_watch_new AFTER INSERT ON play_log WHEN EXISTS (SELECT 1 FROM users u WHERE u.id = NEW.user_id AND u.is_admin = 0 AND (u.kind <> 'adult' OR IFNULL(u.restrictions, '') <> '')) BEGIN
+	   INSERT INTO profile_watch(user_id, day, item_id, title, kind)
+	     SELECT NEW.user_id, NEW.day, NEW.item_id, IFNULL((SELECT title FROM items WHERE id = NEW.item_id), ''), IFNULL((SELECT kind FROM items WHERE id = NEW.item_id), '')
+	     WHERE NOT EXISTS (SELECT 1 FROM profile_watch WHERE user_id = NEW.user_id AND day = NEW.day AND item_id = NEW.item_id);
+	   UPDATE profile_watch SET seconds = seconds + NEW.seconds, last_at = CAST(strftime('%s', 'now') AS INTEGER)
+	     WHERE user_id = NEW.user_id AND day = NEW.day AND item_id = NEW.item_id;
+	 END;
+	 CREATE TRIGGER IF NOT EXISTS profile_watch_more AFTER UPDATE OF seconds ON play_log WHEN NEW.seconds > OLD.seconds AND EXISTS (SELECT 1 FROM users u WHERE u.id = NEW.user_id AND u.is_admin = 0 AND (u.kind <> 'adult' OR IFNULL(u.restrictions, '') <> '')) BEGIN
+	   INSERT INTO profile_watch(user_id, day, item_id, title, kind)
+	     SELECT NEW.user_id, NEW.day, NEW.item_id, IFNULL((SELECT title FROM items WHERE id = NEW.item_id), ''), IFNULL((SELECT kind FROM items WHERE id = NEW.item_id), '')
+	     WHERE NOT EXISTS (SELECT 1 FROM profile_watch WHERE user_id = NEW.user_id AND day = NEW.day AND item_id = NEW.item_id);
+	   UPDATE profile_watch SET seconds = seconds + NEW.seconds - OLD.seconds, last_at = CAST(strftime('%s', 'now') AS INTEGER)
+	     WHERE user_id = NEW.user_id AND day = NEW.day AND item_id = NEW.item_id;
+	 END;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

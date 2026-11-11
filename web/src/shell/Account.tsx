@@ -9,8 +9,9 @@ import { useApp } from '../state'
 import { Menu, type MenuEntry } from '../ui/Menu'
 import { setTvMode } from '../tvmode/mode'
 import { openPlayOn, openWatchParty } from '../remote/RemoteHost'
+import { useSwitchProfile } from './SwitchProfile'
 
-// Signing out, which is also how a profile is switched: back to "Who's watching?".
+// Signing out: back to "Who's watching?". Switching profile without signing out is SwitchProfile.
 export function useSignOut() {
   const { setUser } = useApp()
   const nav = useNavigate()
@@ -22,6 +23,7 @@ function useAccount() {
   const { user, libraries, update } = useApp()
   const nav = useNavigate()
   const signOut = useSignOut()
+  const sw = useSwitchProfile()
   const items: MenuEntry[] = [
     { key: 'year', label: 'Your year', icon: <IconStar />, to: '/review' },
     { key: 'look', label: 'Appearance', icon: <IconPalette />, to: '/settings/appearance' },
@@ -37,28 +39,29 @@ function useAccount() {
     { key: 'help', label: 'Help', icon: <IconHelp />, to: '/help' },
     ...(user?.kind === 'adult' || user?.isAdmin ? [{ key: 'pair', label: 'Sign in a TV', icon: <IconTv />, to: '/pair' }] : []),
     { kind: 'separator', key: 'sep' },
-    { key: 'switch', label: 'Switch profile', icon: <IconUsers />, onSelect: signOut },
+    { key: 'switch', label: 'Switch profile', icon: <IconUsers />, onSelect: sw.start },
     { key: 'out', label: 'Sign out', icon: <IconLogout />, onSelect: signOut },
   ]
   const role = user?.isAdmin ? 'Administrator' : user?.kind === 'kids' ? 'Kids profile' : user?.kind === 'guest' ? 'Guest' : 'Profile'
   const shown = user ? profileName(user) : ''
   const head = <><b>{shown}</b><span>{user && user.name !== shown ? `${user.name} · ${role}` : role}</span></>
-  return { user, items, head, shown }
+  return { user, items, head, shown, switching: sw.dialog }
 }
 
 // ProfileMenu: the avatar in the corner, with settings, switching profiles
 // (back to "Who's watching?") and signing out.
 export function ProfileMenu() {
-  const { user, items, head, shown } = useAccount()
+  const { user, items, head, shown, switching } = useAccount()
   const corner = user ? cornerName(user) : ''
   return (
     <div className="profile-menu">
       <Menu label="Account" items={items} head={head} trigger={(props) => (
         <button type="button" {...props} className="avatar-btn" aria-label={`${corner}: account menu`}>
           <span className="avatar-name">{corner}</span>
-          <Avatar name={shown || '?'} />
+          <Avatar name={shown || '?'} avatar={user?.avatar} />
         </button>
       )} />
+      {switching}
     </div>
   )
 }
@@ -69,7 +72,7 @@ export function YouTab() {
   const shown = user ? profileName(user) : ''
   return (
     <NavLink to="/you" className="tab-you" aria-label={`You, ${shown}`}>
-      <Avatar name={shown || '?'} /><UpdateDot />
+      <Avatar name={shown || '?'} avatar={user?.avatar} /><UpdateDot />
     </NavLink>
   )
 }

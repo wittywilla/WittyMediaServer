@@ -33,6 +33,7 @@ export const GROUPS: GuideGroup[] = [
     { file: 'FIRST-TIME-SETUP', title: 'First-time setup, step by step', about: 'Every page of setup, with a picture of each.' },
     { file: 'LIBRARIES', title: 'Libraries', about: 'Adding your folders, and how to name what’s in them.' },
     { file: 'ACCOUNTS', title: 'Accounts and profiles', about: 'People, kids and guests, passwords and two-factor sign-in.' },
+    { file: 'PROFILES', title: 'Profiles and parental controls', about: 'Switching on a shared screen, limits by age and kind, screen time and reports.' },
     { file: 'APPS', title: 'Apps and devices', about: 'Every way to reach your server, and what works where.' },
     { file: 'PLAYING', title: 'Watching and listening', about: 'The player, its shortcuts, subtitles and TV remotes.' },
     { file: 'SYNCPLAY', title: 'Watch parties', about: 'Watching together, in step, from different places.' },

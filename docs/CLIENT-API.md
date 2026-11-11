@@ -1302,7 +1302,18 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `DELETE /users/{id}` | user | Remove an account this one manages. |
 | `PUT /users/{id}/access` | user | Set an account's limits, or clear a Kids or Guest password. |
 | `PUT /users/{id}/password` | user | Change a password. Your own needs `current`; other sessions of that account end. |
-| `PUT /users/{id}/profile` | user | Change `displayName`, `username` or `showUsername`. Which name the corner shows is anyone's own choice; the names are for an adult's own account and whoever manages the account. |
+| `PUT /users/{id}/profile` | user | Change `displayName`, `username`, `showUsername` or `avatar` (`name:colour` from `/parental/ratings`, or empty). Which name the corner shows is anyone's own choice; the names are for an adult's own account and whoever manages the account. |
+| `GET /profiles/household` | user | The profiles this device can switch to, as `GET /profiles` lists them, with `avatar` and `current`. Empty where the sign-in screen hides profiles, unless an adult asks. |
+| `POST /profiles/switch` | user | Switch this device to another profile: `{name, password, code, device}` as `/login`. Answers a new `token` and `user`, and ends the session it was called with. A wrong password is 403 and the device stays signed in. |
+| `GET /me/limits` | user | What this profile may do: `features` (games, recordings, downloads, sharing, comments, writeComments, remote, editProfile, liveTv), its age limits (`maxAge`, `kinds`), its `time` rules and `screenTime` now. For hiding what is off. |
+| `GET /me/screen-time` | user | How long this profile may still play today: `allowed`, `reason` (allowance, bedtime, early), `remainingSec` (-1 = no limit), `until` and `nextAt` in Unix seconds, and a `message` to show. |
+| `POST /me/screen-time/extra` | user | Ask a parent: `{minutes, pin}` or `{minutes, name, password}` gives this profile more time today. 403 for a wrong PIN or password, 429 after too many. |
+| `POST /users/{id}/screen-time/extra` | user | Give a profile you manage more time today: `{minutes}`. |
+| `GET /users/{id}/activity` | user | What a profile you manage watched and when (`watched`), its screen time by day (`days`), and what it asked for and was refused (`events`: blocked, time, feature, extra). `days` in the query, 14 unless given. |
+| `DELETE /users/{id}/activity` | user | Forget what was written down about a profile you manage. Today's screen time stays. |
+| `GET /parental/ratings` | user | The rating systems a limit can be chosen from (`systems`, each rating with its age), the `kinds` of media a limit can be set for, the `features` that can be turned off, and the `avatars` and `avatarColours` a profile can have. |
+| `GET /parental/pin` | admin | Whether the parents' PIN is set. |
+| `PUT /parental/pin` | admin | Set the parents' PIN (`{pin, current, code}`), which gives extra screen time on a child's device, or remove it with `pin` empty. |
 
 ### Browsing
 

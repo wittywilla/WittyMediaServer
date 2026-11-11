@@ -1,0 +1,423 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
+package server
+
+import (
+	"sort"
+	"strings"
+	"testing"
+)
+
+// What parental controls make of every route a signed-in account can reach. A feature turned off
+// for a profile, and screen time, are applied before any handler runs, by what classify says of the
+// route. So a route is safe from being forgotten only if someone has decided what it is, and this
+// is where that is written down: TestEveryRouteIsClassed fails on a route that is in neither list.
+//
+// routeClasses: the routes that are part of a feature a profile can be kept from ("games",
+// "recordings", "sharing", "comments", "downloads"), or that count as screen time: "play" is refused
+// when a profile's time is up, "tick" counts as watching and is let through so progress is saved.
+var routeClasses = map[string]string{
+	"DELETE /api/comments/{cid}":                                "comments",
+	"DELETE /api/couch/hosts/{id}":                              "games",
+	"DELETE /api/couch/hosts/{id}/pair":                         "games",
+	"DELETE /api/couch/sessions/{sid}":                          "games",
+	"DELETE /api/game-background":                               "games",
+	"DELETE /api/game-bezels/{bezel}":                           "games",
+	"DELETE /api/game-profiles/{id}":                            "games",
+	"DELETE /api/games/{id}/patches/{patch}":                    "games",
+	"DELETE /api/games/{id}/saves/{slot}":                       "games",
+	"DELETE /api/modules/wittyplay/docker/sessions/{sid}":       "games",
+	"DELETE /api/modules/wittyplay/kasm/{sid}/{rest...}":        "games",
+	"DELETE /api/play/{sid}":                                    "games",
+	"DELETE /api/play/{sid}/seats/{user}":                       "games",
+	"DELETE /api/recording-rules/{id}":                          "recordings",
+	"DELETE /api/recordings/{id}":                               "recordings",
+	"GET /api/cd/{id}/audio":                                    "play",
+	"GET /api/consoles/{console}/controls":                      "games",
+	"GET /api/couch":                                            "games",
+	"GET /api/couch/find":                                       "games",
+	"GET /api/couch/hosts":                                      "games",
+	"GET /api/couch/hosts/{id}/apps":                            "games",
+	"GET /api/couch/hosts/{id}/apps/{app}/art":                  "games",
+	"GET /api/couch/hosts/{id}/pair":                            "games",
+	"GET /api/couch/sessions/{sid}":                             "games play",
+	"GET /api/dvd/{sid}":                                        "play",
+	"GET /api/dvd/{sid}/bdj":                                    "play",
+	"GET /api/dvd/{sid}/bdj/frame/{n}":                          "play",
+	"GET /api/dvd/{sid}/menu/{serial}/effect/{n}":               "play",
+	"GET /api/dvd/{sid}/menu/{serial}/highlight/{n}":            "play",
+	"GET /api/dvd/{sid}/menu/{serial}/overlay.png":              "play",
+	"GET /api/dvd/{sid}/sound/{n}":                              "play",
+	"GET /api/dvd/{sid}/still/{name}":                           "play",
+	"GET /api/dvd/{sid}/sub/{name}":                             "play",
+	"GET /api/dvd/{sid}/subs":                                   "play",
+	"GET /api/game-background":                                  "games",
+	"GET /api/game-background/image":                            "games",
+	"GET /api/game-bezels":                                      "games",
+	"GET /api/game-bezels/{bezel}":                              "games",
+	"GET /api/game-controllers":                                 "games",
+	"GET /api/game-profiles":                                    "games",
+	"GET /api/game-profiles/export":                             "games",
+	"GET /api/game-profiles/resolve":                            "games",
+	"GET /api/game-profiles/{id}":                               "games",
+	"GET /api/games/consoles":                                   "games",
+	"GET /api/games/facets":                                     "games",
+	"GET /api/games/home":                                       "games",
+	"GET /api/games/modes":                                      "games",
+	"GET /api/games/playing":                                    "games",
+	"GET /api/games/recent":                                     "games",
+	"GET /api/games/settings":                                   "games",
+	"GET /api/games/settings/schema":                            "games",
+	"GET /api/games/{id}/art/{n}":                               "games",
+	"GET /api/games/{id}/battery":                               "games",
+	"GET /api/games/{id}/cheats":                                "games",
+	"GET /api/games/{id}/check":                                 "games",
+	"GET /api/games/{id}/core-options":                          "games",
+	"GET /api/games/{id}/meta":                                  "games",
+	"GET /api/games/{id}/metadata":                              "games",
+	"GET /api/games/{id}/patches":                               "games",
+	"GET /api/games/{id}/saves":                                 "games",
+	"GET /api/games/{id}/saves/{slot}/file":                     "games",
+	"GET /api/games/{id}/saves/{slot}/thumb":                    "games",
+	"GET /api/games/{id}/versions":                              "games",
+	"GET /api/hls/{id}/master.m3u8":                             "play",
+	"GET /api/hls/{id}/playlist.m3u8":                           "play",
+	"GET /api/hls/{id}/seg/{n}":                                 "play",
+	"GET /api/hls/{id}/subs/{file}":                             "play",
+	"GET /api/items/{id}/comments":                              "comments",
+	"GET /api/items/{id}/file":                                  "play",
+	"GET /api/items/{id}/original":                              "downloads",
+	"GET /api/items/{id}/play":                                  "play",
+	"GET /api/items/{id}/stream":                                "play",
+	"GET /api/media/{id}/canvas/file":                           "play",
+	"GET /api/media/{id}/stems/{stem}":                          "play",
+	"GET /api/modules/wittyplay/kasm/{sid}/{rest...}":           "games play",
+	"GET /api/music/extras/{id}/file":                           "play",
+	"GET /api/play/{sid}":                                       "games play",
+	"GET /api/play/{sid}/screenshot":                            "games play",
+	"GET /api/play/{sid}/seats":                                 "games play",
+	"GET /api/play/{sid}/stats":                                 "games play",
+	"GET /api/play/{sid}/stream":                                "games play",
+	"GET /api/play/{sid}/ws":                                    "games play",
+	"GET /api/radio/{id}/hls":                                   "play",
+	"GET /api/radio/{id}/stream":                                "play",
+	"GET /api/recording-rules":                                  "recordings",
+	"GET /api/recordings":                                       "recordings",
+	"GET /api/rigs":                                             "games",
+	"GET /api/tv/{key}/live/playlist.m3u8":                      "play",
+	"GET /api/tv/{key}/live/seg/{name}":                         "play",
+	"GET /api/tv/{key}/tune":                                    "play",
+	"PATCH /api/couch/hosts/{id}":                               "games",
+	"PATCH /api/modules/wittyplay/kasm/{sid}/{rest...}":         "games play",
+	"POST /api/couch/hosts":                                     "games",
+	"POST /api/couch/hosts/{id}/apps/{app}/play":                "games play",
+	"POST /api/couch/hosts/{id}/pair":                           "games",
+	"POST /api/couch/hosts/{id}/quit":                           "games",
+	"POST /api/couch/hosts/{id}/wake":                           "games",
+	"POST /api/couch/sessions/{sid}/webrtc":                     "games play",
+	"POST /api/dvd/{sid}/action":                                "play",
+	"POST /api/game-bezels":                                     "games",
+	"POST /api/game-profiles":                                   "games",
+	"POST /api/game-profiles/import":                            "games",
+	"POST /api/game-profiles/{id}/active":                       "games",
+	"POST /api/game-profiles/{id}/copy":                         "games",
+	"POST /api/games/settings/validate":                         "games",
+	"POST /api/games/{id}/cheats/import":                        "games",
+	"POST /api/games/{id}/patches":                              "games",
+	"POST /api/games/{id}/play":                                 "games play",
+	"POST /api/games/{id}/prepare":                              "games play",
+	"POST /api/items/{id}/comments":                             "comments",
+	"POST /api/items/{id}/dvd":                                  "play",
+	"POST /api/items/{id}/playback":                             "tick",
+	"POST /api/items/{id}/progress":                             "tick",
+	"POST /api/items/{id}/stream-token":                         "play",
+	"POST /api/items/{id}/view":                                 "tick",
+	"POST /api/modules/wittyplay/docker/sessions/{sid}/connect": "games play",
+	"POST /api/modules/wittyplay/kasm/{sid}/{rest...}":          "games play",
+	"POST /api/play/join":                                       "games play",
+	"POST /api/play/{sid}/action":                               "games play",
+	"POST /api/play/{sid}/invite":                               "games play",
+	"POST /api/play/{sid}/stream":                               "games play",
+	"POST /api/play/{sid}/webrtc":                               "games play",
+	"POST /api/recording-rules":                                 "recordings",
+	"POST /api/recordings":                                      "recordings",
+	"POST /api/rigs/games/{id}/play":                            "games play",
+	"POST /api/rigs/games/{id}/start":                           "games play",
+	"POST /api/rigs/games/{id}/stream":                          "games play",
+	"POST /api/rigs/{id}/quit":                                  "games",
+	"POST /api/rigs/{id}/wake":                                  "games",
+	"POST /api/shares":                                          "sharing",
+	"PUT /api/comments/{cid}":                                   "comments",
+	"PUT /api/consoles/{console}/controls":                      "games",
+	"PUT /api/game-background":                                  "games",
+	"PUT /api/game-background/image":                            "games",
+	"PUT /api/game-profiles/{id}":                               "games",
+	"PUT /api/games/settings":                                   "games",
+	"PUT /api/games/{id}/battery":                               "games",
+	"PUT /api/games/{id}/cheats":                                "games",
+	"PUT /api/games/{id}/meta":                                  "games",
+	"PUT /api/games/{id}/patches/{patch}":                       "games",
+	"PUT /api/games/{id}/saves/{slot}/file":                     "games",
+	"PUT /api/modules/wittyplay/kasm/{sid}/{rest...}":           "games play",
+}
+
+// plainRoutes are part of no feature and play nothing: lists, pictures, settings of one's own.
+// (What they show still follows the account's limits; that is the handlers' work, and
+// TestLimitedProfilesNeverSeeHiddenTitles walks them for it.)
+var plainRoutes = []string{
+	"DELETE /api/annotations/{aid}",
+	"DELETE /api/backup/restore/request",
+	"DELETE /api/collections/{id}",
+	"DELETE /api/collections/{id}/items",
+	"DELETE /api/dvd/{sid}",
+	"DELETE /api/hls/{id}",
+	"DELETE /api/items/{id}/progress",
+	"DELETE /api/me/history",
+	"DELETE /api/photos/albums/{id}",
+	"DELETE /api/photos/albums/{id}/items",
+	"DELETE /api/sessions",
+	"DELETE /api/sessions/{id}",
+	"DELETE /api/shares/{id}",
+	"DELETE /api/tv/favourites/{key}",
+	"DELETE /api/tv/reminders/{id}",
+	"DELETE /api/users/{id}",
+	"DELETE /api/users/{id}/activity",
+	"DELETE /api/views/{id}",
+	"GET /api/about",
+	"GET /api/artwork/credits",
+	"GET /api/backup",
+	"GET /api/brands",
+	"GET /api/browse",
+	"GET /api/browse/facets",
+	"GET /api/browse/shelves",
+	"GET /api/cd/{id}",
+	"GET /api/cd/{id}/graphics",
+	"GET /api/channels",
+	"GET /api/channels/{id}/logo",
+	"GET /api/collections",
+	"GET /api/collections/holding",
+	"GET /api/collections/{id}",
+	"GET /api/creators",
+	"GET /api/creators/{id}",
+	"GET /api/creators/{id}/art/{kind}",
+	"GET /api/dictionary",
+	"GET /api/discover/where-to-watch",
+	"GET /api/genres",
+	"GET /api/guide",
+	"GET /api/guide/search",
+	"GET /api/home",
+	"GET /api/items",
+	"GET /api/items/{id}",
+	"GET /api/items/{id}/annotations",
+	"GET /api/items/{id}/backdrop",
+	"GET /api/items/{id}/book",
+	"GET /api/items/{id}/canvas",
+	"GET /api/items/{id}/disc",
+	"GET /api/items/{id}/disc/thumb/{ttn}/{n}",
+	"GET /api/items/{id}/epub/{file...}",
+	"GET /api/items/{id}/image",
+	"GET /api/items/{id}/motion",
+	"GET /api/items/{id}/page/{n}",
+	"GET /api/items/{id}/poster",
+	"GET /api/items/{id}/recommend",
+	"GET /api/items/{id}/search",
+	"GET /api/items/{id}/subtitles/{file}",
+	"GET /api/libraries",
+	"GET /api/libraries/{id}/scan",
+	"GET /api/licenses",
+	"GET /api/licenses/{id}",
+	"GET /api/listings/status",
+	"GET /api/logos/credits",
+	"GET /api/logos/status",
+	"GET /api/logos/{id}/image",
+	"GET /api/me",
+	"GET /api/me/2fa",
+	"GET /api/me/limits",
+	"GET /api/me/recommended",
+	"GET /api/me/review",
+	"GET /api/me/screen-time",
+	"GET /api/me/ui",
+	"GET /api/media-types",
+	"GET /api/media/{id}/canvas",
+	"GET /api/media/{id}/markers",
+	"GET /api/media/{id}/stems",
+	"GET /api/media/{id}/where-to-watch",
+	"GET /api/meta/{target}/{id}/art/{kind}",
+	"GET /api/meta/{target}/{id}/attached",
+	"GET /api/meta/{target}/{id}/listings",
+	"GET /api/module-store/{id}/{key}",
+	"GET /api/modules/libraries",
+	"GET /api/modules/web",
+	"GET /api/modules/{id}/icon",
+	"GET /api/modules/{id}/notices",
+	"GET /api/modules/{id}/web/{version}/{path...}",
+	"GET /api/music/albums",
+	"GET /api/music/artist",
+	"GET /api/music/artist-photo",
+	"GET /api/music/artists",
+	"GET /api/music/extras/{id}",
+	"GET /api/music/home",
+	"GET /api/music/likes",
+	"GET /api/music/links/{id}",
+	"GET /api/music/loudness/{id}",
+	"GET /api/music/lyrics/{id}",
+	"GET /api/music/radio/{id}",
+	"GET /api/music/songs",
+	"GET /api/music/tracks",
+	"GET /api/music/videos",
+	"GET /api/parental/ratings",
+	"GET /api/photos/ai",
+	"GET /api/photos/albums",
+	"GET /api/photos/folders",
+	"GET /api/photos/list",
+	"GET /api/photos/map",
+	"GET /api/photos/months",
+	"GET /api/photos/{id}",
+	"GET /api/playback/profiles",
+	"GET /api/playback/speedtest",
+	"GET /api/podcasts",
+	"GET /api/prefs",
+	"GET /api/profiles/household",
+	"GET /api/radio",
+	"GET /api/radio/{id}",
+	"GET /api/radio/{id}/now",
+	"GET /api/remote/status",
+	"GET /api/sdui/screens/{screen}",
+	"GET /api/sdui/screens/{screen}/diff",
+	"GET /api/sessions",
+	"GET /api/shares",
+	"GET /api/shows",
+	"GET /api/shows/genres",
+	"GET /api/shows/networks",
+	"GET /api/shows/{id}",
+	"GET /api/shows/{id}/art/{kind}",
+	"GET /api/system/metrics",
+	"GET /api/system/metrics/history",
+	"GET /api/system/metrics/now",
+	"GET /api/system/metrics/report",
+	"GET /api/system/metrics/stream",
+	"GET /api/system/tasks",
+	"GET /api/system/tasks/history",
+	"GET /api/system/tasks/stream",
+	"GET /api/theme",
+	"GET /api/time",
+	"GET /api/tv/encrypted-help",
+	"GET /api/tv/favourites",
+	"GET /api/tv/reminders",
+	"GET /api/tv/{key}/logo",
+	"GET /api/users",
+	"GET /api/users/{id}/activity",
+	"GET /api/videos",
+	"GET /api/videos/feed",
+	"GET /api/videos/tags",
+	"GET /api/videos/{id}",
+	"GET /api/videos/{id}/related",
+	"GET /api/views",
+	"GET /api/views/{id}/titles",
+	"POST /api/auth/pair/{session}/approve",
+	"POST /api/auth/pair/{session}/deny",
+	"POST /api/backup/cancel",
+	"POST /api/backup/restore/inspect",
+	"POST /api/backup/restore/start",
+	"POST /api/backup/restore/upload",
+	"POST /api/collections",
+	"POST /api/collections/preview",
+	"POST /api/collections/watch-later/items",
+	"POST /api/collections/{id}/items",
+	"POST /api/items/{id}/annotations",
+	"POST /api/libraries/{id}/upload",
+	"POST /api/logos/lookup",
+	"POST /api/logs/client",
+	"POST /api/me/2fa/confirm",
+	"POST /api/me/2fa/disable",
+	"POST /api/me/2fa/setup",
+	"POST /api/me/screen-time/extra",
+	"POST /api/modules/{id}/failed",
+	"POST /api/pair/approve",
+	"POST /api/pair/deny",
+	"POST /api/pair/info",
+	"POST /api/pair/invite",
+	"POST /api/photos/albums",
+	"POST /api/photos/albums/{id}/items",
+	"POST /api/profiles/switch",
+	"POST /api/tv/reminders",
+	"POST /api/tv/{key}/leave",
+	"POST /api/users",
+	"POST /api/users/{id}/screen-time/extra",
+	"POST /api/views",
+	"PUT /api/annotations/{aid}",
+	"PUT /api/collections/{id}",
+	"PUT /api/creators/{id}/subscribe",
+	"PUT /api/items/{id}/reaction",
+	"PUT /api/me/ui",
+	"PUT /api/module-store/{id}/{key}",
+	"PUT /api/music/lyrics/{id}/offset",
+	"PUT /api/photos/albums/{id}",
+	"PUT /api/tv/favourites/{key}",
+	"PUT /api/users/{id}/access",
+	"PUT /api/users/{id}/password",
+	"PUT /api/users/{id}/profile",
+	"PUT /api/views/{id}",
+}
+
+func TestEveryRouteIsClassed(t *testing.T) {
+	plain := map[string]bool{}
+	for _, r := range plainRoutes {
+		if plain[r] {
+			t.Errorf("%s is in plainRoutes twice", r)
+		}
+		plain[r] = true
+		if _, both := routeClasses[r]; both {
+			t.Errorf("%s is in both lists", r)
+		}
+	}
+	var routes []string
+	for r := range routeRules {
+		routes = append(routes, r)
+	}
+	sort.Strings(routes)
+	for _, r := range routes {
+		got := classify(r).String()
+		want, classed := routeClasses[r]
+		switch {
+		case !classed && !plain[r]:
+			t.Errorf("%s isn't classed for parental controls. If it plays something or is part of a feature a profile can be kept from, "+
+				"teach classify (parental.go) and add it to routeClasses; otherwise add it to plainRoutes (parental_routes_test.go). classify says %q now", r, got)
+		case classed && got != want:
+			t.Errorf("%s: classify says %q, and routeClasses says %q", r, got, want)
+		case plain[r] && got != "":
+			t.Errorf("%s is in plainRoutes, and classify says %q", r, got)
+		}
+	}
+	for r := range routeClasses {
+		if routeRules[r] == "" {
+			t.Errorf("%s is in routeClasses but isn't a route for signed-in accounts", r)
+		}
+	}
+	for r := range plain {
+		if routeRules[r] == "" {
+			t.Errorf("%s is in plainRoutes but isn't a route for signed-in accounts", r)
+		}
+	}
+}
+
+// Leaving is always allowed: a profile whose time is up can still stop what it started.
+func TestStoppingIsNeverScreenTime(t *testing.T) {
+	for r, class := range routeClasses {
+		if strings.HasPrefix(r, "DELETE ") && (strings.Contains(class, "play") || strings.Contains(class, "tick")) {
+			t.Errorf("%s is refused when time is up", r)
+		}
+	}
+	if c := classify("POST /api/tv/{key}/leave"); c.time != timeNone {
+		t.Errorf("leaving a channel: %v", c)
+	}
+}
+
+func TestClassifyUnknownRoutes(t *testing.T) {
+	for _, r := range []string{"", "GET /", "GET /api/gamesroom", "GET /api/playlists", "POST /api/sharesomething"} {
+		if c := classify(r); c.String() != "" {
+			t.Errorf("classify(%q) = %q", r, c)
+		}
+	}
+}

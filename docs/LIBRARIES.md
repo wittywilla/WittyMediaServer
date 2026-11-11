@@ -270,6 +270,8 @@ It can also be set with `-allow-network-paths` or `WMS_ALLOW_NETWORK_PATHS=1`. `
 | **Exceptions** | **Always allow** or **Never allow** a film or show, whatever its rating |
 | **Live TV** | Whether they get it, and which kinds of channel |
 
+[Profiles and parental controls](PROFILES.md#what-a-profile-sees) has the rest: an age for each kind of media, whole collections, tags, what a profile may do, and screen time.
+
 What someone can't see is hidden everywhere, in lists, search and counts alike, and asking for it directly gets "not found". Age limits depend on ratings, which can be missing or wrong, so they're a help and not a guarantee.
 
 **For everyone:** there's no switch to hide a library from every person, except that a Commercials library stays out of menus unless you turn on **Show in the main menus and on Home**. To keep a library from most people, limit each of them to the others. **Categories** on a film or TV library's page lets an administrator rename, hide, reorder and merge that library's categories for everyone.

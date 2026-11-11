@@ -19,6 +19,7 @@ import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
 import { AskHost } from './ui/Overlay'
+import ScreenTimeWatch from './shell/ScreenTime'
 import { loadUserPrefs, useUserPref } from './ui/userPrefs'
 import { syncTilt } from './ui/tilt'
 import { Sidebar } from './shell/Sidebar'
@@ -81,6 +82,7 @@ export default function App() {
     <AppProvider>
       <Shell />
       <ToastHost />
+      <ScreenTimeWatch />
       <AskHost />
       <Announcer />
     </AppProvider>

@@ -50,6 +50,8 @@ type User struct {
 	TwoFactor bool `json:"twoFactor"`
 	// HomeOnly: the session this came from was made with no password, and only counts at home.
 	HomeOnly bool `json:"-"`
+	// Avatar is the picture the profile chose, as "name:colour" ("" = its initial).
+	Avatar string `json:"avatar"`
 }
 
 // Kinds of accounts.
@@ -59,14 +61,14 @@ const (
 	KindGuest = "guest"
 )
 
-const userCols = `id, name, is_admin, created_at, kind, password_hash <> '', IFNULL(restrictions, ''), totp_on, display_name, show_username`
+const userCols = `id, name, is_admin, created_at, kind, password_hash <> '', IFNULL(restrictions, ''), totp_on, display_name, show_username, avatar`
 
 type scanner interface{ Scan(...any) error }
 
 func scanUser(r scanner) (*User, error) {
 	var u User
 	var admin, totp, showUsername int
-	if err := r.Scan(&u.ID, &u.Name, &admin, &u.CreatedAt, &u.Kind, &u.HasPassword, &u.Restrictions, &totp, &u.DisplayName, &showUsername); err != nil {
+	if err := r.Scan(&u.ID, &u.Name, &admin, &u.CreatedAt, &u.Kind, &u.HasPassword, &u.Restrictions, &totp, &u.DisplayName, &showUsername, &u.Avatar); err != nil {
 		return nil, err
 	}
 	u.IsAdmin = admin != 0
@@ -277,6 +279,42 @@ func (s *Service) SetDisplayName(ctx context.Context, id int64, name string) err
 }
 
 // SetShowUsername chooses which name the corner of the screen shows.
+// Avatars a profile can choose from, and the colours behind them. The apps draw
+// them; the server only keeps the choice, so no picture is ever uploaded.
+var (
+	AvatarNames   = []string{"star", "heart", "moon", "sun", "bolt", "diamond", "crown", "flower", "music", "planet", "paw", "tree", "rocket", "gamepad", "book"}
+	AvatarColours = []string{"red", "orange", "yellow", "green", "teal", "blue", "purple", "pink"}
+)
+
+// CleanAvatar checks a choice of avatar: "name:colour", or "" for the initial.
+func CleanAvatar(v string) (string, error) {
+	if v == "" {
+		return "", nil
+	}
+	name, colour, _ := strings.Cut(v, ":")
+	okName, okColour := false, false
+	for _, n := range AvatarNames {
+		okName = okName || n == name
+	}
+	for _, c := range AvatarColours {
+		okColour = okColour || c == colour
+	}
+	if !okName || !okColour {
+		return "", errors.New("that isn't one of the pictures a profile can have")
+	}
+	return name + ":" + colour, nil
+}
+
+// SetAvatar saves a profile's picture.
+func (s *Service) SetAvatar(ctx context.Context, id int64, avatar string) error {
+	v, err := CleanAvatar(avatar)
+	if err != nil {
+		return err
+	}
+	_, err = s.DB.ExecContext(ctx, `UPDATE users SET avatar = ? WHERE id = ?`, v, id)
+	return err
+}
+
 func (s *Service) SetShowUsername(ctx context.Context, id int64, on bool) error {
 	_, err := s.DB.ExecContext(ctx, `UPDATE users SET show_username = ? WHERE id = ?`, on, id)
 	return err
@@ -646,4 +684,24 @@ func Tokens(r *http.Request) []string {
 		}
 	}
 	return out
+}
+
+// HashSecret scrambles a short secret that isn't an account's password (the
+// parents' PIN) the way passwords are, so the database never holds it.
+func HashSecret(secret string) (string, error) {
+	if len(secret) > 72 {
+		return "", errors.New("that is too long: 72 bytes at most")
+	}
+	b, err := bcrypt.GenerateFromPassword([]byte(secret), hashCost)
+	return string(b), err
+}
+
+// CheckSecret reports whether secret is what hash was made from. An empty
+// hash matches nothing, and takes as long to say so.
+func CheckSecret(hash, secret string) bool {
+	if hash == "" {
+		_ = bcrypt.CompareHashAndPassword(dummyHash(), []byte(secret))
+		return false
+	}
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(secret)) == nil
 }

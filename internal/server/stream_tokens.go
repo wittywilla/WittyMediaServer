@@ -196,7 +196,7 @@ func (s *Server) resolveStream(r *http.Request) *auth.User {
 	}
 	// HLS and disc routes don't look at the item themselves, so limits set since
 	// the ticket was made are checked here. Accounts without limits pay nothing.
-	if a := accessFor(u); a != nil && g.channel == "" && !s.itemAllowed(r.Context(), a, g.itemID) {
+	if a := s.accessOf(r.Context(), u); a != nil && g.channel == "" && !s.itemAllowed(r.Context(), a, g.itemID) {
 		return nil
 	}
 	return u

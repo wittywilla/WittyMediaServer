@@ -25,24 +25,24 @@ func accessFor(u *auth.User) *library.Access {
 	if u == nil || u.IsAdmin {
 		return nil
 	}
-	if u.Restrictions == "" {
-		if u.Kind == auth.KindAdult || u.Kind == "" {
-			return nil
-		}
-		a := library.DefaultAccess(u.Kind) // Kids/Guest are never unrestricted
-		return &a
+	if u.Restrictions == "" && (u.Kind == auth.KindAdult || u.Kind == "") {
+		return nil
 	}
-	a := library.DefaultAccess(u.Kind)
-	if err := json.Unmarshal([]byte(u.Restrictions), &a); err != nil {
-		a = library.DefaultAccess(u.Kind)
-		if u.Kind == auth.KindAdult {
-			a.MaxAge = 0 // unreadable limits must fail closed
+	a := library.DefaultAccess(u.Kind) // Kids/Guest are never unrestricted
+	if u.Restrictions != "" {
+		if err := json.Unmarshal([]byte(u.Restrictions), &a); err != nil {
+			a = library.DefaultAccess(u.Kind)
+			if u.Kind == auth.KindAdult {
+				a.MaxAge = 0 // unreadable limits must fail closed
+			}
 		}
 	}
+	a.ForKind(u.Kind)
 	return &a
 }
 
-func (s *Server) access(r *http.Request) *library.Access { return accessFor(userFrom(r)) }
+// access is the signed-in account's limits, ready to answer for one title.
+func (s *Server) access(r *http.Request) *library.Access { return s.accessOf(r.Context(), userFrom(r)) }
 
 // visibleItem loads an item the signed-in account may see.
 func (s *Server) visibleItem(r *http.Request, id int64) (*library.Item, error) {
@@ -59,6 +59,7 @@ func (s *Server) visibleItem(r *http.Request, id int64) (*library.Item, error) {
 		sh, _ = s.Store.ShowFacts(r.Context(), *it.ShowID)
 	}
 	if !a.AllowsItem(it, sh) {
+		s.noteHidden(r, it, sh) // whoever manages this profile can see what it asked for
 		return nil, library.ErrNotFound
 	}
 	return it, nil
@@ -136,19 +137,17 @@ func (s *Server) viewerError(r *http.Request, err error) string {
 	return msg
 }
 
-// visibleLibraries drops libraries an account may not open.
+// visibleLibraries drops libraries an account may not open: those its limits
+// leave out, and the games libraries of an account that may not play games.
 func (s *Server) visibleLibraries(ctx context.Context, a *library.Access) ([]library.Library, error) {
 	libs, err := s.Store.Libraries(ctx)
-	if err != nil || a == nil || len(a.Libraries) == 0 {
+	if err != nil || a == nil || (len(a.Libraries) == 0 && a.Can(library.FeatureGames)) {
 		return libs, err
 	}
 	out := libs[:0]
 	for _, l := range libs {
-		for _, id := range a.Libraries {
-			if l.ID == id {
-				out = append(out, l)
-				break
-			}
+		if a.AllowsLibrary(l.ID) && (l.Type != "games" || a.Can(library.FeatureGames)) {
+			out = append(out, l)
 		}
 	}
 	return out, nil

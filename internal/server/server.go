@@ -44,6 +44,9 @@ import (
 )
 
 type Server struct {
+	// parental is what parental controls remember between requests (parental.go).
+	parental parentalState
+
 	cds     cdDiscs
 	Cfg     *config.Config
 	DB      *db.DB
@@ -596,6 +599,7 @@ func (s *Server) Handler() http.Handler {
 	s.wittyRigsRoutes(m)
 	s.diagnoseRoutes(m)
 	s.metaFolderRoutes(m)
+	s.parentalRoutes(m)
 	s.repairRoutes(m)
 	s.networkRoutes(m)
 	s.backupRoutes(m)
@@ -977,7 +981,7 @@ func (s *Server) signedIn(r *http.Request) (*auth.User, string) {
 
 // sessionCountsHere: a sign-in with no password works only at home, as signing in does.
 func (s *Server) sessionCountsHere(r *http.Request, u *auth.User) bool {
-	return !u.HomeOnly || clientFrom(r).Where.AtHome()
+	return (!u.HomeOnly || clientFrom(r).Where.AtHome()) && remoteAllowed(r, u)
 }
 
 func (s *Server) requireUser(h http.HandlerFunc) http.Handler {
@@ -991,6 +995,14 @@ func (s *Server) requireUser(h http.HandlerFunc) http.Handler {
 			return
 		}
 		s.touchSession(r, tok)
+		// What this profile may do, and whether it may play anything now (parental.go).
+		w, r, done, ok := s.parentalGate(w, r, u)
+		if !ok {
+			return
+		}
+		if done != nil {
+			defer done()
+		}
 		// A file sent to this account isn't for a cache in front of the server to keep for
 		// the next person to ask for that address. Handlers that say more replace this.
 		w.Header().Set("Cache-Control", "private")

@@ -12,6 +12,7 @@ import {
 } from '../icons'
 import { useMedia } from '../shell/useNav'
 import { useSignOut } from '../shell/Account'
+import { useSwitchProfile } from '../shell/SwitchProfile'
 import { useApp } from '../state'
 import { AUTO_THEME, CUSTOM_THEME, deviceTheme } from '../theme'
 import { ask } from '../ui'
@@ -54,6 +55,7 @@ export default function YouPage() {
   const phone = useMedia('(max-width: 760px)')
   const { user, libraries, version, brandName, serverTheme, update } = useApp()
   const signOut = useSignOut()
+  const sw = useSwitchProfile()
   const [twoStep, setTwoStep] = useState<boolean | null | undefined>(undefined) // null: the server doesn't offer it
   const [devices, setDevices] = useState<number | null>(null)
   const [print, setPrint] = useState('')
@@ -86,10 +88,11 @@ export default function YouPage() {
     <div className="you">
       <h1 className="sr-only">You</h1>
       <header className="you-head">
-        <Avatar name={shown || '?'} big />
+        <Avatar name={shown || '?'} avatar={user.avatar} big />
         <div className="you-name">{shown}</div>
         <div className="you-sub">@{user.name} · {role}</div>
-        <button type="button" className="btn you-switch" onClick={signOut}><IconUsers /> Switch profile</button>
+        <button type="button" className="btn you-switch" onClick={sw.start}><IconUsers /> Switch profile</button>
+        {sw.dialog}
       </header>
 
       <Group title="Account">

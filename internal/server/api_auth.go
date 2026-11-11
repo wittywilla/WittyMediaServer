@@ -203,6 +203,11 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logins.passed(r, c.Name)
+	if !remoteAllowed(r, u) { // a profile kept to the home network, see parental.go
+		s.Auth.Logout(r.Context(), tok)
+		writeErr(w, 403, featureRefusal[library.FeatureRemote])
+		return
+	}
 	s.Log.InfoContext(r.Context(), "signed in", "cat", "auth", "name", u.Name, "from", clientFrom(r).IP.String(), "where", clientFrom(r).Where.String())
 	s.setCookie(w, r, tok)
 	writeJSON(w, 200, map[string]any{"token": tok, "user": u})
@@ -396,6 +401,7 @@ func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 		v := userView{User: u, Access: accessFor(&u)}
 		if v.Access == nil && !u.IsAdmin {
 			a := library.DefaultAccess(u.Kind)
+			a.ForKind(u.Kind)
 			v.Access = &a
 		}
 		out = append(out, v)
@@ -408,8 +414,9 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		credentials
 		IsAdmin     bool            `json:"isAdmin"`
 		Kind        string          `json:"kind"`
-		Access      *library.Access `json:"access"`
+		Access      json.RawMessage `json:"access"`
 		DisplayName string          `json:"displayName"`
+		Avatar      string          `json:"avatar"`
 		Current     string          `json:"current"` // your own password, for a new administrator
 	}
 	if err := readJSON(r, &c); err != nil {
@@ -431,21 +438,40 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	restr := ""
-	if c.Access != nil || c.Kind != auth.KindAdult {
+	if hasAccess := len(c.Access) > 0 && string(c.Access) != "null"; hasAccess || c.Kind != auth.KindAdult {
 		a := library.DefaultAccess(c.Kind)
-		if c.Access != nil {
-			a = *c.Access
+		a.ForKind(c.Kind)
+		if hasAccess {
+			// What isn't sent is as a new profile of this kind has it.
+			merged, err := mergeAccess(a, c.Access)
+			if err != nil {
+				writeErr(w, 400, err.Error())
+				return
+			}
+			a = *merged
+		}
+		if err := s.cleanAccess(r, &a, c.Kind); err != nil {
+			writeErr(w, 400, err.Error())
+			return
 		}
 		b, _ := json.Marshal(a)
 		restr = string(b)
+	}
+	if _, err := auth.CleanAvatar(c.Avatar); err != nil {
+		writeErr(w, 400, err.Error())
+		return
 	}
 	u, err := s.Auth.CreateProfile(r.Context(), c.Name, c.Password, c.Kind, c.IsAdmin, restr)
 	if err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	if c.DisplayName != "" {
+	if c.DisplayName != "" || c.Avatar != "" {
 		if err := s.Auth.SetDisplayName(r.Context(), u.ID, c.DisplayName); err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+		if err := s.Auth.SetAvatar(r.Context(), u.ID, c.Avatar); err != nil {
 			writeErr(w, 500, err.Error())
 			return
 		}
@@ -471,6 +497,7 @@ func (s *Server) handleUserProfile(w http.ResponseWriter, r *http.Request) {
 		DisplayName  *string `json:"displayName"`
 		Username     *string `json:"username"`
 		ShowUsername *bool   `json:"showUsername"`
+		Avatar       *string `json:"avatar"`
 	}
 	if err := readJSON(r, &in); err != nil {
 		writeErr(w, 400, err.Error())
@@ -489,9 +516,22 @@ func (s *Server) handleUserProfile(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 403, "you can't change this profile")
 		return
 	}
-	if (in.DisplayName != nil || in.Username != nil) && !manages && !(self && me.Kind == auth.KindAdult) {
+	// Their own profile name and picture: grown-up accounts, and anyone whose limits
+	// allow it ("editProfile"). An adult whose limits turn that off can't either.
+	ownLook := self && accessFor(me).Can(library.FeatureEditProfile)
+	if in.Username != nil && !manages && !(ownLook && me.Kind == auth.KindAdult) {
 		writeErr(w, 403, "this profile's names are managed by the adults of this server")
 		return
+	}
+	if (in.DisplayName != nil || in.Avatar != nil) && !manages && !ownLook {
+		writeErr(w, 403, "this profile's name and picture are managed by the adults of this server")
+		return
+	}
+	if in.Avatar != nil {
+		if err := s.Auth.SetAvatar(ctx, id, *in.Avatar); err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
 	}
 	if in.Username != nil && *in.Username != target.Name {
 		if err := s.Auth.SetUsername(ctx, id, *in.Username); err != nil {
@@ -538,19 +578,36 @@ func (s *Server) handleUserAccess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Access        *library.Access `json:"access"`
+		Access        json.RawMessage `json:"access"`
 		ClearPassword bool            `json:"clearPassword"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	if b.Access != nil {
-		raw, _ := json.Marshal(b.Access)
+	if len(b.Access) > 0 && string(b.Access) != "null" {
+		// Over the limits it has, so an app that doesn't know a newer limit leaves it be.
+		base := library.DefaultAccess(target.Kind)
+		base.ForKind(target.Kind)
+		if cur := accessFor(target); cur != nil {
+			base = *cur
+		}
+		a, err := mergeAccess(base, b.Access)
+		if err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
+		if err := s.cleanAccess(r, a, target.Kind); err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
+		raw, _ := json.Marshal(a)
 		if err := s.Auth.SetRestrictions(r.Context(), id, string(raw)); err != nil {
 			writeErr(w, 500, err.Error())
 			return
 		}
+		s.forgetRules()
+		s.Log.InfoContext(r.Context(), "a profile's limits were changed", "cat", "auth", "account", id, "by", me.Name, "from", clientFrom(r).IP.String())
 	}
 	if b.ClearPassword {
 		if err := s.Auth.ClearPassword(r.Context(), id); err != nil {

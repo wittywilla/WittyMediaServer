@@ -142,7 +142,11 @@ func (s *Server) openShare(r *http.Request) (*shareContext, error) {
 	if err != nil {
 		return nil, library.ErrNotFound
 	}
-	return &shareContext{link: l, owner: u, acc: accessFor(u)}, nil
+	acc := s.accessOf(r.Context(), u)
+	if !acc.Can(library.FeatureSharing) {
+		return nil, library.ErrNotFound // links stop working when their maker may no longer share
+	}
+	return &shareContext{link: l, owner: u, acc: acc}, nil
 }
 
 // sharedItem loads an item the link names and its owner may still see.

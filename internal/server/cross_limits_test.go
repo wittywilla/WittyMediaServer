@@ -835,3 +835,15 @@ func TestSyncplayAndScreenTime(t *testing.T) {
 		t.Errorf("leaving: %d %s", res.Code, res.Body)
 	}
 }
+
+// A feature is named once: a list merged from several hands could name one twice, and an app
+// that counts them, or a screen's condition, shouldn't have to wonder.
+func TestServerFeaturesAreNamedOnce(t *testing.T) {
+	seen := map[string]bool{}
+	for _, f := range serverFeatures {
+		if seen[f] {
+			t.Errorf("the feature %q is in serverFeatures twice", f)
+		}
+		seen[f] = true
+	}
+}

@@ -221,8 +221,11 @@ func (s *Server) timeIsUp(ctx context.Context, u *auth.User, a *library.Access) 
 // may no longer use watch parties loses its seats, and one whose screen time is over sits
 // out, so that a room which waits for everyone doesn't wait for someone who can't play.
 // The server calls it every few seconds while there are rooms.
+//
+// It costs one read of each seated account, and nothing at all while nobody is in a party.
 func (s *Server) watchPartyMembers(ctx context.Context) {
 	e := s.syncEngine()
+	recheck := s.watch.looks.Add(1)%partyRecheckEvery == 0
 	for _, id := range e.Seated() {
 		u, err := s.Auth.User(ctx, id)
 		if err != nil {
@@ -241,5 +244,11 @@ func (s *Server) watchPartyMembers(ctx context.Context) {
 			continue
 		}
 		e.SetTimeUp(id, s.timeIsUp(ctx, u, a))
+		// Limits that go by a collection or a tag follow the collection as it changes, which
+		// nobody announces. So for those accounts, and only those, the party asks again now
+		// and then what they may see.
+		if recheck && a != nil && len(a.AllowCollections)+len(a.BlockCollections)+len(a.BlockTags) > 0 {
+			e.Recheck(id)
+		}
 	}
 }

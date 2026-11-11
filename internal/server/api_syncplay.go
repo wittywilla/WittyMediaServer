@@ -64,10 +64,15 @@ var (
 	partyWatchEvery = 5
 )
 
+// partyRecheckEvery: every this many looks at the members (so about every half minute), a
+// member whose limits go by a collection or a tag is asked about again.
+const partyRecheckEvery = 6
+
 type watchParties struct {
 	once    sync.Once
 	engine  *syncplay.Engine
 	ticking atomic.Bool
+	looks   atomic.Int64 // how many times the members have been looked at
 	streams taskStreamCounts
 	rates   rateKeys
 }

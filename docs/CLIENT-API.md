@@ -58,7 +58,8 @@ The same contract is in machine-readable form in `openapi.json` (OpenAPI 3.1), b
 fields, new values in lists. Ignore what you don't recognise; never assume a list of values is
 complete. Removing or changing anything means a new version, with v1 kept alongside. `apiRevision`
 in `/capabilities` counts additions, and `features` names them: look for a feature rather than
-comparing server version numbers. `/api/...` without a version is the same thing, for the web
+comparing server version numbers. Server 0.8.0-alpha is revision 15 (0.7 was 10): one step for
+everything that release adds, each part with its own feature name. `/api/...` without a version is the same thing, for the web
 interface that ships with each server. Every API answer carries `X-WMS-API-Version`. A version this
 server doesn't have answers 404 with `apiVersions`.
 
@@ -297,7 +298,7 @@ TV                              server                         phone or computer
 
 ### With a QR code and a PIN (secure pairing)
 
-Servers with the `pair-totp` and `pair-qr` features (API revision 12) also offer a stronger version of the
+Servers with the `pair-totp` and `pair-qr` features also offer a stronger version of the
 code shown on the device. The device shows a QR code and a **6-digit PIN that changes every 30 seconds**. The
 person approving scans the QR code, or opens the page, and types the PIN they see. The PIN proves they are
 looking at that screen right now, so a code someone read over a shoulder, or saw in a photo, is useless a minute later.
@@ -1102,6 +1103,15 @@ Two things that make several clients act as one, both through the server and bot
 - **Remote control.** Any signed-in client can announce itself as a device, and any other can play something on it, pause it, seek, change its volume or tracks, press its arrow keys, or hand over what it's playing. [REMOTE-PROTOCOL.md](REMOTE-PROTOCOL.md) is the whole wire format, with every message. A server that has it lists `remote-protocol` in `features`, and `GET /remote-control` says whether its owner has it on.
 - **Watch parties.** People in different places watch the same thing in step. The server keeps one state for the room and every player follows it. [SYNCPLAY.md](SYNCPLAY.md#for-developers) has the routes, the clock arithmetic and the drift rules. The feature name is `syncplay`.
 
+**Profiles with limits.** Both follow parental controls ([PROFILES.md](PROFILES.md#limits-everywhere-else)), on the server. What an app has to do:
+
+- Ask `GET /remote-control` and `GET /syncplay`, which are never refused, and go by `canControl`, `canCreate` and `canJoin` as well as `enabled`. A profile can be kept from either (`features.remoteControl`, `features.syncplay` in `GET /me/limits`); the other routes then answer 403 with `code: "feature-off"`. A profile kept from controlling still announces its own device.
+- Treat 403 with code `screen-time` like the same refusal from a playback route: show the time-up notice. `screen-time-there` means it's the other device's profile whose time is up: say so.
+- In a watch party, `timeUp: true` in the room means stop the player and show the notice; the seat is kept.
+- When a stream ends with `reason: "signed-out"` or `"feature-off"`, don't reconnect. After switching profile, start again with the new sign-in: announce the device again, join the party again.
+
+A server that does all of this lists `parental-feature-switches` and `session-end-streams` in `features`.
+
 Both use server-sent events for what the server pushes and ordinary requests for the rest, like the activity stream below. Neither carries media: a client told to play something asks for it through [`POST /items/{id}/playback`](#playing-something) with its own sign-in, so every limit there applies as usual. Both refuse a stream token.
 
 ## Background tasks and server stats
@@ -1305,7 +1315,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /users/{id}/profile` | user | Change `displayName`, `username`, `showUsername` or `avatar` (`name:colour` from `/parental/ratings`, or empty). Which name the corner shows is anyone's own choice; the names are for an adult's own account and whoever manages the account. |
 | `GET /profiles/household` | user | The profiles this device can switch to, as `GET /profiles` lists them, with `avatar` and `current`. Empty where the sign-in screen hides profiles, unless an adult asks. |
 | `POST /profiles/switch` | user | Switch this device to another profile: `{name, password, code, device}` as `/login`. Answers a new `token` and `user`, and ends the session it was called with. A wrong password is 403 and the device stays signed in. |
-| `GET /me/limits` | user | What this profile may do: `features` (games, recordings, downloads, sharing, comments, writeComments, remote, editProfile, liveTv), its age limits (`maxAge`, `kinds`), its `time` rules and `screenTime` now. For hiding what is off. |
+| `GET /me/limits` | user | What this profile may do: `features` (games, recordings, downloads, sharing, comments, writeComments, syncplay, remoteControl, remote, editProfile, liveTv), its age limits (`maxAge`, `kinds`), its `time` rules and `screenTime` now. For hiding what is off. |
 | `GET /me/screen-time` | user | How long this profile may still play today: `allowed`, `reason` (allowance, bedtime, early), `remainingSec` (-1 = no limit), `until` and `nextAt` in Unix seconds, and a `message` to show. |
 | `POST /me/screen-time/extra` | user | Ask a parent: `{minutes, pin}` or `{minutes, name, password}` gives this profile more time today. 403 for a wrong PIN or password, 429 after too many. |
 | `POST /users/{id}/screen-time/extra` | user | Give a profile you manage more time today: `{minutes}`. |
@@ -1505,7 +1515,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 
 A song's or title's looping video, a song's separated parts for karaoke, where to skip in a
 video, and where else a title can be watched. Feature names: `canvas`, `karaoke-stems`,
-`skip-markers`, `where-to-watch-xref` (API revision 13), and `canvas-generate`, `stems-approximate`,
+`skip-markers`, `where-to-watch-xref`, and `canvas-generate`, `stems-approximate`,
 `stems-separate`, `intro-detection` for what the server can make itself. `{id}` is an item, as in
 `/items/{id}`. The routes that make something answer 202 with `task`: follow it at `/system/tasks`.
 
@@ -1656,8 +1666,8 @@ for a song, with the stream token already in each `url`.
 | `GET /consoles/{console}/controls` | user | Game controls. |
 | `PUT /consoles/{console}/controls` | user | Put game control. |
 | `POST /games/{id}/play` | user | Game play. |
-| `GET /games/{id}/emulators` | user | The standalone emulators set up to play this game: {emulators: [{id, name, version, stream, ready, why}]}. Empty when WittyPlay has none. |
-| `POST /games/{id}/play/emulator` | user | Start this game in a standalone emulator: {emulator} in; 201 with the session and where to connect, stop, pause and resume it. |
+| `GET /games/{id}/emulators` | user | The standalone emulators set up to play this game: {emulators: [{id, name, version, stream, ready, why}]}. Empty when WittyPlay has none. 403 `feature-off` with games off for the profile. |
+| `POST /games/{id}/play/emulator` | user | Start this game in a standalone emulator: {emulator} in; 201 with the session and where to connect, stop, pause and resume it. Refused with 403 `screen-time` when the profile's time is up. The game belongs to the sign-in that started it: it is ended when that sign-in ends (signing out, switching profile), when the profile's screen time runs out, and when games are turned off for the profile. |
 | `POST /games/{id}/prepare` | user | Game prepare. |
 | `GET /games/{id}/versions` | user | A game's other versions and its discs. See [GAMING-API.md](GAMING-API.md). |
 | `PUT /games/{id}/version` | admin | Which file in its archive to play. |
@@ -1739,7 +1749,7 @@ for a song, with the stream token already in each `url`.
 | `GET /modules/wittyplay/docker/sessions` | user | Games running in standalone emulators: the caller's own, or everyone's for an administrator. |
 | `POST /modules/wittyplay/docker/sessions/{sid}/pause` | user | Freeze a game in a standalone emulator. The player's own only. |
 | `POST /modules/wittyplay/docker/sessions/{sid}/resume` | user | Let a paused game in a standalone emulator go on. The player's own only. |
-| `GET /modules/wittyplay/kasm/{sid}/{ticket}/{rest}` | public | The KasmVNC desktop of a game in a container, and its WebSocket. Open the `kasmUrl` a start gives, as it is, in a frame sandboxed with `allow-scripts allow-pointer-lock` and never `allow-same-origin`: the ticket in it is the whole of the way in. |
+| `GET /modules/wittyplay/kasm/{sid}/{ticket}/{rest}` | public | The KasmVNC desktop of a game in a container, and its WebSocket. Open the `kasmUrl` a start gives, as it is, in a frame sandboxed with `allow-scripts allow-pointer-lock` and never `allow-same-origin`: the ticket in it is the whole of the way in. 404 unless this server started that game, it is still going, and the profile that started it may still play. |
 
 ### Game PCs
 

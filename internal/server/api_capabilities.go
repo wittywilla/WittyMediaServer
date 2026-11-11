@@ -25,7 +25,23 @@ const (
 	apiVersion = 1
 	// apiRevision counts additions within the version: a client that needs
 	// something new can check for it, or look for a feature name below.
-	apiRevision = 14
+	//
+	// 15 is everything 0.8.0-alpha adds over 0.7 (revision 10), counted once: server-driven
+	// screens with their data, form factors, diffs and Top Shelf; the theme engine; secure
+	// pairing; canvas, stems, skip markers, intro detection and where-to-watch; WittyRemote
+	// and watch parties; profile switching, parental controls and screen time; standalone
+	// emulators. And what makes them one thing:
+	//   - the profile switches "syncplay" and "remoteControl" in limits and in /me/limits,
+	//     with canJoin in GET /syncplay and canControl in GET /remote-control
+	//     (parental-feature-switches);
+	//   - server-driven screens leave out what a profile is kept from, set the flag
+	//     screenTimeUp, and refuse the player screen with code "screen-time" (sdui-limits);
+	//   - remote control refuses with "screen-time" and "screen-time-there"; a watch
+	//     party's view has timeUp and the member state "time-up";
+	//   - the streams of remote control and watch parties end the moment their sign-in
+	//     does, with "bye" or "closed" and a reason: "signed-out" or "feature-off"
+	//     (session-end-streams).
+	apiRevision = 15
 	apiPrefix   = "/api/v1/"
 )
 
@@ -80,7 +96,9 @@ var serverFeatures = []string{
 	"sdui-data", "sdui-form-factors", "sdui-topshelf", "pair-admin-confirm", "pair-session-info", "theme-variants",
 	"canvas-generate", "stems-approximate", "stems-separate", "intro-detection",
 	"profile-switching", "profile-avatars", "parental-controls", "screen-time",
-	"canvas", "karaoke-stems", "skip-markers", "where-to-watch-xref", "module-identity", "standalone-emulators",
+	"standalone-emulators",
+	// What 0.8.0's parts do together: see apiRevision 15 above.
+	"parental-feature-switches", "sdui-limits", "session-end-streams",
 }
 
 // minClientVersions names the oldest version of each app this server still works with, by

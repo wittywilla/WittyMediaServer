@@ -697,6 +697,41 @@ uses; an app maps them to its own screens.
 A screen an administrator adds under another name gets `$.user` and
 `$.server` only.
 
+### Profiles with limits
+
+Titles are one half of a profile's limits ([PROFILES.md](PROFILES.md)), and
+the data above follows every kind of them: libraries, an age for each kind of
+media, genres hidden or the only ones allowed, tags, collections, single
+titles. A library or title asked for by number that the profile may not open
+is 404, a games library included when games are off for it.
+
+The other half is what a profile may do, and that reaches a screen through
+its conditions. For a profile that has been kept from something, the server
+answers `feature` and `module` conditions as if the thing weren't on the
+server at all, so a layout needs no conditions of its own for this, and one
+an administrator wrote is covered like the stock ones:
+
+| For the profile | Conditions that are false |
+|---|---|
+| Games off | features `game-metadata`, `game-controller-profiles`, `game-settings`, `custom-game-cores`, `game-rigs`, `standalone-emulators`; modules `wittyplay`, `wittycouch`, `wittyrigs` |
+| Live TV off | features `live-tv`, `live-tv-stream-tokens`, `tv-favourites`, `tv-reminders`, `recordings`; modules `wittytv`, `wittytuner` |
+| Recording off | feature `recordings` |
+| Watch parties off | feature `syncplay` |
+| Playing on other devices off | feature `remote-protocol` |
+| Screen time over | feature `playback`, so the stock screens have no **Play** or **Resume** |
+
+When screen time is over the flag `screenTimeUp` is also set, and
+`$.screenTime` is `{reason, message, nextAt}` (when there's time again, Unix
+seconds) for a layout that wants to say so. A client can't set or clear
+`screenTimeUp` through `capabilities`. The `player` screen is not rendered at
+all then: it answers 403 with `code: "screen-time"` and `screenTime`, exactly
+as the playback routes do, and so does its diff. Other screens still render,
+so the profile can browse. While there is time left nothing in a screen
+changes with the clock, so its ETag holds; ask `GET /me/screen-time` for the
+time left.
+
+The feature `sdui-limits` in `/capabilities` says a server does all this.
+
 ### Top Shelf
 
 `GET /sdui/topshelf` answers what a tvOS Top Shelf extension shows: what the

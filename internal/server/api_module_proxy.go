@@ -196,7 +196,8 @@ func (s *Server) handleWittyPlayKasm(w http.ResponseWriter, r *http.Request) {
 		out.URL.RawQuery = q.Encode()
 	}
 	modmgr.ProxyToService(c, w, out, strings.TrimPrefix(r.URL.Path, wittyPlayBase), func(err error) {
-		s.Log.Warn("modules: passing a desktop to WittyPlay", "err", err)
+		// The error names the address it was for, and the address holds the ticket.
+		s.Log.Warn("modules: passing a desktop to WittyPlay", "err", redactPath(err.Error()))
 	}, func(resp *http.Response) error {
 		resp.Header.Del("Set-Cookie")
 		resp.Header.Del("Content-Security-Policy") // the one set above stands, alone

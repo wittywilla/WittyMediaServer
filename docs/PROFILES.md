@@ -91,6 +91,8 @@ Under **Limits → What they can do**:
 | **Downloads** | No saving a copy of a photo or video |
 | **Share links** | No new links, and the ones they made stop working. Only adult accounts can make links at all |
 | **Comments** | No comments shown, and none written. Kids and Guest profiles can read comments when this is on, and never write them |
+| **Watch parties** | No starting a watch party and no joining one, whatever the server's own setting for who may start one says. A seat they had in one goes the moment this is turned off |
+| **Playing on other devices** | No list of devices, no **Play on…**, no steering any device, their own included. Their own devices can still be played on and steered by whoever is allowed to, such as a parent |
 | **Use away from home** | The profile works on your home network only. Anywhere else it's signed out, and can't sign in |
 | **Change their own name and picture** | Their name and picture are for whoever manages them |
 | **Live TV** | No Live TV, or only your own channels, or only tuner and internet channels |
@@ -98,6 +100,29 @@ Under **Limits → What they can do**:
 Installing modules, changing settings and managing libraries are always for administrators, so there's no switch for them. Signing in a TV is always for adults.
 
 An adult with any limit at all, these included, can't manage Kids profiles. Otherwise they could make a profile with no limits and use that.
+
+**Share links** and **Comments** say nothing about watch parties. Inviting someone to a watch party isn't a share link: it reaches only people with an account here, and gives them nothing their own limits don't. Watch parties have no chat.
+
+## Limits everywhere else
+
+The same limits hold in every part of the server, because every part asks the same question in the same place. What that means where features meet:
+
+**The apps' screens.** The TV and phone apps draw screens the server sends them ([SDUI.md](SDUI.md)). A screen sent to a profile holds only titles that profile may see, by every kind of limit. What it has been kept from isn't offered either: with games off there's no games library and nothing of WittyPlay; with Live TV off, no channels and nothing of WittyTV; with recordings, watch parties or playing on other devices off, no button for them. When screen time is over, screens are sent without **Play** and **Resume**, and the player's own screen is refused the way playing is.
+
+**Playing on another device.** Two sets of limits apply to every request, and both must allow it:
+
+- *The device's profile decides what plays on it*, whoever asks. Nobody can put on a Kids profile's TV what that profile may not see, an administrator included. When that profile's screen time is over, nobody can start anything there. Pausing, stopping and the volume still work.
+- *The person asking is held to their own limits.* They can't ask any device for a title they may not see, and when their own screen time is over they can start nothing anywhere, though they can still pause and stop.
+
+What plays on a device counts as the screen time of the profile that device is signed in as, whoever started it. A device playing something you may not see shows you only that it's playing.
+
+**Watch parties.** Each person's limits are asked for everything in a party's queue. Someone who may not see what's playing can't join. If the party moves on to something a member may not see, or their limits change during it, they keep their place, see no title and can't control anything. When a member's screen time runs out, they sit out: the party doesn't wait for them, and they're back the moment a parent gives more time. Nobody starts or joins a party when their time is up.
+
+**Games in a standalone emulator.** The time counts as screen time while the game runs, and the game is ended when the time is up or games are turned off for the profile.
+
+**Switching profile and signing out.** A device that switches profile, or signs out, stops being the profile before at once: it's no longer listed as that profile's device, it gives up its seat in a watch party, and a game it was running in an emulator is ended. It then appears as the new profile's device, with the new profile's limits. The same happens when a device is signed out from **Sign-in & security**, when a password changes, and when a profile is removed.
+
+**Signing in a TV.** An adult signs a TV in as themselves, and the TV then has their limits. An adult with no limits can sign it in as a Kids profile they manage. An adult with limits can't, and a Kids or Guest profile signs in no device. Signing a device in as an administrator asks for that administrator's password again.
 
 ## Screen time
 
@@ -148,7 +173,9 @@ This is kept only for profiles with limits, and for 400 days. The profile can't 
 - **Downloads.** The switch stops the routes that hand over a file as a download. A file that an app plays directly is sent the same way whether the app plays it or keeps it, so an app that keeps files for watching offline has to honour the switch itself (`features.downloads` in `GET /me/limits`).
 - **A game played in the browser** runs on the device once it has loaded. The web app checks the time each minute and puts the notice over the game, and the server refuses to start another, but it can't reach into a game already running on a device that has gone offline.
 - **Reading** isn't counted as screen time, except a book that's opened as a whole file.
-- **A collection used as a limit** is looked up again every 15 seconds. A title added to a hidden collection can be opened by its address for that long. Lists follow at once.
+- **A collection used as a limit** is looked up again every 15 seconds. A title added to a hidden collection can be opened by its address for that long. Lists follow at once. A watch party that is already going asks again about every half minute.
+- **A game in a standalone emulator** is looked at every 20 seconds, so it can run that long past the end of screen time.
+- **A device that is already playing** when its profile's limits change isn't sent a stop. Its next request for more of the video is refused, which ends it within seconds.
 
 ## For app makers
 
@@ -158,7 +185,7 @@ Everything is under `/api/v1`. [CLIENT-API.md](CLIENT-API.md#sign-in-and-account
 |---|---|
 | `GET /profiles/household` | The profiles to offer for switching |
 | `POST /profiles/switch` | Switch: `{name, password, code, device}`, as `/login`. A new `token`; the old one ends |
-| `GET /me/limits` | What this profile may do, for hiding what's off, and its time rules |
+| `GET /me/limits` | What this profile may do, for hiding what's off, and its time rules. `features` includes `syncplay` and `remoteControl` |
 | `GET /me/screen-time` | Time left now. Ask once a minute while playing, and at `until` |
 | `POST /me/screen-time/extra` | Ask a parent: `{minutes, pin}` or `{minutes, name, password}` |
 | `GET /parental/ratings` | Rating systems, kinds, features and avatars, for a settings page |

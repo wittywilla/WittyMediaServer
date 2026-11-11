@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -191,22 +193,77 @@ func (m *Manager) ServiceProxy(id string, w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err
 	}
+	ProxyToService(c, w, r, path, func(err error) {
+		m.log.Warn("modules: passing a request to a service", "module", id, "err", err)
+	})
+	return nil
+}
+
+// Headers a module's service is told who is asking by. Only the server sets them: whatever a
+// browser sent under these names, or any other X-Witty- name, never reaches a module.
+const (
+	HeaderUser  = "X-Witty-User"  // the signed-in account's id
+	HeaderAdmin = "X-Witty-Admin" // "1" for an administrator
+)
+
+type identityKey struct{}
+
+type identity struct {
+	user  int64
+	admin bool
+}
+
+// WithIdentity has a request passed to a module say who is asking. The server calls it after
+// its own sign-in check; nothing a client sends can stand in for it.
+func WithIdentity(ctx context.Context, user int64, admin bool) context.Context {
+	return context.WithValue(ctx, identityKey{}, identity{user, admin})
+}
+
+// stripWitty removes every X-Witty- header: the service token and identity are the server's
+// alone to set.
+func stripWitty(h http.Header) {
+	for k := range h {
+		if strings.HasPrefix(http.CanonicalHeaderKey(k), "X-Witty-") {
+			delete(h, k)
+		}
+	}
+}
+
+// ProxyToService passes a request through to path on a running service, WebSocket upgrades
+// included. Inbound X-Witty- headers are always dropped; the token, and the identity from
+// WithIdentity if any, are set afresh. onErr hears a failure to reach it; modify, if given,
+// may change the service's answer before it is sent on.
+func ProxyToService(c *service.Conn, w http.ResponseWriter, r *http.Request, path string, onErr func(error), modify ...func(*http.Response) error) {
 	p := &httputil.ReverseProxy{
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.Out.URL.Scheme, pr.Out.URL.Host = c.Base.Scheme, c.Base.Host
 			pr.Out.URL.Path, pr.Out.URL.RawPath = path, ""
 			pr.Out.Host = c.Base.Host
+			stripWitty(pr.Out.Header)
 			pr.Out.Header.Set(service.TokenHeader, c.Token)
+			if id, ok := pr.In.Context().Value(identityKey{}).(identity); ok && id.user > 0 {
+				pr.Out.Header.Set(HeaderUser, strconv.FormatInt(id.user, 10))
+				if id.admin {
+					pr.Out.Header.Set(HeaderAdmin, "1")
+				}
+			}
 		},
 		Transport:     serviceClient.Transport,
 		FlushInterval: -1,
 		ErrorHandler: func(w http.ResponseWriter, _ *http.Request, err error) {
-			m.log.Warn("modules: passing a request to a service", "module", id, "err", err)
+			if onErr != nil {
+				onErr(err)
+			}
 			http.Error(w, "the module isn't answering", http.StatusBadGateway)
 		},
 	}
+	if c.Client != nil && c.Client.Transport != nil {
+		p.Transport = c.Client.Transport
+	}
+	if len(modify) > 0 && modify[0] != nil {
+		p.ModifyResponse = modify[0]
+	}
 	p.ServeHTTP(w, r)
-	return nil
 }
 
 // closeServices stops every service, as the server stops.

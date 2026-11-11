@@ -122,6 +122,19 @@ func TestTheLocalAddressNeedsTheSecret(t *testing.T) {
 		t.Fatalf("another host name was accepted: %d", code)
 	}
 
+	for _, bad := range []string{"evil.example", "localhost.evil.example", "x.localhost.", "UPPER.localhost", "a b.localhost", ".localhost"} {
+		if localHost(bad+":1", "1") {
+			t.Errorf("%q was taken for this device", bad)
+		}
+	}
+	if localHost("127.0.0.1:2", "1") || !localHost("p2p-abc123.localhost:1", "1") || !localHost("localhost:1", "1") {
+		t.Error("the names for this device")
+	}
+	// A name under .localhost, which an app uses to keep each server's cookies apart.
+	if code, _, _ := fetch(t, c, "/echo", SecretHeader, c.Secret(), "Host", "p2p-abc123.localhost:"+fmt.Sprint(c.Port())); code != 200 {
+		t.Fatalf("a .localhost name: %d", code)
+	}
+
 	// With the secret, by header or by cookie, the request reaches the server:
 	// without the secret in it, without any forwarded header, with the app's
 	// other cookies and its own Host.
@@ -222,4 +235,27 @@ func TestKeys(t *testing.T) {
 		t.Fatal("a device can't be its own server")
 	}
 	_ = context.Background()
+}
+
+func TestTheLocalPortCanBeAskedFor(t *testing.T) {
+	l, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := l.Addr().(*net.TCPAddr).Port
+	key, _ := NewKey()
+	server, _ := DeviceID(p2p.EncodeSeed(seed(1)))
+	tune := func(cc *p2p.ClientConfig) { cc.Local, cc.Listen = true, loopback }
+	// Taken: another is used, and starting doesn't fail.
+	c, err := Start(Config{Key: key, ServerID: server, Port: port, NoDHT: true, NoRelay: true, Tune: tune})
+	if err != nil || c.Port() == port {
+		t.Fatalf("with the port taken: %v", err)
+	}
+	c.Close()
+	l.Close()
+	c, err = Start(Config{Key: key, ServerID: server, Port: port, NoDHT: true, NoRelay: true, Tune: tune})
+	if err != nil || c.Port() != port {
+		t.Fatalf("with the port free: got %d, want %d, %v", c.Port(), port, err)
+	}
+	c.Close()
 }

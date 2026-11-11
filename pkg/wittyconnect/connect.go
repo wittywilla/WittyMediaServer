@@ -63,6 +63,10 @@ type Config struct {
 	NoHolePunch bool `json:"noHolePunch"`
 	// StaticRelays are relays to use as well, as multiaddrs ending in /p2p/<id>.
 	StaticRelays []string `json:"staticRelays"`
+	// Port is the port to open the local address on, if it is free: the one
+	// used last time, so that what a web view stored for the address is still
+	// there. Otherwise, and when 0, one is picked.
+	Port int `json:"port"`
 
 	OnState func(State)  `json:"-"`
 	Log     *slog.Logger `json:"-"`
@@ -126,9 +130,14 @@ func Start(cfg Config) (*Connector, error) {
 		cfg.Tune(&cc)
 	}
 	// Only this device: never a port other machines on the network can reach.
-	ln, err := net.Listen("tcp4", "127.0.0.1:0")
-	if err != nil {
-		return nil, err
+	var ln net.Listener
+	if cfg.Port >= 1024 && cfg.Port <= 65535 {
+		ln, _ = net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", cfg.Port))
+	}
+	if ln == nil {
+		if ln, err = net.Listen("tcp4", "127.0.0.1:0"); err != nil {
+			return nil, err
+		}
 	}
 	client, err := p2p.NewClient(cc)
 	if err != nil {
@@ -184,8 +193,10 @@ func (c *Connector) guard(next http.Handler) http.Handler {
 	_, port, _ := net.SplitHostPort(c.host)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// A web page elsewhere can make a browser send requests to 127.0.0.1
-		// under a name of its own. It can't make the Host say 127.0.0.1.
-		if r.Host != c.host && r.Host != "localhost:"+port {
+		// under a name of its own. It can't make the Host say 127.0.0.1, or a
+		// name under .localhost, which never leaves the device (an app uses one
+		// per server, so that each server's cookies stay its own).
+		if !localHost(r.Host, port) {
 			http.Error(w, "This address is for the WittyMediaServer app on this device only.", http.StatusForbidden)
 			return
 		}
@@ -201,6 +212,27 @@ func (c *Connector) guard(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// localHost says a Host header names this device, on this port.
+func localHost(hostport, port string) bool {
+	host, p, err := net.SplitHostPort(hostport)
+	if err != nil || p != port {
+		return false
+	}
+	if host == "127.0.0.1" || host == "localhost" {
+		return true
+	}
+	name, ok := strings.CutSuffix(host, ".localhost")
+	if !ok || name == "" || len(name) > 63 {
+		return false
+	}
+	for _, c := range name {
+		if !(c >= 'a' && c <= 'z') && !(c >= '0' && c <= '9') && c != '-' {
+			return false
+		}
+	}
+	return true
 }
 
 // proxyError tells the app, in words fit to show, why a request didn't get

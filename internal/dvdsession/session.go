@@ -191,6 +191,10 @@ type Prefs struct {
 	AudioCodec string // aac | mp3
 	LowPower   bool   // cheaper deinterlacing and encoder presets
 	Angle      int    // remembered camera angle for this disc (0 = disc default)
+	// Feature is the film as the engine's ranking lays it out, when that is more than
+	// one title's chapter table: titles the disc plays in a row, or chains only its
+	// commands join. A cell of it then plays the whole of it as one stream.
+	Feature *dvd.Feature
 	// The player's identity, from Settings. 0 and "" leave the defaults: a DVD
 	// plays as its own region, a Blu-ray as region A; no parental limit.
 	DVDRegion   int
@@ -319,11 +323,59 @@ type Session struct {
 	// (after an audio change).
 	seekTo  float64
 	subPics map[string][]*subPic // per sub-picture unit, one per picture it shows
+	// feature is the engine's feature laid out to play (see plan); noPlan says it
+	// couldn't be.
+	feature *featurePlan
+	noPlan  bool
 }
 
 type playingTitle struct {
 	ts  *dvd.TitleSummary
 	idx int // index into ts.Cells of the cell playback started from
+	// titles names the title of each cell when ts is the engine's feature, which can
+	// run through several titles. nil for a title played by itself.
+	titles []int
+}
+
+// titleOf is the title the cell at i belongs to.
+func (p *playingTitle) titleOf(i int) int {
+	if p.titles != nil && i >= 0 && i < len(p.titles) {
+		return p.titles[i]
+	}
+	return p.ts.Number
+}
+
+// featurePlan is the engine's feature laid out to play.
+type featurePlan struct {
+	ts     *dvd.TitleSummary
+	titles []int
+}
+
+// find is the index of a cell of the feature, or -1.
+func (f *featurePlan) find(ttn, pgcn, celln int) int {
+	for i, c := range f.ts.Cells {
+		if f.titles[i] == ttn && c.PGCN == pgcn && c.CellN == celln {
+			return i
+		}
+	}
+	return -1
+}
+
+// plan lays the feature out once. nil when there is none, or when it can't be laid out
+// as one title from this disc: the disc's own commands then carry it along.
+func (s *Session) plan() *featurePlan {
+	if s.prefs.Feature == nil || s.noPlan {
+		return s.feature
+	}
+	if s.feature == nil {
+		ts, titles, ok := s.opened.Disc.FeatureTitle(s.prefs.Feature, 1)
+		if !ok || len(titles) != len(ts.Cells) {
+			s.noPlan = true
+			return nil
+		}
+		s.feature = &featurePlan{ts: ts, titles: titles}
+	}
+	return s.feature
 }
 
 type menuArt struct {
@@ -431,6 +483,14 @@ func (s *Session) Start(ctx context.Context) *Presentation {
 func (s *Session) PlayTitle(ctx context.Context, ttn, chapter int) *Presentation {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// The feature's chapters are counted along the whole of it, through every title it
+	// runs through.
+	if fp := s.plan(); fp != nil && ttn == fp.ts.Number && chapter > 1 && s.prefs.Angle <= 1 {
+		chapter = min(chapter, len(fp.ts.Chapters))
+		if chapter > 1 {
+			return s.playFrom(ctx, ttn, 1, fp.ts.Chapters[chapter-1])
+		}
+	}
 	st := s.nav.PlayTitle(ttn, chapter)
 	// Started directly (not through the disc's menus): the viewer's
 	// remembered angle wins over the one the title's own commands picked.
@@ -439,6 +499,31 @@ func (s *Session) PlayTitle(ctx context.Context, ttn, chapter int) *Presentation
 		s.nav.SetAngle(a)
 	}
 	return s.show(ctx, st)
+}
+
+// PlayFrom plays a title from a place inside it: an episode of a title that plays them
+// all. chapter is where the disc's own chapter table puts that place, and sec the place
+// itself on the title's timeline.
+func (s *Session) PlayFrom(ctx context.Context, ttn, chapter int, sec float64) *Presentation {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.playFrom(ctx, ttn, chapter, sec)
+}
+
+func (s *Session) playFrom(ctx context.Context, ttn, chapter int, sec float64) *Presentation {
+	st := s.nav.PlayTitle(ttn, max(chapter, 1))
+	// Only a place the title has: the stream is built to start there.
+	if pl := s.linearTitle(st); pl == nil || sec <= 0 || sec >= pl.ts.Duration {
+		sec = 0
+	}
+	s.seekTo = sec
+	p := s.show(ctx, st)
+	s.seekTo = 0
+	if sec > 0 && p != nil && p.Kind == "title" && s.playing != nil {
+		s.syncPosition(sec)
+		s.resumeAt = 0
+	}
+	return p
 }
 
 // OpenMenu starts the disc directly in one of its menus.
@@ -633,7 +718,19 @@ func (s *Session) syncPosition(pos float64) {
 			k = i
 		}
 	}
-	if k < 0 || !s.nav.SyncTitleCell(cells[k].PGCN, cells[k].CellN) {
+	if k < 0 {
+		return
+	}
+	// A feature in several titles: the navigator has to be in the title the viewer has
+	// reached before it can be told the cell.
+	if t := s.playing.titleOf(k); s.playing.titles != nil {
+		if st := s.nav.Current(); st == nil || st.Title == nil || st.Title.TTN != t {
+			if st = s.nav.PlayTitle(t, 1); st == nil || st.Kind != dvd.StepTitle || st.Title == nil || st.Title.TTN != t {
+				return
+			}
+		}
+	}
+	if !s.nav.SyncTitleCell(cells[k].PGCN, cells[k].CellN) {
 		return
 	}
 	s.playing.idx = k
@@ -650,7 +747,13 @@ func (s *Session) ended(ctx context.Context) *Presentation {
 		st := s.nav.CellEnded()
 		for i := pl.idx + 1; i < len(pl.ts.Cells); i++ {
 			c := pl.ts.Cells[i]
-			if st == nil || st.Kind != dvd.StepTitle || st.PGCN != c.PGCN || st.CellN != c.CellN || st.Title == nil || st.Title.TTN != cur.Title.TTN {
+			// A cell the engine left out of the feature (one that points nowhere) is one
+			// the navigator still steps on: it is passed over, as a player passes it.
+			for skip := 0; pl.titles != nil && skip < 16 && st != nil && st.Kind == dvd.StepTitle && st.Title != nil &&
+				(st.PGCN != c.PGCN || st.CellN != c.CellN) && s.plan() != nil && s.plan().find(st.Title.TTN, st.PGCN, st.CellN) < 0 && s.inFeature(st.Title.TTN); skip++ {
+				st = s.nav.CellEnded()
+			}
+			if st == nil || st.Kind != dvd.StepTitle || st.PGCN != c.PGCN || st.CellN != c.CellN || st.Title == nil || st.Title.TTN != pl.titleOf(i) {
 				break
 			}
 			st = s.nav.CellEnded()
@@ -706,7 +809,7 @@ func (s *Session) present(ctx context.Context, st *dvd.Step, rebuild bool) *Pres
 	case dvd.StepTitle:
 		// A rebuild (audio change) keeps the cell the viewer has reached.
 		pl := prev
-		if !rebuild || pl == nil || st.Title == nil || pl.ts.Number != st.Title.TTN || pl.ts != s.title(st.Title.TTN) {
+		if !rebuild || pl == nil || st.Title == nil || !s.stillPlaying(pl, st) {
 			pl = s.linearTitle(st)
 		}
 		if pl != nil {
@@ -760,6 +863,28 @@ func (s *Session) logStop(st *dvd.Step, p *Presentation) {
 	s.log.Warn(msg, "reason", p.Reason, "step", st.Kind, "domain", st.DomainName, "vts", st.VTS, "pgc", st.PGCN, "cell", st.CellN)
 }
 
+// stillPlaying says a step is a cell of what is already being streamed.
+func (s *Session) stillPlaying(pl *playingTitle, st *dvd.Step) bool {
+	if pl.titles != nil {
+		fp := s.plan()
+		return fp != nil && pl.ts == fp.ts && fp.find(st.Title.TTN, st.PGCN, st.CellN) >= 0
+	}
+	return pl.ts.Number == st.Title.TTN && pl.ts == s.title(st.Title.TTN)
+}
+
+// inFeature says a title is one the feature runs through.
+func (s *Session) inFeature(ttn int) bool {
+	if s.prefs.Feature == nil {
+		return false
+	}
+	for _, t := range s.prefs.Feature.Titles {
+		if t == ttn {
+			return true
+		}
+	}
+	return false
+}
+
 // title returns the flattened title (cached per session).
 func (s *Session) title(ttn int) *dvd.TitleSummary {
 	angle := s.angle(ttn)
@@ -796,6 +921,10 @@ func (s *Session) switchAngle(ctx context.Context, angle int, pos float64) *Pres
 	}
 	s.nav.SetAngle(angle)
 	ts := s.title(cur.Title.TTN)
+	var titles []int
+	if fp := s.plan(); fp != nil && s.playing.titles != nil && s.angle(cur.Title.TTN) == 1 {
+		ts, titles = fp.ts, fp.titles // back to the first angle, which the feature is laid out for
+	}
 	if ts == nil || len(ts.Cells) == 0 {
 		return cur
 	}
@@ -806,7 +935,7 @@ func (s *Session) switchAngle(ctx context.Context, angle int, pos float64) *Pres
 		}
 	}
 	s.nav.SyncTitleCell(ts.Cells[k].PGCN, ts.Cells[k].CellN)
-	s.playing = &playingTitle{ts: ts, idx: k}
+	s.playing = &playingTitle{ts: ts, idx: k, titles: titles}
 	s.seekTo = pos
 	return s.present(ctx, s.nav.Current(), true)
 }
@@ -819,15 +948,26 @@ func (s *Session) linearTitle(st *dvd.Step) *playingTitle {
 	if st.Title == nil || st.Loop || st.Hold || st.StillSec != 0 {
 		return nil
 	}
-	ts := s.title(st.Title.TTN)
-	if ts == nil || len(ts.Cells) == 0 {
-		return nil
-	}
+	// A cell of the feature plays the feature: every title the disc chains into the film
+	// and every chain its commands join, on one timeline.
+	var ts *dvd.TitleSummary
+	var titles []int
 	idx := -1
-	for i, c := range ts.Cells {
-		if c.PGCN == st.PGCN && c.CellN == st.CellN {
-			idx = i
-			break
+	if fp := s.plan(); fp != nil && s.angle(fp.ts.Number) == 1 {
+		if idx = fp.find(st.Title.TTN, st.PGCN, st.CellN); idx >= 0 {
+			ts, titles = fp.ts, fp.titles
+		}
+	}
+	if idx < 0 {
+		ts = s.title(st.Title.TTN)
+		if ts == nil || len(ts.Cells) == 0 {
+			return nil
+		}
+		for i, c := range ts.Cells {
+			if c.PGCN == st.PGCN && c.CellN == st.CellN {
+				idx = i
+				break
+			}
 		}
 	}
 	if idx < 0 {
@@ -862,7 +1002,7 @@ func (s *Session) linearTitle(st *dvd.Step) *playingTitle {
 	if err != nil {
 		s.log.Debug("could not look for in-title buttons", "topic", "menus", "vts", st.VTS, "pgc", st.PGCN, "cell", st.CellN, "err", err)
 	}
-	return &playingTitle{ts: ts, idx: idx}
+	return &playingTitle{ts: ts, idx: idx, titles: titles}
 }
 
 // EncryptedRefusal is what a viewer of an encrypted disc is told, of any kind
@@ -1309,9 +1449,20 @@ func (s *Session) buildTitle(ctx context.Context, st *dvd.Step, pl *playingTitle
 	if ts.Video.Wide {
 		aspect = "16:9"
 	}
-	tv := &TitleView{TTN: ti.TTN, Chapter: ti.PTTN, DurationSec: ts.Duration, StartSec: start, Chapters: ts.Chapters, AudioStream: audioN, SubStream: subN,
+	// The title a stream is known by is the one the feature starts at, whichever of its
+	// titles the navigator is in, and its chapters are counted along the whole of it.
+	ttn, chapter := ti.TTN, ti.PTTN
+	if pl.titles != nil {
+		ttn, chapter = ts.Number, 1
+		for i, c := range ts.Chapters {
+			if c <= start+0.5 {
+				chapter = i + 1
+			}
+		}
+	}
+	tv := &TitleView{TTN: ttn, Chapter: chapter, DurationSec: ts.Duration, StartSec: start, Chapters: ts.Chapters, AudioStream: audioN, SubStream: subN,
 		Wide: ts.Video.Wide, Audio: []Track{}, Subtitles: []Track{}, FrameW: fw, FrameH: fh, Aspect: aspect,
-		SubtitlesURL: s.url("subs") + fmt.Sprintf("?ttn=%d&angle=%d", ti.TTN, angle), ForcedStream: subRaw & 31,
+		SubtitlesURL: s.url("subs") + fmt.Sprintf("?ttn=%d&angle=%d", ttn, angle), ForcedStream: subRaw & 31,
 		Angle: angle, Angles: 1}
 	if audioFilter != "" {
 		tv.AudioStream = audioN | karaokeOff

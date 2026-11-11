@@ -233,6 +233,27 @@ func TestDiagnoseResolveLinks(t *testing.T) {
 
 // waitFor gives a job two minutes. A check that walks real folders took 42 s on a machine busy
 // with other builds, and a passing test only waits as long as the job takes.
+// newManager is NewManager for a test. When the test ends, whatever is still queued or running
+// is cancelled, and it waits for the worker to stop: a job's report is saved after the job
+// itself returns, and saving it while the test's folders are removed failed on macOS.
+func newManager(t *testing.T, env Env) *Manager {
+	t.Helper()
+	m := NewManager(env)
+	t.Cleanup(func() {
+		for _, v := range m.Jobs() {
+			if v.State == StateRunning || v.State == StateQueued {
+				m.Cancel(v.ID)
+			}
+		}
+		waitFor(t, "the last job to be saved", func() bool {
+			m.mu.Lock()
+			defer m.mu.Unlock()
+			return !m.working
+		})
+	})
+	return m
+}
+
 func waitFor(t *testing.T, what string, ok func() bool) {
 	t.Helper()
 	deadline := time.Now().Add(2 * time.Minute)
@@ -254,7 +275,7 @@ func viewState(t *testing.T, m *Manager, id string) string {
 }
 
 func TestDiagnoseQueueOneAtATimeAndBounded(t *testing.T) {
-	m := NewManager(Env{DataDir: t.TempDir(), Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	m := newManager(t, Env{DataDir: t.TempDir(), Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	var running, most, ran atomic.Int32
 	release := make(chan struct{})
 	job := func(ctx context.Context, j *Job) {
@@ -320,7 +341,7 @@ func TestDiagnoseQueueOneAtATimeAndBounded(t *testing.T) {
 
 func TestDiagnoseReportsAreKeptAndBounded(t *testing.T) {
 	dir := t.TempDir()
-	m := NewManager(Env{DataDir: dir, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	m := newManager(t, Env{DataDir: dir, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	var last *Job
 	for range keepReports + 3 {
 		var err error
@@ -400,7 +421,7 @@ func TestDiagnoseEnginePanicBecomesFinding(t *testing.T) {
 	}
 	// And the whole job survives one, with what it had so far saved.
 	dir := t.TempDir()
-	m := NewManager(Env{DataDir: dir, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	m := newManager(t, Env{DataDir: dir, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	job, err := m.Submit(KindDisc, "a.iso", nil, nil, func(ctx context.Context, j *Job) {
 		j.Add(Finding{Severity: SevOK, Title: "before the crash"})
 		panic("boom")
@@ -702,7 +723,7 @@ func TestDiagnoseDiscCheckAndWhatTheReportHolds(t *testing.T) {
 
 	env := Env{DataDir: dataDir, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
 	withModules := realHelpers(t, &Job{env: &env}, "wittydvd")
-	m := NewManager(env)
+	m := newManager(t, env)
 	j, err := m.SubmitDisc(img, DiscOptions{Crawl: true, Damage: true})
 	if err != nil {
 		t.Fatal(err)
@@ -955,7 +976,7 @@ func TestDiagnoseStorageCheckWritesOnlyWhereAllowed(t *testing.T) {
 	before := len(listAll(t, library))
 	gone := filepath.Join(library, "Gone Film.mkv")
 	dataDir := t.TempDir()
-	m := NewManager(Env{DataDir: dataDir, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
+	m := newManager(t, Env{DataDir: dataDir, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		ItemPaths: func(ctx context.Context, lib int64, limit int) ([]string, error) {
 			return []string{film, gone, "https://example.com/x"}, nil
 		}})

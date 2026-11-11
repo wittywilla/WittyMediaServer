@@ -2,16 +2,21 @@
 // Copyright (C) 2026 WittyWilla and contributors
 
 // Package sduistore keeps the server's UI configuration, ui_config.json in the
-// data folder: the server-driven screens (pkg/sdui documents) and the theme
-// overrides the Master Theme Engine applies. It is the one place both are
-// stored.
+// data folder: the pages and navigation an administrator changed (pkg/sdui;
+// what nobody changed comes from the built-in pages) and the theme overrides
+// the Master Theme Engine applies. It is the one place both are stored.
+//
+// Beside it sits ui_config.draft.json while an administrator is working on a
+// change they haven't published: the same thing, shown only to someone
+// holding a preview token.
 //
 // Every save is a new revision. The file is written atomically, a copy of each
 // revision is kept in ui_config.history/ (the newest MaxHistory), and an
 // administrator can go back to any of them. A file that can't be read or
 // doesn't validate is set aside as ui_config.json.bad and the last good
 // configuration is used instead: the newest valid revision in the history, or
-// the stock screens. Someone may edit the file by hand while the server runs:
+// the built-in pages. A file in the first format (version 1, "screens") is
+// converted when it is read, and the original kept as ui_config.v1.json. Someone may edit the file by hand while the server runs:
 // it is read again when its modification time or size changes, checked on
 // every read (no file watcher).
 package sduistore
@@ -44,13 +49,17 @@ const (
 	HistoryDir = "ui_config.history"
 	// MaxHistory is how many revisions are kept for going back.
 	MaxHistory = 10
-	// FormatVersion is the version of the file's own layout (the screens
-	// inside carry sdui.SchemaVersion).
-	FormatVersion = 1
+	// DraftName is the unpublished draft's name in the data folder.
+	DraftName = "ui_config.draft.json"
+	// LegacyBackup is the copy kept of a file in the first format.
+	LegacyBackup = "ui_config.v1.json"
+	// FormatVersion is the version of the file's own layout. Version 1 held
+	// "screens": trees of low-level nodes.
+	FormatVersion = 2
 	// MaxBytes is the largest configuration accepted, from disk or from a request.
 	MaxBytes = 16 << 20
-	// MaxScreens bounds how many screens a configuration may hold.
-	MaxScreens = 64
+	// MaxPages bounds how many pages a configuration may hold.
+	MaxPages = sdui.MaxPages
 )
 
 // Config is the whole of ui_config.json.
@@ -59,27 +68,39 @@ type Config struct {
 	Version int `json:"version"`
 	// Revision counts saves; set by the store.
 	Revision int64 `json:"revision"`
-	// UpdatedAt and UpdatedBy say when and by whom (an account name, "defaults",
-	// "rollback", "file on disk") this revision was made; set by the store.
+	// UpdatedAt and UpdatedBy say when and by whom the revision was saved.
 	UpdatedAt time.Time `json:"updatedAt,omitzero"`
 	UpdatedBy string    `json:"updatedBy,omitempty"`
-	// Theme is the theme overrides.
+	// Theme holds the theme engine's overrides.
 	Theme Theme `json:"theme"`
-	// Screens are the authored screens by name; each key equals its
-	// document's screen.
-	Screens map[string]sdui.Document `json:"screens"`
-	// ETag identifies this revision for If-Match. Filled in by the store,
-	// never written to the file, ignored when saving.
+	// Navigation is the main menu; nil means the built-in one.
+	Navigation *sdui.Navigation `json:"navigation,omitempty"`
+	// Pages are the pages an administrator changed or added, by ID. A page
+	// with a built-in page's ID replaces it; removing it brings the built-in
+	// one back.
+	Pages map[string]sdui.Page `json:"pages"`
+	// Personalisation says whether profiles may arrange pages for themselves.
+	Personalisation Personalisation `json:"personalisation,omitzero"`
+	// Notes are left by a migration: what could not be carried over.
+	Notes []string `json:"notes,omitempty"`
+	// ETag identifies this revision; set by the store, never stored.
 	ETag string `json:"etag,omitempty"`
 }
 
-// Theme is the theme section: colours that replace a theme's own, for the
-// whole interface and for the parts belonging to one module. The theme itself
-// (its id) is the server's "theme" setting, shared with /api/themes.
+// Personalisation is the server-wide switch for profiles' own arrangements.
+type Personalisation struct {
+	// Disabled turns every profile's own arrangement off: pages are shown as
+	// authored. What profiles stored is kept for when it is turned back on.
+	Disabled bool `json:"disabled,omitempty"`
+}
+
+// Theme is the theme engine's part of the file: colour tokens overridden for
+// every screen, and per module (or other theme scope).
 type Theme struct {
-	// Tokens are global overrides: token name → colour.
+	// Tokens overrides colour tokens everywhere: token name → colour.
 	Tokens map[string]string `json:"tokens,omitempty"`
-	// Modules are per-module overrides: module id → token name → colour.
+	// Modules overrides them inside one module's parts of the UI, or one
+	// page's or section's scope: scope → token → colour.
 	Modules map[string]map[string]string `json:"modules,omitempty"`
 }
 
@@ -89,7 +110,7 @@ type Revision struct {
 	UpdatedAt time.Time `json:"updatedAt,omitzero"`
 	UpdatedBy string    `json:"updatedBy,omitempty"`
 	ETag      string    `json:"etag"`
-	Screens   []string  `json:"screens"`
+	Pages     []string  `json:"pages"`
 	Size      int64     `json:"size"`
 	Current   bool      `json:"current"`
 }
@@ -123,7 +144,7 @@ func (e *InvalidError) Error() string {
 }
 
 func (e *InvalidError) add(path, format string, args ...any) {
-	e.Issues = append(e.Issues, sdui.Issue{Path: path, Message: fmt.Sprintf(format, args...)})
+	e.Issues = append(e.Issues, sdui.Issue{Path: path, Severity: "error", Message: fmt.Sprintf(format, args...)})
 }
 
 // Options configure a Store.
@@ -133,10 +154,6 @@ type Options struct {
 	// CheckTheme validates the theme section beyond the basic rules (token
 	// names known, colours valid). nil: only the basic rules.
 	CheckTheme func(Theme) []sdui.Issue
-	// KnownToken says whether a colour token exists. With it, a screen whose
-	// style says "token:<name>" for a name no theme has is refused: a client
-	// would have no colour to draw with. nil: any name passes.
-	KnownToken func(name string) bool
 	// Now is the clock; nil means time.Now.
 	Now func() time.Time
 }
@@ -146,23 +163,24 @@ type Store struct {
 	dir, path, histDir string
 	log                *slog.Logger
 	checkTheme         func(Theme) []sdui.Issue
-	knownToken         func(string) bool
 	now                func() time.Time
 
-	mu   sync.RWMutex
-	cur  *Config
-	mod  time.Time // the file's modification time and size as last read or written
-	size int64
+	mu    sync.RWMutex
+	cur   *Config
+	draft *Config   // the unpublished draft, nil when there is none
+	mod   time.Time // the file's modification time and size as last read or written
+	size  int64
 }
 
-// Open loads dir/ui_config.json, creating it from sdui.DefaultScreens on the
-// first run, or recovering as the package documentation describes.
+// Open loads dir/ui_config.json, creating an empty one (every page the
+// built-in one) on the first run, converting one in the first format, or
+// recovering as the package documentation describes.
 func Open(dir string, opt Options) (*Store, error) {
 	if dir == "" {
 		return nil, errors.New("sduistore: no data folder")
 	}
 	s := &Store{dir: dir, path: filepath.Join(dir, FileName), histDir: filepath.Join(dir, HistoryDir),
-		log: opt.Log, checkTheme: opt.CheckTheme, knownToken: opt.KnownToken, now: opt.Now}
+		log: opt.Log, checkTheme: opt.CheckTheme, now: opt.Now}
 	if s.log == nil {
 		s.log = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
@@ -174,6 +192,7 @@ func Open(dir string, opt Options) (*Store, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	defer s.loadDraft()
 	raw, err := os.ReadFile(s.path)
 	switch {
 	case errors.Is(err, os.ErrNotExist):
@@ -192,6 +211,22 @@ func Open(dir string, opt Options) (*Store, error) {
 		return nil, err
 	}
 	c, perr := s.parseAndValidate(raw)
+	if perr == nil && IsLegacy(raw) {
+		// The first format: keep the original, and save what it became.
+		if _, err := os.Stat(filepath.Join(s.dir, LegacyBackup)); err != nil {
+			if err := writeFileAtomic(filepath.Join(s.dir, LegacyBackup), raw); err != nil {
+				return nil, fmt.Errorf("could not keep a copy of the old ui_config.json: %w", err)
+			}
+		}
+		s.cur = &Config{Revision: c.Revision}
+		c.Revision = s.nextRevision()
+		c.UpdatedAt, c.UpdatedBy = s.now().UTC(), "converted from the earlier format"
+		s.log.Info("ui_config.json was in the earlier format: converted, the original kept as "+LegacyBackup, "cat", "ui", "pages", len(c.Pages), "notes", c.Notes)
+		if err := s.write(c); err != nil {
+			return nil, err
+		}
+		return s, nil
+	}
 	if perr == nil {
 		s.cur = c
 		s.cur.ETag = ETag(c)
@@ -205,7 +240,7 @@ func Open(dir string, opt Options) (*Store, error) {
 	s.setAside(raw, perr)
 	c = s.newestGoodRevision()
 	if c == nil {
-		s.log.Warn("ui_config.json could not be used and no kept revision could either: using the stock screens", "cat", "ui", "err", perr)
+		s.log.Warn("ui_config.json could not be used and no kept revision could either: using the built-in pages", "cat", "ui", "err", perr)
 		c = s.defaults()
 		c.Revision = s.nextRevision()
 		c.UpdatedBy = "defaults (recovered)"
@@ -238,7 +273,7 @@ func (s *Store) adopt(c *Config) error {
 }
 
 func (s *Store) defaults() *Config {
-	return &Config{Version: FormatVersion, UpdatedAt: s.now().UTC(), UpdatedBy: "defaults", Screens: sdui.DefaultScreens()}
+	return &Config{Version: FormatVersion, UpdatedAt: s.now().UTC(), UpdatedBy: "defaults", Pages: map[string]sdui.Page{}}
 }
 
 // Path is the file's location.
@@ -324,13 +359,9 @@ func (s *Store) History() ([]Revision, error) {
 		if err != nil {
 			continue
 		}
-		names := make([]string, 0, len(c.Screens))
-		for k := range c.Screens {
-			names = append(names, k)
-		}
-		sort.Strings(names)
+		c.Revision = revs[i]
 		out = append(out, Revision{Revision: revs[i], UpdatedAt: c.UpdatedAt, UpdatedBy: c.UpdatedBy, ETag: ETag(c),
-			Screens: names, Size: int64(len(raw)), Current: revs[i] == cur})
+			Pages: sortedKeys(c.Pages), Size: int64(len(raw)), Current: revs[i] == cur})
 	}
 	return out, nil
 }
@@ -514,12 +545,47 @@ func (s *Store) newestGoodRevision() *Config {
 
 // ---- parsing and validation ----
 
+// IsLegacy reports whether b is a configuration in the first format: version
+// 1, with "screens".
+func IsLegacy(b []byte) bool {
+	var probe struct {
+		Version int             `json:"version"`
+		Screens json.RawMessage `json:"screens"`
+		Pages   json.RawMessage `json:"pages"`
+	}
+	return json.Unmarshal(b, &probe) == nil && probe.Pages == nil && (probe.Version == 1 || probe.Screens != nil)
+}
+
 // Parse decodes a configuration strictly: no unknown fields, no trailing
-// data, every screen through sdui.Unmarshal. It does not validate.
+// data. One in the first format is converted (see sdui.MigrateLegacyScreen),
+// with what couldn't be carried over in Notes. It does not validate.
 func Parse(b []byte) (*Config, error) {
 	if len(b) > MaxBytes {
 		return nil, fmt.Errorf("the UI configuration is larger than %d bytes", MaxBytes)
 	}
+	if IsLegacy(b) {
+		return parseLegacy(b)
+	}
+	c := &Config{}
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(c); err != nil {
+		return nil, fmt.Errorf("the UI configuration isn't valid JSON: %w", err)
+	}
+	if _, err := dec.Token(); err != io.EOF {
+		return nil, errors.New("the UI configuration has something after its end")
+	}
+	if c.Pages == nil {
+		c.Pages = map[string]sdui.Page{}
+	}
+	c.ETag = ""
+	return c, nil
+}
+
+// parseLegacy converts a configuration in the first format. Its theme section
+// is carried over as it is; each screen becomes a page, or nothing when it
+// was still the stock screen.
+func parseLegacy(b []byte) (*Config, error) {
 	var raw struct {
 		Version   int                        `json:"version"`
 		Revision  int64                      `json:"revision"`
@@ -529,22 +595,22 @@ func Parse(b []byte) (*Config, error) {
 		Screens   map[string]json.RawMessage `json:"screens"`
 		ETag      string                     `json:"etag"`
 	}
-	dec := json.NewDecoder(bytes.NewReader(b))
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&raw); err != nil {
+	if err := json.Unmarshal(b, &raw); err != nil {
 		return nil, fmt.Errorf("the UI configuration isn't valid JSON: %w", err)
 	}
-	if _, err := dec.Token(); err != io.EOF {
-		return nil, errors.New("the UI configuration has something after its end")
-	}
-	c := &Config{Version: raw.Version, Revision: raw.Revision, UpdatedAt: raw.UpdatedAt, UpdatedBy: raw.UpdatedBy, Theme: raw.Theme,
-		Screens: make(map[string]sdui.Document, len(raw.Screens))}
-	for name, r := range raw.Screens {
-		doc, err := sdui.Unmarshal(r)
-		if err != nil {
-			return nil, fmt.Errorf("screen %q: %w", name, err)
+	c := &Config{Version: FormatVersion, Revision: raw.Revision, UpdatedAt: raw.UpdatedAt, UpdatedBy: raw.UpdatedBy, Theme: raw.Theme, Pages: map[string]sdui.Page{}}
+	for _, name := range sortedKeys(raw.Screens) {
+		res := sdui.MigrateLegacyScreen(name, raw.Screens[name])
+		switch {
+		case res.Stock:
+		case res.Page == nil:
+			c.Notes = append(c.Notes, "screen "+name+" was not carried over: "+res.Dropped)
+		default:
+			c.Pages[res.Page.ID] = *res.Page
+			for _, n := range res.Notes {
+				c.Notes = append(c.Notes, "screen "+name+": not carried over: "+n)
+			}
 		}
-		c.Screens[name] = doc
 	}
 	return c, nil
 }
@@ -560,51 +626,54 @@ func (s *Store) parseAndValidate(b []byte) (*Config, error) {
 	return c, nil
 }
 
-// ScreenName is the form of a screen's name.
-var ScreenName = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,63}$`)
-
 var (
 	moduleID  = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,63}$`)
 	tokenName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_-]{0,63}$`)
+	colour    = regexp.MustCompile(`^(#[0-9A-Fa-f]{3,4}|#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|(rgb|rgba|hsl|hsla)\([0-9., %/]{1,60}\))$`)
 )
 
-// ValidModuleID reports whether id is a well-formed module id.
+// ValidModuleID reports whether id is a well-formed module id (or theme scope).
 func ValidModuleID(id string) bool { return moduleID.MatchString(id) }
 
 // Validate checks c with the basic theme rules only.
 func Validate(c *Config) error { return (&Store{}).validate(c) }
 
-func (s *Store) validate(c *Config) error {
+// Check answers everything wrong with c, warnings included, each located
+// from the top of the file (/pages/home/sections/2/props/title).
+func (s *Store) Check(c *Config) []sdui.Issue {
 	ve := &InvalidError{}
 	if c.Version != FormatVersion {
 		ve.add("/version", "unsupported version %d (want %d)", c.Version, FormatVersion)
 	}
-	if len(c.Screens) > MaxScreens {
-		ve.add("/screens", "%d screens; at most %d", len(c.Screens), MaxScreens)
+	if len(c.Pages) > MaxPages {
+		ve.add("/pages", "%d pages; at most %d", len(c.Pages), MaxPages)
 	}
-	names := make([]string, 0, len(c.Screens))
-	for k := range c.Screens {
-		names = append(names, k)
+	for _, id := range sortedKeys(c.Pages) {
+		pg := c.Pages[id]
+		p := "/pages/" + id
+		if pg.ID != id {
+			ve.Issues = append(ve.Issues, sdui.Issue{Path: p + "/id", Severity: "error", Message: fmt.Sprintf("the page is stored as %q but calls itself %q", id, pg.ID), Fix: "Make the two the same."})
+		}
+		if b, ok := sdui.StockPage(id); ok && pg.Kind != b.Kind {
+			ve.Issues = append(ve.Issues, sdui.Issue{Path: p + "/kind", Severity: "error", Message: fmt.Sprintf("%q is the built-in %s page; a page that replaces it must be a %s page too", id, b.Kind, b.Kind),
+				Fix: "Give your page another ID, or make its kind " + b.Kind + "."})
+		}
+		for _, is := range sdui.ValidatePage(&pg) {
+			is.Path = p + is.Path
+			ve.Issues = append(ve.Issues, is)
+		}
 	}
-	sort.Strings(names)
-	for _, name := range names {
-		doc := c.Screens[name]
-		p := "/screens/" + name
-		if !ScreenName.MatchString(name) {
-			ve.add(p, "screen names are lower-case letters, digits, - and _")
-		}
-		if doc.Screen != name {
-			ve.add(p+"/screen", "is %q but the screen is stored as %q", doc.Screen, name)
-		}
-		if err := sdui.Validate(&doc); err != nil {
-			var sv *sdui.ValidationError
-			if errors.As(err, &sv) {
-				for _, is := range sv.Issues {
-					ve.add(p+is.Path, "%s", is.Message)
-				}
-			} else {
-				ve.add(p, "%v", err)
+	if c.Navigation != nil {
+		exists := func(id string) bool {
+			if _, ok := c.Pages[id]; ok {
+				return true
 			}
+			_, ok := sdui.StockPage(id)
+			return ok
+		}
+		for _, is := range sdui.ValidateNavigation(c.Navigation, exists) {
+			is.Path = "/navigation" + is.Path
+			ve.Issues = append(ve.Issues, is)
 		}
 	}
 	checkTokens := func(p string, toks map[string]string) {
@@ -612,7 +681,7 @@ func (s *Store) validate(c *Config) error {
 			if !tokenName.MatchString(k) {
 				ve.add(p+"/"+k, "invalid token name")
 			}
-			if err := sdui.ValidateColor(toks[k]); err != nil || strings.HasPrefix(toks[k], "token:") {
+			if !colour.MatchString(toks[k]) {
 				ve.add(p+"/"+k, "not a colour: %q", toks[k])
 			}
 		}
@@ -624,33 +693,31 @@ func (s *Store) validate(c *Config) error {
 		}
 		checkTokens("/theme/modules/"+mod, c.Theme.Modules[mod])
 	}
-	if s.knownToken != nil {
-		for _, name := range names {
-			doc := c.Screens[name]
-			s.checkTokenRefs(ve, &doc.Root, "/screens/"+name+"/root")
-		}
+	if len(c.Notes) > 200 {
+		ve.add("/notes", "too many notes")
 	}
 	if s.checkTheme != nil {
-		ve.Issues = append(ve.Issues, s.checkTheme(c.Theme)...)
-	}
-	if len(ve.Issues) > 0 {
-		return ve
-	}
-	return nil
-}
-
-// checkTokenRefs refuses a style colour that names a token no theme has.
-func (s *Store) checkTokenRefs(ve *InvalidError, n *sdui.Node, path string) {
-	if st := n.Style; st != nil {
-		for _, c := range []struct{ name, val string }{{"background", st.Background}, {"foreground", st.Foreground}, {"accent", st.Accent}, {"border", st.Border}} {
-			if name, ok := strings.CutPrefix(c.val, "token:"); ok && !s.knownToken(name) {
-				ve.add(path+"/style/"+c.name, "no theme has a colour token named %q", name)
+		for _, is := range s.checkTheme(c.Theme) {
+			if is.Severity == "" {
+				is.Severity = "error"
 			}
+			ve.Issues = append(ve.Issues, is)
 		}
 	}
-	for i := range n.Children {
-		s.checkTokenRefs(ve, &n.Children[i], path+"/children/"+strconv.Itoa(i))
+	return ve.Issues
+}
+
+func (s *Store) validate(c *Config) error {
+	var errs []sdui.Issue
+	for _, is := range s.Check(c) {
+		if is.Severity != "warning" {
+			errs = append(errs, is)
+		}
 	}
+	if len(errs) > 0 {
+		return &InvalidError{Issues: errs}
+	}
+	return nil
 }
 
 func sortedKeys[V any](m map[string]V) []string {
@@ -692,17 +759,14 @@ func (c *Config) Clone() *Config {
 
 // contentHash identifies what a configuration says, whatever its revision.
 func contentHash(c *Config) string {
-	h := sha256.New()
-	for _, name := range sortedKeys(c.Screens) {
-		fmt.Fprintf(h, "screen %s %s\n", name, sdui.ETag(c.Screens[name]))
-	}
-	th, _ := json.Marshal(c.Theme) // map keys sorted
-	fmt.Fprintf(h, "theme %s\n", th)
-	return hex.EncodeToString(h.Sum(nil))[:24]
+	cp := *c
+	cp.Revision, cp.UpdatedAt, cp.UpdatedBy, cp.ETag = 0, time.Time{}, "", ""
+	b, _ := json.Marshal(&cp) // map keys sorted
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:])[:24]
 }
 
-// ETag is the weak entity tag of a revision: its number and what it holds
-// (each screen's sdui.ETag and the theme section).
+// ETag is the weak entity tag of a revision: its number and what it holds.
 func ETag(c *Config) string {
 	return `W/"ui-` + strconv.FormatInt(c.Revision, 10) + "-" + contentHash(c) + `"`
 }
@@ -751,4 +815,121 @@ func writeFileAtomic(path string, b []byte) error {
 		return err
 	}
 	return os.Rename(tmp, path)
+}
+
+// ---- the draft ----
+
+func (s *Store) draftPath() string { return filepath.Join(s.dir, DraftName) }
+
+// loadDraft reads the draft at start. One that can't be used is set aside.
+// s.mu is held.
+func (s *Store) loadDraft() {
+	raw, err := os.ReadFile(s.draftPath())
+	if err != nil {
+		return
+	}
+	c, err := s.parseAndValidate(raw)
+	if err != nil {
+		s.log.Warn("the UI draft could not be used: kept as "+DraftName+".bad", "cat", "ui", "err", err)
+		_ = os.Rename(s.draftPath(), s.draftPath()+".bad")
+		return
+	}
+	c.ETag = draftETag(c)
+	s.draft = c
+}
+
+func draftETag(c *Config) string {
+	return `W/"draft-` + strconv.FormatInt(c.Revision, 10) + "-" + contentHash(c) + `"`
+}
+
+// Draft is the unpublished draft, nil when there is none. Shared: Clone it
+// before changing it.
+func (s *Store) Draft() *Config {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.draft
+}
+
+// SaveDraft keeps c as the draft. ifMatch, when not empty, must be the
+// draft's ETag, or the current configuration's when there is no draft yet
+// (ErrConflict otherwise). The draft is validated like a configuration; its
+// Revision counts its own saves.
+func (s *Store) SaveDraft(c *Config, ifMatch, by string) (*Config, error) {
+	if c == nil {
+		return nil, errors.New("no configuration")
+	}
+	s.maybeReload()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	base, n := s.cur.ETag, int64(0)
+	if s.draft != nil {
+		base, n = s.draft.ETag, s.draft.Revision
+	}
+	if ifMatch != "" && !SameETag(ifMatch, base) {
+		return nil, ErrConflict
+	}
+	next := c.Clone()
+	next.Version = FormatVersion
+	if err := s.validate(next); err != nil {
+		return nil, err
+	}
+	next.Revision, next.UpdatedAt, next.UpdatedBy, next.ETag = n+1, s.now().UTC(), by, ""
+	b, err := encode(next)
+	if err != nil {
+		return nil, err
+	}
+	if err := writeFileAtomic(s.draftPath(), b); err != nil {
+		return nil, err
+	}
+	next.ETag = draftETag(next)
+	s.draft = next
+	return next, nil
+}
+
+// DiscardDraft forgets the draft.
+func (s *Store) DiscardDraft() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.draft = nil
+	if err := os.Remove(s.draftPath()); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
+// Publish makes the draft the configuration, as a new revision, and forgets
+// the draft. ifMatch, when not empty, must be the draft's ETag.
+func (s *Store) Publish(ifMatch, by string) (*Config, error) {
+	s.maybeReload()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.draft == nil {
+		return nil, ErrNoRevision
+	}
+	if ifMatch != "" && !SameETag(ifMatch, s.draft.ETag) {
+		return nil, ErrConflict
+	}
+	next := s.draft.Clone()
+	saved, err := s.saveLocked(next, by)
+	if err != nil {
+		return nil, err
+	}
+	s.draft = nil
+	_ = os.Remove(s.draftPath())
+	return saved, nil
+}
+
+// RevisionConfig reads one kept revision.
+func (s *Store) RevisionConfig(rev int64) (*Config, error) {
+	raw, err := os.ReadFile(s.historyPath(rev))
+	if err != nil {
+		return nil, ErrNoRevision
+	}
+	c, err := Parse(raw)
+	if err != nil {
+		return nil, err
+	}
+	c.Revision = rev
+	c.ETag = ETag(c)
+	return c, nil
 }

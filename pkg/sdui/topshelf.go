@@ -64,50 +64,60 @@ type ImageRef struct {
 	Aspect string `json:"aspect"`
 }
 
-// NewTopShelf builds Top Shelf content from rows of items (the same objects
-// screens are given: id, title, imageUrl, shape, progress, route, playRoute),
-// cut to the limits, with each picture asked for at the size the profile
-// gives its shape. Items without a route are left out: there'd be nowhere to
-// go. Rows that end up empty are left out too.
-func NewTopShelf(rows []map[string]any, l *Layout, ttl int) TopShelf {
-	if l == nil || l.FormFactor != FormTV {
-		l = ProfileFor(FormTV, "hd")
+// TopShelfRow is one row of items for NewTopShelf.
+type TopShelfRow struct {
+	Title string
+	Items []Item
+}
+
+// NewTopShelf builds Top Shelf content from rows of items, cut to the limits,
+// each picture asked for at the size tvOS wants for its shape: square for
+// music, wide for a title part-way through, poster for the rest. Items
+// without a route are left out: there'd be nowhere to go. Rows that end up
+// empty are left out too.
+func NewTopShelf(rows []TopShelfRow, l *Layout, ttl int) TopShelf {
+	scale := 1
+	if l != nil && l.FormFactor == FormTV {
+		scale = max(l.Scale, 1)
 	}
+	// What tvOS asks of Top Shelf pictures (TVTopShelfSectionedItem's shapes), in points.
+	sizes := map[string][3]any{"poster": {404, 608, "2/3"}, "wide": {908, 512, "16/9"}, "square": {608, 608, "1/1"}}
 	out := TopShelf{Version: SchemaVersion, Style: "sectioned", Sections: []TopShelfSection{}, ExpiresInSec: ttl}
 	for _, row := range rows {
 		if len(out.Sections) >= MaxTopShelfSections {
 			break
 		}
-		sec := TopShelfSection{Title: stringify(row["title"]), Items: []TopShelfItem{}}
-		rowShape, _ := row["cardShape"].(string)
-		for _, v := range anyList(row["items"]) {
-			it, ok := v.(map[string]any)
-			if !ok || len(sec.Items) >= MaxTopShelfItems {
+		sec := TopShelfSection{Title: row.Title, Items: []TopShelfItem{}}
+		for i := range row.Items {
+			it := &row.Items[i]
+			if len(sec.Items) >= MaxTopShelfItems {
+				break
+			}
+			if !strings.HasPrefix(it.Route, "/") {
 				continue
 			}
-			route, _ := it["route"].(string)
-			if !strings.HasPrefix(route, "/") {
-				continue
+			shape, kinds := "poster", []string{"poster"}
+			switch it.Kind {
+			case "album", "track", "artist", "podcast", "audiobook":
+				shape, kinds = "square", []string{"square", "poster"}
+			case "episode", "video", "channel", "recording":
+				shape, kinds = "wide", []string{"backdrop", "poster"}
 			}
-			shape, _ := it["shape"].(string)
-			if shape == "" {
-				shape = rowShape
+			item := TopShelfItem{ID: it.ID, Title: it.Title, Shape: shape, DisplayRoute: it.Route}
+			if it.PlayID != "" {
+				item.PlayRoute = "/watch/" + it.PlayID
 			}
-			if shape != "wide" && shape != "square" {
-				shape = "poster"
+			if it.Progress > 0 && it.Progress < 1 {
+				item.Progress = round3(it.Progress)
 			}
-			item := TopShelfItem{ID: stringify(it["id"]), Title: stringify(it["title"]), Shape: shape, DisplayRoute: route}
-			item.PlayRoute, _ = it["playRoute"].(string)
-			if p, ok := toFloat(it["progress"]); ok && p > 0 && p < 1 {
-				item.Progress = p
-			}
-			size := l.Images["topShelf"+strings.ToUpper(shape[:1])+shape[1:]]
-			if u, _ := it["imageUrl"].(string); strings.HasPrefix(u, "/api/") && size.Width > 0 {
+			size := sizes[shape]
+			w, h := size[0].(int)*scale, size[1].(int)*scale
+			if u := firstImage(it, kinds); strings.HasPrefix(u, "/api/") {
 				sep := "?"
 				if strings.Contains(u, "?") {
 					sep = "&"
 				}
-				item.Image = &ImageRef{URL: u + sep + "w=" + strconv.Itoa(size.Width), Width: size.Width, Height: size.Height, Aspect: size.Aspect}
+				item.Image = &ImageRef{URL: u + sep + "w=" + strconv.Itoa(w), Width: w, Height: h, Aspect: size[2].(string)}
 			}
 			sec.Items = append(sec.Items, item)
 		}

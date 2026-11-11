@@ -4,30 +4,36 @@
 package server
 
 import (
+	"bytes"
 	"container/list"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"io"
 	"log/slog"
 	"net/http"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/bufpool"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/pace"
 	"github.com/wittywilla/wittymediaserver/internal/sduistore"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
-// Server-driven UI: the screens in ui_config.json (internal/sduistore), rendered by pkg/sdui
-// for whoever asks. docs/SDUI.md, "HTTP API", describes the routes.
+// Server-driven UI: the pages and navigation in ui_config.json (internal/sduistore) over
+// the built-in ones, rendered by pkg/sdui for whoever asks. docs/SDUI.md, "HTTP API",
+// describes the routes. What every app shows is here; what an administrator edits it with
+// is in api_sdui_admin.go.
 
-// sduiState is the store, opened when first wanted, and the renders kept for diffs.
+// sduiState is the store, opened when first wanted, and what is kept between requests:
+// renders for diffs, a few seconds of finished renders, and preview tokens.
 type sduiState struct {
 	once  sync.Once
 	store *sduistore.Store
@@ -36,6 +42,10 @@ type sduiState struct {
 	mu      sync.Mutex
 	renders map[string]*list.Element // user id + etag → rendered document
 	order   *list.List
+	recent  map[string]recentRender // request → a render finished moments ago
+	preview map[string]previewToken
+
+	personalMu sync.Mutex // one profile's arrangement is read, changed and written back whole
 }
 
 type keptRender struct {
@@ -44,11 +54,22 @@ type keptRender struct {
 	doc sdui.Document
 }
 
+type recentRender struct {
+	at  time.Time
+	uid int64
+	doc sdui.Document
+}
+
+type previewToken struct {
+	uid     int64
+	expires time.Time
+}
+
 // keptRendersFor bounds the renders kept so a client can ask for a diff against one. A
-// render holds a screen's worth of titles, a few hundred kilobytes for a full home screen,
-// so a small machine keeps few; a client whose render has gone is sent the whole screen,
-// which is always right. One account keeps at most maxKeptPerAccount, so one busy client
-// can't push out everyone else's.
+// render holds a page's worth of titles, up to a few hundred kilobytes, so a small machine
+// keeps few; a client whose render has gone is sent the whole page, which is always right.
+// One account keeps at most maxKeptPerAccount, so one busy client can't push out everyone
+// else's.
 func keptRendersFor(c pace.Class) int {
 	switch c {
 	case pace.Tiny:
@@ -59,7 +80,15 @@ func keptRendersFor(c pace.Class) int {
 	return 128
 }
 
-const maxKeptPerAccount = 6
+const (
+	maxKeptPerAccount = 6
+	// recentRenderFor is how long a finished render answers the same request again: long
+	// enough that a page and its diff, or an app's burst of requests as it starts, are one
+	// render; short enough that nobody sees a row that is out of date.
+	recentRenderFor  = 3 * time.Second
+	maxPreviewTokens = 16
+	previewTokenFor  = 2 * time.Hour
+)
 
 // uiStore opens ui_config.json the first time it is needed.
 func (s *Server) uiStore() (*sduistore.Store, error) {
@@ -73,7 +102,7 @@ func (s *Server) uiStore() (*sduistore.Store, error) {
 		if log == nil {
 			log = slog.Default()
 		}
-		st.store, st.err = sduistore.Open(s.Cfg.DataDir, sduistore.Options{Log: log, CheckTheme: checkThemeSection, KnownToken: themes.IsColorToken})
+		st.store, st.err = sduistore.Open(s.Cfg.DataDir, sduistore.Options{Log: log, CheckTheme: checkThemeSection})
 	})
 	return st.store, st.err
 }
@@ -84,10 +113,10 @@ func checkThemeSection(t sduistore.Theme) []sdui.Issue {
 	check := func(path string, toks map[string]string) {
 		for k, v := range toks {
 			if !themes.IsColorToken(k) {
-				out = append(out, sdui.Issue{Path: path + "/" + k, Message: "not a colour token themes have"})
+				out = append(out, sdui.Issue{Path: path + "/" + k, Severity: "error", Message: "not a colour token themes have"})
 			}
 			if _, ok := themes.NormalizeColor(v); !ok {
-				out = append(out, sdui.Issue{Path: path + "/" + k, Message: "not a colour: use #rrggbb, #rrggbbaa or rgb()/rgba()"})
+				out = append(out, sdui.Issue{Path: path + "/" + k, Severity: "error", Message: "not a colour: use #rrggbb, #rrggbbaa or rgb()/rgba()"})
 			}
 		}
 	}
@@ -99,13 +128,19 @@ func checkThemeSection(t sduistore.Theme) []sdui.Issue {
 }
 
 func (s *Server) sduiRoutes(m *http.ServeMux) {
-	m.Handle("GET /api/sdui/screens/{screen}", s.requireUser(s.handleSDUIScreen))
-	m.Handle("GET /api/sdui/screens/{screen}/diff", s.requireUser(s.handleSDUIDiff))
+	m.Handle("GET /api/sdui/catalog", s.requireUser(s.handleSDUICatalog))
+	m.Handle("GET /api/sdui/navigation", s.requireUser(s.handleSDUINavigation))
+	m.Handle("GET /api/sdui/navigation/personal", s.requireUser(s.handleSDUIPersonalGet))
+	m.Handle("PUT /api/sdui/navigation/personal", s.requireUser(s.handleSDUIPersonalPut))
+	m.Handle("DELETE /api/sdui/navigation/personal", s.requireUser(s.handleSDUIPersonalDelete))
+	m.Handle("GET /api/sdui/pages/{page}", s.requireUser(s.handleSDUIPage))
+	m.Handle("GET /api/sdui/pages/{page}/diff", s.requireUser(s.handleSDUIDiff))
+	m.Handle("GET /api/sdui/pages/{page}/sections/{section}/items", s.requireUser(s.handleSDUISection))
+	m.Handle("GET /api/sdui/pages/{page}/personal", s.requireUser(s.handleSDUIPersonalGet))
+	m.Handle("PUT /api/sdui/pages/{page}/personal", s.requireUser(s.handleSDUIPersonalPut))
+	m.Handle("DELETE /api/sdui/pages/{page}/personal", s.requireUser(s.handleSDUIPersonalDelete))
 	m.Handle("GET /api/sdui/topshelf", s.requireUser(s.handleSDUITopShelf))
-	m.Handle("GET /api/sdui/config", s.requireAdmin(s.handleSDUIConfig))
-	m.Handle("PUT /api/sdui/config", s.requireAdmin(s.handleSDUIConfigPut))
-	m.Handle("GET /api/sdui/config/history", s.requireAdmin(s.handleSDUIHistory))
-	m.Handle("POST /api/sdui/config/rollback/{rev}", s.requireAdmin(s.handleSDUIRollback))
+	s.sduiAdminRoutes(m)
 }
 
 // writeJSONTagged is writeJSON for answers a client may keep: an ETag, and a cache that
@@ -140,107 +175,129 @@ func notModified(w http.ResponseWriter, r *http.Request, etag string) bool {
 	return false
 }
 
+func hashETag(prefix string, v any) string {
+	b, _ := json.Marshal(v)
+	sum := sha256.Sum256(b)
+	return `W/"` + prefix + "-" + hex.EncodeToString(sum[:])[:32] + `"`
+}
+
 var (
-	sduiWord     = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,31}$`)
 	sduiCapWord  = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_.:-]{0,63}$`)
 	sduiLocale   = regexp.MustCompile(`^[A-Za-z]{2,8}([-_][A-Za-z0-9]{1,8}){0,3}$`)
 	sduiViewport = regexp.MustCompile(`^([0-9]{1,5})x([0-9]{1,5})$`)
 )
 
-// sduiPlatforms are the platforms pkg/sdui's conditions know; form factors map onto them.
-var sduiPlatforms = map[string]string{
-	"web": "web", "tv": "tv", "tvos": "tv", "ios": "ios", "android": "android", "desktop": "desktop",
-	// form factors
-	"phone": "ios", "tablet": "ios", "tenfoot": "tv", "10ft": "tv", "browser": "web",
+// sduiPlatforms: what a client calls itself, the platform conditions know it by, and the
+// form factor it has when it names none.
+var sduiPlatforms = map[string][2]string{
+	"web": {"web", sdui.FormWeb}, "browser": {"web", sdui.FormWeb},
+	"tvos": {"tvos", sdui.FormTV}, "tv": {"tvos", sdui.FormTV},
+	"androidtv": {"androidtv", sdui.FormTV}, "ios": {"ios", sdui.FormPhone}, "android": {"android", sdui.FormPhone},
+	"desktop": {"desktop", sdui.FormDesktop},
 }
 
-// sduiFormFactors: what a client calls its form factor, and the profile it gets. A
-// platform stands for one when the client names no form factor.
+// sduiFormFactors: what a client calls its form factor.
 var sduiFormFactors = map[string]string{
-	"tv": sdui.FormTV, "tvos": sdui.FormTV, "tenfoot": sdui.FormTV, "10ft": sdui.FormTV,
-	"phone": sdui.FormPhone, "ios": sdui.FormPhone, "android": sdui.FormPhone,
-	"tablet": sdui.FormTablet, "desktop": sdui.FormDesktop, "web": sdui.FormWeb, "browser": sdui.FormWeb,
+	"tv": sdui.FormTV, "tenfoot": sdui.FormTV, "10ft": sdui.FormTV, "phone": sdui.FormPhone, "tablet": sdui.FormTablet,
+	"desktop": sdui.FormDesktop, "web": sdui.FormWeb, "browser": sdui.FormWeb,
 }
 
-// sduiProfile is the device profile for a request: its form factor (named, or implied by
-// the platform), and for a TV its class, "hd" or "4k". A TV that doesn't say gets the HD
-// profile: the smaller one is safe on both.
-func sduiProfile(platform, formFactor, class string) *sdui.Layout {
-	ff, ok := sduiFormFactors[formFactor]
-	if !ok {
-		ff = sduiFormFactors[platform]
+func sduiPick(r *http.Request, param, header string) string {
+	if v := strings.TrimSpace(r.URL.Query().Get(param)); v != "" {
+		return v
 	}
-	return sdui.ProfileFor(ff, class)
+	return strings.TrimSpace(r.Header.Get(header))
 }
 
-// renderContext is who is asking, on what, for pkg/sdui. The client says what it is in the
-// query or in headers (the query wins); the server says who is signed in and what's installed.
-func (s *Server) renderContext(r *http.Request, doc sdui.Document, ov map[string]map[string]string) (sdui.RenderContext, error) {
-	rawPlatform := ""
-	q := r.URL.Query()
-	pick := func(param, header string) string {
-		if v := strings.TrimSpace(q.Get(param)); v != "" {
-			return v
+// sduiList reads a comma-separated list of names, at most max of them.
+func sduiList(v, what string, max int) ([]string, error) {
+	if v == "" {
+		return nil, nil
+	}
+	parts := strings.Split(v, ",")
+	if len(parts) > max {
+		return nil, errors.New(what + ": at most " + strconv.Itoa(max))
+	}
+	out := make([]string, 0, len(parts))
+	for _, c := range parts {
+		c = strings.TrimSpace(c)
+		if c == "" {
+			continue
 		}
-		return strings.TrimSpace(r.Header.Get(header))
+		if !sduiCapWord.MatchString(c) {
+			return nil, errors.New(what + ": comma-separated names of letters, digits and . _ : -")
+		}
+		out = append(out, c)
 	}
-	ctx := sdui.RenderContext{Platform: "web", ThemeOverrides: ov, Flags: map[string]bool{}}
-	// Platform, or a form factor that stands for one.
-	if p := strings.ToLower(firstNonEmpty(pick("platform", "X-WMS-Platform"), pick("formFactor", "X-WMS-Form-Factor"))); p != "" {
-		plat, ok := sduiPlatforms[p]
+	return out, nil
+}
+
+// sduiDevice fills in what the client says it is: for each thing the query parameter wins
+// over the header. docs/SDUI.md, "What a client sends", is the list.
+func (s *Server) sduiDevice(r *http.Request, ctx *sdui.RenderContext) error {
+	ctx.Platform = "web"
+	ff := sdui.FormWeb
+	if p := strings.ToLower(sduiPick(r, "platform", "X-WMS-Platform")); p != "" {
+		known, ok := sduiPlatforms[p]
 		if !ok {
-			if !sduiWord.MatchString(p) {
-				return ctx, errors.New("platform: a short lower-case name such as web, tv, ios, android or desktop")
-			}
-			plat = p // a platform a newer client knows; conditions on it simply don't match
+			return errors.New("platform: web, tvos, ios, android, androidtv or desktop")
 		}
-		ctx.Platform, rawPlatform = plat, p
+		ctx.Platform, ff = known[0], known[1]
 	}
-	ff := strings.ToLower(pick("formFactor", "X-WMS-Form-Factor"))
-	if ff != "" {
-		if !sduiWord.MatchString(ff) {
-			return ctx, errors.New("formFactor: a short lower-case name such as phone, tablet, tv or desktop")
+	if v := strings.ToLower(sduiPick(r, "formFactor", "X-WMS-Form-Factor")); v != "" {
+		known, ok := sduiFormFactors[v]
+		if !ok {
+			return errors.New("formFactor: tv, phone, tablet, desktop or web")
 		}
-		ctx.Flags["formFactor:"+ff] = true
+		ff = known
 	}
-	class := strings.ToLower(pick("deviceClass", "X-WMS-Device-Class"))
+	class := strings.ToLower(sduiPick(r, "deviceClass", "X-WMS-Device-Class"))
 	if class != "" && class != "hd" && class != "4k" {
-		return ctx, errors.New("deviceClass: hd or 4k")
+		return errors.New("deviceClass: hd or 4k")
 	}
-	ctx.Profile = sduiProfile(firstNonEmpty(rawPlatform, ctx.Platform), ff, class)
-	// The catalogue revision the client was built against: newer types reach it as older ones.
-	if v := pick("catalog", "X-WMS-SDUI-Catalog"); v != "" {
+	ctx.Profile = sdui.ProfileFor(ff, class)
+	// The catalogue revision the client was built against, the optional components it
+	// draws and the views of its own it has: what it can't draw reaches it as a fallback.
+	if v := sduiPick(r, "catalog", "X-WMS-SDUI-Catalog"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 1 || n > 1_000_000 {
-			return ctx, errors.New("catalog: the catalogue revision the client knows, a whole number from 1")
+			return errors.New("catalog: the catalogue revision the client knows, a whole number from 1")
 		}
 		if n < sdui.CatalogRevision {
 			ctx.Catalog = n
 		}
 	}
-	// Viewport: width and height, or "1440x900".
-	if v := pick("viewport", "X-WMS-Viewport"); v != "" {
+	if v := sduiPick(r, "components", "X-WMS-SDUI-Components"); v != "" {
+		list, err := sduiList(v, "components", 64)
+		if err != nil {
+			return err
+		}
+		ctx.Components = []string{}
+		for _, c := range list {
+			if c != "none" {
+				ctx.Components = append(ctx.Components, c)
+			}
+		}
+	}
+	var err error
+	if ctx.NativeViews, err = sduiList(sduiPick(r, "views", "X-WMS-SDUI-Views"), "views", 16); err != nil {
+		return err
+	}
+	if ctx.Capabilities, err = sduiList(sduiPick(r, "capabilities", "X-WMS-Capabilities"), "capabilities", 64); err != nil {
+		return err
+	}
+	if v := sduiPick(r, "viewport", "X-WMS-Viewport"); v != "" {
 		m := sduiViewport.FindStringSubmatch(v)
 		if m == nil {
-			return ctx, errors.New("viewport: width x height in CSS pixels, such as 1440x900")
+			return errors.New("viewport: width x height in points, such as 1440x900")
 		}
 		ctx.Viewport.Width, _ = strconv.Atoi(m[1])
 		ctx.Viewport.Height, _ = strconv.Atoi(m[2])
 	}
-	for _, d := range []struct {
-		name string
-		to   *int
-	}{{"width", &ctx.Viewport.Width}, {"height", &ctx.Viewport.Height}} {
-		if v := q.Get(d.name); v != "" {
-			n, err := strconv.Atoi(v)
-			if err != nil || n < 0 || n > 100000 {
-				return ctx, errors.New(d.name + ": a whole number of CSS pixels")
-			}
-			*d.to = n
-		}
+	loc := sduiPick(r, "locale", "X-WMS-Locale")
+	if loc != "" && !sduiLocale.MatchString(loc) {
+		return errors.New("locale: a language tag such as en-GB")
 	}
-	// Locale: asked for, or the first language the client accepts.
-	loc := pick("locale", "X-WMS-Locale")
 	if loc == "" {
 		loc, _, _ = strings.Cut(r.Header.Get("Accept-Language"), ",")
 		loc, _, _ = strings.Cut(strings.TrimSpace(loc), ";")
@@ -248,55 +305,230 @@ func (s *Server) renderContext(r *http.Request, doc sdui.Document, ov map[string
 			loc = ""
 		}
 	}
-	if loc != "" {
-		if !sduiLocale.MatchString(loc) {
-			return ctx, errors.New("locale: a language tag such as en-GB")
-		}
-		ctx.Locale = loc
-	}
-	// Capabilities the client has: each becomes a flag the screens can test.
-	if caps := pick("capabilities", "X-WMS-Capabilities"); caps != "" {
-		parts := strings.Split(caps, ",")
-		if len(parts) > 64 {
-			return ctx, errors.New("capabilities: at most 64")
-		}
-		for _, c := range parts {
-			c = strings.TrimSpace(c)
-			if c == "" {
-				continue
-			}
-			if !sduiCapWord.MatchString(c) {
-				return ctx, errors.New("capabilities: comma-separated names of letters, digits and . _ : -")
-			}
-			ctx.Flags[c] = true
+	ctx.Locale = loc
+	return nil
+}
+
+// sduiCannot lists the feature switches that are off for an account.
+func sduiCannot(acc *library.Access) []string {
+	var out []string
+	for _, f := range library.Features {
+		if !acc.Can(f) {
+			out = append(out, f)
 		}
 	}
-	// What the server says, which a client can't.
+	if acc != nil && !acc.LiveTV {
+		out = append(out, "liveTv")
+	}
+	return out
+}
+
+// sduiConfig is the configuration a request is answered from: the published one, or the
+// draft for the administrator who holds a preview token for it.
+func (s *Server) sduiConfig(r *http.Request) (*sduistore.Config, string, error) {
+	st, err := s.uiStore()
+	if err != nil {
+		return nil, "", err
+	}
+	tok := sduiPick(r, "preview", "X-WMS-SDUI-Preview")
+	if tok == "" {
+		return st.Current(), "config", nil
+	}
 	u := userFrom(r)
-	ctx.Role = u.Kind
-	if u.IsAdmin {
-		ctx.Role = "admin"
+	s.sdui.mu.Lock()
+	p, ok := s.sdui.preview[tok]
+	s.sdui.mu.Unlock()
+	if !ok || !u.IsAdmin || p.uid != u.ID || time.Now().After(p.expires) {
+		return nil, "", errPreview
 	}
+	if d := st.Draft(); d != nil {
+		return d, "draft", nil
+	}
+	return st.Current(), "config", nil
+}
+
+var errPreview = errors.New("that preview has ended, or isn't this account's: make a new one in the editor")
+
+// effectivePages are the pages in force: the configuration's own first, then every
+// built-in page it doesn't replace.
+func effectivePages(cfg *sduistore.Config) []sdui.Page {
+	ids := make([]string, 0, len(cfg.Pages))
+	for id := range cfg.Pages {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	out := make([]sdui.Page, 0, len(ids)+32)
+	for _, id := range ids {
+		out = append(out, cfg.Pages[id])
+	}
+	for _, p := range sdui.StockPages() {
+		if _, replaced := cfg.Pages[p.ID]; !replaced {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func effectivePage(cfg *sduistore.Config, id string) (sdui.Page, bool) {
+	if p, ok := cfg.Pages[id]; ok {
+		return p, true
+	}
+	return sdui.StockPage(id)
+}
+
+func isPageKind(name string) bool {
+	for _, k := range sdui.Catalog().PageKinds {
+		if k.Kind == name && name != "custom" {
+			return true
+		}
+	}
+	return false
+}
+
+// sduiRender is everything one page request comes to.
+type sduiRender struct {
+	page sdui.Page
+	ctx  *sdui.RenderContext
+	cfg  *sduistore.Config
+}
+
+var sduiFilterParams = []string{"tab", "sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag"}
+
+// sduiPrepare works out which page a request is for and who is asking, on what. name is a
+// kind of page (home, library, detail, search, ...), chosen among the pages of that kind by
+// what the request names, or the ID of one page.
+func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, error) {
+	if !sdui.ValidID(name) {
+		return nil, 400, errors.New("page names are lower-case letters, digits, - and _")
+	}
+	cfg, source, err := s.sduiConfig(r)
+	if errors.Is(err, errPreview) {
+		return nil, 403, err
+	}
+	if err != nil {
+		return nil, 500, err
+	}
+	u, acc := userFrom(r), s.access(r)
+	q := r.URL.Query()
+	// Which page, and so which of the request's parameters mean anything: a page takes
+	// only what its kind lists, and nothing else of the query is read or sent back.
+	var pg sdui.Page
+	kind := name
+	if !isPageKind(name) {
+		p, ok := effectivePage(cfg, name)
+		if !ok {
+			return nil, 404, errors.New("no such page")
+		}
+		pg, kind = p, p.Kind
+	}
+	takes := map[string]bool{}
+	for _, k := range sdui.Catalog().PageKinds {
+		if k.Kind == kind {
+			for _, p := range k.Params {
+				takes[p] = true
+			}
+		}
+	}
+	vars := map[string]string{}
+	for _, k := range []string{"library", "item", "show", "season", "collection", "artist", "album"} {
+		if v := q.Get(k); v != "" && takes[k] {
+			if len(v) > 300 {
+				return nil, 400, errors.New(k + ": too long")
+			}
+			vars[k] = v
+		}
+	}
+	if term := strings.TrimSpace(q.Get("q")); term != "" && takes["q"] {
+		if len(term) > 100 {
+			term = term[:100]
+		}
+		vars["query"] = term
+	}
+	rv := s.newSDUIResolver(r, vars)
+	ctx := &sdui.RenderContext{ProfileKind: u.Kind, Admin: u.IsAdmin, UserName: firstNonEmpty(u.DisplayName, u.Name), ServerName: s.ServerName(r.Context()),
+		Features: serverFeatures, Cannot: sduiCannot(acc), Flags: map[string]bool{}, Vars: vars, Params: map[string]string{}, Scopes: cfg.Theme.Modules,
+		Resolver: rv, BasePath: "/api/v1/sdui", Source: source, ConfigRevision: cfg.Revision}
+	if err := s.sduiDevice(r, ctx); err != nil {
+		return nil, 400, err
+	}
+	for _, k := range sduiFilterParams {
+		if v := q.Get(k); v != "" && len(v) <= 200 && takes[k] {
+			ctx.Params[k] = v
+		}
+	}
+	// The library and the title the request names, read with the account's limits: they
+	// choose the page, and a page about something the account may not see is not found.
+	var libID int64
+	libKind, mediaKind := "", ""
+	pages := effectivePages(cfg)
+	if kind == "library" || (kind == "detail" && vars["album"] != "") {
+		lib, ok := rv.library(vars["library"])
+		if !ok {
+			return nil, 404, errors.New("not found")
+		}
+		libID, libKind = lib.ID, lib.Type
+		vars["libraryKind"], vars["libraryName"] = lib.Type, lib.Name
+	}
+	if kind == "detail" {
+		subj, err := rv.Subject()
+		if err != nil {
+			return nil, 404, errors.New("not found")
+		}
+		mediaKind = subj.Kind
+		vars["title"] = subj.Title
+		if subj.ShowID != "" {
+			vars["show"] = subj.ShowID
+			if vars["season"] == "" {
+				vars["season"] = strconv.Itoa(subj.Season)
+			}
+		}
+		if id, err := strconv.ParseInt(vars["item"], 10, 64); err == nil && libID == 0 {
+			if it, err := s.Store.Item(r.Context(), id); err == nil {
+				libID = it.LibraryID
+				if lib, err := s.Store.Library(r.Context(), libID); err == nil {
+					libKind = lib.Type
+					vars["libraryKind"], vars["libraryName"] = lib.Type, lib.Name
+					if vars["library"] == "" {
+						vars["library"] = itoa(libID)
+					}
+				}
+			}
+		}
+	}
+	if isPageKind(name) {
+		p, ok := sdui.SelectPage(pages, kind, libID, libKind, mediaKind)
+		if !ok {
+			return nil, 404, errors.New("no such page")
+		}
+		pg = p
+	}
+	// What the server knows that a condition may ask about.
+	libs := rv.libraries()
+	seen := map[string]bool{}
+	for _, l := range libs {
+		if !seen[l.Type] {
+			seen[l.Type] = true
+			ctx.LibraryKinds = append(ctx.LibraryKinds, l.Type)
+		}
+		ctx.Flags["scanning"] = ctx.Flags["scanning"] || l.Scanning
+	}
+	ctx.Flags["librariesEmpty"] = len(libs) == 0
 	ctx.Flags["setupIncomplete"] = u.IsAdmin && s.DB.GetSetting(r.Context(), "setupDone", "") == "0"
-	ctx.Features = append(append([]string(nil), serverFeatures...), "history", "playback")
-	for _, mod := range conditionModules(doc) {
+	ctx.Flags["hasQuery"] = len([]rune(vars["query"])) >= 2
+	for _, mod := range pageModules(&pg) {
 		if s.Modules != nil && s.Modules.Installed(mod) {
 			ctx.Modules = append(ctx.Modules, mod)
 		}
 	}
-	ctx.Data = map[string]any{
-		"user":   map[string]any{"name": firstNonEmpty(u.DisplayName, u.Name), "kind": u.Kind, "isAdmin": u.IsAdmin},
-		"server": map[string]any{"name": s.ServerName(r.Context()), "version": s.Version},
+	ctx.CanPersonalise = !cfg.Personalisation.Disabled && acc.Can(library.FeatureEditLayout)
+	if ctx.CanPersonalise {
+		ctx.Personal = s.sduiPersonal(r, pg.ID)
 	}
-	if err := s.sduiData(r, doc.Screen, ctx.Profile, ctx.Data, ctx.Flags); err != nil {
-		return ctx, err
-	}
-	return ctx, nil
+	return &sduiRender{page: pg, ctx: ctx, cfg: cfg}, 200, nil
 }
 
-// conditionModules are the modules a document's conditions ask about: the only ones worth
-// looking up.
-func conditionModules(doc sdui.Document) []string {
+// pageModules are the modules a page's conditions ask about: the only ones worth looking up.
+func pageModules(p *sdui.Page) []string {
 	seen := map[string]bool{}
 	var out []string
 	var cond func(c *sdui.Condition)
@@ -316,67 +548,93 @@ func conditionModules(doc sdui.Document) []string {
 		}
 		cond(c.Not)
 	}
-	var node func(n *sdui.Node)
-	node = func(n *sdui.Node) {
-		cond(n.Visibility)
-		for i := range n.Children {
-			node(&n.Children[i])
+	var walk func(list []sdui.Section)
+	walk = func(list []sdui.Section) {
+		for i := range list {
+			cond(list[i].When)
+			walk(list[i].Children)
 		}
 	}
-	node(&doc.Root)
+	walk(p.Sections)
+	for i := range p.Variants {
+		cond(p.Variants[i].When)
+		walk(p.Variants[i].Sections)
+	}
 	return out
 }
 
-// renderScreen renders one screen for this request, and keeps the result for diffs.
-func (s *Server) renderScreen(w http.ResponseWriter, r *http.Request) (sdui.Document, bool) {
-	name := r.PathValue("screen")
-	if !sduistore.ScreenName.MatchString(name) {
-		writeErr(w, 400, "screen names are lower-case letters, digits, - and _")
-		return sdui.Document{}, false
-	}
-	st, err := s.uiStore()
-	if err != nil {
-		writeErr(w, 500, err.Error())
-		return sdui.Document{}, false
-	}
-	cfg := st.Current()
-	// A stock screen the configuration has lost is still served, from the template: an
-	// edit that removes "home" must not leave every client without one.
-	stock, isStock := stockScreens()[name]
-	doc, ok := cfg.Screens[name]
-	if !ok {
-		if !isStock {
-			writeErr(w, 404, "no such screen")
-			return sdui.Document{}, false
+// renderPage renders the page a request is for, and keeps the result for diffs. The same
+// request from the same account within a few seconds is answered from the render before.
+func (s *Server) renderPage(w http.ResponseWriter, r *http.Request) (sdui.Document, bool) {
+	st := &s.sdui
+	u := userFrom(r)
+	cfg, _, _ := s.sduiConfig(r)
+	key := ""
+	if cfg != nil {
+		h := sha256.New()
+		for _, part := range []string{cfg.ETag, itoa(u.ID), r.URL.Path, r.URL.Query().Encode(), r.Header.Get("Accept-Language")} {
+			h.Write([]byte(part))
+			h.Write([]byte{0})
 		}
-		doc = stock
+		for _, name := range []string{"X-WMS-Platform", "X-WMS-Form-Factor", "X-WMS-Device-Class", "X-WMS-SDUI-Catalog", "X-WMS-SDUI-Components", "X-WMS-SDUI-Views", "X-WMS-Capabilities", "X-WMS-Viewport", "X-WMS-Locale", "X-WMS-SDUI-Preview"} {
+			h.Write([]byte(r.Header.Get(name)))
+			h.Write([]byte{0})
+		}
+		key = hex.EncodeToString(h.Sum(nil))
+		st.mu.Lock()
+		got, ok := st.recent[key]
+		st.mu.Unlock()
+		if ok && got.uid == u.ID && time.Since(got.at) < recentRenderFor {
+			return got.doc, true
+		}
 	}
-	ctx, err := s.renderContext(r, doc, cfg.Theme.Modules)
-	if errors.Is(err, errNoScreenData) {
+	rn, code, err := s.sduiPrepare(r, strings.TrimSuffix(r.PathValue("page"), ".json"))
+	if err != nil {
+		writeErr(w, code, err.Error())
+		return sdui.Document{}, false
+	}
+	doc, err := sdui.Render(rn.page, rn.ctx)
+	if errors.Is(err, sdui.ErrNotFound) {
 		writeErr(w, 404, "not found")
 		return sdui.Document{}, false
 	}
 	if err != nil {
-		writeErr(w, 400, err.Error())
+		s.Log.WarnContext(r.Context(), "a page could not be rendered", "cat", "ui", "page", rn.page.ID, "err", err)
+		writeErr(w, 500, "This page could not be put together. It is in the log.")
 		return sdui.Document{}, false
 	}
-	out, err := sdui.Render(doc, ctx)
-	if err != nil && ok && isStock {
-		// The configured one can't be shown to this account (its root is hidden, say): the
-		// stock one can.
-		s.Log.WarnContext(r.Context(), "a configured screen couldn't be rendered; the stock one was sent", "cat", "ui", "screen", name, "err", err)
-		out, err = sdui.Render(stock, ctx)
+	s.keepRender(u.ID, doc)
+	if key != "" {
+		st.mu.Lock()
+		if st.recent == nil {
+			st.recent = map[string]recentRender{}
+		}
+		now := time.Now()
+		if len(st.recent) >= keptRendersFor(pace.Machine()) {
+			for k, v := range st.recent {
+				if now.Sub(v.at) >= recentRenderFor {
+					delete(st.recent, k)
+				}
+			}
+		}
+		if len(st.recent) < keptRendersFor(pace.Machine()) {
+			st.recent[key] = recentRender{at: now, uid: u.ID, doc: doc}
+		}
+		st.mu.Unlock()
 	}
-	if err != nil {
-		writeErr(w, 422, "this screen can't be shown to this account on this device: "+err.Error())
-		return sdui.Document{}, false
+	return doc, true
+}
+
+// forgetRecent drops an account's just-finished renders: it changed its own arrangement.
+func (s *Server) forgetRecent(uid int64) {
+	st := &s.sdui
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	for k, v := range st.recent {
+		if v.uid == uid {
+			delete(st.recent, k)
+		}
 	}
-	if out.Meta.Source == "" {
-		out.Meta.Source = sduistore.FileName
-	}
-	out.Meta.ETag = sdui.ETag(out)
-	s.keepRender(userFrom(r).ID, out)
-	return out, true
 }
 
 func renderKey(uid int64, etag string) string { return strconv.FormatInt(uid, 10) + " " + etag }
@@ -433,30 +691,85 @@ func (s *Server) keptRenderFor(uid int64, etag string) (sdui.Document, bool) {
 	return sdui.Document{}, false
 }
 
-// stockScreens are the templates, built once.
-var stockScreens = sync.OnceValue(sdui.DefaultScreens)
+// GET /api/sdui/catalog: every component, card style, data source, condition, icon and
+// device profile, as data: what an editor builds its palette and forms from.
+func (s *Server) handleSDUICatalog(w http.ResponseWriter, r *http.Request) {
+	etag := sduiCatalogETag()
+	if notModified(w, r, etag) {
+		return
+	}
+	writeJSONTagged(w, 200, etag, sdui.Catalog())
+}
+
+var sduiCatalogETag = sync.OnceValue(func() string { return hashETag("catalog", sdui.Catalog()) })
+
+// GET /api/sdui/navigation: the main menu for this account on this device.
+func (s *Server) handleSDUINavigation(w http.ResponseWriter, r *http.Request) {
+	cfg, _, err := s.sduiConfig(r)
+	if err != nil {
+		code := 500
+		if errors.Is(err, errPreview) {
+			code = 403
+		}
+		writeErr(w, code, err.Error())
+		return
+	}
+	u, acc := userFrom(r), s.access(r)
+	ctx := &sdui.RenderContext{ProfileKind: u.Kind, Admin: u.IsAdmin, Features: serverFeatures, Cannot: sduiCannot(acc), Flags: map[string]bool{}, Vars: map[string]string{}}
+	if err := s.sduiDevice(r, ctx); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	rv := s.newSDUIResolver(r, ctx.Vars)
+	var libs []sdui.NavLibrary
+	seen := map[string]bool{}
+	for _, l := range rv.libraries() {
+		libs = append(libs, sdui.NavLibrary{ID: l.ID, Name: l.Name, Kind: l.Type})
+		if !seen[l.Type] {
+			seen[l.Type] = true
+			ctx.LibraryKinds = append(ctx.LibraryKinds, l.Type)
+		}
+	}
+	ctx.Flags["librariesEmpty"] = len(libs) == 0
+	nav := sdui.StockNavigation()
+	if cfg.Navigation != nil {
+		nav = *cfg.Navigation
+	}
+	for i := range nav.Items {
+		if c := nav.Items[i].When; c != nil && c.Module != "" && s.Modules != nil && s.Modules.Installed(c.Module) {
+			ctx.Modules = append(ctx.Modules, c.Module)
+		}
+	}
+	ctx.CanPersonalise = !cfg.Personalisation.Disabled && acc.Can(library.FeatureEditLayout)
+	if ctx.CanPersonalise {
+		ctx.Personal = s.sduiPersonal(r, sduiNavKey)
+	}
+	doc := sdui.RenderNavigation(nav, func(id string) (sdui.Page, bool) { return effectivePage(cfg, id) }, libs, ctx)
+	if notModified(w, r, doc.ETag) {
+		return
+	}
+	writeJSONTagged(w, 200, doc.ETag, doc)
+}
 
 // GET /api/sdui/topshelf: content for a tvOS Top Shelf extension: what this account was
 // watching and what's new, within its limits. deviceClass (hd or 4k) sizes the pictures.
 func (s *Server) handleSDUITopShelf(w http.ResponseWriter, r *http.Request) {
-	class := strings.ToLower(firstNonEmpty(r.URL.Query().Get("deviceClass"), r.Header.Get("X-WMS-Device-Class")))
+	class := strings.ToLower(sduiPick(r, "deviceClass", "X-WMS-Device-Class"))
 	if class != "" && class != "hd" && class != "4k" {
 		writeErr(w, 400, "deviceClass: hd or 4k")
 		return
 	}
 	ts := sdui.NewTopShelf(s.sduiTopShelfRows(r), sdui.ProfileFor(sdui.FormTV, class), 900)
-	b, _ := json.Marshal(ts)
-	sum := sha256.Sum256(b)
-	etag := `W/"ts-` + hex.EncodeToString(sum[:])[:32] + `"`
+	etag := hashETag("ts", ts)
 	if notModified(w, r, etag) {
 		return
 	}
 	writeJSONTagged(w, 200, etag, ts)
 }
 
-// GET /api/sdui/screens/{screen}: the screen, rendered for this account and device.
-func (s *Server) handleSDUIScreen(w http.ResponseWriter, r *http.Request) {
-	doc, ok := s.renderScreen(w, r)
+// GET /api/sdui/pages/{page}: the page, rendered for this account and device.
+func (s *Server) handleSDUIPage(w http.ResponseWriter, r *http.Request) {
+	doc, ok := s.renderPage(w, r)
 	if !ok {
 		return
 	}
@@ -475,14 +788,14 @@ type sduiDiff struct {
 	Document *sdui.Document `json:"document,omitempty"`
 }
 
-// GET /api/sdui/screens/{screen}/diff?since=<etag>: what changed since the render the client has.
+// GET /api/sdui/pages/{page}/diff?since=<etag>: what changed since the render the client has.
 func (s *Server) handleSDUIDiff(w http.ResponseWriter, r *http.Request) {
 	since := strings.TrimSpace(firstNonEmpty(r.URL.Query().Get("since"), r.Header.Get("If-None-Match")))
 	if since == "" || len(since) > 200 {
 		writeErr(w, 400, "since: the ETag of the render the client has")
 		return
 	}
-	doc, ok := s.renderScreen(w, r)
+	doc, ok := s.renderPage(w, r)
 	if !ok {
 		return
 	}
@@ -492,7 +805,7 @@ func (s *Server) handleSDUIDiff(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
-	if old, ok := s.keptRenderFor(userFrom(r).ID, since); ok && old.Root.ID == doc.Root.ID {
+	if old, ok := s.keptRenderFor(userFrom(r).ID, since); ok && old.Root.ID == doc.Root.ID && old.Page.ID == doc.Page.ID {
 		patches := sdui.Diff(old, doc)
 		if patches == nil {
 			patches = []sdui.Patch{}
@@ -503,110 +816,242 @@ func (s *Server) handleSDUIDiff(w http.ResponseWriter, r *http.Request) {
 	writeJSONTagged(w, 200, doc.Meta.ETag, sduiDiff{ETag: doc.Meta.ETag, Document: &doc})
 }
 
-// GET /api/sdui/config: all of ui_config.json.
-func (s *Server) handleSDUIConfig(w http.ResponseWriter, r *http.Request) {
+// GET /api/sdui/pages/{page}/sections/{section}/items?cursor=: one page of a section's
+// items: the next cards of a row or grid, a deferred row's first, another season.
+func (s *Server) handleSDUISection(w http.ResponseWriter, r *http.Request) {
+	section := r.PathValue("section")
+	if section == "" || len(section) > sdui.MaxNodeIDLength {
+		writeErr(w, 400, "section: the ID of a section of the page")
+		return
+	}
+	cursor := qInt(r, "cursor", 0)
+	if cursor < 0 || cursor > 100000 {
+		writeErr(w, 400, "cursor: what the page before gave as next")
+		return
+	}
+	rn, code, err := s.sduiPrepare(r, r.PathValue("page"))
+	if err != nil {
+		writeErr(w, code, err.Error())
+		return
+	}
+	season := ""
+	if v := r.URL.Query().Get("season"); v != "" {
+		if n, err := strconv.Atoi(v); err != nil || n < 0 || n > 10000 {
+			writeErr(w, 400, "season: a season number")
+			return
+		}
+		season = v
+		delete(rn.ctx.Vars, "season") // the season is the request's, not the page's
+	}
+	out, err := sdui.RenderSection(rn.page, section, cursor, season, rn.ctx)
+	if errors.Is(err, sdui.ErrNotFound) {
+		writeErr(w, 404, "not found")
+		return
+	}
+	if err != nil {
+		s.Log.WarnContext(r.Context(), "a section could not be read", "cat", "ui", "page", rn.page.ID, "section", section, "err", err)
+		writeErr(w, 500, "This row could not be loaded. It is in the log.")
+		return
+	}
+	etag := hashETag("sec", out)
+	if notModified(w, r, etag) {
+		return
+	}
+	writeJSONTagged(w, 200, etag, out)
+}
+
+// ---- a profile's own arrangement ----
+
+// A profile's arrangements are kept with its other interface choices (the "ui" of its
+// account, which /api/me/ui also reads), under "sdui": {"pages": {<page>: Personal},
+// "nav": Personal}. They go when the profile does.
+
+const sduiNavKey = "@nav"
+
+type sduiPersonalStore struct {
+	Pages map[string]*sdui.Personal `json:"pages,omitempty"`
+	Nav   *sdui.Personal            `json:"nav,omitempty"`
+}
+
+func (s *Server) readPersonal(r *http.Request) (map[string]json.RawMessage, sduiPersonalStore) {
+	ui := map[string]json.RawMessage{}
+	_ = json.Unmarshal([]byte(s.Auth.UI(r.Context(), userFrom(r).ID)), &ui)
+	var ps sduiPersonalStore
+	if raw, ok := ui["sdui"]; ok {
+		_ = json.Unmarshal(raw, &ps)
+	}
+	return ui, ps
+}
+
+// sduiPersonal is the profile's arrangement of one page, nil when it has none. Home falls
+// back to the order and hidden sections the web app's Home kept before pages were
+// server-driven: the sections carry the same IDs.
+func (s *Server) sduiPersonal(r *http.Request, page string) *sdui.Personal {
+	ui, ps := s.readPersonal(r)
+	if page == sduiNavKey {
+		return ps.Nav
+	}
+	if p := ps.Pages[page]; p != nil {
+		return p
+	}
+	if page == "home" {
+		var old struct {
+			V      int      `json:"v"`
+			Order  []string `json:"order"`
+			Hidden []string `json:"hidden"`
+		}
+		if json.Unmarshal(ui["home"], &old) == nil && (len(old.Order) > 0 || len(old.Hidden) > 0) {
+			p := &sdui.Personal{Hidden: old.Hidden}
+			if old.V == 2 {
+				p.Order = old.Order
+			}
+			if !sdui.HasErrors(sdui.ValidatePersonal(p)) {
+				return p
+			}
+		}
+	}
+	return nil
+}
+
+func (s *Server) personalKey(w http.ResponseWriter, r *http.Request) (string, bool) {
+	page := r.PathValue("page")
+	if page == "" {
+		return sduiNavKey, true
+	}
+	if !sdui.ValidID(page) {
+		writeErr(w, 400, "page names are lower-case letters, digits, - and _")
+		return "", false
+	}
 	st, err := s.uiStore()
 	if err != nil {
 		writeErr(w, 500, err.Error())
-		return
+		return "", false
 	}
-	c := st.Current()
-	if notModified(w, r, c.ETag) {
-		return
+	if _, ok := effectivePage(st.Current(), page); !ok {
+		writeErr(w, 404, "no such page")
+		return "", false
 	}
-	writeJSONTagged(w, 200, c.ETag, c)
+	return page, true
 }
 
-// writeStoreErr answers for an error from the store.
-func writeUIStoreErr(w http.ResponseWriter, err error) {
-	var inv *sduistore.InvalidError
-	switch {
-	case errors.Is(err, sduistore.ErrConflict):
-		writeErr(w, 412, err.Error()+": read it again and redo the change")
-	case errors.Is(err, sduistore.ErrNoRevision):
-		writeErr(w, 404, err.Error())
-	case errors.As(err, &inv):
-		writeJSON(w, 400, map[string]any{"error": inv.Error(), "issues": inv.Issues})
-	default:
-		writeErr(w, 500, err.Error())
-	}
-}
-
-func adminName(r *http.Request) string {
-	if u := userFrom(r); u != nil {
-		return u.Name
-	}
-	return ""
-}
-
-// PUT /api/sdui/config: replace ui_config.json. If-Match must be the ETag it was read with.
-func (s *Server) handleSDUIConfigPut(w http.ResponseWriter, r *http.Request) {
-	ifMatch := strings.TrimSpace(r.Header.Get("If-Match"))
-	if ifMatch == "" {
-		writeErr(w, 428, "If-Match: send the ETag of the configuration this change was made to")
+// GET /api/sdui/pages/{page}/personal, GET /api/sdui/navigation/personal: this profile's
+// own arrangement, and whether it may change it.
+func (s *Server) handleSDUIPersonalGet(w http.ResponseWriter, r *http.Request) {
+	key, ok := s.personalKey(w, r)
+	if !ok {
 		return
 	}
+	st, _ := s.uiStore()
+	p := s.sduiPersonal(r, key)
+	if p == nil {
+		p = &sdui.Personal{}
+	}
+	editable := !st.Current().Personalisation.Disabled && s.access(r).Can(library.FeatureEditLayout)
+	writeJSON(w, 200, map[string]any{"editable": editable, "personal": p})
+}
+
+func (s *Server) mayPersonalise(w http.ResponseWriter, r *http.Request) bool {
 	st, err := s.uiStore()
 	if err != nil {
 		writeErr(w, 500, err.Error())
+		return false
+	}
+	if st.Current().Personalisation.Disabled {
+		writeErr(w, 403, "Rearranging pages is turned off on this server.")
+		return false
+	}
+	if !s.access(r).Can(library.FeatureEditLayout) {
+		writeErr(w, 403, "This profile can't rearrange pages. Whoever manages it can allow that.")
+		return false
+	}
+	return true
+}
+
+func (s *Server) writePersonal(r *http.Request, key string, p *sdui.Personal) error {
+	s.sdui.personalMu.Lock()
+	defer s.sdui.personalMu.Unlock()
+	ui, ps := s.readPersonal(r)
+	if key == sduiNavKey {
+		ps.Nav = p
+	} else {
+		if ps.Pages == nil {
+			ps.Pages = map[string]*sdui.Personal{}
+		}
+		if p == nil {
+			delete(ps.Pages, key)
+			// The arrangement Home kept before goes too, or it would come back.
+			if key == "home" {
+				delete(ui, "home")
+			}
+		} else {
+			if len(ps.Pages) >= 64 && ps.Pages[key] == nil {
+				return errors.New("this profile has arranged too many pages: reset one first")
+			}
+			ps.Pages[key] = p
+		}
+	}
+	raw, err := json.Marshal(ps)
+	if err != nil {
+		return err
+	}
+	ui["sdui"] = raw
+	if string(raw) == "{}" {
+		delete(ui, "sdui")
+	}
+	b, err := json.Marshal(ui)
+	if err != nil {
+		return err
+	}
+	if len(b) > 64<<10 {
+		return errors.New("this profile's interface choices are too large")
+	}
+	s.forgetRecent(userFrom(r).ID)
+	return s.Auth.SetUI(r.Context(), userFrom(r).ID, string(b))
+}
+
+// PUT /api/sdui/pages/{page}/personal, PUT /api/sdui/navigation/personal: replace this
+// profile's arrangement. Only its own; refused when the profile may not rearrange pages.
+func (s *Server) handleSDUIPersonalPut(w http.ResponseWriter, r *http.Request) {
+	key, ok := s.personalKey(w, r)
+	if !ok || !s.mayPersonalise(w, r) {
 		return
 	}
-	defer r.Body.Close()
-	b, err := io.ReadAll(io.LimitReader(r.Body, sduistore.MaxBytes+1))
+	var p sdui.Personal
+	body, err := sduiBody(r, sdui.MaxPersonalBytes)
+	if err == nil {
+		dec := json.NewDecoder(bytes.NewReader(body))
+		dec.DisallowUnknownFields()
+		err = dec.Decode(&p)
+	}
 	if err != nil {
+		writeErr(w, 400, "That arrangement can't be read: "+err.Error())
+		return
+	}
+	if issues := sdui.ValidatePersonal(&p); sdui.HasErrors(issues) {
+		writeJSON(w, 400, map[string]any{"error": "That arrangement can't be saved.", "issues": issues})
+		return
+	}
+	var store *sdui.Personal
+	if !p.IsZero() {
+		store = &p
+	}
+	if err := s.writePersonal(r, key, store); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	c, err := sduistore.Parse(b)
-	if err != nil {
-		writeErr(w, 400, err.Error())
-		return
-	}
-	if c.Version == 0 {
-		c.Version = sduistore.FormatVersion
-	}
-	saved, err := st.Replace(c, ifMatch, adminName(r))
-	if err != nil {
-		writeUIStoreErr(w, err)
-		return
-	}
-	s.Log.InfoContext(r.Context(), "UI configuration saved", "cat", "ui", "by", adminName(r), "revision", saved.Revision)
-	writeJSONTagged(w, 200, saved.ETag, saved)
+	writeJSON(w, 200, map[string]any{"editable": true, "personal": p})
 }
 
-// GET /api/sdui/config/history: the revisions kept, newest first.
-func (s *Server) handleSDUIHistory(w http.ResponseWriter, r *http.Request) {
-	st, err := s.uiStore()
-	if err != nil {
+// DELETE /api/sdui/pages/{page}/personal, DELETE /api/sdui/navigation/personal: back to the
+// page as everyone has it.
+func (s *Server) handleSDUIPersonalDelete(w http.ResponseWriter, r *http.Request) {
+	key, ok := s.personalKey(w, r)
+	if !ok || !s.mayPersonalise(w, r) {
+		return
+	}
+	if err := s.writePersonal(r, key, nil); err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	h, err := st.History()
-	if err != nil {
-		writeErr(w, 500, err.Error())
-		return
-	}
-	c := st.Current()
-	writeJSON(w, 200, map[string]any{"current": c.Revision, "etag": c.ETag, "keep": sduistore.MaxHistory, "revisions": h})
-}
-
-// POST /api/sdui/config/rollback/{rev}: make a kept revision current again, as a new one.
-func (s *Server) handleSDUIRollback(w http.ResponseWriter, r *http.Request) {
-	rev, ok := pathInt(r, "rev")
-	if !ok || rev < 1 {
-		writeErr(w, 400, "rev: a revision number")
-		return
-	}
-	st, err := s.uiStore()
-	if err != nil {
-		writeErr(w, 500, err.Error())
-		return
-	}
-	saved, err := st.Rollback(rev, strings.TrimSpace(r.Header.Get("If-Match")), adminName(r))
-	if err != nil {
-		writeUIStoreErr(w, err)
-		return
-	}
-	s.Log.InfoContext(r.Context(), "UI configuration rolled back", "cat", "ui", "by", adminName(r), "to", rev, "revision", saved.Revision)
-	writeJSONTagged(w, 200, saved.ETag, saved)
+	writeJSON(w, 200, map[string]any{"editable": true, "personal": sdui.Personal{}})
 }

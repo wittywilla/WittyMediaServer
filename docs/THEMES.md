@@ -393,7 +393,7 @@ On top of the themes, the server keeps colour overrides and resolves, for each a
 
 1. **The server's theme**, the same `theme` setting `/api/themes` reports as `default`, with the administrator's **global overrides**.
 2. **The account's own choice**: `theme` in `/api/me/ui`, when it names a theme that's installed. It replaces the server's theme and, with it, the global overrides, which were chosen for that theme.
-3. **Module overrides**: colours for the parts of the interface that belong to one module, such as `wittyplay`'s shelves, layered over either. They are under `modules` in the answer, and server-driven screens get them too: a node with `style.module` set receives them in `style.tokens` (see [SDUI](SDUI.md#theme-and-module-override-semantics)).
+3. **Module overrides**: colours for the parts of the interface that belong to one module, such as `wittyplay`'s shelves, layered over either. They are under `modules` in the answer, and server-driven pages get them too: a page or section that names the module as its `scope` receives them as `tokens` (see [SDUI](SDUI.md#theme-scopes)). A scope needn't be a module: `PUT /api/v1/theme/modules/family` gives a page of your own, with `"scope": "family"`, its own accent.
 
 The answer is `{id, source, scheme, tokens, overrides, modules: {<module>: {tokens, overrides}}, variants, warnings, etag, revision}`, with an `ETag` header; send it back as `If-None-Match` for a 304.
 
@@ -414,7 +414,7 @@ Administrators change the overrides with:
 
 **Readability.** Every answer lists in `warnings` the text colours an override leaves below WCAG AA (4.5:1), with the same pairs and formula as `scripts/theme-contrast.py`: `fg`, `fg2`, `fg3`, `accentText`, `danger`, `ok` and `warn` on `bg`, `bg2` and `bg3`, and `accentFg` on `accent`. Only pairs the override touches are reported, and translucent colours are skipped. A warning doesn't stop the change; it's there for the settings page to show.
 
-The overrides live in the `theme` section of `ui_config.json` in the data folder, with the server-driven screens, so they have its revisions, `If-Match` (412 when someone changed them in between) and rollback: see [SDUI](SDUI.md#ui_configjson). `/api/themes` and `/api/themes/<id>/tokens.json` are unchanged, and still give a theme's own colours.
+The overrides live in the `theme` section of `ui_config.json` in the data folder, with the server-driven pages, so they have its revisions, `If-Match` (412 when someone changed them in between) and rollback: see [SDUI](SDUI.md#ui_configjson). `/api/themes` and `/api/themes/<id>/tokens.json` are unchanged, and still give a theme's own colours.
 
 ---
 

@@ -191,10 +191,11 @@ const (
 	FeatureComments    = "comments"    // see comments, and write them
 	FeatureRemote      = "remote"      // use the server away from home
 	FeatureEditProfile = "editProfile" // change their own name and picture
+	FeatureEditLayout  = "editLayout"  // rearrange pages for themselves: order, hidden rows, card sizes
 )
 
 // Features lists them in the order Settings shows them.
-var Features = []string{FeatureGames, FeatureRecordings, FeatureDownloads, FeatureSharing, FeatureComments, FeatureRemote, FeatureEditProfile}
+var Features = []string{FeatureGames, FeatureRecordings, FeatureDownloads, FeatureSharing, FeatureComments, FeatureRemote, FeatureEditProfile, FeatureEditLayout}
 
 // ForKind makes the limits say what the kind of profile decides: a Kids or
 // Guest profile's name and picture are for whoever manages it, unless they

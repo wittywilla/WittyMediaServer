@@ -75,6 +75,7 @@ var serverFeatures = []string{
 	"browse", "saved-views", "metadata-editing", "logos", "streaming-listings",
 	"music-home", "music-radio", "lyrics", "min-client-versions", "robust-streaming",
 	"sdui", "sdui-diff", "theme-engine", "theme-module-overrides",
+	"sdui-pages", "sdui-catalog", "sdui-navigation", "sdui-personal", "sdui-editor",
 	"canvas", "karaoke-stems", "skip-markers", "where-to-watch-xref", "module-identity",
 	"remote-protocol", "syncplay",
 	"sdui-data", "sdui-form-factors", "sdui-topshelf", "pair-admin-confirm", "pair-session-info", "theme-variants",

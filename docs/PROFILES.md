@@ -174,7 +174,7 @@ Everything is under `/api/v1`. [CLIENT-API.md](CLIENT-API.md#sign-in-and-account
 - **A stream that ends early.** When time runs out, the server stops sending. Ask `/me/screen-time` before treating it as a network fault.
 - **401 away from home** for a profile kept to the home network.
 
-Limits in `access` beyond the older ones: `kinds` (`{"game": {"maxAge": 12, "allowUnrated": false}}`, for `film`, `tv`, `game`, `music`, `book`), `onlyGenres`, `blockTags`, `allowCollections`, `blockCollections`, `off` (any of `games`, `recordings`, `downloads`, `sharing`, `comments`, `remote`, `editProfile`), and `time` (`schoolDayMinutes`, `weekendMinutes`, `from`, `schoolNightUntil`, `weekendUntil`, with times as `"20:30"`).
+Limits in `access` beyond the older ones: `kinds` (`{"game": {"maxAge": 12, "allowUnrated": false}}`, for `film`, `tv`, `game`, `music`, `book`), `onlyGenres`, `blockTags`, `allowCollections`, `blockCollections`, `off` (any of `games`, `recordings`, `downloads`, `sharing`, `comments`, `remote`, `editProfile`, and `editLayout`: rearranging server-driven pages for themselves, see [SDUI.md](SDUI.md#personalisation)), and `time` (`schoolDayMinutes`, `weekendMinutes`, `from`, `schoolNightUntil`, `weekendUntil`, with times as `"20:30"`).
 
 ## Why it is built this way
 

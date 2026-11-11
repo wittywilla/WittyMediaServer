@@ -4,10 +4,12 @@
 package sduistore
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -28,8 +30,8 @@ func TestFirstRunSeedsDefaults(t *testing.T) {
 	dir := t.TempDir()
 	s := open(t, dir)
 	c := s.Current()
-	if c.Revision != 1 || len(c.Screens) != len(sdui.DefaultScreens()) {
-		t.Fatalf("revision %d, %d screens", c.Revision, len(c.Screens))
+	if c.Revision != 1 || len(c.Pages) != 0 || c.Navigation != nil || c.Version != FormatVersion {
+		t.Fatalf("revision %d, %d pages: a new configuration changes nothing", c.Revision, len(c.Pages))
 	}
 	if c.ETag == "" {
 		t.Error("no etag")
@@ -72,13 +74,25 @@ func TestUpdateIfMatchAndValidation(t *testing.T) {
 		t.Errorf("invalid theme: %v", err)
 	}
 	_, err = s.Update("", "owner", func(c *Config) error {
-		d := c.Screens["home"]
-		d.Root.Type = sdui.Text
-		c.Screens["home"] = d
+		c.Pages["home"] = sdui.Page{ID: "home", Kind: "home", Title: "Home", Sections: []sdui.Section{{ID: "row", Component: "Shelff"}}}
+		return nil
+	})
+	if !errors.As(err, &ie) || !strings.HasPrefix(ie.Issues[0].Path, "/pages/home/sections/0") || ie.Issues[0].Fix == "" {
+		t.Errorf("invalid page: %v", err)
+	}
+	_, err = s.Update("", "owner", func(c *Config) error {
+		c.Pages["home"] = sdui.Page{ID: "elsewhere", Kind: "home", Title: "Home"}
 		return nil
 	})
 	if !errors.As(err, &ie) {
-		t.Errorf("invalid screen: %v", err)
+		t.Errorf("a page stored under another name: %v", err)
+	}
+	_, err = s.Update("", "owner", func(c *Config) error {
+		c.Navigation = &sdui.Navigation{Items: []sdui.NavItem{{ID: "x", Type: "page", Page: "nowhere"}}}
+		return nil
+	})
+	if !errors.As(err, &ie) || ie.Issues[0].Path != "/navigation/items/0/page" {
+		t.Errorf("a navigation entry for a page that isn't there: %v", err)
 	}
 	if s.Current().Revision != 2 {
 		t.Errorf("a refused save changed the revision: %d", s.Current().Revision)
@@ -154,14 +168,14 @@ func TestCorruptFileFallsBackToLastGoodRevision(t *testing.T) {
 func TestCorruptFileAndHistoryFallsBackToDefaults(t *testing.T) {
 	dir := t.TempDir()
 	open(t, dir)
-	_ = os.WriteFile(filepath.Join(dir, FileName), []byte(`{"version":1,"screens":{"home":{"version":99}}}`), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, FileName), []byte(`{"version":2,"pages":{"home":{"id":"home","kind":"nonsense","title":"x"}}}`), 0o644)
 	ents, _ := os.ReadDir(filepath.Join(dir, HistoryDir))
 	for _, e := range ents {
 		_ = os.WriteFile(filepath.Join(dir, HistoryDir, e.Name()), []byte("garbage"), 0o644)
 	}
 	c := open(t, dir).Current()
-	if len(c.Screens) != len(sdui.DefaultScreens()) || c.Revision < 2 {
-		t.Errorf("defaults: %d screens, revision %d", len(c.Screens), c.Revision)
+	if len(c.Pages) != 0 || c.Revision < 2 || c.Version != FormatVersion {
+		t.Errorf("defaults: %d pages, revision %d", len(c.Pages), c.Revision)
 	}
 }
 
@@ -258,7 +272,7 @@ func TestConcurrentUpdatesAndReads(t *testing.T) {
 }
 
 func TestParseIsStrict(t *testing.T) {
-	for _, in := range []string{`{"version":1,"screens":{},"extra":1}`, `{"version":1} {}`, `{"version":1,"screens":{"home":{"version":1,"screen":"home","root":{"type":"Screen","id":"r"},"x":1}}}`} {
+	for _, in := range []string{`{"version":2,"pages":{},"extra":1}`, `{"version":2,"pages":{}} {}`, `{"version":2,"pages":{"home":{"id":"home","kind":"home","title":"Home","x":1}}}`} {
 		if _, err := Parse([]byte(in)); err == nil {
 			t.Errorf("accepted %s", in)
 		}
@@ -276,6 +290,215 @@ func mustRead(t *testing.T, p string) []byte {
 	b, err := os.ReadFile(p)
 	if err != nil {
 		t.Fatal(err)
+	}
+	return b
+}
+
+// A configuration in the first format becomes one in this: stock screens nobody changed
+// are dropped for the built-in pages, changed and added ones are converted, the theme is
+// kept, and the original file stays beside the new one.
+func TestLegacyConfigurationIsConverted(t *testing.T) {
+	raw := mustRead(t, filepath.Join("testdata", "legacy_ui_config.json"))
+	if !IsLegacy(raw) {
+		t.Fatal("the first format wasn't recognised")
+	}
+	// Unchanged: nothing but the theme survives, with no notes.
+	c, err := Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(c.Pages) != 0 || len(c.Notes) != 0 || c.Theme.Tokens["accent"] != "#FF8800" || c.Theme.Modules["wittyplay"]["accent"] != "#3AD29F" {
+		t.Errorf("unchanged stock screens: %d pages, notes %q, theme %+v", len(c.Pages), c.Notes, c.Theme)
+	}
+	if err := Validate(c); err != nil {
+		t.Fatal(err)
+	}
+
+	// An administrator moved Continue watching to the top of Home, renamed it, and made
+	// a page of their own.
+	var old map[string]any
+	if err := json.Unmarshal(raw, &old); err != nil {
+		t.Fatal(err)
+	}
+	screens := old["screens"].(map[string]any)
+	home := screens["home"].(map[string]any)
+	kids := home["root"].(map[string]any)["children"].([]any)
+	var row map[string]any
+	rest := []any{}
+	for _, k := range kids {
+		if n := k.(map[string]any); n["id"] == "home-continue" {
+			row = n
+		} else {
+			rest = append(rest, k)
+		}
+	}
+	row["props"].(map[string]any)["title"] = "Keep watching"
+	home["root"].(map[string]any)["children"] = append([]any{row}, rest...)
+	screens["family"] = map[string]any{"version": 1, "screen": "family", "meta": map[string]any{"title": "Family"},
+		"actions": map[string]any{"films": map[string]any{"type": "navigate", "target": "/library/1"}, "site": map[string]any{"type": "external", "target": "https://example.org"}},
+		"root": map[string]any{"type": "Screen", "id": "family", "children": []any{
+			map[string]any{"type": "Text", "id": "t", "props": map[string]any{"text": "Friday night", "variant": "heading"}, "style": map[string]any{"foreground": "#ff0000"}},
+			map[string]any{"type": "Button", "id": "b", "props": map[string]any{"label": "Films"}, "action": "films", "visibility": map[string]any{"role": "kids"}},
+			map[string]any{"type": "Button", "id": "b2", "props": map[string]any{"label": "Site"}, "action": "site", "visibility": map[string]any{"platform": "tv"}},
+			map[string]any{"type": "Video", "id": "v", "props": map[string]any{"src": "/api/x"}},
+		}}}
+	changed, _ := json.Marshal(old)
+
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, FileName), changed, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := open(t, dir)
+	got := s.Current()
+	if got.Version != FormatVersion || got.Revision != 4 || got.UpdatedBy != "converted from the earlier format" {
+		t.Errorf("converted: version %d revision %d by %q", got.Version, got.Revision, got.UpdatedBy)
+	}
+	if string(mustRead(t, filepath.Join(dir, LegacyBackup))) != string(changed) {
+		t.Error("the original file wasn't kept as it was")
+	}
+	if _, err := Parse(mustRead(t, filepath.Join(dir, FileName))); err != nil || IsLegacy(mustRead(t, filepath.Join(dir, FileName))) {
+		t.Errorf("the file wasn't rewritten in the new format: %v", err)
+	}
+	h, ok := got.Pages["home"]
+	if !ok || len(got.Pages) != 2 {
+		t.Fatalf("pages %v: want the changed home and family, and nothing for the untouched screens", sortedKeys(got.Pages))
+	}
+	first := h.Sections[0]
+	if first.Component != "Shelf" || first.Props["title"] != "Keep watching" || first.Source.Type() != "continueWatching" || first.Props["cardStyle"] != "landscape" {
+		t.Errorf("home's first section: %+v", first)
+	}
+	var comps []string
+	for _, sec := range h.Sections {
+		comps = append(comps, sec.Component+":"+sec.Source.Type())
+	}
+	joined := strings.Join(comps, " ")
+	for _, want := range []string{"Hero:featured", "Shelf:nextUp", "Shelf:recentlyAdded", "Shelf:recommended", "Shelf:liveNow", "Stack:"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("home lost %s: %s", want, joined)
+		}
+	}
+	for _, sec := range h.Sections {
+		if sec.ID == "home-libraries" && (sec.Repeat == nil || sec.Repeat.Over != "libraries" || sec.Source["library"] != "$each") {
+			t.Errorf("the row per library: %+v", sec)
+		}
+		if sec.ID == "home-admin-setup" && (sec.Props["native"] != "settings" || sec.When == nil || len(sec.When.All) != 2) {
+			t.Errorf("the settings button and its condition: %+v %+v", sec.Props, sec.When)
+		}
+	}
+	f := got.Pages["family"]
+	if f.Kind != "custom" || f.Title != "Family" || len(f.Sections) != 3 {
+		t.Fatalf("family: %+v", f)
+	}
+	if f.Sections[0].Props["role"] != "heading" || f.Sections[1].Props["to"] != "/library/1" || f.Sections[1].When.ProfileKind[0] != "kids" ||
+		f.Sections[2].Props["url"] != "https://example.org" || f.Sections[2].When.FormFactor[0] != "tv" {
+		t.Errorf("family's sections: %+v", f.Sections)
+	}
+	if !strings.Contains(f.Description, "Video") || !strings.Contains(f.Description, "colours and sizes") {
+		t.Errorf("what was dropped isn't named: %q", f.Description)
+	}
+	if len(got.Notes) < 3 {
+		t.Errorf("notes: %q", got.Notes)
+	}
+	// Opened again, nothing is converted twice and the backup isn't overwritten.
+	again := open(t, dir).Current()
+	if again.Revision != got.Revision || again.ETag != got.ETag {
+		t.Errorf("reopened: revision %d, was %d", again.Revision, got.Revision)
+	}
+	// Every page of the result is one the renderer accepts.
+	for id, p := range got.Pages {
+		if issues := sdui.ValidatePage(&p); sdui.HasErrors(issues) {
+			t.Errorf("%s: %v", id, issues)
+		}
+	}
+}
+
+func TestDraftIsSeparateUntilPublished(t *testing.T) {
+	dir := t.TempDir()
+	s := open(t, dir)
+	if s.Draft() != nil {
+		t.Fatal("a draft out of nowhere")
+	}
+	c := s.Current().Clone()
+	c.Pages["night"] = sdui.Page{ID: "night", Kind: "custom", Title: "Film night", Sections: []sdui.Section{{ID: "hello", Component: "Text", Props: map[string]any{"text": "Hello"}}}}
+	if _, err := s.SaveDraft(c, "nonsense", "owner"); !errors.Is(err, ErrConflict) {
+		t.Errorf("a first draft against a configuration that has moved on: %v", err)
+	}
+	d, err := s.SaveDraft(c, s.Current().ETag, "owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(s.Current().Pages) != 0 || s.Current().Revision != 1 {
+		t.Error("saving a draft changed what is published")
+	}
+	bad := c.Clone()
+	bad.Pages["night"] = sdui.Page{ID: "night", Kind: "custom", Title: ""}
+	var ie *InvalidError
+	if _, err := s.SaveDraft(bad, "", "owner"); !errors.As(err, &ie) {
+		t.Errorf("an invalid draft: %v", err)
+	}
+	// It survives a restart.
+	s2 := open(t, dir)
+	if got := s2.Draft(); got == nil || got.ETag != d.ETag || got.Pages["night"].Title != "Film night" {
+		t.Fatalf("the draft after a restart: %+v", got)
+	}
+	if _, err := s2.Publish("stale", "owner"); !errors.Is(err, ErrConflict) {
+		t.Errorf("publishing a draft that changed: %v", err)
+	}
+	pub, err := s2.Publish(d.ETag, "owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pub.Revision != 2 || pub.Pages["night"].Title != "Film night" || s2.Draft() != nil {
+		t.Errorf("published: revision %d, draft still there: %v", pub.Revision, s2.Draft() != nil)
+	}
+	if _, err := os.Stat(filepath.Join(dir, DraftName)); err == nil {
+		t.Error("the draft's file is still there")
+	}
+	if _, err := s2.Publish("", "owner"); !errors.Is(err, ErrNoRevision) {
+		t.Errorf("publishing with no draft: %v", err)
+	}
+	if _, err := s2.SaveDraft(pub.Clone(), "", "owner"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s2.DiscardDraft(); err != nil || s2.Draft() != nil {
+		t.Errorf("discard: %v", err)
+	}
+	if rc, err := s2.RevisionConfig(1); err != nil || len(rc.Pages) != 0 {
+		t.Errorf("revision 1: %v", err)
+	}
+}
+
+// What a migration can't read must not stop the server.
+func FuzzParse(f *testing.F) {
+	f.Add(mustReadF(f, filepath.Join("testdata", "legacy_ui_config.json")))
+	f.Add([]byte(`{"version":2,"pages":{"home":{"id":"home","kind":"home","title":"Home","sections":[{"id":"a","component":"Shelf","source":{"type":"nextUp"}}]}}}`))
+	f.Add([]byte(`{"version":1,"screens":{"x":{"root":{"type":"Stack","id":"r","children":[{"type":"PosterRow","id":"p","bindings":{"items":{"path":"$.home.nextUp"}}}]}}}}`))
+	f.Fuzz(func(t *testing.T, b []byte) {
+		c, err := Parse(b)
+		if err != nil {
+			return
+		}
+		if IsLegacy(b) {
+			// Whatever a conversion produces is valid, or Open would set the file aside.
+			if err := Validate(c); err != nil {
+				var ie *InvalidError
+				if errors.As(err, &ie) {
+					for _, is := range ie.Issues {
+						if strings.HasPrefix(is.Path, "/pages/") {
+							t.Fatalf("a converted page doesn't validate: %v", is)
+						}
+					}
+				}
+			}
+		}
+		_ = c.Clone()
+	})
+}
+
+func mustReadF(f *testing.F, p string) []byte {
+	b, err := os.ReadFile(p)
+	if err != nil {
+		f.Fatal(err)
 	}
 	return b
 }

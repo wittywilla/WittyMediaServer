@@ -25,8 +25,8 @@ const (
 	PatchRemove PatchOp = "remove"
 	// PatchReplace replaces the node at Path ("#id") with Node — all fields
 	// except Children, which are patched separately — or, for document-level
-	// paths ("/screen", "/theme", "/layout", "/actions", "/meta", "/root"), sets Value
-	// (or Node for "/root").
+	// paths ("/page", "/layout", "/theme", "/personal", "/catalog", "/meta",
+	// "/root"), sets Value (or Node for "/root"); a null Value clears the field.
 	PatchReplace PatchOp = "replace"
 	// PatchMove moves the node From ("#id") to Path ("#parent/children/i").
 	PatchMove PatchOp = "move"
@@ -34,8 +34,8 @@ const (
 
 // Patch is one step in transforming a document into another. Paths are ID
 // based: "#<id>" names a node, "#<id>/children/<n>" a position among its
-// children, and "/root", "/screen", "/theme", "/layout", "/actions", "/meta" the
-// document-level fields.
+// children, and "/root", "/page", "/layout", "/theme", "/personal", "/catalog"
+// and "/meta" the document-level fields.
 type Patch struct {
 	Op PatchOp `json:"op"`
 	// Path is the target location.
@@ -49,39 +49,17 @@ type Patch struct {
 }
 
 // Diff computes the patches that turn old into new. Children are matched by
-// ID; a node whose own fields (type, props, style, action, visibility,
-// bindings) changed yields a replace, a new ID an add, a missing ID a remove,
-// and a change of order a move. Meta.GeneratedAt and Meta.ETag are ignored.
-// Diff is deterministic.
+// ID; a node whose own fields (type, props, action, focus, state, scope)
+// changed yields a replace, a new ID an add, a missing ID a remove, and a
+// change of order a move. Meta.GeneratedAt and Meta.ETag are ignored. Diff is
+// deterministic.
 func Diff(old, new Document) []Patch {
 	var ps []Patch
-	if old.Screen != new.Screen {
-		ps = append(ps, Patch{Op: PatchReplace, Path: "/screen", Value: new.Screen})
-	}
-	if !jsonEqual(old.Theme, new.Theme) {
-		var v any
-		if new.Theme != nil {
-			v = new.Theme
+	oh, nh := head(old), head(new)
+	for _, f := range headFields {
+		if !jsonEqual(oh[f], nh[f]) {
+			ps = append(ps, Patch{Op: PatchReplace, Path: "/" + f, Value: nh[f]})
 		}
-		ps = append(ps, Patch{Op: PatchReplace, Path: "/theme", Value: v})
-	}
-	if !jsonEqual(old.Actions, new.Actions) {
-		var v any
-		if new.Actions != nil {
-			v = new.Actions
-		}
-		ps = append(ps, Patch{Op: PatchReplace, Path: "/actions", Value: v})
-	}
-	if !jsonEqual(old.Layout, new.Layout) {
-		var v any
-		if new.Layout != nil {
-			v = new.Layout
-		}
-		ps = append(ps, Patch{Op: PatchReplace, Path: "/layout", Value: v})
-	}
-	om, nm := stripVolatileMeta(old.Meta), stripVolatileMeta(new.Meta)
-	if !jsonEqual(om, nm) {
-		ps = append(ps, Patch{Op: PatchReplace, Path: "/meta", Value: nm})
 	}
 	if old.Root.ID != new.Root.ID {
 		n := cloneNode(new.Root)
@@ -90,6 +68,19 @@ func Diff(old, new Document) []Patch {
 	}
 	ps = diffNode(ps, old.Root, new.Root)
 	return ps
+}
+
+// headFields are the document-level fields a patch can replace.
+var headFields = []string{"catalog", "page", "layout", "theme", "personal", "meta"}
+
+// head is a document's fields other than its tree, as JSON values.
+func head(d Document) map[string]any {
+	d.Meta = stripVolatileMeta(d.Meta)
+	d.Root = Node{}
+	b, _ := json.Marshal(d)
+	out := map[string]any{}
+	_ = json.Unmarshal(b, &out)
+	return out
 }
 
 func stripVolatileMeta(m Meta) Meta {
@@ -273,49 +264,40 @@ func applyOne(d *Document, p Patch) error {
 }
 
 func applyDocField(d *Document, p Patch) error {
-	switch p.Path {
-	case "/root":
+	if p.Path == "/root" {
 		if p.Node == nil {
 			return fmt.Errorf("replace /root needs a node")
 		}
 		d.Root = cloneNode(*p.Node)
 		return nil
-	case "/screen":
-		return reencode(p.Value, &d.Screen)
-	case "/theme":
-		if isJSONNull(p.Value) {
-			d.Theme = nil
-			return nil
-		}
-		var t ThemeRef
-		if err := reencode(p.Value, &t); err != nil {
-			return err
-		}
-		d.Theme = &t
-		return nil
-	case "/layout":
-		if isJSONNull(p.Value) {
-			d.Layout = nil
-			return nil
-		}
-		var l Layout
-		if err := reencode(p.Value, &l); err != nil {
-			return err
-		}
-		d.Layout = &l
-		return nil
-	case "/actions":
-		d.Actions = nil
-		return reencode(p.Value, &d.Actions)
-	case "/meta":
-		var m Meta
-		if err := reencode(p.Value, &m); err != nil {
-			return err
-		}
-		d.Meta = m
-		return nil
 	}
-	return fmt.Errorf("unknown document path %q", p.Path)
+	field := strings.TrimPrefix(p.Path, "/")
+	known := false
+	for _, f := range headFields {
+		known = known || f == field
+	}
+	if !known {
+		return fmt.Errorf("unknown document path %q", p.Path)
+	}
+	// Set the one field by way of JSON, so a patch that arrived as JSON and
+	// one made here apply alike.
+	h := head(*d)
+	if isJSONNull(p.Value) {
+		delete(h, field)
+	} else {
+		h[field] = p.Value
+	}
+	root, etag, at := d.Root, d.Meta.ETag, d.Meta.GeneratedAt
+	var next Document
+	if err := reencode(h, &next); err != nil {
+		return err
+	}
+	next.Root = root
+	if field != "meta" || next.Meta.ETag == "" {
+		next.Meta.ETag, next.Meta.GeneratedAt = etag, at
+	}
+	*d = next
+	return nil
 }
 
 // isJSONNull reports whether v is nil or a typed nil pointer/map that

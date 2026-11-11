@@ -1,28 +1,25 @@
 {
   "$defs": {
     "Action": {
-      "description": "What activating a node does. \"$name\" in target stands for the activated node's prop of that name.",
       "properties": {
+        "item": {
+          "type": "string"
+        },
+        "op": {
+          "type": "string"
+        },
         "params": {
+          "additionalProperties": {},
           "type": "object"
         },
-        "target": {
+        "to": {
           "type": "string"
         },
         "type": {
-          "description": "Known: see x-knownTypes. Ignore a node's action when its type is unknown.",
-          "type": "string",
-          "x-knownTypes": [
-            "navigate",
-            "play",
-            "openModal",
-            "closeModal",
-            "fetch",
-            "toggle",
-            "submit",
-            "external",
-            "back"
-          ]
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
         }
       },
       "required": [
@@ -30,139 +27,621 @@
       ],
       "type": "object"
     },
-    "Diff": {
-      "description": "The answer of /diff: patches, or the whole document when the server no longer has the render named by since.",
+    "Budget": {
       "properties": {
-        "document": {
-          "$ref": "#/$defs/Document"
+        "eagerSections": {
+          "type": "integer"
         },
-        "etag": {
+        "gridItems": {
+          "type": "integer"
+        },
+        "heroItems": {
+          "type": "integer"
+        },
+        "listItems": {
+          "type": "integer"
+        },
+        "maxSections": {
+          "type": "integer"
+        },
+        "pageSize": {
+          "type": "integer"
+        },
+        "repeats": {
+          "type": "integer"
+        },
+        "shelfItems": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "maxSections",
+        "eagerSections",
+        "shelfItems",
+        "gridItems",
+        "listItems",
+        "pageSize",
+        "heroItems",
+        "repeats"
+      ],
+      "type": "object"
+    },
+    "CardMetrics": {
+      "properties": {
+        "aspect": {
           "type": "string"
         },
-        "patches": {
+        "columns": {
+          "type": "integer"
+        },
+        "shape": {
+          "type": "string"
+        },
+        "width": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "shape",
+        "width"
+      ],
+      "type": "object"
+    },
+    "CardStyleSpec": {
+      "properties": {
+        "aspect": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "image": {
           "items": {
-            "$ref": "#/$defs/Patch"
+            "type": "string"
           },
           "type": "array"
         },
-        "since": {
+        "kinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "label": {
+          "type": "string"
+        },
+        "shape": {
+          "type": "string"
+        },
+        "shows": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "style": {
+          "type": "string"
+        },
+        "subtitleLines": {
+          "type": "integer"
+        },
+        "titleLines": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "style",
+        "label",
+        "description",
+        "shape",
+        "aspect",
+        "shows",
+        "titleLines",
+        "subtitleLines"
+      ],
+      "type": "object"
+    },
+    "Catalogue": {
+      "properties": {
+        "cardStyles": {
+          "items": {
+            "$ref": "#/$defs/CardStyleSpec"
+          },
+          "type": "array"
+        },
+        "commands": {
+          "items": {
+            "$ref": "#/$defs/CommandSpec"
+          },
+          "type": "array"
+        },
+        "components": {
+          "items": {
+            "$ref": "#/$defs/ComponentSpec"
+          },
+          "type": "array"
+        },
+        "conditions": {
+          "items": {
+            "$ref": "#/$defs/ConditionSpec"
+          },
+          "type": "array"
+        },
+        "formFactors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "icons": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "libraryKinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "limits": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "mediaKinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "nativeScreens": {
+          "items": {
+            "$ref": "#/$defs/NativeScreenSpec"
+          },
+          "type": "array"
+        },
+        "nativeViews": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "pageKinds": {
+          "items": {
+            "$ref": "#/$defs/PageKindSpec"
+          },
+          "type": "array"
+        },
+        "personalKinds": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "placeholders": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "placements": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "platforms": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "profileKinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "profiles": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Layout"
+          },
+          "type": "object"
+        },
+        "repeats": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "revision": {
+          "type": "integer"
+        },
+        "routes": {
+          "items": {
+            "$ref": "#/$defs/RouteSpec"
+          },
+          "type": "array"
+        },
+        "schemaVersion": {
+          "type": "integer"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceSpec"
+          },
+          "type": "array"
+        },
+        "spacing": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "revision",
+        "components",
+        "cardStyles",
+        "sources",
+        "conditions",
+        "pageKinds",
+        "routes",
+        "commands",
+        "nativeScreens",
+        "nativeViews",
+        "icons",
+        "placeholders",
+        "repeats",
+        "formFactors",
+        "platforms",
+        "profileKinds",
+        "libraryKinds",
+        "mediaKinds",
+        "personalKinds",
+        "placements",
+        "spacing",
+        "limits",
+        "profiles"
+      ],
+      "type": "object"
+    },
+    "CommandSpec": {
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "op": {
+          "type": "string"
+        },
+        "path": {
           "type": "string"
         }
       },
       "required": [
-        "etag"
+        "op",
+        "label",
+        "description",
+        "method",
+        "path"
+      ],
+      "type": "object"
+    },
+    "ComponentSpec": {
+      "properties": {
+        "a11y": {
+          "type": "string"
+        },
+        "accepts": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "authored": {
+          "type": "boolean"
+        },
+        "category": {
+          "type": "string"
+        },
+        "children": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "container": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "example": {},
+        "fallback": {
+          "type": "string"
+        },
+        "fallbackNote": {
+          "type": "string"
+        },
+        "focus": {
+          "type": "string"
+        },
+        "formFactors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "props": {
+          "items": {
+            "$ref": "#/$defs/PropSpec"
+          },
+          "type": "array"
+        },
+        "renders": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "since": {
+          "type": "integer"
+        },
+        "states": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "label",
+        "description",
+        "icon",
+        "category",
+        "since",
+        "required",
+        "authored",
+        "data",
+        "container",
+        "focus"
+      ],
+      "type": "object"
+    },
+    "Condition": {
+      "properties": {
+        "admin": {
+          "type": "boolean"
+        },
+        "all": {
+          "items": {
+            "$ref": "#/$defs/Condition"
+          },
+          "type": "array"
+        },
+        "any": {
+          "items": {
+            "$ref": "#/$defs/Condition"
+          },
+          "type": "array"
+        },
+        "can": {
+          "type": "string"
+        },
+        "capability": {
+          "type": "string"
+        },
+        "feature": {
+          "type": "string"
+        },
+        "flag": {
+          "type": "string"
+        },
+        "formFactor": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "hasLibrary": {
+          "type": "string"
+        },
+        "libraryKind": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "maxWidth": {
+          "type": "integer"
+        },
+        "minWidth": {
+          "type": "integer"
+        },
+        "module": {
+          "type": "string"
+        },
+        "not": {
+          "$ref": "#/$defs/Condition"
+        },
+        "platform": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "profileKind": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "timeFrom": {
+          "type": "string"
+        },
+        "timeTo": {
+          "type": "string"
+        },
+        "weekday": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "ConditionSpec": {
+      "properties": {
+        "default": {},
+        "field": {
+          "type": "string"
+        },
+        "formFactors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "help": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "max": {
+          "type": "integer"
+        },
+        "maxLength": {
+          "type": "integer"
+        },
+        "min": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "since": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "field"
       ],
       "type": "object"
     },
     "Document": {
-      "description": "One rendered screen.",
       "properties": {
-        "actions": {
-          "additionalProperties": {
-            "$ref": "#/$defs/Action"
-          },
-          "type": "object"
+        "catalog": {
+          "type": "integer"
         },
         "layout": {
           "$ref": "#/$defs/Layout"
         },
         "meta": {
-          "description": "About the document.",
-          "properties": {
-            "description": {
-              "type": "string"
-            },
-            "etag": {
-              "type": "string"
-            },
-            "generatedAt": {
-              "format": "date-time",
-              "type": "string"
-            },
-            "source": {
-              "type": "string"
-            },
-            "title": {
-              "type": "string"
-            },
-            "ttlSeconds": {
-              "type": "integer"
-            }
-          },
-          "type": "object"
+          "$ref": "#/$defs/Meta"
+        },
+        "page": {
+          "$ref": "#/$defs/PageInfo"
+        },
+        "personal": {
+          "$ref": "#/$defs/PersonalInfo"
         },
         "root": {
           "$ref": "#/$defs/Node"
         },
-        "screen": {
-          "type": "string"
-        },
         "theme": {
-          "description": "The theme, and colours for parts that belong to a module.",
-          "properties": {
-            "id": {
-              "type": "string"
-            },
-            "moduleOverrides": {
-              "additionalProperties": {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              "type": "object"
-            }
-          },
-          "required": [
-            "id"
-          ],
-          "type": "object"
+          "$ref": "#/$defs/ThemeScope"
         },
         "version": {
-          "const": 1,
           "type": "integer"
         }
       },
       "required": [
         "version",
-        "screen",
+        "catalog",
+        "page",
         "root"
       ],
       "type": "object"
     },
-    "Focus": {
-      "description": "The node's place in the focus engine.",
+    "EnumOption": {
       "properties": {
-        "default": {
-          "type": "boolean"
-        },
-        "down": {
+        "label": {
           "type": "string"
         },
-        "focusable": {
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "label"
+      ],
+      "type": "object"
+    },
+    "Focus": {
+      "properties": {
+        "default": {
           "type": "boolean"
         },
         "group": {
           "type": "string"
         },
-        "left": {
-          "type": "string"
-        },
         "order": {
-          "minimum": 1,
           "type": "integer"
-        },
-        "right": {
-          "type": "string"
-        },
-        "up": {
-          "type": "string"
         }
       },
+      "required": [
+        "order"
+      ],
       "type": "object"
     },
     "ImageRef": {
-      "description": "A picture and the size to show it at, in pixels.",
       "properties": {
         "aspect": {
           "type": "string"
@@ -185,22 +664,196 @@
       ],
       "type": "object"
     },
-    "Layout": {
-      "description": "The device profile the screen was fitted to.",
+    "Insets": {
       "properties": {
+        "bottom": {
+          "type": "integer"
+        },
+        "left": {
+          "type": "integer"
+        },
+        "right": {
+          "type": "integer"
+        },
+        "top": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ],
+      "type": "object"
+    },
+    "Issue": {
+      "properties": {
+        "fix": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "severity",
+        "message"
+      ],
+      "type": "object"
+    },
+    "Item": {
+      "properties": {
+        "artist": {
+          "type": "string"
+        },
+        "badges": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "can": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "contentRating": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "episode": {
+          "type": "integer"
+        },
+        "genres": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "images": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "next": {
+          "$ref": "#/$defs/Programme"
+        },
+        "nextId": {
+          "type": "string"
+        },
+        "now": {
+          "$ref": "#/$defs/Programme"
+        },
+        "number": {
+          "type": "string"
+        },
+        "overview": {
+          "type": "string"
+        },
+        "playId": {
+          "type": "string"
+        },
+        "progress": {
+          "type": "number"
+        },
+        "rating": {
+          "type": "number"
+        },
+        "resumeSec": {
+          "type": "number"
+        },
+        "route": {
+          "type": "string"
+        },
+        "runtimeSec": {
+          "type": "number"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "season": {
+          "type": "integer"
+        },
+        "showId": {
+          "type": "string"
+        },
+        "showTitle": {
+          "type": "string"
+        },
+        "studio": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "tagline": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "track": {
+          "type": "integer"
+        },
+        "unwatched": {
+          "type": "integer"
+        },
+        "watched": {
+          "type": "boolean"
+        },
+        "year": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "title"
+      ],
+      "type": "object"
+    },
+    "Layout": {
+      "properties": {
+        "breakpoint": {
+          "type": "string"
+        },
+        "budget": {
+          "$ref": "#/$defs/Budget"
+        },
         "canvas": {
-          "description": "The screen in points.",
-          "properties": {
-            "height": {
-              "type": "integer"
-            },
-            "width": {
-              "type": "integer"
-            }
+          "$ref": "#/$defs/Viewport"
+        },
+        "cards": {
+          "additionalProperties": {
+            "$ref": "#/$defs/CardMetrics"
           },
           "type": "object"
         },
         "class": {
+          "type": "string"
+        },
+        "density": {
           "type": "string"
         },
         "externalLinks": {
@@ -210,79 +863,40 @@
           "type": "boolean"
         },
         "formFactor": {
-          "type": "string",
-          "x-knownValues": [
-            "tv",
-            "phone",
-            "tablet",
-            "desktop",
-            "web"
-          ]
+          "type": "string"
         },
-        "gridColumns": {
-          "type": "integer"
+        "hero": {
+          "$ref": "#/$defs/Viewport"
         },
-        "images": {
-          "additionalProperties": {
-            "description": "A picture size in pixels.",
-            "properties": {
-              "aspect": {
-                "type": "string"
-              },
-              "height": {
-                "type": "integer"
-              },
-              "width": {
-                "type": "integer"
-              }
-            },
-            "required": [
-              "width",
-              "height",
-              "aspect"
-            ],
-            "type": "object"
+        "imageWidths": {
+          "items": {
+            "type": "integer"
           },
-          "type": "object"
+          "type": "array"
         },
-        "maxGridItems": {
-          "type": "integer"
-        },
-        "maxItems": {
-          "type": "integer"
-        },
-        "maxSections": {
-          "type": "integer"
+        "reducedMotion": {
+          "type": "boolean"
         },
         "safeArea": {
-          "description": "Distances from each edge, in points.",
-          "properties": {
-            "bottom": {
-              "type": "integer"
-            },
-            "left": {
-              "type": "integer"
-            },
-            "right": {
-              "type": "integer"
-            },
-            "top": {
-              "type": "integer"
-            }
-          },
-          "type": "object"
+          "$ref": "#/$defs/Insets"
         },
         "scale": {
           "type": "integer"
         },
-        "scroll": {
-          "type": "string"
+        "spacing": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
         },
         "text": {
           "additionalProperties": {
             "type": "integer"
           },
           "type": "object"
+        },
+        "textLimits": {
+          "$ref": "#/$defs/TextLimits"
         },
         "truncated": {
           "type": "boolean"
@@ -291,22 +905,211 @@
       "required": [
         "formFactor",
         "scale",
+        "breakpoint",
         "safeArea",
-        "scroll",
         "focusEngine",
-        "maxSections",
-        "maxItems",
-        "maxGridItems",
+        "density",
+        "spacing",
+        "text",
+        "cards",
+        "hero",
+        "imageWidths",
+        "budget",
+        "textLimits",
         "externalLinks"
       ],
       "type": "object"
     },
+    "Match": {
+      "properties": {
+        "library": {
+          "type": "integer"
+        },
+        "libraryKind": {
+          "type": "string"
+        },
+        "mediaKind": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Meta": {
+      "properties": {
+        "configRevision": {
+          "type": "integer"
+        },
+        "etag": {
+          "type": "string"
+        },
+        "generatedAt": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "ttlSeconds": {
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "NativeScreenSpec": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "route": {
+          "type": "string"
+        },
+        "screen": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "screen",
+        "label",
+        "description",
+        "route",
+        "icon"
+      ],
+      "type": "object"
+    },
+    "NavDocument": {
+      "properties": {
+        "etag": {
+          "type": "string"
+        },
+        "formFactor": {
+          "type": "string"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/NavEntry"
+          },
+          "type": "array"
+        },
+        "version": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "formFactor",
+        "items"
+      ],
+      "type": "object"
+    },
+    "NavEntry": {
+      "properties": {
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "page": {
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "placement": {
+          "type": "string"
+        },
+        "route": {
+          "type": "string"
+        },
+        "screen": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "icon",
+        "kind",
+        "route",
+        "placement"
+      ],
+      "type": "object"
+    },
+    "NavItem": {
+      "properties": {
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "library": {
+          "type": "integer"
+        },
+        "page": {
+          "type": "string"
+        },
+        "placement": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "route": {
+          "type": "string"
+        },
+        "screen": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "when": {
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "type": "object"
+    },
+    "Navigation": {
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/NavItem"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
     "Node": {
-      "description": "One component. Draw an unknown type as a plain container of its children.",
       "properties": {
         "action": {
-          "description": "A key of the document's actions.",
-          "type": "string"
+          "$ref": "#/$defs/Action"
         },
         "children": {
           "items": {
@@ -318,44 +1121,26 @@
           "$ref": "#/$defs/Focus"
         },
         "id": {
-          "maxLength": 128,
-          "pattern": "^[A-Za-z0-9_.:-]+$",
           "type": "string"
         },
         "props": {
+          "additionalProperties": {},
           "type": "object"
         },
-        "style": {
-          "$ref": "#/$defs/Style"
+        "scope": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "tokens": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
         },
         "type": {
-          "description": "A component type. Known in this revision: see x-knownTypes. Others must be drawn as a plain container.",
-          "type": "string",
-          "x-knownTypes": [
-            "Screen",
-            "Stack",
-            "Grid",
-            "Shelf",
-            "HeroBanner",
-            "Card",
-            "PosterRow",
-            "Text",
-            "Image",
-            "Button",
-            "Tabs",
-            "Tab",
-            "List",
-            "ListItem",
-            "Spacer",
-            "Divider",
-            "Video",
-            "Badge",
-            "ProgressBar",
-            "Carousel",
-            "SearchBar",
-            "Toolbar",
-            "Modal"
-          ]
+          "type": "string"
         }
       },
       "required": [
@@ -364,8 +1149,132 @@
       ],
       "type": "object"
     },
+    "Page": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "match": {
+          "$ref": "#/$defs/Match"
+        },
+        "personal": {
+          "$ref": "#/$defs/PersonalPolicy"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/Section"
+          },
+          "type": "array"
+        },
+        "title": {
+          "type": "string"
+        },
+        "ttlSeconds": {
+          "type": "integer"
+        },
+        "variants": {
+          "items": {
+            "$ref": "#/$defs/Variant"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "title",
+        "sections"
+      ],
+      "type": "object"
+    },
+    "PageInfo": {
+      "properties": {
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "route": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "variant": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "title"
+      ],
+      "type": "object"
+    },
+    "PageKindSpec": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "match": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "params": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "route": {
+          "type": "string"
+        },
+        "variables": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "label",
+        "description",
+        "route"
+      ],
+      "type": "object"
+    },
     "Patch": {
-      "description": "One step from the screen a client has to the current one.",
       "properties": {
         "from": {
           "type": "string"
@@ -374,12 +1283,7 @@
           "$ref": "#/$defs/Node"
         },
         "op": {
-          "enum": [
-            "add",
-            "remove",
-            "replace",
-            "move"
-          ]
+          "type": "string"
         },
         "path": {
           "type": "string"
@@ -392,149 +1296,458 @@
       ],
       "type": "object"
     },
-    "Style": {
-      "description": "Layout and colour hints. Colours are #hex, rgb()/hsl(), or token:<name>.",
+    "Personal": {
       "properties": {
-        "accent": {
+        "cardSize": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "defaultTab": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "density": {
           "type": "string"
         },
-        "align": {
+        "hidden": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "pinned": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "PersonalInfo": {
+      "properties": {
+        "allow": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "density": {
           "type": "string"
         },
-        "aspectRatio": {
+        "editable": {
+          "type": "boolean"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/PersonalSection"
+          },
+          "type": "array"
+        },
+        "url": {
           "type": "string"
-        },
-        "background": {
-          "type": "string"
-        },
-        "border": {
-          "type": "string"
-        },
-        "class": {
-          "type": "string"
-        },
-        "columns": {
-          "type": "integer"
-        },
-        "direction": {
-          "enum": [
-            "row",
-            "column"
-          ]
-        },
-        "elevation": {
-          "type": "integer"
-        },
-        "foreground": {
-          "type": "string"
-        },
-        "gap": {
-          "type": "integer"
-        },
-        "height": {
-          "type": "string"
+        }
+      },
+      "required": [
+        "editable"
+      ],
+      "type": "object"
+    },
+    "PersonalPolicy": {
+      "properties": {
+        "allow": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "allow"
+      ],
+      "type": "object"
+    },
+    "PersonalSection": {
+      "properties": {
+        "empty": {
+          "type": "boolean"
         },
         "hidden": {
           "type": "boolean"
         },
-        "justify": {
+        "id": {
           "type": "string"
         },
-        "margin": {
+        "locked": {
+          "type": "boolean"
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "type": "object"
+    },
+    "Preset": {
+      "properties": {
+        "description": {
           "type": "string"
         },
-        "module": {
+        "icon": {
           "type": "string"
         },
-        "opacity": {
-          "maximum": 1,
-          "minimum": 0,
-          "type": "number"
-        },
-        "padding": {
+        "id": {
           "type": "string"
         },
-        "radius": {
+        "kind": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "page": {
+          "$ref": "#/$defs/Page"
+        },
+        "pageKinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "section": {
+          "$ref": "#/$defs/Section"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "description",
+        "icon",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "Programme": {
+      "properties": {
+        "end": {
           "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "type": "object"
+    },
+    "PropSpec": {
+      "properties": {
+        "default": {},
+        "formFactors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "help": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "max": {
+          "type": "integer"
+        },
+        "maxLength": {
+          "type": "integer"
+        },
+        "min": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "since": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "label",
+        "since"
+      ],
+      "type": "object"
+    },
+    "Repeat": {
+      "properties": {
+        "kinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "over": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "over"
+      ],
+      "type": "object"
+    },
+    "RouteSpec": {
+      "properties": {
+        "native": {
+          "type": "string"
+        },
+        "page": {
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "pattern": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "pattern"
+      ],
+      "type": "object"
+    },
+    "Section": {
+      "properties": {
+        "children": {
+          "items": {
+            "$ref": "#/$defs/Section"
+          },
+          "type": "array"
+        },
+        "component": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "props": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "repeat": {
+          "$ref": "#/$defs/Repeat"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "source": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "when": {
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": [
+        "id",
+        "component"
+      ],
+      "type": "object"
+    },
+    "SectionItems": {
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/Node"
+          },
+          "type": "array"
+        },
+        "next": {
+          "type": "string"
+        },
+        "props": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "replace": {
+          "type": "boolean"
+        },
+        "section": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "section",
+        "items"
+      ],
+      "type": "object"
+    },
+    "SourceSpec": {
+      "properties": {
+        "cardStyle": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "example": {},
+        "icon": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "pageKinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "paged": {
+          "type": "boolean"
+        },
+        "params": {
+          "items": {
+            "$ref": "#/$defs/PropSpec"
+          },
+          "type": "array"
+        },
+        "seeAll": {
+          "type": "string"
+        },
+        "since": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "yields": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "label",
+        "description",
+        "icon",
+        "category",
+        "yields",
+        "cardStyle",
+        "paged",
+        "since"
+      ],
+      "type": "object"
+    },
+    "TextLimits": {
+      "properties": {
+        "overview": {
+          "type": "integer"
+        },
+        "subtitle": {
+          "type": "integer"
+        },
+        "synopsis": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "title",
+        "subtitle",
+        "synopsis",
+        "overview"
+      ],
+      "type": "object"
+    },
+    "ThemeScope": {
+      "properties": {
+        "scope": {
+          "type": "string"
         },
         "tokens": {
           "additionalProperties": {
             "type": "string"
           },
           "type": "object"
-        },
-        "width": {
-          "type": "string"
         }
       },
+      "required": [
+        "scope"
+      ],
       "type": "object"
     },
     "TopShelf": {
-      "description": "Content for a tvOS Top Shelf extension.",
       "properties": {
         "expiresInSec": {
           "type": "integer"
         },
         "sections": {
           "items": {
-            "description": "One titled row.",
-            "properties": {
-              "items": {
-                "items": {
-                  "description": "One picture.",
-                  "properties": {
-                    "displayRoute": {
-                      "type": "string"
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "image": {
-                      "$ref": "#/$defs/ImageRef"
-                    },
-                    "playRoute": {
-                      "type": "string"
-                    },
-                    "progress": {
-                      "type": "number"
-                    },
-                    "shape": {
-                      "enum": [
-                        "poster",
-                        "wide",
-                        "square"
-                      ]
-                    },
-                    "title": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "title",
-                    "shape",
-                    "displayRoute"
-                  ],
-                  "type": "object"
-                },
-                "maxItems": 10,
-                "type": "array"
-              },
-              "title": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "title",
-              "items"
-            ],
-            "type": "object"
+            "$ref": "#/$defs/TopShelfSection"
           },
-          "maxItems": 4,
           "type": "array"
         },
         "style": {
-          "const": "sectioned"
+          "type": "string"
         },
         "version": {
           "type": "integer"
@@ -547,372 +1760,266 @@
         "expiresInSec"
       ],
       "type": "object"
+    },
+    "TopShelfItem": {
+      "properties": {
+        "displayRoute": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "image": {
+          "$ref": "#/$defs/ImageRef"
+        },
+        "playRoute": {
+          "type": "string"
+        },
+        "progress": {
+          "type": "number"
+        },
+        "shape": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "shape",
+        "displayRoute"
+      ],
+      "type": "object"
+    },
+    "TopShelfSection": {
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/TopShelfItem"
+          },
+          "type": "array"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "items"
+      ],
+      "type": "object"
+    },
+    "Variant": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/Section"
+          },
+          "type": "array"
+        },
+        "when": {
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": [
+        "id",
+        "when",
+        "sections"
+      ],
+      "type": "object"
+    },
+    "Viewport": {
+      "properties": {
+        "height": {
+          "type": "integer"
+        },
+        "width": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "width",
+        "height"
+      ],
+      "type": "object"
     }
   },
   "$id": "urn:wittymediaserver:sdui:schema:1",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "What GET /api/v1/sdui/screens/{screen}, its /diff and /api/v1/sdui/topshelf answer. Unknown properties must be ignored, and an unknown node type drawn as a plain container of its children.",
+  "description": "What the /api/v1/sdui routes answer and accept. Unknown properties must be ignored, and an unknown node type drawn as a plain column of its children. The component, card style and data source reference is GET /api/v1/sdui/catalog (the Catalogue definition here), which is also printed in docs/SDUI.md.",
   "oneOf": [
     {
       "$ref": "#/$defs/Document"
     },
     {
-      "$ref": "#/$defs/Diff"
+      "$ref": "#/$defs/SectionItems"
+    },
+    {
+      "$ref": "#/$defs/NavDocument"
     },
     {
       "$ref": "#/$defs/TopShelf"
+    },
+    {
+      "$ref": "#/$defs/Page"
+    },
+    {
+      "$ref": "#/$defs/Navigation"
+    },
+    {
+      "$ref": "#/$defs/Personal"
+    },
+    {
+      "$ref": "#/$defs/Catalogue"
     }
   ],
-  "title": "WittyMediaServer server-driven UI, schema version 1",
-  "x-catalogRevision": 1,
-  "x-components": {
-    "Badge": {
-      "allowedChildren": null,
-      "allowsChildren": false,
-      "description": "A small label (NEW, 4K, LIVE, …).",
-      "fallback": "",
-      "optionalProps": [
-        "variant"
-      ],
-      "requiredProps": [
-        "text"
-      ],
-      "since": 1
-    },
-    "Button": {
-      "allowedChildren": null,
-      "allowsChildren": false,
-      "description": "A pressable control that dispatches its Action.",
-      "fallback": "",
-      "optionalProps": [
-        "icon",
-        "variant",
-        "disabled"
-      ],
-      "requiredProps": [
-        "label"
-      ],
-      "since": 1
-    },
-    "Card": {
-      "allowedChildren": [
-        "Badge",
-        "ProgressBar",
-        "Text",
-        "Image"
-      ],
-      "allowsChildren": true,
-      "description": "A poster/tile for one item.",
-      "fallback": "",
-      "optionalProps": [
-        "title",
-        "subtitle",
-        "imageUrl",
-        "image",
-        "kind",
-        "progress",
-        "badges",
-        "itemId",
-        "module",
-        "route"
-      ],
-      "requiredProps": null,
-      "since": 1
-    },
-    "Carousel": {
-      "allowedChildren": null,
-      "allowsChildren": true,
-      "description": "Paged container that rotates through its children.",
-      "fallback": "",
-      "optionalProps": [
-        "interval",
-        "autoplay",
-        "indicators"
-      ],
-      "requiredProps": null,
-      "since": 1
-    },
-    "Divider": {
-      "allowedChildren": null,
-      "allowsChildren": false,
-      "description": "A hairline rule.",
-      "fallback": "",
-      "optionalProps": [
-        "inset"
-      ],
-      "requiredProps": null,
-      "since": 1
-    },
-    "Grid": {
-      "allowedChildren": null,
-      "allowsChildren": true,
-      "description": "Responsive grid of children; Style.Columns sets the column count.",
-      "fallback": "",
-      "optionalProps": null,
-      "requiredProps": null,
-      "since": 1
-    },
-    "HeroBanner": {
-      "allowedChildren": null,
-      "allowsChildren": true,
-      "description": "Full-bleed featured banner with backdrop, title and call to action.",
-      "fallback": "",
-      "optionalProps": [
-        "title",
-        "subtitle",
-        "backdropUrl",
-        "logoUrl",
-        "items",
-        "interval"
-      ],
-      "requiredProps": null,
-      "since": 1
-    },
-    "Image": {
-      "allowedChildren": null,
-      "allowsChildren": false,
-      "description": "A picture.",
-      "fallback": "",
-      "optionalProps": [
-        "alt",
-        "fit"
-      ],
-      "requiredProps": [
-        "src"
-      ],
-      "since": 1
-    },
-    "List": {
-      "allowedChildren": [
-        "ListItem"
-      ],
-      "allowsChildren": true,
-      "description": "A vertical list; children are ListItem nodes.",
-      "fallback": "",
-      "optionalProps": [
-        "items",
-        "dense"
-      ],
-      "requiredProps": null,
-      "since": 1
-    },
-    "ListItem": {
-      "allowedChildren": [
-        "Badge",
-        "Text",
-        "Image",
-        "ProgressBar"
-      ],
-      "allowsChildren": true,
-      "description": "One row of a List.",
-      "fallback": "",
-      "optionalProps": [
-        "subtitle",
-        "imageUrl",
-        "icon",
-        "trailing",
-        "itemId"
-      ],
-      "requiredProps": [
-        "title"
-      ],
-      "since": 1
-    },
-    "Modal": {
-      "allowedChildren": null,
-      "allowsChildren": true,
-      "description": "A dialog shown over the screen, opened by an OpenModal action.",
-      "fallback": "",
-      "optionalProps": [
-        "title",
-        "dismissible",
-        "size"
-      ],
-      "requiredProps": null,
-      "since": 1
-    },
-    "PosterRow": {
-      "allowedChildren": [
-        "Card"
-      ],
-      "allowsChildren": true,
-      "description": "A titled row of poster Cards.",
-      "fallback": "",
-      "optionalProps": [
-        "subtitle",
-        "seeAll",
-        "items",
-        "cardShape"
-      ],
-      "requiredProps": [
-        "title"
-      ],
-      "since": 1
-    },
-    "ProgressBar": {
-      "allowedChildren": null,
-      "allowsChildren": false,
-      "description": "A progress indicator; value is 0..1 unless max is given.",
-      "fallback": "",
-      "optionalProps": [
-        "max",
-        "label"
-      ],
-      "requiredProps": [
-        "value"
-      ],
-      "since": 1
-    },
-    "Screen": {
-      "allowedChildren": null,
-      "allowsChildren": true,
-      "description": "Root of a screen; exactly one per document.",
-      "fallback": "",
-      "optionalProps": [
-        "title",
-        "scroll"
-      ],
-      "requiredProps": null,
-      "since": 1
-    },
-    "SearchBar": {
-      "allowedChildren": null,
-      "allowsChildren": false,
-      "description": "A search field; Action fires on submit.",
-      "fallback": "",
-      "optionalProps": [
-        "placeholder",
-        "query",
-        "scope"
-      ],
-      "requiredProps": null,
-      "since": 1
-    },
-    "Shelf": {
-      "allowedChildren": null,
-      "allowsChildren": true,
-      "description": "A titled, horizontally scrolling row of cards (the web client's Shelf/CardRow).",
-      "fallback": "",
-      "optionalProps": [
-        "subtitle",
-        "seeAll",
-        "items",
-        "cardShape",
-        "itemAction",
-        "more",
-        "total"
-      ],
-      "requiredProps": [
-        "title"
-      ],
-      "since": 1
-    },
-    "Spacer": {
-      "allowedChildren": null,
-      "allowsChildren": false,
-      "description": "Empty space; Style.Height/Width or the size prop set its extent.",
-      "fallback": "",
-      "optionalProps": [
-        "size"
-      ],
-      "requiredProps": null,
-      "since": 1
-    },
-    "Stack": {
-      "allowedChildren": null,
-      "allowsChildren": true,
-      "description": "Vertical or horizontal stack of children.",
-      "fallback": "",
-      "optionalProps": null,
-      "requiredProps": null,
-      "since": 1
-    },
-    "Tab": {
-      "allowedChildren": null,
-      "allowsChildren": true,
-      "description": "One tab: a label and its content.",
-      "fallback": "",
-      "optionalProps": [
-        "icon"
-      ],
-      "requiredProps": [
-        "label"
-      ],
-      "since": 1
-    },
-    "Tabs": {
-      "allowedChildren": [
-        "Tab"
-      ],
-      "allowsChildren": true,
-      "description": "A tab strip; children are Tab nodes.",
-      "fallback": "",
-      "optionalProps": [
-        "selected"
-      ],
-      "requiredProps": null,
-      "since": 1
-    },
-    "Text": {
-      "allowedChildren": null,
-      "allowsChildren": false,
-      "description": "A run of text.",
-      "fallback": "",
-      "optionalProps": [
-        "variant",
-        "maxLines"
-      ],
-      "requiredProps": [
-        "text"
-      ],
-      "since": 1
-    },
-    "Toolbar": {
-      "allowedChildren": [
-        "Button",
-        "Text",
-        "Spacer",
-        "SearchBar",
-        "Badge",
-        "Image"
-      ],
-      "allowsChildren": true,
-      "description": "A horizontal bar of controls.",
-      "fallback": "",
-      "optionalProps": null,
-      "requiredProps": null,
-      "since": 1
-    },
-    "Video": {
-      "allowedChildren": null,
-      "allowsChildren": false,
-      "description": "An inline or full-screen video player.",
-      "fallback": "",
-      "optionalProps": [
-        "poster",
-        "autoplay",
-        "controls",
-        "startAt",
-        "itemId",
-        "title"
-      ],
-      "requiredProps": [
-        "src"
-      ],
-      "since": 1
-    }
-  },
+  "title": "WittyMediaServer server-driven UI, schema version 1, catalogue revision 2",
+  "x-cardStyles": [
+    "poster",
+    "landscape",
+    "progress",
+    "episode",
+    "square",
+    "album",
+    "circle",
+    "person",
+    "book",
+    "game",
+    "photo",
+    "channel",
+    "tile",
+    "chip"
+  ],
+  "x-catalogRevision": 2,
+  "x-components": [
+    "Page",
+    "Hero",
+    "Shelf",
+    "Grid",
+    "Card",
+    "Tabs",
+    "Tab",
+    "FilterBar",
+    "DetailHeader",
+    "SeasonList",
+    "TrackList",
+    "Track",
+    "Banner",
+    "Text",
+    "Notice",
+    "Divider",
+    "Spacer",
+    "Stack",
+    "Split",
+    "Button",
+    "Image",
+    "SearchBox",
+    "List",
+    "ListItem",
+    "NativeView"
+  ],
+  "x-icons": [
+    "home",
+    "library",
+    "movie",
+    "show",
+    "tv",
+    "live",
+    "guide",
+    "record",
+    "music",
+    "album",
+    "artist",
+    "mic",
+    "radio",
+    "podcast",
+    "book",
+    "audiobook",
+    "comic",
+    "photo",
+    "video",
+    "disc",
+    "game",
+    "collection",
+    "list",
+    "folder",
+    "search",
+    "settings",
+    "user",
+    "users",
+    "kids",
+    "star",
+    "heart",
+    "clock",
+    "history",
+    "calendar",
+    "sparkles",
+    "fire",
+    "shuffle",
+    "play",
+    "download",
+    "share",
+    "globe",
+    "info",
+    "warning",
+    "check",
+    "plus",
+    "grid",
+    "filter",
+    "sort",
+    "plug",
+    "chart",
+    "devices",
+    "more"
+  ],
   "x-limits": {
-    "maxActions": 256,
-    "maxChildren": 200,
-    "maxDepth": 32,
-    "maxDocumentBytes": 2097152,
-    "maxIdLength": 128,
-    "maxNodes": 5000,
-    "maxPropBytes": 16384,
-    "maxProps": 64,
-    "maxTopShelfItems": 10,
-    "maxTopShelfSections": 4
+    "maxChildren": 60,
+    "maxDepth": 6,
+    "maxIdLength": 64,
+    "maxNavItems": 40,
+    "maxPageBytes": 262144,
+    "maxPages": 200,
+    "maxPersonalBytes": 8192,
+    "maxSections": 200,
+    "maxSourceLimit": 500,
+    "maxVariants": 8
   },
-  "x-schemaVersion": 1
+  "x-schemaVersion": 1,
+  "x-sources": [
+    "continueWatching",
+    "nextUp",
+    "recommended",
+    "watchLater",
+    "savedView",
+    "recentlyAdded",
+    "recentlyReleased",
+    "topRated",
+    "random",
+    "browse",
+    "genre",
+    "studio",
+    "tag",
+    "collection",
+    "collections",
+    "featured",
+    "libraries",
+    "genres",
+    "liveNow",
+    "recordings",
+    "albums",
+    "artists",
+    "continuePlaying",
+    "episodes",
+    "tracks",
+    "similar",
+    "search"
+  ]
 }

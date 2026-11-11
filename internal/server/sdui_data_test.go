@@ -37,7 +37,9 @@ func newSDUIFixture(t *testing.T) *sduiFixture {
 	mk := func(lib int64, dir, title, rating string) *library.Item {
 		p := filepath.Join(root, dir, title+".mkv")
 		put(t, p, []byte("film"))
-		return ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: p, Title: title, ContentRating: rating, RuntimeSec: 6000, Poster: "cache:x.jpg"})
+		year := 1999
+		return ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: p, Title: title, ContentRating: rating, RuntimeSec: 6000, Poster: "cache:x.jpg", Backdrop: "cache:b.jpg", Year: &year, Genres: []string{"Adventure"},
+			Overview: "What " + title + " is about."})
 	}
 	f.family = mk(f.open, "open", "Family Film", "G")
 	f.grownUp = mk(f.open, "open", "Grown-up Film", "R")
@@ -48,31 +50,34 @@ func newSDUIFixture(t *testing.T) *sduiFixture {
 	return f
 }
 
-// A screen sent to an account holds only what that account may see: the same check, on
-// every stock screen and on Top Shelf, for a library limit and for a rating limit.
-func TestSDUIScreensHonourLimits(t *testing.T) {
+// A page sent to an account holds only what that account may see: the same check, on
+// every built-in page, on a section's own pages of items and on Top Shelf, for a library
+// limit and for a rating limit.
+func TestSDUIPagesHonourLimits(t *testing.T) {
 	f := newSDUIFixture(t)
 	ts := f.ts
 	paths := []string{
-		"/api/sdui/screens/home", "/api/sdui/screens/home?formFactor=tv", "/api/sdui/screens/libraries",
-		"/api/sdui/screens/search?q=Film", "/api/sdui/screens/music", "/api/sdui/screens/livetv",
-		fmt.Sprintf("/api/sdui/screens/library?library=%d", f.open), "/api/sdui/topshelf",
+		"/api/sdui/pages/home", "/api/sdui/pages/home?formFactor=tv", "/api/sdui/pages/libraries", "/api/sdui/pages/collections",
+		"/api/sdui/pages/search?q=Film", "/api/sdui/pages/music", "/api/sdui/pages/livetv", "/api/sdui/pages/photos", "/api/sdui/pages/books", "/api/sdui/pages/games",
+		fmt.Sprintf("/api/sdui/pages/library?library=%d", f.open), fmt.Sprintf("/api/sdui/pages/library-movies?library=%d", f.open),
+		fmt.Sprintf("/api/sdui/pages/home/sections/recent-%d/items", f.open), fmt.Sprintf("/api/sdui/pages/library/sections/all/items?library=%d&cursor=0", f.open),
+		fmt.Sprintf("/api/sdui/pages/detail?item=%d", f.family.ID), "/api/sdui/topshelf", "/api/sdui/navigation",
 	}
 	for _, p := range paths {
 		w := ts.do(t, "GET", p, f.admin, nil)
 		if w.Code != 200 {
 			t.Fatalf("%s as the administrator: %d %s", p, w.Code, w.Body)
 		}
-		wantAll := strings.Contains(p, "home") || strings.Contains(p, "search") || strings.Contains(p, "topshelf")
+		wantAll := strings.Contains(p, "pages/home") && !strings.Contains(p, "sections") || strings.Contains(p, "search") || strings.Contains(p, "topshelf")
 		if wantAll && (!strings.Contains(w.Body.String(), "Secret Film") || !strings.Contains(w.Body.String(), "Grown-up Film")) {
-			t.Errorf("%s: the administrator's screen is missing titles: %s", p, w.Body)
+			t.Errorf("%s: the administrator's page is missing titles: %s", p, w.Body)
 		}
 		w = ts.do(t, "GET", p, f.oneLibrary, nil)
 		if w.Code != 200 {
 			t.Fatalf("%s with one library: %d %s", p, w.Code, w.Body)
 		}
-		if strings.Contains(w.Body.String(), "Secret") {
-			t.Errorf("%s shows an account a title from a library it may not open", p)
+		if strings.Contains(w.Body.String(), "Secret") || strings.Contains(w.Body.String(), fmt.Sprintf("/library/%d", f.secret)) {
+			t.Errorf("%s shows an account something from a library it may not open", p)
 		}
 		if wantAll && !strings.Contains(w.Body.String(), "Family Film") {
 			t.Errorf("%s: an allowed title is missing: %s", p, w.Body)
@@ -85,185 +90,345 @@ func TestSDUIScreensHonourLimits(t *testing.T) {
 			t.Errorf("%s shows a Kids profile an R-rated title", p)
 		}
 	}
-	// Asking for the title or the library by number is "not found", as everywhere else.
+	// Asking for the title or the library by number is "not found", as everywhere else:
+	// the page, its diff and its sections alike.
 	for _, p := range []string{
-		fmt.Sprintf("/api/sdui/screens/detail?item=%d", f.secretOne.ID),
-		fmt.Sprintf("/api/sdui/screens/library?library=%d", f.secret),
-		fmt.Sprintf("/api/sdui/screens/detail?item=%d/diff?since=x", f.secretOne.ID),
+		fmt.Sprintf("/api/sdui/pages/detail?item=%d", f.secretOne.ID),
+		fmt.Sprintf("/api/sdui/pages/library?library=%d", f.secret),
+		fmt.Sprintf("/api/sdui/pages/library-movies?library=%d", f.secret),
+		fmt.Sprintf("/api/sdui/pages/library/diff?since=x&library=%d", f.secret),
+		fmt.Sprintf("/api/sdui/pages/library/sections/all/items?library=%d", f.secret),
+		fmt.Sprintf("/api/sdui/pages/detail/sections/similar/items?item=%d", f.secretOne.ID),
 	} {
 		if w := ts.do(t, "GET", p, f.oneLibrary, nil); w.Code != 404 || strings.Contains(w.Body.String(), "Secret") {
 			t.Errorf("%s with one library: %d %s", p, w.Code, w.Body)
 		}
 	}
-	if w := ts.do(t, "GET", fmt.Sprintf("/api/sdui/screens/detail?item=%d", f.grownUp.ID), f.kid, nil); w.Code != 404 {
-		t.Errorf("an R-rated title's detail screen for a Kids profile: %d", w.Code)
+	// A row repeated over libraries has no copy for a library the account can't open, and
+	// asking for that copy by name finds nothing.
+	if w := ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/home/sections/recent-%d/items", f.secret), f.oneLibrary, nil); w.Code != 404 {
+		t.Errorf("a repeated row's copy for a library that isn't theirs: %d %s", w.Code, w.Body)
 	}
-	if w := ts.do(t, "GET", fmt.Sprintf("/api/sdui/screens/detail?item=%d", f.family.ID), f.kid, nil); w.Code != 200 || !strings.Contains(w.Body.String(), "Family Film") {
-		t.Errorf("an allowed title's detail screen: %d %s", w.Code, w.Body)
+	// A page an administrator wrote can name a library outright; the account's limits
+	// still decide what comes back.
+	etag := ts.do(t, "GET", "/api/sdui/config", f.admin, nil).Header().Get("ETag")
+	leak := sdui.Page{ID: "leak", Kind: "custom", Title: "Everything", Sections: []sdui.Section{
+		{ID: "theirs", Component: "Shelf", Props: map[string]any{"title": "Theirs", "empty": "message"}, Source: sdui.Source{"type": "recentlyAdded", "library": f.secret}},
+		{ID: "all", Component: "Grid", Props: map[string]any{"empty": "message"}, Source: sdui.Source{"type": "browse", "sort": "title"}}}}
+	if w := ts.do(t, "PUT", "/api/sdui/config/pages/leak", f.admin, leak, "If-Match", etag); w.Code != 200 {
+		t.Fatal(w.Body)
 	}
-	if w := ts.do(t, "GET", "/api/sdui/screens/detail?item=999999", f.admin, nil); w.Code != 404 {
-		t.Errorf("no such item: %d", w.Code)
+	if w := ts.do(t, "GET", "/api/sdui/pages/leak", f.oneLibrary, nil); w.Code != 200 || strings.Contains(w.Body.String(), "Secret") || !strings.Contains(w.Body.String(), "Family Film") {
+		t.Errorf("a page naming a library the account can't open: %d %s", w.Code, w.Body)
 	}
-	if w := ts.do(t, "GET", "/api/sdui/screens/library", f.admin, nil); w.Code != 404 {
-		t.Errorf("library screen with no library: %d", w.Code)
+	if w := ts.do(t, "GET", "/api/sdui/pages/leak", f.kid, nil); strings.Contains(w.Body.String(), "Grown-up") || !strings.Contains(w.Body.String(), "Secret Film") {
+		t.Errorf("the same page for a Kids profile: %s", w.Body)
+	}
+	if w := ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/detail?item=%d", f.grownUp.ID), f.kid, nil); w.Code != 404 {
+		t.Errorf("an R-rated title's page for a Kids profile: %d", w.Code)
 	}
 	if w := ts.do(t, "GET", "/api/sdui/topshelf", "", nil); w.Code != 401 {
 		t.Errorf("Top Shelf signed out: %d", w.Code)
 	}
 	// A diff is against the account's own renders only: another account's ETag gets the
 	// whole document, made for the one asking.
-	adminTag := ts.do(t, "GET", "/api/sdui/screens/home", f.admin, nil).Header().Get("ETag")
-	w := ts.do(t, "GET", "/api/sdui/screens/home/diff?since="+strings.ReplaceAll(adminTag, `"`, "%22"), f.oneLibrary, nil)
+	adminTag := ts.do(t, "GET", "/api/sdui/pages/home", f.admin, nil).Header().Get("ETag")
+	w := ts.do(t, "GET", "/api/sdui/pages/home/diff?since="+strings.ReplaceAll(adminTag, `"`, "%22"), f.oneLibrary, nil)
 	if w.Code != 200 || strings.Contains(w.Body.String(), "Secret") || !strings.Contains(w.Body.String(), `"document"`) {
 		t.Errorf("diff against another account's render: %d %s", w.Code, w.Body)
 	}
 }
 
-func TestSDUIForAnAppleTV(t *testing.T) {
+func findNode(n *sdui.Node, id string) *sdui.Node {
+	if n.ID == id {
+		return n
+	}
+	for i := range n.Children {
+		if got := findNode(&n.Children[i], id); got != nil {
+			return got
+		}
+	}
+	return nil
+}
+
+// Home and a film's page, as an Apple TV and a browser get them from a real library.
+func TestSDUIBuiltInPagesFromALibrary(t *testing.T) {
 	f := newSDUIFixture(t)
 	ts := f.ts
-	w := ts.do(t, "GET", "/api/sdui/screens/home", f.admin, nil, "X-WMS-Platform", "tvos")
-	if w.Code != 200 {
-		t.Fatalf("%d %s", w.Code, w.Body)
+	tv := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home", f.admin, nil, "X-WMS-Platform", "tvos"))
+	if tv.Layout.SafeArea.Left != 80 || tv.Layout.Budget.ShelfItems != 12 || tv.Layout.Text["body"] != 29 {
+		t.Errorf("the tv profile: %+v", tv.Layout)
 	}
-	doc := decode[sdui.Document](t, w)
-	if doc.Layout == nil || doc.Layout.FormFactor != "tv" || doc.Layout.Class != "hd" || doc.Layout.SafeArea.Left != 80 || !doc.Layout.FocusEngine {
-		t.Fatalf("layout for tvOS: %+v", doc.Layout)
+	row := findNode(&tv.Root, fmt.Sprintf("recent-%d", f.open))
+	if row == nil || row.Type != "Shelf" || row.Props["title"] != "Recently added in movies" || len(row.Children) != 2 {
+		t.Fatalf("the row for the first library: %+v", row)
 	}
-	var card *sdui.Node
-	var defaults int
-	var walk func(n *sdui.Node)
-	walk = func(n *sdui.Node) {
-		if n.Type == sdui.Card && card == nil && n.Props["title"] == "Family Film" && strings.HasPrefix(n.ID, "home-libraries:") {
-			card = n
-		}
-		if n.Focus != nil && n.Focus.Default {
-			defaults++
-		}
-		for i := range n.Children {
-			walk(&n.Children[i])
-		}
+	card := row.Children[0]
+	im, _ := card.Props["image"].(map[string]any)
+	if card.Type != "Card" || card.Props["style"] != "poster" || card.Action == nil || card.Action.Type != sdui.ActNavigate || !strings.HasPrefix(card.Action.To, "/item/") ||
+		im == nil || !strings.HasSuffix(im["url"].(string), "/poster?w=320") || card.Focus == nil || card.Focus.Group != row.ID {
+		t.Errorf("a card on a television: %+v focus %+v", card, card.Focus)
 	}
-	walk(&doc.Root)
-	if card == nil || card.Focus == nil || !card.Focus.Focusable || card.Focus.Order < 1 || card.Action != "openItem" || card.Props["route"] != fmt.Sprintf("/item/%d", f.family.ID) {
-		t.Fatalf("a film's card: %+v", card)
+	if findNode(&tv.Root, "libraries") != nil {
+		t.Error("the libraries row is for devices without a Libraries tab")
 	}
-	img, _ := card.Props["image"].(map[string]any)
-	if img == nil || img["url"] != fmt.Sprintf("/api/items/%d/poster?w=250", f.family.ID) || img["aspect"] != "2/3" {
-		t.Errorf("the card's picture for a 1080p Apple TV: %v", img)
+	web := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home", f.admin, nil))
+	if tiles := findNode(&web.Root, "libraries"); tiles == nil || len(tiles.Children) != 2 || tiles.Children[0].Props["style"] != "tile" || tiles.Children[0].Props["icon"] != "movie" {
+		t.Errorf("the libraries row in a browser: %+v", tiles)
 	}
-	if defaults != 1 {
-		t.Errorf("%d nodes with default focus", defaults)
+	if hero := findNode(&web.Root, "hero"); hero == nil || len(hero.Children) != 3 || hero.Children[0].Props["style"] != "hero" {
+		t.Errorf("the spotlight: %+v", hero)
 	}
-	// A 4K one gets pictures twice the size, and the two renders have different ETags.
-	w4 := ts.do(t, "GET", "/api/sdui/screens/home?formFactor=tv&deviceClass=4k", f.admin, nil)
-	if !strings.Contains(w4.Body.String(), "poster?w=500") || w4.Header().Get("ETag") == w.Header().Get("ETag") {
-		t.Errorf("4K render: %s", w4.Body)
+	// A film's page: the header and what it offers this account.
+	detail := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/detail?item=%d", f.family.ID), f.kid, nil, "X-WMS-Platform", "ios"))
+	h := findNode(&detail.Root, "header")
+	if detail.Page.ID != "detail" || detail.Page.Title != "Family Film" || detail.Page.Route != fmt.Sprintf("/item/%d", f.family.ID) || h == nil || h.Type != "DetailHeader" ||
+		h.Props["title"] != "Family Film" || h.Props["overview"] != "What Family Film is about." || h.Focus == nil || !h.Focus.Default {
+		t.Fatalf("a film's page: %+v %+v", detail.Page, h)
 	}
-	// The same render again is 304; what the client holds is still right.
-	if w := ts.do(t, "GET", "/api/sdui/screens/home", f.admin, nil, "X-WMS-Platform", "tvos", "If-None-Match", w.Header().Get("ETag")); w.Code != 304 {
-		t.Errorf("unchanged screen: %d", w.Code)
+	acts, _ := json.Marshal(h.Props["actions"])
+	if !strings.Contains(string(acts), `"id":"play"`) || !strings.Contains(string(acts), `"primary":true`) || !strings.Contains(string(acts), `"op":"watched.set"`) {
+		t.Errorf("the header's buttons: %s", acts)
 	}
-	// Top Shelf: sectioned, sized for the device, each picture leading into the app.
-	top := decode[sdui.TopShelf](t, ts.do(t, "GET", "/api/sdui/topshelf?deviceClass=4k", f.admin, nil))
-	if top.Style != "sectioned" || len(top.Sections) == 0 || len(top.Sections) > sdui.MaxTopShelfSections {
-		t.Fatalf("top shelf: %+v", top)
+	// A profile that may not download or share is offered neither.
+	_, strict := ts.user(t, "sam", auth.KindAdult, false, `{"maxAge":-1,"allowUnrated":true,"off":["downloads","sharing"]}`)
+	sd := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/detail?item=%d", f.family.ID), strict, nil))
+	a2, _ := json.Marshal(findNode(&sd.Root, "header").Props["actions"])
+	if strings.Contains(string(a2), "download") || strings.Contains(string(a2), "share") || !strings.Contains(string(acts), `"id":"download"`) {
+		t.Errorf("buttons for a profile without downloads or sharing: %s (with: %s)", a2, acts)
 	}
-	it := top.Sections[0].Items[0]
-	if it.Image == nil || it.Image.Width != 808 || !strings.HasPrefix(it.DisplayRoute, "/item/") || !strings.HasPrefix(it.PlayRoute, "/watch/") {
-		t.Errorf("top shelf item: %+v %+v", it, it.Image)
+	// More like this: the other film of the same genre in the same library, not itself,
+	// and not the one in the other library.
+	asAdmin := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/detail?item=%d", f.family.ID), f.admin, nil))
+	sim := findNode(&asAdmin.Root, "similar")
+	if sim == nil || len(sim.Children) != 1 || sim.Children[0].Props["title"] != "Grown-up Film" {
+		t.Errorf("more like this: %+v", sim)
 	}
-	for _, bad := range []string{"/api/sdui/screens/home?deviceClass=8k", "/api/sdui/topshelf?deviceClass=8k", "/api/sdui/screens/home?catalog=0", "/api/sdui/screens/home?catalog=x"} {
-		if w := ts.do(t, "GET", bad, f.admin, nil); w.Code != 400 {
-			t.Errorf("%s: %d", bad, w.Code)
-		}
+	// A film library: the filter bar's choices come from the library, and choosing one
+	// narrows the grid.
+	lib := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/library?library=%d", f.open), f.admin, nil))
+	bar, grid := findNode(&lib.Root, "filters"), findNode(&lib.Root, "all")
+	if lib.Page.ID != "library-movies" || lib.Page.Title != "movies" || bar == nil || grid == nil || len(grid.Children) != 2 || !strings.Contains(fmt.Sprint(bar.Props["fields"]), "Adventure") {
+		t.Fatalf("a film library: %+v bar %+v", lib.Page, bar)
+	}
+	if n, _ := bar.Props["count"].(float64); n != 2 {
+		t.Errorf("the filter bar's count: %v", bar.Props["count"])
+	}
+	none := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/library?library=%d&genre=Western", f.open), f.admin, nil))
+	if g := findNode(&none.Root, "all"); g == nil || g.State != "empty" || none.Page.Params["genre"] != "Western" {
+		t.Errorf("a filter that matches nothing: %+v", g)
+	}
+	// Search finds by title, in each library the account can open.
+	found := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/search?q=grown", f.admin, nil))
+	if r := findNode(&found.Root, fmt.Sprintf("found-%d", f.open)); r == nil || len(r.Children) != 1 || findNode(&found.Root, "q").Props["query"] != "grown" {
+		t.Errorf("search: %+v", found.Root.Children)
 	}
 }
 
-// An administrator's edit can't take a stock screen away from clients, or save a screen
-// that a TV couldn't move around or that names a colour no theme has.
-func TestSDUIConfigCannotBrickClients(t *testing.T) {
+// A row past the device's budget arrives empty with where to ask; asking gives its cards,
+// and the page after them.
+func TestSDUISectionsPageByCursor(t *testing.T) {
 	f := newSDUIFixture(t)
 	ts := f.ts
-	w := ts.do(t, "GET", "/api/sdui/config", f.admin, nil)
-	cfg := decode[sduistore.Config](t, w)
-	etag := cfg.ETag
-	edit := func(fn func(c *sduistore.Config)) []byte {
-		c := cfg
-		c.Screens = map[string]sdui.Document{}
-		for k, v := range cfg.Screens {
-			c.Screens[k] = v
+	root := t.TempDir()
+	for i := range 40 {
+		p := filepath.Join(root, fmt.Sprintf("Film %02d.mkv", i))
+		put(t, p, []byte("film"))
+		ts.item(t, &library.Item{LibraryID: f.open, Kind: "video", Path: p, Title: fmt.Sprintf("Film %02d", i), ContentRating: "G", RuntimeSec: 6000})
+	}
+	doc := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/library?library=%d&sort=title", f.open), f.oneLibrary, nil, "X-WMS-Platform", "tvos"))
+	grid := findNode(&doc.Root, "all")
+	more, _ := grid.Props["more"].(map[string]any)
+	if len(grid.Children) != 36 || more == nil || grid.Props["columns"] != float64(6) {
+		t.Fatalf("the first page: %d cards, more %v, columns %v", len(grid.Children), more, grid.Props["columns"])
+	}
+	next, _ := more["url"].(string)
+	if !strings.HasPrefix(next, "/api/v1/sdui/pages/library-movies/sections/all/items?") || !strings.Contains(next, "cursor=36") || !strings.Contains(next, "sort=title") {
+		t.Fatalf("where the next page is: %q", next)
+	}
+	w := ts.do(t, "GET", next, f.oneLibrary, nil, "X-WMS-Platform", "tvos")
+	var page sdui.SectionItems
+	if err := json.Unmarshal(w.Body.Bytes(), &page); err != nil || w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	if len(page.Items) != 6 || page.Next != "" || page.Items[0].ID == grid.Children[35].ID || page.Section != "all" {
+		t.Errorf("the second page: %d items, next %q", len(page.Items), page.Next)
+	}
+	if w := ts.do(t, "GET", next, f.oneLibrary, nil, "X-WMS-Platform", "tvos", "If-None-Match", w.Header().Get("ETag")); w.Code != 304 {
+		t.Errorf("a page of items the client has: %d", w.Code)
+	}
+	for _, bad := range []string{"cursor=-1", "cursor=x", "season=x"} {
+		if w := ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/library/sections/all/items?library=%d&%s", f.open, bad), f.oneLibrary, nil); w.Code != 400 && bad != "cursor=x" {
+			t.Errorf("%s: %d", bad, w.Code)
 		}
-		fn(&c)
-		b, _ := json.Marshal(c)
-		return b
 	}
-	withHome := func(fn func(root *sdui.Node, d *sdui.Document)) []byte {
-		return edit(func(c *sduistore.Config) {
-			d := c.Screens["home"]
-			d.Root.Children = append([]sdui.Node(nil), d.Root.Children...)
-			fn(&d.Root, &d)
-			c.Screens["home"] = d
-		})
+	// A page of many rows: the ones past the budget are deferred.
+	var secs []sdui.Section
+	for i := range 8 {
+		secs = append(secs, sdui.Section{ID: fmt.Sprintf("row%d", i), Component: "Shelf", Props: map[string]any{"title": fmt.Sprintf("Row %d", i)}, Source: sdui.Source{"type": "recentlyAdded", "library": f.open}})
 	}
-	for name, body := range map[string][]byte{
-		"a colour token no theme has": withHome(func(r *sdui.Node, _ *sdui.Document) { r.Style = &sdui.Style{Background: "token:sparkle"} }),
-		"a button inside a card": withHome(func(r *sdui.Node, _ *sdui.Document) {
-			r.Children = append(r.Children, sdui.Node{Type: sdui.Card, ID: "c", Children: []sdui.Node{{Type: sdui.Text, ID: "t", Props: map[string]any{"text": "x"}, Action: "goHome"}}})
-		}),
-		"a shelf inside a shelf": withHome(func(r *sdui.Node, _ *sdui.Document) {
-			r.Children = append(r.Children, sdui.Node{Type: sdui.Shelf, ID: "a", Props: map[string]any{"title": "A"}, Children: []sdui.Node{{Type: sdui.Shelf, ID: "b", Props: map[string]any{"title": "B"}}}})
-		}),
-		"a link that leaves the server": withHome(func(_ *sdui.Node, d *sdui.Document) {
-			acts := map[string]sdui.Action{}
-			for k, v := range d.Actions {
-				acts[k] = v
-			}
-			acts["goHome"] = sdui.Action{Type: sdui.Fetch, Target: "https://evil.example/collect"}
-			d.Actions = acts
-		}),
-	} {
-		w := ts.do(t, "PUT", "/api/sdui/config", f.admin, body, "If-Match", etag)
-		if w.Code != 400 || !strings.Contains(w.Body.String(), `"issues"`) {
+	etag := ts.do(t, "GET", "/api/sdui/config", f.admin, nil).Header().Get("ETag")
+	if w := ts.do(t, "PUT", "/api/sdui/config/pages/rows", f.admin, sdui.Page{ID: "rows", Kind: "custom", Title: "Rows", Sections: secs}, "If-Match", etag); w.Code != 200 {
+		t.Fatal(w.Body)
+	}
+	rows := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/rows", f.oneLibrary, nil, "X-WMS-Platform", "tvos"))
+	if a, b := rows.Root.Children[3], rows.Root.Children[4]; a.State != "" || len(a.Children) != 12 || b.State != "deferred" || len(b.Children) != 0 {
+		t.Fatalf("rows 4 and 5 on an Apple TV HD: %q with %d cards, %q with %d", a.State, len(a.Children), b.State, len(b.Children))
+	}
+	if n := len(rows.Root.Children); n != 8 {
+		t.Errorf("%d rows", n)
+	}
+	first, _ := rows.Root.Children[4].Props["more"].(map[string]any)["url"].(string)
+	w = ts.do(t, "GET", first, f.oneLibrary, nil, "X-WMS-Platform", "tvos")
+	_ = json.Unmarshal(w.Body.Bytes(), &page)
+	if w.Code != 200 || len(page.Items) != 12 || page.Props["title"] != "Row 4" || !strings.Contains(page.Next, "cursor=12") {
+		t.Errorf("a deferred row's first page: %d %d items, props %v, next %q", w.Code, len(page.Items), page.Props, page.Next)
+	}
+}
+
+// A profile arranges a page for itself; nobody else's changes, a profile that may not
+// can't, and the order the web app's Home kept before carries over.
+func TestSDUIPersonalisation(t *testing.T) {
+	f := newSDUIFixture(t)
+	ts := f.ts
+	order := func(tok string) string {
+		t.Helper()
+		doc := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home?n="+tok[:6], tok, nil))
+		var ids []string
+		for _, n := range doc.Root.Children {
+			ids = append(ids, n.ID)
+		}
+		return strings.Join(ids, " ")
+	}
+	before := order(f.oneLibrary)
+	if !strings.HasPrefix(before, "hero libraries recent-1 shuffle") {
+		t.Fatalf("home as shipped: %s", before)
+	}
+	mine := sdui.Personal{Order: []string{"shuffle", "recent-1"}, Hidden: []string{"hero"}, Pinned: []string{"libraries"}, Density: "compact", CardSize: map[string]string{"recent-1": "l"}}
+	if w := ts.do(t, "PUT", "/api/sdui/pages/home/personal", f.oneLibrary, mine); w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	if got := order(f.oneLibrary); got != "libraries shuffle recent-1" {
+		t.Errorf("home as arranged: %s", got)
+	}
+	doc := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home", f.oneLibrary, nil))
+	if doc.Layout.Density != "compact" || findNode(&doc.Root, "recent-1").Props["cardSize"] != "l" || !doc.Personal.Sections[0].Pinned || doc.Personal.Density != "compact" {
+		t.Errorf("density and card size: %+v", doc.Personal)
+	}
+	hidden := false
+	for _, s := range doc.Personal.Sections {
+		hidden = hidden || (s.ID == "hero" && s.Hidden)
+	}
+	if !hidden {
+		t.Errorf("a hidden section isn't listed so it can be shown again: %+v", doc.Personal.Sections)
+	}
+	if got := order(f.admin); !strings.HasPrefix(got, "hero libraries") {
+		t.Errorf("another profile's home changed: %s", got)
+	}
+	if w := ts.do(t, "GET", "/api/sdui/pages/home/personal", f.oneLibrary, nil); !strings.Contains(w.Body.String(), `"editable":true`) || !strings.Contains(w.Body.String(), `"pinned":["libraries"]`) {
+		t.Errorf("reading it back: %s", w.Body)
+	}
+	// It lives with the profile's other interface choices, which the web app still reads.
+	if ui := ts.do(t, "GET", "/api/me/ui", f.oneLibrary, nil).Body.String(); !strings.Contains(ui, `"sdui":{"pages":{"home"`) {
+		t.Errorf("/api/me/ui: %s", ui)
+	}
+	for name, body := range map[string]string{"a density that isn't one": `{"density":"huge"}`, "an ID that isn't one": `{"hidden":["a b"]}`, "unknown fields": `{"colour":"red"}`,
+		"too much": `{"order":["` + strings.Repeat("x", 9000) + `"]}`} {
+		if w := ts.do(t, "PUT", "/api/sdui/pages/home/personal", f.oneLibrary, []byte(body)); w.Code != 400 {
 			t.Errorf("%s: %d %s", name, w.Code, w.Body)
 		}
 	}
-	// Removing home is allowed, and home is still served: from the stock template.
-	w = ts.do(t, "PUT", "/api/sdui/config", f.admin, edit(func(c *sduistore.Config) { delete(c.Screens, "home") }), "If-Match", etag)
+	if w := ts.do(t, "PUT", "/api/sdui/pages/nosuch/personal", f.oneLibrary, mine); w.Code != 404 {
+		t.Errorf("a page that isn't there: %d", w.Code)
+	}
+	if w := ts.do(t, "DELETE", "/api/sdui/pages/home/personal", f.oneLibrary, nil); w.Code != 200 || order(f.oneLibrary) != before {
+		t.Errorf("reset: %d, %s", w.Code, order(f.oneLibrary))
+	}
+	// A profile whose "rearrange pages" switch is off.
+	_, fixed := ts.user(t, "robin", auth.KindKids, false, `{"maxAge":18,"allowUnrated":true,"off":["editLayout"]}`)
+	if w := ts.do(t, "PUT", "/api/sdui/pages/home/personal", fixed, mine); w.Code != 403 {
+		t.Errorf("a profile that may not rearrange pages: %d", w.Code)
+	}
+	if w := ts.do(t, "DELETE", "/api/sdui/navigation/personal", fixed, nil); w.Code != 403 {
+		t.Errorf("nor its navigation: %d", w.Code)
+	}
+	if d := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home", fixed, nil)); d.Personal == nil || d.Personal.Editable || len(d.Personal.Allow) != 0 {
+		t.Errorf("what the page says it may change: %+v", d.Personal)
+	}
+	// What the web app's Home saved before pages were server-driven still applies.
+	if w := ts.do(t, "PUT", "/api/me/ui", f.kid, map[string]any{"home": map[string]any{"v": 2, "order": []string{"shuffle", "hero"}, "hidden": []string{"libraries"}}}); w.Code >= 300 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	if got := order(f.kid); !strings.HasPrefix(got, "shuffle hero recent-1") || strings.Contains(got, "libraries") {
+		t.Errorf("home with the old saved order: %s", got)
+	}
+	// A page can say what may be changed, a section can be locked, and the server can turn
+	// it all off.
+	home, _ := sdui.StockPage("home")
+	home.Personal = &sdui.PersonalPolicy{Allow: []string{"reorder"}}
+	for i := range home.Sections {
+		home.Sections[i].Locked = home.Sections[i].ID == "hero"
+	}
+	etag := ts.do(t, "GET", "/api/sdui/config", f.admin, nil).Header().Get("ETag")
+	w := ts.do(t, "PUT", "/api/sdui/config/pages/home", f.admin, home, "If-Match", etag)
 	if w.Code != 200 {
-		t.Fatalf("saving without home: %d %s", w.Code, w.Body)
+		t.Fatal(w.Body)
 	}
-	if w := ts.do(t, "GET", "/api/sdui/screens/home", f.oneLibrary, nil); w.Code != 200 || !strings.Contains(w.Body.String(), "Family Film") {
-		t.Errorf("home after it was removed from the configuration: %d %s", w.Code, w.Body)
+	if got := order(f.kid); !strings.HasPrefix(got, "hero shuffle libraries") {
+		t.Errorf("a locked spotlight and no hiding: %s", got)
 	}
-	if w := ts.do(t, "GET", "/api/sdui/screens/nosuch", f.admin, nil); w.Code != 404 {
-		t.Errorf("a screen nobody made: %d", w.Code)
+	cfg := decode[sduistore.Config](t, w)
+	cfg.Personalisation.Disabled = true
+	if w := ts.do(t, "PUT", "/api/sdui/config", f.admin, cfg, "If-Match", cfg.ETag); w.Code != 200 {
+		t.Fatal(w.Body)
 	}
-	// A home whose root is hidden from everyone but administrators can't be rendered for
-	// the rest; they get the stock one instead of an error.
-	cur := decode[sduistore.Config](t, ts.do(t, "GET", "/api/sdui/config", f.admin, nil))
-	home := sdui.HomeTemplate(sdui.HomeData{})
-	home.Root.Visibility = &sdui.Condition{Role: "admin"}
-	cur.Screens["home"] = home
-	body, _ := json.Marshal(cur)
-	if w := ts.do(t, "PUT", "/api/sdui/config", f.admin, body, "If-Match", cur.ETag); w.Code != 200 {
-		t.Fatalf("saving the admin-only home: %d %s", w.Code, w.Body)
+	if got := order(f.kid); !strings.HasPrefix(got, "hero libraries") {
+		t.Errorf("with personalisation off: %s", got)
 	}
-	if w := ts.do(t, "GET", "/api/sdui/screens/home", f.kid, nil); w.Code != 200 || !strings.Contains(w.Body.String(), "Family Film") {
-		t.Errorf("home for an account the configured one hides from: %d %s", w.Code, w.Body)
+	if w := ts.do(t, "PUT", "/api/sdui/pages/home/personal", f.oneLibrary, mine); w.Code != 403 {
+		t.Errorf("saving an arrangement with personalisation off: %d", w.Code)
 	}
-	// And going back a revision restores the first configuration.
-	if w := ts.do(t, "POST", "/api/sdui/config/rollback/1", f.admin, nil); w.Code != 200 || len(decode[sduistore.Config](t, w).Screens) != len(sdui.DefaultScreens()) {
-		t.Errorf("rollback: %d %s", w.Code, w.Body)
+}
+
+// A client that draws less is sent less: fallbacks by catalogue revision and by the
+// components it names.
+func TestSDUICapabilityNegotiation(t *testing.T) {
+	f := newSDUIFixture(t)
+	ts := f.ts
+	types := func(query string) string {
+		t.Helper()
+		doc := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home?"+query, f.admin, nil))
+		var out []string
+		for _, n := range doc.Root.Children {
+			out = append(out, n.Type+":"+n.ID)
+		}
+		return strings.Join(out, " ")
+	}
+	if got := types(""); !strings.HasPrefix(got, "Hero:hero") || !strings.HasSuffix(got, "Banner:shuffle") {
+		t.Errorf("everything: %s", got)
+	}
+	for _, q := range []string{"components=none", "catalog=1"} {
+		if got := types(q); !strings.HasPrefix(got, "Shelf:hero") || !strings.HasSuffix(got, "Notice:shuffle") {
+			t.Errorf("%s: %s", q, got)
+		}
+	}
+	if got := types("components=Hero"); !strings.HasPrefix(got, "Hero:hero") || !strings.HasSuffix(got, "Notice:shuffle") {
+		t.Errorf("only Hero: %s", got)
+	}
+	if doc := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home?catalog=1", f.admin, nil)); doc.Catalog != 1 {
+		t.Errorf("document.catalog for an older client: %d", doc.Catalog)
+	}
+	if doc := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home?catalog=99", f.admin, nil)); doc.Catalog != sdui.CatalogRevision {
+		t.Errorf("document.catalog for a newer client: %d", doc.Catalog)
 	}
 }
 
 // The renders kept for diffs are bounded for the server and for each account, so neither a
-// busy client nor many accounts can make the server hold screens without end.
+// busy client nor many accounts can make the server hold pages without end.
 func TestSDUIKeptRendersAreBounded(t *testing.T) {
 	ts := newTestServer(t)
 	doc := func(n int) sdui.Document {
-		d := sdui.Document{Version: 1, Screen: "x", Root: sdui.Node{Type: sdui.Screen, ID: fmt.Sprint("x", n)}}
+		d := sdui.Document{Version: 1, Page: sdui.PageInfo{ID: "x"}, Root: sdui.Node{Type: "Page", ID: fmt.Sprint("x", n)}}
 		d.Meta.ETag = sdui.ETag(d)
 		return d
 	}
@@ -287,5 +452,15 @@ func TestSDUIKeptRendersAreBounded(t *testing.T) {
 	}
 	if _, ok := ts.keptRenderFor(2, doc(399).Meta.ETag); ok {
 		t.Error("an account was given another account's render")
+	}
+	// The few seconds of finished renders are bounded too.
+	_, tok := ts.user(t, "owner", auth.KindAdult, true, "")
+	for i := range 400 {
+		if w := ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/home?viewport=%dx900", 800+i), tok, nil); w.Code != 200 {
+			t.Fatal(w.Code)
+		}
+	}
+	if n, limit := len(ts.sdui.recent), keptRendersFor(pace.Machine()); n > limit {
+		t.Errorf("%d recent renders kept, limit %d", n, limit)
 	}
 }

@@ -66,3 +66,40 @@ func Unmarshal(data []byte) (Document, error) {
 	}
 	return doc, nil
 }
+
+// DecodePage decodes one authored page strictly: unknown fields, trailing
+// data and input over MaxPageBytes are refused. It does not validate.
+func DecodePage(data []byte) (Page, error) {
+	var p Page
+	if len(data) > MaxPageBytes {
+		return p, fmt.Errorf("sdui: a page is at most %d bytes", MaxPageBytes)
+	}
+	if err := decodeStrict(data, &p); err != nil {
+		return Page{}, err
+	}
+	return p, nil
+}
+
+// DecodeNavigation decodes an authored navigation strictly.
+func DecodeNavigation(data []byte) (Navigation, error) {
+	var n Navigation
+	if len(data) > MaxPageBytes {
+		return n, fmt.Errorf("sdui: a navigation is at most %d bytes", MaxPageBytes)
+	}
+	if err := decodeStrict(data, &n); err != nil {
+		return Navigation{}, err
+	}
+	return n, nil
+}
+
+func decodeStrict(data []byte, v any) error {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(v); err != nil {
+		return fmt.Errorf("sdui: decode: %w", err)
+	}
+	if _, err := dec.Token(); err != io.EOF {
+		return errors.New("sdui: decode: trailing data")
+	}
+	return nil
+}

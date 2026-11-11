@@ -4,362 +4,1014 @@
 package server
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
-// What the server puts in Data for each stock screen, so their bindings have
-// something to bind to. Everything here is read the way the ordinary routes
-// read it: with the account's limits in the query (library.Access), or through
-// visibleItem / visibleShow / Channels.Visible. A title an account may not see
-// never reaches a screen sent to it. docs/SDUI.md, "What the server puts in
-// Data", lists the paths.
+// The server's answers to the pages' data sources (sdui.Resolver). Every
+// source is read the way the ordinary routes read it: with the account's
+// limits in the query (library.Access), or through visibleItem, visibleShow,
+// visibleLibraries and Channels.Visible. A title an account may not see never
+// reaches a page sent to it, whatever an administrator wrote into the page.
+// docs/SDUI.md, "Data sources", lists them.
 //
-// Only as much is read as the device will be sent: the profile's MaxItems for a
-// row, MaxGridItems for a grid, MaxSections rows.
+// Each answer is one or two of the library store's own indexed queries, asked
+// for no more than the device's page of items: nothing here walks a library.
 
-// errNoScreenData: what the request names isn't there, or isn't this account's to see.
-var errNoScreenData = errors.New("not found")
+// sduiResolver answers for one request.
+type sduiResolver struct {
+	s    *Server
+	r    *http.Request
+	ctx  context.Context
+	u    *auth.User
+	acc  *library.Access
+	vars map[string]string
+	now  time.Time
 
-// sduiItem is one item as a screen is given it.
-func sduiItem(it *library.Item) map[string]any {
-	id := itoa(it.ID)
-	m := map[string]any{"id": id, "title": it.Title, "kind": it.Kind, "route": "/item/" + id, "playRoute": "/watch/" + id}
-	sub := ""
-	switch {
-	case it.ShowID != nil && it.Season != nil && it.Episode != nil:
-		sub = fmt.Sprintf("S%d E%d", *it.Season, *it.Episode)
-		if it.ShowTitle != "" {
-			sub = it.ShowTitle + " · " + sub
-		}
-	case it.Year != nil && *it.Year > 0:
-		sub = fmt.Sprint(*it.Year)
-	}
-	if sub != "" {
-		m["subtitle"] = sub
-	}
-	if it.Poster != "" {
-		m["imageUrl"] = "/api/items/" + id + "/poster"
-	}
-	if p := it.Progress; p != nil && !p.Watched && p.DurationSec > 0 && p.PositionSec > 0 {
-		m["progress"] = min(1, p.PositionSec/p.DurationSec)
-	}
-	if it.Kind == "audio" {
-		m["shape"] = "square"
-	}
-	return m
+	libs    []library.Library // the libraries the account can open, once asked for
+	libsErr error
+	gotLibs bool
+	subject *sdui.Item
+	gotSubj bool
 }
 
-func sduiShow(sh *library.Show) map[string]any {
-	id := itoa(sh.ID)
-	m := map[string]any{"id": "show-" + id, "title": sh.Title, "kind": "show", "route": "/show/" + id}
-	if sh.Year != nil && *sh.Year > 0 {
-		m["subtitle"] = fmt.Sprint(*sh.Year)
-	}
-	if sh.Poster != "" {
-		m["imageUrl"] = "/api/shows/" + id + "/art/poster"
-	}
-	return m
+func (s *Server) newSDUIResolver(r *http.Request, vars map[string]string) *sduiResolver {
+	return &sduiResolver{s: s, r: r, ctx: r.Context(), u: userFrom(r), acc: s.access(r), vars: vars, now: time.Now()}
 }
 
-func sduiItems(items []*library.Item, limit int) []any {
-	out := make([]any, 0, min(len(items), limit))
-	for _, it := range items {
-		if len(out) >= limit {
-			break
+// libraries are the libraries the account can open and the menus show.
+func (rv *sduiResolver) libraries() []library.Library {
+	if !rv.gotLibs {
+		rv.gotLibs = true
+		all, err := rv.s.visibleLibraries(rv.ctx, rv.acc)
+		rv.libsErr = err
+		for _, l := range all {
+			if !l.Hidden() {
+				rv.libs = append(rv.libs, l)
+			}
 		}
-		out = append(out, sduiItem(it))
+	}
+	return rv.libs
+}
+
+// library is one library the account can open, by the ID a page names it by.
+func (rv *sduiResolver) library(id string) (*library.Library, bool) {
+	n, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || n <= 0 || !rv.acc.AllowsLibrary(n) {
+		return nil, false
+	}
+	for _, l := range rv.libraries() {
+		if l.ID == n {
+			return &l, true
+		}
+	}
+	// A hidden library (commercials off the menus) can still be opened by number.
+	l, err := rv.s.Store.Library(rv.ctx, n)
+	if err != nil || (l.Type == "games" && !rv.acc.Can(library.FeatureGames)) {
+		return nil, false
+	}
+	return l, true
+}
+
+func (rv *sduiResolver) can(what string) []string {
+	out := []string{what}
+	if rv.acc.Can(library.FeatureDownloads) {
+		out = append(out, "download")
+	}
+	if rv.acc.Can(library.FeatureSharing) {
+		out = append(out, "share")
 	}
 	return out
 }
 
-// sduiLibraryRows reads up to limit of a library's newest titles: shows for a TV library,
-// albums for music, items for the rest.
-func (s *Server) sduiLibraryRows(r *http.Request, l library.Library, sort string, desc bool, limit, offset int, search string) []any {
-	ctx, u, acc := r.Context(), userFrom(r), s.access(r)
+// item is one library item as a page shows it.
+func (rv *sduiResolver) item(it *library.Item) sdui.Item {
+	id := itoa(it.ID)
+	out := sdui.Item{ID: id, Title: it.Title, Overview: it.Overview, Tagline: it.Tagline, ContentRating: it.ContentRating, RuntimeSec: it.RuntimeSec,
+		Genres: it.Genres, Studio: it.Studio, Route: "/item/" + id, Images: map[string]string{}}
+	if it.Year != nil && *it.Year > 0 {
+		out.Year = *it.Year
+		out.Subtitle = strconv.Itoa(*it.Year)
+	}
+	if it.Rating != nil {
+		out.Rating = *it.Rating
+	}
+	if it.Poster != "" {
+		out.Images["poster"] = "/api/items/" + id + "/poster"
+	}
+	if it.Backdrop != "" {
+		out.Images["backdrop"] = "/api/items/" + id + "/backdrop"
+	}
+	playable := false
+	switch {
+	case it.Kind == "audio":
+		out.Kind, out.Artist, out.Subtitle = "track", firstNonEmpty(it.Artist, it.AlbumArtist), firstNonEmpty(it.Artist, it.AlbumArtist)
+		if it.Track != nil {
+			out.Track = *it.Track
+		}
+		if p := out.Images["poster"]; p != "" {
+			out.Images["square"] = p
+		}
+		playable = true
+	case it.Kind == "book":
+		out.Kind, out.Subtitle = "book", firstNonEmpty(it.AlbumArtist, it.Artist, out.Subtitle)
+	case it.Kind == "game":
+		out.Kind, out.Route = "game", "/game/"+id
+	case it.Kind == "photo":
+		out.Kind = "photo"
+	case strings.HasPrefix(it.Kind, "dvd") || strings.HasPrefix(it.Kind, "bluray") || it.Kind == library.CDKind:
+		out.Kind, playable = "disc", true
+	case it.ShowID != nil:
+		out.Kind, out.ShowTitle, out.ShowID, playable = "episode", it.ShowTitle, itoa(*it.ShowID), true
+		if it.Season != nil {
+			out.Season = *it.Season
+		}
+		if it.Episode != nil {
+			out.Episode = *it.Episode
+		}
+		out.Subtitle = fmt.Sprintf("S%d E%d", out.Season, out.Episode)
+		if it.ShowTitle != "" {
+			out.Subtitle = it.ShowTitle + " · " + out.Subtitle
+		}
+	default:
+		out.Kind, playable = "movie", true
+	}
+	if p := it.Progress; p != nil {
+		out.Watched = p.Watched
+		if !p.Watched && p.DurationSec > 0 && p.PositionSec > 0 {
+			out.Progress = min(1, p.PositionSec/p.DurationSec)
+			out.ResumeSec = p.ResumeSec
+		}
+	}
+	if w, h := it.Width, it.Height; out.Kind == "movie" || out.Kind == "episode" {
+		switch {
+		case w >= 3800 || h >= 2100:
+			out.Badges = append(out.Badges, "4K")
+		case w >= 1900 || h >= 1000:
+			out.Badges = append(out.Badges, "HD")
+		}
+	}
+	if playable {
+		out.PlayID = id
+		out.Can = append(rv.can("play"), "watchLater", "watched", "playOn", "watchParty")
+	}
+	return out
+}
+
+func (rv *sduiResolver) show(sh *library.Show) sdui.Item {
+	id := itoa(sh.ID)
+	out := sdui.Item{ID: "show-" + id, Kind: "show", Title: sh.Title, Overview: sh.Overview, ContentRating: sh.ContentRating, Genres: sh.Genres, Studio: sh.Network,
+		Unwatched: sh.Unwatched, Count: sh.EpisodeCount, Route: "/show/" + id, Images: map[string]string{}}
+	if sh.Year != nil && *sh.Year > 0 {
+		out.Year, out.Subtitle = *sh.Year, strconv.Itoa(*sh.Year)
+	}
+	if sh.Rating != nil {
+		out.Rating = *sh.Rating
+	}
+	if sh.Poster != "" {
+		out.Images["poster"] = "/api/shows/" + id + "/art/poster"
+	}
+	if sh.Backdrop != "" {
+		out.Images["backdrop"] = "/api/shows/" + id + "/art/backdrop"
+	}
+	return out
+}
+
+func (rv *sduiResolver) album(lib int64, a library.Album) sdui.Item {
+	out := sdui.Item{ID: fmt.Sprintf("album-%d-%d", lib, a.CoverItem), Kind: "album", Title: a.Title, Subtitle: a.Artist, Artist: a.Artist, Count: a.Tracks, RuntimeSec: a.DurationSec,
+		Route: "/album/" + itoa(lib) + "?artist=" + url.QueryEscape(a.Artist) + "&album=" + url.QueryEscape(a.Title), Images: map[string]string{}}
+	if a.Year != nil {
+		out.Year = *a.Year
+	}
+	if a.Genre != "" {
+		out.Genres = []string{a.Genre}
+	}
+	if a.CoverItem != 0 {
+		out.Images["square"] = "/api/items/" + itoa(a.CoverItem) + "/poster"
+	}
+	return out
+}
+
+func (rv *sduiResolver) items(list []*library.Item) []sdui.Item {
+	out := make([]sdui.Item, 0, len(list))
+	for _, it := range list {
+		out = append(out, rv.item(it))
+	}
+	return out
+}
+
+// page cuts a list that was read whole (a short one) to the page asked for.
+func page(all []sdui.Item, req sdui.SourceRequest) sdui.SourceResult {
+	total := len(all)
+	if req.Offset >= total {
+		return sdui.SourceResult{Total: total}
+	}
+	all = all[req.Offset:]
+	more := len(all) > req.Limit
+	if more {
+		all = all[:req.Limit]
+	}
+	return sdui.SourceResult{Items: all, More: more, Total: total}
+}
+
+// libraryRows are a library's things in an order: shows for a TV library, albums for music
+// and audiobooks, items for the rest.
+func (rv *sduiResolver) libraryRows(l *library.Library, sortBy string, desc bool, req sdui.SourceRequest, search string) sdui.SourceResult {
+	s := rv.s
+	limit := req.Limit + 1
 	switch l.Type {
 	case "shows", "anime":
-		sq := library.ShowQuery{LibraryID: l.ID, Sort: sort, Desc: desc, Limit: limit, UserID: u.ID, Access: acc, Search: search}
-		s.animeQuery(ctx, &sq)
-		shows, err := s.Store.Shows(ctx, sq)
+		sq := library.ShowQuery{LibraryID: l.ID, Sort: sortBy, Desc: desc, Limit: req.Offset + limit, UserID: rv.u.ID, Access: rv.acc, Search: search}
+		s.animeQuery(rv.ctx, &sq)
+		shows, err := s.Store.Shows(rv.ctx, sq)
 		if err != nil {
-			return nil
+			return sdui.SourceResult{}
 		}
-		out := make([]any, 0, len(shows))
+		all := make([]sdui.Item, 0, len(shows))
 		for _, sh := range shows {
-			if len(out) >= limit {
-				break
-			}
-			out = append(out, sduiShow(sh))
+			all = append(all, rv.show(sh))
 		}
-		return out
-	case "music":
+		res := page(all, req)
+		res.Total = -1
+		return res
+	case "music", "audiobooks", "podcasts":
 		albumSort := "added"
-		if sort == "title" {
+		if sortBy == "title" {
 			albumSort = "title"
 		}
-		albums, err := s.Store.Albums(ctx, l.ID, "", search, albumSort, acc)
+		albums, err := s.Store.AlbumsFiltered(rv.ctx, l.ID, library.AlbumFilter{Search: search, Sort: albumSort, Limit: req.Offset + limit}, rv.acc)
 		if err != nil {
-			return nil
+			return sdui.SourceResult{}
 		}
-		out := []any{}
-		for i, a := range albums {
-			if i < offset {
-				continue
-			}
-			if len(out) >= limit {
-				break
-			}
-			m := map[string]any{"id": fmt.Sprintf("album-%d-%d", l.ID, a.CoverItem), "title": a.Title, "subtitle": a.Artist, "kind": "album", "shape": "square",
-				"route": "/album/" + itoa(l.ID) + "?artist=" + url.QueryEscape(a.Artist) + "&album=" + url.QueryEscape(a.Title)}
-			if a.CoverItem != 0 {
-				m["imageUrl"] = "/api/items/" + itoa(a.CoverItem) + "/poster"
-			}
-			out = append(out, m)
+		all := make([]sdui.Item, 0, len(albums))
+		for _, a := range albums {
+			all = append(all, rv.album(l.ID, a))
 		}
-		return out
+		res := page(all, req)
+		res.Total = -1
+		return res
 	}
-	items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: sort, Desc: desc, Limit: limit, Offset: offset, Access: acc, NoTotal: true, Brief: true, Search: search})
+	items, _, err := s.Store.Items(rv.ctx, library.ItemQuery{LibraryID: l.ID, Sort: sortBy, Desc: desc, Limit: limit, Offset: req.Offset, Access: rv.acc, NoTotal: true, Brief: true, Search: search})
 	if err != nil {
-		return nil
+		return sdui.SourceResult{}
 	}
-	_ = s.Store.AttachProgress(ctx, u.ID, items)
-	return sduiItems(items, limit)
+	_ = s.Store.AttachProgress(rv.ctx, rv.u.ID, items)
+	res := sdui.SourceResult{Items: rv.items(items), Total: -1}
+	if len(res.Items) > req.Limit {
+		res.Items, res.More = res.Items[:req.Limit], true
+	}
+	return res
 }
 
-// sduiChannels are the channels this account may watch.
-func (s *Server) sduiChannels(r *http.Request, limit int, search string) (all []any, favourites []any) {
-	if s.Channels == nil {
-		return nil, nil
+// browse answers a source that is a filter: the library page's own engine.
+func (rv *sduiResolver) browse(f library.BrowseFilter, req sdui.SourceRequest, exclude string) (sdui.SourceResult, error) {
+	if f.Library != 0 && !rv.acc.AllowsLibrary(f.Library) {
+		return sdui.SourceResult{}, nil
 	}
-	ctx, u, acc := r.Context(), userFrom(r), s.access(r)
-	list, err := s.Channels.List(ctx)
+	f.Limit, f.Offset = req.Limit+1, req.Offset
+	res, err := rv.s.Store.Browse(rv.ctx, f, rv.u.ID, rv.acc)
 	if err != nil {
-		return nil, nil
+		return sdui.SourceResult{}, err
 	}
-	fav, _ := s.Channels.Favourites(ctx, u.ID)
-	search = strings.ToLower(search)
-	for _, c := range list {
-		if !c.Enabled || !s.Channels.Visible(ctx, c, u, acc) || (search != "" && !strings.Contains(strings.ToLower(c.Name), search)) {
+	out := sdui.SourceResult{Total: res.Total}
+	for _, row := range res.Results {
+		var it sdui.Item
+		switch {
+		case row.Item != nil:
+			it = rv.item(row.Item)
+		case row.Show != nil:
+			it = rv.show(row.Show)
+		default:
 			continue
 		}
-		key := "lib-" + itoa(c.ID)
-		m := map[string]any{"id": key, "title": c.Name, "kind": "channel", "shape": "wide", "route": "/tv/watch/" + key, "playRoute": "/tv/watch/" + key, "module": "wittytv"}
-		if c.Number != "" {
-			m["subtitle"] = c.Number
+		if it.ID == exclude {
+			continue
 		}
-		if c.Logo != "" {
-			m["imageUrl"] = "/api/channels/" + itoa(c.ID) + "/logo"
-		}
-		if fav[key] && len(favourites) < limit {
-			favourites = append(favourites, m)
-		}
-		if len(all) < limit {
-			all = append(all, m)
-		}
+		out.Items = append(out.Items, it)
 	}
-	return all, favourites
+	if len(out.Items) > req.Limit {
+		out.Items, out.More = out.Items[:req.Limit], true
+	}
+	return out, nil
 }
 
-// sduiData reads what a stock screen shows, for this account and device. flags are set
-// for the screen's conditions (libraryEmpty, hasProgress, ...). A screen an administrator
-// made under another name gets the account's and the server's names only.
-func (s *Server) sduiData(r *http.Request, screen string, l *sdui.Layout, data map[string]any, flags map[string]bool) error {
-	ctx, u, acc := r.Context(), userFrom(r), s.access(r)
-	q := r.URL.Query()
-	libs := func() []library.Library {
-		all, _ := s.visibleLibraries(ctx, acc)
-		out := all[:0]
-		for _, lib := range all {
-			if !lib.Hidden() {
-				out = append(out, lib)
-			}
-		}
-		return out
+// seed changes when a shuffled row should: every hour, day or week.
+func (rv *sduiResolver) seed(reshuffle string) int {
+	hours := rv.now.Unix() / 3600
+	switch reshuffle {
+	case "hourly":
+		return int(hours) + int(rv.u.ID)
+	case "weekly":
+		return int(hours/24/7) + int(rv.u.ID)
 	}
-	switch screen {
-	case "home":
-		home := map[string]any{}
-		cont, _ := s.Store.ContinueWatching(ctx, u.ID, l.MaxItems)
-		cont = s.filterItems(ctx, acc, cont)
-		_ = s.Store.AttachProgress(ctx, u.ID, cont)
-		home["continueWatching"] = sduiItems(cont, l.MaxItems)
-		visible := libs()
-		home["nextUp"] = sduiItems(s.nextUp(r, visible), l.MaxItems)
-		if feat, _, err := s.Store.Items(ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: 5, Access: acc, NoTotal: true, Brief: true, Watchable: true, NoEpisodes: true, NoGallery: true}); err == nil {
-			list := []any{}
-			for _, it := range feat {
-				m := sduiItem(it)
-				if it.Backdrop != "" || it.Poster != "" {
-					m["imageUrl"] = "/api/items/" + itoa(it.ID) + "/backdrop" // the poster, when there's no backdrop
-				}
-				m["shape"] = "hero"
-				list = append(list, m)
-			}
-			home["featured"] = list
+	return int(hours/24) + int(rv.u.ID)
+}
+
+// filterOf is a browse filter from a source's parameters and the page's own.
+func filterOf(src sdui.Source, page map[string]string) library.BrowseFilter {
+	q := url.Values{}
+	for _, k := range []string{"genre", "studio", "network", "tag", "series", "year", "decade", "content", "minRating", "resolution", "watched", "sort"} {
+		if v := src.Str(k); v != "" {
+			q.Set(k, v)
 		}
-		sections, music := []any{}, []any{}
-		for _, lib := range visible {
-			if len(sections) >= l.MaxSections {
+	}
+	if v := src.Str("titles"); v != "" {
+		q.Set("kind", v)
+	}
+	if src.Bool("desc") {
+		q.Set("desc", "1")
+	}
+	for k, v := range page { // the page's filter bar wins over the source's own
+		q.Set(k, v)
+	}
+	f := library.ParseBrowseFilter(q)
+	f.Library = int64(src.Int("library"))
+	return f
+}
+
+// Items answers one data source.
+func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error) {
+	s, src := rv.s, req.Source
+	if req.Limit <= 0 {
+		return sdui.SourceResult{}, nil
+	}
+	req.Limit = min(req.Limit, 500)
+	var lib *library.Library
+	if id := src.Str("library"); id != "" {
+		l, ok := rv.library(id)
+		if !ok {
+			return sdui.SourceResult{}, nil // not this account's to see: the same as empty
+		}
+		lib = l
+	}
+	switch src.Type() {
+	case "continueWatching":
+		cont, err := s.Store.ContinueWatching(rv.ctx, rv.u.ID, 60)
+		if err != nil {
+			return sdui.SourceResult{}, err
+		}
+		cont = s.filterItems(rv.ctx, rv.acc, cont)
+		_ = s.Store.AttachProgress(rv.ctx, rv.u.ID, cont)
+		var all []sdui.Item
+		for _, it := range cont {
+			media := "watch"
+			switch it.Kind {
+			case "book":
+				media = "read"
+			case "audio":
+				media = "listen"
+			}
+			if m := src.Str("media"); m == "" || m == "all" || m == media {
+				all = append(all, rv.item(it))
+			}
+		}
+		return page(all, req), nil
+	case "nextUp":
+		return page(rv.items(s.nextUp(rv.r, rv.libraries())), req), nil
+	case "recommended":
+		items, shows, _, err := s.Store.RecommendForYou(rv.ctx, rv.u.ID, rv.acc, int64(rv.seed("daily")), min(req.Offset+req.Limit, 60))
+		if err != nil {
+			return sdui.SourceResult{}, err
+		}
+		all := rv.items(items)
+		for _, sh := range shows {
+			all = append(all, rv.show(sh))
+		}
+		return page(all, req), nil
+	case "watchLater", "collection":
+		var c *library.Collection
+		if src.Type() == "collection" {
+			id, _ := strconv.ParseInt(src.Str("collection"), 10, 64)
+			got, err := s.Store.CollectionByID(rv.ctx, id, rv.u.ID, rv.u.IsAdmin)
+			if err != nil {
+				return sdui.SourceResult{}, nil
+			}
+			c = got
+		} else {
+			list, err := s.Store.Collections(rv.ctx, rv.u.ID, rv.acc)
+			if err != nil {
+				return sdui.SourceResult{}, err
+			}
+			for _, x := range list {
+				if x.System == "watchlater" && x.OwnerID == rv.u.ID {
+					c = x
+				}
+			}
+			if c == nil {
+				return sdui.SourceResult{}, nil
+			}
+		}
+		items, shows, err := s.Store.CollectionItems(rv.ctx, c, rv.u.ID, rv.acc, req.Offset+req.Limit+1, 0)
+		if err != nil {
+			return sdui.SourceResult{}, err
+		}
+		_ = s.Store.AttachProgress(rv.ctx, rv.u.ID, items)
+		all := rv.items(items)
+		for _, sh := range shows {
+			all = append(all, rv.show(sh))
+		}
+		return page(all, req), nil
+	case "savedView":
+		id, _ := strconv.ParseInt(src.Str("view"), 10, 64)
+		views, err := s.Store.SavedViews(rv.ctx, rv.u.ID)
+		if err != nil {
+			return sdui.SourceResult{}, err
+		}
+		for _, v := range views {
+			if v.ID != id {
+				continue
+			}
+			q, err := url.ParseQuery(v.Query)
+			if err != nil {
+				return sdui.SourceResult{}, nil
+			}
+			f := library.ParseBrowseFilter(q)
+			f.Library = v.LibraryID
+			return rv.browse(f, req, "")
+		}
+		return sdui.SourceResult{}, nil
+	case "recentlyAdded":
+		if lib != nil {
+			return rv.libraryRows(lib, "added", true, req, ""), nil
+		}
+		if kind := src.Str("kind"); kind != "" {
+			var all []sdui.Item
+			for _, l := range rv.libraries() {
+				if l.Type == kind && len(all) < req.Offset+req.Limit+1 {
+					all = append(all, rv.libraryRows(&l, "added", true, sdui.SourceRequest{Limit: req.Offset + req.Limit + 1}, "").Items...)
+				}
+			}
+			return page(all, req), nil
+		}
+		items, _, err := s.Store.Items(rv.ctx, library.ItemQuery{Sort: "added", Desc: true, Limit: req.Limit + 1, Offset: req.Offset, Access: rv.acc, NoTotal: true, Brief: true, NoEpisodes: true, NoGallery: true, Watchable: true})
+		if err != nil {
+			return sdui.SourceResult{}, err
+		}
+		_ = s.Store.AttachProgress(rv.ctx, rv.u.ID, items)
+		return page(rv.items(items), sdui.SourceRequest{Limit: req.Limit}), nil
+	case "recentlyReleased":
+		f := library.BrowseFilter{Sort: "newest"}
+		if lib != nil {
+			f.Library = lib.ID
+		}
+		return rv.browse(f, req, "")
+	case "topRated":
+		f := library.BrowseFilter{Sort: "rating", MinRating: float64(src.Int("minRating"))}
+		if lib != nil {
+			f.Library = lib.ID
+		}
+		return rv.browse(f, req, "")
+	case "random":
+		f := library.BrowseFilter{Sort: "shuffle", Seed: rv.seed(src.Str("reshuffle")), Watched: src.Str("watched")}
+		if lib != nil {
+			f.Library = lib.ID
+		}
+		res, err := rv.browse(f, req, "")
+		res.More = false // a shuffle has no next page worth having
+		return res, err
+	case "browse", "genre", "studio", "tag":
+		return rv.browse(filterOf(src, req.Filter), req, "")
+	case "collections":
+		list, err := s.Store.Collections(rv.ctx, rv.u.ID, rv.acc)
+		if err != nil {
+			return sdui.SourceResult{}, err
+		}
+		var all []sdui.Item
+		for _, c := range list {
+			it := sdui.Item{ID: "collection-" + itoa(c.ID), Kind: "collection", Title: c.Name, Subtitle: c.Description, Count: c.Count, Icon: "collection", Route: "/collections/" + itoa(c.ID), Images: map[string]string{}}
+			switch {
+			case c.CoverID != 0:
+				it.Images["backdrop"] = "/api/items/" + itoa(c.CoverID) + "/backdrop"
+			case c.CoverShow != 0:
+				it.Images["backdrop"] = "/api/shows/" + itoa(c.CoverShow) + "/art/backdrop"
+			}
+			all = append(all, it)
+		}
+		return page(all, req), nil
+	case "featured":
+		q := library.ItemQuery{Sort: "added", Desc: true, Limit: 40, NoEpisodes: true, NoGallery: true, HasArt: true, Access: rv.acc, NoTotal: true, Brief: true}
+		if lib != nil {
+			q.LibraryID = lib.ID
+		}
+		all, _, err := s.Store.Items(rv.ctx, q)
+		if err != nil {
+			return sdui.SourceResult{}, err
+		}
+		var picked []*library.Item
+		for _, it := range all {
+			if it.Backdrop != "" && len(picked) < req.Offset+req.Limit {
+				picked = append(picked, it)
+			}
+		}
+		if picked == nil {
+			picked = all[:min(len(all), req.Offset+req.Limit)]
+		}
+		_ = s.Store.AttachProgress(rv.ctx, rv.u.ID, picked)
+		res := page(rv.items(picked), req)
+		res.More = false
+		return res, nil
+	case "libraries":
+		var all []sdui.Item
+		for _, l := range rv.libraries() {
+			if k := src.Str("kind"); k != "" && l.Type != k {
+				continue
+			}
+			all = append(all, sdui.Item{ID: "lib" + itoa(l.ID), Kind: "library", Title: l.Name, Count: l.ItemCount, Icon: sdui.LibraryIcon(l.Type), Route: "/library/" + itoa(l.ID)})
+		}
+		return page(all, req), nil
+	case "genres":
+		if lib == nil {
+			return sdui.SourceResult{}, nil
+		}
+		genres, err := s.Store.Genres(rv.ctx, lib.ID, rv.acc)
+		if err != nil {
+			return sdui.SourceResult{}, err
+		}
+		var all []sdui.Item
+		for _, g := range genres {
+			all = append(all, sdui.Item{ID: "genre-" + g, Kind: "genre", Title: g, Route: "/library/" + itoa(lib.ID) + "?genre=" + url.QueryEscape(g)})
+		}
+		return page(all, req), nil
+	case "liveNow":
+		return page(rv.channels(src.Bool("favourites"), "", req.Offset+req.Limit+1, true), req), nil
+	case "recordings":
+		if s.TV == nil || !s.mayRecord(rv.r) {
+			return sdui.SourceResult{}, nil
+		}
+		list, err := s.TV.Recordings(rv.ctx)
+		if err != nil {
+			return sdui.SourceResult{}, err
+		}
+		var all []sdui.Item
+		for _, x := range list {
+			if x.Status != "done" || (!rv.u.IsAdmin && x.UserID != rv.u.ID) {
+				continue
+			}
+			all = append(all, sdui.Item{ID: "recording-" + itoa(x.ID), Kind: "recording", Title: x.Title, Subtitle: firstNonEmpty(x.Sub, x.Channel), RuntimeSec: float64(x.Stop - x.Start), Icon: "record",
+				Route: "/tv/recordings", Scope: "wittytv"})
+		}
+		sort.SliceStable(all, func(i, j int) bool { return all[i].ID > all[j].ID })
+		return page(all, req), nil
+	case "albums":
+		if lib == nil {
+			return sdui.SourceResult{}, nil
+		}
+		albums, err := s.Store.AlbumsFiltered(rv.ctx, lib.ID, library.AlbumFilter{Sort: firstNonEmpty(src.Str("sort"), "added"), Artist: src.Str("artist"), Genre: src.Str("genre"), UserID: rv.u.ID, Limit: req.Offset + req.Limit + 1}, rv.acc)
+		if err != nil {
+			return sdui.SourceResult{}, err
+		}
+		all := make([]sdui.Item, 0, len(albums))
+		for _, a := range albums {
+			all = append(all, rv.album(lib.ID, a))
+		}
+		return page(all, req), nil
+	case "artists":
+		if lib == nil {
+			return sdui.SourceResult{}, nil
+		}
+		artists, err := s.Store.Artists(rv.ctx, lib.ID, rv.acc)
+		if err != nil {
+			return sdui.SourceResult{}, err
+		}
+		all := make([]sdui.Item, 0, len(artists))
+		for i, a := range artists {
+			if i >= req.Offset+req.Limit+1 {
 				break
 			}
-			rows := s.sduiLibraryRows(r, lib, "added", true, l.MaxItems, 0, "")
-			if len(rows) == 0 {
+			it := sdui.Item{ID: "artist-" + strconv.Itoa(i), Kind: "artist", Title: a.Name, Count: a.Albums, Route: "/artist/" + itoa(lib.ID) + "?name=" + url.QueryEscape(a.Name), Images: map[string]string{}}
+			noun := "albums"
+			if a.Albums == 1 {
+				noun = "album"
+			}
+			it.Subtitle = strconv.Itoa(a.Albums) + " " + noun
+			if a.CoverItem != 0 {
+				it.Images["square"] = "/api/items/" + itoa(a.CoverItem) + "/poster"
+			}
+			all = append(all, it)
+		}
+		res := page(all, req)
+		res.Total = len(artists)
+		return res, nil
+	case "continuePlaying":
+		if !rv.acc.Can(library.FeatureGames) {
+			return sdui.SourceResult{}, nil
+		}
+		rows, err := s.Store.GameList(rv.ctx, rv.u.ID, false, 2*(req.Offset+req.Limit))
+		if err != nil {
+			return sdui.SourceResult{}, err
+		}
+		var all []sdui.Item
+		for _, e := range rows {
+			it, err := s.visibleItem(rv.r, e.ItemID)
+			if err != nil || it.Kind != "game" || (lib != nil && it.LibraryID != lib.ID) {
 				continue
 			}
-			if lib.Type == "music" {
-				if len(music) < l.MaxItems {
-					music = append(music, rows[:min(len(rows), l.MaxItems-len(music))]...)
-				}
-				continue
-			}
-			sections = append(sections, map[string]any{"id": "lib" + itoa(lib.ID), "title": "Recently added in " + lib.Name, "seeAll": "/library/" + itoa(lib.ID), "items": rows})
+			all = append(all, rv.item(it))
 		}
-		home["sections"], home["music"] = sections, music
-		home["channels"], _ = s.sduiChannels(r, l.MaxItems, "")
-		data["home"] = home
-	case "libraries":
-		items := []any{}
-		for _, lib := range libs() {
-			items = append(items, map[string]any{"id": "lib" + itoa(lib.ID), "title": lib.Name, "subtitle": lib.Type, "kind": "library", "shape": "wide", "route": "/library/" + itoa(lib.ID)})
+		return page(all, req), nil
+	case "episodes":
+		return rv.episodes(src, req)
+	case "tracks":
+		if lib == nil {
+			return sdui.SourceResult{}, nil
 		}
-		flags["librariesEmpty"] = len(items) == 0
-		data["libraries"] = map[string]any{"items": items}
-	case "library":
-		id := int64(qInt(r, "library", 0))
-		lib, err := s.Store.Library(ctx, id)
-		if id <= 0 || err != nil || !acc.AllowsLibrary(id) {
-			return errNoScreenData
+		album, artist := src.Str("album"), src.Str("artist")
+		q := library.ItemQuery{LibraryID: lib.ID, Kind: "audio", Sort: "track", Access: rv.acc, Brief: true, Album: &album, NoTotal: true}
+		if artist != "" {
+			q.AlbumArtist = &artist
 		}
-		sort, desc := "title", false
-		switch q.Get("sort") {
-		case "added", "newest":
-			sort, desc = "added", true
-		case "year":
-			sort, desc = "year", true
+		if lib.Type == "podcasts" {
+			q.Sort, q.Desc = "aired", true
 		}
-		rows := s.sduiLibraryRows(r, *lib, sort, desc, l.MaxGridItems, max(0, qInt(r, "offset", 0)), "")
-		flags["libraryEmpty"] = len(rows) == 0
-		data["library"] = map[string]any{"id": itoa(lib.ID), "title": lib.Name, "kind": lib.Type, "items": rows, "sort": sort}
-	case "detail":
-		item := map[string]any{}
-		switch {
-		case q.Get("show") != "":
-			sh, err := s.visibleShow(r, int64(qInt(r, "show", 0)))
-			if err != nil {
-				return errNoScreenData
-			}
-			item = sduiShow(sh)
-			item["overview"] = sh.Overview
-			item["rating"] = sh.ContentRating
-			if sh.Year != nil {
-				item["year"] = fmt.Sprint(*sh.Year)
-			}
-			if sh.Backdrop != "" {
-				item["backdrop"] = "/api/shows/" + itoa(sh.ID) + "/art/backdrop"
-			}
-			eps, _, _ := s.Store.Items(ctx, library.ItemQuery{ShowID: sh.ID, Access: acc, Limit: l.MaxGridItems, NoTotal: true, Brief: true})
-			_ = s.Store.AttachProgress(ctx, u.ID, eps)
-			item["children"] = sduiItems(eps, l.MaxGridItems)
-			flags["notPlayable"] = true // a show is opened; its episodes are played
-		default:
-			it, err := s.visibleItem(r, int64(qInt(r, "item", 0)))
-			if err != nil {
-				return errNoScreenData
-			}
-			_ = s.Store.AttachProgress(ctx, u.ID, []*library.Item{it})
-			item = sduiItem(it)
-			item["playId"] = itoa(it.ID)
-			item["overview"] = it.Overview
-			item["rating"] = it.ContentRating
-			item["duration"] = it.RuntimeSec
-			if it.Year != nil {
-				item["year"] = fmt.Sprint(*it.Year)
-			}
-			if it.Backdrop != "" {
-				item["backdrop"] = "/api/items/" + itoa(it.ID) + "/backdrop"
-			}
-			_, flags["hasProgress"] = item["progress"]
+		items, _, err := s.Store.Items(rv.ctx, q)
+		if err != nil {
+			return sdui.SourceResult{}, err
 		}
-		data["item"] = item
+		_ = s.Store.AttachProgress(rv.ctx, rv.u.ID, items)
+		return page(rv.items(items), req), nil
+	case "similar":
+		return rv.similar(src, req)
 	case "search":
-		term := strings.TrimSpace(q.Get("q"))
+		term := strings.TrimSpace(src.Str("query"))
 		if len(term) > 100 {
 			term = term[:100]
 		}
-		sections := []any{}
-		if len([]rune(term)) >= 2 {
-			for _, lib := range libs() {
-				if len(sections) >= l.MaxSections {
+		if len([]rune(term)) < 2 {
+			return sdui.SourceResult{}, nil
+		}
+		if src.Str("in") == "channels" {
+			return page(rv.channels(false, term, req.Offset+req.Limit+1, false), req), nil
+		}
+		if lib == nil {
+			return sdui.SourceResult{}, nil
+		}
+		return rv.libraryRows(lib, "title", false, req, term), nil
+	}
+	return sdui.SourceResult{}, nil
+}
+
+// channels are the channels the account may watch, with what is on now and next when asked.
+func (rv *sduiResolver) channels(favouritesOnly bool, search string, limit int, programmes bool) []sdui.Item {
+	s := rv.s
+	if s.Channels == nil || (rv.acc != nil && !rv.acc.LiveTV) {
+		return nil
+	}
+	rows := s.libraryRows(rv.ctx, rv.r)
+	if s.TV != nil && rv.acc.CanWatchChannels("tuner") {
+		rows = append(rows, s.tunerRows(rv.ctx, rv.r)...)
+	}
+	favs, _ := s.Channels.Favourites(rv.ctx, rv.u.ID)
+	search = strings.ToLower(search)
+	var out []sdui.Item
+	for i := range rows {
+		c := &rows[i]
+		if len(out) >= limit {
+			break
+		}
+		if (favouritesOnly && !favs[c.Key]) || (search != "" && !strings.Contains(strings.ToLower(c.Name), search)) || c.Encrypted != "" {
+			continue
+		}
+		it := sdui.Item{ID: c.Key, Kind: "channel", Title: c.Name, Number: c.Number, Subtitle: c.Number, Icon: "live", Route: "/tv/watch/" + c.Key, Scope: "wittytv", Images: map[string]string{}}
+		if strings.HasPrefix(c.Logo, "/api/") {
+			it.Images["logo"] = c.Logo
+		}
+		if programmes {
+			for _, p := range s.rowProgrammes(rv.ctx, c, rv.now, rv.now.Add(3*time.Hour)) {
+				pg := &sdui.Programme{Title: p.Title, Start: p.Start, End: p.End}
+				if p.Start <= rv.now.Unix() && p.End > rv.now.Unix() {
+					it.Now = pg
+				} else if p.Start > rv.now.Unix() && it.Next == nil {
+					it.Next = pg
 					break
 				}
-				if rows := s.sduiLibraryRows(r, lib, "title", false, l.MaxItems, 0, term); len(rows) > 0 {
-					sections = append(sections, map[string]any{"id": "lib" + itoa(lib.ID), "title": lib.Name, "items": rows})
+			}
+		}
+		out = append(out, it)
+	}
+	return out
+}
+
+// episodes are one season of a show: the one asked for, else the season of the next episode
+// to watch, else the first.
+func (rv *sduiResolver) episodes(src sdui.Source, req sdui.SourceRequest) (sdui.SourceResult, error) {
+	s := rv.s
+	id, _ := strconv.ParseInt(strings.TrimPrefix(src.Str("show"), "show-"), 10, 64)
+	sh, err := s.visibleShow(rv.r, id)
+	if err != nil {
+		return sdui.SourceResult{}, nil
+	}
+	eps, _, err := s.Store.Items(rv.ctx, library.ItemQuery{ShowID: sh.ID, Access: rv.acc, Limit: 3000, NoTotal: true, Brief: true})
+	if err != nil {
+		return sdui.SourceResult{}, err
+	}
+	season := -1
+	if v := src.Str("season"); v != "" {
+		season, _ = strconv.Atoi(v)
+	} else if next, _ := s.Store.NextUpItems(rv.ctx, rv.u.ID, []int64{sh.ID}, rv.acc, 1); len(next) > 0 && next[0].Season != nil {
+		season = *next[0].Season
+	}
+	var kept []*library.Item
+	for _, e := range eps {
+		if e.Season == nil {
+			continue
+		}
+		if season < 0 {
+			season = *e.Season
+			for _, x := range eps { // the lowest season that isn't specials
+				if x.Season != nil && *x.Season > 0 && (*x.Season < season || season == 0) {
+					season = *x.Season
 				}
 			}
-			if ch, _ := s.sduiChannels(r, l.MaxItems, term); len(ch) > 0 {
-				sections = append(sections, map[string]any{"id": "channels", "title": "Channels", "cardShape": "wide", "items": ch, "module": "wittytv"})
-			}
-			flags["searchEmpty"] = len(sections) == 0
-		} else {
-			flags["searchIdle"] = true
 		}
-		data["search"] = map[string]any{"query": term, "sections": sections}
-	case "livetv":
-		all, fav := s.sduiChannels(r, l.MaxGridItems, "")
-		flags["livetvEmpty"] = len(all) == 0
-		data["livetv"] = map[string]any{"channels": all, "favourites": fav}
-	case "music":
-		sections := []any{}
-		for _, lib := range libs() {
-			if lib.Type != "music" || len(sections) >= l.MaxSections {
+		if *e.Season == season {
+			kept = append(kept, e)
+		}
+	}
+	sort.SliceStable(kept, func(i, j int) bool {
+		a, b := 0, 0
+		if kept[i].Episode != nil {
+			a = *kept[i].Episode
+		}
+		if kept[j].Episode != nil {
+			b = *kept[j].Episode
+		}
+		return a < b
+	})
+	_ = s.Store.AttachProgress(rv.ctx, rv.u.ID, kept)
+	res := page(rv.items(kept), req)
+	if season >= 0 {
+		res.Selected = strconv.Itoa(season)
+	}
+	return res, nil
+}
+
+// similar are titles in the same library sharing the title's first genre, best scored first.
+func (rv *sduiResolver) similar(src sdui.Source, req sdui.SourceRequest) (sdui.SourceResult, error) {
+	s := rv.s
+	ref := src.Str("item")
+	var libID int64
+	var genres []string
+	exclude := ref
+	if id, ok := strings.CutPrefix(ref, "show-"); ok || rv.vars["show"] == ref && rv.vars["item"] == "" {
+		n, _ := strconv.ParseInt(id, 10, 64)
+		sh, err := s.visibleShow(rv.r, n)
+		if err != nil {
+			return sdui.SourceResult{}, nil
+		}
+		libID, genres, exclude = sh.LibraryID, sh.Genres, "show-"+itoa(sh.ID)
+	} else {
+		n, _ := strconv.ParseInt(ref, 10, 64)
+		it, err := s.visibleItem(rv.r, n)
+		if err != nil {
+			return sdui.SourceResult{}, nil
+		}
+		libID, genres = it.LibraryID, it.Genres
+		if it.ShowID != nil {
+			return sdui.SourceResult{}, nil // an episode's neighbours are its season
+		}
+	}
+	if len(genres) == 0 {
+		return sdui.SourceResult{}, nil
+	}
+	res, err := rv.browse(library.BrowseFilter{Library: libID, Genre: genres[0], Sort: "rating"}, sdui.SourceRequest{Offset: req.Offset, Limit: req.Limit + 1}, exclude)
+	if len(res.Items) > req.Limit {
+		res.Items, res.More = res.Items[:req.Limit], true
+	}
+	if res.Total > 0 {
+		res.Total--
+	}
+	return res, err
+}
+
+// Each lists what a repeated section is repeated over.
+func (rv *sduiResolver) Each(over string, kinds []string, limit int) ([]sdui.Each, error) {
+	var out []sdui.Each
+	switch over {
+	case "libraries":
+		for _, l := range rv.libraries() {
+			if len(kinds) > 0 && !containsStr(kinds, l.Type) {
 				continue
 			}
-			if rows := s.sduiLibraryRows(r, lib, "added", true, l.MaxItems, 0, ""); len(rows) > 0 {
-				sections = append(sections, map[string]any{"id": "lib" + itoa(lib.ID), "title": "Recently added in " + lib.Name, "cardShape": "square", "seeAll": "/library/" + itoa(lib.ID), "items": rows, "module": "wittymusic"})
+			out = append(out, sdui.Each{Key: itoa(l.ID), Label: l.Name, Kind: l.Type})
+		}
+		return out, rv.libsErr
+	case "pinnedViews":
+		views, err := rv.s.Store.SavedViews(rv.ctx, rv.u.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, v := range views {
+			if v.Pinned && (v.LibraryID == 0 || rv.acc.AllowsLibrary(v.LibraryID)) {
+				out = append(out, sdui.Each{Key: itoa(v.ID), Label: v.Name})
 			}
 		}
-		cont, _ := s.Store.ContinueWatching(ctx, u.ID, 4*l.MaxItems)
-		var listening []*library.Item
-		for _, it := range s.filterItems(ctx, acc, cont) {
-			if it.Kind == "audio" {
-				listening = append(listening, it)
+	case "collections":
+		list, err := rv.s.Store.Collections(rv.ctx, rv.u.ID, rv.acc)
+		if err != nil {
+			return nil, err
+		}
+		for _, c := range list {
+			if c.System == "" && c.Count > 0 {
+				out = append(out, sdui.Each{Key: itoa(c.ID), Label: c.Name})
 			}
 		}
-		_ = s.Store.AttachProgress(ctx, u.ID, listening)
-		flags["musicEmpty"] = len(sections) == 0
-		data["music"] = map[string]any{"sections": sections, "continueListening": sduiItems(listening, l.MaxItems)}
 	}
-	return nil
+	if len(out) > limit && limit > 0 {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
+func containsStr(list []string, s string) bool {
+	for _, x := range list {
+		if x == s {
+			return true
+		}
+	}
+	return false
+}
+
+// Subject is the title a detail page is about, read with the account's limits.
+func (rv *sduiResolver) Subject() (*sdui.Item, error) {
+	if rv.gotSubj {
+		if rv.subject == nil {
+			return nil, sdui.ErrNotFound
+		}
+		return rv.subject, nil
+	}
+	rv.gotSubj = true
+	s, v := rv.s, rv.vars
+	switch {
+	case v["collection"] != "":
+		id, _ := strconv.ParseInt(v["collection"], 10, 64)
+		c, err := s.Store.CollectionByID(rv.ctx, id, rv.u.ID, rv.u.IsAdmin)
+		if err != nil {
+			return nil, sdui.ErrNotFound
+		}
+		it := sdui.Item{ID: "collection-" + itoa(c.ID), Kind: "collection", Title: c.Name, Overview: c.Description, Count: c.Count, Route: "/collections/" + itoa(c.ID), Images: map[string]string{}}
+		if rv.acc.Can(library.FeatureSharing) {
+			it.Can = []string{"share"}
+		}
+		if c.CoverID != 0 {
+			it.Images["backdrop"], it.Images["poster"] = "/api/items/"+itoa(c.CoverID)+"/backdrop", "/api/items/"+itoa(c.CoverID)+"/poster"
+		}
+		rv.subject = &it
+	case v["album"] != "":
+		lib, ok := rv.library(v["library"])
+		if !ok {
+			return nil, sdui.ErrNotFound
+		}
+		albums, err := s.Store.AlbumsFiltered(rv.ctx, lib.ID, library.AlbumFilter{Artist: v["artist"], Sort: "title"}, rv.acc)
+		if err != nil {
+			return nil, sdui.ErrNotFound
+		}
+		for _, a := range albums {
+			if a.Title == v["album"] && (v["artist"] == "" || a.Artist == v["artist"]) {
+				it := rv.album(lib.ID, a)
+				if a.CoverItem != 0 {
+					it.PlayID, it.Can = itoa(a.CoverItem), rv.can("play")
+				}
+				rv.subject = &it
+				break
+			}
+		}
+	case v["show"] != "" && v["item"] == "":
+		id, _ := strconv.ParseInt(v["show"], 10, 64)
+		sh, err := s.visibleShow(rv.r, id)
+		if err != nil {
+			return nil, sdui.ErrNotFound
+		}
+		it := rv.show(sh)
+		it.Can = []string{"watchLater"}
+		if rv.acc.Can(library.FeatureSharing) {
+			it.Can = append(it.Can, "share")
+		}
+		// Play starts the next episode to watch, or the first.
+		if next, _ := s.Store.NextUpItems(rv.ctx, rv.u.ID, []int64{sh.ID}, rv.acc, 1); len(next) > 0 {
+			it.NextID = itoa(next[0].ID)
+		} else if first, _, _ := s.Store.Items(rv.ctx, library.ItemQuery{ShowID: sh.ID, Access: rv.acc, Limit: 1, NoTotal: true, Brief: true}); len(first) > 0 {
+			it.NextID = itoa(first[0].ID)
+		}
+		if it.NextID != "" {
+			it.Can = append([]string{"play"}, it.Can...)
+		}
+		rv.subject = &it
+	case v["item"] != "":
+		id, _ := strconv.ParseInt(v["item"], 10, 64)
+		raw, err := s.visibleItem(rv.r, id)
+		if err != nil {
+			return nil, sdui.ErrNotFound
+		}
+		_ = s.Store.AttachProgress(rv.ctx, rv.u.ID, []*library.Item{raw})
+		it := rv.item(raw)
+		rv.subject = &it
+	}
+	if rv.subject == nil {
+		return nil, sdui.ErrNotFound
+	}
+	return rv.subject, nil
+}
+
+// Seasons lists a show's seasons.
+func (rv *sduiResolver) Seasons(show string) ([]sdui.Item, error) {
+	id, _ := strconv.ParseInt(strings.TrimPrefix(show, "show-"), 10, 64)
+	if _, err := rv.s.visibleShow(rv.r, id); err != nil {
+		return nil, nil
+	}
+	seasons, err := rv.s.Store.Seasons(rv.ctx, id, rv.u.ID, rv.acc)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]sdui.Item, 0, len(seasons))
+	for _, se := range seasons {
+		title := se.Title
+		if title == "" {
+			title = "Season " + strconv.Itoa(se.Number)
+			if se.Number == 0 {
+				title = "Specials"
+			}
+		}
+		out = append(out, sdui.Item{ID: "season-" + strconv.Itoa(se.Number), Kind: "season", Season: se.Number, Title: title, Count: se.EpisodeCount, Unwatched: se.Unwatched})
+	}
+	return out, nil
+}
+
+// Facets gives a library's filter choices, from the library page's own facets.
+func (rv *sduiResolver) Facets(lib string, fields []string) ([]sdui.Facet, error) {
+	l, ok := rv.library(lib)
+	if !ok {
+		return nil, nil
+	}
+	f, err := rv.s.Store.LibraryFacets(rv.ctx, l.ID, rv.acc)
+	if err != nil || f == nil {
+		return nil, err
+	}
+	options := func(list []library.Facet, max int) []sdui.EnumOption {
+		var out []sdui.EnumOption
+		for i, x := range list {
+			if i >= max || x.Value == "" {
+				break
+			}
+			out = append(out, sdui.EnumOption{Value: x.Value, Label: firstNonEmpty(x.Label, x.Value)})
+		}
+		return out
+	}
+	var out []sdui.Facet
+	for _, field := range fields {
+		switch field {
+		case "genre":
+			out = append(out, sdui.Facet{ID: field, Label: "Genre", Options: options(f.Genres, 60)})
+		case "decade":
+			opts := options(f.Decades, 20)
+			for i := range opts {
+				if opts[i].Label == opts[i].Value {
+					opts[i].Label += "s"
+				}
+			}
+			out = append(out, sdui.Facet{ID: field, Label: "Decade", Options: opts})
+		case "year":
+			out = append(out, sdui.Facet{ID: field, Label: "Year", Options: options(f.Years, 80)})
+		case "content":
+			out = append(out, sdui.Facet{ID: field, Label: "Rating", Options: options(f.Content, 30)})
+		case "resolution":
+			out = append(out, sdui.Facet{ID: field, Label: "Resolution", Options: options(f.Resolutions, 8)})
+		case "studio":
+			out = append(out, sdui.Facet{ID: field, Label: "Studio", Options: options(f.Studios, 60)})
+		case "network":
+			out = append(out, sdui.Facet{ID: field, Label: "Network", Options: options(f.Networks, 60)})
+		case "tag":
+			out = append(out, sdui.Facet{ID: field, Label: "Tag", Options: options(f.Tags, 60)})
+		case "watched":
+			out = append(out, sdui.Facet{ID: field, Label: "Watched", Options: []sdui.EnumOption{{Value: "no", Label: "Unwatched"}, {Value: "yes", Label: "Watched"}}})
+		}
+	}
+	return out, nil
 }
 
 // sduiTopShelfRows are the rows a tvOS Top Shelf shows: what this account was in the
 // middle of, then what's new in the first libraries it may open.
-func (s *Server) sduiTopShelfRows(r *http.Request) []map[string]any {
-	ctx, u, acc := r.Context(), userFrom(r), s.access(r)
-	var rows []map[string]any
-	cont, _ := s.Store.ContinueWatching(ctx, u.ID, sdui.MaxTopShelfItems)
-	cont = s.filterItems(ctx, acc, cont)
-	_ = s.Store.AttachProgress(ctx, u.ID, cont)
-	if len(cont) > 0 {
-		rows = append(rows, map[string]any{"title": "Continue watching", "items": sduiItems(cont, sdui.MaxTopShelfItems)})
+func (s *Server) sduiTopShelfRows(r *http.Request) []sdui.TopShelfRow {
+	rv := s.newSDUIResolver(r, map[string]string{})
+	var rows []sdui.TopShelfRow
+	if res, _ := rv.Items(sdui.SourceRequest{Source: sdui.Source{"type": "continueWatching", "media": "watch"}, Limit: sdui.MaxTopShelfItems}); len(res.Items) > 0 {
+		rows = append(rows, sdui.TopShelfRow{Title: "Continue watching", Items: res.Items})
 	}
-	libs, _ := s.visibleLibraries(ctx, acc)
-	for _, lib := range libs {
+	for _, lib := range rv.libraries() {
 		if len(rows) >= sdui.MaxTopShelfSections {
 			break
 		}
-		if lib.Hidden() {
-			continue
-		}
-		if items := s.sduiLibraryRows(r, lib, "added", true, sdui.MaxTopShelfItems, 0, ""); len(items) > 0 {
-			rows = append(rows, map[string]any{"title": "New in " + lib.Name, "items": items})
+		if res := rv.libraryRows(&lib, "added", true, sdui.SourceRequest{Limit: sdui.MaxTopShelfItems}, ""); len(res.Items) > 0 {
+			rows = append(rows, sdui.TopShelfRow{Title: "New in " + lib.Name, Items: res.Items})
 		}
 	}
 	return rows

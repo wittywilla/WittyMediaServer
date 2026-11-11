@@ -1305,7 +1305,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /users/{id}/profile` | user | Change `displayName`, `username`, `showUsername` or `avatar` (`name:colour` from `/parental/ratings`, or empty). Which name the corner shows is anyone's own choice; the names are for an adult's own account and whoever manages the account. |
 | `GET /profiles/household` | user | The profiles this device can switch to, as `GET /profiles` lists them, with `avatar` and `current`. Empty where the sign-in screen hides profiles, unless an adult asks. |
 | `POST /profiles/switch` | user | Switch this device to another profile: `{name, password, code, device}` as `/login`. Answers a new `token` and `user`, and ends the session it was called with. A wrong password is 403 and the device stays signed in. |
-| `GET /me/limits` | user | What this profile may do: `features` (games, recordings, downloads, sharing, comments, writeComments, remote, editProfile, liveTv), its age limits (`maxAge`, `kinds`), its `time` rules and `screenTime` now. For hiding what is off. |
+| `GET /me/limits` | user | What this profile may do: `features` (games, recordings, downloads, sharing, comments, writeComments, remote, editProfile, editLayout, liveTv), its age limits (`maxAge`, `kinds`), its `time` rules and `screenTime` now. For hiding what is off. |
 | `GET /me/screen-time` | user | How long this profile may still play today: `allowed`, `reason` (allowance, bedtime, early), `remainingSec` (-1 = no limit), `until` and `nextAt` in Unix seconds, and a `message` to show. |
 | `POST /me/screen-time/extra` | user | Ask a parent: `{minutes, pin}` or `{minutes, name, password}` gives this profile more time today. 403 for a wrong PIN or password, 429 after too many. |
 | `POST /users/{id}/screen-time/extra` | user | Give a profile you manage more time today: `{minutes}`. |
@@ -1566,15 +1566,44 @@ for a song, with the stream token already in each `url`.
 
 ### Server-driven UI
 
+The contract is [SDUI.md](SDUI.md): the model, every component and data source, what a client sends and how it draws what it gets. The routes:
+
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /sdui/screens/{screen}` | user | A screen rendered for this account and device, as an SDUI document (docs/SDUI.md, schema in docs/sdui.schema.json): `home`, `libraries`, `library?library=`, `detail?item=` or `?show=`, `search?q=`, `livetv`, `music`, `player`, `settings`. Filled with what the account may see, and fitted to the device: say what it is with `platform`, `formFactor` (`tv`, `phone`, `tablet`, `desktop`, `web`), `deviceClass` (`hd` or `4k` for a TV), `catalog`, `viewport`, `locale` and `capabilities` (or the `X-WMS-*` headers). `ETag`; 304 with `If-None-Match`. 404 for a library or title the account may not open. |
-| `GET /sdui/topshelf` | user | Content for a tvOS Top Shelf extension: `{version, style: "sectioned", sections: [{title, items: [{id, title, shape, image, progress, displayRoute, playRoute}]}], expiresInSec}`, at most 4 sections of 10, pictures sized for `deviceClass`. `ETag`; 304 with `If-None-Match`. |
-| `GET /sdui/screens/{screen}/diff` | user | `?since=<etag>`: patches from the render the client has, or the whole `document` when the server no longer has it. 304 when nothing changed. |
-| `GET /sdui/config` | admin | All of `ui_config.json`: every screen and the theme overrides, with `etag`. |
-| `PUT /sdui/config` | admin | Replace it. `If-Match` is required: 428 without, 412 when someone saved in between. 400 lists every problem in `issues`. |
+| `GET /sdui/catalog` | user | The catalogue: every component, card style, data source, condition, page kind, route, command, icon and device profile, described as data (labels, help, types, defaults, choices, examples), so an editor builds its palette and forms from it and a renderer knows what it must draw. 304 with If-None-Match. |
+| `GET /sdui/navigation` | user | The main menu for this account on this device: entries in order with label, icon, route, placement (primary, more, end), each an SDUI page or a native screen. Settings is always there and always native. Libraries the account may not open are not listed. 304 with If-None-Match. |
+| `GET /sdui/navigation/personal` | user | This profile's own arrangement of the main menu (order, hidden), and whether it may change it. |
+| `PUT /sdui/navigation/personal` | user | Replace this profile's arrangement of the main menu. 403 when the profile may not rearrange pages (the editLayout switch) or the server has it off. |
+| `DELETE /sdui/navigation/personal` | user | Back to the main menu as everyone has it. |
+| `GET /sdui/pages/{page}` | user | A page, rendered for this account and device: an SDUI document (docs/SDUI.md, docs/sdui.schema.json). {page} is a kind of page (home, libraries, library?library=, detail?item= or ?show= or ?collection= or ?library=&artist=&album=, search?q=, livetv, music, photos, books, games, collections), chosen among the pages of that kind by what the request names, or one page's ID. Filled with what the account may see, cut to the device's budget, with components the client can't draw replaced by their fallbacks. 304 with If-None-Match. |
+| `GET /sdui/pages/{page}/diff` | user | ?since=<etag>: patches from the render the client has, or the whole document when the server no longer has it. 304 when nothing changed. |
+| `GET /sdui/pages/{page}/sections/{section}/items` | user | One page of a section's items: the next cards of a row or grid (cursor), a deferred row's first page, another season of a SeasonList (season). The address is given by the page itself (props.more.url, a season's url); send the same device parameters with it. |
+| `GET /sdui/pages/{page}/personal` | user | This profile's own arrangement of a page (order, hidden, pinned, density, cardSize, defaultTab), and whether it may change it. |
+| `PUT /sdui/pages/{page}/personal` | user | Replace this profile's arrangement of a page. Only its own. 403 when the profile may not rearrange pages (the editLayout switch) or the server has it off; 400 lists what is wrong. |
+| `DELETE /sdui/pages/{page}/personal` | user | Back to the page as everyone has it. |
+| `GET /sdui/topshelf` | user | Content for a tvOS Top Shelf extension: what this account was watching and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged. |
+| `GET /sdui/config` | admin | All of ui_config.json: the pages and navigation an administrator changed, the theme overrides, with its ETag. |
+| `PUT /sdui/config` | admin | Replace ui_config.json. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). Everything is validated; 400 lists the issues, each with a path, a message and a fix. |
 | `GET /sdui/config/history` | admin | The last 10 revisions, newest first. |
+| `GET /sdui/config/diff` | admin | What differs between two revisions (?from= and ?to=: a revision number, current or draft): pages added, removed and changed, and inside a changed page the sections added, removed, changed and whether they were reordered. |
 | `POST /sdui/config/rollback/{rev}` | admin | Make a kept revision current again, as a new revision. |
+| `GET /sdui/config/pages` | admin | Every page in force, built-in ones included: id, kind, title, icon, match, and whether it is builtin, changed or custom. |
+| `GET /sdui/config/pages/{page}` | admin | One page as authored, where it comes from, the built-in page it would reset to, and what the validator says of it. |
+| `PUT /sdui/config/pages/{page}` | admin | Save one page. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). 400 lists the issues. |
+| `DELETE /sdui/config/pages/{page}` | admin | Remove the configuration's page: a built-in page goes back to how it ships (reset to default), a page of the administrator's own is gone. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
+| `GET /sdui/config/navigation` | admin | The navigation as authored, and the built-in one. |
+| `PUT /sdui/config/navigation` | admin | Save the navigation. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). Settings can be moved but not hidden or given a condition. |
+| `DELETE /sdui/config/navigation` | admin | Back to the built-in navigation. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
+| `POST /sdui/validate` | admin | Check {"page": ...}, {"navigation": ...} or {"config": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. |
+| `GET /sdui/presets` | admin | The gallery of ready-made pages and sections: {presets: [{id, label, description, icon, kind, pageKinds, page or section}]}. |
+| `POST /sdui/presets/{id}/apply` | admin | Put a page preset in the configuration under the preset's own page ID. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
+| `GET /sdui/draft` | admin | The unpublished draft; 404 when there is none. |
+| `PUT /sdui/draft` | admin | Keep a whole configuration as the draft. If-Match, when sent, is the draft's ETag (the published configuration's when there is no draft yet). |
+| `DELETE /sdui/draft` | admin | Forget the draft and every preview of it. |
+| `POST /sdui/draft/publish` | admin | Make the draft the configuration everyone gets, as a new revision. If-Match, when sent, is the draft's ETag. |
+| `POST /sdui/draft/preview` | admin | A token that shows the draft to this administrator alone, on any device they are signed in on, for two hours: {token, expiresAt}. Sent as preview=<token> or X-WMS-SDUI-Preview with the page and navigation routes. |
+| `GET /sdui/export` | admin | One page (?page=<id>) or the whole configuration as a file: {format: "wittymedia-ui", formatVersion, kind, page or config}. |
+| `POST /sdui/import` | admin | Bring in a file made by export: a page (saved under its own ID) or a configuration (its pages and navigation replace the target's; its theme colours too with theme=1). Into the draft unless target=published, which needs If-Match. dryRun=1 only reports the issues and the changes. |
 
 ### Channels and live TV
 

@@ -1,0 +1,1130 @@
+{
+ "kit": 1,
+ "schemaVersion": 1,
+ "catalogRevision": 2,
+ "id": "custom-page-tv",
+ "title": "The same page on a television",
+ "checks": [
+  "a button that opens a web page is left out where there is no browser"
+ ],
+ "input": {
+  "page": {
+   "id": "family-night",
+   "kind": "custom",
+   "title": "Family film night",
+   "icon": "star",
+   "scope": "family",
+   "sections": [
+    {
+     "id": "intro",
+     "component": "Text",
+     "props": {
+      "format": "markdown",
+      "text": "## Friday, 7 o'clock\nPick **one** each. The [full list](/collections/12) is longer."
+     }
+    },
+    {
+     "id": "links",
+     "component": "Stack",
+     "props": {
+      "direction": "row",
+      "gap": "s"
+     },
+     "children": [
+      {
+       "id": "guide",
+       "component": "Button",
+       "props": {
+        "icon": "guide",
+        "label": "TV guide",
+        "native": "guide"
+       }
+      },
+      {
+       "id": "site",
+       "component": "Button",
+       "props": {
+        "icon": "globe",
+        "label": "Reviews",
+        "url": "https://example.org/reviews",
+        "variant": "ghost"
+       }
+      },
+      {
+       "id": "settings",
+       "component": "Button",
+       "props": {
+        "icon": "settings",
+        "label": "Settings",
+        "native": "settings"
+       }
+      }
+     ]
+    },
+    {
+     "id": "rule",
+     "component": "Divider"
+    },
+    {
+     "id": "two",
+     "component": "Split",
+     "props": {
+      "ratio": "2:1"
+     },
+     "children": [
+      {
+       "id": "picks",
+       "component": "Shelf",
+       "props": {
+        "cardSize": "l",
+        "title": "This week's picks"
+       },
+       "source": {
+        "collection": 12,
+        "type": "collection"
+       }
+      },
+      {
+       "id": "side",
+       "component": "Stack",
+       "children": [
+        {
+         "id": "pic",
+         "component": "Image",
+         "props": {
+          "alt": "A sofa and a bowl of popcorn",
+          "aspect": "4/3",
+          "src": "/api/collections/12/cover"
+         }
+        },
+        {
+         "id": "note",
+         "component": "Notice",
+         "props": {
+          "text": "Films over two hours start at six.",
+          "title": "Bedtime",
+          "tone": "warning"
+         }
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "gap",
+     "component": "Spacer",
+     "props": {
+      "size": "l"
+     }
+    },
+    {
+     "id": "more",
+     "component": "List",
+     "props": {
+      "title": "Elsewhere"
+     },
+     "children": [
+      {
+       "id": "all-films",
+       "component": "ListItem",
+       "props": {
+        "icon": "movie",
+        "subtitle": "Everything in the Films library",
+        "title": "All films",
+        "to": "/library/1"
+       }
+      },
+      {
+       "id": "rules",
+       "component": "ListItem",
+       "props": {
+        "title": "House rules",
+        "trailing": "3"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  "request": {
+   "formFactor": "tv",
+   "platform": "tvos",
+   "locale": "en-GB",
+   "now": "2026-11-11T19:30:00Z",
+   "profileKind": "adult",
+   "userName": "Sam",
+   "libraryKinds": [
+    "movies",
+    "shows",
+    "music",
+    "photos"
+   ],
+   "canPersonalise": true,
+   "serverName": "Den",
+   "features": [
+    "live-tv",
+    "recommendations",
+    "music"
+   ]
+  },
+  "data": {
+   "sources": [
+    {
+     "match": {
+      "collection": 12,
+      "type": "collection"
+     },
+     "items": [
+      {
+       "id": "101",
+       "kind": "movie",
+       "title": "Film 1",
+       "subtitle": "1991",
+       "overview": "A small crew sets out to find film number 1 and learns what was at home all along.",
+       "year": 1991,
+       "rating": 6.5,
+       "contentRating": "PG",
+       "runtimeSec": 5700,
+       "genres": [
+        "Adventure",
+        "Family"
+       ],
+       "images": {
+        "backdrop": "/api/items/101/backdrop",
+        "poster": "/api/items/101/poster"
+       },
+       "route": "/item/101",
+       "playId": "101",
+       "can": [
+        "play",
+        "watchLater",
+        "watched",
+        "download",
+        "share",
+        "playOn",
+        "watchParty"
+       ]
+      },
+      {
+       "id": "102",
+       "kind": "movie",
+       "title": "Film 2",
+       "subtitle": "1992",
+       "overview": "A small crew sets out to find film number 2 and learns what was at home all along.",
+       "year": 1992,
+       "rating": 7,
+       "contentRating": "PG",
+       "runtimeSec": 6000,
+       "genres": [
+        "Adventure",
+        "Family"
+       ],
+       "images": {
+        "backdrop": "/api/items/102/backdrop",
+        "poster": "/api/items/102/poster"
+       },
+       "route": "/item/102",
+       "playId": "102",
+       "can": [
+        "play",
+        "watchLater",
+        "watched",
+        "download",
+        "share",
+        "playOn",
+        "watchParty"
+       ]
+      },
+      {
+       "id": "103",
+       "kind": "movie",
+       "title": "Film 3",
+       "subtitle": "1993",
+       "overview": "A small crew sets out to find film number 3 and learns what was at home all along.",
+       "year": 1993,
+       "rating": 7.5,
+       "contentRating": "PG",
+       "runtimeSec": 6300,
+       "genres": [
+        "Adventure",
+        "Family"
+       ],
+       "images": {
+        "backdrop": "/api/items/103/backdrop",
+        "poster": "/api/items/103/poster"
+       },
+       "route": "/item/103",
+       "playId": "103",
+       "can": [
+        "play",
+        "watchLater",
+        "watched",
+        "download",
+        "share",
+        "playOn",
+        "watchParty"
+       ]
+      },
+      {
+       "id": "104",
+       "kind": "movie",
+       "title": "Film 4",
+       "subtitle": "1994",
+       "overview": "A small crew sets out to find film number 4 and learns what was at home all along.",
+       "year": 1994,
+       "rating": 6,
+       "contentRating": "PG",
+       "runtimeSec": 6600,
+       "genres": [
+        "Adventure",
+        "Family"
+       ],
+       "images": {
+        "backdrop": "/api/items/104/backdrop",
+        "poster": "/api/items/104/poster"
+       },
+       "route": "/item/104",
+       "playId": "104",
+       "can": [
+        "play",
+        "watchLater",
+        "watched",
+        "download",
+        "share",
+        "playOn",
+        "watchParty"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "expected": {
+  "document": {
+   "version": 1,
+   "catalog": 2,
+   "page": {
+    "id": "family-night",
+    "kind": "custom",
+    "title": "Family film night",
+    "icon": "star",
+    "route": "/page/family-night"
+   },
+   "layout": {
+    "formFactor": "tv",
+    "class": "hd",
+    "canvas": {
+     "width": 1920,
+     "height": 1080
+    },
+    "scale": 1,
+    "breakpoint": "large",
+    "safeArea": {
+     "top": 60,
+     "right": 80,
+     "bottom": 60,
+     "left": 80
+    },
+    "focusEngine": true,
+    "density": "comfortable",
+    "spacing": {
+     "l": 60,
+     "m": 40,
+     "none": 0,
+     "s": 20,
+     "xl": 100,
+     "xs": 10
+    },
+    "text": {
+     "badge": 23,
+     "body": 29,
+     "caption": 25,
+     "heading": 57,
+     "pageTitle": 76,
+     "title": 48
+    },
+    "cards": {
+     "album": {
+      "shape": "square",
+      "aspect": "1/1",
+      "width": {
+       "l": 350,
+       "m": 280,
+       "s": 224
+      },
+      "columns": 6
+     },
+     "book": {
+      "shape": "poster",
+      "aspect": "2/3",
+      "width": {
+       "l": 312,
+       "m": 250,
+       "s": 200
+      },
+      "columns": 6
+     },
+     "channel": {
+      "shape": "landscape",
+      "aspect": "16/9",
+      "width": {
+       "l": 524,
+       "m": 420,
+       "s": 336
+      },
+      "columns": 4
+     },
+     "chip": {
+      "shape": "chip",
+      "width": {
+       "l": 0,
+       "m": 0,
+       "s": 0
+      }
+     },
+     "circle": {
+      "shape": "circle",
+      "aspect": "1/1",
+      "width": {
+       "l": 274,
+       "m": 220,
+       "s": 176
+      },
+      "columns": 7
+     },
+     "episode": {
+      "shape": "landscape",
+      "aspect": "16/9",
+      "width": {
+       "l": 524,
+       "m": 420,
+       "s": 336
+      },
+      "columns": 4
+     },
+     "game": {
+      "shape": "poster",
+      "aspect": "3/4",
+      "width": {
+       "l": 312,
+       "m": 250,
+       "s": 200
+      },
+      "columns": 6
+     },
+     "landscape": {
+      "shape": "landscape",
+      "aspect": "16/9",
+      "width": {
+       "l": 524,
+       "m": 420,
+       "s": 336
+      },
+      "columns": 4
+     },
+     "person": {
+      "shape": "circle",
+      "aspect": "1/1",
+      "width": {
+       "l": 274,
+       "m": 220,
+       "s": 176
+      },
+      "columns": 7
+     },
+     "photo": {
+      "shape": "square",
+      "aspect": "1/1",
+      "width": {
+       "l": 350,
+       "m": 280,
+       "s": 224
+      },
+      "columns": 6
+     },
+     "poster": {
+      "shape": "poster",
+      "aspect": "2/3",
+      "width": {
+       "l": 312,
+       "m": 250,
+       "s": 200
+      },
+      "columns": 6
+     },
+     "progress": {
+      "shape": "landscape",
+      "aspect": "16/9",
+      "width": {
+       "l": 524,
+       "m": 420,
+       "s": 336
+      },
+      "columns": 4
+     },
+     "square": {
+      "shape": "square",
+      "aspect": "1/1",
+      "width": {
+       "l": 350,
+       "m": 280,
+       "s": 224
+      },
+      "columns": 6
+     },
+     "tile": {
+      "shape": "landscape",
+      "aspect": "16/9",
+      "width": {
+       "l": 524,
+       "m": 420,
+       "s": 336
+      },
+      "columns": 4
+     }
+    },
+    "hero": {
+     "width": 1920,
+     "height": 620
+    },
+    "imageWidths": [
+     120,
+     160,
+     240,
+     320,
+     480,
+     640,
+     960,
+     1280,
+     1920,
+     2560,
+     3840
+    ],
+    "budget": {
+     "maxSections": 12,
+     "eagerSections": 4,
+     "shelfItems": 12,
+     "gridItems": 36,
+     "listItems": 30,
+     "pageSize": 24,
+     "heroItems": 5,
+     "repeats": 8
+    },
+    "textLimits": {
+     "title": 80,
+     "subtitle": 80,
+     "synopsis": 160,
+     "overview": 480
+    },
+    "externalLinks": false
+   },
+   "theme": {
+    "scope": "family"
+   },
+   "root": {
+    "type": "Page",
+    "id": "page",
+    "props": {
+     "title": "Family film night"
+    },
+    "children": [
+     {
+      "type": "Text",
+      "id": "intro",
+      "props": {
+       "format": "markdown",
+       "text": "## Friday, 7 o'clock\nPick **one** each. The [full list](/collections/12) is longer."
+      }
+     },
+     {
+      "type": "Stack",
+      "id": "links",
+      "props": {
+       "direction": "row",
+       "gap": "s"
+      },
+      "children": [
+       {
+        "type": "Button",
+        "id": "guide",
+        "props": {
+         "icon": "guide",
+         "label": "TV guide"
+        },
+        "action": {
+         "type": "native",
+         "to": "guide"
+        },
+        "focus": {
+         "order": 1,
+         "group": "links",
+         "default": true
+        }
+       },
+       {
+        "type": "Button",
+        "id": "settings",
+        "props": {
+         "icon": "settings",
+         "label": "Settings"
+        },
+        "action": {
+         "type": "native",
+         "to": "settings"
+        },
+        "focus": {
+         "order": 2,
+         "group": "links"
+        }
+       }
+      ]
+     },
+     {
+      "type": "Divider",
+      "id": "rule"
+     },
+     {
+      "type": "Split",
+      "id": "two",
+      "props": {
+       "ratio": "2:1"
+      },
+      "children": [
+       {
+        "type": "Shelf",
+        "id": "picks",
+        "props": {
+         "card": {
+          "aspect": "2/3",
+          "height": 468,
+          "shape": "poster",
+          "width": 312
+         },
+         "cardSize": "l",
+         "cardStyle": "poster",
+         "title": "This week's picks",
+         "total": 4
+        },
+        "children": [
+         {
+          "type": "Card",
+          "id": "picks:101",
+          "props": {
+           "image": {
+            "aspect": "2/3",
+            "height": 480,
+            "kind": "poster",
+            "url": "/api/items/101/poster?w=320",
+            "width": 320
+           },
+           "itemId": "101",
+           "kind": "movie",
+           "playId": "101",
+           "shape": "poster",
+           "style": "poster",
+           "subtitle": "1991",
+           "title": "Film 1"
+          },
+          "action": {
+           "type": "navigate",
+           "to": "/item/101"
+          },
+          "focus": {
+           "order": 3,
+           "group": "picks"
+          }
+         },
+         {
+          "type": "Card",
+          "id": "picks:102",
+          "props": {
+           "image": {
+            "aspect": "2/3",
+            "height": 480,
+            "kind": "poster",
+            "url": "/api/items/102/poster?w=320",
+            "width": 320
+           },
+           "itemId": "102",
+           "kind": "movie",
+           "playId": "102",
+           "shape": "poster",
+           "style": "poster",
+           "subtitle": "1992",
+           "title": "Film 2"
+          },
+          "action": {
+           "type": "navigate",
+           "to": "/item/102"
+          },
+          "focus": {
+           "order": 4,
+           "group": "picks"
+          }
+         },
+         {
+          "type": "Card",
+          "id": "picks:103",
+          "props": {
+           "image": {
+            "aspect": "2/3",
+            "height": 480,
+            "kind": "poster",
+            "url": "/api/items/103/poster?w=320",
+            "width": 320
+           },
+           "itemId": "103",
+           "kind": "movie",
+           "playId": "103",
+           "shape": "poster",
+           "style": "poster",
+           "subtitle": "1993",
+           "title": "Film 3"
+          },
+          "action": {
+           "type": "navigate",
+           "to": "/item/103"
+          },
+          "focus": {
+           "order": 5,
+           "group": "picks"
+          }
+         },
+         {
+          "type": "Card",
+          "id": "picks:104",
+          "props": {
+           "image": {
+            "aspect": "2/3",
+            "height": 480,
+            "kind": "poster",
+            "url": "/api/items/104/poster?w=320",
+            "width": 320
+           },
+           "itemId": "104",
+           "kind": "movie",
+           "playId": "104",
+           "shape": "poster",
+           "style": "poster",
+           "subtitle": "1994",
+           "title": "Film 4"
+          },
+          "action": {
+           "type": "navigate",
+           "to": "/item/104"
+          },
+          "focus": {
+           "order": 6,
+           "group": "picks"
+          }
+         }
+        ]
+       },
+       {
+        "type": "Stack",
+        "id": "side",
+        "children": [
+         {
+          "type": "Image",
+          "id": "pic",
+          "props": {
+           "alt": "A sofa and a bowl of popcorn",
+           "aspect": "4/3",
+           "image": {
+            "aspect": "4/3",
+            "height": 720,
+            "kind": "image",
+            "url": "/api/collections/12/cover?w=960",
+            "width": 960
+           }
+          }
+         },
+         {
+          "type": "Notice",
+          "id": "note",
+          "props": {
+           "text": "Films over two hours start at six.",
+           "title": "Bedtime",
+           "tone": "warning"
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "Spacer",
+      "id": "gap",
+      "props": {
+       "size": "l"
+      }
+     },
+     {
+      "type": "List",
+      "id": "more",
+      "props": {
+       "title": "Elsewhere"
+      },
+      "children": [
+       {
+        "type": "ListItem",
+        "id": "all-films",
+        "props": {
+         "icon": "movie",
+         "subtitle": "Everything in the Films library",
+         "title": "All films"
+        },
+        "action": {
+         "type": "navigate",
+         "to": "/library/1"
+        },
+        "focus": {
+         "order": 7,
+         "group": "more"
+        }
+       },
+       {
+        "type": "ListItem",
+        "id": "rules",
+        "props": {
+         "title": "House rules",
+         "trailing": "3"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "personal": {
+    "editable": true,
+    "allow": [
+     "reorder",
+     "hide",
+     "pin",
+     "density",
+     "cardSize",
+     "defaultTab"
+    ],
+    "sections": [
+     {
+      "id": "intro",
+      "title": "Text"
+     },
+     {
+      "id": "links",
+      "title": "Stack"
+     },
+     {
+      "id": "rule",
+      "title": "Divider"
+     },
+     {
+      "id": "two",
+      "title": "Two columns"
+     },
+     {
+      "id": "gap",
+      "title": "Space"
+     },
+     {
+      "id": "more",
+      "title": "Elsewhere"
+     }
+    ],
+    "url": "/api/v1/sdui/pages/family-night/personal"
+   },
+   "meta": {
+    "generatedAt": "2026-11-11T19:30:00Z",
+    "etag": "W/\"sha256-534bda72a3a54e534bf344479f8fc015\"",
+    "source": "builtin",
+    "ttlSeconds": 300
+   }
+  },
+  "layout": {
+   "kit": 1,
+   "page": {
+    "title": "Family film night",
+    "formFactor": "tv",
+    "breakpoint": "large",
+    "density": "comfortable",
+    "contentWidth": 1760,
+    "sectionGap": 60,
+    "scope": "family"
+   },
+   "visible": [
+    {
+     "id": "page",
+     "type": "Page",
+     "depth": 0,
+     "role": "main",
+     "label": "Family film night"
+    },
+    {
+     "id": "intro",
+     "type": "Text",
+     "depth": 1,
+     "role": "text",
+     "label": "Friday, 7 o'clock Pick one each. The full list is longer.",
+     "text": {
+      "text": "## Friday, 7 o'clock\nPick **one** each. The [full list](/collections/12) is longer."
+     },
+     "textSize": 29
+    },
+    {
+     "id": "links",
+     "type": "Stack",
+     "depth": 1,
+     "role": "none",
+     "label": ""
+    },
+    {
+     "id": "guide",
+     "type": "Button",
+     "depth": 2,
+     "role": "button",
+     "label": "TV guide",
+     "text": {
+      "title": "TV guide"
+     },
+     "lines": {
+      "title": 1
+     },
+     "action": "native guide"
+    },
+    {
+     "id": "settings",
+     "type": "Button",
+     "depth": 2,
+     "role": "button",
+     "label": "Settings",
+     "text": {
+      "title": "Settings"
+     },
+     "lines": {
+      "title": 1
+     },
+     "action": "native settings"
+    },
+    {
+     "id": "rule",
+     "type": "Divider",
+     "depth": 1,
+     "role": "separator",
+     "label": ""
+    },
+    {
+     "id": "two",
+     "type": "Split",
+     "depth": 1,
+     "role": "none",
+     "label": ""
+    },
+    {
+     "id": "picks",
+     "type": "Shelf",
+     "depth": 2,
+     "role": "list",
+     "label": "This week's picks",
+     "text": {
+      "title": "This week's picks"
+     },
+     "lines": {
+      "title": 1
+     },
+     "textSize": 48,
+     "cards": 4,
+     "cardStyle": "poster",
+     "cardWidth": 312,
+     "cardHeight": 468
+    },
+    {
+     "id": "picks:101",
+     "type": "Card",
+     "depth": 3,
+     "role": "button",
+     "label": "Film 1, 1991",
+     "text": {
+      "subtitle": "1991",
+      "title": "Film 1"
+     },
+     "lines": {
+      "subtitle": 1,
+      "title": 1
+     },
+     "image": "poster 320",
+     "shows": [
+      "title",
+      "subtitle"
+     ],
+     "action": "navigate /item/101"
+    },
+    {
+     "id": "picks:102",
+     "type": "Card",
+     "depth": 3,
+     "role": "button",
+     "label": "Film 2, 1992",
+     "text": {
+      "subtitle": "1992",
+      "title": "Film 2"
+     },
+     "lines": {
+      "subtitle": 1,
+      "title": 1
+     },
+     "image": "poster 320",
+     "shows": [
+      "title",
+      "subtitle"
+     ],
+     "action": "navigate /item/102"
+    },
+    {
+     "id": "picks:103",
+     "type": "Card",
+     "depth": 3,
+     "role": "button",
+     "label": "Film 3, 1993",
+     "text": {
+      "subtitle": "1993",
+      "title": "Film 3"
+     },
+     "lines": {
+      "subtitle": 1,
+      "title": 1
+     },
+     "image": "poster 320",
+     "shows": [
+      "title",
+      "subtitle"
+     ],
+     "action": "navigate /item/103"
+    },
+    {
+     "id": "picks:104",
+     "type": "Card",
+     "depth": 3,
+     "role": "button",
+     "label": "Film 4, 1994",
+     "text": {
+      "subtitle": "1994",
+      "title": "Film 4"
+     },
+     "lines": {
+      "subtitle": 1,
+      "title": 1
+     },
+     "image": "poster 320",
+     "shows": [
+      "title",
+      "subtitle"
+     ],
+     "action": "navigate /item/104"
+    },
+    {
+     "id": "side",
+     "type": "Stack",
+     "depth": 2,
+     "role": "none",
+     "label": ""
+    },
+    {
+     "id": "pic",
+     "type": "Image",
+     "depth": 3,
+     "role": "img",
+     "label": "A sofa and a bowl of popcorn",
+     "image": "image 960"
+    },
+    {
+     "id": "note",
+     "type": "Notice",
+     "depth": 3,
+     "role": "alert",
+     "label": "Bedtime. Films over two hours start at six.",
+     "text": {
+      "text": "Films over two hours start at six.",
+      "title": "Bedtime"
+     }
+    },
+    {
+     "id": "gap",
+     "type": "Spacer",
+     "depth": 1,
+     "role": "none",
+     "label": ""
+    },
+    {
+     "id": "more",
+     "type": "List",
+     "depth": 1,
+     "role": "list",
+     "label": "Elsewhere",
+     "text": {
+      "title": "Elsewhere"
+     },
+     "cards": 2
+    },
+    {
+     "id": "all-films",
+     "type": "ListItem",
+     "depth": 2,
+     "role": "button",
+     "label": "All films, Everything in the Films library",
+     "text": {
+      "subtitle": "Everything in the Films library",
+      "title": "All films"
+     },
+     "lines": {
+      "subtitle": 1,
+      "title": 1
+     },
+     "action": "navigate /library/1"
+    },
+    {
+     "id": "rules",
+     "type": "ListItem",
+     "depth": 2,
+     "role": "text",
+     "label": "House rules, 3",
+     "text": {
+      "title": "House rules",
+      "trailing": "3"
+     },
+     "lines": {
+      "subtitle": 1,
+      "title": 1
+     }
+    }
+   ],
+   "focus": {
+    "order": [
+     "guide",
+     "settings",
+     "picks:101",
+     "picks:102",
+     "picks:103",
+     "picks:104",
+     "all-films"
+    ],
+    "default": "guide",
+    "groups": {
+     "links": [
+      "guide",
+      "settings"
+     ],
+     "more": [
+      "all-films"
+     ],
+     "picks": [
+      "picks:101",
+      "picks:102",
+      "picks:103",
+      "picks:104"
+     ]
+    }
+   }
+  }
+ }
+}

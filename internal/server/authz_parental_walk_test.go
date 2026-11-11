@@ -250,7 +250,7 @@ func (f *walkFixture) walkTargets(t *testing.T, route string) (targets []string,
 		others = append(others, fmt.Sprint(lib))
 	}
 	fill := strings.NewReplacer("{n}", "1", "{kind}", "poster", "{file}", "x.vtt", "{file...}", "x", "{key}", "x", "{sid}", "x", "{slot}", "1",
-		"{serial}", "1", "{name}", "x", "{ttn}", "1", "{stem}", "vocals", "{console}", "nes", "{bezel}", "x", "{screen}", "home", "{cid}", "1",
+		"{serial}", "1", "{name}", "x", "{ttn}", "1", "{stem}", "vocals", "{console}", "nes", "{bezel}", "x", "{page}", "home", "{section}", "recent-1", "{cid}", "1",
 		"{aid}", "1", "{app}", "1", "{patch}", "x", "{session}", "x", "{rest...}", "x", "{version}", "1", "{path...}", "x", "{user}", "1", "{token}", "x")
 	queries := []string{"", "?kind=studio", "?kind=network", "?search=" + hiddenSearch + "&q=" + hiddenSearch + "&query=" + hiddenSearch + "&name=" + hiddenSearch + "&artist=" + hiddenSearch + "+artist&album=" + hiddenSearch + "+album&limit=200&year=" + fmt.Sprint(time.Now().Year())}
 	i := strings.Index(path, "{id}")
@@ -420,9 +420,31 @@ func TestLimitedProfilesNeverSeeHiddenTitles(t *testing.T) {
 			{"POST", "/api/collections/preview", map[string]any{"rule": map[string]any{"search": hiddenSearch}}},
 			{"POST", "/api/collections/preview", map[string]any{"rule": map[string]any{"genres": []string{hiddenWord + "genre"}}}},
 			{"POST", "/api/logos/lookup", map[string]any{"names": []string{hiddenWord + " studio"}}},
+			// Server-driven pages, each kind of them, and what a page can be made to name.
+			{"GET", "/api/sdui/pages/search?q=" + hiddenSearch, nil}, {"GET", "/api/sdui/pages/libraries", nil}, {"GET", "/api/sdui/pages/collections", nil},
+			{"GET", "/api/sdui/pages/music", nil}, {"GET", "/api/sdui/pages/books", nil}, {"GET", "/api/sdui/pages/games", nil}, {"GET", "/api/sdui/pages/photos", nil},
+			{"GET", "/api/sdui/pages/livetv", nil}, {"GET", "/api/sdui/pages/home?platform=tvos&deviceClass=4k", nil}, {"GET", "/api/sdui/pages/home?components=none", nil},
+			{"GET", "/api/sdui/navigation", nil}, {"GET", fmt.Sprintf("/api/sdui/pages/detail?show=%d", f.show.ID), nil},
+			{"GET", fmt.Sprintf("/api/sdui/pages/detail-show/sections/episodes/items?show=%d&season=1", f.show.ID), nil},
+			{"GET", fmt.Sprintf("/api/sdui/pages/detail?collection=%d", f.collection), nil},
+			{"GET", fmt.Sprintf("/api/sdui/pages/detail-collection/sections/all/items?collection=%d", f.collection), nil},
 		} {
 			if w := f.call(c.method, c.target, tok, c.body); leaks(w.Body.String()) {
 				t.Errorf("%s: %s %s names what is hidden: %.300s", p.name, c.method, c.target, w.Body.String())
+			}
+		}
+		for _, lib := range f.hiddenLibs {
+			for _, target := range []string{"/api/sdui/pages/library?library=%d", "/api/sdui/pages/library/sections/all/items?library=%d", "/api/sdui/pages/home/sections/recent-%d/items"} {
+				if w := f.call("GET", fmt.Sprintf(target, lib), tok, nil); leaks(w.Body.String()) {
+					t.Errorf("%s: GET %s names what is hidden: %.300s", p.name, fmt.Sprintf(target, lib), w.Body.String())
+				}
+			}
+		}
+		for _, it := range f.hidden {
+			for _, target := range []string{"/api/sdui/pages/detail?item=%d", "/api/sdui/pages/detail/sections/similar/items?item=%d", "/api/sdui/pages/detail/diff?since=x&item=%d"} {
+				if w := f.call("GET", fmt.Sprintf(target, it.ID), tok, nil); leaks(w.Body.String()) || (w.Code >= 200 && w.Code < 300) {
+					t.Errorf("%s: GET %s for a hidden title: %d %.300s", p.name, fmt.Sprintf(target, it.ID), w.Code, w.Body.String())
+				}
 			}
 		}
 		for _, it := range f.hidden {

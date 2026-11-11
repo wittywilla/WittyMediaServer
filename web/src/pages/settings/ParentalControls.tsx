@@ -92,6 +92,7 @@ const FEATURES: { id: string; label: string; hint: string; adultOnly?: boolean; 
   { id: 'comments', label: 'Comments', hint: 'Read and write comments.', kidsLabel: 'Read comments. Kids and Guest profiles never write them.' },
   { id: 'remote', label: 'Use away from home', hint: 'Off keeps this profile to your home network: it is signed out everywhere else.' },
   { id: 'editProfile', label: 'Change their own name and picture', hint: 'Their username and password stay with whoever manages them.' },
+  { id: 'editLayout', label: 'Rearrange pages for themselves', hint: 'Reorder, hide and pin the rows of Home and other pages, and choose card sizes. Off shows every page as you set it up.' },
 ]
 
 // What the profile may do, one switch each. Share links are for grown-up accounts whatever is chosen.

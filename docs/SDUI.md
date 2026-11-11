@@ -1,787 +1,2521 @@
 # Server-Driven UI (SDUI)
 
-WittyMediaServer can describe a screen — the home page, a library, an item's
-details, the player, settings — as data rather than as code baked into each
-client. The server sends a tree of components; the web app, a TV app or a
-phone app walks that tree and draws it with its own widgets. Re-ordering the
-home screen, adding a shelf when a module is installed, or hiding a section
-from guests becomes a server-side change every client picks up at once.
+WittyMediaServer describes the pages of its apps as data. An administrator
+says what Home holds, in what order, for whom; the server works out what that
+comes to for one profile on one device and sends a tree of components; the web
+app, the Apple apps and the Android apps each draw that tree with their own
+widgets. Re-ordering Home, giving Kids profiles their own Home, adding a page
+for film night or a row for one collection is a change on the server that
+every app picks up at once.
 
-The Go library behind this is [`pkg/sdui`](../pkg/sdui/README.md)
-(`github.com/wittywilla/wittymediaserver/pkg/sdui`). It is pure Go, standard
-library only, and knows nothing about HTTP or storage. This document is the
-reference for the schema, the rendering rules, the patch protocol, and what a
-client must do. The same schema as a file for tools is
-[`sdui.schema.json`](sdui.schema.json) (JSON Schema 2020-12), made from the
-code and kept current by a test.
+This document is the contract: the model, every component and data source,
+what a client sends, what it is sent, and exactly how it must draw it. The
+same thing for tools:
+
+- [`sdui.schema.json`](sdui.schema.json): a JSON Schema of everything sent and
+  accepted, written from the code;
+- `GET /api/v1/sdui/catalog`: the catalogue as data, for editors;
+- [`pkg/sdui/conformance`](../pkg/sdui/conformance/README.md): fixtures that
+  pin the contract down case by case, for renderers' test suites.
+
+The Go library behind it is [`pkg/sdui`](../pkg/sdui/README.md): pure Go,
+standard library only, no HTTP and no storage.
+
+**Settings is not part of this.** Every app keeps its own Settings, built by
+hand. SDUI can link to it (a button, a navigation entry) and nothing more:
+there is no Settings page kind, and the navigation always holds the native
+Settings entry.
+
+## Design
+
+### What was wrong with the first schema
+
+The first schema (catalogue revision 1, never released) was a general UI
+toolkit: 23 node types (`Screen`, `Stack`, `Grid`, `Shelf`, `PosterRow`,
+`Card`, `Text`, `Button`, `Toolbar`, `Modal`, `Video`, ...), each with a
+`style` of CSS-like fields, `bindings` from props to JSONPath-like data paths,
+and a table of named actions. Looked at against this application, page by
+page, it had six problems.
+
+1. **It was a layout language, and this is a media library.** To put
+   "Continue watching" on Home an administrator had to know that it is a
+   `PosterRow` whose `items` prop is bound to `$.home.continueWatching` with
+   `cardShape: "wide"` and an `itemAction` naming an entry in `actions` whose
+   target is `$route`. Nothing in that says "continue watching". The things a
+   media app is made of (a spotlight, a row of posters, a title's header, a
+   show's seasons, an album's tracks, a filter bar over a grid) had no names;
+   each had to be assembled from stacks and cards, and nothing assembled that
+   way looks right on a television, because a television's row is not a
+   horizontal stack of boxes.
+
+2. **Data was whatever the server happened to put in `Data`.** A row could
+   only show what the server pre-computed for that screen under a path
+   somebody had to know (`$.home.sections`, `$.library.items`). There was no
+   way to ask for a genre, a collection, a saved view, the top rated, a random
+   pick; no paging, so a library page was the first 60 to 200 items and then
+   nothing; and the server ran every query for a screen whether or not the
+   page used the result.
+
+3. **It could not express what the real pages do.** The app's own library
+   pages filter and sort; its show pages switch season; its music library has
+   tabs; Home's rows can be re-ordered and hidden by each profile; detail
+   pages offer different buttons to a profile that may not download. None of
+   that was expressible. `Tabs` existed but sent every tab's content at once;
+   `player` and `settings` were "screens" that no app could honestly draw
+   from a tree.
+
+4. **Renderers would have diverged.** `style` carried pixels, CSS padding
+   strings, `class` hooks and literal colours; a SwiftUI renderer and a
+   Compose renderer would each have invented what `"padding": "8px 16px"`
+   means on a television. Card sizes were per device but text truncation,
+   loading and empty states, accessibility labels, focus movement between
+   rows and what to do with an unknown card were left to each renderer.
+   Literal colours also defeated the theme engine.
+
+5. **It was hard to use.** There was no description of the catalogue a tool
+   could read: an editor would have hard-coded every component and prop.
+   Validation said `/root/children/2/props/title: required` and nothing about
+   what to do. There were no presets, no draft, no preview, no way to reset
+   one page, and the configuration held a full copy of every stock screen, so
+   a server upgrade could never improve a page.
+
+6. **One screen for everyone.** Conditions could hide a node by role or
+   platform, but there was no notion of a page per library or per kind of
+   title, of a variant for Kids profiles, or of a profile's own arrangement;
+   and the navigation itself (which tabs, in what order, on which device) was
+   outside the model.
+
+### What it is now
+
+- **Semantic components.** A page is a list of *sections*, each one a
+  component a person would name: `Hero`, `Shelf`, `Grid`, `DetailHeader`,
+  `SeasonList`, `TrackList`, `FilterBar`, `Tabs`, `Banner`, `Notice`, `Text`.
+  Each renderer maps a component to its platform's own idiom (a tvOS shelf
+  with the focus engine's lift and parallax, a Compose `LazyRow`, a CSS grid),
+  which is what makes the result good everywhere. A small set of layout
+  components (`Stack`, `Split`, `Spacer`, `Divider`, `Button`, `Image`,
+  `List`) is there for pages of one's own.
+- **Data sources.** A section says where its items come from by name:
+  `{"type": "recentlyAdded", "library": 3}`, `{"type": "genre", "genre":
+  "Comedy"}`, `{"type": "collection", "collection": 12}`. The server answers
+  each with the library's own indexed queries, through the profile's limits,
+  only for sections that are on the page, a page of items at a time. How an
+  item becomes a card is fixed by the card's style: nobody writes a field
+  path.
+- **Layers.** Built-in pages; over them the administrator's; a page per
+  library, kind of library or kind of title; a variant for a kind of profile
+  or device; conditions on any section; and each profile's own order, hidden
+  and pinned rows, density and card sizes, merged by the server.
+- **A catalogue that describes itself**, validation that says what to do,
+  presets, a draft with a preview on a real device, import and export,
+  history with a diff, and reset to default by deleting a page.
+- **Navigation in the model**, with Settings always present and always
+  native.
+- **Rules a renderer can be tested against.** Sizes are abstract and resolved
+  by the device profile; colours are theme tokens only; focus, states,
+  truncation, labels and pictures are specified here and pinned down by
+  fixtures.
+
+Two things were deliberately left out. There is no expression language:
+conditions are a fixed set of fields, because anything else is code an
+administrator has to debug. And there are no scripts, no web views and no
+arbitrary addresses: a page can only open places in the app, the app's own
+screens, and (where the device has a browser) a web page in the browser.
 
 ## Designed for tvOS first
 
-An Apple TV is the strictest device a screen has to work on, so the schema is
+An Apple TV is the strictest device a page has to work on, so the model is
 built around its rules and every other device gets them for free.
 
-| tvOS rule | What the schema does about it |
+| tvOS rule | What the model does about it |
 |---|---|
-| There is no pointer. Everything a person can act on must take focus, and focus must start somewhere. | Every rendered node a person can act on has `focus.focusable`, a `focus.order` in reading order, and a `focus.group`; exactly one has `focus.default`. See [Focus](#focus). |
-| Focus moves by direction, and things that can be focused can't be inside each other. | The validator refuses a pressable node inside another, and a focus guide that leads nowhere. |
-| A screen scrolls one way and its rows scroll sideways. Nothing scrolls both ways. | The validator refuses a scrolling region inside another within one page (a `Shelf` in a `Shelf`, a `Shelf` in a `Grid`). `layout.scroll` is always `vertical`. |
+| There is no pointer. Everything a person can act on must take focus, and focus must start somewhere. | Every node a person can act on has `focus.order` in reading order and a `focus.group`; exactly one has `focus.default`. See [Focus](#focus). |
+| A page scrolls one way and its rows scroll sideways. Nothing scrolls both ways, and scrolling regions don't nest. | The components are that shape: a `Page` of sections, `Shelf` rows inside it. The validator refuses a row inside a row, and anything after the one `NativeView` or below a `Grid` that never ends. |
+| Focus moves by direction, and guessing by geometry jumps between rows of different lengths. | Movement between sections follows the page's order and each group remembers its member; geometry is never used to pick a row. |
 | The edge of a television picture can't be relied on. | `layout.safeArea`: 60 points top and bottom, 80 at the sides, on the 1920×1080 canvas. |
-| It is read from the sofa. | `layout.text`: tvOS's own sizes in points (page title 76, heading 57, title 48, body 29, caption 25). |
-| An Apple TV HD has little memory. | A screen is cut to `layout.maxSections` rows of `layout.maxItems` cards (10 rows of 16 on an HD, 20 of 30 on a 4K), and `layout.truncated` says when rows were left out. |
-| A 4K poster in a 250-point card wastes all of it. | Every card's `props.image` is the picture's address with the width to ask for, and its size and aspect: 250×375 for a poster on an HD, twice that on a 4K. |
-| There is no web view and no browser. | There is no web-view component, and nodes whose action is `external` are left out for a TV. |
-| The Top Shelf is not a screen. | It has its own small document: [Top Shelf](#top-shelf). |
+| It is read from the sofa. | `layout.text` is tvOS's own type sizes (76, 57, 48, 29, 25 points) and cards are sized for three metres. |
+| An Apple TV HD has little memory and a slow network stack. | A page is cut to `budget.maxSections`; only the first `budget.eagerSections` rows arrive with cards, 12 a row; the rest are fetched as they come near. |
+| A 4K poster in a 250-point card wastes all of it. | Every picture's address carries the width to ask for, from a short list of widths: 320 pixels for a poster on an HD, 640 on a 4K. |
+| There is no web view and no browser. | There is no web component; a button that opens a web page is not sent to a television. |
+| The system has its own search keyboard, focus effect and player. | `SearchBox` is the system's field, a card takes the system's focus effect, and playing is an action the app's own player carries out. |
+| The Top Shelf is not a page. | It has its own small document: [Top Shelf](#top-shelf). |
 
-## Device profiles
+## The model in one page
 
-One authored screen is rendered for five form factors. The request says which
-(`formFactor`, or it follows from `platform`), and a TV says its class with
-`deviceClass`. The profile used comes back as `layout`, so the client lays out
-with the same numbers the server cut the screen to.
+| Term | What it is |
+|---|---|
+| **Page** | An ordered list of sections with an ID, a kind, a title. Authored; stored in `ui_config.json` when it differs from the built-in one. |
+| **Kind** | What a page is for: `home`, `library`, `detail`, `search`, `livetv`, `music`, `photos`, `books`, `games`, `collections`, `libraries`, `custom`. It decides the page's route and what its sources may refer to. |
+| **Section** | One component on a page: `{id, component, props, source, when, repeat, scope, locked, children}`. |
+| **Component** | A type from the catalogue, with properties. |
+| **Source** | Where a section's items come from: a type and its parameters, written flat. |
+| **Condition** (`when`) | When a section, variant or navigation entry is shown. |
+| **Repeat** | One copy of a section per library, pinned saved view or collection. |
+| **Variant** | Another list of sections for the same page, used when its condition holds. |
+| **Match** | Narrows a library page to one library or kind of library, a detail page to a kind of title. |
+| **Scope** | The theme scope (a module's ID, or a name of one's own) whose colour overrides a page or section takes. |
+| **Navigation** | The main menu: entries that open pages, libraries, native screens or routes. |
+| **Personal** | What one profile changed about one page for itself. |
+| **Device profile** (`layout`) | What a page is fitted to: sizes, budgets, text limits. |
+| **Document** | A page rendered for one profile on one device: a tree of nodes. What a client is sent. |
 
-| Form factor | Scale | Safe area | Grid columns | Rows | Cards a row | Cards a grid | Poster asked for | Opens web links |
-|---|---|---|---|---|---|---|---|---|
-| `tv`, class `hd` (the default) | 1 | 60/80/60/80 | 6 | 10 | 16 | 60 | 250×375 | no |
-| `tv`, class `4k` | 2 | 60/80/60/80 | 6 | 20 | 30 | 120 | 500×750 | no |
-| `phone` | 3 | the system's | 3 | 16 | 20 | 60 | 360×540 | yes |
-| `tablet` | 2 | the system's | 5 | 20 | 30 | 100 | 320×480 | yes |
-| `desktop`, `web` | 2 | none | the window's | 30 | 40 | 200 | 360×540 | yes |
+A page as an administrator writes it:
 
-`layout.images` lists the picture size for every card shape (`poster` 2/3,
-`wide` 16/9, `square` 1/1, `hero`), in pixels. A row's `cardShape` prop, or a
-card's own `shape`, says which applies. A condition can test the form factor:
-`{"formFactor": "tv"}`.
+```json
+{
+  "id": "home", "kind": "home", "title": "Home", "icon": "home",
+  "sections": [
+    { "id": "hero", "component": "Hero", "source": { "type": "featured" } },
+    { "id": "jump", "component": "Shelf", "props": { "title": "Jump back in" },
+      "source": { "type": "continueWatching", "media": "all" } },
+    { "id": "onnow", "component": "Shelf", "props": { "title": "On TV now" }, "scope": "wittytv",
+      "when": { "can": "liveTv", "feature": "live-tv" },
+      "source": { "type": "liveNow" } },
+    { "id": "recent", "component": "Shelf",
+      "props": { "title": "Recently added in {each}", "seeAll": "always" },
+      "repeat": { "over": "libraries" },
+      "source": { "type": "recentlyAdded", "library": "$each", "limit": 20 } }
+  ],
+  "variants": [
+    { "id": "kids", "when": { "profileKind": ["kids"] }, "sections": [
+      { "id": "jump", "component": "Shelf", "props": { "title": "Keep watching", "cardSize": "l" },
+        "source": { "type": "continueWatching", "media": "watch" } } ] }
+  ]
+}
+```
 
-A TV that doesn't say its class gets the HD profile: it is safe on both.
+What an Apple TV is sent for it (abridged; the whole of this and fifty more
+are in [`pkg/sdui/conformance/fixtures`](../pkg/sdui/conformance/fixtures/index.json)):
 
-## Focus
+```json
+{
+  "version": 1, "catalog": 2,
+  "page": { "id": "home", "kind": "home", "title": "Home", "icon": "home", "route": "/" },
+  "layout": { "formFactor": "tv", "class": "hd", "scale": 1, "breakpoint": "large",
+              "safeArea": { "top": 60, "right": 80, "bottom": 60, "left": 80 }, "focusEngine": true, "…": "…" },
+  "root": { "type": "Page", "id": "page", "props": { "title": "Home" }, "children": [
+    { "type": "Hero", "id": "hero", "focus": { "order": 1, "default": true },
+      "props": { "style": "billboard", "autoAdvanceSec": 8, "size": { "width": 1920, "height": 620 } },
+      "children": [ { "type": "Card", "id": "hero:101", "props": { "style": "hero", "title": "Film 1", "…": "…" } } ] },
+    { "type": "Shelf", "id": "jump",
+      "props": { "title": "Jump back in", "cardStyle": "progress", "cardSize": "m",
+                 "card": { "width": 420, "height": 236, "aspect": "16/9", "shape": "landscape" }, "total": 3 },
+      "children": [
+        { "type": "Card", "id": "jump:103", "focus": { "order": 2, "group": "jump" },
+          "action": { "type": "navigate", "to": "/item/103" },
+          "props": { "style": "progress", "shape": "landscape", "title": "Film 3", "subtitle": "1993",
+                     "progress": 0.42, "remaining": "1 hr 1 min left", "itemId": "103", "kind": "movie", "playId": "103",
+                     "image": { "url": "/api/items/103/backdrop?w=480", "width": 480, "height": 270, "aspect": "16/9", "kind": "backdrop" } } } ] },
+    { "type": "Shelf", "id": "recent-2", "state": "deferred",
+      "props": { "title": "Recently added in Shows", "cardStyle": "poster", "cardSize": "m",
+                 "card": { "width": 250, "height": 375, "aspect": "2/3", "shape": "poster" },
+                 "more": { "url": "/api/v1/sdui/pages/home/sections/recent-2/items?cursor=0" } } }
+  ] },
+  "personal": { "editable": true, "allow": ["reorder", "hide", "pin", "density", "cardSize", "defaultTab"],
+                "sections": [ { "id": "hero", "title": "Featured" }, { "id": "jump", "title": "Jump back in" } ],
+                "url": "/api/v1/sdui/pages/home/personal" },
+  "meta": { "etag": "W/\"sha256-…\"", "generatedAt": "2026-11-11T19:30:00Z", "source": "config", "configRevision": 7, "ttlSeconds": 60 }
+}
+```
 
-`node.focus` is the node's place in the focus engine.
+## Precedence
 
-| Field | Set by | Meaning |
+What a profile sees on a page is decided in this order. Each step works on
+the result of the one before.
+
+1. **The built-in page.** Every stock page ships in the server
+   ([Built-in pages](#built-in-pages)), written in this same model.
+2. **The administrator's page with the same ID replaces it whole.** Deleting
+   that page from the configuration brings the built-in one back ("reset to
+   default"). Pages with other IDs are the administrator's own.
+3. **The most specific page of the kind asked for wins.** For
+   `pages/library?library=3`: a page whose `match.library` is 3, else one
+   whose `match.libraryKind` is that library's kind, else the page with no
+   match. For `pages/detail`: `match.mediaKind` (and `libraryKind`) likewise.
+   Among equals, the administrator's page beats a built-in one.
+4. **The first variant whose condition holds replaces the page's sections.**
+   Variants are tried in order; none holding, the page's own sections stand.
+5. **Sections whose `when` doesn't hold are dropped**, and repeated sections
+   become their copies (`recent` becomes `recent-1`, `recent-2`, ...: the
+   section's ID, `-`, the library's, view's or collection's ID).
+6. **The profile's own arrangement** is applied to the top-level sections:
+   hidden ones go; pinned ones come first, in the order they were pinned;
+   then the sections its order names, in that order; then the rest in the
+   page's order. A `locked` section is never hidden and never moves. A copy
+   of a repeated section the profile never placed sits where the section it
+   is a copy of was placed. Only what the page's `personal.allow` lists is
+   applied, and nothing is when the profile's `editLayout` switch is off or
+   the server has personalisation off.
+7. **The device's budget**: sections past `budget.maxSections` are left out
+   (`layout.truncated`), and data sections past `budget.eagerSections` arrive
+   `deferred`.
+8. **Each section's source is asked**, through the profile's limits. A
+   section with nothing in it is left out, unless it says `"empty":
+   "message"`.
+9. **What the client can't draw is replaced by its fallback.**
+
+## What a client sends
+
+With every SDUI request, as query parameters or headers (the query wins):
+
+| Parameter | Header | Values |
 |---|---|---|
-| `focusable` | Render | True on every node a person can act on: a `Button`, `Card`, `ListItem`, `Tab`, `SearchBar`, or anything with an `action`. A disabled button is not. |
-| `order` | Render | Its place in reading order, from 1, with no gaps. The same screen always gives the same numbers. |
-| `group` | Render | The ID of the row or bar it is in (`Shelf`, `PosterRow`, `Carousel`, `Grid`, `List`, `Tabs`, `Toolbar`, `HeroBanner`). Treat a group as one focus section, and remember the last focused node in it. |
-| `default` | author, else Render | Focus starts here. An author may mark one node; when they didn't, or that node isn't on the screen for this account, Render marks the first node that isn't in a `Toolbar`, else the first of all. |
-| `up`, `down`, `left`, `right` | author | Focus guides: the ID of the node focus moves to in that direction, in place of the nearest. A guide to a node that isn't on the rendered screen is dropped, so focus never goes nowhere. |
+| `platform` | `X-WMS-Platform` | `web` (default), `tvos`, `ios`, `android`, `androidtv`, `desktop`. |
+| `formFactor` | `X-WMS-Form-Factor` | `tv`, `phone`, `tablet`, `desktop`, `web`. Left out, it follows from the platform (tvos and androidtv: tv; ios and android: phone). |
+| `deviceClass` | `X-WMS-Device-Class` | `hd` (default) or `4k`, for a television. |
+| `catalog` | `X-WMS-SDUI-Catalog` | The catalogue revision the client was built against. Send it always. |
+| `components` | `X-WMS-SDUI-Components` | The *optional* components the client draws, comma-separated, or `none`. Left out: every optional component of its revision. |
+| `views` | `X-WMS-SDUI-Views` | The native views it has for `NativeView`: `guide`, `photoTimeline`, `photoMap`, `coverFlow`. |
+| `viewport` | `X-WMS-Viewport` | The window in points: `1440x900`. Send it on anything that isn't a television, and ask again when the breakpoint changes. |
+| `locale` | `X-WMS-Locale` | A language tag; else the first of `Accept-Language`. |
+| `capabilities` | `X-WMS-Capabilities` | What the device has: `reducedMotion`, `touch`, `pointer`, `keyboard`, `hdr`. `reducedMotion` changes what is sent; all of them can be asked about by a condition. |
+| `preview` | `X-WMS-SDUI-Preview` | A preview token: see [Draft and preview](#draft-and-preview). |
 
-On tvOS, map `default` to `preferredFocusEnvironments`, a group to a
-`UIFocusGuide`-bounded section or a collection view that remembers its last
-focused index path, and the four guides to `UIFocusGuide`s. Elsewhere the same
-fields give keyboard and remote order.
+Who is asking (the profile, its kind, its limits and feature switches) the
+server knows from the sign-in. An invalid value is a 400 naming the
+parameter.
 
-## Items and sections
+## The rendered document
 
-A row is usually filled from data. When a `Shelf`, `PosterRow`, `Carousel`,
-`Grid`, `List` or `HeroBanner` has an `items` prop (bound, or written out),
-Render turns each item into a child node: a `Card`, or a `ListItem` in a
-`List`. So every item is a node, with an ID to diff by and a place in the focus
-order, and it counts toward the device's limits.
-
-- The child's ID is `<row id>:<item id>`.
-- Its props are the item's `title`, `subtitle`, `imageUrl`, `kind`,
-  `progress`, `badges`, `module`, `route`, `shape`, and `itemId` (the item's
-  `id`).
-- Its action is the row's `itemAction` prop, or `openItem` when the document
-  defines that.
-- A row cut to the device's limit gets `more: true` and `total`. A
-  `HeroBanner` takes at most 5.
-- A row that ends up with nothing in it is left out. An empty "Continue
-  watching" is never sent.
-
-A `Stack` with a `sections` prop (a list of `{id, title, subtitle, cardShape,
-seeAll, items}`) becomes one `Shelf` per section, each then filled the same
-way. This is how Home has a row per library and Search a row per kind of
-result.
-
-In an action's `target`, `$name` stands for the activated node's prop of that
-name: `{"type": "navigate", "target": "$route"}` opens the card's own route.
-
-## Overview and motivation
-
-- **One screen definition, every device.** The same `home` document serves
-  the browser at 1440 px, a 10-foot TV and a phone; viewport and platform
-  conditions choose what each sees.
-- **Modules shape the UI without client releases.** A games shelf appears only
-  when `wittyplay` is enabled; an "On now" shelf only with `wittytv`. New
-  modules add shelves by data.
-- **Administrators can customise.** The stock screens are templates that seed
-  a `ui_config.json`; an admin edits the document, and `Validate` keeps it
-  sane.
-- **Cheap updates.** A client holding a previous render sends its ETag; the
-  server answers with a list of patches rather than the whole tree.
-
-## Lifecycle
-
-```
-          author                     request                      client
- ┌─────────────────────┐    ┌──────────────────────────┐    ┌────────────────────┐
- │ Template / builder / │    │ RenderContext             │    │ Walk tree, draw    │
- │ hand-written JSON    │    │  platform, role, modules, │    │ each node with     │
- │                      │    │  features, flags, viewport│    │ native widgets     │
- │   Document (authored)│    │  locale, data, overrides  │    │                    │
- │   - Visibility       │    └────────────┬─────────────┘    │ On activate →      │
- │   - Bindings         │                 │                  │ dispatch Action    │
- └──────────┬───────────┘                 ▼                  └─────────▲──────────┘
-            │  Validate          ┌─────────────────┐                   │
-            └───────────────────▶│     Render      │───────────────────┘
-                                 │ prune hidden    │   Document (rendered)
-                                 │ resolve binds   │   - no Visibility/Bindings
-                                 │ apply tokens    │   - Meta.GeneratedAt, ETag
-                                 │ stamp meta      │
-                                 └────────┬────────┘
-                                          │  previous render (by ETag)
-                                          ▼
-                                 ┌─────────────────┐
-                                 │      Diff       │────▶ []Patch ────▶ client Apply
-                                 └─────────────────┘
-```
-
-1. **Author.** A `Document` is produced by a template
-   (`HomeTemplate`, …), the fluent builder (`NewDocument`, `N`) or JSON. It
-   may contain `visibility` conditions and `bindings`.
-2. **Validate.** `Validate(&doc)` enforces every rule in
-   [Validation rules](#validation-rules-and-limits). Run it when a document
-   is stored, not on every request.
-3. **Render.** `Render(doc, ctx)` produces the concrete tree for one
-   requester. Hidden subtrees are removed, bindings become props, module
-   token overrides land in `style.tokens`, `meta.generatedAt` and `meta.etag`
-   are stamped, and `visibility`/`bindings` are stripped.
-4. **Diff.** `Diff(old, new)` yields ID-keyed patches so a client can update
-   in place; `Apply` is the reference implementation of applying them.
-
-## Schema reference (version 1)
-
-All JSON keys are camelCase. Fields marked *omit* are omitted when empty.
+All keys are camelCase; fields marked *omit* are left out when empty. The
+Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 
 ### Document
 
 | Field | Type | Notes |
 |---|---|---|
-| `version` | int | Must be `1` (`SchemaVersion`). |
-| `screen` | string | Screen name: `home`, `libraries`, `library`, `detail`, `search`, `livetv`, `music`, `player`, `settings`, or one an administrator added. Non-empty. |
-| `theme` | ThemeRef, *omit* | Theme id and per-module token overrides. |
-| `root` | Node | Must have `type: "Screen"`. |
-| `actions` | map[string]Action, *omit* | Named actions referenced by `node.action`. Names match `[A-Za-z_][A-Za-z0-9_-]*`. |
-| `meta` | Meta, *omit* | Non-structural metadata. |
-| `layout` | Layout, *omit* | The [device profile](#device-profiles) the screen was fitted to. Stamped by Render; one written into an authored document is ignored. |
+| `version` | int | `1`. A client refuses any other. |
+| `catalog` | int | The catalogue revision the tree was written for: the client's own when that is older than the server's. |
+| `page` | PageInfo | `{id, kind, title, icon, route, variant, params}`. `route` is the page's place in the app; `params` what it was opened with, to send again with a refresh. |
+| `layout` | Layout | The [device profile](#device-profiles) the page was fitted to: lay out with these numbers. |
+| `theme` | ThemeScope, *omit* | `{scope, tokens}`: the page's theme scope and the colour tokens it overrides. |
+| `root` | Node | The tree. Its type is `Page`. |
+| `personal` | PersonalInfo, *omit* | What the profile may change about this page and what it has changed: see [Personalisation](#personalisation). |
+| `meta` | Meta | `{etag, generatedAt, source, configRevision, ttlSeconds}`. `source` is `config` or `draft`. Ask again after `ttlSeconds` (0: only when something happens). |
 
 ### Node
 
 | Field | Type | Notes |
 |---|---|---|
-| `type` | ComponentType | See the [component catalog](#component-catalog). |
-| `id` | string | Unique in the document, 1–128 chars of `[A-Za-z0-9_.:-]`. Keys for Diff/Apply; keep stable. |
-| `props` | map[string]any, *omit* | Component-specific. Must be JSON-serialisable. |
-| `style` | Style, *omit* | Layout and colour hints. |
-| `children` | []Node, *omit* | In display order. Only on components that allow children. |
-| `visibility` | Condition, *omit* | Must evaluate true for the node and its subtree to be rendered. Stripped by Render. |
-| `bindings` | map[string]Binding, *omit* | prop name → data path. Stripped by Render. |
-| `action` | string, *omit* | Key into `document.actions`, dispatched when the node is activated. |
-| `focus` | Focus, *omit* | See [Focus](#focus). An author sets only `default` and the guides. |
-
-### Style
-
-| Field | Type | Notes |
-|---|---|---|
-| `direction` | string | `row` or `column`. |
-| `gap` | int | Space between children, CSS px. ≥ 0. |
-| `padding`, `margin` | string | CSS shorthand (`"16px"`, `"8px 16px"`). |
-| `align` | string | Cross axis: `start`, `center`, `end`, `stretch`. |
-| `justify` | string | Main axis: `start`, `center`, `end`, `between`, `around`. |
-| `width`, `height` | string | CSS lengths (`"100%"`, `"240px"`, `"42vh"`). |
-| `columns` | int | Grid column count. ≥ 0. |
-| `aspectRatio` | string | `"w/h"`: `2/3` poster, `16/9` wide, `1/1` album. |
-| `background`, `foreground`, `accent`, `border` | colour | See [Colours](#colours). |
-| `radius` | int | Corner radius px; 0 = theme default. ≥ 0. |
-| `elevation` | int | Shadow depth; 0 = flat. ≥ 0. |
-| `opacity` | float | 0..1; 0 = unset. |
-| `hidden` | bool | Client-side hide; node stays in the tree (unlike `visibility`). |
-| `module` | string | Module id (`wittyplay`, `wittytv`, …) scoping token overrides. Lower-case `[a-z][a-z0-9_-]*`. |
-| `class` | string | Free-form client styling hook. |
-| `tokens` | map[string]string | token → colour, filled by Render from module overrides. |
-
-#### Colours
-
-A colour is one of:
-
-- `token:<name>` — a theme colour by the names in `themes/*/theme.json`
-  (`bg`, `bg2`, `bg3`, `fg`, `fg2`, `accent`, `accentFg`, `accentText`,
-  `border`, `danger`, `ok`, `warn`, `onImage`, `scrim`, …). The client maps
-  this to its `--<name>` CSS variable or native palette entry.
-- Hex: `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`.
-- Functional: `rgb(...)`, `rgba(...)`, `hsl(...)`, `hsla(...)` with numeric
-  arguments only.
-
-Named CSS colours, `var()`, `url()` and anything else are **rejected** by
-`ValidateColor`, because clients emit these values straight into CSS.
+| `type` | string | A [component](#components). Draw a type you don't know as a plain column of its children. |
+| `id` | string | Unique in the document, stable between renders, at most 128 characters of `A-Z a-z 0-9 _ . : - ~`. A section's node has the section's ID; a card's is `<section>:<item id>`. |
+| `props` | object, *omit* | The component's properties, resolved. Ignore properties you don't know. |
+| `children` | []Node, *omit* | In display order. |
+| `action` | Action, *omit* | What activating the node does. |
+| `focus` | Focus, *omit* | `{order, group, default}`: see [Focus](#focus). Present on every node a person can act on. |
+| `state` | string, *omit* | `deferred`, `empty` or `error`; absent when ready. See [States](#states). |
+| `scope`, `tokens` | string, map, *omit* | The node's theme scope and the colour tokens it overrides, for it and everything in it. |
 
 ### Action
 
-| Field | Type | Notes |
+| `type` | Fields | What the client does |
 |---|---|---|
-| `type` | ActionType | `navigate`, `play`, `openModal`, `closeModal`, `fetch`, `toggle`, `submit`, `external`, `back`. |
-| `target` | string | Route, item id, node id or URL depending on type. Required except for `closeModal` and `back`. |
-| `params` | map[string]any, *omit* | Extra parameters (e.g. `{"resume": true}`, `{"prop": "subtitles"}` for `toggle`). |
+| `navigate` | `to` | Opens a route: look it up in [Routes](#routes). It is an SDUI page (ask for it) or one of the app's own screens. |
+| `play` | `item`, `params.resume` | Starts playback of the item with the app's own player, from where the profile left off unless `resume` is false. |
+| `native` | `to`, `params` | Opens one of the app's own screens ([Native screens](#native-screens)), for the item in `params.item` when there is one. |
+| `external` | `url` | Opens a web page in the system browser. Never sent to a device that has none. |
+| `back` | | Goes back. |
+| `command` | `op`, `item`, `params` | Carries out one of the [Commands](#commands), then asks for the page again. |
 
-A `target` may contain `$itemId`-style placeholders that the client fills
-from the activated node's props (`props.itemId`); this is a client
-convention, not something Render expands.
+Ignore an action type you don't know.
 
-### Condition
+## Rules for renderers
 
-Every set field must hold (implicit AND). The zero condition is always true.
+These are requirements. The conformance kit checks the ones that can be
+checked without pixels.
 
-| Field | Type | True when… |
-|---|---|---|
-| `all` | []Condition | every element is true (vacuously true when empty). |
-| `any` | []Condition | at least one element is true (false when empty). |
-| `not` | Condition | the nested condition is false. |
-| `feature` | string | `ctx.Features` contains the value. |
-| `role` | string | `ctx.Role` equals the value. |
-| `platform` | string | `ctx.Platform` equals the value (`web`, `tv`, `ios`, `android`, `desktop`). |
-| `module` | string | `ctx.Modules` contains the value. |
-| `minWidth`, `maxWidth` | int | viewport width is within the inclusive bound. Ignored when the viewport width is unknown (0). |
-| `minHeight`, `maxHeight` | int | likewise for height. |
-| `locale` | string | `ctx.Locale` equals the value or starts with `value-`/`value_` (case-insensitive; `en` matches `en-GB`, not `eo`). |
-| `flag` | string | `ctx.Flags[value]` is true. |
-| `when` | string | reserved for a future expression language; carried, currently always true. |
+### Unknown and future things
 
-### Binding
+- An unknown `type` is drawn as a column of its children; unknown props and
+  unknown top-level fields are ignored; an unknown action does nothing.
+- An unknown card `style` is drawn as its `shape` (`poster`, `landscape`,
+  `square`, `circle`, `chip`): the picture, with the title and subtitle under
+  it.
+- An unknown `state` is treated as ready.
 
-| Field | Type | Notes |
-|---|---|---|
-| `path` | string | See [Binding paths](#binding-paths-and-format-verbs). |
-| `default` | any, *omit* | Used when the path is missing or resolves to `null`. Formatted too. |
-| `format` | string, *omit* | `upper`, `lower`, `title`, `duration`, `date:<Go layout>`. |
+### Units, sizes and breakpoints
 
-If a binding resolves to nothing and has no default, any static value already
-in `props` is left in place as the fallback.
+- Every size is in **points**: iOS and tvOS points, Android dp, CSS pixels.
+  `layout.scale` is pixels per point and is used only to choose pictures.
+- Spacing is one of six steps (`none`, `xs`, `s`, `m`, `l`, `xl`);
+  `layout.spacing` says how many points each is on this device. The distance
+  between a page's sections is `l` (`m` at the compact breakpoint).
+- Text is one of five roles (`pageTitle`, `heading`, `title`, `body`,
+  `caption`); `layout.text` gives each one's size. Use the platform's
+  dynamic type for the role where it has one; the numbers are the sizes at
+  the default setting.
+- A row or grid says how big its cards are in `props.card` (`width`,
+  `height`, `aspect`, `shape`): the size of the picture. Text goes under it.
+- **Breakpoints** are by the window's width: `compact` under 600 points,
+  `medium` under 840, `expanded` under 1200, `large` from there.
+  `layout.breakpoint` is the one the page was rendered for. When the window
+  crosses a breakpoint, ask for the page again with the new `viewport`.
+- **Grid columns**: `props.columns` is the count for the viewport sent. When
+  the window changes without crossing a breakpoint, recompute:
+  `max(minimum, floor((content + gap) / (card + gap)))`, where `content` is
+  the window's width less the side margins (two `m`, or the safe area on a
+  television), `gap` is `m` (`s` + `xs` at the compact breakpoint), and
+  `minimum` is 2 (3 for cards under 130 points). Cards stretch to fill the
+  row. A television's grid has `layout.cards[style].columns` columns.
+- Content keeps inside `layout.safeArea`; where it is all zero, inside the
+  system's own safe area.
 
-### ThemeRef
+### Focus
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | string | Theme id (`default`, `midnight`, `oled`, …). Non-empty. |
-| `moduleOverrides` | map[module]map[token]colour, *omit* | e.g. `{"wittyplay": {"accent": "#3ad29f"}}`. |
+`node.focus` is on every node a person can act on, and on nothing else.
 
-### Meta
-
-| Field | Type | Notes |
-|---|---|---|
-| `title`, `description` | string | For window titles and previews. |
-| `generatedAt` | RFC 3339 time | Stamped by Render. Excluded from `Canonical`/`ETag`. |
-| `etag` | string | Stamped by Render; see [ETag](#etag-and-304-flow). Excluded from `Canonical`. |
-| `source` | string | Provenance (`template:home`, `ui_config.json`). |
-| `ttlSeconds` | int | Client cache hint. ≥ 0. |
-
-## Component catalog
-
-`Catalog()` returns this table programmatically; `Spec(type)` looks up one
-entry. "Children: any" means any component except `Screen`.
-
-| Type | Children | Required props | Optional props | Description |
-|---|---|---|---|---|
-| `Screen` | any | — | `title`, `scroll` | Root of a screen; exactly one, at the root. |
-| `Stack` | any | — | — | Vertical or horizontal stack (`style.direction`). |
-| `Grid` | any | — | — | Responsive grid; `style.columns` sets the count. |
-| `Shelf` | any | `title` | `subtitle`, `seeAll`, `items`, `cardShape` | Titled, horizontally scrolling row (the web client's Shelf/CardRow). |
-| `HeroBanner` | any | — | `title`, `subtitle`, `backdropUrl`, `logoUrl`, `items`, `interval` | Full-bleed featured banner. |
-| `Card` | `Badge`, `ProgressBar`, `Text`, `Image` | — | `title`, `subtitle`, `imageUrl`, `kind`, `progress`, `badges`, `itemId`, `module` | A poster/tile for one item. |
-| `PosterRow` | `Card` | `title` | `subtitle`, `seeAll`, `items`, `cardShape` | Titled row of poster cards. |
-| `Text` | none | `text` | `variant`, `maxLines` | A run of text. `variant`: `pageTitle`, `heading`, `body`, `hint`. |
-| `Image` | none | `src` | `alt`, `fit` | A picture. |
-| `Button` | none | `label` | `icon`, `variant`, `disabled` | Dispatches its `action`. `variant`: `primary`, `ghost`, `danger`. |
-| `Tabs` | `Tab` | — | `selected` | Tab strip. |
-| `Tab` | any | `label` | `icon` | One tab and its content. |
-| `List` | `ListItem` | — | `items`, `dense` | Vertical list. |
-| `ListItem` | `Badge`, `Button`, `Text`, `Image`, `ProgressBar` | `title` | `subtitle`, `imageUrl`, `icon`, `trailing`, `itemId` | One row. |
-| `Spacer` | none | — | `size` | Empty space. |
-| `Divider` | none | — | `inset` | Hairline rule. |
-| `Video` | none | `src` | `poster`, `autoplay`, `controls`, `startAt`, `itemId`, `title` | Video player. |
-| `Badge` | none | `text` | `variant` | Small label (NEW, 4K, LIVE). |
-| `ProgressBar` | none | `value` | `max`, `label` | 0..1 unless `max` is set. |
-| `Carousel` | any | — | `interval`, `autoplay`, `indicators` | Paged, rotating container. |
-| `SearchBar` | none | — | `placeholder`, `query`, `scope` | Search field; `action` fires on submit. |
-| `Toolbar` | `Button`, `Text`, `Spacer`, `SearchBar`, `Badge`, `Image` | — | — | Horizontal bar of controls. |
-| `Modal` | any | — | `title`, `dismissible`, `size` | Dialog opened by an `openModal` action targeting its id. |
-
-A required prop may be supplied either statically in `props` or through a
-`bindings` entry of the same name.
-
-`items` on `Shelf`, `PosterRow`, `HeroBanner`, `Grid`, `List` and `Card`
-containers is a data-driven alternative to explicit children: the server
-binds `items` to an array of `Item` objects and the client renders a card per
-item. Explicit children take precedence when both are present.
-
-## Condition semantics
-
-`Evaluate(c, ctx)` follows the table in [Condition](#condition) exactly:
-
-- Fields on one condition are ANDed; `all` is AND, `any` is OR, `not` is
-  negation. `all: []` is true, `any: []` is false.
-- Unknown viewport (`ctx.Viewport.Width == 0`) makes width bounds pass;
-  likewise height. A client should always send its viewport.
-- `locale` is a prefix match on language subtags, case-insensitive.
-- `when` is carried through validation and ignored. It is reserved so an
-  expression language can be added without a schema bump.
-- A hidden node's whole subtree is removed; children are never evaluated.
-- A hidden root is a render error.
-
-## Binding paths and format verbs
-
-Grammar (`ParseBindingPath`):
-
-```
-path    := "$" segment*
-segment := "." ident | "[" digits "]"
-ident   := [A-Za-z_] [A-Za-z0-9_-]*
-```
-
-`$` alone selects the whole data object. Bracketed string keys (`$['a']`),
-wildcards and filters are not supported. The walk (`Lookup`) understands
-`map[string]any`, `[]any`, `[]string` and `[]map[string]any`; anything else
-ends the walk as a miss.
-
-Format verbs (`Binding.format`), applied to the resolved value *or* the
-default:
-
-| Verb | Effect |
+| Field | Meaning |
 |---|---|
-| `upper` | upper-cases the string form. |
-| `lower` | lower-cases the string form. |
-| `title` | upper-cases the first letter of each word (`willow poortenga` → `Willow Poortenga`). |
-| `duration` | treats the value as seconds and renders `m:ss` or `h:mm:ss` (`5400` → `1:30:00`). Non-numbers pass through as strings. |
-| `date:<layout>` | parses RFC 3339, `2006-01-02` or a Unix-seconds number and formats with the Go layout. Unparsable values pass through. |
+| `order` | Its place in reading order, from 1, without gaps. The same page gives the same numbers. Tab and Shift-Tab, and a screen reader's next and previous, follow it. |
+| `group` | The ID of the row, grid, list, tab strip or row of buttons it is in. A group is one focus section: moving into it lands on the member that last had focus in it, else its first. |
+| `default` | Exactly one node has it: focus starts there. It is a search box that asks for it, else the page's `DetailHeader`, else the first focusable node that isn't a tab, a filter bar or a search box, else the first of all. |
 
-Unknown verbs are rejected by `Validate`; at render time they pass the value
-through unchanged.
+Directional movement (a remote, a game pad, arrow keys in TV mode):
 
-## Patch protocol
+- Inside a `Shelf`, left and right move between its cards and stop at the
+  ends. Inside a `Grid`, the four directions move by row and column.
+- Up and down between top-level sections go to the previous or next group in
+  `order`, landing on its remembered member. Geometry is never used to pick a
+  row: the page's order is.
+- A `Hero`, a `DetailHeader` and a `FilterBar` are one stop each: inside,
+  left and right move between their own buttons or fields in the order
+  given, starting on the primary one.
+- A `deferred` section takes no focus until its items have arrived; cards
+  that arrive later join their group at the end, in the order sent.
+- With a pointer or touch, `focus` is only the keyboard order.
 
-`Diff(old, new) []Patch` and `Apply(doc, patches)` implement an ID-keyed tree
-diff. Nodes are matched by `id`; order within a parent is reconciled with
-moves.
+### States
 
-### Operations
-
-| `op` | `path` | Payload | Meaning |
-|---|---|---|---|
-| `add` | `#<parentId>/children/<n>` | `node` | Insert `node` (with its subtree) at index `n`. |
-| `remove` | `#<id>` | — | Remove the node and its subtree. |
-| `replace` | `#<id>` | `node` | Replace every field of the node **except `children`** with those of `node`. Children are patched separately. |
-| `replace` | `/root` | `node` | Replace the whole tree (root id changed). |
-| `replace` | `/screen`, `/theme`, `/actions`, `/meta` | `value` | Set the document-level field. `null` clears `theme`/`actions`. |
-| `move` | `#<parentId>/children/<n>` | `from: "#<id>"` | Move an existing child of the same parent to index `n`. |
-
-Patches apply **in order**. Indices refer to the children array as it stands
-after the preceding patches. `meta.generatedAt` and `meta.etag` never appear
-in patches; the client takes the new ETag from the response header.
-
-### Client application algorithm
-
-```
-for p in patches:
-  if p.path starts with "/":        # document-level
-      set document[field] = p.value (or p.node for /root)
-  else:
-      (id, index) = parse "#id" or "#id/children/n"
-      switch p.op:
-        add:     parent = find(id); parent.children.insert(index, p.node)
-        remove:  parent = parentOf(id); parent.children.delete(indexOf(id))
-        replace: n = find(id); keep = n.children; n = p.node; n.children = keep
-        move:    parent = find(id); src = parentOf(p.from)
-                 assert src is parent
-                 child = src.children.remove(indexOf(p.from))
-                 parent.children.insert(index, child)
-```
-
-`find` is a depth-first search by `id`. If any step fails (unknown id, bad
-index), discard the local tree and request a full document.
-
-### ETag and 304 flow
-
-`Canonical(doc)` is the canonical JSON: keys sorted, no whitespace,
-`meta.generatedAt` and `meta.etag` omitted. `ETag(doc)` is
-`W/"sha256-<first 32 hex chars of SHA-256(Canonical)>"`. Two renders of the
-same screen for equivalent contexts produce identical ETags regardless of
-when they ran.
-
-```
-client ──GET /api/v1/sdui/screens/home  If-None-Match: W/"sha256-…"──▶ server
-                                                      render for this requester
-                                                      if ETag == If-None-Match → 304
-                                                      else if server still has the old render
-                                                        → 200 {patches:[…]}  ETag: new
-                                                      else → 200 {document}  ETag: new
-```
-
-The exact routes are defined in [HTTP API](#http-api).
-
-## Theme and module override semantics
-
-Colours in `style` are usually `token:<name>` references, resolved by the
-client against its active theme (the names match `themes/*/theme.json`
-`colors` and the `--<name>` CSS variables in `docs/THEMES.md`).
-
-A module can recolour the parts of the UI that belong to it. Overrides come
-from two places and are merged, later winning:
-
-1. `document.theme.moduleOverrides[module][token]` — authored with the
-   document (`DocumentBuilder.ModuleOverride`).
-2. `RenderContext.ThemeOverrides[module][token]` — supplied per request
-   (e.g. from the installed module's manifest).
-
-During `Render`, every node whose `style.module` equals `module` receives the
-merged map in `style.tokens`, merged over any tokens already on the node.
-Nodes without `style.module` are untouched. The client applies `style.tokens`
-as scoped variables on that subtree (`--accent: #3ad29f` on the games shelf),
-so `token:accent` inside it resolves to the module colour.
-
-Token names match `[A-Za-z_][A-Za-z0-9_-]*`; colours must pass
-`ValidateColor`.
-
-## Validation rules and limits
-
-`Validate(&doc) error` returns `nil` or a `*ValidationError` whose `Issues`
-list **every** problem with a JSON-pointer-like path
-(`/root/children/2/props/title`).
-
-| Rule | Limit / detail |
+| `state` | What to draw |
 |---|---|
-| `version` | must equal `1`. |
-| `screen` | non-blank. |
-| `root.type` | must be `Screen`; `Screen` may not appear elsewhere. |
-| Node ids | non-empty, ≤ 128 chars, charset `[A-Za-z0-9_.:-]`, unique per document. |
-| Component types | must be in the catalog. |
-| Children | only on components that allow them; restricted types per catalog. |
-| Required props | present in `props` or `bindings`. |
-| Depth | ≤ 32 (root is depth 1). |
-| Node count | ≤ 5000. |
-| `props`, `actions[].params`, `bindings[].default` | JSON-serialisable. |
-| `node.action` | must name an entry in `actions`. |
-| Action names | `[A-Za-z_][A-Za-z0-9_-]*`; types known; `target` required except `closeModal`/`back`. |
-| Style colours | `ValidateColor`; `direction` ∈ {row, column}; `gap`, `columns`, `radius`, `elevation` ≥ 0; `opacity` ∈ [0, 1]; `aspectRatio` like `16/9`; `module` lower-case id; `tokens` valid names and colours. |
-| Bindings | prop name valid ident; `path` parses; `format` known. |
-| Conditions | bounds ≥ 0; `minWidth ≤ maxWidth`, `minHeight ≤ maxHeight` when both set; `module` valid id; nesting ≤ 32. |
-| Theme | `id` non-blank; module ids, token names and colours valid. |
-| `meta.ttlSeconds` | ≥ 0. |
-| Focus | Nothing a person can act on is inside something else they can act on (a `Tab`'s content is its own page). At most one `focus.default`, on a node a person can act on. Every focus guide names such a node. |
-| Scrolling | Within one page (the `Screen`, a `Tab`'s content, a `Modal`) a scrolling region (`Shelf`, `PosterRow`, `Carousel`, `Grid`, `List`) is never inside another. |
-| Where actions lead | `navigate`, `fetch` and `submit` targets are a path on this server beginning with one `/` (`navigate` may also be `$prop`). `external` is an `http://` or `https://` address. So an edited screen can't send a client, and its sign-in, to another host. |
-| Pictures and streams | `src`, `imageUrl`, `backdropUrl`, `logoUrl`, `poster`: a path on this server or an `http(s)` address. No `javascript:` or `data:`. |
-| Sizes | ≤ 200 children written into one node, ≤ 64 props a node, ≤ 16 KiB a prop, ≤ 256 actions. |
-| Condition `formFactor` | `tv`, `phone`, `tablet`, `desktop` or `web`. |
-| Colour tokens (the server's store) | `token:<name>` must name a colour the themes have. |
+| absent | The section, ready. |
+| `deferred` | The section's heading and placeholders, as if loading. When it comes within one screen of being seen, GET `props.more.url`: replace the placeholders with the `items`, merge `props`, and continue from `next`. If the answer's `state` is `empty`, take the section off the page. |
+| `empty` | The heading and `props.emptyText` in the caption style where the items would be. |
+| `error` | The heading and one line, "Couldn't load this", with a Retry button that GETs `props.more.url`. |
 
-These exist so that an administrator's edit can't break every client at once.
-What the store adds on top: the file is validated before it replaces the one in
-use, the last 10 revisions are kept and any can be made current again, a file
-that doesn't validate is set aside and the last good one used, and a stock
-screen missing from the configuration (or one that can't be rendered for the
-account asking) is served from its template.
+While any request is in flight a section shows **placeholders**: grey
+rounded rectangles of the card's size, as many as are at least partly on
+screen (`floor((content + gap) / (card + gap)) + 1`, at most the row's first
+page), pulsing unless motion is reduced. A whole page loading for the first
+time shows three such rows. A page that fails to load shows the app's own
+error view with Retry; a 404 shows "This isn't available" with a way Home.
 
-`Unmarshal` additionally rejects input over **2 MiB**, unknown JSON fields,
-trailing data and a wrong `version` — before `Validate` runs.
+### Paging
 
-## Template catalog
-
-| Function | Screen | Data | Highlights |
-|---|---|---|---|
-| `HomeTemplate(HomeData)` | `home` | user name, continue watching, recently added, recommended, extra shelves | Greeting bound to `$.user.name` (title-cased); a hero of featured titles; `home-continue` gated on feature `history`; `home-nextup`; a row per library from `$.home.sections`; `home-recommended` on `recommendations`; `home-games` on module `wittyplay`; `home-livetv` (channels) and `home-music` whenever there is something to show, in their module's colours; search bar only at ≥ 720 px; "Finish server setup" for admins with flag `setupIncomplete`. |
-| `LibraryTemplate(LibraryData)` | `library` | library id, title, kind, items | One grid bound to `$.library.items`, its columns the device's; title bound to `$.library.title`; empty-state text on flag `libraryEmpty`. |
-| `LibrariesTemplate()` | `libraries` | none | A grid of the libraries the account may open, bound to `$.libraries.items`. |
-| `SearchTemplate()` | `search` | none | The search field (default focus), then a row per kind of result from `$.search.sections`. |
-| `LiveTVTemplate()` | `livetv` | none | Favourite channels, then every channel the account may watch. |
-| `MusicTemplate()` | `music` | none | Continue listening, then recently added albums per music library. |
-| `DetailTemplate(DetailData)` | `detail` | item, overview, year, duration, rating, genres, related, children | Detail hero with duration formatted via `duration`; Play on feature `playback`; Resume on flag `hasProgress`; Artwork modal for admins; related row on `recommendations`. |
-| `PlayerTemplate(PlayerData)` | `player` | item, stream URL, poster, start offset, next item | Video bound under `$.player.*`; Back hidden on `tv`; subtitles toggle on flag `hasSubtitles`; up-next card on feature `autoplayNext`. |
-| `SettingsTemplate(SettingsData)` | `settings` | sections, version | One `Tab` per section; admin sections on role `admin`; module rows on `ModuleEnabled`; sign-out hidden from `guest`; About modal with version bound to `$.server.version`. |
-| `DefaultScreens()` | all nine | empty | `map[string]Document` keyed by screen name, used to seed `ui_config.json` and as the fallback for a stock screen the configuration lacks. |
-
-Every template panics if it would produce an invalid document, and the test
-suite asserts each one validates, survives a strict JSON round trip, and
-renders for a bare guest and a loaded admin.
-
-### Example: rendered `home`
-
-Rendered for an account on an Apple TV HD (`formFactor=tv`), with two titles
-being watched and one library. Abridged; the full files are the goldens in
-`pkg/sdui/testdata/`: [`home.tvhd.golden.json`](../pkg/sdui/testdata/home.tvhd.golden.json),
-`home.tv4k.golden.json`, `home.phone.golden.json` and `home.web.golden.json`
-are this same screen for each device.
+A `Shelf`, `Grid`, `List` or `SeasonList` with `props.more` has more items
+than it was sent. GET `more.url` when the person scrolls within one screen
+(a grid: two rows) of its end, with the same device parameters as the page.
+The answer is a `SectionItems`:
 
 ```json
-{
-  "version": 1,
-  "screen": "home",
-  "theme": { "id": "default" },
-  "layout": {
-    "formFactor": "tv", "class": "hd", "canvas": { "width": 1920, "height": 1080 }, "scale": 1,
-    "safeArea": { "top": 60, "right": 80, "bottom": 60, "left": 80 },
-    "scroll": "vertical", "focusEngine": true, "gridColumns": 6,
-    "maxSections": 10, "maxItems": 16, "maxGridItems": 60, "externalLinks": false,
-    "text": { "pageTitle": 76, "heading": 57, "title": 48, "body": 29, "caption": 25, "hint": 25, "badge": 23 },
-    "images": { "poster": { "width": 250, "height": 375, "aspect": "2/3" }, "wide": { "width": 548, "height": 308, "aspect": "16/9" } }
-  },
-  "root": {
-    "type": "Screen", "id": "home",
-    "props": { "scroll": true, "title": "Home" },
-    "style": { "direction": "column", "gap": 32, "background": "token:bg" },
-    "children": [
-      { "type": "Toolbar", "id": "home-toolbar", "children": [
-        { "type": "Text", "id": "home-greeting", "props": { "text": "Willow", "variant": "pageTitle" } },
-        { "type": "SearchBar", "id": "home-search", "props": { "placeholder": "Search your libraries" }, "action": "goSearch",
-          "focus": { "focusable": true, "order": 1, "group": "home-toolbar" } },
-        { "type": "Button", "id": "home-settings-btn", "props": { "icon": "settings", "label": "Settings", "variant": "ghost" }, "action": "goSettings",
-          "focus": { "focusable": true, "order": 2, "group": "home-toolbar" } }
-      ]},
-      { "type": "PosterRow", "id": "home-continue",
-        "props": { "cardShape": "wide", "title": "Continue watching" },
-        "children": [
-          { "type": "Card", "id": "home-continue:c0", "action": "openItem",
-            "props": { "title": "Title c0", "itemId": "c0", "route": "/item/c0", "progress": 0.5,
-              "imageUrl": "/api/items/c0/poster",
-              "image": { "url": "/api/items/c0/poster?w=548", "width": 548, "height": 308, "aspect": "16/9" } },
-            "focus": { "focusable": true, "order": 3, "group": "home-continue", "default": true } }
-        ]},
-      { "type": "Stack", "id": "home-libraries", "style": { "direction": "column" }, "children": [
-        { "type": "Shelf", "id": "home-libraries:lib1",
-          "props": { "title": "Recently added in Films", "seeAll": "/library/1" },
-          "children": [ { "type": "Card", "id": "home-libraries:lib1:m0", "action": "openItem", "props": { "title": "Title m0", "route": "/item/m0" },
-            "focus": { "focusable": true, "order": 5, "group": "home-libraries:lib1" } } ] }
-      ]}
-    ]
-  },
-  "actions": {
-    "goSearch": { "type": "navigate", "target": "/search" },
-    "goSettings": { "type": "navigate", "target": "/settings" },
-    "openItem": { "type": "navigate", "target": "$route" }
-  },
-  "meta": { "title": "Home", "generatedAt": "1970-01-01T00:00:00Z", "etag": "W/\"sha256-…\"", "source": "template:home", "ttlSeconds": 60 }
-}
+{ "version": 1, "section": "all",
+  "items": [ { "type": "Card", "id": "all:161", "props": { "…": "…" } } ],
+  "next": "/api/v1/sdui/pages/library-movies/sections/all/items?cursor=96&library=1" }
 ```
 
-Note what is absent: the hero, games, channels and music rows (nothing to put
-in them), `home-admin-setup` (not an administrator), and every `visibility`
-and `bindings` key. Focus starts on the first card, not in the toolbar.
+Append `items` to the section's children; ask `next` in turn; no `next`
+means the end. With `replace: true` (another season) the items take the
+place of the ones there. `props`, present on a first page, are the section's
+own props as they are now. Never ask for the same cursor twice at once.
 
-## Versioning and compatibility policy
+### Text
 
-- `version` is bumped only for incompatible changes: renaming or removing a
-  field, or changing the meaning of one.
-- Adding a component type, a `style` field, a condition predicate, an action
-  type or a format verb is **compatible** and does not bump the version.
-- Clients must tolerate unknown component types (render children, ignore the
-  type), unknown props, unknown style fields and unknown action types (ignore
-  the action). `sdui.schema.json` says the same to a validator: no object
-  forbids extra properties, and a node's `type` is any string.
-- The component catalogue has a revision of its own within one schema version
-  (`CatalogRevision`, 1 today; every type has a `since`). A client sends the
-  revision it was built against as `catalog` (or `X-WMS-SDUI-Catalog`), and
-  the server sends a type newer than that as its `fallback`, or a `Stack`.
-  A client that sends nothing gets the current catalogue and relies on the
-  rule above.
-- `Unmarshal` rejects any version other than the one it was built for.
-  Servers store authored documents and re-validate on load so a bump is
-  caught at startup.
-- The Go API follows the module's semver; `-alpha` releases may change it.
+- The server has already cut text to the device's limits
+  (`layout.textLimits`): at a word where one is within 20 characters, with
+  an ellipsis. A renderer shortening text itself (it shouldn't need to) uses
+  the same rule, `sdui.Truncate`.
+- Each card style allows its title and subtitle a number of lines
+  ([Card styles](#card-styles)); a synopsis on a card gets 2, on a hero
+  slide 3; a `DetailHeader`'s title 2 and overview 4, with "More" to read
+  the rest. Past that, truncate with an ellipsis at the end.
+- Text is never scaled down to fit, and never scrolls sideways.
 
-## Writing a client renderer
+### Pictures
 
-A renderer for any platform follows the same shape:
+- `props.image` is `{url, width, height, aspect, kind}`. Ask for `url` as it
+  is: it already carries the width (`?w=`), chosen from
+  `layout.imageWidths` as the smallest that covers the card at the device's
+  scale. Don't ask for another size.
+- Draw it in the card's aspect, cropped to fill (`cover`), except a channel's
+  logo and a title's logo, which are fitted inside (`contain`) on a plain
+  tile in token `bg3`.
+- While it loads, and if it fails, fill its place with token `bg3` and the
+  item kind's icon in token `fg2`. A card with `props.icon` and no image is
+  drawn the same way on purpose.
+- Decode off the main thread and cancel when the card leaves the screen.
 
-1. **Fetch and decode** the document. Reject `version != 1`. Keep the
-   `ETag` header for the next request.
-2. **Walk the tree** depth-first from `root`. For each node, pick a native
-   widget by `type` using the [component catalog](#component-catalog). Pass
-   `props` through; apply `style`:
-   - layout fields map to your flex/stack primitives;
-   - colours starting `token:` resolve to the current theme's variable or
-     palette entry; hex/functional colours apply directly;
-   - `tokens` become scoped variable overrides for that subtree;
-   - `hidden` hides without unmounting; `class` is an opaque hook.
-3. **Unknown type fallback.** If `type` is not one you know, render a plain
-   container and recurse into `children`. Never fail the screen.
-4. **Items.** The server has already turned a row's items into child `Card`
-   and `ListItem` nodes: draw the children. Use `props.image` (`url`, `width`,
-   `height`, `aspect`) for the picture, at that size; `props.more` says the
-   row was cut and `seeAll` where the rest is.
-5. **Action dispatch.** When a node with `action` is activated, look up
-   `document.actions[action]` and run it: `navigate` → your router,
-   `play` → your player, `openModal`/`closeModal` → show/hide the `Modal`
-   node with that id, `fetch` → request the target and replace/patch the
-   screen, `toggle` → flip `props[params.prop]` on the target node,
-   `submit` → POST field values, `external` → system browser, `back` → pop.
-   Substitute `$name` in `target` from the activated node's `props.name`
-   (`$route`, `$itemId`). Ignore unknown action types.
-6. **Focus.** Start focus on the node with `focus.default`. Move it in
-   `focus.order` where the platform wants an order, treat each `focus.group`
-   as one section that remembers where focus was, and follow the `up`,
-   `down`, `left` and `right` guides before geometry. See [Focus](#focus).
-7. **Layout.** Keep content inside `layout.safeArea`, size text from
-   `layout.text` by each `Text` node's `variant`, and give a `Grid`
-   `layout.gridColumns` columns when it is not 0.
-8. **Updates.** Send `If-None-Match` with your ETag. On 304, keep the tree.
-   On a patch response, apply with the algorithm above; on any failure,
-   re-fetch the full document. Respect `meta.ttlSeconds` for polling.
+### Colour and theme
+
+- Renderers use the theme's tokens ([THEMES.md](THEMES.md)) and nothing
+  else: no colour is ever in a page. Backgrounds `bg`, `bg2`, `bg3`; text
+  `fg`, `fg2`; the focus ring, progress bars, selected tabs and primary
+  buttons `accent` with `accentFg` on it; hairlines `border`; text over
+  pictures `onImage` on `scrim`.
+- A node with `tokens` overrides those tokens for itself and everything in
+  it; `document.theme.tokens` does so for the whole page. That is how a
+  module's colours, or a page's own accent, reach a renderer: see
+  [Theme scopes](#theme-scopes).
+
+### Motion
+
+- With `layout.reducedMotion` (the client sent `capabilities=reducedMotion`)
+  a `Hero` has no `autoAdvanceSec` and must not move by itself; cross-fades
+  become cuts; placeholders don't pulse; focus effects keep their ring and
+  drop their scale and parallax. A renderer also honours the system setting
+  directly.
+- A `Hero` never advances while one of its buttons has focus or the pointer
+  is over it, and pauses when it is off screen.
+
+### Accessibility
+
+Every component's role and label derivation is in its entry under
+[Components](#components); the fixtures hold the exact strings. In short:
+
+- A card is a button (a link on the web) labelled with what its style
+  shows, in the style's order, joined by ", ": `Film 3, 1993, 42 percent
+  watched, 1 hr 1 min left`. A title that isn't drawn (a photo's) is still
+  in the label.
+- A row is a list labelled by its title; a grid a grid (a list on touch
+  devices); headings are headings at levels 1 to 3 by role.
+- Touch targets are at least 44 points; a television's buttons at least 66
+  tall.
+- Markdown is read as plain text: links by their text.
+
+### Capability negotiation
+
+Thirteen components are **required**: `Page`, `Shelf`, `Grid`, `Card`,
+`Text`, `Notice`, `Divider`, `Spacer`, `Stack`, `Button`, `Image`, `List`,
+`ListItem`. A renderer that draws those can show every page. The rest are
+optional: a client that doesn't send `components` is taken to draw all of
+its catalogue revision; one that does is sent only the optional components
+it names, and each of the others as its **fallback**, which is made of
+required components and built by the server from the same data
+([Components](#components) says what each becomes). So an app released
+today still shows a page written with a component added next year.
+
+A client must send `catalog`. One built against a revision older than a
+component's `since` is sent that component's fallback without having to
+name anything.
+
+### The conformance kit
+
+[`pkg/sdui/conformance/fixtures`](../pkg/sdui/conformance/fixtures/index.json) holds
+one JSON file per case: an authored page, a request, canned data, the
+document the server must send for them, and the *normalised layout* a
+renderer must make of that document (what is visible in what order, cards
+per row, card sizes, columns, the picture each card asks for, text and line
+limits, labels, focus order and default). A renderer's test suite reads the
+files, builds its views from `expected.document`, describes them in the
+normalised shape and compares with `expected.layout`. The
+[README](../pkg/sdui/conformance/README.md) says how, for Swift, Kotlin and
+TypeScript. A renderer conforms when every fixture passes.
+
+## Navigation
+
+`GET /api/v1/sdui/navigation` answers the main menu for the profile and
+device:
+
+```json
+{ "version": 1, "formFactor": "phone", "etag": "W/\"nav-…\"", "items": [
+  { "id": "home", "label": "Home", "icon": "home", "kind": "page", "page": "home", "route": "/", "placement": "primary" },
+  { "id": "search", "label": "Search", "icon": "search", "kind": "page", "page": "search", "route": "/search", "placement": "primary" },
+  { "id": "lib-1", "label": "Films", "icon": "movie", "kind": "page", "page": "library", "params": { "library": "1" }, "route": "/library/1", "placement": "more" },
+  { "id": "you", "label": "You", "icon": "user", "kind": "native", "screen": "profiles", "route": "/you", "placement": "primary" },
+  { "id": "settings", "label": "Settings", "icon": "settings", "kind": "native", "screen": "settings", "route": "/settings", "placement": "more" } ] }
+```
+
+- `placement` says where each entry sits: `primary` in the bar itself (a
+  phone's tab bar, a television's top menu, the web app's sidebar), `more`
+  behind More (the sidebar's lower group), `end` pinned to the bar's far end.
+  A bar holds only so many: past 5 on a phone, 7 on a television and 8 on a
+  tablet, primary entries are sent as `more`.
+- A `page` entry is opened by asking for `pages/{page}` with `params`; a
+  `native` entry opens the app's own screen named by `screen`.
+- Entries are authored as `{id, type, page | library | screen | route,
+  label, icon, when, placement}`. `type` is `page`, `libraries` (one entry
+  per library the profile can open, IDs `lib-<id>`), `library`, `native` or
+  `route`. `placement` maps a form factor to a placement or `hidden`.
+- **Settings is always there.** It can be moved; it can't be hidden, given a
+  condition or left out: a navigation without it gets it at the end.
+- A profile's own order and hidden entries (`navigation/personal`) apply
+  here as they do to a page. Settings can't be hidden by a profile either.
+
+The built-in navigation: Home, Search, Live TV (where the profile may watch
+it), the libraries (behind More on a phone; one "Libraries" entry on a
+television), Collections, You and Settings.
+
+## Personalisation
+
+A profile may arrange a page for itself. `document.personal` tells an app
+everything it needs to offer "Customise" without knowing the page:
+
+```json
+"personal": { "editable": true, "allow": ["reorder", "hide", "pin", "density", "cardSize", "defaultTab"],
+  "sections": [ { "id": "libraries", "title": "Your libraries", "pinned": true },
+                { "id": "hero", "title": "Featured", "hidden": true },
+                { "id": "onnow", "title": "On TV now", "empty": true },
+                { "id": "setup", "title": "Notice", "locked": true } ],
+  "density": "compact", "url": "/api/v1/sdui/pages/home/personal" }
+```
+
+`sections` are the page's top-level sections in the profile's order, hidden
+ones included so they can be shown again; `empty` ones have nothing in them
+now and aren't on the page. The app shows that list, lets the person drag,
+hide and pin what isn't `locked`, and PUTs the result to `url`:
+
+```json
+{ "order": ["shuffle", "recent-1"], "hidden": ["hero"], "pinned": ["libraries"],
+  "density": "compact", "cardSize": { "recent-1": "l" }, "defaultTab": { "views": "artists" } }
+```
+
+- `GET`, `PUT` and `DELETE` on `pages/{page}/personal` and
+  `navigation/personal`. Only ever the caller's own.
+- Who may: any profile whose **`editLayout`** feature switch is on (it is by
+  default; whoever manages a profile can turn it off with the other
+  parental switches: [PROFILES.md](PROFILES.md)), unless the server's
+  `personalisation.disabled` is set. Otherwise `editable` is false, `PUT`
+  answers 403 and what was stored is ignored, not deleted.
+- A page says what may be changed with `"personal": {"allow": [...]}`; an
+  empty list is nothing. A section with `"locked": true` can't be hidden or
+  moved.
+- `density` is `compact`, `comfortable` or `spacious`: spacing at three
+  quarters, as the device has it, or at five quarters. `cardSize` is `s`,
+  `m` or `l` for a section.
+- The arrangement lives with the profile's other interface choices (the
+  same store `/api/v1/me/ui` reads, under `sdui`) and goes when the profile
+  does. Home's order and hidden rows from before pages were server-driven
+  carry over: the built-in Home's sections have the same IDs.
+
+## Theme scopes
+
+Colours come from the theme engine ([THEMES.md](THEMES.md)); a page never
+holds one. A page or a section may say which **scope** it belongs to:
+
+```json
+{ "id": "onnow", "component": "Shelf", "scope": "wittytv", "source": { "type": "liveNow" } }
+```
+
+A scope is a module's ID (`wittytv`, `wittymusic`, `wittyplay`) or a name
+of the administrator's own (`family`, `evening`). The colour overrides set
+for it with `PUT /api/v1/theme/modules/{scope}` (the theme engine's module
+overrides, which accept any well-formed name) are sent as the node's
+`tokens`, and as `document.theme.tokens` for a page's scope. Items carry
+their own scope too: a channel's card is in `wittytv` wherever it appears.
+A scope with no overrides changes nothing.
+
+## Text placeholders and Markdown
+
+Titles and text may hold [placeholders](#placeholders): `{user}`,
+`{greeting}`, `{library}`, `{each}`, `{title}`. The server fills them in.
+
+A `Text` with `"format": "markdown"` is sent as written and drawn from this
+subset, and nothing else: `**bold**`, `*italic*`, `` `code` ``, `#` to `###`
+headings, `-` lists, `1.` lists, blank-line paragraphs, and `[text](to)`
+where `to` is a route in the app or an `http(s)` address (opened in the
+browser; dead where there is none). Raw HTML is shown as the characters it
+is. The validator refuses a link that is neither.
 
 ## HTTP API
 
-The server stores the authored screens in `ui_config.json` and renders them
-per request. Every route is under `/api/v1/sdui` (and `/api/sdui` for the web
-interface); `sdui` and `sdui-diff` in `/capabilities` `features` say a server
-has them. Route-by-route reference: [CLIENT-API.md](CLIENT-API.md#server-driven-ui)
-and `docs/openapi.json`.
+Every route is under `/api/v1/sdui`. `sdui`, `sdui-diff`, `sdui-pages`,
+`sdui-catalog`, `sdui-navigation`, `sdui-personal` and `sdui-editor` in
+`/capabilities` `features` say a server has them. Route by route:
+[CLIENT-API.md](CLIENT-API.md#server-driven-ui) and `docs/openapi.json`.
 
-| Route | Sign-in | What it does |
-|---|---|---|
-| `GET /sdui/screens/{screen}` | any account | The screen rendered for this account and device. `ETag`; 304 with `If-None-Match`. |
-| `GET /sdui/screens/{screen}/diff?since=<etag>` | any account | Patches from the render the client has, or the whole document. |
-| `GET /sdui/topshelf` | any account | [Top Shelf](#top-shelf) content for a tvOS extension. |
-| `GET /sdui/config` | admin | All of `ui_config.json`, with `etag`. |
-| `PUT /sdui/config` | admin | Replace it; `If-Match` required. |
-| `GET /sdui/config/history` | admin | The last 10 revisions. |
-| `POST /sdui/config/rollback/{rev}` | admin | Make a kept revision current again. |
+### For every app
 
-### How the request becomes a `RenderContext`
+| Route | What it does |
+|---|---|
+| `GET /sdui/catalog` | The catalogue, as data. `ETag`. |
+| `GET /sdui/navigation` | The main menu for this profile and device. `ETag`. |
+| `GET /sdui/pages/{page}` | A page, rendered. `{page}` is a kind (`home`, `library`, `detail`, `search`, ...) or one page's ID. `ETag`; 304 with `If-None-Match`. 404 for a page, library or title that isn't there or isn't this profile's to see. |
+| `GET /sdui/pages/{page}/diff?since=<etag>` | Patches from the render the client has, or the whole document. |
+| `GET /sdui/pages/{page}/sections/{section}/items?cursor=` | A page of a section's items. The address comes from the page. |
+| `GET`, `PUT`, `DELETE /sdui/pages/{page}/personal` | The profile's own arrangement of a page. |
+| `GET`, `PUT`, `DELETE /sdui/navigation/personal` | And of the main menu. |
+| `GET /sdui/topshelf` | [Top Shelf](#top-shelf) content for a tvOS extension. |
 
-The client says what it is; the server says who is asking. For each client
-field the query parameter wins over the header.
+Which page a route in the app is, and with which parameters, is the
+[Routes](#routes) table, also in the catalogue: a renderer needs one router
+driven by it, not a screen per route.
 
-| `RenderContext` | From | Notes |
-|---|---|---|
-| `Platform` | `platform` / `X-WMS-Platform`, else derived from `formFactor` | `web` (default), `tv` (or `tvos`), `ios`, `android`, `desktop`. Form factors map onto them: `phone`/`tablet` → `ios`, `tenfoot`/`10ft` → `tv`, `browser` → `web`. Another short lower-case name is accepted and simply matches no condition. |
-| `Profile` | `formFactor` / `X-WMS-Form-Factor`, else the platform; `deviceClass` / `X-WMS-Device-Class` | The [device profile](#device-profiles): `tv`, `phone`, `tablet`, `desktop`, `web`; `ios` and `android` without a form factor are a phone. `deviceClass` is `hd` or `4k`. |
-| `Catalog` | `catalog` / `X-WMS-SDUI-Catalog` | The catalogue revision the client knows. |
-| `Flags["formFactor:<ff>"]` | `formFactor` / `X-WMS-Form-Factor` | So a condition can say `{"flag": "formFactor:tablet"}`. |
-| `Viewport` | `viewport=1440x900` / `X-WMS-Viewport`, or `width` and `height` | CSS pixels. Send it: width conditions pass when it is unknown. |
-| `Locale` | `locale` / `X-WMS-Locale`, else the first `Accept-Language` | A language tag (`en-GB`). |
-| `Flags[<capability>]` | `capabilities=hdr,touch` / `X-WMS-Capabilities` | Up to 64 names of letters, digits and `. _ : -`; each becomes a flag set to true. |
-| `Role` | the account | `admin` for administrators, else the account's kind: `adult`, `kids`, `guest`. |
-| `Features` | the server | `/capabilities` `features`, plus `history` and `playback`. |
-| `Modules` | the server | The modules the screen's conditions name that are installed and on. |
-| `Flags["setupIncomplete"]` | the server | For administrators while first-time setup is unfinished. |
-| `Data` | the server | `$.user.name`, `$.user.kind`, `$.user.isAdmin`, `$.server.name`, `$.server.version`, and the screen's own data: see [What the server puts in Data](#what-the-server-puts-in-data). |
-| `ThemeOverrides` | `ui_config.json` `theme.modules` | The per-module colours of the [theme engine](THEMES.md#the-theme-engine), so a node with `style.module` gets them in `style.tokens`. |
+Responses carry `Cache-Control: private, no-cache` and an `ETag` that is
+the same for every request that renders the same tree. Send it back as
+`If-None-Match`.
 
-An invalid value is a 400 naming the parameter. An unknown screen is 404, and
-so is a library or title the account may not open. A screen an administrator
-added whose root is hidden for this requester is 422; a stock screen in that
-state is served from its template instead.
+### Diffs
 
-### What the server puts in Data
+`GET /sdui/pages/{page}/diff?since=<etag>`, with the same parameters as the
+page, answers 304 when `since` is current; `{"etag", "since", "patches":
+[...]}` when the server still has the render `since` names (it keeps each
+account's last 6, at most 128 in all, 32 or 12 on a small machine; in
+memory); `{"etag", "document": {...}}` otherwise. See
+[Patch protocol](#patch-protocol).
 
-Each stock screen is filled for the account asking, read the way the ordinary
-routes read it: with the account's library, rating and title limits. A title,
-show, album or channel an account may not see is never in a screen sent to it.
-Only as much is read as the device is sent.
+### The editor's contract
 
-| Screen | Request | Data | Flags |
-|---|---|---|---|
-| `home` | | `$.home.featured` (5 newest films, backdrops), `continueWatching`, `nextUp`, `sections` (a row of the newest titles per library), `music` (newest albums), `channels` | `setupIncomplete` |
-| `libraries` | | `$.libraries.items` | `librariesEmpty` |
-| `library` | `library=<id>`, `sort=title\|added\|year`, `offset` | `$.library.id`, `title`, `kind`, `items`, `sort` | `libraryEmpty` |
-| `detail` | `item=<id>` or `show=<id>` | `$.item.id`, `title`, `subtitle`, `overview`, `year`, `rating`, `duration`, `backdrop`, `progress`, `playId`, and for a show `children` (its episodes) | `hasProgress`, `notPlayable` (a show) |
-| `search` | `q=<text>` | `$.search.query`, `sections` (a row per library with matches, and channels) | `searchIdle` (under two letters), `searchEmpty` |
-| `livetv` | | `$.livetv.favourites`, `channels` | `livetvEmpty` |
-| `music` | | `$.music.continueListening`, `sections` (newest albums per music library) | `musicEmpty` |
-| `settings`, `player` | | none: `settings` is a list of places in the app's own settings, and `player` is the frame around a player the app drives with the playback routes | |
+Everything an editor needs is data; it hard-codes nothing about components.
 
-An item is `{id, title, subtitle, kind, imageUrl, progress, route, playRoute,
-shape, module}`. `route` is the place in the app (`/item/12`, `/show/3`,
-`/album/…`, `/tv/watch/lib-4`, `/library/2`), the same routes the web client
-uses; an app maps them to its own screens.
+| Route (administrators only) | What it does |
+|---|---|
+| `GET /sdui/catalog` | Components, card styles, sources, conditions, page kinds, icons, device profiles: each with label, description, icon, category and, for every property, type, label, help, default, choices, range and where it applies. Build the palette and the property forms from it. |
+| `GET /sdui/config/pages` | Every page in force with its `source`: `builtin`, `changed` or `custom`. `?target=draft` for the draft's. |
+| `GET /sdui/config/pages/{id}` | The page as authored, the built-in page it would reset to, and the validator's issues. |
+| `PUT /sdui/config/pages/{id}` | Save one page. |
+| `DELETE /sdui/config/pages/{id}` | Reset a built-in page to default, or delete one of your own. |
+| `GET`, `PUT`, `DELETE /sdui/config/navigation` | The navigation; DELETE resets it. |
+| `POST /sdui/validate` | Check `{"page"}`, `{"navigation"}` or `{"config"}` without saving. |
+| `GET /sdui/presets`, `POST /sdui/presets/{id}/apply` | The gallery; apply a page preset. |
+| `GET`, `PUT`, `DELETE /sdui/draft`, `POST /sdui/draft/publish`, `POST /sdui/draft/preview` | The draft. |
+| `GET /sdui/export`, `POST /sdui/import` | A page or the whole configuration as a file. |
+| `GET`, `PUT /sdui/config`, `GET /sdui/config/history`, `GET /sdui/config/diff`, `POST /sdui/config/rollback/{rev}` | The whole file, its last 10 revisions, what differs between two, and going back. |
 
-A screen an administrator adds under another name gets `$.user` and
-`$.server` only.
+**Saving.** A change to the published configuration needs `If-Match` with
+the ETag it was made against: 428 without, 412 when someone saved in
+between (read again, redo the change). With `?target=draft` the change goes
+to the draft instead and `If-Match` is optional.
 
-### Top Shelf
+**Validation.** A refused save answers 400 with every problem:
 
-`GET /sdui/topshelf` answers what a tvOS Top Shelf extension shows: what the
-account was in the middle of, then what is new in the first libraries it may
-open.
+```json
+{ "error": "the UI configuration has 2 problem(s): …", "issues": [
+  { "path": "/pages/night/sections/0/props/cardStyle", "severity": "error",
+    "message": "\"postr\" is not a choice for cardStyle; the choices are auto, poster, landscape, …",
+    "fix": "Did you mean \"poster\"?" },
+  { "path": "/pages/night/sections/0/source/library", "severity": "error",
+    "message": "$item means nothing on a custom page",
+    "fix": "A custom page has no variables; write the value itself." } ] }
+```
+
+`path` locates the problem in what was sent; `message` says what is wrong
+in words; `fix` says what to do. `severity` `warning` doesn't stop a save
+(a grid that isn't last, a repeated row that never uses `$each`).
+
+#### Draft and preview
+
+`ui_config.draft.json` is a second configuration nobody is shown. Any page,
+navigation, preset or import route with `?target=draft` writes to it (it
+starts as a copy of the published one). `POST /sdui/draft/preview` answers
+`{"token", "expiresAt"}`: a random token, good for two hours, **for the
+administrator who asked and nobody else**. That administrator's apps send
+it as `preview=<token>` (or `X-WMS-SDUI-Preview`) with the page and
+navigation routes and are served the draft, with `meta.source: "draft"`, on
+a real phone or television. Anyone else sending it gets 403. `POST
+/sdui/draft/publish` makes the draft the configuration, as a new revision,
+and ends every preview; `DELETE /sdui/draft` throws it away.
+
+#### Presets, import and export
+
+`GET /sdui/presets` lists [ready-made pages and sections](#presets). A page
+preset is applied in one step (`POST /sdui/presets/{id}/apply`), then
+edited like any page; a section preset is a section for the editor to drop
+into a page. `GET /sdui/export?page=<id>` (or without `page`, everything)
+answers a file `{"format": "wittymedia-ui", "formatVersion": 2, "kind":
+"page" | "config", ...}`; `POST /sdui/import` takes one, into the draft
+unless `target=published`. `dryRun=1` reports the issues and what would
+change, and changes nothing.
+
+### `ui_config.json`
+
+In the data folder. It holds only what an administrator changed:
+
+```json
+{
+  "version": 2, "revision": 7, "updatedAt": "2026-11-11T14:00:00Z", "updatedBy": "owner",
+  "theme": { "tokens": { "accent": "#FF8800" }, "modules": { "wittytv": { "accent": "#2A6FDB" } } },
+  "navigation": { "items": [ { "id": "home", "type": "page", "page": "home" } ] },
+  "pages": { "home": { "id": "home", "kind": "home", "title": "Home", "sections": [] } },
+  "personalisation": { "disabled": false }
+}
+```
+
+- **Strict.** Unknown fields and trailing data are refused; at most 16 MiB
+  and 200 pages; each key under `pages` is its page's `id`; a page with a
+  built-in page's ID must be of the same kind. Every page and the
+  navigation go through the validator; theme tokens must be colour tokens
+  themes have, with colour values.
+- **Revisions.** Every save is a new `revision`, written atomically, with a
+  copy of each of the last 10 in `ui_config.history/`. Rolling back makes an
+  old one current as a new revision.
+- **Edited by hand.** Changing the file while the server runs is fine: on
+  the next read it is validated and saved as a new revision (`updatedBy:
+  "file on disk"`). One that doesn't validate is kept as
+  `ui_config.json.bad` and the last good configuration stays in force.
+- **From the first format.** A file with `"version": 1` and `"screens"` is
+  converted when it is first read, and the original kept beside it as
+  `ui_config.v1.json`. A screen that was still exactly the stock screen of
+  that format is dropped, so the built-in page takes over; one that was
+  changed, or added, is converted node by node ([migration
+  guide](#migrating-from-catalogue-revision-1)); what has no place in this
+  model is named in the page's `description` and in the configuration's
+  `notes`, and logged. Its theme section is carried over untouched.
+
+## Top Shelf
+
+`GET /sdui/topshelf` answers what a tvOS Top Shelf extension shows: what
+the profile was in the middle of, then what is new in the first libraries
+it may open.
 
 ```json
 { "version": 1, "style": "sectioned", "expiresInSec": 900,
   "sections": [ { "title": "Continue watching", "items": [
-    { "id": "12", "title": "Metropolis", "shape": "poster", "progress": 0.4,
-      "image": { "url": "/api/items/12/poster?w=404", "width": 404, "height": 608, "aspect": "2/3" },
+    { "id": "12", "title": "Film 3", "shape": "wide", "progress": 0.4,
+      "image": { "url": "/api/items/12/backdrop?w=908", "width": 908, "height": 512, "aspect": "16/9" },
       "displayRoute": "/item/12", "playRoute": "/watch/12" } ] } ] }
 ```
 
-At most 4 sections of 10 items: the extension has seconds and little memory.
-`shape` is `poster`, `wide` or `square`, the three tvOS has, and `image` is
-sized for it (404×608, 908×512, 608×608 points, times 2 with `deviceClass=4k`).
-Build a `TVTopShelfSectionedContent` from it, with `displayRoute` and
-`playRoute` wrapped in the app's own URL scheme as the display and play
-actions. It has an `ETag`; ask again after `expiresInSec`. The extension signs
-in with the app's token, kept in a shared keychain group.
+At most 4 sections of 10 items: the extension has seconds and little
+memory. `shape` is `poster`, `wide` or `square`, the three tvOS has, and
+`image` is sized for it (404×608, 908×512, 608×608 points, twice that with
+`deviceClass=4k`). Build a `TVTopShelfSectionedContent` from it, with
+`displayRoute` and `playRoute` wrapped in the app's own URL scheme. It has
+an `ETag`; ask again after `expiresInSec`.
 
-### Rendering, ETags and 304
+## Patch protocol
 
-`meta.etag` and the `ETag` header are `sdui.ETag` of the rendered document,
-which is the same for every request that renders the same tree. Send it back as
-`If-None-Match` for a 304. Responses carry `Cache-Control: private, no-cache`.
+`Diff(old, new) []Patch` and `Apply(doc, patches)` are an ID-keyed tree
+diff. Nodes are matched by `id`.
 
-### Diffs
+| `op` | `path` | Payload | Meaning |
+|---|---|---|---|
+| `add` | `#<parentId>/children/<n>` | `node` | Insert `node`, with its subtree, at index `n`. |
+| `remove` | `#<id>` | | Remove the node and its subtree. |
+| `replace` | `#<id>` | `node` | Replace every field of the node **except `children`**. |
+| `replace` | `/root` | `node` | Replace the whole tree. |
+| `replace` | `/page`, `/layout`, `/theme`, `/personal`, `/catalog`, `/meta` | `value` | Set the document-level field; `null` clears it. |
+| `move` | `#<parentId>/children/<n>` | `from: "#<id>"` | Move a child of the same parent to index `n`. |
 
-`GET /sdui/screens/{screen}/diff?since=<etag>` (or with `If-None-Match`), with
-the same device parameters as the screen, renders the screen and then:
+Patches apply in order; indices refer to the children as they stand after
+the patches before. `meta.generatedAt` and `meta.etag` are never in a
+patch: the new ETag is the response's. If any step fails (an unknown ID, a
+bad index), drop the local tree and ask for the page.
 
-- answers **304** when `since` is the current ETag;
-- answers `{"etag", "since", "patches": [...]}` when the server still has the
-  render `since` names, kept for this account (its last 6, and at most 128
-  across all accounts, 32 or 12 on a small machine; in memory, gone at
-  restart). Apply the patches with the
-  [client algorithm](#client-application-algorithm);
-- answers `{"etag", "document": {...}}` otherwise: replace the local tree.
+```
+for p in patches:
+  if p.path starts with "/":  document[field] = p.value   (p.node for /root)
+  else:
+    (id, index) = parse "#id" or "#id/children/n"
+    add:     find(id).children.insert(index, p.node)
+    remove:  parentOf(id).children.delete(indexOf(id))
+    replace: n = find(id); keep = n.children; n = p.node; n.children = keep
+    move:    c = parentOf(p.from).children.remove(p.from); find(id).children.insert(index, c)
+```
 
-`patches` may be empty when only `meta` volatile fields differ.
+`Canonical(doc)` is the document as JSON with keys sorted, no white space,
+and without `meta.generatedAt` and `meta.etag`; `ETag(doc)` is `W/"sha256-`
++ the first 32 hex digits of its SHA-256 + `"`.
 
-### `ui_config.json`
+## Performance and limits
 
-The file is in the data folder. It is created from `DefaultScreens()` on first
-start. Its layout:
+- **Only what is on the page is read.** A section's source is one or two of
+  the library's indexed queries, asked for one page of items. Sections past
+  the device's `eagerSections` aren't asked at all until the client wants
+  them, nor are sections after many empty ones.
+- **Small payloads.** A television gets 4 filled rows of 12 cards (6 of 20
+  on a 4K one) and fetches the rest as they are approached; text is cut to
+  the device's limits; pictures are asked for at the size they are drawn.
+- **Renders are kept briefly.** The same request from the same profile
+  within 3 seconds (a page and its diff, an app starting up) is one render.
+  Longer would need a version number for the library's data, which the
+  store does not have; `ETag` and 304 make the repeat cheap for the client
+  either way. A profile's own change to its arrangement drops its kept
+  renders at once.
+- **Bounded memory.** Renders kept for diffs, recent renders and preview
+  tokens are capped, lower on small machines.
+- **Limits on what is authored**: see [Limits](#limits).
+
+## Security
+
+- **No scripts, no web views, no addresses of one's own.** A page can open
+  routes on this server, the app's own screens and, in the browser, an
+  `http(s)` page. Pictures are paths on this server. Markdown is a fixed
+  subset with the same link rule. The validator refuses the rest, and a
+  renderer never interprets HTML.
+- **Every item is read through the profile's limits**: library, rating,
+  title and collection limits, Live TV and feature switches. A page that
+  names a library the profile can't open shows it nothing; a page *about*
+  something it can't see is not found. This is checked for every built-in
+  page, for sections' own pages of items, and for pages an administrator
+  wrote to name a library outright.
+- **Buttons follow the profile's feature switches**: a profile that may not
+  download or share isn't offered either.
+- **Configuration is for administrators**, with `If-Match` against lost
+  updates. A profile's arrangement is written only by that profile, only
+  when its `editLayout` switch allows.
+- **A preview token** shows the draft only to the administrator it was made
+  for.
+- **Caps** on sizes, depth and counts everywhere ([Limits](#limits)).
+
+## Versioning
+
+- `version` (1) changes only for something a client built for it can't
+  survive. Clients refuse a version they don't know.
+- The **catalogue revision** (2) counts additions: a component, a property,
+  a card style, a source, a condition, an action type. Each has a `since`.
+  A client sends the revision it was built against and is sent nothing
+  newer in its place; fallbacks cover components, the shape covers card
+  styles, and unknown props and actions are ignored. Additions never bump
+  `version`.
+- `ui_config.json` has its own `version` (2), converted forward when read.
+- The conformance kit has a `kit` number; a change to a fixture's expected
+  output is a change to the contract and is called out in the changelog.
+
+## Migrating from catalogue revision 1
+
+For renderer authors who started against the first schema.
+
+| Revision 1 | Now |
+|---|---|
+| `GET /sdui/screens/{screen}`, `/diff` | `GET /sdui/pages/{page}`, `/diff`. |
+| `document.screen` | `document.page` (`{id, kind, title, route, ...}`). |
+| `document.actions` and `node.action` naming an entry | `node.action` is the action itself: `{type, to, item, url, op, params}`. No `$route` substitution: the server has filled everything in. |
+| `document.theme` (`id`, `moduleOverrides`) | `document.theme` is `{scope, tokens}`; nodes carry `scope` and `tokens`. |
+| `node.style` (direction, gap, padding, colours, `class`, `tokens`, `module`) | Gone. Layout comes from the component and `layout`; `Stack` has `direction`, `gap` (a spacing step), `align`; colours are theme tokens only. |
+| `node.visibility`, `node.bindings` | Never sent (they never were); authored as `when` and `source`. |
+| `focus.focusable`, `focus.up/down/left/right` | `focus` is `{order, group, default}` and present only on focusable nodes. No guides: movement follows `order` and groups. |
+| `Screen` | `Page`. |
+| `PosterRow`, `Carousel` | `Shelf` (with `cardStyle`), `Hero`. |
+| `HeroBanner` | `Hero` (items) or `Banner` (one static block). |
+| `Card` props `imageUrl`, `route`, `shape`, child `Badge`/`ProgressBar` nodes | `Card` props `image`, `style`, `shape`, `badges`, `progress`; `action` holds the route. Cards have no children. |
+| `Toolbar`, `SearchBar` | App chrome is the app's own, driven by [Navigation](#navigation); `SearchBox` is the field. |
+| `Modal`, `Video`, the `player` and `settings` screens | Gone: dialogs, players and Settings are the app's own. |
+| `Badge`, `ProgressBar` | Props of `Card`. |
+| `Tabs` with every tab's content | Only the selected `Tab` has children; `selectTab` asks for the page with `tab=<id>`. |
+| `props.items`, `props.sections` | Never sent; children are always nodes. |
+| `props.more: true`, `total` | `props.more.url` to GET for the next page; `total`. |
+| `layout.maxSections`, `maxItems`, `maxGridItems`, `gridColumns`, `images` | `layout.budget`, `layout.cards`, `layout.imageWidths`, and `props.card` / `props.columns` on each section. |
+| `catalog` parameter | Still there; plus `components` and `views`. Send `catalog=2`. |
+| Flags `formFactor:<ff>`, `Condition.role`, `.flag`, `.when` | Authoring only: `formFactor`, `profileKind`, `admin`, `capability`, `flag`. |
+| `ui_config.json` `screens` | `pages` and `navigation`; converted automatically. |
+
+New things a renderer must do: lay out from `layout` and `props.card`
+rather than its own numbers; fetch `more.url` for paging and for `deferred`
+sections; apply `tokens` scopes; draw `empty` and `error` states; follow
+`focus.order` and groups; send `catalog`, `viewport` and, if it lacks
+optional components, `components`; build its menu from `navigation`; offer
+"Customise" from `document.personal`; and pass the conformance fixtures.
+
+## Reference
+
+Written from the catalogue (`pkg/sdui/catalog_data.go`) by a test, so it is
+what the server does.
+
+<!-- catalogue:begin (written by go test ./pkg/sdui -update; edit pkg/sdui/catalog_data.go) -->
+### Components
+
+25 components. **Required** ones are drawn by every renderer; the others may be left out by a renderer, which then names the ones it has (`components=`), and is sent the fallback instead.
+
+| Component | Label | Category | Required | Takes a source | Focus | Fallback |
+|---|---|---|---|---|---|---|
+| [`Page`](#page) | Page | structure | yes | none | none |  |
+| [`Hero`](#hero) | Spotlight | media |  | required | stop | Shelf |
+| [`Shelf`](#shelf) | Row | media | yes | required | group |  |
+| [`Grid`](#grid) | Grid | media | yes | required | group |  |
+| [`Card`](#card) | Card | media | yes | none | item |  |
+| [`Tabs`](#tabs) | Tabs | navigation |  | none | group | Stack |
+| [`Tab`](#tab) | Tab | navigation |  | none | item | Stack |
+| [`FilterBar`](#filterbar) | Filter and sort | navigation |  | none | stop | left out |
+| [`DetailHeader`](#detailheader) | Title header | detail |  | none | stop | Stack |
+| [`SeasonList`](#seasonlist) | Seasons and episodes | detail |  | required | group | Shelf |
+| [`TrackList`](#tracklist) | Track list | detail |  | required | group | List |
+| [`Track`](#track) | Track | detail |  | none | item | ListItem |
+| [`Banner`](#banner) | Banner | media |  | optional | item | Notice |
+| [`Text`](#text) | Text | text | yes | none | none |  |
+| [`Notice`](#notice) | Notice | text | yes | none | item |  |
+| [`Divider`](#divider) | Divider | layout | yes | none | none |  |
+| [`Spacer`](#spacer) | Space | layout | yes | none | none |  |
+| [`Stack`](#stack) | Stack | layout | yes | none | none |  |
+| [`Split`](#split) | Two columns | layout |  | none | none | Stack |
+| [`Button`](#button) | Button | navigation | yes | none | item |  |
+| [`Image`](#image) | Picture | text | yes | none | none |  |
+| [`SearchBox`](#searchbox) | Search box | navigation |  | none | item | Button |
+| [`List`](#list) | List | media | yes | optional | group |  |
+| [`ListItem`](#listitem) | List row | media | yes | none | item |  |
+| [`NativeView`](#nativeview) | The app's own view | structure |  | none | stop | Stack |
+
+#### Page
+
+*Page.* The root of every rendered page. It scrolls down; nothing inside it scrolls down by itself. Made by the server; not something an administrator places.
+
+Holds: any component.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `title` | string, at most 120 |  | Title. The page's heading. |
+| `density` | enum: compact, comfortable, spacious | `comfortable` | Density. How tightly the page is packed. |
+
+How it is drawn:
+
+- **Television.** A full-screen column inside the safe area (60 points top and bottom, 80 at the sides), sections 40 points apart. The title isn't drawn: the top menu says where you are.
+- **Phone.** A scrolling column under a large title that collapses into the navigation bar; sections 24 points apart, rows bleed to the screen's edges.
+- **Tablet.** As a phone, with 24-point side margins.
+- **Desktop and web.** A scrolling column beside the sidebar, the title as a heading, content at most 1600 points wide.
+
+Focus: takes none. Accessibility: Role: main. Label: the title.
+
+#### Hero
+
+*Spotlight.* A large rotating spotlight of a few titles: backdrop, title or logo, a line of facts, a synopsis and buttons.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `title` | text, at most 120 |  | Title. Named to assistive technology and used by the fallback; not drawn. |
+| `style` | enum: billboard, banner | `billboard` | Style. A full billboard, or a shorter banner. |
+| `autoAdvanceSec` | int 0 to 60 | `8` | Seconds per title. How long each title stays before the next one. 0 never moves by itself. |
+| `showSynopsis` | bool | `true` | Show the synopsis. Two or three lines about the title. |
+| `showLogo` | bool | `true` | Use the title's logo. The title's logo art in place of its name, when it has one. |
+| `actions` | enumList: play, details, watchLater | `play, details` | Buttons. The buttons on each title, in order. |
+| `maxItems` | int 1 to 8 | `5` | Most titles. How many titles it rotates through. |
+
+How it is drawn:
+
+- **Television.** The top 620 points of the screen: backdrop full width behind a left-to-right scrim, the logo or title at the heading size bottom-left, facts, at most three lines of synopsis, then the buttons in a row. Left and right on the buttons' row past its ends change title; it never advances while one of its buttons has focus.
+- **Phone.** A 16/9 backdrop the width of the screen (2/3 with style billboard), title and facts over a bottom scrim, buttons below; swipe sideways to change title, page dots under it.
+- **Tablet.** A 21/9 backdrop with the text block at the bottom-left third.
+- **Desktop and web.** A 21/9 backdrop at most 620 points tall, text block bottom-left, arrows at the edges on hover, page dots bottom-right.
+
+States:
+
+- **empty.** Left out.
+- **error.** Left out.
+- **loading.** A grey block of the hero's size.
+
+Focus: one stop in the page's focus order; it moves focus among its own parts. Accessibility: Role: region, labelled by the title prop or "Featured". Each slide is a group labelled "<title>, <facts joined by comma>", announced politely when it changes. With reduced motion it does not advance by itself and cross-fades are cuts.
+
+Fallback: A Shelf of landscape cards of the same items, titled with the hero's title or "Featured".
 
 ```json
 {
-  "version": 1,
-  "revision": 7,
-  "updatedAt": "2026-11-10T14:00:00Z",
-  "updatedBy": "owner",
-  "theme": {
-    "tokens":  { "accent": "#FF8800" },
-    "modules": { "wittyplay": { "accent": "#3AD29F" } }
+  "id": "hero",
+  "component": "Hero",
+  "source": {
+    "type": "featured",
+    "limit": 5
   },
-  "screens": {
-    "home": { "version": 1, "screen": "home", "root": { "type": "Screen", "id": "home" } }
+  "props": {
+    "style": "billboard"
   }
 }
 ```
 
-- **Validation.** Strict JSON (unknown fields and trailing data are refused,
-  16 MiB at most, 64 screens at most). Each key under `screens` must equal its
-  document's `screen` and be a lower-case name. Every document goes through
-  `Unmarshal` and `Validate`; `theme` token names must be colour tokens themes
-  have and values colours. A refused save answers 400 with every problem in
-  `issues` (`{path, message}`, paths prefixed `/screens/<name>`).
-- **Revisions and concurrency.** Every save is a new `revision`. `GET
-  /sdui/config` gives the configuration's `etag` (`W/"ui-<revision>-<hash>"`);
-  `PUT` needs it as `If-Match` (428 without; 412 when someone saved in
-  between: read it again and redo the change). Writes are atomic (temporary
-  file, sync, rename) and serialised.
-- **History.** A copy of each of the last 10 revisions is kept in
-  `ui_config.history/<revision>.json`. `POST /sdui/config/rollback/{rev}` makes
-  one current again as a new revision (the history isn't rewritten).
-- **Edited by hand.** Changing the file while the server runs is fine: on the
-  next read the server sees the new modification time, validates the file and
-  saves it as a new revision (`updatedBy: "file on disk"`).
-- **Recovery.** A file that can't be read or doesn't validate (at start or
-  after a hand edit) is kept as `ui_config.json.bad`, a warning is logged, and
-  the newest valid revision in the history is used and written back. Without
-  one, the stock screens are.
+#### Shelf
+
+*Row.* A titled row of cards that scrolls sideways. The workhorse of a home page.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `title` | text, at most 120 |  | Title. The heading above the items. Placeholders such as {library} and {each} are filled in. |
+| `subtitle` | text, at most 160 |  | Subtitle. A smaller line under the title. |
+| `cardStyle` | enum: auto, poster, landscape, progress, episode, square, circle, album, person, book, game, photo, channel, tile, chip | `auto` | Card style. How each item is drawn. Auto uses the style that suits the source. |
+| `cardSize` | enum: s, m, l | `m` | Card size. Small, medium or large cards. A profile may choose its own. |
+| `showTitles` | bool | `true` | Show titles under cards. Off draws the pictures alone; the titles are still read out. |
+| `seeAll` | enum: auto, always, never | `auto` | See all. A link to everything the row is drawn from, when the source has such a place. |
+| `numbered` | bool | `false` | Number the cards. Large rank numbers beside the cards, for a top ten. |
+| `maxItems` | int 0 to 60 |  | Most cards at first. How many cards are sent before the row asks for more. 0 uses the device's own limit. |
+| `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
+| `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
+
+How it is drawn:
+
+- **Television.** A heading at the title size, then one row of cards 40 points apart that scrolls sideways under focus, the focused card kept a safe-area's width from the left edge and raised with the system's focus effect. The row is one focus section and remembers its last card. "See all" is a final card of the row's shape.
+- **Phone.** A heading with a chevron when there is a See all, then a row that scrolls by touch and bleeds off both edges; cards 12 points apart.
+- **Tablet.** As a phone with 16-point gaps.
+- **Desktop and web.** A heading with a "See all" link at its end, a row that scrolls by wheel, drag or the arrow buttons that appear at its ends on hover; arrow keys move focus card to card.
+
+States:
+
+- **deferred.** Drawn as loading until the client has asked props.more.url, which it does when the section is within one screen of being seen.
+- **empty.** Left out of the page; with empty "message", the heading and emptyText in the caption style where the items would be.
+- **error.** The heading and one line, "Couldn't load this", with a Retry button that asks props.more.url again.
+- **loading.** Its heading, and as many grey placeholder cards of the card's size as fit, pulsing unless the device asks for reduced motion.
+
+Focus: its children take focus, and it is their group. Accessibility: Role: list, labelled by the title. Each card is a list item. When numbered, a card's label starts with "Number <n>".
+
+```json
+{
+  "id": "recent",
+  "component": "Shelf",
+  "props": {
+    "title": "Recently added in {each}"
+  },
+  "repeat": {
+    "over": "libraries"
+  },
+  "source": {
+    "type": "recentlyAdded",
+    "library": "$each"
+  }
+}
+```
+
+#### Grid
+
+*Grid.* Cards in rows and columns, as many columns as fit. It pages as the person scrolls: the body of a library.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `title` | text, at most 120 |  | Title. The heading above the items. Placeholders such as {library} and {each} are filled in. |
+| `cardStyle` | enum: auto, poster, landscape, progress, episode, square, circle, album, person, book, game, photo, channel, tile, chip | `auto` | Card style. How each item is drawn. Auto uses the style that suits the source. |
+| `cardSize` | enum: s, m, l | `m` | Card size. Small, medium or large cards. A profile may choose its own. |
+| `showTitles` | bool | `true` | Show titles under cards. Off draws the pictures alone. |
+| `maxItems` | int 0 to 200 |  | Most cards at first. How many cards the first page holds. 0 uses the device's own limit. |
+| `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
+| `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
+
+How it is drawn:
+
+- **Television.** layout.gridColumns columns for the card's shape (6 posters, 4 landscape cards), 40 points apart, focus moving by row and column; the next page is asked for when focus is within two rows of the end.
+- **Phone.** As many columns of the card's width as fit, at least 2 (3 for posters at size s or m), 12 points apart.
+- **Tablet.** As many columns as fit, 16 points apart.
+- **Desktop and web.** As many columns as fit: floor((width + gap) / (card width + gap)), cards stretched to fill the row; the next page is asked for when the end is within one screen.
+
+States:
+
+- **deferred.** Drawn as loading until the client has asked props.more.url, which it does when the section is within one screen of being seen.
+- **empty.** Left out of the page; with empty "message", the heading and emptyText in the caption style where the items would be.
+- **error.** The heading and one line, "Couldn't load this", with a Retry button that asks props.more.url again.
+- **loading.** Its heading, and as many grey placeholder cards of the card's size as fit, pulsing unless the device asks for reduced motion.
+
+Focus: its children take focus, and it is their group. Accessibility: Role: grid (list on touch devices), labelled by the title or the page's title.
+
+```json
+{
+  "id": "all",
+  "component": "Grid",
+  "source": {
+    "type": "browse",
+    "library": "$library",
+    "filterable": true
+  }
+}
+```
+
+#### Card
+
+*Card.* One item in a Shelf, Grid, Hero or SeasonList. Made by the server from the source's items; see the card styles for what each style shows. Made by the server; not something an administrator places.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `style` | string |  | Style. The card style. |
+| `shape` | string |  | Shape. poster, landscape, square, circle or chip: what a renderer that doesn't know the style draws. |
+| `title` | string |  | Title. Always sent, and always in the label, even where the style doesn't draw it. |
+| `subtitle` | string |  | Subtitle |
+| `synopsis` | string |  | Synopsis. Episode cards and hero slides. |
+| `remaining` | string |  | Time left. Progress cards: "42 min left". |
+| `itemId` | string |  | Item. The item's ID. |
+| `kind` | string |  | Kind. The item's kind. |
+| `playId` | string |  | Plays. What a play affordance on the card starts, when the item can be played. |
+| `image` | object |  | Picture. {url, width, height, aspect, kind}: the address with the width to ask for. |
+| `progress` | number |  | Progress. 0 to 1. |
+| `watched` | bool |  | Watched |
+| `unwatched` | int |  | Unwatched count |
+| `badges` | list |  | Badges. At most three short labels. |
+| `rank` | int |  | Rank. In a numbered row. |
+| `number` | string |  | Channel number |
+| `now` | object |  | On now. {title, start, end} |
+| `next` | object |  | On next. {title, start, end} |
+| `icon` | icon |  | Icon. For tiles and chips without a picture. |
+| `count` | int |  | Count |
+| `facts` | list |  | Facts. Hero slides: [{id, value}]. |
+| `actions` | list |  | Buttons. Hero slides: [{id, label, icon, primary, action}]. |
+| `logo` | object |  | Logo. Hero slides: the title's logo art. |
+
+How it is drawn:
+
+- **Television.** The picture at the row's card size with the system focus effect (lift, parallax on tvOS; scale 1.08 and a 3-point ring in token accent elsewhere); the title appears under the focused card only, unless showTitles.
+- **Phone.** Picture, then title and subtitle under it in the title and caption sizes. A long press opens the app's own item menu.
+- **Desktop and web.** Picture with a hover scrim and play button when it can be played, title and subtitle under it; a context menu on right click.
+
+States:
+
+- **error.** The picture's place filled with token bg3 and the item kind's icon.
+- **loading.** A grey rounded rectangle of the card's shape.
+
+Focus: the node takes focus when it can be acted on. Accessibility: Role: button (link on the web). Label: the props its style shows, in the style's order, joined by ", ": progress as "<n> percent watched", watched as "Watched", unwatched as "<n> unwatched", badges as written, a channel as "Channel <number>, <title>, now <now.title>, next <next.title>".
+
+#### Tabs
+
+*Tabs.* A strip of tabs, each with its own sections. Only the selected tab's content is sent; choosing another asks for the page again with tab=<id>.
+
+Holds: `Tab`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `style` | enum: tabs, segments | `tabs` | Style. Tabs for sections of a page, segments for views of the same thing. |
+| `default` | section |  | Opens on. The tab shown first. A profile may choose its own. |
+
+How it is drawn:
+
+- **Television.** A row of pills centred above the content; left and right move between them and the content changes as focus moves; down enters the content.
+- **Phone.** A segmented control (segments) or a scrolling row of text tabs with an underline (tabs); swiping the content sideways changes tab.
+- **Desktop and web.** Text tabs with an underline in token accent, left-aligned; arrow keys move between them, Enter selects.
+
+Focus: its children take focus, and it is their group. Accessibility: Role: tablist; each Tab is a tab with selected state; the content is its tabpanel.
+
+Fallback: The selected tab's content alone, in a column.
+
+```json
+{
+  "id": "views",
+  "component": "Tabs",
+  "children": [
+    {
+      "id": "albums",
+      "component": "Tab",
+      "props": {
+        "label": "Albums"
+      },
+      "children": [
+        {
+          "id": "albums-grid",
+          "component": "Grid",
+          "source": {
+            "type": "albums",
+            "library": "$library",
+            "sort": "title"
+          }
+        }
+      ]
+    },
+    {
+      "id": "artists",
+      "component": "Tab",
+      "props": {
+        "label": "Artists"
+      },
+      "children": [
+        {
+          "id": "artists-grid",
+          "component": "Grid",
+          "source": {
+            "type": "artists",
+            "library": "$library"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### Tab
+
+*Tab.* One tab of a Tabs section: a label and the sections shown when it is chosen.
+
+Holds: any component.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `label` (required) | text, at most 40 |  | Label. The tab's name. |
+| `icon` | icon |  | Icon. One of the built-in icons. |
+
+Focus: the node takes focus when it can be acted on. Accessibility: Role: tab. Label: the label.
+
+Fallback: Its content in a column.
+
+#### FilterBar
+
+*Filter and sort.* The controls that filter and sort a Grid on the same page. The server fills in each filter's choices from what the library holds; a change asks for the page again with the choice as a query parameter.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `target` (required) | section |  | Filters. The Grid this bar filters. Its source must be filterable. |
+| `fields` | enumList: genre, decade, year, content, resolution, watched, studio, network, tag | `genre, decade, watched` | Filters. Which filters are offered, in order. One with no choices in this library is left out. |
+| `sorts` | enumList: title, added, newest, oldest, rating, shuffle | `title, added, newest, rating` | Sort by. The orders offered; the first is the default. |
+| `showCount` | bool | `true` | Show how many. The number of titles found. |
+
+How it is drawn:
+
+- **Television.** One row of pills: Sort first, then each filter showing its current choice; OK on a pill opens a full-height list from the right edge to choose from.
+- **Phone.** A row of chips that scrolls sideways; a chip opens a bottom sheet of choices. The count sits above it in the caption style.
+- **Desktop and web.** A row of drop-downs with the count at the far end and a Clear button when anything is chosen.
+
+Focus: one stop in the page's focus order; it moves focus among its own parts. Accessibility: Role: toolbar, labelled "Filter and sort". Each field is a pop-up button labelled "<label>: <current choice or Any>".
+
+Fallback: Left out: the grid shows everything in its default order.
+
+```json
+{
+  "id": "filters",
+  "component": "FilterBar",
+  "props": {
+    "target": "all",
+    "fields": [
+      "genre",
+      "decade",
+      "watched"
+    ]
+  }
+}
+```
+
+#### DetailHeader
+
+*Title header.* The top of a title's page: its art, name, facts, score, synopsis and the buttons that play it and act on it. It shows the title the page was opened for.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `layout` | enum: backdrop, poster, compact | `backdrop` | Layout. Backdrop behind the text, poster beside it, or a compact strip. |
+| `actions` | enumList: play, restart, watchLater, watched, download, share, playOn, watchParty | `play, restart, watchLater, watched, download, share` | Buttons. The buttons offered, in order. One the title or the profile can't use is left out. |
+| `facts` | enumList: year, runtime, contentRating, rating, genres, studio, count, season | `year, runtime, contentRating, rating, genres` | Facts. The line of facts under the title, in order. |
+| `showOverview` | bool | `true` | Show the synopsis |
+| `showTagline` | bool | `true` | Show the tagline |
+
+How it is drawn:
+
+- **Television.** Backdrop across the whole screen under a scrim; the logo or title at the page title size at the left, the facts on one line, at most four lines of synopsis, the buttons in a row with Play first and focused. Sections below scroll up over the backdrop.
+- **Phone.** Backdrop 16/9 at the top, title and facts under it, a full-width primary button, the other actions as a row of icon buttons with captions, then the synopsis, cut to four lines with More.
+- **Tablet.** As a phone with the poster beside the text block.
+- **Desktop and web.** Backdrop behind; poster at the left (layout poster or backdrop), text block beside it, buttons in a row: primary filled, the rest outlined.
+
+States:
+
+- **error.** A Notice: "This title isn't available" with a button back to Home.
+- **loading.** A grey backdrop and three grey text lines.
+
+Focus: one stop in the page's focus order; it moves focus among its own parts. Accessibility: Role: region labelled by the title. The title is a level-1 heading. Each button's label is its label, the primary button's "Resume from <time>" when it resumes.
+
+Fallback: A column: the backdrop as an Image, the title and overview as Text, and the actions as Buttons in a row.
+
+```json
+{
+  "id": "header",
+  "component": "DetailHeader",
+  "props": {
+    "layout": "backdrop"
+  }
+}
+```
+
+#### SeasonList
+
+*Seasons and episodes.* A show's seasons with the chosen season's episodes. Choosing a season asks for its episodes through the season's own URL.
+
+Sources: `episodes` only.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `style` | enum: cards, list | `cards` | Episodes as. Cards with a still and synopsis, or a compact list. |
+| `showSynopsis` | bool | `true` | Show each synopsis |
+
+How it is drawn:
+
+- **Television.** A row of season pills, then the episodes as a row of episode cards (still, "<n>. <title>", runtime, two lines of synopsis) that scrolls sideways; focus starts on the next episode to watch.
+- **Phone.** A season menu button, then the episodes as a vertical list: still at the left with a progress bar, title, runtime and two lines of synopsis.
+- **Desktop and web.** Season tabs, then a vertical list (style list) or a wrapping grid of episode cards (style cards).
+
+States:
+
+- **deferred.** Drawn as loading until the client has asked props.more.url, which it does when the section is within one screen of being seen.
+- **empty.** Left out of the page; with empty "message", the heading and emptyText in the caption style where the items would be.
+- **error.** The heading and one line, "Couldn't load this", with a Retry button that asks props.more.url again.
+- **loading.** Its heading, and as many grey placeholder cards of the card's size as fit, pulsing unless the device asks for reduced motion.
+
+Focus: its children take focus, and it is their group. Accessibility: Role: region labelled "Episodes". The season picker is a pop-up button "Season <n>"; each episode's label is "Episode <n>, <title>, <runtime>, <n> percent watched".
+
+Fallback: A Shelf of the selected season's episodes as landscape cards, titled with the season's name.
+
+```json
+{
+  "id": "episodes",
+  "component": "SeasonList",
+  "source": {
+    "type": "episodes",
+    "show": "$show"
+  }
+}
+```
+
+#### TrackList
+
+*Track list.* An album's songs, an audiobook's chapters or a podcast's episodes, numbered, with their lengths.
+
+Sources: `tracks` only.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `showNumbers` | bool | `true` | Show track numbers |
+| `showArtist` | bool | `false` | Show each track's artist. For compilations. |
+| `showDuration` | bool | `true` | Show lengths |
+
+How it is drawn:
+
+- **Television.** A list down the right two thirds of the screen, one row per track: number, title, length; the playing track in token accent.
+- **Phone.** Full-width rows 56 points tall: number, title over artist, length; swipe actions are the app's own.
+- **Desktop and web.** A table: #, Title, Artist (when shown), Length; double-click plays.
+
+States:
+
+- **deferred.** Drawn as loading until the client has asked props.more.url, which it does when the section is within one screen of being seen.
+- **empty.** Left out of the page; with empty "message", the heading and emptyText in the caption style where the items would be.
+- **error.** The heading and one line, "Couldn't load this", with a Retry button that asks props.more.url again.
+- **loading.** Its heading, and as many grey placeholder cards of the card's size as fit, pulsing unless the device asks for reduced motion.
+
+Focus: its children take focus, and it is their group. Accessibility: Role: list. Each track: "Track <n>, <title>, <artist>, <minutes> minutes <seconds> seconds".
+
+Fallback: A List of ListItems: the track's title, artist as subtitle and length as trailing text.
+
+```json
+{
+  "id": "tracks",
+  "component": "TrackList",
+  "source": {
+    "type": "tracks",
+    "library": "$library",
+    "artist": "$artist",
+    "album": "$album"
+  }
+}
+```
+
+#### Track
+
+*Track.* One row of a TrackList. Made by the server. Made by the server; not something an administrator places.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `title` | string |  | Title |
+| `artist` | string |  | Artist |
+| `number` | int |  | Number |
+| `durationSec` | int |  | Length in seconds |
+| `itemId` | string |  | Item |
+| `progress` | number |  | Progress. 0 to 1. |
+
+Focus: the node takes focus when it can be acted on. Accessibility: Role: button. Label as TrackList says.
+
+Fallback: title, subtitle (the artist) and trailing (the length).
+
+#### Banner
+
+*Banner.* One wide promotional block: a picture, a title, a line of text and one button. Written by hand (a collection's banner, a way into the TV guide), or drawn from the first item of a source (a random pick).
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `title` | text, at most 120 |  | Title. With a source, {title} is the item's title. |
+| `text` | text, at most 300 |  | Text. With a source, {title}, {subtitle} and {overview} are the item's. |
+| `image` | image |  | Picture. A picture on this server. With a source, the item's backdrop is used. |
+| `icon` | icon |  | Icon. One of the built-in icons. |
+| `style` | enum: promo, compact | `promo` | Style |
+| `buttonLabel` | text, at most 40 |  | Button. The button's label. |
+| `action` | enum: open, play | `open` | The button. With a source: open the item's page, or play it. |
+| `to` | route |  | Opens. A place in the app, such as /library/3 or /page/family-night. |
+| `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections |  | Opens a screen of the app. A screen the app draws itself. |
+
+How it is drawn:
+
+- **Television.** A 1760 by 300 point block: the picture behind a scrim, the title at the heading size and text at the left, one button. The block is one focus stop.
+- **Phone.** A full-width 16/9 card (promo) or a 96-point row with a square picture (compact); the whole banner is the button.
+- **Desktop and web.** A block at most 360 points tall, picture behind a left-to-right scrim, text and button bottom-left.
+
+States:
+
+- **empty.** Left out.
+- **error.** Left out.
+- **loading.** A grey block.
+
+Focus: the node takes focus when it can be acted on. Accessibility: Role: button (link on the web). Label: "<title>, <text>, <button label>".
+
+Fallback: A Notice with the banner's title, text and button.
+
+```json
+{
+  "id": "shuffle",
+  "component": "Banner",
+  "props": {
+    "title": "Can't decide?",
+    "text": "{title}",
+    "buttonLabel": "Play something",
+    "action": "play"
+  },
+  "source": {
+    "type": "random",
+    "limit": 1
+  }
+}
+```
+
+#### Text
+
+*Text.* A heading or a block of text, plain or in the small Markdown subset (bold, italic, links to places in the app, lists, headings).
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `text` (required) | markdown |  | Text. Placeholders such as {user}, {greeting}, {server} and {library} are filled in. |
+| `format` | enum: plain, markdown | `plain` | Format |
+| `role` | enum: pageTitle, heading, title, body, caption | `body` | Size. Sizes come from the device, not from numbers. |
+| `align` | enum: start, center, end | `start` | Align |
+| `maxLines` | int 0 to 20 |  | Most lines. Cut with an ellipsis after this many lines. 0 doesn't cut. |
+
+How it is drawn:
+
+- **Everywhere.** Text in token fg (caption in fg2) at layout.text[role] points, at most 70 characters wide for body text. Markdown links are drawn in token accentText and are focusable on a television only when the page has nothing else to focus.
+
+Focus: takes none. Accessibility: Role: heading for pageTitle (level 1), heading (2) and title (3); otherwise text.
+
+```json
+{
+  "id": "hello",
+  "component": "Text",
+  "props": {
+    "text": "{greeting}, {user}",
+    "role": "pageTitle"
+  }
+}
+```
+
+#### Notice
+
+*Notice.* A message that stands out: something to know, a warning, or a nudge with one button.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `tone` | enum: info, success, warning, danger | `info` | Tone |
+| `title` | text, at most 120 |  | Title |
+| `text` (required) | text, at most 400 |  | Text |
+| `icon` | icon |  | Icon. One of the built-in icons. |
+| `buttonLabel` | text, at most 40 |  | Button |
+| `to` | route |  | Opens. A place in the app, such as /library/3 or /page/family-night. |
+| `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections |  | Opens a screen of the app. A screen the app draws itself. |
+| `url` | url |  | Opens a web page. An http or https address, opened in the browser. Left out on a television. Only on phone, tablet, desktop, web. |
+
+How it is drawn:
+
+- **Everywhere.** A rounded block in token bg2 with a 4-point bar at its leading edge in the tone's colour (accent, ok, warn, danger), the icon, title in the title size, text in body, and the button at the end (below on a phone). It takes focus only when it has a button.
+
+Focus: the node takes focus when it can be acted on. Accessibility: Role: status (alert for warning and danger). Label: "<title>. <text>".
+
+```json
+{
+  "id": "setup",
+  "component": "Notice",
+  "when": {
+    "admin": true,
+    "flag": "setupIncomplete"
+  },
+  "props": {
+    "tone": "info",
+    "title": "Finish setting up",
+    "text": "A few things are left to choose.",
+    "buttonLabel": "Open settings",
+    "native": "settings"
+  }
+}
+```
+
+#### Divider
+
+*Divider.* A hairline between sections.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `inset` | bool | `false` | Inset. Start the line at the content's edge rather than the screen's. |
+
+How it is drawn:
+
+- **Everywhere.** A 1-point line in token border across the content width.
+
+Focus: takes none. Accessibility: Role: separator; not announced.
+
+```json
+{
+  "id": "rule",
+  "component": "Divider"
+}
+```
+
+#### Spacer
+
+*Space.* Empty space between sections.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `size` | enum: xs, s, m, l, xl | `m` | Size |
+
+How it is drawn:
+
+- **Everywhere.** layout.spacing[size] points of nothing, in the direction of its container.
+
+Focus: takes none. Accessibility: Hidden from assistive technology.
+
+```json
+{
+  "id": "gap",
+  "component": "Spacer",
+  "props": {
+    "size": "l"
+  }
+}
+```
+
+#### Stack
+
+*Stack.* Sections one after another, down or across. The plain container for a custom page.
+
+Holds: any component.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `direction` | enum: column, row | `column` | Direction |
+| `gap` | enum: none, xs, s, m, l, xl | `m` | Space between. The distance between the things inside. |
+| `align` | enum: start, center, end, stretch | `stretch` | Align. Across the stack's direction. |
+| `wrap` | bool | `true` | Wrap. A row that doesn't fit continues on the next line. |
+
+How it is drawn:
+
+- **Everywhere.** A flex column or row with layout.spacing[gap] between children. A row of Buttons is one focus group.
+
+Focus: takes none. Accessibility: No role of its own.
+
+```json
+{
+  "id": "links",
+  "component": "Stack",
+  "props": {
+    "direction": "row",
+    "gap": "s"
+  },
+  "children": [
+    {
+      "id": "guide",
+      "component": "Button",
+      "props": {
+        "label": "TV guide",
+        "icon": "guide",
+        "native": "guide"
+      }
+    }
+  ]
+}
+```
+
+#### Split
+
+*Two columns.* Two sections side by side on a wide screen, one above the other on a narrow one.
+
+Holds: any component.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `ratio` | enum: 1:1, 1:2, 2:1 | `1:1` | Widths |
+| `gap` | enum: none, xs, s, m, l, xl | `m` | Space between. The distance between the things inside. |
+| `stackBelow` | enum: compact, medium, expanded | `medium` | One column below. The window width under which the two stack. |
+
+How it is drawn:
+
+- **Television.** Always side by side.
+- **Phone.** Always stacked.
+- **Desktop and web.** Side by side at or above the stackBelow breakpoint, stacked under it.
+
+Focus: takes none. Accessibility: No role of its own.
+
+Fallback: Its two children in a column.
+
+```json
+{
+  "id": "two",
+  "component": "Split",
+  "props": {
+    "ratio": "2:1"
+  },
+  "children": [
+    {
+      "id": "left",
+      "component": "Text",
+      "props": {
+        "text": "About this server"
+      }
+    },
+    {
+      "id": "right",
+      "component": "Button",
+      "props": {
+        "label": "Settings",
+        "native": "settings"
+      }
+    }
+  ]
+}
+```
+
+#### Button
+
+*Button.* A button that opens a place in the app, one of the app's own screens, or a web page.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `label` (required) | text, at most 60 |  | Label |
+| `icon` | icon |  | Icon. One of the built-in icons. |
+| `variant` | enum: primary, secondary, ghost | `secondary` | Look |
+| `to` | route |  | Opens. A place in the app, such as /library/3 or /page/family-night. |
+| `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections |  | Opens a screen of the app. A screen the app draws itself. |
+| `url` | url |  | Opens a web page. An http or https address, opened in the browser. Left out on a television. Only on phone, tablet, desktop, web. |
+
+How it is drawn:
+
+- **Everywhere.** The platform's own button: filled in token accent with accentFg text (primary), outlined (secondary) or text only (ghost); at least 44 points tall on touch devices, 66 on a television.
+
+Focus: the node takes focus when it can be acted on. Accessibility: Role: button (link on the web when it navigates). Label: the label.
+
+```json
+{
+  "id": "open-settings",
+  "component": "Button",
+  "props": {
+    "label": "Settings",
+    "icon": "settings",
+    "native": "settings"
+  }
+}
+```
+
+#### Image
+
+*Picture.* A picture from this server, optionally a link.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `src` (required) | image |  | Picture. A path on this server beginning /api/. |
+| `alt` | text, at most 200 |  | Description. For people who can't see the picture. Leave empty when it is decoration. |
+| `aspect` | enum: 16/9, 21/9, 4/3, 1/1, 2/3 | `16/9` | Shape |
+| `fit` | enum: cover, contain | `cover` | Fit |
+| `rounded` | bool | `true` | Rounded corners |
+| `to` | route |  | Opens. A place in the app, such as /library/3 or /page/family-night. |
+
+How it is drawn:
+
+- **Everywhere.** The picture at the content width (at most 960 points) in its aspect, asked for at the width in props.image. Focusable only with a to.
+
+Focus: takes none. Accessibility: Role: img with alt as its label; hidden when alt is empty and it isn't a link.
+
+```json
+{
+  "id": "pic",
+  "component": "Image",
+  "props": {
+    "src": "/api/collections/4/cover",
+    "alt": "Family films",
+    "aspect": "21/9"
+  }
+}
+```
+
+#### SearchBox
+
+*Search box.* The field people type a search into. On the search page it holds the current search; anywhere else it opens the search page.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `placeholder` | text, at most 80 |  | Prompt |
+| `autofocus` | bool | `false` | Start here. Focus starts in the field. |
+
+How it is drawn:
+
+- **Television.** The system's search field and keyboard (UISearchController on tvOS, the leanback search bar on Android TV); results appear under it as they are typed.
+- **Phone.** A search field under the title; typing asks for the page again with q after 300 ms without a keystroke.
+- **Desktop and web.** A search field at most 560 points wide; Enter or 300 ms without a keystroke searches.
+
+Focus: the node takes focus when it can be acted on. Accessibility: Role: searchbox labelled "Search".
+
+Fallback: A Button labelled "Search" that opens /search.
+
+```json
+{
+  "id": "q",
+  "component": "SearchBox",
+  "props": {
+    "placeholder": "Films, shows, music…",
+    "autofocus": true
+  }
+}
+```
+
+#### List
+
+*List.* Rows of text with an icon or small picture, written by hand or drawn from a source.
+
+Holds: `ListItem`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `title` | text, at most 120 |  | Title. The heading above the items. Placeholders such as {library} and {each} are filled in. |
+| `dense` | bool | `false` | Compact rows |
+| `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
+| `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
+
+How it is drawn:
+
+- **Everywhere.** Full-width rows (56 points, 44 dense, 90 on a television): picture or icon, title over subtitle, trailing text, and a chevron when the row opens something.
+
+States:
+
+- **deferred.** Drawn as loading until the client has asked props.more.url, which it does when the section is within one screen of being seen.
+- **empty.** Left out of the page; with empty "message", the heading and emptyText in the caption style where the items would be.
+- **error.** The heading and one line, "Couldn't load this", with a Retry button that asks props.more.url again.
+- **loading.** Its heading, and as many grey placeholder cards of the card's size as fit, pulsing unless the device asks for reduced motion.
+
+Focus: its children take focus, and it is their group. Accessibility: Role: list labelled by the title.
+
+```json
+{
+  "id": "lists",
+  "component": "List",
+  "props": {
+    "title": "Your collections"
+  },
+  "source": {
+    "type": "collections"
+  }
+}
+```
+
+#### ListItem
+
+*List row.* One row of a List.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `title` (required) | text, at most 120 |  | Title |
+| `subtitle` | text, at most 160 |  | Subtitle |
+| `icon` | icon |  | Icon. One of the built-in icons. |
+| `trailing` | text, at most 40 |  | Text at the end |
+| `to` | route |  | Opens. A place in the app, such as /library/3 or /page/family-night. |
+| `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections |  | Opens a screen of the app. A screen the app draws itself. |
+| `url` | url |  | Opens a web page. An http or https address, opened in the browser. Left out on a television. Only on phone, tablet, desktop, web. |
+
+Focus: the node takes focus when it can be acted on. Accessibility: Role: button when it opens something, else text. Label: "<title>, <subtitle>, <trailing>".
+
+#### NativeView
+
+*The app's own view.* A place where the app draws one of its own rich views: the TV guide's grid, the photo timeline. An app that has the view says so; any other is sent the sections inside instead.
+
+Holds: any component.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `view` (required) | enum: guide, photoTimeline, photoMap, coverFlow |  | View |
+| `library` | library |  | Library. The library the view shows, where it shows one. |
+
+How it is drawn:
+
+- **Everywhere.** The app's own view fills the rest of the page; nothing may follow a NativeView in a page.
+
+Focus: one stop in the page's focus order; it moves focus among its own parts. Accessibility: Whatever the app's own view provides.
+
+Fallback: Its children in a column: what to show where the app has no such view.
+
+```json
+{
+  "id": "timeline",
+  "component": "NativeView",
+  "props": {
+    "view": "photoTimeline",
+    "library": "$library"
+  },
+  "children": [
+    {
+      "id": "photos",
+      "component": "Grid",
+      "props": {
+        "cardStyle": "photo"
+      },
+      "source": {
+        "type": "recentlyAdded",
+        "library": "$library"
+      }
+    }
+  ]
+}
+```
+
+### Card styles
+
+A `Card` has a `style` and a `shape`. A renderer that doesn't know a style draws its shape: the picture, with the title and subtitle under it. `Shows` is what the style displays of what the card carries, in reading order, which is also the order of its accessibility label.
+
+| Style | Shape | Aspect | Picture, in order of preference | Shows | Title lines | Subtitle lines | For |
+|---|---|---|---|---|---|---|---|
+| `poster` | poster | 2/3 | poster | title, subtitle, progress, watched, unwatched, badges | 1 | 1 | Upright film and show art with the title and year under it. |
+| `landscape` | landscape | 16/9 | backdrop, poster | title, subtitle, badges | 1 | 1 | A wide still or backdrop with the title under it. |
+| `progress` | landscape | 16/9 | backdrop, poster | title, subtitle, progress, remaining | 1 | 1 | A wide card with a progress bar along its bottom edge and how long is left: Continue watching. |
+| `episode` | landscape | 16/9 | backdrop, poster | title, subtitle, synopsis, progress, watched | 1 | 1 | An episode's still with "<n>. <title>", its running time and two lines of synopsis. |
+| `square` | square | 1/1 | square, poster | title, subtitle | 1 | 1 | A square picture with a title and subtitle. |
+| `album` | square | 1/1 | square, poster | title, subtitle | 1 | 1 | An album cover with the album and artist under it. |
+| `circle` | circle | 1/1 | square, poster | title | 2 | 0 | A round picture with a centred name. |
+| `person` | circle | 1/1 | square, poster | title, subtitle | 1 | 1 | A round portrait with a name and a line under it: an artist, an author. |
+| `book` | poster | 2/3 | poster | title, subtitle, progress | 2 | 1 | A book or comic cover with the title and author, and how far it has been read. |
+| `game` | poster | 3/4 | poster | title, subtitle, badges | 1 | 1 | Box art with the game's name and console. |
+| `photo` | square | 1/1 | poster, square |  | 0 | 0 | The picture alone, cropped square; its name is only read out. |
+| `channel` | landscape | 16/9 | logo | number, title, now, next, progress | 1 | 2 | A channel's logo on a plain tile, its number and name, what is on now with how far through it is, and what is next. |
+| `tile` | landscape | 16/9 | backdrop, poster | title, count | 1 | 0 | A wide tile with its name over the picture, or over a plain tile with an icon: a library, a collection. |
+| `chip` | chip |  |  | title | 1 | 0 | A pill with a name alone: a genre. |
+
+The hero's slides are cards of style `hero`: shape landscape, a 16/9 backdrop the hero's width, with `facts`, `synopsis`, `logo` and `actions`.
+
+### Card sizes
+
+The width of a medium (`m`) card in points; small is 80% and large 125%, rounded down to an even number. The picture's height follows from the aspect. A television's grid has a fixed number of columns for medium cards (one more for small, one fewer for large).
+
+| Style | tv | tv columns | phone | tablet | desktop and web |
+|---|---|---|---|---|---|
+| `poster` | 250 | 6 | 120 | 160 | 180 |
+| `landscape` | 420 | 4 | 224 | 288 | 320 |
+| `progress` | 420 | 4 | 224 | 288 | 320 |
+| `episode` | 420 | 4 | 224 | 288 | 320 |
+| `square` | 280 | 6 | 144 | 180 | 200 |
+| `album` | 280 | 6 | 144 | 180 | 200 |
+| `circle` | 220 | 7 | 96 | 120 | 140 |
+| `person` | 220 | 7 | 96 | 120 | 140 |
+| `book` | 250 | 6 | 120 | 160 | 180 |
+| `game` | 250 | 6 | 120 | 160 | 180 |
+| `photo` | 280 | 6 | 144 | 180 | 200 |
+| `channel` | 420 | 4 | 224 | 288 | 320 |
+| `tile` | 420 | 4 | 224 | 288 | 320 |
+
+### Device profiles
+
+| | tv (hd) | tv (4k) | phone | tablet | desktop | web |
+|---|---|---|---|---|---|---|
+| Scale (pixels per point) | 1 | 2 | 3 | 2 | 2 | 2 |
+| Canvas | 1920×1080 | 1920×1080 | the window | the window | the window | the window |
+| Breakpoint when the window isn't known | large | large | compact | expanded | large | large |
+| Safe area (top, right, bottom, left) | 60, 80, 60, 80 | 60, 80, 60, 80 | the system's | the system's | the system's | the system's |
+| Focus is the only pointer | yes | yes | no | no | no | no |
+| Opens web links | no | no | yes | yes | yes | yes |
+| Spacing xs, s, m, l, xl | 10, 20, 40, 60, 100 | 10, 20, 40, 60, 100 | 4, 8, 16, 24, 40 | 4, 8, 16, 24, 48 | 4, 8, 16, 24, 48 | 4, 8, 16, 24, 48 |
+| Text pageTitle, heading, title, body, caption | 76, 57, 48, 29, 25 | 76, 57, 48, 29, 25 | 28, 22, 17, 16, 13 | 34, 24, 20, 17, 13 | 28, 20, 16, 14, 12 | 28, 20, 16, 14, 12 |
+| Hero | 1920×620 | 1920×620 | 430×242 | 1024×440 | 1600×620 | 1600×620 |
+| Most sections a page | 12 | 20 | 16 | 20 | 30 | 30 |
+| Sections that arrive filled | 4 | 6 | 5 | 6 | 8 | 8 |
+| Cards in a row's first page | 12 | 20 | 12 | 16 | 20 | 20 |
+| Cards in a grid's first page | 36 | 60 | 30 | 48 | 60 | 60 |
+| Rows in a list's first page | 30 | 50 | 30 | 40 | 50 | 50 |
+| Cards in each page after | 24 | 36 | 30 | 36 | 48 | 48 |
+| Titles in a hero | 5 | 5 | 5 | 5 | 6 | 6 |
+| Copies of a repeated section | 8 | 12 | 10 | 12 | 16 | 16 |
+| Characters: title, subtitle, synopsis, overview | 80, 80, 160, 480 | 80, 80, 160, 480 | 80, 80, 140, 400 | 100, 100, 200, 700 | 120, 120, 220, 900 | 120, 120, 220, 900 |
+
+Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 480, 640, 960, 1280, 1920, 2560, 3840.
+
+### Data sources
+
+| Source | Label | Category | Gives | Usual card style | Pages by cursor | On pages |
+|---|---|---|---|---|---|---|
+| [`continueWatching`](#continuewatching) | Continue watching | personal | movie, episode, video, disc, book, track, audiobook, podcast | progress |  | any |
+| [`nextUp`](#nextup) | Next up | personal | episode | episode |  | any |
+| [`recommended`](#recommended) | Recommended for you | personal | movie, show | poster |  | any |
+| [`watchLater`](#watchlater) | Watch later | personal | movie, show, episode, video | poster | yes | any |
+| [`savedView`](#savedview) | A saved view | personal | movie, show | poster | yes | any |
+| [`recentlyAdded`](#recentlyadded) | Recently added | library | movie, show, album, book, game, photo, video, podcast, audiobook | poster | yes | any |
+| [`recentlyReleased`](#recentlyreleased) | Recently released | library | movie, show | poster | yes | any |
+| [`topRated`](#toprated) | Top rated | discover | movie, show | poster | yes | any |
+| [`random`](#random) | Random picks | discover | movie, show | poster |  | any |
+| [`browse`](#browse) | A filter | discover | movie, show, disc | poster | yes | any |
+| [`genre`](#genre) | A genre | discover | movie, show | poster | yes | any |
+| [`studio`](#studio) | A studio or network | discover | movie, show | poster | yes | any |
+| [`tag`](#tag) | A tag | discover | movie, show | poster | yes | any |
+| [`collection`](#collection) | A collection | discover | movie, show, episode, video | poster | yes | any |
+| [`collections`](#collections) | Collections | structure | collection | tile |  | any |
+| [`featured`](#featured) | Featured | discover | movie, video | landscape |  | any |
+| [`libraries`](#libraries) | Libraries | structure | library | tile |  | any |
+| [`genres`](#genres) | Genres | structure | genre | chip |  | any |
+| [`liveNow`](#livenow) | On TV now | live | channel | channel |  | any |
+| [`recordings`](#recordings) | Recordings | live | recording | landscape |  | any |
+| [`albums`](#albums) | Albums | music | album | album | yes | any |
+| [`artists`](#artists) | Artists | music | artist | person | yes | any |
+| [`continuePlaying`](#continueplaying) | Continue playing | personal | game | game |  | any |
+| [`episodes`](#episodes) | Episodes | context | episode | episode | yes | detail |
+| [`tracks`](#tracks) | Tracks | context | track | square |  | detail |
+| [`similar`](#similar) | More like this | context | movie, show | poster |  | detail |
+| [`search`](#search) | Search results | context | movie, show, album, book, game, channel | poster |  | search |
+
+#### continueWatching
+
+*Continue watching.* What the profile is part-way through, most recent first.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `media` | enum: all, watch, read, listen | `all` | What |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"continueWatching","media":"watch"}
+```
+
+#### nextUp
+
+*Next up.* The next episode of every show the profile has started and not finished.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"nextUp"}
+```
+
+#### recommended
+
+*Recommended for you.* Films and shows picked from what this profile has watched on this server. Nothing leaves the server.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"recommended","limit":20}
+```
+
+#### watchLater
+
+*Watch later.* The profile's own Watch later list. See all opens `/collections`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"watchLater"}
+```
+
+#### savedView
+
+*A saved view.* What one of the profile's saved library views finds now. With a row repeated over pinned views, $each is each view.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `view` (required) | ref |  | View. The saved view's ID, or $each. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"savedView","view":"$each"}
+```
+
+#### recentlyAdded
+
+*Recently added.* The newest things in a library, or across every library of a kind. Shows for a TV library, albums for music, the items themselves for the rest. See all opens `/library/{library}`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `kind` | enum: movies, discs, shows, anime, videos, shorts, channels, musicvideos, commercials, music, audiobooks, podcasts, radio, books, photos, games |  | Kind of library. Only libraries of this kind. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"recentlyAdded","library":"$each","limit":20}
+```
+
+#### recentlyReleased
+
+*Recently released.* Films and shows by release date, newest first. See all opens `/library/{library}?sort=newest`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"recentlyReleased"}
+```
+
+#### topRated
+
+*Top rated.* Films and shows by score, best first. See all opens `/library/{library}?sort=rating`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `minRating` | int 0 to 10 |  | At least. Only titles scoring this or more, out of 10. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"topRated","minRating":7,"limit":10}
+```
+
+#### random
+
+*Random picks.* A shuffled handful of films and shows. The shuffle changes when reshuffle says.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `reshuffle` | enum: hourly, daily, weekly | `daily` | New picks |
+| `watched` | enum: no, yes |  | Watched |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"random","limit":12,"watched":"no"}
+```
+
+#### browse
+
+*A filter.* Anything the library page's filters can find: the server's own filter and sort engine. With filterable on, the page's FilterBar and its query parameters are added to it. See all opens `/library/{library}`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `genre` | string, at most 100 |  | Genre |
+| `studio` | string, at most 120 |  | Studio |
+| `network` | string, at most 120 |  | Network |
+| `tag` | string, at most 60 |  | Tag |
+| `series` | string, at most 120 |  | Film series |
+| `year` | int 0 to 2200 |  | Year |
+| `decade` | int 0 to 2200 |  | Decade. The decade's first year: 1990. |
+| `content` | string, at most 20 |  | Certificate. A content rating, such as PG. |
+| `minRating` | int 0 to 10 |  | Score at least. Out of 10. |
+| `resolution` | enum: 4k, 1080p, 720p, sd |  | Resolution |
+| `watched` | enum: no, yes |  | Watched |
+| `titles` | enum: video, show, disc |  | Only |
+| `sort` | enum: title, added, newest, oldest, rating, shuffle |  | Order |
+| `desc` | bool | `false` | Reverse the order |
+| `filterable` | bool | `false` | Follows the page's filters. The page's FilterBar and query parameters narrow and sort this source. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"browse","library":"$library","genre":"Animation","sort":"rating"}
+```
+
+#### genre
+
+*A genre.* Films and shows of one genre. See all opens `/library/{library}?genre={genre}`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `genre` (required) | string, at most 100 |  | Genre |
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `sort` | enum: title, added, newest, oldest, rating, shuffle |  | Order |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"genre","genre":"Comedy"}
+```
+
+#### studio
+
+*A studio or network.* Films from one studio, or shows from one network.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `studio` | string, at most 120 |  | Studio |
+| `network` | string, at most 120 |  | Network |
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `sort` | enum: title, added, newest, oldest, rating, shuffle |  | Order |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"studio","studio":"Studio Ghibli"}
+```
+
+#### tag
+
+*A tag.* Everything carrying one tag.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `tag` (required) | string, at most 60 |  | Tag |
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `sort` | enum: title, added, newest, oldest, rating, shuffle |  | Order |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"tag","tag":"christmas"}
+```
+
+#### collection
+
+*A collection.* What one collection holds: a list someone made, or a rule. $collection on a collection's page. See all opens `/collections/{collection}`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `collection` (required) | ref |  | Collection. The collection's ID, $collection or $each. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"collection","collection":12}
+```
+
+#### collections
+
+*Collections.* The collections the profile can see, as tiles. See all opens `/collections`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"collections"}
+```
+
+#### featured
+
+*Featured.* Recent films with a backdrop: what a Spotlight is usually made of.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"featured","limit":5}
+```
+
+#### libraries
+
+*Libraries.* The libraries the profile can open, as tiles.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `kind` | enum: movies, discs, shows, anime, videos, shorts, channels, musicvideos, commercials, music, audiobooks, podcasts, radio, books, photos, games |  | Kind of library. Only libraries of this kind. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"libraries"}
+```
+
+#### genres
+
+*Genres.* A library's genres, each opening the library filtered to it.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `library` (required) | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"genres","library":"$library"}
+```
+
+#### liveNow
+
+*On TV now.* The channels the profile may watch, with what is on now and next. See all opens `/tv`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `favourites` | bool | `false` | Favourite channels only |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"liveNow","favourites":true}
+```
+
+#### recordings
+
+*Recordings.* The profile's finished Live TV recordings, newest first. See all opens `/tv/recordings`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"recordings"}
+```
+
+#### albums
+
+*Albums.* A music or audiobook library's albums. See all opens `/library/{library}`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `library` (required) | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `sort` | enum: added, played, title, artist, year | `added` | Order |
+| `artist` | string, at most 200 |  | Artist. Only this artist's albums. $artist on an artist's page. |
+| `genre` | string, at most 100 |  | Genre |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"albums","library":"$each","sort":"played"}
+```
+
+#### artists
+
+*Artists.* A music library's album artists, or an audiobook library's authors. See all opens `/library/{library}`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `library` (required) | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"artists","library":"$library"}
+```
+
+#### continuePlaying
+
+*Continue playing.* Games the profile has played, most recent first.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"continuePlaying"}
+```
+
+#### episodes
+
+*Episodes.* One season of a show. Left to itself it picks the season of the next episode to watch.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `show` (required) | ref |  | Show. $show on a show's or an episode's page. |
+| `season` | ref |  | Season. A season number, or $season; empty picks one. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"episodes","show":"$show"}
+```
+
+#### tracks
+
+*Tracks.* An album's songs or a book's chapters, in order.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `library` (required) | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `album` (required) | string, at most 300 |  | Album. $album on an album's page. |
+| `artist` | string, at most 300 |  | Album artist. $artist on an album's page. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"tracks","library":"$library","artist":"$artist","album":"$album"}
+```
+
+#### similar
+
+*More like this.* Titles in the same library sharing the title's first genre, best scored first, without the title itself.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `item` (required) | ref |  | Title. $item on a film's page, $show on a show's. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"similar","item":"$item","limit":12}
+```
+
+#### search
+
+*Search results.* What a search finds in one library, or among the channels. Nothing under two characters.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `query` (required) | ref |  | Search. $query on the search page. |
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `in` | enum: library, channels | `library` | Look in |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"search","query":"$query","library":"$each"}
+```
+
+Every source also takes `map`: `{"subtitle": "studio"}` puts another field of the item into a card's `title`, `subtitle` or `synopsis`. The fields are `title`, `subtitle`, `overview`, `tagline`, `year`, `studio`, `contentRating`, `artist`, `showTitle`, `count`, `number`, `runtime`, `genres`.
+
+### Conditions
+
+| Field | Type | True when |
+|---|---|---|
+| `all` | list of conditions | every one holds |
+| `any` | list of conditions | at least one holds |
+| `not` | condition | it doesn't hold; `{"not": {}}` never holds |
+| `formFactor` | enumList: tv, phone, tablet, desktop, web | Device. The kind of device. |
+| `platform` | enumList: web, tvos, ios, android, androidtv, desktop | App. Which app. |
+| `profileKind` | enumList: adult, kids, guest | Kind of profile |
+| `admin` | bool | Administrator. Only administrators (on) or only everyone else (off). |
+| `feature` | string, at most 64 | Server feature. A name from /capabilities features, such as live-tv. |
+| `module` | string, at most 64 | Module installed. A module's ID, such as wittyplay. |
+| `can` | enum: games, recordings, downloads, sharing, comments, remote, editProfile, editLayout, liveTv | Profile may use. One of the profile's parental feature switches. |
+| `hasLibrary` | enum: movies, discs, shows, anime, videos, shorts, channels, musicvideos, commercials, music, audiobooks, podcasts, radio, books, photos, games | Has a library of kind. The profile can open at least one such library. |
+| `libraryKind` | enum: movies, discs, shows, anime, videos, shorts, channels, musicvideos, commercials, music, audiobooks, podcasts, radio, books, photos, games | This library is of kind. On a library page. |
+| `capability` | string, at most 64 | Device capability. Something the client said it has: hdr, touch, pointer, keyboard. |
+| `flag` | enum: setupIncomplete, scanning, librariesEmpty, hasQuery | The server says |
+| `minWidth` | int 0 to 10000 | Window at least. Points wide. |
+| `maxWidth` | int 0 to 10000 | Window at most. Points wide. |
+| `timeFrom` | string, at most 5 | From time of day. HH:MM on the server's clock. |
+| `timeTo` | string, at most 5 | Until time of day. HH:MM; a range may pass midnight. |
+| `weekday` | enumList: mon, tue, wed, thu, fri, sat, sun | Days |
+| `locale` | string, at most 35 | Language. A language tag; en matches en-GB. |
+
+### Page kinds
+
+| Kind | What it is | Route | Query parameters | Variables for sources | Narrowed by |
+|---|---|---|---|---|---|
+| `home` | The first page of the app. | `/` | tab |  |  |
+| `libraries` | Every library the profile can open. | `/libraries` | tab |  |  |
+| `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag | $library | library, libraryKind |
+| `detail` | The page of one film, show, episode, album, book, game or collection. | `/item/{item}` | item, show, season, collection, library, artist, album, tab | $item, $show, $season, $collection, $library, $artist, $album | mediaKind, library, libraryKind |
+| `search` | Search across everything. | `/search` | q, tab | $query |  |
+| `livetv` | Channels and the guide. | `/tv` | tab |  |  |
+| `music` | Every music library together. | `/music` | tab |  |  |
+| `photos` | Every photo library together. | `/photos` | tab |  |  |
+| `books` | Books, comics and audiobooks together: the book libraries and the audiobook libraries. | `/books` | tab |  |  |
+| `games` | Every games library together. | `/games` | tab |  |  |
+| `collections` | The profile's collections and lists. | `/collections` | tab |  |  |
+| `custom` | Any other page: a family film night, a page for one collection. | `/page/{id}` | tab |  |  |
+
+### Routes
+
+What shows each place in the app: an SDUI page, asked for with the parameters given (`{name}` is from the route, `?name` from its query), or a screen the app draws itself.
+
+| Route | Shown by | Parameters |
+|---|---|---|
+| `/` | page `home` |  |
+| `/libraries` | page `libraries` |  |
+| `/library/{library}` | page `library` | library={library} |
+| `/item/{item}` | page `detail` | item={item} |
+| `/show/{show}` | page `detail` | show={show} |
+| `/album/{library}` | page `detail` | album=?album, artist=?artist, library={library} |
+| `/collections/{collection}` | page `detail` | collection={collection} |
+| `/collections` | page `collections` |  |
+| `/search` | page `search` | q=?q |
+| `/tv` | page `livetv` |  |
+| `/music` | page `music` |  |
+| `/photos` | page `photos` |  |
+| `/books` | page `books` |  |
+| `/games` | page `games` |  |
+| `/page/{id}` | page `{id}` |  |
+| `/settings` | native `settings` |  |
+| `/settings/{section}` | native `settings` |  |
+| `/tv/guide` | native `guide` |  |
+| `/tv/recordings` | native `guide` |  |
+| `/tv/watch/{key}` | native `livePlayer` |  |
+| `/watch/{item}` | native `player` |  |
+| `/play/{item}` | native `player` |  |
+| `/read/{item}` | native `reader` |  |
+| `/game/{item}` | native `game` |  |
+| `/you` | native `profiles` |  |
+| `/pair` | native `pair` |  |
+
+### Native screens
+
+| Screen | What it is | Route |
+|---|---|---|
+| `settings` | The app's own Settings. Always in the navigation; never an SDUI page. | `/settings` |
+| `guide` | The guide's grid of channels and times. | `/tv/guide` |
+| `profiles` | The profile's own page and the profile switcher. | `/you` |
+| `downloads` | What is kept on this device. | `/downloads` |
+| `remote` | Remote control of another device. | `/remote` |
+| `nowPlaying` | The music player. | `/now-playing` |
+| `pair` | Sign another device in. | `/pair` |
+| `collections` | The app's own collections manager, where it has one; else the collections page. | `/collections` |
+| `player` | The video player. | `/watch/{item}` |
+| `livePlayer` | A channel, playing. | `/tv/watch/{key}` |
+| `reader` | The book and comic reader. | `/read/{item}` |
+| `game` | A game's page and player. | `/game/{item}` |
+| `download` | Keep a copy of a title on this device (action params: item). | `` |
+| `share` | The share sheet for a title (action params: item). | `` |
+| `playOn` | The device picker for a title (action params: item). | `` |
+| `watchParty` | Start a watch party for a title (action params: item). | `` |
+
+### Commands
+
+| `op` | What it does | Request |
+|---|---|---|
+| `watchLater.add` | Adds the title to the profile's Watch later list. | `POST /api/v1/collections/watch-later/items` with `{"items":[{item}]}` |
+| `watched.set` | Marks the title watched. | `POST /api/v1/items/{item}/progress` with `{"watched":true}` |
+| `watched.clear` | Forgets the profile's progress in the title. | `DELETE /api/v1/items/{item}/progress` |
+| `selectTab` | Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it. |  |
+| `refresh` | Asks for the page again. |  |
+
+### Icons
+
+`home`, `library`, `movie`, `show`, `tv`, `live`, `guide`, `record`, `music`, `album`, `artist`, `mic`, `radio`, `podcast`, `book`, `audiobook`, `comic`, `photo`, `video`, `disc`, `game`, `collection`, `list`, `folder`, `search`, `settings`, `user`, `users`, `kids`, `star`, `heart`, `clock`, `history`, `calendar`, `sparkles`, `fire`, `shuffle`, `play`, `download`, `share`, `globe`, `info`, `warning`, `check`, `plus`, `grid`, `filter`, `sort`, `plug`, `chart`, `devices`, `more`
+
+### Placeholders
+
+| Placeholder | Becomes |
+|---|---|
+| `{user}` | The profile's name |
+| `{server}` | The server's name |
+| `{greeting}` | Good morning, afternoon or evening |
+| `{library}` | The page's library |
+| `{title}` | The page's title, or a source's first item |
+| `{query}` | What was searched for |
+| `{each}` | What a repeated section is repeated over |
+| `{count}` | How many items a source gave |
+| `{genre}` | The source's genre |
+| `{studio}` | The source's studio |
+| `{tag}` | The source's tag |
+
+### Limits
+
+| Limit | Value |
+|---|---|
+| `maxChildren` | 60 |
+| `maxDepth` | 6 |
+| `maxIdLength` | 64 |
+| `maxNavItems` | 40 |
+| `maxPageBytes` | 262144 |
+| `maxPages` | 200 |
+| `maxPersonalBytes` | 8192 |
+| `maxSections` | 200 |
+| `maxSourceLimit` | 500 |
+| `maxVariants` | 8 |
+
+### Built-in pages
+
+| Page | Kind | For | Sections |
+|---|---|---|---|
+| `home` | home | every home page | `setup` (Notice), `welcome` (Notice), `hero` (Hero of featured), `libraries` (Shelf of libraries), `jump` (Shelf of continueWatching), `onnow` (Shelf of liveNow), `foryou` (Shelf of recommended), `nextup` (Shelf of nextUp), `view` (Shelf of savedView, per pinnedView), `recent` (Shelf of recentlyAdded, per librarie), `shuffle` (Banner of random) |
+| `libraries` | libraries | every libraries page | `all` (Grid of libraries) |
+| `library` | library | every library page | `all` (Grid of recentlyAdded) |
+| `library-movies` | library | movies | `filters` (FilterBar), `all` (Grid of browse) |
+| `library-shows` | library | shows | `filters` (FilterBar), `all` (Grid of browse) |
+| `library-anime` | library | anime | `filters` (FilterBar), `all` (Grid of browse) |
+| `library-music` | library | music | `played` (Shelf of albums), `views` (Tabs), `albums` (Tab), `albums-grid` (Grid of albums), `artists` (Tab), `artists-grid` (Grid of artists) |
+| `library-audiobooks` | library | audiobooks | `listening` (Shelf of continueWatching), `all` (Grid of albums) |
+| `library-podcasts` | library | podcasts | `listening` (Shelf of continueWatching), `all` (Grid of albums) |
+| `library-photos` | library | photos | `timeline` (NativeView), `all` (Grid of recentlyAdded) |
+| `library-books` | library | books | `reading` (Shelf of continueWatching), `all` (Grid of recentlyAdded) |
+| `library-games` | library | games | `playing` (Shelf of continuePlaying), `all` (Grid of recentlyAdded) |
+| `detail` | detail | every detail page | `header` (DetailHeader), `similar` (Shelf of similar) |
+| `detail-show` | detail | show | `header` (DetailHeader), `episodes` (SeasonList of episodes), `similar` (Shelf of similar) |
+| `detail-episode` | detail | episode | `header` (DetailHeader), `season` (Shelf of episodes) |
+| `detail-album` | detail | album | `header` (DetailHeader), `tracks` (TrackList of tracks), `more` (Shelf of albums) |
+| `detail-collection` | detail | collection | `header` (DetailHeader), `all` (Grid of collection) |
+| `search` | search | every search page | `q` (SearchBox), `idle` (Text), `found` (Shelf of search, per librarie), `channels` (Shelf of search) |
+| `livetv` | livetv | every livetv page | `guide` (NativeView), `favourites` (Shelf of liveNow), `recordings` (Shelf of recordings), `channels` (Grid of liveNow) |
+| `music` | music | every music page | `listening` (Shelf of continueWatching), `played` (Shelf of albums, per librarie), `added` (Shelf of albums, per librarie), `artists` (Shelf of artists, per librarie) |
+| `photos` | photos | every photos page | `recent` (Shelf of recentlyAdded, per librarie) |
+| `books` | books | every books page | `reading` (Shelf of continueWatching), `recent` (Shelf of recentlyAdded, per librarie) |
+| `games` | games | every games page | `playing` (Shelf of continuePlaying), `recent` (Shelf of recentlyAdded, per librarie) |
+| `collections` | collections | every collections page | `later` (Shelf of watchLater), `all` (Grid of collections) |
+
+### Presets
+
+| Preset | Kind | What it is |
+|---|---|---|
+| `home-default` | page | **The built-in Home.** Home as it ships: spotlight, libraries, jump back in, on TV now, recommendations, next up, pinned views, a row per library and a shuffle. |
+| `home-streaming` | page | **Streaming-style Home.** A big spotlight, continue watching, recommendations, a numbered top ten, new releases and a row per library. |
+| `home-minimal` | page | **Minimal Home.** A greeting, what you were watching, and large tiles for the libraries. Nothing else. |
+| `home-kids` | page | **Home with a kids' variant.** The built-in Home for everyone, and a simpler one with large cards for Kids profiles. |
+| `home-music` | page | **Music-first Home.** Music on top: continue listening, recently played and new albums, artists; films and shows below. |
+| `home-tv` | page | **TV-first Home.** Live TV on top: favourite channels, what's on now, the guide and recordings; the libraries below. |
+| `page-photo-frame` | page | **Photo frame.** A page of its own that cycles slowly through the newest photos, for a screen left on. Add it to the navigation, or open /page/photo-frame. |
+| `continue-watching` | section | **Continue watching.** Everything the profile is part-way through. |
+| `next-up` | section | **Next up.** The next episode of each show in progress. |
+| `spotlight` | section | **Spotlight.** A rotating spotlight of recent films. |
+| `recent-per-library` | section | **Recently added, a row per library.** One row for each library the profile can open. |
+| `recommended` | section | **Recommended for you.** Picked from what the profile has watched here. |
+| `top-ten` | section | **Top 10.** The ten best-scored titles, numbered. |
+| `genre-row` | section | **A genre.** One genre as a row. Change the genre to taste. |
+| `collection-row` | section | **A collection.** What one collection holds. Set the collection's ID. |
+| `pinned-views` | section | **Pinned saved views.** A row for each saved view the profile pinned to Home. |
+| `watch-later` | section | **Watch later.** The profile's Watch later list. |
+| `random-pick` | section | **Can't decide?.** A banner offering one random title to play. |
+| `on-tv-now` | section | **On TV now.** Channels with what is on now and next. |
+| `guide-entry` | section | **A way into the TV guide.** A banner that opens the app's TV guide. |
+| `library-tiles` | section | **Library tiles.** The libraries as a row of tiles. |
+| `genre-chips` | section | **Genre chips.** A library's genres as chips, each opening the library filtered to it. |
+| `greeting` | section | **A greeting.** "Good evening, Sam" as the page's heading. |
+| `search-box` | section | **Search box.** A search field that opens Search. |
+| `filter-grid` | section | **Filters over a grid.** The body of a film or show library: a filter bar and the grid it filters. Add both sections. |
+| `title-header` | section | **Title header.** The top of a title's page. |
+| `seasons` | section | **Seasons and episodes.** A show's seasons and episodes. |
+| `track-list` | section | **Track list.** An album's tracks. |
+| `more-like-this` | section | **More like this.** Titles like the one the page is about. |
+| `kids-notice` | section | **A note for a kind of profile.** A notice only Kids profiles see. Change the words and the condition. |
+| `evening-row` | section | **A row for the evening.** A row shown only between 18:00 and 23:00. Change the times and the source. |
+
+<!-- catalogue:end -->
 
 ---
 

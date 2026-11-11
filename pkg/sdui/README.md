@@ -1,62 +1,63 @@
 # sdui
 
-Server-Driven UI core for WittyMediaServer: a JSON schema for screens, a
-validator, a per-requester renderer, an ID-keyed tree differ and templates
-for the stock screens. Pure Go, standard library only, no HTTP.
+WittyMediaServer's server-driven UI: the model pages are written in, the
+catalogue that describes it, a validator that says how to fix what is wrong,
+a renderer that fits a page to a profile and a device, an ID-keyed differ, the
+built-in pages and presets, and a conformance kit for renderers. Pure Go,
+standard library only, no HTTP.
 
 ```go
 import "github.com/wittywilla/wittymediaserver/pkg/sdui"
 ```
 
-## Quick example
+The contract and the reference are [docs/SDUI.md](../../docs/SDUI.md).
+
+## A page, rendered
 
 ```go
-// Author once.
-doc, err := sdui.NewDocument("home").
-    Theme("default").
-    Action("openLibrary", sdui.NavigateTo("/library")).
-    Root(sdui.ScreenNode("home").Child(
-        sdui.TextOf("greeting", "Welcome back").
-            BindWith("text", sdui.Binding{Path: "$.user.name", Default: "Welcome back", Format: "title"}),
-        sdui.ShelfOf("games", "Jump back into a game").
-            Module("wittyplay").
-            If(sdui.ModuleEnabled("wittyplay")),
-        sdui.ButtonOf("browse", "Browse", "openLibrary"),
-    )).
-    Build() // runs Validate
-
-// Render for one requester.
-screen, err := sdui.Render(doc, sdui.RenderContext{
-    Platform: "web", Role: "user",
-    Modules:  []string{"wittyplay"},
-    Viewport: sdui.Viewport{Width: 1440, Height: 900},
-    Data:     map[string]any{"user": map[string]any{"name": "willow"}},
+page := sdui.Page{ID: "night", Kind: "custom", Title: "Film night", Sections: []sdui.Section{
+    {ID: "hello", Component: "Text", Props: map[string]any{"text": "{greeting}, {user}", "role": "pageTitle"}},
+    {ID: "picks", Component: "Shelf", Props: map[string]any{"title": "This week"},
+        Source: sdui.Source{"type": "collection", "collection": 12}},
+}}
+if issues := sdui.ValidatePage(&page); sdui.HasErrors(issues) {
+    // each issue has a path, a message and a fix
+}
+doc, err := sdui.Render(page, &sdui.RenderContext{
+    Profile:     sdui.ProfileFor(sdui.FormTV, "hd"),
+    ProfileKind: "adult", UserName: "Sam",
+    Resolver:    resolver, // answers the sources: see sdui.Resolver
 })
-// screen.Root has no Visibility/Bindings; screen.Meta.ETag is set.
-
-// Incremental update for a client holding the previous render.
-patches := sdui.Diff(previous, screen)
 ```
 
-Stock screens: `sdui.HomeTemplate`, `LibrariesTemplate`, `LibraryTemplate`,
-`DetailTemplate`, `SearchTemplate`, `LiveTVTemplate`, `MusicTemplate`,
-`PlayerTemplate`, `SettingsTemplate`, and `DefaultScreens()` for all nine
-with empty data.
+`doc` is what a client is sent: a tree of nodes with every prop resolved,
+every picture sized for the device, focus numbered, and an ETag.
 
-Fitting a screen to a device: pass `Profile: sdui.ProfileFor(sdui.FormTV, "hd")`
-in the `RenderContext`. Render then turns each row's items into focusable
-cards, cuts rows and cards to what the device takes, sizes pictures, stamps
-the focus order and the default focus, and sends the profile along as
-`Layout`. `sdui.NewTopShelf` builds tvOS Top Shelf content, and
-`sdui.JSONSchema()` is `docs/sdui.schema.json`.
+## What is where
 
-Full schema, condition/binding semantics, the patch protocol and a guide to
-writing a client renderer: [docs/SDUI.md](../../docs/SDUI.md).
+| File | What |
+|---|---|
+| `model.go` | Page, Section, Source, Condition, Navigation, Personal; Document, Node, Action, Focus; Item. |
+| `catalog.go`, `catalog_data.go` | The catalogue: components, card styles, sources, conditions, page kinds, routes. |
+| `profile.go` | Device profiles: sizes, budgets, text limits, picture widths, grid columns. |
+| `validate.go` | ValidatePage, ValidateNavigation, ValidatePersonal: issues with fixes. |
+| `render.go`, `cards.go`, `fallback.go`, `focus.go` | Render and RenderSection. |
+| `nav.go` | RenderNavigation. |
+| `stock.go`, `presets.go` | The built-in pages and navigation; the preset gallery. |
+| `diff.go` | Diff, Apply, Canonical, ETag. |
+| `migrate.go` | Conversion of screens from the first, unreleased, format. |
+| `docgen.go`, `jsonschema.go` | The reference section of docs/SDUI.md and docs/sdui.schema.json. |
+| `conformance/` | Fixtures and the reference normaliser renderers are tested against. |
 
-## Tests
+## Changing the contract
+
+Edit the catalogue or the renderer, then:
 
 ```sh
-go test -cover ./pkg/sdui/...
-go test ./pkg/sdui/ -update   # regenerate testdata/*.golden.json and docs/sdui.schema.json
-go test ./pkg/sdui/ -run '^$' -fuzz FuzzUnmarshal -fuzztime 30s
+go test ./pkg/sdui -update                 # docs/SDUI.md's reference, docs/sdui.schema.json
+go test ./pkg/sdui/conformance -update     # the fixtures
+git diff pkg/sdui/conformance/fixtures     # read what changed for renderers
 ```
+
+A new component gets a `Since` of the next `CatalogRevision` and, unless
+every renderer must draw it, a fallback in `fallback.go`.

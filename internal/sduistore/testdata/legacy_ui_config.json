@@ -1,0 +1,1786 @@
+{
+  "revision": 3,
+  "screens": {
+    "detail": {
+      "version": 1,
+      "screen": "detail",
+      "theme": {
+        "id": "default"
+      },
+      "root": {
+        "type": "Screen",
+        "id": "detail",
+        "props": {
+          "scroll": true,
+          "title": "Details"
+        },
+        "style": {
+          "direction": "column",
+          "gap": 24
+        },
+        "children": [
+          {
+            "type": "HeroBanner",
+            "id": "detail-hero",
+            "props": {
+              "title": "Details"
+            },
+            "style": {
+              "aspectRatio": "16/9",
+              "class": "detail-hero"
+            },
+            "children": [
+              {
+                "type": "Stack",
+                "id": "detail-meta",
+                "style": {
+                  "direction": "row",
+                  "gap": 12,
+                  "align": "center"
+                },
+                "children": [
+                  {
+                    "type": "Badge",
+                    "id": "detail-year",
+                    "props": {
+                      "text": "0"
+                    },
+                    "visibility": {
+                      "not": {
+                        "flag": "hideYear"
+                      }
+                    },
+                    "bindings": {
+                      "text": {
+                        "path": "$.item.year",
+                        "default": ""
+                      }
+                    }
+                  },
+                  {
+                    "type": "Badge",
+                    "id": "detail-duration",
+                    "props": {
+                      "text": ""
+                    },
+                    "bindings": {
+                      "text": {
+                        "path": "$.item.duration",
+                        "default": 0,
+                        "format": "duration"
+                      }
+                    }
+                  },
+                  {
+                    "type": "Badge",
+                    "id": "detail-rating",
+                    "props": {
+                      "text": "NR"
+                    },
+                    "bindings": {
+                      "text": {
+                        "path": "$.item.rating",
+                        "default": "NR"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Stack",
+                "id": "detail-actions",
+                "style": {
+                  "direction": "row",
+                  "gap": 12
+                },
+                "children": [
+                  {
+                    "type": "Button",
+                    "id": "detail-play",
+                    "props": {
+                      "icon": "play",
+                      "label": "Play",
+                      "variant": "primary"
+                    },
+                    "visibility": {
+                      "all": [
+                        {
+                          "feature": "playback"
+                        },
+                        {
+                          "not": {
+                            "flag": "notPlayable"
+                          }
+                        }
+                      ]
+                    },
+                    "bindings": {
+                      "itemId": {
+                        "path": "$.item.playId"
+                      }
+                    },
+                    "action": "playItem"
+                  },
+                  {
+                    "type": "Button",
+                    "id": "detail-resume",
+                    "props": {
+                      "icon": "resume",
+                      "label": "Resume"
+                    },
+                    "visibility": {
+                      "all": [
+                        {
+                          "feature": "playback"
+                        },
+                        {
+                          "flag": "hasProgress"
+                        }
+                      ]
+                    },
+                    "bindings": {
+                      "itemId": {
+                        "path": "$.item.playId"
+                      }
+                    },
+                    "action": "resume"
+                  },
+                  {
+                    "type": "Button",
+                    "id": "detail-artwork",
+                    "props": {
+                      "label": "Artwork",
+                      "variant": "ghost"
+                    },
+                    "visibility": {
+                      "role": "admin"
+                    },
+                    "action": "openArtwork"
+                  }
+                ]
+              },
+              {
+                "type": "ProgressBar",
+                "id": "detail-progress",
+                "props": {
+                  "value": 0
+                },
+                "visibility": {
+                  "flag": "hasProgress"
+                },
+                "bindings": {
+                  "value": {
+                    "path": "$.item.progress"
+                  }
+                }
+              }
+            ],
+            "bindings": {
+              "backdropUrl": {
+                "path": "$.item.backdrop",
+                "default": ""
+              },
+              "subtitle": {
+                "path": "$.item.subtitle",
+                "default": ""
+              },
+              "title": {
+                "path": "$.item.title"
+              }
+            }
+          },
+          {
+            "type": "Text",
+            "id": "detail-overview",
+            "props": {
+              "maxLines": 6,
+              "text": "",
+              "variant": "body"
+            },
+            "bindings": {
+              "text": {
+                "path": "$.item.overview",
+                "default": "No overview yet."
+              }
+            }
+          },
+          {
+            "type": "List",
+            "id": "detail-children",
+            "bindings": {
+              "items": {
+                "path": "$.item.children"
+              }
+            }
+          },
+          {
+            "type": "PosterRow",
+            "id": "detail-related",
+            "props": {
+              "title": "More like this"
+            },
+            "visibility": {
+              "feature": "recommendations"
+            },
+            "bindings": {
+              "items": {
+                "path": "$.item.related"
+              }
+            }
+          },
+          {
+            "type": "Modal",
+            "id": "detail-artwork-modal",
+            "props": {
+              "dismissible": true,
+              "title": "Artwork"
+            },
+            "children": [
+              {
+                "type": "Text",
+                "id": "detail-artwork-hint",
+                "props": {
+                  "text": "Choose a poster or backdrop for this title."
+                }
+              },
+              {
+                "type": "Button",
+                "id": "detail-artwork-close",
+                "props": {
+                  "label": "Close"
+                },
+                "action": "closeModal"
+              }
+            ],
+            "visibility": {
+              "role": "admin"
+            }
+          }
+        ],
+        "bindings": {
+          "title": {
+            "path": "$.item.title"
+          }
+        }
+      },
+      "actions": {
+        "back": {
+          "type": "back"
+        },
+        "closeModal": {
+          "type": "closeModal"
+        },
+        "goHome": {
+          "type": "navigate",
+          "target": "/"
+        },
+        "goLibrary": {
+          "type": "navigate",
+          "target": "/library"
+        },
+        "goSearch": {
+          "type": "navigate",
+          "target": "/search"
+        },
+        "goSettings": {
+          "type": "navigate",
+          "target": "/settings"
+        },
+        "openArtwork": {
+          "type": "openModal",
+          "target": "detail-artwork-modal"
+        },
+        "openItem": {
+          "type": "navigate",
+          "target": "$route"
+        },
+        "playItem": {
+          "type": "play",
+          "target": "$itemId"
+        },
+        "resume": {
+          "type": "play",
+          "target": "$itemId",
+          "params": {
+            "resume": true
+          }
+        }
+      },
+      "meta": {
+        "title": "Details",
+        "source": "template:detail",
+        "ttlSeconds": 120
+      }
+    },
+    "home": {
+      "version": 1,
+      "screen": "home",
+      "theme": {
+        "id": "default"
+      },
+      "root": {
+        "type": "Screen",
+        "id": "home",
+        "props": {
+          "scroll": true,
+          "title": "Home"
+        },
+        "style": {
+          "direction": "column",
+          "gap": 32,
+          "background": "token:bg"
+        },
+        "children": [
+          {
+            "type": "Toolbar",
+            "id": "home-toolbar",
+            "children": [
+              {
+                "type": "Text",
+                "id": "home-greeting",
+                "props": {
+                  "text": "Welcome back",
+                  "variant": "pageTitle"
+                },
+                "bindings": {
+                  "text": {
+                    "path": "$.user.name",
+                    "default": "Welcome back",
+                    "format": "title"
+                  }
+                }
+              },
+              {
+                "type": "Spacer",
+                "id": "home-toolbar-gap",
+                "props": {
+                  "size": 0
+                },
+                "style": {
+                  "width": "auto"
+                }
+              },
+              {
+                "type": "SearchBar",
+                "id": "home-search",
+                "props": {
+                  "placeholder": "Search your libraries"
+                },
+                "visibility": {
+                  "minWidth": 720
+                },
+                "action": "goSearch"
+              },
+              {
+                "type": "Button",
+                "id": "home-settings-btn",
+                "props": {
+                  "icon": "settings",
+                  "label": "Settings",
+                  "variant": "ghost"
+                },
+                "action": "goSettings"
+              }
+            ]
+          },
+          {
+            "type": "HeroBanner",
+            "id": "home-hero",
+            "props": {
+              "cardShape": "hero",
+              "title": "Featured"
+            },
+            "style": {
+              "height": "42vh",
+              "aspectRatio": "16/9"
+            },
+            "visibility": {
+              "not": {
+                "platform": "tv-compact"
+              }
+            },
+            "bindings": {
+              "items": {
+                "path": "$.home.featured"
+              }
+            }
+          },
+          {
+            "type": "PosterRow",
+            "id": "home-continue",
+            "props": {
+              "cardShape": "wide",
+              "title": "Continue watching"
+            },
+            "visibility": {
+              "feature": "history"
+            },
+            "bindings": {
+              "items": {
+                "path": "$.home.continueWatching"
+              }
+            }
+          },
+          {
+            "type": "PosterRow",
+            "id": "home-nextup",
+            "props": {
+              "cardShape": "wide",
+              "title": "Next up"
+            },
+            "bindings": {
+              "items": {
+                "path": "$.home.nextUp"
+              }
+            }
+          },
+          {
+            "type": "PosterRow",
+            "id": "home-recent",
+            "props": {
+              "title": "Recently added"
+            },
+            "bindings": {
+              "items": {
+                "path": "$.home.recentlyAdded"
+              }
+            }
+          },
+          {
+            "type": "Stack",
+            "id": "home-libraries",
+            "style": {
+              "direction": "column"
+            },
+            "bindings": {
+              "sections": {
+                "path": "$.home.sections"
+              }
+            }
+          },
+          {
+            "type": "PosterRow",
+            "id": "home-recommended",
+            "props": {
+              "title": "Recommended for you"
+            },
+            "visibility": {
+              "feature": "recommendations"
+            },
+            "bindings": {
+              "items": {
+                "path": "$.home.recommended"
+              }
+            }
+          },
+          {
+            "type": "Shelf",
+            "id": "home-games",
+            "props": {
+              "cardShape": "square",
+              "title": "Jump back into a game"
+            },
+            "style": {
+              "module": "wittyplay"
+            },
+            "visibility": {
+              "module": "wittyplay"
+            },
+            "bindings": {
+              "items": {
+                "path": "$.home.games"
+              }
+            }
+          },
+          {
+            "type": "Shelf",
+            "id": "home-livetv",
+            "props": {
+              "cardShape": "wide",
+              "title": "Channels"
+            },
+            "style": {
+              "module": "wittytv"
+            },
+            "bindings": {
+              "items": {
+                "path": "$.home.channels"
+              }
+            }
+          },
+          {
+            "type": "Shelf",
+            "id": "home-music",
+            "props": {
+              "cardShape": "square",
+              "title": "Recently added music"
+            },
+            "style": {
+              "module": "wittymusic"
+            },
+            "bindings": {
+              "items": {
+                "path": "$.home.music"
+              }
+            }
+          },
+          {
+            "type": "Button",
+            "id": "home-admin-setup",
+            "props": {
+              "label": "Finish server setup",
+              "variant": "primary"
+            },
+            "visibility": {
+              "all": [
+                {
+                  "role": "admin"
+                },
+                {
+                  "flag": "setupIncomplete"
+                }
+              ]
+            },
+            "action": "goSettings"
+          }
+        ]
+      },
+      "actions": {
+        "back": {
+          "type": "back"
+        },
+        "goHome": {
+          "type": "navigate",
+          "target": "/"
+        },
+        "goLibrary": {
+          "type": "navigate",
+          "target": "/library"
+        },
+        "goSearch": {
+          "type": "navigate",
+          "target": "/search"
+        },
+        "goSettings": {
+          "type": "navigate",
+          "target": "/settings"
+        },
+        "openItem": {
+          "type": "navigate",
+          "target": "$route"
+        },
+        "playItem": {
+          "type": "play",
+          "target": "$itemId"
+        }
+      },
+      "meta": {
+        "title": "Home",
+        "source": "template:home",
+        "ttlSeconds": 60
+      }
+    },
+    "libraries": {
+      "version": 1,
+      "screen": "libraries",
+      "theme": {
+        "id": "default"
+      },
+      "root": {
+        "type": "Screen",
+        "id": "libraries",
+        "props": {
+          "scroll": true,
+          "title": "Libraries"
+        },
+        "style": {
+          "direction": "column",
+          "gap": 24
+        },
+        "children": [
+          {
+            "type": "Toolbar",
+            "id": "libraries-toolbar",
+            "children": [
+              {
+                "type": "Button",
+                "id": "libraries-back",
+                "props": {
+                  "icon": "back",
+                  "label": "Back",
+                  "variant": "ghost"
+                },
+                "visibility": {
+                  "all": [
+                    {
+                      "not": {
+                        "platform": "web"
+                      }
+                    },
+                    {
+                      "not": {
+                        "formFactor": "tv"
+                      }
+                    }
+                  ]
+                },
+                "action": "back"
+              },
+              {
+                "type": "Text",
+                "id": "libraries-title",
+                "props": {
+                  "text": "Libraries",
+                  "variant": "pageTitle"
+                }
+              }
+            ]
+          },
+          {
+            "type": "Grid",
+            "id": "libraries-grid",
+            "props": {
+              "cardShape": "wide"
+            },
+            "style": {},
+            "bindings": {
+              "items": {
+                "path": "$.libraries.items"
+              }
+            }
+          },
+          {
+            "type": "Text",
+            "id": "libraries-empty",
+            "props": {
+              "text": "There are no libraries you can open yet.",
+              "variant": "hint"
+            },
+            "visibility": {
+              "flag": "librariesEmpty"
+            }
+          }
+        ]
+      },
+      "actions": {
+        "back": {
+          "type": "back"
+        },
+        "goHome": {
+          "type": "navigate",
+          "target": "/"
+        },
+        "goLibrary": {
+          "type": "navigate",
+          "target": "/library"
+        },
+        "goSearch": {
+          "type": "navigate",
+          "target": "/search"
+        },
+        "goSettings": {
+          "type": "navigate",
+          "target": "/settings"
+        },
+        "openItem": {
+          "type": "navigate",
+          "target": "$route"
+        }
+      },
+      "meta": {
+        "title": "Libraries",
+        "source": "template:libraries",
+        "ttlSeconds": 300
+      }
+    },
+    "library": {
+      "version": 1,
+      "screen": "library",
+      "theme": {
+        "id": "default"
+      },
+      "root": {
+        "type": "Screen",
+        "id": "library",
+        "props": {
+          "scroll": true,
+          "title": "Library"
+        },
+        "style": {
+          "direction": "column",
+          "gap": 24
+        },
+        "children": [
+          {
+            "type": "Toolbar",
+            "id": "library-toolbar",
+            "children": [
+              {
+                "type": "Button",
+                "id": "library-back",
+                "props": {
+                  "icon": "back",
+                  "label": "Back",
+                  "variant": "ghost"
+                },
+                "visibility": {
+                  "not": {
+                    "platform": "web"
+                  }
+                },
+                "action": "back"
+              },
+              {
+                "type": "Text",
+                "id": "library-title",
+                "props": {
+                  "text": "Library",
+                  "variant": "pageTitle"
+                },
+                "bindings": {
+                  "text": {
+                    "path": "$.library.title"
+                  }
+                }
+              },
+              {
+                "type": "Spacer",
+                "id": "library-toolbar-gap",
+                "props": {
+                  "size": 0
+                },
+                "style": {
+                  "width": "auto"
+                }
+              },
+              {
+                "type": "SearchBar",
+                "id": "library-search",
+                "props": {
+                  "placeholder": "Search this library",
+                  "scope": ""
+                },
+                "action": "goSearch"
+              },
+              {
+                "type": "Button",
+                "id": "library-sort",
+                "props": {
+                  "icon": "sort",
+                  "label": "Sort",
+                  "variant": "ghost"
+                },
+                "action": "sort"
+              }
+            ]
+          },
+          {
+            "type": "Grid",
+            "id": "library-grid",
+            "style": {},
+            "bindings": {
+              "items": {
+                "path": "$.library.items"
+              }
+            }
+          },
+          {
+            "type": "Text",
+            "id": "library-empty",
+            "props": {
+              "text": "Nothing here yet. Add a folder to this library in Settings.",
+              "variant": "hint"
+            },
+            "visibility": {
+              "flag": "libraryEmpty"
+            }
+          }
+        ],
+        "bindings": {
+          "title": {
+            "path": "$.library.title"
+          }
+        }
+      },
+      "actions": {
+        "back": {
+          "type": "back"
+        },
+        "goHome": {
+          "type": "navigate",
+          "target": "/"
+        },
+        "goLibrary": {
+          "type": "navigate",
+          "target": "/library"
+        },
+        "goSearch": {
+          "type": "navigate",
+          "target": "/search"
+        },
+        "goSettings": {
+          "type": "navigate",
+          "target": "/settings"
+        },
+        "openItem": {
+          "type": "navigate",
+          "target": "$route"
+        },
+        "sort": {
+          "type": "fetch",
+          "target": "/api/v1/sdui/screens/library?sort=$sort"
+        }
+      },
+      "meta": {
+        "title": "Library",
+        "source": "template:library",
+        "ttlSeconds": 30
+      }
+    },
+    "livetv": {
+      "version": 1,
+      "screen": "livetv",
+      "theme": {
+        "id": "default"
+      },
+      "root": {
+        "type": "Screen",
+        "id": "livetv",
+        "props": {
+          "scroll": true,
+          "title": "Live TV"
+        },
+        "style": {
+          "direction": "column",
+          "gap": 24,
+          "module": "wittytv"
+        },
+        "children": [
+          {
+            "type": "Toolbar",
+            "id": "livetv-toolbar",
+            "children": [
+              {
+                "type": "Button",
+                "id": "livetv-back",
+                "props": {
+                  "icon": "back",
+                  "label": "Back",
+                  "variant": "ghost"
+                },
+                "visibility": {
+                  "all": [
+                    {
+                      "not": {
+                        "platform": "web"
+                      }
+                    },
+                    {
+                      "not": {
+                        "formFactor": "tv"
+                      }
+                    }
+                  ]
+                },
+                "action": "back"
+              },
+              {
+                "type": "Text",
+                "id": "livetv-title",
+                "props": {
+                  "text": "Live TV",
+                  "variant": "pageTitle"
+                }
+              }
+            ]
+          },
+          {
+            "type": "Shelf",
+            "id": "livetv-favourites",
+            "props": {
+              "cardShape": "wide",
+              "title": "Favourites"
+            },
+            "style": {
+              "module": "wittytv"
+            },
+            "bindings": {
+              "items": {
+                "path": "$.livetv.favourites"
+              }
+            }
+          },
+          {
+            "type": "Grid",
+            "id": "livetv-channels",
+            "props": {
+              "cardShape": "wide"
+            },
+            "style": {
+              "module": "wittytv"
+            },
+            "bindings": {
+              "items": {
+                "path": "$.livetv.channels"
+              }
+            }
+          },
+          {
+            "type": "Text",
+            "id": "livetv-empty",
+            "props": {
+              "text": "There are no channels yet.",
+              "variant": "hint"
+            },
+            "visibility": {
+              "flag": "livetvEmpty"
+            }
+          }
+        ]
+      },
+      "actions": {
+        "back": {
+          "type": "back"
+        },
+        "goHome": {
+          "type": "navigate",
+          "target": "/"
+        },
+        "goLibrary": {
+          "type": "navigate",
+          "target": "/library"
+        },
+        "goSearch": {
+          "type": "navigate",
+          "target": "/search"
+        },
+        "goSettings": {
+          "type": "navigate",
+          "target": "/settings"
+        },
+        "openItem": {
+          "type": "navigate",
+          "target": "$route"
+        }
+      },
+      "meta": {
+        "title": "Live TV",
+        "source": "template:livetv",
+        "ttlSeconds": 60
+      }
+    },
+    "music": {
+      "version": 1,
+      "screen": "music",
+      "theme": {
+        "id": "default"
+      },
+      "root": {
+        "type": "Screen",
+        "id": "music",
+        "props": {
+          "scroll": true,
+          "title": "Music"
+        },
+        "style": {
+          "direction": "column",
+          "gap": 24,
+          "module": "wittymusic"
+        },
+        "children": [
+          {
+            "type": "Toolbar",
+            "id": "music-toolbar",
+            "children": [
+              {
+                "type": "Button",
+                "id": "music-back",
+                "props": {
+                  "icon": "back",
+                  "label": "Back",
+                  "variant": "ghost"
+                },
+                "visibility": {
+                  "all": [
+                    {
+                      "not": {
+                        "platform": "web"
+                      }
+                    },
+                    {
+                      "not": {
+                        "formFactor": "tv"
+                      }
+                    }
+                  ]
+                },
+                "action": "back"
+              },
+              {
+                "type": "Text",
+                "id": "music-title",
+                "props": {
+                  "text": "Music",
+                  "variant": "pageTitle"
+                }
+              }
+            ]
+          },
+          {
+            "type": "Shelf",
+            "id": "music-continue",
+            "props": {
+              "cardShape": "square",
+              "title": "Continue listening"
+            },
+            "style": {
+              "module": "wittymusic"
+            },
+            "bindings": {
+              "items": {
+                "path": "$.music.continueListening"
+              }
+            }
+          },
+          {
+            "type": "Stack",
+            "id": "music-rows",
+            "style": {
+              "direction": "column"
+            },
+            "bindings": {
+              "sections": {
+                "path": "$.music.sections"
+              }
+            }
+          },
+          {
+            "type": "Text",
+            "id": "music-empty",
+            "props": {
+              "text": "There is no music you can open yet.",
+              "variant": "hint"
+            },
+            "visibility": {
+              "flag": "musicEmpty"
+            }
+          }
+        ]
+      },
+      "actions": {
+        "back": {
+          "type": "back"
+        },
+        "goHome": {
+          "type": "navigate",
+          "target": "/"
+        },
+        "goLibrary": {
+          "type": "navigate",
+          "target": "/library"
+        },
+        "goSearch": {
+          "type": "navigate",
+          "target": "/search"
+        },
+        "goSettings": {
+          "type": "navigate",
+          "target": "/settings"
+        },
+        "openItem": {
+          "type": "navigate",
+          "target": "$route"
+        }
+      },
+      "meta": {
+        "title": "Music",
+        "source": "template:music",
+        "ttlSeconds": 120
+      }
+    },
+    "player": {
+      "version": 1,
+      "screen": "player",
+      "theme": {
+        "id": "default"
+      },
+      "root": {
+        "type": "Screen",
+        "id": "player",
+        "props": {
+          "scroll": false,
+          "title": "Now playing"
+        },
+        "style": {
+          "background": "#000000",
+          "foreground": "token:onImage",
+          "class": "player"
+        },
+        "children": [
+          {
+            "type": "Video",
+            "id": "player-video",
+            "props": {
+              "autoplay": true,
+              "controls": true,
+              "itemId": "",
+              "src": "about:blank"
+            },
+            "bindings": {
+              "poster": {
+                "path": "$.player.poster",
+                "default": ""
+              },
+              "src": {
+                "path": "$.player.src",
+                "default": "about:blank"
+              },
+              "startAt": {
+                "path": "$.player.startAt",
+                "default": 0
+              },
+              "title": {
+                "path": "$.item.title",
+                "default": "Now playing"
+              }
+            }
+          },
+          {
+            "type": "Toolbar",
+            "id": "player-overlay",
+            "style": {
+              "class": "player-overlay"
+            },
+            "children": [
+              {
+                "type": "Button",
+                "id": "player-back",
+                "props": {
+                  "icon": "back",
+                  "label": "Back",
+                  "variant": "ghost"
+                },
+                "visibility": {
+                  "not": {
+                    "platform": "tv"
+                  }
+                },
+                "action": "back"
+              },
+              {
+                "type": "Text",
+                "id": "player-title",
+                "props": {
+                  "text": "Now playing",
+                  "variant": "heading"
+                },
+                "bindings": {
+                  "text": {
+                    "path": "$.item.title"
+                  }
+                }
+              },
+              {
+                "type": "Spacer",
+                "id": "player-overlay-gap",
+                "props": {
+                  "size": 0
+                },
+                "style": {
+                  "width": "auto"
+                }
+              },
+              {
+                "type": "Button",
+                "id": "player-subs",
+                "props": {
+                  "icon": "subtitles",
+                  "label": "Subtitles",
+                  "variant": "ghost"
+                },
+                "visibility": {
+                  "flag": "hasSubtitles"
+                },
+                "action": "toggleSubtitles"
+              }
+            ]
+          }
+        ]
+      },
+      "actions": {
+        "back": {
+          "type": "back"
+        },
+        "goHome": {
+          "type": "navigate",
+          "target": "/"
+        },
+        "goLibrary": {
+          "type": "navigate",
+          "target": "/library"
+        },
+        "goSearch": {
+          "type": "navigate",
+          "target": "/search"
+        },
+        "goSettings": {
+          "type": "navigate",
+          "target": "/settings"
+        },
+        "openItem": {
+          "type": "navigate",
+          "target": "/item"
+        },
+        "playNext": {
+          "type": "play",
+          "target": "$next"
+        },
+        "toggleSubtitles": {
+          "type": "toggle",
+          "target": "player-video",
+          "params": {
+            "prop": "subtitles"
+          }
+        }
+      },
+      "meta": {
+        "title": "Now playing",
+        "source": "template:player"
+      }
+    },
+    "search": {
+      "version": 1,
+      "screen": "search",
+      "theme": {
+        "id": "default"
+      },
+      "root": {
+        "type": "Screen",
+        "id": "search",
+        "props": {
+          "scroll": true,
+          "title": "Search"
+        },
+        "style": {
+          "direction": "column",
+          "gap": 24
+        },
+        "children": [
+          {
+            "type": "Toolbar",
+            "id": "search-toolbar",
+            "children": [
+              {
+                "type": "SearchBar",
+                "id": "search-field",
+                "props": {
+                  "placeholder": "Films, shows, music, channels"
+                },
+                "bindings": {
+                  "query": {
+                    "path": "$.search.query"
+                  }
+                },
+                "action": "search",
+                "focus": {
+                  "default": true
+                }
+              }
+            ]
+          },
+          {
+            "type": "Stack",
+            "id": "search-results",
+            "style": {
+              "direction": "column"
+            },
+            "bindings": {
+              "sections": {
+                "path": "$.search.sections"
+              }
+            }
+          },
+          {
+            "type": "Text",
+            "id": "search-none",
+            "props": {
+              "text": "Nothing matches that.",
+              "variant": "hint"
+            },
+            "visibility": {
+              "flag": "searchEmpty"
+            }
+          },
+          {
+            "type": "Text",
+            "id": "search-hint",
+            "props": {
+              "text": "Type at least two letters.",
+              "variant": "hint"
+            },
+            "visibility": {
+              "flag": "searchIdle"
+            }
+          }
+        ]
+      },
+      "actions": {
+        "back": {
+          "type": "back"
+        },
+        "goHome": {
+          "type": "navigate",
+          "target": "/"
+        },
+        "goLibrary": {
+          "type": "navigate",
+          "target": "/library"
+        },
+        "goSearch": {
+          "type": "navigate",
+          "target": "/search"
+        },
+        "goSettings": {
+          "type": "navigate",
+          "target": "/settings"
+        },
+        "openItem": {
+          "type": "navigate",
+          "target": "$route"
+        },
+        "search": {
+          "type": "fetch",
+          "target": "/api/v1/sdui/screens/search?q=$query"
+        }
+      },
+      "meta": {
+        "title": "Search",
+        "source": "template:search"
+      }
+    },
+    "settings": {
+      "version": 1,
+      "screen": "settings",
+      "theme": {
+        "id": "default"
+      },
+      "root": {
+        "type": "Screen",
+        "id": "settings",
+        "props": {
+          "scroll": true,
+          "title": "Settings"
+        },
+        "style": {
+          "direction": "column",
+          "gap": 24
+        },
+        "children": [
+          {
+            "type": "Toolbar",
+            "id": "settings-toolbar",
+            "children": [
+              {
+                "type": "Button",
+                "id": "settings-back",
+                "props": {
+                  "icon": "back",
+                  "label": "Back",
+                  "variant": "ghost"
+                },
+                "visibility": {
+                  "not": {
+                    "platform": "web"
+                  }
+                },
+                "action": "back"
+              },
+              {
+                "type": "Text",
+                "id": "settings-title",
+                "props": {
+                  "text": "Settings",
+                  "variant": "pageTitle"
+                }
+              },
+              {
+                "type": "Spacer",
+                "id": "settings-toolbar-gap",
+                "props": {
+                  "size": 0
+                },
+                "style": {
+                  "width": "auto"
+                }
+              },
+              {
+                "type": "Button",
+                "id": "settings-about-btn",
+                "props": {
+                  "label": "About",
+                  "variant": "ghost"
+                },
+                "action": "about"
+              }
+            ]
+          },
+          {
+            "type": "Tabs",
+            "id": "settings-tabs",
+            "props": {
+              "selected": 0
+            },
+            "children": [
+              {
+                "type": "Tab",
+                "id": "settings-general",
+                "props": {
+                  "label": "General"
+                },
+                "children": [
+                  {
+                    "type": "List",
+                    "id": "settings-general-list",
+                    "children": [
+                      {
+                        "type": "ListItem",
+                        "id": "settings-general-row-0",
+                        "props": {
+                          "itemId": "appearance",
+                          "subtitle": "Theme, text size, TV look",
+                          "title": "Appearance",
+                          "trailing": "chevron"
+                        },
+                        "action": "openSetting"
+                      },
+                      {
+                        "type": "ListItem",
+                        "id": "settings-general-row-1",
+                        "props": {
+                          "itemId": "playback",
+                          "subtitle": "Quality, subtitles, autoplay",
+                          "title": "Playback",
+                          "trailing": "chevron"
+                        },
+                        "action": "openSetting"
+                      },
+                      {
+                        "type": "ListItem",
+                        "id": "settings-general-row-2",
+                        "props": {
+                          "itemId": "profiles",
+                          "subtitle": "Who is watching",
+                          "title": "Profiles",
+                          "trailing": "chevron"
+                        },
+                        "action": "openSetting"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Tab",
+                "id": "settings-libraries",
+                "props": {
+                  "label": "Libraries"
+                },
+                "children": [
+                  {
+                    "type": "List",
+                    "id": "settings-libraries-list",
+                    "children": [
+                      {
+                        "type": "ListItem",
+                        "id": "settings-libraries-row-0",
+                        "props": {
+                          "itemId": "libraries",
+                          "subtitle": "Folders, scanning, metadata",
+                          "title": "Libraries",
+                          "trailing": "chevron"
+                        },
+                        "action": "openSetting"
+                      },
+                      {
+                        "type": "ListItem",
+                        "id": "settings-libraries-row-1",
+                        "props": {
+                          "itemId": "transcoding",
+                          "subtitle": "Hardware acceleration",
+                          "title": "Transcoding",
+                          "trailing": "chevron"
+                        },
+                        "action": "openSetting"
+                      },
+                      {
+                        "type": "ListItem",
+                        "id": "settings-libraries-row-2",
+                        "props": {
+                          "itemId": "fixmatches",
+                          "subtitle": "Titles that need a hand",
+                          "title": "Fix matches",
+                          "trailing": "chevron"
+                        },
+                        "action": "openSetting"
+                      }
+                    ]
+                  }
+                ],
+                "visibility": {
+                  "role": "admin"
+                }
+              },
+              {
+                "type": "Tab",
+                "id": "settings-modules",
+                "props": {
+                  "label": "Modules"
+                },
+                "children": [
+                  {
+                    "type": "List",
+                    "id": "settings-modules-list",
+                    "children": [
+                      {
+                        "type": "ListItem",
+                        "id": "settings-modules-row-0",
+                        "props": {
+                          "itemId": "modules",
+                          "subtitle": "Install and update modules",
+                          "title": "Module store",
+                          "trailing": "chevron"
+                        },
+                        "action": "openSetting"
+                      },
+                      {
+                        "type": "ListItem",
+                        "id": "settings-modules-row-1",
+                        "props": {
+                          "itemId": "wittyplay",
+                          "subtitle": "Consoles and cores",
+                          "title": "WittyPlay",
+                          "trailing": "chevron"
+                        },
+                        "style": {
+                          "module": "wittyplay"
+                        },
+                        "visibility": {
+                          "module": "wittyplay"
+                        },
+                        "action": "openSetting"
+                      },
+                      {
+                        "type": "ListItem",
+                        "id": "settings-modules-row-2",
+                        "props": {
+                          "itemId": "wittytv",
+                          "subtitle": "Tuners, guide, DVR",
+                          "title": "WittyTV",
+                          "trailing": "chevron"
+                        },
+                        "style": {
+                          "module": "wittytv"
+                        },
+                        "visibility": {
+                          "module": "wittytv"
+                        },
+                        "action": "openSetting"
+                      },
+                      {
+                        "type": "ListItem",
+                        "id": "settings-modules-row-3",
+                        "props": {
+                          "itemId": "wittydvd",
+                          "subtitle": "Disc drives and ripping",
+                          "title": "WittyDVD",
+                          "trailing": "chevron"
+                        },
+                        "style": {
+                          "module": "wittydvd"
+                        },
+                        "visibility": {
+                          "module": "wittydvd"
+                        },
+                        "action": "openSetting"
+                      },
+                      {
+                        "type": "ListItem",
+                        "id": "settings-modules-row-4",
+                        "props": {
+                          "itemId": "wittybluray",
+                          "subtitle": "Blu-ray playback",
+                          "title": "WittyBluray",
+                          "trailing": "chevron"
+                        },
+                        "style": {
+                          "module": "wittybluray"
+                        },
+                        "visibility": {
+                          "module": "wittybluray"
+                        },
+                        "action": "openSetting"
+                      }
+                    ]
+                  }
+                ],
+                "visibility": {
+                  "role": "admin"
+                }
+              },
+              {
+                "type": "Tab",
+                "id": "settings-server",
+                "props": {
+                  "label": "Server"
+                },
+                "children": [
+                  {
+                    "type": "List",
+                    "id": "settings-server-list",
+                    "children": [
+                      {
+                        "type": "ListItem",
+                        "id": "settings-server-row-0",
+                        "props": {
+                          "itemId": "remote",
+                          "subtitle": "Reach your server away from home",
+                          "title": "Remote access",
+                          "trailing": "chevron"
+                        },
+                        "action": "openSetting"
+                      },
+                      {
+                        "type": "ListItem",
+                        "id": "settings-server-row-1",
+                        "props": {
+                          "itemId": "backup",
+                          "subtitle": "Snapshots and restore",
+                          "title": "Backup",
+                          "trailing": "chevron"
+                        },
+                        "action": "openSetting"
+                      },
+                      {
+                        "type": "ListItem",
+                        "id": "settings-server-row-2",
+                        "props": {
+                          "itemId": "logs",
+                          "subtitle": "Diagnostics",
+                          "title": "Logs",
+                          "trailing": "chevron"
+                        },
+                        "action": "openSetting"
+                      }
+                    ]
+                  }
+                ],
+                "visibility": {
+                  "role": "admin"
+                }
+              }
+            ]
+          },
+          {
+            "type": "Button",
+            "id": "settings-signout",
+            "props": {
+              "label": "Sign out",
+              "variant": "danger"
+            },
+            "visibility": {
+              "not": {
+                "role": "guest"
+              }
+            },
+            "action": "signOut"
+          },
+          {
+            "type": "Modal",
+            "id": "settings-about",
+            "props": {
+              "dismissible": true,
+              "title": "About WittyMediaServer"
+            },
+            "children": [
+              {
+                "type": "Text",
+                "id": "settings-version",
+                "props": {
+                  "text": "Version unknown"
+                },
+                "bindings": {
+                  "text": {
+                    "path": "$.server.version",
+                    "default": "Version unknown"
+                  }
+                }
+              },
+              {
+                "type": "Button",
+                "id": "settings-about-close",
+                "props": {
+                  "label": "Close"
+                },
+                "action": "closeModal"
+              }
+            ]
+          }
+        ]
+      },
+      "actions": {
+        "about": {
+          "type": "openModal",
+          "target": "settings-about"
+        },
+        "back": {
+          "type": "back"
+        },
+        "closeModal": {
+          "type": "closeModal"
+        },
+        "goHome": {
+          "type": "navigate",
+          "target": "/"
+        },
+        "goLibrary": {
+          "type": "navigate",
+          "target": "/library"
+        },
+        "goSearch": {
+          "type": "navigate",
+          "target": "/search"
+        },
+        "goSettings": {
+          "type": "navigate",
+          "target": "/settings"
+        },
+        "openSetting": {
+          "type": "navigate",
+          "target": "/settings/$itemId"
+        },
+        "signOut": {
+          "type": "submit",
+          "target": "/auth/signout"
+        }
+      },
+      "meta": {
+        "title": "Settings",
+        "source": "template:settings",
+        "ttlSeconds": 300
+      }
+    }
+  },
+  "theme": {
+    "modules": {
+      "wittyplay": {
+        "accent": "#3AD29F"
+      }
+    },
+    "tokens": {
+      "accent": "#FF8800"
+    }
+  },
+  "updatedAt": "2026-11-01T10:00:00Z",
+  "updatedBy": "owner",
+  "version": 1
+}

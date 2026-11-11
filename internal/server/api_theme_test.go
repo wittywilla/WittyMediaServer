@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wittywilla/wittymediaserver/internal/sduistore"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 	builtin "github.com/wittywilla/wittymediaserver/themes"
@@ -136,35 +135,33 @@ func TestThemeContrastWarnings(t *testing.T) {
 	}
 }
 
-// Module colours set through /api/theme reach server-driven screens, through sdui.Render.
-func TestModuleColoursReachRenderedScreens(t *testing.T) {
+// Module colours set through /api/theme reach server-driven pages: a section's scope, a
+// page's scope, and the ETag changes with them.
+func TestModuleColoursReachRenderedPages(t *testing.T) {
 	ts, admin, adult, _ := sduiAccounts(t)
-	w := ts.do(t, "GET", "/api/sdui/config", admin, nil)
-	cfg := decode[sduistore.Config](t, w)
-	doc, err := sdui.NewDocument("games").
-		Root(sdui.ScreenNode("games").Child(sdui.ShelfOf("games-shelf", "Games").Module("wittyplay").
-			Child(sdui.CardOf("games-card", sdui.Item{Title: "A game"})))).Build() // a row with nothing in it isn't sent
-	if err != nil {
-		t.Fatal(err)
-	}
-	cfg.Screens["games"] = doc
-	if w := ts.do(t, "PUT", "/api/sdui/config", admin, cfg, "If-Match", cfg.ETag); w.Code != 200 {
+	page := sdui.Page{ID: "game-night", Kind: "custom", Title: "Games", Scope: "wittyplay", Sections: []sdui.Section{
+		{ID: "note", Component: "Notice", Scope: "wittyplay", Props: map[string]any{"text": "Game night is on Friday."}}}}
+	etag := ts.do(t, "GET", "/api/sdui/config", admin, nil).Header().Get("ETag")
+	if w := ts.do(t, "PUT", "/api/sdui/config/pages/game-night", admin, page, "If-Match", etag); w.Code != 200 {
 		t.Fatalf("save: %d %s", w.Code, w.Body)
 	}
-	before := ts.do(t, "GET", "/api/sdui/screens/games", adult, nil).Header().Get("ETag")
+	before := ts.do(t, "GET", "/api/sdui/pages/game-night", adult, nil).Header().Get("ETag")
 	if w := ts.do(t, "PUT", "/api/theme/modules/wittyplay", admin, map[string]any{"tokens": map[string]string{"accent": "#3ad29f"}}); w.Code != 200 {
 		t.Fatalf("module: %d %s", w.Code, w.Body)
 	}
-	w = ts.do(t, "GET", "/api/sdui/screens/games", adult, nil, "If-None-Match", before)
+	w := ts.do(t, "GET", "/api/sdui/pages/game-night", adult, nil, "If-None-Match", before)
 	if w.Code != 200 {
-		t.Fatalf("the screen didn't change with its module's colours: %d", w.Code)
+		t.Fatalf("the page didn't change with its module's colours: %d", w.Code)
 	}
 	got, err := sdui.Unmarshal(w.Body.Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s := got.Root.Children[0].Style; s == nil || s.Tokens["accent"] != "#3AD29F" {
-		t.Errorf("style: %+v", s)
+	if got.Theme == nil || got.Theme.Scope != "wittyplay" || got.Theme.Tokens["accent"] != "#3AD29F" {
+		t.Errorf("the page's scope: %+v", got.Theme)
+	}
+	if n := got.Root.Children[0]; n.Scope != "wittyplay" || n.Tokens["accent"] != "#3AD29F" {
+		t.Errorf("the section's scope: %q %v", n.Scope, n.Tokens)
 	}
 }
 

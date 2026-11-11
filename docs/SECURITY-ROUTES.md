@@ -722,13 +722,40 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/system/tasks/{id}/cancel` | Admin | Task exists, and can be cancelled |
 | `POST /api/system/tasks/{id}/retry` | Admin | Task exists, and its kind can be started again |
 | `POST /api/themes/custom` | Admin | Name, known colours as colour values and nothing else, radius in range. Becomes a theme through the theme manager's own check |
-| `GET /api/sdui/screens/{screen}` | Signed-in | Screen name by form. Platform, form factor, device class, catalogue revision, viewport, locale and capabilities by form. Filled with library data read through the account's limits: titles, shows, albums and channels it may not see are never in a screen sent to it, and a library or title asked for by number that it may not open is not found. Rows and cards cut to the device's profile |
-| `GET /api/sdui/screens/{screen}/diff` | Signed-in | As the screen. since: an ETag of at most 200 characters, compared only with the account's own earlier renders |
+| `GET /api/sdui/catalog` | Signed-in | Nothing of anyone's: the schema's own description, the same for every account |
+| `GET /api/sdui/navigation` | Signed-in | limits. Device parameters by form. Libraries the account may not open and entries whose conditions it fails are left out; Settings always present. A preview token only for the administrator it was made for |
+| `GET /api/sdui/navigation/personal` | Signed-in | own arrangement only |
+| `PUT /api/sdui/navigation/personal` | Signed-in | own arrangement only. The profile's editLayout switch and the server's personalisation switch (403). 8 KB, strict JSON, IDs by form |
+| `DELETE /api/sdui/navigation/personal` | Signed-in | own arrangement only. The same switches as saving |
+| `GET /api/sdui/pages/{page}` | Signed-in | Page name by form. Device parameters by form: platform, form factor, device class, catalogue revision, components, views, viewport, locale, capabilities. Filled only with what the account may see: every data source is read through its limits, whatever the page names, and a library, title or collection asked for by number that it may not open is not found. Rows and cards cut to the device's budget. Its own arrangement only. A preview token only for the administrator it was made for (403) |
+| `GET /api/sdui/pages/{page}/diff` | Signed-in | As the page. since: an ETag of at most 200 characters, compared only with the account's own earlier renders |
+| `GET /api/sdui/pages/{page}/sections/{section}/items` | Signed-in | As the page. Section ID at most 128 characters and must be a section of that page for this account; cursor 0 to 100000; season a number. Filled only with what the account may see: every data source is read through its limits, whatever the page names |
+| `GET /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists |
+| `PUT /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists. The profile's editLayout switch and the server's personalisation switch (403). 8 KB, strict JSON, IDs by form, at most 64 pages a profile |
+| `DELETE /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists. The same switches as saving |
 | `GET /api/sdui/topshelf` | Signed-in | limits. The account's own continue-watching and what is new in libraries it may open, at most 4 rows of 10. Device class by form |
 | `GET /api/sdui/config` | Admin | Nothing |
-| `PUT /api/sdui/config` | Admin | If-Match must be the current ETag (412 otherwise, 428 when missing). 16 MB body, strict JSON: no unknown fields. Every screen through the SDUI validator; theme overrides name known colour tokens and colour values only |
+| `PUT /api/sdui/config` | Admin | If-Match must be the current ETag (412 otherwise, 428 when missing), or target=draft. 16 MB body, strict JSON: no unknown fields. Every page and the navigation through the SDUI validator: known components and sources only, routes on this server only, pictures from this server only; theme overrides name known colour tokens and colour values only |
 | `GET /api/sdui/config/history` | Admin | Nothing |
+| `GET /api/sdui/config/diff` | Admin | from and to: a kept revision's number, current or draft |
 | `POST /api/sdui/config/rollback/{rev}` | Admin | Revision number; must be a kept revision, which is validated again. If-Match, when sent, must be the current ETag |
+| `GET /api/sdui/config/pages` | Admin | target by form |
+| `GET /api/sdui/config/pages/{page}` | Admin | Page exists. target by form |
+| `PUT /api/sdui/config/pages/{page}` | Admin | If-Match as for the configuration, or target=draft. 256 KB, strict JSON, the page's ID is the one in the address, and the page through the SDUI validator |
+| `DELETE /api/sdui/config/pages/{page}` | Admin | If-Match as for the configuration, or target=draft. The page is the configuration's, or a built-in page (which is left as it ships) |
+| `GET /api/sdui/config/navigation` | Admin | target by form |
+| `PUT /api/sdui/config/navigation` | Admin | If-Match as for the configuration, or target=draft. 256 KB, strict JSON. Every entry names a page that exists, a library, a native screen from the fixed list or a route on this server; Settings can't be hidden or given a condition |
+| `DELETE /api/sdui/config/navigation` | Admin | If-Match as for the configuration, or target=draft |
+| `POST /api/sdui/validate` | Admin | 16 MB body. Saves nothing |
+| `GET /api/sdui/presets` | Admin | Nothing |
+| `POST /api/sdui/presets/{id}/apply` | Admin | Preset exists and is a page. If-Match as for the configuration, or target=draft |
+| `GET /api/sdui/draft` | Admin | Nothing |
+| `PUT /api/sdui/draft` | Admin | If-Match, when sent, must be the draft's ETag (the configuration's when there is no draft). Validated as the configuration is |
+| `DELETE /api/sdui/draft` | Admin | Nothing further. Ends every preview |
+| `POST /api/sdui/draft/publish` | Admin | A draft exists. If-Match, when sent, must be the draft's ETag. Validated again. Ends every preview |
+| `POST /api/sdui/draft/preview` | Admin | A draft exists. The token is random, for this administrator alone, for two hours, at most 16 at once, kept in memory |
+| `GET /api/sdui/export` | Admin | Page exists when one is named. target by form |
+| `POST /api/sdui/import` | Admin | 16 MB body. The file says it is a wittymedia-ui export. Into the draft unless target=published, which needs If-Match. Validated as the configuration is; dryRun changes nothing |
 | `GET /api/theme` | Signed-in | own theme choice. Colours only |
 | `PUT /api/theme/global` | Admin | Theme exists. Known colour tokens, colour values only, at most 64. If-Match, when sent, must be the current ETag of ui_config.json |
 | `GET /api/theme/modules/{module}` | Admin | Module id by form |

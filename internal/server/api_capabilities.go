@@ -77,6 +77,7 @@ var serverFeatures = []string{
 	"sdui", "sdui-diff", "theme-engine", "theme-module-overrides",
 	"canvas", "karaoke-stems", "skip-markers", "where-to-watch-xref", "module-identity",
 	"remote-protocol", "syncplay",
+	"p2p",
 }
 
 // minClientVersions names the oldest version of each app this server still works with, by

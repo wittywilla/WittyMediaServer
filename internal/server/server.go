@@ -128,6 +128,7 @@ type Server struct {
 	applyMu   sync.Mutex // one change of the remote access settings at a time
 	reach     reachTest
 	outside   outsideSeen
+	p2p       p2pState // peer-to-peer connections: see api_p2p.go
 	routerMu  sync.Mutex
 	router    *portmap.Probe // the latest "check my router"
 
@@ -601,6 +602,7 @@ func (s *Server) Handler() http.Handler {
 	s.mediaExtrasRoutes(m)
 	s.remoteControlRoutes(m)
 	s.syncplayRoutes(m)
+	s.p2pRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

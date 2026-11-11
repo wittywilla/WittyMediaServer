@@ -322,6 +322,10 @@ func shortErr(err error) string { return printableName(err.Error()) }
 var (
 	placeSetting  = regexp.MustCompile(`(?i)(path|dir|folder|exe|binary|command|cmd|program)$`)
 	alwaysDropped = map[string]bool{"remoteAccess": true, "trustedProxies": true, "publicUrl": true, "portMapping": true, "backupKey": true, "backupFolder": true, "backupLast": true,
+		// Peer-to-peer connections reach out to the internet and ask the router for a port:
+		// like Remote Access, off after a restore until someone turns them on. The key stays,
+		// so devices that were paired still know the server once it is on again.
+		"p2p": true,
 		// Custom cores are programs, which no backup holds: turning them on is for this machine's owner.
 		"gamingCustomCores": true}
 	// Settings that hold addresses the server will contact. Kept only from a protected

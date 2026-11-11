@@ -473,6 +473,13 @@ var migrations = []string{
 	clearInfinities,
 	// 31: sessions whose token crossed the internet unencrypted, so they can be ended together.
 	`ALTER TABLE sessions ADD COLUMN plain_away INTEGER NOT NULL DEFAULT 0;`,
+	// 32: the devices that may connect peer to peer, by the public half of each one's key.
+	// A device belongs to the account that enrolled it, and goes when that account does.
+	`CREATE TABLE IF NOT EXISTS p2p_devices (
+	   id TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   name TEXT NOT NULL DEFAULT '', platform TEXT NOT NULL DEFAULT '', how TEXT NOT NULL DEFAULT '',
+	   created_at INTEGER NOT NULL, last_seen INTEGER NOT NULL DEFAULT 0, last_path TEXT NOT NULL DEFAULT '');
+	 CREATE INDEX IF NOT EXISTS p2p_devices_user ON p2p_devices(user_id);`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

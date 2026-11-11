@@ -590,6 +590,7 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	s.p2pForgetGone(r.Context()) // its devices went with it: their connections close now
 	s.removeUserGameFiles(id)
 	if s.TV != nil {
 		if err := s.TV.ForgetUser(r.Context(), id); err != nil {

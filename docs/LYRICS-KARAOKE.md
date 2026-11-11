@@ -99,7 +99,7 @@ You don't have to set anything up. The first time someone opens **Karaoke** on a
 
 Where the sliders were is remembered for your account on that device. Lyrics, seeking, pausing and **Key** carry on working. If the parts can't be played, the normal track plays and the line under the controls says why.
 
-**What happens by itself**
+#### What happens by itself
 
 1. **A quick version, in a few seconds.** FFmpeg, which the server already has, removes what the left and right channels share. That turns the singer down but can't remove them; see the limits under [What each control really does](#what-each-control-really-does). It plays as soon as it's ready.
 2. **A properly separated version, if the server has a separator.** It's made behind the quick one, the screen says **Preparing a better version…** with how far along it is, and the sound changes over by itself when it's done. This takes minutes a song.
@@ -107,7 +107,7 @@ Where the sliders were is remembered for your account on that device. Lyrics, se
 
 Stems you put beside a song yourself ([below](#stems-the-real-vocal-track)) are always used first, and nothing is made for that song.
 
-**Getting the better version**
+#### Getting the better version
 
 Install a separator on the machine the server runs on. That's all: the server looks for one when it starts and finds it on its own. It looks on the `PATH` and in the usual places `pip`, `pipx`, Homebrew and Conda put programs, for these, best first:
 
@@ -124,7 +124,7 @@ Install a separator on the machine the server runs on. That's all: the server lo
 - On a small machine the server waits while someone's film is being converted.
 - A separator named where the server starts ([below](#making-stems)) is used instead of the one found.
 
-**Who can start it, and how much**
+#### Who can start it, and how much
 
 Under the same heading in Settings, **Make karaoke versions automatically** has three choices:
 
@@ -136,7 +136,7 @@ Under the same heading in Settings, **Make karaoke versions automatically** has 
 
 The server keeps this in hand by itself: one is made at a time, at low priority; sixteen can wait; one account can start 6 separations and 40 quick versions an hour; and a song whose separation failed isn't tried again for six hours. Each one shows in [Tasks](TASKS.md) and can be stopped there.
 
-**Where they're kept, and how big**
+#### Where they're kept, and how big
 
 In the server's own folder, never beside your music. A quick version is about 2.5 MB a minute of song, and a separated one about 6 MB a minute, as AAC. **Space for karaoke versions** sets how much may be kept: 2 GB to start with, which is about 85 separated four-minute songs or 200 quick ones. When it's full, the ones sung longest ago are cleared, and made again when someone wants them. Stems you uploaded or put beside a song are never counted or cleared. They aren't part of a [backup](BACKUP.md).
 

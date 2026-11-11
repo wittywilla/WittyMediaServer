@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package discovery
 
 import (
@@ -279,7 +282,10 @@ func TestOnARealNetwork(t *testing.T) {
 	go func() { s.Run(ctx); close(done) }()
 	defer func() { cancel(); <-done }()
 
-	ask := func(addr *net.UDPAddr, msg []byte) []byte {
+	// Another copy of the server on this network or machine (an installed app, say)
+	// answers too, and may answer first: ask keeps reading until a reply is ours,
+	// and gives that, or else the last other one it heard (nil for none).
+	ask := func(addr *net.UDPAddr, msg []byte, ours func([]byte) bool) (mine, other []byte) {
 		c, err := net.ListenUDP("udp4", &net.UDPAddr{IP: nets[0].addrs[0]})
 		if err != nil {
 			t.Fatal(err)
@@ -288,35 +294,43 @@ func TestOnARealNetwork(t *testing.T) {
 		for i := 0; i < 8; i++ {
 			_, _ = c.WriteToUDP(msg, addr)
 			_ = c.SetReadDeadline(time.Now().Add(400 * time.Millisecond))
-			buf := make([]byte, 2000)
-			n, _, err := c.ReadFromUDP(buf)
-			if err == nil {
-				return buf[:n]
+			for {
+				buf := make([]byte, 2000)
+				n, _, err := c.ReadFromUDP(buf)
+				if err != nil {
+					break // this try's time is up
+				}
+				if ours(buf[:n]) {
+					return buf[:n], nil
+				}
+				other = buf[:n]
 			}
 		}
-		return nil
+		return nil, other
 	}
-	b := ask(&net.UDPAddr{IP: mdnsGroup, Port: mdnsPort}, question(t, 5, "_wittymedia._tcp.local.", dnsmessage.TypePTR, dnsmessage.ClassINET))
-	if b == nil {
+	named := func(b []byte) bool { return strings.Contains(string(b), "Discovery test") }
+	b, other := ask(&net.UDPAddr{IP: mdnsGroup, Port: mdnsPort}, question(t, 5, "_wittymedia._tcp.local.", dnsmessage.TypePTR, dnsmessage.ClassINET), named)
+	if b == nil && other == nil {
 		t.Skip("no mDNS answer on this machine's network (a firewall, perhaps)")
 	}
-	if m := parse(t, b); !strings.Contains(m.Answers[0].Body.(*dnsmessage.PTRResource).PTR.String(), "Discovery test") {
+	if b == nil {
+		t.Errorf("only other servers answered by mDNS: %+v", parse(t, other).Answers)
+	} else if m := parse(t, b); len(m.Answers) == 0 || !named([]byte(m.Answers[0].Body.(*dnsmessage.PTRResource).PTR.String())) {
 		t.Errorf("answer: %+v", m.Answers)
 	}
-	reply := ask(&net.UDPAddr{IP: nets[0].addrs[0], Port: UDPPort}, []byte(UDPQuestion))
-	if reply == nil {
+	reply, other := ask(&net.UDPAddr{IP: nets[0].addrs[0], Port: UDPPort}, []byte(UDPQuestion), func(b []byte) bool { return strings.Contains(string(b), info.ID) })
+	switch {
+	case reply != nil:
+	case other != nil:
+		t.Logf("no UDP answer from this server: another one holds the port: %s", other)
+	default:
 		t.Log("no UDP answer: something else holds the port")
-	} else if !strings.Contains(string(reply), info.ID) {
-		t.Errorf("UDP reply: %s", reply)
 	}
 	on.Store(false)
 	s.Refresh()
 	time.Sleep(600 * time.Millisecond)
-	if b := ask(&net.UDPAddr{IP: mdnsGroup, Port: mdnsPort}, question(t, 6, "_wittymedia._tcp.local.", dnsmessage.TypePTR, dnsmessage.ClassINET)); b != nil {
-		// Another copy of the server on this network may answer; ours has this name.
-		if strings.Contains(string(b), "Discovery test") {
-			t.Error("still answering after being switched off")
-		}
+	if b, _ := ask(&net.UDPAddr{IP: mdnsGroup, Port: mdnsPort}, question(t, 6, "_wittymedia._tcp.local.", dnsmessage.TypePTR, dnsmessage.ClassINET), named); b != nil {
+		t.Error("still answering after being switched off")
 	}
 }
 

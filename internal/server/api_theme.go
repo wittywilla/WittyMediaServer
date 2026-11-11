@@ -67,7 +67,7 @@ type ResolvedTheme struct {
 	// the device's setting picks from here.
 	Variants map[string]ThemeVariant `json:"variants"`
 	Warnings []ThemeWarning          `json:"warnings"`
-	ETag     string                 `json:"etag"`
+	ETag     string                  `json:"etag"`
 	// Revision is ui_config.json's revision the overrides come from.
 	Revision int64 `json:"revision"`
 }

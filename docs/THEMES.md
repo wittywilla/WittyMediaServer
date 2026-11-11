@@ -395,7 +395,11 @@ On top of the themes, the server keeps colour overrides and resolves, for each a
 2. **The account's own choice**: `theme` in `/api/me/ui`, when it names a theme that's installed. It replaces the server's theme and, with it, the global overrides, which were chosen for that theme.
 3. **Module overrides**: colours for the parts of the interface that belong to one module, such as `wittyplay`'s shelves, layered over either. They are under `modules` in the answer, and server-driven screens get them too: a node with `style.module` set receives them in `style.tokens` (see [SDUI](SDUI.md#theme-and-module-override-semantics)).
 
-The answer is `{id, source, tokens, overrides, modules: {<module>: {tokens, overrides}}, warnings, etag, revision}`, with an `ETag` header; send it back as `If-None-Match` for a 304.
+The answer is `{id, source, scheme, tokens, overrides, modules: {<module>: {tokens, overrides}}, variants, warnings, etag, revision}`, with an `ETag` header; send it back as `If-None-Match` for a 304.
+
+**Light and dark.** `scheme` says which the theme is. The automatic theme (`auto`) is two looks, the dark one (the `default` theme) and the light one (`light`), and `scheme` is then `auto`. `variants` has each look resolved the same way, as `{id, tokens, modules}` under `dark` and `light`; an ordinary theme has the one. `tokens` and `modules` at the top are the dark look's, for apps that know nothing of variants. The same overrides go over both looks, so a colour that reads well on one may not on the other: each look gets its own warnings, and a warning says which in `variant`.
+
+**In the web app.** The web app asks for the resolved theme when someone signs in and lays the overrides over the theme's own stylesheet: the global ones everywhere, and a module's on that module's pages (WittyTV's guide and channels, WittyPlay's games and controllers, and any module's own pages under `/m/<module>/`). So a module's pages can have an accent of their own while the rest keeps the theme's. A device that picked another theme for itself gets only the module colours, and a look made in the theme maker is left exactly as it was made. An administrator sets a module's accent in **Settings → Appearance → Module colours**; the other tokens are set through the routes below.
 
 Administrators change the overrides with:
 

@@ -757,13 +757,26 @@
             "type": "string"
           },
           "source": {
-            "type": "string"
+            "type": "string",
+            "description": "upload, generated, sidecar or metadata-folder"
           },
           "url": {
             "type": "string"
           },
           "width": {
             "type": "integer"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why a file that was found isn't used: too-big (over 64 MB) or too-long (over 60 s)."
+          },
+          "task": {
+            "type": "string",
+            "description": "The task making one now."
+          },
+          "canGenerate": {
+            "type": "boolean",
+            "description": "An administrator can have one cut from the video."
           }
         },
         "required": [
@@ -8816,6 +8829,17 @@
               "array",
               "null"
             ]
+          },
+          "scheme": {
+            "type": "string",
+            "description": "dark, light, or auto for the automatic theme."
+          },
+          "variants": {
+            "type": "object",
+            "description": "The theme's looks by scheme: one for an ordinary theme, dark and light for the automatic one.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ThemeVariant"
+            }
           }
         },
         "required": [
@@ -8925,6 +8949,10 @@
           },
           "when": {
             "type": "string"
+          },
+          "formFactor": {
+            "type": "string",
+            "description": "tv, phone, tablet, desktop or web"
           }
         },
         "type": "object"
@@ -9027,6 +9055,9 @@
           },
           "version": {
             "type": "integer"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/SDUILayout"
           }
         },
         "required": [
@@ -9109,6 +9140,9 @@
                 "type": "null"
               }
             ]
+          },
+          "focus": {
+            "$ref": "#/components/schemas/SDUIFocus"
           }
         },
         "required": [
@@ -9582,10 +9616,15 @@
             "type": "integer"
           },
           "source": {
-            "type": "string"
+            "type": "string",
+            "description": "upload, sidecar, separated or approximate"
           },
           "url": {
             "type": "string"
+          },
+          "approximate": {
+            "type": "boolean",
+            "description": "FFmpeg's centre-channel removal, not a real stem."
           }
         },
         "required": [
@@ -10464,6 +10503,10 @@
           },
           "text": {
             "type": "string"
+          },
+          "variant": {
+            "type": "string",
+            "description": "dark or light, when the warning is about one look of the automatic theme."
           }
         },
         "required": [
@@ -11233,6 +11276,328 @@
           "region"
         ],
         "type": "object"
+      },
+      "SDUIImageRef": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "aspect": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "width",
+          "height",
+          "aspect"
+        ]
+      },
+      "SDUITopShelf": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "style": {
+            "type": "string",
+            "description": "sectioned"
+          },
+          "expiresInSec": {
+            "type": "integer"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "shape": {
+                        "type": "string",
+                        "description": "poster, wide or square"
+                      },
+                      "image": {
+                        "$ref": "#/components/schemas/SDUIImageRef"
+                      },
+                      "progress": {
+                        "type": "number"
+                      },
+                      "displayRoute": {
+                        "type": "string"
+                      },
+                      "playRoute": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "shape",
+                      "displayRoute"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "title",
+                "items"
+              ]
+            }
+          }
+        },
+        "required": [
+          "version",
+          "style",
+          "sections",
+          "expiresInSec"
+        ]
+      },
+      "PairInfo": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "device": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "expiresAt": {
+            "type": "integer"
+          },
+          "needsPin": {
+            "type": "boolean"
+          },
+          "twoFactor": {
+            "type": "boolean",
+            "description": "The approver has two-factor sign-in: confirming their password takes a code too."
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "needsPassword": {
+                  "type": "boolean",
+                  "description": "Signing the device in as this profile needs the approver's password again (an administrator's own account)."
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "kind"
+              ]
+            }
+          }
+        },
+        "required": [
+          "code",
+          "device",
+          "profiles",
+          "needsPin"
+        ]
+      },
+      "SDUIFocus": {
+        "type": "object",
+        "properties": {
+          "focusable": {
+            "type": "boolean"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Place in the screen's focus order, from 1."
+          },
+          "default": {
+            "type": "boolean",
+            "description": "Focus starts here. Exactly one node per rendered screen that has anything focusable."
+          },
+          "group": {
+            "type": "string",
+            "description": "ID of the row or bar the node is in."
+          },
+          "up": {
+            "type": "string"
+          },
+          "down": {
+            "type": "string"
+          },
+          "left": {
+            "type": "string"
+          },
+          "right": {
+            "type": "string"
+          }
+        }
+      },
+      "SDUILayout": {
+        "type": "object",
+        "properties": {
+          "formFactor": {
+            "type": "string",
+            "description": "tv, phone, tablet, desktop or web"
+          },
+          "class": {
+            "type": "string",
+            "description": "hd or 4k, for tv"
+          },
+          "canvas": {
+            "type": "object",
+            "properties": {
+              "width": {
+                "type": "integer"
+              },
+              "height": {
+                "type": "integer"
+              }
+            }
+          },
+          "scale": {
+            "type": "integer"
+          },
+          "safeArea": {
+            "type": "object",
+            "properties": {
+              "top": {
+                "type": "integer"
+              },
+              "right": {
+                "type": "integer"
+              },
+              "bottom": {
+                "type": "integer"
+              },
+              "left": {
+                "type": "integer"
+              }
+            }
+          },
+          "scroll": {
+            "type": "string"
+          },
+          "focusEngine": {
+            "type": "boolean"
+          },
+          "text": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "images": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "width": {
+                  "type": "integer"
+                },
+                "height": {
+                  "type": "integer"
+                },
+                "aspect": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "gridColumns": {
+            "type": "integer"
+          },
+          "maxSections": {
+            "type": "integer"
+          },
+          "maxItems": {
+            "type": "integer"
+          },
+          "maxGridItems": {
+            "type": "integer"
+          },
+          "externalLinks": {
+            "type": "boolean"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "formFactor",
+          "scale",
+          "safeArea",
+          "scroll",
+          "focusEngine",
+          "maxSections",
+          "maxItems",
+          "maxGridItems",
+          "externalLinks"
+        ]
+      },
+      "ThemeVariant": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tokens": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "modules": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "tokens",
+          "modules"
+        ]
       }
     },
     "securitySchemes": {
@@ -29842,6 +30207,14 @@
                   },
                   "userId": {
                     "type": "integer"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "The approver's own password. Needed when the device will be signed in as an administrator; otherwise 403 with reason password-required."
+                  },
+                  "otp": {
+                    "type": "string",
+                    "description": "The approver's two-factor code, when they have two-factor sign-in and password is needed."
                   }
                 },
                 "type": "object"
@@ -29961,47 +30334,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "code": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "integer"
-                    },
-                    "device": {
-                      "type": "string"
-                    },
-                    "expiresAt": {
-                      "type": "integer"
-                    },
-                    "ip": {
-                      "type": "string"
-                    },
-                    "needsPin": {
-                      "type": "boolean"
-                    },
-                    "platform": {
-                      "type": "string"
-                    },
-                    "profiles": {
-                      "items": {
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "kind": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "type": "object"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "type": "object"
+                  "$ref": "#/components/schemas/PairInfo"
                 }
               }
             },
@@ -30033,6 +30366,14 @@
                 "properties": {
                   "userId": {
                     "type": "integer"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "The approver's own password. Needed when the device will be signed in as an administrator; otherwise 403 with reason password-required."
+                  },
+                  "otp": {
+                    "type": "string",
+                    "description": "The approver's two-factor code, when they have two-factor sign-in and password is needed."
                   }
                 },
                 "type": "object"
@@ -30252,7 +30593,7 @@
           }
         },
         "security": [],
-        "summary": "TV sign-in: get a code to show. Rate limited per address (429).",
+        "summary": "TV sign-in: get a code to show. Rate limited per address (429). 426 with reason pin-required when the server only signs devices in with a PIN (the pairRequirePin setting): use POST /auth/pair.",
         "tags": [
           "Sign-in and accounts"
         ],
@@ -38201,7 +38542,7 @@
     "/sdui/screens/{screen}": {
       "get": {
         "operationId": "getSduiScreen",
-        "summary": "A screen, rendered for this account and device: an SDUI document (docs/SDUI.md). 304 with If-None-Match when unchanged.",
+        "summary": "A screen, rendered for this account and device: an SDUI document (docs/SDUI.md, docs/sdui.schema.json), filled with what the account may see and fitted to the device's profile. A stock screen missing from the configuration is served from its template. 304 with If-None-Match when unchanged.",
         "tags": [
           "Server-driven UI"
         ],
@@ -38245,7 +38586,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Screen name: home, library, detail, player, settings, or one an administrator added."
+            "description": "Screen name: home, libraries, library, detail, search, livetv, music, player, settings, or one an administrator added."
           },
           {
             "name": "platform",
@@ -38254,7 +38595,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "web, tv, ios, android or desktop (default web). Also X-WMS-Platform."
+            "description": "web, tv (or tvos), ios, android or desktop (default web). Also X-WMS-Platform."
           },
           {
             "name": "formFactor",
@@ -38263,7 +38604,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "phone, tablet, tv, desktop…: becomes the flag formFactor:<value>, and stands for a platform when none is given. Also X-WMS-Form-Factor."
+            "description": "tv, phone, tablet, desktop or web: the device profile the screen is fitted to (rows, cards, picture sizes, safe area, type sizes). Without it the platform implies one. Also becomes the flag formFactor:<value>. Also X-WMS-Form-Factor."
           },
           {
             "name": "viewport",
@@ -38318,6 +38659,78 @@
               "type": "string"
             },
             "description": "The ETag of the render the client has."
+          },
+          {
+            "name": "deviceClass",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "hd (default) or 4k, for a TV: an Apple TV HD is sent fewer rows and smaller pictures. Also X-WMS-Device-Class."
+          },
+          {
+            "name": "catalog",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The component catalogue revision the client was built against; newer types are sent as their fallback. Also X-WMS-SDUI-Catalog."
+          },
+          {
+            "name": "library",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "For the library screen: which library. 404 when the account may not open it."
+          },
+          {
+            "name": "item",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "For the detail screen: an item. 404 when the account may not see it."
+          },
+          {
+            "name": "show",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "For the detail screen: a show, in place of item."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "For the search screen: what to look for, at least two letters."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "For the library screen: title (default), added or year."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "For the library screen: how many titles to skip."
           }
         ]
       }
@@ -38369,7 +38782,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Screen name: home, library, detail, player, settings, or one an administrator added."
+            "description": "Screen name: home, libraries, library, detail, search, livetv, music, player, settings, or one an administrator added."
           },
           {
             "name": "since",
@@ -38387,7 +38800,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "web, tv, ios, android or desktop (default web). Also X-WMS-Platform."
+            "description": "web, tv (or tvos), ios, android or desktop (default web). Also X-WMS-Platform."
           },
           {
             "name": "formFactor",
@@ -38396,7 +38809,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "phone, tablet, tv, desktop…: becomes the flag formFactor:<value>, and stands for a platform when none is given. Also X-WMS-Form-Factor."
+            "description": "tv, phone, tablet, desktop or web: the device profile the screen is fitted to (rows, cards, picture sizes, safe area, type sizes). Without it the platform implies one. Also becomes the flag formFactor:<value>. Also X-WMS-Form-Factor."
           },
           {
             "name": "viewport",
@@ -38442,6 +38855,78 @@
               "type": "string"
             },
             "description": "Comma-separated names of what the client can do; each becomes a flag the screen's conditions test. Also X-WMS-Capabilities."
+          },
+          {
+            "name": "deviceClass",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "hd (default) or 4k, for a TV: an Apple TV HD is sent fewer rows and smaller pictures. Also X-WMS-Device-Class."
+          },
+          {
+            "name": "catalog",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The component catalogue revision the client was built against; newer types are sent as their fallback. Also X-WMS-SDUI-Catalog."
+          },
+          {
+            "name": "library",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "For the library screen: which library. 404 when the account may not open it."
+          },
+          {
+            "name": "item",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "For the detail screen: an item. 404 when the account may not see it."
+          },
+          {
+            "name": "show",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "For the detail screen: a show, in place of item."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "For the search screen: what to look for, at least two letters."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "For the library screen: title (default), added or year."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "For the library screen: how many titles to skip."
           }
         ]
       }
@@ -39200,6 +39685,14 @@
                   },
                   "userId": {
                     "type": "integer"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "The approver's own password. Needed when the device will be signed in as an administrator; otherwise 403 with reason password-required."
+                  },
+                  "otp": {
+                    "type": "string",
+                    "description": "The approver's two-factor code, when they have two-factor sign-in and password is needed."
                   }
                 },
                 "type": "object"
@@ -39239,7 +39732,7 @@
             "bearer": []
           }
         ],
-        "summary": "Secure pairing: approve with the PIN the device shows now, as this account or a Kids or Guest profile it manages. Adults only. A PIN works once; five wrong ones end the session. Failures say why in `reason`: `wrong-pin` or `bad-check` (400, with `triesLeft`), `not-found` (404), `expired`, `used` or `locked` (410); 429 after too many wrong codes.",
+        "summary": "Secure pairing: approve with the PIN the device shows now (or the one just before it), as this account or a Kids or Guest profile it manages. Adults only. Signing a device in as an administrator also needs that administrator's password. A PIN works once; five wrong ones end the session.",
         "tags": [
           "Sign-in and accounts"
         ],
@@ -39541,6 +40034,57 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "separation": {
+                      "type": "object",
+                      "properties": {
+                        "approximate": {
+                          "type": "object",
+                          "properties": {
+                            "available": {
+                              "type": "boolean"
+                            },
+                            "reason": {
+                              "type": "string",
+                              "description": "not-a-song, not-a-file, no-ffmpeg, not-configured or admin-only"
+                            },
+                            "task": {
+                              "type": "string"
+                            },
+                            "note": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "available"
+                          ]
+                        },
+                        "external": {
+                          "type": "object",
+                          "properties": {
+                            "available": {
+                              "type": "boolean"
+                            },
+                            "reason": {
+                              "type": "string",
+                              "description": "not-a-song, not-a-file, no-ffmpeg, not-configured or admin-only"
+                            },
+                            "task": {
+                              "type": "string"
+                            },
+                            "note": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "available"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "approximate",
+                        "external"
+                      ]
                     }
                   },
                   "required": [
@@ -39561,7 +40105,7 @@
             "bearer": []
           }
         ],
-        "summary": "A song's separated parts for karaoke: vocals, instrumental, drums, bass, other, and a Native Instruments multitrack file.",
+        "summary": "A song's separated parts for karaoke: vocals, instrumental, drums, bass, other, and a Native Instruments multitrack file; and, under separation, what this server can make for a song that has none.",
         "tags": [
           "Media extras"
         ],
@@ -40497,6 +41041,457 @@
           "Games"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/media/{id}/stems/approximate": {
+      "post": {
+        "operationId": "postMediaIdStemsApproximate",
+        "summary": "Make an approximate instrumental with FFmpeg, by cancelling what the left and right channels share, and keep it. Not a real stem: it is listed with approximate: true. 202 with a task; 200 when an instrumental already exists. Stereo songs that are files in a library only.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "An instrumental is already there.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "exists": {
+                      "type": "boolean"
+                    },
+                    "approximate": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "task": {
+                      "type": "string",
+                      "description": "The task making it; follow it with GET /system/tasks."
+                    },
+                    "already": {
+                      "type": "boolean",
+                      "description": "True when this was already queued."
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/media/{id}/stems/separate": {
+      "post": {
+        "operationId": "postMediaIdStemsSeparate",
+        "summary": "Run the stem separator the server's owner installed (stemSeparator in the server's own configuration) on a song, as a background task, and keep the parts it writes. 409 when none is set up.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Not used; see 202.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "task": {
+                      "type": "string",
+                      "description": "The task making it; follow it with GET /system/tasks."
+                    },
+                    "already": {
+                      "type": "boolean",
+                      "description": "True when this was already queued."
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "task": {
+                      "type": "string",
+                      "description": "The task making it; follow it with GET /system/tasks."
+                    },
+                    "already": {
+                      "type": "boolean",
+                      "description": "True when this was already queued."
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/media/{id}/canvas/generate": {
+      "post": {
+        "operationId": "postMediaIdCanvasGenerate",
+        "summary": "Cut a short, silent, looping canvas from a video file, as a background task. It becomes the item's uploaded canvas, with source generated.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "startSec": {
+                    "type": "number",
+                    "description": "Where the clip starts. Default: a quarter of the way in."
+                  },
+                  "durationSec": {
+                    "type": "number",
+                    "description": "2 to 15 seconds. Default: 5 to 8, by the size of the machine."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Not used; see 202.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "task": {
+                      "type": "string",
+                      "description": "The task making it; follow it with GET /system/tasks."
+                    },
+                    "already": {
+                      "type": "boolean",
+                      "description": "True when this was already queued."
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "task": {
+                      "type": "string",
+                      "description": "The task making it; follow it with GET /system/tasks."
+                    },
+                    "already": {
+                      "type": "boolean",
+                      "description": "True when this was already queued."
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/shows/{id}/detect-intros": {
+      "post": {
+        "operationId": "postShowsIdDetectIntros",
+        "summary": "Find the intro and credits a season's episodes share by comparing their sound, as a background task, and keep them as markers with source detected. One run at a time on the server.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "season": {
+                    "type": "integer",
+                    "description": "Only this season. Default: every season with at least two episodes that are files."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Not used; see 202.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "task": {
+                      "type": "string"
+                    },
+                    "episodes": {
+                      "type": "integer"
+                    },
+                    "seasons": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Started.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "task": {
+                      "type": "string"
+                    },
+                    "episodes": {
+                      "type": "integer"
+                    },
+                    "seasons": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/sdui/topshelf": {
+      "get": {
+        "operationId": "getSduiTopshelf",
+        "summary": "Content for a tvOS Top Shelf extension: what this account was watching and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "deviceClass",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "hd (default) or 4k. Also X-WMS-Device-Class."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SDUITopShelf"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/auth/pair/{session}/info": {
+      "get": {
+        "operationId": "getAuthPairInfo",
+        "summary": "Secure pairing: what is asking, by session, for an app that scanned the QR code, before anyone approves. Adults only. Wrong sessions count toward the limit on wrong codes.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "k",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The k= from the QR code; a wrong one is refused."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairInfo"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
       }
     }
   },

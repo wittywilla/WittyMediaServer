@@ -149,11 +149,12 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/items/{id}/progress` | Signed-in | limits. own |
 | `DELETE /api/items/{id}/progress` | Signed-in | own |
 | `POST /api/pair/info` | Adult | Code, with a limit on wrong codes |
-| `POST /api/auth/pair/{session}/approve` | Adult | Current TOTP PIN, used once. Five wrong PINs end the session. Limit on wrong codes. The device signs in as the caller or a profile the caller manages |
+| `GET /api/auth/pair/{session}/info` | Adult | Session is waiting. A wrong QR check is refused. Limit on wrong codes. Never says the PIN or the device's secret |
+| `POST /api/auth/pair/{session}/approve` | Adult | The PIN shown now or the one before it, used once. Five wrong PINs end the session. Limit on wrong codes. The device signs in as the caller or a profile the caller manages; as an administrator only with that administrator's password again |
 | `POST /api/auth/pair/{session}/deny` | Adult | Session is waiting. Limit on wrong codes |
-| `POST /api/pair/approve` | Adult | Code, with a limit on wrong codes. The device signs in as the caller or a profile the caller manages |
+| `POST /api/pair/approve` | Adult | Code, with a limit on wrong codes. The device signs in as the caller or a profile the caller manages; as an administrator only with that administrator's password again |
 | `POST /api/pair/deny` | Adult | Code, with a limit on wrong codes |
-| `POST /api/pair/invite` | Adult | Target is the caller or a profile the caller manages. One open code per person, limit on open codes |
+| `POST /api/pair/invite` | Adult | Target is the caller or a profile the caller manages; an administrator only with their password again. One open code per person, limit on open codes |
 | `GET /api/playback/profiles` | Signed-in | Nothing: the built-in client profiles |
 | `GET /api/playback/speedtest` | Signed-in | Nothing: random bytes, 64 KB to 4 MB, sent within the limits for viewers away from home, as any stream is |
 | `POST /api/items/{id}/playback` | Signed-in | limits. Known profile, start time, track numbers, sizes |
@@ -701,8 +702,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/system/tasks/{id}/cancel` | Admin | Task exists, and can be cancelled |
 | `POST /api/system/tasks/{id}/retry` | Admin | Task exists, and its kind can be started again |
 | `POST /api/themes/custom` | Admin | Name, known colours as colour values and nothing else, radius in range. Becomes a theme through the theme manager's own check |
-| `GET /api/sdui/screens/{screen}` | Signed-in | Screen name by form. Platform, form factor, viewport, locale and capabilities by form. Rendered for the account's own kind and name; no library data |
+| `GET /api/sdui/screens/{screen}` | Signed-in | Screen name by form. Platform, form factor, device class, catalogue revision, viewport, locale and capabilities by form. Filled with library data read through the account's limits: titles, shows, albums and channels it may not see are never in a screen sent to it, and a library or title asked for by number that it may not open is not found. Rows and cards cut to the device's profile |
 | `GET /api/sdui/screens/{screen}/diff` | Signed-in | As the screen. since: an ETag of at most 200 characters, compared only with the account's own earlier renders |
+| `GET /api/sdui/topshelf` | Signed-in | limits. The account's own continue-watching and what is new in libraries it may open, at most 4 rows of 10. Device class by form |
 | `GET /api/sdui/config` | Admin | Nothing |
 | `PUT /api/sdui/config` | Admin | If-Match must be the current ETag (412 otherwise, 428 when missing). 16 MB body, strict JSON: no unknown fields. Every screen through the SDUI validator; theme overrides name known colour tokens and colour values only |
 | `GET /api/sdui/config/history` | Admin | Nothing |
@@ -714,17 +716,21 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/theme/modules/{module}` | Admin | Module id by form. If-Match, when sent, must be the current ETag of ui_config.json |
 | `GET /api/media-types` | Signed-in | Nothing: known formats and whether this server can play them. Which FFmpeg it runs for admins only |
 | `PUT /api/users/{id}/profile` | Signed-in | Caller may manage that account, or it's their own. Which name shows is anyone's own choice. Names: an adult's own, or a manager's. Username has no invisible characters and differs from every other, ignoring case. Display name cleaned and cut to 60 characters |
-| `GET /api/media/{id}/canvas` | Signed-in | limits. Song, video or disc. An upload in the server's own folder, or a file beside the media that is inside a library once links are followed, or a plain file in the metadata folder named for the item |
+| `GET /api/media/{id}/canvas` | Signed-in | limits. Song, video or disc. An upload in the server's own folder, or a file beside the media that is inside a library once links are followed, or a plain file in the metadata folder named for the item; at most 64 MB and 60 seconds |
 | `GET /api/items/{id}/canvas` | Signed-in | limits. As `GET /api/media/{id}/canvas` |
 | `GET /api/media/{id}/canvas/file` | Signed-in; ticket; address token | limits. As the canvas: only a file the listing would name. Type from its name, MP4 or WebM only. Inert content policy. Limit for viewers away from home |
 | `PUT /api/media/{id}/canvas` | Admin | Song, video or disc. At most 30 MB, MP4 or WebM by its first bytes. Written whole into the server's images folder under a name made from the item's number and a hash of its path, never beside the media; links on the way refused |
 | `DELETE /api/media/{id}/canvas` | Admin | Removes only an upload, a plain file in the server's own folder |
+| `POST /api/media/{id}/canvas/generate` | Admin | A video that is a file inside a library. Start and length by form, 2 to 15 seconds, inside the video. Queues one FFmpeg job at low priority, 16 waiting at most; written into the server's images folder, never beside the media, at most 30 MB |
 | `GET /api/media/{id}/stems` | Signed-in | limits. A song. Uploads in the server's own folder, and files beside the song inside a library once links are followed, plain files only, 5000 entries a folder at most |
 | `GET /api/media/{id}/stems/{stem}` | Signed-in; ticket; address token | limits. Stem is one of a fixed list of names, never used as a path. Only a file the listing would name. Type from its name. Inert content policy. Limit for viewers away from home |
 | `PUT /api/media/{id}/stems/{stem}` | Admin | A song. Stem is one of a fixed list of names. At most 200 MB, audio by its first bytes (an MP4 for multitrack). Written whole into the server's images folder, never beside the media; links on the way refused |
 | `DELETE /api/media/{id}/stems/{stem}` | Admin | Stem is one of a fixed list of names. Removes only an upload, a plain file in the server's own folder |
-| `GET /api/media/{id}/markers` | Signed-in | limits. Sidecars (.skip.json, .edl) beside the media, inside a library, at most 256 KB, at most 200 ranges; ranges that don't make sense are dropped |
+| `POST /api/media/{id}/stems/approximate` | Signed-in | limits. A song that is a file inside a library. Queues one FFmpeg job at low priority, 16 waiting at most on the whole server, one per song; the result is kept in the server's own folder |
+| `POST /api/media/{id}/stems/separate` | Admin | A song that is a file inside a library. Runs only the program named in the server's own configuration (never one named in a request or a setting), without a shell, the song's path as one argument, at low priority, 45 minutes at most. Keeps only plain audio files, by their first bytes, named for a fixed list of parts, at most 200 MB each |
+| `GET /api/media/{id}/markers` | Signed-in | limits. Sidecars (.skip.json, .edl) beside the media, inside a library, at most 256 KB, at most 200 ranges; ranges that don't make sense are dropped. Also what comparing the season's episodes found |
 | `PUT /api/media/{id}/markers` | Admin | JSON of at most 64 KB. Every range starts at 0 or later and ends after it starts, at most 200 breaks. Kept apart from what scans read, which never replace it |
+| `POST /api/shows/{id}/detect-intros` | Admin | A show. Season by form. One run at a time on the server; at most 60 episodes a season, 10 minutes of each one's sound, FFmpeg at low priority. Writes only detected markers, never ones a person set |
 | `GET /api/media/{id}/where-to-watch` | Signed-in | limits. Versions the account may see only. Region two letters. Sends only a TMDB id and region to TMDB, with the owner's key; answers kept as long as listings |
 | `GET /api/discover/where-to-watch` | Signed-in | limits, for whether it's in the library. TMDB id digits only, type movie or tv, region two letters |
 | `/` (any method, everything else) | Public | Files of the web app, or its page. An unknown `/api/` address answers 404 |

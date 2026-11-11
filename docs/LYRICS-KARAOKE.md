@@ -91,7 +91,7 @@ Voice and key go back to normal when you leave karaoke, and don't carry over to 
 
 ### Stems: the real vocal track
 
-Removing the middle of the mix is a guess. The real thing is a song split into its parts, or *stems*: the voice alone, and the music without it. The server doesn't split songs itself, because doing it well takes a large model and a lot of time. It plays stems you already have, made by a tool such as [Demucs](https://github.com/facebookresearch/demucs) or Spleeter, or bought as a Native Instruments `.stem.mp4`.
+Removing the middle of the mix is a guess. The real thing is a song split into its parts, or *stems*: the voice alone, and the music without it. Doing that well takes a neural network with a model of hundreds of megabytes and a fast processor or a graphics card, so the server doesn't include one. It serves stems you already have, made by a tool such as [Demucs](https://github.com/facebookresearch/demucs) or Spleeter, or bought as a Native Instruments `.stem.mp4`, and it can run such a tool for you if you install one: see [Making stems](#making-stems).
 
 Put them beside the song, named after it. Any of these works, for a song called `01 Song.flac`:
 
@@ -106,7 +106,34 @@ The parts are `vocals`, `instrumental` (also called `accompaniment` or `no_vocal
 
 With Demucs, for example, `demucs -n htdemucs "01 Song.flac"` writes `separated/htdemucs/01 Song/vocals.wav`, `drums.wav`, `bass.wav` and `other.wav`. Move that `01 Song` folder beside the song and rename it `01 Song.stems`.
 
-An administrator can also upload a part for a song, which is kept in the server's own folder and never beside your music. Apps see what a song has in `GET /api/v1/media/{id}/stems`, and the player gets the list when a song starts. See [the client API](CLIENT-API.md#media-extras).
+An administrator can also upload a part for a song, which is kept in the server's own folder and never beside your music. Apps see what a song has in `GET /api/v1/media/{id}/stems`, and get the list with the playback answer when a song starts. See [the client API](CLIENT-API.md#media-extras).
+
+The web app's karaoke screen doesn't play stems yet: it uses **Voice lower** and **Voice lowest**, above. Stems are there for the apps and for anything else that asks.
+
+### Making stems
+
+For a song that came without stems, the server can make them in two ways. Each is a [task](TASKS.md): it waits its turn (one at a time on the whole server, sixteen waiting at most), runs at low priority so playing isn't disturbed, shows in **Tasks**, and can be stopped there.
+
+| | Your own separator | The approximate instrumental |
+|---|---|---|
+| **What it is** | A program you installed, such as Demucs or Spleeter | FFmpeg taking the right channel from the left |
+| **Quality** | Real stems, as good as the tool | A guess. The voice is quieter, not gone; anything else in the middle goes with it; the result is mono |
+| **Needs** | The program, and its name where the server starts | Only FFmpeg, and a stereo song |
+| **Speed** | As fast as the tool: minutes a song is usual on a desktop, and these tools aren't for a Raspberry Pi | A few seconds a song on a desktop. Not yet timed on a Raspberry Pi |
+| **Who can ask** | An administrator | Anyone who can play the song |
+| **Listed as** | `source: "separated"` | `source: "approximate"`, `approximate: true` |
+
+**Your own separator.** Tell the server what to run, where it starts, never in Settings: it names a program, and a web session must not be able to choose one. Use `{input}` for the song and `{output}` for an empty folder the parts go in:
+
+```
+WMS_STEM_SEPARATOR='demucs --two-stems vocals -o {output} {input}'
+```
+
+or `-stem-separator '…'`, or `"stemSeparator": "…"` in the [config file](CONFIG.md). The line is split into words (quotes keep spaces together) and run without a shell, so a song's name can never be read as a command. Then `POST /api/v1/media/{id}/stems/separate` starts it for one song. When it finishes, the server looks through the output folder, however deep the tool put its files, for audio named `vocals`, `no_vocals` or `accompaniment`, `drums`, `bass` and `other`, checks each really is audio, and keeps them in its own folder. One song may take 45 minutes at most. If the program fails, the task says what it printed.
+
+**The approximate instrumental.** `POST /api/v1/media/{id}/stems/approximate` makes it, and it is kept (as AAC) so it's made once. It gives way to a real `instrumental` as soon as there is one. A mono song has no two channels to take from each other, and the task says so. Apps should tell people what it is: the listing carries a sentence for that in `separation.approximate.note`.
+
+`GET /api/v1/media/{id}/stems` says under `separation` which of the two this server can do for a song, why not (`no-ffmpeg`, `not-configured`, `admin-only`, `not-a-song`, `not-a-file`), and the task when one is being made.
 
 ### Keys
 

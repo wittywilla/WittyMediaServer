@@ -9,6 +9,7 @@ import PlayInfoPanel from './PlayInfoPanel'
 import { toast } from '../state'
 import { usePlayerChrome } from './chrome'
 import PickIntroBar from './PickIntroBar'
+import { skipAt, type Markers } from './markers'
 import { Controls, useVideoState } from './Controls'
 import { haveHls, toggleFullscreen, useIdle, useSource, type NetNote } from './hooks'
 import { deviceStreaming, mayBeRobust, measureSpeed, rememberSpeed, setDeviceStreaming, type DeviceStreaming } from './streaming'
@@ -103,8 +104,18 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     return () => clearTimeout(t)
   }, [upNext, item.nextId, nav, nextDismissed, mini])
 
-  // "Skip intro" while inside the intro range (chapter or show setting).
-  const inIntro = item.introEnd != null && now >= (item.introStart || 0) && now < item.introEnd - 1
+  // What can be skipped, from every source the server knows (set by hand, a file beside the
+  // video, chapter names, found by comparing episodes, the show's own intro). Until that
+  // answers, and if it doesn't, the item's own intro.
+  const [markers, setMarkers] = useState<Markers | null>(null)
+  useEffect(() => {
+    setMarkers(null)
+    const stop = new AbortController()
+    api.get<Markers>(`/media/${item.id}/markers`, stop.signal).then(setMarkers).catch(() => {})
+    return () => stop.abort()
+  }, [item.id])
+  const ownIntro: Markers | null = item.introEnd != null ? { intro: { startSec: item.introStart || 0, endSec: item.introEnd } } : null
+  const skip = skipAt(markers || ownIntro, now, item.runtimeSec || 0)
 
   useEffect(() => {
     setInfo(null)
@@ -398,7 +409,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             : prefs.remoteStyle === 'bar'
               ? <RemoteBar onKey={onRemote} enabled={remoteEnabled} disc={copy} note={keysNote} />
               : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />)}
-          {inIntro && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(item.introEnd!) }}>Skip intro ›</button>}
+          {skip && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(skip.to) }}>{skip.label} ›</button>}
           {pickIntro && <PickIntroBar item={item} time={now} mode={pickIntro} />}
           {next && (nearEnd || ended) && !nextDismissed && (
             <div className="watch-next" onClick={(e) => e.stopPropagation()}>

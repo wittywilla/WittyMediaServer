@@ -4,8 +4,13 @@
 // Package sdui implements the WittyMediaServer Server-Driven UI (SDUI) core:
 // a JSON schema for describing screens, a validator, a renderer that resolves
 // a screen for one particular client, a differ that produces incremental
-// patches, and a set of templates for the stock screens (home, library,
-// detail, player, settings).
+// patches, and a set of templates for the stock screens (home, libraries,
+// library, detail, search, live TV, music, player, settings).
+//
+// The schema is designed around tvOS, the strictest device a screen has to
+// work on: see Layout for its rules, Focus for how every rendered screen can
+// be moved around with a remote, and ProfileFor for the other form factors
+// the same authored screen is fitted to.
 //
 // # What SDUI is
 //
@@ -30,7 +35,9 @@
 // Render takes an authored Document plus a RenderContext (who is asking, on
 // what platform, with which modules and features, with what data) and
 // produces a concrete Document: conditions are evaluated and hidden subtrees
-// removed, bindings are resolved against the context data, module theme
+// removed, bindings are resolved against the context data, rows are filled
+// with a node per item, the tree is fitted to the device profile (rows and
+// cards cut to its limits, pictures sized, focus order stamped), module theme
 // overrides are applied, and Meta.GeneratedAt / Meta.ETag are stamped. The
 // rendered document has no Visibility or Bindings left — the client receives
 // a fully resolved tree.

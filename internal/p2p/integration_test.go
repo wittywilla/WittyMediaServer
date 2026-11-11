@@ -720,3 +720,48 @@ func TestCloseIsPromptAndFinal(t *testing.T) {
 		t.Fatal("a request outlived the node")
 	}
 }
+
+// TestThroughputOverLoopback measures what the transport itself costs: 64 MiB
+// through one stream between two nodes on this machine, once over QUIC and
+// once over TCP. It only reports (go test -v -run Throughput); docs/P2P.md
+// quotes the numbers.
+func TestThroughputOverLoopback(t *testing.T) {
+	if testing.Short() {
+		t.Skip("a measurement, not a check")
+	}
+	const size = 64 << 20
+	for _, tr := range []struct{ name, addr string }{
+		{"QUIC", "/ip4/127.0.0.1/udp/0/quic-v1"},
+		{"TCP (Noise, yamux)", "/ip4/127.0.0.1/tcp/0"},
+	} {
+		devs := newDevList(testID(t, 2))
+		n := startNode(t, 1, devs, func(c *NodeConfig) {
+			c.Listen = []string{tr.addr}
+			c.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				buf := make([]byte, 256<<10)
+				for sent := 0; sent < size; sent += len(buf) {
+					if _, err := w.Write(buf); err != nil {
+						return
+					}
+				}
+			})
+		})
+		c := startClient(t, 2, n, func(c *ClientConfig) { c.Listen = []string{tr.addr} })
+		waitPath(t, c, PathLocal)
+		req, _ := http.NewRequest("GET", "http://server/", nil)
+		start := time.Now()
+		res, err := c.Transport().RoundTrip(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := io.Copy(io.Discard, res.Body)
+		res.Body.Close()
+		d := time.Since(start)
+		if err != nil || got != size {
+			t.Fatalf("%s: %d bytes, %v", tr.name, got, err)
+		}
+		t.Logf("%s: %d MiB in %v = %.0f MiB/s (%.0f Mbit/s)", tr.name, size>>20, d.Round(time.Millisecond), float64(size>>20)/d.Seconds(), float64(size)*8/1e6/d.Seconds())
+		c.Close()
+		n.Close()
+	}
+}

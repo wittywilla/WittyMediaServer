@@ -93,6 +93,12 @@
 .rem-check li.ok { border-left-color: var(--ok); }
 .rem-check li.fail { border-left-color: var(--danger); }
 .rem-check li.warn { border-left-color: var(--accent); }
+.rem-check li.off, .rem-check li.wait { color: var(--fg-2); }
+/* Peer-to-peer connections: one section holding several short lists. */
+.p2p-head { margin: var(--sp-5) 0 var(--sp-2); font-size: var(--text-sm); font-weight: 700; }
+.p2p-gap { margin-top: var(--sp-3); }
+.p2p-more { margin-top: var(--sp-4); }
+.p2p-more > summary { cursor: pointer; font-size: var(--text-sm); font-weight: 600; color: var(--fg-2); }
 
 .rem-sessions { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .rem-sessions li { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 12px; border-radius: var(--r-sm); background: var(--bg-3); }

@@ -145,7 +145,7 @@ Up, Down or OK moves onto the controls, and arrows then move between them, so a 
 
 ### Canvas: a looping video behind the song
 
-A song or an album can have a *canvas*: a short, silent video that loops behind the full-screen player. Put it beside the music:
+A song or an album can have a *canvas*: a short, silent video for an app to loop behind its full-screen player. Put it beside the music:
 
 | File | Plays behind |
 |---|---|
@@ -156,7 +156,11 @@ A song or an album can have a *canvas*: a short, silent video that loops behind 
 
 You can also put one in the [metadata folder](METADATA-FOLDER.md), named like the title's file with `-canvas.mp4` on the end, such as `My Film (2001) [item-123]-canvas.mp4`. Films, episodes and discs can have one the same way, and a `canvas.mp4` in a show's folder covers its episodes.
 
-Keep it short (3 to 8 seconds is usual), silent, and small: an upload can be up to 30 MB. MP4 (H.264) plays everywhere; WebM plays in browsers and Android. An administrator can upload one for any song or title, which is kept in the server's own folder and wins over one beside the media. Apps ask `GET /api/v1/media/{id}/canvas`. See [the client API](CLIENT-API.md#media-extras).
+Keep it short (3 to 8 seconds is usual), silent, and small: an upload can be up to 30 MB. A file beside the media that is over 64 MB, or longer than a minute, isn't taken for a canvas: it would be sent to every phone that opened the title. MP4 (H.264) plays everywhere; WebM plays in browsers and Android. An administrator can upload one for any song or title, which is kept in the server's own folder and wins over one beside the media. Apps ask `GET /api/v1/media/{id}/canvas`, and get the video itself with byte ranges and a day's caching. See [the client API](CLIENT-API.md#media-extras).
+
+**From the video itself.** For a film or an episode with no canvas, an administrator can have the server cut one: `POST /api/v1/media/{id}/canvas/generate`, with `startSec` and `durationSec` if the default (a quarter of the way in, 5 to 8 seconds) isn't wanted. It is a [task](TASKS.md) at low priority: FFmpeg takes a few seconds of the picture, drops the sound, makes it small (720 lines at most, 480 or 360 on a small machine), and fades its end into its start so the loop has no jump. It needs an FFmpeg with an H.264 encoder (`libx264`). A song has no picture to cut from, so a song's canvas is always one you supply.
+
+The web app doesn't show canvases yet; they're there for the apps.
 
 ## Lyrics
 

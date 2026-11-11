@@ -121,8 +121,11 @@ type Stem struct {
 	Size       int64  `json:"size"`
 	MIME       string `json:"mime"`
 	Multitrack bool   `json:"multitrack,omitempty"`
-	// Source: upload (an administrator's) or sidecar (beside the song).
+	// Source: upload (an administrator's), sidecar (beside the song), separated (made by the
+	// owner's separator) or approximate (FFmpeg's centre-channel removal).
 	Source string `json:"source"`
+	// Approximate: not a real stem. See ApproxArgs.
+	Approximate bool `json:"approximate,omitempty"`
 	// Uploaded is true for a file in the server's own folder, false beside the media.
 	Uploaded bool `json:"-"`
 }

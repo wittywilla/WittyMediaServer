@@ -18,7 +18,8 @@ import (
 // Markers say where the parts of a video are that people skip: the intro, a recap of
 // earlier episodes, the credits, and adverts left in a recording. They come from, in
 // order of trust: what an administrator set by hand, a <file>.skip.json, a <file>.edl,
-// the file's chapter names, and the intro set for the whole show.
+// the file's chapter names, what comparing the season's episodes by ear found, and the
+// intro set for the whole show.
 
 // Kinds of range.
 const (
@@ -34,6 +35,8 @@ const (
 	SourceSkipJSON = "skip.json"
 	SourceEDL      = "edl"
 	SourceChapters = "chapters"
+	// SourceDetected: found by comparing the sound of a season's episodes.
+	SourceDetected = "detected"
 	SourceShow     = "show"
 	SourceNone     = "none"
 )

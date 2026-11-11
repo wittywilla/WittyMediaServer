@@ -283,6 +283,15 @@ TV                              server                         phone or computer
 - Only adult accounts can approve (a password-free Kids profile must not be able to hand out lasting
   sign-ins). They may sign the device in as themselves or as a Kids or Guest profile they manage, by
   `userId` from the `profiles` in `/pair/info`.
+- An administrator signing a device in as themselves must send their own `password` again (and `otp`,
+  their two-factor code, when `/pair/info` says `twoFactor: true`) with `/pair/approve`,
+  `/auth/pair/{session}/approve` and `/pair/invite`. Without it the answer is 403 with
+  `reason: "password-required"`; a wrong one is 403 too. The profile in `profiles` says
+  `needsPassword: true`. A session left open on a phone can then sign a device in as a Kids profile at
+  most, never as the administrator. The PIN's tries aren't used up by a refused password.
+- An owner can turn code-only pairing off (the `pairRequirePin` setting). `POST /pair/start` then
+  answers 426 with `reason: "pin-required"` and `use: "/api/v1/auth/pair"`: start a secure pairing
+  instead. Apps should try `/auth/pair` first wherever the `pair-totp` feature is listed.
 - Nothing is stored: a restart of the server means asking for a new code. The new session
   appears as `device`.
 
@@ -314,20 +323,29 @@ TV                                     server                        phone
   where the device reached the server. `k` is an HMAC the server made over the other fields. An app sends
   it back as `check`, and the server refuses a code that was altered. A phone without the app can use
   `approveUrl` instead, which is an ordinary `http(s)://…/pair?code=…` address. The server doesn't draw
-  the QR code: put either string in one.
+  the QR code: put either string in one, and draw it on the device (never by sending it to a QR
+  service: it is a sign-in in progress). The web client does this in the page, from *Sign in with your
+  phone* on its sign-in screen, and shows `approveUrl` so that any phone's camera opens the right page.
+- `GET /auth/pair/{session}/info?k=<check>` (an adult signed in) is `/pair/info` by session, for an app
+  that scanned `qr`: the `device`, `platform` and `ip` to show the person before they approve, and the
+  `profiles` they may put on it. A `k` that isn't this session's is 400 `bad-check`. It never answers
+  the PIN.
 - `GET /auth/pair/{session}/pin`, with the secret in the `X-WMS-Pair-Secret` header, answers the current
   `pin` and `pinExpiresAt`. Ask again then. 404 for an unknown session or the wrong secret; 410 once
   it is no longer waiting.
 - `GET /auth/pair/{session}`, with the same header, every `intervalSec`, answers the same way as
   `/pair/poll`. One more 410 `status` is `locked`: too many wrong PINs, so start again.
-- `POST /auth/pair/{session}/approve {pin, userId, check}` (an adult signed in) approves. `userId` and
-  `check` are optional. On the `/pair` page, the device's `code` with `pin` at `POST /pair/approve` does
+- `POST /auth/pair/{session}/approve {pin, userId, check, password, otp}` (an adult signed in) approves.
+  `userId` and `check` are optional; `password` and `otp` are for an administrator signing the device
+  in as themselves (see above). The PIN shown now and the one shown before it are accepted, so someone
+  still typing when it changes isn't refused; one not yet shown never is. On the `/pair` page, the device's `code` with `pin` at `POST /pair/approve` does
   the same; `/pair/info` says `needsPin: true` for such a device. The code alone is refused for it.
   Failures:
 
   | Status | `reason` | Meaning |
   |---|---|---|
-  | 400 | `wrong-pin` | Not the PIN shown now, or it was already used. `triesLeft` says how many remain. |
+  | 400 | `wrong-pin` | Not the PIN shown now or just before, or it was already used. `triesLeft` says how many remain. |
+  | 403 | `password-required` | The device would be signed in as an administrator: send `password` (and `otp` when `twoFactor` is true). |
   | 400 | `bad-check` | The QR code's `check` isn't this session's. Counts as a wrong PIN. |
   | 404 | `not-found` | No such session. |
   | 410 | `expired` | Its five minutes are up. |
@@ -848,6 +866,12 @@ games module's accent). Token names are those in `themes/*/theme.json` `colors` 
 `If-None-Match`; a 304 means nothing changed. `warnings` lists text colours an override made hard to
 read (below WCAG AA, 4.5:1), for the theme settings page to show; apps can ignore it.
 
+`scheme` is `dark` or `light`, or `auto` when the theme follows the device. `variants` holds each look
+resolved the same way (`{id, tokens, modules}` by scheme): one for an ordinary theme, `dark` and `light`
+for the automatic one, where `tokens` and `modules` at the top are the dark look's. A client that
+follows the device's setting takes its colours from `variants`. A warning about one look of the
+automatic theme says which in `variant`.
+
 ```json
 {
   "id": "midnight", "source": "server", "revision": 4,
@@ -1259,15 +1283,16 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /profiles` | none | The "Who's watching?" list where the server offers it: `style` is `profiles` (with `profiles`) or `classic` (ask for name and password). |
 | `POST /pair/invite` | user | Code typed on the device: get 6 digits to type there, for this account or a Kids or Guest profile it manages. Adults only. One open at a time per person; lasts 5 minutes. |
 | `POST /pair/redeem` | none | Code typed on the device: use the 6 digits and get a sign-in. Works once. Failures say why in `reason`: `wrong-code` (400), `expired` or `used` (410), `too-many-tries` (429). |
-| `POST /pair/start` | none | TV sign-in: get a code to show. Rate limited per address (429). |
+| `POST /pair/start` | none | TV sign-in: get a code to show. Rate limited per address (429). 426 `pin-required` when the owner allows only secure pairing. |
 | `POST /pair/poll` | none | TV sign-in: has someone answered? `status` is `pending`; `approved` with `token` and `user` (once only); 403 `denied`; 410 `expired`; 429 `slow-down`. |
 | `POST /pair/info` | user | TV sign-in, on the phone or computer: what is asking, and which profiles this person may put on it. Adults only. Wrong codes are limited. |
-| `POST /pair/approve` | user | TV sign-in: approve, as this account or a Kids or Guest profile it manages. Works once. |
+| `POST /pair/approve` | user | TV sign-in: approve, as this account or a Kids or Guest profile it manages. Works once. As an administrator: with `password` (and `otp`). |
 | `POST /pair/deny` | user | TV sign-in: refuse; the TV is told. |
 | `POST /auth/pair` | none | Secure pairing: start a session; answers a rotating `pin`, a `qr` string and `approveUrl`. See [With a QR code and a PIN](#with-a-qr-code-and-a-pin-secure-pairing). |
 | `GET /auth/pair/{session}` | none | Secure pairing: has someone answered? `X-WMS-Pair-Secret` header. As `/pair/poll`, plus 410 `locked`. |
 | `GET /auth/pair/{session}/pin` | none | Secure pairing: the PIN to show now. `X-WMS-Pair-Secret` header. |
-| `POST /auth/pair/{session}/approve` | user | Secure pairing: approve with `{pin, userId, check}`. Adults only. Five wrong PINs end the session. |
+| `GET /auth/pair/{session}/info` | user | Secure pairing: what is asking, by session (`?k=` the QR code's check), before approving. Adults only. |
+| `POST /auth/pair/{session}/approve` | user | Secure pairing: approve with `{pin, userId, check, password, otp}`. Adults only. Five wrong PINs end the session. As an administrator: with the password again. |
 | `POST /auth/pair/{session}/deny` | user | Secure pairing: refuse; the device is told. Adults only. |
 | `GET /me` | user | The signed-in account. |
 | `GET /me/ui` | user | The account's interface choices: any JSON object the clients agree on (home layout, for one). See "Choices that follow the account". |
@@ -1469,21 +1494,27 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 
 A song's or title's looping video, a song's separated parts for karaoke, where to skip in a
 video, and where else a title can be watched. Feature names: `canvas`, `karaoke-stems`,
-`skip-markers`, `where-to-watch-xref` (API revision 13). `{id}` is an item, as in `/items/{id}`.
+`skip-markers`, `where-to-watch-xref` (API revision 13), and `canvas-generate`, `stems-approximate`,
+`stems-separate`, `intro-detection` for what the server can make itself. `{id}` is an item, as in
+`/items/{id}`. The routes that make something answer 202 with `task`: follow it at `/system/tasks`.
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /media/{id}/canvas` | user | `{available, url, mime, width, height, durationMs, loop: true, source}`: a short silent video to loop behind the player. Width, height and length need FFprobe; they're left out without it. Play `url` muted, looping. |
+| `GET /media/{id}/canvas` | user | `{available, url, mime, width, height, durationMs, loop: true, source, reason, task, canGenerate}`: `source` is `upload`, `generated`, `sidecar` or `metadata-folder`; a file beside the media over 64 MB or 60 seconds isn't a canvas (`reason`: `too-big`, `too-long`); `task` is one being made now. In full: a short silent video to loop behind the player. Width, height and length need FFprobe; they're left out without it. Play `url` muted, looping. |
 | `GET /items/{id}/canvas` | user | The same, under the item's usual address. |
 | `GET /media/{id}/canvas/file` | user, `st` | The canvas itself, with byte ranges, an `ETag` and a day's caching (the `v` in `url` changes when the file does). |
 | `PUT /media/{id}/canvas` | admin | Upload a canvas: an MP4 or WebM of at most 30 MB as the body. It replaces any upload, and wins over a file beside the media. |
 | `DELETE /media/{id}/canvas` | admin | Forget the uploaded canvas. One beside the media stays. |
-| `GET /media/{id}/stems` | user | `{stems: [{name, url, mime, size, multitrack?, source}], names}`: a song's parts, from `vocals`, `instrumental`, `drums`, `bass`, `other`, and `multitrack` for a Native Instruments `.stem.mp4` holding all of them as audio tracks. |
+| `POST /media/{id}/canvas/generate` | admin | Cut a canvas from a video file: `{startSec?, durationSec?}` (2 to 15 s; by default a quarter of the way in, 5 to 8 s by the size of the machine). Silent H.264 MP4, at most 720p (480p or 360p on a small machine), its end cross-faded into its start so it loops. 202 `{task}`. 400 for a song or a disc, 503 when FFmpeg has no H.264 encoder. |
+| `GET /media/{id}/stems` | user | `{stems: [{name, url, mime, size, multitrack?, source, approximate?}], names, separation}`: `source` is `upload`, `sidecar`, `separated` (the owner's separator made it) or `approximate`; `separation.approximate` and `separation.external` each say `{available, reason?, task?, note?}`. In full: a song's parts, from `vocals`, `instrumental`, `drums`, `bass`, `other`, and `multitrack` for a Native Instruments `.stem.mp4` holding all of them as audio tracks. |
 | `GET /media/{id}/stems/{stem}` | user, `st` | One part, with byte ranges. `accompaniment` is another name for `instrumental`. |
 | `PUT /media/{id}/stems/{stem}` | admin | Upload a part: FLAC, WAV, Ogg, M4A, AAC, MP3 or WebM of at most 200 MB as the body (`multitrack`: an MP4). The server doesn't separate songs itself. |
 | `DELETE /media/{id}/stems/{stem}` | admin | Forget an uploaded part. |
-| `GET /media/{id}/markers` | user | `{intro, recap, credits, commercials: [...], source, sources}`, each range `{startSec, endSec}`. `source` is where the most trusted came from: `manual`, `skip.json`, `edl`, `chapters`, `show` or `none`. |
+| `POST /media/{id}/stems/approximate` | user | Make an approximate `instrumental` with FFmpeg alone (what the two channels share is cancelled). 202 `{task}`; 200 `{exists: true}` when there is an instrumental already. It is listed with `approximate: true` and gives way to a real one. Say so to the person: the voice is quieter, not gone, and the music is mono. Mono songs fail. 503 without FFmpeg. |
+| `POST /media/{id}/stems/separate` | admin | Run the separator the owner installed on the song. 202 `{task}`; 409 when none is set up (`separation.external.reason` is `not-configured`). The parts it writes are listed with `source: "separated"`. |
+| `GET /media/{id}/markers` | user | `{intro, recap, credits, commercials: [...], source, sources}`, each range `{startSec, endSec}`. `source` is where the most trusted came from: `manual`, `skip.json`, `edl`, `chapters`, `detected`, `show` or `none`. |
 | `PUT /media/{id}/markers` | admin | Set them by hand: `{intro: {start, end}, recap, credits: {start, end?}, commercials: [...]}`. A credits range without an end runs to the end. No scan replaces this; `{"reset": true}` goes back to what the files say. |
+| `POST /shows/{id}/detect-intros` | admin | Compare the sound of a season's episodes and keep the stretch they share as `intro` (15 s to 3 min, in the first 10 minutes) and `credits` (in the last 7) markers, `source: "detected"`. `{season?}`. 202 `{task, episodes, seasons}`; 409 when a run is under way or there aren't two episodes to compare. Trusted less than chapters, more than the show's own intro. |
 | `GET /media/{id}/where-to-watch` | user | This title here (`inLibrary`, `local.quality`, `local.versions`) next to the services that offer it in `region` (the listings region, or `US`): `groups` of `stream`, `free`, `ads`, `rent`, `buy`, each provider with `name`, `logo` and `priority`, and `link` to the offers page. With no TMDB key: `providers: []`, `reason: "no-api-key"`. Show `attribution` wherever this is shown. |
 | `GET /discover/where-to-watch` | user | The same for a TMDB title that may not be here: `tmdb`, `type` (`movie` or `tv`), `region`. `inLibrary`, and `itemId` or `showId` when it is. |
 
@@ -1526,7 +1557,8 @@ for a song, with the stream token already in each `url`.
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /sdui/screens/{screen}` | user | A screen rendered for this account and device, as an SDUI document (docs/SDUI.md). Say what the device is with `platform`, `formFactor`, `viewport`, `locale` and `capabilities` (or the `X-WMS-*` headers). `ETag`; 304 with `If-None-Match`. |
+| `GET /sdui/screens/{screen}` | user | A screen rendered for this account and device, as an SDUI document (docs/SDUI.md, schema in docs/sdui.schema.json): `home`, `libraries`, `library?library=`, `detail?item=` or `?show=`, `search?q=`, `livetv`, `music`, `player`, `settings`. Filled with what the account may see, and fitted to the device: say what it is with `platform`, `formFactor` (`tv`, `phone`, `tablet`, `desktop`, `web`), `deviceClass` (`hd` or `4k` for a TV), `catalog`, `viewport`, `locale` and `capabilities` (or the `X-WMS-*` headers). `ETag`; 304 with `If-None-Match`. 404 for a library or title the account may not open. |
+| `GET /sdui/topshelf` | user | Content for a tvOS Top Shelf extension: `{version, style: "sectioned", sections: [{title, items: [{id, title, shape, image, progress, displayRoute, playRoute}]}], expiresInSec}`, at most 4 sections of 10, pictures sized for `deviceClass`. `ETag`; 304 with `If-None-Match`. |
 | `GET /sdui/screens/{screen}/diff` | user | `?since=<etag>`: patches from the render the client has, or the whole `document` when the server no longer has it. 304 when nothing changed. |
 | `GET /sdui/config` | admin | All of `ui_config.json`: every screen and the theme overrides, with `etag`. |
 | `PUT /sdui/config` | admin | Replace it. `If-Match` is required: 428 without, 412 when someone saved in between. 400 lists every problem in `issues`. |

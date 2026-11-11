@@ -38,9 +38,17 @@ screen, err := sdui.Render(doc, sdui.RenderContext{
 patches := sdui.Diff(previous, screen)
 ```
 
-Stock screens: `sdui.HomeTemplate`, `LibraryTemplate`, `DetailTemplate`,
-`PlayerTemplate`, `SettingsTemplate`, and `DefaultScreens()` for all five
+Stock screens: `sdui.HomeTemplate`, `LibrariesTemplate`, `LibraryTemplate`,
+`DetailTemplate`, `SearchTemplate`, `LiveTVTemplate`, `MusicTemplate`,
+`PlayerTemplate`, `SettingsTemplate`, and `DefaultScreens()` for all nine
 with empty data.
+
+Fitting a screen to a device: pass `Profile: sdui.ProfileFor(sdui.FormTV, "hd")`
+in the `RenderContext`. Render then turns each row's items into focusable
+cards, cuts rows and cards to what the device takes, sizes pictures, stamps
+the focus order and the default focus, and sends the profile along as
+`Layout`. `sdui.NewTopShelf` builds tvOS Top Shelf content, and
+`sdui.JSONSchema()` is `docs/sdui.schema.json`.
 
 Full schema, condition/binding semantics, the patch protocol and a guide to
 writing a client renderer: [docs/SDUI.md](../../docs/SDUI.md).
@@ -49,6 +57,6 @@ writing a client renderer: [docs/SDUI.md](../../docs/SDUI.md).
 
 ```sh
 go test -cover ./pkg/sdui/...
-go test ./pkg/sdui/ -run TestHomeTemplate_Golden -update   # regenerate testdata/home.golden.json
+go test ./pkg/sdui/ -update   # regenerate testdata/*.golden.json and docs/sdui.schema.json
 go test ./pkg/sdui/ -run '^$' -fuzz FuzzUnmarshal -fuzztime 30s
 ```

@@ -107,22 +107,29 @@ func TestDefaultScreens(t *testing.T) {
 func TestHomeTemplate_ModuleGating(t *testing.T) {
 	doc := HomeTemplate(HomeData{})
 	find := func(d Document, id string) bool { return findNode(&d.Root, id) != nil }
+	one := []any{map[string]any{"id": "1", "title": "One", "route": "/item/1"}}
+	data := map[string]any{"home": map[string]any{"games": one, "channels": one, "continueWatching": one}}
 
-	guest, _ := Render(doc, RenderContext{Platform: "web", Role: "guest"})
-	if find(guest, "home-games") || find(guest, "home-livetv") || find(guest, "home-continue") || find(guest, "home-admin-setup") {
+	guest, _ := Render(doc, RenderContext{Platform: "web", Role: "guest", Data: data})
+	if find(guest, "home-games") || find(guest, "home-continue") || find(guest, "home-admin-setup") {
 		t.Error("guest without modules should not see gated shelves")
 	}
 	admin, _ := Render(doc, RenderContext{Platform: "web", Role: "admin", Modules: []string{"wittyplay", "wittytv"},
-		Features: []string{"history"}, Flags: map[string]bool{"setupIncomplete": true}})
+		Features: []string{"history"}, Flags: map[string]bool{"setupIncomplete": true}, Data: data})
 	if !find(admin, "home-games") || !find(admin, "home-livetv") || !find(admin, "home-continue") || !find(admin, "home-admin-setup") {
 		t.Error("admin with modules should see gated shelves")
 	}
-	if find(admin, "home-music") {
-		t.Error("music shelf should be hidden without wittymusic")
+	if find(admin, "home-music") || find(admin, "home-recent") {
+		t.Error("a row with nothing in it should be left out")
 	}
 	g := findNode(&admin.Root, "home-games")
 	if g.Style == nil || g.Style.Module != "wittyplay" {
 		t.Error("games shelf should be scoped to wittyplay")
+	}
+	// The same screen with no data at all has no rows: an empty shelf is never sent.
+	bare, _ := Render(doc, RenderContext{Platform: "web", Role: "admin", Modules: []string{"wittyplay"}, Features: []string{"history"}})
+	if find(bare, "home-games") || find(bare, "home-continue") {
+		t.Error("rows without data should be left out")
 	}
 }
 

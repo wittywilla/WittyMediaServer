@@ -5,6 +5,8 @@ package server
 
 import (
 	"container/list"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -16,6 +18,7 @@ import (
 	"sync"
 
 	"github.com/wittywilla/wittymediaserver/internal/bufpool"
+	"github.com/wittywilla/wittymediaserver/internal/pace"
 	"github.com/wittywilla/wittymediaserver/internal/sduistore"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
@@ -37,11 +40,26 @@ type sduiState struct {
 
 type keptRender struct {
 	key string
+	uid int64
 	doc sdui.Document
 }
 
-// maxKeptRenders bounds the renders kept so a client can ask for a diff against one.
-const maxKeptRenders = 256
+// keptRendersFor bounds the renders kept so a client can ask for a diff against one. A
+// render holds a screen's worth of titles, a few hundred kilobytes for a full home screen,
+// so a small machine keeps few; a client whose render has gone is sent the whole screen,
+// which is always right. One account keeps at most maxKeptPerAccount, so one busy client
+// can't push out everyone else's.
+func keptRendersFor(c pace.Class) int {
+	switch c {
+	case pace.Tiny:
+		return 12
+	case pace.Small:
+		return 32
+	}
+	return 128
+}
+
+const maxKeptPerAccount = 6
 
 // uiStore opens ui_config.json the first time it is needed.
 func (s *Server) uiStore() (*sduistore.Store, error) {
@@ -55,7 +73,7 @@ func (s *Server) uiStore() (*sduistore.Store, error) {
 		if log == nil {
 			log = slog.Default()
 		}
-		st.store, st.err = sduistore.Open(s.Cfg.DataDir, sduistore.Options{Log: log, CheckTheme: checkThemeSection})
+		st.store, st.err = sduistore.Open(s.Cfg.DataDir, sduistore.Options{Log: log, CheckTheme: checkThemeSection, KnownToken: themes.IsColorToken})
 	})
 	return st.store, st.err
 }
@@ -83,6 +101,7 @@ func checkThemeSection(t sduistore.Theme) []sdui.Issue {
 func (s *Server) sduiRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/sdui/screens/{screen}", s.requireUser(s.handleSDUIScreen))
 	m.Handle("GET /api/sdui/screens/{screen}/diff", s.requireUser(s.handleSDUIDiff))
+	m.Handle("GET /api/sdui/topshelf", s.requireUser(s.handleSDUITopShelf))
 	m.Handle("GET /api/sdui/config", s.requireAdmin(s.handleSDUIConfig))
 	m.Handle("PUT /api/sdui/config", s.requireAdmin(s.handleSDUIConfigPut))
 	m.Handle("GET /api/sdui/config/history", s.requireAdmin(s.handleSDUIHistory))
@@ -130,14 +149,34 @@ var (
 
 // sduiPlatforms are the platforms pkg/sdui's conditions know; form factors map onto them.
 var sduiPlatforms = map[string]string{
-	"web": "web", "tv": "tv", "ios": "ios", "android": "android", "desktop": "desktop",
+	"web": "web", "tv": "tv", "tvos": "tv", "ios": "ios", "android": "android", "desktop": "desktop",
 	// form factors
 	"phone": "ios", "tablet": "ios", "tenfoot": "tv", "10ft": "tv", "browser": "web",
+}
+
+// sduiFormFactors: what a client calls its form factor, and the profile it gets. A
+// platform stands for one when the client names no form factor.
+var sduiFormFactors = map[string]string{
+	"tv": sdui.FormTV, "tvos": sdui.FormTV, "tenfoot": sdui.FormTV, "10ft": sdui.FormTV,
+	"phone": sdui.FormPhone, "ios": sdui.FormPhone, "android": sdui.FormPhone,
+	"tablet": sdui.FormTablet, "desktop": sdui.FormDesktop, "web": sdui.FormWeb, "browser": sdui.FormWeb,
+}
+
+// sduiProfile is the device profile for a request: its form factor (named, or implied by
+// the platform), and for a TV its class, "hd" or "4k". A TV that doesn't say gets the HD
+// profile: the smaller one is safe on both.
+func sduiProfile(platform, formFactor, class string) *sdui.Layout {
+	ff, ok := sduiFormFactors[formFactor]
+	if !ok {
+		ff = sduiFormFactors[platform]
+	}
+	return sdui.ProfileFor(ff, class)
 }
 
 // renderContext is who is asking, on what, for pkg/sdui. The client says what it is in the
 // query or in headers (the query wins); the server says who is signed in and what's installed.
 func (s *Server) renderContext(r *http.Request, doc sdui.Document, ov map[string]map[string]string) (sdui.RenderContext, error) {
+	rawPlatform := ""
 	q := r.URL.Query()
 	pick := func(param, header string) string {
 		if v := strings.TrimSpace(q.Get(param)); v != "" {
@@ -155,13 +194,29 @@ func (s *Server) renderContext(r *http.Request, doc sdui.Document, ov map[string
 			}
 			plat = p // a platform a newer client knows; conditions on it simply don't match
 		}
-		ctx.Platform = plat
+		ctx.Platform, rawPlatform = plat, p
 	}
-	if ff := strings.ToLower(pick("formFactor", "X-WMS-Form-Factor")); ff != "" {
+	ff := strings.ToLower(pick("formFactor", "X-WMS-Form-Factor"))
+	if ff != "" {
 		if !sduiWord.MatchString(ff) {
 			return ctx, errors.New("formFactor: a short lower-case name such as phone, tablet, tv or desktop")
 		}
 		ctx.Flags["formFactor:"+ff] = true
+	}
+	class := strings.ToLower(pick("deviceClass", "X-WMS-Device-Class"))
+	if class != "" && class != "hd" && class != "4k" {
+		return ctx, errors.New("deviceClass: hd or 4k")
+	}
+	ctx.Profile = sduiProfile(firstNonEmpty(rawPlatform, ctx.Platform), ff, class)
+	// The catalogue revision the client was built against: newer types reach it as older ones.
+	if v := pick("catalog", "X-WMS-SDUI-Catalog"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 1_000_000 {
+			return ctx, errors.New("catalog: the catalogue revision the client knows, a whole number from 1")
+		}
+		if n < sdui.CatalogRevision {
+			ctx.Catalog = n
+		}
 	}
 	// Viewport: width and height, or "1440x900".
 	if v := pick("viewport", "X-WMS-Viewport"); v != "" {
@@ -233,6 +288,9 @@ func (s *Server) renderContext(r *http.Request, doc sdui.Document, ov map[string
 		"user":   map[string]any{"name": firstNonEmpty(u.DisplayName, u.Name), "kind": u.Kind, "isAdmin": u.IsAdmin},
 		"server": map[string]any{"name": s.ServerName(r.Context()), "version": s.Version},
 	}
+	if err := s.sduiData(r, doc.Screen, ctx.Profile, ctx.Data, ctx.Flags); err != nil {
+		return ctx, err
+	}
 	return ctx, nil
 }
 
@@ -282,17 +340,33 @@ func (s *Server) renderScreen(w http.ResponseWriter, r *http.Request) (sdui.Docu
 		return sdui.Document{}, false
 	}
 	cfg := st.Current()
+	// A stock screen the configuration has lost is still served, from the template: an
+	// edit that removes "home" must not leave every client without one.
+	stock, isStock := stockScreens()[name]
 	doc, ok := cfg.Screens[name]
 	if !ok {
-		writeErr(w, 404, "no such screen")
-		return sdui.Document{}, false
+		if !isStock {
+			writeErr(w, 404, "no such screen")
+			return sdui.Document{}, false
+		}
+		doc = stock
 	}
 	ctx, err := s.renderContext(r, doc, cfg.Theme.Modules)
+	if errors.Is(err, errNoScreenData) {
+		writeErr(w, 404, "not found")
+		return sdui.Document{}, false
+	}
 	if err != nil {
 		writeErr(w, 400, err.Error())
 		return sdui.Document{}, false
 	}
 	out, err := sdui.Render(doc, ctx)
+	if err != nil && ok && isStock {
+		// The configured one can't be shown to this account (its root is hidden, say): the
+		// stock one can.
+		s.Log.WarnContext(r.Context(), "a configured screen couldn't be rendered; the stock one was sent", "cat", "ui", "screen", name, "err", err)
+		out, err = sdui.Render(stock, ctx)
+	}
 	if err != nil {
 		writeErr(w, 422, "this screen can't be shown to this account on this device: "+err.Error())
 		return sdui.Document{}, false
@@ -307,7 +381,8 @@ func (s *Server) renderScreen(w http.ResponseWriter, r *http.Request) (sdui.Docu
 
 func renderKey(uid int64, etag string) string { return strconv.FormatInt(uid, 10) + " " + etag }
 
-// keepRender remembers a render for this account, the newest maxKeptRenders in all.
+// keepRender remembers a render for this account: its newest few, and the newest of all up to
+// what the machine has room for.
 func (s *Server) keepRender(uid int64, doc sdui.Document) {
 	st := &s.sdui
 	st.mu.Lock()
@@ -320,8 +395,20 @@ func (s *Server) keepRender(uid int64, doc sdui.Document) {
 		st.order.MoveToFront(e)
 		return
 	}
-	st.renders[key] = st.order.PushFront(&keptRender{key: key, doc: doc})
-	for st.order.Len() > maxKeptRenders {
+	st.renders[key] = st.order.PushFront(&keptRender{key: key, uid: uid, doc: doc})
+	// This account's oldest go first, then the oldest of all.
+	mine := 0
+	for e := st.order.Front(); e != nil; {
+		next := e.Next()
+		if k := e.Value.(*keptRender); k.uid == uid {
+			if mine++; mine > maxKeptPerAccount {
+				st.order.Remove(e)
+				delete(st.renders, k.key)
+			}
+		}
+		e = next
+	}
+	for limit := keptRendersFor(pace.Machine()); st.order.Len() > limit; {
 		last := st.order.Back()
 		st.order.Remove(last)
 		delete(st.renders, last.Value.(*keptRender).key)
@@ -344,6 +431,27 @@ func (s *Server) keptRenderFor(uid int64, etag string) (sdui.Document, bool) {
 		}
 	}
 	return sdui.Document{}, false
+}
+
+// stockScreens are the templates, built once.
+var stockScreens = sync.OnceValue(sdui.DefaultScreens)
+
+// GET /api/sdui/topshelf: content for a tvOS Top Shelf extension: what this account was
+// watching and what's new, within its limits. deviceClass (hd or 4k) sizes the pictures.
+func (s *Server) handleSDUITopShelf(w http.ResponseWriter, r *http.Request) {
+	class := strings.ToLower(firstNonEmpty(r.URL.Query().Get("deviceClass"), r.Header.Get("X-WMS-Device-Class")))
+	if class != "" && class != "hd" && class != "4k" {
+		writeErr(w, 400, "deviceClass: hd or 4k")
+		return
+	}
+	ts := sdui.NewTopShelf(s.sduiTopShelfRows(r), sdui.ProfileFor(sdui.FormTV, class), 900)
+	b, _ := json.Marshal(ts)
+	sum := sha256.Sum256(b)
+	etag := `W/"ts-` + hex.EncodeToString(sum[:])[:32] + `"`
+	if notModified(w, r, etag) {
+		return
+	}
+	writeJSONTagged(w, 200, etag, ts)
 }
 
 // GET /api/sdui/screens/{screen}: the screen, rendered for this account and device.

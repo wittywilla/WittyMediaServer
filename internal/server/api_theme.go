@@ -40,6 +40,9 @@ func (s *Server) themeRoutes(m *http.ServeMux) {
 type ThemeWarning struct {
 	// Scope is "global" or "module:<id>".
 	Scope string `json:"scope"`
+	// Variant is "dark" or "light" when the warning is about one of an automatic theme's
+	// two looks; empty for a theme with one look.
+	Variant string `json:"variant,omitempty"`
 	themes.ContrastIssue
 }
 
@@ -54,11 +57,48 @@ type ResolvedTheme struct {
 	Overrides map[string]string `json:"overrides"`
 	// Modules are the colours for each module with overrides: the whole palette, with the
 	// module's own colours over Tokens.
-	Modules  map[string]ThemeModule `json:"modules"`
-	Warnings []ThemeWarning         `json:"warnings"`
-	ETag     string                 `json:"etag"`
+	Modules map[string]ThemeModule `json:"modules"`
+	// Scheme is "dark" or "light": which the theme is. "auto" for the automatic theme,
+	// which is dark or light as the device is; Tokens and Modules are then its dark look
+	// and Variants has both.
+	Scheme string `json:"scheme"`
+	// Variants are the theme's looks by scheme, each resolved the same way: one entry for
+	// an ordinary theme, "dark" and "light" for the automatic one. A client that follows
+	// the device's setting picks from here.
+	Variants map[string]ThemeVariant `json:"variants"`
+	Warnings []ThemeWarning          `json:"warnings"`
+	ETag     string                  `json:"etag"`
 	// Revision is ui_config.json's revision the overrides come from.
 	Revision int64 `json:"revision"`
+}
+
+// ThemeVariant is one look of a theme: the built-in theme behind it, its colours with the
+// global overrides applied, and each module's whole palette.
+type ThemeVariant struct {
+	ID      string                       `json:"id"`
+	Tokens  map[string]string            `json:"tokens"`
+	Modules map[string]map[string]string `json:"modules"`
+}
+
+// The built-in themes the automatic theme is, by the device's setting.
+const (
+	autoDark  = "default"
+	autoLight = "light"
+)
+
+// themeScheme is "dark" or "light" for a theme, from its own theme.json.
+func (s *Server) themeScheme(id string) string {
+	if s.Themes != nil {
+		for _, m := range s.Themes.List() {
+			if m.ID == id && (m.Scheme == "light" || m.Scheme == "dark") {
+				return m.Scheme
+			}
+		}
+	}
+	if id == autoLight {
+		return "light"
+	}
+	return "dark"
 }
 
 // ThemeModule is one module's colours.
@@ -132,15 +172,43 @@ func (s *Server) resolveTheme(r *http.Request) (*ResolvedTheme, error) {
 	} else {
 		t.Overrides = overlay(nil, cfg.Theme.Tokens)
 	}
-	t.Tokens = overlay(s.baseColors(t.ID), t.Overrides)
-	if len(t.Overrides) > 0 {
-		t.Warnings = append(t.Warnings, contrastWarnings("global", t.Tokens, t.Overrides)...)
+	// Each look is resolved the same way: the theme's colours, the global overrides, then
+	// each module's own over those. An override that reads well on the dark look can be
+	// unreadable on the light one, so each look gets its own warnings.
+	looks := []struct{ scheme, id string }{{s.themeScheme(t.ID), t.ID}}
+	t.Scheme = looks[0].scheme
+	if t.ID == "auto" {
+		looks = []struct{ scheme, id string }{{"dark", autoDark}, {"light", autoLight}}
+		t.Scheme = "auto"
 	}
-	for _, mod := range sortedStringKeys(cfg.Theme.Modules) {
-		ov := cfg.Theme.Modules[mod]
-		toks := overlay(t.Tokens, ov)
-		t.Modules[mod] = ThemeModule{Tokens: toks, Overrides: overlay(nil, ov)}
-		t.Warnings = append(t.Warnings, contrastWarnings("module:"+mod, toks, ov)...)
+	t.Variants = map[string]ThemeVariant{}
+	for i, look := range looks {
+		label := ""
+		if len(looks) > 1 {
+			label = look.scheme
+		}
+		warn := func(scope string, colors, changed map[string]string) {
+			for _, w := range contrastWarnings(scope, colors, changed) {
+				w.Variant = label
+				t.Warnings = append(t.Warnings, w)
+			}
+		}
+		v := ThemeVariant{ID: look.id, Tokens: overlay(s.baseColors(look.id), t.Overrides), Modules: map[string]map[string]string{}}
+		if len(t.Overrides) > 0 {
+			warn("global", v.Tokens, t.Overrides)
+		}
+		for _, mod := range sortedStringKeys(cfg.Theme.Modules) {
+			ov := cfg.Theme.Modules[mod]
+			v.Modules[mod] = overlay(v.Tokens, ov)
+			warn("module:"+mod, v.Modules[mod], ov)
+			if i == 0 {
+				t.Modules[mod] = ThemeModule{Tokens: v.Modules[mod], Overrides: overlay(nil, ov)}
+			}
+		}
+		t.Variants[look.scheme] = v
+		if i == 0 {
+			t.Tokens = v.Tokens
+		}
 	}
 	t.ETag = themeETag(t)
 	return t, nil

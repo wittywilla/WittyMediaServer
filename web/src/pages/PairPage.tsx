@@ -8,7 +8,7 @@ import { useApp } from '../state'
 import './pair.css'
 
 type Invite = { code: string; expiresInSec: number; user: User }
-type Asking = { code: string; device: string; platform: string; ip: string; profiles: { id: number; name: string; kind: string }[]; needsPin?: boolean }
+type Asking = { code: string; device: string; platform: string; ip: string; profiles: { id: number; name: string; kind: string; needsPassword?: boolean }[]; needsPin?: boolean; twoFactor?: boolean }
 
 // A device that started with secure pairing shows a 6-digit PIN that changes every 30 seconds.
 const PIN_LENGTH = 6
@@ -28,6 +28,10 @@ export default function PairPage() {
   const [done, setDone] = useState<{ device: string; user: User } | 'denied' | null>(null)
   const [pin, setPin] = useState('')
   const [pinErr, setPinErr] = useState('')
+  // Signing a device in as an administrator asks for the administrator's password again:
+  // a session left open on a phone can't hand out the whole server.
+  const [password, setPassword] = useState('')
+  const [otp, setOtp] = useState('')
 
   const look = async (c: string) => {
     setErr(''); setBusy(true)
@@ -38,15 +42,20 @@ export default function PairPage() {
   useEffect(() => { const c = params.get('code'); if (c) look(c) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const needsPin = !!asking?.needsPin
-  const pinReady = !needsPin || pin.length === PIN_LENGTH
+  const needsPassword = !!user?.isAdmin && who === user.id
+  const pinReady = (!needsPin || pin.length === PIN_LENGTH) && (!needsPassword || (password !== '' && (!user?.twoFactor || otp.trim() !== '')))
+  const confirm = needsPassword ? { password, otp: otp.trim() } : {}
   const approve = async () => {
-    if (!pinReady) { setPinErr(`Type the ${PIN_LENGTH}-digit PIN the TV shows now.`); return }
+    if (!pinReady) { setPinErr(needsPin && pin.length !== PIN_LENGTH ? `Type the ${PIN_LENGTH}-digit PIN the TV shows now.` : 'Type your password to sign a device in as an administrator.'); return }
     setErr(''); setPinErr(''); setBusy(true)
     try {
-      setDone(await api.post<{ device: string; user: User }>('/pair/approve', needsPin ? { code: asking!.code, userId: who, pin } : { code: asking!.code, userId: who }))
+      setDone(await api.post<{ device: string; user: User }>('/pair/approve', needsPin ? { code: asking!.code, userId: who, pin, ...confirm } : { code: asking!.code, userId: who, ...confirm }))
     } catch (e: any) {
       const reason = e instanceof ApiError ? e.data?.reason : undefined
-      if (needsPin && reason === 'wrong-pin') {
+      if (e instanceof ApiError && e.status === 403 && needsPassword && reason !== 'locked') {
+        // The password or code wasn't right: the question stays open.
+        setPinErr(e.message); setPassword(''); setOtp('')
+      } else if (needsPin && reason === 'wrong-pin') {
         // The question stays open: the PIN changes every 30 seconds, so another try is normal.
         const left = e.data?.triesLeft
         setPinErr(typeof left === 'number' && left > 0 ? `${e.message} ${left === 1 ? 'One more try' : `${left} more tries`} before the sign-in ends.` : e.message)
@@ -81,7 +90,7 @@ export default function PairPage() {
   }, [left]) // eslint-disable-line react-hooks/exhaustive-deps
   const getCode = async () => {
     setErr(''); setBusy(true)
-    try { const i = await api.post<Invite>('/pair/invite', { userId: who }); setInv(i); setLeft(i.expiresInSec) } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+    try { const i = await api.post<Invite>('/pair/invite', { userId: who, ...confirm }); setInv(i); setLeft(i.expiresInSec); setPassword(''); setOtp('') } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
 
   if (user && user.kind !== 'adult' && !user.isAdmin) {
@@ -123,6 +132,17 @@ export default function PairPage() {
                   onChange={(e) => { setPin(e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH)); setPinErr('') }}
                   onKeyDown={(e) => { if (e.key === 'Enter' && pin.length === PIN_LENGTH && !busy) approve() }} />
                 <span id="pair-pin-help" className="panel-note">The {PIN_LENGTH} digits under the QR code. They change every 30 seconds, so type the ones shown now.</span>
+              </label>
+            )}
+            {needsPassword && (
+              <label>Your password
+                <input className="input" type="password" value={password} autoComplete="current-password" disabled={busy} onChange={(e) => { setPassword(e.target.value); setPinErr('') }} />
+                <span className="panel-note">This device would be an administrator’s, so your password is asked for again. Pick a Kids or Guest profile above to skip it.</span>
+              </label>
+            )}
+            {needsPassword && user?.twoFactor && (
+              <label>Code from your authenticator app
+                <input className="input" value={otp} inputMode="numeric" autoComplete="one-time-code" disabled={busy} onChange={(e) => setOtp(e.target.value)} />
               </label>
             )}
             {pinErr && <div id="pair-pin-error" className="error" role="alert">{pinErr}</div>}
@@ -167,7 +187,16 @@ export default function PairPage() {
                 </label>
               </div>
             )}
-            <div className="panel-actions"><button className="btn" disabled={busy} onClick={getCode}>{inv ? 'Get a new code' : 'Get a code'}</button></div>
+            {needsPassword && !inv && (
+              <div className="form full">
+                <label>Your password
+                  <input className="input" type="password" value={password} autoComplete="current-password" disabled={busy} onChange={(e) => setPassword(e.target.value)} />
+                  <span className="panel-note">A code for an administrator’s account asks for your password again.</span>
+                </label>
+                {user?.twoFactor && <label>Code from your authenticator app<input className="input" value={otp} inputMode="numeric" autoComplete="one-time-code" disabled={busy} onChange={(e) => setOtp(e.target.value)} /></label>}
+              </div>
+            )}
+            <div className="panel-actions"><button className="btn" disabled={busy || (needsPassword && !inv && password === '')} onClick={getCode}>{inv ? 'Get a new code' : 'Get a code'}</button></div>
           </div>
         </div>
       )}

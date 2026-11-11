@@ -96,7 +96,8 @@ func Example_render() {
 		Root(sdui.ScreenNode("home").Child(
 			sdui.TextOf("greeting", "Hello").
 				BindWith("text", sdui.Binding{Path: "$.user.name", Default: "Hello", Format: "upper"}),
-			sdui.ShelfOf("games", "Games").Module("wittyplay").If(sdui.ModuleEnabled("wittyplay")),
+			sdui.ShelfOf("games", "Games").Module("wittyplay").If(sdui.ModuleEnabled("wittyplay")).
+				Child(sdui.CardOf("game-1", sdui.Item{ID: "g1", Title: "Dragon Blaster"})),
 		)).
 		Build()
 

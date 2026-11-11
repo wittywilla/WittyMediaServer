@@ -43,6 +43,12 @@ type RenderContext struct {
 	// ThemeOverrides maps module id → token name → colour, merged over the
 	// document's ThemeRef.ModuleOverrides.
 	ThemeOverrides map[string]map[string]string
+	// Profile is the device the screen is fitted to (see ProfileFor). nil: no
+	// device rules are applied, only focus is stamped.
+	Profile *Layout
+	// Catalog is the catalogue revision the client was built against; types
+	// newer than it are sent as their Fallback. 0 means the current one.
+	Catalog int
 }
 
 // Render resolves doc for ctx. It deep-copies the document; removes every
@@ -69,9 +75,33 @@ func Render(doc Document, ctx RenderContext) (Document, error) {
 		return Document{}, fmt.Errorf("sdui: root node %q is hidden by its visibility condition", doc.Root.ID)
 	}
 	out.Root = root
+	out.Layout = cloneLayout(ctx.Profile)
+	expandTree(&out.Root, &out, out.Layout)
+	fit(&out, out.Layout, ctx.Catalog)
 	out.Meta.GeneratedAt = ctx.Now.UTC()
 	out.Meta.ETag = ETag(out)
 	return out, nil
+}
+
+// expandTree runs expandItems over the tree, then leaves out rows that ended
+// up with nothing in them: an empty "Continue watching" is not shown.
+func expandTree(n *Node, doc *Document, l *Layout) {
+	expandItems(n, doc, l)
+	kept := n.Children[:0]
+	for _, c := range n.Children {
+		expandTree(&c, doc, l)
+		if len(c.Children) == 0 && (rowScroller(c.Type) || (c.Type == HeroBanner && c.Props["backdropUrl"] == nil)) {
+			continue
+		}
+		kept = append(kept, c)
+	}
+	n.Children = kept
+	if len(kept) == 0 {
+		n.Children = nil
+	}
+	if len(n.Props) == 0 {
+		n.Props = nil
+	}
 }
 
 func mergeOverrides(ref *ThemeRef, ctxOv map[string]map[string]string) map[string]map[string]string {
@@ -186,6 +216,9 @@ func Evaluate(c *Condition, ctx RenderContext) bool {
 		return false
 	}
 	if c.Module != "" && !containsString(ctx.Modules, c.Module) {
+		return false
+	}
+	if c.FormFactor != "" && (ctx.Profile == nil || ctx.Profile.FormFactor != c.FormFactor) {
 		return false
 	}
 	if w := ctx.Viewport.Width; w > 0 {
@@ -408,6 +441,7 @@ func formatDuration(seconds float64) string {
 func cloneDocument(d Document) Document {
 	out := d
 	out.Root = cloneNode(d.Root)
+	out.Layout = cloneLayout(d.Layout)
 	if d.Theme != nil {
 		t := *d.Theme
 		t.ModuleOverrides = cloneStringMapMap(d.Theme.ModuleOverrides)
@@ -441,6 +475,10 @@ func cloneNode(n Node) Node {
 			b.Default = cloneAny(b.Default)
 			out.Bindings[k] = b
 		}
+	}
+	if n.Focus != nil {
+		f := *n.Focus
+		out.Focus = &f
 	}
 	if n.Children != nil {
 		out.Children = make([]Node, len(n.Children))

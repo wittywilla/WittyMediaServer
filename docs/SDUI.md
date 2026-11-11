@@ -11,7 +11,92 @@ The Go library behind this is [`pkg/sdui`](../pkg/sdui/README.md)
 (`github.com/wittywilla/wittymediaserver/pkg/sdui`). It is pure Go, standard
 library only, and knows nothing about HTTP or storage. This document is the
 reference for the schema, the rendering rules, the patch protocol, and what a
-client must do.
+client must do. The same schema as a file for tools is
+[`sdui.schema.json`](sdui.schema.json) (JSON Schema 2020-12), made from the
+code and kept current by a test.
+
+## Designed for tvOS first
+
+An Apple TV is the strictest device a screen has to work on, so the schema is
+built around its rules and every other device gets them for free.
+
+| tvOS rule | What the schema does about it |
+|---|---|
+| There is no pointer. Everything a person can act on must take focus, and focus must start somewhere. | Every rendered node a person can act on has `focus.focusable`, a `focus.order` in reading order, and a `focus.group`; exactly one has `focus.default`. See [Focus](#focus). |
+| Focus moves by direction, and things that can be focused can't be inside each other. | The validator refuses a pressable node inside another, and a focus guide that leads nowhere. |
+| A screen scrolls one way and its rows scroll sideways. Nothing scrolls both ways. | The validator refuses a scrolling region inside another within one page (a `Shelf` in a `Shelf`, a `Shelf` in a `Grid`). `layout.scroll` is always `vertical`. |
+| The edge of a television picture can't be relied on. | `layout.safeArea`: 60 points top and bottom, 80 at the sides, on the 1920×1080 canvas. |
+| It is read from the sofa. | `layout.text`: tvOS's own sizes in points (page title 76, heading 57, title 48, body 29, caption 25). |
+| An Apple TV HD has little memory. | A screen is cut to `layout.maxSections` rows of `layout.maxItems` cards (10 rows of 16 on an HD, 20 of 30 on a 4K), and `layout.truncated` says when rows were left out. |
+| A 4K poster in a 250-point card wastes all of it. | Every card's `props.image` is the picture's address with the width to ask for, and its size and aspect: 250×375 for a poster on an HD, twice that on a 4K. |
+| There is no web view and no browser. | There is no web-view component, and nodes whose action is `external` are left out for a TV. |
+| The Top Shelf is not a screen. | It has its own small document: [Top Shelf](#top-shelf). |
+
+## Device profiles
+
+One authored screen is rendered for five form factors. The request says which
+(`formFactor`, or it follows from `platform`), and a TV says its class with
+`deviceClass`. The profile used comes back as `layout`, so the client lays out
+with the same numbers the server cut the screen to.
+
+| Form factor | Scale | Safe area | Grid columns | Rows | Cards a row | Cards a grid | Poster asked for | Opens web links |
+|---|---|---|---|---|---|---|---|---|
+| `tv`, class `hd` (the default) | 1 | 60/80/60/80 | 6 | 10 | 16 | 60 | 250×375 | no |
+| `tv`, class `4k` | 2 | 60/80/60/80 | 6 | 20 | 30 | 120 | 500×750 | no |
+| `phone` | 3 | the system's | 3 | 16 | 20 | 60 | 360×540 | yes |
+| `tablet` | 2 | the system's | 5 | 20 | 30 | 100 | 320×480 | yes |
+| `desktop`, `web` | 2 | none | the window's | 30 | 40 | 200 | 360×540 | yes |
+
+`layout.images` lists the picture size for every card shape (`poster` 2/3,
+`wide` 16/9, `square` 1/1, `hero`), in pixels. A row's `cardShape` prop, or a
+card's own `shape`, says which applies. A condition can test the form factor:
+`{"formFactor": "tv"}`.
+
+A TV that doesn't say its class gets the HD profile: it is safe on both.
+
+## Focus
+
+`node.focus` is the node's place in the focus engine.
+
+| Field | Set by | Meaning |
+|---|---|---|
+| `focusable` | Render | True on every node a person can act on: a `Button`, `Card`, `ListItem`, `Tab`, `SearchBar`, or anything with an `action`. A disabled button is not. |
+| `order` | Render | Its place in reading order, from 1, with no gaps. The same screen always gives the same numbers. |
+| `group` | Render | The ID of the row or bar it is in (`Shelf`, `PosterRow`, `Carousel`, `Grid`, `List`, `Tabs`, `Toolbar`, `HeroBanner`). Treat a group as one focus section, and remember the last focused node in it. |
+| `default` | author, else Render | Focus starts here. An author may mark one node; when they didn't, or that node isn't on the screen for this account, Render marks the first node that isn't in a `Toolbar`, else the first of all. |
+| `up`, `down`, `left`, `right` | author | Focus guides: the ID of the node focus moves to in that direction, in place of the nearest. A guide to a node that isn't on the rendered screen is dropped, so focus never goes nowhere. |
+
+On tvOS, map `default` to `preferredFocusEnvironments`, a group to a
+`UIFocusGuide`-bounded section or a collection view that remembers its last
+focused index path, and the four guides to `UIFocusGuide`s. Elsewhere the same
+fields give keyboard and remote order.
+
+## Items and sections
+
+A row is usually filled from data. When a `Shelf`, `PosterRow`, `Carousel`,
+`Grid`, `List` or `HeroBanner` has an `items` prop (bound, or written out),
+Render turns each item into a child node: a `Card`, or a `ListItem` in a
+`List`. So every item is a node, with an ID to diff by and a place in the focus
+order, and it counts toward the device's limits.
+
+- The child's ID is `<row id>:<item id>`.
+- Its props are the item's `title`, `subtitle`, `imageUrl`, `kind`,
+  `progress`, `badges`, `module`, `route`, `shape`, and `itemId` (the item's
+  `id`).
+- Its action is the row's `itemAction` prop, or `openItem` when the document
+  defines that.
+- A row cut to the device's limit gets `more: true` and `total`. A
+  `HeroBanner` takes at most 5.
+- A row that ends up with nothing in it is left out. An empty "Continue
+  watching" is never sent.
+
+A `Stack` with a `sections` prop (a list of `{id, title, subtitle, cardShape,
+seeAll, items}`) becomes one `Shelf` per section, each then filled the same
+way. This is how Home has a row per library and Search a row per kind of
+result.
+
+In an action's `target`, `$name` stands for the activated node's prop of that
+name: `{"type": "navigate", "target": "$route"}` opens the card's own route.
 
 ## Overview and motivation
 
@@ -75,11 +160,12 @@ All JSON keys are camelCase. Fields marked *omit* are omitted when empty.
 | Field | Type | Notes |
 |---|---|---|
 | `version` | int | Must be `1` (`SchemaVersion`). |
-| `screen` | string | Screen name: `home`, `library`, `detail`, `player`, `settings`, or module-defined. Non-empty. |
+| `screen` | string | Screen name: `home`, `libraries`, `library`, `detail`, `search`, `livetv`, `music`, `player`, `settings`, or one an administrator added. Non-empty. |
 | `theme` | ThemeRef, *omit* | Theme id and per-module token overrides. |
 | `root` | Node | Must have `type: "Screen"`. |
 | `actions` | map[string]Action, *omit* | Named actions referenced by `node.action`. Names match `[A-Za-z_][A-Za-z0-9_-]*`. |
 | `meta` | Meta, *omit* | Non-structural metadata. |
+| `layout` | Layout, *omit* | The [device profile](#device-profiles) the screen was fitted to. Stamped by Render; one written into an authored document is ignored. |
 
 ### Node
 
@@ -93,6 +179,7 @@ All JSON keys are camelCase. Fields marked *omit* are omitted when empty.
 | `visibility` | Condition, *omit* | Must evaluate true for the node and its subtree to be rendered. Stripped by Render. |
 | `bindings` | map[string]Binding, *omit* | prop name → data path. Stripped by Render. |
 | `action` | string, *omit* | Key into `document.actions`, dispatched when the node is activated. |
+| `focus` | Focus, *omit* | See [Focus](#focus). An author sets only `default` and the guides. |
 
 ### Style
 
@@ -380,6 +467,20 @@ list **every** problem with a JSON-pointer-like path
 | Conditions | bounds ≥ 0; `minWidth ≤ maxWidth`, `minHeight ≤ maxHeight` when both set; `module` valid id; nesting ≤ 32. |
 | Theme | `id` non-blank; module ids, token names and colours valid. |
 | `meta.ttlSeconds` | ≥ 0. |
+| Focus | Nothing a person can act on is inside something else they can act on (a `Tab`'s content is its own page). At most one `focus.default`, on a node a person can act on. Every focus guide names such a node. |
+| Scrolling | Within one page (the `Screen`, a `Tab`'s content, a `Modal`) a scrolling region (`Shelf`, `PosterRow`, `Carousel`, `Grid`, `List`) is never inside another. |
+| Where actions lead | `navigate`, `fetch` and `submit` targets are a path on this server beginning with one `/` (`navigate` may also be `$prop`). `external` is an `http://` or `https://` address. So an edited screen can't send a client, and its sign-in, to another host. |
+| Pictures and streams | `src`, `imageUrl`, `backdropUrl`, `logoUrl`, `poster`: a path on this server or an `http(s)` address. No `javascript:` or `data:`. |
+| Sizes | ≤ 200 children written into one node, ≤ 64 props a node, ≤ 16 KiB a prop, ≤ 256 actions. |
+| Condition `formFactor` | `tv`, `phone`, `tablet`, `desktop` or `web`. |
+| Colour tokens (the server's store) | `token:<name>` must name a colour the themes have. |
+
+These exist so that an administrator's edit can't break every client at once.
+What the store adds on top: the file is validated before it replaces the one in
+use, the last 10 revisions are kept and any can be made current again, a file
+that doesn't validate is set aside and the last good one used, and a stock
+screen missing from the configuration (or one that can't be rendered for the
+account asking) is served from its template.
 
 `Unmarshal` additionally rejects input over **2 MiB**, unknown JSON fields,
 trailing data and a wrong `version` — before `Validate` runs.
@@ -388,12 +489,16 @@ trailing data and a wrong `version` — before `Validate` runs.
 
 | Function | Screen | Data | Highlights |
 |---|---|---|---|
-| `HomeTemplate(HomeData)` | `home` | user name, continue watching, recently added, recommended, extra shelves | Greeting bound to `$.user.name` (title-cased); `home-continue` gated on feature `history`; `home-recommended` on `recommendations`; `home-games` on module `wittyplay`; `home-livetv` on `wittytv`; `home-music` on `wittymusic`; search bar only at ≥ 720 px; "Finish server setup" for admins with flag `setupIncomplete`. |
-| `LibraryTemplate(LibraryData)` | `library` | library id, title, kind, items | Three grids (8/5/3 columns) gated on viewport width; title bound to `$.library.title`; empty-state text on flag `libraryEmpty`. |
+| `HomeTemplate(HomeData)` | `home` | user name, continue watching, recently added, recommended, extra shelves | Greeting bound to `$.user.name` (title-cased); a hero of featured titles; `home-continue` gated on feature `history`; `home-nextup`; a row per library from `$.home.sections`; `home-recommended` on `recommendations`; `home-games` on module `wittyplay`; `home-livetv` (channels) and `home-music` whenever there is something to show, in their module's colours; search bar only at ≥ 720 px; "Finish server setup" for admins with flag `setupIncomplete`. |
+| `LibraryTemplate(LibraryData)` | `library` | library id, title, kind, items | One grid bound to `$.library.items`, its columns the device's; title bound to `$.library.title`; empty-state text on flag `libraryEmpty`. |
+| `LibrariesTemplate()` | `libraries` | none | A grid of the libraries the account may open, bound to `$.libraries.items`. |
+| `SearchTemplate()` | `search` | none | The search field (default focus), then a row per kind of result from `$.search.sections`. |
+| `LiveTVTemplate()` | `livetv` | none | Favourite channels, then every channel the account may watch. |
+| `MusicTemplate()` | `music` | none | Continue listening, then recently added albums per music library. |
 | `DetailTemplate(DetailData)` | `detail` | item, overview, year, duration, rating, genres, related, children | Detail hero with duration formatted via `duration`; Play on feature `playback`; Resume on flag `hasProgress`; Artwork modal for admins; related row on `recommendations`. |
 | `PlayerTemplate(PlayerData)` | `player` | item, stream URL, poster, start offset, next item | Video bound under `$.player.*`; Back hidden on `tv`; subtitles toggle on flag `hasSubtitles`; up-next card on feature `autoplayNext`. |
 | `SettingsTemplate(SettingsData)` | `settings` | sections, version | One `Tab` per section; admin sections on role `admin`; module rows on `ModuleEnabled`; sign-out hidden from `guest`; About modal with version bound to `$.server.version`. |
-| `DefaultScreens()` | all five | empty | `map[string]Document` keyed by screen name, used to seed `ui_config.json`. |
+| `DefaultScreens()` | all nine | empty | `map[string]Document` keyed by screen name, used to seed `ui_config.json` and as the fallback for a stock screen the configuration lacks. |
 
 Every template panics if it would produce an invalid document, and the test
 suite asserts each one validates, survives a strict JSON round trip, and
@@ -401,16 +506,25 @@ renders for a bare guest and a loaded admin.
 
 ### Example: rendered `home`
 
-Rendered for an admin on the web at 1440×900 with `wittyplay` and `wittytv`
-enabled, features `history` and `recommendations`, user `willow`, and a
-`wittyplay` accent override. Abridged; the full file is the golden
-[`pkg/sdui/testdata/home.golden.json`](../pkg/sdui/testdata/home.golden.json).
+Rendered for an account on an Apple TV HD (`formFactor=tv`), with two titles
+being watched and one library. Abridged; the full files are the goldens in
+`pkg/sdui/testdata/`: [`home.tvhd.golden.json`](../pkg/sdui/testdata/home.tvhd.golden.json),
+`home.tv4k.golden.json`, `home.phone.golden.json` and `home.web.golden.json`
+are this same screen for each device.
 
 ```json
 {
   "version": 1,
   "screen": "home",
   "theme": { "id": "default" },
+  "layout": {
+    "formFactor": "tv", "class": "hd", "canvas": { "width": 1920, "height": 1080 }, "scale": 1,
+    "safeArea": { "top": 60, "right": 80, "bottom": 60, "left": 80 },
+    "scroll": "vertical", "focusEngine": true, "gridColumns": 6,
+    "maxSections": 10, "maxItems": 16, "maxGridItems": 60, "externalLinks": false,
+    "text": { "pageTitle": 76, "heading": 57, "title": 48, "body": 29, "caption": 25, "hint": 25, "badge": 23 },
+    "images": { "poster": { "width": 250, "height": 375, "aspect": "2/3" }, "wide": { "width": 548, "height": 308, "aspect": "16/9" } }
+  },
   "root": {
     "type": "Screen", "id": "home",
     "props": { "scroll": true, "title": "Home" },
@@ -418,37 +532,40 @@ enabled, features `history` and `recommendations`, user `willow`, and a
     "children": [
       { "type": "Toolbar", "id": "home-toolbar", "children": [
         { "type": "Text", "id": "home-greeting", "props": { "text": "Willow", "variant": "pageTitle" } },
-        { "type": "SearchBar", "id": "home-search", "props": { "placeholder": "Search your libraries" }, "action": "goSearch" },
-        { "type": "Button", "id": "home-settings-btn", "props": { "icon": "settings", "label": "Settings", "variant": "ghost" }, "action": "goSettings" }
+        { "type": "SearchBar", "id": "home-search", "props": { "placeholder": "Search your libraries" }, "action": "goSearch",
+          "focus": { "focusable": true, "order": 1, "group": "home-toolbar" } },
+        { "type": "Button", "id": "home-settings-btn", "props": { "icon": "settings", "label": "Settings", "variant": "ghost" }, "action": "goSettings",
+          "focus": { "focusable": true, "order": 2, "group": "home-toolbar" } }
       ]},
-      { "type": "HeroBanner", "id": "home-hero",
-        "props": { "items": [ { "itemId": "m1", "title": "Metropolis" } ], "title": "Featured" },
-        "style": { "height": "42vh", "aspectRatio": "16/9" } },
       { "type": "PosterRow", "id": "home-continue",
         "props": { "cardShape": "wide", "title": "Continue watching" },
         "children": [
-          { "type": "Card", "id": "home-continue-card-0",
-            "props": { "badges": ["HD"], "imageUrl": "/img/m1.jpg", "itemId": "m1", "kind": "movie", "progress": 0.4, "subtitle": "1927", "title": "Metropolis" },
-            "action": "openItem",
-            "children": [ { "type": "ProgressBar", "id": "home-continue-card-0-progress", "props": { "value": 0.4 } } ] }
+          { "type": "Card", "id": "home-continue:c0", "action": "openItem",
+            "props": { "title": "Title c0", "itemId": "c0", "route": "/item/c0", "progress": 0.5,
+              "imageUrl": "/api/items/c0/poster",
+              "image": { "url": "/api/items/c0/poster?w=548", "width": 548, "height": 308, "aspect": "16/9" } },
+            "focus": { "focusable": true, "order": 3, "group": "home-continue", "default": true } }
         ]},
-      { "type": "Shelf", "id": "home-games",
-        "props": { "items": [ { "title": "Dragon Blaster" } ], "title": "Jump back into a game" },
-        "style": { "module": "wittyplay", "tokens": { "accent": "#3ad29f" } } },
-      { "type": "Shelf", "id": "home-livetv", "props": { "title": "On now" }, "style": { "module": "wittytv" } }
+      { "type": "Stack", "id": "home-libraries", "style": { "direction": "column" }, "children": [
+        { "type": "Shelf", "id": "home-libraries:lib1",
+          "props": { "title": "Recently added in Films", "seeAll": "/library/1" },
+          "children": [ { "type": "Card", "id": "home-libraries:lib1:m0", "action": "openItem", "props": { "title": "Title m0", "route": "/item/m0" },
+            "focus": { "focusable": true, "order": 5, "group": "home-libraries:lib1" } } ] }
+      ]}
     ]
   },
   "actions": {
     "goSearch": { "type": "navigate", "target": "/search" },
     "goSettings": { "type": "navigate", "target": "/settings" },
-    "openItem": { "type": "navigate", "target": "/item" }
+    "openItem": { "type": "navigate", "target": "$route" }
   },
-  "meta": { "title": "Home", "generatedAt": "2026-01-01T00:00:00Z", "etag": "W/\"sha256-…\"", "source": "template:home", "ttlSeconds": 60 }
+  "meta": { "title": "Home", "generatedAt": "1970-01-01T00:00:00Z", "etag": "W/\"sha256-…\"", "source": "template:home", "ttlSeconds": 60 }
 }
 ```
 
-Note what is absent: `home-music` (module not enabled), `home-admin-setup`
-(flag unset), every `visibility` and `bindings` key.
+Note what is absent: the hero, games, channels and music rows (nothing to put
+in them), `home-admin-setup` (not an administrator), and every `visibility`
+and `bindings` key. Focus starts on the first card, not in the toolbar.
 
 ## Versioning and compatibility policy
 
@@ -458,7 +575,14 @@ Note what is absent: `home-music` (module not enabled), `home-admin-setup`
   type or a format verb is **compatible** and does not bump the version.
 - Clients must tolerate unknown component types (render children, ignore the
   type), unknown props, unknown style fields and unknown action types (ignore
-  the action).
+  the action). `sdui.schema.json` says the same to a validator: no object
+  forbids extra properties, and a node's `type` is any string.
+- The component catalogue has a revision of its own within one schema version
+  (`CatalogRevision`, 1 today; every type has a `since`). A client sends the
+  revision it was built against as `catalog` (or `X-WMS-SDUI-Catalog`), and
+  the server sends a type newer than that as its `fallback`, or a `Stack`.
+  A client that sends nothing gets the current catalogue and relies on the
+  rule above.
 - `Unmarshal` rejects any version other than the one it was built for.
   Servers store authored documents and re-validate on load so a bump is
   caught at startup.
@@ -480,21 +604,26 @@ A renderer for any platform follows the same shape:
    - `hidden` hides without unmounting; `class` is an opaque hook.
 3. **Unknown type fallback.** If `type` is not one you know, render a plain
    container and recurse into `children`. Never fail the screen.
-4. **Items.** When a container has `props.items` and no `children`, build a
-   card per item (`id`, `title`, `subtitle`, `imageUrl`, `kind`, `module`,
-   `progress`, `badges`). Explicit children win.
+4. **Items.** The server has already turned a row's items into child `Card`
+   and `ListItem` nodes: draw the children. Use `props.image` (`url`, `width`,
+   `height`, `aspect`) for the picture, at that size; `props.more` says the
+   row was cut and `seeAll` where the rest is.
 5. **Action dispatch.** When a node with `action` is activated, look up
    `document.actions[action]` and run it: `navigate` → your router,
    `play` → your player, `openModal`/`closeModal` → show/hide the `Modal`
    node with that id, `fetch` → request the target and replace/patch the
    screen, `toggle` → flip `props[params.prop]` on the target node,
    `submit` → POST field values, `external` → system browser, `back` → pop.
-   Substitute `$itemId` in `target` from the node's `props.itemId`. Ignore
-   unknown action types.
-6. **Keyboard/remote focus.** Treat `Shelf`, `PosterRow`, `Toolbar` and
-   `Tabs` as horizontal focus rows and `List`/`Stack(column)` as vertical, as
-   described in `docs/DESIGN.md`.
-7. **Updates.** Send `If-None-Match` with your ETag. On 304, keep the tree.
+   Substitute `$name` in `target` from the activated node's `props.name`
+   (`$route`, `$itemId`). Ignore unknown action types.
+6. **Focus.** Start focus on the node with `focus.default`. Move it in
+   `focus.order` where the platform wants an order, treat each `focus.group`
+   as one section that remembers where focus was, and follow the `up`,
+   `down`, `left` and `right` guides before geometry. See [Focus](#focus).
+7. **Layout.** Keep content inside `layout.safeArea`, size text from
+   `layout.text` by each `Text` node's `variant`, and give a `Grid`
+   `layout.gridColumns` columns when it is not 0.
+8. **Updates.** Send `If-None-Match` with your ETag. On 304, keep the tree.
    On a patch response, apply with the algorithm above; on any failure,
    re-fetch the full document. Respect `meta.ttlSeconds` for polling.
 
@@ -510,6 +639,7 @@ and `docs/openapi.json`.
 |---|---|---|
 | `GET /sdui/screens/{screen}` | any account | The screen rendered for this account and device. `ETag`; 304 with `If-None-Match`. |
 | `GET /sdui/screens/{screen}/diff?since=<etag>` | any account | Patches from the render the client has, or the whole document. |
+| `GET /sdui/topshelf` | any account | [Top Shelf](#top-shelf) content for a tvOS extension. |
 | `GET /sdui/config` | admin | All of `ui_config.json`, with `etag`. |
 | `PUT /sdui/config` | admin | Replace it; `If-Match` required. |
 | `GET /sdui/config/history` | admin | The last 10 revisions. |
@@ -522,7 +652,9 @@ field the query parameter wins over the header.
 
 | `RenderContext` | From | Notes |
 |---|---|---|
-| `Platform` | `platform` / `X-WMS-Platform`, else derived from `formFactor` | `web` (default), `tv`, `ios`, `android`, `desktop`. Form factors map onto them: `phone`/`tablet` → `ios`, `tenfoot`/`10ft` → `tv`, `browser` → `web`. Another short lower-case name is accepted and simply matches no condition. |
+| `Platform` | `platform` / `X-WMS-Platform`, else derived from `formFactor` | `web` (default), `tv` (or `tvos`), `ios`, `android`, `desktop`. Form factors map onto them: `phone`/`tablet` → `ios`, `tenfoot`/`10ft` → `tv`, `browser` → `web`. Another short lower-case name is accepted and simply matches no condition. |
+| `Profile` | `formFactor` / `X-WMS-Form-Factor`, else the platform; `deviceClass` / `X-WMS-Device-Class` | The [device profile](#device-profiles): `tv`, `phone`, `tablet`, `desktop`, `web`; `ios` and `android` without a form factor are a phone. `deviceClass` is `hd` or `4k`. |
+| `Catalog` | `catalog` / `X-WMS-SDUI-Catalog` | The catalogue revision the client knows. |
 | `Flags["formFactor:<ff>"]` | `formFactor` / `X-WMS-Form-Factor` | So a condition can say `{"flag": "formFactor:tablet"}`. |
 | `Viewport` | `viewport=1440x900` / `X-WMS-Viewport`, or `width` and `height` | CSS pixels. Send it: width conditions pass when it is unknown. |
 | `Locale` | `locale` / `X-WMS-Locale`, else the first `Accept-Language` | A language tag (`en-GB`). |
@@ -531,11 +663,61 @@ field the query parameter wins over the header.
 | `Features` | the server | `/capabilities` `features`, plus `history` and `playback`. |
 | `Modules` | the server | The modules the screen's conditions name that are installed and on. |
 | `Flags["setupIncomplete"]` | the server | For administrators while first-time setup is unfinished. |
-| `Data` | the server | `$.user.name`, `$.user.kind`, `$.user.isAdmin`, `$.server.name`, `$.server.version`. Library data (continue watching, items) is not bound yet; templates fall back to their static props. |
+| `Data` | the server | `$.user.name`, `$.user.kind`, `$.user.isAdmin`, `$.server.name`, `$.server.version`, and the screen's own data: see [What the server puts in Data](#what-the-server-puts-in-data). |
 | `ThemeOverrides` | `ui_config.json` `theme.modules` | The per-module colours of the [theme engine](THEMES.md#the-theme-engine), so a node with `style.module` gets them in `style.tokens`. |
 
-An invalid value is a 400 naming the parameter. An unknown screen is 404; a
-screen whose root is hidden for this requester is 422.
+An invalid value is a 400 naming the parameter. An unknown screen is 404, and
+so is a library or title the account may not open. A screen an administrator
+added whose root is hidden for this requester is 422; a stock screen in that
+state is served from its template instead.
+
+### What the server puts in Data
+
+Each stock screen is filled for the account asking, read the way the ordinary
+routes read it: with the account's library, rating and title limits. A title,
+show, album or channel an account may not see is never in a screen sent to it.
+Only as much is read as the device is sent.
+
+| Screen | Request | Data | Flags |
+|---|---|---|---|
+| `home` | | `$.home.featured` (5 newest films, backdrops), `continueWatching`, `nextUp`, `sections` (a row of the newest titles per library), `music` (newest albums), `channels` | `setupIncomplete` |
+| `libraries` | | `$.libraries.items` | `librariesEmpty` |
+| `library` | `library=<id>`, `sort=title\|added\|year`, `offset` | `$.library.id`, `title`, `kind`, `items`, `sort` | `libraryEmpty` |
+| `detail` | `item=<id>` or `show=<id>` | `$.item.id`, `title`, `subtitle`, `overview`, `year`, `rating`, `duration`, `backdrop`, `progress`, `playId`, and for a show `children` (its episodes) | `hasProgress`, `notPlayable` (a show) |
+| `search` | `q=<text>` | `$.search.query`, `sections` (a row per library with matches, and channels) | `searchIdle` (under two letters), `searchEmpty` |
+| `livetv` | | `$.livetv.favourites`, `channels` | `livetvEmpty` |
+| `music` | | `$.music.continueListening`, `sections` (newest albums per music library) | `musicEmpty` |
+| `settings`, `player` | | none: `settings` is a list of places in the app's own settings, and `player` is the frame around a player the app drives with the playback routes | |
+
+An item is `{id, title, subtitle, kind, imageUrl, progress, route, playRoute,
+shape, module}`. `route` is the place in the app (`/item/12`, `/show/3`,
+`/album/…`, `/tv/watch/lib-4`, `/library/2`), the same routes the web client
+uses; an app maps them to its own screens.
+
+A screen an administrator adds under another name gets `$.user` and
+`$.server` only.
+
+### Top Shelf
+
+`GET /sdui/topshelf` answers what a tvOS Top Shelf extension shows: what the
+account was in the middle of, then what is new in the first libraries it may
+open.
+
+```json
+{ "version": 1, "style": "sectioned", "expiresInSec": 900,
+  "sections": [ { "title": "Continue watching", "items": [
+    { "id": "12", "title": "Metropolis", "shape": "poster", "progress": 0.4,
+      "image": { "url": "/api/items/12/poster?w=404", "width": 404, "height": 608, "aspect": "2/3" },
+      "displayRoute": "/item/12", "playRoute": "/watch/12" } ] } ] }
+```
+
+At most 4 sections of 10 items: the extension has seconds and little memory.
+`shape` is `poster`, `wide` or `square`, the three tvOS has, and `image` is
+sized for it (404×608, 908×512, 608×608 points, times 2 with `deviceClass=4k`).
+Build a `TVTopShelfSectionedContent` from it, with `displayRoute` and
+`playRoute` wrapped in the app's own URL scheme as the display and play
+actions. It has an `ETag`; ask again after `expiresInSec`. The extension signs
+in with the app's token, kept in a shared keychain group.
 
 ### Rendering, ETags and 304
 
@@ -550,8 +732,9 @@ the same device parameters as the screen, renders the screen and then:
 
 - answers **304** when `since` is the current ETag;
 - answers `{"etag", "since", "patches": [...]}` when the server still has the
-  render `since` names, kept for this account (the last 256 renders across all
-  accounts, in memory, gone at restart). Apply the patches with the
+  render `since` names, kept for this account (its last 6, and at most 128
+  across all accounts, 32 or 12 on a small machine; in memory, gone at
+  restart). Apply the patches with the
   [client algorithm](#client-application-algorithm);
 - answers `{"etag", "document": {...}}` otherwise: replace the local tree.
 

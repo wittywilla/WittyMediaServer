@@ -36,9 +36,13 @@ func (s *Server) mediaExtrasRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/media/{id}/stems", a(s.handleStems))
 	m.Handle("GET /api/media/{id}/stems/{stem}", a(s.handleStemFile))
 	m.Handle("PUT /api/media/{id}/stems/{stem}", s.requireAdmin(s.handleStemUpload))
+	m.Handle("POST /api/media/{id}/stems/approximate", a(s.handleStemsApproximate))
+	m.Handle("POST /api/media/{id}/stems/separate", s.requireAdmin(s.handleStemsSeparate))
+	m.Handle("POST /api/media/{id}/canvas/generate", s.requireAdmin(s.handleCanvasGenerate))
 	m.Handle("DELETE /api/media/{id}/stems/{stem}", s.requireAdmin(s.handleStemDelete))
 	m.Handle("GET /api/media/{id}/markers", a(s.handleMarkers))
 	m.Handle("PUT /api/media/{id}/markers", s.requireAdmin(s.handleMarkersPut))
+	m.Handle("POST /api/shows/{id}/detect-intros", s.requireAdmin(s.handleDetectIntros))
 	m.Handle("GET /api/media/{id}/where-to-watch", a(s.handleWhereToWatch))
 	m.Handle("GET /api/discover/where-to-watch", a(s.handleDiscoverWhereToWatch))
 }
@@ -114,8 +118,14 @@ type canvasInfo struct {
 	Height     int    `json:"height,omitempty"`
 	DurationMs int64  `json:"durationMs,omitempty"`
 	Loop       bool   `json:"loop"`
-	// Source: upload, sidecar or metadata-folder.
+	// Source: upload, generated (cut from the video by the server), sidecar or metadata-folder.
 	Source string `json:"source,omitempty"`
+	// Reason says why a file that was found isn't used: too-big or too-long.
+	Reason string `json:"reason,omitempty"`
+	// Task is the task making one now, when one is.
+	Task string `json:"task,omitempty"`
+	// CanGenerate: an administrator can have one cut from the video.
+	CanGenerate bool `json:"canGenerate"`
 }
 
 // canvasKinds are the items a canvas can go with.
@@ -130,7 +140,11 @@ func (s *Server) findCanvas(ctx context.Context, it *library.Item) (extraFile, b
 		return extraFile{}, false
 	}
 	if p := mediaextras.FirstPlain(s.extrasRoot(), mediaextras.Key(it.ID, it.Path)+"/canvas", mediaextras.CanvasExts); p != "" {
-		return extraFile{path: p, source: "upload"}, true
+		source := "upload"
+		if _, err := os.Lstat(filepath.Join(filepath.Dir(p), mediaextras.GeneratedMark)); err == nil {
+			source = "generated"
+		}
+		return extraFile{path: p, source: source}, true
 	}
 	if localFileItem(it) {
 		showDir := ""
@@ -181,20 +195,36 @@ func (s *Server) probeCanvas(ctx context.Context, f extraFile, st os.FileInfo) (
 	return c.Width, c.Height, c.DurationMs
 }
 
+// canvasRefused says why a file that was found isn't used as a canvas: "too-big" past
+// MaxCanvasSidecar, "too-long" past MaxCanvasSeconds (when FFprobe can say), "" when it is
+// fine. Uploads were held to MaxCanvas when they arrived.
+func (s *Server) canvasRefused(ctx context.Context, f extraFile, st os.FileInfo) string {
+	if st.Size() > mediaextras.MaxCanvasSidecar {
+		return "too-big"
+	}
+	if _, _, ms := s.probeCanvas(ctx, f, st); ms > mediaextras.MaxCanvasSeconds*1000 {
+		return "too-long"
+	}
+	return ""
+}
+
 // GET /api/media/{id}/canvas, and /api/items/{id}/canvas.
 func (s *Server) handleCanvas(w http.ResponseWriter, r *http.Request) {
 	it := s.extrasItem(w, r)
 	if it == nil {
 		return
 	}
-	out := canvasInfo{Loop: true}
+	out := canvasInfo{Loop: true, Task: s.mediaJobTask(fmt.Sprintf("canvas:%d", it.ID))}
+	out.CanGenerate = userFrom(r).IsAdmin && it.Kind == "video" && localFileItem(it) && s.canvasEncoder() != "" && s.Tools.FFmpeg != ""
 	f, ok := s.findCanvas(r.Context(), it)
 	if ok {
 		if fh, st, err := s.openExtra(r.Context(), f); err == nil {
 			fh.Close()
-			out.Available, out.Source, out.MIME = true, f.source, mediaextras.CanvasMIME(f.path)
-			out.URL = fmt.Sprintf("/api/media/%d/canvas/file?v=%s", it.ID, strings.Trim(extraETag(st), `"`))
-			out.Width, out.Height, out.DurationMs = s.probeCanvas(r.Context(), f, st)
+			if out.Reason = s.canvasRefused(r.Context(), f, st); out.Reason == "" {
+				out.Available, out.Source, out.MIME = true, f.source, mediaextras.CanvasMIME(f.path)
+				out.URL = fmt.Sprintf("/api/media/%d/canvas/file?v=%s", it.ID, strings.Trim(extraETag(st), `"`))
+				out.Width, out.Height, out.DurationMs = s.probeCanvas(r.Context(), f, st)
+			}
 		}
 	}
 	writeJSON(w, 200, out)
@@ -210,6 +240,14 @@ func (s *Server) handleCanvasFile(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		writeErr(w, 404, "no canvas")
 		return
+	}
+	// The same limits as the listing: what it wouldn't name isn't served.
+	if fh, st, err := s.openExtra(r.Context(), f); err == nil {
+		fh.Close()
+		if s.canvasRefused(r.Context(), f, st) != "" {
+			writeErr(w, 404, "no canvas")
+			return
+		}
 	}
 	s.serveExtra(w, r, f, mediaextras.CanvasMIME(f.path))
 }
@@ -246,6 +284,7 @@ func (s *Server) handleCanvasUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.removeOthers(rel, mediaextras.CanvasExts, dst)
+	_ = os.Remove(filepath.Join(filepath.Dir(dst), mediaextras.GeneratedMark))
 	s.Log.InfoContext(r.Context(), "canvas uploaded", "cat", "library", "item", it.ID, "bytes", size)
 	writeJSON(w, 200, map[string]any{"ok": true, "size": size, "mime": mediaextras.CanvasMIME(dst)})
 }
@@ -287,6 +326,8 @@ type stemView struct {
 	Size       int64  `json:"size"`
 	Multitrack bool   `json:"multitrack,omitempty"`
 	Source     string `json:"source"`
+	// Approximate: FFmpeg's centre-channel removal, not a real stem.
+	Approximate bool `json:"approximate,omitempty"`
 }
 
 // stemsOf lists an item's stems. Those beside the media count only if they're inside a
@@ -300,11 +341,27 @@ func (s *Server) stemsOf(ctx context.Context, it *library.Item) []mediaextras.St
 		mediaPath = filepath.Join(string(filepath.Separator), "nowhere", "x")
 	}
 	var out []mediaextras.Stem
-	for _, st := range mediaextras.FindStems(mediaPath, filepath.Join(s.extrasRoot(), mediaextras.Key(it.ID, it.Path))) {
+	uploads := filepath.Join(s.extrasRoot(), mediaextras.Key(it.ID, it.Path))
+	separated := mediaextras.Separated(filepath.Join(uploads, "stems"))
+	real := false
+	for _, st := range mediaextras.FindStems(mediaPath, uploads) {
 		if !st.Uploaded && (!localFileItem(it) || !s.Store.LibraryFile(ctx, st.Path)) {
 			continue
 		}
+		if st.Uploaded && separated[st.Name] {
+			st.Source = "separated"
+		}
+		if st.Name == "instrumental" {
+			real = true
+		}
 		out = append(out, st)
+	}
+	// The approximate instrumental stands in only while there is no real one.
+	if p := filepath.Join(uploads, mediaextras.ApproxDir, "instrumental"+mediaextras.ApproxExt); !real {
+		if fi, err := os.Lstat(p); err == nil && fi.Mode().IsRegular() {
+			st := mediaextras.Stem{Name: "instrumental", Path: p, Size: fi.Size(), MIME: mediaextras.StemMIME(p), Source: "approximate", Approximate: true, Uploaded: true}
+			out = append([]mediaextras.Stem{st}, out...)
+		}
 	}
 	return out
 }
@@ -312,7 +369,7 @@ func (s *Server) stemsOf(ctx context.Context, it *library.Item) []mediaextras.St
 func stemViews(it *library.Item, stems []mediaextras.Stem, token string) []stemView {
 	out := []stemView{}
 	for _, st := range stems {
-		out = append(out, stemView{Name: st.Name, URL: withStream(fmt.Sprintf("/api/media/%d/stems/%s", it.ID, st.Name), token), MIME: st.MIME, Size: st.Size, Multitrack: st.Multitrack, Source: st.Source})
+		out = append(out, stemView{Name: st.Name, URL: withStream(fmt.Sprintf("/api/media/%d/stems/%s", it.ID, st.Name), token), MIME: st.MIME, Size: st.Size, Multitrack: st.Multitrack, Source: st.Source, Approximate: st.Approximate})
 	}
 	return out
 }
@@ -323,7 +380,7 @@ func (s *Server) handleStems(w http.ResponseWriter, r *http.Request) {
 	if it == nil {
 		return
 	}
-	writeJSON(w, 200, map[string]any{"stems": stemViews(it, s.stemsOf(r.Context(), it), ""), "names": mediaextras.StemNames})
+	writeJSON(w, 200, map[string]any{"stems": stemViews(it, s.stemsOf(r.Context(), it), ""), "names": mediaextras.StemNames, "separation": s.separationFor(r, it)})
 }
 
 // GET /api/media/{id}/stems/{stem}: one stem, with byte ranges.
@@ -372,8 +429,24 @@ func (s *Server) handleStemUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.removeOthers(rel, exts, dst)
+	s.forgetSeparated(filepath.Dir(dst), name)
 	s.Log.InfoContext(r.Context(), "stem uploaded", "cat", "library", "item", it.ID, "stem", name, "bytes", size)
 	writeJSON(w, 200, map[string]any{"ok": true, "name": name, "size": size, "mime": mediaextras.StemMIME(dst)})
+}
+
+// forgetSeparated takes a part off the list of those a separator made: an upload has
+// replaced it.
+func (s *Server) forgetSeparated(stemsDir, name string) {
+	list := mediaextras.Separated(stemsDir)
+	if !list[name] {
+		return
+	}
+	delete(list, name)
+	names := make([]string, 0, len(list))
+	for k := range list {
+		names = append(names, k)
+	}
+	_ = os.WriteFile(filepath.Join(stemsDir, mediaextras.SeparatedList), []byte(strings.Join(names, "\n")+"\n"), 0o644)
 }
 
 // DELETE /api/media/{id}/stems/{stem}: forgets an uploaded stem.
@@ -466,6 +539,9 @@ func (s *Server) mediaMarkers(ctx context.Context, it *library.Item) mediaextras
 		ch.Intro = &r
 	}
 	layers = append(layers, mediaextras.Layer{Source: mediaextras.SourceChapters, Markers: ch})
+	if stored.Detected != nil {
+		layers = append(layers, mediaextras.Layer{Source: mediaextras.SourceDetected, Markers: *stored.Detected})
+	}
 	if it.ShowID != nil {
 		if sh, err := s.Store.Show(ctx, *it.ShowID, 0); err == nil && sh.IntroEnd != nil && *sh.IntroEnd > 0 {
 			r := mediaextras.Range{EndSec: *sh.IntroEnd}
@@ -651,7 +727,8 @@ func mediaUploadPath(p string) bool {
 		return false
 	}
 	_, tail, ok := strings.Cut(rest, "/")
-	return ok && (tail == "canvas" || strings.HasPrefix(tail, "stems/"))
+	// Not the two that start a job: those take a small JSON body or none.
+	return ok && (tail == "canvas" || (strings.HasPrefix(tail, "stems/") && tail != "stems/approximate" && tail != "stems/separate"))
 }
 
 // fillMarkers adds what GET /api/media/{id}/markers knows to a playback answer. An intro

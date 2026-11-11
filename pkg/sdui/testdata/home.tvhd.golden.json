@@ -1,0 +1,298 @@
+{
+  "actions": {
+    "back": {
+      "type": "back"
+    },
+    "goHome": {
+      "target": "/",
+      "type": "navigate"
+    },
+    "goLibrary": {
+      "target": "/library",
+      "type": "navigate"
+    },
+    "goSearch": {
+      "target": "/search",
+      "type": "navigate"
+    },
+    "goSettings": {
+      "target": "/settings",
+      "type": "navigate"
+    },
+    "openItem": {
+      "target": "$route",
+      "type": "navigate"
+    },
+    "playItem": {
+      "target": "$itemId",
+      "type": "play"
+    }
+  },
+  "layout": {
+    "canvas": {
+      "height": 1080,
+      "width": 1920
+    },
+    "class": "hd",
+    "externalLinks": false,
+    "focusEngine": true,
+    "formFactor": "tv",
+    "gridColumns": 6,
+    "images": {
+      "hero": {
+        "aspect": "16/9",
+        "height": 1080,
+        "width": 1920
+      },
+      "poster": {
+        "aspect": "2/3",
+        "height": 375,
+        "width": 250
+      },
+      "square": {
+        "aspect": "1/1",
+        "height": 308,
+        "width": 308
+      },
+      "topShelfPoster": {
+        "aspect": "2/3",
+        "height": 608,
+        "width": 404
+      },
+      "topShelfSquare": {
+        "aspect": "1/1",
+        "height": 608,
+        "width": 608
+      },
+      "topShelfWide": {
+        "aspect": "16/9",
+        "height": 512,
+        "width": 908
+      },
+      "wide": {
+        "aspect": "16/9",
+        "height": 308,
+        "width": 548
+      }
+    },
+    "maxGridItems": 60,
+    "maxItems": 16,
+    "maxSections": 10,
+    "safeArea": {
+      "bottom": 60,
+      "left": 80,
+      "right": 80,
+      "top": 60
+    },
+    "scale": 1,
+    "scroll": "vertical",
+    "text": {
+      "badge": 23,
+      "body": 29,
+      "caption": 25,
+      "heading": 57,
+      "hint": 25,
+      "pageTitle": 76,
+      "title": 48
+    }
+  },
+  "meta": {
+    "source": "template:home",
+    "title": "Home",
+    "ttlSeconds": 60
+  },
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "id": "home-greeting",
+            "props": {
+              "text": "Willow",
+              "variant": "pageTitle"
+            },
+            "type": "Text"
+          },
+          {
+            "id": "home-toolbar-gap",
+            "props": {
+              "size": 0
+            },
+            "style": {
+              "width": "auto"
+            },
+            "type": "Spacer"
+          },
+          {
+            "action": "goSearch",
+            "focus": {
+              "focusable": true,
+              "group": "home-toolbar",
+              "order": 1
+            },
+            "id": "home-search",
+            "props": {
+              "placeholder": "Search your libraries"
+            },
+            "type": "SearchBar"
+          },
+          {
+            "action": "goSettings",
+            "focus": {
+              "focusable": true,
+              "group": "home-toolbar",
+              "order": 2
+            },
+            "id": "home-settings-btn",
+            "props": {
+              "icon": "settings",
+              "label": "Settings",
+              "variant": "ghost"
+            },
+            "type": "Button"
+          }
+        ],
+        "id": "home-toolbar",
+        "type": "Toolbar"
+      },
+      {
+        "children": [
+          {
+            "action": "openItem",
+            "focus": {
+              "default": true,
+              "focusable": true,
+              "group": "home-continue",
+              "order": 3
+            },
+            "id": "home-continue:c0",
+            "props": {
+              "image": {
+                "aspect": "16/9",
+                "height": 308,
+                "url": "/api/items/c0/poster?w=548",
+                "width": 548
+              },
+              "imageUrl": "/api/items/c0/poster",
+              "itemId": "c0",
+              "progress": 0.5,
+              "route": "/item/c0",
+              "title": "Title c0"
+            },
+            "type": "Card"
+          },
+          {
+            "action": "openItem",
+            "focus": {
+              "focusable": true,
+              "group": "home-continue",
+              "order": 4
+            },
+            "id": "home-continue:c1",
+            "props": {
+              "image": {
+                "aspect": "16/9",
+                "height": 308,
+                "url": "/api/items/c1/poster?w=548",
+                "width": 548
+              },
+              "imageUrl": "/api/items/c1/poster",
+              "itemId": "c1",
+              "progress": 0.5,
+              "route": "/item/c1",
+              "title": "Title c1"
+            },
+            "type": "Card"
+          }
+        ],
+        "id": "home-continue",
+        "props": {
+          "cardShape": "wide",
+          "title": "Continue watching"
+        },
+        "type": "PosterRow"
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "action": "openItem",
+                "focus": {
+                  "focusable": true,
+                  "group": "home-libraries:lib1",
+                  "order": 5
+                },
+                "id": "home-libraries:lib1:m0",
+                "props": {
+                  "image": {
+                    "aspect": "2/3",
+                    "height": 375,
+                    "url": "/api/items/m0/poster?w=250",
+                    "width": 250
+                  },
+                  "imageUrl": "/api/items/m0/poster",
+                  "itemId": "m0",
+                  "progress": 0.5,
+                  "route": "/item/m0",
+                  "title": "Title m0"
+                },
+                "type": "Card"
+              },
+              {
+                "action": "openItem",
+                "focus": {
+                  "focusable": true,
+                  "group": "home-libraries:lib1",
+                  "order": 6
+                },
+                "id": "home-libraries:lib1:m1",
+                "props": {
+                  "image": {
+                    "aspect": "2/3",
+                    "height": 375,
+                    "url": "/api/items/m1/poster?w=250",
+                    "width": 250
+                  },
+                  "imageUrl": "/api/items/m1/poster",
+                  "itemId": "m1",
+                  "progress": 0.5,
+                  "route": "/item/m1",
+                  "title": "Title m1"
+                },
+                "type": "Card"
+              }
+            ],
+            "id": "home-libraries:lib1",
+            "props": {
+              "seeAll": "/library/1",
+              "title": "Recently added in Films"
+            },
+            "type": "Shelf"
+          }
+        ],
+        "id": "home-libraries",
+        "style": {
+          "direction": "column"
+        },
+        "type": "Stack"
+      }
+    ],
+    "id": "home",
+    "props": {
+      "scroll": true,
+      "title": "Home"
+    },
+    "style": {
+      "background": "token:bg",
+      "direction": "column",
+      "gap": 32
+    },
+    "type": "Screen"
+  },
+  "screen": "home",
+  "theme": {
+    "id": "default"
+  },
+  "version": 1
+}

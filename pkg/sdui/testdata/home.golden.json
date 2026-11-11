@@ -45,7 +45,12 @@
             "props": {
               "placeholder": "Search your libraries"
             },
-            "action": "goSearch"
+            "action": "goSearch",
+            "focus": {
+              "focusable": true,
+              "order": 1,
+              "group": "home-toolbar"
+            }
           },
           {
             "type": "Button",
@@ -55,7 +60,12 @@
               "label": "Settings",
               "variant": "ghost"
             },
-            "action": "goSettings"
+            "action": "goSettings",
+            "focus": {
+              "focusable": true,
+              "order": 2,
+              "group": "home-toolbar"
+            }
           }
         ]
       },
@@ -63,18 +73,30 @@
         "type": "HeroBanner",
         "id": "home-hero",
         "props": {
-          "items": [
-            {
-              "itemId": "m1",
-              "title": "Metropolis"
-            }
-          ],
+          "cardShape": "hero",
           "title": "Featured"
         },
         "style": {
           "height": "42vh",
           "aspectRatio": "16/9"
-        }
+        },
+        "children": [
+          {
+            "type": "Card",
+            "id": "home-hero:m1",
+            "props": {
+              "itemId": "m1",
+              "title": "Metropolis"
+            },
+            "action": "openItem",
+            "focus": {
+              "focusable": true,
+              "order": 3,
+              "default": true,
+              "group": "home-hero"
+            }
+          }
+        ]
       },
       {
         "type": "PosterRow",
@@ -95,6 +117,7 @@
               "itemId": "m1",
               "kind": "movie",
               "progress": 0.4,
+              "route": "/item/m1",
               "subtitle": "1927",
               "title": "Metropolis"
             },
@@ -107,7 +130,12 @@
                 }
               }
             ],
-            "action": "openItem"
+            "action": "openItem",
+            "focus": {
+              "focusable": true,
+              "order": 4,
+              "group": "home-continue"
+            }
           }
         ]
       },
@@ -115,74 +143,36 @@
         "type": "PosterRow",
         "id": "home-recent",
         "props": {
-          "items": [
-            {
-              "title": "Metropolis"
-            }
-          ],
           "title": "Recently added"
         },
         "children": [
           {
             "type": "Card",
-            "id": "home-recent-card-0",
+            "id": "home-recent:n0",
             "props": {
-              "badges": [
-                "HD"
-              ],
-              "imageUrl": "/img/m1.jpg",
-              "itemId": "m1",
-              "kind": "movie",
-              "progress": 0.4,
-              "subtitle": "1927",
               "title": "Metropolis"
             },
-            "children": [
-              {
-                "type": "ProgressBar",
-                "id": "home-recent-card-0-progress",
-                "props": {
-                  "value": 0.4
-                }
-              }
-            ],
-            "action": "openItem"
-          },
-          {
-            "type": "Card",
-            "id": "home-recent-card-1",
-            "props": {
-              "itemId": "g1",
-              "kind": "game",
-              "module": "wittyplay",
-              "title": "Dragon Blaster"
-            },
-            "style": {
-              "module": "wittyplay",
-              "tokens": {
-                "accent": "#3ad29f"
-              }
-            },
-            "action": "openItem"
+            "action": "openItem",
+            "focus": {
+              "focusable": true,
+              "order": 5,
+              "group": "home-recent"
+            }
           }
         ]
       },
       {
-        "type": "PosterRow",
-        "id": "home-recommended",
-        "props": {
-          "title": "Recommended for you"
+        "type": "Stack",
+        "id": "home-libraries",
+        "style": {
+          "direction": "column"
         }
       },
       {
         "type": "Shelf",
         "id": "home-games",
         "props": {
-          "items": [
-            {
-              "title": "Dragon Blaster"
-            }
-          ],
+          "cardShape": "square",
           "title": "Jump back into a game"
         },
         "style": {
@@ -190,17 +180,22 @@
           "tokens": {
             "accent": "#3ad29f"
           }
-        }
-      },
-      {
-        "type": "Shelf",
-        "id": "home-livetv",
-        "props": {
-          "title": "On now"
         },
-        "style": {
-          "module": "wittytv"
-        }
+        "children": [
+          {
+            "type": "Card",
+            "id": "home-games:n0",
+            "props": {
+              "title": "Dragon Blaster"
+            },
+            "action": "openItem",
+            "focus": {
+              "focusable": true,
+              "order": 6,
+              "group": "home-games"
+            }
+          }
+        ]
       },
       {
         "type": "Shelf",
@@ -222,6 +217,7 @@
               "itemId": "g1",
               "kind": "game",
               "module": "wittyplay",
+              "route": "/item/g1",
               "title": "Dragon Blaster"
             },
             "style": {
@@ -230,7 +226,12 @@
                 "accent": "#3ad29f"
               }
             },
-            "action": "openItem"
+            "action": "openItem",
+            "focus": {
+              "focusable": true,
+              "order": 7,
+              "group": "home-retro"
+            }
           }
         ]
       }
@@ -258,7 +259,7 @@
     },
     "openItem": {
       "type": "navigate",
-      "target": "/item"
+      "target": "$route"
     },
     "playItem": {
       "type": "play",
@@ -268,7 +269,7 @@
   "meta": {
     "title": "Home",
     "generatedAt": "2026-01-01T00:00:00Z",
-    "etag": "W/\"sha256-56890ba97c1af9b4a6922bc726b71a88\"",
+    "etag": "W/\"sha256-cc11cd9046e9c127c32f700b968511e4\"",
     "source": "template:home",
     "ttlSeconds": 60
   }

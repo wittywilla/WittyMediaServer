@@ -26,6 +26,11 @@ export default function ShowPage() {
   const [err, setErr] = useState('')
   const [edit, setEdit] = useState<EditSection | ''>((params.get('edit') as EditSection) || '')
   const [refreshing, setRefreshing] = useState(false)
+  // Compare the episodes of each season by ear and mark what they share, as a task.
+  const findIntros = async () => {
+    setMore(false)
+    try { await api.post(`/shows/${show!.id}/detect-intros`, {}); toast('Looking for intros and credits. Tasks shows how far it has got.') } catch (e: any) { toast(e.message) }
+  }
   const [art, setArt] = useState(false)
   const [prefs, setPrefs] = useState<Prefs | null>(null)
   const [viewOverride, setViewOverride] = useState<'' | 'cards' | 'list' | null>(null)
@@ -94,6 +99,7 @@ export default function ShowPage() {
                 <SheetRow icon={<IconImage />} label="Artwork" onSelect={() => setArt(true)} />
                 <SheetRow icon={<IconEdit />} label="Edit" onSelect={() => setEdit('match')} />
                 <SheetRow icon={<IconRefresh />} label="Refresh" onSelect={() => setRefreshing(true)} />
+                <SheetRow icon={<IconPlay />} label="Find intros and credits" onSelect={findIntros} />
               </Rows>
             </RowSheet>
           )}

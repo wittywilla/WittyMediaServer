@@ -142,7 +142,8 @@ func TestModuleColoursReachRenderedScreens(t *testing.T) {
 	w := ts.do(t, "GET", "/api/sdui/config", admin, nil)
 	cfg := decode[sduistore.Config](t, w)
 	doc, err := sdui.NewDocument("games").
-		Root(sdui.ScreenNode("games").Child(sdui.ShelfOf("games-shelf", "Games").Module("wittyplay"))).Build()
+		Root(sdui.ScreenNode("games").Child(sdui.ShelfOf("games-shelf", "Games").Module("wittyplay").
+			Child(sdui.CardOf("games-card", sdui.Item{Title: "A game"})))).Build() // a row with nothing in it isn't sent
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,5 +181,55 @@ func TestContrastMatchesTheScript(t *testing.T) {
 	}
 	if _, ok := themes.ContrastRatio("#00000080", "#ffffff"); ok {
 		t.Error("a translucent colour has no single contrast")
+	}
+}
+
+// The automatic theme is two looks. Each is resolved with the same overrides, and an
+// override that is readable on one and not the other is warned about for that one only.
+func TestThemeVariants(t *testing.T) {
+	ts, admin, adult, _ := sduiAccounts(t)
+	if err := ts.Themes.Install(builtin.Builtin); err != nil {
+		t.Fatal(err)
+	}
+	th := decode[ResolvedTheme](t, ts.do(t, "GET", "/api/theme", adult, nil))
+	if th.Scheme != "dark" || len(th.Variants) != 1 || th.Variants["dark"].ID != "default" || th.Variants["dark"].Tokens["bg"] != th.Tokens["bg"] {
+		t.Fatalf("an ordinary theme: scheme %q variants %v", th.Scheme, th.Variants)
+	}
+	// Near-white text: fine on the dark look, unreadable on the light one.
+	w := ts.do(t, "PUT", "/api/theme/global", admin, map[string]any{"id": "auto", "tokens": map[string]string{"fg": "#f4f4f4"}})
+	if w.Code != 200 {
+		t.Fatalf("auto: %d %s", w.Code, w.Body)
+	}
+	if w := ts.do(t, "PUT", "/api/theme/modules/wittytv", admin, map[string]any{"tokens": map[string]string{"accent": "#00a2ff"}}); w.Code != 200 {
+		t.Fatalf("module: %d %s", w.Code, w.Body)
+	}
+	th = decode[ResolvedTheme](t, ts.do(t, "GET", "/api/theme", adult, nil))
+	dark, light := th.Variants["dark"], th.Variants["light"]
+	if th.ID != "auto" || th.Scheme != "auto" || dark.ID != "default" || light.ID != "light" {
+		t.Fatalf("auto: %+v", th)
+	}
+	if dark.Tokens["fg"] != "#F4F4F4" || light.Tokens["fg"] != "#F4F4F4" || dark.Tokens["bg"] == light.Tokens["bg"] {
+		t.Errorf("both looks get the override over their own colours: %v / %v", dark.Tokens["bg"], light.Tokens["bg"])
+	}
+	if dark.Modules["wittytv"]["accent"] != "#00A2FF" || light.Modules["wittytv"]["accent"] != "#00A2FF" || light.Modules["wittytv"]["bg"] != light.Tokens["bg"] {
+		t.Errorf("a module's colours in each look: %v", light.Modules["wittytv"])
+	}
+	// The top-level colours stay the dark look's, for clients that know nothing of variants.
+	if th.Tokens["bg"] != dark.Tokens["bg"] {
+		t.Error("tokens aren't the dark look's")
+	}
+	var onLight, onDark int
+	for _, w := range th.Warnings {
+		if w.Text == "fg" && w.Scope == "global" {
+			switch w.Variant {
+			case "light":
+				onLight++
+			case "dark":
+				onDark++
+			}
+		}
+	}
+	if onLight == 0 || onDark != 0 {
+		t.Errorf("near-white text should be warned about on the light look only: %+v", th.Warnings)
 	}
 }

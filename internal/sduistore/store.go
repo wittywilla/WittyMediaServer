@@ -133,6 +133,10 @@ type Options struct {
 	// CheckTheme validates the theme section beyond the basic rules (token
 	// names known, colours valid). nil: only the basic rules.
 	CheckTheme func(Theme) []sdui.Issue
+	// KnownToken says whether a colour token exists. With it, a screen whose
+	// style says "token:<name>" for a name no theme has is refused: a client
+	// would have no colour to draw with. nil: any name passes.
+	KnownToken func(name string) bool
 	// Now is the clock; nil means time.Now.
 	Now func() time.Time
 }
@@ -142,6 +146,7 @@ type Store struct {
 	dir, path, histDir string
 	log                *slog.Logger
 	checkTheme         func(Theme) []sdui.Issue
+	knownToken         func(string) bool
 	now                func() time.Time
 
 	mu   sync.RWMutex
@@ -157,7 +162,7 @@ func Open(dir string, opt Options) (*Store, error) {
 		return nil, errors.New("sduistore: no data folder")
 	}
 	s := &Store{dir: dir, path: filepath.Join(dir, FileName), histDir: filepath.Join(dir, HistoryDir),
-		log: opt.Log, checkTheme: opt.CheckTheme, now: opt.Now}
+		log: opt.Log, checkTheme: opt.CheckTheme, knownToken: opt.KnownToken, now: opt.Now}
 	if s.log == nil {
 		s.log = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
@@ -619,6 +624,12 @@ func (s *Store) validate(c *Config) error {
 		}
 		checkTokens("/theme/modules/"+mod, c.Theme.Modules[mod])
 	}
+	if s.knownToken != nil {
+		for _, name := range names {
+			doc := c.Screens[name]
+			s.checkTokenRefs(ve, &doc.Root, "/screens/"+name+"/root")
+		}
+	}
 	if s.checkTheme != nil {
 		ve.Issues = append(ve.Issues, s.checkTheme(c.Theme)...)
 	}
@@ -626,6 +637,20 @@ func (s *Store) validate(c *Config) error {
 		return ve
 	}
 	return nil
+}
+
+// checkTokenRefs refuses a style colour that names a token no theme has.
+func (s *Store) checkTokenRefs(ve *InvalidError, n *sdui.Node, path string) {
+	if st := n.Style; st != nil {
+		for _, c := range []struct{ name, val string }{{"background", st.Background}, {"foreground", st.Foreground}, {"accent", st.Accent}, {"border", st.Border}} {
+			if name, ok := strings.CutPrefix(c.val, "token:"); ok && !s.knownToken(name) {
+				ve.add(path+"/style/"+c.name, "no theme has a colour token named %q", name)
+			}
+		}
+	}
+	for i := range n.Children {
+		s.checkTokenRefs(ve, &n.Children[i], path+"/children/"+strconv.Itoa(i))
+	}
 }
 
 func sortedKeys[V any](m map[string]V) []string {

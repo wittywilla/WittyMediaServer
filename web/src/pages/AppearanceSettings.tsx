@@ -24,6 +24,7 @@ import { jumpTo } from './settings/jump'
 import { Row, Section } from './settings/ui'
 
 const TvLookSettings = lazy(() => import('./tv/TvLookSettings'))
+const ModuleColours = lazy(() => import('./settings/ModuleColours'))
 
 // Appearance: the app's theme first, then colours of your own, where the menus sit and how
 // things move, then the look of the parts of the app that have one of their own, and the
@@ -219,6 +220,7 @@ export default function AppearanceSettings() {
       <LayoutSection />
       <MotionSection />
       <Suspense fallback={null}><TvLookSettings /></Suspense>
+      {admin && <Suspense fallback={null}><ModuleColours /></Suspense>}
       <PlayerSection />
       {admin && (
         <Section title="Name and logo" desc="Shown in the corner, on the sign-in page and in the browser tab. The license notice in Settings, About always remains.">

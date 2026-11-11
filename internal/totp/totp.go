@@ -91,9 +91,17 @@ func Code(secret []byte, t time.Time) string { return At(secret, Step(t)) }
 // none has been). It answers the step that matched. Every candidate is compared, in
 // constant time, whatever matches first.
 func Verify(secret []byte, code string, t time.Time, after int64) (int64, bool) {
+	return VerifyWindow(secret, code, t, after, Skew, Skew)
+}
+
+// VerifyWindow is Verify with the window given: back steps before now and ahead steps
+// after it. Whoever makes the code and checks it with one clock has no drift to allow
+// for, and passes ahead 0: a code that hasn't been shown yet is never right, and each
+// step taken out of the window is one fewer way to guess.
+func VerifyWindow(secret []byte, code string, t time.Time, after int64, back, ahead int) (int64, bool) {
 	now := Step(t)
 	matched, ok := int64(0), 0
-	for d := int64(-Skew); d <= Skew; d++ {
+	for d := int64(-back); d <= int64(ahead); d++ {
 		step := now + d
 		eq := subtle.ConstantTimeCompare([]byte(code), []byte(At(secret, step)))
 		fresh := 0

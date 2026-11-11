@@ -700,6 +700,19 @@ func Command(ctx context.Context, path string, args ...string) *exec.Cmd {
 	return cmd
 }
 
+// RunLow starts another program the way background FFmpeg jobs are started, at a lower
+// priority so it has the processor only when nothing else wants it, and waits for it. For
+// the helper programs an owner installs (a stem separator), which can run for minutes.
+func RunLow(cmd *exec.Cmd) error {
+	hideWindow(cmd)
+	lowPriority(cmd)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	lowPriorityStarted(cmd)
+	return cmd.Wait()
+}
+
 // Run runs a short FFmpeg or ffprobe job and waits for it, returning its output
 // and what it said. It leaves a record of how the job ended, tied to the session
 // in ctx (see logging.WithSession); attrs say what it was for.

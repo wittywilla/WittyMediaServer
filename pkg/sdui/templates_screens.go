@@ -16,7 +16,7 @@ func DetailTemplate(d DetailData) Document {
 	}
 	b := commonActions(NewDocument("detail")).
 		Theme("default").
-		Action(actOpenItem, NavigateTo("/item")).
+		Action(actOpenItem, NavigateTo("$route")).
 		Action(actPlayItem, PlayItem(firstNonEmpty(d.Item.ID, "$itemId"))).
 		Action("resume", Action{Type: Play, Target: firstNonEmpty(d.Item.ID, "$itemId"), Params: map[string]any{"resume": true}}).
 		Action("openArtwork", OpenModalAction("detail-artwork-modal")).
@@ -45,8 +45,8 @@ func DetailTemplate(d DetailData) Document {
 			),
 			Row("detail-actions").Style(func(s *Style) { s.Gap = 12 }).Child(
 				ButtonOf("detail-play", "Play", actPlayItem).Prop("icon", "play").Prop("variant", "primary").
-					If(HasFeature("playback")),
-				ButtonOf("detail-resume", "Resume", "resume").Prop("icon", "resume").
+					Bind("itemId", "$.item.playId").If(All(HasFeature("playback"), Not(HasFlag("notPlayable")))),
+				ButtonOf("detail-resume", "Resume", "resume").Prop("icon", "resume").Bind("itemId", "$.item.playId").
 					If(All(HasFeature("playback"), HasFlag("hasProgress"))),
 				ButtonOf("detail-artwork", "Artwork", "openArtwork").Prop("variant", "ghost").
 					If(IsRole("admin")),
@@ -69,7 +69,7 @@ func DetailTemplate(d DetailData) Document {
 
 	children := ListOf("detail-children").Bind("items", "$.item.children")
 	for i, c := range d.Children {
-		li := ListItemOf("detail-child-"+strconv.Itoa(i), c.Title).Prop("itemId", c.ID).OnPress(actOpenItem)
+		li := ListItemOf("detail-child-"+strconv.Itoa(i), c.Title).Prop("itemId", c.ID).Prop("route", "/item/"+c.ID).OnPress(actOpenItem)
 		if c.Subtitle != "" {
 			li.Prop("subtitle", c.Subtitle)
 		}
@@ -78,7 +78,7 @@ func DetailTemplate(d DetailData) Document {
 		}
 		children.Child(li)
 	}
-	root.Child(children.If(Any(HasFlag("hasChildren"), MinWidth(0))))
+	root.Child(children)
 
 	root.Child(posterRow("detail-related", "More like this", "$.item.related", d.Related).
 		If(HasFeature("recommendations")))
@@ -242,16 +242,21 @@ func defaultSettingsSections() []SettingsSection {
 	}
 }
 
-// DefaultScreens returns the five stock screens built from empty data, keyed
-// by screen name. These are the documents a server seeds its UI
-// configuration with before an administrator customises anything.
+// DefaultScreens returns the stock screens built from empty data, keyed by
+// screen name. These are the documents a server seeds its UI configuration
+// with before an administrator customises anything, and what it falls back
+// to when a screen is missing from the configuration or can't be rendered.
 func DefaultScreens() map[string]Document {
 	return map[string]Document{
-		"home":     HomeTemplate(HomeData{}),
-		"library":  LibraryTemplate(LibraryData{}),
-		"detail":   DetailTemplate(DetailData{}),
-		"player":   PlayerTemplate(PlayerData{}),
-		"settings": SettingsTemplate(SettingsData{}),
+		"home":      HomeTemplate(HomeData{}),
+		"libraries": LibrariesTemplate(),
+		"library":   LibraryTemplate(LibraryData{}),
+		"detail":    DetailTemplate(DetailData{}),
+		"search":    SearchTemplate(),
+		"livetv":    LiveTVTemplate(),
+		"music":     MusicTemplate(),
+		"player":    PlayerTemplate(PlayerData{}),
+		"settings":  SettingsTemplate(SettingsData{}),
 	}
 }
 

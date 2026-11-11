@@ -28,8 +28,28 @@ import (
 // (RFC 6238: HMAC-SHA1, 6 digits, 30-second steps) from a 160-bit secret that
 // never leaves the server's memory, so it changes every 30 seconds. The person
 // approving scans the QR code, or opens the page, and types the PIN they see.
-// A PIN is accepted one step either side of now, works once, and five wrong ones
-// end the session. The whole session lasts five minutes.
+// The PIN shown now and the one before it are accepted (someone may still be
+// typing when it changes; the server made both, so there is no clock drift to
+// allow for and a PIN not yet shown is never right). A PIN works once, and five
+// wrong ones end the session. The whole session lasts five minutes.
+//
+// What it defends against, and how:
+//
+//   - someone guessing: a session is found by its 128-bit ID or its 34-bit code,
+//     both needing a signed-in adult; then 2 PINs in 1,000,000 are right and 5
+//     tries end the session, so 1 in 100,000 per session, with the person's own
+//     limit on wrong codes on top;
+//   - someone who saw the screen earlier (a photo of the QR code): the PIN has
+//     changed, and the QR code alone approves nothing;
+//   - someone replaying an approval: a session is answered once, a PIN works
+//     for one step once, and the sign-in is collected once;
+//   - someone else collecting the sign-in: only the device that started the
+//     session holds its secret (256 bits, kept hashed), compared in constant time;
+//   - a stolen session approving a device for good: the approval stands only
+//     while the approving sign-in does, and signing a device in as an
+//     administrator asks for that administrator's password again;
+//   - handing out more than the approver has: the device signs in as the approver
+//     or a Kids or Guest profile they manage, never another adult or administrator.
 
 const (
 	authPairTTL      = 5 * time.Minute
@@ -173,7 +193,7 @@ func (ps *pairings) approveWithPIN(lookup string, byCode bool, pin, check string
 		reason := ""
 		if check != "" && !hmac.Equal([]byte(check), []byte(p.qrCheck)) {
 			reason = pinBadCheck
-		} else if step, ok := totp.Verify(p.pinKey, cleanInviteCode(pin), now, p.pinUsed); ok {
+		} else if step, ok := totp.VerifyWindow(p.pinKey, cleanInviteCode(pin), now, p.pinUsed, 1, 0); ok {
 			p.pinUsed = step
 		} else {
 			reason = pinWrong
@@ -193,6 +213,13 @@ func (ps *pairings) approveWithPIN(lookup string, byCode bool, pin, check string
 	}
 	ps.answerLocked(p, userID, approver, session)
 	return p, "", 0
+}
+
+// waitingByID is a live, unanswered v2 session.
+func (ps *pairings) waitingByID(id string) *pairing {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+	return ps.stillWaitingLocked(ps.byID[id])
 }
 
 // denyByID refuses a waiting v2 session.
@@ -330,17 +357,43 @@ func (s *Server) pinGate(w http.ResponseWriter, r *http.Request) (*auth.User, st
 	return me, k, true
 }
 
-// POST /api/auth/pair/{session}/approve {pin, userId, check}: sign the device in, with the
-// PIN it shows now.
+// GET /api/auth/pair/{session}/info?k=: what is asking, for an app that scanned the QR
+// code, before anyone agrees to it. k is the check from the code; a wrong one is refused.
+func (s *Server) handleAuthPairInfo(w http.ResponseWriter, r *http.Request) {
+	me, k, ok := s.pinGate(w, r)
+	if !ok {
+		return
+	}
+	p := s.pair.waitingByID(r.PathValue("session"))
+	if p == nil {
+		s.logins.fail(k)
+		s.Log.InfoContext(r.Context(), "pairing failed", "cat", "auth", "from", ipOf(r), "why", pinNotFound)
+		writeJSON(w, 404, map[string]any{"error": pinFailures[pinNotFound].msg, "reason": pinNotFound})
+		return
+	}
+	if check := r.URL.Query().Get("k"); check != "" && !hmac.Equal([]byte(check), []byte(p.qrCheck)) {
+		s.logins.fail(k)
+		writeJSON(w, 400, map[string]any{"error": pinFailures[pinBadCheck].msg, "reason": pinBadCheck})
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, 200, s.pairInfo(r, me, p))
+}
+
+// POST /api/auth/pair/{session}/approve {pin, userId, check, password, otp}: sign the
+// device in, with the PIN it shows now. password (and otp, with two-factor sign-in) are
+// the approver's own, needed when the device will be signed in as an administrator.
 func (s *Server) handleAuthPairApprove(w http.ResponseWriter, r *http.Request) {
 	me, k, ok := s.pinGate(w, r)
 	if !ok {
 		return
 	}
 	var b struct {
-		PIN    string `json:"pin"`
-		UserID int64  `json:"userId"`
-		Check  string `json:"check"`
+		PIN      string `json:"pin"`
+		UserID   int64  `json:"userId"`
+		Check    string `json:"check"`
+		Password string `json:"password"`
+		OTP      string `json:"otp"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, "expected a JSON body")
@@ -351,8 +404,34 @@ func (s *Server) handleAuthPairApprove(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 403, "you can't sign a device in as that profile")
 		return
 	}
+	if !s.confirmAdminGrant(w, r, target, b.Password, b.OTP) {
+		return
+	}
 	s.approveByPIN(w, r, me, target, k, r.PathValue("session"), false, b.PIN, b.Check)
 }
+
+// confirmAdminGrant: a device signed in as an administrator can do everything on the
+// server for as long as its sign-in lasts, so approving that asks for the administrator's
+// own password again (and code, with two-factor sign-in). A session left open on a phone,
+// or stolen, can then sign a device in as a Kids profile at most. It answers the request
+// itself when it refuses.
+func (s *Server) confirmAdminGrant(w http.ResponseWriter, r *http.Request, target *auth.User, password, otp string) bool {
+	if !target.IsAdmin {
+		return true
+	}
+	if password == "" {
+		writeJSON(w, 403, map[string]any{"error": "Signing a device in as an administrator needs your password.", "reason": pairNeedsPassword, "twoFactor": target.TwoFactor})
+		return false
+	}
+	if !s.confirmOwner(w, r, password, otp) {
+		s.Log.WarnContext(r.Context(), "pairing refused: the administrator's password wasn't confirmed", "cat", "auth", "user", target.Name, "from", ipOf(r))
+		return false
+	}
+	return true
+}
+
+// pairNeedsPassword is the reason an approval is refused for want of the password.
+const pairNeedsPassword = "password-required"
 
 // approveByPIN approves a pairing that has a PIN, for v2 and for /api/pair/approve alike.
 func (s *Server) approveByPIN(w http.ResponseWriter, r *http.Request, me, target *auth.User, k, lookup string, byCode bool, pin, check string) {
@@ -382,11 +461,13 @@ func (s *Server) handleAuthPairDeny(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if s.pair.denyByID(r.PathValue("session")) == nil {
+	p := s.pair.denyByID(r.PathValue("session"))
+	if p == nil {
 		s.logins.fail(k)
 		writeErr(w, 404, pinFailures[pinNotFound].msg)
 		return
 	}
 	s.logins.ok(k)
+	s.Log.InfoContext(r.Context(), "pairing refused", "cat", "auth", "device", p.device, "user", userFrom(r).Name, "ip", p.ip)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }

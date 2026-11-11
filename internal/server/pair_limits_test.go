@@ -38,7 +38,7 @@ func TestStrangersCantCancelCodesAtHome(t *testing.T) {
 	s, h := remoteServer(t, nil)
 	tok := adminToken(t, s, h)
 	putRemote(t, h, tok, map[string]any{"enabled": true})
-	r := call(h, "POST", "/api/pair/invite", lan, map[string]any{}, "Authorization: Bearer "+tok)
+	r := call(h, "POST", "/api/pair/invite", lan, map[string]any{"password": pass}, "Authorization: Bearer "+tok)
 	var in struct {
 		Code string `json:"code"`
 	}

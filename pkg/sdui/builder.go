@@ -334,3 +334,9 @@ func Any(cs ...Condition) Condition { return Condition{Any: cs} }
 
 // Not inverts a condition.
 func Not(c Condition) Condition { return Condition{Not: &c} }
+
+// Focus sets what an author may about a node's focus: Default and the guides.
+func (nb *NodeBuilder) Focus(f Focus) *NodeBuilder {
+	nb.n.Focus = &Focus{Default: f.Default, Up: f.Up, Down: f.Down, Left: f.Left, Right: f.Right}
+	return nb
+}

@@ -128,7 +128,7 @@ Star Harbor/Star Harbor - 1071 - The Long Road.mkv  episode 1071, "The Long Road
 
 ## Skipping recaps, intros and credits
 
-Episodes get **Skip intro** from their chapters or the show's intro, and also a recap and the credits, from chapter names, an `.edl` or a `.skip.json` beside the file. See [Recaps, credits and adverts](PLAYING.md#recaps-credits-and-adverts).
+Episodes get **Skip intro** from their chapters or the show's intro, and also a recap and the credits, from chapter names, an `.edl` or a `.skip.json` beside the file, or found by comparing the season's episodes by ear. See [Recaps, credits and adverts](PLAYING.md#recaps-credits-and-adverts).
 
 ## For developers
 

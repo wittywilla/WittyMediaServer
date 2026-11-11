@@ -123,7 +123,8 @@ It reads them from, most trusted first:
 2. A `.skip.json` beside the file (`Film.skip.json` or `Film.mkv.skip.json`).
 3. An `.edl` beside the file (`Film.edl` or `Film.mkv.edl`).
 4. The file's chapter names, in English, German, French, Spanish and romanized Japanese: *Intro*, *Opening*, *OP*, *Vorspann*; *Previously on*, *Recap*, *Was bisher geschah*, *Précédemment*, *Anteriormente*, *Arasuji*; *Credits*, *End Credits*, *Outro*, *Ending*, *ED*, *Abspann*, *Générique de fin*, *Créditos*.
-5. The intro set for the whole show.
+5. What comparing the season's episodes found: see [Finding intros nothing marks](#finding-intros-nothing-marks).
+6. The intro set for the whole show.
 
 Each kind is taken from the most trusted source that has it, so an EDL's advert breaks can sit beside a chapter's credits.
 
@@ -143,7 +144,24 @@ Each kind is taken from the most trusted source that has it, so an EDL's advert 
  "credits": {"start": 1290}, "commercials": [{"start": 600, "end": 780}]}
 ```
 
-A range that doesn't make sense (one that ends before it starts, or a file that can't be read) is ignored. Apps read them all from `GET /api/v1/media/{id}/markers`, and the player gets them with the intro when something starts. An administrator sets them with `PUT` on the same address, and `{"reset": true}` goes back to what the files say. See [the client API](CLIENT-API.md#media-extras).
+A range that doesn't make sense (one that ends before it starts, or a file that can't be read) is ignored. Apps read them all from `GET /api/v1/media/{id}/markers`, and get them with the playback answer when something starts. The web player shows **Skip recap**, **Skip intro**, **Skip adverts** and **Skip credits** from the same list (credits that run to the very end are left to **Next episode**). An administrator sets them with `PUT` on the same address, and `{"reset": true}` goes back to what the files say. See [the client API](CLIENT-API.md#media-extras).
+
+### Finding intros nothing marks
+
+Most files have no chapters and nothing beside them. For those, the server can find the intro by ear: the title music is the same in every episode of a season, so it compares the sound of each episode with the next and marks the stretch they share. It does the same at the end for the credits.
+
+An administrator starts it for a show, from the show's **More** menu (**Find intros and credits**) or with `POST /api/v1/shows/{id}/detect-intros` (`{"season": 2}` for one season). It runs as a [task](TASKS.md):
+
+| | |
+|---|---|
+| **What it listens to** | The first 10 minutes of each episode for the intro, and the last 7 for the credits, of episodes that are files in a library. Discs are left alone |
+| **What counts** | A shared stretch of 15 seconds to 3 minutes at the front, 15 seconds to under 7 minutes at the back. A few seconds of an episode's own sound over the titles doesn't break it. Silence never matches silence |
+| **How it compares** | Each episode with the next one, and with the one after that if the next shares nothing (a special, a recap episode) |
+| **Trust** | Below chapters and anything a person set, above the show's own intro. It's listed with `source: "detected"` |
+| **Cost** | FFmpeg decodes the sound only, at low priority, one episode at a time, and gives way while someone is watching. It hasn't been timed on a Raspberry Pi yet. One run at a time on the server, 60 episodes a season at most |
+| **Running it again** | Replaces what it found before. An episode that no longer shares anything loses its detected markers; ones you set stay |
+
+It needs a season with at least two episodes, and it finds nothing for a show whose episodes each have different music, or none. It doesn't find recaps: those differ in every episode. Nothing is sent anywhere, and no fingerprint is kept once the run ends.
 
 ## What's next
 

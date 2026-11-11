@@ -67,9 +67,14 @@ type Config struct {
 	// GamingCustomCores lets custom game cores be turned on in Settings. It is set only on the
 	// machine: a core is a program, and a web session must not be able to decide to run one.
 	GamingCustomCores bool
-	TrustedProxies    string // reverse proxies whose forwarded headers are believed, added to those in Settings
-	Dev               bool   // serve the web UI from web/dist on disk instead of the embedded copy
-	MaxTranscode      int
+	// StemSeparator is a program the owner installed that separates a song into its parts
+	// (Demucs, Spleeter): its command line, with {input} and {output}. "" is off. Like
+	// custom cores it is set only on the machine: it names a program to run, and a web
+	// session must not be able to choose one.
+	StemSeparator  string
+	TrustedProxies string // reverse proxies whose forwarded headers are believed, added to those in Settings
+	Dev            bool   // serve the web UI from web/dist on disk instead of the embedded copy
+	MaxTranscode   int
 	// MaxConnections is how many connections can be open at once, on both ports together.
 	MaxConnections int
 	WatchStdin     bool // exit when stdin closes (used by the tray launcher)
@@ -107,6 +112,7 @@ type File struct {
 	SetupFromHome     bool   `json:"setupFromHome,omitempty"`
 	AllowNetworkPaths bool   `json:"allowNetworkPaths,omitempty"`
 	GamingCustomCores bool   `json:"gamingCustomCores,omitempty"`
+	StemSeparator     string `json:"stemSeparator,omitempty"`
 	TrustedProxies    string `json:"trustedProxies,omitempty"`
 	OpenBrowser       *bool  `json:"openBrowser,omitempty"`
 }
@@ -364,6 +370,7 @@ func ParseOnly(args []string) (*Config, error) {
 	fs.StringVar(&c.LogLevel, "log", env("WMS_LOG", or(f.LogLevel, "info")), "log level: debug|info|warn|error")
 	fs.StringVar(&c.LogDir, "log-dir", env("WMS_LOG_DIR", rel(f.LogDir)), "folder for log files (WMS_LOG_DIR); default <data>/logs")
 	fs.StringVar(&c.PublicURL, "public-url", env("WMS_PUBLIC_URL", f.PublicURL), "external base URL")
+	fs.StringVar(&c.StemSeparator, "stem-separator", env("WMS_STEM_SEPARATOR", f.StemSeparator), "a program that separates a song into stems, with {input} and {output}, such as: demucs --two-stems vocals -o {output} {input} (WMS_STEM_SEPARATOR)")
 	fs.BoolVar(&c.GamingCustomCores, "gaming-custom-cores", f.GamingCustomCores || os.Getenv("WMS_GAMING_CUSTOM_CORES") == "1", "let custom game cores be turned on in Settings (WMS_GAMING_CUSTOM_CORES=1)")
 	fs.BoolVar(&c.SetupFromHome, "setup-from-home", f.SetupFromHome || os.Getenv("WMS_SETUP_FROM_HOME") == "1", "let anyone on the home network make the first account, without the setup code (WMS_SETUP_FROM_HOME=1)")
 	fs.BoolVar(&c.AllowNetworkPaths, "allow-network-paths", f.AllowNetworkPaths || os.Getenv("WMS_ALLOW_NETWORK_PATHS") == "1", "let settings changed from another device name network shares, such as \\\\nas\\media (WMS_ALLOW_NETWORK_PATHS=1)")

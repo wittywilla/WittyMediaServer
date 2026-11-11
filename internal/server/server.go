@@ -120,6 +120,8 @@ type Server struct {
 	stream    streamTokens
 	radio     radioLive
 	pair      pairings
+	introJob  introJob  // finding intros by ear: one run at a time
+	mediaJobs mediaJobs // stems and canvases being made: one at a time
 	subtitles subtitleFiles
 	idOnce    sync.Once
 	id        *identity.Identity
@@ -341,6 +343,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/pair/approve", a(s.handlePairApprove))
 	m.Handle("POST /api/pair/deny", a(s.handlePairDeny))
 	m.Handle("POST /api/pair/invite", a(s.handlePairInvite))
+	m.Handle("GET /api/auth/pair/{session}/info", a(s.handleAuthPairInfo))
 	m.Handle("POST /api/auth/pair/{session}/approve", a(s.handleAuthPairApprove))
 	m.Handle("POST /api/auth/pair/{session}/deny", a(s.handleAuthPairDeny))
 	m.Handle("GET /api/playback/profiles", a(s.handlePlaybackProfiles))

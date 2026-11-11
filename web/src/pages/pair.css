@@ -6,3 +6,11 @@
 .pair-code { margin: var(--sp-2) 0; font-size: var(--text-5xl); font-weight: var(--weight-heading); letter-spacing: .12em; font-variant-numeric: tabular-nums; }
 .pair-print { margin-top: var(--sp-5); font-size: var(--text-sm); }
 .pair-pin { max-width: 12ch; font-size: var(--text-2xl); letter-spacing: .3em; font-variant-numeric: tabular-nums; }
+/* This device asking to be signed in: the QR code, the PIN under it, and how long the PIN has left. */
+.pair-device { text-align: center; }
+.pair-steps { margin: 0 0 var(--sp-3); padding-left: var(--sp-5); text-align: left; }
+.pair-inline { font-variant-numeric: tabular-nums; letter-spacing: .08em; white-space: nowrap; }
+.qr { width: min(60vw, 240px); height: auto; border-radius: var(--radius-sm); }
+.qr-paper { fill: #ffffff; } /* design-ok: a QR code is dark on light whatever the theme, as cameras read nothing else */
+.qr-ink { fill: #000000; } /* design-ok: as above */
+.pair-countdown { width: min(60vw, 240px); height: 6px; accent-color: var(--accent); }

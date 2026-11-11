@@ -46,11 +46,13 @@ TV in when someone approves it from a phone and types the PIN the TV shows. What
 
 - **Shoulder-surfing and photos.** The PIN is an RFC 6238 TOTP (HMAC-SHA1, 6 digits, 30-second steps) from a
   160-bit random secret made for that session. The secret stays in the server's memory and isn't in any answer, log
-  or backup. A PIN someone saw is good for at most its own step and the next (90 seconds at the very most), and
+  or backup. A PIN someone saw is good for at most its own step and the next (60 seconds at the very most), and
   only once: when a PIN is accepted, its step and every earlier one are spent. The 8-letter code the session also
   carries isn't enough to approve it by any route.
-- **Guessing.** One guess has 3 PINs in the window (±1 step), so a chance of 3 in 10^6. Five wrong
-  PINs end the session, so one session falls to guessing with a chance of at most 5 × 3 / 10^6 = 1.5 × 10^-5.
+- **Guessing.** The PIN shown now and the one before it are accepted, and never the one that comes next: the
+  server makes and checks the PIN with one clock, so there is no drift to allow for, and each step left out of
+  the window is one fewer way to guess. One guess so has 2 PINs in the window, a chance of 2 in 10^6. Five wrong
+  PINs end the session, so one session falls to guessing with a chance of at most 5 × 2 / 10^6 = 10^-5.
   Each guess needs a signed-in adult account, and wrong ones count against that account and address the way
   wrong codes and passwords do, with waits that grow. Starting sessions is limited per address, and per IPv6 /64, as for
   codes: 4 open at once, 12 in 10 minutes, 256 on the server, with a share kept for the home network. A
@@ -66,8 +68,26 @@ TV in when someone approves it from a phone and types the PIN the TV shows. What
 - **Timing.** PINs and QR checks are compared in constant time, and every PIN in the window is computed and
   compared whichever one matches.
 
-What it doesn't defend against: someone who has the approver's signed-in phone, or who can see the TV
-*and* is signed in as an adult on this server at that moment.
+- **A stolen or borrowed session.** An approval stands only while the approving sign-in does, and signing a
+  device in as an administrator needs that administrator's password again (and two-factor code), by every route:
+  `/api/auth/pair/{session}/approve`, `/api/pair/approve` and `/api/pair/invite`. A refused password uses up none
+  of the PIN's tries, and counts as a wrong password. Without it, a session someone else holds can sign a device
+  in as a Kids or Guest profile the account manages at most.
+- **More than the approver has.** A device signs in as the approver, or as a Kids or Guest profile they manage.
+  Never as another adult or another administrator, and Kids and Guest profiles can't approve at all.
+- **Seeing who is asking.** `GET /api/auth/pair/{session}/info` shows an app that scanned the code the device's
+  name, platform and address before anything is approved. It needs a signed-in adult, counts wrong sessions like
+  wrong codes, and never answers the PIN or the device's secret.
+- **The older, code-only way.** `/api/pair/start` still signs a device in with its 8-letter code and no PIN,
+  for apps that haven't been updated, and a device chooses which to ask for. An owner who wants the PIN always
+  turns on `pairRequirePin` (Settings → Signing in): `/api/pair/start` then answers 426.
+- **What is written down.** Every approval, refusal, wrong PIN, lock-out and refused password is logged under
+  `auth` with the device, the account and the address.
+
+What it doesn't defend against: someone who is signed in as an adult on this server *and* can see the TV at
+that moment (they could approve it for themselves anyway), or a person talked into typing a PIN for a device
+that isn't theirs. The page names the device and its address for that reason, and says to continue only for a
+device they're looking at.
 
 ## What a helper is held to
 

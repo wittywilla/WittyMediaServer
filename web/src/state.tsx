@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { api, isNativeShell, serverBase, setToken, type Library, type User } from './api'
 import { setLogVersion } from './errorReport'
-import { applyBrand, applyTheme, deviceTheme } from './theme'
+import { applyBrand, applyTheme, clearThemeOverrides, deviceTheme, loadThemeOverrides } from './theme'
 
 type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; brandColouring?: string; brandLogo?: string; theme?: string; update?: string; legalAck?: boolean; plainConnection?: boolean }
 
@@ -68,7 +68,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [plainConnection, setPlainConnection] = useState(false)
   const [needServer, setNeedServer] = useState(isNativeShell() && !serverBase())
   const setBrandName = (n: string, colouring = 'auto') => { setBrand(n); setBrandColouring(colouring); applyBrand(n) }
-  const setServerTheme = (id: string) => { setServerThemeState(id); if (!deviceTheme()) applyTheme(id) }
+  const setServerTheme = (id: string) => { setServerThemeState(id); if (!deviceTheme()) applyTheme(id); loadThemeOverrides() }
+  // The colours an administrator changed, for whoever is signed in.
+  useEffect(() => { if (user) loadThemeOverrides(); else clearThemeOverrides() }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const refreshLibraries = useCallback(async () => {
     try { setLibraries(await api.get<Library[]>('/libraries')) } catch { setLibraries([]) }

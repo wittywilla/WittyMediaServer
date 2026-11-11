@@ -23,6 +23,10 @@ type Document struct {
 	Root Node `json:"root"`
 	// Actions is the table of named actions that nodes refer to via Node.Action.
 	Actions map[string]Action `json:"actions,omitempty"`
+	// Layout says how the screen was fitted to the requesting device: its form
+	// factor, safe area, type sizes, picture sizes and the limits applied.
+	// Stamped by Render from RenderContext.Profile; never authored.
+	Layout *Layout `json:"layout,omitempty"`
 	// Meta carries non-structural information about the document.
 	Meta Meta `json:"meta,omitzero"`
 }
@@ -50,6 +54,38 @@ type Node struct {
 	// Action is the name of an entry in Document.Actions to dispatch when
 	// the node is activated (pressed, clicked, selected).
 	Action string `json:"action,omitempty"`
+	// Focus is the node's place in the focus engine (tvOS, a remote, a
+	// keyboard). An author may set Default and the four guides; Render stamps
+	// the rest on every interactive node. See Focus.
+	Focus *Focus `json:"focus,omitempty"`
+}
+
+// Focus places a node in the focus engine. tvOS has no pointer: everything a
+// person can act on must be focusable, focus must start somewhere, and moving
+// it must always lead somewhere. Render guarantees the first two for every
+// screen; the guides are for the places geometry alone gets wrong (jumping
+// from a short row to a button that isn't straight above it).
+type Focus struct {
+	// Focusable is true on every node a person can act on. Stamped by Render.
+	Focusable bool `json:"focusable,omitempty"`
+	// Order is the node's place in the screen's focus order, from 1, in
+	// reading order. It is deterministic: the same screen gives the same
+	// numbers. Stamped by Render.
+	Order int `json:"order,omitempty"`
+	// Default marks the node focus starts on. At most one per screen; when no
+	// author chose one, Render marks the first focusable node.
+	Default bool `json:"default,omitempty"`
+	// Group is the ID of the row or bar the node belongs to (its nearest
+	// Shelf, PosterRow, Carousel, Grid, List, Tabs or Toolbar). A client
+	// treats a group as one focus section and remembers the last focused
+	// node in it. Stamped by Render.
+	Group string `json:"group,omitempty"`
+	// Up, Down, Left and Right are focus guides: the ID of the node focus
+	// moves to in that direction, in place of the nearest one. Authored.
+	Up    string `json:"up,omitempty"`
+	Down  string `json:"down,omitempty"`
+	Left  string `json:"left,omitempty"`
+	Right string `json:"right,omitempty"`
 }
 
 // ComponentType identifies a kind of component.
@@ -99,55 +135,66 @@ type ComponentSpec struct {
 	RequiredProps []string `json:"requiredProps,omitempty"`
 	// OptionalProps are the props a client is expected to understand.
 	OptionalProps []string `json:"optionalProps,omitempty"`
+	// Since is the catalogue revision the type first appeared in (see
+	// CatalogRevision). A client says which revision it was built against,
+	// and Render sends it Fallback in place of anything newer.
+	Since int `json:"since"`
+	// Fallback is the older type a client that doesn't know this one is sent
+	// instead. Empty: Stack, which every client draws as a plain container.
+	Fallback ComponentType `json:"fallback,omitempty"`
 }
+
+// CatalogRevision counts additions to the component catalogue within one
+// SchemaVersion. Every type in the first release is revision 1.
+const CatalogRevision = 1
 
 // catalog is the v1 component catalogue, in display order.
 var catalog = []ComponentSpec{
-	{Type: Screen, Description: "Root of a screen; exactly one per document.", AllowsChildren: true,
+	{Type: Screen, Since: 1, Description: "Root of a screen; exactly one per document.", AllowsChildren: true,
 		OptionalProps: []string{"title", "scroll"}},
-	{Type: Stack, Description: "Vertical or horizontal stack of children.", AllowsChildren: true},
-	{Type: Grid, Description: "Responsive grid of children; Style.Columns sets the column count.", AllowsChildren: true},
-	{Type: Shelf, Description: "A titled, horizontally scrolling row of cards (the web client's Shelf/CardRow).", AllowsChildren: true,
-		RequiredProps: []string{"title"}, OptionalProps: []string{"subtitle", "seeAll", "items", "cardShape"}},
-	{Type: HeroBanner, Description: "Full-bleed featured banner with backdrop, title and call to action.", AllowsChildren: true,
+	{Type: Stack, Since: 1, Description: "Vertical or horizontal stack of children.", AllowsChildren: true},
+	{Type: Grid, Since: 1, Description: "Responsive grid of children; Style.Columns sets the column count.", AllowsChildren: true},
+	{Type: Shelf, Since: 1, Description: "A titled, horizontally scrolling row of cards (the web client's Shelf/CardRow).", AllowsChildren: true,
+		RequiredProps: []string{"title"}, OptionalProps: []string{"subtitle", "seeAll", "items", "cardShape", "itemAction", "more", "total"}},
+	{Type: HeroBanner, Since: 1, Description: "Full-bleed featured banner with backdrop, title and call to action.", AllowsChildren: true,
 		OptionalProps: []string{"title", "subtitle", "backdropUrl", "logoUrl", "items", "interval"}},
-	{Type: Card, Description: "A poster/tile for one item.", AllowsChildren: true,
+	{Type: Card, Since: 1, Description: "A poster/tile for one item.", AllowsChildren: true,
 		AllowedChildren: []ComponentType{Badge, ProgressBar, Text, Image},
-		OptionalProps:   []string{"title", "subtitle", "imageUrl", "kind", "progress", "badges", "itemId", "module"}},
-	{Type: PosterRow, Description: "A titled row of poster Cards.", AllowsChildren: true,
+		OptionalProps:   []string{"title", "subtitle", "imageUrl", "image", "kind", "progress", "badges", "itemId", "module", "route"}},
+	{Type: PosterRow, Since: 1, Description: "A titled row of poster Cards.", AllowsChildren: true,
 		AllowedChildren: []ComponentType{Card},
 		RequiredProps:   []string{"title"}, OptionalProps: []string{"subtitle", "seeAll", "items", "cardShape"}},
-	{Type: Text, Description: "A run of text.", RequiredProps: []string{"text"},
+	{Type: Text, Since: 1, Description: "A run of text.", RequiredProps: []string{"text"},
 		OptionalProps: []string{"variant", "maxLines"}},
-	{Type: Image, Description: "A picture.", RequiredProps: []string{"src"},
+	{Type: Image, Since: 1, Description: "A picture.", RequiredProps: []string{"src"},
 		OptionalProps: []string{"alt", "fit"}},
-	{Type: Button, Description: "A pressable control that dispatches its Action.", RequiredProps: []string{"label"},
+	{Type: Button, Since: 1, Description: "A pressable control that dispatches its Action.", RequiredProps: []string{"label"},
 		OptionalProps: []string{"icon", "variant", "disabled"}},
-	{Type: Tabs, Description: "A tab strip; children are Tab nodes.", AllowsChildren: true,
+	{Type: Tabs, Since: 1, Description: "A tab strip; children are Tab nodes.", AllowsChildren: true,
 		AllowedChildren: []ComponentType{Tab}, OptionalProps: []string{"selected"}},
-	{Type: Tab, Description: "One tab: a label and its content.", AllowsChildren: true,
+	{Type: Tab, Since: 1, Description: "One tab: a label and its content.", AllowsChildren: true,
 		RequiredProps: []string{"label"}, OptionalProps: []string{"icon"}},
-	{Type: List, Description: "A vertical list; children are ListItem nodes.", AllowsChildren: true,
+	{Type: List, Since: 1, Description: "A vertical list; children are ListItem nodes.", AllowsChildren: true,
 		AllowedChildren: []ComponentType{ListItem}, OptionalProps: []string{"items", "dense"}},
-	{Type: ListItem, Description: "One row of a List.", AllowsChildren: true,
-		AllowedChildren: []ComponentType{Badge, Button, Text, Image, ProgressBar},
+	{Type: ListItem, Since: 1, Description: "One row of a List.", AllowsChildren: true,
+		AllowedChildren: []ComponentType{Badge, Text, Image, ProgressBar},
 		RequiredProps:   []string{"title"}, OptionalProps: []string{"subtitle", "imageUrl", "icon", "trailing", "itemId"}},
-	{Type: Spacer, Description: "Empty space; Style.Height/Width or the size prop set its extent.",
+	{Type: Spacer, Since: 1, Description: "Empty space; Style.Height/Width or the size prop set its extent.",
 		OptionalProps: []string{"size"}},
-	{Type: Divider, Description: "A hairline rule.", OptionalProps: []string{"inset"}},
-	{Type: Video, Description: "An inline or full-screen video player.", RequiredProps: []string{"src"},
+	{Type: Divider, Since: 1, Description: "A hairline rule.", OptionalProps: []string{"inset"}},
+	{Type: Video, Since: 1, Description: "An inline or full-screen video player.", RequiredProps: []string{"src"},
 		OptionalProps: []string{"poster", "autoplay", "controls", "startAt", "itemId", "title"}},
-	{Type: Badge, Description: "A small label (NEW, 4K, LIVE, …).", RequiredProps: []string{"text"},
+	{Type: Badge, Since: 1, Description: "A small label (NEW, 4K, LIVE, …).", RequiredProps: []string{"text"},
 		OptionalProps: []string{"variant"}},
-	{Type: ProgressBar, Description: "A progress indicator; value is 0..1 unless max is given.", RequiredProps: []string{"value"},
+	{Type: ProgressBar, Since: 1, Description: "A progress indicator; value is 0..1 unless max is given.", RequiredProps: []string{"value"},
 		OptionalProps: []string{"max", "label"}},
-	{Type: Carousel, Description: "Paged container that rotates through its children.", AllowsChildren: true,
+	{Type: Carousel, Since: 1, Description: "Paged container that rotates through its children.", AllowsChildren: true,
 		OptionalProps: []string{"interval", "autoplay", "indicators"}},
-	{Type: SearchBar, Description: "A search field; Action fires on submit.",
+	{Type: SearchBar, Since: 1, Description: "A search field; Action fires on submit.",
 		OptionalProps: []string{"placeholder", "query", "scope"}},
-	{Type: Toolbar, Description: "A horizontal bar of controls.", AllowsChildren: true,
+	{Type: Toolbar, Since: 1, Description: "A horizontal bar of controls.", AllowsChildren: true,
 		AllowedChildren: []ComponentType{Button, Text, Spacer, SearchBar, Badge, Image}},
-	{Type: Modal, Description: "A dialog shown over the screen, opened by an OpenModal action.", AllowsChildren: true,
+	{Type: Modal, Since: 1, Description: "A dialog shown over the screen, opened by an OpenModal action.", AllowsChildren: true,
 		OptionalProps: []string{"title", "dismissible", "size"}},
 }
 
@@ -280,6 +327,9 @@ type Condition struct {
 	// Platform requires RenderContext.Platform to equal the value
 	// ("web", "tv", "ios", "android", …).
 	Platform string `json:"platform,omitempty"`
+	// FormFactor requires the requester's form factor (RenderContext.Profile)
+	// to equal the value: "tv", "phone", "tablet", "desktop" or "web".
+	FormFactor string `json:"formFactor,omitempty"`
 	// Module requires RenderContext.Modules to contain the value.
 	Module string `json:"module,omitempty"`
 	// MinWidth/MaxWidth/MinHeight/MaxHeight bound the viewport, inclusive,

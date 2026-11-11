@@ -110,7 +110,7 @@ func cards(prefix string, items []Item) []*NodeBuilder {
 		id := prefix + "-" + strconv.Itoa(i)
 		c := CardOf(id, it)
 		if it.ID != "" {
-			c.OnPress(actOpenItem).Prop("itemId", it.ID)
+			c.OnPress(actOpenItem).Prop("itemId", it.ID).Prop("route", "/item/"+it.ID)
 		}
 		if it.Progress > 0 {
 			c.Child(Progress(id+"-progress", it.Progress))
@@ -134,7 +134,7 @@ func posterRow(id, title, bindPath string, items []Item) *NodeBuilder {
 func HomeTemplate(d HomeData) Document {
 	b := commonActions(NewDocument("home")).
 		Theme("default").
-		Action(actOpenItem, NavigateTo("/item")).
+		Action(actOpenItem, NavigateTo("$route")).
 		Action(actPlayItem, Action{Type: Play, Target: "$itemId"}).
 		Meta(Meta{Title: "Home", Source: "template:home", TTLSeconds: 60})
 
@@ -156,7 +156,7 @@ func HomeTemplate(d HomeData) Document {
 	_ = d.UserName // the greeting is bound; UserName seeds Data in callers.
 
 	hero := Hero("home-hero").
-		Prop("title", "Featured").
+		Prop("title", "Featured").Prop("cardShape", "hero").
 		Bind("items", "$.home.featured").
 		Style(func(s *Style) { s.AspectRatio = "16/9"; s.Height = "42vh" }).
 		If(Not(OnPlatform("tv-compact")))
@@ -165,22 +165,25 @@ func HomeTemplate(d HomeData) Document {
 
 	root.Child(posterRow("home-continue", "Continue watching", "$.home.continueWatching", d.ContinueWatching).
 		Prop("cardShape", "wide").If(HasFeature("history")))
+	root.Child(posterRow("home-nextup", "Next up", "$.home.nextUp", nil).Prop("cardShape", "wide"))
 	root.Child(posterRow("home-recent", "Recently added", "$.home.recentlyAdded", d.RecentlyAdded))
+	// One row per library the account may open: the rows depend on the data.
+	root.Child(StackOf("home-libraries").Bind("sections", "$.home.sections"))
 	root.Child(posterRow("home-recommended", "Recommended for you", "$.home.recommended", d.Recommended).
 		If(HasFeature("recommendations")))
 
-	root.Child(ShelfOf("home-games", "Jump back into a game").
+	root.Child(ShelfOf("home-games", "Jump back into a game").Prop("cardShape", "square").
 		Bind("items", "$.home.games").
 		Module("wittyplay").
 		If(ModuleEnabled("wittyplay")))
-	root.Child(ShelfOf("home-livetv", "On now").
-		Bind("items", "$.home.onNow").
-		Module("wittytv").
-		If(ModuleEnabled("wittytv")))
-	root.Child(ShelfOf("home-music", "Recently played music").
+	// Channels and music are the server's own, so these rows show whenever
+	// there is something to put in them; only their colours are a module's.
+	root.Child(ShelfOf("home-livetv", "Channels").Prop("cardShape", "wide").
+		Bind("items", "$.home.channels").
+		Module("wittytv"))
+	root.Child(ShelfOf("home-music", "Recently added music").Prop("cardShape", "square").
 		Bind("items", "$.home.music").
-		Module("wittymusic").
-		If(ModuleEnabled("wittymusic")))
+		Module("wittymusic"))
 
 	for i, sh := range d.Shelves {
 		id := sh.ID
@@ -206,8 +209,7 @@ func HomeTemplate(d HomeData) Document {
 }
 
 // LibraryTemplate builds a library browse screen: a toolbar with search and
-// sort, then a Grid of cards bound to $.library.items. Column count follows
-// the viewport via two alternative grids gated on MinWidth/MaxWidth.
+// sort, then one Grid of cards bound to $.library.items.
 func LibraryTemplate(d LibraryData) Document {
 	title := d.Title
 	if title == "" {
@@ -215,8 +217,8 @@ func LibraryTemplate(d LibraryData) Document {
 	}
 	b := commonActions(NewDocument("library")).
 		Theme("default").
-		Action(actOpenItem, NavigateTo("/item")).
-		Action("sort", Action{Type: Fetch, Target: "/ui/library?sort=$sort"}).
+		Action(actOpenItem, NavigateTo("$route")).
+		Action("sort", Action{Type: Fetch, Target: "/api/v1/sdui/screens/library?sort=$sort"}).
 		Meta(Meta{Title: title, Source: "template:library", TTLSeconds: 30})
 
 	root := ScreenNode("library").Prop("title", title).Prop("scroll", true).
@@ -232,13 +234,10 @@ func LibraryTemplate(d LibraryData) Document {
 	)
 	root.Child(toolbar)
 
-	wide := GridOf("library-grid-wide", 8).Bind("items", "$.library.items").
-		Child(cards("library-item", d.Items)...).If(MinWidth(1400))
-	medium := GridOf("library-grid", 5).Bind("items", "$.library.items").
-		Child(cards("library-item-m", d.Items)...).If(All(MinWidth(721), MaxWidth(1399)))
-	narrow := GridOf("library-grid-narrow", 3).Bind("items", "$.library.items").
-		Child(cards("library-item-n", d.Items)...).If(MaxWidth(720))
-	root.Child(wide, medium, narrow)
+	// One grid; how many columns it has is the device's business (Layout.GridColumns
+	// on a TV, the window's width elsewhere).
+	root.Child(GridOf("library-grid", 0).Bind("items", "$.library.items").
+		Child(cards("library-item", d.Items)...))
 
 	root.Child(TextOf("library-empty", "Nothing here yet. Add a folder to this library in Settings.").
 		Prop("variant", "hint").If(HasFlag("libraryEmpty")))

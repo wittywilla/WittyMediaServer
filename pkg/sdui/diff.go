@@ -25,7 +25,7 @@ const (
 	PatchRemove PatchOp = "remove"
 	// PatchReplace replaces the node at Path ("#id") with Node — all fields
 	// except Children, which are patched separately — or, for document-level
-	// paths ("/screen", "/theme", "/actions", "/meta", "/root"), sets Value
+	// paths ("/screen", "/theme", "/layout", "/actions", "/meta", "/root"), sets Value
 	// (or Node for "/root").
 	PatchReplace PatchOp = "replace"
 	// PatchMove moves the node From ("#id") to Path ("#parent/children/i").
@@ -34,7 +34,7 @@ const (
 
 // Patch is one step in transforming a document into another. Paths are ID
 // based: "#<id>" names a node, "#<id>/children/<n>" a position among its
-// children, and "/root", "/screen", "/theme", "/actions", "/meta" the
+// children, and "/root", "/screen", "/theme", "/layout", "/actions", "/meta" the
 // document-level fields.
 type Patch struct {
 	Op PatchOp `json:"op"`
@@ -71,6 +71,13 @@ func Diff(old, new Document) []Patch {
 			v = new.Actions
 		}
 		ps = append(ps, Patch{Op: PatchReplace, Path: "/actions", Value: v})
+	}
+	if !jsonEqual(old.Layout, new.Layout) {
+		var v any
+		if new.Layout != nil {
+			v = new.Layout
+		}
+		ps = append(ps, Patch{Op: PatchReplace, Path: "/layout", Value: v})
 	}
 	om, nm := stripVolatileMeta(old.Meta), stripVolatileMeta(new.Meta)
 	if !jsonEqual(om, nm) {
@@ -285,6 +292,17 @@ func applyDocField(d *Document, p Patch) error {
 			return err
 		}
 		d.Theme = &t
+		return nil
+	case "/layout":
+		if isJSONNull(p.Value) {
+			d.Layout = nil
+			return nil
+		}
+		var l Layout
+		if err := reencode(p.Value, &l); err != nil {
+			return err
+		}
+		d.Layout = &l
 		return nil
 	case "/actions":
 		d.Actions = nil

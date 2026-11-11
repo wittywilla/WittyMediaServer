@@ -19,6 +19,15 @@ const (
 	MaxNodes = 5000
 	// MaxIDLength is the longest node ID Validate accepts.
 	MaxIDLength = 128
+	// MaxChildren is the most children one node may have written into it.
+	// (Rows filled from data are cut to the device's own limit by Render.)
+	MaxChildren = 200
+	// MaxProps is the most props one node may have, and MaxPropBytes the
+	// largest one prop may be once encoded.
+	MaxProps     = 64
+	MaxPropBytes = 16 << 10
+	// MaxActions is the most entries the action table may have.
+	MaxActions = 256
 )
 
 // Issue is one validation problem, located by a JSON-pointer-like path into
@@ -93,6 +102,9 @@ func Validate(doc *Document) error {
 	if doc.Meta.TTLSeconds < 0 {
 		ve.add("/meta/ttlSeconds", "must not be negative")
 	}
+	if len(doc.Actions) > MaxActions {
+		ve.add("/actions", "%d actions; at most %d", len(doc.Actions), MaxActions)
+	}
 
 	for _, name := range sortedKeys(doc.Actions) {
 		a := doc.Actions[name]
@@ -104,6 +116,8 @@ func Validate(doc *Document) error {
 			ve.add(p+"/type", "unknown action type %q", a.Type)
 		} else if actionNeedsTarget(a.Type) && strings.TrimSpace(a.Target) == "" {
 			ve.add(p+"/target", "action type %q requires a target", a.Type)
+		} else if msg := badTarget(a); msg != "" {
+			ve.add(p+"/target", "%s", msg)
 		}
 		if a.Params != nil {
 			if _, err := json.Marshal(a.Params); err != nil {
@@ -113,10 +127,11 @@ func Validate(doc *Document) error {
 	}
 
 	v := &validator{doc: doc, ve: ve, ids: map[string]string{}}
-	v.node(&doc.Root, "/root", 1)
+	v.node(&doc.Root, "/root", 1, scope{})
 	if v.count > MaxNodes {
 		ve.add("/root", "document has %d nodes; limit is %d", v.count, MaxNodes)
 	}
+	v.focus()
 	if len(ve.Issues) == 0 {
 		return nil
 	}
@@ -128,9 +143,70 @@ type validator struct {
 	ve    *ValidationError
 	ids   map[string]string // id -> path of first occurrence
 	count int
+	// What the focus rules need once every node has been seen.
+	interactive map[string]bool
+	guides      []guide
+	defaults    []string
 }
 
-func (v *validator) node(n *Node, path string, depth int) {
+type guide struct{ path, dir, target string }
+
+// scope is what a node is inside of, for the rules tvOS's focus engine and
+// scrolling impose: things a person acts on don't nest, and inside one page
+// (a Screen, a Tab's content, a Modal) scrolling regions don't nest either.
+type scope struct {
+	inside   ComponentType // the interactive ancestor, if any
+	scroller ComponentType // the scrolling ancestor within this page, if any
+}
+
+// badTarget checks where an action leads. Routes and requests stay on this
+// server (a path beginning with one "/"), so an edited screen can't send a
+// client, with its sign-in, to another host; an external link is a plain web
+// address and nothing else (no javascript:, data: or file: address).
+func badTarget(a Action) string {
+	t := strings.TrimSpace(a.Target)
+	switch a.Type {
+	case Navigate, Fetch, Submit:
+		// "$route": the activated node's own prop, which the server filled in.
+		if a.Type == Navigate && strings.HasPrefix(t, "$") && validIdent(t[1:]) {
+			return ""
+		}
+		if !strings.HasPrefix(t, "/") || strings.HasPrefix(t, "//") || strings.ContainsAny(t, "\\\r\n") {
+			return "must be a path on this server, beginning with one /"
+		}
+	case External:
+		if !strings.HasPrefix(t, "https://") && !strings.HasPrefix(t, "http://") {
+			return "must be an http:// or https:// address"
+		}
+	}
+	return ""
+}
+
+// urlProps are the props that name a picture or a stream.
+var urlProps = []string{"src", "imageUrl", "backdropUrl", "logoUrl", "poster"}
+
+// badURL: a picture or stream is on this server, or at a web address.
+func badURL(u string) bool {
+	if strings.HasPrefix(u, "/") {
+		return strings.HasPrefix(u, "//") || strings.ContainsAny(u, "\\\r\n")
+	}
+	return !strings.HasPrefix(u, "https://") && !strings.HasPrefix(u, "http://") && u != "about:blank"
+}
+
+// focus checks what could only be checked with every node known: one default,
+// on something focusable, and guides that lead to something focusable.
+func (v *validator) focus() {
+	if len(v.defaults) > 1 {
+		v.ve.add(v.defaults[1], "a screen has one default focus; the first is at %s", strings.TrimSuffix(v.defaults[0], "/focus/default"))
+	}
+	for _, g := range v.guides {
+		if !v.interactive[g.target] {
+			v.ve.add(g.path+"/focus/"+g.dir, "focus guide %q names no node a person can act on", g.target)
+		}
+	}
+}
+
+func (v *validator) node(n *Node, path string, depth int, sc scope) {
 	v.count++
 	if depth > MaxDepth {
 		v.ve.add(path, "nesting depth %d exceeds limit %d", depth, MaxDepth)
@@ -211,13 +287,67 @@ func (v *validator) node(n *Node, path string, depth int) {
 		}
 	}
 
+	if len(n.Props) > MaxProps {
+		v.ve.add(path+"/props", "%d props; at most %d", len(n.Props), MaxProps)
+	}
+	for _, k := range sortedKeys(n.Props) {
+		if b, err := json.Marshal(n.Props[k]); err == nil && len(b) > MaxPropBytes {
+			v.ve.add(path+"/props/"+k, "is %d bytes; at most %d", len(b), MaxPropBytes)
+		}
+	}
+	for _, k := range urlProps {
+		if u, ok := n.Props[k].(string); ok && u != "" && badURL(u) {
+			v.ve.add(path+"/props/"+k, "must be a path on this server or an http(s) address")
+		}
+	}
+	if len(n.Children) > MaxChildren {
+		v.ve.add(path+"/children", "%d children; at most %d", len(n.Children), MaxChildren)
+	}
+
+	// Focus: what a person acts on doesn't nest (a Tab is its label; what is
+	// under it is its page), and scrolling regions don't nest within a page.
+	isInteractive := Interactive(n)
+	if isInteractive {
+		if v.interactive == nil {
+			v.interactive = map[string]bool{}
+		}
+		v.interactive[n.ID] = true
+		if sc.inside != "" {
+			v.ve.add(path, "%s can be acted on and is inside a %s that can be too; focus can't reach both", n.Type, sc.inside)
+		}
+	}
+	if f := n.Focus; f != nil {
+		if f.Default {
+			if !isInteractive {
+				v.ve.add(path+"/focus/default", "default focus must be on a node a person can act on")
+			}
+			v.defaults = append(v.defaults, path+"/focus/default")
+		}
+		for _, g := range []struct{ dir, id string }{{"up", f.Up}, {"down", f.Down}, {"left", f.Left}, {"right", f.Right}} {
+			if g.id != "" {
+				v.guides = append(v.guides, guide{path, g.dir, g.id})
+			}
+		}
+	}
+	if rowScroller(n.Type) || pageScroller(n.Type) {
+		if sc.scroller != "" {
+			v.ve.add(path+"/type", "%s scrolls and is inside a %s that scrolls; scrolling regions don't nest", n.Type, sc.scroller)
+		}
+		sc.scroller = n.Type
+	}
+	if page(n.Type) {
+		sc = scope{}
+	} else if isInteractive {
+		sc.inside = n.Type
+	}
+
 	for i := range n.Children {
 		c := &n.Children[i]
 		cp := path + "/children/" + strconv.Itoa(i)
 		if known && spec.AllowedChildren != nil && !containsType(spec.AllowedChildren, c.Type) {
 			v.ve.add(cp+"/type", "%s is not an allowed child of %s", c.Type, n.Type)
 		}
-		v.node(c, cp, depth+1)
+		v.node(c, cp, depth+1, sc)
 	}
 }
 
@@ -284,6 +414,11 @@ func (v *validator) condition(c *Condition, path string, depth int) {
 	}
 	if c.Module != "" && !validModuleID(c.Module) {
 		v.ve.add(path+"/module", "invalid module id")
+	}
+	switch c.FormFactor {
+	case "", FormTV, FormPhone, FormTablet, FormDesktop, FormWeb:
+	default:
+		v.ve.add(path+"/formFactor", "must be tv, phone, tablet, desktop or web")
 	}
 	for i := range c.All {
 		v.condition(&c.All[i], path+"/all/"+strconv.Itoa(i), depth+1)

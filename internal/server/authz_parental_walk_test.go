@@ -38,7 +38,8 @@ const (
 // called with the hidden titles' numbers and must refuse; "other" names something else (a
 // collection, a profile, a stream) and is called with every number there is, for what it shows.
 var idSpaces = map[string]string{
-	"/api/items/{id}": "item", "/api/media/{id}": "item", "/api/games/{id}": "item", "/api/cd/{id}": "item", "/api/radio/{id}": "item",
+	"/api/p2p/devices/{id}": "other", // a device's key
+	"/api/items/{id}":       "item", "/api/media/{id}": "item", "/api/games/{id}": "item", "/api/cd/{id}": "item", "/api/radio/{id}": "item",
 	"/api/videos/{id}": "item", "/api/photos/{id}": "item", "/api/music/extras/{id}": "item", "/api/music/loudness/{id}": "item",
 	"/api/music/links/{id}": "item", "/api/music/lyrics/{id}": "item", "/api/music/radio/{id}": "item", "/api/rigs/games/{id}": "item",
 	"/api/shows/{id}":         "show",

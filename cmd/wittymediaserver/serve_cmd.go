@@ -379,6 +379,8 @@ func cmdServe(args []string) int {
 	}
 	// Remote access: nothing opens unless the owner turned it on.
 	srv.StartRemote(context.Background(), handler)
+	// Peer-to-peer connections: the same, and with them off not even their code runs.
+	srv.StartP2P(context.Background(), handler)
 	// First start on a desktop: open the setup wizard in the browser.
 	if cfg.OpenBrowser && srv.Auth.NoAccounts(context.Background()) && !desktop.Headless() {
 		if err := desktop.OpenURL(listenURL(cfg.Listen)); err != nil {
@@ -521,6 +523,7 @@ func cmdServe(args []string) int {
 		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		srv.StopRemote(sctx)
+		srv.StopP2P() // also removes what it asked of the router
 		srv.EndStreams()
 		if err := httpServer.Shutdown(sctx); err != nil {
 			log.Info("streams still open at shutdown are being closed", "err", err)

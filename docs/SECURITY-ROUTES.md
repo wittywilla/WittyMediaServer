@@ -10,6 +10,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 ## What applies to every request
 
 - Requests from outside the home network are refused until the owner turns remote access on, and then need HTTPS or a VPN.
+- Requests that arrive over a peer-to-peer connection ([P2P.md](P2P.md)) reach this same handler. They always count as coming from
+  outside the home network, whatever address the connection has, and are let in only while peer-to-peer connections are on.
 - Requests with a body are limited to 32 MB and 2 minutes, except the routes that set their own limit. A route that takes a body from
   someone not signed in is limited to 16 KB and 15 seconds, and JSON to 1 MB unless the table says otherwise.
 - State-changing requests signed in by cookie are refused when they come from another origin.
@@ -362,6 +364,16 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/remote/obtain` | Admin | HTTPS is on, in certificate-request mode |
 | `DELETE /api/remote/lockouts` | Admin | Nothing further |
 | `DELETE /api/remote/plain-sessions` | Admin | Nothing further |
+| `GET /api/p2p` | Signed-in | Nothing further. The server's connection ID only for signed-in accounts. `device` says whether that device is the caller's own |
+| `GET /api/p2p/devices` | Signed-in | own. Everyone's with 'all=1', for an admin |
+| `POST /api/p2p/devices` | Signed-in | A session token, not a stream token. A well-formed Ed25519 device ID that isn't the server's own. A key listed for another account is refused. At most 32 per account, 512 in all |
+| `DELETE /api/p2p/devices/{id}` | Signed-in | own. Any account's for an admin. Someone else's answers as if there were none |
+| `POST /api/p2p/invite` | Adult | Target is the caller or a profile the caller manages. Peer-to-peer connections are on. Limit on open invites |
+| `GET /api/p2p/settings` | Admin | Nothing further |
+| `PUT /api/p2p/settings` | Admin | Port, layers, relay limit, own relays (each a multiaddr ending in a valid ID). Turning it on, or letting unlisted devices in, also needs `accept` |
+| `GET /api/p2p/status` | Admin | Nothing further |
+| `POST /api/p2p/test` | Admin | Peer-to-peer connections are on. One test at a time |
+| `POST /api/p2p/rotate` | Admin | The admin's own password (and code), with an attempt limit |
 | `GET /api/sessions` | Signed-in | own. Everyone's with 'all=1', for an admin |
 | `DELETE /api/sessions` | Signed-in | own, except the current one |
 | `DELETE /api/sessions/{id}` | Signed-in | own. Any account's for an admin |

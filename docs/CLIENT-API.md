@@ -1101,6 +1101,7 @@ same words everywhere. `GET /legal/notices` needs no sign-in and returns them by
 Two things that make several clients act as one, both through the server and both optional for an app:
 
 - **Remote control.** Any signed-in client can announce itself as a device, and any other can play something on it, pause it, seek, change its volume or tracks, press its arrow keys, or hand over what it's playing. [REMOTE-PROTOCOL.md](REMOTE-PROTOCOL.md) is the whole wire format, with every message. A server that has it lists `remote-protocol` in `features`, and `GET /remote-control` says whether its owner has it on.
+- **Peer-to-peer connections.** An app away from home reaches a server with nothing set up on its router: both are libp2p nodes, the app dials the server's connection ID, and this same HTTP API rides inside. [P2P.md](P2P.md) has the protocol, the invite link and the ready-made connector (a Go package with a desktop helper and mobile bindings). The feature name is `p2p`; `GET /p2p` says whether the owner has it on.
 - **Watch parties.** People in different places watch the same thing in step. The server keeps one state for the room and every player follows it. [SYNCPLAY.md](SYNCPLAY.md#for-developers) has the routes, the clock arithmetic and the drift rules. The feature name is `syncplay`.
 
 **Profiles with limits.** Both follow parental controls ([PROFILES.md](PROFILES.md#limits-everywhere-else)), on the server. What an app has to do:
@@ -1917,6 +1918,16 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `POST /remote/obtain` | admin | Obtain. |
 | `DELETE /remote/lockouts` | admin | Clear lockouts. |
 | `DELETE /remote/plain-sessions` | admin | Sign out every session whose sign-in crossed the internet unencrypted (`plainAway` in `GET /sessions`). Answers `{ended}`. |
+| `GET /p2p` | user | Whether peer-to-peer connections are on, and what an app needs for them: `serverId` (what to dial), `addrs` (where the server was last reachable, to keep as hints), `devicesOnly`, `layers`. `?device=<id>` adds `enrolled`. See P2P.md. |
+| `GET /p2p/devices` | user | The devices that may connect peer to peer: yours, or everyone's with `?all=1` for an admin. Each has `id`, `name`, `platform`, `lastSeen`, and `connected` with its `path` (direct or relayed). |
+| `POST /p2p/devices` | user | Put this device's key on the list, under your account: `{id, name, platform}`. An app does this once, while it reaches the server some other way. |
+| `DELETE /p2p/devices/{id}` | user | Take a device off the list. Its open connections close at once. |
+| `POST /p2p/invite` | user | An invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only. Works once, for 15 minutes. |
+| `GET /p2p/settings` | admin | The owner's choices, how every layer is doing in plain words (`steps`), who is contacted (`thirdParties`) and every device. |
+| `PUT /p2p/settings` | admin | Change them. Turning the feature on needs `accept: true`. |
+| `GET /p2p/status` | admin | Only how every layer is doing, for a page that stays open. |
+| `POST /p2p/test` | admin | Connect to this server as an app away from home would, from a second node, and say how far it got. |
+| `POST /p2p/rotate` | admin | Give the server a new connection key and ID: `{password, code}`. Every device must learn the new ID. |
 | `GET /sessions` | user | Sessions. |
 | `DELETE /sessions` | user | End other sessions. |
 | `DELETE /sessions/{id}` | user | End session. |

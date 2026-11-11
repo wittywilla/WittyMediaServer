@@ -183,6 +183,13 @@ var routeClasses = map[string]string{
 // (What they show still follows the account's limits; that is the handlers' work, and
 // TestLimitedProfilesNeverSeeHiddenTitles walks them for it.)
 var plainRoutes = []string{
+	// Peer to peer: a way in from away. A profile kept at home is refused by the handlers that
+	// enrol a device or make an invitation (FeatureRemote), and what arrives that way counts as away.
+	"DELETE /api/p2p/devices/{id}",
+	"GET /api/p2p",
+	"GET /api/p2p/devices",
+	"POST /api/p2p/devices",
+	"POST /api/p2p/invite",
 	"DELETE /api/remote-control/devices/{id}",
 	"DELETE /api/syncplay/rooms/{id}",
 	"GET /api/auth/pair/{session}/info",

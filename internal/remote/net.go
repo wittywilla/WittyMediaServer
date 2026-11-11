@@ -60,6 +60,11 @@ type Client struct {
 	Secure bool
 	// ForwardedHost is the address the browser used, from a trusted proxy only.
 	ForwardedHost string
+	// P2P: the request came over a peer-to-peer connection (see p2p.go), from
+	// the device with this key. Where is then always Internet.
+	P2P        bool
+	P2PDevice  string
+	P2PRelayed bool
 }
 
 // Direct: nothing stands between this server and the client.
@@ -139,6 +144,12 @@ func (p *Policy) trusts(a netip.Addr) bool {
 // RFC 7239's Forwarded header is never read: proxies that only maintain
 // X-Forwarded-For pass a client's made-up Forwarded through untouched.
 func (p *Policy) Resolve(r *http.Request) Client {
+	// First, and before any address is looked at: a peer-to-peer connection is
+	// away from home whatever its addresses or headers say, and whatever the
+	// owner's lists of home networks hold.
+	if c, ok := P2PFrom(r.Context()); ok {
+		return p2pClient(c)
+	}
 	peer := peerAddr(r.RemoteAddr)
 	c := Client{IP: peer, Peer: peer, Secure: r.TLS != nil}
 	xff := r.Header.Values("X-Forwarded-For")

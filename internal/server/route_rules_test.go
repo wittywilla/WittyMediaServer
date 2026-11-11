@@ -7,6 +7,11 @@ package server
 // beyond that. TestEveryRouteHasAStatedRule fails on a route that is missing here: a new route for
 // signed-in accounts is a decision, and this is where it is written down.
 var routeRules = map[string]string{
+	"GET /api/p2p":                                              "Signed-in: Nothing further. The server's connection ID only for signed-in accounts. `device` says whether that device is the caller's own",
+	"GET /api/p2p/devices":                                      "Signed-in: own. Everyone's with 'all=1', for an admin",
+	"POST /api/p2p/devices":                                     "Signed-in: A session token, not a stream token. A well-formed Ed25519 device ID that isn't the server's own. A key listed for another account is refused. At most 32 per account, 512 in all",
+	"DELETE /api/p2p/devices/{id}":                              "Signed-in: own. Any account's for an admin. Someone else's answers as if there were none",
+	"POST /api/p2p/invite":                                      "Adult: Target is the caller or a profile the caller manages. Peer-to-peer connections are on. Limit on open invites",
 	"DELETE /api/annotations/{aid}":                             "Signed-in: own",
 	"DELETE /api/collections/{id}":                              "Signed-in: Collection's owner or an admin. Not a system list",
 	"DELETE /api/collections/{id}/items":                        "Signed-in: Collection's owner or an admin. 1 to 2000",

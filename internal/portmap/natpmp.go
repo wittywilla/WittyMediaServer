@@ -61,9 +61,12 @@ func (c *natpmpClient) ExternalIP(ctx context.Context) (netip.Addr, error) {
 	return netip.AddrFrom4([4]byte(b[8:12])), nil
 }
 
-func (c *natpmpClient) mapRequest(external, internal int, lease uint32) ([]byte, error) {
+func (c *natpmpClient) mapRequest(proto string, external, internal int, lease uint32) ([]byte, error) {
 	req := make([]byte, 12)
 	req[1] = 2 // TCP
+	if proto == UDP {
+		req[1] = 1
+	}
 	binary.BigEndian.PutUint16(req[4:], uint16(internal))
 	binary.BigEndian.PutUint16(req[6:], uint16(external))
 	binary.BigEndian.PutUint32(req[8:], lease)
@@ -71,7 +74,16 @@ func (c *natpmpClient) mapRequest(external, internal int, lease uint32) ([]byte,
 }
 
 func (c *natpmpClient) Map(ctx context.Context, external, internal int) (int, time.Duration, error) {
-	req, _ := c.mapRequest(external, internal, leaseSeconds)
+	return c.MapProto(ctx, TCP, external, internal)
+}
+
+func (c *natpmpClient) Unmap(ctx context.Context, external, internal int) error {
+	return c.UnmapProto(ctx, TCP, external, internal)
+}
+
+// MapProto is Map for TCP or UDP.
+func (c *natpmpClient) MapProto(ctx context.Context, proto string, external, internal int) (int, time.Duration, error) {
+	req, _ := c.mapRequest(proto, external, internal, leaseSeconds)
 	b, err := c.ask(ctx, req, 16)
 	if err != nil {
 		return 0, 0, err
@@ -79,8 +91,9 @@ func (c *natpmpClient) Map(ctx context.Context, external, internal int) (int, ti
 	return int(binary.BigEndian.Uint16(b[10:12])), time.Duration(binary.BigEndian.Uint32(b[12:16])) * time.Second, nil
 }
 
-func (c *natpmpClient) Unmap(ctx context.Context, external, internal int) error {
-	req, _ := c.mapRequest(0, internal, 0) // lease 0 and port 0 remove it (RFC 6886, 3.4)
+// UnmapProto is Unmap for TCP or UDP.
+func (c *natpmpClient) UnmapProto(ctx context.Context, proto string, external, internal int) error {
+	req, _ := c.mapRequest(proto, 0, internal, 0) // lease 0 and port 0 remove it (RFC 6886, 3.4)
 	_, err := c.ask(ctx, req, 16)
 	return err
 }

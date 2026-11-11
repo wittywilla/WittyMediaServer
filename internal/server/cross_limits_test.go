@@ -36,7 +36,7 @@ type limitsWorld struct {
 	games, films int64 // libraries
 	game         *library.Item
 	collection   int64
-	open         string // limits that hide nothing, without the braces
+	noLimits     string // limits that hide nothing, without the braces
 }
 
 // The profiles' names are the kinds of limit, and the keys of hidden.
@@ -47,7 +47,7 @@ func newLimitsWorld(t *testing.T) *limitsWorld {
 	ts := newTestServer(t)
 	root := t.TempDir()
 	w := &limitsWorld{testServer: ts, hidden: map[string]*library.Item{}}
-	w.open = `"maxAge":-1,"allowUnrated":true,"liveTv":true,"libraryChannels":true,"tunerChannels":true`
+	w.noLimits = `"maxAge":-1,"allowUnrated":true,"liveTv":true,"libraryChannels":true,"tunerChannels":true`
 	w.films = ts.library(t, "movies", filepath.Join(root, "films"))
 	w.games = ts.library(t, "games", filepath.Join(root, "games"))
 	film := func(title, rating, genre string) *library.Item {
@@ -88,15 +88,15 @@ func newLimitsWorld(t *testing.T) *limitsWorld {
 func (w *limitsWorld) limits(kind string) string {
 	switch kind {
 	case "a rating for films only":
-		return `{` + w.open + `,"kinds":{"film":{"maxAge":7,"allowUnrated":false}}}`
+		return `{` + w.noLimits + `,"kinds":{"film":{"maxAge":7,"allowUnrated":false}}}`
 	case "only some genres":
-		return `{` + w.open + `,"onlyGenres":["Family"]}`
+		return `{` + w.noLimits + `,"onlyGenres":["Family"]}`
 	case "a hidden tag":
-		return `{` + w.open + `,"blockTags":["pranks"]}`
+		return `{` + w.noLimits + `,"blockTags":["pranks"]}`
 	case "a collection never allowed":
-		return fmt.Sprintf(`{%s,"blockCollections":[%d]}`, w.open, w.collection)
+		return fmt.Sprintf(`{%s,"blockCollections":[%d]}`, w.noLimits, w.collection)
 	case "games turned off":
-		return `{` + w.open + `,"off":["games"]}`
+		return `{` + w.noLimits + `,"off":["games"]}`
 	}
 	panic(kind)
 }

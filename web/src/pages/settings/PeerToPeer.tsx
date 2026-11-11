@@ -58,6 +58,8 @@ export default function PeerToPeer() {
   const [test, setTest] = useState<Step[] | null>(null)
   const [testing, setTesting] = useState(false)
   const [invite, setInvite] = useState<{ link: string; until: number } | null>(null)
+  const [joinCode, setJoinCode] = useState('')
+  const [joined, setJoined] = useState('')
   const [owner, setOwner] = useState<OwnerAsk | null>(null)
   const [relays, setRelays] = useState<string | null>(null)
   const load = useCallback(() => api.get<View>('/p2p/settings').then(setV).catch(() => {}), [])
@@ -108,6 +110,18 @@ export default function PeerToPeer() {
       setInvite({ link: r.link, until: Date.now() + r.expiresInSec * 1000 })
     } catch (e: any) { toast(e.message) }
   }
+  // A TV away from home can't take a link in, so it shows a short code instead, and that is typed here.
+  // It signs the TV in as the owner, which takes the owner's password again, as approving a TV at home does.
+  const codeTyped = joinCode.replace(/[\s-]/g, '')
+  const takeCode = () => setOwner({
+    title: 'Sign that device in as you?',
+    body: <p>The device showing <b>{joinCode.trim().toUpperCase()}</b> is put on the list above and signed in as you, wherever it is. Only type in a code you can see on your own device: whoever is showing it gets in.</p>,
+    action: 'Add the device',
+    run: async (password, code) => {
+      await api.post('/p2p/join', { code: joinCode, password, otp: code })
+      setJoined(joinCode.trim().toUpperCase()); setJoinCode('')
+    },
+  })
   const remove = async (d: Device) => {
     if (!await ask({ title: `Remove ${d.name}?`, body: 'It can’t connect from away any more, and is cut off now if it is connected. It stays signed in, so it still works at home; sign it out under Sign-in & security to stop that too.', confirm: 'Remove', danger: true })) return
     try { await api.del(`/p2p/devices/${d.id}`); toast('Removed'); load() } catch (e: any) { toast(e.message) }
@@ -169,6 +183,16 @@ export default function PeerToPeer() {
             <div><button type="button" className="btn sm ghost" onClick={() => setInvite(null)}>Hide</button></div>
           </div>
         </div>
+      )}
+
+      {s.layers.dht && (
+        <Row label="A TV that shows a code" desc="A TV that isn’t at home has no way to take an invite in. In its app, choose Join from away: it shows a code of eight letters and digits. Type it here." stack>
+          <form className="rem-actions" onSubmit={(e) => { e.preventDefault(); if (codeTyped.length === 8) takeCode() }}>
+            <input className="input p2p-code" value={joinCode} onChange={(e) => { setJoinCode(e.target.value); setJoined('') }} placeholder="K7QM-2XHD" maxLength={12} autoCapitalize="characters" autoComplete="off" spellCheck={false} aria-label="The code the device shows" />
+            <button type="submit" className="btn sm" disabled={codeTyped.length !== 8}>Add the device…</button>
+          </form>
+          {joined && <small className="muted" role="status">This server is now looking out for the device showing {joined}. It joins within a minute or so and appears in the list above; the code works once, for fifteen minutes.</small>}
+        </Row>
       )}
 
       <h4 className="p2p-head">Who may try</h4>

@@ -232,7 +232,8 @@ Read this before turning it on. It's the honest list.
 1. Go to **Settings → Remote Access → Peer-to-peer connections**. The page lists everyone who'll be contacted. Tick the box and choose **Turn on peer-to-peer connections**.
 2. **Pair your devices while they're at home.** Open the app on each phone, TV and laptop while it's on your home network and signed in. Within a minute it adds itself to **Devices that may connect**. That's all: from then on, when the app can't find your server at home, it connects this way by itself.
 3. **A device that isn't at home** (yours while travelling, or a relative's) needs an invite. Choose **Invite a device that isn't at home**, and send them the link or show them the code. In the app they choose **Enter an address** and paste the link. It works once, for fifteen minutes, and signs the device in as you, so send it the way you'd send a password.
-4. **[Test it](#testing-peer-to-peer-connections).**
+4. **A TV that isn't at home** can't take a link in: it has no keyboard worth the name and no camera. In the app on the TV choose **Join from away**. It shows a code of eight letters and digits. Type it into **A TV that shows a code** on this page, with your password, and within a minute or so the TV finds your server and signs in as you. Only type in a code you can see on your own TV: whoever is showing it gets in. It works once, for fifteen minutes, and needs **Public address book** on, as that is how the TV finds your server.
+5. **[Test it](#testing-peer-to-peer-connections).**
 
 You don't have to change the three choices at the top of the page. Peer-to-peer connections work with **Home network only** chosen, which keeps every other way in closed.
 

@@ -12,6 +12,7 @@ For developers. This page is the design of the feature that lets an app reach a 
 - [On the wire](#on-the-wire)
 - [The server's side](#the-servers-side)
 - [The app's side](#the-apps-side)
+- [Joining by a code](#joining-by-a-code)
 - [Browsers](#browsers)
 - [Limits](#limits)
 - [What it costs](#what-it-costs)
@@ -31,7 +32,8 @@ It is off until the owner turns it on. Off, no node exists, no socket is open, n
 | `internal/remote/p2p.go` | The mark that makes a peer-to-peer request count as coming from the internet |
 | `internal/server/api_p2p.go` | Settings, the device list, invites, the routes, the connection test |
 | `pkg/wittyconnect` | The app's side, ready to use: a local HTTP address that leads to the server |
-| `pkg/wittyconnect/mobile` | The same for gomobile: Android and Apple |
+| `pkg/wittyconnect/mobile` | The same for gomobile: Android and Apple, Apple TV included |
+| `internal/p2p/join.go`, `internal/server/api_p2p_join.go` | A device away from home that shows a code, and the server that is told it |
 | `cmd/wittyconnect` | The same as a helper program, for the desktop app |
 
 ## The layers
@@ -64,7 +66,7 @@ Whether the server can be reached directly is not assumed from a mapping having 
 | Identity and encryption | Peer ID is the key; TLS 1.3 in QUIC, Noise on TCP | DTLS; identity has to be bolted on through signalling | To be written | WireGuard | Ed25519 |
 | Port mapping | UPnP and NAT-PMP built in (we use our own, which also has PCP) | none | ours | built in | built in |
 | From a browser | Only to a server that is directly reachable (WebTransport, WebRTC-direct), with js-libp2p | Yes, which is its one real advantage | No | No | No (WASM, through relays) |
-| iOS, Android, tvOS | Go, through gomobile | Go, through gomobile | Go | Go; needs the account | Rust; another toolchain in every app |
+| iOS, Android, tvOS | Go, through gomobile (tvOS with a fork of it: see [the app's side](#the-apps-side)) | Go, through gomobile | Go | Go; needs the account | Rust; another toolchain in every app |
 | License | MIT and other permissive, MPL-2.0 for two small parts | MIT | ours | BSD-3-Clause | MIT/Apache-2.0 |
 | Health | Maintained by Shipyard, in production in Kubo and others; monthly releases | Healthy | n/a | Healthy | Healthy, young |
 
@@ -110,6 +112,7 @@ Protocol IDs, all under `/wittymedia/`:
 |---|---|
 | `/wittymedia/http/1.0.0` | HTTP/1.1, as on a TCP connection: requests and responses, keep-alive, `Upgrade`. One stream is one connection. The server reads no `Forwarded` or `X-Forwarded-*` header on it |
 | `/wittymedia/enrol/1.0.0` | One request and one answer, each a 4-byte big-endian length and that many bytes of JSON (at most 4 kB), then the stream ends |
+| `/wittymedia/join/1.0.0` | Four messages in the same framing as enrolment: see [joining by a code](#joining-by-a-code) |
 | `/wittymedia/relay/1.0.0` | Registered by community relays, and closed as soon as it is opened. Only its presence in the relay's protocol list means anything |
 
 Enrolment: `{"v":1,"secret":"…","name":"Kate's phone","platform":"android"}` is answered with `{"ok":true,"code":"123456","serverName":"…","addrs":["/ip4/…"]}` or `{"ok":false,"reason":"wrong|used|expired|too-many-tries|refused|off","error":"…"}`. `code` is an ordinary sign-in code: the app redeems it at `POST /api/v1/pair/redeem` over the new connection, like a code typed on a TV.
@@ -129,6 +132,7 @@ Settings are one JSON value, `p2p`, in the settings table; the key's seed is `p2
 | `POST /api/v1/p2p/devices` | signed in | `{id, name, platform}`: puts the calling device's key on the list |
 | `DELETE /api/v1/p2p/devices/{id}` | signed in | Own; anyone's for an admin. Closes its connections |
 | `POST /api/v1/p2p/invite` | adult | `{userId}` → `{link, expiresInSec}` |
+| `POST /api/v1/p2p/join` | adult | `{code, userId, password, otp}` → `{ok, expiresInSec, user}`: the code a device away from home is showing |
 | `GET` / `PUT /api/v1/p2p/settings` | admin | The settings, each layer's state in words (`steps`), who is contacted, every device |
 | `GET /api/v1/p2p/status` | admin | Only the state |
 | `POST /api/v1/p2p/test` | admin | The connection test |
@@ -136,7 +140,7 @@ Settings are one JSON value, `p2p`, in the settings table; the key's seed is `p2
 
 `steps` is a list of `{name, state, detail}` with `state` one of `ok`, `warn`, `fail`, `off`, `wait`: reachable from outside, IPv6, the port on the router, hole punching (from the kind of NAT libp2p observed), the address book, relays, devices. **The connection test** starts a second node in the server's process with a throwaway key, lets that key in for two minutes, has it find the server by ID through the DHT, connect, and send `GET /api/health`. Being on the same machine it can't prove a direct path through the router, and says so; it proves the server is announced, findable, holding a relay and answering.
 
-The feature name in `/api/capabilities` is `p2p`.
+The feature name in `/api/capabilities` is `p2p`; `p2p-join` says the server takes a code a device shows.
 
 ## The app's side
 
@@ -152,14 +156,46 @@ The local address is bound to 127.0.0.1 only, on a random port (or the one asked
 
 **Desktop (Electron).** `cmd/wittyconnect` is that connector as a program. The app starts it, writes the configuration to its standard input as one line of JSON (never on the command line, where other programs could read the key), and reads events from its output: `ready` with the port and secret, `state`, `addrs`, the answer to an `enrol` command. It exits when its input closes, so it can't outlive the app. The app loads the server from `http://p2p-<end of the server's ID>.localhost:<port>`, a name of its own per server so that each server's cookies stay its own, and sets the secret as an `HttpOnly`, `SameSite=Strict` cookie no page can read. A JavaScript implementation (js-libp2p in the main process) was considered and set aside: it would be a second implementation of everything on this page to keep in step, without go-libp2p's hole punching over QUIC.
 
-**Android and Apple.** `pkg/wittyconnect/mobile` is the same connector in the shape gomobile binds: `NewKey`, `DeviceID`, `ParseInvite`, `Start(configJSON, listener)` and a `Session` with `Port`, `Secret`, `State`, `KnownAddrs`, `NetworkChanged`, `Enrol`, `Close`. Build the libraries with:
+**Android and Apple.** `pkg/wittyconnect/mobile` is the same connector in the shape gomobile binds: `NewKey`, `DeviceID`, `ParseInvite`, `Start(configJSON, listener)` and a `Session` with `Port`, `Secret`, `State`, `KnownAddrs`, `NetworkChanged`, `Enrol`, `Close`; `NewJoinCode` and `StartJoin` with a `Joining` (`Wait`, `Cancel`) for [joining by a code](#joining-by-a-code); and `SetMemoryLimit` and `FreeMemory`. Build the libraries with:
 
 ```bash
 scripts/build-wittyconnect-mobile.sh android   # → dist/wittyconnect/wittyconnect.aar
-scripts/build-wittyconnect-mobile.sh apple     # → dist/wittyconnect/Wittyconnect.xcframework (iOS, the simulator, macOS)
+scripts/build-wittyconnect-mobile.sh apple     # → dist/wittyconnect/Wittyconnect.xcframework
 ```
 
-It needs Go, `gomobile` (it installs it), and for Android the SDK and NDK (`ANDROID_HOME`, `ANDROID_NDK_HOME`), for Apple Xcode. It builds in a scratch module that points at this checkout, so nothing is added to the server's `go.mod`. gomobile has no tvOS target; see [what isn't done](#what-isnt-done).
+It needs Go, and for Android the SDK and NDK (`ANDROID_HOME`, `ANDROID_NDK_HOME`), for Apple Xcode. It builds in a scratch module that points at this checkout, so nothing is added to the server's `go.mod`. The tools are pinned in the script and kept to themselves in `.tools/` in the checkout (or the folder in `TOOLS`): nothing is installed into `~/go/bin`.
+
+The Apple framework has four slices: iPhone and iPad (`ios-arm64`), their simulator, **Apple TV** (`tvos-arm64`) and its simulator, each for Apple silicon and, in the simulators, Intel as well. It is a static library of about 30 MB a slice before linking, for iOS 16 and tvOS 17 and newer (`IOS_VERSION`, `TVOS_VERSION`; `APPLE_TARGETS` adds `macos` or `maccatalyst`). The script checks that every object in every slice says which system it is for, since Xcode refuses to link one that says another.
+
+**How it is built for Apple TV.** The Go project's gomobile (`golang.org/x/mobile`) has no Apple TV target, which is all that stood in the way: Go's `ios` port is the same processor and the same calling rules as tvOS, and what differs is the system named in each object file and the SDK it is compiled against. Three ways were looked at.
+
+1. **A gomobile that has the target.** `github.com/sagernet/gomobile` is a fork of the Go project's (the same BSD-3-Clause license) that adds `tvos` and `tvossimulator`; it is what sing-box builds its Apple TV app's Go library with. `gomobile bind -target ios,iossimulator,tvos,tvossimulator -tvosversion 17.0` built `pkg/wittyconnect/mobile` on the first try, with Xcode 27 and Go 1.27: every object is marked `TVOS` (or `TVOSSIMULATOR`) with a minimum of 17.0, and an app for a real Apple TV links against it. **This is the one used**, pinned to v0.1.13 (commit `9f03b8f2`), for iPhone and iPad as well so that there is one tool and one set of generated bindings. The Android library stays on the Go project's gomobile.
+2. **No gomobile:** `GOOS=ios CGO_ENABLED=1 go build -buildmode=c-archive` with clang pointed at the Apple TV SDK and a hand-written C header in place of gobind's Objective-C. It works for the same reason the first way does, and would mean keeping by hand what gobind generates (the listener called back from Go, strings and errors across the boundary). Not needed while the fork is maintained; it is the way to go if the fork ever isn't.
+3. **Another transport for Apple TV.** Not needed. A second implementation of everything on this page, in Swift, would have been the price.
+
+What Apple TV is strict about, and how it stands: the Go runtime on `ios` never forks or runs another program, which tvOS forbids (the library does name `execve`, as Go's `syscall` package always does; nothing calls it); the app listens only on 127.0.0.1, which needs no permission; and the library is linked into the app, so there is nothing beside it to embed or sign. Apple Vision Pro has no slice: the fork has no visionOS target, and the app builds without the feature there.
+
+**What an Apple TV or a phone needs that a desktop doesn't.**
+
+- *Memory.* An Apple TV ends an app that takes too much, early and without asking. Inside an app the Go part collects at half again what is live (not double) and is given a soft limit, 64 MB unless the app says otherwise with `SetMemoryLimit` (the Apple TV app says 48); `FreeMemory` is for the system's warning. The node's own limits are the app's in [Limits](#limits). Measured: see [what it costs](#what-it-costs).
+- *Leaving the screen.* The system stops an app that is off the screen and takes its sockets. The app closes the session then (`Close`) and starts one when it comes back, asking for the port it had (`port` in the configuration) so that addresses already handed to a player still lead somewhere; the secret is a new one each time, and the app hands it on.
+- *The secret.* An app's own requests carry the header. A video player and a web view can't be given one and send cookies by themselves, so the app sets the cookie for `127.0.0.1` where they look.
+- *The key.* In the system's keychain, not in a file the system may clear.
+
+## Joining by a code
+
+An invite link is long, and a TV has no keyboard worth the name and no camera. At home that doesn't matter: the TV shows a sign-in code, someone approves it, and the app puts the device on the list by itself. A TV that has never been at home with its server (taken to a holiday house, bought for a relative) knows nothing about the server at all, and has no way to be told.
+
+So the TV makes up a short code, eight letters and digits from an alphabet with nothing that reads as something else across a room (`K7QM-2XHD`), and shows it. Someone signed in types it into the server (`POST /api/v1/p2p/join`, or Settings, Remote Access, "A TV that shows a code"). Then:
+
+1. Both ends turn the code into two keys with Argon2id (2 passes over 32 MB): one to look each other up by, one to prove they know the code.
+2. The server announces itself in the address book under the first key: a provider record, as community relays use under theirs. The TV, which has been asking the address book who is under that key every few seconds, learns the server's connection ID and addresses.
+3. The TV connects and opens `/wittymedia/join/1.0.0`. It sends the lookup key and 16 random bytes. The server answers with 16 of its own and an HMAC-SHA-256, under the second key, over both random numbers and both ends' IDs (which libp2p has already proved). The TV checks it, and only then sends its own. The server checks that, and from there does exactly what it does for an invite: the code stands for an invite made when it was typed in, which never leaves the server.
+4. The answer is enrolment's, with the server's ID beside it: the TV starts an ordinary connection and redeems the sign-in code.
+
+What a stranger can do with it. The address book's computers see the lookup key, and anyone can announce themselves under it. A node that does is sent a random number and nothing else, since it can't make the proof, and the TV doesn't ask it twice (`TestAStrangerUnderTheCodesKeyLearnsNothing`). Working the code out from the lookup key, or from the server's proof, costs an Argon2id run per guess over 40 bits: centuries of computing for a code that is good for fifteen minutes and once. Guessing at the server itself shares the limits on invites (5 tries a minute per key, 10 per address, 60 in all), and three wrong proofs for one code give that code up (`TestGuessingAtACodeGivesItUp`). A proof heard on one connection is no use on another, because both IDs and both random numbers are in it.
+
+What it gives whoever shows the code: a place on the list and a sign-in as the account that typed it (or a Kids or Guest profile it manages). So the same rule as approving a TV at home: signing a device in as an administrator takes the administrator's password again, and the page says to type in only a code you can see on your own device. It needs the address book layer, since that is how the TV finds the server, and says so when it is off (409). Sixteen codes can be waiting at once.
 
 ## Browsers
 
@@ -176,6 +212,7 @@ A web page can't open a UDP socket or a raw TCP one, so the web client can't be 
 | The node's memory | 96 MB by libp2p's resource manager on a server, 48 MB in an app |
 | Connections the node keeps | 16–48 on a server, 8–24 in an app; devices and the server are never trimmed |
 | Invites open at once | 16; each 15 minutes, once |
+| Codes waiting for their device | 16; each 15 minutes, once, and given up after 3 wrong proofs |
 | Enrolment tries | 5 a minute per key, 10 per address, 60 in all |
 | As a community relay | 16 servers, 4 connections each, 2 GiB and 2 hours per connection, 2 places per IP address |
 | Timeouts | 15 s for request headers, 120 s idle, 30 s to dial, 5 s per hole-punch attempt |
@@ -195,6 +232,8 @@ Measured on an Apple M-series Mac (arm64), Go 1.27; sizes are release builds (`-
 
 With the feature **on**, on the public network, the whole server's resident memory was **80 to 95 MB** against 15 to 20 MB with it off: about 60 to 75 MB for the node, most of it in the first two minutes, level after five (three runs of 5 to 15 minutes; the last with `GOMEMLIMIT=100MiB`, which changed little). It peaks at some 90 connections while it finds the network and settles at around 20. CPU: about 3 seconds for the first two minutes, then 0.3 to 0.5% of one core while idle. These are from a Mac, not a Raspberry Pi; on a Pi 3 with 1 GB that is a real share of the memory, which is one more reason it is off unless wanted. `wittyconnect` is 24 to 26 MB as a program.
 
+**In the Apple TV app** (the Apple TV 4K simulator on the same Mac, tvOS 27, a debug build; the app's node with the address book, relays and hole punching on, the soft limit at 48 MB): the app's whole footprint was 33 MB at the connect screen with no connection, of which the Go runtime by itself was about 3 MB; 50 MB signed in from away on its Home screen, level over five and a half minutes (peak 53 MB), of which Go's share was 17 to 18 MB; and 98 MB playing a film through the connection, where Go's share was 19 MB and the rest is the simulator decoding video in software. So the node costs an app about **15 to 20 MB**, a quarter of what it costs a server, because an app's node keeps few connections and serves nobody. CPU at rest was under 1% of one core. The library adds APPSIZE. A simulator has the Mac's memory and no limit to be ended at: what an Apple TV HD with 2 GB makes of it is not known.
+
 About a third of the added size is transports the feature never turns on (WebRTC with the pion stack, WebSocket, WebTransport): go-libp2p's root package names them all, so the linker keeps them. Building the node from go-libp2p's `config` package instead would drop them at the price of following its internals. It wasn't judged worth that yet; nor was a build tag, since a Raspberry Pi 3 has the disk and the memory for the figures above, and off costs next to nothing at run time.
 
 Throughput over loopback, one stream, 64 MiB (`go test -v -run Throughput ./internal/p2p`): QUIC 37 MiB/s (310 Mbit/s), TCP with Noise and yamux 55 MiB/s (460 Mbit/s). Both are far above what a home's upload gives.
@@ -206,16 +245,20 @@ No test reaches the internet. Nodes listen on 127.0.0.1 or on a network simulate
 - `internal/portmap`: PCP, NAT-PMP (UDP and TCP) and UPnP with IPv6 pinholes against fake routers on local sockets; the `Holder`'s renewals, back-off, shared-address detection, refusal of another outside port, and clean removal, driven by a clock of its own.
 - `internal/p2p`, unit: the connection keeper (back-off, reconnect, upgrade, network change) with a fake link and clock; back-off; the try limiter; the pacer; invites; the address a connection is counted under.
 - `internal/p2p`, integration: HTTP with ranges, events and upgrades over a direct connection; the device list, revoking, the brief pass for the connection test; open mode; the per-device connection limit; enrolment and its limits; a relayed path through a community relay, paced; a public relay used for setup only; finding the server through a DHT; working with the DHT down; reconnecting when the server restarts; port mappings announced only when they lead somewhere and removed on close; nothing mapped with the layer off; prompt shutdown.
+- `internal/p2p/join_test.go`: a device that shows a code, in an address book of this machine's own: joining, once only; a stranger announcing itself under the code's key; guessing; running out; nothing without the address book.
 - `internal/p2p/holepunch_test.go`: a relayed connection turned into a direct one through [simnet](https://github.com/marcopolo/simnet)'s firewall, which lets a node behind it send out and nothing in uninvited.
 - `internal/remote`, `internal/server`: the rules in [the security model](#the-security-model), end to end.
+- `internal/server/p2p_join_test.go`: who may type a code in, the administrator's password, the device signed in as the account that typed it, a code dying with that sign-in.
 - `pkg/wittyconnect`, `cmd/wittyconnect`: the secret, the `Host` check, ranges, events, sockets, errors in words, the helper's whole life.
 
 All of them run with the race detector.
 
 ## What isn't done
 
-- **Android and Apple apps are not wired up.** The bindings build from `pkg/wittyconnect/mobile` and the package is tested, but no Kotlin or Swift in WittyMediaClient calls it yet, and nothing has run on a device. Known to need care: on Android 11 and later Go can't list network interfaces the usual way (the node then learns its addresses from its peers, which is enough to dial out and to be hole-punched, but has not been tried); iOS suspends an app's sockets in the background.
-- **tvOS.** gomobile has no tvOS target. The library would have to be built for it another way.
+- **Never on a real Apple TV, iPhone or iPad.** The Apple apps use it (WittyMediaClient, `docs/PLATFORMS.md`, "From away, peer to peer"), and its check runs the Apple TV and iPhone apps in simulators against a real server: paired at home, the home address taken away, a film played through the connection before and after leaving the screen, and a TV joining by a code through the public address book. A simulator is the Mac it runs on: how soon a real Apple TV ends an app for its memory, what it does to sockets in sleep, and a connection across two real routers have not been seen.
+- **The Android app is not wired up.** The bindings build from `pkg/wittyconnect/mobile` and the package is tested, but no Kotlin in WittyMediaClient calls it yet. Known to need care: on Android 11 and later Go can't list network interfaces the usual way (the node then learns its addresses from its peers, which is enough to dial out and to be hole-punched, but has not been tried).
+- **Apple Vision Pro** has no build of the library: the gomobile fork that has tvOS has no visionOS target. The c-archive way in [the app's side](#the-apps-side) would give one.
+- **Joining by a code has only met itself on one machine.** The server and the TV found each other through the public address book in about 70 seconds, both on the same Mac. Between two homes it also needs the hole punch every connection from away needs.
 - **Community relays have nobody offering yet.** The code and its tests are there; a network of them exists only once owners turn "Help other servers" on.
 - **Not tried across two real home routers.** Hole punching is tested through a simulated firewall and the whole path on the public network from one machine (found by ID, connected through a public relay), not between two homes.
 - **IPv6 pinholes by PCP** are only attempted on Linux; elsewhere only UPnP's are.

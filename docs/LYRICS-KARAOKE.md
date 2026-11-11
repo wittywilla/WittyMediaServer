@@ -89,6 +89,57 @@ It needs timed lyrics. Without times it shows the words and says so. Use a timed
 
 Voice and key go back to normal when you leave karaoke, and don't carry over to the next time. Both need the sound to be routed through the browser's audio engine, so they don't work with a server on a different address from the page, and on iPhones and iPads they stop when the screen locks. This hasn't been run on a real iPhone or iPad yet.
 
+### Karaoke versions, made for you
+
+You don't have to set anything up. The first time someone opens **Karaoke** on a song, the server makes a karaoke version of it by itself, and the player gets three more controls in place of **Voice lower**:
+
+- **Vocals:** one slider for how loud the singer is, from 0 to 100%.
+- **Sing:** takes the singer out in one press, and puts them back.
+- **More:** a slider for each part there is (music, or drums, bass and the rest), **Reset**, and which version is playing: **Quick version** or **Separated**.
+
+Where the sliders were is remembered for your account on that device. Lyrics, seeking, pausing and **Key** carry on working. If the parts can't be played, the normal track plays and the line under the controls says why.
+
+**What happens by itself**
+
+1. **A quick version, in a few seconds.** FFmpeg, which the server already has, removes what the left and right channels share. That turns the singer down but can't remove them; see the limits under [What each control really does](#what-each-control-really-does). It plays as soon as it's ready.
+2. **A properly separated version, if the server has a separator.** It's made behind the quick one, the screen says **Preparing a better version…** with how far along it is, and the sound changes over by itself when it's done. This takes minutes a song.
+3. **Next time, it's there.** What was made is kept, so the song opens straight into karaoke.
+
+Stems you put beside a song yourself ([below](#stems-the-real-vocal-track)) are always used first, and nothing is made for that song.
+
+**Getting the better version**
+
+Install a separator on the machine the server runs on. That's all: the server looks for one when it starts and finds it on its own. It looks on the `PATH` and in the usual places `pip`, `pipx`, Homebrew and Conda put programs, for these, best first:
+
+| Separator | Install, for example | What you get |
+|---|---|---|
+| [Demucs](https://github.com/facebookresearch/demucs) | `pipx install demucs` or `pip install demucs` | Vocals, drums, bass and the rest. The best quality |
+| [Spleeter](https://github.com/deezer/spleeter) | `pip install spleeter` | The same four parts, faster and rougher |
+| [audio-separator](https://github.com/nomadkaraoke/python-audio-separator) | `pip install "audio-separator[cpu]"` | Vocals and music |
+
+**Settings → Metadata agents → Lyrics and music information** shows what was found under **Vocal separation**: *Demucs found on this machine*, or *Not installed. Songs use the quick method.* Press **Look again** after installing one; there's no need to restart. Only admins can see this page.
+
+- These tools download their model, a few hundred megabytes, from their own makers the first time they run. That's the tool going online, not the server.
+- They want a fast processor or a graphics card. On a very small machine, such as a Raspberry Pi 3, the server doesn't run one, because one song would take hours: songs there use the quick version.
+- On a small machine the server waits while someone's film is being converted.
+- A separator named where the server starts ([below](#making-stems)) is used instead of the one found.
+
+**Who can start it, and how much**
+
+Under the same heading in Settings, **Make karaoke versions automatically** has three choices:
+
+| Choice | What it means |
+|---|---|
+| **Automatically** | Anyone who can play a song gets a karaoke version of it when they open karaoke. This is how it starts out |
+| **Only when an admin asks** | Versions are made when an admin opens karaoke on a song. Everyone can sing the ones already made |
+| **Never** | Nothing is made. Stems beside your songs still play |
+
+The server keeps this in hand by itself: one is made at a time, at low priority; sixteen can wait; one account can start 6 separations and 40 quick versions an hour; and a song whose separation failed isn't tried again for six hours. Each one shows in [Tasks](TASKS.md) and can be stopped there.
+
+**Where they're kept, and how big**
+
+In the server's own folder, never beside your music. A quick version is about 2.5 MB a minute of song, and a separated one about 6 MB a minute, as AAC. **Space for karaoke versions** sets how much may be kept: 2 GB to start with, which is about 85 separated four-minute songs or 200 quick ones. When it's full, the ones sung longest ago are cleared, and made again when someone wants them. Stems you uploaded or put beside a song are never counted or cleared. They aren't part of a [backup](BACKUP.md).
+
 ### Stems: the real vocal track
 
 Removing the middle of the mix is a guess. The real thing is a song split into its parts, or *stems*: the voice alone, and the music without it. Doing that well takes a neural network with a model of hundreds of megabytes and a fast processor or a graphics card, so the server doesn't include one. It serves stems you already have, made by a tool such as [Demucs](https://github.com/facebookresearch/demucs) or Spleeter, or bought as a Native Instruments `.stem.mp4`, and it can run such a tool for you if you install one: see [Making stems](#making-stems).
@@ -108,11 +159,11 @@ With Demucs, for example, `demucs -n htdemucs "01 Song.flac"` writes `separated/
 
 An administrator can also upload a part for a song, which is kept in the server's own folder and never beside your music. Apps see what a song has in `GET /api/v1/media/{id}/stems`, and get the list with the playback answer when a song starts. See [the client API](CLIENT-API.md#media-extras).
 
-The web app's karaoke screen doesn't play stems yet: it uses **Voice lower** and **Voice lowest**, above. Stems are there for the apps and for anything else that asks.
+The web app, the desktop app and the phone and TV apps all play them, with the **Vocals** slider [above](#karaoke-versions-made-for-you). With only an instrumental beside the song, the slider blends it against the song itself.
 
 ### Making stems
 
-For a song that came without stems, the server can make them in two ways. Each is a [task](TASKS.md): it waits its turn (one at a time on the whole server, sixteen waiting at most), runs at low priority so playing isn't disturbed, shows in **Tasks**, and can be stopped there.
+The server does this by itself when someone opens karaoke ([Karaoke versions, made for you](#karaoke-versions-made-for-you)). This part is for doing it by hand, and for naming your own separator. For a song that came without stems, the server can make them in two ways. Each is a [task](TASKS.md): it waits its turn (one at a time on the whole server, sixteen waiting at most), runs at low priority so playing isn't disturbed, shows in **Tasks**, and can be stopped there.
 
 | | Your own separator | The approximate instrumental |
 |---|---|---|
@@ -123,17 +174,17 @@ For a song that came without stems, the server can make them in two ways. Each i
 | **Who can ask** | An administrator | Anyone who can play the song |
 | **Listed as** | `source: "separated"` | `source: "approximate"`, `approximate: true` |
 
-**Your own separator.** Tell the server what to run, where it starts, never in Settings: it names a program, and a web session must not be able to choose one. Use `{input}` for the song and `{output}` for an empty folder the parts go in:
+**Your own separator.** One that's installed is found without any of this. To choose the program or its options yourself, tell the server what to run, where it starts, never in Settings: it names a program, and a web session must not be able to choose one. Use `{input}` for the song and `{output}` for an empty folder the parts go in:
 
 ```
 WMS_STEM_SEPARATOR='demucs --two-stems vocals -o {output} {input}'
 ```
 
-or `-stem-separator '…'`, or `"stemSeparator": "…"` in the [config file](CONFIG.md). The line is split into words (quotes keep spaces together) and run without a shell, so a song's name can never be read as a command. Then `POST /api/v1/media/{id}/stems/separate` starts it for one song. When it finishes, the server looks through the output folder, however deep the tool put its files, for audio named `vocals`, `no_vocals` or `accompaniment`, `drums`, `bass` and `other`, checks each really is audio, and keeps them in its own folder. One song may take 45 minutes at most. If the program fails, the task says what it printed.
+or `-stem-separator '…'`, or `"stemSeparator": "…"` in the [config file](CONFIG.md). The line is split into words (quotes keep spaces together) and run without a shell, so a song's name can never be read as a command. Then `POST /api/v1/media/{id}/stems/separate` starts it for one song. When it finishes, the server looks through the output folder, however deep the tool put its files, for audio named `vocals`, `no_vocals` or `accompaniment`, `drums`, `bass` and `other`, checks each really is audio, turns WAV and FLAC parts into AAC so they're quick to send, and keeps them in its own folder. One song may take 45 minutes at most. If the program fails, the task says what it printed.
 
 **The approximate instrumental.** `POST /api/v1/media/{id}/stems/approximate` makes it, and it is kept (as AAC) so it's made once. It gives way to a real `instrumental` as soon as there is one. A mono song has no two channels to take from each other, and the task says so. Apps should tell people what it is: the listing carries a sentence for that in `separation.approximate.note`.
 
-`GET /api/v1/media/{id}/stems` says under `separation` which of the two this server can do for a song, why not (`no-ffmpeg`, `not-configured`, `admin-only`, `not-a-song`, `not-a-file`), and the task when one is being made.
+Apps ask one thing, `GET /api/v1/media/{id}/karaoke`, and play what it says: see [the client API](CLIENT-API.md#karaoke-that-sets-itself-up). For the details, `GET /api/v1/media/{id}/stems` says under `separation` which of the two this server can do for a song, why not (`no-ffmpeg`, `not-configured`, `admin-only`, `not-a-song`, `not-a-file`), and the task when one is being made.
 
 ### Keys
 
@@ -142,7 +193,7 @@ or `-stem-separator '…'`, or `"stemSeparator": "…"` in the [config file](CON
 | Esc | Leave karaoke |
 | Space | Play or pause |
 | ← → | Previous or next line |
-| V | Voice on, lower or lowest |
+| V | Voice on, lower or lowest. With a karaoke version: Sing on or off |
 | − + | Lower or raise the key |
 | `[` `]` | Words sooner or later |
 | F | Fill the screen |

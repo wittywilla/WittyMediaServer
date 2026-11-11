@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { HelpLink } from '../components/HelpLink'
 import { IconClose, IconFull, IconNext, IconPause, IconPlay, IconPrev } from '../icons'
 import { lineAt, useLineIndex, wordTimes, type LyricLine, type useLyrics } from './lyrics'
+import { KaraokeStemsControl, useKaraokeStems } from './KaraokeStems'
 import { soundGraph } from './sound'
 import type { PlayerView } from './types'
 
@@ -31,6 +32,7 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
   const wordEls = useRef<(HTMLSpanElement | null)[]>([])
   const [count, setCount] = useState(0)
   const [mono, setMono] = useState(false)
+  const stems = useKaraokeStems(p)
 
   useEffect(() => { root.current?.focus({ preventScroll: true }) }, [])
   // Coming back, the voice and key are as they were: this was for the song, not for good.
@@ -102,7 +104,7 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
       }
       if (t.tagName === 'INPUT' || t.tagName === 'SELECT') return
       switch (e.key.toLowerCase()) {
-        case 'v': consume(); p.setSound({ vocalCut: VOCALS[(VOCALS.findIndex((x) => x.v === p.sound.vocalCut) + 1) % VOCALS.length].v }); return
+        case 'v': consume(); if (stems.active) { stems.setSing(!stems.sing); return } p.setSound({ vocalCut: VOCALS[(VOCALS.findIndex((x) => x.v === p.sound.vocalCut) + 1) % VOCALS.length].v }); return
         case '-': consume(); setKey(p.sound.keyShift - 1); return
         case '+': case '=': consume(); setKey(p.sound.keyShift + 1); return
         case '[': consume(); setOffset(offset - 100); return
@@ -154,9 +156,11 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
         <button type="button" className="kar-play" onClick={p.toggle} aria-label={p.playing ? 'Pause' : 'Play'}>{p.playing ? <IconPause size={30} /> : <IconPlay size={30} />}</button>
         <button type="button" className="mp-ibtn" onClick={() => goLine(1)} aria-label="Next line"><IconNext /></button>
         <span className="kar-rule" aria-hidden="true" />
-        <div className="kar-seg" role="radiogroup" aria-label="Singer's voice">
-          {VOCALS.map((x) => <button type="button" role="radio" key={x.v} aria-checked={p.sound.vocalCut === x.v} className={p.sound.vocalCut === x.v ? 'on' : ''} onClick={() => p.setSound({ vocalCut: x.v })}>{x.name}</button>)}
-        </div>
+        {stems.active ? <KaraokeStemsControl k={stems} /> : (
+          <div className="kar-seg" role="radiogroup" aria-label="Singer's voice">
+            {VOCALS.map((x) => <button type="button" role="radio" key={x.v} aria-checked={p.sound.vocalCut === x.v} className={p.sound.vocalCut === x.v ? 'on' : ''} onClick={() => p.setSound({ vocalCut: x.v })}>{x.name}</button>)}
+          </div>
+        )}
         <div className="kar-stepper" role="group" aria-label="Key">
           <button type="button" onClick={() => setKey(p.sound.keyShift - 1)} disabled={p.sound.keyShift <= -6} aria-label="Lower key">−</button>
           <span aria-live="polite">Key {p.sound.keyShift > 0 ? '+' : ''}{p.sound.keyShift}</span>
@@ -169,7 +173,7 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
         </div>
       </footer>
       <p className="kar-note">
-        {p.soundNote || (mono
+        {p.soundNote || stems.note || (mono
           ? 'This recording is close to mono, so there\'s no way to separate the voice from it.'
           : p.sound.vocalCut > 0
             ? 'The voice is turned down by removing what\'s in the middle of the mix. Echoes of it, and songs that spread it wide, will still come through.'

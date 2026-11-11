@@ -316,6 +316,17 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-stepper span { min-width: 92px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; font-size: var(--text-md); }
 .kar-stepper button { width: 46px; height: 46px; border: 0; border-radius: 50%; background: var(--np-chip); color: var(--np-white); font-size: var(--text-xl); font-weight: 700; cursor: pointer; }
 .kar-stepper button[disabled] { opacity: .4; }
+.kar-stems { position: relative; display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+.kar-level { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 3px 16px; border-radius: var(--r-full); background: var(--np-chip); color: var(--np-white); font-weight: 600; }
+.kar-level input { width: clamp(110px, 16vw, 220px); height: 28px; margin: 0; accent-color: var(--np-white); cursor: pointer; }
+.kar-level.big input { width: clamp(140px, 24vw, 340px); }
+.kar-level output { min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; color: var(--np-fg-2); }
+.kar-chip { min-height: 52px; padding: 0 18px; border: 0; border-radius: var(--r-full); background: var(--np-chip); color: var(--np-white); font: inherit; font-weight: 600; cursor: pointer; }
+.kar-chip.on { background: var(--np-white); color: var(--np-black); }
+.kar-chip[disabled] { opacity: .4; cursor: default; }
+.kar-more { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+.kar-more-foot { display: inline-flex; align-items: center; gap: 10px; }
+.kar-quality { color: var(--np-fg-2); font-size: var(--text-sm); font-weight: 600; }
 .kar-note { position: relative; z-index: 1; min-height: 1.3em; margin: 0; padding: 0 16px max(10px, env(safe-area-inset-bottom)); text-align: center; color: var(--np-fg-2); font-size: var(--text-sm); }
 @media (max-width: 700px) {
   .kar-rule { display: none; }
@@ -332,8 +343,8 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
   .np-lines li.now button { transform: none; }
 }
 @media (forced-colors: active) {
-  .np-chip, .np-viz-toggle, .mp-ibtn, .np-styles > button, .kar-seg button { border: 1px solid ButtonText; }
-  .np-chip.on, .np-styles > button.on, .kar-seg button.on { background: Highlight !important; color: HighlightText !important; }
+  .np-chip, .np-viz-toggle, .mp-ibtn, .np-styles > button, .kar-seg button, .kar-chip, .kar-level { border: 1px solid ButtonText; }
+  .np-chip.on, .np-styles > button.on, .kar-seg button.on, .kar-chip.on { background: Highlight !important; color: HighlightText !important; }
   .kar-word { background: none; color: CanvasText; }
 }
 .np-video { margin-top: 10px; min-height: 40px; font-size: var(--text-sm); }

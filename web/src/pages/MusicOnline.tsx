@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
-import { PageHelp } from '../components/HelpLink'
+import { HelpLink, PageHelp } from '../components/HelpLink'
 import { useLocation } from 'react-router-dom'
 import { api } from '../api'
 import { IconCheck } from '../icons'
 import { toast } from '../state'
+import { Select } from '../ui'
 import { Row, Section, Switch } from './settings/ui'
 import { TickRow } from './setup/parts'
 
@@ -15,6 +16,21 @@ import { TickRow } from './setup/parts'
 
 type Draft = { s: Record<string, string>; set: (k: string, v: string) => void; on: (k: string, d?: string) => boolean }
 
+type KaraokeStatus = { separator: { available: boolean; usable: boolean; name: string; version: string; source: string }; approximate: boolean; machine: string; usedBytes: number; songs: number }
+
+const megabytes = (n: number) => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : `${Math.round(n / (1 << 20))} MB`)
+
+// What the server found to separate songs with, in a sentence.
+function karaokeFound(k: KaraokeStatus | null) {
+  const how = <HelpLink to="lyrics-karaoke#getting-the-better-version">How to install one</HelpLink>
+  if (!k) return 'Looking…'
+  const sep = k.separator
+  if (sep.available && !sep.usable) return <>{sep.name} found, but this machine is too small to run it in a sensible time, so songs use the quick method.</>
+  if (sep.available) return <>{sep.name}{sep.version ? ` ${sep.version}` : ''} {sep.source === 'config' ? 'is set in the server\'s configuration' : 'found on this machine'}. Songs are separated properly, one at a time, when nothing else needs the processor.</>
+  if (k.approximate) return <>Not installed. Songs use the quick method, which turns the singer down but can't remove them. {how}</>
+  return <>Not installed, and FFmpeg is missing too, so karaoke versions can't be made. {how}</>
+}
+
 // In Settings, part of the page's draft and saved with it.
 export function MusicOnlineSettings({ s, set, on }: Draft) {
   const box = useRef<HTMLDivElement>(null)
@@ -22,6 +38,10 @@ export function MusicOnlineSettings({ s, set, on }: Draft) {
   const [cleared, setCleared] = useState(false)
   useEffect(() => { if (hash === '#lyrics') box.current?.scrollIntoView({ block: 'start' }) }, [hash])
   const useOnline = on('lyricsOnline', '0')
+  const [kar, setKar] = useState<KaraokeStatus | null>(null)
+  const look = (again: boolean) => { api.get<KaraokeStatus>('/karaoke/status' + (again ? '?look=1' : '')).then(setKar).catch(() => {}) }
+  useEffect(() => { look(false) }, [])
+  const auto = s.karaokeAuto || 'auto'
   return (
     <div ref={box} id="lyrics">
       <Section title="Lyrics and music information" desc="A .lrc file beside a song and the lyrics in its tags are always used first, with nothing sent anywhere. These add what they don't have." actions={<PageHelp to="lyrics-karaoke#finding-lyrics-online" />}>
@@ -39,6 +59,24 @@ export function MusicOnlineSettings({ s, set, on }: Draft) {
         </Row>
         <Row label="Artist biographies and photos" badge="No API key needed" desc={<>From <a href="https://www.wikipedia.org" target="_blank" rel="noreferrer">Wikipedia</a>, credited on the artist's page. When an artist has no <code>artist.jpg</code> in their folder, your server sends Wikipedia the artist's name. The text is CC BY-SA 4.0, and each picture has its own licence, linked from its article. Nothing is written beside your music.</>}>
           <Switch label="Artist biographies and photos" checked={on('musicInfoOnline', '0')} onChange={(v) => set('musicInfoOnline', v ? '1' : '0')} />
+        </Row>
+        <Row label="Vocal separation" badge={kar?.separator.available ? 'Nothing to set up' : undefined} desc={karaokeFound(kar)}>
+          <button type="button" className="btn sm" onClick={() => look(true)}>Look again</button>
+        </Row>
+        <Row label="Make karaoke versions automatically" desc="When someone opens karaoke on a song, the server makes a version with the singer turned down: a quick one in a few seconds, and a properly separated one behind it if a separator is installed. Nothing is written beside your music.">
+          <Select value={auto} aria-label="Make karaoke versions automatically" onChange={(e) => set('karaokeAuto', e.target.value)} options={[
+            { value: 'auto', label: 'Automatically' },
+            { value: 'admin', label: 'Only when an admin asks' },
+            { value: 'never', label: 'Never' },
+          ]} />
+        </Row>
+        <Row label="Space for karaoke versions" dim={auto === 'never'} desc={kar ? `Using ${megabytes(kar.usedBytes)} for ${kar.songs} ${kar.songs === 1 ? 'song' : 'songs'}. When it's full, the ones sung longest ago are cleared, and made again when someone wants them.` : 'When it\'s full, the ones sung longest ago are cleared, and made again when someone wants them.'}>
+          <Select value={s.karaokeCacheMB || '2048'} aria-label="Space for karaoke versions" onChange={(e) => set('karaokeCacheMB', e.target.value)} options={[
+            { value: '512', label: '500 MB' },
+            { value: '2048', label: '2 GB' },
+            { value: '10240', label: '10 GB' },
+            { value: '51200', label: '50 GB' },
+          ]} />
         </Row>
         <Row label="Lyrics kept from online" desc="Forget everything fetched so far. Corrections made on this server are kept.">
           <button type="button" className="btn sm" disabled={cleared} onClick={() => { api.del('/music/lyrics-cache').then(() => { setCleared(true); toast('Lyrics from online forgotten') }).catch((e: Error) => toast(e.message)) }}>{cleared ? <><IconCheck size={16} /> Forgotten</> : 'Forget them'}</button>

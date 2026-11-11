@@ -82,6 +82,9 @@ export class SoundGraph {
   ctx: AudioContext
   analyser: AnalyserNode
   private input: GainNode
+  // Everything the player's own elements send goes through here, so karaoke's separate
+  // parts can take their place: the song keeps playing, unheard, as their clock.
+  private deckBus: GainNode
   private decks = new WeakMap<HTMLMediaElement, Deck>()
   private filters: BiquadFilterNode[]
   private preamp: GainNode
@@ -101,6 +104,8 @@ export class SoundGraph {
     const ctx = new AudioContext({ latencyHint: 'playback' })
     this.ctx = ctx
     this.input = ctx.createGain()
+    this.deckBus = ctx.createGain()
+    this.deckBus.connect(this.input)
     this.vocalIn = ctx.createGain()
     this.vocalDry = ctx.createGain()
     this.vocalWet = ctx.createGain()
@@ -184,10 +189,15 @@ export class SoundGraph {
     const source = this.ctx.createMediaElementSource(el)
     const gain = this.ctx.createGain()
     source.connect(gain)
-    gain.connect(this.input)
+    gain.connect(this.deckBus)
     this.decks.set(el, { source, gain })
     return true
   }
+
+  // Where karaoke's parts come in: before the key change and the equaliser, as a song does.
+  get stemIn(): AudioNode { return this.input }
+  // Silences, or gives back, the song's own sound while its parts play instead.
+  hushDecks(on: boolean) { this.deckBus.gain.setTargetAtTime(on ? 0 : 1, this.ctx.currentTime, 0.02) }
 
   setDeckLevel(el: HTMLMediaElement, level: number) {
     const d = this.decks.get(el)

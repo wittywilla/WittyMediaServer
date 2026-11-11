@@ -2,12 +2,13 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { NavLink, useNavigate } from 'react-router-dom'
 import { api, cornerName, profileName } from '../api'
-import { IconDownload, IconFull, IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
+import { IconDevices, IconDownload, IconFull, IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
 import { Avatar } from '../pages/AuthPage'
 import { UpdateDot } from '../components/common'
 import { useApp } from '../state'
 import { Menu, type MenuEntry } from '../ui/Menu'
 import { setTvMode } from '../tvmode/mode'
+import { openPlayOn, openWatchParty } from '../remote/RemoteHost'
 
 // Signing out, which is also how a profile is switched: back to "Who's watching?".
 export function useSignOut() {
@@ -24,6 +25,9 @@ function useAccount() {
   const items: MenuEntry[] = [
     { key: 'year', label: 'Your year', icon: <IconStar />, to: '/review' },
     { key: 'look', label: 'Appearance', icon: <IconPalette />, to: '/settings/appearance' },
+    // Your other devices and what they're playing; and watching with other people.
+    { key: 'playon', label: 'Play on another device', icon: <IconDevices />, onSelect: openPlayOn },
+    { key: 'party', label: 'Watch party', icon: <IconUsers />, onSelect: openWatchParty },
     // The Apple TV and Android TV layout, for a screen across the room.
     { key: 'tvmode', label: 'TV mode', icon: <IconFull />, onSelect: () => { setTvMode(true); nav('/') } },
     ...(libraries.some((l) => l.type === 'games') ? [{ key: 'pads', label: 'Controllers', icon: <IconGamepad />, to: '/controllers' }] : []),

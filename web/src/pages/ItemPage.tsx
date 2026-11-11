@@ -12,9 +12,11 @@ import { BookDetails } from './Books'
 import { SaveButton } from '../components/SaveToCollection'
 
 const GameDetails = lazy(() => import('./games/Details'))
+const PlayOn = lazy(() => import('../remote/PlayOn'))
+const WatchParty = lazy(() => import('../remote/WatchParty'))
 const RigGameDetails = lazy(() => import('./Rigs').then((m) => ({ default: m.RigGameDetails })))
 import { BackLink, EmptyState, LoadError, PageSkeleton, Spinner, artHue, isGeneratedArt } from '../components/common'
-import { IconDisc, IconEdit, IconImage, IconInfo, IconMenu, IconMore, IconNext, IconPlay, IconRefresh, IconRight, IconSettings, IconStar } from '../icons'
+import { IconDevices, IconDisc, IconEdit, IconImage, IconInfo, IconMenu, IconMore, IconNext, IconPlay, IconRefresh, IconRight, IconSettings, IconStar, IconUsers } from '../icons'
 import { IconButton, RowSheet, Rows, SheetRow } from '../ui'
 import { useMedia } from '../shell/useNav'
 import { toast, useApp } from '../state'
@@ -34,6 +36,7 @@ export default function ItemPage() {
   const [prefs, setPrefs] = useState<Prefs | null>(null)
   const [broken, setBroken] = useState(false)
   const [more, setMore] = useState(false)
+  const [sendTo, setSendTo] = useState<'device' | 'party' | null>(null)
   // A phone has one row: the main action, Save, and "⋯" for the rest.
   const phone = useMedia('(max-width: 760px)')
   const load = () => { setBroken(false); return api.get<Item>(`/items/${id}`).then(setIt).catch((e) => { if (e.status >= 500) setBroken(true); else setErr(e.message) }) }
@@ -73,6 +76,8 @@ export default function ItemPage() {
   ] : [
     ...(resume ? [{ key: 'start', icon: <IconPlay />, label: 'Play from start', run: () => nav(`/play/${it.id}?start=0`) }] : []),
     ...(it.nextId ? [{ key: 'next', icon: <IconNext />, label: 'Next episode', run: () => nav(`/item/${it.nextId}`) }] : []),
+    { key: 'device', icon: <IconDevices />, label: 'Play on…', run: () => setSendTo('device') },
+    { key: 'party', icon: <IconUsers />, label: 'Watch party', run: () => setSendTo('party') },
   ]
   if (user?.isAdmin) rest.push(
     { key: 'art', icon: <IconImage />, label: 'Artwork', run: () => setArt(true) },
@@ -156,6 +161,8 @@ export default function ItemPage() {
               </button>
               {resume && <button className="btn" onClick={() => nav(`/play/${it.id}?start=0`)}><IconPlay /> Play from start</button>}
               {it.nextId && <button className="btn" onClick={() => nav(`/item/${it.nextId}`)}><IconNext /> Next episode</button>}
+              <button className="btn" aria-haspopup="dialog" onClick={() => setSendTo('device')}><IconDevices /> Play on…</button>
+              <button className="btn" aria-haspopup="dialog" onClick={() => setSendTo('party')}><IconUsers /> Watch party</button>
               <SaveButton itemId={it.id} />
               {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
               {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('match')}><IconEdit /> Edit</button>}
@@ -195,6 +202,13 @@ export default function ItemPage() {
         <RowSheet title={it.title} onClose={() => setMore(false)}>
           <Rows>{rest.map((r) => <SheetRow key={r.key} icon={r.icon} label={r.label} disabled={r.disabled} onSelect={r.run} />)}</Rows>
         </RowSheet>
+      )}
+      {sendTo && (
+        <Suspense fallback={null}>
+          {sendTo === 'device'
+            ? <PlayOn source={{ kind: 'item', itemId: it.id, title: it.title }} onClose={() => setSendTo(null)} />
+            : <WatchParty item={{ id: it.id, title: it.title }} onClose={() => setSendTo(null)} />}
+        </Suspense>
       )}
       {edit && <EditDetails target="item" id={it.id} start={edit} onClose={() => setEdit('')} onChanged={load} />}
       {art && <TitleArtPicker target="item" id={it.id} onClose={() => setArt(false)} onApplied={appliedOnPage(load)} />}

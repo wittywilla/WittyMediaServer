@@ -33,6 +33,7 @@ The same contract is in machine-readable form in `openapi.json` (OpenAPI 3.1), b
 - [What a TV app must build itself](#what-a-tv-app-must-build-itself)
 - [Game details](#game-details)
 - [Legal notices](#legal-notices)
+- [Remote control and watch parties](#remote-control-and-watch-parties)
 - [Background tasks and server stats](#background-tasks-and-server-stats)
 - [Adding to the API](#adding-to-the-api)
 - [Every route](#every-route)
@@ -1070,6 +1071,15 @@ same words everywhere. `GET /legal/notices` needs no sign-in and returns them by
   them `ack` once, then call `POST /legal/acknowledge`. `POST /setup` takes `acknowledgedLegal: true`
   when a client's own setup screen has shown it. Neither sends anything off the server.
 
+## Remote control and watch parties
+
+Two things that make several clients act as one, both through the server and both optional for an app:
+
+- **Remote control.** Any signed-in client can announce itself as a device, and any other can play something on it, pause it, seek, change its volume or tracks, press its arrow keys, or hand over what it's playing. [REMOTE-PROTOCOL.md](REMOTE-PROTOCOL.md) is the whole wire format, with every message. A server that has it lists `remote-protocol` in `features`, and `GET /remote-control` says whether its owner has it on.
+- **Watch parties.** People in different places watch the same thing in step. The server keeps one state for the room and every player follows it. [SYNCPLAY.md](SYNCPLAY.md#for-developers) has the routes, the clock arithmetic and the drift rules. The feature name is `syncplay`.
+
+Both use server-sent events for what the server pushes and ordinary requests for the rest, like the activity stream below. Neither carries media: a client told to play something asks for it through [`POST /items/{id}/playback`](#playing-something) with its own sign-in, so every limit there applies as usual. Both refuse a stream token.
+
 ## Background tasks and server stats
 
 What the server is doing in the background: library scans, metadata, module installs, transcodes and more, each with its
@@ -1856,6 +1866,45 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `POST /me/2fa/setup` | user | Two factor setup. |
 | `POST /me/2fa/confirm` | user | Two factor confirm. |
 | `POST /me/2fa/disable` | user | Two factor disable. |
+
+### Remote control
+
+One client playing on and steering another: [REMOTE-PROTOCOL.md](REMOTE-PROTOCOL.md) has every message.
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /remote-control` | user | The Remote Protocol's versions, limits and vocabulary, and whether this account may control devices signed in as other accounts. See REMOTE-PROTOCOL.md. |
+| `GET /remote-control/devices` | user | The devices this account may control, each with what it last said it was doing. |
+| `POST /remote-control/devices` | user | Announce this client as a device that can be controlled. The answer is the id and capabilities agreed. |
+| `DELETE /remote-control/devices/{id}` | user | This client stops being controllable. |
+| `GET /remote-control/devices/{id}/channel` | user | The device's channel, as server-sent events: hello, then a command for each thing it is asked to do. |
+| `POST /remote-control/devices/{id}/state` | user | The device says what it is playing. Also its heartbeat. |
+| `POST /remote-control/devices/{id}/ack` | user | The device answers a command: done, or not and why. |
+| `POST /remote-control/devices/{id}/commands` | user | Ask a device to do something and wait for its answer: play, pause, resume, stop, seek, next, previous, volume, mute, audio, subtitle, rate, navigate or cast. |
+| `GET /remote-control/events` | user | Server-sent events for controllers: a snapshot of devices, then each one as it appears, changes or goes. |
+| `GET /remote-control/accounts` | admin | Every account, and whether it may control devices signed in as other accounts. |
+| `PUT /remote-control/accounts/{id}` | admin | Let an account control devices signed in as other accounts, or stop it. |
+
+### Watch parties
+
+Watching together, in step: [SYNCPLAY.md](SYNCPLAY.md) has the rules every player keeps.
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /syncplay` | user | Whether watch parties are on, the drift rules and limits, and this account's rooms and invitations. See SYNCPLAY.md. |
+| `POST /syncplay/rooms` | user | Start a watch party for an item or a queue, as its host. |
+| `POST /syncplay/join` | user | Join a watch party by its code, or come back to a seat. |
+| `GET /syncplay/rooms/{id}` | user | The room, as one of its members sees it. |
+| `PUT /syncplay/rooms/{id}` | user | The host changes the room's name, who may control it, or whether it waits for everyone. |
+| `DELETE /syncplay/rooms/{id}` | user | End the watch party for everyone. |
+| `GET /syncplay/rooms/{id}/events` | user | Server-sent events: the room, whole, whenever anything about it changes. |
+| `POST /syncplay/rooms/{id}/leave` | user | Give up a seat. |
+| `POST /syncplay/rooms/{id}/host` | user | Hand the room to another member. |
+| `POST /syncplay/rooms/{id}/kick` | user | Take a member's seat away. |
+| `POST /syncplay/rooms/{id}/invite` | user | Invite accounts, who then find the room in their list. |
+| `POST /syncplay/rooms/{id}/command` | user | Play, pause, seek, next, previous, select, rate or queue. The answer is the room after it. |
+| `POST /syncplay/rooms/{id}/report` | user | A member's player says it is ready, or buffering. |
+| `POST /syncplay/rooms/{id}/ping` | user | The heartbeat and the clock: answers with the server's time on arrival and departure. |
 
 ### Background tasks
 

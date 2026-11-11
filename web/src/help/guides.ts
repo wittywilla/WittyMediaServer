@@ -35,6 +35,7 @@ export const GROUPS: GuideGroup[] = [
     { file: 'ACCOUNTS', title: 'Accounts and profiles', about: 'People, kids and guests, passwords and two-factor sign-in.' },
     { file: 'APPS', title: 'Apps and devices', about: 'Every way to reach your server, and what works where.' },
     { file: 'PLAYING', title: 'Watching and listening', about: 'The player, its shortcuts, subtitles and TV remotes.' },
+    { file: 'SYNCPLAY', title: 'Watch parties', about: 'Watching together, in step, from different places.' },
     { file: 'SETTINGS', title: 'Settings tour', about: 'Where to change what, page by page.' },
     { file: 'TROUBLESHOOTING', title: 'Troubleshooting', about: 'Something’s wrong: find it by what you’re seeing.' },
   ] },
@@ -99,6 +100,7 @@ export const GROUPS: GuideGroup[] = [
   { title: 'For developers', quiet: true, guides: [
     { file: 'MODULES', title: 'Making a module', about: 'Manifests, helpers and publishing.' },
     { file: 'CLIENT-API', title: 'Client API', about: 'Every route, for anyone writing an app.' },
+    { file: 'REMOTE-PROTOCOL', title: 'Remote Protocol', about: 'One app playing on and steering another: every message.' },
     { file: 'SDUI', title: 'Server-driven screens', about: 'Screens the server describes and every app draws, and how to change them.' },
     { file: 'SECURITY-ROUTES', title: 'Who may call what', about: 'Every route and the role it needs.' },
     { file: 'GAMING-API', title: 'Games API', about: 'The game routes, for apps.' },

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, ApiError, episodeLabel, fitWidth, langName, mediaUrl, posterUrl, sized, type Item, type PlaybackAnswer, type Show } from '../api'
-import { IconBack, IconClose, IconExpand, IconInfo, IconMini, IconNext, IconPause, IconPlay, IconRemote } from '../icons'
+import { IconBack, IconClose, IconDevices, IconExpand, IconInfo, IconMini, IconNext, IconPause, IconPlay, IconRemote, IconUsers } from '../icons'
 import { browserCapabilities } from './capabilities'
 import PlayInfoPanel from './PlayInfoPanel'
 import { toast } from '../state'
@@ -19,6 +19,13 @@ import TrackPicker from './TrackPicker'
 import ViewSettings from './ViewSettings'
 import { useViewPrefs } from './viewPrefs'
 import { getTvMode } from '../tvmode/mode'
+import { registerPlayer, reportSoon, type RemoteCommand, type RemoteState } from '../remote/device'
+import { usePartySync } from '../remote/party'
+import { setSpeed } from './speed'
+
+// Opened from the player's top bar, and not before.
+const PlayOn = lazy(() => import('../remote/PlayOn'))
+const WatchParty = lazy(() => import('../remote/WatchParty'))
 
 haveHls(Hls)
 
@@ -50,12 +57,20 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   // past what's been made asks for a new one, starting there.
   // reopen counts fresh requests for the same thing at the same place: a robust stream
   // that couldn't go on (the connection was gone, or the server forgot the stream).
-  const [want, setWant] = useState<{ audio?: number; burn?: { index: number; styled: boolean } | null; video?: number; flat3d?: boolean; restartAt?: number; convert?: boolean; reopen?: number }>({})
+  // Another device that started this here may have named a sound track and subtitles.
+  const [want, setWant] = useState<{ audio?: number; burn?: { index: number; styled: boolean } | null; video?: number; flat3d?: boolean; restartAt?: number; convert?: boolean; reopen?: number }>(() => {
+    const a = search.get('audio')
+    return a != null && Number.isInteger(Number(a)) ? { audio: Number(a) } : {}
+  })
   // What a robust stream's player did: shown for a moment, and listed in the information panel.
   const [note, setNote] = useState<NetNote | null>(null)
   const [netLog, setNetLog] = useState<string[]>([])
   const [streamPref, setStreamPref] = useState<DeviceStreaming>(deviceStreaming)
-  const [sub, setSub] = useState<number | null>(null)
+  const [sub, setSub] = useState<number | null>(() => {
+    const t = search.get('subtitle')
+    return t == null ? null : t === 'off' ? -1 : Number.isInteger(Number(t)) ? Number(t) : null
+  })
+  const [sendTo, setSendTo] = useState<'device' | 'party' | null>(null)
   const audio = want.audio ?? info?.audioIndex ?? 0
   const burn = want.burn
   const flat3d = !!want.flat3d
@@ -78,6 +93,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const [next, setNext] = useState<{ item: Item; show?: Show | null; recommended: boolean } | null>(null)
   const [nextDismissed, setNextDismissed] = useState(false)
   const [ended, setEnded] = useState(false)
+  const inParty = useRef(false)
 
   // "Watch next": the next episode of this show, or (end of a show / a
   // movie) a recommendation, loaded once the credits are near.
@@ -92,7 +108,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   useEffect(() => {
     const v = video.current
     if (!v) return
-    const onEnded = () => { setEnded(true); if (item.nextId) setUpNext(8) }
+    // In a watch party the room decides what comes next, for everyone at once.
+    const onEnded = () => { setEnded(true); if (item.nextId && !inParty.current) setUpNext(8) }
     v.addEventListener('ended', onEnded)
     return () => v.removeEventListener('ended', onEnded)
   }, [item.nextId])
@@ -189,7 +206,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
 
   // A file, or a full stream with its whole length listed ahead, seeks anywhere. A
   // rewrapped stream seeks within what has been made so far, and otherwise starts anew.
-  const seek = useCallback((t: number) => {
+  const rawSeek = useCallback((t: number) => {
     const v = video.current
     if (!v) return
     const to = Math.max(0, Math.min(t, (info?.durationSec || v.duration || t)))
@@ -200,6 +217,12 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     if (local >= 0 && local <= made - 1) { v.currentTime = local; return }
     setWant((w) => ({ ...w, restartAt: to }))
   }, [info, offset])
+
+  // A watch party playing this: the room says where the picture is, and a seek here is a
+  // seek for everyone (docs/SYNCPLAY.md). Otherwise seeking is this player's own business.
+  const party = usePartySync(video, item.id, { seek: rawSeek, offset: () => offset, loaded: () => !!info, blocked: () => setNeedClick(true), cheapSeek: () => info?.seek !== 'restart' })
+  inParty.current = party.active
+  const seek = useCallback((t: number) => { if (party.active) party.seek(t); else rawSeek(t) }, [party.active, rawSeek]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Robust streams: the player says what it did, and a stream that can't go on is asked
   // for again at the same place. A file that stalled is asked for as a steadier stream.
@@ -231,7 +254,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       if (!v) return
       if (pendingSeek.current && pendingSeek.current > 0 && Math.abs(v.currentTime - pendingSeek.current) > 1) { v.currentTime = pendingSeek.current }
       pendingSeek.current = null
-      v.play().catch(() => setNeedClick(true))
+      // In a watch party the room says when to start; see usePartySync.
+      if (!inParty.current) v.play().catch(() => setNeedClick(true))
     },
     onError: (m) => { if (!convertInstead()) setErr(m) },
   })
@@ -358,7 +382,61 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const subtitle = [item.showTitle, episodeLabel(item)].filter(Boolean).join(' · ')
   const trackLabel = (t: { language: string; title?: string }) => [langName(t.language), t.title].filter(Boolean).join(' · ')
   const togglePlay = () => { const v = video.current; if (v && !needClick) v.paused ? v.play().catch(() => {}) : v.pause() }
+
+  // Another device controlling this one (docs/REMOTE-PROTOCOL.md): what it may ask of this
+  // player, and what this player says it is doing. Track ids are the playback answer's own.
+  const remote = useRef<{ command: (c: RemoteCommand) => void; state: () => RemoteState } | null>(null)
+  remote.current = {
+    command: (c) => {
+      const v = video.current
+      if (!v) throw new Error('The player isn’t ready yet.')
+      switch (c.type) {
+        case 'pause': v.pause(); break
+        case 'resume': v.play().catch(() => {}); break
+        case 'stop': chrome.close(); break
+        case 'seek': seek(c.positionSec != null ? c.positionSec : v.currentTime + offset + (c.bySec || 0)); break
+        case 'volume': v.volume = Math.max(0, Math.min(1, c.level ?? v.volume)); break
+        case 'mute': v.muted = !!c.muted; break
+        case 'rate': setSpeed(v, c.rate || 1); break
+        case 'audio': {
+          const id = Number(c.audio)
+          if (!info?.audio.some((a) => a.index === id)) throw new Error('That sound track isn’t on this title.')
+          switchTrack('audio', id)
+          break
+        }
+        case 'subtitle': {
+          const id = c.subtitle === 'off' ? -1 : Number(c.subtitle)
+          if (id >= 0 && !info?.subtitles.some((x) => x.index === id)) throw new Error('Those subtitles aren’t on this title.')
+          switchTrack('sub', id)
+          break
+        }
+        default: throw new Error('This device can’t do that.')
+      }
+    },
+    state: () => {
+      const v = video.current
+      return {
+        status: !v || !info ? 'buffering' : v.paused ? 'paused' : st.waiting ? 'buffering' : 'playing',
+        itemId: item.id, positionSec: v ? v.currentTime + offset : 0, durationSec: duration, rate: v?.playbackRate || 1, volume: v?.volume, muted: v?.muted,
+        audio: String(audio), subtitle: sub == null || sub < 0 ? 'off' : String(sub),
+        audioTracks: info?.audio.map((a) => ({ id: String(a.index), label: trackLabel(a), lang: a.language })),
+        subtitleTracks: info?.subtitles.map((x) => ({ id: String(x.index), label: trackLabel(x), lang: x.language })),
+        screen: 'player',
+      }
+    },
+  }
+  useEffect(() => {
+    const v = video.current
+    const done = registerPlayer({ itemId: item.id, command: (c) => remote.current!.command(c), state: () => remote.current!.state() })
+    const changes = ['play', 'pause', 'seeked', 'ratechange', 'volumechange', 'ended', 'waiting', 'playing']
+    changes.forEach((e) => v?.addEventListener(e, reportSoon))
+    return () => { changes.forEach((e) => v?.removeEventListener(e, reportSoon)); done() }
+  }, [item.id])
+  useEffect(() => { reportSoon() }, [info, audio, sub])
+  const openOver = (what: 'device' | 'party') => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); setSendTo(what) }
+  const waitingFor = party.room?.state.waiting ? party.room.members.filter((m) => !m.you && (m.state === 'loading' || m.state === 'buffering')).map((m) => m.name) : null
   return (
+    <>
     <div className={'player' + (mini ? ' mini' : '')} ref={root} tabIndex={-1} onClick={togglePlay}
       onDoubleClick={() => (mini ? chrome.expand() : toggleFullscreen(root.current))}>
       <div className="stage">
@@ -367,6 +445,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       {st.waiting && !needClick && <div className="center-spinner"><div className="spinner" /></div>}
       {note && !mini && <div className={'net-note' + (note.kind === 'lost' ? ' lost' : '')} role="status" aria-live="polite">{note.text}</div>}
       {needClick && <div className="big-play"><button onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
+      {waitingFor && !mini && <div className="wp-note" role="status" aria-live="polite">{waitingFor.length ? `Waiting for ${waitingFor.join(', ')}` : 'Waiting for everyone to be ready'}</div>}
       {err && <div className="overlay-msg"><div className="box">Playback failed: {err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={chrome.close}>Back</button></div></div>}
       {mini ? (
         <div className="mini-bar" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
@@ -390,7 +469,9 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             <button className="ibtn" onClick={chrome.minimize} title="Back (keeps playing in the mini player)"><IconBack /></button>
             <div className="grow"><h1>{item.title}</h1><div className="sub">{[subtitle || item.year, info && MODE_WORDS[info.decision]].filter(Boolean).join(' · ')}</div></div>
             {info && <button className="ibtn" onClick={() => setInfoOpen(true)} title="How this is playing (I)" aria-label="How this is playing"><IconInfo /></button>}
-            {item.nextId && <button className="btn sm" onClick={() => nav(nextHref, { replace: true })} title="Next episode"><IconNext /> <span className="hide-narrow">Next episode</span></button>}
+            <button className={'ibtn' + (party.active ? ' on' : '')} onClick={() => openOver('party')} title="Watch party" aria-label={party.room ? `Watch party, ${party.room.members.length} watching` : 'Watch party'}><IconUsers /></button>
+            <button className="ibtn" onClick={() => openOver('device')} title="Play on another device" aria-label="Play on another device"><IconDevices /></button>
+            {item.nextId && !party.active && <button className="btn sm" onClick={() => nav(nextHref, { replace: true })} title="Next episode"><IconNext /> <span className="hide-narrow">Next episode</span></button>}
             <button className="ibtn" onClick={chrome.minimize} title="Mini player"><IconMini /></button>
           </div>
           {remoteOn && (sheetLayout
@@ -400,7 +481,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
               : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />)}
           {inIntro && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(item.introEnd!) }}>Skip intro ›</button>}
           {pickIntro && <PickIntroBar item={item} time={now} mode={pickIntro} />}
-          {next && (nearEnd || ended) && !nextDismissed && (
+          {next && (nearEnd || ended) && !nextDismissed && !party.active && (
             <div className="watch-next" onClick={(e) => e.stopPropagation()}>
               <div className="wn-head">{next.recommended
                 ? (next.show ? `Because you watched ${item.showTitle || item.title}` : 'You might also like')
@@ -442,5 +523,14 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         </>
       )}
     </div>
+    {/* Beside the player, not inside it: a click in a dialog isn't a click on the picture. */}
+    {sendTo && (
+      <Suspense fallback={null}>
+        {sendTo === 'device'
+          ? <PlayOn onClose={() => setSendTo(null)} source={{ kind: 'playing', itemId: item.id, title: item.title, positionSec: () => (video.current?.currentTime || 0) + offset, audio: String(audio), subtitle: sub == null || sub < 0 ? 'off' : String(sub), stop: chrome.close }} />
+          : <WatchParty onClose={() => setSendTo(null)} item={{ id: item.id, title: item.title, positionSec: () => (video.current?.currentTime || 0) + offset }} />}
+      </Suspense>
+    )}
+    </>
   )
 }

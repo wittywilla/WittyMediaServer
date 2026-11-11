@@ -1,6 +1,6 @@
 # Watching and listening
 
-Use this guide to get the most from the player: its controls and keys, tracks and subtitles, and what happens behind the picture. It also covers TV remotes, controllers and the mini player.
+Use this guide to get the most from the player: its controls and keys, tracks and subtitles, and what happens behind the picture. It also covers TV remotes, controllers, the mini player, playing on another device and watching together.
 
 This is about the player in a web browser and the desktop app. The apps for phones and TVs have their own player: see [Apps and devices](APPS.md).
 
@@ -227,6 +227,23 @@ The back arrow or Esc shrinks a video into the corner while you carry on browsin
 The mini player has back 10 seconds, play and pause, next episode, **Remote**, **Full player** and **Stop**. A disc's has previous and next chapter, **Menu** and **Title** too, which a phone keeps on the remote. **Remote** opens the remote over the page, so you can work a disc's menu while you browse. Double-click the mini player or click its title to bring back the full player.
 
 Music has a bar of its own along the bottom, which can fold away to a small picture. See [Music](MUSIC.md).
+
+## Playing on another device
+
+Anything signed in to your server can be played on from anything else: choose a film on your phone and have it start on the browser by the sofa, or move what you're watching to another screen.
+
+- On a title's page, **Play on…** lists your other devices. Pick one and it starts there.
+- In the player, **Play on another device** in the top bar hands over what you're watching, at the same place with the same sound and subtitles, and stops it here.
+- **Play on another device** in the menu under your name opens the same list from anywhere.
+- The list is also a small remote for each device that's playing: what's on, how far along, pause and play, back 10 seconds, forward 30, stop, and its volume.
+
+A browser tab shows in the list while the app is open and showing in it, or playing something. The web player can be played on with films, episodes and other videos; discs with menus and music don't answer yet. You see devices signed in as **your** account. An administrator can let an account control devices signed in as others, such as a TV on a Kids profile, under **Settings → Sharing & photos → Play on other devices**. Nobody's limits change: you can't play something on another device that its account, or yours, isn't allowed to see.
+
+To turn it off for a browser, go to **Play on…** and switch off **Let other devices play here**. For how apps talk to each other, see [the Remote Protocol](REMOTE-PROTOCOL.md).
+
+## Watching together
+
+**Watch party** on a title's page starts a party, or joins one with a six-letter code. Everyone's player then stays in step: a pause pauses it for everyone. See [Watch parties](SYNCPLAY.md).
 
 ## TV remotes and controllers
 

@@ -148,6 +148,10 @@ type Server struct {
 	// When the guide last told it about tuner channels: see noteTunerLogos.
 	tunerLogosNoted atomic.Int64
 
+	// WittyRemote and watch parties: see api_remote_control.go and api_syncplay.go.
+	remoteCtl remoteCtl
+	watch     watchParties
+
 	// Work the server started on its own, which Close ends and waits for: see background.
 	bgMu     sync.Mutex
 	bgWork   sync.WaitGroup
@@ -595,6 +599,8 @@ func (s *Server) Handler() http.Handler {
 	s.sduiRoutes(m)
 	s.themeRoutes(m)
 	s.mediaExtrasRoutes(m)
+	s.remoteControlRoutes(m)
+	s.syncplayRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())

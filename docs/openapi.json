@@ -40498,6 +40498,1082 @@
         ],
         "x-wms-auth": "user"
       }
+    },
+    "/remote-control": {
+      "get": {
+        "operationId": "getRemoteControl",
+        "summary": "The Remote Protocol's versions, limits and vocabulary, and whether this account may control devices signed in as other accounts. See REMOTE-PROTOCOL.md.",
+        "tags": [
+          "Remote control"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/remote-control/devices": {
+      "get": {
+        "operationId": "listRemoteDevices",
+        "summary": "The devices this account may control, each with what it last said it was doing.",
+        "tags": [
+          "Remote control"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "announceRemoteDevice",
+        "summary": "Announce this client as a device that can be controlled. The answer is the id and capabilities agreed.",
+        "tags": [
+          "Remote control"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/remote-control/devices/{id}": {
+      "delete": {
+        "operationId": "forgetRemoteDevice",
+        "summary": "This client stops being controllable.",
+        "tags": [
+          "Remote control"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/remote-control/devices/{id}/channel": {
+      "get": {
+        "operationId": "openRemoteChannel",
+        "summary": "The device's channel, as server-sent events: hello, then a command for each thing it is asked to do.",
+        "tags": [
+          "Remote control"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "An event stream.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/remote-control/devices/{id}/state": {
+      "post": {
+        "operationId": "reportRemoteState",
+        "summary": "The device says what it is playing. Also its heartbeat.",
+        "tags": [
+          "Remote control"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/remote-control/devices/{id}/ack": {
+      "post": {
+        "operationId": "ackRemoteCommand",
+        "summary": "The device answers a command: done, or not and why.",
+        "tags": [
+          "Remote control"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/remote-control/devices/{id}/commands": {
+      "post": {
+        "operationId": "sendRemoteCommand",
+        "summary": "Ask a device to do something and wait for its answer: play, pause, resume, stop, seek, next, previous, volume, mute, audio, subtitle, rate, navigate or cast.",
+        "tags": [
+          "Remote control"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/remote-control/events": {
+      "get": {
+        "operationId": "streamRemoteDevices",
+        "summary": "Server-sent events for controllers: a snapshot of devices, then each one as it appears, changes or goes.",
+        "tags": [
+          "Remote control"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "An event stream.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/remote-control/accounts": {
+      "get": {
+        "operationId": "listRemoteControlAccounts",
+        "summary": "Every account, and whether it may control devices signed in as other accounts.",
+        "tags": [
+          "Remote control"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/remote-control/accounts/{id}": {
+      "put": {
+        "operationId": "setRemoteControlAccount",
+        "summary": "Let an account control devices signed in as other accounts, or stop it.",
+        "tags": [
+          "Remote control"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/syncplay": {
+      "get": {
+        "operationId": "getSyncplay",
+        "summary": "Whether watch parties are on, the drift rules and limits, and this account's rooms and invitations. See SYNCPLAY.md.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/syncplay/rooms": {
+      "post": {
+        "operationId": "createSyncRoom",
+        "summary": "Start a watch party for an item or a queue, as its host.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/syncplay/join": {
+      "post": {
+        "operationId": "joinSyncRoom",
+        "summary": "Join a watch party by its code, or come back to a seat.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/syncplay/rooms/{id}": {
+      "get": {
+        "operationId": "getSyncRoom",
+        "summary": "The room, as one of its members sees it.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "member",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The caller's seat in the room, from joining."
+          }
+        ]
+      },
+      "put": {
+        "operationId": "setSyncRoom",
+        "summary": "The host changes the room's name, who may control it, or whether it waits for everyone.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "closeSyncRoom",
+        "summary": "End the watch party for everyone.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "member",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The caller's seat in the room, from joining."
+          }
+        ]
+      }
+    },
+    "/syncplay/rooms/{id}/events": {
+      "get": {
+        "operationId": "streamSyncRoom",
+        "summary": "Server-sent events: the room, whole, whenever anything about it changes.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "An event stream.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "member",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The caller's seat in the room, from joining."
+          }
+        ]
+      }
+    },
+    "/syncplay/rooms/{id}/leave": {
+      "post": {
+        "operationId": "leaveSyncRoom",
+        "summary": "Give up a seat.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/syncplay/rooms/{id}/host": {
+      "post": {
+        "operationId": "transferSyncRoom",
+        "summary": "Hand the room to another member.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/syncplay/rooms/{id}/kick": {
+      "post": {
+        "operationId": "kickSyncMember",
+        "summary": "Take a member's seat away.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/syncplay/rooms/{id}/invite": {
+      "post": {
+        "operationId": "inviteToSyncRoom",
+        "summary": "Invite accounts, who then find the room in their list.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/syncplay/rooms/{id}/command": {
+      "post": {
+        "operationId": "commandSyncRoom",
+        "summary": "Play, pause, seek, next, previous, select, rate or queue. The answer is the room after it.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/syncplay/rooms/{id}/report": {
+      "post": {
+        "operationId": "reportSyncMember",
+        "summary": "A member's player says it is ready, or buffering.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/syncplay/rooms/{id}/ping": {
+      "post": {
+        "operationId": "pingSyncRoom",
+        "summary": "The heartbeat and the clock: answers with the server's time on arrival and departure.",
+        "tags": [
+          "Watch parties"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "security": [
@@ -40577,6 +41653,14 @@
     {
       "name": "Server-driven UI",
       "description": "Screens described as data and the UI configuration behind them. See docs/SDUI.md."
+    },
+    {
+      "name": "Remote control",
+      "description": "One client playing on and steering another. See REMOTE-PROTOCOL.md."
+    },
+    {
+      "name": "Watch parties",
+      "description": "Watching together, in step, from different places. See SYNCPLAY.md."
     }
   ]
 }

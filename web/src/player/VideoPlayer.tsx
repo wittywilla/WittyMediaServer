@@ -10,6 +10,7 @@ import { toast } from '../state'
 import { usePlayerChrome } from './chrome'
 import PickIntroBar from './PickIntroBar'
 import { skipAt, type Markers } from './markers'
+import AutoSkip from './AutoSkip'
 import { Controls, useVideoState } from './Controls'
 import { haveHls, toggleFullscreen, useIdle, useSource, type NetNote } from './hooks'
 import { deviceStreaming, mayBeRobust, measureSpeed, rememberSpeed, setDeviceStreaming, type DeviceStreaming } from './streaming'
@@ -21,12 +22,14 @@ import ViewSettings from './ViewSettings'
 import { useViewPrefs } from './viewPrefs'
 import { getTvMode } from '../tvmode/mode'
 import { registerPlayer, reportSoon, type RemoteCommand, type RemoteState } from '../remote/device'
-import { usePartySync } from '../remote/party'
+import { currentParty, usePartySync } from '../remote/party'
+import PartyNote from '../remote/PartyNote'
 import { setSpeed } from './speed'
 
 // Opened from the player's top bar, and not before.
 const PlayOn = lazy(() => import('../remote/PlayOn'))
-const WatchParty = lazy(() => import('../remote/WatchParty'))
+// The watch party's panel is part of the player, so that it shows in full screen too.
+const PartyPanel = lazy(() => import('../remote/PartyPanel'))
 
 haveHls(Hls)
 
@@ -72,6 +75,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     return t == null ? null : t === 'off' ? -1 : Number.isInteger(Number(t)) ? Number(t) : null
   })
   const [sendTo, setSendTo] = useState<'device' | 'party' | null>(null)
+  // Open at once for whoever has just started a party here: its code is what they need next.
+  const [partyOpen, setPartyOpen] = useState(() => { const r = currentParty(); return !!r && r.members.length === 1 && r.state.itemId === item.id })
   const audio = want.audio ?? info?.audioIndex ?? 0
   const burn = want.burn
   const flat3d = !!want.flat3d
@@ -231,8 +236,11 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
 
   // A watch party playing this: the room says where the picture is, and a seek here is a
   // seek for everyone (docs/SYNCPLAY.md). Otherwise seeking is this player's own business.
-  const party = usePartySync(video, item.id, { seek: rawSeek, offset: () => offset, loaded: () => !!info, blocked: () => setNeedClick(true), cheapSeek: () => info?.seek !== 'restart' })
+  const party = usePartySync(video, item.id, { seek: rawSeek, offset: () => offset, loaded: () => !!info, blocked: () => setNeedClick(true), cheapSeek: () => info?.seek !== 'restart', duration: () => info?.durationSec || item.runtimeSec || 0 })
   inParty.current = party.active
+  // What comes next: the party's queue while in one (for everyone at once), else the next episode.
+  const hasNext = party.active ? party.hasNext : !!item.nextId
+  const goNext = (replace = false) => { if (party.active) party.next(); else nav(nextHref, replace ? { replace: true } : undefined) }
   const seek = useCallback((t: number) => { if (party.active) party.seek(t); else rawSeek(t) }, [party.active, rawSeek]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Robust streams: the player says what it did, and a stream that can't go on is asked
@@ -313,7 +321,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     const onKey = (e: KeyboardEvent) => {
       const v = video.current
       if (!v || picker || settingsOpen || infoOpen) return
-      if (document.querySelector('.modal-backdrop, .scene-panel')) return // a window over the player has the keys
+      if (document.querySelector('.modal-backdrop, .scene-panel, .party-panel')) return // a window over the player has the keys
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.key.startsWith('Arrow') && (e.target as HTMLElement)?.closest?.('.bottom, .top, .remote, .watch-next')) return
@@ -366,7 +374,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     const cur = Math.max(0, chapters.filter((c) => c <= t + 1).length - 1)
     if (dir === -1) { seek(t - chapters[cur] > 3 || cur === 0 ? chapters[cur] : chapters[cur - 1]); return }
     if (cur < chapters.length - 1) seek(chapters[cur + 1])
-    else if (item.nextId) nav(nextHref)
+    else if (hasNext) goNext()
   }
   // The same remote as for discs. What a key does without a disc's program is in remoteKeys.ts.
   const onRemote = (k: RemoteKey) => {
@@ -378,7 +386,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       case 'prev': if (chapterStep) stepChapter(-1); else if (v) seek(v.currentTime + offset - 60); break
       case 'rew': if (v) seek(v.currentTime + offset - 10); break
       case 'ff': if (v) seek(v.currentTime + offset + 30); break
-      case 'next': if (chapterStep) stepChapter(1); else if (item.nextId) nav(nextHref); else if (v) seek(v.currentTime + offset + 60); break
+      case 'next': if (chapterStep) stepChapter(1); else if (hasNext) goNext(); else if (v) seek(v.currentTime + offset + 60); break
       case 'play': v?.play().catch(() => {}); break
       case 'pause': v?.pause(); break
       case 'stop': if (v) { v.pause(); seek(0) } break
@@ -409,6 +417,9 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         case 'volume': v.volume = Math.max(0, Math.min(1, c.level ?? v.volume)); break
         case 'mute': v.muted = !!c.muted; break
         case 'rate': setSpeed(v, c.rate || 1); break
+        // In a queue from another device, what follows is the queue's next entry (remote/videoQueue.ts).
+        case 'next': if (!hasNext) throw new Error('Nothing comes after this.'); goNext(true); break
+        case 'previous': seek(0); break
         case 'audio': {
           const id = Number(c.audio)
           if (!info?.audio.some((a) => a.index === id)) throw new Error('That sound track isn’t on this title.')
@@ -438,14 +449,13 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   }
   useEffect(() => {
     const v = video.current
-    const done = registerPlayer({ itemId: item.id, command: (c) => remote.current!.command(c), state: () => remote.current!.state() })
+    const done = registerPlayer({ kind: 'video', itemId: item.id, command: (c) => remote.current!.command(c), state: () => remote.current!.state() })
     const changes = ['play', 'pause', 'seeked', 'ratechange', 'volumechange', 'ended', 'waiting', 'playing']
     changes.forEach((e) => v?.addEventListener(e, reportSoon))
     return () => { changes.forEach((e) => v?.removeEventListener(e, reportSoon)); done() }
   }, [item.id])
   useEffect(() => { reportSoon() }, [info, audio, sub])
   const openOver = (what: 'device' | 'party') => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); setSendTo(what) }
-  const waitingFor = party.room?.state.waiting ? party.room.members.filter((m) => !m.you && (m.state === 'loading' || m.state === 'buffering')).map((m) => m.name) : null
   return (
     <>
     <div className={'player' + (mini ? ' mini' : '')} ref={root} tabIndex={-1} onClick={togglePlay}
@@ -456,8 +466,11 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       {st.waiting && !needClick && <div className="center-spinner"><div className="spinner" /></div>}
       {note && !mini && <div className={'net-note' + (note.kind === 'lost' ? ' lost' : '')} role="status" aria-live="polite">{note.text}</div>}
       {needClick && <div className="big-play"><button onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
-      {waitingFor && !mini && <div className="wp-note" role="status" aria-live="polite">{waitingFor.length ? `Waiting for ${waitingFor.join(', ')}` : 'Waiting for everyone to be ready'}</div>}
+      <PartyNote itemId={item.id} video={video} close={chrome.close} quiet={mini} />
+      {partyOpen && !mini && <Suspense fallback={null}><PartyPanel onClose={() => setPartyOpen(false)} item={{ id: item.id, title: item.title, kind: item.kind, showId: item.showId, positionSec: () => (video.current?.currentTime || 0) + offset }} /></Suspense>}
       {err && <div className="overlay-msg"><div className="box">Playback failed: {err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={chrome.close}>Back</button></div></div>}
+      <AutoSkip itemId={item.id} video={video} markers={markers || ownIntro} now={now} duration={item.runtimeSec || 0} live={!!info && st.playing && !st.waiting && !pickIntro} mini={mini}
+        party={party.active ? (party.room?.canControl ? 'control' : 'follow') : 'none'} seek={seek} nextHref={item.nextId ? nextHref : null} />
       {mini ? (
         <div className="mini-bar" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
           <div className="mini-info" onClick={chrome.expand}>
@@ -467,7 +480,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           <div className="mini-btns">
             <button className="ibtn" onClick={() => onRemote('rew')} title="Back 10 s"><IconBack /></button>
             <button className="ibtn big" onClick={togglePlay} title="Play/Pause">{st.playing ? <IconPause /> : <IconPlay />}</button>
-            {item.nextId ? <button className="ibtn" onClick={() => nav(nextHref)} title="Next episode"><IconNext /></button> : <span />}
+            {hasNext && (!party.active || party.room?.canControl) ? <button className="ibtn" onClick={() => goNext()} title={party.active ? 'Next for everyone in the party' : 'Next episode'}><IconNext /></button> : <span />}
             <button className={'ibtn keep' + (remoteOn ? ' on' : '')} onClick={() => setRemoteOn(!remoteOn)} title="Remote" aria-label="Remote" aria-pressed={remoteOn}><IconRemote /></button>
             <button className="ibtn" onClick={chrome.expand} title="Full player"><IconExpand /></button>
             <button className="ibtn" onClick={chrome.close} title="Stop"><IconClose /></button>
@@ -480,9 +493,9 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             <button className="ibtn" onClick={chrome.minimize} title="Back (keeps playing in the mini player)"><IconBack /></button>
             <div className="grow"><h1>{item.title}</h1><div className="sub">{[subtitle || item.year, info && MODE_WORDS[info.decision]].filter(Boolean).join(' · ')}</div></div>
             {info && <button className="ibtn" onClick={() => setInfoOpen(true)} title="How this is playing (I)" aria-label="How this is playing"><IconInfo /></button>}
-            <button className={'ibtn' + (party.active ? ' on' : '')} onClick={() => openOver('party')} title="Watch party" aria-label={party.room ? `Watch party, ${party.room.members.length} watching` : 'Watch party'}><IconUsers /></button>
+            <button className={'ibtn' + (party.active ? ' on' : '')} onClick={() => setPartyOpen((o) => !o)} title="Watch party" aria-expanded={partyOpen} aria-haspopup="dialog" aria-label={party.room ? `Watch party, ${party.room.members.length} watching` : 'Watch party'}><IconUsers /></button>
             <button className="ibtn" onClick={() => openOver('device')} title="Play on another device" aria-label="Play on another device"><IconDevices /></button>
-            {item.nextId && !party.active && <button className="btn sm" onClick={() => nav(nextHref, { replace: true })} title="Next episode"><IconNext /> <span className="hide-narrow">Next episode</span></button>}
+            {hasNext && (!party.active || party.room?.canControl) && <button className="btn sm" onClick={() => goNext(true)} title={party.active ? 'Next for everyone in the party' : 'Next episode'}><IconNext /> <span className="hide-narrow">{item.showId != null ? 'Next episode' : 'Next'}</span></button>}
             <button className="ibtn" onClick={chrome.minimize} title="Mini player"><IconMini /></button>
           </div>
           {remoteOn && (sheetLayout
@@ -496,7 +509,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             <div className="watch-next" onClick={(e) => e.stopPropagation()}>
               <div className="wn-head">{next.recommended
                 ? (next.show ? `Because you watched ${item.showTitle || item.title}` : 'You might also like')
-                : upNext != null ? `Next episode in ${upNext}s` : 'Watch next'}</div>
+                : upNext != null ? `${next.item.showId != null ? 'Next episode' : 'Up next'} in ${upNext}s` : 'Watch next'}</div>
               <div className="wn-body" onClick={() => nav(`/play/${next.item.id}`, { replace: true })}>
                 <div className={'wn-thumb' + (next.item.showId != null ? ' wide' : '')}>{next.item.poster && <img src={sized(posterUrl(next.item), fitWidth(240))} alt="" />}</div>
                 <div>
@@ -535,11 +548,9 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       )}
     </div>
     {/* Beside the player, not inside it: a click in a dialog isn't a click on the picture. */}
-    {sendTo && (
+    {sendTo === 'device' && (
       <Suspense fallback={null}>
-        {sendTo === 'device'
-          ? <PlayOn onClose={() => setSendTo(null)} source={{ kind: 'playing', itemId: item.id, title: item.title, positionSec: () => (video.current?.currentTime || 0) + offset, audio: String(audio), subtitle: sub == null || sub < 0 ? 'off' : String(sub), stop: chrome.close }} />
-          : <WatchParty onClose={() => setSendTo(null)} item={{ id: item.id, title: item.title, positionSec: () => (video.current?.currentTime || 0) + offset }} />}
+        {<PlayOn onClose={() => setSendTo(null)} source={{ kind: 'playing', itemId: item.id, title: item.title, positionSec: () => (video.current?.currentTime || 0) + offset, audio: String(audio), subtitle: sub == null || sub < 0 ? 'off' : String(sub), stop: chrome.close }} />}
       </Suspense>
     )}
     </>

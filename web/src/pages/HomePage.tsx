@@ -8,6 +8,7 @@ import { CardRow, ItemCard, PageSkeleton, ShowCard, Spinner } from '../component
 import { UpdateBanner } from '../components/UpdateBanner'
 import { IconDown, IconGrip, IconInfo, IconPause, IconPlay, IconPlus, IconRefresh, IconRight, IconStar, IconUp, libIcon } from '../icons'
 import { toast, useApp } from '../state'
+import { emptyHomeWords } from '../profileWords'
 import { useOpenItem } from '../openItem'
 import { useTvMode } from '../tvmode/mode'
 
@@ -118,10 +119,8 @@ export default function HomePage() {
       {!editing && empty && (
         <div className="home-card">
           <span className="home-card-ic"><IconRefresh /></span>
-          <h2>{scanning ? 'Your libraries are being scanned' : 'Your libraries are empty'}</h2>
-          <p className="muted">{scanning
-            ? 'Movies, shows, music and books appear here as they’re found. The first scan can take a few minutes.'
-            : 'Nothing was found in their folders yet. Check the folders in Settings, Libraries, then scan again.'}</p>
+          <h2>{emptyHomeWords(user, scanning).title}</h2>
+          <p className="muted">{emptyHomeWords(user, scanning).text}</p>
           {user?.isAdmin && !scanning && <Link className="btn" to="/settings/libraries">Open library settings</Link>}
         </div>
       )}

@@ -168,7 +168,9 @@ A TV or an app can be signed in without typing a password on it. An adult or adm
 
 **Your TV shows a QR code and a PIN that changes:** this is secure pairing, for apps that support it. Scan the QR code with your phone, or open the address under it, and type the 6-digit PIN the TV shows *now*. The PIN changes every 30 seconds and works once, so someone who saw it over your shoulder, or in a photo, can't use it later. Five wrong PINs end the request, and it lasts 5 minutes; after either, start again on the TV.
 
-The web app can be signed in this way too: choose **Sign in with your phone** on its sign-in screen. It draws the QR code itself, in the page, and counts down to the next PIN.
+The web app can be signed in this way too: choose **Sign in with your phone** on its sign-in screen. It draws the QR code itself, in the page, with the address of the approval page under it for a device that can't scan, and counts down to the next PIN. It says what the approval page will call it, such as *Chrome on Windows*, so you can check you're approving the right screen. In TV mode the code and the PIN fill the screen, to be read from the sofa, and the remote's Back button returns to the other ways of signing in; nothing has to be typed on the TV. A browser that reached the server as `localhost` says so, since a phone can't open that address: type its code under **Your TV shows a code** instead.
+
+On the approval page, a wrong PIN or password leaves the request open and puts you back in the field to type it again, with the server's own words about what was wrong and how many tries are left.
 
 **Signing a device in as an administrator asks for your password again.** A phone left unlocked, or a sign-in someone else got hold of, could otherwise put a new device on the server with every right you have. So when you're an administrator and you approve a device as yourself, the page asks for your password (and your authenticator code, if you use one). Signing it in as a Kids or Guest profile doesn't ask.
 

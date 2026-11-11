@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, fmtRuntime, getPrefs, mediaUrl } from '../api'
 import { useCd } from '../audio/player'
+import { PlayOnButton } from '../remote/PlayOnButton'
 import { type CdDisc, type CdNow, type CdRepeat } from '../audio/cdEngine'
 import { BackLink, EmptyState, Spinner } from '../components/common'
 import LegalNote from '../components/LegalNote'
@@ -279,6 +280,7 @@ export default function CdPlayer() {
             </header>
             <div className="cdp-actions">
               <button className="btn ghost sm" onClick={() => setDetails(!details)} aria-expanded={details}><IconInfo /> About this disc</button>
+              <PlayOnButton className="btn ghost sm" source={{ kind: 'item', itemId: disc.id, itemKind: 'cd-image', title: disc.title }} />
               {user?.isAdmin && <button className={'btn sm ' + (disc.lookup === 'ask' ? 'primary' : 'ghost')} onClick={() => setIdentify(true)}><IconSearch /> {disc.lookup === 'ask' ? `Choose from ${disc.matches} matches` : disc.lookup === 'matched' ? 'Change album' : 'Find this album'}</button>}
             </div>
             {disc.warnings.filter((w) => w.code !== 'data-track' && w.code !== 'no-sheet').map((w) => <div key={w.code} className="cdp-note" role="note">{w.message}</div>)}

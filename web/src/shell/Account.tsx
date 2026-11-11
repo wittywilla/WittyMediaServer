@@ -28,7 +28,7 @@ function useAccount() {
     { key: 'year', label: 'Your year', icon: <IconStar />, to: '/review' },
     { key: 'look', label: 'Appearance', icon: <IconPalette />, to: '/settings/appearance' },
     // Your other devices and what they're playing; and watching with other people.
-    { key: 'playon', label: 'Play on another device', icon: <IconDevices />, onSelect: openPlayOn },
+    { key: 'playon', label: 'Play on another device', icon: <IconDevices />, onSelect: () => openPlayOn() },
     { key: 'party', label: 'Watch party', icon: <IconUsers />, onSelect: openWatchParty },
     // The Apple TV and Android TV layout, for a screen across the room.
     { key: 'tvmode', label: 'TV mode', icon: <IconFull />, onSelect: () => { setTvMode(true); nav('/') } },

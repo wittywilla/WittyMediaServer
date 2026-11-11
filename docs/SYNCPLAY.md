@@ -14,23 +14,29 @@ To play something on another device rather than alongside it, see [the Remote Pr
 
 ## Starting one
 
-Open a film or an episode and press **Watch party**, then **Start a watch party**. You get a six-letter code, such as `KXM4T7`. Tell it to the people you want to watch with, however you like. The player opens, paused, so you can wait for them.
+Open a film or an episode and press **Watch party**, then **Start a watch party**. You get a six-letter code, such as `KXM4T7`. Tell it to the people you want to watch with, however you like. The player opens, paused, with the party's panel showing the code, so you can wait for them.
 
-You are the **host**. To begin with only you can play, pause and seek. Turn on **Everyone can control** if you'd rather anyone could.
+You are the **host**. To begin with only you can play, pause and seek. Turn on **Everyone can play, pause and seek** if you'd rather anyone could.
 
 Everyone needs an account on your server, and a way to reach it: your home network, or [remote access](REMOTE.md).
 
-In the web app, watch parties are for films, episodes and other videos. Discs with menus, music and live channels aren't kept in step.
+- **An episode.** A party started on an episode queues the rest of that season after it, and moves on to the next episode by itself when one ends.
+- **Music.** In the full music player, press the **Listening party** button (two people) and then **Start a listening party**. The party starts on the song that's playing, and the songs queued after it follow.
+- **Inviting by name.** As host, press **Invite** beside **People**, tick the profiles you want and press **Invite**. The list is the one your account sees when switching profile; an account that isn't shown the other profiles gives out the code instead. Each person invited is told that you invited them and the party's name, never what is playing.
+
+### What is kept in step
+
+In the web app, watch parties are for films, episodes, other videos and songs (audiobook and podcast files count as songs here). DVDs and Blu-rays with menus, books, games, radio stations and live channels aren't kept in step, and their pages and players don't offer a party. If a party is moved, from another app, on to something the web app can't keep in step, the web app says so, keeps your place, and joins in again when the party moves on.
 
 ## Joining one
 
-Choose **Watch party** in the menu under your name, or on any film or episode's page, type the code and press **Join**. Capitals, spaces and dashes don't matter. The player opens at the place the party has got to, even if it started without you.
+Choose **Watch party** in the menu under your name, or on any film or episode's page, or in the video player's top bar, type the code and press **Join**. Capitals, spaces and dashes don't matter. The player opens at the place the party has got to, even if it started without you.
 
-If you've been invited by name, the party is listed there too, and you can join it without the code.
+**If you've been invited by name**, a card appears in the corner of whatever page you're on (and inside the player, if you're watching something), within about half a minute: "*Sam* invited you to a watch party", with **Accept** and **Decline**. Accept joins without the code. Decline puts the invitation away on this device; the server has no "no, thank you", so the party is still listed for you under **Watch party** on your other devices until it ends, and its code still works. Invitations are looked for only while the tab is showing.
 
 ## While you watch
 
-**Watch party** in the player's top bar shows the party's name, its code and who is there. Beside each person:
+**Watch party** in the player's top bar opens the party's panel: its name, its code, who is there, the queue and, for the host, how it runs. The panel is part of the player, down its side (a sheet from the bottom on a phone), so it is there in full screen too, and the picture beside it still answers to a click. Escape, or Back on a remote, closes it. Beside each person:
 
 | It says | It means |
 |---|---|
@@ -45,8 +51,11 @@ If you've been invited by name, the party is listed there too, and you can join 
 - **Waiting for everyone.** If someone's video stalls, the party pauses for them and carries on when they're ready. It waits 15 seconds at most, then goes on without them, and they catch up when they can. The host can turn **Wait for everyone** off.
 - **If your connection drops**, you have two minutes to come back to the same place in the party, as host if you were.
 - **Leaving.** Press **Leave**, or close the player. Shrinking it to the mini player keeps you in. If the host leaves, whoever has been there longest becomes host. The host can also make someone else host, or remove someone, from the **⋯** beside their name.
-- **Something else.** With the party open, **Watch party** on another title's page offers to watch that in the party instead.
-- **The next episode.** A party started in the web app is for one title; when it ends, pick the next as above. Apps can give a party a queue, which it then plays through.
+- **The queue.** The panel lists what the party will play, with what's playing marked. Whoever is allowed to control can press a title to play it now, step with **Previous** and **Next**, move a title up or down, or take it out. Changing the queue around what is playing doesn't interrupt it. A title your account isn't allowed to see shows as **Not available on this account**; an account with such a title in the queue can step through the queue but not change it.
+- **Something else.** With the party going, **Watch party** on another film's or episode's page offers **Play in the party now** and **Add it to the queue**. (After a page reload the app goes straight back to the party's player; use the player's back button to browse with the party in the corner.)
+- **The next episode.** When a title ends, the party moves on to the next in its queue by itself, for everyone at once. In a party, **Next episode** in the player is the party's **Next**: it moves everyone, and only shows for someone allowed to control.
+- **Music.** In a listening party the music player's play, pause, seek, next, previous and speed are the party's. Shuffle and repeat are off: a party plays its queue in order, once. Putting something else on in the music player, or stopping it, leaves the party.
+- **Speed.** A party plays between half and double speed.
 
 A party ends when its host closes it, when everyone has been gone for five minutes, or when the server restarts: parties are kept in the server's memory and not written down.
 
@@ -75,7 +84,9 @@ Administrators choose under **Settings → Sharing & photos → Watch parties**:
 | **No such watch party** | Check the code. A party that everyone left more than five minutes ago, or that was running when the server restarted, is gone: start another |
 | **Too many tries** | Wrong codes are counted, so that codes can't be guessed. Wait a minute |
 | **This watch party is playing something this account can't watch** | Your account's limits don't allow it. An administrator can change them in **Settings → Profiles** |
-| **Only the host controls this watch party** | Ask the host to press it, or to turn on **Everyone can control** |
+| **Can't watch this one**, over a paused picture | The party has moved on to something your account's limits don't allow. You keep your place and join in again when it moves on; meanwhile you can watch something else |
+| No invitation appears | It can take half a minute, and the tab has to be showing. The party is also listed under **Watch party** in the menu under your name |
+| **Only the host controls this watch party** | Ask the host to press it, or to turn on **Everyone can play, pause and seek** |
 | It keeps pausing | Someone's connection can't keep up. The host can turn **Wait for everyone** off, and that person's player will catch up on its own |
 | You're a second behind | Players close a small gap by playing very slightly faster for a while. If it doesn't close, your device may be struggling: try a lower quality in the player's settings |
 
@@ -235,7 +246,7 @@ Every `room` event is the whole room, so a client that reconnects or reads slowl
 | `next`, `previous` | | Moves along the queue, from the start of the item |
 | `select` | `index` | Goes to a place in the queue |
 | `rate` | `rate`, 0.5 to 2 | Changes the speed |
-| `queue` | `items`, `index` | Replaces the queue. The caller must be able to see every item |
+| `queue` | `items`, `index` | Replaces the queue. The caller must be able to see every item. If the item at `index` is the one that's playing, it carries on where it is, and nobody loads again: that is how a client adds to a queue, takes something out or reorders it. Otherwise the room moves to that item, from its start |
 
 The answer is the room after the command. Commands are applied one at a time in the order they reach the server, and that order is the truth. A command that changes nothing (`play` while playing) is accepted and changes nothing.
 
@@ -252,7 +263,7 @@ The answer is the room after the command. Commands are applied one at a time in 
 | `PUT /syncplay/rooms/{id}` | the host | `name`, `policy`, `waitForAll` |
 | `POST /syncplay/rooms/{id}/host` | the host | `to`: hands the room to another member |
 | `POST /syncplay/rooms/{id}/kick` | the host | `whom`: takes a member's seat away |
-| `POST /syncplay/rooms/{id}/invite` | the host | `userIds`: those accounts find the room in `GET /syncplay` and may join by `roomId` |
+| `POST /syncplay/rooms/{id}/invite` | the host | `userIds`: those accounts find the room in `GET /syncplay` and may join by `roomId`. There is no stream of invitations and no route to decline one: a client asks `GET /syncplay` now and then (the web app: every 30 seconds while its tab is showing), and remembers a declined room itself |
 | `DELETE /syncplay/rooms/{id}` | the host, or an administrator | Ends the party for everyone |
 
 ### Seats, and coming back

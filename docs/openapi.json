@@ -874,6 +874,12 @@
           "canGenerate": {
             "type": "boolean"
           },
+          "error": {
+            "type": "string"
+          },
+          "limited": {
+            "type": "boolean"
+          },
           "reason": {
             "type": "string"
           },
@@ -40773,6 +40779,10 @@
                             "available": {
                               "type": "boolean"
                             },
+                            "error": {
+                              "description": "why the last try failed, until it is tried again",
+                              "type": "string"
+                            },
                             "note": {
                               "type": "string"
                             },
@@ -40793,6 +40803,10 @@
                           "properties": {
                             "available": {
                               "type": "boolean"
+                            },
+                            "error": {
+                              "description": "why the last try failed, until it is tried again",
+                              "type": "string"
                             },
                             "note": {
                               "type": "string"

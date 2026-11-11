@@ -22,9 +22,10 @@ import { setTvMode, useTvMode } from '../tvmode/mode'
 import { useUserPref } from '../ui/userPrefs'
 import { jumpTo } from './settings/jump'
 import { Row, Section } from './settings/ui'
+import AutoSkipSection from './settings/AutoSkip'
 
 const TvLookSettings = lazy(() => import('./tv/TvLookSettings'))
-const ModuleColours = lazy(() => import('./settings/ModuleColours'))
+const EngineColours = lazy(() => import('./settings/EngineColours'))
 
 // Appearance: the app's theme first, then colours of your own, where the menus sit and how
 // things move, then the look of the parts of the app that have one of their own, and the
@@ -220,8 +221,10 @@ export default function AppearanceSettings() {
       <LayoutSection />
       <MotionSection />
       <Suspense fallback={null}><TvLookSettings /></Suspense>
-      {admin && <Suspense fallback={null}><ModuleColours /></Suspense>}
+      {admin && <Suspense fallback={null}><EngineColours /></Suspense>}
       <PlayerSection />
+      {/* A profile's own choice. An administrator has it under Playback & discs, a page the others don't get. */}
+      {!admin && <AutoSkipSection />}
       {admin && (
         <Section title="Name and logo" desc="Shown in the corner, on the sign-in page and in the browser tab. The license notice in Settings, About always remains.">
           <div className="brand-now">
@@ -261,6 +264,7 @@ function LayoutSection() {
 // Moving posters, and this screen's distance from the sofa.
 function MotionSection() {
   const [tilt, setTilt] = useUserPref('posterTilt', true)
+  const [canvases, setCanvases] = useUserPref('canvases', true)
   const tv = useTvMode()
   const go = useNavigate()
   const blocked = tiltBlocked()
@@ -268,6 +272,9 @@ function MotionSection() {
     <Section title="Motion and big screens">
       <Row label="Moving posters" desc={<>Movie and show posters lean toward the pointer, or settle in as a remote reaches them. {blocked ? `Off here: ${blocked}` : 'Follows you to your other devices.'}</>}>
         <Switch label="Moving posters" checked={tilt && !blocked} disabled={!!blocked} onChange={(on) => setTilt(on).catch(() => toast('Could not save that', { tone: 'danger' }))} />
+      </Row>
+      <Row label="Moving backgrounds" desc="A song, album or title that has a canvas plays it behind the page: a short, silent, looping video. Off shows the still artwork. It's also left out when this device is set to reduce motion or save data, and away from home when streams are limited. Follows you to your other devices.">
+        <Switch label="Moving backgrounds" checked={canvases} onChange={(on) => setCanvases(on).catch(() => toast('Could not save that', { tone: 'danger' }))} />
       </Row>
       <Row label="TV mode" desc="Laid out and driven like the Apple TV and Android TV apps, with a remote or a controller, for a screen across the room. Only on this device.">
         <Switch label="TV mode" checked={tv} onChange={(on) => { setTvMode(on); if (on) go('/') }} />

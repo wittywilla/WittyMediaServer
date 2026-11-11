@@ -108,7 +108,29 @@ With Demucs, for example, `demucs -n htdemucs "01 Song.flac"` writes `separated/
 
 An administrator can also upload a part for a song, which is kept in the server's own folder and never beside your music. Apps see what a song has in `GET /api/v1/media/{id}/stems`, and get the list with the playback answer when a song starts. See [the client API](CLIENT-API.md#media-extras).
 
-The web app's karaoke screen doesn't play stems yet: it uses **Voice lower** and **Voice lowest**, above. Stems are there for the apps and for anything else that asks.
+A stem beside a song isn't listed as a song of its own: the scan leaves out a file named as in the table when the song it belongs to is there. A real song with a dot in its name, such as `Mr. Bass.flac`, stays, unless a song called `Mr.flac` sits beside it.
+
+### Stems on the karaoke screen
+
+When a song has a voice part and the music without it, the web app's karaoke screen uses them, and the choices become **Voice on**, **Voice lower** and **Voice off**. The voice then really is turned down, or gone, and nothing else in the song changes.
+
+- **The music without the voice** is `drums`, `bass` and `other` together when all three are there, and otherwise the `instrumental`. Never both, which would play the music twice.
+- **Stems** on the screen opens the parts: a level for each, and where each came from. Move one and it's your own mix; **Back to** the choice puts them back. A part that isn't playing starts at nothing and can be brought up, for more drums on top, say.
+- **A song with only an instrumental**, such as the approximate one below, keeps **Voice lower** and **Voice lowest** and gains **Instrumental**.
+- **A song with only a voice part** has nothing to take the voice away from, and the screen says so.
+
+The parts are fetched whole and played from memory on one clock, all started at the same instant, because that is the only way a browser keeps them exactly together. The song carries on as it is while they're fetched, then the parts take over at the same second, and the words follow them. Going back to **Voice on**, or leaving karaoke, the song picks up where the parts were.
+
+What follows from that:
+
+- Lossless stems are big. The panel says how much there is to fetch before you choose.
+- A very long song may be too much for a browser's memory. Then only the parts being played are fetched, or the screen says the song is too long.
+- A format the browser can't decode (Ogg or Opus in some) is said, and the screen goes back to **Voice lower** and **Voice lowest**.
+- While the parts play, the speed is normal, whatever the player's speed was, and the seconds aren't counted towards Your year.
+
+**A Native Instruments `.stem.mp4`** holds its parts as sound tracks of one file. Safari can switch a file's sound tracks on and off, so there each part is on or off, with nothing in between and no change of key. Chrome, Edge and Firefox can't, and the screen says so. This hasn't been run on Safari yet. Separate files beside the song are used first when both are there.
+
+**A song with no stems** gets two offers in the same panel: **Make an approximate instrumental**, for anyone who can play the song, and **Separate with the installed separator**, for an administrator. Each shows its progress, and says why if it fails or can't be done on this server. See [Making stems](#making-stems).
 
 ### Making stems
 
@@ -133,7 +155,7 @@ or `-stem-separator '…'`, or `"stemSeparator": "…"` in the [config file](CON
 
 **The approximate instrumental.** `POST /api/v1/media/{id}/stems/approximate` makes it, and it is kept (as AAC) so it's made once. It gives way to a real `instrumental` as soon as there is one. A mono song has no two channels to take from each other, and the task says so. Apps should tell people what it is: the listing carries a sentence for that in `separation.approximate.note`.
 
-`GET /api/v1/media/{id}/stems` says under `separation` which of the two this server can do for a song, why not (`no-ffmpeg`, `not-configured`, `admin-only`, `not-a-song`, `not-a-file`), and the task when one is being made.
+`GET /api/v1/media/{id}/stems` says under `separation` which of the two this server can do for a song, why not (`no-ffmpeg`, `not-configured`, `admin-only`, `not-a-song`, `not-a-file`), and the task when one is being made, and, when the last try failed, why (`error`).
 
 ### Keys
 
@@ -142,7 +164,7 @@ or `-stem-separator '…'`, or `"stemSeparator": "…"` in the [config file](CON
 | Esc | Leave karaoke |
 | Space | Play or pause |
 | ← → | Previous or next line |
-| V | Voice on, lower or lowest |
+| V | The next choice for the voice |
 | − + | Lower or raise the key |
 | `[` `]` | Words sooner or later |
 | F | Fill the screen |

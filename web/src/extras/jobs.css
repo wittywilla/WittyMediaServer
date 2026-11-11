@@ -1,0 +1,6 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* A task's progress where someone is waiting for it: the canvas dialog, the stems panel. */
+.job-line { display: grid; gap: var(--sp-2); }
+.job-line-top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); font-weight: 600; }
+.job-line-sub { color: var(--fg-2); font-size: var(--text-sm); }

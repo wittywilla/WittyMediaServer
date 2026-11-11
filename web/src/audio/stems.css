@@ -1,0 +1,37 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* Karaoke's stems panel: a card over the stage, above the controls. It sits on the karaoke
+   screen's black, with that screen's own colours (nowplaying.css). */
+.kar-mix { position: absolute; z-index: 3; left: 50%; bottom: calc(100% + var(--sp-2)); transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); max-height: min(62vh, 560px); display: flex; flex-direction: column; border-radius: var(--r-lg); border: 1px solid var(--np-line); background: var(--np-card); box-shadow: var(--np-shadow); text-align: start; }
+.kar-mix-head { flex: none; display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-2) 0 var(--sp-4); }
+.kar-mix-head h3 { flex: 1; margin: 0; font-size: var(--text-lg); font-weight: 700; }
+.kar-mix-head .mp-ibtn { background: transparent; width: 44px; height: 44px; }
+.kar-mix-body { min-height: 0; overflow-y: auto; display: grid; gap: var(--sp-3); padding: var(--sp-2) var(--sp-4) var(--sp-4); }
+.kar-mix-text, .kar-mix-note, .kar-mix-warn { margin: 0; font-size: var(--text-sm); line-height: 1.45; color: var(--np-fg-2); }
+.kar-mix-note, .kar-mix-warn { padding: 10px 12px; border-radius: var(--r-md); background: var(--np-rule); color: var(--np-fg); }
+.kar-mix-warn { border: 1px solid var(--np-line); }
+.kar-mix-reset { justify-self: start; }
+.kar-levels { display: grid; gap: var(--sp-2); }
+.kar-levels.off { opacity: .6; }
+.kar-level { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 1.4fr) 44px; align-items: center; gap: var(--sp-3); min-height: 44px; font-size: var(--text-md); font-weight: 600; }
+.kar-level-name { display: grid; }
+.kar-level-name small { font-weight: 400; font-size: var(--text-xs); color: var(--np-fg-2); }
+.kar-level-pct { text-align: end; font-variant-numeric: tabular-nums; font-size: var(--text-sm); color: var(--np-fg-2); }
+.kar-switch { width: 22px; height: 22px; justify-self: start; accent-color: var(--np-white); }
+.kar-make { display: grid; gap: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--np-line); }
+.kar-make-row { display: grid; gap: var(--sp-2); justify-items: start; }
+.kar-mix .btn.sm { min-height: 40px; }
+/* The controls it hangs above. */
+.kar-bar { position: relative; }
+.kar-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 18px; border: 0; border-radius: var(--r-full); background: var(--np-chip); color: var(--np-white); font: inherit; font-weight: 600; cursor: pointer; }
+.kar-chip.on { background: var(--np-white); color: var(--np-black); }
+.kar-chip .kar-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+@media (max-width: 640px) {
+  .kar-level { grid-template-columns: minmax(96px, 1fr) minmax(0, 1.2fr) 40px; gap: var(--sp-2); }
+  .kar-chip { min-height: 46px; padding: 0 14px; font-size: var(--text-sm); }
+}
+:root.tv-mode .kar-mix { width: min(760px, calc(100vw - 96px)); }
+@media (forced-colors: active) {
+  .kar-chip { border: 1px solid ButtonText; }
+  .kar-chip.on { background: Highlight; color: HighlightText; }
+}

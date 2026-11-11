@@ -973,6 +973,7 @@ func (e *Engine) Do(roomID, memberID string, userID int64, c Command) (View, err
 		return e.view(r, m, now), ErrStale
 	}
 	bad := func(f float64) bool { return math.IsNaN(f) || math.IsInf(f, 0) }
+	kept := false // a new queue that leaves what is playing as it is
 	// move goes to another place in the queue, from its start.
 	move := func(i int) error {
 		if i < 0 || i >= len(r.queue) {
@@ -1025,6 +1026,9 @@ func (e *Engine) Do(roomID, memberID string, userID int64, c Command) (View, err
 		r.freeze(now)
 		r.rate = c.Rate
 	case CmdQueue:
+		// A queue changed around what is playing (something added, taken out or moved, with
+		// index still pointing at the same item) leaves it playing where it is: nobody loads again.
+		kept = c.Items[c.Index] == r.queue[r.index]
 		r.queue = slices.Clone(c.Items)
 		for id, mm := range r.members {
 			if s, ok := sees[id]; ok {
@@ -1033,13 +1037,18 @@ func (e *Engine) Do(roomID, memberID string, userID int64, c Command) (View, err
 				mm.sees = make([]bool, len(r.queue)) // joined in the instant between: sees nothing until they rejoin
 			}
 		}
-		_ = move(c.Index)
+		if kept {
+			r.index = c.Index
+			r.reblock()
+		} else {
+			_ = move(c.Index)
+		}
 	default:
 		return View{}, ErrBadCommand
 	}
 	// After a reload a playing room holds until its members have loaded, or starts again
 	// a moment from now when it doesn't wait for them.
-	if c.Type != CmdPlay && c.Type != CmdPause && c.Type != CmdRate && !r.paused {
+	if c.Type != CmdPlay && c.Type != CmdPause && c.Type != CmdRate && !kept && !r.paused {
 		if r.waitForAll && !r.gateOpen() {
 			r.waiting, r.waitSince = true, now
 		} else {

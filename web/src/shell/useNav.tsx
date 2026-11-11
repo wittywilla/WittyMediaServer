@@ -6,6 +6,7 @@ import { IconChart, IconGamepad, IconHome, IconLibrary, IconPlug, IconTv, libIco
 import { useModulePages } from '../moduleBundles'
 import { setOwnerNavStyle } from '../navPrefs'
 import { useApp } from '../state'
+import { featureOff, useMyLimits } from '../myLimits'
 import { useUserPref } from '../ui/userPrefs'
 import type { NavItem, NavPrefs } from './navModel'
 
@@ -30,10 +31,12 @@ export function useNavItems(): NavItem[] {
   const { libraries } = useApp()
   const couch = useCanUseCouch()
   const modulePages = useModulePages()
+  // Live TV turned off for this profile: the guide isn't offered.
+  const noTv = featureOff(useMyLimits(), 'liveTv')
   return useMemo(() => {
     const list: NavItem[] = [
       { id: 'home', label: 'Home', to: '/', end: true },
-      { id: 'tv', label: 'TV guide', to: '/tv' },
+      ...(noTv ? [] : [{ id: 'tv', label: 'TV guide', to: '/tv' }]),
       ...libraries.filter(inMainMenus).map((l) => ({ id: 'lib:' + l.id, label: l.name, to: `/library/${l.id}`, kind: l.type })),
     ]
     if (libraries.length > 0) list.push({ id: 'collections', label: 'Collections', to: '/collections' })
@@ -42,7 +45,7 @@ export function useNavItems(): NavItem[] {
       if (p.where === 'main') list.push({ id: `m:${p.module}:${p.id}`, label: p.title, to: `/m/${p.module}/${p.id}`, kind: 'module:' + (p.icon ?? '') })
     }
     return list
-  }, [libraries, couch, modulePages])
+  }, [libraries, couch, modulePages, noTv])
 }
 
 export function navIcon(item: NavItem): ReactNode {

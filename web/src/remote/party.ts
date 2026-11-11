@@ -5,18 +5,20 @@
 // the drift arithmetic is the live channels' own, in player/sync.ts.
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { ApiError } from '../api'
-import { clockOffset, syncStep, type ClockSample } from '../player/sync'
+import { clockOffset, type ClockSample } from '../player/sync'
 import { toast } from '../state'
+import { maySeek, newSeekMemo, partyStep, positionAt, seekAim, seekLanded, shouldAdvance, type Listing, type PartyState, type QueueEdit } from './partyLogic'
 import { call, readEvents, sleep, steadyNow } from './stream'
 
+export { positionAt, type PartyState }
 export type PartyMember = { id: string; userId: number; name: string; host: boolean; you?: boolean; state: 'ready' | 'loading' | 'buffering' | 'lagging' | 'away' | 'blocked'; rttMs: number }
-export type PartyState = { rev: number; seq: number; itemId: number; index: number; positionSec: number; atMs: number; paused: boolean; waiting: boolean; rate: number }
+export type PartyQueueItem = { id: number; title?: string; kind?: string; runtimeSec?: number }
 export type PartyRoom = {
   id: string; code: string; name: string; policy: 'host' | 'everyone'; waitForAll: boolean; hostId: string; you: string; canControl: boolean; blocked: boolean
-  members: PartyMember[]; queue: number[]; items: { id: number; title?: string; kind?: string; runtimeSec?: number }[]; state: PartyState; serverTimeMs: number; leadMs: number
+  members: PartyMember[]; queue: number[]; items: PartyQueueItem[]; state: PartyState; serverTimeMs: number; leadMs: number
 }
-export type PartyListing = { id: string; name: string; hostName: string; members: number; memberId?: string; invited?: boolean }
-export type PartyInfo = { enabled: boolean; canCreate: boolean; rooms: PartyListing[] }
+export type PartyListing = Listing
+export type PartyInfo = { enabled: boolean; canCreate: boolean; rooms: PartyListing[]; limits?: { queue?: number; members?: number; invites?: number; codeLength?: number } }
 
 export const MEMBER_WORDS: Record<PartyMember['state'], string> = {
   ready: 'Ready', loading: 'Loading', buffering: 'Buffering', lagging: 'Catching up', away: 'Away', blocked: 'Can’t watch this one',
@@ -47,14 +49,9 @@ const publish = () => listeners.forEach((l) => l())
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l) } }
 
 export const useParty = () => useSyncExternalStore(subscribe, () => room)
+export const subscribeParty = subscribe
 export const currentParty = () => room
 export const serverNow = () => steadyNow() + offset
-
-// Where the room is at a server time: the one sum every client does.
-export function positionAt(s: PartyState, serverMs: number) {
-  if (s.paused || s.waiting || serverMs <= s.atMs) return s.positionSec
-  return s.positionSec + ((serverMs - s.atMs) / 1000) * s.rate
-}
 
 function take(r: PartyRoom) {
   // The stream and the answers to commands both carry the room; the newest wins.
@@ -68,6 +65,7 @@ function gone(why?: string) {
   run = null
   room = null
   samples = []
+  resumed = false
   remember('')
   publish()
   if (why) toast(why)
@@ -138,8 +136,10 @@ function enter(r: PartyRoom) {
 
 export const partyInfo = () => call<PartyInfo>('GET', `/syncplay?device=${encodeURIComponent(tab())}`)
 
-export async function createParty(itemId: number, everyone: boolean, positionSec = 0) {
-  enter(await call<PartyRoom>('POST', '/syncplay/rooms', { itemId, positionSec, policy: everyone ? 'everyone' : 'host', device: tab() }))
+// items: what the party plays through, starting at items[index] (a film alone; an episode
+// and the rest of its season; the songs in a queue).
+export async function createParty(items: number[], index: number, everyone: boolean, positionSec = 0) {
+  enter(await call<PartyRoom>('POST', '/syncplay/rooms', { items, index, positionSec, policy: everyone ? 'everyone' : 'host', device: tab() }))
 }
 
 export async function joinParty(key: { code: string } | { roomId: string }) {
@@ -150,8 +150,12 @@ export async function joinParty(key: { code: string } | { roomId: string }) {
 export async function resumeParty() {
   const id = remembered()
   if (!id || room) return
-  try { await joinParty({ roomId: id }) } catch { remember('') }
+  try { resumed = true; await joinParty({ roomId: id }) } catch { resumed = false; remember('') }
 }
+// True once after a reload has taken the seat back: the page's address still says where
+// the party was when the player was first opened, not where it is now.
+let resumed = false
+export function takeResumed() { const was = resumed; resumed = false; return was }
 
 export function leaveParty() {
   const r = room
@@ -171,18 +175,26 @@ export async function endParty() {
 }
 
 // A command to the room. The answer is the room after it, which everyone's player then
-// follows, this one's included.
-export async function partyCommand(type: string, more: Record<string, unknown> = {}) {
+// follows, this one's included. False: someone else changed the room first (the command
+// carried the seq this window had seen), and their change is the room now.
+export async function partyCommand(type: string, more: Record<string, unknown> = {}): Promise<boolean> {
   const r = room
-  if (!r) return
+  if (!r) return false
   try {
     take(await call<PartyRoom>('POST', `/syncplay/rooms/${r.id}/command`, { member: r.you, type, ...more }))
+    return true
   } catch (e) {
-    // Someone else got there first: their change is the room now.
-    if (e instanceof ApiError && e.data?.code === 'stale' && e.data.room) { take(e.data.room); return }
+    if (e instanceof ApiError && e.data?.code === 'stale' && e.data.room) { take(e.data.room); return false }
     throw e
   }
 }
+
+// A new queue, worked out from the one this window was looking at: refused if the room
+// has changed since, so two people editing at once can't undo each other without seeing it.
+export const partyQueue = (e: QueueEdit) => partyCommand('queue', { items: e.items, index: e.index, ifSeq: room?.state.seq })
+// Along the queue. With the seq seen: two people pressing Next at once move on once.
+export const partyStepQueue = (type: 'next' | 'previous') => partyCommand(type, { ifSeq: room?.state.seq })
+export const partySelect = (index: number) => partyCommand('select', { index, ifSeq: room?.state.seq })
 
 export const partySet = (s: { policy?: 'host' | 'everyone'; waitForAll?: boolean }) => {
   const r = room
@@ -190,10 +202,17 @@ export const partySet = (s: { policy?: 'host' | 'everyone'; waitForAll?: boolean
 }
 export const partyHost = (to: string) => { const r = room; return r ? call('POST', `/syncplay/rooms/${r.id}/host`, { member: r.you, to }) : Promise.resolve() }
 export const partyKick = (whom: string) => { const r = room; return r ? call('POST', `/syncplay/rooms/${r.id}/kick`, { member: r.you, whom }) : Promise.resolve() }
+// Those accounts find the party in their own list, and may join it without the code.
+export const partyInvite = (userIds: number[]) => { const r = room; return r ? call<{ invited: number }>('POST', `/syncplay/rooms/${r.id}/invite`, { member: r.you, userIds }) : Promise.resolve({ invited: 0 }) }
 
+// One report at a time: while the server is slow to answer, more of them would only queue
+// up behind the first and arrive together, as noise.
+let reporting = false
 function reportState(state: 'ready' | 'buffering', rev: number) {
   const r = room
-  if (r) call('POST', `/syncplay/rooms/${r.id}/report`, { member: r.you, state, rev }).catch(() => {})
+  if (!r || reporting) return
+  reporting = true
+  call('POST', `/syncplay/rooms/${r.id}/report`, { member: r.you, state, rev }).catch(() => {}).finally(() => { reporting = false })
 }
 
 // Which item this window's player is following the party with, 0 for none: so that the
@@ -202,11 +221,13 @@ let following = 0
 export const partyPlayerItem = () => following
 
 type PlayerHooks = {
-  // seek moves the player; offset turns the video's own time into the title's; loaded says
-  // whether the player has a stream open at all.
+  // seek moves the player; offset turns the element's own time into the title's; loaded
+  // says whether the player has a stream open at all.
   seek: (t: number) => void
   offset: () => number
   loaded: () => boolean
+  // The title's length in seconds, 0 when not known.
+  duration?: () => number
   // blocked: the browser won't start playback without a tap, so the player should ask for one.
   blocked?: () => void
   // cheapSeek: a seek is quick (a file, or a stream listed whole), so a paused picture can be
@@ -214,38 +235,31 @@ type PlayerHooks = {
   cheapSeek?: () => boolean
 }
 
-// usePartySync keeps a video element in step with the room while the room is playing
-// this item, and turns what the viewer does (play, pause, a seek, reaching the end) into
-// commands for everyone. `active` says whether it is doing so; `seek` is what the
-// player's own seeking should go through while it is.
-export function usePartySync(video: React.RefObject<HTMLVideoElement | null>, itemId: number, hooks: PlayerHooks) {
+// usePartySync keeps a video or audio element in step with the room while the room is
+// playing this item, and turns what the person does (play, pause, a seek, reaching the
+// end) into commands for everyone. `active` says whether it is doing so; `seek` and `next`
+// are what the player's own seeking and "next" should go through while it is. The rules
+// are partyLogic.ts's; this is their hands.
+export function usePartySync(media: React.RefObject<HTMLMediaElement | null>, itemId: number, hooks: PlayerHooks) {
   const r = useParty()
-  const active = !!r && !r.blocked && r.state.itemId === itemId
+  const active = !!r && !r.blocked && itemId > 0 && r.state.itemId === itemId
   const latest = useRef(hooks)
   latest.current = hooks
   const roomId = active ? r!.id : ''
 
   useEffect(() => {
     if (!roomId) return
-    const v = video.current
+    const v = media.current
     if (!v) return
     following = itemId
-    let quietUntil = 0 // what this file does to the player isn't the viewer doing it
+    let quietUntil = 0 // what this file does to the player isn't the person doing it
     let nudging = false
-    let said = 0, toldOff = 0, stalledSince = 0
-    // A seek costs time, most of all on a stream the server is converting, which starts
-    // again from the new place. So a seek while playing aims ahead by as long as the last
-    // one took, and another isn't tried until this one has had its chance.
-    let seekAt = 0, lag = 0
+    let said = 0, toldOff = 0, stalledSince = 0, advanced = { seq: -1, at: 0 }
+    const memo = newSeekMemo()
+    // Opening the stream is a seek in all but name: how long it takes is how far behind a
+    // late arrival lands, and so how far ahead its catching-up seek should aim.
+    if (!latest.current.loaded() || v.readyState < 3) memo.at = performance.now()
     const quiet = (fn: () => void) => { quietUntil = performance.now() + 700; fn() }
-    let lastStill = -1
-    const jump = (target: number, playing: boolean) => {
-      if (v.seeking || (seekAt && performance.now() - seekAt < 5000)) return
-      // A paused picture is sent to a place once: if it can't get there (past the end), asking again won't help.
-      if (!playing) { if (target === lastStill) return; lastStill = target } else lastStill = -1
-      seekAt = performance.now()
-      quiet(() => latest.current.seek(target + (playing ? lag : 0)))
-    }
     const mine = () => { const cur = currentParty(); return cur && cur.id === roomId && !cur.blocked && cur.state.itemId === itemId ? cur : null }
     const notYours = () => {
       if (Date.now() - toldOff > 8000) { toldOff = Date.now(); toast('Only the host controls this watch party.') }
@@ -254,44 +268,49 @@ export function usePartySync(video: React.RefObject<HTMLVideoElement | null>, it
     let startTimer: ReturnType<typeof setTimeout> | undefined
     const tick = () => {
       const cur = mine()
-      if (!cur || !latest.current.loaded()) return
+      if (!cur) return
+      const h = latest.current
       const s = cur.state
       const now = serverNow()
-      const target = positionAt(s, now)
-      const pos = v.currentTime + latest.current.offset()
-      const playing = !s.paused && !s.waiting && now >= s.atMs
-      if (!playing) {
-        if (!v.paused) quiet(() => v.pause())
-        if (Math.abs(target - pos) > (latest.current.cheapSeek?.() ? 0.08 : 0.5)) jump(target, false)
-        // A start set for a moment from now is kept to the millisecond, not to the next tick.
-        if (!s.paused && !s.waiting && now < s.atMs) { clearTimeout(startTimer); startTimer = setTimeout(tick, Math.max(0, s.atMs - now)) }
-        if (nudging) { nudging = false; v.playbackRate = s.rate }
-      } else if (!v.ended) {
-        if (v.paused) quiet(() => { v.play().catch((e) => { if (e?.name === 'NotAllowedError') latest.current.blocked?.() }) })
-        const step = syncStep(target - pos, nudging)
-        if ('seekBy' in step) {
-          jump(target, true)
-          nudging = false
-          v.playbackRate = s.rate
-        } else {
-          nudging = step.rate !== 1
-          v.playbackRate = s.rate * step.rate
+      const local = performance.now()
+      const loaded = h.loaded()
+      const cheap = h.cheapSeek ? h.cheapSeek() : true
+      const duration = h.duration?.() || 0
+      const live = { seeking: v.seeking, canPlay: v.readyState >= 3, loaded }
+      const st = partyStep(s, now, { pos: v.currentTime + h.offset(), duration, ended: v.ended, seeking: v.seeking, canPlay: live.canPlay }, { nudging, cheapSeek: cheap })
+      if (loaded) {
+        seekLanded(memo, local, live)
+        nudging = st.nudging
+        if (!st.play) {
+          if (!v.paused) quiet(() => v.pause())
+          // A start set for a moment from now is kept to the millisecond, not to the next tick.
+          if (st.startInMs != null) { clearTimeout(startTimer); startTimer = setTimeout(tick, st.startInMs) }
+        } else if (v.paused && !v.ended) {
+          quiet(() => { v.play().catch((e) => { if (e?.name === 'NotAllowedError') h.blocked?.() }) })
         }
+        if (st.seekTo != null && maySeek(memo, local, st.seekTo, st.play, live, cheap)) {
+          const to = seekAim(memo, st.seekTo, st.play, duration)
+          quiet(() => h.seek(to))
+        }
+        if (v.playbackRate !== st.rate) v.playbackRate = st.rate
       }
-      // Telling the room how this player is doing, when the room has it wrong.
+      // The title has run out: on to the next in the queue, once for the whole room.
+      if (shouldAdvance(cur, now, { ended: loaded && v.ended, duration }) && (advanced.seq !== s.seq || local - advanced.at > 5000)) {
+        advanced = { seq: s.seq, at: local }
+        partyCommand('next', { ifSeq: s.seq }).catch(() => {})
+      }
+      // Telling the room how this player is doing, when the room has it wrong. A seek still
+      // on its way isn't ready, however near the place the old stream happens to be.
       const me = cur.members.find((m) => m.id === cur.you)
-      const ready = v.readyState >= 3 && !v.seeking && Math.abs(target - (v.currentTime + latest.current.offset())) < 2
-      if (ready) {
-        stalledSince = 0
-        if (seekAt) { lag = Math.min(10, (performance.now() - seekAt) / 1000); seekAt = 0 }
-      }
-      else if (playing && !stalledSince) stalledSince = Date.now()
+      const ready = st.over || (loaded && st.ready && memo.at === 0)
+      if (ready) stalledSince = 0
+      else if (st.play && !stalledSince) stalledSince = Date.now()
       if (Date.now() - said < 1000 || !me) return
       if (ready && me.state !== 'ready') { said = Date.now(); reportState('ready', s.rev) }
-      else if (!ready && playing && me.state === 'ready' && Date.now() - stalledSince > 800) { said = Date.now(); reportState('buffering', s.rev) }
+      else if (!ready && st.play && me.state === 'ready' && Date.now() - stalledSince > 800) { said = Date.now(); reportState('buffering', s.rev) }
     }
 
-    // Play and pause reach the video from many places (the controls, keys, the remote,
+    // Play and pause reach the element from many places (the controls, keys, the remote,
     // the system's media keys), so they are noticed here rather than at each.
     const onPause = () => {
       const cur = mine()
@@ -305,14 +324,11 @@ export function usePartySync(video: React.RefObject<HTMLVideoElement | null>, it
       if (cur.canControl) partyCommand('play').catch(() => {})
       else notYours()
     }
-    const onEnded = () => {
-      const cur = mine()
-      // Every player reaches the end together and says "next"; the seq lets one of them count.
-      if (cur?.canControl && cur.state.index < cur.queue.length - 1) partyCommand('next', { ifSeq: cur.state.seq }).catch(() => {})
-    }
     v.addEventListener('pause', onPause)
     v.addEventListener('play', onPlay)
-    v.addEventListener('ended', onEnded)
+    // Reaching the end, or having loaded, is acted on at once rather than at the next tick.
+    const soon = ['ended', 'canplay', 'seeked'] as const
+    soon.forEach((e) => v.addEventListener(e, tick))
     const t = setInterval(tick, 500)
     // And at once when the room changes, rather than up to half a second later.
     const unsubscribe = subscribe(tick)
@@ -323,7 +339,7 @@ export function usePartySync(video: React.RefObject<HTMLVideoElement | null>, it
       unsubscribe()
       v.removeEventListener('pause', onPause)
       v.removeEventListener('play', onPlay)
-      v.removeEventListener('ended', onEnded)
+      soon.forEach((e) => v.removeEventListener(e, tick))
       v.playbackRate = v.defaultPlaybackRate || 1
       if (following === itemId) following = 0
       // Closing the player is leaving the party; the party moving on to something else,
@@ -333,13 +349,21 @@ export function usePartySync(video: React.RefObject<HTMLVideoElement | null>, it
         if (cur && cur.id === roomId && !following && cur.state.itemId === itemId && !location.pathname.startsWith('/play/')) leaveParty()
       }, 1500)
     }
-  }, [roomId, itemId, video])
+  }, [roomId, itemId, media])
 
-  const seek = (t: number) => {
+  const controls = (): PartyRoom | null => {
     const cur = currentParty()
-    if (!cur) return
-    if (!cur.canControl) { toast('Only the host controls this watch party.'); return }
-    partyCommand('seek', { positionSec: Math.max(0, t) }).catch((e) => toast((e as Error).message))
+    if (!cur) return null
+    if (!cur.canControl) { toast('Only the host controls this watch party.'); return null }
+    return cur
   }
-  return { active, room: active ? r : null, seek }
+  const seek = (t: number) => {
+    if (controls()) partyCommand('seek', { positionSec: Math.max(0, t) }).catch((e) => toast((e as Error).message))
+  }
+  // The next thing in the party's queue, for everyone.
+  const next = () => {
+    if (controls()) partyStepQueue('next').catch((e) => toast((e as Error).message))
+  }
+  const hasNext = active && r!.state.index < r!.queue.length - 1
+  return { active, room: active ? r : null, seek, next, hasNext }
 }

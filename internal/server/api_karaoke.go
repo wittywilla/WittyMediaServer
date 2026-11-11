@@ -52,6 +52,22 @@ type separationWay struct {
 	Task string `json:"task,omitempty"`
 	// Note is what a person should know about the result.
 	Note string `json:"note,omitempty"`
+	// Error is why the last try failed, in words for the person who asked, until it is
+	// tried again or the server restarts.
+	Error string `json:"error,omitempty"`
+}
+
+// approxFailure is what anyone may be told about a failed approximate instrumental: the
+// reason when it is about the song itself, and otherwise only that it failed, because
+// FFmpeg's own words hold paths.
+func approxFailure(err error) string {
+	switch {
+	case err == nil:
+		return ""
+	case errors.Is(err, errNotStereo):
+		return "This song is mono, so there are no two channels to take from each other."
+	}
+	return "It couldn't be made. The server's log says why."
 }
 
 const approxNote = "Approximate: made by cancelling what the left and right channels share. The voice is quieter, not gone, and the music is mono."
@@ -73,6 +89,7 @@ func (s *Server) separationFor(r *http.Request, it *library.Item) separationInfo
 		base = "not-a-file"
 	}
 	out.Approximate = separationWay{Reason: base, Note: approxNote, Task: s.mediaJobTask(fmt.Sprintf("stems-approx:%d", it.ID))}
+	out.Approximate.Error = approxFailure(s.mediaJobError(fmt.Sprintf("stems-approx:%d", it.ID)))
 	if base == "" {
 		if s.Tools == nil || s.Tools.FFmpeg == "" {
 			out.Approximate.Reason = "no-ffmpeg"
@@ -81,6 +98,10 @@ func (s *Server) separationFor(r *http.Request, it *library.Item) separationInfo
 		}
 	}
 	out.External = separationWay{Reason: base, Task: s.mediaJobTask(fmt.Sprintf("stems-separate:%d", it.ID))}
+	// The separator's own words can hold paths, so they are for administrators, who started it.
+	if err := s.mediaJobError(fmt.Sprintf("stems-separate:%d", it.ID)); err != nil && userFrom(r).IsAdmin {
+		out.External.Error = err.Error()
+	}
 	if base == "" {
 		switch {
 		case s.separatorWords() == nil:

@@ -716,7 +716,18 @@ func (s *Server) handleSyncEvents(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		case <-beat.C:
+			// A connection that has gone can't be asked anything: with its context ended, the
+			// questions below fail, and that must not read as "signed out" and cost the seat
+			// its two minutes of grace. Both this and Done can be ready at once after the
+			// machine has slept or the process was paused, and the connection can go while
+			// the questions are being asked: so it is looked at before and after.
+			if ctx.Err() != nil {
+				return
+			}
 			if !s.sessionStillGood(r, u) || !s.syncplayOn(ctx) {
+				if ctx.Err() != nil {
+					return
+				}
 				_ = e.Leave(room, member, u.ID)
 				es.send("closed", map[string]any{"reason": "signed-out"})
 				return

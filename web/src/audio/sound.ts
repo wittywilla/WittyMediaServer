@@ -194,6 +194,14 @@ export class SoundGraph {
     if (d) d.gain.gain.setTargetAtTime(level, this.ctx.currentTime, 0.015)
   }
 
+  // A way in for sound that doesn't come from an element: karaoke's stems, played from
+  // memory so they stay together. It gets the key, the equaliser and the rest like a deck.
+  bus(): GainNode {
+    const g = this.ctx.createGain()
+    g.connect(this.input)
+    return g
+  }
+
   setEq(on: boolean, gains: number[], preampDb: number) {
     if (on !== this.eqOn) {
       this.eqOn = on

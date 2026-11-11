@@ -7,6 +7,7 @@ import { api } from '../../api'
 import { announce } from '../../a11y'
 import { IconLeft, IconRight, IconSearch, IconSettings, IconStar, IconTv } from '../../icons'
 import { toast, useApp } from '../../state'
+import { featureOff, useMyLimits } from '../../myLimits'
 import { lookupLogo } from '../../components/BrandLogo'
 import LookPanel from './LookPanel'
 import { channelVars, forgetJustWatched, justWatched, lastChannel, previousChannel, setLook, setOwnerLook, surfaceOf, themeRoot, useLook, type Look } from './look'
@@ -93,6 +94,7 @@ const matches = (c: GuideChannel, f: Filter) => (!f.kind || c.kind === f.kind) &
 
 export default function GuidePage() {
   const { user } = useApp()
+  const tvOff = featureOff(useMyLimits(), 'liveTv')
   const nav = useNavigate()
   const now = useClock(30000)
   const [from, setFrom] = useState(() => floorSlot(Date.now() / 1000))
@@ -411,8 +413,8 @@ export default function GuidePage() {
     return (
       <>
         <h1 className="sr-only">TV guide</h1>
-        <EmptyState icon={<IconTv />} title="No channels yet"
-          text={user?.isAdmin ? 'Make channels out of your library in one click, or add a tuner or an IPTV playlist.' : 'Ask whoever runs this server to set some up.'}
+        <EmptyState icon={<IconTv />} title={tvOff ? 'Live TV is off for this profile' : 'No channels yet'}
+          text={user?.isAdmin ? 'Make channels out of your library in one click, or add a tuner or an IPTV playlist.' : tvOff ? 'Whoever looks after this profile can turn it on.' : 'Ask whoever runs this server to set some up.'}
           action={user?.isAdmin ? <Link className="btn primary" to="/tv/channels">Set up channels</Link> : undefined} />
       </>
     )

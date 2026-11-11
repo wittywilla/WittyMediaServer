@@ -3,22 +3,34 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { HelpLink } from '../components/HelpLink'
 import { IconClose, IconFull, IconNext, IconPause, IconPlay, IconPrev } from '../icons'
+import { useApp } from '../state'
+import { IconSliders } from './icons'
 import { lineAt, useLineIndex, wordTimes, type LyricLine, type useLyrics } from './lyrics'
 import { soundGraph } from './sound'
+import { StemsPanel } from './StemsPanel'
 import type { PlayerView } from './types'
+import { useStemKaraoke } from './useStems'
 
 // Karaoke. Big words that fill in as they're sung, a count-in before each line after a
 // break, the next line waiting below, the voice turned down, and the key moved to suit the
 // singer. Made to read from across a room, and to work from a TV remote: arrows change line
 // on the screen itself, and move between the controls once you're on them.
+//
+// The voice is turned down with the song's real stems when it has them (useStems.ts):
+// the parts then play instead of the song, and are what the words follow. Without stems
+// it's the browser's own trick, as it always was.
 
-const VOCALS = [{ v: 0, name: 'Voice on' }, { v: 0.6, name: 'Voice lower' }, { v: 1, name: 'Voice lowest' }]
 const COUNT_FROM_MS = 3000 // the count-in before a line
 const LONG_GAP_MS = 5000 // a break long enough to count back in from
 
 const NO_LINES: LyricLine[] = []
 
-export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void }) {
+export default function Karaoke({ p: player, ly, onClose }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void }) {
+  const sk = useStemKaraoke(player)
+  // The player as this screen uses it: while the stems play, they are the clock and the transport.
+  const p: PlayerView = { ...player, position: sk.position, seek: sk.seek, toggle: sk.toggle, playing: sk.playing }
+  const { user } = useApp()
+  const [mix, setMix] = useState(false)
   const { lyrics, loading, setOffset } = ly
   const lines = lyrics?.synced ? lyrics.lines : NO_LINES
   const offset = lyrics?.offsetMs || 0
@@ -34,7 +46,7 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
 
   useEffect(() => { root.current?.focus({ preventScroll: true }) }, [])
   // Coming back, the voice and key are as they were: this was for the song, not for good.
-  useEffect(() => () => { p.setSound({ vocalCut: 0, keyShift: 0 }) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { player.setSound({ vocalCut: 0, keyShift: 0 }) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // The fill and the count-in, a frame at a time: written straight to the page, as React
   // has no need to know about either, and a cheap TV has better things to do.
   useEffect(() => {
@@ -76,6 +88,7 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
     if (to) p.seek(Math.max(0, (to.t + offset) / 1000))
   }
   const setKey = (k: number) => p.setSound({ keyShift: Math.max(-6, Math.min(6, k)) })
+  const closeMix = () => { setMix(false); requestAnimationFrame(() => root.current?.querySelector<HTMLElement>('.kar-stems-btn')?.focus({ preventScroll: true })) }
   const fullscreen = () => {
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {})
     else void root.current?.requestFullscreen?.({ navigationUI: 'hide' }).catch(() => {})
@@ -90,6 +103,7 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
       switch (e.key) {
         case 'Escape': case 'GoBack': case 'BrowserBack':
           consume()
+          if (mix) { closeMix(); return }
           if (document.fullscreenElement === root.current) void document.exitFullscreen().catch(() => {})
           onClose()
           return
@@ -102,7 +116,7 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
       }
       if (t.tagName === 'INPUT' || t.tagName === 'SELECT') return
       switch (e.key.toLowerCase()) {
-        case 'v': consume(); p.setSound({ vocalCut: VOCALS[(VOCALS.findIndex((x) => x.v === p.sound.vocalCut) + 1) % VOCALS.length].v }); return
+        case 'v': consume(); sk.choose(sk.choices[(sk.choices.findIndex((x) => x.id === sk.choice.id) + 1) % sk.choices.length].id); return
         case '-': consume(); setKey(p.sound.keyShift - 1); return
         case '+': case '=': consume(); setKey(p.sound.keyShift + 1); return
         case '[': consume(); setOffset(offset - 100); return
@@ -118,7 +132,7 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
   const it = p.current!
   const firstAt = lines[0]?.t ?? 0
   return (
-    <div className="kar" ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Karaoke: ${it.title}`} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => root.current?.focus({ preventScroll: true })) }}>
+    <div className="kar" ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Karaoke: ${it.title}`} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => { if (!document.activeElement?.closest('.kar-mix')) root.current?.focus({ preventScroll: true }) }) }}>
       <div className="kar-bg" aria-hidden="true" />
       <header className="kar-top">
         <div className="kar-song"><b>{it.title}</b><span>{it.artist || it.albumArtist}</span></div>
@@ -155,8 +169,12 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
         <button type="button" className="mp-ibtn" onClick={() => goLine(1)} aria-label="Next line"><IconNext /></button>
         <span className="kar-rule" aria-hidden="true" />
         <div className="kar-seg" role="radiogroup" aria-label="Singer's voice">
-          {VOCALS.map((x) => <button type="button" role="radio" key={x.v} aria-checked={p.sound.vocalCut === x.v} className={p.sound.vocalCut === x.v ? 'on' : ''} onClick={() => p.setSound({ vocalCut: x.v })}>{x.name}</button>)}
+          {sk.choices.map((x) => <button type="button" role="radio" key={x.id} aria-checked={sk.choice.id === x.id} className={sk.choice.id === x.id ? 'on' : ''} onClick={() => sk.choose(x.id)}>{x.name}</button>)}
         </div>
+        <button type="button" className={'kar-chip kar-stems-btn' + (mix ? ' on' : '')} aria-expanded={mix} onClick={() => (mix ? closeMix() : setMix(true))}>
+          <IconSliders size={20} /> Stems{sk.active && <span className="kar-dot" aria-hidden="true" />}{sk.active && <span className="mp-sr"> (playing)</span>}
+        </button>
+        {mix && <StemsPanel sk={sk} admin={!!user?.isAdmin} onClose={closeMix} />}
         <div className="kar-stepper" role="group" aria-label="Key">
           <button type="button" onClick={() => setKey(p.sound.keyShift - 1)} disabled={p.sound.keyShift <= -6} aria-label="Lower key">−</button>
           <span aria-live="polite">Key {p.sound.keyShift > 0 ? '+' : ''}{p.sound.keyShift}</span>
@@ -169,7 +187,13 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
         </div>
       </footer>
       <p className="kar-note">
-        {p.soundNote || (mono
+        {sk.load.state === 'loading' ? `Getting this song's stems: ${Math.round(sk.load.progress * 100)}%. The song plays as it is until they're ready.`
+          : sk.load.state === 'failed' && sk.load.error ? sk.load.error
+          : sk.active ? (sk.choice.approximate
+            ? sk.answer?.separation.approximate.note || 'Approximate: the voice is quieter, not gone, and the music is mono.'
+            : sk.choice.id === 'instrumental' ? 'Playing the instrumental that came with this song.'
+              : `Playing this song's own stems, so the voice ${sk.choice.id === 'off' ? 'really is off' : 'is turned down for real'}.${p.sound.keyShift !== 0 ? ' A changed key can warble a little on long notes.' : ''}`)
+          : p.soundNote || (mono
           ? 'This recording is close to mono, so there\'s no way to separate the voice from it.'
           : p.sound.vocalCut > 0
             ? 'The voice is turned down by removing what\'s in the middle of the mix. Echoes of it, and songs that spread it wide, will still come through.'

@@ -8,6 +8,7 @@ import { LoadError } from '../../components/common'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui'
 import LegalNote from '../../components/LegalNote'
 import { ask } from '../../ui/Overlay'
+import RemoteControlSections from './RemoteControl'
 
 // Uploads, links for people without an account, the online map, and the place
 // kept for the local AI.
@@ -51,6 +52,7 @@ function ServerSharing() {
           <input className="input" aria-label="Credit to show on the map" value={s.mapAttribution || ''} disabled={!mapOn} onChange={(e) => set('mapAttribution', e.target.value)} maxLength={200} spellCheck={false} />
         </Row>
       </Section>
+      <RemoteControlSections s={s} set={set} />
       <Section title="Local AI" desc="Planned, not available yet.">
         <Row label="People and places in photos" desc="Will recognise faces and places on this machine, with nothing sent anywhere. It doesn't exist yet, so this does nothing and nothing looks at your pictures." dim>
           <Switch label="People and places in photos" checked={false} disabled onChange={() => {}} />

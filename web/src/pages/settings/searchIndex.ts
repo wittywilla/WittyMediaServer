@@ -67,6 +67,8 @@ export const ENTRIES: Entry[] = [
   { page: 'sharing', title: 'Links for people without an account', section: 'Links for people without an account', words: 'share link guest' },
   { page: 'sharing', title: 'Photo map', section: 'Photo map', words: 'map tiles address places' },
   { page: 'sharing', title: 'Use an online map', section: 'Photo map', words: 'online map streets tiles provider internet outline privacy credit attribution licence' },
+  { page: 'sharing', title: 'Play on other devices', section: 'Play on other devices', words: 'remote control cast device tv phone household other accounts' },
+  { page: 'sharing', title: 'Watch parties', section: 'Watch parties', words: 'syncplay watch together party code sync friends' },
   { page: 'sharing', title: 'Local AI', section: 'Local AI', words: 'faces people places photos recognition' },
 
   // System

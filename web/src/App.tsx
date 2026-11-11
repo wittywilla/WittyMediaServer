@@ -24,6 +24,7 @@ import { TabBar } from './shell/TabBar'
 import { TopBar } from './shell/TopBar'
 import { useMedia, useNavPrefs } from './shell/useNav'
 import { useTvMode } from './tvmode/mode'
+import RemoteHost from './remote/RemoteHost'
 
 const PairPage = lazy(() => import('./pages/PairPage'))
 const SharedPage = lazy(() => import('./pages/SharedPage'))
@@ -118,6 +119,7 @@ function Shell() {
         : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
         : isPlayer ? null : tvMode ? <Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense> : <AppFrame />}
       <PlayerDock />
+      <RemoteHost />
       {isTv && <Suspense fallback={null}><TvHost /></Suspense>}
       <ReminderWatcher />
     </AudioProvider>

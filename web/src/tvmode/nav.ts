@@ -3,32 +3,45 @@
 // TV mode's tabs and what Back and the bumpers do there, as plain rules with nothing from the page,
 // so they can be tested (nav.test.mjs). docs/plans/TV-MODE.md has the contract; TvFrame.tsx uses them.
 
-export type TabId = 'home' | 'libraries' | 'games' | 'live' | 'search' | 'you'
+// A tab of the top bar. `screen` names one of the app's own screens (profiles: You, with the profile's picture).
+export type TabId = string
+export type TvTab = { id: TabId; path: string; label: string; icon?: string; screen?: string }
 
-// The top bar, in its order: five on the left, You pinned to the right end of the same row.
-export const TV_TABS: { id: TabId; path: string; label: string }[] = [
-  { id: 'home', path: '/', label: 'Home' },
-  { id: 'libraries', path: '/libraries', label: 'Libraries' },
-  { id: 'games', path: '/games', label: 'Games' },
-  { id: 'live', path: '/tv', label: 'Live TV' },
-  { id: 'search', path: '/search', label: 'Search' },
-  { id: 'you', path: '/you', label: 'You' },
+// The top bar as TV mode has it against a server that doesn't describe its own menu: five on the left, You
+// pinned to the right end of the same row. A server with server-driven pages sends the bar (tabsFromMenu).
+export const TV_TABS: TvTab[] = [
+  { id: 'home', path: '/', label: 'Home', icon: 'home' },
+  { id: 'libraries', path: '/libraries', label: 'Libraries', icon: 'library' },
+  { id: 'games', path: '/games', label: 'Games', icon: 'game' },
+  { id: 'live', path: '/tv', label: 'Live TV', icon: 'tv' },
+  { id: 'search', path: '/search', label: 'Search', icon: 'search' },
+  { id: 'you', path: '/you', label: 'You', screen: 'profiles' },
 ]
+
+// tabsFromMenu: the bar from a server's menu for a television (GET /sdui/navigation): its entries in order,
+// the ones placed at the end last. Settings is reached from You on a television, as it always was, unless the
+// menu has no You to reach it from.
+export function tabsFromMenu(items: { id: string; label: string; to: string; icon?: string; placement?: string; screen?: string }[]): TvTab[] {
+  const hasYou = items.some((it) => it.screen === 'profiles')
+  const usable = items.filter((it) => it.to.startsWith('/') && !(it.screen === 'settings' && hasYou))
+  const tab = (it: typeof items[number]): TvTab => ({ id: it.id, path: it.to, label: it.label, icon: it.icon, screen: it.screen })
+  return [...usable.filter((it) => it.placement !== 'end' || it.id === 'search').map(tab), ...usable.filter((it) => it.placement === 'end' && it.id !== 'search').map(tab)]
+}
 
 // tabRootOf: the tab whose first screen this is, or null for a screen opened from a tab, which has the
 // whole screen and no bar.
-export function tabRootOf(pathname: string): TabId | null {
+export function tabRootOf(pathname: string, tabs: TvTab[] = TV_TABS): TabId | null {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
-  return TV_TABS.find((t) => t.path === path)?.id ?? null
+  return tabs.find((t) => t.path === path)?.id ?? null
 }
 
 // stepTab: the tab beside this one, for LB and RB; null at either end, which doesn't wrap round.
-export function stepTab(from: TabId, step: -1 | 1): TabId | null {
-  const i = TV_TABS.findIndex((t) => t.id === from)
-  return TV_TABS[i + step]?.id ?? null
+export function stepTab(from: TabId, step: -1 | 1, tabs: TvTab[] = TV_TABS): TabId | null {
+  const i = tabs.findIndex((t) => t.id === from)
+  return i < 0 ? null : tabs[i + step]?.id ?? null
 }
 
-export const tabPath = (id: TabId) => TV_TABS.find((t) => t.id === id)!.path
+export const tabPath = (id: TabId, tabs: TvTab[] = TV_TABS) => (tabs.find((t) => t.id === id) || tabs[0]).path
 
 // What Back does:
 //   history  a screen opened from a tab: back to where it was opened
@@ -37,10 +50,11 @@ export const tabPath = (id: TabId) => TV_TABS.find((t) => t.id === id)!.path
 //   leave    the bar, on Home: out to whatever is around the page
 export type BackStep = 'history' | 'bar' | 'home' | 'leave'
 
-export function backStep(at: { tab: TabId | null; inBar: boolean }): BackStep {
+// `first` is the bar's first tab, where it isn't called home.
+export function backStep(at: { tab: TabId | null; inBar: boolean; first?: TabId }): BackStep {
   if (!at.tab) return 'history'
   if (!at.inBar) return 'bar'
-  return at.tab === 'home' ? 'leave' : 'home'
+  return at.tab === (at.first ?? 'home') ? 'leave' : 'home'
 }
 
 // The keys TV mode answers to, beside the arrows and OK that the page's own navigation has.

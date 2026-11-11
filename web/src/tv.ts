@@ -120,9 +120,25 @@ function focusGoneFrom(scope: Node): DOMRect | null {
   return l.box
 }
 
+// A page that knows its own order (a server-driven page: sdui/SduiPage.tsx) answers the arrows inside itself.
+// true: it moved focus; false: it has the key and nothing moves; undefined: not its to answer.
+type PageMove = (cur: HTMLElement, dir: Dir, focus: (el: HTMLElement) => void) => boolean | undefined
+const pageMoves = new Map<HTMLElement, PageMove>()
+export function setPageMove(page: HTMLElement, fn: PageMove): () => void {
+  pageMoves.set(page, fn)
+  return () => { if (pageMoves.get(page) === fn) pageMoves.delete(page) }
+}
+
 function move(dir: Dir): boolean {
   const cur = document.activeElement as HTMLElement | null
   const scope = scopeOf(cur)
+  if (cur && scope === document) {
+    for (const [page, fn] of pageMoves) {
+      if (!page.contains(cur)) continue
+      const done = fn(cur, dir, focus)
+      if (done !== undefined) return done
+    }
+  }
   // data-nav-skip: part of something with its own arrows, such as a programme grid,
   // which is one stop from outside however many cells are drawn.
   const all = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !(el.closest(FULL_PLAYER) && !el.closest(PLAYER_CONTROLS)) && !el.hasAttribute('data-nav-skip'))

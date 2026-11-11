@@ -8,7 +8,7 @@ import { SettingsHelp } from '../components/HelpLink'
 import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
-import { IconHelp, IconActivity, IconChannels, IconClose, IconContrast, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
+import { IconHelp, IconActivity, IconChannels, IconClose, IconContrast, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import AppearanceSettings from './AppearanceSettings'
 import Profiles from './Profiles'
@@ -51,6 +51,8 @@ const EmulatorsSettings = lazy(() => import('./settings/Emulators'))
 const WittyRigsSettings = lazy(() => import('./settings/WittyRigs'))
 const Security = lazy(() => import('./settings/Security'))
 const TvSettings = lazy(() => import('./tv/TvSettings'))
+// The editor of server-driven pages is a program of its own: nothing of it loads until it is opened.
+const PagesSettings = lazy(() => import('./settings/pages/PagesSettings'))
 
 // Settings: a menu of pages grouped by what they are about, each page a column of
 // section cards in the middle of the screen. On wide screens the menu sits beside the
@@ -77,6 +79,7 @@ const tint = (to: string) => ({ '--tint': TINTS[to] || QUIET }) as React.CSSProp
 const GROUPS: { title: string; pages: Page[] }[] = [
   { title: 'Server', pages: [
     { to: 'libraries', label: 'Libraries', icon: <IconLibrary />, admin: true, hint: 'Folders of movies, shows, music and books' },
+    { to: 'pages', label: 'Pages & menu', icon: <IconSidebar />, admin: true, hint: 'What Home, the libraries and the menu hold, for everyone' },
     { to: 'metadata', label: 'Metadata agents', icon: <IconTag />, admin: true, hint: 'Where posters and plots come from' },
     { to: 'playback', label: 'Playback & discs', icon: <IconPlay />, admin: true, hint: 'Player, DVDs and Blu-rays' },
     { to: 'channels', label: 'Channels & tuners', icon: <IconChannels />, admin: true, hint: 'Tuners, IPTV, guide data and WittyTV options' },
@@ -188,6 +191,7 @@ export default function SettingsPage() {
         <Routes>
           <Route index element={narrow ? null : <Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
           <Route path="libraries" element={<Libraries />} />
+          <Route path="pages/*" element={<Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><PagesSettings /></Suspense>} />
           <Route path="metadata" element={<MetadataSettings />} />
           <Route path="playback" element={<PlaybackSettings />} />
           <Route path="channels/*" element={<Suspense fallback={<div className="center"><div className="spinner" /></div>}><TvSettings /></Suspense>} />

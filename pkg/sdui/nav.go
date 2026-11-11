@@ -20,7 +20,13 @@ type NavDocument struct {
 	// web app), "more" entries behind More or in the sidebar's lower group,
 	// and "end" entries at the bar's far end.
 	Items []NavEntry `json:"items"`
-	ETag  string     `json:"etag,omitempty"`
+	// Personal is what the profile may change about the menu and what it has
+	// changed: every entry it could have, in its order, hidden ones included,
+	// so an app can offer "Arrange the menu" without knowing the navigation.
+	// Settings is listed like the rest and is never marked hidden. Left out
+	// for a profile that may not rearrange.
+	Personal *PersonalInfo `json:"personal,omitempty"`
+	ETag     string        `json:"etag,omitempty"`
 }
 
 // NavEntry is one rendered entry of the main menu.
@@ -163,6 +169,42 @@ func RenderNavigation(nav Navigation, pages func(id string) (Page, bool), libs [
 	if !hasSettings {
 		out = append(out, NavEntry{ID: "settings", Label: "Settings", Icon: "settings", Kind: "native", Screen: "settings", Route: "/settings", Placement: "end"})
 	}
+	// What "Arrange the menu" lists: every entry, in the profile's order,
+	// with the hidden ones marked. Worked out before the hidden ones go.
+	var info *PersonalInfo
+	if ctx.CanPersonalise {
+		info = &PersonalInfo{Editable: true, Allow: []string{"reorder", "hide"}, URL: "/api/v1/sdui/navigation/personal"}
+		all := out
+		if p := ctx.Personal; p != nil {
+			pos := map[string]int{}
+			for i, id := range p.Order {
+				if _, dup := pos[id]; !dup {
+					pos[id] = i
+				}
+			}
+			var placed, rest []NavEntry
+			for _, e := range out {
+				if _, ok := pos[e.ID]; ok {
+					placed = append(placed, e)
+				} else {
+					rest = append(rest, e)
+				}
+			}
+			for i := 1; i < len(placed); i++ {
+				for j := i; j > 0 && pos[placed[j].ID] < pos[placed[j-1].ID]; j-- {
+					placed[j], placed[j-1] = placed[j-1], placed[j]
+				}
+			}
+			all = append(placed, rest...)
+		}
+		for _, e := range all {
+			sec := PersonalSection{ID: e.ID, Title: e.Label}
+			if p := ctx.Personal; p != nil && e.Screen != "settings" && contains(p.Hidden, e.ID) {
+				sec.Hidden = true
+			}
+			info.Sections = append(info.Sections, sec)
+		}
+	}
 	// The profile's own order and hidden entries. Settings can't be hidden.
 	if p := ctx.Personal; p != nil && ctx.CanPersonalise {
 		hidden := map[string]bool{}
@@ -205,7 +247,7 @@ func RenderNavigation(nav Navigation, pages func(id string) (Page, bool), libs [
 	if out == nil {
 		out = []NavEntry{}
 	}
-	doc := NavDocument{Version: SchemaVersion, FormFactor: ff, Items: out}
+	doc := NavDocument{Version: SchemaVersion, FormFactor: ff, Items: out, Personal: info}
 	b, _ := json.Marshal(doc)
 	sum := sha256.Sum256(b)
 	doc.ETag = `W/"nav-` + hex.EncodeToString(sum[:])[:32] + `"`

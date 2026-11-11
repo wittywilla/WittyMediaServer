@@ -7,7 +7,7 @@ import { IconSettings } from '../icons'
 import { useApp } from '../state'
 import { isBackKey } from '../ui/spatial'
 import { Tooltip } from '../ui/Tooltip'
-import { arrange, entries, type NavItem } from './navModel'
+import { arrange, entries, isLibrary, type NavItem } from './navModel'
 import { navIcon, useNavItems, useNavPrefs } from './useNav'
 
 // The side menu. Three forms: beside the page, folded to a rail of icons, and on
@@ -28,7 +28,7 @@ export function Sidebar({ open, rail, drawer, onClose }: { open: boolean; rail: 
   }, [holding, onClose])
   const tip = (node: ReactElement<object>, text: string) => rail ? <Tooltip key={text} text={text} side="right" describes={false}>{node}</Tooltip> : node
   const link = (it: NavItem) => tip(
-    <NavLink key={it.id} to={it.to} end={it.end} className={'nav-link' + (it.id === 'home' || it.id === 'tv' ? ' nav-dup' : '')} aria-label={rail ? it.label : undefined}>{navIcon(it)} <span className="nav-text">{it.label}</span></NavLink>, it.label)
+    <NavLink key={it.id} to={it.to} end={it.end} className={'nav-link' + (it.id === 'home' || it.id === 'tv' || it.id === 'livetv' ? ' nav-dup' : '')} aria-label={rail ? it.label : undefined}>{navIcon(it)} <span className="nav-text">{it.label}</span></NavLink>, it.label)
   let libsHead = false
   return (
     <>
@@ -43,7 +43,7 @@ export function Sidebar({ open, rail, drawer, onClose }: { open: boolean; rail: 
               {e.items.map(link)}
             </div>
           )
-          const first = !libsHead && !prefs.grouped && e.item.id.startsWith('lib:')
+          const first = !libsHead && !prefs.grouped && isLibrary(e.item.id)
           if (first) libsHead = true
           return first ? <div key={e.key} className="nav-group"><div className="nav-section">Libraries</div>{link(e.item)}</div> : link(e.item)
         })}

@@ -162,7 +162,7 @@ export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide }: { onMenu: (
   const { brandName } = useApp()
   const items = useNavItems()
   const { prefs } = useNavPrefs()
-  const list = useMemo(() => arrange(items, prefs).filter((it) => it.id !== 'home' && it.id !== 'tv'), [items, prefs])
+  const list = useMemo(() => arrange(items, prefs).filter((it) => it.id !== 'home' && it.id !== 'tv' && it.id !== 'livetv'), [items, prefs])
   const bar = useRef<HTMLElement | null>(null)
   useUnder(bar)
   const top = TAB_PAGES.includes(loc.pathname) || list.some((it) => pathOf(it.to) === loc.pathname)

@@ -1,0 +1,201 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* Server-driven pages (docs/SDUI.md). The components are drawn with the app's own
+   classes (.hub, .row, .card, .hero, .detail), so most of how a page looks is in
+   styles.css; this file holds what only these pages need. Sizes that come from the
+   page (card widths, spacing steps) arrive as custom properties set on .sdui. */
+
+.sdui { display: flex; flex-direction: column; gap: var(--sdui-gap); min-width: 0; }
+.sdui > * { min-width: 0; }
+.sdui .hub, .sdui .hero, .sdui .toolbar { margin-bottom: 0; }
+.sdui > .hero:first-child, .sdui > .sr-only + .hero { margin-top: calc(-1 * var(--sp-2)); }
+.sdui.ff-desktop, .sdui.ff-web { max-width: 1600px; width: 100%; margin-inline: auto; }
+.sdui-page-title { margin: var(--sp-2) 0 0; font-size: var(--page-title); letter-spacing: var(--tracking-display); }
+.sdui-stack { display: flex; flex-direction: column; gap: var(--sdui-gap); min-width: 0; }
+.sdui-stack.row-dir { flex-direction: row; }
+.sdui-stack > * { min-width: 0; }
+.sdui-split { display: grid; align-items: start; }
+.sdui-divider { width: 100%; height: 1px; margin: 0; border: 0; background: var(--border); }
+.sdui-divider.inset { margin-inline: var(--sdui-m); width: auto; }
+.sdui-spacer { flex: none; }
+.sdui-near { display: block; width: 1px; height: 1px; flex: none; pointer-events: none; }
+.sdui-clamp { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.sdui-empty, .sdui-error { margin: 0; font-size: var(--text-sm); }
+.sdui-error { display: flex; align-items: center; gap: var(--sp-3); color: var(--fg-2); }
+.sdui-foot { gap: var(--sp-2); flex-wrap: wrap; }
+.sdui-draft, .sdui-screentime { margin: 0; }
+
+/* Rows and grids: the card's size is the page's. */
+.sdui-head-text { min-width: 0; }
+.sdui-head-text p { margin: 2px 0 0; font-size: var(--text-sm); }
+.sdui .row { gap: var(--sdui-m); }
+.sdui.bp-compact .row { gap: calc(var(--sdui-s) + var(--sdui-xs)); }
+.sdui .row > .sdui-item { display: flex; }
+.sdui-item { min-width: 0; position: relative; }
+.sdui-grid { row-gap: var(--sdui-l); }
+.sdui-grid > .sdui-item > .card { width: auto; min-width: 0; display: block; }
+.sdui-grid.sdui-tiles { row-gap: var(--sdui-m); }
+.sdui .card.sdui-round .poster { border-radius: 50%; }
+.sdui .card.sdui-round .title, .sdui .card.sdui-round .sub { text-align: center; }
+.sdui .card.sdui-round .title.sdui-clamp { white-space: normal; }
+.sdui .card.sdui-game .poster { aspect-ratio: 3 / 4; }
+.sdui .card .poster img.sdui-contain { object-fit: contain; padding: var(--sp-3); background: var(--bg-3); }
+.sdui .card .title.sdui-clamp { white-space: normal; }
+.sdui-noart { position: absolute; inset: 0; display: grid; place-items: center; background: var(--bg-3); color: var(--fg-2); }
+.sdui-noart svg { width: 28%; height: 28%; max-width: 48px; max-height: 48px; }
+.sdui .card .poster img { position: relative; }
+.sdui-badges { position: absolute; top: var(--sp-2); left: var(--sp-2); z-index: 3; display: flex; gap: var(--sp-1); }
+.sdui-badges .badge { position: static; }
+.sdui-synopsis { white-space: normal; margin-top: var(--sp-1); line-height: var(--leading-snug); }
+.sdui-shelf.numbered .sdui-item { padding-left: 1.6em; }
+.sdui-rank { position: absolute; left: -1.5em; bottom: 2.6rem; width: 1.5em; text-align: right; font-size: var(--display); font-weight: 800; line-height: 1; color: var(--fg-3); pointer-events: none; }
+.sdui .card { position: relative; }
+.sdui-chips { align-items: center; }
+.sdui-chip { gap: var(--sp-2); white-space: nowrap; }
+.sdui-chip svg { width: 16px; height: 16px; }
+.sdui-ch-no { margin-right: var(--sp-2); color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.sdui-ch-bar { height: 3px; margin: var(--sp-1) 0; border-radius: var(--r-full); background: var(--bg-4); overflow: hidden; }
+.sdui-ch-bar i { display: block; height: 100%; background: var(--accent); }
+.sdui-next { color: var(--fg-3); }
+
+/* Tiles: a library or a collection. */
+.sdui-tile { width: 100%; text-align: left; }
+.sdui .row .sdui-tile { width: var(--card-w); }
+.sdui-tile.pictured { position: relative; display: block; padding: 0; overflow: hidden; aspect-ratio: 16 / 9; }
+.sdui-tile-art { position: absolute; inset: 0; }
+.sdui-tile-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.sdui-tile.pictured .lib-tile-txt { position: absolute; left: 0; right: 0; bottom: 0; padding: var(--sp-6) var(--sp-3) var(--sp-3); background: linear-gradient(0deg, var(--scrim), transparent); color: var(--on-image); }
+.sdui-tile.pictured .lib-tile-txt .muted { color: var(--on-image); opacity: .85; }
+button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: pointer; }
+
+/* Placeholders: grey cards of the card's size, pulsing unless motion is reduced. */
+.sdui-ph { pointer-events: none; }
+.sdui-ph .poster { background: none; box-shadow: none; }
+.sdui-ph .poster .skel { position: absolute; inset: 0; height: 100%; border-radius: inherit; }
+.sdui-ph.still .skel::after, .sdui-loading.still .skel::after { animation: none; }
+.sdui-skel-title { width: 9rem; height: 1.25rem; }
+.sdui-list .sdui-ph .skel, .track-list .sdui-ph .skel { height: 52px; border-radius: var(--r-md); }
+@media (prefers-reduced-motion: reduce) { .sdui .skel::after { animation: none; } }
+
+/* The spotlight. */
+.sdui-hero.banner { height: 38vh; min-height: 260px; }
+.sdui-hero.cut .bg { transition: none; }
+.sdui-hero h1.sdui-logo, .sdui-detail h1.sdui-logo { margin-bottom: var(--sp-3); }
+.sdui-logo img { display: block; max-width: min(420px, 80%); max-height: 140px; object-fit: contain; object-position: left bottom; }
+.sdui-hero-arrow { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: var(--control-h); height: var(--control-h); margin-top: calc(-0.5 * var(--control-h)); border: 0; border-radius: 50%; background: var(--scrim); color: var(--on-image); opacity: 0; transition: opacity var(--dur-2); }
+.sdui-hero-arrow.prev { left: var(--sp-3); }
+.sdui-hero-arrow.next { right: var(--sp-3); }
+.sdui-hero:hover .sdui-hero-arrow { opacity: .85; }
+.sdui-hero-arrow svg { width: 20px; height: 20px; }
+.sdui.ff-tv .sdui-hero { height: auto; aspect-ratio: 1920 / 620; min-height: 0; margin-inline: 0; border-radius: var(--r-lg); }
+
+/* A title's header. */
+.sdui-detail .detail.compact { grid-template-columns: minmax(0, 1fr); margin-top: 0; }
+.sdui-detail.layout-compact h1 { text-shadow: none; }
+.sdui-detail .detail .poster.square { aspect-ratio: 1; }
+.sdui-detail-progress { width: min(320px, 100%); height: 4px; margin: 0 0 var(--sp-4); border-radius: var(--r-full); background: var(--bg-4); overflow: hidden; }
+.sdui-detail-progress i { display: block; height: 100%; background: var(--accent); }
+.sdui-overview .overview { margin-bottom: var(--sp-2); }
+.sdui-overview { margin-bottom: var(--sp-5); }
+.sdui-extras { display: grid; gap: var(--sp-3); }
+@media (max-width: 760px) {
+  .sdui-detail .detail { grid-template-columns: minmax(0, 1fr); }
+  .sdui-detail .detail > :first-child:not(:last-child) { width: clamp(120px, 34vw, 170px); }
+  .sdui-detail-actions .btn.primary { flex: 1 1 100%; }
+}
+
+/* Seasons, episodes, tracks. */
+.sdui-season-tabs { display: flex; gap: var(--sp-2); overflow-x: auto; padding: var(--sp-1) 0 var(--sp-3); margin-bottom: var(--sp-2); }
+.sdui-season { width: auto; min-height: var(--control-h); padding: var(--sp-2) var(--sp-4); border-radius: var(--r-full); border: 1px solid var(--border-strong); background: transparent; color: var(--fg-2); text-align: center; cursor: pointer; }
+.sdui-season .t { font-weight: 600; font-size: var(--text-sm); white-space: nowrap; }
+.sdui-season .sub { font-size: var(--text-xs); color: inherit; opacity: .8; white-space: nowrap; }
+.sdui-season:hover { background: var(--hover); color: var(--fg); }
+.sdui-season.active, .sdui-season.active:hover { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+.sdui-seasons .episode .thumb .sdui-noart svg { max-width: 32px; }
+.sdui-seasons .episode .thumb img { position: relative; }
+.sdui-seasons .episode .t { background: none; border: 0; padding: 0; text-align: left; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+.sdui-episode-list { display: grid; }
+.sdui-episode-list .episode.compact { grid-template-columns: minmax(0, 1fr); padding: var(--sp-3) var(--sp-2); }
+.sdui-episode-list > * + * { box-shadow: 0 -1px var(--border); }
+.sdui-seasons .episode.sdui-ph .thumb { position: relative; }
+.sdui-seasons .episode.sdui-ph .thumb .skel { position: absolute; inset: 0; height: 100%; }
+.sdui-tracks { max-width: 960px; }
+
+/* Tabs, filters, search. */
+.sdui-tabs { display: flex; flex-direction: column; gap: var(--sdui-m); }
+.sdui-filters { margin: 0; gap: var(--sp-3) var(--sp-4); }
+.sdui-filter { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--text-sm); color: var(--fg-2); }
+.sdui-filter .select { width: auto; }
+.sdui-search { display: flex; position: relative; align-items: center; max-width: 560px; margin: 0; }
+.sdui-search svg { position: absolute; left: var(--sp-3); width: var(--sp-5); height: var(--sp-5); color: var(--fg-3); pointer-events: none; }
+.sdui-search input { width: 100%; padding-left: var(--sp-10); }
+.sdui-tv-search { display: grid; gap: var(--sp-4); max-width: 44rem; }
+
+/* Banners, notices, text, pictures, lists. */
+.sdui-banner { width: 100%; text-align: left; color: var(--fg); }
+.sdui-banner.promo.pictured { min-height: 180px; align-items: flex-end; }
+.sdui-banner.promo.pictured .shuffle-art { opacity: .32; }
+.sdui-banner.compact { padding: var(--sp-3); gap: var(--sp-3); }
+.sdui-banner-thumb { position: relative; width: 72px; height: 72px; flex: none; object-fit: cover; border-radius: var(--r-md); }
+.sdui-banner-title { font-size: var(--text-xl); line-height: var(--leading-snug); }
+.sdui-banner .shuffle-info { min-width: 0; }
+.sdui-banner:hover { border-color: var(--border-strong); }
+.sdui-notice { align-items: center; }
+.sdui-notice .ui-notice-text { display: grid; gap: 2px; }
+.sdui-notice-ic { display: grid; flex: none; color: var(--fg-2); }
+.sdui-notice-ic svg { width: 20px; height: 20px; }
+.sdui-text { margin: 0; max-width: 100%; overflow-wrap: anywhere; }
+.sdui-text.role-pageTitle { font-size: var(--page-title); letter-spacing: var(--tracking-display); line-height: var(--leading-tight); }
+.sdui-text.role-heading { font-size: var(--text-xl); }
+.sdui-text.role-title { font-size: var(--text-lg); }
+.sdui-text.role-body { font-size: var(--text-base); line-height: 1.6; max-width: 70ch; }
+.sdui-text.role-caption { font-size: var(--text-sm); color: var(--fg-2); max-width: 70ch; }
+.sdui-text.align-center { text-align: center; margin-inline: auto; }
+.sdui-text.align-end { text-align: end; margin-inline-start: auto; }
+.sdui-md > * { margin: 0 0 var(--sp-2); }
+.sdui-md > :last-child { margin-bottom: 0; }
+.sdui-md ul, .sdui-md ol { padding-left: var(--sp-6); }
+.sdui-md a { color: var(--accent-text); text-decoration: underline; }
+.sdui-md code { padding: 0 var(--sp-1); border-radius: var(--r-xs); background: var(--bg-3); font-family: var(--font-mono); font-size: .92em; }
+.sdui-image { position: relative; display: block; width: 100%; overflow: hidden; background: var(--bg-3); }
+.sdui-image.rounded { border-radius: var(--r-lg); }
+.sdui-image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.sdui-image.contain img { object-fit: contain; }
+.sdui-image-link { display: block; border-radius: var(--r-lg); padding: 0; border: 0; background: none; }
+.sdui-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.sdui-list li + li { box-shadow: 0 -1px var(--border); }
+.sdui-row { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: 56px; padding: var(--sp-2); border: 0; border-radius: var(--r-md); background: none; color: var(--fg); text-align: left; }
+.dense .sdui-row { min-height: 44px; }
+a.sdui-row:hover, button.sdui-row:hover { background: var(--hover); }
+.sdui-row-art { position: relative; flex: none; width: 48px; height: 48px; border-radius: var(--r-sm); overflow: hidden; background: var(--bg-3); }
+.sdui-row-art img { position: relative; width: 100%; height: 100%; object-fit: cover; }
+.sdui-row-ic { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: var(--r-md); background: var(--bg-3); color: var(--fg-2); }
+.sdui-row-ic svg { width: 20px; height: 20px; }
+.sdui-row-text { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.sdui-row-text .muted { font-size: var(--text-sm); }
+.sdui-row-end { flex: none; font-size: var(--text-sm); }
+.sdui-row-go { display: grid; flex: none; color: var(--fg-3); }
+.sdui-row-go svg { width: 18px; height: 18px; }
+.sdui-native-stand { display: grid; place-items: center; gap: var(--sp-1); min-height: 160px; padding: var(--sp-5); border: 1px dashed var(--border-strong); border-radius: var(--r-lg); text-align: center; }
+
+/* A television: sizes on the page's own canvas, text for across the room. */
+.sdui.ff-tv .sdui-row { min-height: calc(90 * var(--sdui-pt) * 1px); }
+.sdui.ff-tv .btn { min-height: calc(66 * var(--sdui-pt) * 1px); }
+.sdui.ff-tv .row { scroll-padding-inline: var(--gutter); }
+.sdui.ff-tv .sdui-grid > .sdui-item > .card:focus-visible .poster, .sdui.ff-tv .row .card:focus-visible .poster { transform: scale(1.08); outline: 3px solid var(--focus); }
+@media (prefers-reduced-motion: reduce) { .sdui.ff-tv .card:focus-visible .poster { transform: none !important; } }
+
+/* Touch: at least 44 points to press. */
+@media (pointer: coarse) { .sdui .chip, .sdui .btn.sm, .sdui-season { min-height: 44px; } }
+
+/* A still drawing of a page (the editor's preview). */
+.sdui.inert a, .sdui.inert button, .sdui.inert input, .sdui.inert select { pointer-events: none; }
+
+/* Customise and the lists that are put in order. */
+.sdui-customise-lede { margin: 0 0 var(--sp-4); }
+.sdui-customise .nav-custom-opt { margin-bottom: var(--sp-4); }
+.sdui-arrange .nav-custom-grip.none { cursor: default; }
+.sdui-arrange .nav-custom-row.drop { outline: 2px dashed var(--focus); }
+.sdui-arrange .nav-custom-row.locked { background: transparent; border: 1px dashed var(--border); }
+.sdui-locked { font-size: var(--text-sm); flex: none; }
+.sdui-card-menu { z-index: var(--z-popover); }

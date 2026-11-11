@@ -10546,6 +10546,16 @@
               "null"
             ]
           },
+          "personal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SDUIPersonalInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "version": {
             "type": "integer"
           }

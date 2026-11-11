@@ -999,6 +999,9 @@
           },
           "type": "array"
         },
+        "personal": {
+          "$ref": "#/$defs/PersonalInfo"
+        },
         "version": {
           "type": "integer"
         }

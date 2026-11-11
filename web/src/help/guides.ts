@@ -38,6 +38,7 @@ export const GROUPS: GuideGroup[] = [
     { file: 'PLAYING', title: 'Watching and listening', about: 'The player, its shortcuts, subtitles and TV remotes.' },
     { file: 'SYNCPLAY', title: 'Watch parties', about: 'Watching together, in step, from different places.' },
     { file: 'SETTINGS', title: 'Settings tour', about: 'Where to change what, page by page.' },
+    { file: 'PAGES', title: 'Pages and the menu', about: 'Customise a page for yourself, and change Home, the libraries and the menu for everyone.' },
     { file: 'TROUBLESHOOTING', title: 'Troubleshooting', about: 'Something’s wrong: find it by what you’re seeing.' },
   ] },
   { title: 'Your media', guides: [
@@ -131,6 +132,7 @@ export { settingsHelp }
 // "Settings → Repair" in a guide can be a link to that page, for someone signed in.
 export const settingsPages: Record<string, string> = {
   Libraries: 'libraries',
+  'Pages & menu': 'pages',
   'Metadata agents': 'metadata',
   'Playback & discs': 'playback',
   'Channels & tuners': 'channels',

@@ -540,6 +540,11 @@ device:
   condition or left out: a navigation without it gets it at the end.
 - A profile's own order and hidden entries (`navigation/personal`) apply
   here as they do to a page. Settings can't be hidden by a profile either.
+- For a profile that may rearrange, the answer carries `personal`, in the
+  shape a page's has: `{editable, allow: ["reorder", "hide"], sections,
+  url}`. `sections` are all the entries the profile could have, in its
+  order, hidden ones included and marked, which is what "Arrange the menu"
+  lists; the body it PUTs to `url` is `{order, hidden}`.
 
 The built-in navigation: Home, Search, Live TV (where the profile may watch
 it), the libraries (behind More on a phone; one "Libraries" entry on a
@@ -796,6 +801,79 @@ In the data folder. It holds only what an administrator changed:
   guide](#migrating-from-catalogue-revision-1)); what has no place in this
   model is named in the page's `description` and in the configuration's
   `notes`, and logged. Its theme section is carried over untouched.
+
+## How the web client uses it
+
+The web app (`web/src/sdui`), which the desktop app shows unchanged in its
+own window, is one of the three renderers.
+
+- **When.** It asks `/capabilities` once per sign-in. With `sdui-pages` it
+  resolves every address through the [Routes](#routes) table
+  (`routes.ts`): an address that is a page is asked for and drawn; anything
+  else is one of the app's own screens. With `sdui-navigation` the side
+  menu, the top bar, a phone's bottom bar and TV mode's top menu are drawn
+  from `GET /sdui/navigation`, in the shell the app always had. Without
+  those features (an older server) it keeps the pages and menu it worked
+  out itself.
+- **What it says it is.** `catalog=2`, `platform` `web` (or `desktop`
+  inside the desktop app), and a form factor from the window: TV mode is
+  `tv` (`deviceClass` by the screen), a window under 600 points is `phone`,
+  a touch screen under 1200 is `tablet`, anything else `web` or `desktop`.
+  It sends `viewport`, `locale`, `capabilities` (`reducedMotion` from the
+  system setting) and `views=guide,photoTimeline,photoMap,coverFlow`, and
+  asks again when the window crosses a breakpoint.
+- **The layout step.** `model.ts` turns a document into a tree of views:
+  what each component draws, its line limits, card sizes, placeholders,
+  role and label. The React components (`render/`) take their props from
+  those views, and the same step, described in the conformance kit's shape,
+  is what `model.test.mjs` runs against every fixture in
+  `pkg/sdui/conformance/fixtures`.
+- **Sizes.** Card widths, grid columns, section gaps and spacing steps are
+  the document's (`props.card`, `layout`), set as CSS custom properties on
+  the page; a television's page is laid out on its 1920-point canvas and
+  scaled to the window. Type sizes follow the app's own scale for each text
+  role, which grows with the reader's browser setting. Colours are the
+  theme's variables; a node's `tokens` override them for its subtree.
+- **Keeping pages.** A page is kept with its ETag and shown at once on the
+  way back to it, then asked for through `/diff?since=`; patches are
+  applied to the kept tree (`patch.ts`), and anything that doesn't apply
+  drops it. It is asked for again after `meta.ttlSeconds` while the tab is
+  visible, and after a command or a change to the profile's arrangement.
+  Rows that had been filled or paged stay filled when the page comes again.
+- **Focus.** Tab order is the document's order. In TV mode, and with a
+  game pad or arrow keys anywhere, `focus.ts` decides where an arrow goes
+  from `focus.order` and the groups: along a row and stopping at its ends,
+  by row and column in a grid with the column count as drawn, up and down
+  to the previous or next stop and the member it was left on. Focus starts
+  on `focus.default`.
+- **Actions.** `navigate` is a link; `play` asks what the item is and
+  starts the app's own player for it (video, disc with its menus, audio as
+  the album from that track, reader, game); `native` opens Settings, the
+  guide, You, the share dialog, the device picker, a watch party or a
+  download; `external` opens a new tab; `command` calls the route in
+  [Commands](#commands) and asks for the page again; `selectTab` and the
+  filter bar change the address's query, so Back undoes them.
+- **Native views.** `guide` is the guide's grid, `photoTimeline` and
+  `photoMap` the photo library, `coverFlow` the music library's cover flow.
+- **Where the app's own screens stand in.** A game's page, a book's front
+  page, a photo, a radio station, a creator's channel and the short-video
+  feed are not in the model. When the catch-all built-in `library` or
+  `detail` page is what the server answers for one of those, the web app
+  shows its own screen for it (`native.ts`); a page an administrator wrote
+  for such a library or title is drawn as written. Under a title's header
+  the app adds what the model has no component for: the credit a metadata
+  source asks for, the file's technical facts, a disc's titles and extras,
+  and, for administrators, artwork, details and refresh.
+- **Customise and the editor.** `document.personal` drives "Customise this
+  page"; the menu's `personal` drives "Arrange the menu" in Settings,
+  Appearance. The administrator's editor is Settings, Pages & menu, built
+  from `GET /sdui/catalog`. Both are described for the people using them in
+  [PAGES.md](PAGES.md).
+- **What carried over.** Home's order and hidden rows (`/me/ui` `home`) are
+  read by the server. The web app's own menu arrangement (`/me/ui` `nav`)
+  is moved once: its order and hidden entries become `navigation/personal`,
+  how the menu is drawn (grouping, overflow, folding) stays a choice of the
+  web app's own (`navLook`), and the old record is removed.
 
 ## Top Shelf
 

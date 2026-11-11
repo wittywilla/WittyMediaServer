@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { lazy, Suspense, useCallback, useEffect, useRef, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { profileName } from '../api'
 import { Spinner } from '../components/common'
 import LegalNote from '../components/LegalNote'
-import { IconBack, IconGamepad, IconHome, IconLibrary, IconSearch, IconTv } from '../icons'
+import { IconBack } from '../icons'
+import { sduiIcon } from '../sdui/render/icons'
+import { useMenu } from '../shell/useNav'
 import { Avatar } from '../pages/AuthPage'
 import { useApp } from '../state'
+import { SduiRoute } from '../sdui/useSdui'
 import { focusFirst, OWN_BACK, typing } from '../tv'
 import Libraries from './Libraries'
-import { backStep, stepTab, tabPath, tabRootOf, tvKey, TV_TABS, type TabId } from './nav'
+import { backStep, stepTab, tabPath, tabRootOf, tabsFromMenu, tvKey, TV_TABS, type TabId, type TvTab } from './nav'
 import Search from './Search'
 import You from './You'
 
@@ -22,29 +25,28 @@ const Games = lazy(() => import('./Games'))
 const GamesLibraryScreen = lazy(() => import('./Games').then((m) => ({ default: m.GamesLibraryScreen })))
 const GameScreen = lazy(() => import('./Games').then((m) => ({ default: m.GameScreen })))
 
-const ICONS: Record<Exclude<TabId, 'you'>, ReactNode> = {
-  home: <IconHome />, libraries: <IconLibrary />, games: <IconGamepad />, live: <IconTv />, search: <IconSearch />,
-}
-
 // While one of these is open it has the keys: dialogs and menus close on Back, the player and books have
 // their own, and a game being played has the controller.
 const BUSY = `${OWN_BACK}, .wp-playing, .wp-capture`
 
-const pill = (id: TabId) => document.querySelector<HTMLElement>(`.tvm-bar [data-tab="${id}"]`)
+const pill = (id: TabId) => document.querySelector<HTMLElement>(`.tvm-bar [data-tab="${CSS.escape(id)}"]`)
 
-function TopBar({ tab }: { tab: TabId }) {
+function TopBar({ tab, tabs }: { tab: TabId; tabs: TvTab[] }) {
   const { user } = useApp()
   const shown = user ? profileName(user) : ''
   return (
     <header className="tvm-bar" data-keep-focus>
       <nav className="tvm-tabs" aria-label="TV mode" data-nav-group data-nav-entry=".tvm-pill[aria-current=page]">
-        {TV_TABS.map((t) => (
-          <Link key={t.id} to={t.path} replace data-tab={t.id} className={'tvm-pill' + (t.id === 'you' ? ' tvm-you' : '')}
-            aria-current={t.id === tab ? 'page' : undefined} aria-label={t.id === 'you' ? `You, ${shown}` : undefined}>
-            {t.id === 'you' ? <Avatar name={shown || '?'} avatar={user?.avatar} /> : ICONS[t.id]}
-            <span>{t.id === 'you' ? shown : t.label}</span>
-          </Link>
-        ))}
+        {tabs.map((t) => {
+          const you = t.screen === 'profiles'
+          return (
+            <Link key={t.id} to={t.path} replace data-tab={t.id} className={'tvm-pill' + (you ? ' tvm-you' : '')}
+              aria-current={t.id === tab ? 'page' : undefined} aria-label={you ? `You, ${shown}` : undefined}>
+              {you ? <Avatar name={shown || '?'} avatar={user?.avatar} /> : sduiIcon(t.icon)}
+              <span>{you ? shown : t.label}</span>
+            </Link>
+          )
+        })}
       </nav>
     </header>
   )
@@ -53,9 +55,14 @@ function TopBar({ tab }: { tab: TabId }) {
 export default function TvFrame({ pages }: { pages: ReactNode }) {
   const loc = useLocation()
   const nav = useNavigate()
-  const tab = tabRootOf(loc.pathname)
+  // The bar: the server's menu for a television, where it sends one.
+  const menu = useMenu()
+  const tabs = useMemo(() => (menu.server && menu.all.length ? tabsFromMenu(menu.all) : TV_TABS), [menu.server, menu.all])
+  const tabsNow = useRef(tabs)
+  tabsNow.current = tabs
+  const tab = tabRootOf(loc.pathname, tabs)
   // The tab a screen was opened from, for a screen that was the first one shown.
-  const lastTab = useRef<TabId>('home')
+  const lastTab = useRef<TabId>(tabs[0]?.id || 'home')
   if (tab) lastTab.current = tab
   // Where focus was in each tab, for coming down from the bar.
   const leftIn = useRef(new Map<string, HTMLElement>())
@@ -64,7 +71,7 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
 
   const choose = useCallback((id: TabId) => {
     toPill.current = id
-    if (tabPath(id) !== location.pathname) nav(tabPath(id), { replace: true })
+    if (tabPath(id, tabsNow.current) !== location.pathname) nav(tabPath(id, tabsNow.current), { replace: true })
     else { pill(id)?.focus({ preventScroll: true }); window.scrollTo({ top: 0 }) }
   }, [nav])
 
@@ -79,7 +86,7 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
   useEffect(() => {
     const onFocus = (e: FocusEvent) => {
       const el = e.target as HTMLElement
-      if (tabRootOf(location.pathname) && el.closest?.('#main') && el.id !== 'main') leftIn.current.set(location.pathname, el)
+      if (tabRootOf(location.pathname, tabsNow.current) && el.closest?.('#main') && el.id !== 'main') leftIn.current.set(location.pathname, el)
     }
     window.addEventListener('focusin', onFocus, { passive: true })
     return () => window.removeEventListener('focusin', onFocus)
@@ -89,7 +96,7 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
   const goBack = useCallback(() => {
     const idx = (window.history.state as { idx?: number } | null)?.idx
     if (idx) nav(-1)
-    else nav(tabPath(lastTab.current), { replace: true })
+    else nav(tabPath(lastTab.current, tabsNow.current), { replace: true })
   }, [nav])
 
   useEffect(() => {
@@ -108,7 +115,7 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || document.querySelector(BUSY)) return
       const target = e.target instanceof HTMLElement ? e.target : null
       const inBar = !!target?.closest('.tvm-bar')
-      const here = tabRootOf(location.pathname)
+      const here = tabRootOf(location.pathname, tabsNow.current)
       if (e.key === 'ArrowDown' && inBar) { if (intoTab()) stop(e); return }
       const key = tvKey(e, typing(target))
       if (!key) return
@@ -121,14 +128,15 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
       if (key === 'prevTab' || key === 'nextTab') {
         if (!here) return
         stop(e)
-        const to = stepTab(here, key === 'prevTab' ? -1 : 1)
+        const to = stepTab(here, key === 'prevTab' ? -1 : 1, tabsNow.current)
         if (to) choose(to)
         return
       }
-      const step = backStep({ tab: here, inBar })
+      const first = tabsNow.current[0]?.id || 'home'
+      const step = backStep({ tab: here, inBar, first })
       if (step === 'history') { stop(e); goBack() }
       else if (step === 'bar' && here) { stop(e); choose(here) }
-      else if (step === 'home') { stop(e); choose('home') }
+      else if (step === 'home') { stop(e); choose(first) }
       else {
         // Out of the app: to an app that shows this page, if it said where. An untouched Escape is for the
         // desktop app around the page, which opens its own menu then.
@@ -146,16 +154,16 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
     <div className={'tvm' + (tab ? ' tvm-tab' : ' tvm-pushed')}>
       <a className="skip-link" data-nav-skip href="#main">Skip to content</a>
       {tab
-        ? <TopBar tab={tab} />
+        ? <TopBar tab={tab} tabs={tabs} />
         : <button type="button" className="tvm-back" data-nav-skip onClick={goBack} aria-label="Back"><IconBack /></button>}
       <main className="content tvm-main" id="main" tabIndex={-1}>
         <Suspense fallback={<Spinner />}>
           <Routes>
-            <Route path="/libraries" element={<Libraries />} />
-            <Route path="/games" element={<Games />} />
+            <Route path="/libraries" element={<SduiRoute fallback={<Libraries />} />} />
+            <Route path="/games" element={<SduiRoute fallback={<Games />} />} />
             <Route path="/games/library/:id" element={<GamesLibraryScreen />} />
             <Route path="/games/game/:id" element={<GameScreen />} />
-            <Route path="/search" element={<Search />} />
+            <Route path="/search" element={<SduiRoute fallback={<Search />} />} />
             <Route path="/you" element={<You />} />
             <Route path="*" element={pages} />
           </Routes>

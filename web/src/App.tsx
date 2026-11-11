@@ -8,7 +8,7 @@ import { api } from './api'
 import { setThemeModule } from './theme'
 import { moduleForPath } from './themeOverrides'
 import { getNavCollapsed, setNavCollapsed, useNavStyle } from './navPrefs'
-import HomePage from './pages/HomePage'
+import { SduiRoute } from './sdui/useSdui'
 import { EmptyState, PageSkeleton, Spinner, VersionTag } from './components/common'
 import { shapeFor } from './ui/Surface'
 import { LinkButton } from './ui'
@@ -25,10 +25,13 @@ import { syncTilt } from './ui/tilt'
 import { Sidebar } from './shell/Sidebar'
 import { TabBar } from './shell/TabBar'
 import { TopBar } from './shell/TopBar'
-import { useMedia, useNavPrefs } from './shell/useNav'
+import { useMedia, useNavMigration, useNavPrefs } from './shell/useNav'
 import { useTvMode } from './tvmode/mode'
 import RemoteHost from './remote/RemoteHost'
 
+// The pages the app drew by hand before pages were server-driven: what an older server still gets, and
+// what stands in where a server-driven page gives way to one of the app's own screens (sdui/native.ts).
+const HomePage = lazy(() => import('./pages/HomePage'))
 const PairPage = lazy(() => import('./pages/PairPage'))
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const DesignPage = lazy(() => import('./pages/DesignPage'))
@@ -97,6 +100,7 @@ function Shell() {
   const pageModule = moduleForPath(loc.pathname)
   useLayoutEffect(() => { setThemeModule(pageModule) }, [pageModule])
   useLayoutEffect(() => { if (user) loadUserPrefs(user.id) }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  useNavMigration()
   // A link someone was sent: no account, no app around it.
   if (loc.pathname.startsWith('/s/')) return <Suspense fallback={null}><Routes><Route path="/s/:token" element={<SharedPage />} /></Routes></Suspense>
   // The Legal page, for anyone: a shared link, the setup wizard and the sign-in screen lead here.
@@ -180,27 +184,34 @@ function RouteSkeleton() {
 export function PageRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/library/:id" element={<LibraryPage />} />
-      <Route path="/item/:id" element={<ItemPage />} />
-      <Route path="/show/:id" element={<ShowPage />} />
-      <Route path="/album/:lib" element={<AlbumPage />} />
+      <Route path="/" element={<SduiRoute fallback={<HomePage />} loading={<RouteSkeleton />} />} />
+      <Route path="/library/:id" element={<SduiRoute fallback={<LibraryPage />} loading={<RouteSkeleton />} />} />
+      <Route path="/item/:id" element={<SduiRoute fallback={<ItemPage />} loading={<RouteSkeleton />} />} />
+      <Route path="/show/:id" element={<SduiRoute fallback={<ShowPage />} loading={<RouteSkeleton />} />} />
+      <Route path="/album/:lib" element={<SduiRoute fallback={<AlbumPage />} loading={<RouteSkeleton />} />} />
       <Route path="/artist/:lib" element={<Suspense fallback={<Spinner />}><ArtistPage /></Suspense>} />
       <Route path="/radio/:id" element={<Suspense fallback={<Spinner />}><RadioStationPage /></Suspense>} />
       <Route path="/cd/:id" element={<CdPlayer />} />
       <Route path="/couch" element={<Suspense fallback={<Spinner />}><CouchPage /></Suspense>} />
       <Route path="/couch/:id" element={<Suspense fallback={<Spinner />}><CouchHostPage /></Suspense>} />
-      <Route path="/collections" element={<Suspense fallback={<Spinner />}><CollectionsPage /></Suspense>} />
-      <Route path="/collections/:id" element={<Suspense fallback={<Spinner />}><CollectionPage /></Suspense>} />
+      <Route path="/collections" element={<SduiRoute fallback={<Suspense fallback={<Spinner />}><CollectionsPage /></Suspense>} />} />
+      <Route path="/collections/:id" element={<SduiRoute fallback={<Suspense fallback={<Spinner />}><CollectionPage /></Suspense>} />} />
       <Route path="/review" element={<Suspense fallback={<Spinner />}><ReviewPage /></Suspense>} />
       <Route path="/watch/:id" element={<Suspense fallback={<Spinner />}><WatchPage /></Suspense>} />
       <Route path="/creator/:id" element={<Suspense fallback={<Spinner />}><CreatorPage /></Suspense>} />
-      <Route path="/search" element={<SearchPage />} />
+      <Route path="/search" element={<SduiRoute fallback={<SearchPage />} loading={<RouteSkeleton />} />} />
       <Route path="/you" element={<YouPage />} />
       <Route path="/fix-matches" element={<Suspense fallback={<Spinner />}><FixMatches /></Suspense>} />
       <Route path="/brand/:kind/:name" element={<Suspense fallback={<Spinner />}><BrandPage /></Suspense>} />
       <Route path="/pair" element={<PairPage />} />
-      <Route path="/tv" element={<Suspense fallback={tvFallback}><GuidePage /></Suspense>} />
+      <Route path="/tv" element={<SduiRoute fallback={<Suspense fallback={tvFallback}><GuidePage /></Suspense>} loading={tvFallback} />} />
+      {/* Places only a server with server-driven pages has: every library together, a kind of library together, a page of the owner's own. */}
+      <Route path="/libraries" element={<SduiRoute fallback={<NotFound />} />} />
+      <Route path="/music" element={<SduiRoute fallback={<NotFound />} />} />
+      <Route path="/photos" element={<SduiRoute fallback={<NotFound />} />} />
+      <Route path="/books" element={<SduiRoute fallback={<NotFound />} />} />
+      <Route path="/games" element={<SduiRoute fallback={<NotFound />} />} />
+      <Route path="/page/:id" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/tv/recordings" element={<Suspense fallback={tvFallback}><RecordingsPage /></Suspense>} />
       <Route path="/tv/channels/*" element={<Suspense fallback={tvFallback}><ChannelsPage /></Suspense>} />
       <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />

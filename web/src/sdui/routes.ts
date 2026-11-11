@@ -1,0 +1,137 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+// One router for every place in the app (docs/SDUI.md, "Routes"): an address is a
+// server-driven page asked for with some parameters, or one of the app's own screens.
+// The table is the catalogue's; this copy is what the app starts with, and
+// GET /sdui/catalog replaces it when a server has more.
+
+import type { Action } from './types.ts'
+
+export type RouteRule = { route: string; page?: string; native?: string; params?: Record<string, string> }
+
+export const ROUTES: RouteRule[] = [
+  { route: '/', page: 'home' },
+  { route: '/libraries', page: 'libraries' },
+  { route: '/library/{library}', page: 'library', params: { library: '{library}' } },
+  { route: '/item/{item}', page: 'detail', params: { item: '{item}' } },
+  { route: '/show/{show}', page: 'detail', params: { show: '{show}' } },
+  { route: '/album/{library}', page: 'detail', params: { album: '?album', artist: '?artist', library: '{library}' } },
+  { route: '/collections/{collection}', page: 'detail', params: { collection: '{collection}' } },
+  { route: '/collections', page: 'collections' },
+  { route: '/search', page: 'search', params: { q: '?q' } },
+  { route: '/tv', page: 'livetv' },
+  { route: '/music', page: 'music' },
+  { route: '/photos', page: 'photos' },
+  { route: '/books', page: 'books' },
+  { route: '/games', page: 'games' },
+  { route: '/page/{id}', page: '{id}' },
+  { route: '/settings', native: 'settings' },
+  { route: '/settings/{section}', native: 'settings' },
+  { route: '/tv/guide', native: 'guide' },
+  { route: '/tv/recordings', native: 'guide' },
+  { route: '/tv/watch/{key}', native: 'livePlayer' },
+  { route: '/watch/{item}', native: 'player' },
+  { route: '/play/{item}', native: 'player' },
+  { route: '/read/{item}', native: 'reader' },
+  { route: '/game/{item}', native: 'game' },
+  { route: '/you', native: 'profiles' },
+  { route: '/pair', native: 'pair' },
+]
+
+export type Resolved =
+  | { kind: 'page'; page: string; params: Record<string, string> }
+  | { kind: 'native'; screen: string; vars: Record<string, string> }
+
+// The query parameters each kind of page takes, beside what its route gives it.
+const PASSED = ['tab', 'sort', 'desc', 'genre', 'decade', 'year', 'content', 'resolution', 'watched', 'studio', 'network', 'tag', 'season']
+
+function matchRule(rule: RouteRule, path: string): Record<string, string> | null {
+  const want = rule.route.split('/'), got = path.split('/')
+  if (want.length !== got.length) return null
+  const vars: Record<string, string> = {}
+  for (let i = 0; i < want.length; i++) {
+    const w = want[i]
+    if (w.startsWith('{') && w.endsWith('}')) {
+      if (!got[i]) return null
+      try { vars[w.slice(1, -1)] = decodeURIComponent(got[i]) } catch { return null }
+    } else if (w !== got[i]) return null
+  }
+  return vars
+}
+
+// resolve: what shows an address. null: nothing in the table does, so it is one of the
+// app's own pages the table doesn't know (Help, a module's page).
+export function resolve(pathname: string, search = '', rules: RouteRule[] = ROUTES): Resolved | null {
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+  const query = new URLSearchParams(search)
+  for (const rule of rules) {
+    const vars = matchRule(rule, path)
+    if (!vars) continue
+    if (rule.native) return { kind: 'native', screen: rule.native, vars }
+    const fill = (v: string) => (v.startsWith('{') ? vars[v.slice(1, -1)] : v.startsWith('?') ? query.get(v.slice(1)) : v) || ''
+    const params: Record<string, string> = {}
+    for (const [k, v] of Object.entries(rule.params || {})) { const x = fill(v); if (x) params[k] = x }
+    for (const k of PASSED) { const x = query.get(k); if (x && !(k in params)) params[k] = x }
+    return { kind: 'page', page: fill(rule.page || ''), params }
+  }
+  return null
+}
+
+// The app's own screens by name, where a screen has an address in the web app.
+export const NATIVE_ROUTES: Record<string, string> = {
+  settings: '/settings', guide: '/tv/guide', profiles: '/you', pair: '/pair', collections: '/collections',
+  remote: '/settings/remote-control', nowPlaying: '', downloads: '',
+}
+
+// What an action comes to in this app. Pure, so it can be tested: the page carries it out.
+export type Step =
+  | { do: 'go'; to: string }
+  | { do: 'back' }
+  | { do: 'play'; item: string; resume: boolean }
+  | { do: 'open'; url: string }
+  | { do: 'screen'; screen: string; item?: string }
+  | { do: 'tab'; tabs: string; tab: string }
+  | { do: 'refresh' }
+  | { do: 'request'; method: 'POST' | 'DELETE'; path: string; body?: unknown }
+  | { do: 'nothing' }
+
+const safeRoute = (to: string) => to.startsWith('/') && !to.startsWith('//')
+
+export function plan(a: Action | undefined, opts: { externalLinks?: boolean } = {}): Step {
+  if (!a) return { do: 'nothing' }
+  switch (a.type) {
+    case 'navigate': return a.to && safeRoute(a.to) ? { do: 'go', to: a.to } : { do: 'nothing' }
+    case 'back': return { do: 'back' }
+    case 'play': return a.item ? { do: 'play', item: a.item, resume: a.params?.resume !== false } : { do: 'nothing' }
+    case 'external': return a.url && /^https?:\/\//i.test(a.url) && opts.externalLinks !== false ? { do: 'open', url: a.url } : { do: 'nothing' }
+    case 'native': {
+      if (!a.to) return { do: 'nothing' }
+      const item = typeof a.params?.item === 'string' ? a.params.item : undefined
+      const to = NATIVE_ROUTES[a.to]
+      // A screen with an address is a place to go; the others the page opens itself.
+      if (to && !item) return { do: 'go', to }
+      return { do: 'screen', screen: a.to, item }
+    }
+    case 'command':
+      switch (a.op) {
+        case 'watchLater.add': return a.item ? { do: 'request', method: 'POST', path: '/collections/watch-later/items', body: a.item.startsWith('show-') ? { shows: [numeric(a.item.slice(5))] } : { items: [numeric(a.item)] } } : { do: 'nothing' }
+        case 'watched.set': return a.item ? { do: 'request', method: 'POST', path: `/items/${encodeURIComponent(a.item)}/progress`, body: { watched: true } } : { do: 'nothing' }
+        case 'watched.clear': return a.item ? { do: 'request', method: 'DELETE', path: `/items/${encodeURIComponent(a.item)}/progress` } : { do: 'nothing' }
+        case 'selectTab': return typeof a.params?.tab === 'string' ? { do: 'tab', tabs: typeof a.params?.tabs === 'string' ? a.params.tabs : '', tab: a.params.tab } : { do: 'nothing' }
+        case 'refresh': return { do: 'refresh' }
+      }
+      return { do: 'nothing' }
+  }
+  // An action type this app doesn't know does nothing.
+  return { do: 'nothing' }
+}
+
+const numeric = (id: string): number | string => (/^\d+$/.test(id) ? Number(id) : id)
+
+// withQuery: an address with some of its query changed; '' takes a parameter away.
+export function withQuery(pathname: string, search: string, change: Record<string, string>): string {
+  const q = new URLSearchParams(search)
+  for (const [k, v] of Object.entries(change)) { if (v) q.set(k, v); else q.delete(k) }
+  const s = q.toString()
+  return pathname + (s ? '?' + s : '')
+}

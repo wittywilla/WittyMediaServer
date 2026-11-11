@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Builds self-contained WittyMediaServer release archives for every supported platform:
 # the app, the server and its command line, FFmpeg, and on Windows the uninstaller. Nothing
 # needs to be installed on the target machine. The real installers are made from these
@@ -153,7 +155,7 @@ winres() {
   local abs_icon; abs_icon="$(cd "$(dirname "$ICON_ICO")" && pwd)/$(basename "$ICON_ICO")"
   (cd "$dir" && "$OLDPWD/$TOOLS/go-winres$HOSTEXE" simply --arch "$arch" --out rsrc --manifest "$kind" \
     --icon "$abs_icon" --product-name WittyMediaServer --product-version "$VERSION" --file-version "$NUMERIC_VERSION.0" \
-    --file-description "$desc" --original-filename "$name" --copyright "Copyright WittyWilla" >/dev/null)
+    --file-description "$desc" --original-filename "$name" --copyright "Copyright (C) 2026 WittyWilla and contributors" >/dev/null)
 }
 
 # The app people open (WittyMediaServer, WittyMediaServer.exe). Pure Go on Windows, Linux and
@@ -229,6 +231,13 @@ EOF
   <key>NSHighResolutionCapable</key><true/>
   <key>NSLocalNetworkUsageDescription</key><string>So the WittyMediaServer apps on your phone, TV and other computers can find this server and play your media.</string>
   <key>NSBonjourServices</key><array><string>_wittymedia._tcp</string></array>
+  <key>NSDesktopFolderUsageDescription</key><string>So WittyMediaServer can play the media in a library you keep on your Desktop.</string>
+  <key>NSDocumentsFolderUsageDescription</key><string>So WittyMediaServer can play the media in a library you keep in Documents.</string>
+  <key>NSDownloadsFolderUsageDescription</key><string>So WittyMediaServer can play the media in a library you keep in Downloads.</string>
+  <key>NSRemovableVolumesUsageDescription</key><string>So WittyMediaServer can play the media in a library on a drive you plug in.</string>
+  <key>NSNetworkVolumesUsageDescription</key><string>So WittyMediaServer can play the media in a library on a network drive.</string>
+  <key>NSCameraUsageDescription</key><string>So WittyMediaServer can record from a capture device you add as a tuner.</string>
+  <key>NSMicrophoneUsageDescription</key><string>So WittyMediaServer can record the sound from a capture device you add as a tuner.</string>
 </dict></plist>
 EOF
   # Unsigned, macOS's Local Network privacy can't tell the server apart from any other

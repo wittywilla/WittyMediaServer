@@ -1,6 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package uninstall
 
 import (
+	"html"
 	"os"
 	"path/filepath"
 )
@@ -97,7 +101,8 @@ func planMac(e *Env, pl *Plan) {
 	}
 }
 
-// launchdDataDir reads WMS_DATA_DIR out of a launchd property list.
+// launchdDataDir reads WMS_DATA_DIR out of a launchd property list. The installer writes it as
+// XML text (packaging/macos/scripts/service/postinstall), so "&" there is "&amp;".
 func launchdDataDir(plist string) string {
 	const key = "<key>WMS_DATA_DIR</key>"
 	i := indexOf(plist, key)
@@ -110,5 +115,5 @@ func launchdDataDir(plist string) string {
 	if start < 0 || end < start {
 		return ""
 	}
-	return rest[start+len("<string>") : end]
+	return html.UnescapeString(rest[start+len("<string>") : end])
 }

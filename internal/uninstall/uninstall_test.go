@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package uninstall
 
 import (
@@ -623,6 +626,17 @@ func TestMacFullCleanLeavesNothing(t *testing.T) {
 	}
 	if !sys.called("launchctl bootout system") || !sys.called("pkgutil --forget com.wittywilla.wittymediaserver.app") {
 		t.Errorf("ran %v", sys.calls)
+	}
+}
+
+// The installer writes the data folder as XML text: a folder with & in its name must still be found.
+func TestLaunchdDataDirReadsXMLText(t *testing.T) {
+	plist := "<dict><key>WMS_DATA_DIR</key><string>/Users/me/Tom &amp; Jerry &lt;media&gt;</string></dict>"
+	if got, want := launchdDataDir(plist), "/Users/me/Tom & Jerry <media>"; got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+	if got := launchdDataDir("<dict></dict>"); got != "" {
+		t.Errorf("no key: got %q", got)
 	}
 }
 

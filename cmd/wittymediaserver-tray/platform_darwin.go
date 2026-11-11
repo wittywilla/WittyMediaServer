@@ -1,8 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 //go:build darwin
 
 package main
 
 import (
+	"html"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -34,7 +38,7 @@ func setAutostart(on bool) error {
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>Label</key><string>com.wittywilla.wittymediaserver.tray</string>
-  <key>ProgramArguments</key><array><string>` + exe + `</string></array>
+  <key>ProgramArguments</key><array><string>` + html.EscapeString(exe) + `</string></array>
   <key>RunAtLoad</key><true/>
 </dict></plist>
 `

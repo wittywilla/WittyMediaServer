@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # The background service: launchd starts the server at boot, as the person who installed it, so it
 # sees their media and their library. The app's menu-bar icon then shows the service.
 set -e
@@ -9,9 +11,23 @@ PLIST=/Library/LaunchDaemons/com.wittywilla.wittymediaserver.plist
 DATA=""
 PORT=""
 LISTEN=""
+# Only what PlistBuddy read: a file it can't read gets "Error Reading File: ..." on its output.
 if [ -f "$PLIST" ]; then
-  DATA=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:WMS_DATA_DIR' "$PLIST" 2>/dev/null || true)
-  LISTEN=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:WMS_LISTEN' "$PLIST" 2>/dev/null || true)
+  DATA=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:WMS_DATA_DIR' "$PLIST" 2>/dev/null) || DATA=""
+  LISTEN=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:WMS_LISTEN' "$PLIST" 2>/dev/null) || LISTEN=""
+  # Not trusting the exit status alone: a folder is one line, starting with /, and never one of
+  # PlistBuddy's own messages. Anything else, and the default below is used instead.
+  NL='
+'
+  case "$DATA" in
+    *"$NL"*|*"Error Reading File"*|*"Does Not Exist"*|*"Doesn't Exist"*) DATA="" ;;
+    /*) ;;
+    *) DATA="" ;;
+  esac
+  # An address has no spaces or line breaks; a message from PlistBuddy does.
+  case "$LISTEN" in
+    *"$NL"*|*" "*|*"	"*) LISTEN="" ;;
+  esac
   case "$LISTEN" in
     :[0-9]*|0.0.0.0:[0-9]*) if [ "${LISTEN##*:}" != 9797 ]; then PORT="${LISTEN##*:}"; fi ;;
   esac

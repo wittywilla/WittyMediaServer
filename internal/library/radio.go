@@ -363,8 +363,11 @@ type Recommendation struct {
 // RecommendForYou picks unwatched films and shows that match the genres this
 // account spends its time on. It reads only this account's record on this server.
 func (s *Store) RecommendForYou(ctx context.Context, userID int64, access *Access, seed int64, limit int) ([]*Item, []*Show, string, error) {
+	// Only what the account may still see counts: "because you watch horror" would
+	// otherwise name a genre from titles its limits have hidden since.
+	clause, cargs := access.ItemClause()
 	rows, err := s.DB.QueryContext(ctx, `SELECT IFNULL(i.genres, ''), IFNULL((SELECT genres FROM shows sh WHERE sh.id = i.show_id), ''), MAX(p.position_sec, 60), p.watched
-		FROM progress p JOIN items i ON i.id = p.item_id WHERE p.user_id = ? ORDER BY p.updated_at DESC LIMIT 400`, userID)
+		FROM progress p JOIN items i ON i.id = p.item_id WHERE p.user_id = ? AND `+clause+` ORDER BY p.updated_at DESC LIMIT 400`, append([]any{userID}, cargs...)...)
 	if err != nil {
 		return nil, nil, "", err
 	}

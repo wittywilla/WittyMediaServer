@@ -48,8 +48,8 @@ const (
 )
 
 // cleanAccess checks limits someone sent before they are saved, and puts them
-// in order.
-func (s *Server) cleanAccess(r *http.Request, a *library.Access) error {
+// in order. kind is the kind of profile they are for.
+func (s *Server) cleanAccess(r *http.Request, a *library.Access, kind string) error {
 	okAge := func(n int) bool { return n >= library.NoAgeLimit && n <= 21 }
 	if !okAge(a.MaxAge) {
 		return errors.New("the age limit must be between 0 and 21, or -1 for none")
@@ -102,6 +102,11 @@ func (s *Server) cleanAccess(r *http.Request, a *library.Access) error {
 		}
 	}
 	a.Off = off
+	// A Kids or Guest profile has its own name and picture only when given it (see ForKind).
+	a.On = nil
+	if kind != auth.KindAdult && a.Can(library.FeatureEditProfile) {
+		a.On = []string{library.FeatureEditProfile}
+	}
 	if a.Time.Empty() {
 		a.Time = nil
 	} else if err := a.Time.Valid(); err != nil {

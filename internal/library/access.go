@@ -37,6 +37,11 @@ var ratingAges = map[string]int{
 	"9": 9, "14": 14,
 }
 
+// filmBoards are the names film and television boards are written with, as
+// AgeFor has them once spaces and dashes are gone. Longest first where one
+// begins another.
+var filmBoards = []string{"KIJKWIJZER", "NICAM", "BBFC", "MPAA", "MPA", "CNC", "IFCO", "OFLC", "CHVRS", "RATED"}
+
 // AgeFor returns the minimum age for a content rating, or nil if unknown
 // (unrated). Country prefixes ("US:PG-13", "de/12") are accepted.
 func AgeFor(rating string) *int {
@@ -50,6 +55,13 @@ func AgeFor(rating string) *int {
 		r = r[i+1:]
 	}
 	r = strings.NewReplacer(" ", "", "-", "", "_", "", ".", "").Replace(r)
+	// "BBFC 15", "Kijkwijzer 12", "MPAA PG-13": a board's name in front of its rating.
+	for _, board := range filmBoards {
+		if strings.HasPrefix(r, board) && len(r) > len(board) {
+			r = r[len(board):]
+			break
+		}
+	}
 	if r == "" {
 		return nil
 	}
@@ -102,6 +114,9 @@ type Access struct {
 	// Off names what the account may not do, of the Features below. A list of
 	// what is off, so limits written before a feature was a choice leave it on.
 	Off []string `json:"off,omitempty"`
+	// On names what a Kids or Guest profile was given that such profiles don't
+	// have unless someone says so: only "editProfile". See ForKind.
+	On []string `json:"on,omitempty"`
 	// Time: when the account may play things, and for how long each day.
 	Time *parental.TimeRules `json:"time,omitempty"`
 
@@ -160,9 +175,9 @@ func (a *Access) byAge() bool {
 func DefaultAccess(kind string) Access {
 	switch kind {
 	case "kids":
-		return Access{MaxAge: 7, LiveTV: true, LibraryChannels: true, Off: append([]string{}, kidsOff...)}
+		return Access{MaxAge: 7, LiveTV: true, LibraryChannels: true}
 	case "guest":
-		return Access{MaxAge: 13, Off: append([]string{}, kidsOff...)}
+		return Access{MaxAge: 13}
 	}
 	return Access{MaxAge: NoAgeLimit, AllowUnrated: true, LiveTV: true, LibraryChannels: true, TunerChannels: true}
 }
@@ -181,11 +196,23 @@ const (
 // Features lists them in the order Settings shows them.
 var Features = []string{FeatureGames, FeatureRecordings, FeatureDownloads, FeatureSharing, FeatureComments, FeatureRemote, FeatureEditProfile}
 
-// kidsOff is what Kids and Guest profiles start without: their names were
-// always for whoever manages them to choose. (Writing comments and making share
-// links are for grown-up accounts whatever the limits say; reading comments is
-// on until a parent turns it off.)
-var kidsOff = []string{FeatureEditProfile}
+// ForKind makes the limits say what the kind of profile decides: a Kids or
+// Guest profile's name and picture are for whoever manages it, unless they
+// gave it that (On). It is applied when limits are read for an account, so
+// limits written before this was a choice mean what they always did.
+func (a *Access) ForKind(kind string) {
+	if a == nil || kind == "adult" || kind == "" {
+		return
+	}
+	for _, f := range a.On {
+		if f == FeatureEditProfile {
+			return
+		}
+	}
+	if a.Can(FeatureEditProfile) {
+		a.Off = append(a.Off[:len(a.Off):len(a.Off)], FeatureEditProfile)
+	}
+}
 
 // Can reports whether the account may use a feature.
 func (a *Access) Can(feature string) bool {

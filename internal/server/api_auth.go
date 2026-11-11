@@ -401,6 +401,7 @@ func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 		v := userView{User: u, Access: accessFor(&u)}
 		if v.Access == nil && !u.IsAdmin {
 			a := library.DefaultAccess(u.Kind)
+			a.ForKind(u.Kind)
 			v.Access = &a
 		}
 		out = append(out, v)
@@ -439,6 +440,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	restr := ""
 	if hasAccess := len(c.Access) > 0 && string(c.Access) != "null"; hasAccess || c.Kind != auth.KindAdult {
 		a := library.DefaultAccess(c.Kind)
+		a.ForKind(c.Kind)
 		if hasAccess {
 			// What isn't sent is as a new profile of this kind has it.
 			merged, err := mergeAccess(a, c.Access)
@@ -448,7 +450,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 			}
 			a = *merged
 		}
-		if err := s.cleanAccess(r, &a); err != nil {
+		if err := s.cleanAccess(r, &a, c.Kind); err != nil {
 			writeErr(w, 400, err.Error())
 			return
 		}
@@ -586,6 +588,7 @@ func (s *Server) handleUserAccess(w http.ResponseWriter, r *http.Request) {
 	if len(b.Access) > 0 && string(b.Access) != "null" {
 		// Over the limits it has, so an app that doesn't know a newer limit leaves it be.
 		base := library.DefaultAccess(target.Kind)
+		base.ForKind(target.Kind)
 		if cur := accessFor(target); cur != nil {
 			base = *cur
 		}
@@ -594,7 +597,7 @@ func (s *Server) handleUserAccess(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 400, err.Error())
 			return
 		}
-		if err := s.cleanAccess(r, a); err != nil {
+		if err := s.cleanAccess(r, a, target.Kind); err != nil {
 			writeErr(w, 400, err.Error())
 			return
 		}

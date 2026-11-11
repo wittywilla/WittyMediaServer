@@ -135,6 +135,15 @@
               "null"
             ]
           },
+          "on": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "onlyGenres": {
             "items": {
               "type": "string"

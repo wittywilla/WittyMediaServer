@@ -491,14 +491,16 @@ var migrations = []string{
 	   kind TEXT NOT NULL, item_id INTEGER NOT NULL DEFAULT 0, title TEXT NOT NULL DEFAULT '', detail TEXT NOT NULL DEFAULT '');
 	 CREATE INDEX IF NOT EXISTS profile_events_user ON profile_events(user_id, id DESC);
 	 CREATE TRIGGER IF NOT EXISTS profile_watch_new AFTER INSERT ON play_log WHEN EXISTS (SELECT 1 FROM users u WHERE u.id = NEW.user_id AND u.is_admin = 0 AND (u.kind <> 'adult' OR IFNULL(u.restrictions, '') <> '')) BEGIN
-	   INSERT OR IGNORE INTO profile_watch(user_id, day, item_id, title, kind)
-	     VALUES(NEW.user_id, NEW.day, NEW.item_id, IFNULL((SELECT title FROM items WHERE id = NEW.item_id), ''), IFNULL((SELECT kind FROM items WHERE id = NEW.item_id), ''));
+	   INSERT INTO profile_watch(user_id, day, item_id, title, kind)
+	     SELECT NEW.user_id, NEW.day, NEW.item_id, IFNULL((SELECT title FROM items WHERE id = NEW.item_id), ''), IFNULL((SELECT kind FROM items WHERE id = NEW.item_id), '')
+	     WHERE NOT EXISTS (SELECT 1 FROM profile_watch WHERE user_id = NEW.user_id AND day = NEW.day AND item_id = NEW.item_id);
 	   UPDATE profile_watch SET seconds = seconds + NEW.seconds, last_at = CAST(strftime('%s', 'now') AS INTEGER)
 	     WHERE user_id = NEW.user_id AND day = NEW.day AND item_id = NEW.item_id;
 	 END;
 	 CREATE TRIGGER IF NOT EXISTS profile_watch_more AFTER UPDATE OF seconds ON play_log WHEN NEW.seconds > OLD.seconds AND EXISTS (SELECT 1 FROM users u WHERE u.id = NEW.user_id AND u.is_admin = 0 AND (u.kind <> 'adult' OR IFNULL(u.restrictions, '') <> '')) BEGIN
-	   INSERT OR IGNORE INTO profile_watch(user_id, day, item_id, title, kind)
-	     VALUES(NEW.user_id, NEW.day, NEW.item_id, IFNULL((SELECT title FROM items WHERE id = NEW.item_id), ''), IFNULL((SELECT kind FROM items WHERE id = NEW.item_id), ''));
+	   INSERT INTO profile_watch(user_id, day, item_id, title, kind)
+	     SELECT NEW.user_id, NEW.day, NEW.item_id, IFNULL((SELECT title FROM items WHERE id = NEW.item_id), ''), IFNULL((SELECT kind FROM items WHERE id = NEW.item_id), '')
+	     WHERE NOT EXISTS (SELECT 1 FROM profile_watch WHERE user_id = NEW.user_id AND day = NEW.day AND item_id = NEW.item_id);
 	   UPDATE profile_watch SET seconds = seconds + NEW.seconds - OLD.seconds, last_at = CAST(strftime('%s', 'now') AS INTEGER)
 	     WHERE user_id = NEW.user_id AND day = NEW.day AND item_id = NEW.item_id;
 	 END;`,

@@ -25,20 +25,19 @@ func accessFor(u *auth.User) *library.Access {
 	if u == nil || u.IsAdmin {
 		return nil
 	}
-	if u.Restrictions == "" {
-		if u.Kind == auth.KindAdult || u.Kind == "" {
-			return nil
-		}
-		a := library.DefaultAccess(u.Kind) // Kids/Guest are never unrestricted
-		return &a
+	if u.Restrictions == "" && (u.Kind == auth.KindAdult || u.Kind == "") {
+		return nil
 	}
-	a := library.DefaultAccess(u.Kind)
-	if err := json.Unmarshal([]byte(u.Restrictions), &a); err != nil {
-		a = library.DefaultAccess(u.Kind)
-		if u.Kind == auth.KindAdult {
-			a.MaxAge = 0 // unreadable limits must fail closed
+	a := library.DefaultAccess(u.Kind) // Kids/Guest are never unrestricted
+	if u.Restrictions != "" {
+		if err := json.Unmarshal([]byte(u.Restrictions), &a); err != nil {
+			a = library.DefaultAccess(u.Kind)
+			if u.Kind == auth.KindAdult {
+				a.MaxAge = 0 // unreadable limits must fail closed
+			}
 		}
 	}
+	a.ForKind(u.Kind)
 	return &a
 }
 

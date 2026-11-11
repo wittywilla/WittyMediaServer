@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { serverBase } from './api'
+import { api, serverBase } from './api'
+import { overrideDeclarations, type ResolvedTheme } from './themeOverrides'
 import { themeDeclarations } from './ui/themeMaker'
 
 // Themes are ZIPs on the server (see docs/THEMES.md). The server default can
@@ -47,6 +48,32 @@ export const setDeviceTheme = (id: string) => { try { id ? localStorage.setItem(
 
 let wanted = ''
 
+// What the server's theme engine says an administrator changed, and the module whose page
+// is showing. Set as properties on <html>, like a custom theme and for the same reason
+// (the content security policy), over whatever the theme's own sheet says.
+let resolved: ResolvedTheme | null = null
+let moduleNow = ''
+let overrideProps: string[] = []
+function applyOverrides() {
+  const root = document.documentElement.style
+  for (const p of overrideProps) root.removeProperty(p)
+  overrideProps = []
+  // A look made on this device is the person's own, colour by colour: nothing is laid over it.
+  if (document.documentElement.dataset.theme === CUSTOM_THEME) return
+  // The global overrides were chosen for the server's theme. A device showing another gets
+  // only the module colours, as the server does for an account with its own theme.
+  const globalApplies = !!resolved && resolved.source === 'server' && !deviceTheme()
+  for (const [name, value] of overrideDeclarations(resolved, moduleNow, globalApplies)) { root.setProperty(name, value); overrideProps.push(name) }
+}
+// loadThemeOverrides asks the server for the signed-in account's resolved theme.
+export async function loadThemeOverrides() {
+  try { resolved = await api.get<ResolvedTheme>('/theme') } catch { resolved = null }
+  applyOverrides()
+}
+export function clearThemeOverrides() { resolved = null; applyOverrides() }
+// setThemeModule says which module's page is showing ("" for the server's own).
+export function setThemeModule(id: string) { if (id !== moduleNow) { moduleNow = id; applyOverrides() } }
+
 // 'auto' follows the device's light or dark setting, using the two built-in looks.
 export const AUTO_THEME = 'auto'
 const lightDevice = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null
@@ -60,11 +87,12 @@ const resolveTheme = (id: string) => (id === AUTO_THEME ? (lightDevice?.matches 
 export function applyTheme(wantedId: string, version = '') {
   if (lightDevice) lightDevice.onchange = wantedId === AUTO_THEME ? () => applyTheme(AUTO_THEME, version) : null
   const id = resolveTheme(wantedId)
-  if (id === CUSTOM_THEME && customThemeCss()) { wanted = ''; applyCustom(customThemeCss()); return }
+  if (id === CUSTOM_THEME && customThemeCss()) { wanted = ''; applyCustom(customThemeCss()); applyOverrides(); return }
   clearCustom()
   const href = `${serverBase()}/api/themes/${encodeURIComponent(id || 'default')}/theme.css${version ? '?v=' + version : ''}`
   wanted = href
   document.documentElement.dataset.theme = id || 'default'
+  applyOverrides()
   const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[data-wms-theme]'))
   const cur = links.find((l) => l.getAttribute('href') === href)
   if (cur && (cur.sheet || cur.dataset.state === 'loading')) {

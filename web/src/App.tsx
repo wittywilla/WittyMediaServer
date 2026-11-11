@@ -5,6 +5,8 @@ import { Link, Route, Routes, useLocation } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
 import { ReminderWatcher } from './pages/tv/reminders'
 import { api } from './api'
+import { setThemeModule } from './theme'
+import { moduleForPath } from './themeOverrides'
 import { getNavCollapsed, setNavCollapsed, useNavStyle } from './navPrefs'
 import HomePage from './pages/HomePage'
 import { EmptyState, PageSkeleton, Spinner, VersionTag } from './components/common'
@@ -88,6 +90,9 @@ function Shell() {
   const { user, loading, setupRequired, onboarding, needServer } = useApp()
   const loc = useLocation()
   const tvMode = useTvMode()
+  // A module's pages can be tinted differently from the rest (the theme engine's module overrides).
+  const pageModule = moduleForPath(loc.pathname)
+  useLayoutEffect(() => { setThemeModule(pageModule) }, [pageModule])
   useLayoutEffect(() => { if (user) loadUserPrefs(user.id) }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   // A link someone was sent: no account, no app around it.
   if (loc.pathname.startsWith('/s/')) return <Suspense fallback={null}><Routes><Route path="/s/:token" element={<SharedPage />} /></Routes></Suspense>

@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { HelpLink } from '../components/HelpLink'
 import { Link, useSearchParams } from 'react-router-dom'
-import { api, type User, type UserView } from '../api'
+import { api, ApiError, type User, type UserView } from '../api'
 import { useApp } from '../state'
 import './pair.css'
 
 type Invite = { code: string; expiresInSec: number; user: User }
-type Asking = { code: string; device: string; platform: string; ip: string; profiles: { id: number; name: string; kind: string }[] }
+type Asking = { code: string; device: string; platform: string; ip: string; profiles: { id: number; name: string; kind: string }[]; needsPin?: boolean }
+
+// A device that started with secure pairing shows a 6-digit PIN that changes every 30 seconds.
+const PIN_LENGTH = 6
 
 // Signing a TV in: the TV shows a short code, and it's typed (or arrives in
 // the address, from a QR code) here. Nothing happens until the person has seen
@@ -21,18 +24,39 @@ export default function PairPage() {
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<{ device: string; user: User } | 'denied' | null>(null)
+  const [pin, setPin] = useState('')
+  const [pinErr, setPinErr] = useState('')
 
   const look = async (c: string) => {
     setErr(''); setBusy(true)
-    try { const a = await api.post<Asking>('/pair/info', { code: c }); setAsking(a); setWho(user?.id || 0) } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+    try { const a = await api.post<Asking>('/pair/info', { code: c }); setAsking(a); setWho(user?.id || 0); setPin(''); setPinErr('') } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
   // A code in the address only fills in the form's first step: the question
   // below is still asked.
   useEffect(() => { const c = params.get('code'); if (c) look(c) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const needsPin = !!asking?.needsPin
+  const pinReady = !needsPin || pin.length === PIN_LENGTH
   const approve = async () => {
-    setErr(''); setBusy(true)
-    try { setDone(await api.post<{ device: string; user: User }>('/pair/approve', { code: asking!.code, userId: who })) } catch (e: any) { setErr(e.message); setAsking(null) } finally { setBusy(false) }
+    if (!pinReady) { setPinErr(`Type the ${PIN_LENGTH}-digit PIN the TV shows now.`); return }
+    setErr(''); setPinErr(''); setBusy(true)
+    try {
+      setDone(await api.post<{ device: string; user: User }>('/pair/approve', needsPin ? { code: asking!.code, userId: who, pin } : { code: asking!.code, userId: who }))
+    } catch (e: any) {
+      const reason = e instanceof ApiError ? e.data?.reason : undefined
+      if (needsPin && reason === 'wrong-pin') {
+        // The question stays open: the PIN changes every 30 seconds, so another try is normal.
+        const left = e.data?.triesLeft
+        setPinErr(typeof left === 'number' && left > 0 ? `${e.message} ${left === 1 ? 'One more try' : `${left} more tries`} before the sign-in ends.` : e.message)
+        setPin('')
+      } else if (reason === 'locked') {
+        setErr('Too many wrong PINs were typed, so this sign-in has ended. Start again on the TV.'); setAsking(null)
+      } else if (reason === 'expired' || reason === 'used' || reason === 'not-found' || (e instanceof ApiError && e.status === 410)) {
+        setErr(e.message || 'This sign-in has expired. Start again on the TV.'); setAsking(null)
+      } else {
+        setErr(e.message); setAsking(null)
+      }
+    } finally { setBusy(false) }
   }
   const deny = async () => {
     setErr(''); setBusy(true)
@@ -89,10 +113,21 @@ export default function PairPage() {
                 <select className="select" value={who} onChange={(e) => setWho(Number(e.target.value))}>{profiles(asking.profiles)}</select>
               </label>
             )}
+            {needsPin && (
+              <label>PIN on the TV
+                <input className="input pair-pin" value={pin} autoFocus inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code"
+                  maxLength={PIN_LENGTH} placeholder="123456" spellCheck={false} disabled={busy}
+                  aria-describedby={pinErr ? 'pair-pin-help pair-pin-error' : 'pair-pin-help'} aria-invalid={pinErr ? true : undefined}
+                  onChange={(e) => { setPin(e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH)); setPinErr('') }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && pin.length === PIN_LENGTH && !busy) approve() }} />
+                <span id="pair-pin-help" className="panel-note">The {PIN_LENGTH} digits under the QR code. They change every 30 seconds, so type the ones shown now.</span>
+              </label>
+            )}
+            {pinErr && <div id="pair-pin-error" className="error" role="alert">{pinErr}</div>}
             {err && <div className="error" role="alert">{err}</div>}
           </div>
           <div className="panel-actions">
-            <button className="btn primary" autoFocus disabled={busy} onClick={approve}>Sign it in</button>
+            <button className="btn primary" autoFocus={!needsPin} disabled={busy || !pinReady} onClick={approve}>Sign it in</button>
             <button className="btn ghost" disabled={busy} onClick={deny}>Refuse</button>
           </div>
         </div>

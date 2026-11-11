@@ -4,6 +4,7 @@ What the server takes from the computer it runs on, from measurements rather tha
 
 - [The short answer](#the-short-answer)
 - [The server on its own](#the-server-on-its-own)
+- [Small machines](#small-machines)
 - [Playing](#playing)
 - [DVDs and Blu-rays](#dvds-and-blu-rays)
 - [WittyTV channels](#wittytv-channels)
@@ -37,6 +38,28 @@ Measured on 4 November 2026, a server with no libraries and then with the demo m
 | Start-up, an existing data folder | Under a second when the machine is quiet; up to several seconds while it's busy | About half a second |
 
 **Scanning** a library adds little to the server itself: its memory peaked at 46 to 49 MB while scanning. Most of the work of a first scan is FFmpeg reading each file's details, a few tenths of a second a file. A scan with nothing changed reads only the folders. The server rescans every six hours.
+
+## Small machines
+
+The server looks at the machine when it starts, and holds itself back on a small one so that playing stays smooth. Nothing needs setting.
+
+| | What counts | Examples |
+|---|---|---|
+| **Tiny** | Up to 1.5 GB of memory, or one or two processors with up to 2 GB | Raspberry Pi 3, Pi Zero 2, an old dual-core Atom |
+| **Small** | Up to 4 GB of memory, or up to four processors | A Celeron or Atom mini PC, a Raspberry Pi 4 or 5, an N100 |
+| **Roomy** | Anything larger | Nothing is held back |
+
+In a container the memory limit you gave it counts: a NAS with 8 GB that gives the server 1 GB is a tiny machine.
+
+On a tiny or small machine:
+
+- **Memory.** The server keeps its own memory within about a quarter of what the machine has (128 to 384 MB on a tiny one, 256 MB to 1 GB on a small one), and tidies up more often, so there's room left for FFmpeg and for the system to keep the film being played in memory. If you set `GOMEMLIMIT` or `GOGC` yourself, yours are used.
+- **Scanning gives way to watching.** While a video is being transcoded or a channel is running, a scan reads the next file only every 20 seconds on a tiny machine and every 5 on a small one, and carries on at full speed when the stream ends. A scan started during a long film still finishes. The files a scan reads are read at a lower priority at all times.
+- **Less at once.** A tiny machine reads the details of two files at a time and makes one thumbnail at a time; a small one up to four and two.
+
+A film that plays without transcoding is sent by the system itself, straight from the disk to the network, on every size of machine, with or without a speed limit for [remote access](REMOTE.md). The server doesn't read the file, which is why a Raspberry Pi can send several at once. That holds for plain HTTP, which is what a home network and a reverse proxy use; where the server does the HTTPS itself it has to read the file to encrypt it.
+
+The log says what it decided when the server starts: `this is a small machine, so the server holds itself back`, with the class and the limits. To try another class, set `WMS_MACHINE` to `tiny`, `small` or `roomy` ([configuration](CONFIG.md)).
 
 ## Playing
 

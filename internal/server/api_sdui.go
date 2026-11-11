@@ -4,7 +4,6 @@
 package server
 
 import (
-	"bytes"
 	"container/list"
 	"encoding/json"
 	"errors"
@@ -16,6 +15,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/wittywilla/wittymediaserver/internal/bufpool"
 	"github.com/wittywilla/wittymediaserver/internal/sduistore"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
@@ -92,8 +92,9 @@ func (s *Server) sduiRoutes(m *http.ServeMux) {
 // writeJSONTagged is writeJSON for answers a client may keep: an ETag, and a cache that
 // keeps the answer only for this account and asks again each time.
 func writeJSONTagged(w http.ResponseWriter, code int, etag string, v any) {
-	var b bytes.Buffer
-	enc := json.NewEncoder(&b)
+	b := bufpool.Get()
+	defer bufpool.Put(b)
+	enc := json.NewEncoder(b)
 	enc.SetEscapeHTML(false)
 	if err := enc.Encode(v); err != nil {
 		writeErr(w, 500, "Something went wrong on the server. It is in the log.")

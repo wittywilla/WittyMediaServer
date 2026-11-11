@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/bufpool"
 	"github.com/wittywilla/wittymodule"
 	"github.com/wittywilla/wittymodule/service"
 )
@@ -238,6 +239,7 @@ func stripWitty(h http.Header) {
 // may change the service's answer before it is sent on.
 func ProxyToService(c *service.Conn, w http.ResponseWriter, r *http.Request, path string, onErr func(error), modify ...func(*http.Response) error) {
 	p := &httputil.ReverseProxy{
+		BufferPool: bufpool.Copy, // a game's picture and sound go through here all the while it is played
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.Out.URL.Scheme, pr.Out.URL.Host = c.Base.Scheme, c.Base.Host
 			pr.Out.URL.Path, pr.Out.URL.RawPath = path, ""

@@ -8,6 +8,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/pace"
 	"image"
 	"image/color"
 	"image/draw"
@@ -17,7 +18,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -44,7 +44,7 @@ var (
 func gameThumbSlot() chan struct{} {
 	// Each holds a decoded picture twice over, up to 128 MB for the largest allowed, so
 	// a page of new posters mustn't decode a dozen at once on a small machine.
-	gameThumbOnce.Do(func() { gameThumbSlots = make(chan struct{}, min(2, max(1, runtime.NumCPU()/2))) })
+	gameThumbOnce.Do(func() { gameThumbSlots = make(chan struct{}, min(2, pace.Slots(pace.Thumbs))) })
 	return gameThumbSlots
 }
 

@@ -18,11 +18,13 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/dvd"
 	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/pace"
 )
 
 // Tools holds resolved binary paths and encoder capabilities.
@@ -286,13 +288,20 @@ func (t *Tools) ProbeInput(ctx context.Context, input []string) (*Probe, error) 
 }
 
 // probeSlots limits how many ffprobe processes run at once: anyone signed in
-// can ask for a title's details as often as they like.
-var probeSlots = make(chan struct{}, max(4, runtime.NumCPU()))
+// can ask for a title's details as often as they like. How many depends on the
+// machine: each is a process with a processor to itself while it runs.
+var probeSlots = sync.OnceValue(func() chan struct{} { return make(chan struct{}, pace.Slots(pace.Probes)) })
 
 func (t *Tools) probe(ctx context.Context, input []string) (*Probe, error) {
+	// A scan's probe gives way to someone's stream on a small machine. Before the
+	// slot, so a waiting scan holds nothing a person's own request needs.
+	if err := pace.Yield(ctx); err != nil {
+		return nil, err
+	}
+	slots := probeSlots()
 	select {
-	case probeSlots <- struct{}{}:
-		defer func() { <-probeSlots }()
+	case slots <- struct{}{}:
+		defer func() { <-slots }()
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
@@ -699,7 +708,22 @@ func Run(ctx context.Context, path string, args []string, attrs ...any) ([]byte,
 	stderr := &logging.Tail{}
 	cmd.Stderr = stderr
 	started := time.Now()
-	out, err := cmd.Output()
+	// As cmd.Output, with a moment between starting and waiting: work nobody is
+	// waiting for runs at a lower priority, so it has the processor only when
+	// nothing else wants it.
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	if pace.IsBackground(ctx) {
+		lowPriority(cmd)
+	}
+	err := cmd.Start()
+	if err == nil {
+		if pace.IsBackground(ctx) {
+			lowPriorityStarted(cmd)
+		}
+		err = cmd.Wait()
+	}
+	out := stdout.Bytes()
 	// A job killed for its context says only "exit status 1". The context says why.
 	why := err
 	if err != nil && ctx.Err() != nil {

@@ -75,6 +75,9 @@ Smaller ones live beside the code, for `go test -bench`:
 | `internal/db`: `BenchmarkQueryThroughLoggedDriver` | What the statement logging costs |
 | `internal/server`: `BenchmarkRequestLogged` | What request logging costs |
 | `internal/logging`, `internal/metrics`, `internal/sysinfo`, `internal/tasks` | The log, the statistics, readings of the machine, and progress with nobody watching |
+| `internal/bufpool`: `BenchmarkEncodeFresh`, `BenchmarkEncodePooled` | What borrowing the buffer saves each JSON answer: 536 to 168 bytes and 13 to 11 allocations for a list of fifty |
+
+How the server fits itself to a small machine (memory limit, how much runs at once, scans giving way to streams) is `internal/pace`; [Hardware](HARDWARE.md#small-machines) says what it does.
 
 FFmpeg's own benchmark, for transcoding, is separate: [Measuring FFmpeg](FFMPEG-BENCHMARK.md) (#81).
 

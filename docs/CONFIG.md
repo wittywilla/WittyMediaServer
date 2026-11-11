@@ -257,6 +257,7 @@ The first makes a ZIP, sanitized unless you add `--raw`. The second makes a sani
 | `WMS_WITTYPLAY_RUNNER` | Runs games with this program, in place of what the module brought |
 | `WMS_WITTYCOUCH_HOST` | Uses this program as the WittyCouch host |
 | `WMS_GAMING_TESTCORE=1` | Offers the built-in test console |
+| `WMS_MACHINE=tiny`, `small` or `roomy` | Says how small this machine is, in place of what the server works out from its processors and memory. See [small machines](HARDWARE.md#small-machines) |
 
 Only a build with the `updatetest` tag reads `WMS_UPDATE_FEED`, `WMS_UPDATE_KEY`, `WMS_MODULE_FEED` and `WMS_MODULE_CATALOG`.
 

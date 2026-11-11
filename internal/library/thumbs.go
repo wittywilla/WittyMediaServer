@@ -14,7 +14,6 @@ import (
 	"math/bits"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -22,6 +21,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/pace"
 )
 
 // Thumbnails made the first time they are asked for: scanning a library of a
@@ -94,14 +94,7 @@ func noteThumbFailure(key string, err error) {
 
 func thumbSlot() chan struct{} {
 	thumbSlotsO.Do(func() {
-		n := runtime.NumCPU() / 2
-		if n < 1 {
-			n = 1
-		}
-		if n > 3 {
-			n = 3
-		}
-		thumbSlots = make(chan struct{}, n)
+		thumbSlots = make(chan struct{}, pace.Slots(pace.Thumbs))
 	})
 	return thumbSlots
 }

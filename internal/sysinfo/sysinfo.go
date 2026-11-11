@@ -37,6 +37,13 @@ func Read() Info {
 	return i
 }
 
+// MemoryMB is how much memory the machine has, 0 when that can't be read. Cheap: for
+// deciding how much work to take on (internal/pace).
+func MemoryMB() int64 {
+	total, _ := memory()
+	return total
+}
+
 func inContainer() bool {
 	if _, err := os.Stat("/.dockerenv"); err == nil {
 		return true

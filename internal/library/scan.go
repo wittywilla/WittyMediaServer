@@ -28,6 +28,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/mediaextras"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
+	"github.com/wittywilla/wittymediaserver/internal/pace"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
@@ -125,6 +126,7 @@ func (s *Scanner) StartBy(libraryID int64, by tasks.By) bool {
 		By: by, Cancel: cancel, Pausable: true, RetryKey: strconv.FormatInt(libraryID, 10), Quiet: rig})
 	id := logging.NewID("scan")
 	ctx = logging.WithSession(ctx, id) // every record of this scan carries it
+	ctx = pace.Background(ctx)         // and it gives way to people on a small machine
 	logging.Go("library scan", func() {
 		defer func() {
 			s.mu.Lock()

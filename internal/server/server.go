@@ -5,7 +5,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -22,6 +21,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/bdsession"
+	"github.com/wittywilla/wittymediaserver/internal/bufpool"
 	"github.com/wittywilla/wittymediaserver/internal/channels"
 	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/db"
@@ -1009,8 +1009,10 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Cache-Control", "no-store")
 	// Into memory first, which the encoder would do anyway: a value it can't write is then an
 	// error someone can see, not a success with nothing in it.
-	var b bytes.Buffer
-	if err := json.NewEncoder(&b).Encode(v); err != nil {
+	// The buffer is borrowed: nearly every answer the API gives comes through here.
+	b := bufpool.Get()
+	defer bufpool.Put(b)
+	if err := json.NewEncoder(b).Encode(v); err != nil {
 		slog.Error("an answer could not be written", "cat", "http", "err", err)
 		w.WriteHeader(500)
 		_, _ = w.Write([]byte(`{"error":"Something went wrong on the server. It is in the log."}` + "\n"))

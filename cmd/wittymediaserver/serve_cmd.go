@@ -44,6 +44,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/modules/bdremote"
 	"github.com/wittywilla/wittymediaserver/internal/modules/dvdremote"
 	"github.com/wittywilla/wittymediaserver/internal/modules/photoengine"
+	"github.com/wittywilla/wittymediaserver/internal/pace"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
 	"github.com/wittywilla/wittymediaserver/internal/server"
@@ -231,6 +232,13 @@ func cmdServe(args []string) int {
 	gameMeta.SaveMeta, gameMeta.Save = scanner.SaveMeta, scanner.SaveItemMetadata
 	scanner.GameMeta = gameMeta
 	hlsMgr := hls.NewManager(tools, cfg.TranscodeDir, cfg.MaxTranscode, log)
+	// A small machine: Go keeps its memory inside what there is, and scans give way
+	// while a stream is being converted (internal/pace).
+	pace.SetBusy(func() bool { return hlsMgr.ActiveCount()+hlsMgr.LiveCount() > 0 })
+	if t := pace.Tune(); t.Class != pace.Roomy {
+		log.Info("this is a small machine, so the server holds itself back", "cat", "server", "class", t.Class.String(), "cores", t.Cores, "memoryMB", t.MemoryMB,
+			"goMemoryLimitMB", t.MemoryLimit>>20, "gcPercent", t.GCPercent, "probesAtOnce", pace.Slots(pace.Probes), "thumbnailsAtOnce", pace.Slots(pace.Thumbs))
+	}
 	dvdMgr := dvdsession.NewManager(hlsMgr, tools, cfg.CacheDir, "/api", log)
 	bdMgr := bdsession.NewManager(hlsMgr, tools, cfg.CacheDir, "/api", log)
 	bdMgr.BDJ = func() (bool, string) {
@@ -382,7 +390,7 @@ func cmdServe(args []string) int {
 	logging.Loop("podcast refresh", func() {
 		time.Sleep(time.Minute)
 		for {
-			scanner.RefreshPodcasts(context.Background())
+			scanner.RefreshPodcasts(pace.Background(context.Background()))
 			time.Sleep(2 * time.Hour)
 		}
 	}, "cat", "library")
@@ -392,7 +400,7 @@ func cmdServe(args []string) int {
 	go func() {
 		time.Sleep(10 * time.Minute)
 		for {
-			scanner.RefreshRadio(context.Background())
+			scanner.RefreshRadio(pace.Background(context.Background()))
 			time.Sleep(6 * time.Hour)
 		}
 	}()

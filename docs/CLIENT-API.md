@@ -33,6 +33,7 @@ The same contract is in machine-readable form in `openapi.json` (OpenAPI 3.1), b
 - [What a TV app must build itself](#what-a-tv-app-must-build-itself)
 - [Game details](#game-details)
 - [Legal notices](#legal-notices)
+- [Remote control and watch parties](#remote-control-and-watch-parties)
 - [Background tasks and server stats](#background-tasks-and-server-stats)
 - [Adding to the API](#adding-to-the-api)
 - [Every route](#every-route)
@@ -1069,6 +1070,15 @@ same words everywhere. `GET /legal/notices` needs no sign-in and returns them by
 - `/status` has `legalAck`: false only for an administrator who hasn't seen the first-run notice. Show
   them `ack` once, then call `POST /legal/acknowledge`. `POST /setup` takes `acknowledgedLegal: true`
   when a client's own setup screen has shown it. Neither sends anything off the server.
+
+## Remote control and watch parties
+
+Two things that make several clients act as one, both through the server and both optional for an app:
+
+- **Remote control.** Any signed-in client can announce itself as a device, and any other can play something on it, pause it, seek, change its volume or tracks, press its arrow keys, or hand over what it's playing. [REMOTE-PROTOCOL.md](REMOTE-PROTOCOL.md) is the whole wire format, with every message. A server that has it lists `remote-protocol` in `features`, and `GET /remote-control` says whether its owner has it on.
+- **Watch parties.** People in different places watch the same thing in step. The server keeps one state for the room and every player follows it. [SYNCPLAY.md](SYNCPLAY.md#for-developers) has the routes, the clock arithmetic and the drift rules. The feature name is `syncplay`.
+
+Both use server-sent events for what the server pushes and ordinary requests for the rest, like the activity stream below. Neither carries media: a client told to play something asks for it through [`POST /items/{id}/playback`](#playing-something) with its own sign-in, so every limit there applies as usual. Both refuse a stream token.
 
 ## Background tasks and server stats
 

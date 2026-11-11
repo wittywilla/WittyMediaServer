@@ -304,9 +304,11 @@ The page is called **Sharing & photos**. **Your links** is for everyone who has 
 - **Links for people without an account:** **Allow links** is on by default. Turning it off stops every existing link too.
 - **Photo map** works offline with a plain outline of the world. **Use an online map** is off by default; with it on, each viewer's device asks the provider at **Online map address** for the area being viewed, and the map shows **Credit to show on the map**. Each device can still choose the outline.
 - **Local AI** is planned and doesn't exist yet. The switch does nothing.
+- **Play on other devices:** **Allow playing on other devices** is on by default: any signed-in device can be played on, and steered, from another signed in as the same account. Under it is every account with a switch, **Can control other people's devices**, off for everyone to begin with. Turn it on for the accounts that should be able to steer devices signed in as someone else, such as a parent's for the TV on a Kids profile. It never lets anyone play what they, or that device's account, aren't allowed to see.
+- **Watch parties:** **Allow watch parties** is on by default. **Who can start one** is **Everyone**, **Adults** or **Only administrators**; anyone signed in can join one they have the code for.
 - **Your links** lists your links, with **End link**. Administrators can tick **Everyone's**.
 
-More: [Photos](PHOTOS.md), [Vertical videos](SHORTS.md).
+More: [Photos](PHOTOS.md), [Vertical videos](SHORTS.md), [Playing on another device](PLAYING.md#playing-on-another-device), [Watch parties](SYNCPLAY.md).
 
 ## Advanced
 

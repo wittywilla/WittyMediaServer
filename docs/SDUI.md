@@ -732,8 +732,9 @@ the same device parameters as the screen, renders the screen and then:
 
 - answers **304** when `since` is the current ETag;
 - answers `{"etag", "since", "patches": [...]}` when the server still has the
-  render `since` names, kept for this account (the last 256 renders across all
-  accounts, in memory, gone at restart). Apply the patches with the
+  render `since` names, kept for this account (its last 6, and at most 128
+  across all accounts, 32 or 12 on a small machine; in memory, gone at
+  restart). Apply the patches with the
   [client algorithm](#client-application-algorithm);
 - answers `{"etag", "document": {...}}` otherwise: replace the local tree.
 

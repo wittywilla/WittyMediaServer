@@ -12,6 +12,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/pace"
 	"github.com/wittywilla/wittymediaserver/internal/sduistore"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
@@ -254,5 +255,37 @@ func TestSDUIConfigCannotBrickClients(t *testing.T) {
 	// And going back a revision restores the first configuration.
 	if w := ts.do(t, "POST", "/api/sdui/config/rollback/1", f.admin, nil); w.Code != 200 || len(decode[sduistore.Config](t, w).Screens) != len(sdui.DefaultScreens()) {
 		t.Errorf("rollback: %d %s", w.Code, w.Body)
+	}
+}
+
+// The renders kept for diffs are bounded for the server and for each account, so neither a
+// busy client nor many accounts can make the server hold screens without end.
+func TestSDUIKeptRendersAreBounded(t *testing.T) {
+	ts := newTestServer(t)
+	doc := func(n int) sdui.Document {
+		d := sdui.Document{Version: 1, Screen: "x", Root: sdui.Node{Type: sdui.Screen, ID: fmt.Sprint("x", n)}}
+		d.Meta.ETag = sdui.ETag(d)
+		return d
+	}
+	for i := 0; i < 50; i++ {
+		ts.keepRender(1, doc(i))
+	}
+	if n := ts.sdui.order.Len(); n != maxKeptPerAccount {
+		t.Errorf("one account keeps %d renders, want %d", n, maxKeptPerAccount)
+	}
+	if _, ok := ts.keptRenderFor(1, doc(49).Meta.ETag); !ok {
+		t.Error("the newest render was dropped")
+	}
+	if _, ok := ts.keptRenderFor(1, doc(0).Meta.ETag); ok {
+		t.Error("the oldest render was kept")
+	}
+	for uid := int64(2); uid < 400; uid++ {
+		ts.keepRender(uid, doc(int(uid)))
+	}
+	if n, limit := ts.sdui.order.Len(), keptRendersFor(pace.Machine()); n > limit || n != len(ts.sdui.renders) {
+		t.Errorf("%d renders kept (index %d), limit %d", n, len(ts.sdui.renders), limit)
+	}
+	if _, ok := ts.keptRenderFor(2, doc(399).Meta.ETag); ok {
+		t.Error("an account was given another account's render")
 	}
 }

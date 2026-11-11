@@ -18,6 +18,7 @@ import (
 	"sync"
 
 	"github.com/wittywilla/wittymediaserver/internal/bufpool"
+	"github.com/wittywilla/wittymediaserver/internal/pace"
 	"github.com/wittywilla/wittymediaserver/internal/sduistore"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
@@ -39,11 +40,26 @@ type sduiState struct {
 
 type keptRender struct {
 	key string
+	uid int64
 	doc sdui.Document
 }
 
-// maxKeptRenders bounds the renders kept so a client can ask for a diff against one.
-const maxKeptRenders = 256
+// keptRendersFor bounds the renders kept so a client can ask for a diff against one. A
+// render holds a screen's worth of titles, a few hundred kilobytes for a full home screen,
+// so a small machine keeps few; a client whose render has gone is sent the whole screen,
+// which is always right. One account keeps at most maxKeptPerAccount, so one busy client
+// can't push out everyone else's.
+func keptRendersFor(c pace.Class) int {
+	switch c {
+	case pace.Tiny:
+		return 12
+	case pace.Small:
+		return 32
+	}
+	return 128
+}
+
+const maxKeptPerAccount = 6
 
 // uiStore opens ui_config.json the first time it is needed.
 func (s *Server) uiStore() (*sduistore.Store, error) {
@@ -365,7 +381,8 @@ func (s *Server) renderScreen(w http.ResponseWriter, r *http.Request) (sdui.Docu
 
 func renderKey(uid int64, etag string) string { return strconv.FormatInt(uid, 10) + " " + etag }
 
-// keepRender remembers a render for this account, the newest maxKeptRenders in all.
+// keepRender remembers a render for this account: its newest few, and the newest of all up to
+// what the machine has room for.
 func (s *Server) keepRender(uid int64, doc sdui.Document) {
 	st := &s.sdui
 	st.mu.Lock()
@@ -378,8 +395,20 @@ func (s *Server) keepRender(uid int64, doc sdui.Document) {
 		st.order.MoveToFront(e)
 		return
 	}
-	st.renders[key] = st.order.PushFront(&keptRender{key: key, doc: doc})
-	for st.order.Len() > maxKeptRenders {
+	st.renders[key] = st.order.PushFront(&keptRender{key: key, uid: uid, doc: doc})
+	// This account's oldest go first, then the oldest of all.
+	mine := 0
+	for e := st.order.Front(); e != nil; {
+		next := e.Next()
+		if k := e.Value.(*keptRender); k.uid == uid {
+			if mine++; mine > maxKeptPerAccount {
+				st.order.Remove(e)
+				delete(st.renders, k.key)
+			}
+		}
+		e = next
+	}
+	for limit := keptRendersFor(pace.Machine()); st.order.Len() > limit; {
 		last := st.order.Back()
 		st.order.Remove(last)
 		delete(st.renders, last.Value.(*keptRender).key)

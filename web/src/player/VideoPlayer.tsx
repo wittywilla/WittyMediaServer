@@ -22,6 +22,7 @@ import { useViewPrefs } from './viewPrefs'
 import { getTvMode } from '../tvmode/mode'
 import { registerPlayer, reportSoon, type RemoteCommand, type RemoteState } from '../remote/device'
 import { usePartySync } from '../remote/party'
+import { useRemoteAllowed } from '../remote/allowed'
 import { setSpeed } from './speed'
 
 // Opened from the player's top bar, and not before.
@@ -72,6 +73,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     return t == null ? null : t === 'off' ? -1 : Number.isInteger(Number(t)) ? Number(t) : null
   })
   const [sendTo, setSendTo] = useState<'device' | 'party' | null>(null)
+  const may = useRemoteAllowed() // either can be turned off for a profile
   const audio = want.audio ?? info?.audioIndex ?? 0
   const burn = want.burn
   const flat3d = !!want.flat3d
@@ -480,8 +482,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             <button className="ibtn" onClick={chrome.minimize} title="Back (keeps playing in the mini player)"><IconBack /></button>
             <div className="grow"><h1>{item.title}</h1><div className="sub">{[subtitle || item.year, info && MODE_WORDS[info.decision]].filter(Boolean).join(' · ')}</div></div>
             {info && <button className="ibtn" onClick={() => setInfoOpen(true)} title="How this is playing (I)" aria-label="How this is playing"><IconInfo /></button>}
-            <button className={'ibtn' + (party.active ? ' on' : '')} onClick={() => openOver('party')} title="Watch party" aria-label={party.room ? `Watch party, ${party.room.members.length} watching` : 'Watch party'}><IconUsers /></button>
-            <button className="ibtn" onClick={() => openOver('device')} title="Play on another device" aria-label="Play on another device"><IconDevices /></button>
+            {(may.party || party.room) && <button className={'ibtn' + (party.active ? ' on' : '')} onClick={() => openOver('party')} title="Watch party" aria-label={party.room ? `Watch party, ${party.room.members.length} watching` : 'Watch party'}><IconUsers /></button>}
+            {may.playOn && <button className="ibtn" onClick={() => openOver('device')} title="Play on another device" aria-label="Play on another device"><IconDevices /></button>}
             {item.nextId && !party.active && <button className="btn sm" onClick={() => nav(nextHref, { replace: true })} title="Next episode"><IconNext /> <span className="hide-narrow">Next episode</span></button>}
             <button className="ibtn" onClick={chrome.minimize} title="Mini player"><IconMini /></button>
           </div>

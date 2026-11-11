@@ -727,6 +727,31 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/media/{id}/markers` | Admin | JSON of at most 64 KB. Every range starts at 0 or later and ends after it starts, at most 200 breaks. Kept apart from what scans read, which never replace it |
 | `GET /api/media/{id}/where-to-watch` | Signed-in | limits. Versions the account may see only. Region two letters. Sends only a TMDB id and region to TMDB, with the owner's key; answers kept as long as listings |
 | `GET /api/discover/where-to-watch` | Signed-in | limits, for whether it's in the library. TMDB id digits only, type movie or tv, region two letters |
+| `GET /api/remote-control` | Signed-in | Nothing: the protocol's versions and limits. own setting for controlling other accounts' devices |
+| `GET /api/remote-control/devices` | Signed-in | By the owner's switch. own devices, and other accounts' only where an administrator has allowed this account that. What a device plays is shown only where limits allow the caller to see it |
+| `POST /api/remote-control/devices` | Signed-in | By the owner's switch. A real sign-in, not a stream token. 8 KB body. Name cut to 60 characters, kind and capabilities kept only where known. Limits on devices, per account and overall. An id is taken back only by the sign-in that had it |
+| `DELETE /api/remote-control/devices/{id}` | Signed-in | own, and only from the sign-in that announced it |
+| `GET /api/remote-control/devices/{id}/channel` | Signed-in | own, and only from the sign-in that announced it. Limits on open streams, per account and overall. The sign-in is looked at again as it runs |
+| `POST /api/remote-control/devices/{id}/state` | Signed-in | own, and only from the sign-in that announced it. 32 KB body. Rate limit. Numbers made finite and in range, strings cut, lists bounded |
+| `POST /api/remote-control/devices/{id}/ack` | Signed-in | own, and only from the sign-in that announced it. A command that is waiting for this device |
+| `POST /api/remote-control/devices/{id}/commands` | Signed-in | By the owner's switch. own device, or another account's where an administrator has allowed this account that. 8 KB body. Known command, values in range. Rate limit per account. Only what the device said it can do. To play: limits of the caller and limits of the device's own account, for every item named. To cast: both devices ones the caller may control |
+| `GET /api/remote-control/events` | Signed-in | As for the list of devices. Limits on open streams, per account and overall. The account is looked at again as it runs |
+| `GET /api/remote-control/accounts` | Admin | Nothing further |
+| `PUT /api/remote-control/accounts/{id}` | Admin | Account exists. Logged with who changed it |
+| `GET /api/syncplay` | Signed-in | Nothing: the rules clients keep in step by. own rooms and invitations, never what a room is playing |
+| `POST /api/syncplay/rooms` | Signed-in | By the owner's switch and who may start one. A real sign-in, not a stream token. 8 KB body. limits, for every item in the queue. 1 to 200 items. Limits on rooms, per account and overall |
+| `POST /api/syncplay/join` | Signed-in | By the owner's switch. A real sign-in. A six-letter code, with wrong tries counted per account; or a room id, only for an account invited or already seated. limits on what is playing: an account that may not see it is refused and told nothing about it. Limit on members |
+| `GET /api/syncplay/rooms/{id}` | Signed-in | own seat in the room. limits on every title shown |
+| `PUT /api/syncplay/rooms/{id}` | Signed-in | own seat, and it is the host's. Policy is host or everyone. Name cut to 60 characters |
+| `DELETE /api/syncplay/rooms/{id}` | Signed-in | own seat, and it is the host's; or an administrator |
+| `GET /api/syncplay/rooms/{id}/events` | Signed-in | own seat in the room. limits on every title shown. Limits on open streams, per account and overall. The sign-in is looked at again as it runs |
+| `POST /api/syncplay/rooms/{id}/leave` | Signed-in | own seat in the room |
+| `POST /api/syncplay/rooms/{id}/host` | Signed-in | own seat, and it is the host's. The other member exists |
+| `POST /api/syncplay/rooms/{id}/kick` | Signed-in | own seat, and it is the host's. The other member exists and isn't the host |
+| `POST /api/syncplay/rooms/{id}/invite` | Signed-in | own seat, and it is the host's. 1 to 64 accounts that exist. Limit on invitations. An invitation gives no access to anything |
+| `POST /api/syncplay/rooms/{id}/command` | Signed-in | own seat in the room. The host, or anyone where the room allows it; never a member who may not see what is playing. Known command, finite values in range. A new queue: limits of the caller for every item. Rate limit per seat |
+| `POST /api/syncplay/rooms/{id}/report` | Signed-in | own seat in the room. State is ready or buffering. Rate limit per seat |
+| `POST /api/syncplay/rooms/{id}/ping` | Signed-in | own seat in the room. Rate limit per seat |
 | `/` (any method, everything else) | Public | Files of the web app, or its page. An unknown `/api/` address answers 404 |
 
 ---

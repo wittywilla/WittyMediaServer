@@ -193,7 +193,7 @@ Measured on an Apple M-series Mac (arm64), Go 1.27; sizes are release builds (`-
 | Memory, idle, **feature off** | 14–20 MB | 17–21 MB (about 1–3 MB more: the libraries' own start-up) |
 | Goroutines, sockets, timers with the feature off | | none |
 
-With the feature **on**, on the public network: about 45–55 MB in the first two minutes while the node finds the network (some 90 connections at the peak), settling to 22–30 MB with around 20 connections; 3 s of CPU for the first 90 seconds, then under 0.5% of one core. `wittyconnect` is 24–26 MB as a program.
+With the feature **on**, on the public network, the whole server's resident memory was **80 to 95 MB** against 15 to 20 MB with it off: about 60 to 75 MB for the node, most of it in the first two minutes, level after five (three runs of 5 to 15 minutes; the last with `GOMEMLIMIT=100MiB`, which changed little). It peaks at some 90 connections while it finds the network and settles at around 20. CPU: about 3 seconds for the first two minutes, then 0.3 to 0.5% of one core while idle. These are from a Mac, not a Raspberry Pi; on a Pi 3 with 1 GB that is a real share of the memory, which is one more reason it is off unless wanted. `wittyconnect` is 24 to 26 MB as a program.
 
 About a third of the added size is transports the feature never turns on (WebRTC with the pion stack, WebSocket, WebTransport): go-libp2p's root package names them all, so the linker keeps them. Building the node from go-libp2p's `config` package instead would drop them at the price of following its internals. It wasn't judged worth that yet; nor was a build tag, since a Raspberry Pi 3 has the disk and the memory for the figures above, and off costs next to nothing at run time.
 

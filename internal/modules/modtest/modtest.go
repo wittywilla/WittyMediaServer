@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package modtest gives a test real modules, from a catalogue on this machine: the one
 // scripts/make-test-catalog.sh makes. The server has no module's code in it, so a test of what it
 // does with a real one needs that catalogue, and is skipped without it.

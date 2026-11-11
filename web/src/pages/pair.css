@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* Signing a TV in: the two ways round, side by side when there's room. */
 .pair-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--sp-4); max-width: 900px; align-items: start; }
 .pair-ask { max-width: 560px; }

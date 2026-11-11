@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // The photo map's arithmetic, kept apart from drawing so it can be tested
 // (mapMath.test.mjs). Positions are Web Mercator as a share of the world's
 // width from the top left, as online maps and the server's grouping use:

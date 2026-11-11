@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* First-time setup's own pieces. The cards, fields and page around them are in oobe.css. */
 
 .su-card-main:focus { outline: none; }

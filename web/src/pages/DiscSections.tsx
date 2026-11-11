@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, fmtRuntime, fmtTime, langName, mediaUrl, type DiscLabels, type DiscTitleView, type DiscView, type Item } from '../api'

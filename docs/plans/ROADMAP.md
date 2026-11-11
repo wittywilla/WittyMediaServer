@@ -125,7 +125,7 @@ These come from the owner and are not up for change by any plan in this folder.
 1. **Performance and security first.** Every feature must run without stutters on low-end hardware. Audit and trim touched code as it's built. Validate input and auth on every new route.
 2. **Encrypted media stays refused.** No decryption, no bypass plugin, no hook. Licensed devices through their own documented interfaces are the route. WittyTuner can't be forked.
 3. **No competitor names** in code, comments, docs, the README, the changelog or the UI. Describe features generically. VLC is the one credited exception, in WittyMediaPlayer.
-4. **Licences:** in-house and forked work permissive; a copyleft fork is the owner's decision; third-party licences shown in the UI.
+4. **Licences:** the server and modules AGPL-3.0-or-later, client apps GPL-3.0-or-later; in forked work, upstream code keeps its own licence, labelled with the upstream project; third-party licences shown in the UI.
 5. **Modules are their own projects:** each builds, signs and releases from its own repository. Nothing new may depend on the monorepo.
 6. **Small version bumps as work lands.** A bump isn't a release. Tags never move.
 7. **Every platform counts:** server on Windows, Linux, macOS, FreeBSD; clients add Android ARM, x86, TV, iOS, tvOS and Plasma Big Screen. A platform that can't be tried stays listed and is marked not run.

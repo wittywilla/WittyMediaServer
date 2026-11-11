@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Command genicon writes the WittyMediaServer icon as PNG/ICO files for packaging (desktop
 // entries, web manifest, installers), and the pictures the Windows installer's wizard shows.
 //

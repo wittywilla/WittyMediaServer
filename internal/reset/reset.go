@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package reset puts a server back the way it was first installed, or back to a copy
 // kept by an earlier reset. A running server has its files open, so asking and doing
 // are apart: a request is written, and the next start carries it out, before anything

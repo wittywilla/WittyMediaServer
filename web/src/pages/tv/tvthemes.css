@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The shape of each WittyTV theme, over the structure in tv.css. Colours are tokens worked out in
    tvThemes.ts, so nothing here names one. Only what differs is written: corners, rules, type and
    proportions. A shape can be used with any colours, because Custom lets someone do that. */

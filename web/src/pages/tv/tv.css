@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* WittyTV's screens. tvThemes.ts works out every colour token, per theme, and each pairing is
    held to AA there; tvthemes.css gives each theme its shape. What's here is what they share. */
 .ctv, .ctv-player {

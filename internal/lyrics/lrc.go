@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package lyrics reads song lyrics: timed LRC text (with word timing when it
 // has it), plain text, and the frames an MP3 can carry them in. It knows nothing
 // about the server: files and answers from the internet are untrusted, so every

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { createContext, useContext, useEffect, useState } from 'react'
 import { api, mediaUrl, posterUrl, type GameConsole, type Item } from '../../api'
 import type { CoreAlternative, PlatformSupport } from './platforms'

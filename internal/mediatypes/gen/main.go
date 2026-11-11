@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Command gen writes the files made from the registry: the Supported formats page, the
 // registry as JSON, and the few lists the web app needs before it has asked the server.
 // Run it from the repository's root after changing the registry:

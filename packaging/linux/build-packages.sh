@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Makes the .deb and .rpm from a folder scripts/build-release.sh built.
 #
 #   packaging/linux/build-packages.sh <version> <package folder> <arch> [out folder]

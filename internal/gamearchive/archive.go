@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package gamearchive reads the archives game collections come in, and unpacks
 // them to play. See docs/GAMING.md.
 //

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Moves music up or down in key without changing its speed. A delay line with two reading
 // points that drift apart, each fading in and out so they never click: the classic way, and
 // light enough for a phone or a cheap TV. It can warble a little on sustained notes at large

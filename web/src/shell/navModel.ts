@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // What the main menu holds and in what order. Plain data and arithmetic, so the
 // same rules can be tested here and ported to the native clients.
 

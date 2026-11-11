@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, fmtRuntime, mediaUrl, mediaUrlQ } from '../../api'
 import { IconDisc, IconDown, IconPlay, IconPlus, IconTrash, IconUp } from '../../icons'

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* You, on a phone (YouPage.tsx): one column, the person at the top, then grouped lists
    as the apps draw them. --tint is a row's colour. */
 .you { display: grid; gap: var(--sp-6); max-width: 640px; margin: var(--sp-4) auto 0; }

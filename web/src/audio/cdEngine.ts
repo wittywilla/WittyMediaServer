@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { api, mediaUrl, type Item } from '../api'
 import { toast } from '../state'

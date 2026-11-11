@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Gives the repositories that sign releases the module key: for each one, creates the
 # `release` environment if it isn't there, and sets the secret WMS_SIGNING_KEY in it, so
 # only the jobs that sign can read it. The owner runs this.

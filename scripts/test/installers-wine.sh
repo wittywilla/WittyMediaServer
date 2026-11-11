@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Proves the MSI by really running it, in a throwaway container with Wine: install for one person
 # and for everyone, upgrade, uninstall, and the files and registry from before and after, to show
 # nothing is left. Wine isn't Windows, so installers-windows-sandbox.wsb has the last word, but

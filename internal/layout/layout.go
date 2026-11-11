@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package layout knows what an installed WittyMediaServer looks like, on every system
 // and however it was installed, and what its programs are called.
 //

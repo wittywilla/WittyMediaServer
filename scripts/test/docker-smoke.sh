@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Runs an image the way docs/DOCKER.md says, and checks what it promises: locked down
 # as any user, the health check, the hardware report, a clear message when /config
 # can't be written, no second server from a misspelt command, and that every compose

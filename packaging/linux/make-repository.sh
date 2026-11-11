@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Turns a folder of .deb and .rpm files into a package repository that apt and dnf can use,
 # ready to put on any web server. Run in a container or on a machine with dpkg-dev,
 # createrepo-c and gpg.

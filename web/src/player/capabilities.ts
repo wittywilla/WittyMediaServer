@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { mediaSourceWorks } from './mse'
 
 // What this browser can play, found out by asking it, and sent with every request to

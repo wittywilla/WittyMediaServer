@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package seamcheck measures what a stream does to the disc underneath it:
 // which pictures and how much sound it loses, repeats or moves at each chapter
 // boundary. It needs no person watching: both sides are decoded to small

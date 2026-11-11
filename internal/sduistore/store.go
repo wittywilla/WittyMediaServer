@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package sduistore keeps the server's UI configuration, ui_config.json in the
 // data folder: the server-driven screens (pkg/sdui documents) and the theme
 // overrides the Master Theme Engine applies. It is the one place both are

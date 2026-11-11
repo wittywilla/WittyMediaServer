@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { Suspense, useState } from 'react'
 import type { Listing } from '@wittywilla/wittyintegratedfilebrowser'
 import { api } from '../api'

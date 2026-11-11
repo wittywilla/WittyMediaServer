@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Before the files go. An upgrade restarts the service afterwards, so it's left alone then.
 # deb: $1 is "remove" or "upgrade". rpm: $1 is 0 on removal, 1 on upgrade.
 set -e

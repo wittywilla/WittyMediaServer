@@ -48,7 +48,7 @@ Nothing here has been built or tested. Figures marked **(0.6.0)** were measured 
 4. **Seamless means nobody thinks about it.** No setup screen before playing, start in about two seconds, pick up on any device where you left off, survive a dropped network without losing the game, adapt to the network without asking.
 5. **The interface is the product.** The leading cloud service streams well, and its dashboard is a store front. Ours is the person's own collection, shown like a console dashboard: their saves, their discs, their history, their controllers, their screens.
 6. **Your hardware, measured honestly.** Automatic limits from a hardware probe, admin overrides, and numbers in plain words. No marketing claims until a camera proves them.
-7. **The standing rules hold.** Encrypted games refused. No ROMs or BIOS bundled, downloaded or linked. No non-commercial cores. Cores run in the sandboxed runner, apart from WittyPlay's Apache-2.0 code. Everything signed so Windows' Smart App Control runs it. Every platform in the owner's list counts.
+7. **The standing rules hold.** Encrypted games refused. No ROMs or BIOS bundled, downloaded or linked. No non-commercial cores. Cores run in the sandboxed runner, apart from WittyPlay's AGPL-3.0-or-later code. Everything signed so Windows' Smart App Control runs it. Every platform in the owner's list counts.
 
 ---
 

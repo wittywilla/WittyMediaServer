@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package midi reads Standard MIDI Files and plays them with a small synthesiser of
 // its own: FFmpeg doesn't read MIDI, and this needs no sound font or other download.
 // It sounds simple, like a sound card of the 1990s, and it works everywhere.

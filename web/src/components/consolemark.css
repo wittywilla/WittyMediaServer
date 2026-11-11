@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* A console or game studio: its logo, or a typed label in the same space. */
 .gc-mark { display: inline-block; vertical-align: middle; max-width: 100%; }
 img.gc-mark { object-fit: contain; }

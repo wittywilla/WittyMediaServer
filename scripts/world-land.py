@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 """Makes web/public/world-land.txt, the photo map's outline of the world's land,
 from world-atlas's land-110m.json (Natural Earth 1:110m land, public domain;
 world-atlas is ISC):

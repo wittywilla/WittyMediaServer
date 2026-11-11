@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useCallback, useState } from 'react'
 
 // Viewing preferences for the player. Stored per browser, either for all

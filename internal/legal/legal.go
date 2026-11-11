@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package legal holds the words the project says about itself, in one place: the
 // short notices shown beside content (notices.json) and the full Legal page
 // (legal.json). The web app bundles the same files, and native apps read them

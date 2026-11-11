@@ -139,7 +139,7 @@ node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/th
 - **Examples.** No real films, shows, music, games or people in examples or test files: make something up. Pictures in the docs come from openly licensed media, taken with `web/scripts/shots-setup.mjs` and `web/scripts/shots.mjs`, and each is credited in [docs/images/CREDITS.md](docs/images/CREDITS.md). `scripts/docs-images.py` compresses them.
 - **FFmpeg.** A change to how FFmpeg is run is measured before and after, with [the benchmark](docs/FFMPEG-BENCHMARK.md), and the numbers go in the pull request.
 - **Copy protection.** Encrypted media is detected and refused. Never add a way around it, or a plugin hook for one, and never link to ROMs or BIOS files.
-- **Licences.** Contributions are under the GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later, see `LICENSE`). A new third-party component goes in `THIRD_PARTY_LICENSES.md`.
+- **Licences.** Contributions are under the GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later, see `LICENSE`). Contributions to the client-app repositories (WittyMediaClient, WittyMediaPlayer, WittyReader and the smaller apps) are under the GNU General Public License v3.0 or later. Code forked or derived from another project keeps its original licence, labelled with that project's name. A new third-party component goes in `THIRD_PARTY_LICENSES.md`.
 - **Versions and changes.** Add what users will notice to `CHANGELOG.md`. `scripts/bump-server.sh` raises the server's version everywhere it's written, and a bump isn't a release.
 
 ## Sending a change

@@ -4,9 +4,9 @@ See what's still to do on the project, and what has been tried in the real world
 
 Names follow [Modules](MODULES.md).
 
-## Now: 0.7.0-alpha
+## Now: 0.8.0-alpha
 
-0.6.0-alpha was published on 2026-11-02, then 0.6.1-alpha and 0.6.2-alpha as urgent fixes. 0.7.0-alpha started on 2026-11-04, small but robust: its work is in the [0.7.0-alpha milestone](https://github.com/wittywilla/WittyMediaServer/milestone/1), one issue each, with the release checklist in [#84](https://github.com/wittywilla/WittyMediaServer/issues/84). Features wait as ideas in [Discussions](https://github.com/wittywilla/WittyMediaServer/discussions/categories/ideas) until work on them starts.
+0.7.0-alpha was published on 2026-11-05, then 0.7.1-alpha and 0.7.2-alpha as fixes. 0.8.0-alpha moves the server to AGPL-3.0-or-later and adds server-driven screens, the theme engine, secure pairing with a QR code and a PIN, canvas, karaoke stems, skip markers, where to watch, and module identity for WittyPlay's Docker backend (API revision 14); the [CHANGELOG](../CHANGELOG.md) lists it all, and the [next-major plan](plans/releases/0.8.0-alpha-next-major.md) what's still to come. Features wait as ideas in [Discussions](https://github.com/wittywilla/WittyMediaServer/discussions/categories/ideas) until work on them starts.
 
 The plans and designs for what comes after, each with what's done, in progress or planned, are in [Plans](plans/README.md).
 

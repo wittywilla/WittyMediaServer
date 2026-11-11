@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Takes the pictures in the docs and on the GitHub pages, from a test server filled from
 // D:\WittyDemoMedia. No window opens. WMS_ONLY=dvd,games takes only those scenes, and without it
 // every scene runs. A scene that fails is reported, and the others still run.

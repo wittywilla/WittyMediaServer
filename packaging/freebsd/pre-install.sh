@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Before the files go in: the service's account, and taking over from a copy that the install.sh of
 # this or an older version installed, keeping its data folder, port and account through rc.conf.
 RC=/usr/local/etc/rc.d/wittymediaserver

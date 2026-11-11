@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // The theme maker: a whole theme from a few choices. Every colour is checked as it's
 // made, so anything someone can pick here is readable (WCAG AA: 4.5:1 for text, 3:1
 // for outlines). The same rules are in scripts/theme-contrast.py for the built-ins.

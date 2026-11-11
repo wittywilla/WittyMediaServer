@@ -55,7 +55,7 @@ None of these is in the server's release, and no code from them is in WittyMedia
 
 | Program | License | How it's used |
 |---|---|---|
-| **WittyCouch Host** | **GPL-3.0** | A separate program, installed separately, that the server starts and talks to over pipes. Built from the WittyCouchHost repository, with its complete source offered beside each release |
+| **WittyCouch Host** | **AGPL-3.0-or-later**, with Moonlight-derived parts under **GPL-3.0** | A separate program, installed separately, that the server starts and talks to over pipes. Built from the WittyCouchHost repository, with its complete source offered beside each release |
 | [moonlight-common-c](https://github.com/moonlight-stream/moonlight-common-c) | GPL-3.0 | Moonlight's streaming core, inside WittyCouch Host |
 | [ENet](https://github.com/cgutman/enet), [nanors](https://github.com/sleepybishop/nanors) | MIT | Inside moonlight-common-c |
 | [Mbed TLS](https://github.com/Mbed-TLS/mbedtls) | Apache-2.0 (it's dual-licensed; this is the license chosen) | Inside WittyCouch Host |

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // TV, remote-control and game-controller input for the whole app. The rule for
 // which control is next lives in ui/spatial.ts; docs/DESIGN.md has the contract.
 //

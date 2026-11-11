@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 """A long soak run: hours of ordinary use, watching for slow leaks and slow answers.
 
 Starts a test server with its own data folder and the demo media, keeps it busy the way a

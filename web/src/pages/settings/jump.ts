@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Going to one part of a settings page: from a search result, a table of contents or a link
 // with #section in it. The page scrolls to it and the focus moves to its heading, so a screen
 // reader reads where you are and a remote carries on from there. It glows for a moment, to

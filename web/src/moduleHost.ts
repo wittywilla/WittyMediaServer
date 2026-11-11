@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import React from 'react'
 import ReactDom from 'react-dom'
 import * as jsxRuntime from 'react/jsx-runtime'

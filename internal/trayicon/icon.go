@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package trayicon draws the application icon at runtime so no asset files
 // need shipping: a rounded dark tile, a violet ring and a play triangle.
 package trayicon

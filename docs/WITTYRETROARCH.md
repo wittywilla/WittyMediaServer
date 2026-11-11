@@ -12,14 +12,14 @@ Unmodified RetroArch can't fill this role: its only way to hand frames to anothe
 
 ## How it stays a separate program
 
-RetroArch is GPLv3, and WittyMediaServer and WittyPlay are Apache-2.0. Keep it that way with these rules:
+RetroArch is GPLv3, and WittyMediaServer and WittyPlay are AGPL-3.0-or-later. The fork stays a separate program, with RetroArch's code under its own licence, by these rules:
 
 - Only messages on a pipe. No shared memory, no linking, and no loading one into the other. The protocol is the whole of what they share.
-- Never link RetroArch code into `wittymediaserver`, `wittyplay-module` or `wittyplay-game-runner`. Write the fork's side of the protocol from this page, not from Apache-licensed code.
+- Never link RetroArch code into `wittymediaserver`, `wittyplay-module` or `wittyplay-game-runner`. Write the fork's side of the protocol from this page, not from the AGPL-licensed runner's code.
 - The server keeps working without the fork.
 - Cores are never bundled with it, as they aren't with anything else.
 
-A release carrying the fork must put the exact matching source beside the binary, keep every copyright and licence notice along with `COPYING`, say that the program is modified and when, show its legal notices, add no further restrictions, and be listed in `NOTICE` and `THIRD_PARTY_LICENSES.md` as a separate GPLv3 program. RetroArch's credits stay in. It can't go inside an iOS or tvOS app.
+A release carrying the fork must put the exact matching source beside the binary, keep every copyright and licence notice along with `COPYING`, say that the program is modified and when, show its legal notices, add no further restrictions, and be listed in `NOTICE` and `THIRD_PARTY_LICENSES.md` as a separate GPLv3 program (RetroArch's code under GPLv3, with any of our own additions under AGPL-3.0-or-later). RetroArch's credits stay in. It can't go inside an iOS or tvOS app.
 
 ## What the fork adds
 

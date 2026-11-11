@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Command pack writes a release archive (.zip or .tar.gz) of a directory with
 // correct Unix permissions on any build machine. Executables are recognised
 // by their content (ELF, Mach-O, PE, "#!" scripts), because Windows and

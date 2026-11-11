@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The module store. A row to scan for each module, with the rest when it is opened:
    thirteen or more of these on a phone mustn't be a wall. */
 .ms-filter { margin: 0 0 var(--sp-4); }

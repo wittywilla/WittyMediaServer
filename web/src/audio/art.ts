@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useState } from 'react'
 
 // A colour from the artwork, for what's behind it. Read once per picture from a tiny copy,

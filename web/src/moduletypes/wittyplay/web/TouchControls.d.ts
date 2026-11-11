@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { type ControlsData, type Layout, type Orientation } from './consoles';
 export declare function useOrientation(): Orientation;
 export type OnPoint = (clientX: number, clientY: number, phase: 'down' | 'move' | 'up') => void;

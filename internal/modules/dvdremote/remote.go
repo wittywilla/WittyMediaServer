@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package dvdremote plays a disc through the WittyDVD version in use: a helper process for
 // each open disc, behind the interfaces a session uses. When a helper fails the disc stops,
 // with the reason, and opening it again starts a new one.

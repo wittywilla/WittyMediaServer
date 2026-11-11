@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package channels builds always-on TV channels out of the libraries: what a
 // channel may play (rules), when (blocks), and the schedule that follows.
 //

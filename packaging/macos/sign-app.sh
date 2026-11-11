@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Signs WittyMediaServer.app and Uninstall WittyMediaServer.app, from the inside out. Runs on a
 # Mac only: codesign is Apple's.
 #

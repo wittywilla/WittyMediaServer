@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package remote holds what remote access is built on: deciding who a request
 // really comes from (and whether forwarded headers may be believed), HTTPS
 // certificates, and the numbers behind the Remote Access settings page.

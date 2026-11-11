@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Builds a fully static FFmpeg + FFprobe (GPL: x264, mp3, opus) from source.
 # Used for FreeBSD, where no prebuilt static binaries exist, and usable on
 # Linux/macOS too. Output: $OUT/ffmpeg, $OUT/ffprobe

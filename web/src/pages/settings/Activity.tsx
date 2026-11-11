@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useEffect } from 'react'
 import { clearTaskHistory, refreshActivity, setActivityHidden, useActivity } from '../../activity'
 import { Button, LoadError, Select, ask, toast } from '../../ui'

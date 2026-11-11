@@ -30,7 +30,7 @@ Run it from a WittyModule checkout. [Modules](MODULES.md) has the rest of how a 
 - Every browser: Chromium, Firefox and Safari, on desktop and phones.
 - Saves and save states per account, and resume where you left off.
 - Runs on low-end servers. Emulators are memory-unsafe code fed untrusted files, so they stay boxed in.
-- WittyMediaServer stays Apache-2.0. No GPL code in its binaries, no non-commercial cores offered, and no ROMs or BIOS files bundled, downloaded or linked.
+- WittyMediaServer stays AGPL-3.0-or-later. GPL programs such as cores and RetroArch stay separate processes rather than being built into its binaries, no non-commercial cores offered, and no ROMs or BIOS files bundled, downloaded or linked.
 
 ## The architecture
 
@@ -61,7 +61,7 @@ Four kinds of process, each doing one job:
 | | `wittyplay-game-runner` | WittyRetroArch |
 |---|---|---|
 | What it is | Our own small libretro frontend, built and in use | A fork of RetroArch with a mode that speaks the protocol. **Not built** |
-| Licence | Apache-2.0 | GPLv3, a separate program |
+| Licence | AGPL-3.0-or-later | GPLv3, a separate program |
 | Software-rendered cores | Yes | Would |
 | Hardware-rendered cores | Yes, with OpenGL, on Windows and Linux | Would |
 | Size and upkeep | A few thousand lines of Go, cross-compiled from one machine | A large C codebase to build per platform and merge from upstream |
@@ -678,7 +678,7 @@ Downloading a core means running someone else's native code on the server. That'
 
 | Thing | Licence | How it's kept apart |
 |---|---|---|
-| WittyPlay (runner, stream, web) | Apache-2.0 | Ours |
+| WittyPlay (runner, stream, web) | AGPL-3.0-or-later | Ours |
 | pion/webrtc and its family | MIT | Linked into `wittyplay-module` |
 | coder/websocket | ISC | Linked into `wittyplay-module` |
 | bodgit/sevenzip, nwaples/rardecode and their family | BSD, MIT, Apache-2.0, MPL-2.0: see the third-party licences | Linked into the server. No GPL code |

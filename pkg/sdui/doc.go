@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package sdui implements the WittyMediaServer Server-Driven UI (SDUI) core:
 // a JSON schema for describing screens, a validator, a renderer that resolves
 // a screen for one particular client, a differ that produces incremental

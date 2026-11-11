@@ -26,8 +26,8 @@ part of WittyMediaServer, and run only as separate processes. None is bundled
 unless a release says so. No game or BIOS files are bundled, downloaded or linked.
 
 Any PC running Sunshine can be played through WittyCouch, which uses WittyCouch
-Host: a separate program under the GPL-3.0, installed separately, built on moonlight-common-c
-by the Moonlight project. Sunshine (LizardByte) and Moonlight's apps are separate GPL-3.0
+Host: a separate program, installed separately, under the AGPL-3.0-or-later, with its
+Moonlight-derived parts under the GPL-3.0, built on moonlight-common-c by the Moonlight project. Sunshine (LizardByte) and Moonlight's apps are separate GPL-3.0
 projects. This product contains none of them, and only starts them or talks to them over
 pipes or the network.
 

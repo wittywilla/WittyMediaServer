@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Finding settings by name, and that every place a result jumps to still exists. Run with:
 //   node --experimental-strip-types --test web/src/pages/settings/searchIndex.test.mjs
 import assert from 'node:assert/strict'

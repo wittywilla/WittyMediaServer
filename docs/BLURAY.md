@@ -98,7 +98,7 @@ A Java menu is worked with the remote's arrows, OK and colour keys. A tap or cli
 ## Java and licensing
 
 - **Java isn't shipped.** The server and the module contain no Java runtime. Whoever runs the server installs one, under that Java's own licence, and it runs as a separate program.
-- **The runtime is ours.** `runtime.jar` is original code under Apache-2.0, with no code from Sun, Oracle or other players. It provides the classes disc applications link against, so that discs can run.
+- **The runtime is ours.** `runtime.jar` is original code under AGPL-3.0-or-later, with no code from Sun, Oracle or other players. It provides the classes disc applications link against, so that discs can run.
 - **It isn't certified.** The runtime hasn't passed any compatibility test and makes no claim to. It doesn't call itself Java, and "BD-J" and "Blu-ray" here only describe which discs it plays.
 - **Copy protection is untouched.** AACS and BD+ are never decrypted or run.
 

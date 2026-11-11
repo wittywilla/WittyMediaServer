@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import type { LogoKind } from '../../components/BrandLogo'
 import { api, ApiError, mediaUrl, serverBase, getToken } from '../../api'
 

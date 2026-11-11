@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* A film or TV library: shelves first, a grid once something is asked for. */
 .lib-lazy { min-height: 80px; }
 .lib-shelf-wait { height: 240px; }

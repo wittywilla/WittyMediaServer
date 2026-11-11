@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import type Hls from 'hls.js'
 import { useEffect, useRef } from 'react'
 import { getToken, mediaUrl, serverBase, type StreamingHints } from '../api'

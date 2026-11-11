@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # After the files go in: the folder for the library. Nothing is started here: pkg ends whatever its
 # scripts leave running, and starting services is left to the admin, as with FreeBSD's own packages.
 data=$(sysrc -qn wittymediaserver_data)

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // The guide for each settings page: its place in the tour, or a guide of its own.
 export const settingsHelp: Record<string, string> = {
   libraries: 'libraries',

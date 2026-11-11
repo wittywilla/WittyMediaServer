@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package server
 
 import (
@@ -215,7 +218,7 @@ const wittyPlayID = "wittyplay"
 
 // gameRunner picks the program that runs a game: the built-in host, or
 // WittyRetroArch when it is installed. Both speak the same protocol over pipes,
-// which is what lets a GPL program be used by this Apache-licensed one. A
+// so a GPL program runs as a separate process beside this AGPL-licensed one. A
 // downloaded version of the host comes before the installed one, and version says
 // which it is; asking checks its signature, so this is asked again for each game.
 func (s *Server) gameRunner(ctx context.Context) (path string, args []string, version string) {

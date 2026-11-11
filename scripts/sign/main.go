@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Command sign is a developer tool and never ships. It makes and uses the key that signs WittyMediaServer
 // releases. The in-app updater installs a release only when its checksum
 // list (wittymediaserver-<version>-SHA256SUMS.txt) has a .sig made with

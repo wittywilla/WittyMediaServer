@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { HelpLink } from '../../components/HelpLink'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
@@ -280,7 +282,7 @@ export default function ModulesSettings() {
       <Section title="Installed separately" desc="A program of its own that runs beside this server, under its own license. The server works without it.">
         <div className="mod-list">
           <div className="mod-row">
-            <span className="mod-name"><b>WittyCouch Host</b><span className="muted">Lets people play on Game PCs in the page, built on Moonlight’s own code. License: GPL-3.0. <a href="https://github.com/wittywilla/WittyCouchHost" target="_blank" rel="noreferrer noopener">Source</a></span></span>
+            <span className="mod-name"><b>WittyCouch Host</b><span className="muted">Lets people play on Game PCs in the page, built on Moonlight’s own code. License: AGPL-3.0-or-later, with Moonlight-derived parts under the GPL-3.0. <a href="https://github.com/wittywilla/WittyCouchHost" target="_blank" rel="noreferrer noopener">Source</a></span></span>
             <span className="mod-ver"><span className="mod-local">{hostReady ? 'Installed' : 'Not installed'}</span></span>
           </div>
         </div>

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package mediaextras finds and keeps the things that go with a media file without being
 // part of it: a short looping video shown behind a song or a title (a "canvas"), the
 // separated parts of a song for karaoke ("stems"), and where the intro, recap, credits and

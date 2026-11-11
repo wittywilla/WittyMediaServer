@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { api, mediaUrl, serverBase, type Library } from './api'
 
 // What the photo, vertical video and creator libraries share: their JSON types,

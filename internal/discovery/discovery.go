@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package discovery lets apps find this server on the home network, by mDNS/DNS-SD
 // (what Apple's and Android's own browsers use) and, as an extra for clients with
 // raw sockets, by a small UDP question. It tells the network a name, a random ID,

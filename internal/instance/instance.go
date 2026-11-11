@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package instance keeps to one server per data folder. The first start takes a lock
 // that the system lets go of when the process ends, however it ends, so a crash never
 // leaves anything behind to block the next start. A second start finds the first one

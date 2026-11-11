@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package tuner is what the server knows of a TV tuner: the shapes WittyTuner answers in, and
 // how a server words a refusal. WittyTuner itself is a module, reached through internal/modules.
 // These travel as JSON, so a field a newer version adds is simply not read.

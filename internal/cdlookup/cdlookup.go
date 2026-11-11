@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package cdlookup finds out what an audio CD is, from MusicBrainz and the Cover Art
 // Archive, using nothing but its table of contents: no names, no audio, and nothing
 // about the person or their files. No key is needed.

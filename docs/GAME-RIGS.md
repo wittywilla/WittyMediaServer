@@ -16,7 +16,7 @@ To play console games on the server itself, see [Games](GAMES.md).
 ## Before you start
 
 - **The PC needs Sunshine,** a free program from LizardByte that shares a PC's games. Whoever owns the PC installs it. Sunshine isn't part of this server.
-- **This server needs WittyCouch Host** to play in the page. It's a separate program under the GPL-3.0, offered as a module of its own: see [Modules and the store](MODULE-STORE.md). **Settings → Game PCs** says whether it's working. Without it you can still add and pair PCs. An admin can also put `wittycouch-host` in the `wittycouch/bin` folder in the data folder. There's no FreeBSD build of it.
+- **This server needs WittyCouch Host** to play in the page. It's a separate program under the AGPL-3.0-or-later, with Moonlight-derived parts under the GPL-3.0, offered as a module of its own: see [Modules and the store](MODULE-STORE.md). **Settings → Game PCs** says whether it's working. Without it you can still add and pair PCs. An admin can also put `wittycouch-host` in the `wittycouch/bin` folder in the data folder. There's no FreeBSD build of it.
 
 ### Install Sunshine on the PC
 
@@ -160,8 +160,8 @@ The rest of this guide is the design, and what has been tested.
 | its encoder    |  encrypted  | common-c       |       | decodes, and   |  H.264 | gamepad,     |
 | virtual pads   |<------------| whole frames   |<------| checks input   |<-------| keys, mouse, |
 +----------------+    input    +----------------+ input +----------------+  Opus  | touch        |
-      GPL-3.0                       GPL-3.0                 Apache-2.0            +--------------+
-                                                                                     Apache-2.0
+      GPL-3.0                   AGPL-3.0-or-later       AGPL-3.0-or-later         +--------------+
+                              Moonlight parts: GPL-3.0                            AGPL-3.0-or-later
 ```
 
 - **The server talks to the PC's client API** through `gamestream` in WittyCouch: identifying it, pairing, its games and art, and asking it to start one. The stubs in `internal/couch` call the module's service, and the routes are in `internal/server/api_couch.go`, `api_rigs.go` and `api_wittyrigs.go`.
@@ -222,13 +222,13 @@ Read from Sunshine at v2026.914.233613, and run against that version. They move 
 
 | What | Where | License |
 |---|---|---|
-| **WittyCouch Host** | WittyCouchHost | **GPL-3.0**: it links moonlight-common-c |
+| **WittyCouch Host** | WittyCouchHost | **AGPL-3.0-or-later**, with its Moonlight-derived parts under **GPL-3.0**: it links moonlight-common-c |
 | moonlight-common-c | Fetched at a pinned commit, into that program | GPL-3.0 |
 | ENet, nanors | Inside moonlight-common-c | MIT |
 | Mbed TLS | Linked into that program | Apache-2.0 |
-| **WittyCouch**: relay, client protocol, player | WittyCouch (`relay/`, `gamestream/`, `web/`, `plan.go`) | **Apache-2.0**. Written from the protocol and browser APIs, with no Moonlight code. It exchanges only the messages in `PROTOCOL.md` with a separate program |
-| The API and pages in the server | `internal/server/api_couch.go`, `web/src/pages/Couch.tsx` | Apache-2.0, with the server |
-| **WittyRigs** | WittyRigs | Apache-2.0: it only looks for a program and talks to it over the network |
+| **WittyCouch**: relay, client protocol, player | WittyCouch (`relay/`, `gamestream/`, `web/`, `plan.go`) | **AGPL-3.0-or-later**. Written from the protocol and browser APIs, with no Moonlight code. It exchanges only the messages in `PROTOCOL.md` with a separate program |
+| The API and pages in the server | `internal/server/api_couch.go`, `web/src/pages/Couch.tsx` | AGPL-3.0-or-later, with the server |
+| **WittyRigs** | WittyRigs | AGPL-3.0-or-later: it only looks for a program and talks to it over the network |
 | Sunshine | On someone's PC, or this server if an admin installs it | GPL-3.0, installed separately by whoever owns that computer |
 | Moonlight's own apps | On someone's device | GPL-3.0, installed separately, and only started where a device allows |
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Command settingsini writes the settings.ini that archives and installers put beside the
 // program, the same text the server writes (config.SettingsText), so there's one copy of it.
 //

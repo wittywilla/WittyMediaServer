@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Command gen writes internal/licenses/libraries.json.gz: every library compiled into
 // what a release ships, with its license and its full text, for Settings, About.
 //

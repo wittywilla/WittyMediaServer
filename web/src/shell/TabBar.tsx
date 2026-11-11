@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { NavLink } from 'react-router-dom'
 import { IconHome, IconMenu, IconSearch, IconTv } from '../icons'
 import { YouTab } from './Account'

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package totp makes and checks one-time passwords: HOTP (RFC 4226) and the
 // time-based TOTP built on it (RFC 6238), with the standard library only.
 //

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package licenses says what this server is made of and under which licenses, for
 // Settings, About. Libraries come from libraries.json.gz, which internal/licenses/gen
 // writes from what's really compiled in, with each license's full text. The rest is

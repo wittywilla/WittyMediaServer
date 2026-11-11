@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package fixture makes tiny files for tests that have the headers real games have and
 // nothing else: no game's code or data, only the marks the checks in gameid look for.
 // Everything here is written byte by byte, so no game is ever in this repository.

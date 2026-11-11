@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package gameid works out what a game file is from its own bytes: which console it
 // belongs to, whether it's a game at all, what it calls itself, and how sure that is.
 //

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The core picker (CorePicker.tsx): a sheet from the side on wide screens and from the bottom on a
    phone, one row per core, each a radio button big enough for a thumb, a remote or a controller. */
 .modal.ui-sheet.cp-sheet { width: min(32rem, 100vw); }

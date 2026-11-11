@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package server
 
 // routeRules says who may call each route that any signed-in account can reach, and what it checks

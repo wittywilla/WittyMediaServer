@@ -29,7 +29,7 @@ body:
     attributes:
       label: Version
       description: In Settings → About.
-      placeholder: 0.6.2-alpha
+      placeholder: 0.8.0-alpha
     validations:
       required: true
   - type: dropdown

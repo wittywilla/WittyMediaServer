@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package ffmpeg locates and drives the bundled FFmpeg binaries.
 package ffmpeg
 

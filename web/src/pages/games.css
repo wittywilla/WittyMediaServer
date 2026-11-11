@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* Game pages and the Gaming settings page. Colours come from the theme. */
 .game-note { padding: var(--sp-3); margin-bottom: var(--sp-5); border: 1px solid var(--border-strong); border-radius: var(--r-md); }
 .game-note a { color: inherit; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px; }

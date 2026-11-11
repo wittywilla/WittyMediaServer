@@ -49,7 +49,7 @@ Smart App Control looks at **every PE file** (`.exe`, `.dll`, `.node`, `.sys`) t
 | **Server scripts** | `install.ps1`, `uninstall.ps1` (in the zip), any PowerShell run by the installer or by `wms` | Ours | No |
 | **FFmpeg** | `bin\ffmpeg.exe`, `bin\ffprobe.exe` (BtbN's builds, pinned by SHA-256 in `scripts/ffmpeg.lock`) | Third party, shipped by us | No (BtbN doesn't sign) |
 | **Modules** (downloaded at run time as signed archives) | Each helper for Windows: WittyDVD, WittyBluray, WittyCD, WittyPhotos, WittyTuner, WittyIntegratedFileBrowser, WittyRigs, WittyCouch, WittyPlay's programs (`wittyplay-module`, `wittyplay-game-runner`, the host, `wittyplay-probe`, `wittyplay-check`), and later the encoder host | Ours | No. Our **own** release signature covers the archive, but Windows doesn't know about it |
-| **WittyCouchHost** | Its program (GPL-3.0) | Ours | No |
+| **WittyCouchHost** | Its program (AGPL-3.0-or-later, with Moonlight-derived parts under GPL-3.0) | Ours | No |
 | **Game cores** | Every libretro core DLL, downloaded from `buildbot.libretro.com/nightly/.../latest/` (`WittyPlay/cores/cores.go`) | Third party, downloaded by us | No. **Every core would be blocked, so no game could start** |
 | **Custom cores** | Whatever an admin uploads | Third party | Usually not |
 | **WittyMediaClient** (Windows) | The app `.exe`, Electron's DLLs, any native Node modules (`.node`), the installer, the uninstaller | Ours (Electron's files are rebranded into ours) | No |
@@ -83,7 +83,7 @@ Today each core is fetched from the libretro build server's **nightly "latest"**
 - publishes them as release files with SHA-256 hashes, listed in a signed core catalogue that WittyPlay reads instead of the nightly folder;
 - publishes each core's **exact source** with it (the upstream commit and our build scripts). Most cores are GPL, which requires this when we distribute binaries. The core's licence is shown in the core store, as now.
 
-**Decision for the owner** (their call, not assumed): this means the project **distributes GPL core binaries itself** rather than pointing at libretro's server. That's allowed under the licence policy (third-party licences can be anything, shown clearly in the UI), and WittyPlay stays Apache-2.0 because cores run in the separate runner process. Non-commercial cores stay off the list. BIOS files are never shipped.
+**Decision for the owner** (their call, not assumed): this means the project **distributes GPL core binaries itself** rather than pointing at libretro's server. That's allowed under the licence policy (third-party licences can be anything, shown clearly in the UI), and WittyPlay stays AGPL-3.0-or-later, with cores running in the separate runner process. Non-commercial cores stay off the list. BIOS files are never shipped.
 
 **Bonus:** reproducible, pinned builds also give WittyPlay's streaming work stable cores to measure against, and the core store a tested version per core.
 

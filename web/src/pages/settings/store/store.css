@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The module store, its module pages, other stores, and what they share with the Modules page. */
 .st-page { display: grid; gap: var(--sp-5); min-width: 0; }
 .st-page > .set-card { margin: 0; }

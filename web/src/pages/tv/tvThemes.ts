@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // WittyTV's themes, apart from the app's theme: what each one is, the colours it works out
 // to, and how older saved looks become one. Nothing here touches the page, so it can be tested
 // with any colour someone might pick (tvThemes.test.mjs). look.ts is what the screens use.

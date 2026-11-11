@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* Help. Laid out like Settings: a list of guides beside what's open. On a phone the list is the
    first page and a guide fills the screen. */
 .help { display: grid; grid-template-columns: 232px minmax(0, 760px); gap: var(--sp-10); justify-content: center; align-items: start; max-width: 1100px; margin: var(--sp-3) auto 0; }

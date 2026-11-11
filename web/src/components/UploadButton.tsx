@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
 import type { Library } from '../api'
 import { fmtSize, uploadFile, type UploadResult } from '../gallery'

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useState } from 'react'
 
 const MOVIE = ['G', 'PG', 'PG-13', 'R', 'NC-17']

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { setBackgroundChoice, useBackgroundPlay } from './live'
 
 // "Keep playing when this tab is in the background", the same words in WittyTV's settings and

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { type EffectFile } from './format.ts';
 import type { PaletteDef } from './engine.ts';
 export declare const PALETTES: PaletteDef[];

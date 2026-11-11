@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Addresses that came from somewhere else: a metadata source, a station, a feed, a module.
 // Only web addresses become links. The app's policy already stops a javascript: address from
 // running, but not one that opens another program on the machine (search-ms:, ms-msdt:, and

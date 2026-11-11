@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Which server platforms a core runs on, and how it draws there: the server's coreSupport, in
 // words. Every device plays every game, since the server runs it and streams it, so what
 // matters is the server's platform. See docs/GAMING-API.md, "Which platforms a core runs on".

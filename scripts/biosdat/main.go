@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Command biosdat writes internal/server/biosknown.txt: the BIOS files a games server can
 // recognise by their checksum, wherever someone keeps them and whatever they're called.
 // It reads libretro's System.dat (libretro-database, dat/System.dat), which lists firmware by

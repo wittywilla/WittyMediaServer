@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { MusicOnlineStep } from '../MusicOnline'
 import { Button } from '../../ui'
 import { LaterNote, StepActions, StepHead, type StepProps } from './parts'

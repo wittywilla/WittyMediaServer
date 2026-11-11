@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import LogoCredits from '../../components/LogoCredits'
 import PosterCredits from '../../components/PosterCredits'
 import { useEffect, useState, type ReactNode } from 'react'

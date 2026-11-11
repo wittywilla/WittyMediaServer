@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Whether this browser can play HLS through Media Source: the question hls.js answers with its own
 // isSupported, asked without loading hls.js, which is 177 KB compressed.
 export function mediaSourceWorks(): boolean {

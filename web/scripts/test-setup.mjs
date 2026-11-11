@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Walks first-time setup in a headless browser at TV size, with arrow keys and OK alone, on a test
 // server with a fresh data folder. No window opens, and Choose folder is never pressed. On each
 // page it maps where every arrow goes from every control, and fails anything the arrows can't

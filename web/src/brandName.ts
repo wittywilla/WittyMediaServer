@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // How the server's name is coloured: WittyMediaServer is drawn as Witty, Media
 // in the theme colour, then Server, and a name of the owner's own the same way.
 // The same rule is in internal/brandname on the server, and both are tested

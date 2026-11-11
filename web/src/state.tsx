@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { api, isNativeShell, serverBase, setToken, type Library, type User } from './api'
 import { setLogVersion } from './errorReport'

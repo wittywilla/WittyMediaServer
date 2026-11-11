@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img alt="Licence: AGPL-3.0" src="https://img.shields.io/badge/licence-AGPL--3.0-blue.svg"></a>
+  <a href="LICENSE"><img alt="Licence: AGPL-3.0-or-later" src="https://img.shields.io/badge/licence-AGPL--3.0--or--later-blue.svg"></a>
   <img alt="Runs on Windows, macOS, Linux, FreeBSD and Docker" src="https://img.shields.io/badge/runs%20on-Windows%20·%20macOS%20·%20Linux%20·%20FreeBSD%20·%20Docker-8b6cff.svg">
-  <img alt="Version 0.7.x-alpha versions" src="https://img.shields.io/badge/version-0.7.2--alpha-orange.svg">
+  <img alt="Version 0.8.x-alpha versions" src="https://img.shields.io/badge/version-0.8.0--alpha-orange.svg">
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
   <a href="CHANGELOG.md">What's new</a>
 </p>
 
-> **Alpha.** Version 0.7.x-alpha versions are still changing quickly and can fail or lose data. Keep backups, and back up your data folder before you upgrade. A MAJOR currently known issue is Emulation isn't working. This is due to a new streaming pipeline to work with our newly created iOS and tvOS builds (due to apple being very restrictive on what we can and can't run on those platforms). Right now, the new WittyMediaClient apps crash if games are attempted, and the browser will just perpetually load. 0.6.x Alpha versions still work with emulation, but still suffer from the connection issue dialogue not going away. 
+> **Alpha.** Version 0.8.x-alpha versions are still changing quickly and can fail or lose data. Keep backups, and back up your data folder before you upgrade. A MAJOR currently known issue is Emulation isn't working. This is due to a new streaming pipeline to work with our newly created iOS and tvOS builds (due to apple being very restrictive on what we can and can't run on those platforms). Right now, the new WittyMediaClient apps crash if games are attempted, and the browser will just perpetually load. 0.6.x Alpha versions still work with emulation, but still suffer from the connection issue dialogue not going away. 
 
 ## Install
 
@@ -191,7 +191,7 @@ Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has how
 
 ## Licence and legal
 
-**[GNU Affero General Public License v3.0 (or later)](LICENSE).** Use, change and share WittyMediaServer, commercially or not, under its terms; please keep the attribution in **[NOTICE](NOTICE)**: *"This product includes WittyMediaServer, developed by WittyWilla"*, in your distribution, documentation or About screen. A few separate programs have licences of their own, and each is listed in the app and in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+**[GNU Affero General Public License v3.0 (or later)](LICENSE).** Use, change and share WittyMediaServer, commercially or not, under its terms; please keep the attribution in **[NOTICE](NOTICE)**: *"This product includes WittyMediaServer, developed by WittyWilla"*, in your distribution, documentation or About screen. Every Witty module is AGPL-3.0-or-later too. The client apps (WittyMediaClient, WittyMediaPlayer, WittyReader and the smaller apps) are under the GNU General Public License v3.0 or later. Code forked or derived from another project keeps that project's licence and is labelled with it; for example, WittyCouch Host is AGPL-3.0-or-later with its Moonlight-derived parts under the GPL-3.0. A few separate programs have licences of their own, and each is listed in the app and in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
 <details>
 <summary><b>Your media, third parties and warranty</b></summary>
@@ -216,4 +216,4 @@ The app's own **Legal** page (*Settings → Legal*, or `/legal` on any server) h
 
 ---
 
-<p align="center"><sub>WittyMediaServer 0.6.0-alpha · AGPL-3.0-or-later · Made by <a href="https://github.com/wittywilla">WittyWilla</a></sub></p>
+<p align="center"><sub>WittyMediaServer 0.8.0-alpha · AGPL-3.0-or-later · Made by <a href="https://github.com/wittywilla">WittyWilla</a></sub></p>

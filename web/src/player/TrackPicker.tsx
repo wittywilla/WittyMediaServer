@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef } from 'react'
 
 // TrackPicker is a full-screen chooser with large square tiles (in the style

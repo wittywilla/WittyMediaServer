@@ -99,7 +99,7 @@ packs/
   "media": { "shape": "disc", "label": "#label", "labelFit": "cover" },
   "timing": { "minMs": 1200, "maxMs": 4000, "skippable": true },
   "sounds": { "open": "sounds/open.opus", "set": "sounds/set.opus", "close": "sounds/close.opus", "power": "sounds/power.opus" },
-  "credits": "Drawn for WittyPlay. Apache-2.0."
+  "credits": "Drawn for WittyPlay. AGPL-3.0-or-later."
 }
 ```
 

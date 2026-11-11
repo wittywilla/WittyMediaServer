@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The channel editor's bigger parts: discs and scenes, bumpers, the timetable and
    the schedule preview. Settings pages follow the app's theme and tokens. */
 .tve-jump { position: sticky; top: 0; z-index: 5; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 0 var(--sp-3); padding: 8px 0; background: var(--bg); }

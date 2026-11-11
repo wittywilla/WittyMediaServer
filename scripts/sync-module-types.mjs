@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Brings web/src/moduletypes up to date: what the page's TypeScript knows of each module's part in
 // the browser, written out as declarations. Types only, so nothing of a module's code reaches the
 // app, and a clean clone can build with no module's repository beside it. Run it after a module's

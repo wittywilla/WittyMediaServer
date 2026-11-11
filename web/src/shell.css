@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* App shell: navigation in the sidebar, along the top, or both; a bottom
    tab bar on phones; the account menu. Mobile first: the base rules are for
    phones, wider screens add to them. */

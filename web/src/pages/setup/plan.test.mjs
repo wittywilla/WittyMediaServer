@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Which steps first-time setup shows, and what it says it did. Run with:
 //   node --experimental-strip-types --test web/src/pages/setup/plan.test.mjs
 import assert from 'node:assert/strict'

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* Settings, Consoles & cores: the order of regions. */
 .ro-list { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 4px; max-width: 34rem; }
 .ro-row { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 2px 4px 2px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-3); }

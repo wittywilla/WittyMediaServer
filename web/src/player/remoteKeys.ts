@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Which remote a video gets, and which of its keys work: the rules of docs/DVD.md, "The remote".
 // Every DVD and Blu-ray form gets the same remote. A disc image or folder carries the disc's
 // own program, so its menu keys work; a copy of the film alone doesn't, so those keys stay on

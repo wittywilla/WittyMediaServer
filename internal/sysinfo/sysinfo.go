@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package sysinfo asks the operating system what a support report needs to know:
 // the processor, memory, graphics cards, and how much room a disk has. It needs
 // no administrator rights, changes nothing and never fails loudly: what can't be

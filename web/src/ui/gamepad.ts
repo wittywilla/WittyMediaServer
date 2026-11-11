@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // A game controller's buttons and sticks, read with the Gamepad API, as the key presses the rest of
 // the app understands. Nothing here touches the page, so the mapping is easy to test
 // (gamepad.test.mjs); tv.ts reads the controllers and presses the keys.

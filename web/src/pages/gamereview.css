@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* Putting a games library right: see GameReview.tsx. */
 .gr-import { display: grid; gap: var(--sp-1); margin-bottom: var(--sp-4); color: var(--fg-2); font-size: var(--text-sm); }
 .gr-import-line { color: var(--fg); font-weight: var(--weight-heading); }

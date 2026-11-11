@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Tries the music pages and player in a headless browser, on a running test server. No window
 // opens. It expects these libraries, with generated media and read-only real music:
 //   "Test music": Generated Artist/Generated Album (3 tracks), Signal Test/Signals with "Quiet tag"

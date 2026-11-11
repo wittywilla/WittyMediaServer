@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* Shelves: the games home, as WittyMediaClient's docs/WITTYPLAY-EXPERIENCE.md draws it. Sizes are
    the phone's; wider screens and TV mode scale them with --shelf-scale. Tokens only, except the
    drawn spines and ribbons, which keep their own light like any drawn object. */

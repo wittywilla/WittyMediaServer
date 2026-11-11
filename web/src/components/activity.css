@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The activity button and its panel. */
 .act-btn { position: relative; color: var(--fg-3); }
 .act-btn.on { color: var(--fg); }

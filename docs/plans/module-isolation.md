@@ -97,7 +97,7 @@ The plan: give the shared code a home in a few **core libraries**, each a Go mod
 
 | In the module (3,800 Go, 710 web; Host 570 C on Moonlight's core) | In the server for it (2,810 Go, 580 web) |
 |---|---|
-| Pairing with and talking to a game PC (`gamestream`), the relay to the browser, the player. Host: the separate GPL-3.0 program that speaks to the PC | `internal/couch/...` (1,360, generated stubs). `api_couch.go` (1,450): the PCs people added, pairing as a flow of pages, who may use which PC. Web: the Couch pages |
+| Pairing with and talking to a game PC (`gamestream`), the relay to the browser, the player. Host: the separate program (AGPL-3.0-or-later, with Moonlight-derived parts under GPL-3.0) that speaks to the PC | `internal/couch/...` (1,360, generated stubs). `api_couch.go` (1,450): the PCs people added, pairing as a flow of pages, who may use which PC. Web: the Couch pages |
 
 ### WittyRigs (helper)
 
@@ -275,10 +275,10 @@ What a host must still bring, written once in each module's README: a transcoder
 
 Every file that would move was checked on 2026-11-04.
 
-- **All of it is the project's own code, under Apache-2.0**, as are the server and every module but WittyCouch Host. Nothing that moves is derived from another project's code. The new libraries are Apache-2.0, with the same NOTICE as the modules.
+- **All of it is the project's own code, under AGPL-3.0-or-later**, as are the server and every module (WittyCouch Host's Moonlight-derived parts excepted, which stay GPL-3.0). Nothing that moves is derived from another project's code. The new libraries are AGPL-3.0-or-later, with the same NOTICE as the modules.
 - **What comes along with WittyGameCore:** `bodgit/sevenzip` (BSD-3-Clause, with `afero` and `go4` under Apache-2.0 and `golang-lru` under MPL-2.0, used unmodified), `nwaples/rardecode` (BSD-2-Clause), `ulikunitz/xz`, `klauspost/compress`, `pierrec/lz4` (BSD-3-Clause), `brotli` and `ppmd` (MIT), `golang.org/x/sys` (BSD-3-Clause). All are already listed in the server's notices; the library's `THIRD-PARTY-NOTICES.txt` lists them again.
 - **Game metadata sources** are services asked at run time, not code or data that moves. Their terms (CC BY-SA, CC BY-NC-SA, each service's API terms) go in WittyGameCore's README, and every program using it keeps showing them. The ScreenScraper developer credentials stay a build setting of the program, never in the library.
-- **WittyCouch Host stays GPL-3.0** in its own repository, and nothing moves into or out of it.
+- **WittyCouch Host stays AGPL-3.0-or-later, with its Moonlight-derived parts under GPL-3.0,** in its own repository, and nothing moves into or out of it.
 - No GPL code goes into a core library. FFmpeg stays a separate program, reached through the host's transcoder.
 
 ---

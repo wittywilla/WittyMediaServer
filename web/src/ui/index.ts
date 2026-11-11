@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // The shared parts. docs/DESIGN.md says what each is for; /design shows them all
 // on one page, in whatever theme is in use, for administrators.
 export { Button, IconButton, LinkButton, btnClass, type ButtonSize, type ButtonVariant } from './Button'

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package diagnose is WittyDiagnoser, the disk diagnoser: it looks at a DVD or Blu-ray, or at a
 // storage folder, and says in plain words what it found. It only reads. Nothing
 // on a disc or a drive is changed or repaired, copy protection is only ever

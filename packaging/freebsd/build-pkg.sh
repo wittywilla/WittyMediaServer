@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Makes the FreeBSD package (.pkg) from a folder scripts/build-release.sh built. Runs on FreeBSD:
 # pkg create is FreeBSD's own tool.
 #
@@ -58,7 +60,7 @@ www: "https://github.com/wittywilla/WittyMediaServer"
 prefix: /usr/local
 abi: "FreeBSD:$MAJOR:$abi_arch"
 licenselogic: single
-licenses: [APACHE20]
+licenses: [AGPLv3+]
 message: [
   {
     message: "WittyMediaServer is installed.\n\nStart it now, and at every boot:\n  sysrc wittymediaserver_enable=YES\n  service wittymediaserver start\nThen open http://<this computer>:9797/ to finish setup. Another port: Settings, Network, or /var/db/wittymediaserver/settings.ini. If it says FFmpeg is missing: pkg install ffmpeg\nRemove: wittymediaserver --uninstall (asks about your data)\n",

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Finding a setting by name. Each settings page is found by its name and hint (they come from
 // the menu); this list adds the sections inside pages and the settings people look for most,
 // in the words they might use. A section's anchor is its title, as sectionId makes it, so a

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package update finds, verifies and installs new releases of
 // WittyMediaServer from its GitHub releases.
 //

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { BackLink, Spinner, VersionTag } from '../components/common'

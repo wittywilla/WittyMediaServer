@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Measures the web app the way a slow TV or phone meets it, in a headless browser on a running test
 // server. No window opens. For each page it counts what is downloaded (by kind, in bytes as sent) and
 // how many requests, the time until the page is ready with the processor slowed down, and the work the

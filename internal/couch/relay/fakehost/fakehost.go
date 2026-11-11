@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package fakehost stands in for the Moonlight host program, in tests. A test program calls
 // Run when it's started as a host, which speaks the protocol with made-up frames.
 package fakehost

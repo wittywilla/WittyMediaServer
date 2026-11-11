@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // The colour of a name: a profile's avatar, and the placeholder for a title with no
 // picture. The same rule in every app (WittyMediaClient's docs/APP-DESIGN.md, Avatar),
 // so each person, and each title, keeps its colour on every device.

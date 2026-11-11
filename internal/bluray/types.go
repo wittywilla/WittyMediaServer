@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package bluray is what the server knows of a Blu-ray: the shapes WittyBluray answers in. WittyBluray
 // itself is a module, reached through a helper process (internal/modules/bdremote). These travel as
 // gob and JSON, which go by field name, so a field a newer version adds is simply not read here.

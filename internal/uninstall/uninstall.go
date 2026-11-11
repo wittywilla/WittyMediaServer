@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package uninstall removes WittyMediaServer from a computer. The Windows uninstaller, the
 // Mac uninstaller and `wittymediaserver --uninstall` are all this package with a different
 // way of asking.

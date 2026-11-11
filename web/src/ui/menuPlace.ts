@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Where a menu opens (ui/Menu.tsx), as arithmetic only, so it can be tested and ported.
 
 export type Box = { left: number; top: number; right: number; bottom: number }

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package gameregion holds the owner's order of regions: which version of a game to
 // prefer when there's more than one. USA first isn't right for everyone.
 package gameregion

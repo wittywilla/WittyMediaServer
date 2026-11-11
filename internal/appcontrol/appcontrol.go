@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package appcontrol knows about Windows' Smart App Control: whether it's on, whether the
 // programs and libraries about to be installed are signed so that it would let them run, and
 // how to say so when it blocks one. On other systems it has nothing to say.

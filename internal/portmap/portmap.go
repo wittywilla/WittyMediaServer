@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package portmap asks the home router to forward a port to this machine, with
 // NAT-PMP (RFC 6886) or UPnP IGD. It is off until the owner turns it on, talks
 // only to the router on the local network, and removes what it set up when it

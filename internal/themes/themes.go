@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package themes manages interface themes. A theme is a ZIP file in the
 // themes directory containing at least:
 //

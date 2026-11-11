@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { allGuides, isQuiet, loadGuide, slugOf, type Guide } from './guides'
 import { parse, plain, type Block } from './markdown'
 

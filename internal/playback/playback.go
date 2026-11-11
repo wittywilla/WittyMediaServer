@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package playback decides how a client plays a file: as it is (direct),
 // rewrapped into HLS without touching the picture (remux), or converted
 // (transcode). It is plain logic with no I/O: the server describes the file

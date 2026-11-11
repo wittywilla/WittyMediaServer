@@ -82,7 +82,7 @@ IPTV has been tested with local streams and network tuners only against stand-in
 |---|---|---|
 | **WittyPlay** | Console games streamed to a browser or an app, with every controller and a touch layout editor. Bring your own games, and add cores in **Settings → Consoles & cores** | You can't make a games library, and one you already have is left as it is |
 | **WittyCouch** | Plays the games on any PC running Sunshine, in your browser. WittyCouch Host comes with it | No game PCs on this server |
-| **WittyCouch Host** | A separate GPL-3.0 program that carries WittyCouch's game streams | WittyCouch can find and pair with PCs, but can't play in the page |
+| **WittyCouch Host** | A separate program (AGPL-3.0-or-later, with Moonlight-derived parts under GPL-3.0) that carries WittyCouch's game streams | WittyCouch can find and pair with PCs, but can't play in the page |
 | **WittyRigs** | An advanced option, off until you turn it on: hosts demanding PC games on your server's own hardware, using a Sunshine you install yourself | Nothing most servers need. It's built on WittyCouch, which comes with it |
 
 WittyCouch Host has no build for FreeBSD, so WittyCouch and WittyRigs say so there in place of **Add**. Real games on real gaming PCs haven't been tried yet. See [Games](GAMES.md) and [Game PCs](GAME-RIGS.md).

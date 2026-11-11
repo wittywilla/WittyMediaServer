@@ -475,11 +475,11 @@ The camera rig with the owner; the full matrix again; publish the numbers honest
 
 ## 18. Licences and boundaries
 
-- WittyPlay stays Apache-2.0. Cores (mostly GPL) keep running in the separate runner process, as now. No non-commercial cores offered. No ROMs or BIOS files bundled, downloaded or linked.
+- WittyPlay stays AGPL-3.0-or-later. Cores (mostly GPL) keep running in the separate runner process, as now. No non-commercial cores offered. No ROMs or BIOS files bundled, downloaded or linked.
 - The encoder host links libavcodec dynamically from the FFmpeg the server already ships, and hardware SDK headers with permissive licences (NVENC headers, AMF, oneVPL: MIT; check each when used). Show each in Settings → About.
 - pion (MIT) stays the WebRTC stack. A TURN server, if added, from a permissive library (pion/turn, MIT).
 - Encrypted games stay refused (the 3DS rule is unchanged).
-- WittyCouch and WittyCouchHost (game PCs, GPL-3.0 host) are separate; anything learned here that applies to them is planned in [../modules/WittyCouch.md](../modules/WittyCouch.md), keeping the GPL boundary.
+- WittyCouch and WittyCouchHost (game PCs; the host is AGPL-3.0-or-later with Moonlight-derived parts under GPL-3.0) are separate; anything learned here that applies to them is planned in [../modules/WittyCouch.md](../modules/WittyCouch.md), keeping the boundary around the Moonlight-derived code.
 
 ## 19. Questions for the owner
 

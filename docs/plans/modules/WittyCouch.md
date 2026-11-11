@@ -6,9 +6,9 @@
 
 | Module | Now | Licence | Does |
 |---|---|---|---|
-| WittyCouch | 0.2.1 | Apache-2.0 | Play the games on any PC running Sunshine, in your browser; hands off to the separately installed Moonlight app where a page can't play |
-| WittyCouchHost | 0.2.0 | **GPL-3.0** (built on moonlight-common-c) | The separate program that carries the streams; talks to WittyCouch only over pipes in its `PROTOCOL.md` |
-| WittyRigs | 0.2.0 | Apache-2.0 | Advanced: host demanding PC games on the server's own hardware (Sunshine stays a separate GPL program it only looks for) |
+| WittyCouch | 0.2.1 | AGPL-3.0-or-later | Play the games on any PC running Sunshine, in your browser; hands off to the separately installed Moonlight app where a page can't play |
+| WittyCouchHost | 0.2.0 | **AGPL-3.0-or-later**, with Moonlight-derived parts **GPL-3.0** (built on moonlight-common-c) | The separate program that carries the streams; talks to WittyCouch only over pipes in its `PROTOCOL.md` |
+| WittyRigs | 0.2.0 | AGPL-3.0-or-later | Advanced: host demanding PC games on the server's own hardware (Sunshine stays a separate GPL program it only looks for) |
 
 All on the **alpha** channel. The GPL boundary stays exactly as the licence policy set it: no GPL code compiled into the server, the client or other projects.
 

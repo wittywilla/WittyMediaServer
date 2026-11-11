@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package config resolves the server's launch settings. They come, from
 // weakest to strongest, from built-in defaults, a JSON config file
 // (wms.json), environment variables and command-line flags.

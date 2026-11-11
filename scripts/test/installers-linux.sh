@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Proves the Linux packages for real, in throwaway containers with systemd running: install,
 # use, upgrade, purge, and a snapshot of the file system from before and after to show nothing
 # is left. Also takes over from a real copy that install.sh of 0.5.2-alpha installed.

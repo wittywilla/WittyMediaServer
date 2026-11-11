@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { type Settings } from './engine.ts';
 import { type EffectFile } from './format.ts';
 import { type TapState } from './tap.ts';

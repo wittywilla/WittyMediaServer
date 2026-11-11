@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { Fragment, memo, type CSSProperties } from 'react'
 import { avatarColor } from '../ui/avatarColor'
 import { Link } from 'react-router-dom'

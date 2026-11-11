@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Icons only the music player uses, drawn on the same 24-unit grid as the shared ones.
 type P = { size?: number }
 const S = ({ d, size = 20 }: { d: string; size?: number }) => (

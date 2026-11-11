@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Before the files go in: the service's own account, and taking over from a copy that the
 # install.sh of 0.5.2-alpha or older put in /opt, keeping its data folder, port and account.
 set -e

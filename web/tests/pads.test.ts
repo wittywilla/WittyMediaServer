@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Controller presses as the app's navigation sees them, on a simulated machine: the real code
 // in tv.ts, with time, the timers and the pad stepped by hand. Animation frames never run,
 // which is the point: the browser was seen holding them back for up to half a second.

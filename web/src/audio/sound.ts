@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // What happens to the sound between the player and the speakers: equaliser, loudness,
 // vocal reduction and key. It's all optional and nothing here runs until someone turns one
 // on: an <audio> element plays straight to the speakers until then, which is both the

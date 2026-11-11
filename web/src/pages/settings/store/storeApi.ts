@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { api, ApiError } from '../../../api'
 import type { ModuleStatus, VersionInfo } from '../../../moduleStore'
 

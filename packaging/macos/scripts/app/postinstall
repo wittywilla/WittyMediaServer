@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # So the app opens without Gatekeeper asking about a copy the installer just put there on purpose.
 xattr -dr com.apple.quarantine "/Applications/WittyMediaServer.app" 2>/dev/null || true
 xattr -dr com.apple.quarantine "/Applications/Uninstall WittyMediaServer.app" 2>/dev/null || true

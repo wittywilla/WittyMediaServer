@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import type { Explained } from './words';
 export type LoadStage = 'prepare' | 'start' | 'connect' | 'picture';
 export declare function LoadingScreen({ title, consoleName, cover, stage, status, percent, onCancel }: {

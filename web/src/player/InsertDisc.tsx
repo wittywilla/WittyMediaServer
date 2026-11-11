@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useEffect } from 'react'
 
 // "Insert DVD": the tray opens, the disc drops in, the tray closes and the

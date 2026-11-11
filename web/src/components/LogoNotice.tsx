@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useState } from 'react'
 import { lookupLogo, type LogoKind } from './BrandLogo'
 import LegalNote from './LegalNote'

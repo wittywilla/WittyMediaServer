@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Builds a catalogue of signed modules from local checkouts, with a throwaway key, for a test
 # server built with -tags updatetest. Nothing here touches GitHub, and a release build of the
 # server can't read what this makes: only that build tag trusts another key.

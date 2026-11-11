@@ -17,17 +17,18 @@ This is for whoever develops on a Mac. To just install the server on one, see [I
 
 ## Where macOS stands
 
-As of 0.7.0-alpha, 2026-11-04. "CI" means GitHub's Mac runners: virtual Macs, Apple silicon (`macos-latest`) and Intel (`macos-15-intel`), with no screen, no person signed in at a desktop, and the firewall off.
+As of 0.7.0-alpha, 2026-11-04, with what was run on 2026-11-10 on a real Mac (an M3 Pro, macOS 27.0.1, Homebrew's FFmpeg 9.0.2) added. "CI" means GitHub's Mac runners: virtual Macs, Apple silicon (`macos-latest`) and Intel (`macos-15-intel`), with no screen, no person signed in at a desktop, and the firewall off.
 
 | Part | Built | Run in CI | Run on a real Mac |
 |---|---|---|---|
-| Server (`wittymediaserver`) | Every pull request, both chips | `go vet` and every test, on Apple silicon; `version` on both | No |
-| Menu-bar app (`WittyMediaServer.app`) | Every pull request and release, on a Mac (it needs CGO for Cocoa) | No: there's no menu bar to show it in | No |
-| Uninstaller app | Every pull request and release | Its command-line form, `wittymediaserver --uninstall` | No |
-| `.pkg` installer | Every pull request and release, unsigned | Installed, the service answers on port 9797, uninstalled, on both chips | No |
-| Bundled FFmpeg | Downloaded and checked against `scripts/ffmpeg.lock` | Runs, and lists VideoToolbox's encoders | No |
+| Server (`wittymediaserver`) | Every pull request, both chips | `go vet` and every test, on Apple silicon; `version` on both | Every test, `go vet` and the web and design checks, on Apple silicon |
+| Menu-bar app (`WittyMediaServer.app`) | Every pull request and release, on a Mac (it needs CGO for Cocoa) | No: there's no menu bar to show it in | Built and signed ad hoc for both chips, `codesign --verify --strict` passes; not opened yet |
+| Uninstaller app | Every pull request and release | Its command-line form, `wittymediaserver --uninstall` | Built and signed; not opened yet |
+| `.pkg` installer | Every pull request and release, unsigned | Installed, the service answers on port 9797, uninstalled, on both chips | Built for both chips and looked inside (`pkgutil --expand`, `--payload-files`); the service's install script run against a copy of its property list. Not installed |
+| Bundled FFmpeg | Downloaded and checked against `scripts/ffmpeg.lock` | Runs, and lists VideoToolbox's encoders | Encodes with VideoToolbox, Apple silicon's natively and Intel's under Rosetta 2 |
+| VideoToolbox | | | `wittymediaserver hardware` says it works; H.264 and H.265 encoded to HLS and MP4 with the server's own options, and read back with `ffprobe` (`TestVideoToolboxReallyEncodes`). Not yet against the CPU with real films |
 | Module helpers (every module) | Every module's CI cross-compiles darwin/amd64 and darwin/arm64 | No | No |
-| Helper sandbox (`sandbox-exec`) | Yes | `TestMacHelperSandbox`: writing, removing, the network, Unix sockets and starting programs were all refused inside it, and a helper allowed more kept it. Signalling the server was not refused, though the profile asks for that | No |
+| Helper sandbox (`sandbox-exec`) | Yes | `TestMacHelperSandbox`: writing, removing, the network, Unix sockets and starting programs were all refused inside it, and a helper allowed more kept it. Signalling the server was not refused, though the profile asked for that | `TestMacHelperSandbox`, with the signal rule fixed (#139): everything above refused, signalling the server too |
 | Games (WittyPlay) | Yes | No | Yes, from the app as the build makes it, on macOS 27 on Apple silicon: a Game Boy game on Gambatte and an NES game on FCEUmm started, and one played in a browser. Before, every game failed as "The emulator crashed": see [Modules](MODULES.md) |
 | WittyMediaClient desktop (`.dmg`) | Every push, on a Mac | No | No |
 | WittyMediaClient for Mac, iPhone, iPad, Apple TV | On a Mac in CI, unsigned | WittyKit's tests | No |
@@ -35,7 +36,7 @@ As of 0.7.0-alpha, 2026-11-04. "CI" means GitHub's Mac runners: virtual Macs, Ap
 | WittyCouch Host | Every push, both chips | `--version`, both chips | No |
 | WittyMediaPlayer | Not for macOS: Windows only | | |
 
-So nothing has been seen working on a real Mac, with a screen, a person and a real library. That's the port's first job.
+So nothing has yet been installed on a real Mac and used with a screen, a person and a real library. That's the port's first job.
 
 ## Setting up a Mac from nothing
 
@@ -82,7 +83,9 @@ ffmpeg -hide_banner -encoders | grep videotoolbox    # h264_videotoolbox, hevc_v
 ffmpeg -hide_banner -hwaccels                         # videotoolbox
 ```
 
-The server finds FFmpeg next to its own program first (in a release, `WittyMediaServer.app/Contents/Helpers`), then on your path. It then lists **Apple VideoToolbox** under **Settings → Transcoding** when FFmpeg has `h264_videotoolbox`. GitHub's Mac runners are virtual machines, so whether VideoToolbox really encodes there says nothing about a real Mac: try it on one.
+The server finds FFmpeg next to its own program first (in a release, `WittyMediaServer.app/Contents/Helpers`), then on your path. It then lists **Apple VideoToolbox** under **Settings → Transcoding** when FFmpeg has `h264_videotoolbox`, and a test encode shows it works. `wittymediaserver hardware` runs the same test from Terminal; on an M3 Pro with Homebrew's FFmpeg it says `h264_videotoolbox  works`. GitHub's Mac runners are virtual machines, so whether VideoToolbox really encodes there says nothing about a real Mac.
+
+On Apple silicon VideoToolbox is given a constant quality (`-q:v`). FFmpeg allows that there only: on an Intel Mac it refuses to start the encoder with it, so there the server gives it a bitrate for the picture's size instead.
 
 ### 5. Java, for Blu-ray Java menus only
 
@@ -246,7 +249,7 @@ A Mac asks before a program does several things a media server needs. None of th
 
 - **The firewall** (System Settings, Network, Firewall), when it's on, asks "Do you want the application to accept incoming network connections?" the first time a program listens on the network. An unsigned program that changes, such as a fresh build, may be asked about again after each build. Allow it, or bind to `127.0.0.1` while developing. Signing fixes the repeat questions for releases. A LaunchDaemon can't show the question at all: whether the service is blocked silently is one of the first things to try.
 - **Local network** (macOS 15 and later, System Settings, Privacy & Security, Local Network) is asked for when a program reaches other devices on the home network: the client's server discovery, HDHomeRun tuners, game PCs, casting. A program started from Terminal is covered by Terminal's answer. To check: whether the service and the menu-bar app are asked, and what happens when someone says no.
-- **Protected folders.** Desktop, Documents, Downloads, iCloud Drive, removable drives, network volumes and the Photos library each need the person's permission. The menu-bar app can be asked; the background service can't, so a library there may scan as empty with no explanation. The way round today: keep media in `~/Movies`, `~/Music` or a folder you made, or give **Full Disk Access** to `/Applications/WittyMediaServer.app/Contents/Helpers/wittymediaserver` (System Settings, Privacy & Security, Full Disk Access, **+**, then Command-Shift-G to type the path). The server doesn't yet say when this is the reason.
+- **Protected folders.** Desktop, Documents, Downloads, iCloud Drive, removable drives, network volumes and the Photos library each need the person's permission. The menu-bar app can be asked, and its `Info.plist` says why for each (`NSDesktopFolderUsageDescription`, `NSDocumentsFolderUsageDescription`, `NSDownloadsFolderUsageDescription`, `NSRemovableVolumesUsageDescription`, `NSNetworkVolumesUsageDescription`, and the camera and microphone for capture devices); the background service can't, so a library there may scan as empty with no explanation. The way round today: keep media in `~/Movies`, `~/Music` or a folder you made, or give **Full Disk Access** to `/Applications/WittyMediaServer.app/Contents/Helpers/wittymediaserver` (System Settings, Privacy & Security, Full Disk Access, **+**, then Command-Shift-G to type the path). The server doesn't yet say when this is the reason.
 - **Sleep.** A Mac that sleeps stops serving. Nothing in the server keeps it awake yet. For a Mac that serves all day: System Settings, Energy (or Battery, Options on a laptop), turn on **Prevent automatic sleeping when the display is off** and **Wake for network access**. A laptop with its lid closed sleeps regardless, unless it has power and an external display.
 
 ## Known not to work, or not tried yet
@@ -254,7 +257,7 @@ A Mac asks before a program does several things a media server needs. None of th
 Each of these has an issue labelled `platform:macos`. Those labelled `not-run` were written and checked as far as possible, and need a real Mac.
 
 - [Everything listed as `platform:macos` on the server](https://github.com/wittywilla/WittyMediaServer/issues?q=is%3Aopen+label%3Aplatform%3Amacos), and in [every repository](https://github.com/search?q=org%3Awittywilla+label%3Aplatform%3Amacos+is%3Aopen&type=issues).
-- **Never run on a real Mac:** the menu-bar app, the `.pkg` with a person at the screen, the uninstaller app, the service after a restart, the firewall, local network and privacy questions above, VideoToolbox transcoding, the helper sandbox, disc modules, WittyTuner's capture devices, the Mac's drive health and system figures.
+- **Never run on a real Mac:** the menu-bar app, the `.pkg` with a person at the screen, the uninstaller app, the service after a restart, the firewall, local network and privacy questions above, VideoToolbox against the CPU with real films, starter modules in the helper sandbox, disc modules, WittyTuner's capture devices, the Mac's drive health and system figures.
 - **Module helpers run in the `sandbox-exec` profile on a Mac**, except WittyPlay's: a Mac can't start one sandbox inside another, and WittyPlay gives each game a stricter one of its own. The profile isn't trusted for a fork until it's seen working, so a fork from another publisher can't be chosen. See [Modules](MODULES.md) and [Module store](MODULE-STORE.md#using-someones-fork).
 - **Games:** the consoles drawn on a graphics card don't play on a Mac ([Games](GAMES.md)), there's no per-game CPU limit (priority only), and game cores downloaded from the libretro build server aren't signed by us, which a signed, hardened runner will refuse.
 - **WittyMediaPlayer** has no Mac build ([its design notes](https://github.com/wittywilla/WittyMediaPlayer/blob/main/DESIGN.md) list what a port needs).

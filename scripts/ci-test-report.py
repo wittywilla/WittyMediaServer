@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 """Turns the output of `go test -json` into a short failure report for CI.
 
 Each failing test becomes an annotation on the run, which anyone can read

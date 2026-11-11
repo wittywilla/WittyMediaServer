@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Walks every page of the app with the keyboard alone, in a headless browser on a running test
 // server with libraries. No window opens, and nothing is pressed but Tab, Shift+Tab and the
 // arrows, so nothing is chosen, saved or deleted, except that an arrow on a slider or a choice

@@ -1,2 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* Over the video, so always on the player's own dark colours. */
 .pick-intro { position: absolute; left: 50%; transform: translateX(-50%); bottom: 110px; z-index: 7; display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: var(--sp-3); max-width: calc(100% - var(--sp-8)); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-lg); background: var(--bg-2); color: var(--fg); box-shadow: var(--e-3); }

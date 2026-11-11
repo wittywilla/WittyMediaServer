@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useState } from 'react'
 import { PageHelp } from '../components/HelpLink'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'

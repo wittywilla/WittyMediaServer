@@ -78,7 +78,7 @@ To stay on a version until you choose to move, use its number, such as `:0.7.0-a
 
 It's based on Debian 13 (trixie) slim, because the game cores are built for glibc. Modules aren't in the image: the server adds them from the store into `/config` at run time.
 
-**Licences.** The server is Apache-2.0. FFmpeg in the image is Debian's build, under the GPL, as are x264 and x265; Intel's media driver is MIT, with its encoding kernels from Debian's non-free section (redistributable, without source); Mesa is MIT. Every one is listed in **Settings → About** and in [THIRD_PARTY_LICENSES.md](https://github.com/wittywilla/WittyMediaServer/blob/master/THIRD_PARTY_LICENSES.md). Each Debian package's copyright file is in the image, under `/usr/share/doc/<package>/copyright`; manuals and translations are left out to save space. [sources.debian.org](https://sources.debian.org/) has each package's source.
+**Licences.** The server is AGPL-3.0-or-later. FFmpeg in the image is Debian's build, under the GPL, as are x264 and x265; Intel's media driver is MIT, with its encoding kernels from Debian's non-free section (redistributable, without source); Mesa is MIT. Every one is listed in **Settings → About** and in [THIRD_PARTY_LICENSES.md](https://github.com/wittywilla/WittyMediaServer/blob/master/THIRD_PARTY_LICENSES.md). Each Debian package's copyright file is in the image, under `/usr/share/doc/<package>/copyright`; manuals and translations are left out to save space. [sources.debian.org](https://sources.debian.org/) has each package's source.
 
 ## Folders
 

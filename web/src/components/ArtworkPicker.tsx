@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { artPreviewUrl } from '../api'
 import { artHue } from './common'

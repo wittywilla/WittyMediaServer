@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Proves FreeBSD's package and install.sh for real, in a throwaway FreeBSD virtual machine: rc.d
 # service, upgrade, repair, removal, a before and after listing that must match, and taking over from
 # a real 0.5.2-alpha. Runs where QEMU can use KVM: apt install qemu-system-x86 sshpass.

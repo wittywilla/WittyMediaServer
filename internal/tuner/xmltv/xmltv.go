@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package xmltv reads XMLTV guide files as they stream by, so a very large
 // guide needs very little memory.
 package xmltv

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Command corebuilds keeps internal/server/corebuilds.txt true: which game cores libretro's build
 // server publishes for each platform a server can download them on. A core with no build for a
 // platform isn't offered to install there, so nobody meets a 404 halfway through.

@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # After the files go in: the data folder, and the service running.
 # deb: $1 is "configure". rpm: $1 is 1 on a first install, 2 on an upgrade.
 set -e

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package mpegts reads the parts of an MPEG transport stream a TV tuner needs:
 // the scrambling bits, what the stream says it carries (PAT, PMT, SDT, ATSC
 // VCT) and the programme guide inside it (DVB EIT, ATSC PSIP).

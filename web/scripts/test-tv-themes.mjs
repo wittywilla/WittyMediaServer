@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Walks WittyTV's themes in a headless browser, in every theme at phone, desktop and TV sizes, on a
 // running test server with channels. No window opens. It measures the room above the first text and
 // to the sides of it, checks nothing scrolls sideways and that the preview starts bigger than it

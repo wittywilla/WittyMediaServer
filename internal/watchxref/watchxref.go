@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package watchxref answers "where can I watch this?" for one title: whether it's in
 // this library (and in what quality and versions), next to where the outside services
 // offer it in the viewer's region, to stream, rent or buy.

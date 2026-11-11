@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Takes the pictures in the first-time setup guide, on a test server with a fresh data folder. It
 // walks setup as a new owner would: no native window opens, and Choose folder is never pressed.
 //

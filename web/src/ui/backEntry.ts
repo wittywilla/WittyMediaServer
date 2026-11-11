@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Something over the page that Back closes: a phone's Back gesture, the browser's Back button
 // and a mouse's back button, not only Esc and a remote's Back key (a11y.tsx). While it's open,
 // one entry in the history carries the page's own state with a mark of its own, so the router

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Makes the Mac installer (.pkg) from a folder scripts/build-release.sh built, whose app was
 # built on a Mac. Runs on a Mac only: pkgbuild, productbuild and codesign are Apple's.
 #

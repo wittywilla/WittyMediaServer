@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { type Choice, type Level, type Preset, type Schema, type SettingsApi, type SettingsHost, type SettingsView } from './settings';
 export type LevelChoice = {
     level: Level;

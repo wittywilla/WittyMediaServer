@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package dvdsession turns WittyDVD navigator steps into things a client can
 // show: HLS streams or still frames for the video, PNG overlays for
 // sub-pictures and button highlights, and button geometry for input handling.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package gamemeta finds out about video games: what they're called, what they
 // are, who made them, how they were rated and what they look like. See
 // docs/METADATA.md.

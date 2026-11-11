@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // A small Markdown reader for the guides in docs/. It makes a tree that help/GuideBody.tsx
 // draws as React elements, so nothing in a guide ever reaches the page as HTML. Only what the
 // guides use is here: headings, paragraphs, lists, tables, code, quotes, rules and pictures. Raw

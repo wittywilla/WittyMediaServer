@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* Settings, Profiles: a person's row and what can be done to them. */
 .profile-row { flex-wrap: wrap; }
 .list-item.profile-row .grow { flex: 1 1 12rem; min-width: 0; }

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* Button prompts on the game pages. */
 .gm-prompt-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-2) var(--sp-5); color: var(--fg-2); font-size: var(--text-sm); font-weight: 500; }
 .gm-prompt { display: inline-flex; align-items: center; gap: var(--sp-2); white-space: nowrap; }

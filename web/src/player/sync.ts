@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Keeping a live picture at the same moment as everyone else's. Every segment of a channel says
 // when on the air it starts (EXT-X-PROGRAM-DATE-TIME), so every player that keeps to "the server's
 // time now, less three target durations" shows the same moment (the playlist's HOLD-BACK starts it

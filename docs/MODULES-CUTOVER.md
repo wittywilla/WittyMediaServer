@@ -2,22 +2,30 @@
 
 The steps a person has to take to put every module repository on GitHub, in order. This is for the project's owner, and isn't in the app's help.
 
-Everything is ready in local repositories at `D:\projects\<Repository>`, and nothing has been pushed. Until it is, a server finds no modules to install, and works without them.
+Everything is ready in local repositories at `D:\projects\<Repository>` on Windows (on macOS or Linux, a folder of your choosing that holds each repository side by side, such as `~/projects/<Repository>`), and nothing has been pushed. Until it is, a server finds no modules to install, and works without them.
 
 `scripts/publish-all.sh` does the publishing. Run on its own it only rehearses, in throwaway copies, and changes nothing on GitHub. `--apply` has never been run, and no GitHub workflow has.
 
 Words you'll see: a *secret* is a value GitHub keeps encrypted and never shows again. An *environment* is a named set of secrets and rules that only the jobs naming it can use.
 
-Run the commands below in **Git Bash**, except for steps 4 and 5. The `WittyMediaServer` folder itself is on `master`, which has none of this yet, so work in the folder that has the release branch:
+On Windows, run the commands below in **Git Bash**, except for steps 4 and 5. On macOS or Linux, use a normal terminal for all of them. Work in a copy of the server that has the release branch, `v0.8.0-alpha`, checked out, not `master`:
 
 ```bash
-cd /d/projects/WittyMediaServer/.claude/worktrees/release-integration
+cd /d/projects/WittyMediaServer/.claude/worktrees/release-integration   # Windows, Git Bash
+```
+
+```bash
+cd ~/projects/WittyMediaServer && git switch v0.8.0-alpha   # macOS or Linux: your clone, or a worktree of it, on the release branch
 ```
 
 If this folder has no `go.work`, make one first. Until WittyModule is published, the scripts can't build without it, and Go would otherwise find the `go.work` in the folder above and fail with `does not contain package`:
 
 ```bash
-node scripts/dev-modules.mjs WittyModule=D:/projects/WittyModule
+node scripts/dev-modules.mjs WittyModule=D:/projects/WittyModule   # Windows
+```
+
+```bash
+node scripts/dev-modules.mjs WittyModule=../WittyModule   # macOS or Linux, with WittyModule beside the server
 ```
 
 ## 1. The module key
@@ -70,24 +78,38 @@ gh variable set MODULE_PUBLIC_KEY -R wittywilla/WittyModuleCatalog --body "oITeM
 
 ## 4. Rehearse
 
-Open **Ubuntu**, and:
+On Windows, open **Ubuntu** (WSL), and:
 
 ```bash
-git clone -q --branch release/0.6.0-alpha /mnt/d/projects/WittyMediaServer ~/wms-publish
+git clone -q --branch v0.8.0-alpha /mnt/d/projects/WittyMediaServer ~/wms-publish
 ```
 
 ```bash
 cd ~/wms-publish && scripts/publish-all.sh --repos /mnt/d/projects
 ```
 
+On Linux, or on macOS, the same from a terminal, with the folder that holds your repositories in place of `/mnt/d/projects`:
+
+```bash
+git clone -q --branch v0.8.0-alpha ~/projects/WittyMediaServer ~/wms-publish
+```
+
+```bash
+cd ~/wms-publish && scripts/publish-all.sh --repos ~/projects
+```
+
 It takes about half an hour. It clones every repository, runs each one's tests on its own, builds a catalogue with a throwaway key, and builds and tests a clean clone of the server, with no modules and then with them. Then it lists anything still waiting for you. Nothing leaves your machine.
 
 ## 5. Publish
 
-This talks to GitHub from Ubuntu, so Ubuntu needs `gh`, signed in. Once:
+This talks to GitHub from Ubuntu (or from your Linux or macOS terminal), so it needs `gh`, signed in. Once:
 
 ```bash
-sudo apt install gh
+sudo apt install gh   # Ubuntu, WSL included
+```
+
+```bash
+brew install gh   # macOS; on other Linux systems, use their own package manager
 ```
 
 ```bash
@@ -101,7 +123,7 @@ gh auth setup-git
 Once the rehearsal passes and lists nothing, take a fresh copy, so it has your commit from step 1:
 
 ```bash
-cd ~/wms-publish && git pull -q && scripts/publish-all.sh --repos /mnt/d/projects --apply
+cd ~/wms-publish && git pull -q && scripts/publish-all.sh --repos /mnt/d/projects --apply   # WSL; on macOS or Linux, --repos ~/projects
 ```
 
 Stay nearby: it stops for your **Approve** on each module's release. It stops at the first failure. To carry on after fixing something, add `--from <the repository it stopped at>`: what's already published is left alone, and tags never move.
@@ -114,17 +136,17 @@ In order it does these:
 4. WittyInk first, as the readers build on it, then WittyEbook, WittyPDF, WittyComics, WittyVisualizer and WittyStats, the same way.
 5. WittyReader, WittyMediaPlayer and WittyMediaClient: pushed, with WittyMediaPlayer pinned and tested first. They aren't tagged, so they have no release yet.
 6. WittyModuleCatalog: runs its refresh, and checks the published catalogue's signature.
-7. WittyMediaServer: a clean clone builds and passes its tests, is pushed to `release/0.6.0-alpha`, and is tagged, which starts its own release. Add `--no-server-tag` to stop short of that.
+7. WittyMediaServer: a clean clone builds and passes its tests, is pushed to `v0.8.0-alpha` (the release branch; `--server-branch` names another), and is tagged, which starts its own release. Add `--no-server-tag` to stop short of that.
 
 ## 6. Afterwards
 
-- **Merge the server into `master`,** which is what people see on GitHub. The script only pushes `release/0.6.0-alpha`:
+- **Merge the server into `master`,** which is what people see on GitHub. The script only pushes `v0.8.0-alpha`:
 
   ```bash
-  git checkout master && git pull && git merge origin/release/0.6.0-alpha && git push
+  git checkout master && git pull && git merge origin/v0.8.0-alpha && git push
   ```
 
-- **Bring your own copies up to date.** The script pins in throwaway clones, so GitHub has commits your folders don't. In each repository run `git pull`, or your next push is refused. WittyStats has no `origin` yet: `git -C D:/projects/WittyStats remote add origin https://github.com/wittywilla/WittyStats.git`, then `git -C D:/projects/WittyStats fetch origin`, then `git -C D:/projects/WittyStats branch -u origin/main main`.
+- **Bring your own copies up to date.** The script pins in throwaway clones, so GitHub has commits your folders don't. In each repository run `git pull`, or your next push is refused. WittyStats has no `origin` yet: `git -C D:/projects/WittyStats remote add origin https://github.com/wittywilla/WittyStats.git`, then `git -C D:/projects/WittyStats fetch origin`, then `git -C D:/projects/WittyStats branch -u origin/main main`. On macOS or Linux, use your own folder in place of `D:/projects`, such as `~/projects/WittyStats`.
 - **Release WittyMediaClient.** The server's download page sends people to its Releases page, which is empty until you tag it. Its version is in `desktop/package.json`. Do the same for WittyMediaPlayer and WittyReader when you want them out.
 - Open a server, go to **Settings → Modules**, and see the store list the new versions.
 - Build the Docker image, which nothing above covers: `docker build .`. It needs `wittymodule` v0.3.0 on GitHub, and no other module, as the image holds none.

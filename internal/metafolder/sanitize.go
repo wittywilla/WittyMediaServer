@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package metafolder is the format of the editable metadata folder, and the checks on
 // anything read back from a file someone can edit: the folder itself, and the NFO and
 // JSON files beside media. It holds no server state and knows nothing of the database,

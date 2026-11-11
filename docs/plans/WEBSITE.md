@@ -94,7 +94,7 @@ A new repository, **wittymediaserver.com**, at `D:\projects\wittymediaserver.com
 
 It needs only Node, which is already on your machine. No framework and no packages to install, apart from perhaps one small Markdown library (**to verify**: write our own small one, or use `marked`, which is MIT).
 
-Licence: Apache-2.0, like the server. Screenshots keep their own credits from `docs/images/CREDITS.md`. The README ends with the usual **Legal** section.
+Licence: AGPL-3.0-or-later, like the server. Screenshots keep their own credits from `docs/images/CREDITS.md`. The README ends with the usual **Legal** section.
 
 ### What comes from GitHub
 

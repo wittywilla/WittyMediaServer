@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { SoundListener } from './sound'
 
 // The player's own moving pictures, drawn behind the artwork: Bars, Waves and Drift. They

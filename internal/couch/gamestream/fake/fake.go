@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package fake is a stand-in for Sunshine, for tests. It speaks the same protocol from the
 // server's side, including the certificate checks and the long wait for a PIN, and it can
 // be told to misbehave. It is written from the protocol, not from Sunshine's code.

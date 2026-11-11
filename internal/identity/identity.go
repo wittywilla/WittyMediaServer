@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package identity gives a server something a look-alike can't copy: a random
 // ID, which only names it, and an Ed25519 key, which proves it. An app pins the
 // public key the first time it connects and has the server sign a fresh challenge

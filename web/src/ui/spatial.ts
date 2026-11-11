@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Spatial navigation: given where focus is and a direction, which control is
 // next? Nothing here touches the page, so the rule is easy to test
 // (spatial.test.mjs) and to copy into a native app. docs/DESIGN.md has the contract;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { ApiError, getPrefs, getToken, serverBase } from './api'
 
 // Sends what goes wrong in the web app to the log of this server, where it can

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // The guides, built into the web app from docs/ so they work with no network and no module.
 // Each comes as its own small script, fetched from this server only when it's opened or searched.
 // Every docs/*.md is listed in GROUPS or in notInHelp: internal/docscheck holds us to that.

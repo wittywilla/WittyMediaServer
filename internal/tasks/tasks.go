@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package tasks is the one place the server keeps track of its background work:
 // library scans, metadata, module installs, transcodes, backups and anything else
 // that takes longer than a request. The activity button, the WittyStats module and

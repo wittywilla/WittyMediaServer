@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 """Writes the design tokens as plain data, for clients that can't read CSS (the
 Apple TV and Android TV apps). The CSS stays the single source; never edit the
 results by hand:

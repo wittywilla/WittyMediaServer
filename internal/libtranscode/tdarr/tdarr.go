@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package tdarr talks to someone's own Tdarr server over its HTTP API, which is documented
 // at docs.tdarr.io. Tdarr is a separate program with its own licence. Nothing of it is
 // included here, and this never downloads or installs it. See docs/LIBRARY-TRANSCODING.md.

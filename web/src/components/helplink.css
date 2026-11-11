@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The small way into a guide from the page it's about. */
 .help-link { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: var(--control-h-sm); color: var(--fg-2); font-size: var(--text-sm); }
 .help-link:hover { color: var(--fg); text-decoration: underline; }

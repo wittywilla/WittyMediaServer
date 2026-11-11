@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Command perf measures a server build the same way each time, so that releases can be
 // compared: start-up, memory and processor use while idle, library scans, and the API's
 // answers. docs/PERFORMANCE.md says how to run it and holds the numbers so far.

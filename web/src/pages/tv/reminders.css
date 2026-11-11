@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* A reminder coming due, on whatever page someone is on. */
 .tv-remind {
   position: fixed; right: var(--sp-4); bottom: calc(var(--sp-5) + var(--dock-space) + var(--tabbar-space)); z-index: var(--z-toast); display: flex; align-items: center; flex-wrap: wrap; gap: 12px;

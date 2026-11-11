@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 export declare const SELECT = 2, START = 3, UP = 4, DOWN = 5, LEFT = 6, RIGHT = 7, L2 = 12, R2 = 13;
 export declare const STICK_LX_NEG = 16, TARGETS = 24;
 export declare const HAT_UP = 1, HAT_RIGHT = 2, HAT_DOWN = 3, HAT_LEFT = 4;

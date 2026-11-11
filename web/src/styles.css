@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The design system: tokens first, then the shared parts every page is built
    from. docs/DESIGN.md explains the rules and how to add a page. Themes set the
    colour variables below; everything else is worked out from them, so a theme

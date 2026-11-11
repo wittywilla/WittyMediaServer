@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package fakecore builds real shared libraries for tests of what happens when a
 // core is added: one that works, and several that misbehave in the ways a hostile or
 // broken file can. It is only imported by tests.

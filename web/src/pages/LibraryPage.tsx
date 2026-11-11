@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { lazy, Suspense } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { EmptyState, Spinner } from '../components/common'

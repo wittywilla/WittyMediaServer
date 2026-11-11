@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { Link, NavLink } from 'react-router-dom'
 import { useState, type ReactNode } from 'react'
 import { artSet, CARD_SIZES, fitWidth, fmtTime, mediaUrl, posterUrl, sized, type Album, type Artist, type Item } from '../../api'

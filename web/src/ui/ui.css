@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The shared parts in web/src/ui that aren't already in styles.css. Tokens only:
    scripts/design-check.py fails on anything else. Everything here is new, so it
    has its own ui- prefix; older parts keep their old names (themes rely on them). */

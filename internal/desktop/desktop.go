@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package desktop talks to the desktop the server runs on (when it has one):
 // opening the web app in the default browser and showing the system's own
 // folder picker during setup.

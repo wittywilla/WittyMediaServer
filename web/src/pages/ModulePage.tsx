@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { Suspense, useMemo, type ComponentType, type LazyExoticComponent } from 'react'
 import { useParams } from 'react-router-dom'
 import { api, getToken, serverBase } from '../api'

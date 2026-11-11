@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The full-screen player, karaoke and their panels. Always on black, in every theme: the
    visualizer is light on a dark room, and artwork is made to sit on it. So this surface sets
    its own colours from the theme's accent, and they hold whatever the page's theme is. */

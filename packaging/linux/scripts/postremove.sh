@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # After the files have gone. `apt remove` and `dnf remove` keep your library, accounts and
 # settings. `apt purge` removes everything the server made, down to its account, as purge
 # always does. Only names the server made: recorded TV, backups, library folders and anything

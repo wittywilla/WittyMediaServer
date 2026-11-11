@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 export type DisplayValues = Record<string, unknown>;
 type Media = HTMLVideoElement | HTMLCanvasElement;
 export declare const reducedMotion: () => boolean;

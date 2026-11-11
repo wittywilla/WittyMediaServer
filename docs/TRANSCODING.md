@@ -58,7 +58,7 @@ Your graphics chip can convert video for a fraction of the processor work, which
 |---|---|
 | **NVIDIA NVENC** | GeForce, RTX and Quadro cards, on Windows and Linux |
 | **Intel Quick Sync** | Intel CPUs with built-in graphics, and Intel Arc, on Windows and Linux |
-| **Apple VideoToolbox** | Macs. This has not been run on a real Mac yet |
+| **Apple VideoToolbox** | Macs. Seen encoding on an Apple silicon Mac; not yet compared with the CPU on real films |
 | **AMD AMF** | Radeon cards and Ryzen APUs, on Windows |
 | **VAAPI** | Intel and AMD graphics on Linux, through the first render node in `/dev/dri` that the server can open, Intel's or AMD's before any other. FreeBSD also tries it, and it has not been run there |
 
@@ -222,7 +222,7 @@ Quick Sync is part of the built-in graphics. **CPUs ending in F, such as the i5-
 
 ## Apple, Linux and Raspberry Pi
 
-- **Apple VideoToolbox.** Macs have a hardware H.264 encoder, and Apple silicon encodes many 1080p streams at once with little power. Use Balanced. This has not been run on a real Mac yet.
+- **Apple VideoToolbox.** Macs have a hardware H.264 encoder, and Apple silicon encodes many 1080p streams at once with little power. Use Balanced. On Apple silicon it's set by quality; on an Intel Mac, whose FFmpeg won't take a quality for it, by a bitrate for the picture's size. Seen encoding on an M3 Pro; not yet compared with the CPU on real films.
 - **VAAPI on Linux.** Covers Intel (iHD driver) and AMD (Mesa radeonsi). The server's user needs access to `/dev/dri/renderD128`, usually through the `render` or `video` group.
 - **Raspberry Pi.** The Pi 5 has no hardware H.264 encoder, and this server doesn't use the Pi 4's. Use software with Speed, 720p and **Low-power mode for discs**.
 

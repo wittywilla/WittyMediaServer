@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package backup makes a ZIP of a server's data and metadata, and puts one back. An
 // archive is treated as hostile the whole way through, even one this server made: it
 // may have been changed since, or come from someone else.

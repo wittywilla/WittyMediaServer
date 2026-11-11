@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package server
 
 import (
@@ -270,7 +273,8 @@ func (s *Server) couchIdentity(u int64) (*gamestream.Identity, error) {
 }
 
 // couchProgram finds the host program: named by the environment, in this server's data
-// folder, or from its module. It's a separate GPL-3.0 program, so a server works without it.
+// folder, or from its module. It's a separate program (AGPL-3.0-or-later, with Moonlight-derived
+// parts under the GPL-3.0), so a server works without it.
 func (s *Server) couchProgram() string {
 	if p := os.Getenv("WMS_WITTYCOUCH_HOST"); p != "" {
 		return p

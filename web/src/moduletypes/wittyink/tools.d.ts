@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { type ReactNode } from 'react';
 import { type Ann, type BookMeta } from './host';
 export type { Ann } from './host';

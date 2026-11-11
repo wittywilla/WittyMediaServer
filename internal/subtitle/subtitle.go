@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package subtitle turns subtitle text into WebVTT, the form players show beside a
 // video. It reads the formats FFmpeg doesn't (YouTube's SBV, TTML and DFXP, timed
 // lyrics), and straightens out the encodings of the ones it does. The result is only

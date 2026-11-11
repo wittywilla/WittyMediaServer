@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+// Some icon shapes follow Google's Material Icons (Apache-2.0); see THIRD_PARTY_LICENSES.md.
 // Inline SVG icons (no icon-font dependency).
 type P = { size?: number; className?: string }
 const S = ({ d, size = 20, fill = 'currentColor', className }: { d: string; size?: number; fill?: string; className?: string }) => (

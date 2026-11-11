@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package libtranscode converts the files of a library ahead of time, so they play
 // without being converted later. That is a different job from live playback conversion
 // (internal/hls): this one rewrites people's files, so everything about it leans towards

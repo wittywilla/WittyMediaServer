@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { ApiError } from '../../api'
 import { currentRun, failureOf, installModule, type Failure, type Run } from '../settings/store/storeApi'
 

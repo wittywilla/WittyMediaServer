@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 """Keeps the interface to docs/DESIGN.md. It fails on anything that bypasses the
 design system, so a page can't quietly drift away from the rest:
 

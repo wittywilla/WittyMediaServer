@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { createContext, useContext } from 'react'
 
 // PlayerChrome connects a player to the dock that hosts it: whether it is

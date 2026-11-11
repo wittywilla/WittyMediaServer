@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package db wraps the SQLite store (pure Go driver, no CGO) and migrations.
 package db
 

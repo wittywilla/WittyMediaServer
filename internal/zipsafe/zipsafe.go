@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package zipsafe checks a zip before anything allocates for it. Reading a zip's directory takes
 // memory for each entry and its name, and looking a name up in it takes memory for every folder
 // of every name, so a file can ask for far more memory than it takes on disk.

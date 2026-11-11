@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // "Keep playing when this tab is in the background", one choice per device. On, a channel
 // carries on with its sound in a background tab or a minimised window, for as long as it would
 // in front, and the server keeps it going. Off, the player lets its channel go when the page is

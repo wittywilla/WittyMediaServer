@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package ebook turns book formats a reader can't show directly into EPUB, which it
 // can. It knows Kindle (MOBI, AZW, KF8) and Palm books, FictionBook, Word (DOCX and
 // DOC), OpenDocument, Rich Text, Markdown, web pages and plain text.

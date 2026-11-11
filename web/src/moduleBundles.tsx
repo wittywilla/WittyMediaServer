@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { Component, lazy, useEffect, useState, type ComponentType, type Context, type ReactNode } from 'react'
 import { api, mediaUrl } from './api'
 import { ModuleMissing } from './components/ModuleMissing'

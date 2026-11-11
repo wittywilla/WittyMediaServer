@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 # Makes the key that signs modules' releases: a second key, separate from the one that
 # signs the server (docs/MODULES-CUTOVER.md says why). The owner runs this, once.
 #

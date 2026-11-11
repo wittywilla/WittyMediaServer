@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { api, serverBase, type Library } from '../../api'
 import { photoThumb, takenMonth as monthYear, type Photo, type PhotoCluster } from '../../gallery'

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // node --experimental-strip-types --test web/src/tvmode/nav.test.mjs
 import test from 'node:test'
 import assert from 'node:assert/strict'

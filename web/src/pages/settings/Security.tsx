@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useCallback, useEffect, useState } from 'react'
 import { fmtDateTime, api, type Session, type UserView } from '../../api'
 import { IconCheck, IconTrash } from '../../icons'

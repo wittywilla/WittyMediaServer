@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* A gaming PC's library and game pages, and its settings page. Colours come from the theme;
    status words stay in the normal text colour, as only the dot carries the state's colour. */
 .rig-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; margin: 0 0 16px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg-2); color: var(--fg); }

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
+
 <#
 .SYNOPSIS
   Checks a built MSI without installing it: reads its tables, unpacks it with an administrative

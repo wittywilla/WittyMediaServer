@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { clampView, fitView, groupZoom, latOf, lonOf, mercX, mercY, minZoom, placeName, scaleOf, tileUrl, toScreen, viewBox, worldCopies, zoomAt } from './mapMath.ts'

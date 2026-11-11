@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // A small QR code maker: byte mode, error correction level M, versions 1 to 10
 // (up to 213 bytes), enough for a server address or an authenticator app's
 // setup link. Returns rows of dark (true) and light modules, or null if the

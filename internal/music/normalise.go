@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package music is the music library's own framework: what ties a song to its music
 // video, and how the two are matched. It speaks only to the database, so it can move
 // with the music library wherever that ends up.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package brandname splits the server's name into the parts drawn in the theme
 // colour and the parts drawn plain, the way WittyMediaServer is drawn as
 // Witty, Media in the theme colour, then Server.

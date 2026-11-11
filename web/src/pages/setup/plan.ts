@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Which steps first-time setup shows, and in what order. A step belongs to whatever needs it: the
 // server itself, or a module. A module's step only appears once that module is on this server, so
 // adding a step means adding one line here and one file beside this one. Nothing here touches the

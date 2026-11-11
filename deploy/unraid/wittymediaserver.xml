@@ -8,7 +8,7 @@
   <Privileged>false</Privileged>
   <Support>https://github.com/wittywilla/WittyMediaServer/issues</Support>
   <Project>https://github.com/wittywilla/WittyMediaServer</Project>
-  <Overview>Your own media server: films, TV, music, photos, books, DVD and Blu-ray menus, and games. Runs as nobody:users with a read-only root. Hardware transcoding with Intel, AMD or NVIDIA graphics: see docs/DOCKER-UNRAID.md.</Overview>
+  <Overview>Your own media server: films, TV, music, photos, books, DVD and Blu-ray menus, and games. Runs as nobody:users with a read-only root. Hardware transcoding with Intel, AMD or NVIDIA graphics: see docs/DOCKER-UNRAID.md. Open source under the AGPL-3.0-or-later.</Overview>
   <Category>MediaServer:Video MediaServer:Music MediaServer:Photos</Category>
   <WebUI>http://[IP]:[PORT:9797]/</WebUI>
   <Icon>https://raw.githubusercontent.com/wittywilla/WittyMediaServer/master/web/public/icon-512.png</Icon>

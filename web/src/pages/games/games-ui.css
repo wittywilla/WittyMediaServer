@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The game library: home, console and game pages, and couch mode. Tokens only. Everything
    that moves animates transform or opacity, and nothing here is blurred. */
 

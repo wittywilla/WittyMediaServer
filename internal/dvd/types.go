@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package dvd is what the server knows of a DVD: the shapes WittyDVD answers in. WittyDVD itself
 // is a module, reached through a helper process (internal/modules/dvdremote). These travel as gob,
 // which goes by field name, so a field a newer version adds is simply not read here.

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* A player inside a page (see InlinePlayer). */
 .player.inline { position: relative; inset: auto; z-index: auto; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r-lg); }
 .player.inline:fullscreen { border-radius: 0; }

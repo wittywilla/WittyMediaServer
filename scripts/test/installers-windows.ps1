@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
+
 <#
   Installs, upgrades and removes WittyMediaServer's MSI for real, with a snapshot of the file system
   and the registry before and after that must match. It refuses to run anywhere but Windows Sandbox,

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
 """Compresses pictures taken for the docs, and makes the small copies in-app Help shows.
 
   scripts/docs-images.py <folder of PNGs> <docs/images folder>      WebP copies for GitHub

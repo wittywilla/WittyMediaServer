@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Controller presses, two ways.
 //
 // With no arguments: web/tests/pads.test.ts, the real navigation code on a simulated machine.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // The live sync rules, fed with made-up drifts and clocks.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'

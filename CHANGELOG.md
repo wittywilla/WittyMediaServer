@@ -5,6 +5,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+## 0.8.0-alpha
+
+- Licence: the server and every Witty module are now AGPL-3.0-or-later (they were Apache-2.0), and the client apps are GPL-3.0-or-later. Code forked or derived from another project keeps its own licence, such as WittyCouch Host's Moonlight-derived parts under the GPL-3.0.
 - Added `pkg/sdui` server-driven UI library (schema v1, validator, renderer, differ, templates). See [docs/SDUI.md](docs/SDUI.md).
 - Added: server-driven screens over HTTP. `GET /api/v1/sdui/screens/{screen}` renders a screen for the account and device (platform, form factor, viewport, locale, capabilities), with ETags and 304, and `…/diff?since=<etag>` answers with patches. The screens live in `ui_config.json` in the data folder, made from the stock screens on first start, with the last 10 revisions kept for going back, recovery from a damaged file, and hand edits picked up while running. Administrators read, replace (with `If-Match`), list and roll back the configuration under `/api/v1/sdui/config`. See [docs/SDUI.md](docs/SDUI.md#http-api).
 - Added: the theme engine. `GET /api/v1/theme` resolves an account's colours from the server's theme and global overrides, the account's own choice, and per-module overrides, with WCAG AA contrast warnings. Administrators set them with `PUT /api/v1/theme/global` and `/api/v1/theme/modules/{module}`. `/api/themes` is unchanged. See [docs/THEMES.md](docs/THEMES.md#the-theme-engine).
@@ -18,6 +21,12 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - API revision 13: features `canvas`, `karaoke-stems`, `skip-markers` and `where-to-watch-xref`.
 - Added: WittyPlay's Docker backend through the server, under `/api/v1/modules/wittyplay/docker/...` and the KasmVNC desktop at `/api/v1/modules/wittyplay/kasm/{sid}/...` (WebSocket included). The server now tells a module's service who is asking with `X-Witty-User` and `X-Witty-Admin`, and always drops any `X-Witty-` header a browser sends. Administrators' routes are checked by the server as well as by WittyPlay. See [docs/MODULES.md](docs/MODULES.md#who-is-asking).
 - API revision 14: feature `module-identity`.
+- Fixed: a DVD's sound drifting out of step with the picture after a join between cells. Where a cell starts part way into a sound frame, the 32 ms lost there was stretched back at one sample a second, for minutes, and more with every join. A gap of 10 ms or more is now filled or cut at once, in a video's stream and on a channel.
+- Fixed: on a Mac, a module's helper could signal any program of the server's account, the server included. The sandbox's rule against signalling others didn't hold there; it now allows signals only within the helper's own sandbox, and the Mac test requires that (#139).
+- `bump-server.sh`, `publish-all.sh` and `check-executable.sh` run on a Mac, with its own bash 3.2 and BSD sed.
+- Fixed: on an Intel Mac, Apple VideoToolbox never worked: FFmpeg there won't start it with a quality setting, so the server's test encode failed. It now gets a bitrate for the picture's size there, for streams and library transcoding; Apple silicon is unchanged (#138).
+- Fixed: on a Mac, the menu-bar app's `Info.plist` now says why it asks for Desktop, Documents, Downloads, removable and network drives, and a capture device's camera and microphone (#137).
+- Fixed: on a Mac, installing over an earlier background service whose property list couldn't be read took the error message for the data folder's name, and the uninstaller couldn't find a data folder with `&` in its name (#136).
 
 ## 0.7.2-alpha
 

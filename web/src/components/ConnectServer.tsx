@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useState } from 'react'
 import { HelpLink } from './HelpLink'
 import { api, normalizeServer, serverBase, setServerBase } from '../api'

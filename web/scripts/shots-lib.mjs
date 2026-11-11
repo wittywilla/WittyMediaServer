@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Helpers for the scripts that take the pictures in the docs. A headless browser of its own, no
 // window, always 1920 x 1080 unless a script says otherwise. See shots-setup.mjs and shots.mjs.
 import { mkdirSync, writeFileSync } from 'node:fs'

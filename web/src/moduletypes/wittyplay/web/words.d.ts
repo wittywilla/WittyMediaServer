@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 export type PadFamily = 'xbox' | 'playstation' | 'nintendo' | 'generic';
 export declare function familyOf(id: string): PadFamily;
 export type ProblemData = {

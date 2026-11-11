@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package logging is the server's log: structured records in categories with
 // their own levels, kept in memory for the viewer and written to daily files in
 // a folder the owner chooses. See docs/LOGGING.md for how every part should use

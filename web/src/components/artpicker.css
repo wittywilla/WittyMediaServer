@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The artwork picker: a head and tabs, a grid that scrolls beside a preview that stays,
    and a foot with Apply. Sized to the window, so nothing in it is ever off screen. */
 .modal.art-picker { max-width: 1120px; height: min(860px, calc(100dvh - 40px)); display: flex; flex-direction: column; padding: 0; overflow: hidden; }

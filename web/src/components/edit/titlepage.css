@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The parts of a title's page that come from the metadata service. */
 .title-logo { margin: 0 0 var(--sp-2); }
 .title-logo img { display: block; max-width: min(420px, 100%); max-height: 160px; object-fit: contain; object-position: left center; }

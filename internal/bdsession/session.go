@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package bdsession turns WittyBluray navigator steps into what the disc
 // player shows: HLS streams of the playlists, PNG overlays for menu
 // buttons and their highlights, button geometry for the remote, and

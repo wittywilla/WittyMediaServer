@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Tries the photo map in a headless browser, on a running test server: phone, desktop and TV
 // sizes in a dark and a light theme, then the mouse, a finger, two fingers, the keyboard and a
 // remote's arrows, and an online map that doesn't answer. No window opens. It expects a Photos

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { useMemo, useState, type KeyboardEvent } from 'react'
 import { accentMask, cutsFor, gaps, isSpace, join, letters, pickFromMask, pieces, split } from '../brandName'
 import { Segmented } from '../ui'

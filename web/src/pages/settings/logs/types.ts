@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // What GET /api/logs and its neighbours return, and the small things the log
 // pages share. See internal/logging and internal/server/api_logs.go.
 

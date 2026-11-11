@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* One header for every library page. The bar stays in view as the page scrolls, and
    the rest of the header doesn't, so display: contents lets the bar stick to the page. */
 .lh { display: contents; }

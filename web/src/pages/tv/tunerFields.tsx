@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import type { Driver, DriverField } from './tvApi'
 
 // What a tuner driver asks for, as a form field, and how well each driver has

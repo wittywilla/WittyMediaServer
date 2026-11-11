@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 // Posters that lean toward the pointer, with a soft light moving across them. One
 // listener on the page and one light element, handed to whichever poster is under the
 // pointer, so a library of thousands costs nothing extra. Only transform and opacity

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package hostsandbox is what the host does to itself before it loads a core.
 // The server's part (job objects, namespaces, sandbox profiles) is in the stream
 // package, and docs/GAMING.md lists what each platform gets.

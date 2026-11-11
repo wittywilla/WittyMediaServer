@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* TV mode (docs/plans/TV-MODE.md): the website as the Apple TV and Android TV apps are, from WittyMediaClient's
    docs/APP-DESIGN.md, On a TV. Everything here is under html.tv-mode, so with TV mode off nothing changes.
    Sizes are TV units: one is a point on a 1920×1080 Apple TV, and --tvu scales it to the window, so the same

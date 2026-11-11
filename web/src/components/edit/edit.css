@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The edit dialog. It can run long, so it's a head, a body that scrolls and a foot that doesn't. */
 .modal.ed-dialog { max-width: 960px; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
 .ed-dialog > .ui-dialog-head { margin: 0; padding: var(--sp-5) var(--sp-6) var(--sp-3); }

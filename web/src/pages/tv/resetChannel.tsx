@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
 import { api } from '../../api'
 import { toast } from '../../state'
 import { ask } from '../../ui'

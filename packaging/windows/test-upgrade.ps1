@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 WittyWilla and contributors
+
 <#
   Installs one MSI over another the way a person updating would, and fails unless the upgrade
   finishes cleanly. Run on a throwaway Windows machine (CI), never on someone's own PC: it

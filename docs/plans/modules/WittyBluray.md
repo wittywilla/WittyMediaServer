@@ -4,7 +4,7 @@
 >
 > **Planned:** [icons](https://github.com/wittywilla/WittyMediaServer/discussions/58) and [secondary audio and picture in picture](https://github.com/wittywilla/WittyMediaServer/discussions/59). Nothing in progress.
 
-**Now:** 0.3.0. Helper, API 3. Blu-ray images with their menus, including 4K, HDR and 3D discs (3D plays the 2D view); BD-J menus on a Java the owner installs, with our own Apache-2.0 `runtime.jar` and a default-deny sandbox, off by default; insert effect; `wittybluray walk` and `bdj` diagnostics. Built on WittyDisc. `wittyblurayplayer` 0.2.0 is used by WittyMediaPlayer. AACS-encrypted discs are refused.
+**Now:** 0.3.0. Helper, API 3. Blu-ray images with their menus, including 4K, HDR and 3D discs (3D plays the 2D view); BD-J menus on a Java the owner installs, with our own AGPL-3.0-or-later `runtime.jar` and a default-deny sandbox, off by default; insert effect; `wittybluray walk` and `bdj` diagnostics. Built on WittyDisc. `wittyblurayplayer` 0.2.0 is used by WittyMediaPlayer. AACS-encrypted discs are refused.
 
 **Channel:** alpha (with Module API 4).
 

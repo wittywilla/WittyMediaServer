@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package mediatypes is the one list of the file types, containers and codecs the
 // server knows: what each is called, how to recognise it, which libraries take it,
 // how it plays and what it needs. Scanning, playback, serving, the file browser and

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 // Package hls runs FFmpeg transcodes that produce HLS segments on demand.
 //
 // The server writes the playlist itself from the known duration, forces
@@ -1197,7 +1200,13 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string) 
 			ch = 2
 		}
 		args = append(args, "-c:a", codec)
-		af := "aresample=async=1:first_pts=0"
+		// A gap or overlap of 10 ms or more in the sound's timestamps is filled
+		// with silence or cut there and then, as a player would place the sound.
+		// FFmpeg's usual 100 ms would leave a join that loses one sound frame
+		// (32 ms of AC-3, where a disc's cell starts part way into one) to be
+		// stretched back at one sample a second: out of step with the picture for
+		// minutes, and more so with every such join.
+		af := "aresample=async=1:min_hard_comp=0.01:first_pts=0"
 		if sp.AudioFilter != "" {
 			af = sp.AudioFilter + "," + af
 		}

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package seamcheck
 
 import (
@@ -57,16 +60,21 @@ func source(sec int) []string {
 }
 
 // makeVOB writes an MPEG program stream as a DVD holds one: 2048-byte packs,
-// sound stored ahead of its picture, a sequence header at each group of pictures.
+// sound stored ahead of its picture, and a navigation pack at each group of
+// pictures, whose picture starts in the next pack. That is what the dvd muxer
+// adds over the plain vob one: there a group of pictures starts part way into a
+// pack, after the end of the picture before it, so a cut there loses that end
+// and the decoder may drop the picture, depending on how many slices the encoder
+// (one per thread) made of it. A disc's cells start at a navigation pack.
 func makeVOB(t *testing.T, ff *ffmpeg.Tools, dir string) string {
 	p := filepath.Join(dir, "film.vob")
 	run(t, ff, append(source(testSec), "-c:v", "mpeg2video", "-flags", "+cgop", "-sc_threshold", "1000000000", "-g", "12", "-bf", "2", "-b:v", "1500k", "-maxrate", "4M", "-bufsize", "1800k",
-		"-c:a", "ac3", "-b:a", "192k", "-packetsize", "2048", "-f", "vob", p)...)
+		"-c:a", "ac3", "-b:a", "192k", "-packetsize", "2048", "-f", "dvd", p)...)
 	return p
 }
 
-// cutPoints finds the packs where a group of pictures starts, nearest to each
-// of the given times: the places a disc may start a cell.
+// cutPoints finds the navigation packs, which start each group of pictures,
+// nearest to each of the given times: the places a disc may start a cell.
 func cutPoints(t *testing.T, ff *ffmpeg.Tools, path string, at []float64) []int64 {
 	t.Helper()
 	b, err := os.ReadFile(path)
@@ -76,12 +84,13 @@ func cutPoints(t *testing.T, ff *ffmpeg.Tools, path string, at []float64) []int6
 	var cuts []int64
 	var starts []int64
 	for off := 0; off+2048 <= len(b); off += 2048 {
-		if bytes.Contains(b[off:off+2048], []byte{0, 0, 1, 0xb3}) {
+		// A navigation pack: the pack header, then the system header.
+		if bytes.Equal(b[off+14:off+18], []byte{0, 0, 1, 0xbb}) {
 			starts = append(starts, int64(off))
 		}
 	}
 	if len(starts) < 4 {
-		t.Fatal("no groups of pictures in the test stream")
+		t.Fatal("no navigation packs in the test stream")
 	}
 	size := float64(len(b))
 	for _, sec := range at {

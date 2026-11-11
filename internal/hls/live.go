@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
 package hls
 
 import (
@@ -622,8 +625,11 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 		args = append(args, "-force_key_frames", fmt.Sprintf("expr:gte(t,n_forced*%g)", sp.SegmentSec), "-g", strconv.Itoa(int(sp.SegmentSec*30)), "-sc_threshold", "0")
 	}
 	// The same audio throughout, so a stream stays playable across programmes
-	// and devices.
-	args = append(args, "-c:a", "aac", "-ac", "2", "-ar", "48000", "-b:a", firstNonEmpty(sp.AudioRate, sp.Quality.AudioRate, "160k"), "-af", "aresample=async=1:first_pts=0")
+	// and devices. A gap of 10 ms or more is filled or cut there and then, as in
+	// a video's stream: a disc on a channel is read across its cells, and a
+	// tuner's stream drops what arrives damaged, so a lost sound frame would
+	// otherwise be stretched back slowly, out of step with the picture.
+	args = append(args, "-c:a", "aac", "-ac", "2", "-ar", "48000", "-b:a", firstNonEmpty(sp.AudioRate, sp.Quality.AudioRate, "160k"), "-af", "aresample=async=1:min_hard_comp=0.01:first_pts=0")
 	if in.Duration > 0 {
 		args = append(args, "-t", strconv.FormatFloat(in.Duration, 'f', 3, 64))
 	}

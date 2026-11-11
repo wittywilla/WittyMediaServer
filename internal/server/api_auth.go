@@ -607,6 +607,7 @@ func (s *Server) handleUserAccess(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.forgetRules()
+		s.limitsChanged(r.Context(), id) // what the profile has open follows them now
 		s.Log.InfoContext(r.Context(), "a profile's limits were changed", "cat", "auth", "account", id, "by", me.Name, "from", clientFrom(r).IP.String())
 	}
 	if b.ClearPassword {
@@ -647,6 +648,7 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	s.accountGone(id) // its sign-ins, and all they had open, ended with it (live_ends.go)
 	s.removeUserGameFiles(id)
 	if s.TV != nil {
 		if err := s.TV.ForgetUser(r.Context(), id); err != nil {

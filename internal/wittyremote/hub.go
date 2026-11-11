@@ -412,6 +412,18 @@ func (h *Hub) RemoveSession(session string) {
 	}
 }
 
+// RemoveUser forgets every device of an account, except those of the sign-in keep ("" for
+// none): "sign out everywhere else", a new password, an account deleted.
+func (h *Hub) RemoveUser(userID int64, keep string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, d := range h.devices {
+		if d.UserID == userID && (keep == "" || d.SessionID != keep) {
+			h.drop(d, "signed-out")
+		}
+	}
+}
+
 // Report is a device saying what it is doing. It is also its heartbeat.
 func (h *Hub) Report(id string, userID int64, session string, st State) error {
 	st = st.Clean()

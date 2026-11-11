@@ -158,6 +158,19 @@ func (s *Server) handleWittyPlayKasm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	outside := ext[:i] // /api/modules/wittyplay, or /api/v1/modules/wittyplay
+	// Only a game this server started, that is still going, for a profile that may still be
+	// playing it. The ticket is WittyPlay's to check; whose game it is, and what that
+	// profile's limits say now, only the server knows (emulator_sessions.go). Every refusal
+	// is the same "not found": the address is all a caller has shown.
+	game, known := s.emus.get(r.PathValue("sid"))
+	if !known {
+		writeErr(w, 404, "not found")
+		return
+	}
+	if owner, err := s.Auth.User(r.Context(), game.user); err != nil || !s.emulatorMayGoOn(r.Context(), owner, false) {
+		writeErr(w, 404, "not found")
+		return
+	}
 	c, err := service.Dial(wittyPlayID)
 	if err != nil {
 		writeErr(w, 404, "not found")

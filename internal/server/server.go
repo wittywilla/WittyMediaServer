@@ -156,6 +156,9 @@ type Server struct {
 	// WittyRemote and watch parties: see api_remote_control.go and api_syncplay.go.
 	remoteCtl remoteCtl
 	watch     watchParties
+	// What sign-ins have open, ended when they end: see live_ends.go and emulator_sessions.go.
+	open openStreams
+	emus emulatorGames
 
 	// Work the server started on its own, which Close ends and waits for: see background.
 	bgMu     sync.Mutex

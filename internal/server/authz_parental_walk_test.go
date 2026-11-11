@@ -48,19 +48,24 @@ var idSpaces = map[string]string{
 	"/api/views/{id}": "other", "/api/channels/{id}": "other", "/api/couch/hosts/{id}": "other", "/api/game-profiles/{id}": "other",
 	"/api/modules/{id}": "other", "/api/module-store/{id}": "other", "/api/rigs/{id}": "other", "/api/sessions/{id}": "other",
 	"/api/shares/{id}": "other", "/api/recordings/{id}": "other", "/api/recording-rules/{id}": "other", "/api/tv/reminders/{id}": "other",
+	// A device and a watch party are named by random words, never by a title's number. What
+	// they show of titles is walked with a device that is playing what is hidden and a party
+	// that is watching it: see playingWhatIsHidden.
+	"/api/remote-control/devices/{id}": "other", "/api/syncplay/rooms/{id}": "other",
+	"/api/modules/wittyplay/docker/emulators/{id}": "other",
 }
 
 // walkSkips are routes the walk can't call: they hold the connection open until the caller goes
 // away, or go out to the internet. None of them is addressed by a title.
 var walkSkips = map[string]string{
-	"GET /api/system/metrics/stream":                  "a stream of numbers, for as long as it is listened to",
-	"GET /api/system/tasks/stream":                    "a stream of tasks, for as long as it is listened to",
-	"GET /api/play/{sid}/ws":                          "a WebSocket",
-	"GET /api/play/{sid}/stream":                      "a WebSocket",
-	"GET /api/modules/wittyplay/kasm/{sid}/{rest...}": "a desktop passed through",
-	"GET /api/couch/find":                             "searches the network",
-	"GET /api/playback/speedtest":                     "megabytes of noise",
-	"GET /api/dictionary":                             "asks the internet",
+	"GET /api/system/metrics/stream": "a stream of numbers, for as long as it is listened to",
+	"GET /api/system/tasks/stream":   "a stream of tasks, for as long as it is listened to",
+	"GET /api/play/{sid}/ws":         "a WebSocket",
+	"GET /api/play/{sid}/stream":     "a WebSocket",
+	"GET /api/couch/find":            "searches the network",
+	"GET /api/playback/speedtest":    "megabytes of noise",
+	"GET /api/dictionary":            "asks the internet",
+	"GET /api/remote-control/events": "a stream of devices, for as long as it is listened to; the same views as the list of devices, which is walked",
 }
 
 type walkFixture struct {
@@ -73,6 +78,8 @@ type walkFixture struct {
 	collection int64 // a shared collection of everything hidden
 	album      int64 // a shared album of the hidden photo
 	creator    int64
+	tv         string    // the owner's TV, playing what is hidden
+	room       partyRoom // the owner's watch party, watching it
 }
 
 func newWalkFixture(t *testing.T) *walkFixture {
@@ -236,6 +243,47 @@ func (f *walkFixture) watchedBefore(t *testing.T, userID int64) {
 	}
 }
 
+// playingWhatIsHidden sets up, for one account, the two places where what someone else is
+// watching is shown: a TV of the owner's that is playing the hidden titles, which the account
+// has been allowed to control, and a watch party of the owner's watching them, to which the
+// account is invited. It answers the party's id.
+func (f *walkFixture) playingWhatIsHidden(t *testing.T, userID int64) (room string) {
+	t.Helper()
+	ts := f.ts
+	var ids []int64
+	for _, it := range f.hidden {
+		ids = append(ids, it.ID)
+	}
+	if w := ts.do(t, "PUT", fmt.Sprintf("/api/remote-control/accounts/%d", userID), f.admin, map[string]any{"controlOthers": true}); w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	w := ts.do(t, "POST", "/api/remote-control/devices", f.admin, map[string]any{"v": 1, "deviceId": f.tv, "name": "Den", "kind": "tv",
+		"capabilities": map[string]any{"mediaKinds": []string{"video", "audio", "game", "book", "photo", "radio"}, "features": []string{"queue"}}})
+	if w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	f.tv, _ = body(w)["deviceId"].(string)
+	// A device's reports are paced; the walk's are closer together than a real device's.
+	for tries := 0; ; tries++ {
+		w := ts.do(t, "POST", "/api/remote-control/devices/"+f.tv+"/state", f.admin, map[string]any{"v": 1, "status": "playing", "itemId": ids[0], "queue": ids, "durationSec": 100})
+		if w.Code == 200 {
+			break
+		}
+		if w.Code != 429 || tries > 100 {
+			t.Fatalf("%d %s", w.Code, w.Body)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	if f.room.ID != "" {
+		ts.do(t, "DELETE", "/api/syncplay/rooms/"+f.room.ID+"?member="+f.room.You, f.admin, nil)
+	}
+	f.room = party(t, ts.do(t, "POST", "/api/syncplay/rooms", f.admin, map[string]any{"items": ids, "name": "Movie night"}))
+	if w := ts.do(t, "POST", "/api/syncplay/rooms/"+f.room.ID+"/invite", f.admin, map[string]any{"member": f.room.You, "userIds": []int64{userID}}); w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	return f.room.ID
+}
+
 // walkTargets turns a route into the addresses to call.
 func (f *walkFixture) walkTargets(t *testing.T, route string) (targets []string, space string) {
 	t.Helper()
@@ -352,6 +400,10 @@ func TestLimitedProfilesNeverSeeHiddenTitles(t *testing.T) {
 	// walk has to be able to find what is hidden, or it proves nothing.
 	everyone, free := ts.user(t, "unlimited", "adult", false, "")
 	f.watchedBefore(t, everyone.ID)
+	freeRoom := f.playingWhatIsHidden(t, everyone.ID)
+	if w := f.call("POST", "/api/syncplay/join", free, map[string]any{"roomId": freeRoom}); !leaks(w.Body.String()) {
+		t.Errorf("the walk can't find the hidden titles in a watch party even for an adult with no limits: %d %.200s", w.Code, w.Body.String())
+	}
 	found := map[string]bool{}
 	for _, route := range routes {
 		if !strings.HasPrefix(route, "GET ") || walkSkips[route] != "" {
@@ -367,7 +419,8 @@ func TestLimitedProfilesNeverSeeHiddenTitles(t *testing.T) {
 	}
 	for _, must := range []string{"GET /api/items", "GET /api/items/{id}", "GET /api/items/{id}/file", "GET /api/home", "GET /api/shows", "GET /api/shows/{id}", "GET /api/genres",
 		"GET /api/collections/{id}", "GET /api/browse", "GET /api/music/artists", "GET /api/music/albums", "GET /api/radio", "GET /api/creators",
-		"GET /api/videos", "GET /api/items/{id}/comments", "GET /api/brands", "GET /api/me/review", "GET /api/me/recommended", "GET /api/games/home", "GET /api/music/home"} {
+		"GET /api/videos", "GET /api/items/{id}/comments", "GET /api/brands", "GET /api/me/review", "GET /api/me/recommended", "GET /api/games/home", "GET /api/music/home",
+		"GET /api/sdui/screens/{screen}", "GET /api/sdui/topshelf", "GET /api/remote-control/devices"} {
 		if !found[must] {
 			t.Errorf("the walk can't find the hidden titles through %s even for an adult with no limits, so it would miss a leak there", must)
 		}
@@ -385,6 +438,7 @@ func TestLimitedProfilesNeverSeeHiddenTitles(t *testing.T) {
 	for i, p := range profiles {
 		u, tok := ts.user(t, fmt.Sprintf("limited%d", i), p.kind, false, p.limits)
 		f.watchedBefore(t, u.ID)
+		room := f.playingWhatIsHidden(t, u.ID)
 		calls := 0
 		for _, route := range routes {
 			method := strings.SplitN(route, " ", 2)[0]
@@ -410,6 +464,28 @@ func TestLimitedProfilesNeverSeeHiddenTitles(t *testing.T) {
 					t.Errorf("%s: GET %s answered %d for a hidden title: %.200s", p.name, target, w.Code, w.Body.String())
 				}
 			}
+		}
+		// What other people are watching: the owner's TV is listed, and says only that it is
+		// playing; the party is refused, by its id and by its code, and told nothing.
+		devices := f.call("GET", "/api/remote-control/devices", tok, nil)
+		if !strings.Contains(devices.Body.String(), `"hidden":true`) || strings.Contains(devices.Body.String(), `"itemId"`) {
+			t.Errorf("%s: the owner's TV, playing what is hidden: %d %.300s", p.name, devices.Code, devices.Body.String())
+		}
+		for _, join := range []map[string]any{{"roomId": room}, {"code": f.room.Code}} {
+			if w := f.call("POST", "/api/syncplay/join", tok, join); (w.Code >= 200 && w.Code < 300) || leaks(w.Body.String()) {
+				t.Errorf("%s: joined a watch party of what is hidden: %d %.200s", p.name, w.Code, w.Body.String())
+			}
+		}
+		for _, target := range []string{"/api/syncplay", "/api/syncplay/rooms/" + room, "/api/syncplay/rooms/" + room + "?member=" + f.room.You} {
+			if w := f.call("GET", target, tok, nil); leaks(w.Body.String()) {
+				t.Errorf("%s: GET %s names what is hidden: %.300s", p.name, target, w.Body.String())
+			}
+		}
+		if w := f.call("POST", "/api/remote-control/devices/"+f.tv+"/commands", tok, map[string]any{"v": 1, "type": "play", "itemId": f.hidden[0].ID}); (w.Code >= 200 && w.Code < 300) || leaks(w.Body.String()) {
+			t.Errorf("%s: asked the owner's TV to play what is hidden: %d %.200s", p.name, w.Code, w.Body.String())
+		}
+		if w := f.call("POST", "/api/syncplay/rooms", tok, map[string]any{"itemId": f.hidden[0].ID}); (w.Code >= 200 && w.Code < 300) || leaks(w.Body.String()) {
+			t.Errorf("%s: started a watch party of what is hidden: %d %.200s", p.name, w.Code, w.Body.String())
 		}
 		// Asking in other ways.
 		for _, c := range []struct {

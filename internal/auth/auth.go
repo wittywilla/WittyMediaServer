@@ -80,6 +80,28 @@ func scanUser(r scanner) (*User, error) {
 type Service struct {
 	DB  *db.DB
 	act activity
+	// OnEnd, when set, is told of every sign-in that is ended on purpose: signing
+	// out, switching profile, "sign out everywhere", a new password, an account
+	// deleted. The server uses it to end what that sign-in had open (streams that
+	// would otherwise only notice at their next look). It is called after the
+	// sign-in is gone from the database, without any lock held, and must not block.
+	// A sign-in that merely runs out of time is not announced: whatever it has
+	// open notices by itself.
+	OnEnd func(SessionEnd)
+}
+
+// SessionEnd names the sign-ins that have just ended: one, by its public id
+// (Session), or every one of an account (UserID) except Keep.
+type SessionEnd struct {
+	Session string
+	UserID  int64
+	Keep    string
+}
+
+func (s *Service) ended(e SessionEnd) {
+	if s.OnEnd != nil {
+		s.OnEnd(e)
+	}
 }
 
 var ErrInvalid = errors.New("invalid name or password")
@@ -405,6 +427,13 @@ func (s *Service) CheckPassword(ctx context.Context, id int64, password string) 
 // (after a password change, so a stolen session stops working).
 func (s *Service) EndSessions(ctx context.Context, id int64, keep string) error {
 	_, err := s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ? AND token <> ?`, id, storedToken(keep))
+	if err == nil {
+		e := SessionEnd{UserID: id}
+		if keep != "" {
+			e.Keep = SessionID(keep)
+		}
+		s.ended(e)
+	}
 	return err
 }
 
@@ -416,6 +445,9 @@ func (s *Service) CheckTwoFactor(ctx context.Context, u *User, code string) bool
 
 func (s *Service) DeleteUser(ctx context.Context, id int64) error {
 	_, err := s.DB.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, id)
+	if err == nil {
+		s.ended(SessionEnd{UserID: id})
+	}
 	return err
 }
 
@@ -536,6 +568,7 @@ func (s *Service) Logout(ctx context.Context, token string) {
 	key := storedToken(token)
 	s.forget(key)
 	_, _ = s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE token = ?`, key)
+	s.ended(SessionEnd{Session: SessionID(key)})
 }
 
 // Resolve returns the user for a token.

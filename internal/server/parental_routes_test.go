@@ -15,9 +15,31 @@ import (
 // is where that is written down: TestEveryRouteIsClassed fails on a route that is in neither list.
 //
 // routeClasses: the routes that are part of a feature a profile can be kept from ("games",
-// "recordings", "sharing", "comments", "downloads"), or that count as screen time: "play" is refused
+// "recordings", "sharing", "comments", "downloads", "syncplay", "remoteControl"), or that count
+// as screen time: "play" is refused
 // when a profile's time is up, "tick" counts as watching and is let through so progress is saved.
 var routeClasses = map[string]string{
+	"GET /api/games/{id}/emulators":                             "games",
+	"GET /api/modules/wittyplay/docker/emulators/{id}/settings": "games",
+	"GET /api/modules/wittyplay/docker/sessions":                "games",
+	"GET /api/remote-control/devices":                           "remoteControl",
+	"GET /api/remote-control/events":                            "remoteControl",
+	"GET /api/syncplay/rooms/{id}":                              "syncplay",
+	"GET /api/syncplay/rooms/{id}/events":                       "syncplay",
+	"POST /api/games/{id}/play/emulator":                        "games play",
+	"POST /api/modules/wittyplay/docker/sessions/{sid}/pause":   "games",
+	"POST /api/modules/wittyplay/docker/sessions/{sid}/resume":  "games play",
+	"POST /api/remote-control/devices/{id}/commands":            "remoteControl",
+	"POST /api/syncplay/join":                                   "syncplay play",
+	"POST /api/syncplay/rooms":                                  "syncplay play",
+	"POST /api/syncplay/rooms/{id}/command":                     "syncplay",
+	"POST /api/syncplay/rooms/{id}/host":                        "syncplay",
+	"POST /api/syncplay/rooms/{id}/invite":                      "syncplay",
+	"POST /api/syncplay/rooms/{id}/kick":                        "syncplay",
+	"POST /api/syncplay/rooms/{id}/ping":                        "syncplay",
+	"POST /api/syncplay/rooms/{id}/report":                      "syncplay",
+	"PUT /api/modules/wittyplay/docker/emulators/{id}/settings": "games",
+	"PUT /api/syncplay/rooms/{id}":                              "syncplay",
 	"DELETE /api/comments/{cid}":                                "comments",
 	"DELETE /api/couch/hosts/{id}":                              "games",
 	"DELETE /api/couch/hosts/{id}/pair":                         "games",
@@ -28,7 +50,6 @@ var routeClasses = map[string]string{
 	"DELETE /api/games/{id}/patches/{patch}":                    "games",
 	"DELETE /api/games/{id}/saves/{slot}":                       "games",
 	"DELETE /api/modules/wittyplay/docker/sessions/{sid}":       "games",
-	"DELETE /api/modules/wittyplay/kasm/{sid}/{rest...}":        "games",
 	"DELETE /api/play/{sid}":                                    "games",
 	"DELETE /api/play/{sid}/seats/{user}":                       "games",
 	"DELETE /api/recording-rules/{id}":                          "recordings",
@@ -92,7 +113,6 @@ var routeClasses = map[string]string{
 	"GET /api/items/{id}/stream":                                "play",
 	"GET /api/media/{id}/canvas/file":                           "play",
 	"GET /api/media/{id}/stems/{stem}":                          "play",
-	"GET /api/modules/wittyplay/kasm/{sid}/{rest...}":           "games play",
 	"GET /api/music/extras/{id}/file":                           "play",
 	"GET /api/play/{sid}":                                       "games play",
 	"GET /api/play/{sid}/screenshot":                            "games play",
@@ -109,7 +129,6 @@ var routeClasses = map[string]string{
 	"GET /api/tv/{key}/live/seg/{name}":                         "play",
 	"GET /api/tv/{key}/tune":                                    "play",
 	"PATCH /api/couch/hosts/{id}":                               "games",
-	"PATCH /api/modules/wittyplay/kasm/{sid}/{rest...}":         "games play",
 	"POST /api/couch/hosts":                                     "games",
 	"POST /api/couch/hosts/{id}/apps/{app}/play":                "games play",
 	"POST /api/couch/hosts/{id}/pair":                           "games",
@@ -134,7 +153,6 @@ var routeClasses = map[string]string{
 	"POST /api/items/{id}/stream-token":                         "play",
 	"POST /api/items/{id}/view":                                 "tick",
 	"POST /api/modules/wittyplay/docker/sessions/{sid}/connect": "games play",
-	"POST /api/modules/wittyplay/kasm/{sid}/{rest...}":          "games play",
 	"POST /api/play/join":                                       "games play",
 	"POST /api/play/{sid}/action":                               "games play",
 	"POST /api/play/{sid}/invite":                               "games play",
@@ -159,13 +177,24 @@ var routeClasses = map[string]string{
 	"PUT /api/games/{id}/meta":                                  "games",
 	"PUT /api/games/{id}/patches/{patch}":                       "games",
 	"PUT /api/games/{id}/saves/{slot}/file":                     "games",
-	"PUT /api/modules/wittyplay/kasm/{sid}/{rest...}":           "games play",
 }
 
 // plainRoutes are part of no feature and play nothing: lists, pictures, settings of one's own.
 // (What they show still follows the account's limits; that is the handlers' work, and
 // TestLimitedProfilesNeverSeeHiddenTitles walks them for it.)
 var plainRoutes = []string{
+	"DELETE /api/remote-control/devices/{id}",
+	"DELETE /api/syncplay/rooms/{id}",
+	"GET /api/auth/pair/{session}/info",
+	"GET /api/remote-control",
+	"GET /api/remote-control/devices/{id}/channel",
+	"GET /api/sdui/topshelf",
+	"GET /api/syncplay",
+	"POST /api/media/{id}/stems/approximate",
+	"POST /api/remote-control/devices",
+	"POST /api/remote-control/devices/{id}/ack",
+	"POST /api/remote-control/devices/{id}/state",
+	"POST /api/syncplay/rooms/{id}/leave",
 	"DELETE /api/annotations/{aid}",
 	"DELETE /api/backup/restore/request",
 	"DELETE /api/collections/{id}",

@@ -30,6 +30,13 @@ import (
 //   - Nothing is played on a device that the device's own account may not see, nor that
 //     the caller may not see. What a device is playing is shown to a controller only if
 //     that controller may see it.
+//   - Parental controls bind both ends. The limits of the account a device is signed in
+//     as always decide what plays on it, whoever asks, an administrator included: every
+//     kind of limit (libraries, ages by kind of media, genres, tags, collections, games
+//     off), and its screen time. The caller's own limits decide what the caller may ask
+//     for, and a caller whose screen time is over can pause and stop but not start
+//     anything. A profile with "remoteControl" off can't steer devices at all
+//     (parental.go), but its own devices can still be steered by whoever may.
 //
 // The routes live under /api/remote-control: /api/remote is remote access, which is about
 // reaching the server from outside, not about one client steering another.
@@ -73,6 +80,7 @@ func (s *Server) remoteHub() *wittyremote.Hub {
 
 func (s *Server) remoteControlRoutes(m *http.ServeMux) {
 	a, adm := s.requireUser, s.requireAdmin
+	s.watchSignIns()
 	m.Handle("GET /api/remote-control", a(s.handleRemoteControl))
 	m.Handle("GET /api/remote-control/devices", a(s.handleRemoteDevices))
 	m.Handle("POST /api/remote-control/devices", a(s.handleRemoteAnnounce))
@@ -138,7 +146,7 @@ func (s *Server) itemFor(ctx context.Context, u *auth.User, id int64) (*library.
 	if err != nil {
 		return nil, false
 	}
-	a := accessFor(u)
+	a := s.accessOf(ctx, u) // with its collections and tags looked up, so every kind of limit counts
 	if a == nil {
 		return it, true
 	}
@@ -321,7 +329,11 @@ func (s *Server) handleRemoteControl(w http.ResponseWriter, r *http.Request) {
 	u := userFrom(r)
 	l := s.remoteHub().Limits
 	writeJSON(w, 200, map[string]any{
-		"enabled":       s.remoteControlOn(r.Context()),
+		"enabled": s.remoteControlOn(r.Context()),
+		// canControl: this profile may play on and steer devices. False when the feature is
+		// off for the profile (parental controls), though its own devices can still announce
+		// themselves and be steered by whoever may.
+		"canControl":    s.remoteControlOn(r.Context()) && accessFor(u).Can(library.FeatureRemoteControl),
 		"v":             wittyremote.Version,
 		"minV":          wittyremote.MinVersion,
 		"controlOthers": s.controlsOthers(r.Context(), u),
@@ -436,6 +448,8 @@ func (s *Server) handleRemoteChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer hub.Detach(id, conn)
+	open := s.open.add(openRemoteChannel, sess, u.ID)
+	defer s.open.remove(open)
 	es := newEventStream(w)
 	if !es.send("hello", map[string]any{"v": d.V, "deviceId": d.ID, "capabilities": d.Caps, "heartbeatSec": int(hub.Limits.HeartbeatEvery.Seconds()), "serverTimeMs": time.Now().UnixMilli()}) {
 		return
@@ -448,6 +462,12 @@ func (s *Server) handleRemoteChannel(w http.ResponseWriter, r *http.Request) {
 			return
 		case <-s.streamsEnding():
 			es.send("bye", map[string]any{"reason": "server-stopping"})
+			return
+		case <-open.end:
+			// The sign-in ended (signed out, another profile, the account deleted): the
+			// device is gone with it, now rather than at the next keep-alive.
+			_ = hub.Remove(id, u.ID, sess)
+			es.send("bye", map[string]any{"reason": open.reason()})
 			return
 		case <-conn.Done():
 			es.send("bye", map[string]any{"reason": conn.Why()})
@@ -525,6 +545,17 @@ func (s *Server) checkPlay(ctx context.Context, caller *auth.User, d wittyremote
 		if owner, err = s.Auth.User(ctx, d.UserID); err != nil {
 			return 409, wittyremote.CodeOffline, "That device's account no longer exists."
 		}
+	}
+	// Screen time: neither a caller whose time is up nor a device whose profile's time is
+	// up starts anything. What plays then counts as the device's profile's time, through
+	// the playback routes its player uses.
+	if a := accessFor(caller); s.timeIsUp(ctx, caller, a) {
+		v := a.Time.Check(s.clock(), s.parentalInit().tracker.Usage(ctx, caller.ID))
+		s.noteRefused(ctx, caller, "time", 0, "", v.Reason)
+		return 403, "screen-time", v.Message()
+	}
+	if owner != caller && s.timeIsUp(ctx, owner, accessFor(owner)) {
+		return 403, "screen-time-there", "Screen time is over for the profile that device is signed in as."
 	}
 	for _, id := range items {
 		it, ok := s.itemFor(ctx, caller, id)
@@ -626,7 +657,10 @@ func (s *Server) handleRemoteCommand(w http.ResponseWriter, r *http.Request) {
 		}
 		cmd, source = play, &src
 	}
-	if cmd.Type == wittyremote.CmdPlay {
+	switch cmd.Type {
+	case wittyremote.CmdPlay, wittyremote.CmdResume, wittyremote.CmdNext, wittyremote.CmdPrevious:
+		// Resume, next and previous name no item (the device plays its own queue, which
+		// its own limits made), but they start playing, so screen time is asked about.
 		if status, code, msg := s.checkPlay(ctx, u, d, cmd.Items()); status != 0 {
 			remoteError(w, status, code, msg)
 			return
@@ -673,6 +707,8 @@ func (s *Server) handleRemoteEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer sub.Close()
+	open := s.open.add(openRemoteEvents, sess, u.ID)
+	defer s.open.remove(open)
 	ctx := r.Context()
 	v := s.remoteViewer(ctx, u, sess)
 	es := newEventStream(w)
@@ -698,12 +734,27 @@ func (s *Server) handleRemoteEvents(w http.ResponseWriter, r *http.Request) {
 		case <-ctx.Done():
 			return
 		case <-s.streamsEnding():
+			es.send("bye", map[string]any{"reason": "server-stopping"})
 			return
-		case <-beat.C:
-			if tokenFrom(r) != "" && !s.sessionStillGood(r, u) {
+		case <-open.end:
+			es.send("bye", map[string]any{"reason": open.reason()})
+			return
+		case <-open.poke:
+			// Limits, or who may control whose devices, just changed: say it all again now.
+			if !s.remoteControlOn(ctx) || !v.refresh(ctx) || !accessFor(v.u).Can(library.FeatureRemoteControl) {
+				es.send("bye", map[string]any{"reason": endedFeatureOff})
 				return
 			}
-			if !s.remoteControlOn(ctx) || !v.refresh(ctx) {
+			if !snapshot() {
+				return
+			}
+		case <-beat.C:
+			if tokenFrom(r) != "" && !s.sessionStillGood(r, u) {
+				es.send("bye", map[string]any{"reason": endedSignedOut})
+				return
+			}
+			if !s.remoteControlOn(ctx) || !v.refresh(ctx) || !accessFor(v.u).Can(library.FeatureRemoteControl) {
+				es.send("bye", map[string]any{"reason": endedFeatureOff})
 				return
 			}
 			hub.Sweep()
@@ -809,6 +860,8 @@ func (s *Server) handleRemoteAccountPut(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 500, err.Error())
 		return
 	}
+	// Whoever it is sees the difference now, not at their stream's next keep-alive.
+	s.open.nudge(func(o *openStream) bool { return o.kind == openRemoteEvents && o.user == target.ID })
 	s.Log.InfoContext(ctx, "remote control of other accounts' devices changed", "cat", "auth", "name", target.Name, "allowed", *b.ControlOthers, "user", userFrom(r).Name)
 	writeJSON(w, 200, map[string]any{"ok": true, "controlOthers": *b.ControlOthers})
 }

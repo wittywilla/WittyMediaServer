@@ -62,6 +62,8 @@ jobs:
       - run: node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/gamepad.test.mjs web/src/tvmode/nav.test.mjs web/src/ui/themeMaker.test.mjs web/src/ui/menuPlace.test.mjs web/src/shell/navModel.test.mjs web/src/safeLink.test.mjs web/src/pages/setup/plan.test.mjs web/src/pages/tv/tvThemes.test.mjs web/src/pages/tv/backgroundPlay.test.mjs web/src/pages/settings/searchIndex.test.mjs web/src/pages/settings/settingsCss.test.mjs web/src/pages/photos/mapMath.test.mjs web/src/player/sync.test.mjs web/src/player/viewPrefs.test.mjs web/src/player/remoteKeys.test.mjs web/src/brandName.test.mjs web/src/ui/backEntry.test.mjs
       - name: Controller presses on a simulated machine
         run: cd web && npm run test:pads
+      - name: Every source file has its licence header
+        run: python3 scripts/license-headers.py
       - name: gofmt
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...

@@ -23,7 +23,7 @@ const (
 	writeChunk = 256 << 10
 )
 
-var mediaFileRoute = regexp.MustCompile(`^/api/(items/\d+/(file|stream|original|motion)$|share/[^/]+/(file|original)/[^/]+$|cd/\d+/audio$|radio/\d+/stream$)`)
+var mediaFileRoute = regexp.MustCompile(`^/api/(items/\d+/(file|stream|original|motion)$|share/[^/]+/(file|original)/[^/]+$|cd/\d+/audio$|radio/\d+/stream$|media/\d+/(canvas/file|stems/[a-z]+)$)`)
 
 // stallLimit is how long a response to this address may stand still.
 func stallLimit(p string) time.Duration {

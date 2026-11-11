@@ -739,6 +739,39 @@
         ],
         "type": "object"
       },
+      "CanvasInfo": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "durationMs": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "loop": {
+            "type": "boolean"
+          },
+          "mime": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "available",
+          "loop"
+        ],
+        "type": "object"
+      },
       "ChannelAlternative": {
         "properties": {
           "atsc3": {
@@ -5049,6 +5082,132 @@
         ],
         "type": "object"
       },
+      "MarkerRange": {
+        "properties": {
+          "endSec": {
+            "type": "number"
+          },
+          "label": {
+            "type": "string"
+          },
+          "startSec": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "endSec",
+          "startSec"
+        ],
+        "type": "object"
+      },
+      "MarkersEdit": {
+        "properties": {
+          "commercials": {
+            "items": {
+              "$ref": "#/components/schemas/SkipRange"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "credits": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SkipRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "intro": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SkipRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recap": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SkipRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reset": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "MediaMarkers": {
+        "properties": {
+          "commercials": {
+            "items": {
+              "$ref": "#/components/schemas/MarkerRange"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "credits": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarkerRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "intro": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarkerRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recap": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarkerRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "sources": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "commercials",
+          "credits",
+          "intro",
+          "recap",
+          "source",
+          "sources"
+        ],
+        "type": "object"
+      },
       "MetricSection": {
         "properties": {
           "available": {
@@ -7508,8 +7667,27 @@
               "null"
             ]
           },
+          "commercials": {
+            "items": {
+              "$ref": "#/components/schemas/PlaybackIntro"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "container": {
             "type": "string"
+          },
+          "credits": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlaybackIntro"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "decision": {
             "type": "string"
@@ -7621,6 +7799,16 @@
               "null"
             ]
           },
+          "recap": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlaybackIntro"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "resumeSec": {
             "type": "number"
           },
@@ -7629,6 +7817,15 @@
           },
           "startAtSec": {
             "type": "number"
+          },
+          "stems": {
+            "items": {
+              "$ref": "#/components/schemas/StemView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "stereo": {
             "type": "string"
@@ -8579,6 +8776,527 @@
         ],
         "type": "object"
       },
+      "ResolvedTheme": {
+        "properties": {
+          "etag": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "modules": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ThemeModule"
+            },
+            "type": "object"
+          },
+          "overrides": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          },
+          "tokens": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/ThemeWarning"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "etag",
+          "id",
+          "modules",
+          "overrides",
+          "revision",
+          "source",
+          "tokens",
+          "warnings"
+        ],
+        "type": "object"
+      },
+      "SDUIAction": {
+        "properties": {
+          "params": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "target": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "SDUIBinding": {
+        "properties": {
+          "default": {},
+          "format": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "SDUICondition": {
+        "properties": {
+          "all": {
+            "items": {
+              "$ref": "#/components/schemas/SDUICondition"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "any": {
+            "items": {
+              "$ref": "#/components/schemas/SDUICondition"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "feature": {
+            "type": "string"
+          },
+          "flag": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "maxHeight": {
+            "type": "integer"
+          },
+          "maxWidth": {
+            "type": "integer"
+          },
+          "minHeight": {
+            "type": "integer"
+          },
+          "minWidth": {
+            "type": "integer"
+          },
+          "module": {
+            "type": "string"
+          },
+          "not": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SDUICondition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "platform": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "when": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SDUIConfig": {
+        "properties": {
+          "etag": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "screens": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SDUIDocument"
+            },
+            "type": "object"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/SDUITheme"
+          },
+          "updatedAt": {
+            "properties": {},
+            "type": "object"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "screens",
+          "theme",
+          "version"
+        ],
+        "type": "object"
+      },
+      "SDUIDiff": {
+        "properties": {
+          "document": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SDUIDocument"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "etag": {
+            "type": "string"
+          },
+          "patches": {
+            "items": {
+              "$ref": "#/components/schemas/SDUIPatch"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "since": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "etag"
+        ],
+        "type": "object"
+      },
+      "SDUIDocument": {
+        "properties": {
+          "actions": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SDUIAction"
+            },
+            "type": "object"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SDUIMeta"
+          },
+          "root": {
+            "$ref": "#/components/schemas/SDUINode"
+          },
+          "screen": {
+            "type": "string"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SDUIThemeRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "root",
+          "screen",
+          "version"
+        ],
+        "type": "object"
+      },
+      "SDUIMeta": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "etag": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "properties": {},
+            "type": "object"
+          },
+          "source": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "ttlSeconds": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SDUINode": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "bindings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SDUIBinding"
+            },
+            "type": "object"
+          },
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/SDUINode"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "props": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "style": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SDUIStyle"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "type": "string"
+          },
+          "visibility": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SDUICondition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "type": "object"
+      },
+      "SDUIPatch": {
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "node": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SDUINode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "op": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "op",
+          "path"
+        ],
+        "type": "object"
+      },
+      "SDUIRevision": {
+        "properties": {
+          "current": {
+            "type": "boolean"
+          },
+          "etag": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "screens": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "size": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "properties": {},
+            "type": "object"
+          },
+          "updatedBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "current",
+          "etag",
+          "revision",
+          "screens",
+          "size"
+        ],
+        "type": "object"
+      },
+      "SDUIStyle": {
+        "properties": {
+          "accent": {
+            "type": "string"
+          },
+          "align": {
+            "type": "string"
+          },
+          "aspectRatio": {
+            "type": "string"
+          },
+          "background": {
+            "type": "string"
+          },
+          "border": {
+            "type": "string"
+          },
+          "class": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "integer"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "elevation": {
+            "type": "integer"
+          },
+          "foreground": {
+            "type": "string"
+          },
+          "gap": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "justify": {
+            "type": "string"
+          },
+          "margin": {
+            "type": "string"
+          },
+          "module": {
+            "type": "string"
+          },
+          "opacity": {
+            "type": "number"
+          },
+          "padding": {
+            "type": "string"
+          },
+          "radius": {
+            "type": "integer"
+          },
+          "tokens": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "width": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SDUITheme": {
+        "properties": {
+          "modules": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "object"
+          },
+          "tokens": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "SDUIThemeRef": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "moduleOverrides": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
       "SearchHit": {
         "properties": {
           "chapter": {
@@ -8798,6 +9516,84 @@
           "updatedAt",
           "view",
           "year"
+        ],
+        "type": "object"
+      },
+      "SkipRange": {
+        "properties": {
+          "end": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endSec": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startSec": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "StemView": {
+        "properties": {
+          "mime": {
+            "type": "string"
+          },
+          "multitrack": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mime",
+          "name",
+          "size",
+          "source",
+          "url"
         ],
         "type": "object"
       },
@@ -9545,6 +10341,59 @@
         ],
         "type": "object"
       },
+      "ThemeModule": {
+        "properties": {
+          "overrides": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "tokens": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "overrides",
+          "tokens"
+        ],
+        "type": "object"
+      },
+      "ThemeModuleView": {
+        "properties": {
+          "etag": {
+            "type": "string"
+          },
+          "module": {
+            "type": "string"
+          },
+          "tokens": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/ThemeWarning"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "etag",
+          "module",
+          "tokens",
+          "warnings"
+        ],
+        "type": "object"
+      },
       "ThemeTokens": {
         "properties": {
           "colors": {
@@ -9599,6 +10448,33 @@
         ],
         "type": "object"
       },
+      "ThemeWarning": {
+        "properties": {
+          "need": {
+            "type": "number"
+          },
+          "ratio": {
+            "type": "number"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "surface": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "need",
+          "ratio",
+          "scope",
+          "surface",
+          "text"
+        ],
+        "type": "object"
+      },
       "Track": {
         "properties": {
           "channels": {
@@ -9641,9 +10517,6 @@
       },
       "TuneInfo": {
         "properties": {
-          "backgroundPlay": {
-            "type": "boolean"
-          },
           "accent": {
             "type": "string"
           },
@@ -9658,6 +10531,9 @@
             ]
           },
           "atsc3": {
+            "type": "boolean"
+          },
+          "backgroundPlay": {
             "type": "boolean"
           },
           "brand": {
@@ -10131,6 +11007,232 @@
           "twoFactor"
         ],
         "type": "object"
+      },
+      "WatchLocal": {
+        "properties": {
+          "itemId": {
+            "type": "integer"
+          },
+          "quality": {
+            "type": "string"
+          },
+          "showId": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/WatchVersion"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "versions"
+        ],
+        "type": "object"
+      },
+      "WatchOffer": {
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "providerId": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "priority",
+          "providerId",
+          "type"
+        ],
+        "type": "object"
+      },
+      "WatchProviderGroup": {
+        "properties": {
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/WatchOffer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "providers",
+          "type"
+        ],
+        "type": "object"
+      },
+      "WatchRef": {
+        "properties": {
+          "tmdbId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tmdbId",
+          "type"
+        ],
+        "type": "object"
+      },
+      "WatchVersion": {
+        "properties": {
+          "container": {
+            "type": "string"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "itemId": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "quality": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer"
+          },
+          "videoCodec": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "itemId",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "WhereToWatch": {
+        "properties": {
+          "attribution": {
+            "type": "string"
+          },
+          "cached": {
+            "type": "boolean"
+          },
+          "fetchedAt": {
+            "type": "integer"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/WatchProviderGroup"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "inLibrary": {
+            "type": "boolean"
+          },
+          "itemId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "link": {
+            "type": "string"
+          },
+          "local": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WatchLocal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/WatchOffer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "showId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "tmdb": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WatchRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "cached",
+          "fetchedAt",
+          "groups",
+          "inLibrary",
+          "providers",
+          "region"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -10154,7 +11256,7 @@
       "url": "https://www.gnu.org/licenses/agpl-3.0.html"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.10.0"
+    "version": "1.14.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -28734,6 +29836,10 @@
                   "code": {
                     "type": "string"
                   },
+                  "pin": {
+                    "type": "string",
+                    "description": "Needed when the device started with /auth/pair (info says needsPin)."
+                  },
                   "userId": {
                     "type": "integer"
                   }
@@ -28870,6 +29976,9 @@
                     },
                     "ip": {
                       "type": "string"
+                    },
+                    "needsPin": {
+                      "type": "boolean"
                     },
                     "platform": {
                       "type": "string"
@@ -37088,6 +38197,2307 @@
         ],
         "x-wms-auth": "admin"
       }
+    },
+    "/sdui/screens/{screen}": {
+      "get": {
+        "operationId": "getSduiScreen",
+        "summary": "A screen, rendered for this account and device: an SDUI document (docs/SDUI.md). 304 with If-None-Match when unchanged.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SDUIDocument"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Weak entity tag of this answer.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          },
+          "304": {
+            "description": "Not modified: the client's If-None-Match is current."
+          }
+        },
+        "parameters": [
+          {
+            "name": "screen",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Screen name: home, library, detail, player, settings, or one an administrator added."
+          },
+          {
+            "name": "platform",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "web, tv, ios, android or desktop (default web). Also X-WMS-Platform."
+          },
+          {
+            "name": "formFactor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "phone, tablet, tv, desktop…: becomes the flag formFactor:<value>, and stands for a platform when none is given. Also X-WMS-Form-Factor."
+          },
+          {
+            "name": "viewport",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Width x height in CSS pixels, such as 1440x900. Also X-WMS-Viewport."
+          },
+          {
+            "name": "width",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Viewport width in CSS pixels."
+          },
+          {
+            "name": "height",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Viewport height in CSS pixels."
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Language tag, such as en-GB. Also X-WMS-Locale; otherwise the first of Accept-Language."
+          },
+          {
+            "name": "capabilities",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated names of what the client can do; each becomes a flag the screen's conditions test. Also X-WMS-Capabilities."
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ETag of the render the client has."
+          }
+        ]
+      }
+    },
+    "/sdui/screens/{screen}/diff": {
+      "get": {
+        "operationId": "getSduiScreenDiff",
+        "summary": "What changed since the render the client has: patches, or the whole document when the server no longer has that render.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SDUIDiff"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Weak entity tag of this answer.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          },
+          "304": {
+            "description": "Not modified: the client's If-None-Match is current."
+          }
+        },
+        "parameters": [
+          {
+            "name": "screen",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Screen name: home, library, detail, player, settings, or one an administrator added."
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ETag of the render the client has (or If-None-Match)."
+          },
+          {
+            "name": "platform",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "web, tv, ios, android or desktop (default web). Also X-WMS-Platform."
+          },
+          {
+            "name": "formFactor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "phone, tablet, tv, desktop…: becomes the flag formFactor:<value>, and stands for a platform when none is given. Also X-WMS-Form-Factor."
+          },
+          {
+            "name": "viewport",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Width x height in CSS pixels, such as 1440x900. Also X-WMS-Viewport."
+          },
+          {
+            "name": "width",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Viewport width in CSS pixels."
+          },
+          {
+            "name": "height",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Viewport height in CSS pixels."
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Language tag, such as en-GB. Also X-WMS-Locale; otherwise the first of Accept-Language."
+          },
+          {
+            "name": "capabilities",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated names of what the client can do; each becomes a flag the screen's conditions test. Also X-WMS-Capabilities."
+          }
+        ]
+      }
+    },
+    "/sdui/config": {
+      "get": {
+        "operationId": "getSduiConfig",
+        "summary": "All of ui_config.json: every screen and the theme overrides, with its ETag.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SDUIConfig"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Weak entity tag of this answer.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          },
+          "304": {
+            "description": "Not modified: the client's If-None-Match is current."
+          }
+        },
+        "parameters": [
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ETag the client has."
+          }
+        ]
+      },
+      "put": {
+        "operationId": "putSduiConfig",
+        "summary": "Replace ui_config.json. If-Match is required (428 without, 412 when stale). Every screen is validated; 400 lists the issues.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SDUIConfig"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Weak entity tag of this answer.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ETag of ui_config.json this change was made to. A stale one answers 412."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SDUIConfig"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sdui/config/history": {
+      "get": {
+        "operationId": "getSduiConfigHistory",
+        "summary": "The kept revisions of ui_config.json, newest first (the last 10).",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "current": {
+                      "type": "integer"
+                    },
+                    "etag": {
+                      "type": "string"
+                    },
+                    "keep": {
+                      "type": "integer"
+                    },
+                    "revisions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SDUIRevision"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/sdui/config/rollback/{rev}": {
+      "post": {
+        "operationId": "postSduiConfigRollback",
+        "summary": "Make a kept revision current again, as a new revision.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SDUIConfig"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Weak entity tag of this answer.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "rev",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Revision number."
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ETag of ui_config.json this change was made to. A stale one answers 412."
+          }
+        ]
+      }
+    },
+    "/theme": {
+      "get": {
+        "operationId": "getTheme",
+        "summary": "The theme for this account, resolved: the server's theme and overrides, or the account's own choice (theme in /me/ui), with each module's colours, and contrast warnings. 304 with If-None-Match.",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolvedTheme"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Weak entity tag of this answer.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          },
+          "304": {
+            "description": "Not modified: the client's If-None-Match is current."
+          }
+        },
+        "parameters": [
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ETag the client has."
+          }
+        ]
+      }
+    },
+    "/theme/global": {
+      "put": {
+        "operationId": "putThemeGlobal",
+        "summary": "Set the server's default theme (id) and its colour overrides (tokens). Either may be left out; tokens {} removes the overrides. Unknown tokens and anything not a colour are 400.",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolvedTheme"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Weak entity tag of this answer.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ETag of ui_config.json this change was made to. A stale one answers 412."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "tokens": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/theme/modules/{module}": {
+      "get": {
+        "operationId": "getThemeModule",
+        "summary": "A module's colour overrides, with contrast warnings.",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemeModuleView"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Weak entity tag of this answer.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "module",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Module id, such as wittyplay."
+          }
+        ]
+      },
+      "put": {
+        "operationId": "putThemeModule",
+        "summary": "Replace a module's colour overrides. Unknown tokens and anything not a colour are 400.",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemeModuleView"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Weak entity tag of this answer.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "module",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Module id, such as wittyplay."
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ETag of ui_config.json this change was made to. A stale one answers 412."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tokens"
+                ],
+                "properties": {
+                  "tokens": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteThemeModule",
+        "summary": "Take a module's colour overrides away.",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemeModuleView"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Weak entity tag of this answer.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "module",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Module id, such as wittyplay."
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ETag of ui_config.json this change was made to. A stale one answers 412."
+          }
+        ]
+      }
+    },
+    "/auth/pair": {
+      "post": {
+        "operationId": "postAuthPair",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "device": {
+                    "type": "string"
+                  },
+                  "platform": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "approvePath": {
+                      "type": "string"
+                    },
+                    "approveUrl": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "deviceSecret": {
+                      "type": "string"
+                    },
+                    "digits": {
+                      "type": "integer"
+                    },
+                    "expiresAt": {
+                      "type": "integer"
+                    },
+                    "expiresInSec": {
+                      "type": "integer"
+                    },
+                    "intervalSec": {
+                      "type": "integer"
+                    },
+                    "period": {
+                      "type": "integer"
+                    },
+                    "pin": {
+                      "type": "string"
+                    },
+                    "pinExpiresAt": {
+                      "type": "integer"
+                    },
+                    "qr": {
+                      "type": "string"
+                    },
+                    "sessionId": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Secure pairing (v2): start a session to show as a QR code and a rotating 6-digit PIN (TOTP, 30 s). `qr` is `wms://pair?v=1&s=<serverId>&u=<base url>&c=<sessionId>&k=<check>`; `approveUrl` opens the web approve page. Lasts 5 minutes. Rate limited per address (429), with /pair/start.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/auth/pair/{session}": {
+      "get": {
+        "operationId": "getAuthPair",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-WMS-Pair-Secret",
+            "in": "header",
+            "required": true,
+            "description": "The deviceSecret from POST /auth/pair.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "intervalSec": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "token": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Secure pairing: has someone answered? As /pair/poll, with the device's secret in `X-WMS-Pair-Secret`: `pending`; `approved` with `token` and `user` (once only); 403 `denied`; 410 `expired` or `locked`; 429 `slow-down`.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/auth/pair/{session}/pin": {
+      "get": {
+        "operationId": "getAuthPairPin",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-WMS-Pair-Secret",
+            "in": "header",
+            "required": true,
+            "description": "The deviceSecret from POST /auth/pair.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "digits": {
+                      "type": "integer"
+                    },
+                    "expiresAt": {
+                      "type": "integer"
+                    },
+                    "period": {
+                      "type": "integer"
+                    },
+                    "pin": {
+                      "type": "string"
+                    },
+                    "pinExpiresAt": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "Secure pairing: the PIN to show now, for the device that started the session (its secret in `X-WMS-Pair-Secret`). Ask again at `pinExpiresAt`. 404 unknown, 410 no longer waiting.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/auth/pair/{session}/approve": {
+      "post": {
+        "operationId": "postAuthPairApprove",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "check": {
+                    "type": "string",
+                    "description": "The k= from the QR code, when it was scanned."
+                  },
+                  "pin": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "device": {
+                      "type": "string"
+                    },
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Secure pairing: approve with the PIN the device shows now, as this account or a Kids or Guest profile it manages. Adults only. A PIN works once; five wrong ones end the session. Failures say why in `reason`: `wrong-pin` or `bad-check` (400, with `triesLeft`), `not-found` (404), `expired`, `used` or `locked` (410); 429 after too many wrong codes.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/auth/pair/{session}/deny": {
+      "post": {
+        "operationId": "postAuthPairDeny",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Secure pairing: refuse; the device is told. Adults only.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/media/{id}/canvas": {
+      "delete": {
+        "operationId": "deleteMediaIdCanvas",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forget an uploaded canvas. One beside the media stays.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getMediaIdCanvas",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanvasInfo"
+                }
+              }
+            },
+            "description": "The canvas."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A song's or title's looping video (canvas): whether there is one, its address, type, size and length.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putMediaIdCanvas",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "The video.",
+          "content": {
+            "video/mp4": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            },
+            "video/webm": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a canvas: an MP4 or WebM of at most 30 MB as the body, checked by its first bytes. Kept in the server's own folder, never beside the media.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/items/{id}/canvas": {
+      "get": {
+        "operationId": "getItemsIdCanvas",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanvasInfo"
+                }
+              }
+            },
+            "description": "The canvas."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The same as GET /media/{id}/canvas.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/media/{id}/canvas/file": {
+      "get": {
+        "operationId": "getMediaIdCanvasFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "video/mp4": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The video (video/mp4 or video/webm)."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "streamToken": []
+          }
+        ],
+        "summary": "The canvas video itself, with byte ranges, an ETag and a day's caching.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
+      }
+    },
+    "/media/{id}/stems": {
+      "get": {
+        "operationId": "getMediaIdStems",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stems": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/StemView"
+                      }
+                    },
+                    "names": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "stems",
+                    "names"
+                  ]
+                }
+              }
+            },
+            "description": "The stems, and every part name."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A song's separated parts for karaoke: vocals, instrumental, drums, bass, other, and a Native Instruments multitrack file.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/media/{id}/stems/{stem}": {
+      "delete": {
+        "operationId": "deleteMediaIdStemsStem",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "stem",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forget an uploaded stem.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getMediaIdStemsStem",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "stem",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "audio/flac": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The audio, of the type it was found as."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "streamToken": []
+          }
+        ],
+        "summary": "One stem, with byte ranges.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
+      },
+      "put": {
+        "operationId": "putMediaIdStemsStem",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "stem",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "The audio.",
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a stem: FLAC, WAV, Ogg, M4A, AAC, MP3 or WebM of at most 200 MB as the body, checked by its first bytes; multitrack takes a .stem.mp4.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/media/{id}/markers": {
+      "get": {
+        "operationId": "getMediaIdMarkers",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaMarkers"
+                }
+              }
+            },
+            "description": "The markers."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Where the intro, recap, credits and advert breaks are, and where each came from.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putMediaIdMarkers",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkersEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaMarkers"
+                }
+              }
+            },
+            "description": "The markers now."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the markers by hand, which no scan changes; {\"reset\": true} goes back to what the files say.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/media/{id}/where-to-watch": {
+      "get": {
+        "operationId": "getMediaIdWhereToWatch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "region",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Two letters; the server's listings region, or US, by default."
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhereToWatch"
+                }
+              }
+            },
+            "description": "Where to watch it."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This title in the library (quality, versions) next to where it can be streamed, rented or bought in the region.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/discover/where-to-watch": {
+      "get": {
+        "operationId": "getDiscoverWhereToWatch",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tmdb",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "TMDB id."
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "movie (the default) or tv."
+          },
+          {
+            "in": "query",
+            "name": "region",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Two letters."
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhereToWatch"
+                }
+              }
+            },
+            "description": "Where to watch it."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Where a TMDB title can be watched, and whether it's in the library.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/modules/wittyplay/docker/status": {
+      "get": {
+        "operationId": "getModulesWittyplayDockerStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether WittyPlay's Docker backend is on, whether Docker answers, and how many containers run.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/wittyplay/docker/settings": {
+      "get": {
+        "operationId": "getModulesWittyplayDockerSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The Docker backend's settings, their schema and the backends.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putModulesWittyplayDockerSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace the Docker backend's settings. WittyPlay checks them.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/wittyplay/docker/emulators": {
+      "get": {
+        "operationId": "getModulesWittyplayDockerEmulators",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The standalone emulators WittyPlay lists, with what's installed.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/wittyplay/docker/installed": {
+      "get": {
+        "operationId": "getModulesWittyplayDockerInstalled",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The standalone emulators installed.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/wittyplay/docker/emulators/{id}/install": {
+      "post": {
+        "operationId": "postModulesWittyplayDockerEmulatorsIdInstall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start installing a standalone emulator. 202 and the job.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getModulesWittyplayDockerEmulatorsIdInstall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How an emulator's install is going.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/wittyplay/docker/emulators/{id}": {
+      "delete": {
+        "operationId": "deleteModulesWittyplayDockerEmulatorsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Uninstall a standalone emulator. Refused while someone plays with it.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/wittyplay/docker/sessions/{sid}/connect": {
+      "post": {
+        "operationId": "postModulesWittyplayDockerSessionsSidConnect",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "WebRTC for a game in a container: {hello, offer} in, the same answer a core's game gives.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/modules/wittyplay/docker/sessions/{sid}": {
+      "delete": {
+        "operationId": "deleteModulesWittyplayDockerSessionsSid",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop a game in a container: the player's own, or any for an administrator.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/modules/wittyplay/kasm/{sid}/{rest}": {
+      "get": {
+        "operationId": "getModulesWittyplayKasmSidRest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rest",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The KasmVNC desktop of a game in a container, WebSocket included: only for its player, with the session's ticket.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postModulesWittyplayKasmSidRest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rest",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The KasmVNC desktop of a game in a container, WebSocket included: only for its player, with the session's ticket.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putModulesWittyplayKasmSidRest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rest",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The KasmVNC desktop of a game in a container, WebSocket included: only for its player, with the session's ticket.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "patch": {
+        "operationId": "patchModulesWittyplayKasmSidRest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rest",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The KasmVNC desktop of a game in a container, WebSocket included: only for its player, with the session's ticket.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "delete": {
+        "operationId": "deleteModulesWittyplayKasmSidRest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rest",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The KasmVNC desktop of a game in a container, WebSocket included: only for its player, with the session's ticket.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
     }
   },
   "security": [
@@ -37119,6 +40529,9 @@
     },
     {
       "name": "Music, audiobooks and podcasts"
+    },
+    {
+      "name": "Media extras"
     },
     {
       "name": "Books"
@@ -37160,6 +40573,10 @@
     {
       "description": "Converting a library's files ahead of time, and connecting a separately installed Tdarr.",
       "name": "Library transcoding"
+    },
+    {
+      "name": "Server-driven UI",
+      "description": "Screens described as data and the UI configuration behind them. See docs/SDUI.md."
     }
   ]
 }

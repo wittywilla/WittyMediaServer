@@ -285,6 +285,60 @@ TV                              server                         phone or computer
 - Nothing is stored: a restart of the server means asking for a new code. The new session
   appears as `device`.
 
+### With a QR code and a PIN (secure pairing)
+
+Servers with the `pair-totp` and `pair-qr` features (API revision 12) also offer a stronger version of the
+code shown on the device. The device shows a QR code and a **6-digit PIN that changes every 30 seconds**. The
+person approving scans the QR code, or opens the page, and types the PIN they see. The PIN proves they are
+looking at that screen right now, so a code someone read over a shoulder, or saw in a photo, is useless a minute later.
+
+```
+TV                                     server                        phone
+│ POST /auth/pair ──────────────────► │
+│ ◄── sessionId, deviceSecret, pin,    │
+│     pinExpiresAt, qr, approveUrl     │
+│ shows the QR code and the PIN        │ ◄── scans qr (or opens approveUrl)
+│ GET /auth/pair/{id}/pin ──────────► │     types the PIN shown now
+│ ◄── the new pin, every 30 s          │ ◄── POST /auth/pair/{id}/approve {pin, check}
+│ GET /auth/pair/{id} ──────────────► │
+│ ◄── status: approved, token          │
+```
+
+- `POST /auth/pair {device, platform}` (no sign-in) answers `sessionId`, `deviceSecret` (keep it, never show
+  it), `pin`, `pinExpiresAt` (Unix seconds), `period` (30), `digits` (6), `qr`, `approveUrl`, `expiresAt`, and,
+  as `/pair/start` does, `code`, `approvePath`, `expiresInSec` (300) and `intervalSec`. It shares
+  `/pair/start`'s limits on open sessions per address.
+- `qr` is `wms://pair?v=1&s=<serverId>&u=<base url>&c=<sessionId>&k=<check>`, with each value URL-escaped.
+  `s` is the server's ID from `/capabilities`, so an app can tell whether it's a server it knows. `u` is
+  where the device reached the server. `k` is an HMAC the server made over the other fields. An app sends
+  it back as `check`, and the server refuses a code that was altered. A phone without the app can use
+  `approveUrl` instead, which is an ordinary `http(s)://…/pair?code=…` address. The server doesn't draw
+  the QR code: put either string in one.
+- `GET /auth/pair/{session}/pin`, with the secret in the `X-WMS-Pair-Secret` header, answers the current
+  `pin` and `pinExpiresAt`. Ask again then. 404 for an unknown session or the wrong secret; 410 once
+  it is no longer waiting.
+- `GET /auth/pair/{session}`, with the same header, every `intervalSec`, answers the same way as
+  `/pair/poll`. One more 410 `status` is `locked`: too many wrong PINs, so start again.
+- `POST /auth/pair/{session}/approve {pin, userId, check}` (an adult signed in) approves. `userId` and
+  `check` are optional. On the `/pair` page, the device's `code` with `pin` at `POST /pair/approve` does
+  the same; `/pair/info` says `needsPin: true` for such a device. The code alone is refused for it.
+  Failures:
+
+  | Status | `reason` | Meaning |
+  |---|---|---|
+  | 400 | `wrong-pin` | Not the PIN shown now, or it was already used. `triesLeft` says how many remain. |
+  | 400 | `bad-check` | The QR code's `check` isn't this session's. Counts as a wrong PIN. |
+  | 404 | `not-found` | No such session. |
+  | 410 | `expired` | Its five minutes are up. |
+  | 410 | `used` | Already approved or refused. |
+  | 410 | `locked` | Five wrong PINs ended it. |
+  | 429 | | Too many wrong codes from this account and address. Wait `Retry-After`. |
+
+- `POST /auth/pair/{session}/deny` refuses the request, and the device is told.
+- A PIN is accepted for its own 30 seconds and for one step either side, to allow for clocks that differ.
+  Each step's PIN works only once. Five wrong PINs end the session, and the session lasts 5 minutes. All of it is
+  under `/api/v1/auth/pair` as well.
+
 ### Name and password
 
 `POST /login {name, password, device}` answers `{token, user}`, 401 for wrong details, 429 after
@@ -784,6 +838,26 @@ says why. Ask before playing it. Nothing is decrypted or unscrambled: a clean co
 
 ## Themes and design data
 
+**The resolved theme.** With `theme-engine` in `features`, `GET /theme` is the one answer to "what
+colours does this account see": the server's default theme with the owner's colour overrides, or the
+theme the account chose for itself (`theme` in `/me/ui`, which replaces the overrides too), and under
+`modules` the colours for the parts of the interface that belong to a module (a games shelf in the
+games module's accent). Token names are those in `themes/*/theme.json` `colors` (`bg`, `bg2`, `fg`,
+`accent`, `accentFg`, …), colours are `#RRGGBB` or `#RRGGBBAA`. Keep the `ETag` and send it back as
+`If-None-Match`; a 304 means nothing changed. `warnings` lists text colours an override made hard to
+read (below WCAG AA, 4.5:1), for the theme settings page to show; apps can ignore it.
+
+```json
+{
+  "id": "midnight", "source": "server", "revision": 4,
+  "tokens": { "bg": "#0B1120", "fg": "#E6ECF7", "accent": "#FF8800", "accentFg": "#FFFFFF" },
+  "overrides": { "accent": "#FF8800" },
+  "modules": { "wittyplay": { "tokens": { "bg": "#0B1120", "accent": "#3AD29F" }, "overrides": { "accent": "#3AD29F" } } },
+  "warnings": [],
+  "etag": "W/\"theme-…\""
+}
+```
+
 `GET /themes` lists the themes, with four preview colours and `scheme` (`dark` or `light`), and which
 is the server's `default`. `GET /themes/{id}/tokens.json` is a theme as data, read from its CSS
 variables, so theme authors write one file and the apps get the same colours:
@@ -1180,6 +1254,11 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `POST /pair/info` | user | TV sign-in, on the phone or computer: what is asking, and which profiles this person may put on it. Adults only. Wrong codes are limited. |
 | `POST /pair/approve` | user | TV sign-in: approve, as this account or a Kids or Guest profile it manages. Works once. |
 | `POST /pair/deny` | user | TV sign-in: refuse; the TV is told. |
+| `POST /auth/pair` | none | Secure pairing: start a session; answers a rotating `pin`, a `qr` string and `approveUrl`. See [With a QR code and a PIN](#with-a-qr-code-and-a-pin-secure-pairing). |
+| `GET /auth/pair/{session}` | none | Secure pairing: has someone answered? `X-WMS-Pair-Secret` header. As `/pair/poll`, plus 410 `locked`. |
+| `GET /auth/pair/{session}/pin` | none | Secure pairing: the PIN to show now. `X-WMS-Pair-Secret` header. |
+| `POST /auth/pair/{session}/approve` | user | Secure pairing: approve with `{pin, userId, check}`. Adults only. Five wrong PINs end the session. |
+| `POST /auth/pair/{session}/deny` | user | Secure pairing: refuse; the device is told. Adults only. |
 | `GET /me` | user | The signed-in account. |
 | `GET /me/ui` | user | The account's interface choices: any JSON object the clients agree on (home layout, for one). See "Choices that follow the account". |
 | `PUT /me/ui` | user | Replace them: a JSON object of 16 KB at most. |
@@ -1376,6 +1455,32 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `DELETE /podcasts/{id}` | admin | Unsubscribe; downloaded episodes stay. |
 | `POST /items/{id}/download` | admin | Keep a podcast episode on disk. |
 
+### Media extras
+
+A song's or title's looping video, a song's separated parts for karaoke, where to skip in a
+video, and where else a title can be watched. Feature names: `canvas`, `karaoke-stems`,
+`skip-markers`, `where-to-watch-xref` (API revision 13). `{id}` is an item, as in `/items/{id}`.
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /media/{id}/canvas` | user | `{available, url, mime, width, height, durationMs, loop: true, source}`: a short silent video to loop behind the player. Width, height and length need FFprobe; they're left out without it. Play `url` muted, looping. |
+| `GET /items/{id}/canvas` | user | The same, under the item's usual address. |
+| `GET /media/{id}/canvas/file` | user, `st` | The canvas itself, with byte ranges, an `ETag` and a day's caching (the `v` in `url` changes when the file does). |
+| `PUT /media/{id}/canvas` | admin | Upload a canvas: an MP4 or WebM of at most 30 MB as the body. It replaces any upload, and wins over a file beside the media. |
+| `DELETE /media/{id}/canvas` | admin | Forget the uploaded canvas. One beside the media stays. |
+| `GET /media/{id}/stems` | user | `{stems: [{name, url, mime, size, multitrack?, source}], names}`: a song's parts, from `vocals`, `instrumental`, `drums`, `bass`, `other`, and `multitrack` for a Native Instruments `.stem.mp4` holding all of them as audio tracks. |
+| `GET /media/{id}/stems/{stem}` | user, `st` | One part, with byte ranges. `accompaniment` is another name for `instrumental`. |
+| `PUT /media/{id}/stems/{stem}` | admin | Upload a part: FLAC, WAV, Ogg, M4A, AAC, MP3 or WebM of at most 200 MB as the body (`multitrack`: an MP4). The server doesn't separate songs itself. |
+| `DELETE /media/{id}/stems/{stem}` | admin | Forget an uploaded part. |
+| `GET /media/{id}/markers` | user | `{intro, recap, credits, commercials: [...], source, sources}`, each range `{startSec, endSec}`. `source` is where the most trusted came from: `manual`, `skip.json`, `edl`, `chapters`, `show` or `none`. |
+| `PUT /media/{id}/markers` | admin | Set them by hand: `{intro: {start, end}, recap, credits: {start, end?}, commercials: [...]}`. A credits range without an end runs to the end. No scan replaces this; `{"reset": true}` goes back to what the files say. |
+| `GET /media/{id}/where-to-watch` | user | This title here (`inLibrary`, `local.quality`, `local.versions`) next to the services that offer it in `region` (the listings region, or `US`): `groups` of `stream`, `free`, `ads`, `rent`, `buy`, each provider with `name`, `logo` and `priority`, and `link` to the offers page. With no TMDB key: `providers: []`, `reason: "no-api-key"`. Show `attribution` wherever this is shown. |
+| `GET /discover/where-to-watch` | user | The same for a TMDB title that may not be here: `tmdb`, `type` (`movie` or `tv`), `region`. `inLibrary`, and `itemId` or `showId` when it is. |
+
+`POST /items/{id}/playback` also gives `recap`, `credits` and `commercials` beside `intro` for a
+video (an intro set by hand, or in a `.skip.json` or `.edl`, replaces the chapter's), and `stems`
+for a song, with the stream token already in each `url`.
+
 ### Books
 
 | Route | Sign-in | What it does |
@@ -1401,6 +1506,22 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `POST /themes` | admin | Install a theme: the ZIP as the body. |
 | `POST /themes/custom` | admin | Add a theme from the theme maker: `name`, `scheme`, `colors` and `radius`. Colours must be exactly `#rrggbb`. |
 | `DELETE /themes/{id}` | admin | Remove a theme. |
+| `GET /theme` | user | The theme for this account, resolved: theme id, every colour token, each module's colours, contrast `warnings`. `ETag`; 304 with `If-None-Match`. See "The resolved theme". |
+| `PUT /theme/global` | admin | The server's default theme (`id`) and global colour overrides (`tokens`). Unknown tokens or anything not a colour: 400. |
+| `GET /theme/modules/{module}` | admin | A module's colour overrides, with contrast `warnings`. |
+| `PUT /theme/modules/{module}` | admin | Replace a module's colour overrides: `{"tokens": {"accent": "#3ad29f"}}`. Unknown tokens or anything not a colour: 400. |
+| `DELETE /theme/modules/{module}` | admin | The module goes back to the theme's colours. |
+
+### Server-driven UI
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /sdui/screens/{screen}` | user | A screen rendered for this account and device, as an SDUI document (docs/SDUI.md). Say what the device is with `platform`, `formFactor`, `viewport`, `locale` and `capabilities` (or the `X-WMS-*` headers). `ETag`; 304 with `If-None-Match`. |
+| `GET /sdui/screens/{screen}/diff` | user | `?since=<etag>`: patches from the render the client has, or the whole `document` when the server no longer has it. 304 when nothing changed. |
+| `GET /sdui/config` | admin | All of `ui_config.json`: every screen and the theme overrides, with `etag`. |
+| `PUT /sdui/config` | admin | Replace it. `If-Match` is required: 428 without, 412 when someone saved in between. 400 lists every problem in `issues`. |
+| `GET /sdui/config/history` | admin | The last 10 revisions, newest first. |
+| `POST /sdui/config/rollback/{rev}` | admin | Make a kept revision current again, as a new revision. |
 
 ### Channels and live TV
 
@@ -1546,6 +1667,21 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /games/{id}/saves/{slot}/file` | user | Put a state file into a slot, as the request body. Slots 1 to 99. |
 | `GET /games/{id}/battery` | user | Download a game's battery save. |
 | `PUT /games/{id}/battery` | user | Replace a game's battery save, as the request body. Refused while it's being played. |
+| `GET /modules/wittyplay/docker/status` | admin | Whether WittyPlay's Docker backend is on, whether Docker answers, and how many containers run. |
+| `GET /modules/wittyplay/docker/settings` | admin | The Docker backend's settings, their schema and the backends. |
+| `PUT /modules/wittyplay/docker/settings` | admin | Replace the Docker backend's settings. WittyPlay checks them. |
+| `GET /modules/wittyplay/docker/emulators` | admin | The standalone emulators WittyPlay lists, with what's installed. |
+| `GET /modules/wittyplay/docker/installed` | admin | The standalone emulators installed. |
+| `POST /modules/wittyplay/docker/emulators/{id}/install` | admin | Start installing a standalone emulator. 202 and the job. |
+| `GET /modules/wittyplay/docker/emulators/{id}/install` | admin | How an emulator's install is going. |
+| `DELETE /modules/wittyplay/docker/emulators/{id}` | admin | Uninstall a standalone emulator. Refused while someone plays with it. |
+| `POST /modules/wittyplay/docker/sessions/{sid}/connect` | user | WebRTC for a game in a container: {hello, offer} in, the same answer a core's game gives. |
+| `DELETE /modules/wittyplay/docker/sessions/{sid}` | user | Stop a game in a container: the player's own, or any for an administrator. |
+| `GET /modules/wittyplay/kasm/{sid}/{rest}` | user | The KasmVNC desktop of a game in a container, and its WebSocket. Open the `kasmUrl` a start gives, under `/modules/wittyplay`. |
+| `POST /modules/wittyplay/kasm/{sid}/{rest}` | user | The KasmVNC desktop of a game in a container. Open the `kasmUrl` a start gives, under `/modules/wittyplay`. |
+| `PUT /modules/wittyplay/kasm/{sid}/{rest}` | user | The KasmVNC desktop of a game in a container. Open the `kasmUrl` a start gives, under `/modules/wittyplay`. |
+| `PATCH /modules/wittyplay/kasm/{sid}/{rest}` | user | The KasmVNC desktop of a game in a container. Open the `kasmUrl` a start gives, under `/modules/wittyplay`. |
+| `DELETE /modules/wittyplay/kasm/{sid}/{rest}` | user | The KasmVNC desktop of a game in a container. Open the `kasmUrl` a start gives, under `/modules/wittyplay`. |
 
 ### Game PCs
 

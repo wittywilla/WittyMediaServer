@@ -22,7 +22,7 @@ const (
 	apiVersion = 1
 	// apiRevision counts additions within the version: a client that needs
 	// something new can check for it, or look for a feature name below.
-	apiRevision = 10
+	apiRevision = 14
 	apiPrefix   = "/api/v1/"
 )
 
@@ -61,7 +61,7 @@ func (s *Server) versioned(next http.Handler) http.Handler {
 // hide what an older server lacks without knowing its version numbers. A new
 // area adds its name here along with its routes.
 var serverFeatures = []string{
-	"profiles", "pairing", "pair-invite", "server-identity", "lan-discovery", "stream-tokens",
+	"profiles", "pairing", "pair-invite", "pair-totp", "pair-qr", "server-identity", "lan-discovery", "stream-tokens",
 	"direct-play", "hls", "hls-remux", "hls-fmp4", "transcode", "playback-profiles", "subtitles-webvtt", "subtitles-burn-in",
 	"dvd", "dvd-menus", "bluray", "bluray-menus", "audio-cd",
 	"shows", "next-up", "recommendations", "skip-intro",
@@ -71,6 +71,8 @@ var serverFeatures = []string{
 	"channels", "live-tv", "live-tv-stream-tokens", "tv-favourites", "tv-reminders", "recordings",
 	"browse", "saved-views", "metadata-editing", "logos", "streaming-listings",
 	"music-home", "music-radio", "lyrics", "min-client-versions", "robust-streaming",
+	"sdui", "sdui-diff", "theme-engine", "theme-module-overrides",
+	"canvas", "karaoke-stems", "skip-markers", "where-to-watch-xref", "module-identity",
 }
 
 // minClientVersions names the oldest version of each app this server still works with, by

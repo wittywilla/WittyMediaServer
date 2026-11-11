@@ -39,6 +39,10 @@ var publicRoutes = map[string]bool{
 	"POST /api/pair/start":  true,
 	"POST /api/pair/poll":   true,
 	"POST /api/pair/redeem": true,
+	// Pairing v2: start, and the device's own polling with its secret.
+	"POST /api/auth/pair":              true,
+	"GET /api/auth/pair/{session}":     true,
+	"GET /api/auth/pair/{session}/pin": true,
 	// Links someone was sent: the token in the address is the permission.
 	"GET /api/share/{token}":                        true,
 	"GET /api/share/{token}/image/{id}":             true,

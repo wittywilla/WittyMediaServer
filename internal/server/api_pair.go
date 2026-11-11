@@ -78,14 +78,26 @@ type pairing struct {
 	approver int64
 	session  string // the sign-in that approved: the answer lasts only as long as that does
 	denied   bool
+
+	// Pairing v2 (/api/auth/pair) only; empty for a plain code.
+	id      string // the session's public ID, in its URLs and QR code
+	pinKey  []byte // the TOTP secret behind the rotating PIN: never leaves the server
+	pinUsed int64  // the last time step a PIN was accepted for, so none works twice
+	tries   int    // wrong PINs typed for this session
+	locked  bool   // too many wrong PINs: the session is over
+	qrCheck string // the k= in its QR code
 }
 
 type pairings struct {
 	mu       sync.Mutex
 	byCode   map[string]*pairing
 	bySecret map[string]*pairing
+	byID     map[string]*pairing // v2 sessions, by their public ID
 	starts   map[string][]time.Time
 	invites  map[string]*invite
+	// clock is what time it is for pairing; nil means the real time. Tests set it, holding mu.
+	clock func() time.Time
+	qrKey []byte // signs the check in QR codes; made when first needed, lost on restart
 	// Wrong codes typed lately. Those from away from home and those at home are kept apart,
 	// so strangers can't stop anyone at home using a code.
 	wrongAway, wrongHome []time.Time
@@ -324,11 +336,27 @@ func (s *Server) pairTarget(r *http.Request, me *auth.User, id int64) (*auth.Use
 
 var errPairBusy = errors.New("too many sign-in codes were asked for from this device; wait a few minutes")
 
+// now is the time as pairing sees it. Call with mu held.
+func (ps *pairings) now() time.Time {
+	if ps.clock != nil {
+		return ps.clock()
+	}
+	return time.Now()
+}
+
+// forgetLocked drops a pairing from every index.
+func (ps *pairings) forgetLocked(p *pairing) {
+	delete(ps.byCode, p.code)
+	delete(ps.bySecret, p.secret)
+	if p.id != "" {
+		delete(ps.byID, p.id)
+	}
+}
+
 func (ps *pairings) sweep(now time.Time) {
-	for c, p := range ps.byCode {
+	for _, p := range ps.byCode {
 		if now.After(p.expires) {
-			delete(ps.byCode, c)
-			delete(ps.bySecret, p.secret)
+			ps.forgetLocked(p)
 		}
 	}
 	for ip, ts := range ps.starts {
@@ -350,9 +378,17 @@ func (ps *pairings) sweep(now time.Time) {
 func (ps *pairings) start(device, platform, ip, key string, away bool) (*pairing, string, error) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
-	now := time.Now()
+	return ps.startLocked(device, platform, ip, key, away)
+}
+
+// startLocked is start, for v1 and v2 alike: the same limits, the same code and secret.
+func (ps *pairings) startLocked(device, platform, ip, key string, away bool) (*pairing, string, error) {
+	now := ps.now()
 	if ps.byCode == nil {
 		ps.byCode, ps.bySecret, ps.starts = map[string]*pairing{}, map[string]*pairing{}, map[string][]time.Time{}
+	}
+	if ps.byID == nil {
+		ps.byID = map[string]*pairing{}
 	}
 	ps.sweep(now)
 	open := 0
@@ -427,8 +463,12 @@ func (ps *pairings) waiting(code string) *pairing {
 }
 
 func (ps *pairings) waitingLocked(code string) *pairing {
-	p := ps.byCode[cleanPairCode(code)]
-	if p == nil || time.Now().After(p.expires) || p.userID != 0 || p.denied {
+	return ps.stillWaitingLocked(ps.byCode[cleanPairCode(code)])
+}
+
+// stillWaitingLocked is p if it is live and unanswered, else nil.
+func (ps *pairings) stillWaitingLocked(p *pairing) *pairing {
+	if p == nil || ps.now().After(p.expires) || p.userID != 0 || p.denied || p.locked {
 		return nil
 	}
 	return p
@@ -442,16 +482,21 @@ func (ps *pairings) answer(code string, userID, approver int64, session string) 
 	if p == nil {
 		return nil
 	}
+	ps.answerLocked(p, userID, approver, session)
+	return p
+}
+
+// answerLocked answers a pairing known to be waiting.
+func (ps *pairings) answerLocked(p *pairing, userID, approver int64, session string) {
 	if userID > 0 {
 		p.userID, p.approver, p.session = userID, approver, session
 	} else {
 		p.denied = true
 	}
 	// The TV has a little time left to collect the answer, whatever remained.
-	if until := time.Now().Add(2 * time.Minute); until.Before(p.expires) {
+	if until := ps.now().Add(2 * time.Minute); until.Before(p.expires) {
 		p.expires = until
 	}
-	return p
 }
 
 // How a poll ended.
@@ -461,6 +506,7 @@ const (
 	pollGone
 	pollDenied
 	pollApproved
+	pollLockedOut // v2: too many wrong PINs
 )
 
 // poll answers a TV. An approved or denied pairing is finished by the answer:
@@ -469,9 +515,11 @@ const (
 func (ps *pairings) poll(secret string) (int, *pairing) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
-	h := hashSecret(secret)
-	p := ps.bySecret[h]
-	now := time.Now()
+	return ps.pollLocked(ps.bySecret[hashSecret(secret)])
+}
+
+func (ps *pairings) pollLocked(p *pairing) (int, *pairing) {
+	now := ps.now()
 	if p == nil || now.After(p.expires) {
 		return pollGone, nil
 	}
@@ -480,13 +528,14 @@ func (ps *pairings) poll(secret string) (int, *pairing) {
 	}
 	p.lastPoll = now
 	switch {
+	case p.locked:
+		ps.forgetLocked(p)
+		return pollLockedOut, p
 	case p.userID != 0:
-		delete(ps.byCode, p.code)
-		delete(ps.bySecret, h)
+		ps.forgetLocked(p)
 		return pollApproved, p
 	case p.denied:
-		delete(ps.byCode, p.code)
-		delete(ps.bySecret, h)
+		ps.forgetLocked(p)
 		return pollDenied, p
 	}
 	return pollPending, p
@@ -515,30 +564,12 @@ func ipOf(r *http.Request) string {
 
 // POST /api/pair/start {device, platform} (public): a code to show on screen.
 func (s *Server) handlePairStart(w http.ResponseWriter, r *http.Request) {
-	var b struct {
-		Device   string `json:"device"`
-		Platform string `json:"platform"`
-	}
-	if err := readJSON(r, &b); err != nil {
-		writeErr(w, 400, "expected a JSON body")
+	device, platform, ok := s.pairStartRequest(w, r)
+	if !ok {
 		return
 	}
-	device := cleanLabel(b.Device, 60)
-	if device == "" {
-		device = "TV app"
-	}
-	if s.Auth.NoAccounts(r.Context()) {
-		writeErr(w, 409, "this server has not been set up yet")
-		return
-	}
-	p, secret, err := s.pair.start(device, cleanLabel(b.Platform, 20), ipOf(r), addressKey(r), !clientFrom(r).Where.AtHome())
-	if errors.Is(err, errPairBusy) {
-		w.Header().Set("Retry-After", "60")
-		writeErr(w, 429, err.Error())
-		return
-	}
-	if err != nil {
-		writeErr(w, 500, err.Error())
+	p, secret, err := s.pair.start(device, platform, ipOf(r), addressKey(r), !clientFrom(r).Where.AtHome())
+	if !pairStartOK(w, err) {
 		return
 	}
 	writeJSON(w, 200, map[string]any{
@@ -549,6 +580,41 @@ func (s *Server) handlePairStart(w http.ResponseWriter, r *http.Request) {
 		"approvePath":  "/pair",
 		"approveUrl":   "/pair?code=" + showPairCode(p.code),
 	})
+}
+
+// pairStartRequest reads what a device starting a pairing says about itself, for v1 and v2.
+func (s *Server) pairStartRequest(w http.ResponseWriter, r *http.Request) (device, platform string, ok bool) {
+	var b struct {
+		Device   string `json:"device"`
+		Platform string `json:"platform"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, "expected a JSON body")
+		return "", "", false
+	}
+	device = cleanLabel(b.Device, 60)
+	if device == "" {
+		device = "TV app"
+	}
+	if s.Auth.NoAccounts(r.Context()) {
+		writeErr(w, 409, "this server has not been set up yet")
+		return "", "", false
+	}
+	return device, cleanLabel(b.Platform, 20), true
+}
+
+// pairStartOK answers a failed start; true when there was nothing to answer.
+func pairStartOK(w http.ResponseWriter, err error) bool {
+	if errors.Is(err, errPairBusy) {
+		w.Header().Set("Retry-After", "60")
+		writeErr(w, 429, err.Error())
+		return false
+	}
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return false
+	}
+	return true
 }
 
 // POST /api/pair/poll {deviceSecret} (public): has someone answered? The
@@ -562,6 +628,11 @@ func (s *Server) handlePairPoll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	state, p := s.pair.poll(b.DeviceSecret)
+	s.writePoll(w, r, state, p)
+}
+
+// writePoll answers a device asking whether its pairing was answered, the same way for v1 and v2.
+func (s *Server) writePoll(w http.ResponseWriter, r *http.Request, state int, p *pairing) {
 	switch state {
 	case pollTooFast:
 		w.Header().Set("Retry-After", strconv.Itoa(int(pairInterval.Seconds())))
@@ -570,6 +641,8 @@ func (s *Server) handlePairPoll(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 410, map[string]any{"status": "expired", "error": "this code has expired or was already used; ask for a new one"})
 	case pollDenied:
 		writeJSON(w, 403, map[string]any{"status": "denied", "error": "the sign-in was refused"})
+	case pollLockedOut:
+		writeJSON(w, 410, map[string]any{"status": "locked", "error": "too many wrong PINs were typed; start again"})
 	case pollApproved:
 		if !s.stillSignedIn(r.Context(), p.session, p.approver) {
 			writeJSON(w, 410, map[string]any{"status": "expired", "error": "this code has expired or was already used; ask for a new one"})
@@ -649,6 +722,8 @@ func (s *Server) handlePairInfo(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{
 		"code": showPairCode(p.code), "device": p.device, "platform": p.platform, "ip": p.ip,
 		"createdAt": p.created.Unix(), "expiresAt": p.expires.Unix(), "profiles": profiles,
+		// Started with /api/auth/pair: approving takes the PIN the device shows.
+		"needsPin": p.pinKey != nil,
 	})
 }
 
@@ -663,14 +738,20 @@ func (s *Server) handlePairApprove(w http.ResponseWriter, r *http.Request) {
 	var b struct {
 		Code   string `json:"code"`
 		UserID int64  `json:"userId"`
+		PIN    string `json:"pin"` // for a device that started with /api/auth/pair
 	}
-	_, k, ok := s.pairCodeFrom(w, r, &b, func() string { return b.Code })
+	waiting, k, ok := s.pairCodeFrom(w, r, &b, func() string { return b.Code })
 	if !ok {
 		return
 	}
 	target, allowed := s.pairTarget(r, me, b.UserID)
 	if !allowed {
 		writeErr(w, 403, "you can't sign a device in as that profile")
+		return
+	}
+	// A device with a PIN is never signed in by its code alone, whichever way it is approved.
+	if waiting.pinKey != nil {
+		s.approveByPIN(w, r, me, target, k, b.Code, true, b.PIN, "")
 		return
 	}
 	p := s.pair.answer(b.Code, target.ID, me.ID, tokenFrom(r))

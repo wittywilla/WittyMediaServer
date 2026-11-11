@@ -30,6 +30,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/licenses"
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/mediaextras"
 	"github.com/wittywilla/wittymediaserver/internal/metrics"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/music"
@@ -37,9 +38,12 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/play/cores"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
+	"github.com/wittywilla/wittymediaserver/internal/sduistore"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/internal/update"
+	"github.com/wittywilla/wittymediaserver/internal/watchxref"
+	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 	"github.com/wittywilla/wittymodule"
 )
 
@@ -420,6 +424,14 @@ func schemaTypes() map[string]reflect.Type {
 		"GuideChannel": ty(guideChannel{}), "GuideProgramme": ty(guideProgramme{}), "TuneInfo": ty(tuneInfo{}), "GuideHit": ty(guideHit{}), "ChannelAlternative": ty(livetv.Alternative{}),
 		"ChannelSecurity": ty(securityInfo{}), "ChannelBrand": ty(channelBrand{}), "TVReminder": ty(reminderView{}), "ChannelView": ty(channelView{}), "TunerChannelView": ty(tunerChannelView{}),
 		"ResetView": ty(resetView{}), "ResetCopy": ty(reset.Copy{}), "ResetRequest": ty(reset.Request{}), "ResetResult": ty(reset.Result{}), "LegalNotice": ty(legal.Notice{}), "LegalSection": ty(legal.Section{}), "LegalService": ty(legal.Service{}),
+		"SDUIDocument": ty(sdui.Document{}), "SDUINode": ty(sdui.Node{}), "SDUICondition": ty(sdui.Condition{}), "SDUIStyle": ty(sdui.Style{}), "SDUIAction": ty(sdui.Action{}),
+		"SDUIBinding": ty(sdui.Binding{}), "SDUIThemeRef": ty(sdui.ThemeRef{}), "SDUIMeta": ty(sdui.Meta{}), "SDUIPatch": ty(sdui.Patch{}), "SDUIDiff": ty(sduiDiff{}),
+		"SDUIConfig": ty(sduistore.Config{}), "SDUITheme": ty(sduistore.Theme{}), "SDUIRevision": ty(sduistore.Revision{}),
+		"ResolvedTheme": ty(ResolvedTheme{}), "ThemeModule": ty(ThemeModule{}), "ThemeWarning": ty(ThemeWarning{}), "ThemeModuleView": ty(themeModuleView{}),
+		"CanvasInfo": ty(canvasInfo{}), "StemView": ty(stemView{}), "MediaMarkers": ty(mediaextras.Markers{}), "MarkerRange": ty(mediaextras.Range{}),
+		"MarkersEdit": ty(markersEdit{}), "SkipRange": ty(mediaextras.SkipRange{}),
+		"WhereToWatch": ty(watchxref.Answer{}), "WatchLocal": ty(watchxref.Local{}), "WatchVersion": ty(watchxref.Version{}), "WatchOffer": ty(watchxref.Offer{}),
+		"WatchProviderGroup": ty(watchxref.ProviderGroup{}), "WatchRef": ty(watchxref.Ref{}),
 	}
 }
 

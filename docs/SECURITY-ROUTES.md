@@ -3,7 +3,7 @@
 Every route of the server: who may call it and what it validates. `TestRouteTableMatchesTheCode` keeps this table and the code
 together. [SECURITY-REVIEW.md](SECURITY-REVIEW.md) describes the model behind it.
 
-Nothing else listens for HTTP: the HTTPS port serves this same handler. Two routes are WebSockets: `GET /api/play/{sid}/ws` and `GET /api/play/{sid}/stream`.
+Nothing else listens for HTTP: the HTTPS port serves this same handler. Three routes are WebSockets: `GET /api/play/{sid}/ws`, `GET /api/play/{sid}/stream`, and WittyPlay's KasmVNC desktop under `GET /api/modules/wittyplay/kasm/{sid}/{rest...}`.
 
 Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served wherever `GET` is.
 
@@ -50,6 +50,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/pair/start` | Public | Server is set up. Limits on open codes per address and for the server |
 | `POST /api/pair/poll` | Public | 64-character device secret. Polling rate |
 | `POST /api/pair/redeem` | Public | Six digits. Wrong-code limits per address and for the server. Code used once |
+| `POST /api/auth/pair` | Public | Server is set up. The same limits on open sessions as `/api/pair/start`. The TOTP secret never leaves memory. Session lasts 5 minutes |
+| `GET /api/auth/pair/{session}` | Public | Session ID and the 64-character device secret in a header, compared as a hash in constant time. Polling rate. The sign-in is handed out once, while the approver's session stands |
+| `GET /api/auth/pair/{session}/pin` | Public | Session ID and the 64-character device secret in a header. Only while the session is waiting |
 | `GET /api/me` | Signed-in | The caller's own account |
 | `GET /api/me/ui` | Signed-in | own |
 | `PUT /api/me/ui` | Signed-in | own. A JSON object of at most 16 KB |
@@ -146,6 +149,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/items/{id}/progress` | Signed-in | limits. own |
 | `DELETE /api/items/{id}/progress` | Signed-in | own |
 | `POST /api/pair/info` | Adult | Code, with a limit on wrong codes |
+| `POST /api/auth/pair/{session}/approve` | Adult | Current TOTP PIN, used once. Five wrong PINs end the session. Limit on wrong codes. The device signs in as the caller or a profile the caller manages |
+| `POST /api/auth/pair/{session}/deny` | Adult | Session is waiting. Limit on wrong codes |
 | `POST /api/pair/approve` | Adult | Code, with a limit on wrong codes. The device signs in as the caller or a profile the caller manages |
 | `POST /api/pair/deny` | Adult | Code, with a limit on wrong codes |
 | `POST /api/pair/invite` | Adult | Target is the caller or a profile the caller manages. One open code per person, limit on open codes |
@@ -313,6 +318,21 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/module-store/{id}/{key}` | Signed-in | own. Known module. A key of letters and digits. JSON of at most 64 KB, and 32 keys for a module |
 | `GET /api/modules/{id}/web/{version}/{path...}` | Signed-in; address token | Version in use. Name in the bundle's signed list, of a listed file type, hash checked when served |
 | `POST /api/modules/{id}/failed` | Signed-in | Known module. 4 KB body. Rate per account. Counts against a version only from an admin |
+| `GET /api/modules/wittyplay/docker/status` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
+| `GET /api/modules/wittyplay/docker/settings` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
+| `PUT /api/modules/wittyplay/docker/settings` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
+| `GET /api/modules/wittyplay/docker/emulators` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
+| `GET /api/modules/wittyplay/docker/installed` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
+| `POST /api/modules/wittyplay/docker/emulators/{id}/install` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
+| `GET /api/modules/wittyplay/docker/emulators/{id}/install` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
+| `DELETE /api/modules/wittyplay/docker/emulators/{id}` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
+| `POST /api/modules/wittyplay/docker/sessions/{sid}/connect` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User set. WittyPlay answers only the session's player |
+| `DELETE /api/modules/wittyplay/docker/sessions/{sid}` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay answers only the session's player or an admin |
+| `GET /api/modules/wittyplay/kasm/{sid}/{rest...}` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers and this server's sign-in dropped, X-Witty-User set. WittyPlay answers only the session's player, with the session's ticket. WebSocket: origin must match the host |
+| `POST /api/modules/wittyplay/kasm/{sid}/{rest...}` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers and this server's sign-in dropped, X-Witty-User set. WittyPlay answers only the session's player, with the session's ticket. WebSocket: origin must match the host |
+| `PUT /api/modules/wittyplay/kasm/{sid}/{rest...}` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers and this server's sign-in dropped, X-Witty-User set. WittyPlay answers only the session's player, with the session's ticket. WebSocket: origin must match the host |
+| `PATCH /api/modules/wittyplay/kasm/{sid}/{rest...}` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers and this server's sign-in dropped, X-Witty-User set. WittyPlay answers only the session's player, with the session's ticket. WebSocket: origin must match the host |
+| `DELETE /api/modules/wittyplay/kasm/{sid}/{rest...}` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers and this server's sign-in dropped, X-Witty-User set. WittyPlay answers only the session's player, with the session's ticket. WebSocket: origin must match the host |
 | `GET /api/reach/{nonce}` | Public | Nonce of a running outside test |
 | `GET /api/remote` | Admin | Nothing further |
 | `GET /api/remote/status` | Signed-in, or this computer | no account only from the server's own computer, directly (the tray). What is wrong in a fault, which can name files, only for an admin |
@@ -681,8 +701,32 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/system/tasks/{id}/cancel` | Admin | Task exists, and can be cancelled |
 | `POST /api/system/tasks/{id}/retry` | Admin | Task exists, and its kind can be started again |
 | `POST /api/themes/custom` | Admin | Name, known colours as colour values and nothing else, radius in range. Becomes a theme through the theme manager's own check |
+| `GET /api/sdui/screens/{screen}` | Signed-in | Screen name by form. Platform, form factor, viewport, locale and capabilities by form. Rendered for the account's own kind and name; no library data |
+| `GET /api/sdui/screens/{screen}/diff` | Signed-in | As the screen. since: an ETag of at most 200 characters, compared only with the account's own earlier renders |
+| `GET /api/sdui/config` | Admin | Nothing |
+| `PUT /api/sdui/config` | Admin | If-Match must be the current ETag (412 otherwise, 428 when missing). 16 MB body, strict JSON: no unknown fields. Every screen through the SDUI validator; theme overrides name known colour tokens and colour values only |
+| `GET /api/sdui/config/history` | Admin | Nothing |
+| `POST /api/sdui/config/rollback/{rev}` | Admin | Revision number; must be a kept revision, which is validated again. If-Match, when sent, must be the current ETag |
+| `GET /api/theme` | Signed-in | own theme choice. Colours only |
+| `PUT /api/theme/global` | Admin | Theme exists. Known colour tokens, colour values only, at most 64. If-Match, when sent, must be the current ETag of ui_config.json |
+| `GET /api/theme/modules/{module}` | Admin | Module id by form |
+| `PUT /api/theme/modules/{module}` | Admin | Module id by form. Known colour tokens, colour values only, at most 64. If-Match, when sent, must be the current ETag of ui_config.json |
+| `DELETE /api/theme/modules/{module}` | Admin | Module id by form. If-Match, when sent, must be the current ETag of ui_config.json |
 | `GET /api/media-types` | Signed-in | Nothing: known formats and whether this server can play them. Which FFmpeg it runs for admins only |
 | `PUT /api/users/{id}/profile` | Signed-in | Caller may manage that account, or it's their own. Which name shows is anyone's own choice. Names: an adult's own, or a manager's. Username has no invisible characters and differs from every other, ignoring case. Display name cleaned and cut to 60 characters |
+| `GET /api/media/{id}/canvas` | Signed-in | limits. Song, video or disc. An upload in the server's own folder, or a file beside the media that is inside a library once links are followed, or a plain file in the metadata folder named for the item |
+| `GET /api/items/{id}/canvas` | Signed-in | limits. As `GET /api/media/{id}/canvas` |
+| `GET /api/media/{id}/canvas/file` | Signed-in; ticket; address token | limits. As the canvas: only a file the listing would name. Type from its name, MP4 or WebM only. Inert content policy. Limit for viewers away from home |
+| `PUT /api/media/{id}/canvas` | Admin | Song, video or disc. At most 30 MB, MP4 or WebM by its first bytes. Written whole into the server's images folder under a name made from the item's number and a hash of its path, never beside the media; links on the way refused |
+| `DELETE /api/media/{id}/canvas` | Admin | Removes only an upload, a plain file in the server's own folder |
+| `GET /api/media/{id}/stems` | Signed-in | limits. A song. Uploads in the server's own folder, and files beside the song inside a library once links are followed, plain files only, 5000 entries a folder at most |
+| `GET /api/media/{id}/stems/{stem}` | Signed-in; ticket; address token | limits. Stem is one of a fixed list of names, never used as a path. Only a file the listing would name. Type from its name. Inert content policy. Limit for viewers away from home |
+| `PUT /api/media/{id}/stems/{stem}` | Admin | A song. Stem is one of a fixed list of names. At most 200 MB, audio by its first bytes (an MP4 for multitrack). Written whole into the server's images folder, never beside the media; links on the way refused |
+| `DELETE /api/media/{id}/stems/{stem}` | Admin | Stem is one of a fixed list of names. Removes only an upload, a plain file in the server's own folder |
+| `GET /api/media/{id}/markers` | Signed-in | limits. Sidecars (.skip.json, .edl) beside the media, inside a library, at most 256 KB, at most 200 ranges; ranges that don't make sense are dropped |
+| `PUT /api/media/{id}/markers` | Admin | JSON of at most 64 KB. Every range starts at 0 or later and ends after it starts, at most 200 breaks. Kept apart from what scans read, which never replace it |
+| `GET /api/media/{id}/where-to-watch` | Signed-in | limits. Versions the account may see only. Region two letters. Sends only a TMDB id and region to TMDB, with the owner's key; answers kept as long as listings |
+| `GET /api/discover/where-to-watch` | Signed-in | limits, for whether it's in the library. TMDB id digits only, type movie or tv, region two letters |
 | `/` (any method, everything else) | Public | Files of the web app, or its page. An unknown `/api/` address answers 404 |
 
 ---

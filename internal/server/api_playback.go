@@ -144,8 +144,16 @@ type playbackResponse struct {
 	// SubtitleDelivery: none | embedded | sidecar | hls | burn.
 	SubtitleDelivery string         `json:"subtitleDelivery"`
 	Intro            *playbackIntro `json:"intro,omitempty"`
-	NextID           *int64         `json:"nextId,omitempty"`
-	Disc             *playbackDisc  `json:"disc,omitempty"`
+	// Recap and Credits are skippable like the intro: a recap of earlier episodes, and the
+	// end credits (where "next episode" can be offered). Commercials are advert breaks left
+	// in a recording. All from GET /api/media/{id}/markers, which says where each came from.
+	Recap       *playbackIntro  `json:"recap,omitempty"`
+	Credits     *playbackIntro  `json:"credits,omitempty"`
+	Commercials []playbackIntro `json:"commercials,omitempty"`
+	// Stems: a song's separated parts for karaoke, ready to play (stream token included).
+	Stems  []stemView    `json:"stems,omitempty"`
+	NextID *int64        `json:"nextId,omitempty"`
+	Disc   *playbackDisc `json:"disc,omitempty"`
 	// NowPlayingURL: radio only. What the station says it is playing right now.
 	NowPlayingURL string `json:"nowPlayingUrl,omitempty"`
 	// CDURL: for a CD (decision cd), its tracks and layout: GET it for the map of
@@ -457,6 +465,9 @@ func (s *Server) playbackAudio(r *http.Request, it *library.Item, p playback.Pro
 		}
 	}
 	out.URL = withStream(u, out.StreamToken)
+	if stems := s.stemsOf(r.Context(), it); len(stems) > 0 {
+		out.Stems = stemViews(it, stems, out.StreamToken)
+	}
 	ex := playback.ExplainAudio(out.Decision == "audio-direct", container, it.VideoCodec)
 	out.Explain = &ex
 	s.Log.InfoContext(r.Context(), "playback started", "cat", "playback", "item", it.ID, "title", it.Title, "profile", p.ID, "mode", out.Decision, "codec", it.VideoCodec)
@@ -560,6 +571,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		}
 		out.Intro = &in
 	}
+	s.fillMarkers(ctx, it, out)
 	logStarted := func(session string) {
 		s.Log.InfoContext(ctx, "playback started", "cat", "playback", "session", session, "item", it.ID, "title", it.Title, "profile", p.ID, "mode", d.Mode, "reasons", strings.Join(d.Reasons, ","), "audioTrack", chosen.Audio, "subtitleTrack", chosen.Subtitle,
 			"streaming", mode, "streamingFrom", modeFrom, "measuredKbps", b.MeasuredKbps, "ladder", ladderParam(out.Streaming.Ladder))

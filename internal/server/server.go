@@ -101,9 +101,10 @@ type Server struct {
 	// Channels and Live TV (see api_channels.go, api_tuners.go).
 	Channels   *channels.Store
 	TV         *livetv.Manager
-	silent     sync.Map // tuner channels whose sound can't be decoded here
-	logoMisses sync.Map // channel logos and sites that gave nothing lately, and when to try again
-	lyricsDown sync.Map // online lyrics sources that couldn't be reached lately, and when: see askOnline
+	silent     sync.Map  // tuner channels whose sound can't be decoded here
+	logoMisses sync.Map  // channel logos and sites that gave nothing lately, and when to try again
+	lyricsDown sync.Map  // online lyrics sources that couldn't be reached lately, and when: see askOnline
+	sdui       sduiState // ui_config.json and recent renders: see api_sdui.go
 
 	mux        *http.ServeMux
 	logins     loginLimiter
@@ -227,6 +228,9 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("POST /api/pair/start", s.handlePairStart)
 	m.HandleFunc("POST /api/pair/poll", s.handlePairPoll)
 	m.HandleFunc("POST /api/pair/redeem", s.handlePairRedeem)
+	m.HandleFunc("POST /api/auth/pair", s.handleAuthPairStart)
+	m.HandleFunc("GET /api/auth/pair/{session}", s.handleAuthPairPoll)
+	m.HandleFunc("GET /api/auth/pair/{session}/pin", s.handleAuthPairPIN)
 
 	// Authenticated
 	a := s.requireUser
@@ -330,6 +334,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/pair/approve", a(s.handlePairApprove))
 	m.Handle("POST /api/pair/deny", a(s.handlePairDeny))
 	m.Handle("POST /api/pair/invite", a(s.handlePairInvite))
+	m.Handle("POST /api/auth/pair/{session}/approve", a(s.handleAuthPairApprove))
+	m.Handle("POST /api/auth/pair/{session}/deny", a(s.handleAuthPairDeny))
 	m.Handle("GET /api/playback/profiles", a(s.handlePlaybackProfiles))
 	m.Handle("GET /api/playback/speedtest", a(s.handleSpeedTest))
 	m.Handle("GET /api/media-types", a(s.handleMediaTypes))
@@ -569,6 +575,7 @@ func (s *Server) Handler() http.Handler {
 
 	s.channelRoutes(m)
 	s.gameRoutes(s.needing("wittyplay", m))
+	s.wittyPlayDockerRoutes(s.needing("wittyplay", m))
 	if s.GameMeta == nil {
 		s.GameMeta = library.NewGameMeta(s.Store, s.Cfg.ImagesDir, s.Cfg.CacheDir, s.Log)
 		s.GameMeta.Tasks = s.Tasks
@@ -582,6 +589,9 @@ func (s *Server) Handler() http.Handler {
 	s.repairRoutes(m)
 	s.networkRoutes(m)
 	s.backupRoutes(m)
+	s.sduiRoutes(m)
+	s.themeRoutes(m)
+	s.mediaExtrasRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())
@@ -821,7 +831,9 @@ func (s *Server) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if o := r.Header.Get("Origin"); o != "" && s.crossOrigin(r) && s.corsAllowed(r, o) {
 			w.Header().Set("Access-Control-Allow-Origin", o)
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-WMS-Token")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-WMS-Token, If-Match, If-None-Match, "+
+				"X-WMS-Platform, X-WMS-Form-Factor, X-WMS-Viewport, X-WMS-Locale, X-WMS-Capabilities, "+pairSecretHeader)
+			w.Header().Set("Access-Control-Expose-Headers", "ETag")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Vary", "Origin")
 		}

@@ -120,7 +120,7 @@ Keys are Ed25519. An ID is the libp2p peer ID of the public key (identity multih
 
 ## The server's side
 
-Settings are one JSON value, `p2p`, in the settings table; the key's seed is `p2pKey`. A backup keeps the key and drops the settings, so a restored server is off until someone turns it on, and devices still know it when they do.
+Settings are one JSON value, `p2p`, in the settings table; the key's seed is `p2pKey`. A backup keeps the key and leaves out the settings and the device list, as it leaves out sign-ins: a restored server is off until someone turns it on, has the same ID, and its devices add themselves again the next time they are at home and signed in.
 
 | Route | Who | What |
 |---|---|---|

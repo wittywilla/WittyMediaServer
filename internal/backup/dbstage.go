@@ -324,7 +324,7 @@ var (
 	alwaysDropped = map[string]bool{"remoteAccess": true, "trustedProxies": true, "publicUrl": true, "portMapping": true, "backupKey": true, "backupFolder": true, "backupLast": true,
 		// Peer-to-peer connections reach out to the internet and ask the router for a port:
 		// like Remote Access, off after a restore until someone turns them on. The key stays,
-		// so devices that were paired still know the server once it is on again.
+		// so the server keeps its ID; the devices add themselves to its list again at home.
 		"p2p": true,
 		// Custom cores are programs, which no backup holds: turning them on is for this machine's owner.
 		"gamingCustomCores": true}

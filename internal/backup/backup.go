@@ -178,11 +178,12 @@ func isCoreCache(rel string) bool {
 
 // neverTables stay out of every backup, for a reason:
 //   - sign-ins: a backup must not let anyone in, and nobody expects a sign-in to come back.
+//   - devices that may connect peer to peer: the same. They add themselves again at home.
 //   - custom cores: their programs aren't kept, so the rows would point at nothing.
 //   - game PCs: pairing keys live beside them, on this machine.
 //   - measurements and finished jobs: of this machine, at that time.
 var neverTables = map[string]bool{
-	"schema": true, "sqlite_sequence": true, "sessions": true,
+	"schema": true, "sqlite_sequence": true, "sessions": true, "p2p_devices": true,
 	"custom_cores": true, "custom_core_versions": true, "custom_consoles": true, "game_core_choice": true, "game_core_plays": true, "game_core_audit": true,
 	"wittycouch_hosts": true, "wittyrigs_rigs": true, "wittyrigs_apps": true,
 	"metrics_hourly": true, "stream_bytes": true, "task_history": true,

@@ -263,6 +263,18 @@ func hasProto(a ma.Multiaddr, code int) bool {
 	return err == nil
 }
 
+// spoken says an address uses a transport these nodes have: QUIC or plain
+// TCP. A relay on the public network lists more (WebSocket, WebTransport,
+// WebRTC), and an address only they could use is no use to an app.
+func spoken(a ma.Multiaddr) bool {
+	for _, code := range []int{ma.P_WS, ma.P_WSS, ma.P_TLS, ma.P_WEBTRANSPORT, ma.P_WEBRTC_DIRECT, ma.P_WEBRTC, ma.P_QUIC} {
+		if hasProto(a, code) {
+			return false
+		}
+	}
+	return hasProto(a, ma.P_QUIC_V1) || hasProto(a, ma.P_TCP)
+}
+
 // mappedAddrs are the addresses a port mapping gives: ip:port for UDP (QUIC)
 // and TCP.
 func mappedAddrs(ip netip.Addr, port int) []ma.Multiaddr {

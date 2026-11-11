@@ -415,7 +415,7 @@ func (n *Node) handleEnrol(s network.Stream) {
 	defer cancel()
 	res := n.cfg.Enrol(ctx, id, req, addr.IP)
 	if res.OK {
-		res.Addrs = addrStrings(n.host.Addrs())
+		res.Addrs = n.Addrs()
 	}
 	answer(res)
 }
@@ -428,8 +428,9 @@ func (n *Node) Kick(id string) {
 	}
 }
 
-// Addrs are the node's current addresses, for apps to remember.
-func (n *Node) Addrs() []string { return addrStrings(n.host.Addrs()) }
+// Addrs are the node's current addresses, for apps to remember: those an app
+// can use, which leaves out a relay's WebSocket and WebRTC addresses.
+func (n *Node) Addrs() []string { return addrStrings(ma.FilterAddrs(n.host.Addrs(), spoken)) }
 
 // Close stops the node: streams end, mappings on the router are removed.
 func (n *Node) Close() {

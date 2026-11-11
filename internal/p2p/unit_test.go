@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/peer"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 func testSeed(b byte) []byte { return bytes.Repeat([]byte{b}, SeedSize) }
@@ -119,6 +120,31 @@ func TestPresentedIPIsNeverLocal(t *testing.T) {
 	}
 	if presentedIP(netip.MustParseAddr("192.168.1.9"), false, false, id) != presentedIP(netip.MustParseAddr("10.1.1.1"), false, false, other) {
 		t.Error("strangers on private networks must be counted together")
+	}
+}
+
+func TestOnlyAddressesAnAppCanUseAreHandedOut(t *testing.T) {
+	relay := "/p2p/" + testID(t, 5) + "/p2p-circuit"
+	for a, want := range map[string]bool{
+		"/ip4/203.0.113.4/udp/4100/quic-v1":                      true,
+		"/ip4/203.0.113.4/tcp/4100":                              true,
+		"/ip6/2001:db8::4/udp/4100/quic-v1":                      true,
+		"/ip4/203.0.113.9/tcp/4001" + relay:                      true,
+		"/ip4/203.0.113.9/udp/4001/quic-v1" + relay:              true,
+		"/ip4/203.0.113.9/udp/4001/quic-v1/webtransport" + relay: false,
+		"/ip4/203.0.113.9/udp/4001/webrtc-direct" + relay:        false,
+		"/ip4/203.0.113.9/tcp/443/tls/ws" + relay:                false,
+		"/ip4/203.0.113.9/tcp/8080/ws" + relay:                   false,
+		"/ip4/203.0.113.9/udp/4001/quic" + relay:                 false,
+		"/dns4/relay.example.org/tcp/443/wss" + relay:            false,
+	} {
+		m, err := ma.NewMultiaddr(a)
+		if err != nil {
+			t.Fatalf("%s: %v", a, err)
+		}
+		if spoken(m) != want {
+			t.Errorf("spoken(%s) = %v", a, !want)
+		}
 	}
 }
 

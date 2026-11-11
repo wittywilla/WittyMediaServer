@@ -182,8 +182,9 @@ func (k *keeper) wait(ctx context.Context, ok func(State) bool) (State, error) {
 	}
 }
 
-// tidyEvery is how often a standing connection is looked over.
-const tidyEvery = 20 * time.Second
+// tidyEvery is how often a standing connection is looked over: a look at a
+// few counters, nothing sent.
+const tidyEvery = 5 * time.Second
 
 // run keeps the link up until ctx ends.
 func (k *keeper) run(ctx context.Context) {

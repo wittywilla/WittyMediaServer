@@ -15,6 +15,7 @@ import (
 	"net/netip"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -348,10 +349,10 @@ func TestStreamLimitPerDevice(t *testing.T) {
 
 func TestEnrolment(t *testing.T) {
 	devs := newDevList()
-	var from netip.Addr
+	var from atomic.Pointer[netip.Addr]
 	n := startNode(t, 1, devs, func(c *NodeConfig) {
 		c.Enrol = func(_ context.Context, id string, req EnrolRequest, addr netip.Addr) EnrolResponse {
-			from = addr
+			from.Store(&addr)
 			if req.Secret != "the-right-secret-0001" {
 				return EnrolResponse{Reason: "wrong", Error: "no"}
 			}
@@ -372,8 +373,8 @@ func TestEnrolment(t *testing.T) {
 	if err != nil || !res.OK || res.Code != "123456" || len(res.Addrs) == 0 {
 		t.Fatalf("right secret: %+v %v", res, err)
 	}
-	if from != strangerIP {
-		t.Errorf("an enrolling stranger from this machine was counted under %v", from)
+	if a := from.Load(); a == nil || *a != strangerIP {
+		t.Errorf("an enrolling stranger from this machine was counted under %v", a)
 	}
 	if code, _, err := get(t, c, "/hello"); err != nil || code != 200 {
 		t.Fatalf("after enrolling: %d %v", code, err)

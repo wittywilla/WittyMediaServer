@@ -23,6 +23,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
+	"github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
 	libp2pquic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
@@ -63,7 +64,9 @@ type Layers struct {
 }
 
 // AllLayers is every layer on.
-func AllLayers() Layers { return Layers{DHT: true, Relay: true, HolePunch: true, PortMap: true, IPv6: true} }
+func AllLayers() Layers {
+	return Layers{DHT: true, Relay: true, HolePunch: true, PortMap: true, IPv6: true}
+}
 
 // RelayLimits are what a community relay gives each connection it passes on.
 type RelayLimits struct {
@@ -81,8 +84,8 @@ func DefaultRelayLimits() RelayLimits {
 
 // HostConfig is what a node is made from.
 type HostConfig struct {
-	Seed   []byte
-	Port   int  // to listen on; 0 picks one
+	Seed []byte
+	Port int // to listen on; 0 picks one
 	// Listen replaces the usual addresses to listen on (every network card,
 	// UDP for QUIC and TCP, IPv4 and IPv6, on Port). For tests.
 	Listen []string
@@ -104,6 +107,9 @@ type HostConfig struct {
 	Bootstrap []peer.AddrInfo
 	Local     bool
 	Options   []libp2p.Option
+	// PunchTimeout shortens how long one try at a direct connection may take
+	// (five seconds otherwise), so tests of hole punching don't wait.
+	PunchTimeout time.Duration
 }
 
 // Host is a running node.
@@ -210,7 +216,11 @@ func NewHost(cfg HostConfig) (*Host, error) {
 		opts = append(opts, libp2p.DisableRelay())
 	}
 	if cfg.Layers.HolePunch && cfg.Layers.Relay {
-		opts = append(opts, libp2p.EnableHolePunching())
+		var hp []holepunch.Option
+		if cfg.PunchTimeout > 0 {
+			hp = append(hp, holepunch.DirectDialTimeout(cfg.PunchTimeout))
+		}
+		opts = append(opts, libp2p.EnableHolePunching(hp...))
 	}
 	if cfg.RelayService != nil {
 		rl := *cfg.RelayService

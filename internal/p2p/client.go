@@ -45,6 +45,9 @@ type ClientConfig struct {
 	// UpgradeWait is how long a request waits for a direct connection before
 	// giving up on a relay that only passes on a few kilobytes.
 	UpgradeWait time.Duration
+	// PunchTimeout: see HostConfig. PunchWaits replaces punchWaits.
+	PunchTimeout time.Duration
+	PunchWaits   []time.Duration
 }
 
 // ErrNoDirectPath: the server was found, but only through a relay that passes
@@ -66,6 +69,8 @@ type Client struct {
 
 	mu       sync.Mutex
 	gaveUpAt time.Time // when waiting for a direct path last ran out
+	punches  int       // hole punches asked for again on this relayed spell
+	punchAt  time.Time // when the last one was
 }
 
 // NewClient starts an app's node and begins connecting. It returns at once;
@@ -85,7 +90,7 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 		cfg.UpgradeWait = 15 * time.Second
 	}
 	h, err := NewHost(HostConfig{Seed: cfg.Seed, Layers: cfg.Layers, StaticRelays: cfg.StaticRelays, Log: lg,
-		Bootstrap: cfg.Bootstrap, Local: cfg.Local, Listen: cfg.Listen, Options: cfg.Options})
+		Bootstrap: cfg.Bootstrap, Local: cfg.Local, Listen: cfg.Listen, Options: cfg.Options, PunchTimeout: cfg.PunchTimeout})
 	if err != nil {
 		return nil, err
 	}
@@ -297,12 +302,62 @@ func (c *Client) tidy() {
 		}
 	}
 	if !direct {
+		c.punchAgain(conns)
 		return
 	}
+	c.mu.Lock()
+	c.punches, c.punchAt = 0, time.Time{}
+	c.mu.Unlock()
 	for _, conn := range conns {
 		if (conn.Stat().Limited || isRelayed(conn.RemoteMultiaddr())) && len(conn.GetStreams()) == 0 {
 			_ = conn.Close()
 		}
+	}
+}
+
+// punchWaits is how long to leave a relayed connection before asking for
+// another try at a direct one. The first wait is longer than libp2p's own
+// attempt can take (a direct dial, then three punches, five seconds each at
+// most): asking again sooner would cut that attempt off.
+var punchWaits = []time.Duration{30 * time.Second, time.Minute, 2 * time.Minute, 5 * time.Minute}
+
+// punchAgain asks for another hole punch. libp2p tries once, when the server
+// sees the relayed connection arrive, and that one try is easily lost: this
+// app's own end may not have been ready, or a packet went missing. The way to
+// ask again is to arrive again, so an idle relayed connection is closed and
+// the keeper makes a new one.
+func (c *Client) punchAgain(conns []network.Conn) {
+	if !c.cfg.Layers.HolePunch || len(conns) == 0 {
+		return
+	}
+	waits := punchWaits
+	if len(c.cfg.PunchWaits) > 0 {
+		waits = c.cfg.PunchWaits
+	}
+	c.mu.Lock()
+	wait := waits[min(c.punches, len(waits)-1)]
+	if c.punchAt.IsZero() {
+		c.punchAt = time.Now() // the spell starts now
+	}
+	due := time.Since(c.punchAt) >= wait
+	c.mu.Unlock()
+	if !due {
+		return
+	}
+	for _, conn := range conns {
+		for _, s := range conn.GetStreams() {
+			if s.Protocol() == ProtoHTTP || s.Protocol() == ProtoEnrol {
+				return // in use (a community relay carrying a film): leave it be
+			}
+		}
+	}
+	c.mu.Lock()
+	c.punches++
+	c.punchAt = time.Now()
+	c.mu.Unlock()
+	c.log.Info("still on a relay; asking for a direct connection again", "try", c.punches)
+	for _, conn := range conns {
+		_ = conn.Close()
 	}
 }
 
@@ -363,16 +418,16 @@ func (c *Client) ready(ctx context.Context) error {
 		return ErrNoDirectPath
 	}
 	wctx, cancel = context.WithTimeout(ctx, c.cfg.UpgradeWait)
-	_, err = c.keeper.wait(wctx, func(s State) bool { return usable(s) || !s.Connected() })
+	_, err = c.keeper.wait(wctx, usable)
 	cancel()
 	if err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		c.mu.Lock()
 		c.gaveUpAt = time.Now()
 		c.mu.Unlock()
 		return ErrNoDirectPath
-	}
-	if !usable(c.keeper.get()) {
-		return errors.New("the connection was lost")
 	}
 	return nil
 }

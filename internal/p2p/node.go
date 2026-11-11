@@ -63,6 +63,8 @@ type NodeConfig struct {
 	Listen    []string
 	Options   []libp2p.Option
 	Mapper    *portmap.Holder
+	// PunchTimeout: see HostConfig.
+	PunchTimeout time.Duration
 }
 
 // maxStreamsPerPeer is how many HTTP connections one device may hold open: a
@@ -130,7 +132,7 @@ func StartNode(cfg NodeConfig) (*Node, error) {
 	h, err := NewHost(HostConfig{
 		Seed: cfg.Seed, Port: cfg.Port, Server: true, Layers: cfg.Layers, StaticRelays: cfg.StaticRelays,
 		RelayService: cfg.RelayService, ExtraAddrs: n.mapped, Log: lg,
-		Bootstrap: cfg.Bootstrap, Local: cfg.Local, Listen: cfg.Listen, Options: cfg.Options,
+		Bootstrap: cfg.Bootstrap, Local: cfg.Local, Listen: cfg.Listen, Options: cfg.Options, PunchTimeout: cfg.PunchTimeout,
 	})
 	if err != nil {
 		cancel()

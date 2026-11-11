@@ -8,7 +8,7 @@
 #   scripts/test/docker-smoke.sh <image>
 set -uo pipefail
 IMG=${1:?usage: docker-smoke.sh <image>}
-cd "$(dirname "$0")/../.."
+cd "$(dirname "$0")/../.." || exit 1
 fails=0
 ok() { echo "ok:   $*"; }
 bad() { echo "FAIL: $*"; fails=$((fails + 1)); }

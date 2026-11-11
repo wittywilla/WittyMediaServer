@@ -39,7 +39,8 @@ mkdir -p "$OUT" "$TOOLS"
 # fetch_locked <out> <name>: exactly the file tools.lock names, whatever is already there.
 fetch_locked() {
   local out="$1" name="$2" want url got=""
-  read -r want url < <(awk -v n="$name" '$1 == n { print $2, $3 }' "$LOCK")
+  # || true: with no line for it, read finds nothing, and the message below is what says so.
+  read -r want url < <(awk -v n="$name" '$1 == n { print $2, $3 }' "$LOCK") || true
   if [ -z "${want:-}" ] || [ -z "${url:-}" ]; then
     echo "$LOCK names no file for $name" >&2
     return 1

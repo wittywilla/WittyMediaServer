@@ -209,7 +209,8 @@ pin() { # <repo>: uses what was just published, and commits that
 }
 
 check_alone() { # <repo>: its own tests, on its own
-  local r=$1 log=$work/$r.log go_dir
+  local r=$1 go_dir
+  local log=$work/$r.log
   [ $skip_tests = 1 ] && return 0
   go_dir=$(go_folder "$r")
   if [ -f "$go_dir/go.mod" ]; then
@@ -267,7 +268,8 @@ tag_once() { # <repo> <tag>
 # Go finds a module in a folder by a tag with the folder in front, so WittyMediaPlayer needs these.
 # Its go.mod says which version of the module around it, so this comes after that's published.
 player_copy() { # <repo> <folder>: with $dir still the repository's clone
-  local r=$1 folder=$2 v log=$work/$r-$2.log
+  local r=$1 folder=$2 v
+  local log=$work/$r-$2.log
   v=$(field version "$dir/$folder/module.json")
   (
     cd "$dir/$folder"

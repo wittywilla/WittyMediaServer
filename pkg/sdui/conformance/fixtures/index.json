@@ -418,6 +418,12 @@
    "formFactor": "phone"
   },
   {
+   "id": "qr-room-phone",
+   "file": "qr-room-phone.json",
+   "title": "QR codes from an item's link and from an address, on a phone",
+   "formFactor": "phone"
+  },
+  {
    "id": "wittyplay-online-home-tv",
    "file": "wittyplay-online-home-tv.json",
    "title": "WittyPlay Online's home page, as WittyPlay defines it, on a television",

@@ -103,7 +103,8 @@ func buildStockPages() []Page {
 			sec("reading", "Shelf", props{"title": "Continue reading", "cardStyle": "book"}, Source{"type": "continueWatching", "media": "read"}),
 			with(sec("shelf", "Tabs", props{"style": "segments"}, nil),
 				with(sec("books", "Tab", props{"label": "Books", "icon": "book"}, nil),
-					sec("all", "Grid", props{"cardStyle": "book", "empty": "message", "emptyText": "No books yet."}, Source{"type": "books", "library": "$library"})),
+					sec("filters", "FilterBar", props{"target": "all", "fields": []string{"reading", "format"}, "sorts": []string{"title", "added"}}, nil),
+					sec("all", "Grid", props{"cardStyle": "book", "empty": "message", "emptyText": "No books match."}, Source{"type": "books", "library": "$library", "filterable": true})),
 				with(sec("series", "Tab", props{"label": "Series", "icon": "list"}, nil),
 					repeated(sec("in-series", "Shelf", props{"title": "{each}", "cardStyle": "book"}, Source{"type": "books", "library": "$library", "series": "$each"}), "bookSeries")),
 				with(sec("authors", "Tab", props{"label": "Authors", "icon": "user"}, nil),
@@ -166,7 +167,7 @@ func buildStockPages() []Page {
 	// Search: a scope (Everything, Films, Shows, Music, People, Live TV) as tabs, each holding what that scope
 	// searches; the search box and the hint stay above them.
 	foundIn := func(id string, kinds ...string) Section {
-		return repeated(sec(id, "Shelf", props{"title": "{each}", "seeAll": "never"}, Source{"type": "search", "query": "$query", "library": "$each"}), "libraries", kinds...)
+		return repeated(sec(id, "Shelf", props{"title": "{each}", "seeAll": "never"}, Source{"type": "search", "query": "$query", "library": "$each", "filterable": true}), "libraries", kinds...)
 	}
 	peopleRow := func(id string) Section {
 		return sec(id, "Shelf", props{"title": "People", "seeAll": "never"}, Source{"type": "search", "query": "$query", "in": "people"})
@@ -186,6 +187,7 @@ func buildStockPages() []Page {
 		Sections: []Section{
 			sec("q", "SearchBox", props{"placeholder": "Films, shows, people, music, books, channels", "autofocus": true}, nil),
 			when(sec("idle", "Text", props{"text": "Type at least two letters to search every library you can open.", "role": "caption"}, nil), Condition{Not: &Condition{Flag: "hasQuery"}}),
+			when(sec("narrow", "FilterBar", props{"fields": []string{"year", "minRating"}, "sorts": []string{"title"}, "showCount": false}, nil), Condition{Flag: "hasQuery"}),
 			when(scopes, Condition{Flag: "hasQuery"}),
 		}}
 

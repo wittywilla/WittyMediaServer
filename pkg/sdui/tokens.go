@@ -229,6 +229,8 @@ var componentTokens = map[string]TokenRoles{
 		Shape: join(focusShape, map[string]string{"corner": "row", "art": "thumb", "icon": "row", "field": "field"})},
 	"Form": {Colors: join(focusRing, buttonParts, map[string]string{"text": "fg", "secondaryText": "fg2", "border": "border", "danger": "danger"}),
 		Type: map[string]string{"title": "heading", "button": "body", "error": "caption"}, Shape: join(focusShape, map[string]string{"button": "button"})},
+	// A QR code is always black on white whatever the theme: a scanner needs the contrast. Only the caption wears the theme.
+	"QR": {Colors: map[string]string{"text": "fg", "secondaryText": "fg2", "surface": "bg2"}, Type: map[string]string{"text": "caption"}},
 	"NativeView": {Colors: join(focusRing, map[string]string{"background": "bg", "surface": "bg2", "text": "fg", "secondaryText": "fg2", "outline": "borderStrong"}),
 		Type: map[string]string{"text": "body"}, Shape: join(focusShape, map[string]string{"corner": "image"})},
 }

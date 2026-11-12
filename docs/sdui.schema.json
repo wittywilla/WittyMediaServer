@@ -1162,6 +1162,9 @@
         "knownFor": {
           "type": "string"
         },
+        "link": {
+          "type": "string"
+        },
         "next": {
           "$ref": "#/$defs/Programme"
         },
@@ -1694,6 +1697,9 @@
             "$ref": "#/$defs/Section"
           },
           "type": "array"
+        },
+        "slot": {
+          "type": "string"
         },
         "title": {
           "type": "string"
@@ -2751,6 +2757,7 @@
     "List",
     "ListItem",
     "Form",
+    "QR",
     "NativeView"
   ],
   "x-icons": [
@@ -2845,6 +2852,7 @@
     "liveNow",
     "recordings",
     "books",
+    "formats",
     "albums",
     "artists",
     "continuePlaying",

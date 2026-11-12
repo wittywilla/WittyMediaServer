@@ -17,14 +17,15 @@ import (
 const comicsUI = `{"format":"wittymodule-sdui","formatVersion":1,"module":"wittycomics","catalog":2,
 "theme":{"scope":"wittycomics","label":"Comics","tokens":{"accent":"#7B1FA2"}},
 "views":[{"id":"wittycomics.shelf","label":"The comics shelf","platforms":["web"]}],
-"pages":[{"id":"wittycomics","kind":"custom","title":"Comics","icon":"comic","sections":[
+"pages":[{"id":"wittycomics-kid","kind":"custom","title":"Comics for a profile","slot":"people.profile","sections":[{"id":"note","component":"Text","props":{"text":"Chosen for this profile."}}]},
+{"id":"wittycomics","kind":"custom","title":"Comics","icon":"comic","sections":[
   {"id":"recent","component":"Shelf","props":{"title":"Comics lately"},"source":{"type":"recentlyAdded"}},
   {"id":"shelf","component":"NativeView","props":{"view":"wittycomics.shelf"},"children":[{"id":"shelf-note","component":"Notice","props":{"text":"The shelf is on the web app."}}]}]}],
 "inserts":[{"page":"home","after":"jump","section":{"id":"wittycomics-reading","component":"Shelf","props":{"title":"Comics you're reading"},"source":{"type":"continueWatching","media":"read"}}}],
 "presets":[{"id":"wittycomics-new","label":"New comics","section":{"id":"comics","component":"Shelf","props":{"title":"New comics"},"source":{"type":"recentlyAdded"}}}],
 "navigation":[{"id":"wittycomics","type":"page","page":"wittycomics","placement":{"phone":"more"}}],
 "settings":[
-  {"id":"wittycomics","title":"Comics","groups":[{"rows":[
+  {"id":"wittycomics","title":"Comics","slot":"you.games","groups":[{"rows":[
     {"key":"direction","kind":"enum","scope":"profile","label":"Reading direction","default":"ltr","options":[{"value":"ltr","label":"Left to right"},{"value":"rtl","label":"Right to left"}]}]}]},
   {"id":"wittycomics-admin","title":"Comics for the server","admin":true,"groups":[{"rows":[
     {"key":"pageCache","kind":"int","label":"Pages kept ready","default":8,"min":0,"max":64},
@@ -164,6 +165,19 @@ func TestModuleSDUIIsMergedEverywhere(t *testing.T) {
 	}
 	if w = ts.do(t, "GET", "/api/v1/sdui/modules/settings", adult, nil); !strings.Contains(w.Body.String(), `{"module":"wittycomics","label":"Comics","url":"/api/v1/sdui/modules/wittycomics/settings"}`) {
 		t.Errorf("the list for Settings → Modules: %s", w.Body)
+	}
+	// Settings slots: a module's settings page, and a module's page (for people.profile, opened about a profile).
+	if w = ts.do(t, "GET", "/api/v1/sdui/slots/you.games", adult, nil); !strings.Contains(w.Body.String(), `"id":"wittycomics"`) || !strings.Contains(w.Body.String(), `"url":"/api/v1/sdui/modules/wittycomics/settings"`) {
+		t.Errorf("the you.games slot: %s", w.Body)
+	}
+	if w = ts.do(t, "GET", "/api/v1/sdui/slots/people.profile", adult, nil); strings.Contains(w.Body.String(), "wittycomics") {
+		t.Errorf("an administrators' slot shows to an adult: %s", w.Body)
+	}
+	if w = ts.do(t, "GET", "/api/v1/sdui/slots/people.profile", admin, nil); !strings.Contains(w.Body.String(), `"route":"/page/wittycomics-kid?item={profile}"`) {
+		t.Errorf("the people.profile slot: %s", w.Body)
+	}
+	if w = ts.do(t, "GET", "/api/v1/sdui/slots/nowhere", adult, nil); w.Code != 404 {
+		t.Errorf("a slot that isn't one: %d", w.Code)
 	}
 	if w = ts.do(t, "GET", "/api/sdui/modules/wittynothing/settings", adult, nil); w.Code != 404 {
 		t.Errorf("a module that isn't there: %d", w.Code)

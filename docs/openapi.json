@@ -13658,6 +13658,9 @@
               "null"
             ]
           },
+          "slot": {
+            "type": "string"
+          },
           "title": {
             "type": "string"
           },
@@ -47794,7 +47797,7 @@
             "bearer": []
           }
         ],
-        "summary": "The settings pages modules put in one place of the hand-built Settings (you.games, people.profile for administrators): {slot, pages: [{module, label, id, title, icon, url}]}.",
+        "summary": "The settings pages modules put in one place of the hand-built Settings (you.games, people.profile for administrators): {slot, pages: [{module, label, id, title, icon, url or route}]}: url is a module's settings, route a module page to open through the SDUI renderer (for people.profile it ends ?item={profile}).",
         "tags": [
           "Server-driven UI"
         ],

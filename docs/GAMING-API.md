@@ -330,6 +330,8 @@ any button" are each app's own.
 | `wittyplay.state.save`, `wittyplay.state.load` | `POST /play/{sid}/action` `{type: "save" or "load", slot}` |
 | `wittyplay.state.delete` | `DELETE /games/{id}/saves/{slot}` |
 | `wittyplay.controller.assign` | `PUT /play/{sid}/seats/{user}` `{seat}` |
+| `wittyplay.room.close` | `POST /play/{sid}/room` `{open: false}` |
+| `wittyplay.room.leave` | `DELETE /play/{sid}/seats/{user}` (the host frees anyone's seat; anyone leaves their own) |
 
 The action's `item` is the session (`{sid}`), or the game's ID for `wittyplay.state.delete`; the rest come in the
 action's `params` (`slot`, `user`, `seat` and, for `wittyplay.room.join`, `code`). [SDUI](SDUI.md#action) says how a

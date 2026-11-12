@@ -10,6 +10,7 @@ To add, update or remove modules on a server, see [Modules and the store](MODULE
 - [Version ranges, including the edges](#version-ranges-including-the-edges)
 - [Writing a helper](#writing-a-helper)
 - [The helper protocol (module API 3)](#the-helper-protocol-module-api-3)
+- [A module's SDUI (module API 4)](SDUI-MODULES.md)
 - [Writing a service](#writing-a-service)
 - [Writing a web part](#writing-a-web-part)
 - [What a module may ask for](#what-a-module-may-ask-for)
@@ -123,7 +124,7 @@ Every module has a `module.json`, shipped in its releases and covered by their s
 | `core` | One others can't do without, so it can't be taken off a server |
 | `pages` | Pages it adds to the app: see [Pages](#pages) |
 
-**The module API.** A server takes `wittymodule.MinAPI` to `wittymodule.API`, and both are 3. Adding to the API raises only the top. Breaking it raises the bottom too, which disables older modules, so that's done rarely. It's one number for the whole server, as the helper protocol and host interfaces are one contract. API 3 adds services, notifications, what a module may ask for, pages, and a part in the browser for a helper.
+**The module API.** A server takes API 3 to 4 (`MinAPI` and `API` in `internal/modules/sdui.go`: the server's own numbers, which the `wittymodule` it is built with must not get ahead of). API 4 makes a module's SDUI part of the module: a release carries `sdui.json`, checked against the catalogue at install and before every use, and a version built for API 4 without one is refused ([SDUI for modules](SDUI-MODULES.md)). Before API 4 the server took 3 to 3. Adding to the API raises only the top. Breaking it raises the bottom too, which disables older modules, so that's done rarely. It's one number for the whole server, as the helper protocol and host interfaces are one contract. API 3 adds services, notifications, what a module may ask for, pages, and a part in the browser for a helper.
 
 `wittymodule check` refuses a manifest with an API outside that range or a `minServer` below `0.6.0-alpha`, and a server refuses such a release with a message that says so.
 

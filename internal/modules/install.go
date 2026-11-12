@@ -373,6 +373,14 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, 
 	if string(b) != string(v.manifest) {
 		return errors.New("the manifest in the package differs from the release's")
 	}
+	// 4b. Its SDUI fits this server's catalogue, and a version built for the API that
+	// makes SDUI part of a module has one.
+	m.mu.Lock()
+	checks := m.cfg.UIChecks
+	m.mu.Unlock()
+	if _, err := readUI(stage, man, checks); err != nil {
+		return err
+	}
 
 	// 5. It runs here, and it is what it says. A bundle runs in browsers, where the
 	// server can only check it is all there.

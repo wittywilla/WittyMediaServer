@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"regexp"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -47,6 +46,8 @@ type sduiState struct {
 	preview map[string]previewToken
 
 	personalMu sync.Mutex // one profile's arrangement is read, changed and written back whole
+
+	mods sduiModules // the modules' SDUI, merged (sdui_modules.go)
 }
 
 type keptRender struct {
@@ -142,6 +143,7 @@ func (s *Server) sduiRoutes(m *http.ServeMux) {
 	m.Handle("DELETE /api/sdui/pages/{page}/personal", s.requireUser(s.handleSDUIPersonalDelete))
 	m.Handle("GET /api/sdui/topshelf", s.requireUser(s.handleSDUITopShelf))
 	s.sduiAdminRoutes(m)
+	s.sduiModuleRoutes(m)
 }
 
 // writeJSONTagged is writeJSON for answers a client may keep: an ETag, and a cache that
@@ -350,33 +352,6 @@ func (s *Server) sduiConfig(r *http.Request) (*sduistore.Config, string, error) 
 
 var errPreview = errors.New("that preview has ended, or isn't this account's: make a new one in the editor")
 
-// effectivePages are the pages in force: the configuration's own first, then every
-// built-in page it doesn't replace.
-func effectivePages(cfg *sduistore.Config) []sdui.Page {
-	ids := make([]string, 0, len(cfg.Pages))
-	for id := range cfg.Pages {
-		ids = append(ids, id)
-	}
-	sort.Strings(ids)
-	out := make([]sdui.Page, 0, len(ids)+32)
-	for _, id := range ids {
-		out = append(out, cfg.Pages[id])
-	}
-	for _, p := range sdui.StockPages() {
-		if _, replaced := cfg.Pages[p.ID]; !replaced {
-			out = append(out, p)
-		}
-	}
-	return out
-}
-
-func effectivePage(cfg *sduistore.Config, id string) (sdui.Page, bool) {
-	if p, ok := cfg.Pages[id]; ok {
-		return p, true
-	}
-	return sdui.StockPage(id)
-}
-
 func isPageKind(name string) bool {
 	for _, k := range sdui.Catalog().PageKinds {
 		if k.Kind == name && name != "custom" {
@@ -414,13 +389,14 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 		return nil, 500, err
 	}
 	u, acc := userFrom(r), s.access(r)
+	set := s.modulesFor(r)
 	q := r.URL.Query()
 	// Which page, and so which of the request's parameters mean anything: a page takes
 	// only what its kind lists, and nothing else of the query is read or sent back.
 	var pg sdui.Page
 	kind := name
 	if !isPageKind(name) {
-		p, ok := effectivePage(cfg, name)
+		p, ok := effectivePage(cfg, name, set)
 		if !ok {
 			return nil, 404, errors.New("no such page")
 		}
@@ -451,11 +427,12 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 	}
 	rv := s.newSDUIResolver(r, vars)
 	ctx := &sdui.RenderContext{ProfileKind: u.Kind, Admin: u.IsAdmin, UserName: firstNonEmpty(u.DisplayName, u.Name), ServerName: s.ServerName(r.Context()),
-		Features: serverFeatures, Cannot: sduiCannot(acc), Flags: map[string]bool{}, Vars: vars, Params: map[string]string{}, Scopes: cfg.Theme.Modules,
-		Resolver: rv, BasePath: "/api/v1/sdui", Source: source, ConfigRevision: cfg.Revision}
+		Features: serverFeatures, Cannot: sduiCannot(acc), Flags: map[string]bool{}, Vars: vars, Params: map[string]string{}, Scopes: sduiScopes(cfg, set),
+		Resolver: rv, UI: set, BasePath: "/api/v1/sdui", Source: source, ConfigRevision: cfg.Revision}
 	if err := s.sduiDevice(r, ctx); err != nil {
 		return nil, 400, err
 	}
+	rv.formFactor, rv.platform, rv.locale = ctx.Profile.FormFactor, ctx.Platform, ctx.Locale
 	// What this profile has been kept from isn't in the conditions, and with its screen
 	// time over nothing offers to play (sdui_limits.go); what it may not see isn't in the
 	// data. After the device's own parameters, so a client can't say otherwise.
@@ -472,7 +449,7 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 	// choose the page, and a page about something the account may not see is not found.
 	var libID int64
 	libKind, mediaKind := "", ""
-	pages := effectivePages(cfg)
+	pages := effectivePages(cfg, set)
 	if kind == "library" || (kind == "detail" && vars["album"] != "") {
 		lib, ok := rv.library(vars["library"])
 		if !ok {
@@ -527,7 +504,13 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 	ctx.Flags["librariesEmpty"] = len(libs) == 0
 	ctx.Flags["setupIncomplete"] = u.IsAdmin && s.DB.GetSetting(r.Context(), "setupDone", "") == "0"
 	ctx.Flags["hasQuery"] = len([]rune(vars["query"])) >= 2
+	for _, ui := range set.Modules() {
+		ctx.Modules = append(ctx.Modules, ui.Module)
+	}
 	for _, mod := range pageModules(&pg) {
+		if slices.Contains(ctx.Modules, mod) {
+			continue
+		}
 		if s.Modules != nil && s.Modules.Installed(mod) && !slices.Contains(hiddenModules, mod) {
 			ctx.Modules = append(ctx.Modules, mod)
 		}
@@ -716,14 +699,12 @@ func (s *Server) keptRenderFor(uid int64, etag string) (sdui.Document, bool) {
 // GET /api/sdui/catalog: every component, card style, data source, condition, icon and
 // device profile, as data: what an editor builds its palette and forms from.
 func (s *Server) handleSDUICatalog(w http.ResponseWriter, r *http.Request) {
-	etag := sduiCatalogETag()
+	cat, etag := s.sduiCatalog()
 	if notModified(w, r, etag) {
 		return
 	}
-	writeJSONTagged(w, 200, etag, sdui.Catalog())
+	writeJSONTagged(w, 200, etag, cat)
 }
-
-var sduiCatalogETag = sync.OnceValue(func() string { return hashETag("catalog", sdui.Catalog()) })
 
 // GET /api/sdui/navigation: the main menu for this account on this device.
 func (s *Server) handleSDUINavigation(w http.ResponseWriter, r *http.Request) {
@@ -756,12 +737,17 @@ func (s *Server) handleSDUINavigation(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	ctx.Flags["librariesEmpty"] = len(libs) == 0
+	set := s.modulesFor(r)
 	nav := sdui.StockNavigation()
 	if cfg.Navigation != nil {
 		nav = *cfg.Navigation
 	}
+	nav = moduleNavigation(nav, set)
+	for _, ui := range set.Modules() {
+		ctx.Modules = append(ctx.Modules, ui.Module)
+	}
 	for i := range nav.Items {
-		if c := nav.Items[i].When; c != nil && c.Module != "" && s.Modules != nil && s.Modules.Installed(c.Module) && !slices.Contains(hiddenModules, c.Module) {
+		if c := nav.Items[i].When; c != nil && c.Module != "" && !slices.Contains(ctx.Modules, c.Module) && s.Modules != nil && s.Modules.Installed(c.Module) && !slices.Contains(hiddenModules, c.Module) {
 			ctx.Modules = append(ctx.Modules, c.Module)
 		}
 	}
@@ -769,7 +755,7 @@ func (s *Server) handleSDUINavigation(w http.ResponseWriter, r *http.Request) {
 	if ctx.CanPersonalise {
 		ctx.Personal = s.sduiPersonal(r, sduiNavKey)
 	}
-	doc := sdui.RenderNavigation(nav, func(id string) (sdui.Page, bool) { return effectivePage(cfg, id) }, libs, ctx)
+	doc := sdui.RenderNavigation(nav, func(id string) (sdui.Page, bool) { return effectivePage(cfg, id, set) }, libs, ctx)
 	if notModified(w, r, doc.ETag) {
 		return
 	}
@@ -952,7 +938,7 @@ func (s *Server) personalKey(w http.ResponseWriter, r *http.Request) (string, bo
 		writeErr(w, 500, err.Error())
 		return "", false
 	}
-	if _, ok := effectivePage(st.Current(), page); !ok {
+	if _, ok := effectivePage(st.Current(), page, s.modulesFor(r)); !ok {
 		writeErr(w, 404, "no such page")
 		return "", false
 	}

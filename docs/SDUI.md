@@ -637,6 +637,19 @@ time left nothing in a page changes with the clock, so its ETag holds; ask
 
 The feature `sdui-limits` in `/capabilities` says a server does all this.
 
+## Modules
+
+Every module carries its part of the apps in its own release, as data: its
+pages, rows on the built-in pages, named sections of its own, the data
+sources its helper answers, views of its own for `NativeView`, menu entries,
+settings and theme scope. The server checks them against this catalogue
+before a module is used and merges them in: a module's pages come after the
+administrator's and before the built-in ones, its rows go only into built-in
+pages, its menu entries sit before Settings unless the administrator placed
+them, and its components reach an app as the catalogue's own. An app draws a
+module's work with nothing of the module's. [SDUI for modules](SDUI-MODULES.md)
+is the whole contract.
+
 ## Theme scopes
 
 Colours come from the theme engine ([THEMES.md](THEMES.md)); a page never

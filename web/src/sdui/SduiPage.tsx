@@ -391,6 +391,14 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   // One of the app's own screens stands in for this page (native.ts says when).
   if (fallback && nativeInstead(doc, libraries)) return <>{fallback}</>
 
+  // A page for a kind of library, with no such library yet: say so and offer the next step (canvas 'empty').
+  const wantsLibrary = ({ photos: ['photos'], books: ['books', 'audiobooks'], music: ['music'] } as Record<string, string[]>)[doc.page.kind]
+  if (wantsLibrary && !libraries.some((l) => wantsLibrary.includes(l.type))) {
+    const noun = doc.page.kind === 'photos' ? 'photos' : doc.page.kind === 'books' ? 'books' : 'music'
+    return <><h1 className="sr-only">{doc.page.title || noun}</h1><EmptyState icon={<IconInfo />} title={`No ${noun} yet`}
+      text={user?.isAdmin ? `Add a library of ${noun} and it appears here.` : `Ask whoever runs this server to add a library of ${noun}.`}
+      action={user?.isAdmin ? <LinkButton variant="primary" to="/settings/libraries">Add a library</LinkButton> : undefined} /></>
+  }
   const personal = doc.personal
   const canCustomise = !!personal?.editable && (personal.allow || []).length > 0 && (personal.sections || []).length > 0
   const st = doc.screenTime

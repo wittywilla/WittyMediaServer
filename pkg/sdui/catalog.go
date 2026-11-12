@@ -242,7 +242,7 @@ type CommandSpec struct {
 // CommandParam is one value a command takes besides the action's item.
 type CommandParam struct {
 	Name     string `json:"name"`
-	Type     string `json:"type"` // string, int, bool or ints (a list of numbers)
+	Type     string `json:"type"` // string, int, bool, ints (a list of numbers) or object (a JSON object)
 	Label    string `json:"label"`
 	Required bool   `json:"required,omitempty"`
 }

@@ -915,7 +915,11 @@ func (r *renderer) link(p map[string]any) *Action {
 		return &Action{Type: ActNavigate, To: to}
 	}
 	if s := propStr(p, "native", ""); s != "" {
-		return &Action{Type: ActNative, To: s}
+		a := &Action{Type: ActNative, To: s}
+		if item := r.resolveVar(propAny(p, "item"), nil); item != "" {
+			a.Params = map[string]any{"item": item}
+		}
+		return a
 	}
 	if u := propStr(p, "url", ""); u != "" && r.l.ExternalLinks {
 		return &Action{Type: ActExternal, URL: u}

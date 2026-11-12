@@ -20,3 +20,14 @@ test('Save runs the Form\'s command with every named value', () => {
   assert.deepEqual(saveAction({ type: 'command', op: 'wittyplay.online.set' }, { sharePlaying: false }), { type: 'command', op: 'wittyplay.online.set', params: { sharePlaying: false } })
   assert.equal(saveAction(undefined, {}), undefined)
 })
+
+test('Save sends every named control, a number field as a number and an empty one not at all', async () => {
+  const { formValues } = await import('./formsModel.ts')
+  const nodes = [{ type: 'List', id: 'l', children: [
+    { type: 'ListItem', id: 'a', props: { control: { type: 'field', name: 'rule.yearFrom', input: 'number', value: '1990' } } },
+    { type: 'ListItem', id: 'b', props: { control: { type: 'field', name: 'rule.title', value: '' } } },
+    { type: 'ListItem', id: 'c', props: { control: { type: 'switch', name: 'shared', value: true } } },
+  ] }]
+  assert.deepEqual(formValues(nodes, {}), { 'rule.yearFrom': 1990, shared: true })
+  assert.deepEqual(formValues(nodes, { 'rule.yearFrom': '2001', 'rule.title': 'Old', shared: false }), { 'rule.yearFrom': 2001, 'rule.title': 'Old', shared: false })
+})

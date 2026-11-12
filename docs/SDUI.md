@@ -277,7 +277,7 @@ A command may take more values: its catalogue entry lists them as `params`
 them by name, and each goes in place of `{name}` the same way: URL-escaped in
 the path, JSON-escaped inside the body's string. For an `int` parameter the
 string and its quotes are replaced by the number (`{"type":"save","slot":"{slot}"}`
-becomes `{"type":"save","slot":3}`), A `bool` parameter is replaced the same way by `true` or `false`, and an `ints` one (a list of numbers, such as the profiles a Kids profile may see) by a JSON array (`[3,5]`). Either way the template is JSON. A
+becomes `{"type":"save","slot":3}`), A `bool` parameter is replaced the same way by `true` or `false`, an `ints` one (a list of numbers, such as the profiles a Kids profile may see) by a JSON array (`[3,5]`), and an `object` one (a collection's rule) by a JSON object. A Form builds an `object` param from its controls named `<param>.<key>` (`rule.yearFrom`): each becomes a key of the object, a number field a number, an empty control no key, and a key ending `[]` (`rule.genres[]`) splits a comma-separated text into a list of texts. Either way the template is JSON. A
 parameter that wasn't given is an empty string. `rewind.open` and `controller.remap` have no request:
 the game player opens its own panels.
 
@@ -2121,7 +2121,7 @@ Focus: the node takes focus when it can be acted on. Accessibility: Role: button
 | `buttonLabel` | text, at most 40 |  | Button. The button's label. |
 | `action` | enum: open, play | `open` | The button. With a source: open the item's page, or play it. |
 | `to` | route |  | Opens. A place in the app, such as /library/3 or /page/family-night. |
-| `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections |  | Opens a screen of the app. A screen the app draws itself. |
+| `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections, player |  | Opens a screen of the app. A screen the app draws itself. |
 
 How it is drawn:
 
@@ -2195,7 +2195,7 @@ Focus: takes none. Accessibility: Role: heading for pageTitle (level 1), heading
 | `icon` | icon |  | Icon. One of the built-in icons. |
 | `buttonLabel` | text, at most 40 |  | Button |
 | `to` | route |  | Opens. A place in the app, such as /library/3 or /page/family-night. |
-| `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections |  | Opens a screen of the app. A screen the app draws itself. |
+| `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections, player |  | Opens a screen of the app. A screen the app draws itself. |
 | `url` | url |  | Opens a web page. An http or https address, opened in the browser. Left out on a television. Only on phone, tablet, desktop, web. |
 | `op` | enum |  | Runs a command. One of the catalogue's commands; the page is asked for again after it. |
 | `item` | ref |  | Command's item. The item the command acts on, such as $item. |
@@ -2370,7 +2370,7 @@ Focus: takes none. Accessibility: No role of its own.
 | `icon` | icon |  | Icon. One of the built-in icons. |
 | `variant` | enum: primary, secondary, ghost | `secondary` | Look |
 | `to` | route |  | Opens. A place in the app, such as /library/3 or /page/family-night. |
-| `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections |  | Opens a screen of the app. A screen the app draws itself. |
+| `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections, player |  | Opens a screen of the app. A screen the app draws itself. |
 | `url` | url |  | Opens a web page. An http or https address, opened in the browser. Left out on a television. Only on phone, tablet, desktop, web. |
 | `op` | enum |  | Runs a command. One of the catalogue's commands; the page is asked for again after it. |
 | `item` | ref |  | Command's item. The item the command acts on, such as $item. |
@@ -2507,7 +2507,7 @@ Focus: its children take focus, and it is their group. Accessibility: Role: list
 | `icon` | icon |  | Icon. One of the built-in icons. |
 | `trailing` | text, at most 40 |  | Text at the end |
 | `to` | route |  | Opens. A place in the app, such as /library/3 or /page/family-night. |
-| `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections |  | Opens a screen of the app. A screen the app draws itself. |
+| `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections, player |  | Opens a screen of the app. A screen the app draws itself. |
 | `url` | url |  | Opens a web page. An http or https address, opened in the browser. Left out on a television. Only on phone, tablet, desktop, web. |
 | `op` | enum |  | Runs a command. One of the catalogue's commands; the page is asked for again after it. |
 | `item` | ref |  | Command's item. The item the command acts on, such as $item. |
@@ -2881,6 +2881,12 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | [`year`](#year) | Your year | personal | view | tile |  | any |
 | [`activity`](#activity) | What the server is doing | structure | view | tile |  | any |
 | [`notices`](#notices) | Notifications | personal | view | tile |  | any |
+| [`creators`](#creators) | Creators | library | person | person |  | any |
+| [`comments`](#comments) | Comments | context | view | tile |  | custom |
+| [`markers`](#markers) | Skip markers | context | view | tile |  | custom |
+| [`canvas`](#canvas) | Canvas video | context | view | tile |  | custom |
+| [`smartRule`](#smartrule) | A smart playlist's rule | context | view | tile |  | custom |
+| [`formField`](#formfield) | A field for a Form | context | view | tile |  | custom |
 | [`search`](#search) | Search results | context | movie, show, album, book, game, channel, person | poster |  | search |
 
 #### continueWatching
@@ -3440,6 +3446,83 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 {"type":"notices"}
 ```
 
+#### creators
+
+*Creators.* The creators of the libraries the profile can open (shorts, channels, music videos), or one by item: a person row with how many videos, and a Subscribe switch (not for a Guest).
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `item` | ref |  | Creator. One creator's ID, or $item on a creator's page. |
+| `subscribed` | bool | `false` | Only those subscribed to |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"creators","subscribed":true}
+```
+
+#### comments
+
+*Comments.* What people wrote about a title (item): the writer, the text and when; a row the profile may delete (its own, or any for an administrator) has a Delete that asks first.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `item` (required) | ref |  | Title. $item on a page opened about a title. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"comments","item":"$item"}
+```
+
+#### markers
+
+*Skip markers.* Where the intro, recap, credits and breaks of a title (item) are, as the player's Skip uses them; None where there is no marker.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `item` (required) | ref |  | Title. $item on a page opened about a title. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"markers","item":"$item"}
+```
+
+#### canvas
+
+*Canvas video.* Whether a title (item) has a looping silent video behind its page, and for an administrator whether one is being cut from the film.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `item` (required) | ref |  | Title. $item on a page opened about a title. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"canvas","item":"$item"}
+```
+
+#### smartRule
+
+*A smart playlist's rule.* The fields of a smart playlist as controls for a Form whose command is collection.createSmart: the name, then the rule's fields, named rule.<key> (a name ending [] is a comma-separated list).
+
+```json
+{"type":"smartRule"}
+```
+
+#### formField
+
+*A field for a Form.* One row holding a text field named name, for a Form that sends it as a command param.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `name` (required) | string, at most 40 |  | Name. The param's name. |
+| `label` | string, at most 80 |  | Label |
+| `placeholder` | string, at most 80 |  | Prompt |
+| `multiline` | bool | `false` | Several lines |
+| `maxLength` | int 1 to 2000 | `200` | Longest |
+
+```json
+{"type":"formField","name":"text","label":"Comment","multiline":true}
+```
+
 #### search
 
 *Search results.* What a search finds in one library, among the channels, or among the people credited on titles the profile may see. Nothing under two characters.
@@ -3528,6 +3611,12 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 | `/versions/{item}` | page `versions` | item={item} |
 | `/save-to/{item}` | page `save-to` | item={item} |
 | `/devices` | page `devices` |  |
+| `/creators` | page `creators` |  |
+| `/creator/{item}` | page `creator` | item={item} |
+| `/comments/{item}` | page `comments` | item={item} |
+| `/markers/{item}` | page `markers` | item={item} |
+| `/canvas/{item}` | page `canvas` | item={item} |
+| `/smart-list` | page `smart-list` |  |
 | `/year` | page `year` |  |
 | `/activity` | page `activity` |  |
 | `/notifications` | page `notifications` |  |
@@ -3596,6 +3685,10 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `wittyplay.kids.friends` | WittyPlay Online, administrators: replaces the profiles a Kids profile (item: its ID) sees and is seen by with params.friends. | `PUT /api/games/online/kids/{item}` with `{"friends":"{friends}"}`; `friends` (ints, required) |
 | `wittyplay.screenshot.keep` | WittyPlay: keeps a screenshot of the game being played (item: its session) in the profile's Memories. | `POST /api/play/{item}/screenshot` |
 | `wittyplay.memory.delete` | WittyPlay: deletes one of the profile's kept screenshots (item: the game's ID, params.name its name). | `DELETE /api/games/{item}/shots/{name}`; `name` (string, required) |
+| `collection.createSmart` | Makes a smart playlist of the profile's own: params.name and params.rule, an object (the rule: libraryTypes, genres, search, yearFrom, yearTo, ratingMin, addedWithinDays, watched, sort, limit...). A Form fills the rule from the controls named rule.<key>. | `POST /api/collections` with `{"name":"{name}","kind":"smart","rule":"{rule}"}`; `name` (string, required); `rule` (object, required) |
+| `creator.subscribe` | Subscribes the profile to a creator (item), or takes the subscription off (params.on false). | `PUT /api/creators/{item}/subscribe` with `{"on":"{on}"}`; `on` (bool, required) |
+| `comment.add` | Adds a comment to a title (item); params.text is up to 2000 characters. Not for Kids or Guest profiles. | `POST /api/items/{item}/comments` with `{"body":"{text}"}`; `text` (string, required) |
+| `comment.delete` | Deletes a comment (item: its ID): its writer's, or any as an administrator. | `DELETE /api/comments/{item}` |
 | `collection.add` | Puts the title (item) in the profile's list params.collection. | `POST /api/collections/{collection}/items` with `{"items":["{item}"]}`; `collection` (string, required) |
 | `collection.remove` | Takes the title (item) off the profile's list params.collection. | `DELETE /api/collections/{collection}/items` with `{"items":["{item}"]}`; `collection` (string, required) |
 | `collection.create` | Makes a list of the profile's own, named params.name. | `POST /api/collections` with `{"name":"{name}","kind":"manual"}`; `name` (string, required) |
@@ -3670,6 +3763,12 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `home` | home | every home page | `setup` (Notice), `welcome` (Notice), `hero` (Hero of featured), `libraries` (Shelf of libraries), `jump` (Shelf of continueWatching), `onnow` (Shelf of liveNow), `foryou` (Shelf of recommended), `nextup` (Shelf of nextUp), `view` (Shelf of savedView, per pinnedView), `recent` (Shelf of recentlyAdded, per librarie), `shuffle` (Banner of random) |
 | `libraries` | libraries | every libraries page | `all` (Grid of libraries) |
 | `library` | library | every library page | `all` (Grid of recentlyAdded) |
+| `creators` | custom | every custom page | `tabs` (Tabs), `all` (Tab), `everyone` (List of creators), `subscribed` (Tab), `mine` (List of creators) |
+| `creator` | custom | every custom page | `who` (List of creators) |
+| `comments` | custom | every custom page | `all` (List of comments), `write` (Form), `text` (List of formField), `readonly` (Text) |
+| `markers` | custom | every custom page | `lead` (Text), `marks` (List of markers), `pick` (Button) |
+| `canvas` | custom | every custom page | `lead` (Text), `state` (List of canvas) |
+| `smart-list` | custom | every custom page | `lead` (Text), `rule` (Form), `fields` (List of smartRule) |
 | `studio` | custom | every custom page | `films` (Grid of browse), `shows` (Grid of browse) |
 | `network` | custom | every custom page | `films` (Grid of browse), `shows` (Grid of browse) |
 | `category` | custom | every custom page | `films` (Grid of browse), `shows` (Grid of browse) |

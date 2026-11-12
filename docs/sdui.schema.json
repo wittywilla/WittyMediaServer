@@ -2502,7 +2502,7 @@
     "logo",
     "chip"
   ],
-  "x-catalogRevision": 6,
+  "x-catalogRevision": 7,
   "x-components": [
     "Page",
     "Hero",

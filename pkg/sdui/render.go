@@ -1542,6 +1542,8 @@ func factsLine(it *Item, want []string) []any {
 			add(f, strings.Join(it.Genres[:min(len(it.Genres), 3)], ", "))
 		case "studio":
 			add(f, it.Studio)
+		case "artist":
+			add(f, it.Artist)
 		case "count":
 			add(f, countText(it))
 		case "season":

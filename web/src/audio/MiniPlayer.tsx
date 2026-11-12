@@ -2,9 +2,10 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { fitWidth, fmtTime, posterUrl, sized } from '../api'
 import { Placeholder } from '../components/common'
-import { IconAudio, IconBack15, IconClose, IconDown, IconExpand, IconForward30, IconNext, IconPause, IconPlay, IconPrev, IconUp, IconVisualizer } from '../icons'
+import { IconAudio, IconMic, IconBack15, IconClose, IconDown, IconExpand, IconForward30, IconNext, IconPause, IconPlay, IconPrev, IconUp, IconVisualizer } from '../icons'
 import { AddToPlaylist, Like, Seek, Volume } from './controls'
-import { IconList, IconRepeat, IconRepeatOne, IconShuffle } from './icons'
+import { musicCatalogue } from '../sdui/catalogue'
+import { IconKaraoke, IconList, IconRepeat, IconRepeatOne, IconShuffle } from './icons'
 import type { PlayerView } from './types'
 
 // The bar: floating along the bottom while you browse, with room left under the page so it
@@ -14,6 +15,10 @@ import type { PlayerView } from './types'
 export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boolean }) {
   const it = p.current
   if (!it) return null
+  // Which controls the bar offers is the catalogue's list (music.miniPlayer); until it is read, all of them.
+  const listed = musicCatalogue()?.miniPlayer
+  const wants = (id: string) => !listed || listed.includes(id)
+  const sing = p.mode === 'music' && !p.cdActive && !p.live && !p.books
   const sub = p.live ? (p.retrying ? 'Reconnecting…' : p.stationNow || 'Live') : [it.artist || it.albumArtist, it.album].filter(Boolean).join(' · ')
   const art = it.poster
     ? <img src={sized(posterUrl(it), fitWidth(64))} alt="" style={p.live ? { objectFit: 'contain' } : undefined} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
@@ -52,8 +57,10 @@ export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boole
       <div className="ab-side wide">
         {!p.live && <span className="ab-time">{fmtTime(p.time)} / {fmtTime(p.duration)}</span>}
         <Volume p={p} up />
-        <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'queue' })} aria-label="Queue" title="Queue"><IconList /></button>
-        {p.vizHere && <button className="ab-viz-pill" onClick={() => p.openFull({ visualizer: true })} title="Visualizer (V)"><IconVisualizer /><span>Visualizer</span></button>}
+        {sing && wants('lyrics') && <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'lyrics' })} aria-label="Lyrics" title="Lyrics (L)"><IconMic size={20} /></button>}
+        {sing && wants('karaoke') && <button className="ab-viz-pill" onClick={() => p.openFull({ panel: 'karaoke' })} title="Karaoke (K)"><IconKaraoke /><span>Karaoke</span></button>}
+        {wants('queue') && <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'queue' })} aria-label="Queue" title="Queue"><IconList /></button>}
+        {!p.live && wants('visualizer') && <button className="ab-viz-pill" onClick={() => p.openFull({ visualizer: true })} title="Visualizer (V)"><IconVisualizer /><span>Visualizer</span></button>}
         <button className="mp-ibtn ab-expand" onClick={() => p.openFull()} aria-label="Full screen" title="Full screen"><IconExpand /></button>
         <button className="mp-ibtn" onClick={() => p.setCollapsed(true)} aria-label="Collapse the player" title="Collapse"><IconDown /></button>
         <button className="mp-ibtn" onClick={p.stop} aria-label="Stop playing and close" title="Stop and close"><IconClose /></button>

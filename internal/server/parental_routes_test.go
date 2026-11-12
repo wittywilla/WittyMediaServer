@@ -386,6 +386,7 @@ var plainRoutes = []string{
 	"GET /api/tv/favourites",
 	"GET /api/tv/reminders",
 	"GET /api/tv/{key}/logo",
+	"GET /api/tv/{key}/programme",
 	"GET /api/users",
 	"GET /api/users/{id}/activity",
 	"GET /api/videos",

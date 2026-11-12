@@ -702,6 +702,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/tv-sets/{id}` | Signed-in | own; a shared set, an administrator. New channels must be ones the account may watch. Sharing needs an administrator |
 | `POST /api/tv-sets/{id}/channels` | Signed-in | own; a shared set, an administrator. Added channels must be ones the account may watch |
 | `DELETE /api/tv-sets/{id}` | Signed-in | own; a shared set, an administrator |
+| `GET /api/tv/{key}/programme` | Signed-in | Channel key. Channel visible to the account and enabled; for a library channel, limits on what is on then. Credits, trailers and schedule only from what the profile may see |
 | `GET /api/tv/{key}/catchup` | Signed-in | Tuner channel key. Tuner channels allowed for the profile; channel visible, enabled and not encrypted; a start within the source's archive |
 | `GET /api/tv/{key}/catchup/{start}/playlist.m3u8` | Signed-in | As GET /api/tv/{key}/catchup. A stream token for that channel |
 | `GET /api/tv/{key}/catchup/{start}/seg/{name}` | Signed-in | As GET /api/tv/{key}/catchup. Only segment names FFmpeg wrote |

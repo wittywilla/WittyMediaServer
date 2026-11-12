@@ -4,7 +4,7 @@
 // be tested (inputModel.test.mjs) and copied into the apps: which action a key press is, which input the person
 // is using right now, and the key legend for it. tv.ts answers the actions; ui/KeyLegend.tsx draws the legend.
 
-export type Action = 'select' | 'back' | 'options' | 'search' | 'tabPrev' | 'tabNext' | 'pageUp' | 'pageDown' | 'top' | 'dock' | 'help'
+export type Action = 'layout' | 'select' | 'back' | 'options' | 'search' | 'tabPrev' | 'tabNext' | 'pageUp' | 'pageDown' | 'top' | 'dock' | 'help'
 export type InputKind = 'keys' | 'pad' | 'remote' | 'touch'
 export type PadFamily = 'xbox' | 'playstation' | 'nintendo' | 'generic'
 
@@ -17,6 +17,7 @@ export function shortcut(e: KeyEvent, typing: boolean): Action | null {
   const mod = !!(e.ctrlKey || e.metaKey)
   if (mod && !e.altKey) {
     if (e.key.toLowerCase() === 'k') return 'search'
+    if (e.shiftKey && e.key.toLowerCase() === 'l') return 'layout'
     if (e.key === '[') return 'tabPrev'
     if (e.key === ']') return 'tabNext'
     return null

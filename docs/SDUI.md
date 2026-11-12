@@ -3051,6 +3051,7 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | `season` | ref |  | Season. $season: a season's guest stars on a show's page opened with ?season=. |
 | `part` | enum: all, cast, guests, directing, writing, production, camera, lighting, editing, sound, art, costume, effects, crew | `all` | Part |
 | `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+| `programme` | string, at most 40 |  | Programme. A WittyTV programme: a channel's key and a moment in it, tun-12@1767225600. Its title's credits in the library when the profile may see it, else the guide's own. |
 
 ```json
 {"type":"credits","item":"$item"}

@@ -274,6 +274,7 @@ var routeRules = map[string]string{
 	"GET /api/tv/reminders":                                     "Signed-in: own",
 	"GET /api/tv/{key}/live/playlist.m3u8":                      "Signed-in: Channel key. Channel checked again on each request",
 	"GET /api/tv/{key}/live/seg/{name}":                         "Signed-in: Channel key. Channel checked again on each request. Name is a segment the stream made",
+	"GET /api/tv/{key}/programme":                               "Signed-in: Channel key. Channel visible to the account and enabled; for a library channel, limits on what is on then. Credits, trailers and schedule only from what the profile may see",
 	"GET /api/tv/{key}/logo":                                    "Signed-in: Channel key. Account may watch tuner channels, channel enabled. Web address only, internet-only client, pictures only",
 	"GET /api/tv/{key}/tune":                                    "Signed-in: Channel key. Channel visible to the account, enabled, and not encrypted. For a library channel, limits on what is on now",
 	"GET /api/users":                                            "Signed-in: Lists only accounts the caller may manage: all for an admin, Kids profiles for an adult without limits while the owner allows that",

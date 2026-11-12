@@ -700,6 +700,31 @@ Tuner rows also carry `health` (`ok` or `failing`) from the last check or tune, 
 stopped working. A channel can have backups, the same station from other sources, which the server tries by itself
 when it won't open; they don't appear in the guide.
 
+### More info
+
+The Design 2 **More info** screen for a programme in the guide (feature `tv-programme-info`) reads
+`GET /tv/{key}/programme?start=<a moment in it, Unix seconds>`. It answers:
+
+- `channel`: `key`, `kind`, `number`, `name`, `logo`, `brand`, `catchupDays`.
+- `programme`: `start`, `end`, `kind`, `title`, `sub`, `desc`, `genres`, `rating`, `year`, `season`, `episode`,
+  `lengthMin`, `scores` (`value`, `system`), `studio`, `language`, `origLanguage`, `country`, `subtitles`,
+  `signLanguage`, `audio`, `hd`, `premiere`, `new`, `repeat`, `keywords`. Each field is there only when the guide or
+  the library says it.
+- `actions`: which buttons to show: `watch`, `record`, `remind` (and `reminded`), `fromStart`, `watchLater` (and
+  `inList`), `open`.
+- `library`: `itemId` or `showId` when the title is in the library and the profile may see it. **Open item page**
+  and **Watchlist** use these.
+- `credits`: the same shape as the people/credits model (`cast`, `guests`, `crew`). It comes from the library's
+  credits for that title, or else the guide's own (`source: "guide"`, no `personId`).
+- `trailers`: the library item's trailers and clips (`itemId`, `title`, `type`, `durationSec`).
+- `schedule`: the title's other airings in the next 14 days on channels the profile may watch, with `this` marking
+  the one asked about.
+- `ids`: `imdb` and `tmdb`, when the guide gives them, for `GET /discover/where-to-watch`.
+
+A 404 means the channel or the programme isn't there for this profile. A 403 means a library channel is showing
+something the profile may not see. In SDUI, the `credits` source takes `programme: "<key>@<start>"` and draws the same
+cast and crew.
+
 ### Recording
 
 **`canRecord` is the only signal for offering Record.** Show **Record**, **Record every airing** (a series), and any
@@ -1835,6 +1860,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `PUT /tv-sets/{id}` | user | Rename, share or replace the channels of a set. |
 | `POST /tv-sets/{id}/channels` | user | Add and remove channels: `add`, `remove`. |
 | `DELETE /tv-sets/{id}` | user | Delete a set. |
+| `GET /tv/{key}/programme` | user | WittyTV More info: one programme in full, `start=<unix>`. See "More info". |
 | `GET /tv/{key}/catchup` | user | Watch a programme from its start, from the source's archive: `start`, `end`, `viewer`. Answers like `/tune`. See "Catch-up". |
 | `GET /tv/{key}/catchup/{start}/playlist.m3u8` | user | The catch-up stream. |
 | `GET /tv/{key}/catchup/{start}/seg/{name}` | user | A segment of the catch-up stream. |

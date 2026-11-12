@@ -72,7 +72,7 @@ export function OverrideDialog({ id, name, need: first, permissionWords, onSubmi
     <Dialog alert size="md" className={`ov-dialog ov-sev-${f.level}`} title={`Install ${name} anyway?`} onClose={onClose}
       description={`${lines.length === 1 ? 'One rule that normally stops this install' : `${lines.length} rules that normally stop this install`} would be bypassed. Severity ${f.level} of 4.`}
       actions={<>
-        <Button variant="ghost" autoFocus onClick={onClose}>Cancel</Button>
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
         <Button variant={f.tone === 'danger' ? 'danger' : 'primary'} type="submit" form={uid + 'f'} busy={working} disabled={missing.length > 0} aria-describedby={uid + 'm'}>{f.button}</Button>
       </>}>
       <form id={uid + 'f'} className="ui-dialog-form ov-form" onSubmit={submit} noValidate>
@@ -87,10 +87,11 @@ export function OverrideDialog({ id, name, need: first, permissionWords, onSubmi
 
         <fieldset className="ov-set">
           <legend>Tick each one to say you accept it</legend>
-          {lines.map((l) => (
+          {lines.map((l, i) => (
             <label key={l.kind} className="ov-check">
-              <input type="checkbox" checked={a.accepted.includes(l.kind)} onChange={(e) => toggle('accepted', l.kind, e.target.checked)} />
-              <span><b>{l.title}</b>{l.reason && <span className="ov-reason">{l.reason}</span>}</span>
+              {/* The first warning has the focus, so a long dialog opens at its top. Ticking it alone does nothing. */}
+              <input type="checkbox" autoFocus={i === 0} checked={a.accepted.includes(l.kind)} onChange={(e) => toggle('accepted', l.kind, e.target.checked)} />
+              <span><b>{l.title}</b>{l.reason && <>{' '}<span className="ov-reason">{l.reason}</span></>}</span>
             </label>
           ))}
         </fieldset>
@@ -102,7 +103,7 @@ export function OverrideDialog({ id, name, need: first, permissionWords, onSubmi
             {perms.map((p) => (
               <label key={p} className="ov-check">
                 <input type="checkbox" checked={a.grants.includes(p)} onChange={(e) => toggle('grants', p, e.target.checked)} />
-                <span><b>{p}</b>{permissionWords?.[p] && <span className="ov-reason">{permissionWords[p]}</span>}</span>
+                <span><b>{p}</b>{permissionWords?.[p] && <>{' '}<span className="ov-reason">{permissionWords[p]}</span></>}</span>
               </label>
             ))}
           </fieldset>

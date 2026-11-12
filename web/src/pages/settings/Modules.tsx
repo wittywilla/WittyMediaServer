@@ -297,7 +297,7 @@ export default function ModulesSettings() {
         </div>
       )}
 
-      {canAudit && <ModuleAudit nameOf={nameOf} />}
+      {canAudit && <ModuleAudit nameOf={nameOf} stamp={r} />}
       {over.dialog}
 
       {ownerAsk && <ConfirmOwner ask={ownerAsk} onClose={() => setOwnerAsk(null)} />}

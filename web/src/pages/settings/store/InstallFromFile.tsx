@@ -185,7 +185,7 @@ function UploadDialog({ onClose, onInstalled }: { onClose: () => void; onInstall
           </dl>
           <p className={'up-sig ' + v.signature.tone}>{v.signature.tone === 'ok' ? <IconCheck size={16} /> : <IconShield size={16} />}<span>{v.signature.words}</span></p>
           {r.fingerprint && <p className="st-print up-print">Key fingerprint <code>{r.fingerprint}</code></p>}
-          {r.statusNote && <p className="warn-box">{r.statusNote}</p>}
+          {r.statusNote && !v.problems.some((x) => x.text.includes(r.statusNote!)) && <p className="warn-box">{r.statusNote}</p>}
           <div>
             <b>What it asks for</b>
             {v.permissions.length ? <ul className="up-problems">{v.permissions.map((x) => <li key={x}>{x}</li>)}</ul> : <p className="ms-note">No special permissions.</p>}

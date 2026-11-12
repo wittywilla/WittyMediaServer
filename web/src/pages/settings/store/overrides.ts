@@ -258,7 +258,7 @@ export function toDate(at?: number | string | null): Date | null {
 }
 
 const AUDIT_WORDS: Record<string, string> = {
-  'module-override': 'Installed with an override', 'module-override-removed': 'Removed an override', 'module-upload': 'Installed from a file',
+  'module-override': 'Installed with an override', 'module-override-removed': 'Removed an override', 'module-upload': 'Uploaded a file to install',
   'module-older': 'Went back to an older version', 'module-rollback': 'Took a version out of use', 'module-source': 'Changed where it comes from',
   'module-undo': 'Undid an update', 'fork-refused': 'Refused a fork', 'password-refused': 'Password refused',
   'store-added': 'Added a store', 'store-removed': 'Removed a store',

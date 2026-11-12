@@ -28,6 +28,8 @@ import type { Node, Props } from '../types'
 import { px, usePage } from './context'
 import { kindIcon, sduiIcon } from './icons'
 import { chooseEpisodeView, useEpisodeView } from '../extras/episodeView'
+import { ControlView, FormView } from './forms'
+import { controlOf } from '../formsModel'
 import { Markdown } from './markdown'
 import { WidgetGridView } from './widgets'
 
@@ -265,7 +267,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   const [focusId, setFocusId] = useState('')
   const focused = focusedOf(view.children, focusId)
   return (
-    <section className={'hub sdui-shelf' + (grow ? ' focus-grow' : '') + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
+    <section className={'hub sdui-shelf' + (grow ? ' focus-grow' : '') + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.focusGrow === true ? ' sdui-focusgrow' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
       <Heading view={view} id={id} />
       {view.state === 'deferred' && !failed && <Near onNear={() => page.more(view.id)} />}
       {failed || view.state === 'empty' ? <StateLine view={view} /> : tiles && !waiting ? (
@@ -973,6 +975,18 @@ const shapeOf = (image: Props | undefined): string => {
 
 function ListItemView({ view, number }: { view: View; number?: string }) {
   const p = view.node.props || {}
+  const control = controlOf(p)
+  // A row with a control is a row of text beside the control (a control is never inside a button).
+  if (control) {
+    return (
+      <div className={'sdui-row sdui-control-row' + (control.disabled ? ' off' : '')}>
+        {p.icon ? <span className="sdui-row-ic" aria-hidden="true">{sduiIcon(p.icon)}</span> : null}
+        <span className="sdui-row-text"><b>{view.text?.title}</b>{view.text?.subtitle && <span className="muted">{view.text.subtitle}</span>}</span>
+        {view.text?.trailing && <span className="muted sdui-row-end">{view.text.trailing}</span>}
+        <ControlView control={control} label={view.text?.title || view.label || 'Setting'} action={view.node.action} />
+      </div>
+    )
+  }
   const image = obj(p, 'image')
   const progress = typeof p.progress === 'number' && p.progress > 0 ? Math.min(1, p.progress) : 0
   const badges = (Array.isArray(p.badges) ? p.badges : []).filter((b): b is string => typeof b === 'string').slice(0, 2)
@@ -1052,6 +1066,7 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
       return <div className="sdui-spacer" aria-hidden="true" style={{ height: px(size, page.pt), width: px(size, page.pt) }} />
     }
     case 'Split': return <SplitView view={view} depth={depth} />
+    case 'Form': return <FormView title={view.text?.title} submitLabel={str(view.node.props, 'submitLabel')} cancelLabel={str(view.node.props, 'cancelLabel')} action={view.node.action}>{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</FormView>
     case 'Button': return <ButtonView view={view} />
     case 'Image': return <ImageView view={view} />
     case 'SearchBox': return <SearchBoxView view={view} />

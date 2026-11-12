@@ -7,16 +7,21 @@ import { useMemo } from 'react'
 import { describe, type DeviceFacts } from '../sdui/device'
 import { PageView } from '../sdui/SduiPage'
 import type { Document } from '../sdui/types'
+import { useSearchParams } from 'react-router-dom'
 import fixture from './design/playFixture.json'
+import privacy from './design/playPrivacy.json'
 
+// ?screen=privacy draws the games privacy form (a phone's), the default the home row on a television.
 const facts = (tv: boolean): DeviceFacts => ({ width: tv ? 1920 : window.innerWidth, height: 1080, tvMode: tv, desktopShell: false, touch: false, pointer: true, reducedMotion: false, hdr: false, locale: 'en-GB', uhd: false })
 
 export default function DesignPlay() {
-  const device = useMemo(() => describe(facts(true)), [])
+  const [q] = useSearchParams()
+  const form = q.get('screen') === 'privacy'
+  const device = useMemo(() => describe(facts(!form)), [form])
   return (
     <main id="main" tabIndex={-1} className="design-play" style={{ padding: 'var(--sp-5)' }}>
       <h1 className="sr-only">WittyPlay Online</h1>
-      <PageView doc={fixture as unknown as Document} device={device} handlers={{ act: () => {}, more: () => {}, busy: () => false, failed: () => false, setQuery: () => {}, menu: () => {} }} />
+      <PageView doc={(form ? privacy : fixture) as unknown as Document} device={device} handlers={{ act: () => {}, more: () => {}, busy: () => false, failed: () => false, setQuery: () => {}, menu: () => {} }} />
     </main>
   )
 }

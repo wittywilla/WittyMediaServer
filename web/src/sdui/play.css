@@ -45,3 +45,15 @@
 /* An item's own actions under it (a room's Start game, Invite and Leave). */
 .sdui-item-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3) var(--sp-3); }
 .sdui-item-actions .btn { min-block-size: 2.75rem; border-radius: var(--r-full); font-weight: 700; }
+
+/* ---- rows with controls, and the Form that saves them together ---- */
+.sdui-control-row { display: flex; align-items: center; gap: var(--sp-3); min-block-size: 3.5rem; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-lg); background: var(--bg-3); }
+.sdui-control-row.off { opacity: .7; }
+.sdui-control-row .sdui-row-text { flex: 1; min-inline-size: 0; display: grid; }
+.sdui-control { display: inline-flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; justify-content: flex-end; }
+.sdui-control-why { font-size: var(--text-xs); max-inline-size: 16rem; text-align: end; }
+.sdui-slider { inline-size: 10rem; accent-color: var(--accent); }
+.sdui-form { display: grid; gap: var(--sp-4); max-inline-size: 45rem; }
+.sdui-form-title { margin: 0; font-size: var(--text-xl); }
+.sdui-form-actions { display: flex; gap: var(--sp-3); justify-content: flex-end; }
+@media (max-width: 599px) { .sdui-form-actions { position: sticky; inset-block-end: 0; padding-block: var(--sp-3); background: var(--bg); } }

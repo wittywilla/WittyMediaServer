@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { Dock, type DockAction } from '../ui/Dock'
 import { Field, Input, Select, Switch, Textarea } from '../ui/Field'
 import { QrCode } from '../components/QrCode'
+import * as Icons from '../icons'
 import { sectionId, withIds } from './model'
 import type { SpecCard, SpecChip, SpecField, SpecPageData, SpecRow, SpecSection } from './types'
 import './spec.css'
@@ -35,7 +36,7 @@ export interface SpecPageProps {
 
 export default function SpecPage({ page: raw, onAction, onField, handled, after, className, embedded, before, bare }: SpecPageProps) {
   const page = useMemo(() => withIds(raw), [raw])
-  const live = (it: { id?: string; to?: string; disabled?: boolean }) => !it.disabled && (!!it.to || (!!it.id && !!handled?.has(it.id) && !!onAction))
+  const live = (it: { id?: string; to?: string; href?: string; disabled?: boolean }) => !it.disabled && (!!it.to || !!it.href || (!!it.id && !!handled?.has(it.id) && !!onAction))
   const dock: DockAction[] = page.actions.map((a) => ({
     id: a.id || a.title, label: a.title, primary: a.kind === 'primary', to: a.to, disabled: a.disabled || (!a.to && !(a.id && handled?.has(a.id))),
     onClick: a.to ? undefined : () => a.id && onAction?.(a.id),
@@ -59,7 +60,7 @@ export default function SpecPage({ page: raw, onAction, onField, handled, after,
   )
 }
 
-type Live = (it: { id?: string; to?: string; disabled?: boolean }) => boolean
+type Live = (it: { id?: string; to?: string; href?: string; disabled?: boolean }) => boolean
 
 type OnField = (id: string, value: string | number | boolean | File) => void
 
@@ -93,15 +94,35 @@ function arrowChoose(e: React.KeyboardEvent<HTMLUListElement>) {
   e.preventDefault(); e.stopPropagation(); next.focus(); next.click()
 }
 
+// Only web addresses open outside the app.
+const safeHref = (h: string) => /^https?:\/\//i.test(h)
+
+function RowIcon({ r }: { r: SpecRow }) {
+  const Ic = r.icon ? (Icons as unknown as Record<string, (p: { size?: number }) => ReactNode>)['Icon' + r.icon] : null
+  return Ic ? <span className="spec-row-ic" data-tint={r.tint || 'a'} aria-hidden="true">{Ic({ size: 20 })}</span> : null
+}
+
 function Row({ r, live, onAction, choice }: { r: SpecRow; live: boolean; onAction?: (id: string) => void; choice?: boolean }) {
+  const acts = r.actions?.length ? r.actions : null
   const body = (
     <>
+      <RowIcon r={r} />
       <span className="spec-row-main"><span className="spec-row-title">{r.title}</span>{r.sub && <small className="spec-row-sub">{r.sub}</small>}</span>
       {r.value && <span className="spec-row-value">{r.value}</span>}
     </>
   )
   const cls = 'spec-row' + (r.on ? ' on' : '') + (live ? ' live' : '')
+  if (acts) {
+    const main = live && r.to ? <Link to={r.to} className="spec-row-link">{body}</Link> : <div className="spec-row-link">{body}</div>
+    return (
+      <div className={cls.replace(' live', '') + ' actioned'} {...(r.on ? { 'aria-current': 'true' as const } : {})}>
+        {main}
+        <span className="spec-row-actions">{acts.map((a) => <button key={a.id} type="button" className={'spec-chip' + (a.danger ? ' danger' : '')} aria-label={a.label} disabled={a.disabled || !a.id || !onAction} data-field={a.id} onClick={() => a.id && onAction?.(a.id)}>{a.title}</button>)}</span>
+      </div>
+    )
+  }
   const cur = r.on && !choice ? { 'aria-current': 'true' as const } : {}
+  if (live && r.href && safeHref(r.href)) return <a href={r.href} target="_blank" rel="noopener noreferrer" className={cls} {...cur}>{body}</a>
   if (live && r.to) return <Link to={r.to} className={cls} {...cur}>{body}</Link>
   if (live && choice) return <button type="button" role="radio" aria-checked={!!r.on} tabIndex={r.on ? 0 : -1} className={cls} onClick={() => r.id && onAction?.(r.id)}>{body}</button>
   if (live) return <button type="button" className={cls} onClick={() => r.id && onAction?.(r.id)} {...cur}>{body}</button>
@@ -110,6 +131,7 @@ function Row({ r, live, onAction, choice }: { r: SpecRow; live: boolean; onActio
 
 function Chip({ c, live, onAction }: { c: SpecChip; live: boolean; onAction?: (id: string) => void }) {
   const cls = 'spec-chip' + (c.on ? ' on' : '')
+  if (live && c.href && safeHref(c.href)) return <a href={c.href} target="_blank" rel="noopener noreferrer" className={cls} aria-label={c.label}>{c.title}</a>
   if (live && c.to) return <Link to={c.to} className={cls} aria-label={c.label} aria-current={c.on ? 'true' : undefined}>{c.title}</Link>
   if (live) return <button type="button" className={cls} aria-label={c.label} aria-pressed={!!c.on} onClick={() => c.id && onAction?.(c.id)}>{c.title}</button>
   return <span className={cls} aria-current={c.on ? 'true' : undefined}>{c.title}</span>

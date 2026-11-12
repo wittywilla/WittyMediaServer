@@ -320,7 +320,7 @@ export default function Viewer({ categories, modules, kinds, onHealth }: { categ
         </label>
         {kinds.length > 0 && (
           <label className="lg-field">Follow
-            <select className="select" value={kind} onChange={(e) => setKind(e.target.value)} aria-describedby="lg-follow-help">
+            <select className="select" value={kind} onChange={(e) => setKind(e.target.value)} aria-describedby={kind && !session ? 'lg-follow-help' : undefined}>
               <option value="">Anything</option>
               {kinds.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
             </select>

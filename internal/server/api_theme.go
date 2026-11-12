@@ -121,10 +121,8 @@ const (
 // themeScheme is "dark" or "light" for a theme, from its own theme.json.
 func (s *Server) themeScheme(id string) string {
 	if s.Themes != nil {
-		for _, m := range s.Themes.List() {
-			if m.ID == id && (m.Scheme == "light" || m.Scheme == "dark") {
-				return m.Scheme
-			}
+		if m, ok := s.Themes.One(id); ok {
+			return m.Scheme
 		}
 	}
 	if id == autoLight {

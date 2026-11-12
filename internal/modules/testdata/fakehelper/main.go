@@ -45,6 +45,10 @@ func main() {
 		case slices.Contains(do, "garbage"):
 			os.Stdout.WriteString("this is not the protocol\n")
 		}
+		if slices.Contains(do, "one-call") {
+			// A helper that answers one call and leaves, as one serving a stream does.
+			defer time.AfterFunc(100*time.Millisecond, func() { os.Exit(0) })
+		}
 		switch method {
 		case "read":
 			return map[string]any{"Make": "fake " + m.Version}, nil, nil

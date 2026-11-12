@@ -41,3 +41,7 @@
 .sdui-person-text { display: grid; min-inline-size: 0; }
 .sdui-person-text b { font-size: var(--text-base); }
 .sdui-person-text span { color: var(--fg-2); font-size: var(--text-sm); }
+
+/* An item's own actions under it (a room's Start game, Invite and Leave). */
+.sdui-item-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3) var(--sp-3); }
+.sdui-item-actions .btn { min-block-size: 2.75rem; border-radius: var(--r-full); font-weight: 700; }

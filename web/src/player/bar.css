@@ -1,0 +1,73 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* The player's control bar, one for every look and platform (design canvas: PlayerBoard): the timeline with its scene
+   marks and a preview above the pointer; time and volume on the left, Prev, -10, Play, +30 and Next in the middle,
+   Audio, Subtitles, the picture's size, speed, Chapters, WittyRemote, More and Full screen on the right. Words show
+   where there is room and icons alone where there is not. The player's chrome sits over artwork, so it takes the
+   on-image colour and a scrim, in every theme. */
+.player .bottom { container-type: inline-size; container-name: pbar; gap: var(--space-xs); }
+.player .ctl { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: var(--space-s) var(--space-m); }
+.ctl-left { display: flex; align-items: center; gap: var(--space-xs); min-width: 0; }
+.ctl-mid { display: flex; align-items: center; justify-content: center; gap: var(--space-xs); }
+.ctl-right { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-xs); min-width: 0; }
+.player .ctl .time { min-width: 0; margin-left: 0; margin-right: var(--space-s); font-size: var(--text-sm); }
+
+/* A control with a word: the player's chip. */
+.cbtn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-xs); min-height: var(--control-h-sm); padding: 0 var(--space-s); border: 1px solid color-mix(in srgb, var(--on-image) 24%, transparent); border-radius: var(--r-md); background: color-mix(in srgb, var(--picture-bg) 52%, transparent); color: var(--on-image); font: inherit; font-size: var(--text-sm); font-weight: 600; white-space: nowrap; cursor: pointer; transition: background var(--dur-2), transform var(--dur-1); }
+.cbtn:hover:not([disabled]) { background: color-mix(in srgb, var(--on-image) 20%, transparent); }
+.cbtn:active:not([disabled]) { transform: scale(.96); }
+.cbtn svg { inline-size: 1.125rem; block-size: 1.125rem; fill: currentColor; flex: none; }
+.cbtn[disabled] { cursor: default; }
+.cbtn.on, .cbtn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.cbtn.step { min-inline-size: 3rem; font-variant-numeric: tabular-nums; }
+.cbtn.chip-q, .cbtn.chip-s { min-inline-size: 2.75rem; font-variant-numeric: tabular-nums; }
+.cbtn.more { padding-inline: var(--space-s); }
+.player .ctl .ibtn.play { background: var(--accent); color: var(--accent-fg); inline-size: 3rem; block-size: 3rem; }
+.player .ctl .ibtn.play:hover { background: var(--accent-2); }
+/* Words show in a wide bar; a narrow one keeps the icon (the step buttons and chips have no icon, so they keep theirs). */
+@container pbar (max-width: 899px) { .cbtn:has(svg) .lbl:not(.always) { display: none; } .cbtn:has(svg) { min-inline-size: var(--control-h-sm); } }
+@container pbar (max-width: 700px) {
+  .player .ctl { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .ctl-left { inline-size: 100%; justify-content: flex-start; }
+  .ctl-right { justify-content: center; }
+}
+.player .top .cbtn .lbl { display: inline; }
+@media (max-width: 700px) { .player .top .cbtn .lbl { display: none; } .player .top .cbtn:has(svg) { min-inline-size: var(--control-h-sm); } }
+
+/* The timeline: marks for each scene, a preview of where you are about to land. */
+.seek { overflow: visible; }
+.seek .chap { background: color-mix(in srgb, var(--picture-bg) 70%, transparent); }
+.seek.scrubbing .knob { opacity: 1; transform: translateX(-50%) scale(1.2); }
+.seek-tip { position: absolute; bottom: calc(100% + var(--space-xs)); translate: -50% 0; display: grid; justify-items: center; gap: 2px; padding: var(--space-xs) var(--space-s); border-radius: var(--r-md); background: var(--elev-3-fill); border: 1px solid var(--elev-3-line); color: var(--fg); font-size: var(--text-xs); pointer-events: none; z-index: 2; box-shadow: var(--elev-3-shadow); }
+.seek-tip-pic { display: block; inline-size: 10rem; aspect-ratio: 16 / 9; border-radius: var(--r-sm); overflow: hidden; background: var(--bg-3); }
+.seek-tip-time { font-weight: 700; font-variant-numeric: tabular-nums; }
+.seek-tip-chap { color: var(--fg-2); max-inline-size: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.more-pop { inset-inline-end: var(--space-m); inset-block-end: 4.5rem; }
+.more-pop button svg { inline-size: 1.125rem; block-size: 1.125rem; fill: currentColor; flex: none; }
+.more-pop .kbd-help { display: inline-grid; place-items: center; inline-size: 1.125rem; font-weight: 700; }
+
+/* Skip buttons (intro, recap, credits, adverts): a labelled pill in the accent, over the picture. */
+.skip-intro { background: var(--accent); color: var(--accent-fg); border: 2px solid var(--on-image); font-weight: 700; padding-inline: var(--space-l); border-radius: var(--r-md); box-shadow: var(--elev-3-shadow); }
+.skip-intro:hover { background: var(--accent-2); }
+
+/* The error: what happened, and the ways on. */
+.player .overlay-msg .box.play-error { display: grid; gap: var(--space-s); justify-items: center; background: var(--elev-3-fill); border: 1px solid var(--elev-3-line); color: var(--fg); box-shadow: var(--elev-3-shadow); }
+.play-error h2 { margin: 0; font-size: var(--role-heading-size); }
+.play-error p { margin: 0; color: var(--fg-2); overflow-wrap: anywhere; }
+.play-error-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-s); margin-top: var(--space-s); }
+
+/* On a television everything is larger and further apart. */
+html.tv-mode .cbtn { min-height: 66px; padding: 0 var(--space-l); font-size: var(--text-xl); border-radius: var(--r-lg); }
+html.tv-mode .cbtn svg { inline-size: 1.75rem; block-size: 1.75rem; }
+html.tv-mode .player .ctl .ibtn.play { inline-size: 4.5rem; block-size: 4.5rem; }
+html.tv-mode .player .ctl .time { font-size: var(--text-xl); }
+html.tv-mode .seek-tip { font-size: var(--text-lg); }
+@media (prefers-reduced-motion: reduce) { .cbtn { transition: none; } }
+
+/* WittyRemote, from the catalogue: the strip's heading, the rule under the keys, and the sheet on a television. */
+.remote-bar .rb-title { flex: none; font-size: var(--text-2xs); font-weight: 700; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
+.remote-note.faint { color: var(--fg-3); }
+html.tv-mode .remote.remote-sheet { inset-inline: auto var(--gutter); inset-block-end: var(--space-l); inline-size: min(46rem, calc(100% - 2 * var(--gutter))); border-radius: var(--r-xl); }
+html.tv-mode .sheet-menus .rk, html.tv-mode .sheet-tracks .rk, html.tv-mode .sheet-transport .rk { height: 56px; font-size: var(--text-md); }
+html.tv-mode .sheet-digits .rk { height: 60px; font-size: var(--text-xl); }
+html.tv-mode .remote .rk:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }

@@ -3,7 +3,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, ApiError, episodeLabel, fitWidth, langName, mediaUrl, posterUrl, sized, type Item, type PlaybackAnswer, type Show } from '../api'
-import { IconBack, IconClose, IconDevices, IconExpand, IconInfo, IconMini, IconNext, IconPause, IconPlay, IconRemote, IconUsers } from '../icons'
+import { IconBack, IconClose, IconDevices, IconExpand, IconMini, IconNext, IconPause, IconPlay, IconRemote, IconUsers } from '../icons'
 import { browserCapabilities } from './capabilities'
 import PlayInfoPanel from './PlayInfoPanel'
 import { toast } from '../state'
@@ -16,7 +16,7 @@ import { haveHls, toggleFullscreen, useIdle, useSource, type NetNote } from './h
 import { deviceStreaming, mayBeRobust, measureSpeed, rememberSpeed, setDeviceStreaming, type DeviceStreaming } from './streaming'
 import Hls from 'hls.js'
 import Remote, { RemoteBar, RemoteSheet, useSheetLayout, type RemoteKey } from './Remote'
-import { keyWorks, remoteLabel, remoteNote, videoForm } from './remoteKeys'
+import { barAllowed, keyWorks, remoteLabel, remoteNote, videoForm } from './remoteKeys'
 import TrackPicker from './TrackPicker'
 import ViewSettings from './ViewSettings'
 import { useViewPrefs } from './viewPrefs'
@@ -401,6 +401,10 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const keysNote = remoteNote(form, remoteState)
   const label = remoteLabel(form)
   const subtitle = [item.showTitle, episodeLabel(item)].filter(Boolean).join(' · ')
+  // The chip on the bar: the picture's size as a person says it (4K, 1080p), from the stream being played.
+  const vid = info?.videos?.find((x) => x.index === info.videoIndex) || info?.videos?.[0]
+  const quality = vid ? (vid.height >= 2000 ? '4K' : vid.height >= 1400 ? '1440p' : vid.height > 0 ? vid.height + 'p' : '') : ''
+  const stepPrev = () => { if (chapters.length > 1) stepChapter(-1); else seek(0) }
   const trackLabel = (t: { language: string; title?: string }) => [langName(t.language), t.title].filter(Boolean).join(' · ')
   const togglePlay = () => { const v = video.current; if (v && !needClick) v.paused ? v.play().catch(() => {}) : v.pause() }
 
@@ -470,7 +474,19 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       {needClick && <div className="big-play"><button onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
       <PartyNote itemId={item.id} video={video} close={chrome.close} quiet={mini} />
       {partyOpen && !mini && <Suspense fallback={null}><PartyPanel onClose={() => setPartyOpen(false)} item={{ id: item.id, title: item.title, kind: item.kind, showId: item.showId, positionSec: () => (video.current?.currentTime || 0) + offset }} /></Suspense>}
-      {err && <div className="overlay-msg"><div className="box">Playback failed: {err}<br /><button className="btn" style={{ marginTop: 10 }} onClick={chrome.close}>Back</button></div></div>}
+      {err && (
+        <div className="overlay-msg" role="alert">
+          <div className="box play-error" onClick={(e) => e.stopPropagation()}>
+            <h2>This can’t play right now</h2>
+            <p>{err}</p>
+            <div className="play-error-actions">
+              <button className="btn primary" onClick={() => { setErr(''); ask({ reopen: (want.reopen || 0) + 1 }) }}>Try again</button>
+              {info && <button className="btn" onClick={() => setInfoOpen(true)}>How this is playing</button>}
+              <button className="btn ghost" onClick={chrome.close}>Back</button>
+            </div>
+          </div>
+        </div>
+      )}
       <AutoSkip itemId={item.id} video={video} markers={markers || ownIntro} now={now} duration={item.runtimeSec || 0} live={!!info && st.playing && !st.waiting && !pickIntro} mini={mini}
         party={party.active ? (party.room?.canControl ? 'control' : 'follow') : 'none'} seek={seek} nextHref={item.nextId ? nextHref : null} />
       {mini ? (
@@ -494,16 +510,15 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           <div className="top" onClick={(e) => e.stopPropagation()}>
             <button className="ibtn" onClick={chrome.minimize} title="Back (keeps playing in the mini player)"><IconBack /></button>
             <div className="grow"><h1>{item.title}</h1><div className="sub">{[subtitle || item.year, info && MODE_WORDS[info.decision]].filter(Boolean).join(' · ')}</div></div>
-            {info && <button className="ibtn" onClick={() => setInfoOpen(true)} title="How this is playing (I)" aria-label="How this is playing"><IconInfo /></button>}
-            {(may.party || party.room) && <button className={'ibtn' + (party.active ? ' on' : '')} onClick={() => setPartyOpen((o) => !o)} title="Watch party" aria-expanded={partyOpen} aria-haspopup="dialog" aria-label={party.room ? `Watch party, ${party.room.members.length} watching` : 'Watch party'}><IconUsers /></button>}
-            {may.playOn && <button className="ibtn" onClick={() => openOver('device')} title="Play on another device" aria-label="Play on another device"><IconDevices /></button>}
-            {hasNext && (!party.active || party.room?.canControl) && <button className="btn sm" onClick={() => goNext(true)} title={party.active ? 'Next for everyone in the party' : 'Next episode'}><IconNext /> <span className="hide-narrow">{item.showId != null ? 'Next episode' : 'Next'}</span></button>}
-            <button className="ibtn" onClick={chrome.minimize} title="Mini player"><IconMini /></button>
+            {(may.party || party.room) && <button className={'cbtn' + (party.active ? ' on' : '')} onClick={() => setPartyOpen((o) => !o)} title="Watch party" aria-expanded={partyOpen} aria-haspopup="dialog" aria-label={party.room ? `Watch party, ${party.room.members.length} watching` : 'Watch party'}><IconUsers /><span className="lbl">Party</span></button>}
+            {may.playOn && <button className="cbtn" onClick={() => openOver('device')} title="Play on another device" aria-label="Play on another device"><IconDevices /><span className="lbl">Cast</span></button>}
+            {hasNext && (!party.active || party.room?.canControl) && <button className="cbtn" onClick={() => goNext(true)} title={party.active ? 'Next for everyone in the party' : 'Next episode'}><IconNext /><span className="lbl">{item.showId != null ? 'Next episode' : 'Next'}</span></button>}
+            <button className="cbtn" onClick={chrome.minimize} title="Mini player" aria-label="Mini player"><IconMini /><span className="lbl">Mini</span></button>
           </div>
           {remoteOn && (sheetLayout
             ? <RemoteSheet onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />
-            : prefs.remoteStyle === 'bar' || prefs.remoteStyle === 'barBelow'
-              ? <RemoteBar below={prefs.remoteStyle === 'barBelow'} onKey={onRemote} enabled={remoteEnabled} disc={copy} note={keysNote} />
+            : barAllowed() && (prefs.remoteStyle === 'bar' || prefs.remoteStyle === 'barBelow')
+              ? <RemoteBar below={prefs.remoteStyle === 'barBelow'} onKey={onRemote} enabled={remoteEnabled} disc={copy} note={keysNote} form={form} />
               : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />)}
           {skip && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(skip.to) }}>{skip.label} ›</button>}
           {pickIntro && <PickIntroBar item={item} time={now} mode={pickIntro} />}
@@ -527,7 +542,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           )}
           <Controls video={video} duration={duration} offset={offset} onSeek={seek} onFullscreen={() => toggleFullscreen(root.current)}
             chapters={chapters} chapterNames={info?.chapters?.map((c) => c.title)} copy={copy}
-            onPrev={chapterStep ? () => stepChapter(-1) : undefined} onNext={chapterStep ? () => stepChapter(1) : undefined}
+            onPrev={stepPrev} onNext={chapters.length > 1 || (hasNext && !party.active) || (hasNext && party.room?.canControl) ? () => stepChapter(1) : undefined}
+            quality={quality} onQuality={info ? () => setInfoOpen(true) : undefined}
             audio={info?.audio.map((a) => ({ id: a.index, label: [langName(a.language), a.title, a.codec?.toUpperCase(), a.channels ? a.channels + 'ch' : ''].filter(Boolean).join(' · '), active: a.index === audio }))}
             subtitles={info?.subtitles.map((s) => ({ id: s.index, label: trackLabel(s), active: s.index === sub }))}
             onAudio={(id) => switchTrack('audio', id)} onSubtitle={(id) => switchTrack('sub', id)} onPick={(k) => { if (k !== 'angle') setPicker(k) }}

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -353,7 +354,15 @@ func (s *Server) handleGetUI(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(raw))
 }
 
-// PUT /api/me/ui: replaces them. Any JSON object up to 16 KB.
+// serverOwnedUI are the keys of an account's interface document that the server writes
+// through routes of their own: a profile's arrangement of pages and menu and its layouts
+// (sdui), its module settings (modules) and its own colours (themePersonal). PUT /me/ui
+// never changes them, so an app that read the document a moment ago and writes it back
+// can't undo what another device just saved there, and can't set them unchecked.
+var serverOwnedUI = []string{"sdui", "modules", "themePersonal"}
+
+// PUT /api/me/ui: replaces them. Any JSON object up to 16 KB; the server's own keys stay
+// as they are.
 func (s *Server) handlePutUI(w http.ResponseWriter, r *http.Request) {
 	var v map[string]any
 	r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
@@ -361,12 +370,34 @@ func (s *Server) handlePutUI(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "expected a JSON object of at most 16 KB")
 		return
 	}
-	b, _ := json.Marshal(v)
-	if err := s.Auth.SetUI(r.Context(), userFrom(r).ID, string(b)); err != nil {
+	if v == nil {
+		v = map[string]any{}
+	}
+	// Under the lock the server's own writers of the document take.
+	s.sdui.personalMu.Lock()
+	defer s.sdui.personalMu.Unlock()
+	uid := userFrom(r).ID
+	stored := map[string]json.RawMessage{}
+	_ = json.Unmarshal([]byte(s.Auth.UI(r.Context(), uid)), &stored)
+	out := make(map[string]json.RawMessage, len(v)+len(serverOwnedUI))
+	for k, val := range v {
+		if !slices.Contains(serverOwnedUI, k) {
+			raw, _ := json.Marshal(val)
+			out[k] = raw
+		}
+	}
+	for _, k := range serverOwnedUI {
+		if raw, ok := stored[k]; ok {
+			out[k] = raw
+		}
+	}
+	b, _ := json.Marshal(out)
+	if err := s.Auth.SetUI(r.Context(), uid, string(b)); err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	writeJSON(w, 200, v)
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(b)
 }
 
 // userView is an account as the Users page sees it, with its limits.

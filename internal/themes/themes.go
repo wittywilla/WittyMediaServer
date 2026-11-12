@@ -165,6 +165,21 @@ func writeAtomic(dst string, b []byte) error {
 }
 
 func (m *Manager) readMeta(zipPath string) (*Meta, error) {
+	e, st := memoFor(zipPath)
+	if e != nil && e.meta != nil {
+		if c := copyOf(e.meta); c != nil {
+			return c, nil
+		}
+	}
+	meta, err := m.readMetaFile(zipPath)
+	if err == nil {
+		kept := copyOf(meta)
+		memoStore(zipPath, st, func(e *memoEntry) { e.meta = kept })
+	}
+	return meta, err
+}
+
+func (m *Manager) readMetaFile(zipPath string) (*Meta, error) {
 	zr, err := zip.OpenReader(zipPath)
 	if err != nil {
 		return nil, err

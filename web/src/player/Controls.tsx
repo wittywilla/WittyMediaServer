@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
 import { fmtTime, getPrefs } from '../api'
-import { Thumb } from '../pages/DiscSections'
+import { Thumb } from './ChapterThumb'
 import { announce } from '../a11y'
 import { SPEEDS, setSpeed } from './speed'
 import { IconAngle, IconAudio, IconChapters, IconClose, IconFull, IconMute, IconInfo, IconMore, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'

@@ -454,6 +454,18 @@
    "formFactor": "tv"
   },
   {
+   "id": "wittydvd-disc-page-web",
+   "file": "wittydvd-disc-page-web.json",
+   "title": "A DVD's page with WittyDVD's sections, in a browser",
+   "formFactor": "web"
+  },
+  {
+   "id": "wittydvd-disc-page-tv",
+   "file": "wittydvd-disc-page-tv.json",
+   "title": "A DVD's page with WittyDVD's sections, on a television",
+   "formFactor": "tv"
+  },
+  {
    "id": "exp-lumen-desktop",
    "file": "exp-lumen-desktop.json",
    "title": "Experience Lumen: Home in a desktop window",

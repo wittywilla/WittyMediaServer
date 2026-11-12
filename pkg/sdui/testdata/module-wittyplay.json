@@ -430,6 +430,18 @@
           }
         },
         {
+          "id": "join-code",
+          "component": "QR",
+          "props": {
+            "label": "Scan to join as the next player",
+            "size": "m"
+          },
+          "source": {
+            "limit": 1,
+            "type": "wittyplay.room"
+          }
+        },
+        {
           "id": "join",
           "component": "Notice",
           "props": {
@@ -576,7 +588,8 @@
             }
           ]
         }
-      ]
+      ],
+      "slot": "you.games"
     },
     {
       "id": "wittyplay-kids",
@@ -604,7 +617,8 @@
             "tone": "info"
           }
         }
-      ]
+      ],
+      "slot": "people.profile"
     }
   ],
   "inserts": [

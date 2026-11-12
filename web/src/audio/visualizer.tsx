@@ -11,22 +11,26 @@ import { soundGraph } from './sound'
 // all that's in the main script, and the plugin (a newer bundle if the server has one, or
 // the copy in the app) arrives with the first press.
 
-// Kept per person with their other interface choices, which the server stores whole, so
-// what's there is read first and only this part changes.
-//
-// Effects changed by themselves every 30 seconds until now, whether anyone asked or not.
-// They don't any more, so a timer saved from those days (and nobody chose that) is dropped
-// once. From then on what's saved is someone's own choice.
+// Kept per person as the module's own profile settings (the keys of its sdui.json: effect, speedPct,
+// colour ...), through the module settings routes, so the Settings page and the visualizer's own
+// panel agree. Whether the notice about flashing was read, and whether it shows with the player,
+// are the player's own and kept with the person's other interface choices.
 let saving = Promise.resolve()
+type Player = { on?: boolean; notice?: boolean }
+const SETTINGS = '/sdui/modules/wittyvisualizer/settings'
 export const visualizerHost: VisualizerHost = {
-  loadSettings: () => api.get<{ visualizer?: Record<string, unknown>; visualizerStays?: boolean }>('/me/ui').then((u) => {
-    const v = u.visualizer ?? {}
-    return u.visualizerStays ? v : { ...v, cycleSec: 0 }
-  }),
+  loadSettings: () => Promise.all([
+    api.get<{ values?: Record<string, unknown> }>(SETTINGS),
+    api.get<{ visualizerPlayer?: Player }>('/me/ui'),
+  ]).then(([m, ui]) => ({ ...(m.values ?? {}), on: ui.visualizerPlayer?.on === true, notice: ui.visualizerPlayer?.notice === true })),
   saveSettings: (settings) => {
     saving = saving.then(async () => {
+      const p = await loadPlugin()
+      if (!p) return
+      const s = settings as Parameters<Plugin['moduleSettingValues']>[0] & Player
+      await api.put(SETTINGS + '/personal', { values: p.moduleSettingValues(s) })
       const ui = await api.get<Record<string, unknown>>('/me/ui')
-      await api.put('/me/ui', { ...ui, visualizer: settings, visualizerStays: true })
+      await api.put('/me/ui', { ...ui, visualizerPlayer: { on: s.on === true, notice: s.notice === true } })
     }).catch(() => { /* the next change tries again */ })
   },
 }

@@ -2868,6 +2868,12 @@
     "year",
     "activity",
     "notices",
+    "creators",
+    "comments",
+    "markers",
+    "canvas",
+    "smartRule",
+    "formField",
     "search"
   ]
 }

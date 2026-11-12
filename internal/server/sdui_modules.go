@@ -209,6 +209,15 @@ func (rv *sduiResolver) moduleItems(mod string, req sdui.SourceRequest) (sdui.So
 			return rv.cleanModuleResult(mod, req, res), nil
 		}
 	}
+	// A disc's sections are about this server's copy of the disc: its kept ranking, the
+	// choice of film and the names of its titles (disc_sources.go).
+	if res, ok, err := rv.discSources(mod, req); ok {
+		if err != nil || s.Modules.VersionInUse(mod) == "" {
+			return sdui.SourceResult{}, err
+		}
+		// Cleaned like any module's items, actions and all.
+		return rv.cleanModuleResult(mod, req, res), nil
+	}
 	ask := modmgr.ItemsRequest{Source: req.Source, Filter: req.Filter, Offset: req.Offset, Limit: req.Limit, Viewer: rv.moduleViewer(),
 		Settings: s.moduleSettingValues(rv.r, mod)}
 	ans, err := s.Modules.UIItems(mod, ask)

@@ -171,3 +171,51 @@ func TestBookFormatsAndReadingFilter(t *testing.T) {
 		t.Errorf("pdf: %+v", g)
 	}
 }
+
+// Comments, markers, canvas, creators and the smart playlist builder: pages from the server's own data, with the
+// profile's kind deciding what it may write.
+func TestCommentsMarkersAndSmartPlaylistPages(t *testing.T) {
+	f := newCreditsFixture(t)
+	ts := f.ts
+	item := fmt.Sprint(f.film.ID)
+	adult := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/comments?item="+item, f.adult, nil))
+	if form := pageNode(&adult.Root, "write"); form == nil || form.Action == nil || form.Action.Op != "comment.add" || form.Action.Item != item || !pageHasType(form, "ListItem") {
+		t.Errorf("an adult's comment form: %+v", form)
+	}
+	kid := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/comments?item="+item, f.kid, nil))
+	if pageNode(&kid.Root, "write") != nil || pageNode(&kid.Root, "readonly") == nil {
+		t.Errorf("a kid may not write comments: %+v", kid.Root.Children)
+	}
+	mk := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/markers?item="+item, f.adult, nil))
+	if rows := pageNode(&mk.Root, "marks"); rows == nil || len(rows.Children) != 3 {
+		t.Errorf("markers: %+v", rows)
+	}
+	if b := pageNode(&mk.Root, "pick"); b == nil || b.Action == nil || b.Action.Type != sdui.ActNative || b.Action.To != "player" || b.Action.Params["item"] != item {
+		t.Errorf("Pick in player: %+v", b)
+	}
+	if cv := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/canvas?item="+item, f.adult, nil)); pageNode(&cv.Root, "state") == nil {
+		t.Errorf("canvas has no state row")
+	}
+	sm := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/smart-list", f.adult, nil))
+	form := pageNode(&sm.Root, "rule")
+	if form == nil || form.Action == nil || form.Action.Op != "collection.createSmart" {
+		t.Fatalf("the smart playlist form: %+v", form)
+	}
+	names := map[string]bool{}
+	for _, row := range pageNode(form, "fields").Children {
+		if c, _ := row.Props["control"].(map[string]any); c != nil {
+			names[fmt.Sprint(c["name"])] = true
+		}
+	}
+	for _, want := range []string{"name", "rule.genres[]", "rule.yearFrom", "rule.watched", "rule.limit"} {
+		if !names[want] {
+			t.Errorf("the rule has no %s control: %v", want, names)
+		}
+	}
+	for _, page := range []string{"creators", "creator?item=1"} {
+		sep := "/api/sdui/pages/"
+		if w := ts.do(t, "GET", sep+page, f.adult, nil); w.Code != 200 {
+			t.Errorf("%s: %d %s", page, w.Code, w.Body)
+		}
+	}
+}

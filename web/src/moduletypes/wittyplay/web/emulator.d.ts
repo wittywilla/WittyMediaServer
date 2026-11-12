@@ -1,10 +1,8 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 import type { ControlsData } from './consoles';
 import type { ControllerData } from './mapping';
 import type { Hello, StreamInfo } from './transport';
 import type { Explained } from './words';
-export type EmulatorBackend = 'docker+webrtc' | 'docker+kasmvnc' | 'local+webrtc';
+export type EmulatorBackend = 'docker+webrtc' | 'docker+kasmvnc' | 'local+webrtc' | 'host+webrtc';
 export type EmulatorSession = {
     id: string;
     emulator: string;

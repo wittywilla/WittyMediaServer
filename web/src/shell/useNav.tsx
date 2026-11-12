@@ -186,7 +186,10 @@ export function useMenu(): MenuState {
       }
     }
     const kindOf = (id: string) => { const m = /^lib-(\d+)$/.exec(id); return m ? libraries.find((l) => String(l.id) === m[1])?.type : undefined }
-    const fromServer: NavItem[] = (srv.nav?.items || []).map((e) => ({ id: e.id, label: e.label, to: e.route, end: e.route === '/', kind: kindOf(e.id), icon: e.icon, placement: e.placement, screen: e.screen, drawer: e.drawer }))
+    // A module's own menu entry (Books, Photos) is dropped when the library of that name is already in the menu: one word, one place.
+    const items = srv.nav?.items || []
+    const labelled = new Set(items.filter((e) => e.id.startsWith('lib-')).map((e) => e.label.toLowerCase()))
+    const fromServer: NavItem[] = items.filter((e) => e.id.startsWith('lib-') || !labelled.has(e.label.toLowerCase())).map((e) => ({ id: e.id, label: e.label, to: e.route, end: e.route === '/', kind: kindOf(e.id), icon: e.icon, placement: e.placement, screen: e.screen, drawer: e.drawer }))
     const all = placeOwn(fromServer, own, srv.personal)
     const sections = srv.nav?.personal?.sections || []
     const ownHidden = new Set(srv.personal?.hidden || [])

@@ -664,7 +664,7 @@ func cases() []kase {
 			sec("none", "Banner", map[string]any{"title": "Never shown"}, sdui.Source{"type": "watchLater", "limit": 1})), Request: request("tablet"),
 			Data: Data{Sources: []CannedSource{src(map[string]any{"type": "random"}, films(1), 0)}}},
 			checks: []string{"a banner written by hand opens a native screen", "a banner from a source takes its title, text, picture and destination from the first item", "a banner whose source is empty is left out"}},
-	}, append(append(moduleCases(), playOnlineCases()...), append(experienceCases(), sourceCases()...)...)...)
+	}, append(append(append(moduleCases(), playOnlineCases()...), discCases()...), append(experienceCases(), sourceCases()...)...)...)
 }
 
 // The modules' cases (docs/SDUI-MODULES.md): the worked example module's page,
@@ -1019,4 +1019,61 @@ func sourceCases() []kase {
 func addDock(in *Input) {
 	in.Page.Sections = append(in.Page.Sections, sdui.Section{ID: "dock", Component: "Dock",
 		Props: map[string]any{"target": "all", "controls": []any{"sort", "filter", "view", "jump"}}})
+}
+
+// wittyDVDUI is WittyDVD's own sdui.json, as a copy kept in testdata like WittyPlay's.
+func wittyDVDUI() sdui.ModuleUI {
+	b, err := os.ReadFile(filepath.Join("..", "testdata", "module-wittydvd.json"))
+	if err != nil {
+		panic(err)
+	}
+	ui, err := sdui.ParseModuleUI(b)
+	if err != nil {
+		panic(err)
+	}
+	return *ui
+}
+
+// discCases: a DVD's page with WittyDVD's sections (Design 2's discpage and whytitle boards):
+// the feature, its scenes, the bonus material, the disc's menus and why this title, between
+// the header and the cast. Sections whose source gives nothing (episodes, versions, the
+// diagnosis, the refusal) are left out.
+func discCases() []kase {
+	ui := wittyDVDUI()
+	set := sdui.NewModuleSet([]sdui.ModuleUI{ui})
+	pg := set.WithInserts(stock("detail"))
+	disc := film(7)
+	disc.Kind, disc.Title = "disc", "Harbour Lights"
+	view := func(id, title, sub, route string, badges ...string) sdui.Item {
+		return sdui.Item{ID: id, Kind: "view", Title: title, Subtitle: sub, Route: route, Badges: badges}
+	}
+	q := func(match string) map[string]any { return map[string]any{"type": "wittydvd." + match, "item": "107"} }
+	scene := func(n int, at string) sdui.Item {
+		it := view("scene-"+strconv.Itoa(n), "Scene "+strconv.Itoa(n), at, "/play/107?mode=title&ttn=1&chapter="+strconv.Itoa(n))
+		it.Images = map[string]string{"backdrop": "/api/items/107/disc/thumb/1/" + strconv.Itoa(n)}
+		return it
+	}
+	d := Data{Subject: &disc, Sources: []CannedSource{
+		src(q("feature"), []sdui.Item{view("play", "Play the film", "1 hr 52 min", "/play/107?mode=title"), view("scenes", "Scenes", "28 chapters", "/play/107?mode=title&ttn=1&chapter=1")}, 0),
+		src(q("scenes"), []sdui.Item{scene(1, "0:00"), scene(2, "4:12"), scene(3, "9:40")}, 28),
+		src(q("bonus"), []sdui.Item{view("bonus-3", "Making of", "14 min · title 3", "/play/107?mode=title&ttn=3"), view("bonus-4", "Deleted scenes", "6 min · title 4", "/play/107?mode=title&ttn=4")}, 0),
+		src(q("menus"), []sdui.Item{view("menu-root", "Main menu", "", "/play/107?mode=menu&menu=root&menuVts=1"), view("menu-title", "Title menu", "", "/play/107?mode=menu&menu=title")}, 0),
+		src(q("why"), []sdui.Item{view("why", "Title 1 is the film", "Longest, 28 chapters, main audio · 96% sure", "", "High"),
+			view("candidate-1", "Title 1 · 1 hr 52 min", "the most distinct video", "/play/107?mode=title&ttn=1", "Film"),
+			view("candidate-7", "Title 7 · 1 hr 51 min", "same length, 2 chapters, no audio", "/play/107?mode=title&ttn=7", "Extra")}, 0),
+	}}
+	web := request("web")
+	web.Viewport = "1440x900"
+	web.Modules = []string{"wittydvd"}
+	web.Vars = map[string]string{"item": "107", "title": disc.Title}
+	tv := request("tv")
+	tv.Modules = []string{"wittydvd"}
+	tv.Vars = map[string]string{"item": "107", "title": disc.Title}
+	checks := []string{"WittyDVD's sections sit between the header and the cast, in its order: Feature Presentation, Scenes, Bonus material, Disc menus, Why this title",
+		"rows open their route: the film, a scene, a bonus title or a disc menu in the app's own player", "a row's badges say Film, Extra or the engine's confidence",
+		"sections whose source gave nothing (Episodes, Other versions, Diagnosis, the refusal) are left out", "every section is in WittyDVD's scope"}
+	return []kase{
+		{id: "wittydvd-disc-page-web", title: "A DVD's page with WittyDVD's sections, in a browser", in: Input{Page: pg, Request: web, Data: d, ModuleUI: []sdui.ModuleUI{ui}}, checks: checks},
+		{id: "wittydvd-disc-page-tv", title: "A DVD's page with WittyDVD's sections, on a television", in: Input{Page: pg, Request: tv, Data: d, ModuleUI: []sdui.ModuleUI{ui}}, checks: checks},
+	}
 }

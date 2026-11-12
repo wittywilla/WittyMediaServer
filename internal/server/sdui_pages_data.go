@@ -11,7 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/mediaextras"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
@@ -42,6 +44,20 @@ func (rv *sduiResolver) pageSource(req sdui.SourceRequest) (sdui.SourceResult, b
 		all, err = rv.noticeRows()
 	case "formats":
 		all = rv.formatRows(req.Source.Str("item"))
+	case "creators":
+		all, err = rv.creatorRows(req.Source.Str("item"), req.Source.Bool("subscribed"))
+	case "comments":
+		all, err = rv.commentRows(req.Source.Str("item"))
+	case "markers":
+		all = rv.markerRows(req.Source.Str("item"))
+	case "canvas":
+		all = rv.canvasRows(req.Source.Str("item"))
+	case "formField":
+		src := req.Source
+		all = []sdui.Item{{ID: "f-" + src.Str("name"), Kind: "view", Title: src.Str("label"), Icon: "plus",
+			Control: &sdui.Control{Type: sdui.ControlField, Name: src.Str("name"), Placeholder: src.Str("placeholder"), Multiline: src.Bool("multiline"), MaxLength: max(src.Int("maxLength"), 1), Input: "text"}}}
+	case "smartRule":
+		all = smartRuleRows()
 	case "newList":
 		all = []sdui.Item{{ID: "name", Kind: "view", Title: "Name", Icon: "plus", Control: &sdui.Control{Type: sdui.ControlField, Name: "name", Placeholder: "A name for the list", MaxLength: 60, Input: "text"}}}
 	default:
@@ -384,4 +400,131 @@ func (rv *sduiResolver) noticeRows() ([]sdui.Item, error) {
 		}
 	}
 	return out, nil
+}
+
+// creatorRows: the creators of the libraries the profile can open (or one, by item), each a person row with how many videos
+// it has and a Subscribe switch whose action flips it (a guest can't subscribe, so it has no switch).
+func (rv *sduiResolver) creatorRows(item string, subscribed bool) ([]sdui.Item, error) {
+	q := library.CreatorQuery{UserID: rv.u.ID, Access: rv.acc, Subscribed: subscribed}
+	if n, err := strconv.ParseInt(item, 10, 64); err == nil {
+		q.ID = n
+	}
+	list, err := rv.s.Store.Creators(rv.ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	canSub := rv.u.IsAdmin || rv.u.Kind != auth.KindGuest
+	out := make([]sdui.Item, 0, len(list))
+	for _, c := range list {
+		it := sdui.Item{ID: itoa(c.ID), Kind: "person", Title: c.Name, Subtitle: strings.Join(nonEmpty(fmt.Sprintf("%d videos", c.Videos), c.Platform), " \u00b7 "), Icon: "user", Overview: c.Description, Images: map[string]string{}}
+		if c.HasAvatar {
+			it.Images["square"] = "/api/creators/" + itoa(c.ID) + "/art/avatar"
+		}
+		if item == "" {
+			it.Route = "/creator/" + itoa(c.ID)
+		}
+		if canSub {
+			it.Trailing = map[bool]string{true: "Subscribed", false: ""}[c.Subscribed]
+			it.Control = &sdui.Control{Type: sdui.ControlSwitch, Value: c.Subscribed}
+			it.Action = &sdui.Action{Type: sdui.ActCommand, Op: "creator.subscribe", Item: itoa(c.ID), Params: map[string]any{"on": !c.Subscribed}}
+		}
+		out = append(out, it)
+	}
+	return out, nil
+}
+
+// commentRows: what people wrote about a title the profile may see, newest last as stored; a comment's writer (or an
+// administrator) has Delete, which asks first. Reading is for everyone; writing is for adults (Kids and Guest see no form).
+func (rv *sduiResolver) commentRows(item string) ([]sdui.Item, error) {
+	it, _ := rv.subjectItem(item)
+	if it == nil {
+		return nil, nil
+	}
+	list, _, err := rv.s.Store.Comments(rv.ctx, it.ID, 100, 0)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]sdui.Item, 0, len(list))
+	for _, c := range list {
+		row := sdui.Item{ID: itoa(c.ID), Kind: "view", Title: c.Author, Subtitle: c.Body, Icon: "user", Trailing: agoWords(rv.now, c.CreatedAt)}
+		if c.ParentID != nil {
+			row.Badges = []string{"Reply"}
+		}
+		if (c.UserID != nil && *c.UserID == rv.u.ID) || rv.u.IsAdmin {
+			row.Action = &sdui.Action{Type: sdui.ActCommand, Op: "comment.delete", Item: itoa(c.ID), Confirm: "Delete this comment?"}
+		}
+		out = append(out, row)
+	}
+	return out, nil
+}
+
+// markerRows: where the intro, recap, credits and ad breaks of a title are, as the player's Skip uses them.
+func (rv *sduiResolver) markerRows(item string) []sdui.Item {
+	it, _ := rv.subjectItem(item)
+	if it == nil {
+		return nil
+	}
+	m := rv.s.mediaMarkers(rv.ctx, it)
+	span := func(r *mediaextras.Range) string {
+		if r == nil {
+			return "None"
+		}
+		return sdui.FormatRuntime(r.StartSec) + " to " + sdui.FormatRuntime(r.EndSec)
+	}
+	out := []sdui.Item{{ID: "intro", Kind: "view", Title: "Intro", Trailing: span(m.Intro), Icon: "play"},
+		{ID: "recap", Kind: "view", Title: "Recap", Trailing: span(m.Recap), Icon: "history"},
+		{ID: "credits", Kind: "view", Title: "Credits", Trailing: span(m.Credits), Icon: "list"}}
+	if n := len(m.Commercials); n > 0 {
+		out = append(out, sdui.Item{ID: "ads", Kind: "view", Title: "Breaks", Trailing: strconv.Itoa(n), Icon: "clock"})
+	}
+	return out
+}
+
+// canvasRows: whether a title has a looping silent video behind its page, and for an administrator whether one is being made.
+func (rv *sduiResolver) canvasRows(item string) []sdui.Item {
+	it, _ := rv.subjectItem(item)
+	if it == nil {
+		return nil
+	}
+	have := "None"
+	if f, ok := rv.s.findCanvas(rv.ctx, it); ok {
+		if fh, st, err := rv.s.openExtra(rv.ctx, f); err == nil {
+			fh.Close()
+			if rv.s.canvasRefused(rv.ctx, f, st) == "" {
+				have = "Available"
+			}
+		}
+	}
+	out := []sdui.Item{{ID: "canvas", Kind: "view", Title: "Canvas video", Subtitle: "A looping silent video behind the page.", Trailing: have, Icon: "video"}}
+	if rv.u.IsAdmin {
+		if t := rv.s.mediaJobTask(fmt.Sprintf("canvas:%d", it.ID)); t != "" {
+			out = append(out, sdui.Item{ID: "making", Kind: "view", Title: "Cutting from the film", Trailing: "Running", Icon: "plug"})
+		}
+	}
+	return out
+}
+
+// smartRuleRows: the fields of a smart playlist's rule as controls of a Form: its name, then the rule's own ("rule.x"
+// goes into the command's rule object; "[]" splits a comma-separated list into a list).
+func smartRuleRows() []sdui.Item {
+	field := func(id, label, help, name, in, placeholder string) sdui.Item {
+		return sdui.Item{ID: id, Kind: "view", Title: label, Subtitle: help,
+			Control: &sdui.Control{Type: sdui.ControlField, Name: name, Input: in, Placeholder: placeholder, MaxLength: 200}}
+	}
+	sel := func(id, label, name string, opts ...sdui.EnumOption) sdui.Item {
+		return sdui.Item{ID: id, Kind: "view", Title: label, Control: &sdui.Control{Type: sdui.ControlSelect, Name: name, Options: opts, Value: opts[0].Value}}
+	}
+	return []sdui.Item{
+		field("name", "Name", "", "name", "text", "Short films from the 2020s"),
+		field("types", "Kinds of library", "Separate with commas: movies, shows, music.", "rule.libraryTypes[]", "text", "movies"),
+		field("genres", "Genres", "Any of these, separated by commas.", "rule.genres[]", "text", "Drama, Short"),
+		field("words", "Words", "In the title or the synopsis.", "rule.search", "text", ""),
+		field("from", "From year", "", "rule.yearFrom", "number", "2020"),
+		field("to", "To year", "", "rule.yearTo", "number", "2025"),
+		field("rating", "Score at least", "Out of 10.", "rule.ratingMin", "number", "7"),
+		field("added", "Added within (days)", "", "rule.addedWithinDays", "number", ""),
+		sel("watched", "Watched", "rule.watched", sdui.EnumOption{Value: "", Label: "Any"}, sdui.EnumOption{Value: "no", Label: "Unwatched"}, sdui.EnumOption{Value: "yes", Label: "Watched"}, sdui.EnumOption{Value: "started", Label: "Started"}),
+		sel("sort", "Sort", "rule.sort", sdui.EnumOption{Value: "added", Label: "Newest"}, sdui.EnumOption{Value: "title", Label: "Title"}, sdui.EnumOption{Value: "year", Label: "Year"}, sdui.EnumOption{Value: "rating", Label: "Score"}, sdui.EnumOption{Value: "random", Label: "Random"}),
+		field("limit", "At most", "Up to 500.", "rule.limit", "number", "50"),
+	}
 }

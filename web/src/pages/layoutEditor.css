@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The layout editor (ShellEditor.tsx). */
 .modal.ui-dialog.layout-editor { width: min(1280px, calc(100vw - 32px)); max-width: none; max-height: calc(100vh - 32px); overflow-y: auto; }
 .le-top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4); }
@@ -51,3 +53,5 @@
 .le-foot { margin: var(--sp-4) 0 0; font-size: var(--text-xs); line-height: var(--leading-body); }
 .le-tile.le-hero { min-block-size: 9rem; }
 .z-start .le-tile-main, .z-end .le-tile-main, .z-start .le-drop, .z-end .le-drop { white-space: normal; }
+/* Save, Undo, Redo and Reset stay in view however tall the picture is. */
+.modal.ui-dialog.layout-editor > .actions { position: sticky; inset-block-end: calc(-1 * var(--sp-4)); z-index: var(--z-sticky); padding-block: var(--sp-3); background: var(--bg-2); }

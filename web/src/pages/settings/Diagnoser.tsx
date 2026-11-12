@@ -9,6 +9,8 @@ import { IconDisc, IconDrive, IconFile, IconFolder, IconUp } from '../../icons'
 import { toast } from '../../state'
 import FindingCard, { SEVERITY_WORDS as WORDS, type Finding, type Severity } from './FindingCard'
 import { PageHead, Row, Section, Switch } from './ui'
+import SpecPage from '../../spec/SpecPage'
+import { discSpec, pastSpec, storageSpec } from '../../spec/specs/diagnoser'
 import './diagnoser.css'
 import { Tabs } from '../../ui/Choice'
 
@@ -31,7 +33,6 @@ type Listing = { path: string; parent: string | null; roots?: { name: string; pa
 const POLL_MS = 1500
 const active = (j?: Job | null) => !!j && (j.state === 'queued' || j.state === 'running')
 const gb = (n = 0) => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : `${Math.max(1, Math.round(n / (1 << 20)))} MB`)
-const baseName = (p: string) => p.split(/[\\/]/).filter(Boolean).pop() || p
 
 function countsLine(c: Job['counts']) {
   const n = (k: Severity) => c?.[k] || 0
@@ -85,32 +86,12 @@ function DiscChoice({ onStarted }: { onStarted: (j: Job) => void }) {
     try { onStarted(await api.post<Job>('/diagnose/disc', { path, crawl, damage })) } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
   const known = targets?.discs || []
+  const page = discSpec({ path, knownDiscs: known.map((d) => ({ title: d.title, path: d.path })), crawl, damage, busy, error: err, browsing })
   return (
-    <Section title="Check a disc" desc="A disc image (.iso, or a CD's .cue), or a folder holding VIDEO_TS or BDMV, from your libraries or the data folder.">
-      <Row label="Which disc" stack desc={path ? undefined : 'Nothing chosen yet.'}>
-        <div className="dgn-pick">
-          {path && <div className="dgn-picked"><IconDisc size={18} /><span><b>{baseName(path)}</b><small className="mono">{path}</small></span></div>}
-          <div className="dgn-pick-actions">
-            <button type="button" className="btn" onClick={() => setBrowsing((b) => !b)} aria-expanded={browsing}><IconFolder /> {browsing ? 'Close the browser' : 'Browse for a disc'}</button>
-            {known.length > 0 && (
-              <select className="select dgn-known" aria-label="Discs in your libraries" value={known.some((d) => d.path === path) ? path : ''} onChange={(e) => { if (e.target.value) pick(e.target.value) }}>
-                <option value="">Discs in your libraries…</option>
-                {known.map((d) => <option key={d.id} value={d.path}>{d.title}</option>)}
-              </select>
-            )}
-          </div>
-          {browsing && <DiscBrowser onPick={pick} />}
-        </div>
-      </Row>
-      <Row label="Press every menu button" desc="Walks through every menu the disc has and reports the buttons that lead nowhere. Usually a minute or two, and it stops by itself after 10 minutes.">
-        <Switch checked={crawl} onChange={setCrawl} label="Press every menu button" />
-      </Row>
-      <Row label="Check for damaged or unreadable sectors" desc="Reads everything on the disc from start to end: a few minutes for a DVD, and 20 minutes or more for a Blu-ray, longer on a slow or network drive. It gives way to anyone watching something, and you can leave this page while it runs.">
-        <Switch checked={damage} onChange={setDamage} label="Check for damaged or unreadable sectors" />
-      </Row>
-      {err && <div className="error dgn-err" role="alert">{err}</div>}
-      <div className="dgn-start"><button className="btn primary" onClick={start} disabled={!path || busy}>{busy ? 'Starting…' : 'Start the check'}</button></div>
-    </Section>
+    <SpecPage embedded page={page} handled={new Set(['browse', 'start'])}
+      onAction={(id) => { if (id === 'browse') setBrowsing((b) => !b); else if (id === 'start') void start() }}
+      onField={(id, v) => { if (id === 'known') { if (v) pick(String(v)) } else if (id === 'crawl') setCrawl(!!v); else if (id === 'damage') setDamage(!!v) }}
+      after={{ 0: browsing ? <DiscBrowser onPick={pick} /> : null }} />
   )
 }
 
@@ -185,36 +166,17 @@ function StorageChoice({ onStarted }: { onStarted: (j: Job) => void }) {
     setBusy(true); setErr('')
     try { onStarted(await api.post<Job>('/diagnose/storage', { targets: [...chosen], readTest, writeTest, walk })) } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
-  const box = (f: Folder) => (
-    <label key={f.id} className="dgn-check">
-      <input type="checkbox" checked={chosen.has(f.id)} onChange={() => flip(f.id)} />
-      <span><b>{f.name}</b><small className="mono">{f.path}</small></span>
-    </label>
-  )
+  const folders = targets ? [...targets.libraries.flatMap((l) => l.folders).map((f) => ({ ...f, group: 'library' as const })), ...targets.data.map((f) => ({ ...f, group: 'data' as const }))] : []
+  if (!targets) return err ? <div className="error dgn-err" role="alert">{err}</div> : <div className="dgn-browser-empty"><Spinner /></div>
   return (
-    <Section title="Check storage" desc="Free space, what kind of drive it is, whether the server can read each folder, how fast it reads, and the drive's health where the system tells. Nothing is changed or repaired."
-      actions={all.length > 0 && <button type="button" className="btn ghost sm" onClick={() => setChosen(chosen.size === all.length ? new Set() : new Set(all.map((f) => f.id)))}>{chosen.size === all.length ? 'Clear all' : 'Choose all'}</button>}>
-      {!targets && !err && <div className="dgn-browser-empty"><Spinner /></div>}
-      {targets && (
-        <div className="dgn-groups">
-          {targets.libraries.some((l) => l.folders.length) && (
-            <fieldset className="dgn-group"><legend>Library folders</legend>{targets.libraries.flatMap((l) => l.folders).map(box)}</fieldset>
-          )}
-          <fieldset className="dgn-group"><legend>The server's own folders</legend>{targets.data.map(box)}</fieldset>
-        </div>
-      )}
-      <Row label="Go through every file" desc="Looks for files that can't be opened, empty files, and names and paths that cause trouble; for libraries, also items that have gone from the disk. Up to 2 minutes for each folder.">
-        <Switch checked={walk} onChange={setWalk} label="Go through every file" />
-      </Row>
-      <Row label="Measure read speed" desc="Reads for up to 15 seconds from the largest files in each folder, and says how many streams it could keep up with.">
-        <Switch checked={readTest} onChange={setReadTest} label="Measure read speed" />
-      </Row>
-      <Row label="Try a small write" desc="Writes a 32 MB temporary file, reads it back and removes it. Only ever in the server's own folders, and never in or around a library.">
-        <Switch checked={writeTest} onChange={setWriteTest} label="Try a small write" />
-      </Row>
-      {err && <div className="error dgn-err" role="alert">{err}</div>}
-      <div className="dgn-start"><button className="btn primary" onClick={start} disabled={chosen.size === 0 || busy}>{busy ? 'Starting…' : 'Start the check'}</button></div>
-    </Section>
+    <SpecPage embedded page={storageSpec({ folders, chosen, walk, readTest, writeTest, busy, error: err })}
+      handled={new Set([...all.map((f) => 'dir:' + f.id), 'start', 'all'])}
+      onAction={(id) => {
+        if (id === 'start') void start()
+        else if (id === 'all') setChosen(chosen.size === all.length ? new Set() : new Set(all.map((f) => f.id)))
+        else if (id.startsWith('dir:')) flip(id.slice(4))
+      }}
+      onField={(id, v) => { if (id === 'walk') setWalk(!!v); else if (id === 'read') setReadTest(!!v); else if (id === 'write') setWriteTest(!!v) }} />
   )
 }
 
@@ -283,27 +245,8 @@ function JobPanel({ id, onChanged }: { id: string; onChanged: () => void }) {
 // ---------------------------------------------------------------- past reports
 
 function PastReports({ jobs, err, current, onOpen, onRetry }: { jobs: Job[] | null; err: string; current: string; onOpen: (id: string) => void; onRetry: () => void }) {
-  return (
-    <Section title="Past reports" desc="The last 20 are kept on the server, and the newest few go in the log download with names hidden.">
-      {err && <div className="error dgn-err" role="alert">{err} <button type="button" className="btn sm" onClick={onRetry}>Try again</button></div>}
-      {!err && !jobs && <div className="dgn-browser-empty"><Spinner /></div>}
-      {jobs && jobs.length === 0 && <div className="set-empty"><IconDisc size={34} /><b>No reports yet</b><p>When a check finishes, its report stays here.</p></div>}
-      {jobs && jobs.length > 0 && (
-        <ul className="dgn-entries">
-          {jobs.map((j) => (
-            <li key={j.id}>
-              <button type="button" className={'dgn-entry' + (j.id === current ? ' current' : '')} aria-current={j.id === current || undefined} onClick={() => onOpen(j.id)}>
-                {j.kind === 'disc' ? <IconDisc size={18} /> : <IconDrive size={18} />}
-                <span className="dgn-entry-name">{j.subject}</span>
-                <small>
-                  {active(j) ? 'Running' : j.state === 'cancelled' ? 'Stopped' : j.worst ? WORDS[j.worst] : 'Finished'}
-                  {j.finished ? ` · ${fmtDateTime(j.finished)}` : ''}
-                </small>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Section>
-  )
+  if (err) return <div className="error dgn-err" role="alert">{err} <button type="button" className="btn sm" onClick={onRetry}>Try again</button></div>
+  if (!jobs) return <div className="dgn-browser-empty"><Spinner /></div>
+  const list = jobs.map((j) => ({ id: j.id, kind: j.kind, subject: j.subject, running: active(j), state: j.state, worst: j.worst, finished: j.finished ? fmtDateTime(j.finished) : undefined }))
+  return <SpecPage embedded page={pastSpec(list, current, WORDS)} handled={new Set(jobs.map((j) => 'job:' + j.id))} onAction={(id) => onOpen(id.slice(4))} />
 }

@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import SpecPage from '../spec/SpecPage'
+import { handledIds, withIds } from '../spec/model'
+import { radioAddressSpec, radioFilterSpec, radioPlaylistSpec, stationManageSpec } from '../spec/specs/radio'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, artPreviewUrl, posterUrl, type Item, type Library } from '../api'
 import { useAudio } from '../audio/player'
 import { PlayOnButton } from '../remote/PlayOnButton'
 import { BackLink, CardRow, EmptyState, Placeholder, SkeletonGrid, Spinner } from '../components/common'
-import { IconCheck, IconGlobe, IconPause, IconPlay, IconPlus, IconRefresh, IconSearch, IconStar, IconTrash, libIcon } from '../icons'
+import { IconCheck, IconGlobe, IconPause, IconPlay, IconPlus, IconRefresh, IconSearch, IconStar, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import '../radio.css'
 import LegalNote from '../components/LegalNote'
@@ -114,6 +117,8 @@ export default function RadioLibrary({ lib }: { lib: Library }) {
   const favourites = browsing ? all.filter((s) => s.radio.favorite) : []
   const recent = browsing ? all.filter((s) => s.radio.lastPlayed).sort((a, b) => (b.radio.lastPlayed || 0) - (a.radio.lastPlayed || 0)).slice(0, 12) : []
   const dead = all.filter((s) => s.radio.status === 'dead').length
+  const filterSpec = useMemo(() => radioFilterSpec(countries, country, genres, genre), [countries, country, genres, genre])
+  const filterHandled = useMemo(() => handledIds(withIds(filterSpec)), [filterSpec])
   const play = usePlay(shown)
   const playFav = usePlay(favourites)
   const playRecent = usePlay(recent)
@@ -148,16 +153,7 @@ export default function RadioLibrary({ lib }: { lib: Library }) {
           {favourites.length > 0 && <section className="rd-row" aria-label="Favourites"><h2>Favourites</h2><CardRow>{favourites.map((s) => <StationCard key={s.id} s={s} play={playFav} />)}</CardRow></section>}
           {recent.length > 0 && <section className="rd-row" aria-label="Recently played"><h2>Recently played</h2><CardRow>{recent.map((s) => <StationCard key={s.id} s={s} play={playRecent} />)}</CardRow></section>}
           {(genres.length > 1 || countries.length > 1) && (
-            <div className="chips rd-filters" role="group" aria-label="Browse by genre and country">
-              {countries.length > 1 && (
-                <select className="select sm" aria-label="Country" value={country} onChange={(e) => filter('country', e.target.value)}>
-                  <option value="">All countries</option>
-                  {countries.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              )}
-              {genres.length > 1 && <button className={'chip' + (!genre ? ' active' : '')} aria-pressed={!genre} onClick={() => filter('genre', '')}>All genres</button>}
-              {genres.length > 1 && genres.map((g) => <button key={g} className={'chip' + (genre === g ? ' active' : '')} aria-pressed={genre === g} onClick={() => filter('genre', genre === g ? '' : g)}>{g}</button>)}
-            </div>
+            <SpecPage bare className="rd-filters" page={filterSpec} handled={filterHandled} onAction={(id) => filter('genre', id.slice(6) === genre ? '' : id.slice(6))} onField={(_id, v) => filter('country', String(v))} />
           )}
           {browsing && dead > 0 && <p className="muted rd-note">{dead} {dead === 1 ? 'station is' : 'stations are'} off the air: {dead === 1 ? 'it' : 'they'} stopped answering. Open one to try again or remove it.</p>}
           {(favourites.length > 0 || recent.length > 0) && <h2 className="rd-all">All stations</h2>}
@@ -301,21 +297,15 @@ function AddressForm({ lib, onDone }: { lib: Library; onDone: () => void }) {
   const [genre, setGenre] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
-  const add = async (e: React.FormEvent) => {
-    e.preventDefault(); setErr(''); setBusy(true)
+  const add = async (e?: React.FormEvent) => {
+    e?.preventDefault(); setErr(''); setBusy(true)
     try { await api.post('/radio', { libraryId: lib.id, name, url, genre }); onDone() } catch (x: any) { setErr(x.message) } finally { setBusy(false) }
   }
+  const spec = useMemo(() => radioAddressSpec({ url, name, genre }, err, busy), [url, name, genre, err, busy])
+  const set = (id: string, v: unknown) => { const t = String(v); if (id === 'url') setUrl(t); else if (id === 'name') setName(t.slice(0, 200)); else if (id === 'genre') setGenre(t.slice(0, 80)) }
   return (
     <form className="rd-form" onSubmit={add}>
-      <label className="oobe-field">Stream address<input className="input" type="url" autoFocus required placeholder="https://…/stream" value={url} onChange={(e) => setUrl(e.target.value)} /></label>
-      <div className="row2">
-        <label className="oobe-field">Name<input className="input" maxLength={200} placeholder="Optional" value={name} onChange={(e) => setName(e.target.value)} /></label>
-        <label className="oobe-field">Genre<input className="input" maxLength={80} placeholder="Optional" value={genre} onChange={(e) => setGenre(e.target.value)} /></label>
-      </div>
-      <p className="muted rd-note">Only addresses on the internet work: the server won't reach into your own network on a station's behalf. A station's name and details are filled in the first time it plays, if it gives them.</p>
-      <LegalNote kind="webMedia" />
-      {err && <div className="error" role="alert">{err}</div>}
-      <button className="btn primary" disabled={!url.trim() || busy}>{busy ? 'Adding…' : 'Add station'}</button>
+      <SpecPage embedded page={spec} handled={useMemo(() => handledIds(withIds(spec)), [spec])} onField={set} onAction={() => void add()} after={{ 1: <LegalNote kind="webMedia" /> }} />
     </form>
   )
 }
@@ -324,8 +314,8 @@ function PlaylistForm({ lib, onDone }: { lib: Library; onDone: () => void }) {
   const [playlist, setPlaylist] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
-  const add = async (e: React.FormEvent) => {
-    e.preventDefault(); setErr(''); setBusy(true)
+  const add = async (e?: React.FormEvent) => {
+    e?.preventDefault(); setErr(''); setBusy(true)
     try {
       const r = await api.post<{ added: number }>('/radio/import', { libraryId: lib.id, playlist })
       if (!r.added) { setErr('No stations were found in that playlist.'); return }
@@ -333,13 +323,12 @@ function PlaylistForm({ lib, onDone }: { lib: Library; onDone: () => void }) {
     } catch (x: any) { setErr(x.message) } finally { setBusy(false) }
   }
   const readFile = async (f?: File) => { if (f) setPlaylist(await f.text()) }
+  const spec = useMemo(() => radioPlaylistSpec(playlist, err, busy), [playlist, err, busy])
   return (
     <form className="rd-form" onSubmit={add}>
-      <label className="oobe-field">M3U or PLS playlist file<input className="input" type="file" accept=".m3u,.m3u8,.pls,text/plain" onChange={(e) => readFile(e.target.files?.[0])} /></label>
-      <label className="oobe-field">…or paste it here<textarea className="input" rows={5} value={playlist} onChange={(e) => setPlaylist(e.target.value)} /></label>
+      <SpecPage embedded page={spec} handled={useMemo(() => handledIds(withIds(spec)), [spec])} onField={(_, v) => { if (v instanceof File) void readFile(v) }} onAction={() => void add()}
+        after={{ 0: <label className="oobe-field">…or paste it here<textarea className="input" rows={5} value={playlist} onChange={(e) => setPlaylist(e.target.value)} /></label> }} />
       <LegalNote kind="webMedia" />
-      {err && <div className="error" role="alert">{err}</div>}
-      <button className="btn primary" disabled={!playlist.trim() || busy}>{busy ? 'Adding…' : 'Add stations'}</button>
     </form>
   )
 }
@@ -388,6 +377,8 @@ export function RadioStationPage() {
     if (!await ask({ title: `Remove ${s.title}?`, confirm: 'Remove', danger: true })) return
     await api.del(`/radio/${s.id}`); nav(`/library/${s.libraryId}`, { replace: true })
   })
+  const manage = stationManageSpec({ fromDirectory: !!m.source, lastCheck: m.lastCheck ? when(m.lastCheck) : undefined, address: s.path || undefined, busy })
+  const manageHandled = handledIds(withIds(manage))
   const facts = [m.country, m.language, quality(m.codec, m.bitrate), m.hls ? 'HLS' : ''].filter(Boolean)
   return (
     <div className="rd-page">
@@ -417,15 +408,8 @@ export function RadioStationPage() {
         </div>
       )}
       {user?.isAdmin && (
-        <section className="panel rd-admin" aria-label="Manage this station">
-          <h2>Manage</h2>
-          <p className="panel-note">{[m.source ? 'From the Radio Browser directory.' : 'Added by its address.', m.lastCheck ? `Last tried ${when(m.lastCheck)}.` : 'Not tried yet.'].join(' ')}</p>
-          {s.path && <p className="rd-address">{s.path}</p>}
-          <div className="panel-actions">
-            <button className="btn" disabled={!!busy} onClick={check}><IconRefresh /> {busy === 'check' ? 'Trying…' : 'Try it now'}</button>
-            {!m.source && <button className="btn" disabled={!!busy} onClick={lookup}><IconSearch /> {busy === 'lookup' ? 'Looking…' : 'Find details in the directory'}</button>}
-            <button className="btn danger" disabled={!!busy} onClick={remove}><IconTrash /> Remove</button>
-          </div>
+        <section className="rd-admin" aria-label="Manage this station">
+          <SpecPage bare page={manage} handled={manageHandled} onAction={(id) => { if (id === 'check') check(); else if (id === 'lookup') lookup(); else if (id === 'remove') remove() }} />
         </section>
       )}
       {row.length > 0 && <section className="rd-row" aria-label="Similar stations"><h2>More like this</h2><CardRow>{row.map((o) => <StationCard key={o.id} s={o} play={playOthers} />)}</CardRow></section>}

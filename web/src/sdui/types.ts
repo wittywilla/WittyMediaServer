@@ -3,7 +3,7 @@
 // What the server sends for a server-driven page (docs/SDUI.md, catalogue revision 5).
 // Plain data: nothing here touches the page.
 
-export const CATALOG = 6
+export const CATALOG = 7
 export const VERSION = 1
 
 export type Props = Record<string, unknown>
@@ -35,7 +35,9 @@ export type CardMetrics = { shape?: string; aspect?: string; width?: Record<stri
 
 // Shell is the layout option a page was made for and how the app's frame is drawn with
 // it (docs/SDUI.md, "Layout options").
-export type Shell = { experience: string; nav: string; overlay?: boolean; size: number; open?: number; drawer?: number; placements?: Record<string, { position?: string; visible?: boolean; style?: string }> }
+export type Shell = { experience: string; nav: string; overlay?: boolean; size: number; open?: number; drawer?: number; placements?: Record<string, { position?: string; visible?: boolean; style?: string }>
+  // The module scope's destinations for the circular dock (region systemDock): where a game console's home goes.
+  systemDock?: { id: string; label: string; icon?: string; route: string }[] }
 
 export type Layout = {
   shell?: Shell

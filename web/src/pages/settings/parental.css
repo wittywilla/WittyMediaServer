@@ -2,11 +2,7 @@
 /* Copyright (C) 2026 WittyWilla and contributors */
 /* Settings, Profiles: the parts of a profile's limits, and what a parent sees of its day. */
 .pc-tabs { margin-bottom: var(--sp-3); }
-.pc-kinds, .pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--sp-3) var(--sp-4); align-items: start; }
-.pc-kind { display: grid; gap: var(--sp-1); }
-.pc-switches, .pc-collections { display: grid; gap: var(--sp-2); }
-.pc-switch { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); min-height: 44px; padding: var(--sp-2) var(--sp-3); background: var(--bg-3); border-radius: var(--r-md); }
-.pc-switch .hint { color: var(--fg-3); font-size: var(--text-xs); }
+.pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--sp-3) var(--sp-4); align-items: start; }
 .pc-time { display: grid; gap: var(--sp-3); }
 
 .pc-avatars { border: 0; padding: 0; margin: 0; display: grid; gap: var(--sp-2); }

@@ -168,8 +168,6 @@ a.mod-row:hover { background: var(--hover); }
 
 /* Updates (About) */
 .upd-new { display: grid; gap: 10px; margin: 6px 0 var(--sp-3); padding: var(--sp-3); border-radius: var(--r-md); background: var(--accent-soft); border: 1px solid var(--accent-line); }
-.upd-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.upd-head > div { display: grid; gap: 2px; min-width: 0; }
 /* What's new: each version's notes, drawn as the help pages draw a guide, a little smaller. */
 .upd-whatsnew { display: grid; gap: var(--sp-2); }
 .upd-whatsnew-title { margin: var(--sp-2) 0 0; font-size: var(--text-base); }

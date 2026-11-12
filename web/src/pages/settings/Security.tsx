@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fmtDateTime, api, type Session, type UserView } from '../../api'
-import { IconCheck, IconTrash } from '../../icons'
 import { toast, useApp } from '../../state'
-import QrCode from './QrCode'
+import SpecPage from '../../spec/SpecPage'
+import { handledIds } from '../../spec/model'
+import { devicesSpec, twoFactorSpec, type TwoFactorState } from '../../spec/specs/security'
 import { PageHead, Row, Section } from './ui'
 import './remote.css'
 import { ask } from '../../ui/Overlay'
 
 // Settings → Sign-in & security, for everyone: the devices signed in to this
 // account, and two-factor sign-in for adults.
-
-const where: Record<string, string> = { machine: 'This computer', home: 'At home', vpn: 'Away, through your VPN', internet: 'Away, over the internet' }
 
 const when = (t: number) => (t ? fmtDateTime(t * 1000) : 'not yet')
 
@@ -32,30 +31,19 @@ function Devices() {
   const [list, setList] = useState<Session[] | null>(null)
   const load = useCallback(() => api.get<Session[]>('/sessions').then(setList).catch((e) => toast(e.message)), [])
   useEffect(() => { load() }, [load])
-  const end = async (s: Session) => {
-    try { await api.del(`/sessions/${s.id}`); toast('Signed out on that device'); load() } catch (e: any) { toast(e.message) }
+  const page = useMemo(() => devicesSpec(list || [], when), [list])
+  const handled = useMemo(() => handledIds(page), [page])
+  const act = async (id: string) => {
+    if (id === 'others') {
+      if (!await ask({ title: 'Sign out everywhere except on this device?', confirm: 'Sign out the others', danger: true })) return
+      try { await api.del('/sessions'); toast('Signed out on your other devices'); load() } catch (e: any) { toast(e.message) }
+    } else if (id.startsWith('out:')) {
+      try { await api.del(`/sessions/${id.slice(4)}`); toast('Signed out on that device'); load() } catch (e: any) { toast(e.message) }
+    }
   }
-  const endOthers = async () => {
-    if (!await ask({ title: 'Sign out everywhere except on this device?', confirm: 'Sign out the others', danger: true })) return
-    try { await api.del('/sessions'); toast('Signed out on your other devices'); load() } catch (e: any) { toast(e.message) }
-  }
-  const others = (list || []).filter((s) => !s.current).length
   return (
-    <Section title="Your devices" desc="Anything you don't recognise? Sign it out, then change your password."
-      actions={others > 0 ? <button type="button" className="btn ghost sm" onClick={endOthers}>Sign out the others</button> : undefined}>
-      <ul className="rem-sessions">
-        {(list || []).map((s) => (
-          <li key={s.id}>
-            <div>
-              <b>{s.device || 'Unknown device'}</b>
-              {s.current && <span className="set-badge">This device</span>}
-              {s.streaming && <span className="set-pill live">Streaming</span>}
-              <small>{where[s.where] || 'Not used since signing in'}{s.ip ? ` · ${s.ip}` : ''} · last used {when(s.lastSeen)}</small>
-            </div>
-            {!s.current && <button type="button" className="btn sm ghost danger-hover" onClick={() => end(s)} aria-label={`Sign out on ${s.device || 'this device'}`}><IconTrash /> Sign out</button>}
-          </li>
-        ))}
-      </ul>
+    <Section title="Your devices" desc="Anything you don't recognise? Sign it out, then change your password.">
+      <SpecPage embedded page={page} handled={handled} onAction={act} />
     </Section>
   )
 }
@@ -85,60 +73,33 @@ function TwoFactor() {
     setTurningOff(false); setPassword(''); setCode(''); await load(); toast('Two-factor sign-in is off')
     if (user) setUser({ ...user, twoFactor: false })
   })
-  if (!state) return null
+  const st: TwoFactorState | null = !state ? null
+    : recovery ? { mode: 'recovery', codes: recovery }
+    : setup ? { mode: 'setup', code, uri: setup.uri, secret: setup.secret }
+    : state.on ? (turningOff ? { mode: 'turningOff', password, code } : { mode: 'on', recoveryLeft: state.recoveryLeft })
+    : { mode: 'begin', password }
+  const page = useMemo(() => (st ? twoFactorSpec(st, err) : null), [st && JSON.stringify(st), err]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handled = useMemo(() => (page ? handledIds(page) : undefined), [page])
+  if (!state || !st || !page) return null
+  const primary: Record<string, string> = { turningOff: 'turnOff', begin: 'start', setup: 'confirm', recovery: 'saved' }
+  const act = (id: string) => {
+    if (id === 'off') { setErr(''); setTurningOff(true) }
+    else if (id === 'keepOn') setTurningOff(false)
+    else if (id === 'turnOff') void disable()
+    else if (id === 'start') void start()
+    else if (id === 'confirm') void confirmCode()
+    else if (id === 'cancel') { setSetup(null); setCode('') }
+    else if (id === 'saved') setRecovery(null)
+    else if (id === 'copy' && recovery) navigator.clipboard.writeText(recovery.join('\n')).then(() => toast('Copied')).catch(() => toast('Select them and copy by hand'))
+  }
+  const field = (id: string, v: string | number | boolean | File) => { if (id === 'password') setPassword(String(v)); else if (id === 'code') setCode(String(v)) }
   return (
     <Section title="Two-factor sign-in" desc="Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote Access. Any authenticator app works.">
-      {recovery && (
-        <div className="rem-recovery" role="alert">
-          <b>Save these recovery codes now.</b>
-          <p>Each works once, in place of a code, if you lose your phone. They won't be shown again.</p>
-          <ul>{recovery.map((c) => <li key={c}><code>{c}</code></li>)}</ul>
-          <div className="rem-actions">
-            <button type="button" className="btn sm" onClick={() => navigator.clipboard.writeText(recovery.join('\n')).then(() => toast('Copied')).catch(() => toast('Select them and copy by hand'))}>Copy them</button>
-            <button type="button" className="btn primary sm" onClick={() => setRecovery(null)}>I saved them</button>
-          </div>
-        </div>
-      )}
-      {state.on && !turningOff && (
-        <Row label={<><IconCheck size={14} /> On for your account</>} desc={`${state.recoveryLeft} recovery ${state.recoveryLeft === 1 ? 'code' : 'codes'} left.`}>
-          <button type="button" className="btn sm ghost" onClick={() => { setErr(''); setTurningOff(true) }}>Turn off</button>
-        </Row>
-      )}
-      {state.on && turningOff && (
-        <form className="set-form rem-form" onSubmit={(e) => { e.preventDefault(); disable() }}>
-          <label>Your password<input className="input" type="password" autoComplete="current-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} /></label>
-          <label>A code from your app, or a recovery code<input className="input" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></label>
-          <div className="rem-actions">
-            <button type="button" className="btn ghost sm" onClick={() => setTurningOff(false)}>Keep it on</button>
-            <button className="btn danger sm" disabled={!password || !code}>Turn off</button>
-          </div>
-        </form>
-      )}
-      {!state.on && !setup && !recovery && (
-        <form className="set-form rem-form" onSubmit={(e) => { e.preventDefault(); start() }}>
-          <label>Your password, to begin<input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
-          <div className="rem-actions"><button className="btn primary sm" disabled={!password}>Set up</button></div>
-        </form>
-      )}
-      {setup && (
-        <form className="rem-test" onSubmit={(e) => { e.preventDefault(); confirmCode() }}>
-          <QrCode text={setup.uri} label="QR code for your authenticator app" size={190} />
-          <div className="set-form rem-form">
-            <ol>
-              <li>In your authenticator app, add an account and scan this code.</li>
-              <li>Can't scan? Choose to enter a key, and type: <code className="rem-key">{setup.secret.replace(/(.{4})/g, '$1 ').trim()}</code></li>
-              <li>Enter the 6 digits it shows:</li>
-            </ol>
-            <label><span className="sr-only">Code from your app</span><input className="input" inputMode="numeric" autoComplete="one-time-code" autoFocus maxLength={7} value={code} onChange={(e) => setCode(e.target.value)} /></label>
-            <div className="rem-actions">
-              <button type="button" className="btn ghost sm" onClick={() => { setSetup(null); setCode('') }}>Cancel</button>
-              <button className="btn primary sm" disabled={code.replace(/\s/g, '').length !== 6}>Turn on</button>
-            </div>
-            <small>Other devices signed in to your account are signed out when this turns on.</small>
-          </div>
-        </form>
-      )}
-      {err && <p className="error" role="alert">{err}</p>}
+      <form onSubmit={(e) => { e.preventDefault(); const id = primary[st.mode]; if (id && !page.actions.find((a) => a.id === id)?.disabled) act(id) }}>
+        <SpecPage embedded page={page} handled={handled} onAction={act} onField={field} />
+        <button type="submit" hidden tabIndex={-1} aria-hidden="true" />
+      </form>
+      {err && st.mode !== 'setup' && <p className="error" role="alert">{err}</p>}
     </Section>
   )
 }

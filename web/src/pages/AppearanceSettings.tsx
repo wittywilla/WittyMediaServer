@@ -115,7 +115,7 @@ export default function AppearanceSettings() {
   // A profile's own colours, where the server keeps them (feature theme-personal).
   const personalColours = !!useFeatures()?.has('theme-personal')
   const fallback = currentThemeId(serverTheme)
-  const active = mine || fallback
+  const active = currentLook()?.requiredTheme?.value || mine || fallback
   // An administrator can require a theme: it shows locked and nothing here changes it.
   const required = currentLook()?.requiredTheme
   const useHere = (id: string) => { if (required) return; setDeviceTheme(id); setMine(id); applyTheme(id || serverTheme) }
@@ -163,7 +163,7 @@ export default function AppearanceSettings() {
 
   return (
     <>
-      <Section id="theme" title="Theme" desc={required ? <><IconLock /> {lockText(required)}. It can’t be changed here.</> : mine
+      <Section id="theme" title="Theme" desc={required ? <><IconLock /> {lockText(required)}. It can’t be changed here: an administrator changes it in <Link to="/settings/pages/layouts">Pages &amp; menu, Looks</Link>.</> : mine
         ? <>This device has its own theme. <button type="button" className="linkish" onClick={() => useHere('')}>Follow the server’s</button></>
         : 'This device follows the server’s theme. Choosing one here changes this device only.'}>
         <div className="theme-stage">
@@ -172,7 +172,7 @@ export default function AppearanceSettings() {
             : shown === CUSTOM_THEME && customMade
               ? <ThemeScene colors={themeColors(customMade)} radius={customMade.radius} big />
               : <ThemeScene colors={shownTheme?.colors} radius={shownTheme?.radius} preview={shownTheme?.preview} big />}
-          {shownName && <p className="theme-stage-caption"><b>{shownName}</b> <span className="muted">{peeking ? 'Preview. Choose it to use it.' : 'In use on this device'}</span></p>}
+          {shownName && <p className="theme-stage-caption"><b>{shownName}</b> <span className="muted">{peeking ? 'Preview. Choose it to use it.' : required ? 'Required, so this is what this device wears' : 'In use on this device'}</span></p>}
         </div>
         <div className="theme-grid" role="radiogroup" aria-label="Themes" onMouseLeave={() => setPeek(null)}
           onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPeek(null) }}>

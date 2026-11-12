@@ -92,3 +92,28 @@ test('a D-pad on one axis is found at rest and read round the clock', () => {
   assert.deepEqual(keys([pad(id, '', [], [0, 0, 0.7143], 10)], { hats }), ['ArrowLeft'])
   assert.deepEqual(keys([pad(id, '', [], [0, 0, -0.7143], 10)], { hats }), ['ArrowRight', 'ArrowUp'])
 })
+
+test('in the app (not the player) the buttons follow the one input model', () => {
+  const ui = (held) => keys([pad(XBOX, 'standard', held)], { context: 'ui' })
+  assert.deepEqual(ui([0]), ['Enter'])
+  assert.deepEqual(ui([1]), ['Escape'])
+  assert.deepEqual(ui([2]), ['ContextMenu']) // X: options
+  assert.deepEqual(ui([3]), ['/']) // Y: search
+  assert.deepEqual(ui([4]), ['Ctrl+[']) // LB, RB: the tab to the left, right
+  assert.deepEqual(ui([5]), ['Ctrl+]'])
+  assert.deepEqual(ui([6, 7]), ['PageDown', 'PageUp']) // LT, RT: page a long list
+  assert.deepEqual(ui([9]), ['F6']) // Start: the Dock
+  assert.deepEqual(ui([11]), ['Home']) // right stick click: top
+  assert.deepEqual(ui([8]), []) // Back alone does nothing
+  assert.deepEqual(ui([12, 15]), ['ArrowRight', 'ArrowUp'])
+})
+
+test('Back and Start together ask for help, and neither does its own job', () => {
+  assert.deepEqual(keys([pad(XBOX, 'standard', [8, 9])], { context: 'ui' }), ['?'])
+  // In the player the same two buttons keep their player meanings.
+  assert.deepEqual(keys([pad(XBOX, 'standard', [8, 9])], { context: 'player' }), ['ContextMenu', 't'])
+})
+
+test('a Nintendo pad still swaps A and B in the app, and the other buttons stay in place', () => {
+  assert.deepEqual(keys([pad(PRO, 'standard', [0, 1, 2, 3])], { context: 'ui' }), ['ContextMenu', 'Enter', 'Escape', '/'])
+})

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { api, serverBase } from './api'
+import type { StyledPart } from './brandStyle.ts'
 import { overrideDeclarations, type ResolvedTheme } from './themeOverrides'
 import { themeDeclarations } from './ui/themeMaker'
 
@@ -82,6 +83,11 @@ function applyOverrides() {
 // The badge the server's name has for small spaces (docs/CLIENT-API.md): kept for BrandMark to draw.
 const markListeners = new Set<() => void>()
 export const brandMark = () => resolved?.brand?.mark
+// The name as the server colours it, ready to draw: the signed-in account's from /theme, or /status's before that.
+let statusParts: StyledPart[] | undefined
+export const setStatusBrandParts = (p: StyledPart[] | undefined) => { statusParts = p; markListeners.forEach((l) => l()) }
+export const servedBrandParts = (): StyledPart[] | undefined => (resolved?.brand?.parts?.length ? resolved.brand.parts : statusParts)
+export const servedBrandWarnings = () => resolved?.brand?.warnings
 export const subscribeMark = (l: () => void) => { markListeners.add(l); return () => { markListeners.delete(l) } }
 // loadThemeOverrides asks the server for the signed-in account's resolved theme, puts its
 // colours on the page and hands it back (null when the server couldn't be asked).
@@ -91,6 +97,10 @@ export async function loadThemeOverrides() {
   try { device = localStorage.getItem('wms.sdui.device') || '' } catch { /* the form factor's */ }
   try { resolved = await api.get<ResolvedTheme>('/theme' + (device ? '?device=' + encodeURIComponent(device) : '')) } catch { resolved = null }
   applyOverrides()
+  // No theme chosen on this device or required: the look brings its own default theme, always the same.
+  const wears = resolved?.look?.theme
+  if (wears && !deviceTheme() && document.documentElement.dataset.theme !== currentThemeId(wears)) applyTheme(wears)
+  window.dispatchEvent(new Event('wms-tv-look'))
   markListeners.forEach((l) => l())
   return resolved
 }

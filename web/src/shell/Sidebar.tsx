@@ -24,6 +24,7 @@ export function Sidebar({ open, rail, drawer, onClose, withDrawer }: { open: boo
   const [keep, setKeep] = useState(pinned)
   const [drawerOf, setDrawerOf] = useState('')
   const { version, brandName, libraries } = useApp()
+  useEffect(() => { const on = () => setKeep((k) => { const n = !k; try { localStorage.setItem(PIN, n ? '1' : '0') } catch { /* this visit only */ } return n }); window.addEventListener('wms:rail-pin', on); return () => window.removeEventListener('wms:rail-pin', on) }, [])
   const pin = (on: boolean) => { setKeep(on); try { localStorage.setItem(PIN, on ? '1' : '0') } catch { /* this visit only */ } }
   const items = useNavItems()
   const { prefs } = useNavPrefs()
@@ -48,7 +49,7 @@ export function Sidebar({ open, rail, drawer, onClose, withDrawer }: { open: boo
   const link = (it: NavItem) => tip(
     <NavLink key={it.id} to={it.to} end={it.end} className={'nav-link' + (it.id === 'home' || it.id === 'tv' || it.id === 'livetv' ? ' nav-dup' : '')} aria-label={rail && !keep ? it.label : undefined}
       aria-haspopup={withDrawer && it.drawer ? 'true' : undefined} aria-expanded={withDrawer && it.drawer ? drawerOf === it.id : undefined}
-      onClick={() => setDrawerOf(withDrawer && it.drawer ? it.id : '')}>{navIcon(it)} <span className="nav-text">{it.label}</span></NavLink>, it.label)
+      onClick={() => setDrawerOf(withDrawer && it.drawer ? it.id : '')}>{navIcon(it)} <span className="nav-text">{it.label}</span>{it.drawer?.count ? <small className="nav-count nav-text">{it.drawer.count.toLocaleString()}</small> : null}</NavLink>, it.label)
   let libsHead = false
   return (
     <>
@@ -91,6 +92,7 @@ export function Sidebar({ open, rail, drawer, onClose, withDrawer }: { open: boo
 function DrawerView({ view, onGo }: { view: { id: string; label: string; icon: string; route: string }; onGo: () => void }) {
   const loc = useLocation()
   const [path, query = ''] = view.route.split('?')
-  const here = loc.pathname === path && (loc.search.replace(/^\?/, '') === query)
+  // A view with no query of its own (All, Collections) is the library's page as it opens: current only if nothing else is.
+  const here = loc.pathname === path && !!query && loc.search.replace(/^\?/, '') === query
   return <Link to={view.route} className={'nav-link' + (here ? ' active' : '')} aria-current={here ? 'page' : undefined} onClick={onGo}>{sduiIcon(view.icon)} <span>{view.label}</span></Link>
 }

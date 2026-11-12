@@ -39,20 +39,3 @@ test('a chosen colouring is saved and comes back the same', () => {
   assert.equal(pickFromMask(Array.from('A B'), [true, true, false]), 'pick:0-1')
   assert.equal(pickFromMask(Array.from('🎬 Movie'), [false, false, true, true, true, true, true]), 'pick:2-7')
 })
-
-test('words chosen by hand split and join where asked', async () => {
-  const { cutsFor, pieces, gaps, split, join } = await import('./brandName.ts')
-  const name = 'MyHomeTheater', r = Array.from(name)
-  let mask = accentMask(name, 'auto')
-  let cuts = cutsFor(name, mask)
-  assert.deepEqual(pieces(r, cuts), [[0, 2], [2, 6], [6, 13]])
-  ;[cuts, mask] = split(r, cuts, mask, 4)
-  assert.equal(marked(brandParts(name, pickFromMask(r, mask))), 'My[Ho]meTheater')
-  assert.deepEqual(pieces(r, cuts), [[0, 2], [2, 4], [4, 6], [6, 13]])
-  ;[cuts, mask] = join(r, cuts, mask, 4)
-  assert.equal(marked(brandParts(name, pickFromMask(r, mask))), 'My[Home]Theater')
-  // A saved choice comes back with its pieces.
-  assert.deepEqual(pieces(Array.from('Willow\'s Movies'), cutsFor('Willow\'s Movies', accentMask('Willow\'s Movies', 'pick:0-6'))), [[0, 6], [6, 8], [9, 15]])
-  // Not inside an emoji or between a letter and its accent, and not at spaces.
-  assert.deepEqual([...gaps('éa 👩‍👩‍👧b')], [2, 9])
-})

@@ -278,6 +278,13 @@ func CatalogueMarkdown() string {
 			if cmd.Body != "" {
 				reqLine += " with `" + cmd.Body + "`"
 			}
+			for _, p := range cmd.Params {
+				reqLine += "; `" + p.Name + "` (" + p.Type
+				if p.Required {
+					reqLine += ", required"
+				}
+				reqLine += ")"
+			}
 		}
 		w("| `%s` | %s | %s |\n", cmd.Op, cell(cmd.Description), reqLine)
 	}

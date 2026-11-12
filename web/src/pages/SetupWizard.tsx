@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, setToken, type Library } from '../api'
-import { Brand, Spinner, VersionTag } from '../components/common'
+import type { StyledPart } from '../brandStyle.ts'
+import { Brand, BrandMark, Spinner, VersionTag } from '../components/common'
 import { HelpLink } from '../components/HelpLink'
-import { uploadLogo } from '../components/BrandDialog'
 import type { LibraryKind, ModuleReport } from '../moduleStore'
 import { useApp } from '../state'
-import { Progress } from '../ui'
+import { Button, Progress } from '../ui'
 import { Account } from './setup/Account'
 import { Details } from './setup/Details'
 import { Discs } from './setup/Discs'
@@ -24,7 +24,8 @@ import { Media } from './setup/Media'
 import { Modules } from './setup/Modules'
 import { Music } from './setup/Music'
 import type { StepProps } from './setup/parts'
-import { currentStep, neighbours, pathOf, planSteps, stepFromPath, stepNumber, type Facts, type StepId } from './setup/plan'
+import { ALL_DRAWN, canSkip, currentStep, drawnId, drawnNumber, neighbours, pathOf, planSteps, stepFromPath, type Facts, type StepId } from './setup/plan'
+import { Name } from './setup/Name'
 import { Welcome } from './setup/Welcome'
 import { doneBefore, SERVER_STEP } from './setup/serverSteps'
 import './setup/setup.css'
@@ -36,7 +37,7 @@ import './setup/setup.css'
 // someone can go back, or come back tomorrow, without losing anything.
 
 export default function SetupWizard() {
-  const { user, setUser, setOnboarding, brandName, brandColouring, setBrandName, setBrandLogo, version, refreshLibraries } = useApp()
+  const { user, setUser, setOnboarding, brandName, version, refreshLibraries } = useApp()
   const loc = useLocation()
   const navigate = useNavigate()
   const signedIn = !!user
@@ -55,18 +56,8 @@ export default function SetupWizard() {
   }, [])
   useEffect(() => { if (signedIn) void refresh() }, [signedIn, refresh])
 
-  const [serverName, setServerName] = useState(brandName)
-  const [colouring, setColouring] = useState(brandColouring)
-  // A logo chosen on the welcome page waits until the account exists, as only an administrator
-  // may store one, and is uploaded then.
-  const [pendingLogo, setPendingLogo] = useState<File | null>(null)
-  const [logoPreview, setLogoPreview] = useState('')
-  useEffect(() => {
-    if (!pendingLogo) { setLogoPreview(''); return }
-    const u = URL.createObjectURL(pendingLogo)
-    setLogoPreview(u)
-    return () => URL.revokeObjectURL(u)
-  }, [pendingLogo])
+  // The name being tried on the Name step, drawn in the corner as it is typed.
+  const [tryName, setTryName] = useState<{ name: string; parts: StyledPart[] } | null>(null)
 
   const steps = facts ? planSteps(facts) : []
   const wanted = stepFromPath(loc.pathname)
@@ -80,15 +71,17 @@ export default function SetupWizard() {
 
   if (!facts || !step) return <div className="oobe"><div className="center"><Spinner /></div></div>
 
-  const { back, next, index } = neighbours(steps, step.id)
-  const number = stepNumber(index, steps.length, signedIn)
+  const { back, next } = neighbours(steps, step.id)
+  const number = drawnNumber(steps, step.id)
+  const present = new Set(steps.map((x) => drawnId(x.id)))
+  const stepper = ALL_DRAWN.map((x) => ({ id: x.id, label: x.label, missing: !present.has(x.id) && x.id !== 'welcome' && x.id !== 'account' }))
+  const nowAt = stepper.findIndex((x) => x.id === drawnId(step.id))
   const go = (id: StepId) => navigate(pathOf(id))
   const props: StepProps = { info: step, facts, refresh, next: () => { if (next) go(next.id) }, back: back ? () => go(back.id) : undefined }
   const finish = async (to = '/') => {
     // First run is over: the server answers the apps from here on.
     try { await api.post('/setup/complete', {}) } catch { /* an administrator only; the settings below still say so */ }
-    try { await api.put('/settings', { setupDone: '1', brandColouring: colouring, ...(serverName.trim() ? { brandName: serverName.trim() } : {}) }) } catch { /* it asks again next time */ }
-    setBrandName(serverName.trim() || brandName, colouring)
+    try { await api.put('/settings', { setupDone: '1' }) } catch { /* it asks again next time */ }
     await refreshLibraries()
     navigate(to, { replace: true })
     setOnboarding(false)
@@ -99,44 +92,64 @@ export default function SetupWizard() {
       <div className="oobe-glow" aria-hidden="true" />
       <div className="oobe-shell">
         <header className="oobe-head">
-          <div className="brand"><img className="brand-mark" src={logoPreview || '/icon.svg'} alt="" /><Brand name={serverName || brandName} colouring={colouring} /></div>
+          <div className="brand"><BrandMark /><Brand name={tryName?.name ?? brandName} parts={tryName?.parts} /></div>
           <div className="su-progress">
             <div className="su-progress-line">
-              <p className="su-progress-words">Step {number.at} of {number.of}: {step.label}</p>
+              <p className="su-progress-words" id="su-where">Step {number.at} of {number.of}<span className="su-where-name"> · {ALL_DRAWN.find((x) => x.id === drawnId(step.id))?.label || step.label}</span>{number.page && <span className="su-where-page"> · part {number.page.at} of {number.page.of}: {step.label}</span>}</p>
               <HelpLink to="getting-started#what-first-time-setup-asks" newTab>Help with setup</HelpLink>
             </div>
             <Progress label="How far through setup" value={number.at} max={number.of} />
           </div>
         </header>
 
-        <main id="main" tabIndex={-1} className="oobe-card su-card-main" key={step.id}>
-          {step.id === 'welcome' && <Welcome serverName={serverName} colouring={colouring} logo={logoPreview} onStart={() => go('account')}
-            onName={(n, logo, c) => { setServerName(n); setColouring(c); if (logo === 'remove') setPendingLogo(null); else if (logo) setPendingLogo(logo) }} />}
-          {step.id === 'account' && <Account back={() => go('welcome')} onDone={(u, tok) => {
-            setToken(tok)
-            setOnboarding(true) // keep setup open after signing in
-            setFacts(null)
-            setUser(u)
-            // From here it counts as set up only when the last page says so, even once there are libraries.
-            api.put('/settings', { setupDone: '0' }).catch(() => {})
-            if (pendingLogo) uploadLogo(pendingLogo).then(setBrandLogo).catch(() => {})
-            navigate(pathOf('look'), { replace: true })
-          }} />}
-          {step.id === 'modules' && <Modules {...props} />}
-          {step.id === 'media' && <Media {...props} added={added} onAdded={(l) => setAdded((a) => a.some((x) => x.id === l.id) ? a.map((x) => (x.id === l.id ? l : x)) : [...a, l])} />}
-          {step.id === 'games' && <Games {...props} added={added} goTo={go} />}
-          {step.id === 'discs' && <Discs {...props} />}
-          {step.id === 'details' && <Details {...props} />}
-          {step.id === 'logos' && <Logos {...props} />}
-          {step.id === 'music' && <Music {...props} />}
-          {step.id === 'listings' && <Listings {...props} />}
-          {step.id === 'tv' && <Tv {...props} />}
-          {step.id === 'look' && <Look {...props} />}
-          {step.id === 'theme' && <Theme {...props} />}
-          {step.id === 'people' && <People {...props} />}
-          {step.id === 'remote' && <Remote {...props} />}
-          {step.id === 'done' && <Done steps={steps} onFinish={finish} />}
-        </main>
+        <div className="oobe-body">
+          <nav className="oobe-steps" aria-label="Setup steps">
+            <ol>
+              {stepper.map((x, i) => {
+                const state = i < nowAt ? 'done' : i === nowAt ? 'now' : 'todo'
+                const goBack = signedIn && i < nowAt && !x.missing && x.id !== 'welcome' && x.id !== 'account'
+                return (
+                  <li key={x.id} className={'oobe-step ' + state + (x.missing ? ' missing' : '')} aria-current={state === 'now' ? 'step' : undefined}>
+                    {goBack
+                      ? <button type="button" onClick={() => go(x.id as StepId)}><i aria-hidden="true">{state === 'done' ? '✓' : i + 1}</i>{x.label}<span className="sr-only"> (done)</span></button>
+                      : <span><i aria-hidden="true">{state === 'done' ? '✓' : i + 1}</i>{x.label}{x.missing && <small> · module not added</small>}{state === 'done' && <span className="sr-only"> (done)</span>}</span>}
+                  </li>
+                )
+              })}
+            </ol>
+          </nav>
+
+          <div className="oobe-col">
+            <main id="main" tabIndex={-1} className="oobe-card su-card-main" key={step.id} aria-describedby="su-where">
+              {step.id === 'welcome' && <Welcome onStart={() => go('account')} />}
+              {step.id === 'account' && <Account back={() => go('welcome')} onDone={(u, tok) => {
+                setToken(tok)
+                setOnboarding(true) // keep setup open after signing in
+                setFacts(null)
+                setUser(u)
+                // From here it counts as set up only when the last page says so, even once there are libraries.
+                api.put('/settings', { setupDone: '0' }).catch(() => {})
+                navigate(pathOf('name'), { replace: true })
+              }} />}
+              {step.id === 'name' && <Name {...props} onTry={setTryName} />}
+              {step.id === 'modules' && <Modules {...props} />}
+              {step.id === 'media' && <Media {...props} added={added} onAdded={(l) => setAdded((a) => a.some((x) => x.id === l.id) ? a.map((x) => (x.id === l.id ? l : x)) : [...a, l])} />}
+              {step.id === 'games' && <Games {...props} added={added} goTo={go} />}
+              {step.id === 'discs' && <Discs {...props} />}
+              {step.id === 'details' && <Details {...props} />}
+              {step.id === 'logos' && <Logos {...props} />}
+              {step.id === 'music' && <Music {...props} />}
+              {step.id === 'listings' && <Listings {...props} />}
+              {step.id === 'tv' && <Tv {...props} />}
+              {step.id === 'look' && <Look {...props} />}
+              {step.id === 'theme' && <Theme {...props} />}
+              {step.id === 'people' && <People {...props} />}
+              {step.id === 'remote' && <Remote {...props} />}
+              {step.id === 'done' && <Done steps={steps} onFinish={finish} />}
+            </main>
+            {canSkip(step) && next && <p className="oobe-skip"><Button variant="ghost" onClick={() => props.next()}>Skip for now</Button> <span className="muted">You can do this later in {step.later?.where}.</span></p>}
+          </div>
+        </div>
         <footer className="oobe-foot"><VersionTag version={version} /></footer>
       </div>
     </div>

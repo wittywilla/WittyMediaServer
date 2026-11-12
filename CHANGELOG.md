@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- SDUI catalogue: a data source may yield `person` items (a photo or initials, a name, a line, badges such as presence or a seat; it opens something only with a route), and the `wittyplay.` commands for WittyPlay Online (`room.create`, `room.join`, `room.invite`, `state.save`, `state.load`, `state.delete`, `controller.assign`) with `rewind.open` and `controller.remap` for the player's own panels. A command lists the values it takes beside the item as `params`. Additive: the catalogue stays at revision 6; a conformance fixture, `wittyplay-people-tv`, pins the people cards. More info for a programme stays a native screen, with the `credits` source's `programme` parameter for a page that wants its cast and crew.
+
 ## 0.8.0-alpha
 
 - Module pages in every look: the readers' frame, top bar and foot (books, comics, PDF) take the look's tokens instead of a fixed dark; segmented controls (Books/Series/Authors, Timeline/Albums/Map) are 44 px for a finger and keep their icon and label apart; the photo month heading is a full target on touch. `web/scripts/test-modules.mjs` checks every module page in every look and theme for contrast, touch targets, sideways scroll and reduced motion.

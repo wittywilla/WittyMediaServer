@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 import type { EffectFile } from './format.ts';
 export type DrawInput = {
     audio: {
@@ -51,7 +49,7 @@ export interface Renderer {
     dispose(): void;
 }
 export declare class GlRenderer implements Renderer {
-    readonly kind: "webgl2";
+    readonly kind: 'webgl2';
     readonly software: boolean;
     readonly label: string;
     private gl;

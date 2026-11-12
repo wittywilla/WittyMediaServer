@@ -49,13 +49,15 @@ function options(): boolean {
   return focusZone('dock')
 }
 
+const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+
 // A pad's LT and RT page the page (a keyboard's Page keys do it by themselves, and aren't taken).
 function pageStage(dir: 1 | -1) {
-  window.scrollBy({ top: dir * window.innerHeight * 0.85, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  window.scrollBy({ top: dir * window.innerHeight * 0.85, behavior: reduced() ? 'auto' : 'smooth' })
 }
 
 function top() {
-  window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  window.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' })
   const first = document.querySelector<HTMLElement>('#main [data-tv-first], #main .btn.primary, #main a[href], #main button')
   if (first && shown(first)) first.focus({ preventScroll: true })
 }

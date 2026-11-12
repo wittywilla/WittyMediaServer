@@ -4,7 +4,7 @@ import { useRef, type KeyboardEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { KeyLegend } from './KeyLegend'
 import { Menu, type MenuEntry } from './Menu'
-import { useInput } from './inputKind'
+import { useInput } from './useInput'
 
 // One button of a Dock: it runs something (onClick), goes somewhere (to), or opens a menu (items).
 export type DockAction = { id: string; label: string; icon?: ReactNode; onClick?: () => void; to?: string; items?: MenuEntry[]; primary?: boolean; pressed?: boolean; hint?: string; disabled?: boolean; detail?: ReactNode }

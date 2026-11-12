@@ -880,8 +880,7 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
     case 'Banner': return <BannerView view={view} />
     case 'Text': return <TextView view={view} />
     case 'Notice': return <NoticeView view={view} />
-    // Two components the design adds (docs/plans/DESIGN-2.md): a screen's Dock and the key legend. A server whose
-    // catalogue lacks them never sends them, and the page draws its own legend (SduiPage).
+    // Two components of the catalogue (docs/plans/DESIGN-2.md): a screen's Dock and the key legend.
     case 'Dock': return <DockView view={view} />
     case 'KeyLegend': return <KeyLegend />
     case 'Divider': return <hr className={'sdui-divider' + (view.node.props?.inset === true ? ' inset' : '')} />

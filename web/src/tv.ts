@@ -411,15 +411,20 @@ let sinceFullRead = 0
 // The pads seen to report their D-pad on one axis (see gamepad.ts).
 const hatPads = new Set<string>()
 // Read each time, as it was before the mapping moved out: cheap, and a test can change it.
-// Where a pad's buttons mean what they always did: the player, books, and the games pages, which read them by key
-// (docs/plans/DESIGN-2.md section 3 applies everywhere else).
-const legacyPad = () => !!document.querySelector(`${FULL_PLAYER}, .reader, .audio-bar.full, .wp-playing, .wp-capture`) || /^\/(games|big|play)(\/|$)/.test(location.pathname)
-const keysDown = (pads: readonly (Gamepad | null)[]) => padKeys(pads, { android: /Android/.test(navigator.userAgent), hats: hatPads, context: legacyPad() ? 'player' : 'ui' })
+// Where a pad's buttons are the player's, a book's or a game's own (docs/plans/DESIGN-2.md section 3 applies everywhere else).
+const ownPad = () => !!document.querySelector(`${FULL_PLAYER}, .reader, .audio-bar.full, .wp-playing, .wp-capture`) || /^\/(games|big|play)(\/|$)/.test(location.pathname)
+// The meanings are kept while anything is held, so buttons still down as a game or the player closes aren't read again as
+// something else (View and Menu together are Help in the app).
+let padContext: 'ui' | 'player' | null = null
+const keysDown = (pads: readonly (Gamepad | null)[]) => {
+  if (!held.size || !padContext) padContext = ownPad() ? 'player' : 'ui'
+  return padKeys(pads, { android: /Android/.test(navigator.userAgent), hats: hatPads, context: padContext })
+}
 const firstPadId = (pads: readonly (Gamepad | null)[]) => pads.find(Boolean)?.id
 
 const HOLD_MS = 500
 let holdingA = false
-const onCard = () => !!(document.activeElement as HTMLElement | null)?.closest?.('.card, [data-sdui-card]') && !legacyPad()
+const onCard = () => !!(document.activeElement as HTMLElement | null)?.closest?.('.card, [data-sdui-card]') && !ownPad()
 
 function poll() {
   const pads = navigator.getGamepads ? navigator.getGamepads() : []

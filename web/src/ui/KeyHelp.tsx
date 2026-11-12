@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Dialog } from './Overlay'
 import { HELP_EVENT } from './KeyHelp.event'
 import { legend, type InputKind } from './inputModel'
-import { useInput } from './inputKind'
+import { useInput } from './useInput'
 
 // The help for the keys, asked for with ? (or Back and Start together on a pad). It lists the one input model for
 // the input in use, and the keyboard's own shortcuts besides when a keyboard is there.

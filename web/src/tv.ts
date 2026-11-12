@@ -271,7 +271,7 @@ function focus(el: HTMLElement) {
   const r = el.getBoundingClientRect(), h = window.innerHeight
   // Under a sticky bar (a settings page's list of sections) counts as off the top, however near the middle that is.
   const stuck = document.querySelector('.set-toc')?.getBoundingClientRect().bottom ?? 0
-  const block = r.top < Math.max(h * 0.15, stuck + 16) || r.bottom > h * 0.85 ? 'center' : 'nearest'
+  const block = r.top < Math.max(h * 0.15, stuck + 96) || r.bottom > h * 0.85 ? 'center' : 'nearest'
   el.scrollIntoView({ block, inline: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' })
 }
 

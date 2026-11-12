@@ -7,6 +7,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -135,6 +136,29 @@ func TestAddCustom(t *testing.T) {
 	} {
 		if _, err := m.AddCustom(c); err == nil {
 			t.Errorf("%s: accepted", name)
+		}
+	}
+}
+
+// One gives exactly what List gives for that theme, without reading the others.
+func TestOneIsWhatListShows(t *testing.T) {
+	m := &Manager{Dir: t.TempDir()}
+	if err := m.Install(builtin.Builtin); err != nil {
+		t.Fatal(err)
+	}
+	list := m.List()
+	if len(list) < 2 {
+		t.Fatalf("too few themes: %d", len(list))
+	}
+	for _, want := range list {
+		got, ok := m.One(strings.ToUpper(want.ID))
+		if !ok || !reflect.DeepEqual(*got, want) {
+			t.Errorf("%s: %+v, want %+v", want.ID, got, want)
+		}
+	}
+	for _, id := range []string{"no-such-theme", "../default", ""} {
+		if _, ok := m.One(id); ok {
+			t.Errorf("%q found", id)
 		}
 	}
 }

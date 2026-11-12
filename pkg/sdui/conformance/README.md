@@ -4,7 +4,7 @@ Three renderers draw WittyMediaServer's pages: React on the web, SwiftUI on
 Apple devices, Compose on Android. This kit is how each proves it draws them
 the same way, without comparing pixels.
 
-`fixtures/` holds one JSON file per case (57 today; `fixtures/index.json`
+`fixtures/` holds one JSON file per case (81 today; `fixtures/index.json`
 lists them). Every file has the same shape:
 
 ```
@@ -161,7 +161,11 @@ the time of day, feature switches and flags; reduced motion; theme scopes;
 libraries with filters, tabs and native views; a film's, a show's, an
 album's and a collection's page, their fallbacks, and a title that isn't
 there; search; Live TV; a hand-made page of layout components; every card
-style; long text; a field mapped into a subtitle; awkward item IDs; banners.
+style; long text; a field mapped into a subtitle; awkward item IDs; banners;
+a books library's shelf with a row per series, statistics and likes. None of
+the last needs anything new of a renderer: they are cards like any others,
+and a row repeated over a library's series is a Shelf whose ID ends in the
+repeat's `id` (`input.data.each[over][].id`) rather than its key.
 
 ## When a fixture changes
 

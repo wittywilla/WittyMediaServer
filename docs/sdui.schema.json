@@ -1858,6 +1858,9 @@
         "title": {
           "type": "string"
         },
+        "topShelf": {
+          "type": "boolean"
+        },
         "type": {
           "type": "string"
         },
@@ -2260,6 +2263,8 @@
     "nextUp",
     "recommended",
     "watchLater",
+    "liked",
+    "statistics",
     "savedView",
     "recentlyAdded",
     "recentlyReleased",
@@ -2276,6 +2281,7 @@
     "genres",
     "liveNow",
     "recordings",
+    "books",
     "albums",
     "artists",
     "continuePlaying",

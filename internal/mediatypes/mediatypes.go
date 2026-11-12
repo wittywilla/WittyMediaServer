@@ -310,15 +310,34 @@ func AudioPlaysDirect(container, audioCodec string) bool {
 // ReaderFor says which reader opens a book of this format: epub (real EPUB, and what
 // the server converts to it), cbz (page pictures) or pdf. "" means none does.
 func ReaderFor(id string) string {
-	switch id {
-	case "pdf":
-		return "pdf"
-	case "cbz", "cbr", "cb7", "cbt", "djvu":
-		return "cbz"
-	case "epub", "mobi", "azw", "azw3", "pdb", "fb2", "docx", "odt", "doc", "rtf", "md", "html", "txt":
-		return "epub"
+	for _, r := range readers {
+		for _, c := range r.containers {
+			if c == id {
+				return r.reader
+			}
+		}
 	}
 	return ""
+}
+
+// ReaderFormats are the formats each reader opens, for a list narrowed to one reader
+// (the books source's format): nil for a reader there isn't.
+func ReaderFormats(reader string) []string {
+	for _, r := range readers {
+		if r.reader == reader {
+			return append([]string(nil), r.containers...)
+		}
+	}
+	return nil
+}
+
+var readers = []struct {
+	reader     string
+	containers []string
+}{
+	{"pdf", []string{"pdf"}},
+	{"cbz", []string{"cbz", "cbr", "cb7", "cbt", "djvu"}},
+	{"epub", []string{"epub", "mobi", "azw", "azw3", "pdb", "fb2", "docx", "odt", "doc", "rtf", "md", "html", "txt"}},
 }
 
 // Confirms says a file's content doesn't contradict a format that has to be confirmed

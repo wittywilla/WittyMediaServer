@@ -52,7 +52,7 @@ var (
 	// NativeViews are parts of a page an app may draw itself (NativeView).
 	NativeViews = []string{"guide", "photoTimeline", "photoMap", "coverFlow"}
 	// RepeatKinds are what a section can be repeated over.
-	RepeatKinds = []string{"libraries", "pinnedViews", "collections"}
+	RepeatKinds = []string{"libraries", "pinnedViews", "collections", "bookSeries", "bookAuthors"}
 	// Weekdays as a condition names them, Sunday first as time.Weekday counts.
 	Weekdays = []string{"sun", "mon", "tue", "wed", "thu", "fri", "sat"}
 	// Placements are where a navigation entry can sit.
@@ -535,10 +535,15 @@ func buildCardStyles() []CardStyleSpec {
 	}
 }
 
+// BooksNone, as a books source's series or author, is the books with none: the last row
+// of a repeat over a library's series or authors.
+const BooksNone = "~none"
+
 var (
 	paramLimit   = pInt("limit", "Most items", "How many items it gives in all. 0 has no limit of its own; the device still pages it.", 0, 0, 500)
 	paramLibrary = pOf(PropLibrary, "library", "Library", "One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries.")
 	paramKind    = pEnum("kind", "Kind of library", "Only libraries of this kind.", "", LibraryKinds...)
+	paramMedia   = pEnum("media", "What", "", "all", "all|Everything", "watch|Films and episodes", "read|Books", "listen|Music, audiobooks and podcasts")
 )
 
 func buildSources() []SourceSpec {
@@ -546,7 +551,7 @@ func buildSources() []SourceSpec {
 	return []SourceSpec{
 		{Type: "continueWatching", Label: "Continue watching", Icon: "history", Category: "personal", Since: 2, CardStyle: "progress", Title: "Continue watching", Paged: false,
 			Description: "What the profile is part-way through, most recent first.",
-			Params:      []PropSpec{pEnum("media", "What", "", "all", "all|Everything", "watch|Films and episodes", "read|Books", "listen|Music, audiobooks and podcasts"), paramLimit},
+			Params:      []PropSpec{paramMedia, paramLimit},
 			Yields:      []string{"movie", "episode", "video", "disc", "book", "track", "audiobook", "podcast"},
 			Example:     example(`{"type":"continueWatching","media":"watch"}`)},
 		{Type: "nextUp", Label: "Next up", Icon: "play", Category: "personal", Since: 2, CardStyle: "episode", Title: "Next up",
@@ -558,6 +563,16 @@ func buildSources() []SourceSpec {
 		{Type: "watchLater", Label: "Watch later", Icon: "clock", Category: "personal", Since: 2, CardStyle: "poster", Title: "Watch later", Paged: true, SeeAll: "/collections",
 			Description: "The profile's own Watch later list.",
 			Params:      []PropSpec{paramLimit}, Yields: []string{"movie", "show", "episode", "video"}, Example: example(`{"type":"watchLater"}`)},
+		{Type: "liked", Label: "Liked", Icon: "heart", Category: "personal", Since: 2, CardStyle: "poster", Paged: true, Title: "Liked",
+			Description: "What the profile gave a thumbs up, most recently liked first: songs, films, videos, books, games.",
+			Params:      []PropSpec{paramLibrary, paramMedia, paramLimit}, Yields: []string{"movie", "episode", "video", "disc", "track", "book", "game"},
+			Example: example(`{"type":"liked","media":"listen"}`)},
+		{Type: "statistics", Label: "Statistics", Icon: "chart", Category: "personal", Since: 2, CardStyle: "poster", Title: "Most watched",
+			Description: "What has had the most time from the play log, most first, each card saying how long: titles, shows, or each library. A profile sees its own record; everyone's is for administrators only, and is empty for anyone else. Only titles the profile may open are named or counted.",
+			Params: []PropSpec{pEnum("stat", "Show", "", "titles", "titles|Most watched titles", "shows|Most watched shows", "libraries|Time in each library"),
+				pEnum("who", "Whose", "Everyone's is answered for administrators only.", "me", "me|The profile's own", "everyone|Everyone on the server"),
+				pEnum("period", "Over", "", "month", "week|The last 7 days", "month|The last 30 days", "year|The last 365 days", "all|All time"), paramLibrary, paramLimit},
+			Yields: []string{"movie", "episode", "video", "disc", "show", "track", "book", "game", "library"}, Example: example(`{"type":"statistics","stat":"shows","period":"year","limit":10}`)},
 		{Type: "savedView", Label: "A saved view", Icon: "filter", Category: "personal", Since: 2, CardStyle: "poster", Paged: true, Title: "{each}",
 			Description: "What one of the profile's saved library views finds now. With a row repeated over pinned views, $each is each view.",
 			Params:      []PropSpec{req(pOf(PropRef, "view", "View", "The saved view's ID, or $each.")), paramLimit}, Yields: []string{"movie", "show"},
@@ -625,6 +640,14 @@ func buildSources() []SourceSpec {
 			Description: "The profile's finished Live TV recordings, newest first.",
 			Params:      []PropSpec{paramLimit}, Yields: []string{"recording"}, Example: example(`{"type":"recordings"}`)},
 
+		{Type: "books", Label: "Books", Icon: "book", Category: "library", Since: 2, CardStyle: "book", Paged: true, Title: "Books",
+			Description: "A books library's books, as its bookshelf has them: narrowed to a series, an author or a format, in an order. A series is in its own order unless another is chosen. With a row repeated over the library's series or authors, $each is each one; " + BooksNone + " is the books with none.",
+			Params: []PropSpec{req(paramLibrary), pStr("series", "Series", "Only this series. $each in a row repeated over bookSeries; "+BooksNone+" for books in no series.", 300),
+				pStr("author", "Author", "Only this author's books. $each in a row repeated over bookAuthors; "+BooksNone+" for books with no author.", 300),
+				pEnum("format", "Format", "Only what one reader opens.", "all", "all|Everything", "epub|Books", "pdf|PDFs", "cbz|Comics"),
+				pEnum("sort", "Order", "Left empty: the series' order with a series, title otherwise.", "", "title|Title", "author|Author", "added|Recently added", "year|Year", "series|Series, in order"),
+				pBool("desc", "Reverse the order", "", false), paramLimit},
+			Yields: []string{"book"}, Example: example(`{"type":"books","library":"$library","series":"$each"}`)},
 		{Type: "albums", Label: "Albums", Icon: "album", Category: "music", Since: 2, CardStyle: "album", Paged: true, SeeAll: "/library/{library}", Title: "Albums",
 			Description: "A music or audiobook library's albums.",
 			Params: []PropSpec{req(paramLibrary), pEnum("sort", "Order", "", "added", "added|Date added", "played|Last played", "title|Title", "artist|Artist", "year|Year"),
@@ -755,7 +778,8 @@ func buildCatalogue() *Catalogue {
 		Placeholders: opts("{user}|The profile's name", "{server}|The server's name", "{greeting}|Good morning, afternoon or evening", "{library}|The page's library",
 			"{title}|The page's title, or a source's first item", "{query}|What was searched for", "{each}|What a repeated section is repeated over", "{count}|How many items a source gave",
 			"{genre}|The source's genre", "{studio}|The source's studio", "{tag}|The source's tag"),
-		Repeats:     opts("libraries|Each library", "pinnedViews|Each saved view pinned to Home", "collections|Each collection"),
+		Repeats: opts("libraries|Each library", "pinnedViews|Each saved view pinned to Home", "collections|Each collection",
+			"bookSeries|Each series of the page's books library", "bookAuthors|Each author of the page's books library"),
 		FormFactors: FormFactors, Platforms: Platforms, ProfileKinds: ProfileKinds, LibraryKinds: LibraryKinds, MediaKinds: MediaKinds,
 		PersonalKinds: opts("reorder|Move sections", "hide|Hide sections", "pin|Pin sections to the top", "density|Choose a density", "cardSize|Choose card sizes", "defaultTab|Choose the opening tab"),
 		Placements:    opts("primary|In the bar", "more|Under More", "end|At the far end", "hidden|Not shown"),

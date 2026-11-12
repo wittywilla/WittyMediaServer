@@ -254,7 +254,7 @@ func (m *Manager) List() []Meta {
 		if !idRe.MatchString(id) {
 			continue
 		}
-		meta, err := m.readMeta(filepath.Join(m.Dir, name))
+		meta, err := m.listed(id, filepath.Join(m.Dir, name))
 		if err != nil {
 			if !m.warned[name] {
 				if m.warned == nil {
@@ -264,13 +264,6 @@ func (m *Manager) List() []Meta {
 				m.log().Warn("a theme ZIP could not be read: it is left out", "cat", "sdui", "file", name, "err", err)
 			}
 			continue
-		}
-		meta.ID = id
-		if meta.Name == "" {
-			meta.Name = id
-		}
-		if meta.Scheme != "light" {
-			meta.Scheme = "dark"
 		}
 		out = append(out, *meta)
 	}
@@ -284,6 +277,35 @@ func (m *Manager) List() []Meta {
 		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
 	})
 	return out
+}
+
+// listed is one theme as List shows it, or why its zip can't be read.
+func (m *Manager) listed(id, zipPath string) (*Meta, error) {
+	meta, err := m.readMeta(zipPath)
+	if err != nil {
+		return nil, err
+	}
+	meta.ID = id
+	if meta.Name == "" {
+		meta.Name = id
+	}
+	if meta.Scheme != "light" {
+		meta.Scheme = "dark"
+	}
+	return meta, nil
+}
+
+// One is the installed theme with this id, as List shows it, without reading every other
+// theme: resolving a theme for each page asks only for its own (a stat and a kept copy).
+func (m *Manager) One(id string) (*Meta, bool) {
+	id = strings.ToLower(id)
+	if !idRe.MatchString(id) {
+		return nil, false
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	meta, err := m.listed(id, filepath.Join(m.Dir, id+".zip"))
+	return meta, err == nil
 }
 
 func (m *Manager) zipPath(id string) (string, error) {

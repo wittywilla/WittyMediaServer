@@ -115,10 +115,8 @@ func (m *Manager) Look(id string) (Shape, TypeTokens) {
 // meta is a theme's theme.json, installed or built in.
 func (m *Manager) meta(id string) *Meta {
 	if m != nil {
-		for _, meta := range m.List() {
-			if meta.ID == id {
-				return &meta
-			}
+		if meta, ok := m.One(id); ok {
+			return meta
 		}
 	}
 	if !idRe.MatchString(id) {

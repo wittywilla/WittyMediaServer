@@ -78,6 +78,22 @@ type Shell struct {
 	Layout  string `json:"layout"`
 	Nav     string `json:"nav"`
 	Overlay bool   `json:"overlay,omitempty"`
+	// Size is the menu's breadth in points: a sidebar's or rail's width, a bar's
+	// height (a phone's tab bar without the system's own inset). A renderer lays its
+	// frame out with it, so the page keeps the same room on every app.
+	Size int `json:"size"`
+	// Open is how wide a television's side menu is while it has focus; 0 elsewhere.
+	Open int `json:"open,omitempty"`
+}
+
+// navSizes are each menu style's breadth on each form factor, in points.
+var navSizes = map[string]map[string]int{
+	NavSidebar:    {FormWeb: 240, FormDesktop: 240, FormTablet: 220, FormPhone: 240, FormTV: 400},
+	NavRail:       {FormWeb: 80, FormDesktop: 80, FormTablet: 72, FormPhone: 72, FormTV: 120},
+	NavBottomTabs: {FormWeb: 56, FormDesktop: 56, FormTablet: 64, FormPhone: 56, FormTV: 100},
+	NavTopTabs:    {FormWeb: 64, FormDesktop: 64, FormTablet: 56, FormPhone: 48, FormTV: 100},
+	NavTVTopMenu:  {FormTV: 100},
+	NavTVSideMenu: {FormTV: 120},
 }
 
 // Layouts are the layout options, in the order they are offered.
@@ -135,7 +151,14 @@ func ShellFor(id, formFactor string) *Shell {
 	if nav == "" {
 		nav = l.Nav[FormWeb]
 	}
-	return &Shell{Layout: l.ID, Nav: nav, Overlay: l.Overlay && formFactor != FormTV}
+	sh := &Shell{Layout: l.ID, Nav: nav, Overlay: l.Overlay && formFactor != FormTV, Size: navSizes[nav][formFactor]}
+	if sh.Size == 0 {
+		sh.Size = navSizes[nav][FormWeb]
+	}
+	if nav == NavTVSideMenu {
+		sh.Open = 400
+	}
+	return sh
 }
 
 // ChooseLayout picks the layout for a request: the profile's choice for the device, then

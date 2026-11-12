@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -1056,8 +1057,23 @@ func (r *renderer) listItem(parent string, it *Item) Node {
 	case it.Kind == "track" && it.RuntimeSec > 0:
 		n.Props["trailing"] = FormatRuntime(it.RuntimeSec)
 	}
-	if src := firstImage(it, []string{"square", "poster"}); src != "" {
-		n.Props["image"] = r.picture(src, 56, "1/1", "square")
+	// The picture keeps the item's own shape, at the row's height: a poster upright, a
+	// film still wide, a cover square.
+	switch {
+	case slices.Contains([]string{"episode", "video", "recording", "channel"}, it.Kind) && firstImage(it, []string{"backdrop"}) != "":
+		n.Props["image"] = r.picture(firstImage(it, []string{"backdrop"}), 100, "16/9", "backdrop")
+	case slices.Contains([]string{"movie", "show", "season", "book", "game"}, it.Kind) && firstImage(it, []string{"poster"}) != "":
+		n.Props["image"] = r.picture(firstImage(it, []string{"poster"}), 38, "2/3", "poster")
+	default:
+		if src := firstImage(it, []string{"square", "poster"}); src != "" {
+			n.Props["image"] = r.picture(src, 56, "1/1", "square")
+		}
+	}
+	if it.Progress > 0 && it.Progress < 1 {
+		n.Props["progress"] = round3(it.Progress)
+	}
+	if len(it.Badges) > 0 {
+		n.Props["badges"] = it.Badges[:min(len(it.Badges), 2)]
 	}
 	switch {
 	case it.Route != "":

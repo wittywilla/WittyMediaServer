@@ -1784,13 +1784,20 @@
         "nav": {
           "type": "string"
         },
+        "open": {
+          "type": "integer"
+        },
         "overlay": {
           "type": "boolean"
+        },
+        "size": {
+          "type": "integer"
         }
       },
       "required": [
         "layout",
-        "nav"
+        "nav",
+        "size"
       ],
       "type": "object"
     },

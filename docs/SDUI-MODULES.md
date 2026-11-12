@@ -187,7 +187,7 @@ nothing could answer them. Sections use it like any catalogue source:
 | `description` | string | no | At most 500 characters. |
 | `icon` | string | no | One of the [icons](SDUI.md#icons). |
 | `params` | list | no | Its parameters, as [property descriptions](#property-descriptions). |
-| `yields` | list | yes | The kinds of item it gives, at least one: `movie`, `episode`, `show`, `season`, `video`, `disc`, `album`, `artist`, `track`, `book`, `audiobook`, `podcast`, `game`, `photo`, `channel`, `recording`, `collection`, `library`, `genre`, `view`. |
+| `yields` | list | yes | The kinds of item it gives, at least one: `movie`, `episode`, `show`, `season`, `video`, `disc`, `album`, `artist`, `track`, `book`, `audiobook`, `podcast`, `game`, `photo`, `channel`, `recording`, `collection`, `library`, `genre`, `view`, `person`. A `person` is drawn by the `person` card style: a photo (or initials), a name, a line (a role, or where they are), badges (presence, a seat), and it opens something only when the item has a `route`. |
 | `cardStyle` | string | yes | The [card style](SDUI.md#card-styles) a section's `"cardStyle": "auto"` means. |
 | `pageKinds` | list | no | The [kinds of page](SDUI.md#page-kinds) it may be used on. Empty: any. |
 | `paged` | bool | no | It gives more through a section's cursor URL ([Paging](SDUI.md#paging)). |

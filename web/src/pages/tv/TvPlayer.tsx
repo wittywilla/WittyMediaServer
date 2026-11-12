@@ -15,7 +15,7 @@ import LegalNote from '../../components/LegalNote'
 import BackgroundPlayChoice from './BackgroundPlayChoice'
 import { ChannelLogo } from './ChannelLogo'
 import { channelVars, previousChannel, rememberChannel, surfaceOf, themeRoot, useLook, type Look } from './look'
-import DetailsDialog from './Details'
+import MoreInfo from './MoreInfo'
 import MiniGuide from './MiniGuide'
 import Slate from './Slate'
 import { useLiveTracks } from './tracks'
@@ -307,7 +307,7 @@ export default function TvPlayer() {
       </div>
       {remoteOn && <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyTV" />}
       {banner && !mini && (info ? <Banner info={info} look={look} fromStart={fromStart} onMore={() => setMore(true)} /> : zap && <ZapBanner ch={zap} look={look} />)}
-      {more && info?.now && <DetailsDialog ch={info} p={info.now} now={Date.now() / 1000} look={look} onClose={() => setMore(false)} onWatch={() => setMore(false)} onRecord={() => setMore(false)} />}
+      {more && info?.now && <MoreInfo channelKey={info.key} at={Math.max(info.now.start, Date.now() / 1000)} onClose={() => setMore(false)} />}
       {mini && <MiniGuide channel={key} onTune={tuneTo} onClose={() => setMini(false)} onFull={guide} />}
       {settingsOpen && <Dialog title="Player settings" onClose={() => setSettingsOpen(false)}><BackgroundPlayChoice /></Dialog>}
       <Controls video={video} duration={windowLen} offset={-win.start} onSeek={(t) => seekTo(win.start + t)} onFullscreen={() => toggleFullscreen(root.current)}

@@ -353,8 +353,10 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
         if (step.item) setScreen({ screen: step.screen, item: step.item, title: from?.text?.title || from?.label || drawn.current?.page.title || '' })
         break
       }
+      // The game player's own panels answer these: it listens for the event.
+      case 'client': window.dispatchEvent(new CustomEvent('wms:command', { detail: { op: step.op, params: step.params } })); break
       case 'request':
-        (step.method === 'POST' ? api.post(step.path, step.body) : api.del(step.path)).then(() => {
+        (step.method === 'POST' ? api.post(step.path, step.body) : step.method === 'PUT' ? api.put(step.path, step.body) : api.del(step.path)).then(() => {
           const said = a?.op === 'watchLater.add' ? 'Added to Watch later' : a?.op === 'watched.set' ? 'Marked as watched' : a?.op === 'watched.clear' ? 'Marked as not watched' : 'Done'
           toast(said, { tone: 'ok' }); announce(said)
           bump()

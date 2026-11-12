@@ -418,6 +418,12 @@
    "formFactor": "phone"
   },
   {
+   "id": "wittyplay-people-tv",
+   "file": "wittyplay-people-tv.json",
+   "title": "Friends and a room's players as person cards on a television",
+   "formFactor": "tv"
+  },
+  {
    "id": "wittyplay-online-tv",
    "file": "wittyplay-online-tv.json",
    "title": "WittyPlay Online's rows on a television",

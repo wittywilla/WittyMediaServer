@@ -17,7 +17,7 @@ export const CARD_STYLES: Record<string, CardStyle> = {
   square: style('square', '1/1', 'title subtitle', 1, 1),
   album: style('square', '1/1', 'title subtitle', 1, 1),
   circle: style('circle', '1/1', 'title', 2, 0),
-  person: style('circle', '1/1', 'title subtitle', 1, 1),
+  person: style('circle', '1/1', 'title subtitle badges', 1, 1),
   book: style('poster', '2/3', 'title subtitle progress', 2, 1),
   game: style('poster', '3/4', 'title subtitle badges', 1, 1),
   photo: style('square', '1/1', '', 0, 0),

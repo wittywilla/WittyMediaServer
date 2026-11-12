@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import SpecPage from '../spec/SpecPage'
+import { rigSpec } from '../spec/specs/rigs'
 import { PromptBar } from './games/prompts'
 import { api, posterUrl, type Item, type Library } from '../api'
 import { BackLink, EmptyState, LoadError, Placeholder, Spinner } from '../components/common'
@@ -76,20 +78,9 @@ function RigStatus({ rig, reload, watchWake }: { rig: RigView; reload: () => voi
     setBusy(true)
     try { await api.post(`/rigs/${rig.id}/quit`); reload() } catch (e: any) { toast(e.message) } finally { setBusy(false) }
   }
-  const ok = rig.state === 'online'
-  return (
-    <div className={'rig-status' + (ok ? ' ok' : '')} role="status">
-      <span className="rig-dot" aria-hidden="true" />
-      <div className="grow">
-        <strong>{rig.name}:</strong>{' '}
-        {rig.state === 'busy' && rig.currentGame ? `is running ${rig.currentGame}.` : rig.message}
-        {rig.state === 'asleep' && !rig.canWake && user?.isAdmin && !rig.hasMac && <span className="muted"> Waking it from here needs it to have been paired and on once.</span>}
-      </div>
-      {rig.canWake && <button className="btn sm" disabled={busy} onClick={wake}>Wake it up</button>}
-      {rig.canQuit && <button className="btn sm ghost" disabled={busy} onClick={quit}>End what’s running</button>}
-      {user?.isAdmin && !rig.paired && <Link className="btn sm" to="/settings/couch"><IconSettings size={15} /> Pair it</Link>}
-    </div>
-  )
+  const page = useMemo(() => rigSpec(rig, { isAdmin: !!user?.isAdmin, busy }), [rig, user?.isAdmin, busy])
+  const handled = useMemo(() => new Set(['wake', 'quit']), [])
+  return <SpecPage bare page={page} handled={handled} onAction={(id) => { if (id === 'wake') void wake(); else if (id === 'quit') void quit() }} />
 }
 
 function RigCard({ item, rig }: { item: Item; rig?: string }) {

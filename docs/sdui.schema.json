@@ -339,6 +339,28 @@
       ],
       "type": "object"
     },
+    "CommandParam": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "label"
+      ],
+      "type": "object"
+    },
     "CommandSpec": {
       "properties": {
         "body": {
@@ -355,6 +377,12 @@
         },
         "op": {
           "type": "string"
+        },
+        "params": {
+          "items": {
+            "$ref": "#/$defs/CommandParam"
+          },
+          "type": "array"
         },
         "path": {
           "type": "string"

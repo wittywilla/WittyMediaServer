@@ -6,6 +6,7 @@ import { api, mediaUrl, type Item } from '../api'
 import type { Ann, EpubInfo, ReaderHost } from '@wittywilla/wittyink'
 import { ModuleMissing } from '../components/ModuleMissing'
 import { toast } from '../state'
+import { reportClient } from '../errorReport'
 import { BundledReaderView, useBundledReader } from '../moduleBundles'
 import { useBookRemote } from '../remote/pageTargets'
 
@@ -37,10 +38,11 @@ export default function ReaderPage() {
   const host = useMemo((): ReaderHost | null => {
     if (!it || !info) return null
     const base = `/items/${it.id}`
+    const format = info.reader === 'pdf' ? 'pdf' : info.reader === 'cbz' ? 'cbz' : 'epub'
     return {
       key: String(it.id),
       book: { title: it.title, author: it.artist, year: it.year },
-      format: info.reader === 'pdf' ? 'pdf' : info.reader === 'cbz' ? 'cbz' : 'epub',
+      format,
       reading: info.reading,
       start: it.progress && !it.progress.watched ? it.progress.positionSec : 0,
       saveProgress: (positionSec, durationSec) => { placeChanged(positionSec, durationSec); api.post(`${base}/progress`, { positionSec, durationSec }).catch(() => {}) },
@@ -60,6 +62,11 @@ export default function ReaderPage() {
       define: (word) => api.get(`/dictionary?word=${encodeURIComponent(word)}`),
       toast,
       close,
+      // What goes wrong in the reader, for this server's log. The reader sends
+      // fixed text; reportClient groups repeats, keeps to its limits and hides tokens.
+      report: (level, message, detail) => reportClient({
+        level, kind: 'reader', module: READER_MODULE[format], message, stack: [detail?.page && `page ${detail.page}`, detail?.stack].filter(Boolean).join('\n') || undefined,
+      }),
     }
   }, [it, info]) // eslint-disable-line react-hooks/exhaustive-deps
   // A newer reader from its own release, when one is in use; otherwise null and the copies above.

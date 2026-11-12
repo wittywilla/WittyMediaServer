@@ -762,7 +762,7 @@ func playOnlineData() Data {
 			Images: map[string]string{"poster": "/api/items/" + id + "/poster"}, Route: "/game/" + id, PlayID: id, Scope: "wittyplay"}
 	}
 	friend := func(id, name, state, line string) sdui.Item {
-		return sdui.Item{ID: "profile-" + id, Kind: "view", Title: name, Subtitle: line, Badges: []string{state}, Icon: "user", Scope: "wittyplay"}
+		return sdui.Item{ID: "profile-" + id, Kind: "person", Title: name, Subtitle: line, Badges: []string{state}, Icon: "user", Scope: "wittyplay"}
 	}
 	return Data{Sources: []CannedSource{
 		src(map[string]any{"type": "wittyplay.recent"}, []sdui.Item{
@@ -797,15 +797,9 @@ func playOnlineCases() []kase {
 	tv.Modules = []string{"wittyplay"}
 	tv.Scopes = map[string]map[string]string{"wittyplay": {"accent": "#7F46B8"}}
 	// People: friends and a room's players as person cards (a name, a line, presence or seat as the
-	// badge), the way WittyPlay declares them once it yields "person". A player whose item has a route
+	// badge), as WittyPlay declares them. A player whose item has a route
 	// opens it; one without is a card that isn't a button.
-	people := ui
-	people.Sources = append([]sdui.ModuleSource(nil), ui.Sources...)
-	for i := range people.Sources {
-		if t := people.Sources[i].Type; t == "wittyplay.friends" || t == "wittyplay.room" {
-			people.Sources[i].Yields, people.Sources[i].CardStyle = []string{"person"}, "person"
-		}
-	}
+	people := ui // WittyPlay's sdui.json declares friends and a room's players as people
 	person := func(id, name, line, badge, route string, photo bool) sdui.Item {
 		it := sdui.Item{ID: id, Kind: "person", Title: name, Subtitle: line, Badges: []string{badge}, Route: route, Scope: "wittyplay"}
 		if photo {

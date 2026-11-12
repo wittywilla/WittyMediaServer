@@ -10699,6 +10699,9 @@
                     },
                     "rowsAsLists": {
                       "type": "boolean"
+                    },
+                    "seeAllCard": {
+                      "type": "boolean"
                     }
                   },
                   "type": "object"
@@ -10862,6 +10865,25 @@
                     "density": {
                       "type": "string"
                     },
+                    "dock": {
+                      "properties": {
+                        "height": {
+                          "type": "integer"
+                        },
+                        "hintSize": {
+                          "type": "integer"
+                        },
+                        "placement": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "height",
+                        "hintSize",
+                        "placement"
+                      ],
+                      "type": "object"
+                    },
                     "externalLinks": {
                       "type": "boolean"
                     },
@@ -10894,6 +10916,9 @@
                         "array",
                         "null"
                       ]
+                    },
+                    "peek": {
+                      "type": "number"
                     },
                     "reducedMotion": {
                       "type": "boolean"
@@ -10980,11 +11005,13 @@
                     "budget",
                     "cards",
                     "density",
+                    "dock",
                     "externalLinks",
                     "focusEngine",
                     "formFactor",
                     "hero",
                     "imageWidths",
+                    "peek",
                     "safeArea",
                     "scale",
                     "spacing",
@@ -11662,6 +11689,25 @@
                   "density": {
                     "type": "string"
                   },
+                  "dock": {
+                    "properties": {
+                      "height": {
+                        "type": "integer"
+                      },
+                      "hintSize": {
+                        "type": "integer"
+                      },
+                      "placement": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "height",
+                      "hintSize",
+                      "placement"
+                    ],
+                    "type": "object"
+                  },
                   "externalLinks": {
                     "type": "boolean"
                   },
@@ -11694,6 +11740,9 @@
                       "array",
                       "null"
                     ]
+                  },
+                  "peek": {
+                    "type": "number"
                   },
                   "reducedMotion": {
                     "type": "boolean"
@@ -11780,11 +11829,13 @@
                   "budget",
                   "cards",
                   "density",
+                  "dock",
                   "externalLinks",
                   "focusEngine",
                   "formFactor",
                   "hero",
                   "imageWidths",
+                  "peek",
                   "safeArea",
                   "scale",
                   "spacing",

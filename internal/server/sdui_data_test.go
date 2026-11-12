@@ -156,7 +156,7 @@ func TestSDUIBuiltInPagesFromALibrary(t *testing.T) {
 	f := newSDUIFixture(t)
 	ts := f.ts
 	tv := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home", f.admin, nil, "X-WMS-Platform", "tvos"))
-	if tv.Layout.SafeArea.Left != 80 || tv.Layout.Budget.ShelfItems != 12 || tv.Layout.Text["body"] != 29 {
+	if tv.Layout.SafeArea.Left != 90 || tv.Layout.Budget.ShelfItems != 12 || tv.Layout.Text["body"] != 29 {
 		t.Errorf("the tv profile: %+v", tv.Layout)
 	}
 	row := findNode(&tv.Root, fmt.Sprintf("recent-%d", f.open))

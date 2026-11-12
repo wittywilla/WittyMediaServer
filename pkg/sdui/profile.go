@@ -356,15 +356,22 @@ func Truncate(s string, limit int) string {
 	return strings.TrimRight(string(r[:cut]), " ,.;:-–—") + "…"
 }
 
+// WindowWidth is the window's width in points: the canvas the client sent (a
+// television's fixed one), else the breakpoint's usual window. A picture that
+// spans the window, such as a title's backdrop, is chosen for this width.
+func (l *Layout) WindowWidth() int {
+	if l.Canvas.Width > 0 {
+		return l.Canvas.Width
+	}
+	return map[string]int{"compact": 390, "medium": 720, "expanded": 1024, "large": 1440}[l.Breakpoint]
+}
+
 // ContentWidth is the width a page's sections have to themselves, in points:
 // the canvas (or the breakpoint's usual window when the client didn't say)
 // less the side margins: the safe area on a television, the m spacing
 // elsewhere.
 func (l *Layout) ContentWidth() int {
-	width := l.Canvas.Width
-	if width <= 0 {
-		width = map[string]int{"compact": 390, "medium": 720, "expanded": 1024, "large": 1440}[l.Breakpoint]
-	}
+	width := l.WindowWidth()
 	if l.SafeArea.Left+l.SafeArea.Right > 0 {
 		return width - l.SafeArea.Left - l.SafeArea.Right
 	}

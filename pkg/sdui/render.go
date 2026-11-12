@@ -1085,7 +1085,7 @@ func (r *renderer) hero(n *Node, in instance) bool {
 		c := Node{Type: "Card", ID: r.uniqueID(n.ID + ":" + safeID(it.ID)), Props: map[string]any{
 			"style": "hero", "shape": "landscape", "title": Truncate(it.Title, r.l.TextLimits.Title), "itemId": it.ID, "kind": it.Kind}}
 		if src := firstImage(it, []string{"backdrop", "poster"}); src != "" {
-			c.Props["image"] = r.picture(src, r.l.Hero.Width, "16/9", "backdrop")
+			c.Props["image"] = r.picture(src, min(r.l.Hero.Width, r.l.WindowWidth()), "16/9", "backdrop")
 		}
 		if logo := it.Images["logo"]; logo != "" && propBool(p, "showLogo", true) {
 			c.Props["logo"] = r.picture(logo, r.l.Hero.Width/3, "", "logo")
@@ -1306,7 +1306,8 @@ func (r *renderer) header(n *Node, in instance) bool {
 	}
 	images := map[string]any{}
 	if b := firstImage(it, []string{"backdrop"}); b != "" {
-		images["backdrop"] = r.picture(b, max(r.l.Hero.Width, r.l.Canvas.Width), "16/9", "backdrop")
+		// A backdrop spans the window: chosen for its width, as every other picture is for its card's.
+		images["backdrop"] = r.picture(b, r.l.WindowWidth(), "16/9", "backdrop")
 	}
 	posterStyle := "poster"
 	if it.Kind == "album" || it.Kind == "track" || it.Kind == "artist" || it.Kind == "podcast" || it.Kind == "audiobook" {

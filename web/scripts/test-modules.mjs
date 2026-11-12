@@ -31,6 +31,12 @@ const PAGES = {
   comics: '/library/3', comicReader: '/read/14',
   pdf: '/library/4', pdfReader: '/read/15',
   photos: '/library/1', stats: '/m/wittystats/stats',
+  cd: '/cd/3', dvd: '/item/2', bluray: '/item/1', games: '/library/3', game: '/item/7',
+  // "path|a>b": after the page loads, press the button named a, then b (a state: a panel, a dialog, a player).
+  cdAbout: '/cd/3|About this disc', dvdPlayer: '/item/2|Play', blurayPlayer: '/item/1|Play',
+  readerContents: '/read/6|Contents', readerNotes: '/read/6|Notes and highlights', readerDisplay: '/read/6|Text and display',
+  pdfContents: '/read/4|Contents and pages', pdfNotes: '/read/4|Notes and highlights', comicReader: '/read/5',
+  folderBrowser: '/settings|Folders of movies>Add library>Movie files>Browse folders',
   ...(process.env.WMS_MAP ? JSON.parse(process.env.WMS_MAP) : {}),
 }
 const pick = (v, all) => (v ? v.split(',') : all)
@@ -40,7 +46,7 @@ const looks = pick(process.env.WMS_LOOKS, LOOKS)
 const THEMES = ['default', 'aeroaurora', 'aeroday', 'aeromeadow', 'aerosunset', 'cable', 'cinema', 'evergreen', 'contrast', 'light', 'midnight', 'paper', 'satellite', 'teletext', 'oled']
 const themes = process.env.WMS_THEMES === 'none' ? [] : pick(process.env.WMS_THEMES, THEMES)
 // A reader draws its own full-screen frame: no menu bar, so it has no look of the shell's to wear.
-const bare = (p) => /reader/i.test(p)
+const bare = (p) => /reader|^pdf|player|folderBrowser/i.test(p)
 
 const api = async (method, path, body, headers = {}) => {
   const r = await fetch(server + '/api' + path, { method, headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', ...headers }, body: body ? JSON.stringify(body) : undefined })
@@ -79,7 +85,7 @@ const MEASURE = `(() => {
   const bad = [], unread = []
   const seen = new Set()
   // The menu bar, the player bar and the footer belong to the shell, which has its own checks; a reader has no shell.
-  const root = document.querySelector('main, [role=main]') || document.body
+  const root = document.querySelector('[role=dialog][aria-modal=true]') || document.querySelector('main, [role=main]') || document.body
   const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
   for (let t = w.nextNode(); t; t = w.nextNode()) {
     if (!/[\p{L}\p{N}]/u.test(t.nodeValue)) continue   // a lone dot or arrow between words isn't text to read
@@ -146,10 +152,16 @@ async function visit(name, path, label, { phone = false, shot = true } = {}) {
   page = phone ? pages_.touch : pages_.desk
   await page.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false })
   await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
-  await page.go(server + path)
+  const [url, steps = ''] = path.split('|')
+  await page.go(server + url)
   await page.until(`document.body.innerText.trim().length > 20 && !document.querySelector('.spinner, .skeleton')`, 20000, path).catch(() => {})
   await page.eval(`new Promise((d) => { const t = Date.now(); const k = () => ([...document.images].every((i) => i.complete) || Date.now() - t > 3500) ? d() : setTimeout(k, 200); k() })`)
   await wait(900)
+  for (const c of steps.split('>').filter(Boolean)) {
+    const hit = await page.eval(`(() => { const e = [...document.querySelectorAll('button, a, [role=tab]')].find((x) => (x.getAttribute('aria-label') || x.textContent || '').trim().toLowerCase().includes(${JSON.stringify(c.toLowerCase())})); if (e) e.click(); return !!e })()`)
+    if (!hit) { faults.push(`${name} @ ${label}: no control named "${c}"`); say(`FAIL ${name} @ ${label}: no control named "${c}"`) }
+    await wait(1200)
+  }
   const r = await page.eval(MEASURE)
   const where = `${name} @ ${label}${phone ? ' (phone)' : ''}`
   const f = []
@@ -172,7 +184,7 @@ try {
     if (exp?.theme) await api('PUT', '/settings', { theme: exp.theme })
     for (const p of pages) {
       await visit(p, PAGES[p], look)
-      if (['books', 'photos', 'stats'].includes(p)) await visit(p, PAGES[p], look, { phone: true, shot: false })
+      if (['books', 'photos', 'stats', 'cd', 'dvd', 'bluray', 'games', 'game'].includes(p)) await visit(p, PAGES[p], look, { phone: true, shot: false })
     }
   }
   // Every theme under the first look.

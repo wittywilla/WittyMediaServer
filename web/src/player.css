@@ -143,6 +143,7 @@
 /* Everything is sized in cqw (1% of the drive's width) so the scene scales
    from phones to TVs; the drive itself is limited by width and height. */
 .insert-disc { position: absolute; inset: 0; z-index: 8; background: radial-gradient(ellipse at 50% 55%, #1b1e27, #000 72%); display: grid; place-items: center; align-content: center; gap: 4vh; cursor: pointer; animation: ins-fade 3s ease forwards; }
+.insert-disc .insert-skip { position: absolute; right: var(--sp-5); bottom: var(--sp-5); }
 .insert-disc .drive { position: relative; width: min(86vw, 105vh, 640px); aspect-ratio: 16 / 12.6; container-type: inline-size; }
 /* Lid: the top of the player seen from slightly above. It hides the closed tray. */
 .insert-disc .lid { position: absolute; left: 4cqw; right: 4cqw; top: 6cqw; height: 34cqw; z-index: 3;
@@ -311,7 +312,7 @@
 
 /* ---------------------------------------------------------------- version tag */
 .version-tag { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 2px 6px; }
-.version-tag .stage { font-size: var(--text-2xs); line-height: 1.4; letter-spacing: .05em; padding: 0 6px; border-radius: var(--r-xs); background: var(--accent-soft); color: color-mix(in srgb, var(--accent-text) 80%, var(--fg)); font-weight: 700; }
+.version-tag .stage { font-size: var(--text-2xs); line-height: 1.4; letter-spacing: .05em; padding: 0 6px; border-radius: var(--r-xs); background: var(--accent-soft); color: var(--fg); font-weight: 700; }
 .auth-version { text-align: center; color: var(--fg-3); font-size: var(--text-xs); }
 
 .episode-table td.thumb-cell { width: 84px; padding-right: 0; }

@@ -22,11 +22,14 @@ import { useList } from '../gridView'
 import { KeyLegend } from '../../ui/KeyLegend'
 import { safeLink as safeHref } from '../../safeLink'
 import { buttonsOf, cardGap, creditGroups, factsOf, fieldOf, gridColumns, initials, type ButtonSpec, type View } from '../model'
+import { dotFor, focusedOf } from '../playModel'
 import { plan } from '../routes'
 import type { Node, Props } from '../types'
 import { px, usePage } from './context'
 import { kindIcon, sduiIcon } from './icons'
 import { chooseEpisodeView, useEpisodeView } from '../extras/episodeView'
+import { ControlView, FormView } from './forms'
+import { controlOf } from '../formsModel'
 import { Markdown } from './markdown'
 import { WidgetGridView } from './widgets'
 
@@ -86,13 +89,16 @@ function Pressable({ view, className, children, label, style, first, title }: { 
     'aria-label': label ?? (view.label || undefined),
     onContextMenu: view.type === 'Card' && !page.inert ? (e: React.MouseEvent) => { e.preventDefault(); page.menu(view, { x: e.clientX, y: e.clientY }) } : undefined,
   }
-  if (step.do === 'nothing' || page.inert) return <div {...common} role={view.role === 'button' ? 'group' : undefined}>{children}</div>
+  // Someone in a list that is operated by OK (the lobby) is a stop even with nowhere to go.
+  if (step.do === 'nothing' || page.inert) return <div {...common} role={view.role === 'button' ? 'group' : undefined} tabIndex={node.props?.focusable === true ? 0 : undefined}>{children}</div>
   if (step.do === 'go') return <Link {...common} to={step.to}>{children}</Link>
   if (step.do === 'open') return <a {...common} href={safeHref(step.url) || undefined} target="_blank" rel="noopener noreferrer">{children}</a>
   return <button type="button" {...common} onClick={() => page.act(node.action, view)}>{children}</button>
 }
 
 // ---------------------------------------------------------------- cards
+
+const list0 = (v: unknown) => (Array.isArray(v) && typeof v[0] === 'string' ? v[0] as string : '')
 
 const SHAPE_CLASS: Record<string, string> = { poster: '', landscape: ' wide', square: ' square', circle: ' square sdui-round', chip: '' }
 
@@ -114,6 +120,17 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
       <Pressable view={view} className={'lib-tile sdui-tile' + (image ? ' pictured' : '')}>
         {image ? <span className="sdui-tile-art"><Picture image={image} kind={p.kind} /></span> : <span className="lib-tile-ic" aria-hidden="true">{sduiIcon(p.icon) || kindIcon(p.kind)}</span>}
         <span className="lib-tile-txt"><b>{text.title}</b>{text.count !== undefined && <span className="muted">{countWords(libraryType, Number(text.count))}</span>}</span>
+      </Pressable>
+    )
+  }
+  if (style === 'person') {
+    // A person: their picture or initials in a circle, a dot for whether they are about, their name and what they are doing.
+    const presence = list0(p.badges)
+    const label = [text.title, presence, text.subtitle && text.subtitle !== presence ? text.subtitle : ''].filter(Boolean).join(', ')
+    return (
+      <Pressable view={view} className="sdui-person" label={label}>
+        <span className="sdui-person-art"><Picture image={obj(p, 'image')} kind="person" title={text.title} /><i className={'sdui-dot ' + dotFor(presence, obj(p, 'badgeTones'))} aria-hidden="true" /></span>
+        <span className="sdui-person-text"><b>{text.title}</b>{text.subtitle && <span>{text.subtitle}</span>}</span>
       </Pressable>
     )
   }
@@ -244,8 +261,13 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   const seeAllCard = !!view.seeAllCard && !!view.seeAll && view.seeAll.startsWith('/') && view.children.length > 0 && !chips
   const seeAllLabel = str(obj(view.node.props, 'seeAll'), 'label') || 'See all'
   const wideCards = view.cardStyle === 'landscape' || view.children[0]?.node.props?.shape === 'landscape'
+  // focusGrow: the focused card is the large one and the rest stay small; detail: its title, line and actions under the row.
+  const grow = view.node.props?.focusGrow === true && !chips && !tiles
+  const detail = view.node.props?.detail === true && !chips && !tiles
+  const [focusId, setFocusId] = useState('')
+  const focused = focusedOf(view.children, focusId)
   return (
-    <section className={'hub sdui-shelf' + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
+    <section className={'hub sdui-shelf' + (grow ? ' focus-grow' : '') + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.focusGrow === true ? ' sdui-focusgrow' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
       <Heading view={view} id={id} />
       {view.state === 'deferred' && !failed && <Near onNear={() => page.more(view.id)} />}
       {failed || view.state === 'empty' ? <StateLine view={view} /> : tiles && !waiting ? (
@@ -257,7 +279,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
         <div className="row-wrap">
           <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)} hidden><IconLeft /></button>
           <div className={'row' + (chips ? ' sdui-chips' : '')} ref={row} data-nav-group role="list" aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined}>
-            {waiting ? <Placeholders view={view} /> : view.children.map((c) => <div role="listitem" key={c.id} className="sdui-item"><CardView view={c} showTitles={showTitles} /></div>)}
+            {waiting ? <Placeholders view={view} /> : view.children.map((c) => <div role="listitem" key={c.id} className={'sdui-item' + (grow && c.id === focused?.id ? ' grown' : '')} onFocus={grow || detail ? () => setFocusId(c.id) : undefined} onPointerEnter={grow || detail ? () => setFocusId(c.id) : undefined}><CardView view={c} showTitles={showTitles} /></div>)}
             {view.hasMore && !waiting && <Near horizontal root={row} onNear={() => page.more(view.id)} />}
             {page.busy(view.id) && !waiting && <Placeholders view={{ ...view, placeholders: 2 }} />}
             {seeAllCard && !waiting && !view.hasMore && <div role="listitem" className="sdui-item"><SeeAllCard to={view.seeAll!} label={seeAllLabel} title={view.text?.title} wide={wideCards} /></div>}
@@ -265,7 +287,29 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
           <button ref={next} type="button" className="row-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => by(1)} hidden><IconRight /></button>
         </div>
       )}
+      {detail && focused && !waiting && !failed && <ShelfDetail view={focused} parent={view} />}
     </section>
+  )
+}
+
+// An item's own actions (a room's Start game, Invite and Leave) as buttons under it, with their keys: beside the item, not inside it, so
+// a button is never inside a button. A Shelf with a detail panel shows them there instead.
+function ItemActions({ view }: { view: View }) {
+  const buttons = buttonsOf(view.node.props)
+  if (!buttons.length) return null
+  return <ActionButtons buttons={buttons} view={view} className="sdui-item-actions" />
+}
+
+// The panel under a row whose focused card is bound to it: its title large, its line, and its actions as buttons with their key.
+function ShelfDetail({ view, parent }: { view: View; parent: View }) {
+  const text = view.text || {}
+  const buttons = buttonsOf(view.node.props)
+  return (
+    <div className="sdui-detail" aria-live="polite" data-for={view.id}>
+      <b className="sdui-detail-title">{text.title}</b>
+      {text.subtitle && <span className="sdui-detail-line">{text.subtitle}</span>}
+      {buttons.length > 0 && <ActionButtons buttons={buttons} view={parent} className="sdui-detail-actions" />}
+    </div>
   )
 }
 
@@ -306,7 +350,7 @@ function GridView({ view, depth }: { view: View; depth: number }) {
       {failed || view.state === 'empty' ? <StateLine view={view} /> : (
         <div ref={box} className={'grid sdui-grid' + (tiles ? ' sdui-tiles' : '') + (asList ? ' as-list' : '')} role={role} aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined}
           data-nav-group data-cols={cols} style={{ gridTemplateColumns: asList ? undefined : `repeat(${Math.max(1, cols || 1)}, minmax(0, 1fr))`, columnGap: gap }}>
-          {waiting ? <Placeholders view={view} grid /> : view.children.map((c) => <div role="listitem" key={c.id} className="sdui-item"><CardView view={c} showTitles={showTitles} /></div>)}
+          {waiting ? <Placeholders view={view} grid /> : view.children.map((c) => <div role="listitem" key={c.id} className="sdui-item"><CardView view={c} showTitles={showTitles} /><ItemActions view={c} /></div>)}
           {page.busy(view.id) && !waiting && <Placeholders view={{ ...view, columns: cols }} grid />}
         </div>
       )}
@@ -324,7 +368,7 @@ function ActionButtons({ buttons, view, className }: { buttons: ButtonSpec[]; vi
       {buttons.map((b) => {
         const step = plan(b.action, { externalLinks: page.layout.externalLinks })
         const cls = 'btn' + (b.primary ? ' primary' : '')
-        const body = <>{sduiIcon(b.icon)} {b.label}</>
+        const body = <>{b.glyph ? <i className={'sdui-glyph g-' + b.glyph} aria-hidden="true">{b.glyph.toUpperCase()}</i> : sduiIcon(b.icon)} {b.label}</>
         if (step.do === 'nothing') return null
         if (step.do === 'go' && !page.inert) return <Link key={b.id} className={cls} to={step.to} data-tv-first={b.primary || undefined}>{body}</Link>
         return <button key={b.id} type="button" className={cls} data-tv-first={b.primary || undefined} onClick={() => !page.inert && page.act(b.action, view)}>{body}</button>
@@ -473,7 +517,7 @@ function DetailHeaderView({ view }: { view: View }) {
               const step = plan(b.action, { externalLinks: page.layout.externalLinks })
               if (step.do === 'nothing') return null
               const cls = 'btn' + (b.primary ? ' primary' : '')
-              const body = <>{sduiIcon(b.icon)} {b.label}</>
+              const body = <>{b.glyph ? <i className={'sdui-glyph g-' + b.glyph} aria-hidden="true">{b.glyph.toUpperCase()}</i> : sduiIcon(b.icon)} {b.label}</>
               if (step.do === 'go' && !page.inert) return <Link key={b.id} className={cls} to={step.to} data-tv-first={b === primary || undefined}>{body}</Link>
               return <button key={b.id} type="button" className={cls} data-tv-first={b === primary || undefined} onClick={() => !page.inert && page.act(b.action, view)}>{body}</button>
             })}
@@ -913,7 +957,7 @@ function ListView({ view, depth }: { view: View; depth: number }) {
       <StateLine view={view} />
       {view.state !== 'empty' && (
         <ul className="sdui-list" aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined} data-nav-group>
-          {waiting ? Array.from({ length: 4 }, (_, k) => <li key={k} className="sdui-ph" aria-hidden="true"><i className="skel" /></li>) : view.children.map((c, i) => <li key={c.id}><ListItemView view={c} number={view.type === 'NumberedRow' ? str(c.node.props, 'number') || String(i + 1) : undefined} /></li>)}
+          {waiting ? Array.from({ length: 4 }, (_, k) => <li key={k} className="sdui-ph" aria-hidden="true"><i className="skel" /></li>) : view.children.map((c, i) => <li key={c.id}><ListItemView view={c} number={view.type === 'NumberedRow' ? str(c.node.props, 'number') || String(i + 1) : undefined} /><ItemActions view={c} /></li>)}
         </ul>
       )}
       {view.hasMore && !waiting && <Near onNear={() => page.more(view.id)} />}
@@ -931,6 +975,18 @@ const shapeOf = (image: Props | undefined): string => {
 
 function ListItemView({ view, number }: { view: View; number?: string }) {
   const p = view.node.props || {}
+  const control = controlOf(p)
+  // A row with a control is a row of text beside the control (a control is never inside a button).
+  if (control) {
+    return (
+      <div className={'sdui-row sdui-control-row' + (control.disabled ? ' off' : '')}>
+        {p.icon ? <span className="sdui-row-ic" aria-hidden="true">{sduiIcon(p.icon)}</span> : null}
+        <span className="sdui-row-text"><b>{view.text?.title}</b>{view.text?.subtitle && <span className="muted">{view.text.subtitle}</span>}</span>
+        {view.text?.trailing && <span className="muted sdui-row-end">{view.text.trailing}</span>}
+        <ControlView control={control} label={view.text?.title || view.label || 'Setting'} action={view.node.action} />
+      </div>
+    )
+  }
   const image = obj(p, 'image')
   const progress = typeof p.progress === 'number' && p.progress > 0 ? Math.min(1, p.progress) : 0
   const badges = (Array.isArray(p.badges) ? p.badges : []).filter((b): b is string => typeof b === 'string').slice(0, 2)
@@ -1010,6 +1066,7 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
       return <div className="sdui-spacer" aria-hidden="true" style={{ height: px(size, page.pt), width: px(size, page.pt) }} />
     }
     case 'Split': return <SplitView view={view} depth={depth} />
+    case 'Form': return <FormView title={view.text?.title} submitLabel={str(view.node.props, 'submitLabel')} cancelLabel={str(view.node.props, 'cancelLabel')} action={view.node.action}>{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</FormView>
     case 'Button': return <ButtonView view={view} />
     case 'Image': return <ImageView view={view} />
     case 'SearchBox': return <SearchBoxView view={view} />

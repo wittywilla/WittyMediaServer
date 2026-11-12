@@ -3,7 +3,7 @@
 // What the server sends for a server-driven page (docs/SDUI.md, catalogue revision 5).
 // Plain data: nothing here touches the page.
 
-export const CATALOG = 6
+export const CATALOG = 8
 export const VERSION = 1
 
 export type Props = Record<string, unknown>
@@ -15,6 +15,10 @@ export type Action = {
   url?: string
   op?: string
   params?: Record<string, unknown>
+  // navigate: "layer" shows the page over this one (a quick menu, a sheet) instead of going to it.
+  as?: string
+  // A command's question to ask first ("Delete this memory?"): it runs only on a yes.
+  confirm?: string
 }
 
 export type Focus = { order: number; group?: string; default?: boolean }
@@ -98,6 +102,8 @@ export type Document = {
   root: Node
   screenTime?: ScreenTime
   personal?: PersonalInfo
+  // What the page gives the shell's optional regions (status bar, system dock).
+  regions?: { statusBar?: { id: string; kind: 'profile' | 'server' | 'text'; text?: string }[]; systemDock?: { id: string; label: string; icon?: string; route: string; as?: string }[] }
   meta: Meta
 }
 

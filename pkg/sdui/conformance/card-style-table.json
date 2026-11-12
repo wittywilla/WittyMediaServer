@@ -1,0 +1,265 @@
+{
+ "kit": 1,
+ "catalogRevision": 8,
+ "cardStyles": [
+  {
+   "style": "poster",
+   "shape": "poster",
+   "aspect": "2/3",
+   "image": [
+    "poster"
+   ],
+   "shows": [
+    "title",
+    "subtitle",
+    "progress",
+    "watched",
+    "unwatched",
+    "badges"
+   ],
+   "titleLines": 1,
+   "subtitleLines": 1
+  },
+  {
+   "style": "landscape",
+   "shape": "landscape",
+   "aspect": "16/9",
+   "image": [
+    "backdrop",
+    "poster"
+   ],
+   "shows": [
+    "title",
+    "subtitle",
+    "badges"
+   ],
+   "titleLines": 1,
+   "subtitleLines": 1
+  },
+  {
+   "style": "progress",
+   "shape": "landscape",
+   "aspect": "16/9",
+   "image": [
+    "backdrop",
+    "poster"
+   ],
+   "shows": [
+    "title",
+    "subtitle",
+    "progress",
+    "remaining"
+   ],
+   "titleLines": 1,
+   "subtitleLines": 1
+  },
+  {
+   "style": "episode",
+   "shape": "landscape",
+   "aspect": "16/9",
+   "image": [
+    "backdrop",
+    "poster"
+   ],
+   "shows": [
+    "title",
+    "subtitle",
+    "synopsis",
+    "progress",
+    "watched"
+   ],
+   "titleLines": 1,
+   "subtitleLines": 1
+  },
+  {
+   "style": "square",
+   "shape": "square",
+   "aspect": "1/1",
+   "image": [
+    "square",
+    "poster"
+   ],
+   "shows": [
+    "title",
+    "subtitle"
+   ],
+   "titleLines": 1,
+   "subtitleLines": 1
+  },
+  {
+   "style": "album",
+   "shape": "square",
+   "aspect": "1/1",
+   "image": [
+    "square",
+    "poster"
+   ],
+   "shows": [
+    "title",
+    "subtitle"
+   ],
+   "titleLines": 1,
+   "subtitleLines": 1
+  },
+  {
+   "style": "circle",
+   "shape": "circle",
+   "aspect": "1/1",
+   "image": [
+    "square",
+    "poster"
+   ],
+   "shows": [
+    "title"
+   ],
+   "titleLines": 2,
+   "subtitleLines": 0
+  },
+  {
+   "style": "person",
+   "shape": "circle",
+   "aspect": "1/1",
+   "image": [
+    "square",
+    "poster"
+   ],
+   "shows": [
+    "title",
+    "subtitle",
+    "badges"
+   ],
+   "titleLines": 1,
+   "subtitleLines": 1
+  },
+  {
+   "style": "book",
+   "shape": "poster",
+   "aspect": "2/3",
+   "image": [
+    "poster"
+   ],
+   "shows": [
+    "title",
+    "subtitle",
+    "progress"
+   ],
+   "titleLines": 2,
+   "subtitleLines": 1
+  },
+  {
+   "style": "game",
+   "shape": "poster",
+   "aspect": "3/4",
+   "image": [
+    "poster"
+   ],
+   "shows": [
+    "title",
+    "subtitle",
+    "badges"
+   ],
+   "titleLines": 1,
+   "subtitleLines": 1
+  },
+  {
+   "style": "photo",
+   "shape": "square",
+   "aspect": "1/1",
+   "image": [
+    "poster",
+    "square"
+   ],
+   "shows": [],
+   "titleLines": 0,
+   "subtitleLines": 0
+  },
+  {
+   "style": "channel",
+   "shape": "landscape",
+   "aspect": "16/9",
+   "image": [
+    "logo"
+   ],
+   "shows": [
+    "number",
+    "title",
+    "now",
+    "next",
+    "progress"
+   ],
+   "titleLines": 1,
+   "subtitleLines": 2
+  },
+  {
+   "style": "tile",
+   "shape": "landscape",
+   "aspect": "16/9",
+   "image": [
+    "backdrop",
+    "poster"
+   ],
+   "shows": [
+    "title",
+    "count"
+   ],
+   "titleLines": 1,
+   "subtitleLines": 0
+  },
+  {
+   "style": "plate",
+   "shape": "poster",
+   "aspect": "2/3",
+   "image": [
+    "poster",
+    "backdrop"
+   ],
+   "shows": [
+    "title",
+    "subtitle",
+    "badges"
+   ],
+   "titleLines": 2,
+   "subtitleLines": 1
+  },
+  {
+   "style": "block",
+   "shape": "landscape",
+   "aspect": "16/9",
+   "image": [
+    "backdrop",
+    "poster"
+   ],
+   "shows": [
+    "title",
+    "subtitle"
+   ],
+   "titleLines": 2,
+   "subtitleLines": 1
+  },
+  {
+   "style": "logo",
+   "shape": "landscape",
+   "aspect": "16/9",
+   "image": [
+    "logo"
+   ],
+   "shows": [
+    "number",
+    "title"
+   ],
+   "titleLines": 1,
+   "subtitleLines": 0
+  },
+  {
+   "style": "chip",
+   "shape": "chip",
+   "aspect": "",
+   "image": null,
+   "shows": [
+    "title"
+   ],
+   "titleLines": 1,
+   "subtitleLines": 0
+  }
+ ]
+}

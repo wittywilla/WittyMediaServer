@@ -25,7 +25,7 @@ export function youSpec(d: YouIn): SpecPageData {
   if (d.adult && d.twoStep !== null) account.push(row('Two-step sign-in', '/settings/security', 'Lock', 'b', d.twoStep === undefined ? '' : d.twoStep ? 'On' : 'Off'))
   account.push(row('Your devices', '/settings/security', 'Devices', 'f', d.devices))
   s.push(secR('Account', account))
-  if (d.adult) s.push(secR('Household', [row('Sign in a TV', '/pair', 'Tv', 'a'), row('Profiles and parental limits', '/settings/users', 'Users', 'c')]))
+  if (d.adult) s.push(secR('Household', [row('Sign in a TV', '/pair', 'Tv', 'a'), row('From away', '/away', 'Tv', 'a'), row('Profiles and parental limits', '/settings/users', 'Users', 'c')]))
   const yours: SpecRow[] = [row('Your year', '/review', 'Sparkles', 'c'), row('Collections and playlists', '/collections', 'Stack', 'b')]
   if (!d.sharingHidden) yours.push(row('Share links', '/settings/sharing', 'Link', 'a'))
   if (!d.activityHidden) yours.push(row('Activity', '/settings/activity', 'Activity', 'c'))

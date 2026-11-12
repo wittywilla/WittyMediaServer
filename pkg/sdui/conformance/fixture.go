@@ -118,6 +118,8 @@ type CannedSource struct {
 	Fails bool `json:"fails,omitempty"`
 	// Selected is the season an "episodes" source chose.
 	Selected string `json:"selected,omitempty"`
+	// Reason is why the source chose what it did ("Because you watch Sci-Fi").
+	Reason string `json:"reason,omitempty"`
 }
 
 // CannedEach is one thing a repeat goes over.
@@ -189,14 +191,14 @@ func (c canned) Items(req sdui.SourceRequest) (sdui.SourceResult, error) {
 		total := max(s.Total, len(s.Items))
 		items := s.Items
 		if req.Offset >= len(items) {
-			return sdui.SourceResult{Total: total, Selected: s.Selected}, nil
+			return sdui.SourceResult{Total: total, Selected: s.Selected, Reason: s.Reason}, nil
 		}
 		items = items[req.Offset:]
 		more := false
 		if len(items) > req.Limit {
 			items, more = items[:req.Limit], true
 		}
-		return sdui.SourceResult{Items: append([]sdui.Item(nil), items...), More: more || req.Offset+len(items) < total, Total: total, Selected: s.Selected}, nil
+		return sdui.SourceResult{Items: append([]sdui.Item(nil), items...), More: more || req.Offset+len(items) < total, Total: total, Selected: s.Selected, Reason: s.Reason}, nil
 	}
 	return sdui.SourceResult{}, nil
 }

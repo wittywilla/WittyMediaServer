@@ -228,6 +228,7 @@ func validatePage(p *Page, ui *ModuleSet, own bool) []Issue {
 			}
 		}
 	}
+	v.regions(p.Regions)
 	if len(p.Sections) == 0 && len(p.Variants) == 0 {
 		v.warn("/sections", "Add a section, or apply a preset.", "the page has no sections, so it will be empty")
 	}
@@ -386,6 +387,11 @@ func (v *validator) sections(list []Section, path string, depth int, parent stri
 				v.err(sp+"/component", "Wrap it in a Tab.", "Tabs and a CrossBar hold only Tab sections, not %s", s.Component)
 			}
 		}
+		if s.Component == "Tab" {
+			if label := strings.TrimSpace(strings.ReplaceAll(propStr(s.Props, "label", ""), "{each}", "")); label == "" {
+				v.err(sp+"/props/label", "Give the tab a name: it is all that shows in the strip.", "a tab needs a label of its own (an empty one, or only {each}, leaves a blank tab)")
+			}
+		}
 		if parent == "List" && s.Component != "ListItem" {
 			v.err(sp+"/component", "Use a ListItem.", "a List holds only ListItem sections, not %s", s.Component)
 		}
@@ -404,16 +410,19 @@ func (v *validator) sections(list []Section, path string, depth int, parent stri
 		// Things that open something name exactly one place.
 		if contains([]string{"Button", "ListItem", "Notice", "Banner", "Image"}, s.Component) {
 			n := 0
-			for _, k := range []string{"to", "native", "url"} {
+			for _, k := range []string{"to", "native", "url", "op"} {
 				if propStr(s.Props, k, "") != "" {
 					n++
 				}
 			}
+			if propBool(s.Props, "back", false) {
+				n++
+			}
 			if n > 1 {
-				v.err(sp+"/props", "Keep one of to, native and url.", "a %s opens one thing, not %d", spec.Label, n)
+				v.err(sp+"/props", "Keep one of to, native, url, op and back.", "a %s opens one thing, not %d", spec.Label, n)
 			}
 			if n == 0 && s.Component == "Button" {
-				v.err(sp+"/props", "Set to (a place in the app), native (a screen of the app) or url (a web page).", "the button doesn't open anything")
+				v.err(sp+"/props", "Set to (a place in the app), native (a screen of the app), url (a web page), op (a command) or back.", "the button doesn't open anything")
 			}
 			if s.Component == "Notice" && (n > 0) != (propStr(s.Props, "buttonLabel", "") != "") {
 				v.err(sp+"/props/buttonLabel", "Set both a buttonLabel and where it leads, or neither.", "a notice's button needs a label and somewhere to go")
@@ -1021,4 +1030,51 @@ func editDistance(a, b string) int {
 		prev, cur = cur, prev
 	}
 	return prev[len(b)]
+}
+
+// regions checks what a page puts into the shell's regions.
+func (v *validator) regions(r *PageRegions) {
+	if r == nil {
+		return
+	}
+	if len(r.StatusBar) > 6 {
+		v.err("/regions/statusBar", "Keep six or fewer.", "the status bar holds at most 6 items")
+	}
+	if len(r.SystemDock) > 7 {
+		v.err("/regions/systemDock", "Keep seven or fewer.", "the system dock holds at most 7 entries")
+	}
+	seen := map[string]bool{}
+	for i, it := range r.StatusBar {
+		p := "/regions/statusBar/" + strconv.Itoa(i)
+		if !ValidID(it.ID) || seen[it.ID] {
+			v.err(p+"/id", "Give each item its own short ID.", "an item's ID is lower-case letters, digits, - and _, and each is used once")
+		}
+		seen[it.ID] = true
+		if !contains(StatusKinds, it.Kind) {
+			v.err(p+"/kind", "Use "+strings.Join(StatusKinds, ", ")+".", "%q is not a kind of status item", it.Kind)
+		}
+		if len([]rune(it.Text)) > 80 {
+			v.err(p+"/text", "Shorten it.", "a status item's text is at most 80 characters")
+		}
+	}
+	seen = map[string]bool{}
+	for i, d := range r.SystemDock {
+		p := "/regions/systemDock/" + strconv.Itoa(i)
+		if !ValidID(d.ID) || seen[d.ID] {
+			v.err(p+"/id", "Give each entry its own short ID.", "an entry's ID is lower-case letters, digits, - and _, and each is used once")
+		}
+		seen[d.ID] = true
+		if strings.TrimSpace(d.Label) == "" || len([]rune(d.Label)) > 24 {
+			v.err(p+"/label", "Use one or two short words.", "an entry needs a label of at most 24 characters")
+		}
+		if !contains(Icons, d.Icon) {
+			v.err(p+"/icon", suggest(d.Icon, Icons), "%q is not one of the built-in icons", d.Icon)
+		}
+		if !strings.HasPrefix(d.Route, "/") {
+			v.err(p+"/route", "Use a place in the app such as /page/online.", "an entry opens a route")
+		}
+		if d.As != "" && d.As != PresentLayer {
+			v.err(p+"/as", "Use layer, or leave it out.", "%q is not a way to show a page", d.As)
+		}
+	}
 }

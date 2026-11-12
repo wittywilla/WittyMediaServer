@@ -90,6 +90,12 @@ func rev6(p PropSpec) PropSpec {
 	return p
 }
 
+// rev8 marks a property as added in catalogue revision 8 (WittyPlay Online, forms, utility pages).
+func rev8(p PropSpec) PropSpec {
+	p.Since = 8
+	return p
+}
+
 // rev3 marks a property as added in catalogue revision 3 (Design 2).
 func rev3(p PropSpec) PropSpec {
 	p.Since = 3
@@ -173,13 +179,22 @@ var (
 	propCardStyle = pEnum("cardStyle", "Card style", "How each item is drawn. Auto uses the style that suits the source.", "auto", cardStyleOptions...)
 	propHeading   = rev6(pEnum("headingStyle", "Heading style", "How the title is drawn: plain, a coloured band across the row, or underlined. Left plain, the experience chooses.", "plain", "plain|Plain", "band|Band", "underline|Underline"))
 	propCardSize  = pEnum("cardSize", "Card size", "Small, medium or large cards. A profile may choose its own.", "m", "s|Small", "m|Medium", "l|Large")
+	propFocusable = rev8(pBool("focusable", "Cards without a route take focus", "A card with no route (a friend) is still a stop for focus, and OK on it is the page's to use. Off: it is not a button and takes no focus.", false))
 	propEmpty     = pEnum("empty", "When there is nothing to show", "Leave the section out, or keep it with a message.", "hide", "hide|Leave it out", "message|Show a message")
 	propEmptyText = pText("emptyText", "Message when empty", "Shown in place of the items when there are none.", 200)
 	propTo        = pOf(PropRoute, "to", "Opens", "A place in the app, such as /library/3 or /page/family-night.")
 	propNative    = pEnum("native", "Opens a screen of the app", "A screen the app draws itself.", "", "settings|Settings", "guide|TV guide", "profiles|Who's watching", "downloads|Downloads", "remote|Remote control", "nowPlaying|Now playing", "pair|Pair a device", "collections|Collections")
 	propURL       = on(pOf(PropURL, "url", "Opens a web page", "An http or https address, opened in the browser. Left out on a television."), FormPhone, FormTablet, FormDesktop, FormWeb)
-	propIcon      = pOf(PropIcon, "icon", "Icon", "One of the built-in icons.")
-	propGap       = pEnum("gap", "Space between", "The distance between the things inside.", "m", "none|None", "xs|Extra small", "s|Small", "m|Medium", "l|Large", "xl|Extra large")
+	// The command a button, notice or row runs (rev 7): op names one of the catalogue's commands, item is
+	// its item ($item on a page opened about a title), params its other values ($name and the like are
+	// filled in), confirm a question to ask first; back goes back instead.
+	propOp      = rev8(pEnum("op", "Runs a command", "One of the catalogue's commands; the page is asked for again after it.", "", commandOps()...))
+	propOpItem  = rev8(pOf(PropRef, "item", "Command's item", "The item the command acts on, such as $item."))
+	propOpArgs  = rev8(pOf(PropObject, "params", "Command's values", "The command's other values by name, each a text or a $variable."))
+	propConfirm = rev8(pText("confirm", "Ask first", "A question the app asks before the command runs, such as Delete this memory?", 120))
+	propBack    = rev8(pBool("back", "Goes back", "Closes the page: Back.", false))
+	propIcon    = pOf(PropIcon, "icon", "Icon", "One of the built-in icons.")
+	propGap     = pEnum("gap", "Space between", "The distance between the things inside.", "m", "none|None", "xs|Extra small", "s|Small", "m|Medium", "l|Large", "xl|Extra large")
 )
 
 var statesData = map[string]string{
@@ -233,7 +248,9 @@ func buildComponents() []ComponentSpec {
 				pInt("maxItems", "Most cards at first", "How many cards are sent before the row asks for more. 0 uses the device's own limit.", 0, 0, 60),
 				rev3(pBool("peek", "Show the next card's edge", "layout.peek of the next card's width stays visible at the row's trailing edge, so it is clear the row scrolls on. Off cuts the row at a whole card.", true)),
 				rev3(pEnum("seeAllCard", "See all as a card", "See all as the last card of the row, in the shape of the row's cards, in place of the link beside the heading. Automatic: on a television and in the experiences that ask for it (Stage, Big picture).", "auto", "auto|Where the layout says", "always|Always", "never|Never")),
-				propEmpty, propEmptyText,
+				rev8(pBool("focusGrow", "The focused card grows", "The card with focus scales up (1.45 times on a television, 1.25 on a tablet or desktop, not at all on a phone, where the first card is simply larger) and the cards after it step aside; the others stay small. With reduced motion the card does not animate: it gets a ring.", false)),
+				rev8(pBool("detail", "Detail panel under the row", "A panel under the row shows the focused card's item (the first until focus moves): its title large, its subtitle as one line, and its actions as buttons carrying their key glyphs. An item with no actions has its route as the one A action.", false)),
+				propFocusable, propEmpty, propEmptyText,
 			},
 			Renders: map[string]string{
 				"tv":      "A heading at the title size, then one row of cards that scrolls sideways under focus (cards layout.spacing.m apart, the next card peeking in by layout.peek of its width), the focused card kept a safe-area's width from the left edge and raised with the system's focus effect. The row is one focus section and remembers its last card. With props.seeAllCard, \"See all\" is a final card of the row's shape (its label in the title style, an arrow icon, the same corner), reached by moving past the last title; otherwise it is a link beside the heading.",
@@ -250,7 +267,7 @@ func buildComponents() []ComponentSpec {
 			Props: []PropSpec{propTitle, propHeading, propCardStyle, propCardSize,
 				pBool("showTitles", "Show titles under cards", "Off draws the pictures alone.", true),
 				pInt("maxItems", "Most cards at first", "How many cards the first page holds. 0 uses the device's own limit.", 0, 0, 200),
-				propEmpty, propEmptyText,
+				propFocusable, propEmpty, propEmptyText,
 			},
 			Renders: map[string]string{
 				"tv":      "layout.gridColumns columns for the card's shape (6 posters, 4 landscape cards), 40 points apart, focus moving by row and column; the next page is asked for when focus is within two rows of the end.",
@@ -428,7 +445,7 @@ func buildComponents() []ComponentSpec {
 				pList("actions", "Buttons", "The buttons offered, in order. One the title or the profile can't use is left out.", []string{"play", "restart", "watchLater", "watched", "download", "share"},
 					"play|Play or Resume", "restart|Play from the start", "watchLater|Watch later", "watched|Mark watched", "download|Download", "share|Share", "playOn|Play on another device", "watchParty|Watch party"),
 				pList("facts", "Facts", "The line of facts under the title, in order.", []string{"year", "runtime", "contentRating", "rating", "genres"},
-					"year|Year", "runtime|Running time", "contentRating|Certificate", "rating|Score", "genres|Genres", "studio|Studio", "count|How many it holds", "season|Season and episode",
+					"year|Year", "runtime|Running time", "contentRating|Certificate", "rating|Score", "genres|Genres", "studio|Studio", "artist|Artist (an album or song)", "count|How many it holds", "season|Season and episode",
 					"knownFor|Known for (a person)", "born|Born (a person)", "died|Died (a person)"),
 				pBool("showOverview", "Show the synopsis", "", true),
 				pBool("showTagline", "Show the tagline", "", true),
@@ -537,7 +554,7 @@ func buildComponents() []ComponentSpec {
 			Props: []PropSpec{
 				pEnum("tone", "Tone", "", "info", "info|Information", "success|Good news", "warning|Warning", "danger|Problem"),
 				pText("title", "Title", "", 120), req(pText("text", "Text", "", 400)), propIcon,
-				pText("buttonLabel", "Button", "", 40), propTo, propNative, propURL,
+				pText("buttonLabel", "Button", "", 40), propTo, propNative, propURL, propOp, propOpItem, propOpArgs, propConfirm, propBack,
 			},
 			Renders: map[string]string{"all": "A rounded block in token bg2 with a 4-point bar at its leading edge in the tone's colour (accent, ok, warn, danger), the icon, title in the title size, text in body, and the button at the end (below on a phone). It takes focus only when it has a button."},
 			A11y:    "Role: status (alert for warning and danger). Label: \"<title>. <text>\".",
@@ -583,7 +600,7 @@ func buildComponents() []ComponentSpec {
 			Props: []PropSpec{
 				req(pText("label", "Label", "", 60)), propIcon,
 				pEnum("variant", "Look", "", "secondary", "primary|Primary", "secondary|Secondary", "ghost|Plain"),
-				propTo, propNative, propURL,
+				propTo, propNative, propURL, propOp, propOpItem, propOpArgs, propConfirm, propBack,
 			},
 			Renders: map[string]string{"all": "The platform's own button: filled in token accent with accentFg text (primary), outlined (secondary) or text only (ghost); at least 44 points tall on touch devices, 66 on a television."},
 			A11y:    "Role: button (link on the web when it navigates). Label: the label.",
@@ -614,7 +631,7 @@ func buildComponents() []ComponentSpec {
 
 		{Type: "List", Label: "List", Icon: "list", Category: "media", Since: 2, Authored: true, Data: "optional", Container: true, Children: []string{"ListItem"}, Focus: "group",
 			Description: "Rows of text with an icon or small picture, written by hand or drawn from a source.",
-			Props:       []PropSpec{propTitle, propHeading, pBool("dense", "Compact rows", "", false), propEmpty, propEmptyText},
+			Props:       []PropSpec{propTitle, propHeading, pBool("dense", "Compact rows", "", false), propFocusable, propEmpty, propEmptyText},
 			Renders:     map[string]string{"all": "Full-width rows (56 points, 44 dense, 90 on a television): picture or icon, title over subtitle, trailing text, and a chevron when the row opens something."},
 			States:      statesData,
 			A11y:        "Role: list labelled by the title.",
@@ -622,8 +639,25 @@ func buildComponents() []ComponentSpec {
 
 		{Type: "ListItem", Label: "List row", Icon: "list", Category: "media", Since: 2, Authored: true, Data: "none", Focus: "item",
 			Description: "One row of a List.",
-			Props:       []PropSpec{req(pText("title", "Title", "", 120)), pText("subtitle", "Subtitle", "", 160), propIcon, pText("trailing", "Text at the end", "", 40), propTo, propNative, propURL},
+			Props:       []PropSpec{req(pText("title", "Title", "", 120)), pText("subtitle", "Subtitle", "", 160), propIcon, pText("trailing", "Text at the end", "", 40), propTo, propNative, propURL, propOp, propOpItem, propOpArgs, propConfirm, propBack},
 			A11y:        "Role: button when it opens something, else text. Label: \"<title>, <subtitle>, <trailing>\"."},
+
+		{Type: "Form", Label: "Form", Icon: "list", Category: "structure", Since: 8, Authored: true, Data: "none", Container: true, Children: []string{"List", "Text", "Notice", "Divider", "Spacer"}, Focus: "group",
+			Description: "A group of rows with controls (switches, choices, fields, sliders) saved together: Save runs one command with every named control's value, Cancel goes back. Settings itself stays hand-built; a Form is for a page the server or a module serves.",
+			Props: []PropSpec{
+				propTitle,
+				pText("submitLabel", "Save button", "", 24), pText("cancelLabel", "Cancel button", "Left out: no Cancel; Back still goes back.", 24),
+				req(pEnum("op", "Command", "The command Save runs, one of the catalogue's commands.", "", commandOps()...)),
+				pOf(PropRef, "item", "Item", "The command's item, such as $item."),
+			},
+			Renders: map[string]string{
+				"tv":      "The rows as a list, then a Dock of Save (primary) and Cancel; Save is disabled until something has changed.",
+				"phone":   "The rows full width, a Save and Cancel bar fixed at the foot above the keyboard.",
+				"desktop": "The rows in a column at most 720 points wide, Save and Cancel at its foot.",
+			},
+			States:  map[string]string{"loading": "The rows as loading rows.", "empty": "Left out.", "error": "The error under Save, in the danger tone; the values stay as typed."},
+			A11y:    "Role: form, labelled by the title. Each control is labelled by its row's title and described by its subtitle and why; Save announces the result politely.",
+			Example: example(`{"id":"privacy","component":"Form","props":{"title":"Games","op":"wittyplay.online.set"},"children":[{"id":"rows","component":"List","source":{"type":"wittyplay.privacy"}}]}`)},
 
 		{Type: "NativeView", Label: "The app's own view", Icon: "plug", Category: "structure", Since: 2, Authored: true, Data: "none", Container: true, Focus: "stop",
 			Description: "A place where the app draws one of its own rich views: the TV guide's grid, the photo timeline. An app that has the view says so; any other is sent the sections inside instead.",
@@ -658,7 +692,8 @@ func buildCardStyles() []CardStyleSpec {
 		{Style: "circle", Label: "Circle", Shape: "circle", Aspect: "1/1", Image: []string{"square", "poster"}, Shows: []string{"title"}, TitleLines: 2, SubtitleLines: 0,
 			Description: "A round picture with a centred name."},
 		{Style: "person", Label: "Person", Shape: "circle", Aspect: "1/1", Image: []string{"square", "poster"}, Shows: []string{"title", "subtitle", "badges"}, TitleLines: 1, SubtitleLines: 1,
-			Description: "A round portrait with a name and a line under it: an artist, an author, someone in a title's cast or crew (the line is the part they played or their job), a friend (the line is where they are and the badge their presence). A person's initials stand in for a missing photo. The card opens something only when the item has a route; without one it is not a button and takes no focus.", Kinds: []string{"artist", "person"}},
+			Description: "A round portrait with a name and a line under it: an artist, an author, someone in a title's cast or crew (the line is the part they played or their job), a friend (the line is where they are and the badge their presence). A person's initials stand in for a missing photo. The card opens something only when the item has a route; without one it is not a button and takes no focus.", Kinds: []string{"artist", "person"},
+			BadgeTones: map[string]string{"Playing": "ok", "Online": "ok", "Away": "warn", "Offline": "muted"}},
 		{Style: "book", Label: "Book cover", Shape: "poster", Aspect: "2/3", Image: []string{"poster"}, Shows: []string{"title", "subtitle", "progress"}, TitleLines: 2, SubtitleLines: 1,
 			Description: "A book or comic cover with the title and author, and how far it has been read.", Kinds: []string{"book"}},
 		{Style: "game", Label: "Game box", Shape: "poster", Aspect: "3/4", Image: []string{"poster"}, Shows: []string{"title", "subtitle", "badges"}, TitleLines: 1, SubtitleLines: 1,
@@ -832,6 +867,28 @@ func buildSources() []SourceSpec {
 			Description: "Titles in the same library sharing the title's first genre, best scored first, without the title itself.",
 			Params:      []PropSpec{req(pOf(PropRef, "item", "Title", "$item on a film's page, $show on a show's.")), paramLimit}, Yields: []string{"movie", "show"},
 			Example: example(`{"type":"similar","item":"$item","limit":12}`)},
+		{Type: "versions", Label: "Versions of a title", Icon: "video", Category: "context", Since: 8, CardStyle: "square", PageKinds: []string{"custom"}, Title: "Versions",
+			Description: "The files one title plays from, its own and the versions attached to it, each a row that plays that file with its label and quality, its length and size.",
+			Params:      []PropSpec{req(pOf(PropRef, "item", "Title", "$item on a page opened about a title.")), paramLimit}, Yields: []string{"video"}, Example: example(`{"type":"versions","item":"$item"}`)},
+		{Type: "listsFor", Label: "Lists a title can be in", Icon: "collection", Category: "context", Since: 8, CardStyle: "tile", PageKinds: []string{"custom"}, Title: "Lists",
+			Description: "The profile's own lists (Watch later and the lists it made), each a switch row: on when the title is in it, and flipping it adds or takes the title out.",
+			Params:      []PropSpec{req(pOf(PropRef, "item", "Title", "$item on a page opened about a title.")), paramLimit}, Yields: []string{"collection"}, Example: example(`{"type":"listsFor","item":"$item"}`)},
+		{Type: "newList", Label: "A new list's name", Icon: "plus", Category: "context", Since: 8, CardStyle: "tile", PageKinds: []string{"custom"}, Title: "A new list",
+			Description: "One row holding a field for the name of a new list, for a Form whose command is collection.create.",
+			Yields:      []string{"view"}, Example: example(`{"type":"newList"}`)},
+		{Type: "devices", Label: "Signed-in devices", Icon: "devices", Category: "personal", Since: 8, CardStyle: "tile", Title: "Your devices",
+			Description: "Where the profile is signed in: this device first, then the others with when each was last used, a row that signs it out after asking.",
+			Params:      []PropSpec{paramLimit}, Yields: []string{"view"}, Example: example(`{"type":"devices"}`)},
+		{Type: "year", Label: "Your year", Icon: "chart", Category: "personal", Since: 8, CardStyle: "tile", Title: "Your year",
+			Description: "The profile's year from its own play log: the totals, or the top titles, shows, artists or genres, or the months.",
+			Params: []PropSpec{pEnum("part", "Part", "", "totals", "totals|Totals", "months|Months", "titles|Top titles", "shows|Top shows", "artists|Top artists", "genres|Top genres"),
+				pInt("year", "Year", "0 is this year.", 0, 0, 3000), paramLimit}, Yields: []string{"view"}, Example: example(`{"type":"year","part":"titles","limit":10}`)},
+		{Type: "activity", Label: "What the server is doing", Icon: "plug", Category: "structure", Since: 8, CardStyle: "tile", Title: "Activity",
+			Description: "The tasks running now, with how far each has got, or those just finished. What the profile may see of them follows its limits.",
+			Params:      []PropSpec{pEnum("part", "Part", "", "now", "now|Running", "history|Finished"), paramLimit}, Yields: []string{"view"}, Example: example(`{"type":"activity","part":"now"}`)},
+		{Type: "notices", Label: "Notifications", Icon: "info", Category: "personal", Since: 8, CardStyle: "tile", Title: "Notifications",
+			Description: "What the profile may want to know: a reminder that a programme is on, and for an administrator that a new version of the server is ready.",
+			Params:      []PropSpec{paramLimit}, Yields: []string{"view"}, Example: example(`{"type":"notices"}`)},
 		{Type: "search", Label: "Search results", Icon: "search", Category: "context", Since: 2, CardStyle: "poster", PageKinds: []string{"search"}, Title: "{each}",
 			Description: "What a search finds in one library, among the channels, or among the people credited on titles the profile may see. Nothing under two characters.",
 			Params: []PropSpec{req(pOf(PropRef, "query", "Search", "$query on the search page.")), paramLibrary,
@@ -884,7 +941,8 @@ func buildPageKinds() []PageKindSpec {
 		{Kind: "books", Label: "Books", Route: "/books", Description: "Books, comics and audiobooks together: the book libraries and the audiobook libraries.", Params: []string{"tab"}},
 		{Kind: "games", Label: "Games", Route: "/games", Description: "Every games library together.", Params: []string{"tab"}},
 		{Kind: "collections", Label: "Collections", Route: "/collections", Description: "The profile's collections and lists.", Params: []string{"tab"}},
-		{Kind: "custom", Label: "A page of your own", Route: "/page/{id}", Description: "Any other page: a family film night, a page for one collection.", Params: []string{"tab"}},
+		{Kind: "custom", Label: "A page of your own", Route: "/page/{id}", Description: "Any other page: a family film night, a page for one collection. It may be opened about something: a title (item), a studio, network or category (name, with of), which its sources read as $item, $name and $of.",
+			Params: []string{"tab", "item", "name", "of"}, Variables: []string{"$item", "$name", "$of"}},
 	}
 }
 
@@ -906,6 +964,15 @@ func buildRoutes() []RouteSpec {
 		{Pattern: "/photos", Page: "photos"},
 		{Pattern: "/books", Page: "books"},
 		{Pattern: "/games", Page: "games"},
+		{Pattern: "/studio/{name}", Page: "studio", Params: map[string]string{"name": "{name}"}},
+		{Pattern: "/network/{name}", Page: "network", Params: map[string]string{"name": "{name}"}},
+		{Pattern: "/category/{name}", Page: "category", Params: map[string]string{"name": "{name}"}},
+		{Pattern: "/versions/{item}", Page: "versions", Params: map[string]string{"item": "{item}"}},
+		{Pattern: "/save-to/{item}", Page: "save-to", Params: map[string]string{"item": "{item}"}},
+		{Pattern: "/devices", Page: "devices"},
+		{Pattern: "/year", Page: "year"},
+		{Pattern: "/activity", Page: "activity"},
+		{Pattern: "/notifications", Page: "notifications"},
 		{Pattern: "/page/{id}", Page: "{id}"},
 		{Pattern: "/settings", Native: "settings"},
 		{Pattern: "/settings/{section}", Native: "settings"},
@@ -921,40 +988,27 @@ func buildRoutes() []RouteSpec {
 	}
 }
 
+// commandOps are the ops of the catalogue's commands, for the enum of a property that names one.
+func commandOps() []string {
+	var out []string
+	for _, c := range commandSpecs() {
+		out = append(out, c.Op+"|"+c.Label)
+	}
+	return out
+}
+
 func buildCatalogue() *Catalogue {
 	c := &Catalogue{
 		SchemaVersion: SchemaVersion, Revision: CatalogRevision,
 		Components: buildComponents(), CardStyles: cardStylesOnce(), Sources: buildSources(), Conditions: buildConditions(),
 		PageKinds: buildPageKinds(), Routes: buildRoutes(),
-		Commands: []CommandSpec{
-			{Op: "watchLater.add", Label: "Watch later", Description: "Adds the title to the profile's Watch later list.", Method: "POST", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
-			{Op: "watchLater.remove", Label: "Remove from Watch later", Description: "Takes the title off the profile's Watch later list.", Method: "DELETE", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
-			{Op: "watched.set", Label: "Mark watched", Description: "Marks the title watched; for a show, every episode.", Method: "POST", Path: "/api/v1/items/{item}/progress", Body: `{"watched":true}`},
-			{Op: "watched.clear", Label: "Mark unwatched", Description: "Forgets the profile's progress in the title; for a show, in every episode.", Method: "DELETE", Path: "/api/v1/items/{item}/progress"},
-			{Op: "selectTab", Label: "Choose a tab", Description: "Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it.", Method: "GET", Path: ""},
-			{Op: "control.open", Label: "Open a control", Description: "Client-handled, from a Dock: params.control is sort, filter, view or jump and params.target the Grid. sort and filter open the page's FilterBar choices for the target; view switches it between its grid and a list and remembers it for the profile on the device; jump opens a letter picker (A to Z and #) and brings the grid to the first title starting with the letter by asking its more.url until one has arrived, at most 20 pages.", Method: "GET", Path: ""},
-			{Op: "wittyplay.room.create", Label: "Open a room", Description: "WittyPlay Online: opens the game being played (item: its session) to the friends who may see it, so they join with no code. Answers the host's code.", Method: "POST", Path: "/api/play/{item}/room", Body: `{"open":true}`},
-			{Op: "wittyplay.room.join", Label: "Join a room", Description: "WittyPlay Online: takes a seat in an open room (item: its session) or, with params.code, the room that code belongs to (no item).", Method: "POST", Path: "/api/play/join", Body: `{"room":"{item}","code":"{code}"}`,
-				Params: []CommandParam{{Name: "code", Type: "string", Label: "Join code"}}},
-			{Op: "wittyplay.room.invite", Label: "Invite someone", Description: "WittyPlay Online: a join code for the game being played (item: its session), good for a short while, which a phone's QR join link carries. Answers {code, expiresAt}.", Method: "POST", Path: "/api/play/{item}/invite"},
-			{Op: "wittyplay.state.save", Label: "Save state", Description: "WittyPlay: saves the game being played (item: its session) into params.slot.", Method: "POST", Path: "/api/play/{item}/action", Body: `{"type":"save","slot":"{slot}"}`,
-				Params: []CommandParam{{Name: "slot", Type: "int", Label: "Save slot", Required: true}}},
-			{Op: "wittyplay.state.load", Label: "Load state", Description: "WittyPlay: loads params.slot into the game being played (item: its session).", Method: "POST", Path: "/api/play/{item}/action", Body: `{"type":"load","slot":"{slot}"}`,
-				Params: []CommandParam{{Name: "slot", Type: "int", Label: "Save slot", Required: true}}},
-			{Op: "wittyplay.state.delete", Label: "Delete a save state", Description: "WittyPlay: deletes the profile's save in params.slot of the game (item: the game's ID, not a session).", Method: "DELETE", Path: "/api/games/{item}/saves/{slot}",
-				Params: []CommandParam{{Name: "slot", Type: "int", Label: "Save slot", Required: true}}},
-			{Op: "wittyplay.controller.assign", Label: "Move a player", Description: "WittyPlay Online: the host puts the profile params.user in seat params.seat of the game being played (item: its session); a held seat is swapped.", Method: "PUT", Path: "/api/play/{item}/seats/{user}", Body: `{"seat":"{seat}"}`,
-				Params: []CommandParam{{Name: "user", Type: "string", Label: "Profile", Required: true}, {Name: "seat", Type: "int", Label: "Seat", Required: true}}},
-			{Op: "rewind.open", Label: "Rewind", Description: "Client-handled, in the game player: opens the player's rewind panel. No request.", Method: "GET", Path: ""},
-			{Op: "controller.remap", Label: "Remap controls", Description: "Client-handled, in the game player: opens the player's own controller-mapping panel. No request.", Method: "GET", Path: ""},
-			{Op: "refresh", Label: "Refresh", Description: "Asks for the page again.", Method: "GET", Path: ""},
-		},
+		Commands:      commandSpecs(),
 		NativeScreens: append([]NativeScreenSpec(nil), nativeScreenSpecs...),
 		TVThemes:      dataFile("tvthemes.json"), Remote: dataFile("remote.json"), Music: dataFile("music.json"),
 		NativeViews: opts("guide|TV guide grid", "photoTimeline|Photo timeline", "photoMap|Photo map", "coverFlow|Album cover flow"),
 		Icons:       append([]string(nil), Icons...),
 		Placeholders: opts("{user}|The profile's name", "{server}|The server's name", "{greeting}|Good morning, afternoon or evening", "{library}|The page's library",
-			"{title}|The page's title, or a source's first item", "{query}|What was searched for", "{each}|What a repeated section is repeated over", "{count}|How many items a source gave",
+			"{title}|The page's title, or a source's first item", "{query}|What was searched for", "{each}|What a repeated section is repeated over", "{count}|How many items a source gave", "{reason}|Why a source chose its items (a row's subtitle)",
 			"{genre}|The source's genre", "{studio}|The source's studio", "{tag}|The source's tag"),
 		Repeats: opts("libraries|Each library", "pinnedViews|Each saved view pinned to Home", "collections|Each collection",
 			"bookSeries|Each series of the page's books library", "bookAuthors|Each author of the page's books library",
@@ -1019,4 +1073,53 @@ func dataFile(name string) json.RawMessage {
 		panic("sdui: data/" + name + " is missing or not JSON")
 	}
 	return json.RawMessage(bytes.TrimSpace(b))
+}
+
+// commandSpecs are the commands, in the catalogue's order.
+func commandSpecs() []CommandSpec {
+	return []CommandSpec{
+		{Op: "watchLater.add", Label: "Watch later", Description: "Adds the title to the profile's Watch later list.", Method: "POST", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
+		{Op: "watchLater.remove", Label: "Remove from Watch later", Description: "Takes the title off the profile's Watch later list.", Method: "DELETE", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
+		{Op: "watched.set", Label: "Mark watched", Description: "Marks the title watched; for a show, every episode.", Method: "POST", Path: "/api/v1/items/{item}/progress", Body: `{"watched":true}`},
+		{Op: "watched.clear", Label: "Mark unwatched", Description: "Forgets the profile's progress in the title; for a show, in every episode.", Method: "DELETE", Path: "/api/v1/items/{item}/progress"},
+		{Op: "selectTab", Label: "Choose a tab", Description: "Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it.", Method: "GET", Path: ""},
+		{Op: "control.open", Label: "Open a control", Description: "Client-handled, from a Dock: params.control is sort, filter, view or jump and params.target the Grid. sort and filter open the page's FilterBar choices for the target; view switches it between its grid and a list and remembers it for the profile on the device; jump opens a letter picker (A to Z and #) and brings the grid to the first title starting with the letter by asking its more.url until one has arrived, at most 20 pages.", Method: "GET", Path: ""},
+		{Op: "wittyplay.room.create", Label: "Open a room", Description: "WittyPlay Online: opens the game being played (item: its session) to the friends who may see it, so they join with no code. Answers the host's code.", Method: "POST", Path: "/api/play/{item}/room", Body: `{"open":true}`},
+		{Op: "wittyplay.room.join", Label: "Join a room", Description: "WittyPlay Online: takes a seat in an open room (item: its session) or, with params.code, the room that code belongs to (no item).", Method: "POST", Path: "/api/play/join", Body: `{"room":"{item}","code":"{code}"}`,
+			Params: []CommandParam{{Name: "code", Type: "string", Label: "Join code"}}},
+		{Op: "wittyplay.room.invite", Label: "Invite someone", Description: "WittyPlay Online: a join code for the game being played (item: its session), good for a short while, which a phone's QR join link carries. Answers {code, expiresAt}.", Method: "POST", Path: "/api/play/{item}/invite"},
+		{Op: "wittyplay.state.save", Label: "Save state", Description: "WittyPlay: saves the game being played (item: its session) into params.slot.", Method: "POST", Path: "/api/play/{item}/action", Body: `{"type":"save","slot":"{slot}"}`,
+			Params: []CommandParam{{Name: "slot", Type: "int", Label: "Save slot", Required: true}}},
+		{Op: "wittyplay.state.load", Label: "Load state", Description: "WittyPlay: loads params.slot into the game being played (item: its session).", Method: "POST", Path: "/api/play/{item}/action", Body: `{"type":"load","slot":"{slot}"}`,
+			Params: []CommandParam{{Name: "slot", Type: "int", Label: "Save slot", Required: true}}},
+		{Op: "wittyplay.state.delete", Label: "Delete a save state", Description: "WittyPlay: deletes the profile's save in params.slot of the game (item: the game's ID, not a session).", Method: "DELETE", Path: "/api/games/{item}/saves/{slot}",
+			Params: []CommandParam{{Name: "slot", Type: "int", Label: "Save slot", Required: true}}},
+		{Op: "wittyplay.controller.assign", Label: "Move a player", Description: "WittyPlay Online: the host puts the profile params.user in seat params.seat of the game being played (item: its session); a held seat is swapped.", Method: "PUT", Path: "/api/play/{item}/seats/{user}", Body: `{"seat":"{seat}"}`,
+			Params: []CommandParam{{Name: "user", Type: "string", Label: "Profile", Required: true}, {Name: "seat", Type: "int", Label: "Seat", Required: true}}},
+		{Op: "wittyplay.room.close", Label: "Close the room", Description: "WittyPlay Online: closes the game being played (item: its session) to friends. The host's own seat and anyone already in stay.", Method: "POST", Path: "/api/play/{item}/room", Body: `{"open":false}`},
+		{Op: "wittyplay.online.set", Label: "Save friends and privacy", Description: "WittyPlay Online: what this profile lets friends know. params.sharePlaying (friends see the game) and params.appearOnline (appears online at all).", Method: "PUT", Path: "/api/games/online/me", Body: `{"sharePlaying":"{sharePlaying}","appearOnline":"{appearOnline}"}`,
+			Params: []CommandParam{{Name: "sharePlaying", Type: "bool", Label: "Show friends what I play", Required: true}, {Name: "appearOnline", Type: "bool", Label: "Appear online", Required: true}}},
+		{Op: "wittyplay.online.share", Label: "Show friends what I play", Description: "WittyPlay Online: params.value, whether friends see the game this profile plays.", Method: "PUT", Path: "/api/games/online/me", Body: `{"sharePlaying":"{value}"}`,
+			Params: []CommandParam{{Name: "value", Type: "bool", Label: "On", Required: true}}},
+		{Op: "wittyplay.online.appear", Label: "Appear online", Description: "WittyPlay Online: params.value, whether this profile appears online to friends at all.", Method: "PUT", Path: "/api/games/online/me", Body: `{"appearOnline":"{value}"}`,
+			Params: []CommandParam{{Name: "value", Type: "bool", Label: "On", Required: true}}},
+		{Op: "wittyplay.kids.friends", Label: "Choose a Kids profile's friends", Description: "WittyPlay Online, administrators: replaces the profiles a Kids profile (item: its ID) sees and is seen by with params.friends.", Method: "PUT", Path: "/api/games/online/kids/{item}", Body: `{"friends":"{friends}"}`,
+			Params: []CommandParam{{Name: "friends", Type: "ints", Label: "Profiles", Required: true}}},
+		{Op: "wittyplay.screenshot.keep", Label: "Keep the screenshot", Description: "WittyPlay: keeps a screenshot of the game being played (item: its session) in the profile's Memories.", Method: "POST", Path: "/api/play/{item}/screenshot"},
+		{Op: "wittyplay.memory.delete", Label: "Delete this memory", Description: "WittyPlay: deletes one of the profile's kept screenshots (item: the game's ID, params.name its name).", Method: "DELETE", Path: "/api/games/{item}/shots/{name}",
+			Params: []CommandParam{{Name: "name", Type: "string", Label: "Screenshot", Required: true}}},
+		{Op: "collection.add", Label: "Add to a list", Description: "Puts the title (item) in the profile's list params.collection.", Method: "POST", Path: "/api/collections/{collection}/items", Body: `{"items":["{item}"]}`,
+			Params: []CommandParam{{Name: "collection", Type: "string", Label: "List", Required: true}}},
+		{Op: "collection.remove", Label: "Take off a list", Description: "Takes the title (item) off the profile's list params.collection.", Method: "DELETE", Path: "/api/collections/{collection}/items", Body: `{"items":["{item}"]}`,
+			Params: []CommandParam{{Name: "collection", Type: "string", Label: "List", Required: true}}},
+		{Op: "collection.create", Label: "Make a list", Description: "Makes a list of the profile's own, named params.name.", Method: "POST", Path: "/api/collections", Body: `{"name":"{name}","kind":"manual"}`,
+			Params: []CommandParam{{Name: "name", Type: "string", Label: "Name", Required: true}}},
+		{Op: "session.end", Label: "Sign a device out", Description: "Signs out the device params.session.", Method: "DELETE", Path: "/api/sessions/{session}",
+			Params: []CommandParam{{Name: "session", Type: "string", Label: "Device", Required: true}}},
+		{Op: "sessions.endOthers", Label: "Sign out the others", Description: "Signs out every device of the profile but this one.", Method: "DELETE", Path: "/api/sessions"},
+		{Op: "history.clear", Label: "Clear my history", Description: "Forgets what the profile watched and listened to. It cannot be undone.", Method: "DELETE", Path: "/api/me/history"},
+		{Op: "rewind.open", Label: "Rewind", Description: "Client-handled, in the game player: opens the player's rewind panel. No request.", Method: "GET", Path: ""},
+		{Op: "controller.remap", Label: "Remap controls", Description: "Client-handled, in the game player: opens the player's own controller-mapping panel. No request.", Method: "GET", Path: ""},
+		{Op: "refresh", Label: "Refresh", Description: "Asks for the page again.", Method: "GET", Path: ""},
+	}
 }

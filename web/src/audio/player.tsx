@@ -113,7 +113,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [sleepAt, setSleepAt] = useState<number | 'chapter' | null>(null)
   const [full, setFull] = useState(false)
   const [wantFull, setWantFull] = useState(false) // once opened it stays loaded, and so is quick the next time
-  const [fullOpts, setFullOpts] = useState<{ visualizer?: boolean; panel?: 'lyrics' | 'queue' }>({})
+  const [fullOpts, setFullOpts] = useState<{ visualizer?: boolean; panel?: 'lyrics' | 'queue' | 'karaoke' }>({})
   const [collapsed, setCollapsedState] = useState(() => { try { return localStorage.getItem(COLLAPSE_KEY) === '1' } catch { return false } })
   const [nowPlaying, setNowPlaying] = useState<{ id: number; title: string; artist: string; track: string } | null>(null)
   const [likes, setLikes] = useState<Set<number>>(() => new Set())
@@ -262,7 +262,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   // A screen of its own: Back (the button, Esc, or the phone's or remote's Back) returns to
   // the page underneath, which stays exactly as it was.
-  const openFull = (opts: { visualizer?: boolean; panel?: 'lyrics' | 'queue' } = {}) => {
+  const openFull = (opts: { visualizer?: boolean; panel?: 'lyrics' | 'queue' | 'karaoke' } = {}) => {
     if (cdOn.current && cd.now) { nav(`/cd/${cd.now.disc.id}`); return }
     setFullOpts(opts)
     setWantFull(true)
@@ -730,13 +730,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
       // A game's V is the game's, and the CD player has a visualizer of its own.
-      if (!vizHere || e.key.toLowerCase() !== 'v' || e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || takenOver || loc.pathname.startsWith('/cd/')) return
+      if (e.key.toLowerCase() !== 'v' || e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || takenOver || loc.pathname.startsWith('/cd/')) return
       e.preventDefault()
       openFull({ visualizer: true })
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [current?.id, full, vizHere, takenOver, loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [current?.id, full, takenOver, loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // "<" and ">" step through the speeds, as in the video player.
   useEffect(() => {

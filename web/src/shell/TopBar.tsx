@@ -115,9 +115,12 @@ function SectionRow({ list }: { list: NavItem[] }) {
   }, [path, list])
   if (list.length === 0) return <Link to="/" className="brand section-row-brand"><BrandMark /><Brand name={brandName} /></Link>
   return (
-    <nav className="section-row" aria-label="Sections" ref={row}>
-      {list.map((it) => <NavLink key={it.id} to={it.to} end={it.end}>{it.label}</NavLink>)}
-    </nav>
+    <>
+      <Link to="/" className="brand phone-brand" aria-label={brandName || 'Home'}><BrandMark /><Brand name={brandName} /></Link>
+      <nav className="section-row" aria-label="Sections" ref={row}>
+        {list.map((it) => <NavLink key={it.id} to={it.to} end={it.end}>{it.label}</NavLink>)}
+      </nav>
+    </>
   )
 }
 

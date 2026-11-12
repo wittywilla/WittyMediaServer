@@ -5,6 +5,14 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- The catalogue's visualizer controls: `speedPct` (50 to 200 %, replacing `speed`) and `colour` of `effect` (default) or `theme` (replacing `theme` or `album`; there is no album-art colour source), for every effect.
+
+- Each experience in `GET /sdui/experiences` (and the catalogue) has `wire`: its layout per form factor in a few words (menu place and style, Home shape, cards, dock, brand place, finish), worked out from the experience's own data, for the look pickers' thumbnails. Additive: no revision change.
+
+- The catalogue's `music.visualizer.presets` list the real effects (18: the 17 classics and Aurora Rings) with `motion`, `calm` and `cost`, instead of six invented names, so the effects picker can be drawn from it.
+
+- SDUI catalogue revision 7: the `person` card style now shows badges (a friend's presence, a seat), which changes what an existing style shows and so bumps the revision (the rule is now written in docs/SDUI.md, Versioning). Clients that keep their own card-style table check it against `pkg/sdui/conformance/card-style-table.json`. Documents say `catalog: 7`; every fixture is regenerated (the only change in each is that number, apart from the people fixtures).
+
 - A `timeZone` setting (an IANA name) for the server's time zone, applied at once and empty to follow the computer; `GET /settings` also says `timeZoneNow` and `timeZoneComputer`. Time zone data is built in, so it works on Windows and small containers.
 
 - Saving the server's name answers `brandWarnings`: where a fixed colour of it is under 4.5:1 on the top bar, side menu or bevelled bars in the server's theme (ratio, surface, variant), for the name editor's "Check:" notes. The Aero themes' gloss recipes (day, sunset, meadow; aurora already passed) are darkened so button labels read at 4.5:1 over the middle of the gloss, and `scripts/theme-contrast.py` checks it.

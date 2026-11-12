@@ -155,9 +155,18 @@ type SettingsPage struct {
 	Title string `json:"title"`
 	Icon  string `json:"icon,omitempty"`
 	// Admin pages are shown only to administrators.
-	Admin  bool            `json:"admin,omitempty"`
+	Admin bool `json:"admin,omitempty"`
+	// Slot puts the page into a place of the hand-built Settings besides Settings, Modules: "you.games"
+	// (You, Games) or "people.profile" (Settings, People, a profile; administrators only, so the page
+	// must be Admin). The server lists the pages of a slot at GET /sdui/slots/{slot}, and every app's
+	// Settings draws them in its own style with the generic settings-page renderer.
+	Slot   string          `json:"slot,omitempty"`
 	Groups []SettingsGroup `json:"groups"`
 }
+
+// SettingsSlots are the places a module's settings page may declare, and whether each is for
+// administrators only.
+var SettingsSlots = map[string]bool{"you.games": false, "people.profile": true}
 
 // SettingsGroup is a titled group of rows.
 type SettingsGroup struct {
@@ -521,6 +530,13 @@ func ValidateModuleUI(ui *ModuleUI, module string, checks ModuleChecks) []Issue 
 		v.specText(p, sp.Title, "")
 		if sp.Icon != "" && !contains(Icons, sp.Icon) {
 			v.err(p+"/icon", suggest(sp.Icon, Icons), "%q is not one of the built-in icons", sp.Icon)
+		}
+		if sp.Slot != "" {
+			if adminOnly, ok := SettingsSlots[sp.Slot]; !ok {
+				v.err(p+"/slot", "Use you.games or people.profile.", "%q is not a place settings pages can go", sp.Slot)
+			} else if adminOnly && !sp.Admin {
+				v.err(p+"/admin", "Set admin to true.", "the %s slot is for administrators, so the page must be an admin page", sp.Slot)
+			}
 		}
 		rows := 0
 		for g := range sp.Groups {

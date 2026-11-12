@@ -225,12 +225,13 @@ Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 | Field | Type | Notes |
 |---|---|---|
 | `version` | int | `1`. A client refuses any other. |
-| `catalog` | int | The catalogue revision the tree was written for (4). A client built for another revision refuses it. |
+| `catalog` | int | The catalogue revision the tree was written for (8). A client built for another revision refuses it. |
 | `page` | PageInfo | `{id, kind, title, icon, route, variant, params}`. `route` is the page's place in the app; `params` what it was opened with, to send again with a refresh. |
 | `layout` | Layout | The [device profile](#device-profiles) the page was fitted to: lay out with these numbers. |
 | `theme` | ThemeScope, *omit* | `{scope, tokens}`: the page's theme scope and the colour tokens it overrides. |
 | `root` | Node | The tree. Its type is `Page`. |
 | `screenTime` | ScreenTime, *omit* | `{reason, message, nextAt}`, present when the profile's screen time is over: see [Profiles with limits](#profiles-with-limits). |
+| `regions` | PageRegions, *omit* | What the page puts into the shell's regions while it (or its theme scope) is showing: `statusBar` items and `systemDock` entries. See [Shell regions](#shell-regions-and-what-a-page-supplies-to-them). |
 | `personal` | PersonalInfo, *omit* | What the profile may change about this page and what it has changed: see [Personalisation](#personalisation). |
 | `meta` | Meta | `{etag, generatedAt, source, configRevision, ttlSeconds}`. `source` is `config` or `draft`. Ask again after `ttlSeconds` (0: only when something happens). |
 
@@ -258,6 +259,10 @@ Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 | `back` | | Goes back. |
 | `command` | `op`, `item`, `params` | Carries out one of the [Commands](#commands), then asks for the page again. |
 
+A command action may carry `confirm`, a question to ask first ("Delete this memory?"): the client shows it with the command's label as the confirming button and Cancel beside it, and runs the command only on a yes.
+
+A `navigate` action may carry `as: "layer"`: the page is shown over the current screen (a sheet, a quick menu, a dialog) and Back closes it, instead of replacing the screen. A client with no layers shows it as a page. Any page can be a layer; there is no separate kind.
+
 Ignore an action type you don't know.
 
 A command's request is built from its catalogue entry: put the action's
@@ -268,11 +273,11 @@ The routes take a show's `show-<n>` as they take a number: Watch later adds
 the show, `watched.set` and `watched.clear` mark every episode of it.
 
 A command may take more values: its catalogue entry lists them as `params`
-(`name`, `type` of `string` or `int`, `required`). The action's `params` give
+(`name`, `type` of `string`, `int`, `bool` or `ints`, `required`). The action's `params` give
 them by name, and each goes in place of `{name}` the same way: URL-escaped in
 the path, JSON-escaped inside the body's string. For an `int` parameter the
 string and its quotes are replaced by the number (`{"type":"save","slot":"{slot}"}`
-becomes `{"type":"save","slot":3}`), so the template is JSON either way. A
+becomes `{"type":"save","slot":3}`), A `bool` parameter is replaced the same way by `true` or `false`, and an `ints` one (a list of numbers, such as the profiles a Kids profile may see) by a JSON array (`[3,5]`). Either way the template is JSON. A
 parameter that wasn't given is an empty string. `rewind.open` and `controller.remap` have no request:
 the game player opens its own panels.
 
@@ -462,6 +467,49 @@ tree in place of another; a client built for a catalogue revision other than the
 document's `catalog` refuses the document. The only thing a client chooses is
 which native views it has for `NativeView` (`views=`); where it has none, the
 section's own children are sent in a `Stack`.
+
+### Shell regions and what a page supplies to them
+
+Two regions of the shell are off in every look and belong to WittyPlay Online: `statusBar` (position top) and `systemDock` (bottom or side). A page turns them on by supplying content in its `regions` field, which is sent as `document.regions` (an administrator or a profile can still hide them with placements, and the placement of an experience or module scope turns them on too):
+
+- `statusBar`: up to six items, `{id, kind, text}`. `kind` is `profile` (the profile's name, `text` the line under it), `server` (the server's name drawn from the brand, so the coloured name survives) or `text`. The clock is drawn by every client, and so are a controller's battery and its kind, from the device's own Gamepad API: the server never sends them. Text may hold placeholders (`{user}`, `{server}`).
+- `systemDock`: up to seven round buttons, `{id, label, icon, route, as}`; the one whose route is the page showing is labelled under its button. `as: "layer"` opens that page as a layer.
+
+The regions stay while the module's pages are showing (the same theme scope) and go when the person leaves them.
+
+### Forms and controls
+
+A List row can carry a **control** besides a route: `control: {type, name, value, ...}` in the row's props, from an item's `control` (a source's, or a module's: the server cleans it). Types: `switch` (value a bool), `select` (value a string, `options` the choices), `field` (value a string; `placeholder`, `maxLength`, `multiline`, `input` of text, number, url or search) and `slider` (value a number, `min`, `max`, `step`, `unit`). A disabled control is dimmed and takes no focus, and `why` says why in a line under it.
+
+- A **switch** row's `action` is what flipping it does. The server has already put the new value in the action's params (`value`, a bool), so a client never works out the opposite; after the command it asks for the page again, and the switch shows the stored state.
+- A **select, field or slider** row's `action` is a command to run with the chosen value added to its params as `value`: a field on Enter or when it loses focus, a slider on release.
+- A row's `trailing` text and `action` work as on any list row; a row with a control and no action is read-only.
+
+A `Form` component (a container of Lists, Text and Notices with a `submitLabel`, an optional `cancelLabel` and one command) draws a Save and a Cancel at its foot instead: controls inside a Form run nothing when changed, and Save runs the Form's command with every named control's value under its `name`. See the Form entry in the component reference.
+
+### Detail panels, focusGrow and item actions
+
+A Shelf with `focusGrow` scales the focused card up (1.45 on a television, 1.25 on a tablet and desktop, none on a phone, whose first card is simply larger) and moves the cards after it aside; with reduced motion it gets a ring and no animation. A Shelf with `detail` draws a panel under the row for the focused item (the first until focus moves): the title large, the subtitle as one line, and the item's `actions` as buttons carrying their key glyph (`a` select, `b` back, `x` and `y` the secondary and options keys of the shared pad map). A card carries `props.actions` (`[{id, label, glyph, action}]`, at most four); an item with none shows title and subtitle, and the card's own action is the A action. `focusable` on a Shelf, Grid or List makes a card with no action a focus stop anyway (a friend in a lobby). A **person** card draws a presence dot on its avatar from its badge text, by the card style's `badgeTones` in the catalogue (Playing and Online ok, Away warn, Offline muted): the same on every app.
+
+### Pages the server serves for every app
+
+These pages are drawn from the server's own data by the same renderer as every other page; no app needs a screen of its own for them (an app that has a hand-built one may keep it, but it must open these routes through the renderer when a row or button names them). None is in the menu. Opened with `GET /sdui/pages/{page}?item=…&name=…` as the route table says.
+
+| Route | Page | Opened about | What it holds |
+|---|---|---|---|
+| `/studio/{name}`, `/network/{name}`, `/category/{name}` | `studio`, `network`, `category` | a name | Everything under it across the libraries the profile can open: Movies (n) and Shows (n), each a grid; the heading is the name. A category is a genre. |
+| `/versions/{item}` | `versions` | a title | The files it plays from, one row each (label and quality, length, size); a row plays that file. |
+| `/save-to/{item}` | `save-to` | a title | The profile's lists as switch rows (Watch later and its own manual lists): flipping one runs `collection.add` or `collection.remove`; a Form with a field makes a new list (`collection.create`). |
+| `/devices` | `devices` | | Where the profile is signed in, this device first; a row signs another out (`session.end`, after asking); Sign out the others. |
+| `/year` | `year` | | Totals, months, top titles, shows, artists and genres from the profile's own play log; Clear my history (asks first). |
+| `/activity` | `activity` | | Tabs Now and History of what the server is doing; what the profile may see follows its limits. |
+| `/notifications` | `notifications` | | Reminders and, for an administrator, a new version. |
+
+A page opened about something is a `custom` page that takes `item`, `name` and `of`; its sources read `$item`, `$name` and `$of`, and `{title}` is the title (item) or the name. Each source checks what it is asked about against the profile's limits: a title a profile may not see has no versions and no lists, whatever the URL says.
+
+**Search** is scoped: below the search box, Tabs for Everything, Movies, Shows, Music, People and Live TV, each holding what it searches (a repeat over libraries of those kinds, the people row, the channels row). Home's *Recommended for you* row says why under its heading (`{reason}`, from the source: "Because you watch Sci-Fi").
+
+**The key legend.** Every page rendered for a television or a headset ends with a Dock holding the key legend (Select, Back, Options), whether or not the page has controls to put in a Dock: a client draws no legend of its own and never needs to put the Dock back.
 
 ### The conformance kit
 
@@ -742,6 +790,30 @@ app: `lumen` (the default), `rail`, `stage`, `aero`, `classic`, `classicCable`,
 `dashboard` and `retro`. `GET /sdui/experiences` has each as data (the reference table
 [Experiences](#experiences-1) below is written from the same files,
 `pkg/sdui/experiences/*.json`).
+
+**`wire`: the layout a chooser draws.** Each experience in `GET /sdui/experiences` has `wire`, a map from form
+factor (`tv`, `phone`, `tablet`, `desktop`, `web`, `headset`) to the layout in a few words, so a picker shows the
+layout a person is choosing and not only its colours (the existing `preview` is the colour swatch). It is worked
+out from the experience's own data (its menu on that form factor, its page changes, its effects), never written
+in its file, and it is what the design canvas's wire thumbnails draw. An optional, additive property: no
+revision change. Each is `{nav, open?, style, home, cards, dock?, brand, finish}`:
+
+| Field | Values and where they come from |
+|---|---|
+| `nav` | `top` (topTabs, floatingGlassBar, cableBar, bevelBar, teleKeys, tvTopMenu), `side` (sidebar, tvSideMenu), `rail` (rail, railDrawer), `bottom` (bottomTabs, ornamentTabs), `none` (crossbar: the categories are part of the page) |
+| `open` | true when the menu is drawn open all the time (a sidebar) |
+| `style` | how the entries are drawn: `pill`; `gloss` (floatingGlassBar), `cable`, `bevel`, `tele`, `crossbar`; `under` (a top bar whose headings are underlined, Paper's) |
+| `home` | `cross` (pages.crossbar), `widgets`, `list` (rowsAsLists), `tiles` (Home rows tiles), `banner`, `carousel`, else `hero` |
+| `cards` | `poster`, `landscape`, `plate`, `block` or `logo`: the page's cardStyle, else the shape's cardSet (a tile is drawn as landscape) |
+| `dock` | a dock of keys: on a television and in a headset |
+| `brand` | where the server's name sits: `left` of a top bar, `top` of a side menu, rail or tab bar, `centre` for a crossbar |
+| `finish` | `crt` (teleKeys), else `gloss`, `bevel` or `glass` when that effect is full, else `flat` |
+
+On a desktop window the fourteen are: Lumen top/hero, Rail rail/banner, Stage top/hero, Aero top (gloss)/hero,
+Classic side (open)/hero, Classic Cable top (cable)/list, Classic Satellite top (bevel)/hero, Compact rail/list,
+Paper top (under)/banner, Marquee top/carousel, Crossbar none/cross, Big picture top/tiles, Dashboard
+rail/widgets, Retro top (tele)/list. Compact and Dashboard are a side menu on a television. Conformance:
+`pkg/sdui/conformance/experience-wire-table.json` lists every wire.
 
 **An experience is not a theme.** Colour belongs to the theme (see
 [THEMES.md](THEMES.md)); each experience only names the theme it wears unless one is
@@ -1193,13 +1265,32 @@ and without `meta.generatedAt` and `meta.etag`; `ETag(doc)` is `W/"sha256-`
 
 - `version` (1) changes only for something a client built for it can't
   survive. Clients refuse a version they don't know.
-- The **catalogue revision** (5) counts changes to the catalogue: a component,
-  a property, a card style, a source, a condition, an action type. Client and
-  server must be built for the same revision. Unknown props and actions are
-  ignored, an unknown card style is drawn as its shape.
+- The **catalogue revision** (8) counts changes to the catalogue. **The rule:
+  any change to what an existing component or card style shows or does bumps
+  the revision** (a card style that gains badges, a property that changes
+  meaning, a component that draws something else). Only a new component, card
+  style, source, command, condition, action type or optional property is
+  additive, and keeps the revision it came in. Client and server must be built
+  for the same revision. Unknown props and actions are ignored, an unknown
+  card style is drawn as its shape.
+- **Where a client gets the card styles.** From `GET /api/sdui/catalog`, which it
+  fetches at sign-in and when the revision changes (the web app does). A table of
+  them built into the app is only for offline tests, and a conformance test must
+  check it against the catalogue the server serves (see the
+  [conformance kit](../pkg/sdui/conformance/README.md)), so a change to what a
+  style shows can't be missed.
 - `ui_config.json` has its own `version` (2).
 - The conformance kit has a `kit` number; a change to a fixture's expected
   output is a change to the contract and is called out in the changelog.
+
+### The music table
+
+`GET /api/sdui/catalog` carries `music` (`pkg/sdui/data/music.json`): the mini player's controls and the visualizer's.
+`music.visualizer.presets` are the effects the effects picker offers, the same as WittyVisualizer's `effects/*.glsl`
+(the 17 classics and Aurora Rings, in the order of its README): `{id, name, motion, calm, cost}`. `motion` is
+`gentle` or `lively`, `calm` is true when calm mode keeps the effect (the gentle ones; it is on by default when the
+system asks for reduced motion), `cost` is how hard it works the graphics card (1 to 3). The `preset` control's
+default is `skyline`. Every effect takes both of the other two controls, so show them for every effect: `speedPct` (an int, 50 to 200 %, default 100; it multiplies the animation clock) and `colour` (`effect`, the default: each effect's own colour families, or `theme`: a family built from the theme's accent). There is no album-art colour source. They are also the module's settings keys, `speedPct` and `colour`. A new effect in WittyVisualizer is a new entry here.
 
 ## Reference
 
@@ -1209,7 +1300,7 @@ what the server does.
 <!-- catalogue:begin (written by go test ./pkg/sdui -update; edit pkg/sdui/catalog_data.go) -->
 ### Components
 
-33 components. Every renderer draws all of them.
+34 components. Every renderer draws all of them.
 
 | Component | Label | Category | Takes a source | Focus |
 |---|---|---|---|---|
@@ -1245,6 +1336,7 @@ what the server does.
 | [`SearchBox`](#searchbox) | Search box | navigation | none | item |
 | [`List`](#list) | List | media | optional | group |
 | [`ListItem`](#listitem) | List row | media | none | item |
+| [`Form`](#form) | Form | structure | none | group |
 | [`NativeView`](#nativeview) | The app's own view | structure | none | stop |
 
 #### Page
@@ -1328,6 +1420,9 @@ Focus: one stop in the page's focus order; it moves focus among its own parts. A
 | `maxItems` | int 0 to 60 |  | Most cards at first. How many cards are sent before the row asks for more. 0 uses the device's own limit. |
 | `peek` | bool | `true` | Show the next card's edge. layout.peek of the next card's width stays visible at the row's trailing edge, so it is clear the row scrolls on. Off cuts the row at a whole card. |
 | `seeAllCard` | enum: auto, always, never | `auto` | See all as a card. See all as the last card of the row, in the shape of the row's cards, in place of the link beside the heading. Automatic: on a television and in the experiences that ask for it (Stage, Big picture). |
+| `focusGrow` | bool | `false` | The focused card grows. The card with focus scales up (1.45 times on a television, 1.25 on a tablet or desktop, not at all on a phone, where the first card is simply larger) and the cards after it step aside; the others stay small. With reduced motion the card does not animate: it gets a ring. |
+| `detail` | bool | `false` | Detail panel under the row. A panel under the row shows the focused card's item (the first until focus moves): its title large, its subtitle as one line, and its actions as buttons carrying their key glyphs. An item with no actions has its route as the one A action. |
+| `focusable` | bool | `false` | Cards without a route take focus. A card with no route (a friend) is still a stop for focus, and OK on it is the page's to use. Off: it is not a button and takes no focus. |
 | `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
 | `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
 
@@ -1376,6 +1471,7 @@ Focus: its children take focus, and it is their group. Accessibility: Role: list
 | `cardSize` | enum: s, m, l | `m` | Card size. Small, medium or large cards. A profile may choose its own. |
 | `showTitles` | bool | `true` | Show titles under cards. Off draws the pictures alone. |
 | `maxItems` | int 0 to 200 |  | Most cards at first. How many cards the first page holds. 0 uses the device's own limit. |
+| `focusable` | bool | `false` | Cards without a route take focus. A card with no route (a friend) is still a stop for focus, and OK on it is the page's to use. Off: it is not a button and takes no focus. |
 | `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
 | `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
 
@@ -1840,7 +1936,7 @@ Focus: takes none. Accessibility: Role: none (hidden). The keys are announced as
 |---|---|---|---|
 | `layout` | enum: backdrop, poster, compact | `backdrop` | Layout. Backdrop behind the text, poster beside it, or a compact strip. |
 | `actions` | enumList: play, restart, watchLater, watched, download, share, playOn, watchParty | `play, restart, watchLater, watched, download, share` | Buttons. The buttons offered, in order. One the title or the profile can't use is left out. |
-| `facts` | enumList: year, runtime, contentRating, rating, genres, studio, count, season, knownFor, born, died | `year, runtime, contentRating, rating, genres` | Facts. The line of facts under the title, in order. |
+| `facts` | enumList: year, runtime, contentRating, rating, genres, studio, artist, count, season, knownFor, born, died | `year, runtime, contentRating, rating, genres` | Facts. The line of facts under the title, in order. |
 | `showOverview` | bool | `true` | Show the synopsis |
 | `showTagline` | bool | `true` | Show the tagline |
 
@@ -2092,6 +2188,11 @@ Focus: takes none. Accessibility: Role: heading for pageTitle (level 1), heading
 | `to` | route |  | Opens. A place in the app, such as /library/3 or /page/family-night. |
 | `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections |  | Opens a screen of the app. A screen the app draws itself. |
 | `url` | url |  | Opens a web page. An http or https address, opened in the browser. Left out on a television. Only on phone, tablet, desktop, web. |
+| `op` | enum |  | Runs a command. One of the catalogue's commands; the page is asked for again after it. |
+| `item` | ref |  | Command's item. The item the command acts on, such as $item. |
+| `params` | object |  | Command's values. The command's other values by name, each a text or a $variable. |
+| `confirm` | text, at most 120 |  | Ask first. A question the app asks before the command runs, such as Delete this memory? |
+| `back` | bool | `false` | Goes back. Closes the page: Back. |
 
 How it is drawn:
 
@@ -2262,6 +2363,11 @@ Focus: takes none. Accessibility: No role of its own.
 | `to` | route |  | Opens. A place in the app, such as /library/3 or /page/family-night. |
 | `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections |  | Opens a screen of the app. A screen the app draws itself. |
 | `url` | url |  | Opens a web page. An http or https address, opened in the browser. Left out on a television. Only on phone, tablet, desktop, web. |
+| `op` | enum |  | Runs a command. One of the catalogue's commands; the page is asked for again after it. |
+| `item` | ref |  | Command's item. The item the command acts on, such as $item. |
+| `params` | object |  | Command's values. The command's other values by name, each a text or a $variable. |
+| `confirm` | text, at most 120 |  | Ask first. A question the app asks before the command runs, such as Delete this memory? |
+| `back` | bool | `false` | Goes back. Closes the page: Back. |
 
 How it is drawn:
 
@@ -2351,6 +2457,7 @@ Holds: `ListItem`.
 | `title` | text, at most 120 |  | Title. The heading above the items. Placeholders such as {library} and {each} are filled in. |
 | `headingStyle` | enum: plain, band, underline | `plain` | Heading style. How the title is drawn: plain, a coloured band across the row, or underlined. Left plain, the experience chooses. |
 | `dense` | bool | `false` | Compact rows |
+| `focusable` | bool | `false` | Cards without a route take focus. A card with no route (a friend) is still a stop for focus, and OK on it is the page's to use. Off: it is not a button and takes no focus. |
 | `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
 | `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
 
@@ -2393,8 +2500,61 @@ Focus: its children take focus, and it is their group. Accessibility: Role: list
 | `to` | route |  | Opens. A place in the app, such as /library/3 or /page/family-night. |
 | `native` | enum: settings, guide, profiles, downloads, remote, nowPlaying, pair, collections |  | Opens a screen of the app. A screen the app draws itself. |
 | `url` | url |  | Opens a web page. An http or https address, opened in the browser. Left out on a television. Only on phone, tablet, desktop, web. |
+| `op` | enum |  | Runs a command. One of the catalogue's commands; the page is asked for again after it. |
+| `item` | ref |  | Command's item. The item the command acts on, such as $item. |
+| `params` | object |  | Command's values. The command's other values by name, each a text or a $variable. |
+| `confirm` | text, at most 120 |  | Ask first. A question the app asks before the command runs, such as Delete this memory? |
+| `back` | bool | `false` | Goes back. Closes the page: Back. |
 
 Focus: the node takes focus when it can be acted on. Accessibility: Role: button when it opens something, else text. Label: "<title>, <subtitle>, <trailing>".
+
+#### Form
+
+*Form.* A group of rows with controls (switches, choices, fields, sliders) saved together: Save runs one command with every named control's value, Cancel goes back. Settings itself stays hand-built; a Form is for a page the server or a module serves.
+
+Holds: `List`, `Text`, `Notice`, `Divider`, `Spacer`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `title` | text, at most 120 |  | Title. The heading above the items. Placeholders such as {library} and {each} are filled in. |
+| `submitLabel` | text, at most 24 |  | Save button |
+| `cancelLabel` | text, at most 24 |  | Cancel button. Left out: no Cancel; Back still goes back. |
+| `op` (required) | enum |  | Command. The command Save runs, one of the catalogue's commands. |
+| `item` | ref |  | Item. The command's item, such as $item. |
+
+How it is drawn:
+
+- **Television.** The rows as a list, then a Dock of Save (primary) and Cancel; Save is disabled until something has changed.
+- **Phone.** The rows full width, a Save and Cancel bar fixed at the foot above the keyboard.
+- **Desktop and web.** The rows in a column at most 720 points wide, Save and Cancel at its foot.
+
+States:
+
+- **empty.** Left out.
+- **error.** The error under Save, in the danger tone; the values stay as typed.
+- **loading.** The rows as loading rows.
+
+Focus: its children take focus, and it is their group. Accessibility: Role: form, labelled by the title. Each control is labelled by its row's title and described by its subtitle and why; Save announces the result politely.
+
+```json
+{
+  "id": "privacy",
+  "component": "Form",
+  "props": {
+    "title": "Games",
+    "op": "wittyplay.online.set"
+  },
+  "children": [
+    {
+      "id": "rows",
+      "component": "List",
+      "source": {
+        "type": "wittyplay.privacy"
+      }
+    }
+  ]
+}
+```
 
 #### NativeView
 
@@ -2578,7 +2738,8 @@ Shape tokens:
 | `Image` | focus `focus`, surface `bg3` |  | corner `image`, focus `focusWidth`, focusGap `focusOffset` |
 | `SearchBox` | fieldOutline `controlLine`, focus `focus`, hintText `fg3`, icon `fg2`, surface `bg3`, text `fg` | text `body` | corner `field`, focus `focusWidth`, focusGap `focusOffset` |
 | `List` | border `border`, focus `focus`, secondaryText `fg2`, text `fg` | title `heading` | focus `focusWidth`, focusGap `focusOffset` |
-| `ListItem` | focus `focus`, hintText `fg3`, hover `hover`, icon `fg2`, pressed `pressed`, secondaryText `fg2`, selected `accentSoft`, selectedText `fg`, surface `bg3`, text `fg` | subtitle `caption`, title `body`, trailing `caption` | art `thumb`, corner `row`, focus `focusWidth`, focusGap `focusOffset`, icon `row` |
+| `ListItem` | accent `accent`, danger `danger`, fieldOutline `controlLine`, focus `focus`, hintText `fg3`, hover `hover`, icon `fg2`, onAccent `accentFg`, pressed `pressed`, progress `accent`, progressTrack `controlLine`, secondaryText `fg2`, selected `accentSoft`, selectedText `fg`, surface `bg3`, text `fg` | subtitle `caption`, title `body`, trailing `caption`, why `caption` | art `thumb`, corner `row`, field `field`, focus `focusWidth`, focusGap `focusOffset`, icon `row` |
+| `Form` | accent `accent`, accentHover `accentHover`, border `border`, danger `danger`, dangerTint `dangerSoft`, focus `focus`, hover `hover`, onAccent `accentFg`, outline `borderStrong`, pressed `pressed`, secondaryText `fg2`, surface `bg3`, text `fg` | button `body`, error `caption`, title `heading` | button `button`, focus `focusWidth`, focusGap `focusOffset` |
 | `NativeView` | background `bg`, focus `focus`, outline `borderStrong`, secondaryText `fg2`, surface `bg2`, text `fg` | text `body` | corner `image`, focus `focusWidth`, focusGap `focusOffset` |
 
 | Card style | Colours | Text | Shape |
@@ -2663,6 +2824,13 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | [`episodes`](#episodes) | Episodes | context | episode | episode | yes | detail |
 | [`tracks`](#tracks) | Tracks | context | track | square |  | detail |
 | [`similar`](#similar) | More like this | context | movie, show | poster |  | detail |
+| [`versions`](#versions) | Versions of a title | context | video | square |  | custom |
+| [`listsFor`](#listsfor) | Lists a title can be in | context | collection | tile |  | custom |
+| [`newList`](#newlist) | A new list's name | context | view | tile |  | custom |
+| [`devices`](#devices) | Signed-in devices | personal | view | tile |  | any |
+| [`year`](#year) | Your year | personal | view | tile |  | any |
+| [`activity`](#activity) | What the server is doing | structure | view | tile |  | any |
+| [`notices`](#notices) | Notifications | personal | view | tile |  | any |
 | [`search`](#search) | Search results | context | movie, show, album, book, game, channel, person | poster |  | search |
 
 #### continueWatching
@@ -3122,6 +3290,91 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 {"type":"similar","item":"$item","limit":12}
 ```
 
+#### versions
+
+*Versions of a title.* The files one title plays from, its own and the versions attached to it, each a row that plays that file with its label and quality, its length and size.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `item` (required) | ref |  | Title. $item on a page opened about a title. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"versions","item":"$item"}
+```
+
+#### listsFor
+
+*Lists a title can be in.* The profile's own lists (Watch later and the lists it made), each a switch row: on when the title is in it, and flipping it adds or takes the title out.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `item` (required) | ref |  | Title. $item on a page opened about a title. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"listsFor","item":"$item"}
+```
+
+#### newList
+
+*A new list's name.* One row holding a field for the name of a new list, for a Form whose command is collection.create.
+
+```json
+{"type":"newList"}
+```
+
+#### devices
+
+*Signed-in devices.* Where the profile is signed in: this device first, then the others with when each was last used, a row that signs it out after asking.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"devices"}
+```
+
+#### year
+
+*Your year.* The profile's year from its own play log: the totals, or the top titles, shows, artists or genres, or the months.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `part` | enum: totals, months, titles, shows, artists, genres | `totals` | Part |
+| `year` | int 0 to 3000 |  | Year. 0 is this year. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"year","part":"titles","limit":10}
+```
+
+#### activity
+
+*What the server is doing.* The tasks running now, with how far each has got, or those just finished. What the profile may see of them follows its limits.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `part` | enum: now, history | `now` | Part |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"activity","part":"now"}
+```
+
+#### notices
+
+*Notifications.* What the profile may want to know: a reminder that a programme is on, and for an administrator that a new version of the server is ready.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"notices"}
+```
+
 #### search
 
 *Search results.* What a search finds in one library, among the channels, or among the people credited on titles the profile may see. Nothing under two characters.
@@ -3179,7 +3432,7 @@ Every source also takes `map`: `{"subtitle": "studio"}` puts another field of th
 | `books` | Books, comics and audiobooks together: the book libraries and the audiobook libraries. | `/books` | tab |  |  |
 | `games` | Every games library together. | `/games` | tab |  |  |
 | `collections` | The profile's collections and lists. | `/collections` | tab |  |  |
-| `custom` | Any other page: a family film night, a page for one collection. | `/page/{id}` | tab |  |  |
+| `custom` | Any other page: a family film night, a page for one collection. It may be opened about something: a title (item), a studio, network or category (name, with of), which its sources read as $item, $name and $of. | `/page/{id}` | tab, item, name, of | $item, $name, $of |  |
 
 ### Routes
 
@@ -3203,6 +3456,15 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 | `/photos` | page `photos` |  |
 | `/books` | page `books` |  |
 | `/games` | page `games` |  |
+| `/studio/{name}` | page `studio` | name={name} |
+| `/network/{name}` | page `network` | name={name} |
+| `/category/{name}` | page `category` | name={name} |
+| `/versions/{item}` | page `versions` | item={item} |
+| `/save-to/{item}` | page `save-to` | item={item} |
+| `/devices` | page `devices` |  |
+| `/year` | page `year` |  |
+| `/activity` | page `activity` |  |
+| `/notifications` | page `notifications` |  |
 | `/page/{id}` | page `{id}` |  |
 | `/settings` | native `settings` |  |
 | `/settings/{section}` | native `settings` |  |
@@ -3256,6 +3518,19 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `wittyplay.state.load` | WittyPlay: loads params.slot into the game being played (item: its session). | `POST /api/play/{item}/action` with `{"type":"load","slot":"{slot}"}`; `slot` (int, required) |
 | `wittyplay.state.delete` | WittyPlay: deletes the profile's save in params.slot of the game (item: the game's ID, not a session). | `DELETE /api/games/{item}/saves/{slot}`; `slot` (int, required) |
 | `wittyplay.controller.assign` | WittyPlay Online: the host puts the profile params.user in seat params.seat of the game being played (item: its session); a held seat is swapped. | `PUT /api/play/{item}/seats/{user}` with `{"seat":"{seat}"}`; `user` (string, required); `seat` (int, required) |
+| `wittyplay.room.close` | WittyPlay Online: closes the game being played (item: its session) to friends. The host's own seat and anyone already in stay. | `POST /api/play/{item}/room` with `{"open":false}` |
+| `wittyplay.online.set` | WittyPlay Online: what this profile lets friends know. params.sharePlaying (friends see the game) and params.appearOnline (appears online at all). | `PUT /api/games/online/me` with `{"sharePlaying":"{sharePlaying}","appearOnline":"{appearOnline}"}`; `sharePlaying` (bool, required); `appearOnline` (bool, required) |
+| `wittyplay.online.share` | WittyPlay Online: params.value, whether friends see the game this profile plays. | `PUT /api/games/online/me` with `{"sharePlaying":"{value}"}`; `value` (bool, required) |
+| `wittyplay.online.appear` | WittyPlay Online: params.value, whether this profile appears online to friends at all. | `PUT /api/games/online/me` with `{"appearOnline":"{value}"}`; `value` (bool, required) |
+| `wittyplay.kids.friends` | WittyPlay Online, administrators: replaces the profiles a Kids profile (item: its ID) sees and is seen by with params.friends. | `PUT /api/games/online/kids/{item}` with `{"friends":"{friends}"}`; `friends` (ints, required) |
+| `wittyplay.screenshot.keep` | WittyPlay: keeps a screenshot of the game being played (item: its session) in the profile's Memories. | `POST /api/play/{item}/screenshot` |
+| `wittyplay.memory.delete` | WittyPlay: deletes one of the profile's kept screenshots (item: the game's ID, params.name its name). | `DELETE /api/games/{item}/shots/{name}`; `name` (string, required) |
+| `collection.add` | Puts the title (item) in the profile's list params.collection. | `POST /api/collections/{collection}/items` with `{"items":["{item}"]}`; `collection` (string, required) |
+| `collection.remove` | Takes the title (item) off the profile's list params.collection. | `DELETE /api/collections/{collection}/items` with `{"items":["{item}"]}`; `collection` (string, required) |
+| `collection.create` | Makes a list of the profile's own, named params.name. | `POST /api/collections` with `{"name":"{name}","kind":"manual"}`; `name` (string, required) |
+| `session.end` | Signs out the device params.session. | `DELETE /api/sessions/{session}`; `session` (string, required) |
+| `sessions.endOthers` | Signs out every device of the profile but this one. | `DELETE /api/sessions` |
+| `history.clear` | Forgets what the profile watched and listened to. It cannot be undone. | `DELETE /api/me/history` |
 | `rewind.open` | Client-handled, in the game player: opens the player's rewind panel. No request. |  |
 | `controller.remap` | Client-handled, in the game player: opens the player's own controller-mapping panel. No request. |  |
 | `refresh` | Asks for the page again. |  |
@@ -3297,6 +3572,7 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `{query}` | What was searched for |
 | `{each}` | What a repeated section is repeated over |
 | `{count}` | How many items a source gave |
+| `{reason}` | Why a source chose its items (a row's subtitle) |
 | `{genre}` | The source's genre |
 | `{studio}` | The source's studio |
 | `{tag}` | The source's tag |
@@ -3323,6 +3599,15 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `home` | home | every home page | `setup` (Notice), `welcome` (Notice), `hero` (Hero of featured), `libraries` (Shelf of libraries), `jump` (Shelf of continueWatching), `onnow` (Shelf of liveNow), `foryou` (Shelf of recommended), `nextup` (Shelf of nextUp), `view` (Shelf of savedView, per pinnedView), `recent` (Shelf of recentlyAdded, per librarie), `shuffle` (Banner of random) |
 | `libraries` | libraries | every libraries page | `all` (Grid of libraries) |
 | `library` | library | every library page | `all` (Grid of recentlyAdded) |
+| `studio` | custom | every custom page | `films` (Grid of browse), `shows` (Grid of browse) |
+| `network` | custom | every custom page | `films` (Grid of browse), `shows` (Grid of browse) |
+| `category` | custom | every custom page | `films` (Grid of browse), `shows` (Grid of browse) |
+| `versions` | custom | every custom page | `lead` (Text), `files` (List of versions) |
+| `save-to` | custom | every custom page | `lead` (Text), `lists` (List of listsFor), `new` (Form), `name` (List of newList) |
+| `devices` | custom | every custom page | `lead` (Text), `list` (List of devices), `others` (Button) |
+| `year` | custom | every custom page | `totals` (List of year), `months` (List of year), `titles` (List of year), `shows` (List of year), `artists` (List of year), `genres` (List of year), `clear` (Button) |
+| `activity` | custom | every custom page | `tabs` (Tabs), `now` (Tab), `running` (List of activity), `history` (Tab), `done` (List of activity) |
+| `notifications` | custom | every custom page | `recent` (List of notices) |
 | `library-movies` | library | movies | `filters` (FilterBar), `all` (Grid of browse) |
 | `library-shows` | library | shows | `filters` (FilterBar), `all` (Grid of browse) |
 | `library-anime` | library | anime | `filters` (FilterBar), `all` (Grid of browse) |
@@ -3339,7 +3624,7 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `detail-artist` | detail | artist | `header` (DetailHeader), `albums` (Shelf of albums), `tracks` (TrackList of tracks) |
 | `detail-collection` | detail | collection | `header` (DetailHeader), `all` (Grid of collection) |
 | `detail-person` | detail | person | `header` (DetailHeader), `titles` (Shelf of filmography, per personPart) |
-| `search` | search | every search page | `q` (SearchBox), `idle` (Text), `found` (Shelf of search, per librarie), `people` (Shelf of search), `channels` (Shelf of search) |
+| `search` | search | every search page | `q` (SearchBox), `idle` (Text), `scope` (Tabs), `all` (Tab), `found` (Shelf of search, per librarie), `people` (Shelf of search), `channels` (Shelf of search), `movies` (Tab), `found-movies` (Shelf of search, per librarie), `shows` (Tab), `found-shows` (Shelf of search, per librarie), `music` (Tab), `found-music` (Shelf of search, per librarie), `people-tab` (Tab), `people-only` (Shelf of search), `tv` (Tab), `channels-only` (Shelf of search) |
 | `livetv` | livetv | every livetv page | `guide` (NativeView), `favourites` (Shelf of liveNow), `recordings` (Shelf of recordings), `channels` (Grid of liveNow) |
 | `music` | music | every music page | `listening` (Shelf of continueWatching), `played` (Shelf of albums, per librarie), `added` (Shelf of albums, per librarie), `artists` (Shelf of artists, per librarie) |
 | `photos` | photos | every photos page | `recent` (Shelf of recentlyAdded, per librarie) |

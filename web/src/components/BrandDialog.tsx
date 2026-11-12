@@ -47,6 +47,8 @@ export default function BrandDialog({ onClose }: { onClose: () => void }) {
   const [draft, setDraft] = useState<BrandDraft | null>(null)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  // Words under 4.5 to 1 are said beside the colour controls; saving them is a second, plain choice.
+  const [readable, setReadable] = useState(true)
   const [preview, setPreview] = useState('')
   useEffect(() => { void loadBrandDraft(brandName, brandColouring).then(setDraft) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const logo = draft?.logo
@@ -73,12 +75,12 @@ export default function BrandDialog({ onClose }: { onClose: () => void }) {
   const reset = () => draft && setDraft({ ...draft, name: '', cells: PRESETS[0].cells(DEFAULT_NAME), mark: { kind: 'letter' } })
   return (
     <Dialog title="Your server’s name" size="wide" className="brand-dialog" onClose={onClose} actions={<>
-      <Button variant="primary" busy={busy} disabled={!draft} onClick={() => void save()}>Save</Button>
+      <Button variant={readable ? 'primary' : 'default'} busy={busy} disabled={!draft} onClick={() => void save()}>{readable ? 'Save' : 'Save anyway'}</Button>
       <Button variant="ghost" disabled={!draft} onClick={reset}>Reset to default</Button>
       <Button variant="ghost" onClick={onClose}>Cancel</Button>
     </>}>
       <p className="muted">Settings · Appearance · Name and logo. Shown in the menu, on the sign-in page and in the browser tab.</p>
-      {draft ? <NameEditor draft={draft} onChange={setDraft} logoUrl={preview} onLogoError={setErr} /> : <p className="muted">Loading…</p>}
+      {draft ? <NameEditor draft={draft} onChange={setDraft} logoUrl={preview} onLogoError={setErr} onCheck={setReadable} /> : <p className="muted">Loading…</p>}
       {err && <div className="error" role="alert">{err}</div>}
     </Dialog>
   )

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The server's name editor (NameEditor.tsx): the form on the left, the name drawn everywhere on the right. */
 .ne { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr)); gap: var(--sp-8); text-align: left; }
 @media (max-width: 900px) { .ne { grid-template-columns: 1fr; gap: var(--sp-5); } }
@@ -7,6 +9,7 @@
 .ne-hint { display: block; margin: var(--sp-2) 0 0; font-size: var(--text-sm); color: var(--fg-2); line-height: var(--leading-snug); }
 .ne-name { width: 100%; font-size: var(--text-lg); font-weight: 600; min-height: 48px; }
 .ne-chips { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.ne-group { display: inline-flex; flex-wrap: nowrap; gap: var(--sp-1); }
 .ne-chip { inline-size: 32px; min-block-size: 44px; padding: 0; border-radius: var(--r-sm); border: 0; background: var(--bg-2); color: var(--chip, var(--fg)); font: inherit; font-size: var(--text-xl); font-weight: 800; cursor: pointer; }
 .ne-chip.on { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--focus); }
 .ne-chip:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
@@ -60,3 +63,5 @@
 @media (max-width: 600px) { .ne-place { font-size: var(--text-xl); } .ne-place.sign { font-size: var(--page-title); } .ne-two { grid-template-columns: 1fr; } }
 .modal.ui-dialog.brand-dialog { width: min(1180px, calc(100vw - 32px)); max-width: none; max-height: calc(100vh - 32px); overflow-y: auto; }
 .brand-dialog > .muted { margin: 0 0 var(--sp-4); font-size: var(--text-sm); }
+.modal.ui-dialog.brand-dialog > .actions { position: sticky; inset-block-end: calc(-1 * var(--sp-4)); z-index: var(--z-sticky); padding-block: var(--sp-3); background: var(--bg-2); }
+.ne-chips { max-inline-size: 100%; }

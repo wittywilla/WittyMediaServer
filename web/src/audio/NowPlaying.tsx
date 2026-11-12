@@ -13,6 +13,7 @@ import { LyricsPanel } from './LyricsPanel'
 import { useLyrics } from './lyrics'
 import { Segmented } from '../ui/Choice'
 import { NowPlayingCanvas } from '../canvas/NowPlayingCanvas'
+import { useCanvas } from '../canvas/useCanvas'
 import { QueuePanel } from './QueuePanel'
 import { ReadPanel, useExtras } from './ReadPanel'
 import { SoundPanel } from './SoundPanel'
@@ -59,7 +60,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   const root = useRef<HTMLDivElement>(null)
   const [prefs, setPrefsState] = useState<Prefs>(DEFAULT_PREFS)
   const [prefsLoaded, setPrefsLoaded] = useState(false)
-  const [panel, setPanel] = useState<Panel>(p.fullOpts.panel || '')
+  const [panel, setPanel] = useState<Panel>(p.fullOpts.panel === 'lyrics' || p.fullOpts.panel === 'queue' ? p.fullOpts.panel : '')
   const [karaoke, setKaraoke] = useState(false)
   const [shown, setShown] = useState('') // what shuffle is showing now, if it's on
   const [shaders, setShaders] = useState<ShaderEffect[]>([])
@@ -70,6 +71,8 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   const trackMedia = useMemo(() => trackingMedia(p.media), [p.media])
   const canSing = p.mode === 'music' && !p.cdActive
   const extras = useExtras(canSing ? it.id : undefined)
+  const canvasInfo = useCanvas(canSing ? it.id : undefined)
+  const hasCanvas = !!canvasInfo.info?.available
   const lyricsWanted = panel === 'lyrics' || panel === 'read' || karaoke
   const ly = useLyrics(canSing ? it.id : undefined, lyricsWanted)
 
@@ -91,7 +94,10 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   const loadShaders = useCallback(() => { shaderEffects().then(setShaders).catch(() => {}) }, [])
   useEffect(() => { if (needShaders) loadShaders() }, [needShaders, loadShaders])
   useEffect(() => { root.current?.focus({ preventScroll: true }) }, [])
-  useEffect(() => { if (p.fullOpts.panel) setPanel(p.fullOpts.panel) }, [p.fullOpts])
+  useEffect(() => {
+    const o = p.fullOpts.panel
+    if (o === 'karaoke') { if (canSing) setKaraoke(true) } else if (o) setPanel(o)
+  }, [p.fullOpts]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const style = shown || prefs.style
 
@@ -155,7 +161,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
         case 'm': consume(); p.setSound({ muted: !p.sound.muted }); return
         case 's': if (!p.books && !p.live) { consume(); p.setShuffle(!p.shuffle) } return
         case 'r': if (!p.books && !p.live) { consume(); p.cycleRepeat() } return
-        case 'v': if (p.vizHere) { consume(); setPrefs({ viz: !prefs.viz }) } return
+        case 'v': consume(); setPrefs({ viz: !prefs.viz }); return
         case 'f': consume(); toggleFullscreen(); return
         case ',': if (!p.live) { consume(); p.seek(Math.max(0, p.position() - 10)) } return
         case '.': if (!p.live) { consume(); p.seek(p.position() + 10) } return
@@ -186,16 +192,25 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
     if (p.playing) p.toggle()
     p.goTowards(`/watch/${video.videoId}${at ? `?t=${Math.floor(at)}` : ''}`)
   }
+  const behindChoice = (
+    <Segmented label="Behind the player" value={prefs.viz ? 'viz' : canSing && prefs.canvas && hasCanvas ? 'canvas' : 'art'}
+                  onChange={(v) => setPrefs(v === 'viz' ? { viz: true } : v === 'canvas' ? { viz: false, canvas: true } : { viz: false, canvas: false })}
+                  options={[{ value: 'art', label: 'Album art' }, ...(canSing ? [{ value: 'canvas', label: 'Canvas video', disabled: !hasCanvas }] : []), { value: 'viz', label: 'Visualizer', icon: <IconVisualizer size={16} /> }]} />
+  )
+  const karaokeBehind = prefs.viz
+    ? (isNative(style) || p.vizHere) ? <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} /> : null
+    : prefs.canvas && hasCanvas ? <NowPlayingCanvas itemId={it.id} playing={p.playing} />
+      : artUrl ? <div className="kar-art" aria-hidden="true" style={{ backgroundImage: `url(${artUrl})` }} /> : null
   const subtitle = p.live ? (p.retrying ? 'Reconnecting…' : p.stationNow || 'Live') : it.artist || it.albumArtist || ''
   const placeLine = p.books ? 'Chapters' : p.live ? 'Stations' : 'Queue'
 
   return (
-    <div className={'np' + (panel ? ' has-panel panel-' + panel : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
+    <div className={'np' + (panel ? ' has-panel panel-' + panel : '') + (prefs.viz && prefsLoaded ? ' viz-on' : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
       style={{ '--art': rgb } as React.CSSProperties} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => { if (!document.activeElement?.closest('input, select, textarea, .mp-pop-body, .np-panel')) root.current?.focus({ preventScroll: true }) }) }}>
       <div className="np-glow" aria-hidden="true" />
       {canSing && prefs.canvas && !prefs.viz && <NowPlayingCanvas itemId={it.id} playing={p.playing} />}
       {/* One canvas: it goes to the whole-screen view while that's open, and comes back after. */}
-      {p.vizHere && prefsLoaded && prefs.viz && !wholeShader && <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}
+      {prefsLoaded && prefs.viz && !wholeShader && (isNative(style) || p.vizHere) && <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}
       {wholeShader && <VisualizerView media={trackMedia} place="full" onPlace={(pl) => { if (pl !== 'full') leaveWhole() }} onClose={leaveWhole} />}
 
       <header className="np-top">
@@ -260,15 +275,13 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
           </div>
 
           <div className="np-tools">
-            {p.vizHere && (
+            {!p.live && (
               <>
                 {/* What is behind the player: the album's art, its Canvas video, or the visualizer. */}
-                <Segmented label="Behind the player" value={prefs.viz ? 'viz' : canSing && prefs.canvas ? 'canvas' : 'art'}
-                  onChange={(v) => setPrefs(v === 'viz' ? { viz: true } : v === 'canvas' ? { viz: false, canvas: true } : { viz: false, canvas: false })}
-                  options={[{ value: 'art', label: 'Album art' }, ...(canSing ? [{ value: 'canvas', label: 'Canvas video' }] : []), { value: 'viz', label: 'Visualizer', icon: <IconVisualizer size={16} /> }]} />
+                {behindChoice}
                 {prefs.viz && <div className="np-styles" role="radiogroup" aria-label="Visualizer style">
                   {NATIVE_STYLES.map((n) => <button type="button" role="radio" key={n.id} aria-checked={style === n.id} className={style === n.id ? 'on' : ''} onClick={() => pickStyle(n.id)}>{n.name}</button>)}
-                  <Pop label="More visualizer styles" className={'np-more-styles' + (!isNative(style) ? ' on' : '')} icon={<span>{isNative(style) ? 'More' : shaders.find((s) => s.id === style)?.name || 'More'}</span>}>
+                  {p.vizHere && <Pop label="More visualizer styles" className={'np-more-styles' + (!isNative(style) ? ' on' : '')} icon={<span>{isNative(style) ? 'More' : shaders.find((s) => s.id === style)?.name || 'More'}</span>}>
                     {(close) => (
                       <div className="mp-menu np-style-menu" role="menu" ref={(el) => { if (el && !shaders.length) loadShaders() }}>
                         {!shaders.length && <span className="mp-menu-note">Loading…</span>}
@@ -277,8 +290,9 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
                         <button type="button" role="menuitem" onClick={() => { setWholeShader(true); close() }}>Effect settings and your own effects…</button>
                       </div>
                     )}
-                  </Pop>
+                  </Pop>}
                 </div>}
+                {prefs.viz && p.vizHere && shaders.length > 0 && <EffectChips effects={shaders} current={style} onPick={pickStyle} />}
                 {prefs.viz && <button type="button" className={'np-chip slow-chip' + (prefs.slow ? ' on' : '')} aria-pressed={prefs.slow} title="A slower, gentler pace" onClick={() => setPrefs({ slow: !prefs.slow })}><IconTurtle size={20} /> Slow</button>}
                 {prefs.viz && (
                   <Pop label={prefs.shuffleEvery ? `Shuffling visualizers: ${everyLabel(prefs.shuffleEvery)}` : 'Shuffle visualizers'} className={'np-chip-pop' + (prefs.shuffleEvery ? ' on' : '')} icon={<><IconShuffle size={18} /><span>{prefs.shuffleEvery ? everyLabel(prefs.shuffleEvery).replace('Every ', '') : 'Styles'}</span></>}>
@@ -293,6 +307,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
                     )}
                   </Pop>
                 )}
+                {canSing && !hasCanvas && <span className="np-note-inline">This song and its album have no Canvas video{canvasInfo.blocked ? ' to show on this device' : ''}.</span>}
                 <span className="np-tools-rule" aria-hidden="true" />
               </>
             )}
@@ -319,10 +334,10 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
 
       <p className="np-hints" aria-hidden="true">
         <kbd>Esc</kbd> close · <kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> previous or next
-        {canSing && <> · <kbd>L</kbd> lyrics · <kbd>K</kbd> karaoke</>}{p.vizHere && <> · <kbd>V</kbd> visualizer</>}
+        {canSing && <> · <kbd>L</kbd> lyrics · <kbd>K</kbd> karaoke</>}{!p.live && <> · <kbd>V</kbd> visualizer</>}
       </p>
       <div className="mp-sr" aria-live="polite">{said}</div>
-      {karaoke && <Suspense fallback={null}><Karaoke p={p} ly={ly} onClose={() => { setKaraoke(false); root.current?.focus({ preventScroll: true }) }} /></Suspense>}
+      {karaoke && <Suspense fallback={null}><Karaoke p={p} ly={ly} choice={behindChoice} behind={karaokeBehind} onClose={() => { setKaraoke(false); root.current?.focus({ preventScroll: true }) }} /></Suspense>}
     </div>
   )
 }
@@ -384,4 +399,43 @@ function ShaderBackground({ id, slow, media, onDecline }: { id: string; slow: bo
     return () => clearInterval(t)
   }, [id, slow])
   return <div className="np-shader"><VisualizerView media={media} place="panel" onClose={onDecline} /></div>
+}
+
+// All the effects at once, as the board draws them (Effects: all 18 kept, the classics and Aurora Rings), with the
+// two controls that belong to them: Calm mode, and how strongly they react. They talk to the running plugin.
+function EffectChips({ effects, current, onPick }: { effects: ShaderEffect[]; current: string; onPick: (id: string) => void }) {
+  const s = shaderSession()
+  const [calm, setCalm] = useState<boolean>(() => s?.calm ?? false)
+  const [intensity, setIntensity] = useState<number>(() => s?.settings.intensity ?? 1)
+  // Speed (speedPct, 50 to 200) and Colour (effect or theme) are WittyVisualizer's own settings keys, saved through its module settings.
+  const extra = (s?.settings ?? {}) as unknown as { speedPct?: number; colour?: string }
+  const [speed, setSpeed] = useState<number>(extra.speedPct ?? 100)
+  const [colour, setColour] = useState<string>(extra.colour ?? 'effect')
+  const patch = (v: Record<string, unknown>) => shaderSession()?.update(v as never)
+  const keeps = (e: ShaderEffect) => !calm || e.motion === 'gentle'
+  return (
+    <div className="np-effects" role="group" aria-label="Visualizer effects">
+      <div className="np-effect-chips" role="radiogroup" aria-label="Effect">
+        {effects.map((e) => (
+          <button type="button" role="radio" key={e.id} aria-checked={current === e.id} disabled={!keeps(e)} className={current === e.id ? 'on' : ''} onClick={() => onPick(e.id)}>
+            {e.name}<small>{e.motion === 'gentle' ? 'Gentle' : 'Lively'}</small>
+          </button>
+        ))}
+      </div>
+      <div className="np-effect-opts">
+        <button type="button" className={'np-chip small' + (calm ? ' on' : '')} aria-pressed={calm} title="Keeps to the gentle effects and slows everything" onClick={() => { const v = !calm; setCalm(v); shaderSession()?.update({ calm: v }) }}>Calm mode</button>
+        <label className="np-range"><span>Intensity</span>
+          <input type="range" min={30} max={150} step={5} value={Math.round(intensity * 100)} aria-valuetext={`${Math.round(intensity * 100)}%`}
+            onChange={(e) => { const v = Number(e.target.value) / 100; setIntensity(v); shaderSession()?.update({ intensity: v }) }} />
+          <output>{Math.round(intensity * 100)}%</output>
+        </label>
+        <label className="np-range"><span>Speed</span>
+          <input type="range" min={50} max={200} step={5} value={speed} aria-valuetext={`${speed}%`} onChange={(e) => { const v = Number(e.target.value); setSpeed(v); patch({ speedPct: v }) }} />
+          <output>{speed}%</output>
+        </label>
+        <Segmented label="Colour" value={colour === 'theme' ? 'theme' : 'effect'} onChange={(v) => { setColour(v); patch({ colour: v }) }}
+          options={[{ value: 'effect', label: "Effect's own" }, { value: 'theme', label: 'Follows the theme' }]} />
+      </div>
+    </div>
+  )
 }

@@ -126,7 +126,7 @@ html.ten-foot .gm-page { --gm-cell: 210px; --gm-jump-gap: 140px; }
 
 /* The prompts along the bottom, when something other than a mouse is in use. */
 .gm-prompts { position: fixed; z-index: var(--z-sticky); right: 0; left: 0; bottom: var(--dock-space, 0); padding: var(--sp-2) var(--gutter); background: var(--bg-2); border-top: 1px solid var(--border); }
-.gm-page:has(> .gm-prompts) { padding-bottom: var(--sp-16); }
+.gm-page:has(> .gm-prompts) { padding-bottom: calc(var(--sp-16) + var(--sp-10)); }
 @media (max-width: 700px) { .gm-prompts { display: none; } }
 
 /* ---------------------------------------------------------------- a game's page */

@@ -68,7 +68,7 @@
 }
 
 /* ---------------------------------------------------------------- phone: sections and the bar */
-.tabbar, .section-row, .section-row-brand, .top-back { display: none; }
+.tabbar, .section-row, .section-row-brand, .top-back, .phone-brand { display: none; }
 @media (max-width: 700px) and (prefers-reduced-transparency: reduce) {
   .app .topbar.under::before, .app:has(.hero, .detail-hero) .topbar.under::before { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; } /* design-ok: this turns the blur off */
 }
@@ -84,9 +84,9 @@
   .section-row a { flex: none; display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--fg-2); font-size: var(--text-base); font-weight: 700; white-space: nowrap; }
   .section-row a.active { color: var(--fg); box-shadow: inset 0 -2px var(--accent-text); }
   .section-row-brand { display: flex; flex: 1; }
-  /* The server's name stays on a phone: its mark and name at the start, the sections after it. */
-  .top-brand { flex: none; max-inline-size: 42%; overflow: hidden; }
-  .top-brand .brand-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-md); }
+  /* The server's name stays on a phone: its mark first (and its name when there is room), the sections after it. */
+  .phone-brand { display: inline-flex; flex: none; max-inline-size: 42%; overflow: hidden; }
+  .phone-brand .brand-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-md); }
   .section-row { margin-left: 0; padding-inline: var(--sp-2) var(--sp-5); }
   /* The row fades out at its end, before the activity button, so a name is never cut off by it. */
   .section-row { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--sp-5)), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - var(--sp-5)), transparent); } /* design-ok: a mask only reads how solid it is */
@@ -351,3 +351,12 @@ html.tilt-on .card:not(.square) .poster.tilting { transition: transform 80ms lin
 .pic-stream .s { display: none; }
 .pic-stream .t { opacity: .35; }
 .pic-stream .c { left: 0; right: 0; top: 0; bottom: 45%; border-radius: 0; background: var(--bg-4); }
+
+/* Bars never sit under the menu or on each other: the music bar is centred in what the pinned rail and its drawer leave,
+   and a film's corner player rises above the music bar when both are there. */
+@media (min-width: 1000px) {
+  .app.nav-rail:has(.sidebar.keep-open) ~ .audio-bar { left: calc(50% + var(--rail-open, 240px) / 2); width: min(1320px, calc(100% - var(--rail-open, 240px) - 48px)); }
+  .app.nav-rail:has(.rail-drawer) ~ .audio-bar { left: calc(50% + (var(--rail) + var(--rail-drawer, 360px)) / 2); width: min(1320px, calc(100% - var(--rail) - var(--rail-drawer, 360px) - 48px)); }
+  .app.nav-rail:has(.sidebar.keep-open):has(.rail-drawer) ~ .audio-bar { left: calc(50% + (var(--rail-open, 240px) + var(--rail-drawer, 360px)) / 2); width: min(1320px, calc(100% - var(--rail-open, 240px) - var(--rail-drawer, 360px) - 48px)); }
+}
+html:has(.audio-bar:not(.full)):has(.player.mini) { --dock-space: 132px; }

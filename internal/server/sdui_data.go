@@ -408,6 +408,9 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 	if mod := sdui.ModuleOf(src.Type()); mod != "" {
 		return rv.moduleItems(mod, req)
 	}
+	if res, ok, err := rv.pageSource(req); ok {
+		return res, err
+	}
 	var lib *library.Library
 	if id := src.Str("library"); id != "" {
 		l, ok := rv.library(id)
@@ -441,7 +444,7 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 	case "nextUp":
 		return page(rv.items(s.nextUp(rv.r, rv.libraries())), req), nil
 	case "recommended":
-		items, shows, _, err := s.Store.RecommendForYou(rv.ctx, rv.u.ID, rv.acc, int64(rv.seed("daily")), min(req.Offset+req.Limit, 60))
+		items, shows, because, err := s.Store.RecommendForYou(rv.ctx, rv.u.ID, rv.acc, int64(rv.seed("daily")), min(req.Offset+req.Limit, 60))
 		if err != nil {
 			return sdui.SourceResult{}, err
 		}
@@ -449,7 +452,9 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		for _, sh := range shows {
 			all = append(all, rv.show(sh))
 		}
-		return page(all, req), nil
+		res := page(all, req)
+		res.Reason = because
+		return res, nil
 	case "watchLater", "collection":
 		var c *library.Collection
 		if src.Type() == "collection" {
@@ -646,7 +651,7 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		if lib == nil {
 			return sdui.SourceResult{}, nil
 		}
-		albums, err := s.Store.AlbumsFiltered(rv.ctx, lib.ID, library.AlbumFilter{Sort: firstNonEmpty(src.Str("sort"), "added"), Artist: src.Str("artist"), Genre: src.Str("genre"), UserID: rv.u.ID, Limit: req.Offset + req.Limit + 1}, rv.acc)
+		albums, err := s.Store.AlbumsFiltered(rv.ctx, lib.ID, library.AlbumFilter{Sort: firstNonEmpty(src.Str("sort"), "added"), Artist: src.Str("artist"), Genre: src.Str("genre"), UserID: rv.u.ID, PlayedOnly: true, Limit: req.Offset + req.Limit + 1}, rv.acc)
 		if err != nil {
 			return sdui.SourceResult{}, err
 		}

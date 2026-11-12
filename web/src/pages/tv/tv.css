@@ -141,7 +141,8 @@ html.ten-foot .ctv-page .ctv-btn.icon, html.using-controller .ctv-page .ctv-btn.
 .ctv-cell.locked b::before { content: "🔒 "; font-weight: 400; }
 .ctv-cell-text { position: relative; flex: 1; min-width: 0; display: block; }
 .ctv-more { position: relative; flex: none; color: currentColor; font-size: var(--text-2xs); }
-.ctv-cell b { display: block; font-size: var(--text-md); line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctv-cell b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: var(--text-md); line-height: 1.15; overflow: hidden; overflow-wrap: anywhere; } /* two lines, then the ellipsis */
+.ctv-cell.tiny b, .ctv-cell.small b { -webkit-line-clamp: 1; }
 .ctv-cell small { display: block; font-size: var(--text-xs); line-height: 1.15; color: var(--ctv-cell-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ctv-cell:hover { filter: brightness(1.18); }
 .ctv-cell.focus, .ctv-cell:focus-visible { background: var(--ctv-hi); color: var(--ctv-hi-text); outline: 2px solid var(--ctv-text); outline-offset: -2px; z-index: 3; filter: none; }

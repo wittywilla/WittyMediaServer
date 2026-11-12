@@ -659,6 +659,7 @@ export default function GuidePage() {
     { id: 'day', label: 'Day', hint: 'A B', items: dayItems },
     { id: 'channels', label: 'Channels', hint: 'C', items: channelItems, detail: hasSets && curSet ? curSet.name : undefined },
     { id: 'filter', label: 'Filter', items: filterItems },
+    { id: 'info', label: 'More info', hint: 'I', disabled: !cur || !curCell, onClick: () => { if (cur && curCell) setDetails({ ch: cur, p: curCell }) } },
     { id: 'recordings', label: 'Recordings', to: '/tv/recordings' },
     hasRules2
       ? { id: 'record', label: 'Record', hint: 'R', disabled: !canRecord, items: [

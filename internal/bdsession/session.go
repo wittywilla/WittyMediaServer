@@ -158,6 +158,10 @@ type Session struct {
 	current   *Presentation
 	serial    int
 	step      *bluray.Step
+	// direct is the playlist the viewer asked for by itself (its number + 1; 0 for none):
+	// "Play" of the film, an episode, an extra. It plays as a title even when no title of
+	// the disc's program names it, which is how an obfuscated disc hides its film.
+	direct int
 	playlist  *playing // what a title presentation streams
 	menu      *menuState
 	menus     map[int]*menuArt
@@ -361,6 +365,7 @@ func (s *Session) playTitle(ctx context.Context, ttn, chapter int) *Presentation
 	if chs := Chapters(s.disc.DiscEngine, pl); chapter >= 1 && chapter <= len(chs) {
 		item, t = chs[chapter-1].Item, chs[chapter-1].ClipTime
 	}
+	s.direct = pl.Number + 1
 	return s.show(ctx, s.nav.PlayPlaylist(pl, item, t))
 }
 
@@ -755,7 +760,11 @@ func (s *Session) present(ctx context.Context, st *bluray.Step, rebuild bool) *P
 	s.step = st
 	p := &Presentation{Serial: s.serial, Reason: st.Reason}
 	var err error
-	if st.Menu || st.Title == 0xffff || st.Title == 0 {
+	numbered := st.Title != 0xffff && st.Title != 0
+	if !numbered && s.direct > 0 && st.Playlist.Number == s.direct-1 {
+		numbered = true // asked for by itself: a title, whatever the disc's program says
+	}
+	if st.Menu || !numbered {
 		if !rebuild {
 			s.menu = nil
 		}

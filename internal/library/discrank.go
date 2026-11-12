@@ -300,11 +300,17 @@ func BlurayRank(a *bdsession.Analysis) *DiscRank {
 			out.Episodes = append(out.Episodes, DiscEpisode{Index: e.Index, TTN: e.Playlist, DurationSec: e.Duration})
 		}
 	}
-	// A play-all playlist with no playlist per episode: its parts are the episodes.
-	if len(out.Episodes) == 0 && r.PlayAll >= 0 {
+	// No playlist per episode: the parts of the playlist that plays them all are the
+	// episodes. That playlist is the play-all one, or with none the film itself, when the
+	// engine found it made of episode-length clips.
+	whole := r.PlayAll
+	if whole < 0 {
+		whole = r.Main
+	}
+	if len(out.Episodes) == 0 && whole >= 0 {
 		for _, p := range r.PlayAllParts {
 			if len(out.Episodes) < rankEpisodes {
-				out.Episodes = append(out.Episodes, DiscEpisode{Index: p.Index, TTN: r.PlayAll, DurationSec: p.Duration, StartSec: p.Start, Item: p.FirstItem, Part: true})
+				out.Episodes = append(out.Episodes, DiscEpisode{Index: p.Index, TTN: whole, DurationSec: p.Duration, StartSec: p.Start, Item: p.FirstItem, Part: true})
 			}
 		}
 	}

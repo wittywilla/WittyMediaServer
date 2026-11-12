@@ -82,5 +82,6 @@ func (s *Session) PlayItem(ctx context.Context, ttn, item int) *Presentation {
 	if len(pl.Items) == 0 {
 		return s.stop("the disc has nothing to play", false)
 	}
+	s.direct = pl.Number + 1
 	return s.show(ctx, s.nav.PlayPlaylist(pl, item, pl.Items[item].In))
 }

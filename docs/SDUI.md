@@ -637,6 +637,81 @@ time left nothing in a page changes with the clock, so its ETag holds; ask
 
 The feature `sdui-limits` in `/capabilities` says a server does all this.
 
+## How a row chooses its cards
+
+A section whose `cardStyle` is `auto` (or left out) takes its source's usual
+style, with two refinements the server makes so every app gets them:
+
+- A source that gives whatever a library holds (`recentlyAdded`, `browse`,
+  `random`, `search`, ...) on a library of music, audiobooks or podcasts draws
+  `album` cards, on books `book`, on games `game`, on photos `photo`: the
+  library is the section's `$each` or the page's own `$library`. A cover is
+  never stretched into an upright poster.
+- On a phone, a row of the libraries (`libraries` source) drawn as `tile` is
+  sent as `chip`: each library's icon and name in a pill, a row a phone can
+  take in at a glance.
+
+A title's page (`detail`) on a phone or a television carries no `personal`:
+nothing there offers Customise. A profile's arrangement of the page, made on
+a bigger screen, still applies.
+
+## Layout options
+
+A layout option is a whole arrangement of an app: where its menu is and how
+it is drawn, and how pages look. There are five, the same on every app:
+
+| Layout | Menu | Pages |
+|---|---|---|
+| `sidebar` | A column down the side where there is room (240 points; 220 on a tablet), a tab bar on a phone, the top menu on a television. | As written. **The default everywhere**: the apps as they have always looked. |
+| `topTabs` | A row of tabs across the top on every device, leaving the whole width to the page. | As written. |
+| `tvRows` | A narrow rail of icons (80 points; 72 on a tablet), a phone's tab bar, a television's top menu. | Grids become rows of large cards with See all (except a grid a filter bar drives), the spotlight is a billboard, cards a section doesn't size are large. |
+| `compactList` | A rail; on a television a menu down the side, 120 points closed and 400 open. | Rows, grids and the spotlight become lists, a line per title with its picture in its own shape, progress and two badges; compact spacing. |
+| `streaming` | A see-through row of tabs over the top of the page, solid once it scrolls; a phone's tab bar; a television's top menu (never over the page). | A billboard spotlight, wide cards for films, shows and episodes, comfortable spacing. |
+
+**What decides it.** The administrator chooses which layout each form factor
+starts with and which layouts profiles may choose (`ui_config.json`
+`layouts: {default: {formFactor: layout}, allowed: [layout]}`; the editor's
+routes are `GET`/`PUT /sdui/config/layouts`). Each profile chooses its own for
+each of its devices (`PUT /sdui/layout {layout}`; `DELETE` to follow the
+server again). An app names itself with `device=` (or `X-WMS-Device`): a
+stable name of its own, letters, digits, `-` and `_`, never anything that
+identifies the hardware; an app that sends none shares one choice per form
+factor. A profile kept from rearranging pages, or a server with
+personalisation off, follows the administrator's choice. `layout=` (or
+`X-WMS-Layout`) on a page or the navigation draws that one request with
+another layout, so an app can show a layout before it is chosen. Precedence:
+`layout=`, the profile's choice for the device, its choice for the form
+factor, the administrator's default for the form factor, `sidebar`; a layout
+the administrator doesn't allow is passed over.
+
+**What a client is sent.** Every page carries `layout.shell` and the
+navigation carries `shell`: `{layout, nav, overlay, size, open}`. `nav` is
+the menu's style (`sidebar`, `rail`, `bottomTabs`, `topTabs`, `tvTopMenu`,
+`tvSideMenu`), `size` its breadth in points (a sidebar's or rail's width, a
+bar's height without the system's own inset), `overlay` that it lies over
+the top of the page, transparent until the page scrolls, and `open` how wide
+a television's side menu is while it has focus. An app draws its frame from
+the navigation's shell and lays the page out in what is left; it never picks
+a style of its own. The navigation also carries `layouts`: `{current,
+chosen, options, url}`, what the profile may choose on this device, for a
+**Layout** row in the app's own Settings (Settings is never SDUI; the row
+lives where the app's appearance settings are, reachable by keyboard, remote
+and controller, with the options read out by screen readers as a choice of
+five with the current one selected).
+
+**What the server does for the app.** A layout's changes to pages are made
+by the server in the document, with the catalogue's own components: a
+renderer that follows the document draws every layout with nothing more. A
+`ListItem` made from a source carries its picture in the item's own shape
+(a poster upright, a still wide, a cover square), and `progress` and up to
+two `badges` when the item has them. The conformance kit has a case for every
+layout on the device it suits best (`layout-*.json`), including a
+television's side menu and a grid a filter bar keeps.
+
+The reference table is [Layout options](#layout-options-1) in the catalogue
+below; `GET /sdui/catalog` has `layouts` and `navStyles`; `sdui-layouts` in
+`/capabilities` says a server has all of this.
+
 ## Modules
 
 Every module carries its part of the apps in its own release, as data: its
@@ -2552,6 +2627,18 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 | `watched.clear` | Forgets the profile's progress in the title. | `DELETE /api/v1/items/{item}/progress` |
 | `selectTab` | Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it. |  |
 | `refresh` | Asks for the page again. |  |
+
+### Layout options
+
+The menu's style on each form factor, and what the server changes about every page for the layout. Menu styles: `sidebar`, `rail`, `bottomTabs`, `topTabs`, `tvTopMenu`, `tvSideMenu`.
+
+| Layout | What it is | TV | Phone | Tablet | Desktop | Web | Pages |
+|---|---|---|---|---|---|---|---|
+| `sidebar` | **Sidebar.** The menu down the side where there is room, a tab bar on a phone and the top menu on a television. Pages as they are written. | tvTopMenu | bottomTabs | sidebar | sidebar | sidebar | as written |
+| `topTabs` | **Top tabs.** The menu as a row of tabs across the top on every device, leaving the whole width to the page. | tvTopMenu | topTabs | topTabs | topTabs | topTabs | as written |
+| `tvRows` | **TV rows.** Everything in rows of large cards, as on a television: grids become rows, and the menu is a narrow rail. | tvTopMenu | bottomTabs | rail | rail | rail | grids as rows, spotlight: billboard, cards l |
+| `compactList` | **Compact list.** A line per title instead of rows of pictures: the most on the screen at once, for small screens and long libraries. | tvSideMenu | bottomTabs | rail | rail | rail | rows and grids as lists, spotlight: row, compact |
+| `streaming` | **Streaming style.** A big spotlight under a see-through menu, then rows of wide cards, like a streaming service. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | spotlight: billboard, wide cards for films and shows, comfortable, menu over the page |
 
 ### Icons
 

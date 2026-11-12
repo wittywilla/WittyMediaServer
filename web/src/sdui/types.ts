@@ -33,7 +33,12 @@ export type Node = {
 
 export type CardMetrics = { shape?: string; aspect?: string; width?: Record<string, number>; columns?: number }
 
+// Shell is the layout option a page was made for and how the app's frame is drawn with
+// it (docs/SDUI.md, "Layout options").
+export type Shell = { layout: string; nav: string; overlay?: boolean; size: number; open?: number }
+
 export type Layout = {
+  shell?: Shell
   formFactor: string
   class?: string
   canvas?: { width: number; height: number }

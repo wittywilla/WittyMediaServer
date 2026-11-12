@@ -735,7 +735,11 @@ The tasks for each app:
    draws a module's view with the module's web bundle: it sends the IDs of the views of
    every bundle it has loaded, and when the page holds a `NativeView` of one, mounts the
    bundle's component for it in that place. A bundle exports `views`, components by view
-   ID, as it exports `pages`; each is given `host` and the `NativeView`'s props. A native
+   ID, as it exports `pages`: `export const views = { 'wittyink.bookshelf': Bookshelf }`.
+   The web app mounts one with the props `{ host, view, library?, ...the node's other
+   props }`, where `host` is the object a module's pages get and `view` the view's ID;
+   when the bundle or the export is missing, it draws the node's children, the fallback,
+   as for any view it doesn't have. A native
    app sends a module's view only if it really draws it; usually it sends none, and its
    users see the fallback.
 2. **Draw module settings in Settings → Modules**, as in [Drawing them in an app](#drawing-them-in-an-app),

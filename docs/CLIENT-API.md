@@ -1655,6 +1655,9 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `PUT /sdui/pages/{page}/personal` | user | Replace this profile's arrangement of a page. Only its own. 403 when the profile may not rearrange pages (the editLayout switch) or the server has it off; 400 lists what is wrong. |
 | `DELETE /sdui/pages/{page}/personal` | user | Back to the page as everyone has it. |
 | `GET /sdui/topshelf` | user | Content for a tvOS Top Shelf extension: what this account was watching and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged. |
+| `GET /sdui/layout` | user | The layout option in force on this device (`device=` names the app's own device, else the form factor): `{layout, shell, choice: {current, chosen, options, url}, editable}`. |
+| `PUT /sdui/layout` | user | This profile's layout on this device: `{layout}`. 403 when the profile may not rearrange or the server doesn't offer that layout. |
+| `DELETE /sdui/layout` | user | This device follows the server's layout again. |
 | `GET /sdui/modules/settings` | user | The modules with settings this profile sees: `{modules: [{module, label, icon, url}]}`, for the list under Settings → Modules. |
 | `GET /sdui/modules/{module}/images/{name}` | user | A picture a module's cards show (module sources put these addresses in `images`). PNG, JPEG, WebP or GIF. |
 | `GET /sdui/modules/{module}/settings` | user | A module's settings, described and with their values, for the app's own Settings to draw under Settings → Modules ([SDUI-MODULES.md](SDUI-MODULES.md#settings)). |
@@ -1673,6 +1676,8 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `DELETE /sdui/config/navigation` | admin | Back to the built-in navigation. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
 | `POST /sdui/validate` | admin | Check {"page": ...}, {"navigation": ...} or {"config": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. |
 | `GET /sdui/presets` | admin | The gallery of ready-made pages and sections: {presets: [{id, label, description, icon, kind, pageKinds, page or section}]}. |
+| `GET /sdui/config/layouts` | admin | The server's layouts: `{etag, layouts: {default, allowed}, options, builtin}`. |
+| `PUT /sdui/config/layouts` | admin | Saves `{default: {formFactor: layout}, allowed: [layout]}`; If-Match, or `target=draft`. |
 | `GET /sdui/modules` | admin | Every module in use with its SDUI file: `{modules: [ModuleUI]}`. |
 | `PUT /sdui/modules/{module}/settings` | admin | The server's values of a module's settings: `{values}`; null resets one. |
 | `POST /sdui/presets/{id}/apply` | admin | Put a page preset in the configuration under the preset's own page ID. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |

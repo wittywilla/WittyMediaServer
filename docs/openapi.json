@@ -334,6 +334,9 @@
           "coverItem": {
             "type": "integer"
           },
+          "firstItem": {
+            "type": "integer"
+          },
           "durationSec": {
             "type": "number"
           },

@@ -545,13 +545,13 @@ func (s *Server) handleDeleteChannelLogo(w http.ResponseWriter, r *http.Request)
 
 // tvSettings are stored in the settings table under these names.
 var tvSettings = map[string]string{
-	"tvLibraryBufferMin": "5",       // minutes kept for pausing a library channel
-	"tvTunerBufferMin":   "30",      // and a tuner channel
-	"tvCopyVideo":        "1",       // pass H.264 through instead of converting it
-	"tvMaxHeight":        "0",       // 0 = the server's general limit
-	"tvTheme":            "",        // what a new viewer starts with: a WittyTV theme, or "" to go by the two below
-	"tvSkin":             "cable",   // cable | satellite | midnight | theme: from before there were themes
-	"tvLayout":           "classic", // classic | streaming: the same
+	"tvLibraryBufferMin": "5",  // minutes kept for pausing a library channel
+	"tvTunerBufferMin":   "30", // and a tuner channel
+	"tvCopyVideo":        "1",  // pass H.264 through instead of converting it
+	"tvMaxHeight":        "0",  // 0 = the server's general limit
+	// tvTheme is the owner's WittyTV look for anyone whose own choice and UI suggest none: a theme
+	// name, or "" for the guide's own default.
+	"tvTheme": "",
 	// tvBackgroundPlay: whether a device that hasn't chosen keeps playing a channel while its tab
 	// or app is in the background. Each device can choose for itself: see backgroundPlay.
 	"tvBackgroundPlay": "1",
@@ -584,35 +584,15 @@ func (s *Server) handleTVSettings(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, out)
 }
 
-// tvThemeLegacy is each WittyTV theme a new viewer can be started on, and what it comes to in
-// the two earlier choices, which the guide API still gives for older clients.
-var tvThemeLegacy = map[string][2]string{
-	"modern":     {"streaming", "theme"},
-	"classic":    {"classic", "cable"},
-	"satellite":  {"classic", "satellite"},
-	"teletext":   {"classic", "cable"},
-	"listings":   {"streaming", "theme"},
-	"bigpicture": {"streaming", "theme"},
-	"outline":    {"streaming", "theme"},
-	"compact":    {"streaming", "theme"},
-}
+// tvThemes are the WittyTV looks an owner can start new viewers on. Custom is each person's own.
+var tvThemes = map[string]bool{"modern": true, "classic": true, "satellite": true, "teletext": true, "listings": true,
+	"bigpicture": true, "outline": true, "compact": true}
 
 func (s *Server) handlePutTVSettings(w http.ResponseWriter, r *http.Request) {
 	var b map[string]string
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
 		return
-	}
-	// A theme carries the two older choices with it, so an older client sees the nearest thing;
-	// and choosing either of those the old way means the theme no longer says.
-	if v, ok := b["tvTheme"]; ok {
-		if l, known := tvThemeLegacy[strings.TrimSpace(v)]; known {
-			b["tvLayout"], b["tvSkin"] = l[0], l[1]
-		}
-	} else if _, layout := b["tvLayout"]; layout {
-		b["tvTheme"] = ""
-	} else if _, skin := b["tvSkin"]; skin {
-		b["tvTheme"] = ""
 	}
 	for k, v := range b {
 		if _, known := tvSettings[k]; !known {
@@ -632,18 +612,8 @@ func (s *Server) handlePutTVSettings(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		case "tvTheme":
-			if _, known := tvThemeLegacy[v]; v != "" && !known {
+			if v != "" && !tvThemes[v] {
 				writeErr(w, 400, "unknown WittyTV theme")
-				return
-			}
-		case "tvSkin":
-			if v != "cable" && v != "satellite" && v != "midnight" && v != "theme" {
-				writeErr(w, 400, "unknown guide style")
-				return
-			}
-		case "tvLayout":
-			if v != "classic" && v != "streaming" {
-				writeErr(w, 400, "unknown guide layout")
 				return
 			}
 		case "tvCopyVideo", "tvBackgroundPlay":
@@ -864,8 +834,7 @@ func (s *Server) handleGuide(w http.ResponseWriter, r *http.Request) {
 	}
 	rows = rows[offset:min(offset+limit, total)]
 	out := map[string]any{"now": now.Unix(), "from": from.Unix(), "to": to.Unix(), "total": total, "offset": offset,
-		"groups": ix.groupNames(), "set": cmp.Or(q.Get("set"), "all"), "theme": s.tvSetting(ctx, "tvTheme"), "skin": s.tvSetting(ctx, "tvSkin"),
-		"layout": s.tvSetting(ctx, "tvLayout"), "backgroundPlay": s.backgroundPlay(ctx)}
+		"groups": ix.groupNames(), "set": cmp.Or(q.Get("set"), "all"), "theme": s.tvSetting(ctx, "tvTheme"), "backgroundPlay": s.backgroundPlay(ctx)}
 	if located != -2 {
 		out["located"] = located
 	}

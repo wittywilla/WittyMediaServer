@@ -274,7 +274,7 @@ func TestBumpersFollowAMovedDataFolder(t *testing.T) {
 	}
 }
 
-func TestGuideFiltersByCategoryAndKeepsOldSkins(t *testing.T) {
+func TestGuideFiltersByCategoryAndSaysTheOwnersLook(t *testing.T) {
 	h, admin, _, s := tvServer(t)
 	_, video, _ := tvWorld(t, s)
 	mk := func(name, cats string) {
@@ -295,14 +295,7 @@ func TestGuideFiltersByCategoryAndKeepsOldSkins(t *testing.T) {
 	if w := tvCall(h, "GET", "/api/guide?channel=nosuch&hours=1", admin, ""); !strings.Contains(w.Body.String(), `"total":0`) {
 		t.Errorf("one channel: %s", w.Body)
 	}
-	if w := tvCall(h, "PUT", "/api/tv/settings", admin, `{"tvSkin":"midnight"}`); w.Code != 200 {
-		t.Errorf("midnight colours: %d", w.Code)
-	}
-	if w := tvCall(h, "PUT", "/api/tv/settings", admin, `{"tvSkin":"neon"}`); w.Code != 400 {
-		t.Errorf("unknown colours: %d", w.Code)
-	}
-	// The owner's theme for new viewers: it goes out beside the two older choices it replaced, and
-	// those still work for a client that sets them.
+	// The owner's WittyTV look for new viewers goes out as theme, and nothing from the looks before it.
 	guide := func() map[string]any {
 		var g map[string]any
 		if err := json.Unmarshal(tvCall(h, "GET", "/api/guide?list=1&limit=1", admin, "").Body.Bytes(), &g); err != nil {
@@ -313,20 +306,13 @@ func TestGuideFiltersByCategoryAndKeepsOldSkins(t *testing.T) {
 	if w := tvCall(h, "PUT", "/api/tv/settings", admin, `{"tvTheme":"satellite"}`); w.Code != 200 {
 		t.Errorf("a theme: %d", w.Code)
 	}
-	if g := guide(); g["theme"] != "satellite" || g["layout"] != "classic" || g["skin"] != "satellite" {
-		t.Errorf("the guide should say the theme, and what it comes to for an older client: %v %v %v", g["theme"], g["layout"], g["skin"])
+	if g := guide(); g["theme"] != "satellite" || g["layout"] != nil || g["skin"] != nil {
+		t.Errorf("the guide should say the theme and only that: %v %v %v", g["theme"], g["layout"], g["skin"])
 	}
-	if w := tvCall(h, "PUT", "/api/tv/settings", admin, `{"tvTheme":"listings"}`); w.Code != 200 {
-		t.Errorf("a theme: %d", w.Code)
-	}
-	if g := guide(); g["layout"] != "streaming" || g["skin"] != "theme" {
-		t.Errorf("an older client's nearest thing: %v %v", g["layout"], g["skin"])
-	}
-	if w := tvCall(h, "PUT", "/api/tv/settings", admin, `{"tvLayout":"classic"}`); w.Code != 200 {
-		t.Errorf("the older setting: %d", w.Code)
-	}
-	if g := guide(); g["theme"] != "" || g["layout"] != "classic" {
-		t.Errorf("choosing the old way means the theme no longer says: %v %v", g["theme"], g["layout"])
+	for _, body := range []string{`{"tvSkin":"midnight"}`, `{"tvLayout":"classic"}`} {
+		if w := tvCall(h, "PUT", "/api/tv/settings", admin, body); w.Code != 400 {
+			t.Errorf("an old look setting is no setting now: %s: %d", body, w.Code)
+		}
 	}
 	for _, body := range []string{`{"tvTheme":"custom"}`, `{"tvTheme":"<script>"}`} {
 		if w := tvCall(h, "PUT", "/api/tv/settings", admin, body); w.Code != 400 {

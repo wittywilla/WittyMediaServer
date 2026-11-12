@@ -1759,7 +1759,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /guide` | user | Every channel this account may watch, with its programmes. Each can name `logo`, a picture of its own, or `brand`, for `POST /logos/lookup`, and always has `canRecord`, the only signal for offering Record (see "Recording"). Beside them, `theme`, `layout` and `skin`: what a new viewer starts with, and `backgroundPlay`: whether a device that hasn't chosen keeps playing in the background. |
+| `GET /guide` | user | Every channel this account may watch, with its programmes. Each can name `logo`, a picture of its own, or `brand`, for `POST /logos/lookup`, and always has `canRecord`, the only signal for offering Record (see "Recording"). Beside them, `theme`: the owner's WittyTV look for anyone whose own choice and UI suggest none, and `backgroundPlay`: whether a device that hasn't chosen keeps playing in the background. |
 | `GET /tv/{key}/tune` | user | What is on a channel, and starts its stream, with `canRecord`. `streamToken=1` adds `streamUrl` for players that can't set headers. See "Live channels". |
 | `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
 | `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |

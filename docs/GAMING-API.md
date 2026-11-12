@@ -317,6 +317,10 @@ hidden libraries, and cleans them as any module's items. Nothing is given when g
 | `wittyplay.state.delete` | `DELETE /games/{id}/saves/{slot}` |
 | `wittyplay.controller.assign` | `PUT /play/{sid}/seats/{user}` `{seat}` |
 
+The action's `item` is the session (`{sid}`), or the game's ID for `wittyplay.state.delete`; the rest come in the
+action's `params` (`slot`, `user`, `seat` and, for `wittyplay.room.join`, `code`). [SDUI](SDUI.md#action) says how a
+client fills them.
+
 ## Modes
 
 `GET /games/modes?client=native` answers `{client, modes}`, and the session's `modes` is the same list: what you can use, best first. Use the first one

@@ -433,7 +433,7 @@ type Item struct {
 	ID string `json:"id"`
 	// Kind is movie, episode, show, season, video, disc, album, artist, track,
 	// book, audiobook, podcast, game, photo, channel, recording, collection,
-	// library, genre or view.
+	// library, genre, view or person.
 	Kind     string `json:"kind"`
 	Title    string `json:"title"`
 	Subtitle string `json:"subtitle,omitempty"`

@@ -725,6 +725,12 @@ A 404 means the channel or the programme isn't there for this profile. A 403 mea
 something the profile may not see. In SDUI, the `credits` source takes `programme: "<key>@<start>"` and draws the same
 cast and crew.
 
+There is no catalogue page for a programme, on purpose: More info is a native screen of the guide, because it is more
+than credits (the buttons, the airings, the trailers) and every client already draws it from the response above. The
+`credits` source's `programme` parameter is for a page that wants only the cast and crew: a `Credits` section with
+`{"type":"credits","programme":"tun-12@1767225600"}` (a page of a module, or a custom page that fills the key and start
+in itself). A client doesn't need a new route for it.
+
 ### Recording
 
 **`canRecord` is the only signal for offering Record.** Show **Record**, **Record every airing** (a series), and any

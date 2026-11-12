@@ -10,6 +10,7 @@ import (
 	"encoding/xml"
 	"image"
 	"image/png"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -208,6 +209,37 @@ func TestMonoHasHoles(t *testing.T) {
 	}
 	if with, without := cover(Cut(m.Body.Path, m.Ink.Path)), cover(m.Body.Path); with > without*0.95 {
 		t.Errorf("the cuts don't show in the one-colour mark (%.0f of %.0f)", with, without)
+	}
+}
+
+// The one-colour mark is exactly the body with the cuts taken out (and the dot, cut out where it
+// sits on the body), in every design: no stray pieces where an outline crosses itself.
+func TestMonoHasNoStrayPieces(t *testing.T) {
+	pal := HousePalette()
+	cover := func(p Path) *image.RGBA {
+		return Art{W: Page, H: Page, Layers: []Layer{{p, Fill(Hex("#000000"))}}}.Image(256, 256)
+	}
+	for _, c := range Concepts {
+		for _, p := range Products {
+			for _, small := range []bool{false, true} {
+				m := Design(c, p, pal, small)
+				body, ink, got := cover(m.Body.Path), cover(m.MonoCuts().Solid()), cover(m.MonoPath())
+				dot, onBody := cover(m.Spark.Path.Solid()), m.dotOnBody()
+				bad := 0
+				for i := 3; i < len(got.Pix); i += 4 {
+					want := float64(body.Pix[i]) / 255 * (1 - float64(ink.Pix[i])/255)
+					if !onBody {
+						want = math.Max(want, float64(dot.Pix[i])/255)
+					}
+					if d := float64(got.Pix[i])/255 - want; d > 0.5 || d < -0.5 {
+						bad++
+					}
+				}
+				if bad > 0 {
+					t.Errorf("%s %s (small %v): %d pixels of the one-colour mark aren't body minus cuts", c, p, small, bad)
+				}
+			}
+		}
 	}
 }
 

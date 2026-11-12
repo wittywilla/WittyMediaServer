@@ -82,9 +82,33 @@ func (m Mark) Glyph() []Layer {
 // Front is the nearest depth: features, accents and the dot.
 func (m Mark) Front() []Layer { return append(append([]Layer{m.Ink}, m.Accents...), m.Spark) }
 
-// MonoPath is the mark in one colour: the body with its features cut out, and the dot.
+// MonoPath is the mark in one colour: the body with its features cut out, and the dot. A dot
+// that sits on the body (the client's, on its screen) is cut out too, or it would vanish.
 func (m Mark) MonoPath() Path {
+	if m.dotOnBody() {
+		return Cut(m.Body.Path, m.Ink.Path, m.Spark.Path)
+	}
 	return Cut(m.Body.Path, m.Ink.Path).Add(m.Spark.Path.Solid())
+}
+
+// MonoCuts is everything cut out of the body in the one-colour mark.
+func (m Mark) MonoCuts() Path {
+	if m.dotOnBody() {
+		return m.Ink.Path.Add(m.Spark.Path)
+	}
+	return m.Ink.Path
+}
+
+// dotOnBody is whether the body covers the dot's centre (drawn small to find out).
+func (m Mark) dotOnBody() bool {
+	lo, hi := m.Spark.Path.Bounds()
+	if len(m.Spark.Path.subs) == 0 {
+		return false
+	}
+	const px = 128
+	img := Art{W: Page, H: Page, Layers: []Layer{{m.Body.Path, Fill(Hex("#000000"))}}}.Image(px, px)
+	x, y := int((lo.X+hi.X)/2/Page*px), int((lo.Y+hi.Y)/2/Page*px)
+	return img.RGBAAt(x, y).A > 128
 }
 
 // productLook is what every concept shares for one app: the mark's gradient and its dot. Each
@@ -248,5 +272,51 @@ func StrokeOutline(h float64, pts ...Pt) Path {
 	for i := len(right) - 1; i >= 0; i-- {
 		all = append(all, right[i])
 	}
-	return Poly(h*0.35, all...).Solid()
+	return Poly(h*0.35, untangle(all)...).Solid()
+}
+
+// untangle removes the small loops a thick line's inside corners make when the line is thick
+// for its length (the offset lines cross before they meet): each crossing becomes one corner.
+// Filled, a loop is invisible; cut out of something, it would show as a stray triangle.
+func untangle(pts []Pt) []Pt {
+	for changed := true; changed; {
+		changed = false
+		n := len(pts)
+		for i := 0; i < n && !changed; i++ {
+			for j := i + 2; j < n && !changed; j++ {
+				if i == 0 && j == n-1 {
+					continue // neighbours across the closing edge
+				}
+				p, ok := crossing(pts[i], pts[i+1], pts[j], pts[(j+1)%n])
+				if !ok {
+					continue
+				}
+				// Keep the longer way round; the loop is the shorter.
+				if j-i <= n-(j-i) {
+					pts = append(append(append([]Pt{}, pts[:i+1]...), p), pts[j+1:]...)
+				} else {
+					pts = append([]Pt{p}, pts[i+1:j+1]...)
+				}
+				changed = true
+			}
+		}
+	}
+	return pts
+}
+
+// crossing is where segments a→b and c→d cross, if they do (touching ends don't count).
+func crossing(a, b, c, d Pt) (Pt, bool) {
+	r, s := b.sub(a), d.sub(c)
+	den := r.X*s.Y - r.Y*s.X
+	if math.Abs(den) < 1e-9 {
+		return Pt{}, false
+	}
+	q := c.sub(a)
+	t := (q.X*s.Y - q.Y*s.X) / den
+	u := (q.X*r.Y - q.Y*r.X) / den
+	const e = 1e-6
+	if t <= e || t >= 1-e || u <= e || u >= 1-e {
+		return Pt{}, false
+	}
+	return a.add(r.mul(t)), true
 }

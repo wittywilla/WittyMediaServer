@@ -120,7 +120,7 @@ presses Play, in the same words everywhere, and refuses to start such a game rat
 |---|---|---|
 | `ready: false`, `reason: "gpu"` | check, consoles, play's 409, prepare's 409 | Not on this server. Show `message` (`error` on a 409) instead of Play. An admin can't fix it in Settings |
 | `message` | check, consoles | Not on this server, and why, for people. Play's `error` is the same text |
-| `gpuMissing` | check, consoles, play's 409 | Only the reason, such as `hardware-rendered games run on Windows and Linux servers`, for a sentence of your own |
+| `gpuMissing` | check, consoles, play's 409 | Only the reason, such as `hardware-rendered games run on Windows, Linux and macOS servers`, for a sentence of your own |
 | `needsGpu` | check | The core it starts on draws on this server's graphics card |
 | `software: true` | check, consoles | It plays, but the server's processor draws it, as there's no card here, or, on a Mac, because its core draws wrongly on the card there. Show `notice` before it starts: it can run slower and keeps several of the server's cores busy. The session's `notices` say it again once it starts |
 | `notice` | check, consoles | That speed caveat, in words for people |

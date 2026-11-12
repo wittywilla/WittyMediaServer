@@ -42,6 +42,8 @@ type logsView struct {
 	// Go's execution trace of the last seconds is kept too. See api_flight.go.
 	Flight bool `json:"flight"`
 	Trace  bool `json:"trace"`
+	// Kinds: the kinds of work the viewer can follow end to end (kind= on entries).
+	Kinds []logging.SessionKind `json:"kinds"`
 }
 
 func (s *Server) logsView(r *http.Request) logsView {
@@ -62,7 +64,7 @@ func (s *Server) logsView(r *http.Request) logsView {
 		recording = &t
 	}
 	return logsView{RecordingUntil: recording, Dir: s.Logs.Dir(), Level: logging.LevelName(s.Logs.Level()), Categories: logging.Categories, Levels: s.Logs.Levels(), On: on, Files: files, CanOpen: onThisMachine(r), Health: s.Logs.Health(), Crashes: crashes, Modules: s.logModuleViews(r.Context()),
-		Flight: s.Logs.FlightRecorderOn(), Trace: logging.TraceRecorderOn()}
+		Flight: s.Logs.FlightRecorderOn(), Trace: logging.TraceRecorderOn(), Kinds: logging.SessionKinds}
 }
 
 // GET /api/logs (admin)
@@ -187,12 +189,13 @@ func (s *Server) saveLogSetting(r *http.Request, k, v string) {
 	}
 }
 
-// GET /api/logs/entries (admin): the viewer. level, cat (a,b), session, module, q, after
+// GET /api/logs/entries (admin): the viewer. level, cat (a,b), session, module, kind (one of
+// logging.SessionKinds: the sessions of one kind of work, or audit records), q, after
 // (a seq: only what is newer, for the live tail), before (a time: only what is
 // older), limit, history=1 (look in the files too; always for a session).
 func (s *Server) handleLogEntries(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	f := logging.Filter{MinLevel: slog.LevelDebug, Session: logging.ValidSession(q.Get("session")), Module: strings.ToLower(logging.ValidSession(q.Get("module"))), Text: q.Get("q"), Limit: qInt(r, "limit", 200), History: qBool(r, "history")}
+	f := logging.Filter{MinLevel: slog.LevelDebug, Session: logging.ValidSession(q.Get("session")), Module: strings.ToLower(logging.ValidSession(q.Get("module"))), Kind: logging.ValidSession(q.Get("kind")), Text: q.Get("q"), Limit: qInt(r, "limit", 200), History: qBool(r, "history")}
 	if v := q.Get("level"); v != "" {
 		lv, ok := logging.ParseLevel(v)
 		if !ok {

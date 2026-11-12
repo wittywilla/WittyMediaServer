@@ -55,6 +55,13 @@ var Categories = []Category{
 	{"auth", "Sign-ins", "Each sign-in and failed sign-in: account name, address and whether it came from home or away. Lock-outs are always recorded.", "warn"},
 	{"clients", "App errors", "Errors in the web app and the apps on your devices, sent to this server: crashes, failed requests, and player and game stream errors.", "warn"},
 	{"http", "Web requests", "Each request to the server: address, page, result and time taken. Sign-in tokens are removed. Failed requests are always recorded.", "warn"},
+	{"sdui", "Pages and themes", "Server-driven pages: publishing and rolling back in the page editor, pages a client could not show, themes and layouts, and each profile's own changes.", "info"},
+	{"modules-store", "Module store", "Installing, updating and removing modules from the store or a file, and every manual override, which is always recorded with who made it.", "info"},
+	{"emulators", "Emulators", "WittyPlay's emulators: installing and checking them, the sandbox, Docker or native host, screen capture and its stream, input and settings written, BIOS and keys present, crashes with the emulator's last words, and macOS permissions.", "info"},
+	{"p2p", "Peer to peer", "Direct connections between your devices and this server: the node starting and stopping, how it is reached (NAT type, port mapping, relays), devices enrolled or revoked, path changes and connection tests. Keys and invites are never written.", "info"},
+	{"remotectl", "Remote control and watch parties", "Devices taking control of a player, the commands they send, watch-party rooms, how far apart the players drift and waits that timed out.", "info"},
+	{"profiles", "Profiles and parental controls", "Switching profiles, what parental controls refused, screen time used and extra time given. Includes profile names.", "warn"},
+	{"extras", "Karaoke, canvases and intros", "Jobs that separate vocals for karaoke, make canvases and find intros: when each starts, finishes or fails, and why.", "info"},
 	{"storage", "Storage", "WittyDiagnoser's storage checks and problems reading or writing folders.", "info"},
 	{"server", "Everything else", "Starting and stopping, the database, settings and anything without an area of its own.", "info"},
 }
@@ -63,7 +70,9 @@ var Categories = []Category{
 const CatDefault = "server"
 
 // Records from older code, and old settings, may use these names.
-var catAliases = map[string]string{"dvd": "discs", "bluray": "discs", "ffmpeg": "transcode", "signin": "auth", "client": "clients", "game": "games"}
+var catAliases = map[string]string{"dvd": "discs", "bluray": "discs", "ffmpeg": "transcode", "signin": "auth", "client": "clients", "game": "games",
+	"themes": "sdui", "layouts": "sdui", "store": "modules-store", "emulator": "emulators", "peer": "p2p", "syncplay": "remotectl", "party": "remotectl",
+	"parental": "profiles", "profile": "profiles", "karaoke": "extras", "separator": "extras", "stems": "extras"}
 
 // NormalizeCat turns any name into a known category.
 func NormalizeCat(id string) string {
@@ -696,7 +705,7 @@ func (h *handler) Handle(ctx context.Context, r slog.Record) (err error) {
 	if rec.Cat == "" {
 		rec.Cat = CatDefault
 	}
-	if r.Level < LevelCrash && !h.l.keeps(rec) {
+	if r.Level < LevelCrash && !rec.audit && !h.l.keeps(rec) {
 		if h.l.flight.on.Load() && r.Level >= slog.LevelDebug && h.l.flightKeeps(r.Level) {
 			h.l.flight.add(rec) // only for a while, and only in memory
 		}
@@ -765,6 +774,8 @@ func (rec *Record) add(group string, a slog.Attr, depth int) {
 		case "topic":
 			rec.Topic = ValidSession(a.Value.String())
 			return
+		case AuditKey:
+			rec.audit = true // kept as an attribute too, so the file and the viewer show it
 		}
 	}
 	key := a.Key

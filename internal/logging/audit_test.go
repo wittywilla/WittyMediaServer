@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+
+package logging
+
+import (
+	"context"
+	"log/slog"
+	"strings"
+	"testing"
+)
+
+func TestNewCategoriesAndAliases(t *testing.T) {
+	for _, id := range []string{"sdui", "modules-store", "emulators", "p2p", "remotectl", "profiles", "extras"} {
+		if NormalizeCat(id) != id {
+			t.Errorf("%s is not a category", id)
+		}
+	}
+	for alias, want := range map[string]string{"themes": "sdui", "emulator": "emulators", "syncplay": "remotectl", "parental": "profiles", "karaoke": "extras", "store": "modules-store"} {
+		if got := NormalizeCat(alias); got != want {
+			t.Errorf("%s → %s, want %s", alias, got, want)
+		}
+	}
+	seen := map[string]bool{}
+	for _, c := range Categories {
+		if seen[c.ID] || c.Label == "" || c.Description == "" {
+			t.Errorf("category %q is repeated or has no words", c.ID)
+		}
+		if _, ok := ParseLevel(c.Default); !ok {
+			t.Errorf("category %q starts at an unknown level", c.ID)
+		}
+		seen[c.ID] = true
+	}
+}
+
+func TestAuditIsNeverSilenced(t *testing.T) {
+	l, log := newTest(t)
+	l.SetCategoryLevel("modules-store", LevelOff)
+	log.Info("ordinary line", "cat", "modules-store")
+	for i := 0; i < floodLimit+10; i++ {
+		Audit(context.Background(), log, "module override set", "cat", "modules-store", "module", "wittydvd", "by", "admin", "overridePassword", "PLANTED0override")
+	}
+	out := read(t, l)
+	if strings.Contains(out, "ordinary line") {
+		t.Error("an Off area still wrote an ordinary line")
+	}
+	if n := strings.Count(out, "module override set"); n != floodLimit+10 {
+		t.Errorf("%d audit lines written, want %d: the flood limit or the level dropped some", n, floodLimit+10)
+	}
+	if !strings.Contains(out, "audit=yes") || strings.Contains(out, "PLANTED0override") {
+		t.Errorf("audit line not marked, or its secret kept:\n%s", out)
+	}
+}
+
+func TestFollowKinds(t *testing.T) {
+	l, log := newTest(t)
+	l.SetCategoryLevel("games", slog.LevelDebug)
+	log.Info("game started", "cat", "games", "session", "abc123")
+	log.Info("emulator up", "cat", "emulators", "session", "abc123")
+	log.Info("game note without a session", "cat", "games")
+	log.Info("party joined", "cat", "remotectl", "session", "party-1")
+	log.Info("command", "cat", "remotectl", "session", "rc-9")
+	log.Info("path changed", "cat", "p2p", "session", "p2p-4")
+	log.Warn("client said", "cat", "clients", "session", "p2p-4")
+	Audit(context.Background(), log, "device revoked", "cat", "p2p")
+
+	got := func(kind string) string {
+		page, err := l.Query(Filter{MinLevel: slog.LevelDebug, Kind: kind})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var msgs []string
+		for _, e := range page.Entries {
+			msgs = append(msgs, e.Msg)
+		}
+		return strings.Join(msgs, "|")
+	}
+	cases := map[string]string{
+		"game":  "game started|emulator up",
+		"party": "party joined",
+		"rc":    "command",
+		"p2p":   "path changed|client said",
+		"audit": "device revoked",
+		"nope":  "",
+	}
+	for kind, want := range cases {
+		if g := got(kind); g != want {
+			t.Errorf("kind %s: %q, want %q", kind, g, want)
+		}
+	}
+}

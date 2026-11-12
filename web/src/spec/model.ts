@@ -64,3 +64,13 @@ export function reachable(p: SpecPageData, handled: ReadonlySet<string> | null):
 
 // Where the canvas's invented wording says a thing is on: the first item marked, per section.
 export const current = (s: SpecSection): number => (s.kind === 'note' ? -1 : (s.items as { on?: boolean }[]).findIndex((x) => x.on))
+
+// The ids a page answers itself (onAction): every item with no address of its own and not disabled. A page whose
+// every item is handled passes this as SpecPage's `handled`.
+export function handledIds(p: SpecPageData): Set<string> {
+  const out = new Set<string>()
+  const add = (it: { id?: string; to?: string; disabled?: boolean }) => { if (it.id && !it.to && !it.disabled) out.add(it.id) }
+  for (const s of p.sections) if (s.kind !== 'note') (s.items as { id?: string; to?: string; disabled?: boolean }[]).forEach(add)
+  p.actions.forEach(add)
+  return out
+}

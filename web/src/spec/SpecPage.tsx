@@ -21,9 +21,13 @@ export interface SpecPageProps {
   // Extra content under a section's items (a page's own control that has no place in the spec), by section index.
   after?: Record<number, ReactNode>
   className?: string
+  // In a sheet or dialog that already has its own title: no header, only the sections, Dock and foot.
+  embedded?: boolean
+  // Content before the first section (a search field).
+  before?: ReactNode
 }
 
-export default function SpecPage({ page: raw, onAction, handled, after, className }: SpecPageProps) {
+export default function SpecPage({ page: raw, onAction, handled, after, className, embedded, before }: SpecPageProps) {
   const page = useMemo(() => withIds(raw), [raw])
   const live = (it: { id?: string; to?: string; disabled?: boolean }) => !it.disabled && (!!it.to || (!!it.id && !!handled?.has(it.id) && !!onAction))
   const dock: DockAction[] = page.actions.map((a) => ({
@@ -31,12 +35,15 @@ export default function SpecPage({ page: raw, onAction, handled, after, classNam
     onClick: a.to ? undefined : () => a.id && onAction?.(a.id),
   }))
   return (
-    <article className={'spec-page' + (className ? ' ' + className : '')} data-spec={page.key}>
-      <header className="spec-head">
-        <p className="spec-eyebrow">{page.eyebrow}</p>
-        <h1>{page.title}</h1>
-        {page.lead && <p className="spec-lead">{page.lead}</p>}
-      </header>
+    <article className={'spec-page' + (embedded ? ' embedded' : '') + (className ? ' ' + className : '')} data-spec={page.key}>
+      {!embedded && (
+        <header className="spec-head">
+          <p className="spec-eyebrow">{page.eyebrow}</p>
+          <h1>{page.title}</h1>
+          {page.lead && <p className="spec-lead">{page.lead}</p>}
+        </header>
+      )}
+      {before}
       {page.sections.map((s, i) => (
         <Section key={i} s={s} hid={sectionId(page.key, i)} live={live} onAction={onAction}>{after?.[i]}</Section>
       ))}

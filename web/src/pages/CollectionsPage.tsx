@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHelp } from '../components/HelpLink'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import SpecPage from '../spec/SpecPage'
+import { handledIds, withIds } from '../spec/model'
+import { collectionsSpec } from '../spec/specs/collections'
 import { api, fitWidth, posterUrl, sized, type Item, type Show } from '../api'
 import { useAudio } from '../audio/player'
 import { BackLink, EmptyState, LoadError, ItemCard, ShowCard, Spinner } from '../components/common'
 import { canPost, type Collection, type CollectionRule } from '../gallery'
-import { IconClose, IconEdit, IconLibrary, IconPlay, IconPlus, IconTrash } from '../icons'
+import { IconClose, IconEdit, IconLibrary, IconPlay, IconTrash } from '../icons'
 import { toast, useApp } from '../state'
 import '../gallery.css'
 import { Dialog, ask } from '../ui/Overlay'
@@ -25,32 +28,13 @@ export default function CollectionsPage() {
   const [failed, setFailed] = useState(false)
   const load = useCallback(() => { setFailed(false); api.get<Collection[]>('/collections').then(setList).catch(() => setFailed(true)) }, [])
   useEffect(load, [load])
+  const page = useMemo(() => (list ? collectionsSpec(list, user?.id, canPost(user)) : null), [list, user])
   if (failed && !list) return <LoadError what="Your collections" onRetry={load} />
-  if (!list) return <Spinner />
+  if (!list || !page) return <Spinner />
   return (
     <>
-      <div className="toolbar">
-        <h1>Collections</h1>
-        <div style={{ flex: 1 }} />
-        <PageHelp to="collections" />
-        {canPost(user) && <button className="btn sm primary" onClick={() => setMaking(true)}><IconPlus /> New</button>}
-      </div>
-      {list.length === 0 ? (
-        <EmptyState icon={<IconLibrary />} title="No collections yet" text={canPost(user) ? 'Gather movies, shows, albums and more from any library, or save a rule, such as unwatched movies from the 90s, as a smart playlist that keeps itself up to date.' : 'There are no collections for your profile to see yet.'} />
-      ) : (
-        <div className="gal-album-grid">
-          {list.map((c) => (
-            <Link key={c.id} to={`/collections/${c.id}`} className="gal-album">
-              <span className="gal-album-img">
-                {c.coverId ? <img src={`/api/items/${c.coverId}/poster?w=480`} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />
-                  : c.coverShowId ? <img src={`/api/shows/${c.coverShowId}/art/poster`} alt="" loading="lazy" /> : <IconPlay />}
-              </span>
-              <b>{c.name}</b>
-              <span className="muted">{[c.kind === 'smart' ? 'Smart' : '', `${c.count} ${c.count === 1 ? 'item' : 'items'}`, c.ownerId !== user?.id ? `from ${c.owner}` : c.shared ? 'shared' : ''].filter(Boolean).join(' · ')}</span>
-            </Link>
-          ))}
-        </div>
-      )}
+      <div className="spec-page-help"><PageHelp to="collections" /></div>
+      <SpecPage page={page} handled={handledIds(withIds(page))} onAction={(id) => { if (id === 'new') setMaking(true) }} />
       {making && <CollectionDialog onClose={() => setMaking(false)} onSaved={() => { setMaking(false); load() }} />}
     </>
   )

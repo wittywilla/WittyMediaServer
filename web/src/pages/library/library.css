@@ -29,10 +29,6 @@
 /* Filters on show */
 .lib-active { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 
-.lib-facet { margin-top: var(--sp-5); }
-.lib-facet h3 { margin: 0 0 var(--sp-2); font-size: var(--text-sm); font-weight: 600; color: var(--fg-2); }
-.lib-facet .chips { margin: 0; flex-wrap: wrap; overflow: visible; padding: 0; }
-.lib-facet-n { margin-left: var(--sp-2); font-size: var(--text-xs); opacity: .7; }
 .lib-check { display: flex !important; flex-direction: row !important; align-items: center; gap: var(--sp-2); min-height: 44px; }
 
 /* Choosing titles */

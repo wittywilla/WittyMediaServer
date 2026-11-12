@@ -14,6 +14,7 @@ import { shapeFor } from './ui/Surface'
 import { LinkButton } from './ui'
 import { AudioProvider } from './audio/player'
 import ConnectServer from './components/ConnectServer'
+import Unreachable from './components/Unreachable'
 import AuthPage from './pages/AuthPage'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
@@ -99,7 +100,7 @@ export default function App() {
 }
 
 function Shell() {
-  const { user, loading, setupRequired, onboarding, needServer } = useApp()
+  const { user, loading, setupRequired, onboarding, needServer, unreachable } = useApp()
   const loc = useLocation()
   const tvMode = useTvMode()
   // A module's pages can be tinted differently from the rest (the theme engine's module overrides).
@@ -114,6 +115,7 @@ function Shell() {
   // Help, for anyone: stuck at the sign-in page or partway through setup is when it's needed most.
   const isHelp = loc.pathname === '/help' || loc.pathname.startsWith('/help/')
   if (isHelp && (needServer || (!loading && (!user || (onboarding && user.isAdmin))))) return <Suspense fallback={<Spinner />}><Routes><Route path="/help" element={<HelpPublicPage />} /><Route path="/help/:guide" element={<HelpPublicPage />} /></Routes></Suspense>
+  if (unreachable) return <Unreachable />
   if (loading) return <div className="center"><div className="spinner" /></div>
   if (needServer) return <ConnectServer />
   if (!user) return setupRequired ? <Suspense fallback={<Spinner />}><SetupWizard /></Suspense> : <AuthPage />

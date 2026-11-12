@@ -284,11 +284,6 @@
 .hw-fix { font-size: var(--text-xs); color: var(--fg-2); margin-top: 2px; }
 .seg.big { align-items: center; }
 .seg.big button { min-height: calc(var(--control-h) - 8px); padding: 0 var(--sp-4); }
-.profiles { display: grid; gap: 8px; }
-.profile { display: flex !important; flex-direction: row !important; gap: 12px; align-items: flex-start; padding: 12px; border-radius: var(--r-md); background: var(--bg-3); border: 2px solid transparent; cursor: pointer; }
-.profile.active { border-color: var(--accent); }
-.profile .muted { font-size: var(--text-sm); }
-.profile .best { font-size: var(--text-xs); color: var(--fg-2); margin-top: 4px; }
 .input.mono { font-family: var(--font-mono); font-size: var(--text-sm); }
 
 /* ---------------------------------------------------------------- appearance */

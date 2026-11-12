@@ -185,8 +185,16 @@ var (
 	propTo        = pOf(PropRoute, "to", "Opens", "A place in the app, such as /library/3 or /page/family-night.")
 	propNative    = pEnum("native", "Opens a screen of the app", "A screen the app draws itself.", "", "settings|Settings", "guide|TV guide", "profiles|Who's watching", "downloads|Downloads", "remote|Remote control", "nowPlaying|Now playing", "pair|Pair a device", "collections|Collections")
 	propURL       = on(pOf(PropURL, "url", "Opens a web page", "An http or https address, opened in the browser. Left out on a television."), FormPhone, FormTablet, FormDesktop, FormWeb)
-	propIcon      = pOf(PropIcon, "icon", "Icon", "One of the built-in icons.")
-	propGap       = pEnum("gap", "Space between", "The distance between the things inside.", "m", "none|None", "xs|Extra small", "s|Small", "m|Medium", "l|Large", "xl|Extra large")
+	// The command a button, notice or row runs (rev 7): op names one of the catalogue's commands, item is
+	// its item ($item on a page opened about a title), params its other values ($name and the like are
+	// filled in), confirm a question to ask first; back goes back instead.
+	propOp      = rev7(pEnum("op", "Runs a command", "One of the catalogue's commands; the page is asked for again after it.", "", commandOps()...))
+	propOpItem  = rev7(pOf(PropRef, "item", "Command's item", "The item the command acts on, such as $item."))
+	propOpArgs  = rev7(pOf(PropObject, "params", "Command's values", "The command's other values by name, each a text or a $variable."))
+	propConfirm = rev7(pText("confirm", "Ask first", "A question the app asks before the command runs, such as Delete this memory?", 120))
+	propBack    = rev7(pBool("back", "Goes back", "Closes the page: Back.", false))
+	propIcon    = pOf(PropIcon, "icon", "Icon", "One of the built-in icons.")
+	propGap     = pEnum("gap", "Space between", "The distance between the things inside.", "m", "none|None", "xs|Extra small", "s|Small", "m|Medium", "l|Large", "xl|Extra large")
 )
 
 var statesData = map[string]string{
@@ -437,7 +445,7 @@ func buildComponents() []ComponentSpec {
 				pList("actions", "Buttons", "The buttons offered, in order. One the title or the profile can't use is left out.", []string{"play", "restart", "watchLater", "watched", "download", "share"},
 					"play|Play or Resume", "restart|Play from the start", "watchLater|Watch later", "watched|Mark watched", "download|Download", "share|Share", "playOn|Play on another device", "watchParty|Watch party"),
 				pList("facts", "Facts", "The line of facts under the title, in order.", []string{"year", "runtime", "contentRating", "rating", "genres"},
-					"year|Year", "runtime|Running time", "contentRating|Certificate", "rating|Score", "genres|Genres", "studio|Studio", "count|How many it holds", "season|Season and episode",
+					"year|Year", "runtime|Running time", "contentRating|Certificate", "rating|Score", "genres|Genres", "studio|Studio", "artist|Artist (an album or song)", "count|How many it holds", "season|Season and episode",
 					"knownFor|Known for (a person)", "born|Born (a person)", "died|Died (a person)"),
 				pBool("showOverview", "Show the synopsis", "", true),
 				pBool("showTagline", "Show the tagline", "", true),
@@ -546,7 +554,7 @@ func buildComponents() []ComponentSpec {
 			Props: []PropSpec{
 				pEnum("tone", "Tone", "", "info", "info|Information", "success|Good news", "warning|Warning", "danger|Problem"),
 				pText("title", "Title", "", 120), req(pText("text", "Text", "", 400)), propIcon,
-				pText("buttonLabel", "Button", "", 40), propTo, propNative, propURL,
+				pText("buttonLabel", "Button", "", 40), propTo, propNative, propURL, propOp, propOpItem, propOpArgs, propConfirm, propBack,
 			},
 			Renders: map[string]string{"all": "A rounded block in token bg2 with a 4-point bar at its leading edge in the tone's colour (accent, ok, warn, danger), the icon, title in the title size, text in body, and the button at the end (below on a phone). It takes focus only when it has a button."},
 			A11y:    "Role: status (alert for warning and danger). Label: \"<title>. <text>\".",
@@ -592,7 +600,7 @@ func buildComponents() []ComponentSpec {
 			Props: []PropSpec{
 				req(pText("label", "Label", "", 60)), propIcon,
 				pEnum("variant", "Look", "", "secondary", "primary|Primary", "secondary|Secondary", "ghost|Plain"),
-				propTo, propNative, propURL,
+				propTo, propNative, propURL, propOp, propOpItem, propOpArgs, propConfirm, propBack,
 			},
 			Renders: map[string]string{"all": "The platform's own button: filled in token accent with accentFg text (primary), outlined (secondary) or text only (ghost); at least 44 points tall on touch devices, 66 on a television."},
 			A11y:    "Role: button (link on the web when it navigates). Label: the label.",
@@ -631,8 +639,25 @@ func buildComponents() []ComponentSpec {
 
 		{Type: "ListItem", Label: "List row", Icon: "list", Category: "media", Since: 2, Authored: true, Data: "none", Focus: "item",
 			Description: "One row of a List.",
-			Props:       []PropSpec{req(pText("title", "Title", "", 120)), pText("subtitle", "Subtitle", "", 160), propIcon, pText("trailing", "Text at the end", "", 40), propTo, propNative, propURL},
+			Props:       []PropSpec{req(pText("title", "Title", "", 120)), pText("subtitle", "Subtitle", "", 160), propIcon, pText("trailing", "Text at the end", "", 40), propTo, propNative, propURL, propOp, propOpItem, propOpArgs, propConfirm, propBack},
 			A11y:        "Role: button when it opens something, else text. Label: \"<title>, <subtitle>, <trailing>\"."},
+
+		{Type: "Form", Label: "Form", Icon: "list", Category: "structure", Since: 7, Authored: true, Data: "none", Container: true, Children: []string{"List", "Text", "Notice", "Divider", "Spacer"}, Focus: "group",
+			Description: "A group of rows with controls (switches, choices, fields, sliders) saved together: Save runs one command with every named control's value, Cancel goes back. Settings itself stays hand-built; a Form is for a page the server or a module serves.",
+			Props: []PropSpec{
+				propTitle,
+				pText("submitLabel", "Save button", "", 24), pText("cancelLabel", "Cancel button", "Left out: no Cancel; Back still goes back.", 24),
+				req(pEnum("op", "Command", "The command Save runs, one of the catalogue's commands.", "", commandOps()...)),
+				pOf(PropRef, "item", "Item", "The command's item, such as $item."),
+			},
+			Renders: map[string]string{
+				"tv":      "The rows as a list, then a Dock of Save (primary) and Cancel; Save is disabled until something has changed.",
+				"phone":   "The rows full width, a Save and Cancel bar fixed at the foot above the keyboard.",
+				"desktop": "The rows in a column at most 720 points wide, Save and Cancel at its foot.",
+			},
+			States:  map[string]string{"loading": "The rows as loading rows.", "empty": "Left out.", "error": "The error under Save, in the danger tone; the values stay as typed."},
+			A11y:    "Role: form, labelled by the title. Each control is labelled by its row's title and described by its subtitle and why; Save announces the result politely.",
+			Example: example(`{"id":"privacy","component":"Form","props":{"title":"Games","op":"wittyplay.online.set"},"children":[{"id":"rows","component":"List","source":{"type":"wittyplay.privacy"}}]}`)},
 
 		{Type: "NativeView", Label: "The app's own view", Icon: "plug", Category: "structure", Since: 2, Authored: true, Data: "none", Container: true, Focus: "stop",
 			Description: "A place where the app draws one of its own rich views: the TV guide's grid, the photo timeline. An app that has the view says so; any other is sent the sections inside instead.",
@@ -894,7 +919,8 @@ func buildPageKinds() []PageKindSpec {
 		{Kind: "books", Label: "Books", Route: "/books", Description: "Books, comics and audiobooks together: the book libraries and the audiobook libraries.", Params: []string{"tab"}},
 		{Kind: "games", Label: "Games", Route: "/games", Description: "Every games library together.", Params: []string{"tab"}},
 		{Kind: "collections", Label: "Collections", Route: "/collections", Description: "The profile's collections and lists.", Params: []string{"tab"}},
-		{Kind: "custom", Label: "A page of your own", Route: "/page/{id}", Description: "Any other page: a family film night, a page for one collection.", Params: []string{"tab"}},
+		{Kind: "custom", Label: "A page of your own", Route: "/page/{id}", Description: "Any other page: a family film night, a page for one collection. It may be opened about something: a title (item), a studio, network or category (name, with of), which its sources read as $item, $name and $of.",
+			Params: []string{"tab", "item", "name", "of"}, Variables: []string{"$item", "$name", "$of"}},
 	}
 }
 
@@ -931,34 +957,21 @@ func buildRoutes() []RouteSpec {
 	}
 }
 
+// commandOps are the ops of the catalogue's commands, for the enum of a property that names one.
+func commandOps() []string {
+	var out []string
+	for _, c := range commandSpecs() {
+		out = append(out, c.Op+"|"+c.Label)
+	}
+	return out
+}
+
 func buildCatalogue() *Catalogue {
 	c := &Catalogue{
 		SchemaVersion: SchemaVersion, Revision: CatalogRevision,
 		Components: buildComponents(), CardStyles: cardStylesOnce(), Sources: buildSources(), Conditions: buildConditions(),
 		PageKinds: buildPageKinds(), Routes: buildRoutes(),
-		Commands: []CommandSpec{
-			{Op: "watchLater.add", Label: "Watch later", Description: "Adds the title to the profile's Watch later list.", Method: "POST", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
-			{Op: "watchLater.remove", Label: "Remove from Watch later", Description: "Takes the title off the profile's Watch later list.", Method: "DELETE", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
-			{Op: "watched.set", Label: "Mark watched", Description: "Marks the title watched; for a show, every episode.", Method: "POST", Path: "/api/v1/items/{item}/progress", Body: `{"watched":true}`},
-			{Op: "watched.clear", Label: "Mark unwatched", Description: "Forgets the profile's progress in the title; for a show, in every episode.", Method: "DELETE", Path: "/api/v1/items/{item}/progress"},
-			{Op: "selectTab", Label: "Choose a tab", Description: "Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it.", Method: "GET", Path: ""},
-			{Op: "control.open", Label: "Open a control", Description: "Client-handled, from a Dock: params.control is sort, filter, view or jump and params.target the Grid. sort and filter open the page's FilterBar choices for the target; view switches it between its grid and a list and remembers it for the profile on the device; jump opens a letter picker (A to Z and #) and brings the grid to the first title starting with the letter by asking its more.url until one has arrived, at most 20 pages.", Method: "GET", Path: ""},
-			{Op: "wittyplay.room.create", Label: "Open a room", Description: "WittyPlay Online: opens the game being played (item: its session) to the friends who may see it, so they join with no code. Answers the host's code.", Method: "POST", Path: "/api/play/{item}/room", Body: `{"open":true}`},
-			{Op: "wittyplay.room.join", Label: "Join a room", Description: "WittyPlay Online: takes a seat in an open room (item: its session) or, with params.code, the room that code belongs to (no item).", Method: "POST", Path: "/api/play/join", Body: `{"room":"{item}","code":"{code}"}`,
-				Params: []CommandParam{{Name: "code", Type: "string", Label: "Join code"}}},
-			{Op: "wittyplay.room.invite", Label: "Invite someone", Description: "WittyPlay Online: a join code for the game being played (item: its session), good for a short while, which a phone's QR join link carries. Answers {code, expiresAt}.", Method: "POST", Path: "/api/play/{item}/invite"},
-			{Op: "wittyplay.state.save", Label: "Save state", Description: "WittyPlay: saves the game being played (item: its session) into params.slot.", Method: "POST", Path: "/api/play/{item}/action", Body: `{"type":"save","slot":"{slot}"}`,
-				Params: []CommandParam{{Name: "slot", Type: "int", Label: "Save slot", Required: true}}},
-			{Op: "wittyplay.state.load", Label: "Load state", Description: "WittyPlay: loads params.slot into the game being played (item: its session).", Method: "POST", Path: "/api/play/{item}/action", Body: `{"type":"load","slot":"{slot}"}`,
-				Params: []CommandParam{{Name: "slot", Type: "int", Label: "Save slot", Required: true}}},
-			{Op: "wittyplay.state.delete", Label: "Delete a save state", Description: "WittyPlay: deletes the profile's save in params.slot of the game (item: the game's ID, not a session).", Method: "DELETE", Path: "/api/games/{item}/saves/{slot}",
-				Params: []CommandParam{{Name: "slot", Type: "int", Label: "Save slot", Required: true}}},
-			{Op: "wittyplay.controller.assign", Label: "Move a player", Description: "WittyPlay Online: the host puts the profile params.user in seat params.seat of the game being played (item: its session); a held seat is swapped.", Method: "PUT", Path: "/api/play/{item}/seats/{user}", Body: `{"seat":"{seat}"}`,
-				Params: []CommandParam{{Name: "user", Type: "string", Label: "Profile", Required: true}, {Name: "seat", Type: "int", Label: "Seat", Required: true}}},
-			{Op: "rewind.open", Label: "Rewind", Description: "Client-handled, in the game player: opens the player's rewind panel. No request.", Method: "GET", Path: ""},
-			{Op: "controller.remap", Label: "Remap controls", Description: "Client-handled, in the game player: opens the player's own controller-mapping panel. No request.", Method: "GET", Path: ""},
-			{Op: "refresh", Label: "Refresh", Description: "Asks for the page again.", Method: "GET", Path: ""},
-		},
+		Commands:      commandSpecs(),
 		NativeScreens: append([]NativeScreenSpec(nil), nativeScreenSpecs...),
 		TVThemes:      dataFile("tvthemes.json"), Remote: dataFile("remote.json"), Music: dataFile("music.json"),
 		NativeViews: opts("guide|TV guide grid", "photoTimeline|Photo timeline", "photoMap|Photo map", "coverFlow|Album cover flow"),
@@ -1029,4 +1042,43 @@ func dataFile(name string) json.RawMessage {
 		panic("sdui: data/" + name + " is missing or not JSON")
 	}
 	return json.RawMessage(bytes.TrimSpace(b))
+}
+
+// commandSpecs are the commands, in the catalogue's order.
+func commandSpecs() []CommandSpec {
+	return []CommandSpec{
+		{Op: "watchLater.add", Label: "Watch later", Description: "Adds the title to the profile's Watch later list.", Method: "POST", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
+		{Op: "watchLater.remove", Label: "Remove from Watch later", Description: "Takes the title off the profile's Watch later list.", Method: "DELETE", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
+		{Op: "watched.set", Label: "Mark watched", Description: "Marks the title watched; for a show, every episode.", Method: "POST", Path: "/api/v1/items/{item}/progress", Body: `{"watched":true}`},
+		{Op: "watched.clear", Label: "Mark unwatched", Description: "Forgets the profile's progress in the title; for a show, in every episode.", Method: "DELETE", Path: "/api/v1/items/{item}/progress"},
+		{Op: "selectTab", Label: "Choose a tab", Description: "Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it.", Method: "GET", Path: ""},
+		{Op: "control.open", Label: "Open a control", Description: "Client-handled, from a Dock: params.control is sort, filter, view or jump and params.target the Grid. sort and filter open the page's FilterBar choices for the target; view switches it between its grid and a list and remembers it for the profile on the device; jump opens a letter picker (A to Z and #) and brings the grid to the first title starting with the letter by asking its more.url until one has arrived, at most 20 pages.", Method: "GET", Path: ""},
+		{Op: "wittyplay.room.create", Label: "Open a room", Description: "WittyPlay Online: opens the game being played (item: its session) to the friends who may see it, so they join with no code. Answers the host's code.", Method: "POST", Path: "/api/play/{item}/room", Body: `{"open":true}`},
+		{Op: "wittyplay.room.join", Label: "Join a room", Description: "WittyPlay Online: takes a seat in an open room (item: its session) or, with params.code, the room that code belongs to (no item).", Method: "POST", Path: "/api/play/join", Body: `{"room":"{item}","code":"{code}"}`,
+			Params: []CommandParam{{Name: "code", Type: "string", Label: "Join code"}}},
+		{Op: "wittyplay.room.invite", Label: "Invite someone", Description: "WittyPlay Online: a join code for the game being played (item: its session), good for a short while, which a phone's QR join link carries. Answers {code, expiresAt}.", Method: "POST", Path: "/api/play/{item}/invite"},
+		{Op: "wittyplay.state.save", Label: "Save state", Description: "WittyPlay: saves the game being played (item: its session) into params.slot.", Method: "POST", Path: "/api/play/{item}/action", Body: `{"type":"save","slot":"{slot}"}`,
+			Params: []CommandParam{{Name: "slot", Type: "int", Label: "Save slot", Required: true}}},
+		{Op: "wittyplay.state.load", Label: "Load state", Description: "WittyPlay: loads params.slot into the game being played (item: its session).", Method: "POST", Path: "/api/play/{item}/action", Body: `{"type":"load","slot":"{slot}"}`,
+			Params: []CommandParam{{Name: "slot", Type: "int", Label: "Save slot", Required: true}}},
+		{Op: "wittyplay.state.delete", Label: "Delete a save state", Description: "WittyPlay: deletes the profile's save in params.slot of the game (item: the game's ID, not a session).", Method: "DELETE", Path: "/api/games/{item}/saves/{slot}",
+			Params: []CommandParam{{Name: "slot", Type: "int", Label: "Save slot", Required: true}}},
+		{Op: "wittyplay.controller.assign", Label: "Move a player", Description: "WittyPlay Online: the host puts the profile params.user in seat params.seat of the game being played (item: its session); a held seat is swapped.", Method: "PUT", Path: "/api/play/{item}/seats/{user}", Body: `{"seat":"{seat}"}`,
+			Params: []CommandParam{{Name: "user", Type: "string", Label: "Profile", Required: true}, {Name: "seat", Type: "int", Label: "Seat", Required: true}}},
+		{Op: "wittyplay.room.close", Label: "Close the room", Description: "WittyPlay Online: closes the game being played (item: its session) to friends. The host's own seat and anyone already in stay.", Method: "POST", Path: "/api/play/{item}/room", Body: `{"open":false}`},
+		{Op: "wittyplay.online.set", Label: "Save friends and privacy", Description: "WittyPlay Online: what this profile lets friends know. params.sharePlaying (friends see the game) and params.appearOnline (appears online at all).", Method: "PUT", Path: "/api/games/online/me", Body: `{"sharePlaying":"{sharePlaying}","appearOnline":"{appearOnline}"}`,
+			Params: []CommandParam{{Name: "sharePlaying", Type: "bool", Label: "Show friends what I play", Required: true}, {Name: "appearOnline", Type: "bool", Label: "Appear online", Required: true}}},
+		{Op: "wittyplay.online.share", Label: "Show friends what I play", Description: "WittyPlay Online: params.value, whether friends see the game this profile plays.", Method: "PUT", Path: "/api/games/online/me", Body: `{"sharePlaying":"{value}"}`,
+			Params: []CommandParam{{Name: "value", Type: "bool", Label: "On", Required: true}}},
+		{Op: "wittyplay.online.appear", Label: "Appear online", Description: "WittyPlay Online: params.value, whether this profile appears online to friends at all.", Method: "PUT", Path: "/api/games/online/me", Body: `{"appearOnline":"{value}"}`,
+			Params: []CommandParam{{Name: "value", Type: "bool", Label: "On", Required: true}}},
+		{Op: "wittyplay.kids.friends", Label: "Choose a Kids profile's friends", Description: "WittyPlay Online, administrators: replaces the profiles a Kids profile (item: its ID) sees and is seen by with params.friends.", Method: "PUT", Path: "/api/games/online/kids/{item}", Body: `{"friends":"{friends}"}`,
+			Params: []CommandParam{{Name: "friends", Type: "ints", Label: "Profiles", Required: true}}},
+		{Op: "wittyplay.screenshot.keep", Label: "Keep the screenshot", Description: "WittyPlay: keeps a screenshot of the game being played (item: its session) in the profile's Memories.", Method: "POST", Path: "/api/play/{item}/screenshot"},
+		{Op: "wittyplay.memory.delete", Label: "Delete this memory", Description: "WittyPlay: deletes one of the profile's kept screenshots (item: the game's ID, params.name its name).", Method: "DELETE", Path: "/api/games/{item}/shots/{name}",
+			Params: []CommandParam{{Name: "name", Type: "string", Label: "Screenshot", Required: true}}},
+		{Op: "rewind.open", Label: "Rewind", Description: "Client-handled, in the game player: opens the player's rewind panel. No request.", Method: "GET", Path: ""},
+		{Op: "controller.remap", Label: "Remap controls", Description: "Client-handled, in the game player: opens the player's own controller-mapping panel. No request.", Method: "GET", Path: ""},
+		{Op: "refresh", Label: "Refresh", Description: "Asks for the page again.", Method: "GET", Path: ""},
+	}
 }

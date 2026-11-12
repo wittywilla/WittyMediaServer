@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
-import { api, type User } from '../../api'
+import { api, setToken, type User } from '../../api'
 import { legalAckText, useLegalPath } from '../../components/LegalNote'
 import { Button, Field, Input } from '../../ui'
+import { TwoStep } from './TwoStep'
 import { StepActions, StepHead, TickRow, WhereIsTheCode } from './parts'
 
 // Everything is checked when Create account is pressed, with the reason beside the field, rather
@@ -32,6 +33,9 @@ export function Account({ back, onDone }: { back: () => void; onDone: (u: User, 
   const [problems, setProblems] = useState<Problems>({})
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  // Two-step sign-in wanted: it is set up as soon as the account exists, before setup goes on.
+  const [two, setTwo] = useState(false)
+  const [made, setMade] = useState<{ user: User; token: string } | null>(null)
   const form = useRef<HTMLFormElement>(null)
   const legal = useLegalPath('your-content')
   useEffect(() => { api.get<{ setupCodeRequired?: boolean }>('/status').then((s) => setNeedCode(!!s.setupCodeRequired)).catch(() => {}) }, [])
@@ -48,9 +52,10 @@ export function Account({ back, onDone }: { back: () => void; onDone: (u: User, 
     setBusy(true)
     try {
       const r = await api.post<{ token: string; user: User }>('/setup', { name: name.trim(), password: pw, setupCode: code.trim(), acknowledgedLegal: ack, device: navigator.userAgent.slice(0, 80) })
-      onDone(r.user, r.token)
+      if (two) { setToken(r.token); setMade({ user: r.user, token: r.token }); setBusy(false) } else onDone(r.user, r.token)
     } catch (e: any) { setErr(e.message); setBusy(false) }
   }
+  if (made) return <TwoStep password={pw} onDone={() => onDone(made.user, made.token)} />
   return (
     <form ref={form} onSubmit={submit} noValidate>
       <StepHead title="Create your account" lead="This account looks after the server: its libraries, people and settings. You can add a profile for everyone else later." />
@@ -61,6 +66,7 @@ export function Account({ back, onDone }: { back: () => void; onDone: (u: User, 
         </Field>
         <Field label="Type it again" error={problems.pw2}><Input type={show ? 'text' : 'password'} value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" /></Field>
         <TickRow checked={show} onChange={setShow} title="Show what I’m typing" />
+        <TickRow checked={two} onChange={setTwo} title="Two-step sign-in (recommended)" text="Ask for a code from an authenticator app when signing in. You set it up on the next page, right after the account is made, and can skip it there." />
         {needCode && (
           <>
             <Field label="Setup code" error={problems.code}><Input className="mono" value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} /></Field>

@@ -11,6 +11,9 @@ import { useApp } from '../state'
 import LegalNote from '../components/LegalNote'
 import LibraryHeader from '../components/LibraryHeader'
 import { BOOK_FORMATS } from '../mediaTypes.generated'
+import SpecPage from '../spec/SpecPage'
+import { handledIds } from '../spec/model'
+import { bookActionsSpec } from '../spec/specs/media'
 
 // Books, comics and manga: the library page and a book's details.
 
@@ -96,6 +99,7 @@ export function BookDetails({ it }: { it: Item }) {
   const nav = useNavigate()
   const pct = progressOf(it)
   const started = pct > 0 && pct < 100
+  const actions = bookActionsSpec({ readable: readable(it), started, finished: pct >= 100, formatName: FORMAT[it.container] || it.container })
   const libName = useApp().libraries.find((l) => l.id === it.libraryId)?.name || 'Library'
   return (
     <div className="album-page">
@@ -108,13 +112,11 @@ export function BookDetails({ it }: { it: Item }) {
           {it.artist && <span className="album-artist">{it.artist}</span>}
           <div className="muted">{[it.album && it.track ? `${it.album} #${it.track}` : it.album, it.year, it.runtimeSec ? `${it.runtimeSec} ${it.reader === 'epub' ? 'chapters' : 'pages'}` : ''].filter(Boolean).join(' · ')}</div>
           {pct > 0 && <div className="book-progress"><span style={{ width: pct + '%' }} /></div>}
-          <div className="actions">
-            {readable(it)
-              ? <button data-tv-first className="btn primary" onClick={() => nav(`/read/${it.id}`)}><IconBook /> {started ? 'Continue reading' : pct >= 100 ? 'Read again' : 'Read'}</button>
-              : <span className="muted">This format can't be read in the browser. Convert it to EPUB or CBZ, or download it.</span>}
-            {readable(it) && <PlayOnButton label="Read on…" source={{ kind: 'item', itemId: it.id, itemKind: it.kind, title: it.title }} />}
-            <a className="btn ghost" href={mediaUrl(`/api/items/${it.id}/file`)} download>Download</a>
-          </div>
+          <SpecPage page={actions} embedded handled={handledIds(actions)} onAction={(id) => {
+            if (id === 'read') nav(`/read/${it.id}`)
+            else { const a = document.createElement('a'); a.href = mediaUrl(`/api/items/${it.id}/file`); a.download = ''; a.click() }
+          }} />
+          {readable(it) && <PlayOnButton label="Read on…" source={{ kind: 'item', itemId: it.id, itemKind: it.kind, title: it.title }} />}
           {it.overview && <p className="album-desc">{it.overview}</p>}
           <LegalNote kind="reader" />
         </div>

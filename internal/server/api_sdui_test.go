@@ -293,7 +293,7 @@ func TestSDUIPageEditingNeedsIfMatchAndValidates(t *testing.T) {
 	}
 	// What is wrong is said in words, with where and what to do about it.
 	bad := night
-	bad.Sections = []sdui.Section{{ID: "row", Component: "Shelf", Props: map[string]any{"cardStyle": "postr", "titel": "x"}, Source: sdui.Source{"type": "recentlyAdded", "library": "$item"}},
+	bad.Sections = []sdui.Section{{ID: "row", Component: "Shelf", Props: map[string]any{"cardStyle": "postr", "titel": "x"}, Source: sdui.Source{"type": "recentlyAdded", "library": "$show"}},
 		{ID: "go", Component: "Button", Props: map[string]any{"label": "Out", "to": "https://evil.example/"}}}
 	w = ts.do(t, "PUT", "/api/sdui/config/pages/night", admin, bad, "If-Match", etag)
 	var refused struct {
@@ -304,7 +304,7 @@ func TestSDUIPageEditingNeedsIfMatchAndValidates(t *testing.T) {
 		t.Fatalf("an invalid page: %d %s", w.Code, w.Body)
 	}
 	text := w.Body.String()
-	for _, want := range []string{"/pages/night/sections/0/props/cardStyle", `Did you mean \"poster\"?`, `Did you mean \"title\"?`, "$item means nothing on a custom page", "is not a place in the app"} {
+	for _, want := range []string{"/pages/night/sections/0/props/cardStyle", `Did you mean \"poster\"?`, `Did you mean \"title\"?`, "$show means nothing on a custom page", "is not a place in the app"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("the refusal doesn't say %s: %s", want, text)
 		}

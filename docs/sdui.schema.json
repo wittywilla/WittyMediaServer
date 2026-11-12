@@ -5,6 +5,9 @@
         "as": {
           "type": "string"
         },
+        "confirm": {
+          "type": "string"
+        },
         "item": {
           "type": "string"
         },
@@ -2700,6 +2703,7 @@
     "SearchBox",
     "List",
     "ListItem",
+    "Form",
     "NativeView"
   ],
   "x-icons": [

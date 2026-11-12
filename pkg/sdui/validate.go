@@ -405,16 +405,19 @@ func (v *validator) sections(list []Section, path string, depth int, parent stri
 		// Things that open something name exactly one place.
 		if contains([]string{"Button", "ListItem", "Notice", "Banner", "Image"}, s.Component) {
 			n := 0
-			for _, k := range []string{"to", "native", "url"} {
+			for _, k := range []string{"to", "native", "url", "op"} {
 				if propStr(s.Props, k, "") != "" {
 					n++
 				}
 			}
+			if propBool(s.Props, "back", false) {
+				n++
+			}
 			if n > 1 {
-				v.err(sp+"/props", "Keep one of to, native and url.", "a %s opens one thing, not %d", spec.Label, n)
+				v.err(sp+"/props", "Keep one of to, native, url, op and back.", "a %s opens one thing, not %d", spec.Label, n)
 			}
 			if n == 0 && s.Component == "Button" {
-				v.err(sp+"/props", "Set to (a place in the app), native (a screen of the app) or url (a web page).", "the button doesn't open anything")
+				v.err(sp+"/props", "Set to (a place in the app), native (a screen of the app), url (a web page), op (a command) or back.", "the button doesn't open anything")
 			}
 			if s.Component == "Notice" && (n > 0) != (propStr(s.Props, "buttonLabel", "") != "") {
 				v.err(sp+"/props/buttonLabel", "Set both a buttonLabel and where it leads, or neither.", "a notice's button needs a label and somewhere to go")

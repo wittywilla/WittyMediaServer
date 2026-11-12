@@ -11,6 +11,11 @@ package sdui
 func Focusable(n *Node, inHero bool) bool {
 	switch n.Type {
 	case "Card":
+		// A person card with no action (a friend, a player) is not a button: no stop, unless its
+		// list says focusable (a lobby where OK on a friend invites them).
+		if n.Props["style"] == "person" && n.Action == nil && n.Props["focusable"] != true {
+			return false
+		}
 		return !inHero
 	case "Tab", "Track", "SearchBox", "FilterBar":
 		return true

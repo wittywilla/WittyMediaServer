@@ -426,6 +426,9 @@ type Action struct {
 	// quick menu) instead of replacing it, which a client that has no layers does as a page.
 	// Left out: the page replaces the screen.
 	As string `json:"as,omitempty"`
+	// Confirm is a question the client asks before it carries a command out ("Delete this memory?"),
+	// with the command's own label as the confirming button and Cancel beside it. Left out: no question.
+	Confirm string `json:"confirm,omitempty"`
 }
 
 // PresentLayer is Action.As for a page shown over the screen.

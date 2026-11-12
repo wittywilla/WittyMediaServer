@@ -802,6 +802,17 @@ func (r *renderer) build(in instance, depth int) ([]Node, bool) {
 		copyProps(n.Props, p, "inset")
 	case "Spacer":
 		n.Props["size"] = propStr(p, "size", "m")
+	case "Form":
+		if t := r.fill(propStr(p, "title", ""), in.each, nil); t != "" {
+			n.Props["title"] = t
+		}
+		n.Props["submitLabel"] = propStr(p, "submitLabel", "Save")
+		if c := propStr(p, "cancelLabel", ""); c != "" {
+			n.Props["cancelLabel"] = c
+		}
+		n.Action = &Action{Type: ActCommand, Op: propStr(p, "op", ""), Item: r.resolveVar(propAny(p, "item"), in.each)}
+		n.Children = r.children(in, depth)
+		ok = len(n.Children) > 0 && n.Action.Op != ""
 	case "Stack", "Split", "Tab":
 		copyProps(n.Props, p, "direction", "gap", "align", "wrap", "ratio", "stackBelow")
 		n.Children = r.children(in, depth)
@@ -859,6 +870,22 @@ func (r *renderer) children(in instance, depth int) []Node {
 
 // link is the action of a button-like section: to, native or url.
 func (r *renderer) link(p map[string]any) *Action {
+	if op := propStr(p, "op", ""); op != "" {
+		a := &Action{Type: ActCommand, Op: op, Item: r.resolveVar(propAny(p, "item"), nil), Confirm: propStr(p, "confirm", "")}
+		if m, _ := p["params"].(map[string]any); len(m) > 0 {
+			a.Params = map[string]any{}
+			for k, v := range m {
+				if sv, ok := v.(string); ok {
+					v = r.resolveVar(sv, nil)
+				}
+				a.Params[k] = v
+			}
+		}
+		return a
+	}
+	if propBool(p, "back", false) {
+		return &Action{Type: ActBack}
+	}
 	if to := propStr(p, "to", ""); to != "" {
 		return &Action{Type: ActNavigate, To: to}
 	}
@@ -1092,6 +1119,9 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 			continue
 		}
 		c := r.card(n.ID, style, size, it, s.Source)
+		if propBool(p, "focusable", false) {
+			c.Props["focusable"] = true
+		}
 		if propBool(p, "numbered", false) {
 			c.Props["rank"] = offset + i + 1
 		}
@@ -1574,6 +1604,8 @@ func factsLine(it *Item, want []string) []any {
 			add(f, strings.Join(it.Genres[:min(len(it.Genres), 3)], ", "))
 		case "studio":
 			add(f, it.Studio)
+		case "artist":
+			add(f, it.Artist)
 		case "count":
 			add(f, countText(it))
 		case "season":

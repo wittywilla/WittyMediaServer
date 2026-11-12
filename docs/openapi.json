@@ -10917,6 +10917,12 @@
       },
       "SDUIAction": {
         "properties": {
+          "as": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "string"
+          },
           "item": {
             "type": "string"
           },
@@ -11009,6 +11015,12 @@
         "properties": {
           "aspect": {
             "type": "string"
+          },
+          "badgeTones": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
           },
           "description": {
             "type": "string"
@@ -12708,6 +12720,74 @@
               }
             ]
           },
+          "regions": {
+            "anyOf": [
+              {
+                "properties": {
+                  "statusBar": {
+                    "items": {
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "systemDock": {
+                    "items": {
+                      "properties": {
+                        "as": {
+                          "type": "string"
+                        },
+                        "icon": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "route": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "icon",
+                        "id",
+                        "label",
+                        "route"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "root": {
             "$ref": "#/components/schemas/SDUINode"
           },
@@ -13448,6 +13528,74 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/SDUIPersonalPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "regions": {
+            "anyOf": [
+              {
+                "properties": {
+                  "statusBar": {
+                    "items": {
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "systemDock": {
+                    "items": {
+                      "properties": {
+                        "as": {
+                          "type": "string"
+                        },
+                        "icon": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "route": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "icon",
+                        "id",
+                        "label",
+                        "route"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
               },
               {
                 "type": "null"

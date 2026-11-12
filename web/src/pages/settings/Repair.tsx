@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { api, fmtDateTime, setToken } from '../../api'
 import { Spinner } from '../../components/common'
 import { toast } from '../../state'
-import { Notice, Tabs } from '../../ui'
+import { Tabs } from '../../ui'
+import SpecPage from '../../spec/SpecPage'
+import { copiesSpec, remapSpec, repairResultsSpec, repairTopSpec } from '../../spec/specs/repair'
 import FindingCard, { type Finding } from './FindingCard'
 import { PageHead, Section } from './ui'
 import './repair.css'
@@ -130,6 +132,11 @@ export default function Repair() {
   const rep = view.report
   const safeCount = rep ? rep.issues.filter((i) => i.safety === 'safe' && !i.notChecked).length : 0
   const copy = view.results.find((r) => r.copy)?.copy
+  const topPage = repairTopSpec({
+    lastRepair: view.lastRepair && { ...view.lastRepair, at: fmtDateTime(new Date(view.lastRepair.at).getTime()) },
+    running: view.running || '', phase: view.phase || '', checked: rep ? fmtDateTime(rep.at) : '', error: view.error || '',
+    safeCount, hasReport: !!rep, restart: view.restart, canRestart: view.canRestart,
+  })
   const tabs = <Tabs value={tab} onChange={(v) => setParams(v === 'check' ? {} : { tab: v }, { replace: true })} items={TABS} label="Repair" />
   if (tab === 'files') {
     return (
@@ -144,42 +151,13 @@ export default function Repair() {
     <>
       <PageHead title="Repair" desc="Finds and fixes problems with your metadata, the database, modules and this install, and works from the command line too if the server won’t start. It only looks until you press a fix, and a safety copy is made first." />
       {tabs}
-      {view.lastRepair && (
-        <div className="rp-note">
-          {view.lastRepair.ok
-            ? <Notice tone="ok" title="The repaired database is in use">It took over on {fmtDateTime(new Date(view.lastRepair.at).getTime())}. The old file is kept in <code>{view.lastRepair.kept}</code>.</Notice>
-            : <Notice tone="danger" title="The repaired database couldn’t take over">{view.lastRepair.error} The old database is still in use. Run the check again.</Notice>}
-        </div>
-      )}
-      <Section title="Check this server" desc={<>Your media files are never changed or removed. To check a disc or a drive’s speed and health, use <Link to="/settings/diagnoser">WittyDiagnoser</Link>.</>}>
-        <div className="rp-start">
-          <button type="button" className={'btn big' + (safeCount > 0 ? '' : ' primary')} onClick={start} disabled={running}>{view.running === 'check' ? 'Checking…' : rep ? 'Check again' : 'Check this server'}</button>
-          {rep && !running && <span className="rp-when">Last checked {fmtDateTime(rep.at)}</span>}
-        </div>
-        {running && <progress className="dgn-bar" max={1} value={view.fraction} aria-label="How far along it is" />}
-        <p className="dgn-phase" role="status" aria-live="polite">{running ? view.phase || 'Working…' : ''}</p>
-        {err && <div className="error" role="alert">{err}</div>}
-        {view.error && <div className="error" role="alert">{view.error}</div>}
-        {rep && !running && (
-          <>
-            <p ref={summary} className="rp-summary" tabIndex={-1} role="status">{countsLine(rep)} {rep.fixable > 0 ? `${rep.fixable} can be fixed from here.` : ''}</p>
-            {safeCount > 0 && (
-              <div className="rp-allsafe">
-                <button type="button" className="btn primary" onClick={() => void fix({ allSafe: true }).catch((e) => setErr(message(e)))}>Fix everything that’s safe ({safeCount})</button>
-                <span className="rp-when">These can’t lose anything. Fixes that change data ask you first, one at a time.</span>
-              </div>
-            )}
-          </>
-        )}
-      </Section>
-      {view.restart && (
-        <div className="rp-note">
-          <Notice tone="warn" title="A restart finishes the repair" action={<button type="button" className="btn" onClick={restart}>Restart now</button>}>
-            The new database takes over when the server next starts, and anyone watching is interrupted. {view.canRestart ? '' : 'This server can’t restart itself: stop it and start it again.'}
-          </Notice>
-        </div>
-      )}
-      {view.results.length > 0 && <Results results={view.results} copy={copy} />}
+      <SpecPage embedded page={topPage} handled={new Set(['check', 'allsafe', 'restart'])} onAction={(id) => { if (id === 'check') void start(); else if (id === 'allsafe') void fix({ allSafe: true }).catch((e) => setErr(message(e))); else if (id === 'restart') void restart() }}
+        after={{ [topPage.sections.findIndex((x) => x.h === 'Check this server')]: <>
+          {running && <progress className="dgn-bar" max={1} value={view.fraction} aria-label="How far along it is" />}
+          {err && <div className="error" role="alert">{err}</div>}
+          {rep && !running && <p ref={summary} className="rp-summary" tabIndex={-1} role="status">{countsLine(rep)} {rep.fixable > 0 ? `${rep.fixable} can be fixed from here.` : ''}</p>}
+        </> }} />
+      {view.results.length > 0 && <SpecPage embedded page={repairResultsSpec(view.results, copy)} />}
       {rep && AREAS.map((a) => {
         const list = rep.issues.filter((i) => i.area === a.id)
         if (!list.length) return null
@@ -193,28 +171,8 @@ export default function Repair() {
       })}
       {rep && rep.issues.length === 0 && !running && <div className="set-card set-empty"><b>Nothing to report</b><p>{rep.checks.length} checks looked at this server and found nothing wrong.</p></div>}
       <div ref={remapBox} className="rp-anchor"><Remap from={remapFrom} setFrom={setRemapFrom} twoFactor={view.twoFactor} onDone={() => void start()} /></div>
-      {view.copies.length > 0 && (
-        <Section title="Safety copies" desc="Made before a repair. The newest five are kept, in the backups folder inside the data folder. What a repair removed is in each one’s removed folder.">
-          <ul className="rp-copies">{view.copies.map((c) => <li key={c} className="mono">{c}</li>)}</ul>
-        </Section>
-      )}
+      {view.copies.length > 0 && <SpecPage embedded page={copiesSpec(view.copies)} />}
     </>
-  )
-}
-
-function Results({ results, copy }: { results: FixResult[]; copy?: string }) {
-  return (
-    <Section title="What was done">
-      <ul className="rp-results" role="status">
-        {results.map((r) => (
-          <li key={r.key} className={r.ok ? 'ok' : 'bad'}>
-            <b>{r.ok ? 'Fixed' : 'Not fixed'}: {r.title}</b>
-            <span>{r.ok ? r.done : r.error}</span>
-          </li>
-        ))}
-      </ul>
-      {copy && <p className="rp-copyline">Safety copy: <code>{copy}</code></p>}
-    </Section>
   )
 }
 
@@ -289,48 +247,10 @@ function Remap({ from, setFrom, twoFactor, onDone }: { from: string; setFrom: (s
       if (p.applied) { toast('The folder was moved. Scan the library to pick up anything new.'); onDone() }
     } catch (x) { setErr(message(x)) } finally { setBusy(false) }
   }
+  const onField = (id: string, v: string | number | boolean | File) => { const t = String(v); if (id === 'from') setFrom(t); else if (id === 'to') setTo(t); else if (id === 'password') setPassword(t); else if (id === 'code') setCode(t) }
+  const onAction = (id: string) => { if (id === 'look') void look({ preventDefault() {} } as React.FormEvent); else if (id === 'move') void apply({ preventDefault() {} } as React.FormEvent) }
   return (
-    <Section title="Moved a drive?" desc="If a library’s folder is now somewhere else, this changes where the server looks, and everything it knows about those titles stays: watch progress, matches and your edits. Your files aren’t touched.">
-      <form className="form full" onSubmit={look}>
-        <label className="oobe-field">Where it was
-          <input className="input mono" value={from} onChange={(e) => setFrom(e.target.value)} placeholder="D:\Movies" spellCheck={false} autoComplete="off" />
-        </label>
-        <label className="oobe-field">Where it is now
-          <input className="input mono" value={to} onChange={(e) => setTo(e.target.value)} placeholder="E:\Movies" spellCheck={false} autoComplete="off" />
-        </label>
-        {err && !plan && <div className="error" role="alert">{err}</div>}
-        <div className="actions"><button className="btn" disabled={busy || !from.trim() || !to.trim()}>See what would change</button></div>
-      </form>
-      {plan && (
-        <div className="rp-plan" role="status">
-          {plan.why && <div className="error">{plan.why}</div>}
-          {plan.applied && <p className="set-note ok">Done. Safety copy: <code>{plan.copy}</code></p>}
-          {!plan.applied && plan.roots > 0 && <p>{plan.roots === 1 ? 'One library folder changes' : `${plan.roots} library folders change`}, and about {plan.rows.toLocaleString()} values in all. {plan.checked > 0 && `It looked for ${plan.checked.toLocaleString()} files, and ${plan.found.toLocaleString()} are in the new place.`}</p>}
-          {(plan.sample.length > 0 || plan.notFound.length > 0) && !plan.applied && (
-            <details>
-              <summary>Some of the files</summary>
-              <ul className="rp-paths">
-                {plan.sample.map((s) => <li key={s}>Found: <span className="mono">{s}</span></li>)}
-                {plan.notFound.map((s) => <li key={s}>Not found: <span className="mono">{s}</span></li>)}
-              </ul>
-            </details>
-          )}
-          {plan.canApply && !plan.applied && (
-            <form className="form full" onSubmit={apply}>
-              <label className="oobe-field">Your password
-                <input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              </label>
-              {twoFactor && (
-                <label className="oobe-field">Code from your authenticator app
-                  <input className="input" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} />
-                </label>
-              )}
-              {err && <div className="error" role="alert">{err}</div>}
-              <div className="actions"><button className="btn primary" disabled={busy || !password || (twoFactor && !code)}>Move it</button></div>
-            </form>
-          )}
-        </div>
-      )}
-    </Section>
+    <SpecPage embedded handled={new Set(['look', 'move'])} onAction={onAction} onField={onField}
+      page={remapSpec({ from, to, busy, twoFactor, password, code, error: err, plan })} />
   )
 }

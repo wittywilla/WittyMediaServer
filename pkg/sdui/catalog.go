@@ -11,11 +11,19 @@ import (
 // CatalogRevision counts changes to the catalogue within one SchemaVersion. Every renderer
 // draws every component of the current revision: there is no negotiation and no fallback.
 // 5 added cast and crew: the Credits component, the credits and filmography sources, people
-// in search, the person page.
-// 7 added what WittyPlay Online needs, all additive: Shelf focusGrow and detail, focusable on Shelf, Grid
-// and List, an item's actions (the detail panel's buttons), presence tones for person cards, the shell
-// regions statusBar and systemDock with the page's regions field, navigate actions shown as a layer,
-// and the controls a list row can carry (switch, select, field, slider) with the Form component.
+// in search, the person page. 6 added the Design 2 components and looks. 7 changed what the
+// person card style shows (its badges: a friend's presence, a seat, now drawn as a presence dot by
+// the style's badgeTones, and a person card with no action takes no focus unless its list says
+// focusable), so a renderer that copied the card-style table needs the new one; it also brought a
+// source's person items, the WittyPlay commands with their params, and what WittyPlay Online needs,
+// all additive: Shelf focusGrow and detail, an item's actions (the detail panel's buttons), the shell
+// regions statusBar and systemDock with a page's regions field, navigate actions shown as a layer,
+// confirm on a command, the controls a list row can carry (switch, select, field, slider) with the
+// Form component, and the commands a button, notice or row can run.
+//
+// The rule: a change to what an existing component or card style shows or does bumps the
+// revision. Only new components, card styles, sources, commands and optional properties are
+// additive and stay in the revision they came in.
 const CatalogRevision = 7
 
 // Property types, as an editor needs them to build a form.
@@ -223,7 +231,7 @@ type CommandSpec struct {
 // CommandParam is one value a command takes besides the action's item.
 type CommandParam struct {
 	Name     string `json:"name"`
-	Type     string `json:"type"` // string or int
+	Type     string `json:"type"` // string, int, bool or ints (a list of numbers)
 	Label    string `json:"label"`
 	Required bool   `json:"required,omitempty"`
 }

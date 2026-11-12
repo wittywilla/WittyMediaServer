@@ -8,6 +8,8 @@ import { IconClose, IconLeft, IconRight } from '../icons'
 import { useSource } from '../player/hooks'
 import '../gallery.css'
 import LegalNote from '../components/LegalNote'
+import SpecPage from '../spec/SpecPage'
+import { sharedEndedSpec, sharedHeadSpec } from '../spec/specs/share'
 
 // What someone sees when they open a link they were sent: only this, and no way
 // into the server. No account, no navigation, nothing but what was shared.
@@ -28,16 +30,13 @@ export default function SharedPage() {
       if (d.items.length === 1) setOpen(0)
     }).catch(() => setErr('This link has ended, or it was never valid.'))
   }, [base])
-  if (err) return <div className="gal-public"><div className="gal-planned"><h1>{err}</h1><p className="muted">Ask the person who sent it for a new one.</p></div></div>
+  if (err) return <div className="gal-public"><SpecPage page={sharedEndedSpec()} /></div>
   if (!data) return <Spinner />
   const it = open !== null ? data.items[open] : null
   return (
     <div className="gal-public">
-      <header className="gal-public-head">
-        <h1>{data.title}</h1>
-        {data.expiresAt ? <p className="muted">Until {new Date(data.expiresAt * 1000).toLocaleDateString()}</p> : null}
-        <LegalNote kind="sharedView" newTab />
-      </header>
+      <SpecPage page={sharedHeadSpec(data.title, data.expiresAt ? new Date(data.expiresAt * 1000).toLocaleDateString() : null)} />
+      <LegalNote kind="sharedView" newTab />
       <div className="gal-grid">
         {data.items.map((p, i) => {
           const a = p.width && p.height ? p.width / p.height : 1.4

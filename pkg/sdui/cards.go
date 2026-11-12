@@ -219,6 +219,15 @@ func (r *renderer) card(parent, style, size string, it *Item, src Source) Node {
 	if it.Route != "" {
 		n.Action = &Action{Type: ActNavigate, To: it.Route}
 	}
+	if it.Action != nil {
+		n.Action = it.Action
+	}
+	if acts := cleanActions(it.Actions); len(acts) > 0 {
+		p["actions"] = acts
+	}
+	if c := cleanControl(it.Control); c != nil {
+		p["control"] = c
+	}
 	if it.PlayID != "" && contains(it.Can, "play") {
 		p["playId"] = it.PlayID
 	}

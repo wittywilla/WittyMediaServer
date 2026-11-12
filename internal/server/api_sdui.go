@@ -392,7 +392,7 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 		}
 	}
 	vars := map[string]string{}
-	for _, k := range []string{"library", "item", "show", "season", "collection", "artist", "album", "person"} {
+	for _, k := range []string{"library", "item", "show", "season", "collection", "artist", "album", "person", "name", "of"} {
 		if v := q.Get(k); v != "" && takes[k] {
 			if len(v) > 300 {
 				return nil, 400, errors.New(k + ": too long")
@@ -470,6 +470,17 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 				}
 			}
 		}
+	}
+	// A page of one's own opened about a title (versions, save to a list) says its name in its heading
+	// ({title}) when the title is one the account may see; a page about something else (a profile, a
+	// screenshot) leaves it empty, and its sources check what they are asked about themselves.
+	if kind == "custom" && vars["item"] != "" {
+		if subj, err := rv.Subject(); err == nil {
+			vars["title"] = subj.Title
+		}
+	}
+	if kind == "custom" && vars["name"] != "" {
+		vars["title"] = vars["name"]
 	}
 	if isPageKind(name) {
 		p, ok := sdui.SelectPage(pages, kind, libID, libKind, mediaKind)

@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import SpecPage from '../../spec/SpecPage'
+import { handledIds, withIds } from '../../spec/model'
+import { channelSpec, topicsSpec } from '../../spec/specs/creators'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, type Library } from '../../api'
@@ -66,10 +69,7 @@ export default function ChannelsLibrary({ lib }: { lib: Library }) {
         actions={user?.isAdmin && <button className="btn sm ghost" disabled={scanning} onClick={rescan}><IconRefresh /> Scan</button>}
       />
       {tags.length > 0 && tab !== 'channels' && (
-        <div className="ch-tags" role="group" aria-label="Topics">
-          <button className={'ch-tag' + (!tag ? ' on' : '')} onClick={() => set({ tag: null })}>All</button>
-          {tags.map((t) => <button key={t} className={'ch-tag' + (tag === t ? ' on' : '')} aria-pressed={tag === t} onClick={() => set({ tag: t })}>{t}</button>)}
-        </div>
+        <SpecPage bare className="ch-tags" page={topicsSpec(tags, tag || '')} handled={TOPIC_HANDLED(tags)} onAction={(id) => set({ tag: id.slice(4) === tag || id === 'tag:' ? null : id.slice(4) })} />
       )}
       {browsing ? <Grid query={query} empty={`Nothing matched ${search ? `“${search}”` : tag}.`} />
         : tab === 'home' ? <HomeFeed lib={lib} />
@@ -215,6 +215,8 @@ export function CreatorPage() {
   )
 }
 
+const TOPIC_HANDLED = (tags: string[]) => handledIds(withIds(topicsSpec(tags, '')))
+
 function CreatorDialog({ c, onClose, onSaved }: { c: Creator; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(c.name)
   const [handle, setHandle] = useState(c.handle || '')
@@ -222,6 +224,7 @@ function CreatorDialog({ c, onClose, onSaved }: { c: Creator; onClose: () => voi
   const [platform, setPlatform] = useState(c.platform || '')
   const [url, setUrl] = useState(c.url || '')
   const [err, setErr] = useState('')
+  const spec = channelSpec({ name, handle, platform, url }, err)
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
     try { await api.put(`/creators/${c.id}`, { name, handle, description: desc, platform, url }); onSaved() } catch (x: any) { setErr(x.message) }
@@ -230,12 +233,8 @@ function CreatorDialog({ c, onClose, onSaved }: { c: Creator; onClose: () => voi
     <Dialog title="Channel details" onClose={onClose}
       actions={<><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" form="channel-form">Save</Button></>}>
       <form id="channel-form" className="ui-dialog-form" onSubmit={save}>
-        <label className="oobe-field">Name<input className="input" required value={name} onChange={(e) => setName(e.target.value)} /></label>
-        <label className="oobe-field">Handle<input className="input" value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@name" /></label>
-        <label className="oobe-field">Description<textarea className="input" rows={4} value={desc} onChange={(e) => setDesc(e.target.value)} /></label>
-        <label className="oobe-field">Platform of origin<input className="input" value={platform} onChange={(e) => setPlatform(e.target.value)} /></label>
-        <label className="oobe-field">Web address<input className="input" type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" /></label>
-        {err && <div className="error" role="alert">{err}</div>}
+        <SpecPage embedded page={spec} handled={new Set()} onField={(id, v) => { const t = String(v); if (id === 'name') setName(t); else if (id === 'handle') setHandle(t); else if (id === 'platform') setPlatform(t); else if (id === 'url') setUrl(t) }}
+          after={{ 0: <label className="oobe-field">Description<textarea className="input" rows={4} value={desc} onChange={(e) => setDesc(e.target.value)} /></label> }} />
       </form>
     </Dialog>
   )

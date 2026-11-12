@@ -891,6 +891,8 @@ func playOnlineCases() []kase {
 		{id: "qr-room-phone", title: "QR codes from an item's link and from an address, on a phone", in: Input{Page: qrPg, Request: phone, Data: qrData, ModuleUI: []sdui.ModuleUI{ui}},
 			checks: []string{"a QR section with a source takes the first item's link as its value and its title as the caption", "a route says isRoute so the client makes it absolute with the server's address", "a value that is neither a route nor an https address leaves the section out"}},
 
+		{id: "wittyplay-online-empty-tv", title: "WittyPlay Online's home with nothing played and nobody online, on a television", in: Input{Page: online, Request: tv, Data: Data{}, ModuleUI: []sdui.ModuleUI{ui}},
+			checks: []string{"each section with nothing in it is kept and says what to do, in its emptyText", "the page still puts its status bar and dock into the shell"}},
 		{id: "wittyplay-online-home-tv", title: "WittyPlay Online's home page, as WittyPlay defines it, on a television", in: Input{Page: online, Request: tv, Data: playOnlineData(), ModuleUI: []sdui.ModuleUI{ui}},
 			checks: []string{"the page is WittyPlay's own, in its scope", "Recent is a row whose focused tile grows, with its details under the row", "the page puts the profile and the server in the status bar and five destinations in the round dock, Controllers and Settings as layers", "Classics, Together, Memories and Discover are tabs"}},
 		{id: "forms-wittyplay-privacy-phone", title: "A Form of switches, a list of switches that save at once, and a command button that asks first, on a phone", in: Input{Page: formPg, Request: phone, Data: formData, ModuleUI: []sdui.ModuleUI{ui}},

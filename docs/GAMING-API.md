@@ -305,6 +305,18 @@ hidden libraries, and cleans them as any module's items. Nothing is given when g
 | `wittyplay.memories` | Saves and kept screenshots of every game, newest first | `view` (badge "Save") or `photo` (badge "Shot"): the game's title, what and when, picture as `backdrop` |
 | `wittyplay.controllers` | Each player of the game this profile is in | `view` `player-<n>`: "Player n", who (and the host's device), or "No controller" (badge "Free"). Battery and the controller's kind are the device's own (the Gamepad API): the server never sees them |
 
+### Its pages
+
+WittyPlay's `sdui.json` defines them from the catalogue's own components (revision 8), so every app draws them:
+`wittyplay-online` (tabs Recent, Classics, Together, Memories, Discover; Recent's focused tile grows with its details;
+the page puts the profile and the server into the status bar and Search, Together, Controllers, Memories and Settings
+into the round dock), `wittyplay-controllers`, the in-game menu `wittyplay-quick` (shown as a layer),
+`wittyplay-room` (the room and its buttons, then its players), `wittyplay-memory` (opened about a game, `item`, and a
+kept screenshot, `name`: Delete this memory, asking first), `wittyplay-keep` (opened about the session: Keep or Not
+now), `wittyplay-privacy` (a Form of the two choices, `wittyplay.online.set`) and `wittyplay-kids` (opened about a
+Kids profile: an administrator's switches). Rewind, the screen and sound panel, a controller's battery and "press
+any button" are each app's own.
+
 ### Its commands
 
 `rewind.open` and `controller.remap` open the player's own panels and need no server. The rest are the catalogue's

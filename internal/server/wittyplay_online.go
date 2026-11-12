@@ -701,7 +701,7 @@ func (rv *sduiResolver) playMemories() []sdui.Item {
 		for _, sh := range listShots(rv.s.games().shotsDir(rv.u.ID, id)) {
 			all = append(all, memory{sdui.Item{ID: fmt.Sprintf("shot-%d-%s", id, strings.TrimSuffix(sh.Name, ".png")), Kind: "photo", Title: li.Title,
 				Subtitle: "Screenshot · " + savedWords(sh.Taken), Badges: []string{"Shot"},
-				Action: &sdui.Action{Type: sdui.ActNavigate, To: fmt.Sprintf("/page/online-memory?item=%d&name=%s", id, url.QueryEscape(sh.Name)), As: sdui.PresentLayer},
+				Action: &sdui.Action{Type: sdui.ActNavigate, To: fmt.Sprintf("/page/wittyplay-memory?item=%d&name=%s", id, url.QueryEscape(sh.Name)), As: sdui.PresentLayer},
 				Images: map[string]string{"backdrop": fmt.Sprintf("/api/games/%d/shots/%s", id, sh.Name)}}, sh.Taken})
 		}
 	}

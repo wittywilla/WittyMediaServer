@@ -3,7 +3,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { profileName } from '../api'
-import { Spinner } from '../components/common'
+import { Brand, BrandMark, Spinner } from '../components/common'
 import LegalNote from '../components/LegalNote'
 import { IconBack } from '../icons'
 import { sduiIcon } from '../sdui/render/icons'
@@ -35,11 +35,12 @@ const pill = (id: TabId) => document.querySelector<HTMLElement>(`.tvm-bar [data-
 // The menu: a row along the top, or (a layout that says tvSideMenu) a column down the left that
 // shows only icons until it has focus, and then opens to show their names (docs/SDUI.md).
 function TopBar({ tab, tabs, side }: { tab: TabId; tabs: TvTab[]; side?: { size: number; open: number } }) {
-  const { user } = useApp()
+  const { user, brandName } = useApp()
   const shown = user ? profileName(user) : ''
   const style = side ? { '--tvm-side': String(side.size || 120), '--tvm-side-open': String(side.open || 400) } as React.CSSProperties : undefined
   return (
     <header className={'tvm-bar' + (side ? ' tvm-side' : '')} data-nav-zone="bar" data-keep-focus style={style}>
+      <Link to="/" replace className="brand tvm-brand" data-nav-skip aria-label={brandName || 'Home'}><BrandMark />{!side && <Brand name={brandName} />}</Link>
       <nav className="tvm-tabs" aria-label="TV mode" aria-orientation={side ? 'vertical' : undefined} data-nav-group data-nav-entry=".tvm-pill[aria-current=page]">
         {tabs.map((t) => {
           const you = t.screen === 'profiles'

@@ -145,3 +145,66 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .su-progress-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-1) var(--sp-3); font-size: var(--text-sm); }
 .su-port { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--fg-2); }
 .oobe-next-card .port-setting { justify-self: stretch; }
+
+/* ---- the fourteen steps (docs/design-2, OF_*): a list of steps beside the page, which wears the look and theme being tried ---- */
+.oobe .oobe-shell { width: min(78rem, 100%); }
+.oobe .oobe-head { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3) var(--sp-6); }
+.oobe .oobe-head .brand { font-size: var(--page-title); font-weight: 800; letter-spacing: var(--tracking-display); }
+.oobe .oobe-head .brand .brand-badge, .oobe-head .brand img.brand-mark { inline-size: 40px; block-size: 40px; }
+.oobe .oobe-head .su-progress { flex: 1 1 20rem; max-width: 32rem; }
+.su-progress-words { text-transform: uppercase; letter-spacing: .08em; font-size: var(--text-xs); color: var(--accent-text); }
+.su-where-name, .su-where-page { color: var(--fg-2); }
+.oobe-body { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: var(--sp-6); align-items: start; }
+.oobe-steps { position: sticky; top: var(--sp-4); }
+.oobe-steps ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.oobe-step > span, .oobe-step > button { display: flex; align-items: center; gap: var(--sp-3); inline-size: 100%; min-block-size: 36px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-md); background: none; color: var(--fg-2); font: inherit; font-size: var(--text-sm); text-align: start; }
+.oobe-step > button { cursor: pointer; }
+.oobe-step > button:hover { background: var(--hover); color: var(--fg); }
+.oobe-step i { flex: none; display: grid; place-items: center; inline-size: 20px; block-size: 20px; border-radius: 50%; background: var(--bg-3); color: var(--fg-2); font-style: normal; font-size: var(--text-2xs); font-weight: 700; }
+.oobe-step.done i { background: var(--ok-soft); color: var(--ok); }
+.oobe-step.now > span { background: var(--accent-soft); color: var(--accent-text); font-weight: 700; }
+.oobe-step.now i { background: var(--accent); color: var(--accent-fg); }
+.oobe-col { min-width: 0; display: grid; gap: var(--sp-3); }
+.oobe-skip { margin: 0; display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; font-size: var(--text-sm); }
+@media (max-width: 900px) { .oobe-body { grid-template-columns: 1fr; } .oobe-steps { display: none; } }
+.su-req { display: grid; grid-template-columns: minmax(6rem, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr); gap: var(--sp-3); align-items: center; margin-top: var(--sp-3); }
+@media (max-width: 700px) { .su-req { grid-template-columns: 1fr; } }
+
+/* The look being tried, drawn for each kind of device (Look.tsx). */
+.su-look { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--sp-5); align-items: start; }
+@media (max-width: 1100px) { .su-look { grid-template-columns: 1fr; } }
+.su-look-view { display: grid; gap: var(--sp-3); position: sticky; top: var(--sp-4); }
+.su-look-notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
+.su-look-notes p { margin: 0; padding: var(--sp-3); border-radius: var(--r-md); background: var(--bg-3); font-size: var(--text-xs); color: var(--fg-2); }
+.su-look-notes b { display: block; color: var(--fg); font-size: var(--text-sm); margin-bottom: 2px; }
+@media (max-width: 700px) { .su-look-notes { grid-template-columns: 1fr; } }
+.lp { display: grid; border-radius: var(--r-lg); overflow: hidden; background: var(--lp-bg); box-shadow: 0 0 0 1px var(--border-strong); aspect-ratio: 16 / 10; }
+.lp-phone { aspect-ratio: 9 / 16; max-block-size: 26rem; inline-size: 14rem; justify-self: center; }
+.lp-tv, .lp-headset { aspect-ratio: 16 / 9; }
+.lp-headset { border-radius: var(--r-xl); }
+.lp.nav-side { grid-template-columns: 22% 1fr; }
+.lp.nav-top { grid-template-rows: auto 1fr; }
+.lp.nav-bottom { grid-template-rows: 1fr auto; }
+.lp.nav-bottom .lp-nav { order: 2; }
+.lp-nav { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); background: var(--lp-surface); font-size: var(--text-xs); }
+.lp.nav-side .lp-nav { flex-direction: column; align-items: flex-start; padding: var(--sp-3); }
+.lp-nav .brand { margin: 0; padding: 0; min-height: 0; font-size: var(--text-xs); }
+.lp-nav i { inline-size: 24px; block-size: 6px; border-radius: var(--r-full); background: var(--fg-3); }
+.lp.nav-side .lp-nav i { inline-size: 70%; }
+.lp-nav i.on { background: var(--lp-accent); }
+.lp-page { padding: var(--sp-3); display: grid; align-content: start; gap: var(--sp-3); min-width: 0; }
+.lp-hero { display: grid; gap: 4px; padding: var(--sp-3); border-radius: var(--r-md); background: linear-gradient(120deg, var(--lp-accent), var(--lp-surface)); font-size: var(--text-2xs); color: var(--on-image); }
+.lp-hero b { font-size: var(--text-md); }
+.lp-hero em { justify-self: start; font-style: normal; font-weight: 700; padding: 2px 10px; border-radius: var(--r-full); background: var(--lp-accent); color: var(--accent-fg); }
+.lp-row { display: flex; gap: var(--sp-2); }
+.lp-row i { flex: 1; aspect-ratio: 2 / 3; max-block-size: 5rem; border-radius: var(--r-sm); background: linear-gradient(160deg, var(--lp-accent), var(--lp-surface)); }
+.oobe-step.missing > span { opacity: .6; } .oobe-step small { font-size: var(--text-2xs); color: var(--fg-3); }
+.su-twostep { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
+.su-twostep .ui-field { grid-column: 1 / -1; max-inline-size: 16rem; }
+.su-twostep ol { margin: 0; padding-inline-start: var(--sp-5); display: grid; gap: var(--sp-2); font-size: var(--text-md); }
+.su-twostep code, .rem-recovery code { font-family: var(--font-mono, monospace); }
+.rem-recovery ul { columns: 2; list-style: none; padding: 0; margin: var(--sp-3) 0; }
+@media (max-width: 700px) { .su-twostep { grid-template-columns: 1fr; } }
+.su-net { display: grid; gap: var(--sp-3); max-inline-size: 38rem; }
+.su-https { margin: 0; font-size: var(--text-md); color: var(--fg-2); }
+.su-https b { color: var(--fg); }

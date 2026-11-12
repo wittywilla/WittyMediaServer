@@ -5,7 +5,7 @@
 // adding a step means adding one line here and one file beside this one. Nothing here touches the
 // page or the network, so it can be tested on its own (plan.test.mjs).
 
-export type StepId = 'welcome' | 'account' | 'modules' | 'media' | 'games' | 'discs' | 'details' | 'logos' | 'music' | 'listings' | 'tv' | 'look' | 'theme' | 'people' | 'remote' | 'done'
+export type StepId = 'welcome' | 'account' | 'name' | 'modules' | 'media' | 'games' | 'discs' | 'details' | 'logos' | 'music' | 'listings' | 'tv' | 'look' | 'theme' | 'people' | 'remote' | 'done'
 
 // What the steps depend on. kinds is null until it's known, which it can't be before there's an
 // account to ask with. A kind that isn't listed needs no module, as the server has the last word.
@@ -29,24 +29,44 @@ export type StepInfo = {
 
 export const canMake = (f: Facts, kind: string) => !f.kinds?.some((k) => k.type === kind && !k.available)
 
+// Design 2 draws fourteen steps (docs/design-2, the canvas's setupData): Welcome, Account, Name and address, Look, Theme,
+// Modules, Libraries, Details and artwork, Live TV, Games, Discs, People and rules, Remote access and apps, Ready. The last
+// three of "Details and artwork" (logos, lyrics, streaming lists) are its pages, each with a question of its own to answer.
 export const STEPS: StepInfo[] = [
   { id: 'welcome', label: 'Welcome', needs: 'server', when: (f) => !f.signedIn },
-  { id: 'account', label: 'Your account', needs: 'server', when: (f) => !f.signedIn },
+  { id: 'account', label: 'Account', needs: 'server', when: (f) => !f.signedIn },
+  { id: 'name', label: 'Name and address', needs: 'server', later: { where: 'Settings, Appearance, under Name and logo', to: '/settings/appearance#name' } },
   { id: 'look', label: 'Look', needs: 'server', later: { where: 'Settings, Appearance', to: '/settings/appearance' } },
   { id: 'theme', label: 'Theme', needs: 'server', later: { where: 'Settings, Appearance', to: '/settings/appearance#theme' } },
   { id: 'modules', label: 'Modules', needs: 'server', when: (f) => f.store, later: { where: 'Settings, Modules', to: '/settings/modules' } },
-  { id: 'media', label: 'Your media', needs: 'server', later: { where: 'Settings, Libraries', to: '/settings/libraries' } },
-  { id: 'games', label: 'Games', needs: ['wittyplay'], later: { where: 'Settings, Metadata agents', to: '/settings/metadata' } },
-  { id: 'discs', label: 'Discs', needs: ['wittydvd', 'wittybluray'], later: { where: 'Settings, Playback & discs', to: '/settings/playback' } },
-  { id: 'details', label: 'Posters and details', needs: 'server', later: { where: 'Settings, Metadata agents', to: '/settings/metadata' } },
+  { id: 'media', label: 'Libraries', needs: 'server', later: { where: 'Settings, Libraries', to: '/settings/libraries' } },
+  { id: 'details', label: 'Details and artwork', needs: 'server', later: { where: 'Settings, Metadata agents', to: '/settings/metadata' } },
   { id: 'logos', label: 'Logos', needs: 'server', later: { where: 'Settings, Metadata agents, under Logos', to: '/settings/metadata#logos' } },
   { id: 'music', label: 'Lyrics', needs: 'server', when: (f) => canMake(f, 'music'), later: { where: 'Settings, Metadata agents, under Lyrics', to: '/settings/metadata#lyrics' } },
   { id: 'listings', label: 'Streaming lists', needs: 'server', when: (f) => canMake(f, 'movies') || canMake(f, 'shows'), later: { where: 'Settings, Metadata agents, under Streaming listings', to: '/settings/metadata#listings' } },
   { id: 'tv', label: 'Live TV', needs: ['wittytuner'], later: { where: 'Settings, Channels & tuners', to: '/settings/channels' } },
+  { id: 'games', label: 'Games', needs: ['wittyplay'], later: { where: 'Settings, Metadata agents', to: '/settings/metadata' } },
+  { id: 'discs', label: 'Discs', needs: ['wittydvd', 'wittybluray'], later: { where: 'Settings, Playback & discs', to: '/settings/playback' } },
   { id: 'people', label: 'People and rules', needs: 'server', later: { where: 'Settings, Profiles', to: '/settings/users' } },
   { id: 'remote', label: 'Remote access and apps', needs: 'server', later: { where: 'Settings, Remote Access', to: '/settings/remote' } },
   { id: 'done', label: 'Ready', needs: 'server' },
 ]
+
+// A page that belongs to another step's number: Details and artwork has four.
+const PAGE_OF: Partial<Record<StepId, StepId>> = { logos: 'details', music: 'details', listings: 'details' }
+export const drawnId = (id: StepId): StepId => PAGE_OF[id] || id
+export const drawnSteps = (steps: StepInfo[]) => steps.filter((s) => !PAGE_OF[s.id])
+// The fourteen drawn steps, always, so the total never changes under someone: a step whose module isn't on this server is
+// still counted (and shown dimmed in the list, saying so), and passed over.
+export const ALL_DRAWN = STEPS.filter((s) => !PAGE_OF[s.id])
+// The drawn step a page is on, as "Step 8 of 14", and which page of its step it is.
+export function drawnNumber(steps: StepInfo[], id: StepId): { at: number; of: number; page?: { at: number; of: number } } {
+  const n = { at: Math.max(0, ALL_DRAWN.findIndex((s) => s.id === drawnId(id))) + 1, of: ALL_DRAWN.length }
+  const pages = steps.filter((s) => drawnId(s.id) === drawnId(id))
+  return pages.length > 1 ? { ...n, page: { at: pages.findIndex((s) => s.id === id) + 1, of: pages.length } } : n
+}
+// Steps with nothing to lose by passing: a step that says where to change it later.
+export const canSkip = (s: StepInfo) => !!s.later
 
 const belongs = (s: StepInfo, f: Facts) => s.needs === 'server' || s.needs.some((id) => f.modules.includes(id))
 

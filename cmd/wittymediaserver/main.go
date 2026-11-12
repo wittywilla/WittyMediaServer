@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	_ "time/tzdata" // time zones on a computer that has none of its own (Windows, small containers)
 
 	"github.com/wittywilla/wittymediaserver/internal/layout"
 	"github.com/wittywilla/wittymediaserver/internal/modules"

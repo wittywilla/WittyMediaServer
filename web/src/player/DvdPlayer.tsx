@@ -11,7 +11,7 @@ import { haveHls, toggleFullscreen, useIdle, useSource } from './hooks'
 import Hls from 'hls.js'
 import InsertDisc from './InsertDisc'
 import Remote, { RemoteBar, RemoteSheet, useSheetLayout, type RemoteKey } from './Remote'
-import { COLOUR_KEYS, discForm, keyWorks, remoteLabel, remoteNote } from './remoteKeys'
+import { COLOUR_KEYS, barAllowed, discForm, keyWorks, remoteLabel, remoteNote } from './remoteKeys'
 import TrackPicker, { type Tile } from './TrackPicker'
 import ViewSettings from './ViewSettings'
 import { discMemory, rememberDisc, useViewPrefs, type ViewPrefs } from './viewPrefs'
@@ -793,8 +793,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
           </div>
           {remoteOn && (sheetLayout
             ? <RemoteSheet onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemote(false)} label={label} note={keysNote} />
-            : prefs.remoteStyle === 'bar' || prefs.remoteStyle === 'barBelow'
-              ? <RemoteBar below={prefs.remoteStyle === 'barBelow'} onKey={onRemote} enabled={remoteEnabled} note={keysNote} />
+            : barAllowed() && (prefs.remoteStyle === 'bar' || prefs.remoteStyle === 'barBelow')
+              ? <RemoteBar below={prefs.remoteStyle === 'barBelow'} onKey={onRemote} enabled={remoteEnabled} note={keysNote} form={form} />
               : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemote(false)} label={label} note={keysNote} />)}
           {pres?.kind === 'title' && (
             <Controls disc video={video} duration={title?.durationSec || 0} chapters={chapters} chapterNames={chapterNames} onSeek={seek}

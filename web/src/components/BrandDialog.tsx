@@ -1,106 +1,86 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { getToken, serverBase } from '../api'
-import { Brand } from './common'
-import { BrandColouring, colouringOf, startChoice } from './BrandColouring'
+import { useEffect, useState } from 'react'
+import { api, getToken, serverBase } from '../api'
 import { DEFAULT_NAME } from '../brandName'
+import { cellsFromColouring, cellsFromSpans, markFromSetting, markSetting, PRESETS, sameColor, spanCount, spansFromCells, MAX_SPANS, partsFromCells, type BrandSpan } from '../brandStyle.ts'
+import { toast, useApp } from '../state'
+import { loadThemeOverrides, setStatusBrandParts } from '../theme'
+import { Button } from '../ui'
 import { Dialog } from '../ui/Overlay'
+import { logoUrl as logoAddress } from './common'
+import { NameEditor, type BrandDraft } from './NameEditor'
 
-// The server's name and logo: a window with a live preview of the corner of
-// the screen, a name box, how the name is coloured and a logo upload. Used by
-// setup and by Settings, Appearance.
+// The name editor in a window: Settings, Appearance, Name and logo, and the layout editor's "Edit name…". Setup draws the
+// same editor on its own page (pages/setup/Name.tsx) and keeps the draft until there is an administrator to save it.
 
-const MAX_LOGO = 2 << 20
+export const startDraft = (name: string, colouring: string, spans: BrandSpan[], mark = markFromSetting('')): BrandDraft => {
+  const shown = name.trim() || DEFAULT_NAME
+  return { name, cells: spans.length ? cellsFromSpans(Array.from(shown).length, spans) : cellsFromColouring(shown, colouring), mark, logo: null }
+}
 
-// logo: what is shown now (an address), or '' for the app icon. colouring:
-// the brandColouring setting (brandName.ts). onSave gets the name, the logo
-// change (a new File, 'remove', or null for no change) and the colouring.
-export default function BrandDialog({ name, colouring = 'auto', logo, onSave, onClose }: {
-  name: string; colouring?: string; logo: string
-  onSave: (name: string, logo: File | 'remove' | null, colouring: string) => Promise<void> | void
-  onClose: () => void
-}) {
-  const [n, setN] = useState(name)
-  const [choice, setChoice] = useState(() => startChoice(name.trim() || DEFAULT_NAME, colouring))
-  const shown = n.trim() || DEFAULT_NAME
-  const chosen = colouringOf(shown, choice)
-  // A new name starts the chosen words again from the automatic split.
-  const rename = (v: string) => {
-    if (v.trim() !== n.trim()) setChoice((c) => ({ ...startChoice(v.trim() || DEFAULT_NAME, 'auto'), mode: c.mode }))
-    setN(v)
-  }
-  const [file, setFile] = useState<File | 'remove' | null>(null)
-  const [preview, setPreview] = useState(logo)
+// What the server has now, as a draft.
+export async function loadBrandDraft(name: string, colouring: string): Promise<BrandDraft> {
+  const s = await api.get<Record<string, string>>('/settings').catch(() => ({} as Record<string, string>))
+  let spans: BrandSpan[] = []
+  try { spans = s.brandSpans ? JSON.parse(s.brandSpans) : [] } catch { /* the automatic colouring */ }
+  return startDraft(name, colouring, spans, markFromSetting(s.brandMark || ''))
+}
+
+// Saves a draft: the name, its colours (the automatic colouring is kept as the server's own, anything else as spans), the
+// mark, and the logo when there is a new one or it was removed. Returns the logo's version ('' for none) when it changed.
+export type BrandWarning = { text: string; surface: string; where: string; ratio: number; need: number; variant?: string }
+export const warningWords = (w: BrandWarning) => `“${w.text}” is ${w.ratio} to 1 on the ${w.where}${w.variant ? ` (${w.variant} look)` : ''}`
+export async function saveBrandDraft(d: BrandDraft): Promise<{ logo?: string; warnings: BrandWarning[] }> {
+  const shown = d.name.trim() || DEFAULT_NAME
+  const auto = PRESETS[0].cells(shown)
+  const isAuto = d.cells.length === auto.length && d.cells.every((c, i) => sameColor(c, auto[i]))
+  if (!isAuto && spanCount(d.cells) > MAX_SPANS) throw new Error('The name has too many changes of colour.')
+  let logo: string | undefined
+  if (d.logo === 'remove') { await api.del('/branding/logo'); logo = '' } else if (d.logo) logo = await uploadLogo(d.logo)
+  const saved = await api.put<{ brandWarnings?: BrandWarning[] }>('/settings', { brandName: d.name.trim(), brandColouring: 'auto', brandSpans: isAuto ? '' : JSON.stringify(spansFromCells(d.cells)), brandMark: markSetting(d.mark.kind === 'image' && logo === '' ? { kind: 'letter' } : d.mark) })
+  return { logo, warnings: saved?.brandWarnings || [] }
+}
+
+export default function BrandDialog({ onClose }: { onClose: () => void }) {
+  const { brandName, brandColouring, brandLogo, setBrandName, setBrandLogo } = useApp()
+  const [draft, setDraft] = useState<BrandDraft | null>(null)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
-  const input = useRef<HTMLInputElement | null>(null)
+  const [preview, setPreview] = useState('')
+  useEffect(() => { void loadBrandDraft(brandName, brandColouring).then(setDraft) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const logo = draft?.logo
   useEffect(() => {
-    if (!(file instanceof File)) return
-    const u = URL.createObjectURL(file)
-    setPreview(u)
-    return () => URL.revokeObjectURL(u)
-  }, [file])
-  useEffect(() => {
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', esc)
-    return () => window.removeEventListener('keydown', esc)
-  }, [onClose])
-  const pick = (f: File | undefined) => {
-    setErr('')
-    if (!f) return
-    if (!/^image\/(png|jpeg)$/.test(f.type)) { setErr('Use a PNG or JPEG image.'); return }
-    if (f.size > MAX_LOGO) { setErr('The logo must be 2 MB or smaller.'); return }
-    setFile(f)
-  }
+    if (logo instanceof File) { const u = URL.createObjectURL(logo); setPreview(u); return () => URL.revokeObjectURL(u) }
+    setPreview(logo === 'remove' || !brandLogo ? '' : logoAddress(brandLogo))
+  }, [logo, brandLogo])
+
   const save = async () => {
+    if (!draft) return
     setBusy(true); setErr('')
-    try { await onSave(n.trim(), file, chosen); onClose() } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+    try {
+      const r = await saveBrandDraft(draft)
+      const shown = draft.name.trim() || DEFAULT_NAME
+      setBrandName(draft.name.trim(), 'auto')
+      if (r.logo !== undefined) setBrandLogo(r.logo)
+      setStatusBrandParts(partsFromCells(shown, draft.cells))
+      await loadThemeOverrides()
+      if (r.warnings.length) toast('Saved. Check: ' + r.warnings.slice(0, 2).map(warningWords).join('; ') + '. Words should be at least 4.5 to 1.', { tone: 'warn' })
+      else toast('Saved', { tone: 'ok' })
+      onClose()
+    } catch (e) { setErr((e as Error).message) } finally { setBusy(false) }
   }
-  const mark = file === 'remove' || !preview ? '/icon.svg' : preview
-  // A portal, so the window never takes on the styles of the page it opens from.
-  return createPortal(
-    <Dialog title="Name your server" onClose={onClose} className="brand-dialog" actions={<><button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button></>}>
-        <p className="muted">Shown in the top-left corner, on the sign-in page and in the browser tab.</p>
-
-        <div className="brand-preview" aria-label="Preview">
-          <span className="brand-preview-label">Preview</span>
-          <div className="brand-preview-bar">
-            <div className="brand"><img className="brand-mark" src={mark} alt="" /><Brand name={n.trim()} colouring={chosen} /></div>
-            <span className="brand-preview-search" />
-            <span className="brand-preview-avatar" />
-          </div>
-          <div className="brand-preview-card">
-            <div className="brand"><img className="brand-mark" src={mark} alt="" /><Brand name={n.trim()} colouring={chosen} /></div>
-            <span className="muted">Who's watching?</span>
-          </div>
-        </div>
-
-        <label className="brand-field">Server name
-          <input className="input" autoFocus value={n} maxLength={40} onChange={(e) => rename(e.target.value)} placeholder="WittyMediaServer"
-            onKeyDown={(e) => { if (e.key === 'Enter') save() }} />
-          <span className="muted">Leave empty to use “WittyMediaServer”.</span>
-        </label>
-
-        <BrandColouring name={shown} choice={choice} onChange={setChoice} />
-
-        <div className="brand-field">Logo
-          <div className="brand-logo-row">
-            <img className="brand-logo-big" src={mark} alt="" />
-            <div className="brand-logo-actions">
-              <button type="button" className="btn" onClick={() => input.current?.click()}>Upload logo…</button>
-              {mark !== '/icon.svg' && <button type="button" className="btn ghost" onClick={() => { setFile('remove'); setPreview('') }}>Use the standard icon</button>}
-              <span className="muted">PNG or JPEG, up to 2 MB. Square images look best.</span>
-            </div>
-          </div>
-          <input ref={input} type="file" accept="image/png,image/jpeg" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
-        </div>
-
-        {err && <div className="error" role="alert">{err}</div>}
-    </Dialog>,
-    document.body,
+  const reset = () => draft && setDraft({ ...draft, name: '', cells: PRESETS[0].cells(DEFAULT_NAME), mark: { kind: 'letter' } })
+  return (
+    <Dialog title="Your server’s name" size="wide" className="brand-dialog" onClose={onClose} actions={<>
+      <Button variant="primary" busy={busy} disabled={!draft} onClick={() => void save()}>Save</Button>
+      <Button variant="ghost" disabled={!draft} onClick={reset}>Reset to default</Button>
+      <Button variant="ghost" onClick={onClose}>Cancel</Button>
+    </>}>
+      <p className="muted">Settings · Appearance · Name and logo. Shown in the menu, on the sign-in page and in the browser tab.</p>
+      {draft ? <NameEditor draft={draft} onChange={setDraft} logoUrl={preview} onLogoError={setErr} /> : <p className="muted">Loading…</p>}
+      {err && <div className="error" role="alert">{err}</div>}
+    </Dialog>
   )
 }
 

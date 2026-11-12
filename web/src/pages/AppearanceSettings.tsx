@@ -4,8 +4,8 @@ import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 
 import { Link, useNavigate } from 'react-router-dom'
 import { IconDownload, IconLock, IconPlus } from '../icons'
 import { api, getToken, mediaUrl, serverBase } from '../api'
-import BrandDialog, { uploadLogo } from '../components/BrandDialog'
-import { Brand, BrandMark, logoUrl } from '../components/common'
+import BrandDialog from '../components/BrandDialog'
+import { Brand, BrandMark } from '../components/common'
 import { toast, useApp } from '../state'
 import { applyTheme, AUTO_THEME, currentLook, loadThemeOverrides, currentThemeId, CUSTOM_THEME, deviceTheme, setCustomThemeCss, setDeviceTheme, type ThemeMeta } from '../theme'
 import NavCustomize from '../shell/NavCustomize'
@@ -99,7 +99,7 @@ function ColourMaker({ start, admin, inUse, onDevice, onServer }: { start: Maker
 }
 
 export default function AppearanceSettings() {
-  const { user, brandName, brandColouring, setBrandName, brandLogo, setBrandLogo, serverTheme, setServerTheme } = useApp()
+  const { user, brandName, serverTheme, setServerTheme } = useApp()
   const [naming, setNaming] = useState(false)
   const [themes, setThemes] = useState<ThemeMeta[]>([])
   const [mine, setMine] = useState(deviceTheme())
@@ -121,12 +121,6 @@ export default function AppearanceSettings() {
   const useHere = (id: string) => { if (required) return; setDeviceTheme(id); setMine(id); applyTheme(id || serverTheme) }
   const makeDefault = async (id: string) => {
     try { await api.put('/settings', { theme: id }); setServerTheme(id); toast('Everyone starts with this theme now', { tone: 'ok' }) } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
-  }
-  const saveBrand = async (n: string, logo: File | 'remove' | null, colouring: string) => {
-    await api.put('/settings', { brandName: n, brandColouring: colouring })
-    setBrandName(n, colouring)
-    if (logo === 'remove') { await api.del('/branding/logo'); setBrandLogo('') } else if (logo) setBrandLogo(await uploadLogo(logo))
-    toast('Saved', { tone: 'ok' })
   }
   const upload = async (f: File, mineOnly = false) => {
     const headers: Record<string, string> = { 'Content-Type': 'application/zip' }
@@ -169,7 +163,7 @@ export default function AppearanceSettings() {
 
   return (
     <>
-      <Section title="Theme" desc={required ? <><IconLock /> {lockText(required)}. It can’t be changed here.</> : mine
+      <Section id="theme" title="Theme" desc={required ? <><IconLock /> {lockText(required)}. It can’t be changed here.</> : mine
         ? <>This device has its own theme. <button type="button" className="linkish" onClick={() => useHere('')}>Follow the server’s</button></>
         : 'This device follows the server’s theme. Choosing one here changes this device only.'}>
         <div className="theme-stage">
@@ -238,41 +232,15 @@ export default function AppearanceSettings() {
       {/* A profile's own choice. An administrator has it under Playback & discs, a page the others don't get. */}
       {!admin && <AutoSkipSection />}
       {admin && (
-        <Section title="Name and logo" desc="Shown in the corner, on the sign-in page and in the browser tab. The license notice in Settings, About always remains.">
+        <Section id="name" title="Name and logo" desc="Shown in the corner, on the sign-in page and in the browser tab. The license notice in Settings, About always remains.">
           <div className="brand-now">
             <div className="brand"><BrandMark /><Brand name={brandName} /></div>
-            <Button onClick={() => setNaming(true)}>Rename…</Button>
+            <Button onClick={() => setNaming(true)}>Edit name and logo…</Button>
           </div>
-          <MarkRow />
-          {naming && <BrandDialog name={brandName} colouring={brandColouring} logo={brandLogo ? logoUrl(brandLogo) : ''} onClose={() => setNaming(false)} onSave={saveBrand} />}
+          {naming && <BrandDialog onClose={() => setNaming(false)} />}
         </Section>
       )}
     </>
-  )
-}
-
-// The server's mark: the badge the side rail's header, the phone's tab bar and sign-in draw. A letter by default.
-function MarkRow() {
-  const [kind, setKind] = useState('letter')
-  const [text, setText] = useState('')
-  const [busy, setBusy] = useState(false)
-  useEffect(() => { api.get<Record<string, string>>('/settings').then((s) => { try { const m = JSON.parse(s.brandMark || '{}'); if (m.kind) { setKind(m.kind); setText(m.text || '') } } catch { /* the first letter */ } }).catch(() => {}) }, [])
-  const save = async (k: string, t: string) => {
-    setBusy(true)
-    try {
-      await api.put('/settings', { brandMark: k === 'letter' ? '' : JSON.stringify(k === 'text' ? { kind: k, text: t.trim() } : { kind: k }) })
-      await loadThemeOverrides()
-      toast('Saved', { tone: 'ok' })
-    } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setBusy(false) }
-  }
-  return (
-    <Row label="Mark" desc="The square badge for small spaces: the side rail, the phone’s bar and sign-in. A logo you’ve uploaded is fitted inside it; the letter shows if it can’t load.">
-      <Segmented label="Mark" value={kind} onChange={(k) => { setKind(k); if (k !== 'text') void save(k, text) }} options={[{ value: 'letter', label: 'Letter' }, { value: 'initials', label: 'Initials' }, { value: 'text', label: 'Your own' }, { value: 'image', label: 'Logo' }]} />
-      {kind === 'text' && <>
-        <Input aria-label="Your own one or two characters" maxLength={2} value={text} onChange={(e) => setText(e.target.value)} />
-        <Button size="sm" disabled={busy || !text.trim()} onClick={() => void save('text', text)}>Save</Button>
-      </>}
-    </Row>
   )
 }
 

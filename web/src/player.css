@@ -2,7 +2,7 @@
 /* Copyright (C) 2026 WittyWilla and contributors */
 /* Auto-hide: the class sits on .player itself (fullscreen or not). */
 .player.controls-hidden .top, .player.controls-hidden .bottom, .player.controls-hidden .popover { opacity: 0; pointer-events: none; }
-.player.controls-hidden .remote { opacity: .45; }
+.player.controls-hidden .remote { opacity: 1; } /* WittyRemote stays solid: a graphite body, never see-through */
 .player.controls-hidden .remote:hover, .player.controls-hidden .remote:focus-within { opacity: 1; }
 .player.controls-hidden .remote.remote-sheet { opacity: 1; } /* a sheet someone opened stays as it is */
 .player .top .grow { flex: 1; min-width: 0; }
@@ -232,10 +232,11 @@
 /* ---------------------------------------------------------------- episodes: layout toggle, playlist */
 .view-toggle { display: flex; align-items: center; gap: var(--sp-3); margin: var(--sp-2) 0 var(--sp-3); font-size: var(--text-sm); }
 .seg { display: inline-flex; background: var(--bg-3); border-radius: var(--r-md); padding: 3px; gap: 2px; }
-@media (pointer: coarse) { .seg { padding: 0; } .seg button { min-height: 44px; } }
-.seg button { background: transparent; border: 0; color: var(--fg-2); min-height: calc(var(--control-h-sm) - 6px); padding: 0 var(--sp-3); border-radius: calc(var(--r-md) - 3px); font-weight: 600; font-size: var(--text-sm); white-space: nowrap; transition: background var(--dur-2), color var(--dur-2); }
+.seg button { display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-1); background: transparent; border: 0; color: var(--fg-2); min-height: calc(var(--control-h-sm) - 6px); padding: 0 var(--sp-3); border-radius: calc(var(--r-md) - 3px); font-weight: 600; font-size: var(--text-sm); white-space: nowrap; transition: background var(--dur-2), color var(--dur-2); }
 .seg button:hover { color: var(--fg); background: var(--hover); }
 .seg button.active, .seg button.active:hover { background: var(--fg); color: var(--bg); }
+/* After the button rule above, or its min-height wins and a finger gets a 38 px target. */
+@media (pointer: coarse) { .seg { padding: 0; } .seg button { min-height: 44px; } }
 .episode-table tr { cursor: pointer; }
 .episode-table td.num { color: var(--fg-3); font-weight: 600; white-space: nowrap; }
 

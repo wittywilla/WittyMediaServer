@@ -128,10 +128,20 @@ func (m ThemeMark) ShownFor(name string) string { return m.Mark.Shown(name) }
 
 // BrandWarning is one part of the name that is hard to read on a surface.
 type BrandWarning struct {
-	Text    string  `json:"text"`
+	Text string `json:"text"`
+	// Surface is the colour token the name sits on (bg, bg2, bg3) and Where what is drawn on it:
+	// the top bar and page (bg), the side menu and bars (bg2), the bevelled bars (bg3).
 	Surface string  `json:"surface"`
+	Where   string  `json:"where"`
 	Ratio   float64 `json:"ratio"`
 	Need    float64 `json:"need"`
+	// Variant is "dark" or "light" for one of an automatic theme's two looks, else empty.
+	Variant string `json:"variant,omitempty"`
+}
+
+// brandSurfaces are the surfaces the server's name is drawn on, and where they are.
+var brandSurfaces = []struct{ token, where string }{
+	{"bg", "top bar and page"}, {"bg2", "side menu and bars"}, {"bg3", "bevelled bars"},
 }
 
 // ThemeVariant is one look of a theme: the built-in theme behind it, its colours with the
@@ -350,7 +360,7 @@ func (s *Server) resolveThemeWith(r *http.Request, cfg *sduistore.Config, set *s
 	}
 	t.Warnings = dedupeWarnings(t.Warnings)
 	name, _, parts := s.brand(r.Context())
-	t.Brand = ThemeBrand{Parts: parts, Token: "brandAccent", Color: t.Tokens["brandAccent"], Mark: ThemeMark{Mark: s.brandMark(r.Context())}, Warnings: brandWarnings(parts, t.Tokens)}
+	t.Brand = ThemeBrand{Parts: parts, Token: "brandAccent", Color: t.Tokens["brandAccent"], Mark: ThemeMark{Mark: s.brandMark(r.Context())}, Warnings: brandWarningsOf(parts, t)}
 	t.Brand.Mark.Shown = t.Brand.Mark.Mark.Shown(firstNonEmpty(name, brandname.Default))
 	t.ETag = themeETag(t)
 	return t
@@ -650,10 +660,28 @@ func brandWarnings(parts []brandname.Part, tokens map[string]string) []BrandWarn
 			hexes = p.Color.Stops
 		}
 		for _, h := range hexes {
-			for _, surf := range []string{"bg", "bg2", "bg3"} {
-				if r, ok := themes.ContrastRatio(h, tokens[surf]); ok && r < themes.ContrastAA {
-					out = append(out, BrandWarning{Text: p.Text, Surface: surf, Ratio: math.Round(r*100) / 100, Need: themes.ContrastAA})
+			for _, surf := range brandSurfaces {
+				if r, ok := themes.ContrastRatio(h, tokens[surf.token]); ok && r < themes.ContrastAA {
+					out = append(out, BrandWarning{Text: p.Text, Surface: surf.token, Where: surf.where, Ratio: math.Round(r*100) / 100, Need: themes.ContrastAA})
 				}
+			}
+		}
+	}
+	return out
+}
+
+// brandWarningsOf checks the name on the theme's look; an automatic theme has two, each
+// checked and named.
+func brandWarningsOf(parts []brandname.Part, t *ResolvedTheme) []BrandWarning {
+	if len(t.Variants) < 2 {
+		return brandWarnings(parts, t.Tokens)
+	}
+	out := []BrandWarning{}
+	for _, name := range []string{"dark", "light"} {
+		if v, ok := t.Variants[name]; ok {
+			for _, w := range brandWarnings(parts, v.Tokens) {
+				w.Variant = name
+				out = append(out, w)
 			}
 		}
 	}

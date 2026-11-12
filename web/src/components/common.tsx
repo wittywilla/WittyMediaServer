@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { Fragment, memo, useSyncExternalStore, type CSSProperties } from 'react'
-import { brandMark, subscribeMark } from '../theme'
+import { brandMark, servedBrandParts, subscribeMark } from '../theme'
+import { partStyle, type StyledPart } from '../brandStyle.ts'
 import { avatarColor } from '../ui/avatarColor'
 import { Link } from 'react-router-dom'
 import { PosterCard } from '../ui/Surface'
@@ -120,6 +121,13 @@ export function VersionTag({ version }: { version: string }) {
 // logoUrl: the server's custom logo, or the app icon.
 export const logoUrl = (version: string) => (version ? `${serverBase()}/api/branding/logo?v=${encodeURIComponent(version)}` : '/icon.svg')
 
+// The badge's letter follows the name's colours: the first part that is not the plain text colour, unless it is the accent.
+export const markStyle = (parts?: StyledPart[]): CSSProperties | undefined => {
+  const c = parts?.find((p) => p.color && p.color.kind !== 'fg' && p.color.kind !== 'accent')?.color
+  const st = partStyle(c)
+  return st ? (c?.kind === 'gradient' ? st : { color: st.color }) as CSSProperties : undefined
+}
+
 // BrandMark is the picture beside the name: the custom logo or the app icon.
 // src overrides it (a logo being previewed before it is saved).
 // With the theme engine's mark it is a square badge with its content centred (a letter, initials, the owner's own
@@ -129,7 +137,7 @@ export function BrandMark({ src }: { src?: string }) {
   const mark = useSyncExternalStore(subscribeMark, brandMark)
   if (!src && mark) {
     if (mark.kind === 'image' && mark.imageUrl) return <span className="brand-mark brand-badge image" aria-hidden="true"><img src={mark.imageUrl} alt="" onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(mark.shown)) }} /></span>
-    return <span className="brand-mark brand-badge" aria-hidden="true">{mark.shown}</span>
+    return <span className="brand-mark brand-badge" aria-hidden="true" style={markStyle(servedBrandParts())}>{mark.shown}</span>
   }
   return <img className="brand-mark" src={src || logoUrl(brandLogo)} alt="" />
 }
@@ -140,15 +148,22 @@ export function BrandMark({ src }: { src?: string }) {
 // Screen readers get the name once, whole, rather than in coloured pieces; the
 // tooltip (for a long name cut short) is on the hidden part, so it isn't read again.
 // Where it has to wrap, it wraps between the words of the name, not inside one.
-export function Brand({ name, colouring }: { name: string; colouring?: string }) {
-  const { brandColouring } = useApp()
+export function Brand({ name, colouring, parts: given }: { name: string; colouring?: string; parts?: StyledPart[] }) {
+  const { brandColouring, brandName } = useApp()
+  const served = useSyncExternalStore(subscribeMark, servedBrandParts)
   const shown = name || DEFAULT_NAME
-  const parts = brandParts(shown, colouring ?? brandColouring)
+  // The server's own colouring of its name is drawn as it sent it (any colour of any part); a name or colouring being
+  // tried, or a preview, is worked out here.
+  const own = given ?? (colouring === undefined && (name || '') === brandName && served?.length && served.map((p) => p.text).join('') === shown ? served : undefined)
+  const parts: StyledPart[] = own ?? brandParts(shown, colouring ?? brandColouring)
   const joined = (i: number) => i > 0 && !/\s$/u.test(parts[i - 1].text) && !/^\s/u.test(parts[i].text)
   return (
     <span className="brand-name">
       <span className="sr-only">{shown}</span>
-      <span aria-hidden="true" title={name || undefined}>{parts.map((p, i) => <Fragment key={i}>{joined(i) && <wbr />}{p.accent ? <b>{p.text}</b> : p.text}</Fragment>)}</span>
+      <span aria-hidden="true" title={name || undefined}>{parts.map((p, i) => {
+        const style = partStyle(p.color)
+        return <Fragment key={i}>{joined(i) && <wbr />}{p.accent ? <b>{p.text}</b> : style ? <span className="brand-part" style={style}>{p.text}</span> : p.text}</Fragment>
+      })}</span>
     </span>
   )
 }

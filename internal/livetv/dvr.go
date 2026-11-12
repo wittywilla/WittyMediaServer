@@ -52,6 +52,10 @@ type Recording struct {
 	// PadBefore and PadAfter are minutes more than the usual minute and two either side.
 	PadBefore int `json:"padBefore,omitempty"`
 	PadAfter  int `json:"padAfter,omitempty"`
+	// ChannelKey and Programme open WittyTV's More info from a recording: the channel's key and
+	// "<key>@<start>". The server fills them only for someone who may watch that channel.
+	ChannelKey string `json:"channelKey,omitempty"`
+	Programme  string `json:"programme,omitempty"`
 	// Conflict: when it starts, more recordings want its tuner than it has. See markConflicts.
 	Conflict bool `json:"conflict,omitempty"`
 	tunerID  int64

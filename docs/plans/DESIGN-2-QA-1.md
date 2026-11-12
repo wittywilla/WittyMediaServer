@@ -17,7 +17,7 @@ Severity: **Blocker** (a flow cannot be finished), **High** (breaks a stated rul
 | Medium | 12 |
 | Low | 7 |
 
-The worst: first run cannot add a library or save the look (D1), the Classic Cable look makes the server's name invisible (D2), UIs do not bring their default theme (D3), the server's name is missing on TV mode and on the phone (D4, D5), and music has none of the Album art, Canvas and Visualizer views (D8).
+The worst: first run cannot add a library or save the look (D1), the Classic Cable look makes the server's name invisible (D2), UIs do not bring their default theme (D3), the server's name is missing on TV mode and on the phone (D4, D5), and music has none of the Album art, Canvas and Visualizer views (D6).
 
 ## Defects
 

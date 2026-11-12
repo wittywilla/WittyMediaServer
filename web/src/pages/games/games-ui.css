@@ -282,13 +282,6 @@ html.gm-couch, html.gm-couch body { background: var(--bg); }
 .gm-confirm-list { margin: 0 0 var(--sp-3); padding-left: 1.2em; }
 
 /* ---------------------------------------------------------------- game PCs */
-.gm-pcs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr)); gap: var(--sp-3); list-style: none; margin: 0 0 var(--section-gap); padding: 0; }
-.gm-pc { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-1) var(--sp-3); align-items: center; min-height: 6rem; padding: var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--bg-2); transition: transform var(--dur-2) var(--ease-out), background-color var(--dur-2); }
-.gm-pc:hover { background: var(--bg-3); }
-.gm-pc:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); transform: scale(var(--focus-scale)); }
-.gm-pc b { font-size: var(--text-lg); overflow-wrap: anywhere; }
-.gm-pc small { grid-column: 2; color: var(--fg-2); font-size: var(--text-sm); overflow-wrap: anywhere; }
-.gm-page .rig-status { border-color: var(--border); border-radius: var(--r-lg); background: var(--bg-2); }
 .gm-page .rig-method { border-color: var(--border); border-radius: var(--r-lg); background: var(--bg-2); padding: var(--sp-5); }
 .gm-page .rig-method h2 { font-size: var(--text-lg); }
 .gm-page .rig-note, .gm-page .rig-warn { border-radius: var(--r-md); }

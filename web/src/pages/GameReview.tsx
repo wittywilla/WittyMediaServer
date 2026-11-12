@@ -4,9 +4,11 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { HelpLink } from '../components/HelpLink'
 import { api, type GameConsole, type GameDetailsInfo, type GameImport, type GameReview, type GameReviewItem, type GameVersions, type Item } from '../api'
-import { IconCheck, IconClose, IconRefresh } from '../icons'
+import { IconCheck, IconClose } from '../icons'
 import { Button, Dialog, EmptyState, Notice, Progress, Spinner, Tabs, toast } from '../ui'
 import { isBackKey } from '../ui/spatial'
+import SpecPage from '../spec/SpecPage'
+import { fixGameSpec, versionLinksSpec } from '../spec/specs/fixgame'
 import './gamereview.css'
 
 // Putting a games library right. A scan lists what it can prove and asks about the rest:
@@ -254,7 +256,6 @@ export function GameFixPanel({ it, d, consoles, onChanged }: { it: Item; d: Game
   const [v, setV] = useState<GameVersions | null>(null)
   const [choosing, setChoosing] = useState(false)
   const [busy, setBusy] = useState(false)
-  const toggle = useRef<HTMLButtonElement>(null)
   const heading = useRef<HTMLHeadingElement>(null)
   // What was pressed may have gone with the change, or gone out of use for a moment.
   const [ran, setRan] = useState(0)
@@ -273,46 +274,22 @@ export function GameFixPanel({ it, d, consoles, onChanged }: { it: Item; d: Game
   }
   const how = howWords(d)
   const others = (v?.versions || []).filter((x) => !x.current)
+  const page = fixGameSpec({
+    how, sure: d.detectSure, why: d.detectWhy, discs: v?.discs?.map((x) => x.name), others: others.map((x) => ({ id: x.id as number, label: x.label || '' })),
+    inside: v?.inside?.map((x) => ({ entry: x.entry as string, label: x.label, altered: x.altered, current: x.current })), choosing, busy,
+  })
+  const act = (id: string) => {
+    if (id === 'console') setChoosing(!choosing)
+    else if (id === 'notgame') void run(() => api.post(`/games/${it.id}/not-a-game`), 'It won’t be listed any more. You can bring it back from the library’s page.')
+    else if (id.startsWith('split.')) void run(() => api.post(`/games/${id.slice(6)}/split`), 'It’s a game of its own now.')
+    else if (id.startsWith('play.')) void run(() => api.put(`/games/${it.id}/version`, { entry: id.slice(5) }), 'This version plays from now on.')
+  }
+  const handled = new Set(['console', 'notgame', ...others.map((x) => `split.${x.id}`), ...(v?.inside || []).map((x) => `play.${x.entry}`)])
   return (
     <section className="gr-fix" aria-label="Fix this game">
       <h2 className="shelf-head" ref={heading} tabIndex={-1}>Fix this game</h2>
-      {how && <p className="gr-how"><strong>{how}{d.detectSure ? `, ${d.detectSure}% sure` : ''}.</strong> {d.detectWhy}</p>}
-      {v?.discs && v.discs.length > 1 && (
-        <p className="gr-how"><strong>{v.discs.length} discs.</strong> Change discs from the game’s menu while it’s running. <small className="muted">{v.discs.map((x) => x.name).join(', ')}</small></p>
-      )}
-      {others.length > 0 && (
-        <div className="gr-versions">
-          <h3>Other versions of this game</h3>
-          <ul>
-            {others.map((x) => (
-              <li key={x.id}>
-                <Link to={`/item/${x.id}`}>{x.label || 'Another version'}</Link>
-                <Button size="sm" variant="ghost" disabled={busy} aria-label={`Make ${x.label || 'this version'} a game of its own`} onClick={() => run(() => api.post(`/games/${x.id}/split`), 'It’s a game of its own now.')}>Make it a game of its own</Button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {v?.inside && (
-        <div className="gr-versions">
-          <h3>Which version in this archive to play</h3>
-          <ul>
-            {v.inside.map((x) => (
-              <li key={x.entry} aria-current={x.current ? 'true' : undefined}>
-                <span className="gr-version-name">{x.label}{x.altered ? ' (altered)' : ''}</span>
-                {x.current
-                  ? <span className="pill"><IconCheck /> Plays now</span>
-                  : <Button size="sm" variant="ghost" disabled={busy} aria-label={`Play ${x.label} from now on`} onClick={() => run(() => api.put(`/games/${it.id}/version`, { entry: x.entry }), 'This version plays from now on.')}>Play this one</Button>}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      <div className="gr-fix-actions">
-        <Button ref={toggle} size="sm" variant="ghost" disabled={busy} aria-expanded={choosing} onClick={() => setChoosing(!choosing)}><IconRefresh /> Wrong console</Button>
-        <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(() => api.post(`/games/${it.id}/not-a-game`), 'It won’t be listed any more. You can bring it back from the library’s page.')}><IconClose /> It isn’t a game</Button>
-      </div>
-      {choosing && <ConsolePicker consoles={consoles} disabled={busy} label="Which console this game is for" onClose={() => { setChoosing(false); toggle.current?.focus() }} onPick={(c, name) => run(() => api.put(`/games/${it.id}/console`, { console: c }), `It’s a ${name} game now.`)} />}
+      <SpecPage bare page={page} handled={handled} onAction={act}
+        after={{ [page.sections.length - 1]: choosing ? <ConsolePicker consoles={consoles} disabled={busy} label="Which console this game is for" onClose={() => { setChoosing(false) }} onPick={(c, name) => run(() => api.put(`/games/${it.id}/console`, { console: c }), `It’s a ${name} game now.`)} /> : null }} />
     </section>
   )
 }
@@ -326,10 +303,8 @@ export function GameVersionLinks({ it }: { it: Item }) {
   if (others.length === 0) return null
   return (
     <section className="gr-fix" aria-label="Other versions of this game">
-      <div className="gr-versions">
-        <h2 className="shelf-head">Other versions of this game</h2>
-        <ul>{others.map((x) => <li key={x.id}><Link to={`/item/${x.id}`}>{x.label || 'Another version'}</Link></li>)}</ul>
-      </div>
+      <h2 className="shelf-head">Other versions of this game</h2>
+      <SpecPage bare page={versionLinksSpec(others.map((x) => ({ id: x.id as number, label: x.label || '' })))} />
     </section>
   )
 }

@@ -38,3 +38,4 @@ html.tv-mode .spec-row, html.ten-foot .spec-row { min-height: 66px; }
 .spec-page.embedded { max-width: none; padding-block: 0; gap: var(--sp-5); }
 .spec-page.embedded .spec-dock { margin-inline: 0; }
 .spec-page-help { display: flex; justify-content: flex-end; max-width: 62rem; margin-inline: auto; }
+.spec-page.bare { max-width: none; margin-inline: 0; padding-block: 0; gap: var(--sp-4); }

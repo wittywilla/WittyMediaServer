@@ -1118,6 +1118,34 @@ A game with no `poster` should use art made from its title and console, as the w
 The first pass over a large collection takes a while, on purpose: each source is asked no faster than its
 rules allow. `GET /gamemeta/status` says how it's going, for administrators.
 
+## People
+
+Gate on the feature `credits` (and `sdui-credits` for the SDUI side). A title's people come in three
+parts: `GET /items/{id}/credits` for a film or an episode, `GET /shows/{id}/credits` for a show (with
+`season=<n>` for a season's page) answer `{cast, guests, crew}`:
+
+- `cast` and `guests`: `{personId, name, hasPhoto, role, character, order, episodes, source}`, in billing
+  order (a season's guests: most episodes first, `episodes` saying how many). `character` may hold two
+  parts joined by " / ".
+- `crew`: one entry per department that has someone, in this order: `directing`, `writing`,
+  `production`, `camera`, `lighting`, `editing`, `sound`, `art`, `costume`, `effects`, `crew`; each
+  `{department, label, people}`, where each person has a `job` (two joined by ", ").
+- An episode's `cast` is its show's regulars; its `guests` and `crew` are its own (the show's crew for
+  a department the episode names nobody in).
+
+A person's picture is `GET /people/{personId}/photo?w=<pixels>` when `hasPhoto` is true; otherwise draw
+their initials. Open a person with `GET /people/{id}`: `person` (`name`, `sortName`, `birthday` and
+`deathday` as `YYYY-MM-DD`, `YYYY-MM` or `YYYY`, `birthplace`, `biography`, `knownFor`: `acting` or a
+department, `ids`) and `filmography.groups`: `{key, label, titles}` with `acting` first, then each
+department; a title is `{target, id, title, year, character, job, episodes, guest}`, `target` `item`
+(open `/items/{id}`, poster `/items/{id}/poster`) or `show` (`/shows/{id}`, `/shows/{id}/art/poster`).
+`GET /people?search=` finds people by name. A library filtered to one person is `GET /browse?person=<id>`.
+
+Everything follows the profile's limits: a hidden title's credits answer 404, a person's filmography
+names only titles the profile may see, and a person credited on nothing it may see answers 404 and
+isn't found, so an app needs no checks of its own. The first time a person is opened the server may
+look them up at TMDB for a few seconds; show what arrives.
+
 ## Legal notices
 
 Every client shows the same short notices beside third-party and local content, so a person gets the
@@ -1410,6 +1438,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /artwork/credits` | Signed in | Each poster or backdrop from Wikimedia Commons on a title the account may see: its page, licence and author, as the licences ask. |
 | `GET /artwork/preview` | admin | One artwork candidate as an image. |
 | `GET /items/{id}/recommend` | user | What to watch when this ends and there is no next episode: an `item`, with its `show` for a series. |
+| `GET /items/{id}/credits` | user | A film's or an episode's cast, guest stars and crew by department (`cast`, `guests`, `crew`); see [People](#people). |
 | `GET /shows` | user | List and filter shows. |
 | `GET /shows/genres` | user | Genres among shows. |
 | `GET /shows/networks` | user | TV networks with their shows and genres. |
@@ -1418,6 +1447,10 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /shows/{id}/view` | admin | A show's episode layout: `cards`, `list`, or empty for the default. |
 | `GET /shows/{id}/artwork` | admin | Artwork to choose from. |
 | `GET /shows/{id}/art/{kind}` | user | A show's picture: `poster`, `backdrop` or `season` (with `n`). |
+| `GET /shows/{id}/credits` | user | A show's cast and crew; `season=<n>` adds that season's guest stars, most episodes first. |
+| `GET /people` | user | People credited on titles the account may see: `search` (two letters or more), `limit`. Each with `titles`, how many of theirs the account may see. |
+| `GET /people/{id}` | user | A `person` (name, dates, birthplace, biography, ids) and their `filmography` here, grouped by what they did. 404 for someone credited only on titles the account may not see. |
+| `GET /people/{id}/photo` | user, `st` | A person's picture; `w` asks for a smaller copy. |
 | `POST /items/{id}/progress` | user | Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. `{id}` `show-<n>` with `{"watched": true}` marks every episode of the show this profile may see watched. |
 | `DELETE /items/{id}/progress` | user | Forget the position (mark as not started). `{id}` `show-<n>`: in every episode of the show. |
 
@@ -2009,6 +2042,7 @@ one of these games answers 409 with `"rig": true`.
 | `POST /collections/preview` | user | Preview rule. |
 | `GET /collections/holding` | user | Collections holding. |
 | `POST /collections/watch-later/items` | user | Watch later add. `{items, shows}`: each a number, or a string `"5"` or `"show-5"` (a show, wherever it is listed). |
+| `DELETE /collections/watch-later/items` | user | Watch later remove, with the same body; titles that weren't on it are no error. A title page's DetailHeader offers it as `watchLater.remove` ("In Watch later", `pressed: true`) when the title is on the list. |
 | `GET /collections/{id}` | user | Collection. |
 | `PUT /collections/{id}` | user | Update collection. |
 | `DELETE /collections/{id}` | user | Delete collection. |

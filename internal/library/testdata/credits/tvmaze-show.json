@@ -1,0 +1,16 @@
+{"id": 3, "url": "https://www.tvmaze.com/shows/3/harbour-watch", "name": "Harbour Watch", "type": "Scripted", "language": "English",
+ "genres": ["Drama"], "status": "Ended", "premiered": "2010-01-01", "summary": "<p>Two neighbours run a harbour.</p>",
+ "rating": {"average": 7.4}, "network": {"id": 4, "name": "Coast TV"}, "schedule": {"time": "21:00", "days": ["Friday"]},
+ "image": {"medium": "https://static.tvmaze.com/m.jpg", "original": "https://static.tvmaze.com/o.jpg"},
+ "_embedded": {
+  "cast": [
+   {"person": {"id": 11, "name": "Ana Lima", "image": {"medium": "https://static.tvmaze.com/ana-m.jpg", "original": "https://static.tvmaze.com/ana.jpg"}},
+    "character": {"id": 21, "name": "Harbourmaster", "image": null}, "self": false, "voice": false},
+   {"person": {"id": 12, "name": "Jon Reef", "image": null},
+    "character": {"id": 22, "name": "Diver", "image": null}, "self": false, "voice": false}
+  ],
+  "crew": [
+   {"type": "Creator", "person": {"id": 31, "name": "Cleo Quill", "image": null}},
+   {"type": "Executive Producer", "person": {"id": 32, "name": "Max Funds", "image": null}},
+   {"type": "Director of Photography", "person": {"id": 33, "name": "Bo Lens", "image": null}}
+  ]}}

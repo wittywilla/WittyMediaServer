@@ -671,6 +671,58 @@ channel's favourites are `liveNow`'s `favourites`.
   people stored with each title, and every title looked up again to fill
   them, so it isn't offered rather than made up from one line of text.
 
+## Cast and crew
+
+Catalogue revision 5 adds who is in a title and who made it. Every built-in
+film, show and episode page has a `Credits` section right under its header
+(under the synopsis), and a person's page shows their picture, dates,
+biography and their titles in this library.
+
+**The `Credits` component** draws the `credits` source. Its children are
+person cards (style `person`), in this order: the cast in billing order, the
+guest stars, then the crew by department in the catalogue's order
+(`CreditGroups`: Directing, Writing, Production, Camera, Lighting, Editing,
+Sound, Art, Costume & Make-Up, Visual Effects, Crew). Each card's `group` is
+the part it is in (`cast`, `guests`, or a department's key), its `subtitle`
+the part played or the job ("Production Design", "Director, Screenplay"; a
+season's guest star "Diver · 3 episodes"), its action opens `/person/<id>`.
+A person without a picture has no `image`: draw their initials on token
+`bg3`, hidden from assistive technology. `props.groups` lists the parts in
+order, `{id, label, role, total, shown}`; at first `castLimit` (20) of the
+cast and of the guests and `crewLimit` (6) of each department are sent, and
+when any part holds more, `props.more` is `{url, label: "Show all"}`: its
+answer has everyone, with `replace` true, in place of the cards you have.
+`parts` and `departments` choose what is shown.
+
+Where the people come from, and what a profile may see: the source reads a
+title only after the title itself was found visible to the profile, and a
+season's guest stars only from the episodes it may see. On an episode's page
+the cast is its show's regulars, the guests the episode's own, and the crew
+the episode's own where it names a department (the show's otherwise). On a
+show's page opened with `?season=<n>` (a season's page: the `$season`
+variable) the season's guest stars come after the cast, most episodes first.
+See [METADATA.md](METADATA.md#cast-and-crew) for the sources.
+
+**A person's page** is the detail page `detail-person` (`match.mediaKind`
+`person`), at the route `/person/{person}` (variable `$person`). Its
+`DetailHeader` (layout poster, no buttons) has the person's photo as its
+poster, their name as the title, the biography as the overview, and the
+facts `knownFor` ("Acting", "Directing"), `born` ("Born 3 February 1970,
+Lisbon") and `died`. Under it one row per part of their work: a section
+repeated over `personParts` makes one copy per part the person has titles in
+that the profile may see (`acting`, then each department), `$each` the
+part's key and `{each}` its label, and the `filmography` source gives that
+part's films and shows, newest first, each card's subtitle the year and the
+part or job ("2010 · as The Boss", "2004 · Director", "2019 · as Diver · 3
+episodes"). A person credited only on titles the profile may not see has no
+page (404), as a hidden title has none.
+
+**Search** finds people: the `search` source with `in` `people` gives person
+cards for names matching the query among people credited on titles the
+profile may see, the most titles first, each subtitled with what they are
+known for and how many titles ("Acting · 3 titles"). The built-in search
+page has a People row.
+
 ## Layout options
 
 A layout option is a whole arrangement of an app: where its menu is and how
@@ -1150,7 +1202,7 @@ and without `meta.generatedAt` and `meta.etag`; `ETag(doc)` is `W/"sha256-`
 
 - `version` (1) changes only for something a client built for it can't
   survive. Clients refuse a version they don't know.
-- The **catalogue revision** (4) counts changes to the catalogue: a component,
+- The **catalogue revision** (5) counts changes to the catalogue: a component,
   a property, a card style, a source, a condition, an action type. Client and
   server must be built for the same revision. Unknown props and actions are
   ignored, an unknown card style is drawn as its shape.
@@ -1166,7 +1218,7 @@ what the server does.
 <!-- catalogue:begin (written by go test ./pkg/sdui -update; edit pkg/sdui/catalog_data.go) -->
 ### Components
 
-27 components. Every renderer draws all of them.
+28 components. Every renderer draws all of them.
 
 | Component | Label | Category | Takes a source | Focus |
 |---|---|---|---|---|
@@ -1183,6 +1235,7 @@ what the server does.
 | [`DetailHeader`](#detailheader) | Title header | detail | none | stop |
 | [`SeasonList`](#seasonlist) | Seasons and episodes | detail | required | group |
 | [`TrackList`](#tracklist) | Track list | detail | required | group |
+| [`Credits`](#credits) | Cast and crew | detail | required | group |
 | [`Track`](#track) | Track | detail | none | item |
 | [`Banner`](#banner) | Banner | media | optional | item |
 | [`Text`](#text) | Text | text | none | none |
@@ -1477,7 +1530,7 @@ Focus: the node takes focus when it can be acted on. Accessibility: Role: tab. L
 
 #### FilterBar
 
-*Filter and sort.* The controls that filter and sort a Grid on the same page. The server fills in each filter's choices from what the library holds; a change asks for the page again with the choice as a query parameter.
+*Filter and sort.* The controls that filter and sort a Grid on the same page. The server fills in each filter's choices from what the library holds; a change asks for the page again with the choice as a query parameter. With showCount, the server sends count (a number) and countText, the words to show ("1 title", "12 titles").
 
 | Property | Type | Default | What it is |
 |---|---|---|---|
@@ -1581,13 +1634,13 @@ Focus: takes none. Accessibility: Role: none (hidden). The keys are announced as
 
 #### DetailHeader
 
-*Title header.* The top of a title's page: its art, name, facts, score, synopsis and the buttons that play it and act on it. It shows the title the page was opened for.
+*Title header.* The top of a title's page: its art, name, facts, score, synopsis and the buttons that play it and act on it. It shows the title the page was opened for. A button that is a toggle (Watch later) has pressed true or false: draw it as on or off and say so to a screen reader; its label and command already match the state.
 
 | Property | Type | Default | What it is |
 |---|---|---|---|
 | `layout` | enum: backdrop, poster, compact | `backdrop` | Layout. Backdrop behind the text, poster beside it, or a compact strip. |
 | `actions` | enumList: play, restart, watchLater, watched, download, share, playOn, watchParty | `play, restart, watchLater, watched, download, share` | Buttons. The buttons offered, in order. One the title or the profile can't use is left out. |
-| `facts` | enumList: year, runtime, contentRating, rating, genres, studio, count, season | `year, runtime, contentRating, rating, genres` | Facts. The line of facts under the title, in order. |
+| `facts` | enumList: year, runtime, contentRating, rating, genres, studio, count, season, knownFor, born, died | `year, runtime, contentRating, rating, genres` | Facts. The line of facts under the title, in order. |
 | `showOverview` | bool | `true` | Show the synopsis |
 | `showTagline` | bool | `true` | Show the tagline |
 
@@ -1688,6 +1741,48 @@ Focus: its children take focus, and it is their group. Accessibility: Role: list
     "library": "$library",
     "artist": "$artist",
     "album": "$album"
+  }
+}
+```
+
+#### Credits
+
+*Cast and crew.* Who is in a title and who made it: the cast as a row of portraits with the part each played, then the crew by department (Directing, Writing, Production, Camera, Editing, Sound, Art, Costume & Make-Up, Visual Effects ...), with Show all when there are more. Each person opens their own page.
+
+Sources: `credits` only.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `title` | text, at most 120 |  | Title. The heading above the cast. |
+| `parts` | enumList: cast, guests, crew | `cast, guests, crew` | Shows. Which parts are shown, in this order. |
+| `castLimit` | int 0 to 100 | `20` | Cast at first. How many of the cast (and of the guest stars) are sent before Show all. 0 sends the device's row of cards. |
+| `crewLimit` | int 0 to 50 | `6` | Crew at first. How many people of each department are sent before Show all. |
+| `departments` | enumList: directing, writing, production, camera, lighting, editing, sound, art, costume, effects, crew | `directing, writing, production, camera, lighting, editing, sound, art, costume, effects, crew` | Departments. Which crew departments are listed, in order. |
+| `cardSize` | enum: s, m, l | `m` | Card size. Small, medium or large cards. A profile may choose its own. |
+
+How it is drawn:
+
+- **Television.** The title at the heading size, then the cast as one row of round portraits 40 points apart that scrolls sideways under focus, name under each and the part played under that; then the guest stars the same way; then each department as a heading and a row of focusable name-and-job chips. Show all is a final card of the cast row and asks props.more.url.
+- **Phone.** The title with a Show all chevron, the cast as a row of round portraits that bleeds off both edges, then each department as a caption-sized heading and a wrapping list of "<name>, <job>" lines, each one a link.
+- **Tablet.** As a phone with 16-point gaps.
+- **Desktop and web.** The title and a Show all button at its end; the cast row with arrow buttons on hover; the crew in columns of departments (as many as fit, at least 220 points each), each a heading and its people, name in body and job in caption.
+
+States:
+
+- **deferred.** Drawn as loading until the client has asked props.more.url, which it does when the section is within one screen of being seen.
+- **empty.** Left out of the page; with empty "message", the heading and emptyText in the caption style where the items would be.
+- **error.** The heading and one line, "Couldn't load this", with a Retry button that asks props.more.url again.
+- **loading.** Its heading, and as many grey placeholder cards of the card's size as fit, pulsing unless the device asks for reduced motion.
+
+Focus: its children take focus, and it is their group. Accessibility: Role: region labelled by the title. The cast row is a list labelled "Cast"; each card's label is "<name>, <part>". Each department is a list labelled by its name; each person's label is "<name>, <job>". A person without a photo shows their initials on token bg3, hidden from assistive technology.
+
+```json
+{
+  "id": "credits",
+  "component": "Credits",
+  "source": {
+    "type": "credits",
+    "item": "$item"
   }
 }
 ```
@@ -2154,7 +2249,7 @@ A `Card` has a `style` and a `shape`. A renderer that doesn't know a style draws
 | `square` | square | 1/1 | square, poster | title, subtitle | 1 | 1 | A square picture with a title and subtitle. |
 | `album` | square | 1/1 | square, poster | title, subtitle | 1 | 1 | An album cover with the album and artist under it. |
 | `circle` | circle | 1/1 | square, poster | title | 2 | 0 | A round picture with a centred name. |
-| `person` | circle | 1/1 | square, poster | title, subtitle | 1 | 1 | A round portrait with a name and a line under it: an artist, an author. |
+| `person` | circle | 1/1 | square, poster | title, subtitle | 1 | 1 | A round portrait with a name and a line under it: an artist, an author, someone in a title's cast or crew (the line is the part they played or their job). |
 | `book` | poster | 2/3 | poster | title, subtitle, progress | 2 | 1 | A book or comic cover with the title and author, and how far it has been read. |
 | `game` | poster | 3/4 | poster | title, subtitle, badges | 1 | 1 | Box art with the game's name and console. |
 | `photo` | square | 1/1 | poster, square |  | 0 | 0 | The picture alone, cropped square; its name is only read out. |
@@ -2258,6 +2353,7 @@ Shape tokens:
 | `DetailHeader` | accent `accent`, accentHover `accentHover`, background `bg`, badge `scrim`, badgeText `onImage`, border `borderStrong`, danger `danger`, dangerTint `dangerSoft`, focus `focus`, hover `hover`, link `accentText`, onAccent `accentFg`, onImage `onImage`, outline `borderStrong`, pressed `pressed`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg` | badge `badge`, button `body`, facts `caption`, synopsis `body`, title `pageTitle` | badge `badge`, button `button`, focus `focusWidth`, focusGap `focusOffset`, poster `card`, progress `pill` |
 | `SeasonList` | focus `focus`, hintText `fg3`, hover `hover`, onWatched `accentFg`, outline `borderStrong`, progress `accent`, progressTrack `bg4`, secondaryText `fg2`, selected `accentSoft`, selectedBorder `accentLine`, selectedText `fg`, surface `bg3`, text `fg`, watched `accent` | season `body`, synopsis `caption`, title `title` | focus `focusWidth`, focusGap `focusOffset`, row `row`, season `chip`, still `card` |
 | `TrackList` | border `border`, focus `focus`, hintText `fg3`, hover `hover`, playing `accentText`, pressed `pressed`, secondaryText `fg2`, selected `accentSoft`, text `fg` | artist `caption`, length `caption`, number `caption`, title `body` | focus `focusWidth`, focusGap `focusOffset`, row `row` |
+| `Credits` | border `border`, focus `focus`, hintText `fg3`, hover `hover`, link `accentText`, pressed `pressed`, secondaryText `fg2`, surface `bg3`, text `fg` | department `title`, name `body`, part `caption`, showAll `body`, title `heading` | chip `chip`, focus `focusWidth`, focusGap `focusOffset`, portrait `pill`, scrollButton `pill` |
 | `Track` | focus `focus`, hintText `fg3`, hover `hover`, playing `accentText`, pressed `pressed`, secondaryText `fg2`, selected `accentSoft`, text `fg` | artist `caption`, length `caption`, number `caption`, title `body` | focus `focusWidth`, focusGap `focusOffset`, row `row` |
 | `Banner` | accent `accent`, accentHover `accentHover`, background `bg3`, border `border`, danger `danger`, dangerTint `dangerSoft`, focus `focus`, hover `hover`, onAccent `accentFg`, onImage `onImage`, outline `borderStrong`, pressed `pressed`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg` | button `body`, text `body`, title `heading` | button `button`, corner `image`, focus `focusWidth`, focusGap `focusOffset`, thumb `card` |
 | `Text` | hintText `fg3`, link `accentText`, secondaryText `fg2`, surface `bg3`, text `fg` | body `body`, caption `caption`, heading `heading`, pageTitle `pageTitle`, title `title` | code `badge` |
@@ -2346,10 +2442,12 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | [`albums`](#albums) | Albums | music | album | album | yes | any |
 | [`artists`](#artists) | Artists | music | artist | person | yes | any |
 | [`continuePlaying`](#continueplaying) | Continue playing | personal | game | game |  | any |
+| [`credits`](#credits) | Cast and crew | context | person | person |  | detail |
+| [`filmography`](#filmography) | A person's titles | context | movie, show | poster | yes | detail |
 | [`episodes`](#episodes) | Episodes | context | episode | episode | yes | detail |
 | [`tracks`](#tracks) | Tracks | context | track | square |  | detail |
 | [`similar`](#similar) | More like this | context | movie, show | poster |  | detail |
-| [`search`](#search) | Search results | context | movie, show, album, book, game, channel | poster |  | search |
+| [`search`](#search) | Search results | context | movie, show, album, book, game, channel, person | poster |  | search |
 
 #### continueWatching
 
@@ -2723,6 +2821,36 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 {"type":"continuePlaying"}
 ```
 
+#### credits
+
+*Cast and crew.* A title's people: the cast in billing order, the guest stars (an episode's, or a season's with the most episodes first), then the crew by department, from the best source that names each part. Each card's subtitle is the part played or the job; its group is the part (cast, guests or a department).
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `item` | ref |  | Title. $item on a film's or an episode's page. |
+| `show` | ref |  | Show. $show on a show's page (when there is no item). |
+| `season` | ref |  | Season. $season: a season's guest stars on a show's page opened with ?season=. |
+| `part` | enum: all, cast, guests, directing, writing, production, camera, lighting, editing, sound, art, costume, effects, crew | `all` | Part |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"credits","item":"$item"}
+```
+
+#### filmography
+
+*A person's titles.* The films and shows in this library a person is in or worked on, newest first, that the profile may see; one part of them (their acting, or one department's work), or all. Each card's subtitle is the year and the part or job; a show's says how many episodes.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `person` (required) | ref |  | Person. $person on a person's page. |
+| `part` | string, at most 40 |  | Part. all (the default), acting, or a department: directing, writing, production, camera, lighting, editing, sound, art, costume, effects, crew; $each in a row repeated over personParts. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"filmography","person":"$person","part":"$each"}
+```
+
 #### episodes
 
 *Episodes.* One season of a show. Left to itself it picks the season of the next episode to watch.
@@ -2767,13 +2895,13 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 
 #### search
 
-*Search results.* What a search finds in one library, or among the channels. Nothing under two characters.
+*Search results.* What a search finds in one library, among the channels, or among the people credited on titles the profile may see. Nothing under two characters.
 
 | Property | Type | Default | What it is |
 |---|---|---|---|
 | `query` (required) | ref |  | Search. $query on the search page. |
 | `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
-| `in` | enum: library, channels | `library` | Look in |
+| `in` | enum: library, channels, people | `library` | Look in |
 | `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
 
 ```json
@@ -2814,7 +2942,7 @@ Every source also takes `map`: `{"subtitle": "studio"}` puts another field of th
 | `home` | The first page of the app. | `/` | tab |  |  |
 | `libraries` | Every library the profile can open. | `/libraries` | tab |  |  |
 | `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag, service, series, kind, disc, minRating, audio, subtitle, format, edition, search, seed | $library | library, libraryKind |
-| `detail` | The page of one film, show, episode, album, artist, book, game or collection. | `/item/{item}` | item, show, season, collection, library, artist, album, tab | $item, $show, $season, $collection, $library, $artist, $album | mediaKind, library, libraryKind |
+| `detail` | The page of one film, show, episode, album, artist, book, game or collection, or of a person in the cast or crew. | `/item/{item}` | item, show, season, collection, library, artist, album, person, tab | $item, $show, $season, $collection, $library, $artist, $album, $person | mediaKind, library, libraryKind |
 | `search` | Search across everything. | `/search` | q, tab | $query |  |
 | `livetv` | Channels and the guide. | `/tv` | tab |  |  |
 | `music` | Every music library together. | `/music` | tab |  |  |
@@ -2838,6 +2966,7 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 | `/album/{library}` | page `detail` | album=?album, artist=?artist, library={library} |
 | `/artist/{library}` | page `detail` | artist=?name, library={library} |
 | `/collections/{collection}` | page `detail` | collection={collection} |
+| `/person/{person}` | page `detail` | person={person} |
 | `/collections` | page `collections` |  |
 | `/search` | page `search` | q=?q |
 | `/tv` | page `livetv` |  |
@@ -2886,6 +3015,7 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `op` | What it does | Request |
 |---|---|---|
 | `watchLater.add` | Adds the title to the profile's Watch later list. | `POST /api/v1/collections/watch-later/items` with `{"items":["{item}"]}` |
+| `watchLater.remove` | Takes the title off the profile's Watch later list. | `DELETE /api/v1/collections/watch-later/items` with `{"items":["{item}"]}` |
 | `watched.set` | Marks the title watched; for a show, every episode. | `POST /api/v1/items/{item}/progress` with `{"watched":true}` |
 | `watched.clear` | Forgets the profile's progress in the title; for a show, in every episode. | `DELETE /api/v1/items/{item}/progress` |
 | `selectTab` | Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it. |  |
@@ -2955,13 +3085,14 @@ The menu's style on each form factor, and what the server changes about every pa
 | `library-photos` | library | photos | `timeline` (NativeView), `all` (Grid of recentlyAdded) |
 | `library-books` | library | books | `reading` (Shelf of continueWatching), `shelf` (Tabs), `books` (Tab), `all` (Grid of books), `series` (Tab), `in-series` (Shelf of books, per bookSerie), `authors` (Tab), `by-author` (Shelf of books, per bookAuthor) |
 | `library-games` | library | games | `playing` (Shelf of continuePlaying), `all` (Grid of recentlyAdded) |
-| `detail` | detail | every detail page | `header` (DetailHeader), `similar` (Shelf of similar) |
-| `detail-show` | detail | show | `header` (DetailHeader), `episodes` (SeasonList of episodes), `similar` (Shelf of similar) |
-| `detail-episode` | detail | episode | `header` (DetailHeader), `season` (Shelf of episodes) |
+| `detail` | detail | every detail page | `header` (DetailHeader), `credits` (Credits of credits), `similar` (Shelf of similar) |
+| `detail-show` | detail | show | `header` (DetailHeader), `credits` (Credits of credits), `episodes` (SeasonList of episodes), `similar` (Shelf of similar) |
+| `detail-episode` | detail | episode | `header` (DetailHeader), `credits` (Credits of credits), `season` (Shelf of episodes) |
 | `detail-album` | detail | album | `header` (DetailHeader), `tracks` (TrackList of tracks), `more` (Shelf of albums) |
 | `detail-artist` | detail | artist | `header` (DetailHeader), `albums` (Shelf of albums), `tracks` (TrackList of tracks) |
 | `detail-collection` | detail | collection | `header` (DetailHeader), `all` (Grid of collection) |
-| `search` | search | every search page | `q` (SearchBox), `idle` (Text), `found` (Shelf of search, per librarie), `channels` (Shelf of search) |
+| `detail-person` | detail | person | `header` (DetailHeader), `titles` (Shelf of filmography, per personPart) |
+| `search` | search | every search page | `q` (SearchBox), `idle` (Text), `found` (Shelf of search, per librarie), `people` (Shelf of search), `channels` (Shelf of search) |
 | `livetv` | livetv | every livetv page | `guide` (NativeView), `favourites` (Shelf of liveNow), `recordings` (Shelf of recordings), `channels` (Grid of liveNow) |
 | `music` | music | every music page | `listening` (Shelf of continueWatching), `played` (Shelf of albums, per librarie), `added` (Shelf of albums, per librarie), `artists` (Shelf of artists, per librarie) |
 | `photos` | photos | every photos page | `recent` (Shelf of recentlyAdded, per librarie) |

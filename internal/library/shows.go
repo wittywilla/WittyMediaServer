@@ -44,6 +44,7 @@ type Show struct {
 	// nil = not looked up by this save.
 	airDays []string
 	airTime *string
+	credits pendingCredits // people each source named, for the sources read this time
 	// Aggregates (per user for Unwatched):
 	EpisodeCount int   `json:"episodeCount"`
 	SeasonCount  int   `json:"seasonCount"`
@@ -255,7 +256,7 @@ func (s *Store) UpsertShow(ctx context.Context, sh *Show) error {
 		}
 		sh.ID, _ = res.LastInsertId()
 		sh.AddedAt, sh.UpdatedAt = now, now
-		return s.saveAirSlot(ctx, sh)
+		return s.saveShowExtras(ctx, sh)
 	}
 	_, err := s.DB.ExecContext(ctx, `UPDATE shows SET title=?, sort_title=?, year=?, overview=?, genres=?, rating=?, content_rating=?,
 		network=?, status=?, poster=?, backdrop=?, provider=?, provider_id=?, updated_at=?, missing=0, intro_start=?, intro_end=?, min_age=? WHERE id=?`,
@@ -265,7 +266,15 @@ func (s *Store) UpsertShow(ctx context.Context, sh *Show) error {
 	if err != nil {
 		return err
 	}
-	return s.saveAirSlot(ctx, sh)
+	return s.saveShowExtras(ctx, sh)
+}
+
+// saveShowExtras stores what a save of a show carries beyond its row.
+func (s *Store) saveShowExtras(ctx context.Context, sh *Show) error {
+	if err := s.saveAirSlot(ctx, sh); err != nil {
+		return err
+	}
+	return s.savePending(ctx, TargetShow, sh.ID, &sh.credits)
 }
 
 // saveAirSlot stores the slot a show aired in, when metadata has just said.

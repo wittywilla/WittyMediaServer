@@ -1,7 +1,7 @@
 {
  "kit": 1,
  "schemaVersion": 1,
- "catalogRevision": 4,
+ "catalogRevision": 5,
  "cases": [
   {
    "id": "home-tv-hd",
@@ -278,6 +278,42 @@
    "file": "detail-collection.json",
    "title": "A collection's page",
    "formFactor": "tablet"
+  },
+  {
+   "id": "detail-film-credits",
+   "file": "detail-film-credits.json",
+   "title": "A film's cast and crew, more than fit at first",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "detail-show-season",
+   "file": "detail-show-season.json",
+   "title": "A show's page opened for one season, with that season's guest stars",
+   "formFactor": "tablet"
+  },
+  {
+   "id": "detail-episode-tv",
+   "file": "detail-episode-tv.json",
+   "title": "An episode's page on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "detail-person",
+   "file": "detail-person.json",
+   "title": "A person's page",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "detail-person-tv",
+   "file": "detail-person-tv.json",
+   "title": "A person's page on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "detail-person-no-photo",
+   "file": "detail-person-no-photo.json",
+   "title": "A person with no photo, on a phone",
+   "formFactor": "phone"
   },
   {
    "id": "detail-missing",

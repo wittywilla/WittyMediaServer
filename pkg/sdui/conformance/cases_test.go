@@ -267,7 +267,57 @@ func movieData() Data {
 	m := film(3)
 	m.Tagline, m.Studio = "Home was the adventure.", "Example Pictures"
 	m.Progress, m.ResumeSec = 0.42, 2646
-	return Data{Subject: &m, Sources: []CannedSource{src(map[string]any{"type": "similar", "item": "103"}, films(9)[3:], 0)}}
+	return Data{Subject: &m, Sources: []CannedSource{src(map[string]any{"type": "similar", "item": "103"}, films(9)[3:], 0),
+		src(map[string]any{"type": "credits", "item": "103"}, filmCredits(4, 1), 0)}}
+}
+
+// person is someone in the cast (group cast or guests, part played) or crew (a department, the
+// job) as the credits source gives them. Every third has no picture: the card shows initials.
+func person(n int, group, line string) sdui.Item {
+	id := strconv.Itoa(700 + n)
+	it := sdui.Item{ID: "person-" + id + "-" + group, Kind: "person", Title: "Person " + strconv.Itoa(n), Subtitle: line, Group: group, Route: "/person/" + id, Images: map[string]string{}}
+	if n%3 != 0 {
+		it.Images["square"] = "/api/people/" + id + "/photo"
+	}
+	return it
+}
+
+// filmCredits are a cast of n, then crew: crewEach people in Directing and Writing, eight in
+// Art (more than a page of crew shows at first), one in Sound.
+func filmCredits(n, crewEach int) []sdui.Item {
+	var out []sdui.Item
+	for i := 1; i <= n; i++ {
+		out = append(out, person(i, "cast", "Character "+strconv.Itoa(i)))
+	}
+	k := n
+	for _, d := range []struct {
+		group, job string
+		count      int
+	}{{"directing", "Director", crewEach}, {"writing", "Screenplay", crewEach}, {"sound", "Original Music Composer", 1}, {"art", "Set Decoration", 8}} {
+		for j := 0; j < d.count; j++ {
+			k++
+			out = append(out, person(k, d.group, d.job))
+		}
+	}
+	return out
+}
+
+func personData() Data {
+	p := sdui.Item{ID: "person-701", Kind: "person", Title: "Ana Lima", Overview: "Ana Lima grew up by the sea and has acted in films and on television since 1990, and directed two films of her own.",
+		Born: "3 February 1970, Lisbon", KnownFor: "Acting", Route: "/person/701", Images: map[string]string{"poster": "/api/people/701/photo", "square": "/api/people/701/photo"}}
+	acting := films(5)
+	for i := range acting {
+		acting[i].Subtitle = acting[i].Subtitle + " · as Character " + strconv.Itoa(i+1)
+	}
+	directing := films(7)[5:]
+	for i := range directing {
+		directing[i].Subtitle = directing[i].Subtitle + " · Director"
+	}
+	return Data{Subject: &p, Each: map[string][]CannedEach{"personParts": {{Key: "acting", Label: "Acting"}, {Key: "directing", Label: "Directing"}}},
+		Sources: []CannedSource{
+			src(map[string]any{"type": "filmography", "person": "701", "part": "acting"}, acting, 0),
+			src(map[string]any{"type": "filmography", "person": "701", "part": "directing"}, directing, 0),
+		}}
 }
 
 func showData() Data {
@@ -280,6 +330,8 @@ func showData() Data {
 			{Match: map[string]any{"type": "episodes", "show": "1", "season": "1"}, Items: episodes(1, 1, 8)},
 			{Match: map[string]any{"type": "episodes", "show": "1"}, Items: episodes(1, 2, 40), Selected: "2"},
 			src(map[string]any{"type": "similar"}, shows(6)[1:], 0),
+			src(map[string]any{"type": "credits", "show": "1", "season": "2"}, append(filmCredits(3, 1), person(30, "guests", "Harbour master"), person(31, "guests", "Diver")), 0),
+			src(map[string]any{"type": "credits", "show": "1"}, filmCredits(3, 1), 0),
 		}}
 }
 
@@ -521,6 +573,34 @@ func cases() []kase {
 		{id: "detail-collection", title: "A collection's page", in: detail("detail-collection", "tablet", map[string]string{"collection": "12"},
 			Data{Subject: subject(sdui.Item{ID: "collection-12", Kind: "collection", Title: "Family film night", Overview: "Picked by everyone, vetoed by no one.", Count: 4, Can: []string{"share"}}),
 				Sources: []CannedSource{src(map[string]any{"type": "collection", "collection": "12"}, films(4), 0)}}, nil), checks: []string{"a compact header with a count", "the grid of what it holds"}},
+		{id: "detail-film-credits", title: "A film's cast and crew, more than fit at first", in: detail("detail", "desktop", map[string]string{"item": "103"}, func() Data {
+			d := movieData()
+			d.Sources[1] = src(map[string]any{"type": "credits", "item": "103"}, filmCredits(26, 2), 0)
+			return d
+		}(), nil),
+			checks: []string{"the Credits section comes right after the header", "twenty of the cast, then each department up to six people, in the catalogue's order",
+				"props.groups says each part's total and how many were sent", "a person without a picture has no image: draw their initials", "Show all asks props.more.url, which answers everyone in place (replace)"},
+			more: []SectionAnswer{{Section: "credits", Cursor: 0}}},
+		{id: "detail-show-season", title: "A show's page opened for one season, with that season's guest stars", in: detail("detail-show", "tablet", map[string]string{"show": "1", "season": "2"}, showData(), nil),
+			checks: []string{"the credits source is asked with the season", "guest stars follow the cast as a group of their own"}},
+		{id: "detail-episode-tv", title: "An episode's page on a television", in: detail("detail-episode", "tv", map[string]string{"item": "1205", "show": "1", "season": "2"}, func() Data {
+			ep := episodes(1, 2, 5)[4]
+			ep.Overview, ep.Can = "The harbour floods; the town finds out who kept the keys.", []string{"play", "watched", "share"}
+			return Data{Subject: &ep, Sources: []CannedSource{
+				src(map[string]any{"type": "credits", "item": "1205"}, append(filmCredits(3, 1), person(40, "guests", "Diver")), 0),
+				src(map[string]any{"type": "episodes", "show": "1", "season": "2"}, episodes(1, 2, 10), 0),
+			}}
+		}(), nil),
+			checks: []string{"the cast is the show's, then the episode's own guest stars", "the crew is the episode's", "the Credits section is one focus group after the header"}},
+		{id: "detail-person", title: "A person's page", in: detail("detail-person", "desktop", map[string]string{"person": "701"}, personData(), nil),
+			checks: []string{"a poster header: the photo, the name, Known for and Born as facts, the biography as the overview", "no buttons", "a row for each part of their work, titled Acting and Directing", "each title's subtitle says the year and the part"}},
+		{id: "detail-person-tv", title: "A person's page on a television", in: detail("detail-person", "tv", map[string]string{"person": "701"}, personData(), nil),
+			checks: []string{"the header takes no focus of its own when it has no buttons; focus starts on the first title"}},
+		{id: "detail-person-no-photo", title: "A person with no photo, on a phone", in: detail("detail-person", "phone", map[string]string{"person": "701"}, func() Data {
+			d := personData()
+			d.Subject.Images = map[string]string{}
+			return d
+		}(), nil), checks: []string{"no poster is sent: draw the person's initials in its place"}},
 		{id: "detail-missing", title: "A title that isn't there, or isn't this profile's to see", in: detail("detail", "phone", map[string]string{"item": "404"}, Data{}, nil),
 			checks: []string{"the server answers 404; there is no document"}},
 
@@ -530,11 +610,12 @@ func cases() []kase {
 			in := Input{Page: stock("search"), Request: request("desktop"), Data: Data{Each: homeData().Each, Sources: []CannedSource{
 				src(map[string]any{"type": "search", "library": "1"}, films(3), 0),
 				src(map[string]any{"type": "search", "library": "3"}, albums(1), 0),
-				src(map[string]any{"type": "search", "in": "channels"}, channels(1), 0)}}}
+				src(map[string]any{"type": "search", "in": "channels"}, channels(1), 0),
+				src(map[string]any{"type": "search", "in": "people"}, []sdui.Item{person(1, "", "Acting · 3 titles"), person(3, "", "Directing · 1 title")}, 0)}}}
 			in.Request.Vars = map[string]string{"query": "exam"}
 			in.Request.Flags = map[string]bool{"hasQuery": true}
 			return in
-		}(), checks: []string{"a row per library with matches, titled with the library's name", "libraries without matches are left out", "the box holds the query"}},
+		}(), checks: []string{"a row per library with matches, titled with the library's name", "libraries without matches are left out", "the box holds the query", "people whose names match, as person cards that open their page"}},
 
 		{id: "livetv-native-guide", title: "Live TV on a client with its own guide", in: func() Input {
 			in := Input{Page: stock("livetv"), Request: request("tv"), Data: homeData()}

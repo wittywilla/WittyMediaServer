@@ -44,11 +44,14 @@ type BrowseFilter struct {
 	AnimeOf, HideAnime bool
 	Watched            string // yes | no
 	Platform           string // a streaming service's key (needs listings on)
-	Sort               string // title | added | newest | oldest | rating | quality | shuffle
-	Desc               bool
-	Seed               int
-	Limit              int
-	Offset             int
+	// Person: only titles this person is credited on (a show: on the show or one of its
+	// episodes).
+	Person int64
+	Sort   string // title | added | newest | oldest | rating | quality | shuffle
+	Desc   bool
+	Seed   int
+	Limit  int
+	Offset int
 }
 
 // ParseBrowseFilter reads a filter from a request's query or a saved view.
@@ -60,7 +63,7 @@ func ParseBrowseFilter(q url.Values) BrowseFilter {
 	f := BrowseFilter{Library: int64(n("library")), Search: clip(q.Get("search"), 200), Genre: clip(q.Get("genre"), 100), Studio: clip(q.Get("studio"), 120), Network: clip(q.Get("network"), 120),
 		Year: n("year"), Decade: n("decade"), Content: clip(q.Get("content"), 20), Resolution: q.Get("resolution"), Audio: clip(q.Get("audio"), 12), Subtitle: clip(q.Get("subtitle"), 12), Format: clip(q.Get("format"), 40),
 		Tag: clip(q.Get("tag"), 60), Edition: clip(q.Get("edition"), 60), Series: clip(q.Get("series"), 120), Kind: q.Get("kind"), Disc: q.Get("disc"), Watched: q.Get("watched"), Platform: clip(q.Get("platform"), 80), Sort: q.Get("sort"), Desc: q.Get("desc") == "1",
-		Seed: n("seed"), Limit: n("limit"), Offset: n("offset")}
+		Seed: n("seed"), Limit: n("limit"), Offset: n("offset"), Person: int64(n("person"))}
 	if v, err := strconv.ParseFloat(q.Get("minRating"), 64); err == nil && v > 0 && v <= 10 {
 		f.MinRating = v
 	}
@@ -68,7 +71,7 @@ func ParseBrowseFilter(q url.Values) BrowseFilter {
 }
 
 // browseKeys are what a saved view can hold.
-var browseKeys = []string{"genre", "studio", "network", "year", "decade", "content", "minRating", "resolution", "audio", "subtitle", "format", "tag", "edition", "series", "kind", "disc", "watched", "platform", "sort", "desc", "search"}
+var browseKeys = []string{"genre", "studio", "network", "year", "decade", "content", "minRating", "resolution", "audio", "subtitle", "format", "tag", "edition", "series", "kind", "disc", "watched", "platform", "person", "sort", "desc", "search"}
 
 // CleanViewQuery keeps only what a saved view can hold, for storing.
 func CleanViewQuery(q url.Values) url.Values {
@@ -292,6 +295,10 @@ func (s *Store) Browse(ctx context.Context, f BrowseFilter, userID int64, access
 		iargs = append(iargs, region, f.Platform)
 		sw = append(sw, "EXISTS (SELECT 1 FROM listings l WHERE l.target = 'show' AND l.target_id = s.id AND l.region = ? AND l.platform_key = ?)")
 		sargs = append(sargs, region, f.Platform)
+	}
+	if f.Person > 0 {
+		both("EXISTS (SELECT 1 FROM credits c WHERE c.person_id = ? AND c.target = 'item' AND c.target_id = i.id)",
+			"EXISTS (SELECT 1 FROM credits c WHERE c.person_id = ? AND ((c.target = 'show' AND c.target_id = s.id) OR (c.target = 'item' AND c.target_id IN (SELECT e.id FROM items e WHERE e.show_id = s.id AND e.missing = 0))))", f.Person)
 	}
 
 	key := func(item, show string) (string, string) { return item, show }

@@ -451,6 +451,8 @@ func (r *renderer) route() string {
 		return "/library/" + v["library"]
 	case "detail":
 		switch {
+		case v["person"] != "":
+			return "/person/" + v["person"]
 		case v["collection"] != "":
 			return "/collections/" + v["collection"]
 		case v["album"] != "":
@@ -476,7 +478,7 @@ func (r *renderer) route() string {
 // pageParams are what the page was opened with, as a client sends them back.
 func (r *renderer) pageParams() map[string]string {
 	out := map[string]string{}
-	for _, k := range []string{"library", "item", "show", "season", "collection", "artist", "album"} {
+	for _, k := range []string{"library", "item", "show", "season", "collection", "artist", "album", "person"} {
 		if v := r.ctx.Vars[k]; v != "" {
 			out[k] = v
 		}
@@ -727,6 +729,8 @@ func (r *renderer) build(in instance, depth int) ([]Node, bool) {
 		ok = r.seasons(&n, in)
 	case "TrackList":
 		ok = r.tracks(&n, in)
+	case "Credits":
+		ok = r.credits(&n, in, false)
 	case "Banner":
 		ok = r.banner(&n, in)
 	case "DetailHeader":
@@ -1198,7 +1202,7 @@ func (r *renderer) hero(n *Node, in instance) bool {
 			case a == "details" && it.Route != "":
 				acts = append(acts, button("details", "More info", "info", false, &Action{Type: ActNavigate, To: it.Route}))
 			case a == "watchLater" && contains(it.Can, "watchLater"):
-				acts = append(acts, button("watchLater", "Watch later", "clock", false, &Action{Type: ActCommand, Op: "watchLater.add", Item: it.ID}))
+				acts = append(acts, watchLaterButton(it))
 			}
 		}
 		if len(acts) > 0 {
@@ -1211,6 +1215,19 @@ func (r *renderer) hero(n *Node, in instance) bool {
 		n.Children = append(n.Children, c)
 	}
 	return true
+}
+
+// watchLaterButton adds a title to Watch later, or, when it's there already, says so and
+// takes it off: a toggle, marked pressed, so a renderer can draw it as one.
+func watchLaterButton(it *Item) map[string]any {
+	if it.InWatchLater {
+		b := button("watchLater", "In Watch later", "check", false, &Action{Type: ActCommand, Op: "watchLater.remove", Item: it.ID})
+		b["pressed"] = true
+		return b
+	}
+	b := button("watchLater", "Watch later", "clock", false, &Action{Type: ActCommand, Op: "watchLater.add", Item: it.ID})
+	b["pressed"] = false
+	return b
 }
 
 func button(id, label, icon string, primary bool, a *Action) map[string]any {
@@ -1446,7 +1463,7 @@ func headerActions(it *Item, want []string) []any {
 				out = append(out, button("restart", "Play from the start", "play", false, &Action{Type: ActPlay, Item: play, Params: map[string]any{"resume": false}}))
 			}
 		case "watchLater":
-			out = append(out, button("watchLater", "Watch later", "clock", false, &Action{Type: ActCommand, Op: "watchLater.add", Item: it.ID}))
+			out = append(out, watchLaterButton(it))
 		case "watched":
 			if it.Watched {
 				out = append(out, button("watched", "Mark unwatched", "check", false, &Action{Type: ActCommand, Op: "watched.clear", Item: it.ID}))
@@ -1502,9 +1519,27 @@ func factsLine(it *Item, want []string) []any {
 			if it.Season > 0 || it.Episode > 0 {
 				add(f, fmt.Sprintf("S%d E%d", it.Season, it.Episode))
 			}
+		case "knownFor":
+			add(f, it.KnownFor)
+		case "born":
+			if it.Born != "" {
+				add(f, "Born "+it.Born)
+			}
+		case "died":
+			if it.Died != "" {
+				add(f, "Died "+it.Died)
+			}
 		}
 	}
 	return out
+}
+
+// titlesText is how many titles there are, in words: "1 title", "12 titles".
+func titlesText(n int) string {
+	if n == 1 {
+		return "1 title"
+	}
+	return strconv.Itoa(n) + " titles"
 }
 
 func countText(it *Item) string {
@@ -1807,6 +1842,7 @@ func (r *renderer) finishFilters(root *Node) {
 		if n.Type == "FilterBar" {
 			if t, ok := r.totals[propStr(n.Props, "target", "")]; ok && n.Props["showCount"] == true {
 				n.Props["count"] = t
+				n.Props["countText"] = titlesText(t)
 			}
 			delete(n.Props, "showCount")
 		}
@@ -1894,6 +1930,12 @@ func RenderSection(page Page, nodeID string, offset int, season string, ctx *Ren
 			limit = r.firstPage(in.sec.Component, in.sec.Props, in.sec.Source)
 		}
 		shown = r.collectionPage(&n, in, offset, limit, false)
+	case "Credits":
+		// Show all: everyone, in place of the first few of each part.
+		if offset == 0 {
+			shown = r.credits(&n, in, true)
+			out.Replace = true
+		}
 	case "SeasonList":
 		if season != "" {
 			src := Source{}
@@ -1979,6 +2021,109 @@ func (r *renderer) sourceSpec(t string) (*SourceSpec, bool) {
 		return s, true
 	}
 	return SourceType(t)
+}
+
+// credits fills a Credits section: the cast and the guest stars as person cards, then each crew
+// department's people, a few of each part (castLimit, crewLimit) unless all, with what each part
+// holds in props.groups and props.more for Show all.
+func (r *renderer) credits(n *Node, in instance, all bool) bool {
+	s, p := in.sec, in.sec.Props
+	res, _, err := r.ask(s.Source, in.each, 0, 500)
+	if errors.Is(err, ErrNotFound) {
+		r.err = err
+		return false
+	}
+	if err != nil {
+		n.State = "error"
+		n.Props["more"] = map[string]any{"url": r.moreURL(n.ID, 0)}
+		return true
+	}
+	parts := propList(p, "parts", defaultList("Credits", "parts"))
+	depts := propList(p, "departments", defaultList("Credits", "departments"))
+	order := []string{}
+	for _, part := range parts {
+		switch part {
+		case "cast", "guests":
+			order = append(order, part)
+		case "crew":
+			order = append(order, depts...)
+		}
+	}
+	byGroup := map[string][]*Item{}
+	for i := range res.Items {
+		it := &res.Items[i]
+		byGroup[it.Group] = append(byGroup[it.Group], it)
+	}
+	castLimit := propInt(p, "castLimit", 20)
+	if castLimit <= 0 {
+		castLimit = r.l.Budget.ShelfItems
+	}
+	crewLimit := propInt(p, "crewLimit", 6)
+	if crewLimit <= 0 {
+		crewLimit = 6
+	}
+	size := propStr(p, "cardSize", "m")
+	if r.ctx.Personal != nil && r.ctx.CanPersonalise && allows(r.page, "cardSize") {
+		if ps := r.ctx.Personal.CardSize[in.id]; contains(CardSizes, ps) {
+			size = ps
+		}
+	}
+	var groups []any
+	truncated, total := false, 0
+	for _, g := range order {
+		list := byGroup[g]
+		if len(list) == 0 {
+			continue
+		}
+		limit := crewLimit
+		if g == "cast" || g == "guests" {
+			limit = castLimit
+		}
+		shown := len(list)
+		if !all && shown > limit {
+			shown, truncated = limit, true
+		}
+		label := g
+		for _, o := range CreditGroups {
+			if o.Value == g {
+				label = o.Label
+			}
+		}
+		role := "crew"
+		if g == "cast" || g == "guests" {
+			role = g
+		}
+		groups = append(groups, map[string]any{"id": g, "label": label, "role": role, "total": len(list), "shown": shown})
+		total += len(list)
+		for _, it := range list[:shown] {
+			c := r.card(n.ID, "person", size, it, s.Source)
+			c.Props["group"] = g
+			n.Children = append(n.Children, c)
+		}
+	}
+	if len(groups) == 0 {
+		if propStr(p, "empty", "hide") == "message" {
+			n.State = "empty"
+			return true
+		}
+		return false
+	}
+	r.eager++
+	if t := r.fill(propStr(p, "title", "Cast and crew"), in.each, s.Source); t != "" {
+		n.Props["title"] = Truncate(t, r.l.TextLimits.Title)
+	}
+	m := r.l.Cards["person"]
+	card := map[string]any{"width": m.Width[size], "shape": m.Shape}
+	if m.Aspect != "" {
+		card["height"], card["aspect"] = aspectHeight(m.Width[size], m.Aspect), m.Aspect
+	}
+	n.Props["cardStyle"], n.Props["cardSize"], n.Props["card"] = "person", size, card
+	n.Props["groups"], n.Props["total"] = groups, total
+	r.totals[in.id] = total
+	if truncated {
+		n.Props["more"] = map[string]any{"url": r.moreURL(n.ID, 0), "label": "Show all"}
+	}
+	return true
 }
 
 // obj is a map-valued prop, nil when it isn't one.

@@ -808,6 +808,10 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			s.Log.WarnContext(ctx, "could not update studios and networks", "library", lib.Name, "err", err)
 		}
 		s.fillAudioFormats(ctx, libraryID)
+		s.fillCredits(ctx, lib)
+		if err := s.Store.PrunePeople(ctx); err != nil && ctx.Err() == nil {
+			s.Log.WarnContext(ctx, "could not forget people no title names", "library", lib.Name, "err", err)
+		}
 		if s.OnScanned != nil {
 			s.OnScanned()
 		}
@@ -919,13 +923,16 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		}
 	}
 	nfoSource := SourceNFO
-	for _, nfo := range []string{filepath.Join(dir, base+".nfo"), filepath.Join(dir, "movie.nfo"), filepath.Join(filepath.Dir(c.path), filepath.Base(c.path)+".nfo")} {
+	for _, nfo := range filmNFOs(c.path, dir, base) {
 		if applyNFO(it, nfo) {
 			if nfoIsOurs(nfo) {
 				nfoSource = SourceSaved
 			}
 			break
 		}
+	}
+	if _, read := it.credits[CreditsNFO]; !read {
+		it.credits.set(CreditsNFO, nil) // no NFO (any more): it names nobody
 	}
 	for _, sc := range []string{c.path + ".metadata.json", filepath.Join(dir, base+".metadata.json"), filepath.Join(dir, "metadata.json")} {
 		if applySidecarJSON(it, sc) {
@@ -997,6 +1004,11 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		s.Store.markRuleExtra(ctx, it, rule.Extra)
 	}
 	return nil
+}
+
+// filmNFOs are where a film's NFO may be, in the order they're believed.
+func filmNFOs(path, dir, base string) []string {
+	return []string{filepath.Join(dir, base+".nfo"), filepath.Join(dir, "movie.nfo"), filepath.Join(filepath.Dir(path), filepath.Base(path)+".nfo")}
 }
 
 // lookUpItem asks the online sources about a new or changed file: the owner's own agents
@@ -1231,6 +1243,7 @@ func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
 		tags = append(tags, v.Tags)
 	}
 	it.recIDs = recordingIDs(tags)
+	it.credits.set(CreditsTags, creditsFromTags(p.Format.Tags))
 	if v := p.Video(); v != nil {
 		it.VideoCodec = v.CodecName
 		it.Width, it.Height = v.DisplaySize()

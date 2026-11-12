@@ -1,0 +1,21 @@
+{"status": "success", "data": {"id": 81189, "name": "Harbour Watch", "year": "2010", "firstAired": "2010-01-01", "overview": "Two neighbours run a harbour.",
+ "image": "https://artworks.thetvdb.com/banners/posters/81189-1.jpg", "status": {"name": "Ended"}, "originalNetwork": {"name": "Coast TV"},
+ "genres": [{"name": "Drama"}], "artworks": [], "seasons": [],
+ "characters": [
+  {"id": 1001, "name": "Harbourmaster", "peopleId": 7001, "seriesId": 81189, "series": null, "movie": null, "movieId": null, "episodeId": null, "type": 3,
+   "image": "https://artworks.thetvdb.com/banners/characters/harbourmaster.jpg", "sort": 1, "isFeatured": true, "url": "https://thetvdb.com/people/7001",
+   "nameTranslations": null, "overviewTranslations": null, "aliases": null, "peopleType": "Actor", "personName": "Ana Lima",
+   "tagOptions": null, "personImgURL": "https://artworks.thetvdb.com/banners/person/7001/ana.jpg"},
+  {"id": 1002, "name": "Diver", "peopleId": 7002, "seriesId": 81189, "episodeId": null, "type": 3, "image": "", "sort": 2, "isFeatured": false,
+   "peopleType": "Actor", "personName": "Jon Reef", "personImgURL": ""},
+  {"id": 1003, "name": "Smuggler", "peopleId": 7003, "seriesId": 81189, "episodeId": 5551, "type": 4, "image": "", "sort": 0,
+   "peopleType": "Guest Star", "personName": "Gus Visitor", "personImgURL": "https://artworks.thetvdb.com/banners/person/7003/gus.jpg"},
+  {"id": 1004, "name": null, "peopleId": 7004, "seriesId": 81189, "episodeId": null, "type": 1, "image": "", "sort": 0,
+   "peopleType": "Director", "personName": "Rafa Helm", "personImgURL": ""},
+  {"id": 1005, "name": null, "peopleId": 7005, "seriesId": 81189, "episodeId": null, "type": 6, "image": "", "sort": 0,
+   "peopleType": "Creator", "personName": "Cleo Quill", "personImgURL": ""},
+  {"id": 1006, "name": null, "peopleId": 7006, "seriesId": 81189, "episodeId": null, "type": 11, "image": "", "sort": 0,
+   "peopleType": "Executive Producer", "personName": "Max Funds", "personImgURL": ""},
+  {"id": 1007, "name": null, "peopleId": 7007, "seriesId": 81189, "episodeId": 5551, "type": 2, "image": "", "sort": 0,
+   "peopleType": "Writer", "personName": "Wren Scribe", "personImgURL": ""}
+ ]}}

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!-- A Kodi movie.nfo as Kodi 20 writes it, cut down; the people are made up. -->
+<movie>
+    <title>Lantern Bay</title>
+    <originaltitle>Lantern Bay</originaltitle>
+    <year>2011</year>
+    <plot>A lighthouse keeper and a ferryman.</plot>
+    <uniqueid type="tmdb" default="true">7</uniqueid>
+    <uniqueid type="imdb">tt0000007</uniqueid>
+    <genre>Drama</genre>
+    <credits>Wren Scribe</credits>
+    <credits>Dee Rector</credits>
+    <director>Dee Rector / Sam Second</director>
+    <producer>Pat Money</producer>
+    <actor>
+        <name>Ana Lima</name>
+        <role>Keeper</role>
+        <order>0</order>
+        <thumb>https://image.tmdb.org/t/p/original/ana.jpg</thumb>
+        <tmdbid>101</tmdbid>
+    </actor>
+    <actor>
+        <name>Tomas Reyes</name>
+        <role>Ferryman</role>
+        <role>Narrator</role>
+        <order>1</order>
+    </actor>
+    <actor>
+        <name>Mei Okafor</name>
+        <role>Mayor</role>
+    </actor>
+</movie>

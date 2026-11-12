@@ -21,3 +21,16 @@ Not done / not verified:
 - Hero peek (phone swipe), the TV "Dock reached by Start" on the SDUI page, and Back-ladder wiring inside TvFrame (it uses `backStep`, the Dock step is in `ui/shortcuts.ts`) are not exercised.
 - Fallback/legacy still present, per owner's "no legacy" rule: `TV_TABS` and the no-menu path in `tvmode/TvFrame.tsx`, the no-sets/no-paging branches in `pages/tv/GuidePage.tsx` (S6's logic), the games/reader pad map (`ownPad()` in `tv.ts`; games pages read the old buttons by key).
 - Desktop (Electron) needs no change: it loads the web.
+## Design 2 (W3): Apple apps
+
+Merged into the client's `v0.8.0-alpha` (client `3d48fe9`). Checked: `swift test` in apple/WittyKit 644 tests green (SDUI conformance 85 of 85 with the fixtures required), tvOS and iOS simulator builds clean; one real run of the tvOS app on the Apple TV simulator against a scratch server (generated media): Home with the top pills, billboard, the concentric focus ring on Play, shelf with peek.
+
+Built: `scripts/gen-design-tokens.py` (strict, `--check`; writes `DesignTokens.generated.swift` and the Android `.kt`) and the pure rules `InputRules.swift` (key map from the `input` tokens, Back ladder, zones, focus memory, spatial scoring from `nav.weights`, letter jump, paging, density), `TvGeometry.swift` (peek widths, concentric ring). Theme: `focus`, ten-foot ring colour, `tvText`, `heroScrim` read from `/theme`. tvOS: one focus language (`TvFocus.swift`: ring + 1.06 lift, no system tilt), tokens in `Tokens`/`Metrics`, top pills from the tokens (no own-tab fallback), shelf peek and See all card from the page, Options key on cards (long OK context menu and Play/Pause). WittyTV guide: the strip under the grid is now the Dock (Look, Day, Channels, Filter, Recordings, Record) with sheets and the key legend; player: Left mini guide, Right Dock (seek, audio, subtitles, Look). iPad/Mac/visionOS: keyboard shortcuts (Cmd or Ctrl+K search, Ctrl+[ and ] tabs, Cmd+[ back) and a key focus ring from the tokens. S3 landed the SDUI Dock/control.open at the same time; theirs stands, mine was dropped in the merge.
+
+Known issues / not verified:
+- The simulator's keyboard could not drive the tvOS remote, so Dock, grid focus, the guide Dock and the player Dock were built and compiled but not seen running; no screenshots of them. Files: App/TvGuide.swift (`dock`), App/TvGuideDock.swift, App/TvChannel.swift, App/TvChannelDock.swift.
+- Banner record dot, player Quality button and per-button key glyphs on the WittyTV Dock are not done (no live-quality API found; glyphs only in the legend).
+- Gamepad Y (search) and Start (Dock) are not wired on tvOS; the options key is Play/Pause or long OK.
+- macOS and visionOS targets not built (only tvOS and iOS). Density (compact/spacious) is in WittyKit but no screen reads it yet.
+- Guide `TvStyle` ring has no gap off the thing (look identity kept); Settings only takes the new ring colour/scale.
+- Generated ffmpeg test clips of 20 s and 130 s with 8-12 fps from my own commands were not indexed by the scratch server (copied clips were); cause not found.

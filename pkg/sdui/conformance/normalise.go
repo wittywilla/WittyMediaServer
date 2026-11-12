@@ -464,7 +464,9 @@ func (n *normaliser) element(x *sdui.Node, depth int, parent *sdui.Node) Element
 			m, _ := f.(map[string]any)
 			e.Buttons = append(e.Buttons, str(m, "label")+": "+firstNonEmpty(optionLabel(m, str(m, "value")), "Any"))
 		}
-		if c, ok := num(p, "count"); ok {
+		if t := str(p, "countText"); t != "" {
+			text("count", t)
+		} else if c, ok := num(p, "count"); ok {
 			text("count", strconv.Itoa(int(c))+" titles")
 		}
 	case "Dock":
@@ -515,6 +517,35 @@ func (n *normaliser) element(x *sdui.Node, depth int, parent *sdui.Node) Element
 	case "TrackList":
 		e.Role, e.Label = "list", "Tracks"
 		e.Cards = intp(len(x.Children))
+	case "Credits":
+		// The cast's and the guest stars' cards in rows, then each department's people; the
+		// parts in order with how many of each were sent, and Show all when there are more.
+		e.Role, e.Label = "region", str(p, "title")
+		e.Cards = intp(len(x.Children))
+		text("title", str(p, "title"))
+		lines("title", 1)
+		e.TextSize = n.l.Text["heading"]
+		var parts []string
+		for _, g := range list(p, "groups") {
+			m, _ := g.(map[string]any)
+			shown, _ := num(m, "shown")
+			total, _ := num(m, "total")
+			part := str(m, "label") + " " + strconv.Itoa(int(shown))
+			if total > shown {
+				part += " of " + strconv.Itoa(int(total))
+			}
+			parts = append(parts, part)
+		}
+		text("groups", strings.Join(parts, " · "))
+		if c := obj(p, "card"); c != nil {
+			w, _ := num(c, "width")
+			h, _ := num(c, "height")
+			e.CardStyle, e.CardWidth, e.CardHeight = "person", int(w), int(h)
+		}
+		if m := obj(p, "more"); m != nil {
+			e.HasMore = true
+			e.Buttons = []string{firstNonEmpty(str(m, "label"), "Show all")}
+		}
 	case "Track":
 		e.Role = "button"
 		parts := []string{}

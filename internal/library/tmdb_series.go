@@ -18,7 +18,8 @@ func (t *tmdbSeries) Series(ctx context.Context, id string) (*SeriesMeta, error)
 		return nil, err
 	}
 	return &SeriesMeta{ID: d.ID, Title: d.Title, Year: d.Year, Overview: d.Overview, Genres: d.Genres, Rating: d.Rating, ContentRating: d.ContentRating,
-		Network: d.Network, Status: d.Status, Poster: d.Poster, Backdrop: d.Backdrop, SeasonPosters: d.SeasonPosters, Posters: d.Posters, Backdrops: d.Backdrops}, nil
+		Network: d.Network, Status: d.Status, Poster: d.Poster, Backdrop: d.Backdrop, SeasonPosters: d.SeasonPosters, Posters: d.Posters, Backdrops: d.Backdrops,
+		Credits: d.Credits, CreditsRead: d.CreditsRead, EpisodeCredits: d.EpisodeCredits}, nil
 }
 
 func (t *tmdbSeries) FindSeries(ctx context.Context, name string, year *int) (*SeriesMeta, error) {

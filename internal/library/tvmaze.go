@@ -115,6 +115,8 @@ type mazeShow struct {
 		Days []string `json:"days"`
 	} `json:"schedule"`
 	Image *mazeImage `json:"image"`
+	// The cast and crew, when they were asked for (mazeShowQuery).
+	Embedded *mazeEmbedded `json:"_embedded"`
 }
 
 type mazeImage struct {
@@ -167,12 +169,15 @@ func (t *TVMaze) FindSeries(ctx context.Context, name string, year *int) (*Serie
 // Series reads one show with its artwork and season posters.
 func (t *TVMaze) Series(ctx context.Context, id string) (*SeriesMeta, error) {
 	var sh mazeShow
-	if err := t.get(ctx, "/shows/"+url.PathEscape(id), &sh); err != nil {
+	if err := t.get(ctx, "/shows/"+url.PathEscape(id)+mazeShowQuery, &sh); err != nil {
 		return nil, err
 	}
 	m := &SeriesMeta{ID: strconv.Itoa(sh.ID), Title: sh.Name, Year: yearOf(sh.Premiered), Overview: plain(sh.Summary),
 		Genres: sh.Genres, Rating: sh.Rating.Average, Poster: sh.Image.best(), SeasonPosters: map[int]string{},
 		AirDays: sh.Schedule.Days, AirTime: sh.Schedule.Time}
+	if sh.Embedded != nil {
+		m.Credits, m.CreditsRead = sh.Embedded.people(), true
+	}
 	switch sh.Status {
 	case "Running":
 		m.Status = "Continuing"

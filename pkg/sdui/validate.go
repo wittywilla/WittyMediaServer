@@ -499,6 +499,9 @@ func (v *validator) repeat(s *Section, sp string, depth int, parent string) {
 	if (rp.Over == "bookSeries" || rp.Over == "bookAuthors") && v.page != nil && v.page.Kind != "library" {
 		v.err(sp+"/repeat/over", "Use it on a library page, or repeat over libraries.", "%s goes over the page's books library, so it works only on a library page", rp.Over)
 	}
+	if rp.Over == "personParts" && v.page != nil && v.page.Kind != "detail" {
+		v.err(sp+"/repeat/over", "Use it on a person's page (a detail page matching mediaKind person).", "personParts goes over the page's person, so it works only on a detail page")
+	}
 	if rp.Limit < 0 || rp.Limit > 50 {
 		v.err(sp+"/repeat/limit", "", "a repeat's limit is between 0 and 50")
 	}

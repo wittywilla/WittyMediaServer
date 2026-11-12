@@ -71,6 +71,12 @@ type SeriesMeta struct {
 	Backdrops []string
 	// Wide banners and the title as a picture, where the service has them.
 	Banners, Logos []string
+	// The show's people, when the service was asked for them (CreditsRead), and the guest
+	// stars and crew of its episodes by the service's episode id, when it names them with
+	// the show (nil when it doesn't; an episode it names nobody in is simply not there).
+	Credits        []CreditIn
+	CreditsRead    bool
+	EpisodeCredits map[string][]CreditIn
 }
 
 // EpisodeMeta is one episode from the default (aired) order.
@@ -83,6 +89,9 @@ type EpisodeMeta struct {
 	Aired      string
 	RuntimeMin int
 	Image      string
+	// The episode's own guest stars and crew, when the service was asked for them.
+	Credits     []CreditIn
+	CreditsRead bool
 }
 
 // Name identifies the source in saved metadata.
@@ -330,6 +339,7 @@ func (t *TVDB) Series(ctx context.Context, id string) (*SeriesMeta, error) {
 				} `json:"type"`
 				Image string `json:"image"`
 			} `json:"seasons"`
+			Characters []tvdbCharacter `json:"characters"`
 		} `json:"data"`
 	}
 	if err := t.get(ctx, "/series/"+url.PathEscape(id)+"/extended", url.Values{"short": {"false"}}, &out); err != nil {
@@ -337,6 +347,8 @@ func (t *TVDB) Series(ctx context.Context, id string) (*SeriesMeta, error) {
 	}
 	d := out.Data
 	m := &SeriesMeta{ID: id, Title: d.Name, Poster: d.Image, SeasonPosters: map[int]string{}}
+	m.Credits, m.EpisodeCredits = tvdbPeople(d.Characters)
+	m.CreditsRead = true
 	if d.Overview != nil {
 		m.Overview = *d.Overview
 	}

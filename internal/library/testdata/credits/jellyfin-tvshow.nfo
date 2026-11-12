@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!-- A tvshow.nfo as Jellyfin writes it, cut down; the people are made up. -->
+<tvshow>
+  <plot><![CDATA[Two neighbours run a harbour.]]></plot>
+  <lockdata>false</lockdata>
+  <title>Harbour Watch</title>
+  <year>2010</year>
+  <director>Rafa Helm</director>
+  <writer>Cleo Quill</writer>
+  <credits>Cleo Quill</credits>
+  <tvdbid>81189</tvdbid>
+  <uniqueid type="tvdb" default="true">81189</uniqueid>
+  <actor>
+    <name>Ana Lima</name>
+    <role>Harbourmaster</role>
+    <type>Actor</type>
+    <sortorder>0</sortorder>
+    <thumb>https://image.example.test/ana.jpg</thumb>
+    <uniqueid type="tmdb">101</uniqueid>
+  </actor>
+  <actor>
+    <name>Jon Reef</name>
+    <role>Diver</role>
+    <type>Actor</type>
+    <sortorder>1</sortorder>
+  </actor>
+  <actor>
+    <name>Lou Notes</name>
+    <type>Composer</type>
+  </actor>
+</tvshow>

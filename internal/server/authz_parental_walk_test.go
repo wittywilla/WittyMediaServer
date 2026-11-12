@@ -43,7 +43,9 @@ var idSpaces = map[string]string{
 	"/api/items/{id}":       "item", "/api/media/{id}": "item", "/api/games/{id}": "item", "/api/cd/{id}": "item", "/api/radio/{id}": "item",
 	"/api/videos/{id}": "item", "/api/photos/{id}": "item", "/api/music/extras/{id}": "item", "/api/music/loudness/{id}": "item",
 	"/api/music/links/{id}": "item", "/api/music/lyrics/{id}": "item", "/api/music/radio/{id}": "item", "/api/rigs/games/{id}": "item",
-	"/api/shows/{id}":         "show",
+	"/api/shows/{id}": "show",
+	// A person: called with every person there is, as "other" numbers are.
+	"/api/people/{id}":        "person",
 	"/api/meta/{target}/{id}": "target",
 	"/api/collections/{id}":   "other", "/api/photos/albums/{id}": "other", "/api/creators/{id}": "other", "/api/hls/{id}": "other",
 	"/api/logos/{id}": "other", "/api/licenses/{id}": "other", "/api/libraries/{id}": "other", "/api/users/{id}": "other",
@@ -80,6 +82,7 @@ type walkFixture struct {
 	collection int64 // a shared collection of everything hidden
 	album      int64 // a shared album of the hidden photo
 	creator    int64
+	people     []string  // every person credited, on hidden titles and on fine ones
 	tv         string    // the owner's TV, playing what is hidden
 	room       partyRoom // the owner's watch party, watching it
 
@@ -163,6 +166,9 @@ func newWalkFixture(t *testing.T) *walkFixture {
 				}
 			}
 			ts.item(t, it)
+			if k.typ == "movies" || k.typ == "shows" {
+				f.credit(t, it, side.word, side.hidden)
+			}
 			if k.typ == "videos" {
 				res, err := ts.DB.ExecContext(ctx, `INSERT INTO creators(library_id, key, name, added_at, updated_at) VALUES(?, ?, ?, 1, 1)`, side.lib, side.word, side.word+" creator")
 				if err != nil {
@@ -219,7 +225,50 @@ func newWalkFixture(t *testing.T) *walkFixture {
 		}
 	}
 	f.sourcesPage(t)
+	rows, err := ts.DB.QueryContext(ctx, `SELECT id FROM people`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		f.people = append(f.people, fmt.Sprint(id))
+	}
 	return f
+}
+
+// credit names people in a film or an episode and its show. A hidden title has someone in it
+// nowhere else, with the word in their name, and someone who is also in the fine title of the same
+// kind, playing a part with the word in it there; a limited profile must find neither the first
+// person nor that part.
+func (f *walkFixture) credit(t *testing.T, it *library.Item, word string, hidden bool) {
+	t.Helper()
+	ctx := context.Background()
+	shared := library.CreditIn{Name: "Shared Star", IDs: library.PersonIDs{TMDB: "4242"}, Role: library.RoleCast, Character: word + " part"}
+	only := []library.CreditIn{
+		{Name: word + " Actor", Role: library.RoleCast, Character: word + " lead"},
+		{Name: word + " Designer", Role: library.RoleCrew, Department: "Art", Job: "Set Decoration"},
+	}
+	if !hidden {
+		only = nil
+	}
+	if it.ShowID != nil {
+		guest := shared
+		guest.Role = library.RoleGuest
+		if err := f.ts.Store.SetCredits(ctx, library.TargetItem, it.ID, library.CreditsTMDB, append(only, guest)); err != nil {
+			t.Fatal(err)
+		}
+		if err := f.ts.Store.SetCredits(ctx, library.TargetShow, *it.ShowID, library.CreditsTVDB, []library.CreditIn{{Name: word + " Regular", Role: library.RoleCast, Character: word + " captain"}}); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	if err := f.ts.Store.SetCredits(ctx, library.TargetItem, it.ID, library.CreditsNFO, append(only, shared)); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // sourcesPage is a page of every source that answers from someone's own past (what they
@@ -370,6 +419,10 @@ func (f *walkFixture) walkTargets(t *testing.T, route string) (targets []string,
 		}
 	case "show":
 		ids = []id{{"show", shows[0]}}
+	case "person":
+		for _, x := range f.people {
+			ids = append(ids, id{"", x})
+		}
 	case "target":
 		for _, x := range items {
 			ids = append(ids, id{"item", x})

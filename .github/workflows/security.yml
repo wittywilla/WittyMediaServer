@@ -37,8 +37,11 @@ jobs:
           node-version: 24
       - name: web placeholder (the server embeds web/dist)
         run: mkdir -p web/dist && touch web/dist/.gitkeep
+      # As in ci.yml: scripts/vulncheck says what it accepts, and why.
       - name: govulncheck
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./internal/... ./cmd/...
+        run: |
+          set -o pipefail
+          go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 -format json ./internal/... ./cmd/... | go run ./scripts/vulncheck
       - name: npm audit
         run: cd web && npm audit --audit-level=high
       - name: Downloaded modules are what go.sum says

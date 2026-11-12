@@ -210,6 +210,7 @@ export function PageRoutes() {
       <Route path="/couch/:id" element={<Suspense fallback={<Spinner />}><CouchHostPage /></Suspense>} />
       <Route path="/collections" element={<SduiRoute fallback={<Suspense fallback={<Spinner />}><CollectionsPage /></Suspense>} />} />
       <Route path="/collections/:id" element={<SduiRoute fallback={<Suspense fallback={<Spinner />}><CollectionPage /></Suspense>} />} />
+      <Route path="/person/:id" element={<SduiRoute fallback={<NotFound />} loading={<RouteSkeleton />} />} />
       <Route path="/review" element={<Suspense fallback={<Spinner />}><ReviewPage /></Suspense>} />
       <Route path="/watch/:id" element={<Suspense fallback={<Spinner />}><WatchPage /></Suspense>} />
       <Route path="/creator/:id" element={<Suspense fallback={<Spinner />}><CreatorPage /></Suspense>} />

@@ -10,7 +10,9 @@ import (
 
 // CatalogRevision counts changes to the catalogue within one SchemaVersion. Every renderer
 // draws every component of the current revision: there is no negotiation and no fallback.
-const CatalogRevision = 4
+// 5 added cast and crew: the Credits component, the credits and filmography sources, people
+// in search, the person page.
+const CatalogRevision = 5
 
 // Property types, as an editor needs them to build a form.
 const (

@@ -193,6 +193,8 @@ type nfoMovieOut struct {
 	Fanart    *struct {
 		Thumb string `xml:"thumb"`
 	} `xml:"fanart,omitempty"`
+	nfoCrewOut
+	Actors []nfoActorOut `xml:"actor"`
 }
 
 type nfoEpisodeOut struct {
@@ -206,6 +208,8 @@ type nfoEpisodeOut struct {
 	Runtime   int           `xml:"runtime,omitempty"`
 	Rating    float64       `xml:"rating,omitempty"`
 	UniqueIDs []nfoUniqueID `xml:"uniqueid"`
+	nfoCrewOut
+	Actors []nfoActorOut `xml:"actor"`
 }
 
 type nfoShowOut struct {
@@ -221,6 +225,8 @@ type nfoShowOut struct {
 	Status       string        `xml:"status,omitempty"`
 	UniqueIDs    []nfoUniqueID `xml:"uniqueid"`
 	TVDBIDCompat string        `xml:"tvdbid,omitempty"`
+	nfoCrewOut
+	Actors []nfoActorOut `xml:"actor"`
 }
 
 func deref(p *int) int {
@@ -264,13 +270,17 @@ func (s *Scanner) SaveItemMetadata(ctx context.Context, it *Item) error {
 	if it.ProviderID != "" && it.Provider != "" {
 		ids = append(ids, nfoUniqueID{Type: it.Provider, Default: true, ID: it.ProviderID})
 	}
+	actors, crew, err := s.Store.nfoPeopleOfItem(ctx, it)
+	if err != nil {
+		errs = append(errs, err) // the rest is still worth writing
+	}
 	var doc any
 	if it.ShowID != nil {
 		doc = nfoEpisodeOut{Title: it.Title, ShowTitle: it.ShowTitle, Season: deref(it.Season), Episode: deref(it.Episode),
-			Plot: it.Overview, Aired: it.Aired, Runtime: int(it.RuntimeSec / 60), Rating: derefF(it.Rating), UniqueIDs: ids}
+			Plot: it.Overview, Aired: it.Aired, Runtime: int(it.RuntimeSec / 60), Rating: derefF(it.Rating), UniqueIDs: ids, nfoCrewOut: crew, Actors: actors}
 	} else {
 		m := nfoMovieOut{Title: it.Title, Year: deref(it.Year), Plot: it.Overview, Tagline: it.Tagline, Runtime: int(it.RuntimeSec / 60),
-			MPAA: it.ContentRating, Rating: derefF(it.Rating), Genres: it.Genres, Studio: it.Studio, UniqueIDs: ids}
+			MPAA: it.ContentRating, Rating: derefF(it.Rating), Genres: it.Genres, Studio: it.Studio, UniqueIDs: ids, nfoCrewOut: crew, Actors: actors}
 		if it.SortTitle != "" && it.SortTitle != it.Title {
 			m.SortTitle = it.SortTitle
 		}
@@ -322,8 +332,12 @@ func (s *Scanner) SaveShowMetadata(ctx context.Context, sh *Show) error {
 			}
 		}
 	}
+	actors, crew, err := s.Store.nfoPeopleOfShow(ctx, sh)
+	if err != nil {
+		errs = append(errs, err)
+	}
 	doc := nfoShowOut{Title: sh.Title, Year: deref(sh.Year), Plot: sh.Overview, MPAA: sh.ContentRating, Rating: derefF(sh.Rating),
-		Genres: sh.Genres, Studio: sh.Network, Status: sh.Status}
+		Genres: sh.Genres, Studio: sh.Network, Status: sh.Status, nfoCrewOut: crew, Actors: actors}
 	if sh.SortTitle != "" && sh.SortTitle != sh.Title {
 		doc.SortTitle = sh.SortTitle
 	}

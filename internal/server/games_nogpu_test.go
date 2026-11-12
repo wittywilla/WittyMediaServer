@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -27,7 +28,7 @@ import (
 
 // What the runner answers on a Mac, and on Linux with only a software OpenGL.
 const (
-	macNoGPU   = "this server has no usable graphics card for this game: hardware-rendered games run on Windows and Linux servers"
+	macNoGPU   = "this server has no usable graphics card for this game: hardware-rendered games run on Windows, Linux and macOS servers"
 	llvmpipeNo = "this server has no usable graphics card for this game (OpenGL here is only llvmpipe)"
 )
 
@@ -39,9 +40,11 @@ func TestGPUMissingSaysWhy(t *testing.T) {
 		want string
 	}{
 		{"a card", stream.GPUProbe{Name: "Apple M3 Pro"}, "darwin", ""},
-		{"the runner said no, on a Mac", stream.GPUProbe{Error: macNoGPU}, "darwin", gpuPlatformReason},
+		{"the runner said no, on FreeBSD", stream.GPUProbe{Error: macNoGPU}, "freebsd", gpuPlatformReason},
 		{"the runner said no, on Linux", stream.GPUProbe{Error: llvmpipeNo}, "linux", "OpenGL here is only llvmpipe"},
-		{"no answer yet, on a Mac", stream.GPUProbe{Checking: true}, "darwin", gpuPlatformReason},
+		// A Mac's runner draws on its card (CGL): until it answers, a game may try, as on Linux.
+		// This once said there was no card, for the first seconds after the server started.
+		{"no answer yet, on a Mac", stream.GPUProbe{Checking: true}, "darwin", ""},
 		{"couldn't ask, on FreeBSD", stream.GPUProbe{Error: "the runner could not check: exit status 1", Again: true}, "freebsd", gpuPlatformReason},
 		{"no answer yet, on Linux", stream.GPUProbe{}, "linux", ""},
 		{"couldn't ask, on Windows", stream.GPUProbe{Error: "the runner could not check: exit status 1", Again: true}, "windows", ""},
@@ -114,19 +117,23 @@ func gameFile(t *testing.T, name string, data []byte) string {
 }
 
 // The cores are placed, never loaded: anything that got as far as the runner would fail
-// with 500 on the runner that isn't there. 3DS and Dreamcast cores have no way to draw
-// without a card.
+// with 500 on the runner that isn't there. GameCube and Dreamcast cores have no way to draw
+// without a card; the 3DS's Azahar draws with its own software renderer.
 func TestGPUGameSaysNotOnThisServerEverywhere(t *testing.T) {
 	modtest.Need(t, "wittyplay")
 	t.Setenv("WMS_WITTYPLAY_RUNNER", filepath.Join(t.TempDir(), "no-such-runner"))
 	g := newGameServer(t)
 	setGPU(g, stream.GPUProbe{Error: macNoGPU})
-	placeCores(t, g, "azahar", "fceumm")
+	placeCores(t, g, "dolphin", "fceumm", "azahar")
+	gc := addGame(t, g, "gc", gameFile(t, "Game.iso", gameCubeDisc()))
 	threeDS := addGame(t, g, "3ds", gameFile(t, "Game.3ds", plainCCI()))
 	nes := addGame(t, g, "nes", gameFile(t, "Game.nes", append([]byte("NES\x1a\x01\x01"), make([]byte, 16384+8192)...)))
 
 	// The game's page.
-	a := checkGame(t, g, threeDS.ID)
+	if a := checkGame(t, g, threeDS.ID); !a.Ready || !a.Software || a.Core == nil || a.Core.ID != "azahar" {
+		t.Errorf("a 3DS game, drawn by the processor: %+v", a)
+	}
+	a := checkGame(t, g, gc.ID)
 	if a.Ready || a.Reason != "gpu" || !a.NeedsGPU || a.GPUMissing != gpuPlatformReason || a.Core != nil {
 		t.Fatalf("check: %+v", a)
 	}
@@ -140,7 +147,10 @@ func TestGPUGameSaysNotOnThisServerEverywhere(t *testing.T) {
 	// The console list, for anyone: with a core installed, with none, and older consoles.
 	for _, tok := range []string{g.admin, g.other} {
 		cs := consolesByID(t, g, tok)
-		if c := cs["3ds"]; c.Ready || c.Reason != "gpu" || c.Message != gpuMessage("Nintendo 3DS", gpuPlatformReason) || c.GPUMissing != gpuPlatformReason {
+		if c := cs["gc"]; c.Ready || c.Reason != "gpu" || c.Message != gpuMessage("Nintendo GameCube", gpuPlatformReason) || c.GPUMissing != gpuPlatformReason {
+			t.Errorf("gc in the list: %+v", c)
+		}
+		if c := cs["3ds"]; !c.Ready || !c.Software || c.SoftwareWhy != "no-card" {
 			t.Errorf("3ds in the list: %+v", c)
 		}
 		if c := cs["dc"]; c.Ready || c.Reason != "gpu" {
@@ -158,7 +168,7 @@ func TestGPUGameSaysNotOnThisServerEverywhere(t *testing.T) {
 	}
 
 	// Play: refused up front, in the same words, and nothing started.
-	w := g.do("POST", "/api/games/"+itoa64(threeDS.ID)+"/play", g.admin, map[string]any{"client": "native"})
+	w := g.do("POST", "/api/games/"+itoa64(gc.ID)+"/play", g.admin, map[string]any{"client": "native"})
 	var p struct {
 		Error      string `json:"error"`
 		Reason     string `json:"reason"`
@@ -173,16 +183,16 @@ func TestGPUGameSaysNotOnThisServerEverywhere(t *testing.T) {
 		t.Errorf("%d games running", n)
 	}
 	// Getting it ready says the same, rather than "ready".
-	if w := g.do("POST", "/api/games/"+itoa64(threeDS.ID)+"/prepare", g.admin, nil); w.Code != 409 || !strings.Contains(w.Body.String(), `"reason":"gpu"`) {
+	if w := g.do("POST", "/api/games/"+itoa64(gc.ID)+"/prepare", g.admin, nil); w.Code != 409 || !strings.Contains(w.Body.String(), `"reason":"gpu"`) {
 		t.Errorf("prepare: %d %s", w.Code, w.Body.String())
 	}
 
 	// The same server with a card it can draw on.
 	canDraw(g)
-	if a := checkGame(t, g, threeDS.ID); !a.Ready || !a.NeedsGPU || a.Core == nil || a.Core.ID != "azahar" {
+	if a := checkGame(t, g, gc.ID); !a.Ready || !a.NeedsGPU || a.Software || a.Core == nil || a.Core.ID != "dolphin" {
 		t.Errorf("with a card: %+v", a)
 	}
-	if c := consolesByID(t, g, g.admin)["3ds"]; !c.Ready || c.Reason != "" {
+	if c := consolesByID(t, g, g.admin)["gc"]; !c.Ready || c.Reason != "" {
 		t.Errorf("with a card: %+v", c)
 	}
 }
@@ -556,4 +566,13 @@ func TestAMacPlays3DSOnAzaharsProcessor(t *testing.T) {
 	if a := checkGame(t, g, it.ID); !a.Ready || a.Software || a.Core == nil || a.Core.ID != "azahar" {
 		t.Errorf("on Linux: %+v", a)
 	}
+}
+
+// gameCubeDisc is the start of a GameCube disc: its game id, its magic number and its name.
+func gameCubeDisc() []byte {
+	b := make([]byte, 0x8000)
+	copy(b, "GTSE01")
+	binary.BigEndian.PutUint32(b[0x1C:], 0xC2339F3D)
+	copy(b[0x20:], "TEST GAME")
+	return b
 }

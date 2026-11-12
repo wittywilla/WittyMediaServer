@@ -179,7 +179,7 @@ Each core also says which server platforms it runs on, and how it draws on yours
 
 ### Consoles that need a graphics card
 
-Those consoles are drawn on the server's graphics card, and they run on Windows and Linux servers. Older consoles need no graphics card anywhere.
+Those consoles are drawn on the server's graphics card, and they run on Windows, Linux and macOS servers. Older consoles need no graphics card anywhere.
 
 **On a Mac, FreeBSD, or any server without a card games can use:**
 

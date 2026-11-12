@@ -54,7 +54,10 @@ func TestHowACoreDraws(t *testing.T) {
 		{"mupen64plus_next", true, "linux", "", drawsGPU, "graphics card"},
 		{"mupen64plus_next", true, "linux", "OpenGL here is only llvmpipe", drawsCPUFallback, "M3 Pro"},
 		{"mupen64plus_next", true, "darwin", "", drawsCPUFallback, "processor"},
-		{"flycast", true, "darwin", "", drawsNone, "graphics card"},
+		// A Mac's runner draws on its card; Flycast isn't known to draw wrongly there.
+		{"flycast", true, "darwin", "", drawsGPU, "graphics card"},
+		{"azahar", true, "darwin", "", drawsCPUFallback, "Vulkan"},
+		{"flycast", true, "freebsd", "", drawsNone, "graphics card"},
 		{"flycast", true, "windows", "", drawsGPU, ""},
 		{"pcsx2", true, "freebsd", "", drawsCPUFallback, ""},
 	} {

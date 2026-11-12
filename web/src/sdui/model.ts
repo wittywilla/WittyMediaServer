@@ -304,6 +304,19 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
       break
     }
     case 'TrackList': e.role = 'list'; e.label = 'Tracks'; e.cards = kids; break
+    case 'Credits': {
+      // The cast's and guests' portraits, then each department's people; the parts in order with
+      // how many of each were sent, and Show all when a part holds more (docs/SDUI.md, "Cast and crew").
+      e.role = 'region'; e.label = str(p, 'title'); e.cards = kids
+      text('title', str(p, 'title')); lines('title', 1)
+      e.textSize = l.text.heading
+      text('groups', creditGroups(p).map((g) => g.label + ' ' + g.shown + (g.total > g.shown ? ' of ' + g.total : '')).join(' · '))
+      const c = obj(p, 'card')
+      if (c) { e.cardStyle = 'person'; e.cardWidth = Math.trunc(num(c, 'width') || 0); e.cardHeight = Math.trunc(num(c, 'height') || 0) }
+      const more = obj(p, 'more')
+      if (more) { e.hasMore = true; e.buttons = [str(more, 'label') || 'Show all'] }
+      break
+    }
     case 'Track': {
       e.role = 'button'
       const parts: string[] = []
@@ -364,6 +377,16 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
   }
   e.children = (x.children || []).map((c) => viewOf(c, depth + 1, x, l, pageTitle))
   return e
+}
+
+export type CreditGroup = { id: string; label: string; role: string; total: number; shown: number }
+
+// creditGroups: a Credits section's parts in order: cast, guests, then each department.
+export function creditGroups(p: Props): CreditGroup[] {
+  return list(p, 'groups').map((g) => {
+    const m = g as Props
+    return { id: str(m, 'id'), label: str(m, 'label'), role: str(m, 'role'), total: Math.trunc(num(m, 'total') || 0), shown: Math.trunc(num(m, 'shown') || 0) }
+  }).filter((g) => g.id !== '')
 }
 
 // focusModel: everything that can take focus, in the order Tab visits it, where focus

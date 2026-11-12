@@ -23,5 +23,5 @@ func widen(max string) string {
 func supports(man *wittymodule.Manifest, server string) error {
 	c := *man
 	c.MaxServer = widen(c.MaxServer)
-	return c.Supports(server, wittymodule.MinAPI, wittymodule.API)
+	return c.Supports(server, MinAPI, API)
 }

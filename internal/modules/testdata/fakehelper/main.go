@@ -5,6 +5,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -44,6 +45,10 @@ func main() {
 		case slices.Contains(do, "garbage"):
 			os.Stdout.WriteString("this is not the protocol\n")
 		}
+		if slices.Contains(do, "one-call") {
+			// A helper that answers one call and leaves, as one serving a stream does.
+			defer time.AfterFunc(100*time.Millisecond, func() { os.Exit(0) })
+		}
 		switch method {
 		case "read":
 			return map[string]any{"Make": "fake " + m.Version}, nil, nil
@@ -54,6 +59,19 @@ func main() {
 				return nil, nil, &wittymodule.CallError{Code: "no-preview", Message: "no embedded preview"}
 			}
 			return nil, []byte("jpeg from " + m.Version), nil
+		case "sdui.items":
+			// A module's data source: one card per page asked for, saying what it was asked.
+			var req struct {
+				Source   map[string]any               `json:"source"`
+				Offset   int                          `json:"offset"`
+				Viewer   struct{ ProfileKind string } `json:"viewer"`
+				Settings map[string]any               `json:"settings"`
+			}
+			_ = json.Unmarshal(params, &req)
+			return map[string]any{"items": []map[string]any{{"id": fmt.Sprint("g", req.Offset), "kind": "game", "title": fmt.Sprint(req.Source["type"], " for ", req.Viewer.ProfileKind, " ", req.Settings["household"]),
+				"route": "/page/wittyphotos", "images": map[string]string{"square": "/api/v1/sdui/modules/wittyphotos/images/g.png"}}}, "total": 1}, nil, nil
+		case "sdui.image":
+			return nil, []byte("\x89PNG\r\n\x1a\n" + m.Version), nil
 		case "sandbox":
 			// What WittyPlay's helper does on a Mac with each game: start it in a sandbox of its own.
 			out, err := exec.Command("/usr/bin/sandbox-exec", "-p", "(version 1)(allow default)(deny network*)", "/usr/bin/true").CombinedOutput()

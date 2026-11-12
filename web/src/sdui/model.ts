@@ -8,7 +8,7 @@
 // Rules: docs/SDUI.md, "Rules for renderers".
 
 import { cardStyle, UNKNOWN_STYLE } from './cardStyles.ts'
-import { WEB_LAYOUT, type Action, type Document, type Layout, type Node, type Props } from './types.ts'
+import { WEB_LAYOUT, type Action, type Document, type Layout, type Node, type Props, type Shell } from './types.ts'
 
 export type View = {
   id: string
@@ -39,7 +39,7 @@ export type View = {
   children: View[]
 }
 
-export type PageFrame = { title: string; formFactor: string; breakpoint: string; density: string; contentWidth: number; sectionGap: number; scope?: string }
+export type PageFrame = { title: string; formFactor: string; breakpoint: string; density: string; contentWidth: number; sectionGap: number; scope?: string; shell?: Shell }
 export type FocusModel = { order: string[]; default: string; groups: Record<string, string[]> }
 export type PageModel = { frame: PageFrame; root: View; focus: FocusModel; layout: Layout }
 
@@ -390,6 +390,7 @@ export function buildPage(doc: Document): PageModel {
     title: doc.page?.title || '', formFactor: l.formFactor, breakpoint: l.breakpoint, density: l.density || '',
     contentWidth: contentWidth(l), sectionGap: sectionGap(l), scope: doc.theme?.scope || undefined,
   }
+  if (l.shell) frame.shell = l.shell
   return { frame, root: viewOf(doc.root, 0, undefined, l, frame.title), focus: focusModel(doc.root), layout: l }
 }
 

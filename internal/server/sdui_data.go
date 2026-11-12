@@ -46,6 +46,8 @@ type sduiResolver struct {
 	gotSubj bool
 	// noPlay: the profile's screen time is over, so nothing offers to play.
 	noPlay bool
+	// What the device said it is, for the modules' sources.
+	formFactor, platform, locale string
 }
 
 func (s *Server) newSDUIResolver(r *http.Request, vars map[string]string) *sduiResolver {
@@ -364,6 +366,9 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		return sdui.SourceResult{}, nil
 	}
 	req.Limit = min(req.Limit, 500)
+	if mod := sdui.ModuleOf(src.Type()); mod != "" {
+		return rv.moduleItems(mod, req)
+	}
 	var lib *library.Library
 	if id := src.Str("library"); id != "" {
 		l, ok := rv.library(id)

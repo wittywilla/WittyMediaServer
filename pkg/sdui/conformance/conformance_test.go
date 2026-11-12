@@ -45,7 +45,7 @@ func build(t *testing.T, k kase) Fixture {
 	if err := json.Unmarshal(encode(t, k.in), &in); err != nil {
 		t.Fatalf("%s: %v", k.id, err)
 	}
-	if issues := sdui.ValidatePage(&in.Page); sdui.HasErrors(issues) {
+	if issues := sdui.ValidatePageWith(&in.Page, sdui.NewModuleSet(in.ModuleUI)); sdui.HasErrors(issues) {
 		t.Fatalf("%s: its page doesn't validate: %v", k.id, issues)
 	}
 	exp, err := Run(in)

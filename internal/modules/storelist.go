@@ -153,7 +153,7 @@ func fitOf(name string, v *wittymodule.CatalogVersion, server string) Fit {
 	}
 	vw := *v
 	vw.MaxServer = widen(vw.MaxServer)
-	if err := vw.Supports(name, server, wittymodule.MinAPI, wittymodule.API); err != nil {
+	if err := vw.Supports(name, server, MinAPI, API); err != nil {
 		f := Explain(name, err.Error())
 		switch f.Kind {
 		case FailTooOld:

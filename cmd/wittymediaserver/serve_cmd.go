@@ -277,7 +277,16 @@ func cmdServe(args []string) int {
 	// Modules: which version of each to use. Nothing here goes online; only Run does,
 	// and only while the settings allow it.
 	modules.ProtectServer()
+	// The server isn't made yet; a helper started before it is gets no settings.
+	var settingsFrom atomic.Pointer[server.Server]
 	modMgr := modules.New(modules.Config{
+		UIChecks: server.UIChecks(),
+		SettingsEnv: func(id string) []string {
+			if s := settingsFrom.Load(); s != nil {
+				return s.ModuleSettingsEnv(id)
+			}
+			return nil
+		},
 		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: modules.ServerManifests(), Known: true, CatalogURL: update.ModuleCatalog(), Starter: layout.Current().Modules(),
 		WriteFolders: func(id string) []string {
 			switch id {
@@ -324,6 +333,7 @@ func cmdServe(args []string) int {
 		Update: updater, Modules: modMgr, ModuleStores: modStores, Crashes: guard, Restart: updater.Restart,
 		Instance: lock.ID(),
 	}
+	settingsFrom.Store(srv)
 	if restoreDone != nil {
 		if restoreDone.OK {
 			log.Warn("a backup was restored", "cat", "server", "mode", restoreDone.Mode, "file", restoreDone.Name, "parts", strings.Join(restoreDone.Parts, ","), "safety", restoreDone.Safety)

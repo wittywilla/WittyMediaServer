@@ -197,12 +197,14 @@ func (s *Server) resolveTheme(r *http.Request) (*ResolvedTheme, error) {
 		if len(t.Overrides) > 0 {
 			warn("global", v.Tokens, t.Overrides)
 		}
-		for _, mod := range sortedStringKeys(cfg.Theme.Modules) {
-			ov := cfg.Theme.Modules[mod]
+		// Each module's own colours (its sdui.json), with the administrator's over them.
+		scopes := sduiScopes(cfg, s.moduleSet(nil))
+		for _, mod := range sortedStringKeys(scopes) {
+			ov := scopes[mod]
 			v.Modules[mod] = overlay(v.Tokens, ov)
 			warn("module:"+mod, v.Modules[mod], ov)
 			if i == 0 {
-				t.Modules[mod] = ThemeModule{Tokens: v.Modules[mod], Overrides: overlay(nil, ov)}
+				t.Modules[mod] = ThemeModule{Tokens: v.Modules[mod], Overrides: overlay(nil, cfg.Theme.Modules[mod])}
 			}
 		}
 		t.Variants[look.scheme] = v

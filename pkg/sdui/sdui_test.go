@@ -451,6 +451,7 @@ func TestJSONSchemaAndDocsAreCurrent(t *testing.T) {
 		}
 	}
 	check(filepath.Join("..", "..", "docs", "sdui.schema.json"), schema)
+	check(filepath.Join("..", "..", "docs", "sdui-module.schema.json"), ModuleJSONSchema())
 	// The reference section of docs/SDUI.md is written from the catalogue.
 	docPath := filepath.Join("..", "..", "docs", "SDUI.md")
 	doc, err := os.ReadFile(docPath)

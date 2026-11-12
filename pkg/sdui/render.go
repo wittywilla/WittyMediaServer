@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -109,8 +110,15 @@ type RenderContext struct {
 	CanPersonalise bool
 	// ScreenTime, when the profile's time is over, is sent with the document.
 	ScreenTime *ScreenTime
-	// Resolver answers the page's data sources.
+	// Resolver answers the page's data sources, the modules' included.
 	Resolver Resolver
+	// UI are the modules in use: their components are expanded before the
+	// page is drawn, and their sources are asked like any other. nil: none.
+	UI *ModuleSet
+	// Layout is the layout option the page is drawn for (LayoutByID): its changes to
+	// pages are made here, and its shell is sent in document.layout.shell. nil: none,
+	// the page as written.
+	Layout *LayoutSpec
 	// BasePath is where the SDUI routes are: "/api/v1/sdui".
 	BasePath string
 	// Source and ConfigRevision are stamped into Meta.
@@ -162,10 +170,17 @@ type instance struct {
 // The page should have passed ValidatePage; Render never panics on one that
 // hasn't, but leaves out what it can't make sense of.
 func Render(page Page, ctx *RenderContext) (Document, error) {
+	page = styled(ctx.UI.ExpandPage(page), ctx.Layout)
 	r := newRenderer(&page, ctx)
 	sections, variant := r.sections()
 	top := r.expand(sections, true)
 	top, info := r.personalise(top)
+	// A title's page on a phone or a television offers no Customise: there it is a row
+	// under the title nobody comes for. The profile's arrangement, if it has one, still
+	// applies.
+	if page.Kind == "detail" && (r.l.FormFactor == FormPhone || r.l.FormFactor == FormTV) {
+		info = nil
+	}
 
 	root := Node{Type: "Page", ID: "page", Props: map[string]any{"title": r.fill(page.Title, nil, nil)}}
 	if r.l.Density != "comfortable" {
@@ -222,8 +237,15 @@ func newRenderer(page *Page, ctx *RenderContext) *renderer {
 		ctx.BasePath = "/api/v1/sdui"
 	}
 	l := ctx.Profile.WithViewport(ctx.Viewport)
-	if ctx.Personal != nil && ctx.CanPersonalise && allows(page, "density") {
+	if d := layoutDensity(ctx.Layout); d != "" {
+		l = l.WithDensity(d)
+	}
+	if ctx.Personal != nil && ctx.CanPersonalise && allows(page, "density") && ctx.Personal.Density != "" {
 		l = l.WithDensity(ctx.Personal.Density)
+	}
+	if ctx.Layout != nil {
+		l = l.clone()
+		l.Shell = ShellFor(ctx.Layout.ID, l.FormFactor)
 	}
 	if contains(ctx.Capabilities, "reducedMotion") {
 		l = l.clone()
@@ -399,7 +421,7 @@ func (r *renderer) sectionTitle(in instance) string {
 	if t, _ := in.sec.Props["title"].(string); t != "" {
 		return r.fill(t, in.each, in.sec.Source)
 	}
-	if spec, ok := SourceType(in.sec.Source.Type()); ok && spec.Title != "" {
+	if spec, ok := r.sourceSpec(in.sec.Source.Type()); ok && spec.Title != "" {
 		return r.fill(spec.Title, in.each, in.sec.Source)
 	}
 	if spec, ok := Component(in.sec.Component); ok {
@@ -549,7 +571,7 @@ func (r *renderer) resolveVar(s string, each *Each) string {
 // variable the source needs has nothing behind it: the section is left out.
 func (r *renderer) resolved(src Source, each *Each) (Source, bool) {
 	out := make(Source, len(src))
-	spec, _ := SourceType(src.Type())
+	spec, _ := r.sourceSpec(src.Type())
 	for k, v := range src {
 		s, isStr := v.(string)
 		if isStr && strings.HasPrefix(s, "$") {
@@ -867,6 +889,13 @@ func (r *renderer) ask(src Source, each *Each, offset, limit int) (SourceResult,
 	if !ok {
 		return SourceResult{Total: 0}, rs, nil
 	}
+	// A source of a module that isn't in use has nothing in it: the section
+	// is left out, as an empty one is.
+	if t := src.Type(); t != "" {
+		if _, known := r.sourceSpec(t); !known {
+			return SourceResult{Total: 0}, rs, nil
+		}
+	}
 	if lim := src.Int("limit"); lim > 0 {
 		if offset >= lim {
 			return SourceResult{Total: lim}, rs, nil
@@ -888,16 +917,39 @@ func (r *renderer) ask(src Source, each *Each, offset, limit int) (SourceResult,
 
 // cardStyle is the style a section's cards are drawn in: its own choice, or
 // its source's usual style.
-func cardStyleFor(p map[string]any, src Source) string {
+func (r *renderer) cardStyleFor(p map[string]any, src Source, each *Each) string {
 	style := propStr(p, "cardStyle", "auto")
 	if _, ok := CardStyle(style); ok {
 		return style
 	}
-	if spec, ok := SourceType(src.Type()); ok {
-		return spec.CardStyle
+	spec, ok := r.sourceSpec(src.Type())
+	if !ok {
+		return "poster"
 	}
-	return "poster"
+	// A source that gives whatever a library holds draws it in the style of what that
+	// library holds: an album's cover square, a book's cover, a game's box.
+	if spec.CardStyle == "poster" {
+		kind := ""
+		switch lib := src.Str("library"); {
+		case each != nil && lib == "$each":
+			kind = each.Kind
+		case lib == "$library":
+			kind = r.ctx.Vars["libraryKind"]
+		}
+		if s := libraryCardStyle[kind]; s != "" {
+			return s
+		}
+		// A layout with wide cards draws films' and shows' rows wide.
+		if r.ctx.Layout != nil && r.ctx.Layout.Pages.LandscapeCards && overlaps(spec.Yields, landscapeKinds) {
+			return "landscape"
+		}
+	}
+	return spec.CardStyle
 }
+
+// libraryCardStyle is the card style for what a kind of library holds, where it isn't a
+// poster.
+var libraryCardStyle = map[string]string{"music": "album", "audiobooks": "album", "podcasts": "album", "books": "book", "games": "game", "photos": "photo"}
 
 // collection fills a Shelf, Grid or List from its source.
 func (r *renderer) collection(n *Node, in instance) bool {
@@ -907,7 +959,12 @@ func (r *renderer) collection(n *Node, in instance) bool {
 
 func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allowDefer bool) bool {
 	s, p := in.sec, in.sec.Props
-	style := cardStyleFor(p, s.Source)
+	style := r.cardStyleFor(p, s.Source, in.each)
+	// A phone's row of libraries is a row of chips, each the library's icon and name: a
+	// wide tile with an icon in it takes a screen's width for four words.
+	if style == "tile" && s.Component == "Shelf" && s.Source.Type() == "libraries" && r.l.FormFactor == FormPhone {
+		style = "chip"
+	}
 	size := propStr(p, "cardSize", "m")
 	if r.ctx.Personal != nil && r.ctx.CanPersonalise && allows(r.page, "cardSize") {
 		if ps := r.ctx.Personal.CardSize[in.id]; contains(CardSizes, ps) {
@@ -939,7 +996,7 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 			n.Props["numbered"] = true
 		}
 	}
-	spec, _ := SourceType(s.Source.Type())
+	spec, _ := r.sourceSpec(s.Source.Type())
 	// Past the device's budget of sections that arrive filled, a row is sent
 	// empty with where to ask for it.
 	// So is one that comes after many empty ones: a page of rows with nothing
@@ -1034,8 +1091,23 @@ func (r *renderer) listItem(parent string, it *Item) Node {
 	case it.Kind == "track" && it.RuntimeSec > 0:
 		n.Props["trailing"] = FormatRuntime(it.RuntimeSec)
 	}
-	if src := firstImage(it, []string{"square", "poster"}); src != "" {
-		n.Props["image"] = r.picture(src, 56, "1/1", "square")
+	// The picture keeps the item's own shape, at the row's height: a poster upright, a
+	// film still wide, a cover square.
+	switch {
+	case slices.Contains([]string{"episode", "video", "recording", "channel"}, it.Kind) && firstImage(it, []string{"backdrop"}) != "":
+		n.Props["image"] = r.picture(firstImage(it, []string{"backdrop"}), 100, "16/9", "backdrop")
+	case slices.Contains([]string{"movie", "show", "season", "book", "game"}, it.Kind) && firstImage(it, []string{"poster"}) != "":
+		n.Props["image"] = r.picture(firstImage(it, []string{"poster"}), 38, "2/3", "poster")
+	default:
+		if src := firstImage(it, []string{"square", "poster"}); src != "" {
+			n.Props["image"] = r.picture(src, 56, "1/1", "square")
+		}
+	}
+	if it.Progress > 0 && it.Progress < 1 {
+		n.Props["progress"] = round3(it.Progress)
+	}
+	if len(it.Badges) > 0 {
+		n.Props["badges"] = it.Badges[:min(len(it.Badges), 2)]
 	}
 	switch {
 	case it.Route != "":
@@ -1592,6 +1664,7 @@ type SectionItems struct {
 // section's ID, "-" and the key); offset is the cursor; season chooses a
 // SeasonList's season.
 func RenderSection(page Page, nodeID string, offset int, season string, ctx *RenderContext) (SectionItems, error) {
+	page = styled(ctx.UI.ExpandPage(page), ctx.Layout)
 	r := newRenderer(&page, ctx)
 	sections, _ := r.sections()
 	in, ok := r.find(sections, nodeID)
@@ -1686,4 +1759,12 @@ func (r *renderer) find(sections []Section, nodeID string) (instance, bool) {
 		}
 	}
 	return instance{}, false
+}
+
+// sourceSpec is a source's spec: the catalogue's, or a module's in use.
+func (r *renderer) sourceSpec(t string) (*SourceSpec, bool) {
+	if s := r.ctx.UI.Source(t); s != nil {
+		return s, true
+	}
+	return SourceType(t)
 }

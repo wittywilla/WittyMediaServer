@@ -49,6 +49,10 @@ type Input struct {
 	Page    sdui.Page `json:"page"`
 	Request Request   `json:"request"`
 	Data    Data      `json:"data"`
+	// ModuleUI are the SDUI files of the modules in use (docs/SDUI-MODULES.md):
+	// their components are expanded and their sources asked like any other.
+	// A renderer never sees them; they are here for the server's half.
+	ModuleUI []sdui.ModuleUI `json:"moduleUI,omitempty"`
 }
 
 // Request is who asks and on what. Its fields are the query parameters of
@@ -65,6 +69,9 @@ type Request struct {
 	NativeViews []string `json:"nativeViews,omitempty"`
 	// Capabilities are the client's (reducedMotion, touch, hdr).
 	Capabilities []string `json:"capabilities,omitempty"`
+	// Layout is the layout option the page is drawn with (docs/SDUI.md, "Layout
+	// options"); "" for none.
+	Layout string `json:"layout,omitempty"`
 	// Now is the server's clock, RFC 3339.
 	Now string `json:"now"`
 	// The profile: its kind, whether it administers, its name, the parental
@@ -239,6 +246,12 @@ func (in *Input) Context() *sdui.RenderContext {
 		Flags: r.Flags, Locale: r.Locale, Now: now, Profile: sdui.ProfileFor(r.FormFactor, r.DeviceClass),
 		Catalog: r.Catalog, Components: r.Components, NativeViews: r.NativeViews, Vars: r.Vars, Params: r.Params, Scopes: r.Scopes,
 		Personal: r.Personal, CanPersonalise: r.CanPersonalise, Resolver: canned{&in.Data}, BasePath: "/api/v1/sdui", Source: "builtin",
+	}
+	if r.Layout != "" {
+		ctx.Layout = sdui.LayoutByID(r.Layout)
+	}
+	if len(in.ModuleUI) > 0 {
+		ctx.UI = sdui.NewModuleSet(in.ModuleUI)
 	}
 	if r.AllOptional != nil && !*r.AllOptional && ctx.Components == nil {
 		ctx.Components = []string{}

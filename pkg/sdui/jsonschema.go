@@ -133,3 +133,35 @@ func schemaOf(t reflect.Type, defs map[string]any) map[string]any {
 	}
 	return map[string]any{}
 }
+
+// ModuleJSONSchema returns docs/sdui-module.schema.json: a JSON Schema (2020-12)
+// of a module's sdui.json (docs/SDUI-MODULES.md), written from ModuleUI. Unlike
+// the rendered documents, a module's file is read strictly: every object here is
+// closed, so an editor flags a misspelt property as the server would refuse it.
+func ModuleJSONSchema() []byte {
+	defs := map[string]any{}
+	schemaOf(reflect.TypeOf(ModuleUI{}), defs)
+	for _, d := range defs {
+		if m, ok := d.(map[string]any); ok && m["type"] == "object" {
+			m["additionalProperties"] = false
+		}
+	}
+	// A section's props and a source's parameters are open: the catalogue says what they hold.
+	schema := map[string]any{
+		"$schema":           "https://json-schema.org/draft/2020-12/schema",
+		"$id":               "urn:wittymediaserver:sdui:module:1",
+		"title":             "A WittyMediaServer module's SDUI file (sdui.json), format version 1",
+		"description":       "What a module adds to every app: pages, sections, components, data sources, views, menu entries, settings and its theme scope. Checked by the server against its catalogue (GET /api/v1/sdui/catalog) before the module is used. docs/SDUI-MODULES.md describes it.",
+		"x-format":          ModuleFormat,
+		"x-formatVersion":   ModuleFormatVersion,
+		"x-catalogRevision": CatalogRevision,
+		"$ref":              "#/$defs/ModuleUI",
+		"$defs":             defs,
+	}
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	_ = enc.Encode(schema)
+	return buf.Bytes()
+}

@@ -3,7 +3,7 @@
   "name": "Midnight",
   "description": "Blue-black, with a clear blue accent.",
   "author": "WittyMediaServer",
-  "version": "2",
+  "version": "3",
   "scheme": "dark",
   "builtin": true,
   "preview": {
@@ -43,5 +43,60 @@
     "scrim": "#000000ad",
     "overlay": "#00000099"
   },
-  "radius": 10
+  "radius": 10,
+  "shape": {
+    "radius": 10,
+    "card": 10,
+    "button": 10,
+    "field": 10,
+    "row": 10,
+    "thumb": 6,
+    "chip": 999,
+    "badge": 4,
+    "image": 14,
+    "sheet": 14,
+    "dialog": 20,
+    "pill": 999,
+    "focusWidth": 2,
+    "focusOffset": 2,
+    "focusScale": 1
+  },
+  "type": {
+    "display": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "body": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "mono": [
+      "ui-monospace",
+      "Cascadia Mono",
+      "SFMono-Regular",
+      "Menlo",
+      "Consolas",
+      "monospace"
+    ],
+    "weights": {
+      "body": 400,
+      "medium": 500,
+      "strong": 600,
+      "heading": 650
+    }
+  }
 }

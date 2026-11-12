@@ -746,26 +746,9 @@ func buildCatalogue() *Catalogue {
 			{Op: "selectTab", Label: "Choose a tab", Description: "Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it.", Method: "GET", Path: ""},
 			{Op: "refresh", Label: "Refresh", Description: "Asks for the page again.", Method: "GET", Path: ""},
 		},
-		NativeScreens: []NativeScreenSpec{
-			{Screen: "settings", Label: "Settings", Route: "/settings", Icon: "settings", Description: "The app's own Settings. Always in the navigation; never an SDUI page."},
-			{Screen: "guide", Label: "TV guide", Route: "/tv/guide", Icon: "guide", Description: "The guide's grid of channels and times."},
-			{Screen: "profiles", Label: "Who's watching", Route: "/you", Icon: "user", Description: "The profile's own page and the profile switcher."},
-			{Screen: "downloads", Label: "Downloads", Route: "/downloads", Icon: "download", Description: "What is kept on this device."},
-			{Screen: "remote", Label: "Remote", Route: "/remote", Icon: "devices", Description: "Remote control of another device."},
-			{Screen: "nowPlaying", Label: "Now playing", Route: "/now-playing", Icon: "music", Description: "The music player."},
-			{Screen: "pair", Label: "Pair a device", Route: "/pair", Icon: "devices", Description: "Sign another device in."},
-			{Screen: "collections", Label: "Collections", Route: "/collections", Icon: "collection", Description: "The app's own collections manager, where it has one; else the collections page."},
-			{Screen: "player", Label: "Player", Route: "/watch/{item}", Icon: "play", Description: "The video player."},
-			{Screen: "livePlayer", Label: "Live TV player", Route: "/tv/watch/{key}", Icon: "live", Description: "A channel, playing."},
-			{Screen: "reader", Label: "Reader", Route: "/read/{item}", Icon: "book", Description: "The book and comic reader."},
-			{Screen: "game", Label: "Game", Route: "/game/{item}", Icon: "game", Description: "A game's page and player."},
-			{Screen: "download", Label: "Download", Route: "", Icon: "download", Description: "Keep a copy of a title on this device (action params: item)."},
-			{Screen: "share", Label: "Share", Route: "", Icon: "share", Description: "The share sheet for a title (action params: item)."},
-			{Screen: "playOn", Label: "Play on…", Route: "", Icon: "devices", Description: "The device picker for a title (action params: item)."},
-			{Screen: "watchParty", Label: "Watch party", Route: "", Icon: "users", Description: "Start a watch party for a title (action params: item)."},
-		},
-		NativeViews: opts("guide|TV guide grid", "photoTimeline|Photo timeline", "photoMap|Photo map", "coverFlow|Album cover flow"),
-		Icons:       append([]string(nil), Icons...),
+		NativeScreens: append([]NativeScreenSpec(nil), nativeScreenSpecs...),
+		NativeViews:   opts("guide|TV guide grid", "photoTimeline|Photo timeline", "photoMap|Photo map", "coverFlow|Album cover flow"),
+		Icons:         append([]string(nil), Icons...),
 		Placeholders: opts("{user}|The profile's name", "{server}|The server's name", "{greeting}|Good morning, afternoon or evening", "{library}|The page's library",
 			"{title}|The page's title, or a source's first item", "{query}|What was searched for", "{each}|What a repeated section is repeated over", "{count}|How many items a source gave",
 			"{genre}|The source's genre", "{studio}|The source's studio", "{tag}|The source's tag"),
@@ -783,4 +766,38 @@ func buildCatalogue() *Catalogue {
 	}
 	c.Profiles["tv-4k"] = ProfileFor(FormTV, "4k")
 	return c
+}
+
+// nativeScreenSpecs are the native screens, in the catalogue's order. Menu marks
+// those a navigation entry may open: a place of its own that needs nothing filled
+// in. The player, the reader, a game, a channel and the per-title sheets need a
+// title (or a channel), so they are opened by actions, never from the menu.
+var nativeScreenSpecs = []NativeScreenSpec{
+	{Screen: "settings", Menu: true, Label: "Settings", Route: "/settings", Icon: "settings", Description: "The app's own Settings. Always in the navigation; never an SDUI page."},
+	{Screen: "guide", Menu: true, Label: "TV guide", Route: "/tv/guide", Icon: "guide", Description: "The guide's grid of channels and times."},
+	{Screen: "profiles", Menu: true, Label: "Who's watching", Route: "/you", Icon: "user", Description: "The profile's own page and the profile switcher."},
+	{Screen: "downloads", Menu: true, Label: "Downloads", Route: "/downloads", Icon: "download", Description: "What is kept on this device."},
+	{Screen: "remote", Menu: true, Label: "Remote", Route: "/remote", Icon: "devices", Description: "Remote control of another device."},
+	{Screen: "nowPlaying", Menu: true, Label: "Now playing", Route: "/now-playing", Icon: "music", Description: "The music player."},
+	{Screen: "pair", Menu: true, Label: "Pair a device", Route: "/pair", Icon: "devices", Description: "Sign another device in."},
+	{Screen: "collections", Menu: true, Label: "Collections", Route: "/collections", Icon: "collection", Description: "The app's own collections manager, where it has one; else the collections page."},
+	{Screen: "player", Label: "Player", Route: "/watch/{item}", Icon: "play", Description: "The video player."},
+	{Screen: "livePlayer", Label: "Live TV player", Route: "/tv/watch/{key}", Icon: "live", Description: "A channel, playing."},
+	{Screen: "reader", Label: "Reader", Route: "/read/{item}", Icon: "book", Description: "The book and comic reader."},
+	{Screen: "game", Label: "Game", Route: "/game/{item}", Icon: "game", Description: "A game's page and player."},
+	{Screen: "download", Label: "Download", Route: "", Icon: "download", Description: "Keep a copy of a title on this device (action params: item)."},
+	{Screen: "share", Label: "Share", Route: "", Icon: "share", Description: "The share sheet for a title (action params: item)."},
+	{Screen: "playOn", Label: "Play on…", Route: "", Icon: "devices", Description: "The device picker for a title (action params: item)."},
+	{Screen: "watchParty", Label: "Watch party", Route: "", Icon: "users", Description: "Start a watch party for a title (action params: item)."},
+}
+
+// menuScreens are the native screens a navigation entry may open.
+func menuScreens() []string {
+	var out []string
+	for _, n := range nativeScreenSpecs {
+		if n.Menu {
+			out = append(out, n.Screen)
+		}
+	}
+	return out
 }

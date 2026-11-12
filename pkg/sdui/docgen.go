@@ -265,9 +265,14 @@ func CatalogueMarkdown() string {
 	w("\n")
 
 	w("### Native screens\n\n")
-	w("| Screen | What it is | Route |\n|---|---|---|\n")
+	w("A menu entry (`type: native`) may open the screens marked *menu*; the others need a title or a channel and are opened by actions.\n\n")
+	w("| Screen | What it is | Route | Menu |\n|---|---|---|---|\n")
 	for _, n := range c.NativeScreens {
-		w("| `%s` | %s | %s |\n", n.Screen, cell(n.Description), def(n.Route))
+		menu := "no"
+		if n.Menu {
+			menu = "menu"
+		}
+		w("| `%s` | %s | %s | %s |\n", n.Screen, cell(n.Description), def(n.Route), menu)
 	}
 	w("\n")
 

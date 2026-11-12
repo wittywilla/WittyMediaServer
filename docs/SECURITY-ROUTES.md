@@ -758,11 +758,11 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/sdui/config/pages` | Admin | target by form |
 | `GET /api/sdui/config/pages/{page}` | Admin | Page exists. target by form |
 | `PUT /api/sdui/config/pages/{page}` | Admin | If-Match as for the configuration, or target=draft. 256 KB, strict JSON, the page's ID is the one in the address, and the page through the SDUI validator |
-| `DELETE /api/sdui/config/pages/{page}` | Admin | If-Match as for the configuration, or target=draft. The page is the configuration's, or a built-in page (which is left as it ships) |
+| `DELETE /api/sdui/config/pages/{page}` | Admin | If-Match as for the configuration, or target=draft. The page is the configuration's, or a built-in or module page (which is left as it ships); 404 otherwise |
 | `GET /api/sdui/config/navigation` | Admin | target by form |
 | `PUT /api/sdui/config/navigation` | Admin | If-Match as for the configuration, or target=draft. 256 KB, strict JSON. Every entry names a page that exists, a library, a native screen from the fixed list or a route on this server; Settings can't be hidden or given a condition |
 | `DELETE /api/sdui/config/navigation` | Admin | If-Match as for the configuration, or target=draft |
-| `POST /api/sdui/validate` | Admin | 16 MB body. Saves nothing |
+| `POST /api/sdui/validate` | Admin | 16 MB body. target by form. Saves nothing |
 | `GET /api/sdui/presets` | Admin | Nothing |
 | `GET /api/sdui/modules` | Admin | Nothing |
 | `PUT /api/sdui/modules/{module}/settings` | Admin | The module is in use. Server rows only; every value checked against its row. 64 KB, strict JSON |
@@ -770,7 +770,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/sdui/draft` | Admin | Nothing |
 | `PUT /api/sdui/draft` | Admin | If-Match, when sent, must be the draft's ETag (the configuration's when there is no draft). Validated as the configuration is |
 | `DELETE /api/sdui/draft` | Admin | Nothing further. Ends every preview |
-| `POST /api/sdui/draft/publish` | Admin | A draft exists. If-Match, when sent, must be the draft's ETag. Validated again. Ends every preview |
+| `POST /api/sdui/draft/publish` | Admin | A draft exists. If-Match, when sent, must be the draft's ETag. prefer: draft or published. Merged onto what is published (409 on conflicting items) and validated again. Ends every preview |
 | `POST /api/sdui/draft/preview` | Admin | A draft exists. The token is random, for this administrator alone, for two hours, at most 16 at once, kept in memory |
 | `GET /api/sdui/export` | Admin | Page exists when one is named. target by form |
 | `POST /api/sdui/import` | Admin | 16 MB body. The file says it is a wittymedia-ui export. Into the draft unless target=published, which needs If-Match. Validated as the configuration is; dryRun changes nothing |

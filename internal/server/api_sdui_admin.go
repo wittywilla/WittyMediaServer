@@ -57,7 +57,13 @@ func (s *Server) sduiAdminRoutes(m *http.ServeMux) {
 // writeUIStoreErr answers for an error from the store.
 func writeUIStoreErr(w http.ResponseWriter, err error) {
 	var inv *sduistore.InvalidError
+	var mc *sduistore.MergeConflictError
 	switch {
+	case errors.As(err, &mc):
+		writeJSON(w, 409, map[string]any{"error": mc.Error() + ": reload the draft and the published configuration, then publish again preferring one side (prefer=draft or prefer=published) or change the draft",
+			"conflicts": mc.Items, "baseRevision": mc.Base, "currentRevision": mc.Current})
+	case errors.Is(err, errNoSuchPage):
+		writeErr(w, 404, err.Error())
 	case errors.Is(err, sduistore.ErrConflict):
 		writeErr(w, 412, err.Error()+": read it again and redo the change")
 	case errors.Is(err, sduistore.ErrNoRevision):
@@ -75,6 +81,9 @@ func adminName(r *http.Request) string {
 	}
 	return ""
 }
+
+// errNoSuchPage: a page an edit names isn't in the configuration, built in or a module's.
+var errNoSuchPage = errors.New("no such page")
 
 // sduiTarget is which configuration an edit is for.
 func sduiTarget(r *http.Request) (draft bool, err error) {
@@ -123,6 +132,10 @@ func (s *Server) sduiMutate(w http.ResponseWriter, r *http.Request, what string,
 		}
 		next := base.Clone()
 		if err := fn(next); err != nil {
+			if errors.Is(err, errNoSuchPage) {
+				writeUIStoreErr(w, err)
+				return
+			}
 			writeErr(w, 400, err.Error())
 			return
 		}
@@ -136,7 +149,7 @@ func (s *Server) sduiMutate(w http.ResponseWriter, r *http.Request, what string,
 	}
 	if err != nil {
 		var inv *sduistore.InvalidError
-		if !errors.As(err, &inv) && !errors.Is(err, sduistore.ErrConflict) && !errors.Is(err, sduistore.ErrNoRevision) {
+		if !errors.As(err, &inv) && !errors.Is(err, sduistore.ErrConflict) && !errors.Is(err, sduistore.ErrNoRevision) && !errors.Is(err, errNoSuchPage) {
 			writeErr(w, 400, err.Error())
 			return
 		}
@@ -324,8 +337,20 @@ func (s *Server) sduiRevision(st *sduistore.Store, name string) (*sduistore.Conf
 	return st.RevisionConfig(n)
 }
 
+// sduiDiffRevision is the revision a diff names for c: its own for a published revision,
+// and for the draft (whose own number only counts its saves) the published revision it
+// was begun from, with draft true.
+func sduiDiffRevision(st *sduistore.Store, c *sduistore.Config) (int64, bool) {
+	if d := st.Draft(); d != nil && c == d {
+		return d.BaseRevision, true
+	}
+	return c.Revision, false
+}
+
 // GET /api/sdui/config/diff?from=&to=: what differs between two revisions (a number,
-// "current" or "draft"), page by page and section by section.
+// "current" or "draft"), page by page and section by section. "from" and "to" are the
+// revisions; for the draft, the published revision it was begun from, with
+// fromDraft/toDraft true.
 func (s *Server) handleSDUIConfigDiff(w http.ResponseWriter, r *http.Request) {
 	st, err := s.uiStore()
 	if err != nil {
@@ -337,7 +362,9 @@ func (s *Server) handleSDUIConfigDiff(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		var to *sduistore.Config
 		if to, err = s.sduiRevision(st, firstNonEmpty(q.Get("to"), "current")); err == nil {
-			writeJSON(w, 200, map[string]any{"from": from.Revision, "to": to.Revision, "changes": configChanges(from, to)})
+			fromRev, fromDraft := sduiDiffRevision(st, from)
+			toRev, toDraft := sduiDiffRevision(st, to)
+			writeJSON(w, 200, map[string]any{"from": fromRev, "to": toRev, "fromDraft": fromDraft, "toDraft": toDraft, "changes": configChanges(from, to)})
 			return
 		}
 	}
@@ -493,15 +520,18 @@ func (s *Server) handleSDUIConfigPagePut(w http.ResponseWriter, r *http.Request)
 
 // DELETE /api/sdui/config/pages/{page}[?target=draft]: remove the configuration's page: a
 // built-in page goes back to how it ships ("reset to default"), a page of the
-// administrator's own is gone.
+// administrator's own is gone. 404 for a page that is in none of them, whichever the target.
 func (s *Server) handleSDUIConfigPageDelete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("page")
+	set := s.moduleSet(nil)
 	s.sduiMutate(w, r, "page "+id+" reset", func(c *sduistore.Config) error {
 		if _, ok := c.Pages[id]; !ok {
-			if _, builtin := sdui.StockPage(id); builtin {
+			_, builtin := sdui.StockPage(id)
+			_, module := set.Page(id)
+			if builtin || module {
 				return nil // already as shipped
 			}
-			return sduistore.ErrNoRevision
+			return errNoSuchPage
 		}
 		delete(c.Pages, id)
 		return nil
@@ -554,8 +584,9 @@ func (s *Server) handleSDUIConfigNavDelete(w http.ResponseWriter, r *http.Reques
 	})
 }
 
-// POST /api/sdui/validate: check a page, a navigation or a whole configuration without
-// saving it. The body is {"page": ...}, {"navigation": ...} or {"config": ...}.
+// POST /api/sdui/validate[?target=draft]: check a page, a navigation or a whole
+// configuration without saving it. The body is {"page": ...}, {"navigation": ...} or
+// {"config": ...}. A navigation may name the pages of the target's configuration.
 func (s *Server) handleSDUIValidate(w http.ResponseWriter, r *http.Request) {
 	st, err := s.uiStore()
 	if err != nil {
@@ -591,9 +622,15 @@ func (s *Server) handleSDUIValidate(w http.ResponseWriter, r *http.Request) {
 		if n, err := sdui.DecodeNavigation(body.Navigation); err != nil {
 			decodeIssue(err)
 		} else {
-			cur := st.Current()
+			// The pages it may name are those of the configuration it is for: the
+			// draft's with ?target=draft (the published one's while there is none).
+			cfg, _, err := s.sduiBase(r, st)
+			if err != nil {
+				writeErr(w, 400, err.Error())
+				return
+			}
 			set := s.moduleSet(nil)
-			issues = sdui.ValidateNavigation(&n, func(id string) bool { _, ok := effectivePage(cur, id, set); return ok })
+			issues = sdui.ValidateNavigation(&n, func(id string) bool { _, ok := effectivePage(cfg, id, set); return ok })
 		}
 	case body.Config != nil:
 		if c, err := sduistore.Parse(body.Config); err != nil {
@@ -694,14 +731,21 @@ func (s *Server) handleSDUIDraftDelete(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
-// POST /api/sdui/draft/publish: make the draft the configuration everyone gets.
+// POST /api/sdui/draft/publish[?prefer=draft|published]: apply what the draft changed to
+// the configuration everyone gets. What was published since the draft was begun stays;
+// 409 lists the items both changed, unless prefer says which side wins for them.
 func (s *Server) handleSDUIDraftPublish(w http.ResponseWriter, r *http.Request) {
 	st, err := s.uiStore()
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	saved, err := st.Publish(strings.TrimSpace(r.Header.Get("If-Match")), adminName(r))
+	prefer := r.URL.Query().Get("prefer")
+	if prefer != "" && prefer != "draft" && prefer != "published" {
+		writeErr(w, 400, "prefer: draft or published")
+		return
+	}
+	saved, err := st.PublishPreferring(strings.TrimSpace(r.Header.Get("If-Match")), adminName(r), prefer)
 	if errors.Is(err, sduistore.ErrNoRevision) {
 		writeErr(w, 404, "there is no draft to publish")
 		return
@@ -798,7 +842,7 @@ func (s *Server) handleSDUIExport(w http.ResponseWriter, r *http.Request) {
 		out.Kind, out.Page, name = "page", &p, "wittymedia-page-"+p.ID+".json"
 	} else {
 		c := cfg.Clone()
-		c.Revision, c.ETag, c.UpdatedBy, c.Notes = 0, "", "", nil
+		c.Revision, c.ETag, c.UpdatedBy, c.Notes, c.BaseRevision = 0, "", "", nil, 0
 		out.Kind, out.Config = "config", c
 	}
 	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)

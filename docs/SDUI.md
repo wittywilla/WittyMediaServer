@@ -714,13 +714,13 @@ Everything an editor needs is data; it hard-codes nothing about components.
 | `GET /sdui/config/pages` | Every page in force with its `source`: `builtin`, `changed` or `custom`. `?target=draft` for the draft's. |
 | `GET /sdui/config/pages/{id}` | The page as authored, the built-in page it would reset to, and the validator's issues. |
 | `PUT /sdui/config/pages/{id}` | Save one page. |
-| `DELETE /sdui/config/pages/{id}` | Reset a built-in page to default, or delete one of your own. |
+| `DELETE /sdui/config/pages/{id}` | Reset a built-in page to default, or delete one of your own. 404 for a page that is in neither. |
 | `GET`, `PUT`, `DELETE /sdui/config/navigation` | The navigation; DELETE resets it. |
-| `POST /sdui/validate` | Check `{"page"}`, `{"navigation"}` or `{"config"}` without saving. |
+| `POST /sdui/validate` | Check `{"page"}`, `{"navigation"}` or `{"config"}` without saving. With `?target=draft` a navigation may name the draft's pages. |
 | `GET /sdui/presets`, `POST /sdui/presets/{id}/apply` | The gallery; apply a page preset. |
 | `GET`, `PUT`, `DELETE /sdui/draft`, `POST /sdui/draft/publish`, `POST /sdui/draft/preview` | The draft. |
 | `GET /sdui/export`, `POST /sdui/import` | A page or the whole configuration as a file. |
-| `GET`, `PUT /sdui/config`, `GET /sdui/config/history`, `GET /sdui/config/diff`, `POST /sdui/config/rollback/{rev}` | The whole file, its last 10 revisions, what differs between two, and going back. |
+| `GET`, `PUT /sdui/config`, `GET /sdui/config/history`, `GET /sdui/config/diff`, `POST /sdui/config/rollback/{rev}` | The whole file, its last 10 revisions, what differs between two (`{from, to, fromDraft, toDraft, changes}`; for the draft, the revision it was begun from with `toDraft: true`), and going back. |
 
 **Saving.** A change to the published configuration needs `If-Match` with
 the ETag it was made against: 428 without, 412 when someone saved in
@@ -753,8 +753,24 @@ administrator who asked and nobody else**. That administrator's apps send
 it as `preview=<token>` (or `X-WMS-SDUI-Preview`) with the page and
 navigation routes and are served the draft, with `meta.source: "draft"`, on
 a real phone or television. Anyone else sending it gets 403. `POST
-/sdui/draft/publish` makes the draft the configuration, as a new revision,
-and ends every preview; `DELETE /sdui/draft` throws it away.
+/sdui/draft/publish` applies the draft to the configuration, as a new
+revision, and ends every preview; `DELETE /sdui/draft` throws it away.
+
+**Publishing merges.** The draft remembers the published revision it was
+begun from (`baseRevision`). Publishing does not copy the draft over what is
+published: it takes what the draft changed since that revision, item by item
+(each page by ID, the navigation, the theme, the personalisation switch), and
+applies it on top of what is published now, so a change published after the
+draft was begun is kept. When the draft and what was published since changed
+the same item in different ways the answer is 409, nothing changes, and the
+body names them: `{"error", "conflicts": ["/pages/home", "/navigation"],
+"baseRevision", "currentRevision"}`. The editor reloads both, shows them, and
+publishes again with `?prefer=draft` (the draft's version of those items
+wins) or `?prefer=published` (what is published stays; the draft's other
+changes still go in), or edits the draft. When the revision the draft was
+begun from is no longer among the 10 kept, `conflicts` is `["/"]` and only
+`prefer=draft` publishes (the draft as it is). `If-Match` keeps its meaning:
+the draft's ETag.
 
 #### Presets, import and export
 

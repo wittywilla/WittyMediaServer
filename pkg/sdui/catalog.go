@@ -211,6 +211,9 @@ type NativeScreenSpec struct {
 	Description string `json:"description"`
 	Route       string `json:"route"`
 	Icon        string `json:"icon"`
+	// Menu: a navigation entry may open it (type native). Screens that need a
+	// title or a channel are opened by actions only.
+	Menu bool `json:"menu,omitempty"`
 }
 
 // Catalogue is everything an editor or a renderer needs to know about the

@@ -1624,16 +1624,16 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /sdui/config` | admin | All of ui_config.json: the pages and navigation an administrator changed, the theme overrides, with its ETag. |
 | `PUT /sdui/config` | admin | Replace ui_config.json. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). Everything is validated; 400 lists the issues, each with a path, a message and a fix. |
 | `GET /sdui/config/history` | admin | The last 10 revisions, newest first. |
-| `GET /sdui/config/diff` | admin | What differs between two revisions (?from= and ?to=: a revision number, current or draft): pages added, removed and changed, and inside a changed page the sections added, removed, changed and whether they were reordered. |
+| `GET /sdui/config/diff` | admin | What differs between two revisions (?from= and ?to=: a revision number, current or draft): pages added, removed and changed, and inside a changed page the sections added, removed, changed and whether they were reordered. `{from, to, fromDraft, toDraft, changes}`: for the draft, the revision it was begun from, with fromDraft/toDraft true. |
 | `POST /sdui/config/rollback/{rev}` | admin | Make a kept revision current again, as a new revision. |
 | `GET /sdui/config/pages` | admin | Every page in force, built-in ones included: id, kind, title, icon, match, and whether it is builtin, changed or custom. |
 | `GET /sdui/config/pages/{page}` | admin | One page as authored, where it comes from, the built-in page it would reset to, and what the validator says of it. |
 | `PUT /sdui/config/pages/{page}` | admin | Save one page. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). 400 lists the issues. |
-| `DELETE /sdui/config/pages/{page}` | admin | Remove the configuration's page: a built-in page goes back to how it ships (reset to default), a page of the administrator's own is gone. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
+| `DELETE /sdui/config/pages/{page}` | admin | Remove the configuration's page: a built-in page goes back to how it ships (reset to default), a page of the administrator's own is gone; 404 for a page that is in neither. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
 | `GET /sdui/config/navigation` | admin | The navigation as authored, and the built-in one. |
 | `PUT /sdui/config/navigation` | admin | Save the navigation. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). Settings can be moved but not hidden or given a condition. |
 | `DELETE /sdui/config/navigation` | admin | Back to the built-in navigation. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
-| `POST /sdui/validate` | admin | Check {"page": ...}, {"navigation": ...} or {"config": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. |
+| `POST /sdui/validate` | admin | Check {"page": ...}, {"navigation": ...} or {"config": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. ?target=draft: a navigation may name the draft's pages. |
 | `GET /sdui/presets` | admin | The gallery of ready-made pages and sections: {presets: [{id, label, description, icon, kind, pageKinds, page or section}]}. |
 | `GET /sdui/modules` | admin | Every module in use with its SDUI file: `{modules: [ModuleUI]}`. |
 | `PUT /sdui/modules/{module}/settings` | admin | The server's values of a module's settings: `{values}`; null resets one. |
@@ -1641,7 +1641,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /sdui/draft` | admin | The unpublished draft; 404 when there is none. |
 | `PUT /sdui/draft` | admin | Keep a whole configuration as the draft. If-Match, when sent, is the draft's ETag (the published configuration's when there is no draft yet). |
 | `DELETE /sdui/draft` | admin | Forget the draft and every preview of it. |
-| `POST /sdui/draft/publish` | admin | Make the draft the configuration everyone gets, as a new revision. If-Match, when sent, is the draft's ETag. |
+| `POST /sdui/draft/publish` | admin | Apply what the draft changed since the revision it was begun from to the configuration everyone gets, as a new revision; what was published meanwhile is kept. 409 {conflicts, baseRevision, currentRevision} when both changed the same page, navigation, theme or personalisation; ?prefer=draft or ?prefer=published settles them. If-Match, when sent, is the draft's ETag. |
 | `POST /sdui/draft/preview` | admin | A token that shows the draft to this administrator alone, on any device they are signed in on, for two hours: {token, expiresAt}. Sent as preview=<token> or X-WMS-SDUI-Preview with the page and navigation routes. |
 | `GET /sdui/export` | admin | One page (?page=<id>) or the whole configuration as a file: {format: "wittymedia-ui", formatVersion, kind, page or config}. |
 | `POST /sdui/import` | admin | Bring in a file made by export: a page (saved under its own ID) or a configuration (its pages and navigation replace the target's; its theme colours too with theme=1). Into the draft unless target=published, which needs If-Match. dryRun=1 only reports the issues and the changes. |

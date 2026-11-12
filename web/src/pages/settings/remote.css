@@ -86,7 +86,6 @@
 .rem-result { display: flex; gap: 8px; margin: 6px 0 0; padding: 10px 12px; border-radius: var(--r-sm); font-weight: 600; background: var(--bg-3); }
 .rem-result svg { flex: none; }
 .rem-result.ok svg { color: var(--ok); }
-.rem-key { font-size: var(--text-md); letter-spacing: .04em; }
 
 .rem-check { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; }
 .rem-check li { display: grid; gap: 2px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--bg-3); border-left: 3px solid var(--bg-4); font-size: var(--text-sm); }
@@ -108,9 +107,6 @@
 .rem-sessions .set-pill, .rem-sessions .set-badge { margin-left: 8px; }
 .rem-text.warn { font-weight: 700; }
 
-.rem-recovery { padding: 14px; margin-bottom: 12px; border-radius: var(--r-md); border: 1px solid var(--accent); }
-.rem-recovery p { margin: 4px 0 10px; color: var(--fg-2); }
-.rem-recovery ul { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 
 .rem-advanced > summary { cursor: pointer; padding: 2px 0; }
 .rem-advanced > summary h2 { display: inline; font-size: inherit; margin: 0; }

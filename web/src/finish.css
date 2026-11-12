@@ -118,3 +118,27 @@ html[data-focus-style="ring-lift"] :is(.card, .sdui-item):focus-visible .poster 
 }
 @keyframes finish-slide { from { opacity: 0; transform: translateX(2rem); } }
 @keyframes finish-fade { from { opacity: 0; } }
+
+/* ---- what a look is known by (canvas All_<look>), for what the data tables cannot say ---- */
+/* Rail: title-on-art cards, the one under focus carrying the accent bar. */
+html[data-card-set="plate"] .card { display: grid; }
+html[data-card-set="plate"] .card > .poster, html[data-card-set="plate"] .card > .title { grid-area: 1 / 1; }
+html[data-card-set="plate"] .card > .sub { display: none; }
+html[data-card-set="plate"] .card > .title { align-self: end; margin: 0; padding: var(--space-xl) var(--space-s) var(--space-s); z-index: 1; color: var(--on-image); background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--picture-bg) 78%, transparent)); border-radius: 0 0 var(--r-md) var(--r-md); font-size: var(--text-sm); text-shadow: 0 1px 2px var(--picture-bg); }
+html[data-card-set="plate"] .card:is(:hover, :focus-visible) > .title { background: var(--accent); color: var(--accent-fg); text-shadow: none; }
+/* Big picture: huge type, huge tiles, the strongest focus. */
+html[data-experience="bigpicture"] { font-size: 125%; --focus-width: 4px; --focus-offset: 4px; }
+html[data-experience="bigpicture"] :is(.btn, .nav-link, .topnav-link) { min-block-size: 3.25rem; font-size: var(--text-lg); font-weight: 700; }
+html[data-experience="bigpicture"] :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--accent); }
+html[data-card-set="tile"] .card > .title { font-size: var(--role-title-size); font-weight: 700; }
+/* Classic Satellite: brushed-silver bevelled bars with dark words and an orange highlight. */
+.app[data-nav-style="bevelBar"] .topbar { background: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 90%, var(--fg-3)), color-mix(in srgb, var(--on-image) 62%, var(--fg-3))); color: var(--picture-bg); border-block-end: 1px solid var(--border-strong); }
+.app[data-nav-style="bevelBar"] .topbar :is(.brand, .brand-name, .topnav-link) { color: var(--picture-bg); }
+.app[data-nav-style="bevelBar"] .topnav-link { background: linear-gradient(180deg, var(--on-image), color-mix(in srgb, var(--on-image) 70%, var(--fg-3))); border: 1px solid color-mix(in srgb, var(--picture-bg) 40%, transparent); }
+.app[data-nav-style="bevelBar"] .topnav-link.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.app[data-nav-style="bevelBar"] .topbar .brand-name b { color: var(--accent-fg); text-shadow: 0 0 1px var(--picture-bg); }
+/* Retro (teletext): flat blocks of colour, capitals, hard edges. */
+html[data-card-set="block"] .card > .title { text-transform: uppercase; letter-spacing: var(--tracking-label); }
+html[data-card-set="block"] :is(.btn, .card .poster) { border: 2px solid var(--fg); box-shadow: none; }
+/* Paper: hairlines in place of shadows. */
+html[data-experience="paper"] :is(.card .poster, .sdui-widget, .modal, [role=menu]) { box-shadow: none; border: 1px solid var(--border-strong); }

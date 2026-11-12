@@ -1029,7 +1029,7 @@ with `shown` centred in it (or the logo at `imageUrl`, fitted inside; the letter
 in the rail's header, the tab bar's and the sign-in; `warnings` list the parts in a fixed colour that fall
 under 4.5:1 on a surface of this theme. The owner's colouring is `brandColouring` (the quick modes below) or
 `brandSpans`, the editor's `[{from, to, color, bold}]` over code points (at most 40, in order, not
-overlapping), which wins when set; the mark is `brandMark`, both in `PUT /settings`.
+overlapping), which wins when set; the mark is `brandMark`, both in `PUT /settings`. A `PUT /settings` that changes any of the name's keys also answers `brandWarnings`: `[{text, surface, where, ratio, need, variant?}]`, the fixed-colour parts under 4.5:1 on a surface of the server's theme (empty when none), to show as "Check:" notes; the save still happens.
 
 `brandColouring` is how the owner chose it, kept with the name in `PUT /settings`:
 

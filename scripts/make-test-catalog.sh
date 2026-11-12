@@ -35,6 +35,19 @@ if [ ! -f "$key" ]; then
 fi
 pub=$(cat "$out/test-key.pub")
 
+# The modules are built against each other's checkouts, not the versions their go.mod names: a
+# module of API 4 needs WittyModule's sdui package, which a checkout has before any release does.
+# A go.work of our own, in the output folder, so nothing is written into the checkouts.
+# WMS_CATALOG_GOMOD=1 builds each against its go.mod alone, as a release would.
+if [ "${WMS_CATALOG_GOMOD:-}" != 1 ]; then
+  rm -f "$out/go.work" "$out/go.work.sum"
+  (cd "$out" && GOWORK=off go work init)
+  for repo in WittyModule WittyDisc "${mods[@]}"; do
+    [ -f "$repos/$repo/go.mod" ] && (cd "$out" && GOWORK="$out/go.work" go work use "$(cd -P "$repos/$repo" && pwd)")
+  done
+  export GOWORK="$out/go.work"
+fi
+
 rm -f "$out/catalog.json" "$out/catalog.json.sig"
 for repo in "${mods[@]}"; do
   dir="$repos/$repo"

@@ -38,13 +38,12 @@ export type EncryptedHelpPage = {
   devicesIntro: string; devices: { name: string; facts: string; source: string; url: string }[]; checked: string; note: string
 }
 export type GuidePage = {
-  now: number; from: number; to: number; total: number; offset: number; channels: GuideChannel[]; groups: string[]; skin: Skin; layout: 'classic' | 'streaming'; theme?: string
+  now: number; from: number; to: number; total: number; offset: number; channels: GuideChannel[]; groups: string[]; theme?: string
   // Which set it is of (tv-sets), and where the channel asked for with locate= is in it, -1 when it isn't.
   set?: string; located?: number
   // What a device that hasn't chosen does with "Keep playing when this tab is in the background".
   backgroundPlay?: boolean
 }
-export type Skin = 'cable' | 'satellite' | 'midnight' | 'theme'
 export type TuneInfo = {
   key: string; kind: 'library' | 'tuner'; number: string; name: string; logo?: string; url: string
   now: Programme | null; next: Programme | null; playing?: Programme; description?: string; accent?: string; brand?: ChannelBrand; positionSec: number; serverTime: number

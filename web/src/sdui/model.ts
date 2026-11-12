@@ -249,7 +249,7 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
   }
   switch (x.type) {
     case 'Page': e.role = 'main'; e.label = str(p, 'title'); break
-    case 'Shelf': collection(); e.role = 'list'; e.label = str(p, 'title'); break
+    case 'Shelf': case 'Carousel': collection(); e.role = 'list'; e.label = str(p, 'title'); break
     case 'Grid':
       collection()
       e.role = !l.focusEngine && l.formFactor !== 'desktop' && l.formFactor !== 'web' ? 'list' : 'grid'
@@ -282,7 +282,19 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
       text('keys', list(p, 'entries').map((en) => str(en as Props, 'label')).join(' · '))
       e.textSize = l.dock?.hintSize
       break
-    case 'Tabs': e.role = 'tablist'; e.cards = kids; break
+    case 'WidgetGrid': e.role = 'group'; e.label = pageTitle; e.columns = Math.trunc(num(p, 'columns') ?? 4); e.cards = kids; break
+    case 'Widget': {
+      e.role = 'region'; e.label = str(p, 'title'); text('title', str(p, 'title')); text('kind', str(p, 'kind'))
+      e.columns = Math.trunc(num(p, 'w') || 0); e.cardHeight = Math.trunc(num(p, 'h') || 0); e.cards = kids
+      break
+    }
+    case 'NumberedRow':
+      e.cards = kids; e.role = 'list'; e.label = str(p, 'title')
+      text('title', str(p, 'title')); text('empty', str(p, 'emptyText'))
+      e.hasMore = !!obj(p, 'more')
+      text('numbers', (x.children || []).map((c) => str(c.props, 'number')).join(' '))
+      break
+    case 'Tabs': case 'CrossBar': e.role = 'tablist'; e.cards = kids; break
     case 'Tab':
       e.role = 'tab'; e.label = str(p, 'label') + (p.selected === true ? ', selected' : '')
       text('title', str(p, 'label')); lines('title', 1)
@@ -295,7 +307,8 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
       for (const f of list(p, 'fields')) { const fl = fieldOf(f as Props); b.push(fl.label + ': ' + (optionLabel(fl) || 'Any')) }
       if (b.length) e.buttons = b
       const c = num(p, 'count')
-      if (c !== undefined) text('count', Math.trunc(c) + ' titles')
+      if (str(p, 'countText')) text('count', str(p, 'countText'))
+      else if (c !== undefined) text('count', Math.trunc(c) + ' titles')
       break
     }
     case 'DetailHeader': {

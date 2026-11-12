@@ -268,41 +268,16 @@ export type Saved = {
   previewBar?: 'bar' | 'over'
 }
 
-export type OwnerLook = { theme?: string; layout?: string; skin?: string }
+export type OwnerLook = { theme?: string }
 
-const LEGACY_COLOURS: Record<string, Colours> = {
-  midnight: { bg: '#000000', cell: '#2a2a2a', live: '#3a3a3a', hi: '#ffffff', accent: '#c9a2ff' },
-  cable: { bg: '#06164a', cell: '#1a43b8', live: '#0f6a7f', hi: '#ffd60a', accent: '#ffd60a' },
-  satellite: { bg: '#07090d', cell: '#2b3039', live: '#4d3700', hi: '#ffb300', accent: '#ffb300' },
-}
-
-// The two earlier choices, a layout and a set of colours, as one theme. Every pair has an exact
-// home, so nobody's look changes in moving over: the pairs that were built into a theme become
-// it, and the rest become that theme's overrides or Custom.
-export function fromLegacy(layout: string | undefined, colours: string | undefined, customBg?: unknown, customAccent?: unknown): Pick<Saved, 'theme' | 'custom' | 'themeColours'> {
-  const own: Colours = isHex(customBg) && isHex(customAccent) ? { bg: customBg, accent: customAccent, hi: customAccent } : {}
-  if (layout === 'streaming') {
-    if (colours === 'theme') return { theme: 'modern' }
-    return { theme: 'modern', themeColours: { modern: colours === 'custom' ? own : LEGACY_COLOURS[colours || 'midnight'] || LEGACY_COLOURS.midnight } }
-  }
-  if (colours === 'satellite') return { theme: 'satellite' }
-  if (colours === 'midnight') return { theme: 'custom', custom: { shape: 'box', font: '' }, themeColours: { custom: LEGACY_COLOURS.midnight } }
-  if (colours === 'theme') return { theme: 'custom', custom: { shape: 'box', font: 'system' } }
-  if (colours === 'custom') return { theme: 'custom', custom: { shape: 'box', font: '' }, themeColours: { custom: own } }
-  return { theme: 'classic' }
-}
-
-// Reads what was saved in any earlier form. A look saved before there were themes held a layout,
-// colours or both. What it left out came from the owner's starting look at the time, as now.
-export function upgradeSaved(raw: Record<string, unknown>, owner: OwnerLook = {}): Saved {
+// Reads what was saved. A saved look from before the preview's side and width were choices becomes those; any
+// other key it doesn't know is dropped, and an unknown theme or shape is ignored.
+export function upgradeSaved(raw: Record<string, unknown>): Saved {
   const out = { ...raw } as Saved & Record<string, unknown>
   if (typeof raw.previewPos === 'string' && !raw.previewSide) out.previewSide = raw.previewPos === 'tl' || raw.previewPos === 'bl' ? 'left' : 'right'
   if (typeof raw.previewSize === 'string' && !raw.previewW) {
     const w = ({ s: 220, m: 320, l: 460 } as Record<string, number>)[raw.previewSize]
     if (w) out.previewW = w
-  }
-  if (!isThemeId(raw.theme) && (typeof raw.layout === 'string' || typeof raw.colours === 'string')) {
-    Object.assign(out, fromLegacy(typeof raw.layout === 'string' ? raw.layout : owner.layout, typeof raw.colours === 'string' ? raw.colours : owner.skin, raw.customBg, raw.customAccent))
   }
   for (const k of ['previewPos', 'previewSize', 'previewX', 'previewY', 'layout', 'colours', 'customBg', 'customAccent']) delete out[k]
   if (!isThemeId(out.theme)) delete out.theme
@@ -310,18 +285,9 @@ export function upgradeSaved(raw: Record<string, unknown>, owner: OwnerLook = {}
   return out
 }
 
-// What a theme says for clients that only know the two earlier looks. Kept beside the theme in
-// the account's saved look, and the guide API's layout and skin come from the same table.
-export function legacyOf(id: ThemeId, shape: Shape): { layout: 'classic' | 'streaming'; colours: 'cable' | 'satellite' | 'midnight' | 'theme' } {
-  if (id === 'satellite') return { layout: 'classic', colours: 'satellite' }
-  if (id === 'classic' || id === 'teletext') return { layout: 'classic', colours: 'cable' }
-  if (shape === 'box') return { layout: 'classic', colours: 'theme' }
-  return { layout: 'streaming', colours: 'theme' }
-}
-
 // ------------------------------------------------------------------ which wins
 
-export type Suggestion = { theme?: string; layout?: string; colours?: string }
+export type Suggestion = { theme?: string }
 export type ThemeChoice = { theme: ThemeId; source: 'you' | 'app' | 'owner'; custom?: Saved['custom']; colours?: Partial<Record<ThemeId, Colours>> }
 
 // A viewer's own choice wins. Then what the app's theme suggests, then the owner's starting
@@ -329,15 +295,7 @@ export type ThemeChoice = { theme: ThemeId; source: 'you' | 'app' | 'owner'; cus
 export function chooseTheme(saved: Saved, suggestion: Suggestion, owner: OwnerLook): ThemeChoice {
   if (saved.theme) return { theme: saved.theme, source: 'you' }
   if (isThemeId(suggestion.theme) && suggestion.theme !== 'custom') return { theme: suggestion.theme, source: 'app' }
-  if (suggestion.layout || suggestion.colours) {
-    const l = fromLegacy(suggestion.layout || owner.layout, suggestion.colours || owner.skin)
-    return { theme: l.theme!, source: 'app', custom: l.custom, colours: l.themeColours }
-  }
   if (isThemeId(owner.theme) && owner.theme !== 'custom') return { theme: owner.theme, source: 'owner' }
-  if (owner.layout || owner.skin) {
-    const l = fromLegacy(owner.layout, owner.skin)
-    return { theme: l.theme!, source: 'owner', custom: l.custom, colours: l.themeColours }
-  }
   return { theme: 'classic', source: 'owner' }
 }
 

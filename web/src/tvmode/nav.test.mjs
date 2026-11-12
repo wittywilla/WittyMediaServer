@@ -3,33 +3,43 @@
 // node --experimental-strip-types --test web/src/tvmode/nav.test.mjs
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { backStep, stepTab, tabPath, tabRootOf, tvKey, TV_TABS } from './nav.ts'
+import { backStep, stepTab, tabPath, tabRootOf, tvKey } from './nav.ts'
 import { moreTabs, tabsFromMenu } from './nav.ts'
+
+// The bar as the server's menu for a television sends it: Home, Libraries, Games, Live TV, Search, then You.
+const TV_TABS = tabsFromMenu([
+  { id: 'home', label: 'Home', to: '/', placement: 'primary' },
+  { id: 'libraries', label: 'Libraries', to: '/libraries', placement: 'primary' },
+  { id: 'games', label: 'Games', to: '/games', placement: 'primary' },
+  { id: 'live', label: 'Live TV', to: '/tv', placement: 'primary' },
+  { id: 'search', label: 'Search', to: '/search', placement: 'primary' },
+  { id: 'you', label: 'You', to: '/you', placement: 'end', screen: 'profiles' },
+])
 
 test('the bar is Home, Libraries, Games, Live TV, Search, then You', () => {
   assert.deepEqual(TV_TABS.map((t) => t.label), ['Home', 'Libraries', 'Games', 'Live TV', 'Search', 'You'])
 })
 
 test('a tab\'s first screen has the bar; a screen opened from it has none', () => {
-  assert.equal(tabRootOf('/'), 'home')
-  assert.equal(tabRootOf('/libraries'), 'libraries')
-  assert.equal(tabRootOf('/libraries/'), 'libraries')
-  assert.equal(tabRootOf('/games'), 'games')
-  assert.equal(tabRootOf('/tv'), 'live')
-  assert.equal(tabRootOf('/search'), 'search')
-  assert.equal(tabRootOf('/you'), 'you')
+  assert.equal(tabRootOf('/', TV_TABS), 'home')
+  assert.equal(tabRootOf('/libraries', TV_TABS), 'libraries')
+  assert.equal(tabRootOf('/libraries/', TV_TABS), 'libraries')
+  assert.equal(tabRootOf('/games', TV_TABS), 'games')
+  assert.equal(tabRootOf('/tv', TV_TABS), 'live')
+  assert.equal(tabRootOf('/search', TV_TABS), 'search')
+  assert.equal(tabRootOf('/you', TV_TABS), 'you')
   for (const pushed of ['/item/4', '/library/2', '/games/library/7', '/games/game/9', '/tv/recordings', '/settings/users', '/show/3']) {
-    assert.equal(tabRootOf(pushed), null, pushed)
+    assert.equal(tabRootOf(pushed, TV_TABS), null, pushed)
   }
 })
 
 test('LB and RB step along the bar and stop at its ends', () => {
-  assert.equal(stepTab('home', 1), 'libraries')
-  assert.equal(stepTab('search', 1), 'you')
-  assert.equal(stepTab('you', 1), null)
-  assert.equal(stepTab('home', -1), null)
-  assert.equal(stepTab('live', -1), 'games')
-  assert.equal(tabPath('live'), '/tv')
+  assert.equal(stepTab('home', 1, TV_TABS), 'libraries')
+  assert.equal(stepTab('search', 1, TV_TABS), 'you')
+  assert.equal(stepTab('you', 1, TV_TABS), null)
+  assert.equal(stepTab('home', -1, TV_TABS), null)
+  assert.equal(stepTab('live', -1, TV_TABS), 'games')
+  assert.equal(tabPath('live', TV_TABS), '/tv')
 })
 
 test('Back: a pushed screen, then the bar, then Home, then out', () => {

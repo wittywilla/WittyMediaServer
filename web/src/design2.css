@@ -77,3 +77,8 @@ html[data-input="pad"] .key-legend kbd, html[data-input="remote"] .key-legend kb
 .sdui-letters { display: grid; grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr)); gap: var(--space-s); }
 .sdui-dock-sheet { display: flex; justify-content: flex-end; padding: var(--space-m) var(--gutter); }
 .sdui-dock-sheet-list { display: grid; gap: var(--space-s); }
+
+/* ---- dashboard widgets: a grid of cells, each spanning its w and h ---- */
+.sdui-widgets { display: grid; gap: var(--space-m); }
+.sdui-widget { padding: var(--space-m); border-radius: var(--r-lg); min-width: 0; }
+.sdui-widget h3 { margin: 0 0 var(--space-s); font-size: var(--role-title-size); }

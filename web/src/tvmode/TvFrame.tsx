@@ -14,7 +14,7 @@ import { SduiRoute } from '../sdui/useSdui'
 import { focusFirst, OWN_BACK, typing } from '../tv'
 import Libraries from './Libraries'
 import More from './More'
-import { backStep, stepTab, tabPath, tabRootOf, tabsFromMenu, tvKey, TV_TABS, type TabId, type TvTab } from './nav'
+import { backStep, stepTab, tabPath, tabRootOf, tabsFromMenu, tvKey, type TabId, type TvTab } from './nav'
 import Search from './Search'
 import You from './You'
 
@@ -61,7 +61,7 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
   const nav = useNavigate()
   // The bar: the server's menu for a television, where it sends one.
   const menu = useMenu()
-  const tabs = useMemo(() => (menu.server && menu.all.length ? tabsFromMenu(menu.all) : TV_TABS), [menu.server, menu.all])
+  const tabs = useMemo(() => tabsFromMenu(menu.all), [menu.all])
   // The layout the server gives a television: its top menu, or a menu down the side.
   const sideMenu = !!menu.server && menu.shell?.nav === 'tvSideMenu'
   const tabsNow = useRef(tabs)
